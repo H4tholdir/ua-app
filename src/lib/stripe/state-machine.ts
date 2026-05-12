@@ -70,7 +70,7 @@ export async function transitionLabStato(
     return { success: false, error: updateErr.message }
   }
 
-  await supabase.from('lab_stato_log').insert({
+  const { error: logErr } = await supabase.from('lab_stato_log').insert({
     laboratorio_id: laboratorioId,
     stato_from: currentStato,
     stato_to: newStato,
@@ -78,6 +78,9 @@ export async function transitionLabStato(
     actor: opts.actor ?? null,
     stripe_event_id: opts.stripeEventId ?? null,
   })
+  if (logErr) {
+    console.error('[state-machine] audit log failed:', logErr.message, { laboratorioId, newStato })
+  }
 
   return { success: true }
 }

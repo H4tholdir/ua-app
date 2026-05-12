@@ -10,7 +10,7 @@ export const STRIPE_PRICES = {
 export type StripePriceKey = keyof typeof STRIPE_PRICES
 
 export function isPriceAllowed(priceId: string): boolean {
-  return Object.values(STRIPE_PRICES).includes(priceId as never)
+  return (Object.values(STRIPE_PRICES) as string[]).includes(priceId)
 }
 
 export function getPlanName(priceId: string): string {
