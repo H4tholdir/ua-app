@@ -16,7 +16,7 @@ Prima di qualsiasi lavoro, leggi `../ANALISI/` per contesto. I documenti chiave:
 ## 1. Stack
 
 ```
-Next.js 14 (App Router) + TypeScript
+Next.js 16 (App Router) + TypeScript
 TailwindCSS v3 + shadcn/ui
 Motion 12.x + GSAP (free) + Rive
 Supabase (PostgreSQL + Auth + Storage + Realtime)
