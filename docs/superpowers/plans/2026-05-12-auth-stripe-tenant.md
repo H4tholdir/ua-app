@@ -33,8 +33,8 @@ src/app/(auth)/invite/[token]/page.tsx              ← 🎨 accettazione invito
 src/app/(auth)/auth/callback/route.ts               ← Supabase PKCE callback
 src/app/(app)/layout.tsx                            ← subscription gate
 src/app/(app)/dashboard/page.tsx                    ← placeholder dashboard
-src/app/(app)/billing/page.tsx                      ← 🎨 paywall/billing
-src/app/blocked/page.tsx                            ← 🎨 pagina blacklist
+src/app/billing/page.tsx                            ← 🎨 paywall/billing (FUORI da (app) — evita redirect loop)
+src/app/blocked/page.tsx                            ← 🎨 pagina blacklist (FUORI da (app))
 src/app/(admin)/layout.tsx                          ← verifica admin da DB
 src/app/(admin)/labs/page.tsx                       ← 🎨 lista laboratori
 src/app/(admin)/labs/[id]/page.tsx                  ← 🎨 dettaglio + azioni lab
@@ -243,6 +243,13 @@ CREATE POLICY "tenant_delete" ON lavori
     laboratorio_id = public.current_lab_id()
     AND public.lab_is_accessible()
   );
+
+-- 8. Tabella idempotency per eventi Stripe (previene double-processing su retry)
+CREATE TABLE IF NOT EXISTS stripe_events (
+  id              TEXT PRIMARY KEY,   -- event.id da Stripe (es: evt_1TWC...)
+  processed_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Nessuna policy: solo service role può scrivere/leggere
 
 SQLEOF
 echo "Migration file created"
@@ -621,8 +628,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Escludi: static assets, images, favicon, Stripe webhook (raw body richiesto)
-    '/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Escludi: static, api/*, favicon, immagini
+    // IMPORTANTE: escludi /api/* — il middleware non deve trasformare errori API in redirect HTML
+    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }
 ```
@@ -1304,7 +1312,7 @@ export async function POST(req: Request) {
 
   if (!invite) return NextResponse.json({ error: 'Invito non valido' }, { status: 404 })
   if (invite.accepted_at) return NextResponse.json({ error: 'Invito già usato' }, { status: 409 })
-  if (new Date(invite.expires_at) < new Date()) {
+  if (new Date(invite.expires_at) <= new Date()) {
     return NextResponse.json({ error: 'Invito scaduto' }, { status: 410 })
   }
 
@@ -1313,6 +1321,21 @@ export async function POST(req: Request) {
   const inviteEmail = invite.email.toLowerCase().trim()
   if (normalizedEmail !== inviteEmail) {
     return NextResponse.json({ error: 'Email non corrisponde all\'invito' }, { status: 403 })
+  }
+
+  // ATOMIC CLAIM: previene race condition — due richieste parallele non possono
+  // entrambe passare il controllo accepted_at IS NULL
+  const { data: claimedInvite } = await supabase
+    .from('inviti')
+    .update({ accepted_at: new Date().toISOString() })
+    .eq('id', invite.id)
+    .is('accepted_at', null)  // ← condizione atomica
+    .gt('expires_at', new Date().toISOString())
+    .select('id')
+    .single()
+
+  if (!claimedInvite) {
+    return NextResponse.json({ error: 'Invito già accettato o scaduto' }, { status: 409 })
   }
 
   // Crea record in utenti
@@ -1337,12 +1360,6 @@ export async function POST(req: Request) {
     laboratorio_id: invite.laboratorio_id,
     ruolo: invite.ruolo,
   }, { onConflict: 'user_id,laboratorio_id' })
-
-  // Marca invite come accettato
-  await supabase
-    .from('inviti')
-    .update({ accepted_at: new Date().toISOString() })
-    .eq('id', invite.id)
 
   return NextResponse.json({ success: true })
 }
@@ -1403,16 +1420,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Blacklist: accesso revocato immediatamente
   if (lab.stato === 'blacklist') redirect('/blocked')
 
-  // Sospeso: solo la pagina billing è accessibile
+  // IMPORTANTE: /billing e /blocked vivono fuori dal gruppo (app) — src/app/billing/
+  // Se fossero dentro (app), si creerebbe un redirect loop:
+  // sospeso → redirect('/billing') → (app) layout → sospeso → loop ∞
   if (lab.stato === 'sospeso') redirect('/billing')
-
-  // Scaduto: solo export + billing
   if (lab.stato === 'scaduto') redirect('/billing?expired=true')
 
-  // Trial scaduto ma job non ancora girato
+  // trial_ends_at IS NULL = trial admin override senza scadenza — NON bloccare
   if (
     lab.stato === 'trial' &&
-    lab.trial_ends_at &&
+    lab.trial_ends_at !== null &&
     new Date(lab.trial_ends_at) < new Date()
   ) {
     redirect('/billing?trial_expired=true')
@@ -1658,6 +1675,39 @@ export async function handleSubscriptionDeleted(
     actor: 'stripe',
   })
 }
+
+export async function handleSubscriptionUpdated(
+  event: Stripe.Event,
+  supabase: SupabaseClient
+): Promise<void> {
+  const subscription = event.data.object as Stripe.Subscription
+
+  const { data: lab } = await supabase
+    .from('laboratori')
+    .select('id, stato')
+    .eq('stripe_subscription_id', subscription.id)
+    .single()
+
+  if (!lab) return
+
+  // Aggiorna sempre lo status Stripe canonico
+  await supabase
+    .from('laboratori')
+    .update({
+      stripe_subscription_status: subscription.status,
+      stripe_price_id: subscription.items.data[0]?.price.id ?? null,
+    })
+    .eq('id', lab.id)
+
+  // Mapping Stripe status → lab stato (solo se necessario)
+  if (subscription.status === 'active' && lab.stato === 'sospeso') {
+    await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+      stripeEventId: event.id,
+      stripeEventCreatedAt: new Date(event.created * 1000),
+      actor: 'stripe',
+    })
+  }
+}
 ```
 
 - [ ] **Step 2: webhook/route.ts**
@@ -1703,6 +1753,7 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook error: ${message}`, { status: 400 })
   }
 
+  // service role: webhook non ha sessione utente, RLS bypassata intenzionalmente
   const supabase = getServiceClient()
 
   try {
@@ -1716,8 +1767,11 @@ export async function POST(req: Request) {
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event, supabase)
         break
+      case 'customer.subscription.updated':
+        // Sincronizza stripe_subscription_status con lo stato Stripe canonico
+        await handleSubscriptionUpdated(event, supabase)
+        break
       default:
-        // Evento non gestito — ok, solo log
         console.log(`Webhook non gestito: ${event.type}`)
     }
   } catch (err) {
@@ -1829,10 +1883,14 @@ export async function POST(req: Request) {
     payment_method_types: ['card', 'sepa_debit'],
     line_items: [{ price: priceId, quantity: 1 }],
     mode: 'subscription',
-    success_url: `${appUrl}/dashboard?checkout=success`,
+    // {CHECKOUT_SESSION_ID} → Stripe lo sostituisce con l'ID reale per post-checkout verification
+    success_url: `${appUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/billing?checkout=cancelled`,
+    // client_reference_id: permette a webhook di trovare il lab senza lookup extra
+    client_reference_id: lab.id,
     metadata: { laboratorio_id: lab.id },
     subscription_data: {
+      // CRITICO: il webhook usa questo metadata per associare subscription → lab
       metadata: { laboratorio_id: lab.id },
     },
     payment_method_collection: 'always',
