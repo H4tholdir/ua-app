@@ -1,0 +1,92 @@
+# === NEXT.JS ===
+.next/
+out/
+build/
+
+# === DIPENDENZE ===
+node_modules/
+.pnp
+.pnp.js
+
+# === ENV / SEGRETI (MAI in git) ===
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.pem
+*.key
+
+# === SUPABASE ===
+supabase/.temp/
+supabase/functions/.env
+
+# === TYPESCRIPT ===
+*.tsbuildinfo
+next-env.d.ts
+
+# === LOG — TUTTI I LOG FUORI DAL REPO ===
+*.log
+*.log.*
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# === FILE TEMPORANEI — REGOLA ARCHIBALD ===
+# Mai lasciare file temporanei in root o in src/
+# Tutti i file temporanei vanno in /tmp/ o /scripts/tmp/
+*.tmp
+*.temp
+*-temp.*
+*-debug.*
+*-test-*
+*-checkpoint.*
+*-backup.*
+*-old.*
+*.bak
+*.backup
+# Screenshot di debug (lezione da Archibald)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+!public/**/*.png
+!public/**/*.jpg
+!public/**/*.gif
+!public/**/*.webp
+!public/**/*.ico
+!public/**/*.svg
+# File di analisi non appartengono al repo
+*-analysis.*
+*-report.*
+*-result.*
+
+# === PLAYWRIGHT ===
+test-results/
+playwright-report/
+playwright/.cache/
+
+# === SISTEMA OPERATIVO ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === IDE ===
+.vscode/
+.idea/
+*.suo
+*.user
+
+# === MISC ===
+.vercel
+.turbo
+.cache/
+coverage/
+.nyc_output/
+dist/
