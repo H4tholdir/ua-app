@@ -206,8 +206,8 @@ export default function ResetForm() {
       <canvas ref={canvasRef} className="ua-confetti-canvas" aria-hidden="true" />
 
       <div className="login-root" data-login-theme={theme}>
-        <div className="ua-wrap">
-          <div className="ua-fside">
+        <div className="ua-wrap" style={{ maxWidth: '400px' }}>
+          <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
             <div className="ua-card">
 
               {/* Logo — tap to bounce */}

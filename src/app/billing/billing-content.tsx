@@ -87,13 +87,23 @@ export default function BillingContent({ labNome, reason }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
   const [showReteInfo, setShowReteInfo] = useState(false)
   const [logoAnimating, setLogoAnimating] = useState(false)
+  const [isDark, setIsDark] = useState(false)
 
   const reducedMotion = useReducedMotion()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const partRef = useRef<GoldParticle[]>([])
   const rafRef = useRef<number | null>(null)
 
-  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }, [])
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    setIsDark(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    mq.addEventListener('change', handler)
+    return () => {
+      mq.removeEventListener('change', handler)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   const handleLogoClick = useCallback(() => {
     sndClick()
@@ -149,7 +159,7 @@ export default function BillingContent({ labNome, reason }: Props) {
     <>
       <canvas ref={canvasRef} className="ua-billing-confetti" aria-hidden="true" />
 
-      <div className="login-root" data-login-theme="light">
+      <div className="login-root" data-login-theme={isDark ? 'dark' : 'light'}>
         <div className="ua-wrap" style={{ maxWidth: '400px' }}>
           <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
             <div className="ua-card" style={{ gap: '24px', padding: '36px 28px 32px' }}>

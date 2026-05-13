@@ -121,8 +121,8 @@ export default function InviteForm({ email, labNome, token }: Props) {
 
   return (
     <div className="login-root" data-login-theme={theme}>
-      <div className="ua-wrap">
-        <div className="ua-fside">
+      <div className="ua-wrap" style={{ maxWidth: '400px' }}>
+        <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
           <div className="ua-card">
 
             <div className="ua-la">

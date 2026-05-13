@@ -710,6 +710,12 @@
   cursor: pointer;
   box-shadow: var(--ua-sh-b);
   transition: transform 0.1s, box-shadow 0.15s;
+  /* Center text inside the button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
 }
 .ua-btn-secondary:active {
   transform: scale(.97);

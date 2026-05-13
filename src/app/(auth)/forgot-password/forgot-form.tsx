@@ -74,8 +74,8 @@ export default function ForgotForm() {
 
   return (
     <div className="login-root" data-login-theme={theme}>
-      <div className="ua-wrap">
-        <div className="ua-fside">
+      <div className="ua-wrap" style={{ maxWidth: '400px' }}>
+        <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
           <div className="ua-card">
 
             {/* Logo — tap to bounce */}
