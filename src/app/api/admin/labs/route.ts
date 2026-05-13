@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { stripe } from '@/lib/stripe/server'
+import { isSameOrigin } from '@/lib/utils/csrf'
 
 async function verifyAdmin() {
   const userClient = await getServerUserClient()
@@ -30,6 +31,7 @@ export async function GET() {
 
 // POST — crea nuovo laboratorio (con Stripe customer)
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const admin = await verifyAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 

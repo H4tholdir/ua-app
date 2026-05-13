@@ -60,14 +60,18 @@ export default function ForgotForm() {
     sndClick()
     setLoading(true)
 
-    const supabase = getBrowserClient()
-    // Always resolve: privacy-preserving (don't reveal if email exists)
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    })
-
-    setLoading(false)
-    setSent(true)
+    try {
+      const supabase = getBrowserClient()
+      // Always show success regardless of result — privacy-preserving
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
+    } catch {
+      // Network error: still show success to avoid leaking email existence
+    } finally {
+      setLoading(false)
+      setSent(true)
+    }
   }, [email, loading])
 
   const theme = isDark ? 'dark' : 'light'

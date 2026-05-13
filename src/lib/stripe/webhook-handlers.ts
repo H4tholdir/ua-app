@@ -3,6 +3,37 @@ import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { transitionLabStato } from './state-machine'
 
+// Handles checkout.session.completed — binds stripe_subscription_id to the lab
+// MUST run before any invoice.* handlers can find the lab.
+export async function handleCheckoutCompleted(
+  event: Stripe.Event,
+  supabase: SupabaseClient
+): Promise<void> {
+  const session = event.data.object as Stripe.Checkout.Session
+  const labId = session.client_reference_id ?? session.metadata?.laboratorio_id
+  if (!labId) return
+
+  const subId = typeof session.subscription === 'string'
+    ? session.subscription
+    : session.subscription?.id ?? null
+  const customerId = typeof session.customer === 'string'
+    ? session.customer
+    : session.customer?.id ?? null
+  const priceId = session.line_items?.data[0]?.price?.id ?? null
+
+  await supabase
+    .from('laboratori')
+    .update({
+      stripe_subscription_id: subId,
+      stripe_customer_id: customerId ?? undefined,
+      stripe_price_id: priceId,
+      stripe_subscription_status: 'active',
+    })
+    .eq('id', labId)
+
+  await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', stripeOpts(event))
+}
+
 async function findLabBySubscription(
   supabase: SupabaseClient,
   subId: string

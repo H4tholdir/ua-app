@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { transitionLabStato, type LaboStatoValue } from '@/lib/stripe/state-machine'
+import { isSameOrigin } from '@/lib/utils/csrf'
 
 const VALID_STATES: LaboStatoValue[] = ['trial', 'attivo', 'sospeso', 'scaduto', 'blacklist']
 
@@ -19,6 +20,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const admin = await verifyAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 

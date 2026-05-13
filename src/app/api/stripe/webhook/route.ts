@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import {
+  handleCheckoutCompleted,
   handlePaymentSucceeded,
   handlePaymentFailed,
   handleSubscriptionDeleted,
@@ -34,25 +35,29 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook error: ${msg}`, { status: 400 })
   }
 
-  // Idempotency: scarta eventi già processati
   const supabase = getServiceClient()
-  const { data: existing } = await supabase
-    .from('stripe_events')
-    .select('id')
-    .eq('id', event.id)
-    .single()
 
-  if (existing) {
-    return new NextResponse('Already processed', { status: 200 })
-  }
-
-  // Registra l'evento prima di processarlo (best-effort)
-  await supabase
+  // Atomic idempotency: try INSERT — if the event was already processed the
+  // unique constraint fires and we get an error; return 200 to stop Stripe retrying.
+  const { error: insertErr } = await supabase
     .from('stripe_events')
     .insert({ id: event.id, processed_at: new Date().toISOString() })
 
+  if (insertErr) {
+    // Unique constraint violation → already processed
+    if (insertErr.code === '23505') {
+      return new NextResponse('Already processed', { status: 200 })
+    }
+    // Any other DB error: let Stripe retry
+    console.error('[webhook] Failed to record event:', insertErr)
+    return new NextResponse('DB error', { status: 500 })
+  }
+
   try {
     switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event, supabase)
+        break
       case 'invoice.payment_succeeded':
         await handlePaymentSucceeded(event, supabase)
         break
@@ -66,12 +71,12 @@ export async function POST(req: Request) {
         await handleSubscriptionUpdated(event, supabase)
         break
       default:
-        // Evento non gestito — log silenzioso, risposta 200 per non triggerare retry Stripe
         console.log(`[webhook] Evento non gestito: ${event.type}`)
     }
   } catch (err) {
     console.error(`[webhook] Errore processando ${event.type}:`, err)
-    // 500 → Stripe riprova con backoff esponenziale
+    // Delete the idempotency record so Stripe can retry successfully
+    await supabase.from('stripe_events').delete().eq('id', event.id)
     return new NextResponse('Internal error processing webhook', { status: 500 })
   }
 

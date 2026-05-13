@@ -74,20 +74,24 @@ export async function GET(req: NextRequest) {
       .eq('id', lab.id)
   }
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    payment_method_types: ['card', 'sepa_debit'],
-    line_items: [{ price: priceId, quantity: 1 }],
-    mode: 'subscription',
-    success_url: `${APP_URL}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url:  `${APP_URL}/billing?checkout=cancelled`,
-    client_reference_id: lab.id,
-    metadata: { laboratorio_id: lab.id },
-    subscription_data: {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card', 'sepa_debit'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${APP_URL}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${APP_URL}/billing?checkout=cancelled`,
+      client_reference_id: lab.id,
       metadata: { laboratorio_id: lab.id },
-    },
-    payment_method_collection: 'always',
-  })
-
-  return NextResponse.redirect(session.url!)
+      subscription_data: {
+        metadata: { laboratorio_id: lab.id },
+      },
+      payment_method_collection: 'always',
+    })
+    return NextResponse.redirect(session.url!)
+  } catch (err) {
+    console.error('[checkout] Stripe error:', err)
+    return NextResponse.redirect(new URL('/billing?error=checkout_unavailable', APP_URL))
+  }
 }

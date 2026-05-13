@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   // Non autenticato su route protetta → login
   if (!user && !isPublicRoute) {
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
+    loginUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(loginUrl)
   }
 

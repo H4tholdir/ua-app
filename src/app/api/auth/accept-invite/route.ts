@@ -50,6 +50,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invito già accettato o scaduto' }, { status: 409 })
   }
 
+  // Verify lab is still accessible (state may have changed after invite was created)
+  const { data: lab } = await supabase
+    .from('laboratori')
+    .select('stato')
+    .eq('id', invite.laboratorio_id)
+    .single()
+
+  if (!lab || !['trial', 'attivo'].includes(lab.stato)) {
+    return NextResponse.json({ error: 'Il laboratorio non è più accessibile' }, { status: 403 })
+  }
+
   // Create utenti record
   const { error: utentiErr } = await supabase
     .from('utenti')

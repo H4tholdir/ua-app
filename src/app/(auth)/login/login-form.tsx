@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
+import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 import { useReducedMotion } from '@/design-system/motion'
 
 // ─── Web Audio helpers ──────────────────────────────────────────────────────
@@ -193,7 +194,17 @@ export default function LoginForm() {
     setBtnState('loading')
 
     const supabase = getBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    let error
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password })
+      error = result.error
+    } catch {
+      setErrorMsg('Connessione non disponibile. Riprova.')
+      setBtnState('error')
+      setLoading(false)
+      setTimeout(() => setBtnState('idle'), 450)
+      return
+    }
 
     if (error) {
       setErrorMsg('Email o password non corretti')
@@ -207,8 +218,7 @@ export default function LoginForm() {
     sndSuccess()
     setBtnState('success')
 
-    const next = searchParams.get('next')
-    const safePath = next?.startsWith('/') ? next : '/dashboard'
+    const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
 
     // Brief success state before navigation
     setTimeout(() => {

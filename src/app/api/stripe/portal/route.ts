@@ -38,10 +38,14 @@ export async function GET() {
     return NextResponse.redirect(new URL('/billing', APP_URL))
   }
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: lab.stripe_customer_id,
-    return_url: `${APP_URL}/dashboard`,
-  })
-
-  return NextResponse.redirect(session.url)
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: lab.stripe_customer_id,
+      return_url: `${APP_URL}/dashboard`,
+    })
+    return NextResponse.redirect(session.url)
+  } catch (err) {
+    console.error('[portal] Stripe error:', err)
+    return NextResponse.redirect(new URL('/billing?error=portal_unavailable', APP_URL))
+  }
 }
