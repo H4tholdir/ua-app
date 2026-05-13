@@ -87,3 +87,7 @@ export async function POST(req: Request) {
   if (labErr) return NextResponse.json({ error: labErr.message }, { status: 500 })
   return NextResponse.json(lab, { status: 201 })
 }
+
+// PATCH /api/admin/labs/[id] — update lab fields (trial_ends_at, anagrafica)
+// Note: this is on the collection route; the [id] variant handles stato transitions.
+// We also export a general PATCH for direct field updates.
