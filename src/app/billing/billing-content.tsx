@@ -152,7 +152,7 @@ export default function BillingContent({ labNome, reason }: Props) {
       <div className="login-root" data-login-theme="light">
         <div className="ua-wrap" style={{ maxWidth: '400px' }}>
           <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
-            <div className="ua-card">
+            <div className="ua-card" style={{ gap: '24px', padding: '36px 28px 32px' }}>
 
               {/* Logo */}
               <div className="ua-la">

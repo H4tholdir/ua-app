@@ -36,7 +36,7 @@ export default function BlockedPage() {
     <div className="login-root" data-login-theme="dark">
       <div className="ua-wrap" style={{ maxWidth: '400px' }}>
         <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
-          <div className="ua-card">
+          <div className="ua-card" style={{ gap: '32px', padding: '44px 28px 40px' }}>
 
             {/* Logo — desaturated with X overlay */}
             <div className="ua-la">
