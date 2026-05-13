@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>UA — Entra nel laboratorio</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+[data-theme="light"]{
+  --bg:#DDD8D3;--sfc:#E4DFD9;--elv:#EDEDEA;--prs:#D4CFC9;
+  --t1:#1C1916;--t2:#96918D;--t3:#B8B3AE;
+  --red:#D90012;--red-d:#A80010;--red-l:#F01828;
+  --g:#3DCB5C;--b:#5A5FCC;
+  --sh-c:inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),-5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),-5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44),3px 5px 9px -1px rgba(148,128,118,.26);
+  --sh-p:inset 3px 4px 8px rgba(148,128,118,.40),inset -2px -2px 5px rgba(255,255,255,.52),2px 2px 5px -2px rgba(148,128,118,.18);
+  --sh-i:inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66);
+}
+[data-theme="dark"]{
+  --bg:#1A1916;--sfc:#222019;--elv:#2C2A27;--prs:#121110;
+  --t1:#F0EDE8;--t2:#8A8580;--t3:#555250;
+  --red:#E8001A;--red-d:#B50014;--red-l:#FF1A30;
+  --g:#2ECC7A;--b:#6A70E8;
+  --sh-c:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 2px rgba(0,0,0,.50),-3px -3px 7px rgba(255,255,255,.03),8px 10px 22px -4px rgba(0,0,0,.70),2px 4px 10px rgba(0,0,0,.50);
+  --sh-b:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -2px 3px rgba(0,0,0,.50),-3px -3px 7px rgba(255,255,255,.03),8px 12px 22px -4px rgba(0,0,0,.75),2px 4px 8px rgba(0,0,0,.55);
+  --sh-p:inset 3px 4px 8px rgba(0,0,0,.65),inset -2px -2px 5px rgba(255,255,255,.04),2px 2px 5px rgba(0,0,0,.40);
+  --sh-i:inset 4px 4px 9px rgba(0,0,0,.60),inset -3px -3px 7px rgba(255,255,255,.04);
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-font-smoothing:antialiased;color:var(--t1);transition:background .4s,color .3s;}
+
+/* Theme btn */
+.thbtn{position:fixed;top:16px;right:16px;z-index:100;width:44px;height:44px;border-radius:12px;border:none;background:var(--elv);box-shadow:var(--sh-b);cursor:pointer;font-size:18px;transition:box-shadow .14s,transform .14s;}
+.thbtn:active{box-shadow:var(--sh-p);transform:scale(.94);}
+
+/* Layout */
+.wrap{width:100%;max-width:380px;}
+@media(min-width:1024px){.wrap{max-width:860px;display:flex;gap:80px;align-items:center;}.brand{flex:1;}.fside{flex:0 0 380px;}}
+@media(max-width:1023px){.brand{display:none;}}
+.brand-h{font-size:38px;font-weight:900;color:var(--t1);letter-spacing:-.03em;line-height:1.1;}
+.brand-h span{color:var(--red);}
+.brand-p{font-size:15px;font-weight:500;color:var(--t2);line-height:1.6;margin-top:10px;}
+
+/* Card */
+.card{background:var(--elv);border-radius:32px;padding:34px 26px 28px;box-shadow:var(--sh-c);}
+
+/* Logo area */
+.la{display:flex;flex-direction:column;align-items:center;margin-bottom:26px;}
+.lw{width:80px;height:80px;border-radius:22px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.90),8px 10px 20px -4px rgba(148,128,118,.44),2px 4px 8px rgba(148,128,118,.22);cursor:pointer;user-select:none;}
+.lw img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .15s;}
+.lw:active img{transform:scale(.93);}
+.tagline{font-size:13px;font-weight:600;color:var(--t2);text-align:center;line-height:1.45;margin-top:12px;}
+.tagline em{font-style:normal;color:var(--red);font-weight:700;}
+
+/* Logo exclamation animation — onomatopea UÀ! */
+@keyframes uaExclaim{
+  0%  {transform:scale(1) rotate(0);}
+  12% {transform:scale(1.18) rotate(-4deg);}
+  24% {transform:scale(.90) rotate(3deg);}
+  36% {transform:scale(1.10) rotate(-2deg);}
+  50% {transform:scale(.95) rotate(1deg);}
+  65% {transform:scale(1.04) rotate(0);}
+  80% {transform:scale(.99);}
+  100%{transform:scale(1);}
+}
+.lw.bounce{animation:uaExclaim .55s cubic-bezier(0.34,1.56,0.64,1);}
+
+/* Fields */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.flbl{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--t2);padding-left:4px;}
+.iw{background:var(--prs);border-radius:14px;box-shadow:var(--sh-i);display:flex;align-items:center;transition:box-shadow .22s;}
+.iw:focus-within{box-shadow:var(--sh-i),0 0 0 2.5px var(--red);}
+.iw input:-webkit-autofill,
+.iw input:-webkit-autofill:hover,
+.iw input:-webkit-autofill:focus,
+.iw input:-webkit-autofill:active{
+  /* NON coprire con background — solo colore testo */
+  -webkit-text-fill-color:var(--t1)!important;
+  color:var(--t1)!important;
+  /* Ritarda infinitamente il background del browser */
+  transition:background-color 99999s ease 0s!important;
+  /* Background completamente trasparente */
+  background-color:transparent!important;
+  -webkit-box-shadow:none!important;
+  box-shadow:none!important;
+}
+.ii{width:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;}
+.ii svg{width:16px;height:16px;stroke:var(--t3);stroke-width:1.8;}
+.inp{flex:1;background:transparent;border:none;padding:14px 14px 14px 0;font-family:inherit;font-size:16px;font-weight:500;color:var(--t1);outline:none;}
+.inp::placeholder{color:var(--t3);}
+.eye{width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;opacity:.6;transition:opacity .14s;}
+.eye:hover{opacity:1;}
+.eye svg{width:16px;height:16px;stroke:var(--t2);stroke-width:1.8;}
+
+/* ============================================================
+   TOGGLE NEUROMORPHIC FISICO — come reference image 17
+   Track: profondo inset, pill shape
+   Thumb: large raised circle — niente colore, solo ombre
+   ============================================================ */
+.rem{display:flex;align-items:center;gap:14px;margin-bottom:22px;cursor:pointer;user-select:none;}
+
+.trk{
+  width:64px;height:36px;border-radius:18px;
+  flex-shrink:0;position:relative;
+  overflow:hidden;
+  background:linear-gradient(to right, #3DCB5C 50%, #E94C4C 50%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.40),
+    inset 0 -1.5px 3px rgba(0,0,0,.12),
+    4px 5px 10px -2px rgba(148,128,118,.38),
+    -2px -2px 7px rgba(255,255,255,.68);
+  cursor:pointer;
+  transition:none;
+}
+[data-theme="dark"] .trk{
+  background:linear-gradient(to right, #2BA346 50%, #C13333 50%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 2px rgba(0,0,0,.50),
+    4px 5px 10px -2px rgba(0,0,0,.65),
+    -1px -1px 5px rgba(255,255,255,.03);
+}
+.trk::before{
+  content:"\2713";
+  position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  font-size:14px;font-weight:900;color:rgba(255,255,255,.90);
+  line-height:1;z-index:0;pointer-events:none;
+}
+.trk::after{
+  content:"\00D7";
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  font-size:14px;font-weight:900;color:rgba(255,255,255,.90);
+  line-height:1;z-index:0;pointer-events:none;
+}
+.tmb{
+  position:absolute;
+  width:30px;height:30px;border-radius:15px;
+  top:3px;left:3px;
+  z-index:2;
+  background:linear-gradient(160deg, #FFFFFF 0%, #F0EDE8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 2px 6px rgba(100,80,70,.42),
+    0 1px 3px rgba(100,80,70,.26);
+  transition:transform .24s cubic-bezier(0.34,1.56,0.64,1);
+}
+[data-theme="dark"] .tmb{
+  background:linear-gradient(160deg, #E8E5E0 0%, #D8D4CE 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.70),
+    0 2px 6px rgba(0,0,0,.55),
+    0 1px 3px rgba(0,0,0,.40);
+}
+.trk.on .tmb{transform:translateX(0);}
+.trk:not(.on) .tmb{transform:translateX(31px);}
+
+
+/* Links + security */
+.links{display:flex;justify-content:center;margin-top:18px;}
+.link{font-size:13px;font-weight:600;color:var(--t2);text-decoration:none;padding:4px 0;position:relative;transition:color .14s;}
+.link::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1.5px;background:var(--red);transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(0.34,1.56,0.64,1);}
+.link:hover{color:var(--red);}.link:hover::after{transform:scaleX(1);}
+.sec{display:flex;justify-content:center;margin-top:14px;}
+.sec-p{display:flex;align-items:center;gap:6px;background:var(--sfc);border-radius:9999px;padding:7px 14px;box-shadow:var(--sh-b);}
+.sec-dot{width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 0 3px rgba(46,204,122,.18);}
+.sec-t{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--t2);}
+.emsg{font-size:12px;font-weight:600;color:var(--red);text-align:center;padding:6px 12px;background:rgba(217,0,18,.08);border-radius:10px;display:none;margin-bottom:12px;}
+.emsg.v{display:block;}
+
+/* Entrance anims */
+@keyframes uaIn{0%{transform:scale(0.3) translateY(-8px);opacity:0;}50%{transform:scale(1.14) translateY(2px);opacity:1;}to{transform:scale(1);opacity:1;}}
+@keyframes sUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.lw{animation:uaIn .5s cubic-bezier(0.34,1.56,0.64,1) .05s both;}
+.tagline{animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .32s both;}
+.field:nth-child(1){animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .36s both;}
+.field:nth-child(2){animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .44s both;}
+.rem{animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .48s both;}
+.btn-main{animation:sUp .5s cubic-bezier(0.34,1.56,0.64,1) .52s both;}
+.bio-row{animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .62s both;}
+.links{animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .56s both;}
+.sec-p{animation:sUp .4s cubic-bezier(0.32,0.72,0,1) .66s both;}
+
+.fp-img{
+  width:36px;height:36px;display:block;flex-shrink:0;
+  object-fit:contain;
+  /* finger.png: nero su bianco → multiply rimuove bianco */
+  mix-blend-mode:multiply;
+  filter:sepia(1) hue-rotate(195deg) saturate(4) brightness(.82);
+}
+[data-theme="dark"] .fp-img{
+  mix-blend-mode:screen;
+  filter:invert(1) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(1.15);
+}
+
+/* ============================================================
+   BIOMETRIC ROW — impronta + face ID affiancati
+   ============================================================ */
+.bio-row{
+  display:none;
+  gap:16px;justify-content:center;
+  margin-top:18px; /* spazio dal bottone rosso */
+}
+.bio-row.visible{display:flex;}
+
+/* ============================================================
+   FINGERPRINT — stile reference image 18:
+   Grande cerchio raised, impronta colorata dentro
+   ============================================================ */
+.bio-btn{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  cursor:pointer;user-select:none;
+}
+
+.bio-circle{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--elv);
+  /* RAISED semplice — come reference (no doppio anello) */
+  box-shadow:var(--sh-b);
+  display:flex;align-items:center;justify-content:center;
+  transition:box-shadow .14s,transform .14s;
+  position:relative;overflow:hidden;
+}
+.bio-circle:active{transform:scale(.92);box-shadow:var(--sh-p);}
+
+/* Scanning sweep animation */
+.bio-circle.scanning::after{
+  content:'';
+  position:absolute;top:0;left:0;right:0;
+  height:50%;
+  background:linear-gradient(180deg,rgba(90,95,204,.15) 0%,rgba(90,95,204,0) 100%);
+  animation:bioSweep 1.2s ease-in-out infinite;
+}
+@keyframes bioSweep{
+  0%{top:-100%;opacity:0;}
+  20%{opacity:1;}
+  80%{opacity:1;}
+  100%{top:100%;opacity:0;}
+}
+
+.bio-icon{width:38px;height:38px;}
+
+/* Fingerprint image wrapper */
+.fp-img-wrap{
+  width:38px;height:38px;
+  overflow:hidden;flex-shrink:0;
+}
+.fp-img{
+  /* Mostra metà sinistra dell'immagine (fingerprint nero su bianco) */
+  width:76px;height:38px;max-width:none;display:block;
+  /* multiply: bianco → trasparente, nero rimane */
+  mix-blend-mode:multiply;
+  /* Converti il nero in brand blue */
+  filter:sepia(1) hue-rotate(195deg) saturate(4) brightness(.85);
+}
+[data-theme="dark"] .fp-img{
+  /* screen: nero → trasparente su bg scuro, bianco rimane */
+  mix-blend-mode:screen;
+  filter:invert(1) sepia(1) hue-rotate(195deg) saturate(3) brightness(1.1);
+}
+.bio-lbl{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--t3);text-align:center;}
+
+/* ============================================================
+   FACE ID icon — outline di un volto
+   ============================================================ */
+.face-circle{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--elv);
+  box-shadow:var(--sh-b);
+  display:flex;align-items:center;justify-content:center;
+  transition:box-shadow .14s,transform .14s;
+}
+.face-circle:active{transform:scale(.92);box-shadow:var(--sh-p);}
+
+
+/* ============================================================
+   BOTTONE PRINCIPALE — più bold, più distante dagli altri
+   ============================================================ */
+.btn-main{
+  background:var(--red);border-radius:18px;
+  padding:18px 20px;
+  display:flex;align-items:center;justify-content:center;
+  /* Bordo neumorphic: inset highlight invece di outline duro */
+  box-shadow:inset 0 2px 0 rgba(255,140,120,.20),inset 0 -4px 7px rgba(60,0,0,.22),inset 0 0 0 1.5px rgba(40,0,0,.28),-3px -3px 7px rgba(255,100,80,.10),10px 13px 22px -2px rgba(100,5,5,.55),4px 6px 10px rgba(100,5,5,.28);
+  box-shadow:inset 0 2px 0 rgba(255,140,120,.20),inset 0 -4px 7px rgba(60,0,0,.22),-3px -3px 7px rgba(255,100,80,.10),10px 13px 22px -2px rgba(100,5,5,.55),4px 6px 10px rgba(100,5,5,.28);
+  cursor:pointer;border:none;width:100%;
+  margin-top:6px; /* spazio extra */
+  transition:box-shadow .14s,transform .14s,background .22s,outline-color .14s;
+}
+.btn-main:active{transform:translateY(3px) scale(.984);outline-color:rgba(40,0,0,.60);box-shadow:inset 5px 6px 12px rgba(60,0,0,.44),inset -2px -2px 5px rgba(255,60,40,.14),2px 2px 6px rgba(100,5,5,.22);}
+.btn-main.loading{background:var(--sfc);outline-color:rgba(148,128,118,.25);box-shadow:var(--sh-b);}
+.btn-main.success{background:var(--g);outline-color:rgba(0,60,20,.42);}
+.btn-main.err{animation:shk .4s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes shk{0%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}100%{transform:none}}
+.bmt{
+  font-size:17px;
+  /* 900 + letter-spacing richiama il font del logo */
+  font-weight:900;
+  letter-spacing:.03em;
+  color:white;
+  transition:color .14s;
+}
+.btn-main.loading .bmt{color:var(--t2);}
+
+
+/* From Uiverse.io by faxriddin20 — adattato per UÀ */
+.toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: 0.5em;
+  padding: 0.125em;
+  background-image: linear-gradient(to bottom, #d5d5d5, #e8e8e8);
+  box-shadow: 0 1px 1px rgb(255 255 255 / 0.6);
+  font-size: 0.75em;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .toggle-wrapper {
+  background-image: linear-gradient(to bottom, #2A2825, #3A3835);
+  box-shadow: 0 1px 1px rgb(255 255 255 / 0.06);
+}
+
+.toggle-checkbox {
+  appearance: none;
+  position: absolute;
+  z-index: 1;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  border-radius: 0.375em;
+  width: 3em;
+  height: 1.5em;
+  background-color: #e8e8e8;
+  box-shadow: inset 0 0 0.0625em 0.125em rgb(255 255 255 / 0.2),
+    inset 0 0.0625em 0.125em rgb(0 0 0 / 0.4);
+  transition: background-color 0.4s linear;
+}
+[data-theme="dark"] .toggle-container {
+  background-color: #2C2A27;
+  box-shadow: inset 0 0 0.0625em 0.125em rgb(255 255 255 / 0.06),
+    inset 0 0.0625em 0.125em rgb(0 0 0 / 0.65);
+}
+
+/* ON: verde brand invece di lime */
+.toggle-checkbox:checked + .toggle-container {
+  background-color: #3DCB5C;
+}
+[data-theme="dark"] .toggle-checkbox:checked + .toggle-container {
+  background-color: #2BA346;
+}
+
+.toggle-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: 0.0625em;
+  border-radius: 0.3125em;
+  width: 1.375em;
+  height: 1.375em;
+  background-color: #e8e8e8;
+  box-shadow: inset 0 -0.0625em 0.0625em 0.125em rgb(0 0 0 / 0.1),
+    inset 0 -0.125em 0.0625em rgb(0 0 0 / 0.2),
+    inset 0 0.1875em 0.0625em rgb(255 255 255 / 0.3),
+    0 0.125em 0.125em rgb(0 0 0 / 0.5);
+  transition: left 0.4s;
+}
+[data-theme="dark"] .toggle-button {
+  background-color: #DDDAD4;
+  box-shadow: inset 0 -0.0625em 0.0625em 0.125em rgb(0 0 0 / 0.25),
+    inset 0 -0.125em 0.0625em rgb(0 0 0 / 0.40),
+    inset 0 0.1875em 0.0625em rgb(255 255 255 / 0.12),
+    0 0.125em 0.125em rgb(0 0 0 / 0.75);
+}
+
+.toggle-checkbox:checked + .toggle-container > .toggle-button {
+  left: 1.5625em;
+}
+
+.toggle-button-circles-container {
+  display: grid;
+  grid-template-columns: repeat(3, min-content);
+  gap: 0.125em;
+  position: absolute;
+  margin: 0 auto;
+}
+
+.toggle-button-circle {
+  border-radius: 50%;
+  width: 0.125em;
+  height: 0.125em;
+  background-image: radial-gradient(circle at 50% 0, #f5f5f5, #c4c4c4);
+}
+[data-theme="dark"] .toggle-button-circle {
+  background-image: radial-gradient(circle at 50% 0, #E0DDD8, #A0A09A);
+}
+
+[data-theme="dark"] .toggle-button-circle {
+  background-image: radial-gradient(circle at 50% 0, #E8E5E0, #A8A5A0);
+}
+
+.reml{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--t3);}
+</style>
+</head>
+<body>
+<button class="thbtn" id="thbtn">☀️</button>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-h">Il laboratorio<br>più rapido,<br>più semplice,<br>più <span>UÀ.</span></div>
+    <p class="brand-p">Dal banco alla consegna, tutto automatico.<br>DdC MDR, FatturaPA, WhatsApp — in un tap.</p>
+  </div>
+
+  <div class="fside">
+    <div class="card">
+      <div class="la">
+        <!-- Logo animato al tocco — onomatopea UÀ! -->
+        <div class="lw" id="lw">
+          <img src="ua-icon.png" alt="UA!" draggable="false">
+        </div>
+        <p class="tagline">Il laboratorio più rapido,<br>più semplice, più <em>UÀ.</em></p>
+      </div>
+
+      <div class="emsg" id="emsg">Email o password non corretti</div>
+
+      <form id="frm" autocomplete="on">
+        <div class="field">
+          <label class="flbl" for="ie">Email</label>
+          <div class="iw">
+            <div class="ii"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+            <input id="ie" class="inp" type="email" name="email" placeholder="filippo@laboratorio.it" autocomplete="username email" inputmode="email" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="flbl" for="ip">Password</label>
+          <div class="iw">
+            <div class="ii"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <input id="ip" class="inp" type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+            <div class="eye" id="eyebtn" role="button" tabindex="0">
+              <svg id="eyeico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggle UIverse — struttura esatta by faxriddin20 -->
+        <div class="rem" id="remrow" style="display:flex;align-items:center;gap:14px;margin-bottom:22px;">
+          <div class="toggle-wrapper" id="toggle-wrap">
+            <input type="checkbox" class="toggle-checkbox" id="rem-check" checked>
+            <div class="toggle-container">
+              <div class="toggle-button">
+                <div class="toggle-button-circles-container">
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                  <div class="toggle-button-circle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="reml" style="font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--t3);">Ricorda su questo dispositivo</span>
+        </div>
+
+        <!-- CTA -->
+        <button class="btn-main" id="btnmain" type="submit">
+          <span class="bmt" id="bmtxt">Entra nel laboratorio</span>
+        </button>
+
+        <!-- Biometric row: impronta + face ID -->
+        <div class="bio-row" id="biorow">
+          <!-- Fingerprint -->
+          <div class="bio-btn" id="fpbtn">
+            <div class="bio-circle" id="fpcircle">
+              <!-- Fingerprint icon reale — metà sinistra dell'immagine -->
+              <img src="ua-finger.png" class="fp-img" alt="fingerprint" draggable="false">
+            </div>
+            <span class="bio-lbl" id="fplbl">Touch ID</span>
+          </div>
+
+          <!-- Face ID -->
+          <div class="bio-btn" id="facbtn">
+            <div class="face-circle">
+              <!-- Lucide ScanFace icon -->
+              <svg class="bio-icon" viewBox="0 0 24 24" fill="none" stroke="var(--b)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <path d="M9 9h.01"/>
+                <path d="M15 9h.01"/>
+              </svg>
+            </div>
+            <span class="bio-lbl" id="faclbl">Face ID</span>
+          </div>
+        </div>
+      </form>
+
+      <div class="links">
+        <a href="#" class="link">Password dimenticata?</a>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-p">
+        <div class="sec-dot"></div>
+        <span class="sec-t">Connessione cifrata &middot; GDPR</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//   AUDIO — Meccanico vintage typewriter
+//   Tecnica: noise burst + bandpass BASSO (800Hz, non 3kHz)
+//   = "thock" macchina da scrivere, non "click" digitale
+// ============================================================
+var _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+
+// Typewriter vintage — più scuro, "thock" non "click"
+function sndKey(){
+  try{
+    var c=ac();
+    // Noise burst breve (20ms)
+    var len=Math.floor(c.sampleRate*.020);
+    var buf=c.createBuffer(1,len,c.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5);
+    var src=c.createBufferSource();src.buffer=buf;
+    // Bandpass BASSO = suono scuro e caldo
+    var bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=700;bp.Q.value=1.8;
+    // Aggiunge un "boom" basso per il thock
+    var lp=c.createBiquadFilter();lp.type='lowshelf';lp.frequency.value=200;lp.gain.value=8;
+    var g=c.createGain();g.gain.setValueAtTime(.35,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.022);
+    src.connect(bp);bp.connect(lp);lp.connect(g);g.connect(c.destination);src.start();
+  }catch(e){}
+}
+
+// Focus campo — fruscio morbido su plastilina
+function sndFocus(){
+  try{
+    var c=ac();
+    var len=Math.floor(c.sampleRate*.018);
+    var buf=c.createBuffer(1,len,c.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,7)*.6;
+    var src=c.createBufferSource();src.buffer=buf;
+    var lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=300;
+    var g=c.createGain();g.gain.setValueAtTime(.07,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.016);
+    src.connect(lp);lp.connect(g);g.connect(c.destination);src.start();
+  }catch(e){}
+}
+
+// Click pulsante — thud meccanico medio
+function sndClick(){
+  try{
+    var c=ac();
+    var len=Math.floor(c.sampleRate*.022);
+    var buf=c.createBuffer(1,len,c.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.8);
+    var src=c.createBufferSource();src.buffer=buf;
+    var bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=600;bp.Q.value=1.5;
+    var g=c.createGain();g.gain.setValueAtTime(.45,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.022);
+    src.connect(bp);bp.connect(g);g.connect(c.destination);src.start();
+  }catch(e){}
+}
+
+// Snap toggle
+function sndSnap(){
+  try{
+    var c=ac();
+    var len=Math.floor(c.sampleRate*.008);
+    var buf=c.createBuffer(1,len,c.sampleRate);
+    var d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,5);
+    var src=c.createBufferSource();src.buffer=buf;
+    var bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2000;bp.Q.value=3;
+    var g=c.createGain();g.gain.setValueAtTime(.28,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.008);
+    src.connect(bp);bp.connect(g);g.connect(c.destination);src.start();
+  }catch(e){}
+}
+
+function sndSuccess(){
+  try{
+    var c=ac();
+    [[0,420,.07],[.1,560,.08],[.2,700,.10]].forEach(function(n){
+      var o=c.createOscillator(),g=c.createGain();
+      o.type='sine';o.frequency.setValueAtTime(n[1],c.currentTime+n[0]);
+      g.gain.setValueAtTime(.06,c.currentTime+n[0]);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+n[0]+n[2]);
+      o.connect(g);g.connect(c.destination);o.start(c.currentTime+n[0]);o.stop(c.currentTime+n[0]+n[2]);
+    });
+  }catch(e){}
+}
+
+var openD=false;
+function initAudio(){if(!openD){openD=true;}}
+document.addEventListener('touchstart',initAudio,{once:true,passive:true});
+document.addEventListener('mousedown',initAudio,{once:true});
+
+// Input sounds
+document.querySelectorAll('.inp').forEach(function(inp){
+  inp.addEventListener('focus',sndFocus);
+  /* typing sound removed */
+});
+
+// Password toggle
+var inpPwd=document.getElementById('ip');
+var eyeIco=document.getElementById('eyeico');
+var pwdShown=false;
+var svgEyeO='<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>';
+var svgEyeC='<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>';
+document.getElementById('eyebtn').addEventListener('click',function(){
+  pwdShown=!pwdShown;
+  inpPwd.type=pwdShown?'text':'password';
+  eyeIco.innerHTML=pwdShown?svgEyeC:svgEyeO;
+  sndSnap();
+});
+document.getElementById('eyebtn').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();this.click();}});
+
+// Remember toggle
+var remOn=true;
+var remCheck=document.getElementById('rem-check');
+// Il checkbox gestisce il proprio stato — ascolta solo il change
+remCheck.addEventListener('change',function(){
+  remOn=remCheck.checked;
+  sndSnap();
+});
+
+// Theme toggle
+var isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+var thbtn=document.getElementById('thbtn');
+function applyTheme(){document.documentElement.setAttribute('data-theme',isDark?'dark':'light');thbtn.textContent=isDark?'☀️':'🌙';}
+applyTheme();
+thbtn.addEventListener('click',function(){isDark=!isDark;applyTheme();sndSnap();});
+
+// Logo animation — UÀ! exclamation tap
+var lw=document.getElementById('lw');
+lw.addEventListener('click',function(){
+  sndClick();
+  lw.classList.remove('bounce');
+  void lw.offsetWidth;
+  lw.classList.add('bounce');
+  lw.addEventListener('animationend',function(){lw.classList.remove('bounce');},{once:true});
+});
+
+// Biometric detection
+async function detectBio(){
+  try{
+    if(!window.PublicKeyCredential)return;
+    var ok=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if(!ok)return;
+    var row=document.getElementById('biorow');
+    var fplbl=document.getElementById('fplbl');
+    var faclbl=document.getElementById('faclbl');
+    var ua=navigator.userAgent;
+    // Platform labels
+    if(/iPhone/.test(ua)){fplbl.textContent='Touch ID';faclbl.textContent='Face ID';}
+    else if(/iPad/.test(ua)){fplbl.textContent='Touch ID';faclbl.textContent='Face ID';}
+    else if(/Macintosh/.test(ua)){fplbl.textContent='Touch ID';faclbl.textContent='Face ID';}
+    else if(/Android/.test(ua)){fplbl.textContent='Impronta';faclbl.textContent='Volto';}
+    else{fplbl.textContent='Impronta';faclbl.textContent='Windows Hello';}
+    row.classList.add('visible');
+    // Fingerprint tap
+    document.getElementById('fpbtn').addEventListener('click',function(){
+      sndClick();
+      var c=document.getElementById('fpcircle');
+      c.classList.add('scanning');
+      setTimeout(function(){c.classList.remove('scanning');},1800);
+    });
+    // Face ID tap
+    document.getElementById('facbtn').addEventListener('click',function(){sndClick();});
+  }catch(e){}
+}
+detectBio();
+
+// Login
+var busy=false;
+document.getElementById('frm').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(busy)return;
+  sndClick();busy=true;
+  var btn=document.getElementById('btnmain');
+  var txt=document.getElementById('bmtxt');
+  var em=document.getElementById('emsg');
+  em.classList.remove('v');
+  btn.classList.add('loading');txt.textContent='Accesso in corso...';
+  setTimeout(function(){
+    btn.classList.remove('loading');
+    var email=document.getElementById('ie').value;
+    if(email.indexOf('err')>-1){
+      btn.classList.add('err');em.classList.add('v');txt.textContent='Entra nel laboratorio';
+      setTimeout(function(){btn.classList.remove('err');},400);busy=false;
+    }else{
+      btn.classList.add('success');txt.textContent='Bentornato!';sndSuccess();
+      setTimeout(function(){btn.classList.remove('success');txt.textContent='Entra nel laboratorio';busy=false;},2500);
+    }
+  },900);
+});
+</script>
+</body>
+</html>
