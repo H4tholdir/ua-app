@@ -537,16 +537,19 @@
   100% { top: 100%; opacity: 0; }
 }
 .ua-fp-img-wrap {
-  width: 38px; height: 38px; overflow: hidden; flex-shrink: 0;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .ua-fp-img {
-  width: 76px; height: 38px; max-width: none; display: block;
+  /* finger.png = immagine singola — mostra intero, non crop */
+  width: 38px; height: 38px;
+  object-fit: contain;
+  display: block;
   mix-blend-mode: multiply;
-  filter: sepia(1) hue-rotate(195deg) saturate(4) brightness(.85);
+  filter: sepia(1) hue-rotate(195deg) saturate(4) brightness(.82);
 }
 .login-root[data-login-theme="dark"] .ua-fp-img {
   mix-blend-mode: screen;
-  filter: invert(1) sepia(1) hue-rotate(195deg) saturate(3) brightness(1.1);
+  filter: invert(1) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(1.15);
 }
 .ua-bio-lbl {
   font-size: 11px; font-weight: 600; letter-spacing: .06em;
