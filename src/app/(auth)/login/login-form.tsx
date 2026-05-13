@@ -434,7 +434,7 @@ export default function LoginForm() {
 
             {/* Links */}
             <div className="ua-links">
-              <a href="#" className="ua-link">Password dimenticata?</a>
+              <a href="/forgot-password" className="ua-link">Password dimenticata?</a>
             </div>
           </div>
 

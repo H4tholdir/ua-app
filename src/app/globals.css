@@ -589,3 +589,133 @@
 /* ============================================================
    END LOGIN PAGE
    ============================================================ */
+
+/* ============================================================
+   AUTH PAGES — Forgot / Reset password (shared with login-root)
+   ============================================================ */
+
+/* ── Password strength bars ── */
+.ua-strength-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+.ua-str-bar {
+  height: 3px;
+  flex: 1;
+  border-radius: 99px;
+  background: var(--ua-prs);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,.10);
+  transition: background 0.3s cubic-bezier(0.2,0,0,1);
+}
+.ua-str-bar[data-fill="weak"]   { background: #E8530A; }
+.ua-str-bar[data-fill="fair"]   { background: #E8A20A; }
+.ua-str-bar[data-fill="good"]   { background: #C8C200; }
+.ua-str-bar[data-fill="strong"] { background: #3DCB5C; }
+
+.ua-str-label {
+  font-size: 11px;
+  color: var(--ua-t3);
+  margin-top: 3px;
+  height: 16px;
+  transition: opacity 0.2s;
+}
+
+/* ── Error pill ── */
+.ua-err-pill {
+  background: rgba(217, 0, 18, 0.07);
+  border-radius: 12px;
+  padding: 9px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+.login-root[data-login-theme="dark"] .ua-err-pill {
+  background: rgba(217, 0, 18, 0.12);
+}
+.ua-err-pill span {
+  font-size: 13px;
+  color: var(--ua-red);
+  line-height: 1.4;
+}
+
+/* ── Success card ── */
+.ua-success-icon {
+  width: 76px; height: 76px;
+  border-radius: 22px;
+  background: var(--ua-elv);
+  box-shadow: var(--ua-sh-b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Confetti canvas (fixed overlay) ── */
+.ua-confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9000;
+}
+
+/* ── Page heading + subtext (auth pages) ── */
+.ua-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ua-t1);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.ua-page-sub {
+  font-size: 14px;
+  color: var(--ua-t2);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* ── Back link ── */
+.ua-back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ua-t2);
+  text-decoration: none;
+  align-self: flex-start;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.ua-back-link:hover { color: var(--ua-t1); }
+
+/* ── Secondary button (Torna al login) ── */
+.ua-btn-secondary {
+  height: 48px;
+  padding: 0 28px;
+  border-radius: 14px;
+  background: var(--ua-elv);
+  color: var(--ua-t1);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--ua-sh-b);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.ua-btn-secondary:active {
+  transform: scale(.97);
+  box-shadow: var(--ua-sh-pressed);
+}
+
+/* ============================================================
+   END AUTH PAGES
+   ============================================================ */
