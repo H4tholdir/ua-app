@@ -1,0 +1,48 @@
+import { redirect } from 'next/navigation'
+import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getServiceClient } from '@/lib/supabase/server-service'
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // 1. Validate session
+  const userClient = await getServerUserClient()
+  const { data: { user } } = await userClient.auth.getUser()
+  if (!user) redirect('/login')
+
+  // 2. Load user's lab via service client (bypasses RLS — current_lab_id() not yet defined)
+  const svc = getServiceClient()
+
+  const { data: utente } = await svc
+    .from('utenti')
+    .select('laboratorio_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!utente) redirect('/login?error=no_lab')
+
+  const { data: lab } = await svc
+    .from('laboratori')
+    .select('stato, trial_ends_at, nome')
+    .eq('id', utente.laboratorio_id)
+    .single()
+
+  if (!lab) redirect('/login?error=no_lab')
+
+  // Blacklist is terminal — revoked immediately with no appeal path
+  if (lab.stato === 'blacklist') redirect('/blocked')
+
+  // NOTE: /billing and /blocked live outside (app) group to avoid redirect loops.
+  // sospeso/scaduto → redirect('/billing') → (app) layout → sospeso → loop ∞
+  if (lab.stato === 'sospeso') redirect('/billing')
+  if (lab.stato === 'scaduto') redirect('/billing?expired=true')
+
+  // Trial expired — trial_ends_at IS NULL = admin override, never expires
+  if (
+    lab.stato === 'trial' &&
+    lab.trial_ends_at !== null &&
+    new Date(lab.trial_ends_at) < new Date()
+  ) {
+    redirect('/billing?trial_expired=true')
+  }
+
+  return <>{children}</>
+}
