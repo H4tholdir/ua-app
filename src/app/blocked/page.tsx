@@ -89,7 +89,7 @@ export default function BlockedPage() {
             </div>
 
             {/* Revoke info box */}
-            <div className="ua-revoke-box" role="region" aria-label="Istruzioni per l'assistenza">
+            <div className="ua-revoke-box" role="region" aria-label="Istruzioni per l'assistenza" style={{ marginTop: '8px' }}>
               <div className="ua-revoke-title">Come procedere</div>
               <p>
                 Scrivi a <strong>supporto@ua.app</strong> indicando il nome del laboratorio
