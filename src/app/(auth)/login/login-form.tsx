@@ -144,7 +144,13 @@ export default function LoginForm() {
   const [fpLabel, setFpLabel] = useState('Impronta')
   const [faceLabel, setFaceLabel] = useState('Face ID')
   const [logoAnimating, setLogoAnimating] = useState(false)
-  const [fpScanning, setFpScanning] = useState(false)
+  const [bioToast, setBioToast] = useState(false)
+
+  const handleBioClick = useCallback(() => {
+    sndClick()
+    setBioToast(true)
+    setTimeout(() => setBioToast(false), 2200)
+  }, [])
 
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
@@ -402,15 +408,9 @@ export default function LoginForm() {
                     type="button"
                     className="ua-bio-btn"
                     aria-label={`Accedi con ${fpLabel}`}
-                    onClick={() => {
-                      sndClick()
-                      if (!fpScanning) {
-                        setFpScanning(true)
-                        setTimeout(() => setFpScanning(false), 1800)
-                      }
-                    }}
+                    onClick={handleBioClick}
                   >
-                    <div className={`ua-bio-circle${fpScanning ? ' ua-bio-scanning' : ''}`}>
+                    <div className="ua-bio-circle">
                       <div className="ua-fp-img-wrap">
                         <img
                           src="/finger.png"
@@ -429,13 +429,37 @@ export default function LoginForm() {
                     type="button"
                     className="ua-bio-btn"
                     aria-label={`Accedi con ${faceLabel}`}
-                    onClick={sndClick}
+                    onClick={handleBioClick}
                   >
                     <div className="ua-bio-circle">
                       <FaceIdIcon color="var(--ua-b)" />
                     </div>
                     <span className="ua-bio-lbl">{faceLabel}</span>
                   </button>
+
+                  {/* Toast "presto disponibile" */}
+                  {bioToast && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      style={{
+                        position: 'absolute',
+                        bottom: '-2.5rem',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(15,30,82,0.92)',
+                        color: '#F0F4FF',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        padding: '0.35rem 0.9rem',
+                        borderRadius: '999px',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      Accesso biometrico — disponibile presto
+                    </div>
+                  )}
                 </div>
               )}
             </form>
