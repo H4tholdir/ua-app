@@ -92,7 +92,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   try {
     const arrayBuffer = await file.arrayBuffer()
-    url = await uploadToStorage(svc.storage as never, 'documenti', path, arrayBuffer, contentType)
+    url = await uploadToStorage(svc, 'documenti', path, arrayBuffer, contentType)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Upload fallito'
     return NextResponse.json({ error: msg }, { status: 500 })
