@@ -139,6 +139,33 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     delete body[field]
   }
 
+  // Fix cross-tenant FK: validare che cliente_id, paziente_id, tecnico_id, ciclo_id
+  // appartengano al laboratorio dell'utente prima di aggiornare
+  const FK_FIELDS = [
+    { field: 'cliente_id',  table: 'clienti' },
+    { field: 'paziente_id', table: 'pazienti' },
+    { field: 'tecnico_id',  table: 'tecnici' },
+    { field: 'ciclo_id',    table: 'cicli_produzione' },
+  ] as const
+
+  for (const { field, table } of FK_FIELDS) {
+    if (body[field] != null) {
+      const { data: fkRow } = await svc
+        .from(table)
+        .select('id')
+        .eq('id', body[field] as string)
+        .eq('laboratorio_id', utente.laboratorio_id)
+        .is('deleted_at', null)
+        .single()
+      if (!fkRow) {
+        return NextResponse.json(
+          { error: `${field} non appartiene a questo laboratorio` },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
   // Forza aggiornamento timestamp
   body.updated_at = new Date().toISOString()
 

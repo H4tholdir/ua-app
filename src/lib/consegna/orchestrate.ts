@@ -19,6 +19,7 @@ export async function orchestraConsegna(
   try {
     const { data, error } = await supabase.rpc('consegna_lavoro_lock', {
       p_lavoro_id: lavoro_id,
+      p_laboratorio_id: laboratorio_id,
     })
 
     if (error) {

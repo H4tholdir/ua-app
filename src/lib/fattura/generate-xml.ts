@@ -3,21 +3,8 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import type { LavoroDettaglio } from '@/types/domain'
 
-// ─── XML escaping ─────────────────────────────────────────────────────────────
-function xe(value: string | null | undefined): string {
-  if (!value) return ''
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/'/g, '&apos;')
-    .replace(/"/g, '&quot;')
-}
-
-// ─── Numeric formatting for FatturaPA (dot decimal, 2 places) ────────────────
-function fmt2(n: number): string {
-  return n.toFixed(2)
-}
+// Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
+import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
 
 // ─── Laboratorio row type (includes PEC SMTP fields not yet in domain.ts) ────
 interface LabRow {
@@ -70,17 +57,46 @@ export async function generaFatturaPA(
   const labRow = lab as unknown as LabRow
   const cliente = lavoro.cliente
 
-  // ── 2. Genera progressivi ────────────────────────────────────────────────
-  const progressivoFattura = await generaProgressivo(supabase, lavoro.laboratorio_id, 'fattura')
-  const progressivoSdi = await generaProgressivo(supabase, lavoro.laboratorio_id, 'sdi_invio')
+  // Fix: validare identificativo fiscale cedente e cessionario prima di costruire XML
+  validaIdentificativoFiscale(labRow.partita_iva, labRow.codice_fiscale, 'Laboratorio (cedente)')
+  if (!cliente.codice_sdi && !cliente.pec) {
+    // Warning: cliente senza SDI né PEC — l'XML sarà generato ma forse non recapitabile
+    console.warn('[FatturaPA] Cliente senza codice SDI né PEC:', cliente.id)
+  }
 
+  // ── 2. Determina numero fattura e progressivi ────────────────────────────
+  // Fix divergenza DB/XML: se fatturaId presente, usa il numero del draft esistente
+  // e NON generare un nuovo progressivo fattura (evita duplicati).
   const anno = new Date().getFullYear()
-  // Trattino obbligatorio: lo slash '/' non è ammesso nello XSD FatturaPA <Numero>
-  const numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
+  const progressivoSdi = await generaProgressivo(supabase, lavoro.laboratorio_id, 'sdi_invio')
   const progressivoSdiStr = String(progressivoSdi).padStart(5, '0')
 
+  let numero: string
+  let progressivoFattura: number
+
+  if (fatturaId) {
+    // Legge numero/progressivo PRIMA di costruire XML per garantire coerenza
+    const { data: draft, error: draftErr } = await supabase
+      .from('fatture')
+      .select('numero, progressivo')
+      .eq('id', fatturaId)
+      .single()
+    if (draftErr || !draft) {
+      throw new Error(`Draft fattura non trovato (id=${fatturaId}): ${draftErr?.message ?? 'null'}`)
+    }
+    numero = (draft as { numero: string }).numero
+    progressivoFattura = (draft as { progressivo: number }).progressivo
+  } else {
+    // Nuovo insert: genera progressivo fresco
+    progressivoFattura = await generaProgressivo(supabase, lavoro.laboratorio_id, 'fattura')
+    numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
+  }
+
   // ── 3. Calcola importi ───────────────────────────────────────────────────
-  const imponibile = lavoro.lavorazioni.reduce((acc, r) => acc + (r.importo ?? 0), 0)
+  // Fix: se non ci sono lavorazioni, usa prezzo_unitario del lavoro come imponibile
+  const imponibile = lavoro.lavorazioni.length > 0
+    ? lavoro.lavorazioni.reduce((acc, r) => acc + (r.importo ?? 0), 0)
+    : (lavoro.prezzo_unitario ?? 0)
   const bolloApplicato = imponibile > 77.47 ? 2.00 : 0
   const totale = imponibile + bolloApplicato
 
@@ -207,8 +223,8 @@ export async function generaFatturaPA(
         <Divisa>EUR</Divisa>
         <Data>${oggi}</Data>
         <Numero>${xe(numero)}</Numero>
-        <ImportoTotaleDocumento>${fmt2(totale)}</ImportoTotaleDocumento>
         ${bolloXml}
+        <ImportoTotaleDocumento>${fmt2(totale)}</ImportoTotaleDocumento>
       </DatiGeneraliDocumento>
     </DatiGenerali>
     <DatiBeniServizi>
@@ -216,9 +232,9 @@ export async function generaFatturaPA(
       <DatiRiepilogo>
         <AliquotaIVA>0.00</AliquotaIVA>
         <Natura>N4</Natura>
-        <RiferimentoNormativo>Art. 10 n.18 DPR 633/72</RiferimentoNormativo>
         <ImponibileImporto>${fmt2(imponibile)}</ImponibileImporto>
         <Imposta>0.00</Imposta>
+        <RiferimentoNormativo>Art. 10 n.18 DPR 633/72</RiferimentoNormativo>
       </DatiRiepilogo>
     </DatiBeniServizi>
   </FatturaElettronicaBody>
@@ -273,22 +289,10 @@ export async function generaFatturaPA(
     totale,
   }
 
-  let numeroFinale = numero
+  // numero è già corretto (risolto in step 2)
+  const numeroFinale = numero
 
   if (fatturaId) {
-    // UPDATE: finalizza il draft — recupera il numero esistente
-    const { data: existingRow, error: fetchErr } = await supabase
-      .from('fatture')
-      .select('numero')
-      .eq('id', fatturaId)
-      .single()
-
-    if (fetchErr || !existingRow) {
-      throw new Error(`Fattura draft non trovata (id=${fatturaId}): ${fetchErr?.message ?? 'null'}`)
-    }
-
-    numeroFinale = (existingRow as { numero: string }).numero
-
     const { error: updateError } = await supabase
       .from('fatture')
       .update(xmlFields as Record<string, unknown>)

@@ -127,7 +127,8 @@ export async function POST(req: Request) {
     )
   }
 
-  const numero = `${anno}/${String(progressivo).padStart(4, '0')}`
+  // Trattino obbligatorio: XSD FatturaPA vieta '/' in <Numero>
+  const numero = `${anno}-${String(progressivo).padStart(4, '0')}`
   const oggi = new Date().toISOString().split('T')[0]
 
   const insertData = {

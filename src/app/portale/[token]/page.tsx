@@ -242,15 +242,21 @@ export default async function PortalePage({ params }: PageProps) {
 
   const svc = getServiceClient()
 
-  // Verifica token
+  // Verifica token + TTL (portale_token_scade_at)
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token')
+    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
 
   if (clienteError || !cliente) {
+    return <LinkScaduto />
+  }
+
+  // Verifica TTL token (portale_token_scade_at)
+  const tokenScadenza = (cliente as Record<string, unknown>).portale_token_scade_at as string | null
+  if (tokenScadenza && new Date(tokenScadenza) < new Date()) {
     return <LinkScaduto />
   }
 
@@ -261,12 +267,13 @@ export default async function PortalePage({ params }: PageProps) {
 
   // Tentativo log in portale_accessi (tabella opzionale — fallisce silenziosamente)
   try {
-    await svc.from('portale_accessi').insert({
+    const { error: logErr } = await svc.from('portale_accessi').insert({
       cliente_id: cliente.id,
       laboratorio_id: cliente.laboratorio_id,
       ip_address: ip,
-      accessed_at: new Date().toISOString(),
+      azione: 'view_lavori',
     })
+    if (logErr) console.error('[Portale] Audit log failed:', logErr.message)
   } catch {
     // Tabella non ancora nel DB — ignora
   }

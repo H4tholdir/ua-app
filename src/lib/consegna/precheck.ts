@@ -33,15 +33,19 @@ export function precheckMDR(lavoro: LavoroDettaglio): ConsegnaPrecheckResult {
     })
   }
 
-  // Elemento 4 — Paziente
-  const haPaziente =
-    (lavoro.paziente_nome_snapshot && lavoro.paziente_nome_snapshot.trim().length > 0) ||
-    lavoro.paziente_id != null
+  // Elemento 4 — Paziente: deve esserci un identificatore renderizzabile nel PDF
+  // (nome snapshot, o codice paziente — non basta solo paziente_id senza nome)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paz = lavoro.paziente as any
+  const nomePaziente = lavoro.paziente_nome_snapshot?.trim()
+    ?? paz?.nome_cognome?.trim()
+    ?? paz?.codice_paziente?.trim()
+  const haPaziente = !!nomePaziente && nomePaziente.length > 0
 
   if (!haPaziente) {
     errori.push({
       elemento: 4,
-      descrizione: 'Paziente non specificato',
+      descrizione: 'Paziente non identificabile — aggiungi nome paziente o codice',
       campo: 'paziente_id',
       route: 'dati',
     })

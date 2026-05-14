@@ -35,7 +35,8 @@ export async function GET(req: Request, { params }: RouteContext) {
       cognome,
       studio_nome,
       laboratorio_id,
-      portale_token
+      portale_token,
+      portale_token_scade_at
     `)
     .eq('portale_token', token)
     .is('deleted_at', null)
@@ -43,6 +44,12 @@ export async function GET(req: Request, { params }: RouteContext) {
 
   if (clienteError || !cliente) {
     return NextResponse.json({ error: 'Link non valido' }, { status: 404 })
+  }
+
+  // Verifica TTL token
+  const scadenza = (cliente as Record<string, unknown>).portale_token_scade_at as string | null
+  if (scadenza && new Date(scadenza) < new Date()) {
+    return NextResponse.json({ error: 'Link scaduto' }, { status: 403 })
   }
 
   // Carica dati laboratorio
@@ -60,17 +67,14 @@ export async function GET(req: Request, { params }: RouteContext) {
   const ipRaw = req.headers.get('x-forwarded-for')
   const ip = ipRaw ? ipRaw.split(',')[0].trim() : null
 
-  // Tentativo log in portale_accessi (tabella potrebbe non esistere — fallisce silenziosamente)
-  try {
-    await svc.from('portale_accessi').insert({
-      cliente_id: cliente.id,
-      laboratorio_id: cliente.laboratorio_id,
-      ip_address: ip,
-      accessed_at: new Date().toISOString(),
-    })
-  } catch {
-    // Tabella non ancora nel DB — ignora
-  }
+  // Audit log accesso — campo corretto: azione (NOT NULL), created_at (auto)
+  const { error: logErr } = await svc.from('portale_accessi').insert({
+    cliente_id: cliente.id,
+    laboratorio_id: cliente.laboratorio_id,
+    ip_address: ip,
+    azione: 'view_lavori',
+  })
+  if (logErr) console.error('[Portale API] Audit log failed:', logErr.message)
 
   // Lavori aperti
   const { data: lavoriAperti } = await svc

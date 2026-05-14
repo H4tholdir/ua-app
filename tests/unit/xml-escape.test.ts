@@ -1,29 +1,11 @@
 /**
- * Test per verificare che il formato numero fattura e l'escape XML
- * siano conformi allo XSD FatturaPA 1.2.
- *
- * Questi test importano solo la funzione helper xe() che è esportata
- * separatamente. Se non è esportata, testiamo le invarianti attraverso
- * la generazione XML (mock).
+ * Test per funzioni pure FatturaPA — importate da xml-helpers.ts
+ * (il file generate-xml.ts ha 'server-only' e non è importabile in Vitest)
  */
 import { describe, it, expect } from 'vitest'
+import { xe, fmt2, formatNumeroFattura, validaIdentificativoFiscale } from '@/lib/fattura/xml-helpers'
 
-// Funzione xml escape replicata per test (la versione in generate-xml non è esportata)
-function xe(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/'/g, '&apos;')
-    .replace(/"/g, '&quot;')
-}
-
-// Formato numero fattura conforme allo XSD FatturaPA
-function formatNumeroFattura(anno: number, progressivo: number): string {
-  return `${anno}-${String(progressivo).padStart(4, '0')}`
-}
-
-describe('XML escape per FatturaPA', () => {
+describe('xe — XML escape', () => {
   it('esegue escape di &', () => {
     expect(xe('Studio D\'Angelo & Figli')).toBe('Studio D&apos;Angelo &amp; Figli')
   })
@@ -36,7 +18,13 @@ describe('XML escape per FatturaPA', () => {
     expect(xe("dell'Allegato")).toBe('dell&apos;Allegato')
   })
 
-  it('lascia invariati testi normali', () => {
+  it('ritorna stringa vuota per null/undefined', () => {
+    expect(xe(null)).toBe('')
+    expect(xe(undefined)).toBe('')
+    expect(xe('')).toBe('')
+  })
+
+  it('lascia invariati testi senza caratteri speciali', () => {
     expect(xe('Studio Dentistico Rossi')).toBe('Studio Dentistico Rossi')
   })
 
@@ -45,11 +33,26 @@ describe('XML escape per FatturaPA', () => {
     const once = xe(raw)
     const twice = xe(once)
     expect(once).toBe('D&apos;Angelo')
-    expect(twice).not.toBe(once) // double-escape produce D&amp;apos;Angelo
+    // Se si applicasse due volte: D&amp;apos;Angelo
+    expect(twice).not.toBe(once)
   })
 })
 
-describe('Formato numero fattura FatturaPA', () => {
+describe('fmt2 — formattazione numerica FatturaPA', () => {
+  it('usa punto come separatore decimale', () => {
+    expect(fmt2(100)).toBe('100.00')
+    expect(fmt2(77.47)).toBe('77.47')
+    expect(fmt2(2)).toBe('2.00')
+  })
+
+  it('arrotonda a 2 decimali', () => {
+    // JavaScript floating point: 100.005.toFixed(2) = '100.00' (binary precision)
+    expect(fmt2(100.126)).toBe('100.13')
+    expect(fmt2(0.1 + 0.2)).toBe('0.30')
+  })
+})
+
+describe('formatNumeroFattura — formato XSD FatturaPA', () => {
   it('usa trattino non slash (XSD vieta /)', () => {
     const numero = formatNumeroFattura(2026, 1)
     expect(numero).not.toContain('/')
@@ -70,5 +73,20 @@ describe('Formato numero fattura FatturaPA', () => {
   it('contiene solo caratteri ammessi da XSD ([a-zA-Z0-9-_])', () => {
     const numero = formatNumeroFattura(2026, 1)
     expect(numero).toMatch(/^[a-zA-Z0-9\-_]+$/)
+  })
+})
+
+describe('validaIdentificativoFiscale', () => {
+  it('non lancia se piva presente', () => {
+    expect(() => validaIdentificativoFiscale('12345678901', null, 'Lab')).not.toThrow()
+  })
+
+  it('non lancia se cf presente', () => {
+    expect(() => validaIdentificativoFiscale(null, 'RSSMRA80A01H703Y', 'Lab')).not.toThrow()
+  })
+
+  it('lancia se entrambi mancano', () => {
+    expect(() => validaIdentificativoFiscale(null, null, 'Lab')).toThrow('manca P.IVA')
+    expect(() => validaIdentificativoFiscale(undefined, undefined, 'Cliente')).toThrow('Cliente')
   })
 })

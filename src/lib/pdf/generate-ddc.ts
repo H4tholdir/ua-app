@@ -40,7 +40,9 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     prescrittore_nome: lavoro.richiedente_nome
       ?? `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`.trim(),
     prescrizione_id: lavoro.numero_prescrizione ?? null,
-    paziente_nome: lavoro.paziente_nome_snapshot ?? '',
+    // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    paziente_nome: lavoro.paziente_nome_snapshot ?? (lavoro.paziente as any)?.nome_cognome ?? (lavoro.paziente as any)?.codice_paziente ?? '',
     paziente_cognome: null as string | null,
     tipo_dispositivo: lavoro.tipo_dispositivo as string,
     descrizione_dispositivo: lavoro.descrizione,
