@@ -3,7 +3,8 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
-const VALID_TIPI = ['malfunzionamento', 'evento_avverso', 'near_miss', 'reclamo'] as const
+// Tipi allineati allo schema DB: incidenti_mdr.tipo CHECK
+const VALID_TIPI = ['anomalia', 'incidente', 'incidente_grave', 'azione_correttiva_sicurezza'] as const
 const VALID_GRAVITA = ['lieve', 'moderata', 'grave', 'critica'] as const
 
 // GET /api/qualita/incidenti
@@ -93,13 +94,14 @@ export async function POST(req: Request) {
     gravita: body.gravita,
     data_evento: body.data_evento,
     descrizione: (body.descrizione as string).trim(),
-    azioni_correttive: body.azioni_correttive ?? null,
+    causa_probabile: body.causa_probabile ?? null,
+    azione_immediata: body.azione_immediata ?? null,
+    azione_correttiva: body.azione_correttiva ?? null,
     risolto: body.risolto ?? false,
     data_risoluzione: body.data_risoluzione ?? null,
     segnalato_ministero: body.segnalato_ministero ?? false,
     data_segnalazione: body.data_segnalazione ?? null,
-    riferimento_lavoro_id: body.riferimento_lavoro_id ?? null,
-    created_by: user.id,
+    lavoro_id: body.lavoro_id ?? null,
   }
 
   const { data: incidente, error: insertError } = await svc
