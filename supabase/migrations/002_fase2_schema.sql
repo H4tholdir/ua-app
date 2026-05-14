@@ -4,6 +4,37 @@
 
 BEGIN;
 
+-- public.get_lab_id() — alias Management-API-safe per public.get_lab_id()
+-- Leggibile dal Management API (schema public), equivalente funzionale
+CREATE OR REPLACE FUNCTION public.get_lab_id()
+RETURNS UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT laboratorio_id
+  FROM public.utenti
+  WHERE id = auth.uid()
+    AND deleted_at IS NULL
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.has_role_check(required_role TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.utenti
+    WHERE id = auth.uid()
+      AND ruolo = required_role
+      AND deleted_at IS NULL
+  );
+$$;
+
 -- ============================================================
 -- A. laboratori — campi Fase 2
 -- ============================================================
@@ -199,9 +230,9 @@ CREATE TABLE IF NOT EXISTS lavori_appuntamenti (
 SELECT apply_updated_at_trigger('lavori_appuntamenti');
 ALTER TABLE lavori_appuntamenti ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lav_app_lab" ON lavori_appuntamenti
-  FOR ALL USING (laboratorio_id = auth.current_lab_id() AND deleted_at IS NULL);
+  FOR ALL USING (laboratorio_id = public.get_lab_id() AND deleted_at IS NULL);
 CREATE POLICY "lav_app_insert" ON lavori_appuntamenti
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 CREATE INDEX IF NOT EXISTS idx_lav_app_lavoro
   ON lavori_appuntamenti(lavoro_id) WHERE deleted_at IS NULL;
 
@@ -225,9 +256,9 @@ CREATE TABLE IF NOT EXISTS lavori_immagini (
 );
 ALTER TABLE lavori_immagini ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lav_img_lab" ON lavori_immagini
-  FOR ALL USING (laboratorio_id = auth.current_lab_id() AND deleted_at IS NULL);
+  FOR ALL USING (laboratorio_id = public.get_lab_id() AND deleted_at IS NULL);
 CREATE POLICY "lav_img_insert" ON lavori_immagini
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 CREATE INDEX IF NOT EXISTS idx_lav_img_lavoro
   ON lavori_immagini(lavoro_id, ordine) WHERE deleted_at IS NULL;
 
@@ -249,9 +280,9 @@ CREATE TABLE IF NOT EXISTS lavori_partitario (
 );
 ALTER TABLE lavori_partitario ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lav_part_lab" ON lavori_partitario
-  FOR ALL USING (laboratorio_id = auth.current_lab_id() AND deleted_at IS NULL);
+  FOR ALL USING (laboratorio_id = public.get_lab_id() AND deleted_at IS NULL);
 CREATE POLICY "lav_part_insert" ON lavori_partitario
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 CREATE INDEX IF NOT EXISTS idx_lav_part_lavoro
   ON lavori_partitario(lavoro_id) WHERE deleted_at IS NULL;
 
@@ -275,7 +306,7 @@ CREATE TABLE IF NOT EXISTS dashboard_kpi_cache (
 );
 ALTER TABLE dashboard_kpi_cache ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "kpi_cache_select" ON dashboard_kpi_cache
-  FOR SELECT USING (laboratorio_id = auth.current_lab_id());
+  FOR SELECT USING (laboratorio_id = public.get_lab_id());
 
 -- Funzione refresh KPI cache
 CREATE OR REPLACE FUNCTION refresh_dashboard_cache(p_lab_id UUID)
@@ -360,7 +391,7 @@ CREATE TABLE IF NOT EXISTS portale_accessi (
 );
 ALTER TABLE portale_accessi ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "portale_acc_select" ON portale_accessi
-  FOR SELECT USING (laboratorio_id = auth.current_lab_id());
+  FOR SELECT USING (laboratorio_id = public.get_lab_id());
 
 -- ============================================================
 -- N. NUOVA TABELLA: incidenti_mdr (MDR Art. 87-88)
@@ -391,9 +422,9 @@ CREATE TABLE IF NOT EXISTS incidenti_mdr (
 SELECT apply_updated_at_trigger('incidenti_mdr');
 ALTER TABLE incidenti_mdr ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "incidenti_lab" ON incidenti_mdr
-  FOR ALL USING (laboratorio_id = auth.current_lab_id() AND deleted_at IS NULL);
+  FOR ALL USING (laboratorio_id = public.get_lab_id() AND deleted_at IS NULL);
 CREATE POLICY "incidenti_insert" ON incidenti_mdr
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 CREATE INDEX IF NOT EXISTS idx_incidenti_lab
   ON incidenti_mdr(laboratorio_id, data_evento DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_incidenti_gravita
@@ -420,9 +451,9 @@ CREATE TABLE IF NOT EXISTS rischi_tipo_dispositivo (
 SELECT apply_updated_at_trigger('rischi_tipo_dispositivo');
 ALTER TABLE rischi_tipo_dispositivo ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "rischi_lab" ON rischi_tipo_dispositivo
-  FOR ALL USING (laboratorio_id = auth.current_lab_id());
+  FOR ALL USING (laboratorio_id = public.get_lab_id());
 CREATE POLICY "rischi_insert" ON rischi_tipo_dispositivo
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 
 -- ============================================================
 -- P. NUOVA TABELLA: nomine_prrc (nomina strutturata PRRC)
@@ -451,7 +482,7 @@ CREATE TABLE IF NOT EXISTS nomine_prrc (
 SELECT apply_updated_at_trigger('nomine_prrc');
 ALTER TABLE nomine_prrc ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "nomine_prrc_lab" ON nomine_prrc
-  FOR ALL USING (laboratorio_id = auth.current_lab_id());
+  FOR ALL USING (laboratorio_id = public.get_lab_id());
 
 -- ============================================================
 -- Q. NUOVA TABELLA: psur (Periodic Safety Update Report)
@@ -483,9 +514,9 @@ CREATE TABLE IF NOT EXISTS psur (
 SELECT apply_updated_at_trigger('psur');
 ALTER TABLE psur ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "psur_lab" ON psur
-  FOR ALL USING (laboratorio_id = auth.current_lab_id());
+  FOR ALL USING (laboratorio_id = public.get_lab_id());
 CREATE POLICY "psur_insert" ON psur
-  FOR INSERT WITH CHECK (laboratorio_id = auth.current_lab_id());
+  FOR INSERT WITH CHECK (laboratorio_id = public.get_lab_id());
 
 -- ============================================================
 -- R. NUOVE TABELLE: reti + reti_membri (multi-sede €129)
@@ -500,7 +531,7 @@ CREATE TABLE IF NOT EXISTS reti (
 SELECT apply_updated_at_trigger('reti');
 ALTER TABLE reti ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "reti_admin_select" ON reti
-  FOR SELECT USING (admin_laboratorio_id = auth.current_lab_id());
+  FOR SELECT USING (admin_laboratorio_id = public.get_lab_id());
 
 CREATE TABLE IF NOT EXISTS reti_membri (
   rete_id        UUID NOT NULL REFERENCES reti(id) ON DELETE CASCADE,
@@ -512,13 +543,13 @@ CREATE TABLE IF NOT EXISTS reti_membri (
 );
 ALTER TABLE reti_membri ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "reti_membri_select" ON reti_membri
-  FOR SELECT USING (laboratorio_id = auth.current_lab_id());
+  FOR SELECT USING (laboratorio_id = public.get_lab_id());
 CREATE POLICY "reti_membri_admin" ON reti_membri
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM reti
       WHERE id = rete_id
-        AND admin_laboratorio_id = auth.current_lab_id()
+        AND admin_laboratorio_id = public.get_lab_id()
     )
   );
 
@@ -530,15 +561,15 @@ CREATE POLICY "reti_membri_admin" ON reti_membri
 DROP POLICY IF EXISTS "lavori_laboratorio_select" ON lavori;
 CREATE POLICY "lavori_laboratorio_select" ON lavori
   FOR SELECT USING (
-    laboratorio_id = auth.current_lab_id()
+    laboratorio_id = public.get_lab_id()
     AND deleted_at IS NULL
   );
 
 DROP POLICY IF EXISTS "lavori_laboratorio_update" ON lavori;
 CREATE POLICY "lavori_laboratorio_update" ON lavori
   FOR UPDATE
-  USING (laboratorio_id = auth.current_lab_id() AND deleted_at IS NULL)
-  WITH CHECK (laboratorio_id = auth.current_lab_id());
+  USING (laboratorio_id = public.get_lab_id() AND deleted_at IS NULL)
+  WITH CHECK (laboratorio_id = public.get_lab_id());
 
 -- Fix #8: Rimuovi DELETE diretto — soft delete solo via RPC
 DROP POLICY IF EXISTS "lavori_laboratorio_delete" ON lavori;
@@ -546,13 +577,13 @@ DROP POLICY IF EXISTS "lavori_laboratorio_delete" ON lavori;
 CREATE OR REPLACE FUNCTION soft_delete_lavoro(p_lavoro_id UUID)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  IF NOT auth.has_role('titolare') THEN
+  IF NOT public.has_role_check('titolare') THEN
     RAISE EXCEPTION 'Solo il titolare puo eliminare lavori';
   END IF;
   UPDATE lavori
   SET deleted_at = NOW()
   WHERE id = p_lavoro_id
-    AND laboratorio_id = auth.current_lab_id();
+    AND laboratorio_id = public.get_lab_id();
 END;
 $$;
 
@@ -638,7 +669,7 @@ CREATE TRIGGER trg_inc_same_lab
 CREATE OR REPLACE FUNCTION consegna_lavoro_lock(p_lavoro_id UUID)
 RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_lab_id UUID := auth.current_lab_id();
+  v_lab_id UUID := public.get_lab_id();
   v_locked BOOLEAN;
   v_stato  TEXT;
 BEGIN
@@ -672,7 +703,7 @@ DECLARE
   v_key_id  TEXT;
   v_password TEXT;
 BEGIN
-  IF auth.current_lab_id() != p_lab_id THEN
+  IF public.get_lab_id() != p_lab_id THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
   SELECT pec_vault_key_id INTO v_key_id
