@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { BottomTabBar } from '@/components/layout/BottomTabBar'
+import { SwRegistration } from '@/components/layout/SwRegistration'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // 1. Validate session
@@ -44,5 +46,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/billing?trial_expired=true')
   }
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      <BottomTabBar />
+      <SwRegistration />
+    </>
+  )
 }
