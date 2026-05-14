@@ -155,6 +155,8 @@ export default function LoginForm() {
   const [faceLabel, setFaceLabel] = useState('Face ID')
   const [logoAnimating, setLogoAnimating] = useState(false)
   const [bioLoading, setBioLoading] = useState(false)
+  const [showPasskeyModal, setShowPasskeyModal] = useState(false)
+  const [pendingRedirectPath, setPendingRedirectPath] = useState('/dashboard')
 
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
@@ -293,9 +295,6 @@ export default function LoginForm() {
 
     setPendingRedirectPath(safePath)
   }, [loading, email, password, router, searchParams, bioAvailable, hasSavedPasskey])
-
-  const [showPasskeyModal, setShowPasskeyModal] = useState(false)
-  const [pendingRedirectPath, setPendingRedirectPath] = useState('/dashboard')
 
   const theme = isDark ? 'dark' : 'light'
 
