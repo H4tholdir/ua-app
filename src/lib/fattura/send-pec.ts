@@ -19,6 +19,7 @@ interface FatturaRow {
   nome_file_xml: string | null
   xml_url: string | null
   laboratorio_id: string
+  data: string | null
   laboratorio: LabPecRow
 }
 
@@ -34,6 +35,7 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
       nome_file_xml,
       xml_url,
       laboratorio_id,
+      data,
       laboratorio:laboratori(
         id,
         nome,
@@ -92,12 +94,26 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
   }
 
   // ── 4. Scarica XML da Storage ─────────────────────────────────────────────
+  // Usa signed URL (60s) per supportare bucket privati — non URL pubblico
   let xmlBuffer: ArrayBuffer
   try {
-    const resp = await fetch(fattura.xml_url)
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status} ${resp.statusText}`)
+    // Ricava storage_path dal nome file e dal percorso standard
+    const storagePath = fattura.nome_file_xml
+      ? `${fattura.laboratorio_id}/${new Date(fattura.data ?? Date.now()).getFullYear()}/${fattura.nome_file_xml}`
+      : null
+
+    let downloadUrl = fattura.xml_url
+    if (storagePath) {
+      const { data: signed } = await supabase.storage
+        .from('fatture-pdf')
+        .createSignedUrl(storagePath, 60)
+      if (signed?.signedUrl) downloadUrl = signed.signedUrl
     }
+
+    if (!downloadUrl) throw new Error('URL XML non disponibile')
+
+    const resp = await fetch(downloadUrl)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`)
     xmlBuffer = await resp.arrayBuffer()
   } catch (err) {
     throw new Error(`Download XML fallito: ${err instanceof Error ? err.message : String(err)}`)

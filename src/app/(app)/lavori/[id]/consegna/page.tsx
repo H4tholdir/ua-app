@@ -58,6 +58,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
 
   const precheck = precheckMDR(lavoroDettaglio)
   const lavorazioniVuote = lavoroDettaglio.lavorazioni.length === 0
+  const materialiVuoti = !lavoroDettaglio.materiali || lavoroDettaglio.materiali.length === 0
 
   return (
     <PageWrapper>
@@ -148,6 +149,27 @@ export default async function ConsegnaPage({ params }: PageProps) {
               }}
             >
               Aggiungi almeno una lavorazione prima di consegnare
+            </p>
+          </div>
+        )}
+
+        {/* Warning materiali — non bloccante, ma raccomandata per MDR Allegato XIII §5 */}
+        {materialiVuoti && (
+          <div
+            role="note"
+            style={{
+              background: 'hsl(43 65% 55% / 0.1)',
+              border: '1px solid hsl(43 65% 55% / 0.35)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+            }}
+          >
+            <span style={{ fontSize: '16px', flexShrink: 0 }} aria-hidden="true">💡</span>
+            <p style={{ margin: 0, color: '#D4A843', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', lineHeight: 1.5 }}>
+              Nessun lotto materiale registrato. Per la tracciabilità MDR (Allegato XIII §5) è raccomandato aggiungere i materiali usati nella tab Dati.
             </p>
           </div>
         )}

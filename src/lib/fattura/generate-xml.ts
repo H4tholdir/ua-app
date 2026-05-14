@@ -75,7 +75,8 @@ export async function generaFatturaPA(
   const progressivoSdi = await generaProgressivo(supabase, lavoro.laboratorio_id, 'sdi_invio')
 
   const anno = new Date().getFullYear()
-  const numero = `${anno}/${String(progressivoFattura).padStart(4, '0')}`
+  // Trattino obbligatorio: lo slash '/' non è ammesso nello XSD FatturaPA <Numero>
+  const numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
   const progressivoSdiStr = String(progressivoSdi).padStart(5, '0')
 
   // ── 3. Calcola importi ───────────────────────────────────────────────────

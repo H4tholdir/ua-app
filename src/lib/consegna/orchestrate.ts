@@ -214,13 +214,49 @@ export async function orchestraConsegna(
     }
 
     // ----------------------------------------------------------------
-    // Step 6 — FatturaPA (non blocking — fire-and-forget)
+    // Step 6 — FatturaPA (non blocking — fire-and-forget con draft record)
     // ----------------------------------------------------------------
-    const cliente = lavoro.cliente as unknown as { codice_sdi?: string | null; pec?: string | null } | null
+    // Il record draft viene creato PRIMA del fire-and-forget:
+    // - se la generazione fallisce, il record rimane in stato 'draft' visibile in /fatture
+    // - il titolare può ri-inviare manualmente senza perdita silenziosa
+    const cliente = lavoro.cliente as unknown as {
+      codice_sdi?: string | null
+      pec?: string | null
+      id?: string
+    } | null
+
     if (cliente?.codice_sdi || cliente?.pec) {
-      import('@/lib/fattura/generate-xml')
-        .then(({ generaFatturaPA }) => generaFatturaPA(lavoro as LavoroDettaglio))
-        .catch(err => console.error('[CONSEGNA] FatturaPA failed (non-blocking):', err))
+      // Crea draft visibile — non attendiamo per non bloccare la risposta
+      // Fire-and-forget avvolto in async IIFE per compatibilità PromiseLike Supabase
+      ;(async () => {
+        try {
+          const { data: draftFattura } = await supabase
+            .from('fatture')
+            .insert({
+              laboratorio_id: laboratorio_id,
+              cliente_id: (cliente as any)?.id ?? null,
+              numero: 'DA-GENERARE',
+              anno: new Date().getFullYear(),
+              progressivo: 0,
+              data: new Date().toISOString().split('T')[0],
+              tipo_documento: 'TD01',
+              stato_sdi: 'draft',
+              imponibile: 0,
+              iva_importo: 0,
+              bollo: 0,
+              totale: 0,
+            })
+            .select('id')
+            .single()
+
+          if (!draftFattura?.id) return
+
+          const { generaFatturaPA } = await import('@/lib/fattura/generate-xml')
+          await generaFatturaPA(lavoro as LavoroDettaglio, draftFattura.id)
+        } catch (err) {
+          console.error('[CONSEGNA] FatturaPA failed — draft rimane in /fatture per retry:', err)
+        }
+      })()
     }
 
     // ----------------------------------------------------------------

@@ -11,12 +11,16 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   const supabase = getServiceClient()
   const anno = new Date().getFullYear()
 
-  // Carica dati laboratorio
-  const { data: lab } = await supabase
-    .from('laboratori')
-    .select('*')
-    .eq('id', lavoro.laboratorio_id)
-    .single()
+  // Carica dati laboratorio + rischi residui per tipo dispositivo
+  const [{ data: lab }, { data: rischiRow }] = await Promise.all([
+    supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single(),
+    supabase
+      .from('rischi_tipo_dispositivo')
+      .select('rischi_residui')
+      .eq('laboratorio_id', lavoro.laboratorio_id)
+      .eq('tipo_dispositivo', lavoro.tipo_dispositivo)
+      .maybeSingle(),
+  ])
   if (!lab) throw new Error('Laboratorio non trovato')
 
   // Genera progressivo
@@ -52,7 +56,8 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     prrc_qualifica: (lab.prrc_qualifica ?? null) as string | null,
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
     firma_ddc_sha256: null as string | null,
-    rischi_residui_snapshot: null as string | null,
+    // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
+    rischi_residui_snapshot: (rischiRow?.rischi_residui ?? (lab as any).testo_rischi_default ?? null) as string | null,
     data_emissione: new Date().toISOString(),
     stato: 'generata' as const,
   }
