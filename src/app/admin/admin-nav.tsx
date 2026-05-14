@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 
 let _ac: AudioContext | null = null
 function sndClick() {
@@ -23,14 +24,15 @@ function sndClick() {
 interface Props { userDisplay: string }
 
 export default function AdminNav({ userDisplay }: Props) {
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const stored = localStorage.getItem('ua-admin-theme')
+    return stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
   useEffect(() => {
-    const stored = localStorage.getItem('ua-admin-theme')
-    const dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-    setIsDark(dark)
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-  }, [])
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+  }, [isDark])
 
   const toggle = useCallback(() => {
     sndClick()
@@ -44,9 +46,9 @@ export default function AdminNav({ userDisplay }: Props) {
 
   return (
     <nav className="adm-nav">
-      <a className="adm-nav-logo" href="/admin/labs">
+      <Link className="adm-nav-logo" href="/admin/labs">
         <img src="/ua-icon.png" alt="UÀ" draggable={false} />
-      </a>
+      </Link>
       <span className="adm-nav-badge">admin</span>
       <div className="adm-nav-sep" />
       <span className="adm-nav-user">{userDisplay}</span>

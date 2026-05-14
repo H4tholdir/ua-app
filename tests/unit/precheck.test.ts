@@ -142,18 +142,21 @@ describe('precheckMDR', () => {
   })
 
   it('fallisce senza tipo dispositivo (elemento 5)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lavoro = makeLavoro({ tipo_dispositivo: '' as any })
     const result = precheckMDR(lavoro)
     expect(result.errori.some(e => e.elemento === 5 && e.campo === 'tipo_dispositivo')).toBe(true)
   })
 
   it('fallisce senza classe rischio (elemento 6)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lavoro = makeLavoro({ classe_rischio: null as any })
     const result = precheckMDR(lavoro)
     expect(result.errori.some(e => e.elemento === 6)).toBe(true)
   })
 
   it('fallisce senza data consegna (elemento 7)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lavoro = makeLavoro({ data_consegna_prevista: null as any })
     const result = precheckMDR(lavoro)
     expect(result.errori.some(e => e.elemento === 7)).toBe(true)

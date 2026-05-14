@@ -87,7 +87,11 @@ export default function BillingContent({ labNome, reason }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
   const [showReteInfo, setShowReteInfo] = useState(false)
   const [logoAnimating, setLogoAnimating] = useState(false)
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+  )
 
   const reducedMotion = useReducedMotion()
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -96,7 +100,6 @@ export default function BillingContent({ labNome, reason }: Props) {
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    setIsDark(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
     mq.addEventListener('change', handler)
     return () => {
@@ -201,7 +204,7 @@ export default function BillingContent({ labNome, reason }: Props) {
                     </p>
                     <h1 className="ua-page-title">Continua senza interruzioni</h1>
                     <p className="ua-page-sub" style={{ marginTop: '4px' }}>
-                      Scegli il piano e attiva — tutto rimane esattamente com'era.
+                      Scegli il piano e attiva — tutto rimane esattamente com&apos;era.
                     </p>
                   </div>
 

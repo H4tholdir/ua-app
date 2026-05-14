@@ -57,6 +57,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
     firma_ddc_sha256: null as string | null,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? (lab as any).testo_rischi_default ?? null) as string | null,
     data_emissione: new Date().toISOString(),
     stato: 'generata' as const,

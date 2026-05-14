@@ -72,7 +72,9 @@ export async function orchestraConsegna(
 
     const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${new Date().getFullYear()}-000`
     const ddcUrl = ddcRow?.pdf_url ?? ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buonoNumero = (lavoro as any)?.buono_numero ?? `BUO-${new Date().getFullYear()}-000`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buonoUrl = (lavoro as any)?.buono_pdf_url ?? ''
 
     return {
@@ -241,6 +243,7 @@ export async function orchestraConsegna(
             .from('fatture')
             .insert({
               laboratorio_id: laboratorio_id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               cliente_id: (cliente as any)?.id ?? null,
               numero: numeroDraft,
               anno: annoFattura,

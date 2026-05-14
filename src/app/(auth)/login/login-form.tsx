@@ -131,8 +131,15 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [btnState, setBtnState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [isDark, setIsDark] = useState(false)
+  const searchParamError = searchParams.get('error') === 'auth_callback_failed'
+    ? 'Accesso non riuscito. Riprova o usa email e password.'
+    : null
+  const [errorMsg, setErrorMsg] = useState<string | null>(searchParamError)
+  const [isDark, setIsDark] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+  )
   const [bioAvailable, setBioAvailable] = useState(false)
   const [fpLabel, setFpLabel] = useState('Impronta')
   const [faceLabel, setFaceLabel] = useState('Face ID')
@@ -142,18 +149,9 @@ export default function LoginForm() {
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
 
-  // Read ?error= from callback redirect
-  useEffect(() => {
-    const err = searchParams.get('error')
-    if (err === 'auth_callback_failed') {
-      setErrorMsg('Accesso non riuscito. Riprova o usa email e password.')
-    }
-  }, [searchParams])
-
   // Detect system dark mode, allow manual override
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    setIsDark(mq.matches)
     const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)

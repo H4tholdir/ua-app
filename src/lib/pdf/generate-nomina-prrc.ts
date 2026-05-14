@@ -20,6 +20,7 @@ export async function generateNominaPrrc(laboratorio_id: string): Promise<Buffer
   }
 
   const buffer = await renderToBuffer(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createElement(NominaPrrcTemplate, { lab, nominaPrrc }) as any
   )
   return buffer
