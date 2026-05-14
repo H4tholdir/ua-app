@@ -3,8 +3,14 @@ import { NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getServerUserClient } from '@/lib/supabase/server-user'
+import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function POST(req: Request) {
+  // CSRF check — prevents cross-origin form submissions stealing invite tokens
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
+  }
+
   const body = await req.json().catch(() => null)
   if (!body || !body.token || !body.nome || !body.cognome) {
     return NextResponse.json({ error: 'Dati mancanti' }, { status: 400 })
