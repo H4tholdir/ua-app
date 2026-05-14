@@ -262,6 +262,7 @@ export async function generaFatturaPA(
     progressivo_sdi: progressivoSdiStr,
     // XML archiviato
     xml_url: xmlUrl,
+    xml_storage_path: storagePath,
     nome_file_xml: nomeFileXml,
     xml_hash_sha256: hashHex,
     // Importi (ricalcolati a partire dalle lavorazioni)

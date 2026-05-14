@@ -1,6 +1,7 @@
 import 'server-only'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { precheckMDR } from './precheck'
+import { generaProgressivo } from '@/lib/db/progressivi'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 
 export async function orchestraConsegna(
@@ -51,7 +52,7 @@ export async function orchestraConsegna(
 
     const { data: lavoro } = await supabase
       .from('lavori')
-      .select('numero_lavoro, cliente:clienti(telefono, cognome, portale_token)')
+      .select('numero_lavoro, buono_pdf_url, buono_numero, cliente:clienti(telefono, cognome, portale_token)')
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
       .single()
@@ -69,16 +70,17 @@ export async function orchestraConsegna(
       ? `https://wa.me/${clienteTel}?text=${encodeURIComponent(msg)}`
       : `https://wa.me/?text=${encodeURIComponent(msg)}`
 
-    const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${new Date().getFullYear()}-STUB`
+    const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${new Date().getFullYear()}-000`
     const ddcUrl = ddcRow?.pdf_url ?? ''
+    const buonoNumero = (lavoro as any)?.buono_numero ?? `BUO-${new Date().getFullYear()}-000`
+    const buonoUrl = (lavoro as any)?.buono_pdf_url ?? ''
 
     return {
       ok: true,
       lavoro_id,
       numero_lavoro: numeroLavoro,
       ddc: { numero: ddcNumero, url: ddcUrl, signed_url: ddcUrl },
-      // TODO Task 15: recuperare buono esistente dalla tabella buoni_consegna
-      buono: { numero: `BUO-${new Date().getFullYear()}-STUB`, url: '', signed_url: '' },
+      buono: { numero: buonoNumero, url: buonoUrl, signed_url: buonoUrl },
       fattura: null,
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
@@ -230,14 +232,19 @@ export async function orchestraConsegna(
       // Fire-and-forget avvolto in async IIFE per compatibilità PromiseLike Supabase
       ;(async () => {
         try {
+          // Progressivo reale (fix review: draft con progressivo:0 e numero 'DA-GENERARE')
+          const annoFattura = new Date().getFullYear()
+          const progFattura = await generaProgressivo(supabase, laboratorio_id, 'fattura')
+          const numeroDraft = `${annoFattura}-${String(progFattura).padStart(4, '0')}`
+
           const { data: draftFattura } = await supabase
             .from('fatture')
             .insert({
               laboratorio_id: laboratorio_id,
               cliente_id: (cliente as any)?.id ?? null,
-              numero: 'DA-GENERARE',
-              anno: new Date().getFullYear(),
-              progressivo: 0,
+              numero: numeroDraft,
+              anno: annoFattura,
+              progressivo: progFattura,
               data: new Date().toISOString().split('T')[0],
               tipo_documento: 'TD01',
               stato_sdi: 'draft',

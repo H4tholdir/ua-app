@@ -45,5 +45,11 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
 
   void sha256 // hash disponibile per future integrità
 
+  // Salva url e numero sul lavoro per il recupero idempotente (fix review: buono STUB)
+  await supabase
+    .from('lavori')
+    .update({ buono_pdf_url: pdfUrl, buono_numero: numero })
+    .eq('id', lavoro.id)
+
   return { numero, url: pdfUrl }
 }

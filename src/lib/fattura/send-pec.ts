@@ -18,6 +18,7 @@ interface FatturaRow {
   numero: string
   nome_file_xml: string | null
   xml_url: string | null
+  xml_storage_path: string | null
   laboratorio_id: string
   data: string | null
   laboratorio: LabPecRow
@@ -34,6 +35,7 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
       numero,
       nome_file_xml,
       xml_url,
+      xml_storage_path,
       laboratorio_id,
       data,
       laboratorio:laboratori(
@@ -97,10 +99,8 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
   // Usa signed URL (60s) per supportare bucket privati — non URL pubblico
   let xmlBuffer: ArrayBuffer
   try {
-    // Ricava storage_path dal nome file e dal percorso standard
-    const storagePath = fattura.nome_file_xml
-      ? `${fattura.laboratorio_id}/${new Date(fattura.data ?? Date.now()).getFullYear()}/${fattura.nome_file_xml}`
-      : null
+    // Usa xml_storage_path salvato durante generate-xml (mai ricostruito dal timestamp)
+    const storagePath = fattura.xml_storage_path ?? null
 
     let downloadUrl = fattura.xml_url
     if (storagePath) {
