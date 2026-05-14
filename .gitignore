@@ -90,3 +90,4 @@ Thumbs.db
 coverage/
 .nyc_output/
 dist/
+.superpowers/
