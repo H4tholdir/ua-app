@@ -1,66 +1,55 @@
 -- ============================================================
--- UA: Funzioni helper RLS — ESEGUIRE MANUALMENTE
--- Supabase Dashboard → SQL Editor → incolla e Run
--- Deve essere eseguito UNA SOLA VOLTA prima delle migration 002 e 003
+-- MANUAL_000_auth_helpers.sql
+-- STATO: NON NECESSARIO per questo progetto
+--
+-- Le policy RLS di UÀ usano public.current_lab_id() (schema public),
+-- NON auth.current_lab_id() (schema auth).
+--
+-- public.current_lab_id() è già definita nel DB e funzionante.
+-- public.get_lab_id() creata da migration 002 (alias per Management API).
+--
+-- Questo file è mantenuto solo come documentazione di fallback
+-- nel caso si debba ricreare le funzioni su un DB da zero.
 -- ============================================================
 
--- Helper: recupera laboratorio_id dell'utente autenticato
-CREATE OR REPLACE FUNCTION auth.current_lab_id()
+-- Eseguire SOLO se public.current_lab_id() non esiste:
+-- SELECT routine_name FROM information_schema.routines WHERE routine_name = 'current_lab_id' AND routine_schema = 'public';
+-- Se la query ritorna 0 righe, eseguire:
+
+/*
+CREATE OR REPLACE FUNCTION public.current_lab_id()
 RETURNS UUID
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT laboratorio_id
-  FROM public.utenti
-  WHERE id = auth.uid()
-    AND deleted_at IS NULL
-  LIMIT 1;
-$$;
-
--- Helper: verifica ruolo utente corrente
-CREATE OR REPLACE FUNCTION auth.has_role(required_role TEXT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.utenti
+BEGIN
+  RETURN (
+    SELECT laboratorio_id
+    FROM public.utenti
     WHERE id = auth.uid()
-      AND ruolo = required_role
       AND deleted_at IS NULL
-  );
-$$;
-
--- Helper: trigger updated_at automatico
-CREATE OR REPLACE FUNCTION trigger_set_updated_at()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$;
-
--- Helper: applica trigger updated_at a una tabella
-CREATE OR REPLACE FUNCTION apply_updated_at_trigger(tbl TEXT)
-RETURNS VOID
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  EXECUTE format(
-    'DROP TRIGGER IF EXISTS trg_%I_updated_at ON %I;
-     CREATE TRIGGER trg_%I_updated_at
-     BEFORE UPDATE ON %I
-     FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()',
-    tbl, tbl, tbl, tbl
+    LIMIT 1
   );
 END;
 $$;
 
--- Verifica OK
-SELECT 'Funzioni helper create correttamente' AS status;
+CREATE OR REPLACE FUNCTION public.lab_is_accessible()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.laboratori l
+    JOIN public.utenti u ON u.laboratorio_id = l.id
+    WHERE u.id = auth.uid()
+      AND u.deleted_at IS NULL
+      AND l.stato IN ('attivo', 'trial')
+  );
+END;
+$$;
+*/
