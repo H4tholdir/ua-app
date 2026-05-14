@@ -5,6 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 import { useReducedMotion } from '@/design-system/motion'
+import { startAuthentication } from '@simplewebauthn/browser'
+import dynamic from 'next/dynamic'
+
+const PasskeyRegistrationModal = dynamic(
+  () => import('@/components/features/auth/PasskeyRegistrationModal'),
+  { ssr: false }
+)
+
+const PASSKEY_EMAIL_KEY = 'ua_passkey_email'
 
 // ─── Web Audio helpers ──────────────────────────────────────────────────────
 // Lazy-init AudioContext on first interaction (browser autoplay policy)
@@ -141,16 +150,11 @@ export default function LoginForm() {
       : false
   )
   const [bioAvailable, setBioAvailable] = useState(false)
+  const [hasSavedPasskey, setHasSavedPasskey] = useState(false)
   const [fpLabel, setFpLabel] = useState('Impronta')
   const [faceLabel, setFaceLabel] = useState('Face ID')
   const [logoAnimating, setLogoAnimating] = useState(false)
-  const [bioToast, setBioToast] = useState(false)
-
-  const handleBioClick = useCallback(() => {
-    sndClick()
-    setBioToast(true)
-    setTimeout(() => setBioToast(false), 2200)
-  }, [])
+  const [bioLoading, setBioLoading] = useState(false)
 
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
@@ -163,7 +167,7 @@ export default function LoginForm() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // Biometric detection
+  // Biometric detection + passkey locale
   useEffect(() => {
     if (!window.PublicKeyCredential) return
     PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -175,9 +179,64 @@ export default function LoginForm() {
         else if (/Macintosh/.test(ua)) { setFpLabel('Touch ID'); setFaceLabel('Face ID') }
         else if (/Android/.test(ua)) { setFpLabel('Impronta'); setFaceLabel('Volto') }
         else { setFpLabel('Impronta'); setFaceLabel('Windows Hello') }
+
+        // Pre-compila email e abilita bio se questo device ha un passkey registrato
+        const savedEmail = localStorage.getItem(PASSKEY_EMAIL_KEY)
+        if (savedEmail) {
+          setEmail(savedEmail)
+          setHasSavedPasskey(true)
+        }
       })
       .catch(() => { /* no biometric */ })
   }, [])
+
+  const handleBioLogin = useCallback(async () => {
+    if (!email || bioLoading) return
+    sndClick()
+    setBioLoading(true)
+    setErrorMsg(null)
+    setBtnState('loading')
+
+    try {
+      const optRes = await fetch('/api/auth/webauthn/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!optRes.ok) throw new Error('Nessuna credenziale biometrica per questa email')
+      const { options, challengeId } = await optRes.json()
+
+      const authResponse = await startAuthentication({ optionsJSON: options })
+
+      const verifyRes = await fetch('/api/auth/webauthn/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: authResponse, challengeId, email }),
+      })
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json()
+        throw new Error(err.error ?? 'Verifica biometrica fallita')
+      }
+      const { otp } = await verifyRes.json()
+
+      const supabase = getBrowserClient()
+      const { error: otpErr } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })
+      if (otpErr) throw new Error(otpErr.message)
+
+      sndSuccess()
+      setBtnState('success')
+      const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
+      setTimeout(() => { router.push(safePath); router.refresh() }, 600)
+
+    } catch (e) {
+      const msg = (e as Error).message
+      const userCancelled = msg.includes('cancel') || msg.includes('abort') || msg.includes('NotAllowed')
+      if (!userCancelled) setErrorMsg(msg)
+      setBtnState('error')
+      setBioLoading(false)
+      setTimeout(() => setBtnState('idle'), 450)
+    }
+  }, [email, bioLoading, router, searchParams])
 
   const handleLogoClick = useCallback(() => {
     sndClick()
@@ -224,16 +283,24 @@ export default function LoginForm() {
 
     const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
 
-    // Brief success state before navigation
-    setTimeout(() => {
-      router.push(safePath)
-      router.refresh()
-    }, 600)
-  }, [loading, email, password, router, searchParams])
+    // Mostra modal passkey se il device lo supporta e non è già registrato
+    const canShowPasskey = bioAvailable && !hasSavedPasskey
+    if (canShowPasskey) {
+      setTimeout(() => setShowPasskeyModal(true), 400)
+    } else {
+      setTimeout(() => { router.push(safePath); router.refresh() }, 600)
+    }
+
+    setPendingRedirectPath(safePath)
+  }, [loading, email, password, router, searchParams, bioAvailable, hasSavedPasskey])
+
+  const [showPasskeyModal, setShowPasskeyModal] = useState(false)
+  const [pendingRedirectPath, setPendingRedirectPath] = useState('/dashboard')
 
   const theme = isDark ? 'dark' : 'light'
 
   return (
+    <>
     <div className="login-root" data-login-theme={theme}>
       {/* Theme toggle */}
       <button
@@ -400,66 +467,37 @@ export default function LoginForm() {
                 </span>
               </button>
 
-              {/* Biometric row */}
-              {bioAvailable && (
+              {/* Biometric row: visibile solo se il device supporta biometrico
+                  E l'utente ha già registrato un passkey su questo device */}
+              {bioAvailable && hasSavedPasskey && (
                 <div className="ua-bio-row" aria-label="Accesso biometrico">
-                  {/* Fingerprint */}
                   <button
                     type="button"
                     className="ua-bio-btn"
                     aria-label={`Accedi con ${fpLabel}`}
-                    onClick={handleBioClick}
+                    onClick={handleBioLogin}
+                    disabled={bioLoading || loading}
                   >
-                    <div className="ua-bio-circle">
+                    <div className={`ua-bio-circle${bioLoading ? ' ua-bio-scanning' : ''}`}>
                       <div className="ua-fp-img-wrap">
-                        <img
-                          src="/finger.png"
-                          alt=""
-                          aria-hidden="true"
-                          className="ua-fp-img"
-                          draggable={false}
-                        />
+                        <img src="/finger.png" alt="" aria-hidden="true" className="ua-fp-img" draggable={false} />
                       </div>
                     </div>
-                    <span className="ua-bio-lbl">{fpLabel}</span>
+                    <span className="ua-bio-lbl">{bioLoading ? '…' : fpLabel}</span>
                   </button>
 
-                  {/* Face ID */}
                   <button
                     type="button"
                     className="ua-bio-btn"
                     aria-label={`Accedi con ${faceLabel}`}
-                    onClick={handleBioClick}
+                    onClick={handleBioLogin}
+                    disabled={bioLoading || loading}
                   >
-                    <div className="ua-bio-circle">
+                    <div className={`ua-bio-circle${bioLoading ? ' ua-bio-scanning' : ''}`}>
                       <FaceIdIcon color="var(--ua-b)" />
                     </div>
-                    <span className="ua-bio-lbl">{faceLabel}</span>
+                    <span className="ua-bio-lbl">{bioLoading ? '…' : faceLabel}</span>
                   </button>
-
-                  {/* Toast "presto disponibile" */}
-                  {bioToast && (
-                    <div
-                      role="status"
-                      aria-live="polite"
-                      style={{
-                        position: 'absolute',
-                        bottom: '-2.5rem',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: 'rgba(15,30,82,0.92)',
-                        color: '#F0F4FF',
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        padding: '0.35rem 0.9rem',
-                        borderRadius: '999px',
-                        whiteSpace: 'nowrap',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      Accesso biometrico — disponibile presto
-                    </div>
-                  )}
                 </div>
               )}
             </form>
@@ -480,5 +518,17 @@ export default function LoginForm() {
         </div>
       </div>
     </div>
+
+    {showPasskeyModal && (
+      <PasskeyRegistrationModal
+        email={email}
+        onDone={() => {
+          setShowPasskeyModal(false)
+          router.push(pendingRedirectPath)
+          router.refresh()
+        }}
+      />
+    )}
+    </>
   )
 }

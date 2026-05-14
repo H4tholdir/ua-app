@@ -19,6 +19,8 @@
     "@hookform/resolvers": "^5.2.2",
     "@react-pdf/renderer": "^4.5.1",
     "@rive-app/react-canvas": "^4",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.0",
     "@supabase/ssr": "^0.5",
     "@supabase/supabase-js": "^2",
     "class-variance-authority": "^0.7.1",
