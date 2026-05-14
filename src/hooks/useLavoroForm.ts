@@ -17,14 +17,17 @@ interface UseLavoroFormReturn {
   save: (id: string) => Promise<void>
   saving: boolean
   saved: boolean
+  isDirty: boolean
 }
 
 export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormReturn {
   const [data, setData] = useState<Partial<Lavoro>>(initial)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
 
   // Track whether data has been touched since last successful save
+  // Ref is used for autosave timer to avoid stale closure; state is for UI
   const isDirtyRef = useRef(false)
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -55,6 +58,7 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
       }
 
       isDirtyRef.current = false
+      setIsDirty(false)
       setSaved(true)
 
       // Reset saved indicator after 3s
@@ -67,6 +71,7 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
   const update = useCallback((updates: Partial<Lavoro>) => {
     setData((prev) => ({ ...prev, ...updates }))
     isDirtyRef.current = true
+    setIsDirty(true)
     setSaved(false)
   }, [])
 
@@ -100,5 +105,5 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
     }
   }, [])
 
-  return { data, update, save, saving, saved }
+  return { data, update, save, saving, saved, isDirty }
 }
