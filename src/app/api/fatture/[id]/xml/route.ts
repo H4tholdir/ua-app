@@ -193,11 +193,21 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // ── Genera XML per ogni lavoro ────────────────────────────────────────────
+  // Passiamo fatturaId al primo lavoro per AGGIORNARE il draft esistente.
+  // Per i lavori successivi (caso multi-lavoro per stessa fattura) inseriamo nuove righe.
+  // Nella pratica UÀ una fattura corrisponde a un cliente — un solo giro di generazione.
   const risultati: Array<{ numero: string; stato_sdi: 'generata' }> = []
 
-  for (const lavoro of lavoriRaw) {
+  for (let i = 0; i < lavoriRaw.length; i++) {
+    const lavoro = lavoriRaw[i]
+    // Solo il primo lavoro aggiorna il draft identificato da fatturaId
+    const targetFatturaId = i === 0 ? fatturaId : undefined
+
     try {
-      const risultato = await generaFatturaPA(lavoro as unknown as LavoroDettaglio)
+      const risultato = await generaFatturaPA(
+        lavoro as unknown as LavoroDettaglio,
+        targetFatturaId
+      )
       risultati.push(risultato)
     } catch (err) {
       return NextResponse.json(
@@ -210,6 +220,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // ── Invia PEC (opzionale) ─────────────────────────────────────────────────
+  // Usa fatturaId (il draft aggiornato) — ora ha xml_url valorizzato dopo generaFatturaPA
   let pecInviata = false
   let pecErrore: string | null = null
 

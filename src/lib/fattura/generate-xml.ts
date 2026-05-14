@@ -40,8 +40,17 @@ interface LabRow {
   pec_vault_key_id: string | null
 }
 
+/**
+ * Genera il file XML FatturaPA 1.2 per il lavoro indicato.
+ *
+ * @param lavoro       - LavoroDettaglio con join cliente e lavorazioni
+ * @param fatturaId    - Se fornito, AGGIORNA la riga fatture esistente (draft → generata).
+ *                       Se omesso, INSERISCE una nuova riga fatture.
+ *                       Usare il parametro quando si parte da un draft creato via POST /api/fatture.
+ */
 export async function generaFatturaPA(
-  lavoro: LavoroDettaglio
+  lavoro: LavoroDettaglio,
+  fatturaId?: string
 ): Promise<{ numero: string; stato_sdi: 'generata' }> {
   const supabase = getServiceClient()
 
@@ -240,32 +249,12 @@ export async function generaFatturaPA(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  // ── 12. INSERT record fatture ─────────────────────────────────────────────
-  // Nota: campi snake_case mappati sullo schema DB attuale.
-  // I campi xml_url/nome_file_xml/stato_sdi usano i valori del domain.ts v1.1.
-  const insertPayload = {
-    laboratorio_id: lavoro.laboratorio_id,
-    cliente_id: cliente.id,
-    numero,
-    anno,
-    progressivo: progressivoFattura,
-    data: oggi,
-    tipo_documento: 'TD01',
-    // Snapshot dati cliente (immutabilità fiscale)
-    cliente_denominazione: clienteDenominazione,
-    cliente_piva: cliente.partita_iva ?? null,
-    cliente_cf: cliente.codice_fiscale ?? null,
-    cliente_indirizzo: `${cliente.indirizzo ?? ''}, ${cliente.cap ?? ''} ${cliente.citta ?? ''} ${cliente.provincia ?? ''}`.trim(),
-    cliente_codice_sdi: cliente.codice_sdi ?? null,
-    cliente_pec: cliente.pec ?? null,
-    // Importi
-    imponibile,
-    iva_percentuale: 0,
-    iva_importo: 0,
-    bollo: bolloApplicato,
-    totale,
-    codice_iva: 'N4',
-    natura_iva: 'N4',
+  // ── 12. INSERT o UPDATE record fatture ───────────────────────────────────
+  // - Con fatturaId: aggiorna il draft esistente (flusso da /api/fatture/[id]/xml)
+  // - Senza fatturaId: inserisce una nuova riga (flusso da CONSEGNA automatica)
+  //
+  // Campi allineati alla migration 002_fase2_schema.sql (v1.1 domain.ts)
+  const xmlFields = {
     // SDI
     stato_sdi: 'generata',
     progressivo_sdi: progressivoSdiStr,
@@ -273,15 +262,68 @@ export async function generaFatturaPA(
     xml_url: xmlUrl,
     nome_file_xml: nomeFileXml,
     xml_hash_sha256: hashHex,
+    // Importi (ricalcolati a partire dalle lavorazioni)
+    imponibile,
+    iva_percentuale: 0,
+    iva_importo: 0,
+    bollo: bolloApplicato,
+    totale,
   }
 
-  const { error: insertError } = await supabase
-    .from('fatture')
-    .insert(insertPayload as Record<string, unknown>)
+  let numeroFinale = numero
 
-  if (insertError) {
-    throw new Error(`INSERT fattura fallito: ${insertError.message}`)
+  if (fatturaId) {
+    // UPDATE: finalizza il draft — recupera il numero esistente
+    const { data: existingRow, error: fetchErr } = await supabase
+      .from('fatture')
+      .select('numero')
+      .eq('id', fatturaId)
+      .single()
+
+    if (fetchErr || !existingRow) {
+      throw new Error(`Fattura draft non trovata (id=${fatturaId}): ${fetchErr?.message ?? 'null'}`)
+    }
+
+    numeroFinale = (existingRow as { numero: string }).numero
+
+    const { error: updateError } = await supabase
+      .from('fatture')
+      .update(xmlFields as Record<string, unknown>)
+      .eq('id', fatturaId)
+
+    if (updateError) {
+      throw new Error(`UPDATE fattura fallito: ${updateError.message}`)
+    }
+  } else {
+    // INSERT: crea nuova riga (flusso CONSEGNA automatica)
+    const insertPayload = {
+      laboratorio_id: lavoro.laboratorio_id,
+      cliente_id: cliente.id,
+      numero,
+      anno,
+      progressivo: progressivoFattura,
+      data: oggi,
+      tipo_documento: 'TD01',
+      // Snapshot dati cliente (immutabilità fiscale)
+      cliente_denominazione: clienteDenominazione,
+      cliente_piva: cliente.partita_iva ?? null,
+      cliente_cf: cliente.codice_fiscale ?? null,
+      cliente_indirizzo: `${cliente.indirizzo ?? ''}, ${cliente.cap ?? ''} ${cliente.citta ?? ''} ${cliente.provincia ?? ''}`.trim(),
+      cliente_codice_sdi: cliente.codice_sdi ?? null,
+      cliente_pec: cliente.pec ?? null,
+      codice_iva: 'N4',
+      natura_iva: 'N4',
+      ...xmlFields,
+    }
+
+    const { error: insertError } = await supabase
+      .from('fatture')
+      .insert(insertPayload as Record<string, unknown>)
+
+    if (insertError) {
+      throw new Error(`INSERT fattura fallito: ${insertError.message}`)
+    }
   }
 
-  return { numero, stato_sdi: 'generata' }
+  return { numero: numeroFinale, stato_sdi: 'generata' }
 }
