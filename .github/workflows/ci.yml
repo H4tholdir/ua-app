@@ -37,7 +37,7 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_anon_key
-      NEXT_PUBLIC_APP_URL: https://app.ua.it
+      NEXT_PUBLIC_APP_URL: https://uachelab.com
       STRIPE_SECRET_KEY: sk_test_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_placeholder
     steps:
@@ -63,7 +63,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      NEXT_PUBLIC_APP_URL: https://app.ua.it
+      NEXT_PUBLIC_APP_URL: https://uachelab.com
       STRIPE_SECRET_KEY: sk_test_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_placeholder
       TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
