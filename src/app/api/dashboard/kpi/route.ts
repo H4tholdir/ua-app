@@ -5,6 +5,9 @@ import type { DashboardStats } from '@/types/domain'
 export async function GET() {
   const supabase = await getServerUserClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   // RLS applies via anon key — will return only the current lab's row
   const { data: cache } = await supabase
     .from('dashboard_kpi_cache')
