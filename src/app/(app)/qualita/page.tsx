@@ -47,6 +47,7 @@ export default async function QualitaPage() {
     .select(
       'id, lavoro_id, azione_correttiva, created_at, lavoro:lavori(numero_lavoro), fase:fasi_produzione(descrizione)'
     )
+    .eq('laboratorio_id', labId)
     .eq('non_conforme', true)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
