@@ -116,7 +116,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
-  // Rimuovi campi non aggiornabili lato API
+  // Rimuovi campi non aggiornabili lato API (immutabili) e campi gestiti
+  // dalla state machine della consegna (non modificabili via PATCH diretto)
   const IMMUTABLE = [
     'id',
     'laboratorio_id',
@@ -124,6 +125,15 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     'anno_lavoro',
     'created_at',
     'deleted_at',
+    // State machine — modificati esclusivamente da orchestraConsegna
+    'stato',
+    'conformato',
+    'data_conformazione',
+    'consegna_completata_at',
+    'consegna_tap_at',
+    'consegna_in_corso',
+    'post_consegna_correzioni',
+    'consegna_precheck_passato_al_primo_tentativo',
   ]
   for (const field of IMMUTABLE) {
     delete body[field]

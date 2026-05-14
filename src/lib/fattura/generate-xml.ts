@@ -87,8 +87,9 @@ export async function generaFatturaPA(
   const labDenominazione = labRow.ragione_sociale ?? labRow.nome
   const labPiva = labRow.partita_iva ?? labRow.codice_fiscale ?? ''
 
+  // Raw value — xe() will be applied once when inserted into the XML template
   const clienteDenominazione = cliente.studio_nome
-    ?? `${xe(cliente.cognome)} ${xe(cliente.nome)}`.trim()
+    ?? `${cliente.cognome ?? ''} ${cliente.nome ?? ''}`.trim()
 
   // CodiceDestinatario: uso '0000000' se assente (prevede PEC come alternativa)
   const codiceDestinatario = cliente.codice_sdi ?? '0000000'

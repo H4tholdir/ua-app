@@ -4,7 +4,8 @@ import { precheckMDR } from './precheck'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 
 export async function orchestraConsegna(
-  lavoro_id: string
+  lavoro_id: string,
+  laboratorio_id: string
 ): Promise<ConsegnaResult | ConsegnaError> {
   const startMs = Date.now()
   const supabase = getServiceClient()
@@ -52,6 +53,7 @@ export async function orchestraConsegna(
       .from('lavori')
       .select('numero_lavoro, cliente:clienti(telefono, cognome, portale_token)')
       .eq('id', lavoro_id)
+      .eq('laboratorio_id', laboratorio_id)
       .single()
 
     const clienteTel =
@@ -98,6 +100,7 @@ export async function orchestraConsegna(
       .from('lavori')
       .update({ consegna_in_corso: false })
       .eq('id', lavoro_id)
+      .eq('laboratorio_id', laboratorio_id)
   }
 
   // Lock acquisito — procedi con il flusso
@@ -115,6 +118,7 @@ export async function orchestraConsegna(
         materiali:lavori_materiali(*)
       `)
       .eq('id', lavoro_id)
+      .eq('laboratorio_id', laboratorio_id)
       .is('deleted_at', null)
       .single()
 
