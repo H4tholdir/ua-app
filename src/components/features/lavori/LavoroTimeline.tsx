@@ -77,7 +77,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
             (isInRitardo
               ? step.stato === 'in_lavorazione'
               : step.stato === stato)
-          const isFuture = isAnnullato || stepOrder > currentOrder
+
 
           const isLast = index === STEPS.length - 1
 

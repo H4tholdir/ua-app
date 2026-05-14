@@ -210,6 +210,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 }}
               >
                 {img.url && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={img.url}
                     alt={img.nome_file ?? 'Immagine allegata'}

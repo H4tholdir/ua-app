@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useReducedMotion } from '@/design-system/motion'
 
@@ -178,7 +179,7 @@ export default function BillingContent({ labNome, reason }: Props) {
                   aria-label="UÀ — clicca per sorpresa"
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLogoClick() } }}
                 >
-                  <img src="/ua-icon.png" alt="UÀ!" draggable={false} />
+                  <Image src="/ua-icon.png" alt="UÀ!" width={80} height={80} draggable={false} />
                 </div>
               </div>
 

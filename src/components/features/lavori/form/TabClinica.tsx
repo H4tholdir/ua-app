@@ -1,7 +1,7 @@
 'use client'
 
 import type { Lavoro } from '@/types/domain'
-import { inputBase, labelStyle, fieldStyle, sectionSeparator, sectionTitle, insetShadow, raisedShadow } from './styles'
+import { inputBase, labelStyle, fieldStyle, sectionSeparator, sectionTitle, insetShadow } from './styles'
 
 // ─── Scala VITA completa ────────────────────────────────────
 const VITA_SCALE = [

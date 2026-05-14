@@ -292,6 +292,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           </View>
           <View style={styles.headerRight}>
             {logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={logoUrl} style={styles.logo} />
             ) : null}
           </View>
@@ -463,6 +464,7 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           <View style={styles.firmaRight}>
             <Text style={styles.firmaLabel}>Responsabile della Conformita (PRRC)</Text>
             {ddc.firma_ddc_storage_path ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={ddc.firma_ddc_storage_path} style={styles.firmaImage} />
             ) : (
               <View style={styles.firmaLinea} />

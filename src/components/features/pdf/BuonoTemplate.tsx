@@ -284,6 +284,7 @@ export function BuonoTemplate({ lavoro, lab, numeroBuono }: BuonoTemplateProps) 
           </View>
           <View style={styles.headerRight}>
             {logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={logoUrl} style={styles.logo} />
             ) : null}
             <Text style={styles.docTitolo}>Buono di Consegna</Text>

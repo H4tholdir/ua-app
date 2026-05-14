@@ -2,7 +2,7 @@
 
 import { useId } from 'react'
 import type { LavoroLavorazione } from '@/types/domain'
-import { inputBase, labelStyle, fieldStyle, insetShadow, raisedShadow } from './styles'
+import { inputBase, raisedShadow } from './styles'
 
 interface TabLavorazioniProps {
   lavorazioni: LavoroLavorazione[]

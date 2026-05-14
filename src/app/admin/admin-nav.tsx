@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 
@@ -47,7 +48,7 @@ export default function AdminNav({ userDisplay }: Props) {
   return (
     <nav className="adm-nav">
       <Link className="adm-nav-logo" href="/admin/labs">
-        <img src="/ua-icon.png" alt="UÀ" draggable={false} />
+        <Image src="/ua-icon.png" alt="UÀ" width={80} height={80} draggable={false} />
       </Link>
       <span className="adm-nav-badge">admin</span>
       <div className="adm-nav-sep" />

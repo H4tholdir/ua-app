@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useCallback } from 'react'
 import { useReducedMotion } from '@/design-system/motion'
 
@@ -51,7 +52,7 @@ export default function BlockedPage() {
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLogoClick() } }}
                   style={{ opacity: 0.5, filter: 'grayscale(1)' }}
                 >
-                  <img src="/ua-icon.png" alt="UÀ!" draggable={false} />
+                  <Image src="/ua-icon.png" alt="UÀ!" width={80} height={80} draggable={false} />
                 </div>
                 <div
                   style={{

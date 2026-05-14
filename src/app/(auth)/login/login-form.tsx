@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 import { useReducedMotion } from '@/design-system/motion'
+import Image from 'next/image'
 import { startAuthentication } from '@simplewebauthn/browser'
 import dynamic from 'next/dynamic'
 
@@ -341,7 +342,7 @@ export default function LoginForm() {
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLogoClick() } }}
                 onAnimationEnd={() => setLogoAnimating(false)}
               >
-                <img src="/ua-icon.png" alt="UÀ!" draggable={false} />
+                <Image src="/ua-icon.png" alt="UÀ!" width={80} height={80} draggable={false} />
               </div>
               <p className="ua-tagline">
                 Il laboratorio più rapido,<br />
@@ -479,7 +480,7 @@ export default function LoginForm() {
                   >
                     <div className={`ua-bio-circle${bioLoading ? ' ua-bio-scanning' : ''}`}>
                       <div className="ua-fp-img-wrap">
-                        <img src="/finger.png" alt="" aria-hidden="true" className="ua-fp-img" draggable={false} />
+                        <Image src="/finger.png" alt="" aria-hidden="true" className="ua-fp-img" width={40} height={40} draggable={false} />
                       </div>
                     </div>
                     <span className="ua-bio-lbl">{bioLoading ? '…' : fpLabel}</span>

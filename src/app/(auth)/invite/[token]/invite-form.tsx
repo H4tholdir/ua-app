@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
@@ -139,7 +140,7 @@ export default function InviteForm({ email, labNome, token }: Props) {
                 aria-label="UÀ — clicca per sorpresa"
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLogoClick() } }}
               >
-                <img src="/ua-icon.png" alt="UÀ!" draggable={false} />
+                <Image src="/ua-icon.png" alt="UÀ!" width={80} height={80} draggable={false} />
               </div>
             </div>
 

@@ -25,7 +25,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
       - name: Unit tests
         run: npm run test:unit -- --reporter=verbose
