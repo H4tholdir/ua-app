@@ -32,6 +32,7 @@ export default function NuovoLavoroPage() {
     dispositivo_semilavorato: false,
     note_interne: null,
   })
+  const [clienteId, setClienteId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,8 +41,14 @@ export default function NuovoLavoroPage() {
     setError(null)
   }, [])
 
+  const handleClienteChange = useCallback((id: string) => {
+    setClienteId(id)
+    setError(null)
+  }, [])
+
   // Validazione client
   function validate(): string | null {
+    if (!clienteId) return 'Seleziona un dentista.'
     if (!formData.tipo_dispositivo) return 'Seleziona il tipo di dispositivo.'
     if (!formData.descrizione?.trim()) return 'Inserisci una descrizione.'
     if (!formData.data_consegna_prevista) return 'Inserisci la data di consegna.'
@@ -63,7 +70,7 @@ export default function NuovoLavoroPage() {
       const res = await fetch('/api/lavori', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, cliente_id: clienteId }),
       })
 
       if (!res.ok) {
@@ -116,7 +123,12 @@ export default function NuovoLavoroPage() {
             }
 
             return (
-              <TabDati data={formData} onChange={handleChange} />
+              <TabDati
+                data={formData}
+                onChange={handleChange}
+                clienteId={clienteId}
+                onClienteChange={handleClienteChange}
+              />
             )
           }}
         </LavoroFormShell>

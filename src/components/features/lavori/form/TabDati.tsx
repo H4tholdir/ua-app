@@ -1,6 +1,7 @@
 'use client'
 
 import type { Lavoro, TipoDispositivo, PrioritaLavoro } from '@/types/domain'
+import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
 
 // ─── Stili condivisi ──────────────────────────────────────────
 const inputBase: React.CSSProperties = {
@@ -55,11 +56,28 @@ const PRIORITA_OPTIONS: Array<{ value: PrioritaLavoro; label: string }> = [
 interface TabDatiProps {
   data: Partial<Lavoro>
   onChange: (updates: Partial<Lavoro>) => void
+  clienteId?: string
+  onClienteChange?: (id: string, label: string) => void
 }
 
-export function TabDati({ data, onChange }: TabDatiProps) {
+export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiProps) {
   return (
     <div>
+      {/* 0. Dentista / Studio (solo se il callback è fornito) */}
+      {onClienteChange && (
+        <div style={fieldStyle}>
+          <label style={labelStyle}>
+            Dentista / Studio{' '}
+            <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
+          </label>
+          <ClienteComboBox
+            value={clienteId ?? ''}
+            onChange={onClienteChange}
+            placeholder="Cerca dentista o studio..."
+          />
+        </div>
+      )}
+
       {/* 1. Tipo dispositivo */}
       <div style={fieldStyle}>
         <label htmlFor="tipo_dispositivo" style={labelStyle}>
