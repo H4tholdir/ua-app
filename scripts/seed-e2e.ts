@@ -70,9 +70,9 @@ async function seed() {
           laboratorio_id: E2E_LAB_ID,
           nome: 'Mario',
           cognome: 'Bianchi',
-          studio: 'Studio Bianchi',
+          studio_nome: 'Studio Bianchi',
           partita_iva: '98765432101',
-          prezzo_tier: 1,
+          listino_numero: 1,
         },
         { onConflict: 'id' }
       )
@@ -93,9 +93,10 @@ async function seed() {
           id: E2E_LAV_ID,
           laboratorio_id: E2E_LAB_ID,
           codice: 'TEST001',
+          nome: 'Corona ceramica test',
           descrizione: 'Corona ceramica test',
-          prezzo_base: 110.00,
-          tipo_protesi: 'fissa',
+          prezzo_1: 110.00,
+          categoria: 'protesi_fissa',
         },
         { onConflict: 'id' }
       )
@@ -120,4 +121,7 @@ async function seed() {
   }
 }
 
-seed()
+seed().catch(err => {
+  console.error('❌  Errore inatteso:', err)
+  process.exit(1)
+})
