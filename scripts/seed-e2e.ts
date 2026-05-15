@@ -30,10 +30,8 @@ const svc = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // IDs fissi per E2E testing (namespace test: 00000000-0000-0000-0000-XXXXXXXX)
 const E2E_LAB_ID = '00000000-0000-0000-0000-000000000001'
-const E2E_USER_ID = '00000000-0000-0000-0000-000000000002'
 const E2E_CLIENT_ID = '00000000-0000-0000-0000-000000000003'
-const E2E_LAV_ID_1 = '00000000-0000-0000-0000-000000000010'
-const E2E_LAV_ID_2 = '00000000-0000-0000-0000-000000000011'
+const E2E_LAV_ID = '00000000-0000-0000-0000-000000000010'
 
 async function seed() {
   console.log('🌱  Seeding E2E fixtures...\n')
@@ -47,12 +45,11 @@ async function seed() {
         {
           id: E2E_LAB_ID,
           nome: 'Lab Test E2E',
-          ragione_sociale: 'Lab Test E2E S.r.l.',
           partita_iva: '12345678901',
           codice_itca: 'ITCA01000001',
           piano: 'lab',
           stato: 'attivo',
-          stripe_customer_id: 'cus_test_e2e',
+          stripe_customer_id: 'cus_test',
         },
         { onConflict: 'id' }
       )
@@ -73,7 +70,7 @@ async function seed() {
           laboratorio_id: E2E_LAB_ID,
           nome: 'Mario',
           cognome: 'Bianchi',
-          studio: 'Studio Bianchi Salute',
+          studio: 'Studio Bianchi',
           partita_iva: '98765432101',
           prezzo_tier: 1,
         },
@@ -86,14 +83,14 @@ async function seed() {
     }
     console.log(`✅  Cliente creato/aggiornato → ${E2E_CLIENT_ID}`)
 
-    // 3. Crea lavorazioni nel listino test (idempotente)
-    console.log('📋  Creando lavorazioni listino...')
+    // 3. Crea lavorazione nel listino test (idempotente)
+    console.log('📋  Creando lavorazione listino...')
 
-    const { error: lav1Err } = await svc
+    const { error: lavErr } = await svc
       .from('listino')
       .upsert(
         {
-          id: E2E_LAV_ID_1,
+          id: E2E_LAV_ID,
           laboratorio_id: E2E_LAB_ID,
           codice: 'TEST001',
           descrizione: 'Corona ceramica test',
@@ -103,39 +100,17 @@ async function seed() {
         { onConflict: 'id' }
       )
 
-    if (lav1Err) {
-      console.error('❌  Errore creazione lavorazione 1:', lav1Err.message)
+    if (lavErr) {
+      console.error('❌  Errore creazione lavorazione:', lavErr.message)
       process.exit(1)
     }
-    console.log(`✅  Lavorazione 1 creata/aggiornata → ${E2E_LAV_ID_1}`)
-
-    const { error: lav2Err } = await svc
-      .from('listino')
-      .upsert(
-        {
-          id: E2E_LAV_ID_2,
-          laboratorio_id: E2E_LAB_ID,
-          codice: 'TEST002',
-          descrizione: 'Ponte 3 elementi test',
-          prezzo_base: 280.00,
-          tipo_protesi: 'fissa',
-        },
-        { onConflict: 'id' }
-      )
-
-    if (lav2Err) {
-      console.error('❌  Errore creazione lavorazione 2:', lav2Err.message)
-      process.exit(1)
-    }
-    console.log(`✅  Lavorazione 2 creata/aggiornata → ${E2E_LAV_ID_2}`)
+    console.log(`✅  Lavorazione creata/aggiornata → ${E2E_LAV_ID}`)
 
     console.log('\n✅  Seed completato.\n')
     console.log('📝  Aggiungi queste variabili a .env.test (o alla tua configurazione test):\n')
     console.log(`E2E_LAB_ID=${E2E_LAB_ID}`)
-    console.log(`E2E_USER_ID=${E2E_USER_ID}`)
     console.log(`E2E_CLIENT_ID=${E2E_CLIENT_ID}`)
-    console.log(`E2E_LAV_ID_1=${E2E_LAV_ID_1}`)
-    console.log(`E2E_LAV_ID_2=${E2E_LAV_ID_2}`)
+    console.log(`E2E_LAV_ID=${E2E_LAV_ID}`)
     console.log('')
     console.log('💡  I tuoi test E2E possono ora usare questi IDs per query deterministiche.')
 
