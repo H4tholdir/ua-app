@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, useReducedMotion } from '@/design-system/motion'
-import { buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,19 +47,6 @@ function urgencyLabel(giorni: number): string {
   return 'In sospeso'
 }
 
-function buildSollecito(cliente: ClienteSnap, totale: number): string {
-  const nomeStudio = cliente.studio_nome ?? `${cliente.nome} ${cliente.cognome}`
-  return [
-    `Gentile ${nomeStudio},`,
-    ``,
-    `Le ricordiamo che risulta un importo in sospeso di ${fmt.format(totale)}.`,
-    ``,
-    `La preghiamo di contattare il laboratorio per regolarizzare la posizione.`,
-    ``,
-    `— UÀ Lab`,
-  ].join('\n')
-}
-
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function InsolutoCard({
@@ -90,7 +77,10 @@ function InsolutoCard({
     [item.fatture, now]
   )
 
-  const whatsappMsg = buildSollecito(item.cliente, item.totale_insoluto)
+  const whatsappMsg = buildWhatsappSollecito({
+    studioNome: item.cliente.studio_nome ?? `${item.cliente.nome} ${item.cliente.cognome}`,
+    totaleInsoluto: item.totale_insoluto,
+  })
   const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.telefono ?? undefined)
 
   const cardStyle: React.CSSProperties = {
