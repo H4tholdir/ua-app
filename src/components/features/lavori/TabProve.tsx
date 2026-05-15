@@ -47,7 +47,7 @@ function ordinale(n: number): string {
   return `${n}ª prova`
 }
 
-export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Props) {
+export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegistrato }: Props) {
   const [prove, setProve] = useState<Prova[]>([])
   // loading starts true; set to false only inside async callbacks — never synchronously in effect body
   const [loading, setLoading] = useState(true)
@@ -146,6 +146,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
   }
 
   const hasPendingProva = prove.some((p) => !p.data_rientro_effettiva && !p.esito)
+  const canMandaInProva = ['in_lavorazione', 'ricevuto', 'in_ritardo'].includes(statoLavoro ?? '')
 
   return (
     <div
@@ -325,8 +326,8 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
                   </p>
                 )}
 
-                {/* Registra rientro — form inline, solo se prova pendente */}
-                {isPending && (
+                {/* Registra rientro — form inline, solo se prova pendente e stato lavoro è in_prova_esterna */}
+                {isPending && statoLavoro === 'in_prova_esterna' && (
                   <div
                     style={{
                       borderTop: '1px solid #243580',
@@ -371,8 +372,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              height: '36px',
-                              minHeight: '44px',
+                              minHeight: '52px',
                               padding: '0 12px',
                               borderRadius: '10px',
                               border: 'none',
@@ -421,7 +421,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
                       disabled={!rientroEsito[prova.id] || rientroSubmitting[prova.id]}
                       onClick={() => handleRegistraRientro(prova.id)}
                       style={{
-                        height: '48px',
+                        height: '52px',
                         borderRadius: '12px',
                         border: 'none',
                         background:
@@ -458,7 +458,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
       )}
 
       {/* Form: manda in prova */}
-      {!hasPendingProva && (
+      {canMandaInProva && !hasPendingProva && (
         <>
           {!showForm ? (
             <button
@@ -549,7 +549,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
                   }}
                   style={{
                     flex: '0 0 auto',
-                    height: '48px',
+                    height: '52px',
                     padding: '0 20px',
                     borderRadius: '12px',
                     border: 'none',
@@ -571,7 +571,7 @@ export function TabProve({ lavoroId, onProvaInviata, onRientroRegistrato }: Prop
                   onClick={handleMandaInProva}
                   style={{
                     flex: 1,
-                    height: '48px',
+                    height: '52px',
                     borderRadius: '12px',
                     border: 'none',
                     background: !dataRientro || submitting ? '#243580' : '#D4A843',
