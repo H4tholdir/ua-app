@@ -109,3 +109,39 @@ docs(design): update motion tokens in design-system
 - FatturaPA: natura **N4**, bollo €2 se > €77,47
 - EUDAMED: lab solo custom-made = **ESENTI**
 - ITCA: **OBBLIGATORIO** (campo `laboratori.codice_itca`)
+
+---
+
+## 7. Spec e Piani di Implementazione
+
+- **Spec V1 completa:** `docs/superpowers/specs/2026-05-15-ua-spec-completo.md`
+- **Piano A** (Foundation — DB + bug + GDPR): `docs/superpowers/plans/2026-05-15-plan-a-foundation.md`
+- **Piano B** (Core Flows — PROVE + Rifacimento + Consegna + Scadenzario): `docs/superpowers/plans/2026-05-15-plan-b-core-flows.md`
+- **Piano C** (Dashboard OGGI RBAC): `docs/superpowers/plans/2026-05-15-plan-c-dashboard.md`
+- **Piano D** (UI Redesign Clay Haptimorphism): `docs/superpowers/plans/2026-05-15-plan-d-ui-redesign.md`
+- **Piano E** (MDR Testing + DdC PDF + RLS): `docs/superpowers/plans/2026-05-15-plan-e-testing-mdr.md`
+- **Ordine esecuzione:** A → B+C (parallelo) → D (approvazione mockup obbligatoria) → E → QA → Filippo
+- **Filippo testa solo** quando tutti i piani A-E sono green + 21 checklist di release verdi (§18 spec)
+
+---
+
+## 8. Pricing Confermato (già in Stripe production)
+
+| Piano | Mensile | Annuale | Stripe monthly | Stripe yearly |
+|---|---|---|---|---|
+| Lab | €49 | €490 | `price_1TWCfaRsMhN7mg7YVt0UfeNB` | `price_1TWCfbRsMhN7mg7Y7Ejl1k5w` |
+| Rete PRO | €149 | €1.490 | `price_1TWCfbRsMhN7mg7YDXKFJkdN` | `price_1TWCfcRsMhN7mg7YBZSz1gId` |
+
+AI add-on (V2 only): €24.90/mese · €199/anno — Stripe metered billing da configurare in V2.
+
+---
+
+## 9. Regole Critiche (emerse da review Codex + Advisor)
+
+- **Stati ortogonali:** `lavori.stato` (clinico) e `fatture.stato_sdi` (fiscale) sono dimensioni INDIPENDENTI — non confonderli mai
+- **WhatsApp GDPR:** template SEMPRE GDPR-safe — NO nome paziente, NO tipo dispositivo, solo numero lavoro + link portale token
+- **Rifacimento:** usa RPC atomica `crea_rifacimento_atomico()` — MAI 3 INSERT separati (MDR silenzioso se fallisce)
+- **Precheck MDR:** tutti i dati caricati SERVER-SIDE nella route — il client non passa mai valori MDR decisionali
+- **Supabase types:** `npx supabase gen types typescript > src/types/database.types.ts` dopo OGNI migration + `npx tsc --noEmit` per verifica
+- **E2E seed:** eseguire `npx tsx scripts/seed-e2e.ts` prima di qualsiasi test E2E (crea fixture idempotenti)
+- **RLS test:** usare client anon autenticati con JWT distinti — MAI service role per testare isolamento RLS
