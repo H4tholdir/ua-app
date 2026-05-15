@@ -81,15 +81,18 @@ BEGIN
   );
 
   -- 4. Registra in incidenti_mdr (MDR obbligatorio per non conformità)
+  -- NOTA: incidenti_mdr usa risolto (boolean), non stato (text)
   INSERT INTO incidenti_mdr (
-    laboratorio_id, lavoro_id, tipo, descrizione, gravita, stato
+    laboratorio_id, lavoro_id, tipo, descrizione, gravita,
+    data_evento, risolto
   ) VALUES (
     v_lab_id,
     p_lavoro_originale_id,
     'non_conformita',
     'Non conformità: ' || p_motivo || ' — rilevato in: ' || COALESCE(p_rilevato_in, 'non specificato'),
     'bassa',
-    'aperto'
+    CURRENT_DATE,
+    false
   );
 
   RETURN json_build_object(
