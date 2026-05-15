@@ -20,9 +20,11 @@ const statoLabels: Record<StatoLavoro, string> = {
   ricevuto: 'Ricevuto',
   in_lavorazione: 'In lavorazione',
   in_prova: 'In prova',
+  in_prova_esterna: 'In prova esterna',
   pronto: 'Pronto',
   consegnato: 'Consegnato',
   annullato: 'Annullato',
+  sospeso: 'Sospeso',
   in_ritardo: 'In ritardo',
 }
 
@@ -30,9 +32,11 @@ const statoColors: Record<StatoLavoro, string> = {
   ricevuto: '#8899CC',
   in_lavorazione: '#4C6EF5',
   in_prova: '#FD7E14',
+  in_prova_esterna: '#E67700',
   pronto: '#2ECC9A',
   consegnato: '#2ECC9A',
   annullato: '#FA5252',
+  sospeso: '#868E96',
   in_ritardo: '#FA5252',
 }
 

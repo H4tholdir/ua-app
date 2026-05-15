@@ -87,6 +87,29 @@ const tabs: Tab[] = [
       </svg>
     ),
   },
+  {
+    href: '/scadenzario',
+    label: 'Sospesi',
+    ariaLabel: 'Scadenzario — pagamenti in sospeso',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.6" />
+        <path
+          d="M11 7v4l2.5 2.5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7.5 3.5L4.5 2M14.5 3.5l3-1.5"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
 ]
 
 function isTabActive(tabHref: string, pathname: string): boolean {
@@ -145,8 +168,11 @@ export function BottomTabBar() {
     boxShadow:
       '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
     zIndex: 50,
-    // Prevent layout shift by keeping width stable
-    whiteSpace: 'nowrap',
+    // Allow horizontal scroll on narrow viewports (6 tabs × ~52px)
+    maxWidth: 'calc(100vw - 32px)',
+    overflowX: 'auto',
+    // Hide scrollbar visually but keep scroll functional
+    scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
   }
 
   const barContent = (
