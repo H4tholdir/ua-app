@@ -66,11 +66,12 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
       {/* 0. Dentista / Studio (solo se il callback è fornito) */}
       {onClienteChange && (
         <div style={fieldStyle}>
-          <label style={labelStyle}>
+          <label htmlFor="cliente-combobox" style={labelStyle}>
             Dentista / Studio{' '}
             <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
           </label>
           <ClienteComboBox
+            id="cliente-combobox"
             value={clienteId ?? ''}
             onChange={onClienteChange}
             placeholder="Cerca dentista o studio..."

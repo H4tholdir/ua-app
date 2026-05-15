@@ -30,6 +30,7 @@ export interface ClienteComboBoxProps {
   value: string
   onChange: (id: string, label: string) => void
   placeholder?: string
+  id?: string
 }
 
 function buildLabel(option: ClienteOption): string {
@@ -42,6 +43,7 @@ export function ClienteComboBox({
   value,
   onChange,
   placeholder = 'Cerca dentista o studio...',
+  id,
 }: ClienteComboBoxProps) {
   const inputId = useId()
   const listboxId = useId()
@@ -54,6 +56,7 @@ export function ClienteComboBox({
   const [selectedLabel, setSelectedLabel] = useState('')
   const [activeIndex, setActiveIndex] = useState(-1)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestIdRef = useRef(0)
 
   // Reset display when parent clears the value externally.
   // Using a subscription-style pattern: we subscribe to external value changes
@@ -79,6 +82,7 @@ export function ClienteComboBox({
     }
 
     setLoading(true)
+    const thisRequest = ++requestIdRef.current
     try {
       const supabase = getBrowserClient()
       const { data, error } = await supabase
@@ -89,12 +93,13 @@ export function ClienteComboBox({
         )
         .limit(8)
 
+      if (thisRequest !== requestIdRef.current) return
       if (!error && data) {
         setOptions(data as ClienteOption[])
         setOpen(data.length > 0)
       }
     } finally {
-      setLoading(false)
+      if (thisRequest === requestIdRef.current) setLoading(false)
     }
   }, [])
 
@@ -124,9 +129,16 @@ export function ClienteComboBox({
     onChange(option.id, label)
   }
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
   // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleClickOutside(e: PointerEvent) {
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
@@ -134,8 +146,8 @@ export function ClienteComboBox({
         closeDropdown()
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('pointerdown', handleClickOutside)
+    return () => document.removeEventListener('pointerdown', handleClickOutside)
   }, [])
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -161,7 +173,7 @@ export function ClienteComboBox({
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <input
-        id={inputId}
+        id={id ?? inputId}
         type="text"
         role="combobox"
         aria-autocomplete="list"
@@ -182,7 +194,7 @@ export function ClienteComboBox({
         placeholder={placeholder}
         style={{
           ...inputBase,
-          paddingRight: loading ? '40px' : (inputBase.padding as string),
+          paddingRight: loading ? '40px' : '14px',
         }}
       />
 
