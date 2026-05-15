@@ -2,6 +2,7 @@ import 'server-only'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { precheckMDR } from './precheck'
 import { generaProgressivo } from '@/lib/db/progressivi'
+import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 
 export async function orchestraConsegna(
@@ -59,17 +60,15 @@ export async function orchestraConsegna(
       .single()
 
     const clienteTel =
-      (lavoro?.cliente as unknown as { telefono?: string } | null)?.telefono?.replace(/\D/g, '') ?? ''
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.ua.it'
+      (lavoro?.cliente as unknown as { telefono?: string } | null)?.telefono ?? ''
     const portaleToken =
       (lavoro?.cliente as unknown as { portale_token?: string } | null)?.portale_token ?? ''
-    const cognome =
-      (lavoro?.cliente as unknown as { cognome?: string } | null)?.cognome ?? 'Dottore'
     const numeroLavoro = (lavoro?.numero_lavoro as string | undefined) ?? lavoro_id
-    const msg = `Gentile ${cognome},\n\nIl lavoro ${numeroLavoro} è stato consegnato.\n\nDocumenti disponibili: ${appUrl}/portale/${portaleToken}`
-    const waUrl = clienteTel
-      ? `https://wa.me/${clienteTel}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+    const waMessage = buildWhatsappMessage({
+      numeroLavoro,
+      portalToken: portaleToken,
+    })
+    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
     const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${new Date().getFullYear()}-000`
     const ddcUrl = ddcRow?.pdf_url ?? ''
@@ -271,21 +270,21 @@ export async function orchestraConsegna(
     }
 
     // ----------------------------------------------------------------
-    // Step 7 — Costruisci link WhatsApp
+    // Step 7 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
     // ----------------------------------------------------------------
     const clienteContattoRaw = lavoro.cliente as unknown as {
       telefono?: string | null
-      cognome?: string | null
       portale_token?: string | null
     } | null
 
-    const clienteTel = clienteContattoRaw?.telefono?.replace(/\D/g, '') ?? ''
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.ua.it'
+    const clienteTel = clienteContattoRaw?.telefono ?? ''
     const portaleToken = clienteContattoRaw?.portale_token ?? ''
-    const msg = `Gentile ${clienteContattoRaw?.cognome ?? 'Dottore'},\n\nIl lavoro ${lavoro.numero_lavoro} è stato consegnato.\n\nDocumenti disponibili: ${appUrl}/portale/${portaleToken}`
-    const waUrl = clienteTel
-      ? `https://wa.me/${clienteTel}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+    const waMessage = buildWhatsappMessage({
+      numeroLavoro: lavoro.numero_lavoro as string,
+      portalToken: portaleToken,
+      labNome: undefined, // laboratorio.nome non incluso nel select — fallback a 'UÀ Lab'
+    })
+    const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
     // ----------------------------------------------------------------
     // Step 8 — Restituisci ConsegnaResult
