@@ -103,3 +103,10 @@ Dopo aver salvato i template:
 
 *Ultima modifica: 2026-05-15 — Piano A Foundation*
 *Configurato via Playwright automation — tutti i template verificati e salvati.*
+
+## Nota Logo
+Il logo UÀ è un badge HTML inline (non un `<img>`), per massima compatibilità email:
+```html
+<div style="display:inline-block;background:#0F1E52;color:#D4A843;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:26px;font-weight:900;padding:10px 22px;border-radius:12px;letter-spacing:-0.5px;">UÀ</div>
+```
+Questo evita il logo rotto che si vedeva con `{{ .SiteURL }}/ua-icon.png` (file non presente nel deploy).
