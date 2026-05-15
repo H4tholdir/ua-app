@@ -282,7 +282,6 @@ export async function orchestraConsegna(
     const waMessage = buildWhatsappMessage({
       numeroLavoro: lavoro.numero_lavoro as string,
       portalToken: portaleToken,
-      labNome: undefined, // laboratorio.nome non incluso nel select — fallback a 'UÀ Lab'
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 

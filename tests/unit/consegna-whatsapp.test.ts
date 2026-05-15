@@ -5,17 +5,16 @@ describe('buildWhatsappMessage — GDPR compliance', () => {
   const base = {
     numeroLavoro: '2026/0094',
     portalToken: 'tok_abc123',
-    labNome: 'Lab Opromolla',
   }
 
   it('non contiene nome paziente', () => {
-    const msg = buildWhatsappMessage({ ...base, pazienteNome: 'Mario Rossi', tipoPrestazione: 'Corona ceramica' })
+    const msg = buildWhatsappMessage({ ...base })
     expect(msg).not.toContain('Mario Rossi')
     expect(msg).not.toContain('Rossi')
   })
 
   it('non contiene tipo prestazione', () => {
-    const msg = buildWhatsappMessage({ ...base, pazienteNome: 'Luigi Bianchi', tipoPrestazione: 'Protesi mobile totale' })
+    const msg = buildWhatsappMessage({ ...base })
     expect(msg).not.toContain('Protesi mobile totale')
     expect(msg).not.toContain('mobile totale')
   })
@@ -30,10 +29,18 @@ describe('buildWhatsappMessage — GDPR compliance', () => {
     expect(msg).toContain('tok_abc123')
   })
 
-  it('genera URL WhatsApp valido', () => {
+  it('genera URL WhatsApp valido senza telefono', () => {
     const msg = buildWhatsappMessage(base)
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`
+    const url = buildWhatsappUrl(msg)
     expect(url).toMatch(/^https:\/\/wa\.me\/\?text=/)
+    expect(url).toContain(encodeURIComponent(msg))
+  })
+
+  it('token vuoto produce messaggio senza link portale', () => {
+    const msg = buildWhatsappMessage({ numeroLavoro: '2026/0094', portalToken: '' })
+    expect(msg).toContain('2026/0094')
+    expect(msg).not.toContain('/portale/')
+    expect(msg).toContain('UÀ Lab')
   })
 })
 
