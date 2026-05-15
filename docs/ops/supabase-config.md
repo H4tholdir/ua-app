@@ -102,3 +102,4 @@ Dopo aver salvato i template:
 ---
 
 *Ultima modifica: 2026-05-15 — Piano A Foundation*
+*Configurato via Playwright automation — tutti i template verificati e salvati.*
