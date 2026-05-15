@@ -13,6 +13,8 @@ const MOTIVI_VALIDI = [
   'altro',
 ] as const
 
+const RILEVATO_IN_VALIDI = ['produzione', 'prova_1', 'prova_2', 'prova_3', 'post_consegna']
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
@@ -82,12 +84,28 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     )
   }
 
+  if (note !== undefined && note !== null && typeof note !== 'string') {
+    return NextResponse.json({ error: 'note deve essere una stringa' }, { status: 400 })
+  }
+  if (note && note.length > 1000) {
+    return NextResponse.json({ error: 'note troppo lunghe (max 1000 caratteri)' }, { status: 400 })
+  }
+
+  if (rilevato_in !== undefined && rilevato_in !== null && !RILEVATO_IN_VALIDI.includes(rilevato_in)) {
+    return NextResponse.json({ error: `rilevato_in non valido: ${rilevato_in}` }, { status: 400 })
+  }
+
+  const costoNum = costo_interno != null && costo_interno !== '' ? parseFloat(String(costo_interno)) : null
+  if (costoNum !== null && (!Number.isFinite(costoNum) || costoNum < 0)) {
+    return NextResponse.json({ error: 'costo_interno non valido' }, { status: 400 })
+  }
+
   // RPC atomica — nessun INSERT separato (MDR-safe)
   const { data, error } = await svc.rpc('crea_rifacimento_atomico', {
     p_lavoro_originale_id: lavoro_id,
     p_motivo: motivo,
     p_rilevato_in: rilevato_in ?? null,
-    p_costo_interno: costo_interno ? parseFloat(String(costo_interno)) : null,
+    p_costo_interno: costoNum,
     p_note: note ?? null,
   })
 

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motionTokens } from '@/design-system/motion'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 interface Props {
   lavoroId: string
@@ -25,6 +25,7 @@ const RILEVATO_IN = [
   { value: 'produzione',     label: 'Durante la produzione' },
   { value: 'prova_1',        label: 'Alla 1ª prova' },
   { value: 'prova_2',        label: 'Alla 2ª prova' },
+  { value: 'prova_3',        label: 'Alla 3ª prova' },
   { value: 'post_consegna',  label: 'Dopo la consegna' },
 ] as const
 
@@ -190,12 +191,24 @@ const styles = {
 
 export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
   const router = useRouter()
+  const reducedMotion = useReducedMotion()
+  const firstFocusRef = useRef<HTMLSelectElement>(null)
   const [motivo, setMotivo] = useState('')
   const [rilevatoIn, setRilevatoIn] = useState('')
   const [costoInterno, setCostoInterno] = useState('')
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    firstFocusRef.current?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -249,9 +262,9 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
           aria-modal="true"
           aria-labelledby="rifacimento-title"
           style={styles.card}
-          initial={{ opacity: 0, y: 20, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.97 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.97 }}
+          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.97 }}
           transition={{ ...motionTokens.spring.soft }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -281,6 +294,7 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
                 <select
                   id="motivo"
                   required
+                  ref={firstFocusRef}
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   style={styles.select}
