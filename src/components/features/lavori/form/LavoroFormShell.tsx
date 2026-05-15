@@ -9,6 +9,7 @@ export type TabId =
   | 'lavorazioni'
   | 'clinica'
   | 'produzione'
+  | 'prove'
   | 'date'
   | 'immagini'
   | 'documenti'
@@ -23,6 +24,7 @@ const TABS: Tab[] = [
   { id: 'lavorazioni', label: 'Prezzi' },
   { id: 'clinica',    label: 'Clinica' },
   { id: 'produzione', label: 'Prod.' },
+  { id: 'prove',      label: 'Prove' },
   { id: 'date',       label: 'Date' },
   { id: 'immagini',   label: 'Foto' },
   { id: 'documenti',  label: 'Docs' },

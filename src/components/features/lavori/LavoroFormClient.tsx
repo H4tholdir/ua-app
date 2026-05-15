@@ -17,6 +17,7 @@ import { TabProduzione } from './form/TabProduzione'
 import { TabDate } from './form/TabDate'
 import { TabImmagini } from './form/TabImmagini'
 import { TabDocumenti } from './form/TabDocumenti'
+import { TabProve } from './TabProve'
 
 interface LavoroFormClientProps {
   lavoro: LavoroDettaglio
@@ -70,6 +71,16 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
                 <TabProduzione
                   fasi={fasi}
                   onUpdateFase={handleUpdateFase}
+                />
+              )
+
+            case 'prove':
+              return (
+                <TabProve
+                  lavoroId={lavoro.id}
+                  statoLavoro={data.stato ?? lavoro.stato}
+                  onProvaInviata={() => router.refresh()}
+                  onRientroRegistrato={() => router.refresh()}
                 />
               )
 
