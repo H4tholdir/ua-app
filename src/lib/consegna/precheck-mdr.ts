@@ -48,7 +48,7 @@ export function runPrecheckMdr(input: PrecheckInput): PrecheckResult {
   // 2. Materiali con lotto
   const senzaLotto = input.materiali.filter(m => !m.lotto?.trim())
   if (senzaLotto.length > 0) {
-    errors.push({ campo: 'materiali_lotti', messaggio: `${senzaLotto.length} materiale/i senza numero di lotto: ${senzaLotto.map(m => m.nome).join(', ')}`, riferimento: 'Art. 10(8) MDR 2017/745 — tracciabilità materiali obbligatoria' })
+    errors.push({ campo: 'materiali_lotti', messaggio: `${senzaLotto.length} materiale/i senza numero di lotto: ${senzaLotto.map(m => m.nome).join(', ')}`, riferimento: 'Art. 25 MDR 2017/745 — tracciabilità nella filiera, numero di lotto obbligatorio' })
   }
 
   // 3. Paziente codice GDPR
@@ -68,7 +68,7 @@ export function runPrecheckMdr(input: PrecheckInput): PrecheckResult {
 
   // 6. Dentista P.IVA
   if (!input.dentista_piva?.trim()) {
-    errors.push({ campo: 'dentista_piva', messaggio: 'P.IVA o Codice Fiscale del dentista prescrivente mancante', riferimento: 'Art. 2(1)(w) MDR — prescrittore identificato obbligatoriamente' })
+    errors.push({ campo: 'dentista_piva', messaggio: 'P.IVA o Codice Fiscale del dentista prescrivente mancante', riferimento: 'Art. 2(3) MDR 2017/745 — prescrittore identificato obbligatoriamente' })
   }
 
   // 7. Data consegna
@@ -89,12 +89,12 @@ export function runPrecheckMdr(input: PrecheckInput): PrecheckResult {
 
   // 9. Prescrizione ricevuta
   if (!input.prescrizione_ricevuta) {
-    errors.push({ campo: 'prescrizione_ricevuta', messaggio: 'Conferma ricezione prescrizione non registrata', riferimento: 'Art. 2(1)(w) MDR — produzione su base di prescrizione obbligatoria' })
+    errors.push({ campo: 'prescrizione_ricevuta', messaggio: 'Conferma ricezione prescrizione non registrata', riferimento: 'Art. 2(3) MDR 2017/745 — produzione su base di prescrizione obbligatoria' })
   }
 
   // 10. Conformità fornitore
   if (!input.conformita_fornitore) {
-    errors.push({ campo: 'conformita_fornitore', messaggio: 'Conformità materiali del fornitore non confermata', riferimento: 'Allegato I GSPR §17 MDR — requisiti sicurezza materiali' })
+    errors.push({ campo: 'conformita_fornitore', messaggio: 'Conformità materiali del fornitore non confermata', riferimento: 'Allegato I GSPR §10 MDR 2017/745 — proprietà biologiche e chimiche dei materiali' })
   }
 
   // 11. Non conformità aperte (loaded server-side)
@@ -104,7 +104,7 @@ export function runPrecheckMdr(input: PrecheckInput): PrecheckResult {
 
   // 12. Firma laboratorio
   if (!input.laboratorio_firma_url?.trim()) {
-    errors.push({ campo: 'laboratorio_firma', messaggio: 'Firma del laboratorio non configurata nelle Impostazioni', riferimento: 'Allegato XIII §2 MDR — firma fabbricante obbligatoria sulla DdC' })
+    errors.push({ campo: 'laboratorio_firma', messaggio: 'Firma del laboratorio non configurata nelle Impostazioni', riferimento: 'Allegato XIII §1 MDR 2017/745 — firma fabbricante obbligatoria sulla DdC (elemento 8)' })
   }
 
   return { passed: errors.length === 0, errors }
