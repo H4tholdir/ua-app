@@ -95,6 +95,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'data_rientro_prevista obbligatoria' }, { status: 400 })
     }
 
+    // Fix 5 — State machine guard: solo da stati che ammettono la prova
+    const statiConsentiti = ['ricevuto', 'in_lavorazione', 'in_ritardo']
+    if (!statiConsentiti.includes(lavoro.stato)) {
+      return NextResponse.json(
+        { error: `Impossibile mandare in prova un lavoro in stato "${lavoro.stato}"` },
+        { status: 409 }
+      )
+    }
+
     const { count } = await svc
       .from('lavoro_prove')
       .select('*', { count: 'exact', head: true })
@@ -111,11 +120,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         data_uscita: new Date().toISOString().split('T')[0],
         data_rientro_prevista,
         note_dentista: istruzioni ?? null,
+        created_by: user.id, // Fix 4 — audit trail
       })
       .select()
       .single()
 
-    if (provaErr) return NextResponse.json({ error: provaErr.message }, { status: 500 })
+    if (provaErr) {
+      // Fix 1 — Unique constraint violation (numero_prova duplicato da concurrent request)
+      if (provaErr.code === '23505') {
+        return NextResponse.json({ error: 'Prova già in corso — ricarica e riprova' }, { status: 409 })
+      }
+      return NextResponse.json({ error: provaErr.message }, { status: 500 })
+    }
 
     await svc
       .from('lavori')
@@ -133,7 +149,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: `esito non valido: ${esito}` }, { status: 400 })
     }
 
-    const { error: updateErr } = await svc
+    // Fix 2 — verifica che almeno un record sia stato aggiornato (guard cross-tenant + prova inesistente)
+    const { data: updatedProva, error: updateErr } = await svc
       .from('lavoro_prove')
       .update({
         data_rientro_effettiva: new Date().toISOString().split('T')[0],
@@ -142,8 +159,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       })
       .eq('id', prova_id as string)
       .eq('lavoro_id', id) // guard: la prova deve appartenere al lavoro
+      .select('id')
 
     if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
+    if (!updatedProva || updatedProva.length === 0) {
+      return NextResponse.json({ error: 'Prova non trovata o già chiusa' }, { status: 404 })
+    }
 
     const nuovoStato = esito === 'rifare' ? 'annullato'
                      : esito === 'sospeso' ? 'sospeso'

@@ -189,13 +189,16 @@ export type TipoDispositivo =
   | 'altro';
 
 // PATCH v1.1: aggiunto 'ricevuto' come stato iniziale prima della lavorazione
+// PATCH v1.2: aggiunto 'in_prova_esterna', 'sospeso' (migration 005 CHECK constraint)
 export type StatoLavoro =
-  | 'ricevuto'       // appena arrivato, non ancora iniziato
+  | 'ricevuto'           // appena arrivato, non ancora iniziato
   | 'in_lavorazione'
   | 'in_prova'
+  | 'in_prova_esterna'   // mandato in prova dal dentista
   | 'pronto'
   | 'consegnato'
   | 'annullato'
+  | 'sospeso'            // in attesa di decisione (esito prova sospeso)
   | 'in_ritardo';
 
 export type PrioritaLavoro = 'normale' | 'urgente' | 'extra_urgente';
