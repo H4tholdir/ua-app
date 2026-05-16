@@ -1,49 +1,107 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
-import type { DashboardStats } from '@/types/domain'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import { isCacheStale } from '@/lib/dashboard/cache-stale'
+import {
+  getTitolareKpi,
+  getTecnicoDashboard,
+  getFrontDeskDashboard,
+} from '@/lib/dashboard/queries'
+import type {
+  DashboardStatsExtended,
+  TecnicoDashboard,
+  FrontDeskDashboard,
+} from '@/types/domain'
 
-export async function GET() {
-  const supabase = await getServerUserClient()
+// ─── Response union ──────────────────────────────────────────
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+type DashboardApiResponse =
+  | { role: 'titolare'; data: DashboardStatsExtended }
+  | { role: 'tecnico'; data: TecnicoDashboard }
+  | { role: 'front_desk'; data: FrontDeskDashboard }
+  | { error: string }
 
-  // RLS applies via anon key — will return only the current lab's row
-  const { data: cache } = await supabase
-    .from('dashboard_kpi_cache')
-    .select('*')
-    .maybeSingle()
+// ─── Route handler ───────────────────────────────────────────
 
-  const defaultStats: DashboardStats = {
-    consegne_oggi: 0,
-    lavori_in_ritardo: 0,
-    pronti_non_fatturati: 0,
-    tecnico_piu_saturo: null,
-    mdr_incompleti: 0,
-    spedizioni_in_ritardo: 0,
-    is_rifacimento_count: 0,
-    stl_non_assegnati: 0,
-    lavori_attivi: 0,
-    fatturato_mese: 0,
+export async function GET(): Promise<NextResponse<DashboardApiResponse>> {
+  // 1. Autenticazione — RLS via anon key
+  const userClient = await getServerUserClient()
+  const {
+    data: { user },
+  } = await userClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (!cache) return NextResponse.json(defaultStats)
+  // 2. Profilo utente — service client per bypassare RLS su utenti
+  //    (RLS su utenti potrebbe bloccare la lettura del proprio profilo via anon key)
+  const svc = getServiceClient()
 
-  const stats: DashboardStats = {
-    ...defaultStats,
-    consegne_oggi: cache.consegne_oggi ?? 0,
-    lavori_in_ritardo: cache.lavori_in_ritardo ?? 0,
-    pronti_non_fatturati: cache.pronti_non_fatturati ?? 0,
-    mdr_incompleti: cache.mdr_incompleti ?? 0,
-    spedizioni_in_ritardo: cache.spedizioni_in_ritardo ?? 0,
-    is_rifacimento_count: cache.is_rifacimento_count ?? 0,
-    stl_non_assegnati: cache.stl_non_assegnati ?? 0,
-    lavori_attivi: cache.lavori_attivi ?? 0,
-    fatturato_mese: Number(cache.fatturato_mese ?? 0),
-    tecnico_piu_saturo: cache.tecnico_saturo_id
-      ? { nome: '', sigla: null, lavori_attivi: cache.tecnico_saturo_count ?? 0 }
-      : null,
+  const { data: utente, error: utenteError } = await svc
+    .from('utenti')
+    .select('ruolo, laboratorio_id')
+    .eq('id', user.id)
+    .single()
+
+  if (utenteError || !utente) {
+    return NextResponse.json({ error: 'Profilo utente non trovato' }, { status: 404 })
   }
 
-  return NextResponse.json(stats)
+  const labId: string | null = utente.laboratorio_id ?? null
+  const ruolo: string = utente.ruolo ?? ''
+
+  if (!labId) {
+    return NextResponse.json({ error: 'Laboratorio non associato' }, { status: 404 })
+  }
+
+  // 3. RBAC routing
+
+  // ── Titolare / admin_rete ───────────────────────────────────
+  if (ruolo === 'titolare' || ruolo === 'admin_rete') {
+    // Controllo stale sulla cache prima di passare a getTitolareKpi
+    const { data: meta } = await svc
+      .from('dashboard_kpi_cache')
+      .select('aggiornato_at')
+      .eq('laboratorio_id', labId)
+      .maybeSingle()
+
+    const stale = isCacheStale(meta?.aggiornato_at ?? null)
+    const data = await getTitolareKpi(svc, labId, stale)
+
+    return NextResponse.json({ role: 'titolare', data })
+  }
+
+  // ── Tecnico ─────────────────────────────────────────────────
+  if (ruolo === 'tecnico') {
+    // Ricerca profilo tecnico associato all'utente corrente
+    const { data: tecnico } = await svc
+      .from('tecnici')
+      .select('id')
+      .eq('laboratorio_id', labId)
+      .eq('utente_id', user.id)
+      .maybeSingle()
+
+    if (!tecnico) {
+      // Tecnico senza profilo tecnico associato: dashboard vuota, non un errore
+      const empty: TecnicoDashboard = {
+        lavori_urgenti: [],
+        lavori_oggi: [],
+        in_prova_rientro_oggi: [],
+      }
+      return NextResponse.json({ role: 'tecnico', data: empty })
+    }
+
+    const data = await getTecnicoDashboard(svc, labId, tecnico.id)
+    return NextResponse.json({ role: 'tecnico', data })
+  }
+
+  // ── Front desk ───────────────────────────────────────────────
+  if (ruolo === 'front_desk') {
+    const data = await getFrontDeskDashboard(svc, labId)
+    return NextResponse.json({ role: 'front_desk', data })
+  }
+
+  // ── Ruolo sconosciuto ────────────────────────────────────────
+  return NextResponse.json({ error: `Ruolo non autorizzato: ${ruolo}` }, { status: 403 })
 }
