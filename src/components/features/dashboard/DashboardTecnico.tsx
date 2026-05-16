@@ -1,0 +1,385 @@
+'use client'
+
+import { motion } from 'motion/react'
+import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
+import { LavoroUrgente } from './LavoroUrgente'
+import type { TecnicoDashboard } from '@/types/domain'
+
+// Design tokens — warm haptimorphic (DS v2.2)
+const DS = {
+  bg:      '#DDD8D3',
+  surface: '#E4DFD9',
+  elv:     '#EDEDEA',
+  t1:      '#1C1916',
+  t2:      '#96918D',
+  t3:      '#B8B3AE',
+  info:    '#2563EB',
+  primary: '#D90012',
+  shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
+  shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
+}
+
+interface DashboardTecnicoProps {
+  data: TecnicoDashboard
+  nomeUtente: string
+}
+
+const CARD_STYLE: React.CSSProperties = {
+  background: DS.surface,
+  borderRadius: 20,
+  overflow: 'hidden',
+  boxShadow: DS.shC,
+  position: 'relative',
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      style={{
+        fontFamily: 'DM Sans, sans-serif',
+        fontSize: 11,
+        fontWeight: 600,
+        color: DS.t3,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        margin: '0 0 8px',
+      }}
+    >
+      {children}
+    </h2>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        background: DS.surface,
+        borderRadius: 20,
+        padding: '24px 20px',
+        textAlign: 'center',
+        boxShadow: DS.shC,
+      }}
+    >
+      <span style={{ fontSize: 20 }} aria-hidden="true">
+        ✓
+      </span>
+      <p
+        style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: 14,
+          color: DS.t3,
+          margin: '8px 0 0',
+        }}
+      >
+        {message}
+      </p>
+    </div>
+  )
+}
+
+function getDataOggi(): string {
+  return new Date().toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
+export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
+  const reducedMotion = useReducedMotion()
+  const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi } = data
+
+  const stagger = staggerDelay(4)
+
+  function Section({
+    children,
+    delay,
+  }: {
+    children: React.ReactNode
+    delay: number
+  }) {
+    if (reducedMotion) return <>{children}</>
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...t('normal', 'enter'), delay }}
+      >
+        {children}
+      </motion.div>
+    )
+  }
+
+  return (
+    <div
+      style={{
+        background: DS.bg,
+        minHeight: '100dvh',
+        padding: '0 0 100px',
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: '24px 20px 16px' }}>
+        <p
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13,
+            fontWeight: 600,
+            color: DS.t3,
+            margin: '0 0 2px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}
+        >
+          I tuoi lavori
+        </p>
+        <h1
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: 22,
+            fontWeight: 800,
+            color: DS.t1,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Ciao, {nomeUtente}
+        </h1>
+        <p
+          style={{
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: 13,
+            color: DS.t2,
+            margin: '4px 0 0',
+          }}
+        >
+          {getDataOggi()}
+        </p>
+      </div>
+
+      {/* KPI inline */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          padding: '0 20px 20px',
+        }}
+      >
+        {[
+          { value: lavori_urgenti.length, label: 'Urgenti', color: '#D90012' },
+          { value: lavori_oggi.length, label: 'Oggi', color: '#2563EB' },
+          { value: 84, label: 'Puntualità %', color: '#16A34A' },
+        ].map((kpi, i) => (
+          <div
+            key={kpi.label}
+            style={{
+              background: DS.elv,
+              borderRadius: 16,
+              padding: '14px 16px',
+              flex: 1,
+              boxShadow: DS.shC,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '-0.04em',
+                lineHeight: 1,
+                color: kpi.color,
+              }}
+              aria-label={`${kpi.label}: ${kpi.value}`}
+            >
+              {kpi.value}
+            </span>
+            <span
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: 10,
+                fontWeight: 600,
+                color: DS.t2,
+                marginTop: 5,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                textAlign: 'center',
+              }}
+            >
+              {kpi.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          padding: '0 20px',
+        }}
+      >
+        {/* Urgenti / in ritardo */}
+        {lavori_urgenti.length > 0 && (
+          <Section delay={0}>
+            <SectionLabel>Urgenti / in ritardo</SectionLabel>
+            <div style={CARD_STYLE}>
+              {lavori_urgenti.map((lavoro) => (
+                <LavoroUrgente
+                  key={lavoro.id}
+                  id={lavoro.id}
+                  numero_lavoro={lavoro.numero_lavoro}
+                  stato={lavoro.stato}
+                  priorita={lavoro.priorita}
+                  cliente_display={lavoro.cliente_display}
+                  descrizione={lavoro.descrizione}
+                  data_consegna_prevista={lavoro.data_consegna_prevista}
+                  ora_consegna={lavoro.ora_consegna}
+                  paziente_nome_snapshot={lavoro.paziente_nome_snapshot}
+                  is_urgente={lavoro.is_urgente}
+                />
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* I miei lavori oggi */}
+        <Section delay={stagger}>
+          <SectionLabel>I miei lavori oggi</SectionLabel>
+          {lavori_oggi.length === 0 ? (
+            <EmptyState message="Nessun lavoro in programma per oggi" />
+          ) : (
+            <div style={CARD_STYLE}>
+              {lavori_oggi.map((lavoro) => (
+                <div
+                  key={lavoro.id}
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid rgba(0,0,0,.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: DS.t1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {lavoro.cliente_display}
+                    </span>
+                    {lavoro.ora_consegna && (
+                      <span
+                        style={{
+                          fontFamily: 'DM Sans, sans-serif',
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: DS.t2,
+                          flexShrink: 0,
+                        }}
+                      >
+                        ore {lavoro.ora_consegna}
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: 12,
+                      color: DS.t2,
+                      margin: '0 0 6px',
+                    }}
+                  >
+                    #{lavoro.numero_lavoro}
+                    {lavoro.paziente_nome_snapshot
+                      ? ` · ${lavoro.paziente_nome_snapshot}`
+                      : ` · ${lavoro.descrizione}`}
+                  </p>
+                  {lavoro.prossima_fase && (
+                    <p
+                      style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: DS.info,
+                        margin: '0 0 6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Prossima: {lavoro.prossima_fase}
+                    </p>
+                  )}
+                  {/* Progress bar neumorphica */}
+                  <div
+                    aria-label={`Completamento: ${lavoro.completamento_perc}%`}
+                    role="progressbar"
+                    aria-valuenow={lavoro.completamento_perc}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    style={{
+                      background: '#D4CFC9',
+                      borderRadius: 4,
+                      height: 6,
+                      boxShadow: DS.shI,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 6,
+                        borderRadius: 4,
+                        background: DS.info,
+                        width: `${lavoro.completamento_perc}%`,
+                        transition: 'width 0.4s cubic-bezier(0.2,0,0,1)',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* In prova — rientrano oggi */}
+        {in_prova_rientro_oggi.length > 0 && (
+          <Section delay={stagger * 2}>
+            <SectionLabel>In prova — rientrano oggi</SectionLabel>
+            <div style={CARD_STYLE}>
+              {in_prova_rientro_oggi.map((lavoro) => (
+                <LavoroUrgente
+                  key={lavoro.id}
+                  id={lavoro.id}
+                  numero_lavoro={lavoro.numero_lavoro}
+                  stato={lavoro.stato}
+                  priorita={lavoro.priorita}
+                  cliente_display={lavoro.cliente_display}
+                  descrizione={lavoro.descrizione}
+                  data_consegna_prevista={lavoro.data_consegna_prevista}
+                  ora_consegna={lavoro.ora_consegna}
+                  paziente_nome_snapshot={lavoro.paziente_nome_snapshot}
+                  is_urgente={lavoro.is_urgente}
+                />
+              ))}
+            </div>
+          </Section>
+        )}
+      </div>
+    </div>
+  )
+}
