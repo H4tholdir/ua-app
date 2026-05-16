@@ -717,6 +717,68 @@ export interface DashboardStats {
   fatturato_mese: number;
 }
 
+// ─── DASHBOARD EXTENDED (Plan C) ─────────────────────────────
+export interface DashboardStatsExtended extends DashboardStats {
+  fatturato_mese_precedente: number
+  pagamenti_scaduti_totale: number
+  pagamenti_scaduti_clienti_count: number
+  materiali_esaurimento_count: number
+  in_prova_count: number
+}
+
+// ─── Vista TECNICO ───────────────────────────────────────────
+export interface TecnicoDashboardItem {
+  id: string
+  numero_lavoro: string
+  stato: StatoLavoro
+  priorita: PrioritaLavoro
+  tipo_dispositivo: TipoDispositivo
+  descrizione: string
+  data_consegna_prevista: string
+  ora_consegna: string | null
+  paziente_nome_snapshot: string | null
+  cliente_display: string
+  prossima_fase: string | null
+  completamento_perc: number
+  is_urgente: boolean
+}
+
+export interface TecnicoDashboard {
+  lavori_urgenti: TecnicoDashboardItem[]
+  lavori_oggi: TecnicoDashboardItem[]
+  in_prova_rientro_oggi: TecnicoDashboardItem[]
+}
+
+// ─── Vista FRONT DESK ────────────────────────────────────────
+export interface FrontDeskConsegnaItem {
+  id: string
+  numero_lavoro: string
+  stato: StatoLavoro
+  tipo_dispositivo: TipoDispositivo
+  descrizione: string
+  data_consegna_prevista: string
+  ora_consegna: string | null
+  paziente_nome_snapshot: string | null
+  cliente_display: string
+  cliente_telefono: string | null
+}
+
+export interface FrontDeskPagamentoScaduto {
+  cliente_id: string
+  cliente_display: string
+  cliente_telefono: string | null
+  residuo_totale: number
+  giorni_scaduto: number
+  lavori_count: number
+}
+
+export interface FrontDeskDashboard {
+  consegne_oggi: FrontDeskConsegnaItem[]
+  ritiri_attesi_oggi: FrontDeskConsegnaItem[]
+  in_prova_rientro_oggi: FrontDeskConsegnaItem[]
+  da_contattare: FrontDeskPagamentoScaduto[]
+}
+
 // ============================================================
 // DDC SNAPSHOT IMMUTABILE (Codex fix #4)
 // Tutti i campi copiati al momento dell'emissione — non modificabili
