@@ -49,15 +49,8 @@ export function KpiCard({
     flexShrink: 0,
   }
 
-  const chip = (
-    <button
-      type="button"
-      onClick={onClick}
-      style={chipStyle}
-      aria-label={`${label}: ${value}${active ? ' (filtro attivo)' : ''}`}
-      aria-pressed={active}
-      disabled={!onClick}
-    >
+  const chipInner = (
+    <>
       <span
         style={{
           fontFamily: 'DM Sans, sans-serif',
@@ -83,7 +76,27 @@ export function KpiCard({
       >
         {label}
       </span>
+    </>
+  )
+
+  const chip = onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      style={chipStyle}
+      aria-label={`${label}: ${value}${active ? ' (filtro attivo)' : ''}`}
+      aria-pressed={active}
+    >
+      {chipInner}
     </button>
+  ) : (
+    <div
+      role="img"
+      style={chipStyle}
+      aria-label={`${label}: ${value}`}
+    >
+      {chipInner}
+    </div>
   )
 
   if (reducedMotion) return chip
