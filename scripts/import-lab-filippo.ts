@@ -10,11 +10,14 @@
  *
  * Idempotente: usa upsert con onConflict. Rieseguire non crea duplicati.
  *
- * Dati reali Lab Opromolla:
+ * Dati reali Lab Opromolla (da screenshot DentalMaster 17/05/2026):
  *   Titolare : Filippo Opromolla
+ *   CF       : PRMFPP69S17Z112Q
  *   P.IVA    : 03508740655
  *   ITCA     : ITCA01051686
- *   Indirizzo: Via Roma 12, 84028 Serre (SA)
+ *   Indirizzo: via Tempone Siepe Grande snc, 84028 Serre (SA)
+ *   Telefono : 3473334094
+ *   Email    : filippopromolla@gmail.com
  */
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
@@ -45,19 +48,22 @@ async function importLab() {
   const { error: labErr } = await svc
     .from('laboratori')
     .update({
-      nome: 'Laboratorio Opromolla',
-      ragione_sociale: 'Laboratorio Odontotecnico Opromolla',
+      nome: 'Filippo Opromolla',
+      ragione_sociale: 'Filippo Opromolla',
       partita_iva: '03508740655',
+      codice_fiscale: 'PRMFPP69S17Z112Q',
       codice_itca: 'ITCA01051686',
-      indirizzo: 'Via Roma 12',
+      indirizzo: 'via Tempone Siepe Grande snc',
       cap: '84028',
       citta: 'Serre',
       provincia: 'SA',
       paese: 'IT',
-      // PRRC — Filippo e sia titolare che PRRC
+      telefono: '3473334094',
+      email: 'filippopromolla@gmail.com',
+      // PRRC — Filippo è sia titolare che PRRC (ditta individuale)
       prrc_nome: 'Filippo Opromolla',
-      prrc_qualifica: 'Odontotecnico abilitato - Direttore Tecnico',
-      // Regime fiscale
+      prrc_qualifica: 'Odontotecnico abilitato',
+      // Regime fiscale RF01 = Ordinario
       regime_fiscale: 'RF01',
       codice_iva_default: 'N4',
     })
