@@ -13,6 +13,21 @@ async function verifyAdmin() {
   return utente?.ruolo === 'admin_sistema' ? user : null
 }
 
+function getRequestOrigin(req: Request): string {
+  const origin = req.headers.get('origin')
+  if (origin) return origin
+
+  const host = req.headers.get('host')
+  if (host) {
+    const protocol = host.startsWith('localhost:') || host.startsWith('127.0.0.1:')
+      ? 'http'
+      : 'https'
+    return `${protocol}://${host}`
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL ?? 'https://uachelab.com'
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -36,31 +51,31 @@ export async function POST(
     return NextResponse.json({ error: 'Nessun titolare con email trovato per questo laboratorio' }, { status: 404 })
   }
 
-  // Usa l'origin dalla request per supportare sia localhost che production
-  const requestOrigin = req.headers.get('origin')
-    ?? (req.headers.get('host') ? `https://${req.headers.get('host')}` : null)
-    ?? process.env.NEXT_PUBLIC_APP_URL
-    ?? 'https://uachelab.com'
+  // Usa un origin assoluto per supportare sia localhost che production.
+  const requestOrigin = getRequestOrigin(req)
 
-  // redirectTo → auth/callback gestisce il code PKCE e reindirizza a /dashboard
-  const redirectTo = `${requestOrigin}/auth/callback?next=/dashboard`
-
-  // Genera magic link monouso via Supabase Auth Admin
+  // Genera un token monouso via Supabase Auth Admin. Non restituiamo il raw
+  // action_link Supabase: passa da /auth/v1/verify e rientra con hash/OTP,
+  // incompatibile con il callback SSR/PKCE dell'app.
   const { data, error } = await svc.auth.admin.generateLink({
     type: 'magiclink',
     email: titolare.email,
-    options: { redirectTo },
   })
 
-  if (error || !data?.properties?.action_link) {
+  if (error || !data?.properties?.hashed_token) {
     console.error('[impersonate] generateLink error:', error?.message)
     return NextResponse.json({ error: error?.message ?? 'Impossibile generare il link' }, { status: 500 })
   }
 
+  const impersonationUrl = new URL('/auth/callback', requestOrigin)
+  impersonationUrl.searchParams.set('token_hash', data.properties.hashed_token)
+  impersonationUrl.searchParams.set('type', 'email')
+  impersonationUrl.searchParams.set('next', '/dashboard')
+
   const nomeTitolare = `${titolare.nome ?? ''} ${titolare.cognome ?? ''}`.trim() || titolare.email
 
   return NextResponse.json({
-    action_link: data.properties.action_link,
+    action_link: impersonationUrl.toString(),
     titolare_nome: nomeTitolare,
     titolare_email: titolare.email,
   })
