@@ -95,17 +95,17 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
           const dotColor = isAnnullato
             ? '#2A1A1A'
             : isCompleted
-            ? '#2ECC9A'
+            ? 'var(--success, #16A34A)'
             : isCurrent
             ? isInRitardo
-              ? '#FA5252'
+              ? 'var(--primary, #D90012)'
               : '#D4A843'
-            : '#243580'
+            : 'rgba(0,0,0,.15)'
 
-          const dotBorder = isCompleted ? '#2ECC9A' : isCurrent ? dotColor : '#243580'
+          const dotBorder = isCompleted ? 'var(--success, #16A34A)' : isCurrent ? dotColor : 'rgba(0,0,0,.15)'
 
           // Colore linea connettore
-          const lineColor = isCompleted ? '#2ECC9A' : '#243580'
+          const lineColor = isCompleted ? 'var(--success, #16A34A)' : 'rgba(0,0,0,.15)'
 
           return (
             <li
@@ -171,7 +171,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                         width: isCompleted ? '16px' : '14px',
                         height: isCompleted ? '16px' : '14px',
                         borderRadius: '50%',
-                        background: isCompleted ? dotColor : '#0F1E52',
+                        background: isCompleted ? dotColor : 'var(--bg, #DDD8D3)',
                         border: `2px solid ${dotBorder}`,
                       }}
                       aria-hidden="true"
@@ -217,11 +217,11 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                       ? '#868E96'
                       : isCurrent
                       ? isInRitardo
-                        ? '#FA5252'
-                        : '#F0F4FF'
+                        ? 'var(--primary, #D90012)'
+                        : 'var(--t1, #1C1916)'
                       : isCompleted
-                      ? '#2ECC9A'
-                      : '#8899CC',
+                      ? 'var(--success, #16A34A)'
+                      : 'var(--t2, #96918D)',
                     lineHeight: '20px',
                   }}
                 >
@@ -232,7 +232,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                         marginLeft: '8px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        color: '#FA5252',
+                        color: 'var(--primary, #D90012)',
                         background: '#3A1A1A',
                         padding: '2px 7px',
                         borderRadius: 100,
@@ -254,7 +254,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                         flexShrink: 0,
                         marginLeft: '8px',
                         lineHeight: '20px',

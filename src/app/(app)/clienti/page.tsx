@@ -54,8 +54,8 @@ export default async function ClientiPage() {
         minHeight: '52px',
         padding: '0 16px',
         borderRadius: '12px',
-        background: '#D4A843',
-        color: '#0F1E52',
+        background: 'var(--primary, #D90012)',
+        color: '#fff',
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: 700,
         fontSize: '14px',
@@ -79,18 +79,18 @@ export default async function ClientiPage() {
         {clienti.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 margin: 0,
               }}
             >
@@ -107,11 +107,11 @@ export default async function ClientiPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    background: '#1B2D6B',
+                    background: 'var(--surface, #E4DFD9)',
                     borderRadius: '16px',
                     padding: '14px 16px',
                     textDecoration: 'none',
-                    boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                    boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,7 +121,7 @@ export default async function ClientiPage() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '16px',
                         fontWeight: 600,
-                        color: '#F0F4FF',
+                        color: 'var(--t1, #1C1916)',
                         margin: '0 0 2px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
@@ -144,7 +144,7 @@ export default async function ClientiPage() {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '13px',
-                          color: '#8899CC',
+                          color: 'var(--t2, #96918D)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -188,7 +188,7 @@ export default async function ClientiPage() {
                     viewBox="0 0 16 16"
                     fill="none"
                     aria-hidden="true"
-                    style={{ flexShrink: 0, color: '#8899CC' }}
+                    style={{ flexShrink: 0, color: 'var(--t2, #96918D)' }}
                   >
                     <path
                       d="M6 4l4 4-4 4"

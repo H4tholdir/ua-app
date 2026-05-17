@@ -39,7 +39,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
           fontWeight: 600,
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
         }}
@@ -50,7 +50,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '15px',
-          color: '#F0F4FF',
+          color: 'var(--t1, #1C1916)',
         }}
       >
         {value}
@@ -63,10 +63,10 @@ function SectionCard({ title, children }: { title: string; children: React.React
   return (
     <div
       style={{
-        background: '#1B2D6B',
+        background: 'var(--surface, #E4DFD9)',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+        boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
         marginBottom: '12px',
       }}
     >
@@ -75,7 +75,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 600,
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           margin: '0 0 8px',
@@ -85,7 +85,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
       </h2>
       <div
         style={{
-          borderTop: '1px solid #243580',
+          borderTop: '1px solid var(--elv, #EDEDEA)',
           display: 'flex',
           flexDirection: 'column',
           gap: '0',
@@ -150,8 +150,8 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
         minHeight: '52px',
         padding: '0 16px',
         borderRadius: '12px',
-        background: '#243580',
-        color: '#8899CC',
+        background: 'var(--elv, #EDEDEA)',
+        color: 'var(--t2, #96918D)',
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: 600,
         fontSize: '14px',
@@ -225,7 +225,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
-                  color: '#F0F4FF',
+                  color: 'var(--t1, #1C1916)',
                   margin: 0,
                   lineHeight: 1.5,
                   whiteSpace: 'pre-wrap',
@@ -244,7 +244,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '12px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 wordBreak: 'break-all',
               }}
             >

@@ -112,7 +112,7 @@ export default function NuovoLavoroPage() {
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '14px',
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                       margin: 0,
                     }}
                   >
@@ -142,11 +142,11 @@ export default function NuovoLavoroPage() {
               margin: '0 20px 16px',
               padding: '12px 16px',
               borderRadius: '12px',
-              background: '#3A1A1A',
-              border: '1px solid #FA525233',
+              background: 'rgba(217,0,18,.08)',
+              border: '1px solid rgba(217,0,18,.25)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '14px',
-              color: '#FA5252',
+              color: 'var(--primary, #D90012)',
             }}
           >
             {error}
@@ -169,8 +169,8 @@ export default function NuovoLavoroPage() {
               borderRadius: '14px',
               border: 'none',
               cursor: submitting ? 'not-allowed' : 'pointer',
-              background: submitting ? '#9B7A30' : '#D4A843',
-              color: '#0F1E52',
+              background: submitting ? '#9B2A2A' : 'var(--primary, #D90012)',
+              color: '#fff',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '16px',
               fontWeight: 700,
@@ -189,8 +189,8 @@ export default function NuovoLavoroPage() {
                     width: '16px',
                     height: '16px',
                     borderRadius: '50%',
-                    border: '2px solid #0F1E5266',
-                    borderTopColor: '#0F1E52',
+                    border: '2px solid rgba(255,255,255,.4)',
+                    borderTopColor: '#fff',
                     animation: 'spin 0.7s linear infinite',
                     display: 'inline-block',
                   }}

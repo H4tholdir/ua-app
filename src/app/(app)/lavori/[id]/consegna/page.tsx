@@ -73,16 +73,16 @@ export default async function ConsegnaPage({ params }: PageProps) {
         {/* Card riepilogo — cosa succede al tap */}
         <div
           style={{
-            background: '#1B2D6B',
+            background: 'var(--surface, #E4DFD9)',
             borderRadius: '16px',
             padding: '20px',
-            boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+            boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
           }}
         >
           <p
             style={{
               margin: '0 0 14px',
-              color: '#F0F4FF',
+              color: 'var(--t1, #1C1916)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
               fontWeight: 600,
@@ -100,7 +100,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
               <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <span
                   style={{
-                    color: '#2ECC9A',
+                    color: 'var(--success, #16A34A)',
                     fontSize: '18px',
                     flexShrink: 0,
                     lineHeight: 1.3,
@@ -111,7 +111,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
                 </span>
                 <span
                   style={{
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
                     lineHeight: 1.5,
@@ -191,7 +191,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
             <p
               style={{
                 margin: 0,
-                color: '#FA5252',
+                color: 'var(--primary, #D90012)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '14px',
                 fontWeight: 600,
@@ -205,7 +205,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
                   <span
                     style={{
                       background: 'hsl(0 95% 60% / 0.2)',
-                      color: '#FA5252',
+                      color: 'var(--primary, #D90012)',
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '11px',
                       fontWeight: 700,
@@ -220,7 +220,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
                   <Link
                     href={`/lavori/${id}?tab=${err.route}`}
                     style={{
-                      color: '#FA5252',
+                      color: 'var(--primary, #D90012)',
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '14px',
                       lineHeight: 1.5,

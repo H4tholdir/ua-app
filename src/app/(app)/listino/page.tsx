@@ -74,13 +74,13 @@ export default async function ListinoPage() {
         minHeight: '52px',
         padding: '0 16px',
         borderRadius: '12px',
-        background: '#D4A843',
-        color: '#0F1E52',
+        background: 'var(--primary, #D90012)',
+        color: '#fff',
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: 700,
         fontSize: '14px',
         textDecoration: 'none',
-        boxShadow: '0 0 16px hsl(43 65% 55% / 0.3)',
+        boxShadow: '0 0 16px rgba(0,0,0,.12)',
         flexShrink: 0,
       }}
     >
@@ -99,18 +99,18 @@ export default async function ListinoPage() {
         {voci.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 margin: 0,
               }}
             >
@@ -125,7 +125,7 @@ export default async function ListinoPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: '#8899CC',
+                  color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   margin: '0 0 8px',
@@ -136,9 +136,9 @@ export default async function ListinoPage() {
 
               <div
                 style={{
-                  background: '#1B2D6B',
+                  background: 'var(--surface, #E4DFD9)',
                   borderRadius: '16px',
-                  boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                  boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                   overflow: 'hidden',
                 }}
               >
@@ -150,7 +150,7 @@ export default async function ListinoPage() {
                       alignItems: 'center',
                       gap: '12px',
                       padding: '12px 16px',
-                      borderTop: idx > 0 ? '1px solid #243580' : 'none',
+                      borderTop: idx > 0 ? '1px solid var(--elv, #EDEDEA)' : 'none',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -177,7 +177,7 @@ export default async function ListinoPage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '14px',
                             fontWeight: 500,
-                            color: '#F0F4FF',
+                            color: 'var(--t1, #1C1916)',
                             margin: 0,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -192,7 +192,7 @@ export default async function ListinoPage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '12px',
-                            color: '#8899CC',
+                            color: 'var(--t2, #96918D)',
                             margin: 0,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',

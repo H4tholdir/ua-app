@@ -55,18 +55,18 @@ export default async function MagazzinoPage() {
         {articoli.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 margin: 0,
               }}
             >
@@ -94,10 +94,10 @@ export default async function MagazzinoPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '12px',
-                      background: '#1B2D6B',
+                      background: 'var(--surface, #E4DFD9)',
                       borderRadius: '16px',
                       padding: '14px 16px',
-                      boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                      boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -116,7 +116,7 @@ export default async function MagazzinoPage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '15px',
                             fontWeight: 600,
-                            color: '#F0F4FF',
+                            color: 'var(--t1, #1C1916)',
                             margin: 0,
                             flex: 1,
                             minWidth: 0,
@@ -135,7 +135,7 @@ export default async function MagazzinoPage() {
                               fontFamily: 'DM Sans, sans-serif',
                               fontSize: '10px',
                               fontWeight: 700,
-                              color: '#4C6EF5',
+                              color: 'var(--info, #2563EB)',
                               background: 'hsl(228 89% 63% / 0.15)',
                               borderRadius: '4px',
                               padding: '2px 6px',
@@ -155,7 +155,7 @@ export default async function MagazzinoPage() {
                               fontFamily: 'DM Sans, sans-serif',
                               fontSize: '10px',
                               fontWeight: 700,
-                              color: '#FA5252',
+                              color: 'var(--primary, #D90012)',
                               background: 'hsl(0 95% 64% / 0.15)',
                               borderRadius: '4px',
                               padding: '2px 6px',
@@ -175,7 +175,7 @@ export default async function MagazzinoPage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '12px',
-                            color: '#8899CC',
+                            color: 'var(--t2, #96918D)',
                             margin: '0 0 4px',
                           }}
                         >
@@ -190,7 +190,7 @@ export default async function MagazzinoPage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '13px',
                             fontWeight: 600,
-                            color: scorteAlert ? '#FA5252' : '#2ECC9A',
+                            color: scorteAlert ? 'var(--primary, #D90012)' : 'var(--success, #16A34A)',
                           }}
                         >
                           {articolo.scorta_attuale}

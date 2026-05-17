@@ -6,14 +6,14 @@ import type { StatoSDI } from '@/types/domain'
 
 // ─── Colori badge per ogni stato SDI ─────────────────────────────────────────
 const coloriStatoSDI: Record<StatoSDI, { bg: string; fg: string }> = {
-  draft:          { bg: '#243580', fg: '#8899CC' },
-  generata:       { bg: '#1E3A5F', fg: '#74C0FC' },
-  smtp_inviata:   { bg: '#1B3A4B', fg: '#66D9E8' },
-  pec_consegnata: { bg: '#1B3B3B', fg: '#38D9A9' },
-  ricevuta_sdi:   { bg: '#2C2A4A', fg: '#CC5DE8' },
-  accettata:      { bg: '#1A3A2A', fg: '#2ECC9A' },
-  rifiutata:      { bg: '#3A1A1A', fg: '#FA5252' },
-  scaduta:        { bg: '#3A2A1A', fg: '#FD7E14' },
+  draft:          { bg: 'var(--prs, #D4CFC9)',       fg: 'var(--t2, #96918D)' },
+  generata:       { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
+  smtp_inviata:   { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
+  pec_consegnata: { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
+  ricevuta_sdi:   { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
+  accettata:      { bg: 'rgba(22,163,74,.12)',        fg: 'var(--success, #16A34A)' },
+  rifiutata:      { bg: 'rgba(217,0,18,.10)',         fg: 'var(--primary, #D90012)' },
+  scaduta:        { bg: 'rgba(217,0,18,.10)',         fg: 'var(--primary, #D90012)' },
 }
 
 const labelStatoSDI: Record<StatoSDI, string> = {
@@ -118,19 +118,19 @@ export default async function FatturePage() {
         {fatture.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
               boxShadow:
-                '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 margin: 0,
               }}
             >
@@ -170,11 +170,11 @@ export default async function FatturePage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '12px',
-                      background: '#1B2D6B',
+                      background: 'var(--surface, #E4DFD9)',
                       borderRadius: '16px',
                       padding: '14px 16px',
                       boxShadow:
-                        '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                        'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -193,7 +193,7 @@ export default async function FatturePage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '13px',
                             fontWeight: 700,
-                            color: '#F0F4FF',
+                            color: 'var(--t1, #1C1916)',
                           }}
                         >
                           N. {fattura.numero}
@@ -227,7 +227,7 @@ export default async function FatturePage() {
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '15px',
                           fontWeight: 600,
-                          color: '#F0F4FF',
+                          color: 'var(--t1, #1C1916)',
                           margin: '0 0 4px',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -251,7 +251,7 @@ export default async function FatturePage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '12px',
-                            color: '#8899CC',
+                            color: 'var(--t2, #96918D)',
                           }}
                         >
                           {formatDataIT(fattura.data)}
@@ -271,7 +271,7 @@ export default async function FatturePage() {
                               style={{
                                 fontSize: '11px',
                                 fontWeight: 500,
-                                color: '#8899CC',
+                                color: 'var(--t2, #96918D)',
                                 marginLeft: '4px',
                               }}
                             >

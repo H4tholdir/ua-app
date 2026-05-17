@@ -16,10 +16,10 @@ const PIANO_LABEL: Record<string, string> = {
 }
 
 const PIANO_COLOR: Record<string, string> = {
-  freemium: '#8899CC',
-  solo: '#8899CC',
+  freemium: 'var(--t2, #96918D)',
+  solo: 'var(--t2, #96918D)',
   lab: '#D4A843',
-  studio: '#2ECC9A',
+  studio: 'var(--success, #16A34A)',
 }
 
 // ─── Page ─────────────────────────────────────────────────────
@@ -50,13 +50,13 @@ export default async function RetePage() {
         <AppHeader title="Rete Multi-Sede" />
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{
-            background: '#1B2D6B',
+            background: 'var(--surface, #E4DFD9)',
             borderRadius: '12px',
             padding: '24px',
             textAlign: 'center',
           }}>
             <p style={{
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               fontSize: '14px',
               fontFamily,
               margin: '0 0 6px',
@@ -124,13 +124,13 @@ export default async function RetePage() {
 
         {(!retiConMembri || retiConMembri.length === 0) ? (
           <div style={{
-            background: '#1B2D6B',
+            background: 'var(--surface, #E4DFD9)',
             borderRadius: '12px',
             padding: '24px',
             textAlign: 'center',
           }}>
             <p style={{
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               fontSize: '14px',
               fontFamily,
               margin: '0 0 6px',
@@ -154,8 +154,8 @@ export default async function RetePage() {
                 height: '44px',
                 padding: '0 20px',
                 borderRadius: '10px',
-                background: '#D4A843',
-                color: '#0F1E52',
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
                 fontFamily,
                 fontSize: '14px',
                 fontWeight: 700,
@@ -171,10 +171,10 @@ export default async function RetePage() {
               <div
                 key={rete.id}
                 style={{
-                  background: '#1B2D6B',
+                  background: 'var(--surface, #E4DFD9)',
                   borderRadius: '12px',
                   padding: '16px',
-                  boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                  boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                 }}
               >
                 {/* Header rete */}
@@ -185,7 +185,7 @@ export default async function RetePage() {
                   marginBottom: '12px',
                 }}>
                   <h3 style={{
-                    color: '#F0F4FF',
+                    color: 'var(--t1, #1C1916)',
                     fontSize: '16px',
                     fontWeight: 700,
                     fontFamily,
@@ -212,7 +212,7 @@ export default async function RetePage() {
                     <div
                       key={m.laboratorio_id}
                       style={{
-                        background: '#243580',
+                        background: 'var(--elv, #EDEDEA)',
                         borderRadius: '8px',
                         padding: '10px 12px',
                         display: 'flex',
@@ -222,7 +222,7 @@ export default async function RetePage() {
                     >
                       <div>
                         <p style={{
-                          color: '#F0F4FF',
+                          color: 'var(--t1, #1C1916)',
                           fontSize: '14px',
                           fontWeight: 600,
                           fontFamily,
@@ -232,7 +232,7 @@ export default async function RetePage() {
                         </p>
                         {m.lab?.citta && (
                           <p style={{
-                            color: '#8899CC',
+                            color: 'var(--t2, #96918D)',
                             fontSize: '12px',
                             fontFamily,
                             margin: 0,
@@ -244,7 +244,7 @@ export default async function RetePage() {
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                         {m.lab?.piano && (
                           <span style={{
-                            color: PIANO_COLOR[m.lab.piano] ?? '#8899CC',
+                            color: PIANO_COLOR[m.lab.piano] ?? 'var(--t2, #96918D)',
                             fontSize: '11px',
                             fontWeight: 700,
                             fontFamily,
@@ -258,7 +258,7 @@ export default async function RetePage() {
                         )}
                         {m.ruolo === 'admin_rete' && (
                           <span style={{
-                            color: '#2ECC9A',
+                            color: 'var(--success, #16A34A)',
                             fontSize: '10px',
                             fontFamily,
                             textTransform: 'uppercase',
@@ -279,13 +279,13 @@ export default async function RetePage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     fontSize: '13px',
                     fontWeight: 600,
                     textDecoration: 'none',
                     fontFamily,
                     padding: '6px 12px',
-                    background: '#243580',
+                    background: 'var(--elv, #EDEDEA)',
                     borderRadius: '8px',
                   }}
                 >

@@ -89,7 +89,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
         textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>🔐</div>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px', color: '#0F1E52' }}>
+        <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px', color: 'var(--t1, #1C1916)' }}>
           Accedi più veloce
         </h2>
         <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>
@@ -98,7 +98,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
         </p>
 
         {state === 'success' && (
-          <p style={{ color: '#2ECC9A', fontWeight: 600, marginBottom: 16 }}>
+          <p style={{ color: 'var(--success, #16A34A)', fontWeight: 600, marginBottom: 16 }}>
             ✓ Attivato! La prossima volta usa il tuo biometrico.
           </p>
         )}
@@ -115,7 +115,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
               style={{
                 width: '100%', padding: '14px',
                 borderRadius: 12, border: 'none',
-                background: state === 'registering' ? '#c7d2fe' : '#0F1E52',
+                background: state === 'registering' ? 'rgba(217,0,18,.4)' : 'var(--primary, #D90012)',
                 color: '#fff', fontSize: '1rem', fontWeight: 600,
                 cursor: state === 'registering' ? 'default' : 'pointer',
                 marginBottom: 12,

@@ -38,7 +38,7 @@ const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' 
 function urgencyColor(giorni: number): string {
   if (giorni > 60) return '#D90012'   // rosso urgente
   if (giorni >= 30) return '#D4A843'  // oro / amber
-  return '#8899CC'                    // blu cobalto normale
+  return 'var(--t2, #96918D)'                    // blu cobalto normale
 }
 
 function urgencyLabel(giorni: number): string {
@@ -84,12 +84,12 @@ function InsolutoCard({
   const whatsappUrl = buildWhatsappUrl(whatsappMsg, item.cliente.telefono ?? undefined)
 
   const cardStyle: React.CSSProperties = {
-    background: '#1B2D6B',
+    background: 'var(--surface, #E4DFD9)',
     borderRadius: '16px',
     padding: '16px',
     margin: '0 16px 12px',
     boxShadow:
-      '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
+      'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
     cursor: 'pointer',
     borderLeft: `3px solid ${color}`,
     userSelect: 'none',
@@ -131,7 +131,7 @@ function InsolutoCard({
                 fontFamily: 'DM Sans, sans-serif',
                 fontWeight: 600,
                 fontSize: '16px',
-                color: '#F0F4FF',
+                color: 'var(--t1, #1C1916)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -144,7 +144,7 @@ function InsolutoCard({
                 margin: '2px 0 0',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
               }}
             >
               {item.fatture.length} {item.fatture.length === 1 ? 'fattura' : 'fatture'} non pagate
@@ -191,7 +191,7 @@ function InsolutoCard({
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
             }}
           >
             max {item.giorni_max_ritardo}gg
@@ -212,12 +212,12 @@ function InsolutoCard({
           >
             <div
               style={{
-                background: '#243580',
+                background: 'var(--elv, #EDEDEA)',
                 borderRadius: '0 0 14px 14px',
                 padding: '12px 16px 16px',
                 marginBottom: '12px',
                 boxShadow:
-                  'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)',
+                  'inset 3px 3px 8px rgba(0,0,0,.06), inset -2px -2px 6px rgba(255,255,255,.70)',
               }}
             >
               {/* Fatture list */}
@@ -245,7 +245,7 @@ function InsolutoCard({
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '14px',
-                        color: '#F0F4FF',
+                        color: 'var(--t1, #1C1916)',
                       }}
                     >
                       {f.numero}
@@ -254,7 +254,7 @@ function InsolutoCard({
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '13px',
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                       }}
                     >
                       {new Date(f.data).toLocaleDateString('it-IT', {
@@ -363,7 +363,7 @@ export function ScadenzarioList() {
       <div
         style={{
           padding: '20px',
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '15px',
         }}
@@ -393,7 +393,7 @@ export function ScadenzarioList() {
             fontFamily: 'DM Sans, sans-serif',
             fontWeight: 600,
             fontSize: '17px',
-            color: '#2ECC9A',
+            color: 'var(--success, #16A34A)',
           }}
         >
           Nessun insoluto
@@ -403,7 +403,7 @@ export function ScadenzarioList() {
             margin: 0,
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
           }}
         >
           Tutti i pagamenti sono in regola.
@@ -422,10 +422,10 @@ export function ScadenzarioList() {
         style={{
           margin: '0 16px 20px',
           padding: '14px 16px',
-          background: '#1B2D6B',
+          background: 'var(--surface, #E4DFD9)',
           borderRadius: '14px',
           boxShadow:
-            '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
+            'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -438,7 +438,7 @@ export function ScadenzarioList() {
               margin: 0,
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -463,7 +463,7 @@ export function ScadenzarioList() {
               margin: 0,
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -476,7 +476,7 @@ export function ScadenzarioList() {
               fontFamily: 'DM Sans, sans-serif',
               fontWeight: 700,
               fontSize: '22px',
-              color: '#F0F4FF',
+              color: 'var(--t1, #1C1916)',
             }}
           >
             {items.length}

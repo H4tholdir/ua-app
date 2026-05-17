@@ -36,7 +36,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
         flexDirection: 'column',
         gap: '2px',
         padding: '10px 0',
-        borderBottom: '1px solid #243580',
+        borderBottom: '1px solid var(--elv, #EDEDEA)',
       }}
     >
       <span
@@ -44,7 +44,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
           fontWeight: 600,
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
         }}
@@ -55,7 +55,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
-          color: value ? '#F0F4FF' : '#6677AA',
+          color: value ? 'var(--t1, #1C1916)' : '#6677AA',
           fontStyle: value ? 'normal' : 'italic',
         }}
       >
@@ -69,10 +69,10 @@ function SectionCard({ title, children }: { title: string; children: React.React
   return (
     <div
       style={{
-        background: '#1B2D6B',
+        background: 'var(--surface, #E4DFD9)',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+        boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
         marginBottom: '12px',
       }}
     >
@@ -81,7 +81,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 700,
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           margin: '0 0 4px',
@@ -154,7 +154,7 @@ export default async function ImpostazioniPage() {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -199,13 +199,13 @@ export default async function ImpostazioniPage() {
                 height: '44px',
                 padding: '0 18px',
                 borderRadius: '10px',
-                background: '#243580',
-                color: '#8899CC',
+                background: 'var(--elv, #EDEDEA)',
+                color: 'var(--t2, #96918D)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontWeight: 600,
                 fontSize: '14px',
                 textDecoration: 'none',
-                boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
               }}
               aria-label="Genera Nomina PRRC — disponibile in Fase 3"
             >
@@ -242,7 +242,7 @@ export default async function ImpostazioniPage() {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -255,7 +255,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '12px',
                   fontWeight: 700,
-                  color: lab.pec_smtp_configurata ? '#2ECC9A' : '#FA5252',
+                  color: lab.pec_smtp_configurata ? 'var(--success, #16A34A)' : 'var(--primary, #D90012)',
                   background: lab.pec_smtp_configurata
                     ? 'hsl(159 63% 49% / 0.15)'
                     : 'hsl(0 95% 64% / 0.15)',
@@ -282,13 +282,13 @@ export default async function ImpostazioniPage() {
         {/* Sezione 4: Marchio */}
         <SectionCard title="Marchio">
           {lab.logo_url ? (
-            <div style={{ padding: '10px 0', borderBottom: '1px solid #243580' }}>
+            <div style={{ padding: '10px 0', borderBottom: '1px solid var(--elv, #EDEDEA)' }}>
               <span
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#8899CC',
+                  color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',
@@ -317,13 +317,13 @@ export default async function ImpostazioniPage() {
           )}
 
           {lab.logo_print_url ? (
-            <div style={{ padding: '10px 0', borderBottom: '1px solid #243580' }}>
+            <div style={{ padding: '10px 0', borderBottom: '1px solid var(--elv, #EDEDEA)' }}>
               <span
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#8899CC',
+                  color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',
@@ -358,7 +358,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#8899CC',
+                  color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',

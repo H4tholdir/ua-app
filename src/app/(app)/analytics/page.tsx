@@ -38,10 +38,10 @@ function KpiCard({
   return (
     <div
       style={{
-        background: '#1B2D6B',
+        background: 'var(--surface, #E4DFD9)',
         borderRadius: '16px',
         padding: '20px 16px',
-        boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+        boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
         display: 'flex',
         flexDirection: 'column',
         gap: '6px',
@@ -63,7 +63,7 @@ function KpiCard({
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 500,
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           lineHeight: 1.3,
         }}
       >
@@ -143,7 +143,7 @@ export default async function AnalyticsPage() {
           <KpiCard
             label="Lavori attivi"
             value={String(stats.lavori_attivi)}
-            accent="#4C6EF5"
+            accent="var(--info, #2563EB)"
           />
           <KpiCard
             label="Consegne oggi"
@@ -153,12 +153,12 @@ export default async function AnalyticsPage() {
           <KpiCard
             label="In ritardo"
             value={String(stats.lavori_in_ritardo)}
-            accent="#FA5252"
+            accent="var(--primary, #D90012)"
           />
           <KpiCard
             label="Pronti da fatturare"
             value={String(stats.pronti_non_fatturati)}
-            accent="#2ECC9A"
+            accent="var(--success, #16A34A)"
           />
           <KpiCard
             label="MDR incompleti"

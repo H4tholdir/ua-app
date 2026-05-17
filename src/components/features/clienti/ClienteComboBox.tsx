@@ -8,13 +8,13 @@ const inputBase: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: '12px',
-  background: '#0F1E52',
-  border: '1px solid #243580',
-  color: '#F0F4FF',
+  background: 'var(--bg, #DDD8D3)',
+  border: '1px solid var(--elv, #EDEDEA)',
+  color: 'var(--t1, #1C1916)',
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '15px',
   boxShadow:
-    'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)',
+    'inset 3px 3px 8px rgba(0,0,0,.07), inset -2px -2px 6px rgba(255,255,255,.70)',
   outline: 'none',
   boxSizing: 'border-box',
 }
@@ -210,8 +210,8 @@ export function ClienteComboBox({
             width: '14px',
             height: '14px',
             borderRadius: '50%',
-            border: '2px solid #243580',
-            borderTopColor: '#D4A843',
+            border: '2px solid rgba(0,0,0,.12)',
+            borderTopColor: 'var(--primary, #D90012)',
             animation: 'combobox-spin 0.7s linear infinite',
             display: 'inline-block',
           }}
@@ -234,10 +234,10 @@ export function ClienteComboBox({
             padding: '4px',
             listStyle: 'none',
             borderRadius: '12px',
-            background: '#1B2D6B',
-            border: '1px solid #243580',
+            background: 'var(--surface, #E4DFD9)',
+            border: '1px solid var(--elv, #EDEDEA)',
             boxShadow:
-              '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
+              'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             maxHeight: '280px',
             overflowY: 'auto',
           }}
@@ -263,8 +263,8 @@ export function ClienteComboBox({
                   cursor: 'pointer',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
-                  color: '#F0F4FF',
-                  background: isActive ? '#243580' : 'transparent',
+                  color: 'var(--t1, #1C1916)',
+                  background: isActive ? 'var(--elv, #EDEDEA)' : 'transparent',
                   transition: 'background 0.1s',
                   display: 'flex',
                   flexDirection: 'column',
@@ -278,7 +278,7 @@ export function ClienteComboBox({
                   <span
                     style={{
                       fontSize: '12px',
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                     }}
                   >
                     {option.studio_nome}
