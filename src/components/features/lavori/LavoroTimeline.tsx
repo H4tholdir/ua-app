@@ -99,7 +99,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
             : isCurrent
             ? isInRitardo
               ? 'var(--primary, #D90012)'
-              : '#D4A843'
+              : 'var(--gold, #D4A843)'
             : 'rgba(0,0,0,.15)'
 
           const dotBorder = isCompleted ? 'var(--success, #16A34A)' : isCurrent ? dotColor : 'rgba(0,0,0,.15)'

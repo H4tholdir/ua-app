@@ -143,7 +143,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
             <p
               style={{
                 margin: 0,
-                color: '#FD7E14',
+                color: 'var(--amber, #FD7E14)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '14px',
                 lineHeight: 1.5,
@@ -169,7 +169,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
             }}
           >
             <span style={{ fontSize: '16px', flexShrink: 0 }} aria-hidden="true">💡</span>
-            <p style={{ margin: 0, color: '#D4A843', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, color: 'var(--gold, #D4A843)', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', lineHeight: 1.5 }}>
               Nessun lotto materiale registrato. Per la tracciabilità MDR (Allegato XIII §5) è raccomandato aggiungere i materiali usati nella tab Dati.
             </p>
           </div>

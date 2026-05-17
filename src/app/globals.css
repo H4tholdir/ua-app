@@ -73,6 +73,9 @@
   --urgente:   #F97316;
   --warning:   #B45309;
   --info:      #2563EB;
+  --gold:      #D4A843;  /* CTA cerimoniale: CONSEGNA, firma DdC */
+  --amber:     #FD7E14;  /* Warning MDR: PSUR mancante, rischi */
+  --purple:    #7C3AED;  /* STL non assegnati */
 
   /* Shadows warm-tinted asimmetriche (da admin.css) */
   --sh-c:
@@ -637,6 +640,9 @@
 @keyframes ua-skeleton-pulse {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   [style*="ua-skeleton-pulse"] { animation: none; }

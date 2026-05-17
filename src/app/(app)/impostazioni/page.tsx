@@ -167,7 +167,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '12px',
                   fontWeight: 700,
-                  color: '#D4A843',
+                  color: 'var(--gold, #D4A843)',
                   background: 'hsl(43 65% 55% / 0.15)',
                   borderRadius: '6px',
                   padding: '3px 10px',
@@ -304,7 +304,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: '#D4A843',
+                  color: 'var(--gold, #D4A843)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}
@@ -339,7 +339,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: '#D4A843',
+                  color: 'var(--gold, #D4A843)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}
@@ -374,7 +374,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: '#D4A843',
+                  color: 'var(--gold, #D4A843)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}

@@ -15,12 +15,12 @@ type Stato = 'idle' | 'loading' | 'success' | 'error'
 
 const BUTTON_STYLES: Record<Stato, React.CSSProperties> = {
   idle: {
-    background: '#D4A843',
+    background: 'var(--gold, #D4A843)',
     color: 'var(--t1, #1C1916)',
     cursor: 'pointer',
   },
   loading: {
-    background: '#D4A843',
+    background: 'var(--gold, #D4A843)',
     color: 'var(--t1, #1C1916)',
     opacity: 0.8,
     cursor: 'not-allowed',

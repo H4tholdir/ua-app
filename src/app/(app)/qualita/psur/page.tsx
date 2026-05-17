@@ -25,7 +25,7 @@ const STATO_LABEL: Record<Psur['stato'], string> = {
 }
 
 const STATO_COLOR: Record<Psur['stato'], string> = {
-  bozza: '#D4A843',
+  bozza: 'var(--gold, #D4A843)',
   completato: 'var(--t2, #96918D)',
   firmato: 'var(--success, #16A34A)',
 }
@@ -105,7 +105,7 @@ export default async function PsurPage() {
             }}
           >
             <p style={{
-              color: '#FD7E14',
+              color: 'var(--amber, #FD7E14)',
               fontSize: '14px',
               fontWeight: 700,
               fontFamily,
@@ -133,7 +133,7 @@ export default async function PsurPage() {
                   borderRadius: '10px',
                   border: 'none',
                   cursor: 'pointer',
-                  background: '#D4A843',
+                  background: 'var(--gold, #D4A843)',
                   color: 'var(--t1, #1C1916)',
                   fontFamily,
                   fontSize: '14px',
@@ -251,7 +251,7 @@ export default async function PsurPage() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      color: '#D4A843',
+                      color: 'var(--gold, #D4A843)',
                       fontSize: '13px',
                       fontWeight: 600,
                       fontFamily,

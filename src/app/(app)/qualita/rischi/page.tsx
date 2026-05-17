@@ -95,7 +95,7 @@ export default async function RischiPage() {
             }}
           >
             <p style={{
-              color: '#FD7E14',
+              color: 'var(--amber, #FD7E14)',
               fontSize: '14px',
               fontWeight: 700,
               fontFamily,
@@ -143,7 +143,7 @@ export default async function RischiPage() {
                       {formatTipoDispositivo(r.tipo_dispositivo)}
                     </span>
                     <span style={{
-                      color: '#D4A843',
+                      color: 'var(--gold, #D4A843)',
                       fontSize: '11px',
                       fontWeight: 700,
                       fontFamily,

@@ -172,7 +172,7 @@ export default async function ClientiPage() {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '12px',
-                          color: '#D4A843',
+                          color: 'var(--gold, #D4A843)',
                           margin: '2px 0 0',
                         }}
                       >

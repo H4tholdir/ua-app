@@ -13,8 +13,8 @@ const TIPI_INCIDENTE = [
 ] as const
 
 const GRAVITA_INCIDENTE = [
-  { value: 'lieve', label: 'Lieve', color: '#D4A843' },
-  { value: 'moderata', label: 'Moderata', color: '#FD7E14' },
+  { value: 'lieve', label: 'Lieve', color: 'var(--gold, #D4A843)' },
+  { value: 'moderata', label: 'Moderata', color: 'var(--amber, #FD7E14)' },
   { value: 'grave', label: 'Grave', color: 'var(--primary, #D90012)' },
   { value: 'critica', label: 'Critica', color: 'var(--primary, #D90012)' },
 ] as const
@@ -336,7 +336,7 @@ export default function NuovoIncidentePage() {
             borderRadius: '14px',
             border: 'none',
             cursor: submitting ? 'not-allowed' : 'pointer',
-            background: submitting ? '#9B7A30' : '#D4A843',
+            background: submitting ? '#9B7A30' : 'var(--gold, #D4A843)',
             color: 'var(--t1, #1C1916)',
             fontFamily,
             fontSize: '16px',

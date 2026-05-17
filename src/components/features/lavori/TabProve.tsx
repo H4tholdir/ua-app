@@ -281,7 +281,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     <span
                       style={{
                         background: 'var(--elv, #EDEDEA)',
-                        color: '#D4A843',
+                        color: 'var(--gold, #D4A843)',
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
                         fontWeight: 700,
@@ -427,7 +427,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                         background:
                           !rientroEsito[prova.id] || rientroSubmitting[prova.id]
                             ? 'var(--elv, #EDEDEA)'
-                            : '#D4A843',
+                            : 'var(--gold, #D4A843)',
                         color:
                           !rientroEsito[prova.id] || rientroSubmitting[prova.id]
                             ? 'var(--t2, #96918D)'
@@ -469,7 +469,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                 borderRadius: '14px',
                 border: '1px dashed rgba(0,0,0,.06)',
                 background: 'transparent',
-                color: '#D4A843',
+                color: 'var(--gold, #D4A843)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
                 fontWeight: 700,
@@ -574,7 +574,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     height: '52px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: !dataRientro || submitting ? 'var(--elv, #EDEDEA)' : '#D4A843',
+                    background: !dataRientro || submitting ? 'var(--elv, #EDEDEA)' : 'var(--gold, #D4A843)',
                     color: !dataRientro || submitting ? 'var(--t2, #96918D)' : 'var(--t1, #1C1916)',
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '15px',

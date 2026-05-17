@@ -18,7 +18,7 @@ const PIANO_LABEL: Record<string, string> = {
 const PIANO_COLOR: Record<string, string> = {
   freemium: 'var(--t2, #96918D)',
   solo: 'var(--t2, #96918D)',
-  lab: '#D4A843',
+  lab: 'var(--gold, #D4A843)',
   studio: 'var(--success, #16A34A)',
 }
 
@@ -194,7 +194,7 @@ export default async function RetePage() {
                     {rete.nome}
                   </h3>
                   <span style={{
-                    color: '#D4A843',
+                    color: 'var(--gold, #D4A843)',
                     background: 'hsl(43 65% 55% / 0.12)',
                     fontSize: '13px',
                     fontWeight: 700,

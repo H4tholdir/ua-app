@@ -365,7 +365,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '14px',
             fontWeight: 700,
-            color: '#D4A843',
+            color: 'var(--gold, #D4A843)',
             marginLeft: 'auto',
           }}
         >

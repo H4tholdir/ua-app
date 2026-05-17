@@ -195,7 +195,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '12px',
                   fontWeight: 600,
-                  color: '#FD7E14',
+                  color: 'var(--amber, #FD7E14)',
                   background: 'hsl(28 100% 55% / 0.15)',
                   borderRadius: '6px',
                   padding: '3px 10px',

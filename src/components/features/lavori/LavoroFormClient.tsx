@@ -191,7 +191,7 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
             padding: '0 24px',
             borderRadius: '14px',
             border: 'none',
-            background: '#D4A843',
+            background: 'var(--gold, #D4A843)',
             color: 'var(--t1, #1C1916)',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',

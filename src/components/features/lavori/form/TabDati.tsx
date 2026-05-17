@@ -237,7 +237,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             height: '20px',
             minWidth: '20px',
             cursor: 'pointer',
-            accentColor: '#D4A843',
+            accentColor: 'var(--gold, #D4A843)',
           }}
         />
         <label

@@ -351,7 +351,7 @@ export function DashboardTitolare({
               value: stats.pronti_non_fatturati,
               label: 'Da fatt.',
               description: 'Lavori pronti da fatturare',
-              color: '#D4A843',
+              color: 'var(--gold, #D4A843)',
             },
             {
               value: stats.materiali_esaurimento_count,
@@ -369,7 +369,7 @@ export function DashboardTitolare({
               value: stats.stl_non_assegnati,
               label: 'Non ass.',
               description: 'File STL non ancora assegnati a un tecnico',
-              color: '#7C3AED',
+              color: 'var(--purple, #7C3AED)',
             },
           ].map((chip, i) => (
             <div key={chip.label} role="listitem">

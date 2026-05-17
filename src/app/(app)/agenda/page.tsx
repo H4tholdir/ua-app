@@ -34,7 +34,7 @@ const tipoLabels: Record<string, string> = {
 
 const tipoColors: Record<string, string> = {
   consegna: 'var(--success, #16A34A)',
-  prova: '#FD7E14',
+  prova: 'var(--amber, #FD7E14)',
   appuntamento: 'var(--info, #2563EB)',
   urgente: 'var(--primary, #D90012)',
   altro: 'var(--t2, #96918D)',
@@ -143,7 +143,7 @@ export default async function AgendaPage() {
                   fontFamily: 'Playfair Display, serif',
                   fontSize: '18px',
                   fontWeight: 700,
-                  color: '#D4A843',
+                  color: 'var(--gold, #D4A843)',
                   margin: '0 0 10px',
                   textTransform: 'capitalize',
                 }}
@@ -231,7 +231,7 @@ export default async function AgendaPage() {
                                   fontFamily: 'Playfair Display, serif',
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: '#D4A843',
+                                  color: 'var(--gold, #D4A843)',
                                   flexShrink: 0,
                                 }}
                               >

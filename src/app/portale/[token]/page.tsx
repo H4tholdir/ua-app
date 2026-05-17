@@ -31,7 +31,7 @@ const statoLabels: Record<StatoLavoro, string> = {
 const statoColors: Record<StatoLavoro, string> = {
   ricevuto: '#8899CC',
   in_lavorazione: '#4C6EF5',
-  in_prova: '#FD7E14',
+  in_prova: 'var(--amber, #FD7E14)',
   in_prova_esterna: '#E67700',
   pronto: '#2ECC9A',
   consegnato: '#2ECC9A',

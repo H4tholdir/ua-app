@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { LavoroCard } from '@/components/features/lavori/LavoroCard'
+import { LavoriSearchBar } from '@/components/features/lavori/LavoriSearchBar'
 import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
 
 // ─── Design tokens v2.2 — warm palette ───────────────────────
@@ -22,7 +24,7 @@ const DS = {
 } as const
 
 interface PageProps {
-  searchParams: Promise<{ stato?: string }>
+  searchParams: Promise<{ stato?: string; q?: string }>
 }
 
 type LavoroRow = {
@@ -42,6 +44,7 @@ type LavoroRow = {
 export default async function LavoriPage({ searchParams }: PageProps) {
   const params = await searchParams
   const statoFiltro = params.stato as StatoLavoro | undefined
+  const q = params.q?.trim() ?? ''
 
   // Auth
   const userClient = await getServerUserClient()
@@ -82,6 +85,13 @@ export default async function LavoriPage({ searchParams }: PageProps) {
 
     if (statoFiltro) {
       query = query.eq('stato', statoFiltro)
+    }
+
+    if (q) {
+      const term = `%${q}%`
+      query = query.or(
+        `numero_lavoro.ilike.${term},paziente_nome_snapshot.ilike.${term},descrizione.ilike.${term}`
+      )
     }
 
     const { data } = await query
@@ -145,6 +155,11 @@ export default async function LavoriPage({ searchParams }: PageProps) {
     <PageWrapper>
       <AppHeader title="Lavori" actions={addButton} />
 
+      {/* Search bar */}
+      <Suspense fallback={null}>
+        <LavoriSearchBar defaultValue={q} />
+      </Suspense>
+
       {/* Filtri stato */}
       <div
         role="navigation"
@@ -190,6 +205,21 @@ export default async function LavoriPage({ searchParams }: PageProps) {
         })}
       </div>
 
+      {/* Counter risultati ricerca */}
+      {q && (
+        <p style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '13px',
+          color: DS.t2,
+          padding: '0 20px 8px',
+          margin: 0,
+        }}>
+          {lavori.length === 0
+            ? `Nessun risultato per "${q}"`
+            : `${lavori.length} lavoro${lavori.length === 1 ? '' : 'i'} trovato${lavori.length === 1 ? '' : 'i'} per "${q}"`}
+        </p>
+      )}
+
       {/* Lista lavori */}
       <section style={{ padding: '0 20px' }}>
         {lavori.length === 0 ? (
@@ -215,7 +245,7 @@ export default async function LavoriPage({ searchParams }: PageProps) {
                 margin: 0,
               }}
             >
-              {statoFiltro ? 'Nessun lavoro con questo stato' : 'Nessun lavoro ancora'}
+              {q ? `Nessun risultato per "${q}"` : statoFiltro ? 'Nessun lavoro con questo stato' : 'Nessun lavoro ancora'}
             </p>
             <p
               style={{

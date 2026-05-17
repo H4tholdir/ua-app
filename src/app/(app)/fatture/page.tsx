@@ -262,7 +262,7 @@ export default async function FatturePage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '14px',
                             fontWeight: 700,
-                            color: '#D4A843',
+                            color: 'var(--gold, #D4A843)',
                           }}
                         >
                           {formatImporto(fattura.totale)}

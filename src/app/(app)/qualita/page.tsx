@@ -18,8 +18,8 @@ function formatDataIT(dateStr: string): string {
 }
 
 const gravitaColor: Record<string, string> = {
-  lieve:    '#D4A843',
-  moderata: '#FD7E14',
+  lieve:    'var(--gold, #D4A843)',
+  moderata: 'var(--amber, #FD7E14)',
   grave:    'var(--primary, #D90012)',
   critica:  'var(--primary, #D90012)',
 }
@@ -150,7 +150,7 @@ export default async function QualitaPage() {
                     )}
                     {item.azione_correttiva && (
                       <div style={{
-                        color: '#D4A843',
+                        color: 'var(--gold, #D4A843)',
                         fontSize: '13px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -184,7 +184,7 @@ export default async function QualitaPage() {
               borderRadius: '12px',
               padding: '16px 20px',
               border: '1px solid rgba(253, 126, 20, 0.4)',
-              color: '#FD7E14',
+              color: 'var(--amber, #FD7E14)',
               fontSize: '14px',
               fontFamily: "'DM Sans', system-ui, sans-serif",
             }}>
@@ -361,7 +361,7 @@ export default async function QualitaPage() {
             <Link
               href="/qualita/psur"
               style={{
-                color: '#D4A843',
+                color: 'var(--gold, #D4A843)',
                 fontSize: '14px',
                 fontWeight: 600,
                 textDecoration: 'none',

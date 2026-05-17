@@ -79,7 +79,7 @@ export function LavoroFormShell({
                 whiteSpace: 'nowrap',
                 border: 'none',
                 cursor: 'pointer',
-                background: isActive ? '#D4A843' : 'var(--elv, #EDEDEA)',
+                background: isActive ? 'var(--gold, #D4A843)' : 'var(--elv, #EDEDEA)',
                 color: isActive ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
                 flexShrink: 0,
                 boxShadow: isActive

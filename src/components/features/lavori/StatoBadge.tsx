@@ -9,7 +9,7 @@ interface ColoreConfig {
 const COLORI: Record<StatoLavoro, ColoreConfig> = {
   ricevuto:          { bg: 'var(--elv, #EDEDEA)', fg: 'var(--t2, #96918D)', label: 'Ricevuto' },
   in_lavorazione:    { bg: '#DBEAFE', fg: 'var(--info, #2563EB)', label: 'In lavorazione' },
-  in_prova:          { bg: '#F3E8FF', fg: '#7C3AED', label: 'In prova' },
+  in_prova:          { bg: '#F3E8FF', fg: 'var(--purple, #7C3AED)', label: 'In prova' },
   in_prova_esterna:  { bg: '#FFF7ED', fg: 'var(--urgente, #F97316)', label: 'In prova esterna' },
   pronto:            { bg: '#DCFCE7', fg: 'var(--success, #16A34A)', label: 'Pronto' },
   consegnato:        { bg: '#F0FDF4', fg: '#15803D', label: 'Consegnato' },

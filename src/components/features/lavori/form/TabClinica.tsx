@@ -136,7 +136,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '11px',
                         fontWeight: 700,
-                        background: selected ? '#D4A843' : 'var(--elv, #EDEDEA)',
+                        background: selected ? 'var(--gold, #D4A843)' : 'var(--elv, #EDEDEA)',
                         color: selected ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
                         boxShadow: selected
                           ? insetShadow
@@ -327,7 +327,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
               height: '20px',
               minWidth: '20px',
               cursor: 'pointer',
-              accentColor: '#D4A843',
+              accentColor: 'var(--gold, #D4A843)',
             }}
           />
           <label

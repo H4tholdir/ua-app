@@ -6,6 +6,7 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { StatoBadge } from '@/components/features/lavori/StatoBadge'
 import { LavoroTimeline } from '@/components/features/lavori/LavoroTimeline'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
+import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
 import type { LavoroDettaglio } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -66,6 +67,14 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
         backHref="/lavori"
         actions={<StatoBadge stato={lavoroDettaglio.stato} />}
       />
+
+      {/* Banner annulla consegna (grace period 5 min) */}
+      {lavoroDettaglio.stato === 'consegnato' && lavoroDettaglio.data_consegna_effettiva && (
+        <AnnullaConsegnaBanner
+          lavoroId={id}
+          dataConsegnaEffettiva={lavoroDettaglio.data_consegna_effettiva}
+        />
+      )}
 
       {/* Timeline stato */}
       <div style={{ padding: '0 20px 20px' }}>
