@@ -3,31 +3,23 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-import { StatoBadge } from '@/components/features/lavori/StatoBadge'
-import type { StatoLavoro, TipoDispositivo } from '@/types/domain'
+import { LavoroCard } from '@/components/features/lavori/LavoroCard'
+import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
 
-// ─── Formato data italiana ────────────────────────────────────
-function formatDataIT(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('it-IT', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
-// ─── Etichette tipo dispositivo ───────────────────────────────
-const tipoLabels: Record<TipoDispositivo, string> = {
-  protesi_fissa: 'Protesi fissa',
-  protesi_mobile: 'Protesi mobile',
-  implantologia: 'Implantologia',
-  cad_cam: 'CAD/CAM',
-  scheletrato: 'Scheletrato',
-  ortodonzia: 'Ortodonzia',
-  provvisorio: 'Provvisorio',
-  riparazione: 'Riparazione',
-  altro: 'Altro',
-}
+// ─── Design tokens v2.2 — warm palette ───────────────────────
+const DS = {
+  bg:      'var(--bg, #DDD8D3)',
+  surface: 'var(--surface, #E4DFD9)',
+  elv:     'var(--elv, #EDEDEA)',
+  prs:     'var(--prs, #D4CFC9)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  t3:      'var(--t3, #B8B3AE)',
+  primary: 'var(--primary, #D90012)',
+  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+  shI: `inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)`,
+} as const
 
 interface PageProps {
   searchParams: Promise<{ stato?: string }>
@@ -37,6 +29,7 @@ type LavoroRow = {
   id: string
   numero_lavoro: string
   stato: StatoLavoro
+  priorita: PrioritaLavoro
   tipo_dispositivo: TipoDispositivo
   descrizione: string
   data_consegna_prevista: string
@@ -73,6 +66,7 @@ export default async function LavoriPage({ searchParams }: PageProps) {
         id,
         numero_lavoro,
         stato,
+        priorita,
         tipo_dispositivo,
         descrizione,
         data_consegna_prevista,
@@ -115,18 +109,18 @@ export default async function LavoriPage({ searchParams }: PageProps) {
         alignItems: 'center',
         justifyContent: 'center',
         gap: '6px',
-        height: '40px',
-        minHeight: '52px',
-        padding: '0 16px',
-        borderRadius: '12px',
-        background: '#D4A843',
-        color: '#0F1E52',
+        height: '52px',
+        padding: '0 18px',
+        borderRadius: '14px',
+        background: DS.primary,
+        color: '#fff',
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: 700,
         fontSize: '14px',
         textDecoration: 'none',
-        boxShadow: '0 0 16px hsl(43 65% 55% / 0.3)',
+        boxShadow: DS.shB,
         flexShrink: 0,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <svg
@@ -173,20 +167,21 @@ export default async function LavoriPage({ searchParams }: PageProps) {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                height: '34px',
-                padding: '0 14px',
+                height: '40px',
+                padding: '0 16px',
                 borderRadius: 100,
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                fontWeight: isActive ? 700 : 500,
+                fontWeight: isActive ? 600 : 400,
                 whiteSpace: 'nowrap',
                 textDecoration: 'none',
-                background: isActive ? '#D4A843' : '#1B2D6B',
-                color: isActive ? '#0F1E52' : '#8899CC',
-                boxShadow: isActive
-                  ? '0 0 12px hsl(43 65% 55% / 0.25)'
-                  : '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                background: isActive ? DS.primary : DS.elv,
+                color: isActive ? '#fff' : DS.t2,
+                boxShadow: isActive ? DS.shI : DS.shB,
                 flexShrink: 0,
+                transition: 'all var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
+                minHeight: 40,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               {label}
@@ -200,19 +195,18 @@ export default async function LavoriPage({ searchParams }: PageProps) {
         {lavori.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
-              borderRadius: '16px',
+              background: DS.surface,
+              borderRadius: '14px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow:
-                '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+              boxShadow: DS.shB,
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: DS.t2,
                 margin: 0,
               }}
             >
@@ -232,131 +226,26 @@ export default async function LavoriPage({ searchParams }: PageProps) {
               gap: '8px',
             }}
           >
-            {lavori.map((lavoro) => {
-              const clienteNome = lavoro.cliente
-                ? lavoro.cliente.studio_nome ??
-                  `${lavoro.cliente.nome} ${lavoro.cliente.cognome}`
-                : '—'
-
-              const pazienteLabel = lavoro.paziente_nome_snapshot ?? null
-              const tipoLabel = tipoLabels[lavoro.tipo_dispositivo] ?? lavoro.tipo_dispositivo
-
-              return (
-                <li key={lavoro.id}>
-                  <Link
-                    href={`/lavori/${lavoro.id}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      background: '#1B2D6B',
-                      borderRadius: '16px',
-                      padding: '14px 16px',
-                      textDecoration: 'none',
-                      boxShadow:
-                        '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
-                    }}
-                  >
-                    {/* Contenuto */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Riga 1: numero + badge */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: '#8899CC',
-                          }}
-                        >
-                          #{lavoro.numero_lavoro}
-                        </span>
-                        <StatoBadge stato={lavoro.stato} />
-                      </div>
-
-                      {/* Riga 2: paziente (se presente) o descrizione */}
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '16px',
-                          fontWeight: 600,
-                          color: '#F0F4FF',
-                          margin: '0 0 2px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {pazienteLabel ?? lavoro.descrizione}
-                      </p>
-
-                      {/* Riga 3: cliente, tipo, data */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '13px',
-                            color: '#8899CC',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {clienteNome}
-                          {' · '}
-                          <span style={{ color: '#6677AA' }}>{tipoLabel}</span>
-                        </span>
-                        <time
-                          dateTime={lavoro.data_consegna_prevista}
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            color: '#D4A843',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {formatDataIT(lavoro.data_consegna_prevista)}
-                        </time>
-                      </div>
-                    </div>
-
-                    {/* Chevron */}
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      aria-hidden="true"
-                      style={{ flexShrink: 0, color: '#8899CC' }}
-                    >
-                      <path
-                        d="M6 4l4 4-4 4"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Link>
-                </li>
-              )
-            })}
+            {lavori.map((lavoro, i) => (
+              <li key={lavoro.id}>
+                <LavoroCard
+                  id={lavoro.id}
+                  numero_lavoro={lavoro.numero_lavoro}
+                  stato={lavoro.stato}
+                  priorita={lavoro.priorita}
+                  tipo_dispositivo={lavoro.tipo_dispositivo}
+                  descrizione={lavoro.descrizione}
+                  data_consegna_prevista={lavoro.data_consegna_prevista}
+                  ora_consegna={lavoro.ora_consegna ?? null}
+                  paziente_nome_snapshot={lavoro.paziente_nome_snapshot ?? null}
+                  cliente_display={
+                    lavoro.cliente?.studio_nome ??
+                    (`${lavoro.cliente?.nome ?? ''} ${lavoro.cliente?.cognome ?? ''}`.trim() || '—')
+                  }
+                  animationDelay={i * 0.04}
+                />
+              </li>
+            ))}
           </ul>
         )}
       </section>
