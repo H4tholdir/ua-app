@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { PecSetupSection } from './PecSetupSection'
 
 type LabRow = {
   id: string
@@ -234,50 +235,10 @@ export default async function ImpostazioniPage() {
         </SectionCard>
 
         {/* Sezione 3: PEC */}
-        <SectionCard title="PEC">
-          <InfoRow label="Indirizzo PEC" value={lab.pec} />
-          <div style={{ padding: '10px 0' }}>
-            <span
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#8899CC',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              SMTP configurato
-            </span>
-            <div style={{ marginTop: '4px' }}>
-              <span
-                style={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: lab.pec_smtp_configurata ? '#2ECC9A' : '#FA5252',
-                  background: lab.pec_smtp_configurata
-                    ? 'hsl(159 63% 49% / 0.15)'
-                    : 'hsl(0 95% 64% / 0.15)',
-                  borderRadius: '6px',
-                  padding: '3px 10px',
-                }}
-              >
-                {lab.pec_smtp_configurata ? 'Configurato' : 'Non configurato'}
-              </span>
-            </div>
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
-                color: '#6677AA',
-                margin: '6px 0 0',
-              }}
-            >
-              La configurazione SMTP viene gestita dall&apos;amministratore UÀ.
-            </p>
-          </div>
-        </SectionCard>
+        <PecSetupSection
+          currentEmail={lab.pec ?? undefined}
+          configurata={lab.pec_smtp_configurata}
+        />
 
         {/* Sezione 4: Marchio */}
         <SectionCard title="Marchio">
