@@ -38,6 +38,81 @@ interface Props {
   log: LogEntry[]
 }
 
+function HardDeletePanel({ labId, labNome }: { labId: string; labNome: string }) {
+  const [confirmInput, setConfirmInput] = useState('')
+  const [step, setStep] = useState<'idle' | 'confirm' | 'deleting' | 'done'>('idle')
+  const [err, setErr] = useState<string | null>(null)
+
+  const handleDelete = useCallback(async () => {
+    setStep('deleting'); setErr(null)
+    const res = await fetch(`/api/admin/labs/${labId}/hard-delete`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Origin: window.location.origin },
+      body: JSON.stringify({ confirm_nome: confirmInput }),
+    })
+    const data = await res.json()
+    if (res.ok && data.ok) {
+      setStep('done')
+      setTimeout(() => { window.location.href = '/admin/labs' }, 1500)
+    } else {
+      setStep('confirm')
+      setErr(data.error ?? 'Errore durante la cancellazione')
+    }
+  }, [labId, confirmInput])
+
+  if (step === 'done') return <p style={{ color: 'var(--adm-g)', fontWeight: 600, fontSize: 14 }}>✓ Laboratorio eliminato. Reindirizzamento…</p>
+
+  if (step === 'idle') return (
+    <button
+      type="button"
+      className="adm-act"
+      style={{ background: 'rgba(217,0,18,.08)', color: 'var(--adm-red)', border: '1px solid rgba(217,0,18,.25)', height: 36, padding: '0 14px', fontSize: 13, borderRadius: 8 }}
+      onClick={() => setStep('confirm')}
+    >
+      🗑 Cancella definitivamente
+    </button>
+  )
+
+  return (
+    <div style={{ background: 'rgba(217,0,18,.06)', borderRadius: 10, padding: '14px 16px' }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--adm-red)', margin: '0 0 10px' }}>
+        Digita il nome esatto del laboratorio per confermare:
+      </p>
+      <p style={{ fontFamily: 'monospace', fontSize: 14, background: 'rgba(0,0,0,.06)', borderRadius: 6, padding: '6px 10px', margin: '0 0 12px', display: 'inline-block' }}>
+        {labNome}
+      </p>
+      <input
+        type="text"
+        value={confirmInput}
+        onChange={e => setConfirmInput(e.target.value)}
+        placeholder={`Digita: ${labNome}`}
+        autoFocus
+        style={{ display: 'block', width: '100%', marginBottom: 12, padding: '10px 12px', borderRadius: 8, border: '1.5px solid rgba(217,0,18,.40)', background: 'var(--adm-prs)', color: 'var(--adm-t1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+      />
+      {err && <p style={{ color: 'var(--adm-red)', fontSize: 12, margin: '0 0 10px' }}>{err}</p>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          type="button"
+          className="adm-act red"
+          style={{ flex: 1, height: 38, fontSize: 13 }}
+          disabled={confirmInput.trim() !== labNome.trim() || step === 'deleting'}
+          onClick={handleDelete}
+        >
+          {step === 'deleting' ? 'Eliminazione in corso…' : '🗑 Elimina DEFINITIVAMENTE'}
+        </button>
+        <button
+          type="button"
+          className="adm-act"
+          style={{ height: 38, padding: '0 14px', fontSize: 13 }}
+          onClick={() => { setStep('idle'); setConfirmInput(''); setErr(null) }}
+        >
+          Annulla
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function LabActions({ labId, currentStato, currentNome, currentPiano, trialEndsAt, stripeCustomerId, utenti, invites, log }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -373,6 +448,15 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
             ))}
           </div>
         )}
+      </div>
+
+      {/* 7 — CANCELLAZIONE DEFINITIVA (zona pericolo) */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.20s', border: '1.5px solid rgba(217,0,18,.30)' }}>
+        <div className="adm-dcard-title" style={{ color: 'var(--adm-red)' }}>⚠ Zona pericolo</div>
+        <p style={{ fontSize: 13, color: 'var(--adm-t2)', margin: '0 0 14px', lineHeight: 1.5 }}>
+          La cancellazione definitiva elimina il laboratorio e <strong>tutti i suoi dati</strong> (lavori, clienti, pazienti, fatture, magazzino…) in modo <strong>irreversibile</strong>. Nessun backup verrà creato automaticamente.
+        </p>
+        <HardDeletePanel labId={labId} labNome={currentNome} />
       </div>
 
       {/* 6 — LOG TRANSIZIONI */}
