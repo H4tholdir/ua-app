@@ -26,8 +26,8 @@ const STATO_LABEL: Record<Psur['stato'], string> = {
 
 const STATO_COLOR: Record<Psur['stato'], string> = {
   bozza: '#D4A843',
-  completato: '#8899CC',
-  firmato: '#2ECC9A',
+  completato: 'var(--t2, #96918D)',
+  firmato: 'var(--success, #16A34A)',
 }
 
 const STATO_BG: Record<Psur['stato'], string> = {
@@ -83,7 +83,7 @@ export default async function PsurPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
             fontSize: '13px',
             textDecoration: 'none',
             fontFamily,
@@ -134,7 +134,7 @@ export default async function PsurPage() {
                   border: 'none',
                   cursor: 'pointer',
                   background: '#D4A843',
-                  color: '#0F1E52',
+                  color: 'var(--t1, #1C1916)',
                   fontFamily,
                   fontSize: '14px',
                   fontWeight: 700,
@@ -149,13 +149,13 @@ export default async function PsurPage() {
         {/* Lista PSUR */}
         {(!psurList || psurList.length === 0) ? (
           <div style={{
-            background: '#1B2D6B',
+            background: 'var(--surface, #E4DFD9)',
             borderRadius: '12px',
             padding: '24px',
             textAlign: 'center',
           }}>
             <p style={{
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               fontSize: '14px',
               fontFamily,
               margin: 0,
@@ -169,10 +169,10 @@ export default async function PsurPage() {
               <div
                 key={p.id}
                 style={{
-                  background: '#1B2D6B',
+                  background: 'var(--surface, #E4DFD9)',
                   borderRadius: '12px',
                   padding: '16px',
-                  boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                  boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                 }}
               >
                 {/* Riga header */}
@@ -183,7 +183,7 @@ export default async function PsurPage() {
                   marginBottom: '10px',
                 }}>
                   <span style={{
-                    color: '#F0F4FF',
+                    color: 'var(--t1, #1C1916)',
                     fontSize: '17px',
                     fontWeight: 700,
                     fontFamily,
@@ -207,7 +207,7 @@ export default async function PsurPage() {
 
                 {/* Periodo */}
                 <p style={{
-                  color: '#8899CC',
+                  color: 'var(--t2, #96918D)',
                   fontSize: '13px',
                   fontFamily,
                   margin: '0 0 10px',
@@ -300,7 +300,7 @@ function KpiChip({ label, value, alert = false }: { label: string; value: number
   const fontFamily = "'DM Sans', system-ui, sans-serif"
   return (
     <div style={{
-      background: '#243580',
+      background: 'var(--elv, #EDEDEA)',
       borderRadius: '8px',
       padding: '6px 10px',
       display: 'flex',
@@ -309,7 +309,7 @@ function KpiChip({ label, value, alert = false }: { label: string; value: number
       minWidth: '70px',
     }}>
       <span style={{
-        color: alert && value > 0 ? '#FA5252' : '#F0F4FF',
+        color: alert && value > 0 ? 'var(--primary, #D90012)' : 'var(--t1, #1C1916)',
         fontSize: '16px',
         fontWeight: 700,
         fontFamily,

@@ -20,8 +20,8 @@ function formatDataIT(dateStr: string): string {
 const gravitaColor: Record<string, string> = {
   lieve:    '#D4A843',
   moderata: '#FD7E14',
-  grave:    '#FA5252',
-  critica:  '#FA5252',
+  grave:    'var(--primary, #D90012)',
+  critica:  'var(--primary, #D90012)',
 }
 
 // ─── Page ─────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export default async function QualitaPage() {
         {/* ─── Sezione 1: Non Conformita ─────────────────────── */}
         <section>
           <h2 style={{
-            color: '#F0F4FF',
+            color: 'var(--t1, #1C1916)',
             fontSize: '13px',
             fontWeight: 700,
             letterSpacing: '0.08em',
@@ -91,10 +91,10 @@ export default async function QualitaPage() {
 
           {(!nc || nc.length === 0) ? (
             <div style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '12px',
               padding: '20px',
-              color: '#2ECC9A',
+              color: 'var(--success, #16A34A)',
               fontSize: '14px',
               fontFamily: "'DM Sans', system-ui, sans-serif",
               textAlign: 'center',
@@ -113,7 +113,7 @@ export default async function QualitaPage() {
                       background: '#3A1A1A',
                       borderRadius: '12px',
                       padding: '16px',
-                      borderLeft: '3px solid #FA5252',
+                      borderLeft: '3px solid var(--primary, #D90012)',
                     }}
                   >
                     <div style={{
@@ -123,7 +123,7 @@ export default async function QualitaPage() {
                       marginBottom: '6px',
                     }}>
                       <span style={{
-                        color: '#F0F4FF',
+                        color: 'var(--t1, #1C1916)',
                         fontSize: '14px',
                         fontWeight: 600,
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -131,7 +131,7 @@ export default async function QualitaPage() {
                         {lavoro?.numero_lavoro ?? 'Lavoro sconosciuto'}
                       </span>
                       <span style={{
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                         fontSize: '12px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -140,7 +140,7 @@ export default async function QualitaPage() {
                     </div>
                     {fase?.descrizione && (
                       <div style={{
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                         fontSize: '13px',
                         marginBottom: '4px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -167,7 +167,7 @@ export default async function QualitaPage() {
         {/* ─── Sezione 2: Analisi Rischi ─────────────────────── */}
         <section>
           <h2 style={{
-            color: '#F0F4FF',
+            color: 'var(--t1, #1C1916)',
             fontSize: '13px',
             fontWeight: 700,
             letterSpacing: '0.08em',
@@ -198,7 +198,7 @@ export default async function QualitaPage() {
                   <div
                     key={r.tipo_dispositivo}
                     style={{
-                      background: '#1B2D6B',
+                      background: 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
                     }}
@@ -209,7 +209,7 @@ export default async function QualitaPage() {
                       alignItems: 'center',
                     }}>
                       <span style={{
-                        color: '#F0F4FF',
+                        color: 'var(--t1, #1C1916)',
                         fontSize: '15px',
                         fontWeight: 600,
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -217,7 +217,7 @@ export default async function QualitaPage() {
                         {r.tipo_dispositivo}
                       </span>
                       <span style={{
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                         fontSize: '12px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -228,7 +228,7 @@ export default async function QualitaPage() {
                       marginTop: '6px',
                       display: 'flex',
                       gap: '16px',
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                       fontSize: '13px',
                       fontFamily: "'DM Sans', system-ui, sans-serif",
                     }}>
@@ -245,7 +245,7 @@ export default async function QualitaPage() {
         {/* ─── Sezione 3: Incidenti MDR ──────────────────────── */}
         <section>
           <h2 style={{
-            color: '#F0F4FF',
+            color: 'var(--t1, #1C1916)',
             fontSize: '13px',
             fontWeight: 700,
             letterSpacing: '0.08em',
@@ -258,10 +258,10 @@ export default async function QualitaPage() {
 
           {(!incidenti || incidenti.length === 0) ? (
             <div style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '12px',
               padding: '20px',
-              color: '#2ECC9A',
+              color: 'var(--success, #16A34A)',
               fontSize: '14px',
               fontFamily: "'DM Sans', system-ui, sans-serif",
               textAlign: 'center',
@@ -276,10 +276,10 @@ export default async function QualitaPage() {
                   <div
                     key={inc.id}
                     style={{
-                      background: isGrave ? '#3A1A1A' : '#1B2D6B',
+                      background: isGrave ? '#3A1A1A' : 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
-                      borderLeft: `3px solid ${gravitaColor[inc.gravita] ?? '#8899CC'}`,
+                      borderLeft: `3px solid ${gravitaColor[inc.gravita] ?? 'var(--t2, #96918D)'}`,
                     }}
                   >
                     <div style={{
@@ -290,7 +290,7 @@ export default async function QualitaPage() {
                     }}>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{
-                          color: gravitaColor[inc.gravita] ?? '#F0F4FF',
+                          color: gravitaColor[inc.gravita] ?? 'var(--t1, #1C1916)',
                           fontSize: '13px',
                           fontWeight: 700,
                           textTransform: 'uppercase',
@@ -300,7 +300,7 @@ export default async function QualitaPage() {
                           {inc.gravita}
                         </span>
                         <span style={{
-                          color: '#8899CC',
+                          color: 'var(--t2, #96918D)',
                           fontSize: '13px',
                           fontFamily: "'DM Sans', system-ui, sans-serif",
                         }}>
@@ -309,7 +309,7 @@ export default async function QualitaPage() {
                         {inc.segnalato_ministero && (
                           <span style={{
                             background: '#1B4FCC',
-                            color: '#F0F4FF',
+                            color: 'var(--t1, #1C1916)',
                             fontSize: '11px',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -322,7 +322,7 @@ export default async function QualitaPage() {
                         {inc.risolto && (
                           <span style={{
                             background: '#0A3D2E',
-                            color: '#2ECC9A',
+                            color: 'var(--success, #16A34A)',
                             fontSize: '11px',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -334,7 +334,7 @@ export default async function QualitaPage() {
                         )}
                       </div>
                       <span style={{
-                        color: '#8899CC',
+                        color: 'var(--t2, #96918D)',
                         fontSize: '12px',
                         flexShrink: 0,
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -343,7 +343,7 @@ export default async function QualitaPage() {
                       </span>
                     </div>
                     <p style={{
-                      color: '#C0CCEE',
+                      color: 'var(--t2, #96918D)',
                       fontSize: '13px',
                       lineHeight: '1.5',
                       fontFamily: "'DM Sans', system-ui, sans-serif",

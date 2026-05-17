@@ -16,24 +16,24 @@ type Stato = 'idle' | 'loading' | 'success' | 'error'
 const BUTTON_STYLES: Record<Stato, React.CSSProperties> = {
   idle: {
     background: '#D4A843',
-    color: '#0F1E52',
+    color: 'var(--t1, #1C1916)',
     cursor: 'pointer',
   },
   loading: {
     background: '#D4A843',
-    color: '#0F1E52',
+    color: 'var(--t1, #1C1916)',
     opacity: 0.8,
     cursor: 'not-allowed',
   },
   success: {
-    background: '#2ECC9A',
-    color: '#0F1E52',
+    background: 'var(--success, #16A34A)',
+    color: '#fff',
     boxShadow: '0 0 20px hsl(155 62% 47% / 0.5)',
     cursor: 'default',
   },
   error: {
-    background: '#FA5252',
-    color: '#F0F4FF',
+    background: 'var(--primary, #D90012)',
+    color: '#fff',
     cursor: 'pointer',
   },
 }
@@ -128,7 +128,7 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
             transition={t('fast', 'enter')}
             style={{
               margin: 0,
-              color: '#FA5252',
+              color: 'var(--primary, #D90012)',
               fontSize: '14px',
               fontFamily: 'DM Sans, sans-serif',
               lineHeight: 1.5,

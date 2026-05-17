@@ -73,7 +73,7 @@ export default async function RischiPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
             fontSize: '13px',
             textDecoration: 'none',
             fontFamily,
@@ -122,10 +122,10 @@ export default async function RischiPage() {
                 <div
                   key={r.id}
                   style={{
-                    background: '#1B2D6B',
+                    background: 'var(--surface, #E4DFD9)',
                     borderRadius: '12px',
                     padding: '16px',
-                    boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                    boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                   }}
                 >
                   <div style={{
@@ -135,7 +135,7 @@ export default async function RischiPage() {
                     marginBottom: '8px',
                   }}>
                     <span style={{
-                      color: '#F0F4FF',
+                      color: 'var(--t1, #1C1916)',
                       fontSize: '15px',
                       fontWeight: 600,
                       fontFamily,
@@ -158,7 +158,7 @@ export default async function RischiPage() {
                   <div style={{
                     display: 'flex',
                     gap: '16px',
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     fontSize: '13px',
                     fontFamily,
                     marginBottom: '12px',
@@ -177,13 +177,13 @@ export default async function RischiPage() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                       fontSize: '13px',
                       fontWeight: 600,
                       textDecoration: 'none',
                       fontFamily,
                       padding: '6px 12px',
-                      background: '#243580',
+                      background: 'var(--elv, #EDEDEA)',
                       borderRadius: '8px',
                     }}
                   >

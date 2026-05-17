@@ -15,8 +15,8 @@ const TIPI_INCIDENTE = [
 const GRAVITA_INCIDENTE = [
   { value: 'lieve', label: 'Lieve', color: '#D4A843' },
   { value: 'moderata', label: 'Moderata', color: '#FD7E14' },
-  { value: 'grave', label: 'Grave', color: '#FA5252' },
-  { value: 'critica', label: 'Critica', color: '#FA5252' },
+  { value: 'grave', label: 'Grave', color: 'var(--primary, #D90012)' },
+  { value: 'critica', label: 'Critica', color: 'var(--primary, #D90012)' },
 ] as const
 
 type TipoIncidente = typeof TIPI_INCIDENTE[number]['value']
@@ -27,15 +27,15 @@ const fontFamily = "'DM Sans', system-ui, sans-serif"
 const fieldStyle: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
-  background: '#0F1E52',
-  border: '1px solid #243580',
+  background: 'var(--prs, #D4CFC9)',
+  border: 'none',
   borderRadius: '10px',
-  color: '#F0F4FF',
+  color: 'var(--t1, #1C1916)',
   fontFamily,
   fontSize: '15px',
   padding: '12px 14px',
   outline: 'none',
-  boxShadow: 'inset 2px 2px 6px hsl(230 100% 4% / 0.6), inset -1px -1px 4px hsl(220 80% 35% / 0.3)',
+  boxShadow: 'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))',
 }
 
 const labelStyle: React.CSSProperties = {
@@ -43,7 +43,7 @@ const labelStyle: React.CSSProperties = {
   fontFamily,
   fontSize: '11px',
   fontWeight: 700,
-  color: '#8899CC',
+  color: 'var(--t2, #96918D)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   marginBottom: '6px',
@@ -133,7 +133,7 @@ export default function NuovoIncidentePage() {
         {/* Tipo */}
         <div style={fieldGroupStyle}>
           <label htmlFor="tipo" style={labelStyle}>
-            Tipo evento <span style={{ color: '#FA5252' }}>*</span>
+            Tipo evento <span style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <select
             id="tipo"
@@ -142,11 +142,11 @@ export default function NuovoIncidentePage() {
             required
             style={selectStyle}
           >
-            <option value="" disabled style={{ background: '#0F1E52' }}>
+            <option value="" disabled style={{ background: 'var(--bg, #DDD8D3)' }}>
               Seleziona tipo...
             </option>
             {TIPI_INCIDENTE.map((t) => (
-              <option key={t.value} value={t.value} style={{ background: '#1B2D6B' }}>
+              <option key={t.value} value={t.value} style={{ background: 'var(--surface, #E4DFD9)' }}>
                 {t.label}
               </option>
             ))}
@@ -156,7 +156,7 @@ export default function NuovoIncidentePage() {
         {/* Gravita */}
         <div style={fieldGroupStyle}>
           <label htmlFor="gravita" style={labelStyle}>
-            Gravita <span style={{ color: '#FA5252' }}>*</span>
+            Gravita <span style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <select
             id="gravita"
@@ -165,11 +165,11 @@ export default function NuovoIncidentePage() {
             required
             style={selectStyle}
           >
-            <option value="" disabled style={{ background: '#0F1E52' }}>
+            <option value="" disabled style={{ background: 'var(--bg, #DDD8D3)' }}>
               Seleziona gravita...
             </option>
             {GRAVITA_INCIDENTE.map((g) => (
-              <option key={g.value} value={g.value} style={{ background: '#1B2D6B' }}>
+              <option key={g.value} value={g.value} style={{ background: 'var(--surface, #E4DFD9)' }}>
                 {g.label}
               </option>
             ))}
@@ -179,7 +179,7 @@ export default function NuovoIncidentePage() {
         {/* Data evento */}
         <div style={fieldGroupStyle}>
           <label htmlFor="data_evento" style={labelStyle}>
-            Data evento <span style={{ color: '#FA5252' }}>*</span>
+            Data evento <span style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <input
             id="data_evento"
@@ -197,7 +197,7 @@ export default function NuovoIncidentePage() {
         {/* Descrizione */}
         <div style={fieldGroupStyle}>
           <label htmlFor="descrizione" style={labelStyle}>
-            Descrizione <span style={{ color: '#FA5252' }}>*</span>
+            Descrizione <span style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <textarea
             id="descrizione"
@@ -278,14 +278,14 @@ export default function NuovoIncidentePage() {
             role="note"
             style={{
               background: '#3A1A1A',
-              border: '1px solid #FA525233',
+              border: '1px solid rgba(217,0,18,0.20)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '18px',
             }}
           >
             <p style={{
-              color: '#FA5252',
+              color: 'var(--primary, #D90012)',
               fontSize: '13px',
               fontFamily,
               margin: '0 0 2px',
@@ -312,11 +312,11 @@ export default function NuovoIncidentePage() {
             aria-live="assertive"
             style={{
               background: '#3A1A1A',
-              border: '1px solid #FA525233',
+              border: '1px solid rgba(217,0,18,0.20)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '18px',
-              color: '#FA5252',
+              color: 'var(--primary, #D90012)',
               fontSize: '14px',
               fontFamily,
             }}
@@ -337,7 +337,7 @@ export default function NuovoIncidentePage() {
             border: 'none',
             cursor: submitting ? 'not-allowed' : 'pointer',
             background: submitting ? '#9B7A30' : '#D4A843',
-            color: '#0F1E52',
+            color: 'var(--t1, #1C1916)',
             fontFamily,
             fontSize: '16px',
             fontWeight: 700,

@@ -46,18 +46,18 @@ export default async function TechniciPage() {
         {tecnici.length === 0 ? (
           <div
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: '#8899CC',
+                color: 'var(--t2, #96918D)',
                 margin: 0,
               }}
             >
@@ -82,10 +82,10 @@ export default async function TechniciPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    background: '#1B2D6B',
+                    background: 'var(--surface, #E4DFD9)',
                     borderRadius: '16px',
                     padding: '14px 16px',
-                    boxShadow: '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                    boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                   }}
                 >
                   {/* Sigla avatar */}
@@ -96,7 +96,7 @@ export default async function TechniciPage() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '12px',
-                        background: '#243580',
+                        background: 'var(--elv, #EDEDEA)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -130,7 +130,7 @@ export default async function TechniciPage() {
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '16px',
                           fontWeight: 600,
-                          color: '#F0F4FF',
+                          color: 'var(--t1, #1C1916)',
                           margin: 0,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -148,7 +148,7 @@ export default async function TechniciPage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '10px',
                             fontWeight: 700,
-                            color: '#2ECC9A',
+                            color: 'var(--success, #16A34A)',
                             background: 'hsl(159 63% 49% / 0.15)',
                             borderRadius: '4px',
                             padding: '2px 6px',
@@ -167,7 +167,7 @@ export default async function TechniciPage() {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '13px',
-                          color: '#8899CC',
+                          color: 'var(--t2, #96918D)',
                           margin: 0,
                         }}
                       >
