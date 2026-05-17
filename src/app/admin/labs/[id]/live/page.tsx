@@ -167,10 +167,15 @@ export default async function AdminLivePreviewPage({ params }: Props) {
           boxShadow: '0 2px 8px rgba(0,0,0,.4)',
         }}
       >
-        <span>
-          <strong>ADMIN PREVIEW</strong> — visualizzando come{' '}
-          <strong>{nomeUtente}</strong> &middot; {labRaw.nome as string}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span>
+            <strong>ADMIN PREVIEW</strong> — visualizzando come{' '}
+            <strong>{nomeUtente}</strong> &middot; {labRaw.nome as string}
+          </span>
+          <span style={{ fontSize: 11, opacity: 0.55 }}>
+            Solo lettura — per operazioni usa &ldquo;Accedi come titolare&rdquo; dalla scheda lab
+          </span>
+        </div>
         <Link
           href={`/admin/labs/${id}`}
           style={{
@@ -181,6 +186,8 @@ export default async function AdminLivePreviewPage({ params }: Props) {
             textDecoration: 'none',
             fontSize: 12,
             fontWeight: 600,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           Chiudi preview
