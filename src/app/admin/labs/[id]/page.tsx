@@ -200,6 +200,23 @@ export default async function AdminLabDetailPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Live preview shortcut */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.03s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div className="adm-dcard-title" style={{ marginBottom: 4 }}>Anteprima operativa</div>
+          <p style={{ fontSize: 12, color: 'var(--adm-t2)', margin: 0 }}>
+            Visualizza la dashboard come se fossi il titolare del lab.
+          </p>
+        </div>
+        <Link
+          href={`/admin/labs/${lab.id}/live`}
+          className="adm-act"
+          style={{ textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          Anteprima come titolare
+        </Link>
+      </div>
+
       {/* 3 — AZIONI (client component) */}
       <LabActions
         labId={id}

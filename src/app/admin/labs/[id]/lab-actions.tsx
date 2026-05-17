@@ -337,6 +337,22 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
 
   return (
     <>
+      {/* Anteprima operativa — live preview come titolare */}
+      <div className="adm-dcard adm-animate">
+        <div className="adm-dcard-title">Anteprima operativa</div>
+        <p style={{ fontSize: 13, color: 'var(--adm-t2)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          Visualizza l&apos;app come se fossi il titolare di questo laboratorio.
+          La tua sessione admin resta attiva — un banner in cima ti ricorda che sei in modalità preview.
+        </p>
+        <a
+          href={`/admin/labs/${labId}/live`}
+          className="adm-btn-cta"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', padding: '10px 18px', fontSize: 13 }}
+        >
+          Visualizza come titolare
+        </a>
+      </div>
+
       {/* FEATURE 1 — Form modifica dati */}
       <div className="adm-dcard adm-animate">
         <div className="adm-dcard-title">Modifica dati laboratorio</div>
