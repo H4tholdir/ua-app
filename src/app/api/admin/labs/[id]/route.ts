@@ -4,9 +4,21 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
-const PATCHABLE = ['trial_ends_at', 'nome', 'ragione_sociale', 'partita_iva', 'codice_itca',
-  'pec', 'email', 'telefono', 'sito_web', 'indirizzo_legale', 'indirizzo_operativo',
-  'codice_fiscale', 'numero_rea', 'forma_giuridica', 'numero_ministeriale'] as const
+const PATCHABLE = [
+  // Anagrafica
+  'nome', 'ragione_sociale', 'partita_iva', 'codice_fiscale',
+  'indirizzo', 'cap', 'citta', 'provincia',
+  'telefono', 'email', 'pec',
+  // MDR / Normativo
+  'codice_itca', 'srn_eudamed', 'numero_rea', 'numero_albo',
+  'prrc_nome', 'prrc_qualifica', 'anno_prima_marcatura',
+  // Fatturazione
+  'regime_fiscale', 'codice_iva_default', 'soglia_bollo', 'importo_bollo', 'bollo_default_attivo',
+  // Piano e Stato
+  'piano', 'trial_ends_at',
+  // Legacy fields kept for compatibility
+  'sito_web', 'indirizzo_legale', 'indirizzo_operativo', 'forma_giuridica', 'numero_ministeriale',
+] as const
 
 async function verifyAdmin() {
   const userClient = await getServerUserClient()

@@ -203,12 +203,39 @@ export default async function AdminLabDetailPage({ params }: Props) {
       {/* 3 — AZIONI (client component) */}
       <LabActions
         labId={id}
-        currentStato={lab.stato}
+        currentStato={lab.stato ?? 'trial'}
         trialEndsAt={lab.trial_ends_at}
         stripeCustomerId={lab.stripe_customer_id}
         utenti={utenti}
         invites={invites}
         log={log}
+        labData={{
+          nome: lab.nome,
+          ragione_sociale: lab.ragione_sociale,
+          partita_iva: lab.partita_iva,
+          codice_fiscale: lab.codice_fiscale,
+          indirizzo: lab.indirizzo,
+          cap: lab.cap,
+          citta: lab.citta,
+          provincia: lab.provincia,
+          telefono: lab.telefono,
+          email: lab.email,
+          pec: lab.pec,
+          codice_itca: lab.codice_itca,
+          srn_eudamed: lab.srn_eudamed,
+          numero_rea: lab.numero_rea,
+          numero_albo: lab.numero_albo,
+          prrc_nome: lab.prrc_nome,
+          prrc_qualifica: lab.prrc_qualifica,
+          anno_prima_marcatura: lab.anno_prima_marcatura,
+          regime_fiscale: lab.regime_fiscale,
+          codice_iva_default: lab.codice_iva_default,
+          soglia_bollo: lab.soglia_bollo,
+          importo_bollo: lab.importo_bollo,
+          bollo_default_attivo: lab.bollo_default_attivo,
+          piano: lab.piano,
+          trial_ends_at: lab.trial_ends_at,
+        }}
       />
     </div>
   )
