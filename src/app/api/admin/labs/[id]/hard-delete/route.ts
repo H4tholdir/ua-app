@@ -31,20 +31,6 @@ export async function DELETE(
 
   if (!lab) return NextResponse.json({ error: 'Lab non trovato' }, { status: 404 })
 
-  // Blocca se il lab contiene utenti admin_sistema (impossibile eliminare senza rompere FK)
-  const { data: adminUsers } = await svc
-    .from('utenti')
-    .select('id')
-    .eq('laboratorio_id', id)
-    .eq('ruolo', 'admin_sistema')
-    .limit(1)
-
-  if (adminUsers && adminUsers.length > 0) {
-    return NextResponse.json({
-      error: 'Impossibile eliminare: il laboratorio contiene utenti admin_sistema. Rimuovi prima gli utenti di sistema.',
-    }, { status: 409 })
-  }
-
   if (!body.confirm_nome || body.confirm_nome.trim() !== lab.nome.trim()) {
     return NextResponse.json({
       error: `Nome non corrisponde. Digita esattamente: "${lab.nome}"`,
