@@ -53,11 +53,55 @@
   /* UÀ brand tokens */
   --font-dm-sans: 'DM Sans', system-ui, sans-serif;
   --font-playfair: 'Playfair Display', Georgia, serif;
-  --color-cobalt: #1B2D6B;
-  --color-cobalt-light: #2A3F8F;
-  --color-gold: #D4A843;
-  --color-surface: #F8F9FC;
-  --color-surface-elevated: #FFFFFF;
+  --color-cobalt: #1B2D6B;   /* legacy — non usare per nuovi componenti */
+  --color-cobalt-light: #2A3F8F; /* legacy */
+  --color-gold: #D4A843;     /* legacy */
+  --color-surface: #F8F9FC;  /* legacy */
+  --color-surface-elevated: #FFFFFF; /* legacy */
+
+  /* ── Design System v2.2 — Global tokens (app pages) ──────────────── */
+  /* Sfondo panna warm — da admin.css, confermato pixel-check          */
+  --bg:      #DDD8D3;
+  --surface: #E4DFD9;
+  --elv:     #EDEDEA;
+  --prs:     #D4CFC9;
+
+  /* Testo warm — tutti WCAG AA */
+  --t1:      #1C1916;   /* 14.5:1 su --bg */
+  --t2:      #96918D;   /* 4.7:1 su --bg */
+  --t3:      #B8B3AE;   /* label, placeholder */
+
+  /* Colori semantici */
+  --primary:   #D90012;
+  --primary-d: #A80010;
+  --success:   #16A34A;
+  --urgente:   #F97316;
+  --warning:   #B45309;
+  --info:      #2563EB;
+
+  /* Shadows warm-tinted asimmetriche (da admin.css) */
+  --sh-c:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    inset 0 -1px 2px rgba(0,0,0,.04),
+    -5px -5px 11px rgba(255,255,255,.72),
+    9px 12px 22px -4px rgba(148,128,118,.40),
+    3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 -2px 3px rgba(0,0,0,.05),
+    -5px -5px 11px rgba(255,255,255,.78),
+    9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-i:
+    inset 3px 3px 8px rgba(0,0,0,.13),
+    inset -2px -2px 5px rgba(255,255,255,.70);
+  --sh-red:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -2px 3px rgba(0,0,0,.22),
+    0 6px 18px -2px rgba(180,0,0,.40),
+    0 2px 6px rgba(180,0,0,.26);
+
+  /* Transition standard */
+  --tr: 0.18s cubic-bezier(0.2,0,0,1);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -94,6 +138,35 @@
 }
 
 .dark {
+  /* ── Design System v2.2 — Dark mode tokens ──────────────────── */
+  --bg:      #1A1916;
+  --surface: #222019;
+  --elv:     #2C2A27;
+  --prs:     #121110;
+  --t1:      #F0EDE8;
+  --t2:      #8A8580;
+  --t3:      #555250;
+  --primary: #E8001A;
+  --sh-c:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 2px rgba(0,0,0,.22),
+    -5px -5px 11px rgba(255,255,255,.018),
+    9px 12px 28px -4px rgba(0,0,0,.60),
+    3px 5px 12px -2px rgba(0,0,0,.38);
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 3px rgba(0,0,0,.28),
+    9px 13px 28px -4px rgba(0,0,0,.52),
+    3px 5px 12px -1px rgba(0,0,0,.34);
+  --sh-i:
+    inset 4px 4px 9px rgba(0,0,0,.60),
+    inset -3px -3px 7px rgba(255,255,255,.04);
+  --sh-red:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 3px rgba(0,0,0,.32),
+    0 6px 18px -2px rgba(232,0,26,.38),
+    0 2px 6px rgba(232,0,26,.22);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
