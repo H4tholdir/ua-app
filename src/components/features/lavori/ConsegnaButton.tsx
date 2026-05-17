@@ -122,9 +122,9 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
         {errore && (
           <motion.p
             key="errore"
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, transform: 'translateY(-6px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0px)' }}
+            exit={{ opacity: 0, transform: 'translateY(-6px)' }}
             transition={t('fast', 'enter')}
             style={{
               margin: 0,

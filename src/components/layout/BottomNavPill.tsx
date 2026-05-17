@@ -264,9 +264,9 @@ export function BottomNavPill() {
       {visible && (
         <motion.div
           key="bottom-nav-pill"
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
+          initial={{ transform: 'translateY(100px)', opacity: 0 }}
+          animate={{ transform: 'translateY(0px)', opacity: 1 }}
+          exit={{ transform: 'translateY(100px)', opacity: 0 }}
           transition={t('normal', 'enter')}
           style={{
             position: 'fixed',

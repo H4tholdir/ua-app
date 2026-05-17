@@ -260,7 +260,7 @@ export function LavoroCard({
                   background:   isFilled ? statoColor : 'transparent',
                   border:       isFilled ? 'none' : '1.5px solid rgba(0,0,0,.18)',
                   flexShrink:   0,
-                  transition:   'all 0.2s',
+                  transition:   'background 0.2s',
                 }}
               />
             </React.Fragment>
@@ -314,8 +314,8 @@ export function LavoroCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(12px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
       transition={{ ...t('normal', 'enter'), delay: animationDelay }}
     >
       {cardContent}

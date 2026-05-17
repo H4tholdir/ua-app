@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { t, useReducedMotion } from '@/design-system/motion'
+import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
@@ -80,15 +80,17 @@ export function KpiCard({
   )
 
   const chip = onClick ? (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: motionTokens.duration.instant }}
       style={chipStyle}
       aria-label={`${label}: ${value}${active ? ' (filtro attivo)' : ''}`}
       aria-pressed={active}
     >
       {chipInner}
-    </button>
+    </motion.button>
   ) : (
     <div
       role="img"
@@ -103,8 +105,8 @@ export function KpiCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, transform: 'translateY(8px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
       transition={{ ...t('fast', 'enter'), delay: animationDelay }}
     >
       {chip}

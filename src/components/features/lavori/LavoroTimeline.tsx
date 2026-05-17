@@ -144,11 +144,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                     <motion.div
                       animate={reducedMotion ? {} : {
                         scale: [1, 1.18, 1],
-                        boxShadow: [
-                          `0 0 0 0 ${dotColor}44`,
-                          `0 0 0 7px ${dotColor}00`,
-                          `0 0 0 0 ${dotColor}00`,
-                        ],
+                        opacity: [1, 0.7, 1],
                       }}
                       transition={reducedMotion ? {} : {
                         duration: motionTokens.duration.expressive,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { motionTokens } from '@/design-system/motion'
+import { t, motionTokens } from '@/design-system/motion'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 interface Props {
@@ -250,9 +250,9 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
           aria-modal="true"
           aria-labelledby="rifacimento-title"
           style={styles.card}
-          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.97 }}
-          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.97 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(20px) scale(0.97)' }}
+          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, transform: 'translateY(0px) scale(1)' }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(10px) scale(0.97)' }}
           transition={{ ...motionTokens.spring.soft }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -362,9 +362,11 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
 
             {/* Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-              <button
+              <motion.button
                 type="submit"
                 disabled={!motivo || loading}
+                whileTap={!motivo || loading ? undefined : { scale: 0.97 }}
+                transition={t('instant')}
                 style={{
                   ...styles.dangerBtn,
                   opacity: !motivo || loading ? 0.5 : 1,
@@ -373,12 +375,14 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
                 aria-disabled={!motivo || loading}
               >
                 {loading ? 'Creazione in corso…' : 'Crea rifacimento'}
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
                 type="button"
                 onClick={onClose}
                 disabled={loading}
+                whileTap={loading ? undefined : { scale: 0.97 }}
+                transition={t('instant')}
                 style={{
                   ...styles.ghostBtn,
                   opacity: loading ? 0.5 : 1,
@@ -386,7 +390,7 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
                 }}
               >
                 Annulla
-              </button>
+              </motion.button>
             </div>
           </form>
         </motion.div>

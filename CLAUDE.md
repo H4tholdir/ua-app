@@ -7,8 +7,9 @@ Questo è il repository del codice. La documentazione fondativa è in `../ANALIS
 
 ## 0. Memory Check (BP-0)
 Prima di qualsiasi lavoro, leggi `../ANALISI/` per contesto. I documenti chiave:
+- **`../ANALISI/30_design_system_v2_definitivo.md` → 🔴 DESIGN SYSTEM v2.1 — UNICA FONTE DI VERITÀ**
 - `../ANALISI/23_ua_database_schema.md` → schema DB
-- `../ANALISI/26_ua_design_system_completo.md` → design system
+- `../ANALISI/26_ua_design_system_completo.md` → (versione precedente — NON usare per UI)
 - `../ANALISI/29_motion_system_policy.md` → **MOTION POLICY OBBLIGATORIA**
 
 ---
@@ -17,7 +18,7 @@ Prima di qualsiasi lavoro, leggi `../ANALISI/` per contesto. I documenti chiave:
 
 ```
 Next.js 16 (App Router) + TypeScript
-TailwindCSS v3 + shadcn/ui
+TailwindCSS v4 (@tailwindcss/postcss) + shadcn/ui
 Motion 12.x + GSAP (free) + Rive
 Supabase (PostgreSQL + Auth + Storage + Realtime)
 Vercel deploy
@@ -31,7 +32,7 @@ Vercel deploy
 src/
 ├── app/                 ← Next.js App Router pages
 │   ├── (auth)/          ← Login, magic link
-│   ├── (dashboard)/     ← Main app screens  
+│   ├── (app)/           ← Main app screens (NON (dashboard)/)
 │   └── api/             ← API routes
 ├── components/
 │   ├── ui/              ← shadcn/ui components (SOLO primitive)
@@ -112,6 +113,24 @@ docs(design): update motion tokens in design-system
 
 ---
 
+## 7. Audit Design System — Stato Conformità
+
+**Audit completo:** `../ANALISI/31_audit_ui_vs_design_v2.md`
+
+Le pagine esistenti NON sono ancora conformi al Design System v2.1:
+- ❌ Usano ancora `#1B2D6B` cobalt come background card (sbagliato)
+- ❌ Shadow cobalt/glow invece di neumorphic `#cacaca`
+- ❌ Mancano token v2.1 in `globals.css`
+- ✅ Font DM Sans: corretto
+- ✅ Login + Admin: conformi al design v2.1
+
+**Regola immediata (SENZA aspettare Piano D):**
+> Ogni nuovo codice scritto usa il Design System v2.1.
+> Non introdurre `background: '#1B2D6B'` o shadow cobalt.
+> Per modifiche a pagine esistenti: usa i token v2.1 nei nuovi elementi.
+
+---
+
 ## 7. Spec e Piani di Implementazione
 
 - **Spec V1 completa:** `docs/superpowers/specs/2026-05-15-ua-spec-completo.md`
@@ -136,7 +155,69 @@ AI add-on (V2 only): €24.90/mese · €199/anno — Stripe metered billing da 
 
 ---
 
-## 9. Regole Critiche (emerse da review Codex + Advisor)
+## 9. Standard Professionali — OBBLIGATORI (da Francesco, 16 maggio 2026)
+
+### Mentalità
+- Lavora SEMPRE come se stessi costruendo un prodotto allo stato dell'arte — non correre, non compiacere, non tralasciare niente
+- Impersona il professionista giusto per ogni richiesta (UI/UX expert, backend architect, security engineer, ecc.)
+- Mai essere frettoloso — un'ora in più su un mockup vale più di 10 ore di refactor React
+
+### Workflow UI/UX — ASSOLUTO
+1. **Memory check BP-0 PRIMA di tutto** — leggi sessioni passate, trova decisioni già prese, non reinventare
+2. **3 viewport obbligatori per ogni schermata**: mobile 390px, tablet 768px, desktop 1280px
+3. **Sempre entrambi i temi**: light + dark per ogni schermata
+4. **Animazioni definite nel mockup** — non si scrive React senza aver mostrato le animazioni nel prototipo HTML
+5. **Suoni annotati** nei commenti HTML prima dell'approvazione
+6. **Zero codice React** senza approvazione esplicita di Francesco
+
+### Design System UÀ — Tokens di Riferimento
+**Token confermati pixel-check live (Playwright su localhost:3000/login):**
+```
+Light:  --bg:#DDD8D3  --sfc:#E4DFD9  --elv:#EDEDEA  --prs:#D4CFC9
+        --t1:#1C1916  --t2:#96918D   --t3:#B8B3AE
+        --red:#D90012 --amber:#B45309 --green:#16A34A --blue:#2563EB
+        --gold:#D4A843 (accent sparso) --cobalt:#1B2D6B (nav pill active)
+Dark:   --bg:#1A1916  --sfc:#222019  --elv:#2C2A27   --prs:#121110
+        --t1:#F0EDE8  --t2:#8A8580   --t3:#4A4845
+        --red:#E8001A --green:#2ECC7A
+Shadows: dual-layer warm-tinted (NO cobalt haptimorphic)
+  Light raised: -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40)
+  Light inset:  inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66)
+  Dark raised:  -5px -5px 11px rgba(255,255,255,.018), 9px 12px 28px -4px rgba(0,0,0,.60)
+  Dark inset:   inset 4px 4px 9px rgba(0,0,0,.60), inset -3px -3px 7px rgba(255,255,255,.04)
+```
+- Dark mode: stessi token, varianti dark da admin.css (sezione `[data-theme="dark"]`)
+
+### Navigazione — Decisione Finale
+- **A2 Floating Pill** scelto (NON full-width)
+- FAB centrale: `#D90012` rosso (NON oro)
+- Scroll-hide behavior con spring animation (stiffness 520, damping 36)
+- Long-press (400ms) → modalità customizzazione con drag-and-drop
+- Desktop ≥1024px → sidebar sinistra
+
+### Cards Lavoro — Card C Timeline
+- 3-level disclosure: dashboard compact → lista espandibile → dettaglio full-tab
+- Urgency: badge circolare colorato + subtitle colored text + timeline dots (NON border-left come stile principale)
+- Quick actions expand: CONSEGNA / In prova / Documenti / WhatsApp
+- Tappa su card dashboard → naviga a dettaglio (no espansione inline sulla dashboard)
+
+### Presentazione Mockup
+- Ogni mockup va presentato in un UNICO file HTML interattivo con:
+  - Theme toggle (light/dark) in-page
+  - Viewport switcher (mobile/tablet/desktop) in-page
+  - Animazioni CSS/JS per mostrare le transizioni chiave
+  - Annotazioni sonore nei commenti (// SOUND: tap.mp3 al click)
+  - Tutte le connessioni visibili (link admin, logout, navigazione tra schermate)
+- Non mandare screenshot statici di ogni schermata singola — un prototipo completo
+
+### Orchestrazione Agenti
+- Usa swarm di agenti specializzati per task indipendenti
+- L'orchestratore coordina, non implementa
+- Ogni agente ha contesto preciso, non eredita la sessione principale
+
+---
+
+## 10. Regole Critiche (emerse da review Codex + Advisor)
 
 - **Stati ortogonali:** `lavori.stato` (clinico) e `fatture.stato_sdi` (fiscale) sono dimensioni INDIPENDENTI — non confonderli mai
 - **WhatsApp GDPR:** template SEMPRE GDPR-safe — NO nome paziente, NO tipo dispositivo, solo numero lavoro + link portale token

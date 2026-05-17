@@ -97,10 +97,9 @@ function InsolutoCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={reducedMotion ? { duration: 0 } : t('normal', 'enter')}
-      style={{ transitionDelay: reducedMotion ? '0ms' : `${index * 40}ms` }}
+      initial={{ opacity: 0, transform: 'translateY(12px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+      transition={reducedMotion ? { duration: 0 } : { ...t('normal', 'enter'), delay: index * 0.04 }}
     >
       {/* Main card row */}
       <div

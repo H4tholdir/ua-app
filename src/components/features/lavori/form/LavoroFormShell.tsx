@@ -102,9 +102,9 @@ export function LavoroFormShell({
             id={`tabpanel-${activeTab}`}
             role="tabpanel"
             aria-labelledby={`tab-${activeTab}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            initial={{ opacity: 0, transform: 'translateY(6px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0px)' }}
+            exit={{ opacity: 0, transform: 'translateY(-4px)' }}
             transition={t('fast', 'enter')}
           >
             {children(activeTab)}
