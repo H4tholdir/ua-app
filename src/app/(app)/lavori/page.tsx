@@ -194,8 +194,8 @@ export default async function LavoriPage({ searchParams }: PageProps) {
                 color: isActive ? '#fff' : DS.t2,
                 boxShadow: isActive ? DS.shI : DS.shB,
                 flexShrink: 0,
-                transition: 'all var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
-                minHeight: 40,
+                transition: 'background var(--tr, 0.18s cubic-bezier(0.2,0,0,1)), box-shadow var(--tr, 0.18s cubic-bezier(0.2,0,0,1)), color var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
+                minHeight: 52,
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
