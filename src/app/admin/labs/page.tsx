@@ -64,7 +64,9 @@ export default async function AdminLabsPage() {
   const trialExpSub = safeLabs
     .filter(l => l.stato === 'trial' && l.trial_ends_at)
     .sort((a, b) => new Date(a.trial_ends_at!).getTime() - new Date(b.trial_ends_at!).getTime())
-  const nextTrialExpiry = trialExpSub[0]?.trial_ends_at
+  const nextTrialExpiry = trialExpSub[0]?.trial_ends_at ?? null
+
+  const labAttiviRete = safeLabs.filter(l => l.stato === 'attivo' && l.piano === 'rete').length
 
   return (
     <div className="adm-page">
@@ -98,44 +100,13 @@ export default async function AdminLabsPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="adm-stats">
-        <div className="adm-stat trial adm-animate" style={{ animationDelay: '.08s' }}>
-          <span className="adm-stat-label">In prova</span>
-          <span className="adm-stat-value">{counts.trial}</span>
-          <span className="adm-stat-sub">
-            {nextTrialExpiry
-              ? `1 scade ${new Date(nextTrialExpiry).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}`
-              : ' '}
-          </span>
-        </div>
-        <div className="adm-stat attivo adm-animate" style={{ animationDelay: '.12s' }}>
-          <span className="adm-stat-label">Attivi</span>
-          <span className="adm-stat-value">{counts.attivo}</span>
-          <span className="adm-stat-sub">
-            {safeLabs.filter(l => l.stato === 'attivo' && l.piano === 'lab').length} Lab ·{' '}
-            {safeLabs.filter(l => l.stato === 'attivo' && l.piano === 'rete').length} Rete
-          </span>
-        </div>
-        <div className="adm-stat sospeso adm-animate" style={{ animationDelay: '.16s' }}>
-          <span className="adm-stat-label">Sospesi</span>
-          <span className="adm-stat-value">{counts.sospeso}</span>
-          <span className="adm-stat-sub">{counts.sospeso > 0 ? 'Intervento richiesto' : ' '}</span>
-        </div>
-        <div className="adm-stat scaduto adm-animate" style={{ animationDelay: '.20s' }}>
-          <span className="adm-stat-label">Scaduti</span>
-          <span className="adm-stat-value">{counts.scaduto}</span>
-          <span className="adm-stat-sub">&nbsp;</span>
-        </div>
-        <div className="adm-stat blacklist adm-animate" style={{ animationDelay: '.24s' }}>
-          <span className="adm-stat-label">Blacklist</span>
-          <span className="adm-stat-value">{counts.blacklist}</span>
-          <span className="adm-stat-sub">&nbsp;</span>
-        </div>
-      </div>
-
-      {/* Labs list — client component for filtering */}
-      <LabsList labs={safeLabs} />
+      {/* Stat tiles + lista — tiles cliccabili come filtri (gestito in LabsList) */}
+      <LabsList
+        labs={safeLabs}
+        counts={counts}
+        nextTrialExpiry={nextTrialExpiry}
+        labAttiviRete={labAttiviRete}
+      />
     </div>
   )
 }

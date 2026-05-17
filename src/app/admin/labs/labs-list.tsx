@@ -16,6 +16,14 @@ type Lab = {
   created_at: string
 }
 
+type Counts = {
+  trial: number
+  attivo: number
+  sospeso: number
+  scaduto: number
+  blacklist: number
+}
+
 let _ac: AudioContext | null = null
 function sndClick() {
   try {
@@ -45,43 +53,101 @@ function trialExpirySub(lab: Lab): string | null {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
 }
 
-const FILTERS = ['Tutti', 'Trial', 'Attivi', 'Sospesi', 'Blacklist'] as const
-type Filter = typeof FILTERS[number]
+type Filter = 'tutti' | 'trial' | 'attivo' | 'sospeso' | 'scaduto' | 'blacklist'
 
 function matchesFilter(lab: Lab, f: Filter): boolean {
-  if (f === 'Tutti') return true
-  if (f === 'Trial') return lab.stato === 'trial'
-  if (f === 'Attivi') return lab.stato === 'attivo'
-  if (f === 'Sospesi') return lab.stato === 'sospeso'
-  if (f === 'Blacklist') return lab.stato === 'blacklist'
-  return true
+  if (f === 'tutti') return true
+  return lab.stato === f
 }
 
-export default function LabsList({ labs }: { labs: Lab[] }) {
-  const [filter, setFilter] = useState<Filter>('Tutti')
+interface Props {
+  labs: Lab[]
+  counts: Counts
+  nextTrialExpiry: string | null
+  labAttiviRete: number
+}
 
-  const setF = useCallback((f: Filter) => { sndClick(); setFilter(f) }, [])
+export default function LabsList({ labs, counts, nextTrialExpiry, labAttiviRete }: Props) {
+  const [filter, setFilter] = useState<Filter>('tutti')
+
+  const setF = useCallback((f: Filter) => {
+    sndClick()
+    setFilter(prev => prev === f ? 'tutti' : f)
+  }, [])
 
   const visible = labs.filter(l => matchesFilter(l, filter))
 
+  const statConfig: { key: Filter; label: string; count: number; cls: string; sub: string }[] = [
+    {
+      key: 'trial',
+      label: 'In prova',
+      count: counts.trial,
+      cls: 'trial',
+      sub: nextTrialExpiry
+        ? `1 scade ${new Date(nextTrialExpiry).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}`
+        : ' ',
+    },
+    {
+      key: 'attivo',
+      label: 'Attivi',
+      count: counts.attivo,
+      cls: 'attivo',
+      sub: `${labs.filter(l => l.stato === 'attivo' && l.piano === 'lab').length} Lab · ${labAttiviRete} Rete`,
+    },
+    {
+      key: 'sospeso',
+      label: 'Sospesi',
+      count: counts.sospeso,
+      cls: 'sospeso',
+      sub: counts.sospeso > 0 ? 'Intervento richiesto' : ' ',
+    },
+    {
+      key: 'scaduto',
+      label: 'Scaduti',
+      count: counts.scaduto,
+      cls: 'scaduto',
+      sub: ' ',
+    },
+    {
+      key: 'blacklist',
+      label: 'Blacklist',
+      count: counts.blacklist,
+      cls: 'blacklist',
+      sub: ' ',
+    },
+  ]
+
   return (
     <>
-      {/* Header + controls */}
+      {/* Stat tiles — click to filter, click again to reset */}
+      <div className="adm-stats">
+        {statConfig.map(s => (
+          <button
+            key={s.key}
+            type="button"
+            className={`adm-stat ${s.cls}${filter === s.key ? ' adm-stat--active' : ''}`}
+            onClick={() => setF(s.key)}
+            aria-pressed={filter === s.key}
+            title={filter === s.key ? 'Clicca per rimuovere filtro' : `Filtra per ${s.label.toLowerCase()}`}
+          >
+            <span className="adm-stat-label">{s.label}</span>
+            <span className="adm-stat-value">{s.count}</span>
+            <span className="adm-stat-sub">{s.sub}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Header */}
       <div className="adm-header">
-        <div className="adm-title">Laboratori</div>
+        <div className="adm-title">
+          Laboratori
+          {filter !== 'tutti' && (
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--adm-t2)', marginLeft: 8 }}>
+              · {statConfig.find(s => s.key === filter)?.label}
+            </span>
+          )}
+        </div>
         <div className="adm-controls">
-          <div className="adm-filters" role="group" aria-label="Filtro stato">
-            {FILTERS.map(f => (
-              <button
-                key={f}
-                className={`adm-pill${filter === f ? ' active' : ''}`}
-                onClick={() => setF(f)}
-                aria-pressed={filter === f}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
           <Link href="/admin/labs/new" className="adm-btn-cta" onClick={sndClick}>
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
               <path d="M6 1v10M1 6h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
@@ -133,19 +199,17 @@ export default function LabsList({ labs }: { labs: Lab[] }) {
                         </span>
                       ) : <span className="dim">—</span>}
                     </td>
-                    <td className={expiry && ['domani', 'scaduto'].includes(expiry) ? '' : 'dim'}
-                        style={expiry === 'domani' || expiry === 'scaduto' ? { color: '#B45309', fontWeight: 700 } : undefined}>
+                    <td
+                      className={expiry && ['domani', 'scaduto'].includes(expiry) ? '' : 'dim'}
+                      style={expiry === 'domani' || expiry === 'scaduto' ? { color: '#B45309', fontWeight: 700 } : undefined}
+                    >
                       {lab.stato === 'trial' ? (expiry ?? '—') : '—'}
                     </td>
                     <td className="dim">
                       {new Date(lab.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </td>
                     <td>
-                      <Link
-                        href={`/admin/labs/${lab.id}`}
-                        className="adm-action-link"
-                        onClick={sndClick}
-                      >
+                      <Link href={`/admin/labs/${lab.id}`} className="adm-action-link" onClick={sndClick}>
                         Dettagli →
                       </Link>
                     </td>

@@ -148,6 +148,12 @@
 .adm-stat.sospeso  .adm-stat-value { color: #F59E0B; }
 .adm-stat.scaduto  .adm-stat-value { color: #F97316; }
 .adm-stat.blacklist .adm-stat-value { color: var(--adm-red); }
+/* Filtro attivo — stato inset */
+.adm-stat--active {
+  box-shadow: var(--adm-sh-i);
+  transform: scale(.98);
+}
+.adm-stat--active .adm-stat-label::after { content: ' ●'; font-size: 7px; vertical-align: middle; }
 
 /* ── Page header ── */
 .adm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }

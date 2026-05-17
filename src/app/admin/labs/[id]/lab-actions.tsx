@@ -111,12 +111,6 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
 
 const iw: React.CSSProperties = {
   width: '100%',
-  padding: '6px 10px',
-  fontSize: 13,
-  border: '1px solid rgba(0,0,0,.12)',
-  borderRadius: 6,
-  background: '#fafafa',
-  color: 'inherit',
   boxSizing: 'border-box',
 }
 
@@ -381,7 +375,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
               <input className="adm-input" style={iw} value={form.citta} onChange={setF('citta')} aria-label="Città" />
             </FieldRow>
             <FieldRow label="Provincia (sigla)">
-              <input className="adm-input" style={{ ...iw, textTransform: 'uppercase', maxWidth: 80 }} value={form.provincia} onChange={setF('provincia')} aria-label="Provincia" maxLength={2} />
+              <input className="adm-input" style={{ ...iw, textTransform: 'uppercase', width: 80 }} value={form.provincia} onChange={setF('provincia')} aria-label="Provincia" maxLength={2} />
             </FieldRow>
             <FieldRow label="Telefono">
               <input className="adm-input" style={iw} type="tel" value={form.telefono} onChange={setF('telefono')} aria-label="Telefono" />
@@ -414,7 +408,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
               <input className="adm-input" style={iw} value={form.prrc_qualifica} onChange={setF('prrc_qualifica')} aria-label="PRRC Qualifica" />
             </FieldRow>
             <FieldRow label="Anno prima marcatura">
-              <input className="adm-input" style={{ ...iw, maxWidth: 100 }} value={form.anno_prima_marcatura} onChange={setF('anno_prima_marcatura')} aria-label="Anno prima marcatura" placeholder="es. 2019" maxLength={4} />
+              <input className="adm-input" style={{ ...iw, width: 100 }} value={form.anno_prima_marcatura} onChange={setF('anno_prima_marcatura')} aria-label="Anno prima marcatura" placeholder="es. 2019" maxLength={4} />
             </FieldRow>
           </Section>
 
@@ -435,10 +429,10 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
               </select>
             </FieldRow>
             <FieldRow label="Soglia bollo (€)">
-              <input className="adm-input" style={{ ...iw, maxWidth: 120 }} type="number" step="0.01" value={form.soglia_bollo} onChange={setF('soglia_bollo')} aria-label="Soglia bollo" />
+              <input className="adm-input" style={{ ...iw, width: 120 }} type="number" step="0.01" value={form.soglia_bollo} onChange={setF('soglia_bollo')} aria-label="Soglia bollo" />
             </FieldRow>
             <FieldRow label="Importo bollo (€)">
-              <input className="adm-input" style={{ ...iw, maxWidth: 120 }} type="number" step="0.01" value={form.importo_bollo} onChange={setF('importo_bollo')} aria-label="Importo bollo" />
+              <input className="adm-input" style={{ ...iw, width: 120 }} type="number" step="0.01" value={form.importo_bollo} onChange={setF('importo_bollo')} aria-label="Importo bollo" />
             </FieldRow>
             <FieldRow label="Bollo attivo default">
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -457,7 +451,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
               </select>
             </FieldRow>
             <FieldRow label="Trial ends at">
-              <input className="adm-input" style={{ ...iw, maxWidth: 180 }} type="date" value={form.trial_ends_at} onChange={setF('trial_ends_at')} aria-label="Trial ends at" />
+              <input className="adm-input" style={{ ...iw, width: 180 }} type="date" value={form.trial_ends_at} onChange={setF('trial_ends_at')} aria-label="Trial ends at" />
               <span style={{ fontSize: 11, color: 'var(--adm-t3, #888)', marginTop: 4, display: 'block' }}>Lascia vuoto per nessuna scadenza</span>
             </FieldRow>
           </Section>
