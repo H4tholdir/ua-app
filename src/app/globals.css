@@ -53,11 +53,6 @@
   /* UÀ brand tokens */
   --font-dm-sans: 'DM Sans', system-ui, sans-serif;
   --font-playfair: 'Playfair Display', Georgia, serif;
-  --color-cobalt: #1B2D6B;   /* legacy — non usare per nuovi componenti */
-  --color-cobalt-light: #2A3F8F; /* legacy */
-  --color-gold: #D4A843;     /* legacy */
-  --color-surface: #F8F9FC;  /* legacy */
-  --color-surface-elevated: #FFFFFF; /* legacy */
 
   /* ── Design System v2.2 — Global tokens (app pages) ──────────────── */
   /* Sfondo panna warm — da admin.css, confermato pixel-check          */
