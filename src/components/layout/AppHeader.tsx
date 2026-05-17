@@ -1,6 +1,15 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 
+// Design tokens v2.2 — warm panna palette
+const DS = {
+  elv:     'var(--elv, #EDEDEA)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+} as const
+
 interface AppHeaderProps {
   title: string
   subtitle?: string
@@ -32,11 +41,10 @@ export function AppHeader({ title, subtitle, backHref, actions }: AppHeaderProps
             minWidth: '52px',
             minHeight: '52px',
             borderRadius: '50%',
-            background: '#1B2D6B',
-            color: '#F0F4FF',
+            background: DS.elv,
+            color: DS.t1,
             flexShrink: 0,
-            boxShadow:
-              '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
+            boxShadow: DS.shB,
             textDecoration: 'none',
           }}
         >
@@ -59,11 +67,30 @@ export function AppHeader({ title, subtitle, backHref, actions }: AppHeaderProps
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h1 className="ua-page-title" style={{ margin: 0 }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '22px',
+            fontWeight: 700,
+            color: DS.t1,
+            fontFamily: 'DM Sans, sans-serif',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
+          }}
+        >
           {title}
         </h1>
         {subtitle && (
-          <p className="ua-page-sub" style={{ margin: 0 }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: '14px',
+              color: DS.t2,
+              fontFamily: 'DM Sans, sans-serif',
+              lineHeight: 1.5,
+              marginTop: '4px',
+            }}
+          >
             {subtitle}
           </p>
         )}

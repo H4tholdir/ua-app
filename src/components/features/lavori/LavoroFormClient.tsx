@@ -120,7 +120,7 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
       <div
         style={{
           position: 'sticky',
-          bottom: '72px', // sopra BottomTabBar
+          bottom: '72px', // sopra BottomNavPill
           left: 0,
           right: 0,
           padding: '12px 20px',

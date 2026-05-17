@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { BottomTabBar } from '@/components/layout/BottomTabBar'
+import { BottomNavPill } from '@/components/layout/BottomNavPill'
 import { SwRegistration } from '@/components/layout/SwRegistration'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
       {children}
-      <BottomTabBar />
+      <BottomNavPill />
       <SwRegistration />
     </>
   )

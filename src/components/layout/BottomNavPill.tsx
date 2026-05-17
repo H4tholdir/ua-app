@@ -6,6 +6,17 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, useReducedMotion } from '@/design-system/motion'
 
+// Design tokens v2.2 — warm panna palette
+const DS = {
+  elv:     'var(--elv, #EDEDEA)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  primary: 'var(--primary, #D90012)',
+  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+  shI: `inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)`,
+} as const
+
 interface Tab {
   href: string
   label: string
@@ -48,7 +59,10 @@ const tabs: Tab[] = [
     label: 'Nuovo',
     ariaLabel: 'Crea nuovo lavoro',
     icon: (
-      <span style={{ fontSize: '24px', lineHeight: 1, fontWeight: 700 }} aria-hidden="true">
+      <span
+        style={{ fontSize: '24px', lineHeight: 1, fontWeight: 700, color: 'var(--primary, #D90012)' }}
+        aria-hidden="true"
+      >
         +
       </span>
     ),
@@ -124,7 +138,7 @@ function isTabActive(tabHref: string, pathname: string): boolean {
 const SCROLL_THRESHOLD = 4   // px — ignore micro jitter
 const HIDE_AFTER_PX   = 60   // px — always visible near top
 
-export function BottomTabBar() {
+export function BottomNavPill() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(true)
   const lastScrollY = useRef(0)
@@ -154,29 +168,21 @@ export function BottomTabBar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const barStyle: React.CSSProperties = {
-    position: 'fixed',
-    bottom: '24px',
-    left: '50%',
-    transform: 'translateX(-50%)',
+  const pillStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    background: '#1B2D6B',
+    background: DS.elv,
     borderRadius: '100px',
-    padding: '8px 12px',
-    boxShadow:
-      '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
-    zIndex: 50,
-    // Allow horizontal scroll on narrow viewports (6 tabs × ~52px)
+    padding: '6px 10px',
+    boxShadow: DS.shB,
     maxWidth: 'calc(100vw - 32px)',
     overflowX: 'auto',
-    // Hide scrollbar visually but keep scroll functional
     scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
   }
 
   const barContent = (
-    <nav style={barStyle} aria-label="Navigazione principale">
+    <nav style={pillStyle} aria-label="Navigazione principale">
       {tabs.map((tab) => {
         const active = isTabActive(tab.href, pathname)
 
@@ -191,18 +197,16 @@ export function BottomTabBar() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '52px',
-                height: '52px',
-                minWidth: '52px',
-                minHeight: '52px',
+                width: '56px',
+                height: '56px',
+                minWidth: '56px',
+                minHeight: '56px',
                 borderRadius: '50%',
-                background: '#D4A843',
-                color: '#0F1E52',
+                background: '#FFFFFF',
+                color: DS.primary,
                 textDecoration: 'none',
                 flexShrink: 0,
-                boxShadow: active
-                  ? 'inset 3px 3px 8px hsl(230 100% 4% / 0.3), inset -2px -2px 6px hsl(43 65% 75% / 0.3)'
-                  : '0 0 20px hsl(43 65% 55% / 0.4)',
+                boxShadow: active ? DS.shI : DS.shB,
               }}
             >
               {tab.icon}
@@ -226,13 +230,11 @@ export function BottomTabBar() {
               minHeight: '52px',
               padding: '6px 10px',
               borderRadius: '88px',
-              background: active ? '#243580' : 'transparent',
-              color: active ? '#F0F4FF' : '#8899CC',
+              background: active ? DS.elv : 'transparent',
+              color: active ? DS.primary : DS.t2,
               textDecoration: 'none',
               transition: reducedMotion ? 'none' : undefined,
-              boxShadow: active
-                ? 'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)'
-                : 'none',
+              boxShadow: active ? DS.shI : 'none',
             }}
           >
             {tab.icon}
@@ -261,20 +263,20 @@ export function BottomTabBar() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          key="bottom-tab-bar"
+          key="bottom-nav-pill"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={t('normal', 'enter')}
           style={{
             position: 'fixed',
-            bottom: 0,
+            bottom: '20px',
             left: 0,
             right: 0,
             zIndex: 50,
-            pointerEvents: 'none',
             display: 'flex',
             justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         >
           <div style={{ pointerEvents: 'auto' }}>
