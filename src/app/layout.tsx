@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { ThemeInitializer } from '@/components/layout/ThemeInitializer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,6 +29,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it" className="h-full">
+      <head>
+        <ThemeInitializer />
+      </head>
       <body className="min-h-full flex flex-col antialiased">
         {children}
       </body>
