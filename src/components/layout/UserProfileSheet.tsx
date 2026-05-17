@@ -48,6 +48,7 @@ interface Props {
   labNome: string
   trialEndsAt?: string | null
   labStato?: string
+  isTrialExpiring?: boolean
 }
 
 function initials(nome: string, cognome?: string | null) {
@@ -61,7 +62,7 @@ function fmtTrialDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
 }
 
-export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEndsAt, labStato }: Props) {
+export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEndsAt, labStato, isTrialExpiring = false }: Props) {
   const [open, setOpen] = useState(false)
   const { theme, toggle, isDark } = useTheme()
   const reducedMotion = useReducedMotion()
@@ -79,9 +80,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
 
   const initStr = initials(nome, cognome)
   const trialDate = fmtTrialDate(trialEndsAt)
-  const isExpiring = trialEndsAt
-    ? (new Date(trialEndsAt).getTime() - Date.now()) < 7 * 24 * 60 * 60 * 1000
-    : false
+  const isExpiring = isTrialExpiring
 
   return (
     <>

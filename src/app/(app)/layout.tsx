@@ -53,6 +53,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const utenteData = utente as { ruolo: string; laboratorio_id: string; nome: string; cognome?: string | null }
 
+  const isTrialExpiring = lab.stato === 'trial' && lab.trial_ends_at
+    ? (new Date(lab.trial_ends_at).getTime() - new Date().getTime()) < 7 * 24 * 60 * 60 * 1000
+    : false
+
   return (
     <>
       {/* SkipToContent è un Client island — onFocus/onBlur non possono stare in Server Component */}
@@ -67,6 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         labNome={lab.nome}
         trialEndsAt={lab.trial_ends_at}
         labStato={lab.stato}
+        isTrialExpiring={isTrialExpiring}
       />
 
       <main id="main-content">
