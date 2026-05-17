@@ -1,5 +1,5 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 17 maggio 2026 — fine sessione Piano C-D-E + QA + Deploy
+**Ultimo aggiornamento:** 17 maggio 2026 — sessione admin panel fix + billing v2.2 + design system
 
 ---
 
@@ -9,7 +9,7 @@
 - **URL produzione:** https://uachelab.com
 - **Supabase project:** `iagibumwjstnveqpjbwq` → https://iagibumwjstnveqpjbwq.supabase.co
 - **GitHub repo:** https://github.com/H4tholdir/ua-app
-- **Ultimo commit pushato:** `9d89b91` (feat admin: full lab edit form + live preview + audit log)
+- **Ultimo commit pushato:** `8e8ac4f` (fix admin: toggle Galahhad + logout vinodjangid07 + hard-delete + magic link)
 
 ### Credenziali admin
 - **Admin email:** francesco.formicola@live.it
@@ -110,13 +110,28 @@ Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-par
 1. **PEC SMTP Filippo** — configurare in /impostazioni → PEC, testare invio reale
 2. **Consegna test end-to-end** — con lavoro reale Filippo, verifica DdC ITCA01051686
 3. **Onboarding wizard** — step dati lab + firma DdC + PRRC non ancora guidati
-4. **Billing page redesign** — ancora in cobalt vecchio, non aggiornata a v2.2
 
-### Bug noti al 17/05/2026
-- Admin live preview (/admin/labs/[id]/live) — possibile rendering issues
-- Form modifica lab — verifica che tutti i campi siano visibili
-- Admin impersonation — verificare che il pulsante "Visualizza come titolare" appaia
-- Billing page — design cobalt da aggiornare
+### Bug noti al 17/05/2026 (sessione 2)
+- Live preview: i link interni (es. scheda consegna) redirezionano all'admin — comportamento atteso (solo lettura), da documentare
+- Dashboard titolare nella live preview: usa colori cobalt vecchi (background #0F1E52) — da aggiornare a warm panna
+- Magic link: funziona ora che Site URL Supabase = https://uachelab.com
+
+### Fix completati in questa sessione
+- ✅ Trigger audit PostgreSQL (_audit_trigger_fn: to_jsonb fix)
+- ✅ Sezione "Anteprima operativa" duplicata rimossa
+- ✅ Form dark mode: rimosso #fafafa hardcoded
+- ✅ Stat tiles come filtri (click per filtrare lab list)
+- ✅ Anagrafica: indirizzo come fallback per sede
+- ✅ Toggle tema: Uiverse.io by Galahhad (sky/night con sole/luna/nuvole/stelle)
+- ✅ Logout: Uiverse.io by vinodjangid07 (cerchio rosso expand on hover)
+- ✅ Live preview: nota "Solo lettura" nel banner
+- ✅ Billing page: sempre light (data-login-theme="light"), bordo oro, lab label uppercase
+- ✅ Route POST /api/admin/labs/[id]/impersonate creata (genera magic link)
+- ✅ Sezioni preview + impersonate unificate in una
+- ✅ Hard delete: laboratorio_id nullable per admin_sistema (CHECK constraint)
+- ✅ admin_delete_laboratorio(): UPDATE SET laboratorio_id=NULL per admin_sistema
+- ✅ Supabase Site URL: aggiornato a https://uachelab.com
+- ✅ Magic link redirectTo: usa request origin + /auth/callback?next=/dashboard
 
 ### Nice-to-have (V1 ma non bloccanti)
 - Input voce 🎤 (Flow 1, 3)
@@ -126,6 +141,7 @@ Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-par
 - Animazione successo consegna
 - Report/statistiche avanzate
 - STL file handling
+- Admin profilo/impostazioni section
 
 ---
 
@@ -136,7 +152,7 @@ Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-par
 | A — Foundation (DB, auth, bug) | ✅ |
 | B — Core Flows (prove, rifacimento, consegna, scadenzario) | ✅ |
 | C — Dashboard RBAC (3 ruoli) | ✅ |
-| D — UI Redesign (warm panna v2.2) | ✅ (billing page da fare) |
+| D — UI Redesign (warm panna v2.2) | ✅ |
 | E — MDR Testing + DdC PDF + RLS | ✅ |
 | Admin Panel completo | ✅ |
 | Import DentalMaster | ✅ |
@@ -199,20 +215,26 @@ docs/superpowers/
 
 ## 9. Prossima Sessione — Da Fare
 
-1. Fix bug admin panel (live preview, form modifica)
-2. Billing page redesign (v2.2 warm panna)
-3. Onboarding wizard 6 step
-4. Test PEC reale con Filippo
-5. E2E test con creds reali (seed-e2e.ts)
-6. Performance test (Lighthouse)
-7. Consegna end-to-end con dati reali Filippo
+1. **Test magic link** — verificare che "Genera magic link" ora apra la sessione Filippo correttamente
+2. **Test hard delete** — eliminare UÀ HQ ora dovrebbe funzionare
+3. **Dashboard live preview** — background ancora cobalt (#0F1E52), da aggiornare a warm panna
+4. **Onboarding wizard 6 step**
+5. **Test PEC reale con Filippo**
+6. **E2E test con creds reali** (seed-e2e.ts)
+7. **Consegna end-to-end** con dati reali Filippo
+8. **Admin profilo section** — impostazioni, password, preferenza tema
 
 ---
 
 ## 10. Note Importanti
 
 - **Husky pre-commit** non ha i permessi di esecuzione — `chmod +x .husky/pre-commit` da fare
-- **NEXT_PUBLIC_APP_URL** non è in .env.local — da aggiungere per impersonation magic link
+- **NEXT_PUBLIC_APP_URL** = `https://uachelab.com` in .env.local ✅
+- **Supabase Site URL** = `https://uachelab.com` (aggiornato il 17/05/2026) ✅
+- **Supabase Redirect URLs** = `https://uachelab.com/**` ✅
 - **LAB_FILIPPO_ID** = `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` — usare per import script
-- **Worktree** attivo: `.claude/worktrees/plan-c-dashboard-rbac` (branch: worktree-plan-c-dashboard-rbac)
-- Il worktree branch ha commit aggiuntivi non ancora mergeati su main (dashboard foundation reimplementata)
+- **Logout button**: Uiverse.io by vinodjangid07 — usare .adm-nav-logout-btn CSS in tutti i punti logout
+- **Toggle tema**: Uiverse.io by Galahhad — usare .adm-theme-switch CSS
+- **Design DESIGN/billing-piani/**: mockup approvati v7 — già implementati
+- **Design DESIGN/admin/**: mockup approvati v3b — riferimento per future modifiche admin
+- **Worktree** attivo: `.claude/worktrees/plan-c-dashboard-rbac` (branch non ancora mergeato)
