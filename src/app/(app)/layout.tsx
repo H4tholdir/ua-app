@@ -22,8 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!utente) redirect('/login?error=no_lab')
 
-  // admin_sistema usa /admin, non (app) — evita il loop redirect dashboard→login→dashboard
-  if (utente.ruolo === 'admin_sistema') redirect('/admin')
+  // admin_sistema usa /admin/labs, non (app) — evita il loop redirect dashboard→login→dashboard
+  if (utente.ruolo === 'admin_sistema') redirect('/admin/labs')
 
   const { data: lab } = await svc
     .from('laboratori')
