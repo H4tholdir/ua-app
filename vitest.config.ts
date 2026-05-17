@@ -10,9 +10,17 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
-      include: ['src/lib/**', 'src/hooks/**'],
-      exclude: ['src/lib/supabase/**'],
+      reporter: ['text', 'lcov', 'html'],
+      include: [
+        'src/lib/**',
+        'src/hooks/**',
+        'src/app/api/**',        // aggiunto Piano E
+      ],
+      exclude: [
+        'src/lib/supabase/**',
+        'src/app/api/stripe/**',
+        'src/app/api/auth/**',
+      ],
     },
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
   },
