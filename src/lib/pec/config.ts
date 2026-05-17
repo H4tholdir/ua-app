@@ -54,11 +54,15 @@ export async function savePecConfig(
     }
   }
 
+  // V1: salviamo solo l'email e il provider rilevato.
+  // pec_smtp_configurata rimane false finché le credenziali non sono
+  // cifrate in Supabase Vault (V2 — pec_vault_key_id).
+  // Non impostare pec_smtp_configurata=true in V1 per evitare
+  // un false-positive che farebbe credere al sistema di poter inviare PEC.
   const { error } = await svc
     .from('laboratori')
     .update({
       pec: config.email,
-      pec_smtp_configurata: true,
       updated_at: new Date().toISOString(),
     })
     .eq('id', labId)

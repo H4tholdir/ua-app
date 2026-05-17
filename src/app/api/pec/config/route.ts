@@ -82,6 +82,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   // vault_key_id in laboratori.pec_vault_key_id — mai persistire in chiaro.
   // La password non viene mai loggata né esposta nella risposta.
 
+  // V1: password ricevuta ma non persistita — in V2 va in Supabase Vault.
+  // Non usare la password nel log, non includerla nella risposta.
   return NextResponse.json({
     ok: true,
     provider: result.smtpConfig
@@ -92,6 +94,8 @@ export async function POST(req: Request): Promise<NextResponse> {
           secure: result.smtpConfig.secure,
         }
       : { display_name: 'Configurazione manuale', host: smtp_host, port: smtp_port, secure: smtp_secure },
-    message: 'Configurazione PEC salvata. Il test di invio reale sarà disponibile dopo la configurazione del Vault (V2).',
+    // Messaggio onesto: le credenziali non sono ancora operative.
+    message:
+      'Indirizzo PEC e provider salvati. Le credenziali saranno attive dopo la configurazione del Vault (V2) — il supporto UÀ completa il setup.',
   })
 }

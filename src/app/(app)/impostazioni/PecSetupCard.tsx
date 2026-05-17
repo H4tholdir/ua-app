@@ -10,7 +10,7 @@ interface PecSetupCardProps {
     email: string,
     password: string,
     smtpOverride?: { host: string; port: number; secure: boolean }
-  ) => Promise<{ ok: boolean; error?: string }>
+  ) => Promise<{ ok: boolean; error?: string; message?: string }>
   onTest: () => Promise<{ ok: boolean; message: string }>
 }
 
@@ -95,8 +95,10 @@ export function PecSetupCard({
       const res = await onSave(email, password, smtpOverride)
       setResult({
         ok: res.ok,
+        // Usa il messaggio del server se disponibile — è onesto su cosa è stato salvato.
+        // Fallback locale solo se il server non invia nulla.
         message: res.ok
-          ? 'Configurazione salvata con successo.'
+          ? (res.message ?? 'Indirizzo PEC e provider salvati.')
           : (res.error ?? 'Errore sconosciuto.'),
       })
       if (res.ok) setPassword('')
