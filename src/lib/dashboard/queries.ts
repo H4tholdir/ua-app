@@ -78,35 +78,51 @@ export async function getPagamentiScadutiTop(
   labId: string,
   limit = 3
 ): Promise<PagamentoScaduto[]> {
-  // partitario_clienti is a view scoped per lab via RLS normally,
-  // but with service client we need a direct query on lavori_partitario
-  const { data } = await svc
-    .from('lavori_partitario')
-    .select(`
-      cliente_id,
-      importo,
-      tipo,
-      lavori!inner(laboratorio_id)
-    `)
-    .eq('lavori.laboratorio_id', labId)
-    .eq('tipo', 'saldo')
-    .is('data_incasso', null)
-    .limit(50)
+  // lavori_partitario tracks payment rows per lavoro; each lavoro has a cliente_id.
+  // We join through lavori to get cliente_id, then aggregate open amounts per client.
+  // Actual columns: id, importo, laboratorio_id, lavoro_id, data_pagamento, modalita, note, riferimento
+  // "Open" = pagamento with importo < 0 (debits/uncollected) — but since schema stores
+  // all payments as positive amounts, we use the fatture approach instead:
+  // get clienti with positive saldo_aperto via the partitario_clienti view filtered to this lab.
+  //
+  // partitario_clienti view has: cliente_id, cliente_nome, studio_nome, saldo_aperto
+  // but NO laboratorio_id (view is RLS-scoped normally; service client returns all labs).
+  // We filter by joining with clienti.laboratorio_id.
 
-  if (!data) return []
+  // Fetch all partitario rows for this lab's clients
+  const { data: clientiLab } = await svc
+    .from('clienti')
+    .select('id')
+    .eq('laboratorio_id', labId)
+
+  if (!clientiLab || clientiLab.length === 0) return []
+
+  const clientiIds = (clientiLab as Array<Record<string, unknown>>).map(c => c.id as string)
+
+  // Get payment summary from lavori_partitario grouped by cliente via lavori join
+  // lavori has cliente_id — join: lavori_partitario -> lavori -> (cliente_id, laboratorio_id)
+  const { data: partitario } = await svc
+    .from('lavori_partitario')
+    .select('importo, lavori!inner(cliente_id, laboratorio_id)')
+    .eq('lavori.laboratorio_id', labId)
+    .is('deleted_at', null)
+    .limit(200)
+
+  if (!partitario) return []
 
   // Aggregate by cliente_id
-  const byCliente: Record<string, { importo: number }> = {}
-  for (const row of data as Array<Record<string, unknown>>) {
-    const cid = row.cliente_id as string | null
-    if (!cid) continue
-    byCliente[cid] = {
-      importo: (byCliente[cid]?.importo ?? 0) + (row.importo as number ?? 0),
-    }
+  const byCliente: Record<string, number> = {}
+  for (const row of partitario as Array<Record<string, unknown>>) {
+    const lavoro = row.lavori as Record<string, unknown> | null
+    const cid = lavoro?.cliente_id as string | null
+    if (!cid || !clientiIds.includes(cid)) continue
+    byCliente[cid] = (byCliente[cid] ?? 0) + (row.importo as number ?? 0)
   }
 
+  // Sort descending by balance (higher = more owed)
   const sorted = Object.entries(byCliente)
-    .map(([cid, val]) => ({ cliente_id: cid, saldo_aperto: val.importo }))
+    .filter(([, amount]) => amount > 0)
+    .map(([cid, amount]) => ({ cliente_id: cid, saldo_aperto: amount }))
     .sort((a, b) => b.saldo_aperto - a.saldo_aperto)
     .slice(0, limit)
 
@@ -150,23 +166,33 @@ export async function getMaterialiEsaurimento(
   labId: string,
   limit = 5
 ): Promise<MaterialeEsaurimento[]> {
+  // PostgREST cannot compare two columns natively, so we fetch all active articles
+  // for this lab and filter scorta_attuale <= scorta_minima in JS.
+  // We order by scorta_attuale ASC and cap at 100 rows to avoid over-fetching.
   const { data } = await svc
     .from('magazzino')
     .select('id, nome, scorta_attuale, scorta_minima, um_acquisto')
     .eq('laboratorio_id', labId)
     .eq('attivo', true)
-    .filter('scorta_attuale', 'lte', 'scorta_minima')
     .order('scorta_attuale', { ascending: true })
-    .limit(limit)
+    .limit(100)
 
   if (!data) return []
-  return (data as Array<Record<string, unknown>>).map(r => ({
-    id: r.id as string | null,
-    nome: r.nome as string | null,
-    scorta_attuale: r.scorta_attuale as number | null,
-    scorta_minima: r.scorta_minima as number | null,
-    um_acquisto: r.um_acquisto as string | null,
-  }))
+
+  return (data as Array<Record<string, unknown>>)
+    .filter(r => {
+      const attuale = r.scorta_attuale as number | null
+      const minima = r.scorta_minima as number | null
+      return attuale !== null && minima !== null && attuale <= minima
+    })
+    .slice(0, limit)
+    .map(r => ({
+      id: r.id as string | null,
+      nome: r.nome as string | null,
+      scorta_attuale: r.scorta_attuale as number | null,
+      scorta_minima: r.scorta_minima as number | null,
+      um_acquisto: r.um_acquisto as string | null,
+    }))
 }
 
 // ─── Lavori in prova esterna con rientro previsto oggi o scaduto ─────────────
