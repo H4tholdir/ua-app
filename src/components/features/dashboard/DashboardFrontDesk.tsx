@@ -98,7 +98,7 @@ function ConsegnaButton({ onClick }: { onClick: () => void }) {
         cursor: 'pointer',
         transition: 'transform 80ms ease, box-shadow 80ms ease',
         WebkitTapHighlightColor: 'transparent',
-        minHeight: 40,
+        minHeight: 52,
       }}
       onMouseDown={(e) => {
         e.currentTarget.style.transform = 'translateY(3px)'
