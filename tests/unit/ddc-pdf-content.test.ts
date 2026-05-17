@@ -239,7 +239,8 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       lab: LAB_FIXTURE,
       ddc: DDC_FIXTURE,
     })
-    const buffer = await renderToBuffer(element)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(element as any)
     const parser = new PDFParse({ data: buffer })
     const result = await parser.getText()
     await parser.destroy()
@@ -254,7 +255,8 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       lab: LAB_FIXTURE,
       ddc: DDC_FIXTURE,
     })
-    const buffer = await renderToBuffer(element)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buffer = await renderToBuffer(element as any)
     expect(buffer.length).toBeGreaterThan(1024)
   })
 
