@@ -20,7 +20,9 @@ export function useDashboard() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/dashboard/kpi')
+    const controller = new AbortController()
+
+    fetch('/api/dashboard/kpi', { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -34,9 +36,12 @@ export function useDashboard() {
         setLoading(false)
       })
       .catch((e: unknown) => {
+        if (e instanceof Error && e.name === 'AbortError') return
         setError(e instanceof Error ? e.message : 'Errore sconosciuto')
         setLoading(false)
       })
+
+    return () => controller.abort()
   }, [])
 
   return { response, loading, error }

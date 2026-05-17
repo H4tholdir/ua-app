@@ -329,15 +329,20 @@ export function ScadenzarioList() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/scadenzario')
+    const controller = new AbortController()
+
+    fetch('/api/scadenzario', { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`Errore ${res.status}`)
         return res.json() as Promise<InsolutoCliente[]>
       })
       .then(setItems)
       .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : 'Errore sconosciuto')
       })
+
+    return () => controller.abort()
   }, [])
 
   if (error) {
