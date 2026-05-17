@@ -190,6 +190,27 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
+function Section({
+  children,
+  delay,
+  reducedMotion,
+}: {
+  children: React.ReactNode
+  delay: number
+  reducedMotion: boolean
+}) {
+  if (reducedMotion) return <>{children}</>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...t('normal', 'enter'), delay }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function DashboardTitolare({
@@ -210,25 +231,6 @@ export function DashboardTitolare({
     stats.fatturato_mese,
     stats.fatturato_mese_precedente
   )
-
-  function Section({
-    children,
-    delay,
-  }: {
-    children: React.ReactNode
-    delay: number
-  }) {
-    if (reducedMotion) return <>{children}</>
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...t('normal', 'enter'), delay }}
-      >
-        {children}
-      </motion.div>
-    )
-  }
 
   return (
     <div
@@ -312,7 +314,7 @@ export function DashboardTitolare({
       </div>
 
       {/* 2. KPI Strip (scroll orizzontale) */}
-      <Section delay={0}>
+      <Section delay={0} reducedMotion={reducedMotion}>
         <div
           role="list"
           aria-label="KPI operativi"
@@ -385,7 +387,7 @@ export function DashboardTitolare({
         }}
       >
         {/* 3. Da consegnare oggi */}
-        <Section delay={stagger}>
+        <Section delay={stagger} reducedMotion={reducedMotion}>
           <SectionLabel>
             Da consegnare oggi ({consegneOggi.length})
           </SectionLabel>
@@ -413,7 +415,7 @@ export function DashboardTitolare({
 
         {/* 4. In ritardo */}
         {lavoriInRitardo.length > 0 && (
-          <Section delay={stagger * 2}>
+          <Section delay={stagger * 2} reducedMotion={reducedMotion}>
             <SectionLabel>
               In ritardo ({lavoriInRitardo.length})
             </SectionLabel>
@@ -439,7 +441,7 @@ export function DashboardTitolare({
 
         {/* 5. In prova — rientro atteso */}
         {inProvaRientro.length > 0 && (
-          <Section delay={stagger * 3}>
+          <Section delay={stagger * 3} reducedMotion={reducedMotion}>
             <SectionLabel>In prova — rientro atteso</SectionLabel>
             <div style={CARD_STYLE}>
               {inProvaRientro.map((item, i) => (
@@ -503,7 +505,7 @@ export function DashboardTitolare({
 
         {/* 6. Pagamenti scaduti */}
         {(stats.pagamenti_scaduti_totale > 0 || pagamentiTop.length > 0) && (
-          <Section delay={stagger * 4}>
+          <Section delay={stagger * 4} reducedMotion={reducedMotion}>
             <SectionLabel>Pagamenti scaduti</SectionLabel>
             <div style={CARD_STYLE}>
               {/* Totale */}
@@ -585,7 +587,7 @@ export function DashboardTitolare({
 
         {/* 7. Materiali in esaurimento */}
         {materialiEsaurimento.length > 0 && (
-          <Section delay={stagger * 5}>
+          <Section delay={stagger * 5} reducedMotion={reducedMotion}>
             <SectionLabel>Materiali in esaurimento</SectionLabel>
             <div style={CARD_STYLE}>
               {materialiEsaurimento.map((mat, i) => {
@@ -671,7 +673,7 @@ export function DashboardTitolare({
         )}
 
         {/* 8. Fatturato */}
-        <Section delay={stagger * 6}>
+        <Section delay={stagger * 6} reducedMotion={reducedMotion}>
           <SectionLabel>Fatturato mensile</SectionLabel>
           <div style={CARD_STYLE}>
             <div style={{ padding: '20px 20px 16px' }}>

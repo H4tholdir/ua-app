@@ -86,30 +86,32 @@ function getDataOggi(): string {
   })
 }
 
+function Section({
+  children,
+  delay,
+  reducedMotion,
+}: {
+  children: React.ReactNode
+  delay: number
+  reducedMotion: boolean
+}) {
+  if (reducedMotion) return <>{children}</>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...t('normal', 'enter'), delay }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
   const reducedMotion = useReducedMotion()
   const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi } = data
 
   const stagger = staggerDelay(4)
-
-  function Section({
-    children,
-    delay,
-  }: {
-    children: React.ReactNode
-    delay: number
-  }) {
-    if (reducedMotion) return <>{children}</>
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...t('normal', 'enter'), delay }}
-      >
-        {children}
-      </motion.div>
-    )
-  }
 
   return (
     <div
@@ -170,7 +172,7 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
           { value: lavori_urgenti.length, label: 'Urgenti', color: '#D90012' },
           { value: lavori_oggi.length, label: 'Oggi', color: '#2563EB' },
           { value: 84, label: 'Puntualità %', color: '#16A34A' },
-        ].map((kpi, i) => (
+        ].map((kpi) => (
           <div
             key={kpi.label}
             style={{
@@ -225,7 +227,7 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
       >
         {/* Urgenti / in ritardo */}
         {lavori_urgenti.length > 0 && (
-          <Section delay={0}>
+          <Section delay={0} reducedMotion={reducedMotion}>
             <SectionLabel>Urgenti / in ritardo</SectionLabel>
             <div style={CARD_STYLE}>
               {lavori_urgenti.map((lavoro) => (
@@ -248,7 +250,7 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
         )}
 
         {/* I miei lavori oggi */}
-        <Section delay={stagger}>
+        <Section delay={stagger} reducedMotion={reducedMotion}>
           <SectionLabel>I miei lavori oggi</SectionLabel>
           {lavori_oggi.length === 0 ? (
             <EmptyState message="Nessun lavoro in programma per oggi" />
@@ -358,7 +360,7 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
 
         {/* In prova — rientrano oggi */}
         {in_prova_rientro_oggi.length > 0 && (
-          <Section delay={stagger * 2}>
+          <Section delay={stagger * 2} reducedMotion={reducedMotion}>
             <SectionLabel>In prova — rientrano oggi</SectionLabel>
             <div style={CARD_STYLE}>
               {in_prova_rientro_oggi.map((lavoro) => (

@@ -130,17 +130,37 @@ function formatEuro(n: number): string {
   }).format(n)
 }
 
+function Section({
+  children,
+  delay,
+  reducedMotion,
+}: {
+  children: React.ReactNode
+  delay: number
+  reducedMotion: boolean
+}) {
+  if (reducedMotion) return <>{children}</>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...t('normal', 'enter'), delay }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export function DashboardFrontDesk({
   data,
   nomeUtente,
-  labId,
 }: DashboardFrontDeskProps) {
   const reducedMotion = useReducedMotion()
   const [search, setSearch] = useState('')
   const [consegneOggi, setConsegneOggi] = useState<FrontDeskConsegnaItem[]>(
     data.consegne_oggi
   )
-  const [loading, setLoading] = useState<string | null>(null)
+  const [, setLoading] = useState<string | null>(null)
 
   const stagger = staggerDelay(5)
 
@@ -173,25 +193,6 @@ export function DashboardFrontDesk({
     : consegneOggi
 
   const prontiNonOggi = data.ritiri_attesi_oggi
-
-  function Section({
-    children,
-    delay,
-  }: {
-    children: React.ReactNode
-    delay: number
-  }) {
-    if (reducedMotion) return <>{children}</>
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...t('normal', 'enter'), delay }}
-      >
-        {children}
-      </motion.div>
-    )
-  }
 
   return (
     <div
@@ -264,7 +265,7 @@ export function DashboardFrontDesk({
         }}
       >
         {/* Da consegnare oggi */}
-        <Section delay={0}>
+        <Section delay={0} reducedMotion={reducedMotion}>
           <SectionLabel>
             Da consegnare oggi ({consegneFiltrate.length})
           </SectionLabel>
@@ -330,7 +331,7 @@ export function DashboardFrontDesk({
 
         {/* Ritiri attesi oggi */}
         {prontiNonOggi.length > 0 && (
-          <Section delay={stagger}>
+          <Section delay={stagger} reducedMotion={reducedMotion}>
             <SectionLabel>Ritiri attesi oggi</SectionLabel>
             <div style={CARD_STYLE}>
               {prontiNonOggi.map((lavoro) => (
@@ -377,7 +378,7 @@ export function DashboardFrontDesk({
 
         {/* In prova — rientrano oggi */}
         {data.in_prova_rientro_oggi.length > 0 && (
-          <Section delay={stagger * 2}>
+          <Section delay={stagger * 2} reducedMotion={reducedMotion}>
             <SectionLabel>In prova — rientrano oggi</SectionLabel>
             <div style={CARD_STYLE}>
               {data.in_prova_rientro_oggi.map((lavoro) => (
@@ -400,7 +401,7 @@ export function DashboardFrontDesk({
 
         {/* Clienti da ricontattare */}
         {data.da_contattare.length > 0 && (
-          <Section delay={stagger * 3}>
+          <Section delay={stagger * 3} reducedMotion={reducedMotion}>
             <SectionLabel>Clienti da ricontattare</SectionLabel>
             <div style={CARD_STYLE}>
               {data.da_contattare.map((pag, i) => (

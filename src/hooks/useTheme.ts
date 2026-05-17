@@ -15,20 +15,20 @@ function getInitialTheme(): Theme {
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('light') // default SSR-safe
+  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
 
+  // Apply theme to DOM whenever it changes
   useEffect(() => {
-    const initial = getInitialTheme()
-    setTheme(initial)
-    applyTheme(initial)
+    applyTheme(theme)
+  }, [theme])
 
-    // Listen for system preference changes
+  // Listen for system preference changes
+  useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e: MediaQueryListEvent) => {
       if (!localStorage.getItem(STORAGE_KEY)) {
-        const newTheme = e.matches ? 'dark' : 'light'
+        const newTheme: Theme = e.matches ? 'dark' : 'light'
         setTheme(newTheme)
-        applyTheme(newTheme)
       }
     }
     mq.addEventListener('change', handleChange)

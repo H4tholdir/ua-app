@@ -80,7 +80,6 @@ export function LavoroCard({
   numero_lavoro,
   stato,
   priorita,
-  tipo_dispositivo,
   descrizione,
   data_consegna_prevista,
   ora_consegna,
