@@ -62,26 +62,19 @@ export default function AdminNav({ userDisplay }: Props) {
       <div className="adm-nav-sep" />
       <span className="adm-nav-user">{userDisplay}</span>
 
-      {/* Toggle light/dark */}
-      <button className="adm-nav-theme-toggle" onClick={toggle} title={isDark ? 'Passa a light' : 'Passa a dark'} aria-label="Cambia tema" aria-pressed={isDark}>
-        <span className="adm-nav-theme-track">
-          <span className="adm-nav-theme-thumb">
-            {isDark ? (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                <circle cx="8" cy="8" r="3" fill="currentColor"/>
-              </svg>
-            ) : (
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M13.5 10A6 6 0 0 1 6 2.5a6 6 0 1 0 7.5 7.5z" fill="currentColor"/>
-              </svg>
-            )}
-          </span>
-        </span>
+      {/* Toggle light/dark — pattern trk/tmb dal design system reference */}
+      <button
+        className={`adm-nav-trk${isDark ? '' : ' on'}`}
+        onClick={toggle}
+        title={isDark ? 'Passa a light' : 'Passa a dark'}
+        aria-label="Cambia tema"
+        aria-pressed={!isDark}
+      >
+        <span className="adm-nav-tmb" />
       </button>
 
-      {/* Logout */}
-      <button className="adm-nav-logout" onClick={logout} title="Esci" aria-label="Logout">
+      {/* Logout — rosso animato */}
+      <button className="adm-nav-logout-btn" onClick={logout} title="Esci" aria-label="Logout">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           <path d="M10.5 11L14 8l-3.5-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

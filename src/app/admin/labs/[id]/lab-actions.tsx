@@ -190,7 +190,8 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
     setForm(prev => ({ ...prev, [key]: val }))
   }
 
-  const stato = currentStato as Stato
+  // Stato locale per aggiornamento UI immediato senza aspettare router.refresh()
+  const [stato, setStatoLocal] = useState<Stato>(currentStato as Stato)
 
   const setStato = useCallback(async (newStato: Stato) => {
     if (!window.confirm(`Cambia stato a "${newStato}"?`)) return
@@ -204,6 +205,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
     const data = await res.json().catch(() => ({}))
     setLoading(false)
     if (res.ok) {
+      setStatoLocal(newStato)
       setActionMsg({ type: 'ok', text: `Stato aggiornato a "${newStato}"` })
       router.refresh()
     } else {
@@ -280,6 +282,31 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
     await setStato('blacklist')
   }, [setStato])
 
+  // Hard delete — elimina definitivamente il laboratorio dal database
+  const [hardDeleteName, setHardDeleteName] = useState('')
+  const [hardDeleteMsg, setHardDeleteMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [hardDeleteLoading, setHardDeleteLoading] = useState(false)
+
+  const handleHardDelete = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!window.confirm('ATTENZIONE: questa operazione è IRREVERSIBILE. Tutti i dati del laboratorio verranno eliminati definitivamente. Continuare?')) return
+    sndClick()
+    setHardDeleteLoading(true); setHardDeleteMsg(null)
+    const res = await fetch(`/api/admin/labs/${labId}/hard-delete`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm_nome: hardDeleteName }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setHardDeleteLoading(false)
+    if (res.ok) {
+      setHardDeleteMsg({ type: 'ok', text: 'Laboratorio eliminato definitivamente.' })
+      setTimeout(() => { window.location.href = '/admin/labs' }, 1500)
+    } else {
+      setHardDeleteMsg({ type: 'err', text: data.error ?? 'Errore durante la cancellazione' })
+    }
+  }, [labId, hardDeleteName])
+
   // Feature 1 — Salva modifica dati laboratorio
   const handleSaveForm = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -331,20 +358,64 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
 
   return (
     <>
-      {/* Anteprima operativa — live preview come titolare */}
+      {/* Accedi come titolare — preview + magic link in un'unica sezione */}
       <div className="adm-dcard adm-animate">
-        <div className="adm-dcard-title">Anteprima operativa</div>
-        <p style={{ fontSize: 13, color: 'var(--adm-t2)', margin: '0 0 12px', lineHeight: 1.5 }}>
-          Visualizza l&apos;app come se fossi il titolare di questo laboratorio.
-          La tua sessione admin resta attiva — un banner in cima ti ricorda che sei in modalità preview.
-        </p>
-        <a
-          href={`/admin/labs/${labId}/live`}
-          className="adm-btn-cta"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', padding: '10px 18px', fontSize: 13 }}
-        >
-          Visualizza come titolare
-        </a>
+        <div className="adm-dcard-title">Accedi come titolare</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: impersonateLink ? 14 : 0 }}>
+          {/* Preview: solo lettura, sessione admin rimane attiva */}
+          <a
+            href={`/admin/labs/${labId}/live`}
+            className="adm-act"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4"/>
+              <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+            </svg>
+            Anteprima (solo lettura)
+          </a>
+          {/* Magic link: accesso reale come titolare */}
+          <button
+            type="button"
+            className="adm-act"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={handleImpersonate}
+            disabled={loading}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M2 12c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            Genera magic link
+          </button>
+        </div>
+
+        {impersonateLink && (
+          <div style={{ background: 'rgba(217,0,18,.06)', borderRadius: 12, padding: '12px 14px' }}>
+            <p style={{ fontSize: 12, color: 'var(--adm-t2)', margin: '0 0 8px' }}>
+              Link monouso per <strong>{impersonateName || 'titolare'}</strong> — apri in incognito:
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <a
+                href={impersonateLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="adm-btn-cta"
+                style={{ display: 'inline-flex', textDecoration: 'none', padding: '8px 16px', fontSize: 13, height: 'auto' }}
+              >
+                Accedi come {impersonateName || 'titolare'} &rarr;
+              </a>
+              <button
+                type="button"
+                onClick={() => setImpersonateLink(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--adm-t3)', cursor: 'pointer', fontSize: 12 }}
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        )}
+        {actionMsg && actionMsg.text === (actionMsg.type === 'err' ? actionMsg.text : '') && null}
       </div>
 
       {/* FEATURE 1 — Form modifica dati */}
@@ -469,57 +540,6 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
         </form>
       </div>
 
-      {/* FEATURE 2 — Impersonazione */}
-      <div className="adm-dcard adm-animate" style={{ animationDelay: '.04s' }}>
-        <div className="adm-dcard-title">Accesso come titolare</div>
-        <p style={{ fontSize: 13, color: 'var(--adm-t2, #555)', margin: '0 0 12px' }}>
-          Genera un magic link monouso per accedere all&apos;app come il titolare del laboratorio.
-          <strong> Apri sempre in incognito</strong> per non perdere la sessione admin.
-        </p>
-        <button
-          type="button"
-          className="adm-act"
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          onClick={handleImpersonate}
-          disabled={loading}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <circle cx="7" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
-            <path d="M2 12c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-          Accedi come titolare
-        </button>
-
-        {impersonateLink && (
-          <div style={{ background: 'rgba(217,0,18,.06)', borderRadius: 12, padding: '14px 16px', marginTop: 12 }}>
-            <p style={{ fontSize: 13, margin: '0 0 10px' }}>
-              Link per accedere come <strong>{impersonateName || 'titolare'}</strong>:
-            </p>
-            <p style={{ fontSize: 11, color: '#888', margin: '0 0 10px', wordBreak: 'break-all' }}>
-              Apri in una finestra in incognito o un altro browser per non perdere la tua sessione admin.
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <a
-                href={impersonateLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="adm-btn-cta"
-                style={{ display: 'inline-block', textDecoration: 'none', padding: '10px 18px', fontSize: 13 }}
-              >
-                Accedi come {impersonateName || 'titolare'} &rarr;
-              </a>
-              <button
-                type="button"
-                onClick={() => setImpersonateLink(null)}
-                style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 13 }}
-              >
-                Chiudi
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* 4 — AZIONI STATO */}
       <div className="adm-dcard adm-animate" style={{ animationDelay: '.08s' }}>
         <div className="adm-dcard-title">Azioni stato</div>
@@ -581,7 +601,7 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
           </button>
         </div>
 
-        {/* Feature 3 — Archivia lab (blacklist senza DELETE) */}
+        {/* Archivia lab (blacklist senza DELETE) */}
         {stato !== 'blacklist' && (
           <div className="adm-row-divider" style={{ borderTop: '1px solid rgba(220,38,38,.12)', marginTop: 12 }}>
             <button
@@ -603,6 +623,36 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
             </p>
           </div>
         )}
+
+        {/* Hard delete — elimina definitivamente */}
+        <div className="adm-row-divider" style={{ borderTop: '1px solid rgba(220,38,38,.18)', marginTop: 16, flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--adm-red)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            Eliminazione definitiva
+          </p>
+          <p style={{ fontSize: 11, color: 'var(--adm-t3)', margin: 0 }}>
+            Elimina il laboratorio e tutti i suoi dati in modo irreversibile. Digita il nome esatto per confermare.
+          </p>
+          <form onSubmit={handleHardDelete} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+            <input
+              className="adm-input"
+              placeholder="Nome laboratorio esatto..."
+              value={hardDeleteName}
+              onChange={e => setHardDeleteName(e.target.value)}
+              style={{ flex: 1, minWidth: 180 }}
+              aria-label="Conferma nome laboratorio"
+            />
+            <button
+              type="submit"
+              className="adm-act red"
+              disabled={hardDeleteLoading || !hardDeleteName.trim()}
+            >
+              {hardDeleteLoading ? 'Eliminazione…' : 'Elimina definitivamente'}
+            </button>
+          </form>
+          {hardDeleteMsg && (
+            <div className={`adm-msg ${hardDeleteMsg.type}`} style={{ margin: 0 }}>{hardDeleteMsg.text}</div>
+          )}
+        </div>
       </div>
 
       {/* 5 — UTENTI + INVITI */}
