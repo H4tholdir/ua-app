@@ -27,7 +27,7 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
   const router = useRouter()
 
   // Stato form campi Lavoro (colonne tabella)
-  const { data, update, save, saving, saved, isDirty } = useLavoroForm(lavoro)
+  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoro)
 
   // Stato relazioni join — separate dal hook (non sono colonne di lavori)
   const [lavorazioni, setLavorazioni] = useState<LavoroLavorazione[]>(
@@ -154,8 +154,31 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
             aria-busy={saving}
             aria-label={saving ? 'Salvataggio in corso...' : 'Salva modifiche'}
           >
-            {saving ? 'Salvataggio...' : saved ? 'Salvato' : 'Salva'}
+            {saving ? 'Salvataggio...' : saved ? '✓ Salvato' : saveError ? '⚠ Errore — riprova' : 'Salva'}
           </button>
+        )}
+
+        {saveError && !isDirty && (
+          <p
+            role="alert"
+            style={{
+              position: 'absolute',
+              bottom: '72px',
+              left: '20px',
+              right: '20px',
+              margin: 0,
+              padding: '10px 14px',
+              borderRadius: '10px',
+              background: 'rgba(217,0,18,0.08)',
+              border: '1px solid rgba(217,0,18,0.25)',
+              color: 'var(--primary, #D90012)',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              lineHeight: 1.5,
+            }}
+          >
+            {saveError}
+          </p>
         )}
 
         {/* Pulsante CONSEGNA */}

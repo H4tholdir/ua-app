@@ -196,7 +196,7 @@ export default async function RetePage() {
                   <span style={{
                     color: '#D4A843',
                     background: 'hsl(43 65% 55% / 0.12)',
-                    fontSize: '11px',
+                    fontSize: '13px',
                     fontWeight: 700,
                     fontFamily,
                     padding: '2px 8px',
@@ -245,7 +245,7 @@ export default async function RetePage() {
                         {m.lab?.piano && (
                           <span style={{
                             color: PIANO_COLOR[m.lab.piano] ?? 'var(--t2, #96918D)',
-                            fontSize: '11px',
+                            fontSize: '13px',
                             fontWeight: 700,
                             fontFamily,
                             background: 'rgba(255,255,255,0.05)',
@@ -259,7 +259,7 @@ export default async function RetePage() {
                         {m.ruolo === 'admin_rete' && (
                           <span style={{
                             color: 'var(--success, #16A34A)',
-                            fontSize: '10px',
+                            fontSize: '13px',
                             fontFamily,
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',

@@ -5,9 +5,9 @@ import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
-  elv:     '#EDEDEA',
+  elv:     'var(--elv, #EDEDEA)',
   primary: '#D90012',
-  t2:      '#96918D',
+  t2:      'var(--t2, #96918D)',
   shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
   shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
 }
@@ -16,6 +16,7 @@ interface KpiCardProps {
   value: number
   label: string
   color: string
+  description?: string
   active?: boolean
   onClick?: () => void
   animationDelay?: number
@@ -24,6 +25,7 @@ interface KpiCardProps {
 export function KpiCard({
   value,
   label,
+  description,
   color,
   active,
   onClick,
@@ -79,6 +81,7 @@ export function KpiCard({
     </>
   )
 
+  const fullLabel = description ?? label
   const chip = onClick ? (
     <motion.button
       type="button"
@@ -86,7 +89,8 @@ export function KpiCard({
       whileTap={{ scale: 0.97 }}
       transition={{ duration: motionTokens.duration.instant }}
       style={chipStyle}
-      aria-label={`${label}: ${value}${active ? ' (filtro attivo)' : ''}`}
+      title={description}
+      aria-label={`${fullLabel}: ${value}${active ? ' (filtro attivo)' : ''}`}
       aria-pressed={active}
     >
       {chipInner}
@@ -95,7 +99,8 @@ export function KpiCard({
     <div
       role="img"
       style={chipStyle}
-      aria-label={`${label}: ${value}`}
+      title={description}
+      aria-label={`${fullLabel}: ${value}`}
     >
       {chipInner}
     </div>

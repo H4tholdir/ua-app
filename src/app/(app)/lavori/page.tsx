@@ -197,35 +197,66 @@ export default async function LavoriPage({ searchParams }: PageProps) {
             style={{
               background: DS.surface,
               borderRadius: '14px',
-              padding: '36px 20px',
+              padding: '40px 24px',
               textAlign: 'center',
               boxShadow: DS.shB,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                color: DS.t2,
+                fontSize: '16px',
+                fontWeight: 600,
+                color: DS.t1,
                 margin: 0,
               }}
             >
-              {statoFiltro
-                ? 'Nessun lavoro con questo stato'
-                : 'Nessun lavoro trovato'}
+              {statoFiltro ? 'Nessun lavoro con questo stato' : 'Nessun lavoro ancora'}
             </p>
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                color: DS.t2,
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              {statoFiltro
+                ? 'Prova a selezionare uno stato diverso o rimuovi il filtro.'
+                : 'Crea il tuo primo lavoro per iniziare a gestire le commesse del laboratorio.'}
+            </p>
+            {!statoFiltro && (
+              <Link
+                href="/lavori/nuovo"
+                style={{
+                  marginTop: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '12px 24px',
+                  borderRadius: '32px',
+                  background: DS.primary,
+                  color: '#fff',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  textDecoration: 'none',
+                  boxShadow: DS.shB,
+                  minHeight: '52px',
+                }}
+                aria-label="Crea il primo lavoro"
+              >
+                Crea il primo lavoro →
+              </Link>
+            )}
           </div>
         ) : (
-          <ul
-            style={{
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
+          <ul className="ua-list-grid">
             {lavori.map((lavoro, i) => (
               <li key={lavoro.id}>
                 <LavoroCard

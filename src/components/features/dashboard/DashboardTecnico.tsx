@@ -7,12 +7,12 @@ import type { TecnicoDashboard } from '@/types/domain'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
-  bg:      '#DDD8D3',
-  surface: '#E4DFD9',
-  elv:     '#EDEDEA',
-  t1:      '#1C1916',
-  t2:      '#96918D',
-  t3:      '#B8B3AE',
+  bg:      'var(--bg, #DDD8D3)',
+  surface: 'var(--surface, #E4DFD9)',
+  elv:     'var(--elv, #EDEDEA)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  t3:      'var(--t3, #B8B3AE)',
   info:    '#2563EB',
   primary: '#D90012',
   shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
@@ -336,7 +336,7 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
                     aria-valuemin={0}
                     aria-valuemax={100}
                     style={{
-                      background: '#D4CFC9',
+                      background: 'var(--prs, #D4CFC9)',
                       borderRadius: 4,
                       height: 6,
                       boxShadow: DS.shI,
@@ -347,8 +347,10 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
                         height: 6,
                         borderRadius: 4,
                         background: DS.info,
-                        width: `${lavoro.completamento_perc}%`,
-                        transition: 'width 0.4s cubic-bezier(0.2,0,0,1)',
+                        width: '100%',
+                        transform: `scaleX(${lavoro.completamento_perc / 100})`,
+                        transformOrigin: 'left center',
+                        transition: 'transform 0.4s cubic-bezier(0.2,0,0,1)',
                       }}
                     />
                   </div>

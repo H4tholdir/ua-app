@@ -127,9 +127,9 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                       aria-pressed={selected}
                       onClick={() => toggleDente(num)}
                       style={{
-                        width: '36px',
-                        height: '36px',
-                        minWidth: '36px',
+                        width: '40px',
+                        height: '40px',
+                        minWidth: '40px',
                         borderRadius: '8px',
                         border: 'none',
                         cursor: 'pointer',

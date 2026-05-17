@@ -98,10 +98,10 @@ export default async function PsurPage() {
           <div
             role="alert"
             style={{
-              background: '#261500',
+              background: 'rgba(253, 126, 20, 0.10)',
               borderRadius: '12px',
               padding: '14px 16px',
-              borderLeft: '3px solid #FD7E14',
+              border: '1px solid rgba(253, 126, 20, 0.4)',
             }}
           >
             <p style={{

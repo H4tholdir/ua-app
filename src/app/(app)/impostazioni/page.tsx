@@ -42,7 +42,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
       <span
         style={{
           fontFamily: 'DM Sans, sans-serif',
-          fontSize: '11px',
+          fontSize: '13px',
           fontWeight: 600,
           color: 'var(--t2, #96918D)',
           textTransform: 'uppercase',
@@ -152,7 +152,7 @@ export default async function ImpostazioniPage() {
             <span
               style={{
                 fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
+                fontSize: '13px',
                 fontWeight: 600,
                 color: 'var(--t2, #96918D)',
                 textTransform: 'uppercase',
@@ -223,7 +223,7 @@ export default async function ImpostazioniPage() {
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
+                fontSize: '13px',
                 color: '#6677AA',
                 margin: '6px 0 0',
               }}
@@ -240,7 +240,7 @@ export default async function ImpostazioniPage() {
             <span
               style={{
                 fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
+                fontSize: '13px',
                 fontWeight: 600,
                 color: 'var(--t2, #96918D)',
                 textTransform: 'uppercase',
@@ -269,7 +269,7 @@ export default async function ImpostazioniPage() {
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
-                fontSize: '11px',
+                fontSize: '13px',
                 color: '#6677AA',
                 margin: '6px 0 0',
               }}
@@ -286,7 +286,7 @@ export default async function ImpostazioniPage() {
               <span
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 600,
                   color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
@@ -321,7 +321,7 @@ export default async function ImpostazioniPage() {
               <span
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 600,
                   color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',
@@ -356,7 +356,7 @@ export default async function ImpostazioniPage() {
               <span
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '11px',
+                  fontSize: '13px',
                   fontWeight: 600,
                   color: 'var(--t2, #96918D)',
                   textTransform: 'uppercase',

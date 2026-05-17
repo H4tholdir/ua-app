@@ -88,10 +88,10 @@ export default async function RischiPage() {
           <div
             role="alert"
             style={{
-              background: '#2D1A0A',
+              background: 'rgba(253, 126, 20, 0.10)',
               borderRadius: '12px',
               padding: '16px 20px',
-              borderLeft: '3px solid #FD7E14',
+              border: '1px solid rgba(253, 126, 20, 0.4)',
             }}
           >
             <p style={{

@@ -110,10 +110,10 @@ export default async function QualitaPage() {
                   <div
                     key={item.id}
                     style={{
-                      background: '#3A1A1A',
+                      background: 'rgba(217, 0, 18, 0.08)',
                       borderRadius: '12px',
                       padding: '16px',
-                      borderLeft: '3px solid var(--primary, #D90012)',
+                      border: '1px solid rgba(217, 0, 18, 0.28)',
                     }}
                   >
                     <div style={{
@@ -180,10 +180,10 @@ export default async function QualitaPage() {
 
           {(!rischi || rischi.length === 0) ? (
             <div style={{
-              background: '#2D1A0A',
+              background: 'rgba(253, 126, 20, 0.10)',
               borderRadius: '12px',
               padding: '16px 20px',
-              borderLeft: '3px solid #FD7E14',
+              border: '1px solid rgba(253, 126, 20, 0.4)',
               color: '#FD7E14',
               fontSize: '14px',
               fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -279,7 +279,7 @@ export default async function QualitaPage() {
                       background: isGrave ? '#3A1A1A' : 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
-                      borderLeft: `3px solid ${gravitaColor[inc.gravita] ?? 'var(--t2, #96918D)'}`,
+                      boxShadow: `inset 0 0 0 1px ${gravitaColor[inc.gravita] ?? 'var(--t2, #96918D)'}40`,
                     }}
                   >
                     <div style={{

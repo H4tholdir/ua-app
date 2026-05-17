@@ -98,7 +98,7 @@ export default async function ClientiPage() {
             </p>
           </div>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <ul className="ua-list-grid">
             {clienti.map((cliente) => (
               <li key={cliente.id}>
                 <Link

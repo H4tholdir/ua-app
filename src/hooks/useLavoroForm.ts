@@ -17,6 +17,7 @@ interface UseLavoroFormReturn {
   save: (id: string) => Promise<void>
   saving: boolean
   saved: boolean
+  saveError: string | null
   isDirty: boolean
 }
 
@@ -24,6 +25,7 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
   const [data, setData] = useState<Partial<Lavoro>>(initial)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
 
   // Track whether data has been touched since last successful save
@@ -36,6 +38,7 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
 
     setSaving(true)
     setSaved(false)
+    setSaveError(null)
 
     try {
       // Build patch body — exclude price fields if included in invoice
@@ -54,7 +57,9 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
 
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        throw new Error(json.error ?? `PATCH failed: ${res.status}`)
+        const msg = json.error ?? `Salvataggio fallito (${res.status})`
+        setSaveError(msg)
+        throw new Error(msg)
       }
 
       isDirtyRef.current = false
@@ -105,5 +110,5 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
     }
   }, [])
 
-  return { data, update, save, saving, saved, isDirty }
+  return { data, update, save, saving, saved, saveError, isDirty }
 }

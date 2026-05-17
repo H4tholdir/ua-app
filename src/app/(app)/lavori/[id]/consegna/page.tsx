@@ -51,8 +51,9 @@ export default async function ConsegnaPage({ params }: PageProps) {
 
   const lavoroDettaglio = lavoro as unknown as LavoroDettaglio
 
-  // Se già consegnato, torna al dettaglio
-  if (lavoroDettaglio.stato === 'consegnato') {
+  // Gate: CONSEGNA accessibile solo da stati consegnabili
+  const STATI_CONSEGNABILI = ['pronto', 'in_ritardo'] as const
+  if (!STATI_CONSEGNABILI.includes(lavoroDettaglio.stato as typeof STATI_CONSEGNABILI[number])) {
     redirect(`/lavori/${id}`)
   }
 

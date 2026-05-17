@@ -14,7 +14,19 @@ const DS = {
   t3:      'var(--t3, #B8B3AE)',
 }
 
-// ─── Stato → dot color ───────────────────────────────────────────────────────
+// ─── Stato → dot color + glifo ───────────────────────────────────────────────
+const STATO_GLYPHS: Record<StatoLavoro, string> = {
+  in_ritardo:       '!',
+  in_prova:         '↺',
+  in_prova_esterna: '↗',
+  in_lavorazione:   '·',
+  pronto:           '✓',
+  consegnato:       '✓',
+  ricevuto:         '·',
+  annullato:        '×',
+  sospeso:          '‖',
+}
+
 const STATO_COLORS: Record<StatoLavoro, string> = {
   in_ritardo:       '#D90012',
   in_prova:         '#B45309',
@@ -50,7 +62,7 @@ function urgencyLine(
   if (priorita === 'extra_urgente')  return 'EXTRA URGENTE'
   if (priorita === 'urgente')        return 'URGENTE'
   if (stato === 'pronto')            return `PRONTO${ora ? ` · Consegna ore ${ora}` : ''}`
-  if (stato === 'in_prova')          return 'IN PROVA ESTERNA'
+  if (stato === 'in_prova')          return 'IN PROVA'
   if (stato === 'in_prova_esterna')  return 'IN PROVA ESTERNA'
   if (stato === 'in_lavorazione')    return 'IN LAVORAZIONE'
   if (stato === 'consegnato')        return 'CONSEGNATO'
@@ -89,6 +101,7 @@ export function LavoroCard({
 }: LavoroCardProps) {
   const reducedMotion = useReducedMotion()
   const statoColor    = STATO_COLORS[stato]
+  const statoGliph    = STATO_GLYPHS[stato]
   const currentStep   = getStepIndex(stato)
   const urgency       = urgencyLine(stato, priorita, ora_consegna)
 
@@ -126,19 +139,6 @@ export function LavoroCard({
       style={cardStyle}
       aria-label={`Lavoro ${numero_lavoro} — ${cliente_display} — ${urgency}`}
     >
-      {/* Shine overlay */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(45deg, transparent 30%, rgba(255,255,255,.12) 50%, transparent 70%)',
-          backgroundSize: '200% 200%',
-          animation: 'card-shine 4s ease-in-out infinite',
-          borderRadius: 'inherit',
-          pointerEvents: 'none',
-        }}
-      />
 
       {/* Badge circolare stato — absolute top-right */}
       <div
@@ -152,8 +152,18 @@ export function LavoroCard({
           borderRadius: '50%',
           background: statoColor,
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontSize: 12,
+          fontWeight: 700,
+          fontFamily: 'DM Sans, sans-serif',
+          lineHeight: 1,
         }}
-      />
+      >
+        {statoGliph}
+      </div>
 
       {/* Riga 1: cliente */}
       <div

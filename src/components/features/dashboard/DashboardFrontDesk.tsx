@@ -8,13 +8,13 @@ import type { FrontDeskDashboard, FrontDeskConsegnaItem } from '@/types/domain'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
-  bg:      '#DDD8D3',
-  surface: '#E4DFD9',
-  elv:     '#EDEDEA',
-  prs:     '#D4CFC9',
-  t1:      '#1C1916',
-  t2:      '#96918D',
-  t3:      '#B8B3AE',
+  bg:      'var(--bg, #DDD8D3)',
+  surface: 'var(--surface, #E4DFD9)',
+  elv:     'var(--elv, #EDEDEA)',
+  prs:     'var(--prs, #D4CFC9)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  t3:      'var(--t3, #B8B3AE)',
   primary: '#D90012',
   shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
   shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',

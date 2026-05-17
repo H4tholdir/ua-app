@@ -104,7 +104,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 15,
               fontWeight: 600,
-              color: '#1C1916',
+              color: 'var(--t1, #1C1916)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -144,7 +144,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 12,
               fontWeight: 500,
-              color: '#96918D',
+              color: 'var(--t2, #96918D)',
             }}
           >
             #{numero_lavoro}
@@ -158,7 +158,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 12,
               fontWeight: 500,
-              color: stato === 'in_ritardo' ? '#D90012' : '#96918D',
+              color: stato === 'in_ritardo' ? '#D90012' : 'var(--t2, #96918D)',
               flexShrink: 0,
             }}
           >
@@ -174,7 +174,7 @@ export function LavoroUrgente({
         viewBox="0 0 16 16"
         fill="none"
         aria-hidden="true"
-        style={{ flexShrink: 0, color: '#B8B3AE' }}
+        style={{ flexShrink: 0, color: 'var(--t3, #B8B3AE)' }}
       >
         <path
           d="M6 4l4 4-4 4"

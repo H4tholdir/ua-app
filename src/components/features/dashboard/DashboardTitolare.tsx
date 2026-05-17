@@ -14,13 +14,13 @@ import type {
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
-  bg:      '#DDD8D3',
-  surface: '#E4DFD9',
-  elv:     '#EDEDEA',
-  prs:     '#D4CFC9',
-  t1:      '#1C1916',
-  t2:      '#96918D',
-  t3:      '#B8B3AE',
+  bg:      'var(--bg, #DDD8D3)',
+  surface: 'var(--surface, #E4DFD9)',
+  elv:     'var(--elv, #EDEDEA)',
+  prs:     'var(--prs, #D4CFC9)',
+  t1:      'var(--t1, #1C1916)',
+  t2:      'var(--t2, #96918D)',
+  t3:      'var(--t3, #B8B3AE)',
   primary: '#D90012',
   success: '#16A34A',
   urgente: '#F97316',
@@ -338,31 +338,37 @@ export function DashboardTitolare({
             {
               value: stats.consegne_oggi,
               label: 'Oggi',
+              description: 'Consegne programmate per oggi',
               color: DS.info,
             },
             {
               value: stats.in_prova_count,
               label: 'In prova',
+              description: 'Lavori in fase di prova presso il dentista',
               color: DS.warning,
             },
             {
               value: stats.pronti_non_fatturati,
               label: 'Da fatt.',
+              description: 'Lavori pronti da fatturare',
               color: '#D4A843',
             },
             {
               value: stats.materiali_esaurimento_count,
               label: 'Materiali',
+              description: 'Materiali in esaurimento in magazzino',
               color: DS.urgente,
             },
             {
               value: stats.mdr_incompleti,
               label: 'DdC',
+              description: 'Dichiarazioni di Conformità MDR da completare',
               color: DS.t2,
             },
             {
               value: stats.stl_non_assegnati,
               label: 'Non ass.',
+              description: 'File STL non ancora assegnati a un tecnico',
               color: '#7C3AED',
             },
           ].map((chip, i) => (
@@ -370,6 +376,7 @@ export function DashboardTitolare({
               <KpiCard
                 value={chip.value}
                 label={chip.label}
+                description={chip.description}
                 color={chip.color}
                 animationDelay={i * stagger}
               />
@@ -660,8 +667,10 @@ export function DashboardTitolare({
                           borderRadius: 4,
                           background:
                             percRimasto <= 50 ? DS.primary : DS.urgente,
-                          width: `${percRimasto}%`,
-                          transition: 'width 0.4s cubic-bezier(0.2,0,0,1)',
+                          width: '100%',
+                          transform: `scaleX(${percRimasto / 100})`,
+                          transformOrigin: 'left center',
+                          transition: 'transform 0.4s cubic-bezier(0.2,0,0,1)',
                         }}
                       />
                     </div>

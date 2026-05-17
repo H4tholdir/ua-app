@@ -336,7 +336,7 @@
   height: 38px; padding: 0 12px; border-radius: 10px; border: none;
   background: var(--adm-prs); box-shadow: var(--adm-sh-i);
   font-family: 'DM Sans', var(--font-dm-sans, sans-serif);
-  font-size: 13px; color: var(--adm-t1); outline: none;
+  font-size: 13px; color: var(--adm-t1); outline: none; /* input within neumorphic wrapper — focus shown by parent shadow */
 }
 .adm-input::placeholder { color: var(--adm-t3); }
 .adm-input:focus { box-shadow: var(--adm-sh-i), 0 0 0 2px #3B82F6; }
@@ -407,7 +407,7 @@
   from { opacity: 0; transform: scale(.95) translateY(4px); }
   to   { opacity: 1; transform: none; }
 }
-.adm-animate { animation: adm-pop .28s cubic-bezier(0.34,1.56,0.64,1) both; }
+.adm-animate { animation: adm-pop .28s cubic-bezier(0.16,1,0.3,1) both; }
 
 /* ── Responsive: hide table on mobile, show cards ── */
 @media (max-width: 640px) {
