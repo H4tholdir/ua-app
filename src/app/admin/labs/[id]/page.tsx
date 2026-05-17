@@ -200,10 +200,29 @@ export default async function AdminLabDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* 3 — AZIONI (client component) */}
+      {/* 3 — LINK VISTA DATI OPERATIVI */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.02s' }}>
+        <div className="adm-dcard-title">Strumenti admin</div>
+        <div className="adm-actions">
+          <Link
+            href={`/admin/labs/${id}/view`}
+            className="adm-act"
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M1 6.5C2.5 3.5 4.5 2 6.5 2s4 1.5 5.5 4.5C10.5 9.5 8.5 11 6.5 11S2.5 9.5 1 6.5Z" stroke="currentColor" strokeWidth="1.5"/>
+            </svg>
+            Visualizza dati operativi
+          </Link>
+        </div>
+      </div>
+
+      {/* 4 — AZIONI (client component) */}
       <LabActions
         labId={id}
         currentStato={lab.stato}
+        currentNome={lab.nome}
+        currentPiano={lab.piano ?? 'lab'}
         trialEndsAt={lab.trial_ends_at}
         stripeCustomerId={lab.stripe_customer_id}
         utenti={utenti}

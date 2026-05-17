@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { getBrowserClient } from '@/lib/supabase/browser-anon'
 
 let _ac: AudioContext | null = null
 function sndClick() {
@@ -45,6 +46,13 @@ export default function AdminNav({ userDisplay }: Props) {
     })
   }, [])
 
+  const logout = useCallback(async () => {
+    sndClick()
+    const supabase = getBrowserClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }, [])
+
   return (
     <nav className="adm-nav">
       <Link className="adm-nav-logo" href="/admin/labs">
@@ -55,6 +63,15 @@ export default function AdminNav({ userDisplay }: Props) {
       <span className="adm-nav-user">{userDisplay}</span>
       <button className="adm-nav-theme" onClick={toggle} title="Cambia tema" aria-label="Cambia tema">
         {isDark ? '☀️' : '🌙'}
+      </button>
+      <button
+        className="adm-nav-theme"
+        onClick={logout}
+        title="Esci"
+        aria-label="Logout"
+        style={{ fontSize: '18px' }}
+      >
+        ↩
       </button>
     </nav>
   )

@@ -29,6 +29,8 @@ function sndClick() {
 interface Props {
   labId: string
   currentStato: string
+  currentNome: string
+  currentPiano: string
   trialEndsAt: string | null
   stripeCustomerId: string | null
   utenti: Utente[]
@@ -36,15 +38,21 @@ interface Props {
   log: LogEntry[]
 }
 
-export default function LabActions({ labId, currentStato, trialEndsAt, stripeCustomerId, utenti, invites, log }: Props) {
+export default function LabActions({ labId, currentStato, currentNome, currentPiano, trialEndsAt, stripeCustomerId, utenti, invites, log }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
-  const [trialDate, setTrialDate] = useState(trialEndsAt ? trialEndsAt.slice(0, 10) : '')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRuolo, setInviteRuolo] = useState('titolare')
   const [inviteResult, setInviteResult] = useState<string | null>(null)
   const [pendingInvites, setPendingInvites] = useState<Invite[]>(invites)
+
+  // Edit section state
+  const [editOpen, setEditOpen] = useState(false)
+  const [editNome, setEditNome] = useState(currentNome)
+  const [editPiano, setEditPiano] = useState(currentPiano)
+  const [editTrialDate, setEditTrialDate] = useState(trialEndsAt ? trialEndsAt.slice(0, 10) : '')
+  const [editMsg, setEditMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
   const setStato = useCallback(async (stato: Stato) => {
     if (!window.confirm(`Cambia stato a "${stato}"?`)) return
@@ -65,19 +73,41 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
     }
   }, [labId, router])
 
-  const extendTrial = useCallback(async () => {
-    if (!trialDate) return
+  const saveEdits = useCallback(async () => {
     sndClick()
-    setLoading(true); setActionMsg(null)
+    setLoading(true); setEditMsg(null)
+    const body: Record<string, unknown> = {}
+    if (editNome.trim()) body.nome = editNome.trim()
+    if (editPiano) body.piano = editPiano
+    if (editTrialDate) body.trial_ends_at = new Date(editTrialDate).toISOString()
+    else body.trial_ends_at = null
     const res = await fetch(`/api/admin/labs/${labId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ trial_ends_at: new Date(trialDate).toISOString() }),
+      body: JSON.stringify(body),
     })
     setLoading(false)
-    if (res.ok) { setActionMsg({ type: 'ok', text: 'Trial esteso' }); router.refresh() }
-    else { setActionMsg({ type: 'err', text: 'Errore nel salvataggio del trial' }) }
-  }, [labId, trialDate, router])
+    if (res.ok) { setEditMsg({ type: 'ok', text: 'Dati aggiornati' }); router.refresh() }
+    else { setEditMsg({ type: 'err', text: 'Errore nel salvataggio' }) }
+  }, [labId, editNome, editPiano, editTrialDate, router])
+
+  const deleteLab = useCallback(async () => {
+    if (!window.confirm('ATTENZIONE: questa azione è irreversibile. Eliminare il laboratorio?')) return
+    if (!window.confirm('Conferma eliminazione definitiva?')) return
+    sndClick()
+    setLoading(true)
+    const res = await fetch(`/api/admin/labs/${labId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    setLoading(false)
+    if (res.ok) {
+      window.location.href = '/admin/labs'
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setActionMsg({ type: 'err', text: data.error ?? 'Errore durante l\'eliminazione' })
+    }
+  }, [labId])
 
   const sendInvite = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -164,21 +194,102 @@ export default function LabActions({ labId, currentStato, trialEndsAt, stripeCus
           <div className={`adm-msg ${actionMsg.type}`}>{actionMsg.text}</div>
         )}
 
-        {/* Extend trial */}
-        <div className="adm-row-divider">
-          <span className="adm-row-label">Estendi trial fino al:</span>
-          <input
-            className="adm-input"
-            type="date"
-            value={trialDate}
-            onChange={e => setTrialDate(e.target.value)}
-            style={{ width: '150px' }}
-            aria-label="Data fine trial"
-          />
-          <button className="adm-act" onClick={extendTrial} disabled={loading || !trialDate}>
-            Salva
-          </button>
-        </div>
+        {/* Delete lab — only for non-active, non-blacklist */}
+        {stato !== 'attivo' && stato !== 'blacklist' && (
+          <div className="adm-row-divider">
+            <button
+              className="adm-act red"
+              style={{ marginLeft: 'auto' }}
+              onClick={deleteLab}
+              disabled={loading}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2 2L10 10M10 2L2 10" stroke="var(--adm-red)" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+              Elimina laboratorio
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* EDIT SECTION */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.10s' }}>
+        <button
+          className="adm-dcard-title"
+          onClick={() => { sndClick(); setEditOpen(o => !o) }}
+          style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit', font: 'inherit' }}
+          aria-expanded={editOpen}
+        >
+          <span>Modifica dati</span>
+          <span style={{ marginLeft: 'auto', fontSize: '14px', color: 'var(--adm-t2)' }}>{editOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {editOpen && (
+          <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label className="adm-row-label" htmlFor="edit-nome">Nome laboratorio</label>
+              <input
+                id="edit-nome"
+                className="adm-input"
+                type="text"
+                value={editNome}
+                onChange={e => setEditNome(e.target.value)}
+                style={{ width: '100%', maxWidth: '360px' }}
+                aria-label="Nome laboratorio"
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label className="adm-row-label" htmlFor="edit-piano">Piano</label>
+              <select
+                id="edit-piano"
+                className="adm-select"
+                value={editPiano}
+                onChange={e => setEditPiano(e.target.value)}
+                style={{ width: '180px' }}
+                aria-label="Piano abbonamento"
+              >
+                <option value="lab">Lab</option>
+                <option value="rete">Rete</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label className="adm-row-label" htmlFor="edit-trial">Data fine trial</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  id="edit-trial"
+                  className="adm-input"
+                  type="date"
+                  value={editTrialDate}
+                  onChange={e => setEditTrialDate(e.target.value)}
+                  style={{ width: '160px' }}
+                  aria-label="Data fine trial"
+                />
+                {editTrialDate && (
+                  <button
+                    className="adm-act"
+                    style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}
+                    onClick={() => setEditTrialDate('')}
+                    type="button"
+                  >
+                    Rimuovi
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '4px' }}>
+              <button className="adm-btn-cta" onClick={saveEdits} disabled={loading || !editNome.trim()} aria-busy={loading}>
+                {loading ? '…' : 'Salva modifiche'}
+              </button>
+            </div>
+
+            {editMsg && (
+              <div className={`adm-msg ${editMsg.type}`}>{editMsg.text}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 5 — UTENTI + INVITI */}
