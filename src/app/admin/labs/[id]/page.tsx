@@ -200,34 +200,59 @@ export default async function AdminLabDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* 3 — LINK VISTA DATI OPERATIVI */}
-      <div className="adm-dcard adm-animate" style={{ animationDelay: '.02s' }}>
-        <div className="adm-dcard-title">Strumenti admin</div>
-        <div className="adm-actions">
-          <Link
-            href={`/admin/labs/${id}/view`}
-            className="adm-act"
-          >
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-              <circle cx="6.5" cy="6.5" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M1 6.5C2.5 3.5 4.5 2 6.5 2s4 1.5 5.5 4.5C10.5 9.5 8.5 11 6.5 11S2.5 9.5 1 6.5Z" stroke="currentColor" strokeWidth="1.5"/>
-            </svg>
-            Visualizza dati operativi
-          </Link>
+      {/* Live preview shortcut */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.03s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div className="adm-dcard-title" style={{ marginBottom: 4 }}>Anteprima operativa</div>
+          <p style={{ fontSize: 12, color: 'var(--adm-t2)', margin: 0 }}>
+            Visualizza la dashboard come se fossi il titolare del lab.
+          </p>
         </div>
+        <Link
+          href={`/admin/labs/${lab.id}/live`}
+          className="adm-act"
+          style={{ textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          Anteprima come titolare
+        </Link>
       </div>
 
-      {/* 4 — AZIONI (client component) */}
+      {/* 3 — AZIONI (client component) */}
       <LabActions
         labId={id}
-        currentStato={lab.stato}
-        currentNome={lab.nome}
-        currentPiano={lab.piano ?? 'lab'}
+        currentStato={lab.stato ?? 'trial'}
         trialEndsAt={lab.trial_ends_at}
         stripeCustomerId={lab.stripe_customer_id}
         utenti={utenti}
         invites={invites}
         log={log}
+        labData={{
+          nome: lab.nome,
+          ragione_sociale: lab.ragione_sociale,
+          partita_iva: lab.partita_iva,
+          codice_fiscale: lab.codice_fiscale,
+          indirizzo: lab.indirizzo,
+          cap: lab.cap,
+          citta: lab.citta,
+          provincia: lab.provincia,
+          telefono: lab.telefono,
+          email: lab.email,
+          pec: lab.pec,
+          codice_itca: lab.codice_itca,
+          srn_eudamed: lab.srn_eudamed,
+          numero_rea: lab.numero_rea,
+          numero_albo: lab.numero_albo,
+          prrc_nome: lab.prrc_nome,
+          prrc_qualifica: lab.prrc_qualifica,
+          anno_prima_marcatura: lab.anno_prima_marcatura,
+          regime_fiscale: lab.regime_fiscale,
+          codice_iva_default: lab.codice_iva_default,
+          soglia_bollo: lab.soglia_bollo,
+          importo_bollo: lab.importo_bollo,
+          bollo_default_attivo: lab.bollo_default_attivo,
+          piano: lab.piano,
+          trial_ends_at: lab.trial_ends_at,
+        }}
       />
     </div>
   )

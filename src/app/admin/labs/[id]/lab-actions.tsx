@@ -8,6 +8,35 @@ type Utente = { id: string; nome: string; cognome: string | null; email: string 
 type Invite = { id: string; email: string; ruolo: string; expires_at: string; created_at: string }
 type LogEntry = { stato_from: string | null; stato_to: string; source: string; actor: string | null; created_at: string }
 
+// Lab data passed for edit form
+interface LabData {
+  nome: string
+  ragione_sociale: string | null
+  partita_iva: string | null
+  codice_fiscale: string | null
+  indirizzo: string | null
+  cap: string | null
+  citta: string | null
+  provincia: string | null
+  telefono: string | null
+  email: string | null
+  pec: string | null
+  codice_itca: string | null
+  srn_eudamed: string | null
+  numero_rea: string | null
+  numero_albo: string | null
+  prrc_nome: string | null
+  prrc_qualifica: string | null
+  anno_prima_marcatura: string | null
+  regime_fiscale: string
+  codice_iva_default: string
+  soglia_bollo: number
+  importo_bollo: number
+  bollo_default_attivo: boolean
+  piano: string
+  trial_ends_at: string | null
+}
+
 let _ac: AudioContext | null = null
 function sndClick() {
   try {
@@ -29,160 +58,178 @@ function sndClick() {
 interface Props {
   labId: string
   currentStato: string
-  currentNome: string
-  currentPiano: string
   trialEndsAt: string | null
   stripeCustomerId: string | null
   utenti: Utente[]
   invites: Invite[]
   log: LogEntry[]
+  labData: LabData
 }
 
-function HardDeletePanel({ labId, labNome }: { labId: string; labNome: string }) {
-  const [confirmInput, setConfirmInput] = useState('')
-  const [step, setStep] = useState<'idle' | 'confirm' | 'deleting' | 'done'>('idle')
-  const [err, setErr] = useState<string | null>(null)
-
-  const handleDelete = useCallback(async () => {
-    setStep('deleting'); setErr(null)
-    const res = await fetch(`/api/admin/labs/${labId}/hard-delete`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', Origin: window.location.origin },
-      body: JSON.stringify({ confirm_nome: confirmInput }),
-    })
-    const data = await res.json()
-    if (res.ok && data.ok) {
-      setStep('done')
-      setTimeout(() => { window.location.href = '/admin/labs' }, 1500)
-    } else {
-      setStep('confirm')
-      setErr(data.error ?? 'Errore durante la cancellazione')
-    }
-  }, [labId, confirmInput])
-
-  if (step === 'done') return <p style={{ color: 'var(--adm-g)', fontWeight: 600, fontSize: 14 }}>✓ Laboratorio eliminato. Reindirizzamento…</p>
-
-  if (step === 'idle') return (
-    <button
-      type="button"
-      className="adm-act"
-      style={{ background: 'rgba(217,0,18,.08)', color: 'var(--adm-red)', border: '1px solid rgba(217,0,18,.25)', height: 36, padding: '0 14px', fontSize: 13, borderRadius: 8 }}
-      onClick={() => setStep('confirm')}
-    >
-      🗑 Cancella definitivamente
-    </button>
-  )
-
+// Collapsible section helper
+function Section({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false)
   return (
-    <div style={{ background: 'rgba(217,0,18,.06)', borderRadius: 10, padding: '14px 16px' }}>
-      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--adm-red)', margin: '0 0 10px' }}>
-        Digita il nome esatto del laboratorio per confermare:
-      </p>
-      <p style={{ fontFamily: 'monospace', fontSize: 14, background: 'rgba(0,0,0,.06)', borderRadius: 6, padding: '6px 10px', margin: '0 0 12px', display: 'inline-block' }}>
-        {labNome}
-      </p>
-      <input
-        type="text"
-        value={confirmInput}
-        onChange={e => setConfirmInput(e.target.value)}
-        placeholder={`Digita: ${labNome}`}
-        autoFocus
-        style={{ display: 'block', width: '100%', marginBottom: 12, padding: '10px 12px', borderRadius: 8, border: '1.5px solid rgba(217,0,18,.40)', background: 'var(--adm-prs)', color: 'var(--adm-t1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-      />
-      {err && <p style={{ color: 'var(--adm-red)', fontSize: 12, margin: '0 0 10px' }}>{err}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          className="adm-act red"
-          style={{ flex: 1, height: 38, fontSize: 13 }}
-          disabled={confirmInput.trim() !== labNome.trim() || step === 'deleting'}
-          onClick={handleDelete}
-        >
-          {step === 'deleting' ? 'Eliminazione in corso…' : '🗑 Elimina DEFINITIVAMENTE'}
-        </button>
-        <button
-          type="button"
-          className="adm-act"
-          style={{ height: 38, padding: '0 14px', fontSize: 13 }}
-          onClick={() => { setStep('idle'); setConfirmInput(''); setErr(null) }}
-        >
-          Annulla
-        </button>
-      </div>
+    <div style={{ borderBottom: '1px solid rgba(0,0,0,.06)', paddingBottom: open ? 12 : 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          width: '100%',
+          background: 'none',
+          border: 'none',
+          padding: '10px 0',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 600,
+          color: 'var(--adm-t2, #555)',
+          textTransform: 'uppercase',
+          letterSpacing: '.05em',
+        }}
+        aria-expanded={open}
+      >
+        <span style={{ display: 'inline-block', transition: 'transform .15s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+        {title}
+      </button>
+      {open && <div style={{ paddingTop: 4 }}>{children}</div>}
     </div>
   )
 }
 
-export default function LabActions({ labId, currentStato, currentNome, currentPiano, trialEndsAt, stripeCustomerId, utenti, invites, log }: Props) {
+// Reusable row: label + input
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+      <label style={{ fontSize: 12, color: 'var(--adm-t3, #888)', minWidth: 150, flexShrink: 0 }}>{label}</label>
+      <div style={{ flex: 1, minWidth: 160 }}>{children}</div>
+    </div>
+  )
+}
+
+const iw: React.CSSProperties = {
+  width: '100%',
+  padding: '6px 10px',
+  fontSize: 13,
+  border: '1px solid rgba(0,0,0,.12)',
+  borderRadius: 6,
+  background: '#fafafa',
+  color: 'inherit',
+  boxSizing: 'border-box',
+}
+
+export default function LabActions({ labId, currentStato, trialEndsAt, stripeCustomerId, utenti, invites, log, labData }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [trialDate, setTrialDate] = useState(trialEndsAt ? trialEndsAt.slice(0, 10) : '')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRuolo, setInviteRuolo] = useState('titolare')
   const [inviteResult, setInviteResult] = useState<string | null>(null)
   const [pendingInvites, setPendingInvites] = useState<Invite[]>(invites)
 
-  // Edit section state
-  const [editOpen, setEditOpen] = useState(false)
-  const [editNome, setEditNome] = useState(currentNome)
-  const [editPiano, setEditPiano] = useState(currentPiano)
-  const [editTrialDate, setEditTrialDate] = useState(trialEndsAt ? trialEndsAt.slice(0, 10) : '')
-  const [editMsg, setEditMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  // Impersonation state
+  const [impersonateLink, setImpersonateLink] = useState<string | null>(null)
+  const [impersonateName, setImpersonateName] = useState<string>('')
 
-  const setStato = useCallback(async (stato: Stato) => {
-    if (!window.confirm(`Cambia stato a "${stato}"?`)) return
+  // Edit form state — initialised from labData
+  const [formMsg, setFormMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const [form, setForm] = useState<{
+    nome: string
+    ragione_sociale: string
+    partita_iva: string
+    codice_fiscale: string
+    indirizzo: string
+    cap: string
+    citta: string
+    provincia: string
+    telefono: string
+    email: string
+    pec: string
+    codice_itca: string
+    srn_eudamed: string
+    numero_rea: string
+    numero_albo: string
+    prrc_nome: string
+    prrc_qualifica: string
+    anno_prima_marcatura: string
+    regime_fiscale: string
+    codice_iva_default: string
+    soglia_bollo: string
+    importo_bollo: string
+    bollo_default_attivo: boolean
+    piano: string
+    trial_ends_at: string
+  }>({
+    nome: labData.nome ?? '',
+    ragione_sociale: labData.ragione_sociale ?? '',
+    partita_iva: labData.partita_iva ?? '',
+    codice_fiscale: labData.codice_fiscale ?? '',
+    indirizzo: labData.indirizzo ?? '',
+    cap: labData.cap ?? '',
+    citta: labData.citta ?? '',
+    provincia: labData.provincia ?? '',
+    telefono: labData.telefono ?? '',
+    email: labData.email ?? '',
+    pec: labData.pec ?? '',
+    codice_itca: labData.codice_itca ?? '',
+    srn_eudamed: labData.srn_eudamed ?? '',
+    numero_rea: labData.numero_rea ?? '',
+    numero_albo: labData.numero_albo ?? '',
+    prrc_nome: labData.prrc_nome ?? '',
+    prrc_qualifica: labData.prrc_qualifica ?? '',
+    anno_prima_marcatura: labData.anno_prima_marcatura ?? '',
+    regime_fiscale: labData.regime_fiscale ?? 'RF01',
+    codice_iva_default: labData.codice_iva_default ?? 'N4',
+    soglia_bollo: String(labData.soglia_bollo ?? 77.47),
+    importo_bollo: String(labData.importo_bollo ?? 2.00),
+    bollo_default_attivo: labData.bollo_default_attivo ?? false,
+    piano: labData.piano ?? 'lab',
+    trial_ends_at: labData.trial_ends_at ? labData.trial_ends_at.slice(0, 10) : '',
+  })
+
+  const setF = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const val = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value
+    setForm(prev => ({ ...prev, [key]: val }))
+  }
+
+  const stato = currentStato as Stato
+
+  const setStato = useCallback(async (newStato: Stato) => {
+    if (!window.confirm(`Cambia stato a "${newStato}"?`)) return
     sndClick()
     setLoading(true); setActionMsg(null)
     const res = await fetch(`/api/admin/labs/${labId}/stato`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stato }),
+      body: JSON.stringify({ stato: newStato }),
     })
     const data = await res.json().catch(() => ({}))
     setLoading(false)
     if (res.ok) {
-      setActionMsg({ type: 'ok', text: `Stato aggiornato a "${stato}"` })
+      setActionMsg({ type: 'ok', text: `Stato aggiornato a "${newStato}"` })
       router.refresh()
     } else {
       setActionMsg({ type: 'err', text: data.error ?? 'Errore durante la transizione' })
     }
   }, [labId, router])
 
-  const saveEdits = useCallback(async () => {
+  const extendTrial = useCallback(async () => {
+    if (!trialDate) return
     sndClick()
-    setLoading(true); setEditMsg(null)
-    const body: Record<string, unknown> = {}
-    if (editNome.trim()) body.nome = editNome.trim()
-    if (editPiano) body.piano = editPiano
-    if (editTrialDate) body.trial_ends_at = new Date(editTrialDate).toISOString()
-    else body.trial_ends_at = null
+    setLoading(true); setActionMsg(null)
     const res = await fetch(`/api/admin/labs/${labId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ trial_ends_at: new Date(trialDate).toISOString() }),
     })
     setLoading(false)
-    if (res.ok) { setEditMsg({ type: 'ok', text: 'Dati aggiornati' }); router.refresh() }
-    else { setEditMsg({ type: 'err', text: 'Errore nel salvataggio' }) }
-  }, [labId, editNome, editPiano, editTrialDate, router])
-
-  const deleteLab = useCallback(async () => {
-    if (!window.confirm('ATTENZIONE: questa azione è irreversibile. Eliminare il laboratorio?')) return
-    if (!window.confirm('Conferma eliminazione definitiva?')) return
-    sndClick()
-    setLoading(true)
-    const res = await fetch(`/api/admin/labs/${labId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    setLoading(false)
-    if (res.ok) {
-      window.location.href = '/admin/labs'
-    } else {
-      const data = await res.json().catch(() => ({}))
-      setActionMsg({ type: 'err', text: data.error ?? 'Errore durante l\'eliminazione' })
-    }
-  }, [labId])
+    if (res.ok) { setActionMsg({ type: 'ok', text: 'Trial esteso' }); router.refresh() }
+    else { setActionMsg({ type: 'err', text: 'Errore nel salvataggio del trial' }) }
+  }, [labId, trialDate, router])
 
   const sendInvite = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -212,10 +259,273 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
     }
   }, [])
 
-  const stato = currentStato as Stato
+  // Feature 2 — Impersonazione
+  const handleImpersonate = useCallback(async () => {
+    sndClick()
+    setLoading(true)
+    setActionMsg(null)
+    const res = await fetch(`/api/admin/labs/${labId}/impersonate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const data = await res.json().catch(() => ({}))
+    setLoading(false)
+    if (res.ok) {
+      setImpersonateLink(data.action_link)
+      setImpersonateName(data.titolare_nome)
+    } else {
+      setActionMsg({ type: 'err', text: data.error ?? 'Errore generazione link' })
+    }
+  }, [labId])
+
+  // Feature 3 — Archivia (passa a blacklist senza DELETE)
+  const handleArchive = useCallback(async () => {
+    if (!window.confirm('Archiviare questo laboratorio? L\'accesso verrà bloccato ma i dati saranno preservati.')) return
+    if (!window.confirm('Conferma: il laboratorio passa a stato BLACKLIST. I dati rimangono nel database.')) return
+    sndClick()
+    await setStato('blacklist')
+  }, [setStato])
+
+  // Feature 1 — Salva modifica dati laboratorio
+  const handleSaveForm = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    sndClick()
+    setFormLoading(true); setFormMsg(null)
+
+    const payload: Record<string, unknown> = {
+      nome: form.nome || undefined,
+      ragione_sociale: form.ragione_sociale || null,
+      partita_iva: form.partita_iva || null,
+      codice_fiscale: form.codice_fiscale || null,
+      indirizzo: form.indirizzo || null,
+      cap: form.cap || null,
+      citta: form.citta || null,
+      provincia: form.provincia || null,
+      telefono: form.telefono || null,
+      email: form.email || null,
+      pec: form.pec || null,
+      codice_itca: form.codice_itca || null,
+      srn_eudamed: form.srn_eudamed || null,
+      numero_rea: form.numero_rea || null,
+      numero_albo: form.numero_albo || null,
+      prrc_nome: form.prrc_nome || null,
+      prrc_qualifica: form.prrc_qualifica || null,
+      anno_prima_marcatura: form.anno_prima_marcatura || null,
+      regime_fiscale: form.regime_fiscale || 'RF01',
+      codice_iva_default: form.codice_iva_default || 'N4',
+      soglia_bollo: parseFloat(form.soglia_bollo) || 77.47,
+      importo_bollo: parseFloat(form.importo_bollo) || 2.00,
+      bollo_default_attivo: form.bollo_default_attivo,
+      piano: form.piano || undefined,
+      trial_ends_at: form.trial_ends_at ? new Date(form.trial_ends_at).toISOString() : null,
+    }
+
+    const res = await fetch(`/api/admin/labs/${labId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    setFormLoading(false)
+    if (res.ok) {
+      setFormMsg({ type: 'ok', text: 'Dati salvati con successo' })
+      router.refresh()
+    } else {
+      setFormMsg({ type: 'err', text: data.error ?? 'Errore nel salvataggio' })
+    }
+  }, [labId, form, router])
 
   return (
     <>
+      {/* Anteprima operativa — live preview come titolare */}
+      <div className="adm-dcard adm-animate">
+        <div className="adm-dcard-title">Anteprima operativa</div>
+        <p style={{ fontSize: 13, color: 'var(--adm-t2)', margin: '0 0 12px', lineHeight: 1.5 }}>
+          Visualizza l&apos;app come se fossi il titolare di questo laboratorio.
+          La tua sessione admin resta attiva — un banner in cima ti ricorda che sei in modalità preview.
+        </p>
+        <a
+          href={`/admin/labs/${labId}/live`}
+          className="adm-btn-cta"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', padding: '10px 18px', fontSize: 13 }}
+        >
+          Visualizza come titolare
+        </a>
+      </div>
+
+      {/* FEATURE 1 — Form modifica dati */}
+      <div className="adm-dcard adm-animate">
+        <div className="adm-dcard-title">Modifica dati laboratorio</div>
+        <form onSubmit={handleSaveForm}>
+
+          <Section title="Anagrafica" defaultOpen={true}>
+            <FieldRow label="Nome commerciale *">
+              <input className="adm-input" style={iw} value={form.nome} onChange={setF('nome')} required aria-label="Nome" />
+            </FieldRow>
+            <FieldRow label="Ragione sociale">
+              <input className="adm-input" style={iw} value={form.ragione_sociale} onChange={setF('ragione_sociale')} aria-label="Ragione sociale" />
+            </FieldRow>
+            <FieldRow label="Partita IVA">
+              <input className="adm-input" style={iw} value={form.partita_iva} onChange={setF('partita_iva')} aria-label="Partita IVA" />
+            </FieldRow>
+            <FieldRow label="Codice Fiscale">
+              <input className="adm-input" style={iw} value={form.codice_fiscale} onChange={setF('codice_fiscale')} aria-label="Codice Fiscale" />
+            </FieldRow>
+            <FieldRow label="Indirizzo">
+              <input className="adm-input" style={iw} value={form.indirizzo} onChange={setF('indirizzo')} aria-label="Indirizzo" />
+            </FieldRow>
+            <FieldRow label="CAP">
+              <input className="adm-input" style={iw} value={form.cap} onChange={setF('cap')} aria-label="CAP" maxLength={5} />
+            </FieldRow>
+            <FieldRow label="Città">
+              <input className="adm-input" style={iw} value={form.citta} onChange={setF('citta')} aria-label="Città" />
+            </FieldRow>
+            <FieldRow label="Provincia (sigla)">
+              <input className="adm-input" style={{ ...iw, textTransform: 'uppercase', maxWidth: 80 }} value={form.provincia} onChange={setF('provincia')} aria-label="Provincia" maxLength={2} />
+            </FieldRow>
+            <FieldRow label="Telefono">
+              <input className="adm-input" style={iw} type="tel" value={form.telefono} onChange={setF('telefono')} aria-label="Telefono" />
+            </FieldRow>
+            <FieldRow label="Email">
+              <input className="adm-input" style={iw} type="email" value={form.email} onChange={setF('email')} aria-label="Email" />
+            </FieldRow>
+            <FieldRow label="PEC">
+              <input className="adm-input" style={iw} type="email" value={form.pec} onChange={setF('pec')} aria-label="PEC" />
+            </FieldRow>
+          </Section>
+
+          <Section title="MDR / Normativo">
+            <FieldRow label="Codice ITCA">
+              <input className="adm-input" style={iw} value={form.codice_itca} onChange={setF('codice_itca')} aria-label="Codice ITCA" placeholder="ITCAxxxxxxx" />
+            </FieldRow>
+            <FieldRow label="SRN EUDAMED">
+              <input className="adm-input" style={iw} value={form.srn_eudamed} onChange={setF('srn_eudamed')} aria-label="SRN EUDAMED" placeholder="IT-MF-000..." />
+            </FieldRow>
+            <FieldRow label="N. REA">
+              <input className="adm-input" style={iw} value={form.numero_rea} onChange={setF('numero_rea')} aria-label="Numero REA" />
+            </FieldRow>
+            <FieldRow label="N. Albo odontotecnici">
+              <input className="adm-input" style={iw} value={form.numero_albo} onChange={setF('numero_albo')} aria-label="Numero Albo" />
+            </FieldRow>
+            <FieldRow label="PRRC Nome">
+              <input className="adm-input" style={iw} value={form.prrc_nome} onChange={setF('prrc_nome')} aria-label="PRRC Nome" />
+            </FieldRow>
+            <FieldRow label="PRRC Qualifica">
+              <input className="adm-input" style={iw} value={form.prrc_qualifica} onChange={setF('prrc_qualifica')} aria-label="PRRC Qualifica" />
+            </FieldRow>
+            <FieldRow label="Anno prima marcatura">
+              <input className="adm-input" style={{ ...iw, maxWidth: 100 }} value={form.anno_prima_marcatura} onChange={setF('anno_prima_marcatura')} aria-label="Anno prima marcatura" placeholder="es. 2019" maxLength={4} />
+            </FieldRow>
+          </Section>
+
+          <Section title="Fatturazione">
+            <FieldRow label="Regime fiscale">
+              <select className="adm-select" style={iw} value={form.regime_fiscale} onChange={setF('regime_fiscale')} aria-label="Regime fiscale">
+                <option value="RF01">RF01 — Ordinario</option>
+                <option value="RF02">RF02 — Contribuenti minimi</option>
+                <option value="RF19">RF19 — Forfettario</option>
+              </select>
+            </FieldRow>
+            <FieldRow label="Codice IVA default">
+              <select className="adm-select" style={iw} value={form.codice_iva_default} onChange={setF('codice_iva_default')} aria-label="Codice IVA default">
+                <option value="N4">N4 — Esente Art.10 n.18</option>
+                <option value="N2.2">N2.2 — Non soggetto Art.7</option>
+                <option value="22">22% — IVA ordinaria</option>
+                <option value="10">10% — IVA ridotta</option>
+              </select>
+            </FieldRow>
+            <FieldRow label="Soglia bollo (€)">
+              <input className="adm-input" style={{ ...iw, maxWidth: 120 }} type="number" step="0.01" value={form.soglia_bollo} onChange={setF('soglia_bollo')} aria-label="Soglia bollo" />
+            </FieldRow>
+            <FieldRow label="Importo bollo (€)">
+              <input className="adm-input" style={{ ...iw, maxWidth: 120 }} type="number" step="0.01" value={form.importo_bollo} onChange={setF('importo_bollo')} aria-label="Importo bollo" />
+            </FieldRow>
+            <FieldRow label="Bollo attivo default">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.bollo_default_attivo} onChange={setF('bollo_default_attivo')} aria-label="Bollo default attivo" style={{ width: 16, height: 16 }} />
+                <span style={{ fontSize: 13 }}>Applica bollo automaticamente</span>
+              </label>
+            </FieldRow>
+          </Section>
+
+          <Section title="Piano e Stato">
+            <FieldRow label="Piano">
+              <select className="adm-select" style={iw} value={form.piano} onChange={setF('piano')} aria-label="Piano">
+                <option value="freemium">freemium</option>
+                <option value="lab">lab</option>
+                <option value="rete">rete</option>
+              </select>
+            </FieldRow>
+            <FieldRow label="Trial ends at">
+              <input className="adm-input" style={{ ...iw, maxWidth: 180 }} type="date" value={form.trial_ends_at} onChange={setF('trial_ends_at')} aria-label="Trial ends at" />
+              <span style={{ fontSize: 11, color: 'var(--adm-t3, #888)', marginTop: 4, display: 'block' }}>Lascia vuoto per nessuna scadenza</span>
+            </FieldRow>
+          </Section>
+
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <button type="submit" className="adm-btn-cta" disabled={formLoading} aria-busy={formLoading}>
+              {formLoading ? 'Salvataggio…' : 'Salva tutte le modifiche'}
+            </button>
+            {formMsg && (
+              <div className={`adm-msg ${formMsg.type}`} style={{ margin: 0 }}>
+                {formMsg.text}
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* FEATURE 2 — Impersonazione */}
+      <div className="adm-dcard adm-animate" style={{ animationDelay: '.04s' }}>
+        <div className="adm-dcard-title">Accesso come titolare</div>
+        <p style={{ fontSize: 13, color: 'var(--adm-t2, #555)', margin: '0 0 12px' }}>
+          Genera un magic link monouso per accedere all&apos;app come il titolare del laboratorio.
+          <strong> Apri sempre in incognito</strong> per non perdere la sessione admin.
+        </p>
+        <button
+          type="button"
+          className="adm-act"
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          onClick={handleImpersonate}
+          disabled={loading}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <circle cx="7" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
+            <path d="M2 12c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          Accedi come titolare
+        </button>
+
+        {impersonateLink && (
+          <div style={{ background: 'rgba(217,0,18,.06)', borderRadius: 12, padding: '14px 16px', marginTop: 12 }}>
+            <p style={{ fontSize: 13, margin: '0 0 10px' }}>
+              Link per accedere come <strong>{impersonateName || 'titolare'}</strong>:
+            </p>
+            <p style={{ fontSize: 11, color: '#888', margin: '0 0 10px', wordBreak: 'break-all' }}>
+              Apri in una finestra in incognito o un altro browser per non perdere la tua sessione admin.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <a
+                href={impersonateLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="adm-btn-cta"
+                style={{ display: 'inline-block', textDecoration: 'none', padding: '10px 18px', fontSize: 13 }}
+              >
+                Accedi come {impersonateName || 'titolare'} &rarr;
+              </a>
+              <button
+                type="button"
+                onClick={() => setImpersonateLink(null)}
+                style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 13 }}
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 4 — AZIONI STATO */}
       <div className="adm-dcard adm-animate" style={{ animationDelay: '.08s' }}>
         <div className="adm-dcard-title">Azioni stato</div>
@@ -242,14 +552,6 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
               Segna come scaduto
             </button>
           )}
-          {stato !== 'blacklist' && (
-            <button className="adm-act red" onClick={() => setStato('blacklist')} disabled={loading}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M2 2L10 10M10 2L2 10" stroke="var(--adm-red)" strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
-              Blacklist
-            </button>
-          )}
           {stripeCustomerId && (
             <a
               className="adm-act stripe"
@@ -269,100 +571,42 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
           <div className={`adm-msg ${actionMsg.type}`}>{actionMsg.text}</div>
         )}
 
-        {/* Delete lab — only for non-active, non-blacklist */}
-        {stato !== 'attivo' && stato !== 'blacklist' && (
-          <div className="adm-row-divider">
+        {/* Extend trial — quick action kept here as shortcut */}
+        <div className="adm-row-divider">
+          <span className="adm-row-label">Estendi trial fino al:</span>
+          <input
+            className="adm-input"
+            type="date"
+            value={trialDate}
+            onChange={e => setTrialDate(e.target.value)}
+            style={{ width: '150px' }}
+            aria-label="Data fine trial"
+          />
+          <button className="adm-act" onClick={extendTrial} disabled={loading || !trialDate}>
+            Salva
+          </button>
+        </div>
+
+        {/* Feature 3 — Archivia lab (blacklist senza DELETE) */}
+        {stato !== 'blacklist' && (
+          <div className="adm-row-divider" style={{ borderTop: '1px solid rgba(220,38,38,.12)', marginTop: 12 }}>
             <button
+              type="button"
               className="adm-act red"
-              style={{ marginLeft: 'auto' }}
-              onClick={deleteLab}
+              onClick={handleArchive}
               disabled={loading}
+              style={{ marginTop: 8 }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M2 2L10 10M10 2L2 10" stroke="var(--adm-red)" strokeWidth="1.8" strokeLinecap="round"/>
+                <rect x="1" y="4" width="10" height="7" rx="1" stroke="var(--adm-red)" strokeWidth="1.4"/>
+                <path d="M4 4V2.5A1.5 1.5 0 0 1 8 2.5V4" stroke="var(--adm-red)" strokeWidth="1.4"/>
+                <path d="M5 7v1M7 7v1" stroke="var(--adm-red)" strokeWidth="1.4" strokeLinecap="round"/>
               </svg>
-              Elimina laboratorio
+              Archivia lab e blocca accesso
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* EDIT SECTION */}
-      <div className="adm-dcard adm-animate" style={{ animationDelay: '.10s' }}>
-        <button
-          className="adm-dcard-title"
-          onClick={() => { sndClick(); setEditOpen(o => !o) }}
-          style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit', font: 'inherit' }}
-          aria-expanded={editOpen}
-        >
-          <span>Modifica dati</span>
-          <span style={{ marginLeft: 'auto', fontSize: '14px', color: 'var(--adm-t2)' }}>{editOpen ? '▲' : '▼'}</span>
-        </button>
-
-        {editOpen && (
-          <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label className="adm-row-label" htmlFor="edit-nome">Nome laboratorio</label>
-              <input
-                id="edit-nome"
-                className="adm-input"
-                type="text"
-                value={editNome}
-                onChange={e => setEditNome(e.target.value)}
-                style={{ width: '100%', maxWidth: '360px' }}
-                aria-label="Nome laboratorio"
-              />
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label className="adm-row-label" htmlFor="edit-piano">Piano</label>
-              <select
-                id="edit-piano"
-                className="adm-select"
-                value={editPiano}
-                onChange={e => setEditPiano(e.target.value)}
-                style={{ width: '180px' }}
-                aria-label="Piano abbonamento"
-              >
-                <option value="lab">Lab</option>
-                <option value="rete">Rete</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label className="adm-row-label" htmlFor="edit-trial">Data fine trial</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  id="edit-trial"
-                  className="adm-input"
-                  type="date"
-                  value={editTrialDate}
-                  onChange={e => setEditTrialDate(e.target.value)}
-                  style={{ width: '160px' }}
-                  aria-label="Data fine trial"
-                />
-                {editTrialDate && (
-                  <button
-                    className="adm-act"
-                    style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}
-                    onClick={() => setEditTrialDate('')}
-                    type="button"
-                  >
-                    Rimuovi
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '4px' }}>
-              <button className="adm-btn-cta" onClick={saveEdits} disabled={loading || !editNome.trim()} aria-busy={loading}>
-                {loading ? '…' : 'Salva modifiche'}
-              </button>
-            </div>
-
-            {editMsg && (
-              <div className={`adm-msg ${editMsg.type}`}>{editMsg.text}</div>
-            )}
+            <p style={{ fontSize: 11, color: 'var(--adm-t3, #888)', margin: '6px 0 0' }}>
+              I dati rimangono nel database. Lo stato passa a BLACKLIST e viene loggato in lab_stato_log.
+            </p>
           </div>
         )}
       </div>
@@ -450,15 +694,6 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
         )}
       </div>
 
-      {/* 7 — CANCELLAZIONE DEFINITIVA (zona pericolo) */}
-      <div className="adm-dcard adm-animate" style={{ animationDelay: '.20s', border: '1.5px solid rgba(217,0,18,.30)' }}>
-        <div className="adm-dcard-title" style={{ color: 'var(--adm-red)' }}>⚠ Zona pericolo</div>
-        <p style={{ fontSize: 13, color: 'var(--adm-t2)', margin: '0 0 14px', lineHeight: 1.5 }}>
-          La cancellazione definitiva elimina il laboratorio e <strong>tutti i suoi dati</strong> (lavori, clienti, pazienti, fatture, magazzino…) in modo <strong>irreversibile</strong>. Nessun backup verrà creato automaticamente.
-        </p>
-        <HardDeletePanel labId={labId} labNome={currentNome} />
-      </div>
-
       {/* 6 — LOG TRANSIZIONI */}
       {log.length > 0 && (
         <div className="adm-dcard adm-animate" style={{ animationDelay: '.16s' }}>
@@ -469,7 +704,7 @@ export default function LabActions({ labId, currentStato, currentNome, currentPi
                 {new Date(entry.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </span>
               <span className="adm-log-transition">
-                {entry.stato_from ?? '—'} → {entry.stato_to}
+                {entry.stato_from ?? '—'} &rarr; {entry.stato_to}
               </span>
               <span className="adm-log-source">{entry.source}{entry.actor ? ` · ${entry.actor}` : ''}</span>
             </div>
