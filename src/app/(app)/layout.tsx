@@ -16,11 +16,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('ruolo, laboratorio_id')
     .eq('id', user.id)
     .single()
 
   if (!utente) redirect('/login?error=no_lab')
+
+  // admin_sistema usa /admin, non (app) — evita il loop redirect dashboard→login→dashboard
+  if (utente.ruolo === 'admin_sistema') redirect('/admin')
 
   const { data: lab } = await svc
     .from('laboratori')
@@ -54,8 +57,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main id="main-content">
         {children}
       </main>
+      {/* BottomNavPill: solo per ruoli app (non admin_sistema che va su /admin) */}
       <BottomNavPill />
       <SwRegistration />
+
     </>
   )
 }

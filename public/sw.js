@@ -26,6 +26,10 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.startsWith('/api/')) return
   // Non cachare routes esterne
   if (url.origin !== self.location.origin) return
+  // Non intercettare navigazione (SSR pages) — causava refresh loop su /dashboard
+  if (request.mode === 'navigate') return
+  // Non cachare bundle Next.js (cambiano ad ogni deploy)
+  if (url.pathname.startsWith('/_next/')) return
 
   e.respondWith(
     caches.match(request).then(cached => {
