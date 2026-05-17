@@ -36,15 +36,20 @@ export async function POST(
     return NextResponse.json({ error: 'Nessun titolare con email trovato per questo laboratorio' }, { status: 404 })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://uachelab.com'
+  // Usa l'origin dalla request per supportare sia localhost che production
+  const requestOrigin = req.headers.get('origin')
+    ?? (req.headers.get('host') ? `https://${req.headers.get('host')}` : null)
+    ?? process.env.NEXT_PUBLIC_APP_URL
+    ?? 'https://uachelab.com'
+
+  // redirectTo → auth/callback gestisce il code PKCE e reindirizza a /dashboard
+  const redirectTo = `${requestOrigin}/auth/callback?next=/dashboard`
 
   // Genera magic link monouso via Supabase Auth Admin
   const { data, error } = await svc.auth.admin.generateLink({
     type: 'magiclink',
     email: titolare.email,
-    options: {
-      redirectTo: `${appUrl}/dashboard`,
-    },
+    options: { redirectTo },
   })
 
   if (error || !data?.properties?.action_link) {
