@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
 import { t, useReducedMotion } from '@/design-system/motion'
 import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 
@@ -197,17 +197,17 @@ function InsolutoCard({
         </div>
       </div>
 
-      {/* Expanded detail */}
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            key="detail"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={reducedMotion ? { duration: 0 } : t('fast', 'standard')}
-            style={{ overflow: 'hidden', margin: '0 16px' }}
-          >
+      {/* Expanded detail — CSS grid-template-rows evita animate su height */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: expanded ? '1fr' : '0fr',
+          transition: reducedMotion ? 'none' : 'grid-template-rows var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
+          margin: '0 16px',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ minHeight: 0 }}>
             <div
               style={{
                 background: 'var(--elv, #EDEDEA)',
@@ -316,9 +316,8 @@ function InsolutoCard({
                 </a>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      </div>
     </motion.div>
   )
 }
