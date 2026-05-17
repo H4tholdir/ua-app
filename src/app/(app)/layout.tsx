@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { BottomNavPill } from '@/components/layout/BottomNavPill'
 import { SwRegistration } from '@/components/layout/SwRegistration'
 import { SkipToContent } from '@/components/layout/SkipToContent'
+import { UserProfileSheet } from '@/components/layout/UserProfileSheet'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // 1. Validate session
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: utente } = await svc
     .from('utenti')
-    .select('ruolo, laboratorio_id')
+    .select('ruolo, laboratorio_id, nome, cognome')
     .eq('id', user.id)
     .single()
 
@@ -50,17 +51,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/billing?trial_expired=true')
   }
 
+  const utenteData = utente as { ruolo: string; laboratorio_id: string; nome: string; cognome?: string | null }
+
   return (
     <>
       {/* SkipToContent è un Client island — onFocus/onBlur non possono stare in Server Component */}
       <SkipToContent />
+
+      {/* Profilo utente — avatar fisso top-right + bottom sheet */}
+      <UserProfileSheet
+        nome={utenteData.nome ?? ''}
+        cognome={utenteData.cognome}
+        email={user.email ?? ''}
+        ruolo={utenteData.ruolo}
+        labNome={lab.nome}
+        trialEndsAt={lab.trial_ends_at}
+        labStato={lab.stato}
+      />
+
       <main id="main-content">
         {children}
       </main>
+
       {/* BottomNavPill: solo per ruoli app (non admin_sistema che va su /admin) */}
       <BottomNavPill />
       <SwRegistration />
-
     </>
   )
 }
