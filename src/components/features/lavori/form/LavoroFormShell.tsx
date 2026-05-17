@@ -79,12 +79,12 @@ export function LavoroFormShell({
                 whiteSpace: 'nowrap',
                 border: 'none',
                 cursor: 'pointer',
-                background: isActive ? '#D4A843' : '#243580',
-                color: isActive ? '#0F1E52' : '#8899CC',
+                background: isActive ? '#D4A843' : 'var(--elv, #EDEDEA)',
+                color: isActive ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
                 flexShrink: 0,
                 boxShadow: isActive
                   ? '0 0 12px hsl(43 65% 55% / 0.25)'
-                  : '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                  : 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                 transition: `background ${t('fast').duration}s, color ${t('fast').duration}s`,
               }}
             >

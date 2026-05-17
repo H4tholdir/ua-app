@@ -59,7 +59,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                   aria-hidden="true"
                   style={{
                     height: '1px',
-                    background: '#243580',
+                    background: 'rgba(0,0,0,.06)',
                     margin: '10px 0',
                     position: 'relative',
                   }}
@@ -70,12 +70,12 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                       left: '50%',
                       top: '50%',
                       transform: 'translate(-50%, -50%)',
-                      background: '#0F1E52',
+                      background: 'var(--bg, #DDD8D3)',
                       padding: '0 8px',
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '10px',
                       fontWeight: 700,
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.06em',
                     }}
@@ -92,7 +92,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '10px',
                     fontWeight: 700,
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                     margin: '0 0 8px',
@@ -136,11 +136,11 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '11px',
                         fontWeight: 700,
-                        background: selected ? '#D4A843' : '#243580',
-                        color: selected ? '#0F1E52' : '#8899CC',
+                        background: selected ? '#D4A843' : 'var(--elv, #EDEDEA)',
+                        color: selected ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
                         boxShadow: selected
                           ? insetShadow
-                          : '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                          : 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                         flexShrink: 0,
                         transition: 'background 0.08s, color 0.08s',
                       }}
@@ -160,14 +160,14 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               marginTop: '10px',
               marginBottom: 0,
             }}
             aria-live="polite"
           >
             Selezionati:{' '}
-            <strong style={{ color: '#F0F4FF' }}>
+            <strong style={{ color: 'var(--t1, #1C1916)' }}>
               {dentiCoinvolti
                 .map(Number)
                 .sort((a, b) => a - b)
@@ -335,7 +335,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
-              color: '#F0F4FF',
+              color: 'var(--t1, #1C1916)',
               cursor: 'pointer',
             }}
           >

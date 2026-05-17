@@ -51,7 +51,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
               onChange={(e) =>
                 onChange({ data_prima_prova: e.target.value || null })
               }
-              style={{ ...inputBase, colorScheme: 'dark' }}
+              style={{ ...inputBase, colorScheme: 'light' }}
             />
           </div>
 
@@ -67,7 +67,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
               onChange={(e) =>
                 onChange({ data_seconda_prova: e.target.value || null })
               }
-              style={{ ...inputBase, colorScheme: 'dark' }}
+              style={{ ...inputBase, colorScheme: 'light' }}
             />
           </div>
 
@@ -83,7 +83,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
               onChange={(e) =>
                 onChange({ data_terza_prova: e.target.value || null })
               }
-              style={{ ...inputBase, colorScheme: 'dark' }}
+              style={{ ...inputBase, colorScheme: 'light' }}
             />
           </div>
         </div>
@@ -151,7 +151,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
                   minHeight: '52px',
                   padding: '0 14px',
                   borderRadius: '12px',
-                  background: '#1B2D6B',
+                  background: 'var(--surface, #E4DFD9)',
                   color: '#D4A843',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
@@ -159,7 +159,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
                   textDecoration: 'none',
                   flexShrink: 0,
                   boxShadow:
-                    '-2px -2px 5px hsl(220 80% 35% / 0.4), 3px 3px 8px hsl(230 100% 4% / 0.8)',
+                    'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
                 }}
                 aria-label={`Traccia spedizione su ${corriere?.toUpperCase()}`}
               >
@@ -196,7 +196,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
             onChange={(e) =>
               onChange({ spedizione_data_prevista: e.target.value || null })
             }
-            style={{ ...inputBase, colorScheme: 'dark' }}
+            style={{ ...inputBase, colorScheme: 'light' }}
           />
         </div>
       </div>

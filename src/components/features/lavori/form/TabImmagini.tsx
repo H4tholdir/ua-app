@@ -84,9 +84,9 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
           width: '100%',
           padding: '14px',
           borderRadius: '14px',
-          border: '1.5px dashed #243580',
-          background: uploading ? '#1B2D6B' : 'transparent',
-          color: uploading ? '#8899CC' : '#F0F4FF',
+          border: '1.5px dashed rgba(0,0,0,.06)',
+          background: uploading ? 'var(--surface, #E4DFD9)' : 'transparent',
+          color: uploading ? 'var(--t2, #96918D)' : 'var(--t1, #1C1916)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '15px',
           fontWeight: 600,
@@ -112,7 +112,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 cx="9"
                 cy="9"
                 r="7"
-                stroke="#8899CC"
+                stroke="var(--t2, #96918D)"
                 strokeWidth="2"
                 strokeDasharray="30 14"
               />
@@ -136,13 +136,13 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         <div
           role="alert"
           style={{
-            background: '#3A1A1A',
+            background: '#FEF2F2',
             borderRadius: '10px',
             padding: '10px 14px',
             marginBottom: '16px',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: '#FA5252',
+            color: 'var(--primary, #D90012)',
           }}
         >
           {error}
@@ -153,7 +153,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
       {immagini.length === 0 ? (
         <div
           style={{
-            background: '#1B2D6B',
+            background: 'var(--surface, #E4DFD9)',
             borderRadius: '14px',
             padding: '28px 20px',
             textAlign: 'center',
@@ -165,7 +165,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '14px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               margin: 0,
             }}
           >
@@ -191,7 +191,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                background: '#1B2D6B',
+                background: 'var(--surface, #E4DFD9)',
                 borderRadius: '12px',
                 padding: '10px 14px',
                 boxShadow: raisedShadow,
@@ -204,7 +204,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                   height: '48px',
                   minWidth: '48px',
                   borderRadius: '8px',
-                  background: '#243580',
+                  background: 'var(--elv, #EDEDEA)',
                   overflow: 'hidden',
                   flexShrink: 0,
                 }}
@@ -233,7 +233,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: '#F0F4FF',
+                    color: 'var(--t1, #1C1916)',
                     margin: '0 0 2px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -247,7 +247,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '12px',
-                      color: '#8899CC',
+                      color: 'var(--t2, #96918D)',
                       margin: '0 0 2px',
                     }}
                   >
@@ -259,7 +259,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '11px',
-                      color: '#6677AA',
+                      color: 'var(--t2, #96918D)',
                       margin: 0,
                     }}
                   >

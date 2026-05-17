@@ -32,12 +32,12 @@ const thStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '11px',
   fontWeight: 700,
-  color: '#8899CC',
+  color: 'var(--t2, #96918D)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   textAlign: 'left',
   whiteSpace: 'nowrap',
-  borderBottom: '1px solid #243580',
+  borderBottom: '1px solid rgba(0,0,0,.06)',
 }
 
 const tdStyle: React.CSSProperties = {
@@ -142,7 +142,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                     textAlign: 'center',
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                   }}
                 >
                   Nessuna lavorazione — usa il pulsante sotto per aggiungere
@@ -150,7 +150,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
               </tr>
             )}
             {lavorazioni.map((row, i) => (
-              <tr key={row.id} style={{ borderBottom: '1px solid #1B2D6B' }}>
+              <tr key={row.id} style={{ borderBottom: '1px solid rgba(0,0,0,.06)' }}>
                 {/* Codice */}
                 <td style={tdStyle}>
                   <input
@@ -255,7 +255,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: '#F0F4FF',
+                    color: 'var(--t1, #1C1916)',
                     whiteSpace: 'nowrap',
                   }}
                 >
@@ -274,9 +274,9 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      background: '#2A1A1A',
+                      background: '#FEF2F2',
                       border: 'none',
-                      color: '#FA5252',
+                      color: 'var(--primary, #D90012)',
                       cursor: 'pointer',
                       flexShrink: 0,
                     }}
@@ -309,9 +309,9 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           width: '100%',
           padding: '12px',
           borderRadius: '12px',
-          border: '1.5px dashed #243580',
+          border: '1.5px dashed rgba(0,0,0,.06)',
           background: 'transparent',
-          color: '#8899CC',
+          color: 'var(--t2, #96918D)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
           fontWeight: 600,
@@ -330,7 +330,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
       {/* Footer totali */}
       <div
         style={{
-          background: '#1B2D6B',
+          background: 'var(--surface, #E4DFD9)',
           borderRadius: '14px',
           padding: '14px 18px',
           display: 'flex',
@@ -344,21 +344,21 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
           }}
         >
           Lavori:{' '}
-          <strong style={{ color: '#F0F4FF' }}>€{formatEur(totaleLavori)}</strong>
+          <strong style={{ color: 'var(--t1, #1C1916)' }}>€{formatEur(totaleLavori)}</strong>
         </span>
         <span
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
           }}
         >
           Materiali:{' '}
-          <strong style={{ color: '#F0F4FF' }}>€{formatEur(totaleMateriali)}</strong>
+          <strong style={{ color: 'var(--t1, #1C1916)' }}>€{formatEur(totaleMateriali)}</strong>
         </span>
         <span
           style={{

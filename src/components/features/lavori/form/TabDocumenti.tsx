@@ -14,7 +14,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
       {/* DdC Card */}
       <div
         style={{
-          background: '#1B2D6B',
+          background: 'var(--surface, #E4DFD9)',
           borderRadius: '14px',
           padding: '18px 16px',
           boxShadow: raisedShadow,
@@ -36,7 +36,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
               fontWeight: 700,
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
             }}
@@ -54,16 +54,16 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
                 fontWeight: 700,
-                color: '#2ECC9A',
+                color: 'var(--success, #16A34A)',
               }}
               role="status"
               aria-label="DdC generata"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="6" stroke="#2ECC9A" strokeWidth="1.5" />
+                <circle cx="7" cy="7" r="6" stroke="var(--success, #16A34A)" strokeWidth="1.5" />
                 <path
                   d="M4.5 7l2 2 3-3"
-                  stroke="#2ECC9A"
+                  stroke="var(--success, #16A34A)"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -108,7 +108,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
-                  color: '#F0F4FF',
+                  color: 'var(--t1, #1C1916)',
                   margin: '0 0 8px',
                 }}
               >
@@ -147,7 +147,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
-              color: '#8899CC',
+              color: 'var(--t2, #96918D)',
               margin: 0,
               lineHeight: '1.5',
             }}
@@ -160,8 +160,8 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
       {/* Info automatica */}
       <div
         style={{
-          background: '#0F1E52',
-          border: '1px solid #243580',
+          background: 'var(--elv, #EDEDEA)',
+          border: '1px solid rgba(0,0,0,.06)',
           borderRadius: '12px',
           padding: '14px 16px',
           display: 'flex',
@@ -178,10 +178,10 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
           aria-hidden="true"
           style={{ flexShrink: 0, marginTop: '1px' }}
         >
-          <circle cx="8" cy="8" r="7" stroke="#8899CC" strokeWidth="1.4" />
+          <circle cx="8" cy="8" r="7" stroke="var(--t2, #96918D)" strokeWidth="1.4" />
           <path
             d="M8 7v4M8 5.5v.5"
-            stroke="#8899CC"
+            stroke="var(--t2, #96918D)"
             strokeWidth="1.4"
             strokeLinecap="round"
           />
@@ -190,13 +190,13 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
             margin: 0,
             lineHeight: '1.5',
           }}
         >
           I documenti vengono generati automaticamente al tap{' '}
-          <strong style={{ color: '#F0F4FF' }}>CONSEGNA</strong>.
+          <strong style={{ color: 'var(--t1, #1C1916)' }}>CONSEGNA</strong>.
         </p>
       </div>
     </div>

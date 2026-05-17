@@ -126,7 +126,7 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
           padding: '12px 20px',
           display: 'flex',
           gap: '10px',
-          background: 'linear-gradient(to top, #0F1E52 60%, transparent)',
+          background: 'linear-gradient(to top, var(--bg, #DDD8D3) 60%, transparent)',
           zIndex: 10,
         }}
       >
@@ -141,14 +141,14 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
               height: '52px',
               borderRadius: '14px',
               border: 'none',
-              background: saving ? '#243580' : '#1B2D6B',
-              color: saving ? '#8899CC' : '#F0F4FF',
+              background: saving ? 'var(--elv, #EDEDEA)' : 'var(--surface, #E4DFD9)',
+              color: saving ? 'var(--t2, #96918D)' : 'var(--t1, #1C1916)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
               fontWeight: 700,
               cursor: saving ? 'not-allowed' : 'pointer',
               boxShadow:
-                '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)',
+                'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
               transition: 'background 0.08s',
             }}
             aria-busy={saving}
@@ -169,7 +169,7 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
             borderRadius: '14px',
             border: 'none',
             background: '#D4A843',
-            color: '#0F1E52',
+            color: 'var(--t1, #1C1916)',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
             fontWeight: 800,

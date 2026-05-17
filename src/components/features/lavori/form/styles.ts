@@ -7,13 +7,13 @@ export const inputBase: CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: '12px',
-  background: '#0F1E52',
-  border: '1px solid #243580',
-  color: '#F0F4FF',
+  background: 'var(--bg, #DDD8D3)',
+  border: '1px solid rgba(0,0,0,.06)',
+  color: 'var(--t1, #1C1916)',
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '15px',
   boxShadow:
-    'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)',
+    'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))',
   outline: 'none',
   boxSizing: 'border-box',
 }
@@ -23,7 +23,7 @@ export const labelStyle: CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '12px',
   fontWeight: 600,
-  color: '#8899CC',
+  color: 'var(--t2, #96918D)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   marginBottom: '6px',
@@ -35,7 +35,7 @@ export const fieldStyle: CSSProperties = {
 
 export const sectionSeparator: CSSProperties = {
   height: '1px',
-  background: '#243580',
+  background: 'rgba(0,0,0,.06)',
   margin: '24px 0',
 }
 
@@ -43,14 +43,14 @@ export const sectionTitle: CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '11px',
   fontWeight: 700,
-  color: '#8899CC',
+  color: 'var(--t2, #96918D)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   marginBottom: '16px',
 }
 
 export const raisedShadow =
-  '-3px -3px 7px hsl(220 80% 35% / 0.55), 5px 5px 14px hsl(230 100% 4% / 0.95)'
+  'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))'
 
 export const insetShadow =
-  'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)'
+  'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))'

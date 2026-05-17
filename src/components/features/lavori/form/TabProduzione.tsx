@@ -22,24 +22,24 @@ function formatTimestamp(iso: string): string {
 const ESITO_CONFIG = {
   ok: {
     label: 'OK',
-    bg: '#1A3A2A',
-    bgActive: '#2ECC9A',
-    color: '#2ECC9A',
-    colorActive: '#0F1E52',
+    bg: '#DCFCE7',
+    bgActive: 'var(--success, #16A34A)',
+    color: 'var(--success, #16A34A)',
+    colorActive: '#fff',
   },
   non_conforme: {
     label: 'Non conf.',
-    bg: '#3A1A1A',
-    bgActive: '#FA5252',
-    color: '#FA5252',
-    colorActive: '#0F1E52',
+    bg: '#FEF2F2',
+    bgActive: 'var(--primary, #D90012)',
+    color: 'var(--primary, #D90012)',
+    colorActive: '#fff',
   },
   parziale: {
     label: 'Parziale',
-    bg: '#2A1E10',
-    bgActive: '#F08C00',
-    color: '#F08C00',
-    colorActive: '#0F1E52',
+    bg: '#FFF7ED',
+    bgActive: 'var(--urgente, #F97316)',
+    color: 'var(--urgente, #F97316)',
+    colorActive: '#fff',
   },
 } as const
 
@@ -50,7 +50,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
     return (
       <div
         style={{
-          background: '#1B2D6B',
+          background: 'var(--surface, #E4DFD9)',
           borderRadius: '14px',
           padding: '32px 20px',
           textAlign: 'center',
@@ -63,7 +63,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: '#8899CC',
+            color: 'var(--t2, #96918D)',
             margin: 0,
           }}
         >
@@ -88,7 +88,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
           <div
             key={fase.id}
             style={{
-              background: '#1B2D6B',
+              background: 'var(--surface, #E4DFD9)',
               borderRadius: '14px',
               padding: '14px 16px',
               boxShadow: raisedShadow,
@@ -110,7 +110,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '11px',
                     fontWeight: 700,
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -122,7 +122,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '15px',
                     fontWeight: 600,
-                    color: '#F0F4FF',
+                    color: 'var(--t1, #1C1916)',
                     margin: '2px 0 0',
                   }}
                 >
@@ -136,7 +136,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                   style={{
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '11px',
-                    color: '#8899CC',
+                    color: 'var(--t2, #96918D)',
                     flexShrink: 0,
                   }}
                 >
@@ -186,7 +186,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                       color: isActive ? config.colorActive : config.color,
                       transition: 'background 0.08s, color 0.08s',
                       boxShadow: isActive
-                        ? 'inset 2px 2px 5px hsl(230 100% 4% / 0.4)'
+                        ? 'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))'
                         : 'none',
                     }}
                   >

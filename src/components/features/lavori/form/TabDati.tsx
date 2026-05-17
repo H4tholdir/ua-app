@@ -8,13 +8,13 @@ const inputBase: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: '12px',
-  background: '#0F1E52',
-  border: '1px solid #243580',
-  color: '#F0F4FF',
+  background: 'var(--bg, #DDD8D3)',
+  border: '1px solid rgba(0,0,0,.06)',
+  color: 'var(--t1, #1C1916)',
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '15px',
   boxShadow:
-    'inset 3px 3px 8px hsl(230 100% 4% / 0.8), inset -2px -2px 6px hsl(220 80% 35% / 0.4)',
+    'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))',
   outline: 'none',
   boxSizing: 'border-box',
 }
@@ -24,7 +24,7 @@ const labelStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '12px',
   fontWeight: 600,
-  color: '#8899CC',
+  color: 'var(--t2, #96918D)',
   textTransform: 'uppercase' as const,
   letterSpacing: '0.06em',
   marginBottom: '6px',
@@ -68,7 +68,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
         <div style={fieldStyle}>
           <label htmlFor="cliente-combobox" style={labelStyle}>
             Dentista / Studio{' '}
-            <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
+            <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <ClienteComboBox
             id="cliente-combobox"
@@ -82,7 +82,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
       {/* 1. Tipo dispositivo */}
       <div style={fieldStyle}>
         <label htmlFor="tipo_dispositivo" style={labelStyle}>
-          Tipo dispositivo <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
+          Tipo dispositivo <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
         </label>
         <select
           id="tipo_dispositivo"
@@ -113,7 +113,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
       {/* 2. Descrizione */}
       <div style={fieldStyle}>
         <label htmlFor="descrizione" style={labelStyle}>
-          Descrizione <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
+          Descrizione <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
         </label>
         <textarea
           id="descrizione"
@@ -159,7 +159,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
       >
         <div>
           <label htmlFor="data_consegna_prevista" style={labelStyle}>
-            Data consegna <span aria-hidden="true" style={{ color: '#FA5252' }}>*</span>
+            Data consegna <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <input
             id="data_consegna_prevista"
@@ -170,7 +170,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             onChange={(e) => onChange({ data_consegna_prevista: e.target.value })}
             style={{
               ...inputBase,
-              colorScheme: 'dark',
+              colorScheme: 'light',
             }}
             aria-required="true"
           />
@@ -187,7 +187,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             onChange={(e) => onChange({ ora_consegna: e.target.value || null })}
             style={{
               ...inputBase,
-              colorScheme: 'dark',
+              colorScheme: 'light',
             }}
           />
         </div>
@@ -245,7 +245,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: '#F0F4FF',
+            color: 'var(--t1, #1C1916)',
             cursor: 'pointer',
           }}
         >
