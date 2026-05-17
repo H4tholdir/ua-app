@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
+// Billing page is always light (warm panna) per design v7 — no dark mode variant
 import { useReducedMotion } from '@/design-system/motion'
 
 // ── Price IDs (client-safe — these are publishable references) ───────────────
@@ -88,11 +89,6 @@ export default function BillingContent({ labNome, reason }: Props) {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
   const [showReteInfo, setShowReteInfo] = useState(false)
   const [logoAnimating, setLogoAnimating] = useState(false)
-  const [isDark, setIsDark] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : false
-  )
 
   const reducedMotion = useReducedMotion()
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -100,11 +96,7 @@ export default function BillingContent({ labNome, reason }: Props) {
   const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
-    mq.addEventListener('change', handler)
     return () => {
-      mq.removeEventListener('change', handler)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [])
@@ -163,10 +155,10 @@ export default function BillingContent({ labNome, reason }: Props) {
     <>
       <canvas ref={canvasRef} className="ua-billing-confetti" aria-hidden="true" />
 
-      <div className="login-root" data-login-theme={isDark ? 'dark' : 'light'}>
+      <div className="login-root" data-login-theme="light">
         <div className="ua-wrap" style={{ maxWidth: '400px' }}>
           <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
-            <div className="ua-card" style={{ gap: '24px', padding: '36px 28px 32px' }}>
+            <div className="ua-card" style={{ gap: '24px', padding: '36px 28px 32px', border: '1.5px solid rgba(212,168,67,.32)' }}>
 
               {/* Logo */}
               <div className="ua-la">
@@ -193,8 +185,8 @@ export default function BillingContent({ labNome, reason }: Props) {
                 {chipConfig.label}
               </div>
 
-              {/* Lab name */}
-              <p className="ua-flbl" style={{ textAlign: 'center', marginTop: '-8px' }}>{labNome}</p>
+              {/* Lab name — uppercase label come nel design v7 */}
+              <p style={{ textAlign: 'center', fontSize: '10px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ua-t2)', marginTop: '-6px' }}>{labNome}</p>
 
               {/* ── Trial expired — plan selector ── */}
               {reason === 'trial_expired' && (
