@@ -195,7 +195,7 @@ export default async function AdminLivePreviewPage({ params }: Props) {
       </div>
 
       {/* Contenuto dashboard con padding-top per il banner */}
-      <div style={{ paddingTop: 44, minHeight: '100dvh', background: '#0F1E52' }}>
+      <div style={{ paddingTop: 44, minHeight: '100dvh', background: 'var(--bg, #DDD8D3)' }}>
         <DashboardTitolare
           stats={stats}
           consegneOggi={consegneOggi as Parameters<typeof DashboardTitolare>[0]['consegneOggi']}
