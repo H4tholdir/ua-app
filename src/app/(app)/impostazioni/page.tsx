@@ -27,6 +27,8 @@ type LabRow = {
   prrc_nome: string | null
   prrc_qualifica: string | null
   pec_smtp_configurata: boolean
+  pec_verificata: boolean
+  pec_verified_at: string | null
   piano: string
 }
 
@@ -120,7 +122,7 @@ export default async function ImpostazioniPage() {
         logo_url, logo_print_url, firma_ddc_url,
         codice_itca, srn_eudamed,
         prrc_nome, prrc_qualifica,
-        pec_smtp_configurata, piano
+        pec_smtp_configurata, pec_verificata, pec_verified_at, piano
       `)
       .eq('id', labId)
       .single()
@@ -270,6 +272,11 @@ export default async function ImpostazioniPage() {
                 {lab.pec_smtp_configurata ? 'Configurato' : 'Non configurato'}
               </span>
             </div>
+            {lab.pec_verificata && (
+              <div style={{ fontSize: '11px', color: '#16A34A', fontFamily: 'DM Sans, sans-serif', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>✅</span> Verificata end-to-end
+              </div>
+            )}
             <Link href="/impostazioni/pec" style={{ display: 'inline-block', marginTop: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--primary, #D90012)', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif' }}>
               {lab.pec_smtp_configurata ? 'Modifica configurazione PEC →' : 'Configura PEC →'}
             </Link>

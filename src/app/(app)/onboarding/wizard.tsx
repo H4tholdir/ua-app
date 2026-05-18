@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { PecSetupWidget } from '@/components/features/pec/PecSetupWidget'
 
 const STEPS = [
   { id: 'benvenuto', title: 'Benvenuto in UÀ' },
@@ -59,7 +60,6 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
     prrc_nome: (initialData.prrc_nome as string) ?? '',
     prrc_qualifica: (initialData.prrc_qualifica as string) ?? '',
     pec: (initialData.pec as string) ?? '',
-    pec_host: '', pec_port: '465', pec_user: '', pec_password: '',
   })
 
   const setF = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -181,38 +181,16 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
       case 'pec':
         return (
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px', color: 'var(--t1)', fontFamily: 'DM Sans, sans-serif' }}>Configurazione PEC</h2>
-            <p style={{ fontSize: '13px', color: 'var(--t2)', marginBottom: '20px', fontFamily: 'DM Sans, sans-serif' }}>
-              UÀ invierà automaticamente le fatture al SDI via PEC.
+            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px', color: 'var(--t1)', fontFamily: 'DM Sans, sans-serif' }}>
+              Configurazione PEC
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--t2)', marginBottom: '20px', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6 }}>
+              UÀ invierà le fatture al SDI in automatico via PEC.
             </p>
-            {([
-              { key: 'pec', label: 'Indirizzo PEC', placeholder: 'lab@pec.it', type: 'email' },
-              { key: 'pec_host', label: 'Host SMTP', placeholder: 'smtp.pec.aruba.it', type: 'text' },
-              { key: 'pec_port', label: 'Porta', placeholder: '465', type: 'text' },
-              { key: 'pec_user', label: 'Utente SMTP', placeholder: 'lab@pec.it', type: 'email' },
-              { key: 'pec_password', label: 'Password PEC', placeholder: '••••••••', type: 'password' },
-            ] as { key: string; label: string; placeholder: string; type: string }[]).map(({ key, label, placeholder, type }) => (
-              <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
-                <label style={labelStyle}>{label}</label>
-                <input style={inputStyle} type={type} value={(form as Record<string, string>)[key]} onChange={setF(key)} placeholder={placeholder} />
-              </div>
-            ))}
-            {error && <div style={{ color: '#D90012', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
-            <button style={btnPrimary} disabled={loading} onClick={async () => {
-              if (form.pec_host && form.pec_user && form.pec_password) {
-                setLoading(true)
-                const res = await fetch('/api/impostazioni/pec', {
-                  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ pec: form.pec, pec_host: form.pec_host, pec_port: parseInt(form.pec_port), pec_user: form.pec_user, pec_password: form.pec_password }),
-                })
-                setLoading(false)
-                if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error ?? 'Errore'); return }
-              }
-              setStep('ddc')
-            }}>
-              {loading ? 'Salvataggio…' : 'Avanti →'}
-            </button>
-            <button onClick={() => setStep('ddc')} style={btnSkip}>Configura dopo</button>
+            <PecSetupWidget
+              onSuccess={() => setStep('ddc')}
+              onSkip={() => setStep('ddc')}
+            />
           </div>
         )
 

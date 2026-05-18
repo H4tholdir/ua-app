@@ -1,0 +1,8 @@
+name = "ua-pec-verify"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+APP_URL = "https://uachelab.com"
+
+# INTERNAL_SECRET va impostato via: npx wrangler secret put INTERNAL_SECRET
