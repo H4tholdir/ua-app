@@ -99,28 +99,33 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
-  // Blocca campi non modificabili via API
-  const BLOCKED = [
-    'id',
-    'piano',
-    'stato',
-    'trial_ends_at',
-    'stripe_customer_id',
-    'stripe_subscription_id',
-    'pec_vault_key_id',       // Gestita solo tramite admin
-    'pec_password',           // Non esiste in DB — blocca per sicurezza
-    'created_at',
-    'deleted_at',
+  // Allowlist esplicita — solo questi campi sono modificabili via API
+  const ALLOWED: (keyof typeof body)[] = [
+    'nome', 'ragione_sociale', 'partita_iva', 'codice_fiscale',
+    'indirizzo', 'cap', 'citta', 'provincia',
+    'telefono', 'email', 'pec',
+    'codice_itca', 'srn_eudamed',
+    'prrc_nome', 'prrc_qualifica',
+    'regime_fiscale', 'codice_iva_default',
+    'intestazione_ddc', 'intestazione_fattura', 'intestazione_buono',
+    'logo_url', 'logo_print_url', 'firma_ddc_url', 'sfondo_ddc_url',
+    'onboarding_completato',
   ]
-  for (const field of BLOCKED) {
-    delete body[field]
+
+  const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  for (const field of ALLOWED) {
+    if (field in body) {
+      updateData[field] = body[field]
+    }
   }
 
-  body.updated_at = new Date().toISOString()
+  if (Object.keys(updateData).length <= 1) {
+    return NextResponse.json({ error: 'Nessun campo valido da aggiornare' }, { status: 400 })
+  }
 
   const { data: lab, error: updateError } = await svc
     .from('laboratori')
-    .update(body)
+    .update(updateData)
     .eq('id', utente.laboratorio_id)
     .select('id, nome, updated_at')
     .single()

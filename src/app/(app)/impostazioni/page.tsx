@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { ImpostazioniEditForm } from '@/components/features/impostazioni/ImpostazioniEditForm'
 
 type LabRow = {
   id: string
@@ -136,6 +138,8 @@ export default async function ImpostazioniPage() {
       <AppHeader title="Impostazioni" />
 
       <div style={{ padding: '0 20px 32px' }}>
+        <ImpostazioniEditForm initialData={lab} />
+
         {/* Sezione 1: Dati laboratorio */}
         <SectionCard title="Dati laboratorio">
           <InfoRow label="Nome" value={lab.nome} />
@@ -266,16 +270,9 @@ export default async function ImpostazioniPage() {
                 {lab.pec_smtp_configurata ? 'Configurato' : 'Non configurato'}
               </span>
             </div>
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '13px',
-                color: '#6677AA',
-                margin: '6px 0 0',
-              }}
-            >
-              La configurazione SMTP viene gestita dall&apos;amministratore UÀ.
-            </p>
+            <Link href="/impostazioni/pec" style={{ display: 'inline-block', marginTop: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--primary, #D90012)', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif' }}>
+              {lab.pec_smtp_configurata ? 'Modifica configurazione PEC →' : 'Configura PEC →'}
+            </Link>
           </div>
         </SectionCard>
 
