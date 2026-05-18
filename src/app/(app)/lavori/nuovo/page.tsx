@@ -41,7 +41,7 @@ export default function NuovoLavoroPage() {
     setError(null)
   }, [])
 
-  const handleClienteChange = useCallback((id: string) => {
+  const handleClienteChange = useCallback((id: string, _label?: string) => {
     setClienteId(id)
     setError(null)
   }, [])

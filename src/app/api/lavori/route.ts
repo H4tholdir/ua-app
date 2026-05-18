@@ -103,6 +103,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
+  // Validazione server-side campi obbligatori
+  if (!body.cliente_id || typeof body.cliente_id !== 'string') {
+    return NextResponse.json({ error: 'cliente_id obbligatorio' }, { status: 422 })
+  }
+  if (!body.tipo_dispositivo || typeof body.tipo_dispositivo !== 'string') {
+    return NextResponse.json({ error: 'tipo_dispositivo obbligatorio' }, { status: 422 })
+  }
+  if (!body.descrizione || typeof body.descrizione !== 'string') {
+    return NextResponse.json({ error: 'descrizione obbligatoria' }, { status: 422 })
+  }
+  if (!body.data_consegna_prevista || typeof body.data_consegna_prevista !== 'string') {
+    return NextResponse.json({ error: 'data_consegna_prevista obbligatoria' }, { status: 422 })
+  }
+
   // Genera progressivo numero lavoro (race-safe via DB function)
   const anno = new Date().getFullYear()
   const { data: progressivo, error: rpcError } = await svc.rpc('genera_progressivo', {
