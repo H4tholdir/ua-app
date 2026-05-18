@@ -1,93 +1,124 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 18 maggio 2026 — Piano F (go-live) + Piano G (V1 completion) completati
+**Ultimo aggiornamento:** 19 maggio 2026 — PEC Setup inbound verification + infrastruttura email completata
 
 ---
 
-## 1. Stato del Progetto (aggiornato al 18/05/2026)
+## 1. Stato del Progetto (aggiornato al 19/05/2026)
 
 ### Deploy
 - **URL produzione:** https://uachelab.com
 - **Supabase project:** `iagibumwjstnveqpjbwq` → https://iagibumwjstnveqpjbwq.supabase.co
 - **GitHub repo:** https://github.com/H4tholdir/ua-app
-- **Ultimo commit pushato:** `e1569b1` (Piano F + G completati)
+- **Ultimo commit pushato:** `91e5adf` (fix ESLint CI)
+- **141 test verdi** · **CI GitHub: verde** · **CD Vercel: attivo**
 
 ### ✅ Piano F completato (18/05/2026 — go-live bloccanti)
-- Fix form Nuovo Lavoro: handleClienteChange firma corretta + validazione server-side cliente_id
-- /api/impostazioni PATCH: convertito da blocklist a allowlist esplicita (include onboarding_completato)
+- Fix form Nuovo Lavoro: handleClienteChange + validazione server-side cliente_id
+- /api/impostazioni PATCH: allowlist esplicita (include onboarding_completato)
 - /impostazioni: edit mode con ImpostazioniEditForm + link a /impostazioni/pec
-- /impostazioni/pec: configurazione SMTP PEC con Supabase Vault (REVOKE+SELECT FOR UPDATE)
+- /impostazioni/pec: ora usa PecSetupWidget (vedi Piano PEC)
 - /impostazioni/profilo: cambio password
-- /onboarding: wizard 6-step (banner dashboard, senza redirect loop, complete() verifica res.ok)
-- Email templates: doc in docs/email-templates-supabase.md (configurazione manuale richiesta)
+- /onboarding: wizard 6-step (banner dashboard, senza redirect loop)
+- Email templates Supabase: ✅ aggiornati con branding UÀ (19/05/2026)
 
 ### ✅ Piano G completato (18/05/2026 — V1 completion)
-- fix(invite): email inviata via Resend con template HTML branding UÀ
-- Audit infrastruttura: Supabase ✅ Vercel ✅ estensioni ✅ RLS ✅
-- /fatture/[id]: dettaglio fattura con righe e stato SDI
-- /magazzino/[id]: dettaglio articolo con giacenza e alert scorta minima
-- /pazienti/[id]: storico paziente GDPR-safe con lista lavori
-- /impostazioni/abbonamento: stato piano + link Stripe portal
-- Fix background cobalt nella live preview admin (var(--bg) invece di #0F1E52)
+- fix(invite): email via Resend con template HTML branding UÀ
+- /fatture/[id], /magazzino/[id], /pazienti/[id]: pagine detail
+- /impostazioni/abbonamento: stato piano + Stripe portal
+- Fix background cobalt nella live preview admin
+
+### ✅ PEC Setup — Inbound Verification Loop (19/05/2026)
+**Spec:** `docs/superpowers/specs/2026-05-18-pec-setup-design.md`
+**Piano:** `docs/superpowers/plans/2026-05-18-pec-setup-inbound-verify.md`
+- `PecSetupWidget`: componente riutilizzabile (wizard + /impostazioni/pec) con 6 stati UI
+- Auto-detect provider da dominio email (8 provider PEC italiani)
+- Accordion fallback per provider sconosciuti
+- Loop verifica end-to-end: lab PEC → verify+{token}@uachelab.com → Cloudflare → Worker → DB
+- `pec_verificata`, `pec_verified_at`, `pec_verify_token` in tabella laboratori
+- **TEST END-TO-END SUPERATO** (19/05/2026 22:17 UTC) ✅
 
 ### Credenziali admin
 - **Admin email:** francesco.formicola@live.it
 - **Admin role:** admin_sistema
-- **Admin lab:** UÀ HQ (`aa14e38a-a86c-4454-9a87-bfd847a71d28`)
 - **Admin route:** /admin/labs
 
 ### Laboratori nel DB
-- **Lab Filippo:** `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` · P.IVA 03508740655 · ITCA01051686 · stato: trial
-- **Lab Arturo Pepe:** `314cd040-0893-4e9d-9ad8-786e4eefd75f` · P.IVA 02330640653 · ITCA01050077 · stato: trial
+- **Lab Filippo:** `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` · ITCA01051686 · trial
+- **Lab Arturo Pepe:** `314cd040-0893-4e9d-9ad8-786e4eefd75f` · ITCA01050077 · trial
 
 ---
 
-## 2. Design System v2.2 (DEFINITIVO)
+## 2. Infrastruttura Email (COMPLETA)
+
+### Resend
+- **Dominio verificato:** `uachelab.com` (Cloudflare, eu-west-1) ✅
+- **FROM address:** `noreply@uachelab.com` ✅
+- **API key:** in `.env.local` e Vercel production ✅
+- **Scopo:** email inviti titolari (flow custom token)
+
+### Supabase Email Templates
+- Confirm signup → branding UÀ ✅
+- Reset Password → branding UÀ ✅
+- Invite User → branding UÀ ✅
+- **Configurati via Management API il 19/05/2026**
+
+### Cloudflare Email Routing
+- **Catch-all:** `@uachelab.com` → Worker `ua-pec-verify` ✅ Active
+- **Worker:** `ua-pec-verify` su account h4t (deployato 19/05/2026)
+- **Scopo:** ricezione email di verifica PEC (verify+{token}@uachelab.com)
+
+### DMARC
+- Record `_dmarc` TXT aggiunto su Cloudflare: `v=DMARC1; p=none; rua=mailto:noreply@uachelab.com` ✅
+
+---
+
+## 3. Design System v2.2 (DEFINITIVO)
 
 **Fonte di verità:** `ANALISI/30_design_system_v2_definitivo.md`
 
 ```
-Background: --bg: #DDD8D3 (panna warm da admin.css)
-Surface:    --surface: #E4DFD9
-Elevated:   --elv: #EDEDEA
-Pressed:    --prs: #D4CFC9
-Testo:      --t1: #1C1916  --t2: #96918D  --t3: #B8B3AE
-Primary:    --primary: #D90012  (NON #E30613)
-Success:    --success: #16A34A
-Urgente:    --urgente: #F97316
-Warning:    --warning: #B45309
-Info:       --info: #2563EB
+Light: --bg:#DDD8D3  --sfc:#E4DFD9  --elv:#EDEDEA  --prs:#D4CFC9
+       --t1:#1C1916  --t2:#96918D   --t3:#B8B3AE
+       --primary:#D90012  --gold:#D4A843  --cobalt:#1B2D6B (nav pill ONLY)
+Dark:  --bg:#1A1916  --sfc:#222019  --elv:#2C2A27   --prs:#121110
+       --t1:#F0EDE8  --t2:#8A8580   --t3:#4A4845    --primary:#E8001A
 
-Shadow card: --sh-c (warm-tinted asimmetrica da admin.css)
-Shadow btn:  --sh-b
-Shadow inset:--sh-i
-Shadow red:  --sh-red
+Shadows: dual-layer warm-tinted
+  Light raised: -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40)
+  Light inset:  inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)
+  Dark raised:  -5px -5px 11px rgba(255,255,255,.018), 9px 12px 28px -4px rgba(0,0,0,.60)
 
-Font: DM Sans (400-800) — tutto UI
-Font brand: Playfair Display — SOLO headline marketing, MAI KPI
-KPI numbers: DM Sans 800 (NON Playfair)
-
-Nav: A2 Floating Pill, FAB centrale bianco con + rossa
-Card: metallic con shine, badge circolare stato top-right, 4-dot timeline
+Font: DM Sans (400-800) — tutto UI (MAI Inter)
+Nav: A2 Floating Pill, FAB centrale rossa #D90012
 ```
 
-**VIETATO:** `#1B2D6B` (cobalt) come background · shadow cobalt HSL · Inter · glow colorati · blur ≠ 2× offset
+**VIETATO:** `#0F1E52`/`#1B2D6B` come background · shadow cobalt · Inter · gradient viola-blu
 
 ---
 
-## 3. Decisioni Tecniche Prese (non riaprire)
+## 4. Architettura Chiave (decisioni non riaprire)
 
-### Database
-- **Migrations applicate al remote:** 009 (ultima: audit_log_triggers)
-- **pg_cron:** attivo (refresh dashboard KPI ogni 15 min)
-- **audit_log:** trigger su lavori/clienti/fatture/dichiarazioni_conformita/magazzino/listino/utenti/laboratori
-- **Funzione admin_delete_laboratorio():** elimina lab in cascade, NON tocca admin_sistema
-- **admin_delete_laboratorio:** NON elimina utenti con ruolo admin_sistema
+### Auth + Inviti
+- Invite flow: **custom token** (`/api/admin/invite` → tabella `inviti` → Resend email → `/invite/[token]`)
+- **NON usare** `inviteUserByEmail` Supabase (incompatibile con flow custom)
+- `admin_sistema` → redirect a `/admin/labs` (MAI /dashboard — loop)
+- `public.current_lab_id()` — NON `auth.current_lab_id()` (funzione in schema `public`)
 
-### Auth
-- `admin_sistema` → redirect a `/admin/labs` (NON a /dashboard — causerebbe loop)
-- Service Worker (`sw.js`): skip `request.mode === 'navigate'` e `/_next/`
-- ThemeToggleButton è un Client island separato da AppHeader (che è Server Component)
-- SkipToContent è un Client island (onFocus/onBlur non possono stare in Server Component)
+### PEC
+- `upsert_pec_vault_secret(p_lab_id, p_password)` — SECURITY DEFINER, solo service_role
+- `get_pec_vault_secret(p_lab_id)` — SECURITY DEFINER, solo service_role
+- Verifica end-to-end: `POST /api/impostazioni/pec/start-verify` → `GET /api/impostazioni/pec/verify-status`
+- Callback Cloudflare Worker → `POST /api/internal/pec-verify` (x-internal-secret header)
+
+### API Security
+- **PATCH allowlist** obbligatoria — MAI blocklist
+- **SECURITY DEFINER** SQL: sempre `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT TO service_role`
+- `isSameOrigin()` su tutte le API route che accettano POST
+
+### Onboarding
+- **NO** `redirect('/onboarding')` nel layout `(app)/layout.tsx` — causa loop infinito
+- Usare SOLO banner dashboard + link a `/onboarding`
+- `complete()` nel wizard: verificare `res.ok` prima di `router.push()`
 
 ### Stripe
 - Lab monthly: `price_1TWCfaRsMhN7mg7YVt0UfeNB`
@@ -97,147 +128,121 @@ Card: metallic con shine, badge circolare stato top-right, 4-dot timeline
 
 ---
 
-## 4. Dati Filippo Opromolla (importati da DentalMaster)
+## 5. Piani Completati
+
+| Piano | Status | Data |
+|---|---|---|
+| A — Foundation (DB, auth, bug) | ✅ | 15/05 |
+| B — Core Flows (prove, rifacimento, consegna) | ✅ | 15/05 |
+| C — Dashboard RBAC (3 ruoli) | ✅ | 15/05 |
+| D — UI Redesign (warm panna v2.2) | ✅ | 15/05 |
+| E — MDR Testing + DdC PDF + RLS | ✅ | 15/05 |
+| Admin Panel completo | ✅ | 17/05 |
+| Import DentalMaster | ✅ | 17/05 |
+| F — V1 Go-Live bloccanti | ✅ | 18/05 |
+| G — V1 Completion | ✅ | 18/05 |
+| PEC Setup — Inbound Verification Loop | ✅ | 19/05 |
+
+---
+
+## 6. Pagine Implementate (37+)
+
+```
+(app)/dashboard          (app)/lavori             (app)/lavori/nuovo
+(app)/lavori/[id]        (app)/clienti            (app)/fatture
+(app)/fatture/[id]       (app)/magazzino          (app)/magazzino/[id]
+(app)/pazienti           (app)/pazienti/[id]      (app)/listino
+(app)/scadenzario        (app)/tecnici            (app)/rete
+(app)/qualita            (app)/impostazioni       (app)/impostazioni/pec
+(app)/impostazioni/profilo  (app)/impostazioni/abbonamento
+(app)/onboarding         (app)/portale/[token]    (app)/billing
+admin/labs               admin/labs/[id]          admin/labs/new
+admin/labs/[id]/live     (auth)/login             (auth)/invite/[token]
+(auth)/reset-password    (auth)/auth/callback
+```
+
+---
+
+## 7. API Routes Chiave
+
+| Route | Metodo | Descrizione |
+|-------|--------|-------------|
+| `/api/impostazioni` | GET, PATCH | Dati lab (PATCH con allowlist esplicita) |
+| `/api/impostazioni/pec` | PATCH, POST | Config PEC SMTP (PATCH=salva, POST=test legacy) |
+| `/api/impostazioni/pec/start-verify` | POST | Salva credenziali + testa SMTP + invia email → token |
+| `/api/impostazioni/pec/verify-status` | GET | Polling verifica (polling 2s dal client) |
+| `/api/internal/pec-verify` | POST | Callback Cloudflare Worker → pec_verificata=true |
+| `/api/admin/invite` | POST | Crea invito + invia email via Resend |
+| `/api/auth/accept-invite` | POST | Accetta invito, crea utente |
+| `/api/lavori` | GET, POST | Lavori (POST con validazione server-side) |
+| `/api/stripe/portal` | GET | Redirect al Stripe Customer Portal |
+
+---
+
+## 8. Componenti Chiave
+
+```
+src/components/features/
+├── pec/PecSetupWidget.tsx       ← widget PEC con 6 stati + auto-detect provider
+├── impostazioni/ImpostazioniEditForm.tsx
+├── dashboard/DashboardTitolare.tsx   ← include banner onboardingPending
+└── clienti/ClienteComboBox.tsx
+
+src/lib/pec/
+├── providers.ts                 ← 8 provider PEC italiani + detectProvider()
+└── errors.ts                    ← mapSmtpError() → messaggi italiani
+
+cloudflare/email-worker/
+├── worker.js                    ← Email Worker Cloudflare (deployato)
+├── wrangler.toml
+└── README.md                    ← istruzioni deploy
+```
+
+---
+
+## 9. Dati Filippo Opromolla
 
 ```
 Nome: Filippo Opromolla
-CF: PRMFPP69S17Z112Q
-P.IVA: 03508740655
-ITCA: ITCA01051686
+CF: PRMFPP69S17Z112Q · P.IVA: 03508740655 · ITCA: ITCA01051686
 Indirizzo: via Tempone Siepe Grande snc, 84028 Serre (SA)
-Telefono: 3473334094
-Email: filippopromolla@gmail.com
+Telefono: 3473334094 · Email: filippopromolla@gmail.com
 PRRC: Filippo Opromolla — Odontotecnico abilitato
-Regime fiscale: RF01 — Codice IVA: N4
+Regime fiscale: RF01 · Codice IVA: N4
+Lab ID: 971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c
 ```
 
-**Dati importati:**
-- 18 clienti/dentisti (da CLIENTI.tab + LISTA CLIENTI.pdf)
-- 72 lavorazioni × 4 fasce prezzo (da LISTINO.tab + PDF)
-- 185 articoli magazzino (da VALORI MAGAZZINO.pdf)
-- 4 lavorazioni senza prezzo: cod 2 (Moncone sfilabile), 19 (Armatura ceramica), 28 (Telescopico), 50 (Riparazione rinforzata)
-
-**File DentalMaster:** `/Users/hatholdir/Downloads/SOFTWARE FILIPPO/DentalMaster Advanced 2021/file esportati dentalmaster/`
-Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-parsed.ts`
+Dati importati: 18 clienti · 72 lavorazioni × 4 fasce · 185 articoli magazzino
 
 ---
 
-## 5. Cosa Manca per Go-Live con Filippo
+## 10. Prossimi Task
 
-### Obbligatorio (bloccante)
-1. **PEC SMTP Filippo** — configurare in /impostazioni/pec con credenziali reali e testare
-2. **RESEND_API_KEY reale** — il placeholder in .env.local va sostituito con API key reale
-3. **Email templates Supabase** — configurazione manuale in dashboard → docs/email-templates-supabase.md
-4. **Consegna test end-to-end** — con lavoro reale Filippo, verifica DdC ITCA01051686
+### Pronto per Filippo (da fare con lui)
+1. **PEC SMTP reale** — Filippo configura le sue credenziali in `/impostazioni/pec`
+2. **Test flow invito completo** — crea lab demo → invia invito → email arriva → wizard onboarding → dashboard
+3. **Consegna end-to-end test** — un lavoro reale con DdC ITCA01051686 + PDF + consegna
 
-### Correzioni Codex integrate (18/05/2026)
-- ✅ NO redirect('/onboarding') nel layout → banner dashboard
-- ✅ Vault SQL: REVOKE EXECUTE + SELECT FOR UPDATE
-- ✅ Invite flow: custom token mantenuto, email via Resend
-- ✅ API PATCH allowlist (era blocklist)
-- ✅ complete() verifica res.ok prima di router.push()
-- ✅ Background cobalt rimosso dalla live preview
+### Infrastruttura
+4. **Husky pre-commit** — `chmod +x /Users/hatholdir/Downloads/SOFTWARE\ FILIPPO/ua-app/.husky/pre-commit`
+5. **NEXT_PUBLIC_SUPPORT_PHONE** — inserire numero WhatsApp reale in .env.local e Vercel
 
-### Nice-to-have (V1 ma non bloccanti)
-- Input voce 🎤 (Flow 1, 3)
-- Push notifications wireate
+### V1.1 (futuri)
+- Input voce
+- Push notifications
 - WhatsApp Business API (ora solo link template)
-- Ordini fornitori automatici
-- Animazione successo consegna
-- Report/statistiche avanzate
-- STL file handling
-- Admin profilo/impostazioni section
+- Report/statistiche avanzate avanzate
+- Billing page redesign
 
 ---
 
-## 6. Piani Completati
+## 11. Note Tecniche
 
-| Piano | Status |
-|---|---|
-| A — Foundation (DB, auth, bug) | ✅ |
-| B — Core Flows (prove, rifacimento, consegna, scadenzario) | ✅ |
-| C — Dashboard RBAC (3 ruoli) | ✅ |
-| D — UI Redesign (warm panna v2.2) | ✅ |
-| E — MDR Testing + DdC PDF + RLS | ✅ |
-| Admin Panel completo | ✅ |
-| Import DentalMaster | ✅ |
-| F — V1 Go-Live bloccanti | ✅ 18/05/2026 |
-| G — V1 Completion | ✅ 18/05/2026 |
-
----
-
-## 7. Struttura Cartelle Chiave
-
-```
-src/
-├── app/(app)/          ← pagine operative (dashboard, lavori, clienti, ecc.)
-├── app/(auth)/         ← login, invite, forgot-password
-├── app/admin/          ← pannello admin Francesco
-├── app/api/            ← 38 route API
-├── app/billing/        ← pagina billing (da redesignare)
-├── components/
-│   ├── features/dashboard/  ← KpiCard, LavoroUrgente, Dashboard*
-│   ├── features/lavori/     ← LavoroCard, ConsegnaButton, TabProve, RifacimentoModal
-│   └── layout/              ← BottomNavPill, AppHeader, ThemeToggleButton, SkipToContent
-├── design-system/
-│   ├── motion.ts       ← UNICA FONTE token animazioni
-│   └── tokens.ts
-├── lib/
-│   ├── consegna/       ← precheck MDR, orchestrate, pec, whatsapp
-│   ├── dashboard/      ← queries, cache-stale
-│   ├── fattura/        ← xml-helpers, generate-xml
-│   ├── pdf/            ← DdcTemplate, BuonoTemplate, generate-ddc
-│   └── pec/            ← providers (9 italiani), config
-└── hooks/useTheme.ts
-```
-
----
-
-## 8. Documenti di Riferimento
-
-```
-ANALISI/
-├── 15_dentalmaster_funzionalita_complete.md  ← DentalMaster 1:1
-├── 16_odontec_analisi_completa.md            ← Odontec 1:1
-├── 17_adempimenti_lab_2026.md                ← MDR + FatturaPA + GDPR
-├── 23_ua_database_schema.md                  ← Schema DB completo
-├── 26_ua_design_system_completo.md           ← versione precedente (NON usare)
-├── 29_motion_system_policy.md                ← MOTION POLICY OBBLIGATORIA
-├── 30_design_system_v2_definitivo.md         ← ← ← DESIGN SYSTEM ATTUALE v2.2
-└── 31_audit_ui_vs_design_v2.md               ← audit pagine vs design
-
-docs/superpowers/
-├── specs/2026-05-15-ua-spec-completo.md     ← spec completa v1.1
-└── plans/
-    ├── 2026-05-15-plan-a-foundation.md
-    ├── 2026-05-15-plan-b-core-flows.md
-    ├── 2026-05-15-plan-c-dashboard.md
-    ├── 2026-05-15-plan-d-ui-redesign.md
-    └── 2026-05-15-plan-e-testing-mdr.md
-```
-
----
-
-## 9. Prossima Sessione — Da Fare
-
-1. **RESEND_API_KEY reale** — sostituire placeholder in .env.local e Vercel env
-2. **Email templates Supabase** — copiarli da docs/email-templates-supabase.md nel Dashboard Supabase
-3. **PEC SMTP Filippo** — configurare credenziali reali in /impostazioni/pec
-4. **Test flow invito completo** — creare nuovo lab, inviare invito, verificare email, accettare, completare onboarding
-5. **Consegna end-to-end** con dati reali Filippo
-6. **E2E test con creds reali** (seed-e2e.ts)
-
----
-
-## 10. Note Importanti
-
-- **Husky pre-commit** non ha i permessi di esecuzione — `chmod +x .husky/pre-commit` da fare
-- **NEXT_PUBLIC_APP_URL** = `https://uachelab.com` in .env.local ✅
-- **Supabase Site URL** = `https://uachelab.com` (aggiornato il 17/05/2026) ✅
-- **Supabase Redirect URLs** = `https://uachelab.com/**` ✅
-- **LAB_FILIPPO_ID** = `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` — usare per import script
-- **Logout button**: Uiverse.io by vinodjangid07 — usare .adm-nav-logout-btn CSS in tutti i punti logout
-- **Toggle tema**: Uiverse.io by Galahhad — usare .adm-theme-switch CSS
-- **Design DESIGN/billing-piani/**: mockup approvati v7 — già implementati
-- **Design DESIGN/admin/**: mockup approvati v3b — riferimento per future modifiche admin
-- **Worktree** attivo: `.claude/worktrees/plan-c-dashboard-rbac` (branch non ancora mergeato)
+- **Supabase Site URL:** `https://uachelab.com` ✅
+- **Supabase Redirect URLs:** `https://uachelab.com/**` ✅
+- **Env vars Vercel Production:** tutte configurate (SUPABASE_*, STRIPE_*, RESEND_*, INTERNAL_SECRET) ✅
+- **pg_cron:** attivo — refresh dashboard KPI ogni 15 min
+- **Supabase gen types:** eseguire dopo ogni migration + rimuovere eventuale riga CLI in fondo
+- **ESLint:** `--max-warnings 0` nel CI — zero warning tollerati
+- **WhatsApp GDPR:** template MAI con nome paziente — solo numero lavoro + link portale token
+- **Rifacimento:** usa RPC `crea_rifacimento_atomico()` — MAI 3 INSERT separati
