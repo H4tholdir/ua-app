@@ -1,8 +1,3 @@
--- Funzioni per gestire la password PEC nel Vault di Supabase
--- SECURITY: REVOKE EXECUTE prima della creazione per evitare accesso pubblico
-REVOKE EXECUTE ON FUNCTION IF EXISTS upsert_pec_vault_secret(UUID, TEXT) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION IF EXISTS get_pec_vault_secret(UUID) FROM PUBLIC, anon, authenticated;
-
 -- Funzione per salvare/aggiornare password PEC nel Vault
 CREATE OR REPLACE FUNCTION upsert_pec_vault_secret(
   p_lab_id   UUID,
@@ -44,10 +39,10 @@ BEGIN
 END;
 $$;
 
--- Revoca accesso dopo la creazione (SECURITY DEFINER non eredita i permessi del chiamante)
+-- Revoca accesso dopo la creazione
 REVOKE EXECUTE ON FUNCTION upsert_pec_vault_secret(UUID, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_pec_vault_secret(UUID) FROM PUBLIC, anon, authenticated;
 
--- Concedi accesso solo al service_role (usato da API server-side)
+-- Concedi accesso solo al service_role
 GRANT EXECUTE ON FUNCTION upsert_pec_vault_secret(UUID, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION get_pec_vault_secret(UUID) TO service_role;

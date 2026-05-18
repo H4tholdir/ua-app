@@ -173,7 +173,7 @@ export default async function DashboardPage() {
         nomeUtente={nomeUtente}
         labName={lab?.nome ?? undefined}
         aggiornatoAt={cacheRow?.aggiornato_at ?? null}
-        onboardingPending={!(lab as unknown as { onboarding_completato: boolean } | null)?.onboarding_completato}
+        onboardingPending={!lab?.onboarding_completato}
       />
     )
   }

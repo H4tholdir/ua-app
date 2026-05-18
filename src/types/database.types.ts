@@ -120,6 +120,42 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          changed_at: string
+          id: number
+          lab_id: string | null
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          actor_id?: string | null
+          changed_at?: string
+          id?: number
+          lab_id?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          actor_id?: string | null
+          changed_at?: string
+          id?: number
+          lab_id?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       buoni_consegna: {
         Row: {
           anno_buono: number
@@ -377,11 +413,16 @@ export type Database = {
           aggiornato_at: string
           consegne_oggi: number
           fatturato_mese: number
+          fatturato_mese_precedente: number
+          in_prova_count: number
           is_rifacimento_count: number
           laboratorio_id: string
           lavori_attivi: number
           lavori_in_ritardo: number
+          materiali_esaurimento_count: number
           mdr_incompleti: number
+          pagamenti_scaduti_clienti_count: number
+          pagamenti_scaduti_totale: number
           pronti_non_fatturati: number
           spedizioni_in_ritardo: number
           stl_non_assegnati: number
@@ -392,11 +433,16 @@ export type Database = {
           aggiornato_at?: string
           consegne_oggi?: number
           fatturato_mese?: number
+          fatturato_mese_precedente?: number
+          in_prova_count?: number
           is_rifacimento_count?: number
           laboratorio_id: string
           lavori_attivi?: number
           lavori_in_ritardo?: number
+          materiali_esaurimento_count?: number
           mdr_incompleti?: number
+          pagamenti_scaduti_clienti_count?: number
+          pagamenti_scaduti_totale?: number
           pronti_non_fatturati?: number
           spedizioni_in_ritardo?: number
           stl_non_assegnati?: number
@@ -407,11 +453,16 @@ export type Database = {
           aggiornato_at?: string
           consegne_oggi?: number
           fatturato_mese?: number
+          fatturato_mese_precedente?: number
+          in_prova_count?: number
           is_rifacimento_count?: number
           laboratorio_id?: string
           lavori_attivi?: number
           lavori_in_ritardo?: number
+          materiali_esaurimento_count?: number
           mdr_incompleti?: number
+          pagamenti_scaduti_clienti_count?: number
+          pagamenti_scaduti_totale?: number
           pronti_non_fatturati?: number
           spedizioni_in_ritardo?: number
           stl_non_assegnati?: number
@@ -1658,6 +1709,7 @@ export type Database = {
           nota_iva_fattura: string | null
           numero_albo: string | null
           numero_rea: string | null
+          onboarding_completato: boolean
           partita_iva: string | null
           pec: string | null
           pec_host: string | null
@@ -1718,6 +1770,7 @@ export type Database = {
           nota_iva_fattura?: string | null
           numero_albo?: string | null
           numero_rea?: string | null
+          onboarding_completato?: boolean
           partita_iva?: string | null
           pec?: string | null
           pec_host?: string | null
@@ -1778,6 +1831,7 @@ export type Database = {
           nota_iva_fattura?: string | null
           numero_albo?: string | null
           numero_rea?: string | null
+          onboarding_completato?: boolean
           partita_iva?: string | null
           pec?: string | null
           pec_host?: string | null
@@ -4387,7 +4441,7 @@ export type Database = {
           email: string | null
           id: string
           inactivity_lock_minuti: number
-          laboratorio_id: string
+          laboratorio_id: string | null
           last_login_at: string | null
           last_login_ip: string | null
           mfa_enrolled_at: string | null
@@ -4410,7 +4464,7 @@ export type Database = {
           email?: string | null
           id: string
           inactivity_lock_minuti?: number
-          laboratorio_id: string
+          laboratorio_id?: string | null
           last_login_at?: string | null
           last_login_ip?: string | null
           mfa_enrolled_at?: string | null
@@ -4433,7 +4487,7 @@ export type Database = {
           email?: string | null
           id?: string
           inactivity_lock_minuti?: number
-          laboratorio_id?: string
+          laboratorio_id?: string | null
           last_login_at?: string | null
           last_login_ip?: string | null
           mfa_enrolled_at?: string | null
@@ -4655,6 +4709,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_delete_laboratorio: { Args: { p_lab_id: string }; Returns: Json }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
       calcola_imponibile_lavoro: {
         Args: { p_lavoro_id: string }
@@ -4667,6 +4722,16 @@ export type Database = {
             Args: { p_laboratorio_id: string; p_lavoro_id: string }
             Returns: Json
           }
+      crea_rifacimento_atomico: {
+        Args: {
+          p_costo_interno?: number
+          p_lavoro_originale_id: string
+          p_motivo: string
+          p_note?: string
+          p_rilevato_in?: string
+        }
+        Returns: Json
+      }
       current_lab_id: { Args: never; Returns: string }
       genera_numero_ddc: { Args: { p_lab: string }; Returns: string }
       genera_numero_fattura: { Args: { p_lab: string }; Returns: string }
@@ -4678,6 +4743,7 @@ export type Database = {
       genera_xml_fattura_pa: { Args: { p_fattura_id: string }; Returns: string }
       get_lab_id: { Args: never; Returns: string }
       get_pec_password: { Args: { p_lab_id: string }; Returns: string }
+      get_pec_vault_secret: { Args: { p_lab_id: string }; Returns: string }
       has_prrc_valido: { Args: { p_lab: string }; Returns: boolean }
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
@@ -4709,6 +4775,10 @@ export type Database = {
         }[]
       }
       unaccent: { Args: { "": string }; Returns: string }
+      upsert_pec_vault_secret: {
+        Args: { p_lab_id: string; p_password: string }
+        Returns: undefined
+      }
       xmlescape: { Args: { t: string }; Returns: string }
     }
     Enums: {
