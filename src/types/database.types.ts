@@ -1717,6 +1717,9 @@ export type Database = {
           pec_smtp_configurata: boolean
           pec_user: string | null
           pec_vault_key_id: string | null
+          pec_verificata: boolean
+          pec_verified_at: string | null
+          pec_verify_token: string | null
           piano: string
           piano_trial_scade_at: string | null
           progressivo_sdi: number
@@ -1778,6 +1781,9 @@ export type Database = {
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
+          pec_verificata?: boolean
+          pec_verified_at?: string | null
+          pec_verify_token?: string | null
           piano?: string
           piano_trial_scade_at?: string | null
           progressivo_sdi?: number
@@ -1839,6 +1845,9 @@ export type Database = {
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
+          pec_verificata?: boolean
+          pec_verified_at?: string | null
+          pec_verify_token?: string | null
           piano?: string
           piano_trial_scade_at?: string | null
           progressivo_sdi?: number
