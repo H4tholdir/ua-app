@@ -78,6 +78,7 @@ export interface DashboardTitolareProps {
   nomeUtente: string
   labName?: string
   aggiornatoAt?: string | null
+  onboardingPending?: boolean
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -223,6 +224,7 @@ export function DashboardTitolare({
   nomeUtente,
   labName,
   aggiornatoAt,
+  onboardingPending,
 }: DashboardTitolareProps) {
   const reducedMotion = useReducedMotion()
   const stagger = staggerDelay(7)
@@ -240,6 +242,26 @@ export function DashboardTitolare({
         padding: '0 0 100px',
       }}
     >
+      {/* Banner onboarding */}
+      {onboardingPending && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 20px', margin: '0',
+          background: 'rgba(217,0,18,.07)', gap: 12,
+        }}>
+          <span style={{ fontSize: '13px', color: 'var(--primary, #D90012)', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>
+            ⚙️ Completa la configurazione del laboratorio
+          </span>
+          <a href="/onboarding" style={{
+            fontSize: '12px', fontWeight: 700, color: 'var(--primary, #D90012)',
+            textDecoration: 'none', padding: '4px 12px', borderRadius: '8px',
+            background: 'rgba(217,0,18,.12)', fontFamily: 'DM Sans, sans-serif',
+          }}>
+            Inizia →
+          </a>
+        </div>
+      )}
+
       {/* 1. Header */}
       <div style={{ padding: '24px 20px 12px' }}>
         <div

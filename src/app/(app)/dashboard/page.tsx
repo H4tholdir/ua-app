@@ -121,10 +121,10 @@ export default async function DashboardPage() {
       .order('data_consegna_prevista', { ascending: true })
       .limit(20)
 
-    // Nome laboratorio
+    // Nome laboratorio + onboarding status
     const { data: lab } = await svc
       .from('laboratori')
-      .select('nome')
+      .select('nome, onboarding_completato')
       .eq('id', labId)
       .maybeSingle()
 
@@ -173,6 +173,7 @@ export default async function DashboardPage() {
         nomeUtente={nomeUtente}
         labName={lab?.nome ?? undefined}
         aggiornatoAt={cacheRow?.aggiornato_at ?? null}
+        onboardingPending={!(lab as unknown as { onboarding_completato: boolean } | null)?.onboarding_completato}
       />
     )
   }
