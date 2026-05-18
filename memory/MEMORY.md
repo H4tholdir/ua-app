@@ -1,15 +1,33 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 17 maggio 2026 — sessione admin panel fix + billing v2.2 + design system
+**Ultimo aggiornamento:** 18 maggio 2026 — Piano F (go-live) + Piano G (V1 completion) completati
 
 ---
 
-## 1. Stato del Progetto (aggiornato al 17/05/2026)
+## 1. Stato del Progetto (aggiornato al 18/05/2026)
 
 ### Deploy
 - **URL produzione:** https://uachelab.com
 - **Supabase project:** `iagibumwjstnveqpjbwq` → https://iagibumwjstnveqpjbwq.supabase.co
 - **GitHub repo:** https://github.com/H4tholdir/ua-app
-- **Ultimo commit pushato:** `8e8ac4f` (fix admin: toggle Galahhad + logout vinodjangid07 + hard-delete + magic link)
+- **Ultimo commit pushato:** `e1569b1` (Piano F + G completati)
+
+### ✅ Piano F completato (18/05/2026 — go-live bloccanti)
+- Fix form Nuovo Lavoro: handleClienteChange firma corretta + validazione server-side cliente_id
+- /api/impostazioni PATCH: convertito da blocklist a allowlist esplicita (include onboarding_completato)
+- /impostazioni: edit mode con ImpostazioniEditForm + link a /impostazioni/pec
+- /impostazioni/pec: configurazione SMTP PEC con Supabase Vault (REVOKE+SELECT FOR UPDATE)
+- /impostazioni/profilo: cambio password
+- /onboarding: wizard 6-step (banner dashboard, senza redirect loop, complete() verifica res.ok)
+- Email templates: doc in docs/email-templates-supabase.md (configurazione manuale richiesta)
+
+### ✅ Piano G completato (18/05/2026 — V1 completion)
+- fix(invite): email inviata via Resend con template HTML branding UÀ
+- Audit infrastruttura: Supabase ✅ Vercel ✅ estensioni ✅ RLS ✅
+- /fatture/[id]: dettaglio fattura con righe e stato SDI
+- /magazzino/[id]: dettaglio articolo con giacenza e alert scorta minima
+- /pazienti/[id]: storico paziente GDPR-safe con lista lavori
+- /impostazioni/abbonamento: stato piano + link Stripe portal
+- Fix background cobalt nella live preview admin (var(--bg) invece di #0F1E52)
 
 ### Credenziali admin
 - **Admin email:** francesco.formicola@live.it
@@ -107,31 +125,18 @@ Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-par
 ## 5. Cosa Manca per Go-Live con Filippo
 
 ### Obbligatorio (bloccante)
-1. **PEC SMTP Filippo** — configurare in /impostazioni → PEC, testare invio reale
-2. **Consegna test end-to-end** — con lavoro reale Filippo, verifica DdC ITCA01051686
-3. **Onboarding wizard** — step dati lab + firma DdC + PRRC non ancora guidati
+1. **PEC SMTP Filippo** — configurare in /impostazioni/pec con credenziali reali e testare
+2. **RESEND_API_KEY reale** — il placeholder in .env.local va sostituito con API key reale
+3. **Email templates Supabase** — configurazione manuale in dashboard → docs/email-templates-supabase.md
+4. **Consegna test end-to-end** — con lavoro reale Filippo, verifica DdC ITCA01051686
 
-### Bug noti al 17/05/2026 (sessione 2)
-- Live preview: i link interni (es. scheda consegna) redirezionano all'admin — comportamento atteso (solo lettura), da documentare
-- Dashboard titolare nella live preview: usa colori cobalt vecchi (background #0F1E52) — da aggiornare a warm panna
-- Magic link: funziona ora che Site URL Supabase = https://uachelab.com
-
-### Fix completati in questa sessione
-- ✅ Trigger audit PostgreSQL (_audit_trigger_fn: to_jsonb fix)
-- ✅ Sezione "Anteprima operativa" duplicata rimossa
-- ✅ Form dark mode: rimosso #fafafa hardcoded
-- ✅ Stat tiles come filtri (click per filtrare lab list)
-- ✅ Anagrafica: indirizzo come fallback per sede
-- ✅ Toggle tema: Uiverse.io by Galahhad (sky/night con sole/luna/nuvole/stelle)
-- ✅ Logout: Uiverse.io by vinodjangid07 (cerchio rosso expand on hover)
-- ✅ Live preview: nota "Solo lettura" nel banner
-- ✅ Billing page: sempre light (data-login-theme="light"), bordo oro, lab label uppercase
-- ✅ Route POST /api/admin/labs/[id]/impersonate creata (genera magic link)
-- ✅ Sezioni preview + impersonate unificate in una
-- ✅ Hard delete: laboratorio_id nullable per admin_sistema (CHECK constraint)
-- ✅ admin_delete_laboratorio(): UPDATE SET laboratorio_id=NULL per admin_sistema
-- ✅ Supabase Site URL: aggiornato a https://uachelab.com
-- ✅ Magic link redirectTo: usa request origin + /auth/callback?next=/dashboard
+### Correzioni Codex integrate (18/05/2026)
+- ✅ NO redirect('/onboarding') nel layout → banner dashboard
+- ✅ Vault SQL: REVOKE EXECUTE + SELECT FOR UPDATE
+- ✅ Invite flow: custom token mantenuto, email via Resend
+- ✅ API PATCH allowlist (era blocklist)
+- ✅ complete() verifica res.ok prima di router.push()
+- ✅ Background cobalt rimosso dalla live preview
 
 ### Nice-to-have (V1 ma non bloccanti)
 - Input voce 🎤 (Flow 1, 3)
@@ -156,8 +161,8 @@ Script import: `scripts/import-dm-completo.ts`, `scripts/import-dentalmaster-par
 | E — MDR Testing + DdC PDF + RLS | ✅ |
 | Admin Panel completo | ✅ |
 | Import DentalMaster | ✅ |
-| PEC auto-config | ✅ (UI fatta, send reale non testato) |
-| Audit log | ✅ |
+| F — V1 Go-Live bloccanti | ✅ 18/05/2026 |
+| G — V1 Completion | ✅ 18/05/2026 |
 
 ---
 
@@ -215,14 +220,12 @@ docs/superpowers/
 
 ## 9. Prossima Sessione — Da Fare
 
-1. **Test magic link** — verificare che "Genera magic link" ora apra la sessione Filippo correttamente
-2. **Test hard delete** — eliminare UÀ HQ ora dovrebbe funzionare
-3. **Dashboard live preview** — background ancora cobalt (#0F1E52), da aggiornare a warm panna
-4. **Onboarding wizard 6 step**
-5. **Test PEC reale con Filippo**
+1. **RESEND_API_KEY reale** — sostituire placeholder in .env.local e Vercel env
+2. **Email templates Supabase** — copiarli da docs/email-templates-supabase.md nel Dashboard Supabase
+3. **PEC SMTP Filippo** — configurare credenziali reali in /impostazioni/pec
+4. **Test flow invito completo** — creare nuovo lab, inviare invito, verificare email, accettare, completare onboarding
+5. **Consegna end-to-end** con dati reali Filippo
 6. **E2E test con creds reali** (seed-e2e.ts)
-7. **Consegna end-to-end** con dati reali Filippo
-8. **Admin profilo section** — impostazioni, password, preferenza tema
 
 ---
 
