@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.startsWith('INCOLLA_QUI')) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
-      const fromAddress = process.env.EMAIL_FROM ?? 'noreply@ua.app'
+      const fromAddress = process.env.EMAIL_FROM ?? 'noreply@uachelab.com'
       const { error: sendErr } = await resend.emails.send({
         from: `UÀ <${fromAddress}>`,
         to: normalizedEmail,
