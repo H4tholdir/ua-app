@@ -166,6 +166,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             name="data_consegna_prevista"
             type="date"
             required
+            lang="it"
             value={data.data_consegna_prevista ?? ''}
             onChange={(e) => onChange({ data_consegna_prevista: e.target.value })}
             style={{

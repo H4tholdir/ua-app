@@ -50,7 +50,8 @@ export async function GET(req: Request) {
     `)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
-    .order('data_consegna_prevista', { ascending: true })
+    .order('data_consegna_prevista', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
     .limit(200)
 
   if (stato) {
