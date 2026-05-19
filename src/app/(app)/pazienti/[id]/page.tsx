@@ -18,7 +18,7 @@ export default async function PazienteDetailPage({ params }: Props) {
 
   const { data: paziente } = await svc
     .from('pazienti')
-    .select('id, nome_display, codice_gdpr, note, created_at')
+    .select('id, nome_cognome, codice_paziente, note, created_at')
     .eq('id', id).eq('laboratorio_id', utente.laboratorio_id).single()
 
   if (!paziente) redirect('/pazienti')
@@ -38,12 +38,16 @@ export default async function PazienteDetailPage({ params }: Props) {
 
   return (
     <>
-      <AppHeader title={p.nome_display as string ?? 'Paziente'} backHref="/pazienti" />
+      <AppHeader title={p.nome_cognome as string ?? 'Paziente'} backHref="/pazienti" />
       <PageWrapper>
         <div style={{ padding: '0 20px 48px' }}>
           <div style={card}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>Dati paziente</div>
-            <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'monospace' }}>GDPR: {p.codice_gdpr as string}</div>
+            {p.codice_paziente && (
+              <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'monospace', marginBottom: '4px' }}>
+                Cod. paziente: {p.codice_paziente as string}
+              </div>
+            )}
             {typeof p.note === 'string' && <div style={{ fontSize: '13px', color: 'var(--t2)', marginTop: '8px', fontFamily: 'DM Sans, sans-serif' }}>{p.note}</div>}
           </div>
           <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.1em', margin: '16px 0 8px', fontFamily: 'DM Sans, sans-serif' }}>
