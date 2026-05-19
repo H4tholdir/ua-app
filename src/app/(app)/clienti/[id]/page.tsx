@@ -252,6 +252,42 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
             </span>
           </div>
         </SectionCard>
+
+        {/* DPA GDPR Art. 28 */}
+        <SectionCard title="Privacy — GDPR">
+          <div style={{ padding: '12px 0' }}>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2)', marginBottom: '10px', lineHeight: 1.5 }}>
+              Accordo di Responsabile del Trattamento (DPA) ex Art. 28 GDPR — da firmare con lo studio dentistico.
+            </p>
+            <a
+              href={`/api/clienti/${c.id}/dpa`}
+              download={`DPA-${c.studio_nome ?? nomeCompleto}.pdf`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '44px',
+                padding: '0 18px',
+                borderRadius: '10px',
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.22), 0 5px 14px -2px rgba(180,0,0,.38)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 2v8M5 8l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Scarica DPA PDF
+            </a>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t3)', marginTop: '6px' }}>
+              Stampa, firma in duplice copia e conserva una copia originale per 10 anni.
+            </p>
+          </div>
+        </SectionCard>
       </div>
     </PageWrapper>
   )
