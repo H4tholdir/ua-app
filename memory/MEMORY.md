@@ -1,16 +1,30 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 19 maggio 2026 — QA Release V1 completato · Pronto per consegna Filippo
+**Ultimo aggiornamento:** 19 maggio 2026 — Fine sessione QA ciclo 1
+
+---
+
+## 0. STATO ONESTO DEL PROGETTO
+
+**L'app è funzionante ma NON pronta per la consegna definitiva a Filippo.**
+Il QA di questa sessione ha trovato e corretto alcuni bug critici, ma rimangono:
+- bug non ancora scoperti
+- flussi operativi non testati in profondità con dati reali
+- UI/UX da rifinire su molte pagine
+- lavorazioni e funzionalità da verificare con Filippo direttamente
+- mille dettagli che emergeranno solo nell'uso quotidiano reale
+
+**Approccio corretto:** continuare sessione per sessione, testare un flusso alla volta con dati reali, fixare man mano. Non dichiarare mai "pronto" finché Filippo non ha usato l'app per almeno 2 settimane consecutive senza problemi bloccanti.
 
 ---
 
 ## 1. Stato del Progetto
 
 ### Deploy
-- **URL produzione:** https://uachelab.com ✅
-- **Supabase:** `iagibumwjstnveqpjbwq` ✅
+- **URL produzione:** https://uachelab.com
+- **Supabase:** `iagibumwjstnveqpjbwq`
 - **GitHub:** https://github.com/H4tholdir/ua-app
-- **Ultimo commit:** `9615b44` (fix husky pre-commit)
-- **CI/CD:** GitHub Actions verde · Vercel prod aggiornato · 141 test verdi
+- **Ultimo commit:** `912dd9e` (memory update)
+- **CI/CD:** GitHub Actions verde · 141 test verdi · Vercel prod live
 
 ### Identità
 - **Sviluppatore/Proprietario:** Francesco Formicola (`francesco.formicola@live.it`)
@@ -20,69 +34,71 @@
 
 ---
 
-## 2. QA Release V1 — Completato 19/05/2026
+## 2. Cosa è stato fatto in questa sessione (19/05/2026)
 
-### Sezione A — Import DentalMaster ✅
-- 18 clienti · 72 lavorazioni × 4 fasce · 225 articoli magazzino (185 + 40 attrezzature)
+### Piani completati
+- Piano F (go-live bloccanti): form lavoro, impostazioni edit, PEC widget, profilo, onboarding wizard
+- Piano G (V1 completion): pagine detail, DPA, Nomina PRRC, invite email
+- PEC inbound verification loop: Cloudflare → Worker → DB (testato)
+- Email Resend: configurato, dominio verificato, template Supabase aggiornati
+
+### Import DentalMaster
+- 18 clienti · 72 lavorazioni × 4 fasce · 185 materiali magazzino · 40 attrezzature
 - 74 cicli produzione · 71 fasi produzione (OL01-OL71) · 42 lavori storici (STOR/*)
-- Lavori storici: `incluso_in_fattura=true` (non appaiono come debiti)
+- Analisi rischi MDR pre-popolata per 9 tipi dispositivo
 
-### Sezione B — Audit UI 17 pagine ✅
-Bug trovati e corretti:
-- `pazienti/[id]`: campi `nome_display`/`codice_gdpr` → corretti in `nome_cognome`/`codice_paziente`
-- Dashboard: pagamenti scaduti da lavori storici → reset `incluso_in_fattura`
-- PEC: dati test resettati (Filippo configurerà le sue credenziali)
-- Cliente E2E Dr.Test rimosso
+### QA ciclo 1 — Bug trovati e corretti
+1. `pazienti/[id]`: campi `nome_display`/`codice_gdpr` → `nome_cognome`/`codice_paziente`
+2. RPC `crea_rifacimento_atomico`: mancante nel DB → creata
+3. API rifacimento: bloccava 'consegnato' → fixato
+4. ESLint CI: template PDF italiano → config rule off per `pdf/**`
+5. Husky pre-commit: non eseguibile → fixato
+6. Dashboard: pagamenti scaduti da lavori storici → reset `incluso_in_fattura`
+7. Cliente E2E test: rimosso dal DB
 
-### Sezione C — Flow Operativi ✅
-- C01 Nuovo Lavoro · C02 Progressione stati · C03 Consegna+DdC · C04 Rifacimento · C05 Fatturazione
-- Bug: RPC `crea_rifacimento_atomico` mancante → creata nel DB
-- Bug: API rifacimento bloccava stato 'consegnato' → fixato
-
-### Sezione D — Edge Cases ✅
-- 22 PASS · 0 FAIL reali
-- Multi-tenant isolation: confermata (Filippo/Arturo completamente separati)
-- Validazioni DB: NOT NULL, CHECK constraint su tipo_dispositivo/stato funzionanti
-- Integrità FK: zero orfani
-
-### Sezione E — Final Checks ✅
-- TypeScript: zero errori
-- ESLint: zero warning
-- 141/141 test verdi
-- Build production: OK
-- Vercel: deployato e live
+### Compliance V1 implementata
+- DoC MDR Art. 52(8) + Allegato XIII · Nomina PRRC · DPA GDPR Art.28 · PSUR
 
 ---
 
-## 3. Compliance V1 — Implementato
+## 3. Cosa NON è stato fatto / da continuare
 
-| Adempimento | Status |
-|-------------|--------|
-| DoC MDR (Art. 52(8) + Allegato XIII, 8 elementi) | ✅ Automatico |
-| Analisi Rischi (9 tipi dispositivo, ISO 14971) | ✅ Pre-popolata nel DB |
-| Nomina PRRC (Art. 15 MDR) | ✅ PDF scaricabile da /impostazioni |
-| PSUR (Art. 85/86 MDR) | ✅ Pagina /qualita/psur |
-| DPA clienti (GDPR Art. 28) | ✅ PDF scaricabile da /clienti/[id] |
-| FatturaPA SDI (N4, bollo €2) | ✅ Automatico |
-| Pseudonimizzazione pazienti | ✅ nome_cognome + codice_paziente |
-| RBAC + RLS Supabase | ✅ 6 ruoli |
-| ITCA memorizzato (sanzione €48.500) | ✅ ITCA01051686 |
+### Priorità alta (prossima sessione)
+- **Testare ogni singola pagina manualmente** con Filippo alla tastiera — solo lui sa cosa manca
+- **PEC Filippo reale** — deve configurare `/impostazioni/pec` con le sue credenziali
+- **Trial** — scade 31/05/2026, da prorogare dall'admin panel SUBITO
+- **Flow invito end-to-end** — creare un nuovo lab di test, inviare invito, verificare email, fare onboarding completo
+- **Fatturazione reale** — generare una fattura da un lavoro reale, verificare XML FatturaPA
+- **DdC PDF** — verificare che il PDF generato sia leggibile, completo e firmabile
+- **Consegna reale** — fare una consegna con tap CONSEGNA su uachelab.com con dati reali Filippo
+
+### Bug probabili non ancora trovati
+- La pagina `/lavori/[id]` (dettaglio lavoro) non è stata auditata in profondità
+- Le tab Lavorazioni, Produzione, Clinica, Immagini nel form lavoro non testate
+- Il flow Prove (in_prova_esterna → rientro) non testato in UI reale
+- Il portale dentista `/portale/[token]` non testato
+- La sezione Rete (`/rete`) non testata
+- Il modulo qualità/incidenti/nuovo non testato end-to-end
+- Import PSUR — il PDF generato non è stato visto
+
+### Cose da valutare con Filippo
+- L'UX del form Nuovo Lavoro è abbastanza semplice per lui?
+- Il listino è correttamente strutturato come lo usava su DentalMaster?
+- Le lavorazioni nei lavori hanno i prezzi giusti?
+- Il sistema di pazienti pseudonimizzati è comprensibile?
+- Mancano tipi dispositivo che Filippo usa comunemente?
+
+### V2 (non urgente)
+- PMCF follow-up automatico (reminder 6/12 mesi al dentista)
+- STS export XML (solo se fattura diretta al paziente)
+- Scadenzario INPS artigiani con reminder
+- Registro trattamenti GDPR in-app
+- Nota di credito XML (TD04)
+- Firma digitale P7M per fatture PA
 
 ---
 
-## 4. Infrastruttura Email
-
-| Servizio | Stato |
-|----------|-------|
-| Resend · dominio `uachelab.com` | ✅ Verificato Cloudflare eu-west-1 |
-| FROM: `noreply@uachelab.com` | ✅ |
-| Supabase email templates | ✅ Branding UÀ |
-| Cloudflare Email Routing catch-all | ✅ → Worker `ua-pec-verify` |
-| PEC inbound verification loop | ✅ Testato end-to-end 19/05 |
-
----
-
-## 5. Design System v2.2 Warm Panna
+## 4. Design System v2.2 Warm Panna
 
 ```
 Light: --bg:#DDD8D3  --sfc:#E4DFD9  --elv:#EDEDEA  --prs:#D4CFC9
@@ -94,32 +110,44 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 
 ---
 
-## 6. Architettura — Decisioni Critiche
+## 5. Architettura — Decisioni Critiche
 
 - **RLS:** `public.current_lab_id()` (NON `auth.current_lab_id()`)
-- **Invite flow:** token custom (NON `inviteUserByEmail` Supabase)
+- **Invite flow:** token custom `/invite/[token]` (NON `inviteUserByEmail` Supabase)
 - **PEC Vault:** `upsert_pec_vault_secret` + `get_pec_vault_secret` solo service_role
-- **Rifacimento:** RPC atomica `crea_rifacimento_atomico()` — consente stato 'consegnato'
+- **Rifacimento:** RPC `crea_rifacimento_atomico()` — consente stato 'consegnato'
 - **PATCH API:** sempre allowlist esplicita, mai blocklist
 - **Onboarding:** NO `redirect('/onboarding')` nel layout — solo banner dashboard
 - **Template PDF:** `eslint.config.mjs` disabilita `no-unescaped-entities` per `pdf/**`
+- **ESLint CI:** `--max-warnings 0` — qualsiasi warning rompe il CI
 
 ---
 
-## 7. API Routes Chiave
+## 6. API Routes Chiave
 
-| Route | Metodo | Descrizione |
-|-------|--------|-------------|
-| `/api/impostazioni` | GET/PATCH | Dati lab (allowlist) |
-| `/api/impostazioni/pec/start-verify` | POST | Salva PEC + invia email verifica |
-| `/api/impostazioni/pec/verify-status` | GET | Polling verifica PEC |
-| `/api/internal/pec-verify` | POST | Callback Cloudflare Worker |
-| `/api/impostazioni/nomina-prrc` | GET | Scarica PDF Nomina PRRC |
-| `/api/clienti/[id]/dpa` | GET | Scarica PDF DPA GDPR Art.28 |
-| `/api/admin/invite` | POST | Crea invito + invia email Resend |
-| `/api/lavori` | GET/POST | Lavori (POST validazione server-side) |
-| `/api/lavori/[id]/rifacimento` | POST | Crea rifacimento atomico |
-| `/api/qualita/psur` | GET/POST | Lista e crea PSUR |
+| Route | Descrizione |
+|-------|-------------|
+| `/api/impostazioni` PATCH | Dati lab (allowlist esplicita) |
+| `/api/impostazioni/pec/start-verify` POST | Salva PEC + invia email verifica |
+| `/api/impostazioni/pec/verify-status` GET | Polling verifica PEC (ogni 2s) |
+| `/api/internal/pec-verify` POST | Callback Cloudflare Worker |
+| `/api/impostazioni/nomina-prrc` GET | Scarica PDF Nomina PRRC |
+| `/api/clienti/[id]/dpa` GET | Scarica PDF DPA GDPR Art.28 |
+| `/api/admin/invite` POST | Crea invito + invia email Resend |
+| `/api/lavori/[id]/rifacimento` POST | Crea rifacimento atomico |
+| `/api/qualita/psur` GET/POST | Lista e crea PSUR |
+
+---
+
+## 7. Infrastruttura
+
+| Servizio | Stato |
+|----------|-------|
+| Resend · `uachelab.com` | ✅ Verificato Cloudflare eu-west-1 |
+| Cloudflare Email Routing catch-all | ✅ → Worker `ua-pec-verify` |
+| PEC inbound verification | ✅ Testato 19/05/2026 |
+| Supabase email templates | ✅ Branding UÀ |
+| NEXT_PUBLIC_SUPPORT_PHONE | ⚠️ Da completare in .env.local e Vercel |
 
 ---
 
@@ -132,27 +160,8 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 
 ---
 
-## 9. Prossimi Step — Da fare con Filippo
+## 9. Regole CI
 
-### Priorità alta (prima dell'accesso)
-1. **PEC SMTP Filippo** → configurare `/impostazioni/pec` con credenziali reali Aruba/Legalmail
-2. **Estendere trial** → da 31/05 a data concordata (da admin panel)
-
-### Al primo accesso Filippo
-3. Completare wizard onboarding (6 step — dati già precompilati da DentalMaster)
-4. Primo lavoro reale creato da Filippo → verifica DdC PDF con ITCA01051686
-5. Prima consegna end-to-end → verifica tutto il flow
-
-### V2 (non urgente)
-- PMCF follow-up automatico (reminder 6/12 mesi)
-- STS export XML (solo se fattura diretta al paziente)
-- Scadenzario INPS artigiani
-- Registro trattamenti GDPR in-app
-
----
-
-## 10. Checklist CI
-
-- Esegui `npx eslint src/ --ext .ts,.tsx --max-warnings 0` prima di ogni commit
-- Template PDF in `src/components/features/pdf/` → ESLint `no-unescaped-entities` OFF (config)
-- Husky pre-commit abilitato → blocca commit con ESLint errors
+- `npx eslint src/ --ext .ts,.tsx --max-warnings 0` prima di ogni commit (Husky lo fa in automatico)
+- Template PDF `src/components/features/pdf/**`: `no-unescaped-entities` OFF (via config)
+- Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
