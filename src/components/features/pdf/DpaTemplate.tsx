@@ -1,8 +1,7 @@
-/* eslint-disable react/no-unescaped-entities */
 // UÀ — DpaTemplate
 // Accordo di Responsabile del Trattamento (DPA) — GDPR Art. 28
 // Tra studio dentistico (Titolare) e laboratorio odontotecnico (Responsabile)
-// Nota: apostrofi italiani nei testi legali richiedono eslint-disable per questo file PDF
+// react/no-unescaped-entities disabilitato via eslint.config.mjs per tutti i template PDF
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
