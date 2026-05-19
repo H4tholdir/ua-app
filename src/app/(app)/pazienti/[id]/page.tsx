@@ -43,9 +43,9 @@ export default async function PazienteDetailPage({ params }: Props) {
         <div style={{ padding: '0 20px 48px' }}>
           <div style={card}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>Dati paziente</div>
-            {p.codice_paziente && (
+            {typeof p.codice_paziente === 'string' && (
               <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'monospace', marginBottom: '4px' }}>
-                Cod. paziente: {p.codice_paziente as string}
+                Cod. paziente: {p.codice_paziente}
               </div>
             )}
             {typeof p.note === 'string' && <div style={{ fontSize: '13px', color: 'var(--t2)', marginTop: '8px', fontFamily: 'DM Sans, sans-serif' }}>{p.note}</div>}
