@@ -54,11 +54,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
   }
 
-  // State guard: blocca lavori già consegnati o annullati
-  const statiBloccati = ['consegnato', 'annullato']
-  if (statiBloccati.includes(lavoro.stato)) {
+  // State guard: blocca solo annullati (il rifacimento avviene post-consegna o su sospeso/pronto)
+  if (lavoro.stato === 'annullato') {
     return NextResponse.json(
-      { error: `Impossibile creare rifacimento per lavoro in stato "${lavoro.stato}"` },
+      { error: `Impossibile creare rifacimento per lavoro annullato` },
       { status: 409 }
     )
   }
