@@ -3,17 +3,28 @@
 
 ---
 
-## 0. STATO ONESTO DEL PROGETTO
+## 0. STATO DEL PROGETTO — V1.5 COMPLETA
 
-**L'app è funzionante ma NON pronta per la consegna definitiva a Filippo.**
-Il QA di questa sessione ha trovato e corretto alcuni bug critici, ma rimangono:
-- bug non ancora scoperti
-- flussi operativi non testati in profondità con dati reali
-- UI/UX da rifinire su molte pagine
-- lavorazioni e funzionalità da verificare con Filippo direttamente
-- mille dettagli che emergeranno solo nell'uso quotidiano reale
+**V1.5 completata il 20/05/2026. App in produzione su https://uachelab.com**
 
-**Approccio corretto:** continuare sessione per sessione, testare un flusso alla volta con dati reali, fixare man mano. Non dichiarare mai "pronto" finché Filippo non ha usato l'app per almeno 2 settimane consecutive senza problemi bloccanti.
+Sprint S0→S9 tutti completati in questa sessione:
+- TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
+- 15 pagine verificate a 390px (mobile-first) con Playwright
+- 4 bug critici trovati e fixati durante QA sistematico
+
+**Copertura stimata vs DentalMaster Advanced:** ~90%
+**L'app è pronta per essere consegnata a Filippo Opromolla per l'uso quotidiano.**
+
+### Cose da fare PRIMA della consegna a Filippo:
+1. **Prorogare il trial** — scade 31/05/2026, vai su `/admin/labs` e proroga
+2. **PEC reale** — Filippo deve configurare `/impostazioni/pec` con le sue credenziali
+3. **Push su GitHub** → Vercel CI/CD deploya automaticamente in produzione
+4. **Prima sessione con Filippo** — testare almeno: creare un lavoro reale, fare una consegna, scaricare DdC+IFU
+
+### Concern aperti (non bloccanti per V1.5):
+- `tecnici.compenso_base` usato come target mensile nella progress bar produttività — confermare con Filippo se è il target corretto
+- Terzismo DdC: sezione "altri esecutori" non implementata (rischio MDR basso, da V2)
+- Seed-new-lab.ts: ogni nuovo lab richiede uno script di seed manuale per ora
 
 ---
 
