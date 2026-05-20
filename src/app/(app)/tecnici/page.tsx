@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
@@ -21,11 +22,13 @@ export default async function TechniciPage() {
   const svc = getServiceClient()
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
   const labId: string = utente?.laboratorio_id ?? ''
+  const ruolo: string = utente?.ruolo ?? ''
+  const canViewProduttivita = ruolo === 'titolare' || ruolo === 'admin_rete'
 
   let tecnici: TecnicoRow[] = []
   if (labId) {
@@ -175,6 +178,33 @@ export default async function TechniciPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* Link produttività — solo titolare/admin_rete */}
+                  {canViewProduttivita && (
+                    <Link
+                      href={`/tecnici/${tecnico.id}/produttivita`}
+                      aria-label={`Produttività di ${tecnico.nome} ${tecnico.cognome}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        minHeight: '44px',
+                        borderRadius: '10px',
+                        background: 'var(--elv, #EDEDEA)',
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--t2, #96918D)',
+                        textDecoration: 'none',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span aria-hidden="true">📊</span>
+                      Produttività
+                    </Link>
+                  )}
                 </div>
               </li>
             ))}

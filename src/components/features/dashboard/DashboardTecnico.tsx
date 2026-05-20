@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { LavoroUrgente } from './LavoroUrgente'
@@ -22,6 +23,7 @@ const DS = {
 interface DashboardTecnicoProps {
   data: TecnicoDashboard
   nomeUtente: string
+  tecnicoId?: string | null
 }
 
 const CARD_STYLE: React.CSSProperties = {
@@ -107,7 +109,7 @@ function Section({
   )
 }
 
-export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
+export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecnicoProps) {
   const reducedMotion = useReducedMotion()
   const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi } = data
 
@@ -158,6 +160,32 @@ export function DashboardTecnico({ data, nomeUtente }: DashboardTecnicoProps) {
         >
           {getDataOggi()}
         </p>
+
+        {/* Link produttività del tecnico stesso */}
+        {tecnicoId && (
+          <Link
+            href={`/tecnici/${tecnicoId}/produttivita`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginTop: '12px',
+              padding: '8px 14px',
+              minHeight: '44px',
+              borderRadius: '12px',
+              background: DS.elv,
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: DS.t2,
+              textDecoration: 'none',
+              boxShadow: DS.shC,
+            }}
+          >
+            <span aria-hidden="true">📊</span>
+            La mia produttività
+          </Link>
+        )}
       </div>
 
       {/* KPI inline */}

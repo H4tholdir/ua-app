@@ -193,7 +193,7 @@ export default async function DashboardPage() {
       ? await getTecnicoDashboard(svc, labId, tecnico.id)
       : { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [] }
 
-    return <DashboardTecnico data={data} nomeUtente={nomeUtente} />
+    return <DashboardTecnico data={data} nomeUtente={nomeUtente} tecnicoId={tecnico?.id ?? null} />
   }
 
   // ─── FRONT DESK ───────────────────────────────────────────────────────────

@@ -4,25 +4,8 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-
-type VoceRow = {
-  id: string
-  codice: string
-  nome: string
-  descrizione: string | null
-  categoria: string
-  prezzo_1: number | null
-  unita_misura: string
-}
-
-function formatPrezzo(prezzo: number | null): string {
-  if (prezzo == null) return '—'
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-  }).format(prezzo)
-}
+import { ListinoVoceRow } from '@/components/features/listino/ListinoVoceRow'
+import type { VoceListino } from '@/components/features/listino/ListinoVoceRow'
 
 export default async function ListinoPage() {
   const userClient = await getServerUserClient()
@@ -32,27 +15,29 @@ export default async function ListinoPage() {
   const svc = getServiceClient()
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
   const labId: string = utente?.laboratorio_id ?? ''
+  const ruolo: string = utente?.ruolo ?? ''
+  const canEdit = ruolo === 'titolare' || ruolo === 'admin_rete'
 
-  let voci: VoceRow[] = []
+  let voci: VoceListino[] = []
   if (labId) {
     const { data } = await svc
       .from('listino')
-      .select('id, codice, nome, descrizione, categoria, prezzo_1, unita_misura')
+      .select('id, codice, nome, descrizione, categoria, prezzo_1, unita_misura, compenso_tecnico')
       .eq('laboratorio_id', labId)
       .eq('attivo', true)
       .order('categoria', { ascending: true })
       .order('nome', { ascending: true })
       .limit(1000)
-    voci = (data ?? []) as VoceRow[]
+    voci = (data ?? []) as VoceListino[]
   }
 
   // Raggruppa per categoria
-  const perCategoria = voci.reduce<Record<string, VoceRow[]>>((acc, voce) => {
+  const perCategoria = voci.reduce<Record<string, VoceListino[]>>((acc, voce) => {
     const cat = voce.categoria || 'Altro'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(voce)
@@ -143,90 +128,12 @@ export default async function ListinoPage() {
                 }}
               >
                 {perCategoria[categoria].map((voce, idx) => (
-                  <div
+                  <ListinoVoceRow
                     key={voce.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 16px',
-                      borderTop: idx > 0 ? '1px solid var(--elv, #EDEDEA)' : 'none',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'baseline',
-                          gap: '8px',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            color: '#6677AA',
-                          }}
-                        >
-                          {voce.codice}
-                        </span>
-                        <p
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '14px',
-                            fontWeight: 500,
-                            color: 'var(--t1, #1C1916)',
-                            margin: 0,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {voce.nome}
-                        </p>
-                      </div>
-                      {voce.descrizione && (
-                        <p
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '12px',
-                            color: 'var(--t2, #96918D)',
-                            margin: 0,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {voce.descrizione}
-                        </p>
-                      )}
-                    </div>
-
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <span
-                        style={{
-                          fontFamily: 'Playfair Display, serif',
-                          fontSize: '15px',
-                          fontWeight: 600,
-                          color: 'var(--gold, #D4A843)',
-                        }}
-                      >
-                        {formatPrezzo(voce.prezzo_1)}
-                      </span>
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '11px',
-                          color: '#6677AA',
-                          margin: 0,
-                        }}
-                      >
-                        /{voce.unita_misura}
-                      </p>
-                    </div>
-                  </div>
+                    voce={voce}
+                    showBorderTop={idx > 0}
+                    canEdit={canEdit}
+                  />
                 ))}
               </div>
             </section>
