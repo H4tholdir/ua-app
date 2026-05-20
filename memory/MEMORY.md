@@ -243,12 +243,13 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 ✅ /ordini page + API GET/POST/PATCH + NuovoOrdineSheet (WhatsApp + Email pre-compilato)
 ✅ Badge ordini aperti in DashboardTitolare
 
-### 🟡 Sprint S8 — Tecnici + Compensi + Cedolino (parziale)
-✅ `/tecnici/page.tsx` esiste — lista tecnici
-✅ `compenso_tecnico` nel DB (campo listino)
-❌ `/tecnici/produttivita` page — NON esiste
-❌ `CedolinoTecnicoTemplate.tsx` — NON esiste
-❌ API cedolino — NON esiste
+### ✅ Sprint S8 — Tecnici + Compensi + Cedolino (completato 20/05/2026)
+**Commit:** `b88a2c8`
+✅ Dashboard produttività /tecnici/[id]/produttivita — KPI hero, streak timezone-safe, barre 4 mesi SVG
+✅ Campo compenso_tecnico nel listino (solo titolare/admin_rete, debounce 500ms, privacy fix)
+✅ CedolinoTecnicoTemplate.tsx — A4, tabella lavorazioni, firma, nota legale "non è busta paga"
+✅ API: produttivita + cedolino + PATCH listino con allowlist
+⚠️ `tecnici.compenso_base` usato come target mensile nella progress bar — confermare con Filippo se è il target mensile o lo stipendio base fisso
 
 ### ❌ Sprint S9 — Polish QA Mobile (da fare)
 
