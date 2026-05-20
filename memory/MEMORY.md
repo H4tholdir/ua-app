@@ -234,10 +234,14 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 ✅ API: `/api/lavori/[id]/ifu` · `/etichetta` · `/ricevuta-consegna` — PDF stream con auth
 ✅ `PacchettoConsegnaSheet.tsx` — bottom sheet MDR, 3 doc selezionabili, progress ring SVG, Web Share API
 
-### 🟡 Sprint S7 — Richiedente + Materiali + Ordini (parziale)
-✅ `richiedente_nome` nel form (TabDati) — già implementato
-⚠️ Consumo automatico materiali al tap CONSEGNA — da verificare
-❌ Pagina `/ordini` fornitori — NON esiste
+### ✅ Sprint S7 — Richiedente smart + BOM materiali + Ordini (completato 20/05/2026)
+**Commit:** `dddbcb3`
+✅ API /api/clienti/[id]/studio-members — chip row medici stesso studio in TabDati (+ Nuovo chip)
+✅ Migration: listino_materiali_auto (BOM), scarichi_magazzino (MDR tracciabilità), richiedente_email
+✅ API precheck-materiali + MaterialiWarningSheet (soft-warning prima consegna)
+✅ orchestrate.ts: auto-scarico materiali non-blocking con tracciabilità lotto MDR
+✅ /ordini page + API GET/POST/PATCH + NuovoOrdineSheet (WhatsApp + Email pre-compilato)
+✅ Badge ordini aperti in DashboardTitolare
 
 ### 🟡 Sprint S8 — Tecnici + Compensi + Cedolino (parziale)
 ✅ `/tecnici/page.tsx` esiste — lista tecnici
