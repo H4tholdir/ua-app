@@ -221,20 +221,20 @@ async function seed() {
   console.log(`    Namespace UUID v5 : ${NS}\n`)
 
   // Carica JSON sorgente
-  let raw: any
+  let rawData: { medici?: MedicoRaw[]; tutti_pazienti?: string[] }
   try {
     const jsonPath = resolve(
       __dirname,
       '../../ANALISI/DM_ODONTEC_CATALOG/extracted_data/odontec_dental_project_completo.json'
     )
-    raw = JSON.parse(readFileSync(jsonPath, 'utf-8'))
-  } catch (err: any) {
-    console.error('❌  Impossibile leggere il JSON sorgente:', err.message)
+    rawData = JSON.parse(readFileSync(jsonPath, 'utf-8'))
+  } catch (err) {
+    console.error('❌  Impossibile leggere il JSON sorgente:', (err as Error).message)
     process.exit(1)
   }
 
-  const mediciRaw: MedicoRaw[] = raw.medici ?? []
-  const tuttiPazienti: string[] = raw.tutti_pazienti ?? []
+  const mediciRaw: MedicoRaw[] = rawData.medici ?? []
+  const tuttiPazienti: string[] = rawData.tutti_pazienti ?? []
 
   console.log(`📄  Dati sorgente trovati:`)
   console.log(`    Medici    : ${mediciRaw.length}`)

@@ -25,7 +25,7 @@ interface FaseSource {
 
 async function main() {
   // 1. Trova o crea il ciclo LIBRERIA_OL
-  let { data: ciclo, error: cicloError } = await svc
+  const { data: cicloData, error: cicloError } = await svc
     .from('cicli_produzione')
     .select('id')
     .eq('laboratorio_id', LAB_ID)
@@ -37,6 +37,7 @@ async function main() {
     console.error('Errore fetch ciclo:', cicloError.message)
     process.exit(1)
   }
+  let ciclo = cicloData
 
   if (!ciclo) {
     const { data: newCiclo, error: insertCicloError } = await svc

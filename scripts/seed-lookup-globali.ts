@@ -201,8 +201,8 @@ async function seed() {
 
   // Upsert in batch da 100 per sicurezza
   const BATCH_SIZE = 100
-  let totalInserted = 0
-  let totalSkipped = 0
+  let runInserted = 0
+  let runSkipped = 0
 
   for (let i = 0; i < TUTTI_I_VALORI.length; i += BATCH_SIZE) {
     const batch = TUTTI_I_VALORI.slice(i, i + BATCH_SIZE)
@@ -219,10 +219,11 @@ async function seed() {
       process.exit(1)
     }
 
-    totalInserted += count ?? 0
-    totalSkipped += batch.length - (count ?? 0)
+    runInserted += count ?? 0
+    runSkipped += batch.length - (count ?? 0)
     console.log(`   Batch ${i / BATCH_SIZE + 1}: ${count ?? 0} inseriti, ${batch.length - (count ?? 0)} già presenti`)
   }
+  console.log(`   Totale questa run: ${runInserted} inseriti, ${runSkipped} già presenti`)
 
   // Conteggio finale per tipo
   console.log('\n📊  Riepilogo per tipo:')
