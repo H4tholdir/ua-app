@@ -6,6 +6,7 @@ import { t } from '@/design-system/motion'
 
 export type TabId =
   | 'dati'
+  | 'accettazione'
   | 'lavorazioni'
   | 'clinica'
   | 'produzione'
@@ -20,8 +21,9 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'dati',       label: 'Dati' },
-  { id: 'lavorazioni', label: 'Prezzi' },
+  { id: 'dati',         label: 'Dati' },
+  { id: 'accettazione', label: 'Accett.' },
+  { id: 'lavorazioni',  label: 'Prezzi' },
   { id: 'clinica',    label: 'Clinica' },
   { id: 'produzione', label: 'Prod.' },
   { id: 'prove',      label: 'Prove' },

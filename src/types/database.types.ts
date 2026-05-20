@@ -1877,6 +1877,7 @@ export type Database = {
         Row: {
           anamnesi_altri_dispositivi: string | null
           anamnesi_bruxismo: boolean
+          anamnesi_difficolta_manuali: boolean
           anamnesi_note: string | null
           anamnesi_precauzioni: string | null
           anno_lavoro: number
@@ -1912,6 +1913,7 @@ export type Database = {
           denti_impianti: number[]
           denti_mancanti: number[]
           descrizione: string
+          disinfettante_usato: string | null
           dispositivo_semilavorato: boolean
           effetti_speciali: string | null
           file_stl_url: string | null
@@ -1922,6 +1924,8 @@ export type Database = {
           is_rifacimento: boolean
           laboratorio_id: string
           listino_id: string | null
+          lotto_disinfettante: string | null
+          materiali_allegati: string[]
           natura_iva: string
           norma_riferimento: string | null
           note_interne: string | null
@@ -1949,11 +1953,13 @@ export type Database = {
           tecnico_id: string | null
           tipo_arco: string | null
           tipo_dispositivo: string
+          tipo_impronte: string | null
           updated_at: string
         }
         Insert: {
           anamnesi_altri_dispositivi?: string | null
           anamnesi_bruxismo?: boolean
+          anamnesi_difficolta_manuali?: boolean
           anamnesi_note?: string | null
           anamnesi_precauzioni?: string | null
           anno_lavoro?: number
@@ -1989,6 +1995,7 @@ export type Database = {
           denti_impianti?: number[]
           denti_mancanti?: number[]
           descrizione: string
+          disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
           effetti_speciali?: string | null
           file_stl_url?: string | null
@@ -1999,6 +2006,8 @@ export type Database = {
           is_rifacimento?: boolean
           laboratorio_id: string
           listino_id?: string | null
+          lotto_disinfettante?: string | null
+          materiali_allegati?: string[]
           natura_iva?: string
           norma_riferimento?: string | null
           note_interne?: string | null
@@ -2026,11 +2035,13 @@ export type Database = {
           tecnico_id?: string | null
           tipo_arco?: string | null
           tipo_dispositivo: string
+          tipo_impronte?: string | null
           updated_at?: string
         }
         Update: {
           anamnesi_altri_dispositivi?: string | null
           anamnesi_bruxismo?: boolean
+          anamnesi_difficolta_manuali?: boolean
           anamnesi_note?: string | null
           anamnesi_precauzioni?: string | null
           anno_lavoro?: number
@@ -2066,6 +2077,7 @@ export type Database = {
           denti_impianti?: number[]
           denti_mancanti?: number[]
           descrizione?: string
+          disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
           effetti_speciali?: string | null
           file_stl_url?: string | null
@@ -2076,6 +2088,8 @@ export type Database = {
           is_rifacimento?: boolean
           laboratorio_id?: string
           listino_id?: string | null
+          lotto_disinfettante?: string | null
+          materiali_allegati?: string[]
           natura_iva?: string
           norma_riferimento?: string | null
           note_interne?: string | null
@@ -2103,6 +2117,7 @@ export type Database = {
           tecnico_id?: string | null
           tipo_arco?: string | null
           tipo_dispositivo?: string
+          tipo_impronte?: string | null
           updated_at?: string
         }
         Relationships: [

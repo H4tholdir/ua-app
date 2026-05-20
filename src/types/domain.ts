@@ -290,6 +290,12 @@ export interface Lavoro {
   spedizione_stato: StatoSpedizione | null;
   spedizione_data_prevista: string | null;
   spedizione_note: string | null;
+  // Accettazione ingresso — MDR Allegato XIII (tracciabilità impronta)
+  tipo_impronte: string | null;
+  disinfettante_usato: string | null;
+  lotto_disinfettante: string | null;
+  materiali_allegati: string[];
+  anamnesi_difficolta_manuali: boolean;
   // Audit
   created_at: string;
   updated_at: string;

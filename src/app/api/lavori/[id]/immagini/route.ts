@@ -98,6 +98,10 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
+  // Leggi descrizione opzionale (usata per salvare la categoria foto)
+  const descrizione = formData.get('descrizione')
+  const descrizioneValue = typeof descrizione === 'string' && descrizione ? descrizione : null
+
   // INSERT in lavori_immagini
   const { data: immagine, error: insertError } = await svc
     .from('lavori_immagini')
@@ -107,6 +111,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       storage_path: path,
       url,
       nome_file: file.name || null,
+      descrizione: descrizioneValue,
       tipo: 'foto',
       ordine: 0,
     })

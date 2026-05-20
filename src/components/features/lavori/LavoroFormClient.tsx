@@ -17,6 +17,7 @@ import { TabProduzione } from './form/TabProduzione'
 import { TabDate } from './form/TabDate'
 import { TabImmagini } from './form/TabImmagini'
 import { TabDocumenti } from './form/TabDocumenti'
+import { TabAccettazione } from './form/TabAccettazione'
 import { TabProve } from './TabProve'
 
 interface LavoroFormClientProps {
@@ -53,6 +54,9 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
           switch (activeTab) {
             case 'dati':
               return <TabDati data={data} onChange={update} />
+
+            case 'accettazione':
+              return <TabAccettazione data={data} onChange={update} />
 
             case 'lavorazioni':
               return (

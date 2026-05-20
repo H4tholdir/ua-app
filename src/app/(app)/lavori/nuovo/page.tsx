@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { LavoroFormShell, type TabId } from '@/components/features/lavori/form/LavoroFormShell'
 import { TabDati } from '@/components/features/lavori/form/TabDati'
+import { TabAccettazione } from '@/components/features/lavori/form/TabAccettazione'
 import type { Lavoro } from '@/types/domain'
 
 const DISABLED_TAB_MESSAGE = 'Salva prima i dati principali per abilitare questa tab.'
@@ -97,6 +98,11 @@ export default function NuovoLavoroPage() {
       <form onSubmit={handleSubmit} noValidate>
         <LavoroFormShell defaultTab="dati">
           {(activeTab) => {
+            // Tab abilitata anche prima della creazione: Accettazione MDR
+            if (activeTab === 'accettazione') {
+              return <TabAccettazione data={formData} onChange={handleChange} />
+            }
+
             // Tab disabilitata prima della creazione
             if (DISABLED_TABS.includes(activeTab)) {
               return (
