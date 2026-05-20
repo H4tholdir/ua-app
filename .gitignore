@@ -96,3 +96,7 @@ coverage/
 dist/
 .superpowers/
 .vercel/
+
+# === GRAPHIFY ===
+# Il graph.json e la cache sono locali — ogni dev rigenerarsi con: graphify update .
+graphify-out/

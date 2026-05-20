@@ -2929,6 +2929,39 @@ export type Database = {
           },
         ]
       }
+      lookup_valori: {
+        Row: {
+          attivo: boolean
+          codice: string
+          created_at: string
+          id: string
+          note: string | null
+          ordine: number
+          tipo: string
+          valore_it: string
+        }
+        Insert: {
+          attivo?: boolean
+          codice: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          ordine?: number
+          tipo: string
+          valore_it: string
+        }
+        Update: {
+          attivo?: boolean
+          codice?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          ordine?: number
+          tipo?: string
+          valore_it?: string
+        }
+        Relationships: []
+      }
       lotti_magazzino: {
         Row: {
           altro_codice: string | null

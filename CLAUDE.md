@@ -128,6 +128,35 @@ Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
 
 ---
 
+## 10. Graphify — Knowledge Graph del Codebase
+
+Il grafo è già generato in `graphify-out/` (2140 nodi, 4349 archi, 186 comunità).
+Si aggiorna automaticamente ad ogni `git commit` via hook `.husky/post-commit` (solo tree-sitter, zero costo API).
+
+```bash
+# Query semantica sul codebase
+graphify query "come funziona il flusso consegna MDR?"
+
+# Traccia percorso tra due componenti
+graphify path "ConsegnaButton" "orchestraConsegna"
+
+# Spiega un simbolo specifico e i suoi vicini
+graphify explain "getServiceClient"
+
+# Rigenera grafo dopo refactoring pesante (zero costo API)
+graphify update . --no-viz
+
+# Rigenera grafo da zero con LLM (costa ~$6, solo se serve reset completo)
+graphify . --no-viz
+```
+
+God nodes critici (più connessi):
+- `getServiceClient()` → 161 archi — hub di tutti gli accessi Supabase
+- `getServerUserClient()` → 134 archi — auth SSR
+- `AppHeader()` → 50 archi — presente in quasi ogni pagina
+
+---
+
 ## 9. Regole Critiche (emerse da review + errori passati)
 
 ### Gotchas architetturali
