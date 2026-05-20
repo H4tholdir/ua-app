@@ -286,7 +286,69 @@ export async function orchestraConsegna(
     const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
     // ----------------------------------------------------------------
-    // Step 8 — Restituisci ConsegnaResult
+    // Step 8 — Auto-scarico materiali BOM (non-critical, fire-and-forget)
+    // ----------------------------------------------------------------
+    // Se errore → LOG ma NON blocca la consegna
+    ;(async () => {
+      try {
+        const lavorazioniForScarico = lavoro.lavorazioni as Array<{
+          id: string
+          listino_id: string | null
+          quantita: number
+        }> | undefined
+
+        if (!lavorazioniForScarico || lavorazioniForScarico.length === 0) return
+
+        for (const lav of lavorazioniForScarico) {
+          if (!lav.listino_id) continue
+
+          // Carica BOM per questa lavorazione
+          const { data: bomItems } = await supabase
+            .from('listino_materiali_auto')
+            .select('magazzino_id, listino_id, quantita_per_unita, unita_misura')
+            .eq('listino_id', lav.listino_id)
+            .eq('laboratorio_id', laboratorio_id)
+
+          if (!bomItems || bomItems.length === 0) continue
+
+          for (const bom of bomItems) {
+            const quantita = Number(bom.quantita_per_unita) * Number(lav.quantita)
+
+            // Inserisci in scarichi_magazzino (tracciabilità MDR)
+            await supabase.from('scarichi_magazzino').insert({
+              laboratorio_id: laboratorio_id,
+              lavoro_id: lavoro_id,
+              magazzino_id: bom.magazzino_id,
+              listino_id: bom.listino_id,
+              quantita,
+              unita_misura: bom.unita_misura,
+            })
+
+            // Decrementa scorta_attuale
+            const { data: mag } = await supabase
+              .from('magazzino')
+              .select('scorta_attuale')
+              .eq('id', bom.magazzino_id)
+              .eq('laboratorio_id', laboratorio_id)
+              .single()
+
+            if (mag) {
+              const nuovaScorta = Math.max(0, Number(mag.scorta_attuale) - quantita)
+              await supabase
+                .from('magazzino')
+                .update({ scorta_attuale: nuovaScorta })
+                .eq('id', bom.magazzino_id)
+                .eq('laboratorio_id', laboratorio_id)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[CONSEGNA] Auto-scarico materiali failed (non-blocking):', err)
+      }
+    })()
+
+    // ----------------------------------------------------------------
+    // Step 9 — Restituisci ConsegnaResult
     // ----------------------------------------------------------------
     return {
       ok: true,

@@ -5,6 +5,15 @@ import { motion, AnimatePresence } from 'motion/react'
 import useSound from 'use-sound'
 import { t } from '@/design-system/motion'
 import type { ConsegnaError } from '@/types/domain'
+import { MaterialiWarningSheet } from './MaterialiWarningSheet'
+
+interface MaterialeCarente {
+  nome: string
+  quantita_necessaria: number
+  scorta_attuale: number
+  unita_misura: string
+  sufficiente: boolean
+}
 
 interface ConsegnaButtonProps {
   lavoroId: string
@@ -48,6 +57,8 @@ const BUTTON_TEXT: Record<Stato, string> = {
 export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
   const [stato, setStato] = useState<Stato>('idle')
   const [errore, setErrore] = useState<string | null>(null)
+  const [materialiWarning, setMaterialiWarning] = useState<MaterialeCarente[]>([])
+  const [showWarningSheet, setShowWarningSheet] = useState(false)
 
   // use-sound gestisce silenziosamente i file mancanti — play() non lancia se il file non esiste
   const [playSuccess] = useSound('/sounds/success.mp3', {
@@ -56,9 +67,7 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
     onloaderror: () => undefined,
   })
 
-  const handleClick = async () => {
-    if (stato === 'loading' || stato === 'success') return
-
+  const eseguiConsegna = async () => {
     setStato('loading')
     setErrore(null)
 
@@ -88,7 +97,41 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
     }
   }
 
+  const handleClick = async () => {
+    if (stato === 'loading' || stato === 'success') return
+
+    // Precheck materiali (best-effort — non blocca in caso di errore di rete)
+    try {
+      const precheckRes = await fetch(`/api/lavori/${lavoroId}/precheck-materiali`)
+      if (precheckRes.ok) {
+        const data = await precheckRes.json() as { ok: boolean; materiali_carenti: MaterialeCarente[] }
+        if (!data.ok && data.materiali_carenti.length > 0) {
+          setMaterialiWarning(data.materiali_carenti)
+          setShowWarningSheet(true)
+          return
+        }
+      }
+    } catch {
+      // Precheck fallito per errore di rete — procede comunque (non-critical)
+    }
+
+    await eseguiConsegna()
+  }
+
   return (
+    <>
+    <MaterialiWarningSheet
+      open={showWarningSheet}
+      materiali={materialiWarning}
+      onProcedi={() => {
+        setShowWarningSheet(false)
+        void eseguiConsegna()
+      }}
+      onAnnulla={() => {
+        setShowWarningSheet(false)
+        setStato('idle')
+      }}
+    />
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
       <motion.button
         onClick={handleClick}
@@ -141,5 +184,6 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
         )}
       </AnimatePresence>
     </div>
+    </>
   )
 }

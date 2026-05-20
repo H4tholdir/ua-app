@@ -1,7 +1,15 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type { Lavoro, TipoDispositivo, PrioritaLavoro } from '@/types/domain'
 import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
+
+interface StudioMember {
+  id: string
+  nome: string
+  cognome: string
+  studio_nome: string | null
+}
 
 // ─── Stili condivisi ──────────────────────────────────────────
 const inputBase: React.CSSProperties = {
@@ -61,6 +69,31 @@ interface TabDatiProps {
 }
 
 export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiProps) {
+  const [studioMembers, setStudioMembers] = useState<StudioMember[]>([])
+
+  // Carica i medici dello stesso studio quando cambia il cliente
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (!clienteId) {
+        if (!cancelled) setStudioMembers([])
+        return
+      }
+      try {
+        const r = await fetch(`/api/clienti/${clienteId}/studio-members`)
+        const members: StudioMember[] = r.ok ? await r.json() : []
+        if (!cancelled) setStudioMembers(Array.isArray(members) ? members : [])
+      } catch {
+        if (!cancelled) setStudioMembers([])
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [clienteId])
+
+  // Mostra chips solo se ci sono almeno 2 medici nello studio
+  const showChips = studioMembers.length >= 1
+
   return (
     <div>
       {/* 0. Dentista / Studio (solo se il callback è fornito) */}
@@ -137,6 +170,84 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
         <label htmlFor="richiedente_nome" style={labelStyle}>
           Medico richiedente
         </label>
+
+        {/* Chip row shortcut — visibile solo se lo studio ha più medici */}
+        {showChips && (
+          <div
+            role="group"
+            aria-label="Seleziona medico richiedente dallo studio"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '8px',
+            }}
+          >
+            {studioMembers.map((m) => {
+              const chipLabel = `${m.cognome} ${m.nome.charAt(0)}.`
+              const isActive = data.richiedente_nome === chipLabel
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => onChange({ richiedente_nome: chipLabel })}
+                  aria-pressed={isActive}
+                  aria-label={`Seleziona ${chipLabel}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    minHeight: '44px',
+                    padding: '0 14px',
+                    borderRadius: '100px',
+                    border: isActive
+                      ? '1.5px solid var(--primary, #D90012)'
+                      : '1.5px solid rgba(0,0,0,.10)',
+                    background: isActive
+                      ? 'rgba(217,0,18,.08)'
+                      : 'var(--elv, #EDEDEA)',
+                    color: isActive
+                      ? 'var(--primary, #D90012)'
+                      : 'var(--t1, #1C1916)',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 600 : 400,
+                    cursor: 'pointer',
+                    minWidth: '44px',
+                    boxShadow: isActive
+                      ? 'none'
+                      : '-2px -2px 5px rgba(255,255,255,.72), 3px 4px 8px -1px rgba(148,128,118,.28)',
+                    transition: 'background 0.14s, border-color 0.14s, color 0.14s',
+                  }}
+                >
+                  {chipLabel}
+                </button>
+              )
+            })}
+            {/* Chip "+ Nuovo": deseleziona richiedente e lascia spazio per digitare */}
+            <button
+              type="button"
+              onClick={() => onChange({ richiedente_nome: '' })}
+              aria-label="Inserisci un nuovo medico richiedente"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: '44px',
+                padding: '0 12px',
+                borderRadius: '100px',
+                border: '1.5px dashed rgba(0,0,0,.15)',
+                background: 'transparent',
+                color: 'var(--t3, #B8B3AE)',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              + Nuovo
+            </button>
+          </div>
+        )}
+
         <input
           id="richiedente_nome"
           name="richiedente_nome"

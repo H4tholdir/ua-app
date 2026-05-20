@@ -1940,6 +1940,7 @@ export type Database = {
           prescrizione_digitale_id: string | null
           prezzo_unitario: number | null
           priorita: string
+          richiedente_email: string | null
           richiedente_nome: string | null
           rifacimento_motivo: string | null
           spedizione_corriere: string | null
@@ -2022,6 +2023,7 @@ export type Database = {
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
           priorita?: string
+          richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
           spedizione_corriere?: string | null
@@ -2104,6 +2106,7 @@ export type Database = {
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
           priorita?: string
+          richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
           spedizione_corriere?: string | null
@@ -2914,6 +2917,65 @@ export type Database = {
           },
         ]
       }
+      listino_materiali_auto: {
+        Row: {
+          created_at: string
+          id: string
+          laboratorio_id: string
+          listino_id: string
+          magazzino_id: string
+          quantita_per_unita: number
+          unita_misura: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          laboratorio_id: string
+          listino_id: string
+          magazzino_id: string
+          quantita_per_unita?: number
+          unita_misura?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          laboratorio_id?: string
+          listino_id?: string
+          magazzino_id?: string
+          quantita_per_unita?: number
+          unita_misura?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listino_materiali_auto_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listino_materiali_auto_listino_id_fkey"
+            columns: ["listino_id"]
+            isOneToOne: false
+            referencedRelation: "listino"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listino_materiali_auto_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listino_materiali_auto_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino_sotto_scorta"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listino_prezzi_tier: {
         Row: {
           id: string
@@ -3505,6 +3567,98 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordini_fornitori: {
+        Row: {
+          created_at: string
+          data_consegna_effettiva: string | null
+          data_consegna_richiesta: string | null
+          data_ordine: string | null
+          deleted_at: string | null
+          email_inviato: boolean
+          fornitore_id: string | null
+          id: string
+          laboratorio_id: string
+          magazzino_id: string | null
+          note: string | null
+          numero_ordine: string
+          quantita_ordinata: number | null
+          quantita_ricevuta: number | null
+          stato: string
+          unita_misura: string | null
+          updated_at: string
+          whatsapp_inviato: boolean
+        }
+        Insert: {
+          created_at?: string
+          data_consegna_effettiva?: string | null
+          data_consegna_richiesta?: string | null
+          data_ordine?: string | null
+          deleted_at?: string | null
+          email_inviato?: boolean
+          fornitore_id?: string | null
+          id?: string
+          laboratorio_id: string
+          magazzino_id?: string | null
+          note?: string | null
+          numero_ordine: string
+          quantita_ordinata?: number | null
+          quantita_ricevuta?: number | null
+          stato?: string
+          unita_misura?: string | null
+          updated_at?: string
+          whatsapp_inviato?: boolean
+        }
+        Update: {
+          created_at?: string
+          data_consegna_effettiva?: string | null
+          data_consegna_richiesta?: string | null
+          data_ordine?: string | null
+          deleted_at?: string | null
+          email_inviato?: boolean
+          fornitore_id?: string | null
+          id?: string
+          laboratorio_id?: string
+          magazzino_id?: string | null
+          note?: string | null
+          numero_ordine?: string
+          quantita_ordinata?: number | null
+          quantita_ricevuta?: number | null
+          stato?: string
+          unita_misura?: string | null
+          updated_at?: string
+          whatsapp_inviato?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordini_fornitori_fornitore_id_fkey"
+            columns: ["fornitore_id"]
+            isOneToOne: false
+            referencedRelation: "fornitori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordini_fornitori_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordini_fornitori_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordini_fornitori_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino_sotto_scorta"
             referencedColumns: ["id"]
           },
         ]
@@ -4296,6 +4450,98 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scarichi_magazzino: {
+        Row: {
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          listino_id: string | null
+          lotto_numero: string | null
+          magazzino_id: string
+          note: string | null
+          operatore_id: string | null
+          quantita: number
+          timestamp_scarico: string
+          unita_misura: string
+        }
+        Insert: {
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          listino_id?: string | null
+          lotto_numero?: string | null
+          magazzino_id: string
+          note?: string | null
+          operatore_id?: string | null
+          quantita: number
+          timestamp_scarico?: string
+          unita_misura?: string
+        }
+        Update: {
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          listino_id?: string | null
+          lotto_numero?: string | null
+          magazzino_id?: string
+          note?: string | null
+          operatore_id?: string | null
+          quantita?: number
+          timestamp_scarico?: string
+          unita_misura?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scarichi_magazzino_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_listino_id_fkey"
+            columns: ["listino_id"]
+            isOneToOne: false
+            referencedRelation: "listino"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_magazzino_id_fkey"
+            columns: ["magazzino_id"]
+            isOneToOne: false
+            referencedRelation: "magazzino_sotto_scorta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scarichi_magazzino_operatore_id_fkey"
+            columns: ["operatore_id"]
+            isOneToOne: false
+            referencedRelation: "utenti"
             referencedColumns: ["id"]
           },
         ]

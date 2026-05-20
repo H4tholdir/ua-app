@@ -231,6 +231,7 @@ export interface Lavoro {
   descrizione: string;
   note_interne: string | null;
   richiedente_nome: string | null;
+  richiedente_email: string | null;
   // Campi colore (tab Clinica)
   colore_dente: string | null;
   colore_collo: string | null;

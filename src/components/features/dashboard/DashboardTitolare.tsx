@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { KpiCard } from './KpiCard'
@@ -617,7 +618,42 @@ export function DashboardTitolare({
         {/* 7. Materiali in esaurimento */}
         {materialiEsaurimento.length > 0 && (
           <Section delay={stagger * 5} reducedMotion={reducedMotion}>
-            <SectionLabel>Materiali in esaurimento</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <h2
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: DS.t3,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  margin: 0,
+                }}
+              >
+                Materiali in esaurimento
+              </h2>
+              <Link
+                href="/ordini"
+                aria-label="Vai agli ordini fornitori"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '28px',
+                  padding: '0 12px',
+                  borderRadius: '100px',
+                  background: 'var(--primary, #D90012)',
+                  color: '#fff',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                Ordina →
+              </Link>
+            </div>
             <div style={CARD_STYLE}>
               {materialiEsaurimento.map((mat, i) => {
                 const percRimasto =

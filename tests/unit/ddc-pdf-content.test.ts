@@ -128,6 +128,7 @@ const LAVORO_FIXTURE: LavoroDettaglio = {
   descrizione: 'Corona ceramica su impianto elemento 14 colore A2',
   note_interne: null,
   richiedente_nome: null,
+  richiedente_email: null,
   colore_dente: 'A2',
   colore_collo: null,
   colore_corpo: null,
