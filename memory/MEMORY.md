@@ -178,7 +178,7 @@ Salvato in: `docs/superpowers/plans/2026-05-20-ua-roadmap-v15-v2.md`
 9 Sprint V1.5 (~9 settimane) + roadmap V2/V3.
 
 ### ✅ Sprint S0 completato (20/05/2026)
-**Commit:** `ec7d0d1` — chore(data): Sprint S0 import completo + fix ESLint
+**Commit:** `ec7d0d1` + `a8135d8`
 
 | Task | Risultato |
 |------|-----------|
@@ -189,11 +189,56 @@ Salvato in: `docs/superpowers/plans/2026-05-20-ua-roadmap-v15-v2.md`
 | S0.5 Lavori storici | 234 nuovi lavori storici importati (tot. 276 storici; 279 totali lab Filippo) |
 | S0.6 Seed Arturo Pepe | 19 medici come clienti + 911 pazienti pseudonimizzati (GDPR: solo codice PAZ/YYYY/NNN) |
 
-**Nota importante:** `is_storico` non esiste nel DB reale — i lavori storici si identificano via `note_interne ILIKE '%IMPORT DentalMaster%'`
+**Nota:** `is_storico` non esiste nel DB reale — i lavori storici si identificano via `note_interne ILIKE '%IMPORT DentalMaster%'`
+**Nota seed globale:** `laboratorio_id NOT NULL` — per ora tutto in lab Filippo. Serve `scripts/seed-new-lab.ts` per onboarding nuovi lab.
 
-**Nota seed globale:** Per ora cicli/fasi/lookup sono in lab Filippo (laboratorio_id NOT NULL nello schema). Prossimo step onboarding: `scripts/seed-new-lab.ts` che chiama wizard "Vuoi infrastruttura base pronta?" per ogni nuovo lab iscritto.
+### ✅ Sprint S1 — Dashboard OGGI (già implementato, verificato 20/05/2026)
+Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato + prove + materiali + pagamenti), `DashboardTecnico` (urgenti + puntualità), `DashboardFrontDesk` (accettazione + search + consegne). Design system v2.2 conforme. FAB rosso presente.
 
-**Prossima sessione:** Sprint S1 — Dashboard OGGI Riprogettata (3 viste ruolo)
+### ✅ Sprint S2 — Flow PROVE (già implementato, verificato 20/05/2026)
+`lavoro_prove` table in DB, API `GET/POST/PATCH /api/lavori/[id]/prove`, `TabProve.tsx` integrata in `LavoroFormClient`. Avvio prova, rientro con esito (ok/modifiche/rifare/sospeso), storico prove, WhatsApp link.
+
+### ✅ Sprint S3 — Odontogramma FDI (implementato 20/05/2026)
+**Commit:** `9189503`
+- `OdontogrammaFDI.tsx` (1048 righe) — 5 forme SVG anatomiche: molare/premolare/canino/incisivo lat./centrale
+- `denti-fdi.ts` — adulto 32 denti + deciduo 20 denti
+- Migration: `denti_mancanti INTEGER[]`, `denti_impianti INTEGER[]`, `tipo_arco TEXT`
+- 3 stati: selezionato (rosso), mancante (X), impianto (cobalt). Tap=toggle, long press=menu stato
+- Toggle adulto/deciduo. Chip real-time elementi selezionati.
+- `TabClinica.tsx` aggiornata con il componente
+
+### 🟡 Sprint S4 — Scadenzario (quasi completo, verificato 20/05/2026)
+✅ `ScadenzarioList.tsx` (497 righe) — lista clienti con fatture insolute, urgency by giorni, WhatsApp sollecito 1-tap
+✅ API `/api/scadenzario` (121 righe) — fatture non pagate raggruppate per cliente
+⚠️ **MANCA:** pagina estratto conto singolo cliente `/scadenzario/[cliente_id]` (S4.2 del piano)
+
+### ❌ Sprint S5 — Allegati Clinici + Tab Ingresso (da fare)
+- `tipo_impronte`, `disinfettante_usato`, `lotto_disinfettante`, `materiali_allegati`, `numero_cassetta` — NON nel DB
+- Tab "Ingresso" nel form lavoro — NON implementata
+- `TabImmagini.tsx` (276 righe) — upload foto già presente, da verificare completezza
+
+### ❌ Sprint S6 — Documenti MDR: IFU + Etichetta + Ricevuta (parziale)
+✅ `EtichettaTemplate.tsx` esiste (PDF template etichetta dispositivo)
+❌ `IFUTemplate.tsx` — NON esiste
+❌ API `/api/lavori/[id]/ifu` — NON esiste
+❌ API `/api/lavori/[id]/etichetta` — NON esiste
+❌ `RicevutaConsegnaTemplate.tsx` — NON esiste
+
+### 🟡 Sprint S7 — Richiedente + Materiali + Ordini (parziale)
+✅ `richiedente_nome` nel form (TabDati) — già implementato
+⚠️ Consumo automatico materiali al tap CONSEGNA — da verificare
+❌ Pagina `/ordini` fornitori — NON esiste
+
+### 🟡 Sprint S8 — Tecnici + Compensi + Cedolino (parziale)
+✅ `/tecnici/page.tsx` esiste — lista tecnici
+✅ `compenso_tecnico` nel DB (campo listino)
+❌ `/tecnici/produttivita` page — NON esiste
+❌ `CedolinoTecnicoTemplate.tsx` — NON esiste
+❌ API cedolino — NON esiste
+
+### ❌ Sprint S9 — Polish QA Mobile (da fare)
+
+**Prossimo:** S4.2 (estratto conto cliente) → S5 (Tab Ingresso + Allegati) → S6 (IFU + Etichetta + Ricevuta) → S7 → S8 → S9
 
 ### V1.5 — Parità operativa con DentalMaster (priorità alta)
 Vedi dettaglio in `ANALISI/DM_ODONTEC_CATALOG/MASTER_CATALOG.md` e `SINTESI_SEMANTICA.md`
