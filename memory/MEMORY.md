@@ -226,12 +226,13 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 ✅ Migration: tipo_impronte, disinfettante_usato, lotto_disinfettante, materiali_allegati TEXT[], anamnesi_difficolta_manuali
 ✅ Tab abilitata anche in "Nuovo lavoro" (non richiede lavoro pre-esistente)
 
-### ❌ Sprint S6 — Documenti MDR: IFU + Etichetta + Ricevuta (parziale)
-✅ `EtichettaTemplate.tsx` esiste (PDF template etichetta dispositivo)
-❌ `IFUTemplate.tsx` — NON esiste
-❌ API `/api/lavori/[id]/ifu` — NON esiste
-❌ API `/api/lavori/[id]/etichetta` — NON esiste
-❌ `RicevutaConsegnaTemplate.tsx` — NON esiste
+### ✅ Sprint S6 — Documenti MDR IFU + Etichetta + Ricevuta (completato 20/05/2026)
+**Commit:** `bbc5f59`
+✅ `IFUTemplate.tsx` — A4, 8 sezioni MDR Allegato I §23.4, rischi residui obbligatori, GDPR-safe
+✅ `EtichettaTemplate.tsx` upgrade — A6 landscape, "DISPOSITIVO SU MISURA", ITCA bold, "Installare entro il"
+✅ `RicevutaConsegnaTemplate.tsx` — A4, Sez.A fabbricante + Sez.B firma prescrittore, 15 anni conservazione
+✅ API: `/api/lavori/[id]/ifu` · `/etichetta` · `/ricevuta-consegna` — PDF stream con auth
+✅ `PacchettoConsegnaSheet.tsx` — bottom sheet MDR, 3 doc selezionabili, progress ring SVG, Web Share API
 
 ### 🟡 Sprint S7 — Richiedente + Materiali + Ordini (parziale)
 ✅ `richiedente_nome` nel form (TabDati) — già implementato
