@@ -251,7 +251,40 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 ✅ API: produttivita + cedolino + PATCH listino con allowlist
 ⚠️ `tecnici.compenso_base` usato come target mensile nella progress bar — confermare con Filippo se è il target mensile o lo stipendio base fisso
 
-### ❌ Sprint S9 — Polish QA Mobile (da fare)
+### ✅ Sprint S9 — Polish QA Mobile (completato 20/05/2026)
+
+**Pagine verificate a 390px (iPhone):**
+✅ /dashboard — KPI strip scroll orizzontale corretto (design intentionale)
+✅ /lavori — empty state "Nessun lavoro ancora" corretto
+✅ /lavori/nuovo — tab Dati + Accett. operativi
+✅ /lavori/nuovo [tab Accett.] — MDR checklist visibile
+✅ /lavori/nuovo [tab Clinica] — locked state corretto
+✅ /lavori/nuovo [tab Foto] — locked state corretto
+✅ /lavori/nuovo [tab Date] — locked state corretto
+✅ /lavori/nuovo [tab Prove] — locked state corretto (FIX applicato)
+✅ /scadenzario — empty state "Nessun insoluto" corretto
+✅ /clienti — bottone "+ Nuovo" visibile (FIX AppHeader)
+✅ /magazzino — empty state corretto
+✅ /ordini — FAB "Nuovo ordine" visibile
+✅ /tecnici — empty state "Nessun tecnico trovato" corretto
+✅ /listino — bottone "+ Nuova voce" visibile (FIX AppHeader)
+✅ /impostazioni — link "Configura PEC →" touch target ≥ 44px (FIX)
+
+**Fix applicati durante QA:**
+1. **`lavori/nuovo/page.tsx`** — aggiunto `'prove'` a `DISABLED_TABS`. Prima: tab Prove mostrava erroneamente il contenuto di TabDati. Ora: mostra il locked state corretto.
+2. **`components/layout/AppHeader.tsx`** — padding-right da 20px a 64px per evitare sovrapposizione con avatar fisso UserProfileSheet (right:16 + width:40 = 56px). Fix visivo su /clienti, /listino, e tutte le pagine con actions.
+3. **`app/(app)/impostazioni/page.tsx`** — link "Configura PEC →" da `display:inline-block` (20px height) a `display:inline-flex, minHeight:44px`. Touch target conforme HIG.
+
+**Stato finale:**
+- TypeScript: zero errori
+- ESLint: zero warning
+- Vitest: 141/141 verde
+- Build produzione: ✅ (Compiled successfully)
+- Nessun overflow orizzontale su 390px
+- Tutti i bottoni azione visibili e non sovrapposti
+
+**V1.5 — Copertura stimata DentalMaster: ~90%**
+App pronta per consegna a Filippo Opromolla
 
 **Prossimo:** S4.2 (estratto conto cliente) → S5 (Tab Ingresso + Allegati) → S6 (IFU + Etichetta + Ricevuta) → S7 → S8 → S9
 

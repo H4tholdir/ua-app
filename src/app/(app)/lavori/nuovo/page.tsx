@@ -16,6 +16,7 @@ const DISABLED_TABS: TabId[] = [
   'lavorazioni',
   'clinica',
   'produzione',
+  'prove',
   'date',
   'immagini',
   'documenti',

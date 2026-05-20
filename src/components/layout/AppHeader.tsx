@@ -21,13 +21,14 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = false }: AppHeaderProps) {
+  // Always add 64px right padding to leave space for the fixed UserProfileSheet avatar (right:16 + width:40 = 56px → 64px safe)
   return (
     <header
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '16px 20px',
+        padding: '16px 64px 16px 20px',
         minHeight: '64px',
       }}
     >

@@ -278,7 +278,7 @@ export default async function ImpostazioniPage() {
                 <span>✅</span> Verificata end-to-end
               </div>
             )}
-            <Link href="/impostazioni/pec" style={{ display: 'inline-block', marginTop: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--primary, #D90012)', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif' }}>
+            <Link href="/impostazioni/pec" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '44px', marginTop: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--primary, #D90012)', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif' }}>
               {lab.pec_smtp_configurata ? 'Modifica configurazione PEC →' : 'Configura PEC →'}
             </Link>
           </div>
