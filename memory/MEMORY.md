@@ -176,7 +176,24 @@ Il QA di questa sessione ha trovato e corretto alcuni bug critici, ma rimangono:
 ### Piano Maestro V1.5 → V2
 Salvato in: `docs/superpowers/plans/2026-05-20-ua-roadmap-v15-v2.md`
 9 Sprint V1.5 (~9 settimane) + roadmap V2/V3.
-Prossima sessione: inizia da **Sprint S0 (Data Import)** con approccio Subagent-Driven.
+
+### ✅ Sprint S0 completato (20/05/2026)
+**Commit:** `ec7d0d1` — chore(data): Sprint S0 import completo + fix ESLint
+
+| Task | Risultato |
+|------|-----------|
+| S0.1 Fasi produzione | 300 fasi OL0-OL371 importate (tot. 371 nel DB) |
+| S0.2 Cicli produzione | 66 cicli mancanti importati (tot. 140 per lab Filippo) |
+| S0.3 lookup_valori | Migration applicata + 102 valori seedati (colori, leghe, pagamenti, impronte, MDR) |
+| S0.4 Magazzino Filippo | 185 articoli nel DB (2 ghost records filtrati); fix anomalia cod.243 → scorta=0 |
+| S0.5 Lavori storici | 234 nuovi lavori storici importati (tot. 276 storici; 279 totali lab Filippo) |
+| S0.6 Seed Arturo Pepe | 19 medici come clienti + 911 pazienti pseudonimizzati (GDPR: solo codice PAZ/YYYY/NNN) |
+
+**Nota importante:** `is_storico` non esiste nel DB reale — i lavori storici si identificano via `note_interne ILIKE '%IMPORT DentalMaster%'`
+
+**Nota seed globale:** Per ora cicli/fasi/lookup sono in lab Filippo (laboratorio_id NOT NULL nello schema). Prossimo step onboarding: `scripts/seed-new-lab.ts` che chiama wizard "Vuoi infrastruttura base pronta?" per ogni nuovo lab iscritto.
+
+**Prossima sessione:** Sprint S1 — Dashboard OGGI Riprogettata (3 viste ruolo)
 
 ### V1.5 — Parità operativa con DentalMaster (priorità alta)
 Vedi dettaglio in `ANALISI/DM_ODONTEC_CATALOG/MASTER_CATALOG.md` e `SINTESI_SEMANTICA.md`
