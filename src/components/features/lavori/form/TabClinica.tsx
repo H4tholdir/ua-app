@@ -1,7 +1,8 @@
 'use client'
 
 import type { Lavoro } from '@/types/domain'
-import { inputBase, labelStyle, fieldStyle, sectionSeparator, sectionTitle, insetShadow } from './styles'
+import { inputBase, labelStyle, fieldStyle, sectionSeparator, sectionTitle } from './styles'
+import { OdontogrammaFDI } from '../../odontogramma/OdontogrammaFDI'
 
 // ─── Scala VITA completa ────────────────────────────────────
 const VITA_SCALE = [
@@ -12,169 +13,25 @@ const VITA_SCALE = [
   'T', 'BL', 'OM',
 ] as const
 
-// ─── Odontogramma FDI — layout adulto ────────────────────────
-// Riga 1: superiore destra (destra → centro)
-// Riga 2: superiore sinistra (centro → sinistra)
-// Riga 3: inferiore destra (destra → centro)
-// Riga 4: inferiore sinistra (centro → sinistra)
-const DENTI_ROWS = [
-  [18, 17, 16, 15, 14, 13, 12, 11],
-  [21, 22, 23, 24, 25, 26, 27, 28],
-  [48, 47, 46, 45, 44, 43, 42, 41],
-  [31, 32, 33, 34, 35, 36, 37, 38],
-] as const
-
 interface TabClinicaProps {
   data: Partial<Lavoro>
   onChange: (u: Partial<Lavoro>) => void
 }
 
 export function TabClinica({ data, onChange }: TabClinicaProps) {
-  const dentiCoinvolti = data.denti_coinvolti ?? []
-
-  function toggleDente(num: number) {
-    const key = String(num)
-    const isSelected = dentiCoinvolti.includes(key)
-    const updated = isSelected
-      ? dentiCoinvolti.filter((d) => d !== key)
-      : [...dentiCoinvolti, key]
-    onChange({ denti_coinvolti: updated })
-  }
-
   return (
     <div>
       {/* ═══ ODONTOGRAMMA ══════════════════════════════════════ */}
       <div style={{ marginBottom: '24px' }}>
         <p style={sectionTitle}>Odontogramma FDI</p>
-
-        {DENTI_ROWS.map((row, rowIdx) => {
-          // Separatore tra le due arcate (dopo riga 1 e riga 2)
-          const isAfterSuperioreFine = rowIdx === 2
-
-          return (
-            <div key={rowIdx}>
-              {/* Separatore arcate */}
-              {isAfterSuperioreFine && (
-                <div
-                  aria-hidden="true"
-                  style={{
-                    height: '1px',
-                    background: 'rgba(0,0,0,.06)',
-                    margin: '10px 0',
-                    position: 'relative',
-                  }}
-                >
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '50%',
-                      top: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      background: 'var(--bg, #DDD8D3)',
-                      padding: '0 8px',
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      color: 'var(--t2, #96918D)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                    }}
-                  >
-                    — arcata inferiore —
-                  </span>
-                </div>
-              )}
-
-              {/* Etichetta arcata */}
-              {rowIdx === 0 && (
-                <p
-                  style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: 'var(--t2, #96918D)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    margin: '0 0 8px',
-                  }}
-                >
-                  Arcata superiore
-                </p>
-              )}
-
-              <div
-                role="group"
-                aria-label={
-                  rowIdx < 2
-                    ? `Superiore ${rowIdx === 0 ? 'destra' : 'sinistra'}`
-                    : `Inferiore ${rowIdx === 2 ? 'destra' : 'sinistra'}`
-                }
-                style={{
-                  display: 'flex',
-                  gap: '4px',
-                  marginBottom: rowIdx === 1 ? '0' : '6px',
-                  flexWrap: 'nowrap',
-                }}
-              >
-                {row.map((num) => {
-                  const key = String(num)
-                  const selected = dentiCoinvolti.includes(key)
-                  return (
-                    <button
-                      key={num}
-                      type="button"
-                      aria-label={`Dente ${num}`}
-                      aria-pressed={selected}
-                      onClick={() => toggleDente(num)}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        minWidth: '40px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: selected ? 'var(--gold, #D4A843)' : 'var(--elv, #EDEDEA)',
-                        color: selected ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
-                        boxShadow: selected
-                          ? insetShadow
-                          : 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
-                        flexShrink: 0,
-                        transition: 'background 0.08s, color 0.08s',
-                      }}
-                    >
-                      {num}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
-
-        {/* Sintesi denti selezionati */}
-        {dentiCoinvolti.length > 0 && (
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '12px',
-              color: 'var(--t2, #96918D)',
-              marginTop: '10px',
-              marginBottom: 0,
-            }}
-            aria-live="polite"
-          >
-            Selezionati:{' '}
-            <strong style={{ color: 'var(--t1, #1C1916)' }}>
-              {dentiCoinvolti
-                .map(Number)
-                .sort((a, b) => a - b)
-                .join(', ')}
-            </strong>
-          </p>
-        )}
+        <OdontogrammaFDI
+          selezionati={(data.denti_coinvolti ?? []).map(Number).filter(Boolean)}
+          mancanti={data.denti_mancanti ?? []}
+          impianti={data.denti_impianti ?? []}
+          onSelezionati={(v: number[]) => onChange({ denti_coinvolti: v.map(String) })}
+          onMancanti={(v: number[]) => onChange({ denti_mancanti: v })}
+          onImpianti={(v: number[]) => onChange({ denti_impianti: v })}
+        />
       </div>
 
       <div style={sectionSeparator} />

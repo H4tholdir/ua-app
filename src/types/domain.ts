@@ -240,6 +240,9 @@ export interface Lavoro {
   tecnica_colore: string | null;
   colorazione_esterna: string | null;
   denti_coinvolti: string[] | null;
+  denti_mancanti: number[] | null;
+  denti_impianti: number[] | null;
+  tipo_arco: 'superiore' | 'inferiore' | 'entrambi' | null;
   arcata: 'superiore' | 'inferiore' | 'entrambe' | null;
   // Anamnesi
   anamnesi_note: string | null;

@@ -1909,6 +1909,8 @@ export type Database = {
           data_terza_prova: string | null
           deleted_at: string | null
           denti_coinvolti: string[] | null
+          denti_impianti: number[]
+          denti_mancanti: number[]
           descrizione: string
           dispositivo_semilavorato: boolean
           effetti_speciali: string | null
@@ -1945,6 +1947,7 @@ export type Database = {
           stato_fisico: string | null
           tecnica_colore: string | null
           tecnico_id: string | null
+          tipo_arco: string | null
           tipo_dispositivo: string
           updated_at: string
         }
@@ -1983,6 +1986,8 @@ export type Database = {
           data_terza_prova?: string | null
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
+          denti_impianti?: number[]
+          denti_mancanti?: number[]
           descrizione: string
           dispositivo_semilavorato?: boolean
           effetti_speciali?: string | null
@@ -2019,6 +2024,7 @@ export type Database = {
           stato_fisico?: string | null
           tecnica_colore?: string | null
           tecnico_id?: string | null
+          tipo_arco?: string | null
           tipo_dispositivo: string
           updated_at?: string
         }
@@ -2057,6 +2063,8 @@ export type Database = {
           data_terza_prova?: string | null
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
+          denti_impianti?: number[]
+          denti_mancanti?: number[]
           descrizione?: string
           dispositivo_semilavorato?: boolean
           effetti_speciali?: string | null
@@ -2093,6 +2101,7 @@ export type Database = {
           stato_fisico?: string | null
           tecnica_colore?: string | null
           tecnico_id?: string | null
+          tipo_arco?: string | null
           tipo_dispositivo?: string
           updated_at?: string
         }
