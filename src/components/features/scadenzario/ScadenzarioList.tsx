@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
+import Link from 'next/link'
 import { t, useReducedMotion } from '@/design-system/motion'
 import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 
@@ -277,6 +278,30 @@ function InsolutoCard({
                   </li>
                 ))}
               </ul>
+
+              {/* Estratto conto link */}
+              <Link
+                href={`/scadenzario/${item.cliente.id}`}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'var(--elv)',
+                  color: 'var(--t2)',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  marginBottom: '8px',
+                  boxShadow: '-3px -3px 8px rgba(255,255,255,.72), 5px 6px 14px -2px rgba(148,128,118,.40)',
+                }}
+              >
+                📊 Estratto conto completo →
+              </Link>
 
               {/* WhatsApp sollecito CTA */}
               {item.cliente.telefono && (

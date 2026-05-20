@@ -16,6 +16,29 @@ Prima di qualsiasi lavoro: leggi `memory/MEMORY.md`. Documenti chiave:
 
 ---
 
+## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
+
+Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:
+
+1. **Ricerca best practice** — cerca sempre pattern UX/UI di riferimento per il dominio specifico (fintech, gestione lavori, MDR compliance, ecc.). Includi: animazioni raccomandate, sound/haptic feedback, pattern viewport.
+2. **Mockup HTML** in `/tmp/` che incorpori le best practice trovate — nessun placeholder, dati reali simulati.
+3. **Screenshot Playwright** del mockup — mostrarlo a Francesco.
+4. **Approvazione Francesco** — aspettare esplicito "ok procedi" prima di scrivere React.
+5. **Implementazione React** — fedele al mockup approvato, con:
+   - **Animazioni** da `src/design-system/motion.ts` (SOLO token, MAI inline)
+   - **Suoni/Haptic** da `src/lib/feedback/sounds.ts` e `src/lib/feedback/haptic.ts`
+   - **3 viewport**: mobile 390px (card-first, bottom sheet), tablet 768px (split-view), desktop 1280px (tabella/layout completo)
+   - **Accessibilità**: `prefers-reduced-motion`, touch target ≥ 44px, colore mai unica fonte di stato
+
+**Anti-pattern permanenti:**
+- ❌ MAI tabella full-width su mobile — usare card + accordion
+- ❌ MAI modal centrato su mobile per azioni — usare bottom sheet
+- ❌ MAI animazioni su ogni scroll — solo su eventi significativi
+- ❌ MAI suoni autoplay — sempre lazy init + preferenza utente
+- ❌ MAI più di 3 KPI above the fold su mobile
+
+---
+
 ## 1. Stack
 
 ```
