@@ -219,10 +219,12 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 ✅ Haptic + suono sintetico (C5→E5) su pagamento confermato
 ✅ `lib/feedback/haptic.ts` + `lib/feedback/sounds.ts` — utility globali disponibili in tutta l'app
 
-### ❌ Sprint S5 — Allegati Clinici + Tab Ingresso (da fare)
-- `tipo_impronte`, `disinfettante_usato`, `lotto_disinfettante`, `materiali_allegati`, `numero_cassetta` — NON nel DB
-- Tab "Ingresso" nel form lavoro — NON implementata
-- `TabImmagini.tsx` (276 righe) — upload foto già presente, da verificare completezza
+### ✅ Sprint S5 — Tab Accettazione MDR + Foto upgrade (completato 20/05/2026)
+**Commit:** `195aa59`
+✅ `TabAccettazione.tsx` — N° cassetta, tipo impronta (MDR *), disinfettante+lotto (MDR *), materiali allegati checkbox, toggle bruxismo+difficoltà manuali, progress bar MDR dinamica
+✅ `TabImmagini.tsx` upgrade — Camera/Galleria separati, browser-image-compression (WebP 400KB), XHR progress ring SVG, griglia 3/4/5 colonne, ottimistic UI, haptic+sound
+✅ Migration: tipo_impronte, disinfettante_usato, lotto_disinfettante, materiali_allegati TEXT[], anamnesi_difficolta_manuali
+✅ Tab abilitata anche in "Nuovo lavoro" (non richiede lavoro pre-esistente)
 
 ### ❌ Sprint S6 — Documenti MDR: IFU + Etichetta + Ricevuta (parziale)
 ✅ `EtichettaTemplate.tsx` esiste (PDF template etichetta dispositivo)
