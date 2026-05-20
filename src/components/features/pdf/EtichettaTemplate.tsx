@@ -1,9 +1,17 @@
 // UÀ — EtichettaTemplate
-// Etichetta MDR Art. 20(1) — formato 100x50mm (A8 custom)
+// Etichetta MDR Art. 20(1) — formato A6 landscape (148x105mm)
+// v2: aggiunto "DISPOSITIVO SU MISURA", ITCA prominente, "Installare entro"
 // Usa SOLO proprietà CSS supportate da @react-pdf/renderer
 
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+
+// ─── Props aggiuntiva v2 ────────────────────────────────────────────────────
+export interface EtichettaTemplateProps {
+  lavoro: LavoroDettaglio
+  lab: Laboratorio
+  installareEntro?: string | null
+}
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -12,16 +20,46 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     fontSize: 8,
     color: '#1a1a1a',
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: 12,
+    paddingRight: 12,
+  },
+  // Badge "DISPOSITIVO SU MISURA" — prima riga prominente
+  deviceBadge: {
+    border: '1pt solid #1a1a1a',
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 6,
+    paddingRight: 6,
+    marginBottom: 6,
+    alignItems: 'center',
+  },
+  deviceBadgeText: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  // Header lab + ITCA
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   labNome: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-    color: '#0f1e52',
+    color: '#1a1a1a',
+    flex: 1,
+  },
+  itcaBadge: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1a1a1a',
+    textAlign: 'right',
   },
   separatorTop: {
     borderBottom: '0.5pt solid #cccccc',
@@ -32,7 +70,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   label: {
-    width: 60,
+    width: 70,
     fontSize: 7,
     color: '#888888',
     textTransform: 'uppercase',
@@ -86,16 +124,9 @@ function inizialeCognomePaziente(lavoro: LavoroDettaglio): string {
   return [inizialeNome, cognome].filter(Boolean).join(' ') || '—'
 }
 
-// ─── Props ─────────────────────────────────────────────────────────────────
-
-interface EtichettaTemplateProps {
-  lavoro: LavoroDettaglio
-  lab: Laboratorio
-}
-
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export function EtichettaTemplate({ lavoro, lab }: EtichettaTemplateProps) {
+export function EtichettaTemplate({ lavoro, lab, installareEntro }: EtichettaTemplateProps) {
   const primoMateriale = lavoro.materiali?.[0] ?? null
   const tipoFormatted = lavoro.tipo_dispositivo.replace(/_/g, ' ')
 
@@ -104,15 +135,26 @@ export function EtichettaTemplate({ lavoro, lab }: EtichettaTemplateProps) {
       title={`Etichetta ${lavoro.numero_lavoro}`}
       creator="UA PWA"
     >
+      {/* A6 landscape: 148mm × 105mm = 419.53pt × 297.64pt */}
       <Page
-        size={{ width: 283.46, height: 141.73 }}
+        size={{ width: 419.53, height: 297.64 }}
         style={styles.page}
       >
 
-        {/* ── LAB NOME ── */}
-        <Text style={styles.labNome}>
-          {lab.ragione_sociale ?? lab.nome}
-        </Text>
+        {/* ── BADGE "DISPOSITIVO SU MISURA" ── */}
+        <View style={styles.deviceBadge}>
+          <Text style={styles.deviceBadgeText}>DISPOSITIVO SU MISURA</Text>
+        </View>
+
+        {/* ── HEADER: LAB + ITCA ── */}
+        <View style={styles.headerRow}>
+          <Text style={styles.labNome}>
+            {lab.ragione_sociale ?? lab.nome}
+          </Text>
+          {lab.codice_itca ? (
+            <Text style={styles.itcaBadge}>ITCA: {lab.codice_itca}</Text>
+          ) : null}
+        </View>
 
         <View style={styles.separatorTop} />
 
@@ -136,6 +178,14 @@ export function EtichettaTemplate({ lavoro, lab }: EtichettaTemplateProps) {
           </Text>
         </View>
 
+        {/* ── INSTALLARE ENTRO ── */}
+        {installareEntro ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Installare entro</Text>
+            <Text style={styles.valueBold}>{installareEntro}</Text>
+          </View>
+        ) : null}
+
         {/* ── LOTTO (primo materiale) ── */}
         {primoMateriale ? (
           <View style={styles.row}>
@@ -148,6 +198,7 @@ export function EtichettaTemplate({ lavoro, lab }: EtichettaTemplateProps) {
         <View style={styles.separatorBottom}>
           <Text style={styles.disclaimer}>
             Dispositivo su misura — Art. 20(1) MDR 2017/745
+            {lab.codice_itca ? ` — ITCA ${lab.codice_itca}` : ''}
           </Text>
         </View>
 

@@ -19,6 +19,7 @@ import { TabImmagini } from './form/TabImmagini'
 import { TabDocumenti } from './form/TabDocumenti'
 import { TabAccettazione } from './form/TabAccettazione'
 import { TabProve } from './TabProve'
+import { PacchettoConsegnaSheet } from './PacchettoConsegnaSheet'
 
 interface LavoroFormClientProps {
   lavoro: LavoroDettaglio
@@ -36,6 +37,9 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
   )
   const [fasi, setFasi] = useState<LavoroFase[]>(lavoro.fasi ?? [])
   const [immagini, setImmagini] = useState<LavoroImmagine[]>(lavoro.immagini ?? [])
+
+  // Stato bottom sheet Pacchetto Consegna MDR
+  const [pacchettoOpen, setPacchettoOpen] = useState(false)
 
   function handleUpdateFase(id: string, updates: Partial<LavoroFase>) {
     setFasi((prev) =>
@@ -185,6 +189,31 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
           </p>
         )}
 
+        {/* Pulsante Documenti MDR */}
+        <button
+          type="button"
+          onClick={() => setPacchettoOpen(true)}
+          aria-label="Apri pacchetto documenti MDR"
+          style={{
+            flex: '0 0 auto',
+            height: '52px',
+            padding: '0 16px',
+            borderRadius: '14px',
+            border: '1.5px solid rgba(0,0,0,.10)',
+            background: 'var(--elv, #EDEDEA)',
+            color: 'var(--t1, #1C1916)',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="Pacchetto Documenti MDR"
+        >
+          📦
+        </button>
+
         {/* Pulsante CONSEGNA */}
         <button
           type="button"
@@ -213,6 +242,19 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
           </span>
         </button>
       </div>
+
+      {/* Bottom sheet Pacchetto Consegna MDR */}
+      <PacchettoConsegnaSheet
+        lavoro={{
+          id: lavoro.id,
+          numero_lavoro: lavoro.numero_lavoro,
+          cliente_display: lavoro.cliente
+            ? `${lavoro.cliente.studio_nome ?? ''} ${lavoro.cliente.cognome} ${lavoro.cliente.nome}`.trim()
+            : lavoro.numero_lavoro,
+        }}
+        isOpen={pacchettoOpen}
+        onClose={() => setPacchettoOpen(false)}
+      />
     </div>
   )
 }
