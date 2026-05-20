@@ -207,10 +207,17 @@ Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato 
 - Toggle adulto/deciduo. Chip real-time elementi selezionati.
 - `TabClinica.tsx` aggiornata con il componente
 
-### 🟡 Sprint S4 — Scadenzario (quasi completo, verificato 20/05/2026)
-✅ `ScadenzarioList.tsx` (497 righe) — lista clienti con fatture insolute, urgency by giorni, WhatsApp sollecito 1-tap
-✅ API `/api/scadenzario` (121 righe) — fatture non pagate raggruppate per cliente
-⚠️ **MANCA:** pagina estratto conto singolo cliente `/scadenzario/[cliente_id]` (S4.2 del piano)
+### ✅ Sprint S4 — Scadenzario (completo, 20/05/2026)
+**Commit:** `e39b99d`
+✅ `ScadenzarioList.tsx` — lista insoluti con card espandibili + link estratto conto
+✅ API `/api/scadenzario` — fatture non pagate raggruppate per cliente
+✅ API `/api/scadenzario/[cliente_id]` — tutte le fatture cliente (pagate + non), KPI aggregati
+✅ API `PATCH /api/fatture/[id]` — segna fattura pagata (allowlist esplicita)
+✅ Pagina `/scadenzario/[cliente_id]` — 3 viewport: mobile card/bottom sheet, tablet split, desktop tabella
+✅ Bottom sheet azioni: WhatsApp sollecito + Segna pagata + Apri fattura
+✅ AnimatePresence exit slide-right su pagamento, stagger enter card, KpiCard prefers-reduced-motion
+✅ Haptic + suono sintetico (C5→E5) su pagamento confermato
+✅ `lib/feedback/haptic.ts` + `lib/feedback/sounds.ts` — utility globali disponibili in tutta l'app
 
 ### ❌ Sprint S5 — Allegati Clinici + Tab Ingresso (da fare)
 - `tipo_impronte`, `disinfettante_usato`, `lotto_disinfettante`, `materiali_allegati`, `numero_cassetta` — NON nel DB
