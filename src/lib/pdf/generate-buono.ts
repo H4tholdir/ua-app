@@ -48,7 +48,7 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
   // Salva url e numero sul lavoro per il recupero idempotente (fix review: buono STUB)
   const { count: buonoUpdateCount } = await supabase
     .from('lavori')
-    .update({ buono_pdf_url: pdfUrl, buono_numero: numero })
+    .update({ buono_pdf_url: pdfUrl, buono_numero: numero }, { count: 'exact' })
     .eq('id', lavoro.id)
     .eq('laboratorio_id', lavoro.laboratorio_id)
 

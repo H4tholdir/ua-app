@@ -80,7 +80,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       segnalazione_at: new Date().toISOString(),
       segnalazione_by: user.id,
       segnalazione_risolta: false,
-    })
+    }, { count: 'exact' })
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
 

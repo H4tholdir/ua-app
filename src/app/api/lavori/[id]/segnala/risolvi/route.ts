@@ -48,7 +48,7 @@ export async function PATCH(_req: Request, { params }: RouteContext) {
   // Segna come risolta
   const { error, count: risolviUpdateCount } = await svc
     .from('lavori')
-    .update({ segnalazione_risolta: true })
+    .update({ segnalazione_risolta: true }, { count: 'exact' })
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
 
