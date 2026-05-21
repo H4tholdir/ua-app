@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
-import { t, useReducedMotion } from '@/design-system/motion'
+import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 import type { StatoLavoro, PrioritaLavoro } from '@/types/domain'
 
 // ─── Design tokens v2.2 — warm palette ──────────────────────────────────────
@@ -84,6 +84,8 @@ interface LavoroCardProps {
   paziente_nome_snapshot: string | null
   cliente_display: string
   animationDelay?: number
+  fasi_completate?: number
+  fasi_totali?: number
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -98,6 +100,8 @@ export function LavoroCard({
   paziente_nome_snapshot,
   cliente_display,
   animationDelay = 0,
+  fasi_completate,
+  fasi_totali,
 }: LavoroCardProps) {
   const reducedMotion = useReducedMotion()
   const statoColor    = STATO_COLORS[stato]
@@ -165,6 +169,58 @@ export function LavoroCard({
       >
         {statoGliph}
       </div>
+
+      {/* Badge priorità — visibile solo per urgente/extra_urgente */}
+      {priorita === 'urgente' && (
+        <motion.div
+          initial={reducedMotion ? false : { scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={motionTokens.spring.snappy}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '3px 8px',
+            borderRadius: '100px',
+            background: 'rgba(212,168,67,.15)',
+            border: '1px solid rgba(212,168,67,.35)',
+            color: '#92400E',
+            fontSize: '10px',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase' as const,
+            marginBottom: '4px',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          ↑ Urgente
+        </motion.div>
+      )}
+      {priorita === 'extra_urgente' && (
+        <motion.div
+          initial={reducedMotion ? false : { scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={motionTokens.spring.snappy}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '3px 8px',
+            borderRadius: '100px',
+            background: 'rgba(217,0,18,.10)',
+            border: '1px solid rgba(217,0,18,.25)',
+            color: 'var(--primary, #D90012)',
+            fontSize: '10px',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase' as const,
+            marginBottom: '4px',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+        >
+          ⚡ Extra urgente
+        </motion.div>
+      )}
 
       {/* Riga 1: cliente */}
       <div
@@ -293,6 +349,44 @@ export function LavoroCard({
           {STEP_LABELS[currentStep]}
         </span>
       </div>
+
+      {/* Barra progresso fasi */}
+      {fasi_totali != null && fasi_totali > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+          <div style={{
+            flex: 1,
+            height: '4px',
+            borderRadius: '2px',
+            background: 'var(--prs, #D4CFC9)',
+            overflow: 'hidden',
+          }}>
+            <motion.div
+              initial={reducedMotion ? false : { width: 0 }}
+              animate={{ width: `${Math.round((fasi_completate ?? 0) / fasi_totali * 100)}%` }}
+              transition={reducedMotion ? {} : t('normal', 'enter')}
+              style={{
+                height: '100%',
+                borderRadius: '2px',
+                background: (fasi_completate ?? 0) >= fasi_totali
+                  ? 'var(--success, #16A34A)'
+                  : 'var(--cobalt, #1B2D6B)',
+              }}
+            />
+          </div>
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 700,
+            color: (fasi_completate ?? 0) >= fasi_totali
+              ? 'var(--success, #16A34A)'
+              : 'var(--t2, #96918D)',
+            whiteSpace: 'nowrap',
+            fontFamily: 'DM Sans, sans-serif',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {fasi_completate ?? 0}/{fasi_totali}{(fasi_completate ?? 0) >= fasi_totali ? ' ✓' : ' fasi'}
+          </span>
+        </div>
+      )}
 
       {/* Chevron */}
       <svg

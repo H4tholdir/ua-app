@@ -317,6 +317,7 @@ export interface LavoroDettaglio extends Lavoro {
   materiali: LavoroMateriale[];
   partitario: LavoroPartitario[];
   ddc: DichiarazioneConformita | null;
+  laboratorio: Pick<Laboratorio, 'nome' | 'telefono'> | null;
 }
 
 // ============================================================

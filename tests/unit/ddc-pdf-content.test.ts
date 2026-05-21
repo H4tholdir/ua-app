@@ -235,6 +235,7 @@ const LAVORO_FIXTURE: LavoroDettaglio = {
   ],
   partitario: [],
   ddc: null,
+  laboratorio: null,
 }
 
 // ─── Test suite ───────────────────────────────────────────────────────────────

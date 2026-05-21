@@ -39,6 +39,7 @@ type LavoroRow = {
   paziente_nome_snapshot: string | null
   cliente: { id: string; nome: string; cognome: string; studio_nome: string | null } | null
   tecnico: { id: string; nome: string; cognome: string; sigla: string | null } | null
+  lavori_fasi?: Array<{ id: string; eseguita_at: string | null }> | null
 }
 
 export default async function LavoriPage({ searchParams }: PageProps) {
@@ -76,7 +77,8 @@ export default async function LavoriPage({ searchParams }: PageProps) {
         ora_consegna,
         paziente_nome_snapshot,
         cliente:clienti(id, nome, cognome, studio_nome),
-        tecnico:tecnici(id, nome, cognome, sigla)
+        tecnico:tecnici(id, nome, cognome, sigla),
+        lavori_fasi(id, eseguita_at)
       `)
       .eq('laboratorio_id', labId)
       .is('deleted_at', null)
@@ -287,26 +289,33 @@ export default async function LavoriPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <ul className="ua-list-grid">
-            {lavori.map((lavoro, i) => (
-              <li key={lavoro.id}>
-                <LavoroCard
-                  id={lavoro.id}
-                  numero_lavoro={lavoro.numero_lavoro}
-                  stato={lavoro.stato}
-                  priorita={lavoro.priorita}
-                  tipo_dispositivo={lavoro.tipo_dispositivo}
-                  descrizione={lavoro.descrizione}
-                  data_consegna_prevista={lavoro.data_consegna_prevista}
-                  ora_consegna={lavoro.ora_consegna ?? null}
-                  paziente_nome_snapshot={lavoro.paziente_nome_snapshot ?? null}
-                  cliente_display={
-                    lavoro.cliente?.studio_nome ??
-                    (`${lavoro.cliente?.nome ?? ''} ${lavoro.cliente?.cognome ?? ''}`.trim() || '—')
-                  }
-                  animationDelay={i * 0.04}
-                />
-              </li>
-            ))}
+            {lavori.map((lavoro, i) => {
+              const fasi = (lavoro.lavori_fasi ?? []) as { id: string; eseguita_at: string | null }[]
+              const fasi_totali = fasi.length
+              const fasi_completate = fasi.filter(f => f.eseguita_at !== null).length
+              return (
+                <li key={lavoro.id}>
+                  <LavoroCard
+                    id={lavoro.id}
+                    numero_lavoro={lavoro.numero_lavoro}
+                    stato={lavoro.stato}
+                    priorita={lavoro.priorita}
+                    tipo_dispositivo={lavoro.tipo_dispositivo}
+                    descrizione={lavoro.descrizione}
+                    data_consegna_prevista={lavoro.data_consegna_prevista}
+                    ora_consegna={lavoro.ora_consegna ?? null}
+                    paziente_nome_snapshot={lavoro.paziente_nome_snapshot ?? null}
+                    cliente_display={
+                      lavoro.cliente?.studio_nome ??
+                      (`${lavoro.cliente?.nome ?? ''} ${lavoro.cliente?.cognome ?? ''}`.trim() || '—')
+                    }
+                    animationDelay={i * 0.04}
+                    fasi_completate={fasi_completate}
+                    fasi_totali={fasi_totali}
+                  />
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

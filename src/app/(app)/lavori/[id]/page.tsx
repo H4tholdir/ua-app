@@ -43,7 +43,8 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
       partitario:lavori_partitario(*),
-      ddc:dichiarazioni_conformita(*)
+      ddc:dichiarazioni_conformita(*),
+      laboratorio:laboratori(nome, telefono)
     `)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)

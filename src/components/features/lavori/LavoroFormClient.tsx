@@ -60,7 +60,16 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
               return <TabDati data={data} onChange={update} />
 
             case 'accettazione':
-              return <TabAccettazione data={data} onChange={update} />
+              return (
+                <TabAccettazione
+                  data={data}
+                  onChange={update}
+                  clienteTelefono={lavoro.cliente?.telefono ?? null}
+                  numeroLavoro={lavoro.numero_lavoro}
+                  labNome={lavoro.laboratorio?.nome ?? null}
+                  labTelefono={lavoro.laboratorio?.telefono ?? null}
+                />
+              )
 
             case 'lavorazioni':
               return (
