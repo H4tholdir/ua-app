@@ -159,6 +159,29 @@ export async function POST(req: Request) {
     data_ingresso: new Date().toISOString().split('T')[0],
   }
 
+  // Validate FK tenant ownership before insert
+  const FK_FIELDS_INSERT: { field: string; table: string }[] = [
+    { field: 'cliente_id', table: 'clienti' },
+    { field: 'paziente_id', table: 'pazienti' },
+    { field: 'tecnico_id', table: 'tecnici' },
+  ]
+  for (const { field, table } of FK_FIELDS_INSERT) {
+    const fkId = (insertData as Record<string, unknown>)[field]
+    if (fkId && typeof fkId === 'string') {
+      const { data: fkRow } = await svc
+        .from(table)
+        .select('laboratorio_id')
+        .eq('id', fkId)
+        .single()
+      if (!fkRow || fkRow.laboratorio_id !== labId) {
+        return NextResponse.json(
+          { error: `${field} non appartiene a questo laboratorio` },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
   const { data: lavoro, error: insertError } = await svc
     .from('lavori')
     .insert(insertData)
