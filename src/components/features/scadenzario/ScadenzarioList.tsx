@@ -177,6 +177,7 @@ function InsolutoCard({
           }}
         >
           <span
+            suppressHydrationWarning
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontWeight: 700,
@@ -265,6 +266,7 @@ function InsolutoCard({
                       {f.giorniRitardo}gg
                     </span>
                     <span
+                      suppressHydrationWarning
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '14px',
@@ -473,6 +475,7 @@ export function ScadenzarioList() {
             Totale insoluto
           </p>
           <p
+            suppressHydrationWarning
             style={{
               margin: '2px 0 0',
               fontFamily: 'DM Sans, sans-serif',

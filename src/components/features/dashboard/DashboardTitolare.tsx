@@ -129,6 +129,7 @@ function clienteDisplay(c: {
 function formatData(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr + 'T00:00:00')
+  if (isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('it-IT', {
     weekday: 'short',
     day: 'numeric',
@@ -300,6 +301,7 @@ export function DashboardTitolare({
               {getGreeting()}, {nomeUtente}
             </h1>
             <p
+              suppressHydrationWarning
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: 12,
@@ -560,6 +562,7 @@ export function DashboardTitolare({
                   Totale scaduto ({stats.pagamenti_scaduti_clienti_count} clienti)
                 </span>
                 <span
+                  suppressHydrationWarning
                   style={{
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: 17,
@@ -599,6 +602,7 @@ export function DashboardTitolare({
                     {pag.cliente_display}
                   </span>
                   <span
+                    suppressHydrationWarning
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: 14,
@@ -769,6 +773,7 @@ export function DashboardTitolare({
                     Mese corrente
                   </p>
                   <p
+                    suppressHydrationWarning
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: 28,
@@ -823,6 +828,7 @@ export function DashboardTitolare({
                   Mese scorso
                 </span>
                 <span
+                  suppressHydrationWarning
                   style={{
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: 14,

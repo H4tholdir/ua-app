@@ -448,6 +448,7 @@ export function DashboardFrontDesk({
                     </p>
                   </div>
                   <span
+                    suppressHydrationWarning
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: 15,

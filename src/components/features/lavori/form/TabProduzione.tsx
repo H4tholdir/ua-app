@@ -9,7 +9,9 @@ interface TabProduzioneProps {
 }
 
 function formatTimestamp(iso: string): string {
+  if (!iso) return ''
   const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
   return d.toLocaleString('it-IT', {
     day: 'numeric',
     month: 'short',

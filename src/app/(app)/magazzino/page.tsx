@@ -120,9 +120,11 @@ export default async function MagazzinoPage() {
                             margin: 0,
                             flex: 1,
                             minWidth: 0,
-                            whiteSpace: 'nowrap',
+                            display: '-webkit-box',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: 2,
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            whiteSpace: 'normal',
                           }}
                         >
                           {articolo.nome}

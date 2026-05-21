@@ -256,7 +256,11 @@ export function BottomNavPill() {
   )
 
   if (reducedMotion) {
-    return visible ? barContent : null
+    return visible ? (
+      <div className="ua-bottom-nav">
+        {barContent}
+      </div>
+    ) : null
   }
 
   return (
@@ -264,6 +268,7 @@ export function BottomNavPill() {
       {visible && (
         <motion.div
           key="bottom-nav-pill"
+          className="ua-bottom-nav"
           initial={{ transform: 'translateY(100px)', opacity: 0 }}
           animate={{ transform: 'translateY(0px)', opacity: 1 }}
           exit={{ transform: 'translateY(100px)', opacity: 0 }}

@@ -107,12 +107,10 @@ export function LavoroCard({
 
   // Formatted delivery date: "15 mag" style
   const deliveryLabel = (() => {
-    try {
-      const d = new Date(data_consegna_prevista)
-      return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
-    } catch {
-      return data_consegna_prevista
-    }
+    if (!data_consegna_prevista) return ''
+    const d = new Date(data_consegna_prevista + 'T00:00:00')
+    if (isNaN(d.getTime())) return data_consegna_prevista
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
   })()
 
   const cardStyle: React.CSSProperties = {
@@ -131,6 +129,9 @@ export function LavoroCard({
       inset -2px -2px 4px rgba(0,0,0,.05)
     `,
     WebkitTapHighlightColor: 'transparent',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   }
 
   const cardContent = (
@@ -327,6 +328,7 @@ export function LavoroCard({
       initial={{ opacity: 0, transform: 'translateY(12px)' }}
       animate={{ opacity: 1, transform: 'translateY(0px)' }}
       transition={{ ...t('normal', 'enter'), delay: animationDelay }}
+      style={{ minWidth: 0, width: '100%' }}
     >
       {cardContent}
     </motion.div>

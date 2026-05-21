@@ -98,9 +98,11 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               fontWeight: 500,
               color: 'var(--t1, #1C1916)',
               margin: 0,
-              whiteSpace: 'nowrap',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              whiteSpace: 'normal',
             }}
           >
             {voce.nome}
@@ -114,9 +116,11 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               fontSize: '12px',
               color: 'var(--t2, #96918D)',
               margin: '0 0 4px',
-              whiteSpace: 'nowrap',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              whiteSpace: 'normal',
             }}
           >
             {voce.descrizione}

@@ -336,6 +336,11 @@
   .ua-list-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
 }
 
+/* ── Bottom nav — hidden on desktop ── */
+@media (min-width: 1024px) {
+  .ua-bottom-nav { display: none !important; }
+}
+
 /* ── Page container tablet padding ── */
 .ua-page-content { padding: 0 20px; }
 @media (min-width: 768px) {
