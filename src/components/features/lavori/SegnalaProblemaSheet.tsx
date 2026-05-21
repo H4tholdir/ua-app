@@ -246,18 +246,6 @@ export function SegnalaProblemaSheet({
               />
             </div>
 
-            {/* Errore */}
-            {errorMsg && (
-              <p style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '13px',
-                color: 'var(--primary, #D90012)',
-                margin: '8px 16px 0',
-              }} role="alert">
-                {errorMsg}
-              </p>
-            )}
-
             {/* Bottone invio */}
             <div style={{ padding: '12px 16px 0' }}>
               <button
@@ -290,6 +278,18 @@ export function SegnalaProblemaSheet({
                 <span aria-hidden="true">⚠</span>
                 {loading ? 'Invio in corso...' : 'Invia segnalazione'}
               </button>
+
+              {/* Errore — sotto il pulsante */}
+              {errorMsg && (
+                <p style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '13px',
+                  color: 'var(--primary, #D90012)',
+                  margin: '8px 0 0',
+                }} role="alert">
+                  {errorMsg}
+                </p>
+              )}
             </div>
           </motion.div>
         </>
