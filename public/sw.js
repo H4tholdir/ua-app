@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ua-v1'
+const CACHE_NAME = 'ua-v2'
 const PRECACHE = ['/offline.html', '/manifest.json']
 
 self.addEventListener('install', (e) => {
@@ -44,6 +44,40 @@ self.addEventListener('fetch', (e) => {
         .catch(() => caches.match('/offline.html').then(r => r ?? new Response('Offline', { status: 503 })))
 
       return cached ?? networkFetch
+    })
+  )
+})
+
+// ---------------------------------------------------------------------------
+// Push notifications — Task B7
+// ---------------------------------------------------------------------------
+
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() ?? {}
+  const { title = 'UÀ', body = '', url = '/' } = data
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      badge: '/icon-72.png',
+      data: { url },
+      vibrate: [200, 100, 200],
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      const notifUrl = event.notification.data?.url ?? '/'
+      for (const client of windowClients) {
+        if (client.url.includes(notifUrl) && 'focus' in client) {
+          return client.focus()
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(notifUrl)
     })
   )
 })
