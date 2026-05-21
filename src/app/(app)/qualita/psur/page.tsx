@@ -114,7 +114,7 @@ export default async function PsurPage() {
               PSUR {annoRendiconto} mancante
             </p>
             <p style={{
-              color: '#C88040',
+              color: 'var(--gold, #D4A843)',
               fontSize: '13px',
               fontFamily,
               margin: '0 0 12px',
@@ -231,7 +231,7 @@ export default async function PsurPage() {
                 {/* PRRC snapshot */}
                 {p.prrc_nome_snapshot && (
                   <p style={{
-                    color: '#6677AA',
+                    color: 'var(--t2, #96918D)',
                     fontSize: '12px',
                     fontFamily,
                     margin: '0 0 10px',
@@ -262,7 +262,7 @@ export default async function PsurPage() {
                   </a>
                 ) : (
                   <span style={{
-                    color: '#6677AA',
+                    color: 'var(--t2, #96918D)',
                     fontSize: '12px',
                     fontFamily,
                     fontStyle: 'italic',
@@ -279,7 +279,7 @@ export default async function PsurPage() {
         {hasCurrentPsur && (
           <div style={{ textAlign: 'center', marginTop: '8px' }}>
             <p style={{
-              color: '#6677AA',
+              color: 'var(--t2, #96918D)',
               fontSize: '12px',
               fontFamily,
               margin: '0 0 4px',
@@ -317,7 +317,7 @@ function KpiChip({ label, value, alert = false }: { label: string; value: number
         {value}
       </span>
       <span style={{
-        color: '#6677AA',
+        color: 'var(--t2, #96918D)',
         fontSize: '10px',
         fontFamily,
         textAlign: 'center',

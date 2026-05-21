@@ -276,7 +276,7 @@ export default async function QualitaPage() {
                   <div
                     key={inc.id}
                     style={{
-                      background: isGrave ? '#3A1A1A' : 'var(--surface, #E4DFD9)',
+                      background: isGrave ? 'rgba(217,0,18,0.10)' : 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
                       boxShadow: `inset 0 0 0 1px ${gravitaColor[inc.gravita] ?? 'var(--t2, #96918D)'}40`,
@@ -308,8 +308,8 @@ export default async function QualitaPage() {
                         </span>
                         {inc.segnalato_ministero && (
                           <span style={{
-                            background: '#1B4FCC',
-                            color: 'var(--t1, #1C1916)',
+                            background: 'rgba(27,45,107,0.15)',
+                            color: 'var(--cobalt, #1B2D6B)',
                             fontSize: '11px',
                             fontWeight: 700,
                             padding: '2px 8px',
@@ -321,7 +321,7 @@ export default async function QualitaPage() {
                         )}
                         {inc.risolto && (
                           <span style={{
-                            background: '#0A3D2E',
+                            background: 'rgba(22,163,74,0.15)',
                             color: 'var(--success, #16A34A)',
                             fontSize: '11px',
                             fontWeight: 700,
