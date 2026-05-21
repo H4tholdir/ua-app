@@ -85,10 +85,16 @@ async function seedCicliProduzione(
   const idMap = new Map<string, string>()
   for (const c of cicli) idMap.set(c.id, randomUUID())
 
-  const toInsert = cicli.map(({ id, created_at: _ca, updated_at: _ua, ...rest }) => ({
-    ...rest,
-    id: idMap.get(id)!,
+  const toInsert = cicli.map(c => ({
+    id: idMap.get(c.id)!,
     laboratorio_id: targetLabId,
+    codice: c.codice,
+    nome: c.nome,
+    tipo_dispositivo: c.tipo_dispositivo,
+    classe_rischio: c.classe_rischio,
+    normative_json: c.normative_json,
+    attivo: c.attivo,
+    deleted_at: c.deleted_at,
     // created_at e updated_at omessi → DEFAULT now() del DB
   }))
 
@@ -129,13 +135,24 @@ async function seedFasiProduzione(
     return
   }
 
-  const toInsert = fasi.map(({ id: _id, created_at: _ca, updated_at: _ua, ...rest }) => ({
-    ...rest,
+  const toInsert = fasi.map(f => ({
     // id omesso → uuid_generate_v4() DEFAULT
     laboratorio_id: targetLabId,
-    ciclo_id: cicloIdMap.get(rest.ciclo_id) ?? rest.ciclo_id,
-    // Annulla responsabile_id: il nuovo lab non ha i tecnici del template
+    ciclo_id: cicloIdMap.get(f.ciclo_id) ?? f.ciclo_id,
+    codice_fase: f.codice_fase,
+    descrizione: f.descrizione,
+    ordine: f.ordine,
+    obbligatoria: f.obbligatoria,
+    misurazioni_da_rilevare: f.misurazioni_da_rilevare,
+    esito_atteso: f.esito_atteso,
+    controllo_misura: f.controllo_misura,
+    materiali_nota: f.materiali_nota,
+    attrezzatura: f.attrezzatura,
+    tempo_medio_lavoro: f.tempo_medio_lavoro,
+    deleted_at: f.deleted_at,
+    // responsabile_id azzerato: i tecnici del template non appartengono al nuovo lab
     responsabile_id: null,
+    // created_at e updated_at omessi → DEFAULT now() del DB
   }))
 
   const { error: insertErr } = await svc.from('fasi_produzione').insert(toInsert)
