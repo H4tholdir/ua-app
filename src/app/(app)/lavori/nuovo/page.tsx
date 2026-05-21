@@ -42,6 +42,11 @@ function validateField(field: RequiredField, value: unknown): string {
   }
 }
 
+function getLastClienteId(): string {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem('ua_last_cliente_id') ?? ''
+}
+
 export default function NuovoLavoroPage() {
   const router = useRouter()
   const [formData, setFormData] = useState<Partial<Lavoro>>({
@@ -54,7 +59,7 @@ export default function NuovoLavoroPage() {
     dispositivo_semilavorato: false,
     note_interne: null,
   })
-  const [clienteId, setClienteId] = useState('')
+  const [clienteId, setClienteId] = useState(getLastClienteId)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -73,8 +78,10 @@ export default function NuovoLavoroPage() {
   const handleClienteChange = useCallback((id: string) => {
     setClienteId(id)
     setError(null)
-    // Real-time: clear cliente_id error when a dentista is selected
     if (id) {
+      // Persist last used cliente for next form session
+      localStorage.setItem('ua_last_cliente_id', id)
+      // Real-time: clear cliente_id error when a dentista is selected
       setFieldErrors((prev) => {
         const next = { ...prev }
         delete next['cliente_id']
