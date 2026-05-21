@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkButtons'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -237,20 +238,9 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
           </SectionCard>
         )}
 
-        {/* Link portale */}
+        {/* Link portale + richiesta */}
         <SectionCard title="Portale dentista">
-          <div style={{ padding: '10px 0' }}>
-            <span
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '12px',
-                color: 'var(--t2, #96918D)',
-                wordBreak: 'break-all',
-              }}
-            >
-              /portale/{c.portale_token}
-            </span>
-          </div>
+          <PortaleLinkButtons portaleToken={c.portale_token} />
         </SectionCard>
 
         {/* DPA GDPR Art. 28 */}

@@ -5,6 +5,7 @@ import { BottomNavPill } from '@/components/layout/BottomNavPill'
 import { SwRegistration } from '@/components/layout/SwRegistration'
 import { SkipToContent } from '@/components/layout/SkipToContent'
 import { UserProfileSheet } from '@/components/layout/UserProfileSheet'
+import { RealtimeProvider } from '@/components/layout/RealtimeProvider'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // 1. Validate session
@@ -58,7 +59,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     : false
 
   return (
-    <>
+    <RealtimeProvider
+      laboratorioId={utenteData.laboratorio_id}
+      ruolo={utenteData.ruolo}
+    >
       {/* SkipToContent è un Client island — onFocus/onBlur non possono stare in Server Component */}
       <SkipToContent />
 
@@ -81,6 +85,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* BottomNavPill: solo per ruoli app (non admin_sistema che va su /admin) */}
       <BottomNavPill />
       <SwRegistration />
-    </>
+    </RealtimeProvider>
   )
 }

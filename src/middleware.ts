@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createMiddlewareClient } from '@/lib/supabase/middleware-client'
 
-const PUBLIC_ROUTES = ['/login', '/invite', '/forgot-password', '/reset-password', '/blocked', '/billing', '/portale']
+const PUBLIC_ROUTES = ['/login', '/invite', '/forgot-password', '/reset-password', '/blocked', '/billing', '/portale', '/richiedi']
 const AUTH_CALLBACK = '/auth/callback'
 
 export async function middleware(request: NextRequest) {
@@ -44,6 +44,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Escludi: static Next.js, api/*, favicon, file statici pubblici, portale dentista
-    '/((?!_next/static|_next/image|favicon.ico|api/|portale/|sw\\.js|manifest\\.json|offline\\.html|icons/|sounds/|fonts/|animations/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp3|wav)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|portale/|richiedi/|sw\\.js|manifest\\.json|offline\\.html|icons/|sounds/|fonts/|animations/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp3|wav)$).*)',
   ],
 }
