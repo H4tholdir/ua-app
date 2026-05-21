@@ -257,8 +257,22 @@ export function BottomNavPill() {
 
   if (reducedMotion) {
     return visible ? (
-      <div className="ua-bottom-nav">
-        {barContent}
+      <div
+        className="ua-bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          display: 'flex',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        <div style={{ pointerEvents: 'auto' }}>
+          {barContent}
+        </div>
       </div>
     ) : null
   }
@@ -275,7 +289,7 @@ export function BottomNavPill() {
           transition={t('normal', 'enter')}
           style={{
             position: 'fixed',
-            bottom: '20px',
+            bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
             left: 0,
             right: 0,
             zIndex: 50,
