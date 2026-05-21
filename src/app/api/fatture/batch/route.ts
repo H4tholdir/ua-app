@@ -1,0 +1,248 @@
+import 'server-only'
+import { NextResponse } from 'next/server'
+import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import { isSameOrigin } from '@/lib/utils/csrf'
+import { generaProgressivo } from '@/lib/db/progressivi'
+import { generaFatturaPA } from '@/lib/fattura/generate-xml'
+import type { LavoroDettaglio } from '@/types/domain'
+
+export interface BatchResult {
+  lavoro_id: string
+  numero_lavoro: string
+  ok: boolean
+  numero_fattura?: string
+  error?: string
+}
+
+// ─── POST /api/fatture/batch ──────────────────────────────────────────────────
+// Genera fatture in batch per un array di lavori consegnati non ancora fatturati.
+//
+// Body: { lavoro_ids: string[] }
+// Response: { results: BatchResult[], generati: number, errori: number }
+export async function POST(req: Request) {
+  // ── CSRF + auth ──────────────────────────────────────────────────────────
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const userClient = await getServerUserClient()
+  const {
+    data: { user },
+  } = await userClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  }
+
+  const svc = getServiceClient()
+
+  const { data: utente } = await svc
+    .from('utenti')
+    .select('laboratorio_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!utente?.laboratorio_id) {
+    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+  }
+
+  const labId: string = utente.laboratorio_id
+
+  // ── Parsing body ─────────────────────────────────────────────────────────
+  let body: Record<string, unknown>
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+  }
+
+  const lavoro_ids: string[] = Array.isArray(body?.lavoro_ids) ? (body.lavoro_ids as string[]) : []
+
+  if (lavoro_ids.length === 0) {
+    return NextResponse.json({ error: 'Nessun lavoro selezionato' }, { status: 400 })
+  }
+
+  if (lavoro_ids.length > 50) {
+    return NextResponse.json({ error: 'Massimo 50 lavori per batch' }, { status: 400 })
+  }
+
+  // ── Processa ogni lavoro ─────────────────────────────────────────────────
+  const results: BatchResult[] = []
+
+  for (const lavoro_id of lavoro_ids) {
+    // Step 1: Carica lavoro completo con tutti i join necessari per generaFatturaPA
+    const { data: lavoro, error: lavoroErr } = await svc
+      .from('lavori')
+      .select(`
+        id,
+        laboratorio_id,
+        numero_lavoro,
+        consegna_in_corso,
+        anno_lavoro,
+        codice_interno,
+        numero_prescrizione,
+        numero_cassetta,
+        cliente_id,
+        paziente_id,
+        tecnico_id,
+        ciclo_id,
+        paziente_nome_snapshot,
+        paziente_nascita_snapshot,
+        tipo_dispositivo,
+        descrizione,
+        note_interne,
+        richiedente_nome,
+        colore_dente,
+        colore_collo,
+        colore_corpo,
+        colore_incisale,
+        effetti_speciali,
+        tecnica_colore,
+        colorazione_esterna,
+        denti_coinvolti,
+        arcata,
+        anamnesi_note,
+        anamnesi_bruxismo,
+        anamnesi_precauzioni,
+        anamnesi_altri_dispositivi,
+        classe_rischio,
+        norma_riferimento,
+        da_conformare,
+        dispositivo_semilavorato,
+        stato,
+        priorita,
+        data_ingresso,
+        data_consegna_prevista,
+        ora_consegna,
+        data_prima_prova,
+        data_seconda_prova,
+        data_terza_prova,
+        data_consegna_effettiva,
+        file_stl_url,
+        immagini_urls,
+        impronta_digitale,
+        incluso_in_fattura,
+        listino_id,
+        prezzo_unitario,
+        codice_iva,
+        natura_iva,
+        conformato,
+        data_conformazione,
+        is_rifacimento,
+        consegna_tap_at,
+        consegna_completata_at,
+        post_consegna_correzioni,
+        consegna_precheck_passato_al_primo_tentativo,
+        spedizione_corriere,
+        spedizione_tracking,
+        spedizione_stato,
+        spedizione_data_prevista,
+        spedizione_note,
+        created_at,
+        updated_at,
+        deleted_at,
+        cliente:clienti(*),
+        paziente:pazienti(*),
+        tecnico:tecnici(*),
+        lavorazioni:lavori_lavorazioni(*),
+        appuntamenti:lavori_appuntamenti(*),
+        immagini:lavori_immagini(*),
+        fasi:lavori_fasi(*, fase:fasi_produzione(*)),
+        materiali:lavori_materiali(*),
+        partitario:lavori_partitario(*),
+        ddc:dichiarazioni_conformita(*)
+      `)
+      .eq('id', lavoro_id)
+      .eq('laboratorio_id', labId)
+      .eq('stato', 'consegnato')
+      .eq('incluso_in_fattura', false)
+      .is('deleted_at', null)
+      .single()
+
+    if (lavoroErr || !lavoro) {
+      results.push({
+        lavoro_id,
+        numero_lavoro: lavoro_id,
+        ok: false,
+        error: 'Lavoro non trovato, non consegnato, o già fatturato',
+      })
+      continue
+    }
+
+    const numeroLavoro = (lavoro as { numero_lavoro: string }).numero_lavoro
+
+    // Step 2: Crea draft fattura (stesso pattern di orchestraConsegna Step 6)
+    try {
+      const annoFattura = new Date().getFullYear()
+      const progFattura = await generaProgressivo(svc, labId, 'fattura')
+      const numeroDraft = `${annoFattura}-${String(progFattura).padStart(4, '0')}`
+
+      const { data: draftFattura, error: draftErr } = await svc
+        .from('fatture')
+        .insert({
+          laboratorio_id: labId,
+          cliente_id: (lavoro as { cliente_id: string }).cliente_id,
+          numero: numeroDraft,
+          anno: annoFattura,
+          progressivo: progFattura,
+          data: new Date().toISOString().split('T')[0],
+          tipo_documento: 'TD01',
+          stato_sdi: 'draft',
+          imponibile: 0,
+          iva_importo: 0,
+          bollo: 0,
+          totale: 0,
+          codice_iva: 'N4',
+          natura_iva: 'N4',
+          cliente_denominazione: '',
+          cliente_indirizzo: '',
+        })
+        .select('id')
+        .single()
+
+      if (draftErr || !draftFattura?.id) {
+        results.push({
+          lavoro_id,
+          numero_lavoro: numeroLavoro,
+          ok: false,
+          error: `Errore creazione draft fattura: ${draftErr?.message ?? 'null'}`,
+        })
+        continue
+      }
+
+      // Step 3: Genera XML FatturaPA aggiornando il draft
+      const esito = await generaFatturaPA(
+        lavoro as unknown as LavoroDettaglio,
+        draftFattura.id
+      )
+
+      // Step 4: Segna il lavoro come incluso in fattura (evita duplicati al prossimo refresh)
+      await svc
+        .from('lavori')
+        .update({ incluso_in_fattura: true })
+        .eq('id', lavoro_id)
+        .eq('laboratorio_id', labId)
+
+      results.push({
+        lavoro_id,
+        numero_lavoro: numeroLavoro,
+        ok: true,
+        numero_fattura: esito.numero,
+      })
+    } catch (err) {
+      results.push({
+        lavoro_id,
+        numero_lavoro: numeroLavoro,
+        ok: false,
+        error: err instanceof Error ? err.message : 'Errore generazione fattura',
+      })
+    }
+  }
+
+  return NextResponse.json({
+    results,
+    generati: results.filter((r) => r.ok).length,
+    errori: results.filter((r) => !r.ok).length,
+  })
+}
