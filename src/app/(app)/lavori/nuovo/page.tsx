@@ -8,6 +8,7 @@ import { LavoroFormShell, type TabId } from '@/components/features/lavori/form/L
 import { TabDati } from '@/components/features/lavori/form/TabDati'
 import { TabAccettazione } from '@/components/features/lavori/form/TabAccettazione'
 import type { Lavoro } from '@/types/domain'
+import { soundNuovoLavoro } from '@/lib/feedback/sounds'
 
 const DISABLED_TAB_MESSAGE = 'Salva prima i dati principali per abilitare questa tab.'
 
@@ -135,6 +136,7 @@ export default function NuovoLavoroPage() {
       }
 
       const { lavoro } = await res.json()
+      soundNuovoLavoro()
       router.push(`/lavori/${lavoro.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore imprevisto')

@@ -998,6 +998,54 @@ export function DashboardTitolare({
                   {formatEuro(stats.fatturato_mese_precedente)}
                 </span>
               </div>
+
+              {/* Margine netto */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 0 0',
+                  borderTop: '1px solid rgba(0,0,0,.06)',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: 12,
+                      color: DS.t2,
+                      display: 'block',
+                    }}
+                  >
+                    Margine netto mese
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: 11,
+                      color: DS.t3,
+                    }}
+                  >
+                    {stats.percentuale_margine}% del fatturato
+                  </span>
+                </div>
+                <span
+                  suppressHydrationWarning
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: stats.percentuale_margine > 30
+                      ? DS.success
+                      : stats.percentuale_margine > 15
+                        ? 'var(--gold, #D4A843)'
+                        : DS.primary,
+                  }}
+                >
+                  {formatEuro(stats.margine_netto)}
+                </span>
+              </div>
             </div>
           </div>
         </Section>

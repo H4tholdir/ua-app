@@ -2858,6 +2858,7 @@ export type Database = {
           codice: string
           codice_iva: string
           compenso_tecnico: number | null
+          costo_materiali_estimated: number | null
           created_at: string
           da_conformare: boolean
           deleted_at: string | null
@@ -2882,6 +2883,7 @@ export type Database = {
           codice: string
           codice_iva?: string
           compenso_tecnico?: number | null
+          costo_materiali_estimated?: number | null
           created_at?: string
           da_conformare?: boolean
           deleted_at?: string | null
@@ -2906,6 +2908,7 @@ export type Database = {
           codice?: string
           codice_iva?: string
           compenso_tecnico?: number | null
+          costo_materiali_estimated?: number | null
           created_at?: string
           da_conformare?: boolean
           deleted_at?: string | null

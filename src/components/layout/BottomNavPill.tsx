@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
-import { t, useReducedMotion } from '@/design-system/motion'
+import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
 
 // Design tokens v2.2 — warm panna palette
 const DS = {
@@ -188,29 +188,36 @@ export function BottomNavPill() {
 
         if (tab.isCta) {
           return (
-            <Link
+            <motion.div
               key={tab.href}
-              href={tab.href}
-              aria-label={tab.ariaLabel}
-              aria-current={active ? 'page' : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '56px',
-                height: '56px',
-                minWidth: '56px',
-                minHeight: '56px',
-                borderRadius: '50%',
-                background: '#FFFFFF',
-                color: DS.primary,
-                textDecoration: 'none',
-                flexShrink: 0,
-                boxShadow: active ? DS.shI : DS.shB,
-              }}
+              initial={reducedMotion ? false : { scale: 0, rotate: -90 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={reducedMotion ? { duration: 0 } : { delay: 0.2, ...motionTokens.spring.pop }}
+              style={{ flexShrink: 0 }}
             >
-              {tab.icon}
-            </Link>
+              <Link
+                href={tab.href}
+                aria-label={tab.ariaLabel}
+                aria-current={active ? 'page' : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '56px',
+                  height: '56px',
+                  minWidth: '56px',
+                  minHeight: '56px',
+                  borderRadius: '50%',
+                  background: '#FFFFFF',
+                  color: DS.primary,
+                  textDecoration: 'none',
+                  flexShrink: 0,
+                  boxShadow: active ? DS.shI : DS.shB,
+                }}
+              >
+                {tab.icon}
+              </Link>
+            </motion.div>
           )
         }
 
