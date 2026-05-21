@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { KpiCard } from './KpiCard'
@@ -250,6 +252,15 @@ export function DashboardTitolare({
 }: DashboardTitolareProps) {
   const reducedMotion = useReducedMotion()
   const stagger = staggerDelay(7)
+  const router = useRouter()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = () => {
+    if (refreshing) return
+    setRefreshing(true)
+    router.refresh()
+    setTimeout(() => setRefreshing(false), 1200)
+  }
 
   const { perc: deltaPerc, up: deltaUp } = deltaFatturato(
     stats.fatturato_mese,
@@ -336,25 +347,51 @@ export function DashboardTitolare({
               })}
             </p>
           </div>
-          {aggiornatoAt && (
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginTop: 4 }}>
+            {aggiornatoAt && (
+              <span
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: DS.t3,
+                  background: DS.elv,
+                  borderRadius: 99,
+                  padding: '4px 10px',
+                  boxShadow: DS.shB,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {syncLabel(aggiornatoAt)}
+              </span>
+            )}
+            <button
+              onClick={handleRefresh}
+              aria-label="Aggiorna dati dashboard"
+              disabled={refreshing}
               style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: 10,
-                fontWeight: 600,
-                color: DS.t3,
-                background: DS.elv,
-                borderRadius: 99,
-                padding: '4px 10px',
-                boxShadow: DS.shB,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                marginTop: 4,
+                padding: '6px 10px',
+                background: 'transparent',
+                border: 'none',
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                color: DS.t2,
+                borderRadius: 8,
+                fontSize: 18,
+                lineHeight: 1,
               }}
             >
-              {syncLabel(aggiornatoAt)}
-            </span>
-          )}
+              <motion.span
+                style={{ display: 'inline-block' }}
+                animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+                transition={refreshing
+                  ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
+                  : { duration: 0.3 }
+                }
+              >
+                ↻
+              </motion.span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -277,7 +277,7 @@ export default function NuovoIncidentePage() {
           <div
             role="note"
             style={{
-              background: '#3A1A1A',
+              background: 'rgba(217,0,18,0.10)',
               border: '1px solid rgba(217,0,18,0.20)',
               borderRadius: '10px',
               padding: '12px 14px',
@@ -294,7 +294,7 @@ export default function NuovoIncidentePage() {
               Incidente {gravita} — obbligo di segnalazione
             </p>
             <p style={{
-              color: '#C87070',
+              color: 'rgba(217,0,18,0.70)',
               fontSize: '12px',
               fontFamily,
               margin: 0,
@@ -311,7 +311,7 @@ export default function NuovoIncidentePage() {
             role="alert"
             aria-live="assertive"
             style={{
-              background: '#3A1A1A',
+              background: 'rgba(217,0,18,0.10)',
               border: '1px solid rgba(217,0,18,0.20)',
               borderRadius: '10px',
               padding: '12px 14px',
@@ -336,7 +336,7 @@ export default function NuovoIncidentePage() {
             borderRadius: '14px',
             border: 'none',
             cursor: submitting ? 'not-allowed' : 'pointer',
-            background: submitting ? '#9B7A30' : 'var(--gold, #D4A843)',
+            background: submitting ? 'rgba(212,168,67,0.50)' : 'var(--gold, #D4A843)',
             color: 'var(--t1, #1C1916)',
             fontFamily,
             fontSize: '16px',

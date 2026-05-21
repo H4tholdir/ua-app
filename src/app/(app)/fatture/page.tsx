@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import type { StatoSDI } from '@/types/domain'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ─── Colori badge per ogni stato SDI ─────────────────────────────────────────
 const coloriStatoSDI: Record<StatoSDI, { bg: string; fg: string }> = {
@@ -167,27 +168,11 @@ export default async function FatturePage() {
       {/* Lista fatture */}
       <section style={{ padding: '0 20px' }}>
         {fatture.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--surface, #E4DFD9)',
-              borderRadius: '16px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              boxShadow:
-                'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                color: 'var(--t2, #96918D)',
-                margin: 0,
-              }}
-            >
-              Nessuna fattura trovata
-            </p>
-          </div>
+          <EmptyState
+            icon="💳"
+            title="Nessuna fattura ancora"
+            description="Le fatture vengono create automaticamente quando consegni un lavoro."
+          />
         ) : (
           <ul
             style={{

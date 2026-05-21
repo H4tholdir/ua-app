@@ -31,6 +31,7 @@ export interface ClienteComboBoxProps {
   onChange: (id: string, label: string) => void
   placeholder?: string
   id?: string
+  hasError?: boolean
 }
 
 function buildLabel(option: ClienteOption): string {
@@ -44,6 +45,7 @@ export function ClienteComboBox({
   onChange,
   placeholder = 'Cerca dentista o studio...',
   id,
+  hasError = false,
 }: ClienteComboBoxProps) {
   const inputId = useId()
   const listboxId = useId()
@@ -195,6 +197,7 @@ export function ClienteComboBox({
         style={{
           ...inputBase,
           paddingRight: loading ? '40px' : '14px',
+          borderColor: hasError ? 'var(--primary, #D90012)' : undefined,
         }}
       />
 
