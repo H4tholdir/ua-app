@@ -27,7 +27,7 @@ export default async function ListinoPage() {
   if (labId) {
     const { data } = await svc
       .from('listino')
-      .select('id, codice, nome, descrizione, categoria, prezzo_1, unita_misura, compenso_tecnico')
+      .select('id, codice, nome, descrizione, categoria, prezzo_1, unita_misura, compenso_tecnico, costo_materiali_estimated')
       .eq('laboratorio_id', labId)
       .eq('attivo', true)
       .order('categoria', { ascending: true })

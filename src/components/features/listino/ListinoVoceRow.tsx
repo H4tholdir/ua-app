@@ -24,6 +24,7 @@ export interface VoceListino {
   prezzo_1: number | null
   unita_misura: string
   compenso_tecnico?: number | null
+  costo_materiali_estimated?: number | null
 }
 
 interface ListinoVoceRowProps {
@@ -36,6 +37,7 @@ interface ListinoVoceRowProps {
 
 export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debounceRefCosto = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCompensoChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +53,29 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ compenso_tecnico: value }),
+          })
+        } catch {
+          // Non bloccare l'UI su errore di rete — verrà risincronizzato al prossimo caricamento
+        }
+      }, 500)
+    },
+    [voce.id]
+  )
+
+  const handleCostoChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value.trim()
+      if (debounceRefCosto.current) clearTimeout(debounceRefCosto.current)
+
+      debounceRefCosto.current = setTimeout(async () => {
+        const value = raw === '' ? null : parseFloat(raw.replace(',', '.'))
+        if (raw !== '' && (isNaN(value as number) || (value as number) < 0)) return
+
+        try {
+          await fetch(`/api/listino/${voce.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ costo_materiali_estimated: value }),
           })
         } catch {
           // Non bloccare l'UI su errore di rete — verrà risincronizzato al prossimo caricamento
@@ -203,7 +228,81 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
           </div>
         )}
 
-        {/* compenso_tecnico visibile SOLO al titolare/admin_rete — mai ad altri ruoli */}
+        {/* costo_materiali_estimated — solo titolare/admin_rete, usato per calcolo margine */}
+        {canEdit && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginTop: '4px',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px',
+                color: 'var(--t3, #B8B3AE)',
+                flexShrink: 0,
+              }}
+            >
+              Costo mat.:
+            </span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: '6px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '11px',
+                  color: voce.costo_materiali_estimated != null
+                    ? 'var(--t2, #96918D)'
+                    : 'var(--t3, #B8B3AE)',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                }}
+              >
+                €
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                defaultValue={voce.costo_materiali_estimated ?? ''}
+                placeholder="—"
+                onChange={handleCostoChange}
+                aria-label={`Costo materiali stimato per ${voce.nome}`}
+                style={{
+                  width: '80px',
+                  height: '28px',
+                  paddingLeft: '18px',
+                  paddingRight: '4px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--elv, #EDEDEA)',
+                  background: 'var(--bg, #DDD8D3)',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '11px',
+                  color: voce.costo_materiali_estimated != null
+                    ? 'var(--t2, #96918D)'
+                    : 'var(--t3, #B8B3AE)',
+                  outline: 'none',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              />
+            </div>
+            {voce.costo_materiali_estimated == null && (
+              <span
+                style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '11px',
+                  color: 'var(--t3, #B8B3AE)',
+                }}
+              >
+                non impostato
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Prezzo */}

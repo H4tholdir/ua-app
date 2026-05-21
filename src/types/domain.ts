@@ -751,6 +751,8 @@ export interface DashboardStatsExtended extends DashboardStats {
   pagamenti_scaduti_clienti_count: number
   materiali_esaurimento_count: number
   in_prova_count: number
+  margine_netto: number
+  percentuale_margine: number
 }
 
 // ─── Vista TECNICO ───────────────────────────────────────────
