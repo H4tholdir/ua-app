@@ -74,8 +74,8 @@ export function LavoroFormShell({
                 background:
                   activeTab === 'dati'
                     ? 'var(--primary, #D90012)'
-                    : 'var(--gold, #D4A843)',
-                color: 'white',
+                    : 'var(--prs, #D4CFC9)',
+                color: activeTab === 'dati' ? 'white' : 'var(--t3, #B8B3AE)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
