@@ -14,6 +14,7 @@ import {
   raisedShadow,
   insetShadow,
 } from './styles'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 // ─── Opzioni ──────────────────────────────────────────────────────
 const TIPI_IMPRONTA = [
@@ -289,6 +290,7 @@ export function TabAccettazione({
       <div style={fieldStyle}>
         <label htmlFor="tipo_impronte" style={labelStyle}>
           Tipo impronta <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
+          <InfoTooltip text="MDR Allegato XIII §4: registra il tipo di impronta ricevuta. Alginato e silicone = impronte fisiche convenzionali. STL / Scansione = file digitale da scanner intraorale." />
         </label>
         <select
           id="tipo_impronte"
@@ -319,6 +321,7 @@ export function TabAccettazione({
         <div>
           <label htmlFor="disinfettante_usato" style={labelStyle}>
             Disinfettante
+            <InfoTooltip text="Obbligatorio per tracciabilità MDR Art. 13(8): specifica il disinfettante usato per igienizzare impronta/modello. Scrivi 'Non dichiarato' se non comunicato dal dentista." />
           </label>
           <select
             id="disinfettante_usato"
