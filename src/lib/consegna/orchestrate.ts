@@ -202,7 +202,7 @@ export async function orchestraConsegna(
         data_consegna_effettiva: now,
         consegna_completata_at: now,
         consegna_precheck_passato_al_primo_tentativo: true,
-      })
+      }, { count: 'exact' })
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
 
