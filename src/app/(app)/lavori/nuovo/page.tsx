@@ -97,7 +97,7 @@ export default function NuovoLavoroPage() {
       />
 
       <form onSubmit={handleSubmit} noValidate>
-        <LavoroFormShell defaultTab="dati">
+        <LavoroFormShell defaultTab="dati" isCreating={true}>
           {(activeTab) => {
             // Tab abilitata anche prima della creazione: Accettazione MDR
             if (activeTab === 'accettazione') {
