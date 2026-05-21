@@ -258,7 +258,7 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
             }}
             suppressHydrationWarning
           >
-            {lavori_oggi.length} lavorazioni ·{' '}
+            {data.lavorazioni_conteggiate_oggi ?? 0} lavorazioni completate ·{' '}
             {new Date().toLocaleDateString('it-IT', {
               weekday: 'long',
               day: 'numeric',
@@ -458,7 +458,7 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
                         width: '100%',
                         transform: `scaleX(${lavoro.completamento_perc / 100})`,
                         transformOrigin: 'left center',
-                        transition: 'transform 0.4s cubic-bezier(0.2,0,0,1)',
+                        transition: 'none',
                       }}
                     />
                   </div>

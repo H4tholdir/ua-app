@@ -353,11 +353,14 @@ export async function getTecnicoDashboard(
     return sum + ((ll.listino?.compenso_tecnico ?? 0) * (ll.quantita ?? 1))
   }, 0)
 
+  const lavorazioni_conteggiate_oggi = (lavoriOggiCompenso ?? []).length
+
   return {
     lavori_urgenti: mapTecnicoLavoriRows(urgentiData as RawLavoroRow[] | null),
     lavori_oggi: mapTecnicoLavoriRows(oggiData as RawLavoroRow[] | null),
     in_prova_rientro_oggi: mapTecnicoLavoriRows(provaData as RawLavoroRow[] | null),
     compenso_oggi,
+    lavorazioni_conteggiate_oggi,
   }
 }
 

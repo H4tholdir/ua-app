@@ -635,7 +635,7 @@ export function LavoroCard({
                   background:   isFilled ? statoColor : 'transparent',
                   border:       isFilled ? 'none' : '1.5px solid rgba(0,0,0,.18)',
                   flexShrink:   0,
-                  transition:   'background 0.2s',
+                  transition:   'none',
                 }}
               />
             </React.Fragment>
