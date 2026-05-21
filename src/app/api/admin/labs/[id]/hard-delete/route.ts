@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const origin = req.headers.get('origin') ?? ''
-  const host   = req.headers.get('host') ?? ''
-  if (!origin.includes(host.split(':')[0])) {
-    return NextResponse.json({ error: 'CSRF' }, { status: 403 })
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const userClient = await getServerUserClient()

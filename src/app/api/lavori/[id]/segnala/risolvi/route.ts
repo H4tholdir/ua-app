@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { isSameOrigin } from '@/lib/utils/csrf'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-export async function PATCH(_req: Request, { params }: RouteContext) {
+export async function PATCH(req: Request, { params }: RouteContext) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
 
   // Auth
@@ -46,14 +51,19 @@ export async function PATCH(_req: Request, { params }: RouteContext) {
   }
 
   // Segna come risolta
-  const { error } = await svc
+  const { error, count: risolviUpdateCount } = await svc
     .from('lavori')
-    .update({ segnalazione_risolta: true })
+    .update({ segnalazione_risolta: true }, { count: 'exact' })
     .eq('id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)
 
   if (error) {
     console.error('[PATCH /api/lavori/[id]/segnala/risolvi] error:', error)
     return NextResponse.json({ error: 'Errore durante il salvataggio' }, { status: 500 })
+  }
+
+  if (risolviUpdateCount === 0) {
+    return NextResponse.json({ error: 'Lavoro non trovato nel laboratorio corrente' }, { status: 404 })
   }
 
   return NextResponse.json({ ok: true })

@@ -342,10 +342,15 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
           📦
         </button>
 
-        {/* Pulsante CONSEGNA */}
+        {/* Pulsante CONSEGNA — salva prima se dirty */}
         <button
           type="button"
-          onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
+          onClick={async () => {
+            if (isDirty) {
+              await save(lavoro.id)
+            }
+            router.push(`/lavori/${lavoro.id}/consegna`)
+          }}
           style={{
             flex: isDirty ? '0 0 auto' : 1,
             height: '52px',

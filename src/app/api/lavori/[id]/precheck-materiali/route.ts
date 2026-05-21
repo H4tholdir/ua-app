@@ -13,6 +13,8 @@ interface MaterialeCarente {
 interface PrecheckMaterialiResponse {
   ok: boolean
   materiali_carenti: MaterialeCarente[]
+  mdr_incompleto: boolean
+  mdr_campi_mancanti: string[]
 }
 
 export async function GET(
@@ -40,10 +42,10 @@ export async function GET(
 
   const labId: string = utente.laboratorio_id
 
-  // Verifica ownership del lavoro
+  // Verifica ownership del lavoro e carica i campi MDR accettazione ingresso
   const { data: lavoro } = await svc
     .from('lavori')
-    .select('id')
+    .select('id, tipo_impronte, disinfettante_usato')
     .eq('id', id)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
@@ -53,6 +55,13 @@ export async function GET(
     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
   }
 
+  // Calcola MDR soft-block (campi accettazione ingresso mancanti)
+  const mdrCampiMancanti: string[] = [
+    !lavoro.tipo_impronte ? 'Tipo impronta' : null,
+    !lavoro.disinfettante_usato ? 'Disinfettante' : null,
+  ].filter((x): x is string => x !== null)
+  const mdrIncompleto = mdrCampiMancanti.length > 0
+
   // Carica le lavorazioni del lavoro
   const { data: lavorazioni, error: lavErr } = await svc
     .from('lavori_lavorazioni')
@@ -61,7 +70,12 @@ export async function GET(
     .eq('laboratorio_id', labId)
 
   if (lavErr || !lavorazioni || lavorazioni.length === 0) {
-    return NextResponse.json<PrecheckMaterialiResponse>({ ok: true, materiali_carenti: [] })
+    return NextResponse.json<PrecheckMaterialiResponse>({
+      ok: !mdrIncompleto,
+      materiali_carenti: [],
+      mdr_incompleto: mdrIncompleto,
+      mdr_campi_mancanti: mdrCampiMancanti,
+    })
   }
 
   const materialiCarenti: MaterialeCarente[] = []
@@ -107,8 +121,10 @@ export async function GET(
   }
 
   const response: PrecheckMaterialiResponse = {
-    ok: materialiCarenti.length === 0,
+    ok: materialiCarenti.length === 0 && !mdrIncompleto,
     materiali_carenti: materialiCarenti,
+    mdr_incompleto: mdrIncompleto,
+    mdr_campi_mancanti: mdrCampiMancanti,
   }
 
   return NextResponse.json(response)

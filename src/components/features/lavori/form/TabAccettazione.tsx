@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'motion/react'
 import type { Lavoro } from '@/types/domain'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
@@ -28,6 +29,7 @@ const TIPI_IMPRONTA = [
 
 const DISINFETTANTI = [
   { value: '',                      label: '— Seleziona —' },
+  { value: 'Non dichiarato',        label: 'Non dichiarato' },
   { value: 'Korsolex Plus',         label: 'Korsolex Plus' },
   { value: 'Surgikos',              label: 'Surgikos' },
   { value: 'MD 520',                label: 'MD 520' },
@@ -35,6 +37,8 @@ const DISINFETTANTI = [
   { value: 'Deconex',               label: 'Deconex' },
   { value: 'Altro',                 label: 'Altro' },
 ] as const
+
+const DISINFETTANTI_VALUES = DISINFETTANTI.map((o) => o.value)
 
 type MaterialeKey = 'modelli_gesso' | 'bite' | 'fotografie' | 'radiografie' | 'articolatore' | 'altro'
 
@@ -198,6 +202,14 @@ export function TabAccettazione({
   const reduced = useReducedMotion()
   const spring = motionTokens.spring.snappy
   const materialiAttuali = data.materiali_allegati ?? []
+
+  // ─── Disinfettante "Altro" — testo libero ─────────────────────────
+  const isAltroDisinfettante =
+    !!data.disinfettante_usato && !DISINFETTANTI_VALUES.includes(data.disinfettante_usato as typeof DISINFETTANTI_VALUES[number])
+  const [altroDisinfettanteText, setAltroDisinfettanteText] = useState<string>(
+    isAltroDisinfettante ? (data.disinfettante_usato ?? '') : ''
+  )
+  const selectDisinfettanteValue = isAltroDisinfettante ? 'Altro' : (data.disinfettante_usato ?? '')
   const score = mdrScore(data)
   const scorePercent = Math.round((score / 3) * 100)
 
@@ -310,9 +322,18 @@ export function TabAccettazione({
           </label>
           <select
             id="disinfettante_usato"
-            value={data.disinfettante_usato ?? ''}
-            onBlur={(e) => onChange({ disinfettante_usato: e.target.value || null })}
-            onChange={(e) => onChange({ disinfettante_usato: e.target.value || null })}
+            value={selectDisinfettanteValue}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === 'Altro') {
+                // Switch to Altro: keep select on "Altro", clear stored text until user types
+                setAltroDisinfettanteText('')
+                onChange({ disinfettante_usato: null })
+              } else {
+                setAltroDisinfettanteText('')
+                onChange({ disinfettante_usato: v || null })
+              }
+            }}
             aria-label="Disinfettante usato per decontaminazione"
             style={{ ...inputBase, appearance: 'none', cursor: 'pointer' }}
           >
@@ -322,6 +343,33 @@ export function TabAccettazione({
               </option>
             ))}
           </select>
+          {(selectDisinfettanteValue === 'Altro') && (
+            <input
+              type="text"
+              placeholder="Specifica disinfettante utilizzato..."
+              value={altroDisinfettanteText}
+              onChange={(e) => {
+                const txt = e.target.value
+                setAltroDisinfettanteText(txt)
+                onChange({ disinfettante_usato: txt || null })
+              }}
+              style={{
+                marginTop: 8,
+                width: '100%',
+                padding: '10px 12px',
+                background: 'var(--sfc, #E4DFD9)',
+                border: '1px solid var(--prs, #D4CFC9)',
+                borderRadius: 10,
+                fontSize: 14,
+                color: 'var(--t1, #1C1916)',
+                fontFamily: 'DM Sans, sans-serif',
+                minHeight: 44,
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+              aria-label="Specifica disinfettante"
+            />
+          )}
         </div>
 
         <div>
