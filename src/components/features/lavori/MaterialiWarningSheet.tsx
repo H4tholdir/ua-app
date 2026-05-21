@@ -16,6 +16,8 @@ interface MaterialeCarente {
 interface MaterialiWarningSheetProps {
   open: boolean
   materiali: MaterialeCarente[]
+  mdrIncompleto?: boolean
+  mdrCampiMancanti?: string[]
   onProcedi: () => void
   onAnnulla: () => void
 }
@@ -23,6 +25,8 @@ interface MaterialiWarningSheetProps {
 export function MaterialiWarningSheet({
   open,
   materiali,
+  mdrIncompleto = false,
+  mdrCampiMancanti = [],
   onProcedi,
   onAnnulla,
 }: MaterialiWarningSheetProps) {
@@ -119,7 +123,7 @@ export function MaterialiWarningSheet({
                     width: '36px',
                     height: '36px',
                     borderRadius: '50%',
-                    background: 'rgba(212,168,67,.16)',
+                    background: mdrIncompleto ? 'rgba(217,0,18,.12)' : 'rgba(212,168,67,.16)',
                     fontSize: '18px',
                     flexShrink: 0,
                   }}
@@ -136,7 +140,9 @@ export function MaterialiWarningSheet({
                     color: 'var(--t1, #1C1916)',
                   }}
                 >
-                  Giacenza insufficiente
+                  {mdrIncompleto && materiali.length === 0
+                    ? 'Dati MDR incompleti'
+                    : 'Avvisi pre-consegna'}
                 </h2>
               </div>
               <p
@@ -148,10 +154,58 @@ export function MaterialiWarningSheet({
                   lineHeight: 1.5,
                 }}
               >
-                {materiali.length === 1
-                  ? '1 materiale sotto scorta per questo lavoro'
-                  : `${materiali.length} materiali sotto scorta per questo lavoro`}
+                {mdrIncompleto && materiali.length === 0
+                  ? 'Completa i dati accettazione prima di consegnare.'
+                  : materiali.length === 1
+                    ? '1 materiale sotto scorta per questo lavoro'
+                    : `${materiali.length} materiali sotto scorta per questo lavoro`}
               </p>
+
+              {/* MDR incomplete warning block */}
+              {mdrIncompleto && (
+                <div
+                  role="alert"
+                  style={{
+                    padding: '12px',
+                    background: 'rgba(217,0,18,.08)',
+                    borderRadius: '10px',
+                    marginBottom: '12px',
+                    border: '1px solid rgba(217,0,18,.20)',
+                  }}
+                >
+                  <div
+                    style={{
+                      color: '#D90012',
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    ⚠ Dati MDR incompleti — Allegato XIII
+                  </div>
+                  <div
+                    style={{
+                      color: '#D90012',
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Campi mancanti: {mdrCampiMancanti.join(', ')}
+                  </div>
+                  <div
+                    style={{
+                      color: 'var(--t2, #96918D)',
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: '12px',
+                      marginTop: '4px',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Torna alla Tab Accettazione per completare i dati prima di consegnare.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Lista materiali carenti */}
@@ -270,17 +324,21 @@ export function MaterialiWarningSheet({
                   padding: '12px 16px',
                   borderRadius: '12px',
                   border: 'none',
-                  background: 'var(--gold, #D4A843)',
-                  color: 'var(--t1, #1C1916)',
+                  background: mdrIncompleto ? 'var(--primary, #D90012)' : 'var(--gold, #D4A843)',
+                  color: mdrIncompleto ? '#fff' : 'var(--t1, #1C1916)',
                   fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '15px',
+                  fontSize: mdrIncompleto ? '13px' : '15px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   boxShadow: '-3px -3px 7px rgba(255,255,255,.72), 4px 5px 10px -2px rgba(148,128,118,.32)',
                 }}
-                aria-label="Procedi comunque con la consegna nonostante la giacenza insufficiente"
+                aria-label={
+                  mdrIncompleto
+                    ? 'Consegna senza dati MDR completi — non conforme Allegato XIII'
+                    : 'Procedi comunque con la consegna nonostante la giacenza insufficiente'
+                }
               >
-                Procedi comunque
+                {mdrIncompleto ? 'Consegna senza dati MDR completi' : 'Procedi comunque'}
               </button>
             </div>
           </motion.div>

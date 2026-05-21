@@ -59,6 +59,8 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
   const [errore, setErrore] = useState<string | null>(null)
   const [materialiWarning, setMaterialiWarning] = useState<MaterialeCarente[]>([])
   const [showWarningSheet, setShowWarningSheet] = useState(false)
+  const [mdrIncompleto, setMdrIncompleto] = useState(false)
+  const [mdrCampiMancanti, setMdrCampiMancanti] = useState<string[]>([])
 
   // use-sound gestisce silenziosamente i file mancanti — play() non lancia se il file non esiste
   const [playSuccess] = useSound('/sounds/success.mp3', {
@@ -101,13 +103,22 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
     if (stato === 'loading' || stato === 'success') return
     setStato('loading')  // blocca double-tap prima di qualsiasi operazione asincrona
 
-    // Precheck materiali (best-effort — non blocca in caso di errore di rete)
+    // Precheck materiali + MDR (best-effort — non blocca in caso di errore di rete)
     try {
       const precheckRes = await fetch(`/api/lavori/${lavoroId}/precheck-materiali`)
       if (precheckRes.ok) {
-        const data = await precheckRes.json() as { ok: boolean; materiali_carenti: MaterialeCarente[] }
-        if (!data.ok && data.materiali_carenti.length > 0) {
+        const data = await precheckRes.json() as {
+          ok: boolean
+          materiali_carenti: MaterialeCarente[]
+          mdr_incompleto: boolean
+          mdr_campi_mancanti: string[]
+        }
+        const hasMdrWarning = data.mdr_incompleto === true
+        const hasMaterialiWarning = !data.ok && data.materiali_carenti.length > 0
+        if (hasMaterialiWarning || hasMdrWarning) {
           setMaterialiWarning(data.materiali_carenti)
+          setMdrIncompleto(hasMdrWarning)
+          setMdrCampiMancanti(data.mdr_campi_mancanti ?? [])
           setShowWarningSheet(true)
           return
         }
@@ -124,12 +135,18 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
     <MaterialiWarningSheet
       open={showWarningSheet}
       materiali={materialiWarning}
+      mdrIncompleto={mdrIncompleto}
+      mdrCampiMancanti={mdrCampiMancanti}
       onProcedi={() => {
         setShowWarningSheet(false)
+        setMdrIncompleto(false)
+        setMdrCampiMancanti([])
         void eseguiConsegna()
       }}
       onAnnulla={() => {
         setShowWarningSheet(false)
+        setMdrIncompleto(false)
+        setMdrCampiMancanti([])
         setStato('idle')
       }}
     />
