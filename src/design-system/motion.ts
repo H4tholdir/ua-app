@@ -43,6 +43,22 @@ export const motionTokens = {
 
 } as const;
 
+// ─── CELEBRAZIONE — animazioni per momenti di successo ─────────────────
+export const CELEBRATION = {
+  // Pop + settle
+  popScale: {
+    initial: { scale: 0.85, opacity: 0 },
+    animate: { scale: [0.85, 1.12, 1], opacity: 1 },
+    transition: { duration: motionTokens.duration.expressive, ease: [0.34, 1.56, 0.64, 1] as const },
+  },
+  // Checkmark draw
+  checkmark: {
+    initial: { pathLength: 0, opacity: 0 },
+    animate: { pathLength: 1, opacity: 1 },
+    transition: { duration: motionTokens.duration.slow, ease: motionTokens.easing.enter },
+  },
+} as const
+
 // ─── TIPI DERIVATI ──────────────────────────────────────────────────────
 export type MotionDuration = keyof typeof motionTokens.duration;
 export type MotionEasing   = keyof typeof motionTokens.easing;
