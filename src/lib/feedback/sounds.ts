@@ -77,6 +77,90 @@ export function soundError() {
   osc.stop(c.currentTime + 0.2)
 }
 
+/** Consegna completata: C5 → E5 → G5 (accordo di Do maggiore ascendente) */
+export function soundConsegna() {
+  const c = getCtx()
+  if (!c) return
+  const times = [0, 0.12, 0.24]
+  const freqs = [523.25, 659.25, 783.99]
+  const durs = [0.15, 0.15, 0.25]
+  times.forEach((delay, i) => {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freqs[i], c.currentTime + delay)
+    gain.gain.setValueAtTime(0.22, c.currentTime + delay)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + durs[i])
+    osc.start(c.currentTime + delay)
+    osc.stop(c.currentTime + delay + durs[i])
+  })
+}
+
+/** Nuovo lavoro creato: breve ding ascendente A5 → C6 */
+export function soundNuovoLavoro() {
+  const c = getCtx()
+  if (!c) return
+  const times = [0, 0.1]
+  const freqs = [880, 1046.5]
+  const durs = [0.1, 0.15]
+  times.forEach((delay, i) => {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freqs[i], c.currentTime + delay)
+    gain.gain.setValueAtTime(0.2, c.currentTime + delay)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + durs[i])
+    osc.start(c.currentTime + delay)
+    osc.stop(c.currentTime + delay + durs[i])
+  })
+}
+
+/** Segnalazione problema: C5 → G4 (due note discendenti) */
+export function soundSegnalazione() {
+  const c = getCtx()
+  if (!c) return
+  const times = [0, 0.14]
+  const freqs = [523.25, 392.0]
+  const durs = [0.12, 0.2]
+  times.forEach((delay, i) => {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freqs[i], c.currentTime + delay)
+    gain.gain.setValueAtTime(0.2, c.currentTime + delay)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + durs[i])
+    osc.start(c.currentTime + delay)
+    osc.stop(c.currentTime + delay + durs[i])
+  })
+}
+
+/** Notifica ricevuta: trio ascendente E5 → G5 → C6 */
+export function soundNotifica() {
+  const c = getCtx()
+  if (!c) return
+  const times = [0, 0.09, 0.18]
+  const freqs = [659.25, 783.99, 1046.5]
+  const durs = [0.08, 0.08, 0.15]
+  times.forEach((delay, i) => {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freqs[i], c.currentTime + delay)
+    gain.gain.setValueAtTime(0.18, c.currentTime + delay)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + durs[i])
+    osc.start(c.currentTime + delay)
+    osc.stop(c.currentTime + delay + durs[i])
+  })
+}
+
 export function setSoundEnabled(enabled: boolean) {
   try {
     localStorage.setItem('ua_sounds', enabled ? 'on' : 'off')
