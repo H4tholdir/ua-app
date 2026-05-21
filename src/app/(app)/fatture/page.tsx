@@ -115,6 +115,30 @@ export default async function FatturePage() {
     <PageWrapper>
       <AppHeader title="Fatture" />
 
+      {/* Toolbar: export CSV per commercialista */}
+      <div style={{ padding: '0 20px 8px', display: 'flex', justifyContent: 'flex-end' }}>
+        <a
+          href={`/api/fatture/export?year=${new Date().getFullYear()}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            background: 'var(--sfc, #E4DFD9)',
+            border: '1px solid var(--prs, #D4CFC9)',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+            color: 'var(--t1, #1C1916)',
+            fontFamily: 'DM Sans, sans-serif',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.72), 0 1px 3px rgba(148,128,118,.20)',
+          }}
+        >
+          ⬇ Esporta CSV {new Date().getFullYear()}
+        </a>
+      </div>
+
       {/* Info banner generazione automatica — BUG #11 */}
       <div style={{ padding: '0 20px 12px' }}>
         <div
