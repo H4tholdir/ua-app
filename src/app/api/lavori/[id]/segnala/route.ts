@@ -72,7 +72,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // PATCH lavoro con segnalazione
-  const { error } = await svc
+  const { error, count: segnalaUpdateCount } = await svc
     .from('lavori')
     .update({
       segnalazione_tipo: tipo,
@@ -82,10 +82,15 @@ export async function POST(req: Request, { params }: RouteContext) {
       segnalazione_risolta: false,
     })
     .eq('id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)
 
   if (error) {
     console.error('[POST /api/lavori/[id]/segnala] error:', error)
     return NextResponse.json({ error: 'Errore durante il salvataggio' }, { status: 500 })
+  }
+
+  if (segnalaUpdateCount === 0) {
+    return NextResponse.json({ error: 'Lavoro non trovato nel laboratorio corrente' }, { status: 404 })
   }
 
   return NextResponse.json({ ok: true })
