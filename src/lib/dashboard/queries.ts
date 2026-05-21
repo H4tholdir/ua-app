@@ -365,6 +365,44 @@ export async function getTecnicoDashboard(
 }
 
 
+export async function getTrendMensile(
+  svc: SupabaseClient,
+  labId: string,
+  months = 12
+): Promise<{ month: string; totale: number; label: string }[]> {
+  const startDate = new Date()
+  startDate.setMonth(startDate.getMonth() - months + 1)
+  startDate.setDate(1)
+  startDate.setHours(0, 0, 0, 0)
+
+  const { data } = await svc
+    .from('fatture')
+    .select('data_emissione, totale')
+    .eq('laboratorio_id', labId)
+    .gte('data_emissione', startDate.toISOString())
+    .not('data_emissione', 'is', null)
+    .order('data_emissione', { ascending: true })
+
+  // Group by month (YYYY-MM)
+  const byMonth: Record<string, number> = {}
+  for (const f of data ?? []) {
+    const month = (f.data_emissione as string).slice(0, 7) // "2026-01"
+    byMonth[month] = (byMonth[month] ?? 0) + (f.totale ?? 0)
+  }
+
+  // Fill in empty months
+  const result: { month: string; totale: number; label: string }[] = []
+  const cursor = new Date(startDate)
+  for (let i = 0; i < months; i++) {
+    const key = cursor.toISOString().slice(0, 7)
+    const label = cursor.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' })
+    result.push({ month: key, totale: byMonth[key] ?? 0, label })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return result
+}
+
 export async function getFrontDeskDashboard(
   svc: SupabaseClient,
   labId: string
