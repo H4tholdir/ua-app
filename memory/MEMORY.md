@@ -1,331 +1,171 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 21 maggio 2026 — Sessione Audit UX + 10 Miglioramenti + Bug Fix
+**Ultimo aggiornamento:** 21 maggio 2026 — Sessione Mega Audit + Piano A+B+C
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.5 COMPLETA
+## 0. STATO DEL PROGETTO — V1.7.0
 
-**V1.5 completata il 20/05/2026. App in produzione su https://uachelab.com**
+**V1.7.0 in produzione su https://uachelab.com — 21/05/2026**
 
-Sprint S0→S9 tutti completati in questa sessione:
-- TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
-- 15 pagine verificate a 390px (mobile-first) con Playwright
-- 4 bug critici trovati e fixati durante QA sistematico
+| Versione | Data | Tag | Contenuto |
+|----------|------|-----|-----------|
+| V1.5.1 | 21/05/2026 | `v1.5.1` | Piano A — Security fixes |
+| V1.6.0 | 21/05/2026 | `v1.6.0` | Piano B — UX Excellence |
+| V1.7.0 | 21/05/2026 | `v1.7.0` | Piano C — Delight + Business Intelligence |
 
-**Copertura stimata vs DentalMaster Advanced:** ~90%
-**L'app è pronta per essere consegnata a Filippo Opromolla per l'uso quotidiano.**
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
+**Copertura stimata vs DentalMaster Advanced:** ~95%
 
-### Cose da fare PRIMA della consegna a Filippo:
-1. **Prorogare il trial** — scade 31/05/2026, vai su `/admin/labs` e proroga
-2. **PEC reale** — Filippo deve configurare `/impostazioni/pec` con le sue credenziali
-3. **Push su GitHub** → Vercel CI/CD deploya automaticamente in produzione
-4. **Prima sessione con Filippo** — testare almeno: creare un lavoro reale, fare una consegna, scaricare DdC+IFU
+### ⚠️ Azioni manuali urgenti
+1. **Trial Filippo scade 31/05/2026** → `/admin/labs` → prorogalo subito
+2. **PEC reale** → Filippo deve configurare `/impostazioni/pec` con le sue credenziali SMTP
+3. **NEXT_PUBLIC_SUPPORT_PHONE** → manca in `.env.local` e dashboard Vercel
 
-### Concern aperti (non bloccanti per V1.5):
-- `tecnici.compenso_base` usato come target mensile nella progress bar produttività — confermare con Filippo se è il target corretto
-- Terzismo DdC: sezione "altri esecutori" non implementata (rischio MDR basso, da V2)
-- Seed-new-lab.ts: ogni nuovo lab richiede uno script di seed manuale per ora
-
----
-
-## 1. Stato del Progetto
-
-### Deploy
-- **URL produzione:** https://uachelab.com
-- **Supabase:** `iagibumwjstnveqpjbwq`
-- **GitHub:** https://github.com/H4tholdir/ua-app
-- **Ultimo commit:** `912dd9e` (memory update)
-- **CI/CD:** GitHub Actions verde · 141 test verdi · Vercel prod live
-
-### Identità
-- **Sviluppatore/Proprietario:** Francesco Formicola (`francesco.formicola@live.it`)
-- **Admin route:** `/admin/labs` · ruolo `admin_sistema`
-- **Lab Filippo:** `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` · ITCA01051686 · trial scade 31/05/2026
-- **Lab Arturo Pepe:** `314cd040-0893-4e9d-9ad8-786e4eefd75f` · trial
+### Test con Filippo da fare (dati reali)
+- Consegna reale → tap CONSEGNA su un lavoro vero su uachelab.com
+- FatturaPA XML → validare su https://fatturapa.agenziaentrate.gov.it
+- DdC PDF → stamparlo, firmarlo, verificare leggibilità
+- Portale dentista `/portale/[token]` → test in browser separato incognito
+- Sezione Rete `/rete` → verifica empty state + Stripe plan detection
+- Modulo qualità/incidenti → percorso completo end-to-end
+- PSUR PDF → generare e verificare sezioni MDR Allegato III §7
 
 ---
 
-## 2B. Cosa è stato fatto (20/05/2026) — Sessione Audit + Dati
+## 1. Deploy & Identità
 
-### Audit Competitor 1:1 — completato
-- **361 screenshot analizzati** (219 DentalMaster + 142 "OdonTec")
-- **Scoperta critica:** il software "OdonTec" è in realtà **Dental Project rel. 3.0**, VB6 sviluppato per il lab **Arturo Pepe** (ITCA01050077, Angri SA). Francesco Formicola ne ha modificato l'eseguibile binario per aggiornare i riferimenti normativi MDR.
-- 13 agenti paralleli → 13 file batch catalogo scritti in `ANALISI/DM_ODONTEC_CATALOG/`
+| Voce | Valore |
+|------|--------|
+| URL produzione | https://uachelab.com |
+| Supabase project | `iagibumwjstnveqpjbwq` |
+| GitHub | https://github.com/H4tholdir/ua-app |
+| Ultimo commit | `d9a25c7` (Piano C merge v1.7.0) |
+| CI/CD | GitHub Actions + Vercel auto-deploy su push main |
+| Sviluppatore | Francesco Formicola · `francesco.formicola@live.it` |
+| Admin route | `/admin/labs` · ruolo `admin_sistema` |
+| Lab Filippo | `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` · ITCA01051686 · Serre SA |
+| Lab Arturo Pepe | `314cd040-0893-4e9d-9ad8-786e4eefd75f` · lab di test |
 
-### Documenti di analisi prodotti
-- `MASTER_CATALOG.md` (33KB) — struttura tabulare, gap analysis, dati di riferimento
-- `SINTESI_SEMANTICA.md` (36KB) — sintesi organica per categoria (13 aree)
-- `_riepiloghi_sintesi.md` (62KB) — riepiloghi batch consolidati
-
-### Estrazione database completa — 22 file JSON in `extracted_data/`
-| File | Contenuto |
-|------|-----------|
-| `listino_prezzi_1.json` | 74 lavorazioni, €9.85–€933.70 |
-| `listino_prezzi_tier.json` | Listini 2, 3, 56 (tier pricing) |
-| `cicli_produzione.json` | **134 cicli** (non 74 come importati) |
-| `fasi_produzione.json` | **371 fasi** OL0–OL371 + OLz (UÀ ha solo 71!) |
-| `magazzino_materiali.json` | 187 articoli con prezzi |
-| `clienti.json` | 24 clienti completi |
-| `lavori_storici.json` | Storico lavori |
-| `attrezzature.json` | 40 attrezzature (ATT01–40) |
-| `controlli_qualita.json` | 39 codici controllo |
-| `odontec_dental_project_completo.json` | 19 medici, 911 pazienti, 65 fasi FMEA |
-| `dm_a6_cad_cam_config.json` | 19 materiali CAM, 26 tipi oggetto |
-| `statistiche_mensili.json` | €56.351 YTD 2026 (Gen-Apr) |
-| `UA_SEED_DATA_COMPLETO.json` | **Seed dati UÀ consolidato** |
-
-### ⚠️ Distinzione critica: dati per lab (da NON confondere)
-
-**DentalMaster Advanced 2021** → dati del lab **Filippo Opromolla** (ITCA01051686, Serre SA)
-**Dental Project rel. 3.0** → dati del lab **Arturo Pepe** (ITCA01050077, Angri SA)
-
-**Dati GENERICI → seed UÀ (disponibili per tutti i lab):**
-- 134 cicli di produzione + 371 fasi (OL0-OL371)
-- 65 fasi FMEA con non conformità e controlli (da OdonTec)
-- 39 codici controllo qualità
-- 9 tipi dispositivo con profili MDR
-- 19 materiali CAD/CAM (DM A6)
-- 28 tipi oggetto protesi
-- Lookup tables: campionari colore, tipi lega, tipi pagamento, stati lavoro, ecc.
-- 4 rischi MDR standard
-- Documenti MDR template (IFU, etichette, ecc.)
-
-**Dati SPECIFICI di Filippo → lab 971061a1:**
-- 20 clienti (dentisti/studi)
-- 74 lavorazioni listino × 4 tier prezzi
-- 187 materiali magazzino con prezzi
-- 40 attrezzature (ATT01-40)
-- 277 lavori storici 2018-2026
-- ⚠️ Anomalia: magazzino codice 243 con €708.940 giacenza — errore data entry da correggere
-
-**Dati SPECIFICI di Arturo Pepe → lab 314cd040:**
-- 19 medici/dentisti
-- 911 pazienti (pseudonimizzati)
-- 132 numeri dichiarazione storico
-
-### Business Intelligence Filippo (da statistiche 2026)
-- **€56.351 fatturato** Gen-Apr 2026 → stima annuale ~€170.000
-- **Top revenue:** Elemento oro-ceramica su impianto UCLA (38.4%) + Scheletrato (27.8%)
-- **Specializzazione:** Implantoprotesi + Mobile scheletrato
-- Picco ad Aprile (€19.750)
-
-### Gap critici identificati per V1.5
-1. Flow PROVE / Try-in — 20-40% dei lavori (nel DB ma non testato in UI)
-2. Odontogramma FDI (denti 11-48)
-3. Scadenzario / Partitario clienti
-4. Dashboard OGGI riprogettata (3 viste ruolo)
-5. IFU (Istruzioni per l'uso) — documento MDR obbligatorio
-6. Etichetta dispositivo con "Installare entro il" + ITCA
-7. Ricevuta di consegna firmata dal dentista
-8. Richiedente ≠ Cliente (multi-dentista per studio)
-9. Consumo automatico materiali dal listino
-10. 300 fasi produzione mancanti nel DB (UÀ ha 71 su 371 totali)
-11. Terzismo DdC: manca sezione "altri esecutori" → rischio MDR
+### Credenziali test (produzione)
+- **Titolare lab Filippo:** `h4t@live.it` / `>[REDACTED]`
+- **E2E tecnico:** `e2e-tecnico@ua-test.local` / `TestE2E!2026`
+- **Admin sistema:** `francesco.formicola@live.it` (usa forgot-password)
 
 ---
 
-## 2. Cosa è stato fatto in questa sessione (19/05/2026)
+## 2. Sessione 21/05/2026 — Mega Audit + 3 Piani
 
-### Piani completati
-- Piano F (go-live bloccanti): form lavoro, impostazioni edit, PEC widget, profilo, onboarding wizard
-- Piano G (V1 completion): pagine detail, DPA, Nomina PRRC, invite email
-- PEC inbound verification loop: Cloudflare → Worker → DB (testato)
-- Email Resend: configurato, dominio verificato, template Supabase aggiornati
+### Audit Completo (13 documenti in `docs/audit-2026-05-21/`)
 
-### Import DentalMaster (dati reali confermati dalla sessione 20/05)
-- 24 clienti (non 18) · 74 lavorazioni × 4+ fasce · 187 materiali magazzino · 40 attrezzature
-- **134 cicli produzione** (non 74) · **371 fasi produzione** (non 71 — mancano 300 nel DB UÀ!)
-- 42 lavori storici (STOR/*) · Analisi rischi MDR pre-popolata per 9 tipi dispositivo
-- ⚠️ Anomalia magazzino: codice 243 con €708.940 in giacenza — errore data entry da correggere
+11 agenti specializzati hanno analizzato l'app da prospettive diverse:
+- 7 persona agents: odontotecnico, titolare, dentista, PWA engineer, designer, UX expert, software engineer
+- 3 flow agents: giornata tipo titolare, tecnico, front desk
+- 1 audit sistematico: 31 pagine × CRUD/empty/loading/mobile/desktop
 
-### QA ciclo 1 — Bug trovati e corretti
-1. `pazienti/[id]`: campi `nome_display`/`codice_gdpr` → `nome_cognome`/`codice_paziente`
-2. RPC `crea_rifacimento_atomico`: mancante nel DB → creata
-3. API rifacimento: bloccava 'consegnato' → fixato
-4. ESLint CI: template PDF italiano → config rule off per `pdf/**`
-5. Husky pre-commit: non eseguibile → fixato
-6. Dashboard: pagamenti scaduti da lavori storici → reset `incluso_in_fattura`
-7. Cliente E2E test: rimosso dal DB
+**Score medi pre-intervento:** UX 6.8/10 · Business 6.5/10 · PWA 7.8/10 · Design 9.2/10
 
-### Compliance V1 implementata
-- DoC MDR Art. 52(8) + Allegato XIII · Nomina PRRC · DPA GDPR Art.28 · PSUR
+**Codex Adversarial Review** ha trovato 3 rischi critici mancati dagli altri 11 agenti:
+1. Cross-tenant FK injection su POST /api/lavori
+2. Service-role writes senza laboratorio_id predicate
+3. Consegna non atomica (side effects prima del cambio stato)
 
----
+### Piano A — Security + Fix Critici (v1.5.1)
 
-## 3. Cosa NON è stato fatto / da continuare
+| Fix | Tipo |
+|-----|------|
+| FK tenant validation su POST /api/lavori (before progressivo, con deleted_at guard) | 🔒 Security |
+| `laboratorio_id` predicate su tutti i service-role UPDATE + `count:exact` | 🔒 Security |
+| `isSameOrigin()` su segnala, risolvi, hard-delete | 🔒 Security |
+| Save form prima di navigare a /consegna + anti-double-tap ConsegnaButton | 🐛 Fix |
+| "Non dichiarato" + "Altro" con testo libero nel select disinfettante | 🏥 MDR |
+| Rimozione GSAP + @gsap/react inutilizzati (~300KB bundle) | 🧹 Cleanup |
+| Warning esplicito "Consegna senza dati MDR completi" | 🏥 MDR |
 
-### Priorità alta (prossima sessione)
-- **Testare ogni singola pagina manualmente** con Filippo alla tastiera — solo lui sa cosa manca
-- **PEC Filippo reale** — deve configurare `/impostazioni/pec` con le sue credenziali
-- **Trial** — scade 31/05/2026, da prorogare dall'admin panel SUBITO
-- **Flow invito end-to-end** — creare un nuovo lab di test, inviare invito, verificare email, fare onboarding completo
-- **Fatturazione reale** — generare una fattura da un lavoro reale, verificare XML FatturaPA
-- **DdC PDF** — verificare che il PDF generato sia leggibile, completo e firmabile
-- **Consegna reale** — fare una consegna con tap CONSEGNA su uachelab.com con dati reali Filippo
+### Piano B — UX Excellence (v1.6.0)
 
-### Bug probabili non ancora trovati
-- La pagina `/lavori/[id]` (dettaglio lavoro) non è stata auditata in profondità
-- Le tab Lavorazioni, Produzione, Clinica, Immagini nel form lavoro non testate
-- Il flow Prove (in_prova_esterna → rientro) non testato in UI reale
-- Il portale dentista `/portale/[token]` non testato
-- La sezione Rete (`/rete`) non testata
-- Il modulo qualità/incidenti/nuovo non testato end-to-end
-- Import PSUR — il PDF generato non è stato visto
+| Feature | Note |
+|---------|------|
+| Loading skeletons su 21 pagine | SkeletonCard con token `skeleton` in motion.ts |
+| Wizard 2-step nuovo lavoro | Stepper visivo, solo 2 tab visibili |
+| Inline validation form | Bordo rosso + auto-focus primo errore |
+| EmptyState component su 5 pagine | clienti, magazzino, fatture, pazienti, ordini |
+| Dark mode fix /qualita | Colori hardcoded → CSS token |
+| ClienteEditSheet (CRUD clienti) | Bottom sheet edit su /clienti/[id] |
+| Web Push Notifications | VAPID, SW handler, subscribe API, PushRegistrar |
+| PWA viewport-fit=cover | safe-area-inset-bottom per iPhone notch/Dynamic Island |
+| Dashboard refresh button | router.refresh() + spinner animato |
+| Last cliente in localStorage | `ua_last_cliente_id` persistito |
+| Migration `push_subscriptions` | Applicata via Supabase MCP + types rigenerati |
 
-### Cose da valutare con Filippo
-- L'UX del form Nuovo Lavoro è abbastanza semplice per lui?
-- Il listino è correttamente strutturato come lo usava su DentalMaster?
-- Le lavorazioni nei lavori hanno i prezzi giusti?
-- Il sistema di pazienti pseudonimizzati è comprensibile?
-- Mancano tipi dispositivo che Filippo usa comunemente?
+### Piano C — Delight + Business Intelligence (v1.7.0)
 
-### ⚠️ Decisione WhatsApp (20/05/2026)
-**open-wa.org SCARTATO** — wrapper non ufficiale WhatsApp Web, viola ToS Meta, rischio ban.
-**Approccio attuale (deep links wa.me)** = corretto, 100% ToS-compliant, perfetto per mobile.
-**Futuro messaggi automatici**: Meta WhatsApp Cloud API ufficiale (360dialog o Twilio) — solo se serve V2.
-
-### Piano Maestro V1.5 → V2
-Salvato in: `docs/superpowers/plans/2026-05-20-ua-roadmap-v15-v2.md`
-9 Sprint V1.5 (~9 settimane) + roadmap V2/V3.
-
-### ✅ Sprint S0 completato (20/05/2026)
-**Commit:** `ec7d0d1` + `a8135d8`
-
-| Task | Risultato |
-|------|-----------|
-| S0.1 Fasi produzione | 300 fasi OL0-OL371 importate (tot. 371 nel DB) |
-| S0.2 Cicli produzione | 66 cicli mancanti importati (tot. 140 per lab Filippo) |
-| S0.3 lookup_valori | Migration applicata + 102 valori seedati (colori, leghe, pagamenti, impronte, MDR) |
-| S0.4 Magazzino Filippo | 185 articoli nel DB (2 ghost records filtrati); fix anomalia cod.243 → scorta=0 |
-| S0.5 Lavori storici | 234 nuovi lavori storici importati (tot. 276 storici; 279 totali lab Filippo) |
-| S0.6 Seed Arturo Pepe | 19 medici come clienti + 911 pazienti pseudonimizzati (GDPR: solo codice PAZ/YYYY/NNN) |
-
-**Nota:** `is_storico` non esiste nel DB reale — i lavori storici si identificano via `note_interne ILIKE '%IMPORT DentalMaster%'`
-**Nota seed globale:** `laboratorio_id NOT NULL` — per ora tutto in lab Filippo. Serve `scripts/seed-new-lab.ts` per onboarding nuovi lab.
-
-### ✅ Sprint S1 — Dashboard OGGI (già implementato, verificato 20/05/2026)
-Tutte e 3 le viste funzionanti: `DashboardTitolare` (KPI + consegne + fatturato + prove + materiali + pagamenti), `DashboardTecnico` (urgenti + puntualità), `DashboardFrontDesk` (accettazione + search + consegne). Design system v2.2 conforme. FAB rosso presente.
-
-### ✅ Sprint S2 — Flow PROVE (già implementato, verificato 20/05/2026)
-`lavoro_prove` table in DB, API `GET/POST/PATCH /api/lavori/[id]/prove`, `TabProve.tsx` integrata in `LavoroFormClient`. Avvio prova, rientro con esito (ok/modifiche/rifare/sospeso), storico prove, WhatsApp link.
-
-### ✅ Sprint S3 — Odontogramma FDI (implementato 20/05/2026)
-**Commit:** `9189503`
-- `OdontogrammaFDI.tsx` (1048 righe) — 5 forme SVG anatomiche: molare/premolare/canino/incisivo lat./centrale
-- `denti-fdi.ts` — adulto 32 denti + deciduo 20 denti
-- Migration: `denti_mancanti INTEGER[]`, `denti_impianti INTEGER[]`, `tipo_arco TEXT`
-- 3 stati: selezionato (rosso), mancante (X), impianto (cobalt). Tap=toggle, long press=menu stato
-- Toggle adulto/deciduo. Chip real-time elementi selezionati.
-- `TabClinica.tsx` aggiornata con il componente
-
-### ✅ Sprint S4 — Scadenzario (completo, 20/05/2026)
-**Commit:** `e39b99d`
-✅ `ScadenzarioList.tsx` — lista insoluti con card espandibili + link estratto conto
-✅ API `/api/scadenzario` — fatture non pagate raggruppate per cliente
-✅ API `/api/scadenzario/[cliente_id]` — tutte le fatture cliente (pagate + non), KPI aggregati
-✅ API `PATCH /api/fatture/[id]` — segna fattura pagata (allowlist esplicita)
-✅ Pagina `/scadenzario/[cliente_id]` — 3 viewport: mobile card/bottom sheet, tablet split, desktop tabella
-✅ Bottom sheet azioni: WhatsApp sollecito + Segna pagata + Apri fattura
-✅ AnimatePresence exit slide-right su pagamento, stagger enter card, KpiCard prefers-reduced-motion
-✅ Haptic + suono sintetico (C5→E5) su pagamento confermato
-✅ `lib/feedback/haptic.ts` + `lib/feedback/sounds.ts` — utility globali disponibili in tutta l'app
-
-### ✅ Sprint S5 — Tab Accettazione MDR + Foto upgrade (completato 20/05/2026)
-**Commit:** `195aa59`
-✅ `TabAccettazione.tsx` — N° cassetta, tipo impronta (MDR *), disinfettante+lotto (MDR *), materiali allegati checkbox, toggle bruxismo+difficoltà manuali, progress bar MDR dinamica
-✅ `TabImmagini.tsx` upgrade — Camera/Galleria separati, browser-image-compression (WebP 400KB), XHR progress ring SVG, griglia 3/4/5 colonne, ottimistic UI, haptic+sound
-✅ Migration: tipo_impronte, disinfettante_usato, lotto_disinfettante, materiali_allegati TEXT[], anamnesi_difficolta_manuali
-✅ Tab abilitata anche in "Nuovo lavoro" (non richiede lavoro pre-esistente)
-
-### ✅ Sprint S6 — Documenti MDR IFU + Etichetta + Ricevuta (completato 20/05/2026)
-**Commit:** `bbc5f59`
-✅ `IFUTemplate.tsx` — A4, 8 sezioni MDR Allegato I §23.4, rischi residui obbligatori, GDPR-safe
-✅ `EtichettaTemplate.tsx` upgrade — A6 landscape, "DISPOSITIVO SU MISURA", ITCA bold, "Installare entro il"
-✅ `RicevutaConsegnaTemplate.tsx` — A4, Sez.A fabbricante + Sez.B firma prescrittore, 15 anni conservazione
-✅ API: `/api/lavori/[id]/ifu` · `/etichetta` · `/ricevuta-consegna` — PDF stream con auth
-✅ `PacchettoConsegnaSheet.tsx` — bottom sheet MDR, 3 doc selezionabili, progress ring SVG, Web Share API
-
-### ✅ Sprint S7 — Richiedente smart + BOM materiali + Ordini (completato 20/05/2026)
-**Commit:** `dddbcb3`
-✅ API /api/clienti/[id]/studio-members — chip row medici stesso studio in TabDati (+ Nuovo chip)
-✅ Migration: listino_materiali_auto (BOM), scarichi_magazzino (MDR tracciabilità), richiedente_email
-✅ API precheck-materiali + MaterialiWarningSheet (soft-warning prima consegna)
-✅ orchestrate.ts: auto-scarico materiali non-blocking con tracciabilità lotto MDR
-✅ /ordini page + API GET/POST/PATCH + NuovoOrdineSheet (WhatsApp + Email pre-compilato)
-✅ Badge ordini aperti in DashboardTitolare
-
-### ✅ Sprint S8 — Tecnici + Compensi + Cedolino (completato 20/05/2026)
-**Commit:** `b88a2c8`
-✅ Dashboard produttività /tecnici/[id]/produttivita — KPI hero, streak timezone-safe, barre 4 mesi SVG
-✅ Campo compenso_tecnico nel listino (solo titolare/admin_rete, debounce 500ms, privacy fix)
-✅ CedolinoTecnicoTemplate.tsx — A4, tabella lavorazioni, firma, nota legale "non è busta paga"
-✅ API: produttivita + cedolino + PATCH listino con allowlist
-⚠️ `tecnici.compenso_base` usato come target mensile nella progress bar — confermare con Filippo se è il target mensile o lo stipendio base fisso
-
-### ✅ Sprint S9 — Polish QA Mobile (completato 20/05/2026)
-
-**Pagine verificate a 390px (iPhone):**
-✅ /dashboard — KPI strip scroll orizzontale corretto (design intentionale)
-✅ /lavori — empty state "Nessun lavoro ancora" corretto
-✅ /lavori/nuovo — tab Dati + Accett. operativi
-✅ /lavori/nuovo [tab Accett.] — MDR checklist visibile
-✅ /lavori/nuovo [tab Clinica] — locked state corretto
-✅ /lavori/nuovo [tab Foto] — locked state corretto
-✅ /lavori/nuovo [tab Date] — locked state corretto
-✅ /lavori/nuovo [tab Prove] — locked state corretto (FIX applicato)
-✅ /scadenzario — empty state "Nessun insoluto" corretto
-✅ /clienti — bottone "+ Nuovo" visibile (FIX AppHeader)
-✅ /magazzino — empty state corretto
-✅ /ordini — FAB "Nuovo ordine" visibile
-✅ /tecnici — empty state "Nessun tecnico trovato" corretto
-✅ /listino — bottone "+ Nuova voce" visibile (FIX AppHeader)
-✅ /impostazioni — link "Configura PEC →" touch target ≥ 44px (FIX)
-
-**Fix applicati durante QA:**
-1. **`lavori/nuovo/page.tsx`** — aggiunto `'prove'` a `DISABLED_TABS`. Prima: tab Prove mostrava erroneamente il contenuto di TabDati. Ora: mostra il locked state corretto.
-2. **`components/layout/AppHeader.tsx`** — padding-right da 20px a 64px per evitare sovrapposizione con avatar fisso UserProfileSheet (right:16 + width:40 = 56px). Fix visivo su /clienti, /listino, e tutte le pagine con actions.
-3. **`app/(app)/impostazioni/page.tsx`** — link "Configura PEC →" da `display:inline-block` (20px height) a `display:inline-flex, minHeight:44px`. Touch target conforme HIG.
-
-**Stato finale:**
-- TypeScript: zero errori
-- ESLint: zero warning
-- Vitest: 141/141 verde
-- Build produzione: ✅ (Compiled successfully)
-- Nessun overflow orizzontale su 390px
-- Tutti i bottoni azione visibili e non sovrapposti
-
-**V1.5 — Copertura stimata DentalMaster: ~90%**
-App pronta per consegna a Filippo Opromolla
-
-**Prossimo:** S4.2 (estratto conto cliente) → S5 (Tab Ingresso + Allegati) → S6 (IFU + Etichetta + Ricevuta) → S7 → S8 → S9
-
-### V1.5 — Parità operativa con DentalMaster (priorità alta)
-Vedi dettaglio in `ANALISI/DM_ODONTEC_CATALOG/MASTER_CATALOG.md` e `SINTESI_SEMANTICA.md`
-- Flow PROVE / Try-in (UI — logica DB esiste)
-- Odontogramma FDI interattivo nel form lavoro
-- Scadenzario / partitario clienti
-- Dashboard OGGI riprogettata (3 viste ruolo)
-- IFU PDF + Etichetta dispositivo + Ricevuta consegna (3 documenti MDR mancanti)
-- Multi-dentista per studio (Richiedente ≠ Cliente)
-- Consumo automatico materiali al tap CONSEGNA
-- 300 fasi produzione mancanti da importare
-- Compensi tecnico per lavorazione
-
-### V2 (non urgente)
-- PMCF follow-up automatico (reminder 6/12 mesi al dentista)
-- STS export XML (solo se fattura diretta al paziente)
-- Scadenzario INPS artigiani con reminder
-- Registro trattamenti GDPR in-app
-- Nota di credito XML (TD04)
-- Firma digitale P7M per fatture PA
-- Fascicolo Tecnico MDR (come Dental Project — oggetto autonomo 6 tab)
-- CAPA per fase produttiva (ISO 13485)
-- Colorazione 4D (Scala/Croma/Tinta/Valore)
-- Terzismo inter-laboratorio
+| Feature | Note |
+|---------|------|
+| Sound design completo | `soundConsegna` (C-major chord), `soundNuovoLavoro` (ding), `soundSegnalazione` (discendente) |
+| Animazioni CELEBRATION | Token popScale + checkmark in motion.ts · FAB bounce spring · delivery pop |
+| Margine netto KPI dashboard | fatturato − costi materiali − compensi · traffic-light verde/oro/rosso |
+| `costo_materiali_estimated` nel listino | Colonna Supabase + campo editabile inline |
+| Fatturazione batch | `/api/fatture/batch` + BatchFatturaSection + `/api/lavori/pronti-da-fatturare` |
+| Export CSV fatture | `/api/fatture/export?year=YYYY` · BOM + semicolon + virgola decimale per Excel IT |
+| Analytics trend 12 mesi | `getTrendMensile` in queries.ts + BarChart SVG (mese corrente in rosso) |
+| Portale dentista condivisibile | SharePortaleButton su /clienti/[id] · navigator.share() + wa.me fallback |
+| InfoTooltip MDR | Tooltip contestuali su "Tipo impronta" e "Disinfettante" in TabAccettazione |
+| seed-new-lab.ts | Script onboarding nuovi lab — copia cicli + fasi dal template con UUID remapping |
 
 ---
 
-## 4. Design System v2.2 Warm Panna
+## 3. Cosa NON è stato fatto (da fare prossima sessione)
+
+### CRUD audit incompleto
+Il B6 ha verificato e fixato clienti. Rimangono senza edit/delete:
+- **pazienti** — solo POST, nessun PATCH/DELETE
+- **listino** — PATCH esiste ma nessun DELETE (soft-delete `attivo: false`)
+- **tecnici** — solo invite flow, nessun `/[id]/route.ts`
+- **magazzino** — nessun PATCH/DELETE su `[id]`
+
+### Bug pre-esistente trovato durante audit
+`/magazzino/[id]/page.tsx` interroga colonne inesistenti (`codice`, `descrizione`, `unita_misura`, `giacenza_attuale`, `fornitore`) e filtra su `deleted_at` mentre la tabella usa `attivo`. La pagina probabilmente 302-redirecta. **Da fixare.**
+
+### Dark mode non verificata sistematicamente
+Token dark presenti in design system v2.2 ma non testati con Playwright su ogni pagina. Solo `/qualita` fixata.
+
+### Push Notifications — mancano i trigger
+`PushRegistrar`, subscribe API e SW handler sono pronti, ma **mancano i trigger lato server**:
+- `orchestrate.ts` → notifica front desk "lavoro pronto per consegna"
+- `segnala/route.ts` → notifica titolare "problema segnalato"
+- `prove/route.ts` → notifica tecnico "prova rientrata"
+
+### Test manuali con Filippo (non ancora eseguiti)
+- Consegna reale su uachelab.com
+- FatturaPA XML → validazione SDI
+- DdC PDF → stampa + firma
+- Portale dentista → test incognito
+- Sezione Rete → non testata
+- Qualità/incidenti → end-to-end
+- PSUR PDF → verifica
+
+### Terzismo DdC
+Sezione "altri esecutori" mancante nel DdC. Rischio MDR basso, rinviato a V2.
+
+---
+
+## 4. Architettura — Decisioni Critiche
+
+- **RLS:** `public.current_lab_id()` (NON `auth.current_lab_id()`)
+- **Invite flow:** token custom `/invite/[token]` (NON `inviteUserByEmail`)
+- **PEC Vault:** `upsert_pec_vault_secret` + `get_pec_vault_secret` solo service_role
+- **Rifacimento:** RPC `crea_rifacimento_atomico()` — consente stato 'consegnato'
+- **PATCH API:** sempre allowlist esplicita, mai blocklist
+- **Onboarding:** NO `redirect('/onboarding')` nel layout — solo banner dashboard
+- **Template PDF:** eslint.config.mjs disabilita `no-unescaped-entities` per `pdf/**`
+- **ESLint CI:** `--max-warnings 0` — qualsiasi warning rompe il CI
+- **WhatsApp:** solo deep links `wa.me` (ToS-compliant). NO open-wa.
+- **Fatture:** generate durante `orchestraConsegna`, non create manualmente. `incluso_in_fattura` = discriminatore "già fatturato".
+- **Push Notifications:** VAPID keys in `.env.local` (gitignored), tabella `push_subscriptions` in DB, `ua-v2` in Service Worker cache name.
+
+---
+
+## 5. Design System v2.2 Warm Panna
 
 ```
 Light: --bg:#DDD8D3  --sfc:#E4DFD9  --elv:#EDEDEA  --prs:#D4CFC9
@@ -333,24 +173,20 @@ Light: --bg:#DDD8D3  --sfc:#E4DFD9  --elv:#EDEDEA  --prs:#D4CFC9
 Dark:  --bg:#1A1916  --sfc:#222019  --elv:#2C2A27   --primary:#E8001A
 Font:  DM Sans (MAI Inter) · Shadow: dual-layer warm-tinted
 Nav:   A2 Floating Pill · FAB rossa #D90012
+Motion: src/design-system/motion.ts — UNICA FONTE. Tokens: instant/fast/normal/slow/expressive/celebration/skeleton
+```
+
+**CELEBRATION tokens (aggiunti in Piano C):**
+```typescript
+export const CELEBRATION = {
+  popScale: { initial: { scale: 0.85, opacity: 0 }, animate: { scale: [0.85, 1.12, 1], opacity: 1 }, ... },
+  checkmark: { initial: { pathLength: 0, opacity: 0 }, animate: { pathLength: 1, opacity: 1 }, ... },
+}
 ```
 
 ---
 
-## 5. Architettura — Decisioni Critiche
-
-- **RLS:** `public.current_lab_id()` (NON `auth.current_lab_id()`)
-- **Invite flow:** token custom `/invite/[token]` (NON `inviteUserByEmail` Supabase)
-- **PEC Vault:** `upsert_pec_vault_secret` + `get_pec_vault_secret` solo service_role
-- **Rifacimento:** RPC `crea_rifacimento_atomico()` — consente stato 'consegnato'
-- **PATCH API:** sempre allowlist esplicita, mai blocklist
-- **Onboarding:** NO `redirect('/onboarding')` nel layout — solo banner dashboard
-- **Template PDF:** `eslint.config.mjs` disabilita `no-unescaped-entities` per `pdf/**`
-- **ESLint CI:** `--max-warnings 0` — qualsiasi warning rompe il CI
-
----
-
-## 6. API Routes Chiave
+## 6. API Routes Chiave (aggiornato v1.7.0)
 
 | Route | Descrizione |
 |-------|-------------|
@@ -360,9 +196,14 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 | `/api/internal/pec-verify` POST | Callback Cloudflare Worker |
 | `/api/impostazioni/nomina-prrc` GET | Scarica PDF Nomina PRRC |
 | `/api/clienti/[id]/dpa` GET | Scarica PDF DPA GDPR Art.28 |
+| `/api/clienti/[id]/portale-token` GET | Token portale dentista (genera se mancante) |
 | `/api/admin/invite` POST | Crea invito + invia email Resend |
 | `/api/lavori/[id]/rifacimento` POST | Crea rifacimento atomico |
 | `/api/qualita/psur` GET/POST | Lista e crea PSUR |
+| `/api/fatture/export` GET | CSV fatture (?year=YYYY) per commercialista |
+| `/api/fatture/batch` POST | Fatturazione batch N lavori |
+| `/api/lavori/pronti-da-fatturare` GET | Lavori consegnati non ancora fatturati |
+| `/api/notifications/subscribe` POST | Registra push subscription VAPID |
 
 ---
 
@@ -374,7 +215,9 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 | Cloudflare Email Routing catch-all | ✅ → Worker `ua-pec-verify` |
 | PEC inbound verification | ✅ Testato 19/05/2026 |
 | Supabase email templates | ✅ Branding UÀ |
-| NEXT_PUBLIC_SUPPORT_PHONE | ⚠️ Da completare in .env.local e Vercel |
+| NEXT_PUBLIC_SUPPORT_PHONE | ⚠️ DA COMPLETARE in .env.local e Vercel |
+| Supabase MCP | ✅ Autenticato (OAuth ChatGPT login `francesco.formicola@live.it`) |
+| VAPID keys | ✅ In `.env.local` (gitignored). `NEXT_PUBLIC_VAPID_PUBLIC_KEY` per client. |
 
 ---
 
@@ -391,56 +234,41 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 
 - `npx eslint src/ --ext .ts,.tsx --max-warnings 0` prima di ogni commit (Husky lo fa in automatico)
 - Template PDF `src/components/features/pdf/**`: `no-unescaped-entities` OFF (via config)
-- Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
+- Dopo ogni migration Supabase:
+  1. `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
+  2. `npx tsc --noEmit`
+- Seed new lab: `npx tsx scripts/seed-new-lab.ts <laboratorio_id>` (copia cicli+fasi da template Filippo)
 
-### ✅ Sessione 21/05/2026 — Audit UX + 10 Miglioramenti + Bug Fix
+---
 
-**Ultimo commit:** `f922726` — tutto pushato su main, Vercel prod live
+## 10. Roadmap V2 (decisione 21/05/2026 — NON in V1.x)
 
-#### Discovery completata (Fase A+B)
-- Guida operativa completa del laboratorio odontotecnico italiano (cicli di lavoro, normativa, ruoli titolare/tecnico/front desk)
-- Benchmark UX competitor (OrisLab, OdontoSoft, DentalMaster) — tutti privi di mobile degno
-- Audit tecnico sistematico 13 bug trovati su 390/768/1280px
+| Feature | Motivo esclusione | Quando |
+|---------|------------------|--------|
+| PMCF follow-up automatico | Email automation avanzata | V2 |
+| STS XML export | Solo se fattura diretta al paziente | V2 |
+| Firma digitale P7M | Richiede integrazione AgID | V2 |
+| CAPA ISO 13485 | Solo se Filippo chiede certificazione | V2 |
+| Colorazione 4D (Scala/Croma/Tinta/Valore) | Feature avanzata di nicchia | V2 |
+| Terzismo inter-lab | Richiede rearchitettura tenant | V2 |
+| SDI diretto | Richiede accordi con HUB SDI | V2 |
+| Fascicolo Tecnico MDR | Feature complessa, basso uso quotidiano | V2 |
+| Terzismo DdC (altri esecutori) | Rischio MDR basso | V2 |
+| WhatsApp Cloud API ufficiale | Solo se deep links non bastano | V2 |
+| Nota di credito XML (TD04) | Raro, gestibile manualmente | V2 |
 
-#### Bug fix
-- Overflow /lavori e /clienti (+800px → risolto)
-- Hydration mismatch valori monetari (suppressHydrationWarning)
-- "Invalid Date" nella timeline (isNaN guard)
-- 9 tab visibili su mobile (erano 5) con scroll indicator
-- Bottom nav nascosta su desktop ≥1024px
-- Testo troncato listino/magazzino → WebkitLineClamp:2
-- Search bar su /clienti, /pazienti, /magazzino
-- Empty states /pazienti e /tecnici con CTA
+---
 
-#### Miglioramenti UX (tutti ✅ completati)
+## 11. Dati Importati (lab Filippo)
 
-| # | Miglioramento | Commit |
-|---|---|---|
-| #1 | Bottone "Conferma ricezione al dentista" (WhatsApp da Tab Accettazione) | `29eb7d2` |
-| #2 | Badge priorità urgente/extra urgente sulla card lavoro | `29eb7d2` |
-| #3 | Barra progresso fasi (N/M fasi, verde se complete) | `29eb7d2` |
-| #4 | Swipe sinistro + tap lungo → azioni rapide (Assegna/Stato/Priorità) | `b713464` |
-| #5 | Compenso giornaliero tecnico "+ €X" in dashboard | `b713464` |
-| #6 | Segnalazione problemi tecnico→titolare + banner dashboard | `fd5e71c` |
-| #7 | Ordine batch magazzino "tutto sotto scorta" con progress | `9047086` |
-| #8 | Notifiche realtime in-app (Supabase Realtime, 3 toast tipizzati) | `f922726` |
-| #9 | Mini-form pubblica `/richiedi/[token]` per ordini dentista | `f922726` |
-| #10 | Pronto/In lavorazione: badge + contatore + ordinamento in dashboard | `9047086` |
+⚠️ DISTINZIONE CRITICA:
+- **DentalMaster Advanced 2021** → dati lab **Filippo Opromolla** (ITCA01051686)
+- **Dental Project rel. 3.0** → dati lab **Arturo Pepe** (ITCA01050077) — solo test
 
-#### Credenziali test in produzione
-- **Titolare lab Filippo:** `h4t@live.it` / `>[REDACTED]` su https://uachelab.com
-- **E2E tecnico (lab test):** `e2e-tecnico@ua-test.local` / `TestE2E!2026`
-- **Admin sistema:** `francesco.formicola@live.it` (usa forgot-password per accedere)
-
-#### Da fare nella prossima sessione (priorità)
-1. ⚠️ **URGENTE: Prorogare trial Filippo** — scade 31/05/2026 → `/admin/labs`
-2. Verificare CRUD completo per ogni entità (clienti, listino, magazzino, tecnici)
-3. Dark mode — token DS esistono ma non verificati su tutte le pagine
-4. Test con Filippo su dati reali (consegna vera, FatturaPA, DdC stampata)
-5. `NEXT_PUBLIC_SUPPORT_PHONE` — manca in .env.local e Vercel
-6. Portale dentista `/portale/[token]` — non testato
-7. Sezione Rete `/rete` — non testata
-8. Modulo qualità/incidenti — non testato end-to-end
-
-#### Cose NON da fare (V2)
-PMCF, STS XML, Fascicolo Tecnico MDR completo, CAPA ISO 13485, Colorazione 4D, Terzismo inter-lab, SDI diretto, firma digitale P7M, terzismo DdC
+**Lab Filippo (971061a1):**
+- 20 clienti · 74 lavorazioni × 4 fasce prezzo
+- 187 materiali magazzino · 40 attrezzature (ATT01-40)
+- 277 lavori storici 2018-2026
+- 134 cicli produzione · 371 fasi produzione
+- €56.351 fatturato YTD 2026 (Gen-Apr) → stima ~€170k anno
+- Top revenue: implantoprotesi (38.4%) + scheletrato (27.8%)
