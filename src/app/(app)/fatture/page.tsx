@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -112,6 +113,56 @@ export default async function FatturePage() {
   return (
     <PageWrapper>
       <AppHeader title="Fatture" />
+
+      {/* Info banner generazione automatica — BUG #11 */}
+      <div style={{ padding: '0 20px 12px' }}>
+        <div
+          role="note"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            background: 'var(--elv, #EDEDEA)',
+            borderRadius: '14px',
+            padding: '12px 14px',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05)',
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+            style={{ flexShrink: 0, marginTop: '1px', color: 'var(--gold, #D4A843)' }}
+          >
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M8 5v3.5M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              color: 'var(--t2, #96918D)',
+              margin: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            Le fatture vengono generate automaticamente.{' '}
+            <Link
+              href="/lavori"
+              style={{
+                color: 'var(--primary, #D90012)',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              Vai su un lavoro → Consegna
+            </Link>{' '}
+            per generare la fattura.
+          </p>
+        </div>
+      </div>
 
       {/* Lista fatture */}
       <section style={{ padding: '0 20px' }}>

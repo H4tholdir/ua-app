@@ -4,6 +4,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { ClientiSearchList } from '@/components/features/clienti/ClientiSearchList'
 
 type ClienteRow = {
   id: string
@@ -75,15 +76,15 @@ export default async function ClientiPage() {
     <PageWrapper>
       <AppHeader title="Clienti" actions={addButton} />
 
-      <section style={{ padding: '0 20px' }}>
-        {clienti.length === 0 ? (
+      {clienti.length === 0 ? (
+        <section style={{ padding: '0 20px' }}>
           <div
             style={{
               background: 'var(--surface, #E4DFD9)',
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
             }}
           >
             <p
@@ -97,117 +98,11 @@ export default async function ClientiPage() {
               Nessun cliente trovato
             </p>
           </div>
-        ) : (
-          <ul className="ua-list-grid">
-            {clienti.map((cliente) => (
-              <li key={cliente.id}>
-                <Link
-                  href={`/clienti/${cliente.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    background: 'var(--surface, #E4DFD9)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    textDecoration: 'none',
-                    boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    minWidth: 0,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Nome principale */}
-                    <p
-                      style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '16px',
-                        fontWeight: 600,
-                        color: 'var(--t1, #1C1916)',
-                        margin: '0 0 2px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {cliente.cognome} {cliente.nome}
-                    </p>
-
-                    {/* Studio e città */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '13px',
-                          color: 'var(--t2, #96918D)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {cliente.studio_nome ?? '—'}
-                      </span>
-                      {cliente.citta && (
-                        <span
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '12px',
-                            color: '#6677AA',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {cliente.citta}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Telefono */}
-                    {cliente.telefono && (
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '12px',
-                          color: 'var(--gold, #D4A843)',
-                          margin: '2px 0 0',
-                        }}
-                      >
-                        {cliente.telefono}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Chevron */}
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    style={{ flexShrink: 0, color: 'var(--t2, #96918D)' }}
-                  >
-                    <path
-                      d="M6 4l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </section>
+      ) : (
+        /* Search + lista lato client — i dati sono già caricati */
+        <ClientiSearchList clienti={clienti} />
+      )}
     </PageWrapper>
   )
 }

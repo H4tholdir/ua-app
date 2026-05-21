@@ -41,9 +41,42 @@ export default async function TechniciPage() {
     tecnici = (data ?? []) as TecnicoRow[]
   }
 
+  // Pulsante "Invita tecnico" nell'header — BUG #9
+  const invitaButton = (
+    <Link
+      href="/impostazioni"
+      aria-label="Invita tecnico"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        height: '40px',
+        minHeight: '52px',
+        padding: '0 16px',
+        borderRadius: '12px',
+        background: 'var(--elv, #EDEDEA)',
+        color: 'var(--t1, #1C1916)',
+        fontFamily: 'DM Sans, sans-serif',
+        fontWeight: 600,
+        fontSize: '14px',
+        textDecoration: 'none',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+        flexShrink: 0,
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10.5 8.5A2.5 2.5 0 108 6a2.5 2.5 0 002.5 2.5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M5.5 13.5a5 5 0 019 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M3 6v4M1 8h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+      Invita tecnico
+    </Link>
+  )
+
   return (
     <PageWrapper>
-      <AppHeader title="Tecnici" />
+      <AppHeader title="Tecnici" actions={invitaButton} />
 
       <section style={{ padding: '0 20px' }}>
         {tecnici.length === 0 ? (
@@ -53,19 +86,51 @@ export default async function TechniciPage() {
               borderRadius: '16px',
               padding: '36px 20px',
               textAlign: 'center',
-              boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
             }}
           >
             <p
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: 'var(--t2, #96918D)',
-                margin: 0,
+                fontWeight: 600,
+                color: 'var(--t1, #1C1916)',
+                margin: '0 0 10px',
               }}
             >
-              Nessun tecnico trovato
+              Nessun tecnico registrato
             </p>
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '13px',
+                color: 'var(--t2, #96918D)',
+                margin: '0 0 16px',
+                lineHeight: 1.6,
+              }}
+            >
+              Invita un collaboratore per assegnargli lavori e tracciare la produttività.
+            </p>
+            <Link
+              href="/impostazioni"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '12px 22px',
+                borderRadius: '32px',
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none',
+                minHeight: '44px',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.22), 0 5px 14px -2px rgba(180,0,0,.38)',
+              }}
+            >
+              Invita collaboratori →
+            </Link>
           </div>
         ) : (
           <ul
