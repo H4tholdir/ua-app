@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTrendMensile } from '@/lib/dashboard/queries'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import type { DashboardStats } from '@/types/domain'
@@ -24,6 +25,62 @@ function formatEuro(n: number): string {
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(n)
+}
+
+interface BarChartProps {
+  data: { month: string; totale: number; label: string }[]
+  height?: number
+}
+
+function BarChart({ data, height = 120 }: BarChartProps) {
+  const max = Math.max(...data.map(d => d.totale), 1)
+  const barCount = data.length
+  const svgW = 320
+  const barW = Math.floor((svgW - (barCount - 1) * 3) / barCount)
+
+  return (
+    <svg
+      width="100%"
+      viewBox={`0 0 ${svgW} ${height + 24}`}
+      style={{ overflow: 'visible' }}
+      aria-label="Trend fatturato ultimi 12 mesi"
+      role="img"
+    >
+      {data.map((d, i) => {
+        const x = i * (barW + 3)
+        const barH = max > 0 ? Math.round((d.totale / max) * height) : 0
+        const y = height - barH
+        const isCurrentMonth = i === data.length - 1
+        return (
+          <g key={d.month}>
+            <rect
+              x={x} y={y} width={barW} height={barH || 2}
+              fill={isCurrentMonth ? 'var(--primary, #D90012)' : 'var(--prs, #D4CFC9)'}
+              rx={3}
+            />
+            <title>{`${d.label}: €${d.totale.toLocaleString('it-IT')}`}</title>
+          </g>
+        )
+      })}
+      {/* X-axis labels every 3 months */}
+      {data.filter((_, i) => i % 3 === 0 || i === data.length - 1).map((d) => {
+        const i = data.indexOf(d)
+        const x = i * (barW + 3) + barW / 2
+        return (
+          <text
+            key={d.month}
+            x={x} y={height + 16}
+            textAnchor="middle"
+            fontSize={9}
+            fill="var(--t3, #B8B3AE)"
+            fontFamily="DM Sans, sans-serif"
+          >
+            {d.label}
+          </text>
+        )
+      })}
+    </svg>
+  )
 }
 
 function KpiCard({
@@ -89,8 +146,10 @@ export default async function AnalyticsPage() {
 
   let stats: DashboardStats = defaultStats
   let cacheUpdatedAt: string | null = null
+  let trend: { month: string; totale: number; label: string }[] = []
 
   if (labId) {
+    trend = await getTrendMensile(svc, labId, 12)
     const { data: cache } = await svc
       .from('dashboard_kpi_cache')
       .select('*')
@@ -171,6 +230,35 @@ export default async function AnalyticsPage() {
             accent="#D4A843"
           />
         </div>
+
+        {/* Trend fatturato 12 mesi */}
+        {trend.length > 0 && (
+          <section style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              fontSize: 14, fontWeight: 700, color: 'var(--t2, #96918D)',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+              marginBottom: 12, marginTop: 0,
+              fontFamily: 'DM Sans, sans-serif',
+            }}>
+              Fatturato ultimi 12 mesi
+            </h3>
+            <div style={{
+              padding: '16px',
+              background: 'var(--sfc, #E4DFD9)',
+              borderRadius: 14,
+            }}>
+              <BarChart data={trend} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--t2, #96918D)', fontFamily: 'DM Sans, sans-serif' }}>
+                  Totale anno: €{trend.reduce((s, d) => s + d.totale, 0).toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--primary, #D90012)', fontWeight: 700, fontFamily: 'DM Sans, sans-serif' }}>
+                  ● Mese corrente
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Timestamp aggiornamento */}
         {aggiornato && (
