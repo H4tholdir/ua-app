@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'motion/react'
+import { motionTokens } from '@/design-system/motion'
 
 interface SkeletonCardProps {
   lines?: number
@@ -16,7 +17,7 @@ export function SkeletonCard({ lines = 3, hasAvatar = false }: SkeletonCardProps
         marginBottom: 12,
       }}
       animate={{ opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+      transition={{ duration: motionTokens.duration.skeleton, repeat: Infinity, ease: 'easeInOut' }}
     >
       {hasAvatar && (
         <div style={{
