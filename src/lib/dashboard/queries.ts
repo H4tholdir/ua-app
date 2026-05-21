@@ -92,6 +92,8 @@ export function mapTitolareKpiRow(row: RawKpiCacheRow): DashboardStatsExtended {
     pagamenti_scaduti_clienti_count: 0,
     materiali_esaurimento_count: 0,
     in_prova_count: 0,
+    margine_netto: 0,
+    percentuale_margine: 0,
   }
   if (!row) return defaults
   return {
@@ -175,7 +177,55 @@ export async function getTitolareKpi(
     .select('*')
     .eq('laboratorio_id', labId)
     .maybeSingle()
-  return mapTitolareKpiRow(data as RawKpiCacheRow)
+
+  const kpi = mapTitolareKpiRow(data as RawKpiCacheRow)
+
+  // ─── Margine netto mese corrente (calcolato on-the-fly) ──────────────────
+  const startOfMonth = new Date()
+  startOfMonth.setDate(1)
+  startOfMonth.setHours(0, 0, 0, 0)
+
+  const { data: margineRows } = await svc
+    .from('lavori_lavorazioni')
+    .select(`
+      quantita,
+      prezzo_unitario,
+      listino!lavori_lavorazioni_listino_id_fkey(compenso_tecnico, costo_materiali_estimated),
+      lavori!inner(
+        laboratorio_id,
+        data_consegna_effettiva,
+        stato
+      )
+    `)
+    .eq('lavori.laboratorio_id', labId)
+    .eq('lavori.stato', 'consegnato')
+    .gte('lavori.data_consegna_effettiva', startOfMonth.toISOString())
+    .is('deleted_at', null)
+
+  type MargineRow = {
+    quantita: number | null
+    prezzo_unitario: number | null
+    listino: { compenso_tecnico: number | null; costo_materiali_estimated: number | null } | null
+  }
+
+  const rows = (margineRows ?? []) as unknown as MargineRow[]
+  const fatturato = rows.reduce(
+    (sum, r) => sum + (Number(r.prezzo_unitario ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+  const costiMateriali = rows.reduce(
+    (sum, r) => sum + (Number(r.listino?.costo_materiali_estimated ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+  const compensiTecnici = rows.reduce(
+    (sum, r) => sum + (Number(r.listino?.compenso_tecnico ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+
+  const margine_netto = fatturato - costiMateriali - compensiTecnici
+  const percentuale_margine = fatturato > 0 ? Math.round((margine_netto / fatturato) * 100) : 0
+
+  return { ...kpi, margine_netto, percentuale_margine }
 }
 
 export async function getPagamentiScadutiTop(
