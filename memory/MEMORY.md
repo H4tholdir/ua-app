@@ -392,3 +392,22 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 - `npx eslint src/ --ext .ts,.tsx --max-warnings 0` prima di ogni commit (Husky lo fa in automatico)
 - Template PDF `src/components/features/pdf/**`: `no-unescaped-entities` OFF (via config)
 - Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
+
+### ✅ Miglioramenti UX post-V1.5 (21/05/2026)
+
+**Commit:** `3e0d1b8` `b23e9bb` `29eb7d2` `b713464` `fd5e71c`
+
+| # | Miglioramento | Stato |
+|---|---|---|
+| Fix critici | Overflow /lavori /clienti, hydration, Invalid Date, tab scroll, desktop nav | ✅ |
+| Fix medi | Search clienti/pazienti/magazzino, empty states, fatture info | ✅ |
+| #1 | Bottone "Conferma ricezione al dentista" (WhatsApp da Tab Accettazione) | ✅ |
+| #2 | Badge priorità urgente/extra urgente sulla card lavoro | ✅ |
+| #3 | Barra progresso fasi (N/M fasi, colore verde se complete) | ✅ |
+| #4 | Swipe sinistro + tap lungo → azioni rapide (Assegna/Stato/Priorità) | ✅ |
+| #5 | Compenso giornaliero tecnico "COMPENSO OGGI + €X" in dashboard | ✅ |
+| #6 | Segnalazione problemi in-app tecnico→titolare + banner dashboard | ✅ |
+| #7 | Ordine batch magazzino "tutto sotto scorta" | ⏳ |
+| #8 | Notifiche push contestuali (12h — richiede Service Worker) | ⏳ |
+| #9 | Mini-form web ordini dentisti | ⏳ |
+| #10 | Indicatore "Pronto vs In lavorazione" dalla dashboard | ⏳ |
