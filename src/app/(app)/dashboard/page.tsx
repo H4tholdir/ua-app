@@ -191,7 +191,7 @@ export default async function DashboardPage() {
 
     const data = tecnico
       ? await getTecnicoDashboard(svc, labId, tecnico.id)
-      : { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [] }
+      : { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0 }
 
     return <DashboardTecnico data={data} nomeUtente={nomeUtente} tecnicoId={tecnico?.id ?? null} />
   }

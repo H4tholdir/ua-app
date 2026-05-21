@@ -1,17 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
+import { hapticLight, hapticMedium, hapticSuccess } from '@/lib/feedback/haptic'
 import type { StatoLavoro, PrioritaLavoro } from '@/types/domain'
 
 // ─── Design tokens v2.2 — warm palette ──────────────────────────────────────
 const DS = {
   surface: 'var(--surface, #E4DFD9)',
+  sfc:     'var(--sfc, #E4DFD9)',
   t1:      'var(--t1, #1C1916)',
   t2:      'var(--t2, #96918D)',
   t3:      'var(--t3, #B8B3AE)',
+  prs:     'var(--prs, #D4CFC9)',
 }
 
 // ─── Stato → dot color + glifo ───────────────────────────────────────────────
@@ -71,6 +74,39 @@ function urgencyLine(
   return 'ANNULLATO'
 }
 
+// ─── Transizioni stato consentite (mirror di /api/lavori/[id]/stato) ─────────
+const TRANSIZIONI: Partial<Record<StatoLavoro, StatoLavoro[]>> = {
+  ricevuto:         ['in_lavorazione'],
+  in_lavorazione:   ['pronto', 'in_prova_esterna', 'sospeso'],
+  in_prova_esterna: ['in_lavorazione', 'pronto'],
+  in_prova:         ['in_lavorazione', 'pronto'],
+  sospeso:          ['in_lavorazione'],
+  in_ritardo:       ['in_lavorazione'],
+  pronto:           ['in_lavorazione'],
+}
+
+const STATO_LABELS: Partial<Record<StatoLavoro, string>> = {
+  ricevuto:         'Ricevuto',
+  in_lavorazione:   'In lavorazione',
+  pronto:           'Pronto',
+  in_prova_esterna: 'In prova esterna',
+  in_prova:         'In prova',
+  sospeso:          'Sospeso',
+  in_ritardo:       'In ritardo',
+  consegnato:       'Consegnato',
+  annullato:        'Annullato',
+}
+
+const PRIORITA_LABELS: Record<string, string> = {
+  normale:        'Normale',
+  urgente:        'Urgente',
+  extra_urgente:  'Extra urgente',
+}
+
+// ─── Costanti swipe ───────────────────────────────────────────────────────────
+const SWIPE_THRESHOLD = 60
+const ACTIONS_WIDTH   = 216  // 3 × 72px
+
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface LavoroCardProps {
   id: string
@@ -86,6 +122,119 @@ interface LavoroCardProps {
   animationDelay?: number
   fasi_completate?: number
   fasi_totali?: number
+  tecnico_id?: string | null
+  onUpdate?: () => void
+}
+
+// ─── ActionButton (striscia swipe) ───────────────────────────────────────────
+function ActionButton({
+  color,
+  textColor,
+  icon,
+  label,
+  onClick,
+}: {
+  color: string
+  textColor?: string
+  icon: string
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 72,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        background: color,
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        minHeight: 44,
+        flexShrink: 0,
+      }}
+      aria-label={label}
+    >
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span
+        style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: 10,
+          fontWeight: 700,
+          color: textColor ?? '#fff',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </span>
+    </button>
+  )
+}
+
+// ─── SheetAction (bottom sheet) ───────────────────────────────────────────────
+function SheetAction({
+  icon,
+  color,
+  title,
+  sub,
+  onClick,
+}: {
+  icon: string
+  color: string
+  title: string
+  sub?: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '12px 16px',
+        borderRadius: 14,
+        background: 'var(--elv, #EDEDEA)',
+        border: 'none',
+        cursor: 'pointer',
+        width: '100%',
+        textAlign: 'left',
+        minHeight: 56,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 18,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 15, fontWeight: 600, color: 'var(--t1, #1C1916)', margin: 0 }}>
+          {title}
+        </p>
+        {sub && (
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--t2, #96918D)', margin: '2px 0 0' }}>
+            {sub}
+          </p>
+        )}
+      </div>
+    </button>
+  )
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -102,6 +251,8 @@ export function LavoroCard({
   animationDelay = 0,
   fasi_completate,
   fasi_totali,
+  tecnico_id,
+  onUpdate,
 }: LavoroCardProps) {
   const reducedMotion = useReducedMotion()
   const statoColor    = STATO_COLORS[stato]
@@ -109,7 +260,19 @@ export function LavoroCard({
   const currentStep   = getStepIndex(stato)
   const urgency       = urgencyLine(stato, priorita, ora_consegna)
 
-  // Formatted delivery date: "15 mag" style
+  // ─── Swipe + long press state ─────────────────────────────────────────────
+  const [swipeX, setSwipeX]         = useState(0)
+  const [isOpen, setIsOpen]         = useState(false)
+  const [sheetOpen, setSheetOpen]   = useState(false)
+
+  // Sub-sheet states
+  const [subSheet, setSubSheet] = useState<'assegna' | 'stato' | 'priorita' | null>(null)
+  const [tecnici, setTecnici]   = useState<{ id: string; nome: string; cognome: string; sigla: string | null }[]>([])
+
+  const touchStartX    = useRef(0)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ─── Formatted delivery date ──────────────────────────────────────────────
   const deliveryLabel = (() => {
     if (!data_consegna_prevista) return ''
     const d = new Date(data_consegna_prevista + 'T00:00:00')
@@ -117,6 +280,155 @@ export function LavoroCard({
     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
   })()
 
+  // ─── Touch handlers ───────────────────────────────────────────────────────
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    const timer = setTimeout(() => {
+      setSheetOpen(true)
+      hapticMedium()
+      longPressTimer.current = null
+    }, 500)
+    longPressTimer.current = timer
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    const dx = touchStartX.current - e.touches[0].clientX
+    if (dx > 0) {
+      setSwipeX(Math.min(dx, ACTIONS_WIDTH + 20))
+    } else {
+      setSwipeX(Math.max(0, isOpen ? ACTIONS_WIDTH + dx : 0))
+    }
+  }
+
+  function handleTouchEnd() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    if (swipeX > SWIPE_THRESHOLD) {
+      setIsOpen(true)
+      setSwipeX(ACTIONS_WIDTH)
+      hapticLight()
+    } else {
+      setIsOpen(false)
+      setSwipeX(0)
+    }
+  }
+
+  // ─── Close swipe ──────────────────────────────────────────────────────────
+  function closeSwipe() {
+    setIsOpen(false)
+    setSwipeX(0)
+  }
+
+  // ─── PATCH helper ─────────────────────────────────────────────────────────
+  async function patchLavoro(body: Record<string, unknown>) {
+    try {
+      const res = await fetch(`/api/lavori/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('[LavoroCard] PATCH error:', data)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error('[LavoroCard] PATCH fetch error:', err)
+      return false
+    }
+  }
+
+  async function patchStato(nuovoStato: StatoLavoro) {
+    try {
+      const res = await fetch(`/api/lavori/${id}/stato`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stato: nuovoStato }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('[LavoroCard] PATCH stato error:', data)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error('[LavoroCard] PATCH stato fetch error:', err)
+      return false
+    }
+  }
+
+  // ─── Azioni ───────────────────────────────────────────────────────────────
+  const handleAssegna = useCallback(async () => {
+    closeSwipe()
+    // Fetch tecnici
+    try {
+      const res = await fetch('/api/tecnici')
+      if (res.ok) {
+        const json = await res.json()
+        setTecnici(json.tecnici ?? [])
+      }
+    } catch {
+      setTecnici([])
+    }
+    setSubSheet('assegna')
+    setSheetOpen(true)
+  }, [])
+
+  const handleStato = useCallback(() => {
+    closeSwipe()
+    setSubSheet('stato')
+    setSheetOpen(true)
+  }, [])
+
+  const handlePriorita = useCallback(() => {
+    closeSwipe()
+    setSubSheet('priorita')
+    setSheetOpen(true)
+  }, [])
+
+  function closeSheet() {
+    setSheetOpen(false)
+    setSubSheet(null)
+  }
+
+  async function selectTecnico(tecnicoId: string) {
+    const ok = await patchLavoro({ tecnico_id: tecnicoId })
+    if (ok) {
+      hapticSuccess()
+      onUpdate?.()
+    }
+    closeSheet()
+  }
+
+  async function selectStato(nuovoStato: StatoLavoro) {
+    const ok = await patchStato(nuovoStato)
+    if (ok) {
+      hapticSuccess()
+      onUpdate?.()
+    }
+    closeSheet()
+  }
+
+  async function selectPriorita(nuovaPriorita: string) {
+    const ok = await patchLavoro({ priorita: nuovaPriorita })
+    if (ok) {
+      hapticSuccess()
+      onUpdate?.()
+    }
+    closeSheet()
+  }
+
+  // ─── Stati successivi disponibili ────────────────────────────────────────
+  const statiSuccessivi = TRANSIZIONI[stato] ?? []
+
+  // ─── Card style ──────────────────────────────────────────────────────────
   const cardStyle: React.CSSProperties = {
     background: DS.surface,
     borderRadius: 16,
@@ -138,13 +450,9 @@ export function LavoroCard({
     boxSizing: 'border-box',
   }
 
-  const cardContent = (
-    <Link
-      href={`/lavori/${id}`}
-      style={cardStyle}
-      aria-label={`Lavoro ${numero_lavoro} — ${cliente_display} — ${urgency}`}
-    >
-
+  // ─── Inner card content (shared between swipe and non-swipe) ─────────────
+  const innerContent = (
+    <>
       {/* Badge circolare stato — absolute top-right */}
       <div
         aria-hidden
@@ -410,21 +718,312 @@ export function LavoroCard({
           strokeLinejoin="round"
         />
       </svg>
-    </Link>
+    </>
   )
 
+  // ─── Main card with swipe wrapper ─────────────────────────────────────────
+  const cardWithSwipe = (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 16 }}>
+      {/* Striscia azioni — sempre presente ma nascosta a destra */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'stretch',
+          width: ACTIONS_WIDTH,
+        }}
+      >
+        <ActionButton
+          color="#2563EB"
+          icon="👤"
+          label="Assegna"
+          onClick={handleAssegna}
+        />
+        <ActionButton
+          color="var(--gold, #D4A843)"
+          textColor="#1C1916"
+          icon="↻"
+          label="Stato"
+          onClick={handleStato}
+        />
+        <ActionButton
+          color="var(--primary, #D90012)"
+          icon="↑"
+          label="Priorità"
+          onClick={handlePriorita}
+        />
+      </div>
+
+      {/* Card traslata */}
+      <motion.div
+        style={{ x: -swipeX }}
+        animate={{ x: isOpen ? -ACTIONS_WIDTH : -swipeX }}
+        transition={reducedMotion ? { duration: 0 } : motionTokens.spring.soft}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <Link
+          href={`/lavori/${id}`}
+          style={cardStyle}
+          aria-label={`Lavoro ${numero_lavoro} — ${cliente_display} — ${urgency}`}
+          onClick={(e) => {
+            if (isOpen) {
+              e.preventDefault()
+              closeSwipe()
+            }
+          }}
+        >
+          {innerContent}
+        </Link>
+      </motion.div>
+    </div>
+  )
+
+  // ─── Bottom sheet ─────────────────────────────────────────────────────────
+  const bottomSheet = (
+    <AnimatePresence>
+      {sheetOpen && (
+        <>
+          <motion.div
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={reducedMotion ? { duration: 0 } : t('fast', 'exit')}
+            onClick={closeSheet}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,.32)',
+              zIndex: 70,
+            }}
+          />
+          <motion.div
+            key="sheet"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={reducedMotion ? { duration: 0 } : motionTokens.spring.soft}
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              maxWidth: 480,
+              margin: '0 auto',
+              background: DS.sfc,
+              borderRadius: '24px 24px 0 0',
+              paddingBottom: 32,
+              zIndex: 71,
+              boxShadow: '0 -8px 40px rgba(0,0,0,.18)',
+            }}
+          >
+            {/* Drag handle */}
+            <div
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                background: DS.t3,
+                margin: '12px auto 16px',
+              }}
+            />
+
+            {subSheet === null && (
+              <>
+                {/* Header */}
+                <div
+                  style={{
+                    padding: '0 20px 14px',
+                    borderBottom: `1px solid ${DS.prs}`,
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: 17,
+                      fontWeight: 800,
+                      color: DS.t1,
+                    }}
+                  >
+                    {numero_lavoro}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'DM Sans, sans-serif',
+                      fontSize: 13,
+                      color: DS.t2,
+                      marginTop: 2,
+                    }}
+                  >
+                    {cliente_display} · {deliveryLabel}
+                  </p>
+                </div>
+
+                {/* Azioni */}
+                <div
+                  style={{
+                    padding: '12px 16px 0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <SheetAction
+                    icon="👤"
+                    color="#2563EB"
+                    title="Assegna tecnico"
+                    sub={tecnico_id ? 'Tecnico già assegnato' : 'Nessun tecnico assegnato'}
+                    onClick={handleAssegna}
+                  />
+                  <SheetAction
+                    icon="↻"
+                    color="var(--gold, #D4A843)"
+                    title="Cambia stato"
+                    sub={
+                      statiSuccessivi.length > 0
+                        ? `${STATO_LABELS[stato] ?? stato} → ${statiSuccessivi.map((s) => STATO_LABELS[s] ?? s).join(' / ')}`
+                        : 'Nessuna transizione disponibile'
+                    }
+                    onClick={handleStato}
+                  />
+                  <SheetAction
+                    icon="↑"
+                    color="var(--primary, #D90012)"
+                    title="Imposta priorità"
+                    sub="Normale · Urgente · Extra urgente"
+                    onClick={handlePriorita}
+                  />
+                  <SheetAction
+                    icon="✕"
+                    color={DS.t3}
+                    title="Annulla"
+                    onClick={closeSheet}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Sub-sheet: Assegna tecnico */}
+            {subSheet === 'assegna' && (
+              <>
+                <div style={{ padding: '0 20px 14px', borderBottom: `1px solid ${DS.prs}` }}>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 17, fontWeight: 800, color: DS.t1 }}>
+                    Assegna tecnico
+                  </p>
+                </div>
+                <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {tecnici.length === 0 && (
+                    <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: DS.t2, padding: '8px 0' }}>
+                      Nessun tecnico disponibile
+                    </p>
+                  )}
+                  {tecnici.map((tec) => (
+                    <SheetAction
+                      key={tec.id}
+                      icon="👤"
+                      color={tec.id === tecnico_id ? '#16A34A' : '#2563EB'}
+                      title={`${tec.nome} ${tec.cognome}`}
+                      sub={tec.sigla ?? undefined}
+                      onClick={() => selectTecnico(tec.id)}
+                    />
+                  ))}
+                  <SheetAction icon="✕" color={DS.t3} title="Annulla" onClick={closeSheet} />
+                </div>
+              </>
+            )}
+
+            {/* Sub-sheet: Cambia stato */}
+            {subSheet === 'stato' && (
+              <>
+                <div style={{ padding: '0 20px 14px', borderBottom: `1px solid ${DS.prs}` }}>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 17, fontWeight: 800, color: DS.t1 }}>
+                    Cambia stato
+                  </p>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: DS.t2, marginTop: 2 }}>
+                    Attuale: {STATO_LABELS[stato] ?? stato}
+                  </p>
+                </div>
+                <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {statiSuccessivi.length === 0 && (
+                    <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: DS.t2, padding: '8px 0' }}>
+                      Nessuna transizione disponibile dallo stato attuale.
+                    </p>
+                  )}
+                  {statiSuccessivi.map((s) => (
+                    <SheetAction
+                      key={s}
+                      icon="↻"
+                      color={STATO_COLORS[s]}
+                      title={STATO_LABELS[s] ?? s}
+                      onClick={() => selectStato(s)}
+                    />
+                  ))}
+                  <SheetAction icon="✕" color={DS.t3} title="Annulla" onClick={closeSheet} />
+                </div>
+              </>
+            )}
+
+            {/* Sub-sheet: Priorità */}
+            {subSheet === 'priorita' && (
+              <>
+                <div style={{ padding: '0 20px 14px', borderBottom: `1px solid ${DS.prs}` }}>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 17, fontWeight: 800, color: DS.t1 }}>
+                    Imposta priorità
+                  </p>
+                </div>
+                <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(['normale', 'urgente', 'extra_urgente'] as const).map((p) => (
+                    <SheetAction
+                      key={p}
+                      icon={p === 'normale' ? '○' : p === 'urgente' ? '↑' : '⚡'}
+                      color={
+                        p === 'normale'
+                          ? DS.t3
+                          : p === 'urgente'
+                            ? 'var(--gold, #D4A843)'
+                            : 'var(--primary, #D90012)'
+                      }
+                      title={PRIORITA_LABELS[p]}
+                      sub={p === priorita ? 'Attuale' : undefined}
+                      onClick={() => selectPriorita(p)}
+                    />
+                  ))}
+                  <SheetAction icon="✕" color={DS.t3} title="Annulla" onClick={closeSheet} />
+                </div>
+              </>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+
+  // ─── No motion: skip entrance animation ──────────────────────────────────
   if (reducedMotion) {
-    return cardContent
+    return (
+      <>
+        {cardWithSwipe}
+        {bottomSheet}
+      </>
+    )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, transform: 'translateY(12px)' }}
-      animate={{ opacity: 1, transform: 'translateY(0px)' }}
-      transition={{ ...t('normal', 'enter'), delay: animationDelay }}
-      style={{ minWidth: 0, width: '100%' }}
-    >
-      {cardContent}
-    </motion.div>
+    <>
+      <motion.div
+        initial={{ opacity: 0, transform: 'translateY(12px)' }}
+        animate={{ opacity: 1, transform: 'translateY(0px)' }}
+        transition={{ ...t('normal', 'enter'), delay: animationDelay }}
+        style={{ minWidth: 0, width: '100%' }}
+      >
+        {cardWithSwipe}
+      </motion.div>
+      {bottomSheet}
+    </>
   )
 }

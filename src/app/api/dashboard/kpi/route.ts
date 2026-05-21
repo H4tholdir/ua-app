@@ -88,6 +88,7 @@ export async function GET(): Promise<NextResponse<DashboardApiResponse>> {
         lavori_urgenti: [],
         lavori_oggi: [],
         in_prova_rientro_oggi: [],
+        compenso_oggi: 0,
       }
       return NextResponse.json({ role: 'tecnico', data: empty })
     }

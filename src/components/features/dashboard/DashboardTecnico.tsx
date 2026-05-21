@@ -109,9 +109,12 @@ function Section({
   )
 }
 
+// Formatter valuta italiana
+const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' })
+
 export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecnicoProps) {
   const reducedMotion = useReducedMotion()
-  const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi } = data
+  const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi, compenso_oggi } = data
 
   const stagger = staggerDelay(4)
 
@@ -187,6 +190,83 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
           </Link>
         )}
       </div>
+
+      {/* Hero compenso oggi */}
+      <motion.div
+        initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={reducedMotion ? { duration: 0 } : { ...t('normal', 'enter'), delay: 0 }}
+        style={{
+          margin: '0 20px 16px',
+          background: DS.surface,
+          borderRadius: 20,
+          padding: '16px',
+          boxShadow: DS.shC,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            flexShrink: 0,
+            background: 'rgba(22,163,74,.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 24,
+          }}
+        >
+          💰
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: DS.t2,
+              margin: '0 0 3px',
+            }}
+          >
+            Compenso oggi
+          </p>
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: 28,
+              fontWeight: 800,
+              color: '#16A34A',
+              margin: 0,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+            suppressHydrationWarning
+          >
+            {compenso_oggi > 0 ? `+ ${fmt.format(compenso_oggi)}` : '€ 0,00'}
+          </p>
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: 12,
+              color: DS.t2,
+              margin: '3px 0 0',
+            }}
+            suppressHydrationWarning
+          >
+            {lavori_oggi.length} lavorazioni ·{' '}
+            {new Date().toLocaleDateString('it-IT', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </p>
+        </div>
+      </motion.div>
 
       {/* KPI inline */}
       <div

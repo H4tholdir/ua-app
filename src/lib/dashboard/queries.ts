@@ -287,7 +287,12 @@ export async function getTecnicoDashboard(
   const selectCampi =
     'id, numero_lavoro, stato, priorita, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome)'
 
-  const [{ data: urgentiData }, { data: oggiData }, { data: provaData }] = await Promise.all([
+  const [
+    { data: urgentiData },
+    { data: oggiData },
+    { data: provaData },
+    { data: lavoriOggiCompenso },
+  ] = await Promise.all([
     svc
       .from('lavori')
       .select(selectCampi)
@@ -322,14 +327,40 @@ export async function getTecnicoDashboard(
       .lte('data_prima_prova', oggi)
       .order('data_prima_prova', { ascending: true })
       .limit(10),
+
+    // Compenso guadagnato oggi: lavori consegnati con data_consegna_effettiva = oggi
+    svc
+      .from('lavori_lavorazioni')
+      .select(`
+        quantita,
+        listino!inner(compenso_tecnico),
+        lavori!inner(tecnico_id, laboratorio_id, stato, data_consegna_effettiva)
+      `)
+      .eq('laboratorio_id', labId)
+      .eq('lavori.tecnico_id', tecnicoId)
+      .eq('lavori.stato', 'consegnato')
+      .eq('lavori.laboratorio_id', labId)
+      .eq('lavori.data_consegna_effettiva', oggi)
+      .not('listino.compenso_tecnico', 'is', null),
   ])
+
+  const compenso_oggi = (
+    (lavoriOggiCompenso ?? []) as unknown as Array<{
+      quantita: number
+      listino: { compenso_tecnico: number | null } | null
+    }>
+  ).reduce((sum, ll) => {
+    return sum + ((ll.listino?.compenso_tecnico ?? 0) * (ll.quantita ?? 1))
+  }, 0)
 
   return {
     lavori_urgenti: mapTecnicoLavoriRows(urgentiData as RawLavoroRow[] | null),
     lavori_oggi: mapTecnicoLavoriRows(oggiData as RawLavoroRow[] | null),
     in_prova_rientro_oggi: mapTecnicoLavoriRows(provaData as RawLavoroRow[] | null),
+    compenso_oggi,
   }
 }
+
 
 export async function getFrontDeskDashboard(
   svc: SupabaseClient,

@@ -758,6 +758,7 @@ export interface TecnicoDashboard {
   lavori_urgenti: TecnicoDashboardItem[]
   lavori_oggi: TecnicoDashboardItem[]
   in_prova_rientro_oggi: TecnicoDashboardItem[]
+  compenso_oggi: number
 }
 
 // ─── Vista FRONT DESK ────────────────────────────────────────
