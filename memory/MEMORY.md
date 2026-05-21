@@ -1,5 +1,5 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 20 maggio 2026 — Sessione Audit Competitor + Estrazione Dati Completa
+**Ultimo aggiornamento:** 21 maggio 2026 — Sessione Audit UX + 10 Miglioramenti + Bug Fix
 
 ---
 
@@ -393,21 +393,54 @@ Nav:   A2 Floating Pill · FAB rossa #D90012
 - Template PDF `src/components/features/pdf/**`: `no-unescaped-entities` OFF (via config)
 - Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
 
-### ✅ Miglioramenti UX post-V1.5 (21/05/2026)
+### ✅ Sessione 21/05/2026 — Audit UX + 10 Miglioramenti + Bug Fix
 
-**Commit:** `3e0d1b8` `b23e9bb` `29eb7d2` `b713464` `fd5e71c`
+**Ultimo commit:** `f922726` — tutto pushato su main, Vercel prod live
 
-| # | Miglioramento | Stato |
+#### Discovery completata (Fase A+B)
+- Guida operativa completa del laboratorio odontotecnico italiano (cicli di lavoro, normativa, ruoli titolare/tecnico/front desk)
+- Benchmark UX competitor (OrisLab, OdontoSoft, DentalMaster) — tutti privi di mobile degno
+- Audit tecnico sistematico 13 bug trovati su 390/768/1280px
+
+#### Bug fix
+- Overflow /lavori e /clienti (+800px → risolto)
+- Hydration mismatch valori monetari (suppressHydrationWarning)
+- "Invalid Date" nella timeline (isNaN guard)
+- 9 tab visibili su mobile (erano 5) con scroll indicator
+- Bottom nav nascosta su desktop ≥1024px
+- Testo troncato listino/magazzino → WebkitLineClamp:2
+- Search bar su /clienti, /pazienti, /magazzino
+- Empty states /pazienti e /tecnici con CTA
+
+#### Miglioramenti UX (tutti ✅ completati)
+
+| # | Miglioramento | Commit |
 |---|---|---|
-| Fix critici | Overflow /lavori /clienti, hydration, Invalid Date, tab scroll, desktop nav | ✅ |
-| Fix medi | Search clienti/pazienti/magazzino, empty states, fatture info | ✅ |
-| #1 | Bottone "Conferma ricezione al dentista" (WhatsApp da Tab Accettazione) | ✅ |
-| #2 | Badge priorità urgente/extra urgente sulla card lavoro | ✅ |
-| #3 | Barra progresso fasi (N/M fasi, colore verde se complete) | ✅ |
-| #4 | Swipe sinistro + tap lungo → azioni rapide (Assegna/Stato/Priorità) | ✅ |
-| #5 | Compenso giornaliero tecnico "COMPENSO OGGI + €X" in dashboard | ✅ |
-| #6 | Segnalazione problemi in-app tecnico→titolare + banner dashboard | ✅ |
-| #7 | Ordine batch magazzino "tutto sotto scorta" | ⏳ |
-| #8 | Notifiche push contestuali (12h — richiede Service Worker) | ⏳ |
-| #9 | Mini-form web ordini dentisti | ⏳ |
-| #10 | Indicatore "Pronto vs In lavorazione" dalla dashboard | ⏳ |
+| #1 | Bottone "Conferma ricezione al dentista" (WhatsApp da Tab Accettazione) | `29eb7d2` |
+| #2 | Badge priorità urgente/extra urgente sulla card lavoro | `29eb7d2` |
+| #3 | Barra progresso fasi (N/M fasi, verde se complete) | `29eb7d2` |
+| #4 | Swipe sinistro + tap lungo → azioni rapide (Assegna/Stato/Priorità) | `b713464` |
+| #5 | Compenso giornaliero tecnico "+ €X" in dashboard | `b713464` |
+| #6 | Segnalazione problemi tecnico→titolare + banner dashboard | `fd5e71c` |
+| #7 | Ordine batch magazzino "tutto sotto scorta" con progress | `9047086` |
+| #8 | Notifiche realtime in-app (Supabase Realtime, 3 toast tipizzati) | `f922726` |
+| #9 | Mini-form pubblica `/richiedi/[token]` per ordini dentista | `f922726` |
+| #10 | Pronto/In lavorazione: badge + contatore + ordinamento in dashboard | `9047086` |
+
+#### Credenziali test in produzione
+- **Titolare lab Filippo:** `h4t@live.it` / `>[REDACTED]` su https://uachelab.com
+- **E2E tecnico (lab test):** `e2e-tecnico@ua-test.local` / `TestE2E!2026`
+- **Admin sistema:** `francesco.formicola@live.it` (usa forgot-password per accedere)
+
+#### Da fare nella prossima sessione (priorità)
+1. ⚠️ **URGENTE: Prorogare trial Filippo** — scade 31/05/2026 → `/admin/labs`
+2. Verificare CRUD completo per ogni entità (clienti, listino, magazzino, tecnici)
+3. Dark mode — token DS esistono ma non verificati su tutte le pagine
+4. Test con Filippo su dati reali (consegna vera, FatturaPA, DdC stampata)
+5. `NEXT_PUBLIC_SUPPORT_PHONE` — manca in .env.local e Vercel
+6. Portale dentista `/portale/[token]` — non testato
+7. Sezione Rete `/rete` — non testata
+8. Modulo qualità/incidenti — non testato end-to-end
+
+#### Cose NON da fare (V2)
+PMCF, STS XML, Fascicolo Tecnico MDR completo, CAPA ISO 13485, Colorazione 4D, Terzismo inter-lab, SDI diretto, firma digitale P7M, terzismo DdC
