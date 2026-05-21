@@ -99,6 +99,7 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
 
   const handleClick = async () => {
     if (stato === 'loading' || stato === 'success') return
+    setStato('loading')  // blocca double-tap prima di qualsiasi operazione asincrona
 
     // Precheck materiali (best-effort — non blocca in caso di errore di rete)
     try {
