@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { isSameOrigin } from '@/lib/utils/csrf'
 import type { TipoSegnalazione } from '@/types/domain'
 
 const TIPI_VALIDI: TipoSegnalazione[] = [
@@ -14,6 +15,10 @@ const TIPI_VALIDI: TipoSegnalazione[] = [
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function POST(req: Request, { params }: RouteContext) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
 
   // Auth
