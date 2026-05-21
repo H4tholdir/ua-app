@@ -525,22 +525,45 @@ export function DashboardTitolare({
           {consegneOggi.length === 0 ? (
             <EmptyState message="Nessuna consegna programmata per oggi" />
           ) : (
-            <div style={CARD_STYLE}>
-              {consegneOggi.map((lavoro) => (
-                <LavoroUrgente
-                  key={lavoro.id}
-                  id={lavoro.id}
-                  numero_lavoro={lavoro.numero_lavoro}
-                  stato={lavoro.stato}
-                  cliente_display={lavoro.cliente_display}
-                  descrizione={lavoro.descrizione}
-                  data_consegna_prevista={lavoro.data_consegna_prevista}
-                  ora_consegna={lavoro.ora_consegna}
-                  paziente_nome_snapshot={lavoro.paziente_nome_snapshot}
-                  is_urgente={false}
-                />
-              ))}
-            </div>
+            <>
+              {/* Sub-header: contatori pronti / in lavorazione */}
+              {(() => {
+                const pronti = consegneOggi.filter((c) => c.stato === 'pronto').length
+                const inLavorazione = consegneOggi.filter((c) => c.stato !== 'pronto').length
+                return (
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--t2, #96918D)', margin: '0 0 10px', padding: 0 }}>
+                    {pronti > 0 && (
+                      <span style={{ color: 'var(--success, #16A34A)', fontVariantNumeric: 'tabular-nums' }}>
+                        ✓ {pronti} {pronti === 1 ? 'pronto' : 'pronti'}
+                      </span>
+                    )}
+                    {pronti > 0 && inLavorazione > 0 && ' · '}
+                    {inLavorazione > 0 && (
+                      <span style={{ color: '#2563EB', fontVariantNumeric: 'tabular-nums' }}>
+                        ⚙ {inLavorazione} ancora in lavorazione
+                      </span>
+                    )}
+                  </p>
+                )
+              })()}
+              <div style={CARD_STYLE}>
+                {consegneOggi.map((lavoro) => (
+                  <LavoroUrgente
+                    key={lavoro.id}
+                    id={lavoro.id}
+                    numero_lavoro={lavoro.numero_lavoro}
+                    stato={lavoro.stato}
+                    cliente_display={lavoro.cliente_display}
+                    descrizione={lavoro.descrizione}
+                    data_consegna_prevista={lavoro.data_consegna_prevista}
+                    ora_consegna={lavoro.ora_consegna}
+                    paziente_nome_snapshot={lavoro.paziente_nome_snapshot}
+                    is_urgente={false}
+                    showStatoBadge
+                  />
+                ))}
+              </div>
+            </>
           )}
         </Section>
 

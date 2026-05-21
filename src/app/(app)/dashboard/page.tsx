@@ -170,6 +170,13 @@ export default async function DashboardPage() {
       })
     )
 
+    // Ordina: prima i "pronto", poi gli altri — mantiene ora_consegna a parità di stato
+    consegneOggi.sort((a, b) => {
+      if (a.stato === 'pronto' && b.stato !== 'pronto') return -1
+      if (a.stato !== 'pronto' && b.stato === 'pronto') return 1
+      return 0
+    })
+
     const lavoriInRitardo = ((ritardoData ?? []) as unknown as RitardoRaw[]).map(
       (l) => ({
         id: l.id,

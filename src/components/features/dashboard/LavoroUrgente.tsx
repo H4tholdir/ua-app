@@ -27,6 +27,8 @@ interface LavoroUrgenteProps {
   ora_consegna: string | null
   paziente_nome_snapshot: string | null
   is_urgente?: boolean
+  /** Mostra badge pronto/in lavorazione — usato nella sezione "Da consegnare oggi" */
+  showStatoBadge?: boolean
 }
 
 function formatData(dateStr: string): string {
@@ -49,6 +51,7 @@ export function LavoroUrgente({
   ora_consegna,
   paziente_nome_snapshot,
   is_urgente,
+  showStatoBadge,
 }: LavoroUrgenteProps) {
   const statoColor = STATO_COLORS[stato] ?? '#9CA3AF'
 
@@ -128,6 +131,26 @@ export function LavoroUrgente({
               }}
             >
               {urgencyLabel}
+            </span>
+          )}
+          {showStatoBadge && !showBadge && (
+            <span
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '100px',
+                flexShrink: 0,
+                background: stato === 'pronto'
+                  ? 'rgba(22,163,74,.12)'
+                  : 'rgba(37,99,235,.12)',
+                color: stato === 'pronto'
+                  ? 'var(--success, #16A34A)'
+                  : '#2563EB',
+              }}
+            >
+              {stato === 'pronto' ? '✓ Pronto' : '⚙ In lavorazione'}
             </span>
           )}
         </div>

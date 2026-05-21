@@ -4,8 +4,10 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { MagazzinoSearchList } from '@/components/features/magazzino/MagazzinoSearchList'
+import { OrdinaBatchBanner } from '@/components/features/magazzino/OrdinaBatchBanner'
 
-type ArticoloRow = {
+// Tipo base — usato dalla search list
+export type ArticoloRow = {
   id: string
   codice_articolo: string
   nome: string
@@ -15,6 +17,13 @@ type ArticoloRow = {
   scorta_attuale: number
   scorta_minima: number
   dispositivo_medico: boolean
+}
+
+// Tipo esteso — usato per la logica batch ordini
+export type ArticoloRowConOrdine = ArticoloRow & {
+  fornitore_id: string | null
+  um_acquisto: string
+  conf_da_ordinare: number | null
 }
 
 export default async function MagazzinoPage() {
@@ -31,16 +40,16 @@ export default async function MagazzinoPage() {
 
   const labId: string = utente?.laboratorio_id ?? ''
 
-  let articoli: ArticoloRow[] = []
+  let articoli: ArticoloRowConOrdine[] = []
   if (labId) {
     const { data } = await svc
       .from('magazzino')
-      .select('id, codice_articolo, nome, produttore, categoria, um_scarico, scorta_attuale, scorta_minima, dispositivo_medico')
+      .select('id, codice_articolo, nome, produttore, categoria, um_scarico, um_acquisto, fornitore_id, conf_da_ordinare, scorta_attuale, scorta_minima, dispositivo_medico')
       .eq('laboratorio_id', labId)
       .eq('attivo', true)
       .order('nome', { ascending: true })
       .limit(500)
-    articoli = (data ?? []) as ArticoloRow[]
+    articoli = (data ?? []) as ArticoloRowConOrdine[]
   }
 
   const articoliAlert = articoli.filter((a) => a.scorta_attuale < a.scorta_minima)
@@ -76,8 +85,14 @@ export default async function MagazzinoPage() {
           </div>
         </section>
       ) : (
-        /* Search + lista lato client — i dati sono già caricati — BUG #12 */
-        <MagazzinoSearchList articoli={articoli} />
+        <>
+          {/* Banner batch ordini — mostrato solo se ci sono articoli sotto scorta con fornitore */}
+          {articoliAlert.length > 0 && (
+            <OrdinaBatchBanner articoliSottoScorta={articoliAlert} />
+          )}
+          {/* Search + lista lato client — i dati sono già caricati — BUG #12 */}
+          <MagazzinoSearchList articoli={articoli} />
+        </>
       )}
     </PageWrapper>
   )
