@@ -94,12 +94,12 @@ function ToastItem({ notifica, onDismiss, reducedMotion }: ToastItemProps) {
 
   return (
     <motion.div
-      key={notifica.id}
       layout
       {...animationProps}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
+        pointerEvents: 'auto',
         background: 'var(--sfc, #E4DFD9)',
         borderRadius: '14px',
         borderLeft: `4px solid ${cfg.borderColor}`,
@@ -243,13 +243,12 @@ export function ToastNotifiche({ notifiche, onDismiss }: Props) {
     >
       <AnimatePresence initial={false} mode="popLayout">
         {notifiche.map((n) => (
-          <div key={n.id} style={{ pointerEvents: 'auto' }}>
-            <ToastItem
-              notifica={n}
-              onDismiss={onDismiss}
-              reducedMotion={reducedMotion}
-            />
-          </div>
+          <ToastItem
+            key={n.id}
+            notifica={n}
+            onDismiss={onDismiss}
+            reducedMotion={reducedMotion}
+          />
         ))}
       </AnimatePresence>
     </div>
