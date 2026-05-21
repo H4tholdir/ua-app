@@ -25,9 +25,9 @@ const DISABLED_TABS: TabId[] = [
 // Maps logical field names to their DOM element ids (for auto-focus on error)
 const FIELD_TO_DOM_ID: Record<string, string> = {
   cliente_id: 'field-cliente_id',
-  tipo_dispositivo: 'tipo_dispositivo',
-  descrizione: 'descrizione',
-  data_consegna_prevista: 'data_consegna_prevista',
+  tipo_dispositivo: 'field-tipo_dispositivo',
+  descrizione: 'field-descrizione',
+  data_consegna_prevista: 'field-data_consegna_prevista',
 }
 
 const REQUIRED_FIELDS = ['cliente_id', 'tipo_dispositivo', 'descrizione', 'data_consegna_prevista'] as const
