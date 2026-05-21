@@ -23,7 +23,7 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
 
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
@@ -83,7 +83,7 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
       </div>
 
       {/* Form multi-tab */}
-      <LavoroFormClient lavoro={lavoroDettaglio} />
+      <LavoroFormClient lavoro={lavoroDettaglio} ruolo={utente.ruolo} />
     </PageWrapper>
   )
 }

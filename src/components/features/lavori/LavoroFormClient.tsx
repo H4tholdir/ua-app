@@ -20,12 +20,14 @@ import { TabDocumenti } from './form/TabDocumenti'
 import { TabAccettazione } from './form/TabAccettazione'
 import { TabProve } from './TabProve'
 import { PacchettoConsegnaSheet } from './PacchettoConsegnaSheet'
+import { SegnalaProblemaSheet } from './SegnalaProblemaSheet'
 
 interface LavoroFormClientProps {
   lavoro: LavoroDettaglio
+  ruolo?: string | null
 }
 
-export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
+export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
   const router = useRouter()
 
   // Stato form campi Lavoro (colonne tabella)
@@ -40,6 +42,30 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
 
   // Stato bottom sheet Pacchetto Consegna MDR
   const [pacchettoOpen, setPacchettoOpen] = useState(false)
+
+  // Stato bottom sheet Segnala Problema
+  const [segnalaOpen, setSegnalaOpen] = useState(false)
+
+  // Stato segnalazione locale (per aggiornamento ottimistico risolta)
+  const [segnalazioneRisolta, setSegnalazioneRisolta] = useState(
+    lavoro.segnalazione_risolta
+  )
+  const [risolvendo, setRisolvendo] = useState(false)
+
+  async function handleSegnaRisolta() {
+    setRisolvendo(true)
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/segnala/risolvi`, {
+        method: 'PATCH',
+      })
+      if (res.ok) {
+        setSegnalazioneRisolta(true)
+        router.refresh()
+      }
+    } finally {
+      setRisolvendo(false)
+    }
+  }
 
   function handleUpdateFase(id: string, updates: Partial<LavoroFase>) {
     setFasi((prev) =>
@@ -132,6 +158,99 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
           }
         }}
       </LavoroFormShell>
+
+      {/* Banner segnalazione non risolta — visibile al titolare/admin_rete */}
+      {lavoro.segnalazione_tipo && !segnalazioneRisolta &&
+        (ruolo === 'titolare' || ruolo === 'admin_rete') && (
+          <div style={{
+            margin: '0 20px 12px',
+            padding: '12px 14px',
+            borderRadius: '14px',
+            background: 'rgba(217,0,18,.06)',
+            border: '1px solid rgba(217,0,18,.18)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>⚠</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--primary, #D90012)',
+                margin: 0,
+              }}>
+                Problema segnalato
+              </p>
+              {lavoro.segnalazione_nota && (
+                <p style={{
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: 12,
+                  color: 'var(--t2, #96918D)',
+                  margin: '2px 0 0',
+                  fontStyle: 'italic',
+                }}>
+                  &ldquo;{lavoro.segnalazione_nota}&rdquo;
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={risolvendo}
+              onClick={handleSegnaRisolta}
+              style={{
+                flexShrink: 0,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: risolvendo ? 'not-allowed' : 'pointer',
+                minHeight: '32px',
+              }}
+              aria-busy={risolvendo}
+            >
+              {risolvendo ? '...' : 'Segna risolta'}
+            </button>
+          </div>
+        )}
+
+      {/* Pulsante segnala problema — solo tecnico */}
+      {ruolo === 'tecnico' && (
+        <div style={{ padding: '0 20px 4px' }}>
+          <button
+            type="button"
+            onClick={() => setSegnalaOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%',
+              padding: '13px 16px',
+              margin: '0 0 10px',
+              border: '1px solid rgba(217,0,18,.18)',
+              borderRadius: '14px',
+              background: 'rgba(217,0,18,.07)',
+              color: 'var(--primary, #D90012)',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              minHeight: '44px',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            aria-label="Segnala un problema al titolare"
+          >
+            <span aria-hidden="true">⚠</span>
+            Segnala problema al titolare
+          </button>
+        </div>
+      )}
 
       {/* Barra azioni fissa in fondo */}
       <div
@@ -264,6 +383,23 @@ export function LavoroFormClient({ lavoro }: LavoroFormClientProps) {
         isOpen={pacchettoOpen}
         onClose={() => setPacchettoOpen(false)}
       />
+
+      {/* Bottom sheet Segnala Problema (solo tecnico) */}
+      {ruolo === 'tecnico' && (
+        <SegnalaProblemaSheet
+          lavoroId={lavoro.id}
+          numeroLavoro={lavoro.numero_lavoro}
+          clienteDisplay={
+            lavoro.cliente
+              ? (lavoro.cliente.studio_nome ??
+                  `${lavoro.cliente.nome} ${lavoro.cliente.cognome}`.trim())
+              : lavoro.numero_lavoro
+          }
+          isOpen={segnalaOpen}
+          onClose={() => setSegnalaOpen(false)}
+          onSegnalato={() => router.refresh()}
+        />
+      )}
     </div>
   )
 }

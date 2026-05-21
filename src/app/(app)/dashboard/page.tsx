@@ -10,7 +10,7 @@ import {
   getTecnicoDashboard,
   getFrontDeskDashboard,
 } from '@/lib/dashboard/queries'
-import { DashboardTitolare } from '@/components/features/dashboard/DashboardTitolare'
+import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
 import { DashboardFrontDesk } from '@/components/features/dashboard/DashboardFrontDesk'
 import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
@@ -47,6 +47,16 @@ type RitardoRaw = {
   ora_consegna: string | null
   paziente_nome_snapshot: string | null
   clienti: { nome: string; cognome: string; studio_nome: string | null } | null
+}
+
+type SegnalazioneRaw = {
+  id: string
+  numero_lavoro: string
+  segnalazione_tipo: string | null
+  segnalazione_nota: string | null
+  segnalazione_at: string | null
+  segnalazione_by_utente: { nome: string | null; cognome: string | null } | null
+  clienti: { studio_nome: string | null; nome: string; cognome: string } | null
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -121,6 +131,21 @@ export default async function DashboardPage() {
       .order('data_consegna_prevista', { ascending: true })
       .limit(20)
 
+    // Segnalazioni non risolte (max 5)
+    const { data: segnalazioniData } = await svc
+      .from('lavori')
+      .select(`
+        id, numero_lavoro,
+        segnalazione_tipo, segnalazione_nota, segnalazione_at,
+        segnalazione_by_utente:utenti!segnalazione_by(nome, cognome),
+        clienti(studio_nome, nome, cognome)
+      `)
+      .eq('laboratorio_id', labId)
+      .not('segnalazione_tipo', 'is', null)
+      .eq('segnalazione_risolta', false)
+      .order('segnalazione_at', { ascending: false })
+      .limit(5)
+
     // Nome laboratorio + onboarding status
     const { data: lab } = await svc
       .from('laboratori')
@@ -162,6 +187,20 @@ export default async function DashboardPage() {
       })
     )
 
+    const segnalazioni: SegnalazioneAlert[] = ((segnalazioniData ?? []) as unknown as SegnalazioneRaw[])
+      .filter((s): s is SegnalazioneRaw & { segnalazione_tipo: string; segnalazione_at: string } =>
+        s.segnalazione_tipo !== null && s.segnalazione_at !== null
+      )
+      .map((s) => ({
+        id: s.id,
+        numero_lavoro: s.numero_lavoro,
+        segnalazione_tipo: s.segnalazione_tipo,
+        segnalazione_nota: s.segnalazione_nota,
+        segnalazione_at: s.segnalazione_at,
+        segnalazione_by_utente: s.segnalazione_by_utente,
+        clienti: s.clienti,
+      }))
+
     return (
       <DashboardTitolare
         stats={stats}
@@ -174,6 +213,7 @@ export default async function DashboardPage() {
         labName={lab?.nome ?? undefined}
         aggiornatoAt={cacheRow?.aggiornato_at ?? null}
         onboardingPending={!lab?.onboarding_completato}
+        segnalazioni={segnalazioni}
       />
     )
   }

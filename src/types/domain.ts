@@ -204,6 +204,13 @@ export type StatoLavoro =
 export type PrioritaLavoro = 'normale' | 'urgente' | 'extra_urgente';
 export type ClasseRischio = 'classe_i' | 'classe_iia' | 'classe_iib' | 'classe_iii';
 
+export type TipoSegnalazione =
+  | 'impronta_non_idonea'
+  | 'colore_mancante'
+  | 'istruzione_poco_chiara'
+  | 'materiale_esaurito'
+  | 'altro';
+
 // Corrieri supportati (PATCH v1.1 — tracking spedizioni)
 export type Corriere = 'gls' | 'brt' | 'dhl' | 'sda' | 'ups' | 'fedex' | 'interno' | 'altro';
 export type StatoSpedizione = 'da_spedire' | 'spedito' | 'consegnato_corriere' | 'problema';
@@ -297,6 +304,12 @@ export interface Lavoro {
   lotto_disinfettante: string | null;
   materiali_allegati: string[];
   anamnesi_difficolta_manuali: boolean;
+  // Segnalazione problemi (tecnico → titolare)
+  segnalazione_tipo: TipoSegnalazione | null;
+  segnalazione_nota: string | null;
+  segnalazione_at: string | null;
+  segnalazione_by: string | null;
+  segnalazione_risolta: boolean;
   // Audit
   created_at: string;
   updated_at: string;

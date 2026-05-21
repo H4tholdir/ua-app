@@ -124,6 +124,7 @@ interface LavoroCardProps {
   fasi_totali?: number
   tecnico_id?: string | null
   onUpdate?: () => void
+  segnalazione_tipo?: string | null
 }
 
 // ─── ActionButton (striscia swipe) ───────────────────────────────────────────
@@ -253,6 +254,7 @@ export function LavoroCard({
   fasi_totali,
   tecnico_id,
   onUpdate,
+  segnalazione_tipo,
 }: LavoroCardProps) {
   const reducedMotion = useReducedMotion()
   const statoColor    = STATO_COLORS[stato]
@@ -693,6 +695,20 @@ export function LavoroCard({
           }}>
             {fasi_completate ?? 0}/{fasi_totali}{(fasi_completate ?? 0) >= fasi_totali ? ' ✓' : ' fasi'}
           </span>
+        </div>
+      )}
+
+      {/* Tag segnalazione problema */}
+      {segnalazione_tipo && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          padding: '2px 8px', borderRadius: '6px',
+          background: 'rgba(217,0,18,.08)', color: 'var(--primary, #D90012)',
+          border: '1px solid rgba(217,0,18,.18)',
+          fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em',
+          marginTop: '4px', fontFamily: 'DM Sans, sans-serif',
+        }}>
+          ⚠ Problema segnalato
         </div>
       )}
 

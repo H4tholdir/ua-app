@@ -69,6 +69,24 @@ type PagamentoTop = {
   residuo: number
 }
 
+export type SegnalazioneAlert = {
+  id: string
+  numero_lavoro: string
+  segnalazione_tipo: string
+  segnalazione_nota: string | null
+  segnalazione_at: string
+  segnalazione_by_utente: { nome: string | null; cognome: string | null } | null
+  clienti: { studio_nome: string | null; nome: string; cognome: string } | null
+}
+
+const TIPI_LABEL = {
+  impronta_non_idonea:    'Impronta non idonea',
+  colore_mancante:        'Colore non specificato',
+  istruzione_poco_chiara: 'Istruzione poco chiara',
+  materiale_esaurito:     'Materiale esaurito',
+  altro:                  'Altro',
+} as const
+
 export interface DashboardTitolareProps {
   stats: DashboardStatsExtended
   consegneOggi: FrontDeskConsegnaItem[]
@@ -80,6 +98,7 @@ export interface DashboardTitolareProps {
   labName?: string
   aggiornatoAt?: string | null
   onboardingPending?: boolean
+  segnalazioni?: SegnalazioneAlert[]
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -227,6 +246,7 @@ export function DashboardTitolare({
   labName,
   aggiornatoAt,
   onboardingPending,
+  segnalazioni = [],
 }: DashboardTitolareProps) {
   const reducedMotion = useReducedMotion()
   const stagger = staggerDelay(7)
@@ -355,6 +375,12 @@ export function DashboardTitolare({
           }}
         >
           {[
+            ...(segnalazioni.length > 0 ? [{
+              value: segnalazioni.length,
+              label: 'Problemi',
+              description: 'Segnalazioni aperte dai tecnici',
+              color: DS.primary,
+            }] : []),
             {
               value: stats.lavori_in_ritardo,
               label: 'In ritardo',
@@ -409,6 +435,79 @@ export function DashboardTitolare({
           ))}
         </div>
       </Section>
+
+      {/* Banner segnalazioni aperte — priorità massima, prima di tutto */}
+      {segnalazioni.length > 0 && (
+        <div style={{ margin: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {segnalazioni.map((s) => {
+            const tecnico = s.segnalazione_by_utente
+            const tecnicoDisplay = tecnico
+              ? `${tecnico.nome ?? ''} ${tecnico.cognome ?? ''}`.trim() || 'Un tecnico'
+              : 'Un tecnico'
+            const clienteDisp = s.clienti?.studio_nome ??
+              (`${s.clienti?.nome ?? ''} ${s.clienti?.cognome ?? ''}`.trim() || '—')
+            const tipoLabel = TIPI_LABEL[s.segnalazione_tipo as keyof typeof TIPI_LABEL] ?? s.segnalazione_tipo
+
+            return (
+              <Section key={s.id} delay={0} reducedMotion={reducedMotion}>
+                <div style={{
+                  background: 'rgba(217,0,18,.06)',
+                  border: '1px solid rgba(217,0,18,.18)',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                }}>
+                  <div style={{
+                    width: 40, height: 40,
+                    borderRadius: 12,
+                    background: 'rgba(217,0,18,.10)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, flexShrink: 0,
+                  }}>
+                    ⚠
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700,
+                      color: 'var(--primary, #D90012)', margin: 0,
+                    }}>
+                      {tecnicoDisplay} ha segnalato un problema
+                    </p>
+                    <p style={{
+                      fontFamily: 'DM Sans', fontSize: 13,
+                      color: 'var(--t1, #1C1916)', margin: '2px 0 0', lineHeight: 1.35,
+                    }}>
+                      {s.numero_lavoro} · {clienteDisp} · {tipoLabel}
+                    </p>
+                    {s.segnalazione_nota && (
+                      <p style={{
+                        fontFamily: 'DM Sans', fontSize: 12,
+                        color: 'var(--t2, #96918D)', margin: '2px 0 0', fontStyle: 'italic',
+                      }}>
+                        &ldquo;{s.segnalazione_nota}&rdquo;
+                      </p>
+                    )}
+                    <a
+                      href={`/lavori/${s.id}`}
+                      style={{
+                        display: 'inline-block', marginTop: 8,
+                        padding: '5px 10px', borderRadius: 8,
+                        background: 'var(--primary, #D90012)',
+                        color: '#fff', fontSize: 12, fontWeight: 700,
+                        fontFamily: 'DM Sans', textDecoration: 'none',
+                      }}
+                    >
+                      Vai al lavoro →
+                    </a>
+                  </div>
+                </div>
+              </Section>
+            )
+          })}
+        </div>
+      )}
 
       <div
         style={{

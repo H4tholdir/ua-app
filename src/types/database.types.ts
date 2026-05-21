@@ -1943,6 +1943,11 @@ export type Database = {
           richiedente_email: string | null
           richiedente_nome: string | null
           rifacimento_motivo: string | null
+          segnalazione_at: string | null
+          segnalazione_by: string | null
+          segnalazione_nota: string | null
+          segnalazione_risolta: boolean
+          segnalazione_tipo: string | null
           spedizione_corriere: string | null
           spedizione_data_prevista: string | null
           spedizione_note: string | null
@@ -2026,6 +2031,11 @@ export type Database = {
           richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
+          segnalazione_at?: string | null
+          segnalazione_by?: string | null
+          segnalazione_nota?: string | null
+          segnalazione_risolta?: boolean
+          segnalazione_tipo?: string | null
           spedizione_corriere?: string | null
           spedizione_data_prevista?: string | null
           spedizione_note?: string | null
@@ -2109,6 +2119,11 @@ export type Database = {
           richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
+          segnalazione_at?: string | null
+          segnalazione_by?: string | null
+          segnalazione_nota?: string | null
+          segnalazione_risolta?: boolean
+          segnalazione_tipo?: string | null
           spedizione_corriere?: string | null
           spedizione_data_prevista?: string | null
           spedizione_note?: string | null
@@ -2171,6 +2186,13 @@ export type Database = {
             columns: ["paziente_id"]
             isOneToOne: false
             referencedRelation: "pazienti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_segnalazione_by_fkey"
+            columns: ["segnalazione_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
             referencedColumns: ["id"]
           },
           {
