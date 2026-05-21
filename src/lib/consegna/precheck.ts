@@ -91,5 +91,19 @@ export function precheckMDR(lavoro: LavoroDettaglio): ConsegnaPrecheckResult {
     })
   }
 
-  return { ok: errori.length === 0, errori }
+  // Dati accettazione ingresso — MDR Allegato XIII (tracciabilità impronta)
+  // Questi campi non bloccano la consegna ma generano un avviso esplicito
+  const mdrCampiMancanti: string[] = [
+    !lavoro.tipo_impronte ? 'Tipo impronta' : null,
+    !lavoro.disinfettante_usato ? 'Disinfettante' : null,
+  ].filter((x): x is string => x !== null)
+
+  const mdrIncompleto = mdrCampiMancanti.length > 0
+
+  return {
+    ok: errori.length === 0,
+    errori,
+    mdr_incompleto: mdrIncompleto,
+    mdr_campi_mancanti: mdrCampiMancanti,
+  }
 }

@@ -542,6 +542,9 @@ export interface ConsegnaPrecheckResult {
     campo: string;
     route: string;
   }[];
+  /** Segnala campi accettazione-ingresso mancanti (tipo_impronte, disinfettante_usato) — SOFT BLOCK */
+  mdr_incompleto?: boolean;
+  mdr_campi_mancanti?: string[];
 }
 
 export interface ConsegnaResult {
