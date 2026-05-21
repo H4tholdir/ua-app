@@ -238,7 +238,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
 
         {/* Link portale + richiesta */}
         <SectionCard title="Portale dentista">
-          <PortaleLinkButtons portaleToken={c.portale_token} />
+          <PortaleLinkButtons portaleToken={c.portale_token} clienteNome={`${c.cognome} ${c.nome}`.trim()} />
         </SectionCard>
 
         {/* DPA GDPR Art. 28 */}
