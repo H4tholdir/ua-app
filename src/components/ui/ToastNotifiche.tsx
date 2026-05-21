@@ -117,8 +117,8 @@ function ToastItem({ notifica, onDismiss, reducedMotion }: ToastItemProps) {
         WebkitUserSelect: 'none',
       }}
       onClick={handleCta}
-      role="alert"
-      aria-live="polite"
+      role={notifica.tipo === 'segnalazione' || notifica.tipo === 'urgente' ? 'alert' : 'status'}
+      aria-live={notifica.tipo === 'segnalazione' || notifica.tipo === 'urgente' ? 'assertive' : 'polite'}
     >
       {/* Icon */}
       <span
