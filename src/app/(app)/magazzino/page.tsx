@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { MagazzinoSearchList } from '@/components/features/magazzino/MagazzinoSearchList'
 import { OrdinaBatchBanner } from '@/components/features/magazzino/OrdinaBatchBanner'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // Tipo base — usato dalla search list
 export type ArticoloRow = {
@@ -63,26 +64,12 @@ export default async function MagazzinoPage() {
 
       {articoli.length === 0 ? (
         <section style={{ padding: '0 20px 32px' }}>
-          <div
-            style={{
-              background: 'var(--surface, #E4DFD9)',
-              borderRadius: '16px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                color: 'var(--t2, #96918D)',
-                margin: 0,
-              }}
-            >
-              Nessun articolo in magazzino
-            </p>
-          </div>
+          <EmptyState
+            icon="📦"
+            title="Magazzino vuoto"
+            description="Aggiungi i materiali che usi in laboratorio per tenere traccia delle scorte."
+            cta={{ label: '+ Aggiungi articolo', href: '/magazzino/nuovo' }}
+          />
         </section>
       ) : (
         <>

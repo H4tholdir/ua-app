@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ClientiSearchList } from '@/components/features/clienti/ClientiSearchList'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type ClienteRow = {
   id: string
@@ -78,26 +79,12 @@ export default async function ClientiPage() {
 
       {clienti.length === 0 ? (
         <section style={{ padding: '0 20px' }}>
-          <div
-            style={{
-              background: 'var(--surface, #E4DFD9)',
-              borderRadius: '16px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                color: 'var(--t2, #96918D)',
-                margin: 0,
-              }}
-            >
-              Nessun cliente trovato
-            </p>
-          </div>
+          <EmptyState
+            icon="🦷"
+            title="Nessun cliente ancora"
+            description="Aggiungi il tuo primo studio dentistico per iniziare a ricevere lavori."
+            cta={{ label: '+ Aggiungi cliente', href: '/clienti/nuovo' }}
+          />
         </section>
       ) : (
         /* Search + lista lato client — i dati sono già caricati */
