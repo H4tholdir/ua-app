@@ -192,7 +192,7 @@ export async function orchestraConsegna(
     // ----------------------------------------------------------------
     const now = new Date().toISOString()
 
-    const { error: updateError } = await supabase
+    const { error: updateError, count: updateCount } = await supabase
       .from('lavori')
       .update({
         stato: 'consegnato',
@@ -204,6 +204,7 @@ export async function orchestraConsegna(
         consegna_precheck_passato_al_primo_tentativo: true,
       })
       .eq('id', lavoro_id)
+      .eq('laboratorio_id', laboratorio_id)
 
     if (updateError) {
       // Il lock verrà rilasciato dal flag consegna_in_corso=false nell'update stesso,
@@ -214,6 +215,16 @@ export async function orchestraConsegna(
         ok: false,
         tipo: 'errore_pdf',
         messaggio: 'Errore durante l\'aggiornamento dello stato del lavoro.',
+      }
+    }
+
+    if (updateCount === 0) {
+      await rilasciaLock()
+      console.error('[CONSEGNA] Stato update affected 0 rows — tenant mismatch or row deleted')
+      return {
+        ok: false,
+        tipo: 'errore_pdf',
+        messaggio: 'Lavoro non trovato nel laboratorio corrente.',
       }
     }
 
