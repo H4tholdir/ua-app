@@ -92,6 +92,8 @@ export function mapTitolareKpiRow(row: RawKpiCacheRow): DashboardStatsExtended {
     pagamenti_scaduti_clienti_count: 0,
     materiali_esaurimento_count: 0,
     in_prova_count: 0,
+    margine_netto: 0,
+    percentuale_margine: 0,
   }
   if (!row) return defaults
   return {
@@ -175,7 +177,55 @@ export async function getTitolareKpi(
     .select('*')
     .eq('laboratorio_id', labId)
     .maybeSingle()
-  return mapTitolareKpiRow(data as RawKpiCacheRow)
+
+  const kpi = mapTitolareKpiRow(data as RawKpiCacheRow)
+
+  // ─── Margine netto mese corrente (calcolato on-the-fly) ──────────────────
+  const startOfMonth = new Date()
+  startOfMonth.setDate(1)
+  startOfMonth.setHours(0, 0, 0, 0)
+
+  const { data: margineRows } = await svc
+    .from('lavori_lavorazioni')
+    .select(`
+      quantita,
+      prezzo_unitario,
+      listino!lavori_lavorazioni_listino_id_fkey(compenso_tecnico, costo_materiali_estimated),
+      lavori!inner(
+        laboratorio_id,
+        data_consegna_effettiva,
+        stato
+      )
+    `)
+    .eq('lavori.laboratorio_id', labId)
+    .eq('lavori.stato', 'consegnato')
+    .gte('lavori.data_consegna_effettiva', startOfMonth.toISOString())
+    .is('deleted_at', null)
+
+  type MargineRow = {
+    quantita: number | null
+    prezzo_unitario: number | null
+    listino: { compenso_tecnico: number | null; costo_materiali_estimated: number | null } | null
+  }
+
+  const rows = (margineRows ?? []) as unknown as MargineRow[]
+  const fatturato = rows.reduce(
+    (sum, r) => sum + (Number(r.prezzo_unitario ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+  const costiMateriali = rows.reduce(
+    (sum, r) => sum + (Number(r.listino?.costo_materiali_estimated ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+  const compensiTecnici = rows.reduce(
+    (sum, r) => sum + (Number(r.listino?.compenso_tecnico ?? 0) * (r.quantita ?? 1)),
+    0
+  )
+
+  const margine_netto = fatturato - costiMateriali - compensiTecnici
+  const percentuale_margine = fatturato > 0 ? Math.round((margine_netto / fatturato) * 100) : 0
+
+  return { ...kpi, margine_netto, percentuale_margine }
 }
 
 export async function getPagamentiScadutiTop(
@@ -364,6 +414,44 @@ export async function getTecnicoDashboard(
   }
 }
 
+
+export async function getTrendMensile(
+  svc: SupabaseClient,
+  labId: string,
+  months = 12
+): Promise<{ month: string; totale: number; label: string }[]> {
+  const startDate = new Date()
+  startDate.setMonth(startDate.getMonth() - months + 1)
+  startDate.setDate(1)
+  startDate.setHours(0, 0, 0, 0)
+
+  const { data } = await svc
+    .from('fatture')
+    .select('data_emissione, totale')
+    .eq('laboratorio_id', labId)
+    .gte('data_emissione', startDate.toISOString())
+    .not('data_emissione', 'is', null)
+    .order('data_emissione', { ascending: true })
+
+  // Group by month (YYYY-MM)
+  const byMonth: Record<string, number> = {}
+  for (const f of data ?? []) {
+    const month = (f.data_emissione as string).slice(0, 7) // "2026-01"
+    byMonth[month] = (byMonth[month] ?? 0) + (f.totale ?? 0)
+  }
+
+  // Fill in empty months
+  const result: { month: string; totale: number; label: string }[] = []
+  const cursor = new Date(startDate)
+  for (let i = 0; i < months; i++) {
+    const key = cursor.toISOString().slice(0, 7)
+    const label = cursor.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' })
+    result.push({ month: key, totale: byMonth[key] ?? 0, label })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return result
+}
 
 export async function getFrontDeskDashboard(
   svc: SupabaseClient,

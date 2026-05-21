@@ -5,6 +5,8 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import type { StatoSDI } from '@/types/domain'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { BatchFatturaSection } from '@/components/features/fatture/BatchFatturaSection'
+import type { LavoroProntoFattura } from '@/components/features/fatture/BatchFatturaSection'
 
 // ─── Colori badge per ogni stato SDI ─────────────────────────────────────────
 const coloriStatoSDI: Record<StatoSDI, { bg: string; fg: string }> = {
@@ -85,35 +87,72 @@ export default async function FatturePage() {
 
   // ── Carica fatture ─────────────────────────────────────────────────────────
   let fatture: FatturaRow[] = []
+  let lavoriPronti: LavoroProntoFattura[] = []
 
   if (labId) {
-    const { data } = await svc
-      .from('fatture')
-      .select(
+    const [fattureResult, lavoriResult] = await Promise.all([
+      svc
+        .from('fatture')
+        .select(
+          `
+          id,
+          numero,
+          data,
+          stato_sdi,
+          imponibile,
+          totale,
+          bollo,
+          nome_file_xml,
+          inviata_via,
+          cliente:clienti(id, nome, cognome, studio_nome)
         `
-        id,
-        numero,
-        data,
-        stato_sdi,
-        imponibile,
-        totale,
-        bollo,
-        nome_file_xml,
-        inviata_via,
-        cliente:clienti(id, nome, cognome, studio_nome)
-      `
-      )
-      .eq('laboratorio_id', labId)
-      .is('deleted_at', null)
-      .order('data', { ascending: false })
-      .limit(100)
+        )
+        .eq('laboratorio_id', labId)
+        .is('deleted_at', null)
+        .order('data', { ascending: false })
+        .limit(100),
+      svc
+        .from('lavori')
+        .select('id, numero_lavoro, prezzo_unitario, data_consegna_effettiva, cliente:clienti(id, nome, cognome, studio_nome)')
+        .eq('laboratorio_id', labId)
+        .eq('stato', 'consegnato')
+        .eq('incluso_in_fattura', false)
+        .is('deleted_at', null)
+        .order('data_consegna_effettiva', { ascending: false })
+        .limit(50),
+    ])
 
-    fatture = (data ?? []) as unknown as FatturaRow[]
+    fatture = (fattureResult.data ?? []) as unknown as FatturaRow[]
+    lavoriPronti = (lavoriResult.data ?? []) as unknown as LavoroProntoFattura[]
   }
 
   return (
     <PageWrapper>
       <AppHeader title="Fatture" />
+
+      {/* Toolbar: export CSV per commercialista */}
+      <div style={{ padding: '0 20px 8px', display: 'flex', justifyContent: 'flex-end' }}>
+        <a
+          href={`/api/fatture/export?year=${new Date().getFullYear()}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            background: 'var(--sfc, #E4DFD9)',
+            border: '1px solid var(--prs, #D4CFC9)',
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+            color: 'var(--t1, #1C1916)',
+            fontFamily: 'DM Sans, sans-serif',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.72), 0 1px 3px rgba(148,128,118,.20)',
+          }}
+        >
+          ⬇ Esporta CSV {new Date().getFullYear()}
+        </a>
+      </div>
 
       {/* Info banner generazione automatica — BUG #11 */}
       <div style={{ padding: '0 20px 12px' }}>
@@ -164,6 +203,9 @@ export default async function FatturePage() {
           </p>
         </div>
       </div>
+
+      {/* Lavori pronti da fatturare — batch action */}
+      <BatchFatturaSection lavoriPronti={lavoriPronti} />
 
       {/* Lista fatture */}
       <section style={{ padding: '0 20px' }}>

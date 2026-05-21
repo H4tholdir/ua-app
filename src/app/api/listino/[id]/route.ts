@@ -9,6 +9,7 @@ const PATCH_ALLOWLIST = [
   'prezzo_3',
   'prezzo_4',
   'compenso_tecnico',
+  'costo_materiali_estimated',
   'nome',
   'descrizione',
 ] as const
