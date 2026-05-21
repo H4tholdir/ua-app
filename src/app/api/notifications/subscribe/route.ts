@@ -51,9 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Subscription non valida' }, { status: 422 })
   }
 
-  // TODO: dopo `supabase db push` rigenera i tipi e rimuovi il cast as any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (svc as any).from('push_subscriptions').upsert(
+  const { error } = await svc.from('push_subscriptions').upsert(
     {
       user_id: user.id,
       laboratorio_id: utente.laboratorio_id,
