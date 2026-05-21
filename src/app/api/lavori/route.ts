@@ -118,6 +118,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'data_consegna_prevista obbligatoria' }, { status: 422 })
   }
 
+  // Validate FK tenant ownership BEFORE generating progressivo
+  // (avoids burning sequence numbers on rejected requests)
+  const FK_FIELDS_INSERT: { field: string; table: string }[] = [
+    { field: 'cliente_id', table: 'clienti' },
+    { field: 'paziente_id', table: 'pazienti' },
+    { field: 'tecnico_id', table: 'tecnici' },
+  ]
+  const fkCandidates: Record<string, unknown> = {
+    cliente_id: body.cliente_id,
+    paziente_id: body.paziente_id ?? null,
+    tecnico_id: body.tecnico_id ?? null,
+  }
+  for (const { field, table } of FK_FIELDS_INSERT) {
+    const fkId = fkCandidates[field]
+    if (fkId && typeof fkId === 'string') {
+      const { data: fkRow } = await svc
+        .from(table)
+        .select('laboratorio_id')
+        .eq('id', fkId)
+        .is('deleted_at', null)
+        .single()
+      if (!fkRow || fkRow.laboratorio_id !== labId) {
+        return NextResponse.json(
+          { error: `${field} non appartiene a questo laboratorio` },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
   // Genera progressivo numero lavoro (race-safe via DB function)
   const anno = new Date().getFullYear()
   const { data: progressivo, error: rpcError } = await svc.rpc('genera_progressivo', {
@@ -157,29 +187,6 @@ export async function POST(req: Request) {
     codice_iva: body.codice_iva ?? 'N4',
     natura_iva: body.natura_iva ?? 'N4',
     data_ingresso: new Date().toISOString().split('T')[0],
-  }
-
-  // Validate FK tenant ownership before insert
-  const FK_FIELDS_INSERT: { field: string; table: string }[] = [
-    { field: 'cliente_id', table: 'clienti' },
-    { field: 'paziente_id', table: 'pazienti' },
-    { field: 'tecnico_id', table: 'tecnici' },
-  ]
-  for (const { field, table } of FK_FIELDS_INSERT) {
-    const fkId = (insertData as Record<string, unknown>)[field]
-    if (fkId && typeof fkId === 'string') {
-      const { data: fkRow } = await svc
-        .from(table)
-        .select('laboratorio_id')
-        .eq('id', fkId)
-        .single()
-      if (!fkRow || fkRow.laboratorio_id !== labId) {
-        return NextResponse.json(
-          { error: `${field} non appartiene a questo laboratorio` },
-          { status: 403 }
-        )
-      }
-    }
   }
 
   const { data: lavoro, error: insertError } = await svc
