@@ -66,9 +66,18 @@ interface TabDatiProps {
   onChange: (updates: Partial<Lavoro>) => void
   clienteId?: string
   onClienteChange?: (id: string, label: string) => void
+  fieldErrors?: Record<string, string>
 }
 
-export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiProps) {
+const errorStyle: React.CSSProperties = {
+  color: 'var(--primary, #D90012)',
+  fontSize: 12,
+  marginTop: 4,
+  display: 'block',
+  fontFamily: 'DM Sans, sans-serif',
+}
+
+export function TabDati({ data, onChange, clienteId, onClienteChange, fieldErrors }: TabDatiProps) {
   const [studioMembers, setStudioMembers] = useState<StudioMember[]>([])
 
   // Carica i medici dello stesso studio quando cambia il cliente
@@ -99,16 +108,26 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
       {/* 0. Dentista / Studio (solo se il callback è fornito) */}
       {onClienteChange && (
         <div style={fieldStyle}>
-          <label htmlFor="cliente-combobox" style={labelStyle}>
+          <label htmlFor="field-cliente_id" style={labelStyle}>
             Dentista / Studio{' '}
             <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <ClienteComboBox
-            id="cliente-combobox"
+            id="field-cliente_id"
             value={clienteId ?? ''}
             onChange={onClienteChange}
             placeholder="Cerca dentista o studio..."
+            hasError={!!fieldErrors?.['cliente_id']}
           />
+          {fieldErrors?.['cliente_id'] && (
+            <span
+              id="error-cliente_id"
+              role="alert"
+              style={errorStyle}
+            >
+              {fieldErrors['cliente_id']}
+            </span>
+          )}
         </div>
       )}
 
@@ -129,8 +148,10 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             ...inputBase,
             appearance: 'none',
             cursor: 'pointer',
+            borderColor: fieldErrors?.['tipo_dispositivo'] ? 'var(--primary, #D90012)' : undefined,
           }}
           aria-required="true"
+          aria-describedby={fieldErrors?.['tipo_dispositivo'] ? 'error-tipo_dispositivo' : undefined}
         >
           <option value="" disabled>
             Seleziona tipo...
@@ -141,6 +162,15 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             </option>
           ))}
         </select>
+        {fieldErrors?.['tipo_dispositivo'] && (
+          <span
+            id="error-tipo_dispositivo"
+            role="alert"
+            style={errorStyle}
+          >
+            {fieldErrors['tipo_dispositivo']}
+          </span>
+        )}
       </div>
 
       {/* 2. Descrizione */}
@@ -160,9 +190,20 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             ...inputBase,
             resize: 'vertical',
             minHeight: '80px',
+            borderColor: fieldErrors?.['descrizione'] ? 'var(--primary, #D90012)' : undefined,
           }}
           aria-required="true"
+          aria-describedby={fieldErrors?.['descrizione'] ? 'error-descrizione' : undefined}
         />
+        {fieldErrors?.['descrizione'] && (
+          <span
+            id="error-descrizione"
+            role="alert"
+            style={errorStyle}
+          >
+            {fieldErrors['descrizione']}
+          </span>
+        )}
       </div>
 
       {/* 3. Richiedente */}
@@ -283,9 +324,20 @@ export function TabDati({ data, onChange, clienteId, onClienteChange }: TabDatiP
             style={{
               ...inputBase,
               colorScheme: 'light',
+              borderColor: fieldErrors?.['data_consegna_prevista'] ? 'var(--primary, #D90012)' : undefined,
             }}
             aria-required="true"
+            aria-describedby={fieldErrors?.['data_consegna_prevista'] ? 'error-data_consegna_prevista' : undefined}
           />
+          {fieldErrors?.['data_consegna_prevista'] && (
+            <span
+              id="error-data_consegna_prevista"
+              role="alert"
+              style={errorStyle}
+            >
+              {fieldErrors['data_consegna_prevista']}
+            </span>
+          )}
         </div>
         <div>
           <label htmlFor="ora_consegna" style={labelStyle}>
