@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { NuovoOrdineSheet } from './NuovoOrdineSheet'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { OrdineRow, ArticoloSottoScorta } from '@/app/(app)/ordini/page'
 
 // ─── Colori dot per stato ──────────────────────────────────────
@@ -118,26 +119,12 @@ export function OrdiniList({ ordini, articoliSottoScorta }: OrdiniListProps) {
 
         {/* Lista ordini */}
         {localOrdini.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--sfc, #E4DFD9)',
-              borderRadius: '16px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              boxShadow: '-5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40)',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                color: 'var(--t2, #96918D)',
-                margin: 0,
-              }}
-            >
-              Nessun ordine creato
-            </p>
-          </div>
+          <EmptyState
+            icon="🛒"
+            title="Nessun ordine aperto"
+            description="Quando i materiali raggiungono la scorta minima, apri un ordine al fornitore."
+            cta={{ label: '+ Nuovo ordine', onClick: () => setShowNuovoSheet(true) }}
+          />
         ) : (
           <ul
             style={{

@@ -104,7 +104,7 @@ export default async function RischiPage() {
               Nessuna analisi rischi configurata
             </p>
             <p style={{
-              color: '#C8895A',
+              color: 'var(--gold, #D4A843)',
               fontSize: '13px',
               fontFamily,
               margin: 0,

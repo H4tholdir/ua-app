@@ -14,6 +14,7 @@ export const motionTokens = {
     slow:        0.36,   // 360ms — page transitions, drawer open
     expressive:  0.55,   // 550ms — celebrazioni, onboarding reveal
     celebration: 0.80,   // 800ms — CONSEGNA success, confetti timing
+    skeleton:    1.50,   // 1500ms — skeleton pulse loop (repeat: Infinity)
   },
 
   // ─── EASING (con significato specifico) ─────────────────────────────

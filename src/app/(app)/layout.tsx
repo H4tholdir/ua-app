@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { BottomNavPill } from '@/components/layout/BottomNavPill'
 import { SwRegistration } from '@/components/layout/SwRegistration'
+import { PushRegistrar } from '@/components/features/notifications/PushRegistrar'
 import { SkipToContent } from '@/components/layout/SkipToContent'
 import { UserProfileSheet } from '@/components/layout/UserProfileSheet'
 import { RealtimeProvider } from '@/components/layout/RealtimeProvider'
@@ -85,6 +86,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* BottomNavPill: solo per ruoli app (non admin_sistema che va su /admin) */}
       <BottomNavPill />
       <SwRegistration />
+      {/* PushRegistrar: subscription push (Task B7) — dipende da SW pronto, montato accanto */}
+      <PushRegistrar />
     </RealtimeProvider>
   )
 }

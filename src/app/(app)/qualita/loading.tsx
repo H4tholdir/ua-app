@@ -19,7 +19,7 @@ export default function QualitaLoading() {
 function pulse(style: React.CSSProperties): React.CSSProperties {
   return {
     ...style,
-    background: 'linear-gradient(90deg, #E4DFD9 25%, #EDEDEA 50%, #E4DFD9 75%)',
+    background: 'linear-gradient(90deg, var(--sfc, #E4DFD9) 25%, var(--elv, #EDEDEA) 50%, var(--sfc, #E4DFD9) 75%)',
     backgroundSize: '200% 100%',
     animation: 'ua-skeleton-pulse 1.4s ease-in-out infinite',
   }

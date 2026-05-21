@@ -22,6 +22,31 @@ const DISABLED_TABS: TabId[] = [
   'documenti',
 ]
 
+// Maps logical field names to their DOM element ids (for auto-focus on error)
+const FIELD_TO_DOM_ID: Record<string, string> = {
+  cliente_id: 'field-cliente_id',
+  tipo_dispositivo: 'field-tipo_dispositivo',
+  descrizione: 'field-descrizione',
+  data_consegna_prevista: 'field-data_consegna_prevista',
+}
+
+const REQUIRED_FIELDS = ['cliente_id', 'tipo_dispositivo', 'descrizione', 'data_consegna_prevista'] as const
+type RequiredField = typeof REQUIRED_FIELDS[number]
+
+function validateField(field: RequiredField, value: unknown): string {
+  switch (field) {
+    case 'cliente_id': return !value ? 'Seleziona il dentista' : ''
+    case 'tipo_dispositivo': return !value ? 'Seleziona il tipo di dispositivo' : ''
+    case 'descrizione': return !String(value ?? '').trim() ? 'Inserisci una descrizione' : ''
+    case 'data_consegna_prevista': return !value ? 'Inserisci la data di consegna' : ''
+  }
+}
+
+function getLastClienteId(): string {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem('ua_last_cliente_id') ?? ''
+}
+
 export default function NuovoLavoroPage() {
   const router = useRouter()
   const [formData, setFormData] = useState<Partial<Lavoro>>({
@@ -34,36 +59,65 @@ export default function NuovoLavoroPage() {
     dispositivo_semilavorato: false,
     note_interne: null,
   })
-  const [clienteId, setClienteId] = useState('')
+  const [clienteId, setClienteId] = useState(getLastClienteId)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const handleChange = useCallback((updates: Partial<Lavoro>) => {
     setFormData((prev) => ({ ...prev, ...updates }))
     setError(null)
+    // Real-time: clear errors for fields being edited
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      for (const k of Object.keys(updates)) delete next[k]
+      return next
+    })
   }, [])
 
   const handleClienteChange = useCallback((id: string) => {
     setClienteId(id)
     setError(null)
+    if (id) {
+      // Persist last used cliente for next form session
+      localStorage.setItem('ua_last_cliente_id', id)
+      // Real-time: clear cliente_id error when a dentista is selected
+      setFieldErrors((prev) => {
+        const next = { ...prev }
+        delete next['cliente_id']
+        return next
+      })
+    }
   }, [])
-
-  // Validazione client
-  function validate(): string | null {
-    if (!clienteId) return 'Seleziona un dentista.'
-    if (!formData.tipo_dispositivo) return 'Seleziona il tipo di dispositivo.'
-    if (!formData.descrizione?.trim()) return 'Inserisci una descrizione.'
-    if (!formData.data_consegna_prevista) return 'Inserisci la data di consegna.'
-    return null
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const validationError = validate()
-    if (validationError) {
-      setError(validationError)
+
+    // Validate all required fields at once
+    const fieldValues: Record<RequiredField, unknown> = {
+      cliente_id: clienteId,
+      tipo_dispositivo: formData.tipo_dispositivo,
+      descrizione: formData.descrizione,
+      data_consegna_prevista: formData.data_consegna_prevista,
+    }
+    const errors: Record<string, string> = {}
+    for (const field of REQUIRED_FIELDS) {
+      const err = validateField(field, fieldValues[field])
+      if (err) errors[field] = err
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      // Auto-focus first error field
+      const firstField = REQUIRED_FIELDS.find((f) => errors[f])
+      if (firstField) {
+        const domId = FIELD_TO_DOM_ID[firstField]
+        const el = document.getElementById(domId)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el?.focus()
+      }
       return
     }
+    setFieldErrors({})
 
     setSubmitting(true)
     setError(null)
@@ -97,7 +151,7 @@ export default function NuovoLavoroPage() {
       />
 
       <form onSubmit={handleSubmit} noValidate>
-        <LavoroFormShell defaultTab="dati">
+        <LavoroFormShell defaultTab="dati" isCreating={true}>
           {(activeTab) => {
             // Tab abilitata anche prima della creazione: Accettazione MDR
             if (activeTab === 'accettazione') {
@@ -135,6 +189,7 @@ export default function NuovoLavoroPage() {
                 onChange={handleChange}
                 clienteId={clienteId}
                 onClienteChange={handleClienteChange}
+                fieldErrors={fieldErrors}
               />
             )
           }}

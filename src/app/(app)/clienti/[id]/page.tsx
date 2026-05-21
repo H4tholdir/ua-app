@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkButtons'
+import { ClienteModificaButton } from '@/components/features/clienti/ClienteModificaButton'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -137,32 +138,29 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
     .filter(Boolean)
     .join(', ') || null
 
-  // Bottone modifica (placeholder — form in Fase 3)
   const modButton = (
-    <button
-      disabled
-      aria-label="Modifica cliente — disponibile in Fase 3"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        height: '40px',
-        minHeight: '52px',
-        padding: '0 16px',
-        borderRadius: '12px',
-        background: 'var(--elv, #EDEDEA)',
-        color: 'var(--t2, #96918D)',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: 600,
-        fontSize: '14px',
-        border: 'none',
-        cursor: 'not-allowed',
-        flexShrink: 0,
+    <ClienteModificaButton
+      cliente={{
+        id: c.id,
+        studio_nome: c.studio_nome,
+        nome: c.nome,
+        cognome: c.cognome,
+        telefono: c.telefono,
+        email: c.email,
+        indirizzo: c.indirizzo,
+        cap: c.cap,
+        citta: c.citta,
+        provincia: c.provincia,
+        partita_iva: c.partita_iva,
+        codice_fiscale: c.codice_fiscale,
+        codice_sdi: c.codice_sdi,
+        pec: c.pec,
+        listino_numero: c.listino_numero,
+        sconto_percentuale: c.sconto_percentuale,
+        modalita_pagamento: c.modalita_pagamento,
+        note: c.note,
       }}
-    >
-      Modifica
-    </button>
+    />
   )
 
   return (
