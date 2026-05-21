@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 import { hapticMedium, hapticSuccess } from '@/lib/feedback/haptic'
+import { soundSegnalazione } from '@/lib/feedback/sounds'
 import type { TipoSegnalazione } from '@/types/domain'
 
 export interface SegnalaProblemaSheetProps {
@@ -75,6 +76,7 @@ export function SegnalaProblemaSheet({
         return
       }
       hapticSuccess()
+      soundSegnalazione()
       setSelectedTipo(null)
       setNota('')
       onSegnalato?.()

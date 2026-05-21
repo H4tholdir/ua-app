@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import useSound from 'use-sound'
-import { t } from '@/design-system/motion'
+import { t, CELEBRATION } from '@/design-system/motion'
 import type { ConsegnaError } from '@/types/domain'
 import { MaterialiWarningSheet } from './MaterialiWarningSheet'
+import { soundConsegna } from '@/lib/feedback/sounds'
 
 interface MaterialeCarente {
   nome: string
@@ -81,6 +82,7 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
 
       if (res.ok) {
         try { playSuccess() } catch { /* suono facoltativo */ }
+        soundConsegna()
         setStato('success')
         onSuccess?.()
         return
@@ -176,7 +178,29 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
         aria-label={BUTTON_TEXT[stato]}
         aria-busy={stato === 'loading'}
       >
-        {BUTTON_TEXT[stato]}
+        <AnimatePresence mode="wait" initial={false}>
+          {stato === 'success' ? (
+            <motion.span
+              key="success"
+              initial={CELEBRATION.popScale.initial}
+              animate={{ ...CELEBRATION.popScale.animate, scale: [...CELEBRATION.popScale.animate.scale] }}
+              transition={CELEBRATION.popScale.transition}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              {BUTTON_TEXT[stato]}
+            </motion.span>
+          ) : (
+            <motion.span
+              key={stato}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={t('fast', 'enter')}
+            >
+              {BUTTON_TEXT[stato]}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.button>
 
       <AnimatePresence>
