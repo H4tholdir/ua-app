@@ -137,7 +137,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
           Tipo dispositivo <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
         </label>
         <select
-          id="tipo_dispositivo"
+          id="field-tipo_dispositivo"
           name="tipo_dispositivo"
           required
           value={data.tipo_dispositivo ?? ''}
@@ -179,7 +179,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
           Descrizione <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
         </label>
         <textarea
-          id="descrizione"
+          id="field-descrizione"
           name="descrizione"
           required
           rows={3}
@@ -314,7 +314,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
             Data consegna <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
           </label>
           <input
-            id="data_consegna_prevista"
+            id="field-data_consegna_prevista"
             name="data_consegna_prevista"
             type="date"
             required
