@@ -46,10 +46,15 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
   void sha256 // hash disponibile per future integrità
 
   // Salva url e numero sul lavoro per il recupero idempotente (fix review: buono STUB)
-  await supabase
+  const { count: buonoUpdateCount } = await supabase
     .from('lavori')
-    .update({ buono_pdf_url: pdfUrl, buono_numero: numero })
+    .update({ buono_pdf_url: pdfUrl, buono_numero: numero }, { count: 'exact' })
     .eq('id', lavoro.id)
+    .eq('laboratorio_id', lavoro.laboratorio_id)
+
+  if (buonoUpdateCount === 0) {
+    throw new Error(`[Buono] UPDATE affected 0 rows — tenant mismatch for lavoro ${lavoro.id}`)
+  }
 
   return { numero, url: pdfUrl }
 }

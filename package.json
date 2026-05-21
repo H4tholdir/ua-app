@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
-    "@gsap/react": "^2",
     "@hookform/resolvers": "^5.2.2",
     "@react-pdf/renderer": "^4.5.1",
     "@rive-app/react-canvas": "^4",
@@ -28,7 +27,6 @@
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "gsap": "^3",
     "lucide-react": "^1.14.0",
     "motion": "^12",
     "next": "16.2.6",
