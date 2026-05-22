@@ -4,14 +4,17 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 const PATCH_ALLOWLIST = [
+  'nome',
+  'codice',
+  'categoria',
+  'unita_misura',
+  'descrizione',
   'prezzo_1',
   'prezzo_2',
   'prezzo_3',
   'prezzo_4',
   'compenso_tecnico',
   'costo_materiali_estimated',
-  'nome',
-  'descrizione',
 ] as const
 
 type AllowedField = (typeof PATCH_ALLOWLIST)[number]
