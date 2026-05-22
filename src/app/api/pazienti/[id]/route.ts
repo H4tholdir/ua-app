@@ -3,6 +3,61 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
+  }
+
+  const { id } = await params
+
+  const userClient = await getServerUserClient()
+  const {
+    data: { user },
+  } = await userClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  }
+
+  const svc = getServiceClient()
+  const { data: utente } = await svc
+    .from('utenti')
+    .select('laboratorio_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!utente?.laboratorio_id) {
+    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+  }
+
+  const body = await req.json()
+
+  // Allowlist — solo campi sicuri da modificare
+  const ALLOWED = ['codice_paziente', 'note', 'anamnesi', 'asl', 'sesso', 'data_nascita'] as const
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  for (const field of ALLOWED) {
+    if (field in body) updates[field] = body[field]
+  }
+
+  if (Object.keys(updates).length === 1) {
+    return NextResponse.json({ error: 'Nessun campo da aggiornare' }, { status: 400 })
+  }
+
+  const { error } = await svc
+    .from('pazienti')
+    .update(updates)
+    .eq('id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
