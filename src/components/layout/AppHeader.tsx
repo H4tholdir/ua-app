@@ -1,7 +1,8 @@
-// Server-safe — NO 'use client'. ThemeToggleButton è un Client island.
+// Server-safe — NO 'use client'. ThemeToggleButton e SyncBadge sono Client islands.
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ThemeToggleButton } from './ThemeToggleButton'
+import { SyncBadge } from './SyncBadge'
 
 // Design tokens v2.2 — warm panna palette
 const DS = {
@@ -18,9 +19,10 @@ interface AppHeaderProps {
   backHref?: string
   actions?: ReactNode
   showThemeToggle?: boolean
+  lastUpdatedAt?: Date | null
 }
 
-export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = true }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = true, lastUpdatedAt }: AppHeaderProps) {
   // Always add 64px right padding to leave space for the fixed UserProfileSheet avatar (right:16 + width:40 = 56px → 64px safe)
   return (
     <header
@@ -100,7 +102,7 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
         )}
       </div>
 
-      {(showThemeToggle || actions) && (
+      {(showThemeToggle || actions || lastUpdatedAt !== undefined) && (
         <div
           style={{
             display: 'flex',
@@ -109,6 +111,7 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
             flexShrink: 0,
           }}
         >
+          {lastUpdatedAt !== undefined && <SyncBadge lastUpdatedAt={lastUpdatedAt} />}
           {/* ThemeToggleButton è un Client Component island — safe anche da Server Components */}
           {showThemeToggle && <ThemeToggleButton />}
           {actions}
