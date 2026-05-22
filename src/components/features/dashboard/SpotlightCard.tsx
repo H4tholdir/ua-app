@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { t } from '@/design-system/motion'
+import { t, useReducedMotion } from '@/design-system/motion'
 import { motion } from 'motion/react'
 
 const DS = {
@@ -58,6 +58,7 @@ export function SpotlightCard({
   tipo,
   timestamp_segnalazione,
 }: SpotlightCardProps) {
+  const reduced = useReducedMotion()
   if (!tipo) return null
 
   const eyebrowLabel =
@@ -69,7 +70,7 @@ export function SpotlightCard({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={t('normal', 'enter')}
+      transition={reduced ? t('instant') : t('normal', 'enter')}
       style={{
         margin: '0 14px 12px',
         background: DS.sfc,
@@ -95,7 +96,7 @@ export function SpotlightCard({
           style={{
             width: '7px', height: '7px', borderRadius: '50%',
             background: DS.primary,
-            animation: 'ua-pulse 2.5s infinite',
+            animation: reduced ? 'none' : 'ua-pulse 2.5s infinite',
           }}
         />
         {eyebrowLabel}
