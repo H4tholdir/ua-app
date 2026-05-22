@@ -1,11 +1,11 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 22 maggio 2026 — V1.8.2 — Visual audit P0 + dark mode + background fix
+**Ultimo aggiornamento:** 22 maggio 2026 — V1.8.2 live + Dashboard V2 spec+plan approvati
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.8.2 (branch fix/visual-audit-p0)
+## 0. STATO DEL PROGETTO — V1.8.2 IN PRODUZIONE
 
-**V1.8.1 in produzione su https://uachelab.com — V1.8.2 in branch, pronto per merge**
+**V1.8.2 in produzione su https://uachelab.com — 22/05/2026**
 
 | Versione | Data | Tag | Contenuto |
 |----------|------|-----|-----------|
@@ -16,9 +16,34 @@
 | V1.7.9 | 22/05/2026 | `v1.7.9` | Pazienti PATCH, Listino edit, Dark mode 27 file |
 | V1.8.0 | 22/05/2026 | `v1.8.0` | Error boundaries, loading completo, splash screens iOS |
 | V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
-| **V1.8.2** | **22/05/2026** | **branch** | **Visual audit P0: dark mode, background, overflow, STOR/ filter** |
+| **V1.8.2** | **22/05/2026** | **`main`** | **Visual audit P0: body bg warm panna, grid overflow, dark mode toggle, STOR/ filter** |
 
-**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅ · CI verde ✅
+
+### 🔜 PROSSIMA MILESTONE: Dashboard V2 (V1.9)
+
+**Piano pronto — inizia implementazione in sessione nuova.**
+
+- **Spec:** `docs/superpowers/specs/2026-05-22-dashboard-v2-redesign.md`
+- **Piano:** `docs/superpowers/plans/2026-05-22-dashboard-v2.md` — 13 task, TDD
+- **Approccio:** subagent-driven-development — un subagente per task
+
+**Design approvato da Francesco:**
+- Config 1 Spotlight: SpotlightCard hero + KPI 2×2 cliccabili come filtri + TaskList
+- Separazione tab Gestione (business) / Produzione (lavori) per ruolo ibrido Titolare+Tecnico
+- KPI: Playfair Display 38–44px, cliccabili → navigano a lista pre-filtrata
+- Dark mode carbonio corretto: token esatti da `admin.css` (sh-b/sh-c/sh-i neri profondi)
+- Dark mode toggle: SOLO in `/impostazioni`, non nell'UI operativa
+- Nav pill: tooltip "Nuovo lavoro" su "+", drag&drop long-press, pin shortcuts — IMMEDIATI
+- Sync badge sostituisce LIVE: "Aggiornato ora / X min fa" + dot status
+- Avatar nell'header normale (non fixed overlay)
+- Desktop 1280px: 2 colonne (Produzione | Gestione)
+
+**Istruzione di avvio:**
+```
+Implementa il Dashboard V2 partendo dal piano in docs/superpowers/plans/2026-05-22-dashboard-v2.md.
+Usa il skill superpowers:subagent-driven-development. Inizia dal Task 1.
+```
 
 ### 🆕 Fix V1.8.2 — Visual Audit P0 (22/05/2026, commit 1afb06d)
 - **Body background**: `var(--bg, #DDD8D3)` warm panna su tutti i dispositivi (era bianco su desktop)
