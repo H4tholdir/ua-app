@@ -363,7 +363,7 @@ export function DashboardTecnico({ data, lavoriOggi, nomeUtente, tecnicoId }: Da
         {/* I miei lavori — lista con TaskItem e progress reale */}
         <Section delay={stagger} reducedMotion={reducedMotion}>
           <SectionLabel>I miei lavori oggi</SectionLabel>
-          <div style={{ padding: '0 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {lavoriOggi.length === 0 ? (
               <EmptyState message="Nessun lavoro assegnato per oggi" />
             ) : (
