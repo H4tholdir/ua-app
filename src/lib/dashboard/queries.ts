@@ -477,8 +477,7 @@ export async function getLavoriTecnicoOggi(
     const completamento = fasi.length > 0
       ? Math.round(fasi.filter(f => f.eseguita_at !== null).length / fasi.length * 100)
       : statoToPerc(l.stato)
-    const c = l.clienti
-    const cliente_display = c?.studio_nome ?? (c ? `${c.nome} ${c.cognome}` : '—')
+    const cliente_display = clienteDisplay(l.clienti)
     return {
       id: l.id,
       numero_lavoro: l.numero_lavoro,
