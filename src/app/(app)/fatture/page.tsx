@@ -365,7 +365,7 @@ export default async function FatturePage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '11px',
-                            color: '#6677AA',
+                            color: 'var(--t2, #96918D)',
                             margin: '4px 0 0',
                           }}
                         >
@@ -384,7 +384,7 @@ export default async function FatturePage() {
                         fill="none"
                         aria-label="XML generato"
                         role="img"
-                        style={{ flexShrink: 0, color: '#74C0FC' }}
+                        style={{ flexShrink: 0, color: 'var(--info, #2563EB)' }}
                       >
                         <path
                           d="M13 2H6L3 5v9h10V2z"

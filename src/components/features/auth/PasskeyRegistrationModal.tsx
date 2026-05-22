@@ -83,7 +83,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
       }}
     >
       <div style={{
-        background: '#fff', borderRadius: '20px 20px 0 0',
+        background: 'var(--sfc, #E4DFD9)', borderRadius: '20px 20px 0 0',
         width: '100%', maxWidth: 480,
         padding: '28px 24px 32px',
         textAlign: 'center',
@@ -92,7 +92,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
         <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px', color: 'var(--t1, #1C1916)' }}>
           Accedi più veloce
         </h2>
-        <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '0.9rem', color: 'var(--t2, #96918D)', margin: '0 0 24px', lineHeight: 1.5 }}>
           Attiva Touch ID o Face ID su questo dispositivo.
           <br />La prossima volta entri in un tap, senza password.
         </p>
@@ -104,7 +104,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
         )}
 
         {state === 'error' && (
-          <p style={{ color: '#e53e3e', fontSize: '0.85rem', marginBottom: 16 }}>{errorMsg}</p>
+          <p style={{ color: 'var(--primary, #D90012)', fontSize: '0.85rem', marginBottom: 16 }}>{errorMsg}</p>
         )}
 
         {state !== 'success' && (
@@ -128,7 +128,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
               disabled={state === 'registering'}
               style={{
                 background: 'transparent', border: 'none',
-                color: '#9ca3af', fontSize: '0.85rem',
+                color: 'var(--t3, #B8B3AE)', fontSize: '0.85rem',
                 cursor: 'pointer', padding: '8px',
               }}
             >

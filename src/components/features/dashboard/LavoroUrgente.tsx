@@ -5,15 +5,15 @@ import type { StatoLavoro, PrioritaLavoro } from '@/types/domain'
 
 // Complete map — all 9 StatoLavoro values covered
 const STATO_COLORS: Record<StatoLavoro, string> = {
-  ricevuto:          '#9CA3AF',
-  in_lavorazione:    '#2563EB',
-  in_prova:          '#B45309',
-  in_prova_esterna:  '#E67700',
-  pronto:            '#16A34A',
-  consegnato:        '#9CA3AF',
-  annullato:         '#9CA3AF',
-  sospeso:           '#868E96',
-  in_ritardo:        '#D90012',
+  ricevuto:          'var(--t3, #B8B3AE)',
+  in_lavorazione:    'var(--info, #2563EB)',
+  in_prova:          'var(--warning, #B45309)',
+  in_prova_esterna:  'var(--urgente, #F97316)',
+  pronto:            'var(--success, #16A34A)',
+  consegnato:        'var(--t3, #B8B3AE)',
+  annullato:         'var(--t3, #B8B3AE)',
+  sospeso:           'var(--t2, #96918D)',
+  in_ritardo:        'var(--primary, #D90012)',
 }
 
 interface LavoroUrgenteProps {
@@ -53,7 +53,7 @@ export function LavoroUrgente({
   is_urgente,
   showStatoBadge,
 }: LavoroUrgenteProps) {
-  const statoColor = STATO_COLORS[stato] ?? '#9CA3AF'
+  const statoColor = STATO_COLORS[stato] ?? 'var(--t3, #B8B3AE)'
 
   const urgencyLabel =
     stato === 'in_ritardo'
@@ -147,7 +147,7 @@ export function LavoroUrgente({
                   : 'rgba(37,99,235,.12)',
                 color: stato === 'pronto'
                   ? 'var(--success, #16A34A)'
-                  : '#2563EB',
+                  : 'var(--info, #2563EB)',
               }}
             >
               {stato === 'pronto' ? '✓ Pronto' : '⚙ In lavorazione'}
@@ -181,7 +181,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 12,
               fontWeight: 500,
-              color: stato === 'in_ritardo' ? '#D90012' : 'var(--t2, #96918D)',
+              color: stato === 'in_ritardo' ? 'var(--primary, #D90012)' : 'var(--t2, #96918D)',
               flexShrink: 0,
             }}
           >

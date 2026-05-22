@@ -31,15 +31,15 @@ const STATO_GLYPHS: Record<StatoLavoro, string> = {
 }
 
 const STATO_COLORS: Record<StatoLavoro, string> = {
-  in_ritardo:       '#D90012',
-  in_prova:         '#B45309',
-  in_prova_esterna: '#B45309',
-  in_lavorazione:   '#2563EB',
-  pronto:           '#16A34A',
-  consegnato:       '#9CA3AF',
-  ricevuto:         '#9CA3AF',
-  annullato:        '#9CA3AF',
-  sospeso:          '#9CA3AF',
+  in_ritardo:       'var(--primary, #D90012)',
+  in_prova:         'var(--warning, #B45309)',
+  in_prova_esterna: 'var(--warning, #B45309)',
+  in_lavorazione:   'var(--info, #2563EB)',
+  pronto:           'var(--success, #16A34A)',
+  consegnato:       'var(--t3, #B8B3AE)',
+  ricevuto:         'var(--t3, #B8B3AE)',
+  annullato:        'var(--t3, #B8B3AE)',
+  sospeso:          'var(--t3, #B8B3AE)',
 }
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
@@ -494,7 +494,7 @@ export function LavoroCard({
             borderRadius: '100px',
             background: 'rgba(212,168,67,.15)',
             border: '1px solid rgba(212,168,67,.35)',
-            color: '#92400E',
+            color: 'var(--warning, #B45309)',
             fontSize: '10px',
             fontWeight: 800,
             letterSpacing: '0.06em',
@@ -753,7 +753,7 @@ export function LavoroCard({
         }}
       >
         <ActionButton
-          color="#2563EB"
+          color="var(--info, #2563EB)"
           icon="👤"
           label="Assegna"
           onClick={handleAssegna}
@@ -891,7 +891,7 @@ export function LavoroCard({
                 >
                   <SheetAction
                     icon="👤"
-                    color="#2563EB"
+                    color="var(--info, #2563EB)"
                     title="Assegna tecnico"
                     sub={tecnico_id ? 'Tecnico già assegnato' : 'Nessun tecnico assegnato'}
                     onClick={handleAssegna}
@@ -942,7 +942,7 @@ export function LavoroCard({
                     <SheetAction
                       key={tec.id}
                       icon="👤"
-                      color={tec.id === tecnico_id ? '#16A34A' : '#2563EB'}
+                      color={tec.id === tecnico_id ? 'var(--success, #16A34A)' : 'var(--info, #2563EB)'}
                       title={`${tec.nome} ${tec.cognome}`}
                       sub={tec.sigla ?? undefined}
                       onClick={() => selectTecnico(tec.id)}

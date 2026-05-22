@@ -274,7 +274,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      background: '#FEF2F2',
+                      background: 'rgba(217,0,18,.10)',
                       border: 'none',
                       color: 'var(--primary, #D90012)',
                       cursor: 'pointer',
