@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it" className="h-full">
+    <html lang="it" className="h-full" suppressHydrationWarning>
       <head>
         <ThemeInitializer />
         {/* Apple Splash Screens */}

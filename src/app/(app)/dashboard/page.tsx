@@ -119,7 +119,7 @@ export default async function DashboardPage() {
       .order('ora_consegna', { ascending: true, nullsFirst: false })
       .limit(30)
 
-    // Lavori in ritardo
+    // Lavori in ritardo (esclude storico importato, prefisso STOR/)
     const { data: ritardoData } = await svc
       .from('lavori')
       .select(
@@ -128,6 +128,7 @@ export default async function DashboardPage() {
       .eq('laboratorio_id', labId)
       .is('deleted_at', null)
       .eq('stato', 'in_ritardo')
+      .not('numero_lavoro', 'ilike', 'STOR/%')
       .order('data_consegna_prevista', { ascending: true })
       .limit(20)
 

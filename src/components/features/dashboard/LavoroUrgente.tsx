@@ -168,6 +168,10 @@ export function LavoroUrgente({
               fontSize: 12,
               fontWeight: 500,
               color: 'var(--t2, #96918D)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
             }}
           >
             #{numero_lavoro}
