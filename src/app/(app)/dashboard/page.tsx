@@ -9,6 +9,7 @@ import {
   getLavoriInProvaRientro,
   getTecnicoDashboard,
   getFrontDeskDashboard,
+  getLavoriTecnicoOggi, // eslint-disable-line @typescript-eslint/no-unused-vars
 } from '@/lib/dashboard/queries'
 import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
@@ -87,8 +88,25 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'Utente'
 
+  // ─── Rilevamento ruolo ibrido Titolare+Tecnico ────────────────────────────
+  const isTitolare = ruolo === 'titolare' || ruolo === 'admin_rete'
+
+  let tecnicoIdPerTitolare: string | null = null
+  if (isTitolare) {
+    const { data: tecnicoRow } = await svc
+      .from('tecnici')
+      .select('id')
+      .eq('utente_id', user.id)
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .maybeSingle()
+    tecnicoIdPerTitolare = tecnicoRow?.id ?? null
+  }
+
+  const isHybrid = isTitolare && !!tecnicoIdPerTitolare // eslint-disable-line @typescript-eslint/no-unused-vars
+
   // ─── TITOLARE / admin_rete ────────────────────────────────────────────────
-  if (ruolo === 'titolare' || ruolo === 'admin_rete') {
+  if (isTitolare) {
     const { data: cacheRow } = await svc
       .from('dashboard_kpi_cache')
       .select('aggiornato_at')
