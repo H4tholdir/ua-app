@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { PazienteArchiviaButton } from '@/components/features/pazienti/PazienteArchiviaButton'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -13,7 +14,7 @@ export default async function PazienteDetailPage({ params }: Props) {
   if (!user) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
+  const { data: utente } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', user.id).single()
   if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
 
   const { data: paziente } = await svc
@@ -22,6 +23,8 @@ export default async function PazienteDetailPage({ params }: Props) {
     .eq('id', id).eq('laboratorio_id', utente.laboratorio_id).single()
 
   if (!paziente) redirect('/pazienti')
+
+  const canEdit = utente.ruolo === 'titolare' || utente.ruolo === 'admin_rete'
 
   const { data: lavori } = await svc
     .from('lavori')
@@ -77,6 +80,16 @@ export default async function PazienteDetailPage({ params }: Props) {
           {(!lavori || lavori.length === 0) && (
             <div style={{ ...card, color: 'var(--t3)', fontSize: '13px', textAlign: 'center', fontFamily: 'DM Sans, sans-serif' }}>
               Nessun lavoro trovato per questo paziente.
+            </div>
+          )}
+
+          {/* Archivia paziente — solo titolare/admin_rete */}
+          {canEdit && (
+            <div style={{ marginTop: '20px' }}>
+              <PazienteArchiviaButton
+                pazienteId={paziente.id}
+                pazienteNome={paziente.nome_cognome}
+              />
             </div>
           )}
         </div>
