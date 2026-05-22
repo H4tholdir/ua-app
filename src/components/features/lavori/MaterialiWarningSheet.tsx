@@ -271,7 +271,7 @@ export function MaterialiWarningSheet({
                           : 'rgba(212,168,67,.16)',
                         color: isEsaurito
                           ? 'var(--primary, #D90012)'
-                          : '#8A6B00',
+                          : 'var(--warning, #B45309)',
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '11px',
                         fontWeight: 700,

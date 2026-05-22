@@ -14,8 +14,8 @@ const DS = {
   t1:      'var(--t1, #1C1916)',
   t2:      'var(--t2, #96918D)',
   t3:      'var(--t3, #B8B3AE)',
-  info:    '#2563EB',
-  primary: '#D90012',
+  info:    'var(--info, #2563EB)',
+  primary: 'var(--primary, #D90012)',
   shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
   shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
 }
@@ -277,9 +277,9 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
         }}
       >
         {[
-          { value: lavori_urgenti.length, label: 'Urgenti', color: '#D90012' },
-          { value: lavori_oggi.length, label: 'Oggi', color: '#2563EB' },
-          { value: 84, label: 'Puntualità %', color: '#16A34A' },
+          { value: lavori_urgenti.length, label: 'Urgenti', color: 'var(--primary, #D90012)' },
+          { value: lavori_oggi.length, label: 'Oggi', color: 'var(--info, #2563EB)' },
+          { value: 84, label: 'Puntualità %', color: 'var(--success, #16A34A)' },
         ].map((kpi) => (
           <div
             key={kpi.label}

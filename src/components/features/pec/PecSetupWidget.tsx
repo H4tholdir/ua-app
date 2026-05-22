@@ -205,7 +205,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
             </span>
           )}
           {phase === 'provider_unknown' && (
-            <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 700, color: '#fff', background: '#6B7280', padding: '2px 8px', borderRadius: '5px', fontFamily: 'DM Sans, sans-serif' }}>
+            <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 700, color: 'var(--t1, #1C1916)', background: 'var(--prs, #D4CFC9)', padding: '2px 8px', borderRadius: '5px', fontFamily: 'DM Sans, sans-serif' }}>
               ? Non riconosciuto
             </span>
           )}

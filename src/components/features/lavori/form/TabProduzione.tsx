@@ -24,21 +24,21 @@ function formatTimestamp(iso: string): string {
 const ESITO_CONFIG = {
   ok: {
     label: 'OK',
-    bg: '#DCFCE7',
+    bg: 'rgba(22,163,74,.10)',
     bgActive: 'var(--success, #16A34A)',
     color: 'var(--success, #16A34A)',
     colorActive: '#fff',
   },
   non_conforme: {
     label: 'Non conf.',
-    bg: '#FEF2F2',
+    bg: 'rgba(217,0,18,.10)',
     bgActive: 'var(--primary, #D90012)',
     color: 'var(--primary, #D90012)',
     colorActive: '#fff',
   },
   parziale: {
     label: 'Parziale',
-    bg: '#FFF7ED',
+    bg: 'rgba(249,115,22,.10)',
     bgActive: 'var(--urgente, #F97316)',
     color: 'var(--urgente, #F97316)',
     colorActive: '#fff',
