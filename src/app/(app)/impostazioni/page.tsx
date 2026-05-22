@@ -59,7 +59,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
-          color: value ? 'var(--t1, #1C1916)' : '#6677AA',
+          color: value ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
           fontStyle: value ? 'normal' : 'italic',
         }}
       >

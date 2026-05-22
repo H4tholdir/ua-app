@@ -193,7 +193,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
                     {email}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(37,99,235,.10)', color: '#2563EB', letterSpacing: '.04em' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(37,99,235,.10)', color: 'var(--info, #2563EB)', letterSpacing: '.04em' }}>
                       {ruolo}
                     </span>
                     <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'rgba(148,145,141,.10)', color: DS.t2 }}>
@@ -266,7 +266,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
                   label="Abbonamento"
                   sub={
                     labStato === 'trial' && trialDate
-                      ? <span style={{ color: isExpiring ? '#B45309' : DS.green, fontWeight: 600 }}>
+                      ? <span style={{ color: isExpiring ? 'var(--warning, #B45309)' : DS.green, fontWeight: 600 }}>
                           {isExpiring ? '⚠ ' : '● '}Trial attivo — scade {trialDate}
                         </span>
                       : labStato === 'attivo'

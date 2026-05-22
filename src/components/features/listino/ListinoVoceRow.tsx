@@ -136,7 +136,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '11px',
               fontWeight: 600,
-              color: '#6677AA',
+              color: 'var(--t2, #96918D)',
               flexShrink: 0,
             }}
           >
@@ -349,7 +349,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '11px',
-            color: '#6677AA',
+            color: 'var(--t2, #96918D)',
             margin: 0,
           }}
         >

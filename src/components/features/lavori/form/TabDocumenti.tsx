@@ -80,7 +80,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
                 fontWeight: 700,
-                color: '#F08C00',
+                color: 'var(--amber, #F08C00)',
               }}
               role="status"
               aria-label="DdC non generata"
@@ -90,7 +90,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                   cx="7"
                   cy="7"
                   r="6"
-                  stroke="#F08C00"
+                  stroke="currentColor"
                   strokeWidth="1.5"
                   strokeDasharray="3 2"
                 />

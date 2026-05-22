@@ -222,7 +222,7 @@ export default async function AnalyticsPage() {
           <KpiCard
             label="MDR incompleti"
             value={String(stats.mdr_incompleti)}
-            accent="#FD7E14"
+            accent="var(--urgente, #F97316)"
           />
           <KpiCard
             label="Fatturato mese"
@@ -266,7 +266,7 @@ export default async function AnalyticsPage() {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: '#6677AA',
+              color: 'var(--t2, #96918D)',
               textAlign: 'center',
               margin: 0,
             }}

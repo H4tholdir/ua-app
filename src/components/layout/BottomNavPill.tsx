@@ -208,7 +208,7 @@ export function BottomNavPill() {
                   minWidth: '56px',
                   minHeight: '56px',
                   borderRadius: '50%',
-                  background: '#FFFFFF',
+                  background: 'var(--elv, #EDEDEA)',
                   color: DS.primary,
                   textDecoration: 'none',
                   flexShrink: 0,

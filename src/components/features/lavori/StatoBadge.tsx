@@ -8,14 +8,14 @@ interface ColoreConfig {
 
 const COLORI: Record<StatoLavoro, ColoreConfig> = {
   ricevuto:          { bg: 'var(--elv, #EDEDEA)', fg: 'var(--t2, #96918D)', label: 'Ricevuto' },
-  in_lavorazione:    { bg: '#DBEAFE', fg: 'var(--info, #2563EB)', label: 'In lavorazione' },
-  in_prova:          { bg: '#F3E8FF', fg: 'var(--purple, #7C3AED)', label: 'In prova' },
-  in_prova_esterna:  { bg: '#FFF7ED', fg: 'var(--urgente, #F97316)', label: 'In prova esterna' },
-  pronto:            { bg: '#DCFCE7', fg: 'var(--success, #16A34A)', label: 'Pronto' },
-  consegnato:        { bg: '#F0FDF4', fg: '#15803D', label: 'Consegnato' },
+  in_lavorazione:    { bg: 'rgba(37,99,235,.10)', fg: 'var(--info, #2563EB)', label: 'In lavorazione' },
+  in_prova:          { bg: 'rgba(124,58,237,.10)', fg: 'var(--purple, #7C3AED)', label: 'In prova' },
+  in_prova_esterna:  { bg: 'rgba(249,115,22,.10)', fg: 'var(--urgente, #F97316)', label: 'In prova esterna' },
+  pronto:            { bg: 'rgba(22,163,74,.10)', fg: 'var(--success, #16A34A)', label: 'Pronto' },
+  consegnato:        { bg: 'rgba(22,163,74,.10)', fg: 'var(--success, #16A34A)', label: 'Consegnato' },
   annullato:         { bg: 'var(--elv, #EDEDEA)', fg: 'var(--t2, #96918D)', label: 'Annullato' },
   sospeso:           { bg: 'var(--elv, #EDEDEA)', fg: 'var(--t2, #96918D)', label: 'Sospeso' },
-  in_ritardo:        { bg: '#FEF2F2', fg: 'var(--primary, #D90012)', label: 'In ritardo' },
+  in_ritardo:        { bg: 'rgba(217,0,18,.10)', fg: 'var(--primary, #D90012)', label: 'In ritardo' },
 }
 
 interface StatoBadgeProps {

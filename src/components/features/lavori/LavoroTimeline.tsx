@@ -94,7 +94,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
 
           // Colori dot
           const dotColor = isAnnullato
-            ? '#2A1A1A'
+            ? 'var(--prs, #D4CFC9)'
             : isCompleted
             ? 'var(--success, #16A34A)'
             : isCurrent
@@ -211,7 +211,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                     fontSize: '14px',
                     fontWeight: isCurrent ? 700 : isCompleted ? 500 : 400,
                     color: isAnnullato
-                      ? '#868E96'
+                      ? 'var(--t3, #B8B3AE)'
                       : isCurrent
                       ? isInRitardo
                         ? 'var(--primary, #D90012)'
@@ -230,7 +230,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                         fontSize: '11px',
                         fontWeight: 600,
                         color: 'var(--primary, #D90012)',
-                        background: '#3A1A1A',
+                        background: 'rgba(217,0,18,.12)',
                         padding: '2px 7px',
                         borderRadius: 100,
                         letterSpacing: '0.04em',
@@ -274,10 +274,10 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
             marginTop: '12px',
             padding: '10px 14px',
             borderRadius: '10px',
-            background: '#2A1A1A',
+            background: 'var(--prs, #D4CFC9)',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: '#868E96',
+            color: 'var(--t3, #B8B3AE)',
           }}
           role="status"
         >

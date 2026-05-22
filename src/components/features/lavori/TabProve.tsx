@@ -29,9 +29,9 @@ const ESITO_LABELS: Record<string, string> = {
 }
 
 const ESITO_COLORS: Record<string, { bg: string; color: string }> = {
-  ok:        { bg: '#DCFCE7', color: 'var(--success, #16A34A)' },
-  modifiche: { bg: '#FFF7ED', color: '#D97706' },
-  rifare:    { bg: '#FEF2F2', color: 'var(--primary, #D90012)' },
+  ok:        { bg: 'rgba(22,163,74,.10)', color: 'var(--success, #16A34A)' },
+  modifiche: { bg: 'rgba(217,119,6,.10)', color: 'var(--warning, #D97706)' },
+  rifare:    { bg: 'rgba(217,0,18,.10)', color: 'var(--primary, #D90012)' },
   sospeso:   { bg: 'var(--elv, #EDEDEA)', color: 'var(--t2, #96918D)' },
 }
 
@@ -162,8 +162,8 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
         <div
           role="alert"
           style={{
-            background: '#FEF2F2',
-            border: '1px solid var(--primary, #D90012)',
+            background: 'rgba(217,0,18,.08)',
+            border: '1px solid rgba(217,0,18,.30)',
             borderRadius: '12px',
             padding: '12px 16px',
             fontFamily: 'DM Sans, sans-serif',
