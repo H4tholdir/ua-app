@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { t } from '@/design-system/motion'
+import { t, useReducedMotion } from '@/design-system/motion'
 import { motion, AnimatePresence } from 'motion/react'
 
 const DS = {
@@ -29,9 +29,11 @@ export function DashboardShell({
   renderProduzione,
   showTabs = true,
 }: DashboardShellProps) {
+  const reduced = useReducedMotion()
   const [view, setView] = useState<DashView>(() => {
     if (typeof window === 'undefined') return defaultView
-    return (localStorage.getItem('ua-dashboard-view') as DashView) ?? defaultView
+    const stored = localStorage.getItem('ua-dashboard-view')
+    return (stored === 'gestione' || stored === 'produzione') ? stored : defaultView
   })
 
   useEffect(() => {
@@ -94,10 +96,10 @@ export function DashboardShell({
           key={view}
           id={`panel-${view}`}
           role="tabpanel"
-          initial={{ opacity: 0 }}
+          initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={t('fast', 'enter')}
+          exit={reduced ? {} : { opacity: 0 }}
+          transition={reduced ? { duration: 0 } : t('fast', 'enter')}
         >
           {view === 'gestione' ? renderGestione : renderProduzione}
         </motion.div>
