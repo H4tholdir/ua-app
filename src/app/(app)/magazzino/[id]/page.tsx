@@ -18,8 +18,11 @@ export default async function MagazzinoDetailPage({ params }: Props) {
 
   const { data: art } = await svc
     .from('magazzino')
-    .select('id, codice, descrizione, unita_misura, giacenza_attuale, scorta_minima, prezzo_acquisto, fornitore, note, categoria')
-    .eq('id', id).eq('laboratorio_id', utente.laboratorio_id).is('deleted_at', null).single()
+    .select('id, codice_articolo, nome, um_scarico, scorta_attuale, scorta_minima, costo_unitario, produttore, note, categoria, attivo')
+    .eq('id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('attivo', true)
+    .single()
 
   if (!art) redirect('/magazzino')
 
@@ -29,25 +32,23 @@ export default async function MagazzinoDetailPage({ params }: Props) {
     marginBottom: '12px',
   }
   const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--elv)', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }
-  const a = art as Record<string, unknown>
 
-  const isLow = typeof a.giacenza_attuale === 'number' && typeof a.scorta_minima === 'number'
-    && (a.giacenza_attuale as number) <= (a.scorta_minima as number)
+  const isLow = art.scorta_attuale <= art.scorta_minima
 
   return (
     <>
-      <AppHeader title={a.descrizione as string} backHref="/magazzino" />
+      <AppHeader title={art.nome} backHref="/magazzino" />
       <PageWrapper>
         <div style={{ padding: '0 20px 48px' }}>
           <div style={card}>
             <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px', fontFamily: 'DM Sans, sans-serif' }}>Articolo</div>
-            <div style={row}><span style={{ color: 'var(--t2)' }}>Codice</span><span style={{ fontFamily: 'monospace' }}>{a.codice as string ?? '—'}</span></div>
-            <div style={row}><span style={{ color: 'var(--t2)' }}>Categoria</span><span>{a.categoria as string ?? '—'}</span></div>
-            <div style={row}><span style={{ color: 'var(--t2)' }}>Fornitore</span><span>{a.fornitore as string ?? '—'}</span></div>
-            <div style={row}><span style={{ color: 'var(--t2)' }}>Prezzo acquisto</span><span>{typeof a.prezzo_acquisto === 'number' ? `€${(a.prezzo_acquisto as number).toFixed(2)}` : '—'}</span></div>
+            <div style={row}><span style={{ color: 'var(--t2)' }}>Codice</span><span style={{ fontFamily: 'monospace' }}>{art.codice_articolo ?? '—'}</span></div>
+            <div style={row}><span style={{ color: 'var(--t2)' }}>Categoria</span><span>{art.categoria ?? '—'}</span></div>
+            <div style={row}><span style={{ color: 'var(--t2)' }}>Produttore</span><span>{art.produttore ?? '—'}</span></div>
+            <div style={row}><span style={{ color: 'var(--t2)' }}>Costo unitario</span><span>{art.costo_unitario != null ? `€${art.costo_unitario.toFixed(2)}` : '—'}</span></div>
             <div style={{ ...row, borderBottom: 'none' }}>
               <span style={{ color: 'var(--t2)' }}>Note</span>
-              <span style={{ maxWidth: '180px', textAlign: 'right', color: 'var(--t2)' }}>{a.note as string ?? '—'}</span>
+              <span style={{ maxWidth: '180px', textAlign: 'right', color: 'var(--t2)' }}>{art.note ?? '—'}</span>
             </div>
           </div>
           <div style={card}>
@@ -55,13 +56,13 @@ export default async function MagazzinoDetailPage({ params }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: '32px', fontWeight: 900, color: isLow ? '#D90012' : 'var(--t1)', letterSpacing: '-.04em', fontFamily: 'DM Sans, sans-serif' }}>
-                  {a.giacenza_attuale as number ?? 0}
+                  {art.scorta_attuale}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>{a.unita_misura as string ?? 'pz'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>{art.um_scarico ?? 'pz'}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '12px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>Scorta minima</div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>{a.scorta_minima as number ?? 0} {a.unita_misura as string ?? 'pz'}</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>{art.scorta_minima} {art.um_scarico ?? 'pz'}</div>
               </div>
             </div>
             {isLow && (
