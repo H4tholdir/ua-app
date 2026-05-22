@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,26 @@ interface ListinoVoceRowProps {
 export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowProps) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const debounceRefCosto = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [deleted, setDeleted] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = useCallback(async () => {
+    if (!window.confirm(`Eliminare "${voce.nome}" dal listino?`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/listino/${voce.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setDeleted(true)
+      } else {
+        const json = await res.json().catch(() => ({}))
+        alert(json.error ?? 'Errore durante l\'eliminazione')
+      }
+    } catch {
+      alert('Errore di rete — riprova')
+    } finally {
+      setDeleting(false)
+    }
+  }, [voce.id, voce.nome])
 
   const handleCompensoChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +104,8 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
     },
     [voce.id]
   )
+
+  if (deleted) return null
 
   return (
     <div
@@ -330,6 +352,39 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
           /{voce.unita_misura}
         </p>
       </div>
+
+      {/* Elimina — solo titolare/admin_rete */}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          aria-label={`Elimina ${voce.nome} dal listino`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px',
+            minHeight: '44px',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'transparent',
+            cursor: deleting ? 'wait' : 'pointer',
+            color: 'var(--t3, #B8B3AE)',
+            flexShrink: 0,
+            padding: 0,
+            opacity: deleting ? 0.5 : 1,
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#D90012' }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #B8B3AE)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
     </div>
   )
 }
