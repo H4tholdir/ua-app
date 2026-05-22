@@ -162,6 +162,10 @@ export function BottomNavPill() {
     return () => document.removeEventListener('click', close)
   }, [editMode])
 
+  useEffect(() => {
+    return () => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }
+  }, [])
+
   const STORAGE_KEY = 'ua-nav-preferences'
 
   function loadNavPrefs(): { pinned: string[] } {
