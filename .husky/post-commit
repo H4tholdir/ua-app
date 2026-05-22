@@ -1,0 +1,1 @@
+graphify update . --no-viz 2>/dev/null || true

@@ -1,0 +1,11 @@
+# Worktree e snapshot storici — non appartengono al grafo principale
+.claude/
+graphify-out/
+node_modules/
+.next/
+coverage/
+test-results/
+playwright-report/
+# Script temporanei e seed
+scripts/tmp/
+scripts/seed-*.ts
