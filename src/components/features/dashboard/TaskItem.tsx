@@ -54,9 +54,6 @@ export function TaskItem({
     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
   })()
 
-  // numero_lavoro used in aria-label for accessibility
-  void numero_lavoro
-
   return (
     <Link
       href={`/lavori/${id}`}
@@ -111,6 +108,10 @@ export function TaskItem({
           </p>
         )}
         <div
+          role="progressbar"
+          aria-valuenow={completamento_perc}
+          aria-valuemin={0}
+          aria-valuemax={100}
           style={{
             height: '3px',
             background: DS.prs,
@@ -120,10 +121,6 @@ export function TaskItem({
           }}
         >
           <div
-            role="progressbar"
-            aria-valuenow={completamento_perc}
-            aria-valuemin={0}
-            aria-valuemax={100}
             style={{
               height: '100%',
               width: `${completamento_perc}%`,

@@ -33,7 +33,9 @@ describe('TaskItem', () => {
 
   it('progress bar ha larghezza proporzionale al completamento', () => {
     const { container } = render(<TaskItem {...baseProps} />)
-    const fill = container.querySelector('[role="progressbar"]') as HTMLElement
+    const bar = container.querySelector('[role="progressbar"]') as HTMLElement
+    expect(bar?.getAttribute('aria-valuenow')).toBe('78')
+    const fill = bar?.firstElementChild as HTMLElement
     expect(fill?.style.width).toBe('78%')
   })
 })
