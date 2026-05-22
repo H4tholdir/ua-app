@@ -4822,6 +4822,7 @@ export type Database = {
           mfa_enrolled_at: string | null
           mfa_metodo: string | null
           mfa_required: boolean
+          nav_preferences: Json | null
           nome: string
           ruolo: string
           session_ttl_minuti: number
@@ -4845,6 +4846,7 @@ export type Database = {
           mfa_enrolled_at?: string | null
           mfa_metodo?: string | null
           mfa_required?: boolean
+          nav_preferences?: Json | null
           nome: string
           ruolo?: string
           session_ttl_minuti?: number
@@ -4868,6 +4870,7 @@ export type Database = {
           mfa_enrolled_at?: string | null
           mfa_metodo?: string | null
           mfa_required?: boolean
+          nav_preferences?: Json | null
           nome?: string
           ruolo?: string
           session_ttl_minuti?: number
