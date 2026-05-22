@@ -407,17 +407,15 @@ export function DashboardTitolare({
             : 'ritardo'
         const cliente_display = s.clienti?.studio_nome ?? (s.clienti ? `${s.clienti.nome} ${s.clienti.cognome}` : '—')
         return (
-          <div style={{ margin: '0 16px 12px' }}>
-            <SpotlightCard
-              lavoro_id={s.id}
-              numero_lavoro={s.numero_lavoro}
-              cliente_display={cliente_display}
-              descrizione_problema={s.segnalazione_nota ?? TIPI_LABEL[s.segnalazione_tipo as keyof typeof TIPI_LABEL] ?? s.segnalazione_tipo}
-              ora_consegna={null}
-              tipo={tipo}
-              timestamp_segnalazione={s.segnalazione_at}
-            />
-          </div>
+          <SpotlightCard
+            lavoro_id={s.id}
+            numero_lavoro={s.numero_lavoro}
+            cliente_display={cliente_display}
+            descrizione_problema={s.segnalazione_nota ?? TIPI_LABEL[s.segnalazione_tipo as keyof typeof TIPI_LABEL] ?? s.segnalazione_tipo}
+            ora_consegna={null}
+            tipo={tipo}
+            timestamp_segnalazione={s.segnalazione_at}
+          />
         )
       })()}
 
