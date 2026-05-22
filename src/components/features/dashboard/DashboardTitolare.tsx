@@ -413,7 +413,6 @@ export function DashboardTitolare({
               numero_lavoro={s.numero_lavoro}
               cliente_display={cliente_display}
               descrizione_problema={s.segnalazione_nota ?? TIPI_LABEL[s.segnalazione_tipo as keyof typeof TIPI_LABEL] ?? s.segnalazione_tipo}
-              data_consegna_prevista={new Date().toISOString().split('T')[0]}
               ora_consegna={null}
               tipo={tipo}
               timestamp_segnalazione={s.segnalazione_at}
@@ -576,7 +575,7 @@ export function DashboardTitolare({
       {/* Banner segnalazioni aperte — priorità massima, prima di tutto */}
       {segnalazioni.length > 0 && (
         <div style={{ margin: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {segnalazioni.map((s) => {
+          {segnalazioni.slice(1).map((s) => {
             const tecnico = s.segnalazione_by_utente
             const tecnicoDisplay = tecnico
               ? `${tecnico.nome ?? ''} ${tecnico.cognome ?? ''}`.trim() || 'Un tecnico'

@@ -22,8 +22,8 @@ export interface SpotlightCardProps {
   numero_lavoro: string
   cliente_display: string
   descrizione_problema: string
-  data_consegna_prevista: string
-  ora_consegna: string | null
+  data_consegna_prevista?: string | null
+  ora_consegna?: string | null
   tipo: 'blocco' | 'ritardo' | 'urgente'
   timestamp_segnalazione: string | null
 }
@@ -121,10 +121,8 @@ export function SpotlightCard({
         margin: 0,
         fontFamily: 'DM Sans, sans-serif',
       }}>
-        {cliente_display} · #{numero_lavoro}<br />
-        <strong style={{ color: DS.primary }}>
-          {formatOra(data_consegna_prevista, ora_consegna)}
-        </strong>
+        {cliente_display} · #{numero_lavoro}
+        {data_consegna_prevista && <><br /><strong style={{ color: DS.primary }}>{formatOra(data_consegna_prevista, ora_consegna ?? null)}</strong></>}
       </p>
 
       <div style={{
