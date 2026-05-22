@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { TecnicoEditInline } from '@/components/features/tecnici/TecnicoEditInline'
+import { TecnicoDeactivateButton } from '@/components/features/tecnici/TecnicoDeactivateButton'
 
 type TecnicoRow = {
   id: string
@@ -245,9 +246,15 @@ export default async function TechniciPage() {
                     )}
                   </div>
 
-                  {/* Modifica tecnico — solo titolare/admin_rete */}
+                  {/* Modifica + Disattiva tecnico — solo titolare/admin_rete */}
                   {canViewProduttivita && (
                     <TecnicoEditInline tecnico={tecnico} />
+                  )}
+                  {canViewProduttivita && (
+                    <TecnicoDeactivateButton
+                      tecnicoId={tecnico.id}
+                      tecnicoNome={`${tecnico.nome ?? ''} ${tecnico.cognome ?? ''}`.trim()}
+                    />
                   )}
 
                   {/* Link produttività — solo titolare/admin_rete */}
