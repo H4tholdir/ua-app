@@ -20,6 +20,11 @@
 - **SECURITY DEFINER:** funzioni PL/pgSQL devono avere `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`
 - **Supabase types:** dopo ogni migration → `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale messaggio CLI in fondo → `npx tsc --noEmit`
 
+- **Multi-viewport OBBLIGATORIO:** ogni pagina deve essere ottimizzata per 390px (mobile), 768px (tablet), 1280px (desktop) — non "responsive" nel senso di "si adatta", ma **riprogettata** per ogni breakpoint con layout dedicato
+- **Multi-utente real-time:** il laboratorio ha più operatori che usano l'app in contemporanea da dispositivi diversi (titolare da mobile, segretaria da desktop, tecnico da mobile). Ogni stato condiviso DEVE usare Supabase Realtime. ZERO race conditions: ottimistic UI + rollback su conflitto. Quando un utente cambia stato (lavoro, prova, consegna), tutti gli altri vedono l'aggiornamento senza ricaricare la pagina. Il badge "LIVE" in header è l'indicatore di connessione Realtime — deve essere sempre visibile e accurato.
+
+- **Checklist review OBBLIGATORIA** — ogni review di pagina/feature deve coprire: animazioni (motion tokens), suoni (sounds.ts + haptic.ts), fluidità transizioni, flow operativi end-to-end, comportamento pulsanti (tutti gli stati: idle/hover/loading/success/error/disabled), UI (layout, gerarchia, colori), UX (cognitive load, discoverability), campi di inserimento (validazione, placeholder, errori inline, autocomplete), edge case (lista vuota, errore rete, sessione scaduta, permesso negato), friendly usage (zero jargon tecnico nel copy), automatismi (cosa fa l'app senza input utente), sistemi guida (wizard, tooltip, empty state CTA), viewport 390/768/1280px × light/dark = 6 combinazioni minime.
+
 ---
 
 ## 2. Anti-Pattern Permanenti — Design System

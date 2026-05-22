@@ -20,7 +20,7 @@ interface AppHeaderProps {
   showThemeToggle?: boolean
 }
 
-export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = false }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = true }: AppHeaderProps) {
   // Always add 64px right padding to leave space for the fixed UserProfileSheet avatar (right:16 + width:40 = 56px → 64px safe)
   return (
     <header

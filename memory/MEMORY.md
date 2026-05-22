@@ -1,11 +1,11 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 22 maggio 2026 — v1.8.1 — Sistema memoria + CI/CD + workflow standardizzato
+**Ultimo aggiornamento:** 22 maggio 2026 — V1.8.2 — Visual audit P0 + dark mode + background fix
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.8.0
+## 0. STATO DEL PROGETTO — V1.8.2 (branch fix/visual-audit-p0)
 
-**V1.8.0 in produzione su https://uachelab.com — 22/05/2026**
+**V1.8.1 in produzione su https://uachelab.com — V1.8.2 in branch, pronto per merge**
 
 | Versione | Data | Tag | Contenuto |
 |----------|------|-----|-----------|
@@ -16,8 +16,30 @@
 | V1.7.9 | 22/05/2026 | `v1.7.9` | Pazienti PATCH, Listino edit, Dark mode 27 file |
 | V1.8.0 | 22/05/2026 | `v1.8.0` | Error boundaries, loading completo, splash screens iOS |
 | V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
+| **V1.8.2** | **22/05/2026** | **branch** | **Visual audit P0: dark mode, background, overflow, STOR/ filter** |
 
-**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅ · CI verde ✅
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
+
+### 🆕 Fix V1.8.2 — Visual Audit P0 (22/05/2026, commit 1afb06d)
+- **Body background**: `var(--bg, #DDD8D3)` warm panna su tutti i dispositivi (era bianco su desktop)
+- **Grid lavori desktop**: `minmax(0,1fr)` fix overflow colonna destra a 1280px
+- **Dark mode toggle**: `showThemeToggle=true` di default in AppHeader — toggle visibile su ogni pagina
+- **ThemeInitializer**: aggiunto `data-theme` attribute + `suppressHydrationWarning` su `<html>`
+- **Filtro STOR/**: lavori storici esclusi dalla sezione IN RITARDO della dashboard
+- **Truncate descrizione**: ellipsis su LavoroUrgente + min-width:0 su grid li
+- **PINNED.md**: multi-viewport, multi-utente real-time, checklist review completa
+
+### 📊 Visual Audit (22/05/2026) — 246 screenshot su 13 pagine × 3 viewport × 2 temi
+**Metodologia**: Playwright headless + login reale (h4t@live.it) + analisi sistematica
+**Score codice** (11 agenti): media 6.8/10 (era 7.1/10 — audit precedente era solo code review)
+**Insight chiave**: dashboard inguardabile principalmente per dataset di test con 50+ STOR/ in ritardo
+**Residui da fare** (P1 per V1.9):
+- Dark mode: contrasto "Aggiornato X min fa" a 1280px (bassa priorità)
+- Tecnici/Agenda/Qualità non accessibili dalla bottom nav
+- Dashboard desktop single-column (potrebbe essere 2-col)
+- Nota multi-utente real-time aggiunta al PINNED
+
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
 **Copertura stimata vs DentalMaster Advanced:** ~97%
 
 ### 🆕 Infrastruttura aggiornata (22/05/2026)
