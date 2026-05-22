@@ -413,60 +413,69 @@ export function DashboardTitolare({
         >
           {[
             ...(segnalazioni.length > 0 ? [{
-              value: segnalazioni.length,
+              valore: segnalazioni.length,
               label: 'Problemi',
-              description: 'Segnalazioni aperte dai tecnici',
-              color: DS.primary,
+              azione: 'vedi →',
+              colore: 'red' as const,
+              href: '/lavori?filter=segnalazioni',
             }] : []),
             {
-              value: stats.lavori_in_ritardo,
+              valore: stats.lavori_in_ritardo,
               label: 'In ritardo',
-              color: DS.primary,
+              azione: 'vedi →',
+              colore: 'red' as const,
+              href: '/lavori?stato=in_ritardo',
             },
             {
-              value: stats.consegne_oggi,
+              valore: stats.consegne_oggi,
               label: 'Oggi',
-              description: 'Consegne programmate per oggi',
-              color: DS.info,
+              azione: 'consegne →',
+              colore: 'blue' as const,
+              href: '/lavori?filter=consegne-oggi',
             },
             {
-              value: stats.in_prova_count,
+              valore: stats.in_prova_count,
               label: 'In prova',
-              description: 'Lavori in fase di prova presso il dentista',
-              color: DS.warning,
+              azione: 'vedi →',
+              colore: 'gold' as const,
+              href: '/lavori?stato=in_prova',
             },
             {
-              value: stats.pronti_non_fatturati,
+              valore: stats.pronti_non_fatturati,
               label: 'Da fatt.',
-              description: 'Lavori pronti da fatturare',
-              color: 'var(--gold, #D4A843)',
+              azione: 'fattura →',
+              colore: 'gold' as const,
+              href: '/fatture?filter=da-fatturare',
             },
             {
-              value: stats.materiali_esaurimento_count,
+              valore: stats.materiali_esaurimento_count,
               label: 'Materiali',
-              description: 'Materiali in esaurimento in magazzino',
-              color: DS.urgente,
+              azione: 'ordina →',
+              colore: 'red' as const,
+              href: '/ordini?filter=esaurimento',
             },
             {
-              value: stats.mdr_incompleti,
+              valore: stats.mdr_incompleti,
               label: 'DdC',
-              description: 'Dichiarazioni di Conformità MDR da completare',
-              color: DS.t2,
+              azione: 'completa →',
+              colore: 'grey' as const,
+              href: '/lavori?filter=mdr-incompleti',
             },
             {
-              value: stats.stl_non_assegnati,
+              valore: stats.stl_non_assegnati,
               label: 'Non ass.',
-              description: 'File STL non ancora assegnati a un tecnico',
-              color: 'var(--purple, #7C3AED)',
+              azione: 'assegna →',
+              colore: 'blue' as const,
+              href: '/lavori?filter=stl-non-assegnati',
             },
-          ].map((chip, i) => (
+          ].map((chip) => (
             <div key={chip.label} role="listitem">
               <KpiCard
-                value={chip.value}
+                valore={chip.valore}
                 label={chip.label}
-                description={chip.description}
-                color={chip.color}
-                animationDelay={i * stagger}
+                azione={chip.azione}
+                colore={chip.colore}
+                href={chip.href}
               />
             </div>
           ))}
