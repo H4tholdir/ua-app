@@ -11,7 +11,7 @@ import type { OrdineRow, ArticoloSottoScorta } from '@/app/(app)/ordini/page'
 const STATO_COLOR: Record<string, string> = {
   bozza:          'var(--t3, #B8B3AE)',
   inviato:        'var(--gold, #D4A843)',
-  evaso_parziale: '#2563EB',
+  evaso_parziale: 'var(--info, #2563EB)',
   evaso:          'var(--success, #16A34A)',
   annullato:      'var(--primary, #D90012)',
   archiviato:     'var(--t3, #B8B3AE)',
@@ -83,7 +83,7 @@ export function OrdiniList({ ordini, articoliSottoScorta }: OrdiniListProps) {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: '#8A6B00',
+                  color: 'var(--warning, #B45309)',
                 }}
               >
                 {articoliSottoScorta.length === 1

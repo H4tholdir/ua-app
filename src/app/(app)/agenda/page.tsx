@@ -272,7 +272,7 @@ export default async function AgendaPage() {
                                 style={{
                                   fontFamily: 'DM Sans, sans-serif',
                                   fontSize: '12px',
-                                  color: '#6677AA',
+                                  color: 'var(--t2, #96918D)',
                                 }}
                               >
                                 #{apt.lavoro.numero_lavoro}

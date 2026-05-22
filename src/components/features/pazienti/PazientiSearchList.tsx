@@ -205,7 +205,7 @@ export function PazientiSearchList({ pazienti }: PazientiSearchListProps) {
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '11px',
                           fontWeight: 600,
-                          color: '#6677AA',
+                          color: 'var(--t2, #96918D)',
                           background: 'var(--elv, #EDEDEA)',
                           borderRadius: '6px',
                           padding: '2px 8px',

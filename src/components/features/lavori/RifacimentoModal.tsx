@@ -113,7 +113,7 @@ const styles = {
     padding: '12px 14px',
     fontFamily: 'DM Sans, sans-serif',
     fontSize: 13,
-    color: '#FF6B6B',
+    color: 'var(--primary, #D90012)',
     lineHeight: 1.5,
     marginBottom: 24,
   },
@@ -151,7 +151,7 @@ const styles = {
   errorMsg: {
     fontFamily: 'DM Sans, sans-serif',
     fontSize: 13,
-    color: '#FF6B6B',
+    color: 'var(--primary, #D90012)',
     marginTop: 16,
     padding: '10px 14px',
     background: 'rgba(217, 0, 18, 0.10)',

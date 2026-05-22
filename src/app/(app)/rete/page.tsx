@@ -64,7 +64,7 @@ export default async function RetePage() {
               Nessuna rete configurata.
             </p>
             <p style={{
-              color: '#6677AA',
+              color: 'var(--t2, #96918D)',
               fontSize: '13px',
               fontFamily,
               margin: 0,
@@ -138,7 +138,7 @@ export default async function RetePage() {
               Nessuna rete configurata
             </p>
             <p style={{
-              color: '#6677AA',
+              color: 'var(--t2, #96918D)',
               fontSize: '13px',
               fontFamily,
               margin: '0 0 16px',
