@@ -14,6 +14,7 @@ import {
 import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
 import { DashboardFrontDesk } from '@/components/features/dashboard/DashboardFrontDesk'
+import { DashboardHybrid } from '@/components/features/dashboard/DashboardHybrid'
 import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
 
 export const dynamic = 'force-dynamic'
@@ -103,7 +104,7 @@ export default async function DashboardPage() {
     tecnicoIdPerTitolare = tecnicoRow?.id ?? null
   }
 
-  const isHybrid = isTitolare && !!tecnicoIdPerTitolare // eslint-disable-line @typescript-eslint/no-unused-vars
+  const isHybrid = isTitolare && !!tecnicoIdPerTitolare
 
   // ─── TITOLARE / admin_rete ────────────────────────────────────────────────
   if (isTitolare) {
@@ -226,6 +227,34 @@ export default async function DashboardPage() {
         segnalazione_by_utente: s.segnalazione_by_utente,
         clienti: s.clienti,
       }))
+
+    // Ruolo ibrido: titolare che lavora anche come tecnico
+    if (isHybrid && tecnicoIdPerTitolare) {
+      const lavoriTecnico = await getLavoriTecnicoOggi(svc, labId, tecnicoIdPerTitolare)
+      return (
+        <DashboardHybrid
+          titolareData={{
+            stats,
+            consegneOggi,
+            lavoriInRitardo,
+            inProvaRientro,
+            materialiEsaurimento,
+            pagamentiTop,
+            nomeUtente,
+            labName: lab?.nome ?? undefined,
+            aggiornatoAt: cacheRow?.aggiornato_at ?? null,
+            onboardingPending: !lab?.onboarding_completato,
+            segnalazioni,
+          }}
+          tecnicoData={{
+            data: { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 },
+            lavoriOggi: lavoriTecnico,
+            nomeUtente,
+            tecnicoId: tecnicoIdPerTitolare,
+          }}
+        />
+      )
+    }
 
     return (
       <DashboardTitolare
