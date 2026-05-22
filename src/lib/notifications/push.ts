@@ -1,18 +1,4 @@
-/**
- * Server-side Web Push utility — Task B7
- *
- * Nota: push_subscriptions è definita in:
- *   supabase/migrations/20260521_push_subscriptions.sql
- * Dopo `supabase db push` rigenera i tipi con:
- *   npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
- */
 import webpush from 'web-push'
-
-webpush.setVapidDetails(
-  'mailto:support@uachelab.com',
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
 
 export interface PushPayload {
   title: string
@@ -20,7 +6,6 @@ export interface PushPayload {
   url?: string
 }
 
-/** Struttura JSONB memorizzata in push_subscriptions.subscription */
 export interface PushSubscriptionData {
   endpoint: string
   keys: {
@@ -29,10 +14,23 @@ export interface PushSubscriptionData {
   }
 }
 
+// Lazy init — evita crash al module evaluation se le chiavi mancano (es. CI build)
+let _configured = false
+function ensureVapid(): boolean {
+  if (_configured) return true
+  const pub = process.env.VAPID_PUBLIC_KEY
+  const priv = process.env.VAPID_PRIVATE_KEY
+  if (!pub || !priv) return false
+  webpush.setVapidDetails('mailto:support@uachelab.com', pub, priv)
+  _configured = true
+  return true
+}
+
 export async function sendPushToSubscription(
   subscription: PushSubscriptionData,
   payload: PushPayload,
 ): Promise<void> {
+  if (!ensureVapid()) return // Push disabilitato se chiavi mancanti
   await webpush.sendNotification(
     subscription as webpush.PushSubscription,
     JSON.stringify(payload),

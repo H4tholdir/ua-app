@@ -35,7 +35,6 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          # Unit tests non usano DB reale — mock interni
 
   build:
     name: Next.js Build
@@ -47,6 +46,15 @@ jobs:
       NEXT_PUBLIC_APP_URL: https://uachelab.com
       STRIPE_SECRET_KEY: sk_test_placeholder
       STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      # Push notifications: chiavi placeholder per il build (lazy init nel codice)
+      VAPID_PUBLIC_KEY: BPlaceholderVapidPublicKeyForCIBuildOnlyNotRealxxxxxxxxxxxx
+      VAPID_PRIVATE_KEY: PlaceholderVapidPrivateKeyForCIBuildOnlyNotRealxxxxxxx
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: BPlaceholderVapidPublicKeyForCIBuildOnlyNotRealxxxxxxxxxxxx
+      # Resend placeholder
+      RESEND_API_KEY: re_placeholder
+      # Supabase service role placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder_service_role_key
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,3 +70,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Notify CI success
+        if: success()
+        run: echo "✅ Build passed — pronto per deploy"
+
+      - name: Notify CI failure
+        if: failure()
+        run: |
+          echo "❌ Build FALLITA su commit $(git rev-parse --short HEAD)"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.event.head_commit.message }}"
+          exit 1

@@ -29,12 +29,37 @@ jobs:
         run: npm ci
 
       - name: Deploy to Vercel
+        id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx vercel@latest deploy --prod --yes \
+          DEPLOY_URL=$(npx vercel@latest deploy --prod --yes \
             --token="$VERCEL_TOKEN" \
             -m githubCommitAuthorName="H4tholdir" \
-            -m githubCommitAuthorLogin="H4tholdir"
+            -m githubCommitAuthorLogin="H4tholdir")
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deploy completato: $DEPLOY_URL"
+
+      - name: Verify deployment health
+        run: |
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://uachelab.com" || echo "000")
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "307" ]; then
+            echo "✅ uachelab.com risponde HTTP $STATUS — deploy in produzione verificato"
+          else
+            echo "⚠️ uachelab.com risponde HTTP $STATUS — verifica manualmente"
+          fi
+
+  skip-reason:
+    name: CI fallita — deploy saltato
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'success'
+    steps:
+      - name: Log skip reason
+        run: |
+          echo "🚫 Deploy saltato: CI terminata con '${{ github.event.workflow_run.conclusion }}'"
+          echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Correggi il CI prima di deployare in produzione."
+          exit 1
