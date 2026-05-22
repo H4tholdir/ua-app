@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { MagazzinoDeleteButton } from '@/components/features/magazzino/MagazzinoDeleteButton'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -13,7 +14,7 @@ export default async function MagazzinoDetailPage({ params }: Props) {
   if (!user) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
+  const { data: utente } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', user.id).single()
   if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
 
   const { data: art } = await svc
@@ -25,6 +26,8 @@ export default async function MagazzinoDetailPage({ params }: Props) {
     .single()
 
   if (!art) redirect('/magazzino')
+
+  const canEdit = utente.ruolo === 'titolare' || utente.ruolo === 'admin_rete'
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
@@ -71,6 +74,13 @@ export default async function MagazzinoDetailPage({ params }: Props) {
               </div>
             )}
           </div>
+
+          {/* Elimina articolo — solo titolare/admin_rete */}
+          {canEdit && (
+            <div style={{ marginTop: '16px' }}>
+              <MagazzinoDeleteButton articoloId={art.id} articoloNome={art.nome} />
+            </div>
+          )}
         </div>
       </PageWrapper>
     </>
