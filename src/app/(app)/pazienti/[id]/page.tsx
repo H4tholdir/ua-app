@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { PazienteArchiviaButton } from '@/components/features/pazienti/PazienteArchiviaButton'
+import { PazienteEditSheet } from '@/components/features/pazienti/PazienteEditSheet'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -19,7 +20,7 @@ export default async function PazienteDetailPage({ params }: Props) {
 
   const { data: paziente } = await svc
     .from('pazienti')
-    .select('id, nome_cognome, codice_paziente, note, created_at')
+    .select('id, nome_cognome, codice_paziente, note, anamnesi, asl, sesso, data_nascita, created_at')
     .eq('id', id).eq('laboratorio_id', utente.laboratorio_id).single()
 
   if (!paziente) redirect('/pazienti')
@@ -83,9 +84,18 @@ export default async function PazienteDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Archivia paziente — solo titolare/admin_rete */}
+          {/* Azioni paziente — solo titolare/admin_rete */}
           {canEdit && (
-            <div style={{ marginTop: '20px' }}>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <PazienteEditSheet paziente={{
+                id: paziente.id,
+                codice_paziente: paziente.codice_paziente ?? null,
+                note: paziente.note ?? null,
+                anamnesi: (paziente as Record<string, unknown>).anamnesi as string | null ?? null,
+                asl: (paziente as Record<string, unknown>).asl as string | null ?? null,
+                sesso: (paziente as Record<string, unknown>).sesso as string | null ?? null,
+                data_nascita: (paziente as Record<string, unknown>).data_nascita as string | null ?? null,
+              }} />
               <PazienteArchiviaButton
                 pazienteId={paziente.id}
                 pazienteNome={paziente.nome_cognome}
