@@ -48,6 +48,42 @@ mcp__plugin_claude-mem_mcp-search__observation_add({
 
 ---
 
+## 0C. Implementation Workflow — BP-2 (PROCESSO — OBBLIGATORIO PER OGNI FEATURE/FIX)
+
+Documento completo: `docs/processes/WORKFLOW-STANDARD.md`. Versione condensata qui sotto.
+
+**Regola di selezione orchestratore:**
+| Dimensione | Orchestratori | Quando |
+|-----------|--------------|--------|
+| Piccola (1-3 file, <1h) | Superpowers only | Hotfix, piccoli tweak |
+| Media (3-10 file, 1-2 sessioni) | gstack + Superpowers | Feature con architettura |
+| Grande (10+ file, multi-sessione) | gstack + GSD (fasi) + Superpowers | Feature complesse |
+
+**Le 11 Fasi Obbligatorie:**
+
+```
+FASE 0  → BP-0: Leggi MEMORY.md + PINNED.md (già automatico via hook)
+FASE 1  → GOAL: Francesco descrive. Usa /gstack office-hours se ambiguo.
+FASE 2  → BRAINSTORM: /superpowers:brainstorming (SEMPRE, anche se sembra ovvio)
+FASE 3  → VALIDAZIONE ARCH: /gstack plan-eng-review (GATE — non si procede senza)
+FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici
+FASE 5  → ISOLAMENTO: /superpowers:using-git-worktrees → branch dedicata
+FASE 6  → IMPLEMENTAZIONE TDD: /superpowers:test-driven-development (RED→GREEN→REFACTOR)
+FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3 obbligatori)
+FASE 8  → REVIEW: /gstack review + /superpowers:requesting-code-review
+FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
+FASE 10 → DEPLOY: merge → push → attendi CI verde → verifica uachelab.com
+FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
+```
+
+**REGOLE ZERO:**
+- MAI saltare FASE 3 (validazione architetturale) per "feature semplici"
+- MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
+- MAI deployare con CI rosso
+- SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
+
+---
+
 ## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
 
 Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:

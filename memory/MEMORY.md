@@ -1,5 +1,5 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 22 maggio 2026 — v1.8.0 — App pronta per collaudo con Filippo
+**Ultimo aggiornamento:** 22 maggio 2026 — v1.8.1 — Sistema memoria + CI/CD + workflow standardizzato
 
 ---
 
@@ -15,13 +15,31 @@
 | V1.7.8 | 22/05/2026 | `v1.7.8` | Fix bug magazzino/[id], push triggers, CRUD completo |
 | V1.7.9 | 22/05/2026 | `v1.7.9` | Pazienti PATCH, Listino edit, Dark mode 27 file |
 | V1.8.0 | 22/05/2026 | `v1.8.0` | Error boundaries, loading completo, splash screens iOS |
+| V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
 
-**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅ · CI verde ✅
 **Copertura stimata vs DentalMaster Advanced:** ~97%
+
+### 🆕 Infrastruttura aggiornata (22/05/2026)
+- **CI/CD fix:** VAPID lazy-init → CI torna verde dopo 4 build fallite
+- **BP-1 obbligatorio:** Stop hook in settings.json + regola in CLAUDE.md
+- **BP-2 obbligatorio:** 11 fasi workflow implementation in CLAUDE.md
+- **inject-ua-context.js:** Hook inietta 6.710 char PINNED.md + MEMORY.md ad ogni prompt
+- **gstack installato:** `~/.agents/skills/gstack` (Garry Tan, YC)
+- **Documenti creati:** ROADMAP-UFFICIALE.md · MAGAZZINO-VISIVO-BRAINSTORM.md · WORKFLOW-STANDARD.md · SISTEMA-MEMORIA.md
 
 ### ⚠️ Azioni manuali urgenti (ancora aperte)
 1. **PEC reale** → Filippo deve configurare `/impostazioni/pec` con le sue credenziali SMTP
 2. **Prima sessione di collaudo** → vedere `docs/test-filippo/COLLAUDO-HANDOFF-FILIPPO.md`
+
+### 🗺️ Prossima milestone: V1.9
+Feature da implementare prima del collaudo:
+1. Dettatura vocale (Web Speech API) — P0
+2. Email template branding — P0
+3. Rifacimenti UI — P0
+4. Logo + firma DdC — P0
+5. Magazzino visivo (Concept C Mixel-inspired) — P1
+Vedi: `docs/roadmap/ROADMAP-UFFICIALE.md`
 
 ---
 

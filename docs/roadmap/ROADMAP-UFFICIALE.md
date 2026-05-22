@@ -23,7 +23,7 @@ Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
 | 2 | **Email template branding** | P0 | 3h | Logo UÀ su invito tecnico, reset password, conferma. Supabase Email Templates |
 | 3 | **Rifacimenti UI** | P0 | 6h | Bottone "Crea rifacimento" in dettaglio lavoro consegnato. RPC già esiste |
 | 4 | **Logo + firma DdC** | P0 | 4h | Upload in /impostazioni, inclusione PDF DdC. Colonne già in schema |
-| 5 | **Magazzino visivo** (Mixel-inspired) | P1 | 2-3gg | Scaffalature animate con scorte visuali. Da brainstormare — vedi sotto |
+| 5 | **Magazzino visivo** (Mixel-inspired) | P1 | 2-3gg | Concept C: tile a 3 col, 12 glifo SVG per categoria, fill-bar semaforo. Toggle lista↔vetrina. Vedi `docs/roadmap/MAGAZZINO-VISIVO-BRAINSTORM.md` |
 
 ---
 
@@ -121,9 +121,25 @@ Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
 
 ---
 
+## STACK DI ORCHESTRAZIONE
+
+Il progetto usa 3 orchestratori in layers:
+
+| Orchestratore | Layer | Quando | Installato |
+|--------------|-------|--------|-----------|
+| **Superpowers** | Esecuzione TDD + subagenti | Sempre | ✅ (marketplace Anthropic) |
+| **gstack** (Garry Tan, YC) | Decisioni strategiche (23 specialisti simulati) | Feature media/grande | ✅ `~/.agents/skills/gstack` |
+| **GSD** (Lex Christopherson) | Stabilità spec multi-sessione | Feature grande (10+ file) | ⚠️ Procedurale (no SKILL.md) |
+
+Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
+
+---
+
 ## CHANGELOG ROADMAP
 
 | Data | Modifica | Chi |
 |------|----------|-----|
 | 22/05/2026 | Documento creato da riconciliazione 6 file HTML + sessioni di sviluppo | Francesco + Claude |
 | 22/05/2026 | V1.9 aggiunta (dettatura vocale, email template, rifacimenti UI, logo DdC, magazzino visivo) | Francesco + Claude |
+| 22/05/2026 | Magazzino visivo: Concept C selezionato (Mixel-inspired, tile+glifo+fill-bar) | Francesco + Claude |
+| 22/05/2026 | Stack orchestratori documentato: Superpowers + gstack + GSD | Francesco + Claude |
