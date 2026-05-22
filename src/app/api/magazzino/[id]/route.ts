@@ -4,58 +4,27 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 const PATCH_ALLOWLIST = [
-  'prezzo_1',
-  'prezzo_2',
-  'prezzo_3',
-  'prezzo_4',
-  'compenso_tecnico',
-  'costo_materiali_estimated',
   'nome',
-  'descrizione',
+  'codice_articolo',
+  'produttore',
+  'categoria',
+  'sotto_categoria',
+  'fornitore_id',
+  'um_acquisto',
+  'um_scarico',
+  'quantita_per_confezione',
+  'costo_unitario',
+  'prezzo_unitario',
+  'scorta_attuale',
+  'scorta_minima',
+  'dispositivo_medico',
+  'traccia_lotto',
+  'codice_ce',
+  'note',
+  'aliquota_iva',
 ] as const
 
 type AllowedField = (typeof PATCH_ALLOWLIST)[number]
-
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
-
-  const { data: voce, error } = await svc
-    .from('listino')
-    .select(
-      'id, codice, nome, descrizione, categoria, prezzo_1, prezzo_2, prezzo_3, prezzo_4, compenso_tecnico, unita_misura, attivo'
-    )
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .single()
-
-  if (error || !voce) {
-    return NextResponse.json({ error: 'Voce non trovata' }, { status: 404 })
-  }
-
-  return NextResponse.json({ voce })
-}
 
 export async function PATCH(
   req: Request,
@@ -86,21 +55,22 @@ export async function PATCH(
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  // Solo titolare o admin_rete possono modificare il listino
+  // Solo titolare o admin_rete possono modificare il magazzino
   if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
-  // Verifica che la voce appartenga al lab
+  // Verifica che l'articolo appartenga al lab
   const { data: existing } = await svc
-    .from('listino')
+    .from('magazzino')
     .select('id')
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('attivo', true)
     .single()
 
   if (!existing) {
-    return NextResponse.json({ error: 'Voce non trovata' }, { status: 404 })
+    return NextResponse.json({ error: 'Articolo non trovato' }, { status: 404 })
   }
 
   let body: Record<string, unknown>
@@ -122,19 +92,19 @@ export async function PATCH(
     return NextResponse.json({ error: 'Nessun campo valido da aggiornare' }, { status: 422 })
   }
 
-  const { data: voce, error: updateError } = await svc
-    .from('listino')
+  const { data: articolo, error: updateError } = await svc
+    .from('magazzino')
     .update(updates)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
-    .select('id, codice, nome, prezzo_1, compenso_tecnico')
+    .select('id, codice_articolo, nome, scorta_attuale, scorta_minima')
     .single()
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ voce })
+  return NextResponse.json({ articolo })
 }
 
 export async function DELETE(
@@ -166,26 +136,27 @@ export async function DELETE(
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  // Solo titolare o admin_rete possono eliminare voci dal listino
+  // Solo titolare o admin_rete possono eliminare articoli dal magazzino
   if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
-  // Verifica che la voce appartenga al lab
+  // Verifica che l'articolo appartenga al lab
   const { data: existing } = await svc
-    .from('listino')
+    .from('magazzino')
     .select('id')
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('attivo', true)
     .single()
 
   if (!existing) {
-    return NextResponse.json({ error: 'Voce non trovata' }, { status: 404 })
+    return NextResponse.json({ error: 'Articolo non trovato' }, { status: 404 })
   }
 
   // Soft-delete: imposta attivo = false
   const { error: deleteError } = await svc
-    .from('listino')
+    .from('magazzino')
     .update({ attivo: false })
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)

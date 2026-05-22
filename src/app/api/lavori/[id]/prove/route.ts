@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { triggerPushToUser } from '@/lib/notifications/trigger'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   // Guard cross-tenant
   const { data: lavoro } = await svc
     .from('lavori')
-    .select('id, stato, laboratorio_id')
+    .select('id, stato, laboratorio_id, tecnico_id, numero_lavoro')
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .is('deleted_at', null)
@@ -177,6 +178,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (nuova_data_consegna) updateLavoro.data_consegna_prevista = nuova_data_consegna
 
     await svc.from('lavori').update(updateLavoro).eq('id', id)
+
+    // Push notification — prova rientrata → tecnico assegnato (fire-and-forget safe)
+    if (lavoro.tecnico_id) {
+      await triggerPushToUser(lavoro.tecnico_id, lavoro.laboratorio_id, {
+        title: '🔄 Prova rientrata',
+        body: `La prova per il lavoro ${lavoro.numero_lavoro ?? ''} è rientrata`,
+        url: `/lavori/${id}`,
+      })
+    }
 
     return NextResponse.json({ esito, stato: nuovoStato })
   }

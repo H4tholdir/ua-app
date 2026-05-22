@@ -3,6 +3,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { precheckMDR } from './precheck'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+import { triggerPushByRole } from '@/lib/notifications/trigger'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 
 export async function orchestraConsegna(
@@ -227,6 +228,13 @@ export async function orchestraConsegna(
         messaggio: 'Lavoro non trovato nel laboratorio corrente.',
       }
     }
+
+    // Push notification — lavoro consegnato → front_desk (fire-and-forget safe)
+    await triggerPushByRole(laboratorio_id, 'front_desk', {
+      title: 'Lavoro consegnato',
+      body: `${lavoro.numero_lavoro} — ${(lavoro.cliente as unknown as { cognome?: string } | null)?.cognome ?? 'Cliente'} è stato consegnato`,
+      url: `/lavori/${lavoro_id}`,
+    })
 
     // ----------------------------------------------------------------
     // Step 6 — FatturaPA (non blocking — fire-and-forget con draft record)

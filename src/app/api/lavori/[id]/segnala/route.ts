@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { triggerPushByRole } from '@/lib/notifications/trigger'
 import type { TipoSegnalazione } from '@/types/domain'
 
 const TIPI_VALIDI: TipoSegnalazione[] = [
@@ -33,7 +34,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   // Ottieni ruolo e lab dell'utente
   const { data: utente } = await svc
     .from('utenti')
-    .select('ruolo, laboratorio_id')
+    .select('ruolo, laboratorio_id, nome')
     .eq('id', user.id)
     .is('deleted_at', null)
     .single()
@@ -97,6 +98,13 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (segnalaUpdateCount === 0) {
     return NextResponse.json({ error: 'Lavoro non trovato nel laboratorio corrente' }, { status: 404 })
   }
+
+  // Push notification — problema segnalato → titolare (fire-and-forget safe)
+  await triggerPushByRole(utente.laboratorio_id, 'titolare', {
+    title: '⚠️ Problema segnalato',
+    body: `${utente.nome ?? 'Un tecnico'} ha segnalato un problema sul lavoro`,
+    url: `/lavori/${id}`,
+  })
 
   return NextResponse.json({ ok: true })
 }
