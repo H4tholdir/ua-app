@@ -9,7 +9,7 @@ import {
   getLavoriInProvaRientro,
   getTecnicoDashboard,
   getFrontDeskDashboard,
-  getLavoriTecnicoOggi, // eslint-disable-line @typescript-eslint/no-unused-vars
+  getLavoriTecnicoOggi,
 } from '@/lib/dashboard/queries'
 import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
@@ -246,8 +246,7 @@ export default async function DashboardPage() {
 
   // ─── TECNICO ──────────────────────────────────────────────────────────────
   if (ruolo === 'tecnico') {
-    // Trova il record tecnici associato a questo utente
-    const { data: tecnico } = await svc
+    const { data: tecnicoRow } = await svc
       .from('tecnici')
       .select('id')
       .eq('laboratorio_id', labId)
@@ -255,11 +254,16 @@ export default async function DashboardPage() {
       .is('deleted_at', null)
       .maybeSingle()
 
-    const data = tecnico
-      ? await getTecnicoDashboard(svc, labId, tecnico.id)
-      : { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 }
+    if (!tecnicoRow) {
+      return <DashboardTecnico data={{ lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 }} lavoriOggi={[]} nomeUtente={nomeUtente} tecnicoId={null} />
+    }
 
-    return <DashboardTecnico data={data} nomeUtente={nomeUtente} tecnicoId={tecnico?.id ?? null} />
+    const [tecnicoDash, lavoriOggi] = await Promise.all([
+      getTecnicoDashboard(svc, labId, tecnicoRow.id),
+      getLavoriTecnicoOggi(svc, labId, tecnicoRow.id),
+    ])
+
+    return <DashboardTecnico data={tecnicoDash} lavoriOggi={lavoriOggi} nomeUtente={nomeUtente} tecnicoId={tecnicoRow.id} />
   }
 
   // ─── FRONT DESK ───────────────────────────────────────────────────────────
