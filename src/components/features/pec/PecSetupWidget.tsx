@@ -120,9 +120,10 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
     clearTimeout(t2Ref.current)
   }, [])
 
-  const waPhone = process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? ''
+  // Normalizza il numero: rimuove + iniziale → wa.me vuole solo cifre (es. 393381235473)
+  const waPhone = (process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? '').replace(/^\+/, '')
   const waText = encodeURIComponent(`Ciao Francesco, ho bisogno di aiuto per configurare la PEC su UÀ. Il mio provider è: ${provider?.name ?? 'sconosciuto'}`)
-  const waUrl = `https://wa.me/39${waPhone}?text=${waText}`
+  const waUrl = `https://wa.me/${waPhone}?text=${waText}`
 
   // ── SUCCESS ──
   if (phase === 'success') return (
