@@ -23,7 +23,7 @@ Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
 | 2 | **Email template branding** | P0 | 3h | Logo UÀ su invito tecnico, reset password, conferma. Supabase Email Templates |
 | 3 | **Rifacimenti UI** | P0 | 6h | Bottone "Crea rifacimento" in dettaglio lavoro consegnato. RPC già esiste |
 | 4 | **Logo + firma DdC** | P0 | 4h | Upload in /impostazioni, inclusione PDF DdC. Colonne già in schema |
-| 5 | **Magazzino visivo** (Mixel-inspired) | P1 | 2-3gg | Concept C: tile a 3 col, 12 glifo SVG per categoria, fill-bar semaforo. Toggle lista↔vetrina. Vedi `docs/roadmap/MAGAZZINO-VISIVO-BRAINSTORM.md` |
+~~5 Magazzino visivo → spostato in V2.0~~ |
 
 ---
 
@@ -41,6 +41,7 @@ Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
 | 6 | **WhatsApp Cloud API ufficiale** | P2 | Notifiche automatiche (Meta Business + 360dialog/Twilio). Ora solo deep links |
 | 7 | **Allegati clinici avanzati** | P2 | Note vocali (audio), file STL scansioni, PDF prescrizione digitale |
 | 8 | **Log WhatsApp (agenda_messaggi_clienti)** | P2 | Tracciamento ogni messaggio mandato: data, testo, esito |
+| 9 | **Magazzino visivo** (Mixel-inspired) | P2 | Concept C: tile 3 col, 12 glifo SVG, fill-bar semaforo. Toggle lista↔vetrina. Vedi `MAGAZZINO-VISIVO-BRAINSTORM.md` |
 
 ---
 

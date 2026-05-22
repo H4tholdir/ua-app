@@ -34,11 +34,28 @@
 
 ### 🗺️ Prossima milestone: V1.9
 Feature da implementare prima del collaudo:
-1. Dettatura vocale (Web Speech API) — P0
-2. Email template branding — P0
-3. Rifacimenti UI — P0
-4. Logo + firma DdC — P0
-5. Magazzino visivo (Concept C Mixel-inspired) — P1
+1. **RE-AUDIT PWA** — nuova sessione pulita, stessi agenti, confronto score pre/post
+2. Dettatura vocale (Web Speech API) — P0
+3. Email template branding — P0
+4. Rifacimenti UI — P0
+5. Logo + firma DdC — P0
+*(Magazzino visivo → spostato in V2.0)*
+
+### 📊 Score audit precedente (21/05/2026) — da migliorare
+| Agente | Score prima | Fix applicati | Score atteso |
+|--------|-------------|--------------|-------------|
+| Odontotecnico | 7.5 | Prove UI, BOM materiali | 8.5+ |
+| Titolare | 6.5 | Batch fatture, margini, export CSV | 8.5+ |
+| Dentista | 5.0 | Portale share, push trigger | 6.5+ |
+| PWA Engineer | 7.8 | Splash screens, push, viewport-fit | 9+ |
+| Designer UI | 9.2 | Dark mode 27 file | 9.5+ |
+| UX Expert | 6.8 | Wizard, validation, empty states | 8.5+ |
+| Software Eng. | 7.2 | GSAP rimosso, security fixes | 9+ |
+| Flow Titolare | 6.5 | Batch, margini, refresh | 8+ |
+| Flow Tecnico | 7.5 | Push trigger rientro | 8.5+ |
+| Flow Front Desk | 7.8 | Disinfettante fix, CRUD | 9+ |
+| Sistematico | 7.3 | Skeletons, error bounds, DELETE | 9+ |
+
 Vedi: `docs/roadmap/ROADMAP-UFFICIALE.md`
 
 ---
