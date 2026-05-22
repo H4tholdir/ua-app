@@ -76,7 +76,7 @@ export function LavoroUrgente({
         padding: '14px 16px',
         textDecoration: 'none',
         color: 'inherit',
-        borderBottom: '1px solid rgba(0,0,0,.06)',
+        borderBottom: '1px solid var(--border, rgba(0,0,0,.06))',
       }}
     >
       {/* Badge circolare stato */}

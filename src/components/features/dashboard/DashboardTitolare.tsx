@@ -743,7 +743,7 @@ export function DashboardTitolare({
                     padding: '14px 16px',
                     borderBottom:
                       i < inProvaRientro.length - 1
-                        ? '1px solid rgba(0,0,0,.06)'
+                        ? '1px solid var(--border, rgba(0,0,0,.06))'
                         : 'none',
                   }}
                 >
@@ -803,7 +803,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderBottom: '1px solid rgba(0,0,0,.06)',
+                  borderBottom: '1px solid var(--border, rgba(0,0,0,.06))',
                   background: `${DS.primary}08`,
                 }}
               >
@@ -841,7 +841,7 @@ export function DashboardTitolare({
                     padding: '12px 16px',
                     borderBottom:
                       i < pagamentiTop.length - 1
-                        ? '1px solid rgba(0,0,0,.06)'
+                        ? '1px solid var(--border, rgba(0,0,0,.06))'
                         : 'none',
                   }}
                 >
@@ -927,7 +927,7 @@ export function DashboardTitolare({
                       padding: '14px 16px',
                       borderBottom:
                         i < materialiEsaurimento.length - 1
-                          ? '1px solid rgba(0,0,0,.06)'
+                          ? '1px solid var(--border, rgba(0,0,0,.06))'
                           : 'none',
                     }}
                   >
@@ -1071,7 +1071,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 0 0',
-                  borderTop: '1px solid rgba(0,0,0,.06)',
+                  borderTop: '1px solid var(--border, rgba(0,0,0,.06))',
                 }}
               >
                 <span
@@ -1103,7 +1103,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 0 0',
-                  borderTop: '1px solid rgba(0,0,0,.06)',
+                  borderTop: '1px solid var(--border, rgba(0,0,0,.06))',
                 }}
               >
                 <div>

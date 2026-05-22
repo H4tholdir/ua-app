@@ -287,7 +287,7 @@ export function DashboardFrontDesk({
                     alignItems: 'center',
                     gap: 12,
                     padding: '12px 16px',
-                    borderBottom: '1px solid rgba(0,0,0,.06)',
+                    borderBottom: '1px solid var(--border, rgba(0,0,0,.06))',
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -415,7 +415,7 @@ export function DashboardFrontDesk({
                     padding: '14px 16px',
                     borderBottom:
                       i < data.da_contattare.length - 1
-                        ? '1px solid rgba(0,0,0,.06)'
+                        ? '1px solid var(--border, rgba(0,0,0,.06))'
                         : 'none',
                   }}
                 >
