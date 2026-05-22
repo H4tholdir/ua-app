@@ -5,14 +5,46 @@ La documentazione fondativa è in `../ANALISI/`. Questo file = regole operative 
 
 ---
 
-## 0. Memory Check — BP-0
+## 0. Memory Check — BP-0 (LETTURA — OBBLIGATORIO PRIMA DI INIZIARE)
 
 Prima di qualsiasi lavoro: leggi `memory/MEMORY.md`. Documenti chiave:
 - `../ANALISI/30_design_system_v2_definitivo.md` → **DESIGN SYSTEM v2.2 — UNICA FONTE DI VERITÀ**
 - `../ANALISI/23_ua_database_schema.md` → schema DB
 - `../ANALISI/29_motion_system_policy.md` → **MOTION POLICY OBBLIGATORIA**
+- `docs/roadmap/ROADMAP-UFFICIALE.md` → **ROADMAP — fonte di verità su cosa fare e non fare**
 
 > ⚠️ `../ANALISI/26_ua_design_system_completo.md` → OBSOLETO, NON usare per UI
+
+---
+
+## 0A. Memory Update — BP-1 (SCRITTURA — OBBLIGATORIO DOPO LAVORO SIGNIFICATIVO)
+
+**Dopo ogni task completato che cambia lo stato del progetto**, DEVI eseguire questi 3 step:
+
+### Step 1 — Registra osservazione in claude-mem
+Per ogni decisione architetturale, feature completata, bug trovato, o decisione di roadmap:
+```
+mcp__plugin_claude-mem_mcp-search__observation_add({
+  title: "[Tipo] Titolo breve della cosa fatta",
+  content: "Descrizione concisa: cosa, perché, file coinvolti, impatto"
+})
+```
+**Tipi validi:** `feature`, `fix`, `decision`, `roadmap`, `security`, `refactor`, `discovery`
+
+### Step 2 — Aggiorna MEMORY.md se lo stato del progetto è cambiato
+- Nuova versione deployata → aggiorna sezione "0. STATO DEL PROGETTO"
+- Nuova feature completata → aggiorna sezione CRUD/feature list
+- Nuova decisione architetturale → aggiorna sezione "5. Architettura"
+- Nuova API route → aggiorna tabella "7. API Routes Chiave"
+
+### Step 3 — Aggiorna ROADMAP-UFFICIALE.md se la roadmap è cambiata
+- Feature spostata da V2 a V1.9 → aggiorna
+- Feature completata → sposta in "implementato"
+- Nuova feature aggiunta → inserisci nella versione corretta
+
+> **REGOLA ZERO MEMORIA:** Non chiudere un task senza aver verificato questi 3 step.
+> Il hook `Stop` ti ricorderà automaticamente. Non ignorarlo.
+> Se dimentichi ripetutamente, stai violando il contratto operativo con Francesco.
 
 ---
 
