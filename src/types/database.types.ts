@@ -1607,6 +1607,7 @@ export type Database = {
       }
       lab_memberships: {
         Row: {
+          attivo: boolean
           created_at: string
           id: string
           laboratorio_id: string
@@ -1614,6 +1615,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attivo?: boolean
           created_at?: string
           id?: string
           laboratorio_id: string
@@ -1621,6 +1623,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attivo?: boolean
           created_at?: string
           id?: string
           laboratorio_id?: string
