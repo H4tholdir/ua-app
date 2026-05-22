@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useCallback, useState } from 'react'
+import { ListinoEditSheet } from './ListinoEditSheet'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,9 @@ export interface VoceListino {
   descrizione: string | null
   categoria: string
   prezzo_1: number | null
+  prezzo_2?: number | null
+  prezzo_3?: number | null
+  prezzo_4?: number | null
   unita_misura: string
   compenso_tecnico?: number | null
   costo_materiali_estimated?: number | null
@@ -353,37 +357,54 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
         </p>
       </div>
 
-      {/* Elimina — solo titolare/admin_rete */}
+      {/* Modifica + Elimina — solo titolare/admin_rete */}
       {canEdit && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          aria-label={`Elimina ${voce.nome} dal listino`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '32px',
-            height: '32px',
-            minHeight: '44px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'transparent',
-            cursor: deleting ? 'wait' : 'pointer',
-            color: 'var(--t3, #B8B3AE)',
-            flexShrink: 0,
-            padding: 0,
-            opacity: deleting ? 0.5 : 1,
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#D90012' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #B8B3AE)' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <ListinoEditSheet
+            voce={{
+              id: voce.id,
+              nome: voce.nome,
+              codice: voce.codice,
+              categoria: voce.categoria,
+              unita_misura: voce.unita_misura,
+              descrizione: voce.descrizione,
+              prezzo_1: voce.prezzo_1,
+              prezzo_2: voce.prezzo_2 ?? null,
+              prezzo_3: voce.prezzo_3 ?? null,
+              prezzo_4: voce.prezzo_4 ?? null,
+            }}
+            onSaved={() => window.location.reload()}
+          />
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label={`Elimina ${voce.nome} dal listino`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              minHeight: '44px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              cursor: deleting ? 'wait' : 'pointer',
+              color: 'var(--t3, #B8B3AE)',
+              flexShrink: 0,
+              padding: 0,
+              opacity: deleting ? 0.5 : 1,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#D90012' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #B8B3AE)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   )
