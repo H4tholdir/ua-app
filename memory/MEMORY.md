@@ -1,11 +1,11 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 22 maggio 2026 — V1.8.2 live + Dashboard V2 spec+plan approvati
+**Ultimo aggiornamento:** 23 maggio 2026 — V1.9.0 Dashboard V2 in main, deploy atteso su Vercel CI/CD
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.8.2 IN PRODUZIONE
+## 0. STATO DEL PROGETTO — V1.9.0 IN MAIN (deploy in corso)
 
-**V1.8.2 in produzione su https://uachelab.com — 22/05/2026**
+**V1.9.0 mergiato su main — 23/05/2026 — deploy automatico via Vercel CI/CD**
 
 | Versione | Data | Tag | Contenuto |
 |----------|------|-----|-----------|
@@ -16,34 +16,40 @@
 | V1.7.9 | 22/05/2026 | `v1.7.9` | Pazienti PATCH, Listino edit, Dark mode 27 file |
 | V1.8.0 | 22/05/2026 | `v1.8.0` | Error boundaries, loading completo, splash screens iOS |
 | V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
-| **V1.8.2** | **22/05/2026** | **`main`** | **Visual audit P0: body bg warm panna, grid overflow, dark mode toggle, STOR/ filter** |
+| V1.8.2 | 22/05/2026 | `v1.8.2` | Visual audit P0: body bg warm panna, grid overflow, dark mode toggle, STOR/ filter |
+| **V1.9.0** | **23/05/2026** | **`main` (9bda106)** | **Dashboard V2: Spotlight, KPI filtri, ruolo ibrido, SyncBadge, nav personalizzabile** |
 
-**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 141/141 · Build: ✅ · CI verde ✅
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 156/156 · Build: ✅
 
-### 🔜 PROSSIMA MILESTONE: Dashboard V2 (V1.9)
+### ✅ Dashboard V2 — Completato (23/05/2026)
 
-**Piano pronto — inizia implementazione in sessione nuova.**
+**Merge commit:** `9bda106` — 25 file modificati, +1452 righe
 
-- **Spec:** `docs/superpowers/specs/2026-05-22-dashboard-v2-redesign.md`
-- **Piano:** `docs/superpowers/plans/2026-05-22-dashboard-v2.md` — 13 task, TDD
-- **Approccio:** subagent-driven-development — un subagente per task
+**Nuovi componenti:**
+- `SpotlightCard` — card hero urgenza con motion token, useReducedMotion, ua-pulse keyframe
+- `KpiCard` — KPI 2×2 cliccabile come filtro navigazione, Playfair Display 38px
+- `TaskItem` — progress bar reale da `lavori_fasi.eseguita_at`, role=progressbar sul track
+- `DashboardShell` — role-tabs Gestione/Produzione, persistenza localStorage SSR-safe
+- `DashboardHybrid` — vista ibrida per Titolare che lavora anche come Tecnico
+- `SyncBadge` — "Aggiornato ora / X min fa" + dot online/stale/offline
 
-**Design approvato da Francesco:**
-- Config 1 Spotlight: SpotlightCard hero + KPI 2×2 cliccabili come filtri + TaskList
-- Separazione tab Gestione (business) / Produzione (lavori) per ruolo ibrido Titolare+Tecnico
-- KPI: Playfair Display 38–44px, cliccabili → navigano a lista pre-filtrata
-- Dark mode carbonio corretto: token esatti da `admin.css` (sh-b/sh-c/sh-i neri profondi)
-- Dark mode toggle: SOLO in `/impostazioni`, non nell'UI operativa
-- Nav pill: tooltip "Nuovo lavoro" su "+", drag&drop long-press, pin shortcuts — IMMEDIATI
-- Sync badge sostituisce LIVE: "Aggiornato ora / X min fa" + dot status
-- Avatar nell'header normale (non fixed overlay)
-- Desktop 1280px: 2 colonne (Produzione | Gestione)
+**Modifiche chiave:**
+- `DashboardTitolare`: SpotlightCard per prima segnalazione + KpiGrid 2×2 + Urgenze lab
+- `DashboardTecnico`: usa `TaskItem` + `getLavoriTecnicoOggi` (progress reale, no 84% hardcoded)
+- `BottomNavPill`: tooltip "Nuovo lavoro", editMode long-press 500ms, pin shortcuts localStorage
+- `AppHeader`: prop `lastUpdatedAt?: Date | null` → renderizza SyncBadge
+- `page.tsx` dashboard: `isTitolare`, `isHybrid`, `tecnicoIdPerTitolare` — routing per ruolo
 
-**Istruzione di avvio:**
-```
-Implementa il Dashboard V2 partendo dal piano in docs/superpowers/plans/2026-05-22-dashboard-v2.md.
-Usa il skill superpowers:subagent-driven-development. Inizia dal Task 1.
-```
+**Nuova query:** `getLavoriTecnicoOggi` — completamento_perc reale da fasi, fallback `statoToPerc`
+
+**DB migration:** `20260522120000_dashboard_v2.sql` — 2 indici performance + `utenti.nav_preferences JSONB`
+
+**Lezioni apprese (per prossimi sviluppi):**
+- `useReducedMotion` obbligatorio su OGNI componente con animazione non-istantanea
+- `window.matchMedia` mock in `tests/setup.ts` necessario per componenti con `useReducedMotion` in jsdom
+- `@testing-library/react` aggiunto come devDependency (mancava)
+- `role="progressbar"` deve stare sul track container, non sul fill element
+- `localStorage` init SSR-safe: lazy initializer + `typeof window === 'undefined'` guard
 
 ### 🆕 Fix V1.8.2 — Visual Audit P0 (22/05/2026, commit 1afb06d)
 - **Body background**: `var(--bg, #DDD8D3)` warm panna su tutti i dispositivi (era bianco su desktop)
