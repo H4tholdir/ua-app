@@ -103,7 +103,16 @@ export function TaskItem({
             fontSize: '10px',
             color: DS.t2,
             margin: '2px 0 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}>
+            <span style={{
+              display: 'inline-block',
+              width: '5px', height: '5px', borderRadius: '50%',
+              background: COLOR_MAP[colore_fase],
+              flexShrink: 0,
+            }} />
             {stato_fase_attuale}
           </p>
         )}

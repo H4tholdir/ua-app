@@ -76,7 +76,7 @@ export default async function DashboardPage() {
   // Note: `utenti` non ha colonna `tecnico_id` — si usa tecnici.utente_id per il join
   const { data: utente } = await svc
     .from('utenti')
-    .select('ruolo, laboratorio_id, nome, cognome')
+    .select('ruolo, laboratorio_id, nome, cognome, preferenza_dashboard')
     .eq('id', user.id)
     .is('deleted_at', null)
     .single()
@@ -84,10 +84,8 @@ export default async function DashboardPage() {
   if (!utente) redirect('/login')
 
   const { ruolo, laboratorio_id: labId } = utente
-  const nomeUtente =
-    utente.nome ??
-    user.email?.split('@')[0] ??
-    'Utente'
+  const nomeUtente = utente.nome ?? user.email?.split('@')[0] ?? 'Utente'
+  const preferenzaDashboard = (utente.preferenza_dashboard ?? 'ibrido') as 'ibrido' | 'gestione_solo'
 
   // ─── Rilevamento ruolo ibrido Titolare+Tecnico ────────────────────────────
   const isTitolare = ruolo === 'titolare' || ruolo === 'admin_rete'
@@ -269,6 +267,7 @@ export default async function DashboardPage() {
         aggiornatoAt={cacheRow?.aggiornato_at ?? null}
         onboardingPending={!lab?.onboarding_completato}
         segnalazioni={segnalazioni}
+        preferenzaDashboard={preferenzaDashboard}
       />
     )
   }
