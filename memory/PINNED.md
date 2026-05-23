@@ -3,6 +3,14 @@
 
 ---
 
+## 0. REGOLE OPERATIVE INVIOLABILI (aggiunte 23/05/2026)
+
+- **MAI /tmp per decisioni di design** — i file in /tmp vengono cancellati e le decisioni si perdono per sempre. Ogni mockup HTML, screenshot di approvazione, e decisione visiva va salvata in `docs/design/mockups/` o `docs/design/decisions/`. Nessuna eccezione, mai.
+- **Mockup workflow obbligatorio** — prima di implementare qualsiasi UI: crea mockup in `docs/design/mockups/YYYY-MM-DD-nome.html`, screenshot con Playwright, approvazione Francesco, poi React. Vedere `docs/design/README.md`.
+- **Nav pill visibile su TUTTI i viewport** — la BottomNavPill è la navigazione operativa della PWA e deve essere presente e funzionante su mobile (390px), tablet (768px) E desktop (1280px). Su desktop adatta il layout (es. orizzontale in basso o sidebar) ma non sparisce mai.
+
+---
+
 ## 1. Decisioni Architetturali Critiche
 
 - **RLS:** `public.current_lab_id()` — NON `auth.current_lab_id()` (la funzione è in schema `public`)

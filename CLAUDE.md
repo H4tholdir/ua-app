@@ -89,9 +89,9 @@ FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:
 
 1. **Ricerca best practice** — cerca sempre pattern UX/UI di riferimento per il dominio specifico (fintech, gestione lavori, MDR compliance, ecc.). Includi: animazioni raccomandate, sound/haptic feedback, pattern viewport.
-2. **Mockup HTML** in `/tmp/` che incorpori le best practice trovate — nessun placeholder, dati reali simulati.
-3. **Screenshot Playwright** del mockup — mostrarlo a Francesco.
-4. **Approvazione Francesco** — aspettare esplicito "ok procedi" prima di scrivere React.
+2. **Mockup HTML** in `docs/design/mockups/YYYY-MM-DD-nome-feature.html` — **MAI in /tmp/** (i file /tmp vengono cancellati, le decisioni si perdono). Dati reali simulati, nessun placeholder.
+3. **Screenshot Playwright** del mockup — salvare anche in `docs/design/mockups/screenshots/`. Mostrarlo a Francesco.
+4. **Approvazione Francesco** — aspettare esplicito "ok procedi" prima di scrivere React. Scrivere la decisione in `docs/design/decisions/YYYY-MM-DD-nome-feature.md`.
 5. **Implementazione React** — fedele al mockup approvato, con:
    - **Animazioni** da `src/design-system/motion.ts` (SOLO token, MAI inline)
    - **Suoni/Haptic** da `src/lib/feedback/sounds.ts` e `src/lib/feedback/haptic.ts`
