@@ -914,97 +914,76 @@ export function DashboardTitolare({
 
       {GreetingSection}
 
-      {/* LAYOUT: mobile = colonna singola, desktop = 2 colonne */}
+      {/* LAYOUT responsive:
+          Mobile (<1024px): colonna singola con tab switcher
+          Desktop (≥1024px): 2 colonne — Produzione sinistra | Gestione destra
+          Gestito via CSS classes ua-dash-layout + ua-dash-col-prod + ua-dash-col-gest
+          + ua-mobile-only (hidden on desktop) + ua-desktop-only (hidden on mobile) */}
       <div className="ua-dash-layout">
 
-        {/* ── Colonna Produzione ── */}
+        {/* ── Colonna Produzione — SOLO DESKTOP (hidden on mobile via CSS) ── */}
         {showTabs && (
           <div className="ua-dash-col-prod">
-            {/* Label visibile solo su desktop */}
-            <div style={{ display: 'none' }} className="ua-desk-only">
-              <ColLabel icon={<IconProduzione size={11} />} text="Produzione — cosa faccio" />
-            </div>
-
-            {/* SpotlightCard — visibile in Produzione (sia mobile tab sia desktop) */}
-            {firstSegnalazione && spotlightTipo && (
-              <SpotlightCard
-                lavoro_id={firstSegnalazione.id}
-                numero_lavoro={firstSegnalazione.numero_lavoro}
-                cliente_display={
-                  firstSegnalazione.clienti?.studio_nome ??
-                  (firstSegnalazione.clienti ? `${firstSegnalazione.clienti.nome} ${firstSegnalazione.clienti.cognome}` : '—')
-                }
-                descrizione_problema={
-                  firstSegnalazione.segnalazione_nota ??
-                  (firstSegnalazione.segnalazione_tipo in TIPI_LABEL
-                    ? TIPI_LABEL[firstSegnalazione.segnalazione_tipo as keyof typeof TIPI_LABEL]
-                    : firstSegnalazione.segnalazione_tipo)
-                }
-                ora_consegna={null}
-                tipo={spotlightTipo}
-                timestamp_segnalazione={firstSegnalazione.segnalazione_at}
-              />
-            )}
-
-            {lavoriInRitardo.length > 0 && (
-              <>
-                <SectionLabel>Lavori in ritardo</SectionLabel>
-                <RitardoList items={lavoriInRitardo.slice(0, 5)} />
-              </>
-            )}
-            <SectionLabel>Da consegnare oggi</SectionLabel>
-            <ConsegneList items={consegneOggi} />
+            <ColLabel icon={<IconProduzione size={11} />} text="Produzione — cosa faccio" />
+            {ProduzioneContent}
           </div>
         )}
 
-        {/* ── Colonna Gestione ── */}
+        {/* ── Colonna Gestione — sempre visibile ── */}
         <div className={showTabs ? 'ua-dash-col-gest' : ''}>
           {showTabs && (
-            <div style={{ display: 'none' }} className="ua-desk-only">
+            <div className="ua-desktop-only">
               <ColLabel icon={<IconGestione size={11} />} text="Gestione — stato del business" />
             </div>
           )}
 
-          {/* Mobile: role tabs sopra il contenuto */}
-          {RoleTabs}
+          {/* MOBILE: tab switcher (nascosto su desktop) */}
+          <div className={showTabs ? 'ua-mobile-only' : ''}>
+            {RoleTabs}
+            {showTabs ? (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={reduced ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={t('fast', 'enter')}
+                >
+                  {activeTab === 'gestione' ? GestioneContent : ProduzioneContent}
+                </motion.div>
+              </AnimatePresence>
+            ) : (
+              // Titolare puro (gestione_solo): SpotlightCard + GestioneContent in colonna unica
+              <>
+                {firstSegnalazione && spotlightTipo && (
+                  <SpotlightCard
+                    lavoro_id={firstSegnalazione.id}
+                    numero_lavoro={firstSegnalazione.numero_lavoro}
+                    cliente_display={
+                      firstSegnalazione.clienti?.studio_nome ??
+                      (firstSegnalazione.clienti ? `${firstSegnalazione.clienti.nome} ${firstSegnalazione.clienti.cognome}` : '—')
+                    }
+                    descrizione_problema={
+                      firstSegnalazione.segnalazione_nota ??
+                      (firstSegnalazione.segnalazione_tipo in TIPI_LABEL
+                        ? TIPI_LABEL[firstSegnalazione.segnalazione_tipo as keyof typeof TIPI_LABEL]
+                        : firstSegnalazione.segnalazione_tipo)
+                    }
+                    ora_consegna={null}
+                    tipo={spotlightTipo}
+                    timestamp_segnalazione={firstSegnalazione.segnalazione_at}
+                  />
+                )}
+                {GestioneContent}
+              </>
+            )}
+          </div>
 
-          {/* Mobile: tab switcher logic */}
-          {showTabs ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={reduced ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={t('fast', 'enter')}
-              >
-                {activeTab === 'gestione' ? GestioneContent : ProduzioneContent}
-              </motion.div>
-            </AnimatePresence>
-          ) : (
-            // Titolare puro: tutto in un'unica colonna
-            <>
-              {firstSegnalazione && spotlightTipo && (
-                <SpotlightCard
-                  lavoro_id={firstSegnalazione.id}
-                  numero_lavoro={firstSegnalazione.numero_lavoro}
-                  cliente_display={
-                    firstSegnalazione.clienti?.studio_nome ??
-                    (firstSegnalazione.clienti ? `${firstSegnalazione.clienti.nome} ${firstSegnalazione.clienti.cognome}` : '—')
-                  }
-                  descrizione_problema={
-                    firstSegnalazione.segnalazione_nota ??
-                    (firstSegnalazione.segnalazione_tipo in TIPI_LABEL
-                      ? TIPI_LABEL[firstSegnalazione.segnalazione_tipo as keyof typeof TIPI_LABEL]
-                      : firstSegnalazione.segnalazione_tipo)
-                  }
-                  ora_consegna={null}
-                  tipo={spotlightTipo}
-                  timestamp_segnalazione={firstSegnalazione.segnalazione_at}
-                />
-              )}
+          {/* DESKTOP: solo GestioneContent, senza tabs (nascosto su mobile) */}
+          {showTabs && (
+            <div className="ua-desktop-only">
               {GestioneContent}
-            </>
+            </div>
           )}
         </div>
       </div>

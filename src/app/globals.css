@@ -1335,3 +1335,30 @@
     gap: 8px;
   }
 }
+
+/* ua-dash-col-prod: nascosta su mobile, visibile su desktop */
+.ua-dash-col-prod {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .ua-dash-col-prod {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Elementi che appaiono solo su mobile o solo su desktop */
+.ua-mobile-only {
+  display: block;
+}
+.ua-desktop-only {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .ua-mobile-only {
+    display: none !important;
+  }
+  .ua-desktop-only {
+    display: block !important;
+  }
+}
