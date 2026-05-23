@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { LavoroUrgente } from './LavoroUrgente'
+import { TaskItem } from './TaskItem'
 import type { TecnicoDashboard } from '@/types/domain'
+import type { TaskItemData } from '@/lib/dashboard/queries'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
@@ -20,8 +22,9 @@ const DS = {
   shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
 }
 
-interface DashboardTecnicoProps {
+export interface DashboardTecnicoProps {
   data: TecnicoDashboard
+  lavoriOggi: TaskItemData[]
   nomeUtente: string
   tecnicoId?: string | null
 }
@@ -112,7 +115,7 @@ function Section({
 // Formatter valuta italiana
 const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' })
 
-export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecnicoProps) {
+export function DashboardTecnico({ data, lavoriOggi, nomeUtente, tecnicoId }: DashboardTecnicoProps) {
   const reducedMotion = useReducedMotion()
   const { lavori_urgenti, lavori_oggi, in_prova_rientro_oggi, compenso_oggi } = data
 
@@ -279,7 +282,7 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
         {[
           { value: lavori_urgenti.length, label: 'Urgenti', color: 'var(--primary, #D90012)' },
           { value: lavori_oggi.length, label: 'Oggi', color: 'var(--info, #2563EB)' },
-          { value: 84, label: 'Puntualità %', color: 'var(--success, #16A34A)' },
+          { value: null, label: 'Puntualità %', color: 'var(--t3, #B8B3AE)' },
         ].map((kpi) => (
           <div
             key={kpi.label}
@@ -303,9 +306,9 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
                 lineHeight: 1,
                 color: kpi.color,
               }}
-              aria-label={`${kpi.label}: ${kpi.value}`}
+              aria-label={`${kpi.label}: ${kpi.value ?? '—'}`}
             >
-              {kpi.value}
+              {kpi.value ?? '—'}
             </span>
             <span
               style={{
@@ -357,115 +360,34 @@ export function DashboardTecnico({ data, nomeUtente, tecnicoId }: DashboardTecni
           </Section>
         )}
 
-        {/* I miei lavori oggi */}
+        {/* I miei lavori — lista con TaskItem e progress reale */}
         <Section delay={stagger} reducedMotion={reducedMotion}>
           <SectionLabel>I miei lavori oggi</SectionLabel>
-          {lavori_oggi.length === 0 ? (
-            <EmptyState message="Nessun lavoro in programma per oggi" />
-          ) : (
-            <div style={CARD_STYLE}>
-              {lavori_oggi.map((lavoro) => (
-                <div
-                  key={lavoro.id}
-                  style={{
-                    padding: '14px 16px',
-                    borderBottom: '1px solid rgba(0,0,0,.06)',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: 15,
-                        fontWeight: 600,
-                        color: DS.t1,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {lavoro.cliente_display}
-                    </span>
-                    {lavoro.ora_consegna && (
-                      <span
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: 12,
-                          fontWeight: 500,
-                          color: DS.t2,
-                          flexShrink: 0,
-                        }}
-                      >
-                        ore {lavoro.ora_consegna}
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    style={{
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: 12,
-                      color: DS.t2,
-                      margin: '0 0 6px',
-                    }}
-                  >
-                    #{lavoro.numero_lavoro}
-                    {lavoro.paziente_nome_snapshot
-                      ? ` · ${lavoro.paziente_nome_snapshot}`
-                      : ` · ${lavoro.descrizione}`}
-                  </p>
-                  {lavoro.prossima_fase && (
-                    <p
-                      style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: DS.info,
-                        margin: '0 0 6px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      Prossima: {lavoro.prossima_fase}
-                    </p>
-                  )}
-                  {/* Progress bar neumorphica */}
-                  <div
-                    aria-label={`Completamento: ${lavoro.completamento_perc}%`}
-                    role="progressbar"
-                    aria-valuenow={lavoro.completamento_perc}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    style={{
-                      background: 'var(--prs, #D4CFC9)',
-                      borderRadius: 4,
-                      height: 6,
-                      boxShadow: DS.shI,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 6,
-                        borderRadius: 4,
-                        background: DS.info,
-                        width: '100%',
-                        transform: `scaleX(${lavoro.completamento_perc / 100})`,
-                        transformOrigin: 'left center',
-                        transition: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {lavoriOggi.length === 0 ? (
+              <EmptyState message="Nessun lavoro assegnato per oggi" />
+            ) : (
+              lavoriOggi.map((l, i) => (
+                <TaskItem
+                  key={l.id}
+                  rank={i + 1}
+                  id={l.id}
+                  numero_lavoro={l.numero_lavoro}
+                  cliente_display={l.cliente_display}
+                  stato_fase_attuale={l.stato}
+                  completamento_perc={l.completamento_perc}
+                  data_consegna_prevista={l.data_consegna_prevista}
+                  ora_consegna={l.ora_consegna}
+                  colore_fase={
+                    l.priorita === 'urgente' ? 'red' :
+                    l.completamento_perc >= 80 ? 'green' :
+                    l.completamento_perc >= 40 ? 'gold' :
+                    'grey'
+                  }
+                />
+              ))
+            )}
+          </div>
         </Section>
 
         {/* In prova — rientrano oggi */}

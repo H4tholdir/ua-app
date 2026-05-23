@@ -1,0 +1,109 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { t, useReducedMotion } from '@/design-system/motion'
+import { motion, AnimatePresence } from 'motion/react'
+
+const DS = {
+  prs:  'var(--prs, #D4CFC9)',
+  elv:  'var(--elv, #EDEDEA)',
+  t1:   'var(--t1, #1C1916)',
+  t2:   'var(--t2, #96918D)',
+  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+  shI: `inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66)`,
+} as const
+
+type DashView = 'gestione' | 'produzione'
+
+interface DashboardShellProps {
+  defaultView?: DashView
+  renderGestione: React.ReactNode
+  renderProduzione: React.ReactNode
+  showTabs?: boolean
+}
+
+export function DashboardShell({
+  defaultView = 'produzione',
+  renderGestione,
+  renderProduzione,
+  showTabs = true,
+}: DashboardShellProps) {
+  const reduced = useReducedMotion()
+  const [view, setView] = useState<DashView>(() => {
+    if (typeof window === 'undefined') return defaultView
+    const stored = localStorage.getItem('ua-dashboard-view')
+    return (stored === 'gestione' || stored === 'produzione') ? stored : defaultView
+  })
+
+  useEffect(() => {
+    localStorage.setItem('ua-dashboard-view', view)
+  }, [view])
+
+  if (!showTabs) {
+    return <>{renderGestione}</>
+  }
+
+  return (
+    <>
+      <div
+        role="tablist"
+        aria-label="Vista dashboard"
+        style={{
+          margin: '0 14px 12px',
+          background: DS.prs,
+          borderRadius: '15px',
+          padding: '3px',
+          display: 'flex',
+          boxShadow: DS.shI,
+        }}
+      >
+        {(['gestione', 'produzione'] as const).map((v) => (
+          <button
+            key={v}
+            role="tab"
+            aria-selected={view === v}
+            aria-controls={`panel-${v}`}
+            onClick={() => setView(v)}
+            style={{
+              flex: 1,
+              padding: '7px 5px',
+              borderRadius: '12px',
+              fontSize: '10.5px',
+              fontWeight: 600,
+              fontFamily: 'DM Sans, sans-serif',
+              textAlign: 'center',
+              color: view === v ? DS.t1 : DS.t2,
+              background: view === v ? DS.elv : 'transparent',
+              boxShadow: view === v ? DS.shB : 'none',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all .15s cubic-bezier(.2,0,0,1)',
+              WebkitTapHighlightColor: 'transparent',
+              lineHeight: 1.2,
+            }}
+          >
+            {v === 'gestione' ? '📊 Gestione' : '🔧 Produzione'}
+            <small style={{ display: 'block', fontSize: '8px', opacity: .5, fontWeight: 400, marginTop: '1px' }}>
+              {v === 'gestione' ? 'business' : 'i miei lavori'}
+            </small>
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={view}
+          id={`panel-${view}`}
+          role="tabpanel"
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reduced ? {} : { opacity: 0 }}
+          transition={reduced ? { duration: 0 } : t('fast', 'enter')}
+        >
+          {view === 'gestione' ? renderGestione : renderProduzione}
+        </motion.div>
+      </AnimatePresence>
+    </>
+  )
+}

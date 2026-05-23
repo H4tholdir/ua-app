@@ -144,6 +144,53 @@ export function BottomNavPill() {
   const lastScrollY = useRef(0)
   const reducedMotion = useReducedMotion()
 
+  const [editMode, setEditMode] = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleNavPressStart() {
+    longPressTimer.current = setTimeout(() => setEditMode(true), 500)
+  }
+
+  function handleNavPressEnd() {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+  }
+
+  useEffect(() => {
+    if (!editMode) return
+    const close = () => setEditMode(false)
+    document.addEventListener('click', close, { once: true })
+    return () => document.removeEventListener('click', close)
+  }, [editMode])
+
+  useEffect(() => {
+    return () => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }
+  }, [])
+
+  const STORAGE_KEY = 'ua-nav-preferences'
+
+  function loadNavPrefs(): { pinned: string[] } {
+    if (typeof window === 'undefined') return { pinned: [] }
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (!stored) return { pinned: [] }
+      const parsed = JSON.parse(stored) as { pinned?: string[] }
+      return { pinned: parsed.pinned ?? [] }
+    } catch { return { pinned: [] } }
+  }
+
+  const [navPrefs, setNavPrefs] = useState(loadNavPrefs)
+
+  function togglePin(href: string) {
+    setNavPrefs(prev => {
+      const pinned = prev.pinned.includes(href)
+        ? prev.pinned.filter(h => h !== href)
+        : [...prev.pinned, href]
+      const next = { ...prev, pinned }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY
@@ -181,8 +228,21 @@ export function BottomNavPill() {
     scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
   }
 
+  const navStyle: React.CSSProperties = {
+    ...pillStyle,
+    outline: editMode ? '2px dashed rgba(217,0,18,.30)' : 'none',
+    outlineOffset: editMode ? '3px' : '0',
+  }
+
   const barContent = (
-    <nav style={pillStyle} aria-label="Navigazione principale">
+    <nav
+      style={navStyle}
+      aria-label="Navigazione principale"
+      onMouseDown={handleNavPressStart}
+      onMouseUp={handleNavPressEnd}
+      onTouchStart={handleNavPressStart}
+      onTouchEnd={handleNavPressEnd}
+    >
       {tabs.map((tab) => {
         const active = isTabActive(tab.href, pathname)
 
@@ -193,8 +253,40 @@ export function BottomNavPill() {
               initial={reducedMotion ? false : { scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={reducedMotion ? { duration: 0 } : { delay: 0.2, ...motionTokens.spring.pop }}
-              style={{ flexShrink: 0 }}
+              style={{ flexShrink: 0, position: 'relative' }}
             >
+              {/* Tooltip "Nuovo lavoro" */}
+              <span
+                role="tooltip"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginBottom: '8px',
+                  background: 'var(--t1, #1C1916)',
+                  color: 'var(--elv, #EDEDEA)',
+                  fontSize: '9.5px',
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: '7px',
+                  whiteSpace: 'nowrap',
+                  fontFamily: 'DM Sans, sans-serif',
+                  pointerEvents: 'none',
+                  zIndex: 1,
+                }}
+              >
+                Nuovo lavoro
+                <span style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  borderLeft: '4px solid transparent',
+                  borderRight: '4px solid transparent',
+                  borderTop: '4px solid var(--t1, #1C1916)',
+                }} />
+              </span>
               <Link
                 href={tab.href}
                 aria-label={tab.ariaLabel}
@@ -242,9 +334,33 @@ export function BottomNavPill() {
               textDecoration: 'none',
               transition: reducedMotion ? 'none' : undefined,
               boxShadow: active ? DS.shI : 'none',
+              position: 'relative',
             }}
           >
             {tab.icon}
+            {editMode && (
+              <span
+                aria-label={navPrefs.pinned.includes(tab.href) ? 'Rimuovi pin' : 'Aggiungi pin'}
+                onClick={(e) => { e.preventDefault(); togglePin(tab.href) }}
+                style={{
+                  position: 'absolute',
+                  top: '2px',
+                  right: '4px',
+                  fontSize: '7px',
+                  cursor: 'pointer',
+                }}
+              >
+                📌
+              </span>
+            )}
+            {!editMode && navPrefs.pinned.includes(tab.href) && (
+              <span
+                aria-hidden="true"
+                style={{ position: 'absolute', top: '2px', right: '4px', fontSize: '7px' }}
+              >
+                📌
+              </span>
+            )}
             <span
               style={{
                 fontSize: '10px',
@@ -279,6 +395,18 @@ export function BottomNavPill() {
       >
         <div style={{ pointerEvents: 'auto' }}>
           {barContent}
+          {editMode && (
+            <div style={{
+              textAlign: 'center',
+              fontSize: '9px',
+              color: 'var(--t3, #B8B3AE)',
+              fontFamily: 'DM Sans, sans-serif',
+              marginTop: '4px',
+              paddingBottom: '4px',
+            }}>
+              Tieni premuto · Tocca tab per pin
+            </div>
+          )}
         </div>
       </div>
     ) : null
@@ -307,6 +435,18 @@ export function BottomNavPill() {
         >
           <div style={{ pointerEvents: 'auto' }}>
             {barContent}
+            {editMode && (
+              <div style={{
+                textAlign: 'center',
+                fontSize: '9px',
+                color: 'var(--t3, #B8B3AE)',
+                fontFamily: 'DM Sans, sans-serif',
+                marginTop: '4px',
+                paddingBottom: '4px',
+              }}>
+                Tieni premuto · Tocca tab per pin
+              </div>
+            )}
           </div>
         </motion.div>
       )}

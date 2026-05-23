@@ -174,7 +174,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '12px 20px 16px',
-                borderBottom: '1px solid rgba(0,0,0,.06)',
+                borderBottom: '1px solid var(--border, rgba(0,0,0,.06))',
               }}>
                 <div style={{
                   width: 52, height: 52, borderRadius: 16,

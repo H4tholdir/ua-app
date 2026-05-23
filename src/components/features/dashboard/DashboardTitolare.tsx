@@ -7,6 +7,7 @@ import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { KpiCard } from './KpiCard'
 import { LavoroUrgente } from './LavoroUrgente'
+import { SpotlightCard } from './SpotlightCard'
 import type {
   DashboardStatsExtended,
   FrontDeskConsegnaItem,
@@ -395,6 +396,29 @@ export function DashboardTitolare({
         </div>
       </div>
 
+      {/* SpotlightCard — prima segnalazione aperta */}
+      {segnalazioni && segnalazioni.length > 0 && (() => {
+        const s = segnalazioni[0]
+        const tipo: 'blocco' | 'ritardo' | 'urgente' =
+          s.segnalazione_tipo === 'impronta_non_idonea' || s.segnalazione_tipo === 'materiale_esaurito'
+            ? 'blocco'
+            : s.segnalazione_tipo === 'colore_mancante' || s.segnalazione_tipo === 'istruzione_poco_chiara'
+            ? 'urgente'
+            : 'ritardo'
+        const cliente_display = s.clienti?.studio_nome ?? (s.clienti ? `${s.clienti.nome} ${s.clienti.cognome}` : '—')
+        return (
+          <SpotlightCard
+            lavoro_id={s.id}
+            numero_lavoro={s.numero_lavoro}
+            cliente_display={cliente_display}
+            descrizione_problema={s.segnalazione_nota ?? TIPI_LABEL[s.segnalazione_tipo as keyof typeof TIPI_LABEL] ?? s.segnalazione_tipo}
+            ora_consegna={null}
+            tipo={tipo}
+            timestamp_segnalazione={s.segnalazione_at}
+          />
+        )
+      })()}
+
       {/* 2. KPI Strip (scroll orizzontale) */}
       <Section delay={0} reducedMotion={reducedMotion}>
         <div
@@ -413,70 +437,143 @@ export function DashboardTitolare({
         >
           {[
             ...(segnalazioni.length > 0 ? [{
-              value: segnalazioni.length,
+              valore: segnalazioni.length,
               label: 'Problemi',
-              description: 'Segnalazioni aperte dai tecnici',
-              color: DS.primary,
+              azione: 'vedi →',
+              colore: 'red' as const,
+              href: '/lavori?filter=segnalazioni',
             }] : []),
             {
-              value: stats.lavori_in_ritardo,
+              valore: stats.lavori_in_ritardo,
               label: 'In ritardo',
-              color: DS.primary,
+              azione: 'vedi →',
+              colore: 'red' as const,
+              href: '/lavori?stato=in_ritardo',
             },
             {
-              value: stats.consegne_oggi,
+              valore: stats.consegne_oggi,
               label: 'Oggi',
-              description: 'Consegne programmate per oggi',
-              color: DS.info,
+              azione: 'consegne →',
+              colore: 'blue' as const,
+              href: '/lavori?filter=consegne-oggi',
             },
             {
-              value: stats.in_prova_count,
+              valore: stats.in_prova_count,
               label: 'In prova',
-              description: 'Lavori in fase di prova presso il dentista',
-              color: DS.warning,
+              azione: 'vedi →',
+              colore: 'gold' as const,
+              href: '/lavori?stato=in_prova',
             },
             {
-              value: stats.pronti_non_fatturati,
+              valore: stats.pronti_non_fatturati,
               label: 'Da fatt.',
-              description: 'Lavori pronti da fatturare',
-              color: 'var(--gold, #D4A843)',
+              azione: 'fattura →',
+              colore: 'gold' as const,
+              href: '/fatture?filter=da-fatturare',
             },
             {
-              value: stats.materiali_esaurimento_count,
+              valore: stats.materiali_esaurimento_count,
               label: 'Materiali',
-              description: 'Materiali in esaurimento in magazzino',
-              color: DS.urgente,
+              azione: 'ordina →',
+              colore: 'red' as const,
+              href: '/ordini?filter=esaurimento',
             },
             {
-              value: stats.mdr_incompleti,
+              valore: stats.mdr_incompleti,
               label: 'DdC',
-              description: 'Dichiarazioni di Conformità MDR da completare',
-              color: DS.t2,
+              azione: 'completa →',
+              colore: 'grey' as const,
+              href: '/lavori?filter=mdr-incompleti',
             },
             {
-              value: stats.stl_non_assegnati,
+              valore: stats.stl_non_assegnati,
               label: 'Non ass.',
-              description: 'File STL non ancora assegnati a un tecnico',
-              color: 'var(--purple, #7C3AED)',
+              azione: 'assegna →',
+              colore: 'blue' as const,
+              href: '/lavori?filter=stl-non-assegnati',
             },
-          ].map((chip, i) => (
+          ].map((chip) => (
             <div key={chip.label} role="listitem">
               <KpiCard
-                value={chip.value}
+                valore={chip.valore}
                 label={chip.label}
-                description={chip.description}
-                color={chip.color}
-                animationDelay={i * stagger}
+                azione={chip.azione}
+                colore={chip.colore}
+                href={chip.href}
               />
             </div>
           ))}
         </div>
       </Section>
 
+      {/* KpiGrid 2×2 — vista Gestione */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '10px',
+        margin: '0 14px 12px',
+      }}>
+        <KpiCard
+          valore={stats.consegne_oggi}
+          label="Da consegnare"
+          azione="oggi →"
+          colore="blue"
+          href="/lavori?filter=consegne-oggi"
+        />
+        <KpiCard
+          valore={stats.lavori_in_ritardo}
+          label="In ritardo"
+          azione="vedi →"
+          colore="red"
+          href="/lavori?stato=in_ritardo"
+        />
+        <KpiCard
+          valore={stats.pronti_non_fatturati}
+          label="Da fatturare"
+          azione="fattura →"
+          colore="gold"
+          href="/fatture?filter=da_fatturare"
+        />
+        <KpiCard
+          valore={materialiEsaurimento.length}
+          label="Materiali esauriti"
+          azione="magazzino →"
+          colore="grey"
+          href="/magazzino?filter=esaurimento"
+        />
+      </div>
+
+      {/* Urgenze lab — pagamenti scaduti top */}
+      {pagamentiTop.length > 0 && (
+        <div style={{ margin: '0 14px 12px' }}>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--t3, #B8B3AE)', marginBottom: '8px', marginTop: 0 }}>
+            Urgenze lab
+          </p>
+          <div style={{ background: 'var(--sfc, #E4DFD9)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)', overflow: 'hidden' }}>
+            {pagamentiTop.slice(0, 3).map((p, i) => (
+              <div key={p.cliente_id} style={{
+                padding: '10px 14px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: i < Math.min(pagamentiTop.length, 3) - 1 ? '1px solid var(--border, rgba(0,0,0,.06))' : 'none',
+              }}>
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t1, #1C1916)', fontWeight: 500 }}>
+                  {p.cliente_display}
+                </span>
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--primary, #D90012)', fontWeight: 700 }}>
+                  {formatEuro(p.residuo)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Banner segnalazioni aperte — priorità massima, prima di tutto */}
       {segnalazioni.length > 0 && (
         <div style={{ margin: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {segnalazioni.map((s) => {
+          {segnalazioni.slice(1).map((s) => {
             const tecnico = s.segnalazione_by_utente
             const tecnicoDisplay = tecnico
               ? `${tecnico.nome ?? ''} ${tecnico.cognome ?? ''}`.trim() || 'Un tecnico'
@@ -646,7 +743,7 @@ export function DashboardTitolare({
                     padding: '14px 16px',
                     borderBottom:
                       i < inProvaRientro.length - 1
-                        ? '1px solid rgba(0,0,0,.06)'
+                        ? '1px solid var(--border, rgba(0,0,0,.06))'
                         : 'none',
                   }}
                 >
@@ -706,7 +803,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderBottom: '1px solid rgba(0,0,0,.06)',
+                  borderBottom: '1px solid var(--border, rgba(0,0,0,.06))',
                   background: `${DS.primary}08`,
                 }}
               >
@@ -744,7 +841,7 @@ export function DashboardTitolare({
                     padding: '12px 16px',
                     borderBottom:
                       i < pagamentiTop.length - 1
-                        ? '1px solid rgba(0,0,0,.06)'
+                        ? '1px solid var(--border, rgba(0,0,0,.06))'
                         : 'none',
                   }}
                 >
@@ -830,7 +927,7 @@ export function DashboardTitolare({
                       padding: '14px 16px',
                       borderBottom:
                         i < materialiEsaurimento.length - 1
-                          ? '1px solid rgba(0,0,0,.06)'
+                          ? '1px solid var(--border, rgba(0,0,0,.06))'
                           : 'none',
                     }}
                   >
@@ -974,7 +1071,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 0 0',
-                  borderTop: '1px solid rgba(0,0,0,.06)',
+                  borderTop: '1px solid var(--border, rgba(0,0,0,.06))',
                 }}
               >
                 <span
@@ -1006,7 +1103,7 @@ export function DashboardTitolare({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 0 0',
-                  borderTop: '1px solid rgba(0,0,0,.06)',
+                  borderTop: '1px solid var(--border, rgba(0,0,0,.06))',
                 }}
               >
                 <div>

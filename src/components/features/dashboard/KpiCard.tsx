@@ -1,120 +1,111 @@
 'use client'
 
-import { motion } from 'motion/react'
-import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
+import Link from 'next/link'
 
-// Design tokens — warm haptimorphic (DS v2.2)
+type KpiColor = 'red' | 'blue' | 'gold' | 'green' | 'grey'
+
+const COLOR_MAP: Record<KpiColor, string> = {
+  red:   'var(--primary, #D90012)',
+  blue:  'var(--info, #5A5FCC)',
+  gold:  'var(--gold, #D4A843)',
+  green: 'var(--success, #3DCB5C)',
+  grey:  'var(--t2, #96918D)',
+}
+
 const DS = {
-  elv:     'var(--elv, #EDEDEA)',
-  primary: '#D90012',
-  t2:      'var(--t2, #96918D)',
-  shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
-  shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
-}
+  sfc:  'var(--sfc, #E4DFD9)',
+  t2:   'var(--t2, #96918D)',
+  t3:   'var(--t3, #B8B3AE)',
+  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+} as const
 
-interface KpiCardProps {
-  value: number
+export interface KpiCardProps {
+  valore: number
   label: string
-  color: string
-  description?: string
-  active?: boolean
-  onClick?: () => void
-  animationDelay?: number
+  azione: string
+  colore: KpiColor
+  href: string
 }
 
-export function KpiCard({
-  value,
-  label,
-  description,
-  color,
-  active,
-  onClick,
-  animationDelay = 0,
-}: KpiCardProps) {
-  const reducedMotion = useReducedMotion()
+export function KpiCard({ valore, label, azione, colore, href }: KpiCardProps) {
+  const isZero = valore === 0
+  const numColor = isZero ? DS.t2 : COLOR_MAP[colore]
 
-  const chipStyle: React.CSSProperties = {
+  const cardStyle: React.CSSProperties = {
+    background: DS.sfc,
+    borderRadius: '16px',
+    padding: '12px 13px',
+    boxShadow: DS.shB,
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: active ? DS.primary : DS.elv,
-    borderRadius: '16px',
-    padding: '16px 14px',
-    minWidth: '76px',
-    minHeight: '64px',
-    border: 'none',
-    cursor: onClick ? 'pointer' : 'default',
-    boxShadow: active ? DS.shI : DS.shC,
-    transition: 'box-shadow 0.18s cubic-bezier(0.2,0,0,1), background 0.18s, transform 80ms ease',
+    gap: 0,
+    userSelect: 'none',
     WebkitTapHighlightColor: 'transparent',
-    flexShrink: 0,
+    transition: 'transform .12s cubic-bezier(.2,0,0,1), box-shadow .12s cubic-bezier(.2,0,0,1)',
+    cursor: isZero ? 'default' : 'pointer',
+    pointerEvents: isZero ? 'none' : 'auto',
+    textDecoration: 'none',
   }
 
-  const chipInner = (
+  const inner = (
     <>
-      <span
-        style={{
-          fontFamily: 'DM Sans, sans-serif',
-          fontSize: '28px',
-          fontWeight: 800,
-          letterSpacing: '-0.04em',
-          lineHeight: 1,
-          color: active ? '#fff' : color,
-        }}
-      >
-        {value}
-      </span>
-      <span
-        style={{
-          fontFamily: 'DM Sans, sans-serif',
-          fontSize: '11px',
-          fontWeight: 600,
-          color: active ? 'rgba(255,255,255,.85)' : DS.t2,
-          marginTop: '5px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <span
+          data-testid="kpi-valore"
+          aria-hidden="true"
+          style={{
+            fontFamily: 'Playfair Display, Georgia, serif',
+            fontSize: '38px',
+            fontWeight: 300,
+            lineHeight: 1,
+            color: numColor,
+          }}
+        >
+          {valore}
+        </span>
+        {!isZero && (
+          <span style={{ fontSize: '12px', color: DS.t3, marginTop: '4px' }}>›</span>
+        )}
+      </div>
+      <span style={{
+        fontFamily: 'DM Sans, sans-serif',
+        fontSize: '11px',
+        fontWeight: 600,
+        color: DS.t2,
+        marginTop: '2px',
+        lineHeight: 1.3,
+      }}>
         {label}
       </span>
+      {!isZero && (
+        <span style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '9.5px',
+          color: DS.t3,
+          marginTop: '3px',
+        }}>
+          {azione}
+        </span>
+      )}
     </>
   )
 
-  const fullLabel = description ?? label
-  const chip = onClick ? (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileTap={{ scale: 0.97 }}
-      transition={{ duration: motionTokens.duration.instant }}
-      style={chipStyle}
-      title={description}
-      aria-label={`${fullLabel}: ${value}${active ? ' (filtro attivo)' : ''}`}
-      aria-pressed={active}
-    >
-      {chipInner}
-    </motion.button>
-  ) : (
-    <div
-      role="img"
-      style={chipStyle}
-      title={description}
-      aria-label={`${fullLabel}: ${value}`}
-    >
-      {chipInner}
-    </div>
-  )
-
-  if (reducedMotion) return chip
+  if (isZero) {
+    return (
+      <div style={cardStyle} aria-label={`${valore} ${label}`}>
+        {inner}
+      </div>
+    )
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, transform: 'translateY(8px)' }}
-      animate={{ opacity: 1, transform: 'translateY(0px)' }}
-      transition={{ ...t('fast', 'enter'), delay: animationDelay }}
+    <Link
+      href={href}
+      style={cardStyle}
+      aria-label={`${valore} ${label} — ${azione}`}
     >
-      {chip}
-    </motion.div>
+      {inner}
+    </Link>
   )
 }

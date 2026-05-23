@@ -415,6 +415,83 @@ export async function getTecnicoDashboard(
 }
 
 
+// ─── Tipi ───────────────────────────────────────────────────────────────────
+
+export type TaskItemData = {
+  id: string
+  numero_lavoro: string
+  stato: StatoLavoro
+  priorita: PrioritaLavoro
+  descrizione: string
+  data_consegna_prevista: string
+  ora_consegna: string | null
+  cliente_display: string
+  completamento_perc: number  // 0-100, calcolato da lavori_fasi.eseguita_at
+}
+
+// ─── Helpers privati ────────────────────────────────────────────────────────
+
+function statoToPerc(stato: StatoLavoro): number {
+  const map: Partial<Record<StatoLavoro, number>> = {
+    ricevuto: 10, in_lavorazione: 40, in_prova: 60,
+    in_prova_esterna: 65, pronto: 90, in_ritardo: 35,
+    sospeso: 20, consegnato: 100, annullato: 0,
+  }
+  return map[stato] ?? 0
+}
+
+// ─── getLavoriTecnicoOggi ───────────────────────────────────────────────────
+
+export async function getLavoriTecnicoOggi(
+  svc: SupabaseClient,
+  labId: string,
+  tecnicoId: string,
+  limit = 20
+): Promise<TaskItemData[]> {
+  const { data } = await svc
+    .from('lavori')
+    .select(`
+      id, numero_lavoro, stato, priorita,
+      descrizione, data_consegna_prevista, ora_consegna,
+      clienti(nome, cognome, studio_nome),
+      lavori_fasi(id, eseguita_at)
+    `)
+    .eq('laboratorio_id', labId)
+    .eq('tecnico_id', tecnicoId)
+    .not('stato', 'in', '("consegnato","annullato")')
+    .order('data_consegna_prevista', { ascending: true })
+    .limit(limit)
+
+  return ((data ?? []) as unknown as Array<{
+    id: string
+    numero_lavoro: string
+    stato: StatoLavoro
+    priorita: PrioritaLavoro
+    descrizione: string
+    data_consegna_prevista: string
+    ora_consegna: string | null
+    clienti: { nome: string; cognome: string; studio_nome: string | null } | null
+    lavori_fasi: Array<{ id: string; eseguita_at: string | null }>
+  }>).map(l => {
+    const fasi = l.lavori_fasi ?? []
+    const completamento = fasi.length > 0
+      ? Math.round(fasi.filter(f => f.eseguita_at !== null).length / fasi.length * 100)
+      : statoToPerc(l.stato)
+    const cliente_display = clienteDisplay(l.clienti)
+    return {
+      id: l.id,
+      numero_lavoro: l.numero_lavoro,
+      stato: l.stato,
+      priorita: l.priorita,
+      descrizione: l.descrizione,
+      data_consegna_prevista: l.data_consegna_prevista,
+      ora_consegna: l.ora_consegna,
+      cliente_display,
+      completamento_perc: completamento,
+    }
+  })
+}
+
 export async function getTrendMensile(
   svc: SupabaseClient,
   labId: string,

@@ -9,10 +9,12 @@ import {
   getLavoriInProvaRientro,
   getTecnicoDashboard,
   getFrontDeskDashboard,
+  getLavoriTecnicoOggi,
 } from '@/lib/dashboard/queries'
 import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
 import { DashboardFrontDesk } from '@/components/features/dashboard/DashboardFrontDesk'
+import { DashboardHybrid } from '@/components/features/dashboard/DashboardHybrid'
 import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
 
 export const dynamic = 'force-dynamic'
@@ -87,8 +89,25 @@ export default async function DashboardPage() {
     user.email?.split('@')[0] ??
     'Utente'
 
+  // ─── Rilevamento ruolo ibrido Titolare+Tecnico ────────────────────────────
+  const isTitolare = ruolo === 'titolare' || ruolo === 'admin_rete'
+
+  let tecnicoIdPerTitolare: string | null = null
+  if (isTitolare) {
+    const { data: tecnicoRow } = await svc
+      .from('tecnici')
+      .select('id')
+      .eq('utente_id', user.id)
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .maybeSingle()
+    tecnicoIdPerTitolare = tecnicoRow?.id ?? null
+  }
+
+  const isHybrid = isTitolare && !!tecnicoIdPerTitolare
+
   // ─── TITOLARE / admin_rete ────────────────────────────────────────────────
-  if (ruolo === 'titolare' || ruolo === 'admin_rete') {
+  if (isTitolare) {
     const { data: cacheRow } = await svc
       .from('dashboard_kpi_cache')
       .select('aggiornato_at')
@@ -209,6 +228,34 @@ export default async function DashboardPage() {
         clienti: s.clienti,
       }))
 
+    // Ruolo ibrido: titolare che lavora anche come tecnico
+    if (isHybrid && tecnicoIdPerTitolare) {
+      const lavoriTecnico = await getLavoriTecnicoOggi(svc, labId, tecnicoIdPerTitolare)
+      return (
+        <DashboardHybrid
+          titolareData={{
+            stats,
+            consegneOggi,
+            lavoriInRitardo,
+            inProvaRientro,
+            materialiEsaurimento,
+            pagamentiTop,
+            nomeUtente,
+            labName: lab?.nome ?? undefined,
+            aggiornatoAt: cacheRow?.aggiornato_at ?? null,
+            onboardingPending: !lab?.onboarding_completato,
+            segnalazioni,
+          }}
+          tecnicoData={{
+            data: { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 },
+            lavoriOggi: lavoriTecnico,
+            nomeUtente,
+            tecnicoId: tecnicoIdPerTitolare,
+          }}
+        />
+      )
+    }
+
     return (
       <DashboardTitolare
         stats={stats}
@@ -228,8 +275,7 @@ export default async function DashboardPage() {
 
   // ─── TECNICO ──────────────────────────────────────────────────────────────
   if (ruolo === 'tecnico') {
-    // Trova il record tecnici associato a questo utente
-    const { data: tecnico } = await svc
+    const { data: tecnicoRow } = await svc
       .from('tecnici')
       .select('id')
       .eq('laboratorio_id', labId)
@@ -237,11 +283,16 @@ export default async function DashboardPage() {
       .is('deleted_at', null)
       .maybeSingle()
 
-    const data = tecnico
-      ? await getTecnicoDashboard(svc, labId, tecnico.id)
-      : { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 }
+    if (!tecnicoRow) {
+      return <DashboardTecnico data={{ lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 }} lavoriOggi={[]} nomeUtente={nomeUtente} tecnicoId={null} />
+    }
 
-    return <DashboardTecnico data={data} nomeUtente={nomeUtente} tecnicoId={tecnico?.id ?? null} />
+    const [tecnicoDash, lavoriOggi] = await Promise.all([
+      getTecnicoDashboard(svc, labId, tecnicoRow.id),
+      getLavoriTecnicoOggi(svc, labId, tecnicoRow.id),
+    ])
+
+    return <DashboardTecnico data={tecnicoDash} lavoriOggi={lavoriOggi} nomeUtente={nomeUtente} tecnicoId={tecnicoRow.id} />
   }
 
   // ─── FRONT DESK ───────────────────────────────────────────────────────────
