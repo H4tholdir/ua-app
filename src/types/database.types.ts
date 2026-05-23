@@ -4824,6 +4824,7 @@ export type Database = {
           mfa_required: boolean
           nav_preferences: Json | null
           nome: string
+          preferenza_dashboard: string | null
           ruolo: string
           session_ttl_minuti: number
           sigla: string | null
@@ -4848,6 +4849,7 @@ export type Database = {
           mfa_required?: boolean
           nav_preferences?: Json | null
           nome: string
+          preferenza_dashboard?: string | null
           ruolo?: string
           session_ttl_minuti?: number
           sigla?: string | null
@@ -4872,6 +4874,7 @@ export type Database = {
           mfa_required?: boolean
           nav_preferences?: Json | null
           nome?: string
+          preferenza_dashboard?: string | null
           ruolo?: string
           session_ttl_minuti?: number
           sigla?: string | null
