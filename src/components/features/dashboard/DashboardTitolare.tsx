@@ -762,8 +762,11 @@ export function DashboardTitolare({
             count={stats.pagamenti_scaduti_clienti_count ?? 0}
             onContact={setContactTarget}
           />
-          <SectionLabel>Da consegnare oggi</SectionLabel>
-          <ConsegneList items={consegneOggi} />
+          {/* Consegne oggi: su mobile tab Gestione le mostriamo, su desktop sono già nella colonna Produzione */}
+          <div className="ua-mobile-only">
+            <SectionLabel>Da consegnare oggi</SectionLabel>
+            <ConsegneList items={consegneOggi} />
+          </div>
           <MaterialiList items={materialiEsaurimento} />
           <FatturatoSection stats={stats} />
         </>
