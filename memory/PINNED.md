@@ -1,108 +1,97 @@
-# UÀ — Decisioni Permanenti (PINNED)
-**Aggiornare solo quando cambia l'architettura fondamentale, non ad ogni sprint.**
+# UÀ — Contesto Operativo Permanente
+**Aggiornare solo quando cambia l'architettura. Non toccare senza approvazione di Francesco.**
 
 ---
 
-## 0. REGOLE OPERATIVE INVIOLABILI (aggiunte 23/05/2026)
+## Cos'è questo sistema
 
-- **MAI /tmp per decisioni di design** — i file in /tmp vengono cancellati e le decisioni si perdono per sempre. Ogni mockup HTML, screenshot di approvazione, e decisione visiva va salvata in `docs/design/mockups/` o `docs/design/decisions/`. Nessuna eccezione, mai.
-- **Mockup workflow obbligatorio** — prima di implementare qualsiasi UI: crea mockup in `docs/design/mockups/YYYY-MM-DD-nome.html`, screenshot con Playwright, approvazione Francesco, poi React. Vedere `docs/design/README.md`.
-- **Nav pill visibile su TUTTI i viewport** — la BottomNavPill è la navigazione operativa della PWA e deve essere presente e funzionante su mobile (390px), tablet (768px) E desktop (1280px). Su desktop adatta il layout (es. orizzontale in basso o sidebar) ma non sparisce mai.
+**UÀ** (uachelab.com) è una PWA SaaS multi-tenant per laboratori odontotecnici italiani.
+Supabase project: `iagibumwjstnveqpjbwq`. GitHub: `H4tholdir/ua-app`. Deploy: Vercel auto CI/CD.
 
----
+**Utenti:** titolare (gestione totale), tecnici (esecuzione lavori), front desk (consegne).
+Uso primario da mobile in laboratorio, spesso con mani occupate.
+**Profili non tecnici — la semplicità è non negoziabile. Tre tap al massimo per ogni operazione critica.**
 
-## 1. Decisioni Architetturali Critiche
+**Clienti anchor:** Filippo Opromolla (Serre SA), Arturo Pepe (Angri SA).
 
-- **RLS:** `public.current_lab_id()` — NON `auth.current_lab_id()` (la funzione è in schema `public`)
-- **Invite flow:** token custom `/invite/[token]` — NON `inviteUserByEmail` Supabase (incompatibile)
-- **Tecnici:** NON si cancellano — `lab_memberships.attivo = false` per disattivare
-- **Rifacimento:** RPC atomica `crea_rifacimento_atomico()` — MAI 3 INSERT separati
-- **Onboarding redirect:** NON mettere `redirect('/onboarding')` nel layout `(app)/layout.tsx` — causa loop infinito. Solo banner dashboard.
-- **PATCH allowlist:** API PATCH di risorse lab usa sempre allowlist esplicita di campi — MAI blocklist
-- **WhatsApp:** deep links `wa.me` — MAI open-wa (ToS violation) — template MAI con nome paziente, solo numero lavoro + link portale token
-- **Fatture:** generate durante `orchestraConsegna`. `incluso_in_fattura` = discriminatore "già fatturato". `stato_sdi` ortogonale a `lavori.stato`
-- **PEC Vault:** `upsert_pec_vault_secret` + `get_pec_vault_secret` solo `service_role`
-- **Push Notifications:** VAPID keys in `.env.local` (gitignored), tabella `push_subscriptions`, SW `ua-v2`
-- **ESLint CI:** `--max-warnings 0` (zero warning = zero compromessi, husky pre-commit)
-- **no-unescaped-entities:** OFF per `pdf/**` (templates PDF React)
-- **SECURITY DEFINER:** funzioni PL/pgSQL devono avere `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`
-- **Supabase types:** dopo ogni migration → `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale messaggio CLI in fondo → `npx tsc --noEmit`
+**Goal:** eliminare la burocrazia dal laboratorio. DdC MDR, FatturaPA SDI, tracking lavori,
+consegne — tutto automatico, tutto dal telefono. L'utente non vede mai i problemi tecnici.
 
-- **Multi-viewport OBBLIGATORIO:** ogni pagina deve essere ottimizzata per 390px (mobile), 768px (tablet), 1280px (desktop) — non "responsive" nel senso di "si adatta", ma **riprogettata** per ogni breakpoint con layout dedicato
-- **Multi-utente real-time:** il laboratorio ha più operatori che usano l'app in contemporanea da dispositivi diversi (titolare da mobile, segretaria da desktop, tecnico da mobile). Ogni stato condiviso DEVE usare Supabase Realtime. ZERO race conditions: ottimistic UI + rollback su conflitto. Quando un utente cambia stato (lavoro, prova, consegna), tutti gli altri vedono l'aggiornamento senza ricaricare la pagina. Il badge "LIVE" in header è l'indicatore di connessione Realtime — deve essere sempre visibile e accurato.
-
-- **Checklist review OBBLIGATORIA** — ogni review di pagina/feature deve coprire: animazioni (motion tokens), suoni (sounds.ts + haptic.ts), fluidità transizioni, flow operativi end-to-end, comportamento pulsanti (tutti gli stati: idle/hover/loading/success/error/disabled), UI (layout, gerarchia, colori), UX (cognitive load, discoverability), campi di inserimento (validazione, placeholder, errori inline, autocomplete), edge case (lista vuota, errore rete, sessione scaduta, permesso negato), friendly usage (zero jargon tecnico nel copy), automatismi (cosa fa l'app senza input utente), sistemi guida (wizard, tooltip, empty state CTA), viewport 390/768/1280px × light/dark = 6 combinazioni minime.
+**Stack:** Next.js 15 App Router + TypeScript strict. Supabase PostgreSQL + RLS + Auth.
+Multi-tenant: ogni laboratorio isolato tramite `public.current_lab_id()` nelle RLS policy.
 
 ---
 
-## 2. Anti-Pattern Permanenti — Design System
+## Come lavoriamo
 
-- **Font:** MAI Inter → DM Sans per tutto il testo UI
-- **Colori:** MAI gradiente viola-blu · MAI `#0F1E52`/`#1B2D6B` come background (cobalt SOLO nav pill active) · MAI `#E30613` per primary (è `#D90012` light, `#E8001A` dark)
-- **Shadow:** MAI shadow cobalt/haptimorphic — solo dual-layer warm-tinted
-- **Animazioni:** MAI `duration: 0.3` inline — SEMPRE da `src/design-system/motion.ts`
-- **Mobile:** MAI tabella full-width su mobile (card + accordion) · MAI modal centrato per azioni (bottom sheet) · MAI più di 3 KPI above the fold · MAI suoni autoplay
+**Ogni task — BP-0 obbligatorio:**
+1. Leggi `memory/SESSION_ACTIVE.md` → contesto sessione corrente
+2. Leggi `memory/MEMORY.md` → stato sprint e versione attuale
+3. Identifica dominio → leggi `memory/domains/[dominio].md` se esiste
+4. Navigazione strutturale (>2 file)? → `graphify query "<domanda>"`
 
----
+**Nuova feature UI/design — workflow OBBLIGATORIO:**
+1. Crea mockup HTML in `docs/design/mockups/YYYY-MM-DD-nome.html` (**MAI /tmp**)
+2. Screenshot con Playwright → `npx playwright screenshot`
+3. Approvazione Francesco
+4. Solo dopo: implementa in React
+Non saltare nessun passo. Un mockup non approvato non si implementa.
 
-## 3. Normativa (non toccare senza leggere `ANALISI/17_adempimenti_lab_2026.md`)
+**Nuova migration DB:**
+Dopo ogni migration → `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts`
+Rimuovi eventuale messaggio CLI in fondo → `npx tsc --noEmit`.
 
-- **DdC MDR:** Art. 52(8) + **Allegato XIII** MDR 2017/745 (NON Allegato IV)
-- **FatturaPA:** natura **N4** (Art. 10 n.18 DPR 633/72) · bollo €2 se imponibile > €77,47
-- **EUDAMED:** lab custom-made = **ESENTI** (MDCG 2021-13 Rev.1)
-- **ITCA:** OBBLIGATORIO per legge (campo `laboratori.codice_itca` — sanzione €48.500 se mancante)
+**Stato condiviso tra utenti:**
+SEMPRE Supabase Realtime. Ottimistic UI + rollback su conflitto.
+Il badge "LIVE" in header è l'indicatore di connessione — deve essere sempre accurato.
 
----
+**Multi-viewport — non "responsive", ridisegnato:**
+390px (mobile) + 768px (tablet) + 1280px (desktop): layout dedicato per ciascuno.
+BottomNavPill visibile e funzionante su TUTTI i viewport sempre.
 
-## 4. ID di Sistema
-
-| Voce | Valore |
-|------|--------|
-| Supabase project | `iagibumwjstnveqpjbwq` |
-| URL produzione | `https://uachelab.com` |
-| GitHub | `https://github.com/H4tholdir/ua-app` |
-| Lab Filippo | `971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c` · ITCA01051686 · Serre SA |
-| Lab Arturo Pepe (test) | `314cd040-0893-4e9d-9ad8-786e4eefd75f` |
-| Admin route | `/admin/labs` · ruolo `admin_sistema` |
-| Titolare lab Filippo | `h4t@live.it` / `>[REDACTED]` |
-| E2E tecnico | `e2e-tecnico@ua-test.local` / `TestE2E!2026` |
-| NEXT_PUBLIC_SUPPORT_PHONE | `+393381235473` |
-
-### Stripe Price IDs (produzione — non modificare)
-| Piano | Mensile | Annuale |
-|-------|---------|---------|
-| Lab €49/€490 | `price_1TWCfaRsMhN7mg7YVt0UfeNB` | `price_1TWCfbRsMhN7mg7Y7Ejl1k5w` |
-| Rete PRO €149/€1490 | `price_1TWCfbRsMhN7mg7YDXKFJkdN` | `price_1TWCfcRsMhN7mg7YBZSz1gId` |
+**Fine blocco di lavoro significativo:**
+Aggiorna `memory/SESSION_ACTIVE.md` con sintesi. Sostituisci, non appendere. Max 200 token.
+Se la scoperta diventa regola permanente → proponi aggiornamento di questo PINNED.
 
 ---
 
-## 5. Backlog V2 (feature NON implementate — intenzionalmente)
+## Dogmi inviolabili
 
-Queste feature esistono nel design ma sono state deliberatamente escluse dalla V1.
-Non implementare senza conferma esplicita di Francesco.
+**`consegnato` SOLO via `orchestraConsegna()`.**
+Non è in `TRANSIZIONI_CONSENTITE`. Mai bypass. Senza: niente DdC, niente fattura, violazione MDR.
 
-| Feature | Motivo dell'esclusione |
-|---------|----------------------|
-| Sezione `/rete` multi-lab | Architettura multi-tenant da progettare da zero |
-| PMCF follow-up automatico | Email automation avanzata, basso ROI immediato |
-| STS XML export | Solo se fattura diretta al paziente (raro) |
-| Firma digitale P7M | Richiede integrazione AgID |
-| CAPA ISO 13485 | Solo se Filippo richiede certificazione |
-| SDI diretto | Richiede accordi con HUB SDI |
-| WhatsApp Cloud API ufficiale | Deep links `wa.me` già sufficienti e ToS-safe |
-| Nota di credito XML TD04 | Raro, gestibile manualmente |
-| Colorazione 4D | Feature di nicchia |
-| Terzismo inter-lab | Richiede rearchitettura tenant |
-| Fascicolo Tecnico MDR | Poco uso quotidiano |
+**RLS: `public.current_lab_id()` — NON `auth.current_lab_id()`.**
+`service_role` bypassa RLS: aggiungere sempre `.eq('laboratorio_id', ...)` manualmente su ogni query.
 
----
+**Lab lifecycle: `transitionLabStato()` — MAI `UPDATE` diretto.**
+`blacklist` è terminale senza eccezioni. Direct UPDATE = stato macchina corrotto, irrecuperabile.
 
-## 6. Infrastruttura
+**Auth invite: token SHA-256 custom `/invite/[token]` — MAI `inviteUserByEmail` Supabase.**
 
-| Servizio | Stato |
-|----------|-------|
-| Resend · `uachelab.com` | Verificato Cloudflare eu-west-1 |
-| Cloudflare Email Routing catch-all | → Worker `ua-pec-verify` |
-| Supabase MCP | Autenticato (OAuth `francesco.formicola@live.it`) |
-| VAPID keys | In `.env.local` (gitignored). DB migration applicata. |
-| Splash screens iOS | In `public/splash/` (7 PNG, tutti i modelli iPhone SE → 14 Pro Max) |
+**Rifacimento: `crea_rifacimento_atomico()` — MAI 3 INSERT separati.**
+
+**Tecnici: `lab_memberships.attivo = false` — MAI DELETE.**
+
+**WhatsApp/portale: ZERO PHI.**
+Niente nome paziente, tipo prestazione, nome lab. Solo numero lavoro + link token portale.
+
+**Fatture: `incluso_in_fattura` ortogonale a `stato_sdi` e a `lavori.stato`.**
+Fatture generate durante `orchestraConsegna`. Progressivo SDI: RPC atomica, mai ricalcolare.
+
+**PEC Vault: solo `get_pec_vault_secret` / `upsert_pec_vault_secret` con service_role.**
+
+**PATCH API: sempre allowlist esplicita — MAI blocklist.**
+
+**Onboarding redirect: MAI `redirect('/onboarding')` in `(app)/layout.tsx` → loop infinito.**
+
+**Design system:**
+- Font: **DM Sans** — MAI Inter
+- Animazioni: `design-system/motion.ts` — MAI literal inline (`duration`, `ease`, `spring`)
+- Colori: `#D90012` (light) / `#E8001A` (dark) per action red — MAI `#E30613`
+- Shadow: dual-layer warm-tinted — MAI cobalt/haptimorphic
+
+**Stripe Price IDs di produzione — non toccare mai:**
+- Lab monthly: `price_1TWCfaRsMhN7mg7YVt0UfeNB`
+- Lab yearly: `price_1TWCfbRsMhN7mg7Y7Ejl1k5w`
+- Rete monthly: `price_1TWCfbRsMhN7mg7YDXKFJkdN`
+- Rete yearly: `price_1TWCfcRsMhN7mg7YBZSz1gId`

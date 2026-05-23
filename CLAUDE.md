@@ -7,7 +7,16 @@ La documentazione fondativa è in `../ANALISI/`. Questo file = regole operative 
 
 ## 0. Memory Check — BP-0 (LETTURA — OBBLIGATORIO PRIMA DI INIZIARE)
 
-Prima di qualsiasi lavoro: leggi `memory/MEMORY.md`. Documenti chiave:
+Prima di qualsiasi lavoro, in ordine:
+1. `memory/SESSION_ACTIVE.md` → contesto sessione corrente (già iniettato all'avvio)
+2. `memory/MEMORY.md` → stato sprint e versione attuale
+3. Identifica dominio del task → leggi `memory/domains/[dominio].md` se esiste
+4. Navigazione strutturale (>2 file)? → `graphify query "<domanda>"`
+
+**SESSION_ACTIVE (aggiornamento obbligatorio):**
+Aggiorna `memory/SESSION_ACTIVE.md` dopo ogni blocco di lavoro significativo (commit, decisione architetturale, bug importante). Sostituisci il file, non appendere. Max 200 token.
+
+Documenti chiave:
 - `../ANALISI/30_design_system_v2_definitivo.md` → **DESIGN SYSTEM v2.2 — UNICA FONTE DI VERITÀ**
 - `../ANALISI/23_ua_database_schema.md` → schema DB
 - `../ANALISI/29_motion_system_policy.md` → **MOTION POLICY OBBLIGATORIA**
@@ -268,3 +277,13 @@ God nodes critici (più connessi):
 
 ### Supabase types
 Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale messaggio CLI in fondo al file → `npx tsc --noEmit`
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

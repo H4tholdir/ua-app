@@ -100,4 +100,7 @@ dist/
 # === GRAPHIFY ===
 # Il graph.json e la cache sono locali — ogni dev rigenerarsi con: graphify update .
 graphify-out/
+
+# === MEMORIA SESSIONE (cambia ogni sessione, non appartiene al repo) ===
+memory/SESSION_ACTIVE.md
 .agents/
