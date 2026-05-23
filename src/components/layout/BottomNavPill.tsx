@@ -144,6 +144,20 @@ export function BottomNavPill() {
   const lastScrollY = useRef(0)
   const reducedMotion = useReducedMotion()
 
+  // Tooltip FAB: visibile solo alla prima apertura, poi sparisce dopo 3s
+  const [showFabTooltip, setShowFabTooltip] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !localStorage.getItem('ua-tooltip-fab-shown')
+  })
+  useEffect(() => {
+    if (!showFabTooltip) return
+    const timer = setTimeout(() => {
+      setShowFabTooltip(false)
+      localStorage.setItem('ua-tooltip-fab-shown', '1')
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [showFabTooltip])
+
   const [editMode, setEditMode] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -255,38 +269,41 @@ export function BottomNavPill() {
               transition={reducedMotion ? { duration: 0 } : { delay: 0.2, ...motionTokens.spring.pop }}
               style={{ flexShrink: 0, position: 'relative' }}
             >
-              {/* Tooltip "Nuovo lavoro" */}
-              <span
-                role="tooltip"
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  marginBottom: '8px',
-                  background: 'var(--t1, #1C1916)',
-                  color: 'var(--elv, #EDEDEA)',
-                  fontSize: '9.5px',
-                  fontWeight: 600,
-                  padding: '4px 10px',
-                  borderRadius: '7px',
-                  whiteSpace: 'nowrap',
-                  fontFamily: 'DM Sans, sans-serif',
-                  pointerEvents: 'none',
-                  zIndex: 1,
-                }}
-              >
-                Nuovo lavoro
-                <span style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  borderLeft: '4px solid transparent',
-                  borderRight: '4px solid transparent',
-                  borderTop: '4px solid var(--t1, #1C1916)',
-                }} />
-              </span>
+              {/* Tooltip FAB: visibile solo alla prima apertura (3s) */}
+              {showFabTooltip && (
+                <span
+                  role="tooltip"
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    background: 'var(--t1, #1C1916)',
+                    color: 'var(--elv, #EDEDEA)',
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    padding: '4px 10px',
+                    borderRadius: '7px',
+                    whiteSpace: 'nowrap',
+                    fontFamily: 'DM Sans, sans-serif',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    animation: 'ua-in .2s ease forwards',
+                  }}
+                >
+                  Nuovo lavoro
+                  <span style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: '4px solid var(--t1, #1C1916)',
+                  }} />
+                </span>
+              )}
               <Link
                 href={tab.href}
                 aria-label={tab.ariaLabel}

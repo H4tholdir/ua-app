@@ -1,12 +1,11 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { KpiCard } from '../../src/components/features/dashboard/KpiCard'
 
 describe('KpiCard', () => {
   it('mostra il numero con Playfair Display', () => {
     const { container } = render(
-      <KpiCard valore={3} label="Da consegnare" azione="oggi →" colore="blue"
-               href="/lavori?filter=consegne-oggi" />
+      <KpiCard valore={3} label="Da consegnare" hint="tocca per filtrare" colore="red" />
     )
     expect(screen.getByText('3')).toBeTruthy()
     const numEl = container.querySelector('[data-testid="kpi-valore"]') as HTMLElement
@@ -14,30 +13,37 @@ describe('KpiCard', () => {
     expect(numEl.style.fontFamily).toContain('Playfair')
   })
 
-  it('è un link con href corretto', () => {
+  it('è un button quando valore > 0', () => {
     render(
-      <KpiCard valore={5} label="Da fatturare" azione="fattura →" colore="gold"
-               href="/fatture" />
+      <KpiCard valore={5} label="Da fatturare" hint="tocca per filtrare" colore="gold" />
     )
-    const link = screen.getByRole('link')
-    expect(link.getAttribute('href')).toBe('/fatture')
+    const btn = screen.getByRole('button')
+    expect(btn).toBeTruthy()
   })
 
-  it('se valore=0 non è cliccabile e non mostra azione', () => {
+  it('chiama onToggle al click', () => {
+    const onToggle = vi.fn()
     render(
-      <KpiCard valore={0} label="In ritardo" azione="vedi →" colore="red"
-               href="/lavori?stato=in_ritardo" />
+      <KpiCard valore={5} label="Da fatturare" hint="tocca per filtrare" colore="gold" onToggle={onToggle} />
     )
-    const links = screen.queryAllByRole('link')
-    expect(links.length).toBe(0)
-    expect(screen.queryByText('vedi →')).toBeNull()
+    fireEvent.click(screen.getByRole('button'))
+    expect(onToggle).toHaveBeenCalledOnce()
   })
 
-  it('mostra il chevron quando cliccabile', () => {
+  it('se valore=0 non è interattivo e non mostra hint', () => {
+    render(
+      <KpiCard valore={0} label="In ritardo" hint="tocca per filtrare" colore="amber" />
+    )
+    expect(screen.queryAllByRole('button').length).toBe(0)
+    expect(screen.queryByText('tocca per filtrare')).toBeNull()
+  })
+
+  it('stato attivo mostra pressed e hint speciale', () => {
     const { container } = render(
-      <KpiCard valore={2} label="Blocchi" azione="risolvi →" colore="red"
-               href="/lavori?filter=blocchi" />
+      <KpiCard valore={52} label="In ritardo" hint="tocca per filtrare" colore="amber" isActive={true} />
     )
-    expect(container.textContent).toContain('›')
+    const btn = screen.getByRole('button')
+    expect(btn.getAttribute('aria-pressed')).toBe('true')
+    expect(container.textContent).toContain('filtro attivo')
   })
 })

@@ -83,7 +83,14 @@ export function DashboardShell({
               lineHeight: 1.2,
             }}
           >
-            {v === 'gestione' ? '📊 Gestione' : '🔧 Produzione'}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {v === 'gestione' ? (
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M2 4h10M2 7h7M2 10h5"/></svg>
+              )}
+              {v === 'gestione' ? 'Gestione' : 'Produzione'}
+            </span>
             <small style={{ display: 'block', fontSize: '8px', opacity: .5, fontWeight: 400, marginTop: '1px' }}>
               {v === 'gestione' ? 'business' : 'i miei lavori'}
             </small>
