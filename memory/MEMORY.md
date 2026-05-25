@@ -1,11 +1,11 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 23 maggio 2026 — V1.9.0 Dashboard V2 in main, deploy atteso su Vercel CI/CD
+**Ultimo aggiornamento:** 25 maggio 2026 — V1.9.1 Fix residui S1 in main, deploy via Vercel CI/CD
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.9.0 IN MAIN (deploy in corso)
+## 0. STATO DEL PROGETTO — V1.9.1 IN MAIN
 
-**V1.9.0 mergiato su main — 23/05/2026 — deploy automatico via Vercel CI/CD**
+**V1.9.1 mergiato su main — 25/05/2026 — deploy automatico via Vercel CI/CD**
 
 | Versione | Data | Tag | Contenuto |
 |----------|------|-----|-----------|
@@ -17,9 +17,28 @@
 | V1.8.0 | 22/05/2026 | `v1.8.0` | Error boundaries, loading completo, splash screens iOS |
 | V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
 | V1.8.2 | 22/05/2026 | `v1.8.2` | Visual audit P0: body bg warm panna, grid overflow, dark mode toggle, STOR/ filter |
-| **V1.9.0** | **23/05/2026** | **`main` (9bda106)** | **Dashboard V2: Spotlight, KPI filtri, ruolo ibrido, SyncBadge, nav personalizzabile** |
+| V1.9.0 | 23/05/2026 | `v1.9.0` (9bda106) | Dashboard V2: Spotlight, KPI filtri, ruolo ibrido, SyncBadge, nav personalizzabile |
+| **V1.9.1** | **25/05/2026** | **`main` (96ed542)** | **Fix residui S1: LIVE badge rimosso, preferenza_dashboard toggle, Da fatturare lista inline** |
 
-**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 156/156 · Build: ✅
+**Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 157/157 · Build: ✅
+
+### ✅ S1 Fix Residui V1.9 — Completato (25/05/2026)
+
+**Merge commit:** `96ed542` — 7 file modificati, +210 righe
+
+**Modifiche:**
+- `RealtimeProvider.tsx` — rimosso badge LIVE fisso top-left (duplicava SyncBadge)
+- `PreferenzaDashboardToggle.tsx` — nuovo client component, optimistic UI + rollback su errore
+- `/api/impostazioni/preferenze/route.ts` — nuovo PATCH endpoint, allowlist, null-bypass fix
+- `impostazioni/page.tsx` — SectionCard Preferenze condizionale su titolare
+- `queries.ts` — `getLavoriDaFatturare()` + tipo `LavoroDaFatturareItem`
+- `dashboard/page.tsx` — `getLavoriDaFatturare` nel Promise.all, prop a DashboardTitolare+Hybrid
+- `DashboardTitolare.tsx` — `FatturaList` component sostituisce placeholder link /fatture
+
+**Nuove API:** `PATCH /api/impostazioni/preferenze`
+**Nuove query:** `getLavoriDaFatturare(svc, labId, limit=20)`
+
+---
 
 ### ✅ Dashboard V2 — Completato (23/05/2026)
 

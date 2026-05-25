@@ -144,3 +144,4 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 22/05/2026 | V1.9 aggiunta (dettatura vocale, email template, rifacimenti UI, logo DdC, magazzino visivo) | Francesco + Claude |
 | 22/05/2026 | Magazzino visivo: Concept C selezionato (Mixel-inspired, tile+glifo+fill-bar) | Francesco + Claude |
 | 22/05/2026 | Stack orchestratori documentato: Superpowers + gstack + GSD | Francesco + Claude |
+| 25/05/2026 | V1.9.1: S1 fix residui completati — badge LIVE rimosso, preferenza_dashboard toggle, Da fatturare lista inline | Francesco + Claude |
