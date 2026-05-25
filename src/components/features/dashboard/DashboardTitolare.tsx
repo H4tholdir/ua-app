@@ -13,6 +13,7 @@ import type {
   PrioritaLavoro,
   TipoDispositivo,
 } from '@/types/domain'
+import type { LavoroDaFatturareItem } from '@/lib/dashboard/queries'
 
 // ─── DS v2.2 tokens ──────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ export interface DashboardTitolareProps {
   onboardingPending?: boolean
   segnalazioni?: SegnalazioneAlert[]
   preferenzaDashboard?: 'ibrido' | 'gestione_solo'
+  lavoriDaFatturare?: LavoroDaFatturareItem[]
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -487,6 +489,54 @@ function MaterialiList({ items }: { items: MaterialeItem[] }) {
   )
 }
 
+function FatturaList({ items }: { items: LavoroDaFatturareItem[] }) {
+  if (items.length === 0) return (
+    <div style={{ margin: '0 14px 14px', padding: '16px', background: DS.sfc, borderRadius: '14px', textAlign: 'center' }}>
+      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: DS.t2, margin: 0 }}>
+        Nessun lavoro da fatturare
+      </p>
+    </div>
+  )
+  const totale = items.reduce((sum, i) => sum + i.prezzo_unitario, 0)
+  return (
+    <div style={{ margin: '0 14px 14px' }}>
+      {items.map((item) => (
+        <Link
+          key={item.id}
+          href={`/lavori/${item.id}`}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px', marginBottom: '6px',
+            background: DS.sfc, borderRadius: '12px', boxShadow: DS.shC,
+            textDecoration: 'none',
+          }}
+        >
+          <div>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 600, color: DS.t1, margin: 0 }}>
+              {item.numero_lavoro}
+            </p>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: DS.t2, margin: '2px 0 0' }}>
+              {item.cliente_display}
+              {item.data_consegna_effettiva && ` · ${formatData(item.data_consegna_effettiva)}`}
+            </p>
+          </div>
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 700, color: DS.gold }}>
+            {formatEuro(item.prezzo_unitario)}
+          </span>
+        </Link>
+      ))}
+      <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: DS.t2 }}>
+          Totale da fatturare
+        </span>
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700, color: DS.gold }}>
+          {formatEuro(totale)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Sezioni standard ─────────────────────────────────────────────────────────
 
 function CreditiSection({
@@ -622,6 +672,7 @@ export function DashboardTitolare({
   onboardingPending,
   segnalazioni = [],
   preferenzaDashboard = 'ibrido',
+  lavoriDaFatturare,
 }: DashboardTitolareProps) {
   const reduced = useReducedMotion()
   const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null)
@@ -734,21 +785,7 @@ export function DashboardTitolare({
             {activeFilter === 'ritardo' && <RitardoList items={lavoriInRitardo} />}
             {activeFilter === 'consegne' && <ConsegneList items={consegneOggi} />}
             {activeFilter === 'materiali' && <MaterialiList items={materialiEsaurimento} />}
-            {activeFilter === 'fattura' && (
-              <div style={{ margin: '0 14px 14px' }}>
-                <Link
-                  href="/fatture?filter=da_fatturare"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '14px', background: DS.sfc, borderRadius: '14px',
-                    boxShadow: DS.shB, textDecoration: 'none',
-                    fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 600, color: DS.gold,
-                  }}
-                >
-                  {formatEuro(0)} da fatturare · Vai alla lista →
-                </Link>
-              </div>
-            )}
+            {activeFilter === 'fattura' && <FatturaList items={lavoriDaFatturare ?? []} />}
           </motion.div>
         )}
       </AnimatePresence>

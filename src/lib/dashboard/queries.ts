@@ -530,6 +530,43 @@ export async function getTrendMensile(
   return result
 }
 
+// ─── getLavoriDaFatturare ────────────────────────────────────────────────────
+export type LavoroDaFatturareItem = {
+  id: string
+  numero_lavoro: string
+  cliente_display: string
+  data_consegna_effettiva: string | null
+  prezzo_unitario: number
+}
+
+export async function getLavoriDaFatturare(
+  svc: SupabaseClient,
+  labId: string,
+  limit = 20
+): Promise<LavoroDaFatturareItem[]> {
+  const { data } = await svc
+    .from('lavori')
+    .select('id, numero_lavoro, data_consegna_effettiva, prezzo_unitario, clienti(nome, cognome, studio_nome)')
+    .eq('laboratorio_id', labId)
+    .eq('stato', 'consegnato')
+    .eq('incluso_in_fattura', false)
+    .is('deleted_at', null)
+    .order('data_consegna_effettiva', { ascending: true })
+    .limit(limit)
+
+  return ((data ?? []) as unknown as Array<{
+    id: string; numero_lavoro: string; data_consegna_effettiva: string | null;
+    prezzo_unitario: number;
+    clienti: { nome: string; cognome: string; studio_nome: string | null } | null
+  }>).map(l => ({
+    id: l.id,
+    numero_lavoro: l.numero_lavoro,
+    cliente_display: l.clienti?.studio_nome ?? (l.clienti ? `${l.clienti.nome} ${l.clienti.cognome}` : '—'),
+    data_consegna_effettiva: l.data_consegna_effettiva,
+    prezzo_unitario: Number(l.prezzo_unitario ?? 0),
+  }))
+}
+
 export async function getFrontDeskDashboard(
   svc: SupabaseClient,
   labId: string
