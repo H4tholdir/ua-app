@@ -397,7 +397,7 @@ export default async function ImpostazioniPage() {
         {utente?.ruolo === 'titolare' && (
           <SectionCard title="Preferenze">
             <PreferenzaDashboardToggle
-              current={(utente?.preferenza_dashboard as 'ibrido' | 'gestione_solo') ?? 'ibrido'}
+              current={utente?.preferenza_dashboard === 'gestione_solo' ? 'gestione_solo' : 'ibrido'}
             />
           </SectionCard>
         )}

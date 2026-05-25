@@ -10,14 +10,16 @@ export function PreferenzaDashboardToggle({
   const [isPending, startTransition] = useTransition()
 
   async function toggle() {
+    const prev = val
     const next = val === 'ibrido' ? 'gestione_solo' : 'ibrido'
     setVal(next)
     startTransition(async () => {
-      await fetch('/api/impostazioni/preferenze', {
+      const res = await fetch('/api/impostazioni/preferenze', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ preferenza_dashboard: next }),
       })
+      if (!res.ok) setVal(prev)
     })
   }
 
