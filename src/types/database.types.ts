@@ -5090,6 +5090,16 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invite_atomic: {
+        Args: {
+          p_cognome: string
+          p_nome: string
+          p_token_hash: string
+          p_user_email: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       admin_delete_laboratorio: { Args: { p_lab_id: string }; Returns: Json }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
       calcola_imponibile_lavoro: {
@@ -5114,6 +5124,14 @@ export type Database = {
         Returns: Json
       }
       current_lab_id: { Args: never; Returns: string }
+      decrementa_scorta: {
+        Args: {
+          p_laboratorio_id: string
+          p_magazzino_id: string
+          p_quantita: number
+        }
+        Returns: undefined
+      }
       genera_numero_ddc: { Args: { p_lab: string }; Returns: string }
       genera_numero_fattura: { Args: { p_lab: string }; Returns: string }
       genera_numero_lavoro: { Args: { p_lab: string }; Returns: string }
