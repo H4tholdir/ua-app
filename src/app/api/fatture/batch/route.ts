@@ -71,6 +71,29 @@ export async function POST(req: Request) {
   const results: BatchResult[] = []
 
   for (const lavoro_id of lavoro_ids) {
+    // Step 0: Claim atomico — previene doppia fatturazione con richieste batch concorrenti.
+    // Solo la prima richiesta che esegue questo UPDATE procede; l'altra trova incluso_in_fattura=true.
+    const { data: claimed } = await svc
+      .from('lavori')
+      .update({ incluso_in_fattura: true })
+      .eq('id', lavoro_id)
+      .eq('laboratorio_id', labId)
+      .eq('stato', 'consegnato')
+      .eq('incluso_in_fattura', false)
+      .is('deleted_at', null)
+      .select('id')
+      .single()
+
+    if (!claimed) {
+      results.push({
+        lavoro_id,
+        numero_lavoro: lavoro_id,
+        ok: false,
+        error: 'Lavoro non trovato, non consegnato, già fatturato, o claim concorrente',
+      })
+      continue
+    }
+
     // Step 1: Carica lavoro completo con tutti i join necessari per generaFatturaPA
     const { data: lavoro, error: lavoroErr } = await svc
       .from('lavori')
@@ -217,13 +240,6 @@ export async function POST(req: Request) {
         draftFattura.id
       )
 
-      // Step 4: Segna il lavoro come incluso in fattura (evita duplicati al prossimo refresh)
-      await svc
-        .from('lavori')
-        .update({ incluso_in_fattura: true })
-        .eq('id', lavoro_id)
-        .eq('laboratorio_id', labId)
-
       results.push({
         lavoro_id,
         numero_lavoro: numeroLavoro,
@@ -231,6 +247,13 @@ export async function POST(req: Request) {
         numero_fattura: esito.numero,
       })
     } catch (err) {
+      // Rollback del claim: resetta incluso_in_fattura per permettere un retry futuro
+      await svc
+        .from('lavori')
+        .update({ incluso_in_fattura: false })
+        .eq('id', lavoro_id)
+        .eq('laboratorio_id', labId)
+
       results.push({
         lavoro_id,
         numero_lavoro: numeroLavoro,
