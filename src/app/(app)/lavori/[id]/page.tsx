@@ -7,6 +7,7 @@ import { StatoBadge } from '@/components/features/lavori/StatoBadge'
 import { LavoroTimeline } from '@/components/features/lavori/LavoroTimeline'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import type { LavoroDettaglio } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -84,6 +85,16 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
 
       {/* Form multi-tab */}
       <LavoroFormClient lavoro={lavoroDettaglio} ruolo={utente.ruolo} />
+
+      {/* Rifacimento — disponibile su consegnato, pronto, sospeso */}
+      {(['consegnato', 'pronto', 'sospeso'] as const).includes(lavoroDettaglio.stato as 'consegnato' | 'pronto' | 'sospeso') && (
+        <div style={{ padding: '0 20px 24px' }}>
+          <RifacimentoButton
+            lavoroId={id}
+            numeroLavoro={lavoroDettaglio.numero_lavoro}
+          />
+        </div>
+      )}
     </PageWrapper>
   )
 }
