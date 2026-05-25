@@ -18,7 +18,8 @@
 | V1.8.1 | 22/05/2026 | `v1.8.1` | Disattiva tecnico, CI/CD fix, BP-1/BP-2, orchestratori, roadmap |
 | V1.8.2 | 22/05/2026 | `v1.8.2` | Visual audit P0: body bg warm panna, grid overflow, dark mode toggle, STOR/ filter |
 | V1.9.0 | 23/05/2026 | `v1.9.0` (9bda106) | Dashboard V2: Spotlight, KPI filtri, ruolo ibrido, SyncBadge, nav personalizzabile |
-| **V1.9.1** | **25/05/2026** | **`main` (96ed542)** | **Fix residui S1: LIVE badge rimosso, preferenza_dashboard toggle, Da fatturare lista inline** |
+| V1.9.1 | 25/05/2026 | `main` (96ed542) | Fix residui S1: LIVE badge rimosso, preferenza_dashboard toggle, Da fatturare lista inline |
+| **V1.9.2** | **26/05/2026** | **`main` (78b6a29)** | **S2: RifacimentoButton — bottom sheet 7 motivi, textarea note, motion policy, mockup approvato** |
 
 **Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 157/157 · Build: ✅
 

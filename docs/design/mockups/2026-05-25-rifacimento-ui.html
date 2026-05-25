@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0" />
+  <title>Crea Rifacimento — Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #DDD8D3;
+      --sfc: #E4DFD9;
+      --elv: #EDEDEA;
+      --prs: #D4CFC9;
+      --t1: #1C1916;
+      --t2: #96918D;
+      --t3: #B8B3AE;
+      --primary: #D90012;
+      --gold: #D4A843;
+
+      --shadow-raised:
+        inset 0 1px 0 rgba(255,255,255,.90),
+        inset 0 -2px 3px rgba(0,0,0,.05),
+        -5px -5px 11px rgba(255,255,255,.78),
+        9px 13px 22px -4px rgba(148,128,118,.44);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #C8C3BE;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 0 60px;
+      gap: 48px;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      width: 390px;
+      padding: 0 16px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--t2);
+    }
+
+    /* ── Phone frame ── */
+    .phone {
+      width: 390px;
+      background: var(--bg);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.06),
+        0 8px 40px -4px rgba(0,0,0,.22);
+    }
+
+    /* ─────────────────────────────────────────
+       STATO A — Lavoro consegnato
+    ───────────────────────────────────────── */
+
+    .status-bar {
+      background: var(--bg);
+      padding: 14px 20px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-bar-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--t1);
+    }
+
+    .status-bar-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .status-bar-icons svg {
+      fill: var(--t1);
+    }
+
+    /* Nav bar */
+    .nav-bar {
+      background: var(--bg);
+      padding: 8px 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--prs);
+    }
+
+    .nav-back {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .nav-title-block {
+      flex: 1;
+    }
+
+    .nav-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--t1);
+      line-height: 1.2;
+    }
+
+    .nav-sub {
+      font-size: 11px;
+      color: var(--t2);
+      margin-top: 1px;
+    }
+
+    .badge-consegnato {
+      background: #E6F5EE;
+      color: #1A7A46;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 1px solid rgba(26,122,70,.18);
+    }
+
+    /* Detail section */
+    .detail-section {
+      padding: 16px 20px;
+    }
+
+    .detail-card {
+      background: var(--sfc);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: var(--shadow-raised);
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 6px 0;
+    }
+
+    .detail-row:not(:last-child) {
+      border-bottom: 1px solid var(--prs);
+    }
+
+    .detail-key {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--t2);
+      padding-top: 1px;
+    }
+
+    .detail-val {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t1);
+      text-align: right;
+      max-width: 180px;
+    }
+
+    /* Annulla consegna banner */
+    .annulla-banner {
+      margin: 0 20px 12px;
+      background: var(--elv);
+      border: 1px solid var(--prs);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .annulla-banner-text {
+      font-size: 12px;
+      color: var(--t2);
+      font-weight: 500;
+    }
+
+    .annulla-banner-arrow {
+      font-size: 12px;
+      color: var(--t3);
+      font-weight: 600;
+    }
+
+    /* Rifacimento button */
+    .btn-rifacimento-wrap {
+      padding: 0 20px 28px;
+    }
+
+    .btn-rifacimento {
+      width: 100%;
+      height: 44px;
+      background: var(--sfc);
+      border: 1.5px solid var(--prs);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--t2);
+      cursor: pointer;
+    }
+
+    .btn-rifacimento-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+
+    /* ─────────────────────────────────────────
+       STATO B — Bottom sheet aperto
+    ───────────────────────────────────────── */
+
+    .page-dimmed {
+      background: var(--bg);
+      position: relative;
+    }
+
+    /* Dimmed page content (faded background) */
+    .page-content-dimmed {
+      opacity: 0.35;
+      pointer-events: none;
+      padding: 0 20px 20px;
+    }
+
+    .dimmed-row {
+      height: 14px;
+      background: var(--prs);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .dimmed-row.short { width: 60%; }
+    .dimmed-row.medium { width: 80%; }
+    .dimmed-row.full { width: 100%; }
+
+    /* Dim overlay */
+    .dim-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(28,25,22,.18);
+      border-radius: 0 0 24px 24px;
+      pointer-events: none;
+    }
+
+    /* Bottom sheet */
+    .bottom-sheet {
+      background: var(--sfc);
+      border-radius: 20px 20px 0 0;
+      padding: 12px 20px 24px;
+      box-shadow:
+        0 -4px 24px -2px rgba(0,0,0,.14),
+        0 -1px 0 rgba(0,0,0,.06);
+      position: relative;
+      z-index: 10;
+    }
+
+    .sheet-handle {
+      width: 32px;
+      height: 4px;
+      background: var(--prs);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    .sheet-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--t1);
+      margin-bottom: 4px;
+    }
+
+    .sheet-subtitle {
+      font-size: 12px;
+      color: var(--t2);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    /* Motivo section */
+    .field-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--t2);
+      margin-bottom: 10px;
+    }
+
+    .pill-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .pill {
+      background: var(--elv);
+      border: 1.5px solid var(--prs);
+      border-radius: 100px;
+      padding: 8px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--t2);
+      text-align: center;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .pill.selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .pill.solo {
+      grid-column: 1 / -1;
+      /* Limit width to match other pills */
+      justify-self: start;
+      padding: 8px 20px;
+    }
+
+    /* Note textarea */
+    .note-field {
+      margin-bottom: 16px;
+    }
+
+    .note-textarea {
+      width: 100%;
+      height: 72px;
+      background: var(--bg);
+      border: 1px solid var(--prs);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--t2);
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    /* Info nota */
+    .info-nota {
+      font-size: 11px;
+      font-style: italic;
+      color: var(--t2);
+      margin-bottom: 14px;
+      line-height: 1.4;
+      padding: 0 2px;
+    }
+
+    /* Footer CTA */
+    .sheet-footer {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-annulla {
+      flex: 1;
+      height: 48px;
+      background: var(--elv);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--t2);
+      cursor: pointer;
+      box-shadow: var(--shadow-raised);
+    }
+
+    .btn-crea {
+      flex: 1;
+      height: 48px;
+      background: var(--primary);
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 14px -2px rgba(180,0,0,.38);
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════
+       STATO A — Pulsante "Crea rifacimento"
+  ══════════════════════════════════════ -->
+  <div class="section-label">Stato A — Lavoro consegnato con pulsante</div>
+
+  <div class="phone">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-bar-time">9:41</span>
+      <div class="status-bar-icons">
+        <!-- Signal -->
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="4.5" y="5.5" width="3" height="6.5" rx="1"/><rect x="9" y="3" width="3" height="9" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+        <!-- WiFi -->
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/><path d="M4.5 6.8A4.8 4.8 0 0 1 8 5.5a4.8 4.8 0 0 1 3.5 1.3l1.1-1.1A6.4 6.4 0 0 0 8 4a6.4 6.4 0 0 0-4.6 1.7z"/><path d="M1.3 3.6A9.3 9.3 0 0 1 8 1a9.3 9.3 0 0 1 6.7 2.6L16 2.3A11 11 0 0 0 8 0 11 11 0 0 0 0 2.3z" opacity=".4"/></svg>
+        <!-- Battery -->
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="3" stroke="#1C1916" stroke-width="1.2" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1.8" fill="#1C1916"/><path d="M23 4.5v3a1.5 1.5 0 0 0 0-3z" fill="#1C1916" opacity=".4"/></svg>
+      </div>
+    </div>
+
+    <!-- Nav bar -->
+    <div class="nav-bar">
+      <div class="nav-back">
+        <svg width="10" height="17" viewBox="0 0 10 17" fill="none">
+          <path d="M8.5 1.5 L1.5 8.5 L8.5 15.5" stroke="#D90012" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="nav-title-block">
+        <div class="nav-title">#LAV-2024-0847</div>
+        <div class="nav-sub">Corone in zirconio · Dr. Bianchi</div>
+      </div>
+      <div class="badge-consegnato">Consegnato</div>
+    </div>
+
+    <!-- Detail card -->
+    <div class="detail-section">
+      <div class="detail-card">
+        <div class="detail-row">
+          <span class="detail-key">Paziente</span>
+          <span class="detail-val">Mario Rossi</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Tipo</span>
+          <span class="detail-val">Corone zirconio — 3 unità</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Consegnato</span>
+          <span class="detail-val">23 mag 2026</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Importo</span>
+          <span class="detail-val">€ 540,00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annulla consegna banner -->
+    <div class="annulla-banner">
+      <span class="annulla-banner-text">Consegnato il 23 mag · Annulla consegna →</span>
+      <span class="annulla-banner-arrow">›</span>
+    </div>
+
+    <!-- Pulsante Crea rifacimento -->
+    <div class="btn-rifacimento-wrap">
+      <button class="btn-rifacimento">
+        <span class="btn-rifacimento-icon">↩</span>
+        Crea rifacimento
+      </button>
+    </div>
+
+  </div><!-- /.phone -->
+
+
+  <!-- ══════════════════════════════════════
+       STATO B — Bottom sheet aperto
+  ══════════════════════════════════════ -->
+  <div class="section-label">Stato B — Bottom sheet aperto</div>
+
+  <div class="phone page-dimmed">
+
+    <!-- Status bar -->
+    <div class="status-bar" style="opacity:.35;">
+      <span class="status-bar-time">9:41</span>
+      <div class="status-bar-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#1C1916"/><rect x="4.5" y="5.5" width="3" height="6.5" rx="1" fill="#1C1916"/><rect x="9" y="3" width="3" height="9" rx="1" fill="#1C1916"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="#1C1916"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="#1C1916"/><path d="M4.5 6.8A4.8 4.8 0 0 1 8 5.5a4.8 4.8 0 0 1 3.5 1.3l1.1-1.1A6.4 6.4 0 0 0 8 4a6.4 6.4 0 0 0-4.6 1.7z" fill="#1C1916"/><path d="M1.3 3.6A9.3 9.3 0 0 1 8 1a9.3 9.3 0 0 1 6.7 2.6L16 2.3A11 11 0 0 0 8 0 11 11 0 0 0 0 2.3z" fill="#1C1916" opacity=".4"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="3" stroke="#1C1916" stroke-width="1.2" fill="none"/><rect x="1.5" y="2.5" width="16" height="7" rx="1.8" fill="#1C1916"/><path d="M23 4.5v3a1.5 1.5 0 0 0 0-3z" fill="#1C1916" opacity=".4"/></svg>
+      </div>
+    </div>
+
+    <!-- Dimmed page content -->
+    <div class="page-content-dimmed">
+      <div class="nav-bar" style="opacity:1; margin: 0 -20px; padding: 8px 20px 14px;">
+        <div class="nav-back"><svg width="10" height="17" viewBox="0 0 10 17" fill="none"><path d="M8.5 1.5 L1.5 8.5 L8.5 15.5" stroke="#D90012" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="nav-title-block">
+          <div class="nav-title">#LAV-2024-0847</div>
+          <div class="nav-sub">Corone in zirconio · Dr. Bianchi</div>
+        </div>
+        <div class="badge-consegnato">Consegnato</div>
+      </div>
+      <div style="height:16px;"></div>
+      <div class="dimmed-row full"></div>
+      <div class="dimmed-row full"></div>
+      <div class="dimmed-row medium"></div>
+      <div style="height:6px;"></div>
+      <div class="dimmed-row full" style="height:40px; border-radius:10px;"></div>
+      <div style="height:10px;"></div>
+      <div class="dimmed-row short"></div>
+      <div style="height:4px;"></div>
+      <div class="dimmed-row full" style="height:44px; border-radius:12px;"></div>
+    </div>
+
+    <!-- Dim overlay -->
+    <div class="dim-overlay"></div>
+
+    <!-- Bottom sheet -->
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+
+      <div class="sheet-title">Crea rifacimento</div>
+      <div class="sheet-subtitle">Seleziona il motivo del rifacimento per #LAV-2024-0847</div>
+
+      <!-- Motivo -->
+      <div class="field-label">MOTIVO *</div>
+      <div class="pill-grid">
+        <div class="pill selected">Colore sbagliato</div>
+        <div class="pill">Misura errata</div>
+        <div class="pill">Fusione difettosa</div>
+        <div class="pill">Rottura produzione</div>
+        <div class="pill">Non confortevole</div>
+        <div class="pill">Errore prescrizione</div>
+        <div class="pill solo">Altro</div>
+      </div>
+
+      <!-- Note -->
+      <div class="note-field">
+        <div class="field-label">NOTE</div>
+        <textarea class="note-textarea" placeholder="Es. tono A2 richiesto ma risultato troppo scuro…"></textarea>
+      </div>
+
+      <!-- Info nota -->
+      <div class="info-nota">Verrà creato un nuovo lavoro identico a #LAV-2024-0847. Il lavoro originale resta archiviato.</div>
+
+      <!-- Footer -->
+      <div class="sheet-footer">
+        <button class="btn-annulla">Annulla</button>
+        <button class="btn-crea">Crea rifacimento</button>
+      </div>
+    </div>
+
+  </div><!-- /.phone -->
+
+</body>
+</html>
