@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest) {
   if (Object.keys(allowed).length === 0)
     return NextResponse.json({ error: 'No valid fields' }, { status: 400 })
 
-  if (allowed.preferenza_dashboard && !['ibrido', 'gestione_solo'].includes(allowed.preferenza_dashboard as string))
+  if ('preferenza_dashboard' in allowed && !['ibrido', 'gestione_solo'].includes(allowed.preferenza_dashboard as string))
     return NextResponse.json({ error: 'Invalid preferenza_dashboard' }, { status: 400 })
 
   const svc = getServiceClient()

@@ -563,7 +563,7 @@ export async function getLavoriDaFatturare(
     numero_lavoro: l.numero_lavoro,
     cliente_display: l.clienti?.studio_nome ?? (l.clienti ? `${l.clienti.nome} ${l.clienti.cognome}` : '—'),
     data_consegna_effettiva: l.data_consegna_effettiva,
-    prezzo_unitario: l.prezzo_unitario,
+    prezzo_unitario: Number(l.prezzo_unitario ?? 0),
   }))
 }
 
