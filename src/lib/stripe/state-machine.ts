@@ -42,6 +42,11 @@ export async function transitionLabStato(
     return { success: false, error: 'Stato blacklist è terminale' }
   }
 
+  // Same-state: idempotente, nessun aggiornamento DB necessario
+  if (currentStato === newStato) {
+    return { success: true }
+  }
+
   if (!canTransition(currentStato, newStato)) {
     return { success: false, error: `Transizione ${currentStato}→${newStato} non consentita` }
   }
