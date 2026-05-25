@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
-import { t, motionTokens } from '@/design-system/motion'
+import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 
 const MOTIVI = [
   { value: 'colore_sbagliato',    label: 'Colore sbagliato' },
@@ -28,6 +28,7 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const reducedMotion = useReducedMotion()
 
   function openSheet() {
     setShowSheet(true)
@@ -44,6 +45,7 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
   async function handleCrea() {
     if (!motivo || isPending) return
     startTransition(async () => {
+      setError(null)
       const res = await fetch(`/api/lavori/${lavoroId}/rifacimento`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,7 +99,7 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={t('fast')}
+              transition={reducedMotion ? { duration: 0 } : t('fast')}
               onClick={closeSheet}
               style={{
                 position: 'fixed',
@@ -116,7 +118,7 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ ...motionTokens.spring.soft }}
+              transition={reducedMotion ? { duration: 0 } : { ...motionTokens.spring.soft }}
               style={{
                 position: 'fixed',
                 bottom: 0,
@@ -197,6 +199,10 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                         style={{
                           gridColumn: isLastOdd ? 'span 1' : undefined,
                           padding: '8px 12px',
+                          minHeight: 44,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           borderRadius: 100,
                           border: `1.5px solid ${isSelected ? 'var(--primary, #D90012)' : 'var(--prs, #D4CFC9)'}`,
                           background: isSelected ? 'var(--primary, #D90012)' : 'var(--elv, #EDEDEA)',
