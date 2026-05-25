@@ -24,6 +24,7 @@ export async function transitionLabStato(
     actor?: string
     stripeEventId?: string
     stripeEventCreatedAt?: Date
+    extraFields?: Record<string, unknown>
   } = {}
 ): Promise<{ success: boolean; error?: string }> {
   const { data: lab, error: fetchErr } = await supabase
@@ -62,6 +63,7 @@ export async function transitionLabStato(
     stato: newStato,
     last_stripe_event_id: opts.stripeEventId ?? null,
     last_stripe_event_at: opts.stripeEventCreatedAt?.toISOString() ?? null,
+    ...opts.extraFields,  // metadata Stripe mergiato atomicamente con la transizione stato
   }
   if (newStato === 'sospeso') updateData.suspended_at = new Date().toISOString()
   if (newStato === 'scaduto') updateData.expired_at = new Date().toISOString()

@@ -21,17 +21,16 @@ export async function handleCheckoutCompleted(
     : session.customer?.id ?? null
   const priceId = session.line_items?.data[0]?.price?.id ?? null
 
-  await supabase
-    .from('laboratori')
-    .update({
+  // Atomico: stato + metadata Stripe in un singolo UPDATE
+  await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', {
+    ...stripeOpts(event),
+    extraFields: {
       stripe_subscription_id: subId,
-      stripe_customer_id: customerId ?? undefined,
+      stripe_customer_id: customerId ?? null,
       stripe_price_id: priceId,
       stripe_subscription_status: 'active',
-    })
-    .eq('id', labId)
-
-  await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', stripeOpts(event))
+    },
+  })
 }
 
 async function findLabBySubscription(
@@ -72,12 +71,11 @@ export async function handlePaymentSucceeded(
   const lab = await findLabBySubscription(supabase, subId)
   if (!lab) return
 
-  await supabase
-    .from('laboratori')
-    .update({ stripe_subscription_status: 'active' })
-    .eq('id', lab.id)
-
-  await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', stripeOpts(event))
+  // Atomico: stato + stripe_subscription_status in un singolo UPDATE
+  await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+    ...stripeOpts(event),
+    extraFields: { stripe_subscription_status: 'active' },
+  })
 }
 
 export async function handlePaymentFailed(
@@ -95,12 +93,11 @@ export async function handlePaymentFailed(
   const lab = await findLabBySubscription(supabase, subId)
   if (!lab) return
 
-  await supabase
-    .from('laboratori')
-    .update({ stripe_subscription_status: 'past_due' })
-    .eq('id', lab.id)
-
-  await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', stripeOpts(event))
+  // Atomico: stato + stripe_subscription_status in un singolo UPDATE
+  await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
+    ...stripeOpts(event),
+    extraFields: { stripe_subscription_status: 'past_due' },
+  })
 }
 
 export async function handleSubscriptionDeleted(
@@ -112,12 +109,11 @@ export async function handleSubscriptionDeleted(
   const lab = await findLabBySubscription(supabase, subscription.id)
   if (!lab) return
 
-  await supabase
-    .from('laboratori')
-    .update({ stripe_subscription_status: 'canceled' })
-    .eq('id', lab.id)
-
-  await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', stripeOpts(event))
+  // Atomico: stato + stripe_subscription_status in un singolo UPDATE
+  await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
+    ...stripeOpts(event),
+    extraFields: { stripe_subscription_status: 'canceled' },
+  })
 }
 
 export async function handleSubscriptionUpdated(
@@ -129,17 +125,24 @@ export async function handleSubscriptionUpdated(
   const lab = await findLabBySubscription(supabase, subscription.id)
   if (!lab) return
 
-  // Aggiorna sempre lo status Stripe canonico + price ID corrente
-  await supabase
-    .from('laboratori')
-    .update({
-      stripe_subscription_status: subscription.status,
-      stripe_price_id: subscription.items.data[0]?.price.id ?? null,
-    })
-    .eq('id', lab.id)
-
   // Reactive: se Stripe torna active e il lab era sospeso, ripristina
   if (subscription.status === 'active' && lab.stato === 'sospeso') {
-    await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', stripeOpts(event))
+    // Atomico: stato + metadata Stripe in un singolo UPDATE
+    await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+      ...stripeOpts(event),
+      extraFields: {
+        stripe_subscription_status: subscription.status,
+        stripe_price_id: subscription.items.data[0]?.price.id ?? null,
+      },
+    })
+  } else {
+    // Solo metadata Stripe, nessuna transizione stato
+    await supabase
+      .from('laboratori')
+      .update({
+        stripe_subscription_status: subscription.status,
+        stripe_price_id: subscription.items.data[0]?.price.id ?? null,
+      })
+      .eq('id', lab.id)
   }
 }
