@@ -3,6 +3,8 @@ import { isSameOrigin } from '@/lib/utils/csrf'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { triggerPushToUser } from '@/lib/notifications/trigger'
+import { transizioneLavoro } from '@/lib/lavori/transizioni'
+import type { StatoLavoro } from '@/types/domain'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -40,6 +42,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     .from('lavoro_prove')
     .select('*')
     .eq('lavoro_id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)  // defense-in-depth: filtro tenant su child table
     .order('numero_prova', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -96,13 +99,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'data_rientro_prevista obbligatoria' }, { status: 400 })
     }
 
-    // Fix 5 — State machine guard: solo da stati che ammettono la prova
-    const statiConsentiti = ['ricevuto', 'in_lavorazione', 'in_ritardo']
-    if (!statiConsentiti.includes(lavoro.stato)) {
-      return NextResponse.json(
-        { error: `Impossibile mandare in prova un lavoro in stato "${lavoro.stato}"` },
-        { status: 409 }
-      )
+    // Transizione centralizzata: delega a TRANSIZIONI_CONSENTITE in lib/lavori/transizioni.ts
+    const transResult = await transizioneLavoro(svc, id, utente.laboratorio_id, 'in_prova_esterna' as StatoLavoro)
+    if (!transResult.ok) {
+      return NextResponse.json({ error: transResult.error }, { status: transResult.status })
     }
 
     const { count } = await svc
@@ -121,23 +121,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         data_uscita: new Date().toISOString().split('T')[0],
         data_rientro_prevista,
         note_dentista: istruzioni ?? null,
-        created_by: user.id, // Fix 4 — audit trail
+        created_by: user.id,
       })
       .select()
       .single()
 
     if (provaErr) {
-      // Fix 1 — Unique constraint violation (numero_prova duplicato da concurrent request)
       if (provaErr.code === '23505') {
         return NextResponse.json({ error: 'Prova già in corso — ricarica e riprova' }, { status: 409 })
       }
       return NextResponse.json({ error: provaErr.message }, { status: 500 })
     }
 
-    await svc
-      .from('lavori')
-      .update({ stato: 'in_prova_esterna', updated_at: new Date().toISOString() })
-      .eq('id', id)
+    // stato già aggiornato da transizioneLavoro
 
     return NextResponse.json({ prova, stato: 'in_prova_esterna' })
   }
@@ -167,17 +163,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Prova non trovata o già chiusa' }, { status: 404 })
     }
 
-    const nuovoStato = esito === 'rifare' ? 'annullato'
+    const nuovoStato = (esito === 'rifare' ? 'annullato'
                      : esito === 'sospeso' ? 'sospeso'
-                     : 'in_lavorazione'
+                     : 'in_lavorazione') as StatoLavoro
 
-    const updateLavoro: Record<string, unknown> = {
-      stato: nuovoStato,
-      updated_at: new Date().toISOString(),
+    // Transizione centralizzata via TRANSIZIONI_CONSENTITE
+    const transResult = await transizioneLavoro(
+      svc, id, utente.laboratorio_id, nuovoStato,
+      nuova_data_consegna ? { data_consegna_prevista: nuova_data_consegna } : undefined,
+    )
+    if (!transResult.ok) {
+      return NextResponse.json({ error: transResult.error }, { status: transResult.status })
     }
-    if (nuova_data_consegna) updateLavoro.data_consegna_prevista = nuova_data_consegna
-
-    await svc.from('lavori').update(updateLavoro).eq('id', id)
 
     // Push notification — prova rientrata → tecnico assegnato (fire-and-forget safe)
     if (lavoro.tecnico_id) {

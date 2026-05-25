@@ -3,33 +3,19 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { StatoLavoro } from '@/types/domain'
-
-// Transizioni consentite: stati successivi validi per ciascuno stato corrente.
-// "consegnato" è escluso: passa obbligatoriamente per orchestraConsegna.
-const TRANSIZIONI_CONSENTITE: Partial<Record<StatoLavoro, StatoLavoro[]>> = {
-  ricevuto:         ['in_lavorazione'],
-  in_lavorazione:   ['pronto', 'in_prova_esterna', 'sospeso'],
-  in_prova_esterna: ['in_lavorazione', 'pronto'],
-  in_prova:         ['in_lavorazione', 'pronto'],
-  sospeso:          ['in_lavorazione'],
-  in_ritardo:       ['in_lavorazione'],
-  pronto:           ['in_lavorazione'],
-}
+import { transizioneLavoro, TRANSIZIONI_CONSENTITE } from '@/lib/lavori/transizioni'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function PATCH(req: Request, { params }: RouteContext) {
   const { id } = await params
 
-  // CSRF check
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
   const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
+  const { data: { user } } = await userClient.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
@@ -57,43 +43,22 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Campo "stato" obbligatorio' }, { status: 422 })
   }
 
-  // Legge stato corrente
-  const { data: lavoro } = await svc
-    .from('lavori')
-    .select('stato')
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .is('deleted_at', null)
-    .single()
+  const result = await transizioneLavoro(svc, id, utente.laboratorio_id, nuovoStato)
 
-  if (!lavoro) {
-    return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+  if (!result.ok) {
+    const statusCode = result.status === 409 ? 422 : result.status
+    const extra = result.status === 409
+      ? { consentiti: TRANSIZIONI_CONSENTITE[nuovoStato] ?? [] }
+      : {}
+    return NextResponse.json({ error: result.error, ...extra }, { status: statusCode })
   }
 
-  const statoCorrente = lavoro.stato as StatoLavoro
-  const consentiti = TRANSIZIONI_CONSENTITE[statoCorrente] ?? []
-
-  if (!consentiti.includes(nuovoStato)) {
-    return NextResponse.json(
-      {
-        error: `Transizione non consentita: ${statoCorrente} → ${nuovoStato}`,
-        consentiti,
-      },
-      { status: 422 }
-    )
-  }
-
-  const { data: updated, error: updateError } = await svc
+  const { data: updated } = await svc
     .from('lavori')
-    .update({ stato: nuovoStato, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
     .select('id, numero_lavoro, stato, updated_at')
+    .eq('id', id)
+    .eq('laboratorio_id', utente.laboratorio_id)
     .single()
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
-  }
 
   return NextResponse.json({ lavoro: updated })
 }
