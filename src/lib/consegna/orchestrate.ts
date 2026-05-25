@@ -333,31 +333,33 @@ export async function orchestraConsegna(
           for (const bom of bomItems) {
             const quantita = Number(bom.quantita_per_unita) * Number(lav.quantita)
 
-            // Inserisci in scarichi_magazzino (tracciabilità MDR)
-            await supabase.from('scarichi_magazzino').insert({
-              laboratorio_id: laboratorio_id,
-              lavoro_id: lavoro_id,
-              magazzino_id: bom.magazzino_id,
-              listino_id: bom.listino_id,
-              quantita,
-              unita_misura: bom.unita_misura,
+            // INSERT idempotente: ON CONFLICT DO NOTHING evita doppio scarico su retry consegna
+            // Il unique constraint (lavoro_id, magazzino_id) garantisce una sola riga per coppia
+            const { error: scarErr } = await supabase
+              .from('scarichi_magazzino')
+              .insert({
+                laboratorio_id: laboratorio_id,
+                lavoro_id: lavoro_id,
+                magazzino_id: bom.magazzino_id,
+                listino_id: bom.listino_id,
+                quantita,
+                unita_misura: bom.unita_misura,
+              })
+
+            if (scarErr) {
+              // codice 23505 = unique violation → già scaricato in un ciclo precedente, skip
+              if ((scarErr as { code?: string }).code === '23505') continue
+              throw scarErr
+            }
+
+            // Decremento atomico via RPC — evita read-modify-write race condition
+            const { error: decreErr } = await supabase.rpc('decrementa_scorta', {
+              p_magazzino_id: bom.magazzino_id,
+              p_laboratorio_id: laboratorio_id,
+              p_quantita: quantita,
             })
-
-            // Decrementa scorta_attuale
-            const { data: mag } = await supabase
-              .from('magazzino')
-              .select('scorta_attuale')
-              .eq('id', bom.magazzino_id)
-              .eq('laboratorio_id', laboratorio_id)
-              .single()
-
-            if (mag) {
-              const nuovaScorta = Math.max(0, Number(mag.scorta_attuale) - quantita)
-              await supabase
-                .from('magazzino')
-                .update({ scorta_attuale: nuovaScorta })
-                .eq('id', bom.magazzino_id)
-                .eq('laboratorio_id', laboratorio_id)
+            if (decreErr) {
+              console.error('[CONSEGNA] decrementa_scorta failed:', decreErr.message)
             }
           }
         }
