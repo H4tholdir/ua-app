@@ -104,3 +104,6 @@ graphify-out/
 # === MEMORIA SESSIONE (cambia ogni sessione, non appartiene al repo) ===
 memory/SESSION_ACTIVE.md
 .agents/
+
+# === WORKTREES (locali, non appartengono al repo) ===
+.claude/worktrees/

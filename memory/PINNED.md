@@ -17,7 +17,7 @@ Uso primario da mobile in laboratorio, spesso con mani occupate.
 **Goal:** eliminare la burocrazia dal laboratorio. DdC MDR, FatturaPA SDI, tracking lavori,
 consegne — tutto automatico, tutto dal telefono. L'utente non vede mai i problemi tecnici.
 
-**Stack:** Next.js 15 App Router + TypeScript strict. Supabase PostgreSQL + RLS + Auth.
+**Stack:** Next.js 16 App Router + TypeScript strict. Supabase PostgreSQL + RLS + Auth.
 Multi-tenant: ogni laboratorio isolato tramite `public.current_lab_id()` nelle RLS policy.
 
 ---

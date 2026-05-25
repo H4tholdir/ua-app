@@ -65,21 +65,31 @@ Documento completo: `docs/processes/WORKFLOW-STANDARD.md`. Versione condensata q
 | Dimensione | Orchestratori | Quando |
 |-----------|--------------|--------|
 | Piccola (1-3 file, <1h) | Superpowers only | Hotfix, piccoli tweak |
-| Media (3-10 file, 1-2 sessioni) | gstack + Superpowers | Feature con architettura |
-| Grande (10+ file, multi-sessione) | gstack + GSD (fasi) + Superpowers | Feature complesse |
+| Media (3-10 file, 1-2 sessioni) | GSD + Superpowers | Feature con architettura |
+| Grande (10+ file, multi-sessione) | GSD (fasi) + Superpowers | Feature complesse |
+| **⚠ OVERRIDE dominio critico** | **sempre percorso Grande** | **Qualsiasi change che tocca: RLS, Stripe, FatturaPA, auth, migrations — indipendentemente dal numero di file** |
 
-**Le 11 Fasi Obbligatorie:**
+**Le 12 Fasi Obbligatorie:**
 
 ```
 FASE 0  → BP-0: Leggi MEMORY.md + PINNED.md (già automatico via hook)
-FASE 1  → GOAL: Francesco descrive. Usa /gstack office-hours se ambiguo.
+FASE 1  → GOAL: Francesco descrive. Se ambiguo usa /gsd-explore (ideazione Socratica).
 FASE 2  → BRAINSTORM: /superpowers:brainstorming (SEMPRE, anche se sembra ovvio)
-FASE 3  → VALIDAZIONE ARCH: /gstack plan-eng-review (GATE — non si procede senza)
-FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici
+FASE 3  → VALIDAZIONE ARCH (GATE — non si procede senza risposta a tutte e 5):
+            □ Tenant isolation: questa change tocca RLS o current_lab_id()?
+            □ Schema drift: serve migration? supabase gen types andrà rieseguito?
+            □ API contract: il payload change rompe client esistenti?
+            □ Rollback: come si annulla se va in prod e fallisce?
+            □ Dominio critico? RLS/Stripe/FatturaPA/auth → percorso GRANDE automatico
+FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici 2-5 min
 FASE 5  → ISOLAMENTO: /superpowers:using-git-worktrees → branch dedicata
 FASE 6  → IMPLEMENTAZIONE TDD: /superpowers:test-driven-development (RED→GREEN→REFACTOR)
-FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3 obbligatori)
-FASE 8  → REVIEW: /gstack review + /superpowers:requesting-code-review
+FASE 6b → MIGRATION GATE (solo se migration presente in questa sessione):
+            npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
+            npx tsc --noEmit
+            Verifica che la migration non rompa RLS policies esistenti
+FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output reale)
+FASE 8  → REVIEW: /gsd-code-review + /superpowers:requesting-code-review
 FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
 FASE 10 → DEPLOY: merge → push → attendi CI verde → verifica uachelab.com
 FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
@@ -87,6 +97,7 @@ FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 
 **REGOLE ZERO:**
 - MAI saltare FASE 3 (validazione architetturale) per "feature semplici"
+- MAI saltare FASE 6b se hai scritto o modificato una migration in questa sessione
 - MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
 - MAI deployare con CI rosso
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
