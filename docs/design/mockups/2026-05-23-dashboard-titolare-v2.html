@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard V2 — Mockup</title>
+<style>
+  /* ── DS v2.2 tokens ─────────────────────────────── */
+  :root {
+    --bg:     #DDD8D3;
+    --sfc:    #E4DFD9;
+    --elv:    #EDEDEA;
+    --prs:    #D4CFC9;
+    --t1:     #1C1916;
+    --t2:     #96918D;
+    --t3:     #B8B3AE;
+    --primary:#D90012;
+    --gold:   #D4A843;
+    --success:#3DCB5C;
+    --warning:#B45309;
+    --info:   #5A5FCC;
+    --border: rgba(0,0,0,.06);
+    --sh-b:   inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),
+              -5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44);
+    --sh-c:   inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),
+              -5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),
+              3px 5px 10px -2px rgba(148,128,118,.22);
+    --sh-i:   inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66);
+    --sh-red: inset 0 1px 0 rgba(255,255,255,.25),inset 0 -2px 3px rgba(0,0,0,.22),
+              0 6px 18px -2px rgba(180,0,0,.40),0 2px 6px rgba(180,0,0,.26);
+  }
+  .dark {
+    --bg:     #1A1916;
+    --sfc:    #222019;
+    --elv:    #2C2A27;
+    --prs:    #121110;
+    --t1:     #F0EDE8;
+    --t2:     #8A8580;
+    --t3:     #555250;
+    --primary:#E8001A;
+    --success:#2ECC7A;
+    --warning:#D97706;
+    --info:   #6A70E8;
+    --border: rgba(255,255,255,.06);
+    --sh-b:   inset 0 1px 0 rgba(255,255,255,.05),inset 0 -2px 3px rgba(0,0,0,.28),
+              9px 13px 28px -4px rgba(0,0,0,.52),3px 5px 12px -1px rgba(0,0,0,.34);
+    --sh-c:   inset 0 1px 0 rgba(255,255,255,.055),inset 0 -1px 2px rgba(0,0,0,.22),
+              -5px -5px 11px rgba(255,255,255,.018),
+              9px 12px 28px -4px rgba(0,0,0,.60),3px 5px 12px -2px rgba(0,0,0,.38);
+    --sh-i:   inset 4px 4px 9px rgba(0,0,0,.60),inset -3px -3px 7px rgba(255,255,255,.04);
+    --sh-red: inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 3px rgba(0,0,0,.32),
+              0 6px 18px -2px rgba(232,0,26,.38),0 2px 6px rgba(232,0,26,.22);
+  }
+
+  @keyframes ua-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  a { color: inherit; text-decoration: none; }
+
+  body {
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--t1);
+  }
+
+  /* ── Viewport container ─────────────────────────── */
+  .viewports {
+    display: flex;
+    gap: 40px;
+    padding: 40px;
+    background: #ccc;
+    min-height: 100vh;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .vp-wrap { display: flex; flex-direction: column; gap: 16px; }
+  .vp-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #666;
+  }
+  .vp-frame {
+    background: var(--bg);
+    overflow: hidden;
+    position: relative;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  .vp-390 .vp-frame  { width: 390px; max-height: 844px; overflow-y: auto; }
+  .vp-768 .vp-frame  { width: 768px; max-height: 1024px; overflow-y: auto; }
+  .vp-1280 .vp-frame { width: 1280px; max-height: 900px; overflow-y: auto; }
+
+  /* ── Header ─────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px 12px;
+    gap: 8px;
+    background: var(--bg);
+  }
+  .header-lab {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--t2);
+    flex: 1;
+  }
+  .sync-badge {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 9px; font-weight: 500; color: var(--t2);
+    background: var(--sfc);
+    padding: 3px 8px; border-radius: 100px;
+    box-shadow: var(--sh-b);
+  }
+  .sync-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--success);
+    animation: ua-pulse 2.5s infinite;
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    box-shadow: var(--sh-b);
+    flex-shrink: 0;
+  }
+
+  /* ── Greeting ────────────────────────────────────── */
+  .greeting {
+    padding: 4px 16px 14px;
+  }
+  .greeting-date {
+    font-size: 11px; color: var(--t2);
+    margin-bottom: 2px;
+  }
+  .greeting-name {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 22px; font-weight: 400;
+    color: var(--t1); letter-spacing: -.01em;
+    line-height: 1.2;
+  }
+
+  /* ── SpotlightCard ───────────────────────────────── */
+  .spotlight {
+    margin: 0 14px 12px;
+    background: var(--sfc);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: var(--sh-c);
+  }
+  .spotlight-eyebrow {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--primary);
+    margin-bottom: 5px;
+  }
+  .spotlight-eyebrow-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--primary);
+    animation: ua-pulse 2.5s infinite;
+  }
+  .spotlight-title {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 17px; font-weight: 400;
+    color: var(--t1); letter-spacing: -.01em;
+    line-height: 1.25; margin-bottom: 4px;
+  }
+  .spotlight-meta {
+    font-size: 11px; color: var(--t2); line-height: 1.4;
+    margin-bottom: 12px;
+  }
+  .spotlight-meta strong { color: var(--primary); }
+  .spotlight-footer {
+    display: flex; align-items: center;
+    justify-content: space-between;
+  }
+  .btn-resolve {
+    background: var(--primary); color: #fff;
+    border-radius: 100px; padding: 8px 18px;
+    font-size: 12px; font-weight: 700;
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    text-decoration: none; display: inline-block;
+    box-shadow: var(--sh-red);
+  }
+  .spotlight-ts { font-size: 9px; color: var(--t3); }
+
+  /* ── KPI Grid 2×2 ───────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0 14px 12px;
+  }
+  .kpi-card {
+    background: var(--sfc);
+    border-radius: 16px;
+    padding: 12px 13px;
+    box-shadow: var(--sh-b);
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    transition: transform .12s cubic-bezier(.2,0,0,1);
+  }
+  .kpi-card:hover { transform: scale(.97); }
+  .kpi-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .kpi-num {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 38px; font-weight: 300;
+    line-height: 1;
+  }
+  .kpi-chevron { font-size: 12px; color: var(--t3); margin-top: 4px; }
+  .kpi-label {
+    font-size: 11px; font-weight: 600; color: var(--t2);
+    margin-top: 2px; line-height: 1.3;
+  }
+  .kpi-action { font-size: 9.5px; color: var(--t3); margin-top: 3px; }
+  .kpi-zero .kpi-num { color: var(--t2); }
+  .kpi-red .kpi-num  { color: var(--primary); }
+  .kpi-blue .kpi-num { color: var(--info); }
+  .kpi-gold .kpi-num { color: var(--gold); }
+  .kpi-grey .kpi-num { color: var(--t2); }
+
+  /* ── Section label ───────────────────────────────── */
+  .section-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--t3);
+    margin: 0 14px 8px;
+  }
+
+  /* ── Urgenze lab ─────────────────────────────────── */
+  .urgenze-card {
+    margin: 0 14px 16px;
+    background: var(--sfc);
+    border-radius: 16px;
+    box-shadow: var(--sh-b);
+    overflow: hidden;
+  }
+  .urgenze-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .urgenze-row:last-child { border-bottom: none; }
+  .urgenze-name { font-size: 13px; font-weight: 500; color: var(--t1); }
+  .urgenze-amount { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+  /* ── Materiali ───────────────────────────────────── */
+  .materiali-card {
+    margin: 0 14px 16px;
+    background: var(--sfc);
+    border-radius: 16px;
+    box-shadow: var(--sh-b);
+    overflow: hidden;
+  }
+  .mat-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 14px 8px;
+  }
+  .mat-header-label { font-size: 11px; font-weight: 600; color: var(--t2); }
+  .btn-ordina {
+    font-size: 10px; font-weight: 700; color: #fff;
+    background: var(--primary); border-radius: 100px;
+    padding: 4px 12px; text-decoration: none;
+  }
+  .mat-row {
+    padding: 6px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mat-row:last-child { border-bottom: none; }
+  .mat-row-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .mat-name { font-size: 12px; font-weight: 600; color: var(--t1); }
+  .mat-qty { font-size: 10px; color: var(--t2); }
+  .mat-bar-bg { height: 4px; background: var(--prs); border-radius: 2px; overflow: hidden; }
+  .mat-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* ── Fatturato ───────────────────────────────────── */
+  .fatturato-card {
+    margin: 0 14px 16px;
+    background: var(--sfc);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--sh-b);
+  }
+  .fatt-label { font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--t3); margin-bottom: 4px; }
+  .fatt-value {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 28px; font-weight: 300; color: var(--t1);
+  }
+  .fatt-meta { font-size: 11px; color: var(--t2); margin-top: 2px; }
+  .fatt-delta { font-size: 10px; color: var(--t3); margin-top: 6px; }
+
+  /* ── Bottom Nav Pill ─────────────────────────────── */
+  .nav-wrap {
+    position: sticky; bottom: 0;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+    display: flex; justify-content: center;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    pointer-events: none;
+  }
+  .nav-pill {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--elv);
+    border-radius: 100px;
+    padding: 6px 10px;
+    box-shadow: var(--sh-b);
+    pointer-events: auto;
+    max-width: calc(100% - 32px);
+  }
+  .nav-tab {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; min-width: 52px; min-height: 52px;
+    padding: 6px 10px; border-radius: 88px;
+    cursor: pointer; text-decoration: none;
+    justify-content: center;
+    position: relative;
+  }
+  .nav-tab.active {
+    background: var(--elv);
+    box-shadow: var(--sh-i);
+  }
+  .nav-tab-icon { font-size: 18px; line-height: 1; }
+  .nav-tab-label {
+    font-size: 10px; font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400; color: var(--t2);
+    letter-spacing: .01em;
+  }
+  .nav-tab.active .nav-tab-label {
+    color: var(--primary); font-weight: 600;
+  }
+  .nav-fab {
+    display: flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; min-width: 52px;
+    border-radius: 50%;
+    background: var(--elv);
+    color: var(--primary);
+    box-shadow: var(--sh-b);
+    text-decoration: none;
+    font-size: 22px; font-weight: 300;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .nav-fab-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%);
+    background: var(--t1); color: var(--elv);
+    font-size: 9px; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .nav-fab-tooltip::after {
+    content: '';
+    position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--t1);
+  }
+
+  /* ── Desktop 2-col layout ────────────────────────── */
+  .desktop-layout {
+    display: flex;
+    gap: 0;
+    min-height: 100%;
+  }
+  .desktop-col-prod {
+    flex: 1;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    max-height: 900px;
+  }
+  .desktop-col-gest {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 900px;
+    background: var(--bg);
+  }
+  .desktop-col-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--t3);
+    padding: 12px 16px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Desktop: nav pill in basso full-width */
+  .nav-wrap-desktop {
+    position: sticky; bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 8px 24px;
+    display: flex; justify-content: center;
+  }
+  .nav-pill-desktop {
+    display: flex; align-items: center; gap: 8px;
+    max-width: 720px; width: 100%;
+    justify-content: space-around;
+  }
+  .nav-tab-desktop {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 12px;
+    cursor: pointer; text-decoration: none;
+  }
+  .nav-tab-desktop:hover { background: var(--sfc); }
+  .nav-tab-desktop.active {
+    background: var(--sfc);
+    box-shadow: var(--sh-i);
+  }
+  .nav-tab-desktop .nav-tab-icon { font-size: 16px; }
+  .nav-tab-desktop .nav-tab-label {
+    font-size: 12px; font-weight: 500; color: var(--t2);
+  }
+  .nav-tab-desktop.active .nav-tab-label { color: var(--primary); font-weight: 600; }
+  .nav-fab-desktop {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--primary); color: #fff;
+    border-radius: 100px; padding: 8px 20px;
+    font-size: 12px; font-weight: 700;
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    text-decoration: none;
+    box-shadow: var(--sh-red);
+  }
+
+  /* ── Tablet KPI grid 4 in riga ───────────────────── */
+  .kpi-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .kpi-grid-4 .kpi-num { font-size: 42px; }
+
+  /* ── Consegne oggi ───────────────────────────────── */
+  .consegne-empty {
+    margin: 0 14px 16px;
+    background: var(--sfc);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--sh-b);
+    text-align: center;
+  }
+  .consegne-empty-check { font-size: 18px; color: var(--success); margin-bottom: 6px; }
+  .consegne-empty-text { font-size: 13px; color: var(--t3); }
+
+  /* ── Fallback font stack (system) ───────────────────── */
+</style>
+</head>
+<body>
+
+<div class="viewports">
+
+  <!-- ══════════════ 390px LIGHT ══════════════ -->
+  <div class="vp-wrap vp-390">
+    <div class="vp-label">390px — Light</div>
+    <div class="vp-frame">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge">
+          <div class="sync-dot"></div>
+          Aggiornato ora
+        </div>
+        <div class="avatar">FT</div>
+      </div>
+
+      <!-- Greeting -->
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+
+      <!-- SpotlightCard -->
+      <div class="spotlight">
+        <div class="spotlight-eyebrow">
+          <div class="spotlight-eyebrow-dot"></div>
+          Blocco attivo
+        </div>
+        <div class="spotlight-title">Il bordo è strappato sul dente 14</div>
+        <div class="spotlight-meta">
+          ESPOSITO MASSIMO · #2026/0002<br>
+          <strong>oggi ore 17:00</strong>
+        </div>
+        <div class="spotlight-footer">
+          <a class="btn-resolve" href="#">Risolvi subito →</a>
+          <span class="spotlight-ts">41h fa</span>
+        </div>
+      </div>
+
+      <!-- KPI Grid 2×2 -->
+      <div class="kpi-grid">
+        <a class="kpi-card kpi-zero" href="#">
+          <div class="kpi-card-header">
+            <span class="kpi-num">0</span>
+          </div>
+          <div class="kpi-label">Da consegnare</div>
+        </a>
+        <a class="kpi-card kpi-red" href="#">
+          <div class="kpi-card-header">
+            <span class="kpi-num">52</span>
+            <span class="kpi-chevron">›</span>
+          </div>
+          <div class="kpi-label">In ritardo</div>
+          <div class="kpi-action">vedi →</div>
+        </a>
+        <a class="kpi-card kpi-gold" href="#">
+          <div class="kpi-card-header">
+            <span class="kpi-num">5</span>
+            <span class="kpi-chevron">›</span>
+          </div>
+          <div class="kpi-label">Da fatturare</div>
+          <div class="kpi-action">fattura →</div>
+        </a>
+        <a class="kpi-card kpi-grey" href="#">
+          <div class="kpi-card-header">
+            <span class="kpi-num">4</span>
+            <span class="kpi-chevron">›</span>
+          </div>
+          <div class="kpi-label">Materiali esauriti</div>
+          <div class="kpi-action">magazzino →</div>
+        </a>
+      </div>
+
+      <!-- Urgenze Lab -->
+      <div class="section-label">Urgenze lab</div>
+      <div class="urgenze-card">
+        <div class="urgenze-row">
+          <span class="urgenze-name">GDA STP S.R.L.</span>
+          <span class="urgenze-amount">17.111 €</span>
+        </div>
+        <div class="urgenze-row">
+          <span class="urgenze-name">Esposito Massimo</span>
+          <span class="urgenze-amount">5.833 €</span>
+        </div>
+        <div class="urgenze-row">
+          <span class="urgenze-name">Studi Medici Di Santi</span>
+          <span class="urgenze-amount">4.275 €</span>
+        </div>
+      </div>
+
+      <!-- Consegne oggi -->
+      <div class="section-label">Da consegnare oggi</div>
+      <div class="consegne-empty">
+        <div class="consegne-empty-check">✓</div>
+        <div class="consegne-empty-text">Nessuna consegna programmata</div>
+      </div>
+
+      <!-- Materiali in esaurimento -->
+      <div class="section-label">Materiali in esaurimento</div>
+      <div class="materiali-card">
+        <div class="mat-header">
+          <span class="mat-header-label">4 articoli</span>
+          <a class="btn-ordina" href="#">Ordina →</a>
+        </div>
+        <div class="mat-row">
+          <div class="mat-row-header">
+            <span class="mat-name">Rivestimento</span>
+            <span class="mat-qty">0/1 pz</span>
+          </div>
+          <div class="mat-bar-bg"><div class="mat-bar-fill" style="width:0%;background:var(--primary)"></div></div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-row-header">
+            <span class="mat-name">Fresa a palla Ø 0,4 mm</span>
+            <span class="mat-qty">0.4/1 pz</span>
+          </div>
+          <div class="mat-bar-bg"><div class="mat-bar-fill" style="width:40%;background:var(--primary)"></div></div>
+        </div>
+      </div>
+
+      <!-- Fatturato mensile -->
+      <div class="section-label">Fatturato mensile</div>
+      <div class="fatturato-card">
+        <div class="fatt-label">Mese corrente</div>
+        <div class="fatt-value">0 €</div>
+        <div class="fatt-meta">Mese scorso: 0 €</div>
+        <div class="fatt-delta">Margine netto: 0 €</div>
+      </div>
+
+      <!-- Nav pill -->
+      <div class="nav-wrap">
+        <div class="nav-pill">
+          <a class="nav-tab active" href="#">
+            <div class="nav-tab-icon">⊞</div>
+            <div class="nav-tab-label">Oggi</div>
+          </a>
+          <a class="nav-tab" href="#">
+            <div class="nav-tab-icon">≡</div>
+            <div class="nav-tab-label">Lavori</div>
+          </a>
+          <a class="nav-fab" href="#">
+            <div class="nav-fab-tooltip">Nuovo lavoro</div>
+            +
+          </a>
+          <a class="nav-tab" href="#">
+            <div class="nav-tab-icon">⚙</div>
+            <div class="nav-tab-label">Clienti</div>
+          </a>
+          <a class="nav-tab" href="#">
+            <div class="nav-tab-icon">···</div>
+            <div class="nav-tab-label">Altro</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ 390px DARK ══════════════ -->
+  <div class="vp-wrap vp-390">
+    <div class="vp-label">390px — Dark</div>
+    <div class="vp-frame dark">
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge">
+          <div class="sync-dot"></div>
+          Aggiornato ora
+        </div>
+        <div class="avatar">FT</div>
+      </div>
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+      <div class="spotlight">
+        <div class="spotlight-eyebrow">
+          <div class="spotlight-eyebrow-dot"></div>
+          Blocco attivo
+        </div>
+        <div class="spotlight-title">Il bordo è strappato sul dente 14</div>
+        <div class="spotlight-meta">
+          ESPOSITO MASSIMO · #2026/0002<br>
+          <strong>oggi ore 17:00</strong>
+        </div>
+        <div class="spotlight-footer">
+          <a class="btn-resolve" href="#">Risolvi subito →</a>
+          <span class="spotlight-ts">41h fa</span>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <a class="kpi-card kpi-zero" href="#"><div class="kpi-card-header"><span class="kpi-num">0</span></div><div class="kpi-label">Da consegnare</div></a>
+        <a class="kpi-card kpi-red" href="#"><div class="kpi-card-header"><span class="kpi-num">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+        <a class="kpi-card kpi-gold" href="#"><div class="kpi-card-header"><span class="kpi-num">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+        <a class="kpi-card kpi-grey" href="#"><div class="kpi-card-header"><span class="kpi-num">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali esauriti</div><div class="kpi-action">magazzino →</div></a>
+      </div>
+      <div class="section-label">Urgenze lab</div>
+      <div class="urgenze-card">
+        <div class="urgenze-row"><span class="urgenze-name">GDA STP S.R.L.</span><span class="urgenze-amount">17.111 €</span></div>
+        <div class="urgenze-row"><span class="urgenze-name">Esposito Massimo</span><span class="urgenze-amount">5.833 €</span></div>
+        <div class="urgenze-row"><span class="urgenze-name">Studi Medici Di Santi</span><span class="urgenze-amount">4.275 €</span></div>
+      </div>
+      <div class="section-label">Materiali in esaurimento</div>
+      <div class="materiali-card">
+        <div class="mat-header"><span class="mat-header-label">4 articoli</span><a class="btn-ordina" href="#">Ordina →</a></div>
+        <div class="mat-row"><div class="mat-row-header"><span class="mat-name">Rivestimento</span><span class="mat-qty">0/1 pz</span></div><div class="mat-bar-bg"><div class="mat-bar-fill" style="width:0%;background:var(--primary)"></div></div></div>
+        <div class="mat-row"><div class="mat-row-header"><span class="mat-name">Fresa a palla Ø 0,4 mm</span><span class="mat-qty">0.4/1 pz</span></div><div class="mat-bar-bg"><div class="mat-bar-fill" style="width:40%;background:var(--primary)"></div></div></div>
+      </div>
+      <div class="section-label">Fatturato mensile</div>
+      <div class="fatturato-card"><div class="fatt-label">Mese corrente</div><div class="fatt-value">0 €</div><div class="fatt-meta">Mese scorso: 0 €</div></div>
+      <div class="nav-wrap">
+        <div class="nav-pill">
+          <a class="nav-tab active" href="#"><div class="nav-tab-icon">⊞</div><div class="nav-tab-label">Oggi</div></a>
+          <a class="nav-tab" href="#"><div class="nav-tab-icon">≡</div><div class="nav-tab-label">Lavori</div></a>
+          <a class="nav-fab" href="#"><div class="nav-fab-tooltip">Nuovo lavoro</div>+</a>
+          <a class="nav-tab" href="#"><div class="nav-tab-icon">⚙</div><div class="nav-tab-label">Clienti</div></a>
+          <a class="nav-tab" href="#"><div class="nav-tab-icon">···</div><div class="nav-tab-label">Altro</div></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ 1280px LIGHT ══════════════ -->
+  <div class="vp-wrap vp-1280">
+    <div class="vp-label">1280px — Light (2 colonne)</div>
+    <div class="vp-frame">
+      <div class="desktop-layout">
+        <!-- Col Produzione (sx) -->
+        <div class="desktop-col-prod">
+          <div class="desktop-col-label">🔧 Produzione</div>
+
+          <!-- SpotlightCard orizzontale su desktop -->
+          <div class="spotlight" style="margin:12px 16px;display:flex;gap:16px;align-items:center;padding:12px 16px;">
+            <div style="flex:1">
+              <div class="spotlight-eyebrow"><div class="spotlight-eyebrow-dot"></div>Blocco attivo</div>
+              <div class="spotlight-title" style="font-size:15px">Il bordo è strappato sul dente 14</div>
+              <div class="spotlight-meta" style="margin-bottom:0">ESPOSITO MASSIMO · #2026/0002 · <strong>oggi ore 17:00</strong></div>
+            </div>
+            <a class="btn-resolve" style="flex-shrink:0" href="#">Risolvi subito →</a>
+          </div>
+
+          <!-- Task list placeholder -->
+          <div class="section-label" style="margin-top:8px">I miei lavori — per scadenza</div>
+          <div style="margin:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
+            <div style="background:var(--sfc);border-radius:13px;padding:10px 14px;box-shadow:var(--sh-b);display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;text-align:center">1</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--t1)">Esposito Massimo</div>
+                <div style="font-size:10px;color:var(--t2);margin:2px 0 4px">🔴 Rivestimento ceramica</div>
+                <div style="height:3px;background:var(--prs);border-radius:2px"><div style="height:100%;width:40%;background:var(--primary);border-radius:2px"></div></div>
+              </div>
+              <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--t1)">17:00</div></div>
+            </div>
+            <div style="background:var(--sfc);border-radius:13px;padding:10px 14px;box-shadow:var(--sh-b);display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;text-align:center">2</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--t1)">GDA STP S.R.L.</div>
+                <div style="font-size:10px;color:var(--t2);margin:2px 0 4px">🟡 Finitura</div>
+                <div style="height:3px;background:var(--prs);border-radius:2px"><div style="height:100%;width:75%;background:var(--gold);border-radius:2px"></div></div>
+              </div>
+              <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--t1)">24 mag</div></div>
+            </div>
+            <div style="background:var(--sfc);border-radius:13px;padding:10px 14px;box-shadow:var(--sh-b);display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;text-align:center">3</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--t1)">Studio Bianchi</div>
+                <div style="font-size:10px;color:var(--t2);margin:2px 0 4px">🟢 In prova</div>
+                <div style="height:3px;background:var(--prs);border-radius:2px"><div style="height:100%;width:90%;background:var(--success);border-radius:2px"></div></div>
+              </div>
+              <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--t1)">25 mag</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Col Gestione (dx) -->
+        <div class="desktop-col-gest">
+          <div class="desktop-col-label">📊 Gestione</div>
+
+          <!-- KPI 2×2 su desktop più grandi -->
+          <div class="kpi-grid" style="margin:12px 16px;gap:10px">
+            <a class="kpi-card kpi-zero" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">0</span></div><div class="kpi-label">Da consegnare</div></a>
+            <a class="kpi-card kpi-red" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+            <a class="kpi-card kpi-gold" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+            <a class="kpi-card kpi-grey" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali esauriti</div><div class="kpi-action">magazzino →</div></a>
+          </div>
+
+          <!-- Urgenze lab -->
+          <div class="section-label" style="margin-top:8px">Urgenze lab</div>
+          <div class="urgenze-card" style="margin:0 16px 12px">
+            <div class="urgenze-row"><span class="urgenze-name">GDA STP S.R.L.</span><span class="urgenze-amount">17.111 €</span></div>
+            <div class="urgenze-row"><span class="urgenze-name">Esposito Massimo</span><span class="urgenze-amount">5.833 €</span></div>
+            <div class="urgenze-row"><span class="urgenze-name">Studi Medici Di Santi</span><span class="urgenze-amount">4.275 €</span></div>
+          </div>
+
+          <!-- Fatturato -->
+          <div class="section-label">Fatturato mensile</div>
+          <div class="fatturato-card" style="margin:0 16px 16px">
+            <div class="fatt-label">Mese corrente</div>
+            <div class="fatt-value">0 €</div>
+            <div class="fatt-meta">Mese scorso: 0 €</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav desktop in basso -->
+      <div class="nav-wrap-desktop">
+        <div class="nav-pill-desktop">
+          <a class="nav-tab-desktop active" href="#"><span class="nav-tab-icon">⊞</span><span class="nav-tab-label">Oggi</span></a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">≡</span><span class="nav-tab-label">Lavori</span></a>
+          <a class="nav-fab-desktop" href="#">+ Nuovo lavoro</a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">⚙</span><span class="nav-tab-label">Clienti</span></a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">📂</span><span class="nav-tab-label">Fatture</span></a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">···</span><span class="nav-tab-label">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ 1280px DARK ══════════════ -->
+  <div class="vp-wrap vp-1280">
+    <div class="vp-label">1280px — Dark (2 colonne)</div>
+    <div class="vp-frame dark">
+      <div class="desktop-layout">
+        <div class="desktop-col-prod">
+          <div class="desktop-col-label">🔧 Produzione</div>
+          <div class="spotlight" style="margin:12px 16px;display:flex;gap:16px;align-items:center;padding:12px 16px;">
+            <div style="flex:1"><div class="spotlight-eyebrow"><div class="spotlight-eyebrow-dot"></div>Blocco attivo</div><div class="spotlight-title" style="font-size:15px">Il bordo è strappato sul dente 14</div><div class="spotlight-meta" style="margin-bottom:0">ESPOSITO MASSIMO · #2026/0002 · <strong>oggi ore 17:00</strong></div></div>
+            <a class="btn-resolve" style="flex-shrink:0" href="#">Risolvi subito →</a>
+          </div>
+          <div class="section-label" style="margin-top:8px">I miei lavori — per scadenza</div>
+          <div style="margin:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
+            <div style="background:var(--sfc);border-radius:13px;padding:10px 14px;box-shadow:var(--sh-b);display:flex;align-items:center;gap:10px;"><span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;text-align:center">1</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--t1)">Esposito Massimo</div><div style="font-size:10px;color:var(--t2);margin:2px 0 4px">🔴 Rivestimento ceramica</div><div style="height:3px;background:var(--prs);border-radius:2px"><div style="height:100%;width:40%;background:var(--primary);border-radius:2px"></div></div></div><div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--t1)">17:00</div></div></div>
+            <div style="background:var(--sfc);border-radius:13px;padding:10px 14px;box-shadow:var(--sh-b);display:flex;align-items:center;gap:10px;"><span style="font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--t3);width:16px;text-align:center">2</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--t1)">GDA STP S.R.L.</div><div style="font-size:10px;color:var(--t2);margin:2px 0 4px">🟡 Finitura</div><div style="height:3px;background:var(--prs);border-radius:2px"><div style="height:100%;width:75%;background:var(--gold);border-radius:2px"></div></div></div><div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--t1)">24 mag</div></div></div>
+          </div>
+        </div>
+        <div class="desktop-col-gest">
+          <div class="desktop-col-label">📊 Gestione</div>
+          <div class="kpi-grid" style="margin:12px 16px;gap:10px">
+            <a class="kpi-card kpi-zero" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">0</span></div><div class="kpi-label">Da consegnare</div></a>
+            <a class="kpi-card kpi-red" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+            <a class="kpi-card kpi-gold" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+            <a class="kpi-card kpi-grey" href="#"><div class="kpi-card-header"><span class="kpi-num" style="font-size:44px">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali esauriti</div><div class="kpi-action">magazzino →</div></a>
+          </div>
+          <div class="section-label" style="margin-top:8px">Urgenze lab</div>
+          <div class="urgenze-card" style="margin:0 16px 12px">
+            <div class="urgenze-row"><span class="urgenze-name">GDA STP S.R.L.</span><span class="urgenze-amount">17.111 €</span></div>
+            <div class="urgenze-row"><span class="urgenze-name">Esposito Massimo</span><span class="urgenze-amount">5.833 €</span></div>
+            <div class="urgenze-row"><span class="urgenze-name">Studi Medici Di Santi</span><span class="urgenze-amount">4.275 €</span></div>
+          </div>
+          <div class="section-label">Fatturato mensile</div>
+          <div class="fatturato-card" style="margin:0 16px 16px"><div class="fatt-label">Mese corrente</div><div class="fatt-value">0 €</div><div class="fatt-meta">Mese scorso: 0 €</div></div>
+        </div>
+      </div>
+      <div class="nav-wrap-desktop">
+        <div class="nav-pill-desktop">
+          <a class="nav-tab-desktop active" href="#"><span class="nav-tab-icon">⊞</span><span class="nav-tab-label">Oggi</span></a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">≡</span><span class="nav-tab-label">Lavori</span></a>
+          <a class="nav-fab-desktop" href="#">+ Nuovo lavoro</a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">⚙</span><span class="nav-tab-label">Clienti</span></a>
+          <a class="nav-tab-desktop" href="#"><span class="nav-tab-icon">···</span><span class="nav-tab-label">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

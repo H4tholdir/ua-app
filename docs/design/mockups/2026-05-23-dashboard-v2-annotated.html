@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard V2 — Mockup Annotato Completo</title>
+<style>
+/* ───────────────────────────────────────────────────────────
+   DS v2.2 — Token di Riferimento
+   ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:     #DDD8D3;  /* pietra base */
+  --sfc:    #E4DFD9;  /* surface card */
+  --elv:    #EDEDEA;  /* elevated */
+  --prs:    #D4CFC9;  /* pressed */
+  --t1:     #1C1916;
+  --t2:     #96918D;
+  --t3:     #B8B3AE;
+  --primary:#D90012;
+  --gold:   #D4A843;
+  --success:#3DCB5C;
+  --warning:#B45309;
+  --info:   #5A5FCC;
+  --border: rgba(0,0,0,.06);
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 -2px 3px rgba(0,0,0,.05),
+    -5px -5px 11px rgba(255,255,255,.78),
+    9px 13px 22px -4px rgba(148,128,118,.44);
+  --sh-c:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    inset 0 -1px 2px rgba(0,0,0,.04),
+    -5px -5px 11px rgba(255,255,255,.72),
+    9px 12px 22px -4px rgba(148,128,118,.40),
+    3px 5px 10px -2px rgba(148,128,118,.22);
+  --sh-i:
+    inset 4px 4px 9px rgba(148,128,118,.32),
+    inset -3px -3px 7px rgba(255,255,255,.66);
+  --sh-red:
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -2px 3px rgba(0,0,0,.22),
+    0 6px 18px -2px rgba(180,0,0,.40),
+    0 2px 6px rgba(180,0,0,.26);
+}
+
+.dark-theme {
+  --bg:     #1A1916;  /* carbonio warm — MAI #1E1E1E! */
+  --sfc:    #222019;
+  --elv:    #2C2A27;
+  --prs:    #121110;
+  --t1:     #F0EDE8;  /* avorio — MAI bianco puro */
+  --t2:     #8A8580;
+  --t3:     #555250;
+  --primary:#E8001A;  /* +9% luminosità per contrasto */
+  --success:#2ECC7A;
+  --warning:#D97706;
+  --info:   #6A70E8;
+  --border: rgba(255,255,255,.06);
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 3px rgba(0,0,0,.28),
+    9px 13px 28px -4px rgba(0,0,0,.52),
+    3px 5px 12px -1px rgba(0,0,0,.34);
+  --sh-c:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 2px rgba(0,0,0,.22),
+    -5px -5px 11px rgba(255,255,255,.018),
+    9px 12px 28px -4px rgba(0,0,0,.60),
+    3px 5px 12px -2px rgba(0,0,0,.38);
+  --sh-i:
+    inset 4px 4px 9px rgba(0,0,0,.60),
+    inset -3px -3px 7px rgba(255,255,255,.04);
+  --sh-red:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 3px rgba(0,0,0,.32),
+    0 6px 18px -2px rgba(232,0,26,.38),
+    0 2px 6px rgba(232,0,26,.22);
+}
+
+@keyframes ua-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+* { box-sizing:border-box; margin:0; padding:0; }
+a { color:inherit; text-decoration:none; }
+body { font-family:-apple-system,'Helvetica Neue',Arial,sans-serif; background:#B8B0A8; }
+
+/* ── Layout pagina ── */
+.page { padding:40px; }
+.page-title {
+  font-size:28px; font-weight:800; color:#1C1916;
+  margin-bottom:6px; letter-spacing:-.02em;
+}
+.page-subtitle { font-size:14px; color:#666; margin-bottom:40px; }
+
+/* ── Griglia viewport ── */
+.viewport-row {
+  display:flex; gap:32px; margin-bottom:60px;
+  align-items:flex-start; flex-wrap:wrap;
+}
+.viewport-wrap {
+  display:flex; flex-direction:column; gap:8px;
+  flex-shrink:0;
+}
+.viewport-label {
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.1em; color:#555;
+  display:flex; align-items:center; gap:6px;
+}
+.tag-decision {
+  font-size:9px; font-weight:600; padding:2px 6px;
+  border-radius:4px; color:#fff; background:#1B2D6B;
+}
+.tag-ds { background:#7C3AED; }
+.tag-ux { background:#059669; }
+.tag-data { background:#D97706; }
+
+/* ── Frame device ── */
+.device-frame {
+  background:var(--bg);
+  border-radius:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.1);
+  overflow:hidden;
+  position:relative;
+}
+.frame-390 { width:390px; }
+.frame-768 { width:768px; }
+.frame-1280 { width:1280px; }
+
+/* ── Annotation panel (laterale) ── */
+.annotation-panel {
+  width:280px; flex-shrink:0;
+  display:flex; flex-direction:column; gap:12px;
+  padding-top:8px;
+}
+.ann {
+  background:#fff;
+  border-radius:10px;
+  padding:10px 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+  border-left:3px solid #1B2D6B;
+  font-size:11px;
+  line-height:1.5;
+  color:#333;
+}
+.ann.ds { border-color:#7C3AED; }
+.ann.ux { border-color:#059669; }
+.ann.data { border-color:#D97706; }
+.ann.warning { border-color:#D90012; }
+.ann-title {
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; margin-bottom:4px;
+}
+.ann.ds .ann-title { color:#7C3AED; }
+.ann.ux .ann-title { color:#059669; }
+.ann.data .ann-title { color:#D97706; }
+.ann.warning .ann-title { color:#D90012; }
+
+/* ─── COMPONENTI UI ─── */
+
+/* Header */
+.header {
+  display:flex; align-items:center; padding:14px 16px 10px;
+  gap:8px; background:var(--bg);
+}
+.header-lab { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t2); flex:1; }
+.sync-badge {
+  display:flex; align-items:center; gap:4px;
+  font-size:9px; font-weight:500; color:var(--t2);
+  background:var(--sfc); padding:3px 8px; border-radius:100px; box-shadow:var(--sh-b);
+}
+.sync-dot { width:5px; height:5px; border-radius:50%; background:var(--success); animation:ua-pulse 2.5s infinite; }
+.sync-dot.stale { background:var(--warning); }
+.sync-dot.offline { background:var(--primary); animation:none; }
+.avatar { width:32px; height:32px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; box-shadow:var(--sh-b); flex-shrink:0; }
+
+/* Greeting */
+.greeting { padding:4px 16px 14px; }
+.greeting-date { font-size:11px; color:var(--t2); margin-bottom:2px; }
+.greeting-name { font-family:Georgia,'Times New Roman',serif; font-size:22px; font-weight:400; color:var(--t1); letter-spacing:-.01em; line-height:1.2; }
+
+/* Role tabs */
+.role-tabs { margin:0 14px 12px; background:var(--prs); border-radius:15px; padding:3px; display:flex; box-shadow:var(--sh-i); }
+.role-tab { flex:1; padding:7px 5px; border-radius:12px; font-size:10.5px; font-weight:600; text-align:center; cursor:pointer; color:var(--t2); transition:all .15s; border:none; background:transparent; }
+.role-tab.active { background:var(--elv); box-shadow:var(--sh-b); color:var(--t1); }
+.role-tab small { display:block; font-size:8px; opacity:.5; font-weight:400; margin-top:1px; }
+
+/* SpotlightCard */
+.spotlight { margin:0 14px 12px; background:var(--sfc); border-radius:20px; padding:14px 16px; box-shadow:var(--sh-c); }
+.spot-eyebrow { display:flex; align-items:center; gap:6px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--primary); margin-bottom:5px; }
+.spot-dot { width:7px; height:7px; border-radius:50%; background:var(--primary); animation:ua-pulse 2.5s infinite; flex-shrink:0; }
+.spot-title { font-family:Georgia,'Times New Roman',serif; font-size:17px; font-weight:400; color:var(--t1); letter-spacing:-.01em; line-height:1.25; margin-bottom:4px; }
+.spot-meta { font-size:11px; color:var(--t2); line-height:1.4; margin-bottom:12px; }
+.spot-meta strong { color:var(--primary); }
+.spot-footer { display:flex; align-items:center; justify-content:space-between; }
+.btn-resolve { background:var(--primary); color:#fff; border-radius:100px; padding:8px 18px; font-size:12px; font-weight:700; box-shadow:var(--sh-red); }
+.spot-ts { font-size:9px; color:var(--t3); }
+
+/* KPI grid */
+.kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 14px 12px; }
+.kpi-grid-4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+.kpi-card { background:var(--sfc); border-radius:16px; padding:12px 13px; box-shadow:var(--sh-b); display:block; }
+.kpi-card:active { transform:scale(.96); box-shadow:var(--sh-i); }
+.kpi-header { display:flex; justify-content:space-between; align-items:flex-start; }
+.kpi-num { font-family:Georgia,'Times New Roman',serif; font-size:38px; font-weight:300; line-height:1; }
+.kpi-num.lg { font-size:44px; }
+.kpi-chevron { font-size:12px; color:var(--t3); margin-top:4px; }
+.kpi-label { font-size:11px; font-weight:600; color:var(--t2); margin-top:2px; line-height:1.3; }
+.kpi-action { font-size:9.5px; color:var(--t3); margin-top:3px; }
+.c-red { color:var(--primary); }
+.c-gold { color:var(--gold); }
+.c-grey { color:var(--t2); }
+.c-blue { color:var(--info); }
+
+/* Section label */
+.section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t3); margin:0 14px 8px; }
+
+/* Urgenze */
+.urgenze-card { margin:0 14px 14px; background:var(--sfc); border-radius:16px; box-shadow:var(--sh-b); overflow:hidden; }
+.urgenze-row { display:flex; justify-content:space-between; align-items:center; padding:11px 14px; border-bottom:1px solid var(--border); }
+.urgenze-row:last-child { border-bottom:none; }
+.urg-name { font-size:13px; font-weight:500; color:var(--t1); }
+.urg-amt { font-size:12px; font-weight:700; color:var(--primary); }
+
+/* Consegne empty */
+.consegne-empty { margin:0 14px 14px; background:var(--sfc); border-radius:16px; padding:20px; box-shadow:var(--sh-b); text-align:center; }
+.consegne-empty-icon { font-size:18px; color:var(--success); margin-bottom:6px; }
+.consegne-empty-text { font-size:13px; color:var(--t3); }
+
+/* Materiali */
+.mat-card { margin:0 14px 14px; background:var(--sfc); border-radius:16px; box-shadow:var(--sh-b); overflow:hidden; }
+.mat-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px 8px; }
+.mat-lbl { font-size:11px; font-weight:600; color:var(--t2); }
+.btn-small { font-size:10px; font-weight:700; color:#fff; background:var(--primary); border-radius:100px; padding:4px 12px; }
+.mat-row { padding:6px 14px 10px; border-bottom:1px solid var(--border); }
+.mat-row:last-child { border-bottom:none; }
+.mat-row-hdr { display:flex; justify-content:space-between; margin-bottom:5px; }
+.mat-name { font-size:12px; font-weight:600; color:var(--t1); }
+.mat-qty { font-size:10px; color:var(--t2); }
+.mat-bar { height:4px; background:var(--prs); border-radius:2px; overflow:hidden; }
+.mat-fill { height:100%; border-radius:2px; }
+
+/* Fatturato */
+.fatt-card { margin:0 14px 14px; background:var(--sfc); border-radius:16px; padding:14px; box-shadow:var(--sh-b); }
+.fatt-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t3); margin-bottom:4px; }
+.fatt-val { font-family:Georgia,'Times New Roman',serif; font-size:28px; font-weight:300; color:var(--t1); }
+.fatt-meta { font-size:11px; color:var(--t2); margin-top:2px; }
+
+/* TaskItem */
+.task-list { display:flex; flex-direction:column; gap:6px; margin:0 14px 14px; }
+.task-item { display:flex; gap:10px; align-items:center; background:var(--sfc); border-radius:13px; padding:10px 12px; box-shadow:var(--sh-b); }
+.task-rank { font-family:Georgia,serif; font-size:13px; font-weight:300; color:var(--t3); width:16px; text-align:center; flex-shrink:0; }
+.task-body { flex:1; min-width:0; }
+.task-name { font-size:13px; font-weight:700; color:var(--t1); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.task-phase { font-size:10px; color:var(--t2); margin:2px 0 4px; }
+.progress-track { height:3px; background:var(--prs); border-radius:2px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:2px; }
+.task-time { text-align:right; flex-shrink:0; }
+.task-time-val { font-size:11px; font-weight:700; color:var(--t1); }
+
+/* ── Nav pill mobile ── */
+.nav-wrap { position:sticky; bottom:0; padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px)); display:flex; justify-content:center; background:linear-gradient(to top, var(--bg) 75%, transparent); pointer-events:none; }
+.nav-pill { display:flex; align-items:center; gap:4px; background:var(--elv); border-radius:100px; padding:5px 8px; box-shadow:var(--sh-b); pointer-events:auto; }
+.nav-tab { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:50px; min-height:50px; padding:5px 8px; border-radius:88px; justify-content:center; position:relative; }
+.nav-tab.active { background:var(--elv); box-shadow:var(--sh-i); }
+.nav-icon { font-size:17px; line-height:1; }
+.nav-lbl { font-size:9.5px; font-weight:400; color:var(--t2); letter-spacing:.01em; }
+.nav-tab.active .nav-lbl { color:var(--primary); font-weight:700; }
+.nav-fab { display:flex; align-items:center; justify-content:center; width:50px; height:50px; min-width:50px; border-radius:50%; background:var(--elv); color:var(--primary); box-shadow:var(--sh-b); font-size:22px; font-weight:300; flex-shrink:0; position:relative; }
+.nav-fab-tooltip { position:absolute; bottom:calc(100%+6px); left:50%; transform:translateX(-50%); background:var(--t1); color:var(--elv); font-size:9px; font-weight:600; padding:3px 8px; border-radius:6px; white-space:nowrap; pointer-events:none; }
+.nav-fab-tooltip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--t1); }
+
+/* ── Desktop layout ── */
+.desktop-grid { display:flex; min-height:100%; }
+.col-prod { flex:1; border-right:1px solid var(--border); overflow-y:auto; max-height:800px; }
+.col-gest { flex:1; background:var(--bg); overflow-y:auto; max-height:800px; }
+.col-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--t3); padding:10px 16px 8px; border-bottom:1px solid var(--border); }
+
+/* Desktop nav */
+.nav-desktop { border-top:1px solid var(--border); padding:8px 24px; display:flex; justify-content:center; background:var(--bg); }
+.nav-desktop-inner { display:flex; align-items:center; gap:4px; max-width:800px; width:100%; justify-content:space-between; }
+.nav-dtab { display:flex; align-items:center; gap:7px; padding:8px 16px; border-radius:12px; cursor:pointer; }
+.nav-dtab:hover { background:var(--sfc); }
+.nav-dtab.active { background:var(--sfc); box-shadow:var(--sh-i); }
+.nav-dtab .nav-lbl { font-size:12px; font-weight:500; color:var(--t2); }
+.nav-dtab.active .nav-lbl { color:var(--primary); font-weight:700; }
+.nav-dfab { display:flex; align-items:center; gap:8px; background:var(--primary); color:#fff; border-radius:100px; padding:8px 20px; font-size:12px; font-weight:700; box-shadow:var(--sh-red); }
+
+/* Spotlight desktop (orizzontale) */
+.spotlight-h { margin:12px 16px; background:var(--sfc); border-radius:16px; padding:12px 16px; box-shadow:var(--sh-c); display:flex; gap:16px; align-items:center; }
+.spotlight-h .spot-body { flex:1; }
+.spotlight-h .spot-title { font-size:15px; margin-bottom:3px; }
+.spotlight-h .spot-meta { margin-bottom:0; }
+
+/* Scrollbar hide */
+.col-prod::-webkit-scrollbar, .col-gest::-webkit-scrollbar { display:none; }
+
+/* ─────── PAGE SECTION DIVIDERS ─────── */
+.section-divider { margin:60px 0 20px; border-top:2px solid #999; padding-top:20px; }
+.section-title { font-size:20px; font-weight:800; color:#333; margin-bottom:4px; }
+.section-desc { font-size:13px; color:#666; margin-bottom:30px; line-height:1.5; }
+
+/* ─────── Legend ─────── */
+.legend { display:flex; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:#444; }
+.legend-dot { width:12px; height:12px; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="page-title">Dashboard V2 — Mockup Annotato Completo</div>
+<div class="page-subtitle">Documento di riferimento per implementazione. Ogni elemento è annotato con la decisione progettuale che lo motiva.</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1B2D6B"></div> Decisione architetturale</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div> Design System v2.2</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#059669"></div> UX / Comportamento</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div> Fonte dati</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#D90012"></div> Problema da non ripetere</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 1 — MOBILE 390px LIGHT
+     ══════════════════════════════════════════════════════ -->
+<div class="section-divider">
+  <div class="section-title">1. Mobile 390px — Light Mode</div>
+  <div class="section-desc">Vista primaria. Progettata per l'odontotecnico che usa il telefono al banco. Ogni elemento risponde a una domanda operativa specifica.</div>
+</div>
+
+<div class="viewport-row">
+  <!-- Device -->
+  <div class="viewport-wrap">
+    <div class="viewport-label">390 × 844px · Light</div>
+    <div class="device-frame frame-390" style="max-height:844px;overflow-y:auto">
+
+      <!-- HEADER -->
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge"><div class="sync-dot"></div>Aggiornato ora</div>
+        <div class="avatar">FT</div>
+      </div>
+
+      <!-- GREETING -->
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+
+      <!-- SPOTLIGHT -->
+      <div class="spotlight">
+        <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+        <div class="spot-title">Il bordo è strappato sul dente 14</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br><strong>oggi ore 17:00</strong></div>
+        <div class="spot-footer">
+          <a class="btn-resolve" href="#">Risolvi subito →</a>
+          <span class="spot-ts">41h fa</span>
+        </div>
+      </div>
+
+      <!-- KPI GRID 2×2 -->
+      <div class="kpi-grid">
+        <a class="kpi-card" href="#">
+          <div class="kpi-header"><span class="kpi-num c-grey">0</span></div>
+          <div class="kpi-label">Da consegnare</div>
+        </a>
+        <a class="kpi-card" href="#">
+          <div class="kpi-header"><span class="kpi-num c-red">52</span><span class="kpi-chevron">›</span></div>
+          <div class="kpi-label">In ritardo</div>
+          <div class="kpi-action">vedi →</div>
+        </a>
+        <a class="kpi-card" href="#">
+          <div class="kpi-header"><span class="kpi-num c-gold">5</span><span class="kpi-chevron">›</span></div>
+          <div class="kpi-label">Da fatturare</div>
+          <div class="kpi-action">fattura →</div>
+        </a>
+        <a class="kpi-card" href="#">
+          <div class="kpi-header"><span class="kpi-num c-grey">4</span><span class="kpi-chevron">›</span></div>
+          <div class="kpi-label">Materiali esauriti</div>
+          <div class="kpi-action">magazzino →</div>
+        </a>
+      </div>
+
+      <!-- URGENZE LAB -->
+      <div class="section-label">Urgenze lab</div>
+      <div class="urgenze-card">
+        <div class="urgenze-row"><span class="urg-name">GDA STP S.R.L.</span><span class="urg-amt">17.111 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Esposito Massimo</span><span class="urg-amt">5.833 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Studi Medici Di Santi</span><span class="urg-amt">4.275 €</span></div>
+      </div>
+
+      <!-- CONSEGNE -->
+      <div class="section-label">Da consegnare oggi</div>
+      <div class="consegne-empty">
+        <div class="consegne-empty-icon">✓</div>
+        <div class="consegne-empty-text">Nessuna consegna programmata</div>
+      </div>
+
+      <!-- MATERIALI -->
+      <div class="section-label">Materiali in esaurimento</div>
+      <div class="mat-card">
+        <div class="mat-header"><span class="mat-lbl">4 articoli</span><a class="btn-small">Ordina →</a></div>
+        <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Rivestimento</span><span class="mat-qty">0/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:0%;background:var(--primary)"></div></div></div>
+        <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Fresa Ø 0,4 mm</span><span class="mat-qty">0.4/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:40%;background:var(--primary)"></div></div></div>
+        <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Fresa Ø 0,9 mm</span><span class="mat-qty">0.9/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:90%;background:var(--warning)"></div></div></div>
+      </div>
+
+      <!-- FATTURATO -->
+      <div class="section-label">Fatturato mensile</div>
+      <div class="fatt-card"><div class="fatt-lbl">Mese corrente</div><div class="fatt-val">0 €</div><div class="fatt-meta">Mese scorso: 0 € · Margine: 0 €</div></div>
+
+      <!-- NAV PILL -->
+      <div class="nav-wrap">
+        <div class="nav-pill">
+          <a class="nav-tab active"><span class="nav-icon">⊞</span><span class="nav-lbl">Oggi</span></a>
+          <a class="nav-tab"><span class="nav-icon">≡</span><span class="nav-lbl">Lavori</span></a>
+          <a class="nav-fab"><div class="nav-fab-tooltip">Nuovo lavoro</div>+</a>
+          <a class="nav-tab"><span class="nav-icon">👥</span><span class="nav-lbl">Clienti</span></a>
+          <a class="nav-tab"><span class="nav-icon">···</span><span class="nav-lbl">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Annotations -->
+  <div class="annotation-panel">
+    <div class="ann">
+      <div class="ann-title">① Header: Lab + Sync + Avatar</div>
+      <strong>Sync badge</strong> sostituisce il badge "LIVE". Mostra: verde = aggiornato, arancio = stale >5min, rosso = offline. Si aggiorna ogni 30s. <em>Non ha toggle dark/light — quello è solo in /impostazioni.</em>
+    </div>
+    <div class="ann ds">
+      <div class="ann-title">② Greeting: Playfair Display</div>
+      Nome utente in <strong>Georgia/Playfair 22px weight 300</strong> (non DM Sans). È l'unico elemento "serif" fuori dai KPI. Data in DM Sans 11px var(--t2).
+    </div>
+    <div class="ann warning">
+      <div class="ann-title">③ SpotlightCard: SOLO se urgenza</div>
+      <strong>Appare SOLO</strong> se esiste segnalazione aperta O lavoro in_ritardo urgente. Se nessuna urgenza → va diretto ai KPI. <em>Non sostituisce la vecchia sezione segnalazioni — la rimpiazza con una card hero.</em>
+    </div>
+    <div class="ann ux">
+      <div class="ann-title">④ KPI Grid 2×2 — filtri attivi</div>
+      <strong>NON è la vecchia strip scrollabile</strong>. Ogni card è un Link Next.js che naviga a lista pre-filtrata. Valore 0 → grigio non cliccabile, nessun chevron. Valore >0 → colore semantico + chevron.
+    </div>
+    <div class="ann ds">
+      <div class="ann-title">⑤ Colori KPI semantici</div>
+      Rosso = in_ritardo · Gold = da_fatturare · Grey = materiali/zero · Blue = consegne oggi. Numeri: <strong>Georgia 38px weight-300</strong> (Playfair nel CSS finale).
+    </div>
+    <div class="ann">
+      <div class="ann-title">⑥ Urgenze Lab — top 3</div>
+      <strong>Sostituisce la sezione "Pagamenti Scaduti" con totale</strong>. Solo le 3 urgenze maggiori. Il totale aggregato non serve qui — è confusione visiva. Cliccabile → /fatture?filter=scadute.
+    </div>
+    <div class="ann data">
+      <div class="ann-title">⑦ Materiali: progress bar reale</div>
+      Bar da <code>scorta_attuale / scorta_minima</code>. Rosso = 0, arancio = sotto soglia. <em>Nessun hardcoded.</em>
+    </div>
+    <div class="ann ux">
+      <div class="ann-title">⑧ Nav pill: tooltip permanente</div>
+      Il tooltip "Nuovo lavoro" è <strong>sempre visibile</strong> (non solo hover). Long press 500ms → editMode drag&drop. Desktop: barra orizzontale in basso.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 2 — MOBILE 390px DARK
+     ══════════════════════════════════════════════════════ -->
+<div class="section-divider">
+  <div class="section-title">2. Mobile 390px — Dark Mode</div>
+  <div class="section-desc">Stessi dati, stesso layout. Solo i token cambiano. Sfondo #1A1916 carbonio caldo, NON nero neutro.</div>
+</div>
+
+<div class="viewport-row">
+  <div class="viewport-wrap">
+    <div class="viewport-label">390px · Dark</div>
+    <div class="device-frame frame-390 dark-theme" style="max-height:700px;overflow-y:auto">
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge"><div class="sync-dot stale"></div>5 min fa</div>
+        <div class="avatar">FT</div>
+      </div>
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+      <div class="spotlight">
+        <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+        <div class="spot-title">Il bordo è strappato sul dente 14</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br><strong>oggi ore 17:00</strong></div>
+        <div class="spot-footer"><a class="btn-resolve">Risolvi subito →</a><span class="spot-ts">41h fa</span></div>
+      </div>
+      <div class="kpi-grid">
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">0</span></div><div class="kpi-label">Da consegnare</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-red">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-gold">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali esauriti</div><div class="kpi-action">magazzino →</div></a>
+      </div>
+      <div class="section-label">Urgenze lab</div>
+      <div class="urgenze-card">
+        <div class="urgenze-row"><span class="urg-name">GDA STP S.R.L.</span><span class="urg-amt">17.111 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Esposito Massimo</span><span class="urg-amt">5.833 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Studi Medici Di Santi</span><span class="urg-amt">4.275 €</span></div>
+      </div>
+      <div class="section-label">Materiali in esaurimento</div>
+      <div class="mat-card">
+        <div class="mat-header"><span class="mat-lbl">4 articoli</span><a class="btn-small">Ordina →</a></div>
+        <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Rivestimento</span><span class="mat-qty">0/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:0%;background:var(--primary)"></div></div></div>
+        <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Fresa Ø 0,4 mm</span><span class="mat-qty">0.4/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:40%;background:var(--primary)"></div></div></div>
+      </div>
+      <div class="nav-wrap">
+        <div class="nav-pill">
+          <a class="nav-tab active"><span class="nav-icon">⊞</span><span class="nav-lbl">Oggi</span></a>
+          <a class="nav-tab"><span class="nav-icon">≡</span><span class="nav-lbl">Lavori</span></a>
+          <a class="nav-fab"><div class="nav-fab-tooltip">Nuovo lavoro</div>+</a>
+          <a class="nav-tab"><span class="nav-icon">👥</span><span class="nav-lbl">Clienti</span></a>
+          <a class="nav-tab"><span class="nav-icon">···</span><span class="nav-lbl">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation-panel">
+    <div class="ann warning">
+      <div class="ann-title">Dark mode — Regole assolute</div>
+      <strong>Sfondo: #1A1916</strong> (carbonio con tinta calda, NON #1E1E1E grigio neutro)<br>
+      <strong>Testo: #F0EDE8</strong> (avorio, NON bianco puro #FFF o grigio #CCC)<br>
+      <strong>Rosso: #E8001A</strong> (+9% luminosità vs #D90012 light per contrasto su scuro)
+    </div>
+    <div class="ann ds">
+      <div class="ann-title">Separatori in dark mode</div>
+      <code>var(--border)</code> = <code>rgba(255,255,255,.06)</code> (invertito rispetto al light <code>rgba(0,0,0,.06)</code>). <strong>Zero border come sostituto ombre</strong> — solo le ombre fanno il lavoro di separazione visiva.
+    </div>
+    <div class="ann ds">
+      <div class="ann-title">Ombre dark: molto più pesanti</div>
+      Light: ombre marroni morbide 0.22-0.44 opacity.<br>
+      Dark: ombre nere 0.52-0.60 opacity con white highlight quasi nullo (0.04-0.05). Questo crea profondità visiva su sfondo scuro.
+    </div>
+    <div class="ann ux">
+      <div class="ann-title">Sync badge: stale (arancio)</div>
+      In questo screenshot il badge mostra "5 min fa" con dot arancio (warning). Utente sa che i dati potrebbero essere vecchi. Se offline → rosso + "Offline".
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 3 — UTENTE IBRIDO (Titolare+Tecnico)
+     ══════════════════════════════════════════════════════ -->
+<div class="section-divider">
+  <div class="section-title">3. Utente Ibrido — Tab Gestione / Produzione</div>
+  <div class="section-desc">Quando il titolare è ANCHE registrato come tecnico in tabella `tecnici`. I tab appaiono SOLO in questo caso. Default: Produzione.</div>
+</div>
+
+<div class="viewport-row">
+  <!-- Tab Gestione -->
+  <div class="viewport-wrap">
+    <div class="viewport-label">Ibrido · Tab GESTIONE (business)</div>
+    <div class="device-frame frame-390" style="max-height:600px;overflow-y:auto">
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge"><div class="sync-dot"></div>Aggiornato ora</div>
+        <div class="avatar">FT</div>
+      </div>
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+      <!-- ROLE TABS -->
+      <div class="role-tabs">
+        <button class="role-tab active">📊 Gestione<small>business</small></button>
+        <button class="role-tab">🔧 Produzione<small>i miei lavori</small></button>
+      </div>
+      <div class="spotlight">
+        <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+        <div class="spot-title">Il bordo è strappato sul dente 14</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br><strong>oggi ore 17:00</strong></div>
+        <div class="spot-footer"><a class="btn-resolve">Risolvi subito →</a><span class="spot-ts">41h fa</span></div>
+      </div>
+      <div class="kpi-grid">
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">0</span></div><div class="kpi-label">Da consegnare</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-red">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-gold">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+        <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali</div><div class="kpi-action">magazzino →</div></a>
+      </div>
+      <div class="section-label">Urgenze lab</div>
+      <div class="urgenze-card">
+        <div class="urgenze-row"><span class="urg-name">GDA STP S.R.L.</span><span class="urg-amt">17.111 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Esposito Massimo</span><span class="urg-amt">5.833 €</span></div>
+        <div class="urgenze-row"><span class="urg-name">Studi Medici</span><span class="urg-amt">4.275 €</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Produzione -->
+  <div class="viewport-wrap">
+    <div class="viewport-label">Ibrido · Tab PRODUZIONE (operativo) — DEFAULT</div>
+    <div class="device-frame frame-390" style="max-height:600px;overflow-y:auto">
+      <div class="header">
+        <div class="header-lab">Filippo Opromolla</div>
+        <div class="sync-badge"><div class="sync-dot"></div>Aggiornato ora</div>
+        <div class="avatar">FT</div>
+      </div>
+      <div class="greeting">
+        <div class="greeting-date">venerdì 23 maggio</div>
+        <div class="greeting-name">Buonasera, Francesco</div>
+      </div>
+      <div class="role-tabs">
+        <button class="role-tab">📊 Gestione<small>business</small></button>
+        <button class="role-tab active">🔧 Produzione<small>i miei lavori</small></button>
+      </div>
+      <div class="spotlight">
+        <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+        <div class="spot-title">Il bordo è strappato sul dente 14</div>
+        <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002<br><strong>oggi ore 17:00</strong></div>
+        <div class="spot-footer"><a class="btn-resolve">Risolvi subito →</a><span class="spot-ts">41h fa</span></div>
+      </div>
+      <div class="section-label">I miei lavori — per scadenza</div>
+      <div class="task-list">
+        <a class="task-item">
+          <span class="task-rank">1</span>
+          <div class="task-body">
+            <div class="task-name">Esposito Massimo</div>
+            <div class="task-phase">🔴 Rivestimento ceramica</div>
+            <div class="progress-track"><div class="progress-fill" style="width:40%;background:var(--primary)"></div></div>
+          </div>
+          <div class="task-time"><div class="task-time-val">17:00</div></div>
+        </a>
+        <a class="task-item">
+          <span class="task-rank">2</span>
+          <div class="task-body">
+            <div class="task-name">GDA STP S.R.L.</div>
+            <div class="task-phase">🟡 Finitura</div>
+            <div class="progress-track"><div class="progress-fill" style="width:75%;background:var(--gold)"></div></div>
+          </div>
+          <div class="task-time"><div class="task-time-val">24 mag</div></div>
+        </a>
+        <a class="task-item">
+          <span class="task-rank">3</span>
+          <div class="task-body">
+            <div class="task-name">Studio Bianchi</div>
+            <div class="task-phase">🟢 In prova</div>
+            <div class="progress-track"><div class="progress-fill" style="width:90%;background:var(--success)"></div></div>
+          </div>
+          <div class="task-time"><div class="task-time-val">25 mag</div></div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation-panel">
+    <div class="ann">
+      <div class="ann-title">Quando appaiono i tab?</div>
+      <strong>SOLO</strong> per utenti con: ruolo=titolare E record in tabella <code>tecnici</code> con attivo=true. Un titolare puro NON vede i tab — vede tutto in un'unica colonna.
+    </div>
+    <div class="ann ux">
+      <div class="ann-title">Default: sempre Produzione</div>
+      Al caricamento apre sempre il tab Produzione (lavori operativi). <strong>Rimosso il time-based default</strong> (mattina→Produzione, pomeriggio→Gestione) — troppa complessità per il gain. localStorage ricorda l'ultima scelta esplicita.
+    </div>
+    <div class="ann ds">
+      <div class="ann-title">Tab design: --prs background</div>
+      Background tab container: <code>var(--prs, #D4CFC9)</code> + shadow inset. Tab attivo: <code>var(--elv)</code> + <code>var(--sh-b)</code>. Stessa logica del segmented control iOS.
+    </div>
+    <div class="ann data">
+      <div class="ann-title">Task list: progress reale</div>
+      Progress bar = <code>COUNT(fasi dove eseguita_at IS NOT NULL) / COUNT(fasi totali) × 100</code>. Fallback se nessuna fase: ricevuto=10%, in_lavorazione=40%, in_prova=70%, pronto=95%. <strong>Non più 0% hardcoded</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 4 — DESKTOP 1280px LIGHT
+     ══════════════════════════════════════════════════════ -->
+<div class="section-divider">
+  <div class="section-title">4. Desktop 1280px — Light Mode — 2 Colonne</div>
+  <div class="section-desc">Su desktop il titolare vede SEMPRE 2 colonne: Produzione (sinistra) e Gestione (destra). Non serve il tab switcher — entrambe visibili. Nav pill adattata come barra orizzontale in basso.</div>
+</div>
+
+<div class="viewport-row">
+  <div class="viewport-wrap">
+    <div class="viewport-label">1280 × 900px · Light · 2 colonne</div>
+    <div class="device-frame frame-1280">
+      <div class="desktop-grid">
+        <!-- Produzione sinistra -->
+        <div class="col-prod">
+          <div class="col-label">🔧 Produzione — cosa faccio al banco</div>
+
+          <div class="spotlight-h">
+            <div class="spot-body">
+              <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+              <div class="spot-title">Il bordo è strappato sul dente 14</div>
+              <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002 · <strong>oggi ore 17:00</strong></div>
+            </div>
+            <a class="btn-resolve" style="flex-shrink:0">Risolvi subito →</a>
+          </div>
+
+          <div class="section-label" style="margin-top:8px">I miei lavori — per scadenza</div>
+          <div class="task-list">
+            <a class="task-item">
+              <span class="task-rank">1</span>
+              <div class="task-body"><div class="task-name">Esposito Massimo</div><div class="task-phase">🔴 Rivestimento ceramica</div><div class="progress-track"><div class="progress-fill" style="width:40%;background:var(--primary)"></div></div></div>
+              <div class="task-time"><div class="task-time-val">17:00</div></div>
+            </a>
+            <a class="task-item">
+              <span class="task-rank">2</span>
+              <div class="task-body"><div class="task-name">GDA STP S.R.L.</div><div class="task-phase">🟡 Finitura</div><div class="progress-track"><div class="progress-fill" style="width:75%;background:var(--gold)"></div></div></div>
+              <div class="task-time"><div class="task-time-val">24 mag</div></div>
+            </a>
+            <a class="task-item">
+              <span class="task-rank">3</span>
+              <div class="task-body"><div class="task-name">Studio Bianchi</div><div class="task-phase">🟢 In prova</div><div class="progress-track"><div class="progress-fill" style="width:90%;background:var(--success)"></div></div></div>
+              <div class="task-time"><div class="task-time-val">25 mag</div></div>
+            </a>
+            <a class="task-item">
+              <span class="task-rank">4</span>
+              <div class="task-body"><div class="task-name">Ordine Dent. Russo</div><div class="task-phase">🔵 Modellazione</div><div class="progress-track"><div class="progress-fill" style="width:55%;background:var(--info)"></div></div></div>
+              <div class="task-time"><div class="task-time-val">27 mag</div></div>
+            </a>
+          </div>
+
+          <div class="section-label" style="margin-top:8px">Da consegnare oggi</div>
+          <div class="consegne-empty" style="margin:0 16px 14px"><div class="consegne-empty-icon">✓</div><div class="consegne-empty-text">Nessuna consegna programmata per oggi</div></div>
+        </div>
+
+        <!-- Gestione destra -->
+        <div class="col-gest">
+          <div class="col-label">📊 Gestione — stato del business</div>
+
+          <div class="kpi-grid" style="margin:12px 16px">
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num kpi-num lg c-grey">0</span></div><div class="kpi-label">Da consegnare</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num lg c-red">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num lg c-gold">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num lg c-grey">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali esauriti</div><div class="kpi-action">magazzino →</div></a>
+          </div>
+
+          <div class="section-label" style="margin-top:4px">Urgenze lab</div>
+          <div class="urgenze-card" style="margin:0 16px 14px">
+            <div class="urgenze-row"><span class="urg-name">GDA STP S.R.L.</span><span class="urg-amt">17.111 €</span></div>
+            <div class="urgenze-row"><span class="urg-name">Esposito Massimo</span><span class="urg-amt">5.833 €</span></div>
+            <div class="urgenze-row"><span class="urg-name">Studi Medici Di Santi</span><span class="urg-amt">4.275 €</span></div>
+          </div>
+
+          <div class="section-label">Materiali in esaurimento</div>
+          <div class="mat-card" style="margin:0 16px 14px">
+            <div class="mat-header"><span class="mat-lbl">4 articoli</span><a class="btn-small">Ordina →</a></div>
+            <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Rivestimento</span><span class="mat-qty">0/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:0%;background:var(--primary)"></div></div></div>
+            <div class="mat-row"><div class="mat-row-hdr"><span class="mat-name">Fresa Ø 0,4 mm</span><span class="mat-qty">0.4/1 pz</span></div><div class="mat-bar"><div class="mat-fill" style="width:40%;background:var(--primary)"></div></div></div>
+          </div>
+
+          <div class="section-label">Fatturato mensile</div>
+          <div class="fatt-card" style="margin:0 16px 14px"><div class="fatt-lbl">Mese corrente</div><div class="fatt-val">0 €</div><div class="fatt-meta">Mese scorso: 0 € · Margine: 0 €</div></div>
+        </div>
+      </div>
+
+      <!-- NAV DESKTOP -->
+      <div class="nav-desktop">
+        <div class="nav-desktop-inner">
+          <a class="nav-dtab active"><span class="nav-icon">⊞</span><span class="nav-lbl">Oggi</span></a>
+          <a class="nav-dtab"><span class="nav-icon">≡</span><span class="nav-lbl">Lavori</span></a>
+          <a class="nav-dtab"><span class="nav-icon">📂</span><span class="nav-lbl">Fatture</span></a>
+          <a class="nav-dfab">+ Nuovo lavoro</a>
+          <a class="nav-dtab"><span class="nav-icon">👥</span><span class="nav-lbl">Clienti</span></a>
+          <a class="nav-dtab"><span class="nav-icon">📦</span><span class="nav-lbl">Magazzino</span></a>
+          <a class="nav-dtab"><span class="nav-icon">···</span><span class="nav-lbl">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Annotations desktop -->
+<div class="annotation-panel" style="max-width:800px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:-20px;margin-bottom:40px">
+  <div class="ann">
+    <div class="ann-title">2 colonne SEMPRE su desktop</div>
+    Non solo per utenti ibridi. Su 1280px+ il titolare vede SEMPRE Produzione sinistra + Gestione destra. Su mobile: colonna singola con tutto in sequenza.
+  </div>
+  <div class="ann ux">
+    <div class="ann-title">Produzione sinistra: "cosa faccio"</div>
+    SpotlightCard orizzontale (compatta), task list con progress bar. Risponde: <em>"cosa devo fare ADESSO al banco?"</em>
+  </div>
+  <div class="ann ux">
+    <div class="ann-title">Gestione destra: "com'è il lab"</div>
+    KPI 44px, urgenze pagamenti, materiali, fatturato. Risponde: <em>"come sta andando il business?"</em>
+  </div>
+  <div class="ann ds">
+    <div class="ann-title">KPI numeri 44px su desktop</div>
+    Mobile: 38px · Tablet: 42px · Desktop: 44px. <strong>Sempre Playfair Display weight-300</strong> (Georgia nel mockup, Playfair nell'app).
+  </div>
+  <div class="ann ux">
+    <div class="ann-title">Nav desktop: barra orizzontale</div>
+    NON nascosta. Adattata per mouse: testo label accanto alle icone, hover state, CTA "+" diventa tasto rosso con testo. Più tab visibili (Fatture, Magazzino).
+  </div>
+  <div class="ann warning">
+    <div class="ann-title">Eliminato dalla dashboard</div>
+    ❌ Strip KPI scrollabile<br>
+    ❌ Pagamenti scaduti con totale<br>
+    ❌ 84% puntualità hardcoded<br>
+    ❌ completamento 0% hardcoded<br>
+    ❌ Dark mode #1E1E1E neutro
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SEZIONE 5 — DESKTOP 1280px DARK
+     ══════════════════════════════════════════════════════ -->
+<div class="section-divider">
+  <div class="section-title">5. Desktop 1280px — Dark Mode</div>
+  <div class="section-desc">Stessa struttura 2 colonne, token dark carbonio. Sfondo #1A1916, surface #222019, testo avorio #F0EDE8.</div>
+</div>
+
+<div class="viewport-row">
+  <div class="viewport-wrap">
+    <div class="viewport-label">1280px · Dark · 2 colonne</div>
+    <div class="device-frame frame-1280 dark-theme">
+      <div class="desktop-grid">
+        <div class="col-prod">
+          <div class="col-label">🔧 Produzione</div>
+          <div class="spotlight-h">
+            <div class="spot-body">
+              <div class="spot-eyebrow"><div class="spot-dot"></div>Blocco attivo</div>
+              <div class="spot-title">Il bordo è strappato sul dente 14</div>
+              <div class="spot-meta">ESPOSITO MASSIMO · #2026/0002 · <strong>oggi ore 17:00</strong></div>
+            </div>
+            <a class="btn-resolve" style="flex-shrink:0">Risolvi subito →</a>
+          </div>
+          <div class="section-label" style="margin-top:8px">I miei lavori</div>
+          <div class="task-list">
+            <a class="task-item"><span class="task-rank">1</span><div class="task-body"><div class="task-name">Esposito Massimo</div><div class="task-phase">🔴 Rivestimento ceramica</div><div class="progress-track"><div class="progress-fill" style="width:40%;background:var(--primary)"></div></div></div><div class="task-time"><div class="task-time-val">17:00</div></div></a>
+            <a class="task-item"><span class="task-rank">2</span><div class="task-body"><div class="task-name">GDA STP S.R.L.</div><div class="task-phase">🟡 Finitura</div><div class="progress-track"><div class="progress-fill" style="width:75%;background:var(--gold)"></div></div></div><div class="task-time"><div class="task-time-val">24 mag</div></div></a>
+            <a class="task-item"><span class="task-rank">3</span><div class="task-body"><div class="task-name">Studio Bianchi</div><div class="task-phase">🟢 In prova</div><div class="progress-track"><div class="progress-fill" style="width:90%;background:var(--success)"></div></div></div><div class="task-time"><div class="task-time-val">25 mag</div></div></a>
+          </div>
+        </div>
+        <div class="col-gest">
+          <div class="col-label">📊 Gestione</div>
+          <div class="kpi-grid" style="margin:12px 16px">
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">0</span></div><div class="kpi-label">Da consegnare</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-red">52</span><span class="kpi-chevron">›</span></div><div class="kpi-label">In ritardo</div><div class="kpi-action">vedi →</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-gold">5</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Da fatturare</div><div class="kpi-action">fattura →</div></a>
+            <a class="kpi-card"><div class="kpi-header"><span class="kpi-num c-grey">4</span><span class="kpi-chevron">›</span></div><div class="kpi-label">Materiali</div><div class="kpi-action">magazzino →</div></a>
+          </div>
+          <div class="section-label" style="margin-top:4px">Urgenze lab</div>
+          <div class="urgenze-card" style="margin:0 16px 14px">
+            <div class="urgenze-row"><span class="urg-name">GDA STP S.R.L.</span><span class="urg-amt">17.111 €</span></div>
+            <div class="urgenze-row"><span class="urg-name">Esposito Massimo</span><span class="urg-amt">5.833 €</span></div>
+            <div class="urgenze-row"><span class="urg-name">Studi Medici Di Santi</span><span class="urg-amt">4.275 €</span></div>
+          </div>
+          <div class="section-label">Fatturato mensile</div>
+          <div class="fatt-card" style="margin:0 16px 14px"><div class="fatt-lbl">Mese corrente</div><div class="fatt-val">0 €</div><div class="fatt-meta">Mese scorso: 0 € · Margine: 0 €</div></div>
+        </div>
+      </div>
+      <div class="nav-desktop">
+        <div class="nav-desktop-inner">
+          <a class="nav-dtab active"><span class="nav-icon">⊞</span><span class="nav-lbl">Oggi</span></a>
+          <a class="nav-dtab"><span class="nav-icon">≡</span><span class="nav-lbl">Lavori</span></a>
+          <a class="nav-dtab"><span class="nav-icon">📂</span><span class="nav-lbl">Fatture</span></a>
+          <a class="nav-dfab">+ Nuovo lavoro</a>
+          <a class="nav-dtab"><span class="nav-icon">👥</span><span class="nav-lbl">Clienti</span></a>
+          <a class="nav-dtab"><span class="nav-icon">···</span><span class="nav-lbl">Altro</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+</body>
+</html>
