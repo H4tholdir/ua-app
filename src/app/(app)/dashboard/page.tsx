@@ -10,6 +10,7 @@ import {
   getTecnicoDashboard,
   getFrontDeskDashboard,
   getLavoriTecnicoOggi,
+  getLavoriDaFatturare,
 } from '@/lib/dashboard/queries'
 import { DashboardTitolare, type SegnalazioneAlert } from '@/components/features/dashboard/DashboardTitolare'
 import { DashboardTecnico } from '@/components/features/dashboard/DashboardTecnico'
@@ -115,12 +116,13 @@ export default async function DashboardPage() {
     const stale = isCacheStale(cacheRow?.aggiornato_at ?? null)
     const oggi = new Date().toISOString().split('T')[0]
 
-    const [stats, pagamentiTop, materialiEsaurimento, inProvaRientro] =
+    const [stats, pagamentiTop, materialiEsaurimento, inProvaRientro, lavoriDaFatturare] =
       await Promise.all([
         getTitolareKpi(svc, labId, stale),
         getPagamentiScadutiTop(svc, labId, 3),
         getMaterialiEsaurimento(svc, labId, 5),
         getLavoriInProvaRientro(svc, labId),
+        getLavoriDaFatturare(svc, labId),
       ])
 
     // Consegne oggi
@@ -243,6 +245,7 @@ export default async function DashboardPage() {
             aggiornatoAt: cacheRow?.aggiornato_at ?? null,
             onboardingPending: !lab?.onboarding_completato,
             segnalazioni,
+            lavoriDaFatturare,
           }}
           tecnicoData={{
             data: { lavori_urgenti: [], lavori_oggi: [], in_prova_rientro_oggi: [], compenso_oggi: 0, lavorazioni_conteggiate_oggi: 0 },
@@ -268,6 +271,7 @@ export default async function DashboardPage() {
         onboardingPending={!lab?.onboarding_completato}
         segnalazioni={segnalazioni}
         preferenzaDashboard={preferenzaDashboard}
+        lavoriDaFatturare={lavoriDaFatturare}
       />
     )
   }
