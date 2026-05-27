@@ -17,11 +17,13 @@ Prima di qualsiasi lavoro, in ordine:
 Aggiorna `memory/SESSION_ACTIVE.md` dopo ogni blocco di lavoro significativo (commit, decisione architetturale, bug importante). Sostituisci il file, non appendere. Max 200 token.
 
 Documenti chiave:
-- `../ANALISI/30_design_system_v2_definitivo.md` → **DESIGN SYSTEM v2.2 — UNICA FONTE DI VERITÀ**
+- `docs/superpowers/specs/2026-05-27-design-system-v2-3.md` → **DESIGN SYSTEM v2.3 — UNICA FONTE DI VERITÀ (sostituisce v2.2)**
+- `src/design-system/tokens.ts` → **TOKEN CSS/TS — importa da qui, MAI inline**
+- `src/design-system/motion.ts` → **MOTION POLICY OBBLIGATORIA**
 - `../ANALISI/23_ua_database_schema.md` → schema DB
-- `../ANALISI/29_motion_system_policy.md` → **MOTION POLICY OBBLIGATORIA**
 - `docs/roadmap/ROADMAP-UFFICIALE.md` → **ROADMAP — fonte di verità su cosa fare e non fare**
 
+> ⚠️ `../ANALISI/30_design_system_v2_definitivo.md` → **DEPRECATO** — sostituito da DS v2.3
 > ⚠️ `../ANALISI/26_ua_design_system_completo.md` → OBSOLETO, NON usare per UI
 
 ---

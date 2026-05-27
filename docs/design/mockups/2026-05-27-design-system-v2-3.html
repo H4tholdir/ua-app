@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ DS v7 — Tasto+ bianco+nero, Push3D, FColombati</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700&family=Playfair+Display:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════
+   TOKENS — pixel-verified uachelab.com
+   ════════════════════════════════════ */
+:root {
+  --bg:  #DDD8D3;  --sfc: #E4DFD9;  --prs: #D4CFC9;
+  --t1:  #1C1916;  --t2: #968D85;  --t3: #B8B3AE;
+  --primary: #D90012;
+  --c-blue: #3B82F6; --c-green: #22C55E; --c-amber: #F59E0B;
+  --c-orange: #F97316; --c-red: #EF4444; --c-purple: #8B5CF6;
+
+  --sh:
+    rgba(255,255,255,.88) 0 1px 0 0 inset,
+    rgba(0,0,0,.04) 0 -1px 2px 0 inset,
+    rgba(255,255,255,.72) -5px -5px 11px,
+    rgba(148,128,118,.40) 9px 12px 22px -4px,
+    rgba(148,128,118,.22) 3px 5px 10px -2px;
+  --sh-sm:
+    rgba(255,255,255,.90) 0 1px 0 0 inset,
+    rgba(0,0,0,.05) 0 -2px 3px 0 inset,
+    rgba(255,255,255,.78) -5px -5px 11px,
+    rgba(148,128,118,.44) 9px 13px 22px -4px,
+    rgba(148,128,118,.26) 3px 5px 9px -1px;
+  --sh-in:
+    rgba(148,128,118,.32) 4px 4px 9px 0 inset,
+    rgba(255,255,255,.66) -3px -3px 7px 0 inset;
+  --sh-float:
+    rgba(255,255,255,.72) -8px -8px 18px,
+    rgba(148,128,118,.55) 10px 12px 24px -4px;
+}
+.dark {
+  --bg:  #1A1916;  --sfc: #232018;  --prs: #141210;
+  --t1:  #F0EDE8;  --t2: #8A8580;  --t3: #5A5652;
+  --primary: #E8001A;
+  --sh: none; --sh-sm: none;
+  --sh-in:
+    rgba(4,3,2,.92) 4px 4px 9px 0 inset,
+    rgba(40,37,32,.50) -3px -3px 7px 0 inset;
+  --sh-float:
+    rgba(0,0,0,.70) 0 12px 28px,
+    rgba(0,0,0,.40) 0 4px 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #C2BDB8; }
+body { font-family: 'DM Sans', sans-serif; padding: 16px 14px 60px; }
+
+.plane { background: var(--bg); border-radius: 18px; padding: 16px; }
+.plane:not(.dark) { box-shadow: var(--sh); }
+.dark.plane { box-shadow: var(--sh-float); border: 1px solid rgba(255,255,255,.04); }
+
+.col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.lbl  { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .55; margin-bottom: 6px; }
+.sec  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .10em; color: rgba(90,80,70,.60); margin: 22px 0 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,.08); display: flex; align-items: center; gap: 8px; }
+.sec button { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 100px; background: rgba(34,197,94,.12); color: #22C55E; border: none; cursor: pointer; }
+
+/* ════════════════════════════════════
+   STANDARD BUTTONS
+   ════════════════════════════════════ */
+.btn { background: var(--bg); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--t1); border-radius: 12px; padding: 12px 14px; width: 100%; transition: box-shadow 100ms, transform 80ms, background 100ms; }
+.btn-raised { box-shadow: var(--sh-sm); }
+.btn-raised:hover { box-shadow: rgba(255,255,255,.72) -3px -3px 8px, rgba(148,128,118,.32) 5px 6px 12px -2px; }
+.btn-raised:active { box-shadow: var(--sh-in); transform: scale(0.982); }
+.dark .btn-raised { background: var(--sfc); box-shadow: none; border: none; }
+.dark .btn-raised:hover { background: #2A2720; }
+.dark .btn-raised:active { box-shadow: var(--sh-in); background: var(--prs); transform: scale(0.982); }
+.btn-flat { color: var(--t2); background: transparent; }
+.dark .btn-flat { color: var(--t3); }
+.btn-pressed { box-shadow: var(--sh-in); color: var(--t3); background: var(--prs); }
+.dark .btn-pressed { box-shadow: var(--sh-in); color: var(--t3); background: var(--prs); }
+
+/* ════════════════════════════════════
+   PUSH BUTTON 3D
+   ════════════════════════════════════ */
+.push { all:unset; display:block; width:100%; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:14px; position:relative; transition:filter 250ms ease; user-select:none; touch-action:manipulation; }
+.ps { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:14px; background:rgba(100,20,10,.42); transform:translateY(5px); filter:blur(2px); transition:transform 600ms cubic-bezier(.3,.7,.4,1); }
+.pe { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:14px; background:linear-gradient(to left,hsl(4,100%,20%) 0%,hsl(4,100%,32%) 6%,hsl(4,100%,32%) 94%,hsl(4,100%,20%) 100%); }
+.pf { display:block; position:relative; padding:14px 24px; border-radius:14px; font-size:14px; font-weight:700; color:#fff; text-align:center; background:var(--primary); transform:translateY(-8px); transition:transform 600ms cubic-bezier(.3,.7,.4,1); box-shadow:inset 0 1px 0 rgba(255,160,140,.22); }
+.push:hover{filter:brightness(106%);} .push:hover .pf{transform:translateY(-11px);transition:transform 250ms cubic-bezier(.3,.7,.4,1.5);} .push:hover .ps{transform:translateY(8px);transition:transform 250ms cubic-bezier(.3,.7,.4,1.5);} .push:active .pf{transform:translateY(-1px);transition:transform 34ms;filter:brightness(88%);} .push:active .ps{transform:translateY(1px);transition:transform 34ms;}
+.psg{background:rgba(110,90,78,.20);} .peg{background:linear-gradient(to left,rgba(100,80,68,.45) 0%,rgba(120,100,88,.32) 6%,rgba(120,100,88,.32) 94%,rgba(100,80,68,.45) 100%);} .pfg{background:var(--bg);color:var(--t1);box-shadow:var(--sh-sm);}
+.dark .ps{background:rgba(0,0,0,.75);} .dark .pe{background:linear-gradient(to left,hsl(4,100%,14%) 0%,hsl(4,90%,22%) 6%,hsl(4,90%,22%) 94%,hsl(4,100%,14%) 100%);} .dark .pf{box-shadow:inset 0 1px 0 rgba(255,100,80,.16);}
+.dark .peg{background:linear-gradient(to left,rgba(44,41,37,.70) 0%,rgba(50,47,44,.50) 6%,rgba(50,47,44,.50) 94%,rgba(44,41,37,.70) 100%);} .dark .pfg{background:var(--sfc);color:var(--t1);box-shadow:none;}
+
+/* ════════════════════════════════════
+   FCOLOMBATI PILL
+   ════════════════════════════════════ */
+.cta,.ghost{all:unset;font-size:16px;cursor:pointer;display:block;width:100%;border-radius:100em;position:relative;-webkit-tap-highlight-color:transparent;}
+.cta{background:rgba(128,4,8,.88);box-shadow:-0.15em -0.15em 0.15em -0.075em rgba(180,10,12,.28),0.04em 0.04em 0.07em 0 rgba(50,0,4,.22);}
+.cta::after{content:"";position:absolute;z-index:0;width:calc(100% + 0.3em);height:calc(100% + 0.3em);top:-0.15em;left:-0.15em;border-radius:inherit;background:linear-gradient(-135deg,rgba(50,0,4,.45),transparent 20%);filter:blur(0.012em);opacity:.28;mix-blend-mode:multiply;}
+.cta .o{position:relative;z-index:1;border-radius:inherit;transition:box-shadow 300ms ease;box-shadow:0 0.05em 0.05em -0.01em rgba(50,0,4,1),0 0.01em 0.01em -0.01em rgba(50,0,4,.55),0.15em 0.3em 0.1em -0.01em rgba(50,0,4,.35);}
+.cta:hover .o{box-shadow:none;}
+.cta .i{position:relative;z-index:1;border-radius:inherit;padding:0.875em 1.75em;background:linear-gradient(135deg,#D90012,#A0000E);transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease;overflow:clip;clip-path:inset(0 0 0 0 round 100em);box-shadow:0 0 0 0 inset rgba(50,0,4,.12),-0.05em -0.05em 0.05em 0 inset rgba(50,0,4,.35),0 0 0 0 inset rgba(50,0,4,.12),0 0 0.05em .20em inset rgba(255,150,130,.16),0.025em 0.05em 0.1em 0 inset rgba(255,170,150,.28),0.12em 0.12em 0.12em inset rgba(255,150,130,.10),-0.075em -0.25em 0.25em 0.1em inset rgba(50,0,4,.40);}
+.cta:hover .i{clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em);background:linear-gradient(135deg,#A0000E,#780008);}
+.cta:active .i{transform:scale(0.975);}
+.cta .i span{position:relative;z-index:4;display:block;text-align:center;font-family:'DM Sans',sans-serif;font-size:0.9375em;font-weight:700;letter-spacing:-0.02em;color:transparent;background:linear-gradient(135deg,#fff,rgba(255,228,222,.92));-webkit-background-clip:text;background-clip:text;transition:transform 250ms ease;user-select:none;}
+.cta:hover .i span{transform:scale(0.975);}
+.ghost{background:rgba(155,148,141,.82);box-shadow:-0.15em -0.15em 0.15em -0.075em rgba(200,190,182,.35),0.04em 0.04em 0.07em 0 rgba(100,86,76,.25);}
+.ghost::after{content:"";position:absolute;z-index:0;width:calc(100% + 0.3em);height:calc(100% + 0.3em);top:-0.15em;left:-0.15em;border-radius:inherit;background:linear-gradient(-135deg,rgba(80,65,55,.40),transparent 20%);filter:blur(0.012em);opacity:.20;mix-blend-mode:multiply;}
+.ghost .o{position:relative;z-index:1;border-radius:inherit;transition:box-shadow 300ms ease;box-shadow:0 0.05em 0.05em -0.01em rgba(100,86,76,1),0 0.01em 0.01em -0.01em rgba(100,86,76,.55),0.15em 0.3em 0.1em -0.01em rgba(100,86,76,.32);}
+.ghost:hover .o{box-shadow:none;}
+.ghost .i{position:relative;z-index:1;border-radius:inherit;padding:0.875em 1.75em;background:linear-gradient(135deg,#E4DFD9,#C8C3BD);transition:box-shadow 300ms ease,clip-path 250ms ease,background 250ms ease,transform 120ms ease;overflow:clip;clip-path:inset(0 0 0 0 round 100em);box-shadow:0 0 0 0 inset rgba(100,86,76,.10),-0.05em -0.05em 0.05em 0 inset rgba(100,86,76,.28),0 0 0 0 inset rgba(100,86,76,.10),0 0 0.05em .20em inset rgba(240,237,234,.28),0.025em 0.05em 0.1em 0 inset rgba(240,237,234,.30),0.12em 0.12em 0.12em inset rgba(240,237,234,.18),-0.075em -0.25em 0.25em 0.1em inset rgba(100,86,76,.30);}
+.ghost:hover .i{clip-path:inset(clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) clamp(1px,.0625em,2px) round 100em);background:linear-gradient(135deg,#C8C3BD,#B8B3AD);}
+.ghost:active .i{transform:scale(0.975);}
+.ghost .i span{position:relative;z-index:4;display:block;text-align:center;font-family:'DM Sans',sans-serif;font-size:0.9375em;font-weight:600;letter-spacing:-0.02em;color:transparent;background:linear-gradient(135deg,#1C1916,#4A3D33);-webkit-background-clip:text;background-clip:text;transition:transform 250ms ease;user-select:none;}
+.ghost:hover .i span{transform:scale(0.975);}
+.dark .ghost{background:rgba(30,27,23,.95);box-shadow:0 1px 3px rgba(0,0,0,.50);}
+.dark .ghost::after{display:none;}
+.dark .ghost .o{box-shadow:0 0.05em 0.05em -0.01em rgba(3,2,1,1),0 0.01em 0.01em -0.01em rgba(3,2,1,.60),0.15em 0.3em 0.1em -0.01em rgba(3,2,1,.42);}
+.dark .ghost:hover .o{box-shadow:none;}
+.dark .ghost .i{background:linear-gradient(135deg,#2C2925,#1C1A16);box-shadow:0 0 0 0 inset rgba(3,2,1,.25),-0.05em -0.05em 0.05em 0 inset rgba(3,2,1,.55),0 0 0 0 inset rgba(3,2,1,.25),0 0 0.05em .20em inset rgba(44,41,37,.48),0.025em 0.05em 0.1em 0 inset rgba(50,47,43,.55),0.12em 0.12em 0.12em inset rgba(44,41,37,.30),-0.075em -0.25em 0.25em 0.1em inset rgba(3,2,1,.55);}
+.dark .ghost:hover .i{background:linear-gradient(135deg,#1A1814,#0E0D0B);}
+.dark .ghost .i span{background:linear-gradient(135deg,#F0EDE8,rgba(200,196,190,.90));-webkit-background-clip:text;background-clip:text;}
+
+/* ════════════════════════════════════
+   TASTO + BIANCO — 1:1 da tasto+.png
+   ════════════════════════════════════ */
+.tp {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: none; cursor: pointer;
+  position: relative;
+  /* Surface: off-white warm, come nell'immagine */
+  background: #EFEEEB;
+  transition: box-shadow 80ms ease, transform 80ms ease;
+}
+.tp::before {
+  /* Corona esterna — le due shadow raised */
+  content: ""; position: absolute;
+  inset: -4px; border-radius: 50%;
+  box-shadow:
+    rgba(255,255,255,.82) -7px -7px 15px,
+    rgba(155,142,130,.58)  9px 10px 20px,
+    rgba(148,128,118,.20)  3px  4px  8px;
+  pointer-events: none;
+}
+.tp {
+  box-shadow:
+    /* Ring scuro visibile nell'immagine */
+    rgba(82,72,62,.28) 0 0 0 1.5px inset,
+    /* Highlight top interno */
+    rgba(255,255,255,.72) 0 2px 3px inset;
+}
+.tp:hover { filter: brightness(102%); }
+.tp:active {
+  transform: scale(0.92);
+  box-shadow:
+    rgba(148,128,118,.52) 4px 4px 10px inset,
+    rgba(255,255,255,.40) -3px -3px 7px inset,
+    rgba(82,72,62,.28) 0 0 0 1.5px inset;
+}
+.tp:active::before { box-shadow: none; }
+
+/* ════════════════════════════════════
+   TASTO + NERO — 1:1 da Image #17
+   Caratteristica: bezel/anello esterno netto
+   separato dal cap, luce top-right sull'anello
+   ════════════════════════════════════ */
+.tp-dk {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: none; cursor: pointer;
+  position: relative;
+  transition: box-shadow 80ms ease, transform 80ms ease;
+
+  /* Il cap centrale — leggermente più chiaro dell'anello */
+  background: radial-gradient(
+    circle at 35% 30%,
+    #2E2C2A 0%,          /* top-left: leggermente più chiaro (luce diffusa) */
+    #252320 50%,         /* centro */
+    #1E1C1A 100%         /* bordi: più scuro */
+  );
+
+  /* Profondità del cap: il bordo che separa cap dall'anello */
+  box-shadow:
+    /* L'anello/bezel scuro che abbraccia il cap */
+    0 0 0 7px #181614,
+
+    /* Sul bordo superiore-destro dell'anello: luce sottile (come in Image #17) */
+    0 0 0 8px rgba(80,72,64,.25),
+
+    /* La shadow esterna under l'intero bottone su sfondo scuro */
+    0 8px 20px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.60),
+
+    /* Inner highlight sottilissimo del cap — top */
+    rgba(60,55,50,.50) 0 0 0 1px inset,
+    rgba(80,74,68,.25) 0 2px 4px 0 inset;
+}
+
+/* Il highlight specifico sul bordo dell'anello (top-right, come nell'immagine) */
+.tp-dk::before {
+  content: ""; position: absolute;
+  inset: -8px; border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    /* Luce top-right sull'anello — specifica dell'immagine #17 */
+    rgba(90,82,74,.45) -2px -2px 3px 0 inset,
+    /* Ombra bottom-left sull'anello */
+    rgba(5,4,3,.90) 2px 2px 4px 0 inset;
+  pointer-events: none;
+}
+
+.tp-dk:hover { filter: brightness(115%); }
+
+.tp-dk:active {
+  transform: scale(0.93);
+  box-shadow:
+    0 0 0 7px #181614,
+    0 0 0 8px rgba(80,72,64,.25),
+    0 4px 10px rgba(0,0,0,.90),
+    /* Pressed: il cap scende nell'anello */
+    rgba(5,4,3,.88) 3px 3px 8px 0 inset,
+    rgba(55,50,44,.40) -2px -2px 5px 0 inset,
+    rgba(60,55,50,.50) 0 0 0 1px inset;
+}
+.tp-dk:active::before { opacity: 0; }
+
+/* Versione ROSSA del tasto fisica */
+.tp-red {
+  background: radial-gradient(
+    circle at 35% 30%,
+    #D90012 0%,
+    #B8000F 55%,
+    #8A000A 100%
+  );
+  box-shadow:
+    0 0 0 7px #6A0008,
+    0 0 0 8px rgba(180,10,10,.20),
+    0 8px 20px rgba(100,0,8,.70),
+    0 2px 6px rgba(80,0,6,.50),
+    rgba(60,0,5,.45) 0 0 0 1px inset,
+    rgba(255,160,140,.22) 0 2px 4px 0 inset;
+}
+.tp-red::before {
+  box-shadow:
+    rgba(200,80,60,.35) -2px -2px 3px 0 inset,
+    rgba(60,0,5,.85) 2px 2px 4px 0 inset;
+}
+.tp-red:active {
+  box-shadow:
+    0 0 0 7px #6A0008,
+    0 0 0 8px rgba(180,10,10,.20),
+    0 3px 8px rgba(100,0,8,.80),
+    rgba(50,0,4,.90) 3px 3px 8px 0 inset,
+    rgba(200,60,40,.30) -2px -2px 5px 0 inset,
+    rgba(60,0,5,.45) 0 0 0 1px inset;
+}
+
+/* SIZE utilities */
+.s80 { width: 80px; height: 80px; }
+.s60 { width: 60px; height: 60px; }
+.s48 { width: 48px; height: 48px; }
+.s40 { width: 40px; height: 40px; }
+.s40::before, .s48::before { inset: -3px; }
+.s40.tp-dk::before, .s48.tp-dk::before { inset: -5px; }
+.s40.tp-dk { box-shadow: 0 0 0 5px #181614, 0 0 0 6px rgba(80,72,64,.22), 0 6px 14px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.60), rgba(60,55,50,.50) 0 0 0 1px inset; }
+.s40.tp-red { box-shadow: 0 0 0 5px #6A0008, 0 0 0 6px rgba(180,10,10,.18), 0 6px 14px rgba(100,0,8,.68), rgba(60,0,5,.45) 0 0 0 1px inset, rgba(255,160,140,.22) 0 2px 3px 0 inset; }
+
+/* ════════════════════════════════════
+   KPI, CARD, FIELD, NAV
+   ════════════════════════════════════ */
+@keyframes kpiIn{from{opacity:0;transform:translateY(-14px) scale(.95);}to{opacity:1;transform:none;}}
+.kpi-row{display:flex;gap:7px;margin-bottom:10px;}
+.kpi-box{flex:1;background:var(--bg);border-radius:11px;padding:11px 12px;opacity:0;}
+.kpi-box:not(.dark *){box-shadow:var(--sh-sm);}
+.dark .kpi-box{background:var(--sfc);border:1px solid rgba(255,255,255,.05);}
+.kpi-box.go{animation:kpiIn 0.42s cubic-bezier(0,0,.2,1) both;}
+.kpi-box.go:nth-child(1){animation-delay:.10s;} .kpi-box.go:nth-child(2){animation-delay:.16s;} .kpi-box.go:nth-child(3){animation-delay:.22s;}
+.kpi-n{font-family:'Playfair Display',serif;font-size:30px;font-weight:300;line-height:1;}
+.kpi-l{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-top:3px;}
+.card{background:var(--bg);border-radius:13px;padding:12px 13px;margin-bottom:7px;}
+.card:not(.dark *){box-shadow:var(--sh-sm);}
+.dark .card{background:var(--sfc);border:1px solid rgba(255,255,255,.05);}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;}
+.cn{font-size:14px;font-weight:600;color:var(--t1);} .cs{font-size:12px;color:var(--t2);margin-top:2px;} .ch{font-size:11px;color:var(--t3);margin-top:2px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;}
+.field{background:var(--bg);border:none;outline:none;width:100%;padding:11px 13px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);margin-bottom:10px;box-shadow:var(--sh-in);}
+.dark .field{background:var(--prs);} .field::placeholder{color:var(--t3);}
+.nav{background:var(--bg);border-radius:100px;padding:7px 10px;display:flex;align-items:center;justify-content:space-around;gap:2px;}
+.nav:not(.dark *){box-shadow:var(--sh-float);}
+.dark .nav{box-shadow:var(--sh-float);border:1px solid rgba(255,255,255,.07);}
+.nt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 11px;border-radius:100px;cursor:pointer;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;color:var(--t2);position:relative;transition:color 150ms;}
+.nt.on{color:var(--primary);}
+.nt.on::before{content:"";position:absolute;inset:0;background:rgba(217,0,18,.08);border-radius:100px;}
+.dark .nt.on::before{background:rgba(232,0,26,.12);}
+.nt>*{position:relative;z-index:1;}
+.nt:active svg{transform:scale(0.85);}
+</style>
+</head>
+<body>
+
+<!-- 1. STANDARD BUTTONS -->
+<div class="sec" style="margin-top:0;">Standard button — 3 stati</div>
+<div class="col2">
+  <div class="plane"><div class="col3">
+    <div><div class="lbl" style="color:#6B5C51;">Raised</div><button class="btn btn-raised">Default</button></div>
+    <div><div class="lbl" style="color:#6B5C51;">Flat</div><button class="btn btn-flat">Hover</button></div>
+    <div><div class="lbl" style="color:#6B5C51;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+  </div></div>
+  <div class="plane dark"><div class="col3">
+    <div><div class="lbl" style="color:#5A5652;">Raised</div><button class="btn btn-raised">Default</button></div>
+    <div><div class="lbl" style="color:#5A5652;">Flat</div><button class="btn btn-flat">Hover</button></div>
+    <div><div class="lbl" style="color:#5A5652;">Pressed</div><button class="btn btn-pressed">Active</button></div>
+  </div></div>
+</div>
+
+<!-- 2. PUSH 3D -->
+<div class="sec">Push 3D — CTA isolata (premi!)</div>
+<div class="col2">
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:10px;">Light</div>
+    <button class="push" style="margin-bottom:12px;"><span class="ps"></span><span class="pe"></span><span class="pf">Nuova consegna</span></button>
+    <button class="push"><span class="ps psg"></span><span class="pe peg"></span><span class="pf pfg">Annulla</span></button>
+  </div>
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:10px;">Dark</div>
+    <button class="push dark" style="margin-bottom:12px;"><span class="ps"></span><span class="pe"></span><span class="pf">Nuova consegna</span></button>
+    <button class="push dark"><span class="ps psg"></span><span class="pe peg"></span><span class="pf pfg">Annulla</span></button>
+  </div>
+</div>
+
+<!-- 3. FCOLOMBATI PILL -->
+<div class="sec">FColombati pill — hover per l'animazione</div>
+<div class="col2">
+  <div class="plane"><div class="col2">
+    <div><div class="lbl" style="color:#6B5C51;">Primary</div><button class="cta"><div class="o"><div class="i"><span>Nuova consegna</span></div></div></button></div>
+    <div><div class="lbl" style="color:#6B5C51;">Ghost</div><button class="ghost"><div class="o"><div class="i"><span>Annulla</span></div></div></button></div>
+  </div></div>
+  <div class="plane dark"><div class="col2">
+    <div><div class="lbl" style="color:#5A5652;">Primary dark</div><button class="cta"><div class="o"><div class="i"><span>Nuova consegna</span></div></div></button></div>
+    <div><div class="lbl" style="color:#5A5652;">Ghost dark</div><button class="ghost"><div class="o"><div class="i"><span>Annulla</span></div></div></button></div>
+  </div></div>
+</div>
+
+<!-- 4. TASTO + -->
+<div class="sec">Tasto + — Bianco (tasto+.png) · Nero (Image #17) · Rosso (CTA nav)</div>
+
+<div class="col2">
+  <!-- BIANCO — 1:1 da tasto+.png -->
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:14px;">Bianco — riproduzione esatta tasto+.png</div>
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#6B5C51; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">80px</div>
+        <button class="tp s80">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ADADAD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="14" y1="5" x2="14" y2="23"/><line x1="5" y1="14" x2="23" y2="14"/>
+          </svg>
+        </button>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#6B5C51; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">60px</div>
+        <button class="tp s60">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ADADAD" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+          </svg>
+        </button>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#6B5C51; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">48px</div>
+        <button class="tp s48">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ADADAD" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NERO — 1:1 da Image #17 -->
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:14px;">Nero — riproduzione esatta Image #17</div>
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#5A5652; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">80px</div>
+        <button class="tp-dk s80">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#4A4642" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="14" y1="5" x2="14" y2="23"/><line x1="5" y1="14" x2="23" y2="14"/>
+          </svg>
+        </button>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#5A5652; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">60px</div>
+        <button class="tp-dk s60">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A4642" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+          </svg>
+        </button>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:8px; color:#5A5652; margin-bottom:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">48px</div>
+        <button class="tp-dk s48">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A4642" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROSSO — stesso stile fisico -->
+<div style="margin-top:12px;" class="col2">
+  <div class="plane">
+    <div class="lbl" style="color:#6B5C51; margin-bottom:14px;">Rosso — CTA nav (stile fisico, mantenuto #D90012)</div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <button class="tp tp-red s60">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+      <button class="tp tp-red s48">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+      <button class="tp tp-red s40">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+      <div style="font-size:10px; color:#6B5C51; font-style:italic; line-height:1.6;">Stile fisico bezel+cap<br>adattato al rosso</div>
+    </div>
+  </div>
+  <div class="plane dark">
+    <div class="lbl" style="color:#5A5652; margin-bottom:14px;">Rosso su dark</div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <button class="tp tp-red s60">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+      <button class="tp tp-red s40">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 5. FULL MOCKUP -->
+<div class="sec">Full mockup — Light · Dark <button onclick="rk()">↺ KPI</button></div>
+<div class="col2">
+  <div class="plane">
+    <div style="margin-bottom:12px;"><div style="font-size:20px;font-weight:700;color:var(--t1);">Dashboard</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">Aggiornato ora · Francesco</div></div>
+    <div class="kpi-row" id="kl">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div><span class="badge" style="background:rgba(239,68,68,.12);color:#EF4444;">Urgente</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div></div><span class="badge" style="background:rgba(34,197,94,.12);color:#22C55E;">Pronto</span></div></div>
+    <div style="display:flex;justify-content:center;margin:12px 0 10px;">
+      <button class="tp tp-red s48">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="nav" id="nl">
+      <button class="nt on" onclick="ns('nl',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Oggi</span></button>
+      <button class="nt" onclick="ns('nl',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><span>Lavori</span></button>
+      <button class="tp tp-red s40" style="flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg></button>
+      <button class="nt" onclick="ns('nl',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Clienti</span></button>
+      <button class="nt" onclick="ns('nl',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Fatture</span></button>
+    </div>
+  </div>
+
+  <div class="plane dark">
+    <div style="margin-bottom:12px;"><div style="font-size:20px;font-weight:700;color:var(--t1);">Dashboard</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">Aggiornato ora · Francesco</div></div>
+    <div class="kpi-row" id="kd">
+      <div class="kpi-box"><div class="kpi-n" style="color:#EF4444;">7</div><div class="kpi-l">In ritardo</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#22C55E;">€ 4.280</div><div class="kpi-l">Fatturare</div></div>
+      <div class="kpi-box"><div class="kpi-n" style="color:#3B82F6;">12</div><div class="kpi-l">In lavoraz.</div></div>
+    </div>
+    <input class="field" placeholder="Cerca lavoro…">
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0847</div><div class="cs">Corona · Dr. Bianchi</div><div class="ch">27 mag · 3 fasi</div></div><span class="badge" style="background:rgba(239,68,68,.18);color:#EF4444;">Urgente</span></div></div>
+    <div class="card"><div class="card-row"><div><div class="cn">#LAV-2024-0846</div><div class="cs">Scheletrato · Dr. Russo</div></div><span class="badge" style="background:rgba(34,197,94,.18);color:#22C55E;">Pronto</span></div></div>
+    <div style="display:flex;justify-content:center;margin:12px 0 10px;">
+      <button class="tp-dk s48">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A4642" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="nav" id="nd">
+      <button class="nt on" onclick="ns('nd',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Oggi</span></button>
+      <button class="nt" onclick="ns('nd',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><span>Lavori</span></button>
+      <button class="tp-dk s40" style="flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A4642" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg></button>
+      <button class="nt" onclick="ns('nd',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>Clienti</span></button>
+      <button class="nt" onclick="ns('nd',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Fatture</span></button>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:10px;color:rgba(0,0,0,.28);text-align:center;margin-top:18px;line-height:1.8;font-style:italic;">
+  Push: premi per il 3D · FColombati: hover per l'animazione · Tasto+: tutti e tre stili fisici
+</p>
+
+<script>
+function ns(id,el){var n=document.getElementById(id);n.querySelectorAll('.nt').forEach(function(t){t.classList.remove('on');});el.classList.add('on');}
+function rk(){['kl','kd'].forEach(function(id){var r=document.getElementById(id);r.querySelectorAll('.kpi-box').forEach(function(b){b.classList.remove('go');void b.offsetWidth;b.classList.add('go');});});}
+window.addEventListener('load',rk);
+</script>
+</body>
+</html>
