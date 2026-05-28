@@ -697,7 +697,7 @@ Requisito: Sessioni S1-S5 tutte completate.
 ### Task 1: Visual audit Playwright
 
 Usa lo stesso script delle sessioni precedenti:
-- Login come `h4t@live.it` / `>[REDACTED]`
+- Login come `h4t@live.it` / `[TEST_PASSWORD da .env.local]`
 - 13 pagine × 390/768/1280px × light/dark = 78 screenshot
 - Confronta con score baseline (media 6.8/10 da MEMORY.md)
 - Target: media ≥ 8.0/10 su tutti gli agenti

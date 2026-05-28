@@ -179,7 +179,7 @@ Vedi: `docs/roadmap/ROADMAP-UFFICIALE.md`
 | NEXT_PUBLIC_APP_URL | `https://uachelab.com` |
 
 ### Credenziali test (produzione)
-- **Titolare lab Filippo:** `h4t@live.it` / `>[REDACTED]`
+- **Titolare lab Filippo:** `h4t@live.it` / `[vedi .env.local → TEST_PASSWORD]`
 - **E2E tecnico:** `e2e-tecnico@ua-test.local` / `TestE2E!2026`
 - **Admin sistema:** `francesco.formicola@live.it` (usa forgot-password)
 
