@@ -17,7 +17,7 @@ const inp: React.CSSProperties = {
   boxShadow: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
 }
 const lbl: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 700, color: 'var(--t2, #96918D)',
+  fontSize: '10px', fontWeight: 700, color: 'var(--t2, #4A3D33)',
   textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px', display: 'block',
   fontFamily: 'DM Sans, sans-serif',
 }

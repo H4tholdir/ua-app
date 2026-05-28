@@ -136,7 +136,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '11px',
               fontWeight: 600,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               flexShrink: 0,
             }}
           >
@@ -165,7 +165,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: '0 0 4px',
               display: '-webkit-box',
               WebkitBoxOrient: 'vertical',
@@ -192,7 +192,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '11px',
-                color: 'var(--t3, #B8B3AE)',
+                color: 'var(--t3, #6B5C51)',
                 flexShrink: 0,
               }}
             >
@@ -207,7 +207,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   fontSize: '11px',
                   color: voce.compenso_tecnico != null
                     ? 'var(--success, #16A34A)'
-                    : 'var(--t3, #B8B3AE)',
+                    : 'var(--t3, #6B5C51)',
                   pointerEvents: 'none',
                   userSelect: 'none',
                 }}
@@ -234,7 +234,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   fontSize: '11px',
                   color: voce.compenso_tecnico != null
                     ? 'var(--success, #16A34A)'
-                    : 'var(--t3, #B8B3AE)',
+                    : 'var(--t3, #6B5C51)',
                   outline: 'none',
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -245,7 +245,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
-                  color: 'var(--t3, #B8B3AE)',
+                  color: 'var(--t3, #6B5C51)',
                 }}
               >
                 non impostato
@@ -268,7 +268,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '11px',
-                color: 'var(--t3, #B8B3AE)',
+                color: 'var(--t3, #6B5C51)',
                 flexShrink: 0,
               }}
             >
@@ -282,8 +282,8 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   color: voce.costo_materiali_estimated != null
-                    ? 'var(--t2, #96918D)'
-                    : 'var(--t3, #B8B3AE)',
+                    ? 'var(--t2, #4A3D33)'
+                    : 'var(--t3, #6B5C51)',
                   pointerEvents: 'none',
                   userSelect: 'none',
                 }}
@@ -309,8 +309,8 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   color: voce.costo_materiali_estimated != null
-                    ? 'var(--t2, #96918D)'
-                    : 'var(--t3, #B8B3AE)',
+                    ? 'var(--t2, #4A3D33)'
+                    : 'var(--t3, #6B5C51)',
                   outline: 'none',
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -321,7 +321,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
-                  color: 'var(--t3, #B8B3AE)',
+                  color: 'var(--t3, #6B5C51)',
                 }}
               >
                 non impostato
@@ -349,7 +349,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '11px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
           }}
         >
@@ -391,14 +391,14 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               border: 'none',
               background: 'transparent',
               cursor: deleting ? 'wait' : 'pointer',
-              color: 'var(--t3, #B8B3AE)',
+              color: 'var(--t3, #6B5C51)',
               flexShrink: 0,
               padding: 0,
               opacity: deleting ? 0.5 : 1,
               transition: 'color 0.15s',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#D90012' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #B8B3AE)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #6B5C51)' }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8L13 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

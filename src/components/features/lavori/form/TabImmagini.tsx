@@ -388,7 +388,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             borderRadius: '10px',
             border: 'none',
             background: 'var(--elv, #EDEDEA)',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
             fontWeight: 600,
@@ -465,7 +465,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: listaVista ? '12px' : '11px',
                         fontWeight: 700,
-                        color: listaVista ? 'var(--t2, #96918D)' : 'white',
+                        color: listaVista ? 'var(--t2, #4A3D33)' : 'white',
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >
@@ -562,7 +562,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
               fontWeight: 700,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               marginBottom: '10px',
@@ -679,7 +679,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '14px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: 0,
             }}
           >

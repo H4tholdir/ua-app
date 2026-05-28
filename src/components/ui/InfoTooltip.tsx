@@ -28,7 +28,7 @@ export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
           width: 18, height: 18, borderRadius: '50%',
           background: 'var(--prs, #D4CFC9)',
           border: 'none', cursor: 'pointer',
-          fontSize: 11, color: 'var(--t2, #96918D)',
+          fontSize: 11, color: 'var(--t2, #4A3D33)',
           fontWeight: 700, lineHeight: '18px',
           textAlign: 'center', padding: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

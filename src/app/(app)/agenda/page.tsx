@@ -37,7 +37,7 @@ const tipoColors: Record<string, string> = {
   prova: 'var(--amber, #FD7E14)',
   appuntamento: 'var(--info, #2563EB)',
   urgente: 'var(--primary, #D90012)',
-  altro: 'var(--t2, #96918D)',
+  altro: 'var(--t2, #4A3D33)',
 }
 
 function formatGiornoIT(dateStr: string): string {
@@ -127,7 +127,7 @@ export default async function AgendaPage() {
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 margin: 0,
               }}
             >
@@ -162,7 +162,7 @@ export default async function AgendaPage() {
                 }}
               >
                 {perData[giorno].map((apt) => {
-                  const tipoColor = tipoColors[apt.tipo] ?? 'var(--t2, #96918D)'
+                  const tipoColor = tipoColors[apt.tipo] ?? 'var(--t2, #4A3D33)'
                   const tipoLabel = tipoLabels[apt.tipo] ?? apt.tipo
                   const ora = formatOra(apt.ora_inizio)
 
@@ -272,7 +272,7 @@ export default async function AgendaPage() {
                                 style={{
                                   fontFamily: 'DM Sans, sans-serif',
                                   fontSize: '12px',
-                                  color: 'var(--t2, #96918D)',
+                                  color: 'var(--t2, #4A3D33)',
                                 }}
                               >
                                 #{apt.lavoro.numero_lavoro}
@@ -283,7 +283,7 @@ export default async function AgendaPage() {
                                 style={{
                                   fontFamily: 'DM Sans, sans-serif',
                                   fontSize: '13px',
-                                  color: 'var(--t2, #96918D)',
+                                  color: 'var(--t2, #4A3D33)',
                                   flexShrink: 0,
                                   marginLeft: 'auto',
                                   whiteSpace: 'nowrap',

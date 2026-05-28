@@ -106,7 +106,7 @@ export default async function TechniciPage() {
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 margin: '0 0 16px',
                 lineHeight: 1.6,
               }}
@@ -237,7 +237,7 @@ export default async function TechniciPage() {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '13px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           margin: 0,
                         }}
                       >
@@ -273,7 +273,7 @@ export default async function TechniciPage() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
                         fontWeight: 600,
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         textDecoration: 'none',
                         flexShrink: 0,
                         whiteSpace: 'nowrap',

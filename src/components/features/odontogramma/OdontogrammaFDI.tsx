@@ -40,7 +40,7 @@ function getToothColors(stato: StatoDente) {
     case 'mancante':
       return {
         coronaFill: 'transparent',
-        coronaStroke: 'var(--t3, #B8B3AE)',
+        coronaStroke: 'var(--t3, #6B5C51)',
         radiceFill: 'none',
         radiceStroke: 'none',
         showHighlight: false,
@@ -62,7 +62,7 @@ function getToothColors(stato: StatoDente) {
         coronaFill: 'var(--elv, #EDEDEA)',
         coronaStroke: 'var(--prs, #D4CFC9)',
         radiceFill: 'var(--prs, #D4CFC9)',
-        radiceStroke: 'var(--t3, #B8B3AE)',
+        radiceStroke: 'var(--t3, #6B5C51)',
         showHighlight: true,
         showX: false,
         showFiletti: false,
@@ -208,8 +208,8 @@ function CoronaSVG({ tipo, arcata, w, coronaH, coronaY, cx, fill, stroke, showHi
         )}
         {showX && (
           <>
-            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
-            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
+            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
+            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
           </>
         )}
       </g>
@@ -266,8 +266,8 @@ function CoronaSVG({ tipo, arcata, w, coronaH, coronaY, cx, fill, stroke, showHi
         )}
         {showX && (
           <>
-            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
-            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
+            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
+            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
           </>
         )}
       </g>
@@ -312,8 +312,8 @@ function CoronaSVG({ tipo, arcata, w, coronaH, coronaY, cx, fill, stroke, showHi
         )}
         {showX && (
           <>
-            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
-            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
+            <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
+            <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
           </>
         )}
       </g>
@@ -350,8 +350,8 @@ function CoronaSVG({ tipo, arcata, w, coronaH, coronaY, cx, fill, stroke, showHi
       )}
       {showX && (
         <>
-          <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
-          <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#B8B3AE" strokeWidth="1.5" />
+          <line x1={x0 + 2} y1={y0 + 2} x2={x1 - 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
+          <line x1={x1 - 2} y1={y0 + 2} x2={x0 + 2} y2={y1 - 2} stroke="#6B5C51" strokeWidth="1.5" />
         </>
       )}
     </g>
@@ -547,7 +547,7 @@ function ContextMenu({ denteFDI, stato, x, y, onSelezione, onMancante, onImpiant
           margin: '0 0 4px 6px',
           fontSize: '10px',
           fontWeight: 700,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
         }}>
@@ -699,7 +699,7 @@ function DenteButton({ dente, stato, onTap, onLongPress }: DenteButtonProps) {
           ? 'var(--primary, #D90012)'
           : stato === 'implanto'
             ? 'var(--cobalt, #1B2D6B)'
-            : 'var(--t2, #96918D)',
+            : 'var(--t2, #4A3D33)',
         lineHeight: 1,
         marginTop: '1px',
       }}>
@@ -820,7 +820,7 @@ export function OdontogrammaFDI({
               borderRadius: '20px',
               border: '1px solid var(--prs, #D4CFC9)',
               background: dentizione === tipo ? 'var(--t1, #1C1916)' : 'var(--elv, #EDEDEA)',
-              color: dentizione === tipo ? 'var(--bg, #DDD8D3)' : 'var(--t2, #96918D)',
+              color: dentizione === tipo ? 'var(--bg, #DDD8D3)' : 'var(--t2, #4A3D33)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
               fontWeight: 600,
@@ -846,7 +846,7 @@ export function OdontogrammaFDI({
           margin: '0 0 6px',
           fontSize: '9px',
           fontWeight: 700,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.07em',
           textAlign: 'center',
@@ -908,7 +908,7 @@ export function OdontogrammaFDI({
             padding: '0 8px',
             fontSize: '9px',
             fontWeight: 700,
-            color: 'var(--t3, #B8B3AE)',
+            color: 'var(--t3, #6B5C51)',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             whiteSpace: 'nowrap',
@@ -960,7 +960,7 @@ export function OdontogrammaFDI({
           margin: '6px 0 0',
           fontSize: '9px',
           fontWeight: 700,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.07em',
           textAlign: 'center',
@@ -980,14 +980,14 @@ export function OdontogrammaFDI({
             { label: 'Sano', color: 'var(--elv, #EDEDEA)', border: 'var(--prs, #D4CFC9)', icon: '●' },
             { label: 'Sel.', color: 'var(--primary, #D90012)', border: 'var(--primary, #D90012)', icon: '●' },
             { label: 'Impianto', color: 'var(--cobalt, #1B2D6B)', border: 'var(--cobalt, #1B2D6B)', icon: '●' },
-            { label: 'Mancante', color: 'var(--t3, #B8B3AE)', border: 'var(--t3, #B8B3AE)', icon: '✕' },
+            { label: 'Mancante', color: 'var(--t3, #6B5C51)', border: 'var(--t3, #6B5C51)', icon: '✕' },
           ].map((item) => (
             <span key={item.label} style={{
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
               fontSize: '10px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontFamily: 'DM Sans, sans-serif',
             }}>
               <span style={{ color: item.color, fontSize: '11px', lineHeight: 1 }}>{item.icon}</span>
@@ -1004,7 +1004,7 @@ export function OdontogrammaFDI({
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '10px',
             fontWeight: 700,
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             margin: '0 0 6px',

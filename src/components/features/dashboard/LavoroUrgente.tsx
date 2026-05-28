@@ -5,14 +5,14 @@ import type { StatoLavoro, PrioritaLavoro } from '@/types/domain'
 
 // Complete map — all 9 StatoLavoro values covered
 const STATO_COLORS: Record<StatoLavoro, string> = {
-  ricevuto:          'var(--t3, #B8B3AE)',
+  ricevuto:          'var(--t3, #6B5C51)',
   in_lavorazione:    'var(--info, #2563EB)',
   in_prova:          'var(--warning, #B45309)',
   in_prova_esterna:  'var(--urgente, #F97316)',
   pronto:            'var(--success, #16A34A)',
-  consegnato:        'var(--t3, #B8B3AE)',
-  annullato:         'var(--t3, #B8B3AE)',
-  sospeso:           'var(--t2, #96918D)',
+  consegnato:        'var(--t3, #6B5C51)',
+  annullato:         'var(--t3, #6B5C51)',
+  sospeso:           'var(--t2, #4A3D33)',
   in_ritardo:        'var(--primary, #D90012)',
 }
 
@@ -53,7 +53,7 @@ export function LavoroUrgente({
   is_urgente,
   showStatoBadge,
 }: LavoroUrgenteProps) {
-  const statoColor = STATO_COLORS[stato] ?? 'var(--t3, #B8B3AE)'
+  const statoColor = STATO_COLORS[stato] ?? 'var(--t3, #6B5C51)'
 
   const urgencyLabel =
     stato === 'in_ritardo'
@@ -167,7 +167,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 12,
               fontWeight: 500,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -185,7 +185,7 @@ export function LavoroUrgente({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 12,
               fontWeight: 500,
-              color: stato === 'in_ritardo' ? 'var(--primary, #D90012)' : 'var(--t2, #96918D)',
+              color: stato === 'in_ritardo' ? 'var(--primary, #D90012)' : 'var(--t2, #4A3D33)',
               flexShrink: 0,
             }}
           >
@@ -201,7 +201,7 @@ export function LavoroUrgente({
         viewBox="0 0 16 16"
         fill="none"
         aria-hidden="true"
-        style={{ flexShrink: 0, color: 'var(--t3, #B8B3AE)' }}
+        style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
       >
         <path
           d="M6 4l4 4-4 4"

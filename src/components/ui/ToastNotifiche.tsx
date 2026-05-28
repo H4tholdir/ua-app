@@ -153,7 +153,7 @@ function ToastItem({ notifica, onDismiss, reducedMotion }: ToastItemProps) {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '12px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: '2px 0 0',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -211,7 +211,7 @@ function ToastItem({ notifica, onDismiss, reducedMotion }: ToastItemProps) {
           borderRadius: '8px',
           border: 'none',
           background: 'transparent',
-          color: 'var(--t3, #B8B3AE)',
+          color: 'var(--t3, #6B5C51)',
           fontSize: '16px',
           cursor: 'pointer',
           padding: 0,

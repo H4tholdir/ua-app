@@ -55,7 +55,7 @@ const labelStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '11px',
   fontWeight: 600,
-  color: 'var(--t3, #B8B3AE)',
+  color: 'var(--t3, #6B5C51)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   marginBottom: '5px',
@@ -217,7 +217,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: 'var(--t3, #B8B3AE)',
+                background: 'var(--t3, #6B5C51)',
                 margin: '12px auto 0',
                 flexShrink: 0,
               }}
@@ -251,7 +251,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
                   style={{
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: 13,
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     margin: '2px 0 0',
                   }}
                 >
@@ -271,7 +271,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
                   border: 'none',
                   background: 'var(--prs, #D4CFC9)',
                   cursor: 'pointer',
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   flexShrink: 0,
                 }}
               >
@@ -285,7 +285,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
             <div style={{ overflowY: 'auto', padding: '16px 20px', flex: 1 }}>
 
               {/* Sezione: Anagrafica */}
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #96918D)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #4A3D33)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
                 Anagrafica
               </p>
 
@@ -384,7 +384,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
               </div>
 
               {/* Sezione: Dati fiscali */}
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #96918D)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #4A3D33)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
                 Dati fiscali
               </p>
 
@@ -432,7 +432,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
               </div>
 
               {/* Sezione: Commerciale */}
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #96918D)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #4A3D33)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
                 Commerciale
               </p>
 
@@ -474,7 +474,7 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
               </FieldGroup>
 
               {/* Note */}
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #96918D)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: 'var(--t2, #4A3D33)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 10px' }}>
                 Note
               </p>
               <textarea

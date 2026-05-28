@@ -131,7 +131,7 @@ export default async function QualitaPage() {
                         {lavoro?.numero_lavoro ?? 'Lavoro sconosciuto'}
                       </span>
                       <span style={{
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         fontSize: '12px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -140,7 +140,7 @@ export default async function QualitaPage() {
                     </div>
                     {fase?.descrizione && (
                       <div style={{
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         fontSize: '13px',
                         marginBottom: '4px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -217,7 +217,7 @@ export default async function QualitaPage() {
                         {r.tipo_dispositivo}
                       </span>
                       <span style={{
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         fontSize: '12px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -228,7 +228,7 @@ export default async function QualitaPage() {
                       marginTop: '6px',
                       display: 'flex',
                       gap: '16px',
-                      color: 'var(--t2, #96918D)',
+                      color: 'var(--t2, #4A3D33)',
                       fontSize: '13px',
                       fontFamily: "'DM Sans', system-ui, sans-serif",
                     }}>
@@ -279,7 +279,7 @@ export default async function QualitaPage() {
                       background: isGrave ? 'rgba(217,0,18,0.10)' : 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
-                      boxShadow: `inset 0 0 0 1px ${gravitaColor[inc.gravita] ?? 'var(--t2, #96918D)'}40`,
+                      boxShadow: `inset 0 0 0 1px ${gravitaColor[inc.gravita] ?? 'var(--t2, #4A3D33)'}40`,
                     }}
                   >
                     <div style={{
@@ -300,7 +300,7 @@ export default async function QualitaPage() {
                           {inc.gravita}
                         </span>
                         <span style={{
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           fontSize: '13px',
                           fontFamily: "'DM Sans', system-ui, sans-serif",
                         }}>
@@ -334,7 +334,7 @@ export default async function QualitaPage() {
                         )}
                       </div>
                       <span style={{
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         fontSize: '12px',
                         flexShrink: 0,
                         fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -343,7 +343,7 @@ export default async function QualitaPage() {
                       </span>
                     </div>
                     <p style={{
-                      color: 'var(--t2, #96918D)',
+                      color: 'var(--t2, #4A3D33)',
                       fontSize: '13px',
                       lineHeight: '1.5',
                       fontFamily: "'DM Sans', system-ui, sans-serif",

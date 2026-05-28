@@ -60,7 +60,7 @@ export default function AppError({
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '14px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
             lineHeight: 1.5,
             maxWidth: '300px',

@@ -135,7 +135,7 @@ export function SegnalaProblemaSheet({
                 width: 36,
                 height: 4,
                 borderRadius: 2,
-                background: 'var(--t3, #B8B3AE)',
+                background: 'var(--t3, #6B5C51)',
                 margin: '12px auto 0',
               }}
             />
@@ -155,7 +155,7 @@ export function SegnalaProblemaSheet({
               <p style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: 13,
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 margin: '3px 0 0',
               }}>
                 {numeroLavoro} · {clienteDisplay}
@@ -219,7 +219,7 @@ export function SegnalaProblemaSheet({
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: 11,
                 fontWeight: 600,
-                color: 'var(--t3, #B8B3AE)',
+                color: 'var(--t3, #6B5C51)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
                 marginBottom: '6px',

@@ -218,7 +218,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '11px',
-                          color: 'var(--t3, #B8B3AE)',
+                          color: 'var(--t3, #6B5C51)',
                         }}
                       >
                         {formatDataIT(l.data_consegna_effettiva)}
@@ -229,7 +229,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
                     style={{
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '13px',
-                      color: 'var(--t2, #96918D)',
+                      color: 'var(--t2, #4A3D33)',
                       display: 'block',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -302,7 +302,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
             width: '100%',
             padding: '13px',
             background: buttonActive ? 'var(--primary, #D90012)' : 'var(--prs, #D4CFC9)',
-            color: buttonActive ? '#fff' : 'var(--t3, #B8B3AE)',
+            color: buttonActive ? '#fff' : 'var(--t3, #6B5C51)',
             borderRadius: '12px',
             fontFamily: 'DM Sans, sans-serif',
             fontWeight: 700,

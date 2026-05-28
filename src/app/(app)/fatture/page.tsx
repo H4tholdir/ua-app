@@ -10,7 +10,7 @@ import type { LavoroProntoFattura } from '@/components/features/fatture/BatchFat
 
 // ─── Colori badge per ogni stato SDI ─────────────────────────────────────────
 const coloriStatoSDI: Record<StatoSDI, { bg: string; fg: string }> = {
-  draft:          { bg: 'var(--prs, #D4CFC9)',       fg: 'var(--t2, #96918D)' },
+  draft:          { bg: 'var(--prs, #D4CFC9)',       fg: 'var(--t2, #4A3D33)' },
   generata:       { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
   smtp_inviata:   { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
   pec_consegnata: { bg: 'rgba(37,99,235,.12)',        fg: 'var(--info, #2563EB)' },
@@ -183,7 +183,7 @@ export default async function FatturePage() {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: 0,
               lineHeight: 1.6,
             }}
@@ -329,7 +329,7 @@ export default async function FatturePage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '12px',
-                            color: 'var(--t2, #96918D)',
+                            color: 'var(--t2, #4A3D33)',
                           }}
                         >
                           {formatDataIT(fattura.data)}
@@ -349,7 +349,7 @@ export default async function FatturePage() {
                               style={{
                                 fontSize: '11px',
                                 fontWeight: 500,
-                                color: 'var(--t2, #96918D)',
+                                color: 'var(--t2, #4A3D33)',
                                 marginLeft: '4px',
                               }}
                             >
@@ -365,7 +365,7 @@ export default async function FatturePage() {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '11px',
-                            color: 'var(--t2, #96918D)',
+                            color: 'var(--t2, #4A3D33)',
                             margin: '4px 0 0',
                           }}
                         >

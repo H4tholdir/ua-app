@@ -41,7 +41,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
           fontWeight: 600,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
         }}
@@ -77,7 +77,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 600,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           margin: '0 0 8px',

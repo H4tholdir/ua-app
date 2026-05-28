@@ -106,7 +106,7 @@ export function MaterialiWarningSheet({
                 width: '40px',
                 height: '4px',
                 borderRadius: '2px',
-                background: 'var(--t3, #B8B3AE)',
+                background: 'var(--t3, #6B5C51)',
                 margin: '12px auto 0',
               }}
             />
@@ -150,7 +150,7 @@ export function MaterialiWarningSheet({
                   margin: '0 0 16px',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   lineHeight: 1.5,
                 }}
               >
@@ -195,7 +195,7 @@ export function MaterialiWarningSheet({
                   </div>
                   <div
                     style={{
-                      color: 'var(--t2, #96918D)',
+                      color: 'var(--t2, #4A3D33)',
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '12px',
                       marginTop: '4px',
@@ -251,7 +251,7 @@ export function MaterialiWarningSheet({
                       <span
                         style={{
                           fontSize: '12px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >

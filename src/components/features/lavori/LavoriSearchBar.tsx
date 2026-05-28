@@ -47,7 +47,7 @@ export function LavoriSearchBar({ defaultValue = '' }: { defaultValue?: string }
           viewBox="0 0 16 16"
           fill="none"
           aria-hidden="true"
-          style={{ flexShrink: 0, color: 'var(--t3, #B8B3AE)' }}
+          style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
         >
           <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
           <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -82,7 +82,7 @@ export function LavoriSearchBar({ defaultValue = '' }: { defaultValue?: string }
             aria-hidden="true"
             style={{
               flexShrink: 0,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               animation: 'spin 0.8s linear infinite',
             }}
           >

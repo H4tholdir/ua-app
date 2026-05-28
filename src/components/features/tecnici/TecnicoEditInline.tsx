@@ -74,7 +74,7 @@ export function TecnicoEditInline({ tecnico }: Props) {
     fontFamily: 'DM Sans, sans-serif',
     fontSize: '11px',
     fontWeight: 600,
-    color: 'var(--t3, #B8B3AE)',
+    color: 'var(--t3, #6B5C51)',
     marginBottom: '4px',
     display: 'block',
     textTransform: 'uppercase',
@@ -98,12 +98,12 @@ export function TecnicoEditInline({ tecnico }: Props) {
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
-          color: 'var(--t3, #B8B3AE)',
+          color: 'var(--t3, #6B5C51)',
           flexShrink: 0,
           padding: 0,
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t1, #1C1916)' }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #B8B3AE)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #6B5C51)' }}
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M11.5 2.5a1.41 1.41 0 012 2L5 13H2v-3L11.5 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -137,7 +137,7 @@ export function TecnicoEditInline({ tecnico }: Props) {
         }}
       >
         {/* Handle */}
-        <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'var(--t3, #B8B3AE)', margin: '0 auto 16px' }} />
+        <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'var(--t3, #6B5C51)', margin: '0 auto 16px' }} />
 
         <h2 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '17px', fontWeight: 700, color: 'var(--t1)', margin: '0 0 16px' }}>
           Modifica tecnico

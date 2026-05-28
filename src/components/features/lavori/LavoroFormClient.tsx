@@ -187,7 +187,7 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
                 <p style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: 12,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   margin: '2px 0 0',
                   fontStyle: 'italic',
                 }}>
@@ -278,7 +278,7 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
               borderRadius: '14px',
               border: 'none',
               background: saving ? 'var(--elv, #EDEDEA)' : 'var(--surface, #E4DFD9)',
-              color: saving ? 'var(--t2, #96918D)' : 'var(--t1, #1C1916)',
+              color: saving ? 'var(--t2, #4A3D33)' : 'var(--t1, #1C1916)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
               fontWeight: 700,

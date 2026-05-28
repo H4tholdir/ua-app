@@ -84,7 +84,7 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
         <p style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '13px',
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           margin: 0,
         }}>
           Finestra disponibile ancora {mm}:{ss}

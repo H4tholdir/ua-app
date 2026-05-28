@@ -51,7 +51,7 @@ export default function NotFound() {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
             lineHeight: 1.5,
             maxWidth: '280px',

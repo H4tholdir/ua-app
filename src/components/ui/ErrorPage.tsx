@@ -65,7 +65,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
       <p
         style={{
           fontSize: 14,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           marginBottom: 28,
           marginTop: 0,
           maxWidth: 280,
@@ -134,7 +134,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           style={{
             marginTop: 20,
             fontSize: 10,
-            color: 'var(--t3, #B8B3AE)',
+            color: 'var(--t3, #6B5C51)',
             textAlign: 'left',
             maxWidth: '100%',
             overflow: 'auto',

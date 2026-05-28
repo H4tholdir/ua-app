@@ -9,12 +9,12 @@ import type { OrdineRow, ArticoloSottoScorta } from '@/app/(app)/ordini/page'
 
 // ─── Colori dot per stato ──────────────────────────────────────
 const STATO_COLOR: Record<string, string> = {
-  bozza:          'var(--t3, #B8B3AE)',
+  bozza:          'var(--t3, #6B5C51)',
   inviato:        'var(--gold, #D4A843)',
   evaso_parziale: 'var(--info, #2563EB)',
   evaso:          'var(--success, #16A34A)',
   annullato:      'var(--primary, #D90012)',
-  archiviato:     'var(--t3, #B8B3AE)',
+  archiviato:     'var(--t3, #6B5C51)',
 }
 
 const STATO_LABEL: Record<string, string> = {
@@ -194,7 +194,7 @@ export function OrdiniList({ ordini, articoliSottoScorta }: OrdiniListProps) {
                           margin: 0,
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '12px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',

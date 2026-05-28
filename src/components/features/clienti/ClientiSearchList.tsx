@@ -60,7 +60,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
-            style={{ flexShrink: 0, color: 'var(--t3, #B8B3AE)' }}
+            style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
           >
             <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -101,7 +101,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
                 background: 'var(--prs, #D4CFC9)',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 padding: 0,
               }}
             >
@@ -135,7 +135,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: 0,
             }}
           >
@@ -196,7 +196,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '13px',
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -209,7 +209,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '12px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           flexShrink: 0,
                         }}
                       >
@@ -240,7 +240,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
                   viewBox="0 0 16 16"
                   fill="none"
                   aria-hidden="true"
-                  style={{ flexShrink: 0, color: 'var(--t2, #96918D)' }}
+                  style={{ flexShrink: 0, color: 'var(--t2, #4A3D33)' }}
                 >
                   <path
                     d="M6 4l4 4-4 4"

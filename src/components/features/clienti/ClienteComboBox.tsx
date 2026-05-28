@@ -281,7 +281,7 @@ export function ClienteComboBox({
                   <span
                     style={{
                       fontSize: '12px',
-                      color: 'var(--t2, #96918D)',
+                      color: 'var(--t2, #4A3D33)',
                     }}
                   >
                     {option.studio_nome}

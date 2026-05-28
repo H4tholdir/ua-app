@@ -81,12 +81,12 @@ export function ImpostazioniEditForm({ initialData }: Props) {
     outline: 'none', boxSizing: 'border-box',
   }
   const labelStyle: React.CSSProperties = {
-    fontSize: '11px', fontWeight: 700, color: 'var(--t2, #96918D)',
+    fontSize: '11px', fontWeight: 700, color: 'var(--t2, #4A3D33)',
     textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px', display: 'block',
   }
   const fieldStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }
   const sectionLabel: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 700, color: 'var(--t3, #B8B3AE)',
+    fontSize: '10px', fontWeight: 700, color: 'var(--t3, #6B5C51)',
     textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', marginTop: '4px',
   }
 
@@ -100,7 +100,7 @@ export function ImpostazioniEditForm({ initialData }: Props) {
           padding: '8px 18px', borderRadius: '12px', border: 'none',
           background: 'var(--elv, #EDEDEA)', cursor: 'pointer',
           fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 700,
-          color: 'var(--t2, #96918D)', marginBottom: '12px',
+          color: 'var(--t2, #4A3D33)', marginBottom: '12px',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
         }}
       >

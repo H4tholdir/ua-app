@@ -75,7 +75,7 @@ export function LavoroFormShell({
                   activeTab === 'dati'
                     ? 'var(--primary, #D90012)'
                     : 'var(--prs, #D4CFC9)',
-                color: activeTab === 'dati' ? 'white' : 'var(--t3, #B8B3AE)',
+                color: activeTab === 'dati' ? 'white' : 'var(--t3, #6B5C51)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -90,7 +90,7 @@ export function LavoroFormShell({
               style={{
                 fontSize: 13,
                 fontFamily: 'DM Sans, sans-serif',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 fontWeight: activeTab === 'dati' ? 700 : 400,
               }}
             >
@@ -124,7 +124,7 @@ export function LavoroFormShell({
                 color:
                   activeTab === 'accettazione'
                     ? 'white'
-                    : 'var(--t3, #B8B3AE)',
+                    : 'var(--t3, #6B5C51)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -139,7 +139,7 @@ export function LavoroFormShell({
               style={{
                 fontSize: 13,
                 fontFamily: 'DM Sans, sans-serif',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 fontWeight: activeTab === 'accettazione' ? 700 : 400,
               }}
             >
@@ -188,7 +188,7 @@ export function LavoroFormShell({
                   border: 'none',
                   cursor: 'pointer',
                   background: isActive ? 'var(--gold, #D4A843)' : 'var(--elv, #EDEDEA)',
-                  color: isActive ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
+                  color: isActive ? 'var(--t1, #1C1916)' : 'var(--t2, #4A3D33)',
                   flexShrink: 0,
                   boxShadow: isActive
                     ? '0 0 12px hsl(43 65% 55% / 0.25)'

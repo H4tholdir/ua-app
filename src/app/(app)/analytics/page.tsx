@@ -72,7 +72,7 @@ function BarChart({ data, height = 120 }: BarChartProps) {
             x={x} y={height + 16}
             textAnchor="middle"
             fontSize={9}
-            fill="var(--t3, #B8B3AE)"
+            fill="var(--t3, #6B5C51)"
             fontFamily="DM Sans, sans-serif"
           >
             {d.label}
@@ -120,7 +120,7 @@ function KpiCard({
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 500,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           lineHeight: 1.3,
         }}
       >
@@ -235,7 +235,7 @@ export default async function AnalyticsPage() {
         {trend.length > 0 && (
           <section style={{ marginBottom: '24px' }}>
             <h3 style={{
-              fontSize: 14, fontWeight: 700, color: 'var(--t2, #96918D)',
+              fontSize: 14, fontWeight: 700, color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase', letterSpacing: '0.05em',
               marginBottom: 12, marginTop: 0,
               fontFamily: 'DM Sans, sans-serif',
@@ -249,7 +249,7 @@ export default async function AnalyticsPage() {
             }}>
               <BarChart data={trend} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--t2, #96918D)', fontFamily: 'DM Sans, sans-serif' }}>
+                <span style={{ fontSize: 12, color: 'var(--t2, #4A3D33)', fontFamily: 'DM Sans, sans-serif' }}>
                   Totale anno: €{trend.reduce((s, d) => s + d.totale, 0).toLocaleString('it-IT', { maximumFractionDigits: 0 })}
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--primary, #D90012)', fontWeight: 700, fontFamily: 'DM Sans, sans-serif' }}>
@@ -266,7 +266,7 @@ export default async function AnalyticsPage() {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textAlign: 'center',
               margin: 0,
             }}

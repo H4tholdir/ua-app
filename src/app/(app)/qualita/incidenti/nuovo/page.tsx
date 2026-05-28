@@ -43,7 +43,7 @@ const labelStyle: React.CSSProperties = {
   fontFamily,
   fontSize: '11px',
   fontWeight: 700,
-  color: 'var(--t2, #96918D)',
+  color: 'var(--t2, #4A3D33)',
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   marginBottom: '6px',

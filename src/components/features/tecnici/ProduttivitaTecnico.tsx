@@ -62,7 +62,7 @@ function KpiCard({ label, value, color, delay, reduced }: KpiCardProps) {
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           margin: 0,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
@@ -112,7 +112,7 @@ function StoricoBarre4({ storico, meseCorrente }: StoricoBarre4Props) {
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
           fontWeight: 600,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           margin: '0 0 12px',
@@ -146,7 +146,7 @@ function StoricoBarre4({ storico, meseCorrente }: StoricoBarre4Props) {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '10px',
-                  color: isCorrente ? 'var(--primary, #D90012)' : 'var(--t2, #96918D)',
+                  color: isCorrente ? 'var(--primary, #D90012)' : 'var(--t2, #4A3D33)',
                   fontWeight: isCorrente ? 700 : 400,
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -174,7 +174,7 @@ function StoricoBarre4({ storico, meseCorrente }: StoricoBarre4Props) {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   fontWeight: isCorrente ? 700 : 400,
-                  color: isCorrente ? 'var(--primary, #D90012)' : 'var(--t2, #96918D)',
+                  color: isCorrente ? 'var(--primary, #D90012)' : 'var(--t2, #4A3D33)',
                 }}
               >
                 {s.label}
@@ -230,7 +230,7 @@ function StreakSettimanale({ giorniConLavori }: StreakSettimanaleProps) {
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '11px',
           fontWeight: 600,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           margin: '0 0 8px',
@@ -286,7 +286,7 @@ function StreakSettimanale({ giorniConLavori }: StreakSettimanaleProps) {
                   ? 'var(--primary, #D90012)'
                   : (isPast && hasWork)
                     ? 'var(--success, #16A34A)'
-                    : 'var(--t3, #B8B3AE)',
+                    : 'var(--t3, #6B5C51)',
                 fontWeight: isOggi ? 700 : 400,
               }}
             >
@@ -391,7 +391,7 @@ export function ProduttivitaTecnico({
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '14px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
           }}
         >
@@ -443,7 +443,7 @@ export function ProduttivitaTecnico({
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             margin: '0 0 4px',
@@ -478,7 +478,7 @@ export function ProduttivitaTecnico({
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                 }}
               >
                 Target mensile: {formatEur(compensoBase)} · {targetPct}%
@@ -512,7 +512,7 @@ export function ProduttivitaTecnico({
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '11px',
-              color: 'var(--t3, #B8B3AE)',
+              color: 'var(--t3, #6B5C51)',
               margin: 0,
             }}
           >
@@ -568,7 +568,7 @@ export function ProduttivitaTecnico({
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             textTransform: 'uppercase',
             letterSpacing: '0.06em',
             margin: '0 0 8px',
@@ -591,7 +591,7 @@ export function ProduttivitaTecnico({
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '14px',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 margin: 0,
               }}
             >
@@ -648,7 +648,7 @@ export function ProduttivitaTecnico({
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         margin: 0,
                       }}
                     >

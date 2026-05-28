@@ -107,7 +107,7 @@ function ToggleSwitch({ id, checked, onChange, label, sub, reduced }: ToggleSwit
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: '2px 0 0',
             }}
           >
@@ -276,7 +276,7 @@ export function TabAccettazione({
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '10px',
             fontWeight: 700,
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
             marginBottom: '16px',
@@ -449,7 +449,7 @@ export function TabAccettazione({
                       height: '22px',
                       minWidth: '22px',
                       borderRadius: '6px',
-                      border: checked ? 'none' : '2px solid var(--t3, #B8B3AE)',
+                      border: checked ? 'none' : '2px solid var(--t3, #6B5C51)',
                       background: checked ? 'var(--gold, #D4A843)' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
@@ -556,7 +556,7 @@ export function TabAccettazione({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
               fontWeight: 700,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               margin: 0,
@@ -569,7 +569,7 @@ export function TabAccettazione({
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
               fontWeight: 700,
-              color: score === 3 ? 'var(--success, #16A34A)' : 'var(--t2, #96918D)',
+              color: score === 3 ? 'var(--success, #16A34A)' : 'var(--t2, #4A3D33)',
               margin: 0,
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -596,7 +596,7 @@ export function TabAccettazione({
             style={{
               height: '100%',
               borderRadius: '3px',
-              background: score === 3 ? 'var(--success, #16A34A)' : score === 2 ? 'var(--gold, #D4A843)' : 'var(--t3, #B8B3AE)',
+              background: score === 3 ? 'var(--success, #16A34A)' : score === 2 ? 'var(--gold, #D4A843)' : 'var(--t3, #6B5C51)',
               width: reduced ? `${scorePercent}%` : undefined,
             }}
           />
@@ -620,7 +620,7 @@ export function TabAccettazione({
                 gap: '8px',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                color: item.ok ? 'var(--success, #16A34A)' : 'var(--t2, #96918D)',
+                color: item.ok ? 'var(--success, #16A34A)' : 'var(--t2, #4A3D33)',
               }}
             >
               <span aria-hidden="true">{item.ok ? '✓' : '⚠'}</span>

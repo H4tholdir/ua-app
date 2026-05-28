@@ -39,7 +39,7 @@ const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' 
 function urgencyColor(giorni: number): string {
   if (giorni > 60) return '#D90012'   // rosso urgente
   if (giorni >= 30) return 'var(--gold, #D4A843)'  // oro / amber
-  return 'var(--t2, #96918D)'                    // blu cobalto normale
+  return 'var(--t2, #4A3D33)'                    // blu cobalto normale
 }
 
 function urgencyLabel(giorni: number): string {
@@ -143,7 +143,7 @@ function InsolutoCard({
                 margin: '2px 0 0',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
               }}
             >
               {item.fatture.length} {item.fatture.length === 1 ? 'fattura' : 'fatture'} non pagate
@@ -191,7 +191,7 @@ function InsolutoCard({
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
             }}
           >
             max {item.giorni_max_ritardo}gg
@@ -254,7 +254,7 @@ function InsolutoCard({
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '13px',
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                       }}
                     >
                       {new Date(f.data).toLocaleDateString('it-IT', {
@@ -392,7 +392,7 @@ export function ScadenzarioList() {
       <div
         style={{
           padding: '20px',
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '15px',
         }}
@@ -432,7 +432,7 @@ export function ScadenzarioList() {
             margin: 0,
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
           }}
         >
           Tutti i pagamenti sono in regola.
@@ -467,7 +467,7 @@ export function ScadenzarioList() {
               margin: 0,
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -493,7 +493,7 @@ export function ScadenzarioList() {
               margin: 0,
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}

@@ -65,7 +65,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '15px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
           }}
         >
@@ -112,7 +112,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '11px',
                     fontWeight: 700,
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -138,7 +138,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                   style={{
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '11px',
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     flexShrink: 0,
                   }}
                 >
