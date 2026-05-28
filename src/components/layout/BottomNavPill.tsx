@@ -6,11 +6,11 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
 
-// Design tokens v2.2 — warm panna palette
+// Design tokens v2.3 — warm panna palette
 const DS = {
   elv:     'var(--elv, #EDEDEA)',
   t1:      'var(--t1, #1C1916)',
-  t2:      'var(--t2, #96918D)',
+  t2:      'var(--t2, #4A3D33)',
   primary: 'var(--primary, #D90012)',
   shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
         -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
@@ -308,6 +308,7 @@ export function BottomNavPill() {
                 href={tab.href}
                 aria-label={tab.ariaLabel}
                 aria-current={active ? 'page' : undefined}
+                className="ua-tasto-plus"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -317,11 +318,9 @@ export function BottomNavPill() {
                   minWidth: '56px',
                   minHeight: '56px',
                   borderRadius: '50%',
-                  background: 'var(--elv, #EDEDEA)',
                   color: DS.primary,
                   textDecoration: 'none',
                   flexShrink: 0,
-                  boxShadow: active ? DS.shI : DS.shB,
                 }}
               >
                 {tab.icon}
@@ -416,7 +415,7 @@ export function BottomNavPill() {
             <div style={{
               textAlign: 'center',
               fontSize: '9px',
-              color: 'var(--t3, #B8B3AE)',
+              color: 'var(--t3, #6B5C51)',
               fontFamily: 'DM Sans, sans-serif',
               marginTop: '4px',
               paddingBottom: '4px',
@@ -456,7 +455,7 @@ export function BottomNavPill() {
               <div style={{
                 textAlign: 'center',
                 fontSize: '9px',
-                color: 'var(--t3, #B8B3AE)',
+                color: 'var(--t3, #6B5C51)',
                 fontFamily: 'DM Sans, sans-serif',
                 marginTop: '4px',
                 paddingBottom: '4px',

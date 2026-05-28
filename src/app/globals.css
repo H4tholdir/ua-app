@@ -1372,3 +1372,55 @@
     display: block !important;
   }
 }
+
+/* ── Tasto+ circolare v2.3 — bottone fisico per BottomNavPill CTA ── */
+.ua-tasto-plus {
+  position: relative;
+  background: #EFEEEB;
+  box-shadow:
+    rgba(82,72,62,.28) 0 0 0 1.5px inset,
+    rgba(255,255,255,.72) 0 2px 3px 0 inset,
+    rgba(148,128,118,.38) 5px 9px 20px -2px,
+    rgba(148,128,118,.22) 2px 4px 9px -1px;
+  transition:
+    transform .12s cubic-bezier(.2,0,0,1),
+    box-shadow .12s cubic-bezier(.2,0,0,1);
+}
+
+.ua-tasto-plus::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(82,72,62,.10);
+  pointer-events: none;
+}
+
+.ua-tasto-plus:active,
+.ua-tasto-plus[aria-current="page"] {
+  transform: scale(.95) translateY(1px);
+  box-shadow:
+    rgba(82,72,62,.32) 3px 3px 8px 0 inset,
+    rgba(255,255,255,.54) -2px -2px 6px 0 inset;
+}
+
+.dark .ua-tasto-plus {
+  background: radial-gradient(circle at 35% 30%, #2E2C2A, #252320, #1E1C1A);
+  box-shadow:
+    rgba(255,255,255,.06) 0 1px 0 inset,
+    rgba(0,0,0,.40) 0 -2px 4px inset,
+    rgba(0,0,0,.65) 5px 9px 20px -2px,
+    rgba(0,0,0,.38) 2px 4px 9px -1px;
+}
+
+.dark .ua-tasto-plus::before {
+  border-color: rgba(255,255,255,.07);
+}
+
+.dark .ua-tasto-plus:active,
+.dark .ua-tasto-plus[aria-current="page"] {
+  transform: scale(.95) translateY(1px);
+  box-shadow:
+    rgba(0,0,0,.75) 3px 3px 9px 0 inset,
+    rgba(255,255,255,.04) -2px -2px 6px 0 inset;
+}
