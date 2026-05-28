@@ -13,7 +13,7 @@ const TIPI_INCIDENTE = [
 ] as const
 
 const GRAVITA_INCIDENTE = [
-  { value: 'lieve', label: 'Lieve', color: 'var(--gold, #D4A843)' },
+  { value: 'lieve', label: 'Lieve', color: 'var(--c-amber, #F59E0B)' },
   { value: 'moderata', label: 'Moderata', color: 'var(--amber, #FD7E14)' },
   { value: 'grave', label: 'Grave', color: 'var(--primary, #D90012)' },
   { value: 'critica', label: 'Critica', color: 'var(--primary, #D90012)' },
@@ -343,7 +343,7 @@ export default function NuovoIncidentePage() {
             fontWeight: 700,
             boxShadow: submitting ? 'none' : '0 0 20px hsl(43 65% 55% / 0.4)',
             opacity: submitting ? 0.75 : 1,
-            transition: 'opacity 0.14s, box-shadow 0.14s',
+            transition: 'opacity var(--tr), box-shadow var(--tr)',
           }}
         >
           {submitting ? 'Salvataggio...' : 'Registra incidente'}

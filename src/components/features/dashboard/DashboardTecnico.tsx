@@ -18,8 +18,8 @@ const DS = {
   t3:      'var(--t3, #6B5C51)',
   info:    'var(--info, #2563EB)',
   primary: 'var(--primary, #D90012)',
-  shC: 'inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 2px rgba(0,0,0,.04), -5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40), 3px 5px 10px -2px rgba(148,128,118,.22)',
-  shI: 'inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)',
+  shC: 'var(--sh-c)',
+  shI: 'var(--sh-i)',
 }
 
 export interface DashboardTecnicoProps {
@@ -244,7 +244,7 @@ export function DashboardTecnico({ data, lavoriOggi, nomeUtente, tecnicoId }: Da
               fontFamily: 'DM Sans, sans-serif',
               fontSize: 28,
               fontWeight: 800,
-              color: '#16A34A',
+              color: 'var(--success, #16A34A)',
               margin: 0,
               fontVariantNumeric: 'tabular-nums',
             }}

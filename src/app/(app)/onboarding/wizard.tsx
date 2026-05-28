@@ -137,7 +137,7 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
                 <input style={inputStyle} value={(form as Record<string, string>)[key]} onChange={setF(key)} placeholder={placeholder} />
               </div>
             ))}
-            {error && <div style={{ color: '#D90012', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
+            {error && <div style={{ color: 'var(--primary, #D90012)', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
             <button style={btnPrimary} disabled={loading} onClick={async () => {
               const ok = await saveLabData({ nome: form.nome, ragione_sociale: form.ragione_sociale, partita_iva: form.partita_iva, indirizzo: form.indirizzo, cap: form.cap, citta: form.citta })
               if (ok) setStep('normativo')
@@ -167,7 +167,7 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
             <div style={{ background: 'rgba(37,99,235,.06)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', fontSize: '12px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>
               ℹ️ Non hai ancora il codice ITCA? Puoi completare questo step dopo.
             </div>
-            {error && <div style={{ color: '#D90012', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
+            {error && <div style={{ color: 'var(--primary, #D90012)', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
             <button style={btnPrimary} disabled={loading} onClick={async () => {
               const ok = await saveLabData({ codice_itca: form.codice_itca, prrc_nome: form.prrc_nome, prrc_qualifica: form.prrc_qualifica })
               if (ok) setStep('pec')
@@ -226,7 +226,7 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
             <p style={{ fontSize: '14px', color: 'var(--t2)', lineHeight: 1.7, marginBottom: '28px', fontFamily: 'DM Sans, sans-serif' }}>
               Il tuo laboratorio è configurato. Inizia subito creando il tuo primo lavoro.
             </p>
-            {error && <div style={{ color: '#D90012', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
+            {error && <div style={{ color: 'var(--primary, #D90012)', fontSize: '13px', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>{error}</div>}
             <button style={btnPrimary} disabled={loading} onClick={complete}>
               {loading ? 'Completamento…' : 'Vai alla dashboard →'}
             </button>
@@ -248,7 +248,7 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
               {stepIndex} di {STEPS.length - 2}
             </div>
             <div style={{ height: '4px', borderRadius: '99px', background: 'var(--prs)' }}>
-              <div style={{ height: '100%', borderRadius: '99px', background: 'var(--primary, #D90012)', width: `${progress}%`, transition: 'width .3s ease' }} />
+              <div style={{ height: '100%', borderRadius: '99px', background: 'var(--primary, #D90012)', width: `${progress}%`, transition: 'width var(--tr)' }} />
             </div>
           </div>
         )}

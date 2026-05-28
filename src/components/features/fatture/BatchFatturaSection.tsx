@@ -268,7 +268,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
-                color: '#16A34A',
+                color: 'var(--success, #16A34A)',
                 margin: '0 0 4px',
               }}
             >

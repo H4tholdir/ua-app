@@ -242,7 +242,7 @@ export default function NuovoLavoroPage() {
                 ? 'none'
                 : '0 0 20px hsl(43 65% 55% / 0.4)',
               opacity: submitting ? 0.75 : 1,
-              transition: 'opacity 0.14s, box-shadow 0.14s',
+              transition: 'opacity var(--tr), box-shadow var(--tr)',
             }}
           >
             {submitting ? (
