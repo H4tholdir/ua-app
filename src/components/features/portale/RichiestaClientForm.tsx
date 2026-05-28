@@ -443,7 +443,7 @@ export function RichiestaClientForm({
               color: '#fff',
               cursor: formState === 'loading' ? 'wait' : 'pointer',
               opacity: formState === 'loading' ? 0.75 : 1,
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.22), 0 5px 14px -2px rgba(180,0,0,.38)',
+              boxShadow: 'var(--sh-red)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

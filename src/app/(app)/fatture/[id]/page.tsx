@@ -40,7 +40,7 @@ export default async function FatturaDetailPage({ params }: Props) {
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+    boxShadow: 'var(--sh-b)',
     marginBottom: '12px',
   }
   const secLabel: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px', fontFamily: 'DM Sans, sans-serif' }

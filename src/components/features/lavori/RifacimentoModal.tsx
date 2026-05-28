@@ -48,7 +48,7 @@ const styles = {
     padding: '28px 24px 24px',
     width: '100%',
     maxWidth: 480,
-    boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
+    boxShadow: 'var(--sh-b, var(--sh-b))',
     maxHeight: '90vh',
     overflowY: 'auto' as const,
   },

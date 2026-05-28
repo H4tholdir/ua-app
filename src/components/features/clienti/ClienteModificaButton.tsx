@@ -33,7 +33,7 @@ export function ClienteModificaButton({ cliente }: ClienteModificaButtonProps) {
           cursor: 'pointer',
           flexShrink: 0,
           boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+            'var(--sh-b)',
         }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

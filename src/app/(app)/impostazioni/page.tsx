@@ -77,7 +77,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
         background: 'var(--surface, #E4DFD9)',
         borderRadius: '16px',
         padding: '16px',
-        boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
+        boxShadow: 'var(--sh-b, var(--sh-b))',
         marginBottom: '12px',
       }}
     >
@@ -214,7 +214,7 @@ export default async function ImpostazioniPage() {
                   fontWeight: 700,
                   fontSize: '14px',
                   textDecoration: 'none',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.22), 0 5px 14px -2px rgba(180,0,0,.38)',
+                  boxShadow: 'var(--sh-red)',
                 }}
                 aria-label="Scarica PDF Nomina PRRC"
               >

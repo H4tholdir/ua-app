@@ -544,7 +544,7 @@ export function PacchettoConsegnaSheet({
                           ? 'none'
                           : '0 0 20px rgba(217,0,18,0.35)',
                       letterSpacing: '0.02em',
-                      transition: 'background 0.08s',
+                      transition: 'background var(--tr)',
                     }}
                   >
                     {generating

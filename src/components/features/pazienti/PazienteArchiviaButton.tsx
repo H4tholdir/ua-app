@@ -52,7 +52,7 @@ export function PazienteArchiviaButton({ pazienteId, pazienteNome }: Props) {
         fontSize: '13px',
         cursor: loading ? 'wait' : 'pointer',
         opacity: loading ? 0.6 : 1,
-        transition: 'opacity 0.15s',
+        transition: 'opacity var(--tr)',
       }}
     >
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">

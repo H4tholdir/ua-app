@@ -199,7 +199,7 @@ export function SegnalaProblemaSheet({
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '13px',
                       fontWeight: isSelected ? 700 : 500,
-                      transition: 'background 0.08s, border-color 0.08s, color 0.08s, box-shadow 0.08s',
+                      transition: 'background var(--tr), border-color var(--tr), color var(--tr), box-shadow var(--tr)',
                       WebkitTapHighlightColor: 'transparent',
                     }}
                     aria-pressed={isSelected}
@@ -273,7 +273,7 @@ export function SegnalaProblemaSheet({
                   gap: '8px',
                   minHeight: '52px',
                   letterSpacing: '0.01em',
-                  transition: 'background 0.08s',
+                  transition: 'background var(--tr)',
                 }}
                 aria-busy={loading}
               >

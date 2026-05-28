@@ -243,7 +243,7 @@ export function OrdinaBatchBanner({ articoliSottoScorta }: OrdinaBatchBannerProp
                 borderRadius: 4,
                 background: 'var(--gold, #D4A843)',
                 width: `${Math.round((stato.completati / stato.totale) * 100)}%`,
-                transition: 'width 0.2s ease',
+                transition: 'width var(--tr)',
               }}
             />
           </div>

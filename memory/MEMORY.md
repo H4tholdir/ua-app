@@ -1,11 +1,11 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 25 maggio 2026 — V1.9.1 Fix residui S1 in main, deploy via Vercel CI/CD
+**Ultimo aggiornamento:** 28 maggio 2026 — Design System v2.3 implementazione completa su tutta la PWA
 
 ---
 
-## 0. STATO DEL PROGETTO — V1.9.1 IN MAIN
+## 0. STATO DEL PROGETTO — DS v2.3 LIVE IN MAIN
 
-**V1.9.1 mergiato su main — 25/05/2026 — deploy automatico via Vercel CI/CD**
+**DS v2.3 mergiato su main — 28/05/2026 — commit `63f93e5` + compliance commit — deploy Vercel ✅**
 
 | Versione | Data | Tag | Contenuto |
 |----------|------|-----|-----------|
@@ -20,9 +20,37 @@
 | V1.9.0 | 23/05/2026 | `v1.9.0` (9bda106) | Dashboard V2: Spotlight, KPI filtri, ruolo ibrido, SyncBadge, nav personalizzabile |
 | V1.9.1 | 25/05/2026 | `main` (96ed542) | Fix residui S1: LIVE badge rimosso, preferenza_dashboard toggle, Da fatturare lista inline |
 | V1.9.2 | 26/05/2026 | `main` (78b6a29) | S2: RifacimentoButton — bottom sheet 7 motivi, textarea note, motion policy, mockup approvato |
-| **DS v2.3** | **28/05/2026** | **`main` (pending)** | **Brainstorming completato: tokens.ts, spec, motion tassonomia 4 cat., piano implementazione** |
+| **V1.9.3** | **28/05/2026** | **`main` (63f93e5+)** | **Design System v2.3 — implementazione completa su tutta la PWA** |
 
 **Stato CI:** TypeScript: 0 errori · ESLint: 0 warning · Vitest: 157/157 · Build: ✅
+
+---
+
+### ✅ Design System v2.3 — Implementazione Completa (28/05/2026)
+
+**Branch:** `feature/ds-v2-3` + `feature/ds-v2-3-compliance` — mergiati su main
+
+**Cosa è stato implementato:**
+- `globals.css` — t2 `#4A3D33` (WCAG AAA), t3 `#6B5C51` (AA), alias `--sfc`, rainbow vars `--c-*`
+- `KpiCard.tsx` — COLOR_MAP rainbow (red→c-red, amber→c-amber, gold→c-green, +tipo blue)
+- `StatoBadge.tsx` — mapping rainbow per tutti gli stati lavoro
+- `BottomNavPill.tsx` — CTA → classe CSS `.ua-tasto-plus` (fisico, `::before` corona, dark mode)
+- ~70 file — fallback t2/t3 aggiornati (`#96918D`→`#4A3D33`, `#B8B3AE`→`#6B5C51`)
+- ~20 file pagine `src/app/(app)/` — gold-as-text → `var(--c-amber)`
+- 34 file pagine + componenti — shadow inline rgba → `var(--sh-b/c/i/red)`
+- 14 file — CSS transition timing → `var(--tr)`
+- `scripts/check-ds-compliance.sh` + `.husky/pre-commit` — enforcement automatico
+
+**Spec:** `docs/superpowers/specs/2026-05-27-design-system-v2-3.md` (UNICA FONTE DI VERITÀ)
+**Token TS:** `src/design-system/tokens.ts`
+**Motion:** `src/design-system/motion.ts` v2.1 — 4 categorie
+
+**Eccezioni documentate:**
+- `analytics/page.tsx` — `accent="#D4A843"` chart SVG prop (CSS vars non applicabili)
+- `qualita/incidenti/nuovo` — `rgba(212,168,67,.50)` stato submitting button (intentional)
+- Shadow parziali custom (NuovoOrdineSheet mini-float, fatture chip, DashboardFrontDesk press 80ms) — intentional, non equivalenti a CSS vars
+
+---
 
 ### ✅ S1 Fix Residui V1.9 — Completato (25/05/2026)
 

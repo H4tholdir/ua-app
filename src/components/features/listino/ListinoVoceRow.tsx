@@ -395,7 +395,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
               flexShrink: 0,
               padding: 0,
               opacity: deleting ? 0.5 : 1,
-              transition: 'color 0.15s',
+              transition: 'color var(--tr)',
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#D90012' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--t3, #6B5C51)' }}

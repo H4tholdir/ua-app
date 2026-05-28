@@ -31,7 +31,7 @@ export default async function MagazzinoDetailPage({ params }: Props) {
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+    boxShadow: 'var(--sh-b)',
     marginBottom: '12px',
   }
   const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--elv)', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }

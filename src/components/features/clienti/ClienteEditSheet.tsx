@@ -546,10 +546,10 @@ export function ClienteEditSheet({ cliente, isOpen, onClose }: ClienteEditSheetP
                   gap: '8px',
                   minHeight: '52px',
                   letterSpacing: '0.01em',
-                  transition: 'background 0.08s',
+                  transition: 'background var(--tr)',
                   boxShadow: loading
                     ? 'none'
-                    : 'inset 0 1px 0 rgba(255,255,255,.22), 0 5px 14px -2px rgba(180,0,0,.38)',
+                    : 'var(--sh-red)',
                 }}
                 aria-busy={loading}
               >

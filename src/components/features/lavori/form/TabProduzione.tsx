@@ -186,7 +186,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                       fontWeight: 700,
                       background: isActive ? config.bgActive : config.bg,
                       color: isActive ? config.colorActive : config.color,
-                      transition: 'background 0.08s, color 0.08s',
+                      transition: 'background var(--tr), color var(--tr)',
                       boxShadow: isActive
                         ? 'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))'
                         : 'none',

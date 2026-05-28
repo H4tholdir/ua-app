@@ -116,9 +116,9 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
           fontWeight: 700,
           cursor: isPending ? 'not-allowed' : 'pointer',
           opacity: isPending ? 0.7 : 1,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.88), 9px 12px 22px -4px rgba(148,128,118,.40)',
+          boxShadow: 'var(--sh-c)',
           minHeight: '44px',
-          transition: 'opacity 0.1s',
+          transition: 'opacity var(--tr)',
         }}
         aria-busy={isPending}
       >

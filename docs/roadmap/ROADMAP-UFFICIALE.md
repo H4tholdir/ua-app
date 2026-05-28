@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 22 maggio 2026
+**Ultimo aggiornamento:** 28 maggio 2026
 **Fonte di verità:** questo file + MEMORY.md + docs di pianificazione HTML
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -7,9 +7,20 @@
 
 ---
 
-## VERSIONE CORRENTE: V1.8.1 (in produzione)
+## VERSIONE CORRENTE: V1.9.3 (in produzione)
 
-Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
+V1.9.3 — Design System v2.3 implementazione completa (28/05/2026). Vedere MEMORY.md per dettaglio.
+
+---
+
+## ✅ Design System v2.3 — COMPLETATO (28/05/2026)
+
+**Tutti i token DS v2.3 applicati all'intera PWA. Pre-commit guard attivo.**
+
+- Spec: `docs/superpowers/specs/2026-05-27-design-system-v2-3.md`
+- Token TS: `src/design-system/tokens.ts`
+- Enforcement: `scripts/check-ds-compliance.sh` + `.husky/pre-commit`
+- Pagine escluse: `src/app/(auth)/` (login/reset) e `src/app/admin/` (pannello admin)
 
 ---
 
@@ -17,12 +28,12 @@ Tutte le feature V1.x sono complete. Vedere MEMORY.md per dettaglio.
 **Priorità:** Massima — da fare PRIMA che Filippo usi l'app seriamente.
 **Stima:** 2-3 giorni di sviluppo
 
-| # | Feature | Priorità | Stima | Note |
-|---|---------|----------|-------|------|
-| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | Icona microfono su paziente, descrizione, note. Nativa browser, zero deps |
-| 2 | **Email template branding** | P0 | 3h | Logo UÀ su invito tecnico, reset password, conferma. Supabase Email Templates |
-| 3 | **Rifacimenti UI** | P0 | 6h | Bottone "Crea rifacimento" in dettaglio lavoro consegnato. RPC già esiste |
-| 4 | **Logo + firma DdC** | P0 | 4h | Upload in /impostazioni, inclusione PDF DdC. Colonne già in schema |
+| # | Feature | Priorità | Stima | Stato |
+|---|---------|----------|-------|-------|
+| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ⏳ |
+| 2 | **Email template branding** | P0 | 3h | ⏳ **← PROSSIMO** |
+| 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 |
+| 4 | **Logo + firma DdC** | P0 | 4h | ⏳ |
 ~~5 Magazzino visivo → spostato in V2.0~~ |
 
 ---

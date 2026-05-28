@@ -28,7 +28,7 @@ export default async function AbbonamentoPage() {
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+    boxShadow: 'var(--sh-b)',
     marginBottom: '12px',
   }
 
@@ -63,7 +63,7 @@ export default async function AbbonamentoPage() {
                 padding: '12px', borderRadius: '14px', textDecoration: 'none',
                 background: 'var(--elv)', color: 'var(--t1)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+                boxShadow: 'var(--sh-b)',
               }}>
                 Gestisci abbonamento →
               </a>

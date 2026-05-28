@@ -52,7 +52,7 @@ export function MagazzinoDeleteButton({ articoloId, articoloNome }: Props) {
         fontSize: '13px',
         cursor: deleting ? 'wait' : 'pointer',
         opacity: deleting ? 0.6 : 1,
-        transition: 'opacity 0.15s',
+        transition: 'opacity var(--tr)',
       }}
     >
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">

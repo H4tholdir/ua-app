@@ -101,7 +101,7 @@ export function ImpostazioniEditForm({ initialData }: Props) {
           background: 'var(--elv, #EDEDEA)', cursor: 'pointer',
           fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 700,
           color: 'var(--t2, #4A3D33)', marginBottom: '12px',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+          boxShadow: 'var(--sh-b)',
         }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -170,7 +170,7 @@ export function ImpostazioniEditForm({ initialData }: Props) {
             background: 'var(--primary, #D90012)', color: '#fff',
             fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700,
             cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .6 : 1,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px -2px rgba(180,0,0,.40)',
+            boxShadow: 'var(--sh-red)',
           }}
         >
           {loading ? 'Salvataggio…' : 'Salva modifiche'}

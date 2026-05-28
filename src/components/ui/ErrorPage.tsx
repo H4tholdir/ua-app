@@ -99,7 +99,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             fontWeight: 700,
             cursor: 'pointer',
             boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,.20), 9px 13px 22px -4px rgba(148,128,118,.44)',
+              'var(--sh-b)',
           }}
         >
           Riprova
@@ -122,7 +122,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow:
-              'inset 0 1px 0 rgba(255,255,255,.88), 9px 12px 22px -4px rgba(148,128,118,.40)',
+              'var(--sh-c)',
           }}
         >
           Torna alla dashboard

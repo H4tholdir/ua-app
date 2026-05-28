@@ -58,7 +58,7 @@ function CopyButton({
         fontWeight: 700,
         color: copied ? '#fff' : 'var(--t1, #1C1916)',
         cursor: 'pointer',
-        transition: 'background 0.14s',
+        transition: 'background var(--tr)',
         marginRight: '8px',
         marginBottom: '8px',
       }}
@@ -118,10 +118,10 @@ function SharePortaleButton({
         color: '#fff',
         cursor: loading ? 'default' : 'pointer',
         opacity: loading ? 0.7 : 1,
-        transition: 'opacity 0.14s',
+        transition: 'opacity var(--tr)',
         marginRight: '8px',
         marginBottom: '8px',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.18), 0 4px 12px -2px rgba(180,0,0,.34)',
+        boxShadow: 'var(--sh-red)',
       }}
       aria-label="Condividi portale dentista"
     >

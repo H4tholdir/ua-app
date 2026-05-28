@@ -18,7 +18,7 @@ export function SkipToContent() {
         fontWeight: 600,
         textDecoration: 'none',
         borderRadius: '0 0 8px 0',
-        transition: 'top 0.15s',
+        transition: 'top var(--tr)',
       }}
       onFocus={(e) => { (e.currentTarget as HTMLAnchorElement).style.top = '0' }}
       onBlur={(e) => { (e.currentTarget as HTMLAnchorElement).style.top = '-40px' }}

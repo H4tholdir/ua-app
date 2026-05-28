@@ -176,7 +176,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
                   padding: '10px 16px',
                   cursor: 'pointer',
                   background: isChecked ? 'rgba(217,0,18,.05)' : 'transparent',
-                  transition: 'background 0.1s',
+                  transition: 'background var(--tr)',
                 }}
               >
                 {/* Checkbox */}
@@ -309,7 +309,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
             fontSize: '15px',
             border: 'none',
             cursor: buttonActive ? 'pointer' : 'not-allowed',
-            transition: 'background 0.15s, color 0.15s',
+            transition: 'background var(--tr), color var(--tr)',
           }}
           aria-busy={loading}
         >

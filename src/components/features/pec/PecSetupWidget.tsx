@@ -26,7 +26,7 @@ const btnPrimary: React.CSSProperties = {
   width: '100%', padding: '13px', borderRadius: '14px', border: 'none',
   background: 'var(--primary, #D90012)', color: '#fff',
   fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25), 0 6px 18px -2px rgba(180,0,0,.40)',
+  boxShadow: 'var(--sh-red)',
 }
 
 export function PecSetupWidget({ onSuccess, onSkip }: Props) {
