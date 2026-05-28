@@ -15,7 +15,7 @@ import type {
 } from '@/types/domain'
 import type { LavoroDaFatturareItem } from '@/lib/dashboard/queries'
 
-// ─── DS v2.2 tokens ──────────────────────────────────────────────────────────
+// ─── DS v2.3 tokens ──────────────────────────────────────────────────────────
 
 const DS = {
   bg:     'var(--bg, #DDD8D3)',
@@ -23,8 +23,8 @@ const DS = {
   elv:    'var(--elv, #EDEDEA)',
   prs:    'var(--prs, #D4CFC9)',
   t1:     'var(--t1, #1C1916)',
-  t2:     'var(--t2, #96918D)',
-  t3:     'var(--t3, #B8B3AE)',
+  t2:     'var(--t2, #4A3D33)',
+  t3:     'var(--t3, #6B5C51)',
   primary:'var(--primary, #D90012)',
   gold:   'var(--gold, #D4A843)',
   success:'var(--success, #3DCB5C)',

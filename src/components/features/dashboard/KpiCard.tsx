@@ -1,22 +1,23 @@
 'use client'
 
-// Colori semantici per gerarchia visiva — best practices standard
-// rosso=urgente/bloccante, ambra=in ritardo, oro=economico, grigio=neutro
-type KpiColor = 'red' | 'amber' | 'gold' | 'green' | 'grey'
+// Colori semantici rainbow v2.3 — gerarchia visiva
+// red=urgente/bloccante, amber=ritardo/warning, blue=in-corso, green=positivo, grey=neutro
+type KpiColor = 'red' | 'amber' | 'gold' | 'green' | 'blue' | 'grey'
 
 const COLOR_MAP: Record<KpiColor, string> = {
-  red:   'var(--primary, #D90012)',
-  amber: 'var(--warning, #B45309)',
-  gold:  'var(--gold, #D4A843)',
-  green: 'var(--success, #3DCB5C)',
-  grey:  'var(--t2, #96918D)',
+  red:   'var(--c-red, #EF4444)',
+  amber: 'var(--c-amber, #F59E0B)',
+  gold:  'var(--c-green, #22C55E)',   // da fatturare = entrate → verde
+  green: 'var(--c-green, #22C55E)',
+  blue:  'var(--c-blue, #3B82F6)',
+  grey:  'var(--t2, #4A3D33)',
 }
 
 const DS = {
   sfc:  'var(--sfc, #E4DFD9)',
   prs:  'var(--prs, #D4CFC9)',
-  t2:   'var(--t2, #96918D)',
-  t3:   'var(--t3, #B8B3AE)',
+  t2:   'var(--t2, #4A3D33)',
+  t3:   'var(--t3, #6B5C51)',
   shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
         -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
   shI: `inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66)`,
