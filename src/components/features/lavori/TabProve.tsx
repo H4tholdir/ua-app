@@ -281,7 +281,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     <span
                       style={{
                         background: 'var(--elv, #EDEDEA)',
-                        color: 'var(--gold, #D4A843)',
+                        color: 'var(--c-amber, #F59E0B)',
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
                         fontWeight: 700,
@@ -469,7 +469,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                 borderRadius: '14px',
                 border: '1px dashed rgba(0,0,0,.06)',
                 background: 'transparent',
-                color: 'var(--gold, #D4A843)',
+                color: 'var(--c-amber, #F59E0B)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '15px',
                 fontWeight: 700,

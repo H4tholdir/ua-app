@@ -338,7 +338,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
             fontFamily: 'Playfair Display, serif',
             fontSize: '15px',
             fontWeight: 600,
-            color: 'var(--gold, #D4A843)',
+            color: 'var(--c-amber, #F59E0B)',
             display: 'block',
             fontVariantNumeric: 'tabular-nums',
           }}

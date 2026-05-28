@@ -128,7 +128,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
                   fontWeight: 700,
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   textDecoration: 'none',
                 }}
                 aria-label="Apri PDF DdC"

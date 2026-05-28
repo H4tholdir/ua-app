@@ -5,7 +5,7 @@ import Link from 'next/link'
 type FaseColor = 'gold' | 'green' | 'blue' | 'red' | 'grey'
 
 const COLOR_MAP: Record<FaseColor, string> = {
-  gold:  'var(--gold, #D4A843)',
+  gold:  'var(--c-amber, #F59E0B)',
   green: 'var(--success, #3DCB5C)',
   blue:  'var(--info, #5A5FCC)',
   red:   'var(--primary, #D90012)',

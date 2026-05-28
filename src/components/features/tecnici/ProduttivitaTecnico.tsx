@@ -324,7 +324,7 @@ export function ProduttivitaTecnico({
     data.puntualita_pct >= 90
       ? 'var(--success, #16A34A)'
       : data.puntualita_pct >= 70
-        ? '#D4A843'
+        ? 'var(--c-amber, #F59E0B)'
         : 'var(--primary, #D90012)'
 
   // Progress bar vs target

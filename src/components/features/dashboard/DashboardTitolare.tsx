@@ -520,7 +520,7 @@ function FatturaList({ items }: { items: LavoroDaFatturareItem[] }) {
               {item.data_consegna_effettiva && ` · ${formatData(item.data_consegna_effettiva)}`}
             </p>
           </div>
-          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 700, color: DS.gold }}>
+          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 700, color: 'var(--c-amber, #F59E0B)' }}>
             {formatEuro(item.prezzo_unitario)}
           </span>
         </Link>
@@ -529,7 +529,7 @@ function FatturaList({ items }: { items: LavoroDaFatturareItem[] }) {
         <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: DS.t2 }}>
           Totale da fatturare
         </span>
-        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700, color: DS.gold }}>
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 700, color: 'var(--c-amber, #F59E0B)' }}>
           {formatEuro(totale)}
         </span>
       </div>

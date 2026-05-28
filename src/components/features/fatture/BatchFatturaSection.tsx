@@ -247,7 +247,7 @@ export function BatchFatturaSection({ lavoriPronti: initialLavori }: BatchFattur
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '13px',
                       fontWeight: 700,
-                      color: 'var(--gold, #D4A843)',
+                      color: 'var(--c-amber, #F59E0B)',
                       flexShrink: 0,
                     }}
                   >

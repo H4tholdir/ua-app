@@ -38,7 +38,7 @@ const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' 
 
 function urgencyColor(giorni: number): string {
   if (giorni > 60) return '#D90012'   // rosso urgente
-  if (giorni >= 30) return 'var(--gold, #D4A843)'  // oro / amber
+  if (giorni >= 30) return 'var(--c-amber, #F59E0B)'  // oro / amber
   return 'var(--t2, #4A3D33)'                    // blu cobalto normale
 }
 
@@ -481,7 +481,7 @@ export function ScadenzarioList() {
               fontFamily: 'DM Sans, sans-serif',
               fontWeight: 700,
               fontSize: '22px',
-              color: 'var(--gold, #D4A843)',
+              color: 'var(--c-amber, #F59E0B)',
             }}
           >
             {fmt.format(totaleComplessivo)}

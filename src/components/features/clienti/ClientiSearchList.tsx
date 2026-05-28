@@ -224,7 +224,7 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
-                        color: 'var(--gold, #D4A843)',
+                        color: 'var(--c-amber, #F59E0B)',
                         margin: '2px 0 0',
                       }}
                     >
