@@ -174,7 +174,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '12px',
                   fontWeight: 700,
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   background: 'hsl(43 65% 55% / 0.15)',
                   borderRadius: '6px',
                   padding: '3px 10px',
@@ -224,7 +224,7 @@ export default async function ImpostazioniPage() {
                 Scarica Nomina PRRC PDF
               </a>
             ) : (
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: '#D90012', margin: 0 }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--primary, #D90012)', margin: 0 }}>
                 Configura nome e qualifica PRRC per scaricare la nomina
               </p>
             )}
@@ -275,7 +275,7 @@ export default async function ImpostazioniPage() {
               </span>
             </div>
             {lab.pec_verificata && (
-              <div style={{ fontSize: '11px', color: '#16A34A', fontFamily: 'DM Sans, sans-serif', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--success, #16A34A)', fontFamily: 'DM Sans, sans-serif', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>✅</span> Verificata end-to-end
               </div>
             )}
@@ -310,7 +310,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}
@@ -345,7 +345,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}
@@ -380,7 +380,7 @@ export default async function ImpostazioniPage() {
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   textDecoration: 'underline',
                   wordBreak: 'break-all',
                 }}

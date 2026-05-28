@@ -129,13 +129,13 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
   if (phase === 'success') return (
     <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
       <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(22,163,74,.12)', border: '2px solid rgba(22,163,74,.3)', display: 'grid', placeItems: 'center', fontSize: '28px' }}>✅</div>
-      <div style={{ fontSize: '18px', fontWeight: 900, color: '#16A34A', fontFamily: 'DM Sans, sans-serif' }}>PEC confermata!</div>
+      <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--success, #16A34A)', fontFamily: 'DM Sans, sans-serif' }}>PEC confermata!</div>
       <div style={{ fontSize: '13px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6 }}>
         UÀ ha ricevuto la tua email PEC e verificato l&apos;intera catena.
       </div>
       <div style={{ background: 'rgba(22,163,74,.08)', borderRadius: '12px', padding: '12px 16px', width: '100%', textAlign: 'left' }}>
         {['Connessione SMTP', 'Autenticazione', 'Invio email', 'Ricezione confermata da UÀ'].map(s => (
-          <div key={s} style={{ fontSize: '12px', color: '#16A34A', fontFamily: 'DM Sans, sans-serif', padding: '2px 0' }}>✓ {s}</div>
+          <div key={s} style={{ fontSize: '12px', color: 'var(--success, #16A34A)', fontFamily: 'DM Sans, sans-serif', padding: '2px 0' }}>✓ {s}</div>
         ))}
       </div>
       <div style={{ fontSize: '11px', color: 'var(--t3)', fontFamily: 'DM Sans, sans-serif' }}>Avanzamento automatico…</div>
@@ -164,7 +164,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
           { label: 'Attendo conferma da UÀ', done: false, active: stepsDone.sending },
         ].map(({ label, done, active }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontFamily: 'DM Sans, sans-serif', padding: '3px 0',
-            color: done ? '#16A34A' : active ? '#B45309' : 'var(--t2)' }}>
+            color: done ? 'var(--success, #16A34A)' : active ? 'var(--warning, #B45309)' : 'var(--t2)' }}>
             <span style={{ width: 16, height: 16, borderRadius: '50%', background: done ? 'rgba(22,163,74,.15)' : active ? 'rgba(180,83,9,.15)' : 'rgba(150,145,141,.1)', display: 'grid', placeItems: 'center', fontSize: 9, flexShrink: 0 }}>
               {done ? '✓' : active ? '⟳' : '○'}
             </span>
@@ -213,7 +213,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
       </div>
 
       {phase === 'provider_found' && (
-        <div style={{ background: 'rgba(22,163,74,.09)', borderRadius: '10px', padding: '8px 12px', fontSize: '11px', color: '#16A34A', fontFamily: 'DM Sans, sans-serif', display: 'flex', gap: '6px' }}>
+        <div style={{ background: 'rgba(22,163,74,.09)', borderRadius: '10px', padding: '8px 12px', fontSize: '11px', color: 'var(--success, #16A34A)', fontFamily: 'DM Sans, sans-serif', display: 'flex', gap: '6px' }}>
           <span>✅</span><span>Impostazioni SMTP precompilate in automatico</span>
         </div>
       )}
@@ -253,7 +253,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
       {phase === 'error' && (
         <div style={{ background: 'rgba(217,0,18,.07)', borderRadius: '12px', padding: '14px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#D90012', fontFamily: 'DM Sans, sans-serif', marginBottom: '6px' }}>❌ Verifica non riuscita</div>
-          <div style={{ fontSize: '12px', color: '#4A4845', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6, marginBottom: '12px' }}>{errorMsg}</div>
+          <div style={{ fontSize: '12px', color: 'var(--t2, #4A3D33)', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6, marginBottom: '12px' }}>{errorMsg}</div>
           <div style={{ fontSize: '11px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif', marginBottom: '10px' }}>Francesco ti aiuta a risolvere in pochi minuti.</div>
           <a href={waUrl} target="_blank" rel="noreferrer" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',

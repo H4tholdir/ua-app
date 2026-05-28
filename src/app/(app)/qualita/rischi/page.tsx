@@ -104,7 +104,7 @@ export default async function RischiPage() {
               Nessuna analisi rischi configurata
             </p>
             <p style={{
-              color: 'var(--gold, #D4A843)',
+              color: 'var(--c-amber, #F59E0B)',
               fontSize: '13px',
               fontFamily,
               margin: 0,
@@ -143,7 +143,7 @@ export default async function RischiPage() {
                       {formatTipoDispositivo(r.tipo_dispositivo)}
                     </span>
                     <span style={{
-                      color: 'var(--gold, #D4A843)',
+                      color: 'var(--c-amber, #F59E0B)',
                       fontSize: '11px',
                       fontWeight: 700,
                       fontFamily,

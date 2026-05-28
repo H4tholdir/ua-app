@@ -174,7 +174,7 @@ export default async function FatturePage() {
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
-            style={{ flexShrink: 0, marginTop: '1px', color: 'var(--gold, #D4A843)' }}
+            style={{ flexShrink: 0, marginTop: '1px', color: 'var(--c-amber, #F59E0B)' }}
           >
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
             <path d="M8 5v3.5M8 10.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -340,7 +340,7 @@ export default async function FatturePage() {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '14px',
                             fontWeight: 700,
-                            color: 'var(--gold, #D4A843)',
+                            color: 'var(--c-amber, #F59E0B)',
                           }}
                         >
                           {formatImporto(fattura.totale)}

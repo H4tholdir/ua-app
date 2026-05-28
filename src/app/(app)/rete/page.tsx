@@ -194,7 +194,7 @@ export default async function RetePage() {
                     {rete.nome}
                   </h3>
                   <span style={{
-                    color: 'var(--gold, #D4A843)',
+                    color: 'var(--c-amber, #F59E0B)',
                     background: 'hsl(43 65% 55% / 0.12)',
                     fontSize: '13px',
                     fontWeight: 700,

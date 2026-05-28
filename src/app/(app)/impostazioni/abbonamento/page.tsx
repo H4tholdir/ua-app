@@ -46,14 +46,14 @@ export default async function AbbonamentoPage() {
               <span style={{
                 fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px', fontFamily: 'DM Sans, sans-serif',
                 background: l.stato === 'attivo' ? 'rgba(22,163,74,.1)' : 'rgba(180,83,9,.1)',
-                color: l.stato === 'attivo' ? '#16A34A' : '#B45309',
+                color: l.stato === 'attivo' ? 'var(--success, #16A34A)' : 'var(--warning, #B45309)',
               }}>
                 {l.stato === 'trial' ? `Trial${trialDate ? ` · scade ${trialDate}` : ''}` :
                  l.stato === 'attivo' ? 'Attivo' : (l.stato as string)?.toUpperCase()}
               </span>
             </div>
             {isTrialExpiringSoon && (
-              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(180,83,9,.08)', fontSize: '13px', color: '#B45309', fontWeight: 600, marginBottom: '16px', fontFamily: 'DM Sans, sans-serif' }}>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(180,83,9,.08)', fontSize: '13px', color: 'var(--warning, #B45309)', fontWeight: 600, marginBottom: '16px', fontFamily: 'DM Sans, sans-serif' }}>
                 Il trial scade tra pochi giorni. Attiva il piano per continuare.
               </div>
             )}
@@ -71,7 +71,7 @@ export default async function AbbonamentoPage() {
               <a href="/billing" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 padding: '14px', borderRadius: '14px', textDecoration: 'none',
-                background: '#D4A843', color: '#fff',
+                background: 'var(--gold, #D4A843)', color: '#fff',
                 fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 700,
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,.28), 0 6px 18px -2px rgba(180,130,0,.38)',
               }}>

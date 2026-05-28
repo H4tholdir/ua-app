@@ -18,8 +18,7 @@ const DS = {
   t1:   'var(--t1, #1C1916)',
   t2:   'var(--t2, #4A3D33)',
   t3:   'var(--t3, #6B5C51)',
-  shB: `inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
-        -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
+  shB: 'var(--sh-b)',
 } as const
 
 export interface TaskItemProps {

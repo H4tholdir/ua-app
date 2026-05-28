@@ -114,7 +114,7 @@ export default async function PsurPage() {
               PSUR {annoRendiconto} mancante
             </p>
             <p style={{
-              color: 'var(--gold, #D4A843)',
+              color: 'var(--c-amber, #F59E0B)',
               fontSize: '13px',
               fontFamily,
               margin: '0 0 12px',
@@ -251,7 +251,7 @@ export default async function PsurPage() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      color: 'var(--gold, #D4A843)',
+                      color: 'var(--c-amber, #F59E0B)',
                       fontSize: '13px',
                       fontWeight: 600,
                       fontFamily,

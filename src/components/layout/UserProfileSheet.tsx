@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
-import { motionTokens, useReducedMotion } from '@/design-system/motion'
+import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 
 // Audio — tap feedback identico al pattern del progetto
 let _ac: AudioContext | null = null
@@ -36,8 +36,8 @@ const DS = {
   t3:   'var(--t3, #6B5C51)',
   red:  'var(--primary, #D90012)',
   green:'#16A34A',
-  shB:  `inset 0 1px 0 rgba(255,255,255,.90), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)`,
-  shI:  `inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70)`,
+  shB: 'var(--sh-b)',
+  shI: 'var(--sh-i)',
 } as const
 
 interface Props {
@@ -131,7 +131,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={reducedMotion ? { duration: 0 } : { duration: 0.2 }}
+              transition={reducedMotion ? { duration: 0 } : t('fast', 'enter')}
               onClick={closeSheet}
               style={{
                 position: 'fixed', inset: 0, zIndex: 70,

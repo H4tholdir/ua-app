@@ -30,12 +30,9 @@ const DS = {
   success:'var(--success, #3DCB5C)',
   warning:'var(--warning, #B45309)',
   border: 'var(--border, rgba(0,0,0,.06))',
-  shB: `inset 0 1px 0 rgba(255,255,255,.90),inset 0 -2px 3px rgba(0,0,0,.05),
-        -5px -5px 11px rgba(255,255,255,.78),9px 13px 22px -4px rgba(148,128,118,.44)`,
-  shC: `inset 0 1px 0 rgba(255,255,255,.88),inset 0 -1px 2px rgba(0,0,0,.04),
-        -5px -5px 11px rgba(255,255,255,.72),9px 12px 22px -4px rgba(148,128,118,.40),
-        3px 5px 10px -2px rgba(148,128,118,.22)`,
-  shI: `inset 4px 4px 9px rgba(148,128,118,.32),inset -3px -3px 7px rgba(255,255,255,.66)`,
+  shB: 'var(--sh-b)',
+  shC: 'var(--sh-c)',
+  shI: 'var(--sh-i)',
 } as const
 
 // ─── Types ────────────────────────────────────────────────────────────────────

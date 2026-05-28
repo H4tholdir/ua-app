@@ -150,7 +150,7 @@ export default async function QualitaPage() {
                     )}
                     {item.azione_correttiva && (
                       <div style={{
-                        color: 'var(--gold, #D4A843)',
+                        color: 'var(--c-amber, #F59E0B)',
                         fontSize: '13px',
                         fontFamily: "'DM Sans', system-ui, sans-serif",
                       }}>
@@ -361,7 +361,7 @@ export default async function QualitaPage() {
             <Link
               href="/qualita/psur"
               style={{
-                color: 'var(--gold, #D4A843)',
+                color: 'var(--c-amber, #F59E0B)',
                 fontSize: '14px',
                 fontWeight: 600,
                 textDecoration: 'none',

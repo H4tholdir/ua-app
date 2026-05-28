@@ -143,7 +143,7 @@ export default async function AgendaPage() {
                   fontFamily: 'Playfair Display, serif',
                   fontSize: '18px',
                   fontWeight: 700,
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   margin: '0 0 10px',
                   textTransform: 'capitalize',
                 }}
@@ -231,7 +231,7 @@ export default async function AgendaPage() {
                                   fontFamily: 'Playfair Display, serif',
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: 'var(--gold, #D4A843)',
+                                  color: 'var(--c-amber, #F59E0B)',
                                   flexShrink: 0,
                                 }}
                               >
