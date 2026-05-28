@@ -54,28 +54,37 @@
   --font-dm-sans: 'DM Sans', system-ui, sans-serif;
   --font-playfair: 'Playfair Display', Georgia, serif;
 
-  /* ── Design System v2.2 — Global tokens (app pages) ──────────────── */
+  /* ── Design System v2.3 — Global tokens (app pages) ──────────────── */
   /* Sfondo panna warm — da admin.css, confermato pixel-check          */
   --bg:      #DDD8D3;
   --surface: #E4DFD9;
+  --sfc:     #E4DFD9;   /* alias v2.3 — usa --sfc nei nuovi componenti */
   --elv:     #EDEDEA;
   --prs:     #D4CFC9;
 
-  /* Testo warm — tutti WCAG AA */
-  --t1:      #1C1916;   /* 14.5:1 su --bg */
-  --t2:      #96918D;   /* 4.7:1 su --bg */
-  --t3:      #B8B3AE;   /* label, placeholder */
+  /* Testo warm — tutti WCAG AA (v2.3: t2/t3 aggiornati) */
+  --t1:      #1C1916;   /* 12.4:1 su --bg → AAA */
+  --t2:      #4A3D33;   /* 7.4:1 su --bg → AAA (era #96918D: WCAG fail) */
+  --t3:      #6B5C51;   /* 4.5:1 su --bg → AA  (era #B8B3AE: WCAG fail) */
 
-  /* Colori semantici */
+  /* Colori semantici legacy */
   --primary:   #D90012;
   --primary-d: #A80010;
   --success:   #16A34A;
   --urgente:   #F97316;
   --warning:   #B45309;
   --info:      #2563EB;
-  --gold:      #D4A843;  /* CTA cerimoniale: CONSEGNA, firma DdC */
+  --gold:      #D4A843;  /* CTA cerimoniale: CONSEGNA, firma DdC — MAI come testo */
   --amber:     #FD7E14;  /* Warning MDR: PSUR mancante, rischi */
   --purple:    #7C3AED;  /* STL non assegnati */
+
+  /* Colori semantici rainbow v2.3 — per KPI, badge, stati */
+  --c-blue:   #3B82F6;
+  --c-green:  #22C55E;
+  --c-amber:  #F59E0B;
+  --c-orange: #F97316;
+  --c-red:    #EF4444;
+  --c-purple: #8B5CF6;
 
   /* Shadows warm-tinted asimmetriche (da admin.css) */
   --sh-c:
@@ -136,14 +145,15 @@
 }
 
 .dark {
-  /* ── Design System v2.2 — Dark mode tokens ──────────────────── */
+  /* ── Design System v2.3 — Dark mode tokens ──────────────────── */
   --bg:      #1A1916;
-  --surface: #222019;
+  --surface: #232018;
+  --sfc:     #232018;   /* alias v2.3 */
   --elv:     #2C2A27;
-  --prs:     #121110;
+  --prs:     #141210;
   --t1:      #F0EDE8;
   --t2:      #8A8580;
-  --t3:      #555250;
+  --t3:      #5A5652;
   --primary: #E8001A;
   --sh-c:
     inset 0 1px 0 rgba(255,255,255,.055),
@@ -1361,4 +1371,56 @@
   .ua-desktop-only {
     display: block !important;
   }
+}
+
+/* ── Tasto+ circolare v2.3 — bottone fisico per BottomNavPill CTA ── */
+.ua-tasto-plus {
+  position: relative;
+  background: #EFEEEB;
+  box-shadow:
+    rgba(82,72,62,.28) 0 0 0 1.5px inset,
+    rgba(255,255,255,.72) 0 2px 3px 0 inset,
+    rgba(148,128,118,.38) 5px 9px 20px -2px,
+    rgba(148,128,118,.22) 2px 4px 9px -1px;
+  transition:
+    transform .12s cubic-bezier(.2,0,0,1),
+    box-shadow .12s cubic-bezier(.2,0,0,1);
+}
+
+.ua-tasto-plus::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(82,72,62,.10);
+  pointer-events: none;
+}
+
+.ua-tasto-plus:active,
+.ua-tasto-plus[aria-current="page"] {
+  transform: scale(.95) translateY(1px);
+  box-shadow:
+    rgba(82,72,62,.32) 3px 3px 8px 0 inset,
+    rgba(255,255,255,.54) -2px -2px 6px 0 inset;
+}
+
+.dark .ua-tasto-plus {
+  background: radial-gradient(circle at 35% 30%, #2E2C2A, #252320, #1E1C1A);
+  box-shadow:
+    rgba(255,255,255,.06) 0 1px 0 inset,
+    rgba(0,0,0,.40) 0 -2px 4px inset,
+    rgba(0,0,0,.65) 5px 9px 20px -2px,
+    rgba(0,0,0,.38) 2px 4px 9px -1px;
+}
+
+.dark .ua-tasto-plus::before {
+  border-color: rgba(255,255,255,.07);
+}
+
+.dark .ua-tasto-plus:active,
+.dark .ua-tasto-plus[aria-current="page"] {
+  transform: scale(.95) translateY(1px);
+  box-shadow:
+    rgba(0,0,0,.75) 3px 3px 9px 0 inset,
+    rgba(255,255,255,.04) -2px -2px 6px 0 inset;
 }

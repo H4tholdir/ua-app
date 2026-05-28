@@ -12,8 +12,8 @@ const DS = {
   surface: 'var(--surface, #E4DFD9)',
   sfc:     'var(--sfc, #E4DFD9)',
   t1:      'var(--t1, #1C1916)',
-  t2:      'var(--t2, #96918D)',
-  t3:      'var(--t3, #B8B3AE)',
+  t2:      'var(--t2, #4A3D33)',
+  t3:      'var(--t3, #6B5C51)',
   prs:     'var(--prs, #D4CFC9)',
 }
 
@@ -36,10 +36,10 @@ const STATO_COLORS: Record<StatoLavoro, string> = {
   in_prova_esterna: 'var(--warning, #B45309)',
   in_lavorazione:   'var(--info, #2563EB)',
   pronto:           'var(--success, #16A34A)',
-  consegnato:       'var(--t3, #B8B3AE)',
-  ricevuto:         'var(--t3, #B8B3AE)',
-  annullato:        'var(--t3, #B8B3AE)',
-  sospeso:          'var(--t3, #B8B3AE)',
+  consegnato:       'var(--t3, #6B5C51)',
+  ricevuto:         'var(--t3, #6B5C51)',
+  annullato:        'var(--t3, #6B5C51)',
+  sospeso:          'var(--t3, #6B5C51)',
 }
 
 // ─── Timeline ────────────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ function SheetAction({
           {title}
         </p>
         {sub && (
-          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--t2, #96918D)', margin: '2px 0 0' }}>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--t2, #4A3D33)', margin: '2px 0 0' }}>
             {sub}
           </p>
         )}
@@ -688,7 +688,7 @@ export function LavoroCard({
             fontWeight: 700,
             color: (fasi_completate ?? 0) >= fasi_totali
               ? 'var(--success, #16A34A)'
-              : 'var(--t2, #96918D)',
+              : 'var(--t2, #4A3D33)',
             whiteSpace: 'nowrap',
             fontFamily: 'DM Sans, sans-serif',
             fontVariantNumeric: 'tabular-nums',

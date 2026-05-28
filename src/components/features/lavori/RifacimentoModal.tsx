@@ -57,7 +57,7 @@ const styles = {
     fontFamily: 'DM Sans, sans-serif',
     fontSize: 13,
     fontWeight: 600,
-    color: 'var(--t2, #96918D)',
+    color: 'var(--t2, #4A3D33)',
     letterSpacing: '0.04em',
     textTransform: 'uppercase' as const,
     marginBottom: 6,
@@ -136,7 +136,7 @@ const styles = {
     width: '100%',
     height: 52,
     background: 'transparent',
-    color: 'var(--t2, #96918D)',
+    color: 'var(--t2, #4A3D33)',
     border: '1px solid rgba(0,0,0,.06)',
     borderRadius: 12,
     fontFamily: 'DM Sans, sans-serif',
@@ -167,7 +167,7 @@ const styles = {
   subtitle: {
     fontFamily: 'DM Sans, sans-serif',
     fontSize: 13,
-    color: 'var(--t2, #96918D)',
+    color: 'var(--t2, #4A3D33)',
     marginBottom: 24,
   },
   divider: {
@@ -332,7 +332,7 @@ export function RifacimentoModal({ lavoroId, numeroLavoro, onClose }: Props) {
               />
               <span
                 id="costo-hint"
-                style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--t2, #96918D)', marginTop: 4, display: 'block' }}
+                style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--t2, #4A3D33)', marginTop: 4, display: 'block' }}
               >
                 Non addebitato al cliente — uso interno per analisi qualità
               </span>

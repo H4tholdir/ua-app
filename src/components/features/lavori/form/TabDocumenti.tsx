@@ -36,7 +36,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
               fontWeight: 700,
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
             }}
@@ -128,7 +128,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
                   fontWeight: 700,
-                  color: 'var(--gold, #D4A843)',
+                  color: 'var(--c-amber, #F59E0B)',
                   textDecoration: 'none',
                 }}
                 aria-label="Apri PDF DdC"
@@ -147,7 +147,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '13px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: 0,
               lineHeight: '1.5',
             }}
@@ -178,10 +178,10 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
           aria-hidden="true"
           style={{ flexShrink: 0, marginTop: '1px' }}
         >
-          <circle cx="8" cy="8" r="7" stroke="var(--t2, #96918D)" strokeWidth="1.4" />
+          <circle cx="8" cy="8" r="7" stroke="var(--t2, #4A3D33)" strokeWidth="1.4" />
           <path
             d="M8 7v4M8 5.5v.5"
-            stroke="var(--t2, #96918D)"
+            stroke="var(--t2, #4A3D33)"
             strokeWidth="1.4"
             strokeLinecap="round"
           />
@@ -190,7 +190,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             margin: 0,
             lineHeight: '1.5',
           }}

@@ -94,7 +94,7 @@ export async function POST(req: Request) {
             <a href="${inviteUrl}" style="display: inline-block; padding: 14px 28px; background: #D90012; color: #fff; text-decoration: none; border-radius: 12px; font-size: 15px; font-weight: 700;">
               Accetta l'invito →
             </a>
-            <p style="font-size: 12px; color: #96918D; margin: 24px 0 0; line-height: 1.5;">
+            <p style="font-size: 12px; color: #4A3D33; margin: 24px 0 0; line-height: 1.5;">
               Il link scade tra 72 ore. Se non hai richiesto questo invito, ignora questa email.<br/>
               UÀ — Dalla prescrizione alla consegna, tutto in un tap.
             </p>

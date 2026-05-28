@@ -16,8 +16,8 @@ const PIANO_LABEL: Record<string, string> = {
 }
 
 const PIANO_COLOR: Record<string, string> = {
-  freemium: 'var(--t2, #96918D)',
-  solo: 'var(--t2, #96918D)',
+  freemium: 'var(--t2, #4A3D33)',
+  solo: 'var(--t2, #4A3D33)',
   lab: 'var(--gold, #D4A843)',
   studio: 'var(--success, #16A34A)',
 }
@@ -56,7 +56,7 @@ export default async function RetePage() {
             textAlign: 'center',
           }}>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '14px',
               fontFamily,
               margin: '0 0 6px',
@@ -64,7 +64,7 @@ export default async function RetePage() {
               Nessuna rete configurata.
             </p>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '13px',
               fontFamily,
               margin: 0,
@@ -130,7 +130,7 @@ export default async function RetePage() {
             textAlign: 'center',
           }}>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '14px',
               fontFamily,
               margin: '0 0 6px',
@@ -138,7 +138,7 @@ export default async function RetePage() {
               Nessuna rete configurata
             </p>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '13px',
               fontFamily,
               margin: '0 0 16px',
@@ -232,7 +232,7 @@ export default async function RetePage() {
                         </p>
                         {m.lab?.citta && (
                           <p style={{
-                            color: 'var(--t2, #96918D)',
+                            color: 'var(--t2, #4A3D33)',
                             fontSize: '12px',
                             fontFamily,
                             margin: 0,
@@ -244,7 +244,7 @@ export default async function RetePage() {
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                         {m.lab?.piano && (
                           <span style={{
-                            color: PIANO_COLOR[m.lab.piano] ?? 'var(--t2, #96918D)',
+                            color: PIANO_COLOR[m.lab.piano] ?? 'var(--t2, #4A3D33)',
                             fontSize: '13px',
                             fontWeight: 700,
                             fontFamily,
@@ -279,7 +279,7 @@ export default async function RetePage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     fontSize: '13px',
                     fontWeight: 600,
                     textDecoration: 'none',

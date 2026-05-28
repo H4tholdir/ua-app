@@ -101,7 +101,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
           gap: '6px',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
         }}
       >
         <ProgressRing progress={progress} />
@@ -144,7 +144,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
       style={{
         fontFamily: 'DM Sans, sans-serif',
         fontSize: '12px',
-        color: 'var(--t3, #B8B3AE)',
+        color: 'var(--t3, #6B5C51)',
       }}
     >
       —
@@ -359,7 +359,7 @@ export function PacchettoConsegnaSheet({
                   width: '36px',
                   height: '4px',
                   borderRadius: '2px',
-                  background: 'var(--t3, #B8B3AE)',
+                  background: 'var(--t3, #6B5C51)',
                 }}
                 aria-hidden="true"
               />
@@ -382,7 +382,7 @@ export function PacchettoConsegnaSheet({
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   margin: '0 0 16px',
                 }}
               >
@@ -430,7 +430,7 @@ export function PacchettoConsegnaSheet({
                           borderRadius: '6px',
                           border: doc.selected
                             ? '2px solid var(--primary, #D90012)'
-                            : '2px solid var(--t3, #B8B3AE)',
+                            : '2px solid var(--t3, #6B5C51)',
                           background: doc.selected ? 'var(--primary, #D90012)' : 'transparent',
                           cursor: generating || doc.stato === 'loading' ? 'not-allowed' : 'pointer',
                           flexShrink: 0,
@@ -470,7 +470,7 @@ export function PacchettoConsegnaSheet({
                           fontWeight: doc.selected ? 600 : 400,
                           color: doc.selected
                             ? 'var(--t1, #1C1916)'
-                            : 'var(--t2, #96918D)',
+                            : 'var(--t2, #4A3D33)',
                           lineHeight: 1.3,
                         }}
                       >
@@ -532,7 +532,7 @@ export function PacchettoConsegnaSheet({
                           : 'var(--primary, #D90012)',
                       color:
                         generating || selectedCount === 0
-                          ? 'var(--t2, #96918D)'
+                          ? 'var(--t2, #4A3D33)'
                           : '#ffffff',
                       fontFamily: 'DM Sans, sans-serif',
                       fontSize: '15px',
@@ -593,7 +593,7 @@ export function PacchettoConsegnaSheet({
                       />
                       <path
                         d="M3 10v3a1 1 0 001 1h8a1 1 0 001-1v-3"
-                        stroke="var(--t2, #96918D)"
+                        stroke="var(--t2, #4A3D33)"
                         strokeWidth="1.5"
                         strokeLinecap="round"
                       />
@@ -617,7 +617,7 @@ export function PacchettoConsegnaSheet({
                   border: 'none',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '14px',
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   cursor: 'pointer',
                 }}
               >

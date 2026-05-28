@@ -32,7 +32,7 @@ const thStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
   fontSize: '11px',
   fontWeight: 700,
-  color: 'var(--t2, #96918D)',
+  color: 'var(--t2, #4A3D33)',
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   textAlign: 'left',
@@ -142,7 +142,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                     textAlign: 'center',
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                   }}
                 >
                   Nessuna lavorazione — usa il pulsante sotto per aggiungere
@@ -311,7 +311,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           borderRadius: '12px',
           border: '1.5px dashed rgba(0,0,0,.06)',
           background: 'transparent',
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
           fontWeight: 600,
@@ -344,7 +344,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
           }}
         >
           Lavori:{' '}
@@ -354,7 +354,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
           }}
         >
           Materiali:{' '}
@@ -365,7 +365,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '14px',
             fontWeight: 700,
-            color: 'var(--gold, #D4A843)',
+            color: 'var(--c-amber, #F59E0B)',
             marginLeft: 'auto',
           }}
         >

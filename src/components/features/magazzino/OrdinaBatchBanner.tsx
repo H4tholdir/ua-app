@@ -130,7 +130,7 @@ export function OrdinaBatchBanner({ articoliSottoScorta }: OrdinaBatchBannerProp
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: 12,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   margin: '2px 0 0',
                 }}
               >
@@ -169,7 +169,7 @@ export function OrdinaBatchBanner({ articoliSottoScorta }: OrdinaBatchBannerProp
               style={{
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: 13,
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 margin: 0,
               }}
             >
@@ -278,7 +278,7 @@ export function OrdinaBatchBanner({ articoliSottoScorta }: OrdinaBatchBannerProp
                 style={{
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: 12,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   margin: '2px 0 0',
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -318,7 +318,7 @@ export function OrdinaBatchBanner({ articoliSottoScorta }: OrdinaBatchBannerProp
                 padding: '0 12px',
                 borderRadius: 100,
                 background: 'rgba(0,0,0,.06)',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: 13,
                 fontWeight: 600,

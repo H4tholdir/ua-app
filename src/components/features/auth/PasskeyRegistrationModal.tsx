@@ -92,7 +92,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
         <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px', color: 'var(--t1, #1C1916)' }}>
           Accedi più veloce
         </h2>
-        <p style={{ fontSize: '0.9rem', color: 'var(--t2, #96918D)', margin: '0 0 24px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '0.9rem', color: 'var(--t2, #4A3D33)', margin: '0 0 24px', lineHeight: 1.5 }}>
           Attiva Touch ID o Face ID su questo dispositivo.
           <br />La prossima volta entri in un tap, senza password.
         </p>
@@ -128,7 +128,7 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
               disabled={state === 'registering'}
               style={{
                 background: 'transparent', border: 'none',
-                color: 'var(--t3, #B8B3AE)', fontSize: '0.85rem',
+                color: 'var(--t3, #6B5C51)', fontSize: '0.85rem',
                 cursor: 'pointer', padding: '8px',
               }}
             >

@@ -49,7 +49,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '13px',
           fontWeight: 600,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
         }}
@@ -60,7 +60,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '14px',
-          color: value ? 'var(--t1, #1C1916)' : 'var(--t2, #96918D)',
+          color: value ? 'var(--t1, #1C1916)' : 'var(--t2, #4A3D33)',
           fontStyle: value ? 'normal' : 'italic',
         }}
       >
@@ -86,7 +86,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
           fontWeight: 700,
-          color: 'var(--t2, #96918D)',
+          color: 'var(--t2, #4A3D33)',
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           margin: '0 0 4px',
@@ -161,7 +161,7 @@ export default async function ImpostazioniPage() {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
                 fontWeight: 600,
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -250,7 +250,7 @@ export default async function ImpostazioniPage() {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '13px',
                 fontWeight: 600,
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
               }}
@@ -294,7 +294,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',
@@ -329,7 +329,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',
@@ -364,7 +364,7 @@ export default async function ImpostazioniPage() {
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   display: 'block',

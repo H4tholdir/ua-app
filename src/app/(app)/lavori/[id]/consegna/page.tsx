@@ -112,7 +112,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
                 </span>
                 <span
                   style={{
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     fontFamily: 'DM Sans, sans-serif',
                     fontSize: '14px',
                     lineHeight: 1.5,

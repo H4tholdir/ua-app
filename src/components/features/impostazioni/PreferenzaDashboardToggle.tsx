@@ -36,7 +36,7 @@ export function PreferenzaDashboardToggle({
           <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: 600, color: 'var(--t1, #1C1916)', margin: 0 }}>
             Vista dashboard
           </p>
-          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2, #96918D)', margin: '2px 0 0' }}>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: 'var(--t2, #4A3D33)', margin: '2px 0 0' }}>
             {val === 'ibrido' ? 'Mostra tab Gestione + Produzione' : 'Solo vista Gestione (business)'}
           </p>
         </div>
@@ -50,7 +50,7 @@ export function PreferenzaDashboardToggle({
             fontWeight: 600,
             fontFamily: 'DM Sans, sans-serif',
             background: val === 'ibrido' ? 'var(--primary, #D90012)' : 'var(--prs, #D4CFC9)',
-            color: val === 'ibrido' ? '#fff' : 'var(--t2, #96918D)',
+            color: val === 'ibrido' ? '#fff' : 'var(--t2, #4A3D33)',
             border: 'none',
             cursor: 'pointer',
             opacity: isPending ? .6 : 1,

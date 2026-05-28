@@ -143,7 +143,7 @@ export function PortaleLinkButtons({ portaleToken, clienteNome }: Props) {
 
   return (
     <div style={{ padding: '10px 0' }}>
-      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t2, #96918D)', margin: '0 0 10px', wordBreak: 'break-all' }}>
+      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t2, #4A3D33)', margin: '0 0 10px', wordBreak: 'break-all' }}>
         {richiestaUrl}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>

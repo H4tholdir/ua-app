@@ -26,7 +26,7 @@ const STATO_LABEL: Record<Psur['stato'], string> = {
 
 const STATO_COLOR: Record<Psur['stato'], string> = {
   bozza: 'var(--gold, #D4A843)',
-  completato: 'var(--t2, #96918D)',
+  completato: 'var(--t2, #4A3D33)',
   firmato: 'var(--success, #16A34A)',
 }
 
@@ -83,7 +83,7 @@ export default async function PsurPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            color: 'var(--t2, #96918D)',
+            color: 'var(--t2, #4A3D33)',
             fontSize: '13px',
             textDecoration: 'none',
             fontFamily,
@@ -155,7 +155,7 @@ export default async function PsurPage() {
             textAlign: 'center',
           }}>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '14px',
               fontFamily,
               margin: 0,
@@ -207,7 +207,7 @@ export default async function PsurPage() {
 
                 {/* Periodo */}
                 <p style={{
-                  color: 'var(--t2, #96918D)',
+                  color: 'var(--t2, #4A3D33)',
                   fontSize: '13px',
                   fontFamily,
                   margin: '0 0 10px',
@@ -231,7 +231,7 @@ export default async function PsurPage() {
                 {/* PRRC snapshot */}
                 {p.prrc_nome_snapshot && (
                   <p style={{
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     fontSize: '12px',
                     fontFamily,
                     margin: '0 0 10px',
@@ -262,7 +262,7 @@ export default async function PsurPage() {
                   </a>
                 ) : (
                   <span style={{
-                    color: 'var(--t2, #96918D)',
+                    color: 'var(--t2, #4A3D33)',
                     fontSize: '12px',
                     fontFamily,
                     fontStyle: 'italic',
@@ -279,7 +279,7 @@ export default async function PsurPage() {
         {hasCurrentPsur && (
           <div style={{ textAlign: 'center', marginTop: '8px' }}>
             <p style={{
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               fontSize: '12px',
               fontFamily,
               margin: '0 0 4px',
@@ -317,7 +317,7 @@ function KpiChip({ label, value, alert = false }: { label: string; value: number
         {value}
       </span>
       <span style={{
-        color: 'var(--t2, #96918D)',
+        color: 'var(--t2, #4A3D33)',
         fontSize: '10px',
         fontFamily,
         textAlign: 'center',

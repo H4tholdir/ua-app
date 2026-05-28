@@ -50,7 +50,7 @@ export function SyncBadge({ lastUpdatedAt }: { lastUpdatedAt?: Date | null }) {
       gap: '4px',
       fontSize: '9px',
       fontWeight: 500,
-      color: 'var(--t2, #96918D)',
+      color: 'var(--t2, #4A3D33)',
       background: 'var(--sfc, #E4DFD9)',
       padding: '3px 8px',
       borderRadius: '100px',

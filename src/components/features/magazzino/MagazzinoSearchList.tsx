@@ -62,7 +62,7 @@ export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
-            style={{ flexShrink: 0, color: 'var(--t3, #B8B3AE)' }}
+            style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
           >
             <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -102,7 +102,7 @@ export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
                 background: 'var(--prs, #D4CFC9)',
                 border: 'none',
                 cursor: 'pointer',
-                color: 'var(--t2, #96918D)',
+                color: 'var(--t2, #4A3D33)',
                 padding: 0,
               }}
             >
@@ -136,7 +136,7 @@ export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
             style={{
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '15px',
-              color: 'var(--t2, #96918D)',
+              color: 'var(--t2, #4A3D33)',
               margin: 0,
             }}
           >
@@ -250,7 +250,7 @@ export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '12px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                           margin: '0 0 4px',
                         }}
                       >
@@ -274,7 +274,7 @@ export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
                           fontSize: '12px',
-                          color: 'var(--t2, #96918D)',
+                          color: 'var(--t2, #4A3D33)',
                         }}
                       >
                         / {articolo.scorta_minima} {articolo.um_scarico}

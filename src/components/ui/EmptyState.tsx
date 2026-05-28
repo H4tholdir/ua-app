@@ -30,7 +30,7 @@ export function EmptyState({ icon = '📋', title, description, cta }: EmptyStat
       </h3>
       {description && (
         <p style={{
-          fontSize: 14, color: 'var(--t2, #96918D)',
+          fontSize: 14, color: 'var(--t2, #4A3D33)',
           marginBottom: cta ? 24 : 0, maxWidth: 280, lineHeight: 1.5,
           fontFamily: 'DM Sans, sans-serif',
         }}>

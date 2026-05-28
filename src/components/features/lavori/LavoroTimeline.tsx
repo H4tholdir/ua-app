@@ -100,7 +100,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
             : isCurrent
             ? isInRitardo
               ? 'var(--primary, #D90012)'
-              : 'var(--gold, #D4A843)'
+              : 'var(--c-amber, #F59E0B)'
             : 'rgba(0,0,0,.15)'
 
           const dotBorder = isCompleted ? 'var(--success, #16A34A)' : isCurrent ? dotColor : 'rgba(0,0,0,.15)'
@@ -211,14 +211,14 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                     fontSize: '14px',
                     fontWeight: isCurrent ? 700 : isCompleted ? 500 : 400,
                     color: isAnnullato
-                      ? 'var(--t3, #B8B3AE)'
+                      ? 'var(--t3, #6B5C51)'
                       : isCurrent
                       ? isInRitardo
                         ? 'var(--primary, #D90012)'
                         : 'var(--t1, #1C1916)'
                       : isCompleted
                       ? 'var(--success, #16A34A)'
-                      : 'var(--t2, #96918D)',
+                      : 'var(--t2, #4A3D33)',
                     lineHeight: '20px',
                   }}
                 >
@@ -251,7 +251,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '12px',
-                        color: 'var(--t2, #96918D)',
+                        color: 'var(--t2, #4A3D33)',
                         flexShrink: 0,
                         marginLeft: '8px',
                         lineHeight: '20px',
@@ -277,7 +277,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
             background: 'var(--prs, #D4CFC9)',
             fontFamily: 'DM Sans, sans-serif',
             fontSize: '13px',
-            color: 'var(--t3, #B8B3AE)',
+            color: 'var(--t3, #6B5C51)',
           }}
           role="status"
         >
