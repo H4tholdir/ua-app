@@ -247,12 +247,31 @@ Due versioni fisiche ispirate a immagini di riferimento approvate:
 
 ---
 
-## 10. MOTION
+## 10. MOTION — Tassonomia approvata (28/05/2026)
 
-Riferimento completo: `src/design-system/motion.ts`  
-Tassonomia 4 categorie (micro, feedback, navigazione, storytelling) documentata nel file.
+**File:** `src/design-system/motion.ts` — importa da qui, MAI inline.  
+**Weighting filosofico:** Jakub 50% · Emil 40% · Jhey 10%
 
-**Regola:** MAI `duration: 0.3` inline. SEMPRE token da `motion.ts`.
+### Frequency gate (Emil — regola critica per app professionale)
+Elementi toccati **>50 volte/giorno** usano **solo CSS transition**, zero Motion JS:
+- Button tap, toggle, input focus/blur, checkbox, tab active indicator
+
+### 4 Categorie approvate
+
+| Cat | Durata | Strumento | Esempi |
+|-----|--------|-----------|--------|
+| **1 Micro** | <150ms | CSS transition | Button tap, toggle, icon swap, badge count |
+| **2 Feedback** | 150–300ms | Motion 12.x | Toast, success pop, error shake, delete exit |
+| **3 Navigazione** | 250–400ms | Motion 12.x | Page slide iOS, bottom sheet spring, modal blur, tab fade |
+| **4 Storytelling** | 400–800ms | Motion + GSAP | KPI stagger, onboarding, CONSEGNA success 3 fasi |
+
+### Regole
+- **Exit sempre più sottile dell'enter** (Jakub)
+- **Blur come "materializing"** — solo per entrata dal nulla (modal, onboarding)
+- **Bounce consentito solo in Cat 4** — mai in micro/feedback/nav
+- **Confetti CONSEGNA:** GSAP (non Motion — 50+ elementi, `stagger()`, `random()`)
+- **Skeleton/spinner:** CSS `@keyframes` — loop infiniti senza JS in CPU
+- **prefers-reduced-motion:** `useReducedMotion()` obbligatorio su ogni componente con animazione non-istantanea
 
 ---
 
