@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 28 maggio 2026
+**Ultimo aggiornamento:** 05 giugno 2026
 **Fonte di verità:** questo file + MEMORY.md + docs di pianificazione HTML
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -9,30 +9,60 @@
 
 ## VERSIONE CORRENTE: V1.9.3 (in produzione)
 
-V1.9.3 — Design System v2.3 implementazione completa (28/05/2026). Vedere MEMORY.md per dettaglio.
+V1.9.3 — Design System v2.3 + compliance completa su tutta la PWA (28/05/2026).
+Tutte le sessioni di design sono state chiuse. Il codebase è DS v2.3 compliant al 100%.
 
 ---
 
-## ✅ Design System v2.3 — COMPLETATO (28/05/2026)
+## 🎨 SESSIONE DESIGN — CHIUSA (28/05/2026)
 
-**Tutti i token DS v2.3 applicati all'intera PWA. Pre-commit guard attivo.**
+### ✅ Design System v2.3 — Completato
 
-- Spec: `docs/superpowers/specs/2026-05-27-design-system-v2-3.md`
-- Token TS: `src/design-system/tokens.ts`
+**Cosa è stato fatto:**
+- Spec completa `docs/superpowers/specs/2026-05-27-design-system-v2-3.md`
+- Token CSS: t2/t3 WCAG-compliant, alias `--sfc`, rainbow vars `--c-*`
+- Token TS: `src/design-system/tokens.ts` — importa da qui, mai inline
+- Motion: `src/design-system/motion.ts` v2.1 — 4 categorie, frequency gate
 - Enforcement: `scripts/check-ds-compliance.sh` + `.husky/pre-commit`
-- Pagine escluse: `src/app/(auth)/` (login/reset) e `src/app/admin/` (pannello admin)
+
+**Applicato su tutta la PWA:**
+- ~70 file: fallback t2/t3 aggiornati
+- ~33 file: gold-as-text → `var(--c-amber)`
+- ~47 file: shadow inline → `var(--sh-b/c/i/red)` (dark mode ora funziona)
+- 14 file: CSS transition timing → `var(--tr)`
+- KpiCard, StatoBadge: rainbow semantic colors
+- BottomNavPill: CTA → `.ua-tasto-plus` fisico con `::before` corona
+
+**Escluse** (da non toccare): `src/app/(auth)/` · `src/app/admin/`
+
+**Regola DS — OBBLIGATORIA per ogni nuova sessione:**
+> Prima di scrivere qualsiasi UI → rispetta `docs/superpowers/specs/2026-05-27-design-system-v2-3.md`.
+> Nessun colore/shadow/font/animazione inline. Tutto da token.
+
+---
+
+## 🚀 PROSSIMA SESSIONE → S4: Email Template Branding
+
+**Da eseguire subito all'avvio della prossima sessione:**
+
+```
+Implementa S4: Email template branding.
+File: Supabase Email Templates (invito tecnico, reset password, conferma email).
+Obiettivo: Logo UÀ + warm panna palette + DM Sans su tutti i template email.
+Stima: 3h. Design System v2.3 già approvato — nessun nuovo mockup necessario.
+```
 
 ---
 
 ## V1.9 — Completamento Pre-Collaudo
 **Priorità:** Massima — da fare PRIMA che Filippo usi l'app seriamente.
-**Stima:** 2-3 giorni di sviluppo
 
 | # | Feature | Priorità | Stima | Stato |
 |---|---------|----------|-------|-------|
+| DS | **Design System v2.3** | P0 | — | ✅ Completato (28/05/2026) |
 | 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ⏳ |
-| 2 | **Email template branding** | P0 | 3h | ⏳ **← PROSSIMO** |
-| 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 |
+| 2 | **Email template branding** (Supabase) | P0 | 3h | ⏳ **← PROSSIMO (S4)** |
+| 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 (26/05/2026) |
 | 4 | **Logo + firma DdC** | P0 | 4h | ⏳ |
 ~~5 Magazzino visivo → spostato in V2.0~~ |
 
@@ -156,3 +186,7 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 22/05/2026 | Magazzino visivo: Concept C selezionato (Mixel-inspired, tile+glifo+fill-bar) | Francesco + Claude |
 | 22/05/2026 | Stack orchestratori documentato: Superpowers + gstack + GSD | Francesco + Claude |
 | 25/05/2026 | V1.9.1: S1 fix residui completati — badge LIVE rimosso, preferenza_dashboard toggle, Da fatturare lista inline | Francesco + Claude |
+| 26/05/2026 | S2 completato: RifacimentoButton bottom sheet 7 motivi, motion policy, mockup approvato | Francesco + Claude |
+| 28/05/2026 | DS v2.3 brainstorming + approvazione: spec completa, tokens.ts, motion.ts v2.1, 4-cat taxonomy | Francesco + Claude |
+| 28/05/2026 | DS v2.3 implementazione completa: compliance 100% su tutta la PWA, pre-commit guard attivo — V1.9.3 | Francesco + Claude |
+| 05/06/2026 | Sessione design chiusa. Prossimo: S4 email template branding (Supabase) | Francesco + Claude |
