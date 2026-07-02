@@ -1,9 +1,39 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 28 maggio 2026 — Design System v2.3 implementazione completa su tutta la PWA
+**Ultimo aggiornamento:** 2 luglio 2026 — Re-audit completo V1.9.3 (11 agenti), backlog tecnico preciso prodotto
 
 ---
 
-## 0. STATO DEL PROGETTO — DS v2.3 LIVE IN MAIN
+## 0. STATO DEL PROGETTO — RE-AUDIT 02/07/2026 COMPLETATO, 2 BLOCKER APERTI
+
+**⚠️ Zero commit dal 05/06/2026 al 02/07/2026 — quasi un mese senza sviluppo.** Il 02/07/2026 è stato eseguito un re-audit completo (11 agenti persona, stessa metodologia del 21/05) per capire lo stato reale vs quanto documentato. Risultato: score medio **7.29/10** (era 7.1 il 21/05), nessuno degli 11 target dichiarati raggiunto, 4 dimensioni su 11 regredite.
+
+**Documenti chiave del re-audit (fonte di verità aggiornata, leggere PRIMA delle sezioni sotto per i dettagli tecnici):**
+- `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` — ogni bug/gap con file:riga, causa, fix, priorità (16 Blocker, 18 Alto, 30 Medio)
+- `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md` — inventario completo feature e flussi per ruolo, stato reale verificato
+- `docs/audit-2026-07-02/SINTESI-ORCHESTRATORE.md` — sintesi dei 11 report persona con confronto punteggi vs baseline 21/05
+
+**⚠️ CORREZIONI a claim precedenti in questa memoria, smentiti dal re-audit:**
+- "Design System v2.3 al 100%" (sezione storica sotto) → **FALSO**, verificato dal Designer: pagina login viola WCAG su una regola esplicitamente vietata da v2.3 (`globals.css:245-246`), `qualita/page.tsx` ha 2 violazioni residue invisibili al gate automatico, migrazione palette solo parziale su molte pagine business (fatture, qualità, rete, tecnici, agenda, analytics, clienti usano ancora variabili "legacy"). Vedi backlog B12, A6, M6.
+- "Logo + firma DdC" in ROADMAP-UFFICIALE.md segnato ⏳ non iniziato → **FALSO**, il rendering è già implementato in `DdcTemplate.tsx`; manca solo l'hash di integrità SHA-256 della firma (backlog A18).
+
+**✅ B1 RISOLTO (02/07/2026, commit `31cc47c`) — Tracciabilità MDR materiali/lotti.** Causa radice: `lavori_materiali` (unica tabella letta da DdC/IFU/etichetta/fattura) non aveva mai un writer; `scarichi_magazzino` (l'unico meccanismo attivo) operava cieco al lotto e — aggravante scoperta solo in fase di piano — girava DOPO la generazione della DdC, quindi anche scrivendo lì non avrebbe mai risolto nulla. Fix: nuovo step sincrono in `orchestraConsegna`, PRIMA della generazione DdC, che risolve la BOM (`listino_materiali_auto`) per lotto FEFO e scrive in `lavori_materiali`; biforcazione su `magazzino.traccia_lotto` (materiali non-MDR continuano sul percorso `scarichi_magazzino`/`decrementa_scorta` invariato); flag soft `lavori.tracciabilita_materiali_ok` + banner UI quando manca un lotto o una BOM. Migration idempotente applicata al progetto live `iagibumwjstnveqpjbwq`. 169/169 test, tsc/build puliti, 1 fix post-review-finale (path fail-unsafe su insert parziale in split multi-lotto). Spec: `docs/superpowers/specs/2026-07-02-b1-tracciabilita-materiali-design.md`. Piano: `docs/superpowers/plans/2026-07-02-b1-tracciabilita-materiali.md`.
+**Follow-up non bloccanti aperti (non B1, tracciati separatamente):** nessun test automatico end-to-end su `orchestraConsegna` (converge con B13 già in backlog); verifica manuale su un lavoro reale in produzione ancora da fare da Francesco (la migration è live ma nessuna consegna reale è stata ancora generata con questo codice).
+
+**🔴 1 BLOCKER CRITICO rimasto:**
+1. **Dashboard e Scadenzario danno risposte opposte sui crediti clienti** — due fonti dati mai riconciliate, osservato con numeri realmente contrastanti sullo stesso account nella stessa sessione. Vedi backlog B2.
+
+**Cosa invece funziona davvero (verificato, non solo dichiarato) nel periodo 21/05→02/07:**
+- Soft/hard-block consegna con dati MDR incompleti (più rigoroso del richiesto)
+- Fix disinfettante "Non dichiarato"
+- Form Nuovo Lavoro semplificato (9 tab → 2)
+- Fatturazione batch + export CSV commercialista, funzionanti end-to-end
+- Push notification per rientro prova
+- CSRF completo su tutte le 35 route dinamiche `[id]`
+- GSAP rimosso dal bundle
+
+---
+
+## 0-bis. STATO STORICO — DS v2.3 LIVE IN MAIN (28/05/2026, leggere con le correzioni sopra)
 
 **DS v2.3 mergiato su main — 28/05/2026 — commit `63f93e5` + compliance commit — deploy Vercel ✅**
 
@@ -134,9 +164,29 @@
 1. **PEC reale** → Filippo deve configurare `/impostazioni/pec` con le sue credenziali SMTP
 2. **Prima sessione di collaudo** → vedere `docs/test-filippo/COLLAUDO-HANDOFF-FILIPPO.md`
 
+### ✅ Re-Audit UX Expert — Completato (02/07/2026)
+
+**Report:** `docs/audit-2026-07-02/06-persona-ux-expert.md` — confronto diretto con baseline `docs/audit-2026-05-21/06-persona-ux-expert.md`
+
+**Score: 8.3/10** (baseline 6.8/10 — target 8.5+/10, non ancora raggiunto)
+
+**Metodo:** Playwright live su uachelab.com (390px, account h4t@live.it) per i flussi riproducibili + lettura codice per empty state/onboarding/skeleton (non riproducibili live con dataset lab Filippo già popolato/account già onboardato).
+
+**Risolti (verificato live):**
+- Wizard Nuovo Lavoro: 9 tab → 2 tab in creazione (`LavoroFormShell.tsx:48-50`) + step indicator numerato
+- Validazione: messaggi specifici per campo + auto-focus + scrollIntoView + bordo rosso (`lavori/nuovo/page.tsx:37-44,111-118`)
+- Skeleton loader: 100% coverage, 30/30 route con `loading.tsx`
+- Empty state: componente universale `EmptyState.tsx` in 7 pagine + CTA su `/lavori`
+
+**NON risolti / residui da roadmap:**
+- CTA "+" sparisce con scroll down — intera pill condizionata da `visible` in `BottomNavPill.tsx:429-450` (nessun fix separato per la CTA)
+- "MDR Allegato XIII" ancora terminologia visibile in UI operatore (`TabAccettazione.tsx:285,565`) — solo tooltip aggiunto, non rinominato
+- Nuova lacuna a11y: `ClienteComboBox.tsx:180-200` priva di `aria-invalid`/`aria-describedby` (unico campo del form senza, regressione rispetto agli altri campi)
+- Odontogramma FDI ancora hidden feature, nessun badge discoverability
+
 ### 🗺️ Prossima milestone: V1.9
 Feature da implementare prima del collaudo:
-1. **RE-AUDIT PWA** — nuova sessione pulita, stessi agenti, confronto score pre/post
+1. P0 rapidi da re-audit UX: CTA sempre visibile + aria-invalid su ClienteComboBox (vedi sopra)
 2. Dettatura vocale (Web Speech API) — P0
 3. Email template branding — P0
 4. Rifacimenti UI — P0
