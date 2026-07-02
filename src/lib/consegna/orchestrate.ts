@@ -153,6 +153,26 @@ export async function orchestraConsegna(
     }
 
     // ----------------------------------------------------------------
+    // Step 2.5 — Traccia materiali (BOM → lotti FEFO, MDR Allegato XIII)
+    // ----------------------------------------------------------------
+    // Deve avvenire PRIMA della generazione DdC: la DdC legge lavoro.materiali,
+    // quindi la tracciabilità va risolta e scritta qui, non dopo la consegna
+    // (bug originale B1 — vedi docs/superpowers/specs/2026-07-02-b1-tracciabilita-materiali-design.md)
+    const { tracciaMaterialiLavoro } = await import('./traccia-materiali')
+    const tracciamento = await tracciaMaterialiLavoro(supabase, lavoro as LavoroDettaglio, laboratorio_id)
+
+    await supabase
+      .from('lavori')
+      .update({
+        tracciabilita_materiali_ok: tracciamento.tracciabilitaOk,
+        materiali_incompleti_dettaglio: tracciamento.dettaglio.length ? tracciamento.dettaglio : null,
+      })
+      .eq('id', lavoro_id)
+      .eq('laboratorio_id', laboratorio_id)
+
+    lavoro.materiali = tracciamento.materialiTracciati
+
+    // ----------------------------------------------------------------
     // Step 3 — Genera DdC
     // ----------------------------------------------------------------
     const { generateDdC } = await import('@/lib/pdf/generate-ddc')
@@ -305,71 +325,7 @@ export async function orchestraConsegna(
     const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
     // ----------------------------------------------------------------
-    // Step 8 — Auto-scarico materiali BOM (non-critical, fire-and-forget)
-    // ----------------------------------------------------------------
-    // Se errore → LOG ma NON blocca la consegna
-    ;(async () => {
-      try {
-        const lavorazioniForScarico = lavoro.lavorazioni as Array<{
-          id: string
-          listino_id: string | null
-          quantita: number
-        }> | undefined
-
-        if (!lavorazioniForScarico || lavorazioniForScarico.length === 0) return
-
-        for (const lav of lavorazioniForScarico) {
-          if (!lav.listino_id) continue
-
-          // Carica BOM per questa lavorazione
-          const { data: bomItems } = await supabase
-            .from('listino_materiali_auto')
-            .select('magazzino_id, listino_id, quantita_per_unita, unita_misura')
-            .eq('listino_id', lav.listino_id)
-            .eq('laboratorio_id', laboratorio_id)
-
-          if (!bomItems || bomItems.length === 0) continue
-
-          for (const bom of bomItems) {
-            const quantita = Number(bom.quantita_per_unita) * Number(lav.quantita)
-
-            // INSERT idempotente: ON CONFLICT DO NOTHING evita doppio scarico su retry consegna
-            // Il unique constraint (lavoro_id, magazzino_id) garantisce una sola riga per coppia
-            const { error: scarErr } = await supabase
-              .from('scarichi_magazzino')
-              .insert({
-                laboratorio_id: laboratorio_id,
-                lavoro_id: lavoro_id,
-                magazzino_id: bom.magazzino_id,
-                listino_id: bom.listino_id,
-                quantita,
-                unita_misura: bom.unita_misura,
-              })
-
-            if (scarErr) {
-              // codice 23505 = unique violation → già scaricato in un ciclo precedente, skip
-              if ((scarErr as { code?: string }).code === '23505') continue
-              throw scarErr
-            }
-
-            // Decremento atomico via RPC — evita read-modify-write race condition
-            const { error: decreErr } = await supabase.rpc('decrementa_scorta', {
-              p_magazzino_id: bom.magazzino_id,
-              p_laboratorio_id: laboratorio_id,
-              p_quantita: quantita,
-            })
-            if (decreErr) {
-              console.error('[CONSEGNA] decrementa_scorta failed:', decreErr.message)
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[CONSEGNA] Auto-scarico materiali failed (non-blocking):', err)
-      }
-    })()
-
-    // ----------------------------------------------------------------
-    // Step 9 — Restituisci ConsegnaResult
+    // Step 8 — Restituisci ConsegnaResult
     // ----------------------------------------------------------------
     return {
       ok: true,
