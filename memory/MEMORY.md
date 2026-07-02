@@ -163,6 +163,7 @@
 ### ⚠️ Azioni manuali urgenti (ancora aperte)
 1. **PEC reale** → Filippo deve configurare `/impostazioni/pec` con le sue credenziali SMTP
 2. **Prima sessione di collaudo** → vedere `docs/test-filippo/COLLAUDO-HANDOFF-FILIPPO.md`
+3. **Reset completo DB** (decisione Francesco, 02/07/2026) → subito prima del go-live reale con Filippo (dopo il collaudo/UAT), azzerare tutto il database (clienti, listino, magazzino, tecnici, lavori, fatture storiche) sul progetto Supabase live `iagibumwjstnveqpjbwq` — non prima, per mantenere dati utili ai test manuali delle nuove feature nel frattempo.
 
 ### ✅ Re-Audit UX Expert — Completato (02/07/2026)
 
