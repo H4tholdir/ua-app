@@ -31,6 +31,16 @@ Esistono **due tabelle parallele e scollegate** per il consumo materiali:
 | Criterio scelta lotto | **FEFO** (First-Expired-First-Out: scadenza più vicina prima), spareggio FIFO (data acquisto più vecchia) |
 | Materiale/BOM senza lotto disponibile | **Blocco soft**: la consegna procede comunque, il lavoro viene flaggato "tracciabilità incompleta" da sanare a posteriori |
 | Lavorazione senza BOM definita in `listino_materiali_auto` | **Stesso flag** del caso lotto-assente (default raccomandato, nessuna obiezione ricevuta) — altrimenti B1 risulterebbe "chiuso" su lavori la cui DdC resta comunque vuota |
+| Materiali con `magazzino.traccia_lotto = false` | **Percorso separato**: nessuna risoluzione lotto, nessun flag, decremento scorte tramite il meccanismo esistente `decrementa_scorta`/`scarichi_magazzino` (che quindi **non viene rimosso** — resta il ledger di scarico per i soli materiali non soggetti a tracciabilità di lotto) |
+
+### 2.1 Correzione emersa in fase di piano — `magazzino.traccia_lotto`
+
+`magazzino` ha già una colonna `traccia_lotto BOOLEAN DEFAULT TRUE` ("richiede numero lotto in lavorazione"), editabile da `PATCH /api/magazzino/[id]`. Distingue materiali MDR-rilevanti (dispositivi medici, es. zirconia) da consumabili generici che non richiedono tracciabilità di lotto. Il flusso di Step 2.5 deve quindi biforcarsi per riga BOM:
+
+- **`traccia_lotto = true`** → risoluzione FEFO su `lotti_magazzino` → insert in `lavori_materiali` (alimenta la DdC). Nessun lotto disponibile → flag `lotto_assente`.
+- **`traccia_lotto = false`** → **non** cerca lotti, **non** flagga nulla (stato legittimo, non un gap) → decrementa `magazzino.scorta_attuale` con la RPC esistente `decrementa_scorta` e registra la riga in `scarichi_magazzino` (stesso pattern idempotente odierno: unique constraint `(lavoro_id, magazzino_id)` + skip su errore `23505`).
+
+Questo significa che **la RPC `decrementa_scorta` e la tabella `scarichi_magazzino` restano in uso** — non vengono rimosse come indicato in una prima bozza di questo documento — ma smettono di essere considerate "il" percorso di tracciabilità MDR: quel ruolo passa interamente a `lavori_materiali`.
 
 ---
 
@@ -50,17 +60,23 @@ Dopo la migration: `npx supabase gen types typescript --project-id iagibumwjstnv
 
 ### 3.2 Nuovo Step 2.5 in `orchestrate.ts` — "Traccia materiali"
 
-Posizionato **dopo lo Step 2 (precheck MDR)** e **prima dello Step 3 (genera DdC)**. Sostituisce integralmente il vecchio Step 8 (che va rimosso: niente più insert in `scarichi_magazzino` né chiamata a `decrementa_scorta` per questo flusso — la decrementazione ora arriva dal trigger su `lavori_materiali`).
+Posizionato **dopo lo Step 2 (precheck MDR)** e **prima dello Step 3 (genera DdC)**. Sostituisce la parte "auto-scarico" del vecchio Step 8 relativa ai materiali MDR-rilevanti; la logica di decremento per materiali `traccia_lotto = false` viene **riusata** (stessa RPC, stessa tabella), solo spostata qui per elaborare tutta la BOM in un unico punto sincrono prima della DdC.
 
 Logica, per ogni `lavorazione` del lavoro con `listino_id`:
 
-1. **Idempotenza**: se `lavoro.materiali` (già caricato allo Step 1) contiene già righe per il `magazzino_id` risultante dalla BOM di questa lavorazione, salta — evita doppio insert/doppio decremento su un retry di consegna (il lock di Step 0 copre la concorrenza, non i retry falliti-e-ripetuti dopo `rilasciaLock()`).
-2. Carica BOM da `listino_materiali_auto` per `listino_id`. **Se non esiste alcuna riga BOM** → aggiungi `{ motivo: 'bom_mancante' }` a `materiali_incompleti_dettaglio`, continua con la lavorazione successiva.
-3. Se la BOM esiste, per ogni riga BOM (un `magazzino_id` + quantità necessaria = `quantita_per_unita * quantita_lavorazione`):
-   - Query `lotti_magazzino` per quel `magazzino_id`, `laboratorio_id`, `attivo = true`, `quantita_residua > 0`, ordinati `data_scadenza ASC NULLS LAST, data_acquisto ASC`.
-   - Consuma i lotti in ordine finché la quantità richiesta è coperta o i lotti finiscono (split su più lotti se necessario) — un INSERT in `lavori_materiali` per ogni lotto usato, con `numero_lotto_snapshot`/`nome_materiale_snapshot`/`produttore_snapshot` copiati dal lotto/articolo al momento dell'uso.
-   - Se la quantità residua richiesta non è coperta (lotti insufficienti o assenti) → aggiungi `{ motivo: 'lotto_assente' }` per il residuo mancante a `materiali_incompleti_dettaglio`.
-4. Errori DB imprevisti in un singolo step (es. errore di rete) → catturati, loggati, trattati come riga flaggata (`lotto_assente`) — **non bloccano mai la consegna**, coerente con "soft-block".
+1. Carica BOM da `listino_materiali_auto` per `listino_id`. **Se non esiste alcuna riga BOM** → aggiungi `{ motivo: 'bom_mancante' }` a `materiali_incompleti_dettaglio`, continua con la lavorazione successiva.
+2. Per ogni riga BOM (un `magazzino_id` + quantità necessaria = `quantita_per_unita * quantita_lavorazione`), carica l'articolo `magazzino` (serve `traccia_lotto`, `nome`, `produttore`) e biforca:
+
+   **Ramo A — `traccia_lotto = true` (MDR-rilevante):**
+   - **Idempotenza**: se `lavoro.materiali` (già caricato allo Step 1) contiene già righe per questo `magazzino_id`, salta l'intera riga BOM — evita doppio insert/doppio decremento su un retry di consegna (il lock di Step 0 copre la concorrenza, non i retry falliti-e-ripetuti dopo `rilasciaLock()`).
+   - Query `lotti_magazzino` per quel `magazzino_id`, `laboratorio_id`, `attivo = true`, `quantita_residua > 0`, ordinati `data_scadenza ASC NULLS LAST, data_acquisto ASC` (FEFO, spareggio FIFO).
+   - Consuma i lotti in ordine finché la quantità richiesta è coperta o i lotti finiscono (split su più lotti se necessario) — un INSERT in `lavori_materiali` per ogni lotto usato, con `numero_lotto_snapshot`/`nome_materiale_snapshot`/`produttore_snapshot` copiati dal lotto/articolo al momento dell'uso. Il trigger `aggiorna_scorta_lotto` decrementa automaticamente `lotti_magazzino.quantita_residua` e `magazzino.scorta_attuale`.
+   - Se la quantità richiesta non è coperta (lotti insufficienti o assenti) → aggiungi `{ motivo: 'lotto_assente' }` per il residuo mancante a `materiali_incompleti_dettaglio`.
+
+   **Ramo B — `traccia_lotto = false` (non MDR-rilevante):**
+   - Nessuna risoluzione lotto, nessun flag. INSERT idempotente in `scarichi_magazzino` (`ON CONFLICT`/cattura errore `23505` su unique `(lavoro_id, magazzino_id)` → già scaricato, skip), poi RPC `decrementa_scorta` su `magazzino_id` — stessa logica del vecchio Step 8, solo eseguita qui invece che dopo la consegna.
+
+3. Errori DB imprevisti in un singolo step (es. errore di rete) sul Ramo A → catturati, loggati, trattati come riga flaggata (`lotto_assente`) — **non bloccano mai la consegna**, coerente con "soft-block". Errori sul Ramo B → catturati e loggati (comportamento invariato rispetto ad oggi, non bloccante).
 
 Al termine del loop su tutte le lavorazioni:
 
