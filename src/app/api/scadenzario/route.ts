@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { calcolaResiduo } from '@/lib/contabilita/saldo'
 
 // ─── GET /api/scadenzario ─────────────────────────────────────────────────────
-// Fatture non pagate (stato_sdi != 'draft'), raggruppate per cliente, ordinate
-// per anzianità decrescente (più vecchie prima).
+// Fatture non pagate (stato_sdi != 'draft') + lavori diretti non_fatturare non
+// saldati, raggruppati per cliente, ordinati per anzianità decrescente.
+// Il "credito potenziale" (lavori in_attesa) NON entra in questa lista (B2 §5).
 export async function GET() {
   const userClient = await getServerUserClient()
   const {
@@ -29,36 +31,6 @@ export async function GET() {
 
   const labId: string = utente.laboratorio_id
 
-  // Fetch unpaid invoices — exclude drafts (not real receivables yet)
-  const { data, error } = await svc
-    .from('fatture')
-    .select(
-      `
-      id,
-      numero,
-      data,
-      totale,
-      stato_sdi,
-      pagata,
-      cliente:clienti(
-        id,
-        nome,
-        cognome,
-        studio_nome,
-        telefono
-      )
-    `
-    )
-    .eq('laboratorio_id', labId)
-    .eq('pagata', false)
-    .neq('stato_sdi', 'draft')
-    .is('deleted_at', null)
-    .order('data', { ascending: true })
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
   type ClienteSnap = {
     id: string
     nome: string
@@ -67,50 +39,106 @@ export async function GET() {
     telefono: string | null
   }
 
-  type FatturaRow = {
+  interface DovutoRow {
     id: string
+    origine: 'fattura' | 'lavoro_diretto'
     numero: string
     data: string
-    totale: number
-    stato_sdi: string
-    pagata: boolean
-    cliente: ClienteSnap | null
+    importo: number
+    stato_sdi: string | null
   }
 
-  // Group by cliente and compute totals + max delay
+  const { data: fattureData, error: fattureError } = await svc
+    .from('fatture')
+    .select('id, numero, data, totale, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono)')
+    .eq('laboratorio_id', labId)
+    .eq('pagata', false)
+    .neq('stato_sdi', 'draft')
+    .is('deleted_at', null)
+    .order('data', { ascending: true })
+
+  if (fattureError) {
+    return NextResponse.json({ error: fattureError.message }, { status: 500 })
+  }
+
+  const { data: lavoriData, error: lavoriError } = await svc
+    .from('lavori')
+    .select(`
+      id, numero_lavoro, prezzo_unitario, data_consegna_prevista,
+      cliente:clienti(id, nome, cognome, studio_nome, telefono),
+      pagamenti(importo, stato),
+      credito_clienti_movimenti(importo, tipo)
+    `)
+    .eq('laboratorio_id', labId)
+    .eq('decisione_fatturazione', 'non_fatturare')
+    .eq('incluso_in_fattura', false)
+    .not('stato', 'in', '("annullato")')
+    .is('deleted_at', null)
+    .gt('prezzo_unitario', 0)
+
+  if (lavoriError) {
+    return NextResponse.json({ error: lavoriError.message }, { status: 500 })
+  }
+
   const byCliente: Record<
     string,
-    {
-      cliente: ClienteSnap
-      fatture: FatturaRow[]
-      totale_insoluto: number
-      giorni_max_ritardo: number
-    }
+    { cliente: ClienteSnap; dovuti: DovutoRow[]; totale_insoluto: number; giorni_max_ritardo: number }
   > = {}
 
-  for (const f of (data ?? []) as unknown as FatturaRow[]) {
-    const cliente = f.cliente
-    if (!cliente) continue
-
-    const clienteId = cliente.id
-    if (!byCliente[clienteId]) {
-      byCliente[clienteId] = {
-        cliente,
-        fatture: [],
-        totale_insoluto: 0,
-        giorni_max_ritardo: 0,
-      }
+  function upsertCliente(cliente: ClienteSnap): void {
+    if (!byCliente[cliente.id]) {
+      byCliente[cliente.id] = { cliente, dovuti: [], totale_insoluto: 0, giorni_max_ritardo: 0 }
     }
+  }
 
-    byCliente[clienteId].fatture.push(f)
-    byCliente[clienteId].totale_insoluto += f.totale ?? 0
-
-    const giorniRitardo = Math.floor(
-      (Date.now() - new Date(f.data).getTime()) / 86_400_000
-    )
-    if (giorniRitardo > byCliente[clienteId].giorni_max_ritardo) {
-      byCliente[clienteId].giorni_max_ritardo = giorniRitardo
+  function aggiornaGiorniMax(clienteId: string, dataRiferimento: string): void {
+    const giorni = Math.floor((Date.now() - new Date(dataRiferimento).getTime()) / 86_400_000)
+    if (giorni > byCliente[clienteId].giorni_max_ritardo) {
+      byCliente[clienteId].giorni_max_ritardo = giorni
     }
+  }
+
+  for (const f of (fattureData ?? []) as unknown as Array<{
+    id: string; numero: string; data: string; totale: number; stato_sdi: string; pagata: boolean
+    cliente: ClienteSnap | null
+  }>) {
+    if (!f.cliente) continue
+    upsertCliente(f.cliente)
+    byCliente[f.cliente.id].dovuti.push({
+      id: f.id,
+      origine: 'fattura',
+      numero: f.numero,
+      data: f.data,
+      importo: f.totale ?? 0,
+      stato_sdi: f.stato_sdi,
+    })
+    byCliente[f.cliente.id].totale_insoluto += f.totale ?? 0
+    aggiornaGiorniMax(f.cliente.id, f.data)
+  }
+
+  for (const l of (lavoriData ?? []) as unknown as Array<{
+    id: string; numero_lavoro: string; prezzo_unitario: number | null; data_consegna_prevista: string
+    cliente: ClienteSnap | null
+    pagamenti: Array<{ importo: number; stato: string }>
+    credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
+  }>) {
+    if (!l.cliente) continue
+    const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
+    const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
+    const residuo = calcolaResiduo(Number(l.prezzo_unitario ?? 0), pagamentiAttivi, applicazioni)
+    if (residuo <= 0) continue
+
+    upsertCliente(l.cliente)
+    byCliente[l.cliente.id].dovuti.push({
+      id: l.id,
+      origine: 'lavoro_diretto',
+      numero: l.numero_lavoro,
+      data: l.data_consegna_prevista,
+      importo: residuo,
+      stato_sdi: null,
+    })
+    byCliente[l.cliente.id].totale_insoluto += residuo
+    aggiornaGiorniMax(l.cliente.id, l.data_consegna_prevista)
   }
 
   const result = Object.values(byCliente).sort(
