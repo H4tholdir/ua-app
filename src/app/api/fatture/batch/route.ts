@@ -80,6 +80,7 @@ export async function POST(req: Request) {
       .eq('laboratorio_id', labId)
       .eq('stato', 'consegnato')
       .eq('incluso_in_fattura', false)
+      .eq('decisione_fatturazione', 'fatturare')
       .is('deleted_at', null)
       .select('id')
       .single()
@@ -179,6 +180,7 @@ export async function POST(req: Request) {
       .eq('laboratorio_id', labId)
       .eq('stato', 'consegnato')
       .eq('incluso_in_fattura', false)
+      .eq('decisione_fatturazione', 'fatturare')
       .is('deleted_at', null)
       .single()
 

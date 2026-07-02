@@ -54,6 +54,7 @@ export async function GET() {
     .eq('laboratorio_id', labId)
     .eq('stato', 'consegnato')
     .eq('incluso_in_fattura', false)
+    .eq('decisione_fatturazione', 'fatturare')
     .is('deleted_at', null)
     .order('data_consegna_effettiva', { ascending: false })
     .limit(50)
