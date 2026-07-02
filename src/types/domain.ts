@@ -215,6 +215,8 @@ export type TipoSegnalazione =
 export type Corriere = 'gls' | 'brt' | 'dhl' | 'sda' | 'ups' | 'fedex' | 'interno' | 'altro';
 export type StatoSpedizione = 'da_spedire' | 'spedito' | 'consegnato_corriere' | 'problema';
 
+export type DecisioneFatturazione = 'in_attesa' | 'fatturare' | 'non_fatturare';
+
 // ============================================================
 // LAVORO — tipo base (dalla tabella)
 // ============================================================
@@ -283,6 +285,7 @@ export interface Lavoro {
   codice_iva: string;
   natura_iva: string;
   incluso_in_fattura: boolean;
+  decisione_fatturazione: DecisioneFatturazione;
   // MDR conformità
   conformato: boolean;
   data_conformazione: string | null;
@@ -561,6 +564,51 @@ export interface ConsegnaError {
 }
 
 // ============================================================
+// PAGAMENTI — ledger polimorfico (fattura XOR lavoro diretto) — B2
+// ============================================================
+export type MetodoPagamento = 'contanti' | 'bonifico' | 'pos' | 'assegno' | 'altro';
+export type StatoPagamento = 'attivo' | 'annullato';
+
+export interface Pagamento {
+  id: string;
+  laboratorio_id: string;
+  fattura_id: string | null;
+  lavoro_id: string | null;
+  importo: number;
+  metodo: MetodoPagamento;
+  metodo_nota: string | null;
+  data_pagamento: string;
+  stato: StatoPagamento;
+  motivo_annullamento: string | null;
+  sostituisce_pagamento_id: string | null;
+  registrato_da: string;
+  annullato_da: string | null;
+  annullato_at: string | null;
+  created_at: string;
+}
+
+// ============================================================
+// CREDITO CLIENTI — eccedenze, applicazioni, rimborsi — B2
+// ============================================================
+export type TipoMovimentoCredito = 'eccedenza' | 'applicazione' | 'rimborso';
+
+export interface CreditoClienteMovimento {
+  id: string;
+  laboratorio_id: string;
+  cliente_id: string;
+  tipo: TipoMovimentoCredito;
+  pagamento_id: string | null;
+  fattura_id: string | null;
+  lavoro_id: string | null;
+  importo: number;
+  metodo: MetodoPagamento | null;
+  metodo_nota: string | null;
+  note: string | null;
+  registrato_da: string;
+  created_at: string;
+}
+
+// ============================================================
 // FATTURA
 // ============================================================
 
@@ -592,6 +640,7 @@ export interface Fattura {
   iva_importo: number;
   bollo: number;
   totale: number;
+  importo_pagato: number;
   codice_cup: string | null;
   codice_cig: string | null;
   progressivo_invio: number | null;

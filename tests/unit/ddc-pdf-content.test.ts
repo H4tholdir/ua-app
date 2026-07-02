@@ -173,6 +173,7 @@ const LAVORO_FIXTURE: LavoroDettaglio = {
   codice_iva: 'N4',
   natura_iva: 'N4',
   incluso_in_fattura: false,
+  decisione_fatturazione: 'in_attesa',
   conformato: false,
   data_conformazione: null,
   is_rifacimento: false,
