@@ -21,7 +21,6 @@ export async function generateIFU(lavoro_id: string, laboratorio_id: string): Pr
       immagini:lavori_immagini(*),
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
-      partitario:lavori_partitario(*),
       ddc:dichiarazioni_conformita(*)
     `)
     .eq('id', lavoro_id)

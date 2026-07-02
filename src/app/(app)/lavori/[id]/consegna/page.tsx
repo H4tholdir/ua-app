@@ -39,7 +39,6 @@ export default async function ConsegnaPage({ params }: PageProps) {
       immagini:lavori_immagini(*),
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
-      partitario:lavori_partitario(*),
       ddc:dichiarazioni_conformita(*)
     `)
     .eq('id', id)

@@ -45,7 +45,6 @@ export async function GET(_req: Request, { params }: RouteContext) {
       immagini:lavori_immagini(*),
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
-      partitario:lavori_partitario(*),
       ddc:dichiarazioni_conformita(*)
     `)
     .eq('id', id)

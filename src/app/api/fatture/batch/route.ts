@@ -173,7 +173,6 @@ export async function POST(req: Request) {
         immagini:lavori_immagini(*),
         fasi:lavori_fasi(*, fase:fasi_produzione(*)),
         materiali:lavori_materiali(*),
-        partitario:lavori_partitario(*),
         ddc:dichiarazioni_conformita(*)
       `)
       .eq('id', lavoro_id)

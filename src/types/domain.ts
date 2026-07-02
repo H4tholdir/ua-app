@@ -331,7 +331,6 @@ export interface LavoroDettaglio extends Lavoro {
   immagini: LavoroImmagine[];
   fasi: LavoroFase[];
   materiali: LavoroMateriale[];
-  partitario: LavoroPartitario[];
   ddc: DichiarazioneConformita | null;
   laboratorio: Pick<Laboratorio, 'nome' | 'telefono'> | null;
 }
@@ -465,22 +464,6 @@ export interface MaterialeIncompletoDettaglio {
   magazzino_id: string | null;
   nome_materiale: string;
   motivo: 'lotto_assente' | 'bom_mancante';
-}
-
-// ============================================================
-// PARTITARIO (pagamenti per lavoro)
-// ============================================================
-export type ModalitaPagamento = 'contante' | 'bonifico' | 'assegno' | 'pos' | 'altro';
-
-export interface LavoroPartitario {
-  id: string;
-  laboratorio_id: string;
-  lavoro_id: string;
-  data_pagamento: string;
-  importo: number;
-  modalita: ModalitaPagamento;
-  riferimento: string | null;
-  note: string | null;
 }
 
 // ============================================================

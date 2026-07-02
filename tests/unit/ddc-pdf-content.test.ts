@@ -240,7 +240,6 @@ const LAVORO_FIXTURE: LavoroDettaglio = {
       produttore_snapshot: 'Ivoclar Vivadent',
     },
   ],
-  partitario: [],
   ddc: null,
   laboratorio: null,
 }
