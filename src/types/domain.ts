@@ -303,6 +303,9 @@ export interface Lavoro {
   disinfettante_usato: string | null;
   lotto_disinfettante: string | null;
   materiali_allegati: string[];
+  // Tracciabilità materiali/lotti — B1 (Allegato XIII MDR)
+  tracciabilita_materiali_ok: boolean;
+  materiali_incompleti_dettaglio: MaterialeIncompletoDettaglio[] | null;
   anamnesi_difficolta_manuali: boolean;
   // Segnalazione problemi (tecnico → titolare)
   segnalazione_tipo: TipoSegnalazione | null;
@@ -453,6 +456,15 @@ export interface LavoroMateriale {
   numero_lotto_snapshot: string;
   nome_materiale_snapshot: string;
   produttore_snapshot: string | null;
+}
+
+// ============================================================
+// MATERIALE INCOMPLETO DETTAGLIO (tracciabilità MDR)
+// ============================================================
+export interface MaterialeIncompletoDettaglio {
+  magazzino_id: string | null;
+  nome_materiale: string;
+  motivo: 'lotto_assente' | 'bom_mancante';
 }
 
 // ============================================================

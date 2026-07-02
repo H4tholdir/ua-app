@@ -149,6 +149,8 @@ const LAVORO_FIXTURE: LavoroDettaglio = {
   disinfettante_usato: null,
   lotto_disinfettante: null,
   materiali_allegati: [],
+  tracciabilita_materiali_ok: false,
+  materiali_incompleti_dettaglio: null,
   anamnesi_difficolta_manuali: false,
   classe_rischio: 'classe_iia',
   norma_riferimento: null,
