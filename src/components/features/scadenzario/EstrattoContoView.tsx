@@ -4,9 +4,8 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import { t, motionTokens, staggerDelay, useReducedMotion } from '@/design-system/motion'
-import { hapticSuccess } from '@/lib/feedback/haptic'
-import { soundPaymentSuccess } from '@/lib/feedback/sounds'
 import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
+import { RegistraPagamentoSheet, type TargetPagamento } from './RegistraPagamentoSheet'
 import type { EstrattoContoResponse, FatturaEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -96,34 +95,11 @@ interface BottomSheetProps {
   telefono: string | null
   studioNome: string
   onClose: () => void
-  onPagata: (id: string) => void
+  onRegistraPagamento: (target: TargetPagamento) => void
 }
 
-function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onPagata }: BottomSheetProps) {
+function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
   const reducedMotion = useReducedMotion()
-  const [loading, setLoading] = useState(false)
-
-  const handleSegnaComePagata = useCallback(async () => {
-    if (!fattura || fattura.pagata || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/fatture/${fattura.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pagata: true }),
-      })
-      if (res.ok) {
-        hapticSuccess()
-        soundPaymentSuccess()
-        onPagata(fattura.id)
-        onClose()
-      }
-    } catch {
-      // silent — utente può riprovare
-    } finally {
-      setLoading(false)
-    }
-  }, [fattura, loading, onPagata, onClose])
 
   const color = fattura ? urgencyColor(fattura) : DS.t2
 
@@ -271,12 +247,19 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onPagata }
                 </a>
               )}
 
-              {/* Segna come pagata */}
+              {/* Registra pagamento */}
               {!fattura.pagata && (
                 <button
                   type="button"
-                  onClick={handleSegnaComePagata}
-                  disabled={loading}
+                  onClick={() => {
+                    onRegistraPagamento({
+                      tipo: 'fattura',
+                      id: fattura.id,
+                      residuo: fattura.totale,
+                      etichetta: `Fattura ${fattura.numero}`,
+                    })
+                    onClose()
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -291,12 +274,11 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onPagata }
                     fontFamily: 'DM Sans, sans-serif',
                     fontWeight: 600,
                     fontSize: 15,
-                    cursor: loading ? 'wait' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
+                    cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  ✓ {loading ? 'Aggiornamento…' : 'Segna come pagata'}
+                  💳 Registra pagamento
                 </button>
               )}
 
@@ -840,20 +822,20 @@ interface Props {
 
 export function EstrattoContoView({ dati }: Props) {
   const reducedMotion = useReducedMotion()
-  const [fatture, setFatture] = useState<FatturaEstratto[]>(dati.fatture)
+  const [fatture] = useState<FatturaEstratto[]>(dati.fatture)
   const [selectedFattura, setSelectedFattura] = useState<FatturaEstratto | null>(null)
+  const [targetPagamento, setTargetPagamento] = useState<TargetPagamento | null>(null)
+
+  const handleRegistrato = useCallback(() => {
+    // Il residuo/stato effettivo arriva al prossimo refresh server (router.refresh
+    // non è invocato qui: la lista fatture di questa vista non mostra ancora un
+    // residuo parziale — lo farà Task 15 evolvendo FatturaCard/TabellaFatture).
+  }, [])
 
   // Calcoli derivati
   const nonPagate = fatture.filter((f) => !f.pagata)
   const pagate = fatture.filter((f) => f.pagata)
   const saldo_insoluto = nonPagate.reduce((s, f) => s + f.totale, 0)
-
-  // Optimistic update: sposta fattura da nonPagate a pagate
-  const handlePagata = useCallback((id: string) => {
-    setFatture((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, pagata: true } : f))
-    )
-  }, [])
 
   const openSheet = useCallback((f: FatturaEstratto) => setSelectedFattura(f), [])
   const closeSheet = useCallback(() => setSelectedFattura(null), [])
@@ -1051,7 +1033,13 @@ export function EstrattoContoView({ dati }: Props) {
         telefono={dati.cliente.telefono}
         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
         onClose={closeSheet}
-        onPagata={handlePagata}
+        onRegistraPagamento={setTargetPagamento}
+      />
+
+      <RegistraPagamentoSheet
+        target={targetPagamento}
+        onClose={() => setTargetPagamento(null)}
+        onRegistrato={handleRegistrato}
       />
     </>
   )
