@@ -131,7 +131,12 @@ DECLARE
   v_totale NUMERIC(10,2);
   v_pagato NUMERIC(10,2);
 BEGIN
-  SELECT totale INTO v_totale FROM fatture WHERE id = p_fattura_id;
+  -- FOR UPDATE: prende il lock sulla riga PRIMA di sommare i pagamenti.
+  -- Senza questo lock, due pagamenti concorrenti sulla stessa fattura
+  -- (es. titolare + front_desk quasi simultanei) possono sommare da uno
+  -- snapshot che non vede ancora il commit dell'altro — lost update su
+  -- importo_pagato (finding di review pre-esecuzione su Task 2).
+  SELECT totale INTO v_totale FROM fatture WHERE id = p_fattura_id FOR UPDATE;
   IF v_totale IS NULL THEN
     RETURN; -- fattura non trovata (già cancellata) — nessun ricalcolo
   END IF;
