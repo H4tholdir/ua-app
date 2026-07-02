@@ -7,6 +7,7 @@ import { StatoBadge } from '@/components/features/lavori/StatoBadge'
 import { LavoroTimeline } from '@/components/features/lavori/LavoroTimeline'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+import { TracciabilitaMaterialiBanner } from '@/components/features/lavori/TracciabilitaMaterialiBanner'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import type { LavoroDettaglio } from '@/types/domain'
 
@@ -76,6 +77,10 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
           lavoroId={id}
           dataConsegnaEffettiva={lavoroDettaglio.data_consegna_effettiva}
         />
+      )}
+
+      {!lavoroDettaglio.tracciabilita_materiali_ok && lavoroDettaglio.materiali_incompleti_dettaglio && (
+        <TracciabilitaMaterialiBanner dettaglio={lavoroDettaglio.materiali_incompleti_dettaglio} />
       )}
 
       {/* Timeline stato */}
