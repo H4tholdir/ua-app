@@ -6,7 +6,6 @@ import type {
   TecnicoDashboardItem,
   FrontDeskDashboard,
   FrontDeskConsegnaItem,
-  FrontDeskPagamentoScaduto,
   StatoLavoro,
   PrioritaLavoro,
   TipoDispositivo,
@@ -232,44 +231,16 @@ export async function getPagamentiScadutiTop(
   svc: SupabaseClient,
   labId: string,
   limit = 3
-): Promise<Array<{ cliente_id: string; cliente_display: string; residuo: number }>> {
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - 30)
-  const cutoffISO = cutoff.toISOString().split('T')[0]
-
-  const { data } = await svc
-    .from('lavori')
-    .select(
-      'id, prezzo_unitario, clienti!inner(id, nome, cognome, studio_nome), lavori_partitario(importo)'
-    )
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .not('stato', 'in', '("annullato")')
-    .lt('data_consegna_prevista', cutoffISO)
-    .gt('prezzo_unitario', 0)
-
-  if (!data) return []
-
-  const map = new Map<string, { cliente_id: string; cliente_display: string; residuo: number }>()
-  for (const l of (data as unknown) as Array<{
-    id: string
-    prezzo_unitario: number | null
-    clienti: { id: string; nome: string; cognome: string; studio_nome: string | null }
-    lavori_partitario: Array<{ importo: number }>
-  }>) {
-    const pagato = (l.lavori_partitario ?? []).reduce((s, p) => s + Number(p.importo), 0)
-    const residuo = Number(l.prezzo_unitario ?? 0) - pagato
-    if (residuo <= 0) continue
-    const cid = l.clienti.id
-    const existing = map.get(cid)
-    map.set(cid, {
-      cliente_id: cid,
-      cliente_display: clienteDisplay(l.clienti),
-      residuo: (existing?.residuo ?? 0) + residuo,
-    })
-  }
-
-  return [...map.values()].sort((a, b) => b.residuo - a.residuo).slice(0, limit)
+): Promise<Array<{ cliente_id: string; cliente_display: string; residuo: number; telefono: string | null; giorni_ritardo: number }>> {
+  const { getCreditoScadutoPerCliente } = await import('@/lib/contabilita/queries')
+  const rows = await getCreditoScadutoPerCliente(svc, labId, 30)
+  return rows.slice(0, limit).map((r) => ({
+    cliente_id: r.cliente_id,
+    cliente_display: r.cliente_display,
+    residuo: r.residuo_totale,
+    telefono: r.cliente_telefono,
+    giorni_ritardo: r.giorni_scaduto,
+  }))
 }
 
 export async function getMaterialiEsaurimento(
@@ -572,13 +543,10 @@ export async function getFrontDeskDashboard(
   labId: string
 ): Promise<FrontDeskDashboard> {
   const oggi = oggiISO()
-  const cutoff30 = new Date()
-  cutoff30.setDate(cutoff30.getDate() - 30)
-  const cutoff30ISO = cutoff30.toISOString().split('T')[0]
   const selectCampi =
     'id, numero_lavoro, stato, priorita, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome, telefono)'
 
-  const [{ data: consegneData }, { data: rititiData }, { data: provaData }, { data: insolutoData }] =
+  const [{ data: consegneData }, { data: rititiData }, { data: provaData }] =
     await Promise.all([
       svc
         .from('lavori')
@@ -608,57 +576,15 @@ export async function getFrontDeskDashboard(
         .lte('data_prima_prova', oggi)
         .order('data_prima_prova', { ascending: true })
         .limit(10),
-
-      svc
-        .from('lavori')
-        .select(
-          'id, prezzo_unitario, data_consegna_prevista, clienti!inner(id, nome, cognome, studio_nome, telefono), lavori_partitario(importo)'
-        )
-        .eq('laboratorio_id', labId)
-        .is('deleted_at', null)
-        .not('stato', 'in', '("annullato")')
-        .lt('data_consegna_prevista', cutoff30ISO)
-        .gt('prezzo_unitario', 0),
     ])
 
-  const pagMap = new Map<string, FrontDeskPagamentoScaduto>()
-  for (const l of ((insolutoData ?? []) as unknown) as Array<{
-    id: string
-    prezzo_unitario: number | null
-    data_consegna_prevista: string
-    clienti: {
-      id: string
-      nome: string
-      cognome: string
-      studio_nome: string | null
-      telefono: string | null
-    }
-    lavori_partitario: Array<{ importo: number }>
-  }>) {
-    const pagato = (l.lavori_partitario ?? []).reduce((s, p) => s + Number(p.importo), 0)
-    const residuo = Number(l.prezzo_unitario ?? 0) - pagato
-    if (residuo <= 0) continue
-    const cid = l.clienti.id
-    const giorni = Math.floor(
-      (Date.now() - new Date(l.data_consegna_prevista).getTime()) / 86400000
-    )
-    const existing = pagMap.get(cid)
-    pagMap.set(cid, {
-      cliente_id: cid,
-      cliente_display: clienteDisplay(l.clienti),
-      cliente_telefono: l.clienti.telefono,
-      residuo_totale: (existing?.residuo_totale ?? 0) + residuo,
-      giorni_scaduto: Math.max(existing?.giorni_scaduto ?? 0, giorni),
-      lavori_count: (existing?.lavori_count ?? 0) + 1,
-    })
-  }
+  const { getCreditoScadutoPerCliente } = await import('@/lib/contabilita/queries')
+  const daContattare = await getCreditoScadutoPerCliente(svc, labId, 30)
 
   return {
     consegne_oggi: mapFrontDeskConsegneRows(consegneData as RawFrontDeskRow[] | null),
     ritiri_attesi_oggi: mapFrontDeskConsegneRows(rititiData as RawFrontDeskRow[] | null),
     in_prova_rientro_oggi: mapFrontDeskConsegneRows(provaData as RawFrontDeskRow[] | null),
-    da_contattare: [...pagMap.values()]
-      .sort((a, b) => b.residuo_totale - a.residuo_totale)
-      .slice(0, 5),
+    da_contattare: daContattare.slice(0, 5),
   }
 }
