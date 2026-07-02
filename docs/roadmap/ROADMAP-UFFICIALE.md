@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 02 luglio 2026 — Re-audit completo, backlog tecnico preciso
+**Ultimo aggiornamento:** 03 luglio 2026 — B2 risolto (fix bug residuo Scadenzario, commit `cbc034b`)
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -50,17 +50,17 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER.
 Priorità in ordine:
 1. B1 — Tracciabilità MDR materiali/lotti (DdC sempre vuota su questo campo) — ✅ RISOLTO 02/07 (commit 31cc47c)
-2. B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti — 🟠 IMPLEMENTATO (16 task) ma BLOCCATO: 1 bug
-   residuo trovato in verifica finale (src/app/api/scadenzario/route.ts non netta importo_pagato sulle fatture con
-   pagamento parziale/credito applicato — vedi MEMORY.md §0 e worktree b2-contabilita-clienti/.superpowers/sdd/task-16-report.md
-   per evidenza e fix consigliato, ~4 righe). Da riaprire come task singolo prima di segnare B2 chiuso.
+2. B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti — ✅ RISOLTO 03/07 (commit `cbc034b`): il bug
+   residuo trovato in verifica finale (src/app/api/scadenzario/route.ts non nettava importo_pagato sulle fatture
+   con pagamento parziale/credito applicato) è stato corretto e riverificato — vedi MEMORY.md §0 e worktree
+   b2-contabilita-clienti/.superpowers/sdd/task-16-fix-report.md per evidenza del fix e della ri-verifica.
 3. B7 — "Invita tecnico" irraggiungibile da UI
 4. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
 5. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
 Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
 ```
 
-**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è più la priorità — B2 (fix residuo) e i restanti blocker vengono prima.
+**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è più la priorità — i restanti blocker (B7/B8/B9) vengono prima. B1 e B2, i 2 blocker critici del re-audit 02/07, sono ora entrambi risolti.
 
 ---
 
@@ -74,7 +74,7 @@ Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-t
 | 2 | **Email template branding** (Supabase) | P0 | 3h | ⏳ Bozza HTML pronta in `docs/email-templates-supabase.md`, manca solo applicazione manuale |
 | 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 (26/05/2026) |
 | 4 | **Logo + firma DdC** | P0 | 4h | 🟡 **Quasi completo, non ⏳** — rendering già implementato in `DdcTemplate.tsx`; manca solo l'hash SHA-256 di integrità firma (backlog A18) |
-| NEW | **2 Blocker critici da re-audit 02/07** (B1 materiali/lotti MDR, B2 dashboard/scadenzario) | 🔴 P0 | non stimato | B1 ✅ risolto (31cc47c) · B2 🟠 implementato (16 task) ma bloccato da 1 bug residuo in verifica finale, vedi sopra |
+| NEW | **2 Blocker critici da re-audit 02/07** (B1 materiali/lotti MDR, B2 dashboard/scadenzario) | 🔴 P0 | non stimato | ✅ Entrambi risolti — B1 (31cc47c, 02/07) · B2 (cbc034b, 03/07, dopo fix del bug residuo trovato in verifica finale), vedi sopra |
 ~~5 Magazzino visivo → spostato in V2.0~~ |
 
 **Vedi `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` per altri 14 item Blocker, 18 Alto e 30 Medio non elencati qui per brevità.**
@@ -204,3 +204,4 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 28/05/2026 | DS v2.3 implementazione completa: compliance 100% su tutta la PWA, pre-commit guard attivo — V1.9.3 | Francesco + Claude |
 | 05/06/2026 | Sessione design chiusa. Prossimo: S4 email template branding (Supabase) | Francesco + Claude |
 | 02/07/2026 | Re-audit completo (11 agenti persona) dopo quasi un mese di inattività (zero commit dal 05/06). Score medio 7.29/10 (era 7.1). Claim "DS v2.3 100%" smentito. 2 blocker critici nuovi trovati (materiali/lotti MDR, dashboard/scadenzario disallineati). Prodotti `BACKLOG-TECNICO-2026-07-02.md` e `FEATURES-E-FLUSSI-2026-07-02.md` come nuova fonte di verità tecnica. | Francesco + Claude |
+| 03/07/2026 | B2 risolto: Task 16 (verifica finale) aveva trovato un bug residuo in `src/app/api/scadenzario/route.ts` (non nettava `importo_pagato` sulle fatture con pagamento parziale/credito, disaccordo Scadenzario vs Dashboard/Contabilità cliente) e correttamente riportato BLOCKED — fix applicato (netta il residuo come già fanno le altre superfici), tsc/vitest/build verdi, ri-verificato con dati reali (commit `cbc034b`). Entrambi i 2 blocker critici del re-audit 02/07 sono ora risolti. | Francesco + Claude |
