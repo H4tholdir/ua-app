@@ -1,48 +1,46 @@
+// src/components/features/scadenzario/EstrattoContoView.tsx
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import Link from 'next/link'
 import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
 import { buildWhatsappSollecito, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
-import type { EstrattoContoResponse, FatturaEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
+import type { EstrattoContoResponse, DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
 import { RegistraPagamentoSheet, type TargetPagamento } from './RegistraPagamentoSheet'
 import { FatturaCard } from './FatturaCard'
 import { KpiBar } from './KpiBar'
 import { TabellaFatture } from './TabellaFatture'
 import { ClienteInfoCard } from './ClienteInfoCard'
-import { DS, fmt, formatData, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder, labelStatoSDI } from './estratto-conto-shared'
+import { LavoriInAttesaSection } from './LavoriInAttesaSection'
+import { CreditoDisponibileSection } from './CreditoDisponibileSection'
+import {
+  DS, fmt, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder,
+  labelStatoSDI, labelOrigine,
+} from './estratto-conto-shared'
 
-// ─── FatturaBottomSheet ───────────────────────────────────────────────────────
+// ─── DovutoBottomSheet ────────────────────────────────────────────────────────
 
 interface BottomSheetProps {
-  fattura: FatturaEstratto | null
+  dovuto: DovutoEstratto | null
   telefono: string | null
   studioNome: string
   onClose: () => void
   onRegistraPagamento: (target: TargetPagamento) => void
 }
 
-function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
+function DovutoBottomSheet({ dovuto, telefono, studioNome, onClose, onRegistraPagamento }: BottomSheetProps) {
   const reducedMotion = useReducedMotion()
+  const color = dovuto ? urgencyColor(dovuto) : DS.t2
 
-  const color = fattura ? urgencyColor(fattura) : DS.t2
-
-  const whatsappMsg = fattura
-    ? buildWhatsappSollecito({
-        studioNome,
-        totaleInsoluto: fattura.totale,
-      })
-    : ''
-  const whatsappUrl = (fattura && telefono)
-    ? buildWhatsappUrl(whatsappMsg, telefono)
-    : ''
+  const whatsappMsg = dovuto ? buildWhatsappSollecito({ studioNome, totaleInsoluto: dovuto.residuo }) : ''
+  const whatsappUrl = (dovuto && telefono && !dovuto.pagata) ? buildWhatsappUrl(whatsappMsg, telefono) : ''
 
   return (
     <AnimatePresence>
-      {fattura && (
+      {dovuto && (
         <>
-          {/* Overlay */}
           <motion.div
             key="sheet-overlay"
             initial={{ opacity: 0 }}
@@ -58,7 +56,6 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistra
             }}
           />
 
-          {/* Sheet */}
           <motion.div
             key="sheet-panel"
             initial={{ y: '100%' }}
@@ -78,93 +75,47 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistra
             }}
             role="dialog"
             aria-modal="true"
-            aria-label={`Dettaglio fattura ${fattura.numero}`}
+            aria-label={`Dettaglio ${labelOrigine(dovuto.origine)} ${dovuto.numero}`}
           >
-            {/* Handle */}
-            <div style={{
-              width: 36, height: 4,
-              background: DS.t3,
-              borderRadius: 99,
-              margin: '12px auto 20px',
-            }} />
+            <div style={{ width: 36, height: 4, background: DS.t3, borderRadius: 99, margin: '12px auto 20px' }} />
 
-            {/* Header: numero + badge urgenza */}
             <div style={{ padding: '0 20px 16px', borderBottom: `1px solid rgba(0,0,0,.06)` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <h2 style={{
-                  margin: 0,
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: DS.t1,
-                  letterSpacing: '-0.02em',
-                }}>
-                  Fattura {fattura.numero}
+                <h2 style={{ margin: 0, fontFamily: 'DM Sans, sans-serif', fontSize: 20, fontWeight: 700, color: DS.t1, letterSpacing: '-0.02em' }}>
+                  {labelOrigine(dovuto.origine)} {dovuto.numero}
                 </h2>
                 <span style={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: color,
-                  background: urgencyPillBg(fattura),
-                  border: urgencyPillBorder(fattura),
-                  borderRadius: 8,
-                  padding: '3px 8px',
-                  flexShrink: 0,
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color,
+                  background: urgencyPillBg(dovuto), border: urgencyPillBorder(dovuto),
+                  borderRadius: 8, padding: '3px 8px', flexShrink: 0,
                 }}>
-                  {urgencyEmoji(fattura)} {urgencyLabel(fattura)}
+                  {urgencyEmoji(dovuto)} {urgencyLabel(dovuto)}
                 </span>
               </div>
             </div>
 
-            {/* KPI mini — 3 in riga */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 8,
-              padding: '16px 20px',
-            }}>
-              <KpiMini
-                label="Importo"
-                value={fmt.format(fattura.totale)}
-                color={color}
-              />
-              <KpiMini
-                label="Data emissione"
-                value={formatData(fattura.data)}
-                color={DS.t1}
-              />
-              <KpiMini
-                label="Stato SDI"
-                value={labelStatoSDI(fattura.stato_sdi)}
-                color={DS.t2}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '16px 20px' }}>
+              <KpiMini label={dovuto.pagata ? 'Importo' : 'Residuo'} value={fmt.format(dovuto.pagata ? dovuto.totale : dovuto.residuo)} color={color} />
+              <KpiMini label="Giorni" value={dovuto.pagata ? '—' : `${dovuto.giorni_ritardo}gg`} color={DS.t1} />
+              {dovuto.origine === 'fattura' ? (
+                <KpiMini label="Stato SDI" value={labelStatoSDI(dovuto.stato_sdi ?? 'draft')} color={DS.t2} />
+              ) : (
+                <KpiMini label="Origine" value="Lavoro diretto" color={DS.t2} />
+              )}
             </div>
 
-            {/* Azioni */}
             <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* WhatsApp sollecito */}
-              {telefono && !fattura.pagata && (
+              {telefono && !dovuto.pagata && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={onClose}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    minHeight: 52,
-                    padding: '12px 20px',
-                    background: '#25D366',
-                    color: '#fff',
-                    borderRadius: 100,
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    textDecoration: 'none',
-                    boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+                    borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                    textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
                   }}
                 >
                   <WhatsAppIcon />
@@ -172,64 +123,43 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistra
                 </a>
               )}
 
-              {/* Registra pagamento */}
-              {!fattura.pagata && (
+              {!dovuto.pagata && (
                 <button
                   type="button"
                   onClick={() => {
                     onRegistraPagamento({
-                      tipo: 'fattura',
-                      id: fattura.id,
-                      residuo: fattura.totale,
-                      etichetta: `Fattura ${fattura.numero}`,
+                      tipo: dovuto.origine === 'fattura' ? 'fattura' : 'lavoro',
+                      id: dovuto.id,
+                      residuo: dovuto.residuo,
+                      etichetta: `${labelOrigine(dovuto.origine)} ${dovuto.numero}`,
                     })
                     onClose()
                   }}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    minHeight: 52,
-                    padding: '12px 20px',
-                    background: 'transparent',
-                    color: DS.green,
-                    border: `2px solid ${DS.green}`,
-                    borderRadius: 100,
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    minHeight: 52, padding: '12px 20px', background: 'transparent', color: DS.green,
+                    border: `2px solid ${DS.green}`, borderRadius: 100, fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 600, fontSize: 15, cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   💳 Registra pagamento
                 </button>
               )}
 
-              {/* Apri fattura */}
-              <Link
-                href={`/fatture/${fattura.id}`}
-                onClick={onClose}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  minHeight: 52,
-                  padding: '12px 20px',
-                  background: DS.elv,
-                  color: DS.t1,
-                  borderRadius: 100,
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  boxShadow: DS.shB,
-                }}
-              >
-                📄 Apri fattura
-              </Link>
+              {dovuto.origine === 'fattura' && (
+                <Link
+                  href={`/fatture/${dovuto.id}`}
+                  onClick={onClose}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    minHeight: 52, padding: '12px 20px', background: DS.elv, color: DS.t1,
+                    borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                    textDecoration: 'none', boxShadow: DS.shB,
+                  }}
+                >
+                  📄 Apri fattura
+                </Link>
+              )}
             </div>
           </motion.div>
         </>
@@ -240,32 +170,11 @@ function FatturaBottomSheet({ fattura, telefono, studioNome, onClose, onRegistra
 
 function KpiMini({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div style={{
-      background: DS.elv,
-      borderRadius: 14,
-      padding: '10px 12px',
-      boxShadow: DS.shB,
-      textAlign: 'center',
-    }}>
-      <div style={{
-        fontFamily: 'DM Sans, sans-serif',
-        fontSize: 10,
-        fontWeight: 600,
-        color: DS.t3,
-        textTransform: 'uppercase',
-        letterSpacing: '0.07em',
-        marginBottom: 4,
-      }}>
+    <div style={{ background: DS.elv, borderRadius: 14, padding: '10px 12px', boxShadow: DS.shB, textAlign: 'center' }}>
+      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10, fontWeight: 600, color: DS.t3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
         {label}
       </div>
-      <div style={{
-        fontFamily: 'DM Sans, sans-serif',
-        fontSize: 13,
-        fontWeight: 700,
-        color,
-        fontVariantNumeric: 'tabular-nums',
-        wordBreak: 'break-word',
-      }}>
+      <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', wordBreak: 'break-word' }}>
         {value}
       </div>
     </div>
@@ -277,62 +186,50 @@ function KpiMini({ label, value, color }: { label: string; value: string; color:
 function SezioneHeader({ label }: { label: string }) {
   return (
     <div style={{
-      padding: '0 16px 8px',
-      fontFamily: 'DM Sans, sans-serif',
-      fontSize: 11,
-      fontWeight: 700,
-      color: DS.t3,
-      textTransform: 'uppercase',
-      letterSpacing: '0.1em',
+      padding: '0 16px 8px', fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700,
+      color: DS.t3, textTransform: 'uppercase', letterSpacing: '0.1em',
     }}>
       {label}
     </div>
   )
 }
 
-// ─── EstrattoContoView — componente principale ────────────────────────────────
+// ─── Entry point ────────────────────────────────────────────────────────────
 
 interface Props {
   dati: EstrattoContoResponse
 }
 
 export function EstrattoContoView({ dati }: Props) {
+  const router = useRouter()
   const reducedMotion = useReducedMotion()
-  const [fatture] = useState<FatturaEstratto[]>(dati.fatture)
-  const [selectedFattura, setSelectedFattura] = useState<FatturaEstratto | null>(null)
+  const [selectedDovuto, setSelectedDovuto] = useState<DovutoEstratto | null>(null)
   const [targetPagamento, setTargetPagamento] = useState<TargetPagamento | null>(null)
 
+  const nonSaldati = dati.dovuti.filter((d) => !d.pagata)
+  const saldati = dati.dovuti.filter((d) => d.pagata)
+
+  const openSheet = useCallback((d: DovutoEstratto) => setSelectedDovuto(d), [])
+  const closeSheet = useCallback(() => setSelectedDovuto(null), [])
+
   const handleRegistrato = useCallback(() => {
-    // Il residuo/stato effettivo arriva al prossimo refresh server (router.refresh
-    // non è invocato qui: la lista fatture di questa vista non mostra ancora un
-    // residuo parziale — lo farà Task 15 evolvendo FatturaCard/TabellaFatture).
-  }, [])
+    router.refresh()
+  }, [router])
 
-  // Calcoli derivati
-  const nonPagate = fatture.filter((f) => !f.pagata)
-  const pagate = fatture.filter((f) => f.pagata)
-  const saldo_insoluto = nonPagate.reduce((s, f) => s + f.totale, 0)
-
-  const openSheet = useCallback((f: FatturaEstratto) => setSelectedFattura(f), [])
-  const closeSheet = useCallback(() => setSelectedFattura(null), [])
-
-  // WhatsApp sollecito globale cliente (solo se insoluto > 0 e telefono disponibile)
   const whatsappMsgGlobale = buildWhatsappSollecito({
     studioNome: dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`,
-    totaleInsoluto: saldo_insoluto,
+    totaleInsoluto: dati.creditoCliente.confermato,
   })
   const whatsappUrlGlobale = dati.cliente.telefono
     ? buildWhatsappUrl(whatsappMsgGlobale, dati.cliente.telefono)
     : null
 
-  // Aggiorna selectedFattura se è stata modificata
-  const selectedFatturaAggiornata = selectedFattura
-    ? (fatture.find((f) => f.id === selectedFattura.id) ?? selectedFattura)
+  const selectedDovutoAggiornato = selectedDovuto
+    ? (dati.dovuti.find((d) => d.id === selectedDovuto.id) ?? selectedDovuto)
     : null
 
   return (
     <>
-      {/* ── Layout desktop (1280px) — colonna unica, tabella ── */}
       <style>{`
         .estratto-col-sidebar { display: none; }
         @media (min-width: 768px) {
@@ -355,146 +252,90 @@ export function EstrattoContoView({ dati }: Props) {
         }
       `}</style>
 
-      {/* KPI Bar — sempre visibile */}
       <KpiBar
-        saldo_insoluto={saldo_insoluto}
-        totale_fatture={fatture.length}
-        fatture_pagate_count={pagate.length}
+        confermato={dati.creditoCliente.confermato}
+        potenziale={dati.creditoCliente.potenziale}
+        disponibile={dati.creditoCliente.disponibile}
+        totale={dati.creditoCliente.totale}
       />
 
       <div className="estratto-layout">
-        {/* Colonna principale */}
         <div className="estratto-col-main">
-
-          {/* ── Sezione non pagate (card list — mobile e tablet) ── */}
           <div className="estratto-card-list">
-            {nonPagate.length > 0 && (
+            {nonSaldati.length > 0 && (
               <section style={{ marginBottom: 24 }}>
-                <SezioneHeader label={`Da incassare (${nonPagate.length})`} />
+                <SezioneHeader label={`Da incassare (${nonSaldati.length})`} />
                 <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <AnimatePresence>
-                    {nonPagate.map((f, i) => (
-                      <FatturaCard
-                        key={f.id}
-                        fattura={f}
-                        index={i}
-                        onTap={openSheet}
-                        reducedMotion={reducedMotion}
-                      />
+                    {nonSaldati.map((d, i) => (
+                      <FatturaCard key={d.id} dovuto={d} index={i} onTap={openSheet} reducedMotion={reducedMotion} />
                     ))}
                   </AnimatePresence>
                 </div>
               </section>
             )}
-
-            {pagate.length > 0 && (
+            {saldati.length > 0 && (
               <section style={{ marginBottom: 24 }}>
-                <SezioneHeader label={`Storico pagamenti (${pagate.length})`} />
+                <SezioneHeader label={`Storico pagamenti (${saldati.length})`} />
                 <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <AnimatePresence>
-                    {pagate.map((f, i) => (
-                      <FatturaCard
-                        key={f.id}
-                        fattura={f}
-                        index={i}
-                        onTap={openSheet}
-                        reducedMotion={reducedMotion}
-                      />
+                    {saldati.map((d, i) => (
+                      <FatturaCard key={d.id} dovuto={d} index={i} onTap={openSheet} reducedMotion={reducedMotion} />
                     ))}
                   </AnimatePresence>
                 </div>
               </section>
             )}
-
-            {fatture.length === 0 && (
-              <div style={{
-                padding: '40px 24px',
-                textAlign: 'center',
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: 15,
-                color: DS.t2,
-              }}>
-                Nessuna fattura per questo cliente.
+            {dati.dovuti.length === 0 && (
+              <div style={{ padding: '40px 24px', textAlign: 'center', fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: DS.t2 }}>
+                Nessun dovuto per questo cliente.
               </div>
             )}
           </div>
 
-          {/* ── Tabella desktop (1280px+) ── */}
           <div className="estratto-table-view">
-            {fatture.length > 0 ? (
-              <TabellaFatture fatture={fatture} onTap={openSheet} />
+            {dati.dovuti.length > 0 ? (
+              <TabellaFatture dovuti={dati.dovuti} onTap={openSheet} />
             ) : (
-              <div style={{
-                padding: '40px 24px',
-                textAlign: 'center',
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: 15,
-                color: DS.t2,
-              }}>
-                Nessuna fattura per questo cliente.
+              <div style={{ padding: '40px 24px', textAlign: 'center', fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: DS.t2 }}>
+                Nessun dovuto per questo cliente.
               </div>
             )}
           </div>
 
-          {/* WhatsApp CTA globale — solo su mobile/tablet, solo se insoluto > 0 */}
-          {saldo_insoluto > 0 && whatsappUrlGlobale && (
+          <LavoriInAttesaSection lavori={dati.lavoriInAttesa} />
+
+          <CreditoDisponibileSection
+            disponibile={dati.creditoCliente.disponibile}
+            clienteId={dati.cliente.id}
+            dovutiApplicabili={nonSaldati}
+          />
+
+          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
             <div style={{ padding: '0 16px 24px' }} className="estratto-card-list">
-              <a
-                href={whatsappUrlGlobale}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  minHeight: 52,
-                  padding: '12px 20px',
-                  background: '#25D366',
-                  color: '#fff',
-                  borderRadius: 100,
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
-                }}
-              >
+              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+              }}>
                 <WhatsAppIcon />
-                Sollecito totale — {fmt.format(saldo_insoluto)}
+                Sollecito totale — {fmt.format(dati.creditoCliente.confermato)}
               </a>
             </div>
           )}
         </div>
 
-        {/* ── Sidebar tablet/desktop ── */}
         <div className="estratto-col-sidebar">
-          <ClienteInfoCard cliente={dati.cliente} saldo_insoluto={saldo_insoluto} />
-
-          {/* WhatsApp CTA sidebar — solo se insoluto > 0 */}
-          {saldo_insoluto > 0 && whatsappUrlGlobale && (
+          <ClienteInfoCard cliente={dati.cliente} saldo_insoluto={dati.creditoCliente.confermato} />
+          {dati.creditoCliente.confermato > 0 && whatsappUrlGlobale && (
             <div style={{ marginTop: 12 }}>
-              <a
-                href={whatsappUrlGlobale}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  minHeight: 52,
-                  padding: '12px 20px',
-                  background: '#25D366',
-                  color: '#fff',
-                  borderRadius: 100,
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
-                }}
-              >
+              <a href={whatsappUrlGlobale} target="_blank" rel="noopener noreferrer" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                minHeight: 52, padding: '12px 20px', background: '#25D366', color: '#fff',
+                borderRadius: 100, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 15,
+                textDecoration: 'none', boxShadow: '0 0 16px hsl(141 67% 49% / 0.35)',
+              }}>
                 <WhatsAppIcon />
                 Invia sollecito WhatsApp
               </a>
@@ -503,9 +344,8 @@ export function EstrattoContoView({ dati }: Props) {
         </div>
       </div>
 
-      {/* Bottom sheet fattura */}
-      <FatturaBottomSheet
-        fattura={selectedFatturaAggiornata}
+      <DovutoBottomSheet
+        dovuto={selectedDovutoAggiornato}
         telefono={dati.cliente.telefono}
         studioNome={dati.cliente.studio_nome ?? `${dati.cliente.nome} ${dati.cliente.cognome}`}
         onClose={closeSheet}
@@ -521,19 +361,10 @@ export function EstrattoContoView({ dati }: Props) {
   )
 }
 
-// ─── WhatsApp icon SVG ────────────────────────────────────────────────────────
-
 function WhatsAppIcon() {
   return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2Z" />
     </svg>
   )
 }
