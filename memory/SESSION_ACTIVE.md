@@ -1,4 +1,4 @@
-# Sessione chiusa — 02/07/2026 (aggiornata dopo fix B1)
+# Sessione chiusa — 02/07/2026 (aggiornata dopo fix B1 — prossima sessione: B2)
 
 **Versione in produzione:** V1.9.3 + fix B1 (commit `31cc47c`, pushato su main) · 169 test (era 157 + 12 nuovi da B1)
 
@@ -35,7 +35,21 @@ Lavoriamo sistematicamente sul resto del backlog, un item alla volta, in ordine 
 4. Fammi un breve riepilogo di cosa hai fatto prima di passare all'item successivo
 
 Comincia da B2 (Dashboard/Scadenzario dati contrastanti sui crediti clienti) — è l'unico
-blocker rimasto in cima alla lista di priorità del re-audit.
+blocker rimasto in cima alla lista di priorità del re-audit. Scheda completa a
+docs/roadmap/BACKLOG-TECNICO-2026-07-02.md riga 112 ("### B2. Dashboard e Scadenzario
+danno risposte opposte su chi deve pagare").
+
+Causa nota (già individuata dal re-audit, verifica comunque il codice attuale prima
+di fidarti ciecamente — a B1 sono emersi dettagli non visibili dalla sola lettura
+dello schema): la Dashboard calcola i crediti da `lavori`+`lavori_partitario`
+(supabase/migrations/008_dashboard_extended_kpi.sql:39-61), lo Scadenzario legge
+solo `fatture` con `pagata=false AND stato_sdi != 'draft'`
+(src/app/api/scadenzario/route.ts:36-46) — due fonti mai riconciliate.
+
+Come per B1, il backlog segnala esplicitamente che serve una DECISIONE ARCHITETTURALE
+su quale ledger diventa la fonte di verità per "quanto deve un cliente" — non è solo
+un bug fix. Chiedimelo prima di implementare, con la stessa profondità di indagine
+usata su B1 (leggi il codice reale dei due percorsi, non fermarti allo schema).
 ```
 
 **Stato backlog (02/07/2026, aggiornato dopo B1):**
