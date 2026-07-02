@@ -97,13 +97,17 @@ export async function tracciaMaterialiLavoro(
         // Ramo A — MDR-rilevante
         if (magazziniGiaTracciati.has(bom.magazzino_id)) continue // idempotenza su retry consegna
 
-        const { data: lotti } = await supabase
+        const { data: lotti, error: lottiErr } = await supabase
           .from('lotti_magazzino')
           .select('id, numero_lotto, quantita_residua, data_scadenza, data_acquisto')
           .eq('magazzino_id', bom.magazzino_id)
           .eq('laboratorio_id', laboratorio_id)
           .eq('attivo', true)
           .gt('quantita_residua', 0)
+
+        if (lottiErr) {
+          console.error('[TRACCIA-MATERIALI] Errore query lotti_magazzino:', lottiErr.message)
+        }
 
         const lottiDisponibili: LottoDisponibile[] = ((lotti ?? []) as Array<{
           id: string
@@ -140,6 +144,7 @@ export async function tracciaMaterialiLavoro(
 
           if (insErr) {
             console.error('[TRACCIA-MATERIALI] Errore insert lavori_materiali:', insErr.message)
+            dettaglio.push({ magazzino_id: bom.magazzino_id, nome_materiale: art.nome, motivo: 'lotto_assente' })
             continue
           }
           if (inserted) nuoviMateriali.push(inserted as LavoroMateriale)

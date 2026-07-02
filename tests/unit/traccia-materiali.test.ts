@@ -13,12 +13,13 @@ interface FakeData {
   lotti: Record<string, FakeLotto[]>
 }
 
-function createFakeSupabase(data: FakeData) {
+function createFakeSupabase(data: FakeData, options: { failInsertAfter?: number } = {}) {
   const inserted = {
     lavori_materiali: [] as Record<string, unknown>[],
     scarichi_magazzino: [] as Record<string, unknown>[],
   }
   const rpcCalls: Array<{ name: string; args: unknown }> = []
+  let lavoriMaterialiInsertAttempts = 0
 
   const fake = {
     _inserted: inserted,
@@ -38,6 +39,10 @@ function createFakeSupabase(data: FakeData) {
         },
         insert(row: Record<string, unknown>) {
           if (table === 'lavori_materiali') {
+            lavoriMaterialiInsertAttempts += 1
+            if (options.failInsertAfter !== undefined && lavoriMaterialiInsertAttempts > options.failInsertAfter) {
+              return { select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'insert fallito (simulato)' } }) }) }
+            }
             const withId = { id: `mat-${inserted.lavori_materiali.length + 1}`, ...row }
             inserted.lavori_materiali.push(withId)
             return { select: () => ({ single: () => Promise.resolve({ data: withId, error: null }) }) }
@@ -182,5 +187,29 @@ describe('tracciaMaterialiLavoro', () => {
 
     expect(supabase._inserted.lavori_materiali).toHaveLength(0)
     expect(risultato.materialiTracciati).toHaveLength(1)
+  })
+
+  it('split multi-lotto con insert fallito sul secondo lotto → flag lotto_assente per il residuo non tracciato', async () => {
+    // quantitaNecessaria = 2 (quantita_per_unita 1 * quantita lavorazione 2), coperta da 2 lotti da 1 unità.
+    const supabase = createFakeSupabase(
+      {
+        bom: { 'list-1': [{ magazzino_id: 'mag-1', quantita_per_unita: 1, unita_misura: 'g' }] },
+        magazzino: { 'mag-1': { nome: 'Zirconia', produttore: 'Vita', traccia_lotto: true } },
+        lotti: {
+          'mag-1': [
+            { id: 'lot-1', numero_lotto: 'LOT-A', quantita_residua: 1, data_scadenza: '2026-06-01', data_acquisto: '2026-01-01' },
+            { id: 'lot-2', numero_lotto: 'LOT-B', quantita_residua: 1, data_scadenza: '2026-07-01', data_acquisto: '2026-01-01' },
+          ],
+        },
+      },
+      { failInsertAfter: 1 } // il primo insert (lot-1) riesce, il secondo (lot-2) fallisce
+    )
+
+    const risultato = await tracciaMaterialiLavoro(supabase, lavoroFixture(), 'lab-1')
+
+    expect(supabase._inserted.lavori_materiali).toHaveLength(1)
+    expect(supabase._inserted.lavori_materiali[0]).toMatchObject({ lotto_id: 'lot-1' })
+    expect(risultato.tracciabilitaOk).toBe(false)
+    expect(risultato.dettaglio).toEqual([{ magazzino_id: 'mag-1', nome_materiale: 'Zirconia', motivo: 'lotto_assente' }])
   })
 })
