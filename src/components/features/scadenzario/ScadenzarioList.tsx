@@ -16,18 +16,18 @@ interface ClienteSnap {
   telefono: string | null
 }
 
-interface FatturaInsoluta {
+interface DovutoRow {
   id: string
+  origine: 'fattura' | 'lavoro_diretto'
   numero: string
   data: string
-  totale: number
-  stato_sdi: string
-  pagata: boolean
+  importo: number
+  stato_sdi: string | null
 }
 
 interface InsolutoCliente {
   cliente: ClienteSnap
-  fatture: FatturaInsoluta[]
+  dovuti: DovutoRow[]
   totale_insoluto: number
   giorni_max_ritardo: number
 }
@@ -67,15 +67,15 @@ function InsolutoCard({
   // Capture render time once via lazy useState initializer
   // (ESLint react-hooks/purity disallows Date.now() in render body directly)
   const [now] = useState<number>(() => Date.now())
-  const fattureConGiorni = useMemo(
+  const dovutiConGiorni = useMemo(
     () =>
-      item.fatture.map((f) => ({
-        ...f,
+      item.dovuti.map((d) => ({
+        ...d,
         giorniRitardo: Math.floor(
-          (now - new Date(f.data).getTime()) / 86_400_000
+          (now - new Date(d.data).getTime()) / 86_400_000
         ),
       })),
-    [item.fatture, now]
+    [item.dovuti, now]
   )
 
   const whatsappMsg = buildWhatsappSollecito({
@@ -146,7 +146,7 @@ function InsolutoCard({
                 color: 'var(--t2, #4A3D33)',
               }}
             >
-              {item.fatture.length} {item.fatture.length === 1 ? 'fattura' : 'fatture'} non pagate
+              {item.dovuti.length} {item.dovuti.length === 1 ? 'voce non saldata' : 'voci non saldate'}
             </p>
           </div>
 
@@ -231,9 +231,9 @@ function InsolutoCard({
                   gap: '6px',
                 }}
               >
-                {fattureConGiorni.map((f) => (
+                {dovutiConGiorni.map((d) => (
                   <li
-                    key={f.id}
+                    key={d.id}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -248,7 +248,7 @@ function InsolutoCard({
                         color: 'var(--t1, #1C1916)',
                       }}
                     >
-                      {f.numero}
+                      {d.origine === 'fattura' ? '🧾' : '🔧'} {d.numero}
                     </span>
                     <span
                       style={{
@@ -257,13 +257,13 @@ function InsolutoCard({
                         color: 'var(--t2, #4A3D33)',
                       }}
                     >
-                      {new Date(f.data).toLocaleDateString('it-IT', {
+                      {new Date(d.data).toLocaleDateString('it-IT', {
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
                       })}
                       {' · '}
-                      {f.giorniRitardo}gg
+                      {d.giorniRitardo}gg
                     </span>
                     <span
                       suppressHydrationWarning
@@ -271,11 +271,11 @@ function InsolutoCard({
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '14px',
                         fontWeight: 600,
-                        color: urgencyColor(f.giorniRitardo),
+                        color: urgencyColor(d.giorniRitardo),
                         marginLeft: 'auto',
                       }}
                     >
-                      {fmt.format(f.totale)}
+                      {fmt.format(d.importo)}
                     </span>
                   </li>
                 ))}
