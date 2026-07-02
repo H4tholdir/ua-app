@@ -126,6 +126,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     'deleted_at',
     // State machine — modificati esclusivamente da orchestraConsegna
     'stato',
+    'decisione_fatturazione', // modificabile solo via PATCH /api/lavori/[id]/decisione-fatturazione (B2)
     'conformato',
     'data_conformazione',
     'consegna_completata_at',
