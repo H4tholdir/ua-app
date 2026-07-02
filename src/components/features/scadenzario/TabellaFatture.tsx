@@ -1,18 +1,19 @@
+// src/components/features/scadenzario/TabellaFatture.tsx
 'use client'
 
 import { useState } from 'react'
-import type { FatturaEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
-import { DS, fmt, formatData, urgencyColor, urgencyPillBg, urgencyPillBorder, urgencyEmoji, labelStatoSDI } from './estratto-conto-shared'
+import type { DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
+import { DS, fmt, formatData, urgencyColor, labelStatoSDI, labelOrigine } from './estratto-conto-shared'
 
-type SortKey = 'data' | 'totale' | 'stato_sdi' | 'giorni_ritardo'
+type SortKey = 'data' | 'totale' | 'origine' | 'giorni_ritardo'
 type SortDir = 'asc' | 'desc'
 
 export function TabellaFatture({
-  fatture,
+  dovuti,
   onTap,
 }: {
-  fatture: FatturaEstratto[]
-  onTap: (f: FatturaEstratto) => void
+  dovuti: DovutoEstratto[]
+  onTap: (d: DovutoEstratto) => void
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('giorni_ritardo')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -26,11 +27,11 @@ export function TabellaFatture({
     }
   }
 
-  const sorted = [...fatture].sort((a, b) => {
+  const sorted = [...dovuti].sort((a, b) => {
     let cmp = 0
     if (sortKey === 'data') cmp = new Date(a.data).getTime() - new Date(b.data).getTime()
-    else if (sortKey === 'totale') cmp = a.totale - b.totale
-    else if (sortKey === 'stato_sdi') cmp = a.stato_sdi.localeCompare(b.stato_sdi)
+    else if (sortKey === 'totale') cmp = (a.pagata ? a.totale : a.residuo) - (b.pagata ? b.totale : b.residuo)
+    else if (sortKey === 'origine') cmp = a.origine.localeCompare(b.origine)
     else if (sortKey === 'giorni_ritardo') cmp = a.giorni_ritardo - b.giorni_ritardo
     return sortDir === 'asc' ? cmp : -cmp
   })
@@ -59,11 +60,11 @@ export function TabellaFatture({
             <th style={thStyle('data')} onClick={() => handleSort('data')}>
               Data {sortKey === 'data' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
-            <th style={{ ...thStyle('totale'), textAlign: 'right' }} onClick={() => handleSort('totale')}>
-              Importo {sortKey === 'totale' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+            <th style={thStyle('origine')} onClick={() => handleSort('origine')}>
+              Origine {sortKey === 'origine' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
-            <th style={thStyle('stato_sdi')} onClick={() => handleSort('stato_sdi')}>
-              Stato SDI {sortKey === 'stato_sdi' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+            <th style={{ ...thStyle('totale'), textAlign: 'right' }} onClick={() => handleSort('totale')}>
+              Residuo {sortKey === 'totale' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
             </th>
             <th style={thStyle('giorni_ritardo')} onClick={() => handleSort('giorni_ritardo')}>
               Giorni {sortKey === 'giorni_ritardo' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
@@ -74,16 +75,16 @@ export function TabellaFatture({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((f, i) => {
-            const color = urgencyColor(f)
+          {sorted.map((d, i) => {
+            const color = urgencyColor(d)
             return (
               <tr
-                key={f.id}
+                key={d.id}
                 style={{
                   borderBottom: i < sorted.length - 1 ? '1px solid rgba(0,0,0,.04)' : 'none',
                   cursor: 'pointer',
                 }}
-                onClick={() => onTap(f)}
+                onClick={() => onTap(d)}
               >
                 <td style={{
                   padding: '12px 12px',
@@ -91,8 +92,14 @@ export function TabellaFatture({
                   fontSize: 13,
                   color: DS.t1,
                 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>N. {f.numero}</div>
-                  <div style={{ fontSize: 11, color: DS.t2, marginTop: 2 }}>{formatData(f.data)}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>N. {d.numero}</div>
+                  <div style={{ fontSize: 11, color: DS.t2, marginTop: 2 }}>{formatData(d.data)}</div>
+                </td>
+                <td style={{ padding: '12px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: DS.t2 }}>
+                  {labelOrigine(d.origine)}
+                  {d.origine === 'fattura' && (
+                    <div style={{ fontSize: 11, marginTop: 2 }}>{labelStatoSDI(d.stato_sdi ?? 'draft')}</div>
+                  )}
                 </td>
                 <td style={{
                   padding: '12px 12px',
@@ -103,35 +110,21 @@ export function TabellaFatture({
                   textAlign: 'right',
                   fontVariantNumeric: 'tabular-nums',
                 }}>
-                  {fmt.format(f.totale)}
-                </td>
-                <td style={{ padding: '12px 12px' }}>
-                  <span style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color,
-                    background: urgencyPillBg(f),
-                    border: urgencyPillBorder(f),
-                    borderRadius: 8,
-                    padding: '3px 8px',
-                  }}>
-                    {urgencyEmoji(f)} {labelStatoSDI(f.stato_sdi)}
-                  </span>
+                  {fmt.format(d.pagata ? d.totale : d.residuo)}
                 </td>
                 <td style={{
                   padding: '12px 12px',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: 13,
-                  color: f.pagata ? DS.t3 : color,
+                  color: d.pagata ? DS.t3 : color,
                   fontVariantNumeric: 'tabular-nums',
                 }}>
-                  {f.pagata ? '—' : `${f.giorni_ritardo}gg`}
+                  {d.pagata ? '—' : `${d.giorni_ritardo}gg`}
                 </td>
                 <td style={{ padding: '12px 12px', textAlign: 'right' }}>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onTap(f) }}
+                    onClick={(e) => { e.stopPropagation(); onTap(d) }}
                     style={{
                       padding: '6px 12px',
                       borderRadius: 8,

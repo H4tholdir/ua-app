@@ -1,19 +1,20 @@
+// src/components/features/scadenzario/FatturaCard.tsx
 'use client'
 
 import { motion } from 'motion/react'
 import { t, staggerDelay } from '@/design-system/motion'
-import type { FatturaEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
-import { DS, fmt, formatData, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder } from './estratto-conto-shared'
+import type { DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
+import { DS, fmt, formatData, urgencyColor, urgencyEmoji, urgencyLabel, urgencyPillBg, urgencyPillBorder, labelOrigine } from './estratto-conto-shared'
 
 interface FatturaCardProps {
-  fattura: FatturaEstratto
+  dovuto: DovutoEstratto
   index: number
-  onTap: (f: FatturaEstratto) => void
+  onTap: (d: DovutoEstratto) => void
   reducedMotion: boolean
 }
 
-export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCardProps) {
-  const color = urgencyColor(fattura)
+export function FatturaCard({ dovuto, index, onTap, reducedMotion }: FatturaCardProps) {
+  const color = urgencyColor(dovuto)
   const delay = Math.min(index * staggerDelay(8), 0.25)
 
   return (
@@ -26,7 +27,7 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
     >
       <button
         type="button"
-        onClick={() => onTap(fattura)}
+        onClick={() => onTap(dovuto)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -42,7 +43,7 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
           fontFamily: 'DM Sans, sans-serif',
           WebkitTapHighlightColor: 'transparent',
         }}
-        aria-label={`Fattura ${fattura.numero} — ${fmt.format(fattura.totale)} — ${urgencyLabel(fattura)}`}
+        aria-label={`${labelOrigine(dovuto.origine)} ${dovuto.numero} — ${fmt.format(dovuto.residuo)} — ${urgencyLabel(dovuto)}`}
       >
         <div style={{
           display: 'flex',
@@ -51,12 +52,12 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
           justifyContent: 'center',
           minWidth: 56,
           padding: '6px 8px',
-          background: urgencyPillBg(fattura),
-          border: urgencyPillBorder(fattura),
+          background: urgencyPillBg(dovuto),
+          border: urgencyPillBorder(dovuto),
           borderRadius: 12,
           flexShrink: 0,
         }}>
-          <span style={{ fontSize: 18, lineHeight: 1 }}>{urgencyEmoji(fattura)}</span>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>{urgencyEmoji(dovuto)}</span>
           <span style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: 9,
@@ -66,7 +67,7 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
             textAlign: 'center',
             letterSpacing: '0.03em',
           }}>
-            {urgencyLabel(fattura)}
+            {urgencyLabel(dovuto)}
           </span>
         </div>
 
@@ -78,17 +79,23 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
             color: DS.t1,
             marginBottom: 2,
           }}>
-            N. {fattura.numero}
+            N. {dovuto.numero}
+            <span style={{
+              marginLeft: 6, fontSize: 10, fontWeight: 700, color: DS.t3,
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>
+              {labelOrigine(dovuto.origine)}
+            </span>
           </div>
           <div style={{
             fontFamily: 'DM Sans, sans-serif',
             fontSize: 12,
             color: DS.t2,
           }}>
-            {formatData(fattura.data)}
-            {!fattura.pagata && (
+            {formatData(dovuto.data)}
+            {!dovuto.pagata && (
               <span style={{ marginLeft: 4, color }}>
-                · {fattura.giorni_ritardo}gg
+                · {dovuto.giorni_ritardo}gg
               </span>
             )}
           </div>
@@ -102,7 +109,7 @@ export function FatturaCard({ fattura, index, onTap, reducedMotion }: FatturaCar
           fontVariantNumeric: 'tabular-nums',
           flexShrink: 0,
         }}>
-          {fmt.format(fattura.totale)}
+          {fmt.format(dovuto.pagata ? dovuto.totale : dovuto.residuo)}
         </div>
       </button>
     </motion.div>

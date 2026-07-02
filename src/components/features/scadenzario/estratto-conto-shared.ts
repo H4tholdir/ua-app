@@ -1,4 +1,9 @@
-import type { FatturaEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
+// src/components/features/scadenzario/estratto-conto-shared.ts
+
+interface RigaUrgenza {
+  pagata: boolean
+  giorni_ritardo: number
+}
 
 export const DS = {
   bg:      'var(--bg, #DDD8D3)',
@@ -25,33 +30,32 @@ export function formatData(iso: string): string {
   })
 }
 
-// Coerente con ScadenzarioList.tsx: rosso per > 60, oro per >= 30, t2 per < 30 non pagate
-export function urgencyColor(f: FatturaEstratto): string {
+export function urgencyColor(f: RigaUrgenza): string {
   if (f.pagata) return DS.green
   if (f.giorni_ritardo > 60) return DS.red
   if (f.giorni_ritardo >= 30) return DS.gold
   return DS.t2
 }
 
-export function urgencyEmoji(f: FatturaEstratto): string {
+export function urgencyEmoji(f: RigaUrgenza): string {
   if (f.pagata) return '✅'
   if (f.giorni_ritardo > 60) return '⏰'
   if (f.giorni_ritardo >= 30) return '⏳'
   return '🧾'
 }
 
-export function urgencyLabel(f: FatturaEstratto): string {
+export function urgencyLabel(f: RigaUrgenza): string {
   if (f.pagata) return 'Pagata'
   if (f.giorni_ritardo > 60) return 'Urgente'
   if (f.giorni_ritardo >= 30) return 'In ritardo'
   return 'In sospeso'
 }
 
-export function urgencyPillBg(f: FatturaEstratto): string {
+export function urgencyPillBg(f: RigaUrgenza): string {
   return `${urgencyColor(f)}22`
 }
 
-export function urgencyPillBorder(f: FatturaEstratto): string {
+export function urgencyPillBorder(f: RigaUrgenza): string {
   return `1px solid ${urgencyColor(f)}44`
 }
 
@@ -68,4 +72,8 @@ const STATO_SDI_LABEL: Record<string, string> = {
 
 export function labelStatoSDI(stato: string): string {
   return STATO_SDI_LABEL[stato] ?? stato
+}
+
+export function labelOrigine(origine: 'fattura' | 'lavoro_diretto'): string {
+  return origine === 'fattura' ? 'Fattura' : 'Lavoro diretto'
 }

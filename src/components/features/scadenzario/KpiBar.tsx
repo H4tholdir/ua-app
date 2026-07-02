@@ -1,3 +1,4 @@
+// src/components/features/scadenzario/KpiBar.tsx
 'use client'
 
 import { motion } from 'motion/react'
@@ -5,41 +6,25 @@ import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import { DS, fmt } from './estratto-conto-shared'
 
 interface KpiBarProps {
-  saldo_insoluto: number
-  totale_fatture: number
-  fatture_pagate_count: number
+  confermato: number
+  potenziale: number
+  disponibile: number
+  totale: number
 }
 
-export function KpiBar({ saldo_insoluto, totale_fatture, fatture_pagate_count }: KpiBarProps) {
+export function KpiBar({ confermato, potenziale, disponibile, totale }: KpiBarProps) {
   const reducedMotion = useReducedMotion()
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: '1fr 1fr',
       gap: 8,
       margin: '0 16px 20px',
     }}>
-      <KpiCard
-        label="Insoluto"
-        value={fmt.format(saldo_insoluto)}
-        color={saldo_insoluto > 0 ? DS.red : DS.green}
-        sub={saldo_insoluto > 0 ? 'da incassare' : 'tutto pagato'}
-        reducedMotion={reducedMotion}
-      />
-      <KpiCard
-        label="Fatture"
-        value={String(totale_fatture)}
-        color={DS.t1}
-        sub="totali"
-        reducedMotion={reducedMotion}
-      />
-      <KpiCard
-        label="Pagate"
-        value={String(fatture_pagate_count)}
-        color={DS.green}
-        sub={`su ${totale_fatture}`}
-        reducedMotion={reducedMotion}
-      />
+      <KpiCard label="Totale dovuto" value={fmt.format(totale)} color={totale > 0 ? DS.red : DS.green} sub="confermato + potenziale" reducedMotion={reducedMotion} />
+      <KpiCard label="Credito confermato" value={fmt.format(confermato)} color={DS.t1} sub="fatture + lavori decisi" reducedMotion={reducedMotion} />
+      <KpiCard label="Credito potenziale" value={fmt.format(potenziale)} color={DS.gold} sub="lavori in attesa" reducedMotion={reducedMotion} />
+      <KpiCard label="Credito disponibile" value={fmt.format(disponibile)} color={disponibile > 0 ? DS.green : DS.t3} sub="a favore del cliente" reducedMotion={reducedMotion} />
     </div>
   )
 }
@@ -53,9 +38,9 @@ function KpiCard({ label, value, color, sub, reducedMotion }: { label: string; v
       style={{
         background: DS.sfc,
         borderRadius: 16,
-        padding: '12px 10px',
+        padding: '14px 12px',
         boxShadow: DS.shB,
-        textAlign: 'center',
+        textAlign: 'left',
       }}
     >
       <div style={{
@@ -71,7 +56,7 @@ function KpiCard({ label, value, color, sub, reducedMotion }: { label: string; v
       </div>
       <div style={{
         fontFamily: 'DM Sans, sans-serif',
-        fontSize: 17,
+        fontSize: 18,
         fontWeight: 700,
         color,
         fontVariantNumeric: 'tabular-nums',
