@@ -408,6 +408,118 @@ export type Database = {
           },
         ]
       }
+      credito_clienti_movimenti: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          fattura_id: string | null
+          id: string
+          importo: number
+          laboratorio_id: string
+          lavoro_id: string | null
+          metodo: string | null
+          metodo_nota: string | null
+          note: string | null
+          pagamento_id: string | null
+          registrato_da: string
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          fattura_id?: string | null
+          id?: string
+          importo: number
+          laboratorio_id: string
+          lavoro_id?: string | null
+          metodo?: string | null
+          metodo_nota?: string | null
+          note?: string | null
+          pagamento_id?: string | null
+          registrato_da: string
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          fattura_id?: string | null
+          id?: string
+          importo?: number
+          laboratorio_id?: string
+          lavoro_id?: string | null
+          metodo?: string | null
+          metodo_nota?: string | null
+          note?: string | null
+          pagamento_id?: string | null
+          registrato_da?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credito_clienti_movimenti_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clienti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "partitario_clienti"
+            referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture_da_inviare"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credito_clienti_movimenti_registrato_da_fkey"
+            columns: ["registrato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_kpi_cache: {
         Row: {
           aggiornato_at: string
@@ -975,6 +1087,7 @@ export type Database = {
           id: string
           imponibile: number
           imponibile_netto: number | null
+          importo_pagato: number
           inviata_at: string | null
           inviata_via: string | null
           iva_importo: number
@@ -1033,6 +1146,7 @@ export type Database = {
           id?: string
           imponibile?: number
           imponibile_netto?: number | null
+          importo_pagato?: number
           inviata_at?: string | null
           inviata_via?: string | null
           iva_importo?: number
@@ -1091,6 +1205,7 @@ export type Database = {
           id?: string
           imponibile?: number
           imponibile_netto?: number | null
+          importo_pagato?: number
           inviata_at?: string | null
           inviata_via?: string | null
           iva_importo?: number
@@ -1911,6 +2026,7 @@ export type Database = {
           data_prima_prova: string | null
           data_seconda_prova: string | null
           data_terza_prova: string | null
+          decisione_fatturazione: string
           deleted_at: string | null
           denti_coinvolti: string[] | null
           denti_impianti: number[]
@@ -2001,6 +2117,7 @@ export type Database = {
           data_prima_prova?: string | null
           data_seconda_prova?: string | null
           data_terza_prova?: string | null
+          decisione_fatturazione?: string
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
@@ -2091,6 +2208,7 @@ export type Database = {
           data_prima_prova?: string | null
           data_seconda_prova?: string | null
           data_terza_prova?: string | null
+          decisione_fatturazione?: string
           deleted_at?: string | null
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
@@ -2634,67 +2752,6 @@ export type Database = {
             columns: ["magazzino_id"]
             isOneToOne: false
             referencedRelation: "magazzino_sotto_scorta"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lavori_partitario: {
-        Row: {
-          created_at: string
-          data_pagamento: string
-          deleted_at: string | null
-          id: string
-          importo: number
-          laboratorio_id: string
-          lavoro_id: string
-          modalita: string
-          note: string | null
-          riferimento: string | null
-        }
-        Insert: {
-          created_at?: string
-          data_pagamento: string
-          deleted_at?: string | null
-          id?: string
-          importo: number
-          laboratorio_id: string
-          lavoro_id: string
-          modalita?: string
-          note?: string | null
-          riferimento?: string | null
-        }
-        Update: {
-          created_at?: string
-          data_pagamento?: string
-          deleted_at?: string | null
-          id?: string
-          importo?: number
-          laboratorio_id?: string
-          lavoro_id?: string
-          modalita?: string
-          note?: string | null
-          riferimento?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lavori_partitario_laboratorio_id_fkey"
-            columns: ["laboratorio_id"]
-            isOneToOne: false
-            referencedRelation: "laboratori"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lavori_partitario_lavoro_id_fkey"
-            columns: ["lavoro_id"]
-            isOneToOne: false
-            referencedRelation: "lavori"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lavori_partitario_lavoro_id_fkey"
-            columns: ["lavoro_id"]
-            isOneToOne: false
-            referencedRelation: "lavori_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -3785,6 +3842,117 @@ export type Database = {
             columns: ["ordine_id"]
             isOneToOne: false
             referencedRelation: "ordini_acquisto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamenti: {
+        Row: {
+          annullato_at: string | null
+          annullato_da: string | null
+          created_at: string
+          data_pagamento: string
+          fattura_id: string | null
+          id: string
+          importo: number
+          laboratorio_id: string
+          lavoro_id: string | null
+          metodo: string
+          metodo_nota: string | null
+          motivo_annullamento: string | null
+          registrato_da: string
+          sostituisce_pagamento_id: string | null
+          stato: string
+        }
+        Insert: {
+          annullato_at?: string | null
+          annullato_da?: string | null
+          created_at?: string
+          data_pagamento: string
+          fattura_id?: string | null
+          id?: string
+          importo: number
+          laboratorio_id: string
+          lavoro_id?: string | null
+          metodo: string
+          metodo_nota?: string | null
+          motivo_annullamento?: string | null
+          registrato_da: string
+          sostituisce_pagamento_id?: string | null
+          stato?: string
+        }
+        Update: {
+          annullato_at?: string | null
+          annullato_da?: string | null
+          created_at?: string
+          data_pagamento?: string
+          fattura_id?: string | null
+          id?: string
+          importo?: number
+          laboratorio_id?: string
+          lavoro_id?: string | null
+          metodo?: string
+          metodo_nota?: string | null
+          motivo_annullamento?: string | null
+          registrato_da?: string
+          sostituisce_pagamento_id?: string | null
+          stato?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamenti_annullato_da_fkey"
+            columns: ["annullato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture_da_inviare"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_registrato_da_fkey"
+            columns: ["registrato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamenti_sostituisce_pagamento_id_fkey"
+            columns: ["sostituisce_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamenti"
             referencedColumns: ["id"]
           },
         ]
@@ -5155,6 +5323,10 @@ export type Database = {
       lab_is_accessible: { Args: never; Returns: boolean }
       refresh_dashboard_cache: {
         Args: { p_lab_id: string }
+        Returns: undefined
+      }
+      ricalcola_pagamento_fattura: {
+        Args: { p_fattura_id: string }
         Returns: undefined
       }
       richiede_bollo: {
