@@ -49,12 +49,14 @@ Se un pagamento supera il dovuto, l'eccedenza diventa credito disponibile del cl
 
 ### 5. Numeri distinti, mai fusi (per non ricreare l'ambiguità di B2)
 
-- **Credito confermato**: fatture emesse non saldate + lavori `non_fatturare` non saldati sul ledger diretto
+- **Credito confermato**: fatture emesse non saldate **+** lavori `non_fatturare` non saldati sul ledger diretto **+** lavori `fatturare` con `incluso_in_fattura = false` (deciso ma non ancora formalizzato in fattura — il dovuto è reale anche se non ancora fatturato). Non appena `incluso_in_fattura` diventa `true`, quel lavoro esce da questo terzo bucket ed entra nel primo (fattura non saldata) — mai contato due volte, perché la condizione `incluso_in_fattura = false` lo esclude automaticamente al momento del passaggio.
 - **Credito potenziale**: lavori `in_attesa` di decisione (prezzo pieno, provvisorio — per scelta esplicita del titolare, questi contano già come dovuto stimato)
 - **Totale dovuto complessivo**: confermato + potenziale, mostrato come numero di sintesi accanto alla scomposizione
 - **Credito disponibile**: saldo a favore del cliente
 
 Il "credito potenziale" **non** entra nello Scadenzario (non è ancora un dovuto su cui sollecitare un pagamento), ma entra nel calcolo del "totale dovuto complessivo".
+
+> **Nota di progettazione (emersa in review):** senza il terzo bucket sopra, un lavoro che passa da `in_attesa` a `fatturare` sparirebbe temporaneamente da ogni conteggio finché non viene effettivamente incluso in una fattura (né potenziale, perché non più `in_attesa`; né confermato, perché non ancora fatturato) — rendendo il "totale dovuto complessivo" non monotono (es. 100 → 0 → 100) e contraddicendo esplicitamente la richiesta di un numero che "somma tutto". Il bucket `fatturare AND incluso_in_fattura=false` chiude questo buco.
 
 ## Modello dati
 
@@ -78,8 +80,8 @@ data_pagamento DATE NOT NULL
 stato TEXT NOT NULL DEFAULT 'attivo' CHECK (stato IN ('attivo','annullato'))
 motivo_annullamento TEXT
 sostituisce_pagamento_id UUID REFERENCES pagamenti(id)
-registrato_da UUID NOT NULL REFERENCES auth.users(id)
-annullato_da UUID REFERENCES auth.users(id)
+registrato_da UUID NOT NULL REFERENCES utenti(id)
+annullato_da UUID REFERENCES utenti(id)
 annullato_at TIMESTAMPTZ
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
@@ -96,25 +98,45 @@ id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 laboratorio_id UUID NOT NULL REFERENCES laboratori(id)
 cliente_id UUID NOT NULL REFERENCES clienti(id)
 tipo TEXT NOT NULL CHECK (tipo IN ('eccedenza','applicazione','rimborso'))
-importo NUMERIC(10,2) NOT NULL CHECK (importo > 0)
+
+-- 'eccedenza': collegata al pagamento in contanti/bonifico/ecc. che l'ha generata
 pagamento_id UUID REFERENCES pagamenti(id)
-metodo TEXT CHECK (metodo IN ('contanti','bonifico','pos','assegno','altro'))
+
+-- 'applicazione': collegata al dovuto che sta saldando (polimorfico, stesso pattern di `pagamenti`)
+fattura_id UUID REFERENCES fatture(id)
+lavoro_id UUID REFERENCES lavori(id)
+
+importo NUMERIC(10,2) NOT NULL CHECK (importo > 0)
+metodo TEXT CHECK (metodo IN ('contanti','bonifico','pos','assegno','altro'))  -- solo per 'rimborso'
 metodo_nota TEXT
 note TEXT
-registrato_da UUID NOT NULL REFERENCES auth.users(id)
+registrato_da UUID NOT NULL REFERENCES utenti(id)
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+CHECK (
+  (tipo = 'eccedenza'    AND pagamento_id IS NOT NULL AND fattura_id IS NULL AND lavoro_id IS NULL) OR
+  (tipo = 'applicazione' AND pagamento_id IS NULL AND (fattura_id IS NOT NULL) <> (lavoro_id IS NOT NULL)) OR
+  (tipo = 'rimborso'     AND pagamento_id IS NULL AND fattura_id IS NULL AND lavoro_id IS NULL AND metodo IS NOT NULL)
+)
 ```
 Saldo cliente = `SUM(eccedenza) - SUM(applicazione) - SUM(rimborso)`, sempre ≥ 0 (verificato in applicazione, non a livello DB).
 
+**Punto critico (emerso in review): l'applicazione di credito NON genera una riga in `pagamenti`.** Se generasse un pagamento "virtuale", il contante incassato risulterebbe contato due volte: una volta come pagamento originale in eccedenza, una seconda volta come "pagamento" dell'applicazione — falsando qualsiasi report "quanto ho incassato per metodo" (esplicitamente richiesto: "saldato... e come"). Il saldo/residuo di una fattura o di un lavoro diretto si calcola quindi come:
+
+```
+residuo = importo - SUM(pagamenti attivi collegati) - SUM(applicazioni di credito collegate)
+```
+
+Il trigger che ricalcola `fatture.pagata`/`importo_pagato` (sotto) si attiva sia su `pagamenti` sia su `credito_clienti_movimenti` (tipo `applicazione`).
+
 ### `fatture` (colonne esistenti, semantica cambiata)
-- `pagata` — resta, ma diventa derivata: trigger su `pagamenti` la ricalcola (`SUM(pagamenti attivi collegati) >= importo`)
-- `importo_pagato` (nuova colonna) — somma pagamenti attivi collegati, per mostrare i parziali
+- `pagata` — resta, ma diventa derivata: trigger su `pagamenti` e su `credito_clienti_movimenti` la ricalcola (`SUM(pagamenti attivi collegati) + SUM(applicazioni collegate) >= importo`)
+- `importo_pagato` (nuova colonna) — somma pagamenti attivi + applicazioni collegate, per mostrare i parziali
 
 ### Migration: `lavori_partitario`
 Drop della tabella (0 righe, nessun writer, RLS orfana).
 
-### Migration: backfill storico
-Per ogni fattura con `pagata = true` esistente prima di questa feature, crea un pagamento retroattivo (`metodo: 'altro'`, `metodo_nota: 'migrazione storica pre-contabilità-clienti'`, importo pieno) — così il ledger diventa fonte di verità anche per il pregresso, non solo da questo punto in poi.
+> **Nessun backfill storico.** Valutato in review e scartato: i dati attuali (lavori/fatture storici) sono dati di test in vista di un reset totale del DB (confermato da Francesco) — costruire una migration di backfill per popolare pagamenti sintetici su dati che verranno comunque azzerati è sforzo sprecato. Le fatture storiche `pagata=true` restano tali (colonna non toccata retroattivamente); la derivazione via trigger vale solo da qui in avanti. Conseguenza cosmetica accettata: quelle fatture avranno `importo_pagato = 0` pur risultando `pagata = true` — l'UI mostra il pieno importo come "pagato" quando `pagata=true` e non esistono righe ledger collegate, invece di mostrare un fuorviante "0 di importo pagato".
 
 ## Flusso operativo / API
 
@@ -122,7 +144,7 @@ Per ogni fattura con `pagata = true` esistente prima di questa feature, crea un 
 - `POST /api/pagamenti` — `{ fattura_id | lavoro_id, importo, metodo, metodo_nota?, data_pagamento }`. Eccedenza → genera automaticamente movimento `eccedenza`
 - `PATCH /api/pagamenti/[id]` — modifica-come-sostituzione. Fallisce con 409 se il pagamento non è più `attivo` (controllo di concorrenza ottimistica)
 - `DELETE /api/pagamenti/[id]` — soft-delete, richiede `motivo_annullamento`
-- `POST /api/clienti/[id]/credito/applica` — usa credito disponibile su un dovuto specifico
+- `POST /api/clienti/[id]/credito/applica` — `{ fattura_id | lavoro_id, importo }`, crea un movimento `applicazione` in `credito_clienti_movimenti` collegato al dovuto target. **Non crea una riga in `pagamenti`** (finding di review: evita il doppio conteggio del contante — vedi modello dati)
 - `POST /api/clienti/[id]/credito/rimborsa` — registra un rimborso
 
 Tutti gli endpoint: ruoli `titolare`/`front_desk`, allowlist esplicita, RLS `current_lab_id()`.
@@ -135,6 +157,13 @@ Nuova funzione/query "credito cliente" (confermato / potenziale / disponibile / 
 3. `queries.ts:612-654` (widget Front Desk)
 
 **Scadenzario ampliato**: `scadenzario/route.ts` include ora anche i lavori `non_fatturare` non saldati, in un'unica lista ordinabile per urgenza, ciascuna riga taggata con l'origine ("Fattura" / "Lavoro diretto"). Il "credito potenziale" non entra in questa lista.
+
+**Punto critico (emerso in review): la pipeline di fatturazione deve rispettare `decisione_fatturazione`, altrimenti il flag non ha alcun effetto reale.** I punti che oggi *selezionano* quali lavori diventano una fattura conoscono solo `incluso_in_fattura=false` e ignorano completamente la nuova decisione — vanno aggiornati per escludere `non_fatturare` (e non includere `in_attesa`, che deve restare fuori dalla fatturazione finché non viene deciso esplicitamente):
+1. `src/app/api/fatture/batch/route.ts` — query di selezione dei lavori candidati al batch
+2. `src/app/api/lavori/pronti-da-fatturare/route.ts`
+3. `src/app/(app)/fatture/page.tsx:119`
+
+Tutti e tre devono filtrare `decisione_fatturazione = 'fatturare'` (non solo `incluso_in_fattura = false`). Senza questo fix, un lavoro marcato "non fatturare" dal dottore verrebbe comunque incluso nel prossimo batch — e la regola "immutabile una volta `incluso_in_fattura=true`" (Modello dati, `lavori`) dipenderebbe silenziosamente da un'esclusione che di fatto non esiste.
 
 ## UI — "Contabilità cliente" (evoluzione di `EstrattoContoView`)
 
@@ -160,11 +189,11 @@ I sotto-componenti già presenti nel file (`FatturaCard`, `KpiBar`, `TabellaFatt
 
 ## Piano di test (TDD, prima del codice)
 
-**Unit:** calcolo saldo (parziale/saldato/eccedenza/annullato), catena di sostituzione, query credito cliente su fixture con tutte le combinazioni di stato.
+**Unit:** calcolo saldo (parziale/saldato/eccedenza/annullato), catena di sostituzione, query credito cliente su fixture con tutte le combinazioni di stato — incluso il test di non-regressione sulla monotonicità: il "totale dovuto complessivo" di un lavoro non deve mai scendere durante la transizione `in_attesa → fatturare → incluso_in_fattura=true` (finding di review su B2).
 
-**DB/migration:** vincolo CHECK polimorfico, trigger ricalcolo `fatture.pagata`/`importo_pagato`, RLS cross-tenant.
+**DB/migration:** vincolo CHECK polimorfico (su `pagamenti` e su `credito_clienti_movimenti`), trigger ricalcolo `fatture.pagata`/`importo_pagato` (attivato sia da `pagamenti` sia da `credito_clienti_movimenti`), RLS cross-tenant.
 
-**API/integration:** eccedenza→credito automatico, blocco decisione su stati non validi, ruoli non autorizzati (`tecnico`) respinti.
+**API/integration:** eccedenza→credito automatico, blocco decisione su stati non validi, ruoli non autorizzati (`tecnico`) respinti, batch fatturazione (`fatture/batch/route.ts`, `lavori/pronti-da-fatturare/route.ts`) esclude correttamente `non_fatturare` e `in_attesa` dai candidati, applicazione di credito non genera una riga in `pagamenti` (il totale incassato in contante/metodo deve coincidere con la somma reale dei pagamenti, non includere le applicazioni).
 
 **Regressione:** Dashboard, Scadenzario, widget Front Desk e `admin/labs/[id]/live` devono mostrare lo stesso numero coerente sullo stesso cliente di test — il sintomo originale di B2.
 
