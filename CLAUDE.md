@@ -30,32 +30,31 @@ Documenti chiave:
 
 ## 0A. Memory Update — BP-1 (SCRITTURA — OBBLIGATORIO DOPO LAVORO SIGNIFICATIVO)
 
-**Dopo ogni task completato che cambia lo stato del progetto**, DEVI eseguire questi 3 step:
+**Dopo ogni task completato che cambia lo stato del progetto**, DEVI eseguire questi 2 step:
 
-### Step 1 — Registra osservazione in claude-mem
-Per ogni decisione architetturale, feature completata, bug trovato, o decisione di roadmap:
-```
-mcp__plugin_claude-mem_mcp-search__observation_add({
-  title: "[Tipo] Titolo breve della cosa fatta",
-  content: "Descrizione concisa: cosa, perché, file coinvolti, impatto"
-})
-```
-**Tipi validi:** `feature`, `fix`, `decision`, `roadmap`, `security`, `refactor`, `discovery`
-
-### Step 2 — Aggiorna MEMORY.md se lo stato del progetto è cambiato
+### Step 1 — Aggiorna MEMORY.md se lo stato del progetto è cambiato
 - Nuova versione deployata → aggiorna sezione "0. STATO DEL PROGETTO"
 - Nuova feature completata → aggiorna sezione CRUD/feature list
 - Nuova decisione architetturale → aggiorna sezione "5. Architettura"
 - Nuova API route → aggiorna tabella "7. API Routes Chiave"
 
-### Step 3 — Aggiorna ROADMAP-UFFICIALE.md se la roadmap è cambiata
+### Step 2 — Aggiorna ROADMAP-UFFICIALE.md se la roadmap è cambiata
 - Feature spostata da V2 a V1.9 → aggiorna
 - Feature completata → sposta in "implementato"
 - Nuova feature aggiunta → inserisci nella versione corretta
 
-> **REGOLA ZERO MEMORIA:** Non chiudere un task senza aver verificato questi 3 step.
+> **REGOLA ZERO MEMORIA:** Non chiudere un task senza aver verificato questi 2 step.
 > Il hook `Stop` ti ricorderà automaticamente. Non ignorarlo.
 > Se dimentichi ripetutamente, stai violando il contratto operativo con Francesco.
+>
+> **Nota su claude-mem (verificato 02/07/2026):** in questa installazione claude-mem gira in
+> modalità `worker` (`~/.claude-mem/settings.json` — impostazione globale, vale per tutti i
+> progetti). In questa modalità la cattura delle osservazioni è **automatica**, via hook
+> `PostToolUse`/`Stop` registrati dal plugin stesso (`worker-service.cjs hook ... observation`
+> / `... summarize`) — non serve e non è disponibile una chiamata manuale a
+> `observation_add` (fallisce con `requires CLAUDE_MEM_RUNTIME=server`). Non richiamarla né
+> segnalarla come step mancante: MEMORY.md e ROADMAP-UFFICIALE.md restano l'unica fonte di
+> verità scritta e durevole per questo progetto.
 
 ---
 
