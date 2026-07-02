@@ -161,7 +161,7 @@ export async function orchestraConsegna(
     const { tracciaMaterialiLavoro } = await import('./traccia-materiali')
     const tracciamento = await tracciaMaterialiLavoro(supabase, lavoro as LavoroDettaglio, laboratorio_id)
 
-    await supabase
+    const { error: tracciabilitaUpdateError } = await supabase
       .from('lavori')
       .update({
         tracciabilita_materiali_ok: tracciamento.tracciabilitaOk,
@@ -169,6 +169,10 @@ export async function orchestraConsegna(
       })
       .eq('id', lavoro_id)
       .eq('laboratorio_id', laboratorio_id)
+
+    if (tracciabilitaUpdateError) {
+      console.error('[CONSEGNA] Aggiornamento flag tracciabilità materiali fallito:', tracciabilitaUpdateError.message)
+    }
 
     lavoro.materiali = tracciamento.materialiTracciati
 
