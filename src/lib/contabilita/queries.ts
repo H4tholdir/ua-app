@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { calcolaResiduo } from './saldo'
+import { calcolaResiduo, calcolaCreditoDisponibile } from './saldo'
+import { calcolaCreditoCliente, type CreditoClienteResult } from './credito-cliente'
 
 export interface CreditoScadutoPerCliente {
   cliente_id: string
@@ -130,4 +131,144 @@ export async function fetchMovimentiCreditoValidi(
   }>)
     .filter((m) => m.tipo !== 'eccedenza' || m.pagamenti?.stato === 'attivo')
     .map((m) => ({ tipo: m.tipo, importo: m.importo }))
+}
+
+export interface DovutoEstratto {
+  id: string
+  origine: 'fattura' | 'lavoro_diretto'
+  numero: string
+  data: string
+  totale: number
+  residuo: number
+  pagata: boolean
+  giorni_ritardo: number
+  stato_sdi: string | null
+}
+
+export interface LavoroInAttesa {
+  id: string
+  numero_lavoro: string
+  prezzo_unitario: number
+  data_consegna_prevista: string
+}
+
+export interface ContabilitaCliente {
+  dovuti: DovutoEstratto[]
+  lavoriInAttesa: LavoroInAttesa[]
+  creditoCliente: CreditoClienteResult
+}
+
+/**
+ * Vista "Contabilità cliente" completa (spec B2 §UI): lista unificata dei
+ * dovuti (fatture + lavori diretti, taggati per origine), lavori in attesa
+ * di decisione, e i 4 numeri di credito cliente (mai fusi — spec B2 §5).
+ */
+export async function getContabilitaCliente(
+  svc: SupabaseClient,
+  labId: string,
+  clienteId: string
+): Promise<ContabilitaCliente> {
+  const now = Date.now()
+
+  const { data: fattureRaw } = await svc
+    .from('fatture')
+    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata')
+    .eq('cliente_id', clienteId)
+    .eq('laboratorio_id', labId)
+    .is('deleted_at', null)
+    .order('data', { ascending: false })
+
+  const fattureDovuti: DovutoEstratto[] = ((fattureRaw ?? []) as Array<{
+    id: string; numero: string; data: string; totale: number; importo_pagato: number
+    stato_sdi: string; pagata: boolean
+  }>).map((f) => {
+    const residuo = Math.max(0, Math.round((Number(f.totale) - Number(f.importo_pagato ?? 0)) * 100) / 100)
+    return {
+      id: f.id,
+      origine: 'fattura' as const,
+      numero: f.numero,
+      data: f.data,
+      totale: f.totale ?? 0,
+      residuo: f.pagata ? 0 : residuo,
+      pagata: f.pagata ?? false,
+      giorni_ritardo: Math.floor((now - new Date(f.data).getTime()) / 86_400_000),
+      stato_sdi: f.stato_sdi ?? 'draft',
+    }
+  })
+
+  const { data: lavoriRaw } = await svc
+    .from('lavori')
+    .select(`
+      id, numero_lavoro, prezzo_unitario, data_consegna_prevista, decisione_fatturazione, incluso_in_fattura,
+      pagamenti(importo, stato),
+      credito_clienti_movimenti(importo, tipo)
+    `)
+    .eq('cliente_id', clienteId)
+    .eq('laboratorio_id', labId)
+    .is('deleted_at', null)
+    .not('stato', 'in', '("annullato")')
+    .gt('prezzo_unitario', 0)
+
+  const lavoriConfermati: DovutoEstratto[] = []
+  const lavoriInAttesa: LavoroInAttesa[] = []
+
+  for (const l of (lavoriRaw ?? []) as unknown as Array<{
+    id: string; numero_lavoro: string; prezzo_unitario: number | null; data_consegna_prevista: string
+    decisione_fatturazione: string; incluso_in_fattura: boolean
+    pagamenti: Array<{ importo: number; stato: string }>
+    credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
+  }>) {
+    if (l.decisione_fatturazione === 'in_attesa') {
+      lavoriInAttesa.push({
+        id: l.id,
+        numero_lavoro: l.numero_lavoro,
+        prezzo_unitario: Number(l.prezzo_unitario ?? 0),
+        data_consegna_prevista: l.data_consegna_prevista,
+      })
+      continue
+    }
+
+    // Già confluito nel bucket fatture sopra il giorno in cui è stato incluso — mai due volte.
+    if (l.incluso_in_fattura) continue
+
+    const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
+    const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
+    const residuo = calcolaResiduo(Number(l.prezzo_unitario ?? 0), pagamentiAttivi, applicazioni)
+
+    if (residuo <= 0) continue // saldato — non è più un dovuto
+
+    lavoriConfermati.push({
+      id: l.id,
+      origine: 'lavoro_diretto',
+      numero: l.numero_lavoro,
+      data: l.data_consegna_prevista,
+      totale: Number(l.prezzo_unitario ?? 0),
+      residuo,
+      pagata: false,
+      giorni_ritardo: Math.floor((now - new Date(l.data_consegna_prevista).getTime()) / 86_400_000),
+      stato_sdi: null,
+    })
+  }
+
+  const nonSaldati = [...fattureDovuti.filter((f) => !f.pagata), ...lavoriConfermati]
+    .sort((a, b) => b.giorni_ritardo - a.giorni_ritardo)
+  const saldati = fattureDovuti
+    .filter((f) => f.pagata)
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+
+  // fetchMovimentiCreditoValidi (Task 9) applica già il filtro anti-credito-
+  // fantasma: un'eccedenza il cui pagamento sorgente è stato annullato/
+  // sostituito non conta più.
+  const movimentiValidi = await fetchMovimentiCreditoValidi(svc, labId, clienteId)
+  const creditoDisponibile = calcolaCreditoDisponibile(movimentiValidi)
+
+  const creditoCliente = calcolaCreditoCliente({
+    fattureNonSaldate: fattureDovuti.filter((f) => !f.pagata).map((f) => ({ residuo: f.residuo })),
+    lavoriNonFatturareNonSaldati: [],
+    lavoriFatturareNonInclusi: lavoriConfermati.map((l) => ({ residuo: l.residuo })),
+    lavoriInAttesa: lavoriInAttesa.map((l) => ({ residuo: l.prezzo_unitario })),
+    creditoDisponibile,
+  })
+
+  return { dovuti: [...nonSaldati, ...saldati], lavoriInAttesa, creditoCliente }
 }
