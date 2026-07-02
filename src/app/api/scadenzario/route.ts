@@ -50,7 +50,7 @@ export async function GET() {
 
   const { data: fattureData, error: fattureError } = await svc
     .from('fatture')
-    .select('id, numero, data, totale, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono)')
+    .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata, cliente:clienti(id, nome, cognome, studio_nome, telefono)')
     .eq('laboratorio_id', labId)
     .eq('pagata', false)
     .neq('stato_sdi', 'draft')
@@ -80,6 +80,11 @@ export async function GET() {
     return NextResponse.json({ error: lavoriError.message }, { status: 500 })
   }
 
+  // NOTA (finding Task 16, review finale): `pagata=false` include le fatture
+  // parzialmente pagate — senza nettare `importo_pagato` questo endpoint
+  // mostrerebbe l'importo pieno invece del residuo reale, disaccordando con
+  // Dashboard/Contabilità cliente (esattamente il sintomo originale di B2).
+
   const byCliente: Record<
     string,
     { cliente: ClienteSnap; dovuti: DovutoRow[]; totale_insoluto: number; giorni_max_ritardo: number }
@@ -99,20 +104,24 @@ export async function GET() {
   }
 
   for (const f of (fattureData ?? []) as unknown as Array<{
-    id: string; numero: string; data: string; totale: number; stato_sdi: string; pagata: boolean
+    id: string; numero: string; data: string; totale: number; importo_pagato: number
+    stato_sdi: string; pagata: boolean
     cliente: ClienteSnap | null
   }>) {
     if (!f.cliente) continue
+    const residuo = Math.round((Number(f.totale) - Number(f.importo_pagato ?? 0)) * 100) / 100
+    if (residuo <= 0) continue
+
     upsertCliente(f.cliente)
     byCliente[f.cliente.id].dovuti.push({
       id: f.id,
       origine: 'fattura',
       numero: f.numero,
       data: f.data,
-      importo: f.totale ?? 0,
+      importo: residuo,
       stato_sdi: f.stato_sdi,
     })
-    byCliente[f.cliente.id].totale_insoluto += f.totale ?? 0
+    byCliente[f.cliente.id].totale_insoluto += residuo
     aggiornaGiorniMax(f.cliente.id, f.data)
   }
 
