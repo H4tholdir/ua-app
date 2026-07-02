@@ -71,5 +71,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: risultato.errore }, { status })
   }
 
-  return NextResponse.json({ pagamento: risultato.pagamento, eccedenza: risultato.eccedenza })
+  return NextResponse.json({ pagamento: risultato.pagamento, eccedenza: risultato.eccedenza, avviso: risultato.avviso })
 }

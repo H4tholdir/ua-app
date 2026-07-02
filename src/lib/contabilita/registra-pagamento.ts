@@ -19,6 +19,10 @@ export interface RegistraPagamentoResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pagamento?: any
   eccedenza?: number
+  /** Presente se il pagamento è stato registrato ma la riga di eccedenza NON è
+   * stata scritta (le due insert non sono in una transazione — vedi Step 3
+   * sotto) — richiede riconciliazione manuale, non silenziare. */
+  avviso?: string
 }
 
 /**
@@ -115,7 +119,12 @@ export async function eseguiRegistrazionePagamento(
   }
 
   if (eccedenza > 0) {
-    await supabase.from('credito_clienti_movimenti').insert({
+    // Non è una transazione con l'insert sopra: se questa fallisce, il
+    // pagamento resta comunque registrato (è la fonte di verità del denaro
+    // incassato) ma l'eccedenza andrebbe persa silenziosamente. Fix (review
+    // Task 7): controlla l'errore e restituiscilo come avviso esplicito,
+    // MAI ok:false — il pagamento è comunque riuscito.
+    const { error: eccErr } = await supabase.from('credito_clienti_movimenti').insert({
       laboratorio_id,
       cliente_id: clienteId,
       tipo: 'eccedenza',
@@ -123,6 +132,15 @@ export async function eseguiRegistrazionePagamento(
       importo: eccedenza,
       registrato_da,
     })
+
+    if (eccErr) {
+      return {
+        ok: true,
+        pagamento,
+        eccedenza,
+        avviso: `Pagamento registrato ma la registrazione del credito di ${eccedenza} è fallita (${eccErr.message}) — richiede riconciliazione manuale.`,
+      }
+    }
   }
 
   return { ok: true, pagamento, eccedenza }

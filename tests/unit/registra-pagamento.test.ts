@@ -6,6 +6,7 @@ interface FakeData {
   lavori?: Record<string, { id: string; prezzo_unitario: number; cliente_id: string }>
   pagamentiAttivi?: Array<{ importo: number }>
   applicazioni?: Array<{ importo: number }>
+  simulaErroreEccedenza?: boolean
 }
 
 function createFakeSupabase(data: FakeData) {
@@ -44,6 +45,9 @@ function createFakeSupabase(data: FakeData) {
             return builder
           }
           if (table === 'credito_clienti_movimenti') {
+            if (data.simulaErroreEccedenza) {
+              return Promise.resolve({ data: null, error: { message: 'simulato' } })
+            }
             inserted.credito_clienti_movimenti.push(row)
             return Promise.resolve({ data: row, error: null })
           }
@@ -160,5 +164,22 @@ describe('eseguiRegistrazionePagamento', () => {
     const r = await eseguiRegistrazionePagamento(supabase, baseInput({ fattura_id: 'fatt-1', importo: 100, sostituisce_pagamento_id: 'pag-vecchio' }))
     expect(r.ok).toBe(true)
     expect(supabase._inserted.pagamenti[0]).toMatchObject({ sostituisce_pagamento_id: 'pag-vecchio' })
+  })
+
+  it('se l\'insert dell\'eccedenza fallisce, il pagamento resta ok:true ma con avviso esplicito (non silenziato)', async () => {
+    const supabase = createFakeSupabase({
+      fatture: { 'fatt-1': { id: 'fatt-1', totale: 100, cliente_id: 'cli-1' } },
+      pagamentiAttivi: [{ importo: 60 }], // residuo pre-esistente = 40
+      simulaErroreEccedenza: true,
+    })
+
+    const r = await eseguiRegistrazionePagamento(supabase, baseInput({ fattura_id: 'fatt-1', importo: 70 }))
+
+    expect(r.ok).toBe(true)
+    expect(r.eccedenza).toBe(30)
+    expect(r.avviso).toBeDefined()
+    expect(r.avviso).toMatch(/riconciliazione manuale/)
+    expect(supabase._inserted.pagamenti).toHaveLength(1)
+    expect(supabase._inserted.credito_clienti_movimenti).toHaveLength(0)
   })
 })
