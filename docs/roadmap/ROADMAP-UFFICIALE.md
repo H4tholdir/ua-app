@@ -1,16 +1,17 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 05 giugno 2026
-**Fonte di verità:** questo file + MEMORY.md + docs di pianificazione HTML
+**Ultimo aggiornamento:** 02 luglio 2026 — Re-audit completo, backlog tecnico preciso
+**Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
 > Aggiornarlo ad ogni sessione di lavoro.
 
 ---
 
-## VERSIONE CORRENTE: V1.9.3 (in produzione)
+## VERSIONE CORRENTE: V1.9.3 (in produzione) — RE-AUDIT 02/07/2026 COMPLETATO
 
-V1.9.3 — Design System v2.3 + compliance completa su tutta la PWA (28/05/2026).
-Tutte le sessioni di design sono state chiuse. Il codebase è DS v2.3 compliant al 100%.
+Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che **il claim "DS v2.3 compliant al 100%" era falso** (login WCAG-fail, violazioni residue in `qualita/page.tsx`, migrazione palette parziale). Ha inoltre trovato **2 blocker critici nuovi** non coperti dalla roadmap precedente: tracciabilità MDR materiali/lotti strutturalmente rotta, e dati contrastanti tra Dashboard e Scadenzario sui crediti clienti.
+
+**Prima di procedere con qualunque item sotto, leggere `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`** — sostituisce come priorità operativa la sessione S4 originariamente pianificata qui sotto.
 
 ---
 
@@ -41,16 +42,22 @@ Tutte le sessioni di design sono state chiuse. Il codebase è DS v2.3 compliant 
 
 ---
 
-## 🚀 PROSSIMA SESSIONE → S4: Email Template Branding
+## 🚨 PROSSIMA SESSIONE → Chiudere i 2 Blocker del re-audit 02/07
 
-**Da eseguire subito all'avvio della prossima sessione:**
+**Da eseguire subito all'avvio della prossima sessione, PRIMA di S4 o di qualunque nuova feature:**
 
 ```
-Implementa S4: Email template branding.
-File: Supabase Email Templates (invito tecnico, reset password, conferma email).
-Obiettivo: Logo UÀ + warm panna palette + DM Sans su tutti i template email.
-Stima: 3h. Design System v2.3 già approvato — nessun nuovo mockup necessario.
+Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER.
+Priorità in ordine:
+1. B1 — Tracciabilità MDR materiali/lotti (DdC sempre vuota su questo campo)
+2. B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti
+3. B7 — "Invita tecnico" irraggiungibile da UI
+4. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
+5. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
+Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
 ```
+
+**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è più la priorità — i 2 blocker trovati dal re-audit del 02/07 vengono prima.
 
 ---
 
@@ -59,12 +66,15 @@ Stima: 3h. Design System v2.3 già approvato — nessun nuovo mockup necessario.
 
 | # | Feature | Priorità | Stima | Stato |
 |---|---------|----------|-------|-------|
-| DS | **Design System v2.3** | P0 | — | ✅ Completato (28/05/2026) |
-| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ⏳ |
-| 2 | **Email template branding** (Supabase) | P0 | 3h | ⏳ **← PROSSIMO (S4)** |
+| DS | **Design System v2.3** | P0 | — | ⚠️ **Parziale, non 100%** (re-audit 02/07: login WCAG-fail, 2 violazioni residue in qualita/page.tsx, migrazione palette parziale — vedi backlog B12, A6, M6) |
+| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ⏳ Confermato non iniziato (grep SpeechRecognition → 0 risultati) |
+| 2 | **Email template branding** (Supabase) | P0 | 3h | ⏳ Bozza HTML pronta in `docs/email-templates-supabase.md`, manca solo applicazione manuale |
 | 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 (26/05/2026) |
-| 4 | **Logo + firma DdC** | P0 | 4h | ⏳ |
+| 4 | **Logo + firma DdC** | P0 | 4h | 🟡 **Quasi completo, non ⏳** — rendering già implementato in `DdcTemplate.tsx`; manca solo l'hash SHA-256 di integrità firma (backlog A18) |
+| NEW | **2 Blocker critici da re-audit 02/07** (B1 materiali/lotti MDR, B2 dashboard/scadenzario) | 🔴 P0 | non stimato | ⏳ **Priorità assoluta, vedi sopra** |
 ~~5 Magazzino visivo → spostato in V2.0~~ |
+
+**Vedi `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` per altri 14 item Blocker, 18 Alto e 30 Medio non elencati qui per brevità.**
 
 ---
 
@@ -190,3 +200,4 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 28/05/2026 | DS v2.3 brainstorming + approvazione: spec completa, tokens.ts, motion.ts v2.1, 4-cat taxonomy | Francesco + Claude |
 | 28/05/2026 | DS v2.3 implementazione completa: compliance 100% su tutta la PWA, pre-commit guard attivo — V1.9.3 | Francesco + Claude |
 | 05/06/2026 | Sessione design chiusa. Prossimo: S4 email template branding (Supabase) | Francesco + Claude |
+| 02/07/2026 | Re-audit completo (11 agenti persona) dopo quasi un mese di inattività (zero commit dal 05/06). Score medio 7.29/10 (era 7.1). Claim "DS v2.3 100%" smentito. 2 blocker critici nuovi trovati (materiali/lotti MDR, dashboard/scadenzario disallineati). Prodotti `BACKLOG-TECNICO-2026-07-02.md` e `FEATURES-E-FLUSSI-2026-07-02.md` come nuova fonte di verità tecnica. | Francesco + Claude |

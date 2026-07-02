@@ -107,3 +107,6 @@ memory/SESSION_ACTIVE.md
 
 # === WORKTREES (locali, non appartengono al repo) ===
 .claude/worktrees/
+
+# === MOCKUP ALTRO CLIENTE (Lello — potenziale cliente esterno a UÀ, non appartiene a questo repo) ===
+docs/design/mockups/*lello*
