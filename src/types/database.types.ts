@@ -1929,6 +1929,7 @@ export type Database = {
           listino_id: string | null
           lotto_disinfettante: string | null
           materiali_allegati: string[]
+          materiali_incompleti_dettaglio: Json | null
           natura_iva: string
           norma_riferimento: string | null
           note_interne: string | null
@@ -1963,6 +1964,7 @@ export type Database = {
           tipo_arco: string | null
           tipo_dispositivo: string
           tipo_impronte: string | null
+          tracciabilita_materiali_ok: boolean
           updated_at: string
         }
         Insert: {
@@ -2017,6 +2019,7 @@ export type Database = {
           listino_id?: string | null
           lotto_disinfettante?: string | null
           materiali_allegati?: string[]
+          materiali_incompleti_dettaglio?: Json | null
           natura_iva?: string
           norma_riferimento?: string | null
           note_interne?: string | null
@@ -2051,6 +2054,7 @@ export type Database = {
           tipo_arco?: string | null
           tipo_dispositivo: string
           tipo_impronte?: string | null
+          tracciabilita_materiali_ok?: boolean
           updated_at?: string
         }
         Update: {
@@ -2105,6 +2109,7 @@ export type Database = {
           listino_id?: string | null
           lotto_disinfettante?: string | null
           materiali_allegati?: string[]
+          materiali_incompleti_dettaglio?: Json | null
           natura_iva?: string
           norma_riferimento?: string | null
           note_interne?: string | null
@@ -2139,6 +2144,7 @@ export type Database = {
           tipo_arco?: string | null
           tipo_dispositivo?: string
           tipo_impronte?: string | null
+          tracciabilita_materiali_ok?: boolean
           updated_at?: string
         }
         Relationships: [
