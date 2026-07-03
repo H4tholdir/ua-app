@@ -41,3 +41,10 @@ export function generateServiceWorker({ isDev = false, templatePath = TEMPLATE_P
   writeFileSync(outputPath, output, 'utf-8')
   return buildId
 }
+
+const isMain = process.argv[1] === fileURLToPath(import.meta.url)
+if (isMain) {
+  const isDev = process.argv.includes('--dev')
+  const buildId = generateServiceWorker({ isDev })
+  console.log(`[generate-sw] public/sw.js generato con CACHE_NAME='ua-${buildId}'`)
+}
