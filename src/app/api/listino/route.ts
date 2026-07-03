@@ -69,12 +69,17 @@ export async function POST(req: Request) {
   const svc = getServiceClient()
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
   if (!utente?.laboratorio_id) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+  }
+
+  const ruolo: string = utente.ruolo ?? ''
+  if (ruolo !== 'titolare' && ruolo !== 'admin_rete') {
+    return NextResponse.json({ error: 'Non autorizzato a creare voci di listino' }, { status: 403 })
   }
 
   const labId: string = utente.laboratorio_id
