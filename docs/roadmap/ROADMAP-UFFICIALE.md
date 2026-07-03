@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 03 luglio 2026 — B2 chiuso e mergiato su main (`05612ec`), follow-up SW cache + backlog risolti (`7fc181b`)
+**Ultimo aggiornamento:** 03 luglio 2026 — A4 chiuso definitivamente e mergiato su main (`4a36f89`) — cache versioning automatico Service Worker
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -43,6 +43,8 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 ---
 
 ## 🚨 PROSSIMA SESSIONE → B7/B8/B9, poi S4
+
+**A4 (Alto, non blocker) è ora chiuso definitivamente (03/07/2026, merge `4a36f89`).** Cache versioning automatico nel Service Worker: `public/sw.js` è diventato un file generato (gitignored) da `scripts/generate-sw.mjs`, con `CACHE_NAME` legato al build-id (git sha in produzione, `ua-dev` in sviluppo) invece del bump manuale `ua-v1→ua-v2`. Nessun TTL/pulizia cache aggiunto (decisione esplicita in brainstorming — il fix RSC di B2 aveva già eliminato la crescita illimitata). Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`. Piano: `docs/superpowers/plans/2026-07-03-a4-cache-versioning.md`. Dettaglio completo: `memory/MEMORY.md` §0.
 
 **B1 e B2 (i 2 blocker critici del re-audit 02/07) sono risolti, mergiati su `main` e deployati.** Da eseguire subito all'avvio della prossima sessione, PRIMA di S4 o di qualunque nuova feature:
 

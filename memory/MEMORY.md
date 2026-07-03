@@ -1,5 +1,5 @@
 # UÀ — Project Memory
-**Ultimo aggiornamento:** 3 luglio 2026 — B2 chiuso e mergiato su main (commit `05612ec`), 2 follow-up risolti (SW cache RSC + backlog allineato, commit `7fc181b`)
+**Ultimo aggiornamento:** 3 luglio 2026 — A4 chiuso definitivamente e mergiato su main (commit `4a36f89`) — cache versioning automatico Service Worker
 
 ---
 
@@ -30,6 +30,8 @@
 **✅ Follow-up 1/2 risolto (03/07/2026, commit `7fc181b`) — bug Service Worker scoperto durante Task 15, fuori scope B2, sistemato in sessione separata.** `public/sw.js` intercettava con la strategia stale-while-revalidate anche le fetch RSC differenziali che `router.refresh()` genera (identificabili dall'header `RSC`/`Next-Router-State-Tree`), nonostante Next.js le marchi esso stesso `Cache-Control: no-cache, must-revalidate` — causando UI stale dopo ogni mutazione (pagamento, credito, decisione fatturazione) finché non si ricaricava manualmente la pagina, su TUTTA l'app, non solo Contabilità Clienti. Fix: escluse queste fetch dalla cache del SW. Verificato dal vivo con Playwright (non solo lettura di codice): creato un lavoro di test `in_attesa`, cliccato "Non fatturare", la UI si è aggiornata senza reload (KPI e lista cambiati), la richiesta RSC catturata risulta andata in rete con `date` header fresco (stesso secondo del click) e `cache-control: no-cache, must-revalidate` — dati di test rimossi a fine verifica (incluso il ripristino di un lavoro `TEST-DdC-001` preesistente toccato per errore dal click). Nota: questo era già segnalato come raccomandazione nel backlog A4 ("escludere `_rsc=` dalla strategia di caching"), mai applicato fino ad ora.
 
 **✅ Follow-up 2/2 risolto (03/07/2026, stesso commit) — allineamento documentale.** `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (snapshot di audit congelato, non più la fonte di verità corrente da tempo) aggiornato: B2 segnato ✅ risolto con dettaglio, A4 segnato 🔄 parzialmente risolto (resta aperto solo il build-ID versioning + TTL cache, non l'esclusione RSC).
+
+**✅ A4 RISOLTO DEFINITIVAMENTE (03/07/2026, merge `4a36f89`) — Cache versioning automatico Service Worker.** Residuo aperto dopo il fix RSC di B2: il nome della cache (`CACHE_NAME`) in `public/sw.js` era bumpato a mano (`ua-v1→ua-v2`) ad ogni deploy che richiedeva invalidazione. Decisione presa in brainstorming: **niente TTL/pulizia entry** — con le fetch RSC già escluse, ciò che resta cacheable è un set piccolo e fisso di asset statici di `public/` le cui chiavi vengono sovrascritte a ogni deploy, non accumulate (nessun problema reale da risolvere, YAGNI). Fix implementato: `public/sw.js` è ora un **file generato** (gitignored) invece che tracciato — la fonte vera è `scripts/sw-template.js` con placeholder `__BUILD_ID__`; `scripts/generate-sw.mjs` risolve il build-id (`VERCEL_GIT_COMMIT_SHA` troncato a 8 caratteri → `git rev-parse --short=8 HEAD` locale → `Date.now()` di fallback mai-crash; `'dev'` fisso in sviluppo) e scrive `public/sw.js` sostituendo il placeholder; hook npm `prebuild`/`predev` lo eseguono automaticamente. Implementato con superpowers:subagent-driven-development su worktree dedicato (branch `worktree-a4-cache-versioning`), 6 task con TDD (5 nuovi test su `resolveBuildId`/`generateServiceWorker`, dependency-injection reale non mock del binario git), ogni task review approvata singolarmente, review finale whole-branch "Ready to merge: Yes" (nessun Critical/Important — solo note Minor informative: nessun hook `prestart`, non necessario su Vercel senza `vercel.json`; `replace()` sostituisce solo la prima occorrenza del placeholder, innocuo con placeholder singolo). 224/224 test, tsc/build puliti. Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`. Piano: `docs/superpowers/plans/2026-07-03-a4-cache-versioning.md`. **A4 è ora completamente chiuso** (sia la parte RSC di B2 sia il versioning automatico).
 
 **Cosa invece funziona davvero (verificato, non solo dichiarato) nel periodo 21/05→02/07:**
 - Soft/hard-block consegna con dati MDR incompleti (più rigoroso del richiesto)
@@ -320,7 +322,8 @@ LavoroCard, StatoBadge, TabProve, TabProduzione, Dashboard*, BottomNavPill, User
 - **ESLint CI:** `--max-warnings 0`
 - **WhatsApp:** deep links `wa.me` (ToS-compliant). NO open-wa.
 - **Fatture:** generate durante `orchestraConsegna`. `incluso_in_fattura` = discriminatore "già fatturato".
-- **Push Notifications:** VAPID keys in `.env.local`, tabella `push_subscriptions`, SW `ua-v2`.
+- **Push Notifications:** VAPID keys in `.env.local`, tabella `push_subscriptions`.
+- **Service Worker:** `public/sw.js` è **generato automaticamente** (gitignored) da `scripts/generate-sw.mjs` a partire da `scripts/sw-template.js` (fonte vera, tracciata) — hook npm `prebuild`/`predev`. MAI modificare `public/sw.js` a mano, si perde ad ogni build. `CACHE_NAME` = `ua-<build-id>` (git sha su build reali, `ua-dev` in sviluppo) — versioning automatico, sostituisce il vecchio bump manuale `ua-v1→ua-v2` (03/07/2026, A4).
 - **Tecnici:** NON si cancellano — `lab_memberships.attivo = false` per disattivare.
 
 ---
