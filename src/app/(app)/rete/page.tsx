@@ -3,6 +3,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import Link from 'next/link'
+import { RetiNuovaSheet } from '@/components/features/rete/RetiNuovaSheet'
 
 export const metadata = { title: 'Rete Multi-Sede' }
 
@@ -145,25 +146,7 @@ export default async function RetePage() {
             }}>
               Crea la prima rete multi-sede per collegare piu laboratori.
             </p>
-            <Link
-              href="/rete/nuova"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '44px',
-                padding: '0 20px',
-                borderRadius: '10px',
-                background: 'var(--primary, #D90012)',
-                color: '#fff',
-                fontFamily,
-                fontSize: '14px',
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              Crea rete
-            </Link>
+            <RetiNuovaSheet />
           </div>
         ) : (
           <>
