@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { MagazzinoAddSheet } from './MagazzinoAddSheet'
+import type { FornitoreOption, ArticoloCreato } from './MagazzinoAddSheet'
 
 type ArticoloRow = {
   id: string
@@ -16,276 +19,288 @@ type ArticoloRow = {
 
 interface MagazzinoSearchListProps {
   articoli: ArticoloRow[]
+  categorieEsistenti?: string[]
+  fornitori?: FornitoreOption[]
 }
 
-export function MagazzinoSearchList({ articoli }: MagazzinoSearchListProps) {
+export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornitori = [] }: MagazzinoSearchListProps) {
   const [query, setQuery] = useState('')
+  const [localArticoli, setLocalArticoli] = useState<ArticoloRow[]>(articoli)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const handleArticoloCreato = (articolo: ArticoloCreato) => {
+    setLocalArticoli((prev) => [articolo, ...prev])
+    setSheetOpen(false)
+  }
 
   const q = query.trim().toLowerCase()
   const filtered = q
-    ? articoli.filter(
+    ? localArticoli.filter(
         (a) =>
           a.nome.toLowerCase().includes(q) ||
           a.codice_articolo.toLowerCase().includes(q) ||
           (a.produttore ?? '').toLowerCase().includes(q) ||
           (a.categoria ?? '').toLowerCase().includes(q)
       )
-    : articoli
+    : localArticoli
 
   return (
     <>
-      {/* Search bar sticky */}
-      <div
-        style={{
-          padding: '0 20px 12px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          background: 'var(--bg, #DDD8D3)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            background: 'var(--bg, #DDD8D3)',
-            borderRadius: '14px',
-            padding: '0 14px',
-            boxShadow:
-              'inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66)',
-          }}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-            style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
-          >
-            <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+      <MagazzinoAddSheet
+        open={sheetOpen}
+        categorieEsistenti={categorieEsistenti}
+        fornitori={fornitori}
+        onClose={() => setSheetOpen(false)}
+        onArticoloCreato={handleArticoloCreato}
+      />
 
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cerca articolo, codice o produttore..."
-            aria-label="Cerca articoli in magazzino"
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              height: '48px',
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '16px',
-              fontWeight: 400,
-              color: 'var(--t1, #1C1916)',
-            }}
+      {localArticoli.length === 0 ? (
+        <section style={{ padding: '0 20px 32px' }}>
+          <EmptyState
+            icon="📦"
+            title="Magazzino vuoto"
+            description="Aggiungi i materiali che usi in laboratorio per tenere traccia delle scorte."
+            cta={{ label: '+ Aggiungi articolo', onClick: () => setSheetOpen(true) }}
           />
-
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              aria-label="Cancella ricerca"
+        </section>
+      ) : (
+        <>
+          <div
+            style={{
+              padding: '0 20px 12px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              background: 'var(--bg, #DDD8D3)',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+            }}
+          >
+            <div
               style={{
-                flexShrink: 0,
+                flex: 1,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: 'var(--prs, #D4CFC9)',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--t2, #4A3D33)',
-                padding: 0,
+                gap: '10px',
+                background: 'var(--bg, #DDD8D3)',
+                borderRadius: '14px',
+                padding: '0 14px',
+                boxShadow:
+                  'inset 4px 4px 9px rgba(148,128,118,.32), inset -3px -3px 7px rgba(255,255,255,.66)',
               }}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path
-                  d="M2 2l8 8M10 2L2 10"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                style={{ flexShrink: 0, color: 'var(--t3, #6B5C51)' }}
+              >
+                <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* Lista risultati */}
-      {filtered.length === 0 ? (
-        <div
-          style={{
-            background: 'var(--surface, #E4DFD9)',
-            borderRadius: '16px',
-            padding: '36px 20px',
-            margin: '0 20px',
-            textAlign: 'center',
-            boxShadow:
-              'var(--sh-b)',
-          }}
-        >
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '15px',
-              color: 'var(--t2, #4A3D33)',
-              margin: 0,
-            }}
-          >
-            {q
-              ? `Nessun articolo trovato per "${query.trim()}"`
-              : 'Nessun articolo in magazzino'}
-          </p>
-        </div>
-      ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: '0 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          {filtered.map((articolo) => {
-            const scorteAlert = articolo.scorta_attuale < articolo.scorta_minima
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cerca articolo, codice o produttore..."
+                aria-label="Cerca articoli in magazzino"
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  height: '48px',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  color: 'var(--t1, #1C1916)',
+                }}
+              />
 
-            return (
-              <li key={articolo.id}>
-                <div
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  aria-label="Cancella ricerca"
                   style={{
+                    flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px',
-                    background: 'var(--surface, #E4DFD9)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    boxShadow:
-                      'var(--sh-b)',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'var(--prs, #D4CFC9)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--t2, #4A3D33)',
+                    padding: 0,
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Nome + badge */}
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path
+                      d="M2 2l8 8M10 2L2 10"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              aria-label="Aggiungi articolo"
+              style={{
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                border: 'none',
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
+                fontSize: '22px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 0 16px rgba(0,0,0,.12)',
+              }}
+            >
+              +
+            </button>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div
+              style={{
+                background: 'var(--surface, #E4DFD9)',
+                borderRadius: '16px',
+                padding: '36px 20px',
+                margin: '0 20px',
+                textAlign: 'center',
+                boxShadow: 'var(--sh-b)',
+              }}
+            >
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: 'var(--t2, #4A3D33)', margin: 0 }}>
+                {q ? `Nessun articolo trovato per "${query.trim()}"` : 'Nessun articolo in magazzino'}
+              </p>
+            </div>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filtered.map((articolo) => {
+                const scorteAlert = articolo.scorta_attuale < articolo.scorta_minima
+
+                return (
+                  <li key={articolo.id}>
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '4px',
-                        flexWrap: 'wrap',
+                        gap: '12px',
+                        background: 'var(--surface, #E4DFD9)',
+                        borderRadius: '16px',
+                        padding: '14px 16px',
+                        boxShadow: 'var(--sh-b)',
                       }}
                     >
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '15px',
-                          fontWeight: 600,
-                          color: 'var(--t1, #1C1916)',
-                          margin: 0,
-                          flex: 1,
-                          minWidth: 0,
-                          display: '-webkit-box',
-                          WebkitBoxOrient: 'vertical',
-                          WebkitLineClamp: 2,
-                          overflow: 'hidden',
-                          whiteSpace: 'normal',
-                        }}
-                      >
-                        {articolo.nome}
-                      </p>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <p
+                            style={{
+                              fontFamily: 'DM Sans, sans-serif',
+                              fontSize: '15px',
+                              fontWeight: 600,
+                              color: 'var(--t1, #1C1916)',
+                              margin: 0,
+                              flex: 1,
+                              minWidth: 0,
+                              display: '-webkit-box',
+                              WebkitBoxOrient: 'vertical',
+                              WebkitLineClamp: 2,
+                              overflow: 'hidden',
+                              whiteSpace: 'normal',
+                            }}
+                          >
+                            {articolo.nome}
+                          </p>
 
-                      {articolo.dispositivo_medico && (
-                        <span
-                          aria-label="Dispositivo medico"
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            color: 'var(--info, #2563EB)',
-                            background: 'hsl(228 89% 63% / 0.15)',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            flexShrink: 0,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          DM
-                        </span>
-                      )}
+                          {articolo.dispositivo_medico && (
+                            <span
+                              aria-label="Dispositivo medico"
+                              style={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: 'var(--info, #2563EB)',
+                                background: 'hsl(228 89% 63% / 0.15)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                flexShrink: 0,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                              }}
+                            >
+                              DM
+                            </span>
+                          )}
 
-                      {scorteAlert && (
-                        <span
-                          aria-label="Scorta sotto il minimo"
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            color: 'var(--primary, #D90012)',
-                            background: 'hsl(0 95% 64% / 0.15)',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            flexShrink: 0,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          Scorta bassa
-                        </span>
-                      )}
+                          {scorteAlert && (
+                            <span
+                              aria-label="Scorta sotto il minimo"
+                              style={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: 'var(--primary, #D90012)',
+                                background: 'hsl(0 95% 64% / 0.15)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                flexShrink: 0,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                              }}
+                            >
+                              Scorta bassa
+                            </span>
+                          )}
+                        </div>
+
+                        {articolo.produttore && (
+                          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t2, #4A3D33)', margin: '0 0 4px' }}>
+                            {articolo.produttore}
+                          </p>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span
+                            style={{
+                              fontFamily: 'DM Sans, sans-serif',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: scorteAlert ? 'var(--primary, #D90012)' : 'var(--success, #16A34A)',
+                            }}
+                          >
+                            {articolo.scorta_attuale}
+                          </span>
+                          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: 'var(--t2, #4A3D33)' }}>
+                            / {articolo.scorta_minima} {articolo.um_scarico}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Produttore */}
-                    {articolo.produttore && (
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '12px',
-                          color: 'var(--t2, #4A3D33)',
-                          margin: '0 0 4px',
-                        }}
-                      >
-                        {articolo.produttore}
-                      </p>
-                    )}
-
-                    {/* Scorte */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: scorteAlert ? 'var(--primary, #D90012)' : 'var(--success, #16A34A)',
-                        }}
-                      >
-                        {articolo.scorta_attuale}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '12px',
-                          color: 'var(--t2, #4A3D33)',
-                        }}
-                      >
-                        / {articolo.scorta_minima} {articolo.um_scarico}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
       )}
     </>
   )

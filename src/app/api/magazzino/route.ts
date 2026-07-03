@@ -117,6 +117,8 @@ export async function POST(req: Request) {
     dispositivo_medico: body.dispositivo_medico ?? false,
     traccia_lotto: body.traccia_lotto ?? false,
     codice_ce: body.codice_ce ?? null,
+    scheda_tecnica_url: body.scheda_tecnica_url ?? null,
+    scheda_sicurezza_url: body.scheda_sicurezza_url ?? null,
     attivo: true,
   }
 
@@ -127,6 +129,9 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
+    if (insertError.code === '23505') {
+      return NextResponse.json({ error: 'Esiste già un articolo con questo codice in magazzino' }, { status: 409 })
+    }
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
