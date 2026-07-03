@@ -146,17 +146,17 @@
 **Fix applicato:** nuove route `/api/tecnici/invite` (POST/GET) e `/api/tecnici/invite/[id]` (DELETE) scoped al titolare (mai admin), componente `InvitaCollaboratoreSheet` (bottom sheet) sostituisce i link rotti in `/tecnici`, migration live estende `accept_invite_atomic()` per creare la riga `tecnici` mancante su accettazione. 12 task con TDD + review individuale + review finale whole-branch, 2 fix post-review applicate su Supabase live (error handling/stato sospeso in `upsertInvito`; idempotenza insert `tecnici` — bug reale di duplicazione trovato dalla review finale e corretto prima del merge). Mergiato su `main` (`fe81be6`) e deployato. Dettaglio completo: `memory/MEMORY.md` §0.
 **Effort:** ~15 task con subagent dedicati + 1 fix post-review-finale su bug di idempotenza in produzione.
 
-### B8. 5 route CRUD portano a pagine 404 — 3/5 ✅ RISOLTO 03/07/2026
+### B8. 5 route CRUD portano a pagine 404 — 4/5 ✅ RISOLTO 03/07/2026
 **Fonte:** [Sis]
 | Link | Destinazione mancante | Stato |
 |---|---|---|
 | `magazzino/page.tsx:71` CTA "aggiungi articolo" | `/magazzino/nuovo` | ✅ risolto 03/07/2026 — bottom sheet `MagazzinoAddSheet`, merge `a810c36`. Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-magazzino-nuovo*` |
 | `listino/page.tsx:51` "Nuova voce" | `/listino/nuovo` | ✅ risolto 03/07/2026 — bottom sheet `ListinoNuovoSheet`, gating ruolo (CTA + `POST /api/listino` 403 per non titolare/admin_rete), worktree `worktree-b8-listino-nuovo` (commit `65287a2`/`9c1c17c`/`8049d72`, non ancora mergiato su `main`). Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-listino-nuovo*` |
 | `qualita/rischi/page.tsx:175` "Modifica →" | `/qualita/rischi/[id]` | ✅ risolto 03/07/2026 — pagina a pagina intera (non sheet) con `RischiEditor.tsx`, nuova `PATCH /api/qualita/rischi/[id]` con ricalcolo RPN server-side e versioning automatico, nessun gating di ruolo (decisione esplicita), review finale whole-branch approvata, worktree `worktree-b8-rischi-id` (commit `cbefab8`/`923b851`/`2cd2c5d`/`6988675`/`8e302ff`, non ancora mergiato su `main`). Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-rischi-id*` |
-| `rete/page.tsx:149` "Crea rete" | `/rete/nuova` | aperto |
-| `rete/page.tsx:277` "Gestisci rete →" | `/rete/[id]` | aperto |
-**Fix:** creare le pagine mancanti, oppure sostituire i link con modal/sheet coerenti col pattern già usato altrove (es. `ListinoEditSheet`). Nota: `POST /api/magazzino` e `POST /api/listino` funzionano già — è solo la UI che manca. Per `rete/[id]` mancano anche 4 API (GET singola rete, POST/DELETE membro, PATCH nome) — le tabelle `reti`/`reti_membri`/`rischi_tipo_dispositivo` esistono già a DB (non documentate in `ANALISI/23_ua_database_schema.md`, verificato in `src/types/database.types.ts`).
-**Effort:** variabile per route, presumibilmente 1-3h ciascuna (magazzino/listino) fino a mezza giornata per rete (API mancanti).
+| `rete/page.tsx:149` "Crea rete" | `/rete/nuova` | ✅ risolto 03/07/2026 — bottom sheet `RetiNuovaSheet`, guard server-side 409 su `POST /api/rete` (1 rete per lab admin), worktree `worktree-b8-rete-nuova` (commit `5237c17`/`161abbf`/`3ede9a0`, non ancora mergiato su `main`). QA ha trovato un bug reale pre-esistente e trasversale (submit sheet non cliccabile via touch a 390/768px per collisione z-index con la bottom-nav, riprodotto anche in `ListinoNuovoSheet` già in produzione) — non risolto in questo task, tracciato separatamente. Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-rete-nuova*` |
+| `rete/page.tsx:277` "Gestisci rete →" | `/rete/[id]` | aperto — B8 (5/5), ultima route |
+**Fix:** creare le pagine mancanti, oppure sostituire i link con modal/sheet coerenti col pattern già usato altrove (es. `ListinoEditSheet`). Nota: `POST /api/magazzino`, `POST /api/listino` e `POST /api/rete` funzionano già. Per `rete/[id]` mancano ancora 4 API (GET singola rete, POST/DELETE membro, PATCH nome) — le tabelle `reti`/`reti_membri`/`rischi_tipo_dispositivo` esistono già a DB (non documentate in `ANALISI/23_ua_database_schema.md`, verificato in `src/types/database.types.ts`).
+**Effort:** variabile per route, presumibilmente 1-3h ciascuna (magazzino/listino/rete-nuova) fino a mezza giornata per rete/[id] (API mancanti).
 
 ### B9. Lista pazienti non navigabile (BUG #13, noto da tempo, mai risolto)
 **Fonte:** [Sis]
