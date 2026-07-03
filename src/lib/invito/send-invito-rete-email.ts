@@ -1,0 +1,59 @@
+import 'server-only'
+import { Resend } from 'resend'
+
+export interface SendInvitoReteEmailParams {
+  email: string
+  reteNome: string
+  inviteUrl: string
+}
+
+export interface SendInvitoReteEmailResult {
+  emailSent: boolean
+  emailError?: string
+}
+
+export async function sendInvitoReteEmail(params: SendInvitoReteEmailParams): Promise<SendInvitoReteEmailResult> {
+  const { email, reteNome, inviteUrl } = params
+
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('INCOLLA_QUI')) {
+    console.warn('[invito-rete] RESEND_API_KEY non configurata — email non inviata')
+    return { emailSent: false, emailError: 'RESEND_API_KEY non configurata' }
+  }
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const fromAddress = process.env.EMAIL_FROM ?? 'noreply@uachelab.com'
+    const { error } = await resend.emails.send({
+      from: `UÀ <${fromAddress}>`,
+      to: email,
+      subject: `Invito a unirti alla rete "${reteNome}" — UÀ`,
+      html: `
+        <div style="font-family: 'DM Sans', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #F5F2EF; border-radius: 16px;">
+          <h2 style="font-size: 22px; font-weight: 800; color: #1C1916; margin: 0 0 16px;">Invito a una rete multi-sede</h2>
+          <p style="font-size: 15px; color: #4A4845; line-height: 1.6; margin: 0 0 12px;">
+            Il tuo laboratorio è stato invitato a unirsi alla rete <strong>${reteNome}</strong> su UÀ.
+          </p>
+          <p style="font-size: 14px; color: #4A4845; line-height: 1.6; margin: 0 0 24px;">
+            Accedi con il tuo account per accettare l'invito.
+          </p>
+          <a href="${inviteUrl}" style="display: inline-block; padding: 14px 28px; background: #D90012; color: #fff; text-decoration: none; border-radius: 12px; font-size: 15px; font-weight: 700;">
+            Vai all'invito →
+          </a>
+          <p style="font-size: 12px; color: #4A3D33; margin: 24px 0 0; line-height: 1.5;">
+            Il link scade tra 7 giorni. Se non riconosci questo invito, ignora questa email.<br/>
+            UÀ — Dalla prescrizione alla consegna, tutto in un tap.
+          </p>
+        </div>
+      `,
+    })
+    if (error) {
+      console.error('[invito-rete] email failed:', error.message)
+      return { emailSent: false, emailError: error.message }
+    }
+    return { emailSent: true }
+  } catch (err) {
+    const emailError = err instanceof Error ? err.message : 'Errore invio email'
+    console.error('[invito-rete] email exception:', emailError)
+    return { emailSent: false, emailError }
+  }
+}
