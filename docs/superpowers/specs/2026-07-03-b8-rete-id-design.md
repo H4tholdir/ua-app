@@ -84,8 +84,9 @@ Segue il pattern standard del progetto (difesa in profondità, `ANALISI/23_ua_da
 | `/api/rete/[id]/inviti/[invitoId]` | `DELETE` | titolare/admin_rete del lab admin | Revoca (`revoked_at = now()`), solo se non ancora accettato |
 | `/api/rete/[id]/membri/[laboratorioId]` | `DELETE` | titolare/admin_rete del lab admin **oppure** `admin_sistema` | Rimuove membro; **400** se `laboratorioId === admin_laboratorio_id` |
 | `/api/rete/inviti/[token]/accept` | `POST` | titolare/admin_rete autenticato, email deve combaciare | Chiama `accept_invito_rete_atomic`, ritorna `rete_id` |
-| `/api/admin/reti` | `GET` | `admin_sistema` | Lista `{id, nome}` di tutte le reti, per dropdown |
 | `/api/admin/reti/[id]/membri` | `POST` | `admin_sistema` | Force-add immediato (`{laboratorio_id}`), insert in `reti_membri` con `ruolo='membro'` e `aggiunto_da_admin` valorizzato; stessa verifica "non già in un'altra rete" della RPC, replicata in TS (unico caller, non serve una seconda RPC) |
+
+**Nota implementativa:** nessuna `GET /api/admin/reti` dedicata — `src/app/admin/labs/[id]/page.tsx` fa già fetch diretto server-side di `utenti`/`inviti`/`lab_stato_log` (pattern esistente, `Promise.all`); la lista reti per il dropdown segue lo stesso pattern, nessun round-trip client aggiuntivo.
 
 Nessuna `GET /api/rete/[id]` dedicata: la pagina fa fetch diretto server-side (pattern identico a `qualita/rischi/[id]`).
 
@@ -143,7 +144,7 @@ Nuova `sendInvitoReteEmail()` in `src/lib/invito/`, gemella di `sendInvitoEmail`
 Sezione "Rete" aggiunta a `src/app/admin/labs/[id]/page.tsx` (pagina esistente), non una nuova area `/admin/reti`:
 
 - Stato attuale: "Amministra la rete [nome]" (link) / "Membro della rete [nome]" (link) / "Nessuna rete"
-- Se nessuna rete: `<select>` (da `GET /api/admin/reti`) + "Aggiungi" → `POST /api/admin/reti/[id]/membri`
+- Se nessuna rete: `<select>` (lista reti passata da `page.tsx`, fetch diretto server-side) + "Aggiungi" → `POST /api/admin/reti/[id]/membri`
 - Se già membro: "Rimuovi da questa rete" → riusa `DELETE /api/rete/[id]/membri/[laboratorioId]` (guard esteso per accettare anche `admin_sistema`, non una seconda route duplicata)
 
 ---
