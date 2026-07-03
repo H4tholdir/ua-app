@@ -1,46 +1,30 @@
-# Handoff sessione — B7 chiuso, prossima sessione: B8 → B9 → S4 (03/07/2026)
+# Handoff sessione — B8 (1/5) chiuso, prossima sessione: B8 (2/5) listino → 3/5 rischi → 4/5 rete/nuova → 5/5 rete/[id] (03/07/2026)
 
-**B7 completato, mergiato e deployato in questa sessione.** Nessun worktree residuo da riprendere — tutto pulito su `main` (commit `1eb6a03`, pushato su `origin/main`). Dettaglio completo: `memory/MEMORY.md` §0 (voce "✅ B7 RISOLTO").
+**B8 (1/5) — /magazzino/nuovo completato, mergiato e deployato in questa sessione.** Nessun worktree residuo — tutto pulito su `main` (commit `a810c36`, pushato su `origin/main`). Dettaglio completo: `memory/MEMORY.md` §0 (voce "✅ B8 (1/5) RISOLTO").
 
-**Nessuna azione di follow-up obbligatoria su B7** prima di procedere. Backlog non bloccante aperto (facoltativo, vedi MEMORY.md per dettaglio): vincolo UNIQUE mancante su `inviti(laboratorio_id,email)`, test di regressione persistente per l'idempotenza di `accept_invite_atomic`, flusso e2e con email reale non ancora testato da Francesco.
+**Nessuna azione di follow-up obbligatoria** prima di procedere. Backlog non bloccante aperto (facoltativo, vedi MEMORY.md): touch target <44px su checkbox/disclosure nello sheet, 2 colori `#fff` fuori da `var()` non rilevati dal DS-compliance check, path errore di rete non testato, nessun focus trap sul dialog.
 
 ---
 
-## Prossima sessione — ordine di priorità (da `docs/roadmap/ROADMAP-UFFICIALE.md`)
+## Prossima sessione — B8 rimanente (4/5 route), stesso ordine deciso con Francesco
+
+L'utente ha scelto esplicitamente "5 spec separati, uno per route" e l'ordine della tabella originale del backlog. Ogni route richiede il ciclo completo brainstorming → spec → piano → implementazione (worktree dedicato + subagent-driven-development), come fatto per 1/5.
 
 ```
-Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER (B8, B9).
-Priorità in ordine:
-1. B8 — 5 route CRUD che portano a 404
-2. B9 — Lista pazienti non navigabile (fix da 15-30 min, quasi banale)
-Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
+2/5 — /listino/nuovo — "Nuova voce" in listino/page.tsx:51. POST /api/listino esiste già.
+3/5 — /qualita/rischi/[id] — "Modifica →". Tabella rischi_tipo_dispositivo esiste a DB (non in ANALISI/23), POST upsert esiste, manca GET singolo + UI editor.
+4/5 — /rete/nuova — "Crea rete". POST /api/rete esiste già e funziona (auto-aggiunge il lab creatore come admin).
+5/5 — /rete/[id] — "Gestisci rete →". Mancano 4 API (GET singola rete+membri, POST aggiungi membro, DELETE membro, PATCH nome) oltre alla UI. Il più corposo dei 5.
 ```
 
-### B8 — 5 route CRUD portano a pagine 404
-Link che puntano a pagine mai create (i POST API sottostanti funzionano già per almeno 2 di questi):
-| Link | Destinazione mancante |
-|---|---|
-| `magazzino/page.tsx:71` CTA "aggiungi articolo" | `/magazzino/nuovo` |
-| `listino/page.tsx:51` "Nuova voce" | `/listino/nuovo` |
-| `qualita/rischi/page.tsx:175` "Modifica →" | `/qualita/rischi/[id]` |
-| `rete/page.tsx:149` "Crea rete" | `/rete/nuova` |
-| `rete/page.tsx:277` "Gestisci rete →" | `/rete/[id]` |
+Dettaglio completo di cosa esiste/manca per ciascuna (API, colonne DB, pattern UI candidato) già raccolto in questa sessione — vedi `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` sezione B8 aggiornata, o richiedere all'agente Explore un nuovo giro se il contesto si è perso.
 
-**Fix suggerito:** creare le pagine mancanti, oppure sostituire i link con modal/sheet coerenti col pattern già usato altrove (es. `ListinoEditSheet`) — verificare caso per caso quale pattern è più coerente con la pagina genitore. `POST /api/magazzino` e `POST /api/listino` funzionano già, manca solo la UI.
-**Effort stimato:** 1-3h per route, 5 route indipendenti — buon candidato per un piano con task paralleli o sequenziali via `superpowers:subagent-driven-development`.
-
-### B9 — Lista pazienti non navigabile (BUG #13, noto da settimane)
-**Causa:** `src/components/features/pazienti/PazientiSearchList.tsx:164-219` — ogni riga è un `<li><div>` senza `Link`/`href`/`onClick`, a differenza di `ClientiSearchList.tsx` che usa correttamente `<Link>`. `pazienti/[id]/page.tsx` esiste e funziona (R/U/D), ma zero occorrenze di `pazienti/${` in tutto `src/`.
-**Fix:** aggiungere `<Link href={\`/pazienti/${p.id}\`}>` in `PazientiSearchList.tsx`.
-**Effort:** basso, 15-30 minuti — verosimilmente non serve un piano formale, solo TDD rapido o fix diretto con verifica.
-
-### S4 — Email template branding (dopo B8/B9)
-Bozza HTML già pronta in `docs/email-templates-supabase.md`, manca solo applicazione manuale su Supabase dashboard. ~3h, non richiede piano di sviluppo.
+**Nota su /listino/nuovo (2/5):** preferenza già espressa da Francesco per bottom sheet dove possibile (coerente col pattern usato per 1/5) — probabile candidato immediato dato che `ListinoEditSheet` esiste già per l'edit, manca solo l'equivalente "nuovo".
 
 ---
 
 ## Stato backlog complessivo
-🔴 Blocker: 3/16 risolti (B1 ✅, B2 ✅, B7 ✅) — B8, B9 e altri 11 ancora aperti (vedi `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`).
+🔴 Blocker: 3.2/16 risolti (B1 ✅, B2 ✅, B7 ✅, B8 1/5 ✅) — B8 (4/5 rimanenti), B9 e altri 11 ancora aperti (vedi `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`).
 🟠 Alto: 1/18 (A4 ✅).
 🟡 Medio: 0/30.
 🟢 Basso: 2/4.
