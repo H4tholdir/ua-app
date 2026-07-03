@@ -3,6 +3,11 @@
 out/
 build/
 
+# === SERVICE WORKER GENERATO (vedi scripts/generate-sw.mjs) ===
+# Sorgente vero: scripts/sw-template.js — public/sw.js viene rigenerato
+# automaticamente da npm predev/prebuild, non va mai modificato a mano.
+public/sw.js
+
 # === DIPENDENZE ===
 node_modules/
 .pnp
