@@ -146,13 +146,13 @@
 **Fix applicato:** nuove route `/api/tecnici/invite` (POST/GET) e `/api/tecnici/invite/[id]` (DELETE) scoped al titolare (mai admin), componente `InvitaCollaboratoreSheet` (bottom sheet) sostituisce i link rotti in `/tecnici`, migration live estende `accept_invite_atomic()` per creare la riga `tecnici` mancante su accettazione. 12 task con TDD + review individuale + review finale whole-branch, 2 fix post-review applicate su Supabase live (error handling/stato sospeso in `upsertInvito`; idempotenza insert `tecnici` — bug reale di duplicazione trovato dalla review finale e corretto prima del merge). Mergiato su `main` (`fe81be6`) e deployato. Dettaglio completo: `memory/MEMORY.md` §0.
 **Effort:** ~15 task con subagent dedicati + 1 fix post-review-finale su bug di idempotenza in produzione.
 
-### B8. 5 route CRUD portano a pagine 404 — 2/5 ✅ RISOLTO 03/07/2026
+### B8. 5 route CRUD portano a pagine 404 — 3/5 ✅ RISOLTO 03/07/2026
 **Fonte:** [Sis]
 | Link | Destinazione mancante | Stato |
 |---|---|---|
 | `magazzino/page.tsx:71` CTA "aggiungi articolo" | `/magazzino/nuovo` | ✅ risolto 03/07/2026 — bottom sheet `MagazzinoAddSheet`, merge `a810c36`. Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-magazzino-nuovo*` |
 | `listino/page.tsx:51` "Nuova voce" | `/listino/nuovo` | ✅ risolto 03/07/2026 — bottom sheet `ListinoNuovoSheet`, gating ruolo (CTA + `POST /api/listino` 403 per non titolare/admin_rete), worktree `worktree-b8-listino-nuovo` (commit `65287a2`/`9c1c17c`/`8049d72`, non ancora mergiato su `main`). Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-listino-nuovo*` |
-| `qualita/rischi/page.tsx:175` "Modifica →" | `/qualita/rischi/[id]` | aperto |
+| `qualita/rischi/page.tsx:175` "Modifica →" | `/qualita/rischi/[id]` | ✅ risolto 03/07/2026 — pagina a pagina intera (non sheet) con `RischiEditor.tsx`, nuova `PATCH /api/qualita/rischi/[id]` con ricalcolo RPN server-side e versioning automatico, nessun gating di ruolo (decisione esplicita), worktree `worktree-b8-rischi-id` (commit `cbefab8`/`923b851`/`2cd2c5d`, non ancora mergiato su `main`). Dettaglio: `memory/MEMORY.md` §0, spec/piano in `docs/superpowers/specs|plans/2026-07-03-b8-rischi-id*` |
 | `rete/page.tsx:149` "Crea rete" | `/rete/nuova` | aperto |
 | `rete/page.tsx:277` "Gestisci rete →" | `/rete/[id]` | aperto |
 **Fix:** creare le pagine mancanti, oppure sostituire i link con modal/sheet coerenti col pattern già usato altrove (es. `ListinoEditSheet`). Nota: `POST /api/magazzino` e `POST /api/listino` funzionano già — è solo la UI che manca. Per `rete/[id]` mancano anche 4 API (GET singola rete, POST/DELETE membro, PATCH nome) — le tabelle `reti`/`reti_membri`/`rischi_tipo_dispositivo` esistono già a DB (non documentate in `ANALISI/23_ua_database_schema.md`, verificato in `src/types/database.types.ts`).
