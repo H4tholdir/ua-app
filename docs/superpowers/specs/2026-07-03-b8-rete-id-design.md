@@ -19,6 +19,18 @@ Durante il brainstorming sono emersi 3 argomenti che avrebbero ampliato notevolm
 
 ---
 
+## 0-bis. Validazione architetturale — FASE 3 (CLAUDE.md §0C)
+
+Questo lavoro introduce una migration, una nuova RPC `SECURITY DEFINER` e nuove relazioni cross-tenant → **dominio critico**, percorso Grande obbligatorio a prescindere dal numero di file (regola esplicita: "MAI saltare FASE 3").
+
+- **Tenant isolation:** sì, tocca RLS. `inviti_rete` segue il pattern standard del progetto — RLS abilitata, nessuna policy (deny-all per non-service-role, difesa in profondità, stesso schema di `inviti`, vedi §1.4). `reti_membri` ha già RLS con policy (`reti_membri_select`/`reti_membri_admin`, basate su `get_lab_id()`) — la nuova colonna `aggiunto_da_admin` non richiede modifiche a queste policy. Tutti i guard applicativi (§2) derivano `laboratorio_id`/ruolo sempre server-side da `utenti` via sessione, mai dal body — difesa in profondità coerente col resto del progetto.
+- **Schema drift:** sì, serve migration (§1). **FASE 6b obbligatoria come primo task del piano**, prima di scrivere qualunque codice TypeScript che referenzi `inviti_rete` o `reti_membri.aggiunto_da_admin`: applicare la migration → `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → `npx tsc --noEmit`. Se l'ordine viene invertito, `tsc` fallisce per tipi mancanti.
+- **API contract:** additivo, nessuna rottura di client esistenti — `/api/rete` GET/POST invariate, tutte le nuove route sono nuove.
+- **Rollback:** schema additivo e reversibile (drop tabella `inviti_rete`, drop colonna `reti_membri.aggiunto_da_admin`, drop RPC `accept_invito_rete_atomic`). **Attenzione dati:** se in produzione sono già stati accettati inviti prima di un eventuale rollback, le righe `reti_membri` già create **restano** anche dopo il rollback dello schema — il rollback annulla la capacità futura di invitare/accettare, non le adesioni già avvenute. Se serve invalidare retroattivamente anche quelle, va fatto con una query dati esplicita separata, mai automatica.
+- **Dominio critico:** confermato → percorso Grande (GSD fasi + Superpowers TDD), dimensioni paragonabili a B7/B8-3-5.
+
+---
+
 ## 1. Schema DB
 
 ### 1.1 Nuova tabella `inviti_rete`
@@ -52,10 +64,14 @@ Nullable. Valorizzata solo quando l'inserimento passa da `POST /api/admin/reti/[
 PL/pgSQL, `SECURITY DEFINER` (con `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` solo a `service_role`, come da gotcha già in `CLAUDE.md` §9):
 
 1. Claim atomico: `UPDATE inviti_rete SET accepted_at = now() WHERE token_hash = p_token_hash AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now() RETURNING *` — se 0 righe, errore "invito non valido o scaduto"
-2. Verifica email dell'utente (`p_user_id`) combaci con `inviti_rete.email` — altrimenti errore esplicito, **rollback** (non lasciare l'invito marcato accettato se il match fallisce)
+2. Verifica email dell'utente (`p_user_id`) combaci con `inviti_rete.email` — confronto **case-insensitive** (`lower()` su entrambi i lati) — altrimenti errore esplicito, **rollback** (non lasciare l'invito marcato accettato se il match fallisce)
 3. Verifica che il lab dell'utente non sia già `admin_laboratorio_id` di una rete propria né già presente in `reti_membri` per un'altra rete — altrimenti errore esplicito "il laboratorio è già in un'altra rete", rollback
-4. `INSERT INTO reti_membri (rete_id, laboratorio_id, ruolo) VALUES (v_invito.rete_id, v_lab_id, 'membro')`
+4. `INSERT INTO reti_membri (rete_id, laboratorio_id, ruolo) VALUES (v_invito.rete_id, v_lab_id, 'membro')` — `ruolo` sempre `'membro'` (mai `'admin_rete'`, riservato al lab che ha creato la rete)
 5. Ritorna `rete_id` per il redirect lato route
+
+### 1.4 RLS su `inviti_rete`
+
+Segue il pattern standard del progetto (difesa in profondità, `ANALISI/23_ua_database_schema.md:36`): `ALTER TABLE inviti_rete ENABLE ROW LEVEL SECURITY;`, **nessuna policy** — stesso pattern di `inviti` (`001_commercial_infra.sql:81-82`, commento "solo service role può leggere/scrivere"). Tutte le query passano da `getServiceClient()` nelle route, mai da un client anon/browser diretto, coerente col resto del progetto (verificato: `reti`/`reti_membri`/`inviti` hanno tutte RLS incondizionatamente abilitata, anche quando raggiungibili solo da service-role).
 
 ---
 
@@ -64,12 +80,12 @@ PL/pgSQL, `SECURITY DEFINER` (con `REVOKE EXECUTE FROM PUBLIC, anon, authenticat
 | Route | Metodo | Autorizzazione | Scopo |
 |---|---|---|---|
 | `/api/rete/[id]` | `PATCH` | titolare/admin_rete del lab con `admin_laboratorio_id` = quella rete | Rinomina (`{nome}`), 422 se vuoto |
-| `/api/rete/[id]/inviti` | `POST` | titolare/admin_rete del lab admin | Crea/aggiorna invito pendente (`{email}`), dedup su `(rete_id, email)` (aggiorna `expires_at` se già pendente, pattern `upsertInvito`), invia email |
+| `/api/rete/[id]/inviti` | `POST` | titolare/admin_rete del lab admin | Crea/aggiorna invito pendente (`{email}`); **valida fail-fast che esista un `utenti` con quell'email (case-insensitive) e ruolo `titolare`/`admin_rete` — 422 "Nessun account trovato con questa email" se non esiste**, coerente con lo scope "solo lab già clienti" (§0); dedup su `(rete_id, email)` (aggiorna `expires_at` se già pendente, pattern `upsertInvito`), invia email |
 | `/api/rete/[id]/inviti/[invitoId]` | `DELETE` | titolare/admin_rete del lab admin | Revoca (`revoked_at = now()`), solo se non ancora accettato |
 | `/api/rete/[id]/membri/[laboratorioId]` | `DELETE` | titolare/admin_rete del lab admin **oppure** `admin_sistema` | Rimuove membro; **400** se `laboratorioId === admin_laboratorio_id` |
 | `/api/rete/inviti/[token]/accept` | `POST` | titolare/admin_rete autenticato, email deve combaciare | Chiama `accept_invito_rete_atomic`, ritorna `rete_id` |
 | `/api/admin/reti` | `GET` | `admin_sistema` | Lista `{id, nome}` di tutte le reti, per dropdown |
-| `/api/admin/reti/[id]/membri` | `POST` | `admin_sistema` | Force-add immediato (`{laboratorio_id}`), imposta `aggiunto_da_admin`; stessa verifica "non già in un'altra rete" della RPC, replicata in TS (unico caller, non serve una seconda RPC) |
+| `/api/admin/reti/[id]/membri` | `POST` | `admin_sistema` | Force-add immediato (`{laboratorio_id}`), insert in `reti_membri` con `ruolo='membro'` e `aggiunto_da_admin` valorizzato; stessa verifica "non già in un'altra rete" della RPC, replicata in TS (unico caller, non serve una seconda RPC) |
 
 Nessuna `GET /api/rete/[id]` dedicata: la pagina fa fetch diretto server-side (pattern identico a `qualita/rischi/[id]`).
 
@@ -105,7 +121,7 @@ Motion/haptic da `design-system/motion.ts`/`haptic.ts`, colori da token v2.3, 3 
 
 ### 4.1 `src/app/(app)/rete/invito/[token]/page.tsx`
 
-Sotto `(app)` — richiede login (redirect a `/login` gestito dal layout esistente se non autenticato, poi ritorno qui).
+Sotto `(app)` — richiede login. **Verificato:** il middleware (`src/middleware.ts:26-34`) su una route protetta senza sessione redirige a `/login?next=<pathname>`, e `login-form.tsx` legge `next` (sanificato via `safeRedirectPath`) per tornare al path originale dopo login — quindi un titolare che clicca il link email da sloggato non perde l'invito, atterra di nuovo su questa pagina dopo l'autenticazione.
 
 - Hash del token → lookup `inviti_rete` (non accettato/revocato/scaduto) → non trovato: messaggio "Invito non valido o scaduto"
 - Verifica email utente loggato = `inviti_rete.email` → mismatch: messaggio esplicito, nessuna azione
@@ -134,6 +150,7 @@ Sezione "Rete" aggiunta a `src/app/admin/labs/[id]/page.tsx` (pagina esistente),
 
 ## 6. Edge case e validazioni
 
+- Invito a un'email senza account `titolare`/`admin_rete` esistente → `422` in creazione (fail-fast, §2), mai un dead-end scoperto solo in fase di accettazione
 - Rimozione dell'admin lab dalla propria rete → `400` (uscita completa dalla gestione rete non prevista in questo scope)
 - Accettazione quando il lab è già admin/membro di un'altra rete → rifiutata dalla RPC, rollback, messaggio esplicito
 - Force-add da `/admin` di un lab già in un'altra rete → stesso controllo, replicato in TS nella route admin (unico caller di quel path, non serve duplicare in SQL)
@@ -146,7 +163,7 @@ Sezione "Rete" aggiunta a `src/app/admin/labs/[id]/page.tsx` (pagina esistente),
 ## 7. Piano di test (TDD)
 
 - RPC `accept_invito_rete_atomic`: script diretto su Supabase (pattern già usato per `accept_invite_atomic`) — accept valido, doppio accept/race, email mismatch, lab già in altra rete, invito scaduto
-- Route-level: `POST /inviti` (ruolo, dedup, CSRF), `DELETE membro` (self-removal, tenant, ruolo, bypass admin_sistema), `PATCH` rename, `POST /api/admin/reti/[id]/membri` (admin_sistema only + guard already-in-network)
+- Route-level: `POST /inviti` (ruolo, dedup, CSRF, **422 su email senza account titolare/admin_rete**), `DELETE membro` (self-removal, tenant, ruolo, bypass admin_sistema), `PATCH` rename, `POST /api/admin/reti/[id]/membri` (admin_sistema only + guard already-in-network)
 - Componenti: `ReteDettaglio` (vista admin vs membro), `InvitaLabSheet`/`RinominaReteSheet` (validazione client-side, 0 POST su submit invalido)
 - QA browser: 390/768/1280px × light/dark; touch target ≥44px su "Rimuovi"/"Revoca" e z-index 200/201 sui nuovi sheet verificati **fin dalla prima implementazione**, non scoperti in QA come nei bug precedenti di B8
 
