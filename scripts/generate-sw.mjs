@@ -33,3 +33,11 @@ export function resolveBuildId({ isDev = false, env = process.env, execSyncFn = 
 
   return String(Date.now())
 }
+
+export function generateServiceWorker({ isDev = false, templatePath = TEMPLATE_PATH, outputPath = OUTPUT_PATH } = {}) {
+  const buildId = resolveBuildId({ isDev })
+  const template = readFileSync(templatePath, 'utf-8')
+  const output = template.replace('__BUILD_ID__', buildId)
+  writeFileSync(outputPath, output, 'utf-8')
+  return buildId
+}

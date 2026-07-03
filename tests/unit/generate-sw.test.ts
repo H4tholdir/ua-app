@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { resolveBuildId } from '../../scripts/generate-sw.mjs'
+import { mkdtempSync, writeFileSync as writeFileSyncNode, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { resolveBuildId, generateServiceWorker } from '../../scripts/generate-sw.mjs'
 
 describe('resolveBuildId', () => {
   it('restituisce "dev" quando isDev è true, ignorando env e git', () => {
@@ -47,5 +50,23 @@ describe('resolveBuildId', () => {
     expect(Number.isNaN(parsed)).toBe(false)
     expect(parsed).toBeGreaterThanOrEqual(before)
     expect(parsed).toBeLessThanOrEqual(after)
+  })
+})
+
+describe('generateServiceWorker', () => {
+  it('scrive il file di output sostituendo il placeholder con il build id', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sw-gen-test-'))
+    try {
+      const templatePath = join(dir, 'sw-template.js')
+      const outputPath = join(dir, 'sw.js')
+      writeFileSyncNode(templatePath, "const CACHE_NAME = 'ua-__BUILD_ID__'\n")
+
+      const buildId = generateServiceWorker({ isDev: true, templatePath, outputPath })
+
+      expect(buildId).toBe('dev')
+      expect(readFileSync(outputPath, 'utf-8')).toBe("const CACHE_NAME = 'ua-dev'\n")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
