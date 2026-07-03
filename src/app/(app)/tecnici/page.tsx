@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { TecnicoEditInline } from '@/components/features/tecnici/TecnicoEditInline'
 import { TecnicoDeactivateButton } from '@/components/features/tecnici/TecnicoDeactivateButton'
+import { InvitaCollaboratoreSheet } from '@/components/features/tecnici/InvitaCollaboratoreSheet'
 
 type TecnicoRow = {
   id: string
@@ -43,38 +44,7 @@ export default async function TechniciPage() {
     tecnici = (data ?? []) as TecnicoRow[]
   }
 
-  // Pulsante "Invita tecnico" nell'header — BUG #9
-  const invitaButton = (
-    <Link
-      href="/impostazioni"
-      aria-label="Invita tecnico"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        height: '40px',
-        minHeight: '52px',
-        padding: '0 16px',
-        borderRadius: '12px',
-        background: 'var(--elv, #EDEDEA)',
-        color: 'var(--t1, #1C1916)',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: 600,
-        fontSize: '14px',
-        textDecoration: 'none',
-        boxShadow: 'var(--sh-b)',
-        flexShrink: 0,
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M10.5 8.5A2.5 2.5 0 108 6a2.5 2.5 0 002.5 2.5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M5.5 13.5a5 5 0 019 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M3 6v4M1 8h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-      Invita tecnico
-    </Link>
-  )
+  const invitaButton = ruolo === 'titolare' ? <InvitaCollaboratoreSheet variant="header" /> : null
 
   return (
     <PageWrapper>
@@ -113,26 +83,7 @@ export default async function TechniciPage() {
             >
               Invita un collaboratore per assegnargli lavori e tracciare la produttività.
             </p>
-            <Link
-              href="/impostazioni"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '12px 22px',
-                borderRadius: '32px',
-                background: 'var(--primary, #D90012)',
-                color: '#fff',
-                fontFamily: 'DM Sans, sans-serif',
-                fontWeight: 700,
-                fontSize: '14px',
-                textDecoration: 'none',
-                minHeight: '44px',
-                boxShadow: 'var(--sh-red)',
-              }}
-            >
-              Invita collaboratori →
-            </Link>
+            {ruolo === 'titolare' && <InvitaCollaboratoreSheet variant="cta" />}
           </div>
         ) : (
           <ul
