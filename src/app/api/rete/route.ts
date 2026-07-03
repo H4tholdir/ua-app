@@ -95,6 +95,22 @@ export async function POST(req: Request) {
     )
   }
 
+  const labId = utente.laboratorio_id
+
+  // Un lab amministra al massimo una rete (no vincolo UNIQUE a DB, solo check applicativo)
+  const { data: reteEsistente } = await svc
+    .from('reti')
+    .select('id')
+    .eq('admin_laboratorio_id', labId)
+    .maybeSingle()
+
+  if (reteEsistente) {
+    return NextResponse.json(
+      { error: 'Il laboratorio amministra già una rete' },
+      { status: 409 }
+    )
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -105,8 +121,6 @@ export async function POST(req: Request) {
   if (!body.nome || typeof body.nome !== 'string' || !body.nome.trim()) {
     return NextResponse.json({ error: 'Campo "nome" obbligatorio' }, { status: 422 })
   }
-
-  const labId = utente.laboratorio_id
 
   // Crea la rete
   const { data: rete, error: reteError } = await svc
