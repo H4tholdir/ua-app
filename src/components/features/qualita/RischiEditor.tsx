@@ -46,6 +46,18 @@ function nuovoRischioVuoto(numero: number): RischioItem {
   }
 }
 
+function prossimoNumero(rischi: RischioItem[]): number {
+  let max = 0
+  for (const r of rischi) {
+    const match = r.id.match(/(\d+)$/)
+    if (match) {
+      const n = parseInt(match[1], 10)
+      if (n > max) max = n
+    }
+  }
+  return max
+}
+
 export function RischiEditor({
   rischioId,
   tipoDispositivoLabel,
@@ -60,7 +72,7 @@ export function RischiEditor({
   const [misureControllo, setMisureControllo] = useState(misureControlloIniziali ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const contatore = useRef(rischiIniziali.length)
+  const contatore = useRef(prossimoNumero(rischiIniziali))
 
   const aggiornaRischio = (index: number, patch: Partial<RischioItem>) => {
     setRischi(prev =>

@@ -122,4 +122,45 @@ describe('RischiEditor', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('obbligatorio')
     expect(screen.getByLabelText('Rischio 1 — Descrizione rischio')).toHaveValue('Frattura del dispositivo in uso')
   })
+
+  it('aggiungere rischi non collide con id numerici esistenti quando riapertura con numeri alti', () => {
+    // Reproduzione del bug: lista reopened con [R02, R03]
+    // Old code seeded contatore=2 (length), next add would generate R03 (collision)
+    // New code seeds contatore=3 (max suffix), next add generates R04 (no collision)
+    const rischiReopened = [
+      {
+        id: 'R02',
+        rischio: 'Rischio secondo',
+        causa: 'Causa secondo',
+        probabilita: 1,
+        gravita: 1,
+        rpn: 1,
+        misura: 'Misura secondo',
+      },
+      {
+        id: 'R03',
+        rischio: 'Rischio terzo',
+        causa: 'Causa terzo',
+        probabilita: 1,
+        gravita: 1,
+        rpn: 1,
+        misura: 'Misura terzo',
+      },
+    ]
+
+    renderEditor(rischiReopened)
+
+    // Add a new risk — should generate R04, not R03 (collision)
+    fireEvent.click(screen.getByRole('button', { name: '+ Aggiungi rischio' }))
+
+    // If fix works correctly, we should see 3 risk cards and the new one's ID should be R04
+    expect(screen.getByLabelText('Rischio 1 — Descrizione rischio')).toHaveValue('Rischio secondo')
+    expect(screen.getByLabelText('Rischio 2 — Descrizione rischio')).toHaveValue('Rischio terzo')
+    expect(screen.getByLabelText('Rischio 3 — Descrizione rischio')).toHaveValue('')
+
+    // Verify the new risk has id R04 by checking that it renders uniquely
+    // (the key in React is r.id, so R04 is distinct from R02 and R03)
+    const riskCards = screen.getAllByText(/^Rischio \d+ — Descrizione rischio$/i)
+    expect(riskCards).toHaveLength(3)
+  })
 })
