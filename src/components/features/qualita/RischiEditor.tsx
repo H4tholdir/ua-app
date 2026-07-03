@@ -208,7 +208,18 @@ export function RischiEditor({
                 type="button"
                 onClick={() => rimuoviRischio(i)}
                 aria-label={`Rimuovi rischio ${i + 1}`}
-                style={{ background: 'none', border: 'none', color: 'var(--primary, #D90012)', cursor: 'pointer', fontSize: 12, fontFamily }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary, #D90012)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontFamily,
+                  minHeight: 44,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0 10px',
+                }}
               >
                 Rimuovi
               </button>
