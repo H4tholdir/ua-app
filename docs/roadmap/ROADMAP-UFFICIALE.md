@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 03 luglio 2026 — B2 risolto (fix bug residuo Scadenzario, commit `cbc034b`)
+**Ultimo aggiornamento:** 03 luglio 2026 — B2 chiuso e mergiato su main (`05612ec`), follow-up SW cache + backlog risolti (`7fc181b`)
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -42,25 +42,25 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 
 ---
 
-## 🚨 PROSSIMA SESSIONE → Chiudere i 2 Blocker del re-audit 02/07
+## 🚨 PROSSIMA SESSIONE → B7/B8/B9, poi S4
 
-**Da eseguire subito all'avvio della prossima sessione, PRIMA di S4 o di qualunque nuova feature:**
+**B1 e B2 (i 2 blocker critici del re-audit 02/07) sono risolti, mergiati su `main` e deployati.** Da eseguire subito all'avvio della prossima sessione, PRIMA di S4 o di qualunque nuova feature:
 
 ```
 Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER.
 Priorità in ordine:
-1. B1 — Tracciabilità MDR materiali/lotti (DdC sempre vuota su questo campo) — ✅ RISOLTO 02/07 (commit 31cc47c)
-2. B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti — ✅ RISOLTO 03/07 (commit `cbc034b`): il bug
-   residuo trovato in verifica finale (src/app/api/scadenzario/route.ts non nettava importo_pagato sulle fatture
-   con pagamento parziale/credito applicato) è stato corretto e riverificato — vedi MEMORY.md §0 e worktree
-   b2-contabilita-clienti/.superpowers/sdd/task-16-fix-report.md per evidenza del fix e della ri-verifica.
-3. B7 — "Invita tecnico" irraggiungibile da UI
-4. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
-5. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
+1. B7 — "Invita tecnico" irraggiungibile da UI
+2. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
+3. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
 Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
 ```
 
-**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è più la priorità — i restanti blocker (B7/B8/B9) vengono prima. B1 e B2, i 2 blocker critici del re-audit 02/07, sono ora entrambi risolti.
+**Storico B1/B2 (per contesto, non richiede più azione):**
+- B1 — Tracciabilità MDR materiali/lotti — ✅ RISOLTO 02/07 (commit `31cc47c`)
+- B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti — ✅ RISOLTO e MERGIATO 03/07 (piano 16 task su worktree `b2-contabilita-clienti`, merge `05612ec`). Due round di bug trovati SOLO in verifica finale/review whole-branch (mai in review di singolo task) e corretti prima della chiusura: (1) Task 16 → `scadenzario/route.ts` non nettava `importo_pagato` sulle fatture con pagamento parziale (fix `cbc034b`); (2) review finale sull'intero branch → `scadenzario/route.ts` escludeva i lavori `fatturare`-non-inclusi che le altre superfici contano, e `getContabilitaCliente` non escludeva le fatture bozza (fix `ac48530`). Dettaglio completo in MEMORY.md §0.
+- **Follow-up collegati, risolti in sessione separata (commit `7fc181b`):** bug Service Worker PWA (cache RSC di `router.refresh()`, causava UI stale su tutta l'app dopo mutazioni — scoperto durante B2, backlog A4) + allineamento `BACKLOG-TECNICO-2026-07-02.md` (B2 ✅, A4 🔄 parziale).
+
+**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è la priorità — B7/B8/B9 vengono prima.
 
 ---
 
@@ -205,3 +205,5 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 05/06/2026 | Sessione design chiusa. Prossimo: S4 email template branding (Supabase) | Francesco + Claude |
 | 02/07/2026 | Re-audit completo (11 agenti persona) dopo quasi un mese di inattività (zero commit dal 05/06). Score medio 7.29/10 (era 7.1). Claim "DS v2.3 100%" smentito. 2 blocker critici nuovi trovati (materiali/lotti MDR, dashboard/scadenzario disallineati). Prodotti `BACKLOG-TECNICO-2026-07-02.md` e `FEATURES-E-FLUSSI-2026-07-02.md` come nuova fonte di verità tecnica. | Francesco + Claude |
 | 03/07/2026 | B2 risolto: Task 16 (verifica finale) aveva trovato un bug residuo in `src/app/api/scadenzario/route.ts` (non nettava `importo_pagato` sulle fatture con pagamento parziale/credito, disaccordo Scadenzario vs Dashboard/Contabilità cliente) e correttamente riportato BLOCKED — fix applicato (netta il residuo come già fanno le altre superfici), tsc/vitest/build verdi, ri-verificato con dati reali (commit `cbc034b`). Entrambi i 2 blocker critici del re-audit 02/07 sono ora risolti. | Francesco + Claude |
+| 03/07/2026 | Review finale sull'intero branch B2 (26 commit) trova un secondo disaccordo tra superfici, invisibile a qualunque review di singolo task: Scadenzario escludeva i lavori "fatturare non ancora inclusi" che Dashboard/Contabilità cliente contano già, e `getContabilitaCliente` non escludeva le fatture in bozza. Chiesto a Francesco quale comportamento adottare (nessuna risposta nel timeout, applicata l'opzione raccomandata coerente con lo spec) — fix `ac48530`, re-review "Ready to merge: Yes". Branch mergiato fast-forward su `main` (`05612ec`) e pushato — deploy Vercel. **B2 chiuso.** | Francesco + Claude |
+| 03/07/2026 | 2 follow-up B2 risolti in sessione separata (commit `7fc181b`): bug Service Worker PWA scoperto durante B2 (cachava le fetch RSC di `router.refresh()` nonostante `Cache-Control: no-cache` di Next, causando UI stale su tutta l'app dopo ogni mutazione — verificato dal vivo con Playwright, non solo lettura codice) + allineamento `BACKLOG-TECNICO-2026-07-02.md` (B2 ✅, A4 🔄 parziale). | Francesco + Claude |
