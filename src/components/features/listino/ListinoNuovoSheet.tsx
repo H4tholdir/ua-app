@@ -170,7 +170,7 @@ export function ListinoNuovoSheet() {
               exit={{ opacity: 0 }}
               transition={motionTokens.spring.gentle}
               onClick={handleClose}
-              style={{ position: 'fixed', inset: 0, background: 'black', zIndex: 40 }}
+              style={{ position: 'fixed', inset: 0, background: 'black', zIndex: 200 }}
             />
 
             <motion.div
@@ -186,7 +186,7 @@ export function ListinoNuovoSheet() {
                 background: 'var(--sfc, #E4DFD9)',
                 borderRadius: '20px 20px 0 0',
                 padding: '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
-                zIndex: 50,
+                zIndex: 201,
                 maxHeight: '90vh',
                 overflowY: 'auto',
               }}
