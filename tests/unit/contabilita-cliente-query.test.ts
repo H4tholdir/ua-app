@@ -11,18 +11,30 @@ function createFakeSupabase(data: {
 }) {
   const fake = {
     from(table: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let rows: any[] =
+        table === 'fatture' ? (data.fatture ?? []) :
+        table === 'lavori' ? (data.lavori ?? []) :
+        table === 'credito_clienti_movimenti' ? (data.movimenti ?? []) :
+        []
       const builder = {
         select() { return builder },
         eq() { return builder },
+        // A differenza degli altri filtri (no-op in questo fake — si assume che
+        // la fixture rappresenti già i dati filtrati da Postgres), `neq` filtra
+        // davvero: serve a testare la regressione del filtro `stato_sdi != 'draft'`
+        // senza dover simulare l'intero query planner.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        neq(column: string, value: any) {
+          rows = rows.filter((r) => r[column] !== value)
+          return builder
+        },
         is() { return builder },
         not() { return builder },
         gt() { return builder },
         order() { return builder },
         then(resolve: (v: { data: unknown; error: null }) => void) {
-          if (table === 'fatture') { resolve({ data: data.fatture ?? [], error: null }); return }
-          if (table === 'lavori') { resolve({ data: data.lavori ?? [], error: null }); return }
-          if (table === 'credito_clienti_movimenti') { resolve({ data: data.movimenti ?? [], error: null }); return }
-          resolve({ data: [], error: null })
+          resolve({ data: rows, error: null })
         },
       }
       return builder
@@ -95,5 +107,22 @@ describe('getContabilitaCliente', () => {
     })
     const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
     expect(r.creditoCliente.disponibile).toBe(30)
+  })
+
+  // Regressione (finding review finale whole-branch, dopo Task 16): una fattura
+  // bozza (stato_sdi='draft', mai inviata) non è un dovuto reale — deve essere
+  // esclusa da `dovuti` e non contribuire a `creditoCliente.confermato`, come già
+  // avviene in getCreditoScadutoPerCliente (Task 9) e /api/scadenzario (Task 11).
+  it('fattura in stato draft è esclusa da dovuti e da creditoCliente.confermato', async () => {
+    const supabase = createFakeSupabase({
+      fatture: [
+        { id: 'f1', numero: '2026-0020', data: DATA_LONTANA, totale: 500, importo_pagato: 0, stato_sdi: 'draft', pagata: false },
+        { id: 'f2', numero: '2026-0021', data: DATA_LONTANA, totale: 100, importo_pagato: 0, stato_sdi: 'accettata', pagata: false },
+      ],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.dovuti).toHaveLength(1)
+    expect(r.dovuti[0]).toMatchObject({ id: 'f2', origine: 'fattura', residuo: 100 })
+    expect(r.creditoCliente.confermato).toBe(100)
   })
 })

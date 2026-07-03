@@ -170,11 +170,16 @@ export async function getContabilitaCliente(
 ): Promise<ContabilitaCliente> {
   const now = Date.now()
 
+  // NOTA (finding review finale whole-branch, dopo Task 16): manca il filtro
+  // `stato_sdi != 'draft'` — senza, una fattura bozza (mai inviata) con un
+  // saldo comparirebbe qui come dovuto confermato, mentre Dashboard/Scadenzario
+  // (Task 9/11) la escludono sempre. Allineato agli altri due path.
   const { data: fattureRaw } = await svc
     .from('fatture')
     .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata')
     .eq('cliente_id', clienteId)
     .eq('laboratorio_id', labId)
+    .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
     .order('data', { ascending: false })
 
@@ -211,6 +216,12 @@ export async function getContabilitaCliente(
 
   const lavoriConfermati: DovutoEstratto[] = []
   const lavoriInAttesa: LavoroInAttesa[] = []
+  // Bucket separati per decisione_fatturazione (finding review finale: prima
+  // venivano mischiati tutti in lavoriFatturareNonInclusi — la somma finale
+  // era comunque corretta perché calcolaCreditoCliente li somma entrambi in
+  // "confermato", ma l'etichettatura era fuorviante per chi legge il codice).
+  const residuiNonFatturare: Array<{ residuo: number }> = []
+  const residuiFatturareNonInclusi: Array<{ residuo: number }> = []
 
   for (const l of (lavoriRaw ?? []) as unknown as Array<{
     id: string; numero_lavoro: string; prezzo_unitario: number | null; data_consegna_prevista: string
@@ -248,6 +259,12 @@ export async function getContabilitaCliente(
       giorni_ritardo: Math.floor((now - new Date(l.data_consegna_prevista).getTime()) / 86_400_000),
       stato_sdi: null,
     })
+
+    if (l.decisione_fatturazione === 'non_fatturare') {
+      residuiNonFatturare.push({ residuo })
+    } else {
+      residuiFatturareNonInclusi.push({ residuo })
+    }
   }
 
   const nonSaldati = [...fattureDovuti.filter((f) => !f.pagata), ...lavoriConfermati]
@@ -264,8 +281,8 @@ export async function getContabilitaCliente(
 
   const creditoCliente = calcolaCreditoCliente({
     fattureNonSaldate: fattureDovuti.filter((f) => !f.pagata).map((f) => ({ residuo: f.residuo })),
-    lavoriNonFatturareNonSaldati: [],
-    lavoriFatturareNonInclusi: lavoriConfermati.map((l) => ({ residuo: l.residuo })),
+    lavoriNonFatturareNonSaldati: residuiNonFatturare,
+    lavoriFatturareNonInclusi: residuiFatturareNonInclusi,
     lavoriInAttesa: lavoriInAttesa.map((l) => ({ residuo: l.prezzo_unitario })),
     creditoDisponibile,
   })

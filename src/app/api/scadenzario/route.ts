@@ -70,7 +70,7 @@ export async function GET() {
       credito_clienti_movimenti(importo, tipo)
     `)
     .eq('laboratorio_id', labId)
-    .eq('decisione_fatturazione', 'non_fatturare')
+    .in('decisione_fatturazione', ['non_fatturare', 'fatturare'])
     .eq('incluso_in_fattura', false)
     .not('stato', 'in', '("annullato")')
     .is('deleted_at', null)
@@ -84,6 +84,17 @@ export async function GET() {
   // parzialmente pagate — senza nettare `importo_pagato` questo endpoint
   // mostrerebbe l'importo pieno invece del residuo reale, disaccordando con
   // Dashboard/Contabilità cliente (esattamente il sintomo originale di B2).
+  //
+  // NOTA (finding review finale whole-branch, dopo Task 16): il filtro sui
+  // lavori includeva SOLO `non_fatturare`, escludendo `fatturare` con
+  // `incluso_in_fattura=false` — il bucket "confermato" definito nello spec
+  // B2 §5 include invece entrambi (un lavoro deciso "fatturare" ma non ancora
+  // formalizzato in fattura è comunque un dovuto reale). Con solo
+  // `non_fatturare`, un cliente con l'unico scaduto in questo stato compariva
+  // nel widget morosi Dashboard e nella sua Contabilità cliente ma spariva
+  // dallo Scadenzario — lo stesso sintomo di disaccordo tra superfici che B2
+  // esiste per eliminare. Allineato a `.in(...)`, stesso filtro già usato da
+  // `getCreditoScadutoPerCliente` (Task 9) e `getContabilitaCliente` (Task 15).
 
   const byCliente: Record<
     string,
