@@ -140,11 +140,11 @@
 **Fix:** branch `navigate` con `caches.match(request)` + fallback `/offline.html`, come proposto a maggio.
 **Effort:** poche righe, rischio basso — è il fix "facile" più segnalato e mai applicato.
 
-### B7. "Invita tecnico" completamente irraggiungibile dalla UI
+### B7. "Invita tecnico" completamente irraggiungibile dalla UI — ✅ RISOLTO 03/07/2026
 **Fonte:** [Sis] + [FT] (corroborazione indipendente)
 **Causa:** a maggio il link era sbagliato (puntava a `/impostazioni`); oggi non c'è **alcun** link, verificato assente da bottom-nav, menu profilo, `/impostazioni`. `src/app/(app)/tecnici/page.tsx:49,117` puntano ancora a `/impostazioni`, che non contiene alcuna stringa "invita". L'unico endpoint di invito è `POST /api/admin/invite`, riservato a `admin_sistema` (Francesco), non al titolare.
-**Fix:** creare un flow dedicato (es. `/impostazioni/team` o `/tecnici/invita`) con generazione token + invio email/WhatsApp, riusando `/invite/[token]` già esistente. Aggiungere il link da menu profilo o impostazioni.
-**Effort:** non stimato — richiede un endpoint nuovo lato titolare (quello attuale è solo per admin_sistema).
+**Fix applicato:** nuove route `/api/tecnici/invite` (POST/GET) e `/api/tecnici/invite/[id]` (DELETE) scoped al titolare (mai admin), componente `InvitaCollaboratoreSheet` (bottom sheet) sostituisce i link rotti in `/tecnici`, migration live estende `accept_invite_atomic()` per creare la riga `tecnici` mancante su accettazione. 12 task con TDD + review individuale + review finale whole-branch, 2 fix post-review applicate su Supabase live (error handling/stato sospeso in `upsertInvito`; idempotenza insert `tecnici` — bug reale di duplicazione trovato dalla review finale e corretto prima del merge). Mergiato su `main` (`fe81be6`) e deployato. Dettaglio completo: `memory/MEMORY.md` §0.
+**Effort:** ~15 task con subagent dedicati + 1 fix post-review-finale su bug di idempotenza in produzione.
 
 ### B8. 5 route CRUD portano a pagine 404
 **Fonte:** [Sis]
