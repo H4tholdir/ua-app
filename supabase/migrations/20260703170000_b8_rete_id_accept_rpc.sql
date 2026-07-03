@@ -11,6 +11,7 @@ CREATE OR REPLACE FUNCTION accept_invito_rete_atomic(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_invito RECORD;
@@ -39,7 +40,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'error', 'Utente non associato a un laboratorio');
   END IF;
 
-  IF lower(trim(v_lab_email)) <> lower(trim(v_invito.email)) THEN
+  IF v_lab_email IS NULL OR lower(trim(v_lab_email)) <> lower(trim(v_invito.email)) THEN
     UPDATE inviti_rete SET accepted_at = NULL WHERE id = v_invito.id;
     RETURN jsonb_build_object('ok', false, 'error', 'Email non corrisponde');
   END IF;
