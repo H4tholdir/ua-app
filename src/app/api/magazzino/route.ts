@@ -117,6 +117,8 @@ export async function POST(req: Request) {
     dispositivo_medico: body.dispositivo_medico ?? false,
     traccia_lotto: body.traccia_lotto ?? false,
     codice_ce: body.codice_ce ?? null,
+    scheda_tecnica_url: body.scheda_tecnica_url ?? null,
+    scheda_sicurezza_url: body.scheda_sicurezza_url ?? null,
     attivo: true,
   }
 
