@@ -37,6 +37,8 @@ function createFakeSupabase(config: {
   inviti?: Array<{ id: string; accepted_at: string | null; expires_at: string }>
   onInsert?: (row: Record<string, unknown>) => void
   onUpdate?: (id: string, row: Record<string, unknown>) => void
+  labError?: { message: string; code?: string }
+  invitiError?: { message: string }
 }) {
   const fake = {
     from(table: string) {
@@ -44,6 +46,9 @@ function createFakeSupabase(config: {
         select() { return builder },
         eq() { return builder },
         single() {
+          if (table === 'laboratori' && config.labError) {
+            return Promise.resolve({ data: null, error: config.labError })
+          }
           return Promise.resolve({ data: table === 'laboratori' ? (config.lab ?? null) : null, error: null })
         },
         insert(row: Record<string, unknown>) {
@@ -58,7 +63,11 @@ function createFakeSupabase(config: {
             },
           }
         },
-        then(resolve: (v: { data: unknown; error: null }) => void) {
+        then(resolve: (v: { data: unknown; error: unknown }) => void) {
+          if (table === 'inviti' && config.invitiError) {
+            resolve({ data: null, error: config.invitiError })
+            return
+          }
           resolve({ data: table === 'inviti' ? (config.inviti ?? []) : [], error: null })
         },
       }
@@ -86,6 +95,39 @@ describe('upsertInvito', () => {
     const svc = createFakeSupabase({ lab: { stato: 'scaduto', nome: 'Lab Test' } })
     const r = await upsertInvito(svc, { laboratorioId: 'lab-x', email: 'a@b.it', ruolo: 'tecnico', createdBy: 'u1' })
     expect(r).toMatchObject({ ok: false, status: 403 })
+  })
+
+  it('laboratorio sospeso → 403', async () => {
+    const svc = createFakeSupabase({ lab: { stato: 'sospeso', nome: 'Lab Test' } })
+    const r = await upsertInvito(svc, { laboratorioId: 'lab-x', email: 'a@b.it', ruolo: 'tecnico', createdBy: 'u1' })
+    expect(r).toMatchObject({ ok: false, status: 403 })
+  })
+
+  it('errore DB sulla query laboratori → 500 (non 404)', async () => {
+    const svc = createFakeSupabase({ labError: { message: 'connection timeout' } })
+    const r = await upsertInvito(svc, { laboratorioId: 'lab-x', email: 'a@b.it', ruolo: 'tecnico', createdBy: 'u1' })
+    expect(r).toMatchObject({ ok: false, status: 500, error: 'connection timeout' })
+  })
+
+  it('laboratorio inesistente (PGRST116 da .single()) → 404, non 500', async () => {
+    const svc = createFakeSupabase({ labError: { message: 'no rows', code: 'PGRST116' } })
+    const r = await upsertInvito(svc, { laboratorioId: 'lab-x', email: 'a@b.it', ruolo: 'tecnico', createdBy: 'u1' })
+    expect(r).toMatchObject({ ok: false, status: 404 })
+  })
+
+  it('errore DB sulla query inviti esistenti → 500 (non procede all\'insert)', async () => {
+    const onInsert = vi.fn()
+    const onUpdate = vi.fn()
+    const svc = createFakeSupabase({
+      lab: { stato: 'attivo', nome: 'Lab Test' },
+      invitiError: { message: 'connection timeout' },
+      onInsert,
+      onUpdate,
+    })
+    const r = await upsertInvito(svc, { laboratorioId: 'lab-x', email: 'a@b.it', ruolo: 'tecnico', createdBy: 'u1' })
+    expect(r).toMatchObject({ ok: false, status: 500, error: 'connection timeout' })
+    expect(onInsert).not.toHaveBeenCalled()
+    expect(onUpdate).not.toHaveBeenCalled()
   })
 
   it('nessun invito pendente → crea una nuova riga con email normalizzata', async () => {

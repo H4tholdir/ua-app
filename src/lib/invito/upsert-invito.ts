@@ -29,7 +29,7 @@ export type UpsertInvitoResult =
   | { ok: true; token: string; labNome: string }
   | { ok: false; status: number; error: string }
 
-const LAB_STATI_BLOCCATI = ['blacklist', 'scaduto']
+const LAB_STATI_BLOCCATI = ['blacklist', 'scaduto', 'sospeso']
 
 export async function upsertInvito(
   svc: SupabaseClient,
@@ -37,22 +37,27 @@ export async function upsertInvito(
 ): Promise<UpsertInvitoResult> {
   const normalizedEmail = params.email.toLowerCase().trim()
 
-  const { data: lab } = await svc
+  const { data: lab, error: labError } = await svc
     .from('laboratori')
     .select('stato, nome')
     .eq('id', params.laboratorioId)
     .single()
 
+  if (labError && labError.code !== 'PGRST116') {
+    return { ok: false, status: 500, error: labError.message }
+  }
   if (!lab) return { ok: false, status: 404, error: 'Laboratorio non trovato' }
   if (LAB_STATI_BLOCCATI.includes(lab.stato)) {
     return { ok: false, status: 403, error: 'Impossibile invitare utenti in un lab inattivo' }
   }
 
-  const { data: esistenti } = await svc
+  const { data: esistenti, error: invitiError } = await svc
     .from('inviti')
     .select('id, accepted_at, expires_at')
     .eq('laboratorio_id', params.laboratorioId)
     .eq('email', normalizedEmail)
+
+  if (invitiError) return { ok: false, status: 500, error: invitiError.message }
 
   const token = randomUUID()
   const tokenHash = createHash('sha256').update(token).digest('hex')
