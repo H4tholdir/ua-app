@@ -39,7 +39,7 @@
 | A1 | Push assente su nuova assegnazione lavoro | ⏳ | | |
 | A2 | Nessun fallback offline/rete lenta | ⏳ | | |
 | A3 | Bug login autofill email passkey | ⏳ | | |
-| A4 | Cache versioning statico, no TTL | 🔄 | 03/07/2026 · `<vedi commit fix-sw-cache-backlog>` | Parzialmente risolto: `sw.js` ora esclude esplicitamente le fetch RSC (`_rsc=`, header `RSC`/`Next-Router-State-Tree`) dalla strategia stale-while-revalidate — era la causa di UI stale dopo mutazioni, scoperta durante B2. Restano aperti: versioning cache legato a `NEXT_PUBLIC_BUILD_ID` (non solo bump manuale `ua-v1→ua-v2`) e pulizia entry vecchie con TTL |
+| A4 | Cache versioning statico, no TTL | 🔄 | 03/07/2026 · `7fc181b` | Parzialmente risolto: `sw.js` ora esclude esplicitamente le fetch RSC (`_rsc=`, header `RSC`/`Next-Router-State-Tree`) dalla strategia stale-while-revalidate — era la causa di UI stale dopo mutazioni, scoperta durante B2. Restano aperti: versioning cache legato a `NEXT_PUBLIC_BUILD_ID` (non solo bump manuale `ua-v1→ua-v2`) e pulizia entry vecchie con TTL |
 | A5 | `manifest.json` theme_color sbagliato | ⏳ | | |
 | A6 | `qualita/page.tsx` 2 violazioni anti-pattern | ⏳ | | |
 | A7 | Portale/Richiedi disconnessi | ⏳ | | |
