@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ua-v2'
+const CACHE_NAME = 'ua-__BUILD_ID__'
 const PRECACHE = ['/offline.html', '/manifest.json']
 
 self.addEventListener('install', (e) => {
