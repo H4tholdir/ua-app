@@ -17,7 +17,7 @@
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
 | B1 | Tracciabilità MDR materiali/lotti rotta | ✅ | 02/07/2026 · `31cc47c` | Vedi MEMORY.md §0 per dettaglio fix. Follow-up non bloccanti: test e2e orchestraConsegna (→B13), verifica manuale su lavoro reale ancora da fare |
-| B2 | Dashboard/Scadenzario dati contrastanti | ⏳ | | |
+| B2 | Dashboard/Scadenzario dati contrastanti | ✅ | 03/07/2026 · `05612ec` (merge, 28 commit) | Risolto con il sotto-progetto "Contabilità Clienti": ledger pagamenti polimorfico + credito cliente + query unificata su 4 superfici (Dashboard/Scadenzario/Contabilità cliente/admin-live). Vedi MEMORY.md §0 e `docs/superpowers/specs/2026-07-02-contabilita-clienti-design.md` / `docs/superpowers/plans/2026-07-02-contabilita-clienti.md` per dettaglio. Fix collaterale: bug SW cache RSC (→A4) scoperto e risolto durante questo lavoro |
 | B3 | Cicli produzione non generano fasi per lavori nuovi | ⏳ | | |
 | B4 | `as any` nei PDF MDR (mascherato, non risolto) | ⏳ | | |
 | B5 | Download DdC/Buono da portale impossibile | ⏳ | | |
@@ -39,7 +39,7 @@
 | A1 | Push assente su nuova assegnazione lavoro | ⏳ | | |
 | A2 | Nessun fallback offline/rete lenta | ⏳ | | |
 | A3 | Bug login autofill email passkey | ⏳ | | |
-| A4 | Cache versioning statico, no TTL | ⏳ | | |
+| A4 | Cache versioning statico, no TTL | 🔄 | 03/07/2026 · `<vedi commit fix-sw-cache-backlog>` | Parzialmente risolto: `sw.js` ora esclude esplicitamente le fetch RSC (`_rsc=`, header `RSC`/`Next-Router-State-Tree`) dalla strategia stale-while-revalidate — era la causa di UI stale dopo mutazioni, scoperta durante B2. Restano aperti: versioning cache legato a `NEXT_PUBLIC_BUILD_ID` (non solo bump manuale `ua-v1→ua-v2`) e pulizia entry vecchie con TTL |
 | A5 | `manifest.json` theme_color sbagliato | ⏳ | | |
 | A6 | `qualita/page.tsx` 2 violazioni anti-pattern | ⏳ | | |
 | A7 | Portale/Richiedi disconnessi | ⏳ | | |
@@ -109,11 +109,12 @@
 **Fix:** valorizzare `lotto_numero` nell'insert di `scarichi_magazzino` (richiede collegare `listino_materiali_auto` a un lotto specifico di `lotti_magazzino`) + far leggere `generate-ddc.ts` da `scarichi_magazzino` invece che dalla tabella orfana `lavori_materiali`, oppure costruire una UI di inserimento lotto in `TabAccettazione.tsx`/`TabProduzione.tsx`.
 **Effort:** non stimato dall'agente — richiede decisione di design (quale sistema diventa la fonte di verità).
 
-### B2. Dashboard e Scadenzario danno risposte opposte su "chi deve pagare"
+### B2. Dashboard e Scadenzario danno risposte opposte su "chi deve pagare" — ✅ RISOLTO 03/07/2026
 **Fonte:** [Tit] + [FT] (corroborazione indipendente, dati osservati identici: €36.185/245 clienti vs "nessun insoluto")
-**Causa:** Dashboard (`supabase/migrations/008_dashboard_extended_kpi.sql:39-61`) calcola da `lavori`+`lavori_partitario`; Scadenzario (`src/app/api/scadenzario/route.ts:36-46`) legge solo `fatture` con `pagata=false AND stato_sdi != 'draft'`. Le due fonti non sono mai riconciliate.
-**Fix:** unificare su un'unica vista/RPC, oppure separare esplicitamente "lavori consegnati non fatturati" da "fatture scadute non pagate" come due categorie distinte in UI.
-**Effort:** non stimato — richiede decisione architetturale su quale ledger è la fonte di verità.
+**Causa:** Dashboard (`supabase/migrations/008_dashboard_extended_kpi.sql:39-61`) calcola da `lavori`+`lavori_partitario`; Scadenzario (`src/app/api/scadenzario/route.ts:36-46`) legge solo `fatture` con `pagata=false AND stato_sdi != 'draft'`. Le due fonti non sono mai riconciliate. Causa radice reale (indagine 02/07/2026): `lavori_partitario` non ha mai avuto un writer applicativo, 0 righe anche in produzione.
+**Fix applicato:** sotto-progetto "Contabilità Clienti" — ledger pagamenti polimorfico (`pagamenti`), decisione fatturazione per lavoro (`lavori.decisione_fatturazione`), credito cliente con eccedenze/rimborsi (`credito_clienti_movimenti`), `fatture.pagata`/`importo_pagato` derivati via trigger DB, query unificata `getCreditoScadutoPerCliente`/`getContabilitaCliente` usata identicamente da Dashboard, Scadenzario e Contabilità cliente. `lavori_partitario` droppata. 16 task, ogni task con review indipendente + review finale whole-branch (5 bug reali trovati e corretti solo grazie alla review adversariale, incluso questo stesso pattern di disaccordo tra superfici ri-emerso due volte durante l'esecuzione e corretto entrambe le volte).
+**Dettaglio:** `docs/superpowers/specs/2026-07-02-contabilita-clienti-design.md` (spec) · `docs/superpowers/plans/2026-07-02-contabilita-clienti.md` (piano + self-review + note sui fix) · `memory/MEMORY.md` §0.
+**Effort:** ~16 task con subagent dedicati + 1 sessione di fix follow-up (SW cache, vedi A4).
 
 ### B3. Cicli di produzione non generano mai fasi per i lavori nuovi
 **Fonte:** [Odt] (nuovo gap, non rilevato a maggio)
@@ -221,9 +222,11 @@
 **Fonte:** [FTec] — `src/app/(auth)/login/login-form.tsx:186-192` rilegge `localStorage.ua_passkey_email` e forza `setEmail()`, causando switch involontari di account su device condivisi (laboratorio con più tecnici sullo stesso tablet).
 **Fix:** non sovrascrivere un valore digitato manualmente dall'utente nella sessione corrente.
 
-### A4. Cache versioning statico, nessun TTL
+### A4. Cache versioning statico, nessun TTL — 🔄 PARZIALMENTE RISOLTO 03/07/2026
 **Fonte:** [PWA] — `sw.js:1` bumped manualmente `ua-v1→ua-v2`, nessun build timestamp, nessuna pulizia delle 60+ varianti RSC in cache.
 **Fix:** iniettare `NEXT_PUBLIC_BUILD_ID` nel nome cache via step di build, escludere `_rsc=` dalla strategia di caching o applicare stale-while-revalidate con limite entry.
+**Fatto:** la parte "escludere `_rsc=` dalla strategia di caching" è stata implementata — `sw.js` ora esclude le fetch RSC (header `RSC`/`Next-Router-State-Tree`) dal cache stale-while-revalidate. Causa scoperta durante il sotto-progetto B2: queste fetch (emesse da `router.refresh()`, navigazione client-side, prefetch `<Link>`) venivano servite dalla cache anche quando Next le marca esplicitamente `Cache-Control: no-cache, must-revalidate`, causando UI stale dopo ogni mutazione finché non si ricaricava manualmente la pagina — bug reale confermato con evidenza diretta (header di risposta) e verificato via Playwright dopo il fix (fetch RSC va in rete, UI si aggiorna senza reload).
+**Resta aperto:** versioning cache legato a `NEXT_PUBLIC_BUILD_ID` invece del bump manuale, e pulizia TTL delle entry vecchie.
 
 ### A5. `manifest.json` theme_color ancora sbagliato
 **Fonte:** [PWA], invariato da maggio — `#0F1E52` invece di `#D90012`, mismatch con `layout.tsx:22`. Anche `offline.html` usa il colore vecchio.

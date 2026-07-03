@@ -30,6 +30,14 @@ self.addEventListener('fetch', (e) => {
   if (request.mode === 'navigate') return
   // Non cachare bundle Next.js (cambiano ad ogni deploy)
   if (url.pathname.startsWith('/_next/')) return
+  // Non cachare le fetch RSC di Next.js (router.refresh(), navigazione client-side,
+  // prefetch dei Link): sono payload differenziali dei React Server Components, non
+  // pagine HTML da servire offline. Next le marca esso stesso `Cache-Control:
+  // no-cache, must-revalidate` e le distingue con l'header `RSC` — intercettarle qui
+  // le serviva dalla cache stale-while-revalidate, causando UI non aggiornata dopo
+  // ogni mutazione (POST/PATCH) finché non si ricaricava manualmente la pagina
+  // (bug scoperto durante B2 — Contabilità Clienti, 03/07/2026).
+  if (request.headers.has('RSC') || request.headers.has('Next-Router-State-Tree')) return
 
   e.respondWith(
     caches.match(request).then(cached => {
