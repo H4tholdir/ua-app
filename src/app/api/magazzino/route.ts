@@ -129,6 +129,9 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
+    if (insertError.code === '23505') {
+      return NextResponse.json({ error: 'Esiste già un articolo con questo codice in magazzino' }, { status: 409 })
+    }
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 

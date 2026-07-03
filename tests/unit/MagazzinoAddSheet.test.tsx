@@ -104,6 +104,8 @@ describe('MagazzinoAddSheet', () => {
     const body = JSON.parse(options.body as string)
     expect(body.nome).toBe('Gesso extra-duro')
     expect(body.codice_articolo).toBe('GES01')
+    expect(body.dispositivo_medico).toBe(false)
+    expect(body.traccia_lotto).toBe(false)
   })
 
   it('errore server mostra messaggio inline e non chiude lo sheet', async () => {
