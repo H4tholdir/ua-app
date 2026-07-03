@@ -1659,6 +1659,57 @@ export type Database = {
           },
         ]
       }
+      inviti_rete: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invitato_da: string
+          rete_id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invitato_da: string
+          rete_id: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invitato_da?: string
+          rete_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inviti_rete_invitato_da_fkey"
+            columns: ["invitato_da"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inviti_rete_rete_id_fkey"
+            columns: ["rete_id"]
+            isOneToOne: false
+            referencedRelation: "reti"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       istruzioni_uso: {
         Row: {
           created_at: string
@@ -4538,24 +4589,34 @@ export type Database = {
       }
       reti_membri: {
         Row: {
+          aggiunto_da_admin: string | null
           joined_at: string
           laboratorio_id: string
           rete_id: string
           ruolo: string
         }
         Insert: {
+          aggiunto_da_admin?: string | null
           joined_at?: string
           laboratorio_id: string
           rete_id: string
           ruolo?: string
         }
         Update: {
+          aggiunto_da_admin?: string | null
           joined_at?: string
           laboratorio_id?: string
           rete_id?: string
           ruolo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reti_membri_aggiunto_da_admin_fkey"
+            columns: ["aggiunto_da_admin"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reti_membri_laboratorio_id_fkey"
             columns: ["laboratorio_id"]
@@ -5272,6 +5333,10 @@ export type Database = {
           p_user_email: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      accept_invito_rete_atomic: {
+        Args: { p_token_hash: string; p_user_id: string }
         Returns: Json
       }
       admin_delete_laboratorio: { Args: { p_lab_id: string }; Returns: Json }
