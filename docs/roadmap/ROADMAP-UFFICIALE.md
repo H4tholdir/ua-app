@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 03 luglio 2026 — A4 chiuso definitivamente e mergiato su main (`4a36f89`) — cache versioning automatico Service Worker
+**Ultimo aggiornamento:** 03 luglio 2026 — B7 chiuso, mergiato su main (`fe81be6`) e deployato — invito collaboratori dal titolare
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -42,27 +42,29 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 
 ---
 
-## 🚨 PROSSIMA SESSIONE → B7/B8/B9, poi S4
+## 🚨 PROSSIMA SESSIONE → B8/B9, poi S4
 
-**A4 (Alto, non blocker) è ora chiuso definitivamente (03/07/2026, merge `4a36f89`).** Cache versioning automatico nel Service Worker: `public/sw.js` è diventato un file generato (gitignored) da `scripts/generate-sw.mjs`, con `CACHE_NAME` legato al build-id (git sha in produzione, `ua-dev` in sviluppo) invece del bump manuale `ua-v1→ua-v2`. Nessun TTL/pulizia cache aggiunto (decisione esplicita in brainstorming — il fix RSC di B2 aveva già eliminato la crescita illimitata). Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`. Piano: `docs/superpowers/plans/2026-07-03-a4-cache-versioning.md`. Dettaglio completo: `memory/MEMORY.md` §0.
+**A4 (Alto, non blocker) è chiuso definitivamente (03/07/2026, merge `4a36f89`).** Cache versioning automatico nel Service Worker: `public/sw.js` è diventato un file generato (gitignored) da `scripts/generate-sw.mjs`, con `CACHE_NAME` legato al build-id (git sha in produzione, `ua-dev` in sviluppo) invece del bump manuale `ua-v1→ua-v2`. Nessun TTL/pulizia cache aggiunto (decisione esplicita in brainstorming — il fix RSC di B2 aveva già eliminato la crescita illimitata). Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`. Piano: `docs/superpowers/plans/2026-07-03-a4-cache-versioning.md`. Dettaglio completo: `memory/MEMORY.md` §0.
+
+**B7 (blocker critico) è risolto, mergiato su `main` (`fe81be6`) e deployato (03/07/2026).** Il titolare ora può invitare tecnico/front_desk/co-titolare direttamente dall'UI in `/tecnici`; fix incluso della RPC `accept_invite_atomic` che non creava la riga `tecnici` mancante, più un secondo fix di idempotenza (bug di duplicazione righe trovato dalla review finale verificando direttamente su Supabase live). Dettaglio completo: `memory/MEMORY.md` §0. Handoff strutturato per la prossima sessione: `memory/SESSION_ACTIVE.md`.
 
 **B1 e B2 (i 2 blocker critici del re-audit 02/07) sono risolti, mergiati su `main` e deployati.** Da eseguire subito all'avvio della prossima sessione, PRIMA di S4 o di qualunque nuova feature:
 
 ```
 Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER.
 Priorità in ordine:
-1. B7 — "Invita tecnico" irraggiungibile da UI
-2. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
-3. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
+1. B8 — 5 route CRUD che portano a 404 (magazzino/nuovo, listino/nuovo, rete/nuova, rete/[id], qualita/rischi/[id])
+2. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
 Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
 ```
 
-**Storico B1/B2 (per contesto, non richiede più azione):**
+**Storico B1/B2/B7 (per contesto, non richiede più azione):**
 - B1 — Tracciabilità MDR materiali/lotti — ✅ RISOLTO 02/07 (commit `31cc47c`)
 - B2 — Dashboard/Scadenzario dati contrastanti sui crediti clienti — ✅ RISOLTO e MERGIATO 03/07 (piano 16 task su worktree `b2-contabilita-clienti`, merge `05612ec`). Due round di bug trovati SOLO in verifica finale/review whole-branch (mai in review di singolo task) e corretti prima della chiusura: (1) Task 16 → `scadenzario/route.ts` non nettava `importo_pagato` sulle fatture con pagamento parziale (fix `cbc034b`); (2) review finale sull'intero branch → `scadenzario/route.ts` escludeva i lavori `fatturare`-non-inclusi che le altre superfici contano, e `getContabilitaCliente` non escludeva le fatture bozza (fix `ac48530`). Dettaglio completo in MEMORY.md §0.
-- **Follow-up collegati, risolti in sessione separata (commit `7fc181b`):** bug Service Worker PWA (cache RSC di `router.refresh()`, causava UI stale su tutta l'app dopo mutazioni — scoperto durante B2, backlog A4) + allineamento `BACKLOG-TECNICO-2026-07-02.md` (B2 ✅, A4 🔄 parziale).
+- B7 — "Invita tecnico" irraggiungibile da UI — ✅ RISOLTO e MERGIATO 03/07 (piano 12 task su worktree `worktree-b7-invito-collaboratori`, merge `fe81be6`). Bug reale trovato SOLO dalla review finale whole-branch verificando direttamente su Supabase live (stesso pattern di B2: mai nelle review di singolo task): `accept_invite_atomic` duplicava la riga `tecnici` su re-invito+re-accettazione, corretto con una seconda migration (`WHERE NOT EXISTS`) prima del merge. QA e2e reale in browser eseguita post-merge. Dettaglio completo in MEMORY.md §0.
+- **Follow-up collegati, risolti in sessione separata (commit `7fc181b`):** bug Service Worker PWA (cache RSC di `router.refresh()`, causava UI stale su tutta l'app dopo mutazioni — scoperto durante B2, backlog A4) + allineamento `BACKLOG-TECNICO-2026-07-02.md` (B2 ✅, A4 🔄 parziale, B7 ✅).
 
-**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è la priorità — B7/B8/B9 vengono prima.
+**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è la priorità — B8/B9 vengono prima.
 
 ---
 
