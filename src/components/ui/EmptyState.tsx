@@ -9,6 +9,15 @@ interface EmptyStateProps {
   cta?: { label: string; href?: string; onClick?: () => void }
 }
 
+const ctaStyle: React.CSSProperties = {
+  display: 'inline-block', padding: '12px 24px',
+  background: 'var(--primary, #D90012)', color: 'white',
+  borderRadius: 12, fontWeight: 700, fontSize: 14,
+  textDecoration: 'none', cursor: 'pointer',
+  fontFamily: 'DM Sans, sans-serif',
+  border: 'none',
+}
+
 export function EmptyState({ icon = '📋', title, description, cta }: EmptyStateProps) {
   return (
     <motion.div
@@ -38,19 +47,15 @@ export function EmptyState({ icon = '📋', title, description, cta }: EmptyStat
         </p>
       )}
       {cta && (
-        <a
-          href={cta.href}
-          onClick={cta.onClick}
-          style={{
-            display: 'inline-block', padding: '12px 24px',
-            background: 'var(--primary, #D90012)', color: 'white',
-            borderRadius: 12, fontWeight: 700, fontSize: 14,
-            textDecoration: 'none', cursor: 'pointer',
-            fontFamily: 'DM Sans, sans-serif',
-          }}
-        >
-          {cta.label}
-        </a>
+        cta.href ? (
+          <a href={cta.href} onClick={cta.onClick} style={ctaStyle}>
+            {cta.label}
+          </a>
+        ) : (
+          <button type="button" onClick={cta.onClick} style={ctaStyle}>
+            {cta.label}
+          </button>
+        )
       )}
     </motion.div>
   )
