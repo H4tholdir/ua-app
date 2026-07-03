@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
@@ -6,6 +5,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ListinoVoceRow } from '@/components/features/listino/ListinoVoceRow'
 import type { VoceListino } from '@/components/features/listino/ListinoVoceRow'
+import { ListinoNuovoSheet } from '@/components/features/listino/ListinoNuovoSheet'
 
 export default async function ListinoPage() {
   const userClient = await getServerUserClient()
@@ -46,35 +46,7 @@ export default async function ListinoPage() {
 
   const categorie = Object.keys(perCategoria).sort()
 
-  const addButton = (
-    <Link
-      href="/listino/nuovo"
-      aria-label="Nuova voce listino"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        height: '40px',
-        minHeight: '52px',
-        padding: '0 16px',
-        borderRadius: '12px',
-        background: 'var(--primary, #D90012)',
-        color: '#fff',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: 700,
-        fontSize: '14px',
-        textDecoration: 'none',
-        boxShadow: '0 0 16px rgba(0,0,0,.12)',
-        flexShrink: 0,
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-      Nuova voce
-    </Link>
-  )
+  const addButton = canEdit ? <ListinoNuovoSheet /> : undefined
 
   return (
     <PageWrapper>
