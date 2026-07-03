@@ -5,7 +5,6 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { MagazzinoSearchList } from '@/components/features/magazzino/MagazzinoSearchList'
 import { OrdinaBatchBanner } from '@/components/features/magazzino/OrdinaBatchBanner'
-import { EmptyState } from '@/components/ui/EmptyState'
 
 // Tipo base — usato dalla search list
 export type ArticoloRow = {
@@ -42,6 +41,9 @@ export default async function MagazzinoPage() {
   const labId: string = utente?.laboratorio_id ?? ''
 
   let articoli: ArticoloRowConOrdine[] = []
+  let categorieEsistenti: string[] = []
+  let fornitori: Array<{ id: string; ragione_sociale: string }> = []
+
   if (labId) {
     const { data } = await svc
       .from('magazzino')
@@ -51,6 +53,18 @@ export default async function MagazzinoPage() {
       .order('nome', { ascending: true })
       .limit(500)
     articoli = (data ?? []) as ArticoloRowConOrdine[]
+
+    categorieEsistenti = Array.from(
+      new Set(articoli.map((a) => a.categoria).filter((c): c is string => !!c))
+    ).sort()
+
+    const { data: fornitoriData } = await svc
+      .from('fornitori')
+      .select('id, ragione_sociale')
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .order('ragione_sociale', { ascending: true })
+    fornitori = fornitoriData ?? []
   }
 
   const articoliAlert = articoli.filter((a) => a.scorta_attuale < a.scorta_minima)
@@ -62,25 +76,11 @@ export default async function MagazzinoPage() {
         subtitle={articoliAlert.length > 0 ? `${articoliAlert.length} sotto scorta minima` : undefined}
       />
 
-      {articoli.length === 0 ? (
-        <section style={{ padding: '0 20px 32px' }}>
-          <EmptyState
-            icon="📦"
-            title="Magazzino vuoto"
-            description="Aggiungi i materiali che usi in laboratorio per tenere traccia delle scorte."
-            cta={{ label: '+ Aggiungi articolo', href: '/magazzino/nuovo' }}
-          />
-        </section>
-      ) : (
-        <>
-          {/* Banner batch ordini — mostrato solo se ci sono articoli sotto scorta con fornitore */}
-          {articoliAlert.length > 0 && (
-            <OrdinaBatchBanner articoliSottoScorta={articoliAlert} />
-          )}
-          {/* Search + lista lato client — i dati sono già caricati — BUG #12 */}
-          <MagazzinoSearchList articoli={articoli} />
-        </>
+      {articoliAlert.length > 0 && (
+        <OrdinaBatchBanner articoliSottoScorta={articoliAlert} />
       )}
+      {/* Search + lista lato client — gestisce anche stato vuoto e creazione nuovo articolo */}
+      <MagazzinoSearchList articoli={articoli} categorieEsistenti={categorieEsistenti} fornitori={fornitori} />
     </PageWrapper>
   )
 }
