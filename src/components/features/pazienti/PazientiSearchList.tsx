@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 type PazienteRow = {
   id: string
@@ -162,60 +163,84 @@ export function PazientiSearchList({ pazienti }: PazientiSearchListProps) {
 
             return (
               <li key={paziente.id}>
-                <div
+                <Link
+                  href={`/pazienti/${paziente.id}`}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
                     background: 'var(--surface, #E4DFD9)',
                     borderRadius: '16px',
                     padding: '14px 16px',
+                    textDecoration: 'none',
                     boxShadow:
                       'var(--sh-b)',
                   }}
                 >
-                  <p
-                    style={{
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      color: 'var(--t1, #1C1916)',
-                      margin: '0 0 4px',
-                    }}
-                  >
-                    {nomePaziente}
-                  </p>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <span
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '13px',
-                        color: 'var(--t2, #4A3D33)',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: 'var(--t1, #1C1916)',
+                        margin: '0 0 4px',
                       }}
                     >
-                      {clienteNome}
-                    </span>
-                    {paziente.codice_paziente && (
+                      {nomePaziente}
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                      }}
+                    >
                       <span
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '11px',
-                          fontWeight: 600,
+                          fontSize: '13px',
                           color: 'var(--t2, #4A3D33)',
-                          background: 'var(--elv, #EDEDEA)',
-                          borderRadius: '6px',
-                          padding: '2px 8px',
                         }}
                       >
-                        {paziente.codice_paziente}
+                        {clienteNome}
                       </span>
-                    )}
+                      {paziente.codice_paziente && (
+                        <span
+                          style={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: 'var(--t2, #4A3D33)',
+                            background: 'var(--elv, #EDEDEA)',
+                            borderRadius: '6px',
+                            padding: '2px 8px',
+                          }}
+                        >
+                          {paziente.codice_paziente}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    style={{ flexShrink: 0, color: 'var(--t2, #4A3D33)' }}
+                  >
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Link>
               </li>
             )
           })}
