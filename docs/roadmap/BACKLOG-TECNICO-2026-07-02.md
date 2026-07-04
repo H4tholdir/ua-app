@@ -335,7 +335,7 @@
 | Feature | Stato reale verificato |
 |---|---|
 | Dettatura vocale (Web Speech API) | Zero codice — `grep SpeechRecognition` → 0 risultati. [Odt] + [SWE] |
-| Email template branding (Supabase) | Bozza HTML pronta in `docs/email-templates-supabase.md`, manca solo il passo manuale di applicazione sul dashboard Supabase Auth (non è più un task di codice). [SWE] |
+| Email template branding (Supabase) | ✅ COMPLETO 04/07/2026 — rebrand DS v2.3 applicato ai 3 template Auth (Confirm Signup, Reset Password, Invite User) su Supabase Dashboard, verificato con invio reale (reset password). Dettaglio: `memory/MEMORY.md` §0. [SWE] |
 | Magazzino visivo | Non iniziato, confermato in roadmap V2.0. |
 | Sezione Rete funzionale multi-lab | Solo skeleton — la UI esiste ma **due CTA principali portano a 404** (vedi B8). [Sis] |
 | Cronometro fase tecnico | Non iniziato, pianificato V1.7 — coerente con la roadmap, non un gap nuovo. [FTec] |
