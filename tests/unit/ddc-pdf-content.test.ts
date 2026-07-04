@@ -4,51 +4,17 @@
 // Zero DB, zero Supabase — fixture inline
 
 import { describe, it, expect, beforeAll } from 'vitest'
-import { renderToBuffer } from '@react-pdf/renderer'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { createElement } from 'react'
 import { PDFParse } from 'pdf-parse'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
-import type {
-  LavoroDettaglio,
-  Laboratorio,
-  DichiarazioneConformita,
-} from '@/types/domain'
+import type { DichiarazioneConformita } from '@/types/domain'
+import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
-// LAB_FIXTURE: usato per logo_url (null) e come fallback nei metadata del Document.
+// LAB_FIXTURE/LAVORO_FIXTURE: vedi tests/unit/helpers/pdf-fixtures.ts (condivise).
+// LAB_FIXTURE è usato per logo_url (null) e come fallback nei metadata del Document.
 // Le sezioni §1 e §8 PRRC leggono da ddc.fabbricante_* e ddc.prrc_*, non dal lab.
-const LAB_FIXTURE: Laboratorio = {
-  id: 'lab-test-001',
-  nome: 'Lab Opromolla',
-  ragione_sociale: 'Laboratorio Odontotecnico Opromolla S.r.l.',
-  partita_iva: '03508740655',
-  codice_fiscale: null,
-  indirizzo: 'Via Roma 12',
-  cap: '84028',
-  citta: 'Serre',
-  provincia: 'SA',
-  telefono: null,
-  email: null,
-  pec: null,
-  logo_url: null,
-  logo_print_url: null,
-  codice_itca: 'ITCA01051686',
-  srn_eudamed: null,
-  prrc_nome: 'Filippo Opromolla',
-  prrc_qualifica: 'Odontotecnico abilitato',
-  firma_url: null,
-  firma_ddc_url: null,
-  sfondo_ddc_url: null,
-  intestazione_ddc: null,
-  intestazione_fattura: null,
-  intestazione_buono: null,
-  regime_fiscale: 'RF01',
-  codice_iva_default: 'N4',
-  pec_vault_key_id: null,
-  pec_smtp_configurata: false,
-  testo_rischi_default: null,
-  piano: 'lab',
-}
 
 // DDC_FIXTURE: tutti i campi che il template stampa direttamente.
 // §1 Fabbricante legge: fabbricante_nome, fabbricante_indirizzo, fabbricante_piva, fabbricante_itca
@@ -109,143 +75,6 @@ const DDC_FIXTURE: DichiarazioneConformita = {
   rischi_residui_snapshot: null,
 }
 
-// LAVORO_FIXTURE: denti_coinvolti e materiali letti direttamente dal lavoro nel template
-const LAVORO_FIXTURE: LavoroDettaglio = {
-  id: 'lav-test-001',
-  laboratorio_id: 'lab-test-001',
-  numero_lavoro: 'LAV-2026-0001',
-  consegna_in_corso: false,
-  anno_lavoro: 2026,
-  codice_interno: null,
-  numero_prescrizione: null,
-  numero_cassetta: null,
-  cliente_id: 'cli-001',
-  paziente_id: null,
-  tecnico_id: null,
-  ciclo_id: null,
-  paziente_nome_snapshot: 'M.R.',
-  paziente_nascita_snapshot: null,
-  tipo_dispositivo: 'protesi_fissa',
-  descrizione: 'Corona ceramica su impianto elemento 14 colore A2',
-  note_interne: null,
-  richiedente_nome: null,
-  richiedente_email: null,
-  colore_dente: 'A2',
-  colore_collo: null,
-  colore_corpo: null,
-  colore_incisale: null,
-  effetti_speciali: null,
-  tecnica_colore: null,
-  colorazione_esterna: null,
-  denti_coinvolti: ['14'],
-  denti_mancanti: null,
-  denti_impianti: null,
-  tipo_arco: null,
-  arcata: null,
-  anamnesi_note: null,
-  anamnesi_bruxismo: false,
-  anamnesi_precauzioni: null,
-  anamnesi_altri_dispositivi: null,
-  tipo_impronte: null,
-  disinfettante_usato: null,
-  lotto_disinfettante: null,
-  materiali_allegati: [],
-  tracciabilita_materiali_ok: false,
-  materiali_incompleti_dettaglio: null,
-  anamnesi_difficolta_manuali: false,
-  classe_rischio: 'classe_iia',
-  norma_riferimento: null,
-  da_conformare: true,
-  dispositivo_semilavorato: false,
-  stato: 'pronto',
-  priorita: 'normale',
-  data_ingresso: '2026-05-10T08:00:00.000Z',
-  data_consegna_prevista: '2026-05-15T00:00:00.000Z',
-  ora_consegna: null,
-  data_prima_prova: null,
-  data_seconda_prova: null,
-  data_terza_prova: null,
-  data_consegna_effettiva: null,
-  file_stl_url: null,
-  immagini_urls: null,
-  impronta_digitale: false,
-  listino_id: null,
-  prezzo_unitario: null,
-  codice_iva: 'N4',
-  natura_iva: 'N4',
-  incluso_in_fattura: false,
-  decisione_fatturazione: 'in_attesa',
-  conformato: false,
-  data_conformazione: null,
-  is_rifacimento: false,
-  consegna_tap_at: null,
-  consegna_completata_at: null,
-  post_consegna_correzioni: 0,
-  consegna_precheck_passato_al_primo_tentativo: null,
-  spedizione_corriere: null,
-  spedizione_tracking: null,
-  spedizione_stato: null,
-  spedizione_data_prevista: null,
-  spedizione_note: null,
-  segnalazione_tipo: null,
-  segnalazione_nota: null,
-  segnalazione_at: null,
-  segnalazione_by: null,
-  segnalazione_risolta: false,
-  created_at: '2026-05-10T08:00:00.000Z',
-  updated_at: '2026-05-10T08:00:00.000Z',
-  deleted_at: null,
-  // Join — obbligatori per LavoroDettaglio
-  cliente: {
-    id: 'cli-001',
-    laboratorio_id: 'lab-test-001',
-    studio_nome: null,
-    nome: 'Mario',
-    cognome: 'Rossi',
-    telefono: null,
-    email: null,
-    partita_iva: null,
-    codice_fiscale: null,
-    codice_sdi: null,
-    pec: null,
-    indirizzo: null,
-    cap: null,
-    citta: null,
-    provincia: null,
-    paese: 'IT',
-    listino_numero: 1,
-    sconto_percentuale: 0,
-    tecnico_default_id: null,
-    modalita_pagamento: null,
-    non_soggetto_fe: false,
-    portale_token: 'tok-test-001',
-    note: null,
-  },
-  paziente: null,
-  tecnico: null,
-  lavorazioni: [],
-  appuntamenti: [],
-  immagini: [],
-  fasi: [],
-  materiali: [
-    {
-      id: 'mat-001',
-      laboratorio_id: 'lab-test-001',
-      lavoro_id: 'lav-test-001',
-      lotto_id: 'lot-001',
-      magazzino_id: 'mag-001',
-      quantita_usata: 1,
-      unita_misura: 'pz',
-      data_uso: '2026-05-12T00:00:00.000Z',
-      numero_lotto_snapshot: 'LOT-2025-ZR-0042',
-      nome_materiale_snapshot: 'Zirconia IPS e.max ZirCAD',
-      produttore_snapshot: 'Ivoclar Vivadent',
-    },
-  ],
-  ddc: null,
-  laboratorio: null,
-}
-
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
 let pdfText = ''
@@ -257,8 +86,7 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       lab: LAB_FIXTURE,
       ddc: DDC_FIXTURE,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const buffer = await renderToBuffer(element as any)
+    const buffer = await renderPdfDocument(element)
     const parser = new PDFParse({ data: buffer })
     const result = await parser.getText()
     await parser.destroy()
@@ -273,8 +101,7 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
       lab: LAB_FIXTURE,
       ddc: DDC_FIXTURE,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const buffer = await renderToBuffer(element as any)
+    const buffer = await renderPdfDocument(element)
     expect(buffer.length).toBeGreaterThan(1024)
   })
 
