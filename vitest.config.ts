@@ -22,7 +22,16 @@ export default defineConfig({
         'src/app/api/auth/**',
       ],
     },
-    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    // tests/integration/** non gira mai di default: npm test/CI usano
+    // `vitest run` senza argomenti, che con questo include prenderebbe anche
+    // l'integration — per questo `test`/`test:unit` restano scope-limitati
+    // esplicitamente a tests/unit (vedi script in package.json), mentre
+    // `test:integration` punta esplicitamente a tests/integration.
+    include: [
+      'tests/unit/**/*.test.ts',
+      'tests/unit/**/*.test.tsx',
+      'tests/integration/**/*.test.ts',
+    ],
   },
   resolve: {
     alias: {
