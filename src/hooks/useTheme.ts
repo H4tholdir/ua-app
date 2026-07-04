@@ -15,12 +15,29 @@ function getInitialTheme(): Theme {
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
+  // Stato iniziale sempre 'light', identico a quello che il server renderizza
+  // (che non ha accesso a localStorage/matchMedia) — evita un hydration
+  // mismatch su attributi che dipendono da `theme` (es. aria-label di
+  // ThemeToggleButton). Il valore reale viene letto una sola volta dopo il
+  // mount, quando è sicuro farlo (stesso pattern usato da next-themes per lo
+  // stesso problema). La classe sull'<html> per evitare il FOUC visivo resta
+  // gestita separatamente e prima, da ThemeInitializer (script inline).
+  const [theme, setTheme] = useState<Theme>('light')
+  const [mounted, setMounted] = useState(false)
 
-  // Apply theme to DOM whenever it changes
   useEffect(() => {
+    setTheme(getInitialTheme())
+    setMounted(true)
+  }, [])
+
+  // Applica il tema al DOM solo dopo aver letto il valore reale — se questo
+  // effetto girasse anche con lo stato iniziale fittizio 'light' rimuoverebbe
+  // momentaneamente la classe 'dark' già impostata da ThemeInitializer,
+  // causando un flash visivo (dark → light → dark).
+  useEffect(() => {
+    if (!mounted) return
     applyTheme(theme)
-  }, [theme])
+  }, [theme, mounted])
 
   // Listen for system preference changes
   useEffect(() => {

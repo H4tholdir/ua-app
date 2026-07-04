@@ -143,11 +143,17 @@ export function BottomNavPill() {
   const lastScrollY = useRef(0)
   const reducedMotion = useReducedMotion()
 
-  // Tooltip FAB: visibile solo alla prima apertura, poi sparisce dopo 3s
-  const [showFabTooltip, setShowFabTooltip] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return !localStorage.getItem('ua-tooltip-fab-shown')
-  })
+  // Tooltip FAB: visibile solo alla prima apertura, poi sparisce dopo 3s.
+  // Stato iniziale sempre `false`, identico al render server-side (che non
+  // ha accesso a localStorage) — evita un hydration mismatch (il server non
+  // renderizza mai il tooltip, il client lo mostrava subito se non ancora
+  // visto). Il valore reale viene letto una sola volta dopo il mount.
+  const [showFabTooltip, setShowFabTooltip] = useState(false)
+  useEffect(() => {
+    if (!localStorage.getItem('ua-tooltip-fab-shown')) {
+      setShowFabTooltip(true)
+    }
+  }, [])
   useEffect(() => {
     if (!showFabTooltip) return
     const timer = setTimeout(() => {
