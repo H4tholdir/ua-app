@@ -147,4 +147,15 @@ describe('POST /api/rete/[id]/inviti', () => {
     expect(res.status).toBe(422)
     expect(json.error).toContain('email')
   })
+
+  it('body JSON null → 422, nessun crash/500', async () => {
+    mockScenario({ destinatarioEsiste: true })
+
+    const res = await POST(postRequest(null), postParams())
+    const json = await res.json()
+
+    expect(res.status).toBe(422)
+    expect(json.error).toBeDefined()
+    expect(insertedInvito).toBeNull()
+  })
 })

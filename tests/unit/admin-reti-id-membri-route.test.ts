@@ -21,10 +21,12 @@ let insertedMembro: Record<string, unknown> | null = null
 
 function mockScenario(opts: {
   ruoloChiamante: string
+  reteEsiste?: boolean
   giaAdmin?: { id: string } | null
   giaMembro?: { rete_id: string } | null
 }) {
   insertedMembro = null
+  const reteEsiste = opts.reteEsiste ?? true
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return {
@@ -38,8 +40,13 @@ function mockScenario(opts: {
     if (table === 'reti') {
       return {
         select: () => ({
-          eq: () => ({
-            maybeSingle: async () => ({ data: opts.giaAdmin ?? null, error: null }),
+          eq: (col: string) => ({
+            maybeSingle: async () => {
+              if (col === 'id') {
+                return { data: reteEsiste ? { id: 'rete-1' } : null, error: null }
+              }
+              return { data: opts.giaAdmin ?? null, error: null }
+            },
           }),
         }),
       }
@@ -96,23 +103,36 @@ describe('POST /api/admin/reti/[id]/membri — force-add', () => {
     expect(res.status).toBe(422)
   })
 
-  it('lab già admin di un\'altra rete → 409, nessun insert', async () => {
+  it('rete target inesistente → 404, nessun insert', async () => {
+    mockScenario({ ruoloChiamante: 'admin_sistema', reteEsiste: false })
+
+    const res = await POST(postRequest({ laboratorio_id: 'lab-2' }), postParams())
+    const json = await res.json()
+
+    expect(res.status).toBe(404)
+    expect(json.error).toContain('non trovata')
+    expect(insertedMembro).toBeNull()
+  })
+
+  it('lab già admin di un\'altra rete → 409, nessun insert, messaggio specifico', async () => {
     mockScenario({ ruoloChiamante: 'admin_sistema', giaAdmin: { id: 'altra-rete' } })
 
     const res = await POST(postRequest({ laboratorio_id: 'lab-2' }), postParams())
     const json = await res.json()
 
     expect(res.status).toBe(409)
-    expect(json.error).toContain('già')
+    expect(json.error).toContain('amministra già')
     expect(insertedMembro).toBeNull()
   })
 
-  it('lab già membro di un\'altra rete → 409, nessun insert', async () => {
+  it('lab già membro di un\'altra rete → 409, nessun insert, messaggio specifico', async () => {
     mockScenario({ ruoloChiamante: 'admin_sistema', giaAdmin: null, giaMembro: { rete_id: 'altra-rete' } })
 
     const res = await POST(postRequest({ laboratorio_id: 'lab-2' }), postParams())
+    const json = await res.json()
 
     expect(res.status).toBe(409)
+    expect(json.error).toContain('già membro')
     expect(insertedMembro).toBeNull()
   })
 

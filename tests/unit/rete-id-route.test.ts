@@ -81,6 +81,15 @@ describe('PATCH /api/rete/[id] — rinomina', () => {
     expect(updatedNome).toBeNull()
   })
 
+  it('body JSON null → 422, nessun crash/500', async () => {
+    const res = await PATCH(patchRequest(null), patchParams())
+    const json = await res.json()
+
+    expect(res.status).toBe(422)
+    expect(json.error).toBeDefined()
+    expect(updatedNome).toBeNull()
+  })
+
   it('payload valido → 200, nome aggiornato', async () => {
     const res = await PATCH(patchRequest({ nome: 'Rete Toscana Rinnovata' }), patchParams())
     const json = await res.json()

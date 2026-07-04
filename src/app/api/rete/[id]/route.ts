@@ -24,6 +24,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 422 })
+  }
+
   if (!body.nome || typeof body.nome !== 'string' || !body.nome.trim()) {
     return NextResponse.json({ error: 'Campo "nome" obbligatorio' }, { status: 422 })
   }

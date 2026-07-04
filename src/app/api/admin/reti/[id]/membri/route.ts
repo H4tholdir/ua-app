@@ -33,11 +33,23 @@ export async function POST(
   const svc = getServiceClient()
   const labId = body.laboratorio_id as string
 
+  const { data: reteTarget } = await svc.from('reti').select('id').eq('id', id).maybeSingle()
+  if (!reteTarget) {
+    return NextResponse.json({ error: 'Rete non trovata' }, { status: 404 })
+  }
+
   const { data: gia } = await svc
     .from('reti')
     .select('id')
     .eq('admin_laboratorio_id', labId)
     .maybeSingle()
+
+  if (gia) {
+    return NextResponse.json(
+      { error: "Il laboratorio amministra già un'altra rete" },
+      { status: 409 }
+    )
+  }
 
   const { data: giaMembro } = await svc
     .from('reti_membri')
@@ -45,9 +57,9 @@ export async function POST(
     .eq('laboratorio_id', labId)
     .maybeSingle()
 
-  if (gia || giaMembro) {
+  if (giaMembro) {
     return NextResponse.json(
-      { error: "Il laboratorio è già in un'altra rete" },
+      { error: "Il laboratorio è già membro di un'altra rete" },
       { status: 409 }
     )
   }

@@ -42,7 +42,16 @@ function mockScenario(opts: { invitoTrovato: boolean }) {
         }),
         update: (data: Record<string, unknown>) => {
           revokedAtSet = data.revoked_at as string
-          return { eq: async () => ({ error: null }) }
+          const chain: {
+            eq: () => typeof chain
+            is: () => typeof chain
+            then: (resolve: (r: { error: null }) => unknown) => unknown
+          } = {
+            eq: () => chain,
+            is: () => chain,
+            then: (resolve) => resolve({ error: null }),
+          }
+          return chain
         },
       }
     }

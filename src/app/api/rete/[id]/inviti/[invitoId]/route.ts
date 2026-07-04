@@ -35,6 +35,9 @@ export async function DELETE(
     .from('inviti_rete')
     .update({ revoked_at: new Date().toISOString() })
     .eq('id', invitoId)
+    .eq('rete_id', id)
+    .is('accepted_at', null)
+    .is('revoked_at', null)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

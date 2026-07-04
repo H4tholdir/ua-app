@@ -26,6 +26,10 @@ export async function POST(
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 422 })
+  }
+
   if (!body.email || typeof body.email !== 'string' || !body.email.trim()) {
     return NextResponse.json({ error: 'Campo "email" obbligatorio' }, { status: 422 })
   }
