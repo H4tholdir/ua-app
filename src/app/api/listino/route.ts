@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { pgrestQuote } from '@/lib/utils/escape-postgrest'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -43,7 +44,8 @@ export async function GET(req: Request) {
   }
 
   if (q) {
-    query = query.or(`nome.ilike.%${q}%,codice.ilike.%${q}%,descrizione.ilike.%${q}%`)
+    const pattern = pgrestQuote(`%${q}%`)
+    query = query.or(`nome.ilike.${pattern},codice.ilike.${pattern},descrizione.ilike.${pattern}`)
   }
 
   const { data, error } = await query

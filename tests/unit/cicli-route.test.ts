@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
 const { mockGetUser, mockFrom } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
@@ -22,21 +23,16 @@ const CICLI_ROWS = [
   { id: 'ciclo-2', codice: 'CNC.TitCerImp', nome: 'CNC Corona in titanio-ceramica su impianto', tipo_dispositivo: 'Protesi fissa' },
 ]
 
-function chain(result: { data: unknown; error: unknown }) {
-  const c: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'is', 'or', 'order', 'limit']) c[m] = () => c
-  c.then = (resolve: (v: unknown) => void) => resolve(result)
-  return c
-}
-
-function mockLab(cicliResult: { data: unknown; error: unknown }) {
+function mockLab(cicliResult: { data: unknown; error: unknown }): MockChain {
+  const cicliChain = createChain(cicliResult)
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
     }
-    if (table === 'cicli_produzione') return chain(cicliResult)
+    if (table === 'cicli_produzione') return cicliChain
     throw new Error(`Unexpected table: ${table}`)
   })
+  return cicliChain
 }
 
 function req(url: string) {
@@ -64,12 +60,23 @@ describe('GET /api/cicli', () => {
     expect(res.status).toBe(403)
   })
 
-  it('ricerca con match → 200, lista cicli', async () => {
-    mockLab({ data: CICLI_ROWS, error: null })
+  it('ricerca con match → 200, lista cicli, scoping tenant verificato sugli argomenti esatti di .eq()', async () => {
+    const cicliChain = mockLab({ data: CICLI_ROWS, error: null })
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.cicli).toEqual(CICLI_ROWS)
+    expect(cicliChain.calls).toContainEqual({ method: 'eq', args: ['laboratorio_id', LAB_ID] })
+    expect(cicliChain.calls).toContainEqual({ method: 'is', args: ['deleted_at', null] })
+  })
+
+  it('ricerca con caratteri riservati PostgREST (virgola/parentesi) → .or() riceve il pattern quotato, non spezzato', async () => {
+    const cicliChain = mockLab({ data: [], error: null })
+    await GET(req(`http://localhost/api/cicli?q=${encodeURIComponent('Rossi, (test)')}`))
+    expect(cicliChain.calls).toContainEqual({
+      method: 'or',
+      args: ['codice.ilike."%Rossi, (test)%",nome.ilike."%Rossi, (test)%"'],
+    })
   })
 
   it('nessun match → 200, lista vuota', async () => {

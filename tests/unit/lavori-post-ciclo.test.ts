@@ -20,14 +20,6 @@ const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
 const CICLO_ID = 'ciclo-1'
 
-function chain(result: { data: unknown; error: unknown }) {
-  const c: Record<string, unknown> = {}
-  const methods = ['select', 'eq', 'is', 'order', 'insert', 'single']
-  for (const m of methods) c[m] = () => c
-  c.single = async () => result
-  return c
-}
-
 function req(body: Record<string, unknown>) {
   return new Request('http://localhost/api/lavori', {
     method: 'POST',

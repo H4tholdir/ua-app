@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
 const { mockGetUser, mockFrom } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock('@/lib/utils/csrf', () => ({
   isSameOrigin: () => true,
 }))
 
-import { POST } from '../../src/app/api/listino/route'
+import { GET, POST } from '../../src/app/api/listino/route'
 
 const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
@@ -130,5 +131,46 @@ describe('POST /api/listino — gating ruolo e campi MDR', () => {
 
     expect(res.status).toBe(422)
     expect(json.error).toContain('nome')
+  })
+})
+
+function mockLabRead(result: { data: unknown; error: unknown }): MockChain {
+  const listinoChain = createChain(result)
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'utenti') {
+      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare' }, error: null }) }) }) }
+    }
+    if (table === 'listino') return listinoChain
+    throw new Error(`Unexpected table: ${table}`)
+  })
+  return listinoChain
+}
+
+function getRequest(url: string) {
+  return new Request(url)
+}
+
+describe('GET /api/listino', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+  })
+
+  it('ricerca con match → 200, scoping tenant verificato sugli argomenti esatti di .eq()', async () => {
+    const listinoChain = mockLabRead({ data: [], error: null })
+    const res = await GET(getRequest('http://localhost/api/listino?q=zirconia'))
+    expect(res.status).toBe(200)
+    expect(listinoChain.calls).toContainEqual({ method: 'eq', args: ['laboratorio_id', LAB_ID] })
+  })
+
+  it('ricerca con caratteri riservati PostgREST (virgola/parentesi) → .or() riceve il pattern quotato, non spezzato', async () => {
+    const listinoChain = mockLabRead({ data: [], error: null })
+    await GET(getRequest(`http://localhost/api/listino?q=${encodeURIComponent('corona, (zirconia)')}`))
+    expect(listinoChain.calls).toContainEqual({
+      method: 'or',
+      args: [
+        'nome.ilike."%corona, (zirconia)%",codice.ilike."%corona, (zirconia)%",descrizione.ilike."%corona, (zirconia)%"',
+      ],
+    })
   })
 })
