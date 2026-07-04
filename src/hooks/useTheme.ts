@@ -26,6 +26,10 @@ export function useTheme() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Sync una tantum al mount da una fonte esterna (localStorage/matchMedia,
+    // mai disponibile server-side) — non innesca cascata, è l'unica scrittura
+    // di questo effect e le sue dipendenze sono vuote.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(getInitialTheme())
     setMounted(true)
   }, [])

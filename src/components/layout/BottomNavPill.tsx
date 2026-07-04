@@ -150,7 +150,10 @@ export function BottomNavPill() {
   // visto). Il valore reale viene letto una sola volta dopo il mount.
   const [showFabTooltip, setShowFabTooltip] = useState(false)
   useEffect(() => {
+    // Sync una tantum al mount da localStorage (mai disponibile server-side)
+    // — non innesca cascata, unica scrittura di questo effect, dipendenze vuote.
     if (!localStorage.getItem('ua-tooltip-fab-shown')) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowFabTooltip(true)
     }
   }, [])
