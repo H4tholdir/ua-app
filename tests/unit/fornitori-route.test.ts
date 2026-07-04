@@ -29,7 +29,7 @@ const FORNITORI_ROWS = [
 
 function fornitoriQueryChain(result: { data: unknown; error: unknown }) {
   const chain: Record<string, unknown> = {}
-  const methods = ['select', 'eq', 'is', 'order']
+  const methods = ['select', 'eq', 'is', 'order', 'limit']
   for (const m of methods) {
     chain[m] = () => chain
   }

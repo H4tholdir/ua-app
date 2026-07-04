@@ -29,6 +29,7 @@ export async function GET() {
     .eq('attivo', true)
     .is('deleted_at', null)
     .order('ragione_sociale', { ascending: true })
+    .limit(500)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
