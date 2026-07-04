@@ -36,6 +36,9 @@ export interface Laboratorio {
   // Qui solo host/porta/utente + riferimento al secret Vault
   pec_vault_key_id: string | null;       // ID del secret Vault che contiene la password PEC
   pec_smtp_configurata: boolean;
+  // Testo generico rischi residui, fallback quando manca una riga specifica
+  // in rischi_tipo_dispositivo per il tipo di dispositivo (vedi generate-ddc.ts)
+  testo_rischi_default: string | null;
   piano: 'freemium' | 'solo' | 'lab' | 'studio';
 }
 

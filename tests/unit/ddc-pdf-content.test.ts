@@ -46,6 +46,7 @@ const LAB_FIXTURE: Laboratorio = {
   codice_iva_default: 'N4',
   pec_vault_key_id: null,
   pec_smtp_configurata: false,
+  testo_rischi_default: null,
   piano: 'lab',
 }
 
