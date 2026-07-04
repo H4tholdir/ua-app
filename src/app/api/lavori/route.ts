@@ -124,11 +124,13 @@ export async function POST(req: Request) {
     { field: 'cliente_id', table: 'clienti' },
     { field: 'paziente_id', table: 'pazienti' },
     { field: 'tecnico_id', table: 'tecnici' },
+    { field: 'ciclo_id', table: 'cicli_produzione' },
   ]
   const fkCandidates: Record<string, unknown> = {
     cliente_id: body.cliente_id,
     paziente_id: body.paziente_id ?? null,
     tecnico_id: body.tecnico_id ?? null,
+    ciclo_id: body.ciclo_id ?? null,
   }
   for (const { field, table } of FK_FIELDS_INSERT) {
     const fkId = fkCandidates[field]
@@ -182,6 +184,7 @@ export async function POST(req: Request) {
     cliente_id: body.cliente_id,
     paziente_id: body.paziente_id ?? null,
     tecnico_id: body.tecnico_id ?? null,
+    ciclo_id: body.ciclo_id ?? null,
     classe_rischio: body.classe_rischio ?? 'classe_i',
     da_conformare: body.da_conformare ?? true,
     codice_iva: body.codice_iva ?? 'N4',
@@ -197,6 +200,29 @@ export async function POST(req: Request) {
 
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
+  }
+
+  // Genera le fasi di produzione dal ciclo scelto, se presente.
+  // Non blocca la creazione del lavoro già avvenuta se qualcosa qui fallisce:
+  // le fasi si possono sempre aggiungere/correggere dopo.
+  if (body.ciclo_id && typeof body.ciclo_id === 'string') {
+    const { data: fasiCiclo } = await svc
+      .from('fasi_produzione')
+      .select('id, ordine, responsabile_id')
+      .eq('ciclo_id', body.ciclo_id)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('ordine', { ascending: true })
+
+    if (fasiCiclo && fasiCiclo.length > 0) {
+      const lavoriFasiRows = fasiCiclo.map((fase) => ({
+        lavoro_id: lavoro.id,
+        fase_id: fase.id,
+        laboratorio_id: labId,
+        tecnico_id: fase.responsabile_id ?? null,
+      }))
+      await svc.from('lavori_fasi').insert(lavoriFasiRows)
+    }
   }
 
   return NextResponse.json({ lavoro }, { status: 201 })
