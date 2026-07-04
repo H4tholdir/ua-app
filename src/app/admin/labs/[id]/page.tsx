@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import LabActions from './lab-actions'
+import ReteSection from './rete-section'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,7 @@ export default async function AdminLabDetailPage({ params }: Props) {
   const { id } = await params
   const svc = getServiceClient()
 
-  const [labRes, utentiRes, invitesRes, logRes] = await Promise.all([
+  const [labRes, utentiRes, invitesRes, logRes, retiRes, membershipRes] = await Promise.all([
     svc.from('laboratori').select('*').eq('id', id).single(),
     svc.from('utenti').select('id, nome, cognome, email, ruolo').eq('laboratorio_id', id),
     svc.from('inviti')
@@ -25,6 +26,8 @@ export default async function AdminLabDetailPage({ params }: Props) {
       .eq('laboratorio_id', id)
       .order('created_at', { ascending: false })
       .limit(20),
+    svc.from('reti').select('id, nome, admin_laboratorio_id').order('nome', { ascending: true }),
+    svc.from('reti_membri').select('rete_id').eq('laboratorio_id', id).maybeSingle(),
   ])
 
   const lab = labRes.data
@@ -33,6 +36,13 @@ export default async function AdminLabDetailPage({ params }: Props) {
   const utenti = utentiRes.data ?? []
   const invites = invitesRes.data ?? []
   const log = logRes.data ?? []
+  const reti = retiRes.data ?? []
+  const membership = membershipRes.data
+  const reteAttualeRaw = membership ? reti.find(r => r.id === membership.rete_id) ?? null : null
+  const reteAttuale = reteAttualeRaw
+    ? { id: reteAttualeRaw.id, nome: reteAttualeRaw.nome, isAdmin: reteAttualeRaw.admin_laboratorio_id === id }
+    : null
+  const retiDisponibili = membership ? [] : reti.map(r => ({ id: r.id, nome: r.nome }))
 
   const isYearly = lab.stripe_price_id?.includes('yearly') ?? false
   const piano = lab.piano === 'rete' ? 'Rete' : 'Lab'
@@ -206,6 +216,8 @@ export default async function AdminLabDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      <ReteSection labId={id} reteAttuale={reteAttuale} retiDisponibili={retiDisponibili} />
 
       {/* 3 — AZIONI (client component) */}
       <LabActions
