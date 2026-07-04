@@ -283,11 +283,20 @@ export function t(key: MotionDuration, easing: MotionEasing = "standard") {
 // ─── PREFERS-REDUCED-MOTION ───────────────────────────────────────────────────
 // Ogni componente con animazioni non-istantanee DEVE usare questo hook.
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false
-  );
+  // Stato iniziale sempre `false`, identico a quello che il server renderizza
+  // (che non ha accesso a matchMedia) — evita un hydration mismatch sugli
+  // attributi/stili che dipendono da `reduced` (es. `initial` dei componenti
+  // motion). Il valore reale viene letto una sola volta dopo il mount, stesso
+  // pattern già usato da useTheme.ts per lo stesso problema (B18).
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    // Sync una tantum al mount da matchMedia (mai disponibile server-side) —
+    // non innesca cascata, è l'unica scrittura di questo effect e le sue
+    // dipendenze sono vuote.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
