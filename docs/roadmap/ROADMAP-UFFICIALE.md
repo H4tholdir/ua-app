@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 04 luglio 2026 — **B9 RISOLTO**, mergiato su main (`ea2a3a9`) e pushato — lista pazienti ora navigabile (link `/pazienti/[id]` aggiunto in `PazientiSearchList.tsx`). Prossima priorità: S4 (Email template branding).
+**Ultimo aggiornamento:** 04 luglio 2026 — **S4 (Email template branding): HTML rebrand DS v2.3 finalizzato e committato (`01e915c`), applicazione su Supabase Dashboard resta manuale** (nessuna sessione Chrome/API disponibile per farlo da Claude). B9 risolto (`ea2a3a9`) — lista pazienti ora navigabile.
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -42,7 +42,9 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 
 ---
 
-## 🚨 PROSSIMA SESSIONE → S4
+## 🚨 PROSSIMA SESSIONE → applicazione manuale S4, poi prossimo item backlog
+
+**S4 (Email template branding) — HTML rebrand DS v2.3 pronto, applicazione manuale ancora da fare (04/07/2026, commit `01e915c`).** I 3 template Supabase Auth (Confirm Signup, Reset Password, Invite User) sono stati ridisegnati con palette Warm Panna, logo reale (`ua-logo-email.png`), link di fallback cliccabile/copiabile nascosto sotto spoiler `<details>` — approvati da Francesco in 2 round di feedback su mockup. HTML finale in `docs/email-templates-supabase.md`, decisione in `docs/design/decisions/2026-07-04-s4-email-templates-branding.md`. **Resta da fare:** incollare i 3 blocchi HTML su https://supabase.com/dashboard/project/iagibumwjstnveqpjbwq/auth/templates — non automatizzabile da Claude in questa sessione (nessuna sessione Chrome connessa, nessun tool MCP Supabase espone la config email di Auth). Dettaglio completo: `memory/MEMORY.md` §0.
 
 **B9 è RISOLTO (chiuso 04/07/2026, merge `ea2a3a9`).** Lista pazienti (BUG #13, noto da settimane) ora navigabile: `PazientiSearchList.tsx` usava righe `<li><div>` statiche senza `Link`; la pagina di dettaglio `/pazienti/[id]` esisteva già e funzionava ma era irraggiungibile. Fix minimo (`<Link href>` + pattern flex/chevron gemello di `ClientiSearchList.tsx`), TDD, review "Ready to merge: Yes". Dettaglio completo: `memory/MEMORY.md` §0. Follow-up non bloccante aperto separatamente (`spawn_task task_8422a838`): migrare `PazientiSearchList` al layout `ua-list-grid` per coerenza responsive con `ClientiSearchList`.
 
