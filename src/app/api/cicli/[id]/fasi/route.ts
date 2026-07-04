@@ -16,6 +16,11 @@ interface FaseInput {
   materiali_nota?: string | null
 }
 
+interface RpcResult {
+  ok: boolean
+  error?: string
+}
+
 export async function PATCH(req: Request, { params }: RouteContext) {
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
@@ -44,18 +49,6 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   }
   const labId: string = utente.laboratorio_id
 
-  const { data: ciclo } = await svc
-    .from('cicli_produzione')
-    .select('id')
-    .eq('id', cicloId)
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .single()
-
-  if (!ciclo) {
-    return NextResponse.json({ error: 'Ciclo non trovato' }, { status: 404 })
-  }
-
   let body: { fasi?: unknown }
   try {
     body = await req.json()
@@ -65,98 +58,24 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   const fasiInput = Array.isArray(body.fasi) ? (body.fasi as FaseInput[]) : []
 
-  for (let i = 0; i < fasiInput.length; i++) {
-    const f = fasiInput[i]
-    if (!f.codice_fase?.trim()) {
-      return NextResponse.json({ error: `Fase #${i + 1}: campo "codice_fase" obbligatorio` }, { status: 422 })
-    }
-    if (!f.descrizione?.trim()) {
-      return NextResponse.json({ error: `Fase #${i + 1}: campo "descrizione" obbligatorio` }, { status: 422 })
-    }
+  const { data, error: rpcError } = await svc.rpc('salva_fasi_ciclo_atomico', {
+    p_ciclo_id: cicloId,
+    p_laboratorio_id: labId,
+    p_user_id: user.id,
+    p_fasi: fasiInput,
+  })
+
+  if (rpcError) {
+    return NextResponse.json({ error: 'Errore nel salvataggio delle fasi' }, { status: 500 })
   }
 
-  const { data: existingFasi, error: existingFasiError } = await svc
-    .from('fasi_produzione')
-    .select('id, codice_fase')
-    .eq('ciclo_id', cicloId)
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
+  const result = data as unknown as RpcResult
 
-  if (existingFasiError) {
-    return NextResponse.json({ error: 'Errore nel recupero delle fasi esistenti' }, { status: 500 })
+  if (!result?.ok) {
+    const message = result?.error ?? 'Errore nel salvataggio delle fasi'
+    const status = message === 'Ciclo non trovato' ? 404 : 422
+    return NextResponse.json({ error: message }, { status })
   }
-
-  const existing = existingFasi ?? []
-  const existingIds = new Set(existing.map((row) => row.id))
-  // Un id che il client manda ma che non appartiene a QUESTO ciclo/lab (fetched
-  // sopra, già scoped) viene trattato come inesistente — mai fidarsi ciecamente
-  // di un id arbitrario per un UPDATE cross-tenant.
-  const keptIds = new Set(fasiInput.map((f) => f.id).filter((id): id is string => !!id && existingIds.has(id)))
-  const now = new Date().toISOString()
-
-  // Righe nuove: insert in blocco (include anche un id fornito dal client
-  // ma non riconosciuto come esistente per questo ciclo)
-  const nuove = fasiInput
-    .map((f, index) => ({ f, ordine: index + 1 }))
-    .filter(({ f }) => !f.id || !existingIds.has(f.id))
-  if (nuove.length > 0) {
-    await svc.from('fasi_produzione').insert(
-      nuove.map(({ f, ordine }) => ({
-        ciclo_id: cicloId,
-        laboratorio_id: labId,
-        ordine,
-        codice_fase: f.codice_fase,
-        descrizione: f.descrizione,
-        obbligatoria: f.obbligatoria ?? true,
-        attrezzatura: f.attrezzatura ?? null,
-        controllo_misura: f.controllo_misura ?? null,
-        esito_atteso: f.esito_atteso ?? null,
-        materiali_nota: f.materiali_nota ?? null,
-        updated_by: user.id,
-      }))
-    )
-  }
-
-  // Righe esistenti presenti nell'array (id riconosciuto per QUESTO ciclo/lab):
-  // update singolo, scoped anche per laboratorio_id per difesa-in-profondità
-  // (bassa cardinalità, nessuna ottimizzazione batch necessaria — coerente col
-  // volume atteso, decine di fasi per ciclo)
-  for (let index = 0; index < fasiInput.length; index++) {
-    const f = fasiInput[index]
-    if (!f.id || !existingIds.has(f.id)) continue
-    await svc
-      .from('fasi_produzione')
-      .update({
-        ordine: index + 1,
-        codice_fase: f.codice_fase,
-        descrizione: f.descrizione,
-        obbligatoria: f.obbligatoria ?? true,
-        attrezzatura: f.attrezzatura ?? null,
-        controllo_misura: f.controllo_misura ?? null,
-        esito_atteso: f.esito_atteso ?? null,
-        materiali_nota: f.materiali_nota ?? null,
-        updated_by: user.id,
-      })
-      .eq('id', f.id)
-      .eq('laboratorio_id', labId)
-  }
-
-  // Righe esistenti non più presenti nell'array: soft delete
-  for (const row of existing) {
-    if (!keptIds.has(row.id)) {
-      await svc
-        .from('fasi_produzione')
-        .update({ deleted_at: now, updated_by: user.id })
-        .eq('id', row.id)
-        .eq('laboratorio_id', labId)
-    }
-  }
-
-  // Bump "ultima modifica" sul ciclo padre
-  await svc
-    .from('cicli_produzione')
-    .update({ updated_by: user.id, updated_at: now })
-    .eq('id', cicloId)
 
   return NextResponse.json({ ok: true })
 }

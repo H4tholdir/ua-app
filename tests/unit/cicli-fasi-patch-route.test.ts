@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockRpc: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
   getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+  getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
 }))
 vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
 
@@ -28,116 +29,104 @@ function req(body: Record<string, unknown>) {
   })
 }
 
-/** Costruisce un mockFrom con: ciclo esistente per il lab, fasi esistenti date,
- *  e spy separati per insert/update/delete su fasi_produzione. */
-function setupTables({
-  cicloOwned = true,
-  existingFasi = [] as Array<{ id: string; codice_fase: string }>,
-  existingFasiError = null as { message: string } | null,
-  insertSpy = vi.fn(),
-  updateSpy = vi.fn(),
-} = {}) {
+/** Mocka mockFrom per la sola lookup 'utenti' (laboratorio_id dell'utente
+ *  autenticato) — con la RPC atomica, non c'e' piu' bisogno di mockare
+ *  cicli_produzione/fasi_produzione via `from`, tutta la scrittura passa
+ *  per `svc.rpc('salva_fasi_ciclo_atomico', ...)`. */
+function setupUtenti() {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
     }
-    if (table === 'cicli_produzione') {
-      return {
-        select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: cicloOwned ? { id: CICLO_ID, laboratorio_id: LAB_ID } : null, error: null }) }) }) }) }),
-        update: () => ({ eq: () => Promise.resolve({ error: null }) }),
-      }
-    }
-    if (table === 'fasi_produzione') {
-      return {
-        select: () => ({ eq: () => ({ eq: () => ({ is: () => Promise.resolve({ data: existingFasiError ? null : existingFasi, error: existingFasiError }) }) }) }),
-        insert: (rows: unknown[]) => { insertSpy(rows); return Promise.resolve({ error: null }) },
-        update: (payload: Record<string, unknown>) => {
-          updateSpy(payload)
-          // .update(...).eq('id', ...).eq('laboratorio_id', ...) — 2 livelli di chain
-          return { eq: () => ({ eq: () => Promise.resolve({ error: null }) }) }
-        },
-      }
-    }
     throw new Error(`Unexpected table: ${table}`)
   })
-  return { insertSpy, updateSpy }
 }
 
-describe('PATCH /api/cicli/[id]/fasi — salvataggio batch', () => {
+describe('PATCH /api/cicli/[id]/fasi — salvataggio batch (RPC atomica)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    setupUtenti()
   })
 
-  it('ciclo di un altro laboratorio → 404', async () => {
-    setupTables({ cicloOwned: false })
+  it('ciclo di un altro laboratorio → 404 (RPC ritorna { ok: false, error: "Ciclo non trovato" })', async () => {
+    mockRpc.mockResolvedValue({ data: { ok: false, error: 'Ciclo non trovato' }, error: null })
+
     const res = await PATCH(req({ fasi: [{ codice_fase: 'X1', descrizione: 'Test' }] }), { params })
+
     expect(res.status).toBe(404)
+    expect(mockRpc).toHaveBeenCalledWith('salva_fasi_ciclo_atomico', {
+      p_ciclo_id: CICLO_ID,
+      p_laboratorio_id: LAB_ID,
+      p_user_id: AUTH_USER.id,
+      p_fasi: [{ codice_fase: 'X1', descrizione: 'Test' }],
+    })
   })
 
-  it('fase senza descrizione → 422, nessuna scrittura', async () => {
-    const { insertSpy } = setupTables({ existingFasi: [] })
+  it('fase senza descrizione → 422 (RPC ritorna { ok: false, error: "Fase #1: ..." })', async () => {
+    mockRpc.mockResolvedValue({
+      data: { ok: false, error: 'Fase #1: campo "descrizione" obbligatorio' },
+      error: null,
+    })
+
     const res = await PATCH(req({ fasi: [{ codice_fase: 'X1', descrizione: '' }] }), { params })
+
     expect(res.status).toBe(422)
-    expect(insertSpy).not.toHaveBeenCalled()
+    const body = await res.json()
+    expect(body.error).toMatch(/descrizione/)
   })
 
-  it('2 fasi nuove (senza id) → 2 insert con ciclo_id/laboratorio_id/ordine/updated_by corretti', async () => {
-    const { insertSpy } = setupTables({ existingFasi: [] })
-    const res = await PATCH(req({
-      fasi: [
-        { codice_fase: 'X1', descrizione: 'Prima fase' },
-        { codice_fase: 'X2', descrizione: 'Seconda fase' },
-      ],
-    }), { params })
+  it('2 fasi nuove (senza id) → RPC chiamata con p_fasi = array fasi nuove, 200', async () => {
+    mockRpc.mockResolvedValue({ data: { ok: true }, error: null })
+
+    const fasi = [
+      { codice_fase: 'X1', descrizione: 'Prima fase' },
+      { codice_fase: 'X2', descrizione: 'Seconda fase' },
+    ]
+    const res = await PATCH(req({ fasi }), { params })
 
     expect(res.status).toBe(200)
-    expect(insertSpy).toHaveBeenCalledWith([
-      expect.objectContaining({ ciclo_id: CICLO_ID, laboratorio_id: LAB_ID, ordine: 1, codice_fase: 'X1', updated_by: AUTH_USER.id }),
-      expect.objectContaining({ ciclo_id: CICLO_ID, laboratorio_id: LAB_ID, ordine: 2, codice_fase: 'X2', updated_by: AUTH_USER.id }),
-    ])
+    const body = await res.json()
+    expect(body).toEqual({ ok: true })
+    expect(mockRpc).toHaveBeenCalledWith('salva_fasi_ciclo_atomico', {
+      p_ciclo_id: CICLO_ID,
+      p_laboratorio_id: LAB_ID,
+      p_user_id: AUTH_USER.id,
+      p_fasi: fasi,
+    })
   })
 
-  it('fase esistente presente nell\'array → update, non insert', async () => {
-    const { insertSpy, updateSpy } = setupTables({ existingFasi: [{ id: 'fase-esistente', codice_fase: 'X1' }] })
-    const res = await PATCH(req({
-      fasi: [{ id: 'fase-esistente', codice_fase: 'X1', descrizione: 'Descrizione modificata' }],
-    }), { params })
+  it('fase esistente presente nell\'array (con id) → RPC chiamata con p_fasi contenente l\'id, 200', async () => {
+    mockRpc.mockResolvedValue({ data: { ok: true }, error: null })
+
+    const fasi = [{ id: 'fase-esistente', codice_fase: 'X1', descrizione: 'Descrizione modificata' }]
+    const res = await PATCH(req({ fasi }), { params })
 
     expect(res.status).toBe(200)
-    expect(insertSpy).not.toHaveBeenCalled()
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ descrizione: 'Descrizione modificata', ordine: 1, updated_by: AUTH_USER.id }))
+    expect(mockRpc).toHaveBeenCalledWith('salva_fasi_ciclo_atomico', expect.objectContaining({
+      p_fasi: fasi,
+    }))
   })
 
-  it('fase esistente NON presente nell\'array → soft delete (updateSpy con deleted_at)', async () => {
-    const { updateSpy } = setupTables({ existingFasi: [{ id: 'fase-rimossa', codice_fase: 'X0' }] })
+  it('fasi rimosse (array vuoto) → RPC chiamata con p_fasi = [], 200 (soft-delete demandato alla RPC)', async () => {
+    mockRpc.mockResolvedValue({ data: { ok: true }, error: null })
+
     const res = await PATCH(req({ fasi: [] }), { params })
 
     expect(res.status).toBe(200)
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String), updated_by: AUTH_USER.id }))
+    expect(mockRpc).toHaveBeenCalledWith('salva_fasi_ciclo_atomico', expect.objectContaining({
+      p_fasi: [],
+    }))
   })
 
-  it('fase esistente con codice_fase modificato → il payload di update include il nuovo codice_fase', async () => {
-    const { insertSpy, updateSpy } = setupTables({ existingFasi: [{ id: 'fase-esistente', codice_fase: 'X1' }] })
-    const res = await PATCH(req({
-      fasi: [{ id: 'fase-esistente', codice_fase: 'X1-BIS', descrizione: 'Descrizione invariata' }],
-    }), { params })
+  it('BUG FIX: la RPC ritorna un errore Supabase (es. connessione rifiutata) → 500, messaggio generico, mai { ok: true }', async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'connection refused' } })
 
-    expect(res.status).toBe(200)
-    expect(insertSpy).not.toHaveBeenCalled()
-    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ codice_fase: 'X1-BIS' }))
-  })
-
-  it('errore nella query delle fasi esistenti → 500, nessuna scrittura', async () => {
-    const { insertSpy, updateSpy } = setupTables({ existingFasiError: { message: 'connection refused' } })
-    const res = await PATCH(req({
-      fasi: [{ codice_fase: 'X1', descrizione: 'Prima fase' }],
-    }), { params })
+    const res = await PATCH(req({ fasi: [{ codice_fase: 'X1', descrizione: 'Prima fase' }] }), { params })
 
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).not.toMatch(/connection refused/)
-    expect(insertSpy).not.toHaveBeenCalled()
-    expect(updateSpy).not.toHaveBeenCalled()
+    expect(body).not.toEqual({ ok: true })
   })
 })
