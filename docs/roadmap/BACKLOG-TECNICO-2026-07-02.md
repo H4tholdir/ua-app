@@ -25,7 +25,7 @@
 | B7 | "Invita tecnico" irraggiungibile da UI | ⏳ | | |
 | B8 | 5 route CRUD → 404 | ⏳ | | |
 | B9 | Lista pazienti non navigabile (BUG #13) | ✅ | 04/07/2026 · `ea2a3a9` | Fix `<Link href>` + pattern `ClientiSearchList`; dettaglio in `memory/MEMORY.md` §0 |
-| B10 | `/api/fornitori` mancante, blocca ordini | ⏳ | | |
+| B10 | `/api/fornitori` mancante, blocca ordini | ✅ | 04/07/2026 · `fab5437` | Nuova `GET /api/fornitori`, pattern identico a `listino` GET. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B11 | Colore bandito `#1B2D6B` su ogni card lavoro | ⏳ | | |
 | B12 | Login WCAG-fail (`--ua-t2`/`--ua-t3`) | ⏳ | | |
 | B13 | Zero test su `orchestraConsegna`/Stripe webhook | ⏳ | | |
@@ -164,11 +164,14 @@
 **Fix applicato:** riga riscritta come `<Link href={\`/pazienti/${p.id}\`}>`, ristrutturata con lo stesso pattern flex+chevron di `ClientiSearchList.tsx`. TDD (test scritto e visto fallire prima), 371/371 test, tsc/build/DS-compliance puliti. Review finale: "Ready to merge: Yes", zero Critical/Important. Dettaglio completo: `memory/MEMORY.md` §0.
 **Follow-up non bloccante aperto separatamente** (`spawn_task task_8422a838`): migrare la `<ul>` al layout `ua-list-grid` (responsive 1/2/3 colonne) già usato da `ClientiSearchList.tsx`, preesistente e fuori scope di questo fix.
 
-### B10. `/api/fornitori` mancante — blocca creazione ordini
+### B10. ✅ RISOLTO (04/07/2026, merge fast-forward `fab5437`, pushato su `origin/main`) — `/api/fornitori` mancante, blocca creazione ordini
 **Fonte:** [Sis]
-**Causa:** `NuovoOrdineSheet.tsx:122-125` chiama `fetch('/api/fornitori')`, route inesistente nel repo. L'errore è ingoiato da `.catch(() => {})`, quindi il select "Fornitore" è sempre vuoto e i bottoni invio ordine (WhatsApp/Email) sempre disabilitati. Solo "Salva come bozza" funziona.
-**Fix:** creare `GET /api/fornitori`.
-**Effort:** basso se la tabella `fornitori` esiste già in DB (verificare schema).
+**Causa:** `NuovoOrdineSheet.tsx:122-125` chiama `fetch('/api/fornitori')`, route inesistente nel repo. L'errore è ingoiato da `.catch(() => {})`, quindi il select "Fornitore" era sempre vuoto e i bottoni invio ordine (WhatsApp/Email) sempre disabilitati. Solo "Salva come bozza" funzionava.
+**Fix applicato:** nuova `GET /api/fornitori` (`src/app/api/fornitori/route.ts`), stesso pattern già in produzione di `GET /api/listino` — auth via `getServerUserClient`, scoping lab via `utenti.laboratorio_id` con service client, query su `fornitori` filtrata `attivo=true AND deleted_at IS NULL`, ordinata per `ragione_sociale`, risposta mappata `{ fornitori: [{id, nome, telefono, email}] }` (la colonna DB è `ragione_sociale`, il frontend si aspettava `nome`). Nessuna migration necessaria, la tabella esisteva già in produzione. Nessun gating di ruolo (decisione esplicita, coerente con `listino` GET: è un lookup di sola lettura, dato non sensibile).
+**Verifica automatica:** TDD (5 nuovi test scritti e visti fallire prima dell'implementazione — 401 non autenticato, 403 senza laboratorio, 200 con mapping corretto, 200 lista vuota, 500 su errore Supabase), 376/376 test totali, `tsc --noEmit`/`next build` puliti (route presente nel manifest di build).
+**Review finale (code-reviewer):** "Ready to merge: Yes", zero Critical/Important. 5 finding Minor non bloccanti, quasi tutti pattern preesistenti condivisi con `listino/route.ts` (non regressioni introdotte da questo fix) — applicato solo il suggerimento a costo zero (`.limit(500)` difensivo sulla query, commit `fab5437`); rimangono backlog non bloccante: query `utenti` non cattura `error` esplicitamente (stesso limite di `listino/route.ts`), `error.message` grezzo esposto nel body 500 (stesso pattern, candidato per un giro di hardening trasversale futuro come già fatto per B8).
+**QA manuale in browser reale** (Playwright via `preview_*`, worktree/sessione con lab E2E isolato — mai il lab Filippo): fornitore di test inserito via query diretta (`scripts/seed-e2e.ts` non popola questa tabella), login `e2e-titolare@ua-test.local` → `/ordini` → "+ Nuovo ordine" → `GET /api/fornitori` osservata in rete con **200 OK** e payload `{ fornitori: [{ id, nome: "Dental Depot QA Test SRL", telefono, email }] }` → select "Fornitore" popolato correttamente nello sheet → selezionando il fornitore i bottoni "WhatsApp"/"Email" passano da disabilitati ("Fornitore senza numero WhatsApp"/"...email") ad abilitati ("Crea ordine e invia su WhatsApp"/"...via email") — comportamento atteso confermato end-to-end. Dato di test rimosso subito dopo (query diretta), baseline lab E2E verificata a 0 fornitori residui.
+**Nota ambientale:** per eseguire la QA è stato necessario terminare (con conferma esplicita di Francesco) il dev server di un'altra sessione Claude già in esecuzione sulla stessa cartella — Next.js non permette due istanze `next dev` concorrenti sulla stessa directory, indipendentemente dalla porta.
 
 ### B11. Colore bandito `#1B2D6B` renderizzato come sfondo su ogni card lavoro
 **Fonte:** [Des] + [Sis] (corroborazione indipendente)
