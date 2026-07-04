@@ -1,11 +1,13 @@
-# Handoff — B8 (4/5) mergiato + hotfix z-index listino, prossima: 5/5 rete/[id] (03/07/2026)
+# Handoff — B8 COMPLETO (5/5), prossima: B9 (04/07/2026)
 
-**B8 (4/5) — /rete/nuova** mergiato fast-forward su `main` (commit `e84257f`, pushato su `origin/main`, deploy Vercel automatico). Bottom sheet `RetiNuovaSheet.tsx` sostituisce il link rotto `/rete/nuova`; guard server-side 409 su `POST /api/rete` (1 rete per lab admin). 317/317 test, tsc/build puliti.
+**B8 (5/5) — /rete/[id]** mergiato fast-forward su `main` (commit `0c3e040`, pushato su `origin/main`, deploy Vercel automatico). Piano di 22 task: 2 migration live (`inviti_rete` + RPC `accept_invito_rete_atomic`), 6 route API, 5 componenti React, 2 pagine, integrazione admin. Link "Gestisci rete →" ora funzionante. 357/357 test, tsc/build/DS-compliance puliti. QA manuale 12/12 scenari PASS (isolamento tenant + z-index 200/201 verificati con click reali). Review finale whole-branch: Ready to merge, solo Minor non bloccanti. Dettaglio: `memory/MEMORY.md` §0.
 
-**Bug z-index trovato in QA (submit sheet non cliccabile via touch a 390/768px, collisione con bottom-nav) — risolto in entrambi i punti dove è stato trovato:** `RetiNuovaSheet.tsx` corretto sullo stesso branch di B8 (4/5) prima del merge; `ListinoNuovoSheet.tsx` (B8 2/5, già in produzione) corretto separatamente su branch `fix-listino-zindex`. Entrambi allineati al pattern già corretto di `MagazzinoAddSheet.tsx` (`zIndex: 200/201`). Dettaglio: `memory/MEMORY.md` §0.
+**B8 è ora CHIUSO — tutte e 5 le route del backlog risolte.**
 
-**Prossimo step:** **B8 (5/5) — `/rete/[id]`** — ultima route del backlog B8. Link "Gestisci rete →" in `/rete` porta ancora a 404. Servono anche 4 API mancanti (GET singola rete, POST/DELETE membro, PATCH nome) — tabelle `reti`/`reti_membri` già esistenti a DB.
+**Prossimo step:** **B9** — lista pazienti non navigabile (BUG #13 noto da settimane, fix stimato 15-30 min). Poi S4 (Email template branding, bozza già pronta in `docs/email-templates-supabase.md`).
+
+**Backlog non bloccante aperto da B8 (5/5), per un futuro giro di hardening (non urgente):** test di route per `verify-admin-rete.ts`; check esistenza rete nella force-add admin (404 vs 500); escaping HTML in `send-invito-rete-email.ts`/`send-invito-email.ts`; audit contrasto badge rainbow (`--c-purple` ~3.2:1); refactor trasversale componenti Task 13-17 verso `tokens.ts`.
 
 ---
 
-Backlog: 🔴 4/16 Blocker (B1 ✅, B2 ✅, B7 ✅, B8 4/5 ✅ — resta solo rete/[id]). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 4/16 Blocker (B1 ✅, B2 ✅, B7 ✅, B8 ✅ COMPLETO 5/5). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
