@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type {
   LavoroDettaglio,
@@ -38,6 +38,11 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
     lavoro.lavorazioni ?? []
   )
   const [fasi, setFasi] = useState<LavoroFase[]>(lavoro.fasi ?? [])
+  // Contatore richieste in-flight per fase (stesso pattern di CicloComboBox/
+  // ClienteComboBox) — un doppio tap rapido sulla stessa fase genera 2 PATCH;
+  // se la prima risponde in ritardo (es. errore di rete) il suo rollback non
+  // deve sovrascrivere l'update già confermato dalla seconda, più recente.
+  const updateFaseRequestIdRef = useRef<Record<string, number>>({})
   const [immagini, setImmagini] = useState<LavoroImmagine[]>(lavoro.immagini ?? [])
 
   // Stato bottom sheet Pacchetto Consegna MDR
@@ -69,6 +74,9 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
 
   async function handleUpdateFase(id: string, updates: Partial<LavoroFase>) {
     const previous = fasi.find((f) => f.id === id)
+    const thisRequest = (updateFaseRequestIdRef.current[id] ?? 0) + 1
+    updateFaseRequestIdRef.current[id] = thisRequest
+
     setFasi((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)))
 
     try {
@@ -77,10 +85,12 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       })
+      if (updateFaseRequestIdRef.current[id] !== thisRequest) return
       if (!res.ok && previous) {
         setFasi((prev) => prev.map((f) => (f.id === id ? previous : f)))
       }
     } catch {
+      if (updateFaseRequestIdRef.current[id] !== thisRequest) return
       if (previous) {
         setFasi((prev) => prev.map((f) => (f.id === id ? previous : f)))
       }

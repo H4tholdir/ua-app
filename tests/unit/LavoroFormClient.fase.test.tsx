@@ -221,4 +221,35 @@ describe('LavoroFormClient — handleUpdateFase (fetch + rollback reale)', () =>
 
     await waitFor(() => expect(okButton).toHaveAttribute('aria-pressed', 'false'))
   })
+
+  it('B18.7 — doppio tap rapido sulla stessa fase: il rollback tardivo della prima request (fallita) non deve sovrascrivere l\'update già confermato dalla seconda', async () => {
+    let resolveFirst!: (v: { ok: boolean }) => void
+    const firstResponse = new Promise<{ ok: boolean }>((resolve) => { resolveFirst = resolve })
+
+    ;(global.fetch as ReturnType<typeof vi.fn>)
+      .mockReturnValueOnce(firstResponse) // 1° tap ("OK") — resta pending
+      .mockResolvedValueOnce({ ok: true }) // 2° tap ("Non conf.") — risponde subito
+
+    render(<LavoroFormClient lavoro={makeLavoro()} />)
+    const okButton = await goToProduzioneTab()
+
+    // 1° tap: "OK" — update ottimistico, fetch #1 parte ma resta pending
+    fireEvent.click(okButton)
+    expect(okButton).toHaveAttribute('aria-pressed', 'true')
+
+    // 2° tap, prima che la prima risposta arrivi: "Non conf." — fetch #2
+    fireEvent.click(screen.getByRole('button', { name: 'Non conf.' }))
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+
+    // La 2° request (rapida) risolve con ok:true → resta non conforme
+    await waitFor(() => expect(screen.getByLabelText(/Azione correttiva/i)).toBeInTheDocument())
+
+    // Ora arriva, in ritardo, la risposta della 1° request — fallita (ok:false)
+    resolveFirst({ ok: false })
+
+    // Il rollback della 1° request è STALE: non deve azzerare lo stato più
+    // recente impostato dalla 2° — "Azione correttiva" deve restare visibile
+    await waitFor(() => expect(screen.getByLabelText(/Azione correttiva/i)).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Non conf.' })).toHaveAttribute('aria-pressed', 'true')
+  })
 })
