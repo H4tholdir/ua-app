@@ -1,0 +1,39 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { CicloComboBox } from '../../src/components/features/lavori/CicloComboBox'
+
+const originalFetch = global.fetch
+
+describe('CicloComboBox', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
+  afterEach(() => {
+    global.fetch = originalFetch
+    vi.useRealTimers()
+  })
+
+  it('digitando, cerca via GET /api/cicli?q= e mostra i risultati con tipo_dispositivo come etichetta', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cicli: [{ id: 'ciclo-1', codice: 'CNC.TitCer', nome: 'CNC Corona in titanio-ceramica', tipo_dispositivo: 'Protesi fissa' }],
+      }),
+    }) as unknown as typeof fetch
+
+    const onChange = vi.fn()
+    render(<CicloComboBox value="" onChange={onChange} />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CNC' } })
+    await vi.advanceTimersByTimeAsync(250)
+
+    await waitFor(() => {
+      expect(screen.getByText('CNC Corona in titanio-ceramica')).toBeInTheDocument()
+      expect(screen.getByText('Protesi fissa')).toBeInTheDocument()
+    })
+
+    fireEvent.mouseDown(screen.getByText('CNC Corona in titanio-ceramica'))
+    expect(onChange).toHaveBeenCalledWith('ciclo-1', 'CNC.TitCer — CNC Corona in titanio-ceramica')
+  })
+})
