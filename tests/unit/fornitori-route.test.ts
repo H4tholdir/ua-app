@@ -111,8 +111,30 @@ describe('GET /api/fornitori', () => {
     expect(json.fornitori).toEqual([])
   })
 
-  it('errore Supabase → 500', async () => {
-    mockLab({ data: null, error: { message: 'connection error' } })
+  it('errore Supabase su lookup fornitori → 500, messaggio generico (nessun leak errore grezzo)', async () => {
+    mockLab({ data: null, error: { message: 'connection error, socket 5432 refused' } })
+
+    const res = await GET()
+    const json = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(json.error).not.toContain('connection error')
+    expect(json.error).not.toContain('5432')
+  })
+
+  it('errore Supabase su lookup laboratorio → 500 (non 403 mascherato)', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'utenti') {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: async () => ({ data: null, error: { message: 'connection error' } }),
+            }),
+          }),
+        }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
 
     const res = await GET()
 

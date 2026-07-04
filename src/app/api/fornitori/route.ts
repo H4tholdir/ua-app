@@ -10,11 +10,15 @@ export async function GET() {
   }
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
+  const { data: utente, error: utenteError } = await svc
     .from('utenti')
     .select('laboratorio_id')
     .eq('id', user.id)
     .single()
+
+  if (utenteError) {
+    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
+  }
 
   if (!utente?.laboratorio_id) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
@@ -32,7 +36,7 @@ export async function GET() {
     .limit(500)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Errore nel recupero dei fornitori' }, { status: 500 })
   }
 
   const fornitori = (data ?? []).map((f) => ({
