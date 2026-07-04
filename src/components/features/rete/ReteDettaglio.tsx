@@ -35,15 +35,21 @@ const PIANO_LABEL: Record<string, string> = {
   studio: 'Studio',
 }
 
-// NOTA: `lab` usa `--c-purple` (colore semantico "premium", vedi globals.css:87)
-// invece di `--gold` come da brief originale. `--gold` è riservato a CTA
-// cerimoniali (background, es. .ua-btn-gold) ed è ESPLICITAMENTE vietato come
-// colore testo (contrasto 1.6:1 — vedi globals.css:77 e CLAUDE.md). Deviazione
-// concordata con l'utente prima dell'esecuzione del piano.
+// NOTA: `lab` usava `--c-purple` (colore semantico "premium", vedi globals.css:87)
+// come correzione del brief originale che prescriveva `--gold` (contrasto 1.6:1,
+// vietato). Hardening successivo (review B8 5/5): a fontSize 12/weight 700 il
+// badge è SOTTO la soglia WCAG "large text" (serve 14pt/18.66px bold), quindi
+// richiede 4.5:1 e non 3:1. `--c-purple` misura solo 3.20:1 contro `--sfc`
+// (#E4DFD9) → FAIL. Nessun colore rainbow/semantico disponibile (--c-blue,
+// --c-green, --c-amber, --c-orange, --c-red, --c-purple, --success, --primary)
+// raggiunge 4.5:1 su `--sfc` (vedi .superpowers/sdd/hardening-4-report.md per
+// la tabella completa). Fallback scelto: `--t1`, colore testo principale ad
+// alto contrasto (13.21:1), neutro e distinto da `--t2` (freemium/solo) e da
+// `--success` (Admin/studio) — nessuna ambiguità visiva tra i badge.
 const PIANO_COLOR: Record<string, string> = {
   freemium: 'var(--t2, #4A3D33)',
   solo: 'var(--t2, #4A3D33)',
-  lab: 'var(--c-purple, #8B5CF6)',
+  lab: 'var(--t1, #1C1916)',
   studio: 'var(--success, #16A34A)',
 }
 
