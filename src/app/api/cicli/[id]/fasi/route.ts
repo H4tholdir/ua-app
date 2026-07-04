@@ -75,12 +75,16 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
-  const { data: existingFasi } = await svc
+  const { data: existingFasi, error: existingFasiError } = await svc
     .from('fasi_produzione')
     .select('id, codice_fase')
     .eq('ciclo_id', cicloId)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
+
+  if (existingFasiError) {
+    return NextResponse.json({ error: 'Errore nel recupero delle fasi esistenti' }, { status: 500 })
+  }
 
   const existing = existingFasi ?? []
   const existingIds = new Set(existing.map((row) => row.id))
@@ -124,6 +128,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       .from('fasi_produzione')
       .update({
         ordine: index + 1,
+        codice_fase: f.codice_fase,
         descrizione: f.descrizione,
         obbligatoria: f.obbligatoria ?? true,
         attrezzatura: f.attrezzatura ?? null,

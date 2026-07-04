@@ -33,6 +33,7 @@ function req(body: Record<string, unknown>) {
 function setupTables({
   cicloOwned = true,
   existingFasi = [] as Array<{ id: string; codice_fase: string }>,
+  existingFasiError = null as { message: string } | null,
   insertSpy = vi.fn(),
   updateSpy = vi.fn(),
 } = {}) {
@@ -48,7 +49,7 @@ function setupTables({
     }
     if (table === 'fasi_produzione') {
       return {
-        select: () => ({ eq: () => ({ eq: () => ({ is: () => Promise.resolve({ data: existingFasi, error: null }) }) }) }),
+        select: () => ({ eq: () => ({ eq: () => ({ is: () => Promise.resolve({ data: existingFasiError ? null : existingFasi, error: existingFasiError }) }) }) }),
         insert: (rows: unknown[]) => { insertSpy(rows); return Promise.resolve({ error: null }) },
         update: (payload: Record<string, unknown>) => {
           updateSpy(payload)
@@ -114,5 +115,29 @@ describe('PATCH /api/cicli/[id]/fasi — salvataggio batch', () => {
 
     expect(res.status).toBe(200)
     expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String), updated_by: AUTH_USER.id }))
+  })
+
+  it('fase esistente con codice_fase modificato → il payload di update include il nuovo codice_fase', async () => {
+    const { insertSpy, updateSpy } = setupTables({ existingFasi: [{ id: 'fase-esistente', codice_fase: 'X1' }] })
+    const res = await PATCH(req({
+      fasi: [{ id: 'fase-esistente', codice_fase: 'X1-BIS', descrizione: 'Descrizione invariata' }],
+    }), { params })
+
+    expect(res.status).toBe(200)
+    expect(insertSpy).not.toHaveBeenCalled()
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ codice_fase: 'X1-BIS' }))
+  })
+
+  it('errore nella query delle fasi esistenti → 500, nessuna scrittura', async () => {
+    const { insertSpy, updateSpy } = setupTables({ existingFasiError: { message: 'connection refused' } })
+    const res = await PATCH(req({
+      fasi: [{ codice_fase: 'X1', descrizione: 'Prima fase' }],
+    }), { params })
+
+    expect(res.status).toBe(500)
+    const body = await res.json()
+    expect(body.error).not.toMatch(/connection refused/)
+    expect(insertSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
   })
 })
