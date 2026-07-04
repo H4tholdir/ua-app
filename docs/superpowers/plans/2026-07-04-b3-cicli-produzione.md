@@ -29,6 +29,8 @@
 **Interfaces:**
 - Produces: colonna `cicli_produzione.updated_by` (uuid, nullable, FK → `utenti(id)`), colonna `fasi_produzione.updated_by` (uuid, nullable, FK → `utenti(id)`). Trigger `_audit_cicli_produzione`, `_audit_fasi_produzione` (nessuna nuova interfaccia TS, solo side-effect su `audit_log`).
 
+**Verifica pre-flight già fatta (04/07/2026):** letto il body di `_audit_trigger_fn()` (`pg_get_functiondef`) prima di scrivere questo task — legge solo `id`/`laboratorio_id` via `to_jsonb(...)  ->> '...'` (mai un errore se la colonna manca, ritorna solo NULL) e avvolge `auth.uid()` in un blocco `EXCEPTION WHEN OTHERS`. È generico e sicuro da agganciare a qualunque tabella con `id`, incluse `cicli_produzione`/`fasi_produzione` — confermato, nessun rischio di 500 su ogni INSERT/UPDATE dopo l'attach.
+
 - [ ] **Step 1: Scrivi la migration**
 
 ```sql
@@ -686,9 +688,10 @@ describe('TabProduzione', () => {
     expect(screen.getByText(/assegna un ciclo nella tab Dati/i)).toBeInTheDocument()
   })
 
-  it('nessuna fase + hasCiclo=true → messaggio "ciclo assegnato ma nessuna fase definita"', () => {
+  it('nessuna fase + hasCiclo=true → messaggio "ciclo assegnato ma nessuna fase definita" + link a /cicli-produzione', () => {
     render(<TabProduzione fasi={[]} onUpdateFase={vi.fn()} hasCiclo={true} />)
     expect(screen.getByText(/nessuna fase.*definita/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /definisci le fasi di questo ciclo/i })).toHaveAttribute('href', '/cicli-produzione')
   })
 })
 ```
@@ -706,6 +709,7 @@ Sostituisci l'intero file `src/components/features/lavori/form/TabProduzione.tsx
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { LavoroFase } from '@/types/domain'
 import { raisedShadow } from './styles'
 
@@ -795,6 +799,22 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
             ? 'Ciclo assegnato ma nessuna fase ancora definita per questo ciclo.'
             : 'Nessuna fase — assegna un ciclo nella tab Dati.'}
         </p>
+        {hasCiclo && (
+          <Link
+            href="/cicli-produzione"
+            style={{
+              display: 'inline-block',
+              marginTop: '10px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--primary, #D90012)',
+              textDecoration: 'none',
+            }}
+          >
+            Definisci le fasi di questo ciclo →
+          </Link>
+        )}
       </div>
     )
   }
@@ -2868,7 +2888,8 @@ In un lab E2E isolato (mai il lab Filippo — usa `scripts/seed-e2e.ts` se serve
 6. Segna una fase "OK", ricarica la pagina → verifica che l'esito sia rimasto (regressione diretta del bug di persistenza trovato in fase di audit).
 7. Segna un'altra fase "Non conf.", compila "Azione correttiva", esci dal campo, ricarica → verifica che sia persistito.
 8. Vai su `/qualita` → verifica che la fase appena segnata "Non conf." compaia nella sezione "Non Conformità Recenti" (regressione diretta del secondo bug trovato in fase di audit).
-9. Verifica via query diretta su Supabase (progetto E2E, mai produzione) che `lavori_fasi.tecnico_id` sia stato valorizzato con l'id del tecnico collegato all'utente loggato (non `null`, non un valore inviato dal client).
+9. Verifica via query diretta su Supabase (progetto E2E, mai produzione) che le fasi segnate ai punti 6-7 (da `e2e-titolare`, che non ha un record `tecnici` collegato) hanno `lavori_fasi.tecnico_id = null` — comportamento atteso per Task 3 ("non è un errore bloccante" quando l'utente loggato non è un tecnico), non un bug.
+10. Logout, login come `e2e-tecnico@ua-test.local`, apri lo stesso lavoro → tab Produzione → segna una fase "OK" → verifica via query diretta che quella riga `lavori_fasi.tecnico_id` è ora valorizzato con l'id del record `tecnici` collegato a quell'utente (non `null`, e non un valore che il client potrebbe aver inviato).
 
 - [ ] **Step 3: QA manuale — 3 viewport, light/dark**
 
