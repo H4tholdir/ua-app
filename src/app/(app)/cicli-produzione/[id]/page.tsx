@@ -42,7 +42,12 @@ export default async function CicloDettaglioPage({ params }: Props) {
 
   let ultimaModificaLabel: string | null = null
   if (ciclo.updated_by) {
-    const { data: editor } = await svc.from('utenti').select('nome, cognome').eq('id', ciclo.updated_by).single()
+    const { data: editor } = await svc
+      .from('utenti')
+      .select('nome, cognome')
+      .eq('id', ciclo.updated_by)
+      .eq('laboratorio_id', utente.laboratorio_id)
+      .single()
     if (editor) {
       ultimaModificaLabel = `${editor.nome} ${editor.cognome} il ${formatDataOra(ciclo.updated_at)}`
     }
