@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<title>S4 — Email Templates Branding (Supabase Auth)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background: #F0EEEC;
+    font-family: 'DM Sans', Helvetica, Arial, sans-serif;
+    color: #1C1916;
+  }
+  .page-header {
+    max-width: 1100px;
+    margin: 0 auto 32px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .page-header p {
+    font-size: 14px;
+    color: #6B5C51;
+    margin: 0;
+  }
+  .grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+  }
+  .email-slot {
+    flex: 1 1 320px;
+    max-width: 380px;
+  }
+  .email-slot-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6B5C51;
+    margin: 0 0 10px;
+    padding-left: 4px;
+  }
+  .inbox-frame {
+    background: #FFFFFF;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(28,25,22,0.10), 0 1px 2px rgba(28,25,22,0.06);
+    overflow: hidden;
+    border: 1px solid #E4E1DC;
+  }
+  .inbox-chrome {
+    padding: 10px 14px;
+    border-bottom: 1px solid #EEECE9;
+    font-size: 11px;
+    color: #9A948C;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>S4 — Branding email transazionali Supabase Auth</h1>
+    <p>Rebrand DS v2.3 (Warm Panna) dei 3 template di sistema (Confirm Signup, Reset Password, Invite User). Dati simulati realistici. Da approvare prima dell'applicazione su Supabase Dashboard.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ═══════════ 1. CONFIRM SIGNUP ═══════════ -->
+    <div class="email-slot">
+      <p class="email-slot-label">1 · Confirm Signup</p>
+      <div class="inbox-frame">
+        <div class="inbox-chrome"><span>Da: UÀ &lt;noreply@uachelab.com&gt;</span><span>ora</span></div>
+
+        <!-- ===== EMAIL HTML START ===== -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#DDD8D3;padding:32px 16px;">
+          <tr><td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;background:#EDEDEA;border-radius:16px;overflow:hidden;">
+              <tr><td style="padding:28px 28px 20px;text-align:center;">
+                <img src="assets/ua-logo-email.png" width="64" height="64" alt="UÀ" style="display:block;margin:0 auto;border-radius:16px;border:0;" />
+              </td></tr>
+              <tr><td style="padding:0 28px 24px;">
+                <p style="margin:0 0 4px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#D90012;">Conferma il tuo indirizzo</p>
+                <h2 style="margin:0 0 14px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#1C1916;">Benvenuto in UÀ!</h2>
+                <p style="margin:0 0 20px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#4A3D33;">
+                  Sei stato invitato a gestire il tuo laboratorio odontotecnico su UÀ. Conferma il tuo indirizzo email per attivare l'account.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#D90012;border-radius:12px;">
+                  <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_3f8a1c2b9e7d4560&type=signup&redirect_to=https://uachelab.com/auth/callback" style="display:inline-block;padding:13px 26px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;">Conferma email →</a>
+                </td></tr></table>
+                <details style="margin-top:22px;">
+                  <summary style="cursor:pointer;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#6B5C51;">Il bottone non funziona?</summary>
+                  <p style="margin:8px 0 0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6B5C51;">
+                    Copia e incolla questo link nel browser:
+                  </p>
+                  <p style="margin:4px 0 0;word-break:break-all;">
+                    <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_3f8a1c2b9e7d4560&type=signup&redirect_to=https://uachelab.com/auth/callback" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#D90012;text-decoration:underline;word-break:break-all;">https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_3f8a1c2b9e7d4560&amp;type=signup&amp;redirect_to=https://uachelab.com/auth/callback</a>
+                  </p>
+                </details>
+              </td></tr>
+              <tr><td style="padding:16px 28px 24px;border-top:1px solid #D4CFC9;">
+                <p style="margin:0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#6B5C51;">
+                  UÀ — Il laboratorio più rapido, più semplice, più UÀ.<br>Non hai richiesto questo? Ignora questa email.
+                </p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <!-- ===== EMAIL HTML END ===== -->
+
+      </div>
+    </div>
+
+    <!-- ═══════════ 2. RESET PASSWORD ═══════════ -->
+    <div class="email-slot">
+      <p class="email-slot-label">2 · Reset Password</p>
+      <div class="inbox-frame">
+        <div class="inbox-chrome"><span>Da: UÀ &lt;noreply@uachelab.com&gt;</span><span>2 min fa</span></div>
+
+        <!-- ===== EMAIL HTML START ===== -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#DDD8D3;padding:32px 16px;">
+          <tr><td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;background:#EDEDEA;border-radius:16px;overflow:hidden;">
+              <tr><td style="padding:28px 28px 20px;text-align:center;">
+                <img src="assets/ua-logo-email.png" width="64" height="64" alt="UÀ" style="display:block;margin:0 auto;border-radius:16px;border:0;" />
+              </td></tr>
+              <tr><td style="padding:0 28px 24px;">
+                <p style="margin:0 0 4px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#D90012;">Richiesta reset password</p>
+                <h2 style="margin:0 0 14px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#1C1916;">Reimposta la tua password</h2>
+                <p style="margin:0 0 20px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#4A3D33;">
+                  Hai richiesto il reset della password per il tuo account UÀ. Il link è valido per 1 ora.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#D90012;border-radius:12px;">
+                  <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_9b2e6a41d0f7c358&type=recovery&redirect_to=https://uachelab.com/auth/callback" style="display:inline-block;padding:13px 26px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;">Reimposta password →</a>
+                </td></tr></table>
+                <details style="margin-top:22px;">
+                  <summary style="cursor:pointer;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#6B5C51;">Il bottone non funziona?</summary>
+                  <p style="margin:8px 0 0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6B5C51;">
+                    Copia e incolla questo link nel browser:
+                  </p>
+                  <p style="margin:4px 0 0;word-break:break-all;">
+                    <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_9b2e6a41d0f7c358&type=recovery&redirect_to=https://uachelab.com/auth/callback" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#D90012;text-decoration:underline;word-break:break-all;">https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_9b2e6a41d0f7c358&amp;type=recovery&amp;redirect_to=https://uachelab.com/auth/callback</a>
+                  </p>
+                </details>
+              </td></tr>
+              <tr><td style="padding:16px 28px 24px;border-top:1px solid #D4CFC9;">
+                <p style="margin:0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#6B5C51;">
+                  Non hai richiesto questo reset? Ignora questa email — la tua password resterà invariata.
+                </p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <!-- ===== EMAIL HTML END ===== -->
+
+      </div>
+    </div>
+
+    <!-- ═══════════ 3. INVITE USER ═══════════ -->
+    <div class="email-slot">
+      <p class="email-slot-label">3 · Invite User</p>
+      <div class="inbox-frame">
+        <div class="inbox-chrome"><span>Da: UÀ &lt;noreply@uachelab.com&gt;</span><span>5 min fa</span></div>
+
+        <!-- ===== EMAIL HTML START ===== -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#DDD8D3;padding:32px 16px;">
+          <tr><td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;background:#EDEDEA;border-radius:16px;overflow:hidden;">
+              <tr><td style="padding:28px 28px 20px;text-align:center;">
+                <img src="assets/ua-logo-email.png" width="64" height="64" alt="UÀ" style="display:block;margin:0 auto;border-radius:16px;border:0;" />
+              </td></tr>
+              <tr><td style="padding:0 28px 24px;">
+                <p style="margin:0 0 4px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#D90012;">Invito a collaborare</p>
+                <h2 style="margin:0 0 14px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:700;color:#1C1916;">Sei stato invitato su UÀ</h2>
+                <p style="margin:0 0 20px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#4A3D33;">
+                  Qualcuno ti ha invitato a collaborare in un laboratorio su UÀ. Accetta l'invito e imposta la tua password per iniziare.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#D90012;border-radius:12px;">
+                  <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_5d1f8b32a6e0947c&type=invite&redirect_to=https://uachelab.com/auth/callback" style="display:inline-block;padding:13px 26px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;">Accetta invito →</a>
+                </td></tr></table>
+                <details style="margin-top:22px;">
+                  <summary style="cursor:pointer;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#6B5C51;">Il bottone non funziona?</summary>
+                  <p style="margin:8px 0 0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6B5C51;">
+                    Copia e incolla questo link nel browser:
+                  </p>
+                  <p style="margin:4px 0 0;word-break:break-all;">
+                    <a href="https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_5d1f8b32a6e0947c&type=invite&redirect_to=https://uachelab.com/auth/callback" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#D90012;text-decoration:underline;word-break:break-all;">https://iagibumwjstnveqpjbwq.supabase.co/auth/v1/verify?token=pkce_5d1f8b32a6e0947c&amp;type=invite&amp;redirect_to=https://uachelab.com/auth/callback</a>
+                  </p>
+                </details>
+              </td></tr>
+              <tr><td style="padding:16px 28px 24px;border-top:1px solid #D4CFC9;">
+                <p style="margin:0;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#6B5C51;">
+                  UÀ — Dalla prescrizione alla consegna, tutto in un tap.
+                </p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+        <!-- ===== EMAIL HTML END ===== -->
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
