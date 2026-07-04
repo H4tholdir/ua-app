@@ -254,6 +254,7 @@ export type Database = {
           normative_json: Json | null
           tipo_dispositivo: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           attivo?: boolean
@@ -267,6 +268,7 @@ export type Database = {
           normative_json?: Json | null
           tipo_dispositivo: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           attivo?: boolean
@@ -280,6 +282,7 @@ export type Database = {
           normative_json?: Json | null
           tipo_dispositivo?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -287,6 +290,13 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cicli_produzione_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
             referencedColumns: ["id"]
           },
         ]
@@ -1000,6 +1010,7 @@ export type Database = {
           responsabile_id: string | null
           tempo_medio_lavoro: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           attrezzatura?: string | null
@@ -1019,6 +1030,7 @@ export type Database = {
           responsabile_id?: string | null
           tempo_medio_lavoro?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           attrezzatura?: string | null
@@ -1038,6 +1050,7 @@ export type Database = {
           responsabile_id?: string | null
           tempo_medio_lavoro?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1059,6 +1072,13 @@ export type Database = {
             columns: ["responsabile_id"]
             isOneToOne: false
             referencedRelation: "tecnici"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fasi_produzione_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
             referencedColumns: ["id"]
           },
         ]
