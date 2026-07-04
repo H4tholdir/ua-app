@@ -5422,6 +5422,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      salva_fasi_ciclo_atomico: {
+        Args: {
+          p_ciclo_id: string
+          p_fasi: Json
+          p_laboratorio_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       set_lab_claim: { Args: { user_id: string }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
