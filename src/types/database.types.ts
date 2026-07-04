@@ -5431,20 +5431,8 @@ export type Database = {
         }
         Returns: Json
       }
-      set_lab_claim: { Args: { user_id: string }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
-      soft_delete_lavoro: { Args: { p_lavoro_id: string }; Returns: undefined }
-      stats_dashboard: {
-        Args: { p_lab: string }
-        Returns: {
-          fatturato_anno: number
-          fatturato_mese: number
-          lavori_in_lavorazione: number
-          lavori_in_ritardo: number
-          lavori_oggi: number
-        }[]
-      }
       unaccent: { Args: { "": string }; Returns: string }
       upsert_pec_vault_secret: {
         Args: { p_lab_id: string; p_password: string }
