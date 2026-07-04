@@ -1,11 +1,14 @@
 'use client'
 
+import { useState } from 'react'
+import Link from 'next/link'
 import type { LavoroFase } from '@/types/domain'
 import { raisedShadow } from './styles'
 
 interface TabProduzioneProps {
   fasi: LavoroFase[]
   onUpdateFase: (id: string, updates: Partial<LavoroFase>) => void
+  hasCiclo: boolean
 }
 
 function formatTimestamp(iso: string): string {
@@ -47,7 +50,22 @@ const ESITO_CONFIG = {
 
 type EsitoKey = keyof typeof ESITO_CONFIG
 
-export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'DM Sans, sans-serif',
+  fontSize: '11px',
+  fontWeight: 600,
+  color: 'var(--t2, #4A3D33)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  marginBottom: '4px',
+}
+
+export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzioneProps) {
+  // Bozza locale per Azione correttiva: si scrive mentre l'utente digita,
+  // si invia solo su blur (evita una PATCH per ogni carattere).
+  const [azioneDraft, setAzioneDraft] = useState<Record<string, string>>({})
+
   if (fasi.length === 0) {
     return (
       <div
@@ -69,8 +87,26 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
             margin: 0,
           }}
         >
-          Nessuna fase — assegna un ciclo nella tab Dati.
+          {hasCiclo
+            ? 'Ciclo assegnato ma nessuna fase ancora definita per questo ciclo.'
+            : 'Nessuna fase — assegna un ciclo nella tab Dati.'}
         </p>
+        {hasCiclo && (
+          <Link
+            href="/cicli-produzione"
+            style={{
+              display: 'inline-block',
+              marginTop: '10px',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--primary, #D90012)',
+              textDecoration: 'none',
+            }}
+          >
+            Definisci le fasi di questo ciclo →
+          </Link>
+        )}
       </div>
     )
   }
@@ -85,6 +121,7 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
     >
       {fasi.map((fase) => {
         const esitoAttuale = fase.esito as EsitoKey | null
+        const azioneValue = azioneDraft[fase.id] ?? fase.azione_correttiva ?? ''
 
         return (
           <div
@@ -166,9 +203,11 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                     aria-pressed={isActive}
                     onClick={() => {
                       const now = new Date().toISOString()
+                      const nextEsito = isActive ? null : key
                       onUpdateFase(fase.id, {
-                        esito: isActive ? null : key,
-                        eseguita_at: isActive ? null : now,
+                        esito: nextEsito,
+                        eseguita_at: nextEsito ? now : null,
+                        non_conforme: nextEsito === 'non_conforme',
                       })
                     }}
                     style={{
@@ -197,6 +236,38 @@ export function TabProduzione({ fasi, onUpdateFase }: TabProduzioneProps) {
                 )
               })}
             </div>
+
+            {/* Azione correttiva — solo se la fase è segnata non conforme */}
+            {esitoAttuale === 'non_conforme' && (
+              <div style={{ marginTop: '10px' }}>
+                <label htmlFor={`azione-correttiva-${fase.id}`} style={labelStyle}>
+                  Azione correttiva
+                </label>
+                <textarea
+                  id={`azione-correttiva-${fase.id}`}
+                  rows={2}
+                  placeholder="Cosa è stato fatto per correggere la non conformità..."
+                  value={azioneValue}
+                  onChange={(e) =>
+                    setAzioneDraft((prev) => ({ ...prev, [fase.id]: e.target.value }))
+                  }
+                  onBlur={(e) => onUpdateFase(fase.id, { azione_correttiva: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    background: 'var(--bg, #DDD8D3)',
+                    border: '1px solid rgba(0,0,0,.06)',
+                    color: 'var(--t1, #1C1916)',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
           </div>
         )
       })}

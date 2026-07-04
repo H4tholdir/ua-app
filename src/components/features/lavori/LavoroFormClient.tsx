@@ -67,10 +67,24 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
     }
   }
 
-  function handleUpdateFase(id: string, updates: Partial<LavoroFase>) {
-    setFasi((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
-    )
+  async function handleUpdateFase(id: string, updates: Partial<LavoroFase>) {
+    const previous = fasi.find((f) => f.id === id)
+    setFasi((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)))
+
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/fasi/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok && previous) {
+        setFasi((prev) => prev.map((f) => (f.id === id ? previous : f)))
+      }
+    } catch {
+      if (previous) {
+        setFasi((prev) => prev.map((f) => (f.id === id ? previous : f)))
+      }
+    }
   }
 
   function handleAddImmagine(img: LavoroImmagine) {
@@ -114,6 +128,7 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
                 <TabProduzione
                   fasi={fasi}
                   onUpdateFase={handleUpdateFase}
+                  hasCiclo={!!(data.ciclo_id ?? lavoro.ciclo_id)}
                 />
               )
 
