@@ -44,6 +44,35 @@ describe('CicloFasiEditor', () => {
     expect(screen.getByDisplayValue('Disegno modelli progettazione')).toBeInTheDocument()
   })
 
+  it('risultati libreria con stesso codice_fase da cicli diversi → nessun warning React key, entrambi renderizzati', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        fasi: [
+          { codice_fase: 'OL01', descrizione: 'Ricevimento impronte (ciclo A)', attrezzatura: null, controllo_misura: null, esito_atteso: null, materiali_nota: null, obbligatoria: true },
+          { codice_fase: 'OL01', descrizione: 'Ricevimento impronte (ciclo B)', attrezzatura: null, controllo_misura: null, esito_atteso: null, materiali_nota: null, obbligatoria: true },
+        ],
+      }),
+    }) as unknown as typeof fetch
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(<CicloFasiEditor cicloId="ciclo-1" nomeCiclo="CNC Corona" fasiIniziali={[]} ultimaModificaLabel={null} />)
+
+    fireEvent.change(screen.getByPlaceholderText(/Cerca nella libreria/i), { target: { value: 'OL01' } })
+    await vi.advanceTimersByTimeAsync(250)
+
+    await waitFor(() => expect(screen.getByText('Ricevimento impronte (ciclo A)')).toBeInTheDocument())
+    expect(screen.getByText('Ricevimento impronte (ciclo B)')).toBeInTheDocument()
+
+    const keyWarning = errorSpy.mock.calls.some((args) =>
+      args.some((a) => typeof a === 'string' && a.includes('same key'))
+    )
+    expect(keyWarning).toBe(false)
+
+    errorSpy.mockRestore()
+  })
+
   it('rimuovi fase → la rimuove dalla lista locale', () => {
     render(
       <CicloFasiEditor

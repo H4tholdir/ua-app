@@ -200,7 +200,7 @@ export function CicloComboBox({
             borderRadius: '12px',
             background: 'var(--surface, #E4DFD9)',
             border: '1px solid var(--elv, #EDEDEA)',
-            boxShadow: 'var(--sh-b)',
+            boxShadow: 'var(--sh-b, inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05), -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44))',
             maxHeight: '280px',
             overflowY: 'auto',
           }}
@@ -223,7 +223,7 @@ export function CicloComboBox({
                   fontSize: '14px',
                   color: 'var(--t1, #1C1916)',
                   background: isActive ? 'var(--elv, #EDEDEA)' : 'transparent',
-                  transition: 'background var(--tr)',
+                  transition: 'background var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '2px',

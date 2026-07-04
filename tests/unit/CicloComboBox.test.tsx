@@ -36,4 +36,24 @@ describe('CicloComboBox', () => {
     fireEvent.mouseDown(screen.getByText('CNC Corona in titanio-ceramica'))
     expect(onChange).toHaveBeenCalledWith('ciclo-1', 'CNC.TitCer — CNC Corona in titanio-ceramica')
   })
+
+  it('dropdown risultati: boxShadow e transition hanno un fallback esplicito, non solo var() nudo', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cicli: [{ id: 'ciclo-1', codice: 'CNC.TitCer', nome: 'CNC Corona in titanio-ceramica', tipo_dispositivo: 'Protesi fissa' }],
+      }),
+    }) as unknown as typeof fetch
+
+    render(<CicloComboBox value="" onChange={vi.fn()} />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CNC' } })
+    await vi.advanceTimersByTimeAsync(250)
+    await waitFor(() => screen.getByRole('listbox'))
+
+    const listbox = screen.getByRole('listbox')
+    const option = screen.getByRole('option')
+
+    expect(listbox.style.boxShadow).toMatch(/^var\(--sh-b,\s*.+\)$/)
+    expect(option.style.transition).toMatch(/^background var\(--tr,\s*.+\)$/)
+  })
 })

@@ -230,9 +230,9 @@ export function CicloFasiEditor({ cicloId, nomeCiclo, fasiIniziali, ultimaModifi
         />
         {libreriaResults.length > 0 && (
           <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0 }}>
-            {libreriaResults.map((r) => (
+            {libreriaResults.map((r, i) => (
               <li
-                key={r.codice_fase}
+                key={`${r.codice_fase}-${i}`}
                 onMouseDown={() => aggiungiDaLibreria(r)}
                 style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily, color: 'var(--t1)' }}
               >
