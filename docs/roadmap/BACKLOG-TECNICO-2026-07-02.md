@@ -34,6 +34,7 @@
 | B16 | Query `/ordini` subquery non supportata | ⏳ | | |
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 | B18 | Hardening trasversale post-B3 (8 finding non bloccanti) | ✅ | 04/07/2026 · `06a497d` | Tutti e 8 risolti + 1 bug critico scoperto e risolto a parte (hotfix `23e0d15`) — vedi dettaglio sotto |
+| B19 | Supabase Security Advisor: 10 ERROR + WARN di sicurezza | ✅ | 04/07/2026 · branch `worktree-security-advisor-hardening` (5 commit) | Non da audit precedente, segnalato da Francesco dalla dashboard Security Advisor. 0 ERROR residui verificato. Leaked password protection resta ⛔ bloccato (richiede piano Pro). Vedi dettaglio sotto |
 
 ### 🟠 Alto (20)
 | ID | Titolo | Stato | Data/commit | Note |
@@ -146,6 +147,31 @@
 
 **Verifica automatica:** 445/445 test (era 421), `tsc --noEmit`/`next build` puliti. Review finale whole-branch: "Ready to merge: Yes", zero Critical/Important, 1 Minor non bloccante (copertura escape apici/backslash letterali solo unit-test). QA browser reale (lab E2E, mai il lab Filippo) via snapshot di accessibilità e `preview_click`: toggle tema e tooltip FAB verificati funzionanti in entrambe le direzioni, nessun errore console.
 **Piano:** nessun piano scritto dedicato. Dettaglio completo in `memory/MEMORY.md` §0.
+
+### B19. ✅ RISOLTO (04/07/2026, branch `worktree-security-advisor-hardening`, 5 commit tecnici) — Supabase Security Advisor: 10 ERROR critici + WARN di sicurezza selezionati
+
+**Fonte:** non da audit precedente — segnalato da Francesco direttamente dalla dashboard Supabase (Security Advisor), progetto `iagibumwjstnveqpjbwq`.
+
+1. **✅ 10 ERROR critici risolti.** RLS disabilitata su 3 tabelle (`audit_log`, `webauthn_challenges`, `sub_processors`) → abilitata con deny-all (verificato `rolbypassrls=true` su `postgres`/`service_role`, nessuna scrittura applicativa rotta). 7 Security Definer View (`lavori_dashboard`, `fatture_da_inviare`, `magazzino_sotto_scorta`, `dichiarazioni_in_scadenza`, `tracciabilita_lotto`, `partitario_clienti`, `statistiche_mensili`) → `security_invoker = on` (nessun consumer applicativo le usava con permessi elevati impliciti).
+2. **✅ 8 funzioni `SECURITY DEFINER` con esecuzione pubblica** (`_audit_trigger_fn`, `admin_delete_laboratorio`, `cleanup_expired_webauthn_challenges`, `consegna_lavoro_lock` 2 overload, `crea_rifacimento_atomico`, `get_pec_password`, `refresh_dashboard_cache`) → `REVOKE` da `anon`/`authenticated`, `GRANT` solo `service_role`. `cleanup_expired_webauthn_challenges` esisteva solo nel DB live, mai tracciata in una migration — adottata per la prima volta in questa sessione.
+3. **✅ 33 funzioni con `search_path` mutabile** → fissato a `public, pg_temp` su tutte.
+4. **✅ 3 funzioni eliminate come dead code confermato** (`set_lab_claim`, `soft_delete_lavoro`, `stats_dashboard`): nessun trigger/cron/caller applicativo residuo, storia git conferma creazione una tantum al bootstrap dello schema (commit `4b98482`/`828a4ac`/`f9c8202`), superate da approcci più recenti (`current_lab_id()`/`get_lab_id()`, route API dirette, `refresh_dashboard_cache()`). Definizioni di rollback salvate in `docs/superpowers/specs/2026-07-04-security-advisor-hardening-design.md` §3.3.
+5. **➖ 5 funzioni helper RLS lasciate intenzionalmente intatte** (`current_lab_id`, `get_lab_id`, `has_role`, `has_role_check`, `lab_is_accessible`): sono l'infrastruttura delle policy RLS, un `REVOKE` le romperebbe tutte. Il WARN residuo dell'advisor su queste 5 (`anon_security_definer_function_executable` + `authenticated_security_definer_function_executable`, ricontrollato live dopo le migration) è un'eccezione motivata, non un fix dimenticato.
+6. **⛔ Leaked password protection — NON risolto, bloccato dal piano Supabase.** Tentato il toggle via `claude-in-chrome` su richiesta di Francesco: salvataggio fallito con errore esplicito del dashboard "Configuring leaked password protection via HaveIBeenPwned.org is available on Pro Plans and up" — il progetto `iagibumwjstnveqpjbwq` è su piano FREE. Modifica non persistita (annullata). Francesco valuterà separatamente l'upgrade a Pro. Resta aperto, non risolto.
+
+**4 migration Supabase applicate al DB live** (ciascuna con conferma esplicita di Francesco prima dell'apply, pattern B3/B8/B18): `20260704160000_security_hardening_rls_tables.sql`, `20260704170000_security_hardening_views_invoker.sql`, `20260704180000_security_hardening_functions_revoke_drop.sql`, `20260704190000_security_hardening_search_path.sql`.
+
+**Verifica automatica:** 445/445 test (invariato, nessun test copre direttamente queste tabelle/funzioni), `tsc --noEmit`/`next build` puliti dopo la rigenerazione di `database.types.ts` (rimosse le 3 voci Functions delle funzioni eliminate).
+
+**QA manuale mirata** (mai il lab Filippo, dati E2E, ripuliti a fine sessione): WebAuthn verificato indirettamente (ciclo INSERT/SELECT/UPDATE/DELETE su `webauthn_challenges` riprodotto con `service_role`, l'unico client applicativo reale — nessuna passkey hardware disponibile su account non-Filippo per un login UI end-to-end). PEC verificata sia lato positivo (`service_role` → errore applicativo controllato "PEC non configurata", non di permesso) sia lato negativo (`authenticated` → `permission denied`, `REVOKE` efficace — nessun lab con PEC configurata per un invio reale). Scrittura → `audit_log` verificata con login reale `authenticated` (non `service_role`) su un cliente E2E: riga audit generata correttamente, confermando che RLS deny-all non blocca il trigger `SECURITY DEFINER`.
+
+**Verifica finale (`get_advisors` ri-eseguito dopo tutte le migration):** **0 ERROR residui**, esattamente come previsto. I soli WARN residui: le 5 helper RLS (accettate, vedi punto 5), le 2 estensioni `pg_trgm`/`unaccent` in `public` (fuori scope, preesistenti), leaked password protection (punto 6, bloccato). Comparsi anche 6 INFO `rls_enabled_no_policy` su `audit_log`/`webauthn_challenges`/`sub_processors` + 3 tabelle preesistenti (`inviti`, `inviti_rete`, `lab_stato_log`) — atteso e non un problema: sono tabelle con RLS abilitata e deny-all by design (nessuna policy = nessun accesso da `anon`/`authenticated`, solo `service_role` con `rolbypassrls`).
+
+**Performance WARN esplicitamente fuori scope** di questo intervento (backlog separato futuro): `multiple_permissive_policies` (240), `auth_rls_initplan` (8), `unused_index` (72), `unindexed_foreign_keys` (63).
+
+**Nota di processo:** questa voce documenta un intervento fuori-programma segnalato da Francesco (dashboard Security Advisor), non emerso da un audit tecnico precedente — non sposta le priorità pianificate. **Branch committato (`worktree-security-advisor-hardening`, 5 commit tecnici + rigenerazione tipi + questo aggiornamento memoria), non ancora mergiato su `main` né deployato** — le 4 migration sono comunque già applicate al DB live (Supabase e la codebase applicativa sono ambienti separati: le migration vivono nel DB indipendentemente dal merge del branch).
+
+**Spec:** `docs/superpowers/specs/2026-07-04-security-advisor-hardening-design.md`. **Piano:** `docs/superpowers/plans/2026-07-04-security-advisor-hardening.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Prossima priorità: B4** (`as any` nei generatori PDF MDR) — invariata, questo era un fuori-programma di sicurezza.
 
 ### B4. `as any` nei generatori PDF MDR — non risolto, solo mascherato
 **Fonte:** [SWE], confermato anche da [Odt]
