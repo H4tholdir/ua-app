@@ -10,7 +10,11 @@ export const metadata = { title: 'Qualita MDR' }
 
 function formatDataIT(dateStr: string): string {
   try {
-    const d = new Date(dateStr + 'T00:00:00')
+    // dateStr puo' essere una data pura (YYYY-MM-DD, es. data_evento) oppure
+    // un timestamp ISO completo (es. lavori_fasi.created_at, che include gia'
+    // un carattere 'T' e l'offset timezone) — concatenare 'T00:00:00' a un
+    // timestamp gia' completo produce una stringa non valida ("Invalid Date").
+    const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
   } catch {
     return dateStr
