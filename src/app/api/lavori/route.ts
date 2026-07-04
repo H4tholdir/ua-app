@@ -206,13 +206,17 @@ export async function POST(req: Request) {
   // Non blocca la creazione del lavoro già avvenuta se qualcosa qui fallisce:
   // le fasi si possono sempre aggiungere/correggere dopo.
   if (body.ciclo_id && typeof body.ciclo_id === 'string') {
-    const { data: fasiCiclo } = await svc
+    const { data: fasiCiclo, error: fasiCicloError } = await svc
       .from('fasi_produzione')
       .select('id, ordine, responsabile_id')
       .eq('ciclo_id', body.ciclo_id)
       .eq('laboratorio_id', labId)
       .is('deleted_at', null)
       .order('ordine', { ascending: true })
+
+    if (fasiCicloError) {
+      console.error(`[POST /api/lavori] fetch fasi_produzione fallito per ciclo_id=${body.ciclo_id}, lavoro_id=${lavoro.id}:`, fasiCicloError.message)
+    }
 
     if (fasiCiclo && fasiCiclo.length > 0) {
       const lavoriFasiRows = fasiCiclo.map((fase) => ({
@@ -221,7 +225,10 @@ export async function POST(req: Request) {
         laboratorio_id: labId,
         tecnico_id: fase.responsabile_id ?? null,
       }))
-      await svc.from('lavori_fasi').insert(lavoriFasiRows)
+      const { error: lavoriFasiError } = await svc.from('lavori_fasi').insert(lavoriFasiRows)
+      if (lavoriFasiError) {
+        console.error(`[POST /api/lavori] insert lavori_fasi fallito per lavoro_id=${lavoro.id}, ciclo_id=${body.ciclo_id}:`, lavoriFasiError.message)
+      }
     }
   }
 
