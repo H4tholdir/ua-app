@@ -61,6 +61,7 @@ export default function NuovoLavoroPage() {
     note_interne: null,
   })
   const [clienteId, setClienteId] = useState(getLastClienteId)
+  const [cicloId, setCicloId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -89,6 +90,10 @@ export default function NuovoLavoroPage() {
         return next
       })
     }
+  }, [])
+
+  const handleCicloChange = useCallback((id: string) => {
+    setCicloId(id)
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -127,7 +132,7 @@ export default function NuovoLavoroPage() {
       const res = await fetch('/api/lavori', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, cliente_id: clienteId }),
+        body: JSON.stringify({ ...formData, cliente_id: clienteId, ciclo_id: cicloId || null }),
       })
 
       if (!res.ok) {
@@ -192,6 +197,8 @@ export default function NuovoLavoroPage() {
                 clienteId={clienteId}
                 onClienteChange={handleClienteChange}
                 fieldErrors={fieldErrors}
+                cicloId={cicloId}
+                onCicloChange={handleCicloChange}
               />
             )
           }}

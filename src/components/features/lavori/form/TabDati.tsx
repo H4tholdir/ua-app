@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Lavoro, TipoDispositivo, PrioritaLavoro } from '@/types/domain'
 import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
+import { CicloComboBox } from '@/components/features/lavori/CicloComboBox'
 
 interface StudioMember {
   id: string
@@ -67,6 +68,8 @@ interface TabDatiProps {
   clienteId?: string
   onClienteChange?: (id: string, label: string) => void
   fieldErrors?: Record<string, string>
+  cicloId?: string
+  onCicloChange?: (id: string, label: string) => void
 }
 
 const errorStyle: React.CSSProperties = {
@@ -77,7 +80,7 @@ const errorStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif',
 }
 
-export function TabDati({ data, onChange, clienteId, onClienteChange, fieldErrors }: TabDatiProps) {
+export function TabDati({ data, onChange, clienteId, onClienteChange, fieldErrors, cicloId, onCicloChange }: TabDatiProps) {
   const [studioMembers, setStudioMembers] = useState<StudioMember[]>([])
 
   // Carica i medici dello stesso studio quando cambia il cliente
@@ -172,6 +175,20 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
           </span>
         )}
       </div>
+
+      {/* 1.5 Ciclo di produzione (facoltativo) */}
+      {onCicloChange && (
+        <div style={fieldStyle}>
+          <label htmlFor="field-ciclo_id" style={labelStyle}>
+            Ciclo di produzione
+          </label>
+          <CicloComboBox
+            id="field-ciclo_id"
+            value={cicloId ?? ''}
+            onChange={onCicloChange}
+          />
+        </div>
+      )}
 
       {/* 2. Descrizione */}
       <div style={fieldStyle}>
