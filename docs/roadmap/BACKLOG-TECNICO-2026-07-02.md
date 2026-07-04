@@ -32,8 +32,9 @@
 | B14 | `tecnici.compenso_base` ambiguo | ⏳ | | |
 | B15 | Banner Abbonamento contraddittorio | ⏳ | | |
 | B16 | Query `/ordini` subquery non supportata | ⏳ | | |
+| B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 
-### 🟠 Alto (18)
+### 🟠 Alto (19)
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
 | A1 | Push assente su nuova assegnazione lavoro | ⏳ | | |
@@ -54,6 +55,7 @@
 | A16 | Export CSV incompleto (solo fatture) | ⏳ | | |
 | A17 | Hydration error React #418 sistemico | ⏳ | | |
 | A18 | Hash integrità firma DdC mancante | ⏳ | | |
+| A19 | Nessun supporto per allegare il file di progettazione digitale (CAD/STL) | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 
 ### 🟡 Medio (30) — vedi dettaglio nel corpo del documento sotto
 | ID | Titolo | Stato | Data/commit | Note |
@@ -97,7 +99,7 @@
 | D3 | Documentazione/FAQ in-app assente | ⏳ | | |
 | D4 | Script compliance DS ha 3 blind spot | ⏳ | | |
 
-**Totale:** 68 item · 2 fatti (documentali) · 66 da fare
+**Totale:** 70 item · 2 fatti (documentali) · 68 da fare
 
 ---
 
@@ -209,6 +211,12 @@
 **Fix (G6, mai applicato):** refactor con RPC Postgres dedicata o query con relazioni embedded Supabase.
 **Effort:** stimato 2 ore a maggio.
 
+### B17. Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico
+**Fonte:** [Sis], scoperto 04/07/2026 durante l'analisi di B3.
+**Causa:** `generate-ifu.ts`, `generate-etichetta.ts` e `generate-ricevuta-consegna.ts` includono tutti `fasi:lavori_fasi(*, fase:fasi_produzione(*))` nella query di caricamento dati, ma **nessuno dei tre file usa mai quel campo nel rendering** del PDF — dati caricati e scartati. Non ancora visibile in produzione solo perché `lavori_fasi` è oggi sempre vuota (0 righe, vedi B3); appena B3 popola le fasi, il Fascicolo Tecnico continuerà a non elencarle, mancando il requisito esplicito dell'Allegato XIII MDR ("per ogni singola fase sarà riportato il nome dell'operatore esecutore ed in calce al documento le rispettive firme").
+**Fix:** aggiungere una sezione "Fasi di lavorazione eseguite" ai template PDF pertinenti (probabilmente `generate-ifu.ts`, coerente col fatto che già carica il dato), con codice fase, descrizione, esito, data/ora esecuzione e operatore esecutore — quest'ultimo disponibile solo dopo il fix di `tecnico_id` fatto in B3.
+**Effort:** non stimato — dipende dal completamento di B3 come prerequisito.
+
 ---
 
 ## 🟠 ALTO — impattano fiducia/compliance/usabilità in modo significativo
@@ -286,6 +294,12 @@
 ### A18. Hash di integrità firma DdC mai calcolato
 **Fonte:** [SWE] — `generate-ddc.ts:60` ha `firma_ddc_sha256: null` hardcoded. Il rendering visivo di logo+firma **funziona già** (`DdcTemplate.tsx:246,294-296,465-472`), ma manca l'evidenza di integrità ai fini MDR.
 **Fix:** calcolare l'hash SHA-256 della firma al momento della generazione. **Nota:** la roadmap attuale segna "Logo + firma DdC" come ⏳ non iniziato — è falso, va corretto (vedi sezione documentazione).
+
+### A19. Nessun supporto per allegare il file di progettazione digitale (CAD/STL)
+**Fonte:** [Sis], scoperto 04/07/2026 durante l'analisi di B3.
+**Causa:** `lavori.file_stl_url` esiste come colonna a DB ed è persino letta in `src/app/api/fatture/[id]/xml/route.ts:123` e `src/app/api/fatture/batch/route.ts:146`, ma **nessuna UI la valorizza mai** — zero upload, zero visualizzazione. La fase "Analisi e progettazione (CAD)" del flusso di lavorazione reale (tra accettazione impronte e costruzione/fresatura) resta quindi priva di qualunque tracciamento del file di progettazione digitale nell'app.
+**Fix:** aggiungere un campo di upload file STL/CAD (pattern già esistente per `scheda_tecnica_url`/`scheda_sicurezza_url` in magazzino, B8 1/5) in una tab pertinente (`TabProduzione`/`TabDati`), con storage su Supabase Storage.
+**Effort:** non stimato — non bloccante, funzionalità mai esistita (non una regressione).
 
 ---
 
