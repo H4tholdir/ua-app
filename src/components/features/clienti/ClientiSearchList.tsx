@@ -145,115 +145,117 @@ export function ClientiSearchList({ clienti }: ClientiSearchListProps) {
           </p>
         </div>
       ) : (
-        <ul className="ua-list-grid">
-          {filtered.map((cliente) => (
-            <li key={cliente.id}>
-              <Link
-                href={`/clienti/${cliente.id}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  background: 'var(--surface, #E4DFD9)',
-                  borderRadius: '16px',
-                  padding: '14px 16px',
-                  textDecoration: 'none',
-                  boxShadow:
-                    'var(--sh-b)',
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  minWidth: 0,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Nome principale */}
-                  <p
-                    style={{
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      color: 'var(--t1, #1C1916)',
-                      margin: '0 0 2px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {cliente.cognome} {cliente.nome}
-                  </p>
-
-                  {/* Studio e città */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <span
+        <section style={{ padding: '0 20px' }}>
+          <ul className="ua-list-grid">
+            {filtered.map((cliente) => (
+              <li key={cliente.id}>
+                <Link
+                  href={`/clienti/${cliente.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    background: 'var(--surface, #E4DFD9)',
+                    borderRadius: '16px',
+                    padding: '14px 16px',
+                    textDecoration: 'none',
+                    boxShadow:
+                      'var(--sh-b)',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    minWidth: 0,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Nome principale */}
+                    <p
                       style={{
                         fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '13px',
-                        color: 'var(--t2, #4A3D33)',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: 'var(--t1, #1C1916)',
+                        margin: '0 0 2px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {cliente.studio_nome ?? '—'}
-                    </span>
-                    {cliente.citta && (
+                      {cliente.cognome} {cliente.nome}
+                    </p>
+
+                    {/* Studio e città */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                      }}
+                    >
                       <span
                         style={{
                           fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '12px',
+                          fontSize: '13px',
                           color: 'var(--t2, #4A3D33)',
-                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        {cliente.citta}
+                        {cliente.studio_nome ?? '—'}
                       </span>
+                      {cliente.citta && (
+                        <span
+                          style={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '12px',
+                            color: 'var(--t2, #4A3D33)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {cliente.citta}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Telefono */}
+                    {cliente.telefono && (
+                      <p
+                        style={{
+                          fontFamily: 'DM Sans, sans-serif',
+                          fontSize: '12px',
+                          color: 'var(--c-amber, #F59E0B)',
+                          margin: '2px 0 0',
+                        }}
+                      >
+                        {cliente.telefono}
+                      </p>
                     )}
                   </div>
 
-                  {/* Telefono */}
-                  {cliente.telefono && (
-                    <p
-                      style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '12px',
-                        color: 'var(--c-amber, #F59E0B)',
-                        margin: '2px 0 0',
-                      }}
-                    >
-                      {cliente.telefono}
-                    </p>
-                  )}
-                </div>
-
-                {/* Chevron */}
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
-                  style={{ flexShrink: 0, color: 'var(--t2, #4A3D33)' }}
-                >
-                  <path
-                    d="M6 4l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  {/* Chevron */}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    style={{ flexShrink: 0, color: 'var(--t2, #4A3D33)' }}
+                  >
+                    <path
+                      d="M6 4l4 4-4 4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   )

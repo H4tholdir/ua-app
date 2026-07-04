@@ -18,4 +18,20 @@ describe('PazientiSearchList', () => {
     const link = screen.getByRole('link', { name: /Rossi Mario/ })
     expect(link.getAttribute('href')).toBe('/pazienti/pz-1')
   })
+
+  it('la lista usa il layout responsive ua-list-grid (coerente con ClientiSearchList)', () => {
+    render(<PazientiSearchList pazienti={[PAZIENTE_BASE]} />)
+
+    const list = screen.getByRole('list')
+    expect(list).toHaveClass('ua-list-grid')
+  })
+
+  it('la lista è avvolta in un container con padding orizzontale 20px (evita card edge-to-edge, pattern lavori/page.tsx)', () => {
+    render(<PazientiSearchList pazienti={[PAZIENTE_BASE]} />)
+
+    const list = screen.getByRole('list')
+    const wrapper = list.parentElement
+    expect(wrapper?.tagName.toLowerCase()).toBe('section')
+    expect(wrapper).toHaveStyle({ padding: '0px 20px' })
+  })
 })
