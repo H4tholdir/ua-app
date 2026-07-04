@@ -213,7 +213,7 @@
 **Fonte:** [Sis]
 **Causa:** `src/components/features/pazienti/PazientiSearchList.tsx:164-219` — ogni riga era un `<li><div>` senza `Link`/`href`/`onClick`, a differenza di `ClientiSearchList.tsx` che usa correttamente `<Link>`. `pazienti/[id]/page.tsx` esiste e funziona (R/U/D), ma zero occorrenze di `pazienti/${` in tutto `src/`.
 **Fix applicato:** riga riscritta come `<Link href={\`/pazienti/${p.id}\`}>`, ristrutturata con lo stesso pattern flex+chevron di `ClientiSearchList.tsx`. TDD (test scritto e visto fallire prima), 371/371 test, tsc/build/DS-compliance puliti. Review finale: "Ready to merge: Yes", zero Critical/Important. Dettaglio completo: `memory/MEMORY.md` §0.
-**Follow-up non bloccante aperto separatamente** (`spawn_task task_8422a838`): migrare la `<ul>` al layout `ua-list-grid` (responsive 1/2/3 colonne) già usato da `ClientiSearchList.tsx`, preesistente e fuori scope di questo fix.
+~~**Follow-up non bloccante aperto separatamente** (`spawn_task task_8422a838`): migrare la `<ul>` al layout `ua-list-grid` (responsive 1/2/3 colonne) già usato da `ClientiSearchList.tsx`, preesistente e fuori scope di questo fix.~~ **✅ RISOLTO (05/07/2026, merge `85faad1`)** — migrato a `ua-list-grid`; scoperto in verifica visiva che anche `ClientiSearchList.tsx` aveva lo stesso bug (card edge-to-edge, 0px padding), corretto in entrambi. Dettaglio: `memory/MEMORY.md` §0.
 
 ### B10. ✅ RISOLTO (04/07/2026, merge fast-forward `fab5437`, pushato su `origin/main`) — `/api/fornitori` mancante, blocca creazione ordini
 **Fonte:** [Sis]
