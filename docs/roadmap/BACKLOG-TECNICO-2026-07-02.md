@@ -34,7 +34,7 @@
 | B16 | Query `/ordini` subquery non supportata | ⏳ | | |
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 
-### 🟠 Alto (19)
+### 🟠 Alto (20)
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
 | A1 | Push assente su nuova assegnazione lavoro | ⏳ | | |
@@ -56,6 +56,7 @@
 | A17 | Hydration error React #418 sistemico | ⏳ | | |
 | A18 | Hash integrità firma DdC mancante | ⏳ | | |
 | A19 | Nessun supporto per allegare il file di progettazione digitale (CAD/STL) | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
+| A20 | `audit_log.actor_id` sempre NULL su tutte le tabelle audita | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 
 ### 🟡 Medio (30) — vedi dettaglio nel corpo del documento sotto
 | ID | Titolo | Stato | Data/commit | Note |
@@ -99,7 +100,7 @@
 | D3 | Documentazione/FAQ in-app assente | ⏳ | | |
 | D4 | Script compliance DS ha 3 blind spot | ⏳ | | |
 
-**Totale:** 70 item · 2 fatti (documentali) · 68 da fare
+**Totale:** 71 item · 2 fatti (documentali) · 69 da fare
 
 ---
 
@@ -300,6 +301,12 @@
 **Causa:** `lavori.file_stl_url` esiste come colonna a DB ed è persino letta in `src/app/api/fatture/[id]/xml/route.ts:123` e `src/app/api/fatture/batch/route.ts:146`, ma **nessuna UI la valorizza mai** — zero upload, zero visualizzazione. La fase "Analisi e progettazione (CAD)" del flusso di lavorazione reale (tra accettazione impronte e costruzione/fresatura) resta quindi priva di qualunque tracciamento del file di progettazione digitale nell'app.
 **Fix:** aggiungere un campo di upload file STL/CAD (pattern già esistente per `scheda_tecnica_url`/`scheda_sicurezza_url` in magazzino, B8 1/5) in una tab pertinente (`TabProduzione`/`TabDati`), con storage su Supabase Storage.
 **Effort:** non stimato — non bloccante, funzionalità mai esistita (non una regressione).
+
+### A20. `audit_log.actor_id` sempre NULL su tutte le tabelle audita
+**Fonte:** [Sis], scoperto 04/07/2026 durante l'analisi di B3 (verifica del meccanismo di audit trail in vista della nuova UI "cicli di produzione").
+**Causa:** trigger generico `_audit_trigger_fn()` agganciato oggi a 7 tabelle (`clienti`, `dichiarazioni_conformita`, `fatture`, `laboratori`, `lavori`, `listino`, `magazzino`, `utenti`). Verificato empiricamente: `select (actor_id is null), count(*) from audit_log where table_name='lavori' group by 1` → **356 righe su 356 con `actor_id NULL`**. Causa root: tutte le scritture applicative passano da `getServiceClient()` (service-role, nessun JWT utente), quindi `auth.uid()` valutato dal trigger è sempre nullo. L'audit trail registra correttamente "quando" e "cosa" (`old_data`/`new_data`), ma **non ha mai registrato "chi"**, su nessuna delle 7 tabelle, da quando esiste (prima riga `laboratori` 17/05/2026).
+**Fix:** il trigger da solo non può risolversi (il service client non porta un JWT); serve o (a) una colonna esplicita `updated_by`/`created_by` per tabella, valorizzata dalle route API con `user.id` prima della scrittura (pattern già usato altrove, es. `lavori_rifacimenti.created_by`), oppure (b) impostare una session GUC (`SET LOCAL app.current_user_id = ...`) prima di ogni scrittura service-role e far leggere quella al trigger come fallback quando `auth.uid()` è nullo — quest'ultima risolverebbe tutte e 7 le tabelle esistenti in un colpo solo, ma tocca una funzione condivisa già in produzione (richiede validazione attenta).
+**Effort:** non stimato — non bloccante oggi (nessun flusso dipende attivamente da `actor_id`), ma mina silenziosamente l'affidabilità di un audit trail già presentato come funzionante.
 
 ---
 

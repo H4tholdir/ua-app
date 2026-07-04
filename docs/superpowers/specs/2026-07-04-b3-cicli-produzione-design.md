@@ -13,24 +13,33 @@
 - `lavori.ciclo_id`: 0/282 valorizzato. `lavori_fasi`: 0 righe, mai. La precedente nota in `MEMORY.md` ("277 lavori storici hanno fasi da migrazione") è quindi **falsa per lo stato attuale del DB** e va corretta a fine lavoro (BP-1).
 - `lavori.tipo_dispositivo` (enum applicativo: `protesi_fissa`, `provvisorio`, `altro`, `implantologia`, `protesi_mobile`, `cad_cam`, `scheletrato`) **non coincide** con `cicli_produzione.tipo_dispositivo` (testo libero italiano importato) — niente match automatico di stringa.
 
-**Due bug aggiuntivi scoperti analizzando lo stesso tab, inclusi in questo scope perché nello stesso file:**
-- `LavoroFormClient.tsx:70-74` (`handleUpdateFase`): quando un tecnico segna l'esito di una fase in `TabProduzione`, la modifica aggiorna solo lo stato React locale — **non chiama mai l'API**. Si perde al refresh. L'endpoint `PATCH /api/lavori/[id]/fasi/[fase_id]/route.ts` esiste e funziona ma non viene mai invocato.
-- Lo stesso endpoint (`ALLOWED_FIELDS`, righe 8-16) non permette di impostare `tecnico_id` — quindi anche corretto il bug sopra, **non risulterebbe mai chi ha eseguito la fase**, requisito esplicito Allegato XIII MDR.
+**Tre bug aggiuntivi scoperti analizzando lo stesso tab (audit del 04/07/2026), inclusi in questo scope perché nello stesso file/handler:**
+- `LavoroFormClient.tsx:70-74` (`handleUpdateFase`): quando un tecnico segna l'esito di una fase in `TabProduzione`, la modifica aggiorna solo lo stato React locale — **non chiama mai l'API**. Si perde al refresh. Confermato con `grep -rn "fasi/" src --include=*.tsx --include=*.ts` (esclusi i types): nessun altro punto del frontend chiama mai questa route — è l'unico chiamante e non persiste mai nulla.
+- L'endpoint `PATCH /api/lavori/[id]/fasi/[fase_id]/route.ts` esiste, funziona, e il suo `ALLOWED_FIELDS` include già `non_conforme`/`azione_correttiva`/`note`/`valore_misurato`/`materiali_usati` — ma **non include `tecnico_id`**, quindi anche corretto il bug sopra, non risulterebbe mai chi ha eseguito la fase (requisito esplicito Allegato XIII MDR).
+- **Il bottone "Non conf." in `TabProduzione.tsx` imposta solo `esito: 'non_conforme'`, mai il campo booleano `non_conforme`.** Verificato che il modulo Qualità (`qualita/page.tsx:44-53`, sezione "Non Conformità Recenti") interroga esattamente `.eq('non_conforme', true)` — quindi anche sistemando la persistenza, le non conformità segnate dai tecnici **non comparirebbero mai** nella dashboard Qualità già in produzione. Stesso giro di fix: il client deve inviare anche `non_conforme: true/false` insieme a `esito`.
+
+**Scoperta che cambia l'approccio alla tracciabilità "chi ha modificato" (vedi §2.1):** verificato empiricamente che il trigger di audit generico (`_audit_trigger_fn()`) **non registra mai l'autore** su nessuna delle 7 tabelle già in produzione che lo usano — `select (actor_id is null), count(*) from audit_log where table_name='lavori' group by 1` → **356 righe su 356 con `actor_id NULL`**. Causa: tutte le scritture applicative passano da `getServiceClient()` (service-role, nessun JWT utente), quindi `auth.uid()` dentro il trigger risolve sempre a `NULL`. Il trigger da solo risponde solo a "quando" e "cosa", mai a "chi" — non basta per il requisito di Francesco. Vedi soluzione adottata in §2.1.
 
 **Fuori scope, tracciato separatamente in backlog:**
 - B17 (Blocker) — le fasi, anche popolate, non compaiono in nessun PDF (`generate-ifu.ts` e altri caricano il dato ma non lo renderizzano).
 - A19 (Alto) — nessun supporto per allegare il file di progettazione CAD/STL (`lavori.file_stl_url` mai scritto da nessuna UI).
+- A20 (Alto) — `audit_log.actor_id` sempre NULL su tutte le tabelle audita (gap trasversale, non solo cicli/fasi — vedi scoperta sopra).
 - Popolare `fasi_produzione` per i 139 cicli reali (lavoro manuale di dominio di Francesco, tramite la nuova UI di questo piano — non automatizzabile, nessuna struttura recuperabile dall'import).
 - Rigenerazione automatica di `lavori_fasi` quando si cambia ciclo su un lavoro già esistente (decisione: non farlo, per non cancellare tracciabilità già firmata).
 - Mappatura tra i due sistemi di `tipo_dispositivo` (decisione: ricerca libera, nessun filtro rigido).
+- Input `azione_correttiva` testuale quando si segna una fase "Non conf." — **incluso in questo piano** (colonna e query Qualità già la aspettano, costo minimo: un solo campo di testo condizionale nello stesso form).
+- Surfacing al tecnico di `controllo_misura`/`esito_atteso`/`attrezzatura`/`materiali_nota` (metadati già presenti su `fasi_produzione` ma mai mostrati durante l'esecuzione) e assegnazione di un `responsabile_id` di default per fase — miglioramenti utili ma non bloccanti, rimandati a un giro successivo (non aggiunta voce di backlog dedicata, sono raffinamenti minori dello stesso `TabProduzione`, non bug).
 
 ## 2. Architettura
 
-### 2.1 Database — 1 migration, nessuna nuova tabella/colonna
+### 2.1 Database — 1 migration
 
-Aggancio del trigger di audit generico già in produzione (`_audit_trigger_fn()`, usato oggi su `clienti`, `fatture`, `laboratori`, `lavori`, `listino`, `magazzino`, `utenti`) a due tabelle in più:
+**Tracciabilità "chi ha modificato":** il trigger di audit generico esiste già (`_audit_trigger_fn()`, agganciato oggi a `clienti`, `fatture`, `laboratori`, `lavori`, `listino`, `magazzino`, `utenti`) ma **non basta da solo** — verificato che `actor_id` è sempre `NULL` (356/356 righe su `lavori`) perché tutte le scritture applicative passano dal service client (nessun JWT utente, `auth.uid()` sempre nullo dentro il trigger). Non è compito di B3 correggere questo gap per le 7 tabelle esistenti (tracciato separatamente come A20) — per le due tabelle nuove di questo piano si usa invece un meccanismo esplicito e affidabile, coerente con un pattern già in uso nel progetto (`lavori_rifacimenti.created_by`, `lavoro_prove.created_by`, entrambi `FOREIGN KEY → utenti(id)`, valorizzati direttamente dalla route API):
 
 ```sql
+ALTER TABLE public.cicli_produzione ADD COLUMN updated_by uuid REFERENCES public.utenti(id);
+ALTER TABLE public.fasi_produzione ADD COLUMN updated_by uuid REFERENCES public.utenti(id);
+
 CREATE TRIGGER _audit_cicli_produzione AFTER INSERT OR DELETE OR UPDATE
   ON public.cicli_produzione FOR EACH ROW EXECUTE FUNCTION _audit_trigger_fn();
 
@@ -38,7 +47,9 @@ CREATE TRIGGER _audit_fasi_produzione AFTER INSERT OR DELETE OR UPDATE
   ON public.fasi_produzione FOR EACH ROW EXECUTE FUNCTION _audit_trigger_fn();
 ```
 
-Nessuna `gen types` necessaria (nessuna colonna cambia), ma va comunque eseguito `npx tsc --noEmit` dopo la migration per la regola FASE 6b.
+Il trigger di audit resta comunque utile (storico diff "cosa è cambiato e quando", anche se anonimo); il "chi" per l'etichetta "Ultima modifica di {nome} il {data}" nella UI si legge da `updated_by`/`updated_at` sulla riga stessa, non da `audit_log`. Le API route (§2.2) impostano `updated_by: user.id` esplicitamente su ogni INSERT/UPDATE, **prima** di passare al service client per l'operazione — `user.id` è già disponibile da `getServerUserClient()`, stesso identico pattern già usato per `created_by` altrove.
+
+Questa migration tocca una colonna nuova → **richiede** `npx supabase gen types typescript ... > src/types/database.types.ts` seguito da `npx tsc --noEmit` (FASE 6b, non facoltativa qui).
 
 ### 2.2 API nuove
 
@@ -59,15 +70,16 @@ Nessuna `gen types` necessaria (nessuna colonna cambia), ma va comunque eseguito
 
 - **`CicloComboBox.tsx`** (nuovo) — gemello di `ClienteComboBox.tsx`: ricerca libera via `/api/cicli?q=`, max 8 risultati, `tipo_dispositivo` mostrato come etichetta secondaria in ogni risultato (nessun filtro).
 - **`TabDati.tsx`** — nuovo campo facoltativo "Ciclo di produzione" con `CicloComboBox`.
-- **`TabProduzione.tsx`** — 2 modifiche: (1) `handleUpdateFase` chiama davvero `fetch(PATCH /api/lavori/[id]/fasi/[fase_id])` (pattern identico a `handleSegnaRisolta`), con rollback dello stato locale se la risposta non è ok; (2) messaggio empty-state differenziato: "Nessun ciclo assegnato — assegnalo nella tab Dati" vs "Ciclo assegnato ma nessuna fase ancora definita per questo ciclo" (quest'ultimo sarà il caso comune finché Francesco non popola i cicli più usati).
+- **`TabProduzione.tsx`** — 3 modifiche: (1) `handleUpdateFase`/`LavoroFormClient.tsx` chiama davvero `fetch(PATCH /api/lavori/[id]/fasi/[fase_id])` (pattern identico a `handleSegnaRisolta`), con rollback dello stato locale se la risposta non è ok; (2) il bottone "Non conf." invia anche `non_conforme: true` (e gli altri due `non_conforme: false`) — non solo `esito` — perché il modulo Qualità già in produzione filtra su quel booleano; (3) quando l'esito attivo è `non_conforme`, mostra un campo di testo facoltativo "Azione correttiva" che aggiorna `azione_correttiva` (colonna e query Qualità già pronte a riceverlo); (4) messaggio empty-state differenziato: "Nessun ciclo assegnato — assegnalo nella tab Dati" vs "Ciclo assegnato ma nessuna fase ancora definita per questo ciclo" (quest'ultimo sarà il caso comune finché Francesco non popola i cicli più usati).
 - **Nuova pagina "Cicli di produzione"** — nuova route top-level `/cicli-produzione`, sibling di `/listino` e `/magazzino` (non sotto `/impostazioni`, che è riservato a profilo/abbonamento/account): coerente col fatto che è un catalogo operativo visibile a tutti i ruoli, non un'impostazione di account. Lista cicli cercabile; click apre editor fasi (pattern `RischiEditor.tsx`: lista dinamica riordinabile, aggiungi da libreria o testo libero, rimuovi), footer con "Ultima modifica di {nome utente} il {data}" letto da `audit_log` filtrato su `table_name IN ('cicli_produzione','fasi_produzione')` e `row_id = ciclo.id` (o dei suoi fasi). Visibile a tutti i ruoli, inclusa la voce di navigazione.
 
 ## 4. Testing
 
 - TDD sulle nuove route (`GET /api/cicli`, CRUD `/api/cicli/[id]/fasi`): 401/403/200/edge case, stesso standard delle route recenti (B10).
 - Test su `POST /api/lavori` esteso: creazione con ciclo che ha fasi (genera N `lavori_fasi`), con ciclo senza fasi (0 righe, nessun errore), senza ciclo (comportamento invariato).
-- Test di regressione su `handleUpdateFase`/`TabProduzione`: verifica che venga chiamato `fetch` con i campi corretti, incluso il fatto che il client non invia mai `tecnico_id` (lo risolve solo il server).
-- QA manuale in browser reale sui 3 viewport, lab E2E isolato (mai il lab Filippo) — verificare in particolare che il click su un esito di fase persista dopo un reload di pagina (regressione diretta del bug trovato).
+- Test di regressione su `handleUpdateFase`/`TabProduzione`: verifica che venga chiamato `fetch` con i campi corretti (incluso `non_conforme` sincronizzato con `esito`), incluso il fatto che il client non invia mai `tecnico_id` (lo risolve solo il server).
+- Test dedicato: segnare una fase "Non conf." → verifica che la riga risultante in `lavori_fasi` abbia `non_conforme=true` E sia quindi visibile a una query equivalente a quella del modulo Qualità (`.eq('non_conforme', true)`).
+- QA manuale in browser reale sui 3 viewport, lab E2E isolato (mai il lab Filippo) — verificare in particolare che il click su un esito di fase persista dopo un reload di pagina (regressione diretta del bug trovato), e che una fase segnata "Non conf." compaia davvero nella dashboard Qualità.
 
 ## 5. Note per l'implementazione
 
