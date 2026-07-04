@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 04 luglio 2026 — **B8 COMPLETO (5/5)**, mergiato su main (`0c3e040`) e deployato — `/rete/[id]` risolve l'ultimo link rotto del backlog B8. Prossima priorità: B9.
+**Ultimo aggiornamento:** 04 luglio 2026 — **B9 RISOLTO**, mergiato su main (`ea2a3a9`) e pushato — lista pazienti ora navigabile (link `/pazienti/[id]` aggiunto in `PazientiSearchList.tsx`). Prossima priorità: S4 (Email template branding).
 **Fonte di verità:** questo file + MEMORY.md + `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` + `docs/roadmap/FEATURES-E-FLUSSI-2026-07-02.md`
 
 > ⚠️ Questo documento è la **fonte di verità unica** per le decisioni di roadmap.
@@ -42,9 +42,11 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 
 ---
 
-## 🚨 PROSSIMA SESSIONE → B9, poi S4
+## 🚨 PROSSIMA SESSIONE → S4
 
-**B8 è COMPLETO (5/5, chiuso 04/07/2026).** Tutte e 5 le route del backlog sono risolte e in produzione: magazzino/nuovo (1/5), listino/nuovo (2/5), qualita/rischi/[id] (3/5), rete/nuova (4/5), rete/[id] (5/5, merge `0c3e040`). Il link "Gestisci rete →" ora apre un dettaglio rete funzionante con rinomina, inviti lab-a-rete, rimozione membri e sezione admin. Dettaglio completo B8 (5/5): `memory/MEMORY.md` §0. **Prossima priorità: B9** (lista pazienti non navigabile, BUG #13 noto da settimane, fix stimato 15-30 min), poi S4 (Email template branding).
+**B9 è RISOLTO (chiuso 04/07/2026, merge `ea2a3a9`).** Lista pazienti (BUG #13, noto da settimane) ora navigabile: `PazientiSearchList.tsx` usava righe `<li><div>` statiche senza `Link`; la pagina di dettaglio `/pazienti/[id]` esisteva già e funzionava ma era irraggiungibile. Fix minimo (`<Link href>` + pattern flex/chevron gemello di `ClientiSearchList.tsx`), TDD, review "Ready to merge: Yes". Dettaglio completo: `memory/MEMORY.md` §0. Follow-up non bloccante aperto separatamente (`spawn_task task_8422a838`): migrare `PazientiSearchList` al layout `ua-list-grid` per coerenza responsive con `ClientiSearchList`.
+
+**B8 è COMPLETO (5/5, chiuso 04/07/2026).** Tutte e 5 le route del backlog sono risolte e in produzione: magazzino/nuovo (1/5), listino/nuovo (2/5), qualita/rischi/[id] (3/5), rete/nuova (4/5), rete/[id] (5/5, merge `0c3e040`). Il link "Gestisci rete →" ora apre un dettaglio rete funzionante con rinomina, inviti lab-a-rete, rimozione membri e sezione admin. Dettaglio completo B8 (5/5): `memory/MEMORY.md` §0. **Prossima priorità: S4** (Email template branding, bozza HTML già pronta in `docs/email-templates-supabase.md`).
 
 **A4 (Alto, non blocker) è chiuso definitivamente (03/07/2026, merge `4a36f89`).** Cache versioning automatico nel Service Worker: `public/sw.js` è diventato un file generato (gitignored) da `scripts/generate-sw.mjs`, con `CACHE_NAME` legato al build-id (git sha in produzione, `ua-dev` in sviluppo) invece del bump manuale `ua-v1→ua-v2`. Nessun TTL/pulizia cache aggiunto (decisione esplicita in brainstorming — il fix RSC di B2 aveva già eliminato la crescita illimitata). Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`. Piano: `docs/superpowers/plans/2026-07-03-a4-cache-versioning.md`. Dettaglio completo: `memory/MEMORY.md` §0.
 
@@ -54,11 +56,10 @@ Il re-audit dell'11 agenti (02/07/2026) ha verificato con codice + test live che
 
 ```
 Leggi docs/roadmap/BACKLOG-TECNICO-2026-07-02.md sezione BLOCKER.
-Priorità in ordine:
-1. B9 — Lista pazienti non navigabile (fix da 15-30 min, BUG #13 noto da settimane)
-Poi procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
+Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/email-templates-supabase.md).
 
 ~~B8 — 5 route CRUD che portavano a 404~~ — ✅ COMPLETO 04/07/2026 (magazzino/nuovo, listino/nuovo, qualita/rischi/[id], rete/nuova, rete/[id] tutte risolte e in produzione).
+~~B9 — Lista pazienti non navigabile (BUG #13)~~ — ✅ RISOLTO 04/07/2026 (merge `ea2a3a9`).
 ```
 
 **Storico B1/B2/B7 (per contesto, non richiede più azione):**

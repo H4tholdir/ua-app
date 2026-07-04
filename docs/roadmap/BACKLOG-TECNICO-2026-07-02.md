@@ -24,7 +24,7 @@
 | B6 | Service Worker non intercetta navigazione offline | ⏳ | | |
 | B7 | "Invita tecnico" irraggiungibile da UI | ⏳ | | |
 | B8 | 5 route CRUD → 404 | ⏳ | | |
-| B9 | Lista pazienti non navigabile (BUG #13) | ⏳ | | |
+| B9 | Lista pazienti non navigabile (BUG #13) | ✅ | 04/07/2026 · `ea2a3a9` | Fix `<Link href>` + pattern `ClientiSearchList`; dettaglio in `memory/MEMORY.md` §0 |
 | B10 | `/api/fornitori` mancante, blocca ordini | ⏳ | | |
 | B11 | Colore bandito `#1B2D6B` su ogni card lavoro | ⏳ | | |
 | B12 | Login WCAG-fail (`--ua-t2`/`--ua-t3`) | ⏳ | | |
@@ -158,11 +158,11 @@
 **Fix:** creare le pagine mancanti, oppure sostituire i link con modal/sheet coerenti col pattern già usato altrove (es. `ListinoEditSheet`). Nota: `POST /api/magazzino`, `POST /api/listino` e `POST /api/rete` funzionano già. Per `rete/[id]` mancano ancora 4 API (GET singola rete, POST/DELETE membro, PATCH nome) — le tabelle `reti`/`reti_membri`/`rischi_tipo_dispositivo` esistono già a DB (non documentate in `ANALISI/23_ua_database_schema.md`, verificato in `src/types/database.types.ts`).
 **Effort:** variabile per route, presumibilmente 1-3h ciascuna (magazzino/listino/rete-nuova) fino a mezza giornata per rete/[id] (API mancanti).
 
-### B9. Lista pazienti non navigabile (BUG #13, noto da tempo, mai risolto)
+### B9. ✅ RISOLTO (04/07/2026, merge `ea2a3a9`) — Lista pazienti non navigabile (BUG #13, noto da tempo, mai risolto)
 **Fonte:** [Sis]
-**Causa:** `src/components/features/pazienti/PazientiSearchList.tsx:164-219` — ogni riga è un `<li><div>` senza `Link`/`href`/`onClick`, a differenza di `ClientiSearchList.tsx` che usa correttamente `<Link>`. `pazienti/[id]/page.tsx` esiste e funziona (R/U/D), ma zero occorrenze di `pazienti/${` in tutto `src/`.
-**Fix:** aggiungere `<Link href={\`/pazienti/${p.id}\`}>` in `PazientiSearchList.tsx`.
-**Effort:** basso, 15-30 minuti — è un fix quasi banale rimasto ignorato.
+**Causa:** `src/components/features/pazienti/PazientiSearchList.tsx:164-219` — ogni riga era un `<li><div>` senza `Link`/`href`/`onClick`, a differenza di `ClientiSearchList.tsx` che usa correttamente `<Link>`. `pazienti/[id]/page.tsx` esiste e funziona (R/U/D), ma zero occorrenze di `pazienti/${` in tutto `src/`.
+**Fix applicato:** riga riscritta come `<Link href={\`/pazienti/${p.id}\`}>`, ristrutturata con lo stesso pattern flex+chevron di `ClientiSearchList.tsx`. TDD (test scritto e visto fallire prima), 371/371 test, tsc/build/DS-compliance puliti. Review finale: "Ready to merge: Yes", zero Critical/Important. Dettaglio completo: `memory/MEMORY.md` §0.
+**Follow-up non bloccante aperto separatamente** (`spawn_task task_8422a838`): migrare la `<ul>` al layout `ua-list-grid` (responsive 1/2/3 colonne) già usato da `ClientiSearchList.tsx`, preesistente e fuori scope di questo fix.
 
 ### B10. `/api/fornitori` mancante — blocca creazione ordini
 **Fonte:** [Sis]
