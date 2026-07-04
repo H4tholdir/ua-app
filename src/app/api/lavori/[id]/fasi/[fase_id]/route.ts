@@ -30,15 +30,19 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   const svc = getServiceClient()
 
-  const { data: utente } = await svc
+  const { data: utente, error: utenteError } = await svc
     .from('utenti')
     .select('laboratorio_id')
     .eq('id', user.id)
     .single()
 
+  if (utenteError) {
+    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
+  }
   if (!utente?.laboratorio_id) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const labId: string = utente.laboratorio_id
 
   let body: Record<string, unknown>
   try {
@@ -52,6 +56,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (key in body) updates[key] = body[key]
   }
 
+  // tecnico_id non è mai fidato dal client: si risolve qui, dal record `tecnici`
+  // collegato all'utente loggato, solo quando si sta registrando un esito
+  // (altrimenti non tocchiamo l'assegnazione già presente sulla riga).
+  if ('esito' in updates && updates.esito != null) {
+    const { data: tecnico } = await svc
+      .from('tecnici')
+      .select('id')
+      .eq('utente_id', user.id)
+      .eq('laboratorio_id', labId)
+      .single()
+    if (tecnico?.id) {
+      updates.tecnico_id = tecnico.id
+    }
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Nessun campo aggiornabile fornito' }, { status: 400 })
   }
@@ -61,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     .update(updates)
     .eq('id', fase_id)
     .eq('lavoro_id', lavoro_id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', labId)
     .is('deleted_at', null)
     .select()
     .single()
