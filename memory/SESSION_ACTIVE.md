@@ -1,11 +1,15 @@
-# Handoff — Quick-fix bundle B12+B15+B11 mergiato e deployato (05/07/2026)
+# Handoff — B17 risolto, in attesa di merge (05/07/2026)
 
-**3 blocker a basso effort chiusi, mergiati su `main` (commit `3da42c1`) e deployati.** B12 login WCAG (`8725dc2`), B15 banner Abbonamento/rischio doppio addebito Stripe (`a86d3f7`), B11 colore bandito `#1B2D6B` su 4 componenti + decimo caso rgba scoperto in review (`52e4a5d`+`1ee45c9`). Review finale whole-branch: "Ready to merge: Yes", zero Critical/Important. CI verde, deploy Vercel confermato, `uachelab.com` risponde. Worktree e branch rimossi. Dettaglio completo: `memory/MEMORY.md` §0.
+**B17 (Scheda di Fabbricazione) RISOLTO in questo lavoro** — worktree `.claude/worktrees/b17-scheda-fabbricazione` (branch `worktree-b17-scheda-fabbricazione`), 5 commit tecnici (`41f435e`..`92702d9`). Nuovo documento PDF interno on-demand per tracciabilità fasi di lavorazione, corretta l'attribuzione normativa errata del backlog originale (non Allegato XIII, ma QMS Art. 10(9) MDR). Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B17).
 
-**Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF).
+**Verifica eseguita:** `tsc --noEmit` pulito, `vitest run` 526 passed/4 skipped (era 504), `next build` compilazione TypeScript pulita (fallimento "Collecting page data" su `/api/admin/labs` = gap ambientale `.env.local` noto, non regressione).
 
-**QA browser manuale ESEGUITA** (dev server + `preview_*`, lab E2E isolato, dati di test rimossi a fine sessione): B12 contrasto reale 7.90:1/4.84:1 (era 2.2:1/1.5:1 FAIL); B15 riprodotto sia lo scenario del bug (nessun banner con lab attivo+trial storico) sia il caso legittimo (banner mostrato per lab realmente in trial); B11 confermato blu `rgb(59,130,246)` su progress bar `LavoroCard` e badge "Segnalato Ministero" (incluso il decimo caso rgba). Toast realtime "Richiesta" e odontogramma non riprodotti dal vivo (rispettivamente: timing sottoscrizione WebSocket, nessun paziente E2E) — non bloccante, stesso valore CSS già confermato altrove. Dettaglio: `memory/MEMORY.md` §0.
+**Non ancora fatto:** merge su `main`, push, deploy, QA browser post-merge (scaricare Scheda per lavoro E2E con fasi miste OK/non conforme/in attesa — vedi nota finale del piano). **In attesa di conferma esplicita di Francesco prima di procedere con `superpowers:finishing-a-development-branch`.**
+
+**Anche aperto, non toccato:** B20 (PSUR/PMS Report non differenziato per classe di rischio) — backlog item indipendente, da pianificare a parte.
+
+**Altri blocker aperti nel backlog** (dopo B17): B5, B6, B14 (richiede decisione di Filippo), B16, B20.
 
 ---
 
-Backlog: 🔴 14/18 Blocker risolti (B1 ✅, B2-B4 ✅, B7-B10 ✅ [B8 4/5], B11-B12 ✅, B13 ✅, B15 ✅, B18 ✅, B19 ✅). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 15/18 Blocker risolti (B1 ✅, B2-B4 ✅, B7-B10 ✅ [B8 4/5], B11-B13 ✅, B15 ✅, B17 ✅, B18 ✅, B19 ✅). B20: nuovo, non pianificato. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
