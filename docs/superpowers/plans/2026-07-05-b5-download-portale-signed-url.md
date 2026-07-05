@@ -488,7 +488,7 @@ EOF
 
 ---
 
-### Task 4: Apertura automatica WhatsApp in `DashboardFrontDesk.tsx`
+### Task 4: Bottone WhatsApp esplicito post-consegna in `DashboardFrontDesk.tsx`
 
 **Files:**
 - Modify: `src/components/features/dashboard/DashboardFrontDesk.tsx`
@@ -496,6 +496,8 @@ EOF
 
 **Interfaces:**
 - Consumes: `ConsegnaResult.whatsapp_url` (stesso tipo del Task 3).
+
+**Nota di design (decisione presa con Francesco dopo revisione):** l'apertura automatica di `window.open()` dopo un `await fetch()` non è affidabile — i browser (in particolare Safari) possono bloccare l'apertura di una nuova scheda se non avviene in modo sincrono rispetto al click originale, e qui in mezzo c'è una chiamata di rete più la generazione lato server del link. Il rischio è silenzioso: il codice gira, il test passerebbe, ma su alcuni browser WhatsApp non si aprirebbe mai — lo stesso identico bug che questo lavoro deve risolvere. Soluzione: dopo consegna riuscita, la riga NON sparisce subito — il bottone "CONSEGNA" viene sostituito da un bottone "📱 WHATSAPP" che l'operatore clicca esplicitamente (click reale = affidabile in ogni browser), e solo a quel click la riga sparisce e si apre la scheda WhatsApp. Se la consegna riesce ma non c'è `whatsapp_url` (es. cliente senza telefono), la riga sparisce subito come prima.
 
 - [ ] **Step 1: Scrivi il test che fallisce (RED)**
 
@@ -531,7 +533,7 @@ const DATA: FrontDeskDashboard = {
   da_contattare: [],
 }
 
-describe('DashboardFrontDesk — apertura automatica WhatsApp post-consegna', () => {
+describe('DashboardFrontDesk — bottone WhatsApp esplicito post-consegna', () => {
   const originalOpen = window.open
 
   beforeEach(() => {
@@ -544,7 +546,7 @@ describe('DashboardFrontDesk — apertura automatica WhatsApp post-consegna', ()
     window.open = originalOpen
   })
 
-  it('dopo consegna riuscita apre automaticamente il link WhatsApp in una nuova tab', async () => {
+  it('dopo consegna riuscita mostra un bottone WhatsApp esplicito invece di aprire subito la tab', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(global.fetch as any).mockResolvedValueOnce({
       ok: true,
@@ -555,9 +557,34 @@ describe('DashboardFrontDesk — apertura automatica WhatsApp post-consegna', ()
 
     fireEvent.click(screen.getByRole('button', { name: /consegna/i }))
 
+    // Il bottone WhatsApp appare al posto di CONSEGNA — non deve aprirsi da solo
+    await screen.findByRole('button', { name: /whatsapp/i })
+    expect(window.open).not.toHaveBeenCalled()
+
+    // Solo il click esplicito sul bottone WhatsApp apre la scheda e rimuove la riga
+    fireEvent.click(screen.getByRole('button', { name: /whatsapp/i }))
+
     await waitFor(() => {
       expect(window.open).toHaveBeenCalledWith('https://wa.me/?text=ciao', '_blank', 'noopener,noreferrer')
     })
+    expect(screen.queryByText('LAV-2026-0001')).not.toBeInTheDocument()
+  })
+
+  it('dopo consegna riuscita senza whatsapp_url rimuove subito la riga', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true, whatsapp_url: null }),
+    })
+
+    render(<DashboardFrontDesk data={DATA} nomeUtente="Sara" labId="lab-1" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /consegna/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Studio Rossi')).not.toBeInTheDocument()
+    })
+    expect(window.open).not.toHaveBeenCalled()
   })
 })
 ```
@@ -565,11 +592,11 @@ describe('DashboardFrontDesk — apertura automatica WhatsApp post-consegna', ()
 - [ ] **Step 2: Esegui il test e verifica che fallisca**
 
 Run: `npx vitest run tests/unit/DashboardFrontDesk.whatsapp.test.tsx`
-Expected: FALLISCE — `window.open` non viene mai chiamato.
+Expected: FALLISCE — nessun bottone "whatsapp" viene mai renderizzato.
 
 Nota: se la fixture `FrontDeskDashboard`/`FrontDeskConsegnaItem` non corrisponde esattamente ai campi reali (verificati con il comando `grep` dello Step 1), correggi la fixture del test di conseguenza prima di procedere — non modificare il tipo di dominio per questo task.
 
-- [ ] **Step 3: Aggiorna `handleConsegna` in `DashboardFrontDesk.tsx`**
+- [ ] **Step 3: Aggiorna `DashboardFrontDesk.tsx`**
 
 Trova la riga 7:
 
@@ -583,6 +610,58 @@ Sostituiscila con:
 import type { FrontDeskDashboard, FrontDeskConsegnaItem, ConsegnaResult } from '@/types/domain'
 ```
 
+Subito dopo la funzione `ConsegnaButton` esistente (dopo la sua chiusura `}`), aggiungi un nuovo componente `WhatsappButton` — stesso stile 3D, colore verde semantico DS invece del rosso primario:
+
+```typescript
+function WhatsappButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'var(--c-green, #22C55E)',
+        color: '#fff',
+        fontFamily: 'DM Sans, sans-serif',
+        fontSize: 13,
+        fontWeight: 700,
+        padding: '10px 16px',
+        borderRadius: 8,
+        border: 'none',
+        boxShadow: '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)',
+        cursor: 'pointer',
+        transition: 'transform 80ms ease, box-shadow 80ms ease',
+        WebkitTapHighlightColor: 'transparent',
+        minHeight: 52,
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'translateY(3px)'
+        e.currentTarget.style.boxShadow = '0 1px 0 #16A34A, 0 2px 3px rgba(0,0,0,.15)'
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)'
+      }}
+      onTouchStart={(e) => {
+        e.currentTarget.style.transform = 'translateY(3px)'
+        e.currentTarget.style.boxShadow = '0 1px 0 #16A34A, 0 2px 3px rgba(0,0,0,.15)'
+      }}
+      onTouchEnd={(e) => {
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)'
+      }}
+    >
+      📱 WHATSAPP
+    </button>
+  )
+}
+```
+
+Poi, dentro `DashboardFrontDesk`, aggiungi lo stato per gli URL WhatsApp in attesa di click esplicito (subito dopo la riga `const [, setLoading] = useState<string | null>(null)`):
+
+```typescript
+  const [whatsappUrls, setWhatsappUrls] = useState<Record<string, string>>({})
+```
+
 Sostituisci `handleConsegna`:
 
 ```typescript
@@ -594,9 +673,10 @@ Sostituisci `handleConsegna`:
         if (res.ok) {
           const json = (await res.json()) as ConsegnaResult
           if (json.whatsapp_url) {
-            window.open(json.whatsapp_url, '_blank', 'noopener,noreferrer')
+            setWhatsappUrls((prev) => ({ ...prev, [id]: json.whatsapp_url as string }))
+          } else {
+            setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
           }
-          setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
         }
       } catch {
         // Silently ignore — user can retry
@@ -606,12 +686,44 @@ Sostituisci `handleConsegna`:
     },
     []
   )
+
+  const handleApriWhatsapp = useCallback((id: string, url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
+    setWhatsappUrls((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }, [])
+```
+
+Trova il render del bottone nella riga della lista "Da consegnare oggi":
+
+```typescript
+                  <ConsegnaButton
+                    onClick={() => handleConsegna(lavoro.id)}
+                  />
+```
+
+Sostituisci con:
+
+```typescript
+                  {whatsappUrls[lavoro.id] ? (
+                    <WhatsappButton
+                      onClick={() => handleApriWhatsapp(lavoro.id, whatsappUrls[lavoro.id])}
+                    />
+                  ) : (
+                    <ConsegnaButton
+                      onClick={() => handleConsegna(lavoro.id)}
+                    />
+                  )}
 ```
 
 - [ ] **Step 4: Esegui il test e verifica che passi (GREEN)**
 
 Run: `npx vitest run tests/unit/DashboardFrontDesk.whatsapp.test.tsx`
-Expected: PASS.
+Expected: PASS (entrambi i casi).
 
 - [ ] **Step 5: Verifica globale**
 
@@ -623,13 +735,13 @@ Expected: nessun errore, nessuna regressione.
 ```bash
 git add src/components/features/dashboard/DashboardFrontDesk.tsx tests/unit/DashboardFrontDesk.whatsapp.test.tsx
 git commit -m "$(cat <<'EOF'
-feat(dashboard): apri automaticamente WhatsApp dopo consegna rapida (B5)
+feat(dashboard): bottone WhatsApp esplicito dopo consegna rapida (B5)
 
 Stesso gap di ConsegnaButton — handleConsegna ignorava whatsapp_url.
-Qui, a differenza della pagina dedicata, apertura automatica in
-nuova tab (non un bottone esplicito): il flusso Front Desk è una
-lista compatta di consegne multiple rapide, senza spazio per un
-secondo bottone per riga.
+Scartata l'apertura automatica (window.open dopo un await non è
+affidabile — rischio di blocco popup silenzioso, specie Safari):
+dopo consegna riuscita il bottone CONSEGNA diventa un bottone
+WHATSAPP esplicito, click reale = affidabile in ogni browser.
 EOF
 )"
 ```
@@ -978,7 +1090,11 @@ Subito dopo la funzione `mapLavoro` esistente (dopo la sua chiusura `})`), aggiu
 ```typescript
   const mapLavoroConsegnato = (l: Record<string, unknown>): LavoroPortale => {
     const base = mapLavoro(l)
-    const ddcRow = l.ddc as { storage_path_pdf: string | null } | null
+    // Normalizzazione difensiva: PostgREST può restituire una relazione
+    // embedded come oggetto singolo o array a seconda di come inferisce la
+    // cardinalità — non assumere una forma specifica per questo confine esterno.
+    const ddcRaw = l.ddc as { storage_path_pdf: string | null } | { storage_path_pdf: string | null }[] | null
+    const ddcRow = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
     const hasDdc = !!ddcRow?.storage_path_pdf
     const hasBuono = !!(l.buono_storage_path as string | null)
     return {
@@ -1146,10 +1262,22 @@ Nessun test dedicato per la pagina (stesso precedente di B17 Task 5) — `TabDoc
 
 - [ ] **Step 1: Aggiungi la firma degli URL nella pagina lavoro**
 
-In `src/app/(app)/lavori/[id]/page.tsx`, aggiungi l'import in cima al file:
+In `src/app/(app)/lavori/[id]/page.tsx`, aggiungi in cima al file (dopo l'ultimo import esistente, riga 11):
 
 ```typescript
 import { getSignedUrl } from '@/lib/storage/signed-url'
+```
+
+Trova la riga 12 (import esistente, esatto):
+
+```typescript
+import type { LavoroDettaglio } from '@/types/domain'
+```
+
+Sostituiscila con:
+
+```typescript
+import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 ```
 
 Trova:
@@ -1168,6 +1296,14 @@ Sostituisci con:
 
   // Fix trasversale B5: le "public URL" salvate in DB sono rotte (bucket
   // documenti privato) — firma gli URL al momento del render, mai in anticipo.
+  // Normalizzazione difensiva: PostgREST può restituire `dichiarazioni_conformita`
+  // embedded come oggetto singolo o array a seconda della cardinalità inferita —
+  // non assumere una forma specifica per questo confine esterno (mai verificato
+  // empiricamente). Riassegna la proprietà così tutto il resto della pagina
+  // (incluso il passaggio a TabDocumenti) vede sempre un oggetto singolo coerente.
+  const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
+  lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+
   if (lavoroDettaglio.ddc?.storage_path_pdf) {
     const signedDdcUrl = await getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
     if (signedDdcUrl) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
@@ -1688,7 +1824,7 @@ Da eseguire in un worktree isolato dedicato (`superpowers:using-git-worktrees`),
 
 Prima del merge finale, nel lab E2E isolato (mai il lab Filippo):
 - Consegna reale da `/lavori/[id]/consegna` → verificare che il bottone "Invia messaggio WhatsApp" appaia e apra `wa.me` con il link portale corretto
-- Consegna reale da Front Desk → verificare apertura automatica della nuova tab WhatsApp
+- Consegna reale da Front Desk → bottone CONSEGNA diventa bottone WHATSAPP esplicito, click apre la scheda WhatsApp corretta e la riga scompare
 - Portale dentista, lavoro consegnato con DdC/Buono generati → entrambi i link di download funzionano, PDF scaricato è quello corretto
 - Portale, lavoro consegnato senza DdC/Buono (storico) → nessun link mostrato, nessun errore
 - `/lavori/[id]` tab Docs → "Apri PDF" apre il PDF correttamente (non più 400)
