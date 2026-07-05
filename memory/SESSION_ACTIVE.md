@@ -1,17 +1,15 @@
-# Handoff — B17 completo: mergiato, deployato, QA verificata (05/07/2026)
+# Handoff — B5 risolto in worktree, non ancora mergiato (06/07/2026)
 
-**B17 (Scheda di Fabbricazione) COMPLETO in ogni sua parte.** Merge `main` ← `worktree-b17-scheda-fabbricazione` (commit `ef75eb1`), pushato su `origin/main`, CI verde, deploy Vercel confermato, `uachelab.com` risponde. Worktree e branch rimossi.
+**B5 (download DdC/Buono dal portale + fix trasversale URL firmate) RISOLTO** in questo worktree/branch (`worktree-b5-download-signed-url`, 12 commit `04e3047..7e516de`). **Non ancora mergiato su `main`, QA browser pre-merge ancora da fare.**
 
-Nuovo documento PDF interno on-demand per tracciabilità fasi di lavorazione, corretta l'attribuzione normativa errata del backlog originale (non Allegato XIII, ma QMS Art. 10(9) MDR). Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B17).
+Scope ampliato dalla ricerca oltre la descrizione originale: WhatsApp al dentista mai inviato (nessun client leggeva `whatsapp_url`), bug trasversale URL pubbliche rotte su bucket privato `documenti` (rompeva anche TabDocumenti/TabImmagini/fatture, non solo il portale). Tutto risolto via helper condiviso `getSignedUrl()`, un'unica migration (`lavori.buono_storage_path`, applicata al DB live con conferma di Francesco). Audit contenuto DdC (8 elementi Allegato XIII) e Buono eseguiti: 2 gap regolatori reali trovati e corretti sulla DdC (SRN EUDAMED, numero lavoro), nessun gap sul Buono. Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B5).
 
-**Verifica pre-merge:** `tsc`/`vitest` (526 passed/4 skipped)/`next build` puliti. Rischio critico segnalato da un secondo reviewer (query nested `tecnico:tecnici` dentro `lavori_fasi`, mai usata altrove) chiuso con FK reale su DB live + generatore reale contro dati E2E. **Verifica post-merge:** stessa suite rieseguita su `main` con successo.
+**Verifica finale:** `tsc`/`vitest` (`553 passed | 4 skipped`, era 526)/`next build` tutti puliti. Route portale nuova presente nel manifest, route orfana rimossa assente.
 
-**QA browser ESEGUITA** (dev server locale + `preview_*`, lab E2E isolato, mai il lab Filippo): link "Scarica Scheda di Fabbricazione" visibile su lavoro con fasi, click reale → `GET .../scheda-fabbricazione 200` confermato nei log server; link correttamente assente (verificato via DOM, non solo visivo) su lavoro senza fasi. Dati di test rimossi, 0 residui.
+**Follow-up segnalati, non bloccanti:** SRN EUDAMED letto live da `laboratori` invece che da uno snapshot immutabile su `dichiarazioni_conformita` (basso impatto, quasi sempre `null` per esenzione EUDAMED custom-made); bottone WhatsApp ora compare ad ogni consegna anche senza telefono cliente in anagrafica (comportamento server preesistente, solo ora visibile).
 
-**Anche aperto, non toccato:** B20 (PSUR/PMS Report non differenziato per classe di rischio) — backlog item indipendente, da pianificare a parte.
-
-**Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo — richiede decisione di Filippo), B16 (query ordini non supportata), B20.
+**Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B6 (Service Worker non intercetta la navigazione offline), B14 (`compenso_base` ambiguo — richiede decisione di Filippo), B16 (query `/ordini` non supportata), B20 (PSUR/PMS non differenziato per classe di rischio).
 
 ---
 
-Backlog: 🔴 15/18 Blocker risolti (B1 ✅, B2-B4 ✅, B7-B10 ✅ [B8 4/5], B11-B13 ✅, B15 ✅, B17 ✅, B18 ✅, B19 ✅). B20: nuovo, non pianificato. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 16/18 Blocker risolti (B1 ✅, B2-B5 ✅, B7-B10 ✅ [B8 4/5], B11-B13 ✅, B15 ✅, B17 ✅, B18 ✅, B19 ✅). B20: nuovo, non pianificato. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
