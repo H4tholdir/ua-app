@@ -338,6 +338,12 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
               <Text style={styles.value}>{ddc.fabbricante_itca}</Text>
             </View>
           ) : null}
+          {lab.srn_eudamed ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>SRN EUDAMED:</Text>
+              <Text style={styles.value}>{lab.srn_eudamed}</Text>
+            </View>
+          ) : null}
           <View style={styles.row}>
             <Text style={styles.label}>Luogo emissione:</Text>
             <Text style={styles.value}>{ddc.luogo_emissione || '—'}</Text>
@@ -378,6 +384,10 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>§5 — Dispositivo su misura</Text>
           <View style={styles.row}>
+            <Text style={styles.label}>Numero lavoro:</Text>
+            <Text style={styles.valueBold}>{lavoro.numero_lavoro || '—'}</Text>
+          </View>
+          <View style={styles.row}>
             <Text style={styles.label}>Tipo dispositivo:</Text>
             <Text style={styles.valueBold}>
               {formatTipoDispositivo(ddc.tipo_dispositivo ?? lavoro.tipo_dispositivo)}
@@ -413,6 +423,9 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
                 : 'No'}
             </Text>
           </View>
+          <Text style={styles.rischiText}>
+            Dispositivo su misura ai sensi dell&apos;Art. 2(1)(3) MDR — non soggetto a marcatura CE ai sensi dell&apos;Art. 20(1) MDR 2017/745.
+          </Text>
         </View>
 
         {/* ── §6 CLASSIFICAZIONE ── */}

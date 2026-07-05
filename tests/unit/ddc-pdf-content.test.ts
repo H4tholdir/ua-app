@@ -129,6 +129,29 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('ITCA01051686')
   })
 
+  it('§1 stampa SRN EUDAMED del fabbricante quando presente sul laboratorio', async () => {
+    // LAB_FIXTURE condivisa ha srn_eudamed: null (caso comune — lab custom-made
+    // esente EUDAMED, MDCG 2021-13). Variante locale per verificare il rendering
+    // quando il campo è valorizzato, senza mutare la fixture condivisa.
+    const labConSrn = { ...LAB_FIXTURE, srn_eudamed: 'IT-CA-000123456' }
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: labConSrn,
+      ddc: DDC_FIXTURE,
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    expect(result.text).toContain('IT-CA-000123456')
+  })
+
+  it('§1 non stampa riga SRN EUDAMED quando assente (lab custom-made esente, MDCG 2021-13)', () => {
+    // DDC_FIXTURE/LAB_FIXTURE usate in beforeAll hanno srn_eudamed: null
+    expect(pdfText.toLowerCase()).not.toContain('srn eudamed')
+  })
+
   // ── §2 Numero DdC e data emissione ───────────────────────────────────────
 
   it('§2 stampa numero DdC', () => {
@@ -173,9 +196,36 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
     expect(pdfText).toContain('LOT-2025-ZR-0042')
   })
 
+  it('§5 stampa numero lavoro (dati identificativi del dispositivo, elemento 2 Allegato XIII)', () => {
+    expect(pdfText).toContain('LAV-2026-0001')
+  })
+
+  it('§5 stampa dicitura "fabbricato su misura" (elemento 3 Allegato XIII)', () => {
+    // Formula presente in uso_esclusivo_paziente (§4) — "fabbricato su misura
+    // esclusivamente per il paziente indicato"
+    expect(pdfText.toLowerCase()).toContain('fabbricato su misura')
+  })
+
+  it('§5/§7 stampa dicitura assenza marcatura CE (Art. 20(1) MDR — dispositivi su misura)', () => {
+    expect(pdfText.toLowerCase()).toContain('marcatura ce')
+    expect(pdfText).toContain('Art. 20(1)')
+  })
+
+  it('nessun riferimento residuo alla Direttiva 93/42/CEE (abrogata dal 26/05/2024)', () => {
+    expect(pdfText).not.toContain('93/42')
+  })
+
   // ── §6 Classificazione MDR ────────────────────────────────────────────────
 
   it('§6 stampa classe di rischio formattata ("Classe IIa")', () => {
+    expect(pdfText).toContain('Classe IIa')
+  })
+
+  it('§6 Classe IIa: nessun contenuto tecnico extra oltre alla classificazione (conclusione normativa)', () => {
+    // Allegato XIII punto 1(f) non impone contenuti tecnici aggiuntivi specifici
+    // per la Classe IIa oltre alla classe di rischio stessa — il template tratta
+    // tutte le classi allo stesso modo, correttamente. Test di documentazione:
+    // verifica solo che la classe sia stampata (già coperto sopra), nessun gap.
     expect(pdfText).toContain('Classe IIa')
   })
 
@@ -183,6 +233,12 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
 
   it('§7 contiene riferimento ad Allegato XIII', () => {
     expect(pdfText).toContain('Allegato XIII')
+  })
+
+  it('§7 contiene riferimento esplicito ad Allegato I (requisiti generali di sicurezza e prestazione, elemento 7 Allegato XIII)', () => {
+    // pdf-parse può spezzare la riga tra "Allegato" e "I" a causa del wrapping
+    // del testo nel box PDF — regex tollerante a whitespace/newline nel mezzo.
+    expect(pdfText).toMatch(/Allegato\s+I(?!\w)/)
   })
 
   it('§7 contiene riferimento a Regolamento UE 2017/745', () => {
@@ -205,6 +261,10 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
 
   it('§8 stampa qualifica PRRC', () => {
     expect(pdfText).toContain('Odontotecnico abilitato')
+  })
+
+  it('§8 stampa luogo di emissione (elemento 8 Allegato XIII — luogo, data e firma)', () => {
+    expect(pdfText).toContain('Serre (SA), Italia')
   })
 
   // ── §6-bis Norme armonizzate applicate ───────────────────────────────────
