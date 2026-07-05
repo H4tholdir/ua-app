@@ -28,7 +28,7 @@
 | B10 | `/api/fornitori` mancante, blocca ordini | ✅ | 04/07/2026 · `fab5437` | Nuova `GET /api/fornitori`, pattern identico a `listino` GET. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B11 | Colore bandito `#1B2D6B` su ogni card lavoro | ⏳ | | |
 | B12 | Login WCAG-fail (`--ua-t2`/`--ua-t3`) | ⏳ | | |
-| B13 | Zero test su `orchestraConsegna`/Stripe webhook | ⏳ | | |
+| B13 | Zero test su `orchestraConsegna`/Stripe webhook | 🔄 | 05/07/2026 · worktree `worktree-b13-ddc-buono-idempotenza` | ✅ B13 (1/2, idempotenza DdC/Buono) risolto — vedi `memory/MEMORY.md` §0. B13 (2/2, webhook Stripe) resta aperto. |
 | B14 | `tecnici.compenso_base` ambiguo | ⏳ | | |
 | B15 | Banner Abbonamento contraddittorio | ⏳ | | |
 | B16 | Query `/ordini` subquery non supportata | ⏳ | | |
@@ -242,6 +242,8 @@
 **Causa:** `vitest.config.ts:19-22` esclude ancora `src/app/api/stripe/**` e `src/app/api/auth/**` dalla coverage, identico carattere per carattere a maggio. Nessun test in nessuno dei 17 file `tests/unit/` copre `orchestraConsegna` o il webhook Stripe.
 **Fix:** aggiungere test per `orchestraConsegna` (happy path + precheck fallito) e per il webhook Stripe (idempotency su `stripe_events`, mapping evento→lab, comportamento su fallimento post-insert, mock SDK).
 **Effort:** non stimato, verosimilmente 4-8 ore.
+
+**Nota (05/07/2026):** ✅ B13 (1/2, idempotenza DdC/Buono) risolto — il retry di `orchestraConsegna` dopo un fallimento parziale poteva generare un secondo file PDF orfano su Storage e bruciare un secondo numero progressivo per la DdC e/o il Buono; risolto con guard di idempotenza early-exit in `generateDdC()` e `generateBuono()`. Dettaglio completo in `memory/MEMORY.md` §0 (spec `docs/superpowers/specs/2026-07-05-b13-ddc-buono-idempotenza-design.md`, piano `docs/superpowers/plans/2026-07-05-b13-ddc-buono-idempotenza.md`). Il testo narrativo sopra resta valido: **B13 (2/2, webhook Stripe silent-fail) resta aperto** ed è la prossima priorità.
 
 ### B14. `tecnici.compenso_base` ancora semanticamente ambiguo
 **Fonte:** [Tit], invariato da maggio (oltre un mese aperto)
