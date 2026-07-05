@@ -9,7 +9,8 @@ import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
 import { TracciabilitaMaterialiBanner } from '@/components/features/lavori/TracciabilitaMaterialiBanner'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
-import type { LavoroDettaglio } from '@/types/domain'
+import { getSignedUrl } from '@/lib/storage/signed-url'
+import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -57,6 +58,30 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
   }
 
   const lavoroDettaglio = lavoro as unknown as LavoroDettaglio
+
+  // Fix trasversale B5: le "public URL" salvate in DB sono rotte (bucket
+  // documenti privato) — firma gli URL al momento del render, mai in anticipo.
+  // Normalizzazione difensiva: PostgREST può restituire `dichiarazioni_conformita`
+  // embedded come oggetto singolo o array a seconda della cardinalità inferita —
+  // non assumere una forma specifica per questo confine esterno (mai verificato
+  // empiricamente). Riassegna la proprietà così tutto il resto della pagina
+  // (incluso il passaggio a TabDocumenti) vede sempre un oggetto singolo coerente.
+  const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
+  lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+
+  if (lavoroDettaglio.ddc?.storage_path_pdf) {
+    const signedDdcUrl = await getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
+    if (signedDdcUrl) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
+  }
+
+  if (lavoroDettaglio.immagini.length > 0) {
+    await Promise.all(
+      lavoroDettaglio.immagini.map(async (img) => {
+        const signedImgUrl = await getSignedUrl(svc, 'documenti', img.storage_path, 3600)
+        if (signedImgUrl) img.url = signedImgUrl
+      })
+    )
+  }
 
   const subtitle =
     lavoroDettaglio.paziente_nome_snapshot ?? lavoroDettaglio.descrizione
