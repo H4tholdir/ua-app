@@ -13,7 +13,7 @@
 
 **Legenda stato:** ⏳ Da fare · 🔄 In corso · ✅ Fatto e verificato · ⛔ Bloccato (vedi nota) · ➖ Rimandato/deciso di non fare
 
-### 🔴 Blocker (16) — 15/18 risolti al 05/07/2026 (aggiornamento quick-fix bundle B12+B15+B11; il conteggio "18" della label storica non coincide col totale reale di righe della tabella sottostante, disallineamento preesistente non risolto in questo aggiornamento)
+### 🔴 Blocker (16) — 15/18 risolti al 05/07/2026 (aggiornamento quick-fix bundle B12+B15+B11; il conteggio "18" della label storica non coincide col totale reale di righe della tabella sottostante, disallineamento preesistente non risolto in questo aggiornamento; il conteggio "15" include B7 e B8 come risolti in base alle rispettive sezioni narrative sottostanti — righe 195-211 — sebbene le loro righe nella tabella restino `⏳`, disallineamento preesistente anch'esso non risolto in questo aggiornamento; solo 12 righe tabella mostrano `✅` esplicitamente)
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
 | B1 | Tracciabilità MDR materiali/lotti rotta | ✅ | 02/07/2026 · `31cc47c` | Vedi MEMORY.md §0 per dettaglio fix. Follow-up non bloccanti: test e2e orchestraConsegna (→B13), verifica manuale su lavoro reale ancora da fare |
