@@ -1,18 +1,18 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import crypto from 'node:crypto'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
-import type { LavoroDettaglio } from '@/types/domain'
+import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 export async function generateDdC(lavoro: LavoroDettaglio) {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
   const anno = new Date().getFullYear()
 
   // Carica dati laboratorio + rischi residui per tipo dispositivo
-  const [{ data: lab }, { data: rischiRow }] = await Promise.all([
+  const [{ data: labRaw }, { data: rischiRow }] = await Promise.all([
     supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single(),
     supabase
       .from('rischi_tipo_dispositivo')
@@ -21,11 +21,18 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
       .eq('tipo_dispositivo', lavoro.tipo_dispositivo)
       .maybeSingle(),
   ])
-  if (!lab) throw new Error('Laboratorio non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 
   // Genera progressivo
   const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'ddc')
   const numero = `DDC-${anno}-${String(progressivo).padStart(4, '0')}`
+
+  // MDR §8: dichiarazione esplicita di conformità (colonna NOT NULL senza default
+  // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
+  const testoConformita = "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
 
   // Prepara dati snapshot
   const ddc = {
@@ -41,8 +48,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
       ?? `${lavoro.cliente.cognome} ${lavoro.cliente.nome}`.trim(),
     prescrizione_id: lavoro.numero_prescrizione ?? null,
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    paziente_nome: lavoro.paziente_nome_snapshot ?? (lavoro.paziente as any)?.nome_cognome ?? (lavoro.paziente as any)?.codice_paziente ?? '',
+    paziente_nome: lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '',
     paziente_cognome: null as string | null,
     tipo_dispositivo: lavoro.tipo_dispositivo as string,
     descrizione_dispositivo: lavoro.descrizione,
@@ -52,25 +58,23 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     contiene_sostanze_o_tessuti: false,
     sostanze_tessuti_dettaglio: null as string | null,
     classe_rischio: lavoro.classe_rischio,
-    norma_riferimento: lavoro.norma_riferimento ?? null,
-    testo_conformita_snapshot: "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745.",
+    testo_conformita: testoConformita,
+    testo_conformita_snapshot: testoConformita,
     prrc_nome: (lab.prrc_nome ?? '') as string,
     prrc_qualifica: (lab.prrc_qualifica ?? null) as string | null,
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
     firma_ddc_sha256: null as string | null,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rischi_residui_snapshot: (rischiRow?.rischi_residui ?? (lab as any).testo_rischi_default ?? null) as string | null,
+    rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
     data_emissione: new Date().toISOString(),
     stato: 'generata' as const,
   }
 
   // Genera PDF
-  // Il cast è necessario: createElement produce FunctionComponentElement,
-  // mentre renderToBuffer accetta ReactElement<DocumentProps>.
-  // A runtime il componente renderizza sempre un <Document> come root.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(createElement(DdcTemplate, { lavoro, lab, ddc }) as any)
+  // norma_riferimento non è una colonna di dichiarazioni_conformita (solo del
+  // lavoro): passata al template solo per il rendering, esclusa dall'insert.
+  const ddcConNorma = { ...ddc, norma_riferimento: lavoro.norma_riferimento ?? null }
+  const buffer = await renderPdfDocument(createElement(DdcTemplate, { lavoro, lab, ddc: ddcConNorma }))
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex')
   const storagePath = `${lavoro.laboratorio_id}/ddc/${anno}/${numero}.pdf`
 
