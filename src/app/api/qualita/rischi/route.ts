@@ -78,6 +78,7 @@ export async function POST(req: Request) {
     laboratorio_id: utente.laboratorio_id,
     tipo_dispositivo: (body.tipo_dispositivo as string).trim(),
     rischi_json: body.rischi_json ?? [],
+    norme_json: body.norme_json ?? [],
     rischi_residui: body.rischi_residui ?? null,
     misure_controllo: body.misure_controllo ?? null,
     data_ultima_revisione: body.data_ultima_revisione ?? new Date().toISOString().slice(0, 10),

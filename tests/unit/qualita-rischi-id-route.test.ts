@@ -240,4 +240,83 @@ describe('PATCH /api/qualita/rischi/[id]', () => {
 
     expect(res.status).toBe(401)
   })
+
+  it('norme_json con codice mancante → 422', async () => {
+    mockRischioEsistente({ existing: { id: RISCHIO_ID, versione: 1 } })
+
+    const res = await PATCH(
+      patchRequest({
+        rischi_json: [RISCHIO_VALIDO],
+        norme_json: [{ codice: '', titolo: 'Dental ceramic materials' }],
+      }),
+      patchParams()
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(422)
+    expect(json.error).toContain('codice')
+    expect(updatedData).toBeNull()
+  })
+
+  it('norme_json con titolo mancante → 422', async () => {
+    mockRischioEsistente({ existing: { id: RISCHIO_ID, versione: 1 } })
+
+    const res = await PATCH(
+      patchRequest({
+        rischi_json: [RISCHIO_VALIDO],
+        norme_json: [{ codice: 'EN ISO 6872:2015', titolo: '' }],
+      }),
+      patchParams()
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(422)
+    expect(json.error).toContain('titolo')
+  })
+
+  it('norme_json con anno non numerico → 422', async () => {
+    mockRischioEsistente({ existing: { id: RISCHIO_ID, versione: 1 } })
+
+    const res = await PATCH(
+      patchRequest({
+        rischi_json: [RISCHIO_VALIDO],
+        norme_json: [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 'duemila' }],
+      }),
+      patchParams()
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(422)
+    expect(json.error).toContain('anno')
+  })
+
+  it('norme_json valido → 200, persistito con anno opzionale', async () => {
+    mockRischioEsistente({ existing: { id: RISCHIO_ID, versione: 1 } })
+
+    const res = await PATCH(
+      patchRequest({
+        rischi_json: [RISCHIO_VALIDO],
+        norme_json: [
+          { codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 },
+          { codice: 'EN ISO 22674:2016', titolo: 'Metallic materials' },
+        ],
+      }),
+      patchParams()
+    )
+
+    expect(res.status).toBe(200)
+    expect(updatedData?.norme_json).toEqual([
+      { codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 },
+      { codice: 'EN ISO 22674:2016', titolo: 'Metallic materials' },
+    ])
+  })
+
+  it('norme_json assente → salvato come array vuoto', async () => {
+    mockRischioEsistente({ existing: { id: RISCHIO_ID, versione: 1 } })
+
+    const res = await PATCH(patchRequest({ rischi_json: [RISCHIO_VALIDO] }), patchParams())
+    await res.json()
+
+    expect(updatedData?.norme_json).toEqual([])
+  })
 })

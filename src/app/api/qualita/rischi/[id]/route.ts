@@ -61,6 +61,52 @@ function validaRischi(rischi: unknown): ValidazioneRischi {
   return { ok: true, value: out }
 }
 
+interface NormaValidata {
+  codice: string
+  titolo: string
+  anno?: number
+}
+
+type ValidazioneNorme =
+  | { ok: true; value: NormaValidata[] }
+  | { ok: false; error: string }
+
+function validaNorme(norme: unknown): ValidazioneNorme {
+  if (norme === undefined) {
+    return { ok: true, value: [] }
+  }
+  if (!Array.isArray(norme)) {
+    return { ok: false, error: 'Il campo "norme_json" deve essere un array' }
+  }
+
+  const out: NormaValidata[] = []
+
+  for (let i = 0; i < norme.length; i++) {
+    const n = norme[i] as Record<string, unknown>
+
+    if (typeof n.codice !== 'string' || !n.codice.trim()) {
+      return { ok: false, error: `Norma #${i + 1}: campo "codice" obbligatorio` }
+    }
+    if (typeof n.titolo !== 'string' || !n.titolo.trim()) {
+      return { ok: false, error: `Norma #${i + 1}: campo "titolo" obbligatorio` }
+    }
+
+    const validata: NormaValidata = { codice: n.codice.trim(), titolo: n.titolo.trim() }
+
+    if (n.anno !== undefined && n.anno !== null && n.anno !== '') {
+      const anno = Number(n.anno)
+      if (!Number.isInteger(anno)) {
+        return { ok: false, error: `Norma #${i + 1}: "anno" deve essere un numero intero` }
+      }
+      validata.anno = anno
+    }
+
+    out.push(validata)
+  }
+
+  return { ok: true, value: out }
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -111,11 +157,17 @@ export async function PATCH(
     return NextResponse.json({ error: validated.error }, { status: 422 })
   }
 
+  const validatedNorme = validaNorme(body.norme_json)
+  if (!validatedNorme.ok) {
+    return NextResponse.json({ error: validatedNorme.error }, { status: 422 })
+  }
+
   const rischiResidui = body.rischi_residui
   const misureControllo = body.misure_controllo
 
   const updates = {
     rischi_json: validated.value,
+    norme_json: validatedNorme.value,
     rischi_residui: typeof rischiResidui === 'string' && rischiResidui.trim() ? rischiResidui.trim() : null,
     misure_controllo: typeof misureControllo === 'string' && misureControllo.trim() ? misureControllo.trim() : null,
     versione: existing.versione + 1,
