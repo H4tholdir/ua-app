@@ -48,6 +48,25 @@ describe('generateDdC', () => {
     expect(result.url).toBe('https://example.test/ddc.pdf')
   })
 
+  it('non invia norma_riferimento all\'insert (colonna inesistente su dichiarazioni_conformita) e valorizza testo_conformita (NOT NULL senza default)', async () => {
+    // Regressione: prima del fix, norma_riferimento veniva spedito nell'insert
+    // (PostgREST l'avrebbe rifiutato, colonna inesistente) e testo_conformita
+    // non veniva mai valorizzato (NOT NULL senza default) — l'insert falliva
+    // sempre. Il cast a Laboratorio non protegge da questo: TS non fa
+    // excess-property-check su un oggetto passato per variabile, solo sui
+    // literal — quindi solo un'asserzione a runtime blocca una regressione.
+    mockTables(LAB_FIXTURE)
+    await generateDdC(LAVORO_FIXTURE)
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.not.objectContaining({ norma_riferimento: expect.anything() })
+    )
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        testo_conformita: expect.stringContaining('Allegato XIII'),
+      })
+    )
+  })
+
   it('usa lab.testo_rischi_default come fallback quando manca rischi_tipo_dispositivo', async () => {
     mockTables({ ...LAB_FIXTURE, testo_rischi_default: 'Rischio generico test' })
     await generateDdC(LAVORO_FIXTURE)
