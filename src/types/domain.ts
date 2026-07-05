@@ -447,6 +447,10 @@ export interface LavoroFase {
     obbligatoria: boolean;
     misurazioni_da_rilevare: boolean;
   };
+  tecnico: {
+    nome: string;
+    cognome: string;
+  } | null;
 }
 
 // ============================================================
