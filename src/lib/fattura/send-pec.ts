@@ -1,6 +1,7 @@
 import 'server-only'
 import nodemailer from 'nodemailer'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getSignedUrl } from '@/lib/storage/signed-url'
 
 // ─── Lab row con campi PEC SMTP (non ancora in domain.ts Laboratorio) ─────────
 interface LabPecRow {
@@ -104,10 +105,8 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
 
     let downloadUrl = fattura.xml_url
     if (storagePath) {
-      const { data: signed } = await supabase.storage
-        .from('fatture-pdf')
-        .createSignedUrl(storagePath, 60)
-      if (signed?.signedUrl) downloadUrl = signed.signedUrl
+      const signedUrl = await getSignedUrl(supabase, 'fatture-pdf', storagePath, 60)
+      if (signedUrl) downloadUrl = signedUrl
     }
 
     if (!downloadUrl) throw new Error('URL XML non disponibile')
