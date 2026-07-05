@@ -4,13 +4,16 @@ import { createChain } from './helpers/supabase-chain-mock'
 import { transitionLabStato } from '../../src/lib/stripe/state-machine'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-function fakeSupabase(labRow: { stato: string; last_stripe_event_at: string | null } | null): SupabaseClient {
+function fakeSupabase(
+  labRow: { stato: string; last_stripe_event_at: string | null } | null,
+  updateError: { message: string } | null = null
+): SupabaseClient {
   return {
     from: (table: string) => {
       if (table === 'laboratori') {
         return {
           select: () => createChain({ data: labRow, error: labRow ? null : { message: 'no rows' } }),
-          update: () => ({ eq: async () => ({ error: null }) }),
+          update: () => ({ eq: async () => ({ error: updateError }) }),
         }
       }
       if (table === 'lab_stato_log') {
@@ -46,5 +49,15 @@ describe('transitionLabStato', () => {
     const supabase = fakeSupabase({ stato: 'trial', last_stripe_event_at: null })
     const result = await transitionLabStato(supabase, 'lab-1', 'attivo', 'stripe_webhook')
     expect(result).toEqual({ success: true })
+  })
+
+  it('ritorna retryable:true quando fallisce l\'UPDATE che scrive la transizione', async () => {
+    const supabase = fakeSupabase(
+      { stato: 'trial', last_stripe_event_at: null },
+      { message: 'connection reset by peer' }
+    )
+    const result = await transitionLabStato(supabase, 'lab-1', 'attivo', 'stripe_webhook')
+    expect(result.success).toBe(false)
+    expect(result.retryable).toBe(true)
   })
 })

@@ -74,7 +74,7 @@ export async function transitionLabStato(
     .eq('id', laboratorioId)
 
   if (updateErr) {
-    return { success: false, error: updateErr.message }
+    return { success: false, error: updateErr.message, retryable: true }
   }
 
   const { error: logErr } = await supabase.from('lab_stato_log').insert({
