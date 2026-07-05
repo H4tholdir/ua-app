@@ -687,8 +687,8 @@ const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
   mockGetPublicUrl: vi.fn(),
 }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({
     from: mockFrom,
     storage: { from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }) },
   }),
@@ -724,12 +724,10 @@ describe('generateBuono', () => {
 })
 ```
 
-Nota: questo test mocka `@/lib/pdf/typed-service-client` (non `@/lib/supabase/server-service`) — coerente con il fatto che, dopo lo Step 3, `generate-buono.ts` importerà `getTypedServiceClient` invece di `getServiceClient`. Il test è scritto per il codice GIÀ corretto, non per quello attuale — questo file non aveva alcun test prima, quindi non c'è un "codice attuale" da testare separatamente per il mock target.
-
-- [ ] **Step 2: Verifica che passi**
+- [ ] **Step 2: Verifica che passi contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-buono.test.ts`
-Expected: FAIL — il modulo mockato (`@/lib/pdf/typed-service-client`) non esiste ancora import in `generate-buono.ts` (il file usa ancora `getServiceClient`), quindi il mock non aggancia nulla e la chiamata reale a Supabase fallisce. Questo conferma che lo Step 3 è necessario prima che il test possa passare.
+Expected: PASS (prima copertura mai scritta per questo file). Il mock intercetta `getServiceClient` da `@/lib/supabase/server-service`, già usato dal codice attuale; `getTypedServiceClient()` (introdotta allo Step 3) chiama la stessa funzione mockata e applica solo un cast a costo zero a runtime, quindi il mock resta valido invariato anche dopo lo Step 3.
 
 - [ ] **Step 3: Rimuovi il cast renderer, passa a `getTypedServiceClient`**
 
@@ -813,8 +811,8 @@ import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateIFU } from '../../src/lib/pdf/generate-ifu'
@@ -836,10 +834,10 @@ describe('generateIFU', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che fallisca**
+- [ ] **Step 2: Verifica che passi contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-ifu.test.ts`
-Expected: FAIL — il codice attuale importa `getServiceClient` da `@/lib/supabase/server-service`, non ancora mockato da questo test (mocka `@/lib/pdf/typed-service-client`, che il file non usa finché non applichi lo Step 3).
+Expected: PASS — il mock intercetta `getServiceClient` da `@/lib/supabase/server-service`, già usato dal codice attuale; `getTypedServiceClient()` (introdotta allo Step 3) è solo un wrapper che chiama la stessa funzione e applica un cast a costo zero a runtime, quindi il mock resta valido invariato anche dopo lo Step 3.
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
@@ -921,8 +919,8 @@ import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateRicevutaConsegna } from '../../src/lib/pdf/generate-ricevuta-consegna'
@@ -944,10 +942,10 @@ describe('generateRicevutaConsegna', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che fallisca**
+- [ ] **Step 2: Verifica che passi contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-ricevuta-consegna.test.ts`
-Expected: FAIL — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
+Expected: PASS — il mock intercetta `getServiceClient`, già usato dal codice attuale; resta valido anche dopo lo Step 3 (`getTypedServiceClient()` chiama la stessa funzione mockata e applica solo un cast a costo zero a runtime).
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
@@ -1029,8 +1027,8 @@ import { LAB_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateNominaPrrc } from '../../src/lib/pdf/generate-nomina-prrc'
@@ -1059,10 +1057,10 @@ describe('generateNominaPrrc', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [ ] **Step 2: Verifica che entrambi i test passino contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-nomina-prrc.test.ts`
-Expected: FAIL su entrambi — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
+Expected: 2/2 PASS (il controllo `if (!lab.prrc_nome) throw` esiste già nel codice — questo test lo mette solo sotto copertura per la prima volta). Il mock intercetta `getServiceClient`, già usato dal codice attuale; resta valido anche dopo lo Step 3.
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
@@ -1130,8 +1128,8 @@ const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
   mockGetPublicUrl: vi.fn(),
 }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({
     from: mockFrom,
     storage: { from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }) },
   }),
@@ -1173,10 +1171,10 @@ describe('generateEtichetta', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [ ] **Step 2: Verifica che passino contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-etichetta.test.ts`
-Expected: FAIL su entrambi — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
+Expected: 2/2 PASS — il mock intercetta `getServiceClient`, già usato dal codice attuale; resta valido anche dopo lo Step 3.
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi i 2 cast renderer**
 
@@ -1267,8 +1265,8 @@ import { createChain } from './helpers/supabase-chain-mock'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateCedolinoTecnico } from '../../src/lib/pdf/generate-cedolino-tecnico'
@@ -1317,10 +1315,10 @@ describe('generateCedolinoTecnico', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che fallisca**
+- [ ] **Step 2: Verifica che passi contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-cedolino-tecnico.test.ts`
-Expected: FAIL — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
+Expected: PASS — il mock intercetta `getServiceClient`, già usato dal codice attuale; resta valido anche dopo lo Step 3.
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
@@ -1383,8 +1381,8 @@ const { mockFrom, mockInsert } = vi.hoisted(() => ({
   mockInsert: vi.fn(),
 }))
 
-vi.mock('@/lib/pdf/typed-service-client', () => ({
-  getTypedServiceClient: () => ({
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({
     from: mockFrom,
     storage: {
       from: () => ({
@@ -1464,10 +1462,10 @@ describe('generateDdC', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che falliscano**
+- [ ] **Step 2: Verifica che tutti passino contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-ddc.test.ts`
-Expected: FAIL su tutti e 3 — il codice attuale importa `getServiceClient`, non ancora mockato da questo test (mocka `@/lib/pdf/typed-service-client`).
+Expected: 3/3 PASS (prima copertura mai scritta per la funzione `generateDdC()`). Il mock intercetta `getServiceClient`, già usato dal codice attuale; resta valido anche dopo lo Step 3. Il fallback `testo_rischi_default` e quello `paziente.nome_cognome` sono comportamento GIÀ esistente nel codice attuale (solo mascherato da `as any`) — questi 2 test sono caratterizzazione, non RED, esattamente come il test 1.
 
 - [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi i 3 `as any`**
 
