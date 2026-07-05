@@ -1,10 +1,12 @@
-# Handoff — B17 risolto, in attesa di merge (05/07/2026)
+# Handoff — B17 mergiato e deployato (05/07/2026)
 
-**B17 (Scheda di Fabbricazione) RISOLTO in questo lavoro** — worktree `.claude/worktrees/b17-scheda-fabbricazione` (branch `worktree-b17-scheda-fabbricazione`), 5 commit tecnici (`41f435e`..`92702d9`). Nuovo documento PDF interno on-demand per tracciabilità fasi di lavorazione, corretta l'attribuzione normativa errata del backlog originale (non Allegato XIII, ma QMS Art. 10(9) MDR). Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B17).
+**B17 (Scheda di Fabbricazione) RISOLTO, MERGIATO E DEPLOYATO.** Merge `main` ← `worktree-b17-scheda-fabbricazione` (commit `ef75eb1`, conflitto minore su `memory/SESSION_ACTIVE.md` risolto prendendo la versione del branch), pushato su `origin/main`, CI verde (TypeScript+ESLint+Unit Tests + Next.js Build, run `28752905325`), deploy Vercel confermato (CD run `28752994273`, "Deploy to Production" ✓), `uachelab.com` risponde (307 → `/login`, atteso). Worktree e branch rimossi.
 
-**Verifica eseguita:** `tsc --noEmit` pulito, `vitest run` 526 passed/4 skipped (era 504), `next build` compilazione TypeScript pulita (fallimento "Collecting page data" su `/api/admin/labs` = gap ambientale `.env.local` noto, non regressione). **Rischio critico segnalato da un secondo reviewer chiuso:** query nested `tecnico:tecnici(nome, cognome)` dentro `lavori_fasi` (mai usata altrove nel progetto) verificata con FK reale su DB live + generatore eseguito contro dati E2E reali (non mockati) — risolve correttamente, nessun 500. Dati di test rimossi, 0 residui.
+Nuovo documento PDF interno on-demand per tracciabilità fasi di lavorazione, corretta l'attribuzione normativa errata del backlog originale (non Allegato XIII, ma QMS Art. 10(9) MDR). Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B17).
 
-**Non ancora fatto:** merge su `main`, push, deploy, QA browser del link di download in UI (click reale sulla pagina lavoro — il generatore è già verificato contro dati live, manca solo il click end-to-end). **In attesa di conferma esplicita di Francesco prima di procedere con `superpowers:finishing-a-development-branch`.**
+**Verifica pre-merge:** `tsc --noEmit` pulito, `vitest run` 526 passed/4 skipped (era 504), `next build` pulita. Rischio critico segnalato da un secondo reviewer (query nested `tecnico:tecnici(nome, cognome)` dentro `lavori_fasi`, mai usata altrove) verificato con FK reale su DB live + generatore eseguito contro dati E2E reali (non mockati) — risolve correttamente. Dati di test rimossi, 0 residui. **Verifica post-merge (su `main`):** `tsc`/`vitest` (526 passed/4 skipped)/`next build` rieseguiti con successo, route `/api/lavori/[id]/scheda-fabbricazione` presente nel manifest.
+
+**QA browser del link di download in UI (click reale sulla pagina lavoro) ancora da fare** — raccomandata come prossimo step, non bloccante (il generatore è già verificato contro dati live end-to-end).
 
 **Anche aperto, non toccato:** B20 (PSUR/PMS Report non differenziato per classe di rischio) — backlog item indipendente, da pianificare a parte.
 
