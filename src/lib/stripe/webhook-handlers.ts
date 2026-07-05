@@ -22,7 +22,7 @@ export async function handleCheckoutCompleted(
   const priceId = session.line_items?.data[0]?.price?.id ?? null
 
   // Atomico: stato + metadata Stripe in un singolo UPDATE
-  await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: {
       stripe_subscription_id: subId,
@@ -31,18 +31,22 @@ export async function handleCheckoutCompleted(
       stripe_subscription_status: 'active',
     },
   })
+  assertTransitionOk(result, { labId, eventType: event.type })
 }
 
 async function findLabBySubscription(
   supabase: SupabaseClient,
   subId: string
-): Promise<{ id: string; stato: string } | null> {
-  const { data } = await supabase
+): Promise<{ id: string; stato: string }> {
+  const { data, error } = await supabase
     .from('laboratori')
     .select('id, stato')
     .eq('stripe_subscription_id', subId)
     .single()
-  return data ?? null
+  if (error || !data) {
+    throw new Error(`Lab non trovato per stripe_subscription_id=${subId}: ${error?.message ?? 'nessuna riga'}`)
+  }
+  return data
 }
 
 function stripeOpts(event: Stripe.Event) {
@@ -51,6 +55,17 @@ function stripeOpts(event: Stripe.Event) {
     stripeEventCreatedAt: new Date(event.created * 1000),
     actor: 'stripe',
   }
+}
+
+function assertTransitionOk(
+  result: { success: boolean; error?: string; retryable?: boolean },
+  context: Record<string, unknown>
+): void {
+  if (result.success) return
+  if (result.retryable) {
+    throw new Error(result.error ?? 'transitionLabStato fallita')
+  }
+  console.error('[webhook] transizione di stato non applicata (non retryable):', result.error, context)
 }
 
 function getInvoiceSubId(invoice: Stripe.Invoice): string | null {
@@ -69,13 +84,13 @@ export async function handlePaymentSucceeded(
   if (!subId) return
 
   const lab = await findLabBySubscription(supabase, subId)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'active' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handlePaymentFailed(
@@ -91,13 +106,13 @@ export async function handlePaymentFailed(
   if (!subId) return
 
   const lab = await findLabBySubscription(supabase, subId)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'past_due' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handleSubscriptionDeleted(
@@ -107,13 +122,13 @@ export async function handleSubscriptionDeleted(
   const subscription = event.data.object as Stripe.Subscription
 
   const lab = await findLabBySubscription(supabase, subscription.id)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'canceled' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handleSubscriptionUpdated(
@@ -123,26 +138,29 @@ export async function handleSubscriptionUpdated(
   const subscription = event.data.object as Stripe.Subscription
 
   const lab = await findLabBySubscription(supabase, subscription.id)
-  if (!lab) return
 
   // Reactive: se Stripe torna active e il lab era sospeso, ripristina
   if (subscription.status === 'active' && lab.stato === 'sospeso') {
     // Atomico: stato + metadata Stripe in un singolo UPDATE
-    await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+    const result = await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
       ...stripeOpts(event),
       extraFields: {
         stripe_subscription_status: subscription.status,
         stripe_price_id: subscription.items.data[0]?.price.id ?? null,
       },
     })
+    assertTransitionOk(result, { labId: lab.id, eventType: event.type })
   } else {
     // Solo metadata Stripe, nessuna transizione stato
-    await supabase
+    const { error: updateErr } = await supabase
       .from('laboratori')
       .update({
         stripe_subscription_status: subscription.status,
         stripe_price_id: subscription.items.data[0]?.price.id ?? null,
       })
       .eq('id', lab.id)
+    if (updateErr) {
+      console.error('[webhook] handleSubscriptionUpdated: aggiornamento metadata fallito:', updateErr.message, { labId: lab.id })
+    }
   }
 }

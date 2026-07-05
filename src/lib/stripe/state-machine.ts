@@ -26,7 +26,7 @@ export async function transitionLabStato(
     stripeEventCreatedAt?: Date
     extraFields?: Record<string, unknown>
   } = {}
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; retryable?: boolean }> {
   const { data: lab, error: fetchErr } = await supabase
     .from('laboratori')
     .select('stato, last_stripe_event_at')
@@ -34,7 +34,7 @@ export async function transitionLabStato(
     .single()
 
   if (fetchErr || !lab) {
-    return { success: false, error: 'Lab non trovato' }
+    return { success: false, error: 'Lab non trovato', retryable: true }
   }
 
   const currentStato = lab.stato as LaboStatoValue
@@ -74,7 +74,7 @@ export async function transitionLabStato(
     .eq('id', laboratorioId)
 
   if (updateErr) {
-    return { success: false, error: updateErr.message }
+    return { success: false, error: updateErr.message, retryable: true }
   }
 
   const { error: logErr } = await supabase.from('lab_stato_log').insert({
