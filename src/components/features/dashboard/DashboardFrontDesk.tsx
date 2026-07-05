@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { t, staggerDelay, useReducedMotion } from '@/design-system/motion'
 import { LavoroUrgente } from './LavoroUrgente'
-import type { FrontDeskDashboard, FrontDeskConsegnaItem } from '@/types/domain'
+import type { FrontDeskDashboard, FrontDeskConsegnaItem, ConsegnaResult } from '@/types/domain'
 
 // Design tokens — warm haptimorphic (DS v2.2)
 const DS = {
@@ -122,6 +122,48 @@ function ConsegnaButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+function WhatsappButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'var(--c-green, #22C55E)',
+        color: '#fff',
+        fontFamily: 'DM Sans, sans-serif',
+        fontSize: 13,
+        fontWeight: 700,
+        padding: '10px 16px',
+        borderRadius: 8,
+        border: 'none',
+        boxShadow: '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)',
+        cursor: 'pointer',
+        transition: 'transform 80ms ease, box-shadow 80ms ease',
+        WebkitTapHighlightColor: 'transparent',
+        minHeight: 52,
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'translateY(3px)'
+        e.currentTarget.style.boxShadow = '0 1px 0 #16A34A, 0 2px 3px rgba(0,0,0,.15)'
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)'
+      }}
+      onTouchStart={(e) => {
+        e.currentTarget.style.transform = 'translateY(3px)'
+        e.currentTarget.style.boxShadow = '0 1px 0 #16A34A, 0 2px 3px rgba(0,0,0,.15)'
+      }}
+      onTouchEnd={(e) => {
+        e.currentTarget.style.transform = ''
+        e.currentTarget.style.boxShadow = '0 4px 0 #16A34A, 0 5px 6px rgba(0,0,0,.18)'
+      }}
+    >
+      📱 WHATSAPP
+    </button>
+  )
+}
+
 function formatEuro(n: number): string {
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
@@ -161,6 +203,7 @@ export function DashboardFrontDesk({
     data.consegne_oggi
   )
   const [, setLoading] = useState<string | null>(null)
+  const [whatsappUrls, setWhatsappUrls] = useState<Record<string, string>>({})
 
   const stagger = staggerDelay(5)
 
@@ -170,7 +213,12 @@ export function DashboardFrontDesk({
       try {
         const res = await fetch(`/api/lavori/${id}/consegna`, { method: 'POST' })
         if (res.ok) {
-          setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
+          const json = (await res.json()) as ConsegnaResult
+          if (json.whatsapp_url) {
+            setWhatsappUrls((prev) => ({ ...prev, [id]: json.whatsapp_url as string }))
+          } else {
+            setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
+          }
         }
       } catch {
         // Silently ignore — user can retry
@@ -180,6 +228,16 @@ export function DashboardFrontDesk({
     },
     []
   )
+
+  const handleApriWhatsapp = useCallback((id: string, url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setConsegneOggi((prev) => prev.filter((l) => l.id !== id))
+    setWhatsappUrls((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }, [])
 
   // Client-side search filter (no extra query needed)
   const searchLower = search.toLowerCase()
@@ -320,9 +378,15 @@ export function DashboardFrontDesk({
                       {lavoro.ora_consegna ? ` · ore ${lavoro.ora_consegna}` : ''}
                     </p>
                   </div>
-                  <ConsegnaButton
-                    onClick={() => handleConsegna(lavoro.id)}
-                  />
+                  {whatsappUrls[lavoro.id] ? (
+                    <WhatsappButton
+                      onClick={() => handleApriWhatsapp(lavoro.id, whatsappUrls[lavoro.id])}
+                    />
+                  ) : (
+                    <ConsegnaButton
+                      onClick={() => handleConsegna(lavoro.id)}
+                    />
+                  )}
                 </div>
               ))}
             </div>
