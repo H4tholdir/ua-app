@@ -1,7 +1,7 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import {
   CedolinoTecnicoTemplate,
   type LavorazioneCedolino,
@@ -26,7 +26,7 @@ export async function generateCedolinoTecnico(
   laboratorio_id: string,
   mese: string  // es. "2026-05"
 ): Promise<Buffer> {
-  const svc = getServiceClient()
+  const svc = getTypedServiceClient()
 
   // Dati laboratorio
   const { data: lab } = await svc
@@ -123,7 +123,5 @@ export async function generateCedolinoTecnico(
   }
 
   const element = createElement(CedolinoTecnicoTemplate, { tecnico, lab: labPdf, mese, lavorazioni, totale })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(element as any)
-  return buffer
+  return renderPdfDocument(element)
 }
