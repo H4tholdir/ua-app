@@ -168,6 +168,51 @@ function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
           </span>
         </div>
       )}
+
+      {(lavoro.ddc_signed_url || lavoro.buono_signed_url) && (
+        <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {lavoro.ddc_signed_url && (
+            <a
+              href={lavoro.ddc_signed_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#374151',
+                background: '#F3F4F6',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                textDecoration: 'none',
+              }}
+              aria-label="Scarica Dichiarazione di Conformità"
+            >
+              📄 Dichiarazione di Conformità
+            </a>
+          )}
+          {lavoro.buono_signed_url && (
+            <a
+              href={lavoro.buono_signed_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#374151',
+                background: '#F3F4F6',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                textDecoration: 'none',
+              }}
+              aria-label="Scarica Buono di Consegna"
+            >
+              🧾 Buono di Consegna
+            </a>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -309,7 +354,9 @@ export default async function PortalePage({ params }: PageProps) {
     .select(`
       id, numero_lavoro, stato, tipo_dispositivo, descrizione,
       data_consegna_prevista, data_consegna_effettiva,
-      paziente_nome_snapshot, conformato, spedizione_stato, spedizione_tracking
+      paziente_nome_snapshot, conformato, spedizione_stato, spedizione_tracking,
+      buono_storage_path,
+      ddc:dichiarazioni_conformita(storage_path_pdf)
     `)
     .eq('cliente_id', cliente.id)
     .eq('laboratorio_id', cliente.laboratorio_id)
@@ -334,8 +381,24 @@ export default async function PortalePage({ params }: PageProps) {
     spedizione_tracking: (l.spedizione_tracking as string | null) ?? null,
   })
 
+  const mapLavoroConsegnato = (l: Record<string, unknown>): LavoroPortale => {
+    const base = mapLavoro(l)
+    // Normalizzazione difensiva: PostgREST può restituire una relazione
+    // embedded come oggetto singolo o array a seconda di come inferisce la
+    // cardinalità — non assumere una forma specifica per questo confine esterno.
+    const ddcRaw = l.ddc as { storage_path_pdf: string | null } | { storage_path_pdf: string | null }[] | null
+    const ddcRow = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
+    const hasDdc = !!ddcRow?.storage_path_pdf
+    const hasBuono = !!(l.buono_storage_path as string | null)
+    return {
+      ...base,
+      ddc_signed_url: hasDdc ? `/api/portale/${token}/lavori/${l.id as string}/ddc` : null,
+      buono_signed_url: hasBuono ? `/api/portale/${token}/lavori/${l.id as string}/buono` : null,
+    }
+  }
+
   const lavoriAperti = (lavoriApertiRaw ?? []).map(mapLavoro)
-  const lavoriConsegnati = (lavoriConsegnatiRaw ?? []).map(mapLavoro)
+  const lavoriConsegnati = (lavoriConsegnatiRaw ?? []).map(mapLavoroConsegnato)
 
   const nomeStudio =
     cliente.studio_nome ??
