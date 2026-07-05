@@ -1,16 +1,16 @@
-# Handoff — B17 mergiato e deployato (05/07/2026)
+# Handoff — B17 completo: mergiato, deployato, QA verificata (05/07/2026)
 
-**B17 (Scheda di Fabbricazione) RISOLTO, MERGIATO E DEPLOYATO.** Merge `main` ← `worktree-b17-scheda-fabbricazione` (commit `ef75eb1`, conflitto minore su `memory/SESSION_ACTIVE.md` risolto prendendo la versione del branch), pushato su `origin/main`, CI verde (TypeScript+ESLint+Unit Tests + Next.js Build, run `28752905325`), deploy Vercel confermato (CD run `28752994273`, "Deploy to Production" ✓), `uachelab.com` risponde (307 → `/login`, atteso). Worktree e branch rimossi.
+**B17 (Scheda di Fabbricazione) COMPLETO in ogni sua parte.** Merge `main` ← `worktree-b17-scheda-fabbricazione` (commit `ef75eb1`), pushato su `origin/main`, CI verde, deploy Vercel confermato, `uachelab.com` risponde. Worktree e branch rimossi.
 
 Nuovo documento PDF interno on-demand per tracciabilità fasi di lavorazione, corretta l'attribuzione normativa errata del backlog originale (non Allegato XIII, ma QMS Art. 10(9) MDR). Dettaglio completo: `memory/MEMORY.md` (voce in testa) e `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` (sezione B17).
 
-**Verifica pre-merge:** `tsc --noEmit` pulito, `vitest run` 526 passed/4 skipped (era 504), `next build` pulita. Rischio critico segnalato da un secondo reviewer (query nested `tecnico:tecnici(nome, cognome)` dentro `lavori_fasi`, mai usata altrove) verificato con FK reale su DB live + generatore eseguito contro dati E2E reali (non mockati) — risolve correttamente. Dati di test rimossi, 0 residui. **Verifica post-merge (su `main`):** `tsc`/`vitest` (526 passed/4 skipped)/`next build` rieseguiti con successo, route `/api/lavori/[id]/scheda-fabbricazione` presente nel manifest.
+**Verifica pre-merge:** `tsc`/`vitest` (526 passed/4 skipped)/`next build` puliti. Rischio critico segnalato da un secondo reviewer (query nested `tecnico:tecnici` dentro `lavori_fasi`, mai usata altrove) chiuso con FK reale su DB live + generatore reale contro dati E2E. **Verifica post-merge:** stessa suite rieseguita su `main` con successo.
 
-**QA browser del link di download in UI (click reale sulla pagina lavoro) ancora da fare** — raccomandata come prossimo step, non bloccante (il generatore è già verificato contro dati live end-to-end).
+**QA browser ESEGUITA** (dev server locale + `preview_*`, lab E2E isolato, mai il lab Filippo): link "Scarica Scheda di Fabbricazione" visibile su lavoro con fasi, click reale → `GET .../scheda-fabbricazione 200` confermato nei log server; link correttamente assente (verificato via DOM, non solo visivo) su lavoro senza fasi. Dati di test rimossi, 0 residui.
 
 **Anche aperto, non toccato:** B20 (PSUR/PMS Report non differenziato per classe di rischio) — backlog item indipendente, da pianificare a parte.
 
-**Altri blocker aperti nel backlog** (dopo B17): B5, B6, B14 (richiede decisione di Filippo), B16, B20.
+**Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo — richiede decisione di Filippo), B16 (query ordini non supportata), B20.
 
 ---
 
