@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import useSound from 'use-sound'
 import { t, CELEBRATION } from '@/design-system/motion'
-import type { ConsegnaError } from '@/types/domain'
+import type { ConsegnaError, ConsegnaResult } from '@/types/domain'
 import { MaterialiWarningSheet } from './MaterialiWarningSheet'
 import { soundConsegna } from '@/lib/feedback/sounds'
 
@@ -62,6 +62,7 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
   const [showWarningSheet, setShowWarningSheet] = useState(false)
   const [mdrIncompleto, setMdrIncompleto] = useState(false)
   const [mdrCampiMancanti, setMdrCampiMancanti] = useState<string[]>([])
+  const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null)
 
   // use-sound gestisce silenziosamente i file mancanti — play() non lancia se il file non esiste
   const [playSuccess] = useSound('/sounds/success.mp3', {
@@ -81,8 +82,10 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
       })
 
       if (res.ok) {
+        const json = (await res.json()) as ConsegnaResult
         try { playSuccess() } catch { /* suono facoltativo */ }
         soundConsegna()
+        setWhatsappUrl(json.whatsapp_url ?? null)
         setStato('success')
         onSuccess?.()
         return
@@ -202,6 +205,36 @@ export function ConsegnaButton({ lavoroId, onSuccess }: ConsegnaButtonProps) {
           )}
         </AnimatePresence>
       </motion.button>
+
+      {stato === 'success' && whatsappUrl && (
+        <motion.a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={t('fast', 'enter')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%',
+            minHeight: '48px',
+            borderRadius: '12px',
+            background: 'var(--elv, #EDEDEA)',
+            border: '1.5px solid var(--prs, #D4CFC9)',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'var(--t2, #4A3D33)',
+            textDecoration: 'none',
+          }}
+          aria-label="Invia messaggio WhatsApp al dentista"
+        >
+          📱 Invia messaggio WhatsApp
+        </motion.a>
+      )}
 
       <AnimatePresence>
         {errore && (
