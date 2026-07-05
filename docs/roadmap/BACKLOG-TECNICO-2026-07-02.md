@@ -35,6 +35,7 @@
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 | B18 | Hardening trasversale post-B3 (8 finding non bloccanti) | ✅ | 04/07/2026 · `06a497d` | Tutti e 8 risolti + 1 bug critico scoperto e risolto a parte (hotfix `23e0d15`) — vedi dettaglio sotto |
 | B19 | Supabase Security Advisor: 10 ERROR + WARN di sicurezza | ✅ | 04/07/2026 · branch `worktree-security-advisor-hardening` (5 commit) | Non da audit precedente, segnalato da Francesco dalla dashboard Security Advisor. 0 ERROR residui verificato. Leaked password protection resta ⛔ bloccato (richiede piano Pro). Vedi dettaglio sotto |
+| B20 | PSUR/PMS Report non differenziato per classe di rischio dispositivo | ⏳ | | Scoperto 05/07/2026 durante ricerca approfondita MDR propedeutica a B17 — vedi dettaglio sotto |
 
 ### 🟠 Alto (20)
 | ID | Titolo | Stato | Data/commit | Note |
@@ -173,6 +174,21 @@
 **Nota di processo:** questa voce documenta un intervento fuori-programma segnalato da Francesco (dashboard Security Advisor), non emerso da un audit tecnico precedente — non sposta le priorità pianificate. **Branch committato (`worktree-security-advisor-hardening`, 5 commit tecnici + rigenerazione tipi + questo aggiornamento memoria), non ancora mergiato su `main` né deployato** — le 4 migration sono comunque già applicate al DB live (Supabase e la codebase applicativa sono ambienti separati: le migration vivono nel DB indipendentemente dal merge del branch).
 
 **Spec:** `docs/superpowers/specs/2026-07-04-security-advisor-hardening-design.md`. **Piano:** `docs/superpowers/plans/2026-07-04-security-advisor-hardening.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Prossima priorità: B4** (`as any` nei generatori PDF MDR) — invariata, questo era un fuori-programma di sicurezza.
+
+### B20. PSUR/PMS Report non differenziato per classe di rischio del dispositivo
+
+**Fonte:** [Sis], scoperto 05/07/2026 durante una ricerca approfondita (deep-research, 108 agent, fonti primarie EUR-Lex/MDCG/Gazzetta Ufficiale con verifica avversariale) commissionata da Francesco come propedeutica a B17, per verificare un sospetto di attribuzione normativa errata nel backlog.
+
+**Causa:** `src/app/(app)/qualita/psur/page.tsx` e `src/app/api/qualita/psur/route.ts` trattano "PSUR annuale" come obbligo generico unico per l'intero laboratorio, senza alcuna differenziazione per classe di rischio dei dispositivi prodotti. Verificato con ricerca primaria (Art. 85/86 MDR, corroborati da 5+ fonti indipendenti, voto 3-0):
+- **Classe I** → l'obbligo si chiama **PMS Report** (Art. 85 MDR), da aggiornare *"quando necessario"* — **nessuna cadenza fissa**, e NON si chiama "PSUR".
+- **Classe IIa** → **PSUR** (Art. 86), aggiornamento almeno ogni **2 anni**.
+- **Classe IIb/III** → **PSUR** (Art. 86), aggiornamento almeno **annuale**.
+
+`ANALISI/17_adempimenti_lab_2026.md` §1.4 contiene già questa correzione in prosa (annotata "⚠️ CORREZIONE 2026-05-12"), ma **non è mai stata propagata al codice**: la pagina mostra sempre e solo "PSUR — Periodic Safety Update Report — MDR Art. 86" con un alert "PSUR mancante per anno corrente-1" indipendentemente dalla classe dei dispositivi del laboratorio. Per un laboratorio che produce prevalentemente dispositivi Classe I (comune per molte protesi dentali), questo genera un alert di compliance normativamente errato (obbligo inesistente in quella forma) e rischia di mascherare la vera differenza di cadenza per i laboratori con dispositivi Classe IIa (biennale, non annuale).
+
+**Fix (non ancora pianificato in dettaglio):** determinare la classe di rischio prevalente/per-dispositivo del laboratorio (il campo `classe_rischio` esiste già su `lavori`, usato dalla DdC), branchare l'etichetta/cadenza tra "PMS Report" (Classe I) e "PSUR" (Classe IIa/IIb/III) con l'alert di scadenza correttamente differenziato (nessuna scadenza fissa per Classe I; 2 anni per IIa; 1 anno per IIb/III). Richiede una decisione di design su come gestire un laboratorio con dispositivi di classi miste (es. PMS Report aggregato + PSUR separato solo per le classi ≥IIa, oppure un'unica vista con sezioni per classe).
+
+**Effort:** non stimato — richiede prima una sessione di design dedicata (query aggregazione per classe, UI, eventuale migration se serve una colonna di classificazione a livello di singolo PSUR/PMS record).
 
 ### B4. ✅ RISOLTO (05/07/2026, branch `worktree-b4-pdf-generators-type-safety`, non ancora mergiato su `main`) — `as any` nei generatori PDF MDR
 **Fonte:** [SWE], confermato anche da [Odt]
