@@ -447,15 +447,54 @@ righe di fixture in ogni nuovo file di test dei generatori."
 
 ### Task 5: Fix `generate-dpa.ts` — validazione + cast
 
+> **⚠️ Revisione post-implementazione:** questo task ora crea anche `src/lib/pdf/typed-service-client.ts` (Step 0, sotto) — un helper condiviso usato da tutti i task successivi (6-12) — perché la tecnica `.overrideTypes<T,{merge:false}>()` per-query descritta nella prima stesura di questo piano **non compila** su un client Supabase senza generic `<Database>` (verificato con `tsc` reale: l'errore è strutturale, non di sintassi — `.single()` su un client non tipizzato non restringe `Result` da array a singolo oggetto a livello di tipo, quindi `overrideTypes` la rifiuta). La tecnica corretta — cast del CLIENT una volta per file, non della query — è descritta nello spec aggiornato (`docs/superpowers/specs/2026-07-05-b4-pdf-generators-type-safety-design.md`, Parte 2).
+
 **Files:**
+- Create: `src/lib/pdf/typed-service-client.ts`
 - Modify: `src/lib/pdf/generate-dpa.ts`
+- Modify: `tests/unit/helpers/pdf-fixtures.ts` (fix `CLIENTE_FIXTURE`, vedi Step 1)
 - Test: `tests/unit/generate-dpa.test.ts`
 
 **Interfaces:**
 - Consumes: `LAB_FIXTURE`, `CLIENTE_FIXTURE` da `./helpers/pdf-fixtures`; `createChain` da `./helpers/supabase-chain-mock`.
-- Produces: `generateDpa(laboratorio_id, cliente_id): Promise<Buffer>` (firma invariata) ora valida i dati fiscali prima di renderizzare.
+- Produces: `getTypedServiceClient(): SupabaseClient<Database>` — usata da tutti i task successivi (6-12) al posto di `getServiceClient()` in ogni generatore. `generateDpa(laboratorio_id, cliente_id): Promise<Buffer>` (firma invariata) ora valida i dati fiscali prima di renderizzare.
 
-- [ ] **Step 1: Scrivi il test smoke (contro il codice attuale)**
+- [ ] **Step 0: Crea l'helper `getTypedServiceClient`**
+
+```typescript
+// src/lib/pdf/typed-service-client.ts
+import 'server-only'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import type { Database } from '@/types/database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// getServiceClient() non porta il generic <Database> (fix strutturale del
+// client condiviso, usato da 147 file, esplicitamente fuori scope — vedi
+// spec B4). Questo cast locale rende tipizzate sullo schema reale le query
+// nei generatori PDF, senza toccare il client condiviso: .select('*') e i
+// join restituiscono i tipi veri delle colonne invece di un `any` implicito.
+export function getTypedServiceClient(): SupabaseClient<Database> {
+  return getServiceClient() as SupabaseClient<Database>
+}
+```
+
+Nessun test dedicato per questo helper (è un cast puro, zero logica — la sua correttezza è verificata indirettamente da ogni generatore che lo consuma, a partire da questo stesso task).
+
+- [ ] **Step 1: Correggi `CLIENTE_FIXTURE` (fixture condivisa, bug scoperto in questo task)**
+
+`CLIENTE_FIXTURE` (creata in Task 4) ha sia `partita_iva: null` sia `codice_fiscale: null` — con la validazione aggiunta in questo task, il test "smoke" con dati completi (Step 2 sotto) fallirebbe sempre, perché il cliente della fixture non ha nessun identificativo fiscale. In `tests/unit/helpers/pdf-fixtures.ts`, cambia:
+
+```typescript
+  codice_fiscale: null,
+```
+(dentro `CLIENTE_FIXTURE`) in:
+```typescript
+  codice_fiscale: 'RSSMRA80A01H703X',
+```
+
+Questo non tocca `ddc-pdf-content.test.ts` (non legge `codice_fiscale` del cliente).
+
+- [ ] **Step 2: Scrivi il test smoke (contro il codice attuale)**
 
 ```typescript
 // tests/unit/generate-dpa.test.ts
@@ -493,12 +532,12 @@ describe('generateDpa', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passi contro il codice attuale**
+- [ ] **Step 3: Verifica che passi contro il codice attuale**
 
 Run: `npx vitest run tests/unit/generate-dpa.test.ts`
 Expected: PASS (il codice attuale funziona già, questo test stabilisce solo la prima copertura mai scritta per questo file).
 
-- [ ] **Step 3: Aggiungi il test di validazione (RED)**
+- [ ] **Step 4: Aggiungi il test di validazione (RED)**
 
 Aggiungi al blocco `describe`:
 
@@ -521,14 +560,14 @@ Aggiungi al blocco `describe`:
 Run: `npx vitest run tests/unit/generate-dpa.test.ts`
 Expected: FAIL sui 2 nuovi test — `generateDpa` attuale non lancia mai (i campi nulli vengono solo passati al template senza controllo).
 
-- [ ] **Step 4: Implementa `validateDpaData` + rimuovi i cast**
+- [ ] **Step 5: Implementa `validateDpaData` + rimuovi i cast**
 
 Sostituisci `src/lib/pdf/generate-dpa.ts` con:
 
 ```typescript
 import 'server-only'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
 import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import type { Laboratorio, Cliente } from '@/types/domain'
@@ -543,17 +582,22 @@ function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
 }
 
 export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<Buffer> {
-  const svc = getServiceClient()
+  const svc = getTypedServiceClient()
 
-  const [{ data: lab }, { data: cliente }] = await Promise.all([
-    svc.from('laboratori').select('*').eq('id', laboratorio_id).single()
-      .overrideTypes<Laboratorio, { merge: false }>(),
-    svc.from('clienti').select('*').eq('id', cliente_id).eq('laboratorio_id', laboratorio_id).single()
-      .overrideTypes<Cliente, { merge: false }>(),
+  const [{ data: labRaw }, { data: clienteRaw }] = await Promise.all([
+    svc.from('laboratori').select('*').eq('id', laboratorio_id).single(),
+    svc.from('clienti').select('*').eq('id', cliente_id).eq('laboratorio_id', laboratorio_id).single(),
   ])
 
-  if (!lab) throw new Error('Laboratorio non trovato')
-  if (!cliente) throw new Error('Cliente non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  if (!clienteRaw) throw new Error('Cliente non trovato')
+
+  // Cast puntuale sul risultato: lo schema reale tipizza alcune colonne enum
+  // (es. laboratori.piano, clienti.listino_numero) come stringa/numero generico
+  // invece delle union letterali di domain.ts — la query stessa resta type-safe
+  // sullo schema (typo sulle colonne vengono comunque intercettati da tsc).
+  const lab = labRaw as Laboratorio
+  const cliente = clienteRaw as Cliente
 
   validateDpaData(lab, cliente)
 
@@ -591,7 +635,7 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
 }
 ```
 
-- [ ] **Step 5: Verifica che tutti i test passino**
+- [ ] **Step 6: Verifica che tutti i test passino**
 
 Run: `npx vitest run tests/unit/generate-dpa.test.ts`
 Expected: 3/3 PASS.
@@ -602,15 +646,18 @@ Expected: nessun errore.
 Run: `grep -n "as any" src/lib/pdf/generate-dpa.ts`
 Expected: nessun risultato.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/lib/pdf/generate-dpa.ts tests/unit/generate-dpa.test.ts
+git add src/lib/pdf/typed-service-client.ts src/lib/pdf/generate-dpa.ts tests/unit/generate-dpa.test.ts tests/unit/helpers/pdf-fixtures.ts
 git commit -m "fix(pdf): elimina as any e valida dati fiscali in generate-dpa.ts
 
 Rimosso l'unico as any del file (cast renderer). Aggiunta
 validateDpaData(): un DPA senza P.IVA/CF per una delle parti ora
-lancia un errore esplicito invece di stampare campi vuoti."
+lancia un errore esplicito invece di stampare campi vuoti. Introduce
+getTypedServiceClient() (usata anche dai task 6-12) al posto della
+tecnica .overrideTypes() per-query, che non compila su un client
+Supabase senza generic <Database> (verificato con tsc)."
 ```
 
 ---
@@ -622,7 +669,7 @@ lancia un errore esplicito invece di stampare campi vuoti."
 - Test: `tests/unit/generate-buono.test.ts`
 
 **Interfaces:**
-- Consumes: `LAB_FIXTURE`, `LAVORO_FIXTURE`, `createChain`.
+- Consumes: `LAB_FIXTURE`, `LAVORO_FIXTURE`, `createChain`, `getTypedServiceClient` (Task 5).
 - Produces: `generateBuono(lavoro): Promise<{numero, url}>` (firma invariata).
 
 - [ ] **Step 1: Scrivi il test smoke (contro il codice attuale)**
@@ -640,8 +687,8 @@ const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
   mockGetPublicUrl: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({
     from: mockFrom,
     storage: { from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }) },
   }),
@@ -677,17 +724,21 @@ describe('generateBuono', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passi contro il codice attuale**
+Nota: questo test mocka `@/lib/pdf/typed-service-client` (non `@/lib/supabase/server-service`) — coerente con il fatto che, dopo lo Step 3, `generate-buono.ts` importerà `getTypedServiceClient` invece di `getServiceClient`. Il test è scritto per il codice GIÀ corretto, non per quello attuale — questo file non aveva alcun test prima, quindi non c'è un "codice attuale" da testare separatamente per il mock target.
+
+- [ ] **Step 2: Verifica che passi**
 
 Run: `npx vitest run tests/unit/generate-buono.test.ts`
-Expected: PASS (prima copertura mai scritta per questo file).
+Expected: FAIL — il modulo mockato (`@/lib/pdf/typed-service-client`) non esiste ancora import in `generate-buono.ts` (il file usa ancora `getServiceClient`), quindi il mock non aggancia nulla e la chiamata reale a Supabase fallisce. Questo conferma che lo Step 3 è necessario prima che il test possa passare.
 
-- [ ] **Step 3: Rimuovi il cast renderer**
+- [ ] **Step 3: Rimuovi il cast renderer, passa a `getTypedServiceClient`**
 
 In `src/lib/pdf/generate-buono.ts`:
-1. Aggiungi import: `import { renderPdfDocument } from '@/lib/pdf/render-document'` e `import type { Laboratorio } from '@/types/domain'`.
-2. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`.
-3. Sostituisci:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Aggiungi import: `import { renderPdfDocument } from '@/lib/pdf/render-document'` e `import type { Laboratorio } from '@/types/domain'`.
+3. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`.
+4. Sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`.
+5. Sostituisci:
 ```typescript
   const { data: lab } = await supabase
     .from('laboratori')
@@ -697,14 +748,18 @@ In `src/lib/pdf/generate-buono.ts`:
 ```
 con:
 ```typescript
-  const { data: lab } = await supabase
+  const { data: labRaw } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', lavoro.laboratorio_id)
     .single()
-    .overrideTypes<Laboratorio, { merge: false }>()
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 ```
-4. Sostituisci:
+(questo sostituisce anche l'`if (!lab) throw new Error('Laboratorio non trovato')` originale, che va rimosso per evitare la doppia dichiarazione — verifica che resti UNA sola verifica not-found, sul nuovo nome `labRaw`)
+6. Sostituisci:
 ```typescript
   // Genera PDF
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -744,6 +799,9 @@ Prima copertura di test mai scritta per questo generatore."
 - Modify: `src/lib/pdf/generate-ifu.ts`
 - Test: `tests/unit/generate-ifu.test.ts`
 
+**Interfaces:**
+- Consumes: `getTypedServiceClient` (Task 5), `LAB_FIXTURE`, `LAVORO_FIXTURE`, `createChain`.
+
 - [ ] **Step 1: Scrivi il test smoke**
 
 ```typescript
@@ -755,8 +813,8 @@ import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateIFU } from '../../src/lib/pdf/generate-ifu'
@@ -778,27 +836,48 @@ describe('generateIFU', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passi contro il codice attuale**
+- [ ] **Step 2: Verifica che fallisca**
 
 Run: `npx vitest run tests/unit/generate-ifu.test.ts`
-Expected: PASS.
+Expected: FAIL — il codice attuale importa `getServiceClient` da `@/lib/supabase/server-service`, non ancora mockato da questo test (mocka `@/lib/pdf/typed-service-client`, che il file non usa finché non applichi lo Step 3).
 
-- [ ] **Step 3: Rimuovi il cast renderer**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
-In `src/lib/pdf/generate-ifu.ts`, sostituisci l'ultima riga della funzione:
-
+In `src/lib/pdf/generate-ifu.ts`:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`.
+3. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'`.
+4. Sostituisci la query lab:
+```typescript
+  const { data: lab } = await supabase
+    .from('laboratori')
+    .select('*')
+    .eq('id', laboratorio_id)
+    .single()
+  if (!lab) throw new Error('Laboratorio non trovato')
+```
+con:
+```typescript
+  const { data: labRaw } = await supabase
+    .from('laboratori')
+    .select('*')
+    .eq('id', laboratorio_id)
+    .single()
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
+```
+5. Aggiungi `import type { Laboratorio } from '@/types/domain'` (accanto all'import esistente di `LavoroDettaglio`).
+6. Sostituisci l'ultima riga della funzione:
 ```typescript
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return renderToBuffer(createElement(IFUTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }) as any)
 ```
-
 con:
-
 ```typescript
   return renderPdfDocument(createElement(IFUTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }))
 ```
-
-Aggiorna gli import: rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'`.
 
 **Nota:** il cast `lavoro as unknown as LavoroDettaglio` resta invariato — non è `as any`, fuori scope (vedi spec).
 
@@ -828,6 +907,9 @@ git commit -m "fix(pdf): elimina as any in generate-ifu.ts, aggiungi test smoke"
 - Modify: `src/lib/pdf/generate-ricevuta-consegna.ts`
 - Test: `tests/unit/generate-ricevuta-consegna.test.ts`
 
+**Interfaces:**
+- Consumes: `getTypedServiceClient` (Task 5), `LAB_FIXTURE`, `LAVORO_FIXTURE`, `createChain`.
+
 - [ ] **Step 1: Scrivi il test smoke**
 
 ```typescript
@@ -839,8 +921,8 @@ import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateRicevutaConsegna } from '../../src/lib/pdf/generate-ricevuta-consegna'
@@ -862,22 +944,44 @@ describe('generateRicevutaConsegna', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passi contro il codice attuale**
+- [ ] **Step 2: Verifica che fallisca**
 
 Run: `npx vitest run tests/unit/generate-ricevuta-consegna.test.ts`
-Expected: PASS.
+Expected: FAIL — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
 
-- [ ] **Step 3: Rimuovi il cast renderer**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
-In `src/lib/pdf/generate-ricevuta-consegna.ts`, sostituisci:
-
+In `src/lib/pdf/generate-ricevuta-consegna.ts`:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`.
+3. Aggiungi `import type { Laboratorio } from '@/types/domain'` (accanto all'import esistente di `LavoroDettaglio`).
+4. Sostituisci la query lab:
+```typescript
+  const { data: lab } = await supabase
+    .from('laboratori')
+    .select('*')
+    .eq('id', laboratorio_id)
+    .single()
+  if (!lab) throw new Error('Laboratorio non trovato')
+```
+con:
+```typescript
+  const { data: labRaw } = await supabase
+    .from('laboratori')
+    .select('*')
+    .eq('id', laboratorio_id)
+    .single()
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
+```
+5. Sostituisci:
 ```typescript
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return renderToBuffer(createElement(RicevutaConsegnaTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }) as any)
 ```
-
 con:
-
 ```typescript
   return renderPdfDocument(createElement(RicevutaConsegnaTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }))
 ```
@@ -910,6 +1014,10 @@ git commit -m "fix(pdf): elimina as any in generate-ricevuta-consegna.ts, aggiun
 - Modify: `src/lib/pdf/generate-nomina-prrc.ts`
 - Test: `tests/unit/generate-nomina-prrc.test.ts`
 
+**Interfaces:**
+- Consumes: `getTypedServiceClient` (Task 5), `LAB_FIXTURE`, `createChain`.
+- Nota: `NominaPrrcTemplateProps.lab` è un tipo strutturale ristretto (tutti campi opzionali, nessun `piano`) — il risultato di query tipizzato via `getTypedServiceClient()` lo soddisfa senza bisogno di alcun cast `as Laboratorio` (a differenza di buono/ifu/ricevuta-consegna/etichetta/ddc, che passano `lab` a prop tipizzate `Laboratorio` per intero).
+
 - [ ] **Step 1: Scrivi i test (smoke + regressione validazione esistente)**
 
 ```typescript
@@ -921,8 +1029,8 @@ import { LAB_FIXTURE } from './helpers/pdf-fixtures'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateNominaPrrc } from '../../src/lib/pdf/generate-nomina-prrc'
@@ -951,14 +1059,17 @@ describe('generateNominaPrrc', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che entrambi i test passino contro il codice attuale**
+- [ ] **Step 2: Verifica che falliscano**
 
 Run: `npx vitest run tests/unit/generate-nomina-prrc.test.ts`
-Expected: 2/2 PASS (il controllo `if (!lab.prrc_nome) throw` esiste già nel codice — questo test lo mette solo sotto copertura per la prima volta).
+Expected: FAIL su entrambi — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
 
-- [ ] **Step 3: Rimuovi il cast renderer**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
-In `src/lib/pdf/generate-nomina-prrc.ts`, sostituisci:
+In `src/lib/pdf/generate-nomina-prrc.ts`:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`.
+3. Sostituisci:
 
 ```typescript
   const buffer = await renderToBuffer(
@@ -973,7 +1084,7 @@ con:
   const buffer = await renderPdfDocument(createElement(NominaPrrcTemplate, { lab, nominaPrrc }))
 ```
 
-Aggiorna gli import (rimuovi `renderToBuffer` da `@react-pdf/renderer`, aggiungi `renderPdfDocument` da `@/lib/pdf/render-document`). Aggiungi anche `.overrideTypes<Laboratorio, { merge: false }>()` sulla query `laboratori` e l'import `import type { Laboratorio } from '@/types/domain'`.
+Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'`. Non serve alcun cast `as Laboratorio` (vedi nota sopra) né alcun `import type { Laboratorio }`.
 
 - [ ] **Step 4: Verifica**
 
@@ -1001,6 +1112,9 @@ git commit -m "fix(pdf): elimina as any in generate-nomina-prrc.ts, copertura te
 - Modify: `src/lib/pdf/generate-etichetta.ts`
 - Test: `tests/unit/generate-etichetta.test.ts`
 
+**Interfaces:**
+- Consumes: `getTypedServiceClient` (Task 5), `LAB_FIXTURE`, `LAVORO_FIXTURE`, `createChain`.
+
 - [ ] **Step 1: Scrivi i test smoke per entrambe le funzioni**
 
 ```typescript
@@ -1016,8 +1130,8 @@ const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
   mockGetPublicUrl: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({
     from: mockFrom,
     storage: { from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }) },
   }),
@@ -1059,25 +1173,38 @@ describe('generateEtichetta', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passino contro il codice attuale**
+- [ ] **Step 2: Verifica che falliscano**
 
 Run: `npx vitest run tests/unit/generate-etichetta.test.ts`
-Expected: 2/2 PASS.
+Expected: FAIL su entrambi — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
 
-- [ ] **Step 3: Rimuovi i 2 cast renderer**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi i 2 cast renderer**
 
 In `src/lib/pdf/generate-etichetta.ts`:
-1. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'` e `import type { Laboratorio } from '@/types/domain'`.
-2. In `generateEtichettaBuffer`, sostituisci la query lab:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'` e `import type { Laboratorio } from '@/types/domain'`.
+3. In `generateEtichettaBuffer`: sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`, e sostituisci la query lab:
 ```typescript
   const { data: lab } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', laboratorio_id)
     .single()
+  if (!lab) throw new Error('Laboratorio non trovato')
 ```
-con la stessa query seguita da `.overrideTypes<Laboratorio, { merge: false }>()`.
-3. Sostituisci:
+con:
+```typescript
+  const { data: labRaw } = await supabase
+    .from('laboratori')
+    .select('*')
+    .eq('id', laboratorio_id)
+    .single()
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
+```
+4. Sostituisci:
 ```typescript
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return renderToBuffer(createElement(EtichettaTemplate, { lavoro: lavoroDettaglio, lab, installareEntro }) as any)
@@ -1086,7 +1213,7 @@ con:
 ```typescript
   return renderPdfDocument(createElement(EtichettaTemplate, { lavoro: lavoroDettaglio, lab, installareEntro }))
 ```
-4. In `generateEtichetta`, applica lo stesso `.overrideTypes<Laboratorio, { merge: false }>()` alla query lab, e sostituisci:
+5. In `generateEtichetta`: applica la stessa sostituzione `getServiceClient()` → `getTypedServiceClient()` e lo stesso pattern `labRaw`/`as Laboratorio` sulla query lab, poi sostituisci:
 ```typescript
   // Genera PDF
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1126,6 +1253,10 @@ git commit -m "fix(pdf): elimina 2 as any in generate-etichetta.ts, aggiungi tes
 - Modify: `src/lib/pdf/generate-cedolino-tecnico.ts`
 - Test: `tests/unit/generate-cedolino-tecnico.test.ts`
 
+**Interfaces:**
+- Consumes: `getTypedServiceClient` (Task 5), `createChain`.
+- Nota: le select parziali di questo file (`nome, ragione_sociale, ...` su `laboratori`; `nome, cognome` su `tecnici`) non toccano colonne enum-like — su un client tipizzato via `getTypedServiceClient()` producono già il tipo ristretto corretto senza bisogno di alcun `.overrideTypes()`/cast aggiuntivo (verificato: le select parziali su un client `SupabaseClient<Database>` restituiscono direttamente la forma attesa).
+
 - [ ] **Step 1: Scrivi il test smoke**
 
 ```typescript
@@ -1136,8 +1267,8 @@ import { createChain } from './helpers/supabase-chain-mock'
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({ from: mockFrom }),
 }))
 
 import { generateCedolinoTecnico } from '../../src/lib/pdf/generate-cedolino-tecnico'
@@ -1186,41 +1317,17 @@ describe('generateCedolinoTecnico', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che passi contro il codice attuale**
+- [ ] **Step 2: Verifica che fallisca**
 
 Run: `npx vitest run tests/unit/generate-cedolino-tecnico.test.ts`
-Expected: PASS.
+Expected: FAIL — il codice attuale importa `getServiceClient`, non ancora mockato da questo test.
 
-- [ ] **Step 3: Rimuovi il cast renderer + tipizza le select parziali**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi il cast renderer**
 
 In `src/lib/pdf/generate-cedolino-tecnico.ts`:
-1. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'` e `import type { Laboratorio, Tecnico } from '@/types/domain'`.
-2. Sostituisci:
-```typescript
-  const { data: lab } = await svc
-    .from('laboratori')
-    .select('nome, ragione_sociale, indirizzo, cap, citta, provincia, codice_itca, prrc_nome')
-    .eq('id', laboratorio_id)
-    .single()
-```
-con la stessa query seguita da:
-```typescript
-    .overrideTypes<
-      Pick<Laboratorio, 'nome' | 'ragione_sociale' | 'indirizzo' | 'cap' | 'citta' | 'provincia' | 'codice_itca' | 'prrc_nome'>,
-      { merge: false }
-    >()
-```
-3. Sostituisci:
-```typescript
-  const { data: tecnico } = await svc
-    .from('tecnici')
-    .select('nome, cognome')
-    .eq('id', tecnico_id)
-    .eq('laboratorio_id', laboratorio_id)
-    .is('deleted_at', null)
-    .single()
-```
-con la stessa query seguita da `.overrideTypes<Pick<Tecnico, 'nome' | 'cognome'>, { merge: false }>()`.
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`, aggiungi `import { renderPdfDocument } from '@/lib/pdf/render-document'`.
+3. Sostituisci `const svc = getServiceClient()` con `const svc = getTypedServiceClient()`. Le due select parziali (`laboratori`, `tecnici`) restano altrimenti invariate — nessun cast aggiuntivo necessario (vedi nota sopra).
 4. Sostituisci:
 ```typescript
   const element = createElement(CedolinoTecnicoTemplate, { tecnico, lab: labPdf, mese, lavorazioni, totale })
@@ -1276,8 +1383,8 @@ const { mockFrom, mockInsert } = vi.hoisted(() => ({
   mockInsert: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({
+vi.mock('@/lib/pdf/typed-service-client', () => ({
+  getTypedServiceClient: () => ({
     from: mockFrom,
     storage: {
       from: () => ({
@@ -1357,16 +1464,18 @@ describe('generateDdC', () => {
 })
 ```
 
-- [ ] **Step 2: Verifica che tutti passino contro il codice attuale**
+- [ ] **Step 2: Verifica che falliscano**
 
 Run: `npx vitest run tests/unit/generate-ddc.test.ts`
-Expected: 3/3 PASS (prima copertura mai scritta per la funzione `generateDdC()` — il test esistente `ddc-pdf-content.test.ts` copre solo `DdcTemplate`, non questa funzione).
+Expected: FAIL su tutti e 3 — il codice attuale importa `getServiceClient`, non ancora mockato da questo test (mocka `@/lib/pdf/typed-service-client`).
 
-- [ ] **Step 3: Rimuovi i 3 `as any`**
+- [ ] **Step 3: Passa a `getTypedServiceClient`, rimuovi i 3 `as any`**
 
 In `src/lib/pdf/generate-ddc.ts`:
-1. Aggiungi import: `import { renderPdfDocument } from '@/lib/pdf/render-document'`. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`. Aggiungi `import type { Laboratorio } from '@/types/domain'` (accanto all'import esistente di `LavoroDettaglio`).
-2. Sostituisci la query lab:
+1. Sostituisci `import { getServiceClient } from '@/lib/supabase/server-service'` con `import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'`.
+2. Sostituisci `const supabase = getServiceClient()` con `const supabase = getTypedServiceClient()`.
+3. Aggiungi import: `import { renderPdfDocument } from '@/lib/pdf/render-document'`. Rimuovi `import { renderToBuffer } from '@react-pdf/renderer'`. Aggiungi `import type { Laboratorio } from '@/types/domain'` (accanto all'import esistente di `LavoroDettaglio`).
+4. Sostituisci la query lab:
 ```typescript
   const [{ data: lab }, { data: rischiRow }] = await Promise.all([
     supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single(),
@@ -1380,9 +1489,8 @@ In `src/lib/pdf/generate-ddc.ts`:
 ```
 con:
 ```typescript
-  const [{ data: lab }, { data: rischiRow }] = await Promise.all([
-    supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single()
-      .overrideTypes<Laboratorio, { merge: false }>(),
+  const [{ data: labRaw }, { data: rischiRow }] = await Promise.all([
+    supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single(),
     supabase
       .from('rischi_tipo_dispositivo')
       .select('rischi_residui')
@@ -1391,7 +1499,14 @@ con:
       .maybeSingle(),
   ])
 ```
-3. Sostituisci:
+5. Subito dopo il blocco `if (!lab) throw new Error('Laboratorio non trovato')` (che va aggiornato per usare `labRaw`), aggiungi il cast puntuale:
+```typescript
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
+```
+6. Sostituisci:
 ```typescript
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1402,7 +1517,7 @@ con:
     // Fallback da paziente.nome_cognome se lo snapshot è nullo (Allegato XIII §4)
     paziente_nome: lavoro.paziente_nome_snapshot ?? lavoro.paziente?.nome_cognome ?? lavoro.paziente?.codice_paziente ?? '',
 ```
-4. Sostituisci:
+7. Sostituisci:
 ```typescript
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1413,7 +1528,7 @@ con:
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
 ```
-5. Sostituisci:
+8. Sostituisci:
 ```typescript
   // Genera PDF
   // Il cast è necessario: createElement produce FunctionComponentElement,

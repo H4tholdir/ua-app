@@ -44,26 +44,47 @@ Anche `tests/unit/ddc-pdf-content.test.ts` (unico test PDF esistente) viene aggi
 
 ### Parte 2 — Fix data-access
 
-Uso `.overrideTypes<T, { merge: false }>()` di `@supabase/postgrest-js` (verificato disponibile nella versione installata, `2.105.4`) al posto del deprecato `.returns<T>()` — stessa funzione (override del tipo a compile-time, zero effetto runtime — l'implementazione di entrambi i metodi è `return this`), ma non deprecato.
+> **⚠️ Revisione post-implementazione (Task 5):** la tecnica descritta qui sotto sostituisce quella originariamente proposta (`.overrideTypes<T,{merge:false}>()` per-query su `getServiceClient()` non tipizzato). Verificato con `tsc` reale durante l'implementazione: `.overrideTypes()` chiamato dopo `.single()` su un client senza generic `<Database>` **non compila** — l'errore è strutturale (`IsValidResultOverride` in `@supabase/postgrest-js` vede ancora `Result` come array perché senza schema `.single()` non lo restringe a livello di tipo), non un problema di sintassi. Tecnica corretta, validata con probe dirette su tutti i pattern di query usati dagli 8 file (select completo, select parziale, join, assegnazione a prop tipizzata di un template): vedi sotto.
 
-**Nota di onestà tecnica:** `.overrideTypes<T>()` è un'**asserzione**, non una verifica — sovrascrive il tipo inferito senza alcun controllo a runtime, stessa famiglia del cast che questo backlog item contesta, solo più stretto e verificato dal compilatore ad ogni accesso a campo (se `domain.ts` disallinea dallo schema DB reale, `tsc` non se ne accorge finché non si legge il campo mancante — è già successo una volta in questo design, vedi sotto). Non è l'equivalente di tipizzare `getServiceClient()` con lo schema DB reale (quello sarebbe verificato dal generatore di tipi Supabase). È comunque un miglioramento netto: elimina l'`any` non controllato, rende esplicito *quale* forma ci si aspetta, e si autocorregge nel tempo (campo letto ma mancante nel tipo → errore `tsc` → si aggiunge).
+**Tecnica corretta — cast del client, non della query:**
+
+Nuovo file `src/lib/pdf/typed-service-client.ts`:
+
+```typescript
+import 'server-only'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import type { Database } from '@/types/database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// getServiceClient() non porta il generic <Database> (fix strutturale del
+// client condiviso, usato da 147 file, esplicitamente fuori scope — vedi
+// sotto). Questo cast locale rende tipizzate sullo schema reale le query
+// nei generatori PDF, senza toccare il client condiviso: .select('*') e i
+// join restituiscono i tipi veri delle colonne invece di un `any` implicito.
+export function getTypedServiceClient(): SupabaseClient<Database> {
+  return getServiceClient() as SupabaseClient<Database>
+}
+```
+
+Ogni generatore sostituisce `getServiceClient()` con `getTypedServiceClient()`. Da quel momento, ogni query in quel file — `select('*')`, select parziale, join annidati — è tipizzata automaticamente sullo schema DB reale (`database.types.ts`), **senza bisogno di `.overrideTypes()` per ogni query**: `tsc` cattura anche typo sui nomi di colonna (verificato con una query deliberatamente scorretta durante il probe).
+
+**Cast puntuale residuo, dove serve:** alcune colonne enum-like (es. `laboratori.piano`, `clienti.listino_numero`) sono tipizzate nello schema generato come `string`/`number` generico, mentre `domain.ts` le restringe a union letterali (`'freemium'|'solo'|'lab'|'studio'`, `1|2|3|4`) per un type-checking più stretto nel resto dell'app. Quando il risultato di una query deve soddisfare un'interfaccia di dominio (`Laboratorio`, `Cliente`) — perché passato a una funzione o a una prop di template tipizzata così — serve un singolo cast esplicito e commentato sul valore letto, non sulla query: `const lab = labRaw as Laboratorio`. Questo NON è un `as any`: è un'asserzione a un tipo applicativo specifico, verificata da `tsc` per la piena struttura (campi mancanti/di troppo continuano a essere segnalati), limitata al gap noto e documentato (enum widening), e non elimina il beneficio del client tipizzato sulla query stessa (typo sulle colonne restano intercettati, verificato).
 
 | File | Query | Fix |
 |---|---|---|
-| `generate-ddc.ts` | `laboratori.single()` | `.overrideTypes<Laboratorio, {merge:false}>()` |
-| `generate-ddc.ts` | `lavoro.paziente as any` (righe 45) | **eliminato** — `LavoroDettaglio.paziente: Paziente\|null` include già `nome_cognome`/`codice_paziente`, cast era superfluo |
-| `generate-ddc.ts` | `(lab as any).testo_rischi_default` (riga 63) | rimosso dopo aggiunta campo a `Laboratorio` in `domain.ts` |
-| `generate-dpa.ts` | `laboratori.single()` / `clienti.single()` | `.overrideTypes<Laboratorio\|Cliente, {merge:false}>()` |
+| `generate-ddc.ts` | `laboratori.single()` | `getTypedServiceClient()` + `const lab = labRaw as Laboratorio` |
+| `generate-ddc.ts` | `lavoro.paziente as any` (riga 45) | **eliminato** — `LavoroDettaglio.paziente: Paziente\|null` include già `nome_cognome`/`codice_paziente`, cast era superfluo |
+| `generate-ddc.ts` | `(lab as any).testo_rischi_default` (riga 63) | rimosso dopo aggiunta campo a `Laboratorio` in `domain.ts` (il campo esiste già nello schema reale, quindi anche senza questa aggiunta il client tipizzato lo avrebbe esposto — l'aggiunta a `domain.ts` resta corretta e utile per il cast puntuale `as Laboratorio`) |
+| `generate-dpa.ts` | `laboratori.single()` / `clienti.single()` | `getTypedServiceClient()` + `as Laboratorio`/`as Cliente` |
 | `generate-buono.ts` | `laboratori.single()` | idem |
 | `generate-etichetta.ts` (2 funzioni) | `laboratori.single()` | idem |
 | `generate-nomina-prrc.ts` | `laboratori.single()` | idem |
 | `generate-ricevuta-consegna.ts` | `laboratori.single()` | idem |
-| `generate-cedolino-tecnico.ts` | `laboratori` (select parziale: `nome, ragione_sociale, indirizzo, cap, citta, provincia, codice_itca, prrc_nome`) | `.overrideTypes<Pick<Laboratorio,'nome'\|'ragione_sociale'\|'indirizzo'\|'cap'\|'citta'\|'provincia'\|'codice_itca'\|'prrc_nome'>, {merge:false}>()` |
-| `generate-cedolino-tecnico.ts` | `tecnici` (select parziale: `nome, cognome`) | `.overrideTypes<Pick<Tecnico,'nome'\|'cognome'>, {merge:false}>()` |
+| `generate-cedolino-tecnico.ts` | `laboratori`/`tecnici` (select parziali) | `getTypedServiceClient()` — select parziale su client tipizzato produce già il tipo ristretto corretto (`Pick<...>` implicito), nessun cast aggiuntivo necessario (nessun campo enum-like tra quelli selezionati) |
 
 **Aggiunta a `domain.ts`:** campo mancante `testo_rischi_default: string | null;` nell'interfaccia `Laboratorio` (esiste nel DB, `database.types.ts:1930`, ma mai propagato al tipo applicativo).
 
-**Esplicitamente FUORI scope (non toccare):** i cast `lavoro as unknown as LavoroDettaglio` già presenti in `generate-etichetta.ts`/`generate-ricevuta-consegna.ts`. Non sono `as any` (non fanno parte degli 11 di B4) e le stringhe `.select()` in quei file non includono il campo `laboratorio` richiesto da `LavoroDettaglio` — sostituirli con `.overrideTypes<LavoroDettaglio>()` asserebbe una forma che la query non produce realmente. Stesso discorso per il cast `RawRow` in `generate-cedolino-tecnico.ts`.
+**Esplicitamente FUORI scope (non toccare):** i cast `lavoro as unknown as LavoroDettaglio` già presenti in `generate-etichetta.ts`/`generate-ricevuta-consegna.ts`/`generate-ifu.ts`. Non sono `as any` (non fanno parte degli 11 di B4) e le stringhe `.select()` in quei file non includono il campo `laboratorio` richiesto da `LavoroDettaglio` — un cast diretto a `LavoroDettaglio` asserebbe una forma che la query non produce realmente. Restano invariati anche con `getTypedServiceClient()` (il client tipizzato rende `lavoro` più precisamente tipizzato prima del cast, ma il cast stesso — già una doppia asserzione via `unknown` — non viene toccato). Stesso discorso per il cast `RawRow` in `generate-cedolino-tecnico.ts`.
 
 **11 `as any` → 0.**
 
@@ -100,6 +121,7 @@ Chiamata subito dopo il caricamento di `lab`/`cliente`, prima di costruire l'ogg
 ## File toccati
 
 - `src/lib/pdf/render-document.ts` (nuovo)
+- `src/lib/pdf/typed-service-client.ts` (nuovo)
 - `src/lib/pdf/generate-ddc.ts`, `generate-dpa.ts`, `generate-ifu.ts`, `generate-buono.ts`, `generate-etichetta.ts`, `generate-nomina-prrc.ts`, `generate-ricevuta-consegna.ts`, `generate-cedolino-tecnico.ts`
 - `src/types/domain.ts` (campo `testo_rischi_default`)
 - `tests/unit/helpers/pdf-fixtures.ts` (nuovo)
