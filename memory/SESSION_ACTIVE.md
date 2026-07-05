@@ -1,11 +1,15 @@
-# Handoff — Quick-fix bundle B12+B15+B11 mergiato e deployato (05/07/2026)
+# Handoff — B17 pianificato, pronto per esecuzione in nuova sessione (05/07/2026)
 
-**3 blocker a basso effort chiusi, mergiati su `main` (commit `3da42c1`) e deployati.** B12 login WCAG (`8725dc2`), B15 banner Abbonamento/rischio doppio addebito Stripe (`a86d3f7`), B11 colore bandito `#1B2D6B` su 4 componenti + decimo caso rgba scoperto in review (`52e4a5d`+`1ee45c9`). Review finale whole-branch: "Ready to merge: Yes", zero Critical/Important. CI verde, deploy Vercel confermato, `uachelab.com` risponde. Worktree e branch rimossi. Dettaglio completo: `memory/MEMORY.md` §0.
+**B17 (Scheda di Fabbricazione, tracciabilità fasi di lavorazione) — piano pronto, nessun codice ancora toccato.** Ricerca approfondita (deep-research, 108 agent, fonti primarie EUR-Lex/MDCG/Gazzetta Ufficiale) ha corretto un errore di attribuzione normativa nel backlog originale: l'Allegato XIII MDR non richiede testualmente "tracciabilità fasi con nome operatore e firme" — è QMS/Fascicolo Tecnico (Art. 10(9) MDR), non un obbligo di legge testuale. Spec: `docs/superpowers/specs/2026-07-05-b17-scheda-fabbricazione-design.md`. Piano: `docs/superpowers/plans/2026-07-05-b17-scheda-fabbricazione.md` (6 task: estensione tipo `LavoroFase.tecnico`, template PDF, generatore live on-demand, route API, link download, verifica finale + memoria). Nessuna migration, nessun cambio API contract.
 
-**Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF).
+**Worktree già creato e pronto:** `.claude/worktrees/b17-scheda-fabbricazione` (branch `worktree-b17-scheda-fabbricazione`, commit `bbb2ce0` — solo il piano, nessun codice). Baseline test verificato nel worktree: `504 passed | 4 skipped`.
 
-**QA browser manuale ESEGUITA** (dev server + `preview_*`, lab E2E isolato, dati di test rimossi a fine sessione): B12 contrasto reale 7.90:1/4.84:1 (era 2.2:1/1.5:1 FAIL); B15 riprodotto sia lo scenario del bug (nessun banner con lab attivo+trial storico) sia il caso legittimo (banner mostrato per lab realmente in trial); B11 confermato blu `rgb(59,130,246)` su progress bar `LavoroCard` e badge "Segnalato Ministero" (incluso il decimo caso rgba). Toast realtime "Richiesta" e odontogramma non riprodotti dal vivo (rispettivamente: timing sottoscrizione WebSocket, nessun paziente E2E) — non bloccante, stesso valore CSS già confermato altrove. Dettaglio: `memory/MEMORY.md` §0.
+**Prossima azione:** entrare nel worktree esistente (non ricrearlo) ed eseguire il piano con `superpowers:executing-plans` (sessione parallela/dedicata, esplicitamente richiesta da Francesco invece di subagent-driven-development nella stessa sessione), poi `superpowers:finishing-a-development-branch` per merge/push/deploy, seguendo lo stesso schema usato per B13 e il bundle B12+B15+B11. QA browser post-merge consigliata (vedi nota finale del piano).
+
+**Anche aperto in questa sessione, non toccato:** B20 (PSUR/PMS Report non differenziato per classe di rischio, scoperto durante la ricerca propedeutica a B17) — backlog item indipendente, da pianificare a parte.
+
+**Altri blocker aperti nel backlog** (dopo B17): B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo — richiede decisione di Filippo), B16 (query ordini non supportata), B20 (vedi sopra).
 
 ---
 
-Backlog: 🔴 14/18 Blocker risolti (B1 ✅, B2-B4 ✅, B7-B10 ✅ [B8 4/5], B11-B12 ✅, B13 ✅, B15 ✅, B18 ✅, B19 ✅). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 14/18 Blocker risolti (B1 ✅, B2-B4 ✅, B7-B10 ✅ [B8 4/5], B11-B12 ✅, B13 ✅, B15 ✅, B18 ✅, B19 ✅). B17: piano pronto, esecuzione da fare. B20: nuovo, non pianificato. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
