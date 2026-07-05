@@ -33,6 +33,7 @@ const FASE: LavoroFase = {
     obbligatoria: true,
     misurazioni_da_rilevare: false,
   },
+  tecnico: null,
 }
 
 // Helper per costruire un LavoroDettaglio minimo valido (stesso pattern di

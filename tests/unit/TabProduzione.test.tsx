@@ -24,6 +24,7 @@ const FASE: LavoroFase = {
     obbligatoria: true,
     misurazioni_da_rilevare: false,
   },
+  tecnico: null,
 }
 
 describe('TabProduzione', () => {
