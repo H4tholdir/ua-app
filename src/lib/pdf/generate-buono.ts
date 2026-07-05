@@ -9,6 +9,15 @@ import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 export async function generateBuono(lavoro: LavoroDettaglio) {
   const supabase = getTypedServiceClient()
+
+  // Idempotenza su retry di orchestraConsegna (B13 1/2): se il buono per
+  // questo lavoro è già stato generato in un tentativo precedente
+  // (buono_pdf_url già valorizzato su lavori, caricato in memoria da
+  // orchestraConsegna Step 1), non rigenerare — nessuna query aggiuntiva.
+  if (lavoro.buono_pdf_url) {
+    return { numero: lavoro.buono_numero ?? '', url: lavoro.buono_pdf_url }
+  }
+
   const anno = new Date().getFullYear()
 
   // Carica dati laboratorio

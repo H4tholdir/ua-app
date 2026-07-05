@@ -282,6 +282,9 @@ export interface Lavoro {
   file_stl_url: string | null;
   immagini_urls: string[] | null;
   impronta_digitale: boolean;
+  // Documenti generati alla consegna (B13 1/2 — idempotenza retry orchestraConsegna)
+  buono_pdf_url: string | null;
+  buono_numero: string | null;
   // Prezzi
   listino_id: string | null;
   prezzo_unitario: number | null;

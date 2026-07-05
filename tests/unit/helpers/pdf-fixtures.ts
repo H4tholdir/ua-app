@@ -120,6 +120,8 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
   file_stl_url: null,
   immagini_urls: null,
   impronta_digitale: false,
+  buono_pdf_url: null,
+  buono_numero: null,
   listino_id: null,
   prezzo_unitario: null,
   codice_iva: 'N4',
