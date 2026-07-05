@@ -99,6 +99,36 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
           />
         </div>
       )}
+
+      {/* Scheda di Fabbricazione — download on-demand, disponibile se esistono fasi */}
+      {lavoroDettaglio.fasi.length > 0 && (
+        <div style={{ padding: '0 20px 24px' }}>
+          <a
+            href={`/api/lavori/${id}/scheda-fabbricazione`}
+            download
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              width: '100%',
+              height: 44,
+              borderRadius: 12,
+              background: 'var(--elv, #EDEDEA)',
+              border: '1.5px solid var(--prs, #D4CFC9)',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--t2, #4A3D33)',
+              textDecoration: 'none',
+              boxSizing: 'border-box',
+            }}
+            aria-label="Scarica Scheda di Fabbricazione"
+          >
+            📄 Scarica Scheda di Fabbricazione
+          </a>
+        </div>
+      )}
     </PageWrapper>
   )
 }
