@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { isTrialExpiringSoon } from '@/lib/utils/lab-stato'
 
 export default async function AbbonamentoPage() {
   const userClient = await getServerUserClient()
@@ -22,9 +23,7 @@ export default async function AbbonamentoPage() {
 
   const l = lab as Record<string, unknown>
   const trialDate = l.trial_ends_at ? new Date(l.trial_ends_at as string).toLocaleDateString('it-IT') : null
-  const isTrialExpiringSoon = l.trial_ends_at
-    ? (new Date(l.trial_ends_at as string).getTime() - new Date().getTime()) < 7 * 24 * 60 * 60 * 1000
-    : false
+  const trialExpiringSoon = isTrialExpiringSoon(l.stato as string, l.trial_ends_at as string | null)
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
@@ -52,7 +51,7 @@ export default async function AbbonamentoPage() {
                  l.stato === 'attivo' ? 'Attivo' : (l.stato as string)?.toUpperCase()}
               </span>
             </div>
-            {isTrialExpiringSoon && (
+            {trialExpiringSoon && (
               <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(180,83,9,.08)', fontSize: '13px', color: 'var(--warning, #B45309)', fontWeight: 600, marginBottom: '16px', fontFamily: 'DM Sans, sans-serif' }}>
                 Il trial scade tra pochi giorni. Attiva il piano per continuare.
               </div>
