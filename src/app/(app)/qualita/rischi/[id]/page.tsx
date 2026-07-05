@@ -4,7 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { RischiEditor } from '@/components/features/qualita/RischiEditor'
-import type { RischioItem } from '@/components/features/qualita/RischiEditor'
+import type { RischioItem, NormaItem } from '@/components/features/qualita/RischiEditor'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -35,7 +35,7 @@ export default async function RischiDetailPage({ params }: Props) {
 
   const { data: rischio } = await svc
     .from('rischi_tipo_dispositivo')
-    .select('id, tipo_dispositivo, rischi_json, rischi_residui, misure_controllo, data_ultima_revisione, versione')
+    .select('id, tipo_dispositivo, rischi_json, norme_json, rischi_residui, misure_controllo, data_ultima_revisione, versione')
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .single()
@@ -58,6 +58,7 @@ export default async function RischiDetailPage({ params }: Props) {
           rischiIniziali={(Array.isArray(rischio.rischi_json) ? rischio.rischi_json : []) as unknown as RischioItem[]}
           rischiResiduiIniziali={rischio.rischi_residui}
           misureControlloIniziali={rischio.misure_controllo}
+          normeIniziali={(Array.isArray(rischio.norme_json) ? rischio.norme_json : []) as unknown as NormaItem[]}
         />
       </PageWrapper>
     </>

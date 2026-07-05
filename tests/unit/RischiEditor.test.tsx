@@ -12,7 +12,7 @@ const RISCHIO_BASE = {
   misura: 'Controllo spessore minimo secondo normativa',
 }
 
-function renderEditor(rischi = [RISCHIO_BASE]) {
+function renderEditor(rischi = [RISCHIO_BASE], norme: Array<{ codice: string; titolo: string; anno?: number }> = []) {
   render(
     <RischiEditor
       rischioId="rischio-1"
@@ -22,6 +22,7 @@ function renderEditor(rischi = [RISCHIO_BASE]) {
       rischiIniziali={rischi}
       rischiResiduiIniziali="I rischi residui sono accettabili"
       misureControlloIniziali="Controllo qualità visivo"
+      normeIniziali={norme}
     />
   )
 }
@@ -162,5 +163,41 @@ describe('RischiEditor', () => {
     // (the key in React is r.id, so R04 is distinct from R02 and R03)
     const riskCards = screen.getAllByText(/^Rischio \d+ — Descrizione rischio$/i)
     expect(riskCards).toHaveLength(3)
+  })
+
+  it('mostra le norme armonizzate iniziali', () => {
+    renderEditor([RISCHIO_BASE], [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials' }])
+
+    expect(screen.getByLabelText('Norma 1 — Codice')).toHaveValue('EN ISO 6872:2015')
+    expect(screen.getByLabelText('Norma 1 — Titolo')).toHaveValue('Dental ceramic materials')
+  })
+
+  it('bottone "+ Aggiungi norma" aggiunge una nuova riga vuota', () => {
+    renderEditor()
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Aggiungi norma' }))
+
+    expect(screen.getByLabelText('Norma 1 — Codice')).toHaveValue('')
+  })
+
+  it('submit include norme_json nel payload PATCH', async () => {
+    fetchMock().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ rischio: { id: 'rischio-1', tipo_dispositivo: 'protesi_fissa', versione: 2, data_ultima_revisione: '2026-07-05' } }),
+    })
+    const reloadMock = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload: reloadMock },
+    })
+
+    renderEditor([RISCHIO_BASE], [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 }])
+    fireEvent.click(screen.getByRole('button', { name: 'Salva modifiche' }))
+
+    await waitFor(() => expect(reloadMock).toHaveBeenCalledTimes(1))
+
+    const [, options] = fetchMock().mock.calls[0]
+    const body = JSON.parse(options.body as string)
+    expect(body.norme_json).toEqual([{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 }])
   })
 })

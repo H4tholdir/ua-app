@@ -12,6 +12,12 @@ export interface RischioItem {
   misura: string
 }
 
+export interface NormaItem {
+  codice: string
+  titolo: string
+  anno?: number
+}
+
 interface RischiEditorProps {
   rischioId: string
   tipoDispositivoLabel: string
@@ -20,6 +26,7 @@ interface RischiEditorProps {
   rischiIniziali: RischioItem[]
   rischiResiduiIniziali: string | null
   misureControlloIniziali: string | null
+  normeIniziali: NormaItem[]
 }
 
 const LIVELLI: Array<[number, string]> = [
@@ -46,6 +53,10 @@ function nuovoRischioVuoto(numero: number): RischioItem {
   }
 }
 
+function nuovaNormaVuota(): NormaItem {
+  return { codice: '', titolo: '' }
+}
+
 function prossimoNumero(rischi: RischioItem[]): number {
   let max = 0
   for (const r of rischi) {
@@ -66,10 +77,12 @@ export function RischiEditor({
   rischiIniziali,
   rischiResiduiIniziali,
   misureControlloIniziali,
+  normeIniziali,
 }: RischiEditorProps) {
   const [rischi, setRischi] = useState<RischioItem[]>(rischiIniziali)
   const [rischiResidui, setRischiResidui] = useState(rischiResiduiIniziali ?? '')
   const [misureControllo, setMisureControllo] = useState(misureControlloIniziali ?? '')
+  const [norme, setNorme] = useState<NormaItem[]>(normeIniziali)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const contatore = useRef(prossimoNumero(rischiIniziali))
@@ -92,6 +105,20 @@ export function RischiEditor({
 
   const rimuoviRischio = (index: number) => {
     setRischi(prev => prev.filter((_, i) => i !== index))
+    hapticLight()
+  }
+
+  const aggiornaNorma = (index: number, patch: Partial<NormaItem>) => {
+    setNorme(prev => prev.map((n, i) => (i === index ? { ...n, ...patch } : n)))
+  }
+
+  const aggiungiNorma = () => {
+    setNorme(prev => [...prev, nuovaNormaVuota()])
+    hapticLight()
+  }
+
+  const rimuoviNorma = (index: number) => {
+    setNorme(prev => prev.filter((_, i) => i !== index))
     hapticLight()
   }
 
@@ -128,6 +155,7 @@ export function RischiEditor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rischi_json: rischi,
+          norme_json: norme,
           rischi_residui: rischiResidui.trim() || null,
           misure_controllo: misureControllo.trim() || null,
         }),
@@ -319,6 +347,71 @@ export function RischiEditor({
       >
         + Aggiungi rischio
       </button>
+
+      <div style={cardStyle}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 10, fontFamily }}>
+          Norme armonizzate applicate
+        </div>
+        {norme.map((n, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle} htmlFor={`norma-${i}-codice`}>Norma {i + 1} — Codice</label>
+                <input
+                  id={`norma-${i}-codice`}
+                  style={inputStyle}
+                  value={n.codice}
+                  onChange={e => aggiornaNorma(i, { codice: e.target.value })}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => rimuoviNorma(i)}
+                aria-label={`Rimuovi norma ${i + 1}`}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary, #D90012)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontFamily,
+                  minHeight: 44,
+                  alignSelf: 'flex-end',
+                }}
+              >
+                Rimuovi
+              </button>
+            </div>
+            <div>
+              <label style={labelStyle} htmlFor={`norma-${i}-titolo`}>Norma {i + 1} — Titolo</label>
+              <input
+                id={`norma-${i}-titolo`}
+                style={inputStyle}
+                value={n.titolo}
+                onChange={e => aggiornaNorma(i, { titolo: e.target.value })}
+              />
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={aggiungiNorma}
+          style={{
+            padding: '10px 14px',
+            borderRadius: 10,
+            border: '1px dashed var(--prs, #D4CFC9)',
+            background: 'transparent',
+            color: 'var(--t2)',
+            fontWeight: 600,
+            fontSize: 13,
+            fontFamily,
+            cursor: 'pointer',
+            minHeight: 44,
+          }}
+        >
+          + Aggiungi norma
+        </button>
+      </div>
 
       <div style={cardStyle}>
         <label style={labelStyle} htmlFor="rischi-residui">Rischi residui (sintesi)</label>
