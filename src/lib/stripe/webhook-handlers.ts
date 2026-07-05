@@ -22,7 +22,7 @@ export async function handleCheckoutCompleted(
   const priceId = session.line_items?.data[0]?.price?.id ?? null
 
   // Atomico: stato + metadata Stripe in un singolo UPDATE
-  await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, labId, 'attivo', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: {
       stripe_subscription_id: subId,
@@ -31,6 +31,7 @@ export async function handleCheckoutCompleted(
       stripe_subscription_status: 'active',
     },
   })
+  assertTransitionOk(result, { labId, eventType: event.type })
 }
 
 async function findLabBySubscription(
@@ -56,6 +57,17 @@ function stripeOpts(event: Stripe.Event) {
   }
 }
 
+function assertTransitionOk(
+  result: { success: boolean; error?: string; retryable?: boolean },
+  context: Record<string, unknown>
+): void {
+  if (result.success) return
+  if (result.retryable) {
+    throw new Error(result.error ?? 'transitionLabStato fallita')
+  }
+  console.error('[webhook] transizione di stato non applicata (non retryable):', result.error, context)
+}
+
 function getInvoiceSubId(invoice: Stripe.Invoice): string | null {
   const details = invoice.parent?.subscription_details
   if (!details) return null
@@ -74,10 +86,11 @@ export async function handlePaymentSucceeded(
   const lab = await findLabBySubscription(supabase, subId)
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'active' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handlePaymentFailed(
@@ -95,10 +108,11 @@ export async function handlePaymentFailed(
   const lab = await findLabBySubscription(supabase, subId)
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'past_due' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handleSubscriptionDeleted(
@@ -110,10 +124,11 @@ export async function handleSubscriptionDeleted(
   const lab = await findLabBySubscription(supabase, subscription.id)
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
-  await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
+  const result = await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
     ...stripeOpts(event),
     extraFields: { stripe_subscription_status: 'canceled' },
   })
+  assertTransitionOk(result, { labId: lab.id, eventType: event.type })
 }
 
 export async function handleSubscriptionUpdated(
@@ -127,21 +142,25 @@ export async function handleSubscriptionUpdated(
   // Reactive: se Stripe torna active e il lab era sospeso, ripristina
   if (subscription.status === 'active' && lab.stato === 'sospeso') {
     // Atomico: stato + metadata Stripe in un singolo UPDATE
-    await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
+    const result = await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
       ...stripeOpts(event),
       extraFields: {
         stripe_subscription_status: subscription.status,
         stripe_price_id: subscription.items.data[0]?.price.id ?? null,
       },
     })
+    assertTransitionOk(result, { labId: lab.id, eventType: event.type })
   } else {
     // Solo metadata Stripe, nessuna transizione stato
-    await supabase
+    const { error: updateErr } = await supabase
       .from('laboratori')
       .update({
         stripe_subscription_status: subscription.status,
         stripe_price_id: subscription.items.data[0]?.price.id ?? null,
       })
       .eq('id', lab.id)
+    if (updateErr) {
+      console.error('[webhook] handleSubscriptionUpdated: aggiornamento metadata fallito:', updateErr.message, { labId: lab.id })
+    }
   }
 }

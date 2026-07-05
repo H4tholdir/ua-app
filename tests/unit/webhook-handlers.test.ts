@@ -103,6 +103,23 @@ describe('webhook-handlers', () => {
         expect.objectContaining({ extraFields: expect.objectContaining({ stripe_subscription_id: 'sub_123' }) })
       )
     })
+
+    it('lancia se transitionLabStato fallisce in modo retryable', async () => {
+      mockTransitionLabStato.mockResolvedValue({ success: false, error: 'Lab non trovato', retryable: true })
+      await expect(
+        handleCheckoutCompleted(checkoutEvent(), fakeSupabaseFound({ id: 'lab-1', stato: 'trial' }))
+      ).rejects.toThrow('Lab non trovato')
+    })
+
+    it('non lancia se transitionLabStato fallisce in modo terminale (solo log)', async () => {
+      mockTransitionLabStato.mockResolvedValue({ success: false, error: 'Stato blacklist è terminale' })
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      await expect(
+        handleCheckoutCompleted(checkoutEvent(), fakeSupabaseFound({ id: 'lab-1', stato: 'trial' }))
+      ).resolves.toBeUndefined()
+      expect(errSpy).toHaveBeenCalled()
+      errSpy.mockRestore()
+    })
   })
 
   describe('handlePaymentSucceeded', () => {
@@ -156,6 +173,28 @@ describe('webhook-handlers', () => {
     it('lancia se il lab non viene trovato', async () => {
       await expect(handleSubscriptionUpdated(subscriptionEvent('sub_sconosciuto', 'active'), fakeSupabaseNotFound()))
         .rejects.toThrow()
+    })
+
+    it('ramo metadata-only: logga se l\'update fallisce, senza lanciare', async () => {
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const supabase = {
+        from: (table: string) => {
+          if (table === 'laboratori') {
+            return {
+              select: () => createChain({ data: { id: 'lab-1', stato: 'attivo' }, error: null }),
+              update: () => ({ eq: async () => ({ error: { message: 'update fallito' } }) }),
+            }
+          }
+          throw new Error(`Tabella inattesa nel mock: ${table}`)
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
+      await expect(
+        handleSubscriptionUpdated(subscriptionEvent('sub_123', 'past_due'), supabase)
+      ).resolves.toBeUndefined()
+      expect(mockTransitionLabStato).not.toHaveBeenCalled()
+      expect(errSpy).toHaveBeenCalled()
+      errSpy.mockRestore()
     })
   })
 })
