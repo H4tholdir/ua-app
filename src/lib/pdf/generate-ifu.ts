@@ -1,12 +1,12 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { IFUTemplate } from '@/components/features/pdf/IFUTemplate'
-import type { LavoroDettaglio } from '@/types/domain'
+import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 export async function generateIFU(lavoro_id: string, laboratorio_id: string): Promise<Buffer> {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
 
   // Carica lavoro con join completi
   const { data: lavoro, error } = await supabase
@@ -30,13 +30,15 @@ export async function generateIFU(lavoro_id: string, laboratorio_id: string): Pr
 
   if (error || !lavoro) throw new Error('Lavoro non trovato')
 
-  const { data: lab } = await supabase
+  const { data: labRaw } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', laboratorio_id)
     .single()
-  if (!lab) throw new Error('Laboratorio non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return renderToBuffer(createElement(IFUTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }) as any)
+  return renderPdfDocument(createElement(IFUTemplate, { lavoro: lavoro as unknown as LavoroDettaglio, lab }))
 }
