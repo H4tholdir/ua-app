@@ -432,6 +432,18 @@ export function DdcTemplate({ lavoro, lab, ddc }: DdcTemplateProps) {
           ) : null}
         </View>
 
+        {/* ── §6-BIS NORME ARMONIZZATE ── */}
+        {ddc.norme_json && ddc.norme_json.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>§6-bis — Norme Armonizzate Applicate</Text>
+            {ddc.norme_json.map((norma, i) => (
+              <Text key={i} style={styles.value}>
+                • {norma.codice} — {norma.titolo}{norma.anno ? ` (${norma.anno})` : ''}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         {/* ── §7 CONFORMITA ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>§7 — Dichiarazione di Conformita</Text>

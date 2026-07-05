@@ -206,4 +206,35 @@ describe('DdcTemplate — PDF content validation (Allegato XIII MDR 2017/745)', 
   it('§8 stampa qualifica PRRC', () => {
     expect(pdfText).toContain('Odontotecnico abilitato')
   })
+
+  // ── §6-bis Norme armonizzate applicate ───────────────────────────────────
+
+  it('§6-bis stampa codice e titolo delle norme armonizzate quando presenti', async () => {
+    const ddcConNorme = {
+      ...DDC_FIXTURE,
+      norme_json: [
+        { codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials' },
+        { codice: 'EN ISO 22674:2016', titolo: 'Metallic materials', anno: 2016 },
+      ],
+    }
+    const element = createElement(DdcTemplate, {
+      lavoro: LAVORO_FIXTURE,
+      lab: LAB_FIXTURE,
+      ddc: ddcConNorme,
+    })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+
+    expect(result.text).toContain('EN ISO 6872:2015')
+    expect(result.text).toContain('Dental ceramic materials')
+    expect(result.text).toContain('EN ISO 22674:2016')
+    expect(result.text).toContain('2016')
+  })
+
+  it('§6-bis non compare quando norme_json è vuoto o assente', () => {
+    // DDC_FIXTURE (usata in beforeAll per pdfText) ha norme_json: null
+    expect(pdfText.toLowerCase()).not.toContain('norme armonizzate')
+  })
 })
