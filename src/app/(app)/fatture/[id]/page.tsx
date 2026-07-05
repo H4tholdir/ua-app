@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getSignedUrl } from '@/lib/storage/signed-url'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 
@@ -20,7 +21,7 @@ export default async function FatturaDetailPage({ params }: Props) {
     .from('fatture')
     .select(`
       id, numero, data, totale, iva, imponibile, stato_pagamento,
-      xml_url, pdf_url, pec_message_id, pec_consegnata_at,
+      xml_url, pdf_url, xml_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, totale_riga)
     `)
@@ -32,6 +33,10 @@ export default async function FatturaDetailPage({ params }: Props) {
   if (!fattura) redirect('/fatture')
 
   const f = fattura as Record<string, unknown>
+  let xmlSignedUrl: string | null = null
+  if (f.xml_storage_path) {
+    xmlSignedUrl = await getSignedUrl(svc, 'fatture-pdf', f.xml_storage_path as string, 3600)
+  }
   const cliente = f.cliente as Record<string, string | null> | null
   const righe = (f.righe as Array<Record<string, unknown>>) ?? []
 
@@ -95,7 +100,21 @@ export default async function FatturaDetailPage({ params }: Props) {
 
           <div style={card}>
             <div style={secLabel}>Invio SDI</div>
-            <div style={row}><span style={{ color: 'var(--t2)' }}>XML</span><span>{f.xml_url ? '✓ Generato' : 'Non generato'}</span></div>
+            <div style={row}>
+              <span style={{ color: 'var(--t2)' }}>XML</span>
+              {xmlSignedUrl ? (
+                <a
+                  href={xmlSignedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--c-amber, #F59E0B)', fontWeight: 700, textDecoration: 'none' }}
+                >
+                  Scarica XML
+                </a>
+              ) : (
+                <span>{f.xml_url ? '✓ Generato' : 'Non generato'}</span>
+              )}
+            </div>
             <div style={{ ...row, borderBottom: 'none' }}>
               <span style={{ color: 'var(--t2)' }}>PEC consegnata</span>
               <span style={{ color: f.pec_consegnata_at ? '#16A34A' : 'var(--t3)' }}>
