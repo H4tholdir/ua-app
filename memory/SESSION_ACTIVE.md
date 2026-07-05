@@ -4,8 +4,10 @@
 
 **Nota minore:** `.claude/launch.json` locale (non tracciato in git) ha perso la voce `mockups-static` durante il setup della QA — da ricreare al bisogno per il prossimo mockup HTML da approvare (workflow CLAUDE.md §0B).
 
-**Prossima priorità da decidere con Francesco:** il backlog tecnico ha ancora blocker aperti, il più critico è **B1** (tracciabilità MDR materiali/lotti strutturalmente rotta — sezione "Materiali/Lotti" sempre vuota sulla DdC, richiede una decisione di design su quale sistema tra `lavori_materiali` orfana e `scarichi_magazzino` diventa la fonte di verità). Altri blocker aperti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B11 (colore bandito su card lavoro), B12 (login WCAG), B13 (zero test su consegna/Stripe), B14 (compenso_base ambiguo), B15 (Abbonamento contraddittorio), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF). Dettaglio completo: `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`.
+**Correzione (05/07/2026, sessione successiva):** la riga precedente di questo file affermava erroneamente che **B1** (tracciabilità MDR materiali/lotti) fosse "ancora APERTO nonostante il conteggio precedente lo includesse per errore" — falso. Verifica diretta di `git log`/`git branch --contains 31cc47c` (merge su `main`, `main` identico a `origin/main`) e lettura del codice reale (`lavori_materiali` + `traccia-materiali.ts` + `DdcTemplate.tsx` §5) confermano che **B1 è stato davvero risolto e deployato il 02/07/2026** (commit `31cc47c`). L'errore era nato dalla sezione narrativa di `BACKLOG-TECNICO-2026-07-02.md` (§B1), rimasta non aggiornata dopo la chiusura — solo la riga della tabella di stato era stata corretta. Entrambi i file sono stati corretti in questa sessione. **B1 non richiede più alcuna decisione di design.**
+
+**Prossima priorità da decidere con Francesco:** il backlog tecnico ha ancora blocker aperti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B11 (colore bandito su card lavoro), B12 (login WCAG), B13 (zero test su consegna/Stripe), B14 (compenso_base ambiguo), B15 (Abbonamento contraddittorio), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF). Dettaglio completo: `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`.
 
 ---
 
-Backlog: 🔴 9/18 Blocker risolti (B2-B4 ✅, B7-B10 ✅, B18 ✅, B19 ✅) — B1 ancora APERTO nonostante il conteggio precedente lo includesse per errore. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 10/18 Blocker risolti (B1 ✅ — riconfermato 05/07, B2-B4 ✅, B7-B10 ✅, B18 ✅, B19 ✅). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
