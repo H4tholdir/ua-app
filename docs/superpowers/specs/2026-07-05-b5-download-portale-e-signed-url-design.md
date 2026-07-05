@@ -90,13 +90,32 @@ Stesso pattern SSR-signing di `xml_storage_path` (colonna già esistente e già 
 - Elimina `generateEtichetta()` (`generate-etichetta.ts`) e il suo test dedicato (`generateEtichettaBuffer`, la variante realmente usata dalla route, resta invariata)
 - Elimina `GET /api/portale/[token]/route.ts` (nessun consumer, la pagina SSR fa le proprie query dirette)
 
+### 8. Audit contenuto DdC/Buono (aggiunto su richiesta esplicita)
+
+Dato che questo lavoro tocca comunque i generatori DdC/Buono (nuova colonna `buono_storage_path`), audit generale del contenuto renderizzato — non un fix pianificato a priori, ma una verifica sistematica con eventuale fix inline se emerge un bug reale (stesso approccio già seguito in B4/B18 per bug scoperti durante lavoro non correlato).
+
+**DdC — checklist contro gli 8 elementi obbligatori Allegato XIII punto 1 MDR** (`ANALISI/17_adempimenti_lab_2026.md` §1.2), da verificare uno a uno su `DdcTemplate.tsx` renderizzando un PDF reale con fixture rappresentative:
+1. Nome e indirizzo del fabbricante (ragione sociale, sede, P.IVA, ITCA, SRN EUDAMED)
+2. Dati identificativi del dispositivo (tipologia, dente/arcata, materiale, colore, numero lavoro)
+3. Dichiarazione "fabbricato su misura" (formula standard)
+4. Nome del paziente (o pseudonimizzato, come già gestito in UÀ)
+5. Nome del prescrittore
+6. Caratteristiche specifiche del dispositivo (Classe IIa: specifiche tecniche particolari)
+7. Dichiarazione di conformità all'Allegato I (formula esatta hardcoded, testo verificato byte-per-byte)
+8. Luogo, data, firma del fabbricante/PRRC
+
+Verificare anche: nessun riferimento residuo alla Direttiva 93/42/CEE (abrogata), dicitura corretta "non soggetto a marcatura CE ai sensi dell'Art. 20(1) MDR" per dispositivi su misura, footer §6-bis norme armonizzate (già implementato, verificare non regredito).
+
+**Buono — nessun riferimento normativo MDR** (verificato: `ANALISI/17` non lo menziona — è un documento commerciale/di consegna interno, non regolamentato). Audit di completezza generale: numero lavoro, dati cliente, dati laboratorio, data, elenco lavorazioni/materiali se previsti dal template — nessuna checklist normativa, solo verifica che i dati attesi siano tutti presenti e corretti.
+
+Se l'audit trova un bug reale, viene corretto nello stesso piano (task dedicato, TDD, stesso rigore delle altre parti di questo lavoro) invece di aprire un item di backlog separato.
+
 ## Esplicitamente fuori scope
 
-- Nessun cambiamento al contenuto/template dei PDF DdC/Buono stessi (fuori tema — B5 riguarda l'accesso ai file, non il loro contenuto)
-- Nessuna modifica al flusso di generazione DdC/Buono oltre alla nuova colonna `buono_storage_path` — l'idempotenza su retry è già risolta da B13 (1/2), la type-safety dei generatori è già risolta da B4
+- Nessuna modifica al flusso di generazione DdC/Buono oltre alla nuova colonna `buono_storage_path` e agli eventuali fix di contenuto emersi dall'audit (punto 8) — l'idempotenza su retry è già risolta da B13 (1/2), la type-safety dei generatori è già risolta da B4
 - Nessuna modifica a retry/webhook Stripe — già completamente risolto da B13 (2/2)
 
-Verificato: nessun altro item del backlog (B1-B20) copre questi tre punti — sono confini di scope per aree già risolte o estranee al bug, non lacune da colmare.
+Verificato: nessun altro item del backlog (B1-B20) copre questi punti — sono confini di scope per aree già risolte o estranee al bug, non lacune da colmare.
 
 ## Verifica
 
@@ -110,3 +129,4 @@ QA browser raccomandata a fine piano (lab E2E isolato, mai il lab Filippo):
 - `/lavori/[id]` tab Docs → "Apri PDF DdC" apre il PDF correttamente (non più 400)
 - `/lavori/[id]` tab Foto → foto del lavoro visibili (non più immagini rotte)
 - `/fatture/[id]` → bottone "Scarica XML" funzionante quando XML generato
+- DdC generata reale (dal flusso di consegna) → tutti gli 8 elementi Allegato XIII presenti e corretti, verificato leggendo il testo estratto dal PDF, non solo il codice sorgente del template
