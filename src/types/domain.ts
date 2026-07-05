@@ -285,6 +285,7 @@ export interface Lavoro {
   // Documenti generati alla consegna (B13 1/2 — idempotenza retry orchestraConsegna)
   buono_pdf_url: string | null;
   buono_numero: string | null;
+  buono_storage_path: string | null;
   // Prezzi
   listino_id: string | null;
   prezzo_unitario: number | null;

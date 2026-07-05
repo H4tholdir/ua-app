@@ -56,10 +56,14 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
 
   void sha256 // hash disponibile per future integrità
 
-  // Salva url e numero sul lavoro per il recupero idempotente (fix review: buono STUB)
+  // Salva url, numero e storage path sul lavoro per il recupero idempotente
+  // e per generare l'URL firmato on-demand dal portale dentista (B5).
   const { count: buonoUpdateCount } = await supabase
     .from('lavori')
-    .update({ buono_pdf_url: pdfUrl, buono_numero: numero }, { count: 'exact' })
+    .update(
+      { buono_pdf_url: pdfUrl, buono_numero: numero, buono_storage_path: storagePath },
+      { count: 'exact' }
+    )
     .eq('id', lavoro.id)
     .eq('laboratorio_id', lavoro.laboratorio_id)
 

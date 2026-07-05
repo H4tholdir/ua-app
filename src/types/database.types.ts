@@ -2073,6 +2073,7 @@ export type Database = {
           arcata: string | null
           buono_numero: string | null
           buono_pdf_url: string | null
+          buono_storage_path: string | null
           ciclo_id: string | null
           classe_rischio: string
           cliente_id: string
@@ -2164,6 +2165,7 @@ export type Database = {
           arcata?: string | null
           buono_numero?: string | null
           buono_pdf_url?: string | null
+          buono_storage_path?: string | null
           ciclo_id?: string | null
           classe_rischio?: string
           cliente_id: string
@@ -2255,6 +2257,7 @@ export type Database = {
           arcata?: string | null
           buono_numero?: string | null
           buono_pdf_url?: string | null
+          buono_storage_path?: string | null
           ciclo_id?: string | null
           classe_rischio?: string
           cliente_id?: string

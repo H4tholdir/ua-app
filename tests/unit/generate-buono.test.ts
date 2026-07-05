@@ -40,10 +40,26 @@ describe('generateBuono', () => {
     })
   })
 
-  it('genera un buono con dati completi', async () => {
+  it('genera un buono con dati completi e salva anche buono_storage_path', async () => {
+    let updatePayload: Record<string, unknown> = {}
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
+      if (table === 'lavori') {
+        return {
+          update: (payload: Record<string, unknown>) => {
+            updatePayload = payload
+            return { eq: () => ({ eq: async () => ({ count: 1, error: null }) }) }
+          },
+        }
+      }
+      throw new Error(`Tabella inattesa nel mock: ${table}`)
+    })
+
     const result = await generateBuono(LAVORO_FIXTURE)
+
     expect(result.numero).toMatch(/^BUO-\d{4}-0001$/)
     expect(result.url).toBe('https://example.test/buono.pdf')
+    expect(updatePayload.buono_storage_path).toMatch(/^lab-test-001\/buoni\/\d{4}\/BUO-\d{4}-0001\.pdf$/)
   })
 
   it('non rigenera se lavoro.buono_pdf_url è già valorizzato (idempotenza retry)', async () => {
