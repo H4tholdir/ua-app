@@ -73,6 +73,7 @@ const DDC_FIXTURE: DichiarazioneConformita = {
   firma_ddc_storage_path: null,
   firma_ddc_sha256: null,
   rischi_residui_snapshot: null,
+  norme_json: null,
 }
 
 // ─── Test suite ───────────────────────────────────────────────────────────────

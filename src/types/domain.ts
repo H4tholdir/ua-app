@@ -526,6 +526,8 @@ export interface DichiarazioneConformita {
   firma_ddc_sha256: string | null;       // Hash integrità firma
   // Rischi residui (da rischi_tipo_dispositivo, non da lab.testo_rischi_default)
   rischi_residui_snapshot: string | null;
+  // Normative armonizzate applicate (da rischi_tipo_dispositivo, MDR §7 — Fascicolo Tecnico)
+  norme_json: Array<{ codice: string; titolo: string; anno?: number }> | null;
 }
 
 // ============================================================

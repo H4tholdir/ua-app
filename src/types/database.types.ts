@@ -4660,6 +4660,7 @@ export type Database = {
           id: string
           laboratorio_id: string
           misure_controllo: string | null
+          norme_json: Json
           responsabile_revisione: string | null
           rischi_json: Json
           rischi_residui: string | null
@@ -4673,6 +4674,7 @@ export type Database = {
           id?: string
           laboratorio_id: string
           misure_controllo?: string | null
+          norme_json?: Json
           responsabile_revisione?: string | null
           rischi_json?: Json
           rischi_residui?: string | null
@@ -4686,6 +4688,7 @@ export type Database = {
           id?: string
           laboratorio_id?: string
           misure_controllo?: string | null
+          norme_json?: Json
           responsabile_revisione?: string | null
           rischi_json?: Json
           rischi_residui?: string | null
