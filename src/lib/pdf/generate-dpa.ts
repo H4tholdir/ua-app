@@ -1,19 +1,38 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
 import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
+import type { Laboratorio, Cliente } from '@/types/domain'
+
+function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
+  if (!lab.partita_iva && !lab.codice_fiscale) {
+    throw new Error('DPA: laboratorio privo di Partita IVA e Codice Fiscale')
+  }
+  if (!cliente.partita_iva && !cliente.codice_fiscale) {
+    throw new Error('DPA: cliente privo di Partita IVA e Codice Fiscale')
+  }
+}
 
 export async function generateDpa(laboratorio_id: string, cliente_id: string): Promise<Buffer> {
-  const svc = getServiceClient()
+  const svc = getTypedServiceClient()
 
-  const [{ data: lab }, { data: cliente }] = await Promise.all([
+  const [{ data: labRaw }, { data: clienteRaw }] = await Promise.all([
     svc.from('laboratori').select('*').eq('id', laboratorio_id).single(),
     svc.from('clienti').select('*').eq('id', cliente_id).eq('laboratorio_id', laboratorio_id).single(),
   ])
 
-  if (!lab) throw new Error('Laboratorio non trovato')
-  if (!cliente) throw new Error('Cliente non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  if (!clienteRaw) throw new Error('Cliente non trovato')
+
+  // Cast puntuale sul risultato: lo schema reale tipizza alcune colonne enum
+  // (es. laboratori.piano, clienti.listino_numero) come stringa/numero generico
+  // invece delle union letterali di domain.ts — la query stessa resta type-safe
+  // sullo schema (typo sulle colonne vengono comunque intercettati da tsc).
+  const lab = labRaw as Laboratorio
+  const cliente = clienteRaw as Cliente
+
+  validateDpaData(lab, cliente)
 
   const numero_dpa = `DPA-${new Date().getFullYear()}-${cliente_id.slice(0, 8).toUpperCase()}`
 
@@ -45,7 +64,5 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
     data_emissione: new Date().toISOString(),
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(createElement(DpaTemplate, { dpa }) as any)
-  return buffer
+  return renderPdfDocument(createElement(DpaTemplate, { dpa }))
 }
