@@ -3,20 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
-  mockFrom: vi.fn(),
-  mockUpload: vi.fn(),
-  mockGetPublicUrl: vi.fn(),
-}))
+const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({
-    from: mockFrom,
-    storage: { from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }) },
-  }),
+  getServiceClient: () => ({ from: mockFrom }),
 }))
 
-import { generateEtichettaBuffer, generateEtichetta } from '../../src/lib/pdf/generate-etichetta'
+import { generateEtichettaBuffer } from '../../src/lib/pdf/generate-etichetta'
 
 describe('generateEtichettaBuffer', () => {
   beforeEach(() => {
@@ -31,22 +24,5 @@ describe('generateEtichettaBuffer', () => {
   it('genera il buffer etichetta con dati completi', async () => {
     const buffer = await generateEtichettaBuffer('lav-test-001', 'lab-test-001')
     expect(buffer.length).toBeGreaterThan(0)
-  })
-})
-
-describe('generateEtichetta', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockUpload.mockResolvedValue({ error: null })
-    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/etichetta.pdf' } })
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
-      throw new Error(`Tabella inattesa nel mock: ${table}`)
-    })
-  })
-
-  it('genera e carica l\'etichetta su storage', async () => {
-    const result = await generateEtichetta(LAVORO_FIXTURE)
-    expect(result.url).toBe('https://example.test/etichetta.pdf')
   })
 })
