@@ -105,4 +105,33 @@ describe('generateDdC', () => {
       expect.objectContaining({ paziente_nome: 'Anna Verdi' })
     )
   })
+
+  it('propaga norme_json da rischi_tipo_dispositivo all\'insert', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
+      if (table === 'rischi_tipo_dispositivo') return createChain({
+        data: { rischi_residui: null, norme_json: [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 }] },
+        error: null,
+      })
+      if (table === 'dichiarazioni_conformita') return { insert: mockInsert }
+      throw new Error(`Tabella inattesa nel mock: ${table}`)
+    })
+
+    await generateDdC(LAVORO_FIXTURE)
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        norme_json: [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 }],
+      })
+    )
+  })
+
+  it('nessuna riga in rischi_tipo_dispositivo → norme_json vuoto nell\'insert', async () => {
+    mockTables(LAB_FIXTURE)
+    await generateDdC(LAVORO_FIXTURE)
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ norme_json: [] })
+    )
+  })
 })

@@ -16,7 +16,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     supabase.from('laboratori').select('*').eq('id', lavoro.laboratorio_id).single(),
     supabase
       .from('rischi_tipo_dispositivo')
-      .select('rischi_residui')
+      .select('rischi_residui, norme_json')
       .eq('laboratorio_id', lavoro.laboratorio_id)
       .eq('tipo_dispositivo', lavoro.tipo_dispositivo)
       .maybeSingle(),
@@ -66,6 +66,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     firma_ddc_sha256: null as string | null,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
+    norme_json: (rischiRow?.norme_json ?? []) as Array<{ codice: string; titolo: string; anno?: number }>,
     data_emissione: new Date().toISOString(),
     stato: 'generata' as const,
   }
