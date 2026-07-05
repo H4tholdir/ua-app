@@ -36,13 +36,16 @@ export async function handleCheckoutCompleted(
 async function findLabBySubscription(
   supabase: SupabaseClient,
   subId: string
-): Promise<{ id: string; stato: string } | null> {
-  const { data } = await supabase
+): Promise<{ id: string; stato: string }> {
+  const { data, error } = await supabase
     .from('laboratori')
     .select('id, stato')
     .eq('stripe_subscription_id', subId)
     .single()
-  return data ?? null
+  if (error || !data) {
+    throw new Error(`Lab non trovato per stripe_subscription_id=${subId}: ${error?.message ?? 'nessuna riga'}`)
+  }
+  return data
 }
 
 function stripeOpts(event: Stripe.Event) {
@@ -69,7 +72,6 @@ export async function handlePaymentSucceeded(
   if (!subId) return
 
   const lab = await findLabBySubscription(supabase, subId)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
   await transitionLabStato(supabase, lab.id, 'attivo', 'stripe_webhook', {
@@ -91,7 +93,6 @@ export async function handlePaymentFailed(
   if (!subId) return
 
   const lab = await findLabBySubscription(supabase, subId)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
   await transitionLabStato(supabase, lab.id, 'sospeso', 'stripe_webhook', {
@@ -107,7 +108,6 @@ export async function handleSubscriptionDeleted(
   const subscription = event.data.object as Stripe.Subscription
 
   const lab = await findLabBySubscription(supabase, subscription.id)
-  if (!lab) return
 
   // Atomico: stato + stripe_subscription_status in un singolo UPDATE
   await transitionLabStato(supabase, lab.id, 'scaduto', 'stripe_webhook', {
@@ -123,7 +123,6 @@ export async function handleSubscriptionUpdated(
   const subscription = event.data.object as Stripe.Subscription
 
   const lab = await findLabBySubscription(supabase, subscription.id)
-  if (!lab) return
 
   // Reactive: se Stripe torna active e il lab era sospeso, ripristina
   if (subscription.status === 'active' && lab.stato === 'sospeso') {
