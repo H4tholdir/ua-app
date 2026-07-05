@@ -23,7 +23,7 @@ const TIPO_CONFIG: Record<TipoNotifica, { borderColor: string; icon: string; lab
     label: 'Pronto',
   },
   ordine_dentista: {
-    borderColor: 'var(--cobalt, #1B2D6B)',
+    borderColor: 'var(--c-blue, #3B82F6)',
     icon: '📩',
     label: 'Richiesta',
   },

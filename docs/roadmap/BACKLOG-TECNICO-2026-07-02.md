@@ -13,7 +13,7 @@
 
 **Legenda stato:** ⏳ Da fare · 🔄 In corso · ✅ Fatto e verificato · ⛔ Bloccato (vedi nota) · ➖ Rimandato/deciso di non fare
 
-### 🔴 Blocker (16)
+### 🔴 Blocker (16) — 14/18 risolti al 05/07/2026 (aggiornamento quick-fix bundle B12+B15+B11; il conteggio "18" della label storica non coincide col totale reale di righe della tabella sottostante, disallineamento preesistente non risolto in questo aggiornamento; il conteggio "14" include B7 e B8 come risolti in base alle rispettive sezioni narrative sottostanti — righe 195-211 — sebbene le loro righe nella tabella restino `⏳` e B8 sia in realtà solo 4/5, disallineamento preesistente anch'esso non risolto in questo aggiornamento; solo 12 righe tabella mostrano `✅` esplicitamente)
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
 | B1 | Tracciabilità MDR materiali/lotti rotta | ✅ | 02/07/2026 · `31cc47c` | Vedi MEMORY.md §0 per dettaglio fix. Follow-up non bloccanti: test e2e orchestraConsegna (→B13), verifica manuale su lavoro reale ancora da fare |
@@ -26,11 +26,11 @@
 | B8 | 5 route CRUD → 404 | ⏳ | | |
 | B9 | Lista pazienti non navigabile (BUG #13) | ✅ | 04/07/2026 · `ea2a3a9` | Fix `<Link href>` + pattern `ClientiSearchList`; dettaglio in `memory/MEMORY.md` §0 |
 | B10 | `/api/fornitori` mancante, blocca ordini | ✅ | 04/07/2026 · `fab5437` | Nuova `GET /api/fornitori`, pattern identico a `listino` GET. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
-| B11 | Colore bandito `#1B2D6B` su ogni card lavoro | ⏳ | | |
-| B12 | Login WCAG-fail (`--ua-t2`/`--ua-t3`) | ⏳ | | |
+| B11 | Colore bandito `#1B2D6B` su ogni card lavoro | ✅ | 05/07/2026 · `52e4a5d` + `1ee45c9` | Worktree `worktree-quickfix-b12-b15-b11`, non ancora mergiato su `main`. Deviazione dal piano: un decimo caso rgba decimale equivalente (`rgba(27,45,107,0.15)` in `qualita/page.tsx:315`) scoperto da un reviewer indipendente, non nella lista originale delle 9 occorrenze — fix separato in `1ee45c9`. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
+| B12 | Login WCAG-fail (`--ua-t2`/`--ua-t3`) | ✅ | 05/07/2026 · `8725dc2` | Worktree `worktree-quickfix-b12-b15-b11`, non ancora mergiato su `main`. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B13 | Zero test su `orchestraConsegna`/Stripe webhook | ✅ | 05/07/2026 · worktree `worktree-b13-webhook-stripe-silent-fail` | ✅ B13 (1/2, idempotenza DdC/Buono) e B13 (2/2, webhook Stripe silent-fail) entrambi risolti — vedi `memory/MEMORY.md` §0. |
 | B14 | `tecnici.compenso_base` ambiguo | ⏳ | | |
-| B15 | Banner Abbonamento contraddittorio | ⏳ | | |
+| B15 | Banner Abbonamento contraddittorio | ✅ | 05/07/2026 · `a86d3f7` | Worktree `worktree-quickfix-b12-b15-b11`, non ancora mergiato su `main`. Funzione pura `isTrialExpiringSoon` estratta e testata (5 nuovi test) in `src/lib/utils/lab-stato.ts`. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B16 | Query `/ordini` subquery non supportata | ⏳ | | |
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
 | B18 | Hardening trasversale post-B3 (8 finding non bloccanti) | ✅ | 04/07/2026 · `06a497d` | Tutti e 8 risolti + 1 bug critico scoperto e risolto a parte (hotfix `23e0d15`) — vedi dettaglio sotto |
@@ -225,13 +225,24 @@
 **QA manuale in browser reale** (Playwright via `preview_*`, worktree/sessione con lab E2E isolato — mai il lab Filippo): fornitore di test inserito via query diretta (`scripts/seed-e2e.ts` non popola questa tabella), login `e2e-titolare@ua-test.local` → `/ordini` → "+ Nuovo ordine" → `GET /api/fornitori` osservata in rete con **200 OK** e payload `{ fornitori: [{ id, nome: "Dental Depot QA Test SRL", telefono, email }] }` → select "Fornitore" popolato correttamente nello sheet → selezionando il fornitore i bottoni "WhatsApp"/"Email" passano da disabilitati ("Fornitore senza numero WhatsApp"/"...email") ad abilitati ("Crea ordine e invia su WhatsApp"/"...via email") — comportamento atteso confermato end-to-end. Dato di test rimosso subito dopo (query diretta), baseline lab E2E verificata a 0 fornitori residui.
 **Nota ambientale:** per eseguire la QA è stato necessario terminare (con conferma esplicita di Francesco) il dev server di un'altra sessione Claude già in esecuzione sulla stessa cartella — Next.js non permette due istanze `next dev` concorrenti sulla stessa directory, indipendentemente dalla porta.
 
-### B11. Colore bandito `#1B2D6B` renderizzato come sfondo su ogni card lavoro
+### B11. ✅ RISOLTO (05/07/2026, worktree `worktree-quickfix-b12-b15-b11`, commit `52e4a5d` + fix aggiuntivo `1ee45c9`, non ancora mergiato su `main`) — Colore bandito `#1B2D6B` renderizzato come sfondo su ogni card lavoro
+**Fix applicato:** tutte le 9 occorrenze originali di `var(--cobalt, #1B2D6B)` sostituite con `var(--c-blue, #3B82F6)` (già dichiarato in `globals.css`, colore semantico rainbow corretto) in `LavoroCard.tsx:682`, `qualita/page.tsx:316`, `ToastNotifiche.tsx:26`, `OdontogrammaFDI.tsx:52-55,701,982` — sostituzione testuale 1:1, nessuna logica coinvolta, `--cobalt` non era mai stata dichiarata quindi il fallback bandito era sempre quello effettivamente renderizzato.
+**Deviazione dal piano originale, approvata esplicitamente da Francesco durante la review:** un reviewer indipendente ha scoperto un decimo caso non previsto nel piano — `qualita/page.tsx:315` aveva `background: 'rgba(27,45,107,0.15)'`, l'equivalente RGB decimale esatto di `#1B2D6B` (non intercettato dal grep esadecimale originale su cui era basato il piano), usato come **background** dello stesso badge "Segnalato Ministero" — esattamente l'uso più esplicitamente vietato da CLAUDE.md ("MAI `#1B2D6B` come background"). Corretto con un commit separato (`1ee45c9`) a `rgba(59,130,246,0.15)` (equivalente decimale di `--c-blue`), stessa opacità.
+**Verifica:** `grep -rn "cobalt\|1B2D6B" src/` → 0 occorrenze bandite residue (unico match testuale non correlato: un commento "blu cobalto" in `ScadenzarioList.tsx` che usa già `--t2, #4A3D33`, non il valore bandito); `grep -rn "27,45,107"` → 0 occorrenze. `tsc --noEmit`/`vitest run` (504 passed/4 skipped)/`next build`: compilazione TypeScript completata con successo (il fallimento successivo di `next build` in fase di "Collecting page data" è dovuto a `.env.local` mancante in questo worktree per Stripe, gap ambientale noto non una regressione). Nessun test unitario copre direttamente questi valori di colore — verifica di correttezza visiva demandata a QA browser post-merge (390/768/1280px, light/dark), non ancora eseguita.
+**Piano:** `docs/superpowers/plans/2026-07-05-quickfix-b12-b15-b11.md` (Task 3). Dettaglio completo: `memory/MEMORY.md` §0.
+
+**Descrizione originale del bug (storico):**
 **Fonte:** [Des] + [Sis] (corroborazione indipendente)
 **Causa:** CLAUDE.md vieta esplicitamente `#1B2D6B` come background. `LavoroCard.tsx:682` usa `var(--cobalt, #1B2D6B)` sulla progress-bar di ogni card non al 100% — ma `--cobalt` **non è mai dichiarata** in nessun file CSS del progetto, quindi il fallback banned è sempre quello effettivamente renderizzato, sulla pagina più visitata dell'app (`/lavori`). Stesso problema in `qualita/page.tsx:312`, `ToastNotifiche.tsx:26`, `OdontogrammaFDI.tsx:52-55,701,982`.
 **Fix:** sostituire `var(--cobalt, #1B2D6B)` con `var(--c-blue, #3B82F6)` ovunque, oppure definire `--cobalt` esplicitamente in `globals.css` se si vuole preservare un navy distinto.
 **Effort:** basso, ricerca-e-sostituzione mirata su 4 file.
 
-### B12. Login page viola WCAG su una regola esplicitamente vietata da DS v2.3
+### B12. ✅ RISOLTO (05/07/2026, worktree `worktree-quickfix-b12-b15-b11`, commit `8725dc2`, non ancora mergiato su `main`) — Login page viola WCAG su una regola esplicitamente vietata da DS v2.3
+**Fix applicato:** in `src/app/globals.css`, blocco `.login-root[data-login-theme="light"]` (righe 245-246), `--ua-t2:#96918D` → `#4A3D33` e `--ua-t3:#B8B3AE` → `#6B5C51`, allineati ai valori corretti già in uso nel resto del progetto (`--t2`/`--t3` globali). Nessun'altra riga del blocco toccata.
+**Verifica:** `grep -n "96918D\|B8B3AE" src/app/globals.css` → 0 occorrenze come valori attivi (i soli match residui sono commenti storici sulle righe `--t2`/`--t3` globali che documentano il valore precedente errato, non il bug di questa sezione). `tsc --noEmit`/`vitest run` (504 passed/4 skipped) puliti — file CSS non coperto da test automatici, verifica a livello di build/lint.
+**Piano:** `docs/superpowers/plans/2026-07-05-quickfix-b12-b15-b11.md` (Task 1). Dettaglio completo: `memory/MEMORY.md` §0.
+
+**Descrizione originale del bug (storico):**
 **Fonte:** [Des]
 **Causa:** `src/app/globals.css:245-246` (blocco `.login-root[data-login-theme="light"]`) usa `--ua-t2:#96918D` (2.2:1, WCAG FAIL) e `--ua-t3:#B8B3AE` (1.5:1, WCAG FAIL) — esattamente i due valori vietati dalla Regola 9 della spec v2.3. Si propaga a login, forgot-password, reset-password, billing, pagine blocked/sospeso. Invisibile a `check-ds-compliance.sh` perché lo script non scansiona `globals.css` né usa il prefisso `--ua-*`.
 **Fix:** `--ua-t2:#96918D` → `#4A3D33`, `--ua-t3:#B8B3AE` → `#6B5C51`.
@@ -253,7 +264,13 @@
 **Fix:** decisione con Filippo sulla semantica (stipendio fisso o target commissioni?), poi migration + rinomina + UI esplicita.
 **Effort:** 2-3 ore, mai impiegate nonostante segnalato due volte.
 
-### B15. Pagina Abbonamento: "Attivo" + banner "trial in scadenza" contraddittori
+### B15. ✅ RISOLTO (05/07/2026, worktree `worktree-quickfix-b12-b15-b11`, commit `a86d3f7`, non ancora mergiato su `main`) — Pagina Abbonamento: "Attivo" + banner "trial in scadenza" contraddittori
+**Fix applicato:** logica estratta in una funzione pura testata `isTrialExpiringSoon(stato, trialEndsAt, now?)` in `src/lib/utils/lab-stato.ts`, che ora controlla esplicitamente `stato === 'trial'` prima di valutare la vicinanza di `trial_ends_at` — un lab `attivo` con un `trial_ends_at` storico ancora popolato non mostra più il banner. TDD (5 nuovi test in `tests/unit/lab-stato.test.ts`, visti fallire prima dell'implementazione: stato non-trial con scadenza vicina, trial con `trial_ends_at` null, trial oltre 7gg, happy path trial entro 7gg, stato sospeso con scadenza vicina). `abbonamento/page.tsx` aggiornata per usare la funzione importata invece del calcolo inline.
+**Verifica:** `npx vitest run tests/unit/lab-stato.test.ts` → 5/5 pass. `tsc --noEmit`/`vitest run` (504 passed/4 skipped, baseline 499 + 5 nuovi) puliti.
+**Piano:** `docs/superpowers/plans/2026-07-05-quickfix-b12-b15-b11.md` (Task 2). Dettaglio completo: `memory/MEMORY.md` §0.
+**Nota per prossima sessione:** QA browser manuale raccomandata post-merge su un lab con `stato: 'attivo'` + `trial_ends_at` storico popolato — combinazione non presente di default in `scripts/seed-e2e.ts`, richiede dato creato via query diretta.
+
+**Descrizione originale del bug (storico):**
 **Fonte:** [Tit]
 **Causa:** `src/app/(app)/impostazioni/abbonamento/page.tsx:25-27` — `isTrialExpiringSoon` calcola solo dalla vicinanza di `trial_ends_at`, **senza controllare `l.stato === 'trial'`**. Un account pagante può vedere "attiva il piano o perdi l'accesso", rischio di doppio addebito Stripe se l'utente tenta di "riattivare".
 **Fix:** `const isTrialExpiringSoon = l.stato === 'trial' && l.trial_ends_at ? (...) : false`.

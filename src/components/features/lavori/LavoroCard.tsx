@@ -679,7 +679,7 @@ export function LavoroCard({
                 borderRadius: '2px',
                 background: (fasi_completate ?? 0) >= fasi_totali
                   ? 'var(--success, #16A34A)'
-                  : 'var(--cobalt, #1B2D6B)',
+                  : 'var(--c-blue, #3B82F6)',
               }}
             />
           </div>
