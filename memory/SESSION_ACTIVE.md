@@ -4,7 +4,7 @@
 
 **Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF).
 
-**Nota:** QA browser manuale su B11/B12/B15 raccomandata ma non ancora eseguita (login WCAG, banner Abbonamento con lab attivo+trial storico, colore su 4 componenti).
+**QA browser manuale ESEGUITA** (dev server + `preview_*`, lab E2E isolato, dati di test rimossi a fine sessione): B12 contrasto reale 7.90:1/4.84:1 (era 2.2:1/1.5:1 FAIL); B15 riprodotto sia lo scenario del bug (nessun banner con lab attivo+trial storico) sia il caso legittimo (banner mostrato per lab realmente in trial); B11 confermato blu `rgb(59,130,246)` su progress bar `LavoroCard` e badge "Segnalato Ministero" (incluso il decimo caso rgba). Toast realtime "Richiesta" e odontogramma non riprodotti dal vivo (rispettivamente: timing sottoscrizione WebSocket, nessun paziente E2E) — non bloccante, stesso valore CSS già confermato altrove. Dettaglio: `memory/MEMORY.md` §0.
 
 ---
 
