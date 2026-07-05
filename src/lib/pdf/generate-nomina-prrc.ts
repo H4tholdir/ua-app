@@ -1,11 +1,11 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { NominaPrrcTemplate } from '@/components/features/pdf/NominaPrrcTemplate'
 
 export async function generateNominaPrrc(laboratorio_id: string): Promise<Buffer> {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
   const { data: lab } = await supabase.from('laboratori').select('*').eq('id', laboratorio_id).single()
   if (!lab) throw new Error('Laboratorio non trovato')
   if (!lab.prrc_nome) throw new Error('Dati PRRC non configurati')
@@ -19,9 +19,6 @@ export async function generateNominaPrrc(laboratorio_id: string): Promise<Buffer
     ha_accettato: false,
   }
 
-  const buffer = await renderToBuffer(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    createElement(NominaPrrcTemplate, { lab, nominaPrrc }) as any
-  )
+  const buffer = await renderPdfDocument(createElement(NominaPrrcTemplate, { lab, nominaPrrc }))
   return buffer
 }
