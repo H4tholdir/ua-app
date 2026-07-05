@@ -3,9 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom, mockInsert } = vi.hoisted(() => ({
+const { mockFrom, mockInsert, mockUpload, mockGetPublicUrl, mockGeneraProgressivo } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockInsert: vi.fn(),
+  mockUpload: vi.fn(),
+  mockGetPublicUrl: vi.fn(),
+  mockGeneraProgressivo: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -13,24 +16,27 @@ vi.mock('@/lib/supabase/server-service', () => ({
     from: mockFrom,
     storage: {
       from: () => ({
-        upload: async () => ({ error: null }),
-        getPublicUrl: () => ({ data: { publicUrl: 'https://example.test/ddc.pdf' } }),
+        upload: mockUpload,
+        getPublicUrl: mockGetPublicUrl,
       }),
     },
   }),
 }))
 
 vi.mock('@/lib/db/progressivi', () => ({
-  generaProgressivo: async () => 1,
+  generaProgressivo: mockGeneraProgressivo,
 }))
 
 import { generateDdC } from '../../src/lib/pdf/generate-ddc'
 
-function mockTables(lab: typeof LAB_FIXTURE) {
+function mockTables(lab: typeof LAB_FIXTURE, ddcEsistente: { numero_ddc: string; pdf_url: string } | null = null) {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'laboratori') return createChain({ data: lab, error: null })
     if (table === 'rischi_tipo_dispositivo') return createChain({ data: null, error: null })
-    if (table === 'dichiarazioni_conformita') return { insert: mockInsert }
+    if (table === 'dichiarazioni_conformita') {
+      const readChain = createChain({ data: ddcEsistente, error: null })
+      return { ...readChain, insert: mockInsert }
+    }
     throw new Error(`Tabella inattesa nel mock: ${table}`)
   })
 }
@@ -39,6 +45,9 @@ describe('generateDdC', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockInsert.mockResolvedValue({ error: null })
+    mockUpload.mockResolvedValue({ error: null })
+    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/ddc.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
   })
 
   it('genera una DdC con dati completi', async () => {
@@ -113,7 +122,10 @@ describe('generateDdC', () => {
         data: { rischi_residui: null, norme_json: [{ codice: 'EN ISO 6872:2015', titolo: 'Dental ceramic materials', anno: 2015 }] },
         error: null,
       })
-      if (table === 'dichiarazioni_conformita') return { insert: mockInsert }
+      if (table === 'dichiarazioni_conformita') {
+        const readChain = createChain({ data: null, error: null })
+        return { ...readChain, insert: mockInsert }
+      }
       throw new Error(`Tabella inattesa nel mock: ${table}`)
     })
 
@@ -133,5 +145,41 @@ describe('generateDdC', () => {
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({ norme_json: [] })
     )
+  })
+
+  it('seconda chiamata a generateDdC per lo stesso lavoro non rigenera (idempotenza retry)', async () => {
+    mockTables(LAB_FIXTURE, { numero_ddc: 'DDC-2020-0042', pdf_url: 'https://example.test/ddc-esistente.pdf' })
+
+    const result = await generateDdC(LAVORO_FIXTURE)
+
+    expect(result).toEqual({ numero: 'DDC-2020-0042', url: 'https://example.test/ddc-esistente.pdf' })
+    expect(mockGeneraProgressivo).not.toHaveBeenCalled()
+    expect(mockUpload).not.toHaveBeenCalled()
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('regressione: race condition — guard non trova nulla, insert fallisce 23505, recupera la riga vincitrice', async () => {
+    let selectCallCount = 0
+    const winningRow = { numero_ddc: 'DDC-2026-0007', pdf_url: 'https://example.test/ddc-vincitrice.pdf' }
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
+      if (table === 'rischi_tipo_dispositivo') return createChain({ data: null, error: null })
+      if (table === 'dichiarazioni_conformita') {
+        return {
+          select: () => {
+            selectCallCount += 1
+            // 1a chiamata = guard iniziale (nessuna riga), 2a = recupero post-23505 (riga vincitrice)
+            return createChain(selectCallCount === 1 ? { data: null, error: null } : { data: winningRow, error: null })
+          },
+          insert: mockInsert,
+        }
+      }
+      throw new Error(`Tabella inattesa nel mock: ${table}`)
+    })
+    mockInsert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key' } })
+
+    const result = await generateDdC(LAVORO_FIXTURE)
+
+    expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
   })
 })

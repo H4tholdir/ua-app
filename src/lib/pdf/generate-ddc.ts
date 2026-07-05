@@ -9,6 +9,22 @@ import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 export async function generateDdC(lavoro: LavoroDettaglio) {
   const supabase = getTypedServiceClient()
+
+  // Idempotenza su retry di orchestraConsegna (B13 1/2): se la DdC per questo
+  // lavoro esiste già (generata in un tentativo precedente), non rigenerare —
+  // evita un secondo file su Storage e un secondo progressivo sprecato. Il
+  // recupero su errore 23505 più sotto resta come rete di sicurezza per la
+  // race condition residua (due richieste che superano entrambe questo guard).
+  const { data: ddcEsistente } = await supabase
+    .from('dichiarazioni_conformita')
+    .select('numero_ddc, pdf_url')
+    .eq('lavoro_id', lavoro.id)
+    .maybeSingle()
+
+  if (ddcEsistente) {
+    return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
+  }
+
   const anno = new Date().getFullYear()
 
   // Carica dati laboratorio + rischi residui per tipo dispositivo
