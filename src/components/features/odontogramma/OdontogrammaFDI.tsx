@@ -49,10 +49,10 @@ function getToothColors(stato: StatoDente) {
       }
     case 'implanto':
       return {
-        coronaFill: 'var(--cobalt, #1B2D6B)',
-        coronaStroke: 'color-mix(in srgb, var(--cobalt, #1B2D6B) 70%, black)',
-        radiceFill: 'color-mix(in srgb, var(--cobalt, #1B2D6B) 70%, black)',
-        radiceStroke: 'color-mix(in srgb, var(--cobalt, #1B2D6B) 50%, black)',
+        coronaFill: 'var(--c-blue, #3B82F6)',
+        coronaStroke: 'color-mix(in srgb, var(--c-blue, #3B82F6) 70%, black)',
+        radiceFill: 'color-mix(in srgb, var(--c-blue, #3B82F6) 70%, black)',
+        radiceStroke: 'color-mix(in srgb, var(--c-blue, #3B82F6) 50%, black)',
         showHighlight: true,
         showX: false,
         showFiletti: true,
@@ -698,7 +698,7 @@ function DenteButton({ dente, stato, onTap, onLongPress }: DenteButtonProps) {
         color: stato === 'selezionato'
           ? 'var(--primary, #D90012)'
           : stato === 'implanto'
-            ? 'var(--cobalt, #1B2D6B)'
+            ? 'var(--c-blue, #3B82F6)'
             : 'var(--t2, #4A3D33)',
         lineHeight: 1,
         marginTop: '1px',
@@ -979,7 +979,7 @@ export function OdontogrammaFDI({
           {[
             { label: 'Sano', color: 'var(--elv, #EDEDEA)', border: 'var(--prs, #D4CFC9)', icon: '●' },
             { label: 'Sel.', color: 'var(--primary, #D90012)', border: 'var(--primary, #D90012)', icon: '●' },
-            { label: 'Impianto', color: 'var(--cobalt, #1B2D6B)', border: 'var(--cobalt, #1B2D6B)', icon: '●' },
+            { label: 'Impianto', color: 'var(--c-blue, #3B82F6)', border: 'var(--c-blue, #3B82F6)', icon: '●' },
             { label: 'Mancante', color: 'var(--t3, #6B5C51)', border: 'var(--t3, #6B5C51)', icon: '✕' },
           ].map((item) => (
             <span key={item.label} style={{

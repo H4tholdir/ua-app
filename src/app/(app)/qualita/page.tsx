@@ -313,7 +313,7 @@ export default async function QualitaPage() {
                         {inc.segnalato_ministero && (
                           <span style={{
                             background: 'rgba(27,45,107,0.15)',
-                            color: 'var(--cobalt, #1B2D6B)',
+                            color: 'var(--c-blue, #3B82F6)',
                             fontSize: '11px',
                             fontWeight: 700,
                             padding: '2px 8px',
