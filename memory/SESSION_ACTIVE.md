@@ -1,8 +1,10 @@
-# Handoff — Quick-fix bundle B12+B15+B11 RISOLTO, non ancora mergiato (05/07/2026)
+# Handoff — Quick-fix bundle B12+B15+B11 mergiato e deployato (05/07/2026)
 
-**3 blocker a basso effort chiusi in questo worktree** (`worktree-quickfix-b12-b15-b11`, 4 commit: `8725dc2` B12 login WCAG, `a86d3f7` B15 banner Abbonamento/rischio doppio addebito Stripe, `52e4a5d` + `1ee45c9` B11 colore bandito `#1B2D6B` su 4 componenti — il secondo commit corregge un decimo caso rgba decimale scoperto da un reviewer indipendente, non nel piano originale). Dettaglio completo: `memory/MEMORY.md` §0. `tsc`/`vitest` (504 passed/4 skipped, era 499)/`next build` puliti — per `next build`, compilazione TypeScript completata con successo, il fallimento successivo in "Collecting page data" è dovuto a `.env.local` mancante in questo worktree (Stripe), gap ambientale noto non una regressione. **Non ancora mergiato su `main`** — in attesa di conferma esplicita di Francesco. QA browser manuale raccomandata post-merge (non eseguita in questo task).
+**3 blocker a basso effort chiusi, mergiati su `main` (commit `3da42c1`) e deployati.** B12 login WCAG (`8725dc2`), B15 banner Abbonamento/rischio doppio addebito Stripe (`a86d3f7`), B11 colore bandito `#1B2D6B` su 4 componenti + decimo caso rgba scoperto in review (`52e4a5d`+`1ee45c9`). Review finale whole-branch: "Ready to merge: Yes", zero Critical/Important. CI verde, deploy Vercel confermato, `uachelab.com` risponde. Worktree e branch rimossi. Dettaglio completo: `memory/MEMORY.md` §0.
 
 **Prossima priorità da decidere con Francesco** tra i blocker rimanenti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B14 (compenso_base ambiguo), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF).
+
+**Nota:** QA browser manuale su B11/B12/B15 raccomandata ma non ancora eseguita (login WCAG, banner Abbonamento con lab attivo+trial storico, colore su 4 componenti).
 
 ---
 
