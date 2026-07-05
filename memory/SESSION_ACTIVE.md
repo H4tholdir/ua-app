@@ -1,11 +1,11 @@
-# Handoff — B4 chiuso e mergiato, norme armonizzate DdC pronte per l'esecuzione (05/07/2026)
+# Handoff — Norme armonizzate su DdC (MDR §7) completato, deployato, QA'd (05/07/2026)
 
-**B4 RISOLTO, MERGIATO E PUSHATO** (`main` a `e09de26`, 11/11 `as any` eliminati dai generatori PDF, 466/466 test verdi, `tsc`/lint/build puliti). Scoperto e corretto un bug di produzione reale: `generateDdC()` falliva su ogni chiamata (colonna `testo_conformita` NOT NULL mai valorizzata + colonna fantasma `norma_riferimento` nell'insert). Dettaglio: `memory/MEMORY.md` §0.
+**COMPLETATO END-TO-END:** `dichiarazioni_conformita.norme_json` ora popolato e renderizzato (sezione §6-bis della DdC). Migration `rischi_tipo_dispositivo.norme_json` applicata al DB live, editor/API/generatore/template aggiornati. Merge fast-forward su `main` (`760b295`), pushato, CI verde, deploy Vercel confermato. **QA manuale in browser reale completata**: editor verificato dal vivo, flusso di consegna reale eseguito (lavoro di test su lab E2E, mai il lab Filippo), PDF generato scaricato e ispezionato — §6-bis conferma renderizzata correttamente. Dati di test rimossi, baseline a 0 residui. Dettaglio completo: `memory/MEMORY.md` §0.
 
-**Prossimo step, già pianificato e approvato da Francesco:** popolare/renderizzare `dichiarazioni_conformita.norme_json` (MDR §7, oggi sempre `null`). Spec: `docs/superpowers/specs/2026-07-05-norme-armonizzate-ddc-design.md`. Piano: `docs/superpowers/plans/2026-07-05-norme-armonizzate-ddc.md` (6 task, pronto per l'esecuzione).
+**Nota minore:** `.claude/launch.json` locale (non tracciato in git) ha perso la voce `mockups-static` durante il setup della QA — da ricreare al bisogno per il prossimo mockup HTML da approvare (workflow CLAUDE.md §0B).
 
-**Da fare a inizio prossima sessione:** creare worktree isolato, eseguire i 6 task del piano. **Attenzione Task 1:** contiene una migration DB (estende `rischi_tipo_dispositivo` con `norme_json`) — richiede conferma esplicita di Francesco prima dell'apply sul progetto Supabase live `iagibumwjstnveqpjbwq`, da gestire direttamente (non delegare a subagent).
+**Prossima priorità da decidere con Francesco:** il backlog tecnico ha ancora blocker aperti, il più critico è **B1** (tracciabilità MDR materiali/lotti strutturalmente rotta — sezione "Materiali/Lotti" sempre vuota sulla DdC, richiede una decisione di design su quale sistema tra `lavori_materiali` orfana e `scarichi_magazzino` diventa la fonte di verità). Altri blocker aperti: B5 (download DdC/Buono dal portale impossibile), B6 (SW offline), B11 (colore bandito su card lavoro), B12 (login WCAG), B13 (zero test su consegna/Stripe), B14 (compenso_base ambiguo), B15 (Abbonamento contraddittorio), B16 (query ordini non supportata), B17 (fasi mai visibili in PDF). Dettaglio completo: `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`.
 
 ---
 
-Backlog: 🔴 9/18 Blocker (B1-B4 ✅, B7-B10 ✅, B18 ✅, B19 ✅). 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
+Backlog: 🔴 9/18 Blocker risolti (B2-B4 ✅, B7-B10 ✅, B18 ✅, B19 ✅) — B1 ancora APERTO nonostante il conteggio precedente lo includesse per errore. 🟠 1/18 Alto (A4 ✅). 🟡 0/30. 🟢 2/4.
