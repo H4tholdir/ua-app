@@ -1,9 +1,9 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { EtichettaTemplate } from '@/components/features/pdf/EtichettaTemplate'
-import type { LavoroDettaglio } from '@/types/domain'
+import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 // ─── Helper: calcola "Installare entro" (+30gg dalla consegna) ──────────────
 
@@ -22,7 +22,7 @@ function calcInstallareEntro(lavoro: LavoroDettaglio): string | null {
 // ─── Buffer-only (per API route /api/lavori/[id]/etichetta) ────────────────
 
 export async function generateEtichettaBuffer(lavoro_id: string, laboratorio_id: string): Promise<Buffer> {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
 
   // Carica lavoro con join completi (materiali necessari per il lotto sull'etichetta)
   const { data: lavoro, error } = await supabase
@@ -46,38 +46,42 @@ export async function generateEtichettaBuffer(lavoro_id: string, laboratorio_id:
 
   if (error || !lavoro) throw new Error('Lavoro non trovato')
 
-  const { data: lab } = await supabase
+  const { data: labRaw } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', laboratorio_id)
     .single()
-  if (!lab) throw new Error('Laboratorio non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 
   const lavoroDettaglio = lavoro as unknown as LavoroDettaglio
   const installareEntro = calcInstallareEntro(lavoroDettaglio)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return renderToBuffer(createElement(EtichettaTemplate, { lavoro: lavoroDettaglio, lab, installareEntro }) as any)
+  return renderPdfDocument(createElement(EtichettaTemplate, { lavoro: lavoroDettaglio, lab, installareEntro }))
 }
 
 // ─── Con upload Storage (per orchestratore consegna) ──────────────────────
 
 export async function generateEtichetta(lavoro: LavoroDettaglio) {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
   const anno = new Date().getFullYear()
 
-  const { data: lab } = await supabase
+  const { data: labRaw } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', lavoro.laboratorio_id)
     .single()
-  if (!lab) throw new Error('Laboratorio non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 
   const installareEntro = calcInstallareEntro(lavoro)
 
   // Genera PDF
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(createElement(EtichettaTemplate, { lavoro, lab, installareEntro }) as any)
+  const buffer = await renderPdfDocument(createElement(EtichettaTemplate, { lavoro, lab, installareEntro }))
 
   const storagePath = `${lavoro.laboratorio_id}/etichette/${anno}/${lavoro.id}.pdf`
 
