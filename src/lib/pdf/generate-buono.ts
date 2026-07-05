@@ -1,31 +1,33 @@
 import 'server-only'
-import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import crypto from 'node:crypto'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { BuonoTemplate } from '@/components/features/pdf/BuonoTemplate'
-import type { LavoroDettaglio } from '@/types/domain'
+import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
 export async function generateBuono(lavoro: LavoroDettaglio) {
-  const supabase = getServiceClient()
+  const supabase = getTypedServiceClient()
   const anno = new Date().getFullYear()
 
   // Carica dati laboratorio
-  const { data: lab } = await supabase
+  const { data: labRaw } = await supabase
     .from('laboratori')
     .select('*')
     .eq('id', lavoro.laboratorio_id)
     .single()
-  if (!lab) throw new Error('Laboratorio non trovato')
+  if (!labRaw) throw new Error('Laboratorio non trovato')
+  // Cast puntuale: lo schema reale tipizza laboratori.piano come stringa
+  // generica invece della union letterale di domain.ts (vedi generate-dpa.ts).
+  const lab = labRaw as Laboratorio
 
   // Genera progressivo
   const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'buono')
   const numero = `BUO-${anno}-${String(progressivo).padStart(4, '0')}`
 
   // Genera PDF
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buffer = await renderToBuffer(createElement(BuonoTemplate, { lavoro, lab, numeroBuono: numero }) as any)
+  const buffer = await renderPdfDocument(createElement(BuonoTemplate, { lavoro, lab, numeroBuono: numero }))
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex')
   const storagePath = `${lavoro.laboratorio_id}/buoni/${anno}/${numero}.pdf`
 
