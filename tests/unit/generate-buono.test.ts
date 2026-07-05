@@ -3,10 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
-const { mockFrom, mockUpload, mockGetPublicUrl } = vi.hoisted(() => ({
+const { mockFrom, mockUpload, mockGetPublicUrl, mockGeneraProgressivo } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockUpload: vi.fn(),
   mockGetPublicUrl: vi.fn(),
+  mockGeneraProgressivo: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -17,7 +18,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
 }))
 
 vi.mock('@/lib/db/progressivi', () => ({
-  generaProgressivo: async () => 1,
+  generaProgressivo: mockGeneraProgressivo,
 }))
 
 import { generateBuono } from '../../src/lib/pdf/generate-buono'
@@ -27,6 +28,7 @@ describe('generateBuono', () => {
     vi.clearAllMocks()
     mockUpload.mockResolvedValue({ error: null })
     mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://example.test/buono.pdf' } })
+    mockGeneraProgressivo.mockResolvedValue(1)
     mockFrom.mockImplementation((table: string) => {
       if (table === 'laboratori') return createChain({ data: LAB_FIXTURE, error: null })
       if (table === 'lavori') {
@@ -42,5 +44,19 @@ describe('generateBuono', () => {
     const result = await generateBuono(LAVORO_FIXTURE)
     expect(result.numero).toMatch(/^BUO-\d{4}-0001$/)
     expect(result.url).toBe('https://example.test/buono.pdf')
+  })
+
+  it('non rigenera se lavoro.buono_pdf_url è già valorizzato (idempotenza retry)', async () => {
+    const lavoroConBuono = {
+      ...LAVORO_FIXTURE,
+      buono_pdf_url: 'https://example.test/buono-esistente.pdf',
+      buono_numero: 'BUO-2020-0042',
+    }
+
+    const result = await generateBuono(lavoroConBuono)
+
+    expect(result).toEqual({ numero: 'BUO-2020-0042', url: 'https://example.test/buono-esistente.pdf' })
+    expect(mockGeneraProgressivo).not.toHaveBeenCalled()
+    expect(mockUpload).not.toHaveBeenCalled()
   })
 })
