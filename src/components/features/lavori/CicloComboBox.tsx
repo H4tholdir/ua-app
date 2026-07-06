@@ -65,6 +65,36 @@ export function CicloComboBox({
     }
   }, [value])
 
+  // Hydration label: se il componente riceve un `value` non vuoto (es. un
+  // lavoro esistente con ciclo_id già salvato) ma non abbiamo ancora una
+  // label per quel id (nessuna selezione interattiva via handleSelect in
+  // questa sessione), recupera nome/codice dal backend. Guard su
+  // `!selectedLabel` evita fetch ridondanti dopo ogni selezione interattiva,
+  // che già imposta selectedLabel in modo sincrono.
+  useEffect(() => {
+    if (!value || selectedLabel) return
+    let cancelled = false
+    const thisRequest = ++requestIdRef.current
+    async function hydrate() {
+      try {
+        const res = await fetch(`/api/cicli?id=${encodeURIComponent(value)}`)
+        if (cancelled || thisRequest !== requestIdRef.current) return
+        const json = res.ok ? await res.json() : { cicli: [] }
+        const cicli = Array.isArray(json.cicli) ? json.cicli : []
+        const match = cicli[0] as CicloOption | undefined
+        if (cancelled || thisRequest !== requestIdRef.current) return
+        if (match) {
+          setSelectedLabel(buildLabel(match))
+        }
+      } catch {
+        // Silenzioso: se l'hydration fallisce il campo resta vuoto ma
+        // rimane comunque modificabile dall'utente.
+      }
+    }
+    void hydrate()
+    return () => { cancelled = true }
+  }, [value, selectedLabel])
+
   const search = useCallback(async (q: string) => {
     if (!q.trim()) {
       setOptions([])

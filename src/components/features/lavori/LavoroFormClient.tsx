@@ -107,7 +107,14 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
         {(activeTab) => {
           switch (activeTab) {
             case 'dati':
-              return <TabDati data={data} onChange={update} />
+              return (
+                <TabDati
+                  data={data}
+                  onChange={update}
+                  cicloId={data.ciclo_id ?? lavoro.ciclo_id ?? ''}
+                  onCicloChange={(id) => update({ ciclo_id: id || null })}
+                />
+              )
 
             case 'accettazione':
               return (

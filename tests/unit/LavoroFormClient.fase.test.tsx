@@ -50,7 +50,12 @@ function makeLavoro(overrides: Partial<LavoroDettaglio> = {}): LavoroDettaglio {
     cliente_id: 'cliente-id',
     paziente_id: null,
     tecnico_id: null,
-    ciclo_id: 'ciclo-1',
+    // ciclo_id: null — questi test coprono handleUpdateFase (tab Produzione),
+    // non il campo Ciclo di produzione. Un ciclo_id valorizzato farebbe
+    // scattare l'hydration fetch di CicloComboBox al mount (vedi
+    // LavoroFormClient.ciclo.test.tsx), aggiungendo una fetch spuria che
+    // altererebbe i toHaveBeenCalledTimes/toHaveBeenCalledWith di questo file.
+    ciclo_id: null,
     paziente_nome_snapshot: 'ROSSI MARIO',
     paziente_nascita_snapshot: null,
     tipo_dispositivo: 'protesi_fissa',

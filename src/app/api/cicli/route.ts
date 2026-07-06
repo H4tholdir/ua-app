@@ -6,6 +6,7 @@ import { pgrestQuote } from '@/lib/utils/escape-postgrest'
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')?.trim() ?? ''
+  const id = searchParams.get('id')?.trim() ?? ''
 
   const userClient = await getServerUserClient()
   const { data: { user } } = await userClient.auth.getUser()
@@ -36,7 +37,12 @@ export async function GET(req: Request) {
     .order('codice', { ascending: true })
     .limit(8)
 
-  if (q) {
+  // Lookup by id — usato da CicloComboBox per idratare la label a partire da
+  // un ciclo_id già salvato (es. apertura di un lavoro esistente). Stessa
+  // allowlist tenant (laboratorio_id) della ricerca testuale.
+  if (id) {
+    query = query.eq('id', id)
+  } else if (q) {
     const pattern = pgrestQuote(`%${q}%`)
     query = query.or(`codice.ilike.${pattern},nome.ilike.${pattern}`)
   }

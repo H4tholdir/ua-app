@@ -232,6 +232,13 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
     fireEvent.click(consegnaButton)
 
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/lavori/lavoro-1/consegna'))
-    expect(global.fetch).not.toHaveBeenCalled()
+    // NB: il mount di CicloComboBox con ciclo_id già valorizzato (vedi
+    // makeLavoro) fa una fetch di hydration verso /api/cicli?id= — non è il
+    // salvataggio che questo test verifica. L'assenza di PATCH verso
+    // /api/lavori/lavoro-1 è la garanzia che serve qui.
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('/api/lavori/lavoro-1'),
+      expect.anything()
+    )
   })
 })

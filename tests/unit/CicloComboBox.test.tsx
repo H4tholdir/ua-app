@@ -56,4 +56,51 @@ describe('CicloComboBox', () => {
     expect(listbox.style.boxShadow).toMatch(/^var\(--sh-b,\s*.+\)$/)
     expect(option.style.transition).toMatch(/^background var\(--tr,\s*.+\)$/)
   })
+
+  it('con un value non vuoto al mount, idrata selectedLabel facendo fetch del ciclo (GET /api/cicli?id=)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cicli: [{ id: 'ciclo-1', codice: 'CNC.TitCer', nome: 'CNC Corona in titanio-ceramica', tipo_dispositivo: 'Protesi fissa' }],
+      }),
+    }) as unknown as typeof fetch
+
+    render(<CicloComboBox value="ciclo-1" onChange={vi.fn()} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toHaveValue('CNC.TitCer — CNC Corona in titanio-ceramica')
+    })
+
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/cicli?id=ciclo-1'))
+  })
+
+  it('non rifà il fetch di hydration se selectedLabel è già popolato (nessun doppio fetch dopo una selezione interattiva)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cicli: [{ id: 'ciclo-1', codice: 'CNC.TitCer', nome: 'CNC Corona in titanio-ceramica', tipo_dispositivo: 'Protesi fissa' }],
+      }),
+    }) as unknown as typeof fetch
+
+    const onChange = vi.fn()
+    const { rerender } = render(<CicloComboBox value="" onChange={onChange} />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CNC' } })
+    await vi.advanceTimersByTimeAsync(250)
+    await waitFor(() => screen.getByRole('option'))
+    fireEvent.mouseDown(screen.getByText('CNC Corona in titanio-ceramica'))
+
+    const callsAfterSelect = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length
+
+    // Il genitore riceve onChange('ciclo-1', label) e passa value="ciclo-1" —
+    // simuliamo il re-render risultante.
+    rerender(<CicloComboBox value="ciclo-1" onChange={onChange} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toHaveValue('CNC.TitCer — CNC Corona in titanio-ceramica')
+    })
+
+    // Nessuna fetch aggiuntiva: selectedLabel era già valorizzato da handleSelect.
+    expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsAfterSelect)
+  })
 })
