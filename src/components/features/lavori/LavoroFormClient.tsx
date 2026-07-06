@@ -372,7 +372,20 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
           type="button"
           onClick={async () => {
             if (isDirty) {
-              await save(lavoro.id)
+              // save() rilancia l'errore di rete/API dopo aver impostato
+              // saveError (vedi useLavoroForm.ts). Se l'autosave fallisce
+              // NON dobbiamo navigare: il precheck MDR in /consegna legge
+              // i dati direttamente dal DB server-side (CLAUDE.md), quindi
+              // procedere con modifiche non salvate significherebbe
+              // eseguire il precheck su dati stale. isDirty resta true in
+              // questo caso, quindi il pulsante Salva mostra già
+              // "⚠ Errore — riprova" — l'utente resta sulla pagina con
+              // feedback visibile invece di un blocco silenzioso.
+              try {
+                await save(lavoro.id)
+              } catch {
+                return
+              }
             }
             router.push(`/lavori/${lavoro.id}/consegna`)
           }}

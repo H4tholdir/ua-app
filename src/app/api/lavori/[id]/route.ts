@@ -11,6 +11,87 @@ const LOCKED_PRICE_FIELDS = [
   'natura_iva',
 ] as const
 
+// Allowlist esplicita dei campi di `lavori` scrivibili via questa route.
+// CLAUDE.md: "PATCH allowlist: API PATCH di risorse lab usa sempre allowlist
+// esplicita di campi — MAI blocklist". Qualunque chiave del body non presente
+// qui viene scartata silenziosamente (incluse le relazioni annidate che il
+// GET restituisce via embed PostgREST — appuntamenti, fasi, immagini, cliente,
+// paziente, tecnico, lavorazioni, materiali, ddc — che NON sono colonne dirette
+// della tabella `lavori` e causavano un 500 "column not found" se inoltrate,
+// perché la blocklist precedente non le conosceva.
+//
+// Fonti verificate per ogni campo (grep mirati sul form + su altri caller
+// della stessa route):
+// - TabDati.tsx:        tipo_dispositivo, descrizione, richiedente_nome,
+//                        data_consegna_prevista, ora_consegna, priorita,
+//                        dispositivo_semilavorato, note_interne
+// - TabAccettazione.tsx: numero_cassetta, tipo_impronte, disinfettante_usato,
+//                        lotto_disinfettante, materiali_allegati,
+//                        anamnesi_bruxismo, anamnesi_difficolta_manuali,
+//                        anamnesi_precauzioni
+// - TabClinica.tsx:      denti_coinvolti, denti_mancanti, denti_impianti,
+//                        colore_dente, colore_collo, colore_corpo,
+//                        colore_incisale, effetti_speciali, tecnica_colore,
+//                        anamnesi_altri_dispositivi
+// - TabDate.tsx:         data_prima_prova, data_seconda_prova,
+//                        data_terza_prova, spedizione_corriere,
+//                        spedizione_tracking, spedizione_data_prevista
+// - LavoroCard.tsx:      tecnico_id, priorita (assegnazione tecnico/priorità
+//                        dalla lista lavori, stessa route PATCH root)
+// - FK_FIELDS validati sotto: cliente_id, paziente_id, tecnico_id, ciclo_id
+// - LOCKED_PRICE_FIELDS applicati dopo il filtro: prezzo_unitario, listino_id,
+//   codice_iva, natura_iva (editabili finché non incluso_in_fattura)
+//
+// Esclusi deliberatamente (verificato: nessun writer nel form React attuale):
+// arcata, colorazione_esterna, impronta_digitale, numero_prescrizione,
+// norma_riferimento, richiedente_email, stato_fisico, tipo_arco,
+// codice_interno, anamnesi_note, classe_rischio, paziente_nascita_snapshot,
+// paziente_nome_snapshot, prescrizione_digitale_id, spedizione_note,
+// spedizione_stato — oltre a IMMUTABLE, segnalazione_* (route dedicata
+// /segnala e /segnala/risolvi), is_rifacimento/rifacimento_motivo (RPC
+// crea_rifacimento_atomico), tracciabilita_materiali_ok/da_conformare/
+// materiali_incompleti_dettaglio (calcolati server-side in orchestrate.ts),
+// buono_*/file_stl_url/immagini_urls (gestiti da altri processi/route).
+const PATCHABLE_FIELDS = [
+  'tipo_dispositivo',
+  'descrizione',
+  'richiedente_nome',
+  'data_consegna_prevista',
+  'ora_consegna',
+  'priorita',
+  'dispositivo_semilavorato',
+  'note_interne',
+  'numero_cassetta',
+  'tipo_impronte',
+  'disinfettante_usato',
+  'lotto_disinfettante',
+  'materiali_allegati',
+  'anamnesi_bruxismo',
+  'anamnesi_difficolta_manuali',
+  'anamnesi_precauzioni',
+  'denti_coinvolti',
+  'denti_mancanti',
+  'denti_impianti',
+  'colore_dente',
+  'colore_collo',
+  'colore_corpo',
+  'colore_incisale',
+  'effetti_speciali',
+  'tecnica_colore',
+  'anamnesi_altri_dispositivi',
+  'data_prima_prova',
+  'data_seconda_prova',
+  'data_terza_prova',
+  'spedizione_corriere',
+  'spedizione_tracking',
+  'spedizione_data_prevista',
+  'cliente_id',
+  'paziente_id',
+  'tecnico_id',
+  'ciclo_id',
+  ...LOCKED_PRICE_FIELDS,
+] as const
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function GET(_req: Request, { params }: RouteContext) {
@@ -108,35 +189,22 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
   }
 
-  // Se incluso in fattura: rimuovi i campi prezzo dal body per protezione
-  if (existing.incluso_in_fattura) {
-    for (const field of LOCKED_PRICE_FIELDS) {
-      delete body[field]
+  // Allowlist esplicita: tiene solo le chiavi in PATCHABLE_FIELDS, scartando
+  // silenziosamente qualunque altro campo (relazioni annidate, campi
+  // immutabili/di stato, campi calcolati server-side, ecc. — vedi commento
+  // sopra PATCHABLE_FIELDS per l'elenco completo di ciò che è escluso e perché).
+  const payload: Record<string, unknown> = {}
+  for (const field of PATCHABLE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      payload[field] = body[field]
     }
   }
 
-  // Rimuovi campi non aggiornabili lato API (immutabili) e campi gestiti
-  // dalla state machine della consegna (non modificabili via PATCH diretto)
-  const IMMUTABLE = [
-    'id',
-    'laboratorio_id',
-    'numero_lavoro',
-    'anno_lavoro',
-    'created_at',
-    'deleted_at',
-    // State machine — modificati esclusivamente da orchestraConsegna
-    'stato',
-    'decisione_fatturazione', // modificabile solo via PATCH /api/lavori/[id]/decisione-fatturazione (B2)
-    'conformato',
-    'data_conformazione',
-    'consegna_completata_at',
-    'consegna_tap_at',
-    'consegna_in_corso',
-    'post_consegna_correzioni',
-    'consegna_precheck_passato_al_primo_tentativo',
-  ]
-  for (const field of IMMUTABLE) {
-    delete body[field]
+  // Se incluso in fattura: rimuovi i campi prezzo dal payload per protezione
+  if (existing.incluso_in_fattura) {
+    for (const field of LOCKED_PRICE_FIELDS) {
+      delete payload[field]
+    }
   }
 
   // Fix cross-tenant FK: validare che cliente_id, paziente_id, tecnico_id, ciclo_id
@@ -149,11 +217,11 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   ] as const
 
   for (const { field, table } of FK_FIELDS) {
-    if (body[field] != null) {
+    if (payload[field] != null) {
       const { data: fkRow } = await svc
         .from(table)
         .select('id')
-        .eq('id', body[field] as string)
+        .eq('id', payload[field] as string)
         .eq('laboratorio_id', utente.laboratorio_id)
         .is('deleted_at', null)
         .single()
@@ -166,12 +234,12 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
-  // Forza aggiornamento timestamp
-  body.updated_at = new Date().toISOString()
+  // Forza aggiornamento timestamp (non allowlisted: sempre gestito server-side)
+  payload.updated_at = new Date().toISOString()
 
   const { data: lavoro, error: updateError } = await svc
     .from('lavori')
-    .update(body)
+    .update(payload)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .select('id, numero_lavoro, stato, updated_at')
