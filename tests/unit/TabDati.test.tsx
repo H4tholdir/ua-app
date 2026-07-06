@@ -28,3 +28,20 @@ describe('TabDati — selettore ciclo', () => {
     expect(field).not.toHaveAttribute('aria-required', 'true')
   })
 })
+
+describe('TabDati — associazione label/input (htmlFor/id)', () => {
+  it('il campo "Tipo dispositivo" è raggiungibile via getByLabelText', () => {
+    render(<TabDati data={{}} onChange={vi.fn()} />)
+    expect(screen.getByLabelText(/Tipo dispositivo/i)).toBeInTheDocument()
+  })
+
+  it('il campo "Descrizione" è raggiungibile via getByLabelText', () => {
+    render(<TabDati data={{}} onChange={vi.fn()} />)
+    expect(screen.getByLabelText(/Descrizione/i)).toBeInTheDocument()
+  })
+
+  it('il campo "Data consegna" è raggiungibile via getByLabelText', () => {
+    render(<TabDati data={{}} onChange={vi.fn()} />)
+    expect(screen.getByLabelText(/Data consegna/i)).toBeInTheDocument()
+  })
+})
