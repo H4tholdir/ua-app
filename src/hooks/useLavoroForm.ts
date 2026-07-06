@@ -91,7 +91,14 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
     }
 
     autosaveTimerRef.current = setTimeout(() => {
-      save(lavoroId)
+      // save() rilancia l'errore dopo aver impostato saveError (per far sì
+      // che i chiamanti espliciti, es. il bottone CONSEGNA, possano
+      // intercettarlo prima di navigare). Qui il timer non ha alcun
+      // chiamante che osservi la Promise: senza il .catch() un fallimento
+      // di rete diventerebbe una unhandled rejection. saveError è già
+      // stato impostato dentro save() prima del throw, quindi l'utente
+      // vede comunque il feedback — non serve altra gestione qui.
+      void save(lavoroId).catch(() => {})
     }, 30_000)
 
     return () => {
