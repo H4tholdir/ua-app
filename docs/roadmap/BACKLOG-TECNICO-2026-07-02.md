@@ -35,7 +35,7 @@
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ✅ | 05/07/2026 | Risolto con nuova Scheda di Fabbricazione (generazione live on-demand) — vedi dettaglio sotto |
 | B18 | Hardening trasversale post-B3 (8 finding non bloccanti) | ✅ | 04/07/2026 · `06a497d` | Tutti e 8 risolti + 1 bug critico scoperto e risolto a parte (hotfix `23e0d15`) — vedi dettaglio sotto |
 | B19 | Supabase Security Advisor: 10 ERROR + WARN di sicurezza | ✅ | 04/07/2026 · branch `worktree-security-advisor-hardening` (5 commit) | Non da audit precedente, segnalato da Francesco dalla dashboard Security Advisor. 0 ERROR residui verificato. Leaked password protection resta ⛔ bloccato (richiede piano Pro). Vedi dettaglio sotto |
-| B20 | PSUR/PMS Report non differenziato per classe di rischio dispositivo | ⏳ | | Scoperto 05/07/2026 durante ricerca approfondita MDR propedeutica a B17 — vedi dettaglio sotto |
+| B20 | PSUR/PMS Report non differenziato per classe di rischio dispositivo | ✅ | 07/07/2026 | Scoperto 05/07/2026 durante ricerca approfondita MDR propedeutica a B17 — risolto 07/07/2026, vedi dettaglio sotto |
 
 ### 🟠 Alto (20)
 | ID | Titolo | Stato | Data/commit | Note |
@@ -175,20 +175,33 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-04-security-advisor-hardening-design.md`. **Piano:** `docs/superpowers/plans/2026-07-04-security-advisor-hardening.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Prossima priorità: B4** (`as any` nei generatori PDF MDR) — invariata, questo era un fuori-programma di sicurezza.
 
-### B20. PSUR/PMS Report non differenziato per classe di rischio del dispositivo
+### B20. ✅ RISOLTO (07/07/2026, worktree `worktree-b20-psur-pms-classe-rischio`, non ancora mergiato su `main`) — PSUR/PMS Report non differenziato per classe di rischio del dispositivo
 
 **Fonte:** [Sis], scoperto 05/07/2026 durante una ricerca approfondita (deep-research, 108 agent, fonti primarie EUR-Lex/MDCG/Gazzetta Ufficiale con verifica avversariale) commissionata da Francesco come propedeutica a B17, per verificare un sospetto di attribuzione normativa errata nel backlog.
 
-**Causa:** `src/app/(app)/qualita/psur/page.tsx` e `src/app/api/qualita/psur/route.ts` trattano "PSUR annuale" come obbligo generico unico per l'intero laboratorio, senza alcuna differenziazione per classe di rischio dei dispositivi prodotti. Verificato con ricerca primaria (Art. 85/86 MDR, corroborati da 5+ fonti indipendenti, voto 3-0):
+**Causa:** `src/app/(app)/qualita/psur/page.tsx` e `src/app/api/qualita/psur/route.ts` trattavano "PSUR annuale" come obbligo generico unico per l'intero laboratorio, senza alcuna differenziazione per classe di rischio dei dispositivi prodotti. Verificato con ricerca primaria (Art. 85/86 MDR, corroborati da 5+ fonti indipendenti, voto 3-0):
 - **Classe I** → l'obbligo si chiama **PMS Report** (Art. 85 MDR), da aggiornare *"quando necessario"* — **nessuna cadenza fissa**, e NON si chiama "PSUR".
 - **Classe IIa** → **PSUR** (Art. 86), aggiornamento almeno ogni **2 anni**.
 - **Classe IIb/III** → **PSUR** (Art. 86), aggiornamento almeno **annuale**.
 
-`ANALISI/17_adempimenti_lab_2026.md` §1.4 contiene già questa correzione in prosa (annotata "⚠️ CORREZIONE 2026-05-12"), ma **non è mai stata propagata al codice**: la pagina mostra sempre e solo "PSUR — Periodic Safety Update Report — MDR Art. 86" con un alert "PSUR mancante per anno corrente-1" indipendentemente dalla classe dei dispositivi del laboratorio. Per un laboratorio che produce prevalentemente dispositivi Classe I (comune per molte protesi dentali), questo genera un alert di compliance normativamente errato (obbligo inesistente in quella forma) e rischia di mascherare la vera differenza di cadenza per i laboratori con dispositivi Classe IIa (biennale, non annuale).
+**Architettura scelta:** un record per gruppo-classe per anno nella tabella `psur` esistente (nuova colonna `gruppo_classe`, vincolo UNIQUE esteso da `(laboratorio_id, anno_riferimento)` a `(laboratorio_id, anno_riferimento, gruppo_classe)`) — non una tabella separata, non una variante solo-UI. Logica di cadenza/alert calcolata a runtime da una funzione pura mai persistita (`getStatoSorveglianza`, stesso pattern di `isTrialExpiringSoon()` da B15), non un campo derivato in DB. `classe_iib`/`classe_iii` accorpate nello stesso gruppo `classe_iib_iii` (stessa cadenza annuale) — scelta pragmatica documentata come non-letterale rispetto a MDCG 2025-10, che raggrupperebbe per uso previsto/materiali/processo.
 
-**Fix (non ancora pianificato in dettaglio):** determinare la classe di rischio prevalente/per-dispositivo del laboratorio (il campo `classe_rischio` esiste già su `lavori`, usato dalla DdC), branchare l'etichetta/cadenza tra "PMS Report" (Classe I) e "PSUR" (Classe IIa/IIb/III) con l'alert di scadenza correttamente differenziato (nessuna scadenza fissa per Classe I; 2 anni per IIa; 1 anno per IIb/III). Richiede una decisione di design su come gestire un laboratorio con dispositivi di classi miste (es. PMS Report aggregato + PSUR separato solo per le classi ≥IIa, oppure un'unica vista con sezioni per classe).
+**Implementazione (10 task via `superpowers:subagent-driven-development`, worktree isolato):**
+- **Task 1** — migration DB live (`iagibumwjstnveqpjbwq`, applicata con conferma esplicita di Francesco): `psur.gruppo_classe TEXT NOT NULL CHECK (IN 3 valori)`, vincolo `psur_lab_anno_gruppo_key` sostituisce `psur_laboratorio_id_anno_riferimento_key`. Precondizione verificata: tabella vuota (0 righe), nessun backfill necessario.
+- **Task 2** — `GruppoClassePsur`, `CLASSE_RISCHIO_TO_GRUPPO`/`GRUPPO_TO_CLASSI_RISCHIO` (mapping esaustivo a livello di tipo, `src/types/domain.ts`).
+- **Task 3-4** — `src/lib/utils/sorveglianza-postvendita.ts`: `getStatoSorveglianza()` (cadenza/alert per gruppo, soglie in giorni esatti 365/730) e `rilevaGruppi()` (rilevamento gruppi presenti tra i lavori del lab, fail-closed su `classe_rischio` non mappata — mai scartata in silenzio, sempre contata in `nonClassificabili`).
+- **Task 6-7** — `GET`/`POST /api/qualita/psur`: GET ritorna `gruppiRilevati`/`nonClassificabili`; POST richiede `gruppo_classe` nel body, aggregati (dispositivi/non conformità/incidenti/rifacimenti) filtrati per le classi del gruppo, fail-closed su ogni query di aggregazione (mai un 201 con conteggi azzerati mascherati da errore).
+- **Task 8-9** — `PsurGruppoSezione` (componente, etichetta sempre letta da `getStatoSorveglianza().tipoDocumento`, mai stringa "PSUR"/"Art. 86" hardcoded per Classe I) + riscrittura `qualita/psur/page.tsx` come orchestratore sottile multi-sezione (una sezione per gruppo rilevato, alert visibile se ci sono lavori non classificabili).
 
-**Effort:** non stimato — richiede prima una sessione di design dedicata (query aggregazione per classe, UI, eventuale migration se serve una colonna di classificazione a livello di singolo PSUR/PMS record).
+**2 finding Important emersi in review, entrambi corretti prima di procedere:**
+1. `rilevaGruppi()` usava lookup bracket diretto (`mappa[classe]`) su un oggetto plain — un `classe_rischio` che collidesse con una proprietà ereditata da `Object.prototype` (es. `"constructor"`, `"toString"`) sarebbe stato letto come gruppo valido invece di essere contato in `nonClassificabili`, violando il vincolo fail-closed centrale. Corretto con `Object.prototype.hasOwnProperty.call()`.
+2. Il badge di stato "Bozza" in `PsurGruppoSezione` usava `var(--gold, #D4A843)` come colore del **testo** — vietato esplicitamente da CLAUDE.md (contrasto WCAG 1.6:1). Corretto a `var(--t2, #4A3D33)`, stesso valore già usato per lo stato "Completato". Codice ereditato letteralmente dal piano, non un errore dell'implementer — conferma esplicita di Francesco prima della correzione.
+
+Un secondo finding Important nella route POST (2 gap di test coverage sulla semantica OR del fail-closed sugli aggregati) è stato corretto con 2 nuovi test dedicati (isolamento del fallimento di una singola query aggregata + combinazione dello short-circuit zero-lavori con un errore reale su una query mai short-circuitata).
+
+**Backlog separato aperto (non B20):** gestione della race condition sull'insert concorrente in `POST /api/qualita/psur` — se due richieste concorrenti passano entrambe il pre-check "record già esistente" e la seconda viola il vincolo UNIQUE del DB, il codice ritorna oggi un 500 con messaggio Postgres grezzo invece di un 409 pulito (pattern preesistente, non introdotto da B20, esteso solo con la terza colonna) — task spawnato separatamente (`task_e02b92d8`).
+
+**Verifica finale:** `tsc --noEmit` pulito (0 errori); `npx vitest run` → `661 passed | 4 skipped` (era `645 passed | 4 skipped` prima di questo lavoro, +16 netti); `npx next build` pulito (route `/qualita/psur` e `/api/qualita/psur` presenti nel manifest); `check-ds-compliance.sh` → OK. Spec: `docs/superpowers/specs/2026-07-07-b20-psur-pms-classe-rischio-design.md`. Piano: `docs/superpowers/plans/2026-07-07-b20-psur-pms-classe-rischio.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Ancora da fare:** merge su `main`, push, deploy, QA browser manuale (FASE 9 — creare lavori di test con classe_rischio diverse su lab E2E, verificare sezioni/etichette corrette a 390/768/1280px light/dark, generare PMS Report e PSUR distinti per lo stesso anno e verificare coesistenza senza conflitto).
 
 ### B4. ✅ RISOLTO (05/07/2026, branch `worktree-b4-pdf-generators-type-safety`, non ancora mergiato su `main`) — `as any` nei generatori PDF MDR
 **Fonte:** [SWE], confermato anche da [Odt]
