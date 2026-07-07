@@ -1,0 +1,50 @@
+/* src/app/ds-v3.css — DS v3 «Una cosa alla volta» (spec 2026-07-07)
+   SCOPED: tutto vive sotto [data-ds="v3"]. Le pagine v2.3 non sono toccate.
+   Migrare una pagina = avvolgerla in <div data-ds="v3">. */
+
+[data-ds="v3"] {
+  /* superfici */
+  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA;
+  /* inchiostri */
+  --ink: #1D1913; --muted: #6E6457; --faint: #A69B8C; --line: #EBE4D6;
+  /* azione e stati */
+  --red: #D90012; --red-dark: #A5000E;
+  --amber: #9A5C00; --green: #1B7F3B; --blue: #1D5FBF;
+  --red-tint: #FBEDEC; --amber-tint: #F8F0E1; --blue-tint: #EBF1FA; --green-tint: #EAF4EC;
+  /* materia */
+  --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --grana-opacity: 0.05;
+  /* tipografia */
+  --font-v3: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  font-family: var(--font-v3);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Dark — elevazione = superficie più chiara, MAI ombre (spec §3.2) */
+[data-theme="dark"] [data-ds="v3"] {
+  --bg: #171411; --bg-deep: #100E0B; --card: #211D18; --elv: #2B2620;
+  --ink: #F2EEE7; --muted: #A69B8C; --faint: #6E6457; --line: #342E26;
+  --red: #FF3B44; --red-dark: #8F0910;
+  --amber: #E8A13D; --green: #34C468; --blue: #5B9BFF;
+  --red-tint: rgba(255,59,68,.14); --amber-tint: rgba(232,161,61,.14);
+  --blue-tint: rgba(91,155,255,.14); --green-tint: rgba(52,196,104,.14);
+  --sh-card: none; --sh-press: none;
+  --grana-opacity: 0.06;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-card { border-top: 1px solid rgba(255,255,255,.04); }
+
+/* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
+[data-ds="v3"] .ds-grana {
+  position: fixed; inset: 0; pointer-events: none; z-index: 40;
+  opacity: var(--grana-opacity); mix-blend-mode: multiply;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+}
+[data-theme="dark"] [data-ds="v3"] .ds-grana { mix-blend-mode: screen; }
+
+/* Reduced motion — le coreografie degradano a dissolvenza (spec §8.4) */
+@media (prefers-reduced-motion: reduce) {
+  [data-ds="v3"] * { animation-duration: 0.15s !important; transition-duration: 0.15s !important; }
+}
