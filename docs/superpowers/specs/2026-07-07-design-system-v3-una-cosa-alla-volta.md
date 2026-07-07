@@ -32,9 +32,11 @@ Dal momento in cui un odontotecnico inizia a usare UÀ, **non deve preoccuparsi 
 ## 1. Identità
 
 ### 1.1 Ciò che resta del brand (immutabile)
-- **Nome:** UÀ (esclamazione napoletana di stupore) — logotipo `UÀ.` con punto finale.
-- **Rosso UÀ:** `#D90012` light / `#FF3B44` dark. È IL colore dell'azione e dell'urgenza — di nient'altro.
-- Il logo esistente resta invariato.
+- **Nome:** UÀ (esclamazione napoletana di stupore).
+- **Logo/icona PWA (approvato, versione neuromorphic):** squircle rosso con lettere **UÀ!** bianche morbide in rilievo 3D e raggiera di schegge dell'esclamativo. È l'icona home screen, lo splash, il prompt d'installazione, l'avatar del laboratorio nel portale dentista e l'unico marchio nelle email. **Non compare MAI dentro il chrome dell'app** (header, home) — l'app È il brand; il logotipo testuale `UÀ.` è ammesso solo in login e nella nav desktop.
+- **Tagline:** "Il laboratorio più rapido, più semplice, più UÀ."
+- **Rosso UÀ nei token UI:** `#D90012` light / `#FF3B44` dark. È IL colore dell'azione e dell'urgenza — di nient'altro. ⚠️ Il rosso `#E30613` che appare nell'artwork del logo vive SOLO dentro gli asset raster del logo: resta VIETATO come valore nei token e nel codice UI (regola anti-slop invariata).
+- La raggiera del "!" è l'unico elemento grafico del logo riusabile come decorazione — ESCLUSIVAMENTE nella schermata "Consegnato!" (dietro il check, statica, tint verde) e nello splash.
 
 ### 1.2 Carattere
 **«Chiaro come una calcolatrice, vero come la carta».** L'app è materia calma: carta calda, inchiostro, tasti che si premono. Mai vetrina, mai gioco, mai ufficio. L'analogico è **materia (grana, profondità, peso), non scenografia** — vietati: timbri ruotati, corsivi a mano, righe da quaderno, scontrini, qualsiasi orpello skeuomorfico. (Decisione esplicita di Francesco, 07/07: linea "C bancone" abbandonata.)
