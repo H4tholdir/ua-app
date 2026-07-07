@@ -14,7 +14,7 @@ const STATO_LABEL: Record<Psur['stato'], string> = {
 }
 
 const STATO_COLOR: Record<Psur['stato'], string> = {
-  bozza: 'var(--gold, #D4A843)',
+  bozza: 'var(--t2, #4A3D33)',
   completato: 'var(--t2, #4A3D33)',
   firmato: 'var(--success, #16A34A)',
 }
