@@ -90,7 +90,7 @@ La riga di stato in home (§7.1) usa lo schema: `[momento]: [cosa ho fatto] · t
 | `--line` | `#EBE4D6` | separatori 1.5px |
 | `--red` | `#D90012` | SOLO: tasto primario, urgenza "oggi", pila rossa |
 | `--red-dark` | `#A5000E` | bordo-corsa 3D del tasto rosso |
-| `--amber` | `#B36B00` | stato "in corso" (4.6:1 ✓) |
+| `--amber` | `#9A5C00` | stato "in corso" (5.3:1 su card ✓ — corretto 08/07: il valore precedente #B36B00 falliva AA a 4.14:1, scoperto dal test di contrasto calcolato) |
 | `--green` | `#1B7F3B` | fatto, conferme, tasto FATTA |
 | `--blue` | `#1D5FBF` | nuovo, informazione, note dentista |
 | `--red-tint / --amber-tint / --blue-tint / --green-tint` | `#FBEDEC / #F8F0E1 / #EBF1FA / #EAF4EC` | SOLO sfondi di pill-stato e glifi |
@@ -211,7 +211,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - `TileNuovo`: bordo dashed 2.5 `#CBC1B0`, niente ombra.
 
 ### 5.13 `RigaCerca` — H 58 · card 18 · `🔍 Cerca fra tutti i N …` 17/600 muted. Aprendola: tastiera subito su, risultati come `TileScelta` in lista. Ricerca sempre per contains, tollerante alle maiuscole/accenti.
-### 5.14 Avatar — Ø 60 (tile) / 46 (liste, portale). Colore deterministico dal nome (palette: blue `#1D5FBF`, purple `#7A4DB8`, teal `#0E8A6B`, amber `#B36B00`, rose `#C24E7A`, slate `#8A8580`) + iniziali. Nessuna foto.
+### 5.14 Avatar — Ø 60 (tile) / 46 (liste, portale). Colore deterministico dal nome (palette: blue `#1D5FBF`, purple `#7A4DB8`, teal `#0E8A6B`, amber `#9A5C00`, rose `#C24E7A`, slate `#8A8580`) + iniziali. Nessuna foto.
 ### 5.15 `PillVoce` — H 64 · pill nera `--ink` (light) / `--elv` (dark) · testo bianco 17.5/700 · mic in cerchio `rgba(255,255,255,.16)`. Presente in OGNI passo del wizard, sempre in fondo. Attiva Web Speech API; il parlato compila i passi e mostra cosa ha capito, chiedendo conferma.
 ### 5.16 `Sheet` (bottom sheet)
 - Sale dal basso, radius 28 top, grabber 36×4 `--line` centrato a 8px dal bordo. Copre max 92% viewport; la vista sotto scala a .96 e scurisce (scrim `rgba(29,25,19,.35)`).
@@ -450,7 +450,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 2. Analogico = materia, non scenografia. 3. Motion/suoni stile Apple. 4. Dark alla pari. 5. Suoni attivi di default. 6. **Tre viewport a pari dignità.** 7. Claude Design: prima componenti, poi sync. 8. Brand immutato (nome, logo, rosso).
 
 ## Appendice B — Mappa token v2.3 → v3 (per la migrazione automatica)
-`--bg #DDD8D3→#F4F0E7` · `--sfc/--elv→--card #FFFEFA` · `--prs→--bg-deep` · `--t1→--ink` · `--t2→--muted` · `--t3→--faint` · `--primary→--red` (valore invariato light) · `--c-green #22C55E→--green #1B7F3B` · `--c-amber #F59E0B→--amber #B36B00` · `--c-blue #3B82F6→--blue #1D5FBF` · `--c-red/--c-orange→--red famiglia` · `--c-purple→SOLO avatar` · shadow `--sh-b/c/i/red→--sh-card/--sh-press` · motion `t()→molle §8.1`.
+`--bg #DDD8D3→#F4F0E7` · `--sfc/--elv→--card #FFFEFA` · `--prs→--bg-deep` · `--t1→--ink` · `--t2→--muted` · `--t3→--faint` · `--primary→--red` (valore invariato light) · `--c-green #22C55E→--green #1B7F3B` · `--c-amber #F59E0B→--amber #9A5C00` · `--c-blue #3B82F6→--blue #1D5FBF` · `--c-red/--c-orange→--red famiglia` · `--c-purple→SOLO avatar` · shadow `--sh-b/c/i/red→--sh-card/--sh-press` · motion `t()→molle §8.1`.
 
 ## Appendice C — Fonti Apple (ricerca 07/07/2026)
 HIG Motion/Typography/Layout/Playing audio/Playing haptics/Accessibility/Feedback (developer.apple.com) · WWDC18 803 Fluid Interfaces · WWDC19 810 Audio-Haptic · WWDC17 803 Designing Sound · Apple docs spring(response:dampingFraction:)/spring(duration:bounce:)/interactiveSpring · motion.dev/docs/spring (visualDuration+bounce) · caniuse navigator.vibrate (iOS: NON supportato) · learnui.design (scala tipografica) · valori integrali nel report agente in sessione 07/07/2026.

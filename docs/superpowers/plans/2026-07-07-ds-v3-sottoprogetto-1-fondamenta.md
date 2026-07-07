@@ -12,7 +12,7 @@
 
 - Molle (§8.1): `snappy {visualDuration:0.5, bounce:0.15}` · `smooth {visualDuration:0.5, bounce:0}` · `bouncy {visualDuration:0.5, bounce:0.3}` · `press {stiffness:1754, damping:72, mass:1}` · `wizard {visualDuration:0.35, bounce:0.1}`.
 - Fallback CSS (§8.1): sheet `500ms cubic-bezier(0.32,0.72,0,1)` · generico `200ms cubic-bezier(0.25,0.1,0.25,1)` · snap `cubic-bezier(0.16,1,0.3,1)`.
-- Colori light (§3.1): bg `#F4F0E7` · bg-deep `#ECE6D9` · card `#FFFEFA` · ink `#1D1913` · muted `#6E6457` · faint `#A69B8C` · line `#EBE4D6` · red `#D90012` · red-dark `#A5000E` · amber `#B36B00` · green `#1B7F3B` · blue `#1D5FBF` · tints `#FBEDEC/#F8F0E1/#EBF1FA/#EAF4EC`.
+- Colori light (§3.1): bg `#F4F0E7` · bg-deep `#ECE6D9` · card `#FFFEFA` · ink `#1D1913` · muted `#6E6457` · faint `#A69B8C` · line `#EBE4D6` · red `#D90012` · red-dark `#A5000E` · amber `#9A5C00` · green `#1B7F3B` · blue `#1D5FBF` · tints `#FBEDEC/#F8F0E1/#EBF1FA/#EAF4EC`.
 - Colori dark (§3.2): bg `#171411` · sfc `#211D18` · elv `#2B2620` · ink `#F2EEE7` · muted `#A69B8C` · faint `#6E6457` · line `#342E26` · red `#FF3B44` · red-dark `#8F0910` · amber `#E8A13D` · green `#34C468` · blue `#5B9BFF`.
 - Tipografia (§4.1): SOLO Plus Jakarta Sans 400/600/700/800; scala: display 52 · large-title 31 · question 35 · title 27 · heading 21 · body 17 · callout 15.5 · label 13 · caption 12.5.
 - Suoni (§9.1): 5 file WAV 48kHz in `public/sounds/`: `tap.wav ≤40ms` · `fatta.wav ≤120ms` · `ua.wav 400-600ms` · `errore.wav ≤200ms` · `arrivo.wav ≤250ms`. Default ATTIVI, toggle `localStorage['ua_sounds_v3']==='off'` per spegnere. Web Audio, unlock al primo `touchend`.
@@ -207,7 +207,7 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     expect(luce.card).toBe('#FFFEFA')
     expect(luce.ink).toBe('#1D1913')
     expect(luce.red).toBe('#D90012')
-    expect(luce.amber).toBe('#B36B00')
+    expect(luce.amber).toBe('#9A5C00')
   })
   it('dark: valori esatti', () => {
     expect(notte.bg).toBe('#171411')
@@ -255,7 +255,7 @@ export const luce = {
   bg: '#F4F0E7', bgDeep: '#ECE6D9', card: '#FFFEFA',
   ink: '#1D1913', muted: '#6E6457', faint: '#A69B8C', line: '#EBE4D6',
   red: '#D90012', redDark: '#A5000E',
-  amber: '#B36B00', green: '#1B7F3B', blue: '#1D5FBF',
+  amber: '#9A5C00', green: '#1B7F3B', blue: '#1D5FBF',
   redTint: '#FBEDEC', amberTint: '#F8F0E1', blueTint: '#EBF1FA', greenTint: '#EAF4EC',
 } as const
 
@@ -371,7 +371,7 @@ Expected: FAIL — file mancante.
   --ink: #1D1913; --muted: #6E6457; --faint: #A69B8C; --line: #EBE4D6;
   /* azione e stati */
   --red: #D90012; --red-dark: #A5000E;
-  --amber: #B36B00; --green: #1B7F3B; --blue: #1D5FBF;
+  --amber: #9A5C00; --green: #1B7F3B; --blue: #1D5FBF;
   --red-tint: #FBEDEC; --amber-tint: #F8F0E1; --blue-tint: #EBF1FA; --green-tint: #EAF4EC;
   /* materia */
   --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
