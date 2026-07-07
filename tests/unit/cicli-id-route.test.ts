@@ -162,15 +162,19 @@ describe('DELETE /api/cicli/[id]', () => {
   function mockDeleteFlow(opts: {
     cicloEsiste?: boolean
     countLavori?: number
+    countError?: unknown
     listinoUpdateError?: unknown
     softDeleteError?: unknown
   }) {
     const {
       cicloEsiste = true,
       countLavori = 0,
+      countError = null,
       listinoUpdateError = null,
       softDeleteError = null,
     } = opts
+
+    const softDeleteCalls: unknown[] = []
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
@@ -182,17 +186,22 @@ describe('DELETE /api/cicli/[id]', () => {
             data: cicloEsiste ? { id: CICLO_ID } : null,
             error: cicloEsiste ? null : { code: 'PGRST116' },
           }) }) }) }) }),
-          update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: softDeleteError }) }) }),
+          update: (payload: unknown) => {
+            softDeleteCalls.push(payload)
+            return { eq: () => ({ eq: () => Promise.resolve({ error: softDeleteError }) }) }
+          },
         }
       }
       if (table === 'lavori') {
-        return { select: () => ({ eq: (): unknown => ({ eq: () => Promise.resolve({ count: countLavori, error: null }) }) }) }
+        return { select: () => ({ eq: (): unknown => ({ eq: () => Promise.resolve({ count: countLavori, error: countError }) }) }) }
       }
       if (table === 'listino') {
         return { update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: listinoUpdateError }) }) }) }
       }
       throw new Error(`Unexpected table: ${table}`)
     })
+
+    return { softDeleteCalls }
   }
 
   it('ciclo non referenziato da nessun lavoro → 200, listino.ciclo_id nullato, soft-delete', async () => {
@@ -204,11 +213,30 @@ describe('DELETE /api/cicli/[id]', () => {
   })
 
   it('ciclo referenziato da 3 lavori → 409, nessun soft-delete eseguito', async () => {
-    mockDeleteFlow({ countLavori: 3 })
+    const { softDeleteCalls } = mockDeleteFlow({ countLavori: 3 })
     const res = await DELETE(deleteReq(), { params })
     const json = await res.json()
     expect(res.status).toBe(409)
     expect(json.error).toBe('Ciclo in uso da 3 lavori — impossibile eliminare. Disattivalo per nasconderlo dalle nuove assegnazioni.')
+    expect(softDeleteCalls).toHaveLength(0)
+  })
+
+  it('errore nella query di conteggio lavori → 500, nessun soft-delete eseguito', async () => {
+    const { softDeleteCalls } = mockDeleteFlow({ countError: { message: 'connection error' } })
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).not.toMatch(/connection error/i)
+    expect(softDeleteCalls).toHaveLength(0)
+  })
+
+  it('errore nell\'aggiornamento del listino → 500, nessun soft-delete eseguito', async () => {
+    const { softDeleteCalls } = mockDeleteFlow({ countLavori: 0, listinoUpdateError: { message: 'connection error' } })
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).not.toMatch(/connection error/i)
+    expect(softDeleteCalls).toHaveLength(0)
   })
 
   it('ciclo referenziato da 1 lavoro → messaggio singolare corretto', async () => {

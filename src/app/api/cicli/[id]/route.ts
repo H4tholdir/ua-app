@@ -134,11 +134,15 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   // Nessun filtro su lavori.deleted_at: anche un lavoro storico/soft-cancellato
   // deve continuare a bloccare la cancellazione, per non rompere retroattivamente
   // un documento QMS (Scheda di Fabbricazione, Art. 10(9) MDR) già emesso.
-  const { count } = await svc
+  const { count, error: countError } = await svc
     .from('lavori')
     .select('id', { count: 'exact', head: true })
     .eq('ciclo_id', id)
     .eq('laboratorio_id', labId)
+
+  if (countError) {
+    return NextResponse.json({ error: 'Errore durante la verifica dei lavori collegati' }, { status: 500 })
+  }
 
   if (count && count > 0) {
     const label = count === 1 ? 'lavoro' : 'lavori'
@@ -151,11 +155,15 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   // listino.ciclo_id è un default suggerito su un template di listino, non un
   // record storico MDR — va nullato, non blocca la cancellazione (a differenza
   // di lavori.ciclo_id sopra).
-  await svc
+  const { error: listinoError } = await svc
     .from('listino')
     .update({ ciclo_id: null })
     .eq('ciclo_id', id)
     .eq('laboratorio_id', labId)
+
+  if (listinoError) {
+    return NextResponse.json({ error: 'Errore durante l\'aggiornamento del listino' }, { status: 500 })
+  }
 
   const { error: deleteError } = await svc
     .from('cicli_produzione')
