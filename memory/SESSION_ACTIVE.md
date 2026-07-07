@@ -1,13 +1,7 @@
-# Handoff — CRUD `cicli_produzione` completato, in attesa di merge (06/07/2026)
+# Prossima priorità: B20 — PSUR/PMS differenziato per classe di rischio (07/07/2026)
 
-**CRUD completo per `cicli_produzione`** (create/modifica/soft-delete) implementato su worktree `worktree-cicli-produzione-crud` (branch omonimo), **non ancora mergiato su `main`**. Chiude il follow-up B5 ("nessun modo di creare un ciclo via UI/API").
+Blocker normativo aperto (scoperto 05/07 durante ricerca B17). `src/app/(app)/qualita/psur/page.tsx` e `src/app/api/qualita/psur/route.ts` trattano l'obbligo come "PSUR" generico unico — ma MDR distingue: Classe I → **PMS Report** (Art. 85, nessuna cadenza fissa, NON si chiama PSUR); Classe IIa → **PSUR** (Art. 86, biennale); Classe IIb/III → **PSUR** (Art. 86, annuale). Correzione normativa già in `ANALISI/17_adempimenti_lab_2026.md` §1.4, mai propagata al codice. Verificato in questa sessione: zero riferimenti a `classe_rischio` in entrambi i file — la pagina mostra sempre "PSUR" con alert annuale, indipendentemente dai dispositivi del laboratorio.
 
-**Fix:** migration live (indice UNIQUE parziale `(laboratorio_id, codice) WHERE deleted_at IS NULL`, `created_by`), nuove route `POST`/`PATCH`/`DELETE /api/cicli[/id]` (DELETE blocca se referenziato da un lavoro, nulla `listino.ciclo_id` altrimenti), `CicloNuovoSheet.tsx`, `CicloDeleteButton.tsx`, header actions in `CicloFasiEditor.tsx`.
+**Nessun piano dettagliato esiste ancora** — richiede prima design (query aggregazione per classe su `lavori.classe_rischio`, UI, decisione su laboratori con classi miste). Prossimo step in nuova sessione: `/superpowers:brainstorming`, poi FASE 3 (validazione architetturale, BP-2 CLAUDE.md) prima di scrivere il piano.
 
-**Review finale (Opus):** 2 Important corretti — validazione PATCH allineata a POST (nome/codice non vuoti); payload PATCH ora costruito come delta (non tutti i campi) per non rompere modifica su valori storici fuori lista canonica.
-
-**Verifica:** 626/626 test, tsc/build puliti. QA browser: creazione/modifica/eliminazione verificate end-to-end (mai lab Filippo). Non verificato: blocco 409 su DELETE referenziato (solo test automatici), tablet 768px.
-
-**Decisione in sospeso:** merge su `main` o apertura PR — da decidere con Francesco.
-
-Piano: `docs/superpowers/plans/2026-07-06-cicli-produzione-crud.md`. Spec: `docs/superpowers/specs/2026-07-06-cicli-produzione-crud-design.md`. Dettaglio completo: `memory/MEMORY.md` §0.
+Dettaglio completo: `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md` sezione "B20" (~riga 178). Altri Blocker aperti dopo B20: B6 (Service Worker offline, fix rapido), B14 (`tecnici.compenso_base` ambiguo), B16 (query `/ordini` non supportata).
