@@ -94,11 +94,20 @@ export function CicloNuovoSheet({ mode, cicloId, initialValues }: CicloNuovoShee
     setSaving(true)
     hapticLight()
 
-    const payload = {
-      nome: form.nome.trim(),
-      codice: form.codice.trim(),
-      tipo_dispositivo: form.tipo_dispositivo,
-      classe_rischio: form.classe_rischio || null,
+    let payload: Record<string, unknown>
+    if (mode === 'create') {
+      payload = {
+        nome: form.nome.trim(),
+        codice: form.codice.trim(),
+        tipo_dispositivo: form.tipo_dispositivo,
+        classe_rischio: form.classe_rischio || null,
+      }
+    } else {
+      payload = {}
+      if (form.nome.trim() !== (initialValues?.nome ?? '')) payload.nome = form.nome.trim()
+      if (form.codice.trim() !== (initialValues?.codice ?? '')) payload.codice = form.codice.trim()
+      if (form.tipo_dispositivo !== (initialValues?.tipo_dispositivo ?? '')) payload.tipo_dispositivo = form.tipo_dispositivo
+      if ((form.classe_rischio || null) !== (initialValues?.classe_rischio ?? null)) payload.classe_rischio = form.classe_rischio || null
     }
 
     try {

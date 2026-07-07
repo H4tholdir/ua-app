@@ -95,6 +95,82 @@ describe('CicloNuovoSheet', () => {
     const [url, options] = fetchMock().mock.calls[0]
     expect(url).toBe('/api/cicli/ciclo-1')
     expect(options.method).toBe('PATCH')
+    const body = JSON.parse(options.body as string)
+    expect(body).toEqual({ nome: 'Corona modificata' })
+  })
+
+  it('modalità edit: modificando solo il nome, il body PATCH contiene SOLO il campo nome (delta payload)', async () => {
+    fetchMock().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ciclo: { id: 'ciclo-1', codice: 'C1', nome: 'Corona modificata', tipo_dispositivo: 'Protesi fissa', classe_rischio: 'classe_i' } }),
+    })
+    const reloadMock = vi.fn()
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, reload: reloadMock } })
+
+    render(
+      <CicloNuovoSheet
+        mode="edit"
+        cicloId="ciclo-1"
+        initialValues={{ codice: 'C1', nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa', classe_rischio: 'classe_i' }}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }))
+
+    fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Corona modificata' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salva modifiche' }))
+
+    await waitFor(() => expect(reloadMock).toHaveBeenCalledTimes(1))
+    const [, options] = fetchMock().mock.calls[0]
+    const body = JSON.parse(options.body as string)
+    expect(body).toEqual({ nome: 'Corona modificata' })
+    expect(body).not.toHaveProperty('codice')
+    expect(body).not.toHaveProperty('tipo_dispositivo')
+    expect(body).not.toHaveProperty('classe_rischio')
+  })
+
+  it('modalità edit: ciclo storico con tipo_dispositivo fuori lista (Riferimento) non modificato — salvando solo il nome, il PATCH non include tipo_dispositivo', async () => {
+    fetchMock().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ciclo: { id: 'ciclo-1', codice: 'C1', nome: 'Ciclo rinominato', tipo_dispositivo: 'Riferimento', classe_rischio: null } }),
+    })
+    const reloadMock = vi.fn()
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, reload: reloadMock } })
+
+    render(
+      <CicloNuovoSheet
+        mode="edit"
+        cicloId="ciclo-1"
+        initialValues={{ codice: 'C1', nome: 'Ciclo storico', tipo_dispositivo: 'Riferimento', classe_rischio: null }}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }))
+
+    fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Ciclo rinominato' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salva modifiche' }))
+
+    await waitFor(() => expect(reloadMock).toHaveBeenCalledTimes(1))
+    const [, options] = fetchMock().mock.calls[0]
+    const body = JSON.parse(options.body as string)
+    expect(body).toEqual({ nome: 'Ciclo rinominato' })
+    expect(body).not.toHaveProperty('tipo_dispositivo')
+  })
+
+  it('modalità create: submit valido continua a inviare tutti e 4 i campi (invariato dal delta payload di edit)', async () => {
+    fetchMock().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ciclo: { id: 'ciclo-nuovo', codice: 'C2', nome: 'Altro ciclo', tipo_dispositivo: 'Protesi mobile', classe_rischio: 'classe_iia' } }),
+    })
+    openCreate()
+    fireEvent.change(screen.getByLabelText('Nome *'), { target: { value: 'Altro ciclo' } })
+    fireEvent.change(screen.getByLabelText('Codice *'), { target: { value: 'C2' } })
+    fireEvent.change(screen.getByLabelText('Tipo dispositivo *'), { target: { value: 'Protesi mobile' } })
+    fireEvent.change(screen.getByLabelText('Classe di rischio'), { target: { value: 'classe_iia' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Crea ciclo' }))
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+    const [, options] = fetchMock().mock.calls[0]
+    const body = JSON.parse(options.body as string)
+    expect(body).toEqual({ nome: 'Altro ciclo', codice: 'C2', tipo_dispositivo: 'Protesi mobile', classe_rischio: 'classe_iia' })
   })
 
   it('modalità edit: valore tipo_dispositivo fuori lista (es. dato storico) resta selezionato tra le opzioni', () => {
