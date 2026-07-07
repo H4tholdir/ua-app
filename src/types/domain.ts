@@ -69,15 +69,35 @@ export interface ReteDashboard {
 }
 
 // ============================================================
-// PSUR — Periodic Safety Update Report (MDR Art. 86)
+// PSUR / PMS Report — sorveglianza post-vendita (MDR Art. 85/86)
 // ============================================================
+export type GruppoClassePsur = 'classe_i' | 'classe_iia' | 'classe_iib_iii'
+
+// Unica fonte di verità del raggruppamento — classe_iib e classe_iii
+// condivise nello stesso gruppo/documento per semplicità pratica (stessa
+// cadenza annuale), non una lettura letterale di MDCG 2025-10 (che
+// raggrupperebbe per uso previsto/materiali/processo). Vedi spec B20 §3.2.
+export const CLASSE_RISCHIO_TO_GRUPPO: Record<ClasseRischio, GruppoClassePsur> = {
+  classe_i: 'classe_i',
+  classe_iia: 'classe_iia',
+  classe_iib: 'classe_iib_iii',
+  classe_iii: 'classe_iib_iii',
+}
+
+export const GRUPPO_TO_CLASSI_RISCHIO: Record<GruppoClassePsur, ClasseRischio[]> = {
+  classe_i: ['classe_i'],
+  classe_iia: ['classe_iia'],
+  classe_iib_iii: ['classe_iib', 'classe_iii'],
+}
+
 export interface Psur {
   id: string;
   laboratorio_id: string;
   anno_riferimento: number;
+  gruppo_classe: GruppoClassePsur;
   periodo_inizio: string;            // ISO date
   periodo_fine: string;              // ISO date
-  // Dati aggregati (calcolati al momento della generazione)
+  // Dati aggregati (calcolati al momento della generazione, filtrati per gruppo_classe)
   totale_dispositivi: number;
   totale_non_conformita: number;
   totale_incidenti: number;
