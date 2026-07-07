@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { hapticLight, hapticMedium } from '@/lib/feedback/haptic'
+import { CicloNuovoSheet } from './CicloNuovoSheet'
+import { CicloDeleteButton } from './CicloDeleteButton'
 
 export interface FaseItem {
   id?: string
@@ -29,6 +31,12 @@ interface CicloFasiEditorProps {
   nomeCiclo: string
   fasiIniziali: FaseItem[]
   ultimaModificaLabel: string | null
+  headerActions?: {
+    codice: string
+    tipoDispositivo: string
+    classeRischio: string | null
+    creatoDaLabel: string | null
+  }
 }
 
 const fontFamily = "'DM Sans', system-ui, sans-serif"
@@ -75,7 +83,7 @@ function faseVuota(): FaseItem {
   }
 }
 
-export function CicloFasiEditor({ cicloId, nomeCiclo, fasiIniziali, ultimaModificaLabel }: CicloFasiEditorProps) {
+export function CicloFasiEditor({ cicloId, nomeCiclo, fasiIniziali, ultimaModificaLabel, headerActions }: CicloFasiEditorProps) {
   const [fasi, setFasi] = useState<FaseItem[]>(fasiIniziali)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -176,6 +184,26 @@ export function CicloFasiEditor({ cicloId, nomeCiclo, fasiIniziali, ultimaModifi
         {ultimaModificaLabel && (
           <div style={{ fontSize: 12, color: 'var(--t2)', fontFamily }}>
             Ultima modifica di {ultimaModificaLabel}
+          </div>
+        )}
+        {headerActions?.creatoDaLabel && (
+          <div style={{ fontSize: 12, color: 'var(--t2)', fontFamily }}>
+            Creato da {headerActions.creatoDaLabel}
+          </div>
+        )}
+        {headerActions && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <CicloNuovoSheet
+              mode="edit"
+              cicloId={cicloId}
+              initialValues={{
+                codice: headerActions.codice,
+                nome: nomeCiclo,
+                tipo_dispositivo: headerActions.tipoDispositivo,
+                classe_rischio: headerActions.classeRischio,
+              }}
+            />
+            <CicloDeleteButton cicloId={cicloId} cicloNome={nomeCiclo} />
           </div>
         )}
       </div>

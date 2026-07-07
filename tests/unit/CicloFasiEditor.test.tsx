@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CicloFasiEditor } from '../../src/components/features/cicli/CicloFasiEditor'
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}))
+
 const originalFetch = global.fetch
 
 describe('CicloFasiEditor', () => {
@@ -112,5 +116,46 @@ describe('CicloFasiEditor', () => {
         body: JSON.stringify({ fasi: [{ id: 'fase-1', codice_fase: 'OL10', descrizione: 'Disegno modelli', obbligatoria: true, attrezzatura: null, controllo_misura: null, esito_atteso: null, materiali_nota: null }] }),
       })
     ))
+  })
+})
+
+describe('CicloFasiEditor — header actions', () => {
+  it('senza headerActions: nessun bottone Modifica/Elimina, nessuna riga Creato da', () => {
+    render(<CicloFasiEditor cicloId="ciclo-1" nomeCiclo="CNC Corona" fasiIniziali={[]} ultimaModificaLabel={null} />)
+    expect(screen.queryByRole('button', { name: 'Modifica' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /elimina ciclo/i })).not.toBeInTheDocument()
+  })
+
+  it('con headerActions: mostra Modifica, Elimina, e la riga Creato da', () => {
+    render(
+      <CicloFasiEditor
+        cicloId="ciclo-1"
+        nomeCiclo="CNC Corona"
+        fasiIniziali={[]}
+        ultimaModificaLabel={null}
+        headerActions={{
+          codice: 'CNC01',
+          tipoDispositivo: 'Protesi fissa',
+          classeRischio: null,
+          creatoDaLabel: 'Mario Rossi il 6 lug 2026, 10:00',
+        }}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /elimina ciclo/i })).toBeInTheDocument()
+    expect(screen.getByText(/Creato da Mario Rossi il 6 lug 2026, 10:00/)).toBeInTheDocument()
+  })
+
+  it('con headerActions ma creatoDaLabel null: nessuna riga Creato da (ciclo storico)', () => {
+    render(
+      <CicloFasiEditor
+        cicloId="ciclo-1"
+        nomeCiclo="CNC Corona"
+        fasiIniziali={[]}
+        ultimaModificaLabel={null}
+        headerActions={{ codice: 'CNC01', tipoDispositivo: 'Protesi fissa', classeRischio: null, creatoDaLabel: null }}
+      />
+    )
+    expect(screen.queryByText(/Creato da/)).not.toBeInTheDocument()
   })
 })

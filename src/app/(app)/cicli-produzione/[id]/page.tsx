@@ -25,7 +25,7 @@ export default async function CicloDettaglioPage({ params }: Props) {
 
   const { data: ciclo } = await svc
     .from('cicli_produzione')
-    .select('id, codice, nome, updated_by, updated_at')
+    .select('id, codice, nome, tipo_dispositivo, classe_rischio, created_by, created_at, updated_by, updated_at')
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .is('deleted_at', null)
@@ -53,6 +53,19 @@ export default async function CicloDettaglioPage({ params }: Props) {
     }
   }
 
+  let creatoDaLabel: string | null = null
+  if (ciclo.created_by) {
+    const { data: creatore } = await svc
+      .from('utenti')
+      .select('nome, cognome')
+      .eq('id', ciclo.created_by)
+      .eq('laboratorio_id', utente.laboratorio_id)
+      .single()
+    if (creatore) {
+      creatoDaLabel = `${creatore.nome} ${creatore.cognome} il ${formatDataOra(ciclo.created_at)}`
+    }
+  }
+
   return (
     <>
       <AppHeader title={ciclo.nome} subtitle={ciclo.codice} backHref="/cicli-produzione" />
@@ -62,6 +75,12 @@ export default async function CicloDettaglioPage({ params }: Props) {
           nomeCiclo={ciclo.nome}
           fasiIniziali={(fasiRows ?? []) as FaseItem[]}
           ultimaModificaLabel={ultimaModificaLabel}
+          headerActions={{
+            codice: ciclo.codice,
+            tipoDispositivo: ciclo.tipo_dispositivo,
+            classeRischio: ciclo.classe_rischio,
+            creatoDaLabel,
+          }}
         />
       </PageWrapper>
     </>
