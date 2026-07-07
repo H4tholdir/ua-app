@@ -1,9 +1,11 @@
-# Fix 409 race condition POST /api/qualita/psur — RISOLTO, MERGIATO, DEPLOYATO (07/07/2026)
+# Fix race doppia-fatturazione POST /api/admin/labs (07/07/2026)
 
-Follow-up di B20: rilevato `insertError.code === '23505'` sull'insert, ritorna 409 pulito invece di 500 con messaggio Postgres grezzo (stesso pattern di `cicli/route.ts`). Fast-forward `efb870c..ffea4b9` su `main`, pushato, CI verde, deploy Vercel confermato, `uachelab.com` risponde 200. Worktree e branch rimossi.
+`laboratori.partita_iva` non aveva vincolo UNIQUE a DB (solo indice non-unique) — pre-check applicativo senza backstop, race poteva creare 2 lab + 2 clienti Stripe per la stessa P.IVA. Migration live: indice UNIQUE parziale (stato trial/attivo, deleted_at null). Route riordinata: insert prima di Stripe, 23505→409, precheck allineato.
 
-`tsc`/`vitest` (665/4 skipped, era 663)/`next build` puliti.
+Finding review: nome file migration non corrispondeva al timestamp reale in schema_migrations (MCP timestampa da sé) — corretto rinominando (anche per la migration B20 già in main, stesso drift). `IF NOT EXISTS` aggiunto per idempotenza.
 
-Survey completo: stesso gap trovato in `admin/labs/route.ts` e `rete/[id]/inviti/route.ts` — task separati aperti (`task_33371aa2`, `task_289b814f`).
+`tsc`/`vitest` (670/4 skipped, era 665)/`next build` puliti. Review Opus: Ready to merge Yes.
 
-Dettaglio completo: `memory/MEMORY.md` §0. Prossimi Blocker: B6, B14, B16.
+`rete/[id]/inviti`: stesso gap, impatto basso, documentato soltanto (nessun codice toccato).
+
+Dettaglio completo: `memory/MEMORY.md` §0.
