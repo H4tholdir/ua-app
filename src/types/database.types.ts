@@ -247,6 +247,7 @@ export type Database = {
           classe_rischio: string | null
           codice: string
           created_at: string
+          created_by: string | null
           deleted_at: string | null
           id: string
           laboratorio_id: string
@@ -261,6 +262,7 @@ export type Database = {
           classe_rischio?: string | null
           codice: string
           created_at?: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           laboratorio_id: string
@@ -275,6 +277,7 @@ export type Database = {
           classe_rischio?: string | null
           codice?: string
           created_at?: string
+          created_by?: string | null
           deleted_at?: string | null
           id?: string
           laboratorio_id?: string
@@ -285,6 +288,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cicli_produzione_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "utenti"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cicli_produzione_laboratorio_id_fkey"
             columns: ["laboratorio_id"]
