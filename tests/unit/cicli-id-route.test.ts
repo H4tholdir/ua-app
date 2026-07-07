@@ -29,15 +29,33 @@ function patchReq(body: unknown) {
 }
 
 function mockUpdate(result: { data: unknown; error: unknown }) {
+  const updateCalls: unknown[] = []
+  const eqCalls: unknown[][] = []
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
     }
     if (table === 'cicli_produzione') {
-      return { update: () => ({ eq: () => ({ eq: () => ({ select: () => ({ single: async () => result }) }) }) }) }
+      return {
+        update: (payload: unknown) => {
+          updateCalls.push(payload)
+          return {
+            eq: (...args: unknown[]) => {
+              eqCalls.push(args)
+              return {
+                eq: (...args2: unknown[]) => {
+                  eqCalls.push(args2)
+                  return { select: () => ({ single: async () => result }) }
+                },
+              }
+            },
+          }
+        },
+      }
     }
     throw new Error(`Unexpected table: ${table}`)
   })
+  return { updateCalls, eqCalls }
 }
 
 describe('PATCH /api/cicli/[id]', () => {
@@ -73,9 +91,11 @@ describe('PATCH /api/cicli/[id]', () => {
   })
 
   it('ciclo non trovato o di altro laboratorio (PGRST116) → 404', async () => {
-    mockUpdate({ data: null, error: { code: 'PGRST116', message: 'no rows' } })
+    const { eqCalls } = mockUpdate({ data: null, error: { code: 'PGRST116', message: 'no rows' } })
     const res = await PATCH(patchReq({ nome: 'X' }), { params })
     expect(res.status).toBe(404)
+    expect(eqCalls[0]).toEqual(['id', CICLO_ID])
+    expect(eqCalls[1]).toEqual(['laboratorio_id', LAB_ID])
   })
 
   it('codice duplicato (23505) → 409', async () => {
@@ -101,5 +121,27 @@ describe('PATCH /api/cicli/[id]', () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     const res = await PATCH(patchReq({ nome: 'X' }), { params })
     expect(res.status).toBe(401)
+  })
+
+  it('campi non ammessi (laboratorio_id, created_by, id) vengono ignorati dal payload di update', async () => {
+    const { updateCalls } = mockUpdate({
+      data: { id: CICLO_ID, codice: 'C1', nome: 'Nuovo nome', tipo_dispositivo: 'Protesi fissa', classe_rischio: null, attivo: true },
+      error: null,
+    })
+    const res = await PATCH(
+      patchReq({
+        nome: 'Nuovo nome',
+        laboratorio_id: 'other-lab',
+        created_by: 'someone-else',
+        id: 'altro-id',
+      }),
+      { params }
+    )
+    expect(res.status).toBe(200)
+    expect(updateCalls).toHaveLength(1)
+    expect(updateCalls[0]).toEqual({ nome: 'Nuovo nome', updated_by: AUTH_USER.id })
+    expect(updateCalls[0]).not.toHaveProperty('laboratorio_id')
+    expect(updateCalls[0]).not.toHaveProperty('created_by')
+    expect(updateCalls[0]).not.toHaveProperty('id')
   })
 })
