@@ -103,4 +103,11 @@ describe('rilevaGruppi', () => {
       nonClassificabili: 2,
     })
   })
+
+  it('valore che collide con Object.prototype (es. "constructor") → mai trattato come gruppo valido, contato in nonClassificabili', () => {
+    expect(rilevaGruppi(['classe_i', 'constructor', 'toString'])).toEqual({
+      gruppiRilevati: ['classe_i'],
+      nonClassificabili: 2,
+    })
+  })
 })

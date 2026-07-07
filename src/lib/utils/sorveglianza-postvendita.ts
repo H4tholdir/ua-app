@@ -54,7 +54,7 @@ export function rilevaGruppi(classiRischio: string[]): {
   let nonClassificabili = 0
 
   for (const classe of classiRischio) {
-    const gruppo = mappa[classe]
+    const gruppo = Object.prototype.hasOwnProperty.call(mappa, classe) ? mappa[classe] : undefined
     if (gruppo) {
       gruppiTrovati.add(gruppo)
     } else {
