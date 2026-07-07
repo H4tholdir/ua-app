@@ -175,7 +175,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-04-security-advisor-hardening-design.md`. **Piano:** `docs/superpowers/plans/2026-07-04-security-advisor-hardening.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Prossima priorità: B4** (`as any` nei generatori PDF MDR) — invariata, questo era un fuori-programma di sicurezza.
 
-### B20. ✅ RISOLTO (07/07/2026, worktree `worktree-b20-psur-pms-classe-rischio`, non ancora mergiato su `main`) — PSUR/PMS Report non differenziato per classe di rischio del dispositivo
+### B20. ✅ RISOLTO, MERGIATO E DEPLOYATO (07/07/2026, fast-forward `58ac033..3f106ea` su `main`, pushato, CI verde, deploy Vercel confermato, `uachelab.com` risponde 200) — PSUR/PMS Report non differenziato per classe di rischio del dispositivo
 
 **Fonte:** [Sis], scoperto 05/07/2026 durante una ricerca approfondita (deep-research, 108 agent, fonti primarie EUR-Lex/MDCG/Gazzetta Ufficiale con verifica avversariale) commissionata da Francesco come propedeutica a B17, per verificare un sospetto di attribuzione normativa errata nel backlog.
 
@@ -203,7 +203,7 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 
 **QA browser manuale ESEGUITA** (lab E2E isolato, mai il lab Filippo) — **bug bloccante reale scoperto e corretto**: il bottone "Genera" falliva sempre con 400 perché il form HTML nativo di `qualita/psur/page.tsx` invia `application/x-www-form-urlencoded`, ma `POST /api/qualita/psur` faceva solo `req.json()` (bug preesistente a B20, mascherato prima da un fallback silenzioso su `anno_riferimento`, reso bloccante da B20 rendendo `gruppo_classe` obbligatorio senza fallback). Fix: parsing del body branch su `Content-Type` (JSON o form-urlencoded). Verificato dal vivo: PMS Report e PSUR generati con successo per lo stesso anno, coesistenza confermata (nessun conflitto 409 tra gruppi diversi, verificato anche via query DB), 390/768/1280px light/dark verificati, badge "Bozza" confermato leggibile. Dati di test rimossi, baseline 0 residui.
 
-**Verifica finale:** `tsc --noEmit` pulito (0 errori); `npx vitest run` → `663 passed | 4 skipped` (era `645 passed | 4 skipped` prima di questo lavoro, +18 netti); `npx next build` pulito (route `/qualita/psur` e `/api/qualita/psur` presenti nel manifest); `check-ds-compliance.sh` → OK. Spec: `docs/superpowers/specs/2026-07-07-b20-psur-pms-classe-rischio-design.md`. Piano: `docs/superpowers/plans/2026-07-07-b20-psur-pms-classe-rischio.md`. Dettaglio completo: `memory/MEMORY.md` §0. **Ancora da fare:** merge su `main`, push, deploy.
+**Verifica finale:** `tsc --noEmit` pulito (0 errori); `npx vitest run` → `663 passed | 4 skipped` (era `645 passed | 4 skipped` prima di questo lavoro, +18 netti); `npx next build` pulito (route `/qualita/psur` e `/api/qualita/psur` presenti nel manifest); `check-ds-compliance.sh` → OK. Spec: `docs/superpowers/specs/2026-07-07-b20-psur-pms-classe-rischio-design.md`. Piano: `docs/superpowers/plans/2026-07-07-b20-psur-pms-classe-rischio.md`. Dettaglio completo: `memory/MEMORY.md` §0.
 
 ### B4. ✅ RISOLTO (05/07/2026, branch `worktree-b4-pdf-generators-type-safety`, non ancora mergiato su `main`) — `as any` nei generatori PDF MDR
 **Fonte:** [SWE], confermato anche da [Odt]
