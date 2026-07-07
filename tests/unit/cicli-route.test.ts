@@ -113,6 +113,14 @@ function postReq(body: unknown) {
   })
 }
 
+function crossOriginPostReq(body: unknown) {
+  return new Request('http://localhost/api/cicli', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', origin: 'http://evil.com', host: 'localhost' },
+    body: JSON.stringify(body),
+  })
+}
+
 describe('POST /api/cicli', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -120,15 +128,22 @@ describe('POST /api/cicli', () => {
   })
 
   function mockInsert(result: { data: unknown; error: unknown }) {
+    const insertCalls: unknown[] = []
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
         return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
       }
       if (table === 'cicli_produzione') {
-        return { insert: () => ({ select: () => ({ single: async () => result }) }) }
+        return {
+          insert: (payload: unknown) => {
+            insertCalls.push(payload)
+            return { select: () => ({ single: async () => result }) }
+          },
+        }
       }
       throw new Error(`Unexpected table: ${table}`)
     })
+    return insertCalls
   }
 
   function setupMockForValidation() {
@@ -171,7 +186,7 @@ describe('POST /api/cicli', () => {
   })
 
   it('happy path senza classe_rischio (facoltativa) → 201, created_by/updated_by = utente corrente', async () => {
-    mockInsert({
+    const insertCalls = mockInsert({
       data: { id: 'ciclo-nuovo', codice: 'C1', nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa', classe_rischio: null },
       error: null,
     })
@@ -179,6 +194,12 @@ describe('POST /api/cicli', () => {
     const json = await res.json()
     expect(res.status).toBe(201)
     expect(json.ciclo).toEqual({ id: 'ciclo-nuovo', codice: 'C1', nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa', classe_rischio: null })
+    expect(insertCalls).toHaveLength(1)
+    expect(insertCalls[0]).toMatchObject({
+      created_by: AUTH_USER.id,
+      updated_by: AUTH_USER.id,
+      attivo: true,
+    })
   })
 
   it('happy path con classe_rischio → 201', async () => {
@@ -202,5 +223,10 @@ describe('POST /api/cicli', () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     const res = await POST(postReq({ nome: 'X', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
     expect(res.status).toBe(401)
+  })
+
+  it('origin cross-site (CSRF) → 403', async () => {
+    const res = await POST(crossOriginPostReq({ nome: 'X', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
+    expect(res.status).toBe(403)
   })
 })
