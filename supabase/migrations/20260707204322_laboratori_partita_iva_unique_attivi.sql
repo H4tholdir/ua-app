@@ -11,6 +11,6 @@
 -- Precondizione verificata 07/07/2026: nessuna P.IVA duplicata esistente tra
 -- i laboratori trial/attivo non eliminati.
 
-CREATE UNIQUE INDEX laboratori_partita_iva_attivi_key
+CREATE UNIQUE INDEX IF NOT EXISTS laboratori_partita_iva_attivi_key
   ON laboratori (partita_iva)
   WHERE stato IN ('trial', 'attivo') AND deleted_at IS NULL;
