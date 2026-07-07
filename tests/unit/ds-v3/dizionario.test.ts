@@ -19,4 +19,42 @@ describe('dizionario v3 — parole del banco', () => {
   it('ogni parola vietata ha il sostituto del banco', () => {
     for (const p of PAROLE_VIETATE) expect(p.usa.length).toBeGreaterThan(0)
   })
+
+  // Copertura completa: un caso positivo per OGNI pattern, nello stesso ordine di PAROLE_VIETATE
+  const casiPositivi: Array<{ testo: string; attesa: string }> = [
+    { testo: 'Vai alla dashboard', attesa: 'dashboard' },
+    { testo: 'Compila il form', attesa: 'form' },
+    { testo: 'Nuovo record creato', attesa: 'record' },
+    { testo: 'Premi Submit per continuare', attesa: 'submit' },
+    { testo: 'Salva le modifiche', attesa: 'salva' },
+    { testo: 'Applica i filtri alla lista', attesa: 'filtri' },
+    { testo: 'Esegui la query sul database', attesa: 'query' },
+    { testo: 'Nuovo task assegnato', attesa: 'task' },
+    { testo: 'Aggiungi alla to-do list', attesa: 'to-do' },
+    { testo: 'Errore 500 dal server', attesa: 'errore 500' },
+    { testo: 'Richiesta fallita, riprova più tardi', attesa: 'richiesta fallita' },
+    { testo: 'Loading, attendere prego', attesa: 'loading' },
+    { testo: 'Caricamento in corso…', attesa: 'caricamento in corso' },
+    { testo: 'stato: in_lavorazione', attesa: 'in_lavorazione' },
+    { testo: 'Vuoi eliminare? Elimina definitivamente', attesa: 'elimina definitivamente' },
+    { testo: 'Campo obbligatorio mancante', attesa: 'campo obbligatorio' },
+  ]
+  it('copre tutti i pattern con un match positivo ciascuno', () => {
+    expect(casiPositivi.length).toBe(PAROLE_VIETATE.length)
+    for (const { testo, attesa } of casiPositivi) {
+      expect(trovaParoleVietate(testo), `atteso "${attesa}" in "${testo}"`).toContain(attesa)
+    }
+  })
+
+  it('word boundary sui pattern multi-parola: niente falsi positivi', () => {
+    expect(trovaParoleVietate('Precaricamento in corso')).toEqual([])
+    expect(trovaParoleVietate('Ricaricamento in corso')).toEqual([])
+    // "errore 5001" non deve fabbricare il match "errore 500"
+    expect(trovaParoleVietate('errore 5001')).not.toContain('errore 500')
+    expect(trovaParoleVietate('errore 5001')).toEqual([])
+  })
+  it('word boundary sulle parole singole: niente falsi positivi', () => {
+    expect(trovaParoleVietate('il salvataggio è automatico')).toEqual([])
+    expect(trovaParoleVietate('multitasking')).toEqual([])
+  })
 })

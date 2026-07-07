@@ -12,13 +12,13 @@ export const PAROLE_VIETATE: ReadonlyArray<{ vietata: RegExp; usa: string }> = [
   { vietata: /\bquery\b/i,                usa: '—' },
   { vietata: /\btask\b/i,                 usa: 'cose da fare' },
   { vietata: /\bto-?do\b/i,               usa: 'cose da fare' },
-  { vietata: /errore\s*\d{3}/i,           usa: 'Non ci sono riuscita. Riprovo?' },
-  { vietata: /richiesta\s+fallita/i,      usa: 'Non ci sono riuscita. Riprovo?' },
+  { vietata: /\berrore\s*\d{3}\b/i,       usa: 'Non ci sono riuscita. Riprovo?' },
+  { vietata: /\brichiesta\s+fallita/i,    usa: 'Non ci sono riuscita. Riprovo?' },
   { vietata: /\bloading\b/i,              usa: 'Un attimo…' },
-  { vietata: /caricamento\s+in\s+corso/i, usa: 'Un attimo…' },
+  { vietata: /\bcaricamento\s+in\s+corso/i, usa: 'Un attimo…' },
   { vietata: /\bin_lavorazione\b/i,       usa: 'Sul banco / In forno / In rifinitura' },
-  { vietata: /elimina\s+definitivamente/i, usa: 'Butta via (con via di fuga)' },
-  { vietata: /campo\s+obbligatorio/i,     usa: '(la domanda stessa lo rende ovvio)' },
+  { vietata: /\belimina\s+definitivamente/i, usa: 'Butta via (con via di fuga)' },
+  { vietata: /\bcampo\s+obbligatorio/i,   usa: '(la domanda stessa lo rende ovvio)' },
 ] as const
 
 /** Ritorna le parole vietate trovate nel testo (minuscole), [] se pulito. */
