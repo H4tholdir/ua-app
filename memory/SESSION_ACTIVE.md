@@ -1,6 +1,6 @@
-# Fix 409 race condition POST /api/qualita/psur (07/07/2026)
+# Fix 409 race condition POST /api/qualita/psur — RISOLTO, MERGIATO, DEPLOYATO (07/07/2026)
 
-Follow-up di B20: rilevato `insertError.code === '23505'` sull'insert, ritorna 409 pulito invece di 500 con messaggio Postgres grezzo (stesso pattern di `cicli/route.ts`). Worktree `worktree-psur-race-409-fix`, commit `92b216c`, TDD (2 nuovi test), review indipendente senza finding.
+Follow-up di B20: rilevato `insertError.code === '23505'` sull'insert, ritorna 409 pulito invece di 500 con messaggio Postgres grezzo (stesso pattern di `cicli/route.ts`). Fast-forward `efb870c..ffea4b9` su `main`, pushato, CI verde, deploy Vercel confermato, `uachelab.com` risponde 200. Worktree e branch rimossi.
 
 `tsc`/`vitest` (665/4 skipped, era 663)/`next build` puliti.
 
