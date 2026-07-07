@@ -4482,6 +4482,7 @@ export type Database = {
           conclusioni: string | null
           created_at: string
           firmato_at: string | null
+          gruppo_classe: string
           id: string
           laboratorio_id: string
           misure_correttive: string | null
@@ -4504,6 +4505,7 @@ export type Database = {
           conclusioni?: string | null
           created_at?: string
           firmato_at?: string | null
+          gruppo_classe: string
           id?: string
           laboratorio_id: string
           misure_correttive?: string | null
@@ -4526,6 +4528,7 @@ export type Database = {
           conclusioni?: string | null
           created_at?: string
           firmato_at?: string | null
+          gruppo_classe?: string
           id?: string
           laboratorio_id?: string
           misure_correttive?: string | null
