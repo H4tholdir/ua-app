@@ -1,14 +1,14 @@
-# Sessione attiva — 07/07/2026
+# Sessione attiva — 08/07/2026
 
-**REDESIGN TOTALE DS v3 «Una cosa alla volta»** (pivot: B20 in pausa su decisione Francesco).
+**DS v3 «Una cosa alla volta» — sotto-progetto 1 (fondamenta in codice) COMPLETATO.**
 
-Percorso: brainstorming → 3 direzioni (A calcolatrice / B WhatsApp / C bancone) → iterazioni → **decisione: A pura + chat SOLO nel portale dentista; C abbandonata; analogico = materia non scenografia; stile Apple per motion/suoni**.
+Worktree `.claude/worktrees/ds-v3-fondamenta`, branch `worktree-ds-v3-fondamenta` — **non ancora mergiato su `main`**.
 
-Prodotti:
-- Mockup approvati: `docs/design/mockups/2026-07-07-redesign-A-materico-full.html` (7 schermate) + `2026-07-07-ds-v3-showcase.html` (tavola anatomica: token, componenti, dark, desktop 1280)
-- Ricerca Apple HIG completata (valori spring/tipografia/audio; iOS Safari: NO vibrate API)
-- **SPEC COMPLETA: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`** — IN ATTESA DI REVIEW FRANCESCO (poi commit)
+10 task (T1→T9 implementazione + T10 verifica/memoria), tutti review-approvati:
+font Plus Jakarta Sans self-hosted · dizionario parole vietate + linter · token v3 (ambra light corretta a `#9A5C00` per WCAG AA) · `src/app/ds-v3.css` scoped `[data-ds="v3"]` (mai `:root`, coesistenza piena con v2.3) · motion v3 (5 molle Apple + 8 coreografie) · 5 suoni WAV provvisori + player Web Audio · haptic Android-only · estensione `check-ds-compliance.sh`.
 
-Decisioni: dark alla pari · suoni attivi default (5 suoni) · 3 viewport pari dignità · Claude Design sync dopo implementazione componenti (§14.7).
+Verifica finale: `tsc --noEmit` pulito, `vitest run` 707 passed | 4 skipped (era 677), `next build` pulito.
 
-Prossimo: review spec → commit → sotto-progetto 1 (fondamenta in codice §14).
+Legge di riferimento: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`.
+
+**Prossimo:** merge del branch su `main` (o proseguire nello stesso worktree) → sotto-progetto 2, componenti core (spec §14.2).
