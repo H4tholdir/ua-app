@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     query = query.eq('id', id)
   } else if (q) {
     const pattern = pgrestQuote(`%${q}%`)
-    query = query.or(`codice.ilike.${pattern},nome.ilike.${pattern}`)
+    query = query.eq('attivo', true).or(`codice.ilike.${pattern},nome.ilike.${pattern}`)
   }
 
   const { data, error } = await query

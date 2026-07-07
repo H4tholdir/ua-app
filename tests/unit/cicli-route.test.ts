@@ -103,6 +103,27 @@ describe('GET /api/cicli', () => {
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
     expect(res.status).toBe(500)
   })
+
+  it('lookup per id di un ciclo disattivato (attivo=false) continua a ritornarlo — idratazione CicloComboBox su lavoro esistente', async () => {
+    const cicloDisattivato = { id: 'ciclo-9', codice: 'OLD1', nome: 'Ciclo disattivato', tipo_dispositivo: 'Protesi fissa' }
+    mockLab({ data: [cicloDisattivato], error: null })
+    const res = await GET(req('http://localhost/api/cicli?id=ciclo-9'))
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.cicli).toEqual([cicloDisattivato])
+  })
+
+  it('ricerca testuale esclude i cicli disattivati (attivo=false) — non proponibili per nuove assegnazioni', async () => {
+    const cicliChain = mockLab({ data: [], error: null })
+    await GET(req('http://localhost/api/cicli?q=CNC'))
+    expect(cicliChain.calls).toContainEqual({ method: 'eq', args: ['attivo', true] })
+  })
+
+  it('lookup per id NON applica il filtro attivo — nessuna chiamata .eq(\'attivo\', ...)', async () => {
+    const cicliChain = mockLab({ data: [], error: null })
+    await GET(req('http://localhost/api/cicli?id=ciclo-9'))
+    expect(cicliChain.calls).not.toContainEqual({ method: 'eq', args: ['attivo', true] })
+  })
 })
 
 function postReq(body: unknown) {
