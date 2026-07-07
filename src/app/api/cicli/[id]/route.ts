@@ -53,7 +53,16 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   if (typeof payload.nome === 'string') payload.nome = payload.nome.trim()
   if (typeof payload.codice === 'string') payload.codice = payload.codice.trim()
   if (typeof payload.tipo_dispositivo === 'string') payload.tipo_dispositivo = payload.tipo_dispositivo.trim()
+  if (Object.prototype.hasOwnProperty.call(payload, 'classe_rischio') && payload.classe_rischio === '') {
+    payload.classe_rischio = null
+  }
 
+  if (Object.prototype.hasOwnProperty.call(payload, 'nome') && payload.nome === '') {
+    return NextResponse.json({ error: 'Il campo "nome" è obbligatorio' }, { status: 400 })
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'codice') && payload.codice === '') {
+    return NextResponse.json({ error: 'Il campo "codice" è obbligatorio' }, { status: 400 })
+  }
   if (Object.prototype.hasOwnProperty.call(payload, 'tipo_dispositivo')) {
     if (!(TIPO_DISPOSITIVO_CICLO_OPTIONS as readonly string[]).includes(payload.tipo_dispositivo as string)) {
       return NextResponse.json({ error: 'Tipo dispositivo non valido' }, { status: 400 })

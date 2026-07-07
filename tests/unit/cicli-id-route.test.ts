@@ -123,6 +123,32 @@ describe('PATCH /api/cicli/[id]', () => {
     expect(res.status).toBe(401)
   })
 
+  it('nome vuoto dopo trim → 400 con lo stesso messaggio di POST', async () => {
+    const res = await PATCH(patchReq({ nome: '   ' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(400)
+    expect(json.error).toBe('Il campo "nome" è obbligatorio')
+  })
+
+  it('codice vuoto dopo trim → 400 con lo stesso messaggio di POST', async () => {
+    const res = await PATCH(patchReq({ codice: '   ' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(400)
+    expect(json.error).toBe('Il campo "codice" è obbligatorio')
+  })
+
+  it('classe_rischio stringa vuota → 200, trattata come azzeramento a null', async () => {
+    const { updateCalls } = mockUpdate({
+      data: { id: CICLO_ID, codice: 'C1', nome: 'Ciclo X', tipo_dispositivo: 'Protesi fissa', classe_rischio: null, attivo: true },
+      error: null,
+    })
+    const res = await PATCH(patchReq({ classe_rischio: '' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.ciclo.classe_rischio).toBeNull()
+    expect(updateCalls[0]).toEqual({ classe_rischio: null, updated_by: AUTH_USER.id })
+  })
+
   it('campi non ammessi (laboratorio_id, created_by, id) vengono ignorati dal payload di update', async () => {
     const { updateCalls } = mockUpdate({
       data: { id: CICLO_ID, codice: 'C1', nome: 'Nuovo nome', tipo_dispositivo: 'Protesi fissa', classe_rischio: null, attivo: true },
