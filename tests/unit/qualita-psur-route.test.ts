@@ -104,8 +104,18 @@ function mockTabellePost(opts: {
   lavoriClasseIds: string[]
   lavoriClasseError?: { message: string } | null
   aggregatiError?: boolean
+  // Fa fallire UNA SOLA delle quattro query di aggregazione (le altre restano
+  // valide con conteggi reali) — serve a pinnare la semantica OR del check
+  // `if (disp.error || nc.error || inc.error || rifac.error)`: con questo flag
+  // un'eventuale regressione ad AND (tutte devono fallire) farebbe tornare
+  // erroneamente 201 invece di 500.
+  failOnly?: 'disp' | 'nc' | 'inc' | 'rifac'
 }) {
   let psurCallCount = 0
+  // Conta solo le chiamate di CONTEGGIO su 'lavori' (non il fetch-ids iniziale):
+  // la 1a è sempre `disp`, la 2a è sempre `rifac` — ordine fisso dato dalla
+  // posizione nell'array passato a Promise.all nella route.
+  let lavoriCountCallIndex = 0
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
@@ -139,9 +149,14 @@ function mockTabellePost(opts: {
       // altrimenti un test su "errore nella query di aggregazione" finirebbe
       // per colpire invece il fetch-ids, che avviene prima nel flusso reale.
       let isCountQuery = false
+      let myCountIndex = -1
       const chain = {
         select: (_cols: string, selectOpts?: { count?: string; head?: boolean }) => {
           isCountQuery = Boolean(selectOpts?.count)
+          if (isCountQuery) {
+            lavoriCountCallIndex++
+            myCountIndex = lavoriCountCallIndex
+          }
           return chain
         },
         eq: () => chain,
@@ -151,7 +166,13 @@ function mockTabellePost(opts: {
         lte: () => chain,
         then: (resolve: (v: unknown) => void) => {
           if (isCountQuery) {
-            if (opts.aggregatiError) return resolve({ data: null, error: { message: 'boom' }, count: null })
+            const isDisp = myCountIndex === 1
+            const isRifac = myCountIndex === 2
+            const shouldFail =
+              opts.aggregatiError ||
+              (opts.failOnly === 'disp' && isDisp) ||
+              (opts.failOnly === 'rifac' && isRifac)
+            if (shouldFail) return resolve({ data: null, error: { message: 'boom' }, count: null })
             return resolve({ data: null, error: null, count: opts.lavoriClasseIds.length })
           }
           if (opts.lavoriClasseError) return resolve({ data: null, error: opts.lavoriClasseError, count: null })
@@ -161,6 +182,12 @@ function mockTabellePost(opts: {
       return chain
     }
     if (table === 'lavori_fasi' || table === 'incidenti_mdr') {
+      const isNc = table === 'lavori_fasi'
+      const isInc = table === 'incidenti_mdr'
+      const shouldFail =
+        opts.aggregatiError ||
+        (opts.failOnly === 'nc' && isNc) ||
+        (opts.failOnly === 'inc' && isInc)
       const chain = {
         select: () => chain,
         eq: () => chain,
@@ -169,7 +196,7 @@ function mockTabellePost(opts: {
         gte: () => chain,
         lte: () => chain,
         then: (resolve: (v: unknown) => void) =>
-          resolve(opts.aggregatiError ? { data: null, error: { message: 'boom' }, count: null } : { data: null, error: null, count: 0 }),
+          resolve(shouldFail ? { data: null, error: { message: 'boom' }, count: null } : { data: null, error: null, count: 0 }),
       }
       return chain
     }
@@ -212,6 +239,27 @@ describe('POST /api/qualita/psur', () => {
 
   it('errore Supabase in una query di aggregazione → 500, mai un 201 con conteggio errato', async () => {
     mockTabellePost({ existing: null, lavoriClasseIds: ['l1'], aggregatiError: true })
+    const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
+    expect(res.status).toBe(500)
+  })
+
+  it('errore in una SOLA query di aggregazione (incidenti_mdr) con le altre tre valide → 500 (pinna semantica OR, non AND)', async () => {
+    // Le altre tre (disp, nc, rifac) ricevono conteggi reali e nessun errore —
+    // solo `inc` fallisce. Se il check `||` regredisse ad `&&` questo test
+    // tornerebbe erroneamente 201 invece di 500.
+    mockTabellePost({ existing: null, lavoriClasseIds: ['l1', 'l2'], failOnly: 'inc' })
+    const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
+    expect(res.status).toBe(500)
+  })
+
+  it('short-circuit su nc/inc (0 lavori nella classe) + errore reale su disp → 500, lo short-circuit non maschera l\'errore altrove', async () => {
+    // lavoriClasseIds: [] fa scattare lo short-circuit Promise.resolve({count:0,error:null})
+    // per nc/inc dentro la route stessa (mockFrom non viene nemmeno invocato per
+    // lavori_fasi/incidenti_mdr). disp e rifac, invece, interrogano sempre
+    // direttamente 'lavori' e qui `disp` riceve un errore reale: la 500 finale
+    // deve arrivare comunque, provando che lo short-circuit non nasconde un
+    // fallimento reale sulle altre query.
+    mockTabellePost({ existing: null, lavoriClasseIds: [], failOnly: 'disp' })
     const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
     expect(res.status).toBe(500)
   })
