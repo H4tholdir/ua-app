@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Redesign — Concept B: Le conversazioni</title>
+<style>
+  :root{
+    --canvas:#E9E7E2;
+    --bg:#FFFFFF; --ink:#111111; --muted:#65625C; --line:#EEECE7;
+    --red:#D90012; --red-dark:#B00010; --red-soft:#FCE9EA;
+    --green:#1B7F3B; --wa-green:#25A759;
+    --chat-bg:#F4EFE6;
+    --sys:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:var(--sys);color:var(--ink);padding:56px 48px 80px}
+  .concept-head{max-width:1720px;margin:0 auto 44px}
+  .concept-head .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  .concept-head h1{font-size:46px;font-weight:800;letter-spacing:-.02em}
+  .concept-head h1 em{font-style:normal;color:var(--red)}
+  .concept-head p{margin-top:12px;font-size:19px;color:var(--muted);max-width:880px;line-height:1.55}
+  .frames{display:flex;gap:44px;justify-content:center;flex-wrap:wrap;max-width:1760px;margin:0 auto}
+  .frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center}
+  .frame-cap{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+  .phone{width:390px;height:844px;background:var(--bg);border-radius:52px;border:11px solid #16130F;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.35);display:flex;flex-direction:column}
+  .statusbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700;flex:none}
+  .statusbar .icons{display:flex;gap:6px;font-size:13px}
+
+  /* ---------- LIST ---------- */
+  .list-head{padding:6px 22px 14px;flex:none}
+  .list-head .row1{display:flex;align-items:center;justify-content:space-between}
+  .logo{font-size:36px;font-weight:900;letter-spacing:-.03em;color:var(--red)}
+  .logo span{color:var(--ink)}
+  .head-ics{display:flex;gap:12px}
+  .hic{width:44px;height:44px;border-radius:50%;background:#F5F3EE;display:flex;align-items:center;justify-content:center;font-size:19px}
+  .search{margin-top:14px;background:#F5F3EE;border-radius:14px;height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;color:var(--muted);font-size:17px}
+  .rows{flex:1;overflow:hidden}
+  .row{display:flex;gap:14px;padding:15px 22px;border-bottom:1px solid var(--line);align-items:center}
+  .ava{width:60px;height:60px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#fff}
+  .r-txt{flex:1;min-width:0}
+  .r-top{display:flex;justify-content:space-between;align-items:baseline}
+  .r-name{font-size:19px;font-weight:700}
+  .r-time{font-size:14px;color:var(--muted)}
+  .r-time.hot{color:var(--red);font-weight:700}
+  .r-bot{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:10px}
+  .r-prev{font-size:16px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+  .r-prev b{color:var(--ink);font-weight:600}
+  .badge{min-width:26px;height:26px;border-radius:99px;background:var(--red);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 8px;flex:none}
+  .pin{font-size:13px;color:var(--muted)}
+  .fab{position:absolute;right:24px;bottom:34px;width:70px;height:70px;border-radius:24px;background:linear-gradient(180deg,#EE1B2C,var(--red));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 1px var(--red-dark),0 18px 34px -10px rgba(217,0,18,.55)}
+  .fab svg{width:32px;height:32px}
+  .ua-ava{background:var(--red);font-size:17px;letter-spacing:-.02em}
+
+  /* ---------- THREAD ---------- */
+  .th-head{flex:none;display:flex;align-items:center;gap:12px;padding:8px 16px 12px;border-bottom:1px solid var(--line);background:var(--bg)}
+  .th-back{font-size:26px;font-weight:700;width:36px}
+  .th-ava{width:48px;height:48px;border-radius:50%;background:#1D5FBF;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+  .th-tit{flex:1}
+  .th-name{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  .th-sub{font-size:14px;color:var(--muted);margin-top:1px}
+  .th-state{font-size:13px;font-weight:800;color:#fff;background:var(--green);padding:6px 12px;border-radius:99px}
+  .chat{flex:1;background:var(--chat-bg);padding:16px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .day{align-self:center;background:rgba(17,17,17,.07);border-radius:99px;padding:5px 14px;font-size:13px;font-weight:700;color:var(--muted)}
+  .evt{align-self:center;background:#fff;border-radius:16px;padding:10px 16px;font-size:15px;color:var(--muted);box-shadow:0 1px 2px rgba(0,0,0,.06);text-align:center;line-height:1.45;max-width:86%}
+  .evt b{color:var(--ink)}
+  .evt .ok{color:var(--green);font-weight:800}
+  .bub{max-width:78%;border-radius:20px;padding:12px 15px;font-size:16.5px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.07);position:relative}
+  .bub .t{display:block;font-size:12.5px;color:var(--muted);text-align:right;margin-top:5px}
+  .bub.in{align-self:flex-start;background:#fff;border-bottom-left-radius:6px}
+  .bub.out{align-self:flex-end;background:var(--red-soft);border-bottom-right-radius:6px}
+  .bub .who{font-size:13.5px;font-weight:800;color:var(--red);margin-bottom:3px}
+  .ph{width:200px;height:84px;border-radius:14px;background:linear-gradient(135deg,#D8D2C6,#BFB8A9);display:flex;align-items:center;justify-content:center;color:#8B8578;font-size:14px;font-weight:700;margin-bottom:6px}
+  .cta-strip{flex:none;background:var(--chat-bg);padding:0 14px 10px}
+  .cta-consegna{background:linear-gradient(180deg,#EE1B2C,var(--red));border-radius:999px;height:60px;display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;font-size:19px;font-weight:800;box-shadow:0 2px 0 1px var(--red-dark),0 14px 26px -10px rgba(217,0,18,.5)}
+  .composer{flex:none;background:var(--bg);border-top:1px solid var(--line);padding:12px 14px 30px;display:flex;gap:10px;align-items:center}
+  .c-btn{height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
+  .c-fase{flex:1;background:#F5F3EE;box-shadow:inset 0 0 0 1.5px var(--line);gap:8px}
+  .c-ic{width:56px;flex:none;background:#F5F3EE;box-shadow:inset 0 0 0 1.5px var(--line);font-size:21px}
+
+  /* ---------- PICKER ---------- */
+  .pick-head{padding:6px 22px 4px;flex:none}
+  .pick-title{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:8px}
+  .pick-sub{font-size:16px;color:var(--muted);margin-top:5px}
+  .row .last{font-size:14.5px;color:var(--muted);margin-top:3px}
+  .row.action .ava{background:var(--red-soft);color:var(--red)}
+  .row.action .r-name{color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="concept-head">
+  <div class="tag">Concept B · Esplorazione redesign · 7 luglio 2026</div>
+  <h1>«Le conversazioni» <em>— il principio WhatsApp</em></h1>
+  <p>I dentisti sono contatti, i lavori sono conversazioni, la storia di un lavoro si legge come una chat. E UÀ stessa è un contatto: ti scrive lei quando ha fatto qualcosa per te. Zero apprendimento: è l'app che ogni over-50 italiano già padroneggia.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME 1: LISTA ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="list-head">
+        <div class="row1">
+          <div class="logo">UÀ<span>.</span></div>
+          <div class="head-ics"><div class="hic">📷</div><div class="hic">⋯</div></div>
+        </div>
+        <div class="search">🔍 Cerca un lavoro o un dentista</div>
+      </div>
+      <div class="rows">
+        <div class="row">
+          <div class="ava ua-ava">UÀ</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">UÀ — la tua assistente</div><div class="r-time">9:02</div></div>
+            <div class="r-bot"><div class="r-prev">✓ <b>Fattura di giugno inviata.</b> Tutto a posto</div><div class="pin">📌</div></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#1D5FBF">GE</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">Dr. Esposito</div><div class="r-time hot">oggi 16:00</div></div>
+            <div class="r-bot"><div class="r-prev"><b>Corona n.147</b> · pronta da consegnare 🚚</div><div class="badge">1</div></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#0E8A6B">SB</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">Studio Bianchi</div><div class="r-time">8:47</div></div>
+            <div class="r-bot"><div class="r-prev">📦 <b>Nuova impronta arrivata</b> · da confermare</div><div class="badge">2</div></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#7A4DB8">MF</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">Dr.ssa Ferrara</div><div class="r-time">ieri</div></div>
+            <div class="r-bot"><div class="r-prev">Protesi n.145 · <b>in forno</b> 🔥</div></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#B36B00">AR</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">Dr. Russo</div><div class="r-time">ieri</div></div>
+            <div class="r-bot"><div class="r-prev">✓ Ponte n.144 consegnato · da incassare €380</div></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#8A8580">🧰</div>
+          <div class="r-txt">
+            <div class="r-top"><div class="r-name">Magazzino</div><div class="r-time">ven</div></div>
+            <div class="r-bot"><div class="r-prev">⚠️ Il gesso extra-duro sta per finire</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+    </div>
+    <div class="frame-cap">1 · Home — i lavori sono conversazioni</div>
+  </div>
+
+  <!-- ============ FRAME 2: THREAD ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="th-head">
+        <div class="th-back">‹</div>
+        <div class="th-ava">GE</div>
+        <div class="th-tit">
+          <div class="th-name">Corona n.147</div>
+          <div class="th-sub">Dr. Esposito · PZ-0231 · zirconia A2</div>
+        </div>
+        <div class="th-state">PRONTA</div>
+      </div>
+      <div class="chat">
+        <div class="day">Martedì 1 luglio</div>
+        <div class="bub in">
+          <div class="who">Dr. Esposito</div>
+          <div class="ph">📷 foto impronta</div>
+          Corona su 16, zirconia. Se riesci entro il 7 🙏
+          <span class="t">10:12</span>
+        </div>
+        <div class="evt">✓ Lavoro <b>n.147</b> creato · consegna <b>lun 7 luglio</b></div>
+        <div class="day">Giovedì 3 luglio</div>
+        <div class="evt"><span class="ok">✓ Fase completata</span> — Modellazione · Filippo · 14:20</div>
+        <div class="day">Oggi</div>
+        <div class="bub out">
+          <div class="ph">📷 corona finita</div>
+          Colore A2 perfetto ✓
+          <span class="t">8:32 ✓✓</span>
+        </div>
+        <div class="evt">🚚 <b>Pronta</b> · appuntamento <b>oggi 16:00</b></div>
+      </div>
+      <div class="cta-strip"><div class="cta-consegna">🚚 &nbsp;CONSEGNA</div></div>
+      <div class="composer">
+        <div class="c-btn c-fase">✓ Fase fatta</div>
+        <div class="c-btn c-ic">📷</div>
+        <div class="c-btn c-ic">🎤</div>
+      </div>
+    </div>
+    <div class="frame-cap">2 · Il lavoro si legge come una chat</div>
+  </div>
+
+  <!-- ============ FRAME 3: NUOVO LAVORO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pick-head">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="th-back">‹</div>
+          <div style="font-size:16px;font-weight:700;color:var(--muted)">Nuovo lavoro</div>
+          <div style="width:36px"></div>
+        </div>
+        <div class="pick-title">Da chi è arrivato?</div>
+        <div class="pick-sub">Tocca il dentista, poi fotografa l'impronta</div>
+        <div class="search" style="margin-top:14px">🔍 Cerca fra 27 dentisti</div>
+      </div>
+      <div class="rows">
+        <div class="row action">
+          <div class="ava">+</div>
+          <div class="r-txt"><div class="r-name">Nuovo dentista</div><div class="last">Bastano nome e telefono</div></div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#1D5FBF">GE</div>
+          <div class="r-txt"><div class="r-name">Dr. Esposito</div><div class="last">Ultimo lavoro: corona · 3 giorni fa</div></div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#7A4DB8">MF</div>
+          <div class="r-txt"><div class="r-name">Dr.ssa Ferrara</div><div class="last">Ultimo lavoro: protesi mobile · ieri</div></div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#0E8A6B">SB</div>
+          <div class="r-txt"><div class="r-name">Studio Bianchi</div><div class="last">Ultimo lavoro: ponte · 5 giorni fa</div></div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#B36B00">AR</div>
+          <div class="r-txt"><div class="r-name">Dr. Russo</div><div class="last">Ultimo lavoro: riparazione · 2 settimane fa</div></div>
+        </div>
+        <div class="row">
+          <div class="ava" style="background:#C24E7A">DM</div>
+          <div class="r-txt"><div class="r-name">Dr. De Martino</div><div class="last">Ultimo lavoro: scheletrato · 1 mese fa</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-cap">3 · Nuovo lavoro = nuova conversazione</div>
+  </div>
+
+</div>
+</body>
+</html>

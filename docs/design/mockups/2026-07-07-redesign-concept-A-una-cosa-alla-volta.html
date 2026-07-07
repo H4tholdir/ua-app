@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Redesign — Concept A: Una cosa alla volta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#EDEAE4;
+    --bg:#FAF8F4; --card:#FFFFFF; --ink:#171310; --muted:#6E655C; --line:#EBE5DC;
+    --red:#D90012; --red-dark:#B00010;
+    --amber:#B36B00; --green:#1B7F3B; --blue:#1D5FBF;
+    --amber-soft:#FBF1E0; --green-soft:#E6F4EA; --blue-soft:#E7EFFB; --red-soft:#FCE9EA;
+    --sh-soft:0 2px 6px rgba(23,19,16,.05),0 18px 40px -18px rgba(23,19,16,.18);
+    --ease:cubic-bezier(.32,.72,0,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);padding:56px 48px 80px}
+  .concept-head{max-width:1720px;margin:0 auto 44px}
+  .concept-head .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  .concept-head h1{font-size:46px;font-weight:800;letter-spacing:-.02em}
+  .concept-head h1 em{font-style:normal;color:var(--red)}
+  .concept-head p{margin-top:12px;font-size:19px;color:var(--muted);max-width:880px;line-height:1.55}
+  .frames{display:flex;gap:44px;justify-content:center;flex-wrap:wrap;max-width:1760px;margin:0 auto}
+  .frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center}
+  .frame-cap{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+  .phone{width:390px;height:844px;background:var(--bg);border-radius:52px;border:11px solid #16130F;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.35)}
+  .statusbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700}
+  .statusbar .icons{display:flex;gap:6px;align-items:center;font-size:13px}
+  .screen{padding:8px 22px 0;height:calc(100% - 52px);position:relative;display:flex;flex-direction:column}
+
+  /* ---------- HOME ---------- */
+  .eyebrow{font-size:14px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .hello{font-size:33px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .piles{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+  .pile{background:var(--card);border-radius:30px;padding:22px 24px;display:flex;align-items:center;gap:20px;box-shadow:var(--sh-soft);position:relative}
+  .pile .count{font-size:58px;font-weight:800;letter-spacing:-.03em;line-height:1;min-width:74px;text-align:center;font-variant-numeric:tabular-nums}
+  .pile .txt{flex:1}
+  .pile .label{font-size:15px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+  .pile .sub{font-size:17px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .pile .chev{width:38px;height:38px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted)}
+  .pile.red{border-left:none}
+  .pile.red .count,.pile.red .label{color:var(--red)}
+  .pile.red{background:linear-gradient(0deg,var(--red-soft),var(--red-soft)),var(--card)}
+  .pile.amber .count,.pile.amber .label{color:var(--amber)}
+  .pile.blue .count,.pile.blue .label{color:var(--blue)}
+  .home-foot{margin-top:auto;padding-bottom:38px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .btn-plus{width:92px;height:92px;border-radius:50%;background:linear-gradient(180deg,#EE1B2C,var(--red));box-shadow:0 3px 0 2px var(--red-dark),0 22px 40px -12px rgba(217,0,18,.55),inset 0 2px 2px rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center}
+  .btn-plus svg{width:40px;height:40px}
+  .btn-plus-label{font-size:18px;font-weight:800}
+  .quiet-note{margin-top:18px;text-align:center;font-size:15px;color:var(--muted)}
+
+  /* ---------- WIZARD ---------- */
+  .wiz-top{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+  .back{width:52px;height:52px;border-radius:50%;background:var(--card);box-shadow:var(--sh-soft);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800}
+  .steps{display:flex;gap:8px}
+  .dot{width:12px;height:12px;border-radius:99px;background:var(--line)}
+  .dot.on{background:var(--red);width:32px;transition:all .5s var(--ease)}
+  .wiz-q{font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1.12;margin-top:26px}
+  .wiz-hint{font-size:17px;color:var(--muted);margin-top:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px}
+  .tile{background:var(--card);border-radius:26px;padding:20px 14px 18px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:var(--sh-soft);text-align:center}
+  .tile .ava{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:800;color:#fff}
+  .tile .nm{font-size:18px;font-weight:700;line-height:1.2}
+  .tile .freq{font-size:13.5px;color:var(--muted)}
+  .tile.new{border:2.5px dashed #CFC7BB;background:transparent;box-shadow:none;justify-content:center;color:var(--muted)}
+  .tile.new .plus-min{width:52px;height:52px;border-radius:50%;border:2.5px dashed #CFC7BB;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .voice{margin-top:auto;margin-bottom:30px;background:var(--ink);color:#fff;border-radius:999px;height:66px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:18px;font-weight:700;box-shadow:0 18px 34px -14px rgba(23,19,16,.5)}
+  .voice .mic{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+
+  /* work-type tiles */
+  .tile .glyph{width:66px;height:66px;border-radius:22px;display:flex;align-items:center;justify-content:center}
+  .tile .glyph svg{width:40px;height:40px;stroke:var(--ink);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- DONE ---------- */
+  .done{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:66px;height:100%}
+  .big-check{width:130px;height:130px;border-radius:50%;background:var(--green-soft);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(27,127,59,.15)}
+  .big-check svg{width:64px;height:64px;stroke:var(--green);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .done h2{font-size:46px;font-weight:800;margin-top:22px;letter-spacing:-.02em}
+  .done .what{font-size:20px;color:var(--muted);margin-top:10px;line-height:1.5}
+  .done .what b{color:var(--ink)}
+  .suggest{margin-top:26px;background:var(--card);border-radius:26px;box-shadow:var(--sh-soft);padding:20px;width:100%;text-align:left;display:flex;gap:14px;align-items:flex-start}
+  .suggest .cal{width:48px;height:48px;border-radius:16px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:22px}
+  .suggest .s-txt{flex:1}
+  .suggest .s-title{font-size:17px;font-weight:700;line-height:1.35}
+  .suggest .s-sub{font-size:15px;color:var(--muted);margin-top:3px}
+  .chips{display:flex;gap:10px;margin-top:12px}
+  .chip{border-radius:999px;padding:12px 20px;font-size:16px;font-weight:700}
+  .chip.yes{background:var(--ink);color:#fff}
+  .chip.later{background:var(--bg);color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+  .done-actions{margin-top:auto;margin-bottom:30px;width:100%;display:flex;flex-direction:column;gap:14px}
+  .btn-primary{background:linear-gradient(180deg,#EE1B2C,var(--red));color:#fff;border-radius:999px;height:66px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:19px;font-weight:800;box-shadow:0 2px 0 1px var(--red-dark),0 16px 30px -12px rgba(217,0,18,.5)}
+  .btn-ghost{color:var(--muted);font-size:18px;font-weight:700;text-align:center;padding:8px}
+</style>
+</head>
+<body>
+
+<div class="concept-head">
+  <div class="tag">Concept A · Esplorazione redesign · 7 luglio 2026</div>
+  <h1>«Una cosa alla volta» <em>— il principio della calcolatrice</em></h1>
+  <p>L'app non mostra mai più di ciò che serve adesso. La home è tre pile e un tasto. Registrare un lavoro non è un form: è una domanda alla volta, a tutto schermo, con risposte grandi come francobolli. Zero parole da software.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME 1: HOME ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="screen">
+        <div style="margin-top:10px">
+          <div class="eyebrow">Lunedì 7 luglio</div>
+          <div class="hello">Buongiorno, Filippo</div>
+        </div>
+        <div class="piles">
+          <div class="pile red">
+            <div class="count">2</div>
+            <div class="txt">
+              <div class="label">Da consegnare oggi</div>
+              <div class="sub">Corona n.147 · Dr. Esposito · ore 16:00</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+          <div class="pile amber">
+            <div class="count">5</div>
+            <div class="txt">
+              <div class="label">Sul banco</div>
+              <div class="sub">3 in forno · 2 in rifinitura</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+          <div class="pile blue">
+            <div class="count">1</div>
+            <div class="txt">
+              <div class="label">Appena arrivati</div>
+              <div class="sub">Studio Bianchi · da confermare</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+        </div>
+        <div class="quiet-note">Fatture e scorte: tutto a posto ✓</div>
+        <div class="home-foot">
+          <div class="btn-plus">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <div class="btn-plus-label">Nuovo lavoro</div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-cap">1 · Home — tre pile, un tasto, nient'altro</div>
+  </div>
+
+  <!-- ============ FRAME 2: WIZARD DENTISTA ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="screen">
+        <div class="wiz-top">
+          <div class="back">‹</div>
+          <div class="steps"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+          <div style="width:52px"></div>
+        </div>
+        <div class="wiz-q">Per quale<br>dentista?</div>
+        <div class="wiz-hint">Quelli che usi di più sono in cima</div>
+        <div class="grid2">
+          <div class="tile"><div class="ava" style="background:#1D5FBF">GE</div><div class="nm">Dr. Esposito</div><div class="freq">12 lavori questo mese</div></div>
+          <div class="tile"><div class="ava" style="background:#7A4DB8">MF</div><div class="nm">Dr.ssa Ferrara</div><div class="freq">8 lavori questo mese</div></div>
+          <div class="tile"><div class="ava" style="background:#0E8A6B">SB</div><div class="nm">Studio Bianchi</div><div class="freq">5 lavori questo mese</div></div>
+          <div class="tile"><div class="ava" style="background:#B36B00">AR</div><div class="nm">Dr. Russo</div><div class="freq">2 lavori questo mese</div></div>
+          <div class="tile new"><div class="plus-min">+</div><div class="nm" style="color:var(--muted)">Nuovo<br>dentista</div></div>
+          <div class="tile" style="opacity:.55"><div class="ava" style="background:#8A8580">…</div><div class="nm">Tutti gli altri</div><div class="freq">cerca fra 23</div></div>
+        </div>
+        <div class="voice"><span class="mic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></span>Oppure dettalo a voce</div>
+      </div>
+    </div>
+    <div class="frame-cap">2 · Nuovo lavoro — una domanda alla volta</div>
+  </div>
+
+  <!-- ============ FRAME 3: WIZARD TIPO LAVORO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="screen">
+        <div class="wiz-top">
+          <div class="back">‹</div>
+          <div class="steps"><div class="dot" style="background:var(--green)"></div><div class="dot on"></div><div class="dot"></div></div>
+          <div style="width:52px"></div>
+        </div>
+        <div class="wiz-q">Che lavoro è?</div>
+        <div class="wiz-hint">Per il Dr. Esposito · PZ-0231</div>
+        <div class="grid2">
+          <div class="tile"><div class="glyph" style="background:var(--red-soft)">
+            <svg viewBox="0 0 24 24"><path d="M7 4h10l-1.5 7h-7L7 4zM8.5 11c-.5 4 .5 8 1.8 9 .9.7 1.4-1.5 1.7-3 .3 1.5.8 3.7 1.7 3 1.3-1 2.3-5 1.8-9"/></svg>
+          </div><div class="nm">Corona</div></div>
+          <div class="tile"><div class="glyph" style="background:var(--blue-soft)">
+            <svg viewBox="0 0 24 24"><path d="M4 14c0-2 1.5-4 4-4s4 2 4 4M12 14c0-2 1.5-4 4-4s4 2 4 4M4 14v3M20 14v3M8 10V7M16 10V7"/></svg>
+          </div><div class="nm">Ponte</div></div>
+          <div class="tile"><div class="glyph" style="background:var(--green-soft)">
+            <svg viewBox="0 0 24 24"><path d="M3 10c0 6 4 9 9 9s9-3 9-9M3 10c0-2 4-4 9-4s9 2 9 4M7 9.5v3M12 10v3.5M17 9.5v3"/></svg>
+          </div><div class="nm">Protesi mobile</div></div>
+          <div class="tile"><div class="glyph" style="background:var(--amber-soft)">
+            <svg viewBox="0 0 24 24"><path d="M4 8c2-2 5-3 8-3s6 1 8 3M4 8v3c2 2 5 3 8 3s6-1 8-3V8M9 5.5v5M15 5.5v5M12 14v5"/></svg>
+          </div><div class="nm">Scheletrato</div></div>
+          <div class="tile"><div class="glyph" style="background:#F1EDE6">
+            <svg viewBox="0 0 24 24"><path d="M14 6l4 4-8.5 8.5H5.5V14L14 6zM12.5 7.5l4 4"/></svg>
+          </div><div class="nm">Riparazione</div></div>
+          <div class="tile"><div class="glyph" style="background:#F1EDE6">
+            <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/></svg>
+          </div><div class="nm">Altro</div></div>
+        </div>
+        <div class="voice"><span class="mic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></span>Oppure dettalo a voce</div>
+      </div>
+    </div>
+    <div class="frame-cap">3 · Risposte grandi come francobolli</div>
+  </div>
+
+  <!-- ============ FRAME 4: FATTO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="screen">
+        <div class="done">
+          <div class="big-check"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+          <h2>Fatto!</h2>
+          <div class="what">Lavoro <b>n.148</b> · <b>corona</b><br>Dr. Esposito · PZ-0231</div>
+          <div class="suggest">
+            <div class="cal">📅</div>
+            <div class="s-txt">
+              <div class="s-title">Consegna suggerita: <b>martedì 15 luglio</b></div>
+              <div class="s-sub">In base ai tuoi tempi soliti per le corone</div>
+              <div class="chips"><div class="chip yes">Va bene ✓</div><div class="chip later">Decido dopo</div></div>
+            </div>
+          </div>
+          <div class="done-actions">
+            <div class="btn-primary">📷 &nbsp;Fotografa l'impronta</div>
+            <div class="btn-ghost">Torna alla home</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-cap">4 · «Già fatto?!» — e l'app pensa al dopo</div>
+  </div>
+
+</div>
+</body>
+</html>

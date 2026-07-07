@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Redesign — Fusione v2: più pulizia, più carta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Archivo+Black&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#E5DFD4;
+    --bench:#F0EBDF; --bench-deep:#E6DECD;
+    --paper:#FFFDF6; --paper-edge:#F0EAD9;
+    --ink:#26201A; --muted:#7A6F61; --faint:#A99C8A; --line:#EAE3D2;
+    --rule:#E3DAC6; --margin-red:#EFB9B4;
+    --red:#D90012; --red-dark:#A5000E; --red-ink:#C40312;
+    --green:#1B7F3B; --green-soft:#EAF5EC;
+    --amber:#B36B00; --blue:#1D5FBF;
+    --sh-paper:0 1px 0 rgba(255,255,255,.85) inset, 0 2px 3px rgba(60,45,25,.06), 0 16px 28px -16px rgba(60,45,25,.3);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);padding:56px 48px 80px}
+  .concept-head{max-width:1760px;margin:0 auto 44px}
+  .concept-head .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  .concept-head h1{font-size:44px;font-weight:800;letter-spacing:-.02em}
+  .concept-head h1 em{font-style:normal;color:var(--red)}
+  .concept-head p{margin-top:12px;font-size:19px;color:var(--muted);max-width:960px;line-height:1.55}
+  .concept-head p b{color:var(--ink)}
+  .frames{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;max-width:1820px;margin:0 auto}
+  .frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center}
+  .frame-cap{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em;max-width:390px;text-align:center;line-height:1.5}
+  .frame-cap b{color:var(--ink)}
+  .phone{width:390px;height:844px;border-radius:52px;border:11px solid #16130F;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.4);display:flex;flex-direction:column;
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.55), transparent 60%),
+      linear-gradient(180deg, var(--bench), var(--bench-deep));}
+  .grain{position:absolute;inset:0;pointer-events:none;z-index:40;opacity:.055;mix-blend-mode:multiply;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>')}
+  .statusbar{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700;flex:none}
+  .statusbar .icons{display:flex;gap:6px;font-size:13px}
+
+  /* ---------- HOME ---------- */
+  .home-head{padding:10px 26px 0;flex:none}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .hello{font-size:31px;font-weight:800;letter-spacing:-.02em;margin-top:3px}
+  .note{margin:18px 26px 0;background:#FFFEF9;border-radius:4px;padding:16px 18px 12px;position:relative;flex:none;transform:rotate(-.7deg);
+    box-shadow:0 1px 2px rgba(60,45,25,.08), 0 10px 18px -10px rgba(60,45,25,.3)}
+  .note .pin{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #FF4B57, var(--red) 60%, var(--red-dark));
+    box-shadow:0 3px 5px rgba(60,45,25,.4), inset 0 1px 1px rgba(255,255,255,.5)}
+  .note .n-txt{font-size:15.5px;line-height:1.5;color:var(--ink)}
+  .note .n-txt b{font-weight:700}
+  .note .n-sign{font-family:'Caveat';font-size:21px;color:var(--red-ink);text-align:right;margin-top:2px}
+  .piles{flex:1;padding:22px 26px 0;display:flex;flex-direction:column;gap:20px;overflow:hidden}
+  .pile{background:var(--paper);border-radius:14px;padding:22px 24px 20px;position:relative;box-shadow:var(--sh-paper);border-top:1px solid #fff;display:flex;align-items:center;gap:22px}
+  .pile .count{font-family:'Archivo Black';font-size:54px;line-height:1;min-width:64px;text-align:center}
+  .pile .txt{flex:1;min-width:0}
+  .pile .stamp{display:inline-block;border:2.5px solid;font-family:'Archivo Black';font-size:12.5px;letter-spacing:.12em;padding:5px 11px;border-radius:5px;transform:rotate(-1.5deg)}
+  .pile.red .count{color:var(--red-ink)} .pile.red .stamp{border-color:var(--red-ink);color:var(--red-ink)}
+  .pile.amber .count{color:var(--amber)} .pile.amber .stamp{border-color:var(--amber);color:var(--amber);transform:rotate(1.2deg)}
+  .pile.blue .count{color:var(--blue)} .pile.blue .stamp{border-color:var(--blue);color:var(--blue);transform:rotate(-1deg)}
+  .pile .sub{font-size:16px;color:var(--muted);margin-top:9px;line-height:1.4}
+  .pile .sub b{color:var(--ink)}
+  .home-foot{flex:none;padding:14px 0 32px;display:flex;flex-direction:column;align-items:center;gap:9px}
+  .btn-plus{width:92px;height:92px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 35% 30%, #FF4B57, var(--red) 60%, var(--red-dark));
+    box-shadow:0 6px 0 var(--red-dark), 0 20px 30px -10px rgba(165,0,14,.5), inset 0 3px 4px rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center}
+  .btn-plus::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(60,45,25,.16)}
+  .btn-plus svg{width:40px;height:40px}
+  .btn-plus-label{font-size:17.5px;font-weight:800}
+
+  /* ---------- WIZARD ---------- */
+  .wiz-top{display:flex;align-items:center;justify-content:space-between;padding:6px 22px 0;flex:none}
+  .back{width:50px;height:50px;border-radius:50%;background:var(--paper);box-shadow:var(--sh-paper);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}
+  .steps{display:flex;gap:8px;align-items:center}
+  .dot{width:11px;height:11px;border-radius:99px;background:rgba(60,45,25,.15)}
+  .dot.on{background:var(--red);width:30px}
+  .wiz-body{flex:1;padding:0 24px;display:flex;flex-direction:column;overflow:hidden}
+  .wiz-q{font-size:35px;font-weight:800;letter-spacing:-.02em;line-height:1.12;margin-top:24px}
+  .wiz-hint{font-size:16.5px;color:var(--muted);margin-top:7px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:24px}
+  .tile{background:var(--paper);border-radius:14px;padding:20px 12px 17px;display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:var(--sh-paper);border-top:1px solid #fff;text-align:center}
+  .tile .ava{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#fff}
+  .tile .nm{font-size:17.5px;font-weight:700;line-height:1.2}
+  .tile .freq{font-size:13px;color:var(--faint)}
+  .tile.new{border:2.5px dashed #C9BFA9;background:transparent;box-shadow:none;justify-content:center;color:var(--muted)}
+  .tile.new .plus-min{width:50px;height:50px;border-radius:50%;border:2.5px dashed #C9BFA9;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .search-row{margin-top:15px;background:var(--paper);border-radius:14px;box-shadow:var(--sh-paper);height:58px;display:flex;align-items:center;gap:12px;padding:0 18px;color:var(--muted);font-size:17px;font-weight:600}
+  .voice{margin:auto 0 28px;background:var(--ink);color:#fff;border-radius:999px;height:64px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:17.5px;font-weight:700;box-shadow:0 4px 0 #0E0B08, 0 16px 30px -12px rgba(23,19,16,.55), inset 0 2px 2px rgba(255,255,255,.18);flex:none}
+  .voice .mic{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+
+  /* ---------- SCHEDA QUADERNO ---------- */
+  .sheet{flex:1;margin:6px 16px 0;background:var(--paper);border-radius:14px 14px 0 0;padding:22px 22px 0 0;position:relative;overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 -2px 30px rgba(60,45,25,.18);
+    background-image:
+      linear-gradient(90deg, transparent 0 46px, var(--margin-red) 46px 48px, transparent 48px),
+      repeating-linear-gradient(180deg, transparent 0 37px, var(--rule) 37px 38px);}
+  .sheet-inner{padding-left:64px;padding-right:0}
+  .sh-brand{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:2.5px solid var(--ink);margin-right:0}
+  .sh-num{font-family:'Archivo Black';font-size:37px;letter-spacing:-.01em;line-height:1}
+  .sh-num small{font-size:12.5px;font-family:'Plus Jakarta Sans';font-weight:700;color:var(--faint);letter-spacing:.14em;display:block;margin-bottom:3px}
+  .sh-doc{display:inline-block;font-family:'Archivo Black';color:var(--green);font-size:12.5px;letter-spacing:.1em;border:2.5px solid var(--green);padding:5px 10px;border-radius:5px;transform:rotate(2deg)}
+  .sh-meta{margin-top:9px;font-size:16px;line-height:1.55;color:var(--muted)}
+  .sh-meta b{color:var(--ink);font-weight:700}
+  .sh-meta .cav{font-family:'Caveat';font-size:22px;color:var(--red-ink)}
+  .story{margin-top:10px;display:flex;flex-direction:column;gap:7px;padding-bottom:14px;padding-right:18px}
+  .story-t{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .day{align-self:flex-start;font-family:'Caveat';font-size:18px;color:var(--faint)}
+  .bub{max-width:92%;border-radius:14px;padding:10px 14px;font-size:15.5px;line-height:1.45;box-shadow:0 1px 2px rgba(60,45,25,.1)}
+  .bub .t{display:block;font-size:12px;color:var(--faint);text-align:right;margin-top:3px}
+  .bub.in{align-self:flex-start;background:#F4EFE3;border-bottom-left-radius:5px}
+  .bub.in .who{display:block;font-size:13px;font-weight:800;color:var(--blue);margin-bottom:2px}
+  .evt{align-self:flex-start;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:8px 13px;font-size:14.5px;color:var(--muted);line-height:1.45;max-width:92%}
+  .evt b{color:var(--ink)}
+  .evt .ok{color:var(--green);font-weight:800}
+  .evt.uaevt{border-style:dashed}
+  .evt .ua-tag{font-weight:800;color:var(--red)}
+  .fase-cta{display:flex;gap:10px;margin-top:3px}
+  .f-tap{font-size:15px;font-weight:800;color:var(--red-ink);border:2.5px solid var(--red-ink);border-radius:99px;padding:10px 18px;background:#fff;box-shadow:0 3px 0 rgba(196,3,18,.22)}
+  .f-ghost{font-size:15px;font-weight:700;color:var(--muted);border:2px solid var(--line);border-radius:99px;padding:10px 15px;background:#fff}
+  .sheet-foot{flex:none;padding:12px 20px 30px;background:linear-gradient(180deg,transparent,var(--bench-deep) 45%)}
+  .btn-consegna{height:72px;border-radius:18px;position:relative;
+    background:linear-gradient(180deg,#F2263A,var(--red) 55%,var(--red-ink));
+    box-shadow:0 7px 0 var(--red-dark), 0 22px 34px -12px rgba(165,0,14,.55), inset 0 2px 3px rgba(255,255,255,.45);
+    display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font-family:'Archivo Black';font-size:23px;letter-spacing:.08em}
+  .btn-sub{text-align:center;font-size:14px;color:var(--muted);margin-top:9px}
+
+  /* ---------- CONSEGNATO + SCONTRINO ---------- */
+  .stamp-big{position:absolute;top:188px;left:50%;transform:translateX(-50%) rotate(-8deg);border:6px double var(--red-ink);color:var(--red-ink);border-radius:12px;padding:12px 24px;text-align:center;background:rgba(255,253,246,.5);z-index:3;
+    -webkit-mask-image:radial-gradient(circle at 40% 60%, black 58%, rgba(0,0,0,.7));}
+  .stamp-big .s1{font-family:'Archivo Black';font-size:32px;letter-spacing:.06em}
+  .stamp-big .s2{font-size:13.5px;font-weight:700;letter-spacing:.22em;margin-top:3px}
+  .receipt{margin:150px 26px 0;background:#fff;position:relative;padding:18px 20px 16px;
+    box-shadow:0 2px 4px rgba(60,45,25,.1), 0 18px 28px -14px rgba(60,45,25,.35);transform:rotate(.5deg)}
+  .receipt::before{content:"";position:absolute;top:-7px;left:0;right:0;height:7px;
+    background:linear-gradient(45deg, transparent 33.3%, #fff 33.3% 66.6%, transparent 66.6%),linear-gradient(-45deg, transparent 33.3%, #fff 33.3% 66.6%, transparent 66.6%);
+    background-size:14px 14px;background-position:0 100%}
+  .receipt::after{content:"";position:absolute;bottom:-7px;left:0;right:0;height:7px;
+    background:linear-gradient(135deg, transparent 33.3%, #fff 33.3% 66.6%, transparent 66.6%),linear-gradient(-135deg, transparent 33.3%, #fff 33.3% 66.6%, transparent 66.6%);
+    background-size:14px 14px;background-position:0 0}
+  .rc-head{text-align:center;border-bottom:2px dashed var(--line);padding-bottom:10px}
+  .rc-head .rc-logo{font-family:'Archivo Black';font-size:16px;color:var(--red)}
+  .rc-head .rc-t{font-size:11.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .ap-row{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:16px;font-weight:700;border-bottom:1.5px dotted var(--line)}
+  .ap-row:last-child{border-bottom:none}
+  .ap-row .ic{width:28px;height:28px;border-radius:50%;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex:none}
+  .ap-row small{display:block;font-weight:500;font-size:13.5px;color:var(--muted);margin-top:1px}
+  .btn-wa{height:64px;border-radius:16px;background:linear-gradient(180deg,#2FBE68,#1F9E52);
+    box-shadow:0 5px 0 #147A3C, 0 18px 30px -12px rgba(31,158,82,.5), inset 0 2px 3px rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;font-size:17.5px;font-weight:800;white-space:nowrap}
+  .undo{text-align:center;font-size:14.5px;color:var(--muted);margin-top:11px;text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body>
+
+<div class="concept-head">
+  <div class="tag">Concept di sintesi · v2 — più pulizia, più carta · 7 luglio 2026</div>
+  <h1>La fusione, ripulita <em>— meno elementi, più materia</em></h1>
+  <p><b>Cosa cambia dalla v1:</b> card dritte e ariose (l'inclinazione resta solo ai timbri), un'informazione in meno per card, il messaggio di UÀ è un <b>bigliettino appuntato con lo spillo</b>, la scheda lavoro è una <b>pagina di quaderno</b> con margine rosso e righe, il riepilogo post-consegna è uno <b>scontrino</b>, e la grana della carta copre ogni schermo.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME 1: HOME ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="home-head">
+        <div class="eyebrow">Lunedì 7 luglio</div>
+        <div class="hello">Buongiorno, Filippo</div>
+      </div>
+      <div class="note">
+        <div class="pin"></div>
+        <div class="n-txt">Stanotte ho preparato e inviato la <b>fattura di giugno</b>. Tutto a posto ✓</div>
+        <div class="n-sign">— UÀ</div>
+      </div>
+      <div class="piles">
+        <div class="pile red">
+          <div class="count">2</div>
+          <div class="txt">
+            <span class="stamp">DA CONSEGNARE OGGI</span>
+            <div class="sub"><b>Corona n.147</b> · Dr. Esposito · 16:00</div>
+          </div>
+        </div>
+        <div class="pile amber">
+          <div class="count">5</div>
+          <div class="txt">
+            <span class="stamp">SUL BANCO</span>
+            <div class="sub">3 in forno · 2 in rifinitura</div>
+          </div>
+        </div>
+        <div class="pile blue">
+          <div class="count">1</div>
+          <div class="txt">
+            <span class="stamp">APPENA ARRIVATO</span>
+            <div class="sub">Studio Bianchi · da confermare</div>
+          </div>
+        </div>
+      </div>
+      <div class="home-foot">
+        <div class="btn-plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="btn-plus-label">Nuovo lavoro</div>
+      </div>
+    </div>
+    <div class="frame-cap">1 · Home — card dritte, un respiro in più,<br>e il <b>bigliettino di UÀ</b> appuntato con lo spillo</div>
+  </div>
+
+  <!-- ============ FRAME 2: WIZARD ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="wiz-top">
+        <div class="back">‹</div>
+        <div class="steps"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+        <div style="width:50px"></div>
+      </div>
+      <div class="wiz-body">
+        <div class="wiz-q">Per quale<br>dentista?</div>
+        <div class="wiz-hint">Quelli che usi di più sono in cima</div>
+        <div class="grid2">
+          <div class="tile"><div class="ava" style="background:#1D5FBF">GE</div><div class="nm">Dr. Esposito</div><div class="freq">12 lavori a giugno</div></div>
+          <div class="tile"><div class="ava" style="background:#7A4DB8">MF</div><div class="nm">Dr.ssa Ferrara</div><div class="freq">8 lavori a giugno</div></div>
+          <div class="tile"><div class="ava" style="background:#0E8A6B">SB</div><div class="nm">Studio Bianchi</div><div class="freq">5 lavori a giugno</div></div>
+          <div class="tile new"><div class="plus-min">+</div><div class="nm" style="color:var(--muted)">Nuovo dentista</div></div>
+        </div>
+        <div class="search-row">🔍 Cerca fra tutti i 27 dentisti</div>
+        <div class="voice"><span class="mic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></span>Oppure dettalo a voce</div>
+      </div>
+    </div>
+    <div class="frame-cap">2 · Nuovo lavoro — solo i 3 dentisti più usati,<br>gli altri dietro una ricerca. <b>Meno è più chiaro</b></div>
+  </div>
+
+  <!-- ============ FRAME 3: SCHEDA QUADERNO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="sheet">
+        <div class="sheet-inner">
+          <div class="sh-brand">
+            <div class="sh-num"><small>LAVORO</small>N.147</div>
+            <span class="sh-doc">PRONTA</span>
+          </div>
+          <div class="sh-meta">
+            <b>Dr. Esposito</b> · PZ-0231 · Corona su 16 · <span class="cav">colore A2, ha fretta!</span>
+          </div>
+          <div class="story">
+            <div class="day">martedì 1 luglio</div>
+            <div class="bub in"><span class="who">Dr. Esposito</span>Corona su 16, zirconia 🙏<span class="t">10:12</span></div>
+            <div class="evt uaevt"><span class="ua-tag">UÀ</span> — lavoro creato, consegna <b>lun 7 luglio</b></div>
+            <div class="day">giovedì 3 luglio</div>
+            <div class="evt"><span class="ok">✓ Modellazione</span> e <span class="ok">✓ Fresatura</span> — Filippo</div>
+            <div class="day">oggi</div>
+            <div class="evt"><span class="ok">✓ Ceramizzazione</span> · 8:32 · manca il <b>controllo finale</b>:</div>
+            <div class="fase-cta"><div class="f-tap">FATTA ✓</div><div class="f-ghost">📷</div><div class="f-ghost">🎤</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <div class="btn-consegna">CONSEGNA</div>
+        <div class="btn-sub">Un tocco: pensa lei a documenti, fattura e magazzino</div>
+      </div>
+    </div>
+    <div class="frame-cap">3 · Il lavoro — una <b>pagina di quaderno</b> (margine rosso, righe)<br>la cui storia si legge come una conversazione</div>
+  </div>
+
+  <!-- ============ FRAME 4: TIMBRATO + SCONTRINO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="sheet">
+        <div class="sheet-inner">
+          <div class="sh-brand">
+            <div class="sh-num"><small>LAVORO</small>N.147</div>
+          </div>
+          <div class="sh-meta"><b>Dr. Esposito</b> · PZ-0231 · Corona zirconia su 16</div>
+        </div>
+        <div class="stamp-big">
+          <div class="s1">CONSEGNATO</div>
+          <div class="s2">7 LUGLIO 2026 · 16:04</div>
+        </div>
+        <div class="receipt">
+          <div class="rc-head">
+            <div class="rc-logo">UÀ</div>
+            <div class="rc-t">Ho già fatto per te</div>
+          </div>
+          <div class="ap-row"><span class="ic">✓</span><div>Dichiarazione di Conformità<small>DDC-2026-0147 · pronta e archiviata</small></div></div>
+          <div class="ap-row"><span class="ic">✓</span><div>Fattura preparata<small>€ 320,00 · Dr. Esposito</small></div></div>
+          <div class="ap-row"><span class="ic">✓</span><div>Magazzino aggiornato<small>scaricata 1 unità di zirconia</small></div></div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <div class="btn-wa">Avvisa il dentista su WhatsApp&nbsp;→</div>
+        <div class="undo">Aspetta, annulla la consegna</div>
+      </div>
+    </div>
+    <div class="frame-cap">4 · Il momento UÀ — il timbro, poi lo <b>scontrino</b>:<br>la prova fisica che ha fatto tutto lei</div>
+  </div>
+
+</div>
+</body>
+</html>

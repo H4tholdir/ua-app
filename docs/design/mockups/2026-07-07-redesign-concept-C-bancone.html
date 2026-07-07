@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Redesign — Concept C: Il bancone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Archivo+Black&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#E5DFD4;
+    --bench:#E9E2D4; --bench-deep:#DDD4C2;
+    --paper:#FFFDF6; --paper-edge:#F0EAD9;
+    --ink:#26201A; --muted:#7A6F61; --faint:#A99C8A;
+    --red:#D90012; --red-dark:#A5000E; --red-ink:#C40312;
+    --green-ink:#1B7F3B; --amber-ink:#B36B00;
+    --ease:cubic-bezier(.32,.72,0,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:'Work Sans',sans-serif;color:var(--ink);padding:56px 48px 80px}
+  .concept-head{max-width:1720px;margin:0 auto 44px}
+  .concept-head .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  .concept-head h1{font-size:46px;font-weight:700;letter-spacing:-.02em}
+  .concept-head h1 em{font-style:normal;color:var(--red)}
+  .concept-head p{margin-top:12px;font-size:19px;color:var(--muted);max-width:880px;line-height:1.55}
+  .frames{display:flex;gap:44px;justify-content:center;flex-wrap:wrap;max-width:1760px;margin:0 auto}
+  .frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center}
+  .frame-cap{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+  .phone{width:390px;height:844px;border-radius:52px;border:11px solid #16130F;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.4);display:flex;flex-direction:column;
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.55), transparent 60%),
+      repeating-linear-gradient(90deg, rgba(120,100,70,.028) 0 2px, transparent 2px 5px),
+      linear-gradient(180deg, var(--bench), var(--bench-deep));}
+  .statusbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700;flex:none}
+  .statusbar .icons{display:flex;gap:6px;font-size:13px}
+
+  /* ---------- HOME BANCONE ---------- */
+  .bench-head{padding:8px 24px 2px;flex:none}
+  .bench-day{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .bench-title{font-family:'Archivo Black';font-size:30px;letter-spacing:-.01em;margin-top:4px}
+  .bench-title small{font-family:'Caveat';font-size:26px;color:var(--red-ink);letter-spacing:0;margin-left:8px}
+  .stack{flex:1;padding:18px 20px 0;display:flex;flex-direction:column;gap:18px;overflow:hidden}
+  .scheda{background:var(--paper);border-radius:10px;padding:18px 20px 16px;position:relative;
+    box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 2px 4px rgba(60,45,25,.08), 0 14px 24px -12px rgba(60,45,25,.35);
+    border-top:1px solid #fff}
+  .scheda::after{content:"";position:absolute;left:14px;right:14px;bottom:-7px;height:7px;background:var(--paper-edge);border-radius:0 0 8px 8px;box-shadow:0 6px 10px -6px rgba(60,45,25,.3);z-index:-1}
+  .scheda.r1{transform:rotate(-.9deg)}
+  .scheda.r2{transform:rotate(.7deg)}
+  .scheda.r3{transform:rotate(-.4deg)}
+  .s-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .s-num{font-family:'Archivo Black';font-size:34px;line-height:1;letter-spacing:-.01em}
+  .s-num small{font-size:15px;color:var(--faint);letter-spacing:.08em;display:block;margin-bottom:3px;font-family:'Work Sans';font-weight:700}
+  .s-stamp{border:3px solid var(--red-ink);color:var(--red-ink);font-family:'Archivo Black';font-size:15px;letter-spacing:.1em;padding:6px 12px;border-radius:6px;transform:rotate(3deg);opacity:.92}
+  .s-stamp.amber{border-color:var(--amber-ink);color:var(--amber-ink);transform:rotate(-2deg)}
+  .s-stamp.blue{border-color:#1D5FBF;color:#1D5FBF;transform:rotate(2deg)}
+  .s-who{font-size:19px;font-weight:700;margin-top:12px}
+  .s-what{font-size:16.5px;color:var(--muted);margin-top:3px}
+  .s-note{font-family:'Caveat';font-size:22px;color:var(--red-ink);margin-top:8px;transform:rotate(-.5deg)}
+  .s-meter{display:flex;gap:5px;margin-top:12px}
+  .s-meter i{flex:1;height:8px;border-radius:99px;background:#EAE3D2}
+  .s-meter i.on{background:var(--green-ink)}
+  .bench-foot{flex:none;padding:14px 0 34px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .btn-plus{width:96px;height:96px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 35% 30%, #FF4B57, var(--red) 60%, var(--red-dark));
+    box-shadow:0 6px 0 var(--red-dark), 0 20px 30px -10px rgba(165,0,14,.55), inset 0 3px 4px rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center}
+  .btn-plus::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(60,45,25,.18)}
+  .btn-plus svg{width:42px;height:42px}
+  .btn-plus-label{font-size:18px;font-weight:700}
+
+  /* ---------- SCHEDA DETTAGLIO ---------- */
+  .sheet{flex:1;margin:6px 16px 0;background:var(--paper);border-radius:14px 14px 0 0;padding:24px 24px 0;position:relative;overflow:hidden;
+    box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 -2px 30px rgba(60,45,25,.18);
+    background-image:repeating-linear-gradient(180deg, transparent 0 35px, rgba(120,100,70,.07) 35px 36px);}
+  .sh-brand{display:flex;justify-content:space-between;align-items:center;border-bottom:2.5px solid var(--ink);padding-bottom:12px}
+  .sh-lab{font-size:12.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+  .sh-lab b{display:block;font-size:15px;letter-spacing:.24em;margin-top:2px}
+  .sh-doc{font-family:'Archivo Black';color:var(--red-ink);font-size:13px;letter-spacing:.12em;border:2.5px solid var(--red-ink);padding:5px 10px;border-radius:5px;transform:rotate(1.5deg)}
+  .sh-num{font-family:'Archivo Black';font-size:46px;letter-spacing:-.02em;margin-top:12px;line-height:1}
+  .sh-num small{font-size:16px;font-family:'Work Sans';font-weight:700;color:var(--faint);letter-spacing:.1em;display:block;margin-bottom:4px}
+  .sh-meta{margin-top:8px;font-size:17px;line-height:1.6}
+  .sh-meta b{font-weight:700}
+  .sh-meta .cav{font-family:'Caveat';font-size:23px;color:var(--red-ink)}
+  .fasi{margin-top:18px}
+  .fasi-t{font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .fase{display:flex;align-items:center;gap:14px;padding:7px 0}
+  .fbox{width:40px;height:40px;border-radius:9px;border:2.5px solid #C9BFA9;flex:none;display:flex;align-items:center;justify-content:center;background:#fff}
+  .fbox.ok{border-color:var(--green-ink);background:#EAF5EC}
+  .fbox.ok svg{width:24px;height:24px;stroke:var(--green-ink);stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;transform:rotate(-3deg)}
+  .f-txt{flex:1}
+  .f-name{font-size:18.5px;font-weight:600}
+  .f-name.done{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(122,111,97,.45);text-decoration-thickness:2px}
+  .f-by{font-size:14.5px;color:var(--faint);margin-top:1px}
+  .f-tap{font-size:15px;font-weight:700;color:var(--red-ink);border:2px solid var(--red-ink);border-radius:99px;padding:8px 14px}
+  .sheet-foot{flex:none;padding:14px 20px 32px;background:linear-gradient(180deg,transparent,var(--bench-deep) 40%)}
+  .btn-consegna{height:76px;border-radius:18px;position:relative;
+    background:linear-gradient(180deg,#F2263A,var(--red) 55%,var(--red-ink));
+    box-shadow:0 7px 0 var(--red-dark), 0 22px 34px -12px rgba(165,0,14,.6), inset 0 2px 3px rgba(255,255,255,.45);
+    display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font-family:'Archivo Black';font-size:24px;letter-spacing:.08em}
+  .btn-sub{text-align:center;font-size:14.5px;color:var(--muted);margin-top:10px}
+
+  /* ---------- CONSEGNATO ---------- */
+  .stamp-big{position:absolute;top:210px;left:50%;transform:translateX(-50%) rotate(-9deg);border:6px double var(--red-ink);color:var(--red-ink);border-radius:12px;padding:14px 26px;text-align:center;background:rgba(255,253,246,.6);z-index:3;
+    -webkit-mask-image:radial-gradient(circle at 40% 60%, black 60%, rgba(0,0,0,.75));}
+  .stamp-big .s1{font-family:'Archivo Black';font-size:36px;letter-spacing:.06em}
+  .stamp-big .s2{font-size:15px;font-weight:700;letter-spacing:.24em;margin-top:4px}
+  .autopilot{margin:0 0 14px;background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 2px 4px rgba(60,45,25,.08),0 16px 26px -14px rgba(60,45,25,.35)}
+  .ap-t{font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .ap-row{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:17.5px;font-weight:600}
+  .ap-row .ic{width:32px;height:32px;border-radius:50%;background:#EAF5EC;color:var(--green-ink);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex:none}
+  .ap-row small{display:block;font-weight:500;font-size:14.5px;color:var(--muted);margin-top:1px}
+  .btn-wa{height:66px;border-radius:16px;background:linear-gradient(180deg,#2FBE68,#1F9E52);
+    box-shadow:0 5px 0 #147A3C, 0 18px 30px -12px rgba(31,158,82,.55), inset 0 2px 3px rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;font-size:17.5px;font-weight:700;white-space:nowrap}
+  .undo{text-align:center;font-size:15px;color:var(--muted);margin-top:12px;text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body>
+
+<div class="concept-head">
+  <div class="tag">Concept C · Esplorazione redesign · 7 luglio 2026</div>
+  <h1>«Il bancone» <em>— il principio dell'oggetto fisico</em></h1>
+  <p>UÀ è il banco di lavoro digitale: i lavori sono schede cartacee appoggiate sul bancone, le azioni sono gesti fisici — i tasti si premono davvero, le consegne si timbrano. E dopo il timbro, l'app ti mostra tutto quello che ha fatto da sola.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ============ FRAME 1: BANCONE ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="bench-head">
+        <div class="bench-day">Lunedì 7 luglio</div>
+        <div class="bench-title">Il bancone <small>3 lavori oggi</small></div>
+      </div>
+      <div class="stack">
+        <div class="scheda r1">
+          <div class="s-top">
+            <div class="s-num"><small>LAVORO</small>N.147</div>
+            <div class="s-stamp">OGGI 16:00</div>
+          </div>
+          <div class="s-who">Dr. Esposito · PZ-0231</div>
+          <div class="s-what">Corona in zirconia · colore A2</div>
+          <div class="s-meter"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+        </div>
+        <div class="scheda r2">
+          <div class="s-top">
+            <div class="s-num"><small>LAVORO</small>N.145</div>
+            <div class="s-stamp amber">IN FORNO</div>
+          </div>
+          <div class="s-who">Dr.ssa Ferrara · PZ-0198</div>
+          <div class="s-what">Protesi mobile superiore</div>
+          <div class="s-note">ribasatura morbida, richiamare giovedì!</div>
+          <div class="s-meter"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="scheda r3">
+          <div class="s-top">
+            <div class="s-num"><small>LAVORO</small>N.148</div>
+            <div class="s-stamp blue">APPENA ARRIVATO</div>
+          </div>
+          <div class="s-who">Studio Bianchi · PZ-0240</div>
+          <div class="s-what">Ponte 3 elementi · da confermare</div>
+          <div class="s-meter"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div class="bench-foot">
+        <div class="btn-plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="btn-plus-label">Nuovo lavoro</div>
+      </div>
+    </div>
+    <div class="frame-cap">1 · Home — le schede di oggi sul bancone</div>
+  </div>
+
+  <!-- ============ FRAME 2: SCHEDA ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="sheet">
+        <div class="sh-brand">
+          <div class="sh-lab">Laboratorio<b>FORMICOLA</b></div>
+          <div class="sh-doc">SCHEDA DI LAVORAZIONE</div>
+        </div>
+        <div class="sh-num"><small>LAVORO</small>N.147</div>
+        <div class="sh-meta">
+          <b>Dr. Esposito</b> · paziente PZ-0231<br>
+          Corona in zirconia su 16 · <span class="cav">colore A2, ha fretta!</span><br>
+          Consegna: <b>oggi alle 16:00</b>
+        </div>
+        <div class="fasi">
+          <div class="fasi-t">Le fasi</div>
+          <div class="fase">
+            <div class="fbox ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Modellazione</div><div class="f-by">Filippo · gio 3 luglio, 14:20</div></div>
+          </div>
+          <div class="fase">
+            <div class="fbox ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Fresatura</div><div class="f-by">Filippo · gio 3 luglio, 17:05</div></div>
+          </div>
+          <div class="fase">
+            <div class="fbox ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Ceramizzazione</div><div class="f-by">Filippo · oggi, 8:32</div></div>
+          </div>
+          <div class="fase">
+            <div class="fbox"></div>
+            <div class="f-txt"><div class="f-name">Controllo finale</div><div class="f-by">tocca quando è fatta</div></div>
+            <div class="f-tap">FATTA ✓</div>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <div class="btn-consegna">CONSEGNA</div>
+        <div class="btn-sub">Un tocco: pensa lei a documenti, fattura e magazzino</div>
+      </div>
+    </div>
+    <div class="frame-cap">2 · La scheda — carta, inchiostro, un tasto vero</div>
+  </div>
+
+  <!-- ============ FRAME 3: TIMBRATO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="sheet" style="opacity:.97">
+        <div class="sh-brand">
+          <div class="sh-lab">Laboratorio<b>FORMICOLA</b></div>
+          <div class="sh-doc">SCHEDA DI LAVORAZIONE</div>
+        </div>
+        <div class="sh-num"><small>LAVORO</small>N.147</div>
+        <div class="sh-meta">
+          <b>Dr. Esposito</b> · paziente PZ-0231<br>
+          Corona in zirconia su 16
+        </div>
+        <div class="stamp-big">
+          <div class="s1">CONSEGNATO</div>
+          <div class="s2">7 LUGLIO 2026 · 16:04</div>
+        </div>
+        <div style="height:120px"></div>
+        <div class="autopilot">
+          <div class="ap-t">UÀ ha già fatto per te</div>
+          <div class="ap-row"><span class="ic">✓</span><div>Dichiarazione di Conformità<small>DDC-2026-0147 · pronta e archiviata</small></div></div>
+          <div class="ap-row"><span class="ic">✓</span><div>Fattura preparata<small>€ 320,00 · Dr. Esposito</small></div></div>
+          <div class="ap-row"><span class="ic">✓</span><div>Magazzino aggiornato<small>scaricata 1 unità di zirconia</small></div></div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <div class="btn-wa">Avvisa il dentista su WhatsApp&nbsp;→</div>
+        <div class="undo">Aspetta, annulla la consegna</div>
+      </div>
+    </div>
+    <div class="frame-cap">3 · Il timbro — e tutto il resto lo fa lei</div>
+  </div>
+
+</div>
+</body>
+</html>

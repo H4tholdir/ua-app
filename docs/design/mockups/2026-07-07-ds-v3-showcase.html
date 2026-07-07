@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Design System v3 — Tavola anatomica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#E7E2D8;
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#A69B8C; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E;
+    --amber:#B36B00; --green:#1B7F3B; --blue:#1D5FBF;
+    --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+    /* dark theme tokens */
+    --d-bg:#171411; --d-sfc:#211D18; --d-elv:#2B2620; --d-ink:#F2EEE7; --d-muted:#A69B8C; --d-faint:#6E6457; --d-line:#342E26;
+    --d-red:#FF3B44; --d-green:#34C468; --d-amber:#E8A13D; --d-blue:#5B9BFF;
+    --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --ann:#B3543F;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);padding:56px 48px 80px}
+  .wrap{max-width:1780px;margin:0 auto}
+  .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  h1{font-size:44px;font-weight:800;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--red)}
+  .lede{margin-top:12px;font-size:19px;color:var(--muted);max-width:1000px;line-height:1.55}
+  .sec{margin-top:64px}
+  .sec-t{font-size:13px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--ann);margin-bottom:6px}
+  .sec-h{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:24px}
+  .board{background:var(--bg);border-radius:28px;padding:36px;box-shadow:var(--sh-card)}
+  .ann{font-size:12.5px;font-weight:700;color:var(--ann);letter-spacing:.02em}
+  .mono{font-variant-numeric:tabular-nums}
+
+  /* palette */
+  .pal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:36px}
+  .pal-col-t{font-size:15px;font-weight:800;margin-bottom:14px}
+  .sw-row{display:flex;gap:12px;flex-wrap:wrap}
+  .sw{width:118px;border-radius:16px;overflow:hidden;box-shadow:0 2px 6px rgba(50,40,25,.15)}
+  .sw .c{height:64px}
+  .sw .i{background:#fff;padding:8px 10px;font-size:11.5px;line-height:1.45}
+  .sw .i b{display:block;font-size:12px}
+  .dark-strip{background:var(--d-bg);border-radius:20px;padding:18px;margin-top:0}
+  .dark-strip .sw .i{background:var(--d-sfc);color:var(--d-ink)}
+
+  /* type scale */
+  .type-row{display:flex;align-items:baseline;gap:26px;padding:13px 0;border-bottom:1.5px solid var(--line)}
+  .type-row:last-child{border-bottom:none}
+  .type-spec{width:270px;flex:none;font-size:13px;color:var(--muted);font-weight:600}
+  .type-spec b{color:var(--ann)}
+
+  /* anatomy */
+  .anat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+  .anat{background:var(--card);border-radius:22px;padding:26px;box-shadow:var(--sh-card)}
+  .anat-t{font-size:15px;font-weight:800;margin-bottom:4px}
+  .anat-s{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+  .spec-list{margin-top:18px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .spec-list b{color:var(--ann);font-weight:700}
+  .demo{display:flex;flex-direction:column;gap:14px;align-items:center;padding:10px 0}
+
+  .btn-plus{width:92px;height:92px;border-radius:50%;position:relative;background:radial-gradient(circle at 35% 30%, #FF4B57, var(--red) 60%, var(--red-dark));box-shadow:0 6px 0 var(--red-dark), 0 20px 30px -10px rgba(165,0,14,.5), inset 0 3px 4px rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center}
+  .btn-plus::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(50,40,25,.14)}
+  .btn-plus.pressed{box-shadow:0 1px 0 var(--red-dark), 0 8px 14px -8px rgba(165,0,14,.5), inset 0 3px 4px rgba(255,255,255,.25);transform:translateY(5px) scale(.985)}
+  .btn-plus svg{width:40px;height:40px}
+  .btn-primary{height:70px;width:100%;border-radius:20px;background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);box-shadow:0 6px 0 var(--red-dark), 0 20px 32px -12px rgba(165,0,14,.5), inset 0 2px 3px rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;letter-spacing:.04em}
+  .btn-primary.pressed{box-shadow:0 1px 0 var(--red-dark), 0 8px 14px -8px rgba(165,0,14,.45), inset 0 2px 3px rgba(255,255,255,.3);transform:translateY(5px) scale(.995)}
+  .btn-primary.disabled{background:var(--bg-deep);box-shadow:inset 0 0 0 2px var(--line);color:var(--faint)}
+  .btn-secondary{height:58px;width:100%;border-radius:18px;background:var(--card);box-shadow:var(--sh-press);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--ink)}
+  .btn-quiet{font-size:15px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+  .f-tap{font-size:14.5px;font-weight:800;color:#fff;border-radius:99px;padding:11px 18px;background:linear-gradient(180deg,#269950,var(--green));box-shadow:0 3px 0 #14602C, inset 0 1px 2px rgba(255,255,255,.35)}
+
+  .pile-demo{background:var(--card);border-radius:24px;padding:20px 22px 18px;box-shadow:var(--sh-card);display:flex;align-items:center;gap:20px;width:100%;position:relative}
+  .pile-demo .count{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1;min-width:60px;text-align:center;color:var(--red)}
+  .pile-demo .label{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
+  .pile-demo .sub{font-size:16px;color:var(--muted);margin-top:7px}
+  .pile-demo .sub b{color:var(--ink)}
+  .callout{position:absolute;font-size:11.5px;font-weight:700;color:var(--ann);line-height:1.3}
+  .callout::before{content:"";position:absolute;background:var(--ann);opacity:.5}
+
+  .i-row-demo{width:100%;background:var(--card);border-radius:18px;box-shadow:var(--sh-card);padding:4px 20px}
+  .i-row-demo .r{display:flex;align-items:baseline;justify-content:space-between;padding:11px 0;border-bottom:1.5px solid var(--line)}
+  .i-row-demo .r:last-child{border-bottom:none}
+  .i-row-demo .k{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .i-row-demo .v{font-size:17px;font-weight:700}
+  .pills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pill{font-size:13.5px;font-weight:800;letter-spacing:.08em;border-radius:99px;padding:9px 16px}
+
+  /* phones dark */
+  .frames{display:flex;gap:40px;flex-wrap:wrap}
+  .frame-wrap{display:flex;flex-direction:column;gap:14px;align-items:center}
+  .frame-cap{font-size:14.5px;font-weight:700;color:var(--muted);text-align:center;line-height:1.5;max-width:390px}
+  .phone{width:390px;height:844px;border-radius:52px;border:11px solid #0A0908;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.5);display:flex;flex-direction:column;background:var(--d-bg);color:var(--d-ink)}
+  .grain{position:absolute;inset:0;pointer-events:none;z-index:40;opacity:.06;mix-blend-mode:screen;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>')}
+  .statusbar{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700;flex:none}
+  .d-eyebrow{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--d-muted)}
+  .d-h1{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:3px;white-space:nowrap}
+  .d-menu{width:50px;height:50px;border-radius:50%;background:var(--d-elv);display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--d-muted);font-weight:800}
+  .d-status{margin:14px 26px 0;display:flex;gap:10px;align-items:center;padding:0 4px}
+  .d-status .ok{width:26px;height:26px;border-radius:50%;background:rgba(52,196,104,.15);color:var(--d-green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+  .d-status .s{font-size:14.5px;color:var(--d-muted)}
+  .d-status .s b{color:var(--d-ink)}
+  .d-piles{flex:1;padding:16px 26px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+  .d-pile{background:var(--d-sfc);border-radius:24px;padding:20px 22px 18px;display:flex;align-items:center;gap:20px;border-top:1px solid rgba(255,255,255,.04)}
+  .d-pile .count{font-size:52px;font-weight:800;line-height:1;min-width:60px;text-align:center}
+  .d-pile .label{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+  .d-pile .sub{font-size:16px;color:var(--d-muted);margin-top:7px}
+  .d-pile .sub b{color:var(--d-ink)}
+  .d-foot{flex:none;padding:14px 0 32px;display:flex;flex-direction:column;align-items:center;gap:9px}
+  .d-plus{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #FF5A61, var(--d-red) 60%, #C4111C);box-shadow:0 6px 0 #8F0910, 0 20px 34px -10px rgba(255,59,68,.35), inset 0 3px 4px rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;position:relative}
+  .d-plus::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(255,255,255,.08)}
+  .d-plus-label{font-size:17.5px;font-weight:800}
+  .d-back{width:50px;height:50px;border-radius:50%;background:var(--d-elv);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}
+  .d-lavnum{font-size:30px;font-weight:800}
+  .d-lavnum small{display:block;font-size:13px;color:var(--d-faint);font-weight:700;letter-spacing:.14em;margin-bottom:2px}
+  .d-state{font-size:13.5px;font-weight:800;letter-spacing:.1em;color:var(--d-green);background:rgba(52,196,104,.14);border-radius:99px;padding:9px 16px}
+  .d-info{background:var(--d-sfc);border-radius:22px;padding:4px 20px;border-top:1px solid rgba(255,255,255,.04)}
+  .d-ir{display:flex;align-items:baseline;justify-content:space-between;padding:9px 0;border-bottom:1.5px solid var(--d-line)}
+  .d-ir:last-child{border-bottom:none}
+  .d-ik{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--d-faint)}
+  .d-iv{font-size:17px;font-weight:700;text-align:right}
+  .d-btn{height:70px;border-radius:20px;background:linear-gradient(180deg,#FF4B54,var(--d-red) 55%,#C4111C);box-shadow:0 6px 0 #8F0910, inset 0 2px 3px rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;letter-spacing:.04em}
+
+  /* desktop */
+  .desk{width:1280px;height:800px;border-radius:20px;background:var(--bg);box-shadow:0 40px 80px -30px rgba(23,19,16,.4), 0 0 0 1px rgba(50,40,25,.1);overflow:hidden;display:flex;position:relative}
+  .desk .grain{opacity:.04;mix-blend-mode:multiply}
+  .side{width:240px;flex:none;background:var(--bg-deep);padding:26px 18px;display:flex;flex-direction:column;gap:4px;border-right:1.5px solid var(--line)}
+  .side .logo{font-size:28px;font-weight:800;color:var(--red);padding:0 12px 18px}
+  .nav-it{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;font-size:15.5px;font-weight:700;color:var(--muted)}
+  .nav-it.on{background:var(--card);box-shadow:var(--sh-card);color:var(--ink)}
+  .nav-it .n-ic{font-size:17px;width:24px;text-align:center}
+  .nav-it .n-badge{margin-left:auto;background:var(--red);color:#fff;font-size:12px;font-weight:800;border-radius:99px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;padding:0 7px}
+  .side .side-foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:14px;color:var(--muted);font-weight:600}
+  .list-pane{width:400px;flex:none;border-right:1.5px solid var(--line);display:flex;flex-direction:column;background:var(--bg)}
+  .lp-head{padding:24px 22px 14px}
+  .lp-title{font-size:23px;font-weight:800;color:var(--red)}
+  .lp-sub{font-size:14px;color:var(--muted);margin-top:3px;font-weight:600}
+  .lp-rows{flex:1;padding:6px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .lp-row{background:var(--card);border-radius:18px;padding:16px 18px;box-shadow:var(--sh-card)}
+  .lp-row.sel{box-shadow:var(--sh-card), inset 0 0 0 2.5px var(--red)}
+  .lp-r1{display:flex;justify-content:space-between;align-items:baseline}
+  .lp-num{font-size:18px;font-weight:800}
+  .lp-num small{font-size:12px;color:var(--faint);font-weight:700;letter-spacing:.1em;margin-right:5px}
+  .lp-time{font-size:13px;font-weight:800;padding:5px 11px;border-radius:99px;background:var(--red-tint);color:var(--red)}
+  .lp-who{font-size:15px;font-weight:700;margin-top:7px}
+  .lp-what{font-size:13.5px;color:var(--muted);margin-top:2px}
+  .detail-pane{flex:1;display:flex;flex-direction:column;background:var(--bg);padding:24px 28px 22px}
+  .dp-top{display:flex;align-items:center;justify-content:space-between}
+  .dp-num{font-size:30px;font-weight:800}
+  .dp-num small{display:block;font-size:12.5px;color:var(--faint);font-weight:700;letter-spacing:.14em;margin-bottom:2px}
+  .dp-state{font-size:13px;font-weight:800;letter-spacing:.1em;color:var(--green);background:var(--green-tint);border-radius:99px;padding:8px 15px}
+  .dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;flex:1;min-height:0}
+  .dp-card{background:var(--card);border-radius:20px;box-shadow:var(--sh-card);padding:6px 20px;overflow:hidden}
+  .dp-card.fasi{padding-top:12px}
+  .dp-ct{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:8px 0 2px}
+  .dp-foot{margin-top:16px;display:flex;gap:14px;align-items:center}
+  .dp-consegna{flex:none;width:340px;height:60px;border-radius:18px;background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);box-shadow:0 5px 0 var(--red-dark), inset 0 2px 3px rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;letter-spacing:.04em}
+  .dp-note{font-size:13.5px;color:var(--muted)}
+  .fase-sm{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1.5px solid var(--line);font-size:15px;font-weight:700}
+  .fase-sm:last-child{border-bottom:none}
+  .fc{width:28px;height:28px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;flex:none}
+  .fc svg{width:16px;height:16px;stroke:var(--green);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .fc.todo{background:transparent;border:2.5px dashed #CBC1B0}
+  .fase-sm .by{font-size:12.5px;color:var(--faint);font-weight:500;margin-left:auto}
+
+  /* motion & sound board */
+  .ms-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  .ms-card{background:var(--card);border-radius:22px;padding:26px;box-shadow:var(--sh-card)}
+  .ms-t{font-size:15px;font-weight:800;margin-bottom:16px}
+  .ms-row{display:flex;gap:14px;padding:10px 0;border-bottom:1.5px solid var(--line);font-size:14px;align-items:baseline}
+  .ms-row:last-child{border-bottom:none}
+  .ms-when{width:200px;flex:none;font-weight:700}
+  .ms-what{flex:1;color:var(--muted);line-height:1.5}
+  .ms-what b{color:var(--ann)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">Design System v3 · Tavola anatomica · 7 luglio 2026</div>
+  <h1>UÀ v3 <em>— «Una cosa alla volta»</em></h1>
+  <p class="lede">La tavola che rende visibile l'intero sistema: fondamenta (colore, tipo, materia), anatomia dei componenti con i vincoli numerici, tema scuro alla pari, layout desktop dedicato. Ogni valore qui mostrato diventerà legge nella spec.</p>
+
+  <!-- ============ FONDAMENTA ============ -->
+  <div class="sec">
+    <div class="sec-t">01 · Fondamenta</div>
+    <div class="sec-h">Colore — carta calda di giorno, notte calda al buio</div>
+    <div class="board">
+      <div class="pal-grid">
+        <div>
+          <div class="pal-col-t">Light — «Carta»</div>
+          <div class="sw-row">
+            <div class="sw"><div class="c" style="background:#F4F0E7"></div><div class="i"><b>--bg #F4F0E7</b>fondo app</div></div>
+            <div class="sw"><div class="c" style="background:#FFFEFA"></div><div class="i"><b>--card #FFFEFA</b>superficie carta</div></div>
+            <div class="sw"><div class="c" style="background:#ECE6D9"></div><div class="i"><b>--bg-deep #ECE6D9</b>fondo profondo</div></div>
+            <div class="sw"><div class="c" style="background:#1D1913"></div><div class="i"><b>--ink #1D1913</b>inchiostro · testo</div></div>
+            <div class="sw"><div class="c" style="background:#6E6457"></div><div class="i"><b>--muted #6E6457</b>testo secondario · 4.9:1 ✓</div></div>
+            <div class="sw"><div class="c" style="background:#D90012"></div><div class="i"><b>--red #D90012</b>SOLO azioni e urgenza</div></div>
+          </div>
+          <div class="sw-row" style="margin-top:12px">
+            <div class="sw"><div class="c" style="background:#B36B00"></div><div class="i"><b>--amber #B36B00</b>in corso · 4.6:1 ✓</div></div>
+            <div class="sw"><div class="c" style="background:#1B7F3B"></div><div class="i"><b>--green #1B7F3B</b>fatto · conferme</div></div>
+            <div class="sw"><div class="c" style="background:#1D5FBF"></div><div class="i"><b>--blue #1D5FBF</b>nuovo · informazione</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="pal-col-t">Dark — «Notte in laboratorio» (elevazione = superficie più chiara, mai ombre)</div>
+          <div class="dark-strip">
+            <div class="sw-row">
+              <div class="sw"><div class="c" style="background:#171411"></div><div class="i"><b>--bg #171411</b>fondo app</div></div>
+              <div class="sw"><div class="c" style="background:#211D18"></div><div class="i"><b>--sfc #211D18</b>carta livello 1</div></div>
+              <div class="sw"><div class="c" style="background:#2B2620"></div><div class="i"><b>--elv #2B2620</b>carta livello 2</div></div>
+              <div class="sw"><div class="c" style="background:#F2EEE7"></div><div class="i"><b>--ink #F2EEE7</b>testo</div></div>
+              <div class="sw"><div class="c" style="background:#FF3B44"></div><div class="i"><b>--red #FF3B44</b>più vivo al buio</div></div>
+              <div class="sw"><div class="c" style="background:#34C468"></div><div class="i"><b>--green #34C468</b>fatto</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-h" style="margin-top:44px">Tipografia — una famiglia sola, scala stile iOS, mai sotto i 13px</div>
+    <div class="board">
+      <div class="type-row"><div class="type-spec"><b>display</b> · 52px · 800 · -0.03em</div><div style="font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1" class="mono">2</div></div>
+      <div class="type-row"><div class="type-spec"><b>large-title</b> · 31px · 800 · -0.02em</div><div style="font-size:31px;font-weight:800;letter-spacing:-.02em">Buongiorno, Filippo</div></div>
+      <div class="type-row"><div class="type-spec"><b>title</b> · 21px · 800</div><div style="font-size:21px;font-weight:800">Corona zirconia su 16</div></div>
+      <div class="type-row"><div class="type-spec"><b>body</b> · 17px · 600-700 · testo base</div><div style="font-size:17px;font-weight:600">Il testo di lettura non scende mai sotto i 17px</div></div>
+      <div class="type-row"><div class="type-spec"><b>callout</b> · 15.5px · 600 · secondario</div><div style="font-size:15.5px;font-weight:600;color:var(--muted)">Dr. Esposito · 12 lavori a giugno</div></div>
+      <div class="type-row"><div class="type-spec"><b>label</b> · 13px · 800 · +0.16em · MAIUSCOLO</div><div style="font-size:13px;font-weight:800;letter-spacing:.16em;color:var(--red)">DA CONSEGNARE OGGI</div></div>
+    </div>
+  </div>
+
+  <!-- ============ ANATOMIA ============ -->
+  <div class="sec">
+    <div class="sec-t">02 · Anatomia dei componenti</div>
+    <div class="sec-h">Ogni pezzo ha misure di legge — chi implementa non decide, esegue</div>
+    <div class="anat-grid">
+      <div class="anat">
+        <div class="anat-t">Tasto fisico primario</div>
+        <div class="anat-s">L'unico rosso pieno per schermata. Corsa di 5px alla pressione, mai due sulla stessa vista.</div>
+        <div class="demo">
+          <div class="btn-primary">CONSEGNA</div>
+          <div class="ann">↓ premuto: translateY(5px) + ombra da 6px a 1px</div>
+          <div class="btn-primary pressed">CONSEGNA</div>
+          <div class="btn-primary disabled">CONSEGNA</div>
+          <div class="ann">disabilitato: mai nascosto, spiega perché lì accanto</div>
+        </div>
+        <div class="spec-list"><b>H 70px</b> · radius 20 · font 21/800 · corsa <b>5px</b> · spring pressione stiffness 600/damping 30 · haptic medium + suono "click-giù/su"</div>
+      </div>
+      <div class="anat">
+        <div class="anat-t">Tasto + («l'otturatore»)</div>
+        <div class="anat-s">Sempre in basso al centro della home, sempre lì, come il tasto scatto della fotocamera.</div>
+        <div class="demo">
+          <div class="btn-plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+          <div class="ann">92px + anello guida a -9px · corsa 5px</div>
+          <div class="btn-plus pressed"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div>
+        <div class="spec-list"><b>Ø 92px</b> (hit area 110) · gradiente radiale 35%/30% · alla pressione si apre nel wizard con <b>morph continuo</b> (mai un "salto di pagina")</div>
+      </div>
+      <div class="anat">
+        <div class="anat-t">Bottoni secondari e leggeri</div>
+        <div class="anat-s">Tre soli livelli sotto il primario. Nessun'altra variante è ammessa.</div>
+        <div class="demo">
+          <div class="btn-secondary">Apri il lavoro</div>
+          <div class="f-tap">FATTA ✓</div>
+          <div class="btn-quiet">Aspetta, annulla la consegna</div>
+        </div>
+        <div class="spec-list">secondario <b>H 58</b> carta+rilievo · azione-fase <b>pill verde H 44</b> · quiet = solo testo sottolineato, riservato alle vie di fuga</div>
+      </div>
+      <div class="anat">
+        <div class="anat-t">La pila (home)</div>
+        <div class="anat-s">Numero enorme + etichetta timbrata + una sola riga. Mai una quarta informazione.</div>
+        <div class="demo">
+          <div class="pile-demo">
+            <div class="count mono">2</div>
+            <div>
+              <div class="label">Da consegnare oggi</div>
+              <div class="sub"><b>Corona n.147</b> · Dr. Esposito · 16:00</div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-list">numero <b>52/800</b> tabulare · label 13/800/+0.16em · sub 16/600 max <b>1 riga</b> (ellissi) · padding 20/22 · radius 24 · tap = tutta la card, si espande nella lista con morph</div>
+      </div>
+      <div class="anat">
+        <div class="anat-t">Righe-dato (scheda)</div>
+        <div class="anat-s">Etichetta piccola a sinistra, valore grande a destra. La consegna è l'unico valore rosso.</div>
+        <div class="demo">
+          <div class="i-row-demo">
+            <div class="r"><span class="k">Dentista</span><span class="v">Dr. Esposito</span></div>
+            <div class="r"><span class="k">Paziente</span><span class="v">PZ-0231</span></div>
+            <div class="r"><span class="k">Consegna</span><span class="v" style="color:var(--red)">Oggi alle 16:00</span></div>
+          </div>
+        </div>
+        <div class="spec-list">chiave 12.5/800 MAIUSCOLO faint · valore <b>17/700</b> allineato a destra · separatore 1.5px --line · max 5 righe per card</div>
+      </div>
+      <div class="anat">
+        <div class="anat-t">Stati = colore + parola</div>
+        <div class="anat-s">Il colore non è mai l'unica fonte: sempre parola del banco, mai gergo software.</div>
+        <div class="demo">
+          <div class="pills">
+            <span class="pill" style="background:var(--red-tint);color:var(--red)">DA CONSEGNARE</span>
+            <span class="pill" style="background:var(--amber-tint);color:var(--amber)">IN FORNO</span>
+            <span class="pill" style="background:var(--blue-tint);color:var(--blue)">APPENA ARRIVATO</span>
+            <span class="pill" style="background:var(--green-tint);color:var(--green)">PRONTA ✓</span>
+          </div>
+        </div>
+        <div class="spec-list">4 famiglie fisse: <b>rosso</b>=urgente/azione · <b>ambra</b>=in corso · <b>blu</b>=nuovo · <b>verde</b>=fatto. Vietato introdurre un quinto colore di stato</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOTION & SOUND ============ -->
+  <div class="sec">
+    <div class="sec-t">03 · Movimento e suono — stile Apple</div>
+    <div class="sec-h">Poco, fisico, significativo: il 90% dell'app non si anima affatto</div>
+    <div class="ms-grid">
+      <div class="ms-card">
+        <div class="ms-t">Le 5 molle (uniche animazioni ammesse)</div>
+        <div class="ms-row"><div class="ms-when">Pressione tasto</div><div class="ms-what"><b>istantanea</b> in giù, molla rigida al rilascio — il tasto ha massa</div></div>
+        <div class="ms-row"><div class="ms-when">Espansione pila → lista</div><div class="ms-what"><b>morph continuo</b>: la card diventa l'header della lista, nulla appare dal nulla</div></div>
+        <div class="ms-row"><div class="ms-when">Wizard, passo dopo passo</div><div class="ms-what">scivolata laterale corta con molla morbida, la domanda precedente resta "dietro"</div></div>
+        <div class="ms-row"><div class="ms-when">Spunta FATTA</div><div class="ms-what">il cerchio si riempie e <b>trabocca</b> appena (overshoot), poi si assesta</div></div>
+        <div class="ms-row"><div class="ms-when">Consegnato</div><div class="ms-what">l'unica coreografia: check che disegna se stesso + lista "UÀ ha fatto" che entra a cascata</div></div>
+        <div class="ms-row"><div class="ms-when">Tutto il resto</div><div class="ms-what"><b>nessuna animazione</b> — risposta secca. Reduced-motion: tutto diventa dissolvenza 150ms</div></div>
+      </div>
+      <div class="ms-card">
+        <div class="ms-t">I 5 suoni firmati (mai di più)</div>
+        <div class="ms-row"><div class="ms-when">Tocco</div><div class="ms-what">tick quasi impercettibile, solo su azioni che scrivono dati</div></div>
+        <div class="ms-row"><div class="ms-when">FATTA ✓</div><div class="ms-what">click morbido di legno + haptic light</div></div>
+        <div class="ms-row"><div class="ms-when">CONSEGNA</div><div class="ms-what"><b>il suono UÀ</b>: due note ascendenti (~400ms, come Apple Pay) + haptic success — la firma dell'app</div></div>
+        <div class="ms-row"><div class="ms-when">Errore</div><div class="ms-what">tonfo smorzato grave + haptic error — mai squilli, mai allarmi</div></div>
+        <div class="ms-row"><div class="ms-when">Messaggio dal dentista</div><div class="ms-what">nota singola calda, diversa da tutto il resto</div></div>
+        <div class="ms-row"><div class="ms-when">Regole</div><div class="ms-what">sempre con vibrazione · silenzioso = muto · <b>vietato</b> aggiungere suoni nuovi senza aggiornare la spec</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DARK ============ -->
+  <div class="sec">
+    <div class="sec-t">04 · Tema scuro — alla pari</div>
+    <div class="sec-h">Notte in laboratorio: superfici che salgono, mai ombre che scendono</div>
+    <div class="frames">
+      <div class="frame-wrap">
+        <div class="phone">
+          <div class="grain"></div>
+          <div class="statusbar"><span>21:14</span><span style="font-size:13px">●●● ᯤ ▮</span></div>
+          <div style="padding:10px 26px 0;display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <div class="d-eyebrow">Lunedì 7 luglio</div>
+              <div class="d-h1">Buonasera, Filippo</div>
+            </div>
+            <div class="d-menu">☰</div>
+          </div>
+          <div class="d-status"><div class="ok">✓</div><div class="s">Oggi: <b>2 consegne fatte</b> · tutto a posto</div></div>
+          <div class="d-piles">
+            <div class="d-pile"><div class="count" style="color:var(--d-red)">0</div><div><div class="label" style="color:var(--d-red)">Da consegnare oggi</div><div class="sub">Tutte consegnate ✓</div></div></div>
+            <div class="d-pile"><div class="count" style="color:var(--d-amber)">5</div><div><div class="label" style="color:var(--d-amber)">Sul banco</div><div class="sub">3 in forno · 2 in rifinitura</div></div></div>
+            <div class="d-pile"><div class="count" style="color:var(--d-blue)">2</div><div><div class="label" style="color:var(--d-blue)">Appena arrivati</div><div class="sub"><b>Studio Bianchi</b> e Dr. Russo</div></div></div>
+          </div>
+          <div class="d-foot">
+            <div class="d-plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" style="width:40px;height:40px"><path d="M12 5v14M5 12h14"/></svg></div>
+            <div class="d-plus-label">Nuovo lavoro</div>
+          </div>
+        </div>
+        <div class="frame-cap">Dark home — stesse regole, materia notturna:<br>le card <b>salgono</b> di tono, niente ombre</div>
+      </div>
+      <div class="frame-wrap">
+        <div class="phone">
+          <div class="grain"></div>
+          <div class="statusbar"><span>21:14</span><span style="font-size:13px">●●● ᯤ ▮</span></div>
+          <div style="padding:6px 24px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="d-back">‹</div>
+              <div class="d-menu">⋯</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+              <div class="d-lavnum"><small>LAVORO</small>n.147</div>
+              <div class="d-state">PRONTA ✓</div>
+            </div>
+          </div>
+          <div style="flex:1;padding:12px 24px 0;display:flex;flex-direction:column;gap:11px;overflow:hidden">
+            <div class="d-info">
+              <div class="d-ir"><span class="d-ik">Dentista</span><span class="d-iv">Dr. Esposito</span></div>
+              <div class="d-ir"><span class="d-ik">Paziente</span><span class="d-iv">PZ-0231</span></div>
+              <div class="d-ir"><span class="d-ik">Lavoro</span><span class="d-iv">Corona zirconia su 16</span></div>
+              <div class="d-ir"><span class="d-ik">Consegna</span><span class="d-iv" style="color:var(--d-red)">Oggi alle 16:00</span></div>
+            </div>
+            <div class="d-info" style="padding-top:10px;padding-bottom:6px">
+              <div style="font-size:12.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--d-faint);margin-bottom:2px">Le fasi</div>
+              <div class="d-ir" style="border-bottom-color:var(--d-line)"><span class="d-iv" style="text-align:left;color:var(--d-muted);font-weight:600">✓ Modellazione · ✓ Fresatura · ✓ Ceramizzazione</span></div>
+              <div class="d-ir"><span class="d-iv" style="text-align:left">Controllo finale</span><span style="font-size:14px;font-weight:800;color:#fff;border-radius:99px;padding:10px 17px;background:linear-gradient(180deg,#2FB35E,#22934B)">FATTA ✓</span></div>
+            </div>
+          </div>
+          <div style="flex:none;padding:10px 24px 26px">
+            <div class="d-btn">CONSEGNA</div>
+          </div>
+        </div>
+        <div class="frame-cap">Dark scheda — il rosso diventa <b>#FF3B44</b> (più vivo al buio),<br>i verdi salgono di luminosità: contrasto AA garantito</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESKTOP ============ -->
+  <div class="sec">
+    <div class="sec-t">05 · Desktop 1280 — progetto dedicato</div>
+    <div class="sec-h">Il front-desk lavora a tre pannelli: navigazione · pila · scheda. Mai una tabella infinita</div>
+    <div class="desk">
+      <div class="grain"></div>
+      <div class="side">
+        <div class="logo">UÀ.</div>
+        <div class="nav-it on"><span class="n-ic">☀️</span>Oggi<span class="n-badge">2</span></div>
+        <div class="nav-it"><span class="n-ic">🛠️</span>Sul banco<span class="n-badge" style="background:var(--amber)">5</span></div>
+        <div class="nav-it"><span class="n-ic">📥</span>Appena arrivati<span class="n-badge" style="background:var(--blue)">1</span></div>
+        <div class="nav-it"><span class="n-ic">📅</span>Agenda</div>
+        <div class="nav-it"><span class="n-ic">🦷</span>Dentisti</div>
+        <div class="nav-it"><span class="n-ic">🧾</span>Fatture</div>
+        <div class="nav-it"><span class="n-ic">📦</span>Magazzino</div>
+        <div class="nav-it"><span class="n-ic">📄</span>Documenti</div>
+        <div class="side-foot">✓ Stanotte: fattura di giugno inviata</div>
+      </div>
+      <div class="list-pane">
+        <div class="lp-head">
+          <div class="lp-title">Da consegnare oggi</div>
+          <div class="lp-sub">2 lavori · il più vicino alle 16:00</div>
+        </div>
+        <div class="lp-rows">
+          <div class="lp-row sel">
+            <div class="lp-r1"><span class="lp-num"><small>LAVORO</small>n.147</span><span class="lp-time">oggi · 16:00</span></div>
+            <div class="lp-who">Dr. Esposito · PZ-0231</div>
+            <div class="lp-what">Corona in zirconia · colore A2</div>
+          </div>
+          <div class="lp-row">
+            <div class="lp-r1"><span class="lp-num"><small>LAVORO</small>n.144</span><span class="lp-time" style="background:var(--green-tint);color:var(--green)">entro stasera</span></div>
+            <div class="lp-who">Dr. Russo · PZ-0212</div>
+            <div class="lp-what">Riparazione protesi mobile</div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-pane">
+        <div class="dp-top">
+          <div class="dp-num"><small>LAVORO</small>n.147</div>
+          <div class="dp-state">PRONTA ✓</div>
+        </div>
+        <div class="dp-grid">
+          <div class="dp-card">
+            <div class="dp-ct">La scheda</div>
+            <div class="d-ir" style="border-bottom:1.5px solid var(--line)"><span class="d-ik" style="color:var(--faint)">Dentista</span><span class="d-iv" style="color:var(--ink)">Dr. Esposito</span></div>
+            <div class="d-ir" style="border-bottom:1.5px solid var(--line)"><span class="d-ik" style="color:var(--faint)">Paziente</span><span class="d-iv" style="color:var(--ink)">PZ-0231</span></div>
+            <div class="d-ir" style="border-bottom:1.5px solid var(--line)"><span class="d-ik" style="color:var(--faint)">Lavoro</span><span class="d-iv" style="color:var(--ink)">Corona zirconia su 16</span></div>
+            <div class="d-ir"><span class="d-ik" style="color:var(--faint)">Consegna</span><span class="d-iv" style="color:var(--red)">Oggi alle 16:00</span></div>
+          </div>
+          <div class="dp-card fasi">
+            <div class="dp-ct">Le fasi</div>
+            <div class="fase-sm"><span class="fc"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>Modellazione<span class="by">Filippo · gio 3</span></div>
+            <div class="fase-sm"><span class="fc"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>Fresatura<span class="by">Filippo · gio 3</span></div>
+            <div class="fase-sm"><span class="fc"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>Ceramizzazione<span class="by">oggi · 8:32</span></div>
+            <div class="fase-sm"><span class="fc todo"></span>Controllo finale<span class="f-tap" style="margin-left:auto">FATTA ✓</span></div>
+          </div>
+        </div>
+        <div class="dp-foot">
+          <div class="dp-consegna">CONSEGNA</div>
+          <div class="dp-note">Un tocco: pensa lei a documenti, fattura e magazzino.<br>La conferma chiede sempre: "Corona n.147 al Dr. Esposito?"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

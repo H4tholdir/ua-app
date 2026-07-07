@@ -1,11 +1,14 @@
-# Fix race doppia-fatturazione POST /api/admin/labs — RISOLTO, MERGIATO, DEPLOYATO (07/07/2026)
+# Sessione attiva — 07/07/2026
 
-`laboratori.partita_iva` non aveva vincolo UNIQUE a DB (solo indice non-unique) — pre-check applicativo senza backstop, race poteva creare 2 lab + 2 clienti Stripe per la stessa P.IVA. Migration live: indice UNIQUE parziale (stato trial/attivo, deleted_at null). Route riordinata: insert prima di Stripe, 23505→409, precheck allineato. Fast-forward `69ba089..b39077f` su `main`, pushato, CI verde, deploy Vercel confermato, `uachelab.com` risponde 200. Worktree e branch rimossi.
+**REDESIGN TOTALE DS v3 «Una cosa alla volta»** (pivot: B20 in pausa su decisione Francesco).
 
-Finding review: nome file migration non corrispondeva al timestamp reale in schema_migrations (MCP timestampa da sé) — corretto rinominando (anche per la migration B20 già in main, stesso drift). `IF NOT EXISTS` aggiunto per idempotenza.
+Percorso: brainstorming → 3 direzioni (A calcolatrice / B WhatsApp / C bancone) → iterazioni → **decisione: A pura + chat SOLO nel portale dentista; C abbandonata; analogico = materia non scenografia; stile Apple per motion/suoni**.
 
-`tsc`/`vitest` (670/4 skipped, era 665)/`next build` puliti. Review Opus: Ready to merge Yes.
+Prodotti:
+- Mockup approvati: `docs/design/mockups/2026-07-07-redesign-A-materico-full.html` (7 schermate) + `2026-07-07-ds-v3-showcase.html` (tavola anatomica: token, componenti, dark, desktop 1280)
+- Ricerca Apple HIG completata (valori spring/tipografia/audio; iOS Safari: NO vibrate API)
+- **SPEC COMPLETA: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`** — IN ATTESA DI REVIEW FRANCESCO (poi commit)
 
-`rete/[id]/inviti`: stesso gap, impatto basso, documentato soltanto (nessun codice toccato).
+Decisioni: dark alla pari · suoni attivi default (5 suoni) · 3 viewport pari dignità · Claude Design sync dopo implementazione componenti (§14.7).
 
-Dettaglio completo: `memory/MEMORY.md` §0.
+Prossimo: review spec → commit → sotto-progetto 1 (fondamenta in codice §14).

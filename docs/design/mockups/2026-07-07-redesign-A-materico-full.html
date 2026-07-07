@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ Redesign — Direzione A materica, app completa + portale dentista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#E7E2D8;
+    --bg:#F4F0E7; --bg-deep:#ECE6D9;
+    --card:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#A69B8C; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E;
+    --amber:#B36B00; --green:#1B7F3B; --blue:#1D5FBF;
+    --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+    --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--canvas);font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);padding:56px 48px 80px}
+  .concept-head{max-width:1780px;margin:0 auto 44px}
+  .concept-head .tag{display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px}
+  .concept-head h1{font-size:44px;font-weight:800;letter-spacing:-.02em}
+  .concept-head h1 em{font-style:normal;color:var(--red)}
+  .concept-head p{margin-top:12px;font-size:19px;color:var(--muted);max-width:1000px;line-height:1.55}
+  .concept-head p b{color:var(--ink)}
+  .frames{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;max-width:1820px;margin:0 auto}
+  .frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center;margin-bottom:16px}
+  .frame-cap{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em;max-width:390px;text-align:center;line-height:1.5}
+  .frame-cap b{color:var(--ink)}
+  .phone{width:390px;height:844px;border-radius:52px;border:11px solid #16130F;overflow:hidden;position:relative;box-shadow:0 40px 80px -30px rgba(23,19,16,.4);display:flex;flex-direction:column;
+    background:radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.6), transparent 60%), linear-gradient(180deg, var(--bg), var(--bg-deep));}
+  .grain{position:absolute;inset:0;pointer-events:none;z-index:40;opacity:.05;mix-blend-mode:multiply;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>')}
+  .statusbar{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:700;flex:none}
+  .statusbar .icons{display:flex;gap:6px;font-size:13px}
+
+  /* ---------- SHARED ---------- */
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .h1{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:3px;white-space:nowrap}
+  .label{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+  .menu-dot{width:50px;height:50px;border-radius:50%;background:var(--card);box-shadow:var(--sh-press);display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--muted);font-weight:800}
+  .back{width:50px;height:50px;border-radius:50%;background:var(--card);box-shadow:var(--sh-press);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800}
+  .pg-head{padding:6px 24px 0;flex:none}
+  .pg-top{display:flex;align-items:center;justify-content:space-between}
+  .pg-title{font-size:31px;font-weight:800;letter-spacing:-.02em;margin-top:14px;line-height:1.1}
+  .pg-title small{display:block;font-size:16px;color:var(--muted);font-weight:600;margin-top:6px;letter-spacing:0}
+  .btn-plus{width:92px;height:92px;border-radius:50%;position:relative;
+    background:radial-gradient(circle at 35% 30%, #FF4B57, var(--red) 60%, var(--red-dark));
+    box-shadow:0 6px 0 var(--red-dark), 0 20px 30px -10px rgba(165,0,14,.5), inset 0 3px 4px rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center}
+  .btn-plus::before{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid rgba(50,40,25,.14)}
+  .btn-plus svg{width:40px;height:40px}
+  .btn-primary{height:70px;border-radius:20px;background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+    box-shadow:0 6px 0 var(--red-dark), 0 20px 32px -12px rgba(165,0,14,.5), inset 0 2px 3px rgba(255,255,255,.45);
+    display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;font-size:21px;font-weight:800;letter-spacing:.04em}
+  .btn-sub{text-align:center;font-size:14px;color:var(--muted);margin-top:9px}
+
+  /* ---------- HOME ---------- */
+  .home-head{padding:10px 26px 0;flex:none;display:flex;align-items:flex-start;justify-content:space-between}
+  .status-strip{margin:14px 26px 0;display:flex;gap:10px;align-items:center;flex:none;padding:0 4px}
+  .status-strip .ok-ic{width:26px;height:26px;border-radius:50%;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none}
+  .status-strip .s-txt{font-size:14.5px;color:var(--muted)}
+  .status-strip .s-txt b{color:var(--ink);font-weight:700}
+  .piles{flex:1;padding:16px 26px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+  .pile{background:var(--card);border-radius:24px;padding:20px 22px 18px;box-shadow:var(--sh-card);display:flex;align-items:center;gap:20px}
+  .pile .count{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1;min-width:60px;text-align:center;font-variant-numeric:tabular-nums}
+  .pile .txt{flex:1;min-width:0}
+  .pile .sub{font-size:16px;color:var(--muted);margin-top:7px;line-height:1.4}
+  .pile .sub b{color:var(--ink)}
+  .pile.red .count,.pile.red .label{color:var(--red)}
+  .pile.amber .count,.pile.amber .label{color:var(--amber)}
+  .pile.blue .count,.pile.blue .label{color:var(--blue)}
+  .home-foot{flex:none;padding:14px 0 32px;display:flex;flex-direction:column;align-items:center;gap:9px}
+  .btn-plus-label{font-size:17.5px;font-weight:800}
+
+  /* ---------- SCHEDA LAVORO ---------- */
+  .lav-id{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+  .lav-num{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .lav-num small{display:block;font-size:13px;color:var(--faint);font-weight:700;letter-spacing:.14em;margin-bottom:2px}
+  .lav-state{font-size:13.5px;font-weight:800;letter-spacing:.1em;color:var(--green);background:var(--green-tint);border-radius:99px;padding:9px 16px}
+  .lav-body{flex:1;padding:12px 24px 0;display:flex;flex-direction:column;gap:11px;overflow:hidden}
+  .info-card{background:var(--card);border-radius:22px;box-shadow:var(--sh-card);padding:4px 20px}
+  .i-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1.5px solid var(--line)}
+  .i-row:last-child{border-bottom:none}
+  .i-k{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);flex:none}
+  .i-v{font-size:17px;font-weight:700;text-align:right;line-height:1.35}
+  .i-v.hot{color:var(--red)}
+  .i-v small{display:block;font-size:14px;color:var(--muted);font-weight:500}
+  .quote{display:flex;gap:12px;align-items:flex-start;padding:2px 6px}
+  .quote .q-bar{width:3.5px;border-radius:99px;background:var(--blue);align-self:stretch;flex:none}
+  .quote .q-txt{font-size:15px;color:var(--muted);line-height:1.5}
+  .quote .q-txt b{color:var(--ink)}
+  .fasi-card{background:var(--card);border-radius:22px;box-shadow:var(--sh-card);padding:11px 20px 5px}
+  .fasi-t{font-size:12.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+  .fase{display:flex;align-items:center;gap:14px;padding:8px 0;border-bottom:1.5px solid var(--line)}
+  .fase:last-child{border-bottom:none}
+  .f-check{width:31px;height:31px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+  .f-check.ok{background:var(--green-tint)}
+  .f-check.ok svg{width:19px;height:19px;stroke:var(--green);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .f-check.todo{border:2.5px dashed #CBC1B0}
+  .f-txt{flex:1}
+  .f-name{font-size:17px;font-weight:700}
+  .f-name.done{color:var(--muted);font-weight:600}
+  .f-by{font-size:13.5px;color:var(--faint);margin-top:1px}
+  .f-tap{font-size:14.5px;font-weight:800;color:#fff;border-radius:99px;padding:11px 18px;background:linear-gradient(180deg,#269950,var(--green));box-shadow:0 3px 0 #14602C, inset 0 1px 2px rgba(255,255,255,.35)}
+  .lav-foot{flex:none;padding:10px 24px 26px}
+
+  /* ---------- AGENDA ---------- */
+  .ag-body{flex:1;padding:16px 24px 0;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .ag-day{background:var(--card);border-radius:20px;box-shadow:var(--sh-card);padding:14px 18px}
+  .ag-day.today{box-shadow:var(--sh-card), inset 0 0 0 2.5px var(--red)}
+  .ag-d{display:flex;align-items:baseline;gap:10px}
+  .ag-dn{font-size:16px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .ag-dn.hot{color:var(--red)}
+  .ag-dd{font-size:14px;color:var(--faint);font-weight:600}
+  .ag-ev{display:flex;align-items:center;gap:12px;padding:9px 0 2px}
+  .ag-h{font-size:16.5px;font-weight:800;min-width:56px;font-variant-numeric:tabular-nums}
+  .ag-what{font-size:15.5px;font-weight:600;flex:1;line-height:1.35}
+  .ag-what small{display:block;font-size:13.5px;color:var(--muted);font-weight:500}
+  .ag-pill{font-size:12px;font-weight:800;padding:5px 10px;border-radius:99px;flex:none}
+  .ag-pill.c{background:var(--red-tint);color:var(--red)}
+  .ag-pill.r{background:var(--blue-tint);color:var(--blue)}
+  .ag-free{font-size:14.5px;color:var(--faint);padding:8px 0 2px}
+
+  /* ---------- MAGAZZINO ---------- */
+  .mg-body{flex:1;padding:16px 24px 0;display:flex;flex-direction:column;gap:13px;overflow:hidden}
+  .mat{background:var(--card);border-radius:20px;box-shadow:var(--sh-card);padding:16px 18px}
+  .mat .m-top{display:flex;align-items:baseline;justify-content:space-between}
+  .mat .m-name{font-size:17.5px;font-weight:700}
+  .mat .m-qty{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+  .mat .m-qty small{font-weight:600;color:var(--faint);font-size:13px}
+  .m-bar{margin-top:11px;height:10px;border-radius:99px;background:var(--bg-deep);overflow:hidden}
+  .m-fill{height:100%;border-radius:99px}
+  .m-note{font-size:13.5px;margin-top:9px;color:var(--muted)}
+  .m-note.warn{color:var(--red);font-weight:700;display:flex;align-items:center;justify-content:space-between}
+  .m-cta{font-size:13.5px;font-weight:800;color:#fff;background:linear-gradient(180deg,#F2263A,var(--red));border-radius:99px;padding:9px 16px;box-shadow:0 3px 0 var(--red-dark), inset 0 1px 2px rgba(255,255,255,.35)}
+  .mg-foot-note{text-align:center;font-size:14px;color:var(--muted);padding:6px 0 26px;flex:none}
+  .mg-foot-note b{color:var(--green)}
+
+  /* ---------- FATTURE ---------- */
+  .ft-body{flex:1;padding:16px 24px 0;display:flex;flex-direction:column;gap:13px;overflow:hidden}
+  .ft-hero{background:var(--card);border-radius:22px;box-shadow:var(--sh-card);padding:20px;text-align:center}
+  .ft-hero .ok-big{width:54px;height:54px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;margin:0 auto}
+  .ft-hero .ok-big svg{width:26px;height:26px;stroke:var(--green);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .ft-hero .ft-t{font-size:20px;font-weight:800;margin-top:10px}
+  .ft-hero .ft-s{font-size:15px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .ft-hero .ft-s b{color:var(--ink)}
+  .frow{background:var(--card);border-radius:18px;box-shadow:var(--sh-card);padding:14px 18px;display:flex;align-items:center;gap:14px}
+  .frow .f-doc{width:42px;height:42px;border-radius:14px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+  .frow .f-mid{flex:1;min-width:0}
+  .frow .f-who{font-size:16.5px;font-weight:700}
+  .frow .f-num{font-size:13.5px;color:var(--faint);margin-top:1px}
+  .frow .f-amt{text-align:right}
+  .frow .f-eur{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+  .frow .f-st{font-size:12px;font-weight:800;margin-top:3px;padding:4px 9px;border-radius:99px;display:inline-block}
+  .frow .f-st.ok{background:var(--green-tint);color:var(--green)}
+  .frow .f-st.wait{background:var(--amber-tint);color:var(--amber)}
+
+  /* ---------- PORTALE DENTISTA (chat) ---------- */
+  .phone.portale{background:#EFEAE2}
+  .pt-head{flex:none;display:flex;align-items:center;gap:12px;padding:8px 18px 12px;background:var(--card);border-bottom:1.5px solid var(--line)}
+  .pt-ava{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:inset 0 2px 2px rgba(255,255,255,.3)}
+  .pt-tit{flex:1}
+  .pt-name{font-size:18px;font-weight:800}
+  .pt-sub{font-size:13.5px;color:var(--muted);margin-top:1px}
+  .chat{flex:1;padding:16px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .day-pill{align-self:center;background:rgba(50,40,25,.07);border-radius:99px;padding:5px 14px;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .bub{max-width:82%;border-radius:18px;padding:11px 15px;font-size:15.5px;line-height:1.5;box-shadow:0 1px 2px rgba(50,40,25,.08)}
+  .bub .t{display:block;font-size:12px;color:var(--faint);text-align:right;margin-top:4px}
+  .bub.lab{align-self:flex-start;background:#fff;border-bottom-left-radius:6px}
+  .bub.dds{align-self:flex-end;background:var(--green-tint);border-bottom-right-radius:6px}
+  .doc-bub{display:flex;gap:12px;align-items:center;background:var(--bg);border-radius:13px;padding:11px 13px;margin-bottom:7px}
+  .doc-bub .d-ic{width:38px;height:38px;border-radius:11px;background:var(--red-tint);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+  .doc-bub .d-nm{font-size:14px;font-weight:700;line-height:1.3}
+  .doc-bub .d-dl{font-size:12.5px;color:var(--blue);font-weight:700;margin-top:2px}
+  .ph-bub{width:190px;height:82px;border-radius:12px;background:linear-gradient(135deg,#D8D2C6,#BFB8A9);display:flex;align-items:center;justify-content:center;color:#8B8578;font-size:13px;font-weight:700;margin-bottom:7px}
+  .composer{flex:none;background:var(--card);border-top:1.5px solid var(--line);padding:12px 16px 28px;display:flex;gap:10px;align-items:center}
+  .c-input{flex:1;height:52px;border-radius:999px;background:var(--bg);box-shadow:inset 0 0 0 1.5px var(--line);display:flex;align-items:center;padding:0 18px;color:var(--faint);font-size:15.5px}
+  .c-mic{width:52px;height:52px;border-radius:50%;background:linear-gradient(180deg,#F2263A,var(--red));box-shadow:0 3px 0 var(--red-dark), inset 0 1px 2px rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;flex:none}
+</style>
+</head>
+<body>
+
+<div class="concept-head">
+  <div class="tag">Redesign · Direzione A materica · 7 schermate · 7 luglio 2026</div>
+  <h1>UÀ, direzione A <em>— dentro l'app una cosa alla volta; la chat vive solo col dentista</em></h1>
+  <p><b>Dentro l'app: solo A.</b> Niente più storia-conversazione: la scheda lavoro è una scheda — dati grandi, fasi come spunte, un tasto. <b>Il concetto WhatsApp sopravvive in un solo luogo:</b> il portale del dentista, che diventa una conversazione col laboratorio. Motion e suoni in stile <b>Apple</b>: molle fisiche, continuità, un suono discreto per gesto.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ============ 1: HOME ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="home-head">
+        <div>
+          <div class="eyebrow">Lunedì 7 luglio</div>
+          <div class="h1">Buongiorno, Filippo</div>
+        </div>
+        <div class="menu-dot">☰</div>
+      </div>
+      <div class="status-strip">
+        <div class="ok-ic">✓</div>
+        <div class="s-txt">Stanotte: <b>fattura di giugno inviata</b> · tutto a posto</div>
+      </div>
+      <div class="piles">
+        <div class="pile red">
+          <div class="count">2</div>
+          <div class="txt">
+            <span class="label">Da consegnare oggi</span>
+            <div class="sub"><b>Corona n.147</b> · Dr. Esposito · 16:00</div>
+          </div>
+        </div>
+        <div class="pile amber">
+          <div class="count">5</div>
+          <div class="txt">
+            <span class="label">Sul banco</span>
+            <div class="sub">3 in forno · 2 in rifinitura</div>
+          </div>
+        </div>
+        <div class="pile blue">
+          <div class="count">1</div>
+          <div class="txt">
+            <span class="label">Appena arrivato</span>
+            <div class="sub">Studio Bianchi · da confermare</div>
+          </div>
+        </div>
+      </div>
+      <div class="home-foot">
+        <div class="btn-plus"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="btn-plus-label">Nuovo lavoro</div>
+      </div>
+    </div>
+    <div class="frame-cap">1 · Home — tre pile, un tasto. La riga di stato<br>è discreta: <b>non è più una chat</b></div>
+  </div>
+
+  <!-- ============ 2: SCHEDA LAVORO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pg-head">
+        <div class="pg-top">
+          <div class="back">‹</div>
+          <div class="menu-dot">⋯</div>
+        </div>
+        <div class="lav-id">
+          <div class="lav-num"><small>LAVORO</small>n.147</div>
+          <div class="lav-state">PRONTA ✓</div>
+        </div>
+      </div>
+      <div class="lav-body">
+        <div class="info-card">
+          <div class="i-row"><div class="i-k">Dentista</div><div class="i-v">Dr. Esposito</div></div>
+          <div class="i-row"><div class="i-k">Paziente</div><div class="i-v">PZ-0231</div></div>
+          <div class="i-row"><div class="i-k">Lavoro</div><div class="i-v">Corona zirconia su 16<small>colore A2</small></div></div>
+          <div class="i-row"><div class="i-k">Consegna</div><div class="i-v hot">Oggi alle 16:00</div></div>
+        </div>
+        <div class="quote">
+          <div class="q-bar"></div>
+          <div class="q-txt"><b>Dr. Esposito:</b> "Il paziente ha fretta"</div>
+        </div>
+        <div class="fasi-card">
+          <div class="fasi-t">Le fasi</div>
+          <div class="fase">
+            <div class="f-check ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Modellazione</div><div class="f-by">Filippo · gio 3 luglio</div></div>
+          </div>
+          <div class="fase">
+            <div class="f-check ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Fresatura</div><div class="f-by">Filippo · gio 3 luglio</div></div>
+          </div>
+          <div class="fase">
+            <div class="f-check ok"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+            <div class="f-txt"><div class="f-name done">Ceramizzazione</div><div class="f-by">Filippo · oggi, 8:32</div></div>
+          </div>
+          <div class="fase">
+            <div class="f-check todo"></div>
+            <div class="f-txt"><div class="f-name">Controllo finale</div><div class="f-by">tocca quando è fatta</div></div>
+            <div class="f-tap">FATTA ✓</div>
+          </div>
+        </div>
+      </div>
+      <div class="lav-foot">
+        <div class="btn-primary">CONSEGNA</div>
+        <div class="btn-sub">Un tocco: pensa lei a documenti, fattura e magazzino</div>
+      </div>
+    </div>
+    <div class="frame-cap">2 · La scheda lavoro, ripulita — <b>quattro dati, le fasi, un tasto</b>.<br>La nota del dentista è una riga, non una chat</div>
+  </div>
+
+  <!-- ============ 3: AGENDA ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pg-head">
+        <div class="pg-top">
+          <div class="back">‹</div>
+          <div class="menu-dot">☰</div>
+        </div>
+        <div class="pg-title">Agenda<small>Questa settimana · 5 impegni</small></div>
+      </div>
+      <div class="ag-body">
+        <div class="ag-day today">
+          <div class="ag-d"><span class="ag-dn hot">Oggi</span><span class="ag-dd">lunedì 7 luglio</span></div>
+          <div class="ag-ev"><span class="ag-h">16:00</span><span class="ag-what">Corona n.147 — Dr. Esposito<small>consegna in studio</small></span><span class="ag-pill c">CONSEGNA</span></div>
+          <div class="ag-ev"><span class="ag-h">18:30</span><span class="ag-what">Riparazione n.144 — Dr. Russo<small>ritira il corriere</small></span><span class="ag-pill c">CONSEGNA</span></div>
+        </div>
+        <div class="ag-day">
+          <div class="ag-d"><span class="ag-dn">Mar</span><span class="ag-dd">8 luglio</span></div>
+          <div class="ag-ev"><span class="ag-h">10:00</span><span class="ag-what">Impronta nuova — Studio Bianchi<small>passa il Dr. Bianchi</small></span><span class="ag-pill r">RITIRO</span></div>
+        </div>
+        <div class="ag-day">
+          <div class="ag-d"><span class="ag-dn">Mer</span><span class="ag-dd">9 luglio</span></div>
+          <div class="ag-ev"><span class="ag-h">15:00</span><span class="ag-what">Protesi n.145 — Dr.ssa Ferrara<small>consegna in studio</small></span><span class="ag-pill c">CONSEGNA</span></div>
+        </div>
+        <div class="ag-day">
+          <div class="ag-d"><span class="ag-dn">Gio</span><span class="ag-dd">10 luglio</span></div>
+          <div class="ag-free">Nessun impegno — giornata di banco</div>
+        </div>
+        <div class="ag-day">
+          <div class="ag-d"><span class="ag-dn">Ven</span><span class="ag-dd">11 luglio</span></div>
+          <div class="ag-ev"><span class="ag-h">12:00</span><span class="ag-what">Ponte n.148 — Studio Bianchi<small>se confermi oggi la data</small></span><span class="ag-pill c">CONSEGNA</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-cap">3 · Agenda — la settimana come una lista di giorni,<br>oggi evidenziato, <b>orari grandi</b></div>
+  </div>
+
+  <!-- ============ 4: MAGAZZINO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pg-head">
+        <div class="pg-top">
+          <div class="back">‹</div>
+          <div class="menu-dot">☰</div>
+        </div>
+        <div class="pg-title">Magazzino<small>Si aggiorna da solo a ogni consegna</small></div>
+      </div>
+      <div class="mg-body">
+        <div class="mat">
+          <div class="m-top"><span class="m-name">Gesso extra-duro</span><span class="m-qty" style="color:var(--red)">1 <small>sacco</small></span></div>
+          <div class="m-bar"><div class="m-fill" style="width:9%;background:var(--red)"></div></div>
+          <div class="m-note warn">Sta per finire <span class="m-cta">RIORDINA →</span></div>
+        </div>
+        <div class="mat">
+          <div class="m-top"><span class="m-name">Ceramica A2</span><span class="m-qty" style="color:var(--amber)">3 <small>flaconi</small></span></div>
+          <div class="m-bar"><div class="m-fill" style="width:30%;background:var(--amber)"></div></div>
+          <div class="m-note">Bastano per ~2 settimane</div>
+        </div>
+        <div class="mat">
+          <div class="m-top"><span class="m-name">Dischi zirconia</span><span class="m-qty" style="color:var(--green)">8 <small>dischi</small></span></div>
+          <div class="m-bar"><div class="m-fill" style="width:70%;background:var(--green)"></div></div>
+          <div class="m-note">Scorta buona</div>
+        </div>
+        <div class="mat">
+          <div class="m-top"><span class="m-name">Lega Cr-Co</span><span class="m-qty" style="color:var(--green)">12 <small>blocchi</small></span></div>
+          <div class="m-bar"><div class="m-fill" style="width:85%;background:var(--green)"></div></div>
+          <div class="m-note">Scorta buona</div>
+        </div>
+      </div>
+      <div class="mg-foot-note">Ieri UÀ ha scaricato da sola <b>2 materiali ✓</b></div>
+    </div>
+    <div class="frame-cap">4 · Magazzino — un materiale = una barra.<br>Rosso = riordina, e <b>UÀ scarica da sola</b></div>
+  </div>
+
+  <!-- ============ 5: FATTURE ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pg-head">
+        <div class="pg-top">
+          <div class="back">‹</div>
+          <div class="menu-dot">☰</div>
+        </div>
+        <div class="pg-title">Fatture<small>Le prepara UÀ a ogni consegna</small></div>
+      </div>
+      <div class="ft-body">
+        <div class="ft-hero">
+          <div class="ok-big"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+          <div class="ft-t">Giugno: tutto a posto</div>
+          <div class="ft-s"><b>12 fatture</b> inviate allo SDI · <b>€ 4.320</b><br>nessun errore, niente da fare</div>
+        </div>
+        <div class="frow">
+          <div class="f-doc">🧾</div>
+          <div class="f-mid"><div class="f-who">Dr. Esposito</div><div class="f-num">n. 2026-0038 · oggi</div></div>
+          <div class="f-amt"><div class="f-eur">€ 320</div><span class="f-st ok">INVIATA ✓</span></div>
+        </div>
+        <div class="frow">
+          <div class="f-doc">🧾</div>
+          <div class="f-mid"><div class="f-who">Dr. Russo</div><div class="f-num">n. 2026-0037 · 30 giugno</div></div>
+          <div class="f-amt"><div class="f-eur">€ 380</div><span class="f-st wait">DA INCASSARE</span></div>
+        </div>
+        <div class="frow">
+          <div class="f-doc">🧾</div>
+          <div class="f-mid"><div class="f-who">Studio Bianchi</div><div class="f-num">n. 2026-0036 · 28 giugno</div></div>
+          <div class="f-amt"><div class="f-eur">€ 640</div><span class="f-st ok">INCASSATA ✓</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-cap">5 · Fatture — prima notizia: <b>"tutto a posto"</b>.<br>Poi la lista, con lo stato a colori</div>
+  </div>
+
+  <!-- ============ 6: CONSEGNATO ============ -->
+  <div class="frame-wrap">
+    <div class="phone">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div style="flex:1;padding:0 24px;display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden">
+        <div style="width:120px;height:120px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;margin-top:44px;box-shadow:inset 0 0 0 2px rgba(27,127,59,.14), 0 14px 28px -16px rgba(27,127,59,.4)">
+          <svg viewBox="0 0 24 24" style="width:58px;height:58px;stroke:var(--green);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+        </div>
+        <div style="font-size:40px;font-weight:800;margin-top:18px;letter-spacing:-.02em">Consegnato!</div>
+        <div style="font-size:17.5px;color:var(--muted);margin-top:6px;line-height:1.5">Lavoro <b style="color:var(--ink)">n.147</b> · Dr. Esposito<br>7 luglio, 16:04</div>
+        <div style="margin-top:22px;background:var(--card);border-radius:22px;padding:8px 20px;box-shadow:var(--sh-card);width:100%;text-align:left">
+          <div style="font-size:12.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);padding:12px 0 4px">UÀ ha già fatto per te</div>
+          <div style="display:flex;align-items:center;gap:13px;padding:11px 0;font-size:16.5px;font-weight:700;border-bottom:1.5px solid var(--line)"><span style="width:30px;height:30px;border-radius:50%;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex:none">✓</span><div>Dichiarazione di Conformità<small style="display:block;font-weight:500;font-size:14px;color:var(--muted);margin-top:1px">DDC-2026-0147 · pronta e archiviata</small></div></div>
+          <div style="display:flex;align-items:center;gap:13px;padding:11px 0;font-size:16.5px;font-weight:700;border-bottom:1.5px solid var(--line)"><span style="width:30px;height:30px;border-radius:50%;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex:none">✓</span><div>Fattura preparata<small style="display:block;font-weight:500;font-size:14px;color:var(--muted);margin-top:1px">€ 320,00 · Dr. Esposito</small></div></div>
+          <div style="display:flex;align-items:center;gap:13px;padding:11px 0;font-size:16.5px;font-weight:700"><span style="width:30px;height:30px;border-radius:50%;background:var(--green-tint);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex:none">✓</span><div>Magazzino aggiornato<small style="display:block;font-weight:500;font-size:14px;color:var(--muted);margin-top:1px">scaricata 1 unità di zirconia</small></div></div>
+        </div>
+      </div>
+      <div style="flex:none;padding:12px 24px 30px;display:flex;flex-direction:column;gap:11px">
+        <div style="height:64px;border-radius:20px;background:linear-gradient(180deg,#2FBE68,#1F9E52);box-shadow:0 5px 0 #147A3C, 0 18px 30px -12px rgba(31,158,82,.5), inset 0 2px 3px rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;font-size:17.5px;font-weight:800;white-space:nowrap">Avvisa il dentista su WhatsApp&nbsp;→</div>
+        <div style="text-align:center;font-size:14.5px;color:var(--muted);text-decoration:underline;text-underline-offset:3px">Aspetta, annulla la consegna</div>
+      </div>
+    </div>
+    <div class="frame-cap">6 · Il momento UÀ — suono e vibrazione "alla Apple Pay",<br>poi il sollievo: <b>tutto il resto l'ha fatto lei</b></div>
+  </div>
+
+  <!-- ============ 7: PORTALE DENTISTA ============ -->
+  <div class="frame-wrap">
+    <div class="phone portale">
+      <div class="grain"></div>
+      <div class="statusbar"><span>9:41</span><span class="icons">●●● ᯤ ▮</span></div>
+      <div class="pt-head">
+        <div class="back" style="width:38px;height:38px;font-size:18px">‹</div>
+        <div class="pt-ava">LF</div>
+        <div class="pt-tit">
+          <div class="pt-name">Laboratorio Formicola</div>
+          <div class="pt-sub">il tuo laboratorio odontotecnico</div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="day-pill">Oggi</div>
+        <div class="bub lab">
+          Buongiorno Dottore! La <b>corona per PZ-0231</b> è pronta ✓ Gliela consegniamo oggi alle 16:00.
+          <span class="t">9:15</span>
+        </div>
+        <div class="bub lab">
+          <div class="ph-bub">📷 corona finita</div>
+          Colore A2 come richiesto.
+          <span class="t">9:16</span>
+        </div>
+        <div class="bub lab">
+          <div class="doc-bub">
+            <div class="d-ic">📄</div>
+            <div><div class="d-nm">Dichiarazione di Conformità<br>DDC-2026-0147.pdf</div><div class="d-dl">Scarica ↓</div></div>
+          </div>
+          I documenti sono già pronti.
+          <span class="t">9:16</span>
+        </div>
+        <div class="bub dds">
+          Perfetto, grazie! 👏
+          <span class="t">9:31</span>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="c-input">Scrivi al laboratorio…</div>
+        <div class="c-mic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></div>
+      </div>
+    </div>
+    <div class="frame-cap">7 · <b>Il portale del dentista</b> — l'unico posto dove vive il<br>concetto WhatsApp: una conversazione col laboratorio</div>
+  </div>
+
+</div>
+</body>
+</html>
