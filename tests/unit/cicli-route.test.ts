@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
 
-import { GET } from '../../src/app/api/cicli/route'
+import { GET, POST } from '../../src/app/api/cicli/route'
 
 const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
@@ -102,5 +102,105 @@ describe('GET /api/cicli', () => {
     })
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
     expect(res.status).toBe(500)
+  })
+})
+
+function postReq(body: unknown) {
+  return new Request('http://localhost/api/cicli', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', origin: 'http://localhost', host: 'localhost' },
+    body: JSON.stringify(body),
+  })
+}
+
+describe('POST /api/cicli', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+  })
+
+  function mockInsert(result: { data: unknown; error: unknown }) {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'utenti') {
+        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      }
+      if (table === 'cicli_produzione') {
+        return { insert: () => ({ select: () => ({ single: async () => result }) }) }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+  }
+
+  function setupMockForValidation() {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'utenti') {
+        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+  }
+
+  it('nome mancante → 400', async () => {
+    setupMockForValidation()
+    const res = await POST(postReq({ codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('codice mancante → 400', async () => {
+    setupMockForValidation()
+    const res = await POST(postReq({ nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('tipo_dispositivo mancante → 400', async () => {
+    setupMockForValidation()
+    const res = await POST(postReq({ nome: 'Corona ceramica', codice: 'C1' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('tipo_dispositivo fuori dalla lista canonica → 400', async () => {
+    setupMockForValidation()
+    const res = await POST(postReq({ nome: 'Corona ceramica', codice: 'C1', tipo_dispositivo: 'Slug non valido' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('classe_rischio non valida → 400', async () => {
+    setupMockForValidation()
+    const res = await POST(postReq({ nome: 'Corona ceramica', codice: 'C1', tipo_dispositivo: 'Protesi fissa', classe_rischio: 'classe_x' }))
+    expect(res.status).toBe(400)
+  })
+
+  it('happy path senza classe_rischio (facoltativa) → 201, created_by/updated_by = utente corrente', async () => {
+    mockInsert({
+      data: { id: 'ciclo-nuovo', codice: 'C1', nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa', classe_rischio: null },
+      error: null,
+    })
+    const res = await POST(postReq({ nome: 'Corona ceramica', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
+    const json = await res.json()
+    expect(res.status).toBe(201)
+    expect(json.ciclo).toEqual({ id: 'ciclo-nuovo', codice: 'C1', nome: 'Corona ceramica', tipo_dispositivo: 'Protesi fissa', classe_rischio: null })
+  })
+
+  it('happy path con classe_rischio → 201', async () => {
+    mockInsert({
+      data: { id: 'ciclo-nuovo', codice: 'C2', nome: 'Corona ceramica su impianto', tipo_dispositivo: 'Protesi fissa', classe_rischio: 'classe_iia' },
+      error: null,
+    })
+    const res = await POST(postReq({ nome: 'Corona ceramica su impianto', codice: 'C2', tipo_dispositivo: 'Protesi fissa', classe_rischio: 'classe_iia' }))
+    expect(res.status).toBe(201)
+  })
+
+  it('codice duplicato nello stesso laboratorio (23505) → 409', async () => {
+    mockInsert({ data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } })
+    const res = await POST(postReq({ nome: 'Corona ceramica', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
+    const json = await res.json()
+    expect(res.status).toBe(409)
+    expect(json.error).toBe('Esiste già un ciclo con questo codice in questo laboratorio')
+  })
+
+  it('utente non autenticato → 401', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const res = await POST(postReq({ nome: 'X', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
+    expect(res.status).toBe(401)
   })
 })
