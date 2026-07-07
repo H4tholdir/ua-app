@@ -208,6 +208,12 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
+    if (insertError.code === '23505') {
+      return NextResponse.json(
+        { error: `Documento per l'anno ${anno} e gruppo ${gruppoClasse} già esistente` },
+        { status: 409 }
+      )
+    }
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 

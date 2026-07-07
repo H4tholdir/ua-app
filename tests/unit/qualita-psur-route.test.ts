@@ -122,6 +122,12 @@ function mockTabellePost(opts: {
   // un'eventuale regressione ad AND (tutte devono fallire) farebbe tornare
   // erroneamente 201 invece di 500.
   failOnly?: 'disp' | 'nc' | 'inc' | 'rifac'
+  // Simula l'errore Postgres di unique_violation sull'insert finale — usato per
+  // riprodurre la race condition: due richieste concorrenti passano entrambe il
+  // pre-check "existing: null" (nessuna delle due lo vede ancora), ma la seconda
+  // viola il vincolo UNIQUE (laboratorio_id, anno_riferimento, gruppo_classe) al
+  // momento dell'insert.
+  insertError?: { code: string; message: string } | null
 }) {
   let psurCallCount = 0
   // Conta solo le chiamate di CONTEGGIO su 'lavori' (non il fetch-ids iniziale):
@@ -150,7 +156,10 @@ function mockTabellePost(opts: {
       return {
         insert: () => ({
           select: () => ({
-            single: async () => ({ data: { id: 'psur-nuovo', gruppo_classe: 'classe_i' }, error: null }),
+            single: async () =>
+              opts.insertError
+                ? { data: null, error: opts.insertError }
+                : { data: { id: 'psur-nuovo', gruppo_classe: 'classe_i' }, error: null },
           }),
         }),
       }
@@ -290,5 +299,31 @@ describe('POST /api/qualita/psur', () => {
     mockTabellePost({ existing: null, lavoriClasseIds: [] })
     const res = await POST(postFormRequest({ anno_riferimento: '2025' }))
     expect(res.status).toBe(400)
+  })
+
+  it('race condition: due richieste concorrenti passano entrambe il pre-check, la seconda viola il vincolo UNIQUE (23505) → 409 pulito, mai 500 con messaggio Postgres grezzo', async () => {
+    // Il pre-check "existing" vede null in entrambe le richieste (nessuna delle
+    // due sa dell'altra), ma l'insert della "perdente" viola
+    // psur_lab_anno_gruppo_key. Prima del fix questo tornava 500 con
+    // insertError.message (testo Postgres grezzo, leak di dettagli interni).
+    mockTabellePost({
+      existing: null,
+      lavoriClasseIds: [],
+      insertError: { code: '23505', message: 'duplicate key value violates unique constraint "psur_lab_anno_gruppo_key"' },
+    })
+    const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
+    expect(res.status).toBe(409)
+    const json = await res.json()
+    expect(json.error).not.toMatch(/psur_lab_anno_gruppo_key|duplicate key value/i)
+  })
+
+  it('errore insert non da unique-violation (es. connessione) → resta 500, non declassato a 409', async () => {
+    mockTabellePost({
+      existing: null,
+      lavoriClasseIds: [],
+      insertError: { code: '08006', message: 'connection failure' },
+    })
+    const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
+    expect(res.status).toBe(500)
   })
 })
