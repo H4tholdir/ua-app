@@ -49,12 +49,18 @@ export async function POST(req: Request) {
 
   const svc = getServiceClient()
 
-  // Anti-trial-abuse: blocca P.IVA già con abbonamento trial/attivo
+  // Anti-trial-abuse: blocca P.IVA già con abbonamento trial/attivo.
+  // Fast-path applicativo — il backstop reale è l'indice UNIQUE parziale
+  // laboratori_partita_iva_attivi_key (stato IN ('trial','attivo') AND
+  // deleted_at IS NULL), che protegge dalla race tra due richieste
+  // concorrenti che superano entrambe questo check prima che l'altra abbia
+  // completato l'insert.
   const { data: existing } = await svc
     .from('laboratori')
     .select('id')
     .eq('partita_iva', partita_iva)
     .in('stato', ['trial', 'attivo'])
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (existing) {
@@ -64,12 +70,9 @@ export async function POST(req: Request) {
     )
   }
 
-  const customer = await stripe.customers.create({
-    email: email_titolare,
-    name: ragione_sociale ?? nome,
-    metadata: { partita_iva },
-  })
-
+  // Insert PRIMA della creazione del cliente Stripe: se la richiesta perde
+  // la race sul vincolo UNIQUE (23505), nessun cliente Stripe orfano viene
+  // creato per una richiesta che finirà comunque rifiutata.
   const { data: lab, error: labErr } = await svc
     .from('laboratori')
     .insert({
@@ -79,13 +82,35 @@ export async function POST(req: Request) {
       codice_itca: codice_itca ?? null,
       stato: 'trial',
       piano: 'lab',
-      stripe_customer_id: customer.id,
     })
     .select()
     .single()
 
-  if (labErr) return NextResponse.json({ error: labErr.message }, { status: 500 })
-  return NextResponse.json(lab, { status: 201 })
+  if (labErr) {
+    if (labErr.code === '23505') {
+      return NextResponse.json(
+        { error: 'P.IVA già registrata con abbonamento attivo' },
+        { status: 409 }
+      )
+    }
+    return NextResponse.json({ error: labErr.message }, { status: 500 })
+  }
+
+  const customer = await stripe.customers.create({
+    email: email_titolare,
+    name: ragione_sociale ?? nome,
+    metadata: { partita_iva, laboratorio_id: lab.id },
+  })
+
+  const { data: labConStripe, error: updateErr } = await svc
+    .from('laboratori')
+    .update({ stripe_customer_id: customer.id })
+    .eq('id', lab.id)
+    .select()
+    .single()
+
+  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
+  return NextResponse.json(labConStripe, { status: 201 })
 }
 
 // PATCH /api/admin/labs/[id] — update lab fields (trial_ends_at, anagrafica)
