@@ -99,6 +99,18 @@ function postRequest(body: unknown) {
   })
 }
 
+// Simula il submit nativo del form HTML in src/app/(app)/qualita/psur/page.tsx:
+// nessun JS, nessun fetch — il browser invia sempre
+// Content-Type: application/x-www-form-urlencoded, MAI application/json.
+function postFormRequest(fields: Record<string, string>) {
+  const params = new URLSearchParams(fields)
+  return new Request('http://localhost/api/qualita/psur', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  })
+}
+
 function mockTabellePost(opts: {
   existing: { id: string; stato: string } | null
   lavoriClasseIds: string[]
@@ -262,5 +274,21 @@ describe('POST /api/qualita/psur', () => {
     mockTabellePost({ existing: null, lavoriClasseIds: [], failOnly: 'disp' })
     const res = await POST(postRequest({ anno_riferimento: 2025, gruppo_classe: 'classe_i' }))
     expect(res.status).toBe(500)
+  })
+
+  it('form-urlencoded body (submit HTML nativo) → 201, non 400', async () => {
+    // Il form nativo in src/app/(app)/qualita/psur/page.tsx non ha onSubmit/fetch:
+    // il browser invia application/x-www-form-urlencoded, non JSON. Prima del fix
+    // req.json() lancia su questo body, `body` resta {}, gruppo_classe è undefined
+    // e la route torna sempre 400 — bug bloccante verificato in QA browser.
+    mockTabellePost({ existing: null, lavoriClasseIds: [] })
+    const res = await POST(postFormRequest({ anno_riferimento: '2025', gruppo_classe: 'classe_i' }))
+    expect(res.status).toBe(201)
+  })
+
+  it('form-urlencoded senza gruppo_classe → 400 (validazione resta attiva anche per i form)', async () => {
+    mockTabellePost({ existing: null, lavoriClasseIds: [] })
+    const res = await POST(postFormRequest({ anno_riferimento: '2025' }))
+    expect(res.status).toBe(400)
   })
 })

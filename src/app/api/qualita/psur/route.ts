@@ -80,9 +80,15 @@ export async function POST(req: Request) {
 
   let body: Record<string, unknown> = {}
   try {
-    body = await req.json()
+    const contentType = req.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      body = await req.json()
+    } else {
+      const form = await req.formData()
+      body = Object.fromEntries(form.entries())
+    }
   } catch {
-    // body vuoto — gruppo_classe resterà mancante, gestito sotto come 400
+    // body vuoto/non valido — gruppo_classe resterà mancante, gestito sotto come 400
   }
 
   const gruppo = body.gruppo_classe
@@ -92,10 +98,13 @@ export async function POST(req: Request) {
   const gruppoClasse = gruppo as GruppoClassePsur
   const classiRischio = GRUPPO_TO_CLASSI_RISCHIO[gruppoClasse]
 
+  const annoRaw = body.anno_riferimento
   const anno: number =
-    typeof body.anno_riferimento === 'number'
-      ? body.anno_riferimento
-      : new Date().getFullYear() - 1
+    typeof annoRaw === 'number'
+      ? annoRaw
+      : typeof annoRaw === 'string' && annoRaw.trim() !== '' && Number.isFinite(Number(annoRaw))
+        ? Number(annoRaw)
+        : new Date().getFullYear() - 1
 
   const { data: existing } = await svc
     .from('psur')
