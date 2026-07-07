@@ -3,6 +3,7 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { rilevaGruppi } from '@/lib/utils/sorveglianza-postvendita'
+import { GRUPPO_TO_CLASSI_RISCHIO, type GruppoClassePsur } from '@/types/domain'
 
 // GET /api/qualita/psur
 // Lista PSUR/PMS del laboratorio + gruppi-classe rilevati dai lavori esistenti
@@ -53,9 +54,8 @@ export async function GET() {
 }
 
 // POST /api/qualita/psur
-// Crea nuovo PSUR per anno, calcolando aggregati automaticamente dal DB
+// Crea nuovo PMS Report/PSUR per (anno, gruppo_classe), aggregati filtrati per classe di rischio
 export async function POST(req: Request) {
-  // CSRF check
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
@@ -82,25 +82,32 @@ export async function POST(req: Request) {
   try {
     body = await req.json()
   } catch {
-    // body vuoto accettato — usiamo defaults
+    // body vuoto — gruppo_classe resterà mancante, gestito sotto come 400
   }
+
+  const gruppo = body.gruppo_classe
+  if (typeof gruppo !== 'string' || !(gruppo in GRUPPO_TO_CLASSI_RISCHIO)) {
+    return NextResponse.json({ error: 'gruppo_classe non valido' }, { status: 400 })
+  }
+  const gruppoClasse = gruppo as GruppoClassePsur
+  const classiRischio = GRUPPO_TO_CLASSI_RISCHIO[gruppoClasse]
 
   const anno: number =
     typeof body.anno_riferimento === 'number'
       ? body.anno_riferimento
       : new Date().getFullYear() - 1
 
-  // Verifica che non esista già un PSUR per questo anno
   const { data: existing } = await svc
     .from('psur')
     .select('id, stato')
     .eq('laboratorio_id', labId)
     .eq('anno_riferimento', anno)
+    .eq('gruppo_classe', gruppoClasse)
     .maybeSingle()
 
   if (existing) {
     return NextResponse.json(
-      { error: `PSUR per l'anno ${anno} gia esistente`, psur: existing },
+      { error: `Documento per l'anno ${anno} e gruppo ${gruppoClasse} già esistente`, psur: existing },
       { status: 409 }
     )
   }
@@ -108,39 +115,62 @@ export async function POST(req: Request) {
   const inizio = `${anno}-01-01`
   const fine = `${anno}-12-31`
 
-  // Calcola aggregati in parallelo
+  // Lavori del laboratorio nella classe richiesta (non filtrati per periodo —
+  // servono come chiave di join per fasi/incidenti, che hanno le proprie date)
+  const { data: lavoriClasseData, error: lavoriClasseError } = await svc
+    .from('lavori')
+    .select('id')
+    .eq('laboratorio_id', labId)
+    .in('classe_rischio', classiRischio)
+
+  if (lavoriClasseError) {
+    return NextResponse.json({ error: 'Errore nel calcolo degli aggregati' }, { status: 500 })
+  }
+  const lavoriClasseIds = (lavoriClasseData ?? []).map((l) => l.id)
+
   const [disp, nc, inc, rifac] = await Promise.all([
     svc
       .from('lavori')
       .select('id', { count: 'exact', head: true })
       .eq('laboratorio_id', labId)
       .not('stato', 'eq', 'annullato')
+      .in('classe_rischio', classiRischio)
       .gte('data_consegna_effettiva', inizio)
       .lte('data_consegna_effettiva', fine),
-    svc
-      .from('lavori_fasi')
-      .select('id', { count: 'exact', head: true })
-      .eq('laboratorio_id', labId)
-      .eq('non_conforme', true)
-      .gte('created_at', `${inizio}T00:00:00`)
-      .lte('created_at', `${fine}T23:59:59`),
-    svc
-      .from('incidenti_mdr')
-      .select('id', { count: 'exact', head: true })
-      .eq('laboratorio_id', labId)
-      .is('deleted_at', null)
-      .gte('data_evento', inizio)
-      .lte('data_evento', fine),
+    lavoriClasseIds.length === 0
+      ? Promise.resolve({ count: 0, error: null })
+      : svc
+          .from('lavori_fasi')
+          .select('id', { count: 'exact', head: true })
+          .eq('laboratorio_id', labId)
+          .eq('non_conforme', true)
+          .in('lavoro_id', lavoriClasseIds)
+          .gte('created_at', `${inizio}T00:00:00`)
+          .lte('created_at', `${fine}T23:59:59`),
+    lavoriClasseIds.length === 0
+      ? Promise.resolve({ count: 0, error: null })
+      : svc
+          .from('incidenti_mdr')
+          .select('id', { count: 'exact', head: true })
+          .eq('laboratorio_id', labId)
+          .is('deleted_at', null)
+          .in('lavoro_id', lavoriClasseIds)
+          .gte('data_evento', inizio)
+          .lte('data_evento', fine),
     svc
       .from('lavori')
       .select('id', { count: 'exact', head: true })
       .eq('laboratorio_id', labId)
       .eq('is_rifacimento', true)
+      .in('classe_rischio', classiRischio)
       .gte('created_at', `${inizio}T00:00:00`)
       .lte('created_at', `${fine}T23:59:59`),
   ])
 
-  // Carica prrc_nome del laboratorio per snapshot
+  if (disp.error || nc.error || inc.error || rifac.error) {
+    return NextResponse.json({ error: 'Errore nel calcolo degli aggregati' }, { status: 500 })
+  }
+
   const { data: lab } = await svc
     .from('laboratori')
     .select('prrc_nome')
@@ -150,6 +180,7 @@ export async function POST(req: Request) {
   const insertData = {
     laboratorio_id: labId,
     anno_riferimento: anno,
+    gruppo_classe: gruppoClasse,
     periodo_inizio: inizio,
     periodo_fine: fine,
     totale_dispositivi: disp.count ?? 0,
