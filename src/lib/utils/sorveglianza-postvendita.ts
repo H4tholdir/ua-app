@@ -1,4 +1,4 @@
-import type { GruppoClassePsur } from '@/types/domain'
+import { CLASSE_RISCHIO_TO_GRUPPO, type GruppoClassePsur } from '@/types/domain'
 
 export interface StatoSorveglianza {
   tipoDocumento: 'PMS Report' | 'PSUR'
@@ -41,4 +41,29 @@ export function getStatoSorveglianza(
   const giorni = (now.getTime() - new Date(ultimaData).getTime()) / GIORNO_MS
   const scaduto = giorni > sogliaGiorni
   return { tipoDocumento: 'PSUR', cadenzaLabel, scaduto, alertLivello: scaduto ? 'urgente' : 'nessuno' }
+}
+
+const ORDINE_GRUPPI: GruppoClassePsur[] = ['classe_i', 'classe_iia', 'classe_iib_iii']
+
+export function rilevaGruppi(classiRischio: string[]): {
+  gruppiRilevati: GruppoClassePsur[]
+  nonClassificabili: number
+} {
+  const mappa = CLASSE_RISCHIO_TO_GRUPPO as Record<string, GruppoClassePsur | undefined>
+  const gruppiTrovati = new Set<GruppoClassePsur>()
+  let nonClassificabili = 0
+
+  for (const classe of classiRischio) {
+    const gruppo = mappa[classe]
+    if (gruppo) {
+      gruppiTrovati.add(gruppo)
+    } else {
+      nonClassificabili++
+    }
+  }
+
+  return {
+    gruppiRilevati: ORDINE_GRUPPI.filter((g) => gruppiTrovati.has(g)),
+    nonClassificabili,
+  }
 }

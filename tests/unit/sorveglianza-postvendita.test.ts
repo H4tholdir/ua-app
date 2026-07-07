@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getStatoSorveglianza } from '../../src/lib/utils/sorveglianza-postvendita'
+import { getStatoSorveglianza, rilevaGruppi } from '../../src/lib/utils/sorveglianza-postvendita'
 
 describe('getStatoSorveglianza', () => {
   const NOW = new Date('2026-07-07T12:00:00Z')
@@ -68,5 +68,39 @@ describe('getStatoSorveglianza', () => {
     const r = getStatoSorveglianza('classe_iib_iii', data, NOW)
     expect(r.scaduto).toBe(true)
     expect(r.alertLivello).toBe('urgente')
+  })
+})
+
+describe('rilevaGruppi', () => {
+  it('nessun lavoro → nessun gruppo rilevato, zero non classificabili', () => {
+    expect(rilevaGruppi([])).toEqual({ gruppiRilevati: [], nonClassificabili: 0 })
+  })
+
+  it('solo classe_i → un solo gruppo rilevato', () => {
+    expect(rilevaGruppi(['classe_i', 'classe_i'])).toEqual({
+      gruppiRilevati: ['classe_i'],
+      nonClassificabili: 0,
+    })
+  })
+
+  it('classe_iib e classe_iii → un solo gruppo accorpato classe_iib_iii', () => {
+    expect(rilevaGruppi(['classe_iib', 'classe_iii'])).toEqual({
+      gruppiRilevati: ['classe_iib_iii'],
+      nonClassificabili: 0,
+    })
+  })
+
+  it('classi miste → gruppi rilevati in ordine fisso classe_i, classe_iia, classe_iib_iii', () => {
+    expect(rilevaGruppi(['classe_iii', 'classe_i', 'classe_iia'])).toEqual({
+      gruppiRilevati: ['classe_i', 'classe_iia', 'classe_iib_iii'],
+      nonClassificabili: 0,
+    })
+  })
+
+  it('valore imprevisto (stringa vuota/legacy) → mai scartato in silenzio, contato in nonClassificabili', () => {
+    expect(rilevaGruppi(['classe_i', '', 'classe_vecchia_non_valida'])).toEqual({
+      gruppiRilevati: ['classe_i'],
+      nonClassificabili: 2,
+    })
   })
 })
