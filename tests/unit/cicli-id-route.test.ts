@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
 }))
 vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
 
-import { PATCH } from '../../src/app/api/cicli/[id]/route'
+import { PATCH, DELETE } from '../../src/app/api/cicli/[id]/route'
 
 const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
@@ -143,5 +143,90 @@ describe('PATCH /api/cicli/[id]', () => {
     expect(updateCalls[0]).not.toHaveProperty('laboratorio_id')
     expect(updateCalls[0]).not.toHaveProperty('created_by')
     expect(updateCalls[0]).not.toHaveProperty('id')
+  })
+})
+
+function deleteReq() {
+  return new Request(`http://localhost/api/cicli/${CICLO_ID}`, {
+    method: 'DELETE',
+    headers: { origin: 'http://localhost', host: 'localhost' },
+  })
+}
+
+describe('DELETE /api/cicli/[id]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+  })
+
+  function mockDeleteFlow(opts: {
+    cicloEsiste?: boolean
+    countLavori?: number
+    listinoUpdateError?: unknown
+    softDeleteError?: unknown
+  }) {
+    const {
+      cicloEsiste = true,
+      countLavori = 0,
+      listinoUpdateError = null,
+      softDeleteError = null,
+    } = opts
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'utenti') {
+        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      }
+      if (table === 'cicli_produzione') {
+        return {
+          select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({
+            data: cicloEsiste ? { id: CICLO_ID } : null,
+            error: cicloEsiste ? null : { code: 'PGRST116' },
+          }) }) }) }) }),
+          update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: softDeleteError }) }) }),
+        }
+      }
+      if (table === 'lavori') {
+        return { select: () => ({ eq: (): unknown => ({ eq: () => Promise.resolve({ count: countLavori, error: null }) }) }) }
+      }
+      if (table === 'listino') {
+        return { update: () => ({ eq: () => ({ eq: () => Promise.resolve({ error: listinoUpdateError }) }) }) }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+  }
+
+  it('ciclo non referenziato da nessun lavoro → 200, listino.ciclo_id nullato, soft-delete', async () => {
+    mockDeleteFlow({ countLavori: 0 })
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json).toEqual({ ok: true })
+  })
+
+  it('ciclo referenziato da 3 lavori → 409, nessun soft-delete eseguito', async () => {
+    mockDeleteFlow({ countLavori: 3 })
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(res.status).toBe(409)
+    expect(json.error).toBe('Ciclo in uso da 3 lavori — impossibile eliminare. Disattivalo per nasconderlo dalle nuove assegnazioni.')
+  })
+
+  it('ciclo referenziato da 1 lavoro → messaggio singolare corretto', async () => {
+    mockDeleteFlow({ countLavori: 1 })
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(json.error).toBe('Ciclo in uso da 1 lavoro — impossibile eliminare. Disattivalo per nasconderlo dalle nuove assegnazioni.')
+  })
+
+  it('ciclo non trovato o di altro laboratorio → 404', async () => {
+    mockDeleteFlow({ cicloEsiste: false })
+    const res = await DELETE(deleteReq(), { params })
+    expect(res.status).toBe(404)
+  })
+
+  it('utente non autenticato → 401', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const res = await DELETE(deleteReq(), { params })
+    expect(res.status).toBe(401)
   })
 })
