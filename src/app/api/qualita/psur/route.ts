@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { rilevaGruppi } from '@/lib/utils/sorveglianza-postvendita'
 
 // GET /api/qualita/psur
-// Lista PSUR del laboratorio, ordine anno_riferimento DESC
+// Lista PSUR/PMS del laboratorio + gruppi-classe rilevati dai lavori esistenti
 export async function GET() {
   const userClient = await getServerUserClient()
   const { data: { user } } = await userClient.auth.getUser()
@@ -26,7 +27,7 @@ export async function GET() {
   const { data, error } = await svc
     .from('psur')
     .select(
-      'id, anno_riferimento, periodo_inizio, periodo_fine, totale_dispositivi, totale_non_conformita, totale_incidenti, totale_reclami, totale_rifacimenti, stato, pdf_url, pdf_sha256, firmato_at, prrc_nome_snapshot, created_at, updated_at'
+      'id, anno_riferimento, gruppo_classe, periodo_inizio, periodo_fine, totale_dispositivi, totale_non_conformita, totale_incidenti, totale_reclami, totale_rifacimenti, stato, pdf_url, pdf_sha256, firmato_at, prrc_nome_snapshot, created_at, updated_at'
     )
     .eq('laboratorio_id', utente.laboratorio_id)
     .order('anno_riferimento', { ascending: false })
@@ -35,7 +36,20 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ psur: data ?? [] })
+  const { data: lavoriClassi, error: lavoriClassiError } = await svc
+    .from('lavori')
+    .select('classe_rischio')
+    .eq('laboratorio_id', utente.laboratorio_id)
+
+  if (lavoriClassiError) {
+    return NextResponse.json({ error: lavoriClassiError.message }, { status: 500 })
+  }
+
+  const { gruppiRilevati, nonClassificabili } = rilevaGruppi(
+    (lavoriClassi ?? []).map((l) => l.classe_rischio as string)
+  )
+
+  return NextResponse.json({ psur: data ?? [], gruppiRilevati, nonClassificabili })
 }
 
 // POST /api/qualita/psur
