@@ -25,6 +25,7 @@ import { CardLavoro } from '@/components/ds/CardLavoro'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
 import { Sheet } from '@/components/ds/Sheet'
+import { CampoTesto, CampoNumero, CampoData } from '@/components/ds/Campo'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { Skeleton } from '@/components/ds/Caricamento'
@@ -79,6 +80,10 @@ export default function CatalogoPage() {
   const [fasi, setFasi] = useState(FASI_INIZIALI)
   const [sheetAperto, setSheetAperto] = useState(false)
   const [dialogAperto, setDialogAperto] = useState(false)
+  const [sheetCampiAperto, setSheetCampiAperto] = useState(false)
+  const [nomePaziente, setNomePaziente] = useState('')
+  const [importo, setImporto] = useState('')
+  const [dataConsegna, setDataConsegna] = useState<Date | null>(null)
 
   useEffect(() => {
     initSuoni()
@@ -565,6 +570,41 @@ export default function CatalogoPage() {
           onAnnulla={() => setDialogAperto(false)}
           onConferma={() => setDialogAperto(false)}
         />
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Campo" spec="§5.27 — CampoTesto, CampoNumero, CampoData">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <TastoSecondario onClick={() => setSheetCampiAperto(true)}>
+            Apri la scheda nuovo lavoro
+          </TastoSecondario>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            I tre campi vivono SOLO dentro wizard e sheet (§5.27), mai in una lista o in una
+            card di sola lettura: qui sono dentro uno sheet demo, come da regola d&apos;uso.
+            CampoData non mostra mai un calendario a griglia come impostazione predefinita — solo
+            scelte rapide, più «Scegli…» per il calendario nativo del telefono.
+          </p>
+        </div>
+
+        <Sheet
+          aperto={sheetCampiAperto}
+          onChiudi={() => setSheetCampiAperto(false)}
+          titolo="Nuovo lavoro"
+        >
+          <CampoTesto
+            label="Nome paziente"
+            valore={nomePaziente}
+            onCambia={setNomePaziente}
+            placeholder="Es. PZ-1042"
+          />
+          <CampoNumero label="Importo" valore={importo} onCambia={setImporto} suffisso="€" />
+          <CampoData label="Consegna" valore={dataConsegna} onCambia={setDataConsegna} />
+        </Sheet>
       </SezioneCatalogo>
 
       <SezioneCatalogo titolo="Avviso · Skeleton · Vuoto" spec="§5.18 Avviso, §5.25 Caricamento, §5.26 Vuoto">
