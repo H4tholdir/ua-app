@@ -121,7 +121,7 @@ export default async function OrdiniPage() {
 
     void articoliData // sopprimi warning
     articoliSottoScorta = ((tuttiArticoli ?? []) as ArticoloSottoScorta[]).filter(
-      (a) => a.scorta_attuale < a.scorta_minima
+      (a) => a.scorta_attuale <= a.scorta_minima
     )
   }
 

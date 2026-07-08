@@ -195,7 +195,7 @@ export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornito
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {filtered.map((articolo) => {
-                const scorteAlert = articolo.scorta_attuale < articolo.scorta_minima
+                const scorteAlert = articolo.scorta_attuale <= articolo.scorta_minima
 
                 return (
                   <li key={articolo.id}>

@@ -67,7 +67,7 @@ export default async function MagazzinoPage() {
     fornitori = fornitoriData ?? []
   }
 
-  const articoliAlert = articoli.filter((a) => a.scorta_attuale < a.scorta_minima)
+  const articoliAlert = articoli.filter((a) => a.scorta_attuale <= a.scorta_minima)
 
   return (
     <PageWrapper>
