@@ -2,6 +2,31 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
+// Mock di matchMedia per attivare useReducedMotion — stesso precedente di
+// sheet-dialog.test.tsx (fix di review T10). Restituisce la funzione di ripristino.
+function attivaReducedMotion(): () => void {
+  const originalMatchMedia = window.matchMedia
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: true,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia
+  return () => {
+    window.matchMedia = originalMatchMedia
+  }
+}
+
+// Flush del requestAnimationFrame di AvvisoRidotto (entrata: false → true).
+async function flushFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  })
+}
+
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
 vi.mock('@/design-system/v3/sound', () => ({
@@ -151,7 +176,7 @@ describe('Avviso — toast (§5.18)', () => {
     expect(screen.getByText(TESTO_ERRORE)).toBeInTheDocument()
   })
 
-  it('errore: suona("errore") viene chiamato alla comparsa (unico suono di questo componente)', () => {
+  it('errore: suona("errore") UNA volta sola alla comparsa — nessun refire ai re-render successivi', () => {
     render(
       <AvvisiProvider>
         <DemoAvviso />
@@ -159,6 +184,14 @@ describe('Avviso — toast (§5.18)', () => {
     )
     fireEvent.click(screen.getByText('Errore'))
     expect(suonaMock).toHaveBeenCalledWith('errore')
+    expect(suonaMock).toHaveBeenCalledTimes(1)
+    // Re-render del contenitore con l'errore ancora montato: aggiungere un
+    // avviso normale (silenzioso) cambia lo stato del provider e rimonta la
+    // lista — il suono errore NON deve rispararsi.
+    fireEvent.click(screen.getByText('Avvisa'))
+    expect(screen.getByText(TESTO_ERRORE)).toBeInTheDocument()
+    expect(screen.getByText(TESTO_NORMALE)).toBeInTheDocument()
+    expect(suonaMock).toHaveBeenCalledTimes(1)
   })
 
   it('errore: aria-live="assertive"', () => {
@@ -235,6 +268,89 @@ describe('Avviso — toast (§5.18)', () => {
     fireEvent.click(screen.getByText('Avvisa'))
     fireEvent.click(screen.getByText('Errore'))
     expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
+  })
+})
+
+describe('Avviso — reduced motion (§8.4, ramo AvvisoRidotto)', () => {
+  let ripristinaMatchMedia: () => void
+
+  beforeEach(() => {
+    suonaMock.mockClear()
+    vibraMock.mockClear()
+    ripristinaMatchMedia = attivaReducedMotion()
+  })
+  afterEach(() => {
+    ripristinaMatchMedia()
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('il toast passa dal ramo ridotto: dissolvenza CSS pura (transition opacity), raggiunge opacity 1', async () => {
+    render(
+      <AvvisiProvider>
+        <DemoAvviso />
+      </AvvisiProvider>
+    )
+    fireEvent.click(screen.getByText('Avvisa'))
+    const toast = screen.getByText(TESTO_NORMALE).closest('.ds-avviso-card') as HTMLElement
+    expect(toast).not.toBeNull()
+    // Discriminatore del ramo ridotto (stessa tecnica del fix T10): la
+    // transizione è la dissolvenza CSS inline (cssEase.generico), che il ramo
+    // a molla (motion.div) non imposta mai come style inline.
+    expect(toast.style.transition).toContain('opacity')
+    await flushFrame()
+    expect(toast.style.opacity).toBe('1')
+    expect(toast).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('ramo ridotto: auto-dismiss dopo 4s e sospensione su hover funzionano anche qui (fake timers)', async () => {
+    vi.useFakeTimers()
+    render(
+      <AvvisiProvider>
+        <DemoAvviso />
+      </AvvisiProvider>
+    )
+    fireEvent.click(screen.getByText('Avvisa'))
+    const toast = screen.getByText(TESTO_NORMALE).closest('.ds-avviso-card') as HTMLElement
+    expect(toast.style.transition).toContain('opacity') // siamo davvero sul ramo ridotto
+
+    // Hover sospende: ben oltre i 4s il toast è ancora lì
+    fireEvent.mouseEnter(toast)
+    act(() => {
+      vi.advanceTimersByTime(6000)
+    })
+    expect(screen.getByText(TESTO_NORMALE)).toBeInTheDocument()
+
+    // Il timer riprende dal residuo: altri 4s e sparisce — rimozione
+    // ISTANTANEA nel ramo ridotto (niente AnimatePresence), nessun waitFor
+    fireEvent.mouseLeave(toast)
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    expect(screen.queryByText(TESTO_NORMALE)).toBeNull()
+  })
+
+  it('ramo ridotto: l\'errore persiste oltre i 4s, suona una volta, e il bottone Chiudi lo rimuove', () => {
+    vi.useFakeTimers()
+    render(
+      <AvvisiProvider>
+        <DemoAvviso />
+      </AvvisiProvider>
+    )
+    fireEvent.click(screen.getByText('Errore'))
+    const toast = screen.getByText(TESTO_ERRORE).closest('.ds-avviso-card') as HTMLElement
+    expect(toast.style.transition).toContain('opacity') // siamo davvero sul ramo ridotto
+    expect(toast).toHaveAttribute('aria-live', 'assertive')
+    expect(suonaMock).toHaveBeenCalledWith('errore')
+    expect(suonaMock).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      vi.advanceTimersByTime(20000)
+    })
+    expect(screen.getByText(TESTO_ERRORE)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Chiudi'))
+    expect(screen.queryByText(TESTO_ERRORE)).toBeNull()
   })
 })
 
