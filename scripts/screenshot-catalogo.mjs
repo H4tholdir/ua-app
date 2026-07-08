@@ -55,6 +55,15 @@ async function main() {
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(150)
 
+      // Rimuovi l'indicatore dev di Next.js (<nextjs-portal>, badge "N issues"
+      // in basso a sinistra): è chrome del tool di sviluppo, non del prodotto —
+      // in una fullPage screenshot finisce dentro l'immagine (appare vicino al
+      // fold iniziale) e sporca il materiale di approvazione. Va rimosso ad
+      // ogni navigazione perché Next.js lo rimonta a ogni load.
+      await page.evaluate(() => {
+        document.querySelectorAll('nextjs-portal').forEach((el) => el.remove())
+      })
+
       const filename = `catalogo-${viewport.label}-${tema.nome}.png`
       const filepath = resolve(outDir, filename)
       await page.screenshot({ path: filepath, fullPage: true })
