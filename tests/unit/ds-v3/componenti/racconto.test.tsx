@@ -404,6 +404,41 @@ describe('RigaAgenda — una voce dell\'agenda (§5.19)', () => {
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  it('la PillTipo non copre mai il testo (QA visivo T15 round 2, 390px): colonna con pavimento min-content, riga a capo consentito, pill mai compressa e a destra — in entrambe le varianti', () => {
+    // Bug trovato in QA visiva: a 390px la colonna testo (flex 1 + minWidth 0)
+    // veniva schiacciata sotto il min-content delle sue parole (misurato: 15px
+    // su una riga di 220px), il testo traboccava dal proprio box e finiva
+    // SOTTO la pill («Studio» coperto da CONSEGNA). Stessa classe di difetto
+    // della CardLavoro (contenuti incomprimibili in un contesto stretto).
+    for (const onClick of [undefined, () => {}]) {
+      const { unmount } = render(
+        <RigaAgenda
+          orario="09:00"
+          cosa="Consegna corona ceramica"
+          sub="Studio Bianchi · n.147"
+          tipo="CONSEGNA"
+          onClick={onClick}
+        />
+      )
+      // Pill mai compressa, ancorata a destra anche quando scende a capo.
+      const pill = screen.getByText('CONSEGNA')
+      expect(pill.style.flexShrink).toBe('0')
+      expect(pill.style.marginLeft).toBe('auto')
+      // La colonna testo non scende mai sotto il min-content delle sue parole:
+      // il testo resta dentro il proprio box, quindi niente overlap possibile.
+      const colonna = screen.getByText('Consegna corona ceramica').parentElement as HTMLElement
+      expect(colonna.style.minWidth).toBe('min-content')
+      // La riga può andare a capo quando orario + testo + pill non ci stanno.
+      const riga = pill.parentElement as HTMLElement
+      expect(riga.style.flexWrap).toBe('wrap')
+      // Anatomia §5.19 intatta: orario tabulare min-width 56, mai compresso.
+      const orario = screen.getByText('09:00')
+      expect(orario.style.minWidth).toBe('56px')
+      expect(orario.style.flexShrink).toBe('0')
+      unmount()
+    }
+  })
 })
 
 describe('catalogo DS v3 — sezione «Il racconto»', () => {

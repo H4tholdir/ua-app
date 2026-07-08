@@ -30,6 +30,9 @@ function PillTipo(props: { tipo: TipoAgenda }) {
       style={{
         display: 'inline-block',
         flexShrink: 0,
+        // marginLeft auto (non justify-content del contenitore): la pill resta
+        // a destra sia in linea sia quando scende su una riga sua (QA T15 r2).
+        marginLeft: 'auto',
         borderRadius: raggio.pill,
         padding: '7px 13px',
         fontSize: 13.5,
@@ -122,13 +125,18 @@ export function RigaAgenda(props: {
       >
         {orario}
       </span>
+      {/* Colonna testo: pavimento min-content — mai schiacciata sotto la
+          parola più lunga, il testo resta nel proprio box e non finisce mai
+          sotto la pill (QA T15 r2: con minWidth 0 la colonna scendeva a 15px
+          e le parole traboccavano sotto CONSEGNA). Se orario + colonna + pill
+          non ci stanno, è la pill a scendere a capo (flexWrap della riga). */}
       <span
         style={{
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
           flex: 1,
-          minWidth: 0,
+          minWidth: 'min-content',
           textAlign: 'left',
         }}
       >
@@ -149,7 +157,8 @@ export function RigaAgenda(props: {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: spazio.m,
+          flexWrap: 'wrap',
+          gap: `${spazio.xs}px ${spazio.m}px`,
           padding: `${spazio.s}px 0`,
         }}
       >
@@ -177,7 +186,8 @@ export function RigaAgenda(props: {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: spazio.m,
+          flexWrap: 'wrap',
+          gap: `${spazio.xs}px ${spazio.m}px`,
           width: '100%',
           minHeight: spazio.xxl, // 44 — hit area di legge (constraint 10)
           border: 'none',
