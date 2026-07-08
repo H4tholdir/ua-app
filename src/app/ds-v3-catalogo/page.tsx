@@ -9,6 +9,8 @@ import { motion } from 'motion/react'
 import { initSuoni } from '@/design-system/v3/sound'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { molla } from '@/design-system/v3/motion'
+import { SezioneCatalogo } from './CatalogoShell'
+import { TastoPrimario } from '@/components/ds/TastoPrimario'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -113,6 +115,24 @@ export default function CatalogoPage() {
       </header>
 
       {/* Le sezioni dei componenti arrivano qui, una per task (contratto §14.2). */}
+      <SezioneCatalogo titolo="TastoPrimario" spec="§5.1 — il tasto fisico">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <TastoPrimario onClick={() => {}}>Consegna</TastoPrimario>
+          <TastoPrimario disabled motivoDisabilitato="Completa il controllo finale per consegnare">
+            Consegna
+          </TastoPrimario>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Corsa, molla di pressione, suono e vibrazione sono comportamenti fisici: provali dal
+            vivo con un tocco reale, non si vedono in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
     </div>
   )
 }
