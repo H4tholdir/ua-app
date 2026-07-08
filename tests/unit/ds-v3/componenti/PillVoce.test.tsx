@@ -129,6 +129,39 @@ describe('PillVoce — input vocale, progressive enhancement (§5.15)', () => {
       expect(regola).toContain('outline-offset: 2px')
     })
 
+    it('unmount mentre in ascolto → stop() sull\'istanza e handler staccati (il mic non resta acceso)', () => {
+      const { unmount } = render(<PillVoce onTesto={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      const istanza = ultimaIstanza()
+      expect(istanza?.stop).not.toHaveBeenCalled()
+      unmount()
+      expect(istanza?.stop).toHaveBeenCalledTimes(1)
+      // Handler staccati: eventi tardivi non hanno più nessuno da chiamare.
+      expect(istanza?.onresult).toBeNull()
+      expect(istanza?.onerror).toBeNull()
+      expect(istanza?.onend).toBeNull()
+    })
+
+    it('un result che arriva dopo l\'unmount non lancia, non avvisa e non chiama onTesto', () => {
+      const onTesto = vi.fn()
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { unmount } = render(<PillVoce onTesto={onTesto} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      const istanza = ultimaIstanza()
+      unmount()
+      expect(() => {
+        act(() => {
+          // Evento in volo dal motore di riconoscimento, arrivato tardi: gli
+          // handler sono stati staccati dal cleanup, quindi è un no-op.
+          istanza?.onresult?.({ results: [[{ transcript: 'troppo tardi' }]] })
+          istanza?.onend?.()
+        })
+      }).not.toThrow()
+      expect(onTesto).not.toHaveBeenCalled()
+      expect(errorSpy).not.toHaveBeenCalled()
+      errorSpy.mockRestore()
+    })
+
     it('tap mentre in ascolto chiama stop() e torna quieta senza chiamare onTesto', () => {
       const onTesto = vi.fn()
       render(<PillVoce onTesto={onTesto} />)

@@ -8,7 +8,7 @@
 // flusso critico. Idem per ogni errore di riconoscimento: torna quieto senza
 // disturbare, il chiamante resta padrone della conferma (§5.15).
 
-import { useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
 import { molla } from '@/design-system/v3/motion'
 import { materia, raggio, spazio, tipografia, testoSuFaccia } from '@/design-system/v3/tokens'
@@ -71,6 +71,32 @@ export function PillVoce(props: { onTesto: (testo: string) => void; etichetta?: 
   const [ascolto, setAscolto] = useState(false)
   const riconoscimentoRef = useRef<RiconoscimentoVoce | null>(null)
 
+  // `onTesto` letto via ref sempre aggiornata: l'istanza di riconoscimento è
+  // cache tra i tap e i suoi handler sono assegnati una volta sola — senza la
+  // ref, un `onTesto` che cambia da un passo all'altro del wizard (SP3)
+  // resterebbe quello del render in cui è partito l'ascolto (chiusura stantia)
+  // e scriverebbe nel passo sbagliato, anche a metà ascolto.
+  const onTestoRef = useRef(onTesto)
+  useEffect(() => {
+    onTestoRef.current = onTesto
+  }, [onTesto])
+
+  // Igiene privacy (review T14): se il componente si smonta mentre ascolta,
+  // il microfono NON deve restare acceso. Cleanup mount-scoped: ferma la
+  // sessione e stacca gli handler, così eventi tardivi (onresult/onend in
+  // volo) non chiamano più setState su un componente che non c'è.
+  useEffect(() => {
+    return () => {
+      const riconoscimento = riconoscimentoRef.current
+      if (!riconoscimento) return
+      riconoscimento.onresult = null
+      riconoscimento.onerror = null
+      riconoscimento.onend = null
+      riconoscimento.stop()
+      riconoscimentoRef.current = null
+    }
+  }, [])
+
   if (!haSupporto) return null
 
   function ottieniRiconoscimento(): RiconoscimentoVoce | null {
@@ -79,6 +105,16 @@ export function PillVoce(props: { onTesto: (testo: string) => void; etichetta?: 
     if (!Costruttore) return null
     const istanza = new Costruttore()
     istanza.lang = 'it-IT'
+    istanza.onresult = (evento) => {
+      setAscolto(false)
+      const risultati = evento.results
+      const transcript = risultati[risultati.length - 1]?.[0]?.transcript?.trim() ?? ''
+      if (transcript) onTestoRef.current(transcript)
+    }
+    // Errori e fine riconoscimento: si torna quieti in silenzio (§5.15) — è
+    // un potenziamento, non un flusso critico che merita un Avviso (§5.18).
+    istanza.onerror = () => setAscolto(false)
+    istanza.onend = () => setAscolto(false)
     riconoscimentoRef.current = istanza
     return istanza
   }
@@ -91,20 +127,6 @@ export function PillVoce(props: { onTesto: (testo: string) => void; etichetta?: 
       setAscolto(false)
       return
     }
-    // Gli handler si riassegnano a ogni tap (non solo alla creazione): l'istanza
-    // è cache in `riconoscimentoRef`, ma `onTesto` può cambiare da un passo
-    // all'altro del wizard (SP3) — senza questo, il callback resterebbe quello
-    // del primo montaggio e scriverebbe nel passo sbagliato.
-    riconoscimento.onresult = (evento) => {
-      setAscolto(false)
-      const risultati = evento.results
-      const transcript = risultati[risultati.length - 1]?.[0]?.transcript?.trim() ?? ''
-      if (transcript) onTesto(transcript)
-    }
-    // Errori e fine riconoscimento: si torna quieti in silenzio (§5.15) — è
-    // un potenziamento, non un flusso critico che merita un Avviso (§5.18).
-    riconoscimento.onerror = () => setAscolto(false)
-    riconoscimento.onend = () => setAscolto(false)
     suona('tap')
     vibra('light')
     setAscolto(true)
