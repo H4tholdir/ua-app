@@ -1,13 +1,11 @@
 # Sessione attiva — 08/07/2026
 
-**DS v3 «Una cosa alla volta» — sotto-progetto 1 (fondamenta in codice) COMPLETATO.**
+**DS v3 «Una cosa alla volta» — sotto-progetto 1 (fondamenta) COMPLETATO, MERGIATO E DEPLOYATO.**
 
-Worktree `.claude/worktrees/ds-v3-fondamenta`, branch `worktree-ds-v3-fondamenta` — **non ancora mergiato su `main`**.
+Fast-forward `12246d0..9fde21d` su `main`, deploy Vercel verificato (`[data-ds=v3]` nel bundle CSS live di uachelab.com). Review finale whole-branch: READY TO MERGE, zero Critical/Important. Worktree e branch rimossi.
 
-10 task, tutti review-approvati: font Plus Jakarta Sans self-hosted · dizionario parole vietate + linter · token v3 (ambra light corretta a `#9A5C00` per WCAG AA) · `ds-v3.css` scoped `[data-ds="v3"]` (coesistenza piena con v2.3) · motion v3 (5 molle Apple + 8 coreografie) · 5 suoni WAV provvisori + player Web Audio · haptic Android-only · estensione `check-ds-compliance.sh`.
-
-Verifica: `tsc` pulito, vitest 707 passed | 4 skipped (era 670), `next build` pulito.
+10 task review-approvati: font Plus Jakarta Sans · dizionario · token v3 (ambra `#9A5C00` WCAG) · `ds-v3.css` scoped · motion (5 molle Apple) · 5 WAV provvisori + player Web Audio · haptic Android-only · check-compliance v3. Suite 707 passed | 4 skipped (era 670). Tutto v3 dormiente: zero impatto su pagine v2.3.
 
 Spec: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`.
 
-**Prossimo:** merge su `main` (o proseguire nel worktree) → sotto-progetto 2, componenti core (spec §14.2).
+**Prossimo:** sotto-progetto 2 componenti core (spec §14.2) — carry-over obbligatori nel primo commit: vedi MEMORY.md §0.
