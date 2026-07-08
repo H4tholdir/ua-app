@@ -31,7 +31,7 @@
 | B13 | Zero test su `orchestraConsegna`/Stripe webhook | ✅ | 05/07/2026 · worktree `worktree-b13-webhook-stripe-silent-fail` | ✅ B13 (1/2, idempotenza DdC/Buono) e B13 (2/2, webhook Stripe silent-fail) entrambi risolti — vedi `memory/MEMORY.md` §0. |
 | B14 | `tecnici.compenso_base` ambiguo | ⏳ | | |
 | B15 | Banner Abbonamento contraddittorio | ✅ | 05/07/2026 · `a86d3f7` | Worktree `worktree-quickfix-b12-b15-b11`, non ancora mergiato su `main`. Funzione pura `isTrialExpiringSoon` estratta e testata (5 nuovi test) in `src/lib/utils/lab-stato.ts`. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
-| B16 | Query `/ordini` subquery non supportata | ⏳ | | |
+| B16 | Query `/ordini` subquery non supportata | ✅ | 08/07/2026 | Risolto con RPC `articoli_sotto_scorta_minima` — vedi dettaglio sotto |
 | B17 | Fasi di lavorazione mai visibili in nessun PDF/Fascicolo Tecnico | ✅ | 05/07/2026 | Risolto con nuova Scheda di Fabbricazione (generazione live on-demand) — vedi dettaglio sotto |
 | B18 | Hardening trasversale post-B3 (8 finding non bloccanti) | ✅ | 04/07/2026 · `06a497d` | Tutti e 8 risolti + 1 bug critico scoperto e risolto a parte (hotfix `23e0d15`) — vedi dettaglio sotto |
 | B19 | Supabase Security Advisor: 10 ERROR + WARN di sicurezza | ✅ | 04/07/2026 · branch `worktree-security-advisor-hardening` (5 commit) | Non da audit precedente, segnalato da Francesco dalla dashboard Security Advisor. 0 ERROR residui verificato. Leaked password protection resta ⛔ bloccato (richiede piano Pro). Vedi dettaglio sotto |
@@ -336,6 +336,7 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 **Effort:** una riga, 5 minuti.
 
 ### B16. Query `/ordini` con subquery non supportata — eseguita ad ogni caricamento
+**✅ RISOLTO (08/07/2026).** Sostituita la query `.lt()` colonna-contro-colonna (non supportata da PostgREST, eseguita e scartata ad ogni load) e il fallback JS-side limitato a 500 articoli con una RPC Postgres dedicata `articoli_sotto_scorta_minima(p_lab_id uuid) RETURNS SETOF magazzino`, callable solo da `service_role` (`REVOKE`/`GRANT` espliciti), che filtra `scorta_attuale <= scorta_minima` server-side senza limite di riga. Soglia allineata a `<=` in tutto il codebase come fix collaterale pre-piano (commit `8adfcd6`, separato da questo lavoro). Spec: `docs/superpowers/specs/2026-07-08-b16-ordini-rpc-scorta-design.md`.
 **Fonte:** [SWE] + [Sis] + [FFD] (corroborazione tripla, byte-identica da maggio)
 **Causa:** `src/app/(app)/ordini/page.tsx:104-125` — la query alle righe 104-111 usa `.lt('scorta_attuale', svc.from('magazzino').select('scorta_minima'))`, non supportata da Supabase-js, eseguita comunque e scartata (`void articoliData`); il risultato corretto viene dal fallback JS-side alle righe 114-125. Non è un bug visibile (il filtro JS produce il risultato giusto) ma spreca una round-trip di rete ad ogni load e scala male oltre 500 articoli.
 **Fix (G6, mai applicato):** refactor con RPC Postgres dedicata o query con relazioni embedded Supabase.
