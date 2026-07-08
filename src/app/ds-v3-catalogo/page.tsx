@@ -21,6 +21,7 @@ import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
 import { RigaCerca } from '@/components/ds/RigaCerca'
 import { Pila } from '@/components/ds/Pila'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
+import { CardLavoro } from '@/components/ds/CardLavoro'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -373,6 +374,47 @@ export default function CatalogoPage() {
             Pila è il componente più sacro dell&apos;app: tap su tutta la card = selezione
             (vibrazione, mai suono). Il morph pila→lista (§8.3.1) è del sotto-progetto 3 — qui c&apos;è
             solo la card.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="CardLavoro" spec="§5.8 — la card nelle liste">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <CardLavoro
+            numero="147"
+            dentista="Studio Bianchi"
+            paziente="PZ-1042"
+            tipoLavoro="Corona ceramica"
+            tempo={{ testo: 'OGGI · 15:00', famiglia: 'red' }}
+            onApri={() => {}}
+            onConsegna={() => {}}
+          />
+          <CardLavoro
+            numero="152"
+            dentista="Dr. Rossi"
+            paziente="PZ-1078"
+            tipoLavoro="Ponte 3 elementi"
+            tempo={{ testo: 'GIOVEDÌ', famiglia: 'amber' }}
+            onApri={() => {}}
+          />
+          <CardLavoro
+            numero="158"
+            dentista="Studio Verdi"
+            paziente="PZ-1103"
+            tipoLavoro="Impronta digitale"
+            tempo={{ testo: 'APPENA ARRIVATO', famiglia: 'blue' }}
+            onApri={() => {}}
+          />
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            TastoConsegnaInline compare SOLO sul primo elemento della pila rossa
+            (responsabilità del chiamante). `paziente` è sempre uno pseudonimo
+            PZ-xxxx: la card non conosce mai un nome reale.
           </p>
         </div>
       </SezioneCatalogo>
