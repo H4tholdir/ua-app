@@ -100,29 +100,11 @@ export default async function OrdiniPage() {
       })) as OrdineRow[]
     }
 
-    // Carica articoli sotto scorta minima
-    const { data: articoliData } = await svc
-      .from('magazzino')
-      .select('id, nome, scorta_attuale, scorta_minima, um_scarico, fornitore_id')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .lt('scorta_attuale', svc.from('magazzino').select('scorta_minima'))
-      .order('nome', { ascending: true })
-      .limit(100)
+    // Carica articoli sotto scorta minima (RPC server-side, B16)
+    const { data: articoliSottoScortaData } = await svc
+      .rpc('articoli_sotto_scorta_minima', { p_lab_id: labId })
 
-    // La query sopra non funziona con lt su colonne della stessa tabella — usiamo filter lato JS
-    const { data: tuttiArticoli } = await svc
-      .from('magazzino')
-      .select('id, nome, scorta_attuale, scorta_minima, um_scarico, fornitore_id')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .order('nome', { ascending: true })
-      .limit(500)
-
-    void articoliData // sopprimi warning
-    articoliSottoScorta = ((tuttiArticoli ?? []) as ArticoloSottoScorta[]).filter(
-      (a) => a.scorta_attuale <= a.scorta_minima
-    )
+    articoliSottoScorta = (articoliSottoScortaData ?? []) as ArticoloSottoScorta[]
   }
 
   const ordiniAperti = ordini.filter((o) => !['evaso', 'annullato', 'archiviato'].includes(o.stato))
