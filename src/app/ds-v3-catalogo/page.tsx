@@ -30,6 +30,11 @@ import { DialogConferma } from '@/components/ds/DialogConferma'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { Skeleton } from '@/components/ds/Caricamento'
 import { Vuoto } from '@/components/ds/Vuoto'
+import { BarraMateriale } from '@/components/ds/BarraMateriale'
+import { EroeTuttoAPosto } from '@/components/ds/EroeTuttoAPosto'
+import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
+import { NotaDentista } from '@/components/ds/NotaDentista'
+import { GiornoAgenda, RigaAgenda } from '@/components/ds/RigaAgenda'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -665,6 +670,138 @@ export default function CatalogoPage() {
             L&apos;avviso di errore suona («errore.wav») alla comparsa — l&apos;unico suono di
             questo componente. Lo Skeleton mostra «Un attimo…» solo oltre i 3s: provalo dal vivo,
             non si vede in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo
+        titolo="Il racconto"
+        spec="§5.20 BarraMateriale, §5.21 EroeTuttoAPosto, §5.22 CardUAHaFatto, §5.23 NotaDentista, §5.19 GiornoAgenda/RigaAgenda"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              BarraMateriale — le tre soglie di legge (verde · ambra · rosso)
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+              <BarraMateriale
+                nome="Zirconia A2"
+                quantita="68%"
+                percento={68}
+                nota="Scorta abbondante"
+              />
+              <BarraMateriale
+                nome="Resina B1"
+                quantita="28%"
+                percento={28}
+                nota="Valuta un ordine entro la settimana"
+              />
+              <BarraMateriale
+                nome="Dischi ceramici"
+                quantita="8%"
+                percento={8}
+                nota="Rimangono 2 dischi"
+                onRiordina={() => {}}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              EroeTuttoAPosto — il sollievo si mostra (L5)
+            </p>
+            <EroeTuttoAPosto
+              titolo="Fatture: tutto a posto"
+              righe={['12 fatture inviate questo mese', '€3.240 incassati']}
+            />
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              CardUAHaFatto — dopo una consegna multipla
+            </p>
+            <CardUAHaFatto
+              voci={[
+                { nome: 'DdC firmato e archiviato', sub: 'n.147 · Studio Bianchi' },
+                { nome: 'Fattura inviata ✓', sub: 'n.147 · SDI' },
+                { nome: 'WhatsApp inviato al paziente', sub: 'Link ritiro' },
+              ]}
+            />
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              NotaDentista — l&apos;unico residuo del mondo-chat
+            </p>
+            <NotaDentista
+              citazione="Il colore deve essere leggermente più chiaro rispetto al campione"
+              dottore="Dr. Marchetti"
+              onEspandi={() => {}}
+            />
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              GiornoAgenda · RigaAgenda — OGGI, una consegna e un ritiro
+            </p>
+            <GiornoAgenda etichetta="OGGI" oggi>
+              <RigaAgenda
+                orario="09:00"
+                cosa="Consegna corona ceramica"
+                sub="Studio Bianchi · n.147"
+                tipo="CONSEGNA"
+                onClick={() => {}}
+              />
+              <RigaAgenda
+                orario="14:30"
+                cosa="Ritiro impronte digitali"
+                sub="Dr.ssa Greco"
+                tipo="RITIRO"
+              />
+            </GiornoAgenda>
+          </div>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Le soglie di BarraMateriale sono decise internamente dal componente, mai passate dal
+            chiamante. RIORDINA compare SOLO sotto il 15% e solo se il chiamante passa
+            `onRiordina`. NotaDentista è l&apos;unico posto dell&apos;app che assomiglia a una
+            chat — non lo diventa mai.
           </p>
         </div>
       </SezioneCatalogo>
