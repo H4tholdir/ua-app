@@ -1,7 +1,32 @@
 import { useState } from 'react'
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+
+// Mock di matchMedia per attivare useReducedMotion — stesso precedente di
+// righe.test.tsx (CheckTondo §8.4). Restituisce la funzione di ripristino.
+function attivaReducedMotion(): () => void {
+  const originalMatchMedia = window.matchMedia
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: true,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia
+  return () => {
+    window.matchMedia = originalMatchMedia
+  }
+}
+
+// Flush del requestAnimationFrame di SheetRidotto (entrata: false → true).
+async function flushFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  })
+}
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -404,6 +429,136 @@ describe('DialogConferma — conferma distruttiva centrata (§5.17)', () => {
     )
     const testo = screen.getByRole('dialog').textContent ?? ''
     expect(trovaParoleVietate(testo)).toEqual([])
+  })
+})
+
+describe('Sheet · DialogConferma — reduced motion (§8.4)', () => {
+  let ripristinaMatchMedia: () => void
+
+  beforeEach(() => {
+    suonaMock.mockClear()
+    vibraMock.mockClear()
+    ripristinaMatchMedia = attivaReducedMotion()
+  })
+  afterEach(() => {
+    ripristinaMatchMedia()
+    vi.restoreAllMocks()
+    document.body.style.overflow = ''
+  })
+
+  it('Sheet: si apre in dissolvenza e raggiunge opacity 1 (SheetRidotto, rAF)', async () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    // La transizione è la dissolvenza CSS pura (cssEase.generico), non la molla
+    expect(dialog.style.transition).toContain('opacity')
+    await flushFrame()
+    expect(dialog.style.opacity).toBe('1')
+    // Il contenuto e la via di fuga restano al loro posto
+    expect(within(dialog).getByText('Contenuto')).toBeInTheDocument()
+    expect(within(dialog).getByText('Chiudi')).toBeInTheDocument()
+  })
+
+  it('Sheet: la chiusura è ISTANTANEA — nulla nel DOM subito dopo aperto=false', async () => {
+    const { rerender } = render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    await flushFrame()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    rerender(
+      <Sheet aperto={false} onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    // Senza AnimatePresence nel ramo ridotto la rimozione è immediata: nessun waitFor
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByText('Contenuto')).toBeNull()
+  })
+
+  it('DialogConferma: il ramo ridotto renderizza e il tap sullo scrim chiama comunque onAnnulla', () => {
+    const onConferma = vi.fn()
+    const onAnnulla = vi.fn()
+    render(
+      <DialogConferma
+        aperto
+        titolo="Sei sicuro?"
+        testo="Butto via il lavoro n.148 di Studio Bianchi?"
+        etichettaDistruttiva="Sì, buttalo via"
+        etichettaSicura="No, tienilo"
+        onConferma={onConferma}
+        onAnnulla={onAnnulla}
+      />
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('Sei sicuro?')).toBeInTheDocument()
+    expect(within(dialog).getByText('Butto via il lavoro n.148 di Studio Bianchi?')).toBeInTheDocument()
+    const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
+    expect(scrim).not.toBeNull()
+    fireEvent.click(scrim)
+    expect(onAnnulla).toHaveBeenCalledTimes(1)
+    expect(onConferma).not.toHaveBeenCalled()
+  })
+})
+
+describe('Sheet · DialogConferma — aria labelledby/describedby', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.style.overflow = ''
+  })
+
+  it('Sheet con titolo: aria-labelledby punta all\'id del titolo', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli lavoro">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const dialog = screen.getByRole('dialog')
+    const labelledby = dialog.getAttribute('aria-labelledby')
+    expect(labelledby).toBeTruthy()
+    const titolo = document.getElementById(labelledby as string)
+    expect(titolo).not.toBeNull()
+    expect(titolo).toHaveTextContent('Dettagli lavoro')
+    // Il nome accessibile del dialog È il titolo
+    expect(screen.getByRole('dialog', { name: 'Dettagli lavoro' })).toBe(dialog)
+  })
+
+  it('Sheet senza titolo: nessun aria-labelledby appeso a un id inesistente', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(screen.getByRole('dialog').getAttribute('aria-labelledby')).toBeNull()
+  })
+
+  it('DialogConferma: aria-labelledby → titolo, aria-describedby → testo (l\'oggetto esplicito)', () => {
+    render(
+      <DialogConferma
+        aperto
+        titolo="Sei sicuro?"
+        testo="Butto via il lavoro n.148 di Studio Bianchi?"
+        etichettaDistruttiva="Sì, buttalo via"
+        etichettaSicura="No, tienilo"
+        onConferma={() => {}}
+        onAnnulla={() => {}}
+      />
+    )
+    const dialog = screen.getByRole('dialog')
+    const labelledby = dialog.getAttribute('aria-labelledby')
+    const describedby = dialog.getAttribute('aria-describedby')
+    expect(labelledby).toBeTruthy()
+    expect(describedby).toBeTruthy()
+    expect(document.getElementById(labelledby as string)).toHaveTextContent('Sei sicuro?')
+    expect(document.getElementById(describedby as string)).toHaveTextContent(
+      'Butto via il lavoro n.148 di Studio Bianchi?'
+    )
+    expect(screen.getByRole('dialog', { name: 'Sei sicuro?' })).toBe(dialog)
   })
 })
 

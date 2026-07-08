@@ -9,6 +9,7 @@
 
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -44,6 +45,10 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   const { aperto, onChiudi, titolo, children } = props
   const reduced = useReducedMotion()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titoloId = useId()
+  // aria-labelledby SOLO quando il titolo esiste (a11y): senza titolo il
+  // nome accessibile resta ai contenuti — il chiamante può sempre passarne uno.
+  const ariaLabelledby = titolo ? titoloId : undefined
 
   // Esc → onChiudi, SOLO mentre aperto.
   useEffect(() => {
@@ -88,7 +93,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   const contenutoDialog = (
     <>
       <div className="ds-sheet-grabber" aria-hidden="true" style={grabberStile} />
-      {titolo && <h2 style={titoloStile}>{titolo}</h2>}
+      {titolo && <h2 id={titoloId} style={titoloStile}>{titolo}</h2>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>{children}</div>
       <div style={{ marginTop: spazio.l, display: 'flex', justifyContent: 'center' }}>
         <LinkQuieto onClick={onChiudi}>Chiudi</LinkQuieto>
@@ -98,7 +103,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 
   const overlay = reduced ? (
     aperto ? (
-      <SheetRidotto dialogRef={dialogRef} chiudiSeScrim={chiudiSeScrim}>
+      <SheetRidotto dialogRef={dialogRef} chiudiSeScrim={chiudiSeScrim} ariaLabelledby={ariaLabelledby}>
         {contenutoDialog}
       </SheetRidotto>
     ) : null
@@ -119,6 +124,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
+            aria-labelledby={ariaLabelledby}
             tabIndex={-1}
             initial={coreografie.sheetSu.initial}
             animate={coreografie.sheetSu.animate}
@@ -146,9 +152,10 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 function SheetRidotto(props: {
   dialogRef: RefObject<HTMLDivElement | null>
   chiudiSeScrim: (e: MouseEvent<HTMLDivElement>) => void
+  ariaLabelledby?: string
   children: ReactNode
 }) {
-  const { dialogRef, chiudiSeScrim, children } = props
+  const { dialogRef, chiudiSeScrim, ariaLabelledby, children } = props
   const [entrata, setEntrata] = useState(false)
 
   useEffect(() => {
@@ -167,6 +174,7 @@ function SheetRidotto(props: {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={ariaLabelledby}
         tabIndex={-1}
         style={{ ...sheetStile, opacity: entrata ? 1 : 0, transition: `opacity ${cssEase.generico}` }}
       >

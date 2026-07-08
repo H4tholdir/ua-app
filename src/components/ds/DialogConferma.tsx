@@ -8,11 +8,11 @@
 // esplicito della conferma: è un contratto del chiamante, non verificabile a
 // runtime (come le altre regole "di legge" del design system — solo JSDoc).
 
-import { useEffect, type CSSProperties, type MouseEvent } from 'react'
+import { useEffect, useId, type CSSProperties, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
-import { tipografia, spazio, materia } from '@/design-system/v3/tokens'
+import { tipografia, spazio, raggio, materia } from '@/design-system/v3/tokens'
 import { TastoPrimario } from './TastoPrimario'
 import { TastoSecondario } from './TastoSecondario'
 
@@ -42,6 +42,8 @@ export function DialogConferma(props: {
 }) {
   const { aperto, titolo, testo, etichettaDistruttiva, etichettaSicura, onConferma, onAnnulla } = props
   const reduced = useReducedMotion()
+  const titoloId = useId()
+  const testoId = useId()
 
   useEffect(() => {
     if (!aperto) return
@@ -60,8 +62,8 @@ export function DialogConferma(props: {
 
   const contenutoCard = (
     <>
-      <h2 style={titoloStile}>{titolo}</h2>
-      <p style={testoStile}>{testo}</p>
+      <h2 id={titoloId} style={titoloStile}>{titolo}</h2>
+      <p id={testoId} style={testoStile}>{testo}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, marginTop: spazio.l }}>
         <TastoSecondario onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>
         <TastoPrimario onClick={onConferma}>{etichettaDistruttiva}</TastoPrimario>
@@ -73,7 +75,7 @@ export function DialogConferma(props: {
     aperto ? (
       <div data-ds="v3" style={wrapperStile}>
         <div className="ds-dialog-scrim" onClick={chiudiSeScrim} style={scrimStile} />
-        <div role="dialog" aria-modal="true" style={cardStile}>
+        <div role="dialog" aria-modal="true" aria-labelledby={titoloId} aria-describedby={testoId} style={cardStile}>
           {contenutoCard}
         </div>
       </div>
@@ -94,6 +96,8 @@ export function DialogConferma(props: {
           <motion.div
             role="dialog"
             aria-modal="true"
+            aria-labelledby={titoloId}
+            aria-describedby={testoId}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
@@ -131,13 +135,13 @@ const cardStile: CSSProperties = {
   width: '100%',
   maxWidth: 340,
   background: 'var(--card)',
-  borderRadius: 24,
+  borderRadius: raggio.card,
   padding: spazio.l,
   boxShadow: 'var(--sh-card)',
 }
 
 const titoloStile: CSSProperties = {
-  fontSize: 21,
+  fontSize: tipografia.size.heading,
   fontWeight: tipografia.weight.extrabold,
   color: 'var(--ink)',
   margin: 0,
