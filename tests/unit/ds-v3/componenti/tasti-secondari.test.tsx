@@ -172,6 +172,43 @@ describe('LinkQuieto — via di fuga, L6 (§5.5)', () => {
     const { container } = render(<LinkQuieto onClick={() => {}}>Aspetta, annulla la consegna</LinkQuieto>)
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  it('hit area ≥ 44px (constraint 10) su <button>: min-height 44 + padding verticale compensato da margin negativo', () => {
+    render(<LinkQuieto onClick={() => {}}>Annulla</LinkQuieto>)
+    const el = screen.getByText('Annulla')
+    expect(el.style.minHeight).toBe('44px')
+    expect(el.style.padding).toBe('13px 0px')
+    expect(el.style.margin).toBe('-13px 0px')
+    expect(el.style.display).toBe('inline-flex')
+    expect(el.style.alignItems).toBe('center')
+  })
+
+  it('hit area ≥ 44px (constraint 10) anche sulla variante <a>', () => {
+    render(<LinkQuieto href="/impostazioni">Vai alle impostazioni</LinkQuieto>)
+    const el = screen.getByText('Vai alle impostazioni')
+    expect(el.tagName).toBe('A')
+    expect(el.style.minHeight).toBe('44px')
+    expect(el.style.padding).toBe('13px 0px')
+    expect(el.style.margin).toBe('-13px 0px')
+    expect(el.style.display).toBe('inline-flex')
+    expect(el.style.alignItems).toBe('center')
+  })
+
+  it('anello focus-visible di legge (2px --blue, offset 2) su entrambe le varianti <button> e <a>', () => {
+    const { container: cButton } = render(<LinkQuieto onClick={() => {}}>Annulla</LinkQuieto>)
+    const regolaButton = cButton.querySelector('style')?.textContent ?? ''
+    expect(regolaButton).toContain('.ds-link-quieto:focus-visible')
+    expect(regolaButton).toContain('outline: 2px solid var(--blue)')
+    expect(regolaButton).toContain('outline-offset: 2px')
+    expect(cButton.querySelector('button.ds-link-quieto')).not.toBeNull()
+
+    const { container: cLink } = render(<LinkQuieto href="/impostazioni">Vai alle impostazioni</LinkQuieto>)
+    const regolaLink = cLink.querySelector('style')?.textContent ?? ''
+    expect(regolaLink).toContain('.ds-link-quieto:focus-visible')
+    expect(regolaLink).toContain('outline: 2px solid var(--blue)')
+    expect(regolaLink).toContain('outline-offset: 2px')
+    expect(cLink.querySelector('a.ds-link-quieto')).not.toBeNull()
+  })
 })
 
 describe('dizionario sui testi del catalogo — sezione «Tasti secondari e vie di fuga»', () => {
