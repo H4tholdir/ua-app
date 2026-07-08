@@ -163,15 +163,21 @@ export function CardLavoro(props: {
           cursor: 'pointer',
         }}
       >
+        {/* Riga 1 — numero a sinistra, PillTempo a destra (§5.8). Nessuno dei
+            due si comprime (testo nowrap = larghezza minima incomprimibile):
+            quando non ci stanno entrambi (390px + pill lunga, es. «APPENA
+            ARRIVATO») la riga va a capo e la pill scende su una riga sua,
+            restando a destra grazie a marginLeft auto — mai un overflow oltre
+            il bordo della card (QA visivo T15). */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: spazio.m,
+            flexWrap: 'wrap',
+            gap: `${spazio.s}px ${spazio.m}px`,
           }}
         >
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: spazio.s }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: spazio.s, flexShrink: 0 }}>
             <span
               style={{
                 fontSize: tipografia.size.caption,
@@ -192,7 +198,9 @@ export function CardLavoro(props: {
               n.{numero}
             </span>
           </span>
-          <PillTempo famiglia={tempo.famiglia}>{tempo.testo}</PillTempo>
+          <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: 'auto' }}>
+            <PillTempo famiglia={tempo.famiglia}>{tempo.testo}</PillTempo>
+          </span>
         </div>
 
         <p

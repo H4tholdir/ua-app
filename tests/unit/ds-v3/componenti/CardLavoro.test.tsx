@@ -152,6 +152,25 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  it('riga 1 — la PillTempo non trabocca mai dalla card (QA visivo T15, 390px): riga a capo consentito, pill mai compressa, sempre a destra', () => {
+    // Bug trovato in QA visiva: a 390px «APPENA ARRIVATO» usciva dal bordo
+    // destro della card (~8px) perché numero e pill hanno entrambi larghezza
+    // minima incomprimibile (testo nowrap) e la riga non poteva andare a capo.
+    render(<CardLavoro {...PROPS_BASE} tempo={{ testo: 'APPENA ARRIVATO', famiglia: 'blue' }} onApri={() => {}} />)
+    const pill = screen.getByText('APPENA ARRIVATO')
+    // La pill sta in un involucro suo: mai schiacciata sotto il suo min-content
+    // (flexShrink 0 → testo sempre intero) e ancorata a destra anche quando va
+    // a capo (marginLeft auto, non justify-content del contenitore).
+    const involucro = pill.parentElement as HTMLElement
+    expect(involucro.style.flexShrink).toBe('0')
+    expect(involucro.style.marginLeft).toBe('auto')
+    // La riga 1 può andare a capo quando numero + pill non ci stanno.
+    const riga1 = involucro.parentElement as HTMLElement
+    expect(riga1.style.flexWrap).toBe('wrap')
+    // Il numero non si comprime mai: prefisso + n. restano interi.
+    expect(screen.getByText('n.147').parentElement).toHaveStyle({ flexShrink: '0' })
+  })
 })
 
 describe('catalogo DS v3 — sezione «CardLavoro»', () => {
