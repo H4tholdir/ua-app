@@ -35,12 +35,14 @@ export const materia = {
   granaOpacityLight: 0.05,
   granaOpacityDark: 0.06,
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
+  anelloGuidaTastoPiu: 'rgba(50,40,25,.14)', // §5.2 — anello guida a -9px dalla faccia, 2px
 } as const
 
 // Valori-legge non tokenizzati come variabile CSS (§5.1/§5.4/§5.11-12/§5.14) —
 // vivono solo qui: unica eccezione ammessa al check pre-commit "niente hex fuori da tokens.ts".
 export const gradiente = {
   tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
+  tastoPiu: 'radial-gradient(circle at 35% 30%, #FF4C5C, var(--red) 55%, #B00010)', // §5.2
   pillFase: 'linear-gradient(180deg, #269950, var(--green))',                    // §5.4
   corsaPillFase: '#14602C',                                                      // §5.4
   dashedGuida: '#CBC1B0',                                                        // §5.11/5.12

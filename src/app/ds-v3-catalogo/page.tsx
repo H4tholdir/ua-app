@@ -16,6 +16,7 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { PillTempo, PillStato } from '@/components/ds/Pill'
 import { PillFase } from '@/components/ds/PillFase'
+import { TastoPiu } from '@/components/ds/TastoPiu'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -224,6 +225,24 @@ export default function CatalogoPage() {
             </p>
             <PillFase onClick={() => {}} />
           </div>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="TastoPiu" spec="§5.2 — l'otturatore della home">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <TastoPiu onClick={() => {}} />
+          <TastoPiu onClick={() => {}} etichetta="Nuova scheda" />
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Vive SOLO in basso al centro della home (L1). Il morph nel wizard
+            (§8.3.2) è del sotto-progetto 3: qui c&apos;è solo la pressione fisica —
+            provala dal vivo, non si vede in uno screenshot statico.
+          </p>
         </div>
       </SezioneCatalogo>
     </div>

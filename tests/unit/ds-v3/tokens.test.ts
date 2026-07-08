@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia } from '@/design-system/v3/tokens'
+import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
   const c = hex.replace('#', '')
@@ -53,6 +53,14 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     expect(gradiente.pillFase).toBe('linear-gradient(180deg, #269950, var(--green))')
     expect(gradiente.corsaPillFase).toBe('#14602C')
     expect(gradiente.dashedGuida).toBe('#CBC1B0')
+  })
+  it('gradiente.tastoPiu: valore-legge esatto (§5.2 — luce a 35%/30%)', () => {
+    expect(gradiente.tastoPiu).toBe(
+      'radial-gradient(circle at 35% 30%, #FF4C5C, var(--red) 55%, #B00010)'
+    )
+  })
+  it('materia.anelloGuidaTastoPiu: valore-legge esatto (§5.2 — anello guida a -9px, 2px)', () => {
+    expect(materia.anelloGuidaTastoPiu).toBe('rgba(50,40,25,.14)')
   })
   it('avatarPalette: 6 voci esatte (§5.14)', () => {
     expect(avatarPalette).toEqual(['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'])
