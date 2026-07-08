@@ -49,6 +49,24 @@ function sottoscriviTema(onChange: () => void): () => void {
 const temaScuro = () => document.documentElement.getAttribute('data-theme') === 'dark'
 const temaScuroServer = () => false
 
+// Indice ancorato in testa alla pagina (§14.2): un'unica fonte per ordine +
+// etichette, condivisa fra il <nav> e il test che conta le sezioni.
+export const INDICE = [
+  { id: 'tasto-primario', titolo: 'TastoPrimario' },
+  { id: 'tasti-secondari', titolo: 'Tasti secondari e vie di fuga' },
+  { id: 'tasto-piu', titolo: 'TastoPiu' },
+  { id: 'pill', titolo: 'Pill' },
+  { id: 'tile-avatar-cerca', titolo: 'Tile · Avatar · Cerca' },
+  { id: 'pila-striscia', titolo: 'Pila · StrisciaStato' },
+  { id: 'card-lavoro', titolo: 'CardLavoro' },
+  { id: 'righe', titolo: 'CardInfo · RigaFase' },
+  { id: 'sheet-dialog', titolo: 'Sheet · DialogConferma' },
+  { id: 'avviso-skeleton-vuoto', titolo: 'Avviso · Skeleton · Vuoto' },
+  { id: 'campo', titolo: 'Campo' },
+  { id: 'racconto', titolo: 'Il racconto' },
+  { id: 'pill-voce', titolo: 'PillVoce' },
+] as const
+
 // Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
 // PillFase), 1 futura — stato locale solo per rendere la spunta viva nel
 // catalogo, non un pattern da riusare a monte.
@@ -179,8 +197,64 @@ export default function CatalogoPage() {
         </motion.button>
       </header>
 
+      {/* Indice ancorato — ordine di legge §14.2: Tasti → Pill → Tile/Avatar/Cerca →
+          Pila/Striscia → CardLavoro → Righe → Sheet/Dialog → Avviso/Skeleton/Vuoto →
+          Campi → Racconto → PillVoce. Ogni voce punta all'id della SezioneCatalogo. */}
+      <nav
+        aria-label="Indice del catalogo"
+        style={{
+          marginBottom: spazio.xl,
+          padding: spazio.l,
+          borderRadius: raggio.card,
+          background: 'var(--card)',
+          border: '1px solid var(--line)',
+        }}
+      >
+        <p
+          style={{
+            fontSize: tipografia.size.caption,
+            letterSpacing: tipografia.tracking.caption,
+            color: 'var(--muted)',
+            margin: `0 0 ${spazio.s}px`,
+          }}
+        >
+          Indice
+        </p>
+        <ol
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: spazio.s,
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+          }}
+        >
+          {INDICE.map(({ id, titolo }) => (
+            <li key={id}>
+              <a
+                href={`#${id}`}
+                className="catalogo-interattivo"
+                style={{
+                  display: 'inline-block',
+                  padding: `${spazio.xs}px ${spazio.s}px`,
+                  borderRadius: raggio.pill,
+                  border: '1px solid var(--line)',
+                  color: 'var(--blue)',
+                  fontSize: tipografia.size.callout,
+                  fontWeight: tipografia.weight.semibold,
+                  textDecoration: 'none',
+                }}
+              >
+                {titolo}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
       {/* Le sezioni dei componenti arrivano qui, una per task (contratto §14.2). */}
-      <SezioneCatalogo titolo="TastoPrimario" spec="§5.1 — il tasto fisico">
+      <SezioneCatalogo id="tasto-primario" titolo="TastoPrimario" spec="§5.1 — il tasto fisico">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <TastoPrimario onClick={() => {}}>Consegna</TastoPrimario>
           <TastoPrimario disabled motivoDisabilitato="Completa il controllo finale per consegnare">
@@ -199,7 +273,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="Tasti secondari e vie di fuga" spec="§5.3, §5.6, §5.5">
+      <SezioneCatalogo id="tasti-secondari" titolo="Tasti secondari e vie di fuga" spec="§5.3, §5.6, §5.5">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
             <TastoSecondario onClick={() => {}}>Apri il lavoro</TastoSecondario>
@@ -228,7 +302,25 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="Pill" spec="§5.9 PillTempo/PillStato, §5.4 PillFase">
+      <SezioneCatalogo id="tasto-piu" titolo="TastoPiu" spec="§5.2 — l'otturatore della home">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <TastoPiu onClick={() => {}} />
+          <TastoPiu onClick={() => {}} etichetta="Nuova scheda" />
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Vive SOLO in basso al centro della home (L1). Il morph nel wizard
+            (§8.3.2) è del sotto-progetto 3: qui c&apos;è solo la pressione fisica —
+            provala dal vivo, non si vede in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="pill" titolo="Pill" spec="§5.9 PillTempo/PillStato, §5.4 PillFase">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div>
             <p
@@ -287,25 +379,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="TastoPiu" spec="§5.2 — l'otturatore della home">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-          <TastoPiu onClick={() => {}} />
-          <TastoPiu onClick={() => {}} etichetta="Nuova scheda" />
-          <p
-            style={{
-              fontSize: tipografia.size.caption,
-              color: 'var(--muted)',
-              margin: 0,
-            }}
-          >
-            Vive SOLO in basso al centro della home (L1). Il morph nel wizard
-            (§8.3.2) è del sotto-progetto 3: qui c&apos;è solo la pressione fisica —
-            provala dal vivo, non si vede in uno screenshot statico.
-          </p>
-        </div>
-      </SezioneCatalogo>
-
-      <SezioneCatalogo titolo="Tile · Avatar · Cerca" spec="§5.12 TileScelta/TileNuovo, §5.14 Avatar, §5.13 RigaCerca">
+      <SezioneCatalogo id="tile-avatar-cerca" titolo="Tile · Avatar · Cerca" spec="§5.12 TileScelta/TileNuovo, §5.14 Avatar, §5.13 RigaCerca">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <div
             style={{
@@ -355,7 +429,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="Pila · StrisciaStato" spec="§5.7 le tre pile di legge, §5.24 StrisciaStato">
+      <SezioneCatalogo id="pila-striscia" titolo="Pila · StrisciaStato" spec="§5.7 le tre pile di legge, §5.24 StrisciaStato">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div>
             <p
@@ -432,7 +506,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="CardLavoro" spec="§5.8 — la card nelle liste">
+      <SezioneCatalogo id="card-lavoro" titolo="CardLavoro" spec="§5.8 — la card nelle liste">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <CardLavoro
             numero="147"
@@ -473,7 +547,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="CardInfo · RigaFase" spec="§5.10 CardInfo/RigaDato, §5.11 RigaFase/CheckTondo">
+      <SezioneCatalogo id="righe" titolo="CardInfo · RigaFase" spec="§5.10 CardInfo/RigaDato, §5.11 RigaFase/CheckTondo">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div>
             <p
@@ -543,7 +617,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="Sheet · DialogConferma" spec="§5.16 Sheet, §5.17 DialogConferma">
+      <SezioneCatalogo id="sheet-dialog" titolo="Sheet · DialogConferma" spec="§5.16 Sheet, §5.17 DialogConferma">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <div style={{ display: 'flex', gap: spazio.m, flexWrap: 'wrap' }}>
             <TastoSecondario onClick={() => setSheetAperto(true)}>Apri lo sheet</TastoSecondario>
@@ -579,42 +653,7 @@ export default function CatalogoPage() {
         />
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="Campo" spec="§5.27 — CampoTesto, CampoNumero, CampoData">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-          <TastoSecondario onClick={() => setSheetCampiAperto(true)}>
-            Apri la scheda nuovo lavoro
-          </TastoSecondario>
-          <p
-            style={{
-              fontSize: tipografia.size.caption,
-              color: 'var(--muted)',
-              margin: 0,
-            }}
-          >
-            I tre campi vivono SOLO dentro wizard e sheet (§5.27), mai in una lista o in una
-            card di sola lettura: qui sono dentro uno sheet demo, come da regola d&apos;uso.
-            CampoData non mostra mai un calendario a griglia come impostazione predefinita — solo
-            scelte rapide, più «Scegli…» per il calendario nativo del telefono.
-          </p>
-        </div>
-
-        <Sheet
-          aperto={sheetCampiAperto}
-          onChiudi={() => setSheetCampiAperto(false)}
-          titolo="Nuovo lavoro"
-        >
-          <CampoTesto
-            label="Nome paziente"
-            valore={nomePaziente}
-            onCambia={setNomePaziente}
-            placeholder="Es. PZ-1042"
-          />
-          <CampoNumero label="Importo" valore={importo} onCambia={setImporto} suffisso="€" />
-          <CampoData label="Consegna" valore={dataConsegna} onCambia={setDataConsegna} />
-        </Sheet>
-      </SezioneCatalogo>
-
-      <SezioneCatalogo titolo="Avviso · Skeleton · Vuoto" spec="§5.18 Avviso, §5.25 Caricamento, §5.26 Vuoto">
+      <SezioneCatalogo id="avviso-skeleton-vuoto" titolo="Avviso · Skeleton · Vuoto" spec="§5.18 Avviso, §5.25 Caricamento, §5.26 Vuoto">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div>
             <p
@@ -676,7 +715,43 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
+      <SezioneCatalogo id="campo" titolo="Campo" spec="§5.27 — CampoTesto, CampoNumero, CampoData">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <TastoSecondario onClick={() => setSheetCampiAperto(true)}>
+            Apri la scheda nuovo lavoro
+          </TastoSecondario>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            I tre campi vivono SOLO dentro wizard e sheet (§5.27), mai in una lista o in una
+            card di sola lettura: qui sono dentro uno sheet demo, come da regola d&apos;uso.
+            CampoData non mostra mai un calendario a griglia come impostazione predefinita — solo
+            scelte rapide, più «Scegli…» per il calendario nativo del telefono.
+          </p>
+        </div>
+
+        <Sheet
+          aperto={sheetCampiAperto}
+          onChiudi={() => setSheetCampiAperto(false)}
+          titolo="Nuovo lavoro"
+        >
+          <CampoTesto
+            label="Nome paziente"
+            valore={nomePaziente}
+            onCambia={setNomePaziente}
+            placeholder="Es. PZ-1042"
+          />
+          <CampoNumero label="Importo" valore={importo} onCambia={setImporto} suffisso="€" />
+          <CampoData label="Consegna" valore={dataConsegna} onCambia={setDataConsegna} />
+        </Sheet>
+      </SezioneCatalogo>
+
       <SezioneCatalogo
+        id="racconto"
         titolo="Il racconto"
         spec="§5.20 BarraMateriale, §5.21 EroeTuttoAPosto, §5.22 CardUAHaFatto, §5.23 NotaDentista, §5.19 GiornoAgenda/RigaAgenda"
       >
@@ -808,7 +883,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo titolo="PillVoce" spec="§5.15 — l'input vocale, progressive enhancement">
+      <SezioneCatalogo id="pill-voce" titolo="PillVoce" spec="§5.15 — l'input vocale, progressive enhancement">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <PillVoce onTesto={setTestoVoce} />
           {testoVoce && (
@@ -829,6 +904,18 @@ export default function CatalogoPage() {
           </p>
         </div>
       </SezioneCatalogo>
+
+      <footer
+        style={{
+          marginTop: spazio.xl,
+          padding: `${spazio.l}px 0`,
+          textAlign: 'center',
+          fontSize: tipografia.size.caption,
+          color: 'var(--muted)',
+        }}
+      >
+        DS v3 «Una cosa alla volta» — catalogo componenti · luglio 2026
+      </footer>
     </div>
   )
 }

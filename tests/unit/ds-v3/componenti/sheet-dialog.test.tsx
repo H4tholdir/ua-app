@@ -573,6 +573,6 @@ describe('dizionario sui testi del catalogo — sezione «Sheet · DialogConferm
   it('il catalogo mostra la sezione «Sheet · DialogConferma» con due bottoni demo', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText(/Sheet · DialogConferma/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Sheet · DialogConferma/i })).toBeInTheDocument()
   })
 })

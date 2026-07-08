@@ -410,7 +410,7 @@ describe('catalogo DS v3 — sezione «Il racconto»', () => {
   it('mostra la sezione con titolo dedicato', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText('Il racconto')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Il racconto' })).toBeInTheDocument()
   })
 
   it('mostra le 3 BarreMateriale (una per livello) con RIORDINA sulla rossa', () => {

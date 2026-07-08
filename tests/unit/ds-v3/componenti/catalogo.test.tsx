@@ -7,7 +7,7 @@ vi.mock('@/design-system/v3/sound', () => ({
   initSuoni: () => initSuoniMock(),
 }))
 
-import CatalogoPage from '../../../../src/app/ds-v3-catalogo/page'
+import CatalogoPage, { INDICE } from '../../../../src/app/ds-v3-catalogo/page'
 import { SezioneCatalogo } from '../../../../src/app/ds-v3-catalogo/CatalogoShell'
 
 describe('catalogo DS v3 — skeleton (§14.2)', () => {
@@ -93,5 +93,43 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     render(<CatalogoPage />)
     const testo = document.body.textContent ?? ''
     expect(trovaParoleVietate(testo)).toEqual([])
+  })
+
+  it('il catalogo è completo: 13 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
+    expect(INDICE).toHaveLength(13)
+    expect(INDICE.map((voce) => voce.titolo)).toEqual([
+      'TastoPrimario',
+      'Tasti secondari e vie di fuga',
+      'TastoPiu',
+      'Pill',
+      'Tile · Avatar · Cerca',
+      'Pila · StrisciaStato',
+      'CardLavoro',
+      'CardInfo · RigaFase',
+      'Sheet · DialogConferma',
+      'Avviso · Skeleton · Vuoto',
+      'Campo',
+      'Il racconto',
+      'PillVoce',
+    ])
+  })
+
+  it('ogni voce dell\'indice ha un\'ancora <nav> e una sezione con lo stesso id nel DOM', () => {
+    const { container } = render(<CatalogoPage />)
+    const nav = container.querySelector('nav[aria-label="Indice del catalogo"]')
+    expect(nav).not.toBeNull()
+    for (const { id, titolo } of INDICE) {
+      expect(nav?.querySelector(`a[href="#${id}"]`)).not.toBeNull()
+      const sezione = container.querySelector(`#${id}`)
+      expect(sezione, `sezione mancante per id="${id}" (${titolo})`).not.toBeNull()
+      expect(sezione?.tagName).toBe('SECTION')
+    }
+  })
+
+  it('il footer riporta versione DS e data', () => {
+    render(<CatalogoPage />)
+    expect(
+      screen.getByText('DS v3 «Una cosa alla volta» — catalogo componenti · luglio 2026')
+    ).toBeInTheDocument()
   })
 })

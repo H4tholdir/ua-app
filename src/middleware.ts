@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createMiddlewareClient } from '@/lib/supabase/middleware-client'
 
-const PUBLIC_ROUTES = ['/login', '/invite', '/forgot-password', '/reset-password', '/blocked', '/billing', '/portale', '/richiedi']
+const PUBLIC_ROUTES = ['/login', '/invite', '/forgot-password', '/reset-password', '/blocked', '/billing', '/portale', '/richiedi', '/ds-v3-catalogo']
 const AUTH_CALLBACK = '/auth/callback'
 
 export async function middleware(request: NextRequest) {
@@ -33,8 +33,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Autenticato su route auth → dashboard (eccetto /blocked e /billing che restano accessibili)
-  if (user && isPublicRoute && pathname !== '/blocked' && pathname !== '/billing') {
+  // Autenticato su route auth → dashboard (eccetto /blocked, /billing e /ds-v3-catalogo,
+  // che restano accessibili: il catalogo DS v3 non è un flusso di autenticazione, è la
+  // pagina di QA visiva del design system — deve restare aperta anche a chi ha già sessione).
+  if (
+    user &&
+    isPublicRoute &&
+    pathname !== '/blocked' &&
+    pathname !== '/billing' &&
+    !pathname.startsWith('/ds-v3-catalogo')
+  ) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

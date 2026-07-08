@@ -267,7 +267,7 @@ describe('catalogo DS v3 — sezione «CardInfo · RigaFase»', () => {
   it('mostra la sezione con titolo dedicato', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText('CardInfo · RigaFase')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'CardInfo · RigaFase' })).toBeInTheDocument()
   })
 
   it('mostra una CardInfo con 5 RigheDato (una urgente) e una lista di 4 RigheFase (2 fatte, la prossima con PillFase, 1 futura)', async () => {

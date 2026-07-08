@@ -222,7 +222,7 @@ describe('dizionario sui testi del catalogo — sezione «Tasti secondari e vie 
   it('il catalogo mostra la sezione «Tasti secondari e vie di fuga» con TastoTondo back e menu', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText(/Tasti secondari e vie di fuga/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Tasti secondari e vie di fuga/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Indietro' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Menu' })).toBeInTheDocument()
   })

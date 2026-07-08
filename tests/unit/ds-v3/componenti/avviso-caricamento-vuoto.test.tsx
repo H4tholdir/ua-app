@@ -472,7 +472,7 @@ describe('dizionario sui testi del catalogo — sezione «Avviso · Skeleton · 
   it('il catalogo mostra la sezione «Avviso · Skeleton · Vuoto» con i bottoni demo e il Vuoto del caffè', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText(/Avviso · Skeleton · Vuoto/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Avviso · Skeleton · Vuoto/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mostra un avviso' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mostra un errore' })).toBeInTheDocument()
     expect(screen.getByText('Nessun lavoro sul banco')).toBeInTheDocument()

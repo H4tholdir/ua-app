@@ -156,7 +156,7 @@ describe('catalogo DS v3 — sezione «Pill»', () => {
   it('il catalogo mostra la sezione «Pill» con PillTempo, PillStato (vocabolario intero) e PillFase', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
-    expect(screen.getByText(/^Pill$/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Pill$/ })).toBeInTheDocument()
     for (const stato of TUTTI_GLI_STATI) {
       expect(screen.getAllByText(stato).length).toBeGreaterThan(0)
     }

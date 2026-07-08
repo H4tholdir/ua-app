@@ -7,16 +7,23 @@
 import type { ReactNode } from 'react'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 
-export function SezioneCatalogo(props: { titolo: string; spec: string; children: ReactNode }) {
-  const { titolo, spec, children } = props
+export function SezioneCatalogo(props: {
+  titolo: string
+  spec: string
+  children: ReactNode
+  id?: string
+}) {
+  const { titolo, spec, children, id } = props
   return (
     <section
+      id={id}
       style={{
         marginBottom: spazio.xl,
         padding: spazio.l,
         borderRadius: raggio.card,
         background: 'var(--card)',
         border: '1px solid var(--line)',
+        scrollMarginTop: spazio.l,
       }}
     >
       <header style={{ marginBottom: spazio.m }}>
