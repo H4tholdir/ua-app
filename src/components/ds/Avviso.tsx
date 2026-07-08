@@ -13,8 +13,16 @@
 //
 // Portal su `document.body` (stesso pattern sanzionato di Sheet — constraint
 // 3): il toast deve stare sopra qualunque stacking context di pagina, quindi
-// porta con sé `data-ds="v3"`. SSR-safety (constraint 12) via lo stesso guard
-// di Sheet: `typeof document === 'undefined'` in render, mai in un effect.
+// porta con sé `data-ds="v3"`. SSR-safety (constraint 12): qui NON basta la
+// guardia sincrona `typeof document` di Sheet — lì il contenuto portalato è
+// vuoto finché chiuso, qui il contenitore fixed esiste anche con zero toast,
+// e comparire al primo render client (dove document c'è già) mentre il server
+// non l'ha renderizzato è un hydration mismatch reale (QA visivo T15). Il
+// contenitore monta quindi solo post-idratazione, via useSyncExternalStore
+// (snapshot server false, client true — stesso pattern del catalogo/Task 1,
+// niente setState in effect): server e primo render client coincidono
+// entrambi su "niente", poi il portal appare e resta montato (le exit
+// animation dei toast non vengono mai tagliate).
 
 import {
   createContext,
@@ -23,6 +31,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -47,6 +56,15 @@ const AvvisiContext = createContext<{
   errore: (testo: string, opts?: { azione?: Azione }) => void
 } | null>(null)
 
+// "Sono idratato?" via useSyncExternalStore: lo store non cambia mai (subscribe
+// no-op), ma lo snapshot server è false e quello client è true — React usa il
+// primo durante l'idratazione (render identico all'HTML server) e ri-renderizza
+// col secondo subito dopo il mount. Niente setState in effect (regola ESLint
+// react-hooks/set-state-in-effect), niente guardia sincrona su document.
+const sottoscriviMai = () => () => {}
+const snapshotClient = () => true
+const snapshotServer = () => false
+
 /**
  * AvvisiProvider — monta il contesto e il contenitore dei toast (§5.18).
  * Va avvolto attorno a qualunque albero che chiami `useAvvisi()`.
@@ -54,6 +72,7 @@ const AvvisiContext = createContext<{
 export function AvvisiProvider(props: { children: ReactNode }) {
   const { children } = props
   const [voci, setVoci] = useState<VoceAvviso[]>([])
+  const idratato = useSyncExternalStore(sottoscriviMai, snapshotClient, snapshotServer)
 
   const rimuovi = useCallback((id: number) => {
     setVoci((correnti) => correnti.filter((v) => v.id !== id))
@@ -70,13 +89,13 @@ export function AvvisiProvider(props: { children: ReactNode }) {
     vibra('error')
   }, [])
 
-  // SSR-safety (constraint 12): niente createPortal/document durante il
-  // render server — sul client document esiste sempre già al primo render
-  // (stesso guard di Sheet).
+  // SSR-safety + idratazione (constraint 12): il contenitore monta solo quando
+  // `idratato` è true — mai sul server (niente document) e mai nel PRIMO render
+  // client, che deve coincidere con l'HTML server. Vedi nota in testa al file.
   return (
     <AvvisiContext.Provider value={{ avvisa, errore }}>
       {children}
-      {typeof document !== 'undefined' &&
+      {idratato &&
         createPortal(<AvvisiContenitore voci={voci} onRimuovi={rimuovi} />, document.body)}
     </AvvisiContext.Provider>
   )
