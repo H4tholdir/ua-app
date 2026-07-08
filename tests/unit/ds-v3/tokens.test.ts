@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette } from '@/design-system/v3/tokens'
+import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
   const c = hex.replace('#', '')
@@ -57,5 +57,8 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   it('avatarPalette: 6 voci esatte (§5.14)', () => {
     expect(avatarPalette).toEqual(['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'])
     expect(avatarPalette.length).toBe(6)
+  })
+  it('testoSuFaccia: valore-legge esatto (testo bianco su facce gradiente, §5.1/§5.4)', () => {
+    expect(testoSuFaccia).toBe('#FFFFFF')
   })
 })

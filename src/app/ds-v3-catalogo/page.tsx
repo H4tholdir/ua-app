@@ -14,6 +14,8 @@ import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
+import { PillTempo, PillStato } from '@/components/ds/Pill'
+import { PillFase } from '@/components/ds/PillFase'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -163,6 +165,65 @@ export default function CatalogoPage() {
             TastoTondo è riservato a back/menu nell&apos;header — nient&apos;altro. LinkQuieto è
             riservato alle vie di fuga (L6): mai per un&apos;azione che conta.
           </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Pill" spec="§5.9 PillTempo/PillStato, §5.4 PillFase">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              PillTempo — quattro famiglie colore
+            </p>
+            <div style={{ display: 'flex', gap: spazio.s, flexWrap: 'wrap' }}>
+              <PillTempo famiglia="red">OGGI · 15:00</PillTempo>
+              <PillTempo famiglia="amber">DOMANI · 09:00</PillTempo>
+              <PillTempo famiglia="blue">LUN · 10:30</PillTempo>
+              <PillTempo famiglia="green">TRA 3 GIORNI</PillTempo>
+            </div>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              PillStato — vocabolario chiuso, tutti gli stati
+            </p>
+            <div style={{ display: 'flex', gap: spazio.s, flexWrap: 'wrap' }}>
+              <PillStato stato="DA CONSEGNARE" />
+              <PillStato stato="STA PER FINIRE" />
+              <PillStato stato="IN FORNO" />
+              <PillStato stato="IN RIFINITURA" />
+              <PillStato stato="DA INCASSARE" />
+              <PillStato stato="APPENA ARRIVATO" />
+              <PillStato stato="PRONTA ✓" />
+              <PillStato stato="CONSEGNATO ✓" />
+              <PillStato stato="INCASSATA ✓" />
+              <PillStato stato="INVIATA ✓" />
+            </div>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              PillFase — chiude una fase del lavoro
+            </p>
+            <PillFase onClick={() => {}} />
+          </div>
         </div>
       </SezioneCatalogo>
     </div>

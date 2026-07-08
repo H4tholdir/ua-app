@@ -47,6 +47,11 @@ export const gradiente = {
 } as const
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 
+// Valore-legge: testo bianco sopra le facce gradiente (§5.1 TastoPrimario, §5.4 PillFase).
+// Vive qui (non var(--…)) perché è bianco assoluto indipendente dal tema, non un token
+// luce/notte — stessa eccezione ammessa di `gradiente` al check pre-commit 4a.
+export const testoSuFaccia = '#FFFFFF' as const
+
 export type TokenColoreLuce = keyof typeof luce
 export function varV3(nome: string): string {
   // kebab-case della chiave: bgDeep → --bg-deep

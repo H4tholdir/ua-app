@@ -7,7 +7,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { molla } from '@/design-system/v3/motion'
-import { gradiente, tipografia, raggio, spazio } from '@/design-system/v3/tokens'
+import { gradiente, tipografia, raggio, spazio, testoSuFaccia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 
@@ -88,7 +88,7 @@ export function TastoPrimario(props: {
           borderRadius: raggio.tasto,
           border: 'none',
           background: disabled ? 'var(--bg-deep)' : gradiente.tastoPrimario,
-          color: disabled ? 'var(--faint)' : 'white',
+          color: disabled ? 'var(--faint)' : testoSuFaccia,
           fontSize: tipografia.size.heading,
           fontWeight: tipografia.weight.extrabold,
           letterSpacing: '0.04em',
