@@ -5380,6 +5380,47 @@ export type Database = {
       }
       admin_delete_laboratorio: { Args: { p_lab_id: string }; Returns: Json }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
+      articoli_sotto_scorta_minima: {
+        Args: { p_lab_id: string }
+        Returns: {
+          aliquota_iva: number
+          attivo: boolean
+          categoria: string | null
+          codice_articolo: string
+          codice_articolo_fornitore: string | null
+          codice_ce: string | null
+          codice_smaltimento: string | null
+          conf_da_ordinare: number | null
+          costo_confezione: number | null
+          costo_unitario: number | null
+          created_at: string
+          deleted_at: string | null
+          dispositivo_medico: boolean
+          fornitore_id: string | null
+          id: string
+          laboratorio_id: string
+          nome: string
+          note: string | null
+          prezzo_unitario: number | null
+          produttore: string | null
+          quantita_per_confezione: number | null
+          scheda_sicurezza_url: string | null
+          scheda_tecnica_url: string | null
+          scorta_attuale: number
+          scorta_minima: number
+          sotto_categoria: string | null
+          traccia_lotto: boolean
+          um_acquisto: string
+          um_scarico: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "magazzino"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       calcola_imponibile_lavoro: {
         Args: { p_lavoro_id: string }
         Returns: number
