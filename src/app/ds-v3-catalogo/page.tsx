@@ -19,6 +19,8 @@ import { PillFase } from '@/components/ds/PillFase'
 import { TastoPiu } from '@/components/ds/TastoPiu'
 import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
 import { RigaCerca } from '@/components/ds/RigaCerca'
+import { Pila } from '@/components/ds/Pila'
+import { StrisciaStato } from '@/components/ds/StrisciaStato'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -294,6 +296,83 @@ export default function CatalogoPage() {
             Il colore dell&apos;avatar è deterministico dal nome (§5.14): stesso nome, stesso
             colore, senza stato. TileScelta è una selezione (vibrazione, mai suono); TileNuovo e
             RigaCerca aprono qualcos&apos;altro.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Pila · StrisciaStato" spec="§5.7 le tre pile di legge, §5.24 StrisciaStato">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              Le tre pile — sempre queste, sempre in quest&apos;ordine (L1)
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+              <Pila
+                tipo="daConsegnare"
+                numero={3}
+                sub="n.147 Studio Bianchi — corona"
+                onClick={() => {}}
+              />
+              <Pila tipo="sulBanco" numero={5} sub="n.152 Rossi — ponte" onClick={() => {}} />
+              <Pila
+                tipo="appenaArrivati"
+                numero={2}
+                sub="n.158 Studio Verdi — impronta"
+                onClick={() => {}}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              Pila vuota — numero 0, mai nascosta (L5: il sollievo si mostra)
+            </p>
+            <Pila tipo="daConsegnare" numero={0} sub="Tutte consegnate ✓" onClick={() => {}} />
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              StrisciaStato — rassicurazione e attenzione
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+              <StrisciaStato>
+                Hai già consegnato{' '}
+                <strong style={{ color: 'var(--ink)' }}>4 lavori</strong> oggi
+              </StrisciaStato>
+              <StrisciaStato attenzione onClick={() => {}}>
+                Firma il DdC di n.144 →
+              </StrisciaStato>
+            </div>
+          </div>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Pila è il componente più sacro dell&apos;app: tap su tutta la card = selezione
+            (vibrazione, mai suono). Il morph pila→lista (§8.3.1) è del sotto-progetto 3 — qui c&apos;è
+            solo la card.
           </p>
         </div>
       </SezioneCatalogo>
