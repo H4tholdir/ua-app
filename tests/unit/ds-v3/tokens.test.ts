@@ -65,6 +65,9 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   it('materia.scrim: valore-legge esatto (§5.16/§5.17 — scrim di Sheet e DialogConferma)', () => {
     expect(materia.scrim).toBe('rgba(29,25,19,.35)')
   })
+  it('materia.cerchioMicPillVoce: valore-legge esatto (§5.15 — cerchio mic dentro PillVoce)', () => {
+    expect(materia.cerchioMicPillVoce).toBe('rgba(255,255,255,.16)')
+  })
   it('avatarPalette: 6 voci esatte (§5.14)', () => {
     expect(avatarPalette).toEqual(['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'])
     expect(avatarPalette.length).toBe(6)

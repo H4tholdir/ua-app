@@ -1,0 +1,186 @@
+import { render, screen, fireEvent, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+
+const suonaMock = vi.fn()
+const vibraMock = vi.fn()
+vi.mock('@/design-system/v3/sound', () => ({
+  suona: (nome: string) => suonaMock(nome),
+}))
+vi.mock('@/design-system/v3/haptic', () => ({
+  vibra: (tipo: string) => vibraMock(tipo),
+}))
+
+import { PillVoce } from '@/components/ds/PillVoce'
+
+// Mock minimo del Web Speech API — cattura l'ultima istanza costruita così i
+// test possono pilotare gli eventi (onresult/onerror/onend) a mano.
+type Evento = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
+
+const istanzeCostruite: MockSpeechRecognition[] = []
+
+class MockSpeechRecognition {
+  lang = ''
+  start = vi.fn()
+  stop = vi.fn()
+  onresult: ((evento: Evento) => void) | null = null
+  onerror: (() => void) | null = null
+  onend: (() => void) | null = null
+  constructor() {
+    istanzeCostruite.push(this)
+  }
+}
+
+// Getter di comodo — sempre l'ultima istanza costruita (niente alias di `this`).
+function ultimaIstanza(): MockSpeechRecognition | null {
+  return istanzeCostruite[istanzeCostruite.length - 1] ?? null
+}
+
+function installaApi(nomeGlobale: 'SpeechRecognition' | 'webkitSpeechRecognition' = 'SpeechRecognition') {
+  istanzeCostruite.length = 0
+  ;(window as unknown as Record<string, unknown>)[nomeGlobale] = MockSpeechRecognition
+}
+
+describe('PillVoce — input vocale, progressive enhancement (§5.15)', () => {
+  beforeEach(() => {
+    suonaMock.mockClear()
+    vibraMock.mockClear()
+    delete (window as unknown as Record<string, unknown>).SpeechRecognition
+    delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+  })
+  afterEach(() => {
+    delete (window as unknown as Record<string, unknown>).SpeechRecognition
+    delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+  })
+
+  it('senza Web Speech API nel jsdom → non renderizza nulla', () => {
+    const { container } = render(<PillVoce onTesto={() => {}} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  describe('con Web Speech API mockata (window.SpeechRecognition)', () => {
+    beforeEach(() => installaApi('SpeechRecognition'))
+
+    it('renderizza la pill con etichetta di default', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('etichetta personalizzata via prop', () => {
+      render(<PillVoce onTesto={() => {}} etichetta="Parla pure" />)
+      expect(screen.getByRole('button', { name: /parla pure/i })).toBeInTheDocument()
+    })
+
+    it('tap avvia start() con lang="it-IT" + suona("tap") + vibra("light")', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      expect(ultimaIstanza()?.start).toHaveBeenCalledTimes(1)
+      expect(ultimaIstanza()?.lang).toBe('it-IT')
+      expect(suonaMock).toHaveBeenCalledWith('tap')
+      expect(vibraMock).toHaveBeenCalledWith('light')
+    })
+
+    it('in ascolto: l\'etichetta cambia in «Ti ascolto…» e aria-pressed diventa true', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      const bottone = screen.getByRole('button', { name: /dimmelo a voce/i })
+      expect(bottone).toHaveAttribute('aria-pressed', 'false')
+      fireEvent.click(bottone)
+      const inAscolto = screen.getByRole('button', { name: /ti ascolto/i })
+      expect(inAscolto).toBeInTheDocument()
+      expect(inAscolto).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('onresult chiama onTesto col transcript riconosciuto e torna quieta', () => {
+      const onTesto = vi.fn()
+      render(<PillVoce onTesto={onTesto} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      act(() => {
+        ultimaIstanza()?.onresult?.({ results: [[{ transcript: 'corona ceramica' }]] })
+      })
+      expect(onTesto).toHaveBeenCalledWith('corona ceramica')
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('rerender con un onTesto diverso (passo successivo del wizard) → il risultato va al callback aggiornato, non a quello del primo tap', () => {
+      const onTestoPasso1 = vi.fn()
+      const onTestoPasso2 = vi.fn()
+      const { rerender } = render(<PillVoce onTesto={onTestoPasso1} />)
+      // Riconoscimento avviato e concluso al passo 1: l'istanza resta in cache.
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      act(() => {
+        ultimaIstanza()?.onresult?.({ results: [[{ transcript: 'primo passo' }]] })
+      })
+      expect(onTestoPasso1).toHaveBeenCalledWith('primo passo')
+
+      // Il wizard avanza: stessa pill, nuovo `onTesto` per il passo 2.
+      rerender(<PillVoce onTesto={onTestoPasso2} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      act(() => {
+        ultimaIstanza()?.onresult?.({ results: [[{ transcript: 'secondo passo' }]] })
+      })
+      expect(onTestoPasso2).toHaveBeenCalledWith('secondo passo')
+      expect(onTestoPasso1).toHaveBeenCalledTimes(1)
+    })
+
+    it('anello focus-visible di legge (2px --blue, offset 2) è di proprietà del componente stesso', () => {
+      const { container } = render(<PillVoce onTesto={() => {}} />)
+      const regola = container.querySelector('style')?.textContent ?? ''
+      expect(regola).toContain('outline: 2px solid var(--blue)')
+      expect(regola).toContain('outline-offset: 2px')
+    })
+
+    it('tap mentre in ascolto chiama stop() e torna quieta senza chiamare onTesto', () => {
+      const onTesto = vi.fn()
+      render(<PillVoce onTesto={onTesto} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      fireEvent.click(screen.getByRole('button', { name: /ti ascolto/i }))
+      expect(ultimaIstanza()?.stop).toHaveBeenCalledTimes(1)
+      expect(onTesto).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('onerror torna quieta silenziosamente (nessun Avviso, nessun crash, nessun onTesto)', () => {
+      const onTesto = vi.fn()
+      render(<PillVoce onTesto={onTesto} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      expect(() => {
+        act(() => {
+          ultimaIstanza()?.onerror?.()
+        })
+      }).not.toThrow()
+      expect(onTesto).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('onend torna quieta', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      act(() => {
+        ultimaIstanza()?.onend?.()
+      })
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('tutti i testi statici (default + in ascolto) passano trovaParoleVietate', () => {
+      const { container } = render(<PillVoce onTesto={() => {}} />)
+      expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
+    })
+  })
+
+  describe('fallback su webkitSpeechRecognition (Safari)', () => {
+    beforeEach(() => installaApi('webkitSpeechRecognition'))
+
+    it('renderizza comunque la pill usando il prefisso webkit', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      expect(screen.getByRole('button', { name: /dimmelo a voce/i })).toBeInTheDocument()
+    })
+
+    it('tap avvia start() sull\'istanza webkit', () => {
+      render(<PillVoce onTesto={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      expect(ultimaIstanza()?.start).toHaveBeenCalledTimes(1)
+    })
+  })
+})

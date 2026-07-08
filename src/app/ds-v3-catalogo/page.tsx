@@ -35,6 +35,7 @@ import { EroeTuttoAPosto } from '@/components/ds/EroeTuttoAPosto'
 import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
 import { NotaDentista } from '@/components/ds/NotaDentista'
 import { GiornoAgenda, RigaAgenda } from '@/components/ds/RigaAgenda'
+import { PillVoce } from '@/components/ds/PillVoce'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -89,6 +90,7 @@ export default function CatalogoPage() {
   const [nomePaziente, setNomePaziente] = useState('')
   const [importo, setImporto] = useState('')
   const [dataConsegna, setDataConsegna] = useState<Date | null>(null)
+  const [testoVoce, setTestoVoce] = useState('')
 
   useEffect(() => {
     initSuoni()
@@ -802,6 +804,28 @@ export default function CatalogoPage() {
             chiamante. RIORDINA compare SOLO sotto il 15% e solo se il chiamante passa
             `onRiordina`. NotaDentista è l&apos;unico posto dell&apos;app che assomiglia a una
             chat — non lo diventa mai.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="PillVoce" spec="§5.15 — l'input vocale, progressive enhancement">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <PillVoce onTesto={setTestoVoce} />
+          {testoVoce && (
+            <p style={{ fontSize: tipografia.size.callout, color: 'var(--ink)', margin: 0 }}>
+              Ho capito: <strong>{testoVoce}</strong>
+            </p>
+          )}
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Si mostra solo se il browser ha il riconoscimento vocale (Web Speech API) — niente
+            qui è un problema, è la pill che sceglie di non esistere. Vive in fondo a ogni passo
+            del wizard (sotto-progetto 3): qui è isolata per provarla dal vivo con un tocco reale.
           </p>
         </div>
       </SezioneCatalogo>
