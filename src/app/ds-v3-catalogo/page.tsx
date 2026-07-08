@@ -26,6 +26,9 @@ import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
 import { Sheet } from '@/components/ds/Sheet'
 import { DialogConferma } from '@/components/ds/DialogConferma'
+import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+import { Skeleton } from '@/components/ds/Caricamento'
+import { Vuoto } from '@/components/ds/Vuoto'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -48,6 +51,28 @@ const FASI_INIZIALI = [
   { nome: 'Colata', fatto: false },
   { nome: 'Rifinitura', fatto: false },
 ]
+
+// Demo di §5.18: chiama useAvvisi(), quindi deve stare DENTRO AvvisiProvider
+// — per questo è un componente a sé e non inline nel JSX della sezione.
+function DemoAvvisi() {
+  const { avvisa, errore } = useAvvisi()
+  return (
+    <div style={{ display: 'flex', gap: spazio.m, flexWrap: 'wrap' }}>
+      <TastoSecondario onClick={() => avvisa('Ho aggiornato lo stato di n.147.')}>
+        Mostra un avviso
+      </TastoSecondario>
+      <TastoSecondario
+        onClick={() =>
+          errore('Non sono riuscita a salvare. Controlla la connessione e riprova.', {
+            azione: { etichetta: 'Riprova', onClick: () => {} },
+          })
+        }
+      >
+        Mostra un errore
+      </TastoSecondario>
+    </div>
+  )
+}
 
 export default function CatalogoPage() {
   const scuro = useSyncExternalStore(sottoscriviTema, temaScuro, temaScuroServer)
@@ -540,6 +565,68 @@ export default function CatalogoPage() {
           onAnnulla={() => setDialogAperto(false)}
           onConferma={() => setDialogAperto(false)}
         />
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Avviso · Skeleton · Vuoto" spec="§5.18 Avviso, §5.25 Caricamento, §5.26 Vuoto">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              Avviso — normale sparisce da solo dopo 4s (sospeso su hover/focus), errore resta
+              finché non lo chiudi
+            </p>
+            <AvvisiProvider>
+              <DemoAvvisi />
+            </AvvisiProvider>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              Skeleton — stessa geometria di CardLavoro (niente spinner)
+            </p>
+            <Skeleton altezze={[24, 20, 17]} />
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              Vuoto — mai una pagina bianca
+            </p>
+            <Vuoto
+              glifo="☕"
+              titolo="Nessun lavoro sul banco"
+              guida="Goditi il caffè: qui non c'è niente da fare adesso."
+            />
+          </div>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            L&apos;avviso di errore suona («errore.wav») alla comparsa — l&apos;unico suono di
+            questo componente. Lo Skeleton mostra «Un attimo…» solo oltre i 3s: provalo dal vivo,
+            non si vede in uno screenshot statico.
+          </p>
+        </div>
       </SezioneCatalogo>
     </div>
   )
