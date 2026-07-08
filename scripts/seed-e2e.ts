@@ -107,6 +107,32 @@ async function seed() {
     }
     console.log(`✅  Lavorazione creata/aggiornata → ${E2E_LAV_ID}`)
 
+    // 3b. Crea articolo magazzino sotto scorta minima (per QA /ordini, B16)
+    console.log('📦  Creando articolo magazzino sotto scorta minima...')
+    const E2E_MAGAZZINO_ID = '00000000-0000-0000-0000-000000000020'
+    const { error: magazzinoErr } = await svc
+      .from('magazzino')
+      .upsert(
+        {
+          id: E2E_MAGAZZINO_ID,
+          laboratorio_id: E2E_LAB_ID,
+          codice_articolo: 'TEST-MAG-001',
+          nome: 'Gesso tipo IV test',
+          scorta_attuale: 2,
+          scorta_minima: 5,
+          um_acquisto: 'Kg',
+          um_scarico: 'g',
+          attivo: true,
+        },
+        { onConflict: 'id' }
+      )
+
+    if (magazzinoErr) {
+      console.error('❌  Errore creazione articolo magazzino:', magazzinoErr.message)
+      process.exit(1)
+    }
+    console.log(`✅  Articolo magazzino creato/aggiornato → ${E2E_MAGAZZINO_ID}`)
+
     // 4. Crea utenti E2E per i 3 ruoli dashboard (idempotente via email unica)
     console.log('\n👤  Creando utenti E2E per dashboard RBAC...')
 
@@ -167,6 +193,7 @@ async function seed() {
     console.log(`E2E_LAB_ID=${E2E_LAB_ID}`)
     console.log(`E2E_CLIENT_ID=${E2E_CLIENT_ID}`)
     console.log(`E2E_LAV_ID=${E2E_LAV_ID}`)
+    console.log(`E2E_MAGAZZINO_ID=${E2E_MAGAZZINO_ID}`)
     console.log('')
     console.log('# Credenziali dashboard RBAC (password comune: TestE2E!2026)')
     console.log('E2E_TITOLARE_EMAIL=e2e-titolare@ua-test.local')
