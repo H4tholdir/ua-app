@@ -21,7 +21,7 @@
 | B3 | Cicli produzione non generano fasi per lavori nuovi | ✅ | 04/07/2026 · branch `worktree-b3-cicli-produzione` (18 commit, `3d5f5a0..ad050cb`) | Non ancora mergiato su `main` al momento di questo aggiornamento — in attesa di conferma esplicita di Francesco. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B4 | `as any` nei PDF MDR (mascherato, non risolto) | ✅ | 05/07/2026 · branch `worktree-b4-pdf-generators-type-safety` | Non ancora mergiato su `main`. Bug di produzione reale scoperto e corretto come effetto collaterale (insert `generateDdC()` falliva sempre). Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
 | B5 | Download DdC/Buono da portale impossibile | ✅ | 06/07/2026 · merge `3fb17c5` su `main`, deployato | Mergiato, pushato, CI/CD verdi, `uachelab.com` verificato. Scope ampliato in ricerca: WhatsApp al dentista mai inviato + bug trasversale URL pubbliche rotte su bucket privato (anche TabDocumenti/TabImmagini/fatture). QA browser 7/8 PASS. Vedi dettaglio sotto e `memory/MEMORY.md` §0 |
-| B6 | Service Worker non intercetta navigazione offline | ⏳ | | |
+| B6 | Service Worker non intercetta navigazione offline | ✅ | 08/07/2026 | Network-first per navigate, mai reintrodotta la regressione cache-first di 61fa47b |
 | B7 | "Invita tecnico" irraggiungibile da UI | ⏳ | | |
 | B8 | 5 route CRUD → 404 | ⏳ | | |
 | B9 | Lista pazienti non navigabile (BUG #13) | ✅ | 04/07/2026 · `ea2a3a9` | Fix `<Link href>` + pattern `ClientiSearchList`; dettaglio in `memory/MEMORY.md` §0 |
@@ -245,11 +245,11 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 **Fix:** sostituire l'hardcoding con una query reale a `dichiarazioni_conformita` (join su `lavoro_id`) + `lavori.buono_pdf_url`, aggiungere pulsante download in `LavoroCard` quando `stato === 'consegnato'`.
 **Effort:** stimato dall'agente 4-6 ore.
 
-### B6. Service Worker non intercetta la navigazione offline
+### B6. ✅ RISOLTO (08/07/2026, worktree `worktree-b6-sw-offline`, commit `2fe6569`+`28cd506`) — Service Worker non intercetta la navigazione offline
 **Fonte:** [PWA], invariato da maggio, verificato empiricamente (offline hard-nav e soft-nav via `<Link>` finiscono entrambi su `chrome-error://chromewebdata/`)
-**Causa:** `public/sw.js:29-30` — `if (request.mode === 'navigate') return`.
-**Fix:** branch `navigate` con `caches.match(request)` + fallback `/offline.html`, come proposto a maggio.
-**Effort:** poche righe, rischio basso — è il fix "facile" più segnalato e mai applicato.
+**Causa:** `scripts/sw-template.js` (sorgente di `public/sw.js`, generato via `scripts/generate-sw.mjs` — MAI editare l'output direttamente) — `if (request.mode === 'navigate') return`, nessuna risposta.
+**Vincolo storico verificato prima del fix:** quella riga non era una svista — era il fix di `61fa47b` (17/05/2026) per una regressione precedente (cache-first su navigazione → refresh loop `/dashboard`, HTML stale invece di ri-eseguire auth/tenant SSR). Il fix proposto letteralmente a maggio ("`caches.match(request)` + fallback offline.html") avrebbe **reintrodotto** quella stessa regressione — non applicato in questa forma.
+**Fix applicato:** network-first per `navigate` — `fetch(request)` sempre tentato per primo, `caches.match('/offline.html')` (precachata) SOLO su fetch fallito; la risposta di navigazione non viene mai letta né scritta in cache per l'URL navigato. 5 nuovi test (`tests/unit/sw-template-fetch.test.ts`, harness `node:vm` che esegue il vero `sw-template.js`) — prima zero copertura su questa logica. Un finding Important in review (test non discriminava network-first da cache-first-con-cache-vuota) corretto seminando una entry stale per l'URL navigato. Review indipendente: "Ready to merge: Yes". `tsc`/`vitest` (712/4 skipped)/`next build` puliti. Dettaglio completo: `memory/MEMORY.md` §0.
 
 ### B7. "Invita tecnico" completamente irraggiungibile dalla UI — ✅ RISOLTO 03/07/2026
 **Fonte:** [Sis] + [FT] (corroborazione indipendente)
