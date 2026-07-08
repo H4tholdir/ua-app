@@ -17,6 +17,8 @@ import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { PillTempo, PillStato } from '@/components/ds/Pill'
 import { PillFase } from '@/components/ds/PillFase'
 import { TastoPiu } from '@/components/ds/TastoPiu'
+import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
+import { RigaCerca } from '@/components/ds/RigaCerca'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -242,6 +244,56 @@ export default function CatalogoPage() {
             Vive SOLO in basso al centro della home (L1). Il morph nel wizard
             (§8.3.2) è del sotto-progetto 3: qui c&apos;è solo la pressione fisica —
             provala dal vivo, non si vede in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Tile · Avatar · Cerca" spec="§5.12 TileScelta/TileNuovo, §5.14 Avatar, §5.13 RigaCerca">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 15,
+            }}
+          >
+            <TileScelta
+              nome="Studio Bianchi"
+              sotto="12 lavori a giugno"
+              avatar="Studio Bianchi"
+              onClick={() => {}}
+            />
+            <TileScelta
+              nome="Dr. Ferraro"
+              sotto="9 lavori a giugno"
+              avatar="Dr. Ferraro"
+              onClick={() => {}}
+            />
+            <TileScelta
+              nome="Dr.ssa Colombo"
+              sotto="6 lavori a giugno"
+              avatar="Dr.ssa Colombo"
+              onClick={() => {}}
+            />
+            <TileScelta
+              nome="Studio Russo"
+              sotto="4 lavori a giugno"
+              avatar="Studio Russo"
+              onClick={() => {}}
+            />
+            <TileNuovo etichetta="Nuovo dentista" onClick={() => {}} />
+          </div>
+          <RigaCerca totale={14} cosa="dentisti" onApri={() => {}} />
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Il colore dell&apos;avatar è deterministico dal nome (§5.14): stesso nome, stesso
+            colore, senza stato. TileScelta è una selezione (vibrazione, mai suono); TileNuovo e
+            RigaCerca aprono qualcos&apos;altro.
           </p>
         </div>
       </SezioneCatalogo>
