@@ -11,6 +11,9 @@ import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { molla } from '@/design-system/v3/motion'
 import { SezioneCatalogo } from './CatalogoShell'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
+import { TastoSecondario } from '@/components/ds/TastoSecondario'
+import { TastoTondo } from '@/components/ds/TastoTondo'
+import { LinkQuieto } from '@/components/ds/LinkQuieto'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -130,6 +133,35 @@ export default function CatalogoPage() {
           >
             Corsa, molla di pressione, suono e vibrazione sono comportamenti fisici: provali dal
             vivo con un tocco reale, non si vedono in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Tasti secondari e vie di fuga" spec="§5.3, §5.6, §5.5">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => {}}>Apri il lavoro</TastoSecondario>
+            <TastoSecondario disabled onClick={() => {}}>
+              Apri il lavoro
+            </TastoSecondario>
+          </div>
+
+          <div style={{ display: 'flex', gap: spazio.m }}>
+            <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => {}} />
+            <TastoTondo glifo="⋯" etichettaAria="Menu" onClick={() => {}} />
+          </div>
+
+          <LinkQuieto onClick={() => {}}>Aspetta, annulla la consegna</LinkQuieto>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            TastoTondo è riservato a back/menu nell&apos;header — nient&apos;altro. LinkQuieto è
+            riservato alle vie di fuga (L6): mai per un&apos;azione che conta.
           </p>
         </div>
       </SezioneCatalogo>
