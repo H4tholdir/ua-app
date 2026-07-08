@@ -29,6 +29,24 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(initSuoniMock).toHaveBeenCalledTimes(1)
   })
 
+  it('stato iniziale sincronizzato col tema reale: data-theme="dark" pre-esistente → toggle su scuro', () => {
+    // ThemeInitializer (root layout) imposta data-theme prima dell'hydration:
+    // il toggle deve leggere il DOM post-mount, non assumere chiaro.
+    document.documentElement.setAttribute('data-theme', 'dark')
+    render(<CatalogoPage />)
+    const toggle = screen.getByRole('button', { name: /tema/i })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(toggle.textContent).toMatch(/scuro/i)
+  })
+
+  it('stato iniziale con data-theme="light" esplicito (ThemeInitializer) → toggle su chiaro', () => {
+    document.documentElement.setAttribute('data-theme', 'light')
+    render(<CatalogoPage />)
+    const toggle = screen.getByRole('button', { name: /tema/i })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(toggle.textContent).toMatch(/chiaro/i)
+  })
+
   it('il toggle tema imposta data-theme="dark" su document.documentElement', () => {
     render(<CatalogoPage />)
     expect(document.documentElement.getAttribute('data-theme')).toBeNull()
@@ -43,6 +61,16 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     fireEvent.click(toggle)
     expect(document.documentElement.getAttribute('data-theme')).toBeNull()
+  })
+
+  it('il toggle ha l\'anello focus-visible di legge (2px --blue, offset 2)', () => {
+    const { container } = render(<CatalogoPage />)
+    const toggle = screen.getByRole('button', { name: /tema/i })
+    expect(toggle.className).toContain('catalogo-interattivo')
+    const regola = container.querySelector('style')?.textContent ?? ''
+    expect(regola).toContain('.catalogo-interattivo:focus-visible')
+    expect(regola).toContain('outline: 2px solid var(--blue)')
+    expect(regola).toContain('outline-offset: 2px')
   })
 
   it('titolo + nota viewport presenti', () => {

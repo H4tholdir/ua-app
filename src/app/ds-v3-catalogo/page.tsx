@@ -4,26 +4,38 @@
 // UNICA pagina che monta data-ds="v3". Le sezioni dei componenti si aggiungono
 // qui, task per task — il guscio (CatalogoShell) resta stabile.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
 import { initSuoni } from '@/design-system/v3/sound'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { molla } from '@/design-system/v3/motion'
 
+// Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
+// (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
+// useSyncExternalStore — niente stato locale che possa desincronizzarsi.
+// SSR-safe: sul server vale il default chiaro, il client legge il DOM reale.
+function sottoscriviTema(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  return () => observer.disconnect()
+}
+const temaScuro = () => document.documentElement.getAttribute('data-theme') === 'dark'
+const temaScuroServer = () => false
+
 export default function CatalogoPage() {
-  const [scuro, setScuro] = useState(false)
+  const scuro = useSyncExternalStore(sottoscriviTema, temaScuro, temaScuroServer)
 
   useEffect(() => {
     initSuoni()
   }, [])
 
   function alternaTema() {
-    const prossimo = !scuro
-    setScuro(prossimo)
-    if (prossimo) {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
+    // Stesso meccanismo dell'app (admin-nav/useTheme): si scrive sul DOM,
+    // la UI segue via subscription — mai il contrario.
+    if (temaScuro()) {
       document.documentElement.removeAttribute('data-theme')
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark')
     }
   }
 
@@ -38,6 +50,14 @@ export default function CatalogoPage() {
         padding: spazio.l,
       }}
     >
+      {/* Anello focus di legge (constraint 9): 2px --blue, offset 2.
+          Classe riusabile per tutto il chrome interattivo del catalogo. */}
+      <style>{`
+        [data-ds="v3"] .catalogo-interattivo:focus-visible {
+          outline: 2px solid var(--blue);
+          outline-offset: 2px;
+        }
+      `}</style>
       <header
         style={{
           display: 'flex',
@@ -70,6 +90,7 @@ export default function CatalogoPage() {
         </div>
         <motion.button
           type="button"
+          className="catalogo-interattivo"
           onClick={alternaTema}
           whileTap={{ scale: 0.96 }}
           transition={molla.press}
