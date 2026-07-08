@@ -36,6 +36,7 @@ export const materia = {
   granaOpacityDark: 0.06,
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
   anelloGuidaTastoPiu: 'rgba(50,40,25,.14)', // §5.2 — anello guida a -9px dalla faccia, 2px
+  scrim: 'rgba(29,25,19,.35)', // §5.16/§5.17 — scrim dietro Sheet e DialogConferma
 } as const
 
 // Valori-legge non tokenizzati come variabile CSS (§5.1/§5.4/§5.11-12/§5.14) —

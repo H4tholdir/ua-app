@@ -24,6 +24,8 @@ import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
+import { Sheet } from '@/components/ds/Sheet'
+import { DialogConferma } from '@/components/ds/DialogConferma'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -50,6 +52,8 @@ const FASI_INIZIALI = [
 export default function CatalogoPage() {
   const scuro = useSyncExternalStore(sottoscriviTema, temaScuro, temaScuroServer)
   const [fasi, setFasi] = useState(FASI_INIZIALI)
+  const [sheetAperto, setSheetAperto] = useState(false)
+  const [dialogAperto, setDialogAperto] = useState(false)
 
   useEffect(() => {
     initSuoni()
@@ -500,6 +504,42 @@ export default function CatalogoPage() {
             uno screenshot statico.
           </p>
         </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="Sheet · DialogConferma" spec="§5.16 Sheet, §5.17 DialogConferma">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <div style={{ display: 'flex', gap: spazio.m, flexWrap: 'wrap' }}>
+            <TastoSecondario onClick={() => setSheetAperto(true)}>Apri lo sheet</TastoSecondario>
+            <TastoSecondario onClick={() => setDialogAperto(true)}>Butta via il lavoro</TastoSecondario>
+          </div>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Sheet: sale dal basso con molla.smooth, grabber, scrim e LinkQuieto «Chiudi» sempre
+            in fondo — mai una X come unica uscita. DialogConferma: l&apos;unica card centrata
+            ammessa, riservata alle conferme distruttive con l&apos;oggetto esplicito nel testo.
+          </p>
+        </div>
+
+        <Sheet aperto={sheetAperto} onChiudi={() => setSheetAperto(false)} titolo="Dettagli lavoro n.147">
+          <RigaDato chiave="Dentista" valore="Studio Bianchi" />
+          <RigaDato chiave="Paziente" valore="PZ-1042" />
+          <RigaDato chiave="Consegna" valore="Domani · 09:00" urgente />
+        </Sheet>
+
+        <DialogConferma
+          aperto={dialogAperto}
+          titolo="Sei sicuro?"
+          testo="Butto via il lavoro n.148 di Studio Bianchi?"
+          etichettaSicura="No, tienilo"
+          etichettaDistruttiva="Sì, buttalo via"
+          onAnnulla={() => setDialogAperto(false)}
+          onConferma={() => setDialogAperto(false)}
+        />
       </SezioneCatalogo>
     </div>
   )

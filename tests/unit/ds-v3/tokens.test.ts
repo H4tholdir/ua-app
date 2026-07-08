@@ -62,6 +62,9 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   it('materia.anelloGuidaTastoPiu: valore-legge esatto (§5.2 — anello guida a -9px, 2px)', () => {
     expect(materia.anelloGuidaTastoPiu).toBe('rgba(50,40,25,.14)')
   })
+  it('materia.scrim: valore-legge esatto (§5.16/§5.17 — scrim di Sheet e DialogConferma)', () => {
+    expect(materia.scrim).toBe('rgba(29,25,19,.35)')
+  })
   it('avatarPalette: 6 voci esatte (§5.14)', () => {
     expect(avatarPalette).toEqual(['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'])
     expect(avatarPalette.length).toBe(6)
