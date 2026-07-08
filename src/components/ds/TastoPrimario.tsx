@@ -11,10 +11,14 @@ import { gradiente, tipografia, raggio, spazio } from '@/design-system/v3/tokens
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 
-// Corsa fisica (§5.1): 6px a riposo, 1px premuto — ombra ambiente (--sh-card)
-// sempre presente, la faccia è var(--red-dark) pinnato come corsa del tasto.
-const CORSA_RIPOSO = '0 6px 0 var(--red-dark), var(--sh-card)'
-const CORSA_PREMUTA = '0 1px 0 var(--red-dark), var(--sh-card)'
+// Corsa fisica (§5.1): 6px a riposo, 1px premuto. Sta SOLO sul bottone
+// (single-value box-shadow): in dark `--sh-card` risolve a `none`, e `none`
+// come membro di una lista box-shadow multi-valore invalida l'intera
+// dichiarazione (CSS: `none` è ammesso solo da solo). Per questo l'ombra
+// ambiente vive separata, sul wrapper, dove resta valida da sola in entrambi
+// i temi (`var(--sh-card)` oppure `none`, mai insieme alla corsa).
+const CORSA_RIPOSO = '0 6px 0 var(--red-dark)'
+const CORSA_PREMUTA = '0 1px 0 var(--red-dark)'
 
 /**
  * TastoPrimario — il tasto fisico (§5.1).
@@ -49,7 +53,16 @@ export function TastoPrimario(props: {
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: 480 }}>
+    <div
+      style={{
+        width: '100%',
+        maxWidth: 480,
+        borderRadius: raggio.tasto,
+        // Ombra ambiente (§5.1) — single-value, valida sia con var(--sh-card)
+        // reale (light) sia con `none` (dark, spec §3.2: dark è flat).
+        boxShadow: disabled ? 'none' : 'var(--sh-card)',
+      }}
+    >
       {/* Anello focus-visible di legge (constraint 9): il componente lo porta
           con sé ovunque venga montato, non dipende dal CSS del catalogo. */}
       <style>{`
