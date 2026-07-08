@@ -4,7 +4,7 @@
 // UNICA pagina che monta data-ds="v3". Le sezioni dei componenti si aggiungono
 // qui, task per task — il guscio (CatalogoShell) resta stabile.
 
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
 import { initSuoni } from '@/design-system/v3/sound'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
@@ -22,6 +22,8 @@ import { RigaCerca } from '@/components/ds/RigaCerca'
 import { Pila } from '@/components/ds/Pila'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { CardLavoro } from '@/components/ds/CardLavoro'
+import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
+import { RigaFase } from '@/components/ds/RigaFase'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -35,8 +37,19 @@ function sottoscriviTema(onChange: () => void): () => void {
 const temaScuro = () => document.documentElement.getAttribute('data-theme') === 'dark'
 const temaScuroServer = () => false
 
+// Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
+// PillFase), 1 futura — stato locale solo per rendere la spunta viva nel
+// catalogo, non un pattern da riusare a monte.
+const FASI_INIZIALI = [
+  { nome: 'Impronta digitale', fatto: true, chiQuando: 'Francesco · lun 09:12' },
+  { nome: 'Ceratura', fatto: true, chiQuando: 'Francesco · lun 15:40' },
+  { nome: 'Colata', fatto: false },
+  { nome: 'Rifinitura', fatto: false },
+]
+
 export default function CatalogoPage() {
   const scuro = useSyncExternalStore(sottoscriviTema, temaScuro, temaScuroServer)
+  const [fasi, setFasi] = useState(FASI_INIZIALI)
 
   useEffect(() => {
     initSuoni()
@@ -415,6 +428,76 @@ export default function CatalogoPage() {
             TastoConsegnaInline compare SOLO sul primo elemento della pila rossa
             (responsabilità del chiamante). `paziente` è sempre uno pseudonimo
             PZ-xxxx: la card non conosce mai un nome reale.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo titolo="CardInfo · RigaFase" spec="§5.10 CardInfo/RigaDato, §5.11 RigaFase/CheckTondo">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              CardInfo — 5 RigheDato, una urgente
+            </p>
+            <CardInfo>
+              <RigaDato chiave="Consegna" valore="Domani · 09:00" urgente />
+              <RigaDato chiave="Dentista" valore="Dr. Neri" sub="Studio ortodontico Neri" />
+              <RigaDato chiave="Paziente" valore="PZ-1042" />
+              <RigaDato chiave="Materiale" valore="Zirconia A2" sub="Disco Ø 98" />
+              <RigaDato chiave="Tipo lavoro" valore="Corona ceramica" />
+            </CardInfo>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              RigaFase — le fasi di n.147, una spunta per volta
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {fasi.map((fase, indice) => {
+                const prossima = !fase.fatto && fasi.slice(0, indice).every((f) => f.fatto)
+                return (
+                  <RigaFase
+                    key={fase.nome}
+                    nome={fase.nome}
+                    fatto={fase.fatto}
+                    chiQuando={fase.chiQuando}
+                    prossima={prossima}
+                    onFatta={
+                      prossima
+                        ? () => {
+                            setFasi((correnti) =>
+                              correnti.map((f) => (f.nome === fase.nome ? { ...f, fatto: true } : f))
+                            )
+                          }
+                        : undefined
+                    }
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Prova dal vivo il tocco su FATTA ✓: il cerchio si riempie con la coreografia
+            spuntaFatta (molla.bouncy) e la riga si assesta con molla.snappy — non si vedono in
+            uno screenshot statico.
           </p>
         </div>
       </SezioneCatalogo>
