@@ -86,6 +86,9 @@ describe('ds-v3.css — sincronia con tokens.ts e scoping', () => {
     expect(dark['--amber-tint']).toBe('rgba(232,161,61,.14)')
     expect(dark['--blue-tint']).toBe('rgba(91,155,255,.14)')
     expect(dark['--green-tint']).toBe('rgba(52,196,104,.14)')
+    // Il light ha `--elv` come alias di `--card` (carry-over review SP1): non esiste
+    // in `luce` (solo `notte` ha elv dedicato), quindi pinnato come letterale.
+    expect(light['--elv']).toBe('var(--card)')
   })
 
   it('ogni blocco di regole è scoped [data-ds="v3"] (coesistenza con v2.3)', () => {

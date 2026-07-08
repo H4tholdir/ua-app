@@ -37,6 +37,16 @@ export const materia = {
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
 } as const
 
+// Valori-legge non tokenizzati come variabile CSS (§5.1/§5.4/§5.11-12/§5.14) —
+// vivono solo qui: unica eccezione ammessa al check pre-commit "niente hex fuori da tokens.ts".
+export const gradiente = {
+  tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
+  pillFase: 'linear-gradient(180deg, #269950, var(--green))',                    // §5.4
+  corsaPillFase: '#14602C',                                                      // §5.4
+  dashedGuida: '#CBC1B0',                                                        // §5.11/5.12
+} as const
+export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
+
 export type TokenColoreLuce = keyof typeof luce
 export function varV3(nome: string): string {
   // kebab-case della chiave: bgDeep → --bg-deep

@@ -4,7 +4,7 @@
 
 [data-ds="v3"] {
   /* superfici */
-  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA;
+  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA; --elv: var(--card);
   /* inchiostri */
   --ink: #1D1913; --muted: #6E6457; --faint: #A69B8C; --line: #EBE4D6;
   /* azione e stati */
