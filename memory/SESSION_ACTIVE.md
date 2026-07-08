@@ -1,11 +1,9 @@
 # Sessione attiva — 08/07/2026
 
-**DS v3 «Una cosa alla volta» — sotto-progetto 1 (fondamenta) COMPLETATO, MERGIATO E DEPLOYATO.**
+**DS v3 «Una cosa alla volta» — sotto-progetto 2 (componenti core) COMPLETATO su branch, in attesa di approvazione.**
 
-Fast-forward `12246d0..9fde21d` su `main`, deploy Vercel verificato (`[data-ds=v3]` nel bundle CSS live di uachelab.com). Review finale whole-branch: READY TO MERGE, zero Critical/Important. Worktree e branch rimossi.
+Branch `worktree-ds-v3-componenti`, **non ancora mergiato su `main`**. Tutti e 27 i componenti §5 in `src/components/ds/`, catalogo pubblico `/ds-v3-catalogo` (13 sezioni, 6 screenshot QA in `docs/design/catalogo-v3/`). 16 task review-approvati; QA visivo T15 ha trovato e fissato 3 bug reali (CardLavoro overflow, Avviso hydration, RigaAgenda overlap). Suite 1058 passed | 4 skipped (era 707). tsc/build puliti.
 
-10 task review-approvati: font Plus Jakarta Sans · dizionario · token v3 (ambra `#9A5C00` WCAG) · `ds-v3.css` scoped · motion (5 molle Apple) · 5 WAV provvisori + player Web Audio · haptic Android-only · check-compliance v3. Suite 707 passed | 4 skipped (era 670). Tutto v3 dormiente: zero impatto su pagine v2.3.
+**Prossimo:** review finale whole-branch → approvazione visiva catalogo da Francesco (gate §14.2) → merge su `main` → sotto-progetto 3 «Il cuore» (spec §14.3).
 
 Spec: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`.
-
-**Prossimo:** sotto-progetto 2 componenti core (spec §14.2) — carry-over obbligatori nel primo commit: vedi MEMORY.md §0.
