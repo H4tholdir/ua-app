@@ -21,16 +21,15 @@ Effetto: una round-trip di rete sprecata a ogni caricamento pagina, e un limite 
 
 ### 1. Migration — nuova funzione RPC
 
+**Scoperta rilevante durante la verifica pre-piano:** esiste già una view `magazzino_sotto_scorta` (`supabase/schema.sql:2455-2482`, commentata "Articoli con scorta attuale <= scorta minima" — corrobora la soglia scelta). **Non è riusabile da `/ordini`:** filtra internamente `WHERE laboratorio_id = public.current_lab_id()`, e `current_lab_id()` legge `auth.uid()` (`schema.sql:17-32`) — sempre `NULL` sotto `getServiceClient()` (nessun JWT utente), quindi zero righe. Inoltre la view non espone `laboratorio_id` in output, quindi non è nemmeno filtrabile manualmente lato client. Confermato "nessun consumer applicativo la usa oggi" dalla migration B19 (`20260704170000_security_hardening_views_invoker.sql`). **Non tocco/non rimuovo questa view** (drift preesistente, fuori scope — un futuro consumer con sessione utente reale potrebbe ancora usarla).
+
 ```sql
 CREATE OR REPLACE FUNCTION public.articoli_sotto_scorta_minima(p_lab_id uuid)
-RETURNS TABLE (
-  id uuid, nome text, scorta_attuale numeric,
-  scorta_minima numeric, um_scarico text, fornitore_id uuid
-)
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
+RETURNS SETOF magazzino
+LANGUAGE sql
+SET search_path TO 'public'
 AS $$
-  SELECT id, nome, scorta_attuale, scorta_minima, um_scarico, fornitore_id
+  SELECT *
   FROM magazzino
   WHERE laboratorio_id = p_lab_id
     AND attivo = true
@@ -38,15 +37,17 @@ AS $$
   ORDER BY nome ASC;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.articoli_sotto_scorta_minima(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.articoli_sotto_scorta_minima(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.articoli_sotto_scorta_minima(uuid) TO service_role;
 ```
 
-Segue il pattern già in uso nel repo per funzioni SECURITY DEFINER (convenzione in `CLAUDE.md` §9: revoke esplicito da `PUBLIC`/`anon`/`authenticated`, grant solo a `service_role`), coerente con `crea_rifacimento_atomico()`.
+Note tecniche rispetto alla prima bozza:
+- **`RETURNS SETOF magazzino`** invece di `RETURNS TABLE (...)` con tipi dichiarati a mano: i tipi seguono automaticamente la tabella reale (verificati in `schema.sql:633-668` — `scorta_attuale`/`scorta_minima` sono `NUMERIC(12,4) NOT NULL`, non nullable, a differenza di quanto ipotizzato in una prima bozza di questo documento). Evita il rischio di mismatch "structure of query does not match function result type" se lo schema cambia. `ordini/page.tsx` continua a castare il risultato al suo subset `ArticoloSottoScorta` — le colonne extra sono innocue.
+- **Nessun `SECURITY DEFINER`**: la funzione è chiamata solo da `service_role` (già bypassa RLS di suo), quindi `SECURITY INVOKER` (default) basta e non riaggiunge superficie DEFINER — B19 ha appena speso 5 commit per *ridurla*. Restano comunque `REVOKE ALL ... FROM PUBLIC, anon, authenticated` + `GRANT ... TO service_role`, stessa convenzione di `CLAUDE.md` §9 e delle funzioni hardenate in B19.
+- Filtro solo `attivo = true` (niente `deleted_at IS NULL`): allineato al comportamento attuale di `/ordini` e `magazzino/page.tsx` (nessuno dei due filtra `deleted_at` oggi) — nessuna modifica di comportamento non richiesta.
+- Dopo l'apply, eseguire `get_advisors` (MCP Supabase) per confermare che non si reintroduce nessun finding chiuso da B19.
 
-Il filtro `laboratorio_id = p_lab_id` è dentro la funzione — nessuna dipendenza da RLS (il chiamante è sempre `getServiceClient()`, che bypassa RLS by design in questo repo).
-
-`scorta_minima` è nullable in almeno una definizione di tipo esistente (`database.types.ts:5316`): `scorta_attuale <= NULL` restituisce `NULL` in SQL → riga esclusa dal risultato. Comportamento corretto e intenzionale: un articolo senza soglia minima configurata non deve generare falsi alert.
+**Nota di rischio:** la migration si applica al progetto Supabase remoto condiviso (linkato, nessuno stack locale) — è additiva e reversibile (`DROP FUNCTION`), ma resta un'azione su stato condiviso: da confermare esplicitamente con Francesco subito prima di eseguire `supabase db push`/`apply_migration`, non solo nel piano scritto.
 
 ### 2. `ordini/page.tsx` — sostituzione righe 104-125
 
