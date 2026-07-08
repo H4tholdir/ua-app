@@ -102,7 +102,14 @@ describe('sw-template.js — gestione fetch per navigate (offline B6)', () => {
       sw = loadServiceWorker({ networkOk: true, networkResponse: new Response('pagina fresca', { status: 200 }) })
     })
 
-    it('una navigazione va sempre in rete (network-first), mai servita dalla cache', async () => {
+    it('una navigazione va sempre in rete (network-first), mai servita da una entry stale già in cache', async () => {
+      // Senza questo seed, il test passerebbe identico anche con
+      // un'implementazione cache-first-in-lettura (caches.match(request) prima
+      // del fetch): con cache vuota entrambe le strategie finirebbero comunque
+      // in rete. Solo una entry stale per l'URL navigato distingue davvero
+      // network-first da cache-first — è la garanzia che questo fix esiste
+      // per proteggere.
+      sw.store.matches.set('https://uachelab.com/dashboard', new Response('STALE dashboard', { status: 200 }))
       const res = await fireFetch(sw.listeners, navigateRequest())
       expect(await res?.text()).toBe('pagina fresca')
     })
