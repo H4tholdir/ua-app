@@ -26,8 +26,20 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.startsWith('/api/')) return
   // Non cachare routes esterne
   if (url.origin !== self.location.origin) return
-  // Non intercettare navigazione (SSR pages) — causava refresh loop su /dashboard
-  if (request.mode === 'navigate') return
+  // Navigazione (pagine SSR): SEMPRE network-first, MAI cache-first. Servire
+  // una pagina SSR autenticata dalla cache ha già causato un refresh loop su
+  // /dashboard (fix 61fa47b, 17/05/2026) — il cache-first ignorava lo stato
+  // auth/tenant corrente. La cache serve SOLO come ultima spiaggia quando la
+  // rete è realmente assente, mai come sorgente primaria per la navigazione,
+  // e la risposta di navigazione non viene mai scritta in cache.
+  if (request.mode === 'navigate') {
+    e.respondWith(
+      fetch(request).catch(() =>
+        caches.match('/offline.html').then(r => r ?? new Response('Offline', { status: 503 }))
+      )
+    )
+    return
+  }
   // Non cachare bundle Next.js (cambiano ad ogni deploy)
   if (url.pathname.startsWith('/_next/')) return
   // Non cachare le fetch RSC di Next.js (router.refresh(), navigazione client-side,
