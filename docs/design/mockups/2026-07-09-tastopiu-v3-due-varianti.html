@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TastoPiu v3 — Variante A (reference) vs Variante B (proposta)</title>
+<style>
+  @font-face { font-family: 'PJS'; src: local('Plus Jakarta Sans'); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Plus Jakarta Sans', 'PJS', system-ui, sans-serif; }
+
+  .strip { display: flex; gap: 0; }
+  .pannello { flex: 1; padding: 48px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 36px; }
+  .pannello.luce  { background: #F4F0E7; }
+  .pannello.notte { background: #171411; }
+  .titolo { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .luce  .titolo { color: #6E6457; }
+  .notte .titolo { color: #8A8580; }
+
+  .blocco { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .etichetta { font-size: 17.5px; font-weight: 800; }
+  .luce  .etichetta { color: #1D1913; }
+  .notte .etichetta { color: #F2EEE7; }
+  .nota { font-size: 12px; max-width: 200px; text-align: center; line-height: 1.5; }
+  .luce  .nota { color: #A69B8C; }
+  .notte .nota { color: #5A5652; }
+
+  /* ============================================================
+     VARIANTE A — fedele alla reference (pulsante smart-home)
+     Tre corpi: ombra a terra → ghiera smussata → solco → cappello bombato
+     ============================================================ */
+  .tpA { position: relative; width: 110px; height: 110px; border: none; background: transparent;
+         cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; place-items: center; }
+
+  .tpA .ghiera { position: relative; width: 92px; height: 92px; border-radius: 50%;
+    /* la ghiera è essa stessa leggermente convessa: chiara in alto, si spegne in basso */
+    background: linear-gradient(170deg, #FFFFFF 0%, #F7F3EB 55%, #E9E2D5 100%);
+    /* ombra ambientale profonda e morbida (luce alto-sx) + contatto + smusso del bordo */
+    box-shadow:
+      0 18px 30px rgba(52, 42, 26, .22),
+      0 6px 12px rgba(52, 42, 26, .14),
+      0 1.5px 3px rgba(52, 42, 26, .12),
+      inset 0 1.5px 1px rgba(255, 255, 255, .95),
+      inset 0 -2px 3px rgba(52, 42, 26, .10);
+    transition: box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* il solco: un anello d'ombra vero, tra ghiera e cappello */
+  .tpA .solco { position: absolute; inset: 10px; border-radius: 50%;
+    background: linear-gradient(180deg, #DDD5C6, #EFE9DE);
+    box-shadow: inset 0 1.5px 3px rgba(52, 42, 26, .28), inset 0 -1px 1px rgba(255, 255, 255, .55);
+  }
+
+  .tpA .cappello { position: absolute; inset: 13px; border-radius: 50%;
+    /* bombatura: punto di luce alto-centro che degrada su tutto il bordo */
+    background: radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FDFBF7 38%, #F3EEE4 72%, #E8E1D2 100%);
+    box-shadow:
+      0 3px 6px rgba(52, 42, 26, .20),
+      0 1px 2px rgba(52, 42, 26, .14),
+      inset 0 2px 2px rgba(255, 255, 255, 1),
+      inset 0 -4px 8px rgba(52, 42, 26, .07);
+    display: grid; place-items: center;
+    transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .tpA .piu { font-size: 40px; font-weight: 300; line-height: 1; color: #93887A;
+    transform: translateY(-1px); user-select: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,.8); /* il glifo pare inciso */
+  }
+
+  /* PRESSED: solo il cappello affonda; la ghiera si assesta appena */
+  .tpA:active .cappello { transform: translateY(2.5px) scale(.972);
+    background: radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 45%, #ECE5D6 100%);
+    box-shadow:
+      0 0.5px 1px rgba(52, 42, 26, .10),
+      inset 0 3px 7px rgba(52, 42, 26, .16),
+      inset 0 -1px 1px rgba(255, 255, 255, .5);
+  }
+  .tpA:active .ghiera { box-shadow:
+      0 12px 22px rgba(52, 42, 26, .20),
+      0 4px 8px rgba(52, 42, 26, .12),
+      0 1px 2px rgba(52, 42, 26, .12),
+      inset 0 1.5px 1px rgba(255, 255, 255, .95),
+      inset 0 -2px 3px rgba(52, 42, 26, .10);
+  }
+  .tpA:active .piu { color: #857A6C; }
+
+  /* — dark: flat per regola, profondità dalle superfici — */
+  .notte .tpA .ghiera { background: linear-gradient(170deg, #2E2921 0%, #262119 60%, #1E1A13 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -1.5px 2px rgba(0, 0, 0, .5),
+                0 10px 24px rgba(0, 0, 0, .45); }
+  .notte .tpA .solco { background: linear-gradient(180deg, #14110C, #1C1812);
+    box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, .6), inset 0 -1px 1px rgba(255, 255, 255, .05); }
+  .notte .tpA .cappello { background: radial-gradient(circle at 50% 28%, #383229 0%, #2F2A21 55%, #262119 100%);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .45), inset 0 1.5px 1px rgba(255, 255, 255, .09), inset 0 -3px 7px rgba(0, 0, 0, .3); }
+  .notte .tpA .piu { color: #8A8580; text-shadow: none; }
+  .notte .tpA:active .cappello { transform: translateY(2.5px) scale(.972);
+    background: radial-gradient(circle at 50% 34%, #2C2720 0%, #262119 60%, #211D16 100%);
+    box-shadow: inset 0 3px 7px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04); }
+
+  /* ============================================================
+     VARIANTE B — «il punto rosso» (proposta)
+     Stessa materia analogica della A, ma la ghiera è tono-su-tono
+     col fondo (affiora dalla carta) e la FIRMA è il + rosso UÀ:
+     l'unico rosso della home, quieto ma inconfondibile.
+     Pressed: il + si accende appena più scuro, il cappello affonda.
+     ============================================================ */
+  .tpB { position: relative; width: 110px; height: 110px; border: none; background: transparent;
+         cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; place-items: center; }
+
+  .tpB .ghiera { position: relative; width: 92px; height: 92px; border-radius: 50%;
+    /* tono su tono: emerge dalla carta come un rilievo dello stesso materiale */
+    background: linear-gradient(170deg, #F9F5EC 0%, #EFE9DC 60%, #E2DACA 100%);
+    box-shadow:
+      0 16px 28px rgba(52, 42, 26, .20),
+      0 5px 10px rgba(52, 42, 26, .12),
+      inset 0 1.5px 1px rgba(255, 255, 255, .9),
+      inset 0 -2px 3px rgba(52, 42, 26, .08);
+    transition: box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .tpB .solco { position: absolute; inset: 11px; border-radius: 50%;
+    background: linear-gradient(180deg, #DAD2C2, #ECE6DA);
+    box-shadow: inset 0 1.5px 2.5px rgba(52, 42, 26, .24), inset 0 -1px 1px rgba(255, 255, 255, .5);
+  }
+  .tpB .cappello { position: absolute; inset: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4 100%);
+    box-shadow:
+      0 3px 6px rgba(52, 42, 26, .18),
+      inset 0 2px 2px rgba(255, 255, 255, 1),
+      inset 0 -4px 8px rgba(52, 42, 26, .06);
+    display: grid; place-items: center;
+    transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* la firma: il + rosso UÀ, tratto sottile, inciso nella carta */
+  .tpB .piu { font-size: 42px; font-weight: 350; line-height: 1; color: #D90012;
+    transform: translateY(-1px); user-select: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,.7);
+  }
+  .tpB:active .cappello { transform: translateY(2.5px) scale(.972);
+    background: radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 50%, #ECE5D5 100%);
+    box-shadow: inset 0 3px 7px rgba(52, 42, 26, .15), inset 0 -1px 1px rgba(255, 255, 255, .5);
+  }
+  .tpB:active .piu { color: #A5000E; }
+  .tpB:active .ghiera { box-shadow:
+      0 10px 20px rgba(52, 42, 26, .18), 0 4px 8px rgba(52, 42, 26, .11),
+      inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08); }
+
+  .notte .tpB .ghiera { background: linear-gradient(170deg, #2B261E 0%, #241F17 60%, #1D1912 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 22px rgba(0, 0, 0, .4); }
+  .notte .tpB .solco { background: linear-gradient(180deg, #131009, #1B1710);
+    box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04); }
+  .notte .tpB .cappello { background: radial-gradient(circle at 50% 28%, #37312A 0%, #2E2921 55%, #252017 100%);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .4), inset 0 1.5px 1px rgba(255, 255, 255, .08), inset 0 -3px 6px rgba(0, 0, 0, .3); }
+  .notte .tpB .piu { color: #FF3B44; text-shadow: none; }
+  .notte .tpB:active .cappello { transform: translateY(2.5px) scale(.972);
+    box-shadow: inset 0 3px 7px rgba(0, 0, 0, .5); }
+  .notte .tpB:active .piu { color: #E8323B; }
+</style>
+</head>
+<body>
+  <div class="strip">
+    <div class="pannello luce">
+      <div class="titolo">Light — Carta</div>
+      <div class="blocco">
+        <button class="tpA" aria-label="Nuovo lavoro">
+          <span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span>
+        </button>
+        <div class="etichetta">Nuovo lavoro</div>
+        <div class="nota">A — Fedele alla reference: bianco puro, glifo grigio caldo, ombra profonda, cappello bombato</div>
+      </div>
+      <div class="blocco">
+        <button class="tpB" aria-label="Nuovo lavoro">
+          <span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span>
+        </button>
+        <div class="etichetta">Nuovo lavoro</div>
+        <div class="nota">B — «Il punto rosso»: stessa materia, ghiera tono-su-tono che affiora dalla carta, e la firma è il + rosso UÀ — l'unico rosso della home</div>
+      </div>
+    </div>
+    <div class="pannello notte">
+      <div class="titolo">Dark — Notte in laboratorio</div>
+      <div class="blocco">
+        <button class="tpA" aria-label="Nuovo lavoro">
+          <span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span>
+        </button>
+        <div class="etichetta">Nuovo lavoro</div>
+        <div class="nota">A in notte: superfici che affiorano, nessuna ombra esterna dura</div>
+      </div>
+      <div class="blocco">
+        <button class="tpB" aria-label="Nuovo lavoro">
+          <span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span>
+        </button>
+        <div class="etichetta">Nuovo lavoro</div>
+        <div class="nota">B in notte: il + rosso resta la firma (rosso dark #FF3B44)</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

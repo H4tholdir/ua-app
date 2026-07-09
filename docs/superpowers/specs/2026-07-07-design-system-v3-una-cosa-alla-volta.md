@@ -172,14 +172,14 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - **Disabled: mai nascosto.** Faccia `--bg-deep`, testo `--faint`, e una riga `callout` accanto che spiega cosa manca ("Completa il controllo finale per consegnare").
 - **UNO per schermata, massimo.** Etichetta = verbo del banco: CONSEGNA, FATTO, RIORDINA.
 
-### 5.2 `TastoPiu` — il pulsante fisico *(rev. 09/07 — decisione Francesco dal collaudo live: design analogico, riferimento pulsante smart-home bianco)*
-- Ø **92** visibile (hit 110), due corpi concentrici come un vero pulsante a membrana:
-  - **Ghiera** (base): Ø 92, faccia `--card`, ombra ambiente morbida `0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)`.
-  - **Solco**: anello sottile che separa ghiera e cappello, `2px rgba(50,40,25,.10)` a Ø ~76.
-  - **Cappello** (parte che si preme): Ø 68 centrato, leggermente bombato — `linear-gradient(180deg, #FFFFFF, #F2EEE6)` + luce in cima `inset 0 1.5px 0 rgba(255,255,255,.9)` + `0 1.5px 3px rgba(50,40,25,.14)`.
-- Glifo `+`: **sottile e quieto** — ~40px, peso 300, colore `--muted` (grigio caldo, come inciso). Etichetta sotto 17.5/800 `--ink` (invariata).
-- **Pressed (il momento analogico):** il cappello affonda — `translateY(2.5px)` + scala .97, l'ombra del cappello si spegne e appare `inset 0 2px 6px rgba(50,40,25,.16)`; molla `press`; suono `tap` + haptic medium. La ghiera NON si muove.
-- **Dark:** ghiera `--sfc`, cappello `--elv` con `border-top: 1px rgba(255,255,255,.06)`, solco `rgba(255,255,255,.08)`, glifo `--muted`; nessuna ombra esterna (regola dark=flat) — la profondità è data dalle superfici.
+### 5.2 `TastoPiu` — «il punto rosso» *(rev. 2 — 09/07, variante B scelta da Francesco su mockup `docs/design/mockups/2026-07-09-tastopiu-v3-due-varianti.html` — che è la FONTE DI VERITÀ visiva: i valori CSS della classe `.tpB` sono legge, riportati qui in sintesi)*
+- Ø **92** visibile (hit 110), pulsante fisico a membrana in tre corpi. La ghiera è **tono-su-tono con la carta** (il pulsante *affiora* dal fondo, non se ne stacca); la firma è il **glifo + rosso UÀ — l'unico rosso della home**.
+  - **Ghiera**: Ø 92 · `linear-gradient(170deg, #F9F5EC, #EFE9DC 60%, #E2DACA)` · ombra ambiente `0 16px 28px rgba(52,42,26,.20), 0 5px 10px rgba(52,42,26,.12)` + smusso `inset 0 1.5px 1px rgba(255,255,255,.9), inset 0 -2px 3px rgba(52,42,26,.08)`.
+  - **Solco**: anello a inset 11px · `linear-gradient(180deg, #DAD2C2, #ECE6DA)` · `inset 0 1.5px 2.5px rgba(52,42,26,.24), inset 0 -1px 1px rgba(255,255,255,.5)`.
+  - **Cappello** (si preme): inset 14px, bombato · `radial-gradient(circle at 50% 28%, #FFFFFF, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4)` · `0 3px 6px rgba(52,42,26,.18), inset 0 2px 2px #FFF, inset 0 -4px 8px rgba(52,42,26,.06)`.
+- Glifo `+`: ~42px, peso 350, **`--red`**, `text-shadow 0 1px 0 rgba(255,255,255,.7)` (inciso nella carta). Etichetta sotto 17.5/800 `--ink`.
+- **Pressed:** SOLO il cappello affonda — `translateY(2.5px)` + scala .972, ombra→`inset 0 3px 7px rgba(52,42,26,.15)`, glifo → `--red-dark`; la ghiera si assesta appena (ombra ambiente ridotta); molla `press`; suono `tap` + haptic medium.
+- **Dark (flat, superfici che affiorano):** ghiera `linear-gradient(170deg, #2B261E, #241F17 60%, #1D1912)` + `inset 0 1px 0 rgba(255,255,255,.06)`, solco `linear-gradient(180deg, #131009, #1B1710)`, cappello `radial-gradient(circle at 50% 28%, #37312A, #2E2921 55%, #252017)`, glifo `--red` dark (#FF3B44), pressed → #E8323B. Unica ombra esterna ammessa: `0 10px 22px rgba(0,0,0,.4)` (alone, non rilievo).
 - Posizione: **in basso al centro della home, sempre**. Non esiste in nessun'altra schermata (L1: il "nuovo" si fa dalla home).
 - Al tocco: si preme (molla `press`), poi **morph continuo** nel wizard (§8.3.2).
 
