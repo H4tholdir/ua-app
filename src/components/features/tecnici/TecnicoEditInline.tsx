@@ -10,6 +10,8 @@ type TecnicoRow = {
   sigla: string | null
   qualifica: string | null
   prrc: boolean
+  compenso_base: number | null
+  tipo_compenso: string | null
 }
 
 interface Props {
@@ -24,6 +26,10 @@ export function TecnicoEditInline({ tecnico }: Props) {
   const [cognome, setCognome] = useState(tecnico.cognome)
   const [sigla, setSigla] = useState(tecnico.sigla ?? '')
   const [qualifica, setQualifica] = useState(tecnico.qualifica ?? '')
+  const [tipoCompenso, setTipoCompenso] = useState(tecnico.tipo_compenso ?? '')
+  const [compensoBase, setCompensoBase] = useState(
+    tecnico.compenso_base != null ? String(tecnico.compenso_base) : ''
+  )
 
   async function handleSave() {
     if (!nome.trim() || !cognome.trim()) {
@@ -40,6 +46,8 @@ export function TecnicoEditInline({ tecnico }: Props) {
           cognome: cognome.trim(),
           sigla: sigla.trim() || null,
           qualifica: qualifica.trim() || null,
+          tipo_compenso: tipoCompenso || null,
+          compenso_base: compensoBase.trim() === '' ? null : Number(compensoBase),
         }),
       })
       if (res.ok) {
@@ -154,7 +162,7 @@ export function TecnicoEditInline({ tecnico }: Props) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
           <div>
             <label style={labelStyle}>Sigla</label>
             <input style={inputStyle} value={sigla} onChange={(e) => setSigla(e.target.value)} maxLength={6} />
@@ -162,6 +170,33 @@ export function TecnicoEditInline({ tecnico }: Props) {
           <div>
             <label style={labelStyle}>Qualifica</label>
             <input style={inputStyle} value={qualifica} onChange={(e) => setQualifica(e.target.value)} />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+          <div>
+            <label htmlFor="tecnico-edit-tipo-compenso" style={labelStyle}>Tipo compenso</label>
+            <select
+              id="tecnico-edit-tipo-compenso"
+              style={inputStyle}
+              value={tipoCompenso}
+              onChange={(e) => setTipoCompenso(e.target.value)}
+            >
+              <option value="">Non specificato</option>
+              <option value="fisso">Fisso</option>
+              <option value="percentuale">Percentuale</option>
+              <option value="per_lavorazione">Per lavorazione</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tecnico-edit-compenso-base" style={labelStyle}>Compenso base (€)</label>
+            <input
+              id="tecnico-edit-compenso-base"
+              type="number"
+              style={inputStyle}
+              value={compensoBase}
+              onChange={(e) => setCompensoBase(e.target.value)}
+            />
           </div>
         </div>
 

@@ -304,7 +304,8 @@ function StreakSettimanale({ giorniConLavori }: StreakSettimanaleProps) {
 interface ProduttivitaTecnicoProps {
   data: ProduttivitaResponse
   meseCorrente: string
-  compensoBase?: number | null  // target mensile da tecnici.compenso_base
+  compensoBase?: number | null  // significato dipende da tipoCompenso: stipendio fisso, target commissioni o tariffa a lavorazione
+  tipoCompenso?: 'fisso' | 'percentuale' | 'per_lavorazione' | null
   giorniConLavori: string[]    // date ISO della settimana con lavori consegnati
 }
 
@@ -312,6 +313,7 @@ export function ProduttivitaTecnico({
   data,
   meseCorrente,
   compensoBase,
+  tipoCompenso,
   giorniConLavori,
 }: ProduttivitaTecnicoProps) {
   const giorniSet = new Set(giorniConLavori)
@@ -464,8 +466,54 @@ export function ProduttivitaTecnico({
           {formatEur(data.compenso_maturato)}
         </p>
 
-        {/* Progress bar vs target */}
-        {compensoBase && compensoBase > 0 ? (
+        {/* Sezione compenso: interpretazione condizionale a tipoCompenso */}
+        {tipoCompenso === 'fisso' ? (
+          compensoBase && compensoBase > 0 ? (
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px',
+                color: 'var(--t2, #4A3D33)',
+                margin: 0,
+              }}
+            >
+              Stipendio fisso mensile: {formatEur(compensoBase)}
+            </p>
+          ) : (
+            <p
+              style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '11px',
+                color: 'var(--t3, #6B5C51)',
+                margin: 0,
+              }}
+            >
+              Stipendio fisso non impostato
+            </p>
+          )
+        ) : !compensoBase || compensoBase <= 0 ? (
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px',
+              color: 'var(--t3, #6B5C51)',
+              margin: 0,
+            }}
+          >
+            Target mensile non impostato
+          </p>
+        ) : tipoCompenso == null ? (
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px',
+              color: 'var(--t3, #6B5C51)',
+              margin: 0,
+            }}
+          >
+            Tipo compenso non specificato
+          </p>
+        ) : (
           <div>
             <div
               style={{
@@ -507,17 +555,6 @@ export function ProduttivitaTecnico({
               />
             </div>
           </div>
-        ) : (
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '11px',
-              color: 'var(--t3, #6B5C51)',
-              margin: 0,
-            }}
-          >
-            Target mensile non impostato
-          </p>
         )}
       </motion.div>
 

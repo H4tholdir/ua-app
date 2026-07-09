@@ -57,10 +57,10 @@ export default async function ProduttivitaTecnicoPage({ params, searchParams }: 
     redirect('/dashboard')
   }
 
-  // ─── Dati tecnico (per nome header + compenso_base target) ───────────────
+  // ─── Dati tecnico (per nome header + compenso_base target, letto secondo tipo_compenso) ───────────────
   const { data: tecnico } = await svc
     .from('tecnici')
-    .select('id, nome, cognome, compenso_base')
+    .select('id, nome, cognome, compenso_base, tipo_compenso')
     .eq('id', tecnicoId)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
@@ -246,6 +246,7 @@ export default async function ProduttivitaTecnicoPage({ params, searchParams }: 
         data={prodData}
         meseCorrente={meseCorrente}
         compensoBase={tecnico.compenso_base}
+        tipoCompenso={tecnico.tipo_compenso as 'fisso' | 'percentuale' | 'per_lavorazione' | null}
         giorniConLavori={giorniConLavori}
       />
     </PageWrapper>

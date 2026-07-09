@@ -15,6 +15,8 @@ type TecnicoRow = {
   sigla: string | null
   qualifica: string | null
   prrc: boolean
+  compenso_base: number | null
+  tipo_compenso: string | null
 }
 
 export default async function TechniciPage() {
@@ -37,7 +39,7 @@ export default async function TechniciPage() {
   if (labId) {
     const { data } = await svc
       .from('tecnici')
-      .select('id, nome, cognome, sigla, qualifica, prrc')
+      .select('id, nome, cognome, sigla, qualifica, prrc, compenso_base, tipo_compenso')
       .eq('laboratorio_id', labId)
       .order('cognome', { ascending: true })
       .order('nome', { ascending: true })
