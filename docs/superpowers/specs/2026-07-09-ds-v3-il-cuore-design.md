@@ -43,6 +43,18 @@ Migrare a DS v3 le cinque superfici del «cuore»: **Home, pile aperte, wizard n
 | C4 | Annullo consegna 10 minuti + emissione fiscale trattenuta dentro la finestra | Francesco (dominio fiscale, sì esplicito) |
 | B1-B3 | Fix server autorizzati (§10) | Francesco |
 
+### 2.1 Emendamenti ratificati (09/07/2026 sera — confronto advisor: engineering manager + solution architect)
+
+| # | Emendamento |
+|---|---|
+| E1 | **B22 (migration repair) si esegue PRIMA di qualsiasi ondata** — la 4a-server porterà migration nuove (CHECK DdC, outbox) e con la history sporca il `db push` fallirebbe o richiederebbe `--include-all` (pericoloso). A batch da 5-8 voci se serve, criterio di done: `supabase migration list` pulito. |
+| E2 | **L'Ondata 4 si spacca: 4a-server (B1+B2+B3/C4, TDD puro, zero UI, worktree e review dedicati) anticipata subito dopo B22; 4b-UI resta in coda.** Motivo: un revert della UI consegna non deve mai portarsi via un fix fiscale; e il TastoConsegnaInline (Ondata 1) nasce così su server già indurito — chiude il rischio di sequenza (gate solo client per 2 ondate). |
+| E3 | **Emissione fiscale differita = tabella outbox + cron.** Escluso il check-lazy-only: una fattura deve nascere anche se nessuno apre l'app; la coda persistente rende crash-recovery e rollback riconciliabili con uno script. |
+| E4 | **Adapter `derivaUrgenza(lavoro)` (nuovo, `src/lib/lavori/`) + costante condivisa `STATI_CONSEGNABILI`**: né le pile né il gate server leggono mai lo stato `in_ritardo` direttamente — il ritardo si calcola da `data_consegna_prevista`+ora, lo stato resta dettaglio incapsulato. La deprecazione futura di `in_ritardo` toccherà un modulo, non dieci superfici né una seconda review fiscale. |
+| E5 | **Pre-check chirurgico (mezza giornata, non audit completo) su dominio consegna/annullo/SDI + data layer, prima della 4a** — B1/B2/B3 sono emersi da ispezione: dove affiorano tre gap ce ne sono spesso altri. |
+| E6 | **Operating model:** un solo writer di codice per repo (sessioni secondarie solo read-only o worktree isolato); ROADMAP e MEMORY scrivibili SOLO dalla sessione primaria; reconcile-before-write (stati verificati contro `git log`, mai contro la memoria della sessione); interruzioni classificate S1 (perdita dati/sicurezza → hotfix immediato, zero refactor) / S2 (attende confine di fase) / S3 (backlog etichettato); WIP limit 1 ondata attiva + max 1 item interstiziale; la DoD di fine ondata INCLUDE la riconciliazione documentale; registro ADR-lite (una riga: decisione UX ↔ item tecnico ↔ ondata). |
+| E7 | **Audit multi-agente completo: dopo sp.3 + residui chiusi, PRIMA di sp.4** — fotografa l'esemplare che sp.4 replicherà 9 volte; i finding diventano le priorità di sp.4. Race condition inviti: nel gate pre-distribuzione a utenti reali. |
+
 ---
 
 ## 3. Home (`/dashboard`)
@@ -69,7 +81,7 @@ La home non scrolla mai. Calibrata su 844×390. **Variante corta (viewport heigh
 - **1280:** la home come pagina sparisce → **nav a 3 pannelli** (§12.3 madre): nav 240px `--bg-deep` con badge numerici delle pile (Oggi / Sul banco / Appena arrivati / … sezioni), «+ Nuovo lavoro» (TastoPrimario H 52) in cima, footer StrisciaStato. Pannello lista 400px + pannello scheda. Tastiera: ↑↓ lista, Invio apre, `N` nuovo, `/` cerca.
 
 ### 3.5 Dati
-Nuova funzione `getPileHome()` in `src/lib/dashboard/queries.ts` (server-side, `getServiceClient()`), riusando i pattern esistenti (`getFrontDeskDashboard()` copre già consegne-oggi e arrivi-oggi; `lavori.ora_consegna` ordina la pila rossa e alimenta il sub «il più vicino alle 16:00»). Nessuna API nuova. La cache KPI (`dashboard_kpi_cache`) NON serve alla home v3 (conteggi diretti, query leggere); resta viva per «I conti» (sotto-progetto 4).
+Nuova funzione `getPileHome()` in `src/lib/dashboard/queries.ts` (server-side, `getServiceClient()`), riusando i pattern esistenti (`getFrontDeskDashboard()` copre già consegne-oggi e arrivi-oggi; `lavori.ora_consegna` ordina la pila rossa e alimenta il sub «il più vicino alle 16:00»). Nessuna API nuova. **Vincolo E4:** né `getPileHome()` né le pile leggono mai lo stato `in_ritardo` direttamente — l'urgenza passa SOLO dall'adapter `derivaUrgenza(lavoro)` (nuovo, `src/lib/lavori/`), che calcola il ritardo da `data_consegna_prevista`+`ora_consegna` e incapsula lo stato come dettaglio interno. La cache KPI (`dashboard_kpi_cache`) NON serve alla home v3 (conteggi diretti, query leggere); resta viva per «I conti» (sotto-progetto 4).
 
 ---
 
@@ -175,7 +187,7 @@ TastoConsegnaInline (pila rossa) ─┴→ precheck GET /precheck-materiali
 ## 9. Annullo consegna — 10 minuti + emissione trattenuta (C4)
 
 - Finestra 5→**10 minuti**: `annulla-consegna/route.ts:6` + `AnnullaConsegnaBanner.tsx:6` (le due costanti convergono in una costante condivisa unica, es. `src/lib/consegna/costanti.ts`).
-- **La fattura draft NON nasce più durante l'orchestrazione:** l'emissione fiscale è differita alla scadenza della finestra (job/cron o check lazy al primo accesso utile — decisione tecnica nel piano). Dentro i 10 minuti l'annullo non incontra mai documenti fiscali; la CardUAHaFatto dice «Fattura in preparazione» finché la finestra è aperta (L5: solo cose realmente avvenute).
+- **La fattura draft NON nasce più durante l'orchestrazione:** l'emissione fiscale è differita alla scadenza della finestra via **tabella outbox dedicata + cron** (deciso — E3; escluso il check-lazy-only: una fattura deve nascere anche se nessuno apre l'app, e la coda persistente rende crash-recovery e rollback riconciliabili con uno script). Dentro i 10 minuti l'annullo non incontra mai documenti fiscali; la CardUAHaFatto dice «Fattura in preparazione» finché la finestra è aperta (L5: solo cose realmente avvenute).
 - L'annullo ripulisce tutto ciò che l'orchestrazione ha prodotto (stato, DdC, tracciabilità già gestita) — con la fattura differita non resta nulla di fiscale da ripulire (chiude il gap B3).
 - **Precondizione:** verifica sul DB reale della CHECK su `dichiarazioni_conformita.stato` (il codice scrive `'annullata'`, lo schema-snapshot ammette solo bozza/generata/firmata/consegnata — anomalia B2). Se la CHECK è stretta → migration correttiva PRIMA di toccare l'annullo (FASE 6b obbligatoria).
 
@@ -185,11 +197,11 @@ TastoConsegnaInline (pila rossa) ─┴→ precheck GET /precheck-materiali
 
 | Fix | Cosa | Dove |
 |---|---|---|
-| B1 | Gate stato `pronto`/`in_ritardo` replicato server-side | `orchestraConsegna()` (`src/lib/consegna/orchestrate.ts`) — oggi il gate vive solo nella pagina |
+| B1 | Gate stato `pronto`/`in_ritardo` replicato server-side, tramite la costante condivisa `STATI_CONSEGNABILI` (E4) | `orchestraConsegna()` (`src/lib/consegna/orchestrate.ts`) — oggi il gate vive solo nella pagina |
 | B2 | Verifica CHECK `dichiarazioni_conformita.stato` vs valore `'annullata'` | DB reale; eventuale migration correttiva |
-| B3+C4 | Finestra 10 min + emissione fiscale differita post-finestra | route annulla-consegna, orchestrate.ts, banner |
+| B3+C4 | Finestra 10 min + emissione fiscale differita post-finestra (outbox + cron, E3) | route annulla-consegna, orchestrate.ts, banner |
 
-Dominio critico (fiscale + consegna MDR) → percorso Grande BP-2, FASE 3 dichiarata, review rafforzata sull'ondata 4.
+Dominio critico (fiscale + consegna MDR) → percorso Grande BP-2, FASE 3 dichiarata. Questi fix vivono nell'**Ondata 4a-server** (E2): worktree e piano dedicati, TDD puro senza UI, review rafforzata, mergiata su `main` PRIMA dell'Ondata 0 — così le ondate UI nascono su server indurito e un eventuale revert UI non tocca mai il fiscale.
 
 ---
 
@@ -200,7 +212,7 @@ Dominio critico (fiscale + consegna MDR) → percorso Grande BP-2, FASE 3 dichia
 | **«I conti»** — pagina KPI titolare v3 (margine, pagamenti scaduti, da fatturare; riusa `dashboard_kpi_cache`) | **Sotto-progetto 4** |
 | **«Il mio compenso»** — vista tecnico (oggi in DashboardTecnico) | **Sotto-progetto 4** |
 | Workflow firma DdC (`firmata_at` mai scritto) + segnale StrisciaStato «DdC da firmare» | Backlog dedicato |
-| Deprecazione di `in_ritardo` come stato (condizione temporale, non fase) | Backlog dedicato (modello dati) |
+| Deprecazione di `in_ritardo` come stato (condizione temporale, non fase) | Backlog dedicato (modello dati) — costo futuro contenuto per costruzione: adapter `derivaUrgenza()` + `STATI_CONSEGNABILI` (E4) |
 | Migrazione Agenda (dove vivono le prove esterne come RITIRO) | Sotto-progetto 4 (l'azione «È tornata» nasce ora nella scheda) |
 
 Nota: tra la sostituzione della dashboard (questo sotto-progetto) e il sotto-progetto 4, i KPI titolare non hanno una casa. Accettato esplicitamente da Francesco (09/07): la PWA non è distribuita, niente ponti.
@@ -209,16 +221,23 @@ Nota: tra la sostituzione della dashboard (questo sotto-progetto) e il sotto-pro
 
 ## 12. Ondate di lavoro
 
-| Ondata | Contenuto | Gate |
+Sequenza aggiornata dagli emendamenti E1/E2/E5 (09/07 sera):
+
+| Step | Contenuto | Gate |
 |---|---|---|
+| **P1 — B22 migration repair** | riconciliazione history Supabase (~25 voci, `migration repair --status applied` una alla volta, a batch da 5-8) | `supabase migration list` pulito, zero voci pendenti |
+| **P2 — Pre-check consegna/data-layer** | ispezione chirurgica (mezza giornata) su `orchestraConsegna`/annullo/percorso SDI + modello dati | report finding; nuovi item → triage S1/S2/S3 |
+| **4a — Server consegna** | fix B1+B2+B3/C4 + outbox+cron (E3) + `STATI_CONSEGNABILI` (E4), TDD puro, zero UI, worktree dedicato | review rafforzata (fiscale) + FASE 6b + merge su `main` |
 | **0 — Mockup** | 7 schermate (Home 390/768/1280 + variante corta · Pila aperta · Wizard 4 frame · Scheda lavoro · Sheet modifica · Consegna: dialog/sheet-bloccanti/Consegnato! · Tutto il resto) × 2 temi, in `docs/design/mockups/` | **approvazione Francesco schermata per schermata** |
-| 1 — Home + pile | home, 3 pile, StrisciaStato, ☰ Tutto il resto | review + QA 3×2 |
+| 1 — Home + pile | home, 3 pile (urgenza SOLO via adapter `derivaUrgenza`, E4), StrisciaStato, ☰ Tutto il resto | review + QA 3×2 |
 | 2 — Wizard | wizard completo + tempi medi + persistenza 24h | review + QA 3×2 |
 | 3 — Scheda lavoro | scheda + modifica sheet + flussi ⋯ + «È tornata» | review + QA 3×2 |
-| 4 — Consegna | dialog/sheet + celebrazione + fix B1-B3/C4 | review rafforzata (dominio critico) + QA 3×2 |
+| **4b — UI Consegna** | dialog/sheet + celebrazione — consuma il server della 4a, zero logica fiscale nuova | review + QA 3×2 |
 | Gate finale | §14.3: QA complessiva + **collaudo Filippo** | v. §13 |
 
-Worktree dedicato, TDD via `superpowers:subagent-driven-development`, workflow BP-2 percorso Grande. Carry-over obbligatori dal sotto-progetto 2: `minWidth: min-content` per colonne testo+pill · `suoniAttivi()` solo post-mount · sempre `varV3('card')`, mai `varV3('sfc')` · pattern "tab" nel dizionario · spec §9.1 estesa al `tap.wav` dei tasti fisici.
+Dopo il gate finale: chiusura residui → **audit multi-agente completo della PWA** (E7) → i finding diventano le priorità del sotto-progetto 4.
+
+Worktree dedicato per ondata, TDD via `superpowers:subagent-driven-development`, workflow BP-2 percorso Grande, operating model E6 (un writer per repo, WIP 1 ondata + 1 interstiziale, DoD con riconciliazione documentale, interruzioni S1/S2/S3, registro ADR-lite). Carry-over obbligatori dal sotto-progetto 2: `minWidth: min-content` per colonne testo+pill · `suoniAttivi()` solo post-mount · sempre `varV3('card')`, mai `varV3('sfc')` · pattern "tab" nel dizionario · spec §9.1 estesa al `tap.wav` dei tasti fisici.
 
 ---
 
@@ -238,6 +257,8 @@ Worktree dedicato, TDD via `superpowers:subagent-driven-development`, workflow B
 | Regressione percepita dal titolare (KPI spariti dalla home) | Segnali *azionabili* (pagamento scaduto, fattura scartata, materiale rosso) vivono nella StrisciaStato; i contemplativi arrivano con «I conti» (sp. 4). Decisione esplicita di Francesco. |
 | Pila ambra affollata (40+ lavori) | ordinamento per urgenza + RigaCerca in cima >15; il sub della pila mostra il prossimo vincolo, mai un riassunto |
 | Consegna accidentale dalla lista | TastoConsegnaInline → sempre DialogConferma; solo primo elemento; dentista+numero giganti |
-| Emissione differita: lavoro consegnato ma fattura mai emessa (crash/abbandono) | il meccanismo di differimento DEVE essere persistente e ripristinabile (non solo setTimeout in-process) — vincolo per il piano, FASE 3 |
+| Emissione differita: lavoro consegnato ma fattura mai emessa (crash/abbandono) | tabella outbox + cron (E3) — mai solo setTimeout/check-lazy; procedura di riconciliazione dati documentata nel rollback plan della 4a (FASE 3) |
+| Consegna dalla lista protetta solo dal gate client | risolto per costruzione: Ondata 4a-server anticipata prima di tutte le ondate UI (E2) |
+| Pile costruite sopra lo stato `in_ritardo` in via di deprecazione | adapter `derivaUrgenza()` + `STATI_CONSEGNABILI` (E4): lo stato resta incapsulato in un modulo unico |
 | Home no-scroll rotta su device corti | variante corta definita in Ondata 0 (§3.3) |
 | Web Speech instabile | PillVoce progressive enhancement, tastiera sempre primaria |

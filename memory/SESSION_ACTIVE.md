@@ -1,13 +1,12 @@
-# Sessione attiva — 09/07/2026 (B14 chiuso fuori sequenza; handoff DS v3 sp.3 invariato)
+# Sessione attiva — 09/07/2026 notte (chiusura — binario unico ratificato, emendamenti E1-E7)
 
-**B14 (`tecnici.compenso_base` ambiguo) RISOLTO, MERGIATO E DEPLOYATO** su richiesta esplicita di Francesco, fuori sequenza rispetto alla roadmap DS v3 sotto-progetto 3 sotto. `tipo_compenso` esposto in UI, card Compenso condizionale a 3 stati. Dettaglio: `memory/MEMORY.md` §0.
+**Binario unico backlog+DS v3 ADOTTATO** (2 advisor + ratifica Francesco). Emendamenti E1-E7 incisi nella spec sp.3 §2.1. B6/B16 confermati chiusi via git (riga roadmap era stale). Residui reali: B22 + §N1-N3 (BACKLOG-TECNICO).
 
-**Handoff DS v3 sotto-progetto 3 «Il cuore» resta il prossimo passo ufficiale della roadmap** (invariato dalla sessione precedente): design completato, spec figlia + piano Ondata 0 mockup su `main` (`docs/superpowers/specs/2026-07-09-ds-v3-il-cuore-design.md`, `docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`).
+**SEQUENZA UFFICIALE (spec §12):**
+1. **P1 — B22 migration repair** (PRIMO: la 4a porterà migration nuove; done = `migration list` pulito)
+2. **P2 — Pre-check chirurgico** consegna/annullo/SDI + data layer (mezza giornata)
+3. **Ondata 4a-server** — B1/B2/B3+C4, outbox+cron (E3), `STATI_CONSEGNABILI` (E4), worktree dedicato, review rafforzata
+4. **Ondata 0 mockup** (piano già pronto, 8 task, gate = ok Francesco per schermata) → 1 Home+pile (`derivaUrgenza`) → 2 Wizard → 3 Scheda → 4b UI Consegna
+5. Collaudo Filippo → residui → **AUDIT multi-agente completo** → sp.4.
 
-**PROSSIMA SESSIONE — partire da qui:**
-1. Leggere spec figlia + piano Ondata 0.
-2. Eseguire il piano (8 task) via `superpowers:subagent-driven-development` — docs-only, può stare su `main`.
-3. Task 8 = GATE: screenshot a Francesco schermata per schermata, ok esplicito su OGNUNA.
-4. Dopo l'ok: scrivere piano Ondata 1 (Home+pile). MAI piani React prima dei mockup approvati.
-
-**Vincoli caldi:** principio-guida L1 inciso in testa alla spec (vincolo di review) · fix server autorizzati SOLO B1/B2/B3+C4 (spec §10) · «I conti»/«Il mio compenso» → sp.4 (spec §11) · prima dell'Ondata 4 verificare su DB reale la CHECK `dichiarazioni_conformita.stato` (anomalia B2).
+**Operating model (E6, SEMPRE):** un solo writer di codice per repo · ROADMAP/MEMORY scrivibili solo dalla sessione primaria · reconcile-before-write contro `git log` · interruzioni S1/S2/S3 · WIP 1 ondata + 1 interstiziale · DoD include riconciliazione documentale · registro ADR-lite.

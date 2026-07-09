@@ -375,6 +375,20 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 **Rischio:** basso per l'uso quotidiano — `supabase db push` normale (senza `--include-all`) si limita a segnalare l'anomalia senza toccare nulla. Il rischio è solo se qualcuno lancia `--include-all` senza capire cosa fa: tenterebbe di ri-eseguire quei 25+ file contro il DB live, con effetti imprevedibili su statement non idempotenti (non verificato quali lo siano).
 **Fix consigliato (non eseguito, richiede sessione dedicata):** `supabase migration repair --status applied <version>` per ciascuno dei 25+ file, uno alla volta con verifica del contenuto (stesso metodo usato per B21) prima di ogni singolo comando — mai in blocco, mai `--include-all`.
 **Effort:** stimato mezza giornata (25+ verifiche singole nello stile B21).
+**⬆️ Priorità aggiornata (09/07/2026 notte, emendamento E1 spec sp.3):** promosso a **PRIMO step (P1) della sequenza unificata DS v3 «Il cuore»** — va eseguito PRIMA di qualsiasi ondata, perché l'Ondata 4a-server porterà migration nuove (CHECK `dichiarazioni_conformita`, tabella outbox) e con la history sporca `db push` fallirebbe o richiederebbe `--include-all`. A batch da 5-8 voci per sessione se serve. Criterio di done: `supabase migration list` senza voci pendenti.
+
+---
+
+## 🆕 §N — Nuovi item tracciati (09/07/2026, sessione design DS v3 sp.3 «Il cuore» — etichette di destinazione da emendamenti E1-E7)
+
+### N1. Workflow firma DdC mai implementato
+`dichiarazioni_conformita.firmata_at` + campi firma esistono a schema ma **nessun flusso li scrive** (le DdC nascono `generata` e restano lì; la "firma" attuale è il timbro statico stampato sul PDF). Blocca il segnale StrisciaStato «DdC da firmare» (escluso dalla v1, spec sp.3 §6). **Destinazione:** backlog dedicato post-sp.3 — candidato input per l'audit multi-agente.
+
+### N2. Deprecazione di `in_ritardo` come stato di `lavori`
+È una condizione temporale (data < oggi) travestita da fase — ortogonale agli altri stati, ricalcolabile. La UI v3 lo risolve per sostanza (pile via adapter). **Vincolo già attivo (E4):** ogni nuovo codice passa da `derivaUrgenza(lavoro)` + `STATI_CONSEGNABILI`, mai lettura diretta dello stato — così la deprecazione futura tocca un modulo solo. **Destinazione:** dopo sp.3, come migration dedicata (dominio critico: tocca gate consegna).
+
+### N3. Race condition su `rete/[id]/inviti` (documentata 07/07, mai fixata)
+Invito duplicato possibile su richieste concorrenti; indice UNIQUE pulito non esprimibile per la condizione temporale `expires_at`. Impatto basso a zero utenti. **Destinazione:** gate pre-distribuzione a utenti reali (utenti reali = inviti reali — emendamento E7).
 
 ---
 
