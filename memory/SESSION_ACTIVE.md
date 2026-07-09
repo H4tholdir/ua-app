@@ -1,12 +1,10 @@
-# Sessione attiva — 09/07/2026 notte (P1/B22 chiuso)
+# Sessione attiva — 09/07/2026 notte (P2 chiuso)
 
-**P1 — B22 migration repair: ✅ RISOLTO** (commit `ee52f09` su `main`, da pushare se non già fatto). 26 migration fondative registrate via `repair --status applied` una alla volta, contenuti verificati contro DB live (53 check). 13 file rinominati a versioni univoche (collisioni 20260517/18/20/21). Scoperto e sanato `realtime_replica_identity` mai applicato: `REPLICA IDENTITY FULL` ora attivo su `lavori`/`fatture` (gap reale per `useRealtimeNotifiche`). Done: `migration list` 50/50 pulito, `db push --dry-run` "up to date".
+**P2 — Pre-check chirurgico consegna/annullo/SDI: ✅ COMPLETATO.** Report: `docs/roadmap/P2-PRECHECK-CONSEGNA-SDI-2026-07-09.md`. B1/B2/B3+C4 confermati sul codice e sul DB live; 10 nuovi item P2-1…P2-10, **nessun S1** — tutti S2 (dentro 4a) o S3. Chiavi: annullo-DdC no-op da sempre (filtro sbagliato + CHECK + esito non controllato); doppia fattura su annullo+riconsegna (fatture senza link al lavoro, `fatture_righe` 0 righe); `ddc_lavoro_unique` pieno vs modello annulla-e-rigenera; progressivi da consumare solo all'emissione; pg_cron già attivo per l'outbox E3; `in_ritardo` lazy (solo trigger su write) → conferma `derivaUrgenza`.
 
-**SEQUENZA UFFICIALE (spec sp.3 §12) — prossimo step:**
-1. ~~P1 — B22 migration repair~~ ✅ 09/07
-2. **P2 — Pre-check chirurgico** consegna/annullo/SDI + data layer (mezza giornata) ← SI PARTE DA QUI
-3. **Ondata 4a-server** — B1/B2/B3+C4, outbox+cron (E3), `STATI_CONSEGNABILI` (E4), worktree dedicato, review rafforzata
-4. **Ondata 0 mockup** (piano pronto, 8 task, gate = ok Francesco per schermata) → 1 Home+pile → 2 Wizard → 3 Scheda → 4b UI Consegna
-5. Collaudo Francesco → residui → AUDIT multi-agente completo → sp.4.
+**SEQUENZA (spec sp.3 §12) — prossimo step:**
+1. ~~P1 B22~~ ✅ · 2. ~~P2 pre-check~~ ✅
+3. **Ondata 4a-server** ← SI PARTE DA QUI: brainstorm+piano dedicati (worktree), B1/B2+P2-1/B3+C4 via outbox+cron, `STATI_CONSEGNABILI` (E4), gate annullo su fattura inviata (P2-6), decisione DdC (P2-3), TDD puro zero UI, review rafforzata fiscale, FASE 6b.
+4. Ondata 0 mockup → 1 → 2 → 3 → 4b → collaudo Francesco → audit → sp.4.
 
-**Operating model (E6, SEMPRE):** un solo writer di codice per repo · ROADMAP/MEMORY scrivibili solo dalla sessione primaria · reconcile-before-write contro `git log` · interruzioni S1/S2/S3 · WIP 1 ondata + 1 interstiziale · DoD include riconciliazione documentale · registro ADR-lite.
+**Operating model E6 sempre attivo** (un writer per repo, reconcile-before-write, WIP 1+1).
