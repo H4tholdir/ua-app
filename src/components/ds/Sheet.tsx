@@ -18,10 +18,27 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion, AnimatePresence, animate as animaValore, useMotionValue } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
+
+/**
+ * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
+ * side-effect, così è testabile in isolamento dal gesto Motion reale
+ * (jsdom non simula pan/velocity fisici in modo affidabile).
+ *
+ * Chiude se lo spostamento verticale supera il 25% dell'altezza del
+ * pannello OPPURE la velocità di rilascio supera 500px/s (un colpo secco
+ * basta anche con offset minimo) — soglie strette (`>`, non `>=`): il
+ * confine esatto NON chiude, per non scattare su un rilascio "a un pelo"
+ * dal limite. Altezza 0 è un caso difensivo (pannello non ancora misurato):
+ * qualunque offset positivo la supera.
+ */
+export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello: number): boolean {
+  const sogliaDistanza = altezzaPannello * 0.25
+  return offsetY > sogliaDistanza || velocitaY > 500
+}
 
 /**
  * Sheet — il bottom sheet di legge (§5.16).
@@ -29,14 +46,38 @@ import { LinkQuieto } from './LinkQuieto'
  * Anatomia: scrim `materia.scrim` (tap → `onChiudi`) · card radius 28 solo in
  * alto (`raggio.sheet`) · grabber 36×4 `--line` a 8px dal bordo superiore ·
  * max 92% viewport, scroll interno oltre · `LinkQuieto` «Chiudi» SEMPRE in
- * fondo (mai una X come unica uscita) · Esc → `onChiudi` · dismiss
- * interrompibile via `AnimatePresence` (§8.2.2) · `useReducedMotion` →
- * dissolvenza (`cssEase.generico`) al posto della risalita a molla · body
- * scroll lock mentre è aperto (esteso a tutta l'uscita animata, non solo
- * mentre `aperto` è true — evita il layout shift scoperto in QA live: la
- * scrollbar che ricompare a metà animazione sposta lateralmente il pannello
- * centrato) · focus semplice: al primo elemento (il contenitore)
- * all'apertura, torna all'elemento precedente alla chiusura.
+ * fondo (mai una X come unica uscita) · Esc → `onChiudi` · swipe giù →
+ * `onChiudi` (§5.16, `drag="y"` + `deveChiudere`, SOLO ramo animato — vedi
+ * sotto) · dismiss interrompibile via `AnimatePresence` (§8.2.2) ·
+ * `useReducedMotion` → dissolvenza (`cssEase.generico`) al posto della
+ * risalita a molla · body scroll lock mentre è aperto (esteso a tutta
+ * l'uscita animata, non solo mentre `aperto` è true — evita il layout shift
+ * scoperto in QA live: la scrollbar che ricompare a metà animazione sposta
+ * lateralmente il pannello centrato) · focus semplice: al primo elemento (il
+ * contenitore) all'apertura, torna all'elemento precedente alla chiusura.
+ *
+ * Swipe giù (§5.16, §8.2.3): `drag="y"` + `dragConstraints={{top:0}}` (solo
+ * verso il basso — verso l'alto il pannello non si stacca dalla posizione di
+ * riposo) + `dragElastic` piccolo. Al rilascio, `deveChiudere` (soglia pura,
+ * esportata e testata a parte) decide: oltre soglia → `onChiudi()` (stesso
+ * percorso di uscita di scrim/Esc/Chiudi, niente duplicazione); sotto soglia
+ * → il pannello torna a `y:0` con `molla.smooth` via `animate(yPannello, 0,
+ * molla.smooth)`, dove `yPannello` è la STESSA `MotionValue` condivisa via
+ * `style={{y: yPannello}}` con drag e con la coreografia `sheetSu`
+ * (initial/animate/exit) — non lo snap-back elastico automatico di
+ * `dragConstraints` (che userebbe una molla non tokenizzata, fuori dalla
+ * regola "SOLO molla.*"). `dragMomentum={false}` è necessario: senza, la
+ * fisica di rilascio automatica di Motion continuerebbe a muovere il
+ * pannello dopo `onDragEnd`, in conflitto con lo snap-back esplicito (bug
+ * verificato live: uno swipe corto finiva comunque quasi fuori schermo).
+ * SOLO sul ramo animato: `SheetRidotto` (reduced motion, sotto) non ha drag —
+ * è feedback fisico, non essenziale con le animazioni già ridotte a
+ * dissolvenza (§8.4); restano comunque scrim/Esc/Chiudi. CAVEAT (documentato
+ * per il sotto-progetto 3): l'intero pannello è draggable, contenuto
+ * compreso — se in futuro il contenuto avrà scroll interno lungo, drag e
+ * scroll verticale "litigheranno" sullo stesso gesto; qui il contenuto demo è
+ * corto e non scrolla, quindi non si manifesta. Da risolvere quando servirà
+ * (es. `dragListener` solo sul grabber, o soglia di attivazione sul target).
  *
  * Portal su `document.body`: essendo l'unico overlay che deve scappare dallo
  * scope del catalogo (e in futuro da qualunque pagina scalata a .96 dal
@@ -52,6 +93,11 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // aria-labelledby SOLO quando il titolo esiste (a11y): senza titolo il
   // nome accessibile resta ai contenuti — il chiamante può sempre passarne uno.
   const ariaLabelledby = titolo ? titoloId : undefined
+  // Fonte di verità condivisa per la posizione verticale del pannello: drag,
+  // coreografia sheetSu (initial/animate/exit) e lo snap-back esplicito dello
+  // swipe (sotto) leggono/scrivono TUTTI questa stessa MotionValue — evita il
+  // conflitto fra due sistemi di animazione paralleli sullo stesso `y`.
+  const yPannello = useMotionValue(0)
 
   // Esc → onChiudi, SOLO mentre aperto.
   useEffect(() => {
@@ -147,6 +193,26 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     if (e.target === e.currentTarget) onChiudi()
   }
 
+  // Swipe giù per chiudere (§5.16 — gap di spec, mai implementato prima
+  // d'ora). `deveChiudere` decide; se non supera la soglia il pannello torna
+  // su con `molla.smooth`. `dragMomentum={false}` sul pannello (sotto) è
+  // OBBLIGATORIO: senza, la fisica di rilascio automatica di Motion
+  // continuerebbe a muovere il pannello DOPO `onDragEnd`, in conflitto con lo
+  // `animaValore(yPannello, 0, molla.smooth)` esplicito qui sotto — le due
+  // animazioni si accavallavano (verificato live: uno swipe piccolo finiva
+  // comunque quasi fuori schermo invece di tornare su). `yPannello` è
+  // condivisa con `style={{ y: yPannello }}` sul pannello, così drag,
+  // `initial`/`animate`/`exit` (coreografia sheetSu) e questo snap-back
+  // esplicito leggono e scrivono la STESSA fonte di verità.
+  function gestisciFineDrag(_evento: unknown, info: { offset: { y: number }; velocity: { y: number } }) {
+    const altezzaPannello = dialogRef.current?.getBoundingClientRect().height ?? 0
+    if (deveChiudere(info.offset.y, info.velocity.y, altezzaPannello)) {
+      onChiudi()
+    } else {
+      animaValore(yPannello, 0, molla.smooth)
+    }
+  }
+
   const contenutoDialog = (
     <>
       <div className="ds-sheet-grabber" aria-hidden="true" style={grabberStile} />
@@ -186,7 +252,12 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
             initial={coreografie.sheetSu.initial}
             animate={coreografie.sheetSu.animate}
             exit={coreografie.sheetSu.exit}
-            style={sheetStile}
+            drag="y"
+            dragConstraints={{ top: 0 }}
+            dragElastic={0.15}
+            dragMomentum={false}
+            onDragEnd={gestisciFineDrag}
+            style={{ ...sheetStile, y: yPannello }}
           >
             {contenutoDialog}
           </motion.div>

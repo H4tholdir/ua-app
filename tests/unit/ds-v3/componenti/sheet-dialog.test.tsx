@@ -38,7 +38,7 @@ vi.mock('@/design-system/v3/haptic', () => ({
   vibra: (tipo: string) => vibraMock(tipo),
 }))
 
-import { Sheet } from '@/components/ds/Sheet'
+import { Sheet, deveChiudere } from '@/components/ds/Sheet'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { RigaDato } from '@/components/ds/CardInfo'
 
@@ -336,6 +336,109 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     )
     const testo = screen.getByRole('dialog').textContent ?? ''
     expect(trovaParoleVietate(testo)).toEqual([])
+  })
+})
+
+describe('deveChiudere — soglia dismiss swipe giù (§5.16, §8.2.3)', () => {
+  const ALTEZZA = 400 // px, pannello demo
+
+  it('sotto soglia distanza e velocità → NON chiude (torna su con molla.smooth)', () => {
+    expect(deveChiudere(50, 0, ALTEZZA)).toBe(false)
+  })
+
+  it('offsetY oltre il 25% dell\'altezza → chiude', () => {
+    expect(deveChiudere(ALTEZZA * 0.25 + 1, 0, ALTEZZA)).toBe(true)
+  })
+
+  it('offsetY esattamente al 25% (confine) → NON chiude (soglia stretta, > non >=)', () => {
+    expect(deveChiudere(ALTEZZA * 0.25, 0, ALTEZZA)).toBe(false)
+  })
+
+  it('offsetY appena sotto il 25% → NON chiude', () => {
+    expect(deveChiudere(ALTEZZA * 0.25 - 1, 0, ALTEZZA)).toBe(false)
+  })
+
+  it('velocità oltre 500px/s (anche con offset minimo) → chiude — un colpo secco basta', () => {
+    expect(deveChiudere(5, 501, ALTEZZA)).toBe(true)
+  })
+
+  it('velocità esattamente 500 (confine) → NON chiude', () => {
+    expect(deveChiudere(5, 500, ALTEZZA)).toBe(false)
+  })
+
+  it('entrambe le soglie superate → chiude', () => {
+    expect(deveChiudere(ALTEZZA * 0.5, 800, ALTEZZA)).toBe(true)
+  })
+
+  it('offsetY negativo (trascinato verso l\'alto, contro il vincolo dragConstraints top:0) → mai chiude', () => {
+    expect(deveChiudere(-50, 0, ALTEZZA)).toBe(false)
+  })
+
+  it('velocità negativa (rilasciato mentre risaliva) → non chiude anche con offset residuo alto', () => {
+    expect(deveChiudere(ALTEZZA * 0.5, -800, ALTEZZA)).toBe(true) // offset da solo basta
+    expect(deveChiudere(10, -800, ALTEZZA)).toBe(false) // né offset né velocità (negativa) bastano
+  })
+
+  it('altezza 0 (difensivo): qualunque offsetY positivo supera la soglia 0 → chiude', () => {
+    expect(deveChiudere(1, 0, 0)).toBe(true)
+    expect(deveChiudere(0, 0, 0)).toBe(false)
+  })
+
+  it('offset e velocità entrambi zero → non chiude', () => {
+    expect(deveChiudere(0, 0, ALTEZZA)).toBe(false)
+  })
+})
+
+describe('Sheet — swipe giù per chiudere, wiring drag (§5.16, §8.2.3)', () => {
+  beforeEach(() => {
+    document.body.style.overflow = ''
+    document.body.style.paddingRight = ''
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.style.overflow = ''
+    document.body.style.paddingRight = ''
+  })
+
+  it('ramo animato: il pannello è draggable in verticale (Motion imposta touch-action per liberare l\'asse trascinato)', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const dialog = screen.getByRole('dialog')
+    // Motion applica `touch-action` sull'elemento draggable per lasciare al
+    // browser il controllo dell'asse NON trascinato (drag="y" → pan-x libero,
+    // y catturato dal gesto) — è la prova jsdom-verificabile che `drag="y"`
+    // è effettivamente wired sul pannello (drag stesso non è un attributo DOM).
+    expect(dialog.style.touchAction).toBeTruthy()
+    expect(dialog.style.touchAction).not.toBe('auto')
+  })
+
+  it('ramo reduced-motion: il pannello NON è draggable (drag solo sul ramo animato, §8.4 — documentato in JSDoc)', () => {
+    const ripristina = attivaReducedMotion()
+    try {
+      render(
+        <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      const dialog = screen.getByRole('dialog')
+      expect(dialog.style.touchAction).toBeFalsy()
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('scrim, Esc e LinkQuieto «Chiudi» restano wired invariati accanto al drag', () => {
+    const onChiudi = vi.fn()
+    render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    fireEvent.click(screen.getByText('Chiudi'))
+    expect(onChiudi).toHaveBeenCalledTimes(1)
   })
 })
 
