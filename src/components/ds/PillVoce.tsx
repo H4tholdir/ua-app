@@ -10,8 +10,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
-import { molla } from '@/design-system/v3/motion'
-import { materia, raggio, spazio, tipografia, testoSuFaccia } from '@/design-system/v3/tokens'
+import { molla, cssEase } from '@/design-system/v3/motion'
+import { gradiente, pillVoce, raggio, tipografia, testoSuFaccia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 
@@ -69,6 +69,11 @@ export function PillVoce(props: { onTesto: (testo: string) => void; etichetta?: 
   const { onTesto, etichetta = 'Dimmelo a voce' } = props
   const haSupporto = useSyncExternalStore(sottoscriviSupporto, haSupportoClient, haSupportoServer)
   const [ascolto, setAscolto] = useState(false)
+  // Stato fisico della pressione (§5.15 rev 2, anti-glitch): SOLO per lo scambio
+  // di classe delle ombre (faccia + cerchioMic) via CSS — il translateY(2px)
+  // vero e proprio lo anima Motion con `whileTap` (v. sotto), mai due motori
+  // sulla stessa proprietà.
+  const [premuto, setPremuto] = useState(false)
   const riconoscimentoRef = useRef<RiconoscimentoVoce | null>(null)
 
   // `onTesto` letto via ref sempre aggiornata: l'istanza di riconoscimento è
@@ -135,63 +140,114 @@ export function PillVoce(props: { onTesto: (testo: string) => void; etichetta?: 
 
   return (
     <>
-      {/* Anello focus-visible di legge (constraint 9) + pulse del cerchio mic
-          in ascolto: opacità via CSS lineare, ammessa fuori dalle molle di
-          legge (§8.1) — stesso schema dello Skeleton (§5.25). */}
+      {/* Materia «la pill di carta» (§5.15 rev 2, valori VERBATIM dal mockup
+          .pvA): classi scoped, stesso schema del TastoPiu. Il cerchioMic usa
+          il gradiente del TastoPrimario (riuso diretto in light — combacia
+          esattamente) con un dark proprio (vedi tokens.ts). Le transizioni di
+          box-shadow vivono in cssEase.pillVoce; il translateY del pressed è
+          SOLO di Motion (whileTap più sotto) — mai due motori sulla stessa
+          proprietà. Il respiro del cerchio in ascolto è opacity-only e si
+          spegne sotto prefers-reduced-motion (§8.4). */}
       <style>{`
-        .ds-pill-voce { background: var(--ink); }
-        [data-theme="dark"] [data-ds="v3"] .ds-pill-voce { background: var(--elv); }
+        .ds-pill-voce {
+          background: ${pillVoce.faccia};
+          box-shadow: ${pillVoce.facciaOmbra};
+          transition: ${cssEase.pillVoce};
+        }
         .ds-pill-voce:focus-visible {
           outline: 2px solid var(--blue);
           outline-offset: 2px;
         }
+        .ds-pill-voce--premuto {
+          box-shadow: ${pillVoce.facciaOmbraPressed};
+        }
+        .ds-pill-voce-cerchio-mic {
+          background: ${gradiente.tastoPrimario};
+          box-shadow: ${pillVoce.cerchioMicOmbra};
+          transition: ${cssEase.pillVoce};
+        }
+        .ds-pill-voce--premuto .ds-pill-voce-cerchio-mic {
+          box-shadow: ${pillVoce.cerchioMicOmbraPressed};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-pill-voce {
+          background: ${pillVoce.facciaNotte};
+          box-shadow: ${pillVoce.facciaOmbraNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-pill-voce--premuto {
+          box-shadow: ${pillVoce.facciaOmbraPressedNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-pill-voce-cerchio-mic {
+          background: ${pillVoce.cerchioMicNotte};
+          box-shadow: ${pillVoce.cerchioMicOmbraNotte};
+        }
         @keyframes ds-pill-voce-pulsa {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          50% { opacity: 0.35; }
         }
-        .ds-pill-voce-mic--ascolto {
-          animation: ds-pill-voce-pulsa 1.1s linear infinite;
+        @media (prefers-reduced-motion: no-preference) {
+          .ds-pill-voce-mic--ascolto {
+            animation: ds-pill-voce-pulsa 1.6s ease-in-out infinite;
+          }
         }
       `}</style>
       <motion.button
         type="button"
-        className="ds-pill-voce"
+        data-parte="pill"
+        className={premuto ? 'ds-pill-voce ds-pill-voce--premuto' : 'ds-pill-voce'}
         onClick={handleTap}
+        onTapStart={() => setPremuto(true)}
+        onTap={() => setPremuto(false)}
+        onTapCancel={() => setPremuto(false)}
         aria-pressed={ascolto}
-        whileTap={{ scale: 0.97 }}
+        whileTap={{ y: 2 }}
         transition={molla.press}
         style={{
-          display: 'inline-flex',
+          display: 'flex',
           alignItems: 'center',
-          gap: spazio.sm,
+          gap: 14,
+          width: '100%',
           height: 64,
           borderRadius: raggio.pill,
           border: 'none',
-          padding: `0 ${spazio.ml}px`,
-          color: testoSuFaccia,
+          padding: '0 10px 0 24px',
+          color: 'var(--ink)',
           fontSize: 17.5,
           fontWeight: tipografia.weight.bold,
           cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
+        <span data-parte="testo" style={{ flex: 1, textAlign: 'left' }}>
+          {ascolto ? 'Ti ascolto…' : etichetta}
+        </span>
         <span
           aria-hidden="true"
-          className={ascolto ? 'ds-pill-voce-mic--ascolto' : undefined}
+          data-parte="cerchio-mic"
+          className={ascolto ? 'ds-pill-voce-cerchio-mic ds-pill-voce-mic--ascolto' : 'ds-pill-voce-cerchio-mic'}
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 36,
-            height: 36,
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+            width: 46,
+            height: 46,
             borderRadius: raggio.pill,
-            background: materia.cerchioMicPillVoce,
-            fontSize: 17,
-            lineHeight: 1,
           }}
         >
-          🎙️
+          {/* Glifo mic pulito, non l'emoji del mockup (placeholder) — bianco
+              via testoSuFaccia (constraint 4a: niente hex fuori da tokens.ts). */}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="12" rx="3" fill={testoSuFaccia} />
+            <path
+              d="M5 11a7 7 0 0 0 14 0"
+              stroke={testoSuFaccia}
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+            <line x1="12" y1="18" x2="12" y2="22" stroke={testoSuFaccia} strokeWidth="2" strokeLinecap="round" />
+            <line x1="8" y1="22" x2="16" y2="22" stroke={testoSuFaccia} strokeWidth="2" strokeLinecap="round" />
+          </svg>
         </span>
-        {ascolto ? 'Ti ascolto…' : etichetta}
       </motion.button>
     </>
   )

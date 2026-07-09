@@ -36,7 +36,6 @@ export const materia = {
   granaOpacityDark: 0.06,
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
   scrim: 'rgba(29,25,19,.35)', // §5.16/§5.17 — scrim dietro Sheet e DialogConferma
-  cerchioMicPillVoce: 'rgba(255,255,255,.16)', // §5.15 — cerchio del mic dentro PillVoce
 } as const
 
 // Valori-legge non tokenizzati come variabile CSS (§5.1/§5.4/§5.11-12/§5.14) —
@@ -84,6 +83,32 @@ export const tastoPiu = {
   // tokens.ts ospita SOLO colori/gradienti/ombre (constraint 6 — la deroga
   // `gradiente`/`tastoPiu` al check 4a copre i colori, non i tempi).
 } as const
+
+// §5.15 rev 2 (09/07 — variante A «la pill di carta» scelta da Francesco). FONTE DI
+// VERITÀ visiva: mockup docs/design/mockups/2026-07-09-pillvoce-v2-due-varianti.html,
+// classe `.pvA` (+ `.notte .pvA`, `:active`) — i valori qui sotto sono copiati VERBATIM
+// da lì. Materia: la stessa "carta che affiora" dei tasti; il cerchioMic Ø46 usa il
+// gradiente del TastoPrimario (`gradiente.tastoPrimario`, riuso diretto — combacia
+// esattamente coi valori light del mockup) col suo proprio dark verbatim, perché in
+// notte il mockup diverge dal TastoPrimario (che non ha una variante notte propria).
+export const pillVoce = {
+  // — light (la pill di carta) —
+  faccia: 'linear-gradient(180deg, #FFFEFA, #F5F0E6)',
+  facciaOmbra: '0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10), inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07)',
+  facciaOmbraPressed: '0 2px 6px rgba(52,42,26,.14), inset 0 2px 5px rgba(52,42,26,.10)',
+  cerchioMicOmbra: '0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35)',
+  cerchioMicOmbraPressed: '0 1px 2px rgba(176,0,16,.3), inset 0 2px 4px rgba(120,0,10,.4)',
+  // — dark —
+  facciaNotte: 'linear-gradient(180deg, #2B2620, #211D18)',
+  facciaOmbraNotte: 'inset 0 1px 0 rgba(255,255,255,.07), 0 8px 18px rgba(0,0,0,.4)',
+  facciaOmbraPressedNotte: 'inset 0 2px 6px rgba(0,0,0,.5)',
+  // Verbatim dal mockup dark — NON `gradiente.tastoPrimario` (che in notte darebbe
+  // #F2263A/var(--red)/#B00010: valori diversi da qui, perché il TastoPrimario non
+  // ha mai avuto una faccia notte propria — §5.1 non la specifica).
+  cerchioMicNotte: 'linear-gradient(180deg, #FF4C55, #FF3B44 55%, #C41822)',
+  cerchioMicOmbraNotte: 'inset 0 1.5px 1px rgba(255,255,255,.25)',
+} as const
+
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 
 // Valore-legge: testo bianco sopra le facce gradiente (§5.1 TastoPrimario, §5.4 PillFase).

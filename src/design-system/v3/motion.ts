@@ -23,6 +23,11 @@ export const cssEase = {
   // motori sulla stessa proprietà.
   tastoPiuGhiera: 'box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)',
   tastoPiuCappello: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
+  // PillVoce «la pill di carta» (§5.15 rev 2, dal mockup approvato): box-shadow
+  // al pressed di faccia e cerchioMic. Il translateY della faccia NON passa di
+  // qui: lo anima Motion con `whileTap`/`molla.press` — mai due motori sulla
+  // stessa proprietà (stesso principio del TastoPiu sopra).
+  pillVoce: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
 } as const
 
 // Le coreografie canoniche (§8.3) — SOLO queste. Variants Motion pronti all'uso.

@@ -967,8 +967,12 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="pill-voce" titolo="PillVoce" spec="§5.15 — l'input vocale, progressive enhancement">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+      <SezioneCatalogo
+        id="pill-voce"
+        titolo="PillVoce"
+        spec="§5.15 rev 2 — «la pill di carta»: l'input vocale, progressive enhancement"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, maxWidth: 360 }}>
           <PillVoce onTesto={setTestoVoce} />
           {testoVoce && (
             <p style={{ fontSize: tipografia.size.callout, color: 'var(--ink)', margin: 0 }}>

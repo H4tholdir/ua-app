@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+import { gradiente, pillVoce, materia } from '@/design-system/v3/tokens'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -127,6 +128,71 @@ describe('PillVoce — input vocale, progressive enhancement (§5.15)', () => {
       const regola = container.querySelector('style')?.textContent ?? ''
       expect(regola).toContain('outline: 2px solid var(--blue)')
       expect(regola).toContain('outline-offset: 2px')
+    })
+
+    it('«la pill di carta» (§5.15 rev 2): data-parte su pill/testo/cerchioMic, come il porting TastoPiu', () => {
+      const { container } = render(<PillVoce onTesto={() => {}} />)
+      const pill = container.querySelector('[data-parte="pill"]') as HTMLElement | null
+      const testo = container.querySelector('[data-parte="testo"]') as HTMLElement | null
+      const cerchioMic = container.querySelector('[data-parte="cerchio-mic"]') as HTMLElement | null
+      expect(pill).not.toBeNull()
+      expect(testo).not.toBeNull()
+      expect(cerchioMic).not.toBeNull()
+      expect(testo?.textContent).toBe('Dimmelo a voce')
+    })
+
+    it('materia dal mockup .pvA via classi scoped: faccia + cerchioMic (gradiente TastoPrimario) + pressed + dark', () => {
+      const { container } = render(<PillVoce onTesto={() => {}} />)
+      const regole = container.querySelector('style')?.textContent ?? ''
+      // light
+      expect(regole).toContain(`background: ${pillVoce.faccia}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.facciaOmbra}`)
+      expect(regole).toContain(`background: ${gradiente.tastoPrimario}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.cerchioMicOmbra}`)
+      // pressed
+      expect(regole).toContain(`box-shadow: ${pillVoce.facciaOmbraPressed}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.cerchioMicOmbraPressed}`)
+      // dark — regole scoped [data-theme="dark"] [data-ds="v3"], valori .notte .pvA
+      expect(regole).toContain('[data-theme="dark"] [data-ds="v3"] .ds-pill-voce')
+      expect(regole).toContain(`background: ${pillVoce.facciaNotte}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.facciaOmbraNotte}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.facciaOmbraPressedNotte}`)
+      expect(regole).toContain(`background: ${pillVoce.cerchioMicNotte}`)
+      expect(regole).toContain(`box-shadow: ${pillVoce.cerchioMicOmbraNotte}`)
+    })
+
+    it('la rev 1 bocciata non esiste più: materia.cerchioMicPillVoce è sparito da tokens.ts', () => {
+      expect('cerchioMicPillVoce' in materia).toBe(false)
+    })
+
+    it('pressed: pointerdown attiva la classe --premuto (ombre), pointerup la spegne', async () => {
+      render(<PillVoce onTesto={() => {}} />)
+      const bottone = screen.getByRole('button', { name: /dimmelo a voce/i })
+      fireEvent.pointerDown(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+      await waitFor(() => expect(bottone.classList.contains('ds-pill-voce--premuto')).toBe(true))
+      fireEvent.pointerUp(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+      await waitFor(() => expect(bottone.classList.contains('ds-pill-voce--premuto')).toBe(false))
+    })
+
+    it('anti-glitch (§5.15 rev 2): il pressed muove SOLO translateY — MAI scale sul contenuto', async () => {
+      render(<PillVoce onTesto={() => {}} />)
+      const bottone = screen.getByRole('button', { name: /dimmelo a voce/i })
+      fireEvent.pointerDown(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+      await waitFor(() => expect(bottone.classList.contains('ds-pill-voce--premuto')).toBe(true))
+      expect(bottone.style.transform ?? '').not.toContain('scale')
+      fireEvent.pointerUp(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+    })
+
+    it('in ascolto: il cerchio del mic porta la classe del respiro (opacity-only, §8.4)', () => {
+      const { container } = render(<PillVoce onTesto={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+      const cerchioMic = container.querySelector('[data-parte="cerchio-mic"]') as HTMLElement | null
+      expect(cerchioMic?.classList.contains('ds-pill-voce-mic--ascolto')).toBe(true)
+      const regola = container.querySelector('style')?.textContent ?? ''
+      expect(regola).toContain('@media (prefers-reduced-motion: no-preference)')
+      expect(regola).toContain('ds-pill-voce-pulsa 1.6s ease-in-out infinite')
+      expect(regola).toContain('0%, 100% { opacity: 1; }')
+      expect(regola).toContain('50% { opacity: 0.35; }')
     })
 
     it('unmount mentre in ascolto → stop() sull\'istanza e handler staccati (il mic non resta acceso)', () => {
