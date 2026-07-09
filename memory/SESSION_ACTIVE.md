@@ -1,11 +1,9 @@
-# Sessione attiva — 08/07/2026
+# Sessione attiva — 09/07/2026
 
-**DS v3 «Una cosa alla volta» — sotto-progetto 1 (fondamenta) COMPLETATO, MERGIATO E DEPLOYATO.**
+**DS v3 — sotto-progetto 2 (componenti core) COMPLETATO E APPROVATO DA FRANCESCO (gate §14.2 chiuso 09/07/2026).**
 
-Fast-forward `12246d0..9fde21d` su `main`, deploy Vercel verificato (`[data-ds=v3]` nel bundle CSS live di uachelab.com). Review finale whole-branch: READY TO MERGE, zero Critical/Important. Worktree e branch rimossi.
+Branch `worktree-ds-v3-componenti`, in merge su `main` (a cura del controller). 27 componenti §5, catalogo pubblico `/ds-v3-catalogo` (14 sezioni, 6 screenshot QA rigenerati in `docs/design/catalogo-v3/`). 2 round feedback live: redesign TastoPiu «il punto rosso» (§5.2 rev 2) e PillVoce «la pill di carta» (§5.15 rev 2); suoni reali scelti da Francesco; Sheet swipe-to-dismiss + fix scroll-lock Critical. Suite 1106 passed | 4 skipped (era 707). tsc pulito.
 
-10 task review-approvati: font Plus Jakarta Sans · dizionario · token v3 (ambra `#9A5C00` WCAG) · `ds-v3.css` scoped · motion (5 molle Apple) · 5 WAV provvisori + player Web Audio · haptic Android-only · check-compliance v3. Suite 707 passed | 4 skipped (era 670). Tutto v3 dormiente: zero impatto su pagine v2.3.
+**Prossimo:** merge su `main` (non ff) → push → deploy → verifica prod → sotto-progetto 3 «Il cuore» (spec §14.3).
 
 Spec: `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`.
-
-**Prossimo:** sotto-progetto 2 componenti core (spec §14.2) — carry-over obbligatori nel primo commit: vedi MEMORY.md §0.

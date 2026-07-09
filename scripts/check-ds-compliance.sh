@@ -74,7 +74,9 @@ if [ -n "$V3_EXISTS" ]; then
   fi
 
   # 4c. Font vietati nel perimetro v3
-  V3_FONT=$(grep -rn "DM Sans\|Playfair\|Inter\|Roboto" $V3_SCOPE \
+  # "Inter" richiede confine di parola (\b): senza, la sottostringa matcha parole
+  # italiane come "Interattiva"/"interno"/"interruttore" (falsi positivi).
+  V3_FONT=$(grep -rn "DM Sans\|Playfair\|\bInter\b\|Roboto" $V3_SCOPE \
     --include="*.tsx" --include="*.ts" --include="*.css" 2>/dev/null \
     | grep -v "node_modules\|\.test\." || true)
   if [ -n "$V3_FONT" ]; then

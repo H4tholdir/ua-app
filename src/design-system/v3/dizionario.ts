@@ -19,6 +19,7 @@ export const PAROLE_VIETATE: ReadonlyArray<{ vietata: RegExp; usa: string }> = [
   { vietata: /\bin_lavorazione\b/i,       usa: 'Sul banco / In forno / In rifinitura' },
   { vietata: /\belimina\s+definitivamente/i, usa: 'Butta via (con via di fuga)' },
   { vietata: /\bcampo\s+obbligatorio/i,   usa: '(la domanda stessa lo rende ovvio)' },
+  { vietata: /\bfattura\s+emessa\s+verso\s+sdi\b/i, usa: 'Fattura inviata ✓' },
 ] as const
 
 /** Ritorna le parole vietate trovate nel testo (minuscole), [] se pulito. */

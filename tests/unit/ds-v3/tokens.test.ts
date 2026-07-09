@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { luce, notte, tipografia, raggio, varV3 } from '@/design-system/v3/tokens'
+import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia, tastoPiu, pillVoce } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
   const c = hex.replace('#', '')
@@ -46,5 +46,84 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   it('raggi chiusi e helper var', () => {
     expect(raggio.card).toBe(24)
     expect(varV3('red')).toBe('var(--red)')
+  })
+  it('gradiente: valori-legge esatti (§5.1/§5.4/§5.11-12)', () => {
+    expect(gradiente.tastoPrimario).toContain('#F2263A')
+    expect(gradiente.tastoPrimario).toContain('#B00010')
+    expect(gradiente.pillFase).toBe('linear-gradient(180deg, #269950, var(--green))')
+    expect(gradiente.corsaPillFase).toBe('#14602C')
+    expect(gradiente.dashedGuida).toBe('#CBC1B0')
+  })
+  it('tastoPiu light: valori-legge VERBATIM dal mockup .tpB (§5.2 rev 2 — «il punto rosso»)', () => {
+    expect(tastoPiu.ghiera).toBe('linear-gradient(170deg, #F9F5EC 0%, #EFE9DC 60%, #E2DACA 100%)')
+    expect(tastoPiu.ghieraOmbra).toBe('0 16px 28px rgba(52, 42, 26, .20), 0 5px 10px rgba(52, 42, 26, .12), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)')
+    expect(tastoPiu.ghieraOmbraPressed).toBe('0 10px 20px rgba(52, 42, 26, .18), 0 4px 8px rgba(52, 42, 26, .11), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)')
+    expect(tastoPiu.solco).toBe('linear-gradient(180deg, #DAD2C2, #ECE6DA)')
+    expect(tastoPiu.solcoOmbra).toBe('inset 0 1.5px 2.5px rgba(52, 42, 26, .24), inset 0 -1px 1px rgba(255, 255, 255, .5)')
+    expect(tastoPiu.cappello).toBe('radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4 100%)')
+    expect(tastoPiu.cappelloOmbra).toBe('0 3px 6px rgba(52, 42, 26, .18), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -4px 8px rgba(52, 42, 26, .06)')
+    expect(tastoPiu.cappelloPressed).toBe('radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 50%, #ECE5D5 100%)')
+    expect(tastoPiu.cappelloOmbraPressed).toBe('inset 0 3px 7px rgba(52, 42, 26, .15), inset 0 -1px 1px rgba(255, 255, 255, .5)')
+    expect(tastoPiu.piuOmbra).toBe('0 1px 0 rgba(255,255,255,.7)')
+  })
+  it('tastoPiu dark: valori-legge VERBATIM dal mockup .notte .tpB (§5.2 rev 2)', () => {
+    expect(tastoPiu.ghieraNotte).toBe('linear-gradient(170deg, #2B261E 0%, #241F17 60%, #1D1912 100%)')
+    expect(tastoPiu.ghieraOmbraNotte).toBe('inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 22px rgba(0, 0, 0, .4)')
+    expect(tastoPiu.solcoNotte).toBe('linear-gradient(180deg, #131009, #1B1710)')
+    expect(tastoPiu.solcoOmbraNotte).toBe('inset 0 1.5px 3px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04)')
+    expect(tastoPiu.cappelloNotte).toBe('radial-gradient(circle at 50% 28%, #37312A 0%, #2E2921 55%, #252017 100%)')
+    expect(tastoPiu.cappelloOmbraNotte).toBe('0 2px 5px rgba(0, 0, 0, .4), inset 0 1.5px 1px rgba(255, 255, 255, .08), inset 0 -3px 6px rgba(0, 0, 0, .3)')
+    expect(tastoPiu.cappelloOmbraPressedNotte).toBe('inset 0 3px 7px rgba(0, 0, 0, .5)')
+    // #E8323B è il pressed dark del glifo nel mockup — NON var(--red-dark) dark (#8F0910)
+    expect(tastoPiu.piuPressedNotte).toBe('#E8323B')
+    expect(tastoPiu.piuPressedNotte).not.toBe(notte.redDark)
+  })
+  it('tastoPiu: le transizioni NON vivono in tokens.ts — i tempi stanno in motion.ts (constraint 6)', () => {
+    expect('transizioneGhiera' in tastoPiu).toBe(false)
+    expect('transizioneCappello' in tastoPiu).toBe(false)
+  })
+  it('tastoPiu: la rev 1 bocciata non esiste più (gradiente.tastoPiu / materia.*)', () => {
+    expect('tastoPiu' in gradiente).toBe(false)
+    expect('ombraGhiera' in materia).toBe(false)
+    expect('solcoTastoPiu' in materia).toBe(false)
+    expect('solcoTastoPiuNotte' in materia).toBe(false)
+    expect('luceCappello' in materia).toBe(false)
+    expect('ombraCappello' in materia).toBe(false)
+    expect('affondoCappello' in materia).toBe(false)
+    expect('bordoCappelloNotte' in materia).toBe(false)
+  })
+  it('materia.scrim: valore-legge esatto (§5.16/§5.17 — scrim di Sheet e DialogConferma)', () => {
+    expect(materia.scrim).toBe('rgba(29,25,19,.35)')
+  })
+  it('pillVoce light: valori-legge VERBATIM dal mockup .pvA (§5.15 rev 2 — «la pill di carta»)', () => {
+    expect(pillVoce.faccia).toBe('linear-gradient(180deg, #FFFEFA, #F5F0E6)')
+    expect(pillVoce.facciaOmbra).toBe('0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10), inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07)')
+    expect(pillVoce.facciaOmbraPressed).toBe('0 2px 6px rgba(52,42,26,.14), inset 0 2px 5px rgba(52,42,26,.10)')
+    expect(pillVoce.cerchioMicOmbra).toBe('0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35)')
+    expect(pillVoce.cerchioMicOmbraPressed).toBe('0 1px 2px rgba(176,0,16,.3), inset 0 2px 4px rgba(120,0,10,.4)')
+    // il cerchioMic light combacia ESATTAMENTE col gradiente del TastoPrimario (decisione 09/07)
+    expect(gradiente.tastoPrimario).toBe('linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)')
+  })
+  it('pillVoce dark: valori-legge VERBATIM dal mockup .notte .pvA (§5.15 rev 2)', () => {
+    expect(pillVoce.facciaNotte).toBe('linear-gradient(180deg, #2B2620, #211D18)')
+    expect(pillVoce.facciaOmbraNotte).toBe('inset 0 1px 0 rgba(255,255,255,.07), 0 8px 18px rgba(0,0,0,.4)')
+    expect(pillVoce.facciaOmbraPressedNotte).toBe('inset 0 2px 6px rgba(0,0,0,.5)')
+    // il cerchioMic dark NON combacia col TastoPrimario (che non ha una faccia notte propria)
+    expect(pillVoce.cerchioMicNotte).toBe('linear-gradient(180deg, #FF4C55, #FF3B44 55%, #C41822)')
+    expect(pillVoce.cerchioMicOmbraNotte).toBe('inset 0 1.5px 1px rgba(255,255,255,.25)')
+  })
+  it('pillVoce: la rev 1 bocciata non esiste più (materia.cerchioMicPillVoce)', () => {
+    expect('cerchioMicPillVoce' in materia).toBe(false)
+  })
+  it('pillVoce: le transizioni NON vivono in tokens.ts — i tempi stanno in motion.ts (constraint 6)', () => {
+    expect('transizioneFaccia' in pillVoce).toBe(false)
+    expect('transizioneCerchioMic' in pillVoce).toBe(false)
+  })
+  it('avatarPalette: 6 voci esatte (§5.14)', () => {
+    expect(avatarPalette).toEqual(['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'])
+    expect(avatarPalette.length).toBe(6)
+  })
+  it('testoSuFaccia: valore-legge esatto (testo bianco su facce gradiente, §5.1/§5.4)', () => {
+    expect(testoSuFaccia).toBe('#FFFFFF')
   })
 })

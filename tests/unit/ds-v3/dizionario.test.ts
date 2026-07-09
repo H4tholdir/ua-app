@@ -38,6 +38,7 @@ describe('dizionario v3 — parole del banco', () => {
     { testo: 'stato: in_lavorazione', attesa: 'in_lavorazione' },
     { testo: 'Vuoi eliminare? Elimina definitivamente', attesa: 'elimina definitivamente' },
     { testo: 'Campo obbligatorio mancante', attesa: 'campo obbligatorio' },
+    { testo: 'Fattura emessa verso SDI', attesa: 'fattura emessa verso sdi' },
   ]
   it('copre tutti i pattern con un match positivo ciascuno', () => {
     expect(casiPositivi.length).toBe(PAROLE_VIETATE.length)

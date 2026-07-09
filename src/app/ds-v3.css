@@ -1,10 +1,16 @@
 /* src/app/ds-v3.css — DS v3 «Una cosa alla volta» (spec 2026-07-07)
    SCOPED: tutto vive sotto [data-ds="v3"]. Le pagine v2.3 non sono toccate.
-   Migrare una pagina = avvolgerla in <div data-ds="v3">. */
+   Migrare una pagina = avvolgerla in <div data-ds="v3">, MA (fix QA live
+   Francesco round 2) lo scope non dipinge più `background` da solo — i
+   page-root impostano il proprio `background: var(--bg)` inline (vedi
+   `ds-v3-catalogo/page.tsx`), altrimenti anche i portal (Avviso/Sheet/
+   DialogConferma, che portano lo stesso `data-ds="v3"` per i token) lo
+   erediterebbero e dipingerebbero un rettangolo opaco dove devono restare
+   trasparenti. */
 
 [data-ds="v3"] {
   /* superfici */
-  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA;
+  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA; --elv: var(--card);
   /* inchiostri */
   --ink: #1D1913; --muted: #6E6457; --faint: #A69B8C; --line: #EBE4D6;
   /* azione e stati */
@@ -19,8 +25,19 @@
   --font-v3: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   font-family: var(--font-v3);
-  background: var(--bg);
   color: var(--ink);
+  /* NIENTE `background` qui (fix QA live Francesco round 2): questo attributo
+     scope-a i token per QUALUNQUE elemento che porti `data-ds="v3"` — non solo
+     la pagina catalogo, ma anche i portal di Avviso/Sheet/DialogConferma
+     (constraint 3: portano `data-ds="v3"` per ereditare le custom property
+     fuori dall'albero DOM del catalogo). Un `background: var(--bg)` qui
+     dipingeva un rettangolo OPACO dietro ogni portal — il contenitore fixed
+     di Avviso (senza sfondo proprio) e il wrapper di Sheet/DialogConferma
+     (dietro al proprio scrim semi-trasparente, occludendo la pagina vera
+     invece di lasciarla trasparire). La pagina catalogo imposta il proprio
+     `background: var(--bg)` inline (`ds-v3-catalogo/page.tsx`) — non perde
+     nulla. I portal restano trasparenti di default; ogni card dipinge il
+     proprio sfondo (`var(--card)`) via stile inline. */
 }
 
 /* Dark — elevazione = superficie più chiara, MAI ombre (spec §3.2) */

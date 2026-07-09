@@ -13,6 +13,10 @@ describe('motion v3 — molle Apple (spec §8.1)', () => {
     expect(cssEase.sheet).toBe('500ms cubic-bezier(0.32, 0.72, 0, 1)')
     expect(cssEase.generico).toBe('200ms cubic-bezier(0.25, 0.1, 0.25, 1)')
   })
+  it('transizioni TastoPiu «punto rosso» (§5.2 rev 2): valori esatti del mockup, casa unica dei tempi', () => {
+    expect(cssEase.tastoPiuGhiera).toBe('box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)')
+    expect(cssEase.tastoPiuCappello).toBe('box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)')
+  })
   it('coreografia consegnato: check ~450ms poi cascata stagger 80ms', () => {
     expect(coreografie.consegnatoCheck.transition.duration).toBeCloseTo(0.45)
     expect(coreografie.consegnatoCascata.animate.transition.staggerChildren).toBeCloseTo(0.08)
