@@ -1,10 +1,8 @@
-# Sessione attiva — 09/07/2026 notte (P2 chiuso)
+# Sessione attiva — 10/07/2026 (Ondata 4a-server: spec+piano pronti)
 
-**P2 — Pre-check chirurgico consegna/annullo/SDI: ✅ COMPLETATO.** Report: `docs/roadmap/P2-PRECHECK-CONSEGNA-SDI-2026-07-09.md`. B1/B2/B3+C4 confermati sul codice e sul DB live; 10 nuovi item P2-1…P2-10, **nessun S1** — tutti S2 (dentro 4a) o S3. Chiavi: annullo-DdC no-op da sempre (filtro sbagliato + CHECK + esito non controllato); doppia fattura su annullo+riconsegna (fatture senza link al lavoro, `fatture_righe` 0 righe); `ddc_lavoro_unique` pieno vs modello annulla-e-rigenera; progressivi da consumare solo all'emissione; pg_cron già attivo per l'outbox E3; `in_ritardo` lazy (solo trigger su write) → conferma `derivaUrgenza`.
+**P2 ✅** (report `docs/roadmap/P2-PRECHECK-CONSEGNA-SDI-2026-07-09.md`, commit `fcd3024`).
+**Ondata 4a-server — DESIGN COMPLETO:** spec approvata da Francesco `docs/superpowers/specs/2026-07-09-ondata-4a-server-consegna-fiscale-design.md` (commit `11cb9b8`; 3 advisor: architect+appsec+sre, tutti i bloccanti integrati; decisioni D1 pg_cron+pg_net · D2 DdC annulla+rigenera · D3 emetti-salvo-rifiuto con claim incluso_in_fattura · D4 osservabilità completa+/admin). **Piano scritto:** `docs/superpowers/plans/2026-07-09-ondata-4a-server-consegna-fiscale.md` — 18 task: costanti → 6 migration (file) → **Task 8 GATE Francesco (apply DB live + Vault + env)** → gate B1 → RPC finalizza → DdC writer+10 lettori → route annullo → generaFatturaPA idempotente → endpoint cron → /admin Coda emissione → verifica finale.
 
-**SEQUENZA (spec sp.3 §12) — prossimo step:**
-1. ~~P1 B22~~ ✅ · 2. ~~P2 pre-check~~ ✅
-3. **Ondata 4a-server** ← SI PARTE DA QUI: brainstorm+piano dedicati (worktree), B1/B2+P2-1/B3+C4 via outbox+cron, `STATI_CONSEGNABILI` (E4), gate annullo su fattura inviata (P2-6), decisione DdC (P2-3), TDD puro zero UI, review rafforzata fiscale, FASE 6b.
-4. Ondata 0 mockup → 1 → 2 → 3 → 4b → collaudo Francesco → audit → sp.4.
+**PROSSIMO PASSO:** esecuzione piano in worktree dedicato (scelta modalità: subagent-driven raccomandata). Ricordare: `.env.local` da copiare nel worktree; Task 8 richiede conferma esplicita di Francesco; QA finale su lab E2E, MAI lab Filippo.
 
-**Operating model E6 sempre attivo** (un writer per repo, reconcile-before-write, WIP 1+1).
+**Dopo la 4a:** Ondata 0 mockup (piano già pronto) → 1 → 2 → 3 → 4b (sequenza sp.3 §12). Operating model E6 attivo.
