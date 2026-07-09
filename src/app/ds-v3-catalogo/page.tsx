@@ -78,6 +78,36 @@ const FASI_INIZIALI = [
   { nome: 'Rifinitura', fatto: false },
 ]
 
+// Demo di §9.1: bottone SEMPLICE per l'audizione dei suoni — NON un
+// TastoSecondario, che suonerebbe il suo tap built-in prima dell'onClick
+// (tap+fatta insieme, tap due volte…), sporcando l'audizione e contraddicendo
+// la regola «mai più di uno per gesto». Chrome del catalogo: stessa geometria
+// dei tasti secondari, classe `catalogo-interattivo` per l'anello focus di
+// legge (constraint 9), target ≥44px.
+function TastoSuono(props: { etichetta: string; onSuona: () => void }) {
+  const { etichetta, onSuona } = props
+  return (
+    <button
+      type="button"
+      className="catalogo-interattivo"
+      onClick={onSuona}
+      style={{
+        height: 58,
+        borderRadius: raggio.riga,
+        border: '1px solid var(--line)',
+        background: 'var(--card)',
+        color: 'var(--ink)',
+        fontSize: tipografia.size.body,
+        fontWeight: tipografia.weight.bold,
+        padding: '0 24px',
+        cursor: 'pointer',
+      }}
+    >
+      {etichetta}
+    </button>
+  )
+}
+
 // Demo di §5.18: chiama useAvvisi(), quindi deve stare DENTRO AvvisiProvider
 // — per questo è un componente a sé e non inline nel JSX della sezione.
 function DemoAvvisi() {
@@ -718,7 +748,7 @@ export default function CatalogoPage() {
       <SezioneCatalogo id="suoni" titolo="Suoni" spec="§9.1 — la palette, cinque suoni, chiusa">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-            <TastoSecondario onClick={() => suona('tap')}>Tap</TastoSecondario>
+            <TastoSuono etichetta="Tap" onSuona={() => suona('tap')} />
             <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
               Suona ogni volta che premi un tasto fisico, dal più semplice bottone alla spunta di
               una fase: quasi impercettibile, è il tocco di legno di ogni gesto.
@@ -726,14 +756,14 @@ export default function CatalogoPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-            <TastoSecondario onClick={() => suona('fatta')}>Fatta</TastoSecondario>
+            <TastoSuono etichetta="Fatta" onSuona={() => suona('fatta')} />
             <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
               Suona quando segni una fase del lavoro come fatta.
             </p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-            <TastoSecondario onClick={() => suona('ua')}>UÀ — la firma</TastoSecondario>
+            <TastoSuono etichetta="UÀ — la firma" onSuona={() => suona('ua')} />
             <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
               Suona alla consegna di un lavoro — la firma sonora di UÀ, due note calde che
               salgono: l&apos;unico suono della palette, più lungo di tutti gli altri.
@@ -741,7 +771,7 @@ export default function CatalogoPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-            <TastoSecondario onClick={() => suona('errore')}>Errore</TastoSecondario>
+            <TastoSuono etichetta="Errore" onSuona={() => suona('errore')} />
             <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
               Suona quando qualcosa non va a buon fine, come un tentativo di scrittura che
               fallisce — un tonfo smorzato, mai squillante.
@@ -749,7 +779,7 @@ export default function CatalogoPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-            <TastoSecondario onClick={() => suona('arrivo')}>Arrivo</TastoSecondario>
+            <TastoSuono etichetta="Arrivo" onSuona={() => suona('arrivo')} />
             <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
               Suona quando arriva un lavoro nuovo o un messaggio dal portale del dentista.
             </p>

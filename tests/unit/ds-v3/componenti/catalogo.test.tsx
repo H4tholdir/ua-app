@@ -171,10 +171,27 @@ describe('catalogo DS v3 — sezione «Suoni» (§9.1)', () => {
     ['UÀ — la firma', 'ua'],
     ['Errore', 'errore'],
     ['Arrivo', 'arrivo'],
-  ])('il tasto «%s» chiama suona(\'%s\') direttamente', (etichetta, nomeSuono) => {
+  ])('il tasto «%s» chiama suona(\'%s\') e SOLO quello — un suono per gesto, audizione pulita', (etichetta, nomeSuono) => {
     render(<CatalogoPage />)
     fireEvent.click(screen.getByRole('button', { name: etichetta }))
-    expect(suonaMock).toHaveBeenCalledWith(nomeSuono)
+    // Esattamente UNA chiamata col solo nome atteso: un TastoSecondario qui
+    // aggiungerebbe suona('tap') built-in prima dell'onClick, sporcando
+    // l'audizione (tap+fatta insieme, tap due volte…) e contraddicendo la
+    // didascalia della sezione («mai più di uno per gesto»).
+    expect(suonaMock.mock.calls).toEqual([[nomeSuono]])
+  })
+
+  it('i tasti della sezione Suoni NON sono TastoSecondario (che suonerebbe tap built-in): bottoni semplici col chrome del catalogo', () => {
+    const { container } = render(<CatalogoPage />)
+    const sezione = container.querySelector('#suoni')
+    expect(sezione).not.toBeNull()
+    const bottoni = sezione?.querySelectorAll('button') ?? []
+    expect(bottoni.length).toBe(5)
+    for (const bottone of Array.from(bottoni)) {
+      expect(bottone.className).not.toContain('ds-tasto-secondario')
+      // Anello focus di legge via chrome del catalogo (constraint 9).
+      expect(bottone.className).toContain('catalogo-interattivo')
+    }
   })
 
   it('ogni tasto ha una didascalia che spiega quando suona nell\'app reale (non solo il nome del file)', () => {
