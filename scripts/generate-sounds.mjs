@@ -1,8 +1,19 @@
-// Genera i 5 suoni firmati DS v3 (§9.1) come WAV PCM16 mono 48kHz.
+// Genera SOLO `ua.wav` — la firma sonora DS v3 (§9.1), WAV PCM16 mono 48kHz.
 // v2 — carattere analogico (feedback Francesco dal catalogo live, 09/07/2026):
 // "troppo digitali, troppo taglienti, invasivi" → sostituiti i toni sinusoidali puri
 // con impasti di rumore filtrato + thump gravi + note calde a partiali deboli,
 // ogni suono pensato come metafora di un'azione fisica (tasto, scatto, feltro).
+//
+// QA live round 2 (09/07/2026): tap/fatta/arrivo/errore NON sono più
+// sintetizzati qui — Francesco ha scelto 4 campioni MP3 reali (in
+// `scripts/sounds-src/`), processati da `scripts/process-sounds.mjs` in
+// `public/sounds/{tap,fatta,arrivo,errore}.wav`. Le ricette sintetiche di
+// quei 4 suoni sono state RIMOSSE da questo file apposta: NON vanno
+// resuscitate, ri-eseguire questo script non deve MAI sovrascrivere i WAV
+// curati da process-sounds.mjs. Se serve rigenerare tap/fatta/arrivo/errore,
+// usare `node scripts/process-sounds.mjs` (richiede gli MP3 sorgente in
+// scripts/sounds-src/), non questo script.
+//
 // Uso: node scripts/generate-sounds.mjs
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -24,17 +35,6 @@ function wav(samples) {
 }
 
 const off = ms => Math.round((ms / 1000) * SR)
-
-/** PRNG deterministico (mulberry32) — stesso seed → stesso rumore, sempre. */
-function prng(seed) {
-  let a = seed >>> 0
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1 // [-1, 1)
-  }
-}
 
 /** filtro passa-basso one-pole (RC), applicato in cascata per un rolloff più ripido */
 function lowpass(samples, cutoffHz, passes = 3) {
@@ -63,35 +63,6 @@ function inviluppo(n, ms, attackMs, decayDiv = 5) {
     env[i] = att * dec
   }
   return env
-}
-
-/** rumore filtrato: burst di rumore bianco passato a passa-basso + inviluppo — la "grana" del tocco */
-function rumoreFiltrato(ms, { cutoffHz = 1800, gain = 0.15, attackMs = 2, decayDiv = 4, seed = 1 } = {}) {
-  const n = off(ms)
-  const rnd = prng(seed)
-  const raw = new Float32Array(n)
-  for (let i = 0; i < n; i++) raw[i] = rnd()
-  const filtered = lowpass(raw, cutoffHz, 4)
-  const env = inviluppo(n, ms, attackMs, decayDiv)
-  const out = new Float32Array(n)
-  for (let i = 0; i < n; i++) out[i] = filtered[i] * env[i] * gain
-  return out
-}
-
-/** thump: colpo grave smorzato, con drop di intonazione opzionale (il "peso" fisico dell'azione) */
-function thump(freq, ms, { gain = 0.3, attackMs = 3, decayDiv = 5, pitchDropHz = 0 } = {}) {
-  const n = off(ms)
-  const env = inviluppo(n, ms, attackMs, decayDiv)
-  const out = new Float32Array(n)
-  let phase = 0
-  const durS = ms / 1000
-  for (let i = 0; i < n; i++) {
-    const t = i / SR
-    const instFreq = freq - pitchDropHz * Math.min(1, t / durS)
-    phase += (2 * Math.PI * instFreq) / SR
-    out[i] = gain * env[i] * Math.sin(phase)
-  }
-  return out
 }
 
 /** nota calda: fondamentale + 2a/3a armonica deboli (timbro triangolare), mai un beep sinusoidale puro */
@@ -131,22 +102,6 @@ function rifinisci(samples, { lowpassHz = 2200, maxPeak = 0.42 } = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// tap (~28ms): il tasto fisico premuto — un "thock" smorzato, quasi impercettibile.
-// Burst di rumore legnoso (passa-basso 1.8kHz, 8ms) + thump grave (185Hz) che decade
-// rapidissimo. Nessuna componente sopra i ~1.8kHz: feltrato, non digitale.
-writeFileSync(join(dir, 'tap.wav'), wav(rifinisci(mixa(
-  { s: rumoreFiltrato(8, { cutoffHz: 1800, gain: 0.13, attackMs: 2, decayDiv: 3, seed: 11 }), offset: 0 },
-  { s: thump(185, 28, { gain: 0.20, attackMs: 3, decayDiv: 4 }), offset: 0 },
-), { lowpassHz: 1900, maxPeak: 0.32 })))
-
-// fatta (~105ms): uno scatto morbido che si richiude — thock d'attacco (rumore + thump breve)
-// seguito da un corpo caldo medio-basso (~265Hz) che decade con calma. Meccanico, soddisfacente.
-writeFileSync(join(dir, 'fatta.wav'), wav(rifinisci(mixa(
-  { s: rumoreFiltrato(7, { cutoffHz: 1600, gain: 0.10, attackMs: 2, decayDiv: 3, seed: 21 }), offset: 0 },
-  { s: thump(190, 14, { gain: 0.14, attackMs: 2, decayDiv: 4 }), offset: 0 },
-  { s: notaCalda(265, 105, { gain: 0.26, attackMs: 6, h2: 0.20, h3: 0.08, decayDiv: 4 }), offset: 0 },
-), { lowpassHz: 2000, maxPeak: 0.34 })))
-
 // ua (~500ms): LA FIRMA — due note ascendenti (terza maggiore, E4→G#4 ≈330→415Hz), ma
 // rotonde e calde: fondamentale + 2a/3a armonica deboli (timbro triangolare, non sinusoide
 // pura), attacchi morbidi 10ms, leggera sovrapposizione, coda che si spegne ben prima
@@ -157,18 +112,4 @@ writeFileSync(join(dir, 'ua.wav'), wav(rifinisci(mixa(
   respiro(500),
 ), { lowpassHz: 1800, maxPeak: 0.36 })))
 
-// errore (~170ms): un tonfo ovattato grave — colpo unico ~120Hz con carattere di feltro
-// (tocco di rumore filtrato) e un piccolo drop di intonazione durante il decadimento.
-// Grave e inequivocabile, mai tagliente o allarmante.
-writeFileSync(join(dir, 'errore.wav'), wav(rifinisci(mixa(
-  { s: thump(122, 170, { gain: 0.34, attackMs: 3, decayDiv: 5, pitchDropHz: 8 }), offset: 0 },
-  { s: rumoreFiltrato(170, { cutoffHz: 900, gain: 0.05, attackMs: 3, decayDiv: 5, seed: 31 }), offset: 0 },
-), { lowpassHz: 1400, maxPeak: 0.38 })))
-
-// arrivo (~210ms): una singola nota calda medio-bassa (~315Hz), attacco morbidissimo 10ms,
-// carattere di martelletto feltrato (armoniche deboli, decadimento caldo e rapido).
-writeFileSync(join(dir, 'arrivo.wav'), wav(rifinisci(mixa(
-  { s: notaCalda(315, 210, { gain: 0.28, attackMs: 10, h2: 0.12, h3: 0.05, decayDiv: 4 }), offset: 0 },
-), { lowpassHz: 1800, maxPeak: 0.34 })))
-
-console.log('✅ 5 suoni DS v3 (v2 analogico) generati in public/sounds/')
+console.log('✅ ua.wav (firma DS v3) generato in public/sounds/ — tap/fatta/arrivo/errore restano quelli curati da process-sounds.mjs, non toccati')

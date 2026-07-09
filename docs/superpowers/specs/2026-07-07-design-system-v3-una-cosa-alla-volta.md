@@ -218,7 +218,13 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 
 ### 5.13 `RigaCerca` — H 58 · card 18 · `🔍 Cerca fra tutti i N …` 17/600 muted. Aprendola: tastiera subito su, risultati come `TileScelta` in lista. Ricerca sempre per contains, tollerante alle maiuscole/accenti.
 ### 5.14 Avatar — Ø 60 (tile) / 46 (liste, portale). Colore deterministico dal nome (palette: blue `#1D5FBF`, purple `#7A4DB8`, teal `#0E8A6B`, amber `#9A5C00`, rose `#C24E7A`, slate `#8A8580`) + iniziali. Nessuna foto.
-### 5.15 `PillVoce` — H 64 · pill nera `--ink` (light) / `--elv` (dark) · testo bianco 17.5/700 · mic in cerchio `rgba(255,255,255,.16)`. Presente in OGNI passo del wizard, sempre in fondo. Attiva Web Speech API; il parlato compila i passi e mostra cosa ha capito, chiedendo conferma.
+### 5.15 `PillVoce` — «la pill di carta» *(rev. 2 — 09/07, variante A scelta da Francesco su mockup `docs/design/mockups/2026-07-09-pillvoce-v2-due-varianti.html`, classe `.pvA` = FONTE DI VERITÀ visiva)*
+- H 64 · pill · **carta che affiora**: `linear-gradient(180deg, #FFFEFA, #F5F0E6)` · testo `--ink` 17.5/700 (invariato — piace) · ombra `0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10)` + `inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07)`.
+- **CerchioMic** Ø 46 a destra: gradiente rosso del TastoPrimario (`#F2263A, #D90012 55%, #B00010`) · glifo mic bianco · `0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35)`. Il rosso = "qui si registra" (grammatica: il rosso è dove nascono le cose; la regola «unico rosso della home» resta intatta — la PillVoce vive nel wizard, non nella home).
+- **Pressed:** `translateY(2px)` + ombre→inset; **MAI scale sul contenuto** (il glitch del testo veniva da lì — vietato per legge). Suono `tap` + `vibra('light')` all'avvio ascolto (invariati).
+- **In ascolto:** testo «Ti ascolto…» + cerchio rosso che respira (`opacity 1→.35`, 1.6s ease-in-out infinite — opacity-only, ammessa §8.4).
+- **Dark:** pill `linear-gradient(180deg, #2B2620, #211D18)` + `inset 0 1px 0 rgba(255,255,255,.07), 0 8px 18px rgba(0,0,0,.4)` · cerchio rosso dark `#FF4C55, #FF3B44 55%, #C41822`.
+- Presente in OGNI passo del wizard, sempre in fondo. Attiva Web Speech API; il parlato compila i passi e mostra cosa ha capito, chiedendo conferma.
 ### 5.16 `Sheet` (bottom sheet)
 - Sale dal basso, radius 28 top, grabber 36×4 `--line` centrato a 8px dal bordo. Copre max 92% viewport; la vista sotto scala a .96 e scurisce (scrim `rgba(29,25,19,.35)`).
 - Molla `smooth` (§8) · dismiss: swipe giù o tap scrim o `LinkQuieto` "Chiudi". MAI una X sola come unica uscita.
@@ -363,12 +369,14 @@ lavoro → CONSEGNA → conferma          └── Il mio laboratorio (profilo,
 ### 9.1 La palette (5 suoni, chiusa)
 | Nome file | Quando | Carattere | Durata | Abbinamento |
 |---|---|---|---|---|
-| `tap.wav` | pressione TastoPrimario/PillFase (giù+su) | tick di legno, quasi impercettibile | ≤ 40ms | haptic light |
-| `fatta.wav` | fase completata | click morbido caldo | ≤ 120ms | notification-success |
+| `tap.wav` | pressione TastoPrimario/PillFase (giù+su) | tocco reale smorzato | 150-270ms | haptic light |
+| `fatta.wav` | fase completata | schiocco di dita | 220-360ms | notification-success |
 | `ua.wav` | **Consegnato!** — la firma | due note ascendenti calde (terza maggiore), mai squillanti | 400-600ms | notification-success |
-| `errore.wav` | errore di scrittura | tonfo smorzato grave | ≤ 200ms | notification-error |
-| `arrivo.wav` | nuovo lavoro/messaggio dal portale | nota singola calda | ≤ 250ms | notification-warning |
-**Vietato aggiungere suoni senza estendere questa tabella nella spec.** Sorgente: file WAV 48kHz -14 LUFS, master unico, in `public/sounds/`.
+| `errore.wav` | errore di scrittura | diniego morbido | 180-350ms | notification-error |
+| `arrivo.wav` | nuovo lavoro/messaggio dal portale | piccolo arpeggio caldo | 1100-1600ms | notification-warning |
+**Vietato aggiungere suoni senza estendere questa tabella nella spec.** Sorgente: file WAV 48kHz, mono 16-bit PCM, picco normalizzato ~-13dBFS (disciplina di loudness ~-12/-14dBFS), in `public/sounds/`.
+
+**Provenienza (QA live Francesco round 2, 09/07/2026):** `tap`/`fatta`/`arrivo`/`errore` sono campioni reali scelti da Francesco (sorgenti MP3 in `scripts/sounds-src/`), processati da `scripts/process-sounds.mjs` (trim al segmento utile, fade-out breve, resample 48kHz mono 16-bit, normalizzazione di picco). `ua`: sintetizzato da `scripts/generate-sounds.mjs` (unico suono ancora sintetico — "per il resto tutto ok", Francesco). La durata di `arrivo` è più lunga della stima iniziale (<900ms) perché il campione scelto ha un decadimento/riverbero naturale audibile ben oltre quella soglia — misurato, non tagliato in anticipo per rispettare una cifra tonda.
 
 ### 9.2 Regole di riproduzione
 - Web Audio API (mai `<audio>`): `AudioContext` sbloccato al **primo `touchend`** post-load (regola iOS Safari), buffer precaricati e decodificati.
