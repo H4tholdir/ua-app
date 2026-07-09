@@ -47,10 +47,12 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     suonaMock.mockClear()
     vibraMock.mockClear()
     document.body.style.overflow = ''
+    document.body.style.paddingRight = ''
   })
   afterEach(() => {
     vi.restoreAllMocks()
     document.body.style.overflow = ''
+    document.body.style.paddingRight = ''
   })
 
   it('aperto=false → nulla nel DOM', () => {
@@ -194,7 +196,7 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     expect(bottoni[0]).toHaveTextContent('Chiudi')
   })
 
-  it('body scroll lock quando aperto, ripristinato alla chiusura (valore precedente preservato)', () => {
+  it('body scroll lock quando aperto, ripristinato SOLO dopo la fine dell\'animazione di uscita (bug QA live Francesco: sbloccare a metà animazione fa slittare lateralmente il pannello centrato quando riappare la scrollbar)', async () => {
     document.body.style.overflow = 'scroll'
     const { rerender } = render(
       <Sheet aperto={false} onChiudi={() => {}}>
@@ -213,6 +215,81 @@ describe('Sheet — bottom sheet (§5.16)', () => {
         <p>Contenuto</p>
       </Sheet>
     )
+    // Subito dopo aperto=false il pannello sta ancora scendendo (molla.smooth,
+    // ~500ms): il body DEVE restare bloccato, altrimenti la scrollbar
+    // ricompare a metà animazione e il wrapper centrato si ricentra spostando
+    // il pannello lateralmente di qualche px.
+    expect(document.body.style.overflow).toBe('hidden')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.body.style.overflow).toBe('scroll')
+  })
+
+  it('compensa la larghezza della scrollbar con paddingRight mentre il body è bloccato (evita il layout shift alla ricomparsa)', async () => {
+    const precedentePaddingRight = document.body.style.paddingRight
+    // Simula un browser con scrollbar "classica" che riserva 17px di layout:
+    // innerWidth include la scrollbar, clientWidth no.
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 })
+    Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 1263 })
+    try {
+      const { rerender } = render(
+        <Sheet aperto={false} onChiudi={() => {}}>
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      expect(document.body.style.paddingRight).toBe('')
+      rerender(
+        <Sheet aperto onChiudi={() => {}}>
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      expect(document.body.style.paddingRight).toBe('17px')
+      rerender(
+        <Sheet aperto={false} onChiudi={() => {}}>
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      // Ancora compensato mentre il pannello scende — coerente col lock.
+      expect(document.body.style.paddingRight).toBe('17px')
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(document.body.style.paddingRight).toBe(precedentePaddingRight)
+    } finally {
+      delete (document.documentElement as unknown as { clientWidth?: number }).clientWidth
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
+      document.body.style.paddingRight = precedentePaddingRight
+    }
+  })
+
+  it('riapertura mentre l\'uscita precedente sta ancora giocando NON blocca lo scroll per sempre (il valore originale non va sovrascritto con "hidden")', async () => {
+    document.body.style.overflow = 'scroll'
+    const { rerender } = render(
+      <Sheet aperto onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(document.body.style.overflow).toBe('hidden')
+    rerender(
+      <Sheet aperto={false} onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    // Uscita avviata, ancora bloccato (comportamento atteso, testato sopra).
+    expect(document.body.style.overflow).toBe('hidden')
+    // Riapre PRIMA che l'uscita precedente completi: senza la guardia,
+    // questo effect ri-catturerebbe 'hidden' come "valore precedente",
+    // perdendo per sempre il vero valore originale ('scroll').
+    rerender(
+      <Sheet aperto onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(document.body.style.overflow).toBe('hidden')
+    // Richiude e questa volta lascia completare l'uscita.
+    rerender(
+      <Sheet aperto={false} onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.body.style.overflow).toBe('scroll')
   })
 

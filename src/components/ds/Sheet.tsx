@@ -32,8 +32,11 @@ import { LinkQuieto } from './LinkQuieto'
  * fondo (mai una X come unica uscita) · Esc → `onChiudi` · dismiss
  * interrompibile via `AnimatePresence` (§8.2.2) · `useReducedMotion` →
  * dissolvenza (`cssEase.generico`) al posto della risalita a molla · body
- * scroll lock mentre è aperto · focus semplice: al primo elemento (il
- * contenitore) all'apertura, torna all'elemento precedente alla chiusura.
+ * scroll lock mentre è aperto (esteso a tutta l'uscita animata, non solo
+ * mentre `aperto` è true — evita il layout shift scoperto in QA live: la
+ * scrollbar che ricompare a metà animazione sposta lateralmente il pannello
+ * centrato) · focus semplice: al primo elemento (il contenitore)
+ * all'apertura, torna all'elemento precedente alla chiusura.
  *
  * Portal su `document.body`: essendo l'unico overlay che deve scappare dallo
  * scope del catalogo (e in futuro da qualunque pagina scalata a .96 dal
@@ -60,16 +63,70 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [aperto, onChiudi])
 
-  // Body scroll lock: cattura il valore precedente, lo ripristina alla
-  // chiusura O allo smontaggio mentre era aperto (stessa cleanup).
+  // Blocco scroll "esteso" (bug QA live Francesco): il body deve restare
+  // bloccato per TUTTA la discesa del pannello, non solo mentre `aperto` è
+  // true. Sbloccarlo subito su `aperto=false` fa ricomparire la scrollbar
+  // nativa a metà dell'animazione di uscita (~500ms, molla.smooth): il
+  // wrapper centrato (`justifyContent:'center'`) si ricentra sul nuovo
+  // viewport più stretto e il pannello slitta visibilmente di lato.
+  //
+  // Lo sblocco è DEFERITO: il valore precedente (overflow + paddingRight, la
+  // compensazione della larghezza scrollbar — l'altra metà del fix, evita che
+  // il viewport cambi larghezza mentre è bloccato) è salvato in un ref, non
+  // ripristinato nella cleanup di questo effect. Reduced motion (nessuna
+  // uscita animata) e lo smontaggio "vero" del componente (il chiamante ha
+  // rimosso `<Sheet>` mentre era aperto, bypassando `onChiudi` — uso
+  // scorretto, ma il body non deve restare bloccato per sempre) sbloccano
+  // subito nella cleanup; il ramo animato normale sblocca da
+  // `onExitComplete` di AnimatePresence, quando il pannello è già fuori
+  // schermo. `montatoRef` (sotto) traccia lo smontaggio reale: la sua
+  // cleanup — dichiarata DOPO, quindi eseguita PRIMA per via dell'ordine
+  // LIFO delle cleanup di React — marca `montatoRef.current = false` in
+  // tempo per essere letto qui.
+  const scrollLockPrecedenteRef = useRef<{ overflow: string; padding: string } | null>(null)
+  const montatoRef = useRef(true)
+  function sbloccaScroll() {
+    const precedente = scrollLockPrecedenteRef.current
+    if (!precedente) return
+    document.body.style.overflow = precedente.overflow
+    document.body.style.paddingRight = precedente.padding
+    scrollLockPrecedenteRef.current = null
+  }
+
   useEffect(() => {
     if (!aperto) return
-    const precedente = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = precedente
+    // Cattura il valore precedente SOLO se non è già bloccato: riaprire
+    // mentre l'uscita precedente sta ancora giocando (sblocco deferito, ref
+    // già valorizzato) NON deve sovrascrivere il valore originale con
+    // 'hidden' — altrimenti alla chiusura successiva `sbloccaScroll` lo
+    // "ripristinerebbe" a 'hidden' per sempre (bug trovato in review).
+    if (!scrollLockPrecedenteRef.current) {
+      scrollLockPrecedenteRef.current = {
+        overflow: document.body.style.overflow,
+        padding: document.body.style.paddingRight,
+      }
     }
-  }, [aperto])
+    const larghezzaScrollbar = window.innerWidth - document.documentElement.clientWidth
+    document.body.style.overflow = 'hidden'
+    if (larghezzaScrollbar > 0) {
+      document.body.style.paddingRight = `${larghezzaScrollbar}px`
+    }
+    return () => {
+      if (reduced || !montatoRef.current) {
+        sbloccaScroll()
+      }
+    }
+  }, [aperto, reduced])
+
+  // Dichiarato DOPO l'effect dello scroll lock: le cleanup di React girano in
+  // ordine LIFO (l'ultimo `useEffect` dichiarato si pulisce per primo), quindi
+  // allo smontaggio reale `montatoRef.current` è già `false` nel momento in
+  // cui la cleanup dello scroll lock (sopra) lo legge.
+  useEffect(() => {
+    return () => {
+      montatoRef.current = false
+    }
+  }, [])
 
   // Focus semplice: al contenitore all'apertura, torna all'elemento
   // precedente alla chiusura (o allo smontaggio mentre era aperto).
@@ -108,7 +165,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
       </SheetRidotto>
     ) : null
   ) : (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={sbloccaScroll}>
       {aperto && (
         <motion.div key="sheet-overlay" data-ds="v3" style={wrapperStile}>
           <motion.div
