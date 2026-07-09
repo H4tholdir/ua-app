@@ -1,6 +1,8 @@
-# Sessione attiva — 09/07/2026 sera (chiusura — handoff sp.3 «Il cuore»)
+# Sessione attiva — 09/07/2026 (B14 chiuso fuori sequenza; handoff DS v3 sp.3 invariato)
 
-**DS v3 sotto-progetto 3: DESIGN COMPLETATO.** Spec figlia approvata (`docs/superpowers/specs/2026-07-09-ds-v3-il-cuore-design.md`, commit `4725fbc`+`97fe17b`) + piano Ondata 0 mockup (`docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`, `f11760d`). Tutto su `main`.
+**B14 (`tecnici.compenso_base` ambiguo) RISOLTO, MERGIATO E DEPLOYATO** su richiesta esplicita di Francesco, fuori sequenza rispetto alla roadmap DS v3 sotto-progetto 3 sotto. `tipo_compenso` esposto in UI, card Compenso condizionale a 3 stati. Dettaglio: `memory/MEMORY.md` §0.
+
+**Handoff DS v3 sotto-progetto 3 «Il cuore» resta il prossimo passo ufficiale della roadmap** (invariato dalla sessione precedente): design completato, spec figlia + piano Ondata 0 mockup su `main` (`docs/superpowers/specs/2026-07-09-ds-v3-il-cuore-design.md`, `docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`).
 
 **PROSSIMA SESSIONE — partire da qui:**
 1. Leggere spec figlia + piano Ondata 0.
