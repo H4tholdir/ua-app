@@ -12,7 +12,7 @@
 
 Migrare a DS v3 le cinque superfici del «cuore»: **Home, pile aperte, wizard nuovo lavoro, scheda lavoro, flusso Consegna** — più la pagina **☰ «Tutto il resto»** (necessaria alla navigazione della home).
 
-**Gate di chiusura (§14.3):** QA 3 viewport × 2 temi + collaudo Filippo (task-sentinella in §13).
+**Gate di chiusura (§14.3):** QA 3 viewport × 2 temi + collaudo di Francesco (task-sentinella in §13). I test sul campo con laboratori reali sono una fase successiva, decisa da Francesco a PWA stabile — UÀ è un prodotto per molti laboratori, non l'app di uno.
 
 **Muore in questo sotto-progetto:**
 - Le 4 dashboard per ruolo (`DashboardTitolare/Tecnico/FrontDesk/Hybrid` + shell/KPI collegati)
@@ -233,7 +233,7 @@ Sequenza aggiornata dagli emendamenti E1/E2/E5 (09/07 sera):
 | 2 — Wizard | wizard completo + tempi medi + persistenza 24h | review + QA 3×2 |
 | 3 — Scheda lavoro | scheda + modifica sheet + flussi ⋯ + «È tornata» | review + QA 3×2 |
 | **4b — UI Consegna** | dialog/sheet + celebrazione — consuma il server della 4a, zero logica fiscale nuova | review + QA 3×2 |
-| Gate finale | §14.3: QA complessiva + **collaudo Filippo** | v. §13 |
+| Gate finale | §14.3: QA complessiva + **collaudo Francesco** | v. §13 |
 
 Dopo il gate finale: chiusura residui → **audit multi-agente completo della PWA** (E7) → i finding diventano le priorità del sotto-progetto 4.
 
@@ -241,7 +241,9 @@ Worktree dedicato per ondata, TDD via `superpowers:subagent-driven-development`,
 
 ---
 
-## 13. Collaudo Filippo (gate §14.3) — task-sentinella misurati
+## 13. Collaudo finale — Francesco (gate §14.3) — task-sentinella misurati
+
+> Decisione 09/07 (notte): tutti i collaudi interni li esegue Francesco. I test sul campo con un numero ristretto di laboratori pilota sono una fase distinta e successiva, che Francesco pianificherà quando la PWA sarà stabile (dopo l'audit multi-agente, E7).
 
 1. Nuovo lavoro reale in **≤ 4 tocchi** (dentista → tipo → conferma → fatto).
 2. Consegna di un lavoro pronto in **≤ 3 tocchi dalla home** (pila rossa → TastoConsegnaInline → conferma).

@@ -128,7 +128,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 | Token | px | Peso | Tracking | Uso |
 |---|---|---|---|---|
 | `display` | 52 | 800 | -0.03em | SOLO numeri delle pile, tabular-nums |
-| `large-title` | 31 | 800 | -0.02em | titolo pagina ("Buongiorno, Filippo", "Agenda") |
+| `large-title` | 31 | 800 | -0.02em | titolo pagina ("Buongiorno, [nome utente]", "Agenda") |
 | `question` | 35 | 800 | -0.02em | SOLO domande wizard e schermate-celebrazione ("Consegnato!" usa 40, unica eccezione) |
 | `title` | 27 | 800 | -0.02em | titoli di sheet e dialog |
 | `heading` | 21 | 800 | -0.01em | numeri lavoro nelle card, titoli card |
@@ -450,7 +450,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 |---|---|---|---|
 | 1 | **Fondamenta in codice** | tokens.ts v3, motion.ts v3, sound.ts+asset, haptic.ts v3, dizionario.ts, check-ds v3, font swap | tsc/test/build verdi; nessuna pagina migrata |
 | 2 | **Componenti core** | `src/components/ds/` completo (§5) + Storybook o pagina-catalogo interna | catalogo approvato da Francesco |
-| 3 | **Il cuore** | Home, pile, wizard nuovo lavoro, scheda lavoro, flusso consegna | QA 3 viewport × 2 temi; collaudo Filippo |
+| 3 | **Il cuore** | Home, pile, wizard nuovo lavoro, scheda lavoro, flusso consegna | QA 3 viewport × 2 temi; collaudo Francesco *(rev. 09/07: i collaudi interni sono di Francesco; test sul campo con laboratori pilota rimandati a PWA stabile)* |
 | 4 | **Le sezioni** | Agenda, Dentisti, Fatture, Magazzino, Ordini, Listino, Documenti, Persone, Impostazioni | idem, a ondate |
 | 5 | **Portale dentista chat** | §7.19 (riusa API B5) | test con dentista reale |
 | 6 | **Onboarding+auth** | §7.17-7.18 | idem |
