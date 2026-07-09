@@ -147,6 +147,18 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     expect(onChiudi).not.toHaveBeenCalled()
   })
 
+  it('QA live Francesco round 2 — il wrapper del portale (data-ds="v3") è esplicitamente trasparente: solo lo scrim dipinge', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    const wrapper = scrim.parentElement as HTMLElement
+    expect(wrapper).toHaveAttribute('data-ds', 'v3')
+    expect(wrapper.style.background).toBe('transparent')
+  })
+
   it('Esc → onChiudi', () => {
     const onChiudi = vi.fn()
     render(
@@ -646,6 +658,24 @@ describe('DialogConferma — conferma distruttiva centrata (§5.17)', () => {
     )
     const testo = screen.getByRole('dialog').textContent ?? ''
     expect(trovaParoleVietate(testo)).toEqual([])
+  })
+
+  it('QA live Francesco round 2 — il wrapper del portale (data-ds="v3") è esplicitamente trasparente: solo lo scrim dipinge', () => {
+    render(
+      <DialogConferma
+        aperto
+        titolo="Sei sicuro?"
+        testo={OGGETTO}
+        etichettaDistruttiva="Sì, buttalo via"
+        etichettaSicura="No, tienilo"
+        onConferma={() => {}}
+        onAnnulla={() => {}}
+      />
+    )
+    const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
+    const wrapper = scrim.parentElement as HTMLElement
+    expect(wrapper).toHaveAttribute('data-ds', 'v3')
+    expect(wrapper.style.background).toBe('transparent')
   })
 })
 

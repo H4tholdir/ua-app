@@ -269,6 +269,23 @@ describe('Avviso — toast (§5.18)', () => {
     fireEvent.click(screen.getByText('Errore'))
     expect(trovaParoleVietate(document.body.textContent ?? '')).toEqual([])
   })
+
+  it('QA live Francesco round 2 — il contenitore del portale (data-ds="v3") è esplicitamente trasparente: solo le card dipingono', () => {
+    render(
+      <AvvisiProvider>
+        <DemoAvviso />
+      </AvvisiProvider>
+    )
+    fireEvent.click(screen.getByText('Avvisa'))
+    const card = screen.getByText(TESTO_NORMALE).closest('.ds-avviso-card') as HTMLElement
+    const contenitore = card.parentElement as HTMLElement
+    expect(contenitore).toHaveAttribute('data-ds', 'v3')
+    expect(contenitore.style.background).toBe('transparent')
+    // Pass-through del tap tranne sulle card (già coperto dallo stile inline,
+    // qui verifichiamo esplicitamente che il contratto non regredisca).
+    expect(contenitore.style.pointerEvents).toBe('none')
+    expect(card.style.pointerEvents).toBe('auto')
+  })
 })
 
 describe('Avviso — reduced motion (§8.4, ramo AvvisoRidotto)', () => {

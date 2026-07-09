@@ -290,6 +290,13 @@ const contenitoreStile = {
   maxWidth: 480,
   padding: `0 ${spazio.l}px`,
   pointerEvents: 'none' as const,
+  // Esplicito e non solo "assenza di regola" (fix QA live Francesco round 2,
+  // difesa in profondità oltre alla rimozione di `background` dalla regola
+  // scope in ds-v3.css): il contenitore porta `data-ds="v3"` per i token, MA
+  // non deve mai dipingere nulla — solo le card (`.ds-avviso-card`, sfondo
+  // proprio `var(--card)`) sono visibili. Inline vince sempre sulla classe,
+  // quindi resta trasparente anche se la regola CSS regredisse in futuro.
+  background: 'transparent',
 }
 
 function AvvisiContenitore(props: { voci: VoceAvviso[]; onRimuovi: (id: number) => void }) {

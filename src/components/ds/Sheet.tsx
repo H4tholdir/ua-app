@@ -320,6 +320,12 @@ const wrapperStile: CSSProperties = {
   display: 'flex',
   alignItems: 'flex-end',
   justifyContent: 'center',
+  // Esplicito, non solo "assenza di regola" (fix QA live Francesco round 2 —
+  // difesa in profondità oltre alla rimozione di `background` dalla regola
+  // scope `[data-ds="v3"]` in ds-v3.css): questo wrapper porta `data-ds="v3"`
+  // per i token, non per dipingere — dietro allo `scrimStile` semi-trasparente
+  // deve trasparire la pagina vera, mai un rettangolo opaco `var(--bg)`.
+  background: 'transparent',
 }
 
 const scrimStile: CSSProperties = {
