@@ -6,6 +6,8 @@
 
 ---
 
+> **Principio-guida (Francesco, 09/07 — vincolo di review):** *una cosa alla volta, guidiamo l'utente, puliti e chiari in ogni passaggio.* Ogni schermata di questo sotto-progetto deve rispondere senza esitazione a «qual è LA cosa da fare qui?»; se una vista propone due cose, una delle due è di troppo. Ogni review di ondata (§12) verifica le 7 Leggi della legge madre una per una, **L1 in testa** — un'ondata non passa il gate se anche un solo passaggio è ambiguo su cosa l'utente debba fare.
+
 ## 1. Scopo e perimetro
 
 Migrare a DS v3 le cinque superfici del «cuore»: **Home, pile aperte, wizard nuovo lavoro, scheda lavoro, flusso Consegna** — più la pagina **☰ «Tutto il resto»** (necessaria alla navigazione della home).
