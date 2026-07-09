@@ -35,15 +35,6 @@ export const materia = {
   granaOpacityLight: 0.05,
   granaOpacityDark: 0.06,
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
-  // §5.2 rev (09/07 — pulsante fisico analogico, decisione Francesco): ghiera Ø92 +
-  // solco 2px a Ø~76 + cappello Ø68 bombato. Sostituisce il vecchio anelloGuidaTastoPiu.
-  ombraGhiera: '0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)', // ombra ambiente della ghiera (light)
-  solcoTastoPiu: 'rgba(50,40,25,.10)', // colore del solco 2px fra ghiera e cappello (light)
-  solcoTastoPiuNotte: 'rgba(255,255,255,.08)', // colore del solco in dark
-  luceCappello: 'inset 0 1.5px 0 rgba(255,255,255,.9)', // luce in cima al cappello (light, a riposo)
-  ombraCappello: '0 1.5px 3px rgba(50,40,25,.14)', // ombra del cappello a riposo (light)
-  affondoCappello: 'inset 0 2px 6px rgba(50,40,25,.16)', // il cappello affonda — pressed, entrambi i temi
-  bordoCappelloNotte: 'rgba(255,255,255,.06)', // border-top del cappello in dark (luce radente)
   scrim: 'rgba(29,25,19,.35)', // §5.16/§5.17 — scrim dietro Sheet e DialogConferma
   cerchioMicPillVoce: 'rgba(255,255,255,.16)', // §5.15 — cerchio del mic dentro PillVoce
 } as const
@@ -52,10 +43,47 @@ export const materia = {
 // vivono solo qui: unica eccezione ammessa al check pre-commit "niente hex fuori da tokens.ts".
 export const gradiente = {
   tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
-  tastoPiu: 'linear-gradient(180deg, #FFFFFF, #F2EEE6)', // §5.2 rev — cappello del pulsante fisico (light)
   pillFase: 'linear-gradient(180deg, #269950, var(--green))',                    // §5.4
   corsaPillFase: '#14602C',                                                      // §5.4
   dashedGuida: '#CBC1B0',                                                        // §5.11/5.12
+} as const
+
+// §5.2 rev 2 (09/07 — variante B «il punto rosso» scelta da Francesco). FONTE DI
+// VERITÀ visiva: mockup docs/design/mockups/2026-07-09-tastopiu-v3-due-varianti.html,
+// classe `.tpB` (+ `.notte .tpB`) — i valori qui sotto sono copiati VERBATIM da lì.
+// Materia del pulsante fisico a membrana: ghiera Ø92 tono-su-tono che affiora dalla
+// carta → solco (anello d'ombra, inset 11) → cappello bombato (inset 14) che affonda.
+// Il glifo + usa var(--red) / pressed var(--red-dark) direttamente nel componente;
+// l'unica eccezione è il pressed dark (vedi `piuPressedNotte`).
+export const tastoPiu = {
+  // — light (la carta) —
+  ghiera: 'linear-gradient(170deg, #F9F5EC 0%, #EFE9DC 60%, #E2DACA 100%)',
+  ghieraOmbra: '0 16px 28px rgba(52, 42, 26, .20), 0 5px 10px rgba(52, 42, 26, .12), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)',
+  // pressed: la ghiera si assesta appena — ombra ambiente ridotta, smusso invariato
+  ghieraOmbraPressed: '0 10px 20px rgba(52, 42, 26, .18), 0 4px 8px rgba(52, 42, 26, .11), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)',
+  solco: 'linear-gradient(180deg, #DAD2C2, #ECE6DA)',
+  solcoOmbra: 'inset 0 1.5px 2.5px rgba(52, 42, 26, .24), inset 0 -1px 1px rgba(255, 255, 255, .5)',
+  cappello: 'radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4 100%)',
+  cappelloOmbra: '0 3px 6px rgba(52, 42, 26, .18), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -4px 8px rgba(52, 42, 26, .06)',
+  cappelloPressed: 'radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 50%, #ECE5D5 100%)',
+  cappelloOmbraPressed: 'inset 0 3px 7px rgba(52, 42, 26, .15), inset 0 -1px 1px rgba(255, 255, 255, .5)',
+  piuOmbra: '0 1px 0 rgba(255,255,255,.7)', // il + pare inciso nella carta (solo light)
+  // — dark (flat, superfici che affiorano; unica ombra esterna: l'alone della ghiera) —
+  ghieraNotte: 'linear-gradient(170deg, #2B261E 0%, #241F17 60%, #1D1912 100%)',
+  ghieraOmbraNotte: 'inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 22px rgba(0, 0, 0, .4)',
+  solcoNotte: 'linear-gradient(180deg, #131009, #1B1710)',
+  solcoOmbraNotte: 'inset 0 1.5px 3px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04)',
+  cappelloNotte: 'radial-gradient(circle at 50% 28%, #37312A 0%, #2E2921 55%, #252017 100%)',
+  cappelloOmbraNotte: '0 2px 5px rgba(0, 0, 0, .4), inset 0 1.5px 1px rgba(255, 255, 255, .08), inset 0 -3px 6px rgba(0, 0, 0, .3)',
+  cappelloOmbraPressedNotte: 'inset 0 3px 7px rgba(0, 0, 0, .5)',
+  // Pressed dark del glifo: il mockup (`.notte .tpB:active .piu`) dice #E8323B, che
+  // NON è var(--red-dark) dark (#8F0910) — valore-legge suo proprio, vive solo qui.
+  piuPressedNotte: '#E8323B',
+  // Transizioni CSS del mockup (box-shadow/gradiente al pressed). Il transform del
+  // cappello NON sta qui: lo anima Motion con molla.press (§8) — mai due motori
+  // sulla stessa proprietà.
+  transizioneGhiera: 'box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)',
+  transizioneCappello: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
 } as const
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 

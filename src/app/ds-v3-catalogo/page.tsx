@@ -303,7 +303,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="tasto-piu" titolo="TastoPiu" spec="§5.2 rev — il pulsante fisico della home">
+      <SezioneCatalogo id="tasto-piu" titolo="TastoPiu" spec="§5.2 rev 2 — «il punto rosso»">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <TastoPiu onClick={() => {}} />
           <TastoPiu onClick={() => {}} etichetta="Nuova scheda" />
@@ -314,11 +314,8 @@ export default function CatalogoPage() {
               margin: 0,
             }}
           >
-            Pulsante fisico analogico — ghiera Ø92 ferma + solco + cappello
-            Ø68 che affonda al tocco. Vive SOLO in basso al centro della home
-            (L1). Il morph nel wizard (§8.3.2) è del sotto-progetto 3: qui
-            c&apos;è solo la pressione fisica — provala dal vivo, non si vede
-            in uno screenshot statico.
+            «Il punto rosso» — la ghiera affiora dalla carta, il cappello
+            affonda al tocco e il + rosso è l&apos;unico rosso della home (L1).
           </p>
         </div>
       </SezioneCatalogo>

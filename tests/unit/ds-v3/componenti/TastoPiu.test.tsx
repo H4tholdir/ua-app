@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+import { tastoPiu } from '@/design-system/v3/tokens'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -13,7 +14,7 @@ vi.mock('@/design-system/v3/haptic', () => ({
 
 import { TastoPiu } from '@/components/ds/TastoPiu'
 
-describe('TastoPiu — il pulsante fisico (§5.2 rev — ghiera + cappello)', () => {
+describe('TastoPiu — «il punto rosso» (§5.2 rev 2 — porting fedele del mockup .tpB)', () => {
   beforeEach(() => {
     suonaMock.mockClear()
     vibraMock.mockClear()
@@ -56,30 +57,80 @@ describe('TastoPiu — il pulsante fisico (§5.2 rev — ghiera + cappello)', ()
     expect(ghiera!.style.height).toBe('92px')
   })
 
-  it('il solco (anello fra ghiera e cappello) è Ø ~76', () => {
+  it('il solco è l\'anello a inset 11 nella ghiera (Ø 70, come il mockup)', () => {
     const { container } = render(<TastoPiu onClick={() => {}} />)
     const solco = container.querySelector('[data-parte="solco"]') as HTMLElement | null
     expect(solco).not.toBeNull()
-    expect(solco!.style.width).toBe('76px')
-    expect(solco!.style.height).toBe('76px')
+    expect(solco!.style.top).toBe('11px')
+    expect(solco!.style.left).toBe('11px')
+    expect(solco!.style.width).toBe('70px')
+    expect(solco!.style.height).toBe('70px')
   })
 
-  it('il cappello (parte che si preme) è Ø 68', () => {
+  it('il cappello (parte che si preme) è a inset 14 (Ø 64, come il mockup)', () => {
     const { container } = render(<TastoPiu onClick={() => {}} />)
     const cappello = container.querySelector('[data-parte="cappello"]') as HTMLElement | null
     expect(cappello).not.toBeNull()
-    expect(cappello!.style.width).toBe('68px')
-    expect(cappello!.style.height).toBe('68px')
+    expect(cappello!.style.top).toBe('14px')
+    expect(cappello!.style.left).toBe('14px')
+    expect(cappello!.style.width).toBe('64px')
+    expect(cappello!.style.height).toBe('64px')
   })
 
-  it('glifo "+" sottile e quieto nel cappello: ~40px, peso 300, colore var(--muted)', () => {
+  it('il glifo + è la firma: 42px, peso 350, correzione ottica PJS -8.5px', () => {
     const { container } = render(<TastoPiu onClick={() => {}} />)
-    const cappello = container.querySelector('[data-parte="cappello"]') as HTMLElement | null
-    expect(cappello).not.toBeNull()
-    expect(cappello!.textContent).toBe('+')
-    expect(cappello!.style.fontSize).toBe('40px')
-    expect(cappello!.style.fontWeight).toBe('300')
-    expect(cappello!.style.color).toBe('var(--muted)')
+    const piu = container.querySelector('[data-parte="piu"]') as HTMLElement | null
+    expect(piu).not.toBeNull()
+    expect(piu!.textContent).toBe('+')
+    expect(piu!.style.fontSize).toBe('42px')
+    expect(piu!.style.fontWeight).toBe('350')
+    // -1px del mockup era la correzione per il SUO font di fallback; con Plus
+    // Jakarta Sans la stessa posizione di inchiostro si ottiene a -8.5px
+    // (verifica pixel Playwright nel report r4).
+    expect(piu!.style.transform).toBe('translateY(-8.5px)')
+  })
+
+  it('materia dal mockup via classi scoped: ghiera/solco/cappello + glifo var(--red)', () => {
+    const { container } = render(<TastoPiu onClick={() => {}} />)
+    const regole = container.querySelector('style')?.textContent ?? ''
+    // light
+    expect(regole).toContain(`background: ${tastoPiu.ghiera}`)
+    expect(regole).toContain(`box-shadow: ${tastoPiu.ghieraOmbra}`)
+    expect(regole).toContain(`background: ${tastoPiu.solco}`)
+    expect(regole).toContain(`background: ${tastoPiu.cappello}`)
+    // il + rosso: var(--red) a riposo, var(--red-dark) al pressed (light)
+    expect(regole).toContain('color: var(--red)')
+    expect(regole).toContain('color: var(--red-dark)')
+    expect(regole).toContain(`text-shadow: ${tastoPiu.piuOmbra}`)
+    // pressed: gradiente e affondo del cappello, ghiera che si assesta
+    expect(regole).toContain(`background: ${tastoPiu.cappelloPressed}`)
+    expect(regole).toContain(`box-shadow: ${tastoPiu.cappelloOmbraPressed}`)
+    expect(regole).toContain(`box-shadow: ${tastoPiu.ghieraOmbraPressed}`)
+  })
+
+  it('dark: regole scoped [data-theme="dark"] [data-ds="v3"] con i valori .notte .tpB', () => {
+    const { container } = render(<TastoPiu onClick={() => {}} />)
+    const regole = container.querySelector('style')?.textContent ?? ''
+    expect(regole).toContain('[data-theme="dark"] [data-ds="v3"] .ds-tastopiu-ghiera')
+    expect(regole).toContain(`background: ${tastoPiu.ghieraNotte}`)
+    expect(regole).toContain(`background: ${tastoPiu.solcoNotte}`)
+    expect(regole).toContain(`background: ${tastoPiu.cappelloNotte}`)
+    expect(regole).toContain(`box-shadow: ${tastoPiu.cappelloOmbraPressedNotte}`)
+    // pressed dark del glifo: #E8323B del mockup, non var(--red-dark)
+    expect(regole).toContain(`color: ${tastoPiu.piuPressedNotte}`)
+    // in dark il + non è inciso: text-shadow spento
+    expect(regole).toContain('text-shadow: none')
+  })
+
+  it('pressed: pointerdown attiva la classe --premuto, pointerup la spegne', async () => {
+    render(<TastoPiu onClick={() => {}} />)
+    const bottone = screen.getByRole('button', { name: 'Nuovo lavoro' })
+    // Il gesture press di Motion consegna onTapStart/onTap via frame.postRender:
+    // le asserzioni aspettano il frame successivo (waitFor), mai sincrone.
+    fireEvent.pointerDown(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+    await waitFor(() => expect(bottone.classList.contains('ds-tastopiu--premuto')).toBe(true))
+    fireEvent.pointerUp(bottone, { pointerType: 'mouse', button: 0, isPrimary: true })
+    await waitFor(() => expect(bottone.classList.contains('ds-tastopiu--premuto')).toBe(false))
   })
 
   it('etichetta visibile sotto al tasto (oltre all\'aria-label sul button)', () => {

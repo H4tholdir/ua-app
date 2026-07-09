@@ -1,33 +1,35 @@
 'use client'
 
-// DS v3 §5.2 rev (09/07 — decisione Francesco dal collaudo live: bocciato
-// l'otturatore radiale, scelto un pulsante fisico analogico, riferimento un
-// pulsante smart-home bianco) — TastoPiu vive SOLO in basso al centro della
-// home (L1): è il modo in cui si apre un nuovo lavoro. Il morph di questo
-// tasto dentro il wizard (coreografia §8.3.2) è del sotto-progetto 3 — qui
-// c'è SOLO il comportamento fisico della pressione.
+// DS v3 §5.2 rev 2 (09/07 — variante B «il punto rosso» scelta da Francesco).
+// FONTE DI VERITÀ visiva: docs/design/mockups/2026-07-09-tastopiu-v3-due-varianti.html
+// classe `.tpB` (+ `.notte .tpB`) — questo componente ne è il porting fedele,
+// nessun valore reinterpretato (decisione: docs/design/decisions/
+// 2026-07-09-tastopiu-punto-rosso.md).
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { molla } from '@/design-system/v3/motion'
-import { gradiente, materia, spazio, tipografia } from '@/design-system/v3/tokens'
+import { spazio, tastoPiu, tipografia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 
 /**
- * TastoPiu — il pulsante fisico della home (§5.2 rev).
+ * TastoPiu — «il punto rosso» (§5.2 rev 2).
  *
- * Anatomia di legge: due corpi concentrici come un vero pulsante a membrana,
- * dentro una hit area invisibile Ø 110 (padding trasparente):
- * - ghiera (base) Ø 92, ferma, ombra ambiente morbida;
- * - solco: anello 2px a Ø ~76 fra ghiera e cappello;
- * - cappello (parte che si preme) Ø 68, leggermente bombato, glifo "+"
- *   sottile e quieto inciso a colore muted.
+ * Vive SOLO in basso al centro della home (L1: il "nuovo" si fa dalla home);
+ * al tocco si preme, poi fa il morph continuo nel wizard (§8.3.2 — sotto-
+ * progetto 3: qui c'è solo la pressione fisica).
  *
- * Pressione fisica: SOLO il cappello affonda (translateY 2.5 + scala .97,
- * l'ombra a riposo si spegne e appare un affondo inset) — la ghiera resta
- * ferma. Molla `press`, suono "tap", vibrazione media. Nient'altro: non
- * anima da sola, non cambia forma qui.
+ * Anatomia (mockup `.tpB`, dentro una hit area invisibile Ø 110):
+ * - ghiera Ø 92 tono-su-tono con la carta — il pulsante *affiora* dal fondo;
+ * - solco: anello d'ombra vero (inset 11) fra ghiera e cappello;
+ * - cappello bombato (inset 14) — l'unica parte che affonda;
+ * - glifo + 42/350 in `var(--red)`: **il + rosso è l'unico rosso della home**.
+ *
+ * Pressed (valori dal mockup `:active`): il cappello affonda (translateY 2.5 +
+ * scala .972, molla `press`), gradiente e ombra passano ai valori pressed, il
+ * glifo scurisce (`var(--red-dark)` in light, `tastoPiu.piuPressedNotte` in dark);
+ * la ghiera si assesta appena (ombra ridotta). Suono "tap" + vibrazione media.
  */
 export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
   const { onClick, etichetta = 'Nuovo lavoro' } = props
@@ -40,43 +42,72 @@ export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
   }
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: spazio.s }}>
-      {/* Anello focus-visible di legge (constraint 9): il componente lo porta
-          con sé ovunque venga montato, non dipende dal CSS del catalogo.
-          Colori dark-aware via tecnica delle classi scoped (precedente
-          PillVoce): i valori-legge non tokenizzati vengono da v3/tokens.ts,
-          mai scritti qui come letterali. */}
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: spazio.sm }}>
+      {/* Valori-legge del mockup via classi scoped (precedente PillVoce): le
+          regole dark replicano `.notte .tpB` sotto [data-theme="dark"]. La
+          cascata è la stessa del mockup: in dark la regola base notte (più
+          specifica) vince sul pressed light — al pressed dark cambiano solo
+          l'affondo del cappello e il colore del glifo, come da `.notte
+          .tpB:active`. Il transform del cappello è di Motion (molla.press),
+          MAI in transition CSS. */}
       <style>{`
-        .ds-tasto-piu:focus-visible {
+        .ds-tastopiu:focus-visible {
           outline: 2px solid var(--blue);
           outline-offset: 2px;
         }
-        .ds-tasto-piu-ghiera {
-          background: var(--card);
-          box-shadow: ${materia.ombraGhiera};
+        .ds-tastopiu-ghiera {
+          background: ${tastoPiu.ghiera};
+          box-shadow: ${tastoPiu.ghieraOmbra};
+          transition: ${tastoPiu.transizioneGhiera};
         }
-        [data-theme="dark"] [data-ds="v3"] .ds-tasto-piu-ghiera {
-          box-shadow: none;
+        .ds-tastopiu--premuto .ds-tastopiu-ghiera {
+          box-shadow: ${tastoPiu.ghieraOmbraPressed};
         }
-        .ds-tasto-piu-solco {
-          border: 2px solid ${materia.solcoTastoPiu};
+        .ds-tastopiu-solco {
+          background: ${tastoPiu.solco};
+          box-shadow: ${tastoPiu.solcoOmbra};
         }
-        [data-theme="dark"] [data-ds="v3"] .ds-tasto-piu-solco {
-          border-color: ${materia.solcoTastoPiuNotte};
+        .ds-tastopiu-cappello {
+          background: ${tastoPiu.cappello};
+          box-shadow: ${tastoPiu.cappelloOmbra};
+          transition: ${tastoPiu.transizioneCappello};
         }
-        .ds-tasto-piu-cappello {
-          background: ${gradiente.tastoPiu};
-          box-shadow: ${materia.luceCappello}, ${materia.ombraCappello};
+        .ds-tastopiu--premuto .ds-tastopiu-cappello {
+          background: ${tastoPiu.cappelloPressed};
+          box-shadow: ${tastoPiu.cappelloOmbraPressed};
         }
-        [data-theme="dark"] [data-ds="v3"] .ds-tasto-piu-cappello {
-          background: var(--elv);
-          border-top: 1px solid ${materia.bordoCappelloNotte};
-          box-shadow: none;
+        .ds-tastopiu-piu {
+          color: var(--red);
+          text-shadow: ${tastoPiu.piuOmbra};
+        }
+        .ds-tastopiu--premuto .ds-tastopiu-piu {
+          color: var(--red-dark);
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu-ghiera {
+          background: ${tastoPiu.ghieraNotte};
+          box-shadow: ${tastoPiu.ghieraOmbraNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu-solco {
+          background: ${tastoPiu.solcoNotte};
+          box-shadow: ${tastoPiu.solcoOmbraNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu-cappello {
+          background: ${tastoPiu.cappelloNotte};
+          box-shadow: ${tastoPiu.cappelloOmbraNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu--premuto .ds-tastopiu-cappello {
+          box-shadow: ${tastoPiu.cappelloOmbraPressedNotte};
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu-piu {
+          text-shadow: none;
+        }
+        [data-theme="dark"] [data-ds="v3"] .ds-tastopiu--premuto .ds-tastopiu-piu {
+          color: ${tastoPiu.piuPressedNotte};
         }
       `}</style>
       <motion.button
         type="button"
-        className="ds-tasto-piu"
+        className={premuto ? 'ds-tastopiu ds-tastopiu--premuto' : 'ds-tastopiu'}
         onClick={handleClick}
         onTapStart={() => setPremuto(true)}
         onTap={() => setPremuto(false)}
@@ -94,67 +125,76 @@ export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
-        {/* Ghiera (base) Ø 92 — ferma, non riceve nessuna animazione. */}
+        {/* Ghiera Ø 92 — ferma: si assesta solo la sua ombra (CSS), mai il transform. */}
         <span
           aria-hidden="true"
           data-parte="ghiera"
-          className="ds-tasto-piu-ghiera"
+          className="ds-tastopiu-ghiera"
           style={{
             position: 'relative',
             width: 92,
             height: 92,
             borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'block',
           }}
         >
-          {/* Solco: anello sottile a Ø ~76 fra ghiera e cappello, centrato
-              con margini (mai `transform`, riservato al cappello). */}
+          {/* Solco: anello d'ombra a inset 11 (Ø 70) fra ghiera e cappello. */}
           <span
             aria-hidden="true"
             data-parte="solco"
-            className="ds-tasto-piu-solco"
+            className="ds-tastopiu-solco"
             style={{
               position: 'absolute',
-              top: '50%',
-              left: '50%',
-              marginTop: -38,
-              marginLeft: -38,
-              width: 76,
-              height: 76,
+              top: 11,
+              left: 11,
+              width: 70,
+              height: 70,
               borderRadius: '50%',
-              boxSizing: 'border-box',
             }}
           />
-          {/* Cappello (parte che si preme) Ø 68 — l'unica parte che affonda.
-              `premuto` viene dal gesture del bottone (hit area intera 110),
-              non dal proprio pointer: la ghiera resta ferma. */}
-          <motion.div
+          {/* Cappello bombato a inset 14 (Ø 64) — l'unica parte che affonda.
+              `premuto` viene dal gesture del bottone (hit area intera 110). */}
+          <motion.span
             aria-hidden="true"
             data-parte="cappello"
-            className="ds-tasto-piu-cappello"
-            animate={{ y: premuto ? 2.5 : 0, scale: premuto ? 0.97 : 1 }}
+            className="ds-tastopiu-cappello"
+            animate={{ y: premuto ? 2.5 : 0, scale: premuto ? 0.972 : 1 }}
             transition={molla.press}
             style={{
-              position: 'relative',
-              width: 68,
-              height: 68,
+              position: 'absolute',
+              top: 14,
+              left: 14,
+              width: 64,
+              height: 64,
               borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 40,
-              fontWeight: 300,
-              lineHeight: 1,
-              color: 'var(--muted)',
-              boxShadow: premuto ? materia.affondoCappello : undefined,
+              display: 'grid',
+              placeItems: 'center',
             }}
           >
-            +
-          </motion.div>
+            {/* La firma: il + rosso UÀ, tratto sottile, inciso nella carta.
+                translateY: correzione ottica RIDERIVATA per Plus Jakarta Sans
+                (il mockup rendeva il + col font di fallback, dove -1px bastava;
+                il + di PJS siede più in basso nel suo em box). -8.5px riproduce
+                ESATTAMENTE la posizione dell'inchiostro del mockup approvato
+                (centro ink a -2.25px dal centro del cappello — misura Playwright
+                a dsf 2, report r4). */}
+            <span
+              data-parte="piu"
+              className="ds-tastopiu-piu"
+              style={{
+                fontSize: 42,
+                fontWeight: 350,
+                lineHeight: 1,
+                transform: 'translateY(-8.5px)',
+                userSelect: 'none',
+              }}
+            >
+              +
+            </span>
+          </motion.span>
         </span>
       </motion.button>
       <span

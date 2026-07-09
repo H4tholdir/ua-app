@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia } from '@/design-system/v3/tokens'
+import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia, tastoPiu } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
   const c = hex.replace('#', '')
@@ -54,17 +54,43 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     expect(gradiente.corsaPillFase).toBe('#14602C')
     expect(gradiente.dashedGuida).toBe('#CBC1B0')
   })
-  it('gradiente.tastoPiu: valore-legge esatto (§5.2 rev — cappello del pulsante fisico)', () => {
-    expect(gradiente.tastoPiu).toBe('linear-gradient(180deg, #FFFFFF, #F2EEE6)')
+  it('tastoPiu light: valori-legge VERBATIM dal mockup .tpB (§5.2 rev 2 — «il punto rosso»)', () => {
+    expect(tastoPiu.ghiera).toBe('linear-gradient(170deg, #F9F5EC 0%, #EFE9DC 60%, #E2DACA 100%)')
+    expect(tastoPiu.ghieraOmbra).toBe('0 16px 28px rgba(52, 42, 26, .20), 0 5px 10px rgba(52, 42, 26, .12), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)')
+    expect(tastoPiu.ghieraOmbraPressed).toBe('0 10px 20px rgba(52, 42, 26, .18), 0 4px 8px rgba(52, 42, 26, .11), inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08)')
+    expect(tastoPiu.solco).toBe('linear-gradient(180deg, #DAD2C2, #ECE6DA)')
+    expect(tastoPiu.solcoOmbra).toBe('inset 0 1.5px 2.5px rgba(52, 42, 26, .24), inset 0 -1px 1px rgba(255, 255, 255, .5)')
+    expect(tastoPiu.cappello).toBe('radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4 100%)')
+    expect(tastoPiu.cappelloOmbra).toBe('0 3px 6px rgba(52, 42, 26, .18), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -4px 8px rgba(52, 42, 26, .06)')
+    expect(tastoPiu.cappelloPressed).toBe('radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 50%, #ECE5D5 100%)')
+    expect(tastoPiu.cappelloOmbraPressed).toBe('inset 0 3px 7px rgba(52, 42, 26, .15), inset 0 -1px 1px rgba(255, 255, 255, .5)')
+    expect(tastoPiu.piuOmbra).toBe('0 1px 0 rgba(255,255,255,.7)')
   })
-  it('materia del pulsante fisico: valori-legge esatti (§5.2 rev — ghiera/solco/cappello)', () => {
-    expect(materia.ombraGhiera).toBe('0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)')
-    expect(materia.solcoTastoPiu).toBe('rgba(50,40,25,.10)')
-    expect(materia.solcoTastoPiuNotte).toBe('rgba(255,255,255,.08)')
-    expect(materia.luceCappello).toBe('inset 0 1.5px 0 rgba(255,255,255,.9)')
-    expect(materia.ombraCappello).toBe('0 1.5px 3px rgba(50,40,25,.14)')
-    expect(materia.affondoCappello).toBe('inset 0 2px 6px rgba(50,40,25,.16)')
-    expect(materia.bordoCappelloNotte).toBe('rgba(255,255,255,.06)')
+  it('tastoPiu dark: valori-legge VERBATIM dal mockup .notte .tpB (§5.2 rev 2)', () => {
+    expect(tastoPiu.ghieraNotte).toBe('linear-gradient(170deg, #2B261E 0%, #241F17 60%, #1D1912 100%)')
+    expect(tastoPiu.ghieraOmbraNotte).toBe('inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 22px rgba(0, 0, 0, .4)')
+    expect(tastoPiu.solcoNotte).toBe('linear-gradient(180deg, #131009, #1B1710)')
+    expect(tastoPiu.solcoOmbraNotte).toBe('inset 0 1.5px 3px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04)')
+    expect(tastoPiu.cappelloNotte).toBe('radial-gradient(circle at 50% 28%, #37312A 0%, #2E2921 55%, #252017 100%)')
+    expect(tastoPiu.cappelloOmbraNotte).toBe('0 2px 5px rgba(0, 0, 0, .4), inset 0 1.5px 1px rgba(255, 255, 255, .08), inset 0 -3px 6px rgba(0, 0, 0, .3)')
+    expect(tastoPiu.cappelloOmbraPressedNotte).toBe('inset 0 3px 7px rgba(0, 0, 0, .5)')
+    // #E8323B è il pressed dark del glifo nel mockup — NON var(--red-dark) dark (#8F0910)
+    expect(tastoPiu.piuPressedNotte).toBe('#E8323B')
+    expect(tastoPiu.piuPressedNotte).not.toBe(notte.redDark)
+  })
+  it('tastoPiu transizioni: valori del mockup (solo box-shadow — il transform è di molla.press)', () => {
+    expect(tastoPiu.transizioneGhiera).toBe('box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)')
+    expect(tastoPiu.transizioneCappello).toBe('box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)')
+  })
+  it('tastoPiu: la rev 1 bocciata non esiste più (gradiente.tastoPiu / materia.*)', () => {
+    expect('tastoPiu' in gradiente).toBe(false)
+    expect('ombraGhiera' in materia).toBe(false)
+    expect('solcoTastoPiu' in materia).toBe(false)
+    expect('solcoTastoPiuNotte' in materia).toBe(false)
+    expect('luceCappello' in materia).toBe(false)
+    expect('ombraCappello' in materia).toBe(false)
+    expect('affondoCappello' in materia).toBe(false)
+    expect('bordoCappelloNotte' in materia).toBe(false)
   })
   it('materia.scrim: valore-legge esatto (§5.16/§5.17 — scrim di Sheet e DialogConferma)', () => {
     expect(materia.scrim).toBe('rgba(29,25,19,.35)')
