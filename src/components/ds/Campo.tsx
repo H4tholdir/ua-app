@@ -249,9 +249,15 @@ export function CampoData(props: {
   const lunData = prossimoLunedi(oggi)
   const valoreInizio = valore ? inizioGiorno(valore) : null
 
+  // Decisione Francesco (post-gate §5.27): quando `oggi` è domenica, `prossimoLunedi`
+  // ricade su domani (vedi JSDoc sopra) — «Domani» e la pill del giorno feriale
+  // punterebbero allo stesso giorno. Mai due pill per lo stesso giorno: si nasconde
+  // la pill del giorno feriale quando coincide con «Domani».
+  const lunCoincideConDomani = stessoGiorno(lunData, domaniData)
+
   const oggiSelezionata = !!valoreInizio && stessoGiorno(valoreInizio, oggiInizio)
   const domaniSelezionata = !!valoreInizio && stessoGiorno(valoreInizio, domaniData)
-  const lunSelezionata = !!valoreInizio && stessoGiorno(valoreInizio, lunData)
+  const lunSelezionata = !lunCoincideConDomani && !!valoreInizio && stessoGiorno(valoreInizio, lunData)
   const sceltaSelezionata = !!valoreInizio && !oggiSelezionata && !domaniSelezionata && !lunSelezionata
 
   function scegli(data: Date) {
@@ -307,18 +313,20 @@ export function CampoData(props: {
           {domaniSelezionata && <span aria-hidden="true">✓ </span>}
           Domani
         </motion.button>
-        <motion.button
-          type="button"
-          className="ds-campo-data-pill"
-          aria-pressed={lunSelezionata}
-          onClick={() => scegli(lunData)}
-          whileTap={{ scale: 0.97 }}
-          transition={molla.press}
-          style={stilePill(lunSelezionata)}
-        >
-          {lunSelezionata && <span aria-hidden="true">✓ </span>}
-          {formattaGiornoBreve(lunData)}
-        </motion.button>
+        {!lunCoincideConDomani && (
+          <motion.button
+            type="button"
+            className="ds-campo-data-pill"
+            aria-pressed={lunSelezionata}
+            onClick={() => scegli(lunData)}
+            whileTap={{ scale: 0.97 }}
+            transition={molla.press}
+            style={stilePill(lunSelezionata)}
+          >
+            {lunSelezionata && <span aria-hidden="true">✓ </span>}
+            {formattaGiornoBreve(lunData)}
+          </motion.button>
+        )}
         <motion.button
           type="button"
           className="ds-campo-data-pill"

@@ -12,7 +12,7 @@ vi.mock('@/design-system/v3/sound', () => ({
   initSuoni: () => {},
 }))
 
-import { CampoTesto, CampoNumero, CampoData } from '@/components/ds/Campo'
+import { CampoTesto, CampoNumero, CampoData, prossimoLunedi } from '@/components/ds/Campo'
 
 describe('CampoTesto — input testo libero (§5.27)', () => {
   beforeEach(() => {
@@ -201,12 +201,27 @@ describe('CampoData — scelte rapide, mai calendario a griglia (§5.27)', () =>
     expect(passata.getDate()).toBe(13)
   })
 
-  it('quando oggi è domenica, il lunedì successivo è domani (non oggi stesso)', () => {
+  it('prossimoLunedi (funzione pura): quando oggi è domenica, il prossimo lunedì è domani (+1 giorno)', () => {
+    const domenica = new Date(2026, 6, 5) // 5 luglio 2026 è domenica
+    const risultato = prossimoLunedi(domenica)
+    expect(risultato.getFullYear()).toBe(2026)
+    expect(risultato.getMonth()).toBe(6)
+    expect(risultato.getDate()).toBe(6)
+  })
+
+  it('quando oggi è domenica, «Domani» e il lunedì successivo coincidono → la pill del giorno feriale NON viene renderizzata (mai due pill per lo stesso giorno)', () => {
     const onCambia = vi.fn()
     const domenica = new Date(2026, 6, 5) // 5 luglio 2026 è domenica
     render(<CampoData label="Consegna" valore={null} onCambia={onCambia} oggi={domenica} />)
-    expect(screen.getByRole('button', { name: 'Lun 6' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Lun 6' }))
+    // Niente pill «Lun n»: coinciderebbe esattamente con «Domani» (stesso giorno, 6 luglio)
+    expect(screen.queryByRole('button', { name: /^Lun\s/ })).toBeNull()
+    // Restano solo Oggi · Domani · Scegli…
+    expect(screen.getAllByRole('button')).toHaveLength(3)
+    expect(screen.getByRole('button', { name: /^Oggi$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Domani$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Scegli…/ })).toBeInTheDocument()
+    // «Domani» resta cliccabile e porta comunque al 6 luglio
+    fireEvent.click(screen.getByRole('button', { name: /^Domani$/ }))
     const passata: Date = onCambia.mock.calls[0][0]
     expect(passata.getDate()).toBe(6)
   })
