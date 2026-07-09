@@ -13,7 +13,7 @@ vi.mock('@/design-system/v3/haptic', () => ({
 
 import { TastoPiu } from '@/components/ds/TastoPiu'
 
-describe('TastoPiu — l\'otturatore della home (§5.2)', () => {
+describe('TastoPiu — il pulsante fisico (§5.2 rev — ghiera + cappello)', () => {
   beforeEach(() => {
     suonaMock.mockClear()
     vibraMock.mockClear()
@@ -41,24 +41,45 @@ describe('TastoPiu — l\'otturatore della home (§5.2)', () => {
     expect(vibraMock).toHaveBeenCalledWith('medium')
   })
 
-  it('hit area ≥ 92 (dimensioni base asserite via style inline): Ø 110', () => {
+  it('hit area del bottone è Ø 110 (style inline)', () => {
     render(<TastoPiu onClick={() => {}} />)
     const bottone = screen.getByRole('button', { name: 'Nuovo lavoro' })
     expect(bottone.style.width).toBe('110px')
     expect(bottone.style.height).toBe('110px')
   })
 
-  it('la faccia visibile è Ø 92, distinta dalla hit area di 110', () => {
+  it('la ghiera (base) è Ø 92, distinta dalla hit area di 110', () => {
     const { container } = render(<TastoPiu onClick={() => {}} />)
-    const faccia = container.querySelector('[data-parte="faccia"]') as HTMLElement | null
-    expect(faccia).not.toBeNull()
-    expect(faccia!.style.width).toBe('92px')
-    expect(faccia!.style.height).toBe('92px')
+    const ghiera = container.querySelector('[data-parte="ghiera"]') as HTMLElement | null
+    expect(ghiera).not.toBeNull()
+    expect(ghiera!.style.width).toBe('92px')
+    expect(ghiera!.style.height).toBe('92px')
   })
 
-  it('glifo "+" bianco presente nella faccia', () => {
-    render(<TastoPiu onClick={() => {}} />)
-    expect(screen.getByText('+')).toBeInTheDocument()
+  it('il solco (anello fra ghiera e cappello) è Ø ~76', () => {
+    const { container } = render(<TastoPiu onClick={() => {}} />)
+    const solco = container.querySelector('[data-parte="solco"]') as HTMLElement | null
+    expect(solco).not.toBeNull()
+    expect(solco!.style.width).toBe('76px')
+    expect(solco!.style.height).toBe('76px')
+  })
+
+  it('il cappello (parte che si preme) è Ø 68', () => {
+    const { container } = render(<TastoPiu onClick={() => {}} />)
+    const cappello = container.querySelector('[data-parte="cappello"]') as HTMLElement | null
+    expect(cappello).not.toBeNull()
+    expect(cappello!.style.width).toBe('68px')
+    expect(cappello!.style.height).toBe('68px')
+  })
+
+  it('glifo "+" sottile e quieto nel cappello: ~40px, peso 300, colore var(--muted)', () => {
+    const { container } = render(<TastoPiu onClick={() => {}} />)
+    const cappello = container.querySelector('[data-parte="cappello"]') as HTMLElement | null
+    expect(cappello).not.toBeNull()
+    expect(cappello!.textContent).toBe('+')
+    expect(cappello!.style.fontSize).toBe('40px')
+    expect(cappello!.style.fontWeight).toBe('300')
+    expect(cappello!.style.color).toBe('var(--muted)')
   })
 
   it('etichetta visibile sotto al tasto (oltre all\'aria-label sul button)', () => {

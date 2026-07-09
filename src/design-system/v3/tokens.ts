@@ -35,7 +35,15 @@ export const materia = {
   granaOpacityLight: 0.05,
   granaOpacityDark: 0.06,
   corsaTastoPx: 5, // §5.1 — corsa fisica del tasto primario
-  anelloGuidaTastoPiu: 'rgba(50,40,25,.14)', // §5.2 — anello guida a -9px dalla faccia, 2px
+  // §5.2 rev (09/07 — pulsante fisico analogico, decisione Francesco): ghiera Ø92 +
+  // solco 2px a Ø~76 + cappello Ø68 bombato. Sostituisce il vecchio anelloGuidaTastoPiu.
+  ombraGhiera: '0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)', // ombra ambiente della ghiera (light)
+  solcoTastoPiu: 'rgba(50,40,25,.10)', // colore del solco 2px fra ghiera e cappello (light)
+  solcoTastoPiuNotte: 'rgba(255,255,255,.08)', // colore del solco in dark
+  luceCappello: 'inset 0 1.5px 0 rgba(255,255,255,.9)', // luce in cima al cappello (light, a riposo)
+  ombraCappello: '0 1.5px 3px rgba(50,40,25,.14)', // ombra del cappello a riposo (light)
+  affondoCappello: 'inset 0 2px 6px rgba(50,40,25,.16)', // il cappello affonda — pressed, entrambi i temi
+  bordoCappelloNotte: 'rgba(255,255,255,.06)', // border-top del cappello in dark (luce radente)
   scrim: 'rgba(29,25,19,.35)', // §5.16/§5.17 — scrim dietro Sheet e DialogConferma
   cerchioMicPillVoce: 'rgba(255,255,255,.16)', // §5.15 — cerchio del mic dentro PillVoce
 } as const
@@ -44,7 +52,7 @@ export const materia = {
 // vivono solo qui: unica eccezione ammessa al check pre-commit "niente hex fuori da tokens.ts".
 export const gradiente = {
   tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
-  tastoPiu: 'radial-gradient(circle at 35% 30%, #FF4C5C, var(--red) 55%, #B00010)', // §5.2
+  tastoPiu: 'linear-gradient(180deg, #FFFFFF, #F2EEE6)', // §5.2 rev — cappello del pulsante fisico (light)
   pillFase: 'linear-gradient(180deg, #269950, var(--green))',                    // §5.4
   corsaPillFase: '#14602C',                                                      // §5.4
   dashedGuida: '#CBC1B0',                                                        // §5.11/5.12

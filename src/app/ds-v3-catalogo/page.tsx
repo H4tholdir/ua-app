@@ -302,7 +302,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="tasto-piu" titolo="TastoPiu" spec="§5.2 — l'otturatore della home">
+      <SezioneCatalogo id="tasto-piu" titolo="TastoPiu" spec="§5.2 rev — il pulsante fisico della home">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
           <TastoPiu onClick={() => {}} />
           <TastoPiu onClick={() => {}} etichetta="Nuova scheda" />
@@ -313,9 +313,11 @@ export default function CatalogoPage() {
               margin: 0,
             }}
           >
-            Vive SOLO in basso al centro della home (L1). Il morph nel wizard
-            (§8.3.2) è del sotto-progetto 3: qui c&apos;è solo la pressione fisica —
-            provala dal vivo, non si vede in uno screenshot statico.
+            Pulsante fisico analogico — ghiera Ø92 ferma + solco + cappello
+            Ø68 che affonda al tocco. Vive SOLO in basso al centro della home
+            (L1). Il morph nel wizard (§8.3.2) è del sotto-progetto 3: qui
+            c&apos;è solo la pressione fisica — provala dal vivo, non si vede
+            in uno screenshot statico.
           </p>
         </div>
       </SezioneCatalogo>

@@ -54,13 +54,17 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     expect(gradiente.corsaPillFase).toBe('#14602C')
     expect(gradiente.dashedGuida).toBe('#CBC1B0')
   })
-  it('gradiente.tastoPiu: valore-legge esatto (§5.2 — luce a 35%/30%)', () => {
-    expect(gradiente.tastoPiu).toBe(
-      'radial-gradient(circle at 35% 30%, #FF4C5C, var(--red) 55%, #B00010)'
-    )
+  it('gradiente.tastoPiu: valore-legge esatto (§5.2 rev — cappello del pulsante fisico)', () => {
+    expect(gradiente.tastoPiu).toBe('linear-gradient(180deg, #FFFFFF, #F2EEE6)')
   })
-  it('materia.anelloGuidaTastoPiu: valore-legge esatto (§5.2 — anello guida a -9px, 2px)', () => {
-    expect(materia.anelloGuidaTastoPiu).toBe('rgba(50,40,25,.14)')
+  it('materia del pulsante fisico: valori-legge esatti (§5.2 rev — ghiera/solco/cappello)', () => {
+    expect(materia.ombraGhiera).toBe('0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)')
+    expect(materia.solcoTastoPiu).toBe('rgba(50,40,25,.10)')
+    expect(materia.solcoTastoPiuNotte).toBe('rgba(255,255,255,.08)')
+    expect(materia.luceCappello).toBe('inset 0 1.5px 0 rgba(255,255,255,.9)')
+    expect(materia.ombraCappello).toBe('0 1.5px 3px rgba(50,40,25,.14)')
+    expect(materia.affondoCappello).toBe('inset 0 2px 6px rgba(50,40,25,.16)')
+    expect(materia.bordoCappelloNotte).toBe('rgba(255,255,255,.06)')
   })
   it('materia.scrim: valore-legge esatto (§5.16/§5.17 — scrim di Sheet e DialogConferma)', () => {
     expect(materia.scrim).toBe('rgba(29,25,19,.35)')
