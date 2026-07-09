@@ -293,6 +293,43 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     expect(document.body.style.overflow).toBe('scroll')
   })
 
+  it('unmount REALE mentre aperto (es. navigazione client-side con lo sheet aperto) → scroll ripristinato subito, mai bloccato per sempre', () => {
+    // Nessun rerender con aperto=false: qui il componente sparisce dal tree
+    // mentre è ancora aperto. React esegue le cleanup in ORDINE DI SETUP
+    // (verificato empiricamente su React 19.2: A setup, B setup, A cleanup,
+    // B cleanup — NON LIFO): l'effect-sentinella che marca lo smontaggio deve
+    // quindi essere dichiarato PRIMA dell'effect dello scroll lock, altrimenti
+    // la cleanup del lock legge montatoRef ancora true e non sblocca mai.
+    document.body.style.overflow = 'scroll'
+    const { unmount } = render(
+      <Sheet aperto onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(document.body.style.overflow).toBe('hidden')
+    unmount()
+    expect(document.body.style.overflow).toBe('scroll')
+  })
+
+  it('inversa: la chiusura normale (aperto=false, uscita animata) continua a sbloccare a fine animazione anche dopo il riordino degli effect', async () => {
+    document.body.style.overflow = 'scroll'
+    const { rerender } = render(
+      <Sheet aperto onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(document.body.style.overflow).toBe('hidden')
+    rerender(
+      <Sheet aperto={false} onChiudi={() => {}}>
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    // Ancora bloccato durante l'uscita (il componente resta montato).
+    expect(document.body.style.overflow).toBe('hidden')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(document.body.style.overflow).toBe('scroll')
+  })
+
   it('focus management: al momento dell\'apertura il dialog riceve il focus; alla chiusura torna all\'elemento precedente', async () => {
     function Wrapper() {
       const [aperto, setAperto] = useState(false)

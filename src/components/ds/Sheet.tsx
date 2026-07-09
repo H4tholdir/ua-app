@@ -125,10 +125,12 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // scorretto, ma il body non deve restare bloccato per sempre) sbloccano
   // subito nella cleanup; il ramo animato normale sblocca da
   // `onExitComplete` di AnimatePresence, quando il pannello è già fuori
-  // schermo. `montatoRef` (sotto) traccia lo smontaggio reale: la sua
-  // cleanup — dichiarata DOPO, quindi eseguita PRIMA per via dell'ordine
-  // LIFO delle cleanup di React — marca `montatoRef.current = false` in
-  // tempo per essere letto qui.
+  // schermo. `montatoRef` (effect-sentinella qui sotto) traccia lo smontaggio
+  // reale: React esegue le cleanup in ORDINE DI SETUP (verificato
+  // empiricamente su React 19.2: «A setup, B setup, A cleanup, B cleanup» —
+  // NON LIFO come da credenza comune), quindi la sentinella è dichiarata
+  // PRIMA dell'effect dello scroll lock, così `montatoRef.current = false`
+  // gira in tempo per essere letto dalla cleanup del lock.
   const scrollLockPrecedenteRef = useRef<{ overflow: string; padding: string } | null>(null)
   const montatoRef = useRef(true)
   function sbloccaScroll() {
@@ -138,6 +140,15 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     document.body.style.paddingRight = precedente.padding
     scrollLockPrecedenteRef.current = null
   }
+
+  // Effect-sentinella dello smontaggio reale — PRIMA dello scroll lock
+  // (ordine di setup = ordine delle cleanup, vedi sopra).
+  useEffect(() => {
+    montatoRef.current = true
+    return () => {
+      montatoRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!aperto) return
@@ -163,16 +174,6 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
       }
     }
   }, [aperto, reduced])
-
-  // Dichiarato DOPO l'effect dello scroll lock: le cleanup di React girano in
-  // ordine LIFO (l'ultimo `useEffect` dichiarato si pulisce per primo), quindi
-  // allo smontaggio reale `montatoRef.current` è già `false` nel momento in
-  // cui la cleanup dello scroll lock (sopra) lo legge.
-  useEffect(() => {
-    return () => {
-      montatoRef.current = false
-    }
-  }, [])
 
   // Focus semplice: al contenitore all'apertura, torna all'elemento
   // precedente alla chiusura (o allo smontaggio mentre era aperto).
