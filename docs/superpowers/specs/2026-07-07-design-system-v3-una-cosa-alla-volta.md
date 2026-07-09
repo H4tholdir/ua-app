@@ -172,8 +172,14 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - **Disabled: mai nascosto.** Faccia `--bg-deep`, testo `--faint`, e una riga `callout` accanto che spiega cosa manca ("Completa il controllo finale per consegnare").
 - **UNO per schermata, massimo.** Etichetta = verbo del banco: CONSEGNA, FATTO, RIORDINA.
 
-### 5.2 `TastoPiu` — l'otturatore
-- Ø **92** visibile (hit 110) · gradiente radiale luce a 35%/30% · anello guida a -9px `2px rgba(50,40,25,.14)` · etichetta sotto 17.5/800.
+### 5.2 `TastoPiu` — il pulsante fisico *(rev. 09/07 — decisione Francesco dal collaudo live: design analogico, riferimento pulsante smart-home bianco)*
+- Ø **92** visibile (hit 110), due corpi concentrici come un vero pulsante a membrana:
+  - **Ghiera** (base): Ø 92, faccia `--card`, ombra ambiente morbida `0 10px 24px rgba(50,40,25,.18), 0 2px 4px rgba(50,40,25,.12)`.
+  - **Solco**: anello sottile che separa ghiera e cappello, `2px rgba(50,40,25,.10)` a Ø ~76.
+  - **Cappello** (parte che si preme): Ø 68 centrato, leggermente bombato — `linear-gradient(180deg, #FFFFFF, #F2EEE6)` + luce in cima `inset 0 1.5px 0 rgba(255,255,255,.9)` + `0 1.5px 3px rgba(50,40,25,.14)`.
+- Glifo `+`: **sottile e quieto** — ~40px, peso 300, colore `--muted` (grigio caldo, come inciso). Etichetta sotto 17.5/800 `--ink` (invariata).
+- **Pressed (il momento analogico):** il cappello affonda — `translateY(2.5px)` + scala .97, l'ombra del cappello si spegne e appare `inset 0 2px 6px rgba(50,40,25,.16)`; molla `press`; suono `tap` + haptic medium. La ghiera NON si muove.
+- **Dark:** ghiera `--sfc`, cappello `--elv` con `border-top: 1px rgba(255,255,255,.06)`, solco `rgba(255,255,255,.08)`, glifo `--muted`; nessuna ombra esterna (regola dark=flat) — la profondità è data dalle superfici.
 - Posizione: **in basso al centro della home, sempre**. Non esiste in nessun'altra schermata (L1: il "nuovo" si fa dalla home).
 - Al tocco: si preme (molla `press`), poi **morph continuo** nel wizard (§8.3.2).
 
