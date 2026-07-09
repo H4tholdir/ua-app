@@ -491,17 +491,6 @@ export function ProduttivitaTecnico({
               Stipendio fisso non impostato
             </p>
           )
-        ) : !compensoBase || compensoBase <= 0 ? (
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '11px',
-              color: 'var(--t3, #6B5C51)',
-              margin: 0,
-            }}
-          >
-            Target mensile non impostato
-          </p>
         ) : tipoCompenso == null ? (
           <p
             style={{
@@ -512,6 +501,17 @@ export function ProduttivitaTecnico({
             }}
           >
             Tipo compenso non specificato
+          </p>
+        ) : !compensoBase || compensoBase <= 0 ? (
+          <p
+            style={{
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '11px',
+              color: 'var(--t3, #6B5C51)',
+              margin: 0,
+            }}
+          >
+            Target mensile non impostato
           </p>
         ) : (
           <div>

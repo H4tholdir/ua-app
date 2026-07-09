@@ -150,4 +150,18 @@ describe('ProduttivitaTecnico — sezione compenso condizionale a tipo_compenso'
     )
     expect(screen.getByText(/Target mensile non impostato/i)).toBeInTheDocument()
   })
+
+  it("tecnico mai configurato (tipo_compenso null E compensoBase null) mostra la nudge 'non specificato', non 'Target mensile non impostato'", () => {
+    render(
+      <ProduttivitaTecnico
+        data={makeData()}
+        meseCorrente="2026-07"
+        compensoBase={null}
+        tipoCompenso={null}
+        giorniConLavori={[]}
+      />
+    )
+    expect(screen.getByText(/tipo compenso non specificato/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Target mensile non impostato/i)).not.toBeInTheDocument()
+  })
 })
