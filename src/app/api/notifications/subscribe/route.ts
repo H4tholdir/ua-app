@@ -3,7 +3,7 @@
  * Salva o aggiorna la push subscription del browser per l'utente corrente.
  *
  * Nota: la tabella push_subscriptions è definita in
- *   supabase/migrations/20260521_push_subscriptions.sql
+ *   supabase/migrations/20260521000001_push_subscriptions.sql
  * Dopo `supabase db push` rigenera i tipi con:
  *   npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
  * Poi rimuovi il @ts-expect-error sotto.
