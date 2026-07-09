@@ -78,9 +78,9 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
     expect(tastoPiu.piuPressedNotte).toBe('#E8323B')
     expect(tastoPiu.piuPressedNotte).not.toBe(notte.redDark)
   })
-  it('tastoPiu transizioni: valori del mockup (solo box-shadow — il transform è di molla.press)', () => {
-    expect(tastoPiu.transizioneGhiera).toBe('box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)')
-    expect(tastoPiu.transizioneCappello).toBe('box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)')
+  it('tastoPiu: le transizioni NON vivono in tokens.ts — i tempi stanno in motion.ts (constraint 6)', () => {
+    expect('transizioneGhiera' in tastoPiu).toBe(false)
+    expect('transizioneCappello' in tastoPiu).toBe(false)
   })
   it('tastoPiu: la rev 1 bocciata non esiste più (gradiente.tastoPiu / materia.*)', () => {
     expect('tastoPiu' in gradiente).toBe(false)

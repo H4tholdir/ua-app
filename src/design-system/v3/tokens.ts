@@ -79,11 +79,10 @@ export const tastoPiu = {
   // Pressed dark del glifo: il mockup (`.notte .tpB:active .piu`) dice #E8323B, che
   // NON è var(--red-dark) dark (#8F0910) — valore-legge suo proprio, vive solo qui.
   piuPressedNotte: '#E8323B',
-  // Transizioni CSS del mockup (box-shadow/gradiente al pressed). Il transform del
-  // cappello NON sta qui: lo anima Motion con molla.press (§8) — mai due motori
-  // sulla stessa proprietà.
-  transizioneGhiera: 'box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)',
-  transizioneCappello: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
+  // Le transizioni CSS del mockup (box-shadow al pressed) vivono in
+  // v3/motion.ts (`cssEase.tastoPiuGhiera`/`cssEase.tastoPiuCappello`):
+  // tokens.ts ospita SOLO colori/gradienti/ombre (constraint 6 — la deroga
+  // `gradiente`/`tastoPiu` al check 4a copre i colori, non i tempi).
 } as const
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 

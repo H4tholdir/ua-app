@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { molla } from '@/design-system/v3/motion'
+import { molla, cssEase } from '@/design-system/v3/motion'
 import { spazio, tastoPiu, tipografia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
@@ -58,7 +58,7 @@ export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
         .ds-tastopiu-ghiera {
           background: ${tastoPiu.ghiera};
           box-shadow: ${tastoPiu.ghieraOmbra};
-          transition: ${tastoPiu.transizioneGhiera};
+          transition: ${cssEase.tastoPiuGhiera};
         }
         .ds-tastopiu--premuto .ds-tastopiu-ghiera {
           box-shadow: ${tastoPiu.ghieraOmbraPressed};
@@ -70,7 +70,7 @@ export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
         .ds-tastopiu-cappello {
           background: ${tastoPiu.cappello};
           box-shadow: ${tastoPiu.cappelloOmbra};
-          transition: ${tastoPiu.transizioneCappello};
+          transition: ${cssEase.tastoPiuCappello};
         }
         .ds-tastopiu--premuto .ds-tastopiu-cappello {
           background: ${tastoPiu.cappelloPressed};

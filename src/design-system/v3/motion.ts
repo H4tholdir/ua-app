@@ -17,6 +17,12 @@ export const cssEase = {
   sheet: '500ms cubic-bezier(0.32, 0.72, 0, 1)',
   generico: '200ms cubic-bezier(0.25, 0.1, 0.25, 1)',
   snap: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  // Transizioni CSS del TastoPiu «punto rosso» (§5.2 rev 2, dal mockup
+  // approvato): box-shadow al pressed di ghiera e cappello. Il transform del
+  // cappello NON passa di qui: lo anima Motion con molla.press — mai due
+  // motori sulla stessa proprietà.
+  tastoPiuGhiera: 'box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1)',
+  tastoPiuCappello: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
 } as const
 
 // Le coreografie canoniche (§8.3) — SOLO queste. Variants Motion pronti all'uso.
