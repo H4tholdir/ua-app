@@ -3,8 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
 const initSuoniMock = vi.fn()
+const suonaMock = vi.fn()
 vi.mock('@/design-system/v3/sound', () => ({
   initSuoni: () => initSuoniMock(),
+  suona: (nome: string) => suonaMock(nome),
 }))
 
 import CatalogoPage, { INDICE } from '../../../../src/app/ds-v3-catalogo/page'
@@ -13,6 +15,7 @@ import { SezioneCatalogo } from '../../../../src/app/ds-v3-catalogo/CatalogoShel
 describe('catalogo DS v3 — skeleton (§14.2)', () => {
   beforeEach(() => {
     initSuoniMock.mockClear()
+    suonaMock.mockClear()
     document.documentElement.removeAttribute('data-theme')
   })
   afterEach(() => {
@@ -95,8 +98,8 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(trovaParoleVietate(testo)).toEqual([])
   })
 
-  it('il catalogo è completo: 13 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
-    expect(INDICE).toHaveLength(13)
+  it('il catalogo è completo: 14 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
+    expect(INDICE).toHaveLength(14)
     expect(INDICE.map((voce) => voce.titolo)).toEqual([
       'TastoPrimario',
       'Tasti secondari e vie di fuga',
@@ -108,6 +111,7 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
       'CardInfo · RigaFase',
       'Sheet · DialogConferma',
       'Avviso · Skeleton · Vuoto',
+      'Suoni',
       'Campo',
       'Il racconto',
       'PillVoce',
@@ -131,5 +135,54 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(
       screen.getByText('DS v3 «Una cosa alla volta» — catalogo componenti · luglio 2026')
     ).toBeInTheDocument()
+  })
+})
+
+describe('catalogo DS v3 — sezione «Suoni» (§9.1)', () => {
+  beforeEach(() => {
+    initSuoniMock.mockClear()
+    suonaMock.mockClear()
+    document.documentElement.removeAttribute('data-theme')
+  })
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme')
+  })
+
+  it('la sezione «Suoni» esiste, posizionata dopo «Avviso · Skeleton · Vuoto» e prima di «Campo»', () => {
+    const indiciTitoli = INDICE.map((voce) => voce.titolo)
+    const indiceSuoni = indiciTitoli.indexOf('Suoni')
+    expect(indiceSuoni).toBeGreaterThan(-1)
+    expect(indiciTitoli[indiceSuoni - 1]).toBe('Avviso · Skeleton · Vuoto')
+    expect(indiciTitoli[indiceSuoni + 1]).toBe('Campo')
+  })
+
+  it('mostra i 5 tasti dell\'intera palette di legge (§9.1): Tap, Fatta, UÀ — la firma, Errore, Arrivo', () => {
+    render(<CatalogoPage />)
+    expect(screen.getByRole('button', { name: 'Tap' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fatta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'UÀ — la firma' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Errore' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Arrivo' })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['Tap', 'tap'],
+    ['Fatta', 'fatta'],
+    ['UÀ — la firma', 'ua'],
+    ['Errore', 'errore'],
+    ['Arrivo', 'arrivo'],
+  ])('il tasto «%s» chiama suona(\'%s\') direttamente', (etichetta, nomeSuono) => {
+    render(<CatalogoPage />)
+    fireEvent.click(screen.getByRole('button', { name: etichetta }))
+    expect(suonaMock).toHaveBeenCalledWith(nomeSuono)
+  })
+
+  it('ogni tasto ha una didascalia che spiega quando suona nell\'app reale (non solo il nome del file)', () => {
+    const { container } = render(<CatalogoPage />)
+    const sezione = container.querySelector('#suoni')
+    expect(sezione).not.toBeNull()
+    // 5 suoni → almeno 5 paragrafi di didascalia oltre a quello introduttivo/di chiusura.
+    const paragrafi = sezione?.querySelectorAll('p') ?? []
+    expect(paragrafi.length).toBeGreaterThanOrEqual(5)
   })
 })

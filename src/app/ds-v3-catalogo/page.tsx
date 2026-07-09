@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
-import { initSuoni } from '@/design-system/v3/sound'
+import { initSuoni, suona } from '@/design-system/v3/sound'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
 import { molla } from '@/design-system/v3/motion'
 import { SezioneCatalogo } from './CatalogoShell'
@@ -62,6 +62,7 @@ export const INDICE = [
   { id: 'righe', titolo: 'CardInfo · RigaFase' },
   { id: 'sheet-dialog', titolo: 'Sheet · DialogConferma' },
   { id: 'avviso-skeleton-vuoto', titolo: 'Avviso · Skeleton · Vuoto' },
+  { id: 'suoni', titolo: 'Suoni' },
   { id: 'campo', titolo: 'Campo' },
   { id: 'racconto', titolo: 'Il racconto' },
   { id: 'pill-voce', titolo: 'PillVoce' },
@@ -199,7 +200,7 @@ export default function CatalogoPage() {
 
       {/* Indice ancorato — ordine di legge §14.2: Tasti → Pill → Tile/Avatar/Cerca →
           Pila/Striscia → CardLavoro → Righe → Sheet/Dialog → Avviso/Skeleton/Vuoto →
-          Campi → Racconto → PillVoce. Ogni voce punta all'id della SezioneCatalogo. */}
+          Suoni → Campi → Racconto → PillVoce. Ogni voce punta all'id della SezioneCatalogo. */}
       <nav
         aria-label="Indice del catalogo"
         style={{
@@ -713,6 +714,60 @@ export default function CatalogoPage() {
             L&apos;avviso di errore suona («errore.wav») alla comparsa — l&apos;unico suono di
             questo componente. Lo Skeleton mostra «Un attimo…» solo oltre i 3s: provalo dal vivo,
             non si vede in uno screenshot statico.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="suoni" titolo="Suoni" spec="§9.1 — la palette, cinque suoni, chiusa">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => suona('tap')}>Tap</TastoSecondario>
+            <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
+              Suona ogni volta che premi un tasto fisico, dal più semplice bottone alla spunta di
+              una fase: quasi impercettibile, è il tocco di legno di ogni gesto.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => suona('fatta')}>Fatta</TastoSecondario>
+            <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
+              Suona quando segni una fase del lavoro come fatta.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => suona('ua')}>UÀ — la firma</TastoSecondario>
+            <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
+              Suona alla consegna di un lavoro — la firma sonora di UÀ, due note calde che
+              salgono: l&apos;unico suono della palette, più lungo di tutti gli altri.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => suona('errore')}>Errore</TastoSecondario>
+            <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
+              Suona quando qualcosa non va a buon fine, come un tentativo di scrittura che
+              fallisce — un tonfo smorzato, mai squillante.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+            <TastoSecondario onClick={() => suona('arrivo')}>Arrivo</TastoSecondario>
+            <p style={{ fontSize: tipografia.size.caption, color: 'var(--muted)', margin: 0 }}>
+              Suona quando arriva un lavoro nuovo o un messaggio dal portale del dentista.
+            </p>
+          </div>
+
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Cinque suoni, palette chiusa (§9.1): mai uno fuori da questi, mai più di uno per
+            gesto. UÀ e Arrivo non hanno un altro innesco nel catalogo — qui sono gli unici punti
+            per ascoltarli entrambi.
           </p>
         </div>
       </SezioneCatalogo>
