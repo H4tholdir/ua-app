@@ -193,6 +193,7 @@ export function TecnicoEditInline({ tecnico }: Props) {
             <input
               id="tecnico-edit-compenso-base"
               type="number"
+              min="0"
               style={inputStyle}
               value={compensoBase}
               onChange={(e) => setCompensoBase(e.target.value)}

@@ -67,8 +67,7 @@ describe('ProduttivitaTecnico — sezione compenso condizionale a tipo_compenso'
         giorniConLavori={[]}
       />
     )
-    expect(screen.getByText(/Target mensile:/)).toBeInTheDocument()
-    expect(screen.getByText(/50%/)).toBeInTheDocument()
+    expect(screen.getByText(/Target mensile: .*50%/)).toBeInTheDocument()
     expect(screen.queryByText(/Stipendio fisso mensile/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/non specificato/i)).not.toBeInTheDocument()
   })
@@ -83,8 +82,47 @@ describe('ProduttivitaTecnico — sezione compenso condizionale a tipo_compenso'
         giorniConLavori={[]}
       />
     )
-    expect(screen.getByText(/Target mensile:/)).toBeInTheDocument()
-    expect(screen.getByText(/25%/)).toBeInTheDocument()
+    expect(screen.getByText(/Target mensile: .*25%/)).toBeInTheDocument()
+  })
+
+  it("compensoBase negativo con tipo_compenso 'fisso' è trattato come non impostato", () => {
+    render(
+      <ProduttivitaTecnico
+        data={makeData()}
+        meseCorrente="2026-07"
+        compensoBase={-100}
+        tipoCompenso="fisso"
+        giorniConLavori={[]}
+      />
+    )
+    expect(screen.getByText(/stipendio fisso non impostato/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Stipendio fisso mensile/i)).not.toBeInTheDocument()
+  })
+
+  it("compensoBase negativo con tipo_compenso 'percentuale' è trattato come non impostato (barra assente)", () => {
+    render(
+      <ProduttivitaTecnico
+        data={makeData()}
+        meseCorrente="2026-07"
+        compensoBase={-100}
+        tipoCompenso="percentuale"
+        giorniConLavori={[]}
+      />
+    )
+    expect(screen.getByText(/Target mensile non impostato/i)).toBeInTheDocument()
+  })
+
+  it('compensoBase pari a 0 è trattato come non impostato (invariato dal comportamento storico)', () => {
+    render(
+      <ProduttivitaTecnico
+        data={makeData()}
+        meseCorrente="2026-07"
+        compensoBase={0}
+        tipoCompenso="percentuale"
+        giorniConLavori={[]}
+      />
+    )
+    expect(screen.getByText(/Target mensile non impostato/i)).toBeInTheDocument()
   })
 
   it("tipo_compenso 'fisso' senza compensoBase impostato mostra 'Stipendio fisso non impostato'", () => {

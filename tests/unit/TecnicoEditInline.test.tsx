@@ -47,6 +47,12 @@ describe('TecnicoEditInline — campi tipo_compenso e compenso_base', () => {
     expect(input.type).toBe('number')
   })
 
+  it('input "Compenso base" ha min="0" (nessun valore negativo dal form)', () => {
+    openEdit()
+    const input = screen.getByLabelText('Compenso base (€)') as HTMLInputElement
+    expect(input.min).toBe('0')
+  })
+
   it('precompila i campi con i valori esistenti del tecnico', () => {
     openEdit({ tipo_compenso: 'percentuale', compenso_base: 2500 })
     expect(screen.getByLabelText('Tipo compenso')).toHaveValue('percentuale')
