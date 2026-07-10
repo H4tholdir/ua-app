@@ -10,7 +10,12 @@ const FILE_CON_QUERY_DIRETTA = [
   'src/lib/consegna/orchestrate.ts',
   'src/app/api/portale/[token]/lavori/[lavoro_id]/[documento]/route.ts',
 ]
-const FILE_CON_EMBED = [
+// I 3 generator PDF non consumano mai la DdC nei loro template (verificato:
+// zero riferimenti in IFUTemplate/EtichettaTemplate/RicevutaConsegnaTemplate):
+// l'embed ddc è stato RIMOSSO come dead weight (base pulita post-Ondata 0).
+// Il contratto ora è l'ASSENZA dell'embed: reintrodurlo senza filtro
+// ripescherebbe le DdC annullate sui documenti MDR fisici.
+const FILE_SENZA_EMBED_DDC = [
   'src/lib/pdf/generate-ifu.ts',
   'src/lib/pdf/generate-etichetta.ts',
   'src/lib/pdf/generate-ricevuta-consegna.ts',
@@ -23,10 +28,10 @@ describe('lettori DdC gruppo A — mai la DdC annullata', () => {
       expect(src).toMatch(/\.neq\('stato',\s*'annullata'\)/)
     })
   }
-  for (const f of FILE_CON_EMBED) {
-    it(`${f} filtra l'embed ddc su stato annullata`, () => {
+  for (const f of FILE_SENZA_EMBED_DDC) {
+    it(`${f} non ha embed ddc (rimosso: mai consumato dal template)`, () => {
       const src = readFileSync(f, 'utf-8')
-      expect(src).toMatch(/\.neq\('ddc\.stato',\s*'annullata'\)/)
+      expect(src).not.toMatch(/ddc:dichiarazioni_conformita/)
     })
   }
 })

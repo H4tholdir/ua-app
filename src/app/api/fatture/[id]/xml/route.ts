@@ -185,7 +185,8 @@ export async function POST(req: Request, { params }: RouteContext) {
   const { data: lavoriRaw, error: lavoriErr } = await lavoriQuery
 
   if (lavoriErr) {
-    return NextResponse.json({ error: lavoriErr.message }, { status: 500 })
+    console.error('[FATTURE-XML] load lavori fallita:', lavoriErr.message)
+    return NextResponse.json({ error: 'Errore nel caricamento dei lavori' }, { status: 500 })
   }
 
   if (!lavoriRaw || lavoriRaw.length === 0) {
@@ -210,9 +211,11 @@ export async function POST(req: Request, { params }: RouteContext) {
       )
       risultati.push(risultato)
     } catch (err) {
+      // Dettaglio (può contenere messaggi Postgres grezzi) solo nei log server
+      console.error('[FATTURE-XML] generaFatturaPA fallita:', err)
       return NextResponse.json(
         {
-          error: `Generazione XML fallita per lavoro ${(lavoro as { numero_lavoro: string }).numero_lavoro}: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Generazione XML fallita per il lavoro ${(lavoro as { numero_lavoro: string }).numero_lavoro}`,
         },
         { status: 500 }
       )

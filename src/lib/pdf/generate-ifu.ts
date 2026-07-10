@@ -20,13 +20,11 @@ export async function generateIFU(lavoro_id: string, laboratorio_id: string): Pr
       appuntamenti:lavori_appuntamenti(*),
       immagini:lavori_immagini(*),
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
-      materiali:lavori_materiali(*),
-      ddc:dichiarazioni_conformita(*)
+      materiali:lavori_materiali(*)
     `)
     .eq('id', lavoro_id)
     .eq('laboratorio_id', laboratorio_id)
     .is('deleted_at', null)
-    .neq('ddc.stato', 'annullata')
     .single()
 
   if (error || !lavoro) throw new Error('Lavoro non trovato')

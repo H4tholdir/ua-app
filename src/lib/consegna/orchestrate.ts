@@ -45,8 +45,7 @@ export async function orchestraConsegna(
 
   // Già consegnato — percorso idempotente
   if (lockResult?.gia_consegnato) {
-    // Recupera DdC esistente (se presente — può essere null durante fase stub)
-    // TODO Task 14/15: quando i PDF reali saranno generati, questa query restituirà dati reali
+    // Recupera la DdC ATTIVA esistente (mai una annullata — riconsegna = DdC nuova)
     const { data: ddcRow } = await supabase
       .from('dichiarazioni_conformita')
       .select('numero_ddc, pdf_url')
@@ -274,7 +273,7 @@ export async function orchestraConsegna(
     })
 
     // ----------------------------------------------------------------
-    // Step 7 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
+    // Step 6 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
     // ----------------------------------------------------------------
     const clienteContattoRaw = lavoro.cliente as unknown as {
       telefono?: string | null
@@ -290,7 +289,7 @@ export async function orchestraConsegna(
     const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
     // ----------------------------------------------------------------
-    // Step 8 — Restituisci ConsegnaResult
+    // Step 7 — Restituisci ConsegnaResult
     // ----------------------------------------------------------------
     return {
       ok: true,
