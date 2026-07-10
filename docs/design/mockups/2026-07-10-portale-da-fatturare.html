@@ -321,7 +321,6 @@
   }
   .fatt-confermato.difforme .spunta { color: #B45309; }
   .fatt-confermato.difforme .testo-conf { color: #92400E; }
-  .fatt-confermato.difforme.no .testo-conf-esito { color: #D90012; }
   .fatt-proposta-originale {
     font-size: 11.5px;
     color: #A16207;
@@ -437,7 +436,7 @@
     color: #6B7280;
     border-bottom: 1px solid #111827;
     padding: 0 3px 6px;
-    overflow-wrap: break-word;
+    white-space: nowrap;
   }
   .stampa-tabella th.num { text-align: right; }
   .stampa-tabella td {
@@ -447,7 +446,7 @@
     vertical-align: top;
     overflow-wrap: break-word;
   }
-  .stampa-tabella td.num { text-align: right; font-weight: 600; overflow-wrap: normal; }
+  .stampa-tabella td.num { text-align: right; font-weight: 600; white-space: nowrap; }
   .stampa-tabella td.esito-no { color: #6B7280; }
   .stampa-tabella .sub { display: block; font-size: 10px; color: #6B7280; margin-top: 1px; }
   .stampa-tot-riga td {
@@ -753,7 +752,7 @@
               <th>N. lavoro</th>
               <th>Dispositivo</th>
               <th>Consegna</th>
-              <th>Proposta</th>
+              <th>Esito</th>
               <th class="num">Prezzo</th>
             </tr>
           </thead>
