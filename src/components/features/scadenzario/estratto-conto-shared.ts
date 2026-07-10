@@ -30,6 +30,21 @@ export function formatData(iso: string): string {
   })
 }
 
+// Per timestamp veri (es. `proposta_at`, timestamptz) — a differenza di
+// `formatData` (date-only, ancorata a mezzanotte locale) qui serve anche
+// l'ora. `timeZone: 'Europe/Rome'` fissa il fuso sia lato server (SSR, UTC)
+// che lato client, altrimenti l'ora renderizzata differirebbe fra i due
+// passaggi e romperebbe l'hydration di questo componente 'use client'.
+export function formatDataOra(iso: string): string {
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Rome',
+  })
+}
+
 export function urgencyColor(f: RigaUrgenza): string {
   if (f.pagata) return DS.green
   if (f.giorni_ritardo > 60) return DS.red

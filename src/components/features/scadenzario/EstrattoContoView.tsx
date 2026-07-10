@@ -303,7 +303,7 @@ export function EstrattoContoView({ dati }: Props) {
             )}
           </div>
 
-          <LavoriInAttesaSection lavori={dati.lavoriInAttesa} />
+          <LavoriInAttesaSection lavori={dati.lavoriInAttesa} studioNome={dati.cliente.studio_nome} />
 
           <CreditoDisponibileSection
             disponibile={dati.creditoCliente.disponibile}

@@ -150,6 +150,8 @@ export interface LavoroInAttesa {
   numero_lavoro: string
   prezzo_unitario: number
   data_consegna_prevista: string
+  proposta_dentista: 'fatturare' | 'non_fatturare' | null
+  proposta_at: string | null
 }
 
 export interface ContabilitaCliente {
@@ -205,6 +207,7 @@ export async function getContabilitaCliente(
     .from('lavori')
     .select(`
       id, numero_lavoro, prezzo_unitario, data_consegna_prevista, decisione_fatturazione, incluso_in_fattura,
+      proposta_dentista, proposta_at,
       pagamenti(importo, stato),
       credito_clienti_movimenti(importo, tipo)
     `)
@@ -226,6 +229,7 @@ export async function getContabilitaCliente(
   for (const l of (lavoriRaw ?? []) as unknown as Array<{
     id: string; numero_lavoro: string; prezzo_unitario: number | null; data_consegna_prevista: string
     decisione_fatturazione: string; incluso_in_fattura: boolean
+    proposta_dentista: string | null; proposta_at: string | null
     pagamenti: Array<{ importo: number; stato: string }>
     credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
   }>) {
@@ -235,6 +239,8 @@ export async function getContabilitaCliente(
         numero_lavoro: l.numero_lavoro,
         prezzo_unitario: Number(l.prezzo_unitario ?? 0),
         data_consegna_prevista: l.data_consegna_prevista,
+        proposta_dentista: (l.proposta_dentista as 'fatturare' | 'non_fatturare' | null) ?? null,
+        proposta_at: l.proposta_at ?? null,
       })
       continue
     }

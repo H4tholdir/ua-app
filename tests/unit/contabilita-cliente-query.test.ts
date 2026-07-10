@@ -53,13 +53,33 @@ describe('getContabilitaCliente', () => {
       lavori: [{
         id: 'l1', numero_lavoro: '2026/0001', prezzo_unitario: 200, data_consegna_prevista: DATA_LONTANA,
         decisione_fatturazione: 'in_attesa', incluso_in_fattura: false, pagamenti: [], credito_clienti_movimenti: [],
+        proposta_dentista: null, proposta_at: null,
       }],
     })
     const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
     expect(r.dovuti).toHaveLength(0)
     expect(r.lavoriInAttesa).toHaveLength(1)
+    expect(r.lavoriInAttesa[0]).toMatchObject({ proposta_dentista: null, proposta_at: null })
     expect(r.creditoCliente.potenziale).toBe(200)
     expect(r.creditoCliente.confermato).toBe(0)
+  })
+
+  // Task 14 (Ondata 1, D3): la proposta del dentista deve propagarsi intatta
+  // fino al bucket lavoriInAttesa, per essere mostrata sulla riga scadenzario.
+  it('lavoro in_attesa con proposta del dentista propaga proposta_dentista/proposta_at', async () => {
+    const supabase = createFakeSupabase({
+      lavori: [{
+        id: 'l2', numero_lavoro: '2026/0002', prezzo_unitario: 180, data_consegna_prevista: DATA_LONTANA,
+        decisione_fatturazione: 'in_attesa', incluso_in_fattura: false, pagamenti: [], credito_clienti_movimenti: [],
+        proposta_dentista: 'fatturare', proposta_at: '2026-07-02T14:30:00.000+00:00',
+      }],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.lavoriInAttesa).toHaveLength(1)
+    expect(r.lavoriInAttesa[0]).toMatchObject({
+      proposta_dentista: 'fatturare',
+      proposta_at: '2026-07-02T14:30:00.000+00:00',
+    })
   })
 
   it('lavoro fatturare con incluso_in_fattura=true è escluso ovunque (già confluito nella fattura)', async () => {
