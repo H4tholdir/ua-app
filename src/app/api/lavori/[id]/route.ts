@@ -52,6 +52,11 @@ const LOCKED_PRICE_FIELDS = [
 // crea_rifacimento_atomico), tracciabilita_materiali_ok/da_conformare/
 // materiali_incompleti_dettaglio (calcolati server-side in orchestrate.ts),
 // buono_*/file_stl_url/immagini_urls (gestiti da altri processi/route).
+// ═══ SENTINELLA D7 (spec portale-dentista-v2 §7) ══════════════════════════
+// proposta_dentista e proposta_at NON devono MAI entrare in questa allowlist:
+// si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
+// Test di regressione: tests/unit/lavori-patch-invariante-d7.test.ts
+// ═══════════════════════════════════════════════════════════════════════════
 const PATCHABLE_FIELDS = [
   'tipo_dispositivo',
   'descrizione',
