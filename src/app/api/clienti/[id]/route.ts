@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
+import { logPortaleAudit, type AzionePortale } from '@/lib/portale/audit'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -63,6 +65,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       modalita_pagamento,
       non_soggetto_fe,
       portale_token,
+      portale_fatturazione_attiva,
+      portale_pin_hash,
       note,
       created_at,
       updated_at
@@ -93,9 +97,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
     .gte('created_at', dodiciMesiFaISO)
     .is('deleted_at', null)
 
+  const { portale_pin_hash, ...clientePubblico } = cliente
   return NextResponse.json({
     cliente: {
-      ...cliente,
+      ...clientePubblico,
+      portale_pin_impostato: portale_pin_hash != null,
       lavori_recenti_count: lavori_recenti_count ?? 0,
     },
   })
@@ -132,11 +138,33 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
+  // Campi portale (spec §6): gestione dedicata, MAI nell'allowlist generica.
+  const toccaPortale = 'portale_fatturazione_attiva' in body || 'portale_pin' in body
+  const azioniAudit: Array<{ azione: AzionePortale; dettaglio: Record<string, unknown> }> = []
+  let statoAttuale: { portale_pin_hash: string | null; portale_pin_generation: number; portale_fatturazione_attiva: boolean } | null = null
+
+  if (toccaPortale) {
+    if (!['titolare', 'front_desk'].includes(utente.ruolo)) {
+      return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
+    }
+    const { data: attuale, error: attErr } = await svc
+      .from('clienti')
+      .select('portale_pin_hash, portale_pin_generation, portale_fatturazione_attiva')
+      .eq('id', id)
+      .eq('laboratorio_id', utente.laboratorio_id)
+      .is('deleted_at', null)
+      .single()
+    if (attErr || !attuale) {
+      return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
+    }
+    statoAttuale = attuale
+  }
+
   const update: Record<string, unknown> = {}
   for (const field of PATCHABLE_FIELDS_CLIENTE) {
     if (field in body) update[field] = body[field]
   }
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(update).length === 0 && !toccaPortale) {
     return NextResponse.json({ error: 'Nessun campo modificabile nel body' }, { status: 400 })
   }
 
@@ -158,6 +186,39 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
+  if (toccaPortale && statoAttuale) {
+    if ('portale_fatturazione_attiva' in body) {
+      if (typeof body.portale_fatturazione_attiva !== 'boolean') {
+        return NextResponse.json({ error: 'portale_fatturazione_attiva deve essere boolean' }, { status: 400 })
+      }
+      update.portale_fatturazione_attiva = body.portale_fatturazione_attiva
+      if (body.portale_fatturazione_attiva !== statoAttuale.portale_fatturazione_attiva) {
+        azioniAudit.push({
+          azione: body.portale_fatturazione_attiva ? 'interruttore_on' : 'interruttore_off',
+          dettaglio: { autore: user.id },
+        })
+      }
+    }
+    if ('portale_pin' in body) {
+      // Write-only: arriva in chiaro dal form del lab, si hasha QUI (mai l'hash dal client)
+      if (typeof body.portale_pin !== 'string') {
+        return NextResponse.json({ error: 'PIN non valido' }, { status: 400 })
+      }
+      const valido = validaPinNuovo(body.portale_pin)
+      if (!valido.ok) {
+        return NextResponse.json({ error: valido.errore }, { status: 400 })
+      }
+      update.portale_pin_hash = hashPin(body.portale_pin)
+      update.portale_pin_generation = (statoAttuale.portale_pin_generation ?? 0) + 1 // invalida le sessioni economiche in corso
+      update.portale_pin_tentativi = 0
+      update.portale_pin_bloccato_fino_a = null
+      azioniAudit.push({
+        azione: statoAttuale.portale_pin_hash ? 'pin_reimpostato' : 'pin_impostato',
+        dettaglio: { autore: user.id },
+      })
+    }
+  }
+
   update.updated_at = new Date().toISOString()
 
   const { data: cliente, error: updateError } = await svc
@@ -176,6 +237,19 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   if (!cliente) {
     return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
+  }
+
+  for (const a of azioniAudit) {
+    const okAudit = await logPortaleAudit(svc, {
+      laboratorio_id: utente.laboratorio_id,
+      cliente_id: id,
+      azione: a.azione,
+      dettaglio: a.dettaglio,
+      req,
+    })
+    if (!okAudit) {
+      return NextResponse.json({ error: 'Errore registrazione audit' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ cliente })
