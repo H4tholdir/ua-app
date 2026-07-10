@@ -71,11 +71,17 @@ BEGIN
 
   -- Claim fiscale: l'arbitro tra annullo e cron è il lock di riga.
   -- 0 righe = nessuna entry (cliente non fatturabile) → l'annullo PROCEDE.
+  -- Priorità esplicita agli stati bloccanti (emessa > in_lavorazione > in_attesa):
+  -- una entry emessa/in_lavorazione coesistente non deve MAI essere oscurata
+  -- da una in_attesa più recente (es. re-inserita da un retry), altrimenti
+  -- l'annullo bypasserebbe il gate fattura_gia_emessa/fattura_in_emissione.
   SELECT id, stato, fattura_id INTO v_entry
   FROM fatture_outbox
   WHERE lavoro_id = p_lavoro_id AND laboratorio_id = p_laboratorio_id
     AND stato IN ('in_attesa','in_lavorazione','emessa')
-  ORDER BY created_at DESC LIMIT 1
+  ORDER BY CASE stato WHEN 'emessa' THEN 0 WHEN 'in_lavorazione' THEN 1 ELSE 2 END,
+           created_at DESC
+  LIMIT 1
   FOR UPDATE;
   IF FOUND THEN
     IF v_entry.stato = 'in_lavorazione' THEN
