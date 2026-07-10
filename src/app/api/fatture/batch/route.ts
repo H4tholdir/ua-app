@@ -211,6 +211,7 @@ export async function POST(req: Request) {
     const numeroLavoro = (lavoro as { numero_lavoro: string }).numero_lavoro
 
     // Step 2: Crea draft fattura (stesso pattern di orchestraConsegna Step 6)
+    let draftCreatoId: string | null = null
     try {
       const annoFattura = new Date().getFullYear()
       const progFattura = await generaProgressivo(svc, labId, 'fattura')
@@ -265,6 +266,8 @@ export async function POST(req: Request) {
         continue
       }
 
+      draftCreatoId = draftFattura.id
+
       // Step 3: Genera XML FatturaPA aggiornando il draft
       const esito = await generaFatturaPA(
         lavoro as unknown as LavoroDettaglio,
@@ -278,6 +281,23 @@ export async function POST(req: Request) {
         numero_fattura: esito.numero,
       })
     } catch (err) {
+      // Il draft creato in QUESTA iterazione e mai arrivato a 'generata' va
+      // rimosso: con lavoro_id valorizzato resterebbe "attivo" per l'indice
+      // parziale fatture_lavoro_attiva_unique e ogni retry colliderebbe in un
+      // 23505 letto come "fattura attiva esistente" → lavoro bloccato per sempre.
+      // La guardia su stato_sdi='draft' impedisce di toccare una fattura generata.
+      if (draftCreatoId) {
+        const { error: cleanupErr } = await svc
+          .from('fatture')
+          .delete()
+          .eq('id', draftCreatoId)
+          .eq('laboratorio_id', labId)
+          .eq('stato_sdi', 'draft')
+        if (cleanupErr) {
+          console.error('[BATCH] cleanup draft orfano fallito:', cleanupErr.message)
+        }
+      }
+
       await rollbackClaim(lavoro_id)
 
       results.push({

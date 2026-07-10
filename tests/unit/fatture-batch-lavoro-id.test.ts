@@ -2,11 +2,13 @@
 // B-2 (spec §3 punto 2): il batch è il writer di fatture.lavoro_id.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, insertPayloads, insertResult } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockGeneraFatturaPA, insertPayloads, insertResult, fattureDeleteEqCalls } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockGeneraFatturaPA: vi.fn(),
   insertPayloads: [] as Array<Record<string, unknown>>,
   insertResult: { value: { data: { id: 'fat-1' }, error: null } as { data: unknown; error: unknown } },
+  fattureDeleteEqCalls: [] as Array<Array<[string, unknown]>>,
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
@@ -16,7 +18,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
 vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: async () => 7 }))
-vi.mock('@/lib/fattura/generate-xml', () => ({ generaFatturaPA: async () => ({ numero: '2026-0007' }) }))
+vi.mock('@/lib/fattura/generate-xml', () => ({ generaFatturaPA: mockGeneraFatturaPA }))
 
 import { POST } from '../../src/app/api/fatture/batch/route'
 
@@ -85,6 +87,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   insertPayloads.length = 0
   insertResult.value = { data: { id: 'fat-1' }, error: null }
+  fattureDeleteEqCalls.length = 0
   lavoriCallIndex = 0
   lavoriEqCallsByChain = []
   lavoriUpdatePayloads = []
@@ -94,6 +97,7 @@ beforeEach(() => {
     error: null,
   }
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+  mockGeneraFatturaPA.mockResolvedValue({ numero: '2026-0007' })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') return chain({ data: { laboratorio_id: 'lab-1' }, error: null })
     if (table === 'lavori') return lavoriChain()
@@ -102,6 +106,18 @@ beforeEach(() => {
         insert: (payload: Record<string, unknown>) => {
           insertPayloads.push(payload)
           return { select: () => ({ single: async () => insertResult.value }) }
+        },
+        // delete().eq()... : chain awaitable (await su oggetto non-thenable
+        // risolve l'oggetto stesso; la route destruttura solo `error`).
+        delete: () => {
+          const eqCalls: Array<[string, unknown]> = []
+          fattureDeleteEqCalls.push(eqCalls)
+          const c: Record<string, unknown> = { error: null }
+          c.eq = (k: string, v: unknown) => {
+            eqCalls.push([k, v])
+            return c
+          }
+          return c
         },
       }
     }
@@ -187,6 +203,27 @@ describe('POST /api/fatture/batch — draft-insert fallito (rollback claim)', ()
     // alla doppia fatturazione al prossimo batch.
     const rollbackIssued = lavoriUpdatePayloads.some((p) => p.incluso_in_fattura === false)
     expect(rollbackIssued).toBe(false)
+  })
+
+  it('generaFatturaPA fallisce (Step 3) → draft orfano rimosso (guardato su stato_sdi=draft) + rollback claim', async () => {
+    // Senza cleanup, il draft creato con lavoro_id resterebbe "attivo" per
+    // l'indice parziale fatture_lavoro_attiva_unique: ogni retry colliderebbe
+    // in 23505 interpretato come "fattura attiva esiste" → blocco permanente.
+    mockGeneraFatturaPA.mockRejectedValue(new Error('storage upload failed'))
+
+    const res = await POST(req())
+    const json = await res.json()
+    expect(json.errori).toBe(1)
+
+    // Cleanup del draft: delete su fatture guardata su id + tenant + stato draft
+    expect(fattureDeleteEqCalls).toHaveLength(1)
+    expect(fattureDeleteEqCalls[0]).toContainEqual(['id', 'fat-1'])
+    expect(fattureDeleteEqCalls[0]).toContainEqual(['laboratorio_id', 'lab-1'])
+    expect(fattureDeleteEqCalls[0]).toContainEqual(['stato_sdi', 'draft'])
+
+    // E il claim torna libero per il retry
+    const rollbackIssued = lavoriUpdatePayloads.some((p) => p.incluso_in_fattura === false)
+    expect(rollbackIssued).toBe(true)
   })
 
   it('23505 su un ALTRO vincolo (es. collisione progressivo) → rollback + messaggio generico', async () => {
