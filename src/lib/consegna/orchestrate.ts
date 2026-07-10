@@ -51,6 +51,7 @@ export async function orchestraConsegna(
       .from('dichiarazioni_conformita')
       .select('numero_ddc, pdf_url')
       .eq('lavoro_id', lavoro_id)
+      .neq('stato', 'annullata')
       .maybeSingle()
 
     const { data: lavoro } = await supabase

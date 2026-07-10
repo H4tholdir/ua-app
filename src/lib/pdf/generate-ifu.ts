@@ -26,6 +26,7 @@ export async function generateIFU(lavoro_id: string, laboratorio_id: string): Pr
     .eq('id', lavoro_id)
     .eq('laboratorio_id', laboratorio_id)
     .is('deleted_at', null)
+    .neq('ddc.stato', 'annullata')
     .single()
 
   if (error || !lavoro) throw new Error('Lavoro non trovato')

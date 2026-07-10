@@ -54,6 +54,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
       .from('dichiarazioni_conformita')
       .select('storage_path_pdf')
       .eq('lavoro_id', lavoro_id)
+      .neq('stato', 'annullata')
       .maybeSingle()
     storagePath = (ddc as { storage_path_pdf: string | null } | null)?.storage_path_pdf ?? null
   }

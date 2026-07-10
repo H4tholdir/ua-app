@@ -130,7 +130,7 @@ describe('GET /api/portale/[token]/lavori/[lavoro_id]/[documento]', () => {
       if (table === 'lavori') return mockLavoro({ data: { id: LAVORO_ID }, error: null })
       if (table === 'dichiarazioni_conformita') {
         return {
-          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { storage_path_pdf: 'lab-1/ddc/2026/DDC-2026-0001.pdf' }, error: null }) }) }),
+          select: () => ({ eq: () => ({ neq: () => ({ maybeSingle: async () => ({ data: { storage_path_pdf: 'lab-1/ddc/2026/DDC-2026-0001.pdf' }, error: null }) }) }) }),
         }
       }
       if (table === 'portale_accessi') return { insert: async () => ({ error: null }) }
