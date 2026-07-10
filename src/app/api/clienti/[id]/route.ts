@@ -170,7 +170,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .single()
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    console.error('[clienti PATCH] update:', updateError.message)
+    return NextResponse.json({ error: 'Errore aggiornamento cliente' }, { status: 500 })
   }
 
   if (!cliente) {

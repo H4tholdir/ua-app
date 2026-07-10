@@ -125,4 +125,47 @@ describe('PATCH /api/clienti/[id] — allowlist I-2', () => {
     const res = await PATCH(req({ tecnico_default_id: 'tec-altrui' }), ctx)
     expect(res.status).toBe(403)
   })
+
+  it('200 con tecnico_default_id valido (appartiene al lab)', async () => {
+    // il mock tecnici risponde con un tecnico trovato per il lab corrente
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'utenti') {
+        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
+      }
+      if (table === 'tecnici') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                is: () => ({ maybeSingle: async () => ({ data: { id: 'tec-1' }, error: null }) }),
+              }),
+            }),
+          }),
+        }
+      }
+      // clienti
+      return {
+        update: (payload: Record<string, unknown>) => {
+          updatePayload = payload
+          return {
+            eq: () => ({
+              eq: () => ({
+                is: () => ({
+                  select: () => ({
+                    single: async () => ({
+                      data: { id: 'cli-1', nome: 'Mario', cognome: 'Rossi', studio_nome: null, updated_at: 'x' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }
+        },
+      }
+    })
+    const res = await PATCH(req({ tecnico_default_id: 'tec-1' }), ctx)
+    expect(res.status).toBe(200)
+    expect(updatePayload).toHaveProperty('tecnico_default_id', 'tec-1')
+  })
 })
