@@ -45,6 +45,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .is('deleted_at', null)
+    .neq('ddc.stato', 'annullata')
     .single()
 
   if (error || !lavoro) notFound()

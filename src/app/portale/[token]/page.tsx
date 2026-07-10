@@ -362,6 +362,7 @@ export default async function PortalePage({ params }: PageProps) {
     .eq('laboratorio_id', cliente.laboratorio_id)
     .eq('stato', 'consegnato')
     .is('deleted_at', null)
+    .neq('ddc.stato', 'annullata')
     .order('data_consegna_effettiva', { ascending: false })
     .limit(10)
 

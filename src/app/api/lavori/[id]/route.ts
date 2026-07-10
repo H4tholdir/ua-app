@@ -131,6 +131,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .is('deleted_at', null)
+    .neq('ddc.stato', 'annullata')
     .single()
 
   if (error || !lavoro) {

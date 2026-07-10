@@ -182,6 +182,7 @@ export async function POST(req: Request) {
       .eq('incluso_in_fattura', false)
       .eq('decisione_fatturazione', 'fatturare')
       .is('deleted_at', null)
+      .neq('ddc.stato', 'annullata')
       .single()
 
     if (lavoroErr || !lavoro) {
