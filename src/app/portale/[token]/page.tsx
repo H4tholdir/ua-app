@@ -1,20 +1,9 @@
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { headers } from 'next/headers'
 import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain'
+import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
 
 type PageProps = { params: Promise<{ token: string }> }
-
-/**
- * PHI minimizzata: "ROSSI MARIO" → "R. MARIO"
- */
-function minimizzaPhi(nomeSnapshot: string | null): string | null {
-  if (!nomeSnapshot) return null
-  const parti = nomeSnapshot.trim().split(/\s+/)
-  if (parti.length < 2) return parti[0]?.[0] ? `${parti[0][0]}.` : null
-  const cognomeAbbreviato = `${parti[0][0]}.`
-  const resto = parti.slice(1).join(' ')
-  return `${cognomeAbbreviato} ${resto}`
-}
 
 const statoLabels: Record<StatoLavoro, string> = {
   ricevuto: 'Ricevuto',

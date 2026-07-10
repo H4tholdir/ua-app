@@ -3,6 +3,8 @@
 // F13: la risposta per token invalido/scaduto/inesistente è sempre la stessa
 // (401 uniforme, mappata dal chiamante) — niente oracolo di esistenza.
 import type { getServiceClient } from '@/lib/supabase/server-service'
+import { NextResponse } from 'next/server'
+import { verificaSessioneEconomica, estraiCookie, SESSIONE_ECONOMICA_COOKIE } from '@/lib/portale/sessione'
 
 type Svc = ReturnType<typeof getServiceClient>
 
@@ -37,4 +39,25 @@ export async function risolviClientePortale(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omissione intenzionale del campo dallo spread
   const { portale_token_scade_at: _scade, ...cliente } = data
   return { esito: 'ok', cliente }
+}
+
+/** Guardie comuni delle route economiche: token (401 uniforme) + interruttore + sessione. */
+export async function guardieEconomiche(
+  svc: Svc, req: Request, token: string,
+): Promise<{ ok: true; cliente: ClientePortale } | { ok: false; res: NextResponse }> {
+  const ris = await risolviClientePortale(svc, token)
+  if (ris.esito === 'errore') {
+    return { ok: false, res: NextResponse.json({ errore: 'errore_interno' }, { status: 500 }) }
+  }
+  if (ris.esito === 'non_autorizzato') {
+    return { ok: false, res: NextResponse.json({ errore: 'non_autorizzato' }, { status: 401 }) }
+  }
+  if (!ris.cliente.portale_fatturazione_attiva) {
+    return { ok: false, res: NextResponse.json({ errore: 'sezione_disattivata' }, { status: 403 }) }
+  }
+  const cookie = estraiCookie(req.headers.get('cookie'), SESSIONE_ECONOMICA_COOKIE)
+  if (!verificaSessioneEconomica(cookie, { clienteId: ris.cliente.id, pinGeneration: ris.cliente.portale_pin_generation })) {
+    return { ok: false, res: NextResponse.json({ errore: 'sessione_scaduta' }, { status: 401 }) }
+  }
+  return { ok: true, cliente: ris.cliente }
 }
