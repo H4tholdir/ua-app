@@ -179,13 +179,21 @@ export async function POST(req: Request) {
       .eq('id', lavoro_id)
       .eq('laboratorio_id', labId)
       .eq('stato', 'consegnato')
-      .eq('incluso_in_fattura', false)
       .eq('decisione_fatturazione', 'fatturare')
       .is('deleted_at', null)
       .neq('ddc.stato', 'annullata')
       .single()
 
     if (lavoroErr || !lavoro) {
+      // Rollback del claim: la load è fallita dopo un claim riuscito — senza
+      // questo reset il lavoro resta con incluso_in_fattura=true "orfano"
+      // (nessuna fattura), bloccando annullo e retry futuri del batch.
+      await svc
+        .from('lavori')
+        .update({ incluso_in_fattura: false })
+        .eq('id', lavoro_id)
+        .eq('laboratorio_id', labId)
+
       results.push({
         lavoro_id,
         numero_lavoro: lavoro_id,
