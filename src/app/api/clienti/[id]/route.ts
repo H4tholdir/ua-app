@@ -5,6 +5,18 @@ import { isSameOrigin } from '@/lib/utils/csrf'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
+// I-2 (spec portale-dentista-v2 §6): allowlist esplicita — MAI blocklist (CLAUDE.md §9).
+// I campi portale (portale_fatturazione_attiva, portale_pin) hanno gestione
+// dedicata con controllo ruolo: vedi più sotto, NON aggiungerli qui.
+export const PATCHABLE_FIELDS_CLIENTE = [
+  'studio_nome', 'nome', 'cognome', 'telefono', 'email',
+  'partita_iva', 'codice_fiscale', 'codice_sdi', 'pec',
+  'indirizzo', 'cap', 'citta', 'provincia', 'paese',
+  'listino_numero', 'sconto_percentuale', 'tecnico_default_id',
+  'modalita_pagamento', 'non_soggetto_fe', 'fatturare_al_paziente',
+  'laboratorio_odontotecnico', 'iban', 'note',
+] as const
+
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
@@ -105,7 +117,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const svc = getServiceClient()
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
@@ -120,23 +132,37 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
-  // Whitelist campi modificabili — blocca campi di sistema
-  const IMMUTABLE = [
-    'id',
-    'laboratorio_id',
-    'portale_token',
-    'created_at',
-    'deleted_at',
-  ]
-  for (const field of IMMUTABLE) {
-    delete body[field]
+  const update: Record<string, unknown> = {}
+  for (const field of PATCHABLE_FIELDS_CLIENTE) {
+    if (field in body) update[field] = body[field]
+  }
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nessun campo modificabile nel body' }, { status: 400 })
   }
 
-  body.updated_at = new Date().toISOString()
+  // FK cross-tenant: il tecnico di default deve appartenere al lab (pattern PATCH lavori)
+  if (update.tecnico_default_id != null) {
+    const { data: tec, error: tecErr } = await svc
+      .from('tecnici')
+      .select('id')
+      .eq('id', update.tecnico_default_id as string)
+      .eq('laboratorio_id', utente.laboratorio_id)
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (tecErr) {
+      console.error('[clienti PATCH] verifica tecnico_default_id:', tecErr.message)
+      return NextResponse.json({ error: 'Errore verifica tecnico' }, { status: 500 })
+    }
+    if (!tec) {
+      return NextResponse.json({ error: 'Tecnico non valido' }, { status: 403 })
+    }
+  }
+
+  update.updated_at = new Date().toISOString()
 
   const { data: cliente, error: updateError } = await svc
     .from('clienti')
-    .update(body)
+    .update(update)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .is('deleted_at', null)
