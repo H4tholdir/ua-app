@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ConsegnaButton } from '@/components/features/lavori/ConsegnaButton'
 import { precheckMDR } from '@/lib/consegna/precheck'
+import { isStatoConsegnabile } from '@/lib/consegna/costanti'
 import type { LavoroDettaglio } from '@/types/domain'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -51,8 +52,7 @@ export default async function ConsegnaPage({ params }: PageProps) {
   const lavoroDettaglio = lavoro as unknown as LavoroDettaglio
 
   // Gate: CONSEGNA accessibile solo da stati consegnabili
-  const STATI_CONSEGNABILI = ['pronto', 'in_ritardo'] as const
-  if (!STATI_CONSEGNABILI.includes(lavoroDettaglio.stato as typeof STATI_CONSEGNABILI[number])) {
+  if (!isStatoConsegnabile(lavoroDettaglio.stato)) {
     redirect(`/lavori/${id}`)
   }
 

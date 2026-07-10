@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-
-const GRACE_PERIOD_MS = 5 * 60 * 1000 // 5 minuti
+import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
 
 interface Props {
   lavoroId: string
@@ -15,7 +14,7 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
   const [isPending, startTransition] = useTransition()
   const [secondsLeft, setSecondsLeft] = useState<number>(() => {
     const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
-    return Math.max(0, Math.floor((GRACE_PERIOD_MS - elapsed) / 1000))
+    return Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000))
   })
   const [errore, setErrore] = useState<string | null>(null)
   const [annullato, setAnnullato] = useState(false)
