@@ -207,6 +207,7 @@ export async function POST(req: Request) {
         .insert({
           laboratorio_id: labId,
           cliente_id: (lavoro as { cliente_id: string }).cliente_id,
+          lavoro_id, // B-2: unico writer — abilita il gate fiscale dell'annullo
           numero: numeroDraft,
           anno: annoFattura,
           progressivo: progFattura,
@@ -230,7 +231,10 @@ export async function POST(req: Request) {
           lavoro_id,
           numero_lavoro: numeroLavoro,
           ok: false,
-          error: `Errore creazione draft fattura: ${draftErr?.message ?? 'null'}`,
+          error:
+            draftErr?.code === '23505'
+              ? 'Esiste già una fattura attiva per questo lavoro'
+              : `Errore creazione draft fattura: ${draftErr?.message ?? 'null'}`,
         })
         continue
       }
