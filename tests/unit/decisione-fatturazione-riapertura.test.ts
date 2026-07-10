@@ -72,3 +72,47 @@ it('conferma (fatturare): NON tocca la proposta', async () => {
   expect(updatePayload).not.toHaveProperty('proposta_dentista')
   expect(updatePayload).not.toHaveProperty('proposta_at')
 })
+
+it('errore update: no leak del messaggio Postgres', async () => {
+  // Mock che ritorna errore durante l'update
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'utenti') {
+      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
+    }
+    // lavori: select existing (success) + update (error)
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      select: (_fields: string) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        eq: (_col1: string, _val1: string) => ({
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          eq: (_col2: string, _val2: string) => ({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            is: (_col3: string, _val3: null) => ({
+              single: async () => ({ data: { stato: 'consegnato', incluso_in_fattura: false }, error: null })
+            })
+          })
+        })
+      }),
+      update: () => ({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        eq: (_col1: string, _val1: string) => ({
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          eq: (_col2: string, _val2: string) => ({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            select: (_fields: string) => ({
+              single: async () => ({ data: null, error: { message: 'driver interno segreto' } })
+            })
+          })
+        })
+      }),
+    }
+  })
+
+  const res = await PATCH(req('in_attesa'), ctx)
+  const json = await res.json() as Record<string, unknown>
+
+  expect(res.status).toBe(500)
+  expect(JSON.stringify(json)).not.toContain('driver interno segreto')
+  expect(json.error).toBe('Errore aggiornamento decisione')
+})

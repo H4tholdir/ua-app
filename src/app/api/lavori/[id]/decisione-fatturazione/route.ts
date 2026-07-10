@@ -83,7 +83,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[decisione-fatturazione] update:', error.message)
+    return NextResponse.json({ error: 'Errore aggiornamento decisione' }, { status: 500 })
   }
 
   return NextResponse.json({ lavoro })
