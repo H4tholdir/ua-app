@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { PortaleLinkButtons } from '@/components/features/clienti/PortaleLinkButtons'
+import { PortaleFatturazioneCard } from '@/components/features/clienti/PortaleFatturazioneCard'
 import { ClienteModificaButton } from '@/components/features/clienti/ClienteModificaButton'
 
 type PageProps = { params: Promise<{ id: string }> }
@@ -29,6 +30,8 @@ type ClienteDettaglio = {
   modalita_pagamento: string | null
   non_soggetto_fe: boolean
   portale_token: string
+  portale_fatturazione_attiva: boolean
+  portale_pin_hash: string | null
   note: string | null
 }
 
@@ -122,7 +125,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
       partita_iva, codice_fiscale, codice_sdi, pec,
       indirizzo, cap, citta, provincia, paese,
       listino_numero, sconto_percentuale, modalita_pagamento,
-      non_soggetto_fe, portale_token, note
+      non_soggetto_fe, portale_token, portale_fatturazione_attiva, portale_pin_hash, note
     `)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
@@ -240,6 +243,13 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
         <SectionCard title="Portale dentista">
           <PortaleLinkButtons portaleToken={c.portale_token} clienteNome={`${c.cognome} ${c.nome}`.trim()} />
         </SectionCard>
+
+        {/* Portale — fatturazione concordata (interruttore, PIN, rigenera link) */}
+        <PortaleFatturazioneCard
+          clienteId={c.id}
+          attiva={c.portale_fatturazione_attiva}
+          pinImpostato={c.portale_pin_hash != null}
+        />
 
         {/* DPA GDPR Art. 28 */}
         <SectionCard title="Privacy — GDPR">
