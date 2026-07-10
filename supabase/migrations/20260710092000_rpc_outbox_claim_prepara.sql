@@ -83,10 +83,12 @@ BEGIN
   v_prog := public.genera_progressivo(v_entry.laboratorio_id, 'fattura', v_anno);
   v_numero := v_anno::text || '-' || lpad(v_prog::text, 4, '0');
 
+  -- placeholder '' per draft: colonne NOT NULL senza default (pattern batch/route.ts)
   INSERT INTO fatture (laboratorio_id, cliente_id, lavoro_id, numero, anno, progressivo,
-                       data, tipo_documento, stato_sdi, imponibile, iva_importo, bollo, totale)
+                       data, tipo_documento, stato_sdi, imponibile, iva_importo, bollo, totale,
+                       cliente_denominazione, cliente_indirizzo)
   VALUES (v_entry.laboratorio_id, v_lavoro.cliente_id, v_entry.lavoro_id, v_numero, v_anno, v_prog,
-          CURRENT_DATE, 'TD01', 'draft', 0, 0, 0, 0)
+          CURRENT_DATE, 'TD01', 'draft', 0, 0, 0, 0, '', '')
   RETURNING id INTO v_fattura_id;
 
   UPDATE fatture_outbox SET fattura_id = v_fattura_id, updated_at = now() WHERE id = p_entry_id;
