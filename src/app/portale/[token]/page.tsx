@@ -2,6 +2,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { headers } from 'next/headers'
 import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain'
 import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
+import { FatturazioneSection } from '@/components/features/portale/FatturazioneSection'
 
 type PageProps = { params: Promise<{ token: string }> }
 
@@ -283,7 +284,7 @@ export default async function PortalePage({ params }: PageProps) {
   // Verifica token + TTL (portale_token_scade_at)
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at')
+    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at, portale_fatturazione_attiva')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
@@ -530,6 +531,9 @@ export default async function PortalePage({ params }: PageProps) {
             ))}
           </section>
         )}
+
+        {/* Sezione economica — solo se l'interruttore lab è attivo */}
+        {cliente.portale_fatturazione_attiva && <FatturazioneSection token={token} />}
       </div>
     </main>
   )
