@@ -1,7 +1,6 @@
 import 'server-only'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { precheckMDR } from './precheck'
-import { generaProgressivo } from '@/lib/db/progressivi'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
@@ -259,58 +258,6 @@ export async function orchestraConsegna(
       body: `${lavoro.numero_lavoro} — ${(lavoro.cliente as unknown as { cognome?: string } | null)?.cognome ?? 'Cliente'} è stato consegnato`,
       url: `/lavori/${lavoro_id}`,
     })
-
-    // ----------------------------------------------------------------
-    // Step 6 — FatturaPA (non blocking — fire-and-forget con draft record)
-    // ----------------------------------------------------------------
-    // Il record draft viene creato PRIMA del fire-and-forget:
-    // - se la generazione fallisce, il record rimane in stato 'draft' visibile in /fatture
-    // - il titolare può ri-inviare manualmente senza perdita silenziosa
-    const cliente = lavoro.cliente as unknown as {
-      codice_sdi?: string | null
-      pec?: string | null
-      id?: string
-    } | null
-
-    if (cliente?.codice_sdi || cliente?.pec) {
-      // Crea draft visibile — non attendiamo per non bloccare la risposta
-      // Fire-and-forget avvolto in async IIFE per compatibilità PromiseLike Supabase
-      ;(async () => {
-        try {
-          // Progressivo reale (fix review: draft con progressivo:0 e numero 'DA-GENERARE')
-          const annoFattura = new Date().getFullYear()
-          const progFattura = await generaProgressivo(supabase, laboratorio_id, 'fattura')
-          const numeroDraft = `${annoFattura}-${String(progFattura).padStart(4, '0')}`
-
-          const { data: draftFattura } = await supabase
-            .from('fatture')
-            .insert({
-              laboratorio_id: laboratorio_id,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              cliente_id: (cliente as any)?.id ?? null,
-              numero: numeroDraft,
-              anno: annoFattura,
-              progressivo: progFattura,
-              data: new Date().toISOString().split('T')[0],
-              tipo_documento: 'TD01',
-              stato_sdi: 'draft',
-              imponibile: 0,
-              iva_importo: 0,
-              bollo: 0,
-              totale: 0,
-            })
-            .select('id')
-            .single()
-
-          if (!draftFattura?.id) return
-
-          const { generaFatturaPA } = await import('@/lib/fattura/generate-xml')
-          await generaFatturaPA(lavoro as LavoroDettaglio, draftFattura.id)
-        } catch (err) {
-          console.error('[CONSEGNA] FatturaPA failed — draft rimane in /fatture per retry:', err)
-        }
-      })()
-    }
 
     // ----------------------------------------------------------------
     // Step 7 — Costruisci link WhatsApp (GDPR-safe: NO dati personali)
