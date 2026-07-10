@@ -1,4 +1,7 @@
-# Sessione attiva — HANDOFF: piano Ondata 0 (Portale Dentista v2)
-**Spec rev.2 APPROVATA da Francesco (10/07)**: `docs/superpowers/specs/2026-07-10-portale-dentista-v2-fatturazione-concordata-design.md` (su `main` `d46ca32`, post-audit 3 advisor). MEMORY.md aggiornata; ledger 4a interrotta: `docs/roadmap/2026-07-10-ledger-4a-interrotta-audit.md`. Worktree e branch 4a rimossi (tutto mergiato, CI verde, deploy ok).
-**PROSSIMA SESSIONE:** scrivere il piano dell'**Ondata 0** via `superpowers:writing-plans` dalla spec §3 "Ondata 0" (8 punti: rimozione emissione inline orchestrate.ts:263-313 + test; lavoro_id nel batch; migration pulizia in 1 transazione con ordine chirurgico + DROP pg_net; RPC adattate col doppio gate fiscale; fix B1/annullo/lettori DdC; pulizia costanti; FASE 6b regen types). Poi esecuzione via `superpowers:subagent-driven-development` in worktree dedicato da `main`.
-**Promemoria:** copiare `.env.local` e `supabase/.temp` nel worktree; l'apply della migration di pulizia al DB live SOLO con conferma esplicita di Francesco; QA su lab E2E `00000000-0000-0000-0000-000000000001`, MAI lab Filippo.
+# SESSION ACTIVE — 10/07/2026 (sera)
+
+**Ondata 0 «pulizia» (Portale Dentista v2) CHIUSA: mergiata e deployata** (`6628ace..c8cac17` su `main`, CI+CD verdi, uachelab.com ok). Migration pulizia `20260710150000` applicata al DB live con conferma Francesco e verificata; QA lab E2E completa con cleanup a baseline; review finale Opus «Ready to merge» 0 Critical/Important. Bugfix extra in QA: batch fatture non generava MAI fatture (claim/load in contraddizione) — fixato (`c8cac17`).
+
+**PROSSIMA SESSIONE:** piano **Ondata 1** (lista «Da fatturare» dietro PIN + proposta dentista + conferma lab nello scadenzario) via `superpowers:writing-plans` dalla spec `2026-07-10-portale-dentista-v2-fatturazione-concordata-design.md` §4-§8. Prerequisito I-2: PATCH clienti → allowlist PRIMA delle colonne portale. Gate mockup obbligatorio (CLAUDE.md §0B). Follow-up aperti: chip `task_8a81c842` (rollback claim su draft-insert fallito); xml route multi-lavoro senza lavoro_id.
+
+Ledger Ondata 0: `.superpowers/sdd/progress-ondata-0-pulizia.md`.
