@@ -336,6 +336,11 @@ export type Database = {
           paese: string
           partita_iva: string | null
           pec: string | null
+          portale_fatturazione_attiva: boolean
+          portale_pin_bloccato_fino_a: string | null
+          portale_pin_generation: number
+          portale_pin_hash: string | null
+          portale_pin_tentativi: number
           portale_token: string
           portale_token_scade_at: string | null
           provincia: string | null
@@ -369,6 +374,11 @@ export type Database = {
           paese?: string
           partita_iva?: string | null
           pec?: string | null
+          portale_fatturazione_attiva?: boolean
+          portale_pin_bloccato_fino_a?: string | null
+          portale_pin_generation?: number
+          portale_pin_hash?: string | null
+          portale_pin_tentativi?: number
           portale_token?: string
           portale_token_scade_at?: string | null
           provincia?: string | null
@@ -402,6 +412,11 @@ export type Database = {
           paese?: string
           partita_iva?: string | null
           pec?: string | null
+          portale_fatturazione_attiva?: boolean
+          portale_pin_bloccato_fino_a?: string | null
+          portale_pin_generation?: number
+          portale_pin_hash?: string | null
+          portale_pin_tentativi?: number
           portale_token?: string
           portale_token_scade_at?: string | null
           provincia?: string | null
@@ -2159,6 +2174,8 @@ export type Database = {
           prescrizione_digitale_id: string | null
           prezzo_unitario: number | null
           priorita: string
+          proposta_at: string | null
+          proposta_dentista: string | null
           richiedente_email: string | null
           richiedente_nome: string | null
           rifacimento_motivo: string | null
@@ -2251,6 +2268,8 @@ export type Database = {
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
           priorita?: string
+          proposta_at?: string | null
+          proposta_dentista?: string | null
           richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
@@ -2343,6 +2362,8 @@ export type Database = {
           prescrizione_digitale_id?: string | null
           prezzo_unitario?: number | null
           priorita?: string
+          proposta_at?: string | null
+          proposta_dentista?: string | null
           richiedente_email?: string | null
           richiedente_nome?: string | null
           rifacimento_motivo?: string | null
@@ -4151,27 +4172,33 @@ export type Database = {
           azione: string
           cliente_id: string
           created_at: string
+          dettaglio: Json | null
           id: string
           ip_address: string | null
           laboratorio_id: string
+          lavoro_id: string | null
           user_agent: string | null
         }
         Insert: {
           azione: string
           cliente_id: string
           created_at?: string
+          dettaglio?: Json | null
           id?: string
           ip_address?: string | null
           laboratorio_id: string
+          lavoro_id?: string | null
           user_agent?: string | null
         }
         Update: {
           azione?: string
           cliente_id?: string
           created_at?: string
+          dettaglio?: Json | null
           id?: string
           ip_address?: string | null
           laboratorio_id?: string
+          lavoro_id?: string | null
           user_agent?: string | null
         }
         Relationships: [
@@ -4194,6 +4221,20 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portale_accessi_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portale_accessi_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -5493,6 +5534,13 @@ export type Database = {
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
+      portale_pin_tentativo_fallito: {
+        Args: { p_cliente_id: string }
+        Returns: {
+          bloccato_fino_a: string
+          tentativi: number
+        }[]
+      }
       refresh_dashboard_cache: {
         Args: { p_lab_id: string }
         Returns: undefined
