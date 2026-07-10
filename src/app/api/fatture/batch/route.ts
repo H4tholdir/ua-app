@@ -70,6 +70,17 @@ export async function POST(req: Request) {
   // ── Processa ogni lavoro ─────────────────────────────────────────────────
   const results: BatchResult[] = []
 
+  // Rollback del claim di Step 0: senza reset il lavoro resterebbe con
+  // incluso_in_fattura=true "orfano" (nessuna fattura), bloccando l'annullo
+  // via cintura fiscale e ogni retry futuro del batch.
+  const rollbackClaim = async (lavoroId: string) => {
+    await svc
+      .from('lavori')
+      .update({ incluso_in_fattura: false })
+      .eq('id', lavoroId)
+      .eq('laboratorio_id', labId)
+  }
+
   for (const lavoro_id of lavoro_ids) {
     // Step 0: Claim atomico — previene doppia fatturazione con richieste batch concorrenti.
     // Solo la prima richiesta che esegue questo UPDATE procede; l'altra trova incluso_in_fattura=true.
@@ -185,14 +196,8 @@ export async function POST(req: Request) {
       .single()
 
     if (lavoroErr || !lavoro) {
-      // Rollback del claim: la load è fallita dopo un claim riuscito — senza
-      // questo reset il lavoro resta con incluso_in_fattura=true "orfano"
-      // (nessuna fattura), bloccando annullo e retry futuri del batch.
-      await svc
-        .from('lavori')
-        .update({ incluso_in_fattura: false })
-        .eq('id', lavoro_id)
-        .eq('laboratorio_id', labId)
+      // La load è fallita dopo un claim riuscito: senza rollback il claim resta orfano.
+      await rollbackClaim(lavoro_id)
 
       results.push({
         lavoro_id,
@@ -236,14 +241,26 @@ export async function POST(req: Request) {
         .single()
 
       if (draftErr || !draftFattura?.id) {
+        // 23505 su fatture_lavoro_attiva_unique = esiste DAVVERO una fattura
+        // attiva per questo lavoro: incluso_in_fattura=true è coerente con lo
+        // stato reale e NON va rollbackato (riaprirebbe la doppia fatturazione).
+        const fatturaAttivaEsistente =
+          draftErr?.code === '23505' &&
+          (draftErr.message ?? '').includes('fatture_lavoro_attiva_unique')
+
+        if (!fatturaAttivaEsistente) {
+          // Ogni altro errore (transitorio, o 23505 su altri vincoli come la
+          // collisione di progressivo): rollback del claim per permettere il retry.
+          await rollbackClaim(lavoro_id)
+        }
+
         results.push({
           lavoro_id,
           numero_lavoro: numeroLavoro,
           ok: false,
-          error:
-            draftErr?.code === '23505'
-              ? 'Esiste già una fattura attiva per questo lavoro'
-              : `Errore creazione draft fattura: ${draftErr?.message ?? 'null'}`,
+          error: fatturaAttivaEsistente
+            ? 'Esiste già una fattura attiva per questo lavoro'
+            : 'Errore creazione draft fattura',
         })
         continue
       }
@@ -261,12 +278,7 @@ export async function POST(req: Request) {
         numero_fattura: esito.numero,
       })
     } catch (err) {
-      // Rollback del claim: resetta incluso_in_fattura per permettere un retry futuro
-      await svc
-        .from('lavori')
-        .update({ incluso_in_fattura: false })
-        .eq('id', lavoro_id)
-        .eq('laboratorio_id', labId)
+      await rollbackClaim(lavoro_id)
 
       results.push({
         lavoro_id,

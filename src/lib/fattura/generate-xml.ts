@@ -306,6 +306,7 @@ export async function generaFatturaPA(
     const insertPayload = {
       laboratorio_id: lavoro.laboratorio_id,
       cliente_id: cliente.id,
+      lavoro_id: lavoro.id, // B-2: ogni fattura legata a un lavoro porta lavoro_id (gate annullo)
       numero,
       anno,
       progressivo: progressivoFattura,

@@ -157,3 +157,51 @@ describe('POST /api/fatture/batch — claim atomico + load post-claim (bugfix)',
     void res
   })
 })
+
+describe('POST /api/fatture/batch — draft-insert fallito (rollback claim)', () => {
+  it('errore generico sul draft → rollback del claim, senza leak del messaggio DB', async () => {
+    insertResult.value = {
+      data: null,
+      error: { code: 'XX000', message: 'connection reset by peer' },
+    }
+    const res = await POST(req())
+    const json = await res.json()
+    expect(json.errori).toBe(1)
+
+    const rollbackIssued = lavoriUpdatePayloads.some((p) => p.incluso_in_fattura === false)
+    expect(rollbackIssued).toBe(true)
+    expect(JSON.stringify(json)).not.toContain('connection reset')
+  })
+
+  it('23505 su fatture_lavoro_attiva_unique → claim NON rollbackato (la fattura attiva esiste davvero)', async () => {
+    insertResult.value = {
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "fatture_lavoro_attiva_unique"' },
+    }
+    const res = await POST(req())
+    const json = await res.json()
+    expect(json.results[0].error).toBe('Esiste già una fattura attiva per questo lavoro')
+
+    // incluso_in_fattura=true è COERENTE con lo stato reale (una fattura
+    // attiva per il lavoro esiste): il rollback qui riaprirebbe la porta
+    // alla doppia fatturazione al prossimo batch.
+    const rollbackIssued = lavoriUpdatePayloads.some((p) => p.incluso_in_fattura === false)
+    expect(rollbackIssued).toBe(false)
+  })
+
+  it('23505 su un ALTRO vincolo (es. collisione progressivo) → rollback + messaggio generico', async () => {
+    insertResult.value = {
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint "fatture_laboratorio_id_anno_progressivo_key"' },
+    }
+    const res = await POST(req())
+    const json = await res.json()
+
+    const rollbackIssued = lavoriUpdatePayloads.some((p) => p.incluso_in_fattura === false)
+    expect(rollbackIssued).toBe(true)
+    // Nessuna fattura per QUESTO lavoro esiste: il messaggio "già esistente" sarebbe fuorviante.
+    expect(json.results[0].error).not.toBe('Esiste già una fattura attiva per questo lavoro')
+    expect(JSON.stringify(json)).not.toContain('progressivo_key')
+    expect(JSON.stringify(json)).not.toContain('duplicate key')
+  })
+})
