@@ -533,7 +533,9 @@ export default async function PortalePage({ params }: PageProps) {
         )}
 
         {/* Sezione economica — solo se l'interruttore lab è attivo */}
-        {cliente.portale_fatturazione_attiva && <FatturazioneSection token={token} />}
+        {cliente.portale_fatturazione_attiva && (
+          <FatturazioneSection token={token} nomeLaboratorio={lab?.ragione_sociale ?? null} />
+        )}
       </div>
     </main>
   )

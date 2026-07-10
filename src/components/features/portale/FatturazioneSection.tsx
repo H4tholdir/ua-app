@@ -139,6 +139,23 @@ function aggiornaRigaLocale(dati: Dati, rigaId: string, proposta: Proposta): Dat
   }
 }
 
+// Ripristina proposta/proposta_at di una riga ai valori passati (rollback
+// locale) — a differenza di aggiornaRigaLocale non genera un nuovo
+// timestamp, riscrive esattamente i valori precedenti l'optimistic update.
+function impostaRigaLocale(
+  dati: Dati,
+  rigaId: string,
+  valori: { proposta: Proposta | null; proposta_at: string | null },
+): Dati {
+  return {
+    ...dati,
+    gruppi: dati.gruppi.map((g) => ({
+      ...g,
+      lavori: g.lavori.map((r) => (r.id === rigaId ? { ...r, ...valori } : r)),
+    })),
+  }
+}
+
 // Sonda la sessione economica (GET lista) e restituisce lo stato risultante,
 // SENZA toccare React — chiamata sia dall'effetto di mount sia dopo un PIN
 // riuscito sia dopo un errore sul toggle. Tenuta come funzione pura a livello
@@ -165,7 +182,13 @@ async function sondaSessione(token: string): Promise<FaseLista | FasePin | { fas
   }
 }
 
-export function FatturazioneSection({ token }: { token: string }) {
+export function FatturazioneSection({
+  token,
+  nomeLaboratorio,
+}: {
+  token: string
+  nomeLaboratorio?: string | null
+}) {
   const [stato, setStato] = useState<Stato>({ fase: 'caricamento' })
   const [now, setNow] = useState(() => Date.now())
   const montatoRef = useRef(true)
@@ -295,12 +318,37 @@ export function FatturazioneSection({ token }: { token: string }) {
   }, [bloccatoFinoA])
 
   // ─── Toggle proposta (righe non confermate) ─────────────────────────────
+  // Rollback locale (review Task 12): su errore generico o di rete NON si
+  // ricarica dal server — un refetch che fallisce a sua volta (rete assente)
+  // butterebbe l'utente alla fase PIN pur avendo una sessione valida. Si
+  // salva il valore precedente della riga prima dell'optimistic update e,
+  // sui rami di errore generico/network, lo si riscrive localmente mostrando
+  // solo il banner d'errore. Il ramo 409 (conflitto con il laboratorio) e il
+  // ramo sessione_scaduta restano invariati: richiedono uno stato autoritativo
+  // dal server (rispettivamente ricarica lista e ritorno al PIN).
   const impostaProposta = useCallback(
     async (rigaId: string, proposta: Proposta) => {
+      let precedente: { proposta: Proposta | null; proposta_at: string | null } = {
+        proposta: null,
+        proposta_at: null,
+      }
       setStato((prev) => {
         if (prev.fase !== 'lista') return prev
+        const rigaCorrente = prev.dati.gruppi.flatMap((g) => g.lavori).find((r) => r.id === rigaId)
+        if (rigaCorrente) {
+          precedente = { proposta: rigaCorrente.proposta, proposta_at: rigaCorrente.proposta_at }
+        }
         return { ...prev, dati: aggiornaRigaLocale(prev.dati, rigaId, proposta), avviso: null }
       })
+
+      const ripristinaLocale = (msg: string) => {
+        if (!montatoRef.current) return
+        setStato((prev) => {
+          if (prev.fase !== 'lista') return prev
+          return { ...prev, dati: impostaRigaLocale(prev.dati, rigaId, precedente), avviso: msg }
+        })
+      }
+
       try {
         const res = await fetch(`/api/portale/${token}/fatturazione/${rigaId}`, {
           method: 'POST',
@@ -323,9 +371,9 @@ export function FatturazioneSection({ token }: { token: string }) {
           await ricaricaConAvviso(msg)
           return
         }
-        await ricaricaConAvviso('Non è stato possibile salvare la scelta. Riprova.')
+        ripristinaLocale('Non è stato possibile salvare la scelta. Riprova.')
       } catch {
-        await ricaricaConAvviso('Errore di rete. Riprova.')
+        ripristinaLocale('Errore di rete. Riprova.')
       }
     },
     [token, ricaricaConAvviso],
@@ -371,19 +419,6 @@ export function FatturazioneSection({ token }: { token: string }) {
     return (
       <section style={{ marginTop: '32px' }} aria-label="Sezione fatturazione — accesso riservato">
         <style>{printCss}</style>
-        <h3
-          style={{
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '13px',
-            fontWeight: 700,
-            color: '#374151',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            margin: '0 0 12px',
-          }}
-        >
-          Da fatturare
-        </h3>
         <div
           style={{
             maxWidth: '400px',
@@ -815,6 +850,9 @@ export function FatturazioneSection({ token }: { token: string }) {
         <div className="ua-fatt-print-only">
           <div style={{ borderBottom: '2px solid #111827', paddingBottom: '14px', marginBottom: '18px' }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: '#111827', marginBottom: '2px' }}>
+              {nomeLaboratorio ?? 'Laboratorio'}
+            </div>
+            <div style={{ fontSize: '12.5px', color: '#374151', marginBottom: '6px' }}>
               {dati.studio ?? 'Studio'}
             </div>
             <div style={{ fontSize: '11px', color: '#6B7280' }}>
