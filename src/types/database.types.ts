@@ -1123,6 +1123,7 @@ export type Database = {
           iva_importo: number
           iva_percentuale: number
           laboratorio_id: string
+          lavoro_id: string | null
           messaggio_esito_sdi: string | null
           natura_iva: string
           nome_file_xml: string | null
@@ -1182,6 +1183,7 @@ export type Database = {
           iva_importo?: number
           iva_percentuale?: number
           laboratorio_id: string
+          lavoro_id?: string | null
           messaggio_esito_sdi?: string | null
           natura_iva?: string
           nome_file_xml?: string | null
@@ -1241,6 +1243,7 @@ export type Database = {
           iva_importo?: number
           iva_percentuale?: number
           laboratorio_id?: string
+          lavoro_id?: string | null
           messaggio_esito_sdi?: string | null
           natura_iva?: string
           nome_file_xml?: string | null
@@ -1291,6 +1294,20 @@ export type Database = {
             columns: ["laboratorio_id"]
             isOneToOne: false
             referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -5379,6 +5396,14 @@ export type Database = {
         Returns: Json
       }
       admin_delete_laboratorio: { Args: { p_lab_id: string }; Returns: Json }
+      annulla_consegna_atomica: {
+        Args: {
+          p_finestra_ms: number
+          p_laboratorio_id: string
+          p_lavoro_id: string
+        }
+        Returns: Json
+      }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
       articoli_sotto_scorta_minima: {
         Args: { p_lab_id: string }
@@ -5426,12 +5451,14 @@ export type Database = {
         Returns: number
       }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
-      consegna_lavoro_lock:
-        | { Args: { p_lavoro_id: string }; Returns: Json }
-        | {
-            Args: { p_laboratorio_id: string; p_lavoro_id: string }
-            Returns: Json
-          }
+      consegna_finalizza_atomica: {
+        Args: { p_laboratorio_id: string; p_lavoro_id: string }
+        Returns: Json
+      }
+      consegna_lavoro_lock: {
+        Args: { p_laboratorio_id: string; p_lavoro_id: string }
+        Returns: Json
+      }
       crea_rifacimento_atomico: {
         Args: {
           p_costo_interno?: number
