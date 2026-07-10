@@ -4,6 +4,10 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
 
+// Tutta la logica transazionale (gate stato/finestra, doppio gate fiscale,
+// ripristino lavoro, annullo DdC fail-closed) vive nella RPC
+// annulla_consegna_atomica (Ondata 0 spec §3 punto 4). La route mappa solo
+// gli esiti su HTTP.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,71 +23,39 @@ export async function POST(
   const { id: lavoro_id } = await params
   const svc = getServiceClient()
 
-  // Verifica appartenenza al lab
   const { data: utente } = await svc
     .from('utenti')
     .select('laboratorio_id')
     .eq('id', user.id)
     .single()
-
   if (!utente) return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
 
-  // Legge il lavoro con i campi necessari
-  const { data: lavoro } = await svc
-    .from('lavori')
-    .select('id, stato, data_consegna_effettiva')
-    .eq('id', lavoro_id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .is('deleted_at', null)
-    .single()
+  const { data, error } = await svc.rpc('annulla_consegna_atomica', {
+    p_lavoro_id: lavoro_id,
+    p_laboratorio_id: utente.laboratorio_id,
+    p_finestra_ms: FINESTRA_ANNULLO_MS,
+  })
 
-  if (!lavoro) return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
-
-  // Deve essere consegnato
-  if (lavoro.stato !== 'consegnato') {
-    return NextResponse.json(
-      { error: 'Il lavoro non è in stato consegnato' },
-      { status: 400 }
-    )
-  }
-
-  // Verifica finestra di annullo (costante condivisa col banner — C4)
-  const consegnaAt = lavoro.data_consegna_effettiva
-    ? new Date(lavoro.data_consegna_effettiva).getTime()
-    : 0
-
-  if (Date.now() - consegnaAt > FINESTRA_ANNULLO_MS) {
-    return NextResponse.json(
-      { error: 'La finestra di annullamento è scaduta (10 minuti dalla consegna)' },
-      { status: 400 }
-    )
-  }
-
-  // Ripristina lo stato a pronto e resetta i campi di consegna
-  const { error: updateErr } = await svc
-    .from('lavori')
-    .update({
-      stato: 'pronto',
-      conformato: false,
-      data_conformazione: null,
-      data_consegna_effettiva: null,
-      consegna_completata_at: null,
-      consegna_in_corso: false,
-    })
-    .eq('id', lavoro_id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-
-  if (updateErr) {
+  if (error) {
+    console.error('[ANNULLA-CONSEGNA] RPC error:', error.message)
     return NextResponse.json({ error: 'Errore durante l\'annullamento' }, { status: 500 })
   }
 
-  // Annulla la DdC associata (se esiste)
-  await svc
-    .from('dichiarazioni_conformita')
-    .update({ stato: 'annullata' })
-    .eq('lavoro_id', lavoro_id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .in('stato', ['bozza', 'firmata'])
+  const esito = (data as { esito: string; ddc_assente?: boolean } | null)?.esito
 
-  return NextResponse.json({ ok: true, messaggio: 'Consegna annullata — lavoro riportato a Pronto' })
+  switch (esito) {
+    case 'ok':
+      return NextResponse.json({ ok: true, messaggio: 'Consegna annullata — lavoro riportato a Pronto' })
+    case 'non_trovato':
+      return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+    case 'non_consegnato':
+      return NextResponse.json({ error: 'Il lavoro non è in stato consegnato' }, { status: 400 })
+    case 'finestra_scaduta':
+      return NextResponse.json({ error: 'La finestra di annullamento è scaduta (10 minuti dalla consegna)' }, { status: 400 })
+    case 'fattura_gia_emessa':
+      return NextResponse.json({ error: 'Esiste già una fattura per questo lavoro: per stornare serve una nota di credito' }, { status: 409 })
+    default:
+      console.error('[ANNULLA-CONSEGNA] esito RPC inatteso:', esito)
+      return NextResponse.json({ error: 'Errore durante l\'annullamento' }, { status: 500 })
+  }
 }
