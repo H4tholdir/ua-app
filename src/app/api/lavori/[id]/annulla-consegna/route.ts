@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-
-const GRACE_PERIOD_MS = 5 * 60 * 1000 // 5 minuti
+import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
 
 export async function POST(
   req: NextRequest,
@@ -48,14 +47,14 @@ export async function POST(
     )
   }
 
-  // Verifica finestra di 5 minuti
+  // Verifica finestra di annullo (costante condivisa col banner — C4)
   const consegnaAt = lavoro.data_consegna_effettiva
     ? new Date(lavoro.data_consegna_effettiva).getTime()
     : 0
 
-  if (Date.now() - consegnaAt > GRACE_PERIOD_MS) {
+  if (Date.now() - consegnaAt > FINESTRA_ANNULLO_MS) {
     return NextResponse.json(
-      { error: 'La finestra di annullamento è scaduta (5 minuti dalla consegna)' },
+      { error: 'La finestra di annullamento è scaduta (10 minuti dalla consegna)' },
       { status: 400 }
     )
   }
