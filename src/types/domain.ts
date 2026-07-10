@@ -591,7 +591,7 @@ export interface ConsegnaResult {
 
 export interface ConsegnaError {
   ok: false;
-  tipo: 'precheck_fallito' | 'errore_pdf' | 'errore_upload' | 'errore_fattura' | 'errore_pec';
+  tipo: 'precheck_fallito' | 'errore_pdf' | 'errore_upload' | 'errore_fattura' | 'errore_pec' | 'stato_non_consegnabile';
   messaggio: string;
   errori_precheck?: ConsegnaPrecheckResult['errori'];
 }

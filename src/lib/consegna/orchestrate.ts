@@ -1,6 +1,7 @@
 import 'server-only'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { precheckMDR } from './precheck'
+import { isStatoConsegnabile } from './costanti'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
@@ -133,6 +134,18 @@ export async function orchestraConsegna(
         ok: false,
         tipo: 'errore_pdf',
         messaggio: 'Lavoro non trovato o eliminato.',
+      }
+    }
+
+    // ----------------------------------------------------------------
+    // Step 1.5 — Gate B1: solo stati consegnabili (E4, server-side)
+    // ----------------------------------------------------------------
+    if (!isStatoConsegnabile(lavoro.stato as string)) {
+      await rilasciaLock()
+      return {
+        ok: false,
+        tipo: 'stato_non_consegnabile',
+        messaggio: `Il lavoro è in stato "${lavoro.stato}" e non può essere consegnato.`,
       }
     }
 
