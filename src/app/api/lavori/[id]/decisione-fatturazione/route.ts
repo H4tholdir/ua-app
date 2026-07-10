@@ -63,9 +63,20 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: validazione.errore }, { status })
   }
 
+  const updatePayload: Record<string, unknown> = {
+    decisione_fatturazione: decisione,
+    updated_at: new Date().toISOString(),
+  }
+  if (decisione === 'in_attesa') {
+    // M-3 (spec §8): la riapertura azzera la proposta del dentista — la
+    // storia resta in portale_accessi; il dentista riparte da zero.
+    updatePayload.proposta_dentista = null
+    updatePayload.proposta_at = null
+  }
+
   const { data: lavoro, error } = await svc
     .from('lavori')
-    .update({ decisione_fatturazione: decisione, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
     .select('id, decisione_fatturazione')
