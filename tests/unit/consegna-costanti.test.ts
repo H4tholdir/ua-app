@@ -1,28 +1,29 @@
 import { describe, it, expect } from 'vitest'
 import {
-  STATI_CONSEGNABILI, FINESTRA_ANNULLO_MS, MAX_TENTATIVI_EMISSIONE,
-  OUTBOX_BATCH_MAX, OUTBOX_TIME_BUDGET_MS, WATCHDOG_IN_LAVORAZIONE_MIN,
-  isStatoConsegnabile,
+  STATI_CONSEGNABILI, FINESTRA_ANNULLO_MS, isStatoConsegnabile,
 } from '@/lib/consegna/costanti'
 
-describe('costanti consegna', () => {
-  it('STATI_CONSEGNABILI contiene esattamente pronto e in_ritardo', () => {
-    expect([...STATI_CONSEGNABILI]).toEqual(['pronto', 'in_ritardo'])
+describe('costanti condivise consegna/annullo', () => {
+  it('STATI_CONSEGNABILI è la coppia pronto/in_ritardo (E4)', () => {
+    expect(STATI_CONSEGNABILI).toEqual(['pronto', 'in_ritardo'])
   })
-  it('finestra annullo è 10 minuti', () => {
+
+  it('FINESTRA_ANNULLO_MS è 10 minuti (C4)', () => {
     expect(FINESTRA_ANNULLO_MS).toBe(10 * 60 * 1000)
   })
-  it('valori outbox', () => {
-    expect(MAX_TENTATIVI_EMISSIONE).toBe(8)
-    expect(OUTBOX_BATCH_MAX).toBe(20)
-    expect(OUTBOX_TIME_BUDGET_MS).toBe(45_000)
-    expect(WATCHDOG_IN_LAVORAZIONE_MIN).toBe(5)
-  })
-  it('isStatoConsegnabile', () => {
+
+  it('isStatoConsegnabile riconosce solo gli stati consegnabili', () => {
     expect(isStatoConsegnabile('pronto')).toBe(true)
     expect(isStatoConsegnabile('in_ritardo')).toBe(true)
-    for (const s of ['ricevuto','in_lavorazione','in_prova','in_prova_esterna','consegnato','sospeso','annullato']) {
-      expect(isStatoConsegnabile(s)).toBe(false)
-    }
+    expect(isStatoConsegnabile('ricevuto')).toBe(false)
+    expect(isStatoConsegnabile('consegnato')).toBe(false)
+  })
+
+  it('le costanti outbox non esistono più (M-2)', async () => {
+    const mod = await import('@/lib/consegna/costanti')
+    expect('MAX_TENTATIVI_EMISSIONE' in mod).toBe(false)
+    expect('OUTBOX_BATCH_MAX' in mod).toBe(false)
+    expect('OUTBOX_TIME_BUDGET_MS' in mod).toBe(false)
+    expect('WATCHDOG_IN_LAVORAZIONE_MIN' in mod).toBe(false)
   })
 })
