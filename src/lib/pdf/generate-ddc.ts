@@ -19,6 +19,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     .from('dichiarazioni_conformita')
     .select('numero_ddc, pdf_url')
     .eq('lavoro_id', lavoro.id)
+    .neq('stato', 'annullata')
     .maybeSingle()
 
   if (ddcEsistente) {
@@ -131,7 +132,8 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
         .from('dichiarazioni_conformita')
         .select('numero_ddc, pdf_url')
         .eq('lavoro_id', lavoro.id)
-        .single()
+        .neq('stato', 'annullata')
+        .maybeSingle()
       return { numero: existing?.numero_ddc ?? numero, url: existing?.pdf_url ?? pdfUrl }
     }
     throw new Error(`DdC insert failed: ${insertErr.message}`)

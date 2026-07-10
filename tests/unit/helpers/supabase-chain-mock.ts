@@ -23,7 +23,7 @@ export interface MockChain {
 export function createChain(result: { data: unknown; error: unknown }): MockChain {
   const calls: ChainCall[] = []
   const passthroughMethods = [
-    'select', 'eq', 'in', 'is', 'or', 'order', 'limit', 'not', 'gte', 'lt', 'lte', 'overrideTypes',
+    'select', 'eq', 'neq', 'in', 'is', 'or', 'order', 'limit', 'not', 'gte', 'lt', 'lte', 'overrideTypes',
   ] as const
   const resolvingMethods = ['single', 'maybeSingle'] as const
   const c: MockChain = { calls }
