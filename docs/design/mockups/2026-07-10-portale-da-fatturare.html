@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Portale dentista: Tastierino PIN + Da fatturare + Stampa</title>
+<style>
+  @font-face { font-family: 'DMS'; src: local('DM Sans'); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: #EDEDEA;
+    font-family: 'DM Sans', 'DMS', system-ui, -apple-system, sans-serif;
+    color: #111827;
+  }
+
+  /* ── Intro pagina ─────────────────────────────────────────── */
+  .intro {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 8px;
+    text-align: center;
+  }
+  .intro h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+  .intro p {
+    font-size: 12.5px;
+    color: #6B7280;
+    line-height: 1.6;
+  }
+
+  /* ── Struttura pannelli ───────────────────────────────────── */
+  .pannello {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 44px;
+  }
+  .etichetta-sezione {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    margin-bottom: 14px;
+  }
+  .etichetta-sezione .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #D90012;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .etichetta-sezione .linea { flex: 1; height: 1px; background: #DCDDE0; }
+
+  .schermo {
+    max-width: 390px;
+    margin: 0 auto;
+    background: #F8F9FA;
+    border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .schermo-var + .schermo-var { margin-top: 20px; }
+  .schermo-titolo-var {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B7280;
+    text-align: center;
+    padding: 8px 0 2px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PANNELLO 1 — Tastierino PIN
+     ══════════════════════════════════════════════════════════ */
+  .pin-card {
+    padding: 40px 28px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .pin-titolo {
+    font-size: 19px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+  .pin-sottotitolo {
+    font-size: 13px;
+    color: #6B7280;
+    line-height: 1.5;
+    max-width: 260px;
+    margin-bottom: 28px;
+  }
+  .pin-pallini {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .pallino {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #D1D5DB;
+    background: #fff;
+  }
+  .pallino.pieno { background: #111827; border-color: #111827; }
+  .pallino.errore { background: #D90012; border-color: #D90012; }
+  .pallino.disabilitato { background: #E5E7EB; border-color: #E5E7EB; }
+
+  .pin-messaggio {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #D90012;
+    margin-bottom: 20px;
+    min-height: 16px;
+  }
+  .pin-banner-ambra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FEF3C7;
+    border: 1px solid #FDE68A;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+  .pin-banner-ambra .icona { font-size: 16px; line-height: 1; }
+  .pin-banner-ambra .testo { font-size: 12.5px; color: #92400E; line-height: 1.45; }
+  .pin-banner-ambra .testo strong { font-weight: 700; }
+
+  .tastierino {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 264px;
+  }
+  .tasto-num {
+    width: 100%;
+    aspect-ratio: 1;
+    min-height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .tasto-num.vuoto { visibility: hidden; }
+  .tasto-num.cancella { font-size: 18px; color: #6B7280; }
+  .tasto-num.disabilitato {
+    color: #C6CBD2;
+    background: #EFF1F2;
+    box-shadow: none;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PANNELLO 2 — Lista «Da fatturare»
+     ══════════════════════════════════════════════════════════ */
+  .fatt-shell { padding-bottom: 84px; position: relative; }
+  .fatt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 16px;
+  }
+  .fatt-header h2 {
+    font-size: 19px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .btn-secondario {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #374151;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 9px 14px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .fatt-gruppo-titolo {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 20px 10px;
+  }
+
+  .fatt-riga {
+    background: #FFFFFF;
+    border-radius: 16px;
+    margin: 0 16px 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .fatt-riga-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .fatt-riga-info { min-width: 0; }
+  .fatt-numero {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #9CA3AF;
+    margin-bottom: 3px;
+  }
+  .fatt-dispositivo {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+  }
+  .fatt-meta {
+    font-size: 12.5px;
+    color: #6B7280;
+  }
+  .fatt-prezzo-blocco {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .fatt-prezzo {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+  }
+  .fatt-data {
+    font-size: 11.5px;
+    color: #9CA3AF;
+    margin-top: 2px;
+  }
+
+  .toggle-fatt {
+    display: flex;
+    margin-top: 12px;
+    background: #F3F4F6;
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .toggle-fatt button {
+    flex: 1;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #6B7280;
+    border-radius: 8px;
+    padding: 10px 8px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .toggle-fatt button.attivo-si {
+    background: #FFFFFF;
+    color: #16A34A;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+  }
+  .toggle-fatt button.attivo-no {
+    background: #FFFFFF;
+    color: #D90012;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+  }
+
+  .fatt-confermato {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .fatt-confermato .spunta {
+    color: #16A34A;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .fatt-confermato .testo-conf {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #15803D;
+  }
+  .fatt-confermato.difforme {
+    background: #FEF3C7;
+    border-color: #FDE68A;
+  }
+  .fatt-confermato.difforme .spunta { color: #B45309; }
+  .fatt-confermato.difforme .testo-conf { color: #92400E; }
+  .fatt-confermato.difforme.no .testo-conf-esito { color: #D90012; }
+  .fatt-proposta-originale {
+    font-size: 11.5px;
+    color: #A16207;
+    margin-top: 3px;
+    text-decoration: line-through;
+    text-decoration-color: #D9B45C;
+  }
+
+  .fatt-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border-top: 1px solid #E5E7EB;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+  .fatt-footer .lbl {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+  .fatt-footer .val {
+    font-size: 18px;
+    font-weight: 700;
+    color: #D90012;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PANNELLO 3 — Stato vuoto
+     ══════════════════════════════════════════════════════════ */
+  .vuoto-shell { padding: 20px; }
+  .vuoto-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 44px 24px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .vuoto-icona {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+  }
+  .vuoto-testo {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #6B7280;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     PANNELLO 4 — Layout stampa
+     ══════════════════════════════════════════════════════════ */
+  .stampa-shell {
+    background: #FFFFFF;
+    padding: 28px 16px;
+  }
+  .stampa-head {
+    border-bottom: 2px solid #111827;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .stampa-lab {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+  }
+  .stampa-studio {
+    font-size: 12.5px;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .stampa-data {
+    font-size: 11px;
+    color: #6B7280;
+  }
+  .stampa-titolo-doc {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #111827;
+    margin-bottom: 12px;
+  }
+  table.stampa-tabella {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .stampa-tabella col.c-num { width: 17%; }
+  .stampa-tabella col.c-disp { width: 30%; }
+  .stampa-tabella col.c-consegna { width: 19%; }
+  .stampa-tabella col.c-proposta { width: 18%; }
+  .stampa-tabella col.c-prezzo { width: 16%; }
+  .stampa-tabella th {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6B7280;
+    border-bottom: 1px solid #111827;
+    padding: 0 3px 6px;
+    overflow-wrap: break-word;
+  }
+  .stampa-tabella th.num { text-align: right; }
+  .stampa-tabella td {
+    padding: 8px 3px;
+    border-bottom: 1px solid #E5E7EB;
+    color: #111827;
+    vertical-align: top;
+    overflow-wrap: break-word;
+  }
+  .stampa-tabella td.num { text-align: right; font-weight: 600; overflow-wrap: normal; }
+  .stampa-tabella td.esito-no { color: #6B7280; }
+  .stampa-tabella .sub { display: block; font-size: 10px; color: #6B7280; margin-top: 1px; }
+  .stampa-tot-riga td {
+    border-bottom: none;
+    border-top: 2px solid #111827;
+    font-weight: 700;
+    padding-top: 10px;
+  }
+  .stampa-footer-nota {
+    margin-top: 18px;
+    font-size: 10px;
+    color: #9CA3AF;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>Mockup — Portale dentista: tastierino PIN · «Da fatturare» · layout stampa</h1>
+    <p>Coerente con lo stile del portale esistente (DM Sans, sfondo #F8F9FA, card bianche radius 16, primario #D90012). Dati simulati, in italiano. Riferimento per il Task 12.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       1 · TASTIERINO PIN
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">1</span> Tastierino PIN <span class="linea"></span></div>
+
+    <div class="schermo schermo-var">
+      <div class="schermo-titolo-var">A — inserimento in corso (4 di 6 cifre)</div>
+      <div class="pin-card">
+        <div class="pin-titolo">Area riservata</div>
+        <div class="pin-sottotitolo">Inserisci il PIN che ti ha comunicato il laboratorio</div>
+        <div class="pin-pallini">
+          <span class="pallino pieno"></span>
+          <span class="pallino pieno"></span>
+          <span class="pallino pieno"></span>
+          <span class="pallino pieno"></span>
+          <span class="pallino"></span>
+          <span class="pallino"></span>
+        </div>
+        <div class="pin-messaggio">&nbsp;</div>
+        <div class="tastierino">
+          <button class="tasto-num">1</button>
+          <button class="tasto-num">2</button>
+          <button class="tasto-num">3</button>
+          <button class="tasto-num">4</button>
+          <button class="tasto-num">5</button>
+          <button class="tasto-num">6</button>
+          <button class="tasto-num">7</button>
+          <button class="tasto-num">8</button>
+          <button class="tasto-num">9</button>
+          <button class="tasto-num vuoto"></button>
+          <button class="tasto-num">0</button>
+          <button class="tasto-num cancella" aria-label="Cancella">⌫</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="schermo schermo-var">
+      <div class="schermo-titolo-var">B — PIN errato</div>
+      <div class="pin-card">
+        <div class="pin-titolo">Area riservata</div>
+        <div class="pin-sottotitolo">Inserisci il PIN che ti ha comunicato il laboratorio</div>
+        <div class="pin-pallini">
+          <span class="pallino errore"></span>
+          <span class="pallino errore"></span>
+          <span class="pallino errore"></span>
+          <span class="pallino errore"></span>
+          <span class="pallino errore"></span>
+          <span class="pallino errore"></span>
+        </div>
+        <div class="pin-messaggio">PIN errato — 3 tentativi rimasti</div>
+        <div class="tastierino">
+          <button class="tasto-num">1</button>
+          <button class="tasto-num">2</button>
+          <button class="tasto-num">3</button>
+          <button class="tasto-num">4</button>
+          <button class="tasto-num">5</button>
+          <button class="tasto-num">6</button>
+          <button class="tasto-num">7</button>
+          <button class="tasto-num">8</button>
+          <button class="tasto-num">9</button>
+          <button class="tasto-num vuoto"></button>
+          <button class="tasto-num">0</button>
+          <button class="tasto-num cancella" aria-label="Cancella">⌫</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="schermo schermo-var">
+      <div class="schermo-titolo-var">C — bloccato (troppi tentativi)</div>
+      <div class="pin-card">
+        <div class="pin-titolo">Area riservata</div>
+        <div class="pin-sottotitolo">Inserisci il PIN che ti ha comunicato il laboratorio</div>
+        <div class="pin-pallini">
+          <span class="pallino disabilitato"></span>
+          <span class="pallino disabilitato"></span>
+          <span class="pallino disabilitato"></span>
+          <span class="pallino disabilitato"></span>
+          <span class="pallino disabilitato"></span>
+          <span class="pallino disabilitato"></span>
+        </div>
+        <div class="pin-banner-ambra">
+          <span class="icona">⚠</span>
+          <span class="testo">Troppi tentativi. Riprova tra <strong>14:32</strong></span>
+        </div>
+        <div class="tastierino">
+          <button class="tasto-num disabilitato">1</button>
+          <button class="tasto-num disabilitato">2</button>
+          <button class="tasto-num disabilitato">3</button>
+          <button class="tasto-num disabilitato">4</button>
+          <button class="tasto-num disabilitato">5</button>
+          <button class="tasto-num disabilitato">6</button>
+          <button class="tasto-num disabilitato">7</button>
+          <button class="tasto-num disabilitato">8</button>
+          <button class="tasto-num disabilitato">9</button>
+          <button class="tasto-num vuoto"></button>
+          <button class="tasto-num disabilitato">0</button>
+          <button class="tasto-num disabilitato cancella" aria-label="Cancella">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       2 · LISTA «DA FATTURARE»
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">2</span> Lista «Da fatturare» <span class="linea"></span></div>
+
+    <div class="schermo">
+      <div class="fatt-shell">
+        <div class="fatt-header">
+          <h2>Da fatturare</h2>
+          <button class="btn-secondario">🖨 Stampa lista</button>
+        </div>
+
+        <div class="fatt-gruppo-titolo">Luglio 2026</div>
+
+        <!-- Riga 1: in attesa, proposta Fatturare -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0141</div>
+              <div class="fatt-dispositivo">Corona zirconia</div>
+              <div class="fatt-meta">R. MARIO</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 180,00</div>
+              <div class="fatt-data">3 lug</div>
+            </div>
+          </div>
+          <div class="toggle-fatt">
+            <button class="attivo-si">Fatturare</button>
+            <button>Non fatturare</button>
+          </div>
+        </div>
+
+        <!-- Riga 2: confermato, conforme -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0138</div>
+              <div class="fatt-dispositivo">Ponte 3 elementi</div>
+              <div class="fatt-meta">B. LUCIA</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 450,00</div>
+              <div class="fatt-data">1 lug</div>
+            </div>
+          </div>
+          <div class="fatt-confermato">
+            <span class="spunta">✓</span>
+            <span class="testo-conf">Confermato dal laboratorio — Fatturare</span>
+          </div>
+        </div>
+
+        <div class="fatt-gruppo-titolo">Giugno 2026</div>
+
+        <!-- Riga 3: confermato, DIFFORME dalla proposta -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0135</div>
+              <div class="fatt-dispositivo">Scheletrato</div>
+              <div class="fatt-meta">V. GIUSEPPE</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 320,00</div>
+              <div class="fatt-data">28 giu</div>
+            </div>
+          </div>
+          <div class="fatt-confermato difforme">
+            <span class="spunta">✓</span>
+            <span class="testo-conf">Confermato dal laboratorio — Non fatturare</span>
+          </div>
+          <div class="fatt-proposta-originale">Proposta iniziale: Fatturare</div>
+        </div>
+
+        <!-- Riga 4: in attesa, proposta Non fatturare -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0130</div>
+              <div class="fatt-dispositivo">Protesi totale</div>
+              <div class="fatt-meta">F. ANNA</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 380,00</div>
+              <div class="fatt-data">25 giu</div>
+            </div>
+          </div>
+          <div class="toggle-fatt">
+            <button>Fatturare</button>
+            <button class="attivo-no">Non fatturare</button>
+          </div>
+        </div>
+
+        <!-- Riga 5: in attesa, proposta Fatturare -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0126</div>
+              <div class="fatt-dispositivo">Corona ceramica</div>
+              <div class="fatt-meta">R. MARIO</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 210,00</div>
+              <div class="fatt-data">20 giu</div>
+            </div>
+          </div>
+          <div class="toggle-fatt">
+            <button class="attivo-si">Fatturare</button>
+            <button>Non fatturare</button>
+          </div>
+        </div>
+
+        <!-- Riga 6: in attesa, proposta Fatturare -->
+        <div class="fatt-riga">
+          <div class="fatt-riga-top">
+            <div class="fatt-riga-info">
+              <div class="fatt-numero">N. 2026-0119</div>
+              <div class="fatt-dispositivo">Faccetta ceramica</div>
+              <div class="fatt-meta">L. FRANCESCA</div>
+            </div>
+            <div class="fatt-prezzo-blocco">
+              <div class="fatt-prezzo">€ 400,00</div>
+              <div class="fatt-data">12 giu</div>
+            </div>
+          </div>
+          <div class="toggle-fatt">
+            <button class="attivo-si">Fatturare</button>
+            <button>Non fatturare</button>
+          </div>
+        </div>
+
+        <div class="fatt-footer">
+          <span class="lbl">Totale da fatturare</span>
+          <span class="val">€ 1.240,00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       3 · STATO VUOTO
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">3</span> Stato vuoto <span class="linea"></span></div>
+
+    <div class="schermo">
+      <div class="vuoto-shell">
+        <div class="vuoto-card">
+          <div class="vuoto-icona">🧾</div>
+          <div class="vuoto-testo">Nessun lavoro da fatturare al momento.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       4 · LAYOUT STAMPA
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">4</span> Layout stampa <span class="linea"></span></div>
+
+    <div class="schermo">
+      <div class="stampa-shell">
+        <div class="stampa-head">
+          <div class="stampa-lab">Odontotecnica Bianchi S.n.c.</div>
+          <div class="stampa-studio">Studio Dentistico Dott. Rossi</div>
+          <div class="stampa-data">Stampato il 10 luglio 2026</div>
+        </div>
+        <div class="stampa-titolo-doc">Lista lavori da fatturare</div>
+        <table class="stampa-tabella">
+          <colgroup>
+            <col class="c-num"><col class="c-disp"><col class="c-consegna"><col class="c-proposta"><col class="c-prezzo">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>N. lavoro</th>
+              <th>Dispositivo</th>
+              <th>Consegna</th>
+              <th>Proposta</th>
+              <th class="num">Prezzo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-0141</td>
+              <td>Corona zirconia<span class="sub">R. MARIO</span></td>
+              <td>3 lug 2026</td>
+              <td>Fatturare</td>
+              <td class="num">€ 180,00</td>
+            </tr>
+            <tr>
+              <td>2026-0138</td>
+              <td>Ponte 3 elementi<span class="sub">B. LUCIA</span></td>
+              <td>1 lug 2026</td>
+              <td>Fatturare</td>
+              <td class="num">€ 450,00</td>
+            </tr>
+            <tr>
+              <td>2026-0135</td>
+              <td>Scheletrato<span class="sub">V. GIUSEPPE</span></td>
+              <td>28 giu 2026</td>
+              <td class="esito-no">Non fatturare</td>
+              <td class="num">€ 320,00</td>
+            </tr>
+            <tr>
+              <td>2026-0130</td>
+              <td>Protesi totale<span class="sub">F. ANNA</span></td>
+              <td>25 giu 2026</td>
+              <td class="esito-no">Non fatturare</td>
+              <td class="num">€ 380,00</td>
+            </tr>
+            <tr>
+              <td>2026-0126</td>
+              <td>Corona ceramica<span class="sub">R. MARIO</span></td>
+              <td>20 giu 2026</td>
+              <td>Fatturare</td>
+              <td class="num">€ 210,00</td>
+            </tr>
+            <tr>
+              <td>2026-0119</td>
+              <td>Faccetta ceramica<span class="sub">L. FRANCESCA</span></td>
+              <td>12 giu 2026</td>
+              <td>Fatturare</td>
+              <td class="num">€ 400,00</td>
+            </tr>
+            <tr class="stampa-tot-riga">
+              <td colspan="4">Totale da fatturare</td>
+              <td class="num">€ 1.240,00</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="stampa-footer-nota">Documento generato dal portale UÀ — solo a scopo informativo, non ha valore fiscale.</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
