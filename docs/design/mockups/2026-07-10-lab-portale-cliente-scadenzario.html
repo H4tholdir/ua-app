@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Lab: card «Portale — fatturazione concordata» + proposta dentista nello scadenzario</title>
+<style>
+  @font-face { font-family: 'DMS'; src: local('DM Sans'); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: #F4F2EF;
+    font-family: 'DM Sans', 'DMS', system-ui, -apple-system, sans-serif;
+    color: #1C1916;
+  }
+
+  /* ── Intro pagina ─────────────────────────────────────────── */
+  .intro {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 8px;
+    text-align: center;
+  }
+  .intro h1 { font-size: 16px; font-weight: 700; color: #1C1916; margin-bottom: 6px; }
+  .intro p { font-size: 12.5px; color: #6B5C51; line-height: 1.6; max-width: 640px; margin: 0 auto; }
+
+  /* ── Struttura pannelli ───────────────────────────────────── */
+  .pannello { max-width: 900px; margin: 0 auto; padding: 28px 20px 12px; }
+  .etichetta-sezione {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #9CA3AF; margin-bottom: 14px;
+  }
+  .etichetta-sezione .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 999px;
+    background: #D90012; color: #fff; font-size: 11px; font-weight: 700;
+  }
+  .etichetta-sezione .linea { flex: 1; height: 1px; background: #DCDDE0; }
+
+  .griglia-varianti {
+    display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 28px;
+    align-items: flex-start;
+  }
+  .colonna { width: 390px; max-width: 100%; }
+  .tema-titolo {
+    font-size: 11px; font-weight: 700; color: #9CA3AF; text-align: center;
+    padding-bottom: 8px; letter-spacing: 0.03em; text-transform: uppercase;
+  }
+
+  .schermo { border-radius: 20px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.10); }
+
+  /* ══════════════════════════════════════════════════════════
+     TEMA — variabili per light / dark (classi statiche, non media query,
+     coerenti con lo screenshot script che non emula color-scheme)
+     ══════════════════════════════════════════════════════════ */
+  .schermo-light {
+    --bg:  #DDD8D3;
+    --sfc: #E4DFD9;
+    --elv: #EDEDEA;
+    --prs: #D4CFC9;
+    --t1:  #1C1916;
+    --t2:  #4A3D33;
+    --t3:  #6B5C51;
+    --primary: #D90012;
+    --primary-tint: rgba(217,0,18,0.08);
+    --green: #16A34A;
+    --card-shadow:
+      inset 0 1px 0 rgba(255,255,255,.90), inset 0 -2px 3px rgba(0,0,0,.05),
+      -5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44);
+    --input-bg: #EDEDEA;
+    --input-shadow: inset 3px 3px 8px rgba(0,0,0,.10), inset -2px -2px 5px rgba(255,255,255,.66);
+    background: var(--bg);
+  }
+  .schermo-dark {
+    --bg:  #1A1916;
+    --sfc: #232018;
+    --elv: #2C2A27;
+    --prs: #141210;
+    --t1:  #F0EDE8;
+    --t2:  #8A8580;
+    --t3:  #5A5652;
+    --primary: #E8001A;
+    --primary-tint: rgba(232,0,26,0.14);
+    --green: #22C55E;
+    --card-shadow: none; /* dark = flat, NIENTE shadow raised */
+    --input-bg: #2C2A27;
+    --input-shadow: none;
+    background: var(--bg);
+  }
+
+  .app-shell { padding: 20px 16px; }
+
+  /* ── SectionCard (pattern scheda cliente) ────────────────────── */
+  .section-card {
+    background: var(--sfc);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+  }
+  .section-title {
+    font-size: 12px; font-weight: 600; color: var(--t2);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .section-divider {
+    border-top: 1px solid var(--elv);
+    display: flex; flex-direction: column; gap: 14px;
+    padding-top: 14px;
+  }
+
+  /* ── Riga interruttore ────────────────────────────────────────── */
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .switch-label { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 2px; }
+  .switch-caption { font-size: 11.5px; color: var(--t3); line-height: 1.4; max-width: 240px; }
+  .switch-tap { width: 56px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+  .switch { width: 46px; height: 27px; border-radius: 999px; position: relative; transition: background .18s; }
+  .switch.on { background: var(--primary); }
+  .switch.off { background: var(--prs); border: 1px solid color-mix(in srgb, var(--t3) 40%, transparent); }
+  .switch .knob {
+    position: absolute; top: 3px; width: 21px; height: 21px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.28);
+  }
+  .switch.on .knob { left: 22px; }
+  .switch.off .knob { left: 3px; background: #fdfdfc; }
+
+  /* ── Stato disattivato (contenuto oscurato) ──────────────────── */
+  .contenuto-disattivato { opacity: 0.38; pointer-events: none; }
+  .nota-disattivato {
+    font-size: 12px; color: var(--t3); font-style: italic; padding-top: 2px;
+  }
+
+  /* ── Riga PIN ─────────────────────────────────────────────────── */
+  .pin-row { display: flex; flex-direction: column; gap: 8px; }
+  .pin-row-titolo { font-size: 12.5px; font-weight: 600; color: var(--t1); }
+  .pin-input-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pin-input {
+    font-family: inherit; font-size: 16px; font-weight: 600; letter-spacing: 0.35em;
+    color: var(--t1); background: var(--input-bg); box-shadow: var(--input-shadow);
+    border: none; border-radius: 10px; padding: 0 14px; height: 44px; width: 130px;
+    text-align: center;
+  }
+  .pin-input::placeholder { color: var(--t3); letter-spacing: 0.2em; font-weight: 500; }
+  .btn-primario-sm {
+    font-family: inherit; font-size: 13px; font-weight: 700; color: #fff;
+    background: var(--primary); border: none; border-radius: 10px;
+    height: 44px; padding: 0 16px; cursor: pointer; white-space: nowrap;
+  }
+  .pin-helper { font-size: 11px; color: var(--t3); }
+
+  .pin-impostato-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .pin-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--green);
+  }
+  .btn-secondario-sm {
+    font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--t1);
+    background: var(--elv); border: none; border-radius: 10px;
+    height: 44px; padding: 0 14px; cursor: pointer; white-space: nowrap;
+  }
+
+  /* ── Bottone rigenera link ────────────────────────────────────── */
+  .btn-outline {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: inherit; font-size: 13px; font-weight: 700; color: var(--t1);
+    background: transparent; border: 1.5px solid color-mix(in srgb, var(--t3) 45%, transparent);
+    border-radius: 10px; height: 44px; padding: 0 16px; cursor: pointer; align-self: flex-start;
+  }
+  .help-text { font-size: 11px; color: var(--t3); margin-top: -6px; line-height: 1.4; }
+
+  /* ── Nota operativa canale separato PIN ───────────────────────── */
+  .nota-operativa {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: var(--elv); border-radius: 10px; padding: 10px 12px;
+  }
+  .nota-operativa .icona { font-size: 14px; line-height: 1.3; }
+  .nota-operativa .testo { font-size: 11.5px; color: var(--t2); line-height: 1.45; }
+
+  /* ══════════════════════════════════════════════════════════
+     PANNELLO 2 — Scadenzario con proposta del dentista
+     ══════════════════════════════════════════════════════════ */
+  .scad-titolo {
+    font-size: 11px; font-weight: 700; color: var(--t3);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+  }
+  .scad-lista { display: flex; flex-direction: column; gap: 8px; }
+
+  .scad-card {
+    background: var(--sfc); border-radius: 16px; padding: 14px 16px;
+    box-shadow: var(--card-shadow);
+  }
+
+  /* Variante SENZA proposta — identica al componente attuale (riga unica) */
+  .scad-card.senza-proposta {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .scad-info { min-width: 0; }
+  .scad-numero { font-size: 14px; font-weight: 600; color: var(--t1); white-space: nowrap; }
+  .scad-meta { font-size: 12px; color: var(--t2); margin-top: 1px; }
+  .scad-azioni-inline { display: flex; gap: 6px; flex-shrink: 0; }
+  /* Bottoni compatti — riproducono ESATTAMENTE il componente attuale
+     (LavoriInAttesaSection.tsx: padding 8px 12px, no altezza forzata a 44px)
+     per la card 3, mostrata "identica a oggi" a scopo di confronto. */
+  .scad-btn-compact {
+    font-family: inherit; font-size: 12px; font-weight: 600; color: var(--t2);
+    background: var(--elv); border: none; border-radius: 100px;
+    padding: 8px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .scad-btn-compact:first-child { color: var(--t1); }
+
+  /* Variante CON proposta — layout impilato: top / banner / azioni */
+  .scad-card.con-proposta { display: flex; flex-direction: column; gap: 10px; }
+  .scad-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .scad-prezzo-blocco { text-align: right; flex-shrink: 0; }
+  .scad-prezzo { font-size: 15px; font-weight: 700; color: var(--t1); white-space: nowrap; }
+  .scad-data { font-size: 11.5px; color: var(--t3); margin-top: 2px; }
+
+  .scad-proposta {
+    display: flex; align-items: flex-start; gap: 7px;
+    background: var(--primary-tint); border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+    border-radius: 10px; padding: 8px 10px;
+  }
+  .scad-proposta .icona { font-size: 13px; line-height: 1.4; }
+  .scad-proposta .testo { font-size: 12px; color: var(--t2); line-height: 1.4; }
+  .scad-proposta .testo strong { color: var(--t1); font-weight: 700; }
+
+  .scad-btn {
+    flex: 1;
+    font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--t2);
+    background: var(--elv); border: 1.5px solid transparent; border-radius: 100px;
+    height: 44px; padding: 0 12px; cursor: pointer; white-space: nowrap;
+  }
+  .scad-azioni { display: flex; gap: 6px; }
+  .scad-azioni .scad-btn:first-child { color: var(--t1); }
+  .scad-btn.evidenziato {
+    border-color: var(--primary);
+    color: var(--t1);
+    box-shadow: 0 0 0 1px transparent;
+  }
+
+  /* piccola nota di confronto sotto la card 3 */
+  .confronto-nota { font-size: 11px; color: #9CA3AF; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>Mockup lab — card «Portale — fatturazione concordata» nella scheda cliente + proposta del dentista nello scadenzario</h1>
+    <p>Schermate IN-APP (non portale pubblico): Design System v2.3 warm panna, DM Sans, card <code>sfc</code> radius 16, dark flat senza shadow raised. Dati simulati, in italiano. Riferimento 1:1 per i Task 13 e 14.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       1 · SCHEDA CLIENTE — CARD «PORTALE — FATTURAZIONE CONCORDATA»
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">1</span> Scheda cliente — card «Portale — fatturazione concordata» <span class="linea"></span></div>
+
+    <!-- Variante A: sezione disattivata -->
+    <div class="griglia-varianti">
+      <div class="colonna">
+        <div class="tema-titolo">Light — sezione disattivata (OFF)</div>
+        <div class="schermo schermo-light">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch off"><div class="knob"></div></div></div>
+                </div>
+                <div class="nota-disattivato">Attiva l'interruttore per impostare un PIN e condividere il link al dentista.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="colonna">
+        <div class="tema-titolo">Dark — sezione disattivata (OFF)</div>
+        <div class="schermo schermo-dark">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch off"><div class="knob"></div></div></div>
+                </div>
+                <div class="nota-disattivato">Attiva l'interruttore per impostare un PIN e condividere il link al dentista.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variante B: attiva, PIN mai impostato -->
+    <div class="griglia-varianti">
+      <div class="colonna">
+        <div class="tema-titolo">Light — attiva, PIN mai impostato</div>
+        <div class="schermo schermo-light">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch on"><div class="knob"></div></div></div>
+                </div>
+
+                <div class="pin-row">
+                  <div class="pin-row-titolo">PIN di accesso</div>
+                  <div class="pin-input-group">
+                    <input class="pin-input" type="text" inputmode="numeric" maxlength="6" placeholder="· · · · · ·" aria-label="Imposta PIN a 6 cifre">
+                    <button class="btn-primario-sm">Imposta PIN</button>
+                  </div>
+                  <div class="pin-helper">6 cifre numeriche. Il PIN non è mai visibile dopo l'impostazione.</div>
+                </div>
+
+                <div>
+                  <button class="btn-outline">🔄 Rigenera link portale</button>
+                  <div class="help-text" style="margin-top:8px;">Invalida il link attuale. Comunica il nuovo link al dentista.</div>
+                </div>
+
+                <div class="nota-operativa">
+                  <span class="icona">🔒</span>
+                  <span class="testo">Comunica il PIN a voce o per telefono, mai nello stesso messaggio del link.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="colonna">
+        <div class="tema-titolo">Dark — attiva, PIN mai impostato</div>
+        <div class="schermo schermo-dark">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch on"><div class="knob"></div></div></div>
+                </div>
+
+                <div class="pin-row">
+                  <div class="pin-row-titolo">PIN di accesso</div>
+                  <div class="pin-input-group">
+                    <input class="pin-input" type="text" inputmode="numeric" maxlength="6" placeholder="· · · · · ·" aria-label="Imposta PIN a 6 cifre">
+                    <button class="btn-primario-sm">Imposta PIN</button>
+                  </div>
+                  <div class="pin-helper">6 cifre numeriche. Il PIN non è mai visibile dopo l'impostazione.</div>
+                </div>
+
+                <div>
+                  <button class="btn-outline">🔄 Rigenera link portale</button>
+                  <div class="help-text" style="margin-top:8px;">Invalida il link attuale. Comunica il nuovo link al dentista.</div>
+                </div>
+
+                <div class="nota-operativa">
+                  <span class="icona">🔒</span>
+                  <span class="testo">Comunica il PIN a voce o per telefono, mai nello stesso messaggio del link.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variante C: attiva, PIN impostato -->
+    <div class="griglia-varianti">
+      <div class="colonna">
+        <div class="tema-titolo">Light — attiva, PIN impostato</div>
+        <div class="schermo schermo-light">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch on"><div class="knob"></div></div></div>
+                </div>
+
+                <div class="pin-row">
+                  <div class="pin-row-titolo">PIN di accesso</div>
+                  <div class="pin-impostato-row">
+                    <span class="pin-badge">✓ PIN impostato</span>
+                    <button class="btn-secondario-sm">Cambia PIN</button>
+                  </div>
+                  <div class="pin-helper">Impostato il 28 giu 2026. Non è mai visibile, nemmeno al laboratorio.</div>
+                </div>
+
+                <div>
+                  <button class="btn-outline">🔄 Rigenera link portale</button>
+                  <div class="help-text" style="margin-top:8px;">Invalida il link attuale. Comunica il nuovo link al dentista.</div>
+                </div>
+
+                <div class="nota-operativa">
+                  <span class="icona">🔒</span>
+                  <span class="testo">Comunica il PIN a voce o per telefono, mai nello stesso messaggio del link.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="colonna">
+        <div class="tema-titolo">Dark — attiva, PIN impostato</div>
+        <div class="schermo schermo-dark">
+          <div class="app-shell">
+            <div class="section-card">
+              <h2 class="section-title">Portale — fatturazione concordata</h2>
+              <div class="section-divider">
+                <div class="switch-row">
+                  <div>
+                    <div class="switch-label">Sezione economica del portale</div>
+                    <div class="switch-caption">Il dentista vede i lavori e propone se fatturare o no.</div>
+                  </div>
+                  <div class="switch-tap"><div class="switch on"><div class="knob"></div></div></div>
+                </div>
+
+                <div class="pin-row">
+                  <div class="pin-row-titolo">PIN di accesso</div>
+                  <div class="pin-impostato-row">
+                    <span class="pin-badge">✓ PIN impostato</span>
+                    <button class="btn-secondario-sm">Cambia PIN</button>
+                  </div>
+                  <div class="pin-helper">Impostato il 28 giu 2026. Non è mai visibile, nemmeno al laboratorio.</div>
+                </div>
+
+                <div>
+                  <button class="btn-outline">🔄 Rigenera link portale</button>
+                  <div class="help-text" style="margin-top:8px;">Invalida il link attuale. Comunica il nuovo link al dentista.</div>
+                </div>
+
+                <div class="nota-operativa">
+                  <span class="icona">🔒</span>
+                  <span class="testo">Comunica il PIN a voce o per telefono, mai nello stesso messaggio del link.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       2 · SCADENZARIO — PROPOSTA DEL DENTISTA
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">2</span> Scadenzario — proposta del dentista sulle card «in attesa di decisione» <span class="linea"></span></div>
+
+    <div class="griglia-varianti">
+      <div class="colonna">
+        <div class="tema-titolo">Light</div>
+        <div class="schermo schermo-light">
+          <div class="app-shell">
+            <div class="scad-titolo">Lavori in attesa di decisione (3)</div>
+            <div class="scad-lista">
+
+              <!-- Card 1: proposta "Fatturare" -->
+              <div class="scad-card con-proposta">
+                <div class="scad-top">
+                  <div class="scad-info">
+                    <div class="scad-numero">N. 2026-0141</div>
+                    <div class="scad-meta">Corona zirconia</div>
+                  </div>
+                  <div class="scad-prezzo-blocco">
+                    <div class="scad-prezzo">€ 180,00</div>
+                    <div class="scad-data">3 lug 2026</div>
+                  </div>
+                </div>
+                <div class="scad-proposta">
+                  <span class="icona">💬</span>
+                  <span class="testo">Studio Bianchi propone: <strong>Fatturare</strong> · 2 lug, 14:30</span>
+                </div>
+                <div class="scad-azioni">
+                  <button class="scad-btn evidenziato">Fatturare</button>
+                  <button class="scad-btn">Non fatturare</button>
+                </div>
+              </div>
+
+              <!-- Card 2: proposta "Non fatturare" -->
+              <div class="scad-card con-proposta">
+                <div class="scad-top">
+                  <div class="scad-info">
+                    <div class="scad-numero">N. 2026-0138</div>
+                    <div class="scad-meta">Ponte 3 elementi</div>
+                  </div>
+                  <div class="scad-prezzo-blocco">
+                    <div class="scad-prezzo">€ 450,00</div>
+                    <div class="scad-data">1 lug 2026</div>
+                  </div>
+                </div>
+                <div class="scad-proposta">
+                  <span class="icona">💬</span>
+                  <span class="testo">Studio Bianchi propone: <strong>Non fatturare</strong> · 1 lug, 09:15</span>
+                </div>
+                <div class="scad-azioni">
+                  <button class="scad-btn">Fatturare</button>
+                  <button class="scad-btn evidenziato">Non fatturare</button>
+                </div>
+              </div>
+
+              <!-- Card 3: senza proposta (identica a oggi) -->
+              <div class="scad-card senza-proposta">
+                <div class="scad-info">
+                  <div class="scad-numero">N. 2026-0135</div>
+                  <div class="scad-meta">28 giu 2026 · € 320,00</div>
+                </div>
+                <div class="scad-azioni-inline">
+                  <button class="scad-btn-compact">Fatturare</button>
+                  <button class="scad-btn-compact">Non fatturare</button>
+                </div>
+              </div>
+
+            </div>
+            <div class="confronto-nota">↑ Card 3: nessuna proposta — layout identico a oggi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="colonna">
+        <div class="tema-titolo">Dark</div>
+        <div class="schermo schermo-dark">
+          <div class="app-shell">
+            <div class="scad-titolo">Lavori in attesa di decisione (3)</div>
+            <div class="scad-lista">
+
+              <!-- Card 1: proposta "Fatturare" -->
+              <div class="scad-card con-proposta">
+                <div class="scad-top">
+                  <div class="scad-info">
+                    <div class="scad-numero">N. 2026-0141</div>
+                    <div class="scad-meta">Corona zirconia</div>
+                  </div>
+                  <div class="scad-prezzo-blocco">
+                    <div class="scad-prezzo">€ 180,00</div>
+                    <div class="scad-data">3 lug 2026</div>
+                  </div>
+                </div>
+                <div class="scad-proposta">
+                  <span class="icona">💬</span>
+                  <span class="testo">Studio Bianchi propone: <strong>Fatturare</strong> · 2 lug, 14:30</span>
+                </div>
+                <div class="scad-azioni">
+                  <button class="scad-btn evidenziato">Fatturare</button>
+                  <button class="scad-btn">Non fatturare</button>
+                </div>
+              </div>
+
+              <!-- Card 2: proposta "Non fatturare" -->
+              <div class="scad-card con-proposta">
+                <div class="scad-top">
+                  <div class="scad-info">
+                    <div class="scad-numero">N. 2026-0138</div>
+                    <div class="scad-meta">Ponte 3 elementi</div>
+                  </div>
+                  <div class="scad-prezzo-blocco">
+                    <div class="scad-prezzo">€ 450,00</div>
+                    <div class="scad-data">1 lug 2026</div>
+                  </div>
+                </div>
+                <div class="scad-proposta">
+                  <span class="icona">💬</span>
+                  <span class="testo">Studio Bianchi propone: <strong>Non fatturare</strong> · 1 lug, 09:15</span>
+                </div>
+                <div class="scad-azioni">
+                  <button class="scad-btn">Fatturare</button>
+                  <button class="scad-btn evidenziato">Non fatturare</button>
+                </div>
+              </div>
+
+              <!-- Card 3: senza proposta (identica a oggi) -->
+              <div class="scad-card senza-proposta">
+                <div class="scad-info">
+                  <div class="scad-numero">N. 2026-0135</div>
+                  <div class="scad-meta">28 giu 2026 · € 320,00</div>
+                </div>
+                <div class="scad-azioni-inline">
+                  <button class="scad-btn-compact">Fatturare</button>
+                  <button class="scad-btn-compact">Non fatturare</button>
+                </div>
+              </div>
+
+            </div>
+            <div class="confronto-nota">↑ Card 3: nessuna proposta — layout identico a oggi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
