@@ -12,7 +12,7 @@
 
 ## Processo
 
-7 task SDD (implementer+reviewer per task, fix round inclusi) → review finale whole-branch (1 Critical + 4 Important, tutti fixati) → **round di 6 advisor professionali** (visual 8/10 · UX 8/10 · odontotecnico 7/10 · normativo rischio medio · a11y 7/10 · DS engineer 8/10, report in `.superpowers/advisors/` del worktree) → bucket A (10 fix contenuti, approvati da Francesco) → bucket B (7 decisioni di Francesco) → approvazione finale.
+7 task SDD (implementer+reviewer per task, fix round inclusi) → review finale whole-branch (1 Critical + 4 Important, tutti fixati) → **round di 6 advisor professionali** (visual 8/10 · UX 8/10 · odontotecnico 7/10 · normativo rischio medio · a11y 7/10 · DS engineer 8/10, report in `docs/design/advisors/2026-07-12-il-cuore-ondata-0/`) → bucket A (10 fix contenuti, approvati da Francesco) → bucket B (7 decisioni di Francesco) → approvazione finale.
 
 ## Decisioni di Francesco (bucket B, 12/07)
 
