@@ -15,6 +15,7 @@
 // e dello stesso mockup approvato.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FattureStoricoSection } from './FattureStoricoSection'
+import { SituazioneEconomicaSection } from './SituazioneEconomicaSection'
 
 type Proposta = 'fatturare' | 'non_fatturare'
 
@@ -845,6 +846,7 @@ export function FatturazioneSection({
           )}
 
           <FattureStoricoSection token={token} />
+          <SituazioneEconomicaSection token={token} />
         </div>
       </div>
 
