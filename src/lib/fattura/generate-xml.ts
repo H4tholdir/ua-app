@@ -225,7 +225,7 @@ export async function generaFatturaPA(
       <DatiGeneraliDocumento>
         <TipoDocumento>TD01</TipoDocumento>
         <Divisa>EUR</Divisa>
-        <Data>${oggi}</Data>
+        <Data>${dataFattura}</Data>
         <Numero>${xe(numero)}</Numero>
         ${bolloXml}
         <ImportoTotaleDocumento>${fmt2(totale)}</ImportoTotaleDocumento>

@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const { mockFrom, uploads, insertPayloads, updatePayloads, mockRender } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
-  uploads: [] as Array<{ bucket: string; path: string; contentType: string }>,
+  uploads: [] as Array<{ bucket: string; path: string; contentType: string; bytes: unknown }>,
   insertPayloads: [] as Array<Record<string, unknown>>,
   updatePayloads: [] as Array<Record<string, unknown>>,
   mockRender: vi.fn(async () => Buffer.from('%PDF-fake')),
@@ -16,8 +16,8 @@ vi.mock('@/lib/supabase/server-service', () => ({
     from: mockFrom,
     storage: {
       from: (bucket: string) => ({
-        upload: async (path: string, _bytes: unknown, opts: { contentType: string }) => {
-          uploads.push({ bucket, path, contentType: opts.contentType })
+        upload: async (path: string, bytes: unknown, opts: { contentType: string }) => {
+          uploads.push({ bucket, path, contentType: opts.contentType, bytes })
           return { error: null }
         },
       }),
@@ -89,6 +89,18 @@ describe('generaFatturaPA — copia di cortesia PDF + I-6', () => {
     // il template riceve la data del draft, non quella odierna
     const [propsPassate] = mockRender.mock.calls[0] as unknown as [{ props: { fattura: { data: string } } }]
     expect(propsPassate.props.fattura.data).toBe('2026-07-01')
+  })
+
+  it('ramo UPDATE (draft): la <Data> nell\'XML è quella del draft (2026-07-01), mai la data odierna', async () => {
+    await generaFatturaPA(LAVORO, 'fatt-7')
+    const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
+    expect(xmlUpload).toBeDefined()
+    const xmlContent = String(xmlUpload?.bytes)
+    expect(xmlContent).toContain('<Data>2026-07-01</Data>')
+    const oggi = new Date().toISOString().split('T')[0]
+    if (oggi !== '2026-07-01') {
+      expect(xmlContent).not.toContain(`<Data>${oggi}</Data>`)
+    }
   })
 
   it('render PDF fallito → generaFatturaPA lancia, nessun UPDATE/INSERT fatture (draft resta draft)', async () => {
