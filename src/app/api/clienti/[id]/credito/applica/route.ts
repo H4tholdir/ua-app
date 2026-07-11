@@ -95,7 +95,15 @@ export async function POST(req: Request, { params }: RouteContext) {
     }
   }
 
-  const movimentiValidi = await fetchMovimentiCreditoValidi(svc, utente.laboratorio_id, cliente_id)
+  // fetchMovimentiCreditoValidi è fail-closed (follow-up Ondata 3): su errore
+  // di lettura lancia — risposta JSON pulita, mai messaggi Postgres.
+  let movimentiValidi
+  try {
+    movimentiValidi = await fetchMovimentiCreditoValidi(svc, utente.laboratorio_id, cliente_id)
+  } catch (err) {
+    console.error('[credito applica] lettura movimenti:', err)
+    return NextResponse.json({ error: 'Errore lettura credito' }, { status: 500 })
+  }
   const disponibile = calcolaCreditoDisponibile(movimentiValidi)
 
   if (importo > disponibile) {
