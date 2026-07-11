@@ -9,7 +9,10 @@ Cast condiviso (usare identico in ogni schermata):
           n.151 Protesi totale · Dr. Esposito · PZ-0433 · appena arrivato, da confermare
           n.152 Intarsio · Dr.ssa Bianchi · PZ-0435 · arrivato ieri, da confermare
 - Pile: rossa 2 (n.144, n.147) · ambra 5 (n.149, n.150, +3) · blu 2 (n.151, n.152)
-- Fasi n.147: Modellazione ✓ (Ciro, ieri 14:20) · Fusione ✓ (Ciro, oggi 9:05) · Rifinitura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima
+- Fasi n.147: Fresatura ✓ (Ciro, ieri 14:20) · Sinterizzazione ✓ (Ciro, oggi 9:05) · Glasatura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima
+  <!-- fasi corrette su parere odontotecnico (advisor 03): la zirconia si fresa e sinterizza,
+       non si fonde — il piano aveva la catena del metallo (Modellazione → Fusione → Rifinitura).
+       Tecnici e timestamp invariati. DEVIAZIONE DAL PIANO — da ratificare al gate Task 8. -->
 - Tecnici: Ciro, Salvatore
 Screenshot: node scripts/screenshot-mockups.mjs docs/design/mockups/2026-07-09-il-cuore/<file>.html
 

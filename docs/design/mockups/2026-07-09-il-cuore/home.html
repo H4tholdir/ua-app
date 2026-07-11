@@ -83,7 +83,16 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* §2.2: massimo 1 riga */
   }
   .striscia .txt b { color: var(--ink); font-weight: 700; }
-  .striscia .azione { flex: none; font-size: 14.5px; color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap; } /* CTA d'allarme — mai troncata */
+  /* CTA d'allarme — mai troncata. Hit-area ≥44px (advisor a11y, §4.2 «touch
+     target minimo 44×44 SEMPRE»): min-height 44 + margin verticale negativo
+     uguale e contrario (stesso schema del LinkQuieto §5.5 in _base.css), così
+     l'altezza visiva della riga non cambia. Vale per ENTRAMBE le occorrenze
+     (striscia mobile + footer nav desktop: stessa classe). */
+  .striscia .azione {
+    flex: none; display: inline-flex; align-items: center;
+    min-height: 44px; margin: -13px 0;
+    font-size: 14.5px; color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap;
+  }
 
   /* Le tre pile (§5.7) — la card è .card di _base.css; qui SOLO l'impaginazione. */
   .pila-wrap { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; margin-top: 16px; }
@@ -192,6 +201,13 @@
   /* Ring selezione in dark: --sh-card risolve a none, quindi lista pulita (§3.2). */
   [data-theme="dark"] .cardlav.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
 
+  /* CardInfo (§5.10) — «card 22, padding 4/20» (advisor DS engineer): la legge
+     dà alla CardInfo valori PROPRI, diversi dal generico .card (24, 20/22).
+     Override page-level citato §5.10 — unica misura ridichiarata fuori da
+     _base.css, come da parere advisor. Le RigheDato interne restano §5.10. */
+  .card.cardinfo { border-radius: 22px; padding: 4px 20px; }
+  .cardinfo .card-title { margin-top: 12px; } /* respiro del titolo dentro il padding 4 (§5.10 non norma il titolo) */
+
   /* PillTempo (§5.9) — override sul default PillStato di _base.css. */
   .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
   .pill.fam-rossa { background: var(--red-tint); color: var(--red); }
@@ -239,12 +255,18 @@
     <span class="txt"><b>Fattura n.139</b> scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
   </div>
 
+  <!-- REGOLA SUBLINE PILA (advisor visual + UX — destinata a diventare legge §5.7):
+       una riga, il numero lavoro sempre per primo, ellissi ammessa SOLO sulla coda
+       descrittiva — l'informazione essenziale (i numeri lavoro) deve sopravvivere
+       intera a 390 e a 390×667, mai troncata a metà parola. Copy ristrutturata di
+       conseguenza (era «…poi n.147 all…» a 390) — da ratificare al gate Task 8.
+       Vale anche per la variante device corti 390×667 (stesso markup, scala §3.3). -->
   <div class="pila-wrap">
     <div class="card pila rossa">
       <div class="pila-num">2</div>
       <div class="pila-txt">
         <div class="pila-label">Da consegnare oggi</div>
-        <div class="pila-sub"><b>n.144</b> da ieri — poi <b>n.147</b> alle 16:00</div>
+        <div class="pila-sub"><b>n.144</b> da ieri · <b>n.147</b> alle 16</div><!-- «alle 16» (non 16:00): a 390 il minuto non entra intero — la regola vieta il taglio a metà del dato essenziale -->
       </div>
     </div>
     <div class="card pila ambra">
@@ -258,7 +280,7 @@
       <div class="pila-num">2</div>
       <div class="pila-txt">
         <div class="pila-label">Appena arrivati</div>
-        <div class="pila-sub"><b>n.151</b> del Dr. Esposito da confermare</div>
+        <div class="pila-sub"><b>n.151</b> e <b>n.152</b> da confermare</div>
       </div>
     </div>
   </div>
@@ -337,7 +359,7 @@
     </div>
 
     <div class="scheda-grid">
-      <div class="card">
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
         <div class="card-title">Il lavoro</div>
         <div class="riga-dato">
           <span class="chiave">Dentista</span>
@@ -361,19 +383,23 @@
         </div>
       </div>
 
+      <!-- DEVIAZIONE DAL PIANO (advisor odontotecnico): fasi n.147 corrette in
+           Fresatura → Sinterizzazione → Glasatura — la zirconia si fresa e
+           sinterizza, non si fonde (il piano aveva la catena del metallo).
+           Tecnici/timestamp invariati — da ratificare al gate Task 8. -->
       <div class="card">
         <div class="card-title">Le fasi</div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+          <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+          <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+          <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
         </div>
         <div class="riga-fase">
           <span class="check"></span>

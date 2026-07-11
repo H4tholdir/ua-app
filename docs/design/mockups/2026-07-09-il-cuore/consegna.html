@@ -130,6 +130,13 @@
   .peek-head .sp { flex: 1; }
   .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
 
+  /* CardInfo (§5.10) — «card 22, padding 4/20» (advisor DS engineer): la legge dà
+     alla CardInfo valori PROPRI, diversi dal generico .card (24, 20/22). Override
+     page-level citato §5.10 — unica misura ridichiarata fuori da _base.css, come
+     da parere advisor. Le RigheDato interne restano quelle di _base.css (§5.10). */
+  .card.cardinfo { border-radius: 22px; padding: 4px 20px; }
+  .cardinfo .card-title { margin-top: 12px; } /* respiro del titolo dentro il padding 4 (§5.10 non norma il titolo) */
+
   /* ── FRAME 1 · DialogConferma (§5.17 · deroga ordine, vedi testa) ──────────
      Card centrata max 340 sullo scrim (§5.17: «Card centrata max 340 · scrim
      come sheet»). Nel .stage la centro con position:absolute + translate. -->  */
@@ -204,7 +211,10 @@
      finestra 10 min via outbox+cron, MAI durante la consegna) → resa con OROLOGIO
      in tint AMBRA, non un check verde: il contrasto visivo dice «non ancora fatta»
      anche senza leggere. */
-  .ua-fatto { margin-top: 24px; }
+  .ua-fatto {
+    margin-top: 24px;
+    border-radius: 22px; /* §5.22: CardUAHaFatto — «card 22» (advisor DS engineer): override del 24 generico di .card. §5.22 non norma il padding → resta quello di .card (20/22). */
+  }
   .ua-titolo { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
   .ua-riga { display: flex; align-items: center; gap: 14px; padding: 9px 0; }
   .ua-riga:not(:last-child) { border-bottom: 1.5px solid var(--line); }
@@ -275,19 +285,51 @@
   .annullo .a-tit { font-size: 15.5px; font-weight: 700; color: var(--ink); }
   .annullo .a-sub { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 1px; }
   .annullo .a-sub b { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .annullo .a-note { font-size: 13px; font-weight: 500; color: var(--faint); margin-top: 3px; } /* riga quieta trasparenza annullo (advisor normativo) — non compete con L1 */
   .annullo-riga { display: flex; justify-content: center; margin-top: 4px; }
 
-  /* ── SINGLE (768/1280) · SOLO il DialogConferma centrato full-screen ──────── */
+  /* ── SINGLE (768/1280) · DialogConferma centrato ────────────────────────────
+     ADVISOR VISUAL (Bucket A, fix 8): a 1280 il dialog non galleggia più su uno
+     scrim-vuoto — sotto c'è una SHELL DESKTOP DECORATIVA, copia ridotta e statica
+     dei 3 pannelli di home.html (§12.3: nav 240 + lista 400 + scheda), attenuata
+     dallo scrim. È SOLO contesto (aria-hidden, nessun interattivo): sagome di
+     card, non contenuto. La sagoma del «+ Nuovo lavoro» è resa NEUTRA (--bg,
+     nessun rosso) per non aggiungere una seconda primaria rossa alla vista —
+     l'unico rosso resta il CONSEGNA del dialog. A 768 la shell a 3 pannelli non
+     ci sta: resta il fondo --bg-deep come prima. */
   .single { display: none; }
   @media (min-width: 768px) {
     .frames { display: none; }
     .single {
-      display: flex; align-items: center; justify-content: center;
+      display: block;
       min-height: 100vh; position: relative; z-index: 1;
       background: var(--bg-deep);      /* lo scrim del dialog vive sopra questo fondo */
     }
     .single .scrim { position: fixed; }
-    .single .dialog { position: relative; top: auto; left: auto; transform: none; }
+    .single .dialog { position: fixed; }  /* centrato dal top/left/translate di .dialog */
+    .shell-desk { display: none; }
+  }
+  @media (min-width: 1024px) {
+    .shell-desk {
+      display: grid; grid-template-columns: 240px 400px 1fr;
+      height: 100vh; overflow: hidden; background: var(--bg);
+    }
+    .sd-nav { background: var(--bg-deep); padding: 24px 16px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+    .sd-logo { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); padding: 0 8px; }
+    .sd-logo em { font-style: normal; color: var(--red); }
+    .sd-btn { height: 52px; border-radius: 18px; background: var(--bg); }  /* sagoma neutra del «+ Nuovo lavoro» — niente secondo rosso */
+    .sd-voce { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 14px; border-radius: 12px; color: var(--muted); font-size: 16px; font-weight: 600; }
+    .sd-voce.sel { background: var(--bg); color: var(--ink); font-weight: 700; }
+    .sd-badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--red-tint); color: var(--red); }
+    .sd-lista { padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+    .sd-titolo { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--red); }
+    .sd-card { height: 128px; border-radius: 24px; background: var(--card); box-shadow: var(--sh-card); }
+    .sd-scheda { padding: 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .sd-head { height: 50px; display: flex; align-items: center; gap: 16px; }
+    .sd-tondo { width: 50px; height: 50px; border-radius: 50%; background: var(--card); box-shadow: var(--sh-press); }
+    .sd-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+    .sd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .sd-blocco { height: 240px; border-radius: 22px; background: var(--card); box-shadow: var(--sh-card); }
   }
 </style>
 </head>
@@ -315,7 +357,7 @@
           <span class="sp"></span>
           <button class="tasto-tondo">⋯</button>
         </div>
-        <div class="card">
+        <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
           <div class="card-title">Il lavoro</div>
           <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
           <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -353,7 +395,7 @@
           <span class="sp"></span>
           <button class="tasto-tondo">⋯</button>
         </div>
-        <div class="card">
+        <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
           <div class="card-title">Il lavoro</div>
           <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
           <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -365,9 +407,21 @@
 
       <div class="sheet" role="dialog" aria-label="Prima di consegnare">
         <h2 class="sheet-title">Prima di consegnare</h2>
-        <p class="sheet-hint">Due cose da sistemare. Tocca per risolvere.</p>
+        <p class="sheet-hint">Tre cose da sistemare. Tocca per risolvere.</p>
         <div class="bloccanti">
           <!-- Icona-triangolo line-SVG §4.4 (come la StrisciaStato di home.html) -->
+          <!-- Bloccante prescrizione (advisor normativo) — PRIMO perché il più grave:
+               la prescrizione del dentista è il fondamento del dispositivo su misura,
+               Art. 2(3) + Allegato XIII MDR 2017/745. Senza prescrizione la DdC non
+               può nascere → la consegna non può partire. -->
+          <button class="bloccante">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+            <span class="corpo">
+              <span class="b-cosa">Manca la prescrizione del dentista</span>
+              <span class="b-fai">Caricala</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </button>
           <button class="bloccante">
             <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
             <span class="corpo">
@@ -457,11 +511,15 @@
       <div class="corpo">
         <div class="a-tit">Consegnata alle 15:42</div>
         <div class="a-sub">Puoi ancora annullare per <b>9:47</b></div>
+        <!-- Trasparenza annullo (advisor normativo): l'utente deve sapere COSA
+             comporta l'annullo prima di farlo. Riga quieta (faint, 13px): non
+             compete con la gerarchia L1 del banner. -->
+        <div class="a-note">Annullando, la Dichiarazione di Conformità e il buono vengono annullati</div>
       </div>
     </div>
     <div class="annullo-riga"><button class="link-quieto">Annulla la consegna</button></div>
 
-    <div class="card">
+    <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
       <div class="card-title">Il lavoro</div>
       <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
       <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -474,15 +532,15 @@
       <div class="card-title">Le fasi</div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
       </div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
       </div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
       </div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
@@ -494,11 +552,43 @@
   <div class="frames-end"></div>
 </div>
 
-<!-- ══════════════ SINGLE · 768/1280 — SOLO il DialogConferma centrato ══════════════
+<!-- ══════════════ SINGLE · 768/1280 — DialogConferma centrato ══════════════
      Il dialog è l'UNICA eccezione modale ammessa sui viewport larghi (§madre: «modal
-     centrato su mobile vietato SALVO DialogConferma»). 768 e 1280 sono identici:
-     scrim full-screen + card centrata max 340, stessa deroga d'ordine di Frame 1. -->
+     centrato su mobile vietato SALVO DialogConferma»). Scrim full-screen + card
+     centrata max 340, stessa deroga d'ordine di Frame 1.
+     A 1280 (advisor visual, Bucket A fix 8): sotto lo scrim c'è la shell desktop
+     DECORATIVA (copia ridotta dei 3 pannelli di home.html §12.3) — è contesto
+     visivo, non UI: aria-hidden, sagome statiche, nessun rosso oltre al dialog.
+     A 768 la shell resta nascosta (fondo --bg-deep come prima). -->
 <div class="single">
+  <!-- Shell decorativa (solo ≥1024) — vedi commento CSS .shell-desk -->
+  <div class="shell-desk" aria-hidden="true">
+    <nav class="sd-nav">
+      <div class="sd-logo">UÀ<em>.</em></div>
+      <div class="sd-btn"></div>
+      <div class="sd-voce sel">Oggi <span class="sd-badge">2</span></div>
+      <div class="sd-voce">Sul banco</div>
+      <div class="sd-voce">Appena arrivati</div>
+      <div class="sd-voce">Agenda</div>
+      <div class="sd-voce">Dentisti</div>
+      <div class="sd-voce">Fatture</div>
+    </nav>
+    <section class="sd-lista">
+      <div class="sd-titolo">Da consegnare oggi</div>
+      <div class="sd-card"></div>
+      <div class="sd-card"></div>
+    </section>
+    <section class="sd-scheda">
+      <div class="sd-head">
+        <div class="sd-tondo"></div>
+        <span class="sd-num">n.147</span>
+      </div>
+      <div class="sd-grid">
+        <div class="sd-blocco"></div>
+        <div class="sd-blocco"></div>
+      </div>
+    </section>
+  </div>
   <div class="scrim"></div>
   <div class="dialog" role="dialog" aria-label="Consegno la Corona n.147 al Dr. Esposito?">
     <div class="occhiello">Consegno?</div>

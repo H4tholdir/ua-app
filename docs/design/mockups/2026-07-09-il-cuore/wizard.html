@@ -25,9 +25,11 @@
      DialogConferma). L'avanzamento del Passo 3 è quindi volutamente NON rosso
      (TastoSecondario «Continua»): è fuori dal percorso minimo di 4 tocchi.
 
-     ── PERCORSO MINIMO 4 TOCCHI (§7.3) ───────────────────────────────────────
-     tile dentista → tile tipo → chip «Va bene ✓» → TastoPrimario «Fotografa
-     impronta e prescrizione». Il Passo 3 (paziente) è tutto opzionale (PZ già
+     ── PERCORSO MINIMO (§7.3) ────────────────────────────────────────────────
+     tile dentista → tile tipo → TastoPrimario «Fotografa impronta e
+     prescrizione»: 3 tocchi. Il piano ne contava 4 col chip «Va bene ✓», rimosso
+     su parere advisor UX (vedi DEVIAZIONE al Frame 4: la consegna suggerita è
+     risolta, non una scelta). Il Passo 3 (paziente) è tutto opzionale (PZ già
      proposto, elemento/colore/foto con «Salta») e non entra nel conteggio.
      ══════════════════════════════════════════════════════════════════════════ -->
 <style>
@@ -37,7 +39,7 @@
      .tasto-tondo .link-quieto .pv .sheet .scrim .riga-dato) e NON vengono
      ridichiarati qui: la pagina aggiunge solo ciò che _base non nomina
      (progress dots §7.3, CampoTesto §5.27, RigaCerca §5.13, avatar del tile,
-     chip consegna, check «Fatto!»).
+     check «Fatto!»).
 
      Due regimi (nessun overlap → una sola sezione visibile per volta):
         • ≤ 767  (390) → .frames : i 5 frame del wizard impilati (il doc SCROLLA)
@@ -170,8 +172,9 @@
 
   /* ── FRAME 4 «Fatto!» ─────────────────────────────────────────────────────
      check grande verde (NON rosso: la spunta è verde §5.11) + riepilogo
-     (.riga-dato di _base) + consegna suggerita (16 lug > domani → NON urgente,
-     nessun rosso) + chip + UN TastoPrimario + LinkQuieto home. */
+     (.riga-dato di _base) + consegna suggerita RISOLTA (16 lug > domani → NON
+     urgente, nessun rosso; advisor UX: niente chip) + UN TastoPrimario +
+     LinkQuieto home. */
   .fatto-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-top: 10px; }
   .fatto-check {
     width: 92px; height: 92px; border-radius: 50%;
@@ -183,21 +186,13 @@
   .riepilogo { margin-top: 24px; }
   .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
 
-  /* Consegna suggerita (§7.3 · L5) — card con caption + frase + chip di scelta. */
+  /* Consegna suggerita (§7.3 · L5) — RISOLTA, non una scelta (advisor UX, Bucket
+     A fix 9): riga informativa + LinkQuieto «Cambia data». I chip del piano sono
+     stati rimossi (vedi DEVIAZIONE nel markup del Frame 4). */
   .consegna { margin-top: 16px; }
   .consegna .frase { font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.4; }
   .consegna .frase b { color: var(--ink); }
-  .chips { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 7px;
-    min-height: 44px; padding: 0 20px; border: none; border-radius: 999px;
-    font-family: var(--font-v3); font-size: 15.5px; font-weight: 700; cursor: pointer;
-    background: var(--card); box-shadow: var(--sh-press); color: var(--ink);
-    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
-  }
-  .chip:active { transform: translateY(2px); }
-  .chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-  .chip.si { background: var(--green-tint); color: var(--green); box-shadow: none; } /* scelto: la spunta è verde */
+  .cambia-data { margin-top: 10px; }
   .fatto-primario { width: 100%; margin-top: 26px; }
   .fatto-home { display: flex; justify-content: center; margin-top: 18px; }
 
@@ -429,16 +424,16 @@
       </div>
     </div>
 
+    <!-- DEVIAZIONE DAL PIANO (advisor UX): il piano chiedeva i chip «Va bene ✓ /
+         Decido dopo» — ma due decisioni su una vista (chip consegna + TastoPrimario
+         foto) violano L1 «una cosa alla volta». La consegna suggerita è RISOLTA
+         (riga informativa, nessuna scelta); la via di fuga è il LinkQuieto «Cambia
+         data» (§5.5). L'unica decisione del frame resta il TastoPrimario
+         «FOTOGRAFA IMPRONTA E PRESCRIZIONE». Da ratificare al gate Task 8. -->
     <div class="card consegna">
       <div class="card-title">Consegna suggerita</div>
-      <p class="frase">Di solito ci mettete 6 giorni: pronta per <b>giovedì 16 luglio</b>.</p>
-      <div class="chips">
-        <button class="chip si">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
-          Va bene
-        </button>
-        <button class="chip">Decido dopo</button>
-      </div>
+      <p class="frase">Pronta per <b>giovedì 16 luglio</b> — di solito ci mettete 6 giorni.</p>
+      <div class="cambia-data"><button class="link-quieto">Cambia data</button></div>
     </div>
 
     <button class="tasto-primario fatto-primario">Fotografa impronta e prescrizione</button>

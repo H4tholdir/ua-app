@@ -13,8 +13,12 @@
 
      CAST (README + pila-aperta.html): lavoro n.147 · Corona zirconia · Dr. Esposito ·
      PZ-0412 · consegna OGGI 16:00 · stato pronto · Tecnico Ciro.
-     Fasi n.147: Modellazione ✓ (Ciro, ieri 14:20) · Fusione ✓ (Ciro, oggi 9:05) ·
-     Rifinitura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima.
+     Fasi n.147: Fresatura ✓ (Ciro, ieri 14:20) · Sinterizzazione ✓ (Ciro, oggi 9:05) ·
+     Glasatura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima.
+     DEVIAZIONE DAL PIANO (advisor odontotecnico): fasi corrette — la zirconia si
+     fresa e sinterizza, non si fonde (il piano aveva la catena del metallo:
+     Modellazione → Fusione → Rifinitura). Tecnici/timestamp invariati — da
+     ratificare al gate Task 8.
 
      ── FRAME 1 vs FRAME 2 · DUE MOMENTI DELLO STESSO LAVORO (§7.4 legge madre) ──
      §7.4: «TastoPrimario CONSEGNA visibile SOLO quando tutte le fasi sono fatte;
@@ -85,6 +89,13 @@
   .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
   .scheda-head .sp { flex: 1; }
   .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+
+  /* CardInfo (§5.10) — «card 22, padding 4/20» (advisor DS engineer): la legge dà
+     alla CardInfo valori PROPRI, diversi dal generico .card (24, 20/22). Override
+     page-level citato §5.10 — unica misura ridichiarata fuori da _base.css, come
+     da parere advisor. Le RigheDato interne restano quelle di _base.css (§5.10). */
+  .card.cardinfo { border-radius: 22px; padding: 4px 20px; }
+  .cardinfo .card-title { margin-top: 12px; } /* respiro del titolo dentro il padding 4 (§5.10 non norma il titolo) */
 
   /* NotaDentista (§5.23) — «barra verticale 3.5 --blue + testo 15/600 muted
      "[citazione]" — Dr. X». Unico residuo visivo del mondo-chat dentro l'app.
@@ -193,8 +204,11 @@
   .sheet-escape { display: flex; justify-content: center; margin-top: 26px; }
 
   /* Menu ⋯ (§7.1) — voci in sheet. Riga H56, icona line-SVG stroke 1.7 (§4.4),
-     nome 17/700. Separatore 1.5 --line tra le righe. «Butta via» rossa in fondo,
-     staccata (via di fuga distruttiva → DialogConferma, §7.1). */
+     nome 17/700. Separatore 1.5 --line tra le righe. «Annulla lavoro» rossa in
+     fondo, staccata (via di fuga distruttiva → DialogConferma, §7.1).
+     DEVIAZIONE DAL PIANO (advisor odontotecnico + normativo): il piano diceva
+     «Butta via» — un dispositivo medico su misura tracciato MDR non si cestina,
+     si annulla (la tracciabilità resta). Da ratificare al gate Task 8. */
   .menu-voce {
     display: flex; align-items: center; gap: 16px; width: 100%;
     min-height: 56px; padding: 8px 0; border: none; background: none;
@@ -324,7 +338,7 @@
 
     <div class="scheda-grid">
       <!-- CardInfo — 5 RigheDato (§5.10). L'UNICO valore rosso = consegna imminente. -->
-      <div class="card">
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
         <div class="card-title">Il lavoro</div>
         <div class="riga-dato">
           <span class="chiave">Dentista</span>
@@ -369,15 +383,15 @@
         <div class="card-title">Le fasi</div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+          <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+          <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+          <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
@@ -404,7 +418,7 @@
     </div>
 
     <div class="scheda-grid">
-      <div class="card">
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
         <div class="card-title">Il lavoro</div>
         <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
         <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -430,15 +444,15 @@
         <div class="card-title">Le fasi</div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+          <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+          <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+          <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
         </div>
         <div class="riga-fase">
           <span class="check"></span>
@@ -469,7 +483,7 @@
           <span class="sp"></span>
           <button class="tasto-tondo">⋯</button>
         </div>
-        <div class="card">
+        <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
           <div class="card-title">Il lavoro</div>
           <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
           <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -501,7 +515,10 @@
   </div>
 
   <!-- ─────────── FRAME 4 · MENU ⋯ APERTO (§7.1) ───────────
-       Sheet con le voci del menu. «Butta via» rossa in fondo (→ DialogConferma). -->
+       Sheet con le voci del menu. «Annulla lavoro» rossa in fondo (→ DialogConferma).
+       DEVIAZIONE DAL PIANO (advisor odontotecnico + normativo): il piano diceva
+       «Butta via»; un dispositivo tracciato MDR non si cestina — da ratificare al
+       gate Task 8. -->
   <div class="frame-sep">— frame · menu «altro» (sheet) —</div>
   <div class="scheda-frame" style="padding-top:0">
     <div class="sheet-stage">
@@ -513,7 +530,7 @@
           <span class="sp"></span>
           <button class="tasto-tondo">⋯</button>
         </div>
-        <div class="card">
+        <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
           <div class="card-title">Il lavoro</div>
           <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
           <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -547,7 +564,7 @@
         </button>
         <button class="menu-voce butta">
           <span class="mi"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6M14 11v6"/></svg></span>
-          <span class="ml">Butta via</span>
+          <span class="ml">Annulla lavoro</span>
         </button>
       </div>
     </div>
@@ -573,7 +590,7 @@
     </div>
 
     <div class="scheda-grid">
-      <div class="card">
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
         <div class="card-title">Il lavoro</div>
         <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
         <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0408</span></span></div>
@@ -662,7 +679,7 @@
       <button class="tasto-tondo" aria-label="Altro">⋯</button>
     </div>
 
-    <div class="card">
+    <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
       <div class="card-title">Il lavoro</div>
       <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
       <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -688,15 +705,15 @@
       <div class="card-title">Le fasi</div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
       </div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
       </div>
       <div class="riga-fase fatta">
         <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-        <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
       </div>
       <div class="riga-fase">
         <span class="check"></span>
@@ -766,7 +783,7 @@
     </div>
 
     <div class="scheda-grid">
-      <div class="card">
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
         <div class="card-title">Il lavoro</div>
         <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
         <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
@@ -779,15 +796,15 @@
         <div class="card-title">Le fasi</div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+          <span style="flex:1"><span class="nome">Fresatura</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+          <span style="flex:1"><span class="nome">Sinterizzazione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
         </div>
         <div class="riga-fase fatta">
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
-          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+          <span style="flex:1"><span class="nome">Glasatura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
         </div>
         <div class="riga-fase">
           <span class="check"></span>
