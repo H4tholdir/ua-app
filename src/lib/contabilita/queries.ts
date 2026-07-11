@@ -295,3 +295,67 @@ export async function getContabilitaCliente(
 
   return { dovuti: [...nonSaldati, ...saldati], lavoriInAttesa, creditoCliente }
 }
+
+export interface PagamentoClientePortale {
+  data: string
+  importo: number
+  metodo: string
+  destinazione: { tipo: 'fattura' | 'lavoro'; numero: string }
+}
+
+/**
+ * Pagamenti attivi di un cliente, unificati dalle due vie possibili
+ * (pagamenti non ha cliente_id: la risoluzione passa per fattura_id o
+ * lavoro_id). Nato per il portale dentista (Ondata 3, spec §4): seleziona
+ * SOLO i campi esposti — metodo_nota (nota interna lab) non viene nemmeno
+ * letto. Fail-closed: errore di query → throw, mai lista parziale.
+ */
+export async function getPagamentiCliente(
+  svc: SupabaseClient,
+  labId: string,
+  clienteId: string
+): Promise<PagamentoClientePortale[]> {
+  const [viaFatture, viaLavori] = await Promise.all([
+    svc
+      .from('pagamenti')
+      .select('data_pagamento, importo, metodo, fatture!inner(numero)')
+      .eq('laboratorio_id', labId)
+      .eq('stato', 'attivo')
+      .eq('fatture.cliente_id', clienteId)
+      .eq('fatture.laboratorio_id', labId)
+      .is('fatture.deleted_at', null),
+    svc
+      .from('pagamenti')
+      .select('data_pagamento, importo, metodo, lavori!inner(numero_lavoro)')
+      .eq('laboratorio_id', labId)
+      .eq('stato', 'attivo')
+      .eq('lavori.cliente_id', clienteId)
+      .eq('lavori.laboratorio_id', labId)
+      .is('lavori.deleted_at', null),
+  ])
+
+  if (viaFatture.error) throw new Error(`[pagamenti cliente] via fatture: ${viaFatture.error.message}`)
+  if (viaLavori.error) throw new Error(`[pagamenti cliente] via lavori: ${viaLavori.error.message}`)
+
+  const suFatture = ((viaFatture.data ?? []) as unknown as Array<{
+    data_pagamento: string; importo: number; metodo: string; fatture: { numero: string }
+  }>).map((p) => ({
+    data: p.data_pagamento,
+    importo: Number(p.importo),
+    metodo: p.metodo,
+    destinazione: { tipo: 'fattura' as const, numero: p.fatture.numero },
+  }))
+
+  const suLavori = ((viaLavori.data ?? []) as unknown as Array<{
+    data_pagamento: string; importo: number; metodo: string; lavori: { numero_lavoro: string }
+  }>).map((p) => ({
+    data: p.data_pagamento,
+    importo: Number(p.importo),
+    metodo: p.metodo,
+    destinazione: { tipo: 'lavoro' as const, numero: p.lavori.numero_lavoro },
+  }))
+
+  return [...suFatture, ...suLavori].sort(
+    (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
+  )
+}
