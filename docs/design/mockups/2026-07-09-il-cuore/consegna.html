@@ -232,28 +232,31 @@
 
   /* WhatsApp — bottone VERDE esplicito (§8 spec: «WhatsApp verde esplicito,
      invariante: MAI auto-popup»). È la CTA del Consegnato! (payoff già fatto → il
-     verde, non il rosso). COLORE: §3.3.4 legge madre — «WhatsApp verde
-     #1F9E52→#2FBE68 è riservato ESCLUSIVAMENTE ai bottoni che aprono WhatsApp»
-     → NON il verde di stato (--green/.pill-fase), ma il gradiente dedicato.
-     §3.3.4 dà i due stop senza direzione né corsa/dark: resa col chiaro (#2FBE68)
-     in ALTO come ogni faccia 3D del sistema (§5.1) e corsa/dark mutuate dalla
-     materia .pill-fase (corsa #14602C, dark flat §3.2). PAGE-LOCAL: non è una
-     classe del kit Task 1. */
+     verde, non il rosso). COLORE: gradiente WhatsApp dedicato §3.3.4, riservato
+     ESCLUSIVAMENTE ai bottoni che aprono WhatsApp — NON il verde di stato
+     (--green/.pill-fase). Chiaro in ALTO come ogni faccia 3D (§5.1), dark flat
+     §3.2. PAGE-LOCAL: non è una classe del kit Task 1.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §3.3.4: gli stop
+     erano #2FBE68→#1F9E52 e fallivano AA col testo bianco 17.5px (2.42 sullo
+     stop chiaro, 3.46 sullo scuro). Scuriti a #208650→#17663A (riconoscibilmente
+     WhatsApp-green): bianco 4.58 sullo stop più chiaro, 7.00 sul più scuro —
+     hex pinnati, identici in ENTRAMBI i temi ✓. Corsa scurita di conseguenza
+     (#14602C→#0E4A28) perché il bordo 3D resti leggibile sotto il nuovo stop scuro. */
   .wa-btn {
     display: flex; align-items: center; justify-content: center; gap: 11px;
     width: 100%; max-width: 480px; height: 62px; margin-top: 26px;
     border: none; border-radius: 18px;
-    background: linear-gradient(180deg, #2FBE68, #1F9E52); /* §3.3.4: verde WhatsApp dedicato */
-    box-shadow: 0 5px 0 #14602C, 0 14px 24px -16px rgba(50,40,25,.35);
+    background: linear-gradient(180deg, #208650, #17663A); /* bucket B §3.3.4: verde WhatsApp scurito AA */
+    box-shadow: 0 5px 0 #0E4A28, 0 14px 24px -16px rgba(50,40,25,.35);
     color: #fff; font-family: var(--font-v3);
     font-size: 17.5px; font-weight: 800; letter-spacing: .01em;
     cursor: pointer;
     transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
   }
   .wa-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: none; } /* §4.4: line-icon stroke 1.7 */
-  .wa-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #14602C; }
+  .wa-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #0E4A28; }
   .wa-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-  [data-theme="dark"] .wa-btn { box-shadow: 0 5px 0 #14602C; }  /* §3.2 dark è flat: via l'ombra ambiente */
+  [data-theme="dark"] .wa-btn { box-shadow: 0 5px 0 #0E4A28; }  /* §3.2 dark è flat: via l'ombra ambiente */
 
   /* Annullo (§9) — via di fuga quieta (L6). LinkQuieto + countdown 10 min.
      Il countdown (9:47) è un residuo di tempo, reso in --faint tabulare accanto
@@ -568,6 +571,9 @@
       <div class="sd-btn"></div>
       <div class="sd-voce sel">Oggi <span class="sd-badge">2</span></div>
       <div class="sd-voce">Sul banco</div>
+      <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+           voce «Da rifare» (quarta pila viola) anche nella shell decorativa. -->
+      <div class="sd-voce">Da rifare</div>
       <div class="sd-voce">Appena arrivati</div>
       <div class="sd-voce">Agenda</div>
       <div class="sd-voce">Dentisti</div>

@@ -13,10 +13,13 @@
      Numeri scelti tra 145-153 NON già usati dal cast (usati: 144,147,149,150,151,152)
      → 145, 146, 148. PZ-… non collidenti col cast (0398,0412,0421,0430,0433,0435).
      Coerenti con lo stile del cast (tipi reali odontotecnica + dentisti del cast):
-       n.145 · Corona in disilicato · Dr. Esposito · PZ-0408 · in lavorazione (IN FORNO)
+       n.145 · Corona in disilicato · Dr. Esposito · PZ-0408 · IN PROVA ESTERNA (torna lun 13)
        n.146 · Ponte 3 elementi zirconia · Dr.ssa Bianchi · PZ-0415 · in lavorazione (IN RIFINITURA)
        n.148 · Faccette in ceramica (4 el.) · Studio Verdi · PZ-0424 · in lavorazione (IN FORNO)
-     Task successivi che aprano la pila ambra possono riusare questi 3 identici.
+     Task successivi che aprano la pila ambra possono riusare questi identici.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: n.145
+     esce dall'ambra (5→4) ed entra nella QUARTA pila «DA RIFARE / IN PROVA»
+     (famiglia viola) — 4ª pila decisa da Francesco 12/07 su parere odontotecnico.
      ══════════════════════════════════════════════════════════════════════════ -->
 <style>
   /* ==========================================================================
@@ -28,10 +31,11 @@
 
      Tre regimi responsivi, uno per viewport-screenshot (nessun overlap → una sola
      sezione visibile per volta):
-        • ≤ 767  (390) → .frames   : i 3 frame «pila aperta» impilati in verticale
+        • ≤ 767  (390) → .frames   : i 4 frame «pila aperta» impilati in verticale
                                        (il documento SCROLLA — nessun assert no-scroll)
+                                       (4, non 3: pila viola aggiunta — bucket B §5.7/§7.1)
         • 768-1023 (768) → .split  : split-view lista rossa 360 + scheda n.147
-        • ≥ 1024 (1280)  → .lista  : sola lista 400 con i 3 raggruppamenti selezionabili
+        • ≥ 1024 (1280)  → .lista  : sola lista 400 con i 4 raggruppamenti selezionabili
      ========================================================================== */
 
   body { background: var(--bg); }
@@ -59,6 +63,9 @@
   .pill.fam-ambra { background: var(--amber-tint); color: var(--amber); }
   .pill.fam-blu   { background: var(--blue-tint);  color: var(--blue); }
   .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §3 + §5.7/§7.1:
+     famiglia viola per la quarta pila «DA RIFARE / IN PROVA» (pill «In prova»). */
+  .pill.fam-viola { background: var(--purple-tint); color: var(--purple); }
 
   /* ── CardLavoro (§5.8) — MAX 4 righe. Struttura condivisa dai 3 regimi ──
      riga 1: n.xxx (heading 21/800, prefisso LAVORO caption faint) + PillTempo/Stato
@@ -99,12 +106,16 @@
 
   /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
      Non nel kit Task 1 (NON è in _base.css): copiata VERBATIM da scheda-lavoro.html
-     (che a sua volta la copiò da home.html). Valori §5.4: H 44 · gradiente verde
-     #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+     (che a sua volta la copiò da home.html). H 44 · corsa 3px #14602C · testo 14.5/800 bianco.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.4: il gradiente
+     era #269950→var(--green) e falliva AA col testo bianco (light 3.65 sullo stop
+     chiaro; dark 2.27 perché --green risolveva a #34C468 come stop di faccia).
+     Stop PINNATI in hex (mai var(--green) come faccia): #1F8544→#166B39 —
+     bianco 4.67 sullo stop più chiaro, 6.57 sul più scuro, in ENTRAMBI i temi ✓. */
   .pill-fase {
     display: inline-flex; align-items: center; justify-content: center; flex: none;
     height: 44px; padding: 0 18px; border: none; border-radius: 999px;
-    background: linear-gradient(180deg, #269950, var(--green));
+    background: linear-gradient(180deg, #1F8544, #166B39); /* bucket B §5.4 — stop espliciti, identici light/dark */
     box-shadow: 0 3px 0 #14602C;
     color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
     cursor: pointer; white-space: nowrap;
@@ -131,6 +142,8 @@
   .morph .m-sub b { color: var(--ink); font-weight: 700; }
   .morph.rossa .m-num, .morph.rossa .m-label { color: var(--red); }
   .morph.ambra .m-num, .morph.ambra .m-label { color: var(--amber); }
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: header-morph viola. */
+  .morph.viola .m-num, .morph.viola .m-label { color: var(--purple); }
   .morph.blu   .m-num, .morph.blu   .m-label { color: var(--blue); }
 
   /* ── FRAMES (390 primario · impilati, il documento scrolla) ──────────────── */
@@ -199,9 +212,12 @@
     }
     .grp-tab.rossa .grp-label { color: var(--red); }
     .grp-tab.ambra .grp-label { color: var(--amber); }
+    /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: raggruppamento viola. */
+    .grp-tab.viola .grp-label { color: var(--purple); }
     .grp-tab.blu   .grp-label { color: var(--blue); }
     .grp-tab.rossa .grp-count { background: var(--red-tint);   color: var(--red); }
     .grp-tab.ambra .grp-count { background: var(--amber-tint); color: var(--amber); }
+    .grp-tab.viola .grp-count { background: var(--purple-tint); color: var(--purple); }
     .grp-tab.blu   .grp-count { background: var(--blue-tint);  color: var(--blue); }
     .grp-tab.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); } /* selezione: ring 2.5 --red */
     .grp-cards { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
@@ -260,12 +276,14 @@
   <div class="frame-sep">— frame · pila ambra —</div>
   <section class="pila-frame">
     <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+         n.145 migra nella pila viola → ambra 5→4 (morph number + sub). -->
     <div class="morph ambra">
-      <div class="m-num">5</div>
+      <div class="m-num">4</div>
       <div class="m-txt">
         <div class="m-label">Sul banco</div>
         <!-- data corretta rispetto al piano: 11/7/2026 è sabato, il venerdì è il 10 -->
-        <div class="m-sub">5 lavori · il più vicino <b>venerdì 10</b></div>
+        <div class="m-sub">4 lavori · il più vicino <b>venerdì 10</b></div>
       </div>
     </div>
 
@@ -288,15 +306,8 @@
         <div class="cl-who">Dr.ssa Bianchi · PZ-0415</div>
         <div class="cl-tipo">Ponte 3 elementi zirconia</div>
       </div>
-      <!-- n.145 (inventato) -->
-      <div class="card cardlav">
-        <div class="cl-top">
-          <div class="cl-num"><small>Lavoro</small>n.145</div>
-          <span class="pill fam-ambra">In forno</span>
-        </div>
-        <div class="cl-who">Dr. Esposito · PZ-0408</div>
-        <div class="cl-tipo">Corona in disilicato</div>
-      </div>
+      <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+           n.145 rimosso dall'ambra: migrato nella pila viola (frame sotto). -->
       <!-- n.148 (inventato) -->
       <div class="card cardlav">
         <div class="cl-top">
@@ -318,7 +329,38 @@
     </div>
   </section>
 
-  <!-- ─────────── FRAME 3 · PILA BLU ─────────── -->
+  <!-- ─────────── FRAME 3 · PILA VIOLA ───────────
+       REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — pila viola
+       introdotta da revisione §5.7/§7.1 (bucket B). n.145 (Corona disilicato ·
+       Dr. Esposito · in prova esterna, torna lun 13) esce dall'ambra ed entra qui.
+       Pill: «In prova» — vocabolario chiuso §5.9, pill ratificata, ora fam. VIOLA
+       (coerenza con la famiglia della pila). Il rientro («torna lun 13») è la
+       riga tipo/dettaglio della card, NON una pill nuova. -->
+  <div class="frame-sep">— frame — Pila viola aperta (390)</div>
+  <section class="pila-frame">
+    <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <div class="morph viola">
+      <div class="m-num">1</div>
+      <div class="m-txt">
+        <div class="m-label">Da rifare / In prova</div>
+        <div class="m-sub">1 lavoro · torna <b>lunedì 13</b></div>
+      </div>
+    </div>
+
+    <div class="lista">
+      <!-- n.145 — in prova esterna dal Dr. Esposito, rientra lunedì 13 -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.145</div>
+          <span class="pill fam-viola">In prova</span>
+        </div>
+        <div class="cl-who">Dr. Esposito · PZ-0408</div>
+        <div class="cl-tipo">Corona in disilicato · torna lun 13</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 4 · PILA BLU ─────────── -->
   <div class="frame-sep">— frame · pila blu —</div>
   <section class="pila-frame">
     <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
@@ -473,9 +515,15 @@
       <span class="grp-label">Da consegnare oggi</span>
       <span class="grp-count">2</span>
     </button>
+    <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+         ambra 5→4 (n.145 migra) + nuovo raggruppamento viola «Da rifare / In prova». -->
     <button class="grp-tab ambra">
       <span class="grp-label">Sul banco</span>
-      <span class="grp-count">5</span>
+      <span class="grp-count">4</span>
+    </button>
+    <button class="grp-tab viola">
+      <span class="grp-label">Da rifare / In prova</span>
+      <span class="grp-count">1</span>
     </button>
     <button class="grp-tab blu">
       <span class="grp-label">Appena arrivati</span>

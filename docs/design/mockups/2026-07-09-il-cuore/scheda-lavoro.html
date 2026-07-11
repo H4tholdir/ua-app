@@ -39,10 +39,12 @@
      nell'eroe mobile Frame 1. Coerente con home.html e pila-aperta.html.
 
      ── VOCABOLARIO PILL (§5.9) ──
-     ESTENSIONE VOCABOLARIO PROPOSTA (§13.3): pill "IN PROVA" (fam. ambra) per
-     lavori in prova esterna — da ratificare al gate Task 8. (usata su n.145,
-     Frame 5 «È tornata»: fuori dal vocabolario chiuso e dalle sue estensioni
-     ratificate, ma necessaria per lo stato `in_prova_esterna`.)
+     Pill "IN PROVA" per lavori in prova esterna (usata su n.145, Frame 5
+     «È tornata»), necessaria per lo stato `in_prova_esterna`.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: la
+     pill «IN PROVA» cambia famiglia ambra→VIOLA, coerente con la nuova quarta
+     pila «DA RIFARE / IN PROVA» (4ª pila decisa da Francesco 12/07 su parere
+     odontotecnico). n.145 esce dall'ambra ed entra nella viola.
      ══════════════════════════════════════════════════════════════════════════ -->
 <style>
   /* ==========================================================================
@@ -83,6 +85,10 @@
   .pill.fam-ambra { background: var(--amber-tint); color: var(--amber); }
   .pill.fam-blu   { background: var(--blue-tint);  color: var(--blue); }
   .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §3 + §5.7/§7.1:
+     famiglia viola — la pill «In prova» passa dall'ambra alla viola (coerenza
+     con la nuova pila «DA RIFARE / IN PROVA»). */
+  .pill.fam-viola { background: var(--purple-tint); color: var(--purple); }
 
   /* ── SCHEDA (comune ai 3 regimi) ────────────────────────────────────────── */
   .scheda-head { display: flex; align-items: center; gap: 14px; }
@@ -133,12 +139,17 @@
   }
 
   /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
-     Non nel kit Task 1: copiata VERBATIM da home.html. Valori §5.4: H 44 ·
-     gradiente verde #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+     Non nel kit Task 1: copiata VERBATIM da home.html. H 44 · corsa 3px #14602C ·
+     testo 14.5/800 bianco.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.4: il gradiente
+     era #269950→var(--green) e falliva AA col testo bianco (light 3.65 sullo stop
+     chiaro; dark 2.27 perché --green risolveva a #34C468 come stop di faccia).
+     Stop PINNATI in hex (mai var(--green) come faccia): #1F8544→#166B39 —
+     bianco 4.67 sullo stop più chiaro, 6.57 sul più scuro, in ENTRAMBI i temi ✓. */
   .pill-fase {
     display: inline-flex; align-items: center; justify-content: center; flex: none;
     height: 44px; padding: 0 18px; border: none; border-radius: 999px;
-    background: linear-gradient(180deg, #269950, var(--green));
+    background: linear-gradient(180deg, #1F8544, #166B39); /* bucket B §5.4 — stop espliciti, identici light/dark */
     box-shadow: 0 3px 0 #14602C;
     color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
     cursor: pointer; white-space: nowrap;
@@ -296,6 +307,8 @@
     .badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--bg-deep); color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
     .badge.r { background: var(--red-tint); color: var(--red); box-shadow: none; }
     .badge.a { background: var(--amber-tint); color: var(--amber); box-shadow: none; }
+    /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: badge viola «Da rifare» (nav identica a home.html). */
+    .badge.v { background: var(--purple-tint); color: var(--purple); box-shadow: none; }
     .badge.b { background: var(--blue-tint); color: var(--blue); box-shadow: none; }
 
     /* Lista 400px — pila rossa, n.147 selezionato */
@@ -584,7 +597,9 @@
     <div class="scheda-head">
       <button class="tasto-tondo" aria-label="Indietro">‹</button>
       <span class="scheda-num">n.145</span>
-      <span class="pill fam-ambra">In prova</span>
+      <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+           pill «In prova» fam. ambra→VIOLA (famiglia della quarta pila). -->
+      <span class="pill fam-viola">In prova</span>
       <span class="sp"></span>
       <button class="tasto-tondo" aria-label="Altro">⋯</button>
     </div>
@@ -740,7 +755,10 @@
     <button class="tasto-primario nav-nuovo">+ Nuovo lavoro</button>
     <div class="voci">
       <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
-      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">5</span></div>
+      <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+           «Sul banco» 5→4 + voce «Da rifare» (nav identica a home.html). -->
+      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+      <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
       <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
       <div class="voce"><span class="nome">Agenda</span></div>
       <div class="voce"><span class="nome">Dentisti</span></div>

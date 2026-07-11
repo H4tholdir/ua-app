@@ -19,14 +19,17 @@
      verticale, così lo stesso markup regge sia 844 sia 667 senza scroll.
 
      ── SCALA DEVICE CORTI (§3.3, viewport height ≤ 700 → 390×667) — DIVENTA LEGGE ─
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: con la
+     QUARTA pila (viola «DA RIFARE / IN PROVA») la scala dichiarata è ricompressa
+     perché 4 pile + striscia + TastoPiù reggano il no-scroll a 390×667.
      Si comprime SOLO lo spazio + il numero-display delle pile (unico font che la
      legge autorizza a scalare, §4.1 lo vincola a «SOLO numeri delle pile»);
      tutti gli altri corpi tipografici restano invariati (scala §4.1 chiusa).
-        • Pila · numero display .......... 52px → 44px
-        • Pila · padding (via .card) ..... 20/22 → 16/18   (verticale 20→16)
-        • Gap tra le pile (.pila-wrap) ... 16px → 12px
-        • Gap fra i blocchi (head/striscia/pile/foot) .. 16px → 12px
-        • Padding pagina (top/bottom) .... 24px → 16px
+        • Pila · numero display .......... 52px → 42px   (era 44px con 3 pile)
+        • Pila · padding (via .card) ..... 20/22 → 14/18  (verticale 20→14, era 16)
+        • Gap tra le pile (.pila-wrap) ... 16px → 10px   (era 12px)
+        • Gap fra i blocchi (head/striscia/pile/foot) .. 16px → 10px (era 12px)
+        • Padding pagina (top/bottom) .... 24px → 14px   (era 16px)
         • Gap interno del foot (.tp↔label) 8px → 6px
      (Larghezze, raggi, corpi ≥ heading e il TastoPiù Ø110 NON cambiano.)
      ========================================================================== */
@@ -112,6 +115,9 @@
   .pila-sub b { color: var(--ink); font-weight: 700; }
   .pila.rossa .pila-num, .pila.rossa .pila-label { color: var(--red); }
   .pila.ambra .pila-num, .pila.ambra .pila-label { color: var(--amber); }
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: quarta
+     pila «DA RIFARE / IN PROVA», famiglia viola (token bucket B in _base.css). */
+  .pila.viola .pila-num, .pila.viola .pila-label { color: var(--purple); }
   .pila.blu   .pila-num, .pila.blu   .pila-label { color: var(--blue); }
 
   /* Foot: il TastoPiù (§5.2, .tp) — UNICA azione primaria della home. */
@@ -124,14 +130,16 @@
     .striscia-variante { display: none; }   /* fuori dal flusso misurato dall'assert */
   }
 
-  /* ── Variante device corti: 390×667 (h ≤ 700) — scala dichiarata sopra ───── */
+  /* ── Variante device corti: 390×667 (h ≤ 700) — scala dichiarata sopra ─────
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: valori
+     ricompressi per la quarta pila viola (vedi scala dichiarata in testa). */
   @media (max-height: 700px) {
-    .home { padding: 16px 24px 16px; }
-    .striscia { margin-top: 12px; }
-    .pila-wrap { gap: 12px; margin-top: 12px; }
-    .pila.card { padding: 16px 18px; }       /* 20/22 → 16/18 */
-    .pila-num { font-size: 44px; }           /* 52 → 44 */
-    .home-foot { margin-top: 12px; gap: 6px; }
+    .home { padding: 14px 24px 14px; }
+    .striscia { margin-top: 10px; }
+    .pila-wrap { gap: 10px; margin-top: 10px; }
+    .pila.card { padding: 14px 18px; }       /* 20/22 → 14/18 */
+    .pila-num { font-size: 42px; }           /* 52 → 42 (SOLO numeri pile, §4.1) */
+    .home-foot { margin-top: 10px; gap: 6px; }
   }
 
   /* ── Sezione «— variante —» StrisciaStato serena (segnale 9, §6) ──────────── */
@@ -171,6 +179,8 @@
     .voce.sel .badge { box-shadow: none; }
     .badge.r { background: var(--red-tint); color: var(--red); box-shadow: none; }
     .badge.a { background: var(--amber-tint); color: var(--amber); box-shadow: none; }
+    /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: badge viola per la voce «Da rifare». */
+    .badge.v { background: var(--purple-tint); color: var(--purple); box-shadow: none; }
     .badge.b { background: var(--blue-tint); color: var(--blue); box-shadow: none; }
     .nav-foot { margin-top: auto; }
     .nav-foot .striscia { margin-top: 0; }
@@ -215,12 +225,16 @@
 
   /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
      Non è una classe del kit Task 1 (nota in _base.css): la aggiunge la
-     schermata consumatrice. Valori §5.4: H 44 · pill · gradiente verde
-     #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+     schermata consumatrice. H 44 · pill · corsa 3px #14602C · testo 14.5/800 bianco.
+     REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.4: il gradiente
+     era #269950→var(--green) e falliva AA col testo bianco (light 3.65 sullo stop
+     chiaro; dark 2.27 perché --green risolveva a #34C468 come stop di faccia).
+     Stop PINNATI in hex (mai var(--green) come faccia): #1F8544→#166B39 —
+     bianco 4.67 sullo stop più chiaro, 6.57 sul più scuro, in ENTRAMBI i temi ✓. */
   .pill-fase {
     display: inline-flex; align-items: center; justify-content: center; flex: none;
     height: 44px; padding: 0 18px; border: none; border-radius: 999px;
-    background: linear-gradient(180deg, #269950, var(--green));
+    background: linear-gradient(180deg, #1F8544, #166B39); /* bucket B §5.4 — stop espliciti, identici light/dark */
     box-shadow: 0 3px 0 #14602C;
     color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
     cursor: pointer; white-space: nowrap;
@@ -269,11 +283,24 @@
         <div class="pila-sub"><b>n.144</b> da ieri · <b>n.147</b> alle 16</div><!-- «alle 16» (non 16:00): a 390 il minuto non entra intero — la regola vieta il taglio a metà del dato essenziale -->
       </div>
     </div>
+    <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+         n.145 esce dall'ambra (5→4) ed entra nella nuova pila viola. -->
     <div class="card pila ambra">
-      <div class="pila-num">5</div>
+      <div class="pila-num">4</div>
       <div class="pila-txt">
         <div class="pila-label">Sul banco</div>
         <div class="pila-sub"><b>n.149</b> per venerdì</div>
+      </div>
+    </div>
+    <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+         QUARTA pila «DA RIFARE / IN PROVA», famiglia viola. Ordine di urgenza:
+         rossa, ambra, viola, blu. Subline per la REGOLA SUBLINE (numero lavoro
+         primo, mai troncato). -->
+    <div class="card pila viola">
+      <div class="pila-num">1</div>
+      <div class="pila-txt">
+        <div class="pila-label">Da rifare / In prova</div>
+        <div class="pila-sub"><b>n.145</b> torna lunedì</div>
       </div>
     </div>
     <div class="card pila blu">
@@ -304,7 +331,10 @@
     <button class="tasto-primario nav-nuovo">+ Nuovo lavoro</button>
     <div class="voci">
       <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
-      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">5</span></div>
+      <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+           «Sul banco» 5→4 (n.145 migra) + nuova voce «Da rifare» (badge viola). -->
+      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+      <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
       <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
       <div class="voce"><span class="nome">Agenda</span></div>
       <div class="voce"><span class="nome">Dentisti</span></div>
