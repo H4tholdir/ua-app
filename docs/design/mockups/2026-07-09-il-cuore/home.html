@@ -229,12 +229,14 @@
     <button class="tasto-tondo" aria-label="Tutto il resto">☰</button>
   </div>
 
-  <!-- StrisciaStato · variante attenzione (segnale 1 §6: fattura scartata da SDI) -->
+  <!-- StrisciaStato · variante attenzione (segnale 1 §6: fattura scartata da SDI)
+       copy accorciata rispetto al piano: il numero deve sopravvivere alla riga
+       unica (§2.2/L3) — l'icona-triangolo È il «⚠️», il testo non lo ripete. -->
   <div class="striscia alert">
     <span class="ic" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
     </span>
-    <span class="txt">La <b>fattura di n.139</b> è stata scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
+    <span class="txt"><b>Fattura n.139</b> scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
   </div>
 
   <div class="pila-wrap">
@@ -289,11 +291,13 @@
       <div class="voce"><span class="nome">Documenti</span></div>
     </div>
     <div class="nav-foot">
+      <!-- copy accorciata rispetto al piano: il numero deve sopravvivere alla riga
+           unica (§2.2/L3) — nel footer nav 240px «La fattura…» perdeva n.139. -->
       <div class="striscia alert">
         <span class="ic" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
         </span>
-        <span class="txt">La <b>fattura di n.139</b> è stata scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
+        <span class="txt"><b>Fattura n.139</b> scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
       </div>
     </div>
   </nav>

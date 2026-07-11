@@ -21,8 +21,10 @@
 <style>
   /* ==========================================================================
      pila-aperta.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono
-     nelle classi di _base.css (.card .pill .riga-dato .riga-fase .pill-fase
+     nelle classi di _base.css (.card .pill .riga-dato .riga-fase
      .tasto-tondo .tasto-secondario) e NON vengono ridichiarati qui.
+     ECCEZIONE: .pill-fase NON è in _base.css → copiata VERBATIM da scheda-lavoro.html
+     (che a sua volta la copiò da home.html) più in basso in questo <style>.
 
      Tre regimi responsivi, uno per viewport-screenshot (nessun overlap → una sola
      sezione visibile per volta):
@@ -94,6 +96,22 @@
      sacro. È un TastoSecondario a piena larghezza (già in _base.css: faccia
      --card + --sh-press, più quieto del consegna). Il wizard è dell'Ondata 2. */
   .conferma { width: 100%; margin-top: 16px; }
+
+  /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
+     Non nel kit Task 1 (NON è in _base.css): copiata VERBATIM da scheda-lavoro.html
+     (che a sua volta la copiò da home.html). Valori §5.4: H 44 · gradiente verde
+     #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+  .pill-fase {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    height: 44px; padding: 0 18px; border: none; border-radius: 999px;
+    background: linear-gradient(180deg, #269950, var(--green));
+    box-shadow: 0 3px 0 #14602C;
+    color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .pill-fase:active { transform: translateY(2px); box-shadow: 0 1px 0 #14602C; }
+  .pill-fase:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
   /* ── Header-morph (§4.1 · §8.3.1) — la card-pila «sale» a testata di pagina:
      numero display colore-famiglia + label + sub coi numeri utili. Nel mockup
@@ -246,7 +264,8 @@
       <div class="m-num">5</div>
       <div class="m-txt">
         <div class="m-label">Sul banco</div>
-        <div class="m-sub">5 lavori · il più vicino <b>venerdì 11</b></div>
+        <!-- data corretta rispetto al piano: 11/7/2026 è sabato, il venerdì è il 10 -->
+        <div class="m-sub">5 lavori · il più vicino <b>venerdì 10</b></div>
       </div>
     </div>
 
