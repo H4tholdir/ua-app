@@ -1,9 +1,9 @@
-# SESSION ACTIVE — 11/07/2026 (pomeriggio)
+# SESSION ACTIVE — 11/07/2026 (pomeriggio, 2)
 
-**Stato:** **Ondata 2 (storico fatture + copia di cortesia PDF) COMPLETATA, mergiata e deployata** (`main 18c7c76`, CI/CD verdi, smoke prod ok). Suite 1274 pass | 4 skipped. Review finale Opus «Ready to merge YES». Ledger in `.superpowers/sdd/progress-ondata-2-storico-fatture.md`. Worktree rimosso.
+**Stato:** **Ondata 3 (situazione economica) COMPLETATA, mergiata e deployata** (`main 8629d9a`, CI/CD verdi, smoke prod ok, zero migration). **Portale Dentista v2 COMPLETO (ondate 0-3 chiuse).** Suite 1293 pass | 4 skipped. Review finale Opus «Ready to merge YES». Ledger in `.superpowers/sdd/progress-ondata-3-situazione-economica.md`. Worktree rimosso.
 
-**Prossimo task:** **Ondata 3 — situazione economica nel portale** (spec §3: saldo, fatture da pagare/pagate, pagamenti registrati — query `src/lib/contabilita/` lato dentista, dietro PIN). Ultima ondata Portale Dentista v2.
+**Prossimo task:** sequenza **DS v3 «Il cuore»** — eseguire il piano mockup Ondata 0 (`docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`, già pronto) → poi Home+pile → Wizard → Scheda → 4b UI Consegna. Salvo ripriorizzazione di Francesco.
 
-**Backlog caldo dal branch:** IMPORTANT — `generaFatturaPA` hardcoda TD01 in XML e PDF: da fixare PRIMA di emettere note di credito TD04; smoke test select pagina `/fatture/[id]` (2 fix QA senza rete anti-regressione).
+**Backlog caldo:** TD01 hardcoded in `generaFatturaPA` (PRIMA delle note di credito TD04); `.error → throw` in `getContabilitaCliente`; indagine `prezzo_unitario` vs somma righe listino nel batch; a11y collassabili portale.
 
-**Gotcha:** env `PORTALE_PIN_PEPPER`/`PORTALE_SESSION_SECRET` NON sono in `.env.local` (solo Vercel) — per QA locale del portale aggiungerle temporaneamente; il link Supabase CLI non è nel worktree (copiare `supabase/.temp` dal checkout principale); verificare SEMPRE il branch dei commit riportati dai subagent (incidente Task 7: commit finito su main, recuperato con reset+cherry-pick).
+**Gotcha:** subagent implementer possono committare sul checkout sbagliato (2 incidenti: Ondata 2 T7, Ondata 3 T3) — imporre nel dispatch la verifica `git rev-parse --show-toplevel` + branch prima del commit; env portale non in `.env.local` (solo Vercel); screenshot del browser pane inaffidabili a 1280px (verificare via DOM).
