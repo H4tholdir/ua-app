@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Consegna — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     consegna.html — Flusso Consegna (spec figlia §8 «sacro» + §9 «annullo 10 min +
+     emissione trattenuta» · legge madre §7.5, §5.17 DialogConferma, §5.22
+     CardUAHaFatto, §8.3.4 coreografia «Consegnato!»).
+
+     CAST (README, identico ad ogni schermata): lavoro n.147 · Corona zirconia ·
+     Dr. Esposito · PZ-0412 · consegna OGGI 16:00 · stato pronto · Tecnico Ciro.
+     TUTTO il file è lo stesso lavoro n.147 (dialog → precheck rosso → Consegnato! →
+     scheda post-consegna): il materiale del blocco di Frame 2 DEVE quindi essere il
+     materiale di n.147 (zirconia), non «disilicato».
+
+     ── DEVIAZIONE DAL BRIEF (Frame 2) ────────────────────────────────────────
+     Il brief cita testualmente «Manca il lotto del disilicato». Ma n.147 è una
+     Corona *zirconia* (README, cast identico su tutte le schermate) e questo è lo
+     STESSO tentativo di consegna del dialog n.147 → il bloccante materiale deve
+     riferirsi alla zirconia, altrimenti la schermata è internamente incoerente.
+     Reso «Manca il lotto della zirconia». Da confermare al gate (Task 8).
+
+     ── BUDGET ROSSO (autoverifica Task 6, Step 3) ────────────────────────────
+     «Un solo primario rosso per vista» è un MASSIMO, non un minimo (§madre L1).
+     L'UNICO rosso di legge del file è il TastoPrimario «CONSEGNA» dentro il
+     DialogConferma (mobile Frame 1 + esempio 1280): lì il rosso è l'azione unica
+     sanzionata del dialog. Tutte le altre viste hanno ZERO rosso, corretto:
+        • Frame 2 (sheet bloccanti): bloccanti ambra tappabili + LinkQuieto (via di fuga).
+        • Frame 3 (Consegnato!): il payoff è FATTO → la CTA è il WhatsApp VERDE;
+          l'annullo è LinkQuieto (L6). Nessun rosso.
+        • Frame 4 (scheda post-consegna): PillStato verde + banner annullo con
+          LinkQuieto. Nessun rosso.
+
+     ── DEROGA A §5.17 (Frame 1) ───────────────────────────────────────────────
+     §5.17 prescrive per il DialogConferma «Ordine: sicura sopra, distruttiva
+     sotto» — perché quel componente nasce per azioni DISTRUTTIVE/irreversibili.
+     QUI la consegna NON è distruttiva (è l'azione desiderata, per giunta
+     annullabile 10 min §9): quindi si inverte l'ordine → TastoPrimario «CONSEGNA»
+     SOPRA, TastoSecondario «Non ancora» (via di fuga quieta) SOTTO. Annotato come
+     richiesto dal piano. Vale anche per l'esempio 1280.
+
+     ── EVIDENZA MASSIMA SULL'OGGETTO (Frame 1) ───────────────────────────────
+     §8 spec figlia: il rischio vero della consegna è la CARD SBAGLIATA. Perciò
+     l'oggetto «Corona n.147 → Dr. Esposito» è l'elemento più grande del dialog
+     (21/800), mentre la domanda «Consegno?» resta un occhiello quieto sopra: così
+     l'occhio cade prima su COSA/CHI, non sul verbo.
+
+     Regimi responsivi (nessun overlap, uno per viewport-screenshot):
+        • ≤ 767  (390)  → .frames : i 4 stati impilati in verticale, il documento SCROLLA
+        • ≥ 768 (768/1280) → .single : SOLO il DialogConferma centrato full-screen
+                             (il dialog è l'unica eccezione modale ammessa sui
+                             viewport larghi §madre «modal centrato salvo
+                             DialogConferma»). 768 e 1280 sono identici.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ==========================================================================
+     consegna.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono nelle
+     classi di _base.css (.card .pill .riga-dato .riga-fase .tasto-primario
+     .tasto-secondario .tasto-tondo .link-quieto .sheet .scrim) e NON vengono
+     ridichiarati qui. Uniche eccezioni (non nel kit Task 1, copiate/derivate dai
+     mockup sorgente col loro riferimento §): .pill.fam-* (scheda-lavoro.html),
+     .fatto-check/.fatto-title (wizard.html Frame «Fatto!»), .wa-btn (green-3D,
+     stessa materia della .pill-fase di scheda-lavoro.html), .bloccante,
+     .ua-fatto (§5.22), .annullo (§9).
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot via [data-mockup-chrome]). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── PillStato famiglie (§5.9) — override sul default PillStato di _base.css.
+     Copiate da scheda-lavoro.html. Qui serve solo la verde (Consegnato ✓). ── */
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  .pill.fam-rossa { background: var(--red-tint);   color: var(--red); }
+
+  /* ── FRAMES (390 primario · impilati, il documento scrolla) ──────────────── */
+  .frames { position: relative; z-index: 1; }
+  .cons-frame {
+    width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 0;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .frame-sep {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin: 34px 0 20px;
+  }
+  .frame-sep:first-child { margin-top: 20px; }
+  .frames-end { height: 44px; }
+
+  /* ── STAGE per overlay position:fixed (dialog/sheet) ──────────────────────
+     TRAPPOLA (come wizard.html/scheda-lavoro.html): .scrim/.sheet/.dialog di
+     _base sono/sarebbero position:fixed → in un documento che scrolla
+     coprirebbero tutto. Li confino in uno STAGE relativo e li porto a
+     position:absolute DENTRO lo stage: cambia solo il contesto di
+     posizionamento, NON le misure di legge (scrim, radius-28 sheet, max-width). */
+  .stage {
+    position: relative; z-index: 1; overflow: hidden;
+    width: 100%; max-width: 480px; margin: 0 auto; height: 700px;
+    border-radius: 24px; background: var(--bg-deep);
+  }
+  .stage .scrim { position: absolute; }
+  .stage .sheet { position: absolute; bottom: 0; }
+  /* La scheda «sotto» l'overlay, scalata .96 e attenuata dallo scrim (§8.3.6). */
+  .stage .peek {
+    position: absolute; inset: 0; padding: 20px 22px 0;
+    transform: scale(.96); transform-origin: 50% 0;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .peek-head { display: flex; align-items: center; gap: 14px; }
+  .peek-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .peek-head .sp { flex: 1; }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+
+  /* ── FRAME 1 · DialogConferma (§5.17 · deroga ordine, vedi testa) ──────────
+     Card centrata max 340 sullo scrim (§5.17: «Card centrata max 340 · scrim
+     come sheet»). Nel .stage la centro con position:absolute + translate. -->  */
+  .dialog {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 1001;
+    width: calc(100% - 48px); max-width: 340px;               /* §5.17: max 340 */
+    background: var(--card); border-radius: 24px;             /* §4.2: card 24 */
+    padding: 26px 24px 22px;
+    box-shadow: var(--sh-card);
+    display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+  }
+  [data-theme="dark"] .dialog { border-top: 1px solid rgba(255,255,255,.04); } /* §3.2 luce radente */
+  /* «Consegno?» — occhiello quieto: NON deve competere con l'oggetto (vedi testa). */
+  .dialog .occhiello { font-size: 16.5px; font-weight: 700; color: var(--muted); text-align: center; }
+  /* Oggetto in evidenza massima 21/800 (§8: contro la card sbagliata) — l'elemento
+     più grande del dialog. Il «→» è un separatore neutro fra numero e destinatario. */
+  .dialog .oggetto {
+    font-size: 21px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25;
+    color: var(--ink); text-align: center; margin-bottom: 4px;
+  }
+  .dialog .oggetto .freccia { color: var(--faint); font-weight: 700; padding: 0 2px; }
+  .dialog .tasto-primario { height: 64px; }                  /* dialog: leggermente più basso dell'eroe 70 */
+  .dialog .tasto-secondario { width: 100%; }                 /* §5.3 full-width nel dialog (deroga ordine: SOTTO) */
+
+  /* ── FRAME 2 · Bloccanti (spec figlia §8 ramo rosso) ──────────────────────
+     Riga tappabile: icona-triangolo famiglia (line-SVG §4.4, come la StrisciaStato
+     di home.html) + testo del blocco + azione per risolvere. Ambra = «manca
+     qualcosa di verificabile» (MDR/materiali §8), MAI un «Sei sicuro?» generico. */
+  .sheet-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .sheet-hint { font-size: 15px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+  .bloccanti { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+  .bloccante {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 16px 18px; border: none; border-radius: 18px; cursor: pointer;
+    background: var(--amber-tint); color: var(--ink);
+    font-family: var(--font-v3); text-align: left;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .bloccante:active { transform: translateY(2px); }
+  .bloccante:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .bloccante .ic {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(154,92,0,.16); color: var(--amber);
+  }
+  .bloccante .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .bloccante .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .bloccante .b-cosa { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .bloccante .b-fai  { font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 2px; }
+  .bloccante .chev { flex: none; color: var(--amber); font-size: 20px; font-weight: 800; }
+  .sheet-escape { display: flex; justify-content: center; margin-top: 24px; }
+
+  /* ── FRAME 3 · Consegnato! (§8.3.4 madre) ─────────────────────────────────
+     Check GRANDE verde (Ø92, tint verde). NEL MOCKUP È STATICO: in React il
+     `path` del check si DISEGNA (450ms) + `bouncy` sul cerchio + suono UÀ +
+     righe CardUAHaFatto a cascata (§8.3.4). Qui reso fermo (riuso .fatto-check di
+     wizard.html «Fatto!»). La spunta è VERDE, MAI rossa (§5.11). */
+  .fatto-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-top: 6px; }
+  .fatto-check {
+    width: 92px; height: 92px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .fatto-title { font-size: 35px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .fatto-sub { font-size: 16px; font-weight: 600; color: var(--muted); max-width: 300px; }
+
+  /* CardUAHaFatto (§5.22) — card 22, titolo caption «UÀ HA GIÀ FATTO PER TE»,
+     righe: check Ø30 tint + nome 16.5/700 + sub 14/500. Autoverifica L5: elenca
+     SOLO cose realmente avvenute → DdC e Buono sono PRONTI (check verde); la
+     Fattura è «in preparazione» (emissione DIFFERITA §9: nasce alla scadenza della
+     finestra 10 min via outbox+cron, MAI durante la consegna) → resa con OROLOGIO
+     in tint AMBRA, non un check verde: il contrasto visivo dice «non ancora fatta»
+     anche senza leggere. */
+  .ua-fatto { margin-top: 24px; }
+  .ua-titolo { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .ua-riga { display: flex; align-items: center; gap: 14px; padding: 9px 0; }
+  .ua-riga:not(:last-child) { border-bottom: 1.5px solid var(--line); }
+  .ua-riga .ck {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;   /* §5.22: check Ø 30 */
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .ua-riga .ck svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ua-riga.attesa .ck { background: var(--amber-tint); color: var(--amber); }  /* Fattura: differita → orologio ambra */
+  .ua-riga .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .ua-riga .nome { font-size: 16.5px; font-weight: 700; color: var(--ink); }   /* §5.22: nome 16.5/700 */
+  .ua-riga .sub  { font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 1px; } /* §5.22: sub 14/500 */
+  .ua-riga.attesa .sub { color: var(--amber); font-weight: 600; }
+
+  /* WhatsApp — bottone VERDE esplicito (§8 spec: «WhatsApp verde esplicito,
+     invariante: MAI auto-popup»). È la CTA del Consegnato! (payoff già fatto → il
+     verde, non il rosso). PAGE-LOCAL: non è una classe del kit Task 1; stessa
+     materia 3D della .pill-fase di scheda-lavoro.html (gradiente #269950→--green,
+     corsa 3px→1px #14602C) portata a bottone pieno. */
+  .wa-btn {
+    display: flex; align-items: center; justify-content: center; gap: 11px;
+    width: 100%; max-width: 480px; height: 62px; margin-top: 26px;
+    border: none; border-radius: 18px;
+    background: linear-gradient(180deg, #269950, var(--green));
+    box-shadow: 0 5px 0 #14602C, 0 14px 24px -16px rgba(50,40,25,.35);
+    color: #fff; font-family: var(--font-v3);
+    font-size: 17.5px; font-weight: 800; letter-spacing: .01em;
+    cursor: pointer;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .wa-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .wa-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #14602C; }
+  .wa-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  [data-theme="dark"] .wa-btn { box-shadow: 0 5px 0 #14602C; }  /* §3.2 dark è flat: via l'ombra ambiente */
+
+  /* Annullo (§9) — via di fuga quieta (L6). LinkQuieto + countdown 10 min.
+     Il countdown (9:47) è un residuo di tempo, reso in --faint tabulare accanto
+     al LinkQuieto. Alla scadenza il link SPARISCE (§8/§9): qui è nella finestra. */
+  .annullo-quieto { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+  .countdown { font-size: 14.5px; font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  /* ── FRAME 4 · scheda post-consegna + banner annullo (§9) ──────────────────
+     La scheda n.147 dopo la consegna: PillStato «Consegnato ✓» (verde). Al posto
+     del CONSEGNA, il banner annullo: card verde-tint con OROLOGIO + ora consegna +
+     countdown + LinkQuieto «Annulla la consegna». Dentro i 10 min l'annullo non
+     incontra MAI documenti fiscali (§9): ripulisce solo stato/DdC/tracciabilità. */
+  .scheda-head { display: flex; align-items: center; gap: 14px; }
+  .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .scheda-head .sp { flex: 1; }
+  .annullo {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px; border-radius: 18px;
+    background: var(--green-tint);
+  }
+  [data-theme="dark"] .annullo { border-top: 1px solid rgba(255,255,255,.04); }
+  .annullo .ic {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(27,127,59,.16); color: var(--green);
+  }
+  .annullo .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .annullo .corpo { flex: 1; min-width: 0; }
+  .annullo .a-tit { font-size: 15.5px; font-weight: 700; color: var(--ink); }
+  .annullo .a-sub { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 1px; }
+  .annullo .a-sub b { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .annullo-riga { display: flex; justify-content: center; margin-top: 4px; }
+
+  /* ── SINGLE (768/1280) · SOLO il DialogConferma centrato full-screen ──────── */
+  .single { display: none; }
+  @media (min-width: 768px) {
+    .frames { display: none; }
+    .single {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; position: relative; z-index: 1;
+      background: var(--bg-deep);      /* lo scrim del dialog vive sopra questo fondo */
+    }
+    .single .scrim { position: fixed; }
+    .single .dialog { position: relative; top: auto; left: auto; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ FRAMES · 390 (primario) — 4 stati impilati ══════════════ -->
+<div class="frames">
+
+  <!-- ─────────── FRAME 1 · DialogConferma (§5.17, deroga ordine in testa) ───────────
+       Tap CONSEGNA → precheck verde → questo dialog. L'oggetto n.147 → Dr. Esposito
+       è l'elemento più grande (21/800). CONSEGNA sopra (rosso, azione desiderata),
+       «Non ancora» sotto (via di fuga quieta). -->
+  <div class="frame-sep">— frame · consegno? (dialog) —</div>
+  <div class="cons-frame" style="padding-top:0">
+    <div class="stage">
+      <!-- La scheda n.147 «sotto» (condensata), scalata .96, attenuata dallo scrim -->
+      <div class="peek" aria-hidden="true">
+        <div class="peek-head">
+          <button class="tasto-tondo">‹</button>
+          <span class="peek-num">n.147</span>
+          <span class="pill fam-verde">Pronta ✓</span>
+          <span class="sp"></span>
+          <button class="tasto-tondo">⋯</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Il lavoro</div>
+          <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+          <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+          <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+          <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        </div>
+      </div>
+
+      <div class="scrim"></div>
+
+      <div class="dialog" role="dialog" aria-label="Consegno la Corona n.147 al Dr. Esposito?">
+        <div class="occhiello">Consegno?</div>
+        <!-- EVIDENZA MASSIMA (§8): l'oggetto è il testo più grande del dialog -->
+        <div class="oggetto">Corona n.147 <span class="freccia">→</span> Dr. Esposito</div>
+        <!-- DEROGA §5.17: azione NON distruttiva → primario SOPRA, quieta sotto -->
+        <button class="tasto-primario">Consegna</button>
+        <button class="tasto-secondario">Non ancora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── FRAME 2 · Sheet «Prima di consegnare» (§8 ramo rosso) ───────────
+       Precheck ROSSO → sheet coi SOLI bloccanti, ognuno tappabile per risolvere.
+       Materiale allineato al cast (n.147 = zirconia, vedi deviazione in testa). -->
+  <div class="frame-sep">— frame · prima di consegnare (bloccanti) —</div>
+  <div class="cons-frame" style="padding-top:0">
+    <div class="stage">
+      <div class="peek" aria-hidden="true">
+        <div class="peek-head">
+          <button class="tasto-tondo">‹</button>
+          <span class="peek-num">n.147</span>
+          <span class="pill fam-verde">Pronta ✓</span>
+          <span class="sp"></span>
+          <button class="tasto-tondo">⋯</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Il lavoro</div>
+          <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+          <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+          <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+        </div>
+      </div>
+
+      <div class="scrim"></div>
+
+      <div class="sheet" role="dialog" aria-label="Prima di consegnare">
+        <h2 class="sheet-title">Prima di consegnare</h2>
+        <p class="sheet-hint">Due cose da sistemare. Tocca per risolvere.</p>
+        <div class="bloccanti">
+          <!-- Icona-triangolo line-SVG §4.4 (come la StrisciaStato di home.html) -->
+          <button class="bloccante">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+            <span class="corpo">
+              <span class="b-cosa">Manca il lotto della zirconia</span>
+              <span class="b-fai">Registralo →</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </button>
+          <button class="bloccante">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+            <span class="corpo">
+              <span class="b-cosa">Manca la firma sul controllo finale</span>
+              <span class="b-fai">Completa →</span>
+            </span>
+            <span class="chev" aria-hidden="true">›</span>
+          </button>
+        </div>
+        <div class="sheet-escape"><button class="link-quieto">Chiudi</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── FRAME 3 · Consegnato! (§8.3.4 · check statico nel mockup) ───────────
+       Payoff. Check grande verde (in React si DISEGNA, §8.3.4) + CardUAHaFatto (solo
+       cose fatte, L5) + WhatsApp verde (mai auto-popup) + LinkQuieto annullo + countdown. -->
+  <div class="frame-sep">— frame · consegnato! —</div>
+  <section class="cons-frame">
+    <div class="fatto-head">
+      <!-- STATICO nel mockup: in React il path si disegna 450ms + bouncy sul cerchio (§8.3.4) -->
+      <div class="fatto-check" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+      </div>
+      <h1 class="fatto-title">Consegnato!</h1>
+      <p class="fatto-sub">La Corona n.147 è andata al Dr. Esposito.</p>
+    </div>
+
+    <!-- CardUAHaFatto (§5.22) — SOLO cose realmente avvenute (L5) -->
+    <div class="card ua-fatto">
+      <div class="ua-titolo">UÀ ha già fatto per te</div>
+      <div class="ua-riga">
+        <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="3"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span class="corpo"><span class="nome">Dichiarazione di Conformità</span><span class="sub">pronta</span></span>
+      </div>
+      <div class="ua-riga">
+        <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="3"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span class="corpo"><span class="nome">Buono di consegna</span><span class="sub">pronto</span></span>
+      </div>
+      <!-- Fattura DIFFERITA (§9): «in preparazione», MAI «fatta» → orologio ambra -->
+      <div class="ua-riga attesa">
+        <span class="ck" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span>
+        <span class="corpo"><span class="nome">Fattura</span><span class="sub">in preparazione</span></span>
+      </div>
+    </div>
+
+    <!-- WhatsApp verde esplicito (§8) — la CTA del payoff. MAI auto-popup: è un tap. -->
+    <button class="wa-btn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.7 13.7L3 21l4.4-1.3A9 9 0 1 0 12 3Z"/><path d="M8.6 8.4c-.3 0-.6.1-.8.4-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.7 2.8 4.3 3.8 2.1.8 2.6.7 3 .6.6-.1 1.4-.6 1.6-1.2.2-.6.2-1.1.1-1.2 0-.1-.3-.2-.6-.4l-1.4-.7c-.2-.1-.4-.1-.6.1l-.6.8c-.1.2-.3.2-.5.1-.7-.3-1.4-.7-2.1-1.6-.2-.3 0-.4.1-.6l.4-.6c.1-.2 0-.4 0-.5l-.6-1.5c-.2-.4-.4-.4-.6-.4Z"/></svg>
+      Avvisa lo studio su WhatsApp
+    </button>
+
+    <!-- Annullo (§9) — via di fuga quieta + countdown 10 min (qui 9:47 residuo) -->
+    <div class="annullo-quieto">
+      <button class="link-quieto">Aspetta, annulla la consegna</button>
+      <span class="countdown">(9:47)</span>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 4 · scheda n.147 post-consegna + banner annullo (§9) ───────────
+       PillStato «Consegnato ✓» verde. Al posto del CONSEGNA, il banner annullo:
+       ora consegna + countdown + LinkQuieto. Fasi tutte fatte. -->
+  <div class="frame-sep">— frame · scheda consegnata · annullo aperto —</div>
+  <section class="cons-frame">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Consegnato ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <!-- Banner annullo (§9) — dentro i 10 min, nessun documento fiscale da toccare -->
+    <div class="annullo">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v4h4"/></svg></span>
+      <div class="corpo">
+        <div class="a-tit">Consegnata alle 15:42</div>
+        <div class="a-sub">Puoi ancora annullare per <b>9:47</b></div>
+      </div>
+    </div>
+    <div class="annullo-riga"><button class="link-quieto">Annulla la consegna</button></div>
+
+    <div class="card">
+      <div class="card-title">Il lavoro</div>
+      <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+      <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+      <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+      <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore">Oggi · 15:42</span><span class="sub">consegnata a mano</span></span></div>
+      <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Le fasi</div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+      </div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+      </div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+      </div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">Ciro · oggi 14:55</div></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="frames-end"></div>
+</div>
+
+<!-- ══════════════ SINGLE · 768/1280 — SOLO il DialogConferma centrato ══════════════
+     Il dialog è l'UNICA eccezione modale ammessa sui viewport larghi (§madre: «modal
+     centrato su mobile vietato SALVO DialogConferma»). 768 e 1280 sono identici:
+     scrim full-screen + card centrata max 340, stessa deroga d'ordine di Frame 1. -->
+<div class="single">
+  <div class="scrim"></div>
+  <div class="dialog" role="dialog" aria-label="Consegno la Corona n.147 al Dr. Esposito?">
+    <div class="occhiello">Consegno?</div>
+    <div class="oggetto">Corona n.147 <span class="freccia">→</span> Dr. Esposito</div>
+    <button class="tasto-primario">Consegna</button>
+    <button class="tasto-secondario">Non ancora</button>
+  </div>
+</div>
+
+</body>
+</html>
