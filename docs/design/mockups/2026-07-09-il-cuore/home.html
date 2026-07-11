@@ -66,8 +66,11 @@
     margin-top: 6px; color: var(--ink);
   }
 
-  /* StrisciaStato (§5.24) — icona famiglia Ø26 tint + testo 14.5/muted, ink in bold. */
-  .striscia { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  /* StrisciaStato (§5.24) — icona famiglia Ø26 tint + testo 14.5/muted, ink in bold.
+     §2.2: «Massimo 1 riga» → il testo è nowrap + ellissi; la CTA d'allarme è un
+     flex-item separato (flex:none) fuori dal blocco troncabile, così resta
+     SEMPRE visibile e tappabile anche quando il testo tronca. */
+  .striscia { display: flex; align-items: center; gap: 12px; margin-top: 16px; min-width: 0; }
   .striscia .ic {
     flex: none; width: 26px; height: 26px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -75,9 +78,12 @@
   }
   .striscia .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
   .striscia.alert .ic { background: var(--red-tint); color: var(--red); }
-  .striscia .txt { font-size: 14.5px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+  .striscia .txt {
+    flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 500; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* §2.2: massimo 1 riga */
+  }
   .striscia .txt b { color: var(--ink); font-weight: 700; }
-  .striscia .azione { color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap; } /* CTA d'allarme */
+  .striscia .azione { flex: none; font-size: 14.5px; color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap; } /* CTA d'allarme — mai troncata */
 
   /* Le tre pile (§5.7) — la card è .card di _base.css; qui SOLO l'impaginazione. */
   .pila-wrap { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; margin-top: 16px; }
@@ -122,7 +128,10 @@
   /* ── Sezione «— variante —» StrisciaStato serena (segnale 9, §6) ──────────── */
   .striscia-variante {
     position: relative; z-index: 1;
-    width: 100%; max-width: 480px; margin: 8px auto 32px; padding: 0 24px;
+    /* 540 (non 480): è la cornice-demo della variante, non il frame home di
+       legge — così la frase canonica del segnale 9 si legge intera restando
+       comunque nowrap+ellissi (§2.2) se mai dovesse eccedere. */
+    width: 100%; max-width: 540px; margin: 8px auto 32px; padding: 0 24px;
   }
   .section-label {
     font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
@@ -187,6 +196,22 @@
   .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
   .pill.fam-rossa { background: var(--red-tint); color: var(--red); }
   .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+
+  /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
+     Non è una classe del kit Task 1 (nota in _base.css): la aggiunge la
+     schermata consumatrice. Valori §5.4: H 44 · pill · gradiente verde
+     #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+  .pill-fase {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    height: 44px; padding: 0 18px; border: none; border-radius: 999px;
+    background: linear-gradient(180deg, #269950, var(--green));
+    box-shadow: 0 3px 0 #14602C;
+    color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .pill-fase:active { transform: translateY(2px); box-shadow: 0 1px 0 #14602C; }
+  .pill-fase:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -209,7 +234,7 @@
     <span class="ic" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
     </span>
-    <span class="txt">La <b>fattura di n.139</b> è stata scartata &nbsp;<a class="azione" href="#">Sistemala&nbsp;›</a></span>
+    <span class="txt">La <b>fattura di n.139</b> è stata scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
   </div>
 
   <div class="pila-wrap">
@@ -268,7 +293,7 @@
         <span class="ic" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
         </span>
-        <span class="txt">La <b>fattura di n.139</b> è stata scartata &nbsp;<a class="azione" href="#">Sistemala&nbsp;›</a></span>
+        <span class="txt">La <b>fattura di n.139</b> è stata scartata</span><a class="azione" href="#">Sistemala&nbsp;›</a>
       </div>
     </div>
   </nav>
@@ -349,7 +374,8 @@
         <div class="riga-fase">
           <span class="check"></span>
           <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
-          <span class="pill tempo fam-rossa">Prossima</span>
+          <!-- §5.11: PillFase a destra SOLO sulla prossima fase da fare -->
+          <button class="pill-fase">FATTA ✓</button>
         </div>
       </div>
     </div>

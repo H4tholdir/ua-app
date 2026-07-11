@@ -75,6 +75,9 @@ body {
   padding: 20px 22px; /* §5.7/§5.8: padding 20/22 */
   box-shadow: var(--sh-card); /* §4.3: --sh-card su ogni superficie carta (risolve a "none" in dark, §3.2) */
 }
+[data-theme="dark"] .card {
+  border-top: 1px solid rgba(255,255,255,.04); /* §3.2: «Le card dark hanno border-top: 1px solid rgba(255,255,255,.04) (luce radente) — unico "rilievo" ammesso» */
+}
 
 /* §5.9 PillTempo/PillStato — base comune: radius 999 (§4.2), padding 7/13,
    peso 800. Font-size/tracking (15/800 PillTempo vs 13.5/800/+0.1em
