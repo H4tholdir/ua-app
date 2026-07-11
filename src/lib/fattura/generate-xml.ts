@@ -1,7 +1,10 @@
 import 'server-only'
+import { createElement } from 'react'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import type { LavoroDettaglio } from '@/types/domain'
+import { renderPdfDocument } from '@/lib/pdf/render-document'
+import { FatturaCortesiaTemplate, type FatturaCortesiaProps } from '@/components/features/pdf/FatturaCortesiaTemplate'
 
 // Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
 import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
@@ -68,17 +71,19 @@ export async function generaFatturaPA(
   // Fix divergenza DB/XML: se fatturaId presente, usa il numero del draft esistente
   // e NON generare un nuovo progressivo fattura (evita duplicati).
   const anno = new Date().getFullYear()
+  const oggi = new Date().toISOString().split('T')[0]
   const progressivoSdi = await generaProgressivo(supabase, lavoro.laboratorio_id, 'sdi_invio')
   const progressivoSdiStr = String(progressivoSdi).padStart(5, '0')
 
   let numero: string
   let progressivoFattura: number
+  let dataFattura: string
 
   if (fatturaId) {
-    // Legge numero/progressivo PRIMA di costruire XML per garantire coerenza
+    // Legge numero/progressivo/data PRIMA di costruire XML per garantire coerenza
     const { data: draft, error: draftErr } = await supabase
       .from('fatture')
-      .select('numero, progressivo')
+      .select('numero, progressivo, data')
       .eq('id', fatturaId)
       .single()
     if (draftErr || !draft) {
@@ -86,10 +91,12 @@ export async function generaFatturaPA(
     }
     numero = (draft as { numero: string }).numero
     progressivoFattura = (draft as { progressivo: number }).progressivo
+    dataFattura = (draft as { data: string }).data
   } else {
     // Nuovo insert: genera progressivo fresco
     progressivoFattura = await generaProgressivo(supabase, lavoro.laboratorio_id, 'fattura')
     numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
+    dataFattura = oggi
   }
 
   // ── 3. Calcola importi ───────────────────────────────────────────────────
@@ -161,9 +168,6 @@ export async function generaFatturaPA(
   const pecDestinatarioXml = usaPec
     ? `<PECDestinatario>${xe(cliente.pec!)}</PECDestinatario>`
     : ''
-
-  // ── 8. Data fattura ───────────────────────────────────────────────────────
-  const oggi = new Date().toISOString().split('T')[0]
 
   // ── 9. Costruisce XML completo ────────────────────────────────────────────
   const nomeFileXml = `IT${labPiva}_${progressivoSdiStr}.xml`
@@ -255,11 +259,56 @@ export async function generaFatturaPA(
     throw new Error(`Upload XML FatturaPA fallito: ${uploadError.message}`)
   }
 
-  const { data: urlData } = supabase.storage
-    .from('fatture-pdf')
-    .getPublicUrl(storagePath)
+  // ── 10b. Copia di cortesia PDF — stessi dati dell'XML (Ondata 2) ─────────
+  // Se il render/upload fallisce si lancia PRIMA dell'UPDATE/INSERT fatture:
+  // il draft resta draft e il retry è pulito (stesso contratto dell'upload XML).
+  const righeCortesia = lavoro.lavorazioni.length > 0
+    ? lavoro.lavorazioni.map((r) => ({
+        descrizione: r.descrizione,
+        quantita: r.quantita ?? 1,
+        unita_misura: r.unita_misura ?? 'PZ',
+        prezzo_unitario: r.prezzo_unitario ?? 0,
+        importo: r.importo ?? 0,
+      }))
+    : [{
+        descrizione: lavoro.descrizione,
+        quantita: 1,
+        unita_misura: 'PZ',
+        prezzo_unitario: lavoro.prezzo_unitario ?? 0,
+        importo: lavoro.prezzo_unitario ?? 0,
+      }]
 
-  const xmlUrl = urlData?.publicUrl ?? null
+  const propsCortesia: FatturaCortesiaProps = {
+    lab: {
+      denominazione: labDenominazione,
+      partita_iva: labPiva,
+      indirizzo: labRow.indirizzo,
+      cap: labRow.cap,
+      citta: labRow.citta,
+      provincia: labRow.provincia,
+    },
+    cliente: {
+      denominazione: clienteDenominazione,
+      piva: cliente.partita_iva ?? null,
+      cf: cliente.codice_fiscale ?? null,
+      indirizzo: `${cliente.indirizzo ?? ''}, ${cliente.cap ?? ''} ${cliente.citta ?? ''} ${cliente.provincia ?? ''}`.trim(),
+    },
+    fattura: { numero, data: dataFattura, tipo_documento: 'TD01' },
+    righe: righeCortesia,
+    imponibile,
+    bollo: bolloApplicato,
+    totale,
+  }
+  const pdfBuffer = await renderPdfDocument(createElement(FatturaCortesiaTemplate, propsCortesia))
+  const pdfStoragePath = `${lavoro.laboratorio_id}/${anno}/cortesia/Fattura-${numero}.pdf`
+
+  const { error: pdfUploadError } = await supabase.storage
+    .from('fatture-pdf')
+    .upload(pdfStoragePath, pdfBuffer, { contentType: 'application/pdf', upsert: true })
+
+  if (pdfUploadError) {
+    throw new Error(`Upload PDF cortesia fallito: ${pdfUploadError.message}`)
+  }
 
   // ── 11. Hash SHA-256 del file XML ─────────────────────────────────────────
   const hashBuffer = await crypto.subtle.digest('SHA-256', xmlBytes)
@@ -277,10 +326,11 @@ export async function generaFatturaPA(
     stato_sdi: 'generata',
     progressivo_sdi: progressivoSdiStr,
     // XML archiviato
-    xml_url: xmlUrl,
     xml_storage_path: storagePath,
     nome_file_xml: nomeFileXml,
     xml_hash_sha256: hashHex,
+    // Copia di cortesia PDF (Ondata 2)
+    pdf_storage_path: pdfStoragePath,
     // Importi (ricalcolati a partire dalle lavorazioni)
     imponibile,
     iva_percentuale: 0,

@@ -16,12 +16,12 @@ vi.mock('@/lib/supabase/server-service', () => ({
     storage: {
       from: () => ({
         upload: async () => ({ error: null }),
-        getPublicUrl: () => ({ data: { publicUrl: 'https://x/f.xml' } }),
       }),
     },
   }),
 }))
 vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: vi.fn(async () => 9) }))
+vi.mock('@/lib/pdf/render-document', () => ({ renderPdfDocument: vi.fn(async () => Buffer.from('%PDF-fake')) }))
 
 import { generaFatturaPA } from '@/lib/fattura/generate-xml'
 

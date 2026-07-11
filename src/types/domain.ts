@@ -678,7 +678,8 @@ export interface Fattura {
   codice_cig: string | null;
   progressivo_invio: number | null;
   nome_file_xml: string | null;
-  xml_url: string | null;
+  xml_storage_path: string | null;
+  pdf_storage_path: string | null;
   xml_hash_sha256: string | null;
   inviata_via: 'pec' | 'sdi_coop' | null;
   inviata_at: string | null;
