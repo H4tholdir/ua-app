@@ -1,9 +1,7 @@
-# SESSION ACTIVE — 11/07/2026 (pomeriggio, 2)
+# SESSION ACTIVE — 11/07/2026 (pomeriggio, 3)
 
-**Stato:** **Ondata 3 (situazione economica) COMPLETATA, mergiata e deployata** (`main 8629d9a`, CI/CD verdi, smoke prod ok, zero migration). **Portale Dentista v2 COMPLETO (ondate 0-3 chiuse).** Suite 1293 pass | 4 skipped. Review finale Opus «Ready to merge YES». Ledger in `.superpowers/sdd/progress-ondata-3-situazione-economica.md`. Worktree rimosso.
+**Stato:** **Follow-up review Ondata 3 CHIUSO e deployato** (`main acd39c1`, 3 commit): fail-closed su `getContabilitaCliente`/`fetchMovimentiCreditoValidi` (+try/catch in scadenzario cliente e credito applica/rimborsa), a11y `aria-controls` sui collassabili portale. Suite 1297 pass | 4 skipped. Tracciati **N4** (fonte di verità prezzo lavoro: `prezzo_unitario` vs righe `lavori_lavorazioni`, route PUT lavorazioni orfana — decisione di design nel redesign scheda lavoro DS v3) e **N5** (TD01 hardcoded — prerequisito note di credito) nel BACKLOG-TECNICO §N. Il Portale Dentista v2 resta completo (ondate 0-3).
 
-**Prossimo task:** sequenza **DS v3 «Il cuore»** — eseguire il piano mockup Ondata 0 (`docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`, già pronto) → poi Home+pile → Wizard → Scheda → 4b UI Consegna. Salvo ripriorizzazione di Francesco.
+**Prossimo task:** sequenza **DS v3 «Il cuore»** — piano mockup Ondata 0 già pronto (`docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`). Salvo ripriorizzazione di Francesco.
 
-**Backlog caldo:** TD01 hardcoded in `generaFatturaPA` (PRIMA delle note di credito TD04); `.error → throw` in `getContabilitaCliente`; indagine `prezzo_unitario` vs somma righe listino nel batch; a11y collassabili portale.
-
-**Gotcha:** subagent implementer possono committare sul checkout sbagliato (2 incidenti: Ondata 2 T7, Ondata 3 T3) — imporre nel dispatch la verifica `git rev-parse --show-toplevel` + branch prima del commit; env portale non in `.env.local` (solo Vercel); screenshot del browser pane inaffidabili a 1280px (verificare via DOM).
+**Gotcha:** subagent implementer possono committare sul checkout sbagliato (2 incidenti) — imporre verifica `git rev-parse --show-toplevel` + branch nel dispatch; env portale non in `.env.local` (solo Vercel); screenshot browser pane inaffidabili a 1280px (verificare via DOM).
