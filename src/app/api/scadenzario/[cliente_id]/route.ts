@@ -65,7 +65,16 @@ export async function GET(
     return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
   }
 
-  const { dovuti, lavoriInAttesa, creditoCliente } = await getContabilitaCliente(svc, labId, cliente_id)
+  // getContabilitaCliente è fail-closed (follow-up Ondata 3): su errore di
+  // lettura lancia — meglio un 500 esplicito di un saldo parziale silenzioso.
+  let contabilita
+  try {
+    contabilita = await getContabilitaCliente(svc, labId, cliente_id)
+  } catch (err) {
+    console.error('[scadenzario cliente] lettura contabilità:', err)
+    return NextResponse.json({ error: 'Errore lettura contabilità' }, { status: 500 })
+  }
+  const { dovuti, lavoriInAttesa, creditoCliente } = contabilita
 
   const response: EstrattoContoResponse = {
     cliente: {

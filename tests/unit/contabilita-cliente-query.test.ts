@@ -8,6 +8,13 @@ function createFakeSupabase(data: {
   lavori?: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   movimenti?: any[]
+  // Iniezione errori per tabella (fail-closed: la lettura deve fallire,
+  // mai risolvere in lista vuota silenziosa).
+  errori?: {
+    fatture?: { message: string }
+    lavori?: { message: string }
+    movimenti?: { message: string }
+  }
 }) {
   const fake = {
     from(table: string) {
@@ -17,6 +24,11 @@ function createFakeSupabase(data: {
         table === 'lavori' ? (data.lavori ?? []) :
         table === 'credito_clienti_movimenti' ? (data.movimenti ?? []) :
         []
+      const errore =
+        table === 'fatture' ? (data.errori?.fatture ?? null) :
+        table === 'lavori' ? (data.errori?.lavori ?? null) :
+        table === 'credito_clienti_movimenti' ? (data.errori?.movimenti ?? null) :
+        null
       const builder = {
         select() { return builder },
         eq() { return builder },
@@ -33,8 +45,9 @@ function createFakeSupabase(data: {
         not() { return builder },
         gt() { return builder },
         order() { return builder },
-        then(resolve: (v: { data: unknown; error: null }) => void) {
-          resolve({ data: rows, error: null })
+        then(resolve: (v: { data: unknown; error: { message: string } | null }) => void) {
+          if (errore) resolve({ data: null, error: errore })
+          else resolve({ data: rows, error: null })
         },
       }
       return builder
@@ -144,5 +157,26 @@ describe('getContabilitaCliente', () => {
     expect(r.dovuti).toHaveLength(1)
     expect(r.dovuti[0]).toMatchObject({ id: 'f2', origine: 'fattura', residuo: 100 })
     expect(r.creditoCliente.confermato).toBe(100)
+  })
+})
+
+// Follow-up Ondata 3 (finding review finale whole-branch): le letture di
+// getContabilitaCliente devono essere fail-closed — un errore DB transitorio
+// NON deve risolversi in lista vuota silenziosa (saldo mostrato più basso
+// del reale, su scadenzario lab E portale dentista insieme).
+describe('getContabilitaCliente — fail-closed sugli errori di lettura', () => {
+  it('errore sulla query fatture → throw (mai saldo parziale)', async () => {
+    const supabase = createFakeSupabase({ errori: { fatture: { message: 'boom-fatture' } } })
+    await expect(getContabilitaCliente(supabase, 'lab-1', 'cli-1')).rejects.toThrow(/fatture/)
+  })
+
+  it('errore sulla query lavori → throw (mai saldo parziale)', async () => {
+    const supabase = createFakeSupabase({ errori: { lavori: { message: 'boom-lavori' } } })
+    await expect(getContabilitaCliente(supabase, 'lab-1', 'cli-1')).rejects.toThrow(/lavori/)
+  })
+
+  it('errore sulla query movimenti credito → throw (mai credito parziale)', async () => {
+    const supabase = createFakeSupabase({ errori: { movimenti: { message: 'boom-movimenti' } } })
+    await expect(getContabilitaCliente(supabase, 'lab-1', 'cli-1')).rejects.toThrow(/movimenti/)
   })
 })

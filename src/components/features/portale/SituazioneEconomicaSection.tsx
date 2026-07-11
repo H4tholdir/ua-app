@@ -58,7 +58,7 @@ function etichettaDestinazione(dest: { tipo: 'fattura' | 'lavoro'; numero: strin
   return dest.tipo === 'fattura' ? `Fattura ${dest.numero}` : `Lavoro ${dest.numero}`
 }
 
-function BloccoCollassabile({ titolo, children }: { titolo: string; children: ReactNode }) {
+function BloccoCollassabile({ titolo, pannelloId, children }: { titolo: string; pannelloId: string; children: ReactNode }) {
   const [aperto, setAperto] = useState(false)
   return (
     <div style={{ ...CARD, margin: '0 16px 16px', overflow: 'hidden' }}>
@@ -66,6 +66,7 @@ function BloccoCollassabile({ titolo, children }: { titolo: string; children: Re
         type="button"
         onClick={() => setAperto((v) => !v)}
         aria-expanded={aperto}
+        aria-controls={pannelloId}
         style={{
           width: '100%', minHeight: '44px', padding: '14px 18px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -82,7 +83,7 @@ function BloccoCollassabile({ titolo, children }: { titolo: string; children: Re
           <path d="M6 12l4-4-4-4" stroke="#6B7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {aperto && <div style={{ padding: '0 0 6px' }}>{children}</div>}
+      {aperto && <div id={pannelloId} style={{ padding: '0 0 6px' }}>{children}</div>}
     </div>
   )
 }
@@ -194,7 +195,7 @@ export function SituazioneEconomicaSection({ token }: { token: string }) {
 
           {/* Dettaglio dovuti */}
           {dati.dovuti.length > 0 && (
-            <BloccoCollassabile titolo="Dettaglio dovuti">
+            <BloccoCollassabile titolo="Dettaglio dovuti" pannelloId="se-dettaglio-dovuti">
               {dati.dovuti.map((d, i) => (
                 <div key={`${d.origine}-${d.numero}-${i}`} style={{
                   display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px',
@@ -250,7 +251,7 @@ export function SituazioneEconomicaSection({ token }: { token: string }) {
 
           {/* Pagamenti registrati */}
           {dati.pagamenti.length > 0 && (
-            <BloccoCollassabile titolo="Pagamenti registrati">
+            <BloccoCollassabile titolo="Pagamenti registrati" pannelloId="se-pagamenti-registrati">
               {gruppiPagamenti.map(([anno, pagamenti]) => (
                 <div key={anno}>
                   <div style={{

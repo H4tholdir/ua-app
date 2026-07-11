@@ -88,3 +88,24 @@ describe('SituazioneEconomicaSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined())
   })
 })
+
+// Follow-up Ondata 3 (finding a11y review finale): l'header collassabile deve
+// essere collegato al pannello via aria-controls/id (come nel mockup approvato).
+describe('SituazioneEconomicaSection — a11y collassabili', () => {
+  it('bottone con aria-controls che punta al pannello espanso', async () => {
+    stubFetch(datiBase)
+    render(<SituazioneEconomicaSection token="tok-1" />)
+    await screen.findByText('Situazione economica')
+    const bottone = screen.getByRole('button', { name: /dettaglio dovuti/i })
+    const controlsId = bottone.getAttribute('aria-controls')
+    expect(controlsId).toBeTruthy()
+    expect(document.getElementById(controlsId!)).toBeNull() // collassato: pannello smontato
+    await userEvent.click(bottone)
+    const pannello = document.getElementById(controlsId!)
+    expect(pannello).not.toBeNull()
+    expect(pannello!.textContent).toContain('Fattura 2026-0002')
+    // I due blocchi non devono condividere lo stesso id
+    const bottonePag = screen.getByRole('button', { name: /pagamenti registrati/i })
+    expect(bottonePag.getAttribute('aria-controls')).not.toBe(controlsId)
+  })
+})

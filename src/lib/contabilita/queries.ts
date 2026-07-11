@@ -119,11 +119,14 @@ export async function fetchMovimentiCreditoValidi(
   labId: string,
   clienteId: string
 ): Promise<Array<{ tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number }>> {
-  const { data: movimentiRaw } = await svc
+  const { data: movimentiRaw, error: movimentiErr } = await svc
     .from('credito_clienti_movimenti')
     .select('tipo, importo, pagamento_id, pagamenti(stato)')
     .eq('cliente_id', clienteId)
     .eq('laboratorio_id', labId)
+  // Fail-closed (follow-up Ondata 3): un errore di lettura NON deve degradare
+  // in credito 0 silenzioso — il chiamante risponde 500, mai un saldo parziale.
+  if (movimentiErr) throw new Error(`[contabilita cliente] lettura movimenti: ${movimentiErr.message}`)
 
   return ((movimentiRaw ?? []) as unknown as Array<{
     tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number
@@ -176,7 +179,7 @@ export async function getContabilitaCliente(
   // `stato_sdi != 'draft'` — senza, una fattura bozza (mai inviata) con un
   // saldo comparirebbe qui come dovuto confermato, mentre Dashboard/Scadenzario
   // (Task 9/11) la escludono sempre. Allineato agli altri due path.
-  const { data: fattureRaw } = await svc
+  const { data: fattureRaw, error: fattureErr } = await svc
     .from('fatture')
     .select('id, numero, data, totale, importo_pagato, stato_sdi, pagata')
     .eq('cliente_id', clienteId)
@@ -184,6 +187,10 @@ export async function getContabilitaCliente(
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
     .order('data', { ascending: false })
+  // Fail-closed (follow-up Ondata 3): mai lista vuota silenziosa su errore —
+  // il saldo mostrato (scadenzario lab E portale dentista) sarebbe più basso
+  // del reale senza alcun segnale.
+  if (fattureErr) throw new Error(`[contabilita cliente] lettura fatture: ${fattureErr.message}`)
 
   const fattureDovuti: DovutoEstratto[] = ((fattureRaw ?? []) as Array<{
     id: string; numero: string; data: string; totale: number; importo_pagato: number
@@ -203,7 +210,7 @@ export async function getContabilitaCliente(
     }
   })
 
-  const { data: lavoriRaw } = await svc
+  const { data: lavoriRaw, error: lavoriErr } = await svc
     .from('lavori')
     .select(`
       id, numero_lavoro, prezzo_unitario, data_consegna_prevista, decisione_fatturazione, incluso_in_fattura,
@@ -216,6 +223,7 @@ export async function getContabilitaCliente(
     .is('deleted_at', null)
     .not('stato', 'in', '("annullato")')
     .gt('prezzo_unitario', 0)
+  if (lavoriErr) throw new Error(`[contabilita cliente] lettura lavori: ${lavoriErr.message}`)
 
   const lavoriConfermati: DovutoEstratto[] = []
   const lavoriInAttesa: LavoroInAttesa[] = []
