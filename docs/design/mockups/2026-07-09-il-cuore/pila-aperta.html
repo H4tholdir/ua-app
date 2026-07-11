@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Pila aperta — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CAST AMBRA — 3 lavori inventati (README nomina solo n.149 e n.150 + «+3»).
+     Numeri scelti tra 145-153 NON già usati dal cast (usati: 144,147,149,150,151,152)
+     → 145, 146, 148. PZ-… non collidenti col cast (0398,0412,0421,0430,0433,0435).
+     Coerenti con lo stile del cast (tipi reali odontotecnica + dentisti del cast):
+       n.145 · Corona in disilicato · Dr. Esposito · PZ-0408 · in lavorazione (IN FORNO)
+       n.146 · Ponte 3 elementi zirconia · Dr.ssa Bianchi · PZ-0415 · in lavorazione (IN RIFINITURA)
+       n.148 · Faccette in ceramica (4 el.) · Studio Verdi · PZ-0424 · in lavorazione (IN FORNO)
+     Task successivi che aprano la pila ambra possono riusare questi 3 identici.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ==========================================================================
+     pila-aperta.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono
+     nelle classi di _base.css (.card .pill .riga-dato .riga-fase .pill-fase
+     .tasto-tondo .tasto-secondario) e NON vengono ridichiarati qui.
+
+     Tre regimi responsivi, uno per viewport-screenshot (nessun overlap → una sola
+     sezione visibile per volta):
+        • ≤ 767  (390) → .frames   : i 3 frame «pila aperta» impilati in verticale
+                                       (il documento SCROLLA — nessun assert no-scroll)
+        • 768-1023 (768) → .split  : split-view lista rossa 360 + scheda n.147
+        • ≥ 1024 (1280)  → .lista  : sola lista 400 con i 3 raggruppamenti selezionabili
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── PillTempo (§5.9) — override sul default PillStato di _base.css ── */
+  .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
+  /* Colore-famiglia delle pill (sfondo tint + testo colore, §5.9) */
+  .pill.fam-rossa { background: var(--red-tint);   color: var(--red); }
+  .pill.fam-ambra { background: var(--amber-tint); color: var(--amber); }
+  .pill.fam-blu   { background: var(--blue-tint);  color: var(--blue); }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+
+  /* ── CardLavoro (§5.8) — MAX 4 righe. Struttura condivisa dai 3 regimi ──
+     riga 1: n.xxx (heading 21/800, prefisso LAVORO caption faint) + PillTempo/Stato
+     riga 2: dentista + PZ 17.5/700 · riga 3: tipo lavoro 15.5/600 muted
+     riga 4: SOLO primo elemento pila rossa → TastoConsegnaInline (o, in blu, CTA Conferma).
+     Niente progress bar, niente icone stato: la pila di provenienza È lo stato. */
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who  { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+
+  /* TastoConsegnaInline (§5.8 riga 4 · H 54) — il rosso «sacro» (§7.5), SOLO
+     sul primo elemento della pila rossa (n.144). Faccia gradiente + corsa come il
+     TastoPrimario (§5.1) ma H 54 / radius 16 / testo 17. --red-dark esiste (token).
+     ENABLED perché n.144 è `pronto`: un solo tocco lo consegna. */
+  .consegna-inline {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 54px; margin-top: 16px;
+    border: none; border-radius: 16px;
+    background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010);
+    box-shadow: 0 5px 0 var(--red-dark), 0 14px 24px -16px rgba(50,40,25,.35);
+    color: #FFFFFF; font-family: var(--font-v3);
+    font-size: 17px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .consegna-inline:active { transform: translateY(4px) scale(.995); box-shadow: 0 1px 0 var(--red-dark); }
+  .consegna-inline:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* Dark è flat: --sh-card→none, quindi la lista multi-valore sarebbe invalida →
+     override totale col solo membro «corsa» (§3.2). */
+  [data-theme="dark"] .consegna-inline { box-shadow: 0 5px 0 var(--red-dark); }
+
+  /* CTA «Conferma» (pila blu) — «solo accennato»: NON un gemello 3D del rosso
+     sacro. È un TastoSecondario a piena larghezza (già in _base.css: faccia
+     --card + --sh-press, più quieto del consegna). Il wizard è dell'Ondata 2. */
+  .conferma { width: 100%; margin-top: 16px; }
+
+  /* ── Header-morph (§4.1 · §8.3.1) — la card-pila «sale» a testata di pagina:
+     numero display colore-famiglia + label + sub coi numeri utili. Nel mockup
+     statico è lo stato morphato (l'animazione morph vive nel componente). ── */
+  .pf-back { margin-bottom: 18px; }
+  .morph { display: flex; align-items: flex-start; gap: 18px; }
+  .morph .m-num {
+    font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    min-width: 56px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .morph .m-txt { flex: 1; min-width: 0; padding-top: 4px; }
+  .morph .m-label { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .morph .m-sub {
+    font-size: 16px; font-weight: 600; color: var(--muted); margin-top: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .morph .m-sub b { color: var(--ink); font-weight: 700; }
+  .morph.rossa .m-num, .morph.rossa .m-label { color: var(--red); }
+  .morph.ambra .m-num, .morph.ambra .m-label { color: var(--amber); }
+  .morph.blu   .m-num, .morph.blu   .m-label { color: var(--blue); }
+
+  /* ── FRAMES (390 primario · impilati, il documento scrolla) ──────────────── */
+  .frames { position: relative; z-index: 1; }
+  .pila-frame { width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 0; }
+  .pila-frame .lista { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+  .frame-sep {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin: 34px 0 20px;
+  }
+  .frame-sep:first-child { margin-top: 20px; }
+  .frames-end { height: 40px; }
+
+  /* ── SPLIT 768 (lista rossa 360 + scheda n.147) ──────────────────────────── */
+  .split { display: none; }
+  /* ── LISTA 1280 (sola lista 400 · 3 raggruppamenti) ──────────────────────── */
+  .lista { display: none; }
+
+  /* Scheda (anteprima n.147) — riuso VERBATIM del pattern home.html: Consegna
+     DISABLED + callout, perché «Controllo finale» non è ancora fatto (cast fasi). */
+  .scheda { padding: 28px 26px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+  .scheda-head { display: flex; align-items: center; gap: 14px; }
+  .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .scheda-head .sp { flex: 1; }
+  .scheda-grid { display: flex; flex-direction: column; gap: 16px; }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  .scheda .callout { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+  .scheda-consegna { width: 100%; max-width: 480px; }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .frames { display: none; }
+    .split {
+      display: grid; grid-template-columns: 360px 1fr;
+      height: 100vh; overflow: hidden; position: relative; z-index: 1;
+    }
+    /* Colonna sinistra: la pila rossa aperta (header-morph + 2 card). */
+    .split-lista { padding: 28px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; background: var(--bg-deep); }
+    .split-lista .morph { margin-bottom: 8px; }
+    .split-lista .lista { display: flex; flex-direction: column; gap: 14px; }
+    /* Ring selezione 2.5 --red (§3.4) sulla card aperta a destra (n.147). */
+    .cardlav.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); }
+  }
+  /* Ring selezione in dark: --sh-card→none → override totale (§3.2). */
+  [data-theme="dark"] .cardlav.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
+
+  @media (min-width: 1024px) {
+    .frames { display: none; }
+    .lista {
+      display: block; width: 400px; margin: 0 auto; padding: 44px 0 40px;
+      position: relative; z-index: 1;
+    }
+    .lista-title { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); margin-bottom: 4px; }
+    .lista-hint  { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-bottom: 20px; }
+    /* I 3 raggruppamenti selezionabili (§4.1). */
+    .grp-tabs { display: flex; flex-direction: column; gap: 12px; }
+    .grp-tab {
+      display: flex; align-items: center; gap: 14px; width: 100%;
+      padding: 16px 20px; border: none; border-radius: 18px;
+      background: var(--card); box-shadow: var(--sh-card); cursor: pointer; text-align: left;
+    }
+    .grp-tab .grp-label { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .grp-tab .grp-count {
+      min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    .grp-tab.rossa .grp-label { color: var(--red); }
+    .grp-tab.ambra .grp-label { color: var(--amber); }
+    .grp-tab.blu   .grp-label { color: var(--blue); }
+    .grp-tab.rossa .grp-count { background: var(--red-tint);   color: var(--red); }
+    .grp-tab.ambra .grp-count { background: var(--amber-tint); color: var(--amber); }
+    .grp-tab.blu   .grp-count { background: var(--blue-tint);  color: var(--blue); }
+    .grp-tab.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); } /* selezione: ring 2.5 --red */
+    .grp-cards { margin-top: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .grp-open-label {
+      font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--faint); margin: 24px 0 -4px;
+    }
+  }
+  [data-theme="dark"] .grp-tab.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ FRAMES · 390 (primario) — 3 pile aperte impilate ══════════════ -->
+<div class="frames">
+
+  <!-- ─────────── FRAME 1 · PILA ROSSA ─────────── -->
+  <div class="frame-sep">— frame · pila rossa —</div>
+  <section class="pila-frame">
+    <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <div class="morph rossa">
+      <div class="m-num">2</div>
+      <div class="m-txt">
+        <div class="m-label">Da consegnare oggi</div>
+        <div class="m-sub">2 lavori · il più vicino alle 16:00</div>
+      </div>
+    </div>
+
+    <div class="lista">
+      <!-- n.144 IN CIMA (in ritardo, da ieri) — porta il TastoConsegnaInline -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.144</div>
+          <span class="pill tempo fam-rossa">Da ieri</span>
+        </div>
+        <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+        <div class="cl-tipo">Ponte 3 elementi</div>
+        <button class="consegna-inline">Consegna</button>
+      </div>
+      <!-- n.147 (pronto, consegna oggi 16:00) — nessun consegna inline (§5.8) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.147</div>
+          <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+        </div>
+        <div class="cl-who">Dr. Esposito · PZ-0412</div>
+        <div class="cl-tipo">Corona zirconia</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 2 · PILA AMBRA ─────────── -->
+  <div class="frame-sep">— frame · pila ambra —</div>
+  <section class="pila-frame">
+    <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <div class="morph ambra">
+      <div class="m-num">5</div>
+      <div class="m-txt">
+        <div class="m-label">Sul banco</div>
+        <div class="m-sub">5 lavori · il più vicino <b>venerdì 11</b></div>
+      </div>
+    </div>
+
+    <div class="lista">
+      <!-- n.149 IN CIMA (per venerdì, quasi pronto) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.149</div>
+          <span class="pill fam-ambra">Sta per finire</span>
+        </div>
+        <div class="cl-who">Dr. Russo · PZ-0421</div>
+        <div class="cl-tipo">Scheletrato</div>
+      </div>
+      <!-- n.146 (inventato) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.146</div>
+          <span class="pill fam-ambra">In rifinitura</span>
+        </div>
+        <div class="cl-who">Dr.ssa Bianchi · PZ-0415</div>
+        <div class="cl-tipo">Ponte 3 elementi zirconia</div>
+      </div>
+      <!-- n.145 (inventato) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.145</div>
+          <span class="pill fam-ambra">In forno</span>
+        </div>
+        <div class="cl-who">Dr. Esposito · PZ-0408</div>
+        <div class="cl-tipo">Corona in disilicato</div>
+      </div>
+      <!-- n.148 (inventato) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.148</div>
+          <span class="pill fam-ambra">In forno</span>
+        </div>
+        <div class="cl-who">Studio Verdi · PZ-0424</div>
+        <div class="cl-tipo">Faccette in ceramica</div>
+      </div>
+      <!-- n.150 IN FONDO (sospeso) — pill FERMO (estensione vocabolario §4) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.150</div>
+          <span class="pill fam-ambra">Fermo</span>
+        </div>
+        <div class="cl-who">Studio Verdi · PZ-0430</div>
+        <div class="cl-tipo">Corona metallo-ceramica</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 3 · PILA BLU ─────────── -->
+  <div class="frame-sep">— frame · pila blu —</div>
+  <section class="pila-frame">
+    <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <div class="morph blu">
+      <div class="m-num">2</div>
+      <div class="m-txt">
+        <div class="m-label">Appena arrivati</div>
+        <div class="m-sub">2 lavori · da confermare</div>
+      </div>
+    </div>
+
+    <div class="lista">
+      <!-- n.151 — CTA «Conferma» (wizard di conferma: solo accennato, Ondata 2) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.151</div>
+          <span class="pill fam-blu">Appena arrivato</span>
+        </div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tasto-secondario conferma">Conferma</button>
+      </div>
+      <!-- n.152 — CTA «Conferma» -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.152</div>
+          <span class="pill fam-blu">Appena arrivato</span>
+        </div>
+        <div class="cl-who">Dr.ssa Bianchi · PZ-0435</div>
+        <div class="cl-tipo">Intarsio</div>
+        <button class="tasto-secondario conferma">Conferma</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="frames-end"></div>
+</div>
+
+<!-- ══════════════ SPLIT · 768 (lista rossa 360 + scheda n.147) ══════════════ -->
+<div class="split">
+  <!-- Colonna sinistra: pila rossa aperta -->
+  <section class="split-lista">
+    <div class="morph rossa">
+      <div class="m-num">2</div>
+      <div class="m-txt">
+        <div class="m-label">Da consegnare oggi</div>
+        <div class="m-sub">2 lavori · il più vicino alle 16:00</div>
+      </div>
+    </div>
+    <div class="lista">
+      <!-- n.144 in cima — TastoConsegnaInline (primo elemento rossa, pronto → ENABLED) -->
+      <div class="card cardlav">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.144</div>
+          <span class="pill tempo fam-rossa">Da ieri</span>
+        </div>
+        <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+        <div class="cl-tipo">Ponte 3 elementi</div>
+        <button class="consegna-inline">Consegna</button>
+      </div>
+      <!-- n.147 selezionato (aperto a destra) — ring 2.5 --red -->
+      <div class="card cardlav sel">
+        <div class="cl-top">
+          <div class="cl-num"><small>Lavoro</small>n.147</div>
+          <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+        </div>
+        <div class="cl-who">Dr. Esposito · PZ-0412</div>
+        <div class="cl-tipo">Corona zirconia</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Colonna destra: scheda n.147 (riuso pattern home.html · Consegna DISABLED) -->
+  <section class="scheda">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato">
+          <span class="chiave">Dentista</span>
+          <span class="valore-col"><span class="valore">Dr. Esposito</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Paziente</span>
+          <span class="valore-col"><span class="valore">PZ-0412</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Lavoro</span>
+          <span class="valore-col"><span class="valore">Corona zirconia</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Consegna</span>
+          <span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Tecnico</span>
+          <span class="valore-col"><span class="valore">Ciro</span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+          <button class="pill-fase">FATTA ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- CONSEGNA DISABLED: «Controllo finale» non ancora fatto → §7 «MAI nascosto» +
+           callout (faccia --bg-deep/--faint, NON rossa). Coerente con home.html. -->
+      <button class="tasto-primario scheda-consegna" disabled>Consegna</button>
+      <div class="callout">Completa il controllo finale per consegnare</div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════ LISTA · 1280 (sola lista 400 · 3 raggruppamenti) ══════════════
+     La 1280 completa (3 pannelli nav+lista+scheda) è già coperta da home.html:
+     qui solo la lista 400 coi 3 raggruppamenti selezionabili (§4.1). -->
+<div class="lista">
+  <div class="lista-title">Le pile</div>
+  <div class="lista-hint">Tocca un raggruppamento per aprirlo</div>
+
+  <div class="grp-tabs">
+    <button class="grp-tab rossa sel">
+      <span class="grp-label">Da consegnare oggi</span>
+      <span class="grp-count">2</span>
+    </button>
+    <button class="grp-tab ambra">
+      <span class="grp-label">Sul banco</span>
+      <span class="grp-count">5</span>
+    </button>
+    <button class="grp-tab blu">
+      <span class="grp-label">Appena arrivati</span>
+      <span class="grp-count">2</span>
+    </button>
+  </div>
+
+  <!-- Il raggruppamento selezionato (rossa) è aperto: le sue 2 card -->
+  <div class="grp-open-label">Da consegnare oggi · 2 lavori</div>
+  <div class="grp-cards">
+    <div class="card cardlav">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.144</div>
+        <span class="pill tempo fam-rossa">Da ieri</span>
+      </div>
+      <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+      <div class="cl-tipo">Ponte 3 elementi</div>
+      <button class="consegna-inline">Consegna</button>
+    </div>
+    <div class="card cardlav">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.147</div>
+        <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+      </div>
+      <div class="cl-who">Dr. Esposito · PZ-0412</div>
+      <div class="cl-tipo">Corona zirconia</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
