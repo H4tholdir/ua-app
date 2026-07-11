@@ -14,6 +14,7 @@
 // tokens, non Tailwind) — stesso pattern di src/app/portale/[token]/page.tsx
 // e dello stesso mockup approvato.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { FattureStoricoSection } from './FattureStoricoSection'
 
 type Proposta = 'fatturare' | 'non_fatturare'
 
@@ -842,6 +843,8 @@ export function FatturazioneSection({
               </div>
             </>
           )}
+
+          <FattureStoricoSection token={token} />
         </div>
       </div>
 
