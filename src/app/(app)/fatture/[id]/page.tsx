@@ -23,7 +23,7 @@ export default async function FatturaDetailPage({ params }: Props) {
       id, numero, data, totale, pagata,
       xml_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
-      righe:fatture_righe(descrizione, quantita, prezzo_unitario, totale_riga)
+      righe:fatture_righe(descrizione, quantita, prezzo_unitario, importo)
     `)
     .eq('id', id)
     .eq('laboratorio_id', utente.laboratorio_id)
@@ -84,7 +84,7 @@ export default async function FatturaDetailPage({ params }: Props) {
               <div key={i} style={{ ...row, flexDirection: 'column', gap: '2px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, fontFamily: 'DM Sans, sans-serif' }}>{r.descrizione as string}</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'DM Sans, sans-serif' }}>{fmtEur(r.totale_riga)}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'DM Sans, sans-serif' }}>{fmtEur(r.importo)}</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--t2)', fontFamily: 'DM Sans, sans-serif' }}>
                   {r.quantita as number} × {fmtEur(r.prezzo_unitario)}
