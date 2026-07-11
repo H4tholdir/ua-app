@@ -1,20 +1,382 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Home — provvisorio (smoke test Task 1, sostituito dal Task 2)</title>
+<title>UÀ · Home — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
 <link rel="stylesheet" href="_base.css">
 <style>
-  .demo { max-width: 480px; margin: 24px auto; display: flex; flex-direction: column; gap: 16px; }
+  /* ==========================================================================
+     home.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono nelle
+     classi di _base.css (.card .tp .pill .riga-dato .riga-fase .tasto-primario
+     .tasto-tondo) e NON vengono ridichiarati qui.
+
+     ── VINCOLO NO-SCROLL (§3.3) ──────────────────────────────────────────────
+     La home non scrolla mai. A 390 il frame .home è alto ESATTAMENTE 100vh con
+     overflow:hidden; la fascia centrale (.pila-wrap) è flex:1 e assorbe lo slack
+     verticale, così lo stesso markup regge sia 844 sia 667 senza scroll.
+
+     ── SCALA DEVICE CORTI (§3.3, viewport height ≤ 700 → 390×667) — DIVENTA LEGGE ─
+     Si comprime SOLO lo spazio + il numero-display delle pile (unico font che la
+     legge autorizza a scalare, §4.1 lo vincola a «SOLO numeri delle pile»);
+     tutti gli altri corpi tipografici restano invariati (scala §4.1 chiusa).
+        • Pila · numero display .......... 52px → 44px
+        • Pila · padding (via .card) ..... 20/22 → 16/18   (verticale 20→16)
+        • Gap tra le pile (.pila-wrap) ... 16px → 12px
+        • Gap fra i blocchi (head/striscia/pile/foot) .. 16px → 12px
+        • Padding pagina (top/bottom) .... 24px → 16px
+        • Gap interno del foot (.tp↔label) 8px → 6px
+     (Larghezze, raggi, corpi ≥ heading e il TastoPiù Ø110 NON cambiano.)
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── HOME (390 primario + 768 colonna centrata) ──────────────────────────── */
+  .home {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px; margin: 0 auto;
+    padding: 24px 24px 24px;
+    display: flex; flex-direction: column;
+  }
+  .home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .eyebrow {                     /* §7.1 eyebrow data · brief 13/800/+0.16em faint */
+    font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .greeting {                    /* §4.1 large-title 31/800/-0.02em */
+    font-size: 31px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+    margin-top: 6px; color: var(--ink);
+  }
+
+  /* StrisciaStato (§5.24) — icona famiglia Ø26 tint + testo 14.5/muted, ink in bold. */
+  .striscia { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .striscia .ic {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .striscia .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .striscia.alert .ic { background: var(--red-tint); color: var(--red); }
+  .striscia .txt { font-size: 14.5px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+  .striscia .txt b { color: var(--ink); font-weight: 700; }
+  .striscia .azione { color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap; } /* CTA d'allarme */
+
+  /* Le tre pile (§5.7) — la card è .card di _base.css; qui SOLO l'impaginazione. */
+  .pila-wrap { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; margin-top: 16px; }
+  .pila { display: flex; align-items: center; gap: 20px; }
+  .pila-num {                    /* §4.1 display 52/800/-0.03em, tabular */
+    font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    min-width: 60px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .pila-txt { flex: 1; min-width: 0; }
+  .pila-label {                  /* §5.7 label 13/800/+0.16em colore-famiglia */
+    font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  }
+  .pila-sub {                    /* §5.7 sub 16/600 muted · max 1 riga con ellissi */
+    font-size: 16px; font-weight: 600; color: var(--muted); margin-top: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pila-sub b { color: var(--ink); font-weight: 700; }
+  .pila.rossa .pila-num, .pila.rossa .pila-label { color: var(--red); }
+  .pila.ambra .pila-num, .pila.ambra .pila-label { color: var(--amber); }
+  .pila.blu   .pila-num, .pila.blu   .pila-label { color: var(--blue); }
+
+  /* Foot: il TastoPiù (§5.2, .tp) — UNICA azione primaria della home. */
+  .home-foot { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .tp-label { font-size: 17.5px; font-weight: 800; color: var(--ink); }
+
+  /* ── 390: frame a 100vh, no-scroll (§3.3) ────────────────────────────────── */
+  @media (max-width: 430px) {
+    .home { height: 100vh; overflow: hidden; }
+    .striscia-variante { display: none; }   /* fuori dal flusso misurato dall'assert */
+  }
+
+  /* ── Variante device corti: 390×667 (h ≤ 700) — scala dichiarata sopra ───── */
+  @media (max-height: 700px) {
+    .home { padding: 16px 24px 16px; }
+    .striscia { margin-top: 12px; }
+    .pila-wrap { gap: 12px; margin-top: 12px; }
+    .pila.card { padding: 16px 18px; }       /* 20/22 → 16/18 */
+    .pila-num { font-size: 44px; }           /* 52 → 44 */
+    .home-foot { margin-top: 12px; gap: 6px; }
+  }
+
+  /* ── Sezione «— variante —» StrisciaStato serena (segnale 9, §6) ──────────── */
+  .striscia-variante {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px; margin: 8px auto 32px; padding: 0 24px;
+  }
+  .section-label {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin-bottom: 12px;
+  }
+  .striscia-variante .striscia { margin-top: 0; padding: 16px 18px; border-radius: 18px; background: var(--card); box-shadow: var(--sh-card); }
+
+  /* ── DESKTOP 1280 — tre pannelli (§12.3) ─────────────────────────────────── */
+  .desktop { display: none; }
+  @media (min-width: 1024px) {
+    .home { display: none; }
+    .striscia-variante { display: none; }    /* su desktop la StrisciaStato vive nel footer nav */
+    .desktop {
+      display: grid; grid-template-columns: 240px 400px 1fr;
+      height: 100vh; overflow: hidden; position: relative; z-index: 1;
+    }
+
+    /* Nav 240px --bg-deep */
+    .nav-desk { background: var(--bg-deep); padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .logo { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); padding: 0 8px; }
+    .logo em { font-style: normal; color: var(--red); }
+    .nav-nuovo { height: 52px; font-size: 16px; }        /* §12.3 TastoPrimario H52 in cima */
+    .voci { display: flex; flex-direction: column; gap: 4px; }
+    .voce { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px; border-radius: 12px; color: var(--muted); font-size: 16px; font-weight: 600; }
+    .voce .nome { flex: 1; }
+    .voce.sel { background: var(--bg); color: var(--ink); font-weight: 700; }  /* selezione: superficie più chiara del nav */
+    .badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--bg-deep); color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
+    .voce.sel .badge { box-shadow: none; }
+    .badge.r { background: var(--red-tint); color: var(--red); box-shadow: none; }
+    .badge.a { background: var(--amber-tint); color: var(--amber); box-shadow: none; }
+    .badge.b { background: var(--blue-tint); color: var(--blue); box-shadow: none; }
+    .nav-foot { margin-top: auto; }
+    .nav-foot .striscia { margin-top: 0; }
+
+    /* Lista 400px — pila rossa selezionata */
+    .lista-desk { padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+    .lista-head { display: flex; align-items: baseline; gap: 12px; }
+    .lista-titolo { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--red); }
+    .lista-sub { font-size: 14.5px; font-weight: 600; color: var(--muted); }
+    .cardlav .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .cardlav .num { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+    .cardlav .num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+    .cardlav .who { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 10px; }
+    .cardlav .tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+    .cardlav.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); }  /* §3.4 ring selezione 2.5 --red */
+
+    /* Scheda (anteprima n.147 — versione ridotta della scheda di Task 5) */
+    .scheda-desk { padding: 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .scheda-head { display: flex; align-items: center; gap: 16px; }
+    .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+    .scheda-head .sp { flex: 1; }
+    .scheda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+    .scheda-consegna { width: 340px; max-width: 340px; }  /* §12.3 primario 340px */
+    .callout { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+  }
+
+  /* Ring selezione in dark: --sh-card risolve a none, quindi lista pulita (§3.2). */
+  [data-theme="dark"] .cardlav.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
+
+  /* PillTempo (§5.9) — override sul default PillStato di _base.css. */
+  .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
+  .pill.fam-rossa { background: var(--red-tint); color: var(--red); }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
 </style>
 </head>
 <body>
-  <button data-mockup-chrome class="tasto-secondario" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')">Tema</button>
-  <div class="demo">
-    <div class="card">
-      <p style="font-size:17px;font-weight:700;">Provvisorio Task 1 — smoke test di _base.css e screenshot-mockups.mjs. Sostituito dal Task 2 (home.html vera).</p>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ HOME · 390 (primario) + 768 (colonna centrata max 480) ══════════════ -->
+<main class="home">
+  <div class="home-head">
+    <div>
+      <div class="eyebrow">Giovedì 9 luglio</div>
+      <h1 class="greeting">Buon pomeriggio,<br>Francesco</h1>
+    </div>
+    <button class="tasto-tondo" aria-label="Tutto il resto">☰</button>
+  </div>
+
+  <!-- StrisciaStato · variante attenzione (segnale 1 §6: fattura scartata da SDI) -->
+  <div class="striscia alert">
+    <span class="ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
+    </span>
+    <span class="txt">La <b>fattura di n.139</b> è stata scartata &nbsp;<a class="azione" href="#">Sistemala&nbsp;›</a></span>
+  </div>
+
+  <div class="pila-wrap">
+    <div class="card pila rossa">
+      <div class="pila-num">2</div>
+      <div class="pila-txt">
+        <div class="pila-label">Da consegnare oggi</div>
+        <div class="pila-sub"><b>n.144</b> da ieri — poi <b>n.147</b> alle 16:00</div>
+      </div>
+    </div>
+    <div class="card pila ambra">
+      <div class="pila-num">5</div>
+      <div class="pila-txt">
+        <div class="pila-label">Sul banco</div>
+        <div class="pila-sub"><b>n.149</b> per venerdì</div>
+      </div>
+    </div>
+    <div class="card pila blu">
+      <div class="pila-num">2</div>
+      <div class="pila-txt">
+        <div class="pila-label">Appena arrivati</div>
+        <div class="pila-sub"><b>n.151</b> del Dr. Esposito da confermare</div>
+      </div>
     </div>
   </div>
+
+  <div class="home-foot">
+    <button class="tp" aria-label="Nuovo lavoro">
+      <span class="ghiera">
+        <span class="solco"></span>
+        <span class="cappello"><span class="piu">+</span></span>
+      </span>
+    </button>
+    <div class="tp-label">Nuovo lavoro</div>
+  </div>
+</main>
+
+<!-- ══════════════ DESKTOP · 1280 (tre pannelli §12.3) ══════════════ -->
+<div class="desktop">
+  <!-- Nav 240px --bg-deep -->
+  <nav class="nav-desk">
+    <div class="logo">UÀ<em>.</em></div>
+    <button class="tasto-primario nav-nuovo">+ Nuovo lavoro</button>
+    <div class="voci">
+      <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">5</span></div>
+      <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+      <div class="voce"><span class="nome">Agenda</span></div>
+      <div class="voce"><span class="nome">Dentisti</span></div>
+      <div class="voce"><span class="nome">Fatture</span></div>
+      <div class="voce"><span class="nome">Magazzino</span></div>
+      <div class="voce"><span class="nome">Documenti</span></div>
+    </div>
+    <div class="nav-foot">
+      <div class="striscia alert">
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
+        </span>
+        <span class="txt">La <b>fattura di n.139</b> è stata scartata &nbsp;<a class="azione" href="#">Sistemala&nbsp;›</a></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Lista 400px — pila rossa selezionata -->
+  <section class="lista-desk">
+    <div class="lista-head">
+      <span class="lista-titolo">Da consegnare oggi</span>
+      <span class="lista-sub">2 lavori · il più vicino alle 16:00</span>
+    </div>
+    <div class="card cardlav">
+      <div class="top">
+        <div class="num"><small>Lavoro</small>n.144</div>
+        <span class="pill tempo fam-rossa">Da ieri</span>
+      </div>
+      <div class="who">Dr.ssa Bianchi · PZ-0398</div>
+      <div class="tipo">Ponte 3 elementi</div>
+    </div>
+    <div class="card cardlav sel">
+      <div class="top">
+        <div class="num"><small>Lavoro</small>n.147</div>
+        <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+      </div>
+      <div class="who">Dr. Esposito · PZ-0412</div>
+      <div class="tipo">Corona zirconia</div>
+    </div>
+  </section>
+
+  <!-- Scheda (anteprima n.147) -->
+  <section class="scheda-desk">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato">
+          <span class="chiave">Dentista</span>
+          <span class="valore-col"><span class="valore">Dr. Esposito</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Paziente</span>
+          <span class="valore-col"><span class="valore">PZ-0412</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Lavoro</span>
+          <span class="valore-col"><span class="valore">Corona zirconia</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Consegna</span>
+          <span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Tecnico</span>
+          <span class="valore-col"><span class="valore">Ciro</span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+          <span class="pill tempo fam-rossa">Prossima</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- CONSEGNA presente ma DISABLED: fasi non tutte fatte (Controllo finale
+           in sospeso) → §7 «MAI nascosto» + callout. Faccia --bg-deep/--faint,
+           quindi NON rossa: l'unica primaria rossa del desktop resta «+ Nuovo lavoro». -->
+      <button class="tasto-primario scheda-consegna" disabled>Consegna</button>
+      <div class="callout">Completa il controllo finale per consegnare</div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════ — variante — StrisciaStato serena (segnale 9 §6) ══════════════
+     Fuori dal frame no-scroll: nascosta a 390 (l'assert misura tutto il documento),
+     mostrata da 768 in su in colonna centrata. A 1280 la StrisciaStato vive nel
+     footer della nav, quindi la sezione-variante resta nascosta. -->
+<section class="striscia-variante">
+  <div class="section-label">— variante —</div>
+  <div class="striscia">
+    <span class="ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+    </span>
+    <span class="txt"><b>Tutto a posto:</b> 2 consegne oggi, la prossima alle 16:00</span>
+  </div>
+</section>
+
 </body>
 </html>
