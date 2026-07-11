@@ -1,7 +1,7 @@
-# SESSION ACTIVE — 11/07/2026 (pomeriggio, 3)
+# SESSION ACTIVE — 11/07/2026 (sera)
 
-**Stato:** **Follow-up review Ondata 3 CHIUSO e deployato** (`main acd39c1`, 3 commit): fail-closed su `getContabilitaCliente`/`fetchMovimentiCreditoValidi` (+try/catch in scadenzario cliente e credito applica/rimborsa), a11y `aria-controls` sui collassabili portale. Suite 1297 pass | 4 skipped. Tracciati **N4** (fonte di verità prezzo lavoro: `prezzo_unitario` vs righe `lavori_lavorazioni`, route PUT lavorazioni orfana — decisione di design nel redesign scheda lavoro DS v3) e **N5** (TD01 hardcoded — prerequisito note di credito) nel BACKLOG-TECNICO §N. Il Portale Dentista v2 resta completo (ondate 0-3).
+**Stato:** **DS v3 «Il cuore» — Ondata 0 mockup COMPLETATA fino al gate** (worktree `mockup-il-cuore-ondata-0`, branch `worktree-mockup-il-cuore-ondata-0`, base `3d883af`, HEAD `808c46b`, 16 commit). 6 mockup + kit `_base.css` + script screenshot in `docs/design/mockups/2026-07-09-il-cuore/` (38 PNG, 3-4 viewport × 2 temi). Ogni task review-approvato; review finale whole-branch (1 Critical + 4 Important, tutti fixati): «Ready to present: Yes».
 
-**Prossimo task:** sequenza **DS v3 «Il cuore»** — piano mockup Ondata 0 già pronto (`docs/superpowers/plans/2026-07-09-ds-v3-il-cuore-ondata-0-mockup.md`). Salvo ripriorizzazione di Francesco.
+**Prossimo (GATE Task 8):** presentazione a Francesco schermata per schermata — ATTENDERE ok esplicito su OGNUNA; da ratificare: deviazione F1 §7.4, pill «IN PROVA» (§13.3), disilicato→zirconia, copy striscia, correzioni calendario, deroga §5.17. Poi decision doc `docs/design/decisions/2026-07-09-il-cuore-mockups.md` + merge. Ledger: `.superpowers/sdd/progress.md` (worktree).
 
-**Gotcha:** subagent implementer possono committare sul checkout sbagliato (2 incidenti) — imporre verifica `git rev-parse --show-toplevel` + branch nel dispatch; env portale non in `.env.local` (solo Vercel); screenshot browser pane inaffidabili a 1280px (verificare via DOM).
+**Gotcha:** niente React prima dell'ok; i piani Ondate 1-4 si scrivono DOPO il gate.
