@@ -21,7 +21,7 @@ export default async function FatturaDetailPage({ params }: Props) {
     .from('fatture')
     .select(`
       id, numero, data, totale, iva, imponibile, stato_pagamento,
-      pdf_url, xml_storage_path, pec_message_id, pec_consegnata_at,
+      xml_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, totale_riga)
     `)
