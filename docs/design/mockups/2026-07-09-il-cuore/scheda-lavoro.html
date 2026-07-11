@@ -16,17 +16,17 @@
      Fasi n.147: Modellazione ✓ (Ciro, ieri 14:20) · Fusione ✓ (Ciro, oggi 9:05) ·
      Rifinitura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima.
 
-     ── SCELTA DI STATO SU CONSEGNA (importante, per non leggerlo come incoerenza) ──
-     La scheda ha 3 fasi fatte e «Controllo finale» come PROSSIMA fase — quella che
-     porta la PillFase «FATTA ✓» a destra (§5.11: pill solo sulla prossima da fare).
-     Questo SINGOLO stato di fasi ammette DUE rese lecite del tasto sacro CONSEGNA:
-        • Frame 1 (permissiva) → CONSEGNA ATTIVO: tocchi CONSEGNA e chiude anche
-          l'ultimo controllo. È la resa scelta dal brief per l'eroe mobile.
-        • Frame 2 (stretta)    → CONSEGNA DISABLED + callout «Completa il controllo
-          finale per consegnare» (§7.4/§5.1: presente ma disabled, MAI nascosto).
-          È la stessa resa già mostrata da home.html/pila-aperta.html (stesso lavoro,
-          momento anteriore).
-     I due frame differiscono SOLO nel bottone: le CardFasi sono identiche. È voluto.
+     ── FRAME 1 vs FRAME 2 · DUE MOMENTI DELLO STESSO LAVORO (§7.4 legge madre) ──
+     §7.4: «TastoPrimario CONSEGNA visibile SOLO quando tutte le fasi sono fatte;
+     altrimenti disabled con spiegazione §5.1». Quindi:
+        • Frame 1 → TUTTE e 4 le fasi fatte (Controllo finale ✓ Ciro · oggi 14:55,
+          NESSUNA PillFase tap) → CONSEGNA ATTIVO. Una sola azione possibile (L1).
+        • Frame 2 → momento ANTERIORE: «Controllo finale» è la prossima fase e porta
+          la PillFase «FATTA ✓» (§5.11) → CONSEGNA DISABLED + callout (MAI nascosto).
+          Stessa resa di home.html/pila-aperta.html.
+     DEVIAZIONE DAL PIANO (Task 5 F1): il piano chiedeva PillFase FATTA su Controllo
+     finale + CONSEGNA attivo insieme — incompatibili sotto §7.4/L1; reso con tutte
+     le fasi fatte. Da confermare al gate di approvazione (Task 8).
 
      ── RED-PRIMARY UNICO sui viewport larghi (§7.5 · nota home.html .scheda-desk) ──
      A 768 e 1280 il CONSEGNA è DISABLED (faccia --bg-deep/--faint, non rosso), così
@@ -188,9 +188,8 @@
   .chip:active { transform: translateY(2px); }
   .chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   .chip.si { background: var(--green-tint); color: var(--green); box-shadow: none; }
-  .chip svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .sheet-salva { width: 100%; margin-top: 26px; }
-  .sheet-escape { display: flex; justify-content: center; margin-top: 14px; }
+  .chip svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; } /* stroke 3 come CheckTondo §5.11 (pattern wizard) */
+  .sheet-escape { display: flex; justify-content: center; margin-top: 26px; }
 
   /* Menu ⋯ (§7.1) — voci in sheet. Riga H56, icona line-SVG stroke 1.7 (§4.4),
      nome 17/700. Separatore 1.5 --line tra le righe. «Butta via» rossa in fondo,
@@ -309,8 +308,9 @@
 <div class="frames">
 
   <!-- ─────────── FRAME 1 · SCHEDA COMPLETA n.147 · CONSEGNA ATTIVO ───────────
-       Resa PERMISSIVA del tasto sacro (vedi nota in testa al file): 3 fasi fatte,
-       «Controllo finale» prossima con PillFase «FATTA ✓» — CONSEGNA attivo. -->
+       §7.4: CONSEGNA attivo SOLO con tutte le fasi fatte → qui TUTTE e 4 sono ✓
+       (Controllo finale compreso), NESSUNA PillFase tap. Vedi nota di deviazione
+       dal piano in testa al file. -->
   <div class="frame-sep">— frame · scheda completa (consegna attiva) —</div>
   <section class="scheda-frame">
     <div class="scheda-head">
@@ -365,7 +365,8 @@
         <div class="foto-thumb f3"></div>
       </div>
 
-      <!-- CardFasi — 4 RigheFase (§5.11). PillFase «FATTA ✓» SOLO sulla prossima. -->
+      <!-- CardFasi — 4 RigheFase (§5.11), TUTTE fatte → nessuna PillFase tap:
+           §7.4 permette il CONSEGNA attivo solo in questo stato. -->
       <div class="card">
         <div class="card-title">Le fasi</div>
         <div class="riga-fase fatta">
@@ -380,14 +381,13 @@
           <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
           <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
         </div>
-        <div class="riga-fase">
-          <span class="check"></span>
-          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
-          <button class="pill-fase">FATTA ✓</button>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">Ciro · oggi 14:55</div></span>
         </div>
       </div>
 
-      <!-- CONSEGNA ATTIVO (resa permissiva — nota in testa al file) -->
+      <!-- CONSEGNA ATTIVO — lecito §7.4: tutte le fasi fatte, una sola azione (L1) -->
       <button class="tasto-primario scheda-consegna">Consegna</button>
     </div>
   </section>
@@ -485,6 +485,10 @@
 
       <div class="scrim"></div>
 
+      <!-- NIENTE tasto «Salva»: vietato dal dizionario (§2.3 madre) e superfluo —
+           §7.1 spec: salvataggio OTTIMISTICO, il tap sulla chip È il commit (PATCH
+           immediata, riconciliazione + Avviso su errore). «Oggi» è la scelta
+           corrente (spunta verde §5.11). Unica via di fuga: LinkQuieto (L6). -->
       <div class="sheet" role="dialog" aria-label="Quando va consegnata?">
         <h2 class="sheet-title">Quando va consegnata?</h2>
         <p class="sheet-hint">Adesso è <b>oggi alle 16:00</b>. Tocca una scelta.</p>
@@ -495,7 +499,6 @@
           <button class="chip">Lun 14</button>
           <button class="chip">Scegli…</button>
         </div>
-        <button class="tasto-primario sheet-salva">Salva</button>
         <div class="sheet-escape"><button class="link-quieto">Annulla</button></div>
       </div>
     </div>
