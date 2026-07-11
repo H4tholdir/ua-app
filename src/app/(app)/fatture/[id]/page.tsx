@@ -20,7 +20,7 @@ export default async function FatturaDetailPage({ params }: Props) {
   const { data: fattura } = await svc
     .from('fatture')
     .select(`
-      id, numero, data, totale, iva, imponibile, stato_pagamento,
+      id, numero, data, totale, pagata,
       xml_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, totale_riga)
@@ -62,8 +62,8 @@ export default async function FatturaDetailPage({ params }: Props) {
             <div style={row}><span style={{ color: 'var(--t2)' }}>Data</span><span>{fmtDate(f.data)}</span></div>
             <div style={{ ...row, borderBottom: 'none' }}>
               <span style={{ color: 'var(--t2)' }}>Stato</span>
-              <span style={{ fontWeight: 700, color: f.stato_pagamento === 'pagata' ? '#16A34A' : f.stato_pagamento === 'scaduta' ? '#D90012' : 'var(--t1)' }}>
-                {(f.stato_pagamento as string)?.toUpperCase() ?? '—'}
+              <span style={{ fontWeight: 700, color: f.pagata === true ? '#16A34A' : 'var(--t1)' }}>
+                {f.pagata === true ? 'PAGATA' : 'DA PAGARE'}
               </span>
             </div>
           </div>
