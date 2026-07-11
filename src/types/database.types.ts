@@ -1145,6 +1145,7 @@ export type Database = {
           note: string | null
           numero: string
           pagata: boolean
+          pdf_storage_path: string | null
           pdf_url: string | null
           pec_consegnata_at: string | null
           pec_message_id: string | null
@@ -1205,6 +1206,7 @@ export type Database = {
           note?: string | null
           numero: string
           pagata?: boolean
+          pdf_storage_path?: string | null
           pdf_url?: string | null
           pec_consegnata_at?: string | null
           pec_message_id?: string | null
@@ -1265,6 +1267,7 @@ export type Database = {
           note?: string | null
           numero?: string
           pagata?: boolean
+          pdf_storage_path?: string | null
           pdf_url?: string | null
           pec_consegnata_at?: string | null
           pec_message_id?: string | null
