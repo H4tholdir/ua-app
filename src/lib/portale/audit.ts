@@ -9,6 +9,7 @@ type Svc = ReturnType<typeof getServiceClient>
 export type AzionePortale =
   | 'view_lavori' | 'download_ddc' | 'download_buono'
   | 'view_fatturazione' | 'lista_stampata' | 'proposta_fatturazione'
+  | 'view_fatture' | 'download_fattura'
   | 'pin_ok' | 'pin_errato' | 'pin_bloccato'
   | 'pin_impostato' | 'pin_reimpostato'
   | 'interruttore_on' | 'interruttore_off'
