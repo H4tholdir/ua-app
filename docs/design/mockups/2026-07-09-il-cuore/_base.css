@@ -45,10 +45,14 @@ body {
   /* azione e stati */
   --red: #D90012; --red-dark: #A5000E;
   --amber: #9A5C00; --green: #1B7F3B; --blue: #1D5FBF;
-  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §3 + §5.7/§7.1:
-     nuova famiglia VIOLA per la quarta pila «DA RIFARE / IN PROVA». Viola caldo
-     armonizzato alla panna: testo 6.06 su --bg, 6.83 su --card, 5.88 sul tint
-     (tutti AA ≥4.5 ✓). */
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+     nuova famiglia VIOLA per la quarta pila «DA RIFARE / IN PROVA». Rivede
+     §3.3 regola 2 (palette chiusa a 4 famiglie: «Vietato un quinto colore di
+     stato. Il viola non esiste in questo sistema (solo negli avatar, §5.14)»)
+     e §5.14 (viola solo avatar); aggiornare anche la tabella di migrazione
+     v2.3→v3 («--c-purple → SOLO avatar») quando si emenda la legge madre.
+     Viola caldo armonizzato alla panna: testo 6.06 su --bg, 6.83 su --card,
+     5.88 sul tint (tutti AA ≥4.5 ✓). */
   --purple: #7C3F9C;
   --red-tint: #FBEDEC; --amber-tint: #F8F0E1; --blue-tint: #EBF1FA; --green-tint: #EAF4EC;
   --purple-tint: #F3EAF7; /* bucket B — tint viola, pattern identico ai tint fratelli */
@@ -70,9 +74,12 @@ body {
   --ink: #F2EEE7; --muted: #A69B8C; --faint: #928778; --line: #342E26;
   --red: #FF3B44; --red-dark: #8F0910;
   --amber: #E8A13D; --green: #34C468; --blue: #5B9BFF;
-  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §3 + §5.7/§7.1:
-     famiglia VIOLA dark — più chiara/desaturata come il pattern del blu #5B9BFF:
-     testo 6.92 su --bg, 6.32 su --card; sul tint .14: 5.57 (su --bg) / 5.05 (su --card) ✓. */
+  /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+     famiglia VIOLA dark — più chiara/desaturata come il pattern del blu #5B9BFF.
+     Rivede §3.3 regola 2 (palette chiusa a 4 famiglie) e §5.14 (viola solo
+     avatar); aggiornare anche la tabella di migrazione v2.3→v3 («--c-purple →
+     SOLO avatar») quando si emenda la legge madre.
+     Testo 6.92 su --bg, 6.32 su --card; sul tint .14: 5.57 (su --bg) / 5.05 (su --card) ✓. */
   --purple: #B98BE8;
   --red-tint: rgba(255,59,68,.14); --amber-tint: rgba(232,161,61,.14);
   --blue-tint: rgba(91,155,255,.14); --green-tint: rgba(52,196,104,.14);

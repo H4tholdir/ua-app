@@ -32,6 +32,10 @@
         • Padding pagina (top/bottom) .... 24px → 14px   (era 16px)
         • Gap interno del foot (.tp↔label) 8px → 6px
      (Larghezze, raggi, corpi ≥ heading e il TastoPiù Ø110 NON cambiano.)
+     REVISIONE DI LEGGE (bucket B): il regime device-corti ammette i passi
+     intermedi 10 e 14 SOLO in questa scala compressa — deroga a §4.2 (griglia
+     chiusa 4/8/12/16/20/24/32/44), da incidere nella legge madre insieme
+     alla 4ª pila.
      ========================================================================== */
 
   body { background: var(--bg); }
@@ -116,7 +120,10 @@
   .pila.rossa .pila-num, .pila.rossa .pila-label { color: var(--red); }
   .pila.ambra .pila-num, .pila.ambra .pila-label { color: var(--amber); }
   /* REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1: quarta
-     pila «DA RIFARE / IN PROVA», famiglia viola (token bucket B in _base.css). */
+     pila «DA RIFARE / IN PROVA», famiglia viola (token bucket B in _base.css).
+     Rivede §3.3 regola 2 (palette chiusa a 4 famiglie) e §5.14 (viola solo
+     avatar); aggiornare anche la tabella di migrazione v2.3→v3 quando si
+     emenda la legge madre. */
   .pila.viola .pila-num, .pila.viola .pila-label { color: var(--purple); }
   .pila.blu   .pila-num, .pila.blu   .pila-label { color: var(--blue); }
 
@@ -293,9 +300,11 @@
       </div>
     </div>
     <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
-         QUARTA pila «DA RIFARE / IN PROVA», famiglia viola. Ordine di urgenza:
-         rossa, ambra, viola, blu. Subline per la REGOLA SUBLINE (numero lavoro
-         primo, mai troncato). -->
+         QUARTA pila «DA RIFARE / IN PROVA», famiglia viola. Rivede §3.3 regola 2
+         (palette chiusa a 4 famiglie) e §5.14 (viola solo avatar); aggiornare
+         anche la tabella di migrazione v2.3→v3 quando si emenda la legge madre.
+         Ordine di urgenza: rossa, ambra, viola, blu. Subline per la REGOLA
+         SUBLINE (numero lavoro primo, mai troncato). -->
     <div class="card pila viola">
       <div class="pila-num">1</div>
       <div class="pila-txt">

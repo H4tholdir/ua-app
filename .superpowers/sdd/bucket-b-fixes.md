@@ -77,3 +77,30 @@ Dove atterra:
   home-1280-light (nav con «Da rifare · 1»).
 - Budget rosso invariato (un solo primario rosso per vista) · dark flat ·
   dizionario/vocabolario pill invariato («In prova» era già ratificata, cambia solo famiglia).
+
+## Addendum post-review (12/07 — solo documentazione, zero pixel)
+
+Il reviewer ha approvato tutto il funzionale (ratio riprodotti, no-scroll
+ri-verificato, cast coerente) e chiesto 3 chiusure documentali:
+
+1. **Citazione della norma abbattuta (B3)** — le annotazioni viola citavano
+   §3/§5.7/§7.1 ma non la regola effettivamente rovesciata. Aggiunto in tutte le
+   REVISIONI DI LEGGE viola (_base.css token light+dark, home.html regola CSS +
+   card markup, pila-aperta.html frame viola, README cast): «rivede §3.3 regola 2
+   (palette chiusa a 4 famiglie: "Vietato un quinto colore di stato. Il viola non
+   esiste in questo sistema (solo negli avatar, §5.14)") e §5.14 (viola solo
+   avatar); aggiornare anche la tabella di migrazione v2.3→v3 ("--c-purple →
+   SOLO avatar") quando si emenda la legge madre».
+2. **Deroga griglia §4.2 (scala device-corti)** — la scala ricompressa introduce
+   i passi 14px/10px fuori dalla griglia chiusa 8px (§4.2: 4/8/12/16/20/24/32/44).
+   Aggiunto al commento-legge della scala compressa in home.html: «il regime
+   device-corti ammette i passi intermedi 10 e 14 SOLO in questa scala
+   compressa — deroga a §4.2, da incidere nella legge madre insieme alla 4ª pila».
+3. **Ratifica «IN PROVA» documentata** — la rimozione dell'hedge «ESTENSIONE
+   VOCABOLARIO PROPOSTA (§13.3)… da ratificare» non documentava la ratifica.
+   Ripristinata nota in scheda-lavoro.html: «pill "IN PROVA" ratificata da
+   Francesco il 12/07 (bucket B, decisione B7) — estensione §5.9 definitiva,
+   famiglia viola».
+
+Modifiche solo a commenti HTML/CSS/MD: nessun cambio di pixel, screenshot NON
+rigenerati (invariati per costruzione).

@@ -12,7 +12,12 @@ Cast condiviso (usare identico in ogni schermata):
 - Pile: rossa 2 (n.144, n.147) · ambra 4 (n.149, n.146, n.148, n.150) · **viola 1 (n.145 Corona disilicato · Dr. Esposito · in prova esterna, torna lun 13)** · blu 2 (n.151, n.152)
   <!-- REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
        4ª pila «DA RIFARE / IN PROVA» (famiglia viola) decisa da Francesco 12/07
-       su parere odontotecnico. n.145 esce dall'ambra (5→4) ed entra nella viola. -->
+       su parere odontotecnico. n.145 esce dall'ambra (5→4) ed entra nella viola.
+       Rivede §3.3 regola 2 (palette chiusa a 4 famiglie: «Vietato un quinto
+       colore di stato. Il viola non esiste in questo sistema (solo negli avatar,
+       §5.14)») e §5.14 (viola solo avatar); aggiornare anche la tabella di
+       migrazione v2.3→v3 («--c-purple → SOLO avatar») quando si emenda la
+       legge madre. -->
 - Fasi n.147: Fresatura ✓ (Ciro, ieri 14:20) · Sinterizzazione ✓ (Ciro, oggi 9:05) · Glasatura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima
   <!-- fasi corrette su parere odontotecnico (advisor 03): la zirconia si fresa e sinterizza,
        non si fonde — il piano aveva la catena del metallo (Modellazione → Fusione → Rifinitura).
