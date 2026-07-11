@@ -16,4 +16,4 @@ Screenshot: node scripts/screenshot-mockups.mjs docs/design/mockups/2026-07-09-i
 ## Note per i mockup
 
 - `_base.css` importa Plus Jakarta Sans via `@import url(...)` — non serve alcun `<link>` nelle singole pagine HTML. Ogni mockup che riferisce `_base.css` eredita il font automaticamente.
-- `.pill` di default applica lo stile PillStato (13.5px, weight 800, +0.1em tracking, uppercase). Per variante PillTempo (15px, weight 800, no tracking, no uppercase), sovrascrivere `font-size: 15px; letter-spacing: 0; text-transform: none;` come documentato in riga 85 di `_base.css`.
+- `.pill` di default applica lo stile PillStato (13.5px, weight 800, +0.1em tracking, uppercase). Per variante PillTempo (15px, weight 800, no tracking, no uppercase), sovrascrivere `font-size: 15px; letter-spacing: 0; text-transform: none;` come documentato nel commento della classe `.pill` in `_base.css`.

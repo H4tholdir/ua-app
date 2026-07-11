@@ -1,7 +1,8 @@
 /* Carica Plus Jakarta Sans da Google Fonts — questa @import live qui è il
    singolo punto di verità per TUTTI i mockup in questa cartella. Ogni file
    HTML consumatore eredita automaticamente il font via _base.css. */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap');
+/* Range variabile 200..800: serve anche il weight 350 usato dal glifo + del TastoPiu (.tp .piu). */
 
 /* _base.css — SOLO per i mockup Ondata 0 («Il cuore», DS v3 «Una cosa alla
    volta»). Fonte token: src/app/ds-v3.css (copiati verbatim, ri-scopati da
