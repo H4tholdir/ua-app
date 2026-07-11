@@ -65,8 +65,8 @@
      .tasto-secondario .tasto-tondo .link-quieto .sheet .scrim) e NON vengono
      ridichiarati qui. Uniche eccezioni (non nel kit Task 1, copiate/derivate dai
      mockup sorgente col loro riferimento §): .pill.fam-* (scheda-lavoro.html),
-     .fatto-check/.fatto-title (wizard.html Frame «Fatto!»), .wa-btn (green-3D,
-     stessa materia della .pill-fase di scheda-lavoro.html), .bloccante,
+     .fatto-check/.fatto-title (wizard.html Frame «Fatto!»), .wa-btn (verde
+     WhatsApp DEDICATO §3.3.4, materia 3D come .pill-fase), .bloccante,
      .ua-fatto (§5.22), .annullo (§9).
      ========================================================================== */
 
@@ -174,9 +174,9 @@
   .bloccante .ic {
     flex: none; width: 34px; height: 34px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(154,92,0,.16); color: var(--amber);
+    background: var(--amber-tint); color: var(--amber);  /* token famiglia — MAI rgba hardcoded (dark risolve da solo) */
   }
-  .bloccante .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .bloccante .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; } /* stroke 3 come il triangolo della StrisciaStato (home.html, fonte citata) */
   .bloccante .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .bloccante .b-cosa { font-size: 16px; font-weight: 700; color: var(--ink); }
   .bloccante .b-fai  { font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 2px; }
@@ -222,21 +222,25 @@
 
   /* WhatsApp — bottone VERDE esplicito (§8 spec: «WhatsApp verde esplicito,
      invariante: MAI auto-popup»). È la CTA del Consegnato! (payoff già fatto → il
-     verde, non il rosso). PAGE-LOCAL: non è una classe del kit Task 1; stessa
-     materia 3D della .pill-fase di scheda-lavoro.html (gradiente #269950→--green,
-     corsa 3px→1px #14602C) portata a bottone pieno. */
+     verde, non il rosso). COLORE: §3.3.4 legge madre — «WhatsApp verde
+     #1F9E52→#2FBE68 è riservato ESCLUSIVAMENTE ai bottoni che aprono WhatsApp»
+     → NON il verde di stato (--green/.pill-fase), ma il gradiente dedicato.
+     §3.3.4 dà i due stop senza direzione né corsa/dark: resa col chiaro (#2FBE68)
+     in ALTO come ogni faccia 3D del sistema (§5.1) e corsa/dark mutuate dalla
+     materia .pill-fase (corsa #14602C, dark flat §3.2). PAGE-LOCAL: non è una
+     classe del kit Task 1. */
   .wa-btn {
     display: flex; align-items: center; justify-content: center; gap: 11px;
     width: 100%; max-width: 480px; height: 62px; margin-top: 26px;
     border: none; border-radius: 18px;
-    background: linear-gradient(180deg, #269950, var(--green));
+    background: linear-gradient(180deg, #2FBE68, #1F9E52); /* §3.3.4: verde WhatsApp dedicato */
     box-shadow: 0 5px 0 #14602C, 0 14px 24px -16px rgba(50,40,25,.35);
     color: #fff; font-family: var(--font-v3);
     font-size: 17.5px; font-weight: 800; letter-spacing: .01em;
     cursor: pointer;
     transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
   }
-  .wa-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .wa-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; flex: none; } /* §4.4: line-icon stroke 1.7 */
   .wa-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #14602C; }
   .wa-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   [data-theme="dark"] .wa-btn { box-shadow: 0 5px 0 #14602C; }  /* §3.2 dark è flat: via l'ombra ambiente */
@@ -264,9 +268,9 @@
   .annullo .ic {
     flex: none; width: 34px; height: 34px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(27,127,59,.16); color: var(--green);
+    background: var(--green-tint); color: var(--green);  /* token famiglia — MAI rgba hardcoded (dark risolve da solo) */
   }
-  .annullo .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .annullo .ic svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; } /* §4.4: line-icon stroke 1.7 */
   .annullo .corpo { flex: 1; min-width: 0; }
   .annullo .a-tit { font-size: 15.5px; font-weight: 700; color: var(--ink); }
   .annullo .a-sub { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 1px; }
@@ -324,7 +328,9 @@
 
       <div class="dialog" role="dialog" aria-label="Consegno la Corona n.147 al Dr. Esposito?">
         <div class="occhiello">Consegno?</div>
-        <!-- EVIDENZA MASSIMA (§8): l'oggetto è il testo più grande del dialog -->
+        <!-- EVIDENZA MASSIMA (§8): l'oggetto è il testo più grande del dialog.
+             Il «→» qui è TESTO DEL PIANO (verbatim «Corona n.147 → Dr. Esposito»);
+             §4.4 riserva «→» alle azioni esterne — flaggato per il gate Task 8. -->
         <div class="oggetto">Corona n.147 <span class="freccia">→</span> Dr. Esposito</div>
         <!-- DEROGA §5.17: azione NON distruttiva → primario SOPRA, quieta sotto -->
         <button class="tasto-primario">Consegna</button>
@@ -366,7 +372,10 @@
             <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
             <span class="corpo">
               <span class="b-cosa">Manca il lotto della zirconia</span>
-              <span class="b-fai">Registralo →</span>
+              <!-- Niente «→» nell'azione: il › (chev) della riga è già la freccia
+                   «entra» (§4.4: «→» solo su azioni esterne/WhatsApp) — come
+                   «Sistemala ›» della StrisciaStato di home.html. -->
+              <span class="b-fai">Registralo</span>
             </span>
             <span class="chev" aria-hidden="true">›</span>
           </button>
@@ -374,7 +383,7 @@
             <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
             <span class="corpo">
               <span class="b-cosa">Manca la firma sul controllo finale</span>
-              <span class="b-fai">Completa →</span>
+              <span class="b-fai">Completa</span>
             </span>
             <span class="chev" aria-hidden="true">›</span>
           </button>
