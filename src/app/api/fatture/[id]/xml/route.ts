@@ -223,7 +223,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // ── Invia PEC (opzionale) ─────────────────────────────────────────────────
-  // Usa fatturaId (il draft aggiornato) — ora ha xml_url valorizzato dopo generaFatturaPA
+  // Usa fatturaId (il draft aggiornato) — ora ha xml_storage_path valorizzato dopo generaFatturaPA
   let pecInviata = false
   let pecErrore: string | null = null
 
@@ -239,7 +239,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   // ── Recupera stato aggiornato ─────────────────────────────────────────────
   const { data: fatturaAggiornata } = await svc
     .from('fatture')
-    .select('id, numero, stato_sdi, xml_url, nome_file_xml, inviata_at, inviata_via')
+    .select('id, numero, stato_sdi, xml_storage_path, nome_file_xml, inviata_at, inviata_via')
     .eq('id', fatturaId)
     .single()
 

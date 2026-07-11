@@ -45,7 +45,7 @@ export async function GET() {
       bollo,
       iva_importo,
       nome_file_xml,
-      xml_url,
+      xml_storage_path,
       inviata_via,
       inviata_at,
       note,

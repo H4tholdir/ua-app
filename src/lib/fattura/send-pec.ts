@@ -18,7 +18,6 @@ interface FatturaRow {
   id: string
   numero: string
   nome_file_xml: string | null
-  xml_url: string | null
   xml_storage_path: string | null
   laboratorio_id: string
   data: string | null
@@ -35,7 +34,6 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
       id,
       numero,
       nome_file_xml,
-      xml_url,
       xml_storage_path,
       laboratorio_id,
       data,
@@ -67,7 +65,7 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
   }
 
   // ── 2. Verifica XML generato ─────────────────────────────────────────────
-  if (!fattura.xml_url) {
+  if (!fattura.xml_storage_path) {
     throw new Error('XML non generato — eseguire prima la generazione FatturaPA')
   }
 
@@ -96,19 +94,10 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
     throw new Error('PEC non configurata: pec_user mancante nella configurazione laboratorio')
   }
 
-  // ── 4. Scarica XML da Storage ─────────────────────────────────────────────
-  // Usa signed URL (60s) per supportare bucket privati — non URL pubblico
+  // ── 4. Scarica XML da Storage (SOLO signed URL — bucket privato, I-6) ────
   let xmlBuffer: ArrayBuffer
   try {
-    // Usa xml_storage_path salvato durante generate-xml (mai ricostruito dal timestamp)
-    const storagePath = fattura.xml_storage_path ?? null
-
-    let downloadUrl = fattura.xml_url
-    if (storagePath) {
-      const signedUrl = await getSignedUrl(supabase, 'fatture-pdf', storagePath, 60)
-      if (signedUrl) downloadUrl = signedUrl
-    }
-
+    const downloadUrl = await getSignedUrl(supabase, 'fatture-pdf', fattura.xml_storage_path, 60)
     if (!downloadUrl) throw new Error('URL XML non disponibile')
 
     const resp = await fetch(downloadUrl)
