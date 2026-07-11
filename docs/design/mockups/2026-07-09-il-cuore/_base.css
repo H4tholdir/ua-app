@@ -1,0 +1,442 @@
+/* _base.css — SOLO per i mockup Ondata 0 («Il cuore», DS v3 «Una cosa alla
+   volta»). Fonte token: src/app/ds-v3.css (copiati verbatim, ri-scopati da
+   [data-ds="v3"]/[data-theme="dark"] [data-ds="v3"] a :root/[data-theme="dark"]
+   — qui non serve lo scope v3: tutto il file è v3). Fonte misure componenti:
+   docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md §5
+   (citate in commento riga per riga) — con riscontro incrociato sui componenti
+   React già implementati in src/components/ds/*.tsx e src/design-system/v3/
+   tokens.ts, dove la spec lasciava un valore non quantificato (es. l'"ombra
+   ambiente" del TastoPrimario). .tp e .pv sono copiati VERBATIM dalle classi
+   .tpB e .pvA dei mockup sorgente (vedi commenti alle rispettive sezioni). */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+/* Toggle tema (chrome del mockup, escluso dagli screenshot via [data-mockup-chrome]) */
+[data-mockup-chrome] { position: fixed; top: 8px; right: 8px; z-index: 999; }
+
+/* ==========================================================================
+   TOKEN — copiati VERBATIM da src/app/ds-v3.css
+   Light: blocco [data-ds="v3"]  →  qui su :root, [data-theme="light"]
+   Dark:  blocco [data-theme="dark"] [data-ds="v3"]  →  qui su [data-theme="dark"]
+   ========================================================================== */
+
+:root, [data-theme="light"] {
+  /* superfici */
+  --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA; --elv: var(--card);
+  /* inchiostri */
+  --ink: #1D1913; --muted: #6E6457; --faint: #A69B8C; --line: #EBE4D6;
+  /* azione e stati */
+  --red: #D90012; --red-dark: #A5000E;
+  --amber: #9A5C00; --green: #1B7F3B; --blue: #1D5FBF;
+  --red-tint: #FBEDEC; --amber-tint: #F8F0E1; --blue-tint: #EBF1FA; --green-tint: #EAF4EC;
+  /* materia */
+  --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+  --grana-opacity: 0.05;
+  /* tipografia */
+  --font-v3: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* Dark — elevazione = superficie più chiara, MAI ombre (spec §3.2) */
+[data-theme="dark"] {
+  --bg: #171411; --bg-deep: #100E0B; --card: #211D18; --elv: #2B2620;
+  --ink: #F2EEE7; --muted: #A69B8C; --faint: #6E6457; --line: #342E26;
+  --red: #FF3B44; --red-dark: #8F0910;
+  --amber: #E8A13D; --green: #34C468; --blue: #5B9BFF;
+  --red-tint: rgba(255,59,68,.14); --amber-tint: rgba(232,161,61,.14);
+  --blue-tint: rgba(91,155,255,.14); --green-tint: rgba(52,196,104,.14);
+  --sh-card: none; --sh-press: none;
+  --grana-opacity: 0.06;
+}
+
+/* ==========================================================================
+   COMPONENTI — nomi esatti che i Task 2-7 useranno. Misure in commento §5.x.
+   Stati obbligatori per tutti gli interattivi: default, pressed (:active),
+   disabled, focus-visible (anello 2px --blue offset 2) — legge §5 (nota testa).
+   ========================================================================== */
+
+/* §4.2 raggio "card 24" · §5.7 Pila "Card 24 · padding 20/22" ·
+   §5.8 CardLavoro "Card 24 · padding 20/22" — superficie carta generica. */
+.card {
+  background: var(--card);
+  border-radius: 24px; /* §4.2: raggi — card 24 */
+  padding: 20px 22px; /* §5.7/§5.8: padding 20/22 */
+  box-shadow: var(--sh-card); /* §4.3: --sh-card su ogni superficie carta (risolve a "none" in dark, §3.2) */
+}
+
+/* §5.9 PillTempo/PillStato — base comune: radius 999 (§4.2), padding 7/13,
+   peso 800. Font-size/tracking (15/800 PillTempo vs 13.5/800/+0.1em
+   PillStato, qui applicato come default) e colore-famiglia (sfondo tint +
+   testo colore, es. background:var(--red-tint); color:var(--red)) si
+   aggiungono per istanza dalla schermata consumatrice — il vocabolario stati
+   è chiuso (§5.9) ma il markup statico non può applicarlo da solo. */
+.pill {
+  display: inline-block;
+  border-radius: 999px; /* §4.2: pill/tasti-testo raggio 999 */
+  padding: 7px 13px; /* §5.9: Pill · padding 7/13 */
+  font-family: var(--font-v3);
+  font-weight: 800; /* §5.9: entrambe le varianti sono /800 */
+  font-size: 13.5px; letter-spacing: .1em; text-transform: uppercase; /* §5.9: default PillStato 13.5/800/+0.1em — per PillTempo sovrascrivere font-size:15px e rimuovere tracking/uppercase per istanza */
+  white-space: nowrap;
+}
+
+/* §5.1 TastoPrimario — il tasto fisico. H 70 mobile/60 desktop · radius 20 ·
+   full-width (max 480) · testo 21/800/+0.04em MAIUSCOLO · facce gradiente +
+   corsa 6px→1px pressed · disabled MAI nascosto (faccia --bg-deep, testo
+   --faint). L'"ombra ambiente" citata in §5.1 non ha valori numerici propri
+   nella legge madre: nel componente reale (TastoPrimario.tsx) è
+   var(--sh-card) su un wrapper separato dal bottone, per evitare che "none"
+   (dark) finisca in una lista box-shadow multi-valore (CSS non valido). Qui,
+   su una singola classe, estraiamo il solo membro ambientale di --sh-card
+   light (0 16px 30px -18px rgba(50,40,25,.35)) e lo sostituiamo con "nessuna
+   ombra ambiente" in dark (§3.2: dark è flat) — resta sempre la corsa. */
+.tasto-primario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 480px; /* §5.1: full-width (max 480) */
+  height: 70px; /* §5.1: H 70 mobile */
+  border: none;
+  border-radius: 20px; /* §5.1: radius 20 */
+  background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010); /* §5.1: facce */
+  box-shadow: 0 6px 0 var(--red-dark), 0 16px 30px -18px rgba(50,40,25,.35); /* §5.1: corsa 6px + ombra ambiente (light) */
+  color: #FFFFFF;
+  font-family: var(--font-v3);
+  font-size: 21px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; /* §5.1: testo 21/800/+0.04em MAIUSCOLO */
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1); /* §8.1: fallback CSS di "press" */
+}
+@media (min-width: 1024px) {
+  .tasto-primario { height: 60px; } /* §5.1: H 60 desktop */
+}
+[data-theme="dark"] .tasto-primario {
+  box-shadow: 0 6px 0 var(--red-dark); /* §3.2: dark è flat, --sh-card risolve a none — resta solo la corsa */
+}
+.tasto-primario:active {
+  transform: translateY(5px) scale(.995); /* §5.1: pressed — translateY(5px) + scala .995 */
+  box-shadow: 0 1px 0 var(--red-dark); /* §5.1: corsa a 1px */
+}
+.tasto-primario:disabled {
+  background: var(--bg-deep); /* §5.1: disabled — faccia --bg-deep */
+  color: var(--faint); /* §5.1: disabled — testo --faint */
+  box-shadow: none;
+  cursor: default;
+}
+.tasto-primario:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* §5.3 TastoSecondario — H 58 · radius 18 · faccia --card + --sh-press ·
+   testo 17/700 --ink. Corsa ridotta (2px, non 5) rispetto al TastoPrimario. */
+.tasto-secondario {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 58px; /* §5.3: H 58 */
+  padding: 0 24px;
+  border: none;
+  border-radius: 18px; /* §5.3: radius 18 */
+  background: var(--card);
+  box-shadow: var(--sh-press); /* §5.3 */
+  color: var(--ink);
+  font-family: var(--font-v3);
+  font-size: 17px; font-weight: 700; /* §5.3: testo 17/700 */
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+}
+.tasto-secondario:active { transform: translateY(2px); } /* §5.3: corsa 2px (non nascosta, solo ridotta) */
+.tasto-secondario:disabled {
+  background: var(--bg-deep); box-shadow: none; color: var(--faint); cursor: default; /* non nascosto quando disabled, come §5.1 */
+}
+.tasto-secondario:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* §5.6 TastoTondo (back/menu) — Ø 50 · --card + --sh-press · glifo 19-21/800. */
+.tasto-tondo {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 50px; height: 50px; /* §5.6: Ø 50 */
+  border: none; border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--sh-press); /* §5.6 */
+  color: var(--ink);
+  font-family: var(--font-v3);
+  font-size: 20px; font-weight: 800; /* §5.6: glifo 19-21/800 */
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+}
+.tasto-tondo:active { transform: translateY(2px); }
+.tasto-tondo:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* §5.5 LinkQuieto — solo testo 14.5/muted sottolineato (underline-offset 3).
+   Hit-area 44px via padding verticale + margin negativo uguale e contrario
+   (stesso schema di src/components/ds/LinkQuieto.tsx): il testo resta
+   visivamente 14.5px, cambia solo quanto è facile centrarlo col dito (§4.2:
+   touch target minimo 44×44 SEMPRE). RISERVATO alle vie di fuga (L6). */
+.link-quieto {
+  display: inline-flex; align-items: center;
+  min-height: 44px; /* §4.2: touch target minimo 44px */
+  padding: 13px 0; margin: -13px 0;
+  background: none; border: none;
+  color: var(--muted);
+  font-family: var(--font-v3);
+  font-size: 14.5px; font-weight: 600; /* §5.5: testo 14.5/muted */
+  text-decoration: underline; text-underline-offset: 3px; /* §5.5 */
+  cursor: pointer;
+}
+.link-quieto:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* §5.10 RigaDato (dentro CardInfo) — righe padding 9px 0, separatore 1.5
+   --line tra le righe (mai dopo l'ultima → :not(:last-child)). Chiave:
+   caption 12.5/800 MAIUSCOLA --faint a sinistra. Valore: 17/700 --ink a
+   destra (sub-valore 14/500 muted sotto). L'unico valore che può essere
+   rosso è la consegna imminente (≤ domani) → .riga-dato .valore.urgente. */
+.riga-dato {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px; /* §4.2: griglia 8px */
+  padding: 9px 0; /* §5.10 */
+}
+.riga-dato:not(:last-child) { border-bottom: 1.5px solid var(--line); } /* §5.10: separatore, mai dopo l'ultima */
+.riga-dato .chiave {
+  font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; /* §5.10/§4.1: caption 12.5/800/+0.14em MAIUSCOLA */
+  color: var(--faint);
+  flex-shrink: 0;
+}
+.riga-dato .valore-col { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.riga-dato .valore { font-size: 17px; font-weight: 700; color: var(--ink); text-align: right; } /* §5.10 */
+.riga-dato .valore.urgente { color: var(--red); } /* §5.10: unico valore rosso ammesso — consegna imminente ≤ domani */
+.riga-dato .sub { font-size: 14px; font-weight: 500; color: var(--muted); text-align: right; } /* §5.10: sub-valore 14/500 muted */
+
+/* §5.11 RigaFase — CheckTondo Ø 31 (fatto: --green-tint + check 3px --green;
+   da fare: cerchio dashed 2.5 #CBC1B0/gradiente.dashedGuida) + nome 17/700
+   (fatto: 17/600 muted, MAI barrato) + sotto 13.5 faint "chi · quando".
+   PillFase sulla prossima fase da fare non è una classe di Task 1 (non nel
+   set nominato) — la schermata consumatrice la aggiunge col proprio markup. */
+.riga-fase {
+  display: flex; align-items: center; gap: 16px; /* §4.2/§5.11: griglia 8px */
+  padding: 8px 0; /* §5.11 */
+}
+.riga-fase .check {
+  flex-shrink: 0;
+  width: 31px; height: 31px; /* §5.11: CheckTondo Ø 31 */
+  border-radius: 50%;
+  border: 2.5px dashed #CBC1B0; /* §5.11: da fare — cerchio dashed 2.5 #CBC1B0 */
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
+.riga-fase .check.fatta {
+  border: none;
+  background: var(--green-tint); /* §5.11: fatto — --green-tint + check 3px --green */
+  color: var(--green);
+}
+.riga-fase .nome { font-size: 17px; font-weight: 700; color: var(--ink); } /* §5.11: nome 17/700 */
+.riga-fase.fatta .nome { font-weight: 600; color: var(--muted); text-decoration: none; } /* §5.11: fatto → 17/600 muted, MAI barrato */
+.riga-fase .chi-quando { font-size: 13.5px; font-weight: 600; color: var(--faint); } /* §5.11: sotto 13.5 faint */
+
+/* §5.12 TileScelta (wizard) — Card 22 · padding 20/12/17 · centrato · glifo
+   64 in quadrato radius 20 tint (o avatar Ø 60, non gestito qui: markup
+   della schermata) · nome 17.5/700 · sotto 13 faint. TileNuovo (.nuovo):
+   bordo dashed 2.5 #CBC1B0, niente ombra. */
+.tile-scelta {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; /* §4.2: griglia 8px */
+  padding: 20px 12px 17px; /* §5.12 */
+  border: none;
+  border-radius: 22px; /* §5.12: card 22 */
+  background: var(--card);
+  box-shadow: var(--sh-press); /* §5.12 */
+  text-align: center;
+  cursor: pointer;
+}
+.tile-scelta .glifo {
+  width: 64px; height: 64px; /* §5.12: glifo 64 */
+  border-radius: 20px; /* §5.12: quadrato radius 20 — coincide col raggio del tasto */
+  background: var(--blue-tint); /* §5.12: tint */
+  display: flex; align-items: center; justify-content: center;
+}
+.tile-scelta .nome { font-size: 17.5px; font-weight: 700; color: var(--ink); } /* §5.12 */
+.tile-scelta .sotto { font-size: 13px; color: var(--faint); } /* §5.12 */
+.tile-scelta:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tile-scelta.nuovo { /* §5.12: TileNuovo — bordo dashed 2.5, niente ombra */
+  border: 2.5px dashed #CBC1B0;
+  background: transparent;
+  box-shadow: none;
+}
+.tile-scelta.nuovo .nome { color: var(--muted); }
+
+/* §5.16 Sheet + §5.17 scrim — sale dal basso, radius 28 SOLO in alto,
+   grabber 36×4 --line centrato a 8px dal bordo superiore, copre max 92%
+   viewport (scroll interno oltre). Scrim rgba(29,25,19,.35) dietro
+   (materia.scrim, condiviso con DialogConferma §5.17). */
+.scrim {
+  position: fixed; inset: 0;
+  z-index: 1000; /* wrapper dell'overlay, come nel componente reale */
+  background: rgba(29,25,19,.35); /* §5.16/§5.17: scrim */
+}
+.sheet {
+  position: fixed;
+  left: 50%; bottom: 0;
+  transform: translateX(-50%);
+  z-index: 1001;
+  width: 100%; max-width: 480px;
+  max-height: 92vh; /* §5.16: copre max 92% viewport */
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 28px 28px 0 0; /* §5.16: radius 28 SOLO in alto */
+  padding: 32px 24px 24px; /* §4.2: griglia 8px — 32/24/24 */
+  box-shadow: var(--sh-card);
+}
+.sheet::before { /* §5.16: grabber 36×4 --line centrato a 8px dal bordo */
+  content: '';
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+/* §5.18 Avviso (toast) — Card 18 (radius riga) in alto, testo 15.5/700 max 2
+   righe + eventuale azione inline. Icona famiglia 26px tonda tint (verde
+   default / rosso .errore — l'avviso di errore non scompare da solo). */
+.avviso {
+  display: flex; align-items: flex-start; gap: 8px; /* §4.2: griglia 8px */
+  padding: 16px;
+  border-radius: 18px; /* §5.18: card 18 */
+  background: var(--card);
+  box-shadow: var(--sh-card);
+  max-width: 480px;
+}
+.avviso .icona {
+  flex-shrink: 0;
+  width: 26px; height: 26px; /* §5.18: icona famiglia 26 */
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--green-tint); color: var(--green);
+  font-size: 13px; font-weight: 800;
+}
+.avviso.errore .icona { background: var(--red-tint); color: var(--red); } /* §5.18: errore — icona rossa, MAI scompare da sola */
+.avviso .testo {
+  font-size: 15.5px; font-weight: 700; color: var(--ink); /* §5.18: testo 15.5/700 */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; /* §5.18: max 2 righe */
+}
+
+/* ==========================================================================
+   .tp — §5.2 TastoPiu, «il punto rosso» (rev. 2, 09/07 — variante B scelta
+   da Francesco). FONTE DI VERITÀ VISIVA:
+   docs/design/mockups/2026-07-09-tastopiu-v3-due-varianti.html, classe .tpB
+   (+ .notte .tpB). Valori CSS copiati VERBATIM da lì, classe rinominata .tp.
+   ========================================================================== */
+.tp {
+  position: relative; width: 110px; height: 110px; border: none; background: transparent;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; place-items: center;
+}
+.tp .ghiera {
+  position: relative; width: 92px; height: 92px; border-radius: 50%;
+  background: linear-gradient(170deg, #F9F5EC 0%, #EFE9DC 60%, #E2DACA 100%);
+  box-shadow:
+    0 16px 28px rgba(52, 42, 26, .20),
+    0 5px 10px rgba(52, 42, 26, .12),
+    inset 0 1.5px 1px rgba(255, 255, 255, .9),
+    inset 0 -2px 3px rgba(52, 42, 26, .08);
+  transition: box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.tp .solco {
+  position: absolute; inset: 11px; border-radius: 50%;
+  background: linear-gradient(180deg, #DAD2C2, #ECE6DA);
+  box-shadow: inset 0 1.5px 2.5px rgba(52, 42, 26, .24), inset 0 -1px 1px rgba(255, 255, 255, .5);
+}
+.tp .cappello {
+  position: absolute; inset: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 28%, #FFFFFF 0%, #FEFCF8 40%, #F5F0E6 75%, #EBE4D4 100%);
+  box-shadow:
+    0 3px 6px rgba(52, 42, 26, .18),
+    inset 0 2px 2px rgba(255, 255, 255, 1),
+    inset 0 -4px 8px rgba(52, 42, 26, .06);
+  display: grid; place-items: center;
+  transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.tp .piu {
+  font-size: 42px; font-weight: 350; line-height: 1; color: #D90012;
+  transform: translateY(-1px); user-select: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,.7);
+}
+.tp:active .cappello {
+  transform: translateY(2.5px) scale(.972);
+  background: radial-gradient(circle at 50% 34%, #FBF8F1 0%, #F5F0E5 50%, #ECE5D5 100%);
+  box-shadow: inset 0 3px 7px rgba(52, 42, 26, .15), inset 0 -1px 1px rgba(255, 255, 255, .5);
+}
+.tp:active .piu { color: #A5000E; }
+.tp:active .ghiera {
+  box-shadow:
+    0 10px 20px rgba(52, 42, 26, .18), 0 4px 8px rgba(52, 42, 26, .11),
+    inset 0 1.5px 1px rgba(255, 255, 255, .9), inset 0 -2px 3px rgba(52, 42, 26, .08);
+}
+
+[data-theme="dark"] .tp .ghiera {
+  background: linear-gradient(170deg, #2B261E 0%, #241F17 60%, #1D1912 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 22px rgba(0, 0, 0, .4);
+}
+[data-theme="dark"] .tp .solco {
+  background: linear-gradient(180deg, #131009, #1B1710);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, .55), inset 0 -1px 1px rgba(255, 255, 255, .04);
+}
+[data-theme="dark"] .tp .cappello {
+  background: radial-gradient(circle at 50% 28%, #37312A 0%, #2E2921 55%, #252017 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .4), inset 0 1.5px 1px rgba(255, 255, 255, .08), inset 0 -3px 6px rgba(0, 0, 0, .3);
+}
+[data-theme="dark"] .tp .piu { color: #FF3B44; text-shadow: none; }
+[data-theme="dark"] .tp:active .cappello {
+  transform: translateY(2.5px) scale(.972);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, .5);
+}
+[data-theme="dark"] .tp:active .piu { color: #E8323B; }
+.tp:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ==========================================================================
+   .pv — §5.15 PillVoce, «la pill di carta» (rev. 2, 09/07 — variante A
+   scelta da Francesco). FONTE DI VERITÀ VISIVA:
+   docs/design/mockups/2026-07-09-pillvoce-v2-due-varianti.html, classi .pv
+   (struttura condivisa) + .pvA (+ .notte .pvA) (materia/colore) — merged qui
+   in UNA classe .pv perché i mockup Task 2-7 useranno un solo nome. Valori
+   CSS copiati VERBATIM da lì.
+   ========================================================================== */
+.pv {
+  display: flex; align-items: center; gap: 14px; width: 100%; height: 64px;
+  border: none; border-radius: 999px; padding: 0 10px 0 24px; cursor: pointer;
+  font-family: inherit; font-size: 17.5px; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  background: linear-gradient(180deg, #FFFEFA, #F5F0E6);
+  color: #1D1913;
+  box-shadow: 0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10),
+              inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07);
+}
+.pv .testo { flex: 1; text-align: left; }
+.pv .cerchioMic {
+  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  font-size: 20px; transition: box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  background: linear-gradient(180deg, #F2263A, #D90012 55%, #B00010); color: #fff;
+  box-shadow: 0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35);
+}
+.pv:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(52,42,26,.14), inset 0 2px 5px rgba(52,42,26,.10);
+}
+.pv:active .cerchioMic { box-shadow: 0 1px 2px rgba(176,0,16,.3), inset 0 2px 4px rgba(120,0,10,.4); }
+
+[data-theme="dark"] .pv {
+  background: linear-gradient(180deg, #2B2620, #211D18);
+  color: #F2EEE7;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 18px rgba(0,0,0,.4);
+}
+[data-theme="dark"] .pv .cerchioMic {
+  background: linear-gradient(180deg, #FF4C55, #FF3B44 55%, #C41822); color: #fff;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,.25);
+}
+[data-theme="dark"] .pv:active { transform: translateY(2px); box-shadow: inset 0 2px 6px rgba(0,0,0,.5); }
+.pv:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
