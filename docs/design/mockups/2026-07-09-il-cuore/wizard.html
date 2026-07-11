@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Wizard nuovo lavoro — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     wizard.html — «Nuovo lavoro» (spec figlia §5 · legge madre §7.3/§5.12/§5.13/
+     §5.15/§5.27). Cast condiviso (README): dentisti per frequenza (Esposito 12 ·
+     Bianchi 8 · Russo 5 · Verdi 3), 23 dentisti in tutto; tipi per frequenza;
+     PZ-0436 = codice nuovo NON collidente col cast (usati: 0398,0408,0412,0415,
+     0421,0424,0430,0433,0435). Le frequenze-tipo (9/6/4/2) sono inventate ma
+     plausibili (la spec ordina per COUNT su tipo_dispositivo, non dà numeri).
+
+     ── BUDGET ROSSO (autoverifica Task 4) ────────────────────────────────────
+     Nei PASSI di scelta (1·2·3) il rosso vive SOLO nel dot attivo (§7.3) e nel
+     CerchioMic della PillVoce (§5.15). L'inventario impone però un
+     `.tasto-primario` (rosso di legge, _base.css) sul Frame 4 «Fatto!» e un
+     «Riprendi» primario sul Frame 5 (sheet): ognuna di quelle due schermate ha
+     UN solo rosso sanzionato (il payoff / l'azione unica del dialog, come
+     DialogConferma). L'avanzamento del Passo 3 è quindi volutamente NON rosso
+     (TastoSecondario «Continua»): è fuori dal percorso minimo di 4 tocchi.
+
+     ── PERCORSO MINIMO 4 TOCCHI (§7.3) ───────────────────────────────────────
+     tile dentista → tile tipo → chip «Va bene ✓» → TastoPrimario «Fatto». Il
+     Passo 3 (paziente) è tutto opzionale (PZ già proposto, elemento/colore/foto
+     con «Salta») e non entra nel conteggio.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ==========================================================================
+     wizard.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono nelle
+     classi di _base.css (.tile-scelta .tasto-primario .tasto-secondario
+     .tasto-tondo .link-quieto .pv .sheet .scrim .riga-dato) e NON vengono
+     ridichiarati qui: la pagina aggiunge solo ciò che _base non nomina
+     (progress dots §7.3, CampoTesto §5.27, RigaCerca §5.13, avatar del tile,
+     chip consegna, check «Fatto!»).
+
+     Due regimi (nessun overlap → una sola sezione visibile per volta):
+        • ≤ 767  (390) → .frames : i 5 frame del wizard impilati (il doc SCROLLA)
+        • ≥ 768 (768/1280) → .single : UN frame d'esempio (Passo 1) centrato
+                                        full-screen, max 480 (L1 non si negozia
+                                        col viewport §12.2 — «una domanda alla
+                                        volta anche qui»).
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot via [data-mockup-chrome]). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── FRAMES (390 primario · impilati, il documento scrolla) ──────────────── */
+  .frames { position: relative; z-index: 1; }
+  .wz-frame { width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 0; }
+  .frame-sep {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin: 34px 0 20px;
+  }
+  .frame-sep:first-child { margin-top: 20px; }
+  .frames-end { height: 44px; }
+
+  /* ── Testata passo: back + progress dots (§7.3) ──────────────────────────── */
+  .wz-top { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+  /* progress dots §7.3: 11px · attivo 30px rosso (stadio) · fatti verdi.
+     3 dot = i 3 passi di scelta; il Frame «Fatto!» non ha testata-dots. */
+  .dots { display: flex; align-items: center; gap: 8px; }
+  .dots .dot {
+    width: 11px; height: 11px; border-radius: 999px;
+    background: var(--line);            /* upcoming: neutro */
+    transition: width 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .dots .dot.fatto { background: var(--green); }         /* §7.3: fatti verdi */
+  .dots .dot.att   { width: 30px; background: var(--red); } /* §7.3: attivo 30px rosso (dot = rosso sanzionato) */
+
+  /* ── Domanda (token `question` 35/800/-0.02em · §4.1) + hint ──────────────── */
+  .domanda { font-size: 35px; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; color: var(--ink); }
+  .hint { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+
+  /* ── Griglia TileScelta 2×2 (§5.12: 2 colonne, gap 15) ────────────────────── */
+  .tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 22px; }
+  .tile-grid .full { grid-column: 1 / -1; }              /* TileNuovo a piena larghezza sotto la 2×2 */
+
+  /* Avatar del TileScelta-dentista (§5.12: «avatar Ø 60 … o glifo 64»; il markup
+     dell'avatar è a carico della schermata). Iniziali su NEUTRO (--bg-deep/
+     --muted): decorazione, MAI un colore di stato (blu/verde/ambra sono già le
+     famiglie-pila). I tile-tipo usano invece la .glifo blue-tint di _base. */
+  .tile-scelta .avatar {
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); color: var(--muted);
+    font-size: 21px; font-weight: 800; letter-spacing: -.01em;
+  }
+
+  /* ── RigaCerca (§5.13: H 58 · card 18 · testo 17/600 muted) ───────────────── */
+  .riga-cerca {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    height: 58px; margin-top: 15px; padding: 0 20px;
+    border: none; border-radius: 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--muted); font-family: var(--font-v3);
+    font-size: 17px; font-weight: 600; text-align: left; cursor: pointer;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .riga-cerca:active { transform: translateY(2px); }
+  .riga-cerca:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .riga-cerca .lente { font-size: 17px; flex-shrink: 0; }
+
+  /* PillVoce (.pv di _base) — sempre in fondo ai passi 1·2·3 (§5.15). */
+  .pv-wrap { margin-top: 22px; }
+
+  /* ── CampoTesto (§5.27: H 64 · card 18 · testo 19/700 · label 13/800 MAIUSC
+     faint · focus anello 2 --blue). Usato SOLO dentro wizard e sheet. ──────── */
+  .campo { margin-top: 22px; }
+  .campo-label { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); display: block; margin-bottom: 8px; }
+  .campo-input {
+    width: 100%; height: 64px; padding: 0 20px;
+    border: none; border-radius: 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3);
+    font-size: 19px; font-weight: 700;
+  }
+  .campo-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .campo-nota { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+
+  /* Blocco dettagli opzionali (elemento/colore/foto) — «Salta» = LinkQuieto (L6) */
+  .opz { margin-top: 22px; }
+  .opz-cap { font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
+  .opz-riga {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0;
+  }
+  .opz-riga:not(:last-child) { border-bottom: 1.5px solid var(--line); }
+  .opz-riga .opz-nome { font-size: 17px; font-weight: 700; color: var(--ink); }
+  .opz-riga .opz-eg { font-size: 14.5px; font-weight: 600; color: var(--faint); margin-top: 1px; }
+  .opz-riga .sp { flex: 1; }
+  /* Foto impronta opzionale — riga dashed (come TileNuovo §5.12, niente ombra) */
+  .foto-add {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    height: 64px; margin-top: 16px; padding: 0 20px;
+    border: 2.5px dashed #CBC1B0; border-radius: 18px;
+    background: transparent; color: var(--muted);
+    font-family: var(--font-v3); font-size: 16.5px; font-weight: 700; text-align: left; cursor: pointer;
+  }
+  .foto-add:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .foto-add .clip { font-size: 19px; }
+  .wz-continua { width: 100%; margin-top: 22px; }   /* TastoSecondario di _base */
+
+  /* ── FRAME 4 «Fatto!» ─────────────────────────────────────────────────────
+     check grande verde (NON rosso: la spunta è verde §5.11) + riepilogo
+     (.riga-dato di _base) + consegna suggerita (16 lug > domani → NON urgente,
+     nessun rosso) + chip + UN TastoPrimario + LinkQuieto home. */
+  .fatto-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; margin-top: 10px; }
+  .fatto-check {
+    width: 92px; height: 92px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .fatto-title { font-size: 35px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .fatto-sub { font-size: 16px; font-weight: 600; color: var(--muted); max-width: 300px; }
+  .riepilogo { margin-top: 24px; }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+
+  /* Consegna suggerita (§7.3 · L5) — card con caption + frase + chip di scelta. */
+  .consegna { margin-top: 16px; }
+  .consegna .frase { font-size: 17px; font-weight: 700; color: var(--ink); line-height: 1.4; }
+  .consegna .frase b { color: var(--ink); }
+  .chips { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 44px; padding: 0 20px; border: none; border-radius: 999px;
+    font-family: var(--font-v3); font-size: 15.5px; font-weight: 700; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press); color: var(--ink);
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .chip:active { transform: translateY(2px); }
+  .chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .chip.si { background: var(--green-tint); color: var(--green); box-shadow: none; } /* scelto: la spunta è verde */
+  .fatto-primario { width: 100%; margin-top: 26px; }
+  .fatto-home { display: flex; justify-content: center; margin-top: 18px; }
+
+  /* ── FRAME 5 · Ripresa abbandono (sheet §5.16/§5.17) ──────────────────────
+     TRAPPOLA: .scrim/.sheet di _base sono position:fixed → in un documento che
+     scrolla si ancorerebbero al viewport e coprirebbero tutto. Li confino in uno
+     STAGE relativo di altezza limitata e li porto a position:absolute DENTRO lo
+     stage: cambia solo il contesto di posizionamento, NON le misure di legge
+     (radius-28 in alto, grabber, padding, max 480 restano di _base). */
+  .sheet-stage {
+    position: relative; z-index: 1; overflow: hidden;
+    width: 100%; max-width: 480px; margin: 0 auto; height: 720px;
+    border-radius: 24px; background: var(--bg-deep);
+  }
+  .sheet-stage .peek {  /* accenno dell'app «sotto» il sheet (il + appena premuto) */
+    position: absolute; inset: 0; display: flex; align-items: flex-start;
+    justify-content: center; padding-top: 34px;
+    font-size: 31px; font-weight: 800; letter-spacing: -.02em; color: var(--faint);
+  }
+  .sheet-stage .scrim { position: absolute; }
+  .sheet-stage .sheet { position: absolute; bottom: 0; }
+  .sheet-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); } /* token `title` §4.1 */
+  .sheet-body { font-size: 17px; font-weight: 600; color: var(--muted); line-height: 1.45; margin-top: 12px; }
+  .sheet-body b { color: var(--ink); font-weight: 700; }
+  .sheet-riprendi { width: 100%; margin-top: 24px; }
+  .sheet-escape { display: flex; justify-content: center; margin-top: 16px; }
+
+  /* ── SINGLE (768/1280) · un frame d'esempio centrato full-screen ──────────── */
+  .single { display: none; }
+
+  @media (min-width: 768px) {
+    .frames { display: none; }
+    .single {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; position: relative; z-index: 1; padding: 40px 24px;
+    }
+    .single .wz-frame { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ FRAMES · 390 (primario) — i 5 passi del wizard impilati ══════════════ -->
+<div class="frames">
+
+  <!-- ─────────── FRAME 1 · PASSO 1 · DENTISTA ─────────── -->
+  <div class="frame-sep">— frame · passo 1 · dentista —</div>
+  <section class="wz-frame">
+    <div class="wz-top">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <div class="dots" aria-label="Passo 1 di 3">
+        <span class="dot att"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+    <h1 class="domanda">Per quale dentista?</h1>
+    <p class="hint">Tocca chi te l'ha portato. I più frequenti stanno in alto.</p>
+
+    <div class="tile-grid">
+      <!-- Ordinati per frequenza (ultimi 30 gg): Esposito 12 · Bianchi 8 · Russo 5 · Verdi 3 -->
+      <button class="tile-scelta">
+        <span class="avatar">E</span>
+        <span class="nome">Dr. Esposito</span>
+        <span class="sotto">12 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">B</span>
+        <span class="nome">Dr.ssa Bianchi</span>
+        <span class="sotto">8 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">R</span>
+        <span class="nome">Dr. Russo</span>
+        <span class="sotto">5 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">V</span>
+        <span class="nome">Studio Verdi</span>
+        <span class="sotto">3 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta nuovo full">
+        <span class="nome">＋ Nuovo dentista</span>
+      </button>
+    </div>
+
+    <button class="riga-cerca"><span class="lente">🔍</span> Cerca fra tutti i 23 dentisti…</button>
+
+    <div class="pv-wrap">
+      <button class="pv" aria-label="Dillo a voce">
+        <span class="testo">Dillo a voce</span>
+        <span class="cerchioMic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 2 · PASSO 2 · TIPO LAVORO ─────────── -->
+  <div class="frame-sep">— frame · passo 2 · tipo lavoro —</div>
+  <section class="wz-frame">
+    <div class="wz-top">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <div class="dots" aria-label="Passo 2 di 3">
+        <span class="dot fatto"></span><span class="dot att"></span><span class="dot"></span>
+      </div>
+    </div>
+    <h1 class="domanda">Che lavoro è?</h1>
+    <p class="hint">Tocca il tipo. Poi ci pensa UÀ a stimare i tempi.</p>
+
+    <div class="tile-grid">
+      <!-- Ordinati per frequenza sul tipo_dispositivo (conteggi plausibili, cfr. commento testa) -->
+      <button class="tile-scelta">
+        <span class="glifo" aria-hidden="true" style="font-size:30px">👑</span>
+        <span class="nome">Corona zirconia</span>
+        <span class="sotto">9 · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="glifo" aria-hidden="true" style="font-size:30px">🌉</span>
+        <span class="nome">Ponte</span>
+        <span class="sotto">6 · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="glifo" aria-hidden="true" style="font-size:30px">🦴</span>
+        <span class="nome">Scheletrato</span>
+        <span class="sotto">4 · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="glifo" aria-hidden="true" style="font-size:30px">🦷</span>
+        <span class="nome">Protesi totale</span>
+        <span class="sotto">2 · 30gg</span>
+      </button>
+      <button class="tile-scelta nuovo full">
+        <span class="nome">＋ Un altro tipo</span>
+      </button>
+    </div>
+
+    <button class="riga-cerca"><span class="lente">🔍</span> Cerca fra tutti i tipi di lavoro…</button>
+
+    <div class="pv-wrap">
+      <button class="pv" aria-label="Dillo a voce">
+        <span class="testo">Dillo a voce</span>
+        <span class="cerchioMic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 3 · PASSO 3 · PAZIENTE E DETTAGLI ─────────── -->
+  <div class="frame-sep">— frame · passo 3 · paziente —</div>
+  <section class="wz-frame">
+    <div class="wz-top">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <div class="dots" aria-label="Passo 3 di 3">
+        <span class="dot fatto"></span><span class="dot fatto"></span><span class="dot att"></span>
+      </div>
+    </div>
+    <h1 class="domanda">Chi è il paziente?</h1>
+    <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+
+    <div class="campo">
+      <label class="campo-label" for="pz">Codice paziente</label>
+      <input class="campo-input" id="pz" type="text" value="PZ-0436" inputmode="text" aria-describedby="pznota">
+      <p class="campo-nota" id="pznota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+    </div>
+
+    <div class="opz">
+      <div class="opz-cap">Se vuoi, aggiungi</div>
+      <div class="opz-riga">
+        <div>
+          <div class="opz-nome">Elemento</div>
+          <div class="opz-eg">es. 2.6</div>
+        </div>
+        <span class="sp"></span>
+        <button class="link-quieto">Salta</button>
+      </div>
+      <div class="opz-riga">
+        <div>
+          <div class="opz-nome">Colore</div>
+          <div class="opz-eg">es. A2</div>
+        </div>
+        <span class="sp"></span>
+        <button class="link-quieto">Salta</button>
+      </div>
+      <button class="foto-add"><span class="clip">📷</span> Aggiungi la foto dell'impronta</button>
+    </div>
+
+    <!-- Avanzamento NON rosso (fuori dal percorso minimo): TastoSecondario di _base -->
+    <button class="tasto-secondario wz-continua">Continua</button>
+
+    <div class="pv-wrap">
+      <button class="pv" aria-label="Dillo a voce">
+        <span class="testo">Dillo a voce</span>
+        <span class="cerchioMic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 4 · FATTO! ─────────── -->
+  <div class="frame-sep">— frame · fatto! —</div>
+  <section class="wz-frame">
+    <div class="fatto-head">
+      <div class="fatto-check" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+      </div>
+      <h1 class="fatto-title">Fatto!</h1>
+      <p class="fatto-sub">Il lavoro è nato. Lo trovi fra gli «Appena arrivati», da confermare.</p>
+    </div>
+
+    <div class="card riepilogo">
+      <div class="card-title">Il lavoro</div>
+      <div class="riga-dato">
+        <span class="chiave">Dentista</span>
+        <span class="valore-col"><span class="valore">Dr. Esposito</span></span>
+      </div>
+      <div class="riga-dato">
+        <span class="chiave">Lavoro</span>
+        <span class="valore-col"><span class="valore">Corona zirconia</span></span>
+      </div>
+      <div class="riga-dato">
+        <span class="chiave">Paziente</span>
+        <span class="valore-col"><span class="valore">PZ-0436</span></span>
+      </div>
+    </div>
+
+    <div class="card consegna">
+      <div class="card-title">Consegna suggerita</div>
+      <p class="frase">Di solito ci mettete 6 giorni: pronta per <b>giovedì 16 luglio</b>.</p>
+      <div class="chips">
+        <button class="chip si">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+          Va bene
+        </button>
+        <button class="chip">Decido dopo</button>
+      </div>
+    </div>
+
+    <button class="tasto-primario fatto-primario">Fotografa impronta e prescrizione</button>
+    <div class="fatto-home"><button class="link-quieto">Torna alla home</button></div>
+  </section>
+
+  <!-- ─────────── FRAME 5 · RIPRESA ABBANDONO (sheet) ─────────── -->
+  <div class="frame-sep">— frame · riprendi da dove eri —</div>
+  <section class="wz-frame">
+    <div class="sheet-stage">
+      <div class="peek" aria-hidden="true">＋</div>
+      <div class="scrim"></div>
+      <div class="sheet" role="dialog" aria-label="Riprendi il lavoro">
+        <h2 class="sheet-title">Riprendo da dove eri?</h2>
+        <p class="sheet-body"><b>Corona</b> per il <b>Dr. Esposito</b>, ti mancava il paziente.</p>
+        <button class="tasto-primario sheet-riprendi">Riprendi</button>
+        <div class="sheet-escape"><button class="link-quieto">Ricomincia da capo</button></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="frames-end"></div>
+</div>
+
+<!-- ══════════════ SINGLE · 768/1280 — un frame d'esempio (Passo 1) centrato ══════════════
+     L1 non si negozia col viewport (§12.2): il wizard resta full-screen, una
+     domanda alla volta, colonna centrata max 480. Mostro il Passo 1 come esempio. -->
+<div class="single">
+  <section class="wz-frame">
+    <div class="wz-top">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <div class="dots" aria-label="Passo 1 di 3">
+        <span class="dot att"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+    <h1 class="domanda">Per quale dentista?</h1>
+    <p class="hint">Tocca chi te l'ha portato. I più frequenti stanno in alto.</p>
+
+    <div class="tile-grid">
+      <button class="tile-scelta">
+        <span class="avatar">E</span>
+        <span class="nome">Dr. Esposito</span>
+        <span class="sotto">12 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">B</span>
+        <span class="nome">Dr.ssa Bianchi</span>
+        <span class="sotto">8 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">R</span>
+        <span class="nome">Dr. Russo</span>
+        <span class="sotto">5 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta">
+        <span class="avatar">V</span>
+        <span class="nome">Studio Verdi</span>
+        <span class="sotto">3 lavori · 30gg</span>
+      </button>
+      <button class="tile-scelta nuovo full">
+        <span class="nome">＋ Nuovo dentista</span>
+      </button>
+    </div>
+
+    <button class="riga-cerca"><span class="lente">🔍</span> Cerca fra tutti i 23 dentisti…</button>
+
+    <div class="pv-wrap">
+      <button class="pv" aria-label="Dillo a voce">
+        <span class="testo">Dillo a voce</span>
+        <span class="cerchioMic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/></svg>
+        </span>
+      </button>
+    </div>
+  </section>
+</div>
+
+</body>
+</html>
