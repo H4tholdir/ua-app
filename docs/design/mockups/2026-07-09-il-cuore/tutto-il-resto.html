@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Tutto il resto — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+<style>
+  /* ==========================================================================
+     tutto-il-resto.html — la pagina ☰ (NON drawer, §6.2: «Il menu ☰ apre
+     "Tutto il resto" come pagina»). SOLO CSS di pagina/layout: i valori di
+     legge (§5) vivono nelle classi di _base.css (.card .tasto-tondo) e NON
+     vengono ridichiarati qui.
+
+     ── PERIMETRO (§6.1 «La mappa», verificato voce per voce) ─────────────────
+     Le 9 voci sono la lista CHIUSA di §6.1, nello stesso ordine:
+       Dentisti · Fatture · Magazzino · Agenda · Documenti e qualità ·
+       Persone · Listino · La mia rete (SOLO admin_rete) · Il mio laboratorio.
+     NIENTE «I conti» / «Il mio compenso»: §11 le rimanda al sotto-progetto 4
+     (C2). Nessuna voce fuori mappa.
+
+     ── EMOJI COME ICONE DI SEZIONE (LICENZA §4.4) ────────────────────────────
+     §4.4 (legge madre, riga 159): «Emoji ammesse SOLO come icone di sezione in
+     "Tutto il resto" e nei documenti chat del portale. MAI dentro testi, MAI
+     come stato.» Questa pagina è l'UNICO contesto app in cui l'emoji è lecita.
+     Perciò il glifo di ogni card-sezione è un'emoji; nei testi (sub) si usa
+     SOLO il dingbat «✓» (U+2713, non l'emoji ✅) — è un glifo di testo, come in
+     home/consegna («Pronta ✓»), quindi non viola «MAI dentro testi».
+
+     ── SCROLL ────────────────────────────────────────────────────────────────
+     Diversamente dalla home (§3.3 no-scroll), questa è una pagina normale: le
+     9 card-sezione scorrono su mobile. Screenshot fullPage (nessun flag).
+
+     ── VIEWPORT ───────────────────────────────────────────────────────────────
+     390 primario · 768 stessa colonna centrata (max 480). A 1280 la pagina NON
+     esiste: la nav laterale (v. home.html, pannello .nav-desk §12.3) la
+     sostituisce → si mostra solo una nota quieta «Su desktop questa pagina è la
+     nav». Perciò 6 PNG (390/768/1280 × 2 temi), a 1280 = la nota.
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── PAGINA (390 primario + 768 colonna centrata max 480) ─────────────────── */
+  .page {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px; margin: 0 auto;
+    padding: 24px 24px 40px;      /* §4.2 griglia 8px; bottom 40 = respiro fine lista */
+    display: flex; flex-direction: column;
+  }
+
+  /* Testa: TastoTondo ‹ back (§5.6: back sempre in alto a sinistra) + titolo. */
+  .page-head { display: flex; align-items: center; gap: 16px; }
+  .page-title {                    /* 27/800/-0.02em = misura scheda-num (home/consegna) */
+    font-size: 27px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+    color: var(--ink);
+  }
+
+  /* Le 9 card-sezione. Lettura del brief: «card-sezione … Ogni card: glifo +
+     nome + sub» → OGNI voce è una card a sé (non le righe-in-una-card di §5.22).
+     Materia/geometria derivate da CardUAHaFatto (§5.22, «card 22»): riuso .card
+     di _base.css (ombra + border-top dark gratis) e sovrascrivo SOLO raggio
+     (24→22, §5.22) e padding (compatto per riga-sezione) — stesso schema con cui
+     home.html sovrascrive .pila.card. */
+  .lista-sez { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .sez {
+    display: flex; align-items: center; gap: 14px;   /* gap 14 = CardUAHaFatto .ua-riga */
+    width: 100%; text-align: left;
+    border: none; cursor: pointer;
+    border-radius: 22px;             /* §5.22: card 22 (override del 24 di .card) */
+    padding: 15px 16px;              /* riga-sezione compatta */
+    font-family: var(--font-v3);
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sez:active { transform: translateY(1px); }          /* stato pressed (legge §5, testa) */
+  .sez:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* Glifo di sezione — emoji (licenza §4.4) su chip Ø46 neutro. Ø46 = misura
+     avatar-in-liste (§5.14); chip neutro --bg-deep (superficie di sistema, come
+     i badge nav desktop) per non competere col colore proprio dell'emoji. */
+  .sez .glifo {
+    flex: none; width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep);
+    font-size: 24px; line-height: 1;
+  }
+  .sez .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sez .nome { font-size: 17.5px; font-weight: 700; color: var(--ink); }   /* brief: nome 17.5/700 (override esplicito del 16.5 di §5.22) */
+  .sez .sub {                       /* §5.22: sub 14/500 muted */
+    font-size: 14px; font-weight: 500; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;         /* carry-over sp.2: 1 riga, ellissi */
+  }
+  .sez .sub b { color: var(--ink); font-weight: 700; }   /* enfasi --ink, come home .pila-sub b */
+  .sez .chev {                      /* §4.4: «›» per «entra» */
+    flex: none; font-size: 22px; font-weight: 700; color: var(--faint); line-height: 1;
+  }
+
+  /* ── 1280 — la pagina NON esiste: la nav laterale la sostituisce (§12.3) ────
+     Nota quieta e INTENZIONALE (centrata, faint ma leggibile): con .page
+     nascosta e screenshot fullPage, una nota minuscola in alto sembrerebbe una
+     pagina rotta. Qui è un blocco centrato a tutta altezza. */
+  .desk-nota { display: none; }
+  @media (min-width: 1024px) {
+    .page { display: none; }
+    .desk-nota {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; text-align: center;
+      min-height: 100vh; padding: 40px;
+      position: relative; z-index: 1;
+    }
+    .desk-nota .g {
+      width: 64px; height: 64px; border-radius: 20px;   /* quadrato radius 20 = TileScelta glifo */
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-deep); font-size: 30px; line-height: 1;
+    }
+    .desk-nota .t { font-size: 19px; font-weight: 700; color: var(--muted); max-width: 340px; line-height: 1.4; }
+    .desk-nota .t b { color: var(--ink); font-weight: 800; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ PAGINA ☰ · 390 (primario) + 768 (colonna centrata max 480) ══════════════ -->
+<main class="page">
+  <div class="page-head">
+    <button class="tasto-tondo" aria-label="Indietro">‹</button>
+    <h1 class="page-title">Tutto il resto</h1>
+  </div>
+
+  <div class="lista-sez">
+    <!-- Ordine = §6.1 (mappa chiusa). Sub in parole del banco, cast-consistenti
+         (README: 4 studi Esposito/Bianchi/Russo/Verdi · tecnici Ciro, Salvatore ·
+         2 consegne oggi, la prossima alle 16:00 · Laboratorio Formicola). -->
+    <button class="card sez" aria-label="Dentisti">
+      <span class="glifo" aria-hidden="true">🦷</span>
+      <span class="corpo">
+        <span class="nome">Dentisti</span>
+        <span class="sub">Esposito, Bianchi, Russo e Verdi</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Fatture">
+      <span class="glifo" aria-hidden="true">🧾</span>
+      <span class="corpo">
+        <span class="nome">Fatture</span>
+        <span class="sub">Tutto a posto questo mese ✓</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Magazzino">
+      <span class="glifo" aria-hidden="true">📦</span>
+      <span class="corpo">
+        <span class="nome">Magazzino</span>
+        <span class="sub">Ieri UÀ ne ha scaricati <b>3</b> da sola ✓</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Agenda">
+      <span class="glifo" aria-hidden="true">📅</span>
+      <span class="corpo">
+        <span class="nome">Agenda</span>
+        <span class="sub">Oggi <b>2 consegne</b> · poi le 16:00</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Documenti e qualità">
+      <span class="glifo" aria-hidden="true">🛡️</span>
+      <span class="corpo">
+        <span class="nome">Documenti e qualità</span>
+        <span class="sub">DdC e qualità · tutto in regola ✓</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Persone">
+      <span class="glifo" aria-hidden="true">👥</span>
+      <span class="corpo">
+        <span class="nome">Persone</span>
+        <span class="sub">Tu, <b>Ciro</b> e <b>Salvatore</b></span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Listino">
+      <span class="glifo" aria-hidden="true">🏷️</span>
+      <span class="corpo">
+        <span class="nome">Listino</span>
+        <span class="sub">I tuoi prezzi per ogni lavorazione</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <!-- «La mia rete»: SOLO per il ruolo admin_rete (§6.1 «se admin_rete» · §7.15).
+         Nel React reale questa card si renderizza condizionalmente (role ===
+         'admin_rete'); nel mockup è mostrata per completezza della mappa. -->
+    <button class="card sez" aria-label="La mia rete">
+      <span class="glifo" aria-hidden="true">🌐</span>
+      <span class="corpo">
+        <span class="nome">La mia rete</span>
+        <span class="sub">I laboratori della tua rete</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+
+    <button class="card sez" aria-label="Il mio laboratorio">
+      <span class="glifo" aria-hidden="true">⚙️</span>
+      <span class="corpo">
+        <span class="nome">Il mio laboratorio</span>
+        <span class="sub">Profilo, PEC e abbonamento attivo ✓</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+  </div>
+</main>
+
+<!-- ══════════════ 1280 · la pagina non esiste — nota quieta ══════════════
+     A desktop «Tutto il resto» non è una pagina: le sue 9 voci vivono nella nav
+     laterale (v. home.html §12.3, pannello .nav-desk). Qui, dove a mobile stava
+     la pagina, resta solo questa nota — intenzionalmente centrata e quieta. -->
+<div class="desk-nota">
+  <div class="g" aria-hidden="true">☰</div>
+  <div class="t">Su desktop <b>«Tutto il resto»</b> non è una pagina:<br>le sue voci sono nella nav a sinistra.</div>
+</div>
+
+</body>
+</html>
