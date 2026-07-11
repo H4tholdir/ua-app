@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Portale dentista: sezione «Situazione economica»</title>
+<style>
+  @font-face { font-family: 'DMS'; src: local('DM Sans'); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: #EDEDEA;
+    font-family: 'DM Sans', 'DMS', system-ui, -apple-system, sans-serif;
+    color: #111827;
+  }
+
+  /* ── Intro pagina ─────────────────────────────────────────── */
+  .intro {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 8px;
+    text-align: center;
+  }
+  .intro h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
+  }
+  .intro p {
+    font-size: 12.5px;
+    color: #6B7280;
+    line-height: 1.6;
+  }
+
+  /* ── Struttura pannelli ───────────────────────────────────── */
+  .pannello {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 44px;
+  }
+  .etichetta-sezione {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+    margin-bottom: 14px;
+  }
+  .etichetta-sezione .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #D90012;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .etichetta-sezione .linea { flex: 1; height: 1px; background: #DCDDE0; }
+
+  .schermo {
+    max-width: 390px;
+    margin: 0 auto;
+    background: #F8F9FA;
+    border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .pagina-shell { padding-bottom: 28px; }
+
+  /* ══════════════════════════════════════════════════════════
+     Contesto sovrastante — header laboratorio + saluto + Fatture
+     (compressi: solo per mostrare dove si innesta la nuova sezione)
+     ══════════════════════════════════════════════════════════ */
+  .lab-header {
+    background: #FFFFFF;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 16px 20px;
+  }
+  .lab-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+  .lab-header p {
+    font-size: 13px;
+    color: #6B7280;
+    margin-top: 2px;
+  }
+  .saluto {
+    padding: 20px 20px 4px;
+  }
+  .saluto h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  .saluto p {
+    font-size: 14px;
+    color: #6B7280;
+  }
+
+  .tag-contesto {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #6B7280;
+    background: #EFF1F2;
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .tag-nuovo {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+    background: #D90012;
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .fatt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 14px;
+  }
+  .fatt-header h2 {
+    font-size: 19px;
+    font-weight: 700;
+    color: #111827;
+    display: flex;
+    align-items: center;
+  }
+  .fatt-gruppo-titolo {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 20px 10px;
+  }
+  .fatt-riga {
+    background: #FFFFFF;
+    border-radius: 16px;
+    margin: 0 16px 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .fatt-numero { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+  .fatt-data { font-size: 12.5px; color: #6B7280; }
+  .fatt-totale { font-size: 16px; font-weight: 700; color: #111827; white-space: nowrap; }
+
+  /* ══════════════════════════════════════════════════════════
+     Divider tra «Fatture» e «Situazione economica»
+     (stesso stile del divider tra Da fatturare e Fatture)
+     ══════════════════════════════════════════════════════════ */
+  .se-divider {
+    height: 1px;
+    background: #E5E7EB;
+    margin: 16px 20px 24px;
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     NUOVA sezione: Situazione economica
+     ══════════════════════════════════════════════════════════ */
+  .se-shell { padding: 0 0 4px; }
+
+  .se-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    margin: 0 16px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+
+  /* Card saldo */
+  .se-saldo-riga {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+  .se-saldo-riga + .se-saldo-riga { border-top: 1px solid #F3F4F6; }
+  .se-saldo-label { font-size: 13.5px; font-weight: 600; color: #374151; }
+  .se-saldo-sub { font-size: 12px; color: #9CA3AF; margin-top: 3px; max-width: 200px; }
+  .se-saldo-valore { font-size: 17px; font-weight: 700; color: #111827; white-space: nowrap; }
+  .se-saldo-valore.credito { color: #15803D; }
+  .se-totale-riga {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-top: 1px solid #E5E7EB;
+  }
+  .se-totale-label { font-size: 15px; font-weight: 700; color: #111827; }
+  .se-totale-valore { font-size: 19px; font-weight: 800; color: #111827; white-space: nowrap; }
+
+  /* Blocchi collassabili */
+  .se-collassabile { background: #FFFFFF; border-radius: 16px; margin: 0 16px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04); overflow: hidden; }
+  .se-collassabile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 44px;
+    padding: 14px 18px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+  }
+  .se-collassabile-chevron {
+    flex-shrink: 0;
+    transition: transform 0.18s cubic-bezier(0.2,0,0,1);
+  }
+  .se-collassabile-header[aria-expanded="true"] .se-collassabile-chevron {
+    transform: rotate(90deg);
+  }
+  .se-collassabile-body { padding: 0 0 6px; }
+
+  /* Righe dettaglio dovuti */
+  .se-dovuto-riga {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px;
+    border-top: 1px solid #F3F4F6;
+  }
+  .se-dovuto-info { min-width: 0; }
+  .se-dovuto-etichetta { font-size: 14.5px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .se-dovuto-data { font-size: 12px; color: #9CA3AF; }
+  .se-dovuto-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .se-dovuto-residuo { font-size: 15.5px; font-weight: 700; color: #111827; white-space: nowrap; }
+  .se-badge-ritardo {
+    font-size: 11px;
+    font-weight: 700;
+    color: #B45309;
+    background: #FEF3C7;
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+  /* Riga saldata — quieta, in coda */
+  .se-dovuto-riga.saldata .se-dovuto-etichetta,
+  .se-dovuto-riga.saldata .se-dovuto-data { color: #9CA3AF; }
+  .se-dovuto-riga.saldata .se-dovuto-residuo {
+    color: #9CA3AF;
+    font-weight: 600;
+    text-decoration: line-through;
+  }
+  .se-tag-saldata {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9CA3AF;
+    background: #F3F4F6;
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
+  /* Righe pagamenti registrati */
+  .se-pagamenti-anno {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 18px 6px;
+  }
+  .se-pagamento-riga {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 18px;
+    border-top: 1px solid #F3F4F6;
+  }
+  .se-pagamento-metodo { font-size: 14.5px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+  .se-pagamento-data { color: #6B7280; font-weight: 400; }
+  .se-pagamento-dest { font-size: 12px; color: #9CA3AF; }
+  .se-pagamento-importo { font-size: 15.5px; font-weight: 700; color: #111827; white-space: nowrap; flex-shrink: 0; }
+
+  /* ══════════════════════════════════════════════════════════
+     Stato vuoto
+     ══════════════════════════════════════════════════════════ */
+  .vuoto-shell { padding: 0 20px; }
+  .vuoto-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 44px 24px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .vuoto-icona {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+  }
+  .vuoto-testo {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #6B7280;
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>Mockup — Portale dentista: sezione «Situazione economica»</h1>
+    <p>Coerente con lo stile del portale esistente (DM Sans, sfondo #F8F9FA, card bianche radius 16, primario #D90012) e con il mockup approvato dell'Ondata 2 (2026-07-11-portale-storico-fatture.html). La nuova sezione compare sotto «Fatture», separata da un divider identico a quello già in uso. Dati simulati, in italiano. Riferimento per il Task 4.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       1 · CONTESTO — area riservata con dovuti, pagamenti e credito
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">1</span> Area riservata — con dovuti e pagamenti <span class="linea"></span></div>
+
+    <div class="schermo">
+      <div class="pagina-shell">
+
+        <!-- Header laboratorio — compresso, solo per contesto -->
+        <div class="lab-header">
+          <h1>Odontotecnica Colombati</h1>
+          <p>Tel: 081 555 0142</p>
+        </div>
+        <div class="saluto">
+          <h2>Ciao, Studio Dentistico Rossi</h2>
+          <p>Qui trovi lo stato dei tuoi lavori in corso e l'archivio degli ultimi consegnati.</p>
+        </div>
+
+        <!-- Fatture — compressa, solo per contesto (già approvata Ondata 2) -->
+        <div class="fatt-header">
+          <h2>Fatture<span class="tag-contesto">contesto</span></h2>
+        </div>
+        <div class="fatt-gruppo-titolo">2026</div>
+        <div class="fatt-riga">
+          <div>
+            <div class="fatt-numero">Fattura 2026-0009</div>
+            <div class="fatt-data">5 luglio 2026</div>
+          </div>
+          <div class="fatt-totale">262,00 €</div>
+        </div>
+
+        <div class="se-divider"></div>
+
+        <!-- NUOVA sezione: Situazione economica -->
+        <div class="se-shell">
+          <div class="fatt-header">
+            <h2>Situazione economica<span class="tag-nuovo">nuovo</span></h2>
+          </div>
+
+          <!-- Card saldo -->
+          <div class="se-card">
+            <div class="se-saldo-riga">
+              <div class="se-saldo-label">Da saldare</div>
+              <div class="se-saldo-valore">812,00 €</div>
+            </div>
+            <div class="se-saldo-riga">
+              <div>
+                <div class="se-saldo-label">In attesa di tua decisione</div>
+                <div class="se-saldo-sub">I lavori nella sezione «Da fatturare» qui sopra</div>
+              </div>
+              <div class="se-saldo-valore">322,00 €</div>
+            </div>
+            <!--
+              Variante con credito disponibile (riga verde, presente SOLO se > 0):
+              <div class="se-saldo-riga">
+                <div class="se-saldo-label">Tuo credito</div>
+                <div class="se-saldo-valore credito">45,00 €</div>
+              </div>
+              Nel default sotto, credito = 0 → riga nascosta.
+            -->
+            <div class="se-totale-riga">
+              <div class="se-totale-label">Totale</div>
+              <div class="se-totale-valore">1.134,00 €</div>
+            </div>
+          </div>
+
+          <!-- Blocco «Dettaglio dovuti» — collassabile, qui ESPANSO per lo screenshot -->
+          <div class="se-collassabile">
+            <button class="se-collassabile-header" aria-expanded="true" aria-controls="se-dettaglio-dovuti">
+              Dettaglio dovuti
+              <svg class="se-collassabile-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6 12l4-4-4-4" stroke="#6B7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="se-collassabile-body" id="se-dettaglio-dovuti">
+              <div class="se-dovuto-riga">
+                <div class="se-dovuto-info">
+                  <div class="se-dovuto-etichetta">Fattura 2026-0002</div>
+                  <div class="se-dovuto-data">29 maggio 2026</div>
+                </div>
+                <div class="se-dovuto-right">
+                  <div class="se-dovuto-residuo">350,00 €</div>
+                  <div class="se-badge-ritardo">in ritardo di 43 gg</div>
+                </div>
+              </div>
+              <div class="se-dovuto-riga">
+                <div class="se-dovuto-info">
+                  <div class="se-dovuto-etichetta">Fattura 2026-0009</div>
+                  <div class="se-dovuto-data">5 luglio 2026</div>
+                </div>
+                <div class="se-dovuto-right">
+                  <div class="se-dovuto-residuo">262,00 €</div>
+                </div>
+              </div>
+              <div class="se-dovuto-riga">
+                <div class="se-dovuto-info">
+                  <div class="se-dovuto-etichetta">Lavoro 2026/0015</div>
+                  <div class="se-dovuto-data">30 giugno 2026</div>
+                </div>
+                <div class="se-dovuto-right">
+                  <div class="se-dovuto-residuo">200,00 €</div>
+                </div>
+              </div>
+              <div class="se-dovuto-riga saldata">
+                <div class="se-dovuto-info">
+                  <div class="se-dovuto-etichetta">Fattura 2026-0001</div>
+                  <div class="se-dovuto-data">15 gennaio 2026</div>
+                </div>
+                <div class="se-dovuto-right">
+                  <div class="se-dovuto-residuo">480,00 €</div>
+                  <div class="se-tag-saldata">Saldata</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Blocco «Pagamenti registrati» — collassabile, qui ESPANSO per lo screenshot -->
+          <div class="se-collassabile">
+            <button class="se-collassabile-header" aria-expanded="true" aria-controls="se-pagamenti-registrati">
+              Pagamenti registrati
+              <svg class="se-collassabile-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M6 12l4-4-4-4" stroke="#6B7280" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="se-collassabile-body" id="se-pagamenti-registrati">
+              <div class="se-pagamenti-anno">2026</div>
+              <div class="se-pagamento-riga">
+                <div>
+                  <div class="se-pagamento-metodo">Bonifico <span class="se-pagamento-data">— 15 gennaio 2026</span></div>
+                  <div class="se-pagamento-dest">per Fattura 2026-0001</div>
+                </div>
+                <div class="se-pagamento-importo">480,00 €</div>
+              </div>
+              <div class="se-pagamento-riga">
+                <div>
+                  <div class="se-pagamento-metodo">Contanti <span class="se-pagamento-data">— 3 marzo 2026</span></div>
+                  <div class="se-pagamento-dest">per Lavoro 2025/0098</div>
+                </div>
+                <div class="se-pagamento-importo">150,00 €</div>
+              </div>
+
+              <div class="se-pagamenti-anno">2025</div>
+              <div class="se-pagamento-riga">
+                <div>
+                  <div class="se-pagamento-metodo">Bonifico <span class="se-pagamento-data">— 20 novembre 2025</span></div>
+                  <div class="se-pagamento-dest">per Fattura 2025-0087</div>
+                </div>
+                <div class="se-pagamento-importo">450,00 €</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       2 · CONTESTO — area riservata, Situazione economica in stato vuoto
+       ══════════════════════════════════════════════════════════ -->
+  <div class="pannello">
+    <div class="etichetta-sezione"><span class="num">2</span> Area riservata — Situazione economica, stato vuoto <span class="linea"></span></div>
+
+    <div class="schermo">
+      <div class="pagina-shell">
+
+        <div class="lab-header">
+          <h1>Odontotecnica Colombati</h1>
+          <p>Tel: 081 555 0142</p>
+        </div>
+        <div class="saluto">
+          <h2>Ciao, Studio Dentistico Bianchi</h2>
+          <p>Qui trovi lo stato dei tuoi lavori in corso e l'archivio degli ultimi consegnati.</p>
+        </div>
+
+        <div class="fatt-header">
+          <h2>Fatture<span class="tag-contesto">contesto</span></h2>
+        </div>
+        <div class="vuoto-shell">
+          <div class="vuoto-card">
+            <div class="vuoto-icona">🧾</div>
+            <div class="vuoto-testo">Nessuna fattura emessa finora.</div>
+          </div>
+        </div>
+
+        <div class="se-divider"></div>
+
+        <div class="se-shell">
+          <div class="fatt-header">
+            <h2>Situazione economica<span class="tag-nuovo">nuovo</span></h2>
+          </div>
+          <div class="vuoto-shell">
+            <div class="vuoto-card">
+              <div class="vuoto-icona">⚖️</div>
+              <div class="vuoto-testo">Nessun movimento economico registrato.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
