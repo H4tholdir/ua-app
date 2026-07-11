@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Stati vuoti e consegna non riuscita — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     stati-vuoti-errori.html — i tre stati NON-felici del cuore, richiesti
+     dall'advisor UX e approvati da Francesco (bucket A). Ondata 0, DS v3.
+
+     CAST (README, identico ad ogni schermata): Laboratorio Formicola · utente
+     Francesco (titolare). Lavoro n.147 · Corona zirconia · Dr. Esposito ·
+     PZ-0412 · Tecnico Ciro. Post bucket A+B: 4 pile (rossa 2 · ambra 4 ·
+     viola 1 · blu 2), famiglia viola nel kit, StrisciaStato una-riga.
+
+     3 frame impilati con separatore «— frame —»; IL DOCUMENTO SCROLLA
+     (nessun vincolo no-scroll qui: questi sono stati illustrativi impilati, non
+     la home live §3.3 — il no-scroll resta legge SOLO sulla home reale).
+
+     Consuma il kit di _base.css (.tp .card .pill .tasto-tondo .tasto-secondario
+     .link-quieto .avviso .riga-dato): quelle MISURE non si ridichiarano mai qui.
+     Le classi di pagina/layout (grain, toggle-tema, eyebrow, greeting, striscia,
+     home-foot, tp-label, morph, scheda-head, cardinfo, pill.fam-verde) sono
+     copiate VERBATIM dai mockup fratelli col loro riferimento § (home.html,
+     pila-aperta.html, consegna.html) — nessuna misura di legge nuova.
+
+     ── BUDGET ROSSO ──────────────────────────────────────────────────────────
+     «Un solo primario rosso per vista» è un MASSIMO (§madre L1). Qui:
+        • Frame 1 (home vuota): ZERO rosso di stato. L'unica azione è il TastoPiù
+          (§5.2, «il punto rosso» del + — è il tasto fisico, non un primario rosso
+          di allarme). La striscia è SERENA (verde, segnale 9 §6).
+        • Frame 2 (pila ambra vuota): ZERO rosso. Solo il TastoTondo indietro.
+        • Frame 3 (consegna non riuscita): NESSUN flood rosso. Il rosso è confinato
+          alla sola icona Ø26 dell'.avviso.errore (tint). La CTA è «Riprova»
+          (TastoSecondario, non rosso); «Chiudi» è LinkQuieto (L6). La PillStato
+          resta «Pronta ✓» VERDE — prova visiva che lo stato non è cambiato (L5).
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ==========================================================================
+     stati-vuoti-errori.html — SOLO CSS di pagina/layout. I valori di legge (§5)
+     vivono nelle classi di _base.css e NON vengono ridichiarati qui.
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. (home.html) */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot via [data-mockup-chrome]). (home.html) */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── FRAMES (390 primario · impilati, il documento scrolla) — da consegna.html ── */
+  .frames { position: relative; z-index: 1; }
+  .frame {
+    width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 0;
+    display: flex; flex-direction: column;
+  }
+  .frame-sep {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin: 34px 0 20px;
+  }
+  .frame-sep:first-child { margin-top: 20px; }
+  .frames-end { height: 44px; }
+
+  /* ── Testata home (§7.1) — copiata VERBATIM da home.html ────────────────── */
+  .home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .eyebrow {                     /* §7.1 eyebrow data · 13/800/+0.16em faint */
+    font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .greeting {                    /* §4.1 large-title 31/800/-0.02em */
+    font-size: 31px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+    margin-top: 6px; color: var(--ink);
+  }
+
+  /* StrisciaStato (§5.24) — copiata VERBATIM da home.html. Qui SOLO la variante
+     SERENA (segnale 9 §6): icona famiglia verde Ø26 + check line-SVG. */
+  .striscia { display: flex; align-items: center; gap: 12px; margin-top: 20px; min-width: 0; }
+  .striscia .ic {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .striscia .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .striscia .txt {
+    flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 500; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* §2.2: massimo 1 riga */
+  }
+  .striscia .txt b { color: var(--ink); font-weight: 700; }
+
+  /* ── Blocco «vuoto» — stato illustrativo (Frame 1 + Frame 2) ───────────────
+     PROPOSTA per la build React (vedi annotazioni in-markup). Impaginazione
+     serena e centrata: icona NEUTRA (mai un tint di stato — un banco libero non
+     è uno stato), titolo in parole del banco, sotto quieto. La fascia .vuoto è
+     flex:1 così assorbe lo slack verticale del frame senza forzare un'altezza. */
+  .vuoto {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 14px;
+    padding: 40px 8px;
+  }
+  .vuoto .ic-neutra {          /* NEUTRA: fill --bg-deep, stroke --faint — non è un tint di stato */
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep);
+  }
+  .vuoto .ic-neutra svg { width: 34px; height: 34px; stroke: var(--faint); stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; } /* §4.4: line-icon stroke 1.7 */
+  .vuoto .titolo { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .vuoto .sotto { font-size: 16px; font-weight: 600; color: var(--muted); max-width: 300px; line-height: 1.4; }
+
+  /* Foot: il TastoPiù (§5.2, .tp) — copiato VERBATIM da home.html. */
+  .home-foot { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .tp-label { font-size: 17.5px; font-weight: 800; color: var(--ink); }
+
+  /* ── Header-morph (§4.1 · §8.3.1) — copiato VERBATIM da pila-aperta.html.
+     Qui lo stato morphato della pila AMBRA a numero 0 (Frame 2). ── */
+  .pf-back { margin-bottom: 18px; }
+  .morph { display: flex; align-items: flex-start; gap: 18px; }
+  .morph .m-num {
+    font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    min-width: 56px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .morph .m-txt { flex: 1; min-width: 0; padding-top: 4px; }
+  .morph .m-label { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .morph.ambra .m-num, .morph.ambra .m-label { color: var(--amber); }
+
+  /* ── Scheda (Frame 3) — scheda-head + cardinfo copiati VERBATIM da consegna.html ── */
+  .scheda { display: flex; flex-direction: column; gap: 20px; }
+  .scheda-head { display: flex; align-items: center; gap: 14px; }
+  .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .scheda-head .sp { flex: 1; }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+
+  /* CardInfo (§5.10) — «card 22, padding 4/20» (advisor DS engineer): valori PROPRI
+     diversi dal generico .card. Override page-level citato §5.10 (come nei fratelli). */
+  .card.cardinfo { border-radius: 22px; padding: 4px 20px; }
+  .cardinfo .card-title { margin-top: 12px; }
+
+  /* PillStato famiglie (§5.9) — override sul default PillStato di _base.css.
+     Copiata da scheda-lavoro.html/consegna.html. Qui serve la verde (Pronta ✓). */
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+
+  /* ── Avviso di consegna non riuscita (Frame 3) — usa la classe kit .avviso.errore
+     di _base.css (§5.18: Card 18, testo 15.5/700, icona famiglia Ø26 tint,
+     «l'avviso di errore NON scompare da solo»). La sola aggiunta di pagina è la
+     riga di RASSICURAZIONE sotto il testo: è il carico L5 del frame (dire cosa è
+     rimasto invariato) e NON deve mai essere troncato dalla clamp a 2 righe del
+     .testo del kit. Precedente ESATTO nei fratelli: `.annullo .a-note` di
+     consegna.html — riga quieta di trasparenza DENTRO un banner del kit. Muted
+     (non faint): deve leggersi. «PRONTO» in ink-bold via <b>. ── */
+  .avviso .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .avviso .rassicura { font-size: 14px; font-weight: 600; color: var(--muted); line-height: 1.35; }
+  .avviso .rassicura b { color: var(--ink); font-weight: 800; }
+  .avviso .icona svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; } /* triangolo line-SVG, come la StrisciaStato alert di home.html */
+
+  /* Azioni sotto l'avviso: «Riprova» (TastoSecondario, largo) + «Chiudi» (LinkQuieto).
+     Una sola azione chiara (Riprova); Chiudi è la via di fuga quieta (L6). */
+  .avviso-azioni { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-top: 4px; }
+  .avviso-azioni .tasto-secondario { width: 100%; }
+  .avviso-azioni .chiudi-riga { display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ FRAMES · 390 (primario) — 3 stati non-felici impilati ══════════════ -->
+<div class="frames">
+
+  <!-- ─────────── FRAME 1 · HOME VUOTA (§7.1 · segnale 9 §6) ───────────
+       PROPOSTA (build React): quando TUTTE e 4 le pile sono a 0, lo STACK delle
+       pile viene sostituito da questo blocco sereno; le pile riappaiono nel
+       momento in cui un conteggio torna > 0. Nient'altro cambia della testata
+       §7.1 (eyebrow + saluto + ☰) né del TastoPiù. È l'attuazione «una cosa alla
+       volta» dell'empty (L1): a banco libero, l'unica cosa da fare è iniziare un
+       lavoro → il TastoPiù è l'UNICA azione. La StrisciaStato è la SERENA (segnale
+       9 §6). Data/saluto DISACCOPPIATI dalla timeline del cast (home.html ha 9
+       lavori lo stesso giorno): questo è uno stato illustrativo, non lo stesso
+       istante. Saluto «Buongiorno» per la regola oraria 5-12 (§3.1). -->
+  <div class="frame-sep">— frame · home vuota (banco libero) —</div>
+  <section class="frame" style="min-height:620px">
+    <div class="home-head">
+      <div>
+        <div class="eyebrow">Martedì 15 luglio</div>
+        <h1 class="greeting">Buongiorno,<br>Francesco</h1>
+      </div>
+      <button class="tasto-tondo" aria-label="Tutto il resto">☰</button>
+    </div>
+
+    <!-- StrisciaStato SERENA (segnale 9 §6) — icona verde + check line-SVG (come la
+         variante serena di home.html). Una riga (§2.2), nessuna azione d'allarme. -->
+    <div class="striscia">
+      <span class="ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>
+      </span>
+      <span class="txt"><b>Tutto a posto:</b> nessuna consegna oggi</span>
+    </div>
+
+    <!-- Blocco vuoto: icona NEUTRA (mai un tint di stato) + parole del banco -->
+    <div class="vuoto">
+      <span class="ic-neutra" aria-hidden="true">
+        <!-- vassoio/banco vuoto (line-SVG neutro) -->
+        <svg viewBox="0 0 24 24"><path d="M3 13h4l1.5 2.5h7L17 13h4"/><path d="M3 13V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 13v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>
+      </span>
+      <div class="titolo">Il banco è libero</div>
+      <div class="sotto">Quando arriva un lavoro, lo vedi qui.</div>
+    </div>
+
+    <div class="home-foot">
+      <button class="tp" aria-label="Nuovo lavoro">
+        <span class="ghiera">
+          <span class="solco"></span>
+          <span class="cappello"><span class="piu">+</span></span>
+        </span>
+      </button>
+      <div class="tp-label">Nuovo lavoro</div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 2 · PILA AMBRA APERTA VUOTA (§4.1 · §8.3.1) ───────────
+       La pila «Sul banco» aperta a 0 lavori (es. dopo aver consegnato tutto):
+       header-morph con numero 0 + label «SUL BANCO» (sub OMESSA — non si fabbrica
+       «0 lavori»: il numero 0 e il messaggio bastano). Messaggio quieto in parole
+       del banco. Nessun contenuto finto. TastoTondo indietro in cima. -->
+  <div class="frame-sep">— frame · pila «sul banco» vuota —</div>
+  <section class="frame" style="min-height:560px">
+    <div class="pf-back"><button class="tasto-tondo" aria-label="Indietro">‹</button></div>
+    <div class="morph ambra">
+      <div class="m-num">0</div>
+      <div class="m-txt">
+        <div class="m-label">Sul banco</div>
+      </div>
+    </div>
+
+    <div class="vuoto">
+      <span class="ic-neutra" aria-hidden="true">
+        <!-- tazzina di caffè (line-SVG neutro) — coerente con «Goditi il caffè» -->
+        <svg viewBox="0 0 24 24"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h2.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5c-.4.6-.4 1.4 0 2M12 3.5c-.4.6-.4 1.4 0 2"/></svg>
+      </span>
+      <div class="titolo">Niente sul banco</div>
+      <div class="sotto">Goditi il caffè. Al prossimo lavoro ci pensa UÀ.</div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 3 · CONSEGNA NON RIUSCITA (§5.18 · L5) ───────────
+       Stato disegnato su parere advisor UX (bucket A): il fallimento
+       post-ottimistico non lascia MAI lo stato ambiguo (L5). Tap CONSEGNA → la
+       scrittura ottimistica fallisce → l'.avviso.errore (classe kit, §5.18: NON
+       scompare da solo) dice cosa è successo E cosa ha fatto UÀ (niente). La
+       PillStato resta «Pronta ✓» VERDE: prova VISIVA che lo stato non è cambiato,
+       gemella della parola «non è cambiato niente». Nessun flood rosso: il rosso
+       è solo l'icona Ø26 dell'avviso. «Riprova» (TastoSecondario) è l'unica azione;
+       «Chiudi» è LinkQuieto (L6). -->
+  <div class="frame-sep">— frame · consegna non riuscita —</div>
+  <section class="frame">
+    <div class="scheda">
+      <div class="scheda-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="scheda-num">n.147</span>
+        <!-- PillStato VERDE: lo stato NON è cambiato (prova visiva del testo dell'avviso) -->
+        <span class="pill fam-verde">Pronta ✓</span>
+        <span class="sp"></span>
+        <button class="tasto-tondo" aria-label="Altro">⋯</button>
+      </div>
+
+      <!-- .avviso.errore (kit §5.18) — icona rossa Ø26 (unico rosso della vista),
+           testo = cosa è successo; rassicura = cosa è rimasto invariato (L5). -->
+      <div class="avviso errore" role="alert">
+        <span class="icona" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg>
+        </span>
+        <span class="corpo">
+          <span class="testo">Non sono riuscita a registrare la consegna.</span>
+          <span class="rassicura">Il lavoro è rimasto <b>PRONTO</b>, non è cambiato niente.</span>
+        </span>
+      </div>
+
+      <div class="avviso-azioni">
+        <button class="tasto-secondario">Riprova</button>
+        <div class="chiudi-riga"><button class="link-quieto">Chiudi</button></div>
+      </div>
+
+      <div class="card cardinfo"><!-- §5.10: CardInfo — card 22, padding 4/20 (override, vedi CSS) -->
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+        <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="frames-end"></div>
+</div>
+
+</body>
+</html>
