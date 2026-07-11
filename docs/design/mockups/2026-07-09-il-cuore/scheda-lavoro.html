@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UÀ · Scheda lavoro — DS v3 «Il cuore» (Ondata 0)</title>
+<!-- Font Plus Jakarta Sans + tutti i token/componenti arrivano da _base.css (Task 1).
+     Nessun <link> font qui: _base.css lo importa già (§ README «Note per i mockup»). -->
+<link rel="stylesheet" href="_base.css">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCHEDA LAVORO — spec figlia §7 / §7.1 / §4.2 · legge madre §7.4 / §5.10 / §5.11 / §12.3.
+
+     CAST (README + pila-aperta.html): lavoro n.147 · Corona zirconia · Dr. Esposito ·
+     PZ-0412 · consegna OGGI 16:00 · stato pronto · Tecnico Ciro.
+     Fasi n.147: Modellazione ✓ (Ciro, ieri 14:20) · Fusione ✓ (Ciro, oggi 9:05) ·
+     Rifinitura ✓ (Salvatore, oggi 11:40) · Controllo finale ← prossima.
+
+     ── SCELTA DI STATO SU CONSEGNA (importante, per non leggerlo come incoerenza) ──
+     La scheda ha 3 fasi fatte e «Controllo finale» come PROSSIMA fase — quella che
+     porta la PillFase «FATTA ✓» a destra (§5.11: pill solo sulla prossima da fare).
+     Questo SINGOLO stato di fasi ammette DUE rese lecite del tasto sacro CONSEGNA:
+        • Frame 1 (permissiva) → CONSEGNA ATTIVO: tocchi CONSEGNA e chiude anche
+          l'ultimo controllo. È la resa scelta dal brief per l'eroe mobile.
+        • Frame 2 (stretta)    → CONSEGNA DISABLED + callout «Completa il controllo
+          finale per consegnare» (§7.4/§5.1: presente ma disabled, MAI nascosto).
+          È la stessa resa già mostrata da home.html/pila-aperta.html (stesso lavoro,
+          momento anteriore).
+     I due frame differiscono SOLO nel bottone: le CardFasi sono identiche. È voluto.
+
+     ── RED-PRIMARY UNICO sui viewport larghi (§7.5 · nota home.html .scheda-desk) ──
+     A 768 e 1280 il CONSEGNA è DISABLED (faccia --bg-deep/--faint, non rosso), così
+     l'unica primaria rossa 3D del layout largo resta «+ Nuovo lavoro» (1280) /
+     «Consegna» inline su n.144 nella pila rossa (768). L'attivo rosso vive SOLO
+     nell'eroe mobile Frame 1. Coerente con home.html e pila-aperta.html.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ==========================================================================
+     scheda-lavoro.html — SOLO CSS di pagina/layout. I valori di legge (§5) vivono
+     nelle classi di _base.css (.card .pill .riga-dato .riga-fase .tasto-primario
+     .tasto-secondario .tasto-tondo .link-quieto .sheet .scrim) e NON vengono
+     ridichiarati qui. Uniche eccezioni (non nel kit Task 1, copiate VERBATIM dai
+     mockup sorgente): .pill-fase (home.html §5.4/§5.11), .consegna-inline
+     (pila-aperta.html §5.8), .chip (wizard.html §7.3), .campo-* (wizard.html §5.27).
+
+     Tre regimi responsivi, uno per viewport-screenshot (nessun overlap):
+        • ≤ 767  (390)  → .frames : i 5 frame impilati in verticale, il documento SCROLLA
+        • 768-1023 (768)→ .split  : lista rossa 360 + scheda n.147 (pannello destro)
+        • ≥ 1024 (1280) → .desktop: 3 pannelli, scheda con CardInfo+CardFasi 2col (§12.3)
+     ========================================================================== */
+
+  body { background: var(--bg); }
+
+  /* Grana materica (§4.3) — overlay fixed, mai su container scrollante. */
+  .grain {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    opacity: var(--grana-opacity); mix-blend-mode: multiply;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+  }
+  [data-theme="dark"] .grain { mix-blend-mode: screen; }
+
+  /* Toggle tema (chrome del mockup — rimosso dagli screenshot). */
+  .toggle-tema {
+    border: none; border-radius: 999px; padding: 7px 13px; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press);
+    color: var(--ink); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+
+  /* ── PillTempo/famiglie (§5.9) — override sul default PillStato di _base.css ── */
+  .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
+  .pill.fam-rossa { background: var(--red-tint);   color: var(--red); }
+  .pill.fam-ambra { background: var(--amber-tint); color: var(--amber); }
+  .pill.fam-blu   { background: var(--blue-tint);  color: var(--blue); }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+
+  /* ── SCHEDA (comune ai 3 regimi) ────────────────────────────────────────── */
+  .scheda-head { display: flex; align-items: center; gap: 14px; }
+  .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .scheda-head .sp { flex: 1; }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+
+  /* NotaDentista (§7 · §7.4) — la voce del dentista. Blocco carta più quieto
+     (superficie --elv, radius 18), icona-fumetto famiglia in tint + citazione
+     16.5/600 ink + attribuzione 14/600 faint. Read-only (MDR §7.4). */
+  .nota {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--elv); border-radius: 18px; padding: 16px 18px;
+  }
+  [data-theme="dark"] .nota { border-top: 1px solid rgba(255,255,255,.04); }
+  .nota .ic {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--amber-tint); color: var(--amber);
+  }
+  .nota .ic svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .nota .corpo { min-width: 0; }
+  .nota .cit { font-size: 16.5px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+  .nota .firma { font-size: 14px; font-weight: 600; color: var(--faint); margin-top: 6px; }
+
+  /* Strip foto (§7/§7.4 — thumbnail 72 · radius 12 · max 1 riga scrollabile).
+     Placeholder neutri CSS: gradienti caldi che leggono come primi piani di
+     lavorazione (NON emoji, nessuna immagine esterna). Cornice interna 1px. */
+  .foto-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  .foto-thumb {
+    flex: none; width: 72px; height: 72px; border-radius: 12px;
+    box-shadow: inset 0 0 0 1px rgba(50,40,25,.10);
+    background-size: cover; position: relative;
+  }
+  [data-theme="dark"] .foto-thumb { box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .foto-thumb.f1 { background:
+      radial-gradient(120% 90% at 30% 20%, #FBF6EC 0%, #E9DCC4 42%, #C9B597 78%, #A8906E 100%); }
+  .foto-thumb.f2 { background:
+      radial-gradient(110% 100% at 65% 30%, #F3ECE0 0%, #D9C9AE 45%, #B49A76 80%, #8C7355 100%); }
+  .foto-thumb.f3 { background:
+      radial-gradient(120% 90% at 40% 70%, #FDFBF6 0%, #E4D8C2 40%, #BFA98A 82%, #96805E 100%); }
+  /* accenno di riflesso ottico — legge come vetro/gesso lucido, non come glifo */
+  .foto-thumb::after {
+    content: ''; position: absolute; inset: 0; border-radius: 12px;
+    background: linear-gradient(150deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 38%);
+  }
+
+  /* PillFase (§5.4 + §5.11) — «FATTA ✓» SOLO sulla prossima fase da fare.
+     Non nel kit Task 1: copiata VERBATIM da home.html. Valori §5.4: H 44 ·
+     gradiente verde #269950→--green · corsa 3px #14602C · testo 14.5/800 bianco. */
+  .pill-fase {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    height: 44px; padding: 0 18px; border: none; border-radius: 999px;
+    background: linear-gradient(180deg, #269950, var(--green));
+    box-shadow: 0 3px 0 #14602C;
+    color: #fff; font-family: var(--font-v3); font-size: 14.5px; font-weight: 800;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .pill-fase:active { transform: translateY(2px); box-shadow: 0 1px 0 #14602C; }
+  .pill-fase:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* CONSEGNA (§5.1 TastoPrimario) + callout del disabled (§7.4). */
+  .scheda-consegna { width: 100%; max-width: 480px; }
+  .callout { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+  .torna { width: 100%; max-width: 480px; }   /* §4.2 «È tornata» = TastoSecondario piena larghezza */
+
+  /* ── FRAMES (390 primario · impilati, il documento scrolla) ───────────────── */
+  .frames { position: relative; z-index: 1; }
+  .scheda-frame {
+    width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 0;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .frame-sep {
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin: 34px 0 20px;
+  }
+  .frame-sep:first-child { margin-top: 20px; }
+  .frames-end { height: 40px; }
+  .scheda-grid { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── FRAME 3/4 · Sheet (§5.16/§5.17) su STAGE relativo ────────────────────
+     TRAPPOLA (come wizard.html): .scrim/.sheet di _base sono position:fixed → in
+     un documento che scrolla coprirebbero tutto. Li confino in uno STAGE relativo
+     e li porto a position:absolute DENTRO lo stage: cambia solo il contesto di
+     posizionamento, NON le misure di legge (radius-28, grabber, padding, max 480). */
+  .sheet-stage {
+    position: relative; z-index: 1; overflow: hidden;
+    width: 100%; max-width: 480px; margin: 0 auto; height: 780px;
+    border-radius: 24px; background: var(--bg-deep);
+  }
+  .sheet-stage .peek {   /* la scheda «sotto», scalata .96 e attenuata dallo scrim */
+    position: absolute; inset: 0; padding: 20px 22px 0;
+    transform: scale(.96); transform-origin: 50% 0;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .sheet-stage .scrim { position: absolute; }
+  .sheet-stage .sheet { position: absolute; bottom: 0; }
+  .sheet-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .sheet-hint { font-size: 15px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+
+  /* CampoData a scelte rapide (§5.27 · §7.1) — chips. .chip copiata VERBATIM da
+     wizard.html; .chip.si = scelta corrente (la spunta è verde §5.11). */
+  .campo-label { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); display: block; margin: 22px 0 12px; }
+  .chips { display: flex; gap: 12px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 48px; padding: 0 20px; border: none; border-radius: 999px;
+    font-family: var(--font-v3); font-size: 16px; font-weight: 700; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press); color: var(--ink);
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .chip:active { transform: translateY(2px); }
+  .chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .chip.si { background: var(--green-tint); color: var(--green); box-shadow: none; }
+  .chip svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .sheet-salva { width: 100%; margin-top: 26px; }
+  .sheet-escape { display: flex; justify-content: center; margin-top: 14px; }
+
+  /* Menu ⋯ (§7.1) — voci in sheet. Riga H56, icona line-SVG stroke 1.7 (§4.4),
+     nome 17/700. Separatore 1.5 --line tra le righe. «Butta via» rossa in fondo,
+     staccata (via di fuga distruttiva → DialogConferma, §7.1). */
+  .menu-voce {
+    display: flex; align-items: center; gap: 16px; width: 100%;
+    min-height: 56px; padding: 8px 0; border: none; background: none;
+    color: var(--ink); font-family: var(--font-v3); font-size: 17px; font-weight: 700;
+    text-align: left; cursor: pointer;
+  }
+  .menu-voce:not(:last-child) { border-bottom: 1.5px solid var(--line); }
+  .menu-voce .mi {
+    flex: none; width: 38px; height: 38px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); color: var(--muted);
+  }
+  .menu-voce .mi svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .menu-voce .ml { flex: 1; }
+  .menu-voce .chev { color: var(--faint); font-size: 20px; font-weight: 800; }
+  .menu-voce.butta { color: var(--red); border-top: 1.5px solid var(--line); border-bottom: none; margin-top: 4px; padding-top: 16px; }
+  .menu-voce.butta .mi { background: var(--red-tint); color: var(--red); }
+  .menu-voce:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 12px; }
+
+  /* ── SPLIT 768 (lista rossa 360 + scheda n.147) ──────────────────────────── */
+  .split { display: none; }
+  /* ── DESKTOP 1280 (3 pannelli §12.3) ─────────────────────────────────────── */
+  .desktop { display: none; }
+
+  /* CardLavoro (§5.8) — usata nella lista sinistra a 768/1280 */
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who  { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+
+  /* TastoConsegnaInline (§5.8 · pila-aperta.html) — copiata VERBATIM. Il rosso
+     sacro sul primo elemento della pila rossa (n.144, pronto → ENABLED). È
+     l'UNICA primaria rossa del 768. */
+  .consegna-inline {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 54px; margin-top: 16px;
+    border: none; border-radius: 16px;
+    background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010);
+    box-shadow: 0 5px 0 var(--red-dark), 0 14px 24px -16px rgba(50,40,25,.35);
+    color: #FFFFFF; font-family: var(--font-v3);
+    font-size: 17px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 120ms cubic-bezier(0.32,0.72,0,1), box-shadow 120ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .consegna-inline:active { transform: translateY(4px) scale(.995); box-shadow: 0 1px 0 var(--red-dark); }
+  .consegna-inline:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  [data-theme="dark"] .consegna-inline { box-shadow: 0 5px 0 var(--red-dark); }
+
+  /* Header-morph (§4.1) — la card-pila «sale» a testata (riuso pila-aperta.html). */
+  .morph { display: flex; align-items: flex-start; gap: 18px; }
+  .morph .m-num { font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+  .morph .m-txt { flex: 1; min-width: 0; padding-top: 4px; }
+  .morph .m-label { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .morph .m-sub { font-size: 16px; font-weight: 600; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .morph.rossa .m-num, .morph.rossa .m-label { color: var(--red); }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .frames { display: none; }
+    .split {
+      display: grid; grid-template-columns: 360px 1fr;
+      height: 100vh; overflow: hidden; position: relative; z-index: 1;
+    }
+    .split-lista { padding: 28px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; background: var(--bg-deep); }
+    .split-scheda { padding: 28px 26px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+    .cardlav.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); }  /* §3.4 ring selezione */
+  }
+  [data-theme="dark"] .cardlav.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
+
+  @media (min-width: 1024px) {
+    .frames { display: none; }
+    .desktop {
+      display: grid; grid-template-columns: 240px 400px 1fr;
+      height: 100vh; overflow: hidden; position: relative; z-index: 1;
+    }
+    /* Nav 240px --bg-deep (riuso home.html) */
+    .nav-desk { background: var(--bg-deep); padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .logo { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); padding: 0 8px; }
+    .logo em { font-style: normal; color: var(--red); }
+    .nav-nuovo { height: 52px; font-size: 16px; }   /* §12.3 TastoPrimario H52 — l'UNICA primaria rossa del 1280 */
+    .voci { display: flex; flex-direction: column; gap: 4px; }
+    .voce { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px; border-radius: 12px; color: var(--muted); font-size: 16px; font-weight: 600; }
+    .voce .nome { flex: 1; }
+    .voce.sel { background: var(--bg); color: var(--ink); font-weight: 700; }
+    .badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; background: var(--bg-deep); color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
+    .badge.r { background: var(--red-tint); color: var(--red); box-shadow: none; }
+    .badge.a { background: var(--amber-tint); color: var(--amber); box-shadow: none; }
+    .badge.b { background: var(--blue-tint); color: var(--blue); box-shadow: none; }
+
+    /* Lista 400px — pila rossa, n.147 selezionato */
+    .lista-desk { padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+    .lista-head { display: flex; align-items: baseline; gap: 12px; }
+    .lista-titolo { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--red); }
+    .lista-sub { font-size: 14.5px; font-weight: 600; color: var(--muted); }
+    .cardlav.sel { box-shadow: var(--sh-card), inset 0 0 0 2.5px var(--red); }
+
+    /* Scheda (versione PIENA della .scheda-desk di home.html: aggiunge NotaDentista
+       + strip foto che l'anteprima ometteva). CardInfo+CardFasi affiancate §12.3. */
+    .scheda-desk { padding: 30px 34px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+    .scheda-desk .scheda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .scheda-desk .scheda-consegna { width: 340px; max-width: 340px; }   /* §12.3 primario 340px in basso a sinistra */
+  }
+  [data-theme="dark"] .cardlav.sel { box-shadow: inset 0 0 0 2.5px var(--red); }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div data-mockup-chrome><button class="toggle-tema" onclick="var h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')">Tema</button></div>
+
+<!-- ══════════════ FRAMES · 390 (primario) — 5 stati impilati ══════════════ -->
+<div class="frames">
+
+  <!-- ─────────── FRAME 1 · SCHEDA COMPLETA n.147 · CONSEGNA ATTIVO ───────────
+       Resa PERMISSIVA del tasto sacro (vedi nota in testa al file): 3 fasi fatte,
+       «Controllo finale» prossima con PillFase «FATTA ✓» — CONSEGNA attivo. -->
+  <div class="frame-sep">— frame · scheda completa (consegna attiva) —</div>
+  <section class="scheda-frame">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <!-- CardInfo — 5 RigheDato (§5.10). L'UNICO valore rosso = consegna imminente. -->
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato">
+          <span class="chiave">Dentista</span>
+          <span class="valore-col"><span class="valore">Dr. Esposito</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Paziente</span>
+          <span class="valore-col"><span class="valore">PZ-0412</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Lavoro</span>
+          <span class="valore-col"><span class="valore">Corona zirconia</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Consegna</span>
+          <span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span>
+        </div>
+        <div class="riga-dato">
+          <span class="chiave">Tecnico</span>
+          <span class="valore-col"><span class="valore">Ciro</span></span>
+        </div>
+      </div>
+
+      <!-- NotaDentista (§7 · read-only §7.4) -->
+      <div class="nota">
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+        </span>
+        <div class="corpo">
+          <div class="cit">“Il paziente morde forte, occhio allo spessore”</div>
+          <div class="firma">— Dr. Esposito</div>
+        </div>
+      </div>
+
+      <!-- Strip foto (§7.4 — thumbnail 72 · radius 12 · 1 riga scrollabile) -->
+      <div class="foto-strip" aria-label="Foto del lavoro">
+        <div class="foto-thumb f1"></div>
+        <div class="foto-thumb f2"></div>
+        <div class="foto-thumb f3"></div>
+      </div>
+
+      <!-- CardFasi — 4 RigheFase (§5.11). PillFase «FATTA ✓» SOLO sulla prossima. -->
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+          <button class="pill-fase">FATTA ✓</button>
+        </div>
+      </div>
+
+      <!-- CONSEGNA ATTIVO (resa permissiva — nota in testa al file) -->
+      <button class="tasto-primario scheda-consegna">Consegna</button>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 2 · STESSA SCHEDA · CONSEGNA DISABLED ───────────
+       Resa STRETTA: fasi identiche a Frame 1, ma CONSEGNA disabled + callout
+       finché «Controllo finale» non è fatto (§7.4/§5.1: MAI nascosto). -->
+  <div class="frame-sep">— frame · consegna bloccata (controllo da fare) —</div>
+  <section class="scheda-frame">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+        <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+
+      <div class="nota">
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+        </span>
+        <div class="corpo">
+          <div class="cit">“Il paziente morde forte, occhio allo spessore”</div>
+          <div class="firma">— Dr. Esposito</div>
+        </div>
+      </div>
+
+      <div class="foto-strip" aria-label="Foto del lavoro">
+        <div class="foto-thumb f1"></div>
+        <div class="foto-thumb f2"></div>
+        <div class="foto-thumb f3"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+          <button class="pill-fase">FATTA ✓</button>
+        </div>
+      </div>
+
+      <div>
+        <button class="tasto-primario scheda-consegna" disabled>Consegna</button>
+        <div class="callout">Completa il controllo finale per consegnare</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── FRAME 3 · SHEET MODIFICA (§7.1) ───────────
+       Tap sulla RigaDato «Consegna» → sheet con QUELLA sola domanda +
+       CampoData a scelte rapide. Scheda sotto scala .96, attenuata dallo scrim. -->
+  <div class="frame-sep">— frame · modifica consegna (sheet) —</div>
+  <div class="scheda-frame" style="padding-top:0">
+    <div class="sheet-stage">
+      <!-- La scheda «sotto» (condensata), scalata .96 -->
+      <div class="peek" aria-hidden="true">
+        <div class="scheda-head">
+          <button class="tasto-tondo">‹</button>
+          <span class="scheda-num">n.147</span>
+          <span class="pill fam-verde">Pronta ✓</span>
+          <span class="sp"></span>
+          <button class="tasto-tondo">⋯</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Il lavoro</div>
+          <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+          <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+          <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+          <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        </div>
+      </div>
+
+      <div class="scrim"></div>
+
+      <div class="sheet" role="dialog" aria-label="Quando va consegnata?">
+        <h2 class="sheet-title">Quando va consegnata?</h2>
+        <p class="sheet-hint">Adesso è <b>oggi alle 16:00</b>. Tocca una scelta.</p>
+        <label class="campo-label">Consegna</label>
+        <div class="chips">
+          <button class="chip si"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg>Oggi</button>
+          <button class="chip">Domani</button>
+          <button class="chip">Lun 14</button>
+          <button class="chip">Scegli…</button>
+        </div>
+        <button class="tasto-primario sheet-salva">Salva</button>
+        <div class="sheet-escape"><button class="link-quieto">Annulla</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── FRAME 4 · MENU ⋯ APERTO (§7.1) ───────────
+       Sheet con le voci del menu. «Butta via» rossa in fondo (→ DialogConferma). -->
+  <div class="frame-sep">— frame · menu «altro» (sheet) —</div>
+  <div class="scheda-frame" style="padding-top:0">
+    <div class="sheet-stage">
+      <div class="peek" aria-hidden="true">
+        <div class="scheda-head">
+          <button class="tasto-tondo">‹</button>
+          <span class="scheda-num">n.147</span>
+          <span class="pill fam-verde">Pronta ✓</span>
+          <span class="sp"></span>
+          <button class="tasto-tondo">⋯</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Il lavoro</div>
+          <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+          <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+          <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+        </div>
+      </div>
+
+      <div class="scrim"></div>
+
+      <div class="sheet" role="dialog" aria-label="Altro">
+        <h2 class="sheet-title" style="margin-bottom:12px">n.147 · Corona zirconia</h2>
+        <button class="menu-voce">
+          <span class="mi"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 3 5 3 5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg></span>
+          <span class="ml">Prezzi e lavorazioni</span><span class="chev">›</span>
+        </button>
+        <button class="menu-voce">
+          <span class="mi"><svg viewBox="0 0 24 24"><path d="M8 3v3M16 3v3"/><path d="M4 8h16"/><rect x="4" y="6" width="16" height="15" rx="2.5"/><path d="M9 13l2 2 4-4"/></svg></span>
+          <span class="ml">Dati clinici</span><span class="chev">›</span>
+        </button>
+        <button class="menu-voce">
+          <span class="mi"><svg viewBox="0 0 24 24"><path d="M20 7h-3.5l-1-2h-7l-1 2H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><circle cx="12" cy="13.5" r="3.2"/></svg></span>
+          <span class="ml">Prove</span><span class="chev">›</span>
+        </button>
+        <button class="menu-voce">
+          <span class="mi"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg></span>
+          <span class="ml">Foto</span><span class="chev">›</span>
+        </button>
+        <button class="menu-voce">
+          <span class="mi"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/></svg></span>
+          <span class="ml">Documenti</span><span class="chev">›</span>
+        </button>
+        <button class="menu-voce butta">
+          <span class="mi"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6M14 11v6"/></svg></span>
+          <span class="ml">Butta via</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── FRAME 5 · «È TORNATA» (§4.2) ───────────
+       Lavoro `in_prova_esterna`: n.145 (Corona in disilicato · Dr. Esposito ·
+       PZ-0408). pila-aperta.html lo documenta come ambra «IN FORNO»; QUI è un
+       momento successivo — uscito per prova dal dentista e appena rientrato.
+       CONSEGNA sostituito da TastoSecondario «È tornata» → il lavoro torna in
+       lavorazione (ambra). Consegna NON imminente (ven 11) → ZERO valori rossi. -->
+  <div class="frame-sep">— frame · lavoro in prova · «è tornata» —</div>
+  <section class="scheda-frame">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.145</span>
+      <span class="pill fam-ambra">In prova</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0408</span></span></div>
+        <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona in disilicato</span></span></div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore">Ven 11 · 10:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+
+      <div class="nota">
+        <span class="ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+        </span>
+        <div class="corpo">
+          <div class="cit">“Provata in bocca: contatto ok, ritocco il colore”</div>
+          <div class="firma">— Dr. Esposito</div>
+        </div>
+      </div>
+
+      <!-- CardFasi: 3 fatte + «Prova dal dentista» come fase in corso (cerchio
+           dashed, NESSUNA PillFase FATTA — l'azione non è «tap fase fatta» ma
+           «È tornata»). Rispetta «max una PillFase FATTA per frame» (qui: zero). -->
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · lun 7 · 10:15</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Pressatura</span><div class="chi-quando">Ciro · mar 8 · 9:40</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Prima cottura</span><div class="chi-quando">Salvatore · mar 8 · 15:20</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Prova dal dentista</span><div class="chi-quando">rientrata oggi · aspetta il ritocco</div></span>
+        </div>
+      </div>
+
+      <!-- §4.2: al posto del CONSEGNA, TastoSecondario «È tornata» → in_lavorazione -->
+      <button class="tasto-secondario torna">È tornata</button>
+    </div>
+  </section>
+
+  <div class="frames-end"></div>
+</div>
+
+<!-- ══════════════ SPLIT · 768 (lista rossa 360 + scheda n.147) ══════════════
+     Scheda nel pannello destro (§7.1). CONSEGNA DISABLED (single-red-primary:
+     l'unico rosso 3D è il «Consegna» inline su n.144 nella pila rossa). -->
+<div class="split">
+  <section class="split-lista">
+    <div class="morph rossa">
+      <div class="m-num">2</div>
+      <div class="m-txt">
+        <div class="m-label">Da consegnare oggi</div>
+        <div class="m-sub">2 lavori · il più vicino alle 16:00</div>
+      </div>
+    </div>
+    <!-- n.144 in cima — TastoConsegnaInline (pronto → ENABLED, unico rosso del 768) -->
+    <div class="card cardlav">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.144</div>
+        <span class="pill tempo fam-rossa">Da ieri</span>
+      </div>
+      <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+      <div class="cl-tipo">Ponte 3 elementi</div>
+      <button class="consegna-inline">Consegna</button>
+    </div>
+    <!-- n.147 selezionato (aperto a destra) — ring 2.5 --red -->
+    <div class="card cardlav sel">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.147</div>
+        <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+      </div>
+      <div class="cl-who">Dr. Esposito · PZ-0412</div>
+      <div class="cl-tipo">Corona zirconia</div>
+    </div>
+  </section>
+
+  <section class="split-scheda">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Il lavoro</div>
+      <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+      <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+      <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+      <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+      <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+    </div>
+
+    <div class="nota">
+      <span class="ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+      </span>
+      <div class="corpo">
+        <div class="cit">“Il paziente morde forte, occhio allo spessore”</div>
+        <div class="firma">— Dr. Esposito</div>
+      </div>
+    </div>
+
+    <div class="foto-strip" aria-label="Foto del lavoro">
+      <div class="foto-thumb f1"></div>
+      <div class="foto-thumb f2"></div>
+      <div class="foto-thumb f3"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Le fasi</div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+      </div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+      </div>
+      <div class="riga-fase fatta">
+        <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+      </div>
+      <div class="riga-fase">
+        <span class="check"></span>
+        <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+        <button class="pill-fase">FATTA ✓</button>
+      </div>
+    </div>
+
+    <div>
+      <button class="tasto-primario scheda-consegna" disabled>Consegna</button>
+      <div class="callout">Completa il controllo finale per consegnare</div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════ DESKTOP · 1280 (3 pannelli §12.3) ══════════════
+     Versione PIENA della .scheda-desk di home.html: aggiunge NotaDentista +
+     strip foto. CardInfo+CardFasi affiancate (grid 2col). CONSEGNA 340px in
+     basso a sinistra, DISABLED (single-red-primary: l'unico rosso 3D è la nav
+     «+ Nuovo lavoro»). -->
+<div class="desktop">
+  <nav class="nav-desk">
+    <div class="logo">UÀ<em>.</em></div>
+    <button class="tasto-primario nav-nuovo">+ Nuovo lavoro</button>
+    <div class="voci">
+      <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+      <div class="voce"><span class="nome">Sul banco</span><span class="badge a">5</span></div>
+      <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+      <div class="voce"><span class="nome">Agenda</span></div>
+      <div class="voce"><span class="nome">Dentisti</span></div>
+      <div class="voce"><span class="nome">Fatture</span></div>
+      <div class="voce"><span class="nome">Magazzino</span></div>
+      <div class="voce"><span class="nome">Documenti</span></div>
+    </div>
+  </nav>
+
+  <section class="lista-desk">
+    <div class="lista-head">
+      <span class="lista-titolo">Da consegnare oggi</span>
+      <span class="lista-sub">2 lavori · il più vicino alle 16:00</span>
+    </div>
+    <div class="card cardlav">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.144</div>
+        <span class="pill tempo fam-rossa">Da ieri</span>
+      </div>
+      <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+      <div class="cl-tipo">Ponte 3 elementi</div>
+    </div>
+    <div class="card cardlav sel">
+      <div class="cl-top">
+        <div class="cl-num"><small>Lavoro</small>n.147</div>
+        <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+      </div>
+      <div class="cl-who">Dr. Esposito · PZ-0412</div>
+      <div class="cl-tipo">Corona zirconia</div>
+    </div>
+  </section>
+
+  <section class="scheda-desk">
+    <div class="scheda-head">
+      <button class="tasto-tondo" aria-label="Indietro">‹</button>
+      <span class="scheda-num">n.147</span>
+      <span class="pill fam-verde">Pronta ✓</span>
+      <span class="sp"></span>
+      <button class="tasto-tondo" aria-label="Altro">⋯</button>
+    </div>
+
+    <div class="scheda-grid">
+      <div class="card">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+        <div class="riga-dato"><span class="chiave">Lavoro</span><span class="valore-col"><span class="valore">Corona zirconia</span></span></div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Le fasi</div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Modellazione</span><div class="chi-quando">Ciro · ieri 14:20</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Fusione</span><div class="chi-quando">Ciro · oggi 9:05</div></span>
+        </div>
+        <div class="riga-fase fatta">
+          <span class="check fatta"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span style="flex:1"><span class="nome">Rifinitura</span><div class="chi-quando">Salvatore · oggi 11:40</div></span>
+        </div>
+        <div class="riga-fase">
+          <span class="check"></span>
+          <span style="flex:1"><span class="nome">Controllo finale</span><div class="chi-quando">tocca quando è fatta</div></span>
+          <button class="pill-fase">FATTA ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NotaDentista + strip foto: ciò che rende questa la versione «piena»
+         dell'anteprima scheda-desk di home.html (che le ometteva). -->
+    <div class="nota">
+      <span class="ic" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+      </span>
+      <div class="corpo">
+        <div class="cit">“Il paziente morde forte, occhio allo spessore”</div>
+        <div class="firma">— Dr. Esposito</div>
+      </div>
+    </div>
+
+    <div class="foto-strip" aria-label="Foto del lavoro">
+      <div class="foto-thumb f1"></div>
+      <div class="foto-thumb f2"></div>
+      <div class="foto-thumb f3"></div>
+    </div>
+
+    <div>
+      <button class="tasto-primario scheda-consegna" disabled>Consegna</button>
+      <div class="callout">Completa il controllo finale per consegnare</div>
+    </div>
+  </section>
+</div>
+
+</body>
+</html>
