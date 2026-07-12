@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WizardNuovoLavoro } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
@@ -130,5 +130,43 @@ describe('WizardNuovoLavoro — shell + Passo 1 dentisti (Task 8)', () => {
     expect(screen.getByRole('textbox')).toHaveValue('esposito')
     expect(screen.getByRole('button', { name: /Dr\. Esposito/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Dr\.ssa Bianchi/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('tap su «＋ Nuovo dentista» apre lo sheet (dialog "Nuovo dentista")', async () => {
+    render(<WizardNuovoLavoro dati={DATI} contesto={CONTESTO} />)
+    expect(screen.queryByRole('dialog', { name: 'Nuovo dentista' })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: '＋ Nuovo dentista' }))
+    expect(screen.getByRole('dialog', { name: 'Nuovo dentista' })).toBeInTheDocument()
+  })
+
+  it('creazione riuscita → sheet chiuso e wizard avanza al Passo 2 col dentista creato selezionato', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ cliente: { id: 'cli-9', nome: 'Anna', cognome: 'Neri', studio_nome: null } }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: '＋ Nuovo dentista' }))
+    await user.type(screen.getByLabelText('Nome'), 'Anna')
+    await user.type(screen.getByLabelText('Cognome'), 'Neri')
+    await user.click(screen.getByRole('button', { name: /crea dentista/i }))
+
+    // Il wizard seleziona il dentista appena creato e avanza al Passo 2
+    // (direzione 'avanti' — contratto in WizardNuovoLavoro.tsx).
+    await waitFor(() => expect(screen.getByText('Che lavoro è?')).toBeInTheDocument())
+    // Lo sheet resta nel DOM per la durata dell'uscita animata (AnimatePresence,
+    // §8.2.2): si attende lo smontaggio, non lo si pretende sincrono.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuovo dentista' })).not.toBeInTheDocument())
   })
 })

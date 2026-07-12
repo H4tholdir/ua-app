@@ -28,7 +28,9 @@ import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v
 import { tipografia } from '@/design-system/v3/tokens'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { ProgressDots } from '@/components/ds/ProgressDots'
+import { AvvisiProvider } from '@/components/ds/Avviso'
 import { PassoDentista } from './PassoDentista'
+import { NuovoDentistaSheet } from './NuovoDentistaSheet'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
 export type TipoScelto = { kind: 'catalogo'; tipoId: string } | { kind: 'libero'; testo: string }
@@ -76,6 +78,12 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // aggiornarla fa scivolare il passo dal lato sbagliato — nessun errore, solo
   // un bug visivo silenzioso.
   const [direzione, setDirezione] = useState<'avanti' | 'indietro'>('avanti')
+  // Task 9 (A7): stato dello sheet «Nuovo dentista», montato una sola volta
+  // qui sotto (non dentro RenderPasso) perché deve sopravvivere al cambio di
+  // `stato.passo` — vedi `dentistaCreato` sotto: la creazione riuscita
+  // avanza subito al Passo 2, e lo sheet deve chiudersi nello stesso istante
+  // senza un frame intermedio in cui esiste ma è "orfano" del Passo 1.
+  const [sheetDentistaAperto, setSheetDentistaAperto] = useState(false)
 
   const vaIndietro = useCallback(() => {
     if (stato.passo === 1) {
@@ -91,6 +99,19 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
     setStato((s) => ({ ...s, cliente, passo: 2 }))
   }, [])
 
+  // CONTRATTO Task 9: `NuovoDentistaSheet.onCreato` chiama questa — riusa
+  // `sceltaDentista` (stesso percorso di selezione di un tile esistente),
+  // così direzione/coreografia restano un'unica fonte di verità.
+  const dentistaCreato = useCallback(
+    (cliente: { id: string; label: string }) => {
+      setSheetDentistaAperto(false)
+      sceltaDentista(cliente)
+    },
+    [sceltaDentista]
+  )
+
+  const apriSheetDentista = useCallback(() => setSheetDentistaAperto(true), [])
+
   const corpo = (
     <div style={colonnaStile}>
       <div style={testataStile}>
@@ -101,29 +122,39 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       <AnimatePresence mode="popLayout" initial={false}>
         {reduced ? (
           <div key={stato.passo}>
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} />
+            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} />
           </div>
         ) : (
           <motion.div
             key={stato.passo}
             {...(direzione === 'avanti' ? coreografie.wizardAvanti : coreografie.wizardIndietro)}
           >
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} />
+            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} />
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   )
 
+  // AvvisiProvider avvolge tutto il wizard (non solo lo sheet): NuovoDentistaSheet
+  // chiama useAvvisi() per l'errore di rete (§5.18), e i passi futuri (Task
+  // 10-13) potranno avvisare dallo stesso provider senza rimontarlo.
   return (
-    <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
-      <div className="ds-grana" aria-hidden />
-      {reduced ? <EntrataRidotta>{corpo}</EntrataRidotta> : (
-        <motion.div initial={{ y: '6%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={molla.smooth}>
-          {corpo}
-        </motion.div>
-      )}
-    </div>
+    <AvvisiProvider>
+      <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+        <div className="ds-grana" aria-hidden />
+        {reduced ? <EntrataRidotta>{corpo}</EntrataRidotta> : (
+          <motion.div initial={{ y: '6%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={molla.smooth}>
+            {corpo}
+          </motion.div>
+        )}
+        <NuovoDentistaSheet
+          aperto={sheetDentistaAperto}
+          onChiudi={() => setSheetDentistaAperto(false)}
+          onCreato={dentistaCreato}
+        />
+      </div>
+    </AvvisiProvider>
   )
 }
 
@@ -132,15 +163,16 @@ function RenderPasso(props: {
   stato: StatoWizard
   dati: DatiWizard
   onScegli: (d: { id: string; label: string }) => void
+  onNuovoDentista: () => void
 }) {
-  const { stato, dati, onScegli } = props
+  const { stato, dati, onScegli, onNuovoDentista } = props
 
   if (stato.passo === 1) {
     return (
       <PassoDentista
         dentisti={dati.dentisti}
         onScegli={onScegli}
-        onNuovoDentista={() => {}}
+        onNuovoDentista={onNuovoDentista}
       />
     )
   }
