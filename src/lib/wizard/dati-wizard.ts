@@ -13,14 +13,19 @@ export type DatiWizard = {
   giorniPerTipo: Record<string, { giorni: number; daStoria: boolean }>
 }
 
-type RawCliente = { id: string; nome: string; cognome: string; studio_nome: string | null }
+// `nome` NON è nella select: la label wizard usa solo studio_nome/cognome
+// ('Dr. Cognome'), diversamente da pile-home che mostra 'Nome Cognome'.
+type RawCliente = { id: string; cognome: string; studio_nome: string | null }
 type RawLavoro30 = { cliente_id: string; descrizione: string; data_ingresso: string }
 type RawPaziente = { codice_paziente: string | null }
 
-// Formatta 'YYYY-MM-DD' usando i componenti LOCALI del Date — MAI
-// `toISOString().split('T')[0]`: convertirebbe a UTC e, per un lab in
-// Italia (CEST +2), la mezzanotte locale diventerebbe le 22:00 del giorno
-// PRIMA, spostando il cutoff di un giorno indietro (bug silenzioso).
+// Formatta 'YYYY-MM-DD' componendo da getFullYear/getMonth/getDate —
+// convenzione del wizard decisa dal piano (Task 12, coerente con W7 /
+// Campo.tsx): tutta l'aritmetica di date del wizard resta in componenti
+// locali, senza passare da `toISOString().split('T')[0]` (che usa il fuso
+// UTC). Ragioni: coerenza con `inizioGiorno`/`aggiungiGiorni` usati qui
+// sopra, e robustezza se il TZ del processo differisse da UTC — non
+// un'affermazione che il pattern toISOString usato altrove sia buggato oggi.
 function isoDataLocale(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -118,7 +123,7 @@ export async function getDatiWizard(svc: SupabaseClient, labId: string, oggi: Da
   const cutoff = isoDataLocale(aggiungiGiorni(inizioGiorno(oggi), -30))
 
   const [clientiRes, lavoriRes, pazientiRes, campioni] = await Promise.all([
-    svc.from('clienti').select('id, nome, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
+    svc.from('clienti').select('id, cognome, studio_nome').eq('laboratorio_id', labId).is('deleted_at', null),
     svc.from('lavori').select('cliente_id, descrizione, data_ingresso').eq('laboratorio_id', labId).is('deleted_at', null).gte('data_ingresso', cutoff),
     svc.from('pazienti').select('codice_paziente').eq('laboratorio_id', labId).is('deleted_at', null).like('codice_paziente', 'PZ-%'),
     fetchCampioniConsegna(svc, labId),

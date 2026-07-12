@@ -5,36 +5,54 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 const OGGI = new Date('2026-07-12T10:00:00') // domenica 12 luglio — coerente con currentDate di sessione
 
+type ChiamataMock = { method: string; args: unknown[] }
+type QueryRegistrata = { tabella: string; chiamate: ChiamataMock[] }
+
 /**
  * Mock router multi-tabella: ogni tabella ha una CODA di risultati
  * consumati in ordine di chiamata (FIFO, l'ultimo si ripete se le
  * chiamate superano le voci) — necessario perché `getDatiWizard` e
  * `fetchCampioniConsegna` (Task 6) interrogano ENTRAMBI `lavori`, con
  * filtri diversi, e un mock stateless-per-tabella li confonderebbe.
+ *
+ * Ogni query registra le chiamate ai filtri con i loro argomenti in
+ * `registro` (una voce per `.from()`, in ordine di invocazione) — serve al
+ * test di tenant-scoping per asserire che OGNI query riceva
+ * `.eq('laboratorio_id', labId)`: una rimozione futura del filtro deve
+ * far fallire il test, non solo cambiare i dati restituiti dal mock.
  */
-function svcRouter(routing: Record<string, Array<{ data: unknown; error: unknown }>>): SupabaseClient {
+function svcRouter(routing: Record<string, Array<{ data: unknown; error: unknown }>>): { svc: SupabaseClient; registro: QueryRegistrata[] } {
   const indici: Record<string, number> = {}
-  return {
+  const registro: QueryRegistrata[] = []
+  const svc = {
     from: (tabella: string) => {
       const coda = routing[tabella]
       if (!coda) throw new Error(`tabella inattesa nel mock: ${tabella}`)
       const i = indici[tabella] ?? 0
       indici[tabella] = i + 1
       const risultato = coda[Math.min(i, coda.length - 1)]
+      const chiamate: ChiamataMock[] = []
+      registro.push({ tabella, chiamate })
       const builder: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'is', 'gte', 'not', 'like']) builder[m] = () => builder
+      for (const m of ['select', 'eq', 'is', 'gte', 'not', 'like']) {
+        builder[m] = (...args: unknown[]) => {
+          chiamate.push({ method: m, args })
+          return builder
+        }
+      }
       builder.then = (resolve: (v: unknown) => void) => resolve(risultato)
       return builder
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any
+  return { svc, registro }
 }
 
 describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
   const clienti = [
-    { id: 'c1', nome: 'Aldo', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
-    { id: 'c2', nome: 'Anna', cognome: 'Bianchi', studio_nome: null },
-    { id: 'c3', nome: 'Bruno', cognome: 'Verdi', studio_nome: null },
+    { id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
+    { id: 'c2', cognome: 'Bianchi', studio_nome: null },
+    { id: 'c3', cognome: 'Verdi', studio_nome: null },
   ]
 
   it('label dentista: studio_nome se presente, altrimenti "Dr. Cognome"', () => {
@@ -74,8 +92,8 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
 
   it('dentisti a pari count30: tie-break su label asc', () => {
     const soloClienti = [
-      { id: 'x1', nome: 'Z', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
-      { id: 'x2', nome: 'A', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
+      { id: 'x1', cognome: 'Zeta', studio_nome: null }, // label 'Dr. Zeta'
+      { id: 'x2', cognome: 'Alfa', studio_nome: null }, // label 'Dr. Alfa'
     ]
     const r = aggregaDatiWizard(soloClienti, [], [], OGGI)
     expect(r.dentisti.map((d) => d.label)).toEqual(['Dr. Alfa', 'Dr. Zeta'])
@@ -147,10 +165,10 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
 })
 
 describe('getDatiWizard — wiring Supabase + fail-closed', () => {
-  const clientiData = [{ id: 'c1', nome: 'Aldo', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
+  const clientiData = [{ id: 'c1', cognome: 'Esposito', studio_nome: 'Studio Esposito' }]
 
   it('compone dentisti/frequenzeTipi/topTipi/prossimoPz/giorniPerTipo dalle query', async () => {
-    const svc = svcRouter({
+    const { svc } = svcRouter({
       clienti: [{ data: clientiData, error: null }],
       lavori: [
         { data: [{ cliente_id: 'c1', descrizione: 'Corona zirconia', data_ingresso: '2026-07-10' }], error: null }, // query wizard (30gg)
@@ -166,7 +184,7 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
   })
 
   it('fail-closed: errore sulla query clienti → throw', async () => {
-    const svc = svcRouter({
+    const { svc } = svcRouter({
       clienti: [{ data: null, error: { message: 'boom clienti' } }],
       lavori: [{ data: [], error: null }, { data: [], error: null }],
       pazienti: [{ data: [], error: null }],
@@ -175,7 +193,7 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
   })
 
   it('fail-closed: errore sulla query lavori → throw', async () => {
-    const svc = svcRouter({
+    const { svc } = svcRouter({
       clienti: [{ data: clientiData, error: null }],
       lavori: [{ data: null, error: { message: 'boom lavori' } }],
       pazienti: [{ data: [], error: null }],
@@ -184,7 +202,7 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
   })
 
   it('fail-closed: errore sulla query pazienti → throw', async () => {
-    const svc = svcRouter({
+    const { svc } = svcRouter({
       clienti: [{ data: clientiData, error: null }],
       lavori: [{ data: [], error: null }, { data: [], error: null }],
       pazienti: [{ data: null, error: { message: 'boom pazienti' } }],
@@ -193,11 +211,33 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
   })
 
   it('fail-closed: errore sulla query storico consegne (fetchCampioniConsegna) → throw', async () => {
-    const svc = svcRouter({
+    const { svc } = svcRouter({
       clienti: [{ data: clientiData, error: null }],
       lavori: [{ data: [], error: null }, { data: null, error: { message: 'boom storico' } }],
       pazienti: [{ data: [], error: null }],
     })
     await expect(getDatiWizard(svc, 'lab-1', OGGI)).rejects.toThrow()
+  })
+
+  it('tenant-scoping: TUTTE e 4 le query (clienti, lavori 30gg, pazienti, storico consegne) filtrano laboratorio_id = labId', async () => {
+    const { svc, registro } = svcRouter({
+      clienti: [{ data: clientiData, error: null }],
+      lavori: [{ data: [], error: null }, { data: [], error: null }],
+      pazienti: [{ data: [], error: null }],
+    })
+    await getDatiWizard(svc, 'lab-tenant-test', OGGI)
+
+    // Esattamente 4 query: clienti + lavori (finestra 30gg) + pazienti +
+    // lavori di nuovo (storico consegne dentro fetchCampioniConsegna).
+    expect(registro.map((q) => q.tabella).sort()).toEqual(['clienti', 'lavori', 'lavori', 'pazienti'])
+
+    // OGNI query deve portare lo scoping tenant: se un refactor futuro
+    // rimuove il filtro da una qualsiasi delle 4, questo test fallisce.
+    for (const q of registro) {
+      expect(q.chiamate, `query su "${q.tabella}" senza .eq('laboratorio_id', labId)`).toContainEqual({
+        method: 'eq',
+        args: ['laboratorio_id', 'lab-tenant-test'],
+      })
+    }
   })
 })
