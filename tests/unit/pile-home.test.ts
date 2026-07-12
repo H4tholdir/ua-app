@@ -10,7 +10,7 @@ function raw(p: Partial<RawLavoroPila>): RawLavoroPila {
     descrizione: 'Corona zirconia', created_at: '2026-07-01T08:00:00Z', updated_at: '2026-07-08T08:00:00Z',
     clienti: { nome: 'Aldo', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
     pazienti: { codice_paziente: 'PZ-0412' },
-    lavori_fasi: [], lavoro_prove: [],
+    lavori_fasi: [], lavoro_prove: [], tecnici: null,
     ...p,
   }
 }

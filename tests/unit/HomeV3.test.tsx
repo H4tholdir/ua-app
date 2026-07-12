@@ -11,6 +11,7 @@ const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne
 const lavoro = (numero: string): PileHome['liste']['rossa'][number] => ({
   id: `l${numero}`, numero, dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
   pill: { testo: 'OGGI · 16:00', famiglia: 'red' }, consegnabile: true, consegna: { data: '2026-07-09', ora: '16:00:00' }, rientro: null,
+  fasi: [], tecnico: null,
 })
 const PILE: PileHome = {
   liste: { rossa: [lavoro('147')], ambra: [], viola: [], blu: [] },

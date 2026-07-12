@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome, subMorph } from '@/lib/dashboard/pile-home'
 import { PilaAperta } from '@/components/features/pile/PilaAperta'
 import { LePile } from '@/components/features/pile/LePile'
+import { PilaSplit } from '@/components/features/pile/PilaSplit'
 import type { Pila } from '@/lib/lavori/urgenza'
 
 export const dynamic = 'force-dynamic'
@@ -14,8 +15,13 @@ const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
 // (LePile). Stesso schema auth/perimetro di /dashboard (HomeV3): la sorgente
 // dati (`getPileHome`) usa il service client (bypassa RLS) — il ruolo va
 // validato qui, non lasciato al database.
-export default async function LavoriPage({ searchParams }: { searchParams: Promise<{ pila?: string }> }) {
-  const { pila: pilaParam } = await searchParams
+//
+// Regime 768 (Task 9, ADR B6): con `?pila=`, a ≥768 e <1024 lo split a due
+// colonne (`PilaSplit`) sostituisce la lista mobile a colonna singola — stesso
+// pattern show/hide CSS di `HomeDesktop` (`.ua-lavori-mobile`/`.ua-lavori-split`).
+// A ≥1024 resta il regime mobile a colonna singola (fuori scope di questo task).
+export default async function LavoriPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
+  const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
   const userClient = await getServerUserClient()
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) redirect('/login')
@@ -30,13 +36,20 @@ export default async function LavoriPage({ searchParams }: { searchParams: Promi
   const pile = await getPileHome(svc, labId, perimetro)
   const pila = (PILE_VALIDE as readonly string[]).includes(pilaParam ?? '') ? (pilaParam as Pila) : null
   const conteggi = { rossa: pile.liste.rossa.length, ambra: pile.liste.ambra.length, viola: pile.liste.viola.length, blu: pile.liste.blu.length }
+  const lista = pila ? pile.liste[pila] : []
+  const lavoroSelezionato = pila ? ((lavoroParam ? lista.find((l) => l.id === lavoroParam) : undefined) ?? lista[0] ?? null) : null
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
-      {pila
-        ? <PilaAperta pila={pila} lista={pile.liste[pila]} sub={subMorph(pila, pile, new Date())} />
-        : <LePile conteggi={conteggi} />}
+      <div className="ua-lavori-mobile">
+        {pila
+          ? <PilaAperta pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} />
+          : <LePile conteggi={conteggi} />}
+      </div>
+      {pila && (
+        <PilaSplit pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} lavoroSelezionato={lavoroSelezionato} />
+      )}
     </div>
   )
 }

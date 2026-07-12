@@ -27,7 +27,9 @@ export function HomeV3(props: { nome: string; eyebrow: string; saluto: string; p
   const bancoLibero = ORDINE.every(({ pila }) => pile.liste[pila].length === 0)
 
   return (
-    <main className="ua-home">
+    // "ua-home-mobile" (Task 9): HomeDesktop la nasconde da 1024 in su via CSS
+    // (`.ua-home-mobile { display: none }` dentro il suo `@media (min-width:1024px)`).
+    <main className="ua-home ua-home-mobile">
       <style>{`
         .ua-home { position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
                    padding: 24px; display: flex; flex-direction: column; min-height: 100dvh; }
