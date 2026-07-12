@@ -497,6 +497,20 @@ Il tracciato XML FatturaPA e il PDF di cortesia dichiarano sempre `TipoDocumento
 
 ## 🟡 MEDIO — debito tecnico e rifiniture, non bloccanti
 
+### O1. Residui Ondata 1 Home+pile (triage della review finale, 12/07/2026)
+Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdetto YES). Dettaglio completo nel ledger `.superpowers/sdd/progress-ondata-1-home-pile.md`.
+- **O1a — Debito test rami prose pile/striscia:** pillFase 0-branch e caso «tutte fasi eseguite» (oggi cade nel ramo `PER <giorno>`), subAmbra inCima, subBlu ≥3, subViola fallback, consegnaOggiNonPronta/provaRientroOggi, sub-rami s2, subMorph viola al confine oggi/domani. Da coprire nell'Ondata 2.
+- **O1b — Convenzione «oggi» da unificare:** nella stessa home convivono `adessoRoma()` (eyebrow), `new Date()` locale (pile/striscia) e `toISOString()` UTC (agenda/tutto-il-resto, pattern pre-esistente `oggiISO()`): vicino a mezzanotte possono divergere. Helper unico Europe/Rome + refactor. Inclusa la duplicazione `adessoRoma/saluto/GIORNI/MESI` fra `(app)/dashboard/page.tsx` e admin live.
+- **O1c — A11y follow-up:** `aria-label={s.nome}` sulle card di «Tutto il resto» sopprime il sub agli screen reader (pattern del mockup); pile dentro `inert` nell'anteprima admin invisibili ad AT (riepilogo sr-only statico); affordance per richiudere CampoTesto→RigaCerca; `console.warn` dev-only sull'esclusione conferma/onConsegna di CardLavoro (oggi solo type-level).
+- **O1d — Nota sistemica line-height:** `.ds-pila-num` ereditava il `line-height:1.5` di Tailwind (il mockup standalone aveva 1) → +26px/card, etichetta TastoPiù clippata. Fixato per `.ds-pila-num`; ALTRI testi DS v3 non stilati possono avere lo stesso scarto rispetto ai mockup — audit mirato alla prossima ondata UI.
+- **O1e — Flake di isolamento `avviso-caricamento-vuoto.test.tsx`:** verde da solo, rosso a intermittenza in-suite (probabile bleed di timer fra file); morso 2 volte il 12/07. Ticket dedicato.
+- **O1f — Segnale «tecnico senza anagrafica»:** col fail-closed ratificato, il tecnico senza riga `tecnici` vede pile vuote e striscia serena — nessuno viene avvisato dell'account mal configurato. Candidato: segnale striscia dedicato (visibile al titolare).
+- **O1g — Limit 500 su `getPileHome`:** truncation silenziosa spec-mandated; oltre soglia servirebbe un segnale (design nuovo).
+- **O1h — Back ‹ di PilaAperta sempre a `/dashboard`:** salta la vista «Le pile» per chi arriva da lì (browser-back resta corretto, ADR).
+- **O1i — Profilo nel mondo v3 (advisor UX+DS 12/07, ratificato il fix minimo):** PRIMA che `/impostazioni` migri a v3: voce «Esci» in §7.16 «Il mio laboratorio» (oggi il logout vive solo nello sheet avatar, ritirato dalle route migrate); riga-identità nel footer NavDesk desktop (mockup da approvare, anche casa per Persone/Listino a 1280); segnale trial→StrisciaStato. Nota §14: avatar = chrome v2.3 che si ritira per route.
+- **O1j — Smoke admin `/admin/labs/[id]/live`:** route migrata a Home v3 read-only senza QA e2e possibile (credenziali admin_sistema assenti by design). Fix RSC applicato e review-verificato; smoke manuale di Francesco raccomandato al primo accesso.
+
+
 - **M1.** KPI dashboard "Da fatturare" in realtà filtra `stato='pronto'` (pronti da **consegnare**, non da fatturare) mentre la lista fatturabile richiede `stato='consegnato' AND incluso_in_fattura=false` — etichetta fuorviante. [Tit] — `supabase/migrations/002_fase2_schema.sql:327-328` vs `fatture/page.tsx:118`.
 - **M2.** Nessun Background Sync — dati persi se la connessione cade durante una consegna. [PWA], invariato.
 - **M3.** Cache-Control non immutabile per asset statici (`cache-control: public, max-age=0, must-revalidate` anche su `/_next/static/`). [PWA]
