@@ -16,13 +16,17 @@
 // stabile quando cambia solo `?lavoro=` (misurato nello spike: lo scrollTop
 // sopravvive alla sola selezione lavoro).
 //
-// Ring di selezione: `CardLavoro` fissa il proprio `boxShadow` (`var(--sh-card)`,
-// `none` in dark) sul suo nodo interno — non espone una prop "selezionato".
-// Stesso schema di `LePile.tsx` (ombra ambiente e ring MAI nello stesso
-// `box-shadow` multi-valore, altrimenti `none` in dark invalida l'intera
-// dichiarazione): qui il ring vive su un wrapper esterno, un solo valore,
-// valido da solo in entrambi i temi — combinato visivamente con l'ombra
-// ambiente che `CardLavoro` porta già con sé.
+// Ring di selezione (fix review finale item 1): il ring vive SUL nodo di
+// `CardLavoro` che possiede lo sfondo opaco (prop `selezionato`) — un inset
+// box-shadow su questo wrapper esterno non è MAI visibile, perché `CardLavoro`
+// dipinge il proprio `background: var(--card)` sopra (le inset shadow si
+// disegnano sotto i discendenti). Il wrapper qui sotto porta SOLO l'ombra
+// ambiente quando la card è selezionata (`var(--sh-card)`, single-value —
+// `none` in dark, innocuo da solo): combinata visivamente col ring single-value
+// di `CardLavoro`, riproduce il mockup `home.html` riga 205 (light: ambiente +
+// ring) / riga 219 (dark: SOLO ring). Quando non selezionata, l'ambiente vive
+// già dentro `CardLavoro` (default `var(--sh-card)`) — il wrapper non aggiunge
+// nulla.
 //
 // Riga 4 di CardLavoro (TastoConsegnaInline/Conferma): il mockup `home.html`
 // `.lista-desk` NON la mostra — a 1280 l'azione CONSEGNA vive nella
@@ -42,14 +46,6 @@
 // suo handler e questo listener globale (che apre `/lavori/{id}`) sparano
 // entrambi sullo stesso Invio, con due `router.push` verso URL diversi nello
 // stesso gesto (due voci di history per una pressione).
-//
-// BottomNavPill legacy (`src/components/layout/BottomNavPill.tsx`, montato
-// incondizionatamente da `(app)/layout.tsx` su OGNI pagina): a ≥1024 copre il
-// footer `StrisciaStato` di `NavDesk`. Nascosto SOLO qui (`.ua-bottom-nav`,
-// selettore stabile del componente) — la regola vive nello `<style>` di
-// QUESTO componente, quindi esiste nel DOM solo quando `HomeDesktop` è
-// montato (cioè solo su `/dashboard`): le altre pagine, che non hanno ancora
-// un proprio nav desktop, mantengono la bottom nav invariata.
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -143,12 +139,6 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
         @media (min-width: 1024px) {
           .ua-home-desk { display: grid; grid-template-columns: 240px 400px 1fr; height: 100dvh; overflow: hidden }
           .ua-home-mobile { display: none }
-          /* BottomNavPill legacy (v. nota in testa al file): copre il footer
-             StrisciaStato del nav desktop. !important necessario: il
-             componente imposta display via lo style inline (motion.div), che
-             batte una classe semplice — regola vive SOLO qui, quindi SOLO su
-             /dashboard: le altre pagine non toccate mantengono la bottom nav. */
-          .ua-bottom-nav { display: none !important }
         }
       `}</style>
 
@@ -172,15 +162,16 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
           lista.map((l) => {
             const selezionato = schedaLavoro?.id === l.id
             return (
-              // Wrapper del ring (v. nota in testa al file): un solo box-shadow,
-              // valido da solo — `CardLavoro` porta già la propria ombra ambiente.
-              <div key={l.id} style={{ borderRadius: raggio.card, boxShadow: selezionato ? 'inset 0 0 0 2.5px var(--red)' : undefined }}>
+              // Wrapper — SOLO l'ombra ambiente quando selezionata (v. nota in
+              // testa al file); il ring vive su `CardLavoro` (prop `selezionato`).
+              <div key={l.id} style={{ borderRadius: raggio.card, boxShadow: selezionato ? 'var(--sh-card)' : undefined }}>
                 <CardLavoro
                   numero={l.numero}
                   dentista={l.dentista}
                   paziente={l.paziente}
                   tipoLavoro={l.tipoLavoro}
                   tempo={l.pill}
+                  selezionato={selezionato}
                   onApri={() => router.push(`/dashboard?pila=${pilaSelezionata}&lavoro=${l.id}`)}
                 />
               </div>

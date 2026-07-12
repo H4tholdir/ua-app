@@ -73,7 +73,14 @@
    inline vincerebbe sempre e renderebbe la scala inerte. Regole dimensionali,
    non di colore: valgono identiche in light e dark. */
 [data-ds="v3"] .ds-pila { padding: 20px 22px; }
-[data-ds="v3"] .ds-pila-num { font-size: 52px; }
+/* `line-height: 1` — presente nel mockup (`.pila-num`, home.html) ma perso
+   nel porting a questa classe (fix review finale item 2): senza di lui il
+   numero display eredita `line-height:1.5` del reset Tailwind (`html` in
+   `globals.css`, assente nel mockup standalone), gonfiando ogni card di
+   +26px (52×0.5) — ×4 pile, la causa dominante del clipping dell'etichetta
+   TastoPiù a 390×844/667 (il "budget verticale" che HomeV3 spendeva in più
+   rispetto al mockup, mai un problema di padding/gap). */
+[data-ds="v3"] .ds-pila-num { font-size: 52px; line-height: 1; }
 
 /* Reduced motion — le coreografie degradano a dissolvenza (spec §8.4) */
 @media (prefers-reduced-motion: reduce) {

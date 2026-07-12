@@ -2,11 +2,12 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from '@/hooks/useTheme'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { t, motionTokens, useReducedMotion } from '@/design-system/motion'
+import { isV3MigratedRoute } from '@/lib/nav/route-migrate-v3'
 
 // Audio — tap feedback identico al pattern del progetto
 let _ac: AudioContext | null = null
@@ -67,6 +68,7 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
   const { theme, toggle, isDark } = useTheme()
   const reducedMotion = useReducedMotion()
   const router = useRouter()
+  const pathname = usePathname()
 
   const openSheet  = useCallback(() => { sndClick(); setOpen(true) }, [])
   const closeSheet = useCallback(() => { setOpen(false) }, [])
@@ -81,6 +83,13 @@ export function UserProfileSheet({ nome, cognome, email, ruolo, labNome, trialEn
   const initStr = initials(nome, cognome)
   const trialDate = fmtTrialDate(trialEndsAt)
   const isExpiring = isTrialExpiring
+
+  // Il guard vive DOPO tutti gli hook (Rules of Hooks — stesso schema di
+  // `BottomNavPill.tsx`, v. nota lì): sulle route migrate a v3 il ☰ TastoTondo
+  // della home è già l'accesso a «Tutto il resto», l'avatar top-right fisso è
+  // ridondante e il mockup `home.html` non lo prevede (review finale item 4,
+  // ratifica Francesco 12/07).
+  if (isV3MigratedRoute(pathname)) return null
 
   return (
     <>

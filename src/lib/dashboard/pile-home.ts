@@ -10,7 +10,13 @@ import { mapPileHome, type PileHome, type RawLavoroPila } from './pile-home-shar
 // esistenti tramite il re-export sotto — nessun consumatore server-side cambia.
 export * from './pile-home-shared'
 
-export async function getPileHome(svc: SupabaseClient, labId: string, opts: { tecnicoId?: string | null } = {}): Promise<PileHome> {
+export async function getPileHome(svc: SupabaseClient, labId: string, opts: { tecnicoId?: string | null; senzaAnagrafica?: boolean } = {}): Promise<PileHome> {
+  // Fail-closed (ratifica Francesco 12/07, review finale Ondata 1): un tecnico
+  // SENZA riga in `tecnici` deve vedere pile VUOTE, mai l'intero lab. Lo
+  // short-circuit vive PRIMA della query — non un filtro impossibile dopo,
+  // così il perimetro è chiuso per costruzione, non per un WHERE che qualcuno
+  // potrebbe rimuovere in un refactor futuro.
+  if (opts.senzaAnagrafica) return mapPileHome([], new Date())
   let q = svc
     .from('lavori')
     .select(`id, numero_lavoro, stato, data_consegna_prevista, ora_consegna, descrizione, created_at, updated_at,
@@ -29,8 +35,13 @@ export async function getPileHome(svc: SupabaseClient, labId: string, opts: { te
   return mapPileHome((data ?? []) as unknown as RawLavoroPila[], new Date())
 }
 
-export async function getPerimetroHome(svc: SupabaseClient, labId: string, userId: string, ruolo: string): Promise<{ tecnicoId: string | null }> {
-  if (ruolo !== 'tecnico') return { tecnicoId: null } // titolare/admin_rete/front_desk: tutto il lab (§3.2; l'ibrido usa il perimetro titolare)
+export async function getPerimetroHome(svc: SupabaseClient, labId: string, userId: string, ruolo: string): Promise<{ tecnicoId: string | null; senzaAnagrafica: boolean }> {
+  if (ruolo !== 'tecnico') return { tecnicoId: null, senzaAnagrafica: false } // titolare/admin_rete/front_desk: tutto il lab (§3.2; l'ibrido usa il perimetro titolare)
   const { data } = await svc.from('tecnici').select('id').eq('laboratorio_id', labId).eq('utente_id', userId).is('deleted_at', null).maybeSingle()
-  return { tecnicoId: data?.id ?? null }
+  // Fail-closed (ratifica Francesco 12/07): prima, un tecnico senza riga in
+  // `tecnici` risolveva a `tecnicoId: null` → `getPileHome` senza filtro →
+  // vedeva TUTTO il lab (bug di perimetro, scoperto in QA Task 11). Ora
+  // `senzaAnagrafica: true` istruisce `getPileHome` a tornare pile vuote.
+  if (!data) return { tecnicoId: null, senzaAnagrafica: true }
+  return { tecnicoId: data.id, senzaAnagrafica: false }
 }

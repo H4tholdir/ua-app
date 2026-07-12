@@ -14,8 +14,10 @@
 // `PilaAperta`/`LePile`: un Client Component che riceve solo DATI dal server e
 // possiede i propri handler via `useRouter()`.
 //
-// Ring di selezione: stesso wrapper esterno di `HomeDesktop.tsx` (v. nota lì)
-// — un solo `box-shadow`, mai combinato con quello di `CardLavoro`.
+// Ring di selezione: stesso schema di `HomeDesktop.tsx` (v. nota lì, fix
+// review finale item 1) — il ring vive su `CardLavoro` (prop `selezionato`,
+// sul nodo che possiede lo sfondo), il wrapper qui sotto porta SOLO l'ombra
+// ambiente quando selezionata.
 
 import { useRouter } from 'next/navigation'
 import { MorphPila } from '@/components/ds/MorphPila'
@@ -67,13 +69,14 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
           lista.map((l) => {
             const selezionato = schedaLavoro?.id === l.id
             return (
-              <div key={l.id} style={{ borderRadius: raggio.card, boxShadow: selezionato ? 'inset 0 0 0 2.5px var(--red)' : undefined }}>
+              <div key={l.id} style={{ borderRadius: raggio.card, boxShadow: selezionato ? 'var(--sh-card)' : undefined }}>
                 <CardLavoro
                   numero={l.numero}
                   dentista={l.dentista}
                   paziente={l.paziente}
                   tipoLavoro={l.tipoLavoro}
                   tempo={l.pill}
+                  selezionato={selezionato}
                   onApri={() => router.push(`/lavori?pila=${pila}&lavoro=${l.id}`)}
                   {...(pila === 'blu'
                     ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }

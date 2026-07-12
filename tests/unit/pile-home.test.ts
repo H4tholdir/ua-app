@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { mapPileHome, subMorph, type RawLavoroPila } from '@/lib/dashboard/pile-home'
+import { mapPileHome, subMorph, getPileHome, getPerimetroHome, type RawLavoroPila } from '@/lib/dashboard/pile-home'
+import { scegliSegnale } from '@/lib/dashboard/striscia'
+import { createChain } from './helpers/supabase-chain-mock'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 const OGGI = new Date('2026-07-09T10:00:00') // giovedì 9 luglio — l'ancora del cast mockup
 
@@ -107,5 +110,54 @@ describe('mapPileHome — il cast del mockup, riprodotto (home.html + pila-apert
     expect(subMorph('viola', pile, OGGI)).toBe('1 lavoro · torna lunedì 13')
     expect(subMorph('blu', pile, OGGI)).toBe('2 lavori · da confermare')
     expect(subMorph('rossa', mapPileHome([], OGGI), OGGI)).toBeUndefined()
+  })
+})
+
+// Ratifica Francesco 12/07 (emendamento al piano Ondata 1, item 3 review
+// finale): un tecnico SENZA riga in `tecnici` deve vedere pile VUOTE
+// (fail-closed), mai l'intero lab. Prima: `tecnicoId: null` → `getPileHome`
+// senza filtro → il tecnico vedeva tutto (bug di perimetro scoperto in QA
+// Task 11, §4 ledger «richiesto seeding aggiuntivo»).
+describe('getPerimetroHome / getPileHome — fail-closed per il tecnico senza anagrafica (ratifica 12/07)', () => {
+  function svcTecnicoSenzaRiga(): SupabaseClient {
+    const chainTecnici = createChain({ data: null, error: null })
+    return {
+      from: (tabella: string) => {
+        // Fail-closed vero: `getPileHome` con `senzaAnagrafica: true` NON deve
+        // MAI interrogare "lavori" — se lo fa, il perimetro non è chiuso prima
+        // della query, solo dopo (rischio di leak sotto race/refactor futuri).
+        if (tabella === 'lavori') throw new Error('getPileHome ha interrogato "lavori" nonostante senzaAnagrafica: true — fail-closed rotto')
+        if (tabella === 'tecnici') return chainTecnici
+        throw new Error(`tabella inattesa nel mock: ${tabella}`)
+      },
+    } as unknown as SupabaseClient
+  }
+
+  it('getPerimetroHome: ruolo tecnico senza riga in "tecnici" → senzaAnagrafica true, tecnicoId null', async () => {
+    const svc = svcTecnicoSenzaRiga()
+    const perimetro = await getPerimetroHome(svc, 'lab-1', 'user-1', 'tecnico')
+    expect(perimetro).toEqual({ tecnicoId: null, senzaAnagrafica: true })
+  })
+
+  it('getPerimetroHome: ruoli non-tecnico → senzaAnagrafica false, perimetro titolare (tutto il lab)', async () => {
+    const svc = { from: () => { throw new Error('non-tecnico non deve nemmeno interrogare "tecnici"') } } as unknown as SupabaseClient
+    const perimetro = await getPerimetroHome(svc, 'lab-1', 'user-1', 'titolare')
+    expect(perimetro).toEqual({ tecnicoId: null, senzaAnagrafica: false })
+  })
+
+  it('getPileHome: senzaAnagrafica true → tutte le 4 pile vuote, MAI l\'intero lab', async () => {
+    const svc = svcTecnicoSenzaRiga()
+    const pile = await getPileHome(svc, 'lab-1', { tecnicoId: null, senzaAnagrafica: true })
+    expect(pile.liste).toEqual({ rossa: [], ambra: [], viola: [], blu: [] })
+  })
+
+  it('pile vuote da fail-closed → la striscia del tecnico cade sul segnale 9 sereno ("nessuna consegna oggi")', async () => {
+    const svc = svcTecnicoSenzaRiga()
+    const pile = await getPileHome(svc, 'lab-1', { tecnicoId: null, senzaAnagrafica: true })
+    const segnale = scegliSegnale('tecnico', {
+      fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
+      pile: pile.striscia,
+    })
+    expect(segnale).toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null })
   })
 })

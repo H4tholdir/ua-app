@@ -128,8 +128,17 @@ export function CardLavoro(props: {
   tipoLavoro: string
   tempo: { testo: string; famiglia: Famiglia }
   onApri: () => void
+  // Ring di selezione (review finale Ondata 1, item 1): §3.4 «ring selezione
+  // 2.5 --red», mockup `home.html` riga 205/219. Il ring vive QUI, sul nodo
+  // che possiede lo sfondo opaco (`background: var(--card)`) — non su un
+  // wrapper esterno: un inset box-shadow dipinto SOTTO un discendente con
+  // sfondo opaco non è mai visibile (bug scoperto in review: `HomeDesktop`/
+  // `PilaSplit` mettevano il ring su un wrapper fuori da questo componente).
+  // Default `false`: i chiamanti che non selezionano nulla (mobile
+  // `PilaAperta`, catalogo DS) restano identici a prima.
+  selezionato?: boolean
 } & Riga4) {
-  const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma } = props
+  const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
 
   function handleApri() {
     vibra('selection')
@@ -176,7 +185,14 @@ export function CardLavoro(props: {
           padding: '20px 22px',
           borderRadius: raggio.card,
           background: 'var(--card)',
-          boxShadow: 'var(--sh-card)',
+          // Single-value SEMPRE (mai una lista con `var(--sh-card)` +
+          // ring): in dark `--sh-card` risolve a `none`, e `none` come
+          // membro di un box-shadow multi-valore invalida l'INTERA
+          // dichiarazione (stesso anti-pattern documentato in
+          // `TastoPrimario.tsx`). Selezionata → SOLO il ring (2.5px
+          // --red, §3.4); non selezionata → SOLO l'ombra ambiente,
+          // esattamente come prima di questa prop.
+          boxShadow: selezionato ? 'inset 0 0 0 2.5px var(--red)' : 'var(--sh-card)',
           cursor: 'pointer',
         }}
       >

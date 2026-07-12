@@ -129,6 +129,32 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
     expect(card.style.background).toBe('var(--card)')
   })
 
+  // Fix review finale Ondata 1 (item 1): il ring di selezione (§3.4, mockup
+  // `home.html` riga 205/219) vive SUL nodo che possiede lo sfondo, non su un
+  // wrapper esterno — un inset box-shadow su un antenato di un discendente con
+  // sfondo opaco non è mai visibile. Ogni valore è single-value (mai una lista
+  // con `none`, anti-pattern §TastoPrimario): selezionata → SOLO il ring,
+  // altrimenti → SOLO l'ombra ambiente (dark-safe, `var(--sh-card)` risolve a
+  // `none` ma resta da solo, mai in lista).
+  it('senza selezionato (default false) → SOLO ombra ambiente, come prima del fix', () => {
+    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} />)
+    const card = screen.getByRole('button', { name: /147/ })
+    expect(card.style.boxShadow).toBe('var(--sh-card)')
+  })
+
+  it('con selezionato=true → SOLO il ring 2.5px --red, sul nodo con lo sfondo (mai un wrapper)', () => {
+    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} selezionato />)
+    const card = screen.getByRole('button', { name: /147/ })
+    expect(card.style.boxShadow).toBe('inset 0 0 0 2.5px var(--red)')
+    expect(card.style.background).toBe('var(--card)')
+  })
+
+  it('con selezionato=false esplicito → identico al default (nessuna regressione sui chiamanti che non selezionano)', () => {
+    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} selezionato={false} />)
+    const card = screen.getByRole('button', { name: /147/ })
+    expect(card.style.boxShadow).toBe('var(--sh-card)')
+  })
+
   it('anello focus-visible di legge (2px --blue, offset 2) è di proprietà del componente stesso', () => {
     const { container } = render(<CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} />)
     const regola = container.querySelector('style')?.textContent ?? ''

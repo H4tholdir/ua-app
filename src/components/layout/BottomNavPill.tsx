@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { t, useReducedMotion, motionTokens } from '@/design-system/motion'
+import { isV3MigratedRoute } from '@/lib/nav/route-migrate-v3'
 
 // Design tokens v2.3 — warm panna palette
 const DS = {
@@ -139,17 +140,15 @@ const HIDE_AFTER_PX   = 60   // px — always visible near top
 
 // Ondata 1 (spec sp.3 §1): sulle pagine migrate a v3 la BottomNavPill muore —
 // il pollice in basso appartiene al TastoPiù (home). Restano le pagine v2.3.
-// Costante e comparazione condivise dal render (`hidden`, letto dopo tutti
-// gli hook — vedi sotto) e dai due effect del tooltip FAB (Task 11, review
-// Ondata 1): su una route nascosta il componente renderizza `null`, quindi
-// non ha senso far leggere/scrivere `localStorage` (`ua-tooltip-fab-shown`)
-// e far scattare il `setTimeout` di 3s — lavoro sprecato ad ogni mount su
-// `/dashboard`/`/tutto-il-resto`/`/lavori`. Stesso confronto ESATTO in
-// entrambi i punti.
-const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto']
-function isRouteHidden(pathname: string): boolean {
-  return ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori'
-}
+// Il predicato vive in `route-migrate-v3.ts` (review finale item 4, ratifica
+// 12/07): `UserProfileSheet.tsx` lo consuma con lo stesso comportamento —
+// niente più due copie della stessa lista/confronto. `hidden` resta condiviso
+// dal render (letto dopo tutti gli hook — vedi sotto) e dai due effect del
+// tooltip FAB (Task 11, review Ondata 1): su una route nascosta il componente
+// renderizza `null`, quindi non ha senso far leggere/scrivere `localStorage`
+// (`ua-tooltip-fab-shown`) e far scattare il `setTimeout` di 3s — lavoro
+// sprecato ad ogni mount su `/dashboard`/`/tutto-il-resto`/`/lavori`.
+const isRouteHidden = isV3MigratedRoute
 
 export function BottomNavPill() {
   const pathname = usePathname()
