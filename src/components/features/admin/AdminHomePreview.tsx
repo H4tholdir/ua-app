@@ -1,3 +1,5 @@
+'use client'
+
 // Ondata 1 ADDENDUM — anteprima Home v3 in sola lettura per l'admin_sistema
 // (`/admin/labs/[id]/live`). NON è HomeV3: quella naviga (`/lavori?pila=…`,
 // `/lavori/nuovo`, `/tutto-il-resto`) verso route gate-ate per titolare/
