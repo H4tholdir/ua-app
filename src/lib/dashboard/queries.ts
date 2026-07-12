@@ -386,83 +386,6 @@ export async function getTecnicoDashboard(
 }
 
 
-// ─── Tipi ───────────────────────────────────────────────────────────────────
-
-export type TaskItemData = {
-  id: string
-  numero_lavoro: string
-  stato: StatoLavoro
-  priorita: PrioritaLavoro
-  descrizione: string
-  data_consegna_prevista: string
-  ora_consegna: string | null
-  cliente_display: string
-  completamento_perc: number  // 0-100, calcolato da lavori_fasi.eseguita_at
-}
-
-// ─── Helpers privati ────────────────────────────────────────────────────────
-
-function statoToPerc(stato: StatoLavoro): number {
-  const map: Partial<Record<StatoLavoro, number>> = {
-    ricevuto: 10, in_lavorazione: 40, in_prova: 60,
-    in_prova_esterna: 65, pronto: 90, in_ritardo: 35,
-    sospeso: 20, consegnato: 100, annullato: 0,
-  }
-  return map[stato] ?? 0
-}
-
-// ─── getLavoriTecnicoOggi ───────────────────────────────────────────────────
-
-export async function getLavoriTecnicoOggi(
-  svc: SupabaseClient,
-  labId: string,
-  tecnicoId: string,
-  limit = 20
-): Promise<TaskItemData[]> {
-  const { data } = await svc
-    .from('lavori')
-    .select(`
-      id, numero_lavoro, stato, priorita,
-      descrizione, data_consegna_prevista, ora_consegna,
-      clienti(nome, cognome, studio_nome),
-      lavori_fasi(id, eseguita_at)
-    `)
-    .eq('laboratorio_id', labId)
-    .eq('tecnico_id', tecnicoId)
-    .not('stato', 'in', '("consegnato","annullato")')
-    .order('data_consegna_prevista', { ascending: true })
-    .limit(limit)
-
-  return ((data ?? []) as unknown as Array<{
-    id: string
-    numero_lavoro: string
-    stato: StatoLavoro
-    priorita: PrioritaLavoro
-    descrizione: string
-    data_consegna_prevista: string
-    ora_consegna: string | null
-    clienti: { nome: string; cognome: string; studio_nome: string | null } | null
-    lavori_fasi: Array<{ id: string; eseguita_at: string | null }>
-  }>).map(l => {
-    const fasi = l.lavori_fasi ?? []
-    const completamento = fasi.length > 0
-      ? Math.round(fasi.filter(f => f.eseguita_at !== null).length / fasi.length * 100)
-      : statoToPerc(l.stato)
-    const cliente_display = clienteDisplay(l.clienti)
-    return {
-      id: l.id,
-      numero_lavoro: l.numero_lavoro,
-      stato: l.stato,
-      priorita: l.priorita,
-      descrizione: l.descrizione,
-      data_consegna_prevista: l.data_consegna_prevista,
-      ora_consegna: l.ora_consegna,
-      cliente_display,
-      completamento_perc: completamento,
-    }
-  })
-}
-
 export async function getTrendMensile(
   svc: SupabaseClient,
   labId: string,
@@ -501,41 +424,20 @@ export async function getTrendMensile(
   return result
 }
 
-// ─── getLavoriDaFatturare ────────────────────────────────────────────────────
+// ─── LavoroDaFatturareItem ───────────────────────────────────────────────────
+// Task 11: `getLavoriDaFatturare` (la query che popolava questo tipo) è stata
+// rimossa perché priva di ogni consumatore (grep zero-risultati fuori da
+// questo file). Il tipo resta: `DashboardTitolare.tsx` importa
+// `LavoroDaFatturareItem` per una prop opzionale (`lavoriDaFatturare?`) mai
+// valorizzata da chi la monta oggi (solo `admin/labs/[id]/live/page.tsx`,
+// che non la passa) — coerente con `DashboardTitolare` restando in vita SOLO
+// per quel consumatore admin (vedi task-11-report.md).
 export type LavoroDaFatturareItem = {
   id: string
   numero_lavoro: string
   cliente_display: string
   data_consegna_effettiva: string | null
   prezzo_unitario: number
-}
-
-export async function getLavoriDaFatturare(
-  svc: SupabaseClient,
-  labId: string,
-  limit = 20
-): Promise<LavoroDaFatturareItem[]> {
-  const { data } = await svc
-    .from('lavori')
-    .select('id, numero_lavoro, data_consegna_effettiva, prezzo_unitario, clienti(nome, cognome, studio_nome)')
-    .eq('laboratorio_id', labId)
-    .eq('stato', 'consegnato')
-    .eq('incluso_in_fattura', false)
-    .is('deleted_at', null)
-    .order('data_consegna_effettiva', { ascending: true })
-    .limit(limit)
-
-  return ((data ?? []) as unknown as Array<{
-    id: string; numero_lavoro: string; data_consegna_effettiva: string | null;
-    prezzo_unitario: number;
-    clienti: { nome: string; cognome: string; studio_nome: string | null } | null
-  }>).map(l => ({
-    id: l.id,
-    numero_lavoro: l.numero_lavoro,
-    cliente_display: l.clienti?.studio_nome ?? (l.clienti ? `${l.clienti.nome} ${l.clienti.cognome}` : '—'),
-    data_consegna_effettiva: l.data_consegna_effettiva,
-    prezzo_unitario: Number(l.prezzo_unitario ?? 0),
-  }))
 }
 
 export async function getFrontDeskDashboard(

@@ -33,6 +33,8 @@ const HAS_FRONTDESK_CREDS = !!(
 )
 
 // ─── Suite 0: redirect senza autenticazione ──────────────────────────────────
+// Invariato: /dashboard resta la route (ora renderizza Home v3), il redirect
+// non autenticato è lo stesso comportamento pre/post Task 11.
 
 test.describe('Dashboard — redirect non autenticato', () => {
   test('GET /dashboard senza login → redirige a /login', async ({ page }) => {
@@ -41,179 +43,67 @@ test.describe('Dashboard — redirect non autenticato', () => {
   })
 })
 
-// ─── Suite 1: Vista Titolare ─────────────────────────────────────────────────
+// ─── Home v3 (Task 11, adattato da Ondata 1) ─────────────────────────────────
 //
-// Selettori unici per titolare:
-//   [aria-label="KPI operativi"]  → strip con 7 KPI (role="list")
-//
-// Assenza attesa:
-//   "Accettazione"   → header esclusivo front_desk
-//   "I miei lavori oggi"  → label sezione esclusiva tecnico
+// Le vecchie suite «Vista Titolare/Tecnico/Front Desk» asserivano markup delle
+// 4 dashboard per-ruolo (`DashboardTitolare`/`DashboardTecnico`/
+// `DashboardFrontDesk`, cancellate in questo task perché prive di consumatori
+// dopo la migrazione a Home v3 — vedi task-11-report.md). Dalla spec §7.1
+// rev. 3.1 (decisione A1) esiste UNA sola composizione (`HomeV3`) per tutti i
+// ruoli: cambia solo il perimetro dati caricato server-side
+// (`getPerimetroHome`), MAI la UI. Selettori vecchi come
+// `[aria-label="KPI operativi"]`, "Accettazione", "I miei lavori oggi" non
+// esistono più in nessun ruolo — quindi non sono più un modo valido di
+// distinguere i ruoli via e2e. Le 4 pile (rossa/ambra/viola/blu) sono SEMPRE
+// montate per legge (L1/L5, vedi `src/components/ds/Pila.tsx`), quindi la
+// verifica strutturale è la stessa per titolare/tecnico/front_desk; la
+// differenza di ruolo verificata qui è quella osservabile senza dipendere
+// dai dati seedati in quel preciso momento: la Striscia di stato del tecnico
+// non riporta MAI segnali fiscali (P7, `src/lib/dashboard/striscia.ts`
+// `GERARCHIE.tecnico` esclude s1/s7), le altre gerarchie possono.
 
-test.describe('Dashboard — Vista Titolare', () => {
+const PILE_LABELS = ['DA CONSEGNARE OGGI', 'SUL BANCO', 'DA RIFARE / IN PROVA', 'APPENA ARRIVATI']
+
+async function assertHomeV3Shell(page: Page) {
+  await page.goto('/dashboard')
+  for (const label of PILE_LABELS) {
+    await expect(page.locator(`text=${label}`)).toBeVisible()
+  }
+  await expect(page.locator('[aria-label="Nuovo lavoro"]')).toBeVisible()
+  await expect(page.locator('[role="status"]')).toBeVisible()
+}
+
+test.describe('Home v3 — Titolare', () => {
   test.skip(!HAS_TITOLARE_CREDS, 'Richiede E2E_TITOLARE_EMAIL e E2E_TITOLARE_PASSWORD')
 
-  test('la KPI strip operativa è visibile', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TITOLARE_EMAIL!,
-      process.env.E2E_TITOLARE_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('[aria-label="KPI operativi"]')).toBeVisible()
-  })
-
-  test('le schede KPI "In ritardo" e "Oggi" sono presenti nella strip', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TITOLARE_EMAIL!,
-      process.env.E2E_TITOLARE_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    const strip = page.locator('[aria-label="KPI operativi"]')
-    await expect(strip).toBeVisible()
-    await expect(strip.locator('text=In ritardo')).toBeVisible()
-    await expect(strip.locator('text=Oggi')).toBeVisible()
-  })
-
-  test('non mostra l\'header "Accettazione" del front_desk', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TITOLARE_EMAIL!,
-      process.env.E2E_TITOLARE_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=Accettazione')).not.toBeVisible()
-  })
-
-  test('non mostra la sezione "I miei lavori oggi" del tecnico', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TITOLARE_EMAIL!,
-      process.env.E2E_TITOLARE_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=I miei lavori oggi')).not.toBeVisible()
+  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+    await loginAs(page, process.env.E2E_TITOLARE_EMAIL!, process.env.E2E_TITOLARE_PASSWORD!)
+    await assertHomeV3Shell(page)
   })
 })
 
-// ─── Suite 2: Vista Tecnico ──────────────────────────────────────────────────
-//
-// Selettori unici per tecnico:
-//   "I miei lavori oggi"  → label sezione (h2 uppercase)
-//   "I tuoi lavori"       → sottotitolo header
-//
-// Assenza attesa:
-//   [aria-label="KPI operativi"]  → strip a 7 KPI titolare
-//   "Accettazione"                → header front_desk
-
-test.describe('Dashboard — Vista Tecnico', () => {
+test.describe('Home v3 — Tecnico', () => {
   test.skip(!HAS_TECNICO_CREDS, 'Richiede E2E_TECNICO_EMAIL e E2E_TECNICO_PASSWORD')
 
-  test('mostra la sezione "I miei lavori oggi"', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TECNICO_EMAIL!,
-      process.env.E2E_TECNICO_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=I miei lavori oggi')).toBeVisible()
+  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+    await loginAs(page, process.env.E2E_TECNICO_EMAIL!, process.env.E2E_TECNICO_PASSWORD!)
+    await assertHomeV3Shell(page)
   })
 
-  test('mostra il sottotitolo "I tuoi lavori" nell\'header', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TECNICO_EMAIL!,
-      process.env.E2E_TECNICO_PASSWORD!
-    )
+  test('la striscia di stato non riporta segnali fiscali (P7)', async ({ page }) => {
+    await loginAs(page, process.env.E2E_TECNICO_EMAIL!, process.env.E2E_TECNICO_PASSWORD!)
     await page.goto('/dashboard')
-    await expect(page.locator('text=I tuoi lavori')).toBeVisible()
-  })
-
-  test('non mostra la KPI strip operativa del titolare', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TECNICO_EMAIL!,
-      process.env.E2E_TECNICO_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('[aria-label="KPI operativi"]')).not.toBeVisible()
-  })
-
-  test('non mostra l\'header "Accettazione" del front_desk', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_TECNICO_EMAIL!,
-      process.env.E2E_TECNICO_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=Accettazione')).not.toBeVisible()
+    const striscia = page.locator('[role="status"]')
+    await expect(striscia).toBeVisible()
+    await expect(striscia.locator('text=/scartat|fattur/i')).toHaveCount(0)
   })
 })
 
-// ─── Suite 3: Vista Front Desk ───────────────────────────────────────────────
-//
-// Selettori unici per front_desk:
-//   "Accettazione"                   → header section label
-//   [aria-label="Cerca paziente o numero lavoro"]  → search input
-//
-// Assenza attesa:
-//   [aria-label="KPI operativi"]  → strip a 7 KPI titolare
-//   "I miei lavori oggi"          → sezione tecnico
-
-test.describe('Dashboard — Vista Front Desk', () => {
+test.describe('Home v3 — Front Desk', () => {
   test.skip(!HAS_FRONTDESK_CREDS, 'Richiede E2E_FRONTDESK_EMAIL e E2E_FRONTDESK_PASSWORD')
 
-  test('mostra l\'header "Accettazione"', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_FRONTDESK_EMAIL!,
-      process.env.E2E_FRONTDESK_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=Accettazione')).toBeVisible()
-  })
-
-  test('mostra la search bar "Cerca paziente o n° lavoro"', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_FRONTDESK_EMAIL!,
-      process.env.E2E_FRONTDESK_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(
-      page.locator('[aria-label="Cerca paziente o numero lavoro"]')
-    ).toBeVisible()
-  })
-
-  test('mostra la sezione "Da consegnare oggi"', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_FRONTDESK_EMAIL!,
-      process.env.E2E_FRONTDESK_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    // La label appare come "Da consegnare oggi (N)"
-    await expect(page.locator('text=/Da consegnare oggi/')).toBeVisible()
-  })
-
-  test('non mostra la KPI strip operativa del titolare', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_FRONTDESK_EMAIL!,
-      process.env.E2E_FRONTDESK_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('[aria-label="KPI operativi"]')).not.toBeVisible()
-  })
-
-  test('non mostra la sezione "I miei lavori oggi" del tecnico', async ({ page }) => {
-    await loginAs(
-      page,
-      process.env.E2E_FRONTDESK_EMAIL!,
-      process.env.E2E_FRONTDESK_PASSWORD!
-    )
-    await page.goto('/dashboard')
-    await expect(page.locator('text=I miei lavori oggi')).not.toBeVisible()
+  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+    await loginAs(page, process.env.E2E_FRONTDESK_EMAIL!, process.env.E2E_FRONTDESK_PASSWORD!)
+    await assertHomeV3Shell(page)
   })
 })

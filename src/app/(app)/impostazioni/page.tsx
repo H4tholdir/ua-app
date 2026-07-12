@@ -5,7 +5,6 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ImpostazioniEditForm } from '@/components/features/impostazioni/ImpostazioniEditForm'
-import { PreferenzaDashboardToggle } from '@/components/features/impostazioni/PreferenzaDashboardToggle'
 
 type LabRow = {
   id: string
@@ -107,7 +106,7 @@ export default async function ImpostazioniPage() {
   const svc = getServiceClient()
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id, ruolo, preferenza_dashboard')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
@@ -392,15 +391,6 @@ export default async function ImpostazioniPage() {
             <InfoRow label="Firma DdC" value={null} />
           )}
         </SectionCard>
-
-        {/* Sezione 5: Preferenze */}
-        {utente?.ruolo === 'titolare' && (
-          <SectionCard title="Preferenze">
-            <PreferenzaDashboardToggle
-              current={utente?.preferenza_dashboard === 'gestione_solo' ? 'gestione_solo' : 'ibrido'}
-            />
-          </SectionCard>
-        )}
       </div>
     </PageWrapper>
   )

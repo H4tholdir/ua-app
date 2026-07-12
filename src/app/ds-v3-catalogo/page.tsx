@@ -361,13 +361,14 @@ export default function CatalogoPage() {
                 margin: `0 0 ${spazio.s}px`,
               }}
             >
-              PillTempo — quattro famiglie colore
+              PillTempo — cinque famiglie colore
             </p>
             <div style={{ display: 'flex', gap: spazio.s, flexWrap: 'wrap' }}>
               <PillTempo famiglia="red">OGGI · 15:00</PillTempo>
               <PillTempo famiglia="amber">DOMANI · 09:00</PillTempo>
               <PillTempo famiglia="blue">LUN · 10:30</PillTempo>
               <PillTempo famiglia="green">TRA 3 GIORNI</PillTempo>
+              <PillTempo famiglia="purple">IN PROVA</PillTempo>
             </div>
           </div>
 

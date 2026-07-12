@@ -23,7 +23,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('Pila — le tre pile di legge (§5.7)', () => {
+describe('Pila — le quattro pile di legge (§5.7, rev. 3.1)', () => {
   it('daConsegnare → label «DA CONSEGNARE OGGI», famiglia red', () => {
     render(<Pila tipo="daConsegnare" numero={3} sub="n.147 Studio Bianchi — corona" onClick={() => {}} />)
     const label = screen.getByText('DA CONSEGNARE OGGI')
@@ -229,11 +229,12 @@ describe('StrisciaStato — anatomia mockup (§5.24, forte + azione, aria-live)'
 })
 
 describe('catalogo DS v3 — sezione «Pila · StrisciaStato»', () => {
-  it('mostra le tre pile di legge con dati realistici, una pila vuota e StrisciaStato in entrambe le varianti', async () => {
+  it('mostra le quattro pile di legge con dati realistici, una pila vuota e StrisciaStato in entrambe le varianti', async () => {
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
     expect(screen.getAllByText('DA CONSEGNARE OGGI').length).toBeGreaterThan(0)
     expect(screen.getAllByText('SUL BANCO').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('DA RIFARE / IN PROVA').length).toBeGreaterThan(0)
     expect(screen.getAllByText('APPENA ARRIVATI').length).toBeGreaterThan(0)
     expect(screen.getByText('Tutte consegnate ✓')).toBeInTheDocument()
     expect(screen.getByText('0')).toBeInTheDocument()

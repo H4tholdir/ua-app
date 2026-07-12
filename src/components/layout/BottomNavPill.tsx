@@ -137,8 +137,23 @@ function isTabActive(tabHref: string, pathname: string): boolean {
 const SCROLL_THRESHOLD = 4   // px — ignore micro jitter
 const HIDE_AFTER_PX   = 60   // px — always visible near top
 
+// Ondata 1 (spec sp.3 §1): sulle pagine migrate a v3 la BottomNavPill muore —
+// il pollice in basso appartiene al TastoPiù (home). Restano le pagine v2.3.
+// Costante e comparazione condivise dal render (`hidden`, letto dopo tutti
+// gli hook — vedi sotto) e dai due effect del tooltip FAB (Task 11, review
+// Ondata 1): su una route nascosta il componente renderizza `null`, quindi
+// non ha senso far leggere/scrivere `localStorage` (`ua-tooltip-fab-shown`)
+// e far scattare il `setTimeout` di 3s — lavoro sprecato ad ogni mount su
+// `/dashboard`/`/tutto-il-resto`/`/lavori`. Stesso confronto ESATTO in
+// entrambi i punti.
+const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto']
+function isRouteHidden(pathname: string): boolean {
+  return ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori'
+}
+
 export function BottomNavPill() {
   const pathname = usePathname()
+  const hidden = isRouteHidden(pathname)
   const [visible, setVisible] = useState(true)
   const lastScrollY = useRef(0)
   const reducedMotion = useReducedMotion()
@@ -150,21 +165,24 @@ export function BottomNavPill() {
   // visto). Il valore reale viene letto una sola volta dopo il mount.
   const [showFabTooltip, setShowFabTooltip] = useState(false)
   useEffect(() => {
+    // Guard hidden-route (Task 11): niente lettura/scrittura localStorage su
+    // una pagina dove il componente non renderizza nulla.
+    if (hidden) return
     // Sync una tantum al mount da localStorage (mai disponibile server-side)
     // — non innesca cascata, unica scrittura di questo effect, dipendenze vuote.
     if (!localStorage.getItem('ua-tooltip-fab-shown')) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowFabTooltip(true)
     }
-  }, [])
+  }, [hidden])
   useEffect(() => {
-    if (!showFabTooltip) return
+    if (hidden || !showFabTooltip) return
     const timer = setTimeout(() => {
       setShowFabTooltip(false)
       localStorage.setItem('ua-tooltip-fab-shown', '1')
     }, 3000)
     return () => clearTimeout(timer)
-  }, [showFabTooltip])
+  }, [hidden, showFabTooltip])
 
   const [editMode, setEditMode] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -237,15 +255,14 @@ export function BottomNavPill() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Ondata 1 (spec sp.3 §1): sulle pagine migrate a v3 la BottomNavPill muore —
-  // il pollice in basso appartiene al TastoPiù (home). Restano le pagine v2.3.
   // Il guard vive DOPO tutti gli hook (non prima, come nello snippet originale
   // del brief): un early return prima degli hook violerebbe le Rules of Hooks
   // — 12 errori `react-hooks/rules-of-hooks` verificati con `npx eslint` su
   // questo file, che avrebbero bloccato il pre-commit hook (`lint-staged`,
-  // `eslint --max-warnings=0`). Stesso confronto ESATTO (non prefix) richiesto.
-  const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto']
-  if (ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori') return null
+  // `eslint --max-warnings=0`). Stesso `hidden` (stesso confronto ESATTO, non
+  // prefix) calcolato in cima al componente e già usato dai due effect del
+  // tooltip FAB sopra — vedi `isRouteHidden`.
+  if (hidden) return null
 
   const pillStyle: React.CSSProperties = {
     display: 'flex',
