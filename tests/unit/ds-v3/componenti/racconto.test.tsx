@@ -311,25 +311,31 @@ describe('GiornoAgenda — card giorno (§5.19)', () => {
     expect(screen.getByText('LUNEDÌ').style.color).toBe('var(--ink)')
   })
 
-  it('oggi → bordo inset 2.5 --red nel boxShadow della card', () => {
+  it('oggi → ring inset 2.5 --red single-value sulla card, ombra ambiente sul wrapper (mai none in lista)', () => {
     const { container } = render(
       <GiornoAgenda etichetta="OGGI" oggi>
         <span>x</span>
       </GiornoAgenda>
     )
-    const card = container.firstElementChild as HTMLElement
-    expect(card.style.boxShadow).toContain('inset')
-    expect(card.style.boxShadow).toContain('var(--red)')
-    expect(card.style.boxShadow).toContain('2.5px')
+    // Pattern TastoPrimario/LePile: in dark `--sh-card` risolve a `none`, e
+    // `none` dentro una lista box-shadow invalida TUTTA la dichiarazione.
+    // Quindi: ambiente da solo sul wrapper, ring da solo sulla card.
+    const wrapper = container.firstElementChild as HTMLElement
+    const card = wrapper.firstElementChild as HTMLElement
+    expect(wrapper.style.boxShadow).toBe('var(--sh-card)')
+    expect(card.style.boxShadow).toBe('inset 0 0 0 2.5px var(--red)')
+    expect(card.style.boxShadow).not.toContain(',')
   })
 
-  it('senza oggi la card non ha bordo inset rosso', () => {
+  it('senza oggi la card non ha bordo inset rosso (solo ambiente sul wrapper)', () => {
     const { container } = render(
       <GiornoAgenda etichetta="LUNEDÌ">
         <span>x</span>
       </GiornoAgenda>
     )
-    const card = container.firstElementChild as HTMLElement
+    const wrapper = container.firstElementChild as HTMLElement
+    const card = wrapper.firstElementChild as HTMLElement
+    expect(wrapper.style.boxShadow).toBe('var(--sh-card)')
     expect(card.style.boxShadow).not.toContain('inset')
   })
 

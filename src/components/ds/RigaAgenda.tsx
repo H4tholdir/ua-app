@@ -60,29 +60,34 @@ export function GiornoAgenda(props: { etichetta: string; oggi?: boolean; childre
   const { etichetta, oggi = false, children } = props
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: spazio.s,
-        padding: `${spazio.m}px ${spazio.ml}px`,
-        borderRadius: raggio.tasto, // 20 — coincide col radius del tasto (§5.12/§5.19)
-        background: 'var(--card)',
-        boxShadow: oggi
-          ? 'inset 0 0 0 2.5px var(--red), var(--sh-card)'
-          : 'var(--sh-card)',
-      }}
-    >
-      <span
+    // Ombra ambiente SEPARATA dal ring (pattern TastoPrimario §5.1, LePile):
+    // in dark `--sh-card` risolve a `none`, e `none` dentro una lista
+    // box-shadow invalida l'INTERA dichiarazione — il ring «OGGI» spariva
+    // silenziosamente. Ambiente da solo sul wrapper (valida da sola in
+    // entrambi i temi), ring single-value sulla card.
+    <div style={{ borderRadius: raggio.tasto, boxShadow: 'var(--sh-card)' }}>
+      <div
         style={{
-          fontSize: 16,
-          fontWeight: tipografia.weight.extrabold,
-          color: oggi ? 'var(--red)' : 'var(--ink)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spazio.s,
+          padding: `${spazio.m}px ${spazio.ml}px`,
+          borderRadius: raggio.tasto, // 20 — coincide col radius del tasto (§5.12/§5.19)
+          background: 'var(--card)',
+          boxShadow: oggi ? 'inset 0 0 0 2.5px var(--red)' : undefined,
         }}
       >
-        {etichetta}
-      </span>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>{children}</div>
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: tipografia.weight.extrabold,
+            color: oggi ? 'var(--red)' : 'var(--ink)',
+          }}
+        >
+          {etichetta}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>{children}</div>
+      </div>
     </div>
   )
 }
