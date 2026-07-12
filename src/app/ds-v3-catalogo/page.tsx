@@ -21,6 +21,7 @@ import { TileScelta, TileNuovo } from '@/components/ds/TileScelta'
 import { RigaCerca } from '@/components/ds/RigaCerca'
 import { Pila } from '@/components/ds/Pila'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
+import { MorphPila } from '@/components/ds/MorphPila'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
@@ -461,7 +462,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="pila-striscia" titolo="Pila · StrisciaStato" spec="§5.7 le tre pile di legge, §5.24 StrisciaStato">
+      <SezioneCatalogo id="pila-striscia" titolo="Pila · StrisciaStato" spec="§5.7 le quattro pile di legge (rev. 3.1), §5.24 StrisciaStato, §5.28 MorphPila">
         <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
           <div>
             <p
@@ -471,7 +472,7 @@ export default function CatalogoPage() {
                 margin: `0 0 ${spazio.s}px`,
               }}
             >
-              Le tre pile — sempre queste, sempre in quest&apos;ordine (L1)
+              Le quattro pile — sempre queste, sempre in quest&apos;ordine (L1)
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
               <Pila
@@ -481,6 +482,12 @@ export default function CatalogoPage() {
                 onClick={() => {}}
               />
               <Pila tipo="sulBanco" numero={5} sub="n.152 Rossi — ponte" onClick={() => {}} />
+              <Pila
+                tipo="daRifareInProva"
+                numero={1}
+                sub="n.145 torna lunedì"
+                onClick={() => {}}
+              />
               <Pila
                 tipo="appenaArrivati"
                 numero={2}
@@ -511,16 +518,37 @@ export default function CatalogoPage() {
                 margin: `0 0 ${spazio.s}px`,
               }}
             >
-              StrisciaStato — rassicurazione e attenzione
+              StrisciaStato — serena e allerta con CTA mai troncata
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-              <StrisciaStato>
-                Hai già consegnato{' '}
-                <strong style={{ color: 'var(--ink)' }}>4 lavori</strong> oggi
+              <StrisciaStato forte="Tutto a posto:">
+                2 consegne oggi, la prossima alle 16:00
               </StrisciaStato>
-              <StrisciaStato attenzione onClick={() => {}}>
-                Firma il DdC di n.144 →
+              <StrisciaStato
+                attenzione
+                forte="Fattura n.139"
+                azione={{ etichetta: 'Sistemala ›', href: '#' }}
+              >
+                scartata
               </StrisciaStato>
+            </div>
+          </div>
+
+          <div>
+            <p
+              style={{
+                fontSize: tipografia.size.caption,
+                color: 'var(--muted)',
+                margin: `0 0 ${spazio.s}px`,
+              }}
+            >
+              MorphPila — testata della lista aperta (§5.28), le quattro famiglie
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+              <MorphPila pila="rossa" numero={2} label="Da consegnare oggi" sub="2 lavori · il più vicino alle 16:00" />
+              <MorphPila pila="ambra" numero={4} label="Sul banco" sub="4 lavori · il più vicino venerdì 10" />
+              <MorphPila pila="viola" numero={1} label="Da rifare / In prova" sub="1 lavoro · torna lunedì 13" />
+              <MorphPila pila="blu" numero={3} label="Appena arrivati" sub="3 lavori · l'ultimo stamattina" />
             </div>
           </div>
 
@@ -532,8 +560,8 @@ export default function CatalogoPage() {
             }}
           >
             Pila è il componente più sacro dell&apos;app: tap su tutta la card = selezione
-            (vibrazione, mai suono). Il morph pila→lista (§8.3.1) è del sotto-progetto 3 — qui c&apos;è
-            solo la card.
+            (vibrazione, mai suono). MorphPila è lo stato finale del morph pila→lista (§8.3.1,
+            sotto-progetto 3): qui è statico, l&apos;animazione condivisa arriva con la scheda.
           </p>
         </div>
       </SezioneCatalogo>

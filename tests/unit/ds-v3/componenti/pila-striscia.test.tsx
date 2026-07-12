@@ -48,10 +48,11 @@ describe('Pila — le tre pile di legge (§5.7)', () => {
     expect(screen.getByText('2').style.color).toBe('var(--blue)')
   })
 
-  it('le tre label/famiglie sono un dizionario chiuso: TipoPila mappa esattamente a queste tre etichette', () => {
+  it('le quattro label/famiglie sono un dizionario chiuso: TipoPila mappa esattamente a queste quattro etichette', () => {
     const mappa: Record<TipoPila, string> = {
       daConsegnare: 'DA CONSEGNARE OGGI',
       sulBanco: 'SUL BANCO',
+      daRifareInProva: 'DA RIFARE / IN PROVA',
       appenaArrivati: 'APPENA ARRIVATI',
     }
     for (const [tipo, label] of Object.entries(mappa) as Array<[TipoPila, string]>) {
@@ -119,7 +120,7 @@ describe('Pila — le tre pile di legge (§5.7)', () => {
   })
 })
 
-describe('StrisciaStato — riga di stato in home (§5.24)', () => {
+describe('StrisciaStato — anatomia mockup (§5.24, forte + azione, aria-live)', () => {
   it('variante default mostra il check verde', () => {
     render(<StrisciaStato>Hai già consegnato 4 lavori oggi</StrisciaStato>)
     expect(screen.getByText('✓')).toBeInTheDocument()
@@ -128,49 +129,69 @@ describe('StrisciaStato — riga di stato in home (§5.24)', () => {
 
   it('variante attenzione NON mostra il check verde', () => {
     render(
-      <StrisciaStato attenzione onClick={() => {}}>
-        Firma il DdC di n.144 →
+      <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        Firma il DdC di n.144
       </StrisciaStato>
     )
     expect(screen.queryByText('✓')).toBeNull()
-    expect(screen.getByText('Firma il DdC di n.144 →')).toBeInTheDocument()
+    expect(screen.getByText('Firma il DdC di n.144')).toBeInTheDocument()
   })
 
-  it('senza onClick è un div, non un elemento interattivo', () => {
+  it('è sempre una region viva educata (role="status", aria-live="polite"), mai un elemento interattivo di per sé', () => {
     render(<StrisciaStato>Hai già consegnato 4 lavori oggi</StrisciaStato>)
+    const region = screen.getByRole('status')
+    expect(region).toHaveAttribute('aria-live', 'polite')
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('con onClick diventa tappabile (ruolo button)', () => {
+  it('con azione compare una CTA <Link>, separata dal blocco troncabile', () => {
     render(
-      <StrisciaStato onClick={() => {}} attenzione>
-        Firma il DdC di n.144 →
+      <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        Firma il DdC di n.144
       </StrisciaStato>
     )
-    expect(screen.getByRole('button', { name: /Firma il DdC di n.144/ })).toBeInTheDocument()
+    const cta = screen.getByRole('link', { name: 'Sistemala ›' })
+    expect(cta).toHaveAttribute('href', '/fatture/f1')
   })
 
-  it('quando tappabile ha hit area ≥ 44px (constraint 10)', () => {
-    render(
-      <StrisciaStato onClick={() => {}} attenzione>
-        Firma il DdC di n.144 →
-      </StrisciaStato>
-    )
-    const bottone = screen.getByRole('button', { name: /Firma il DdC di n.144/ })
-    expect(bottone.style.minHeight).toBe('44px')
+  it('senza azione non compare nessun link', () => {
+    render(<StrisciaStato>Hai già consegnato 4 lavori oggi</StrisciaStato>)
+    expect(screen.queryByRole('link')).toBeNull()
   })
 
-  it('click → chiama onClick + vibra("selection") — selezione silenziosa, MAI suona', () => {
-    const onClick = vi.fn()
+  it('la CTA ha hit area ≥ 44px senza cambiare l\'altezza visiva (min-height 44 + margin -13px, constraint 10)', () => {
     render(
-      <StrisciaStato onClick={onClick} attenzione>
-        Firma il DdC di n.144 →
+      <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        Firma il DdC di n.144
       </StrisciaStato>
     )
-    fireEvent.click(screen.getByRole('button', { name: /Firma il DdC di n.144/ }))
-    expect(onClick).toHaveBeenCalledTimes(1)
+    const cta = screen.getByRole('link', { name: 'Sistemala ›' })
+    expect(cta.style.minHeight).toBe('44px')
+    expect(cta.style.margin).toBe('-13px 0px')
+  })
+
+  it('click sulla CTA → vibra("selection") — selezione silenziosa, MAI suona', () => {
+    // href="#" (non un percorso reale): jsdom non implementa la navigazione
+    // cross-document e un click su un <a href> con percorso vero solleverebbe
+    // un "Not implemented: navigation" asincrono — innocuo in isolamento ma
+    // capace di inquinare un test successivo nello stesso worker (flakiness
+    // osservata in CI). L'href reale è già verificato altrove senza click.
+    render(
+      <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '#' }}>
+        Firma il DdC di n.144
+      </StrisciaStato>
+    )
+    fireEvent.click(screen.getByRole('link', { name: 'Sistemala ›' }))
     expect(vibraMock).toHaveBeenCalledWith('selection')
     expect(suonaMock).not.toHaveBeenCalled()
+  })
+
+  it('`forte` apre il testo in grassetto --ink, distinto dal resto muted', () => {
+    render(<StrisciaStato forte="Tutto a posto:">2 consegne oggi</StrisciaStato>)
+    const forte = screen.getByText('Tutto a posto:')
+    expect(forte.tagName).toBe('B')
+    expect(forte.style.color).toBe('var(--ink)')
+    expect(forte.style.fontWeight).toBe('700')
   })
 
   it('supporta grassetti dentro children (--ink) senza spezzare il rendering', () => {
@@ -184,9 +205,11 @@ describe('StrisciaStato — riga di stato in home (§5.24)', () => {
     expect(forte.style.color).toBe('var(--ink)')
   })
 
-  it('anello focus-visible di legge (2px --blue, offset 2) quando tappabile', () => {
+  it('anello focus-visible di legge (2px --blue, offset 2) è di proprietà della CTA', () => {
     const { container } = render(
-      <StrisciaStato onClick={() => {}}>Hai già consegnato 4 lavori oggi</StrisciaStato>
+      <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        Firma il DdC di n.144
+      </StrisciaStato>
     )
     const regola = container.querySelector('style')?.textContent ?? ''
     expect(regola).toContain('outline: 2px solid var(--blue)')
@@ -197,8 +220,8 @@ describe('StrisciaStato — riga di stato in home (§5.24)', () => {
     const { container: c1 } = render(<StrisciaStato>Hai già consegnato 4 lavori oggi</StrisciaStato>)
     expect(trovaParoleVietate(c1.textContent ?? '')).toEqual([])
     const { container: c2 } = render(
-      <StrisciaStato attenzione onClick={() => {}}>
-        Firma il DdC di n.144 →
+      <StrisciaStato attenzione forte="Fattura n.139" azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        scartata
       </StrisciaStato>
     )
     expect(trovaParoleVietate(c2.textContent ?? '')).toEqual([])

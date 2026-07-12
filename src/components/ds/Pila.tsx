@@ -1,33 +1,37 @@
 'use client'
 
-// DS v3 §5.7 — Pila (home): le tre pile di legge. Componente più sacro
-// dell'app: è il modo in cui il tecnico legge il banco in un colpo d'occhio.
-// Tap su tutta la card = selezione/navigazione verso la lista filtrata, MAI
-// un'azione → vibra('selection'), mai suona(). L'ordinamento e la presenza
-// costante delle tre pile (L1) sono responsabilità del chiamante (home), che
-// monta le tre istanze sempre nello stesso ordine — questo componente
-// renderizza UNA pila. Il morph pila→lista (§8.3.1) è del sotto-progetto 3:
-// qui c'è solo la card e il tap.
+// DS v3 §5.7 — Pila (home): le QUATTRO pile di legge (rev. 3.1). Componente
+// più sacro dell'app: è il modo in cui il tecnico legge il banco in un colpo
+// d'occhio. Tap su tutta la card = selezione/navigazione verso la lista
+// filtrata, MAI un'azione → vibra('selection'), mai suona(). L'ordinamento e
+// la presenza costante delle quattro pile (L1) sono responsabilità del
+// chiamante (home), che monta le quattro istanze sempre nello stesso ordine
+// — questo componente renderizza UNA pila. Il morph pila→lista (§8.3.1) è
+// del sotto-progetto 3: qui c'è solo la card e il tap.
 
 import { motion } from 'motion/react'
 import { molla } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 
-export type TipoPila = 'daConsegnare' | 'sulBanco' | 'appenaArrivati'
+export type TipoPila = 'daConsegnare' | 'sulBanco' | 'daRifareInProva' | 'appenaArrivati'
 
-type Famiglia = 'red' | 'amber' | 'blue'
+type Famiglia = 'red' | 'amber' | 'blue' | 'purple'
 
 // Label e famiglia colore sono INTERNE e chiuse (§5.7): il chiamante passa
 // solo `tipo`, mai una label libera — questo è l'unico posto che decide.
 const MAPPA_PILA: Record<TipoPila, { label: string; famiglia: Famiglia }> = {
   daConsegnare: { label: 'DA CONSEGNARE OGGI', famiglia: 'red' },
   sulBanco: { label: 'SUL BANCO', famiglia: 'amber' },
+  // REVISIONE DI LEGGE (decisione Francesco 12/07, bucket B) — §5.7/§7.1:
+  // 4ª pila «DA RIFARE / IN PROVA», famiglia viola. Ordine di montaggio
+  // (rossa · ambra · viola · blu) è responsabilità del chiamante (home).
+  daRifareInProva: { label: 'DA RIFARE / IN PROVA', famiglia: 'purple' },
   appenaArrivati: { label: 'APPENA ARRIVATI', famiglia: 'blue' },
 }
 
 /**
- * Pila — una delle tre pile di legge in home (§5.7).
+ * Pila — una delle QUATTRO pile di legge in home (§5.7, rev. 3.1).
  *
  * Card 24 · padding 20/22 · numero display 52/800 tabulare (min-width 60,
  * centrato, colore famiglia) + colonna: label 13/800/+0.16em colore
@@ -36,7 +40,7 @@ const MAPPA_PILA: Record<TipoPila, { label: string; famiglia: Famiglia }> = {
  * via `<button>` nativo) → `onClick` + `vibra('selection')`: è selezione/
  * navigazione, non un'azione fisica — MAI `suona()`.
  *
- * `numero` a 0 è renderizzato normalmente: le pile sono SEMPRE tre, sempre
+ * `numero` a 0 è renderizzato normalmente: le pile sono SEMPRE quattro, sempre
  * in quest'ordine, e non si nascondono mai (L5: il sollievo si mostra). In
  * quel caso il chiamante passa un `sub` di sollievo (es. «Tutte consegnate ✓»).
  */
@@ -80,6 +84,7 @@ export function Pila(props: { tipo: TipoPila; numero: number; sub: string; onCli
         }}
       >
         <span
+          className="ds-pila-num"
           style={{
             minWidth: 60,
             textAlign: 'center',

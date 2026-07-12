@@ -3,35 +3,44 @@
 // DS v3 §5.24 — StrisciaStato (home): riga di stato quieta, sotto le pile.
 // Variante default = rassicurazione (check verde: "va tutto bene, guarda").
 // Variante `attenzione` = chiede un'azione: icona famiglia rossa al posto
-// del check, e il testo passato dal chiamante DEVE iniziare col da farsi
-// ("Firma il DdC di n.144 →"). Se tappabile è selezione silenziosa:
-// vibra('selection'), MAI suona() — il suono è riservato ai tasti fisici
-// che fanno qualcosa, non a un tocco che apre/naviga.
+// del check. La riga stessa NON è più tappabile (il mockup approvato
+// home.html `.striscia` non ha una riga-bottone): è una region viva e
+// educata (`role="status"` `aria-live="polite"`) che annuncia cosa succede,
+// mai un elemento interattivo di per sé. L'unica azione possibile è la CTA
+// `azione`, un `<Link>` separato dal blocco di testo troncabile — se
+// tappata è selezione/navigazione silenziosa: `vibra('selection')`, MAI
+// `suona()` (il suono è riservato ai tasti fisici che fanno qualcosa).
 
 import type { ReactNode } from 'react'
-import { motion } from 'motion/react'
-import { molla } from '@/design-system/v3/motion'
+import Link from 'next/link'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 
 const DIAMETRO = 26
 
 /**
- * StrisciaStato — riga di stato in home (§5.24).
+ * StrisciaStato — riga di stato in home (§5.24, anatomia mockup).
  *
- * Check Ø 26 tint verde + testo 14.5/`--muted` (i grassetti si passano via
- * `children`, es. `<strong>` colorato `--ink` dal chiamante — il componente
- * non li impone, li lascia passare). Variante `attenzione`: icona famiglia
- * rossa invece del check verde — niente rassicurazione, un da-farsi.
- * `onClick` opzionale: se presente la riga diventa tappabile (`role="button"`
- * via `<button>` nativo), altrimenti resta un `<div>` di sola lettura.
+ * Contenitore `role="status" aria-live="polite"` flex `gap 12`, `minWidth: 0`
+ * — icona Ø26 (check verde tint / triangolo `!` rosso tint in `attenzione`) +
+ * testo `flex: 1 1 auto; minWidth: 0` 14.5/500 `--muted` su una riga con
+ * ellissi (`whiteSpace: nowrap; overflow: hidden; textOverflow: ellipsis`):
+ * `forte` (opzionale) apre il testo in grassetto `--ink` 700, poi `children`.
+ * Se il chiamante passa `azione` compare una CTA `<Link>` `flex-none` 14.5/800
+ * `--red`, MAI dentro il blocco troncabile — hit-area ≥44px via
+ * `minHeight: 44` + `margin: '-13px 0'` (stesso schema di LinkQuieto: la
+ * riga non cambia altezza visiva, cambia solo quanto è facile toccarla).
  */
-export function StrisciaStato(props: { children: ReactNode; attenzione?: boolean; onClick?: () => void }) {
-  const { children, attenzione = false, onClick } = props
+export function StrisciaStato(props: {
+  children: ReactNode
+  forte?: string | null
+  attenzione?: boolean
+  azione?: { etichetta: string; href: string } | null
+}) {
+  const { children, forte, attenzione = false, azione } = props
 
-  function handleClick() {
+  function handleClickAzione() {
     vibra('selection')
-    onClick?.()
   }
 
   const icona = (
@@ -55,59 +64,59 @@ export function StrisciaStato(props: { children: ReactNode; attenzione?: boolean
     </span>
   )
 
-  const testo = (
-    <span
-      style={{
-        fontSize: 14.5,
-        fontWeight: tipografia.weight.semibold,
-        color: 'var(--muted)',
-        textAlign: 'left',
-      }}
-    >
-      {children}
-    </span>
-  )
-
-  if (!onClick) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: spazio.s }}>
-        {icona}
-        {testo}
-      </div>
-    )
-  }
-
   return (
     <>
-      {/* Anello focus-visible di legge (constraint 9): il componente lo porta
-          con sé ovunque venga montato. */}
+      {/* Anello focus-visible di legge (constraint 9): la CTA (unico elemento
+          interattivo di questo componente) lo porta con sé. */}
       <style>{`
-        .ds-striscia-stato:focus-visible {
+        .ds-striscia-stato-azione:focus-visible {
           outline: 2px solid var(--blue);
           outline-offset: 2px;
         }
       `}</style>
-      <motion.button
-        type="button"
-        className="ds-striscia-stato"
-        onClick={handleClick}
-        whileTap={{ scale: 0.99 }}
-        transition={molla.press}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: spazio.s,
-          width: '100%',
-          minHeight: spazio.xxl, // 44 — hit area di legge (constraint 10)
-          border: 'none',
-          background: 'transparent',
-          padding: 0,
-          cursor: 'pointer',
-        }}
-      >
+      <div role="status" aria-live="polite" style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, minWidth: 0 }}>
         {icona}
-        {testo}
-      </motion.button>
+        <span
+          style={{
+            flex: '1 1 auto',
+            minWidth: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            fontSize: 14.5,
+            fontWeight: 500,
+            color: 'var(--muted)',
+            textAlign: 'left',
+          }}
+        >
+          {forte && (
+            <>
+              <b style={{ color: 'var(--ink)', fontWeight: 700 }}>{forte}</b>{' '}
+            </>
+          )}
+          {children}
+        </span>
+        {azione && (
+          <Link
+            href={azione.href}
+            className="ds-striscia-stato-azione"
+            onClick={handleClickAzione}
+            style={{
+              flex: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: 44,
+              margin: '-13px 0',
+              fontSize: 14.5,
+              fontWeight: 800,
+              color: 'var(--red)',
+              textDecoration: 'none',
+            }}
+          >
+            {azione.etichetta}
+          </Link>
+        )}
+      </div>
     </>
   )
 }

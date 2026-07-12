@@ -28,9 +28,7 @@ import { molla } from '@/design-system/v3/motion'
 import { gradiente, raggio, spazio, tipografia, testoSuFaccia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
-import { PillTempo } from './Pill'
-
-type Famiglia = 'red' | 'amber' | 'blue' | 'green'
+import { PillTempo, type Famiglia } from './Pill'
 
 const H_TASTO_CONSEGNA_INLINE = 54
 // Corsa fisica compressa (§5.8): 4px a riposo (contro i 6 del TastoPrimario a
@@ -155,7 +153,10 @@ export function CardLavoro(props: {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: spazio.s,
+          // decision doc 12/07: il fork home 10/2 si chiude qui — canonico
+          // 12/3 sulle righe 2/3 (marginTop dedicato sotto), niente più gap
+          // uniforme sul contenitore.
+          gap: 0,
           padding: '20px 22px',
           borderRadius: raggio.card,
           background: 'var(--card)',
@@ -208,7 +209,7 @@ export function CardLavoro(props: {
             fontSize: 17.5,
             fontWeight: tipografia.weight.bold,
             color: 'var(--ink)',
-            margin: 0,
+            margin: '12px 0 0',
           }}
         >
           {dentista} · {paziente}
@@ -219,13 +220,17 @@ export function CardLavoro(props: {
             fontSize: tipografia.size.callout,
             fontWeight: tipografia.weight.semibold,
             color: 'var(--muted)',
-            margin: 0,
+            margin: '3px 0 0',
           }}
         >
           {tipoLavoro}
         </p>
 
-        {onConsegna && <TastoConsegnaInline onClick={onConsegna} />}
+        {onConsegna && (
+          <div style={{ marginTop: spazio.m }}>
+            <TastoConsegnaInline onClick={onConsegna} />
+          </div>
+        )}
       </motion.div>
     </>
   )
