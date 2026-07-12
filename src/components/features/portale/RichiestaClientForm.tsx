@@ -4,20 +4,25 @@ import { useState, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import type { TipoDispositivo } from '@/types/domain'
+import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 type FormState = 'idle' | 'loading' | 'successo' | 'errore'
 
-const TIPO_OPTIONS: Array<{ value: TipoDispositivo; label: string }> = [
-  { value: 'protesi_fissa', label: 'Protesi fissa (corona, ponte)' },
-  { value: 'implantologia', label: 'Implantoprotesi' },
-  { value: 'protesi_mobile', label: 'Protesi rimovibile' },
-  { value: 'scheletrato', label: 'Scheletrato' },
-  { value: 'ortodonzia', label: 'Ortodonzia' },
-  { value: 'cad_cam', label: 'CAD/CAM (fresatura)' },
-  { value: 'provvisorio', label: 'Provvisorio' },
-  { value: 'riparazione', label: 'Riparazione' },
-  { value: 'altro', label: 'Altro' },
-]
+// B4: label descrittive specifiche del portale, diverse dallo standard
+// LABEL_MACRO — conservate come override locale. Le chiavi sono derivate
+// da MACRO_SLUGS per restare in sync col CHECK a DB (Task 3).
+const TIPO_LABELS_OVERRIDE: Partial<Record<TipoDispositivo, string>> = {
+  protesi_fissa: 'Protesi fissa (corona, ponte)',
+  implantologia: 'Implantoprotesi',
+  protesi_mobile: 'Protesi rimovibile',
+  cad_cam: 'CAD/CAM (fresatura)',
+  bite_splint: 'Bite / splint (bruxismo, sport)',
+}
+
+const TIPO_OPTIONS: Array<{ value: TipoDispositivo; label: string }> = MACRO_SLUGS.map(value => ({
+  value,
+  label: TIPO_LABELS_OVERRIDE[value] ?? LABEL_MACRO[value],
+}))
 
 const CHIP_GIORNI = [5, 7, 10, 14]
 

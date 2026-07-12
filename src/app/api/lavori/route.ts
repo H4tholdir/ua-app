@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -116,6 +117,9 @@ export async function POST(req: Request) {
   }
   if (!body.data_consegna_prevista || typeof body.data_consegna_prevista !== 'string') {
     return NextResponse.json({ error: 'data_consegna_prevista obbligatoria' }, { status: 422 })
+  }
+  if (!(MACRO_SLUGS as string[]).includes(body.tipo_dispositivo)) {
+    return NextResponse.json({ error: 'tipo_dispositivo non valido' }, { status: 422 })
   }
 
   // Validate FK tenant ownership BEFORE generating progressivo

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Lavoro, TipoDispositivo, PrioritaLavoro } from '@/types/domain'
 import { ClienteComboBox } from '@/components/features/clienti/ClienteComboBox'
 import { CicloComboBox } from '@/components/features/lavori/CicloComboBox'
+import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 interface StudioMember {
   id: string
@@ -44,17 +45,11 @@ const fieldStyle: React.CSSProperties = {
 }
 
 // ─── Opzioni tipo dispositivo ─────────────────────────────────
-const TIPO_OPTIONS: Array<{ value: TipoDispositivo; label: string }> = [
-  { value: 'protesi_fissa',   label: 'Protesi fissa' },
-  { value: 'protesi_mobile',  label: 'Protesi mobile' },
-  { value: 'implantologia',   label: 'Implantologia' },
-  { value: 'cad_cam',         label: 'CAD/CAM' },
-  { value: 'scheletrato',     label: 'Scheletrato' },
-  { value: 'ortodonzia',      label: 'Ortodonzia' },
-  { value: 'provvisorio',     label: 'Provvisorio' },
-  { value: 'riparazione',     label: 'Riparazione' },
-  { value: 'altro',           label: 'Altro' },
-]
+// B4: derivata da LABEL_MACRO (unica fonte) — src/lib/domain/tipi-lavoro.ts
+const TIPO_OPTIONS: Array<{ value: TipoDispositivo; label: string }> = MACRO_SLUGS.map(value => ({
+  value,
+  label: LABEL_MACRO[value],
+}))
 
 const PRIORITA_OPTIONS: Array<{ value: PrioritaLavoro; label: string }> = [
   { value: 'normale',      label: 'Normale' },

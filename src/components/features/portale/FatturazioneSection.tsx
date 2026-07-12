@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FattureStoricoSection } from './FattureStoricoSection'
 import { SituazioneEconomicaSection } from './SituazioneEconomicaSection'
+import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
 
 type Proposta = 'fatturare' | 'non_fatturare'
 
@@ -54,20 +55,10 @@ type Stato =
   | FaseLista
   | { fase: 'disattivato' }
 
-// Stessa mappa di src/app/portale/[token]/page.tsx (etichette dell'enum
-// tipo_dispositivo) — duplicata qui perché nel portale non esiste un file
-// condiviso di label (pattern già in uso nel progetto).
-const tipoLabels: Record<string, string> = {
-  protesi_fissa: 'Protesi fissa',
-  protesi_mobile: 'Protesi mobile',
-  implantologia: 'Implantologia',
-  cad_cam: 'CAD/CAM',
-  scheletrato: 'Scheletrato',
-  ortodonzia: 'Ortodonzia',
-  provvisorio: 'Provvisorio',
-  riparazione: 'Riparazione',
-  altro: 'Altro',
-}
+// B4: label identiche allo standard → import diretto da LABEL_MACRO
+// (era una mappa locale duplicata, priva di bite_splint — trovata durante
+// lo sweep di consolidamento del Task 4, non nel file-list originale del brief).
+const tipoLabels: Record<string, string> = LABEL_MACRO
 
 const propostaLabels: Record<Proposta, string> = {
   fatturare: 'Fatturare',

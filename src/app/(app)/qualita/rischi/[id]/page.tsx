@@ -5,22 +5,13 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { RischiEditor } from '@/components/features/qualita/RischiEditor'
 import type { RischioItem, NormaItem } from '@/components/features/qualita/RischiEditor'
+import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
 
 interface Props { params: Promise<{ id: string }> }
 
+// B4: consolidata su LABEL_MACRO (unica fonte) — src/lib/domain/tipi-lavoro.ts
 function formatTipoDispositivo(tipo: string): string {
-  const map: Record<string, string> = {
-    protesi_fissa: 'Protesi Fissa',
-    protesi_mobile: 'Protesi Mobile',
-    implantologia: 'Implantologia',
-    cad_cam: 'CAD/CAM',
-    scheletrato: 'Scheletrato',
-    ortodonzia: 'Ortodonzia',
-    provvisorio: 'Provvisorio',
-    riparazione: 'Riparazione',
-    altro: 'Altro',
-  }
-  return map[tipo] ?? tipo
+  return LABEL_MACRO[tipo as keyof typeof LABEL_MACRO] ?? tipo
 }
 
 export default async function RischiDetailPage({ params }: Props) {

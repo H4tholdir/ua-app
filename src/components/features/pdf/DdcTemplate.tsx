@@ -3,7 +3,8 @@
 // Usa SOLO proprietà CSS supportate da @react-pdf/renderer
 
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
-import type { LavoroDettaglio, Laboratorio, DichiarazioneConformita, ClasseRischio } from '@/types/domain'
+import type { LavoroDettaglio, Laboratorio, DichiarazioneConformita, ClasseRischio, TipoDispositivo } from '@/types/domain'
+import { LABEL_MACRO, MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -217,19 +218,23 @@ function formatClasseRischio(classe: ClasseRischio): string {
   return map[classe] ?? classe
 }
 
+// B4: le label del DdC (documento regolamentare stampato) usano il Title Case
+// ("Protesi Fissa"), diverso dal sentence case standard di LABEL_MACRO
+// ("Protesi fissa") — invariante coperto da tests/unit/ddc-pdf-content.test.ts.
+// Override locale conservato; chiavi derivate da MACRO_SLUGS (fallback a
+// LABEL_MACRO per le voci a parola singola, identiche nei due casing).
+const TIPO_LABELS_DDC_OVERRIDE: Partial<Record<TipoDispositivo, string>> = {
+  protesi_fissa: 'Protesi Fissa',
+  protesi_mobile: 'Protesi Mobile',
+  bite_splint: 'Bite / Splint',
+}
+
 function formatTipoDispositivo(tipo: string): string {
-  const map: Record<string, string> = {
-    protesi_fissa: 'Protesi Fissa',
-    protesi_mobile: 'Protesi Mobile',
-    implantologia: 'Implantologia',
-    cad_cam: 'CAD/CAM',
-    scheletrato: 'Scheletrato',
-    ortodonzia: 'Ortodonzia',
-    provvisorio: 'Provvisorio',
-    riparazione: 'Riparazione',
-    altro: 'Altro',
+  if (MACRO_SLUGS.includes(tipo as TipoDispositivo)) {
+    const macro = tipo as TipoDispositivo
+    return TIPO_LABELS_DDC_OVERRIDE[macro] ?? LABEL_MACRO[macro]
   }
-  return map[tipo] ?? tipo
+  return tipo
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────

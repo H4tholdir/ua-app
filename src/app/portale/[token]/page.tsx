@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain'
 import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
 import { FatturazioneSection } from '@/components/features/portale/FatturazioneSection'
+import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
 
 type PageProps = { params: Promise<{ token: string }> }
 
@@ -30,18 +31,8 @@ const statoColors: Record<StatoLavoro, string> = {
   in_ritardo: '#FA5252',
 }
 
-const tipoLabels: Record<TipoDispositivo, string> = {
-  protesi_fissa: 'Protesi fissa',
-  protesi_mobile: 'Protesi mobile',
-  implantologia: 'Implantologia',
-  cad_cam: 'CAD/CAM',
-  scheletrato: 'Scheletrato',
-  ortodonzia: 'Ortodonzia',
-  provvisorio: 'Provvisorio',
-  riparazione: 'Riparazione',
-  bite_splint: 'Bite / splint',
-  altro: 'Altro',
-}
+// B4: label identiche allo standard → import diretto da LABEL_MACRO
+const tipoLabels: Record<TipoDispositivo, string> = LABEL_MACRO
 
 function formatDataIT(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')

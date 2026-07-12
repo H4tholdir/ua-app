@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
 // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
 const LOCKED_PRICE_FIELDS = [
@@ -204,6 +205,11 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
       payload[field] = body[field]
     }
+  }
+
+  // Validazione enum tipo_dispositivo (B2): solo se il campo è presente nel payload
+  if (payload.tipo_dispositivo !== undefined && !(MACRO_SLUGS as string[]).includes(payload.tipo_dispositivo as string)) {
+    return NextResponse.json({ error: 'tipo_dispositivo non valido' }, { status: 422 })
   }
 
   // Se incluso in fattura: rimuovi i campi prezzo dal payload per protezione
