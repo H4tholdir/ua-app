@@ -27,6 +27,8 @@ import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
 import { Sheet } from '@/components/ds/Sheet'
 import { CampoTesto, CampoNumero, CampoData } from '@/components/ds/Campo'
+import { ChipScelta } from '@/components/ds/ChipScelta'
+import { ProgressDots } from '@/components/ds/ProgressDots'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { Skeleton } from '@/components/ds/Caricamento'
@@ -67,6 +69,8 @@ export const INDICE = [
   { id: 'campo', titolo: 'Campo' },
   { id: 'racconto', titolo: 'Il racconto' },
   { id: 'pill-voce', titolo: 'PillVoce' },
+  { id: 'chip-scelta', titolo: 'ChipScelta' },
+  { id: 'progress-dots', titolo: 'ProgressDots' },
 ] as const
 
 // Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
@@ -141,6 +145,8 @@ export default function CatalogoPage() {
   const [importo, setImporto] = useState('')
   const [dataConsegna, setDataConsegna] = useState<Date | null>(null)
   const [testoVoce, setTestoVoce] = useState('')
+  const [chipTipo, setChipTipo] = useState<'corona' | 'ponte' | null>('corona')
+  const [passoDemo, setPassoDemo] = useState<1 | 2 | 3>(1)
 
   useEffect(() => {
     initSuoni()
@@ -1020,6 +1026,63 @@ export default function CatalogoPage() {
             Si mostra solo se il browser ha il riconoscimento vocale (Web Speech API) — niente
             qui è un problema, è la pill che sceglie di non esistere. Vive in fondo a ogni passo
             del wizard (sotto-progetto 3): qui è isolata per provarla dal vivo con un tocco reale.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo
+        id="chip-scelta"
+        titolo="ChipScelta"
+        spec="§5.31 — chip di decisione rapida del wizard, un solo posto per l'anatomia (W2)"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <div style={{ display: 'flex', gap: spazio.s, flexWrap: 'wrap' }}>
+            <ChipScelta selezionata={chipTipo === 'corona'} onClick={() => setChipTipo('corona')}>
+              Corona
+            </ChipScelta>
+            <ChipScelta selezionata={chipTipo === 'ponte'} onClick={() => setChipTipo('ponte')}>
+              Ponte
+            </ChipScelta>
+          </div>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Non selezionata: faccia var(--card) + ombra press. Selezionata: sfondo
+            var(--green-tint), testo var(--green) e un check disegnato (SVG, mai solo
+            colore — L3), SENZA ombra. CampoData (§5.27, sezione «Campo» qui sopra) la
+            usa già per Oggi/Domani/Lun/Scegli…: questa è l&apos;unica anatomia, non una
+            copia.
+          </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo
+        id="progress-dots"
+        titolo="ProgressDots"
+        spec="§5.32 — testata dei 3 passi di scelta del wizard (dentista → tipo lavoro → paziente)"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
+          <ProgressDots passo={passoDemo} />
+          <div style={{ display: 'flex', gap: spazio.s }}>
+            <TastoSecondario onClick={() => setPassoDemo(1)}>Passo 1</TastoSecondario>
+            <TastoSecondario onClick={() => setPassoDemo(2)}>Passo 2</TastoSecondario>
+            <TastoSecondario onClick={() => setPassoDemo(3)}>Passo 3</TastoSecondario>
+          </div>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            3 dot Ø 11, gap 8: quelli prima del passo attuale sono verdi (fatti), quello
+            attuale è largo 30px e rosso (l&apos;unico rosso sanzionato dei passi di
+            scelta, §7.3), quelli dopo restano neutri. Un solo elemento con role
+            «img» racconta il passo a uno screen reader — i tre dot sono decorativi.
           </p>
         </div>
       </SezioneCatalogo>

@@ -12,10 +12,9 @@
 // campo deve mostrare subito dove si sta scrivendo.
 
 import { useId, useState, type ChangeEvent, type CSSProperties } from 'react'
-import { motion } from 'motion/react'
-import { molla } from '@/design-system/v3/motion'
 import { tipografia, raggio, spazio } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
+import { ChipScelta } from './ChipScelta'
 
 const ALTEZZA_CAMPO = 64 // §5.27 — letterale, non in scala spazio/raggio
 
@@ -206,21 +205,6 @@ function formattaInputData(d: Date): string {
   return `${anno}-${mese}-${giorno}`
 }
 
-const stilePill = (selezionata: boolean): CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  minHeight: 44, // constraint 10 — hit area, indipendente dalla resa visiva
-  padding: '0 16px',
-  borderRadius: raggio.pill,
-  border: selezionata ? '1px solid var(--blue)' : '1px solid var(--line)',
-  background: selezionata ? 'var(--blue-tint)' : 'var(--card)',
-  color: selezionata ? 'var(--blue)' : 'var(--ink)',
-  fontFamily: tipografia.famiglia,
-  fontSize: tipografia.size.callout,
-  fontWeight: tipografia.weight.extrabold,
-  cursor: 'pointer',
-})
-
 /**
  * CampoData — scelte rapide di data (§5.27).
  *
@@ -230,8 +214,9 @@ const stilePill = (selezionata: boolean): CSSProperties => ({
  * `<input type="date">` nativo — l'unico punto in cui compare davvero un
  * calendario, ed è quello del sistema operativo, non uno disegnato da noi.
  * Selezione = `vibra('selection')`, mai suono (è una scelta silenziosa,
- * non una conferma sonora). La pill selezionata porta sempre un ✓ e
- * `aria-pressed`, mai solo il tint blu (L3).
+ * non una conferma sonora) — l'anatomia della pill è `ChipScelta` (§5.31,
+ * decisione W2: un solo posto per questa anatomia). La pill selezionata
+ * porta sempre un ✓ e `aria-pressed`, mai solo il tint verde (L3).
  */
 export function CampoData(props: {
   label: string
@@ -260,24 +245,20 @@ export function CampoData(props: {
   const lunSelezionata = !lunCoincideConDomani && !!valoreInizio && stessoGiorno(valoreInizio, lunData)
   const sceltaSelezionata = !!valoreInizio && !oggiSelezionata && !domaniSelezionata && !lunSelezionata
 
-  function scegli(data: Date) {
-    vibra('selection')
-    onCambia(data)
-  }
-
+  // Le tre scelte rapide passano `onCambia` direttamente a `ChipScelta`: è lei
+  // a chiamare `vibra('selection')` sul proprio tap (§5.31) — chiamarla anche
+  // qui raddoppierebbe la vibrazione a ogni scelta. Il date-picker nativo
+  // (sotto) non passa da ChipScelta, quindi mantiene la propria vibrazione.
   function handleInputData(e: ChangeEvent<HTMLInputElement>) {
     const data = parseInputData(e.target.value)
     if (!data) return
-    scegli(data)
+    vibra('selection')
+    onCambia(data)
   }
 
   return (
     <div>
       <style>{`
-        .ds-campo-data-pill:focus-visible {
-          outline: 2px solid var(--blue);
-          outline-offset: 2px;
-        }
         .ds-campo-data-input:focus {
           outline: 2px solid var(--blue);
           outline-offset: 2px;
@@ -289,57 +270,24 @@ export function CampoData(props: {
         aria-labelledby={idLabel}
         style={{ display: 'flex', gap: spazio.s, flexWrap: 'wrap' }}
       >
-        <motion.button
-          type="button"
-          className="ds-campo-data-pill"
-          aria-pressed={oggiSelezionata}
-          onClick={() => scegli(oggiInizio)}
-          whileTap={{ scale: 0.97 }}
-          transition={molla.press}
-          style={stilePill(oggiSelezionata)}
-        >
-          {oggiSelezionata && <span aria-hidden="true">✓ </span>}
+        <ChipScelta selezionata={oggiSelezionata} onClick={() => onCambia(oggiInizio)}>
           Oggi
-        </motion.button>
-        <motion.button
-          type="button"
-          className="ds-campo-data-pill"
-          aria-pressed={domaniSelezionata}
-          onClick={() => scegli(domaniData)}
-          whileTap={{ scale: 0.97 }}
-          transition={molla.press}
-          style={stilePill(domaniSelezionata)}
-        >
-          {domaniSelezionata && <span aria-hidden="true">✓ </span>}
+        </ChipScelta>
+        <ChipScelta selezionata={domaniSelezionata} onClick={() => onCambia(domaniData)}>
           Domani
-        </motion.button>
+        </ChipScelta>
         {!lunCoincideConDomani && (
-          <motion.button
-            type="button"
-            className="ds-campo-data-pill"
-            aria-pressed={lunSelezionata}
-            onClick={() => scegli(lunData)}
-            whileTap={{ scale: 0.97 }}
-            transition={molla.press}
-            style={stilePill(lunSelezionata)}
-          >
-            {lunSelezionata && <span aria-hidden="true">✓ </span>}
+          <ChipScelta selezionata={lunSelezionata} onClick={() => onCambia(lunData)}>
             {formattaGiornoBreve(lunData)}
-          </motion.button>
+          </ChipScelta>
         )}
-        <motion.button
-          type="button"
-          className="ds-campo-data-pill"
-          aria-pressed={sceltaSelezionata}
-          aria-expanded={sceltaAperta}
+        <ChipScelta
+          selezionata={sceltaSelezionata}
+          ariaExpanded={sceltaAperta}
           onClick={() => setSceltaAperta(true)}
-          whileTap={{ scale: 0.97 }}
-          transition={molla.press}
-          style={stilePill(sceltaSelezionata)}
         >
-          {sceltaSelezionata && <span aria-hidden="true">✓ </span>}
           Scegli…
-        </motion.button>
+        </ChipScelta>
       </div>
       {sceltaAperta && (
         <input

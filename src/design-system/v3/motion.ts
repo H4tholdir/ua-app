@@ -28,6 +28,10 @@ export const cssEase = {
   // qui: lo anima Motion con `whileTap`/`molla.press` — mai due motori sulla
   // stessa proprietà (stesso principio del TastoPiu sopra).
   pillVoce: 'box-shadow 120ms cubic-bezier(0.32, 0.72, 0, 1)',
+  // ProgressDots (§5.32, verbatim da wizard.html:88 `.dots .dot`): il dot
+  // attivo passa da 11 a 30px in linea — l'unica proprietà animata è width,
+  // mai via Motion (nessun layout-shift da spring qui, solo un CSS lineare).
+  dots: 'width 120ms cubic-bezier(0.32, 0.72, 0, 1)',
 } as const
 
 // Le coreografie canoniche (§8.3) — SOLO queste. Variants Motion pronti all'uso.

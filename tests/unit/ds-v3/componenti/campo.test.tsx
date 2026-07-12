@@ -240,13 +240,15 @@ describe('CampoData — scelte rapide, mai calendario a griglia (§5.27)', () =>
     expect(screen.getByRole('button', { name: 'Lun 4' })).toBeInTheDocument()
   })
 
-  it('la pill selezionata ha tint blue E un indicatore non-solo-colore (✓ e/o aria-pressed)', () => {
+  it('la pill selezionata ha tint verde E un indicatore non-solo-colore (check SVG e/o aria-pressed) — anatomia ChipScelta §5.31', () => {
     const oggiInizio = new Date(2026, 6, 7)
     render(<CampoData label="Consegna" valore={oggiInizio} onCambia={() => {}} oggi={OGGI_MARTEDI} />)
     const pillOggi = screen.getByRole('button', { name: /Oggi/ })
     expect(pillOggi).toHaveAttribute('aria-pressed', 'true')
-    // L3: colore + parola + posizione — deve esserci un segnale testuale, non solo colore
-    expect(pillOggi.textContent).toMatch(/✓/)
+    // L3: colore + segno + posizione — ChipScelta porta il check come SVG (stroke 3,
+    // aria-hidden), non più un glifo ✓ testuale: aggiornato il selettore, non il
+    // comportamento (il segnale non-solo-colore resta, decisione W2).
+    expect(pillOggi.querySelector('svg')).not.toBeNull()
   })
 
   it('le pill non selezionate hanno aria-pressed="false"', () => {
@@ -295,8 +297,13 @@ describe('CampoData — scelte rapide, mai calendario a griglia (§5.27)', () =>
     const { container } = render(
       <CampoData label="Consegna" valore={null} onCambia={() => {}} oggi={OGGI_MARTEDI} />
     )
-    const regola = container.querySelector('style')?.textContent ?? ''
-    expect(regola).toMatch(/\.ds-campo-data-pill:focus-visible\s*\{/)
+    // Le pill sono ora ChipScelta (§5.31, decisione W2): l'anello focus-visible
+    // vive nel <style> scoped del componente, non più in quello di CampoData —
+    // selettore aggiornato, comportamento invariato (ancora :focus-visible, non :focus).
+    const regole = Array.from(container.querySelectorAll('style'))
+      .map((s) => s.textContent ?? '')
+      .join('\n')
+    expect(regole).toMatch(/\.ds-chip-scelta:focus-visible\s*\{/)
   })
 
   it('il testo (label + pill statiche) passa trovaParoleVietate', () => {

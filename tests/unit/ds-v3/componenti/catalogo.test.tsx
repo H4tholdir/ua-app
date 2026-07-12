@@ -98,8 +98,8 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(trovaParoleVietate(testo)).toEqual([])
   })
 
-  it('il catalogo è completo: 14 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
-    expect(INDICE).toHaveLength(14)
+  it('il catalogo è completo: 16 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
+    expect(INDICE).toHaveLength(16)
     expect(INDICE.map((voce) => voce.titolo)).toEqual([
       'TastoPrimario',
       'Tasti secondari e vie di fuga',
@@ -115,6 +115,8 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
       'Campo',
       'Il racconto',
       'PillVoce',
+      'ChipScelta',
+      'ProgressDots',
     ])
   })
 
