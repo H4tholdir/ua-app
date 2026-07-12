@@ -146,6 +146,28 @@ describe('ChipScelta — chip di decisione rapida del wizard (§5.31)', () => {
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  it('ariaExpanded (prop opzionale, deroga per «Scegli…» di CampoData): assente di default, riflesso su aria-expanded quando passato', () => {
+    const { rerender } = render(
+      <ChipScelta selezionata={false} onClick={() => {}}>
+        Scegli…
+      </ChipScelta>
+    )
+    // Senza il prop, il bottone NON deve dichiarare aria-expanded (non è un disclosure)
+    expect(screen.getByRole('button', { name: 'Scegli…' })).not.toHaveAttribute('aria-expanded')
+    rerender(
+      <ChipScelta selezionata={false} onClick={() => {}} ariaExpanded={false}>
+        Scegli…
+      </ChipScelta>
+    )
+    expect(screen.getByRole('button', { name: 'Scegli…' })).toHaveAttribute('aria-expanded', 'false')
+    rerender(
+      <ChipScelta selezionata={false} onClick={() => {}} ariaExpanded={true}>
+        Scegli…
+      </ChipScelta>
+    )
+    expect(screen.getByRole('button', { name: 'Scegli…' })).toHaveAttribute('aria-expanded', 'true')
+  })
 })
 
 describe('dizionario sui testi del catalogo — sezione ChipScelta (§5.31)', () => {

@@ -266,6 +266,25 @@ describe('CampoData — scelte rapide, mai calendario a griglia (§5.27)', () =>
     expect(container.querySelector('input[type="date"]')).not.toBeNull()
   })
 
+  it('tap su «Scegli…» vibra("selection") UNA sola volta — anatomia ChipScelta §5.31 (deviazione W2 intenzionale: prima del refactor questa pill non vibrava)', () => {
+    render(<CampoData label="Consegna" valore={null} onCambia={() => {}} oggi={OGGI_MARTEDI} />)
+    fireEvent.click(screen.getByRole('button', { name: /Scegli…/ }))
+    // Decisione W2 (round 1 review): un solo posto per l'anatomia della chip,
+    // vibra('selection') inclusa — «Scegli…» ora vibra come ogni altra
+    // ChipScelta. toHaveBeenCalledTimes(1) blinda anche il non-doppio-vibra:
+    // CampoData non deve aggiungere una propria vibrazione sopra quella della chip.
+    expect(vibraMock).toHaveBeenCalledTimes(1)
+    expect(vibraMock).toHaveBeenCalledWith('selection')
+    expect(suonaMock).not.toHaveBeenCalled()
+  })
+
+  it('anche le scelte rapide (es. «Oggi») vibrano UNA sola volta — mai doppio vibra chip+campo', () => {
+    render(<CampoData label="Consegna" valore={null} onCambia={() => {}} oggi={OGGI_MARTEDI} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Oggi$/ }))
+    expect(vibraMock).toHaveBeenCalledTimes(1)
+    expect(vibraMock).toHaveBeenCalledWith('selection')
+  })
+
   it('la scelta dal date-picker nativo chiama onCambia con la data scelta + vibra("selection")', () => {
     const onCambia = vi.fn()
     const { container } = render(
