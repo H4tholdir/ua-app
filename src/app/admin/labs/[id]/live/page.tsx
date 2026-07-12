@@ -2,19 +2,27 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { DashboardTitolare } from '@/components/features/dashboard/DashboardTitolare'
-import { isCacheStale } from '@/lib/dashboard/cache-stale'
-import {
-  getTitolareKpi,
-  getPagamentiScadutiTop,
-  getMaterialiEsaurimento,
-  getLavoriInProvaRientro,
-} from '@/lib/dashboard/queries'
+import { AdminHomePreview } from '@/components/features/admin/AdminHomePreview'
+import { getPileHome } from '@/lib/dashboard/pile-home'
+import { getSegnaleStriscia } from '@/lib/dashboard/striscia'
 
 export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ id: string }>
+}
+
+const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+
+function adessoRoma(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }))
+}
+function saluto(d: Date): string {
+  const h = d.getHours()
+  if (h >= 5 && h < 12) return 'Buongiorno'
+  if (h >= 12 && h < 18) return 'Buon pomeriggio'
+  return 'Buonasera'
 }
 
 export default async function AdminLivePreviewPage({ params }: Props) {
@@ -62,88 +70,13 @@ export default async function AdminLivePreviewPage({ params }: Props) {
     ? `${titolareRaw.nome ?? ''} ${titolareRaw.cognome ?? ''}`.trim()
     : labRaw.nome as string
 
-  // ── Cache staleness ───────────────────────────────────────────────────────
-  const { data: cacheRow } = await svc
-    .from('dashboard_kpi_cache')
-    .select('aggiornato_at')
-    .eq('laboratorio_id', id)
-    .maybeSingle()
+  // ── Dati Home v3 — stesso perimetro/stesse funzioni di `(app)/dashboard`
+  //    (Task 7-9): nessun `tecnicoId` → perimetro titolare, tutto il lab. ────
+  const pile = await getPileHome(svc, id)
+  const segnale = await getSegnaleStriscia(svc, id, 'titolare', pile)
 
-  const cacheRaw = cacheRow as Record<string, unknown> | null
-  const stale = isCacheStale((cacheRaw?.aggiornato_at as string | null) ?? null)
-
-  // ── Carica dati dashboard con service client ──────────────────────────────
-  const [stats, pagamentiTop, materialiEsaurimento, inProvaRientro] = await Promise.all([
-    getTitolareKpi(svc, id, stale),
-    getPagamentiScadutiTop(svc, id, 3),
-    getMaterialiEsaurimento(svc, id, 5),
-    getLavoriInProvaRientro(svc, id),
-  ])
-
-  const oggi = new Date().toISOString().split('T')[0]
-
-  // ── Consegne di oggi ──────────────────────────────────────────────────────
-  const { data: consegneData } = await svc
-    .from('lavori')
-    .select(
-      'id, numero_lavoro, stato, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome, telefono)'
-    )
-    .eq('laboratorio_id', id)
-    .is('deleted_at', null)
-    .eq('data_consegna_prevista', oggi)
-    .not('stato', 'in', '("consegnato","annullato")')
-    .order('ora_consegna', { ascending: true, nullsFirst: false })
-    .limit(30)
-
-  // ── Lavori in ritardo ─────────────────────────────────────────────────────
-  const { data: ritardoData } = await svc
-    .from('lavori')
-    .select(
-      'id, numero_lavoro, stato, priorita, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome)'
-    )
-    .eq('laboratorio_id', id)
-    .is('deleted_at', null)
-    .eq('stato', 'in_ritardo')
-    .order('data_consegna_prevista', { ascending: true })
-    .limit(20)
-
-  const consegneOggi = ((consegneData as Array<Record<string, unknown>>) ?? []).map(l => {
-    const c = l.clienti as Record<string, unknown> | null
-    return {
-      id: l.id as string,
-      numero_lavoro: l.numero_lavoro as string,
-      stato: l.stato as string,
-      tipo_dispositivo: l.tipo_dispositivo as string,
-      descrizione: l.descrizione as string,
-      data_consegna_prevista: l.data_consegna_prevista as string,
-      ora_consegna: l.ora_consegna as string | null,
-      paziente_nome_snapshot: l.paziente_nome_snapshot as string | null,
-      cliente_display: c
-        ? ((c.studio_nome as string | null) ??
-            `${c.nome ?? ''} ${c.cognome ?? ''}`.trim()) || '—'
-        : '—',
-      cliente_telefono: (c?.telefono as string | null) ?? null,
-    }
-  })
-
-  const lavoriInRitardo = ((ritardoData as Array<Record<string, unknown>>) ?? []).map(l => {
-    const c = l.clienti as Record<string, unknown> | null
-    return {
-      id: l.id as string,
-      numero_lavoro: l.numero_lavoro as string,
-      stato: l.stato as string,
-      priorita: l.priorita as string,
-      tipo_dispositivo: l.tipo_dispositivo as string,
-      descrizione: l.descrizione as string,
-      data_consegna_prevista: l.data_consegna_prevista as string,
-      ora_consegna: l.ora_consegna as string | null,
-      paziente_nome_snapshot: l.paziente_nome_snapshot as string | null,
-      cliente_display: c
-        ? ((c.studio_nome as string | null) ??
-            `${c.nome ?? ''} ${c.cognome ?? ''}`.trim()) || '—'
-        : '—',
-    }
-  })
+  const ora = adessoRoma()
+  const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
 
   return (
     <>
@@ -194,19 +127,20 @@ export default async function AdminLivePreviewPage({ params }: Props) {
         </Link>
       </div>
 
-      {/* Contenuto dashboard con padding-top per il banner */}
-      <div style={{ paddingTop: 44, minHeight: '100dvh', background: 'var(--bg, #DDD8D3)' }}>
-        <DashboardTitolare
-          stats={stats}
-          consegneOggi={consegneOggi as Parameters<typeof DashboardTitolare>[0]['consegneOggi']}
-          lavoriInRitardo={lavoriInRitardo as Parameters<typeof DashboardTitolare>[0]['lavoriInRitardo']}
-          inProvaRientro={inProvaRientro}
-          materialiEsaurimento={materialiEsaurimento}
-          pagamentiTop={pagamentiTop}
-          nomeUtente={nomeUtente}
-          labName={labRaw.nome as string}
-          aggiornatoAt={(cacheRaw?.aggiornato_at as string | null) ?? null}
-        />
+      {/* Nota quieta — convenzione chrome admin (adm-* vars), FUORI dallo scope
+          v3: la stessa nota vale sia in light che in dark perché legge le
+          variabili di root dell'admin, non quelle di [data-ds="v3"]. */}
+      <div style={{ textAlign: 'center', padding: '52px 20px 0', fontSize: 12, fontFamily: 'DM Sans, sans-serif', color: 'var(--adm-t3, #6B5C51)' }}>
+        Anteprima statica di Home — pile e striscia di stato non sono interattive in questa vista.
+      </div>
+
+      {/* Contenuto Home v3 — convivenza per pagina (§14): lo scope `[data-ds="v3"]`
+          porta i propri CSS var (`--bg`, `--ink`, `--red`, …), dipinti inline
+          sul root come nelle altre pagine migrate (`(app)/dashboard`,
+          `(app)/tutto-il-resto`) — il resto della sezione admin resta v2.3 flat. */}
+      <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: 'calc(100dvh - 44px)' }}>
+        <div className="ds-grana" aria-hidden />
+        <AdminHomePreview nome={nomeUtente} eyebrow={eyebrow} saluto={saluto(ora)} pile={pile} segnale={segnale} />
       </div>
     </>
   )
