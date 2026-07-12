@@ -1,5 +1,5 @@
 # ADR — Spike B6: architettura desktop route ↔ pannelli (`/dashboard` a 1280)
-**Data:** 12 luglio 2026 · **Stato:** IN ATTESA DI RATIFICA (gate Francesco) · **Ondata:** 1 (Home + Pile)
+**Data:** 12 luglio 2026 · **Stato:** RATIFICATO · **Ondata:** 1 (Home + Pile)
 
 ## Contesto (B6)
 
@@ -77,4 +77,4 @@ Misurato con `router.refresh()`: il pattern server action → `revalidatePath('/
 
 ---
 
-**Decisione: [X] — ratificata da Francesco il …**
+**Decisione: Candidato A — `searchParams` server-driven (conferma P2) — ratificata da Francesco il 12/07/2026.**
