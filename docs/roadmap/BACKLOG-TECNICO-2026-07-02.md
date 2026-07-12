@@ -497,6 +497,12 @@ Il tracciato XML FatturaPA e il PDF di cortesia dichiarano sempre `TipoDocumento
 
 ## 🟡 MEDIO — debito tecnico e rifiniture, non bloccanti
 
+### O2. Redesign pannello admin (/admin) — sessione dedicata (richiesta Francesco 12/07/2026)
+Il pannello admin (lista lab, dettagli, live preview) è rimasto allo stile neomorphic v2.x ed è fuori dal perimetro della migrazione DS v3 (che copre la PWA tenant). Francesco vuole rifarlo in una sessione a parte, DOPO il completamento della sequenza «Il cuore» (Ondate 2-4b → collaudo → audit). Scope da definire in quella sessione: design (coerenza col v3 o identità admin propria), le superfici (/admin/labs, /admin/labs/[id], live preview già migrata a Home v3 read-only), e i KPI commerciali (MRR/ARR/trial).
+
+### O3. Collaudo informale di Francesco (12/07/2026) — lista problemi PWA da raccogliere
+Francesco ha fatto un giro nella PWA post-Ondata 1 e ha visto «un sacco di problemi». Decisione condivisa: completare prima la sequenza pianificata (le superfici v2.3 che stonano vengono comunque riscritte nelle Ondate 2-4b), MA raccogliere la lista grezza ADESSO e triagiarla con la regola E6: (a) superficie in migrazione → nell'ondata pertinente; (b) bug bloccante quotidiano → fix interstiziale; (c) resto → qui in backlog per la fase residui/audit. **Lista in attesa di essere scaricata da Francesco** (anche a rate).
+
 ### O1. Residui Ondata 1 Home+pile (triage della review finale, 12/07/2026)
 Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdetto YES). Dettaglio completo nel ledger `.superpowers/sdd/progress-ondata-1-home-pile.md`.
 - **O1a — Debito test rami prose pile/striscia:** pillFase 0-branch e caso «tutte fasi eseguite» (oggi cade nel ramo `PER <giorno>`), subAmbra inCima, subBlu ≥3, subViola fallback, consegnaOggiNonPronta/provaRientroOggi, sub-rami s2, subMorph viola al confine oggi/domani. Da coprire nell'Ondata 2.
