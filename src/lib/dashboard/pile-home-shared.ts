@@ -50,7 +50,9 @@ const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 've
 const MS_GIORNO = 24 * 60 * 60 * 1000
 
 function dataLocale(iso: string): Date { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d) }
-function deltaGiorni(iso: string, oggi: Date): number {
+/** Giorni interi da oggi alla data (negativo = passata) — esportata (review Task 9):
+ *  `SchedaAnteprima` la usa per distinguere una consegna in ritardo da una futura. */
+export function deltaGiorni(iso: string, oggi: Date): number {
   const zero = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate())
   return Math.round((dataLocale(iso).getTime() - zero.getTime()) / MS_GIORNO)
 }

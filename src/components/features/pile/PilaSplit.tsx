@@ -23,7 +23,10 @@ import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { SchedaAnteprima } from './SchedaAnteprima'
 import { raggio } from '@/design-system/v3/tokens'
-import type { LavoroPila } from '@/lib/dashboard/pile-home'
+// Da `pile-home-shared.ts` come i fratelli client (review Task 9): il type-only
+// da `pile-home.ts` (server-only) è innocuo a runtime ma incoerente col confine
+// client/server tracciato nel Task 9.
+import type { LavoroPila } from '@/lib/dashboard/pile-home-shared'
 import type { Pila } from '@/lib/lavori/urgenza'
 
 const LABEL: Record<Pila, string> = {

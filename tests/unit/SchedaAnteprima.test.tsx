@@ -31,4 +31,29 @@ describe('SchedaAnteprima — pannello destro (mockup home.html 1280)', () => {
     await user.click(consegna)
     expect(push).toHaveBeenCalledWith('/lavori/l147/consegna')
   })
+
+  it('lavoro in ritardo → «Consegna» dice il ritardo in parole del banco, con stile urgente', () => {
+    // Consegna 3 giorni PRIMA di oggi (il componente usa `new Date()`): il
+    // valore non deve leggersi come futuro («martedì») ma come ritardo,
+    // coerente con la pill «−N GIORNI» e la striscia «doveva uscire N giorni fa».
+    const treGiorniFa = new Date()
+    treGiorniFa.setDate(treGiorniFa.getDate() - 3)
+    const iso = `${treGiorniFa.getFullYear()}-${String(treGiorniFa.getMonth() + 1).padStart(2, '0')}-${String(treGiorniFa.getDate()).padStart(2, '0')}`
+
+    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: '−3 GIORNI', famiglia: 'red' }, consegna: { data: iso, ora: '16:00:00' } }} />)
+    const valore = screen.getByText('3 giorni fa · 16:00')
+    expect(valore).toBeInTheDocument()
+    expect(valore).toHaveStyle({ color: 'var(--red)' }) // in ritardo = massimamente urgente
+  })
+
+  it('lavoro di ieri → «Ieri» (coerente con la pill DA IERI), urgente', () => {
+    const ieri = new Date()
+    ieri.setDate(ieri.getDate() - 1)
+    const iso = `${ieri.getFullYear()}-${String(ieri.getMonth() + 1).padStart(2, '0')}-${String(ieri.getDate()).padStart(2, '0')}`
+
+    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: 'DA IERI', famiglia: 'red' }, consegna: { data: iso, ora: null } }} />)
+    const valore = screen.getByText('Ieri')
+    expect(valore).toBeInTheDocument()
+    expect(valore).toHaveStyle({ color: 'var(--red)' })
+  })
 })

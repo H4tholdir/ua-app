@@ -23,7 +23,7 @@ import { tipografia } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` (Task 9), NON da `pile-home.ts`: quel file porta
 // `import 'server-only'` e non può finire nel bundle client — questo
 // componente è `'use client'` e chiama `giornoBreve` a runtime nel browser.
-import { giornoBreve, type LavoroPila } from '@/lib/dashboard/pile-home-shared'
+import { giornoBreve, deltaGiorni, type LavoroPila } from '@/lib/dashboard/pile-home-shared'
 
 const TITOLO_SEZIONE: CSSProperties = {
   fontSize: tipografia.size.caption,
@@ -38,43 +38,68 @@ function maiuscolaIniziale(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+/** Valore della riga «Consegna» (review Task 9): una data PASSATA deve dirsi
+ *  come ritardo in parole del banco («Ieri», «3 giorni fa» — coerente con la
+ *  pill «DA IERI»/«−N GIORNI» e con la striscia «doveva uscire ieri»), MAI
+ *  come giorno della settimana nudo che si leggerebbe come futuro. */
+function valoreConsegna(iso: string, oggi: Date): string {
+  const delta = deltaGiorni(iso, oggi)
+  if (delta === -1) return 'Ieri'
+  if (delta < -1) return `${-delta} giorni fa`
+  return maiuscolaIniziale(giornoBreve(iso, oggi))
+}
+
 export function SchedaAnteprima(props: { lavoro: LavoroPila }) {
   const { lavoro } = props
   const router = useRouter()
   const oggi = new Date()
 
-  const giorno = giornoBreve(lavoro.consegna.data, oggi)
   const ora = lavoro.consegna.ora ? lavoro.consegna.ora.slice(0, 5) : null
-  const consegnaValore = ora ? `${maiuscolaIniziale(giorno)} · ${ora}` : maiuscolaIniziale(giorno)
-  const consegnaUrgente = giorno === 'oggi' || giorno === 'domani'
+  const giorno = valoreConsegna(lavoro.consegna.data, oggi)
+  const consegnaValore = ora ? `${giorno} · ${ora}` : giorno
+  // Urgente (§5.10): consegna oggi/domani O già passata (in ritardo = massimamente urgente).
+  const consegnaUrgente = deltaGiorni(lavoro.consegna.data, oggi) <= 1
 
   return (
     <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      {/* Griglia scheda dal mockup home.html frame 1280: header gap 16 con
+          spacer flex (.sp) dopo la pill; le due card in .scheda-grid
+          `1fr 1fr` gap 20 align-start a ≥1024. Sotto 1024 (split 768,
+          pila-aperta.html .scheda-grid) restano in colonna, gap 16. */}
+      <style>{`
+        .ua-scheda-grid { display: flex; flex-direction: column; gap: 16px }
+        @media (min-width: 1024px) {
+          .ua-scheda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start }
+        }
+      `}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <span style={{ fontSize: 27, fontWeight: tipografia.weight.extrabold, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
           n.{lavoro.numero}
         </span>
         <PillTempo famiglia={lavoro.pill.famiglia}>{lavoro.pill.testo}</PillTempo>
+        <span aria-hidden style={{ flex: 1 }} />
       </div>
 
-      <div>
-        <div style={TITOLO_SEZIONE}>Il lavoro</div>
-        <CardInfo>
-          <RigaDato chiave="Dentista" valore={lavoro.dentista} />
-          <RigaDato chiave="Paziente" valore={lavoro.paziente} />
-          <RigaDato chiave="Lavoro" valore={lavoro.tipoLavoro} />
-          <RigaDato chiave="Consegna" valore={consegnaValore} urgente={consegnaUrgente} />
-          {lavoro.tecnico && <RigaDato chiave="Tecnico" valore={lavoro.tecnico} />}
-        </CardInfo>
-      </div>
+      <div className="ua-scheda-grid">
+        <div>
+          <div style={TITOLO_SEZIONE}>Il lavoro</div>
+          <CardInfo>
+            <RigaDato chiave="Dentista" valore={lavoro.dentista} />
+            <RigaDato chiave="Paziente" valore={lavoro.paziente} />
+            <RigaDato chiave="Lavoro" valore={lavoro.tipoLavoro} />
+            <RigaDato chiave="Consegna" valore={consegnaValore} urgente={consegnaUrgente} />
+            {lavoro.tecnico && <RigaDato chiave="Tecnico" valore={lavoro.tecnico} />}
+          </CardInfo>
+        </div>
 
-      <div>
-        <div style={TITOLO_SEZIONE}>Le fasi</div>
-        <CardInfo>
-          {lavoro.fasi.map((f) => (
-            <RigaFase key={f.nome} nome={f.nome} fatto={f.fatta} />
-          ))}
-        </CardInfo>
+        <div>
+          <div style={TITOLO_SEZIONE}>Le fasi</div>
+          <CardInfo>
+            {lavoro.fasi.map((f) => (
+              <RigaFase key={f.nome} nome={f.nome} fatto={f.fatta} />
+            ))}
+          </CardInfo>
+        </div>
       </div>
 
       <div style={{ maxWidth: 340 }}>

@@ -98,6 +98,10 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
 
     function onKeyDown(evento: KeyboardEvent) {
       if (!mq.matches) return
+      // Guardia modificatori (review Task 9): cmd/ctrl/alt+tasto sono
+      // scorciatoie del browser/OS (cmd+n = nuova finestra, ctrl+/ …) —
+      // le nostre valgono SOLO per il tasto nudo.
+      if (evento.metaKey || evento.ctrlKey || evento.altKey) return
       const target = evento.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
 
