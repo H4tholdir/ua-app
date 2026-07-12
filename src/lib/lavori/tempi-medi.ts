@@ -11,9 +11,16 @@ export type CampioneConsegna = {
 
 const MS_GIORNO = 86_400_000
 
+// Le colonne sono TIMESTAMPTZ reali (con orario), non DATE: il diff su
+// .getTime() grezzi misurerebbe tempo trascorso, non giorni di calendario
+// (ingresso 08:00 + consegna 5 giorni dopo alle 21:00 → 5,54 → round 6).
+// Normalizzando ENTRAMBI a mezzanotte locale con inizioGiorno (W7) il delta
+// conta giorni di calendario; il Math.round resta necessario SOLO per
+// assorbire l'ora di scarto ai confini DST (il giorno del cambio ora dura
+// 23h/25h reali anche tra due mezzanotte locali).
 function deltaGiorni(campione: CampioneConsegna): number {
-  const ingresso = new Date(campione.data_ingresso).getTime()
-  const consegna = new Date(campione.data_consegna_effettiva).getTime()
+  const ingresso = inizioGiorno(new Date(campione.data_ingresso)).getTime()
+  const consegna = inizioGiorno(new Date(campione.data_consegna_effettiva)).getTime()
   return Math.round((consegna - ingresso) / MS_GIORNO)
 }
 

@@ -44,17 +44,10 @@ describe('calcolaGiorniPerTipo — cascata granulare → macro → fallback (spe
     expect(risultato.corona_zirconia).toEqual({ giorni: 5, daStoria: false })
   })
 
-  it('media arrotondata (Math.round): 4,5 giorni medi → 5', () => {
+  it('media arrotondata (Math.round): delta 4,4,5,5,5 → media 4,6 → 5', () => {
     const label = labelTipo(trovaTipo('riparazione')!)
-    // Media = (4+4+4+4+5.5*... ) costruiamo delta che danno media 4.5 esatta su 5 campioni: 4,4,4,5,5 -> media 4.4 no.
-    // Usiamo 4,4,5,5,4.5 non intero: i delta sono sempre interi (giorni). Costruiamo media 4.5 con 2 campioni non basta (serve >=5).
-    // 5 campioni: 4,4,5,5,4 -> somma 22 media 4.4 -> round 4. Proviamo un set che dia esattamente .5: 4,4,4,5,5 somma 22 media 4.4.
-    // Per ottenere media 4.5 su interi con 5 campioni: somma deve essere 22.5, impossibile con interi. Usiamo 4 campioni non permesso (<5).
-    // Soluzione: usiamo tipo con soglia macro raggiunta a 5 campioni e media non intera 4.5 -> serve somma 22.5 impossibile;
-    // quindi verifichiamo arrotondamento con media 4.6 (somma 23 su 5) -> round(4.6) = 5.
     const campioni: CampioneConsegna[] = [4, 4, 5, 5, 5].map((d) => campione(label, 'riparazione', d))
     const risultato = calcolaGiorniPerTipo(campioni)
-    // somma 23, media 4.6 -> round 5
     expect(risultato.riparazione).toEqual({ giorni: 5, daStoria: true })
   })
 
@@ -63,6 +56,45 @@ describe('calcolaGiorniPerTipo — cascata granulare → macro → fallback (spe
     const campioni: CampioneConsegna[] = [0, 0, 0, 0, 0].map((d) => campione(label, 'riparazione', d))
     const risultato = calcolaGiorniPerTipo(campioni)
     expect(risultato.riparazione).toEqual({ giorni: 1, daStoria: true })
+  })
+
+  it('delta negativo (consegna < ingresso, errore data entry) → clamp a 1', () => {
+    const label = labelTipo(trovaTipo('riparazione')!)
+    const campioni: CampioneConsegna[] = Array.from({ length: 5 }, () => ({
+      descrizione: label,
+      tipo_dispositivo: 'riparazione',
+      data_ingresso: '2026-01-10',
+      data_consegna_effettiva: '2026-01-07', // 3 giorni PRIMA dell'ingresso
+    }))
+    const risultato = calcolaGiorniPerTipo(campioni)
+    expect(risultato.riparazione).toEqual({ giorni: 1, daStoria: true })
+  })
+
+  it('timestamp reali (TIMESTAMPTZ con orario): ingresso 08:00 + consegna 5 giorni dopo alle 21:00 → 5 giorni di calendario, non 6', () => {
+    const label = labelTipo(trovaTipo('riparazione')!)
+    // Diff grezzo = 5g 13h = 5,54 → round darebbe 6. I giorni di CALENDARIO sono 5.
+    const campioni: CampioneConsegna[] = Array.from({ length: 5 }, () => ({
+      descrizione: label,
+      tipo_dispositivo: 'riparazione',
+      data_ingresso: '2026-01-05T08:00:00',
+      data_consegna_effettiva: '2026-01-10T21:00:00',
+    }))
+    const risultato = calcolaGiorniPerTipo(campioni)
+    expect(risultato.riparazione).toEqual({ giorni: 5, daStoria: true })
+  })
+
+  it('attraverso il confine DST italiano (ultima domenica di marzo): il delta resta in giorni di calendario', () => {
+    const label = labelTipo(trovaTipo('riparazione')!)
+    // 29/03/2026 = ultima domenica di marzo (ora legale: il giorno dura 23h).
+    // Da ven 27/03 08:00 a mer 01/04 21:00 = 5 giorni di calendario.
+    const campioni: CampioneConsegna[] = Array.from({ length: 5 }, () => ({
+      descrizione: label,
+      tipo_dispositivo: 'riparazione',
+      data_ingresso: '2026-03-27T08:00:00',
+      data_consegna_effettiva: '2026-04-01T21:00:00',
+    }))
+    const risultato = calcolaGiorniPerTipo(campioni)
+    expect(risultato.riparazione).toEqual({ giorni: 5, daStoria: true })
   })
 })
 
