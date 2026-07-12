@@ -1,9 +1,10 @@
-# UÀ Design System v3.1 — «Una cosa alla volta»
-**Data:** 7 luglio 2026 · **Stato:** v3.1 — IN VIGORE (emendata 12/07/2026) · **Sostituisce:** DS v2.3 Warm Panna (`2026-05-27-design-system-v2-3.md`)
+# UÀ Design System v3.2 — «Una cosa alla volta»
+**Data:** 7 luglio 2026 · **Stato:** v3.2 — IN VIGORE (emendata 12/07/2026) · **Sostituisce:** DS v2.3 Warm Panna (`2026-05-27-design-system-v2-3.md`)
 **Approvazione visiva:** mockup `docs/design/mockups/2026-07-07-redesign-A-materico-full.html` + `2026-07-07-ds-v3-showcase.html` (approvati da Francesco il 07/07/2026)
 **Ricerca fondativa:** Apple HIG (motion/suoni/haptics/tipografia) — report agente 07/07/2026, fonti primarie citate in Appendice C.
 
 **Rev. 3.1 (12/07/2026):** emendamenti Ondata 0 ratificati da Francesco — v. decision record 2026-07-09-il-cuore-mockups.md
+**Rev. 3.2 (12/07/2026):** emendamento §7.3 — wizard "Nuovo lavoro" a 3 tocchi, consegna suggerita risolta, tassonomia granulare (Ondata 2) — deviazione B7-2 ratificata, v. spec `2026-07-12-ds-v3-il-cuore-ondata-2-wizard-design.md`
 
 > ⚠️ **QUESTO DOCUMENTO È LEGGE.** Ogni pagina, componente, animazione, suono o testo dell'app DEVE rispettare questa spec alla lettera. Ciò che non è qui definito NON si inventa: si propone un'estensione (§13). Alla data di approvazione, DS v2.3 e i suoi token sono DEPRECATI (piano di migrazione §14).
 
@@ -318,10 +319,10 @@ lavoro → CONSEGNA → conferma
 - **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile».
 
 ### 7.3 Wizard "Nuovo lavoro" (dal TastoPiù) — frames 3-4
-- Passi: **1 Dentista → 2 Tipo lavoro → 3 Paziente e dettagli → Fatto.** Ogni passo: back + progress dots (11px, attivo 30px rosso, fatti verdi) + domanda (token `question` 35/800) + hint + griglia/`RigaCerca` + PillVoce.
-- Passo 3 accorpa SOLO: codice paziente (default proposto), elemento/colore (opzionali con "Salta"), foto impronta (opzionale). **Un lavoro DEVE poter nascere in 4 tocchi** (dentista → tipo → conferma → fatto): tutto il resto è opzionale e completabile dopo.
-- "Fatto!": check grande + riepilogo + **consegna suggerita** (calcolata dai tempi medi del lab per quel tipo — L5) con chip "Va bene ✓ / Decido dopo" + "Fotografa l'impronta" (primario) + LinkQuieto home.
-- Abbandono a metà: lo stato si conserva 24h; alla riapertura del + si chiede "Riprendo da dove eri? / Ricomincia".
+- Passi: **1 Dentista → 2 Tipo lavoro → 3 Paziente e dettagli (tutto opzionale) → Fatto.** Percorso minimo **3 tocchi**: tile dentista → tile tipo → TastoPrimario «Fotografa impronta e prescrizione» (rev. 3.2 — il piano Ondata 0 ne contava 4 col chip «Va bene ✓», rimosso su advisor UX, deviazione B7-2 ratificata 12/07). Ogni passo: back + ProgressDots (§5.32) + domanda (token `question` 35/800) + hint + griglia/`RigaCerca` + PillVoce.
+- **Passo 2 = tassonomia granulare** (rev. 3.2, spec Ondata 2 §3): i tile mostrano i TIPI GRANULARI (`tipi-lavoro.ts`, 38 voci in 10 famiglie macro, ordinati per frequenza 30gg del lab); la macro resta il dominio di `lavori.tipo_dispositivo`; `descrizione` = label granulare; classe di rischio default per tipo.
+- "Fatto!": check grande + riepilogo + **consegna suggerita RISOLTA** (rev. 3.2 — riga informativa + LinkQuieto «Cambia data» → sheet con ChipScelta §5.31 + CampoData §5.27) + TastoPrimario «Fotografa impronta e prescrizione» + LinkQuieto home. NIENTE chip di scelta sulla vista (L1: una decisione).
+- Abbandono: stato in localStorage 24h; alla riapertura sheet «Riprendo da dove eri? / Ricomincia da capo» (frame 5 mockup).
 
 ### 7.4 Scheda lavoro (`/lavori/[id]`) — frame 2 del file A-materico-full
 - Header: back, ⋯ (menu: modifica, foto, documenti, butta via) · `n.147` + PillStato · CardInfo (4-5 RigheDato: dentista, paziente, lavoro, consegna) · NotaDentista (se esiste) · CardFasi (RigheFase) · TastoPrimario CONSEGNA (visibile SOLO quando tutte le fasi sono fatte; altrimenti disabled con spiegazione §5.1).
