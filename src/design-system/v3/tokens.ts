@@ -3,17 +3,19 @@
 
 export const luce = {
   bg: '#F4F0E7', bgDeep: '#ECE6D9', card: '#FFFEFA',
-  ink: '#1D1913', muted: '#6E6457', faint: '#A69B8C', line: '#EBE4D6',
+  ink: '#1D1913', muted: '#6E6457', faint: '#7B6A59', line: '#EBE4D6', // faint: rev. 3.1 — era #A69B8C (WCAG fail 2.40 su --bg)
   red: '#D90012', redDark: '#A5000E',
   amber: '#9A5C00', green: '#1B7F3B', blue: '#1D5FBF',
   redTint: '#FBEDEC', amberTint: '#F8F0E1', blueTint: '#EBF1FA', greenTint: '#EAF4EC',
+  purple: '#7C3F9C', purpleTint: '#F3EAF7', // rev. 3.1 — famiglia «Da rifare / In prova»
 } as const
 
 export const notte = {
   bg: '#171411', sfc: '#211D18', elv: '#2B2620',
-  ink: '#F2EEE7', muted: '#A69B8C', faint: '#6E6457', line: '#342E26',
+  ink: '#F2EEE7', muted: '#A69B8C', faint: '#928778', line: '#342E26', // faint: rev. 3.1 — era #6E6457 (WCAG fail)
   red: '#FF3B44', redDark: '#8F0910',
   amber: '#E8A13D', green: '#34C468', blue: '#5B9BFF',
+  purple: '#B98BE8', purpleTint: 'rgba(185,139,232,.14)', // rev. 3.1
 } as const
 
 export const tipografia = {
@@ -42,8 +44,10 @@ export const materia = {
 // vivono solo qui: unica eccezione ammessa al check pre-commit "niente hex fuori da tokens.ts".
 export const gradiente = {
   tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
-  pillFase: 'linear-gradient(180deg, #269950, var(--green))',                    // §5.4
+  pillFase: 'linear-gradient(180deg, #1F8544, #166B39)', // §5.4 rev. 3.1 — stop pinnati, mai var(--green) come faccia
   corsaPillFase: '#14602C',                                                      // §5.4
+  whatsapp: 'linear-gradient(180deg, #208650, #17663A)', // §3.3.4 rev. 3.1 — consumato dall'Ondata 4b
+  corsaWhatsApp: '#0E4A28',
   dashedGuida: '#CBC1B0',                                                        // §5.11/5.12
 } as const
 

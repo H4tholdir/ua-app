@@ -69,7 +69,7 @@ describe('PillStato — vocabolario chiuso (§5.9)', () => {
   })
 
   it('la mappa stato→famiglia è quella di legge per l\'intero vocabolario', () => {
-    const attese: Record<StatoBanco, 'red' | 'amber' | 'blue' | 'green'> = {
+    const attese: Record<StatoBanco, 'red' | 'amber' | 'blue' | 'green' | 'purple'> = {
       'DA CONSEGNARE': 'red',
       'STA PER FINIRE': 'red',
       'IN FORNO': 'amber',
@@ -80,6 +80,8 @@ describe('PillStato — vocabolario chiuso (§5.9)', () => {
       'CONSEGNATO ✓': 'green',
       'INCASSATA ✓': 'green',
       'INVIATA ✓': 'green',
+      'IN PROVA': 'purple',
+      'FERMO': 'amber',
     }
     for (const stato of TUTTI_GLI_STATI) {
       const { container, unmount } = render(<PillStato stato={stato} />)

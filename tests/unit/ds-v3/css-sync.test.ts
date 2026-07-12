@@ -41,12 +41,14 @@ const mappaLuce: Record<keyof typeof luce, string> = {
   amber: '--amber', green: '--green', blue: '--blue',
   redTint: '--red-tint', amberTint: '--amber-tint',
   blueTint: '--blue-tint', greenTint: '--green-tint',
+  purple: '--purple', purpleTint: '--purple-tint', // rev. 3.1 — famiglia «Da rifare / In prova»
 }
 const mappaNotte: Record<keyof typeof notte, string> = {
   bg: '--bg', sfc: '--card', elv: '--elv',
   ink: '--ink', muted: '--muted', faint: '--faint', line: '--line',
   red: '--red', redDark: '--red-dark',
   amber: '--amber', green: '--green', blue: '--blue',
+  purple: '--purple', purpleTint: '--purple-tint', // rev. 3.1
 }
 
 describe('ds-v3.css — sincronia con tokens.ts e scoping', () => {

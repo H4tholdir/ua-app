@@ -50,7 +50,7 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   it('gradiente: valori-legge esatti (§5.1/§5.4/§5.11-12)', () => {
     expect(gradiente.tastoPrimario).toContain('#F2263A')
     expect(gradiente.tastoPrimario).toContain('#B00010')
-    expect(gradiente.pillFase).toBe('linear-gradient(180deg, #269950, var(--green))')
+    expect(gradiente.pillFase).toBe('linear-gradient(180deg, #1F8544, #166B39)') // rev. 3.1 — era #269950, var(--green)
     expect(gradiente.corsaPillFase).toBe('#14602C')
     expect(gradiente.dashedGuida).toBe('#CBC1B0')
   })

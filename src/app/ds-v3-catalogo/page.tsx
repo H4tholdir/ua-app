@@ -391,6 +391,8 @@ export default function CatalogoPage() {
               <PillStato stato="CONSEGNATO ✓" />
               <PillStato stato="INCASSATA ✓" />
               <PillStato stato="INVIATA ✓" />
+              <PillStato stato="IN PROVA" />
+              <PillStato stato="FERMO" />
             </div>
           </div>
 

@@ -7,7 +7,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { raggio, tipografia } from '@/design-system/v3/tokens'
 
-type Famiglia = 'red' | 'amber' | 'blue' | 'green'
+export type Famiglia = 'red' | 'amber' | 'blue' | 'green' | 'purple'
 
 const STILE_BASE: CSSProperties = {
   display: 'inline-block',
@@ -58,6 +58,8 @@ export type StatoBanco =
   | 'INCASSATA ✓'
   | 'INVIATA ✓'
   | 'STA PER FINIRE'
+  | 'IN PROVA'
+  | 'FERMO'
 
 // Mappa stato → famiglia colore, di legge (§5.9): un solo posto decide questo,
 // il chiamante non la passa mai — è ciò che rende il vocabolario davvero chiuso.
@@ -72,6 +74,8 @@ const MAPPA_STATO_FAMIGLIA: Record<StatoBanco, Famiglia> = {
   'CONSEGNATO ✓': 'green',
   'INCASSATA ✓': 'green',
   'INVIATA ✓': 'green',
+  'IN PROVA': 'purple',
+  'FERMO': 'amber',
 }
 
 /**
