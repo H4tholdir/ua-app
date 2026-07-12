@@ -3,8 +3,12 @@ import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
 import { act } from 'react'
 
+// P9 (Task 10): /dashboard è una route migrata a v3 — la pill non ci si
+// monta più (BottomNavPill.tsx, ROUTE_MIGRATE_V3). Questi test verificano il
+// comportamento della pill stessa (idratazione del tooltip FAB), quindi
+// usano una route v2.3 dove la pill resta visibile.
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard',
+  usePathname: () => '/clienti',
 }))
 
 import { BottomNavPill } from '../../src/components/layout/BottomNavPill'

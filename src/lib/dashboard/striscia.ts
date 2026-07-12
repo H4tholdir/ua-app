@@ -22,7 +22,7 @@ export type IngressiStriscia = {
 // 'mancata_consegna' (erano valori del CHECK originario in supabase/schema.sql, sostituito
 // dalla migration 002 con lo StatoSDI attuale). L'unico stato realmente scritto/letto dal
 // codice che rappresenta un rifiuto SDI è 'rifiutata'.
-const SDI_SCARTATE = ['rifiutata']
+export const SDI_SCARTATE = ['rifiutata']
 
 type Candidato = (i: IngressiStriscia) => SegnaleStriscia | null
 const s1: Candidato = (i) => i.fatturaScartata && { attenzione: true, forte: `Fattura n.${i.fatturaScartata.numero}`, testo: 'scartata', azione: { etichetta: 'Sistemala ›', href: `/fatture/${i.fatturaScartata.id}` } }

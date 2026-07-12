@@ -237,6 +237,16 @@ export function BottomNavPill() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Ondata 1 (spec sp.3 §1): sulle pagine migrate a v3 la BottomNavPill muore —
+  // il pollice in basso appartiene al TastoPiù (home). Restano le pagine v2.3.
+  // Il guard vive DOPO tutti gli hook (non prima, come nello snippet originale
+  // del brief): un early return prima degli hook violerebbe le Rules of Hooks
+  // — 12 errori `react-hooks/rules-of-hooks` verificati con `npx eslint` su
+  // questo file, che avrebbero bloccato il pre-commit hook (`lint-staged`,
+  // `eslint --max-warnings=0`). Stesso confronto ESATTO (non prefix) richiesto.
+  const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto']
+  if (ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori') return null
+
   const pillStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
