@@ -3,6 +3,8 @@
 **Approvazione visiva:** mockup `docs/design/mockups/2026-07-07-redesign-A-materico-full.html` + `2026-07-07-ds-v3-showcase.html` (approvati da Francesco il 07/07/2026)
 **Ricerca fondativa:** Apple HIG (motion/suoni/haptics/tipografia) — report agente 07/07/2026, fonti primarie citate in Appendice C.
 
+**Rev. 3.1 (12/07/2026):** emendamenti Ondata 0 ratificati da Francesco — v. decision record 2026-07-09-il-cuore-mockups.md
+
 > ⚠️ **QUESTO DOCUMENTO È LEGGE.** Ogni pagina, componente, animazione, suono o testo dell'app DEVE rispettare questa spec alla lettera. Ciò che non è qui definito NON si inventa: si propone un'estensione (§13). Alla data di approvazione, DS v2.3 e i suoi token sono DEPRECATI (piano di migrazione §14).
 
 ---
@@ -86,13 +88,15 @@ La riga di stato in home (§7.1) usa lo schema: `[momento]: [cosa ho fatto] · t
 | `--card` | `#FFFEFA` | superfici carta (card, sheet, tile) |
 | `--ink` | `#1D1913` | testo primario (contrasto su card 15.9:1) |
 | `--muted` | `#6E6457` | testo secondario (4.9:1 ✓ AA) |
-| `--faint` | `#A69B8C` | etichette MAIUSCOLE ≥12.5px/800 e decorazioni — MAI testo di lettura |
+| `--faint` | `#7B6A59` | etichette MAIUSCOLE ≥12.5px/800 e decorazioni — MAI testo di lettura (rev. 3.1: era `#A69B8C`, WCAG fail 2.40 su `--bg`; ora 4.56 su `--bg`, 5.14 su `--card`) |
 | `--line` | `#EBE4D6` | separatori 1.5px |
 | `--red` | `#D90012` | SOLO: tasto primario, urgenza "oggi", pila rossa |
 | `--red-dark` | `#A5000E` | bordo-corsa 3D del tasto rosso |
 | `--amber` | `#9A5C00` | stato "in corso" (5.3:1 su card ✓ — corretto 08/07: il valore precedente #B36B00 falliva AA a 4.14:1, scoperto dal test di contrasto calcolato) |
 | `--green` | `#1B7F3B` | fatto, conferme, tasto FATTA |
 | `--blue` | `#1D5FBF` | nuovo, informazione, note dentista |
+| `--purple` | `#7C3F9C` | famiglia di stato «Da rifare / In prova» (pila viola) (rev. 3.1) |
+| `--purple-tint` | `#F3EAF7` | SOLO sfondi pill/badge viola (rev. 3.1) |
 | `--red-tint / --amber-tint / --blue-tint / --green-tint` | `#FBEDEC / #F8F0E1 / #EBF1FA / #EAF4EC` | SOLO sfondi di pill-stato e glifi |
 
 ### 3.2 Dark — «Notte in laboratorio»
@@ -104,19 +108,21 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 | `--elv` | `#2B2620` | carta livello 2 (sheet, elementi sollevati, tasti tondi) |
 | `--ink` | `#F2EEE7` | testo primario |
 | `--muted` | `#A69B8C` | testo secondario (4.6:1 su sfc ✓) |
-| `--faint` | `#6E6457` | etichette |
+| `--faint` | `#928778` | etichette (rev. 3.1: era `#6E6457`, fail; ora 5.21/4.75) |
 | `--line` | `#342E26` | separatori |
 | `--red` | `#FF3B44` | più vivo al buio (regola Apple: accent più saturi in dark) |
 | `--red-dark` | `#8F0910` | corsa del tasto |
 | `--amber` / `--green` / `--blue` | `#E8A13D / #34C468 / #5B9BFF` | stati |
+| `--purple` | `#B98BE8` | famiglia di stato «Da rifare / In prova» (rev. 3.1) |
+| `--purple-tint` | `rgba(185,139,232,.14)` | SOLO sfondi pill/badge viola (rev. 3.1) |
 | tints dark | colore stato al 14% di opacità su `--sfc` | pill-stato |
 - Le card dark hanno `border-top: 1px solid rgba(255,255,255,.04)` (luce radente) — unico "rilievo" ammesso.
 
 ### 3.3 Regole d'uso del colore (vincoli)
 1. **Il rosso è scarso.** Massimo UN elemento rosso pieno per schermata (il tasto primario O la pila urgente — mai entrambi in vista contemporaneamente: in home il tasto + vince, la pila rossa usa testo/numero rossi su carta).
-2. **4 famiglie di stato, chiuse:** rosso=urgente · ambra=in corso · blu=nuovo/informazione · verde=fatto. **Vietato un quinto colore di stato.** Il viola/purple non esiste in questo sistema (solo negli avatar, §5.14).
+2. **5 famiglie di stato, chiuse:** rosso=urgente · ambra=in corso · blu=nuovo/informazione · verde=fatto · **viola=da rifare/in prova** (rev. 3.1, decisione Francesco 12/07). Vietato un sesto colore di stato.
 3. WCAG AA (4.5:1) obbligatorio per ogni testo in entrambi i temi. `--gold`, `#E30613`, `#1B2D6B`, `--t2:#96918D`, `--t3:#B8B3AE` restano BANDITI come in v2.3.
-4. WhatsApp verde `#1F9E52→#2FBE68` è riservato ESCLUSIVAMENTE ai bottoni che aprono WhatsApp.
+4. WhatsApp verde `#208650→#17663A` (corsa `#0E4A28`) è riservato ESCLUSIVAMENTE ai bottoni che aprono WhatsApp (rev. 3.1: era `#1F9E52→#2FBE68`, il bianco falliva AA).
 
 ---
 
@@ -142,6 +148,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 
 ### 4.2 Spazio, raggi, target
 - **Griglia 8px** — spaziature ammesse: 4 (solo interni minimi), 8, 12, 16, 20, 24, 32, 44. Margini pagina: **24px** mobile, 28 tablet, 32 desktop.
+- **Deroga device-corti (rev. 3.1):** nel solo regime viewport height ≤ 700px sono ammessi i passi intermedi **10** e **14** (scala compressa della home, v. §7.1).
 - **Raggi:** card 24 · sheet 28 (solo top) · tile 22 · righe-lista 18 · pill/tasti-testo 999 · tasto primario 20. Nessun altro raggio.
 - **Touch target: minimo 44×44px SEMPRE** (HIG); i target primari dell'app sono 50-92px. Hit-area può eccedere il visibile (es. tasto + Ø92 visibile, 110 attivo).
 
@@ -184,14 +191,15 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - Al tocco: si preme (molla `press`), poi **morph continuo** nel wizard (§8.3.2).
 
 ### 5.3 `TastoSecondario` — H 58 · radius 18 · faccia `--card` + `--sh-press` · testo 17/700 `--ink`. Per azioni non primarie ("Apri il lavoro").
-### 5.4 `PillFase` (FATTA ✓) — H 44 · pill · gradiente verde `#269950→--green` · corsa 3px `#14602C` · testo 14.5/800 bianco. Suono `fatta` + notification-success (Android).
+### 5.4 `PillFase` (FATTA ✓) — H 44 · pill · gradiente verde `linear-gradient(180deg, #1F8544, #166B39)` · corsa 3px `#14602C` (invariata) · testo 14.5/800 bianco. Suono `fatta` + notification-success (Android). **Nota (rev. 3.1):** stop PINNATI in hex, MAI `var(--green)` come faccia (in dark risolveva a #34C468: bianco 2.27 ✗); era `#269950→--green`.
 ### 5.5 `LinkQuieto` — solo testo 14.5/muted sottolineato (underline-offset 3). RISERVATO alle vie di fuga (L6): "Aspetta, annulla la consegna".
 ### 5.6 `TastoTondo` (back/menu) — Ø 50 · `--card`+`--sh-press` · glifo 19-21/800. Back sempre in alto a sinistra, menu (☰/⋯) in alto a destra. Nient'altro nell'header.
 
 ### 5.7 `Pila` (home)
 - Card 24 · padding 20/22 · flex: **numero display 52 tabulare** (min-width 60, centrato) + colonna testo.
 - Colonna: `label` 13/800/+0.16em colore-famiglia + `sub` 16/600 muted **max 1 riga con ellissi** (il dato più utile: il prossimo lavoro, non un riassunto).
-- Colori: pila 1 rossa (Da consegnare oggi), pila 2 ambra (Sul banco), pila 3 blu (Appena arrivati). **Le pile sono SEMPRE tre, sempre queste, sempre in quest'ordine.** Pila vuota: numero `0` e sub "Tutte consegnate ✓" — mai nascosta.
+- «Le pile sono SEMPRE **quattro**, sempre queste, sempre in quest'ordine: 1 rossa (Da consegnare oggi) · 2 ambra (Sul banco) · **3 viola (Da rifare / In prova)** · 4 blu (Appena arrivati).» (rev. 3.1: era «sempre tre»). Pila vuota: numero `0` e sub "Tutte consegnate ✓" — mai nascosta.
+- **Regola subline (rev. 3.1):** «una riga; il numero lavoro sempre per primo; ellissi ammessa SOLO sulla coda descrittiva — il dato essenziale non si tronca mai a metà (es. "alle 16", non "alle 16:0…")».
 - Tap: tutta la card → espansione morph nella lista (§8.3.1).
 
 ### 5.8 `CardLavoro` (nelle liste)
@@ -200,7 +208,8 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 
 ### 5.9 `PillTempo` / `PillStato`
 - Pill · padding 7/13 · 15/800 (PillTempo) o 13.5/800/+0.1em (PillStato) · sfondo tint + testo colore famiglia.
-- Vocabolario stati (chiuso, §2.3): DA CONSEGNARE · OGGI·hh:mm · IN FORNO · IN RIFINITURA · APPENA ARRIVATO · PRONTA ✓ · CONSEGNATO ✓ · DA INCASSARE · INCASSATA ✓ · INVIATA ✓ · STA PER FINIRE.
+- Vocabolario stati (chiuso, §2.3): DA CONSEGNARE · OGGI·hh:mm · IN FORNO · IN RIFINITURA · APPENA ARRIVATO · PRONTA ✓ · CONSEGNATO ✓ · DA INCASSARE · INCASSATA ✓ · INVIATA ✓ · STA PER FINIRE · **IN PROVA** (famiglia viola) · **FERMO** · **DA IERI** · **−N GIORNI** (PillTempo negative, famiglia rossa) (rev. 3.1).
+- **Nota (rev. 3.1):** per i lavori in lavorazione la PillStato mostra la fase corrente del ciclo del lab (MAIUSCOLA), `STA PER FINIRE` sull'ultima fase (rev. 3.1 — P6 piano Ondata 1).
 
 ### 5.10 `RigaDato` (schede)
 - Dentro `CardInfo` (card 22, padding 4/20): righe `padding 9px 0`, separatore 1.5 `--line`.
@@ -217,7 +226,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - `TileNuovo`: bordo dashed 2.5 `#CBC1B0`, niente ombra.
 
 ### 5.13 `RigaCerca` — H 58 · card 18 · `🔍 Cerca fra tutti i N …` 17/600 muted. Aprendola: tastiera subito su, risultati come `TileScelta` in lista. Ricerca sempre per contains, tollerante alle maiuscole/accenti.
-### 5.14 Avatar — Ø 60 (tile) / 46 (liste, portale). Colore deterministico dal nome (palette: blue `#1D5FBF`, purple `#7A4DB8`, teal `#0E8A6B`, amber `#9A5C00`, rose `#C24E7A`, slate `#8A8580`) + iniziali. Nessuna foto.
+### 5.14 Avatar — Ø 60 (tile) / 46 (liste, portale). Colore deterministico dal nome (palette: blue `#1D5FBF`, purple `#7A4DB8`, teal `#0E8A6B`, amber `#9A5C00`, rose `#C24E7A`, slate `#8A8580`) + iniziali. Nessuna foto. **Nota (rev. 3.1):** il divieto "viola solo avatar" decade: `--purple #7C3F9C` è famiglia di stato — i due viola restano valori distinti.
 ### 5.15 `PillVoce` — «la pill di carta» *(rev. 2 — 09/07, variante A scelta da Francesco su mockup `docs/design/mockups/2026-07-09-pillvoce-v2-due-varianti.html`, classe `.pvA` = FONTE DI VERITÀ visiva)*
 - H 64 · pill · **carta che affiora**: `linear-gradient(180deg, #FFFEFA, #F5F0E6)` · testo `--ink` 17.5/700 (invariato — piace) · ombra `0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10)` + `inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07)`.
 - **CerchioMic** Ø 46 a destra: gradiente rosso del TastoPrimario (`#F2263A, #D90012 55%, #B00010`) · glifo mic bianco · `0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35)`. Il rosso = "qui si registra" (grammatica: il rosso è dove nascono le cose; la regola «unico rosso della home» resta intatta — la PillVoce vive nel wizard, non nella home).
@@ -231,6 +240,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 - **Su mobile OGNI form/creazione/modifica è uno sheet o un wizard full-screen — mai modal centrato** (invariante progetto).
 ### 5.17 `DialogConferma` (solo azioni distruttive/irreversibili)
 - Card centrata max 340 · scrim come sheet · titolo 21/800 · testo 15.5 con **l'oggetto esplicito** ("Butto via il lavoro n.148 di Studio Bianchi?") · 2 azioni: distruttiva (TastoPrimario rosso) + "No, tienilo" (TastoSecondario). Ordine: sicura sopra, distruttiva sotto.
+- **Deroga (rev. 3.1):** per azioni NON distruttive (conferma di consegna) l'ordine si inverte — primario sopra, via di fuga sotto.
 ### 5.18 `Avviso` (toast)
 - Card 18 in alto, entra con molla `snappy`, esce da sola dopo 4s (persiste su hover/focus). Icona famiglia + testo 15.5/700 max 2 righe + eventuale azione inline ("Annulla").
 - **L'avviso di errore non scompare da solo.** Testo: cosa non è riuscito + cosa fare ("Non sono riuscita a salvare. Controlla la connessione e riprova").
@@ -243,6 +253,17 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.25 Caricamento — **niente spinner.** Skeleton carta (blocchi `--bg-deep` che pulsano opacità 0.6→1, 1.2s) con la STESSA geometria del contenuto atteso. Oltre 3s: riga "Un attimo…". Ottimismo di default: le scritture mostrano subito il risultato e riconciliano dopo (con Avviso se fallisce, L6).
 ### 5.26 Vuoti — mai pagina bianca: glifo 64 + titolo 21/800 + UNA riga guida + eventuale azione ("Nessun lavoro sul banco. Goditi il caffè ☕" / "Il primo dentista si aggiunge dal tasto +").
 ### 5.27 Input testo/numero/data — usati SOLO dentro wizard e sheet: H 64 · card 18 · testo 19/700 · label sopra 13/800 MAIUSCOLA faint · focus: anello 2 `--blue`. Data: mai calendario a griglia come default — scelte rapide ("Oggi · Domani · Lun 14 · Scegli…"). Numero/importo: tastierino numerico nativo (`inputmode`).
+
+### 5.28 `MorphPila` (rev. 3.1) — header di pila aperta (stato morphato di §8.3.1): numero display 52/800 tabulare colore-famiglia (min-width 56) + label 13/800/+0.16em colore-famiglia + sub 16/600 muted, max 1 riga con ellissi. Fonte di verità visiva: `pila-aperta.html` classe `.morph`.
+### 5.29 `TastoWhatsApp` (rev. 3.1) — H 62 · full-width (max 480) · radius 18 · gradiente §3.3.4 emendato (`linear-gradient(180deg, #208650, #17663A)`) · corsa `0 5px 0 #0E4A28` + ombra ambiente · pressed `translateY(4px)` + corsa a 1px. Riservato ESCLUSIVAMENTE alle azioni «apri WhatsApp». Fonte di verità visiva: `consegna.html` classe `.wa-btn` (l'implementazione React arriva in Ondata 4b).
+### 5.30 `RigaBloccante` (rev. 3.1) — riga tappabile del sheet «Prima di consegnare»: SOLO i bloccanti, ciascuno tappabile · padding 16/18 · radius 18 · sfondo `--amber-tint` · icona Ø34 tondo tint+colore famiglia (`--amber-tint`/`--amber`) · testo "cosa" 16/700 `--ink` + "cosa fare" 14/700 colore-famiglia + chevron colore-famiglia. Fonte di verità visiva: `consegna.html` classe `.bloccante` (React in 4b).
+### 5.31 `ChipScelta` (rev. 3.1) — chip di decisione rapida del wizard: min-height 48 · padding 0/20 · radius 999 · testo 16/700 · faccia `--card` + `--sh-press` · selezionata: sfondo `--green-tint` + testo `--green` (senza ombra) + check 3px. Fonte di verità visiva: `wizard.html` §7.3 (CampoData a scelte rapide); anatomia copiata verbatim in `scheda-lavoro.html` classe `.chip` (React in Ondata 2).
+### 5.32 `ProgressDots` (rev. 3.1) — dots wizard: Ø 11 · gap 8 · upcoming `--line` · fatti verdi (`--green`) · attivo 30px largo `--red`. Fonte di verità visiva: `wizard.html` classe `.dots .dot` (React in Ondata 2).
+### 5.33 `FotoStrip` (rev. 3.1) — strip thumbnail orizzontale: thumb 72×72 · radius 12 · cornice interna 1px inset · max 1 riga scrollabile. Fonte di verità visiva: `scheda-lavoro.html` classe `.foto-strip`/`.foto-thumb` (React in Ondata 3).
+### 5.34 `MenuVoce` (rev. 3.1) — voce del menu ⋯ della scheda: min-height 56 · icona Ø38 radius 11 tint neutra (`--bg-deep`+`--muted`) · testo 17/700 `--ink` · separatore 1.5 `--line` fra le voci · chevron `--faint` · variante `.butta` (distruttiva): colore `--red`, icona `--red-tint`/`--red`, separata in alto da `--line` con margine extra. Fonte di verità visiva: `scheda-lavoro.html` classe `.menu-voce` (React in Ondata 3).
+### 5.35 `NavDesk` (rev. 3.1) — nav desktop 240px `--bg-deep`: logo `UÀ.` 26/800 (punto rosso) · «+ Nuovo lavoro» TastoPrimario H 52 · voci H 48 radius 12 (16/600 muted; selezionata: bg `--bg` ink 700) · badge 24px pill (tint famiglia per le pile — rossa/ambra/viola/blu, neutro `--bg-deep`+inset line per le sezioni) · footer StrisciaStato. Fonte di verità visiva: `home.html` classe `.nav-desk`.
+
+Ogni sezione §5.28-5.35 cita il mockup sorgente come fonte di verità visiva, coerentemente con §5.2 e §5.15.
 
 ---
 
@@ -285,12 +306,14 @@ lavoro → CONSEGNA → conferma          └── Il mio laboratorio (profilo,
 > Per OGNI pagina valgono i 3 progetti viewport (§12): 390 (progetto primario), 768 (split-view), 1280 (tre pannelli). Qui: contenuto, gerarchia e vincoli. Mockup di riferimento: `2026-07-07-redesign-A-materico-full.html` (§frame indicati).
 
 ### 7.1 Home (`/dashboard` → concettualmente "l'app") — frame 1
-- Eyebrow data + `Buongiorno/Buonasera, [nome]` (large-title) + ☰ · StrisciaStato · 3 Pile · TastoPiù.
+- Eyebrow data + `Buongiorno/Buonasera, [nome]` (large-title) + ☰ · StrisciaStato · 4 Pile · TastoPiù.
 - Il saluto segue l'ora (5-12 Buongiorno, 12-18 Buon pomeriggio, 18+ Buonasera). NIENT'ALTRO. Vincolo: la home non scrolla mai (calibrata su 844×390; se il device è più corto, si riducono i gap, non si aggiunge scroll).
+- **Scala device-corti (rev. 3.1, dal commento di `home.html`):** viewport height ≤ 700 → numero pila 52→**42** · padding pila 20/22→14/18 · gap pile 16→10 · gap blocchi 16→10 · padding pagina 24→14 · gap foot 8→6; larghezze, raggi, corpi ≥ heading e TastoPiù invariati.
 
 ### 7.2 Pila aperta (liste lavori) — frame 2
 - Titolo colore-famiglia + sub coi numeri utili ("2 lavori · il più vicino alle 16:00") · CardLavoro impilate, ordinate per urgenza · il PRIMO elemento della pila rossa porta il TastoConsegnaInline.
 - "Appena arrivati": la card ha CTA "Conferma" che apre il wizard di conferma (data consegna proposta da UÀ, L5).
+- **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile».
 
 ### 7.3 Wizard "Nuovo lavoro" (dal TastoPiù) — frames 3-4
 - Passi: **1 Dentista → 2 Tipo lavoro → 3 Paziente e dettagli → Fatto.** Ogni passo: back + progress dots (11px, attivo 30px rosso, fatti verdi) + domanda (token `question` 35/800) + hint + griglia/`RigaCerca` + PillVoce.
@@ -464,7 +487,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 2. Analogico = materia, non scenografia. 3. Motion/suoni stile Apple. 4. Dark alla pari. 5. Suoni attivi di default. 6. **Tre viewport a pari dignità.** 7. Claude Design: prima componenti, poi sync. 8. Brand immutato (nome, logo, rosso).
 
 ## Appendice B — Mappa token v2.3 → v3 (per la migrazione automatica)
-`--bg #DDD8D3→#F4F0E7` · `--sfc/--elv→--card #FFFEFA` · `--prs→--bg-deep` · `--t1→--ink` · `--t2→--muted` · `--t3→--faint` · `--primary→--red` (valore invariato light) · `--c-green #22C55E→--green #1B7F3B` · `--c-amber #F59E0B→--amber #9A5C00` · `--c-blue #3B82F6→--blue #1D5FBF` · `--c-red/--c-orange→--red famiglia` · `--c-purple→SOLO avatar` · shadow `--sh-b/c/i/red→--sh-card/--sh-press` · motion `t()→molle §8.1`.
+`--bg #DDD8D3→#F4F0E7` · `--sfc/--elv→--card #FFFEFA` · `--prs→--bg-deep` · `--t1→--ink` · `--t2→--muted` · `--t3→--faint` · `--primary→--red` (valore invariato light) · `--c-green #22C55E→--green #1B7F3B` · `--c-amber #F59E0B→--amber #9A5C00` · `--c-blue #3B82F6→--blue #1D5FBF` · `--c-red/--c-orange→--red famiglia` · `--c-purple→famiglia --purple (stato) + avatar` (rev. 3.1: era «SOLO avatar») · shadow `--sh-b/c/i/red→--sh-card/--sh-press` · motion `t()→molle §8.1`.
 
 ## Appendice C — Fonti Apple (ricerca 07/07/2026)
 HIG Motion/Typography/Layout/Playing audio/Playing haptics/Accessibility/Feedback (developer.apple.com) · WWDC18 803 Fluid Interfaces · WWDC19 810 Audio-Haptic · WWDC17 803 Designing Sound · Apple docs spring(response:dampingFraction:)/spring(duration:bounce:)/interactiveSpring · motion.dev/docs/spring (visualDuration+bounce) · caniuse navigator.vibrate (iOS: NON supportato) · learnui.design (scala tipografica) · valori integrali nel report agente in sessione 07/07/2026.
