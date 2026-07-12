@@ -1,5 +1,5 @@
-# UÀ Design System v3.0 — «Una cosa alla volta»
-**Data:** 7 luglio 2026 · **Stato:** BOZZA IN APPROVAZIONE (Francesco) · **Sostituisce:** DS v2.3 Warm Panna (`2026-05-27-design-system-v2-3.md`)
+# UÀ Design System v3.1 — «Una cosa alla volta»
+**Data:** 7 luglio 2026 · **Stato:** v3.1 — IN VIGORE (emendata 12/07/2026) · **Sostituisce:** DS v2.3 Warm Panna (`2026-05-27-design-system-v2-3.md`)
 **Approvazione visiva:** mockup `docs/design/mockups/2026-07-07-redesign-A-materico-full.html` + `2026-07-07-ds-v3-showcase.html` (approvati da Francesco il 07/07/2026)
 **Ricerca fondativa:** Apple HIG (motion/suoni/haptics/tipografia) — report agente 07/07/2026, fonti primarie citate in Appendice C.
 
@@ -276,16 +276,18 @@ HOME (l'app)                          ☰ TUTTO IL RESTO
 │    └── Scheda lavoro                ├── Fatture (tutto-a-posto → lista → dettaglio)
 ├── Pila: Sul banco                   ├── Magazzino (barre → dettaglio → riordino)
 │    └── Scheda lavoro                ├── Agenda (settimana → giorno)
-├── Pila: Appena arrivati             ├── Documenti e qualità (DdC, Schede fabbricazione,
-│    └── Conferma lavoro                │    PMS/PSUR, rischi, incidenti, registri MDR)
-└── [+] Nuovo lavoro (wizard)         ├── Persone (tecnici, inviti, ruoli)
-                                      ├── Listino
-CONSEGNA (flusso sacro)               ├── La mia rete (se admin_rete)
-lavoro → CONSEGNA → conferma          └── Il mio laboratorio (profilo, PEC, abbonamento,
-→ Consegnato! + UÀ-ha-fatto                aspetto, suoni, tema)
+├── Pila: Da rifare / In prova        ├── Documenti e qualità (DdC, Schede fabbricazione,
+│    └── Scheda lavoro                  │    PMS/PSUR, rischi, incidenti, registri MDR)
+├── Pila: Appena arrivati             ├── Persone (tecnici, inviti, ruoli)
+│    └── Conferma lavoro              ├── Listino
+└── [+] Nuovo lavoro (wizard)         ├── La mia rete (se admin_rete)
+                                      └── Il mio laboratorio (profilo, PEC, abbonamento,
+CONSEGNA (flusso sacro)                    aspetto, suoni, tema)
+lavoro → CONSEGNA → conferma
+→ Consegnato! + UÀ-ha-fatto
 → WhatsApp esplicito
 ```
-- **La home è sacra:** tre pile + tasto + striscia stato + ☰. Nessun KPI, nessun banner, nessuna novità potrà MAI essere aggiunta alla home (vincolo assoluto — le "novità" vivono nella striscia di stato, una alla volta).
+- **La home è sacra:** quattro pile (rossa · ambra · viola · blu, §5.7 — rev. 3.1) + tasto + striscia stato + ☰. Nessun KPI, nessun banner, nessuna novità potrà MAI essere aggiunta alla home (vincolo assoluto — le "novità" vivono nella striscia di stato, una alla volta).
 - **Profondità massima: 3 livelli** (home → pila → scheda). Tutto il resto: ☰ → sezione → dettaglio.
 - Route: le route Next.js esistenti restano (nessuna migrazione URL); cambia il contenuto.
 
@@ -442,7 +444,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 - Sheet → pannello laterale destro (420px) per modifica/creazione dal dettaglio.
 
 ### 12.3 Desktop 1280 — tre pannelli (mockup `ds-v3-showcase.html` §05)
-- **Navigazione (240px, `--bg-deep`)**: logo + voci con badge numerici (Oggi/Sul banco/Appena arrivati/Agenda/Dentisti/Fatture/Magazzino/Documenti) + footer StrisciaStato. La nav sostituisce home+☰ su desktop.
+- **Navigazione (240px, `--bg-deep`)**: logo + voci con badge numerici (Oggi/Sul banco/Da rifare/Appena arrivati/Agenda/Dentisti/Fatture/Magazzino/Documenti — rev. 3.1: aggiunta «Da rifare», v. §5.35) + footer StrisciaStato. La nav sostituisce home+☰ su desktop.
 - **Lista (400px)**: la pila selezionata, CardLavoro compatte, selezione con inset ring 2.5 `--red`.
 - **Scheda (flessibile)**: CardInfo + CardFasi affiancate (grid 2col), TastoPrimario 340px in basso a sinistra + nota.
 - Tastiera: frecce ↑↓ scorrono la lista, Invio apre, `N` = nuovo lavoro, `/` = cerca. Hover: SOLO su righe-lista (bg `--bg-deep`), mai effetti decorativi.
@@ -458,7 +460,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 3. Componenti: si usa SOLO `src/components/ds/`. Se manca un componente → si propone QUI (nuova sezione §5.x con anatomia completa) PRIMA di scriverlo. Un componente non in spec = review respinta.
 
 ### 13.2 Divieti assoluti (estende gli anti-slop v2.3)
-- ❌ colori/ombre/font/durate/curve inline · ❌ un 5° colore di stato · ❌ 2 tasti primari per vista · ❌ modal centrato su mobile (salvo DialogConferma) · ❌ tabelle full-width su mobile · ❌ tab bar · ❌ KPI/banner in home · ❌ spinner · ❌ splash animate · ❌ suoni fuori palette · ❌ animazioni su scroll/dati · ❌ `pointer-events:none` in transizione · ❌ parole del software (§2.3) · ❌ nome paziente in chiaro · ❌ Inter/Roboto/Arial · ❌ gradienti viola-blu · ❌ blur su contenuti scrollanti · ❌ chat UI fuori dal portale.
+- ❌ colori/ombre/font/durate/curve inline · ❌ un 6° colore di stato (le 5 famiglie di §3.3 regola 2 sono chiuse — rev. 3.1) · ❌ 2 tasti primari per vista · ❌ modal centrato su mobile (salvo DialogConferma) · ❌ tabelle full-width su mobile · ❌ tab bar · ❌ KPI/banner in home · ❌ spinner · ❌ splash animate · ❌ suoni fuori palette · ❌ animazioni su scroll/dati · ❌ `pointer-events:none` in transizione · ❌ parole del software (§2.3) · ❌ nome paziente in chiaro · ❌ Inter/Roboto/Arial · ❌ gradienti viola-blu · ❌ blur su contenuti scrollanti · ❌ chat UI fuori dal portale.
 
 ### 13.3 Definition of Done UI (checklist PR)
 `[ ]` token only (0 valori inline) · `[ ]` 3 viewport implementati e screenshot · `[ ]` entrambi i temi · `[ ]` testo ≥17px lettura, target ≥44 · `[ ]` AA verificato · `[ ]` reduced-motion · `[ ]` text-zoom 200% · `[ ]` stati: vuoto/caricamento/errore/offline · `[ ]` parole dal dizionario · `[ ]` L1-L7 dichiarate in PR · `[ ]` suono/haptic SOLO da palette.
