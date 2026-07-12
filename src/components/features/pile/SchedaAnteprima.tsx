@@ -95,8 +95,13 @@ export function SchedaAnteprima(props: { lavoro: LavoroPila }) {
         <div>
           <div style={TITOLO_SEZIONE}>Le fasi</div>
           <CardInfo>
-            {lavoro.fasi.map((f) => (
-              <RigaFase key={f.nome} nome={f.nome} fatto={f.fatta} />
+            {/* Key composita, non `f.nome` (fix review finale item 9): `fasi`
+                (`{nome, fatta}[]`, senza id — v. `pile-home-shared.ts`) può
+                avere fasi omonime nello stesso lavoro (es. due "Rifinitura"),
+                che collidono su `f.nome` da solo. L'indice è stabile: l'ordine
+                delle fasi vive di produzione e non viene riordinato lato UI. */}
+            {lavoro.fasi.map((f, i) => (
+              <RigaFase key={`${i}-${f.nome}`} nome={f.nome} fatto={f.fatta} />
             ))}
           </CardInfo>
         </div>

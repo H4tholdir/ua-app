@@ -29,7 +29,12 @@ export function HomeV3(props: { nome: string; eyebrow: string; saluto: string; p
   return (
     // "ua-home-mobile" (Task 9): HomeDesktop la nasconde da 1024 in su via CSS
     // (`.ua-home-mobile { display: none }` dentro il suo `@media (min-width:1024px)`).
-    <main className="ua-home ua-home-mobile">
+    // `<section>`, non `<main>` (fix review finale item 5): `(app)/layout.tsx`
+    // porta già il proprio `<main id="main-content">` (SkipToContent, §a11y) —
+    // due `<main>` annidati sono HTML non valido (un solo landmark main per
+    // documento). L'aria resta intatta: nessun ruolo/aria-* qui dipendeva dal
+    // tag `main`.
+    <section className="ua-home ua-home-mobile">
       <style>{`
         .ua-home { position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
                    padding: 24px; display: flex; flex-direction: column; min-height: 100dvh; }
@@ -90,6 +95,6 @@ export function HomeV3(props: { nome: string; eyebrow: string; saluto: string; p
       <div className="foot">
         <TastoPiu onClick={() => router.push('/lavori/nuovo')} />
       </div>
-    </main>
+    </section>
   )
 }

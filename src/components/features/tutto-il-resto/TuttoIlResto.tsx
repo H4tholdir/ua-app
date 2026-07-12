@@ -44,7 +44,11 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
         }
       `}</style>
 
-      <main className="ua-tir-mobile">
+      {/* `<section>`, non `<main>` (fix review finale item 5): `(app)/layout.tsx`
+          porta già il proprio `<main id="main-content">` — due `<main>`
+          annidati sono HTML non valido. Aria intatta: nessuna dipendenza da
+          questo tag altrove. */}
+      <section className="ua-tir-mobile">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
           <h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Tutto il resto</h1>
@@ -85,7 +89,7 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
             </Link>
           ))}
         </div>
-      </main>
+      </section>
 
       {/* ≥1024 — nota quieta (§12.3): «Tutto il resto» non è una pagina a desktop. */}
       <div className="ua-tir-desk">
