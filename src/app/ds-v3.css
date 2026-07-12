@@ -67,6 +67,14 @@
 }
 [data-theme="dark"] [data-ds="v3"] .ds-grana { mix-blend-mode: screen; }
 
+/* Pila (§5.7) — valori BASE dimensionali qui e NON inline in Pila.tsx: la scala
+   device-corti della home (§7.1 rev. 3.1, media query max-height 700px in
+   HomeV3.tsx) li deve poter sovrascrivere con selettori di classe — uno style
+   inline vincerebbe sempre e renderebbe la scala inerte. Regole dimensionali,
+   non di colore: valgono identiche in light e dark. */
+[data-ds="v3"] .ds-pila { padding: 20px 22px; }
+[data-ds="v3"] .ds-pila-num { font-size: 52px; }
+
 /* Reduced motion — le coreografie degradano a dissolvenza (spec §8.4) */
 @media (prefers-reduced-motion: reduce) {
   [data-ds="v3"] * { animation-duration: 0.15s !important; transition-duration: 0.15s !important; }

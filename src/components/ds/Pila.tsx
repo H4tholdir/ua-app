@@ -70,11 +70,14 @@ export function Pila(props: { tipo: TipoPila; numero: number; sub: string; onCli
         whileTap={{ scale: 0.98 }}
         transition={molla.press}
         style={{
+          // Il padding base (20px 22px) vive in ds-v3.css sotto [data-ds="v3"],
+          // NON qui inline: la scala device-corti della home (§7.1 rev. 3.1,
+          // media query in HomeV3) lo sovrascrive via classe `.ds-pila` —
+          // inline sarebbe imbattibile e renderebbe la scala inerte.
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           gap: spazio.ml,
-          padding: '20px 22px',
           borderRadius: raggio.card,
           border: 'none',
           background: 'var(--card)',
@@ -86,9 +89,11 @@ export function Pila(props: { tipo: TipoPila; numero: number; sub: string; onCli
         <span
           className="ds-pila-num"
           style={{
+            // Il font-size base (display 52px) vive in ds-v3.css sotto
+            // [data-ds="v3"], NON qui inline: la scala device-corti (§7.1
+            // rev. 3.1) lo sovrascrive via classe `.ds-pila-num`.
             minWidth: 60,
             textAlign: 'center',
-            fontSize: tipografia.size.display,
             fontWeight: tipografia.weight.extrabold,
             fontVariantNumeric: 'tabular-nums',
             color: `var(--${famiglia})`,
