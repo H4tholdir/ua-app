@@ -2,7 +2,7 @@
 
 **Data:** 12 luglio 2026 (sera)
 **Decisore:** Francesco Formicola
-**Stato:** in revisione (gate spec)
+**Stato:** APPROVATA — gate spec chiuso 12/07/2026 notte («va tutto bene», v. §2.1)
 **Fonti di verità:** legge madre `2026-07-07-design-system-v3-una-cosa-alla-volta.md` (v3.1, §7.3/§5.12-5.16/§5.27/§5.31/§5.32) · spec figlia `2026-07-09-ds-v3-il-cuore-design.md` §5 · mockup approvato `docs/design/mockups/2026-07-09-il-cuore/wizard.html` (fonte visiva) · decision record `docs/design/decisions/2026-07-09-il-cuore-mockups.md` (deviazione B7-2 ratificata: 3 tocchi, consegna risolta)
 
 ---
@@ -37,6 +37,22 @@
 
 Restano vincolanti dalla spec figlia: A4 (pila blu), A6 (zero API nuove), C1 (wizard a passi), B7-2 (percorso minimo 3 tocchi, consegna suggerita risolta senza chip), B4 (la data la decide il lab: suggerimento + «Cambia data»).
 
+### 2.1 Decisioni del gate spec (12/07/2026 notte, Francesco)
+
+| # | Decisione |
+|---|---|
+| A1 | Tabella dei 38 tipi (§3.2) **ratificata così com'è**, classi di rischio e giorni di fallback inclusi (A2/A3 ok) |
+| A4 | Canonici del primo giorno: **corona_zirconia · corona_impianto · riparazione · provvisorio_resina** (fascia «quotidiana» della ricerca, universali anche per lab non digitalizzati; modello_3d escluso: quotidiano solo per lab digitalizzati) |
+| A5/A6/A9 | Copy consegna suggerita ok · **fail-soft** sugli accessori · formato PZ ok |
+| A7 | Sheet «Nuovo dentista»: **nome+cognome obbligatori** (unico dato richiesto dalla DdC All. XIII: «il nome della persona che ha prescritto»), **cellulare/WhatsApp consigliato** non bloccante, **studio opzionale**. Fiscale MAI nello sheet: bloccante solo alla prima FatturaPA; codice SDI mai bloccante (fallback «0000000», Provv. AdE 89757/2018) |
+| A8 | **Alias paziente opzionale** al Passo 3 → `pazienti.nome_cognome` (fallback = codice). L'alias non compare MAI nei messaggi WhatsApp né nelle pile (che mostrano il codice per legge) |
+| B1 | Nessuna bonifica `classe_rischio` pregressa: il DB attuale è di test, si azzera prima della produzione |
+| B2 | **In-ondata:** validazione applicativa dei 10 macro-slug in `POST`/`PATCH /api/lavori` → 422 pulito (oggi qualsiasi stringa arriva al CHECK → 500) |
+| B4 | **In-ondata:** consolidamento delle mappe label macro in un modulo unico (la migration tocca comunque tutte le copie) |
+| B3/B5/B8 | → BACKLOG-TECNICO §O4 (ClienteComboBox · listino.categoria · pattern «completa dati fiscali alla prima fattura» + badge anagrafica incompleta) |
+| B6 | **Feature ratificata** → ROADMAP sotto-progetto 4: tassonomia come motore MDR (scheda fabbricazione precompilata per tipo · suggerimento ciclo · pipeline promozione testi liberi). `tipi-lavoro.ts` nasce estensibile |
+| B7/B9 | Chiusi senza azione: i buchi di `numero_lavoro` sono tracciabilità corretta (mai riusare l'identificativo di un dispositivo); studio-vs-prescrittore già coperto da `clienti` + `richiedente_nome` |
+
 ---
 
 ## 3. Tassonomia «tipi di lavoro» — `src/lib/domain/tipi-lavoro.ts`
@@ -60,7 +76,7 @@ Regole (dai 3 advisor, convergenti):
 - **Il testo libero non genera mai tipi**: in fondo al catalogo «Non lo trovi? **Descrivilo**» → `macro:'altro'` + descrizione libera; non entra nel conteggio del top-4 (advisor UX: le frequenze non si inquinano).
 - **Tile a due righe** (advisor UX): sostantivo grande + qualificatore piccolo t2 — mai la macro-categoria come testo sul tile.
 
-### 3.2 Lista completa (DA VALIDARE al gate spec — Francesco può potare/aggiungere)
+### 3.2 Lista completa (RATIFICATA al gate spec 12/07 — A1, classi e giorni inclusi)
 
 | id | Tile (riga1 / riga2) | Macro | Classe | GG | Alias principali |
 |---|---|---|---|---|---|
@@ -108,7 +124,7 @@ Note: classi da Allegato VIII Regola 5 (uso prolungato in cavità orale → IIa;
 ### 3.3 Frequenze e top-4 del Passo 2 (e Passo 1)
 
 - **Conteggio:** `COUNT` dei lavori del lab negli ultimi 30 giorni per `descrizione` = label granulare (match esatto — i lavori nati dal wizard matchano per costruzione). I lavori legacy non matchano: accettato, il top-4 converge con l'uso.
-- **Riempimento:** se i tipi con count > 0 sono < 4, si completa con i canonici quotidiani (corona_zirconia, modello_3d, riparazione, provvisorio_resina).
+- **Riempimento:** se i tipi con count > 0 sono < 4, si completa con i canonici quotidiani ratificati (A4): corona_zirconia, corona_impianto, riparazione, provvisorio_resina.
 - **Stabilità (advisor UX):** ordinamento per count desc, tie-break su ordine canonico della costante; il conteggio usa la finestra a granularità di giorno (stabile nell'arco della giornata). Isteresi avanzata/posizioni sticky → backlog.
 - **Passo 1 dentisti:** stessa logica su `cliente_id` (COUNT 30gg), sub «N lavori · 30gg», top-4 + TileNuovo + RigaCerca sulla lista completa caricata server-side.
 
@@ -120,7 +136,9 @@ Note: classi da Allegato VIII Regola 5 (uso prolungato in cavità orale → IIa;
 - Post-apply: `supabase gen types` + `tsc --noEmit` (FASE 6b) + verifica che nessuna RLS policy citi il CHECK (non risulta, da riverificare in piano).
 - **Superfici label da estendere di +1 voce** («Bite / splint»): `TipoDispositivo` in `src/types/domain.ts` · `TIPO_OPTIONS` in `TabDati.tsx` (form di modifica, resta vivo fino a Ondata 3) · `TIPO_OPTIONS` portale `RichiestaClientForm.tsx` · `formatTipoDispositivo` in `qualita/rischi/page.tsx`, `qualita/rischi/[id]/page.tsx`, `DdcTemplate.tsx`.
 - `rischi_tipo_dispositivo`: nessuna riga automatica — è per-lab e l'editor esistente già crea la riga al primo uso (pattern invariato).
-- `listino.categoria` (CHECK con set diverso) NON si tocca: backlog.
+- `listino.categoria` (CHECK con set diverso) NON si tocca: backlog (§O4).
+- **B2 (gate spec, in-ondata):** validazione applicativa dei 10 macro-slug in `POST`/`PATCH /api/lavori` → 422 con messaggio pulito; oggi qualsiasi stringa arriva al CHECK a DB e produce un 500 grezzo.
+- **B4 (gate spec, in-ondata):** le mappe label macro si consolidano in un modulo unico (esportato da `tipi-lavoro.ts` o modulo affine) e le superfici sopra lo importano — niente più copie da tenere allineate.
 - **Rollback:** revert del codice; il CHECK a 10 valori è innocuo anche senza codice che lo usa (si restringe solo quando non esistono più lavori `bite_splint`).
 
 ---
@@ -140,9 +158,9 @@ Note: classi da Allegato VIII Regola 5 (uso prolungato in cavità orale → IIa;
 
 ## 6. I 5 frame (fonte visiva: `wizard.html`)
 
-1. **Passo 1 «Per quale dentista?»** — ProgressDots (1/3) + domanda 35/800 + hint · TileScelta ×4 (avatar Ø60 iniziali su neutro, sub «N lavori · 30gg») + TileNuovo «＋ Nuovo dentista» + RigaCerca «Cerca fra tutti i N dentisti…» (risultati come TileScelta in lista, §5.13) + PillVoce. TileNuovo → **Sheet nuovo dentista**: CampoTesto nome + cognome (obbligatori per `POST /api/clienti`), studio e telefono opzionali; al salvataggio il nuovo dentista è selezionato e si avanza.
+1. **Passo 1 «Per quale dentista?»** — ProgressDots (1/3) + domanda 35/800 + hint · TileScelta ×4 (avatar Ø60 iniziali su neutro, sub «N lavori · 30gg») + TileNuovo «＋ Nuovo dentista» + RigaCerca «Cerca fra tutti i N dentisti…» (risultati come TileScelta in lista, §5.13) + PillVoce. TileNuovo → **Sheet nuovo dentista** (A7): CampoTesto **nome + cognome** obbligatori (unico dato richiesto dalla DdC), **cellulare/WhatsApp** consigliato non bloccante, **studio** opzionale → `POST /api/clienti`; al salvataggio il nuovo dentista è selezionato e si avanza. Niente dati fiscali nello sheet (bloccanti solo alla prima fattura — v. §O4/B8).
 2. **Passo 2 «Che lavoro è?»** — dots (2/3, primo verde) · TileScelta ×4 per frequenza (glifo line-SVG §4.4 per famiglia macro — i glifi definitivi per-tipo sono backlog; MAI emoji) + «＋ Un altro tipo» → **catalogo completo** (lista raggruppata per famiglia + stessa ricerca + in fondo «Non lo trovi? Descrivilo» → `altro`+testo) + RigaCerca + PillVoce.
-3. **Passo 3 «Chi è il paziente?»** — dots (3/3) · CampoTesto «Codice paziente» precompilato col prossimo PZ + nota GDPR («Nessun nome, solo il codice») · blocco «Se vuoi, aggiungi»: righe Elemento (es. 2.6 → `denti_coinvolti`, parse su virgole/spazi) e Colore (es. A2 → `colore_dente`) con «Salta» LinkQuieto, tap sulla riga → CampoTesto inline · riga dashed «Aggiungi la foto dell'impronta» (input capture, File in memoria) · TastoSecondario «Continua» (avanzamento NON rosso — fuori dal percorso minimo) · PillVoce.
+3. **Passo 3 «Chi è il paziente?»** — dots (3/3) · CampoTesto «Codice paziente» precompilato col prossimo PZ + nota GDPR («Nessun nome, solo il codice») · blocco «Se vuoi, aggiungi»: righe Elemento (es. 2.6 → `denti_coinvolti`, parse su virgole/spazi), Colore (es. A2 → `colore_dente`) e **Nome o alias** (A8: se dentista o lab vogliono chiamare il paziente per nome → `pazienti.nome_cognome`; mai nei WhatsApp né nelle pile) con «Salta» LinkQuieto, tap sulla riga → CampoTesto inline · riga dashed «Aggiungi la foto dell'impronta» (input capture, File in memoria) · TastoSecondario «Continua» (avanzamento NON rosso — fuori dal percorso minimo) · PillVoce.
 4. **«Fatto!»** — check Ø92 verde + «Il lavoro è nato. Lo trovi fra gli “Appena arrivati”, da confermare.» · card riepilogo (RigaDato: Dentista / Lavoro=label granulare / Paziente) · card «Consegna suggerita» RISOLTA: «Pronta per **giovedì 16 luglio** — di solito ci mettete N giorni.» (fallback senza storia: «— tempo tipico per questo lavoro: N giorni.») + LinkQuieto «Cambia data» → **Sheet data** con **ChipScelta** rapide (Oggi · Domani · ‹suggerita› · Scegli…) + CampoData §5.27 → `PATCH /api/lavori/[id]` · TastoPrimario «Fotografa impronta e prescrizione» (D2: camera → upload → Avviso conferma, si resta sul Fatto; ripetibile) · LinkQuieto «Torna alla home». Suono `fatta` + vibrazione al mount del frame.
 5. **Ripresa abbandono** — al mount della route con stato salvato < 24h: Sheet «Riprendo da dove eri?» con riassunto dinamico («**Corona** per il **Dr. Esposito**, ti mancava il paziente.») + TastoPrimario «Riprendi» + LinkQuieto «Ricomincia da capo» (che azzera lo stato).
 
@@ -152,7 +170,7 @@ I 3 tocchi del percorso minimo: tile dentista → tile tipo → «Fotografa impr
 
 ## 7. Sequenza di creazione (al «Continua» del Passo 3)
 
-1. **Paziente:** lookup fra i pazienti del cliente (`GET /api/pazienti?cliente_id=`) — se il codice esiste si riusa `paziente_id`, altrimenti `POST /api/pazienti` `{cliente_id, codice_paziente, nome_cognome: codice}` (GDPR: mai nomi).
+1. **Paziente:** lookup fra i pazienti del cliente (`GET /api/pazienti?cliente_id=`) — se il codice esiste si riusa `paziente_id`, altrimenti `POST /api/pazienti` `{cliente_id, codice_paziente, nome_cognome: alias ?? codice}` (A8: l'alias è opzionale; senza alias il nome È il codice).
 2. **Lavoro:** `POST /api/lavori` `{cliente_id, paziente_id, tipo_dispositivo: macro, descrizione: label granulare (o testo libero se «Descrivilo»), data_consegna_prevista: suggerita, classe_rischio}` — la route applica i suoi default (`stato:'ricevuto'`, `da_conformare:true`, numero via RPC).
 3. **Dettagli opzionali:** se elemento/colore → `PATCH /api/lavori/[id]` `{denti_coinvolti, colore_dente}` (già in `PATCHABLE_FIELDS`).
 4. **Foto Passo 3:** se presente → `POST /api/lavori/[id]/immagini`.
@@ -214,14 +232,17 @@ Componente già completo (§5.15, `onTesto`). Integrazione: il trascritto **comp
 
 ## 14. Fuori scope → backlog (BACKLOG-TECNICO)
 
-| Voce | Nota |
+| Voce | Destinazione |
 |---|---|
-| Consolidamento delle 4-6 mappe label `tipo_dispositivo` sparse in un modulo unico | rilevato dall'explorer; oggi si aggiunge solo la voce `bite_splint` a ciascuna |
-| `listino.categoria` + `bite_splint` (CHECK con set diverso: +`materiale`, −`provvisorio`) | allineamento in sessione dedicata |
-| Isteresi/posizioni sticky avanzate del top-4 | v1: finestra 30gg a granularità giorno |
-| Pipeline «promozione» dei testi liberi ricorrenti a tipi ufficiali | sensore dei gap di tassonomia (advisor UX) |
-| NLP voce multi-campo | la voce v1 compila la ricerca del passo |
-| Glifi line-SVG definitivi per-tipo (`src/design-system/glifi/`) | v1: glifo per famiglia macro |
+| `listino.categoria` + `bite_splint` (CHECK con set diverso: +`materiale`, −`provvisorio`) | BACKLOG §O4 — sessione dedicata |
+| `ClienteComboBox` interroga Supabase dal browser invece dell'API `GET /api/clienti` | BACKLOG §O4 — muore con le superfici v2.3 (Ondata 3) |
+| Pattern «completa dati fiscali alla prima fattura» + badge anagrafica incompleta (B8) | BACKLOG §O4 — superficie fatture, candidato sp.4 |
+| Tassonomia come motore MDR: scheda fabbricazione precompilata · suggerimento ciclo · pipeline promozione testi liberi (B6, ratificata) | ROADMAP sotto-progetto 4 |
+| Isteresi/posizioni sticky avanzate del top-4 | backlog — v1: finestra 30gg a granularità giorno |
+| NLP voce multi-campo | backlog — la voce v1 compila la ricerca del passo |
+| Glifi line-SVG definitivi per-tipo (`src/design-system/glifi/`) | backlog — v1: glifo per famiglia macro |
+
+Nota: il consolidamento delle mappe label è stato PROMOSSO in-ondata (B4, §4); B1 (bonifica classe pregressa) e B7/B9 chiusi senza azione (§2.1).
 
 ---
 
@@ -234,4 +255,3 @@ Componente già completo (§5.15, `onTesto`). Integrazione: il trascritto **comp
 | Camera su desktop | `input capture` degrada a file picker nativo — accettato |
 | localStorage su dispositivo condiviso | guardia `userId`/`labId` + contenuto senza dati personali |
 | Doppia creazione su retry | bottone disabled durante submit; il POST è unico e la route genera il numero via RPC race-safe |
-| Lista 38 tipi sbagliata per il campo | tabella §3.2 esplicitamente DA VALIDARE da Francesco al gate spec (classi e giorni inclusi) |

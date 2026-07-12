@@ -548,6 +548,15 @@ Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdet
 - **M29.** Due git worktree paralleli non mergiati (`plan-c-dashboard-rbac`, `dashboard-v2-rewrite`) da verificare se ancora attivi, rischio drift silenzioso. [SWE]
 - **M30.** `colorScheme: 'dark'` hardcoded su un `<input type="date">` in `qualita/incidenti/nuovo/page.tsx:192`, indipendente dal tema attivo. [Sis]
 
+### O4. Segnalazioni dal design Ondata 2 — Wizard (gate spec 12/07/2026, tutte triaged da Francesco)
+
+Origine: brainstorming/ricerca advisor per la spec `docs/superpowers/specs/2026-07-12-ds-v3-il-cuore-ondata-2-wizard-design.md` (§2.1 per il verbale completo). Dentro l'ondata sono finiti B2 (validazione enum 10 macro-slug in POST/PATCH `/api/lavori` → 422) e B4 (consolidamento mappe label macro in modulo unico). Qui i restanti:
+
+- **O4a — `ClienteComboBox` interroga Supabase direttamente dal browser** (`getBrowserClient()` + `.or(ilike…)`) invece dell'API `GET /api/clienti` (che esiste, con `pgrestQuote`, e non ha consumer). RLS protegge ma il pattern è difforme. Il componente muore con le superfici v2.3 in Ondata 3 — se sopravvivesse, migrarlo all'API. [SWE]
+- **O4b — `listino.categoria` disallineato dall'enum lavori** (CHECK con +`materiale`, −`provvisorio`, e ora −`bite_splint`). Allineamento in sessione dedicata, non urgente. [SWE]
+- **O4c — Pattern «completa dati fiscali alla prima fattura»** (ricerca A7): P.IVA/sede sono bloccanti solo all'emissione FatturaPA e il codice SDI non lo è mai (fallback «0000000», Provv. AdE 89757/2018) → mini-form inline «Completa dati fiscali» nel flusso fattura per anagrafiche incomplete + badge quieto «anagrafica incompleta» sulla scheda dentista. Candidato sp.4 (superficie fatture). [Tit] + [SWE]
+- **O4d — Bonifica `classe_rischio` pregressa: CHIUSA senza azione** (decisione Francesco 12/07: DB di test, si azzera prima della produzione). Registrata qui solo perché la decisione non si perda: i lavori pre-tassonomia hanno `classe_i` di default anche dove sarebbe IIa. Se il piano di pulizia pre-produzione cambiasse, riaprire. [Odt]
+
 ---
 
 ## 🟢 BASSO — debito documentale, da correggere per igiene ma non urgente
