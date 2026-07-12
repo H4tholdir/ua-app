@@ -1,323 +1,42 @@
-import Link from 'next/link'
-import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { PageWrapper } from '@/components/layout/PageWrapper'
-import { LavoroCard } from '@/components/features/lavori/LavoroCard'
-import { LavoriSearchBar } from '@/components/features/lavori/LavoriSearchBar'
-import type { StatoLavoro, PrioritaLavoro, TipoDispositivo } from '@/types/domain'
+import { getPileHome, getPerimetroHome, subMorph } from '@/lib/dashboard/pile-home'
+import { PilaAperta } from '@/components/features/pile/PilaAperta'
+import { LePile } from '@/components/features/pile/LePile'
+import type { Pila } from '@/lib/lavori/urgenza'
 
-// ─── Design tokens v2.2 — warm palette ───────────────────────
-const DS = {
-  bg:      'var(--bg, #DDD8D3)',
-  surface: 'var(--surface, #E4DFD9)',
-  elv:     'var(--elv, #EDEDEA)',
-  prs:     'var(--prs, #D4CFC9)',
-  t1:      'var(--t1, #1C1916)',
-  t2:      'var(--t2, #4A3D33)',
-  t3:      'var(--t3, #6B5C51)',
-  primary: 'var(--primary, #D90012)',
-  shB: 'var(--sh-b)',
-  shI: 'var(--sh-i)',
-} as const
+export const dynamic = 'force-dynamic'
+const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
 
-interface PageProps {
-  searchParams: Promise<{ stato?: string; q?: string }>
-}
-
-type LavoroRow = {
-  id: string
-  numero_lavoro: string
-  stato: StatoLavoro
-  priorita: PrioritaLavoro
-  tipo_dispositivo: TipoDispositivo
-  descrizione: string
-  data_consegna_prevista: string
-  ora_consegna: string | null
-  paziente_nome_snapshot: string | null
-  cliente: { id: string; nome: string; cognome: string; studio_nome: string | null } | null
-  tecnico: { id: string; nome: string; cognome: string; sigla: string | null } | null
-  lavori_fasi?: Array<{ id: string; eseguita_at: string | null }> | null
-}
-
-export default async function LavoriPage({ searchParams }: PageProps) {
-  const params = await searchParams
-  const statoFiltro = params.stato as StatoLavoro | undefined
-  const q = params.q?.trim() ?? ''
-
-  // Auth
+// /lavori v3 (§4.1, Task 8) — sostituisce integralmente la lista a tab-filtro
+// v2.3: P1 `?pila=…` apre la pila (PilaAperta), senza param → «Le pile»
+// (LePile). Stesso schema auth/perimetro di /dashboard (HomeV3): la sorgente
+// dati (`getPileHome`) usa il service client (bypassa RLS) — il ruolo va
+// validato qui, non lasciato al database.
+export default async function LavoriPage({ searchParams }: { searchParams: Promise<{ pila?: string }> }) {
+  const { pila: pilaParam } = await searchParams
   const userClient = await getServerUserClient()
   const { data: { user } } = await userClient.auth.getUser()
+  if (!user) redirect('/login')
 
   const svc = getServiceClient()
+  const { data: utente } = await svc.from('utenti').select('ruolo, laboratorio_id').eq('id', user.id).is('deleted_at', null).single()
+  if (!utente) redirect('/login')
+  const { ruolo, laboratorio_id: labId } = utente
+  if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
 
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user!.id)
-    .single()
-
-  const labId: string = utente?.laboratorio_id ?? ''
-
-  let lavori: LavoroRow[] = []
-
-  if (labId) {
-    let query = svc
-      .from('lavori')
-      .select(`
-        id,
-        numero_lavoro,
-        stato,
-        priorita,
-        tipo_dispositivo,
-        descrizione,
-        data_consegna_prevista,
-        ora_consegna,
-        paziente_nome_snapshot,
-        cliente:clienti(id, nome, cognome, studio_nome),
-        tecnico:tecnici(id, nome, cognome, sigla),
-        lavori_fasi(id, eseguita_at)
-      `)
-      .eq('laboratorio_id', labId)
-      .is('deleted_at', null)
-      .order('data_consegna_prevista', { ascending: true })
-      .limit(200)
-
-    if (statoFiltro) {
-      query = query.eq('stato', statoFiltro)
-    }
-
-    if (q) {
-      const term = `%${q}%`
-      query = query.or(
-        `numero_lavoro.ilike.${term},paziente_nome_snapshot.ilike.${term},descrizione.ilike.${term}`
-      )
-    }
-
-    const { data } = await query
-    lavori = (data ?? []) as unknown as LavoroRow[]
-  }
-
-  // Tab filtri stato
-  const filtriStato: Array<{ value: string; label: string }> = [
-    { value: '', label: 'Tutti' },
-    { value: 'ricevuto', label: 'Ricevuti' },
-    { value: 'in_lavorazione', label: 'In lavorazione' },
-    { value: 'in_prova', label: 'In prova' },
-    { value: 'pronto', label: 'Pronti' },
-    { value: 'in_ritardo', label: 'In ritardo' },
-    { value: 'consegnato', label: 'Consegnati' },
-  ]
-
-  // Pulsante "+ Nuovo lavoro" nell'header
-  const addButton = (
-    <Link
-      href="/lavori/nuovo"
-      aria-label="Nuovo lavoro"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        height: '52px',
-        padding: '0 18px',
-        borderRadius: '14px',
-        background: DS.primary,
-        color: '#fff',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: 700,
-        fontSize: '14px',
-        textDecoration: 'none',
-        boxShadow: DS.shB,
-        flexShrink: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M8 3v10M3 8h10"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-      Nuovo
-    </Link>
-  )
+  const perimetro = await getPerimetroHome(svc, labId, user.id, ruolo)
+  const pile = await getPileHome(svc, labId, perimetro)
+  const pila = (PILE_VALIDE as readonly string[]).includes(pilaParam ?? '') ? (pilaParam as Pila) : null
+  const conteggi = { rossa: pile.liste.rossa.length, ambra: pile.liste.ambra.length, viola: pile.liste.viola.length, blu: pile.liste.blu.length }
 
   return (
-    <PageWrapper>
-      <AppHeader title="Lavori" actions={addButton} />
-
-      {/* Search bar */}
-      <Suspense fallback={null}>
-        <LavoriSearchBar defaultValue={q} />
-      </Suspense>
-
-      {/* Filtri stato */}
-      <div
-        role="navigation"
-        aria-label="Filtra per stato"
-        style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '0 20px 16px',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-        }}
-      >
-        {filtriStato.map(({ value, label }) => {
-          const isActive = (statoFiltro ?? '') === value
-          return (
-            <Link
-              key={value}
-              href={value ? `/lavori?stato=${value}` : '/lavori'}
-              aria-current={isActive ? 'page' : undefined}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                height: '40px',
-                padding: '0 16px',
-                borderRadius: 100,
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '13px',
-                fontWeight: isActive ? 600 : 400,
-                whiteSpace: 'nowrap',
-                textDecoration: 'none',
-                background: isActive ? DS.primary : DS.elv,
-                color: isActive ? '#fff' : DS.t2,
-                boxShadow: isActive ? DS.shI : DS.shB,
-                flexShrink: 0,
-                transition: 'background var(--tr, 0.18s cubic-bezier(0.2,0,0,1)), box-shadow var(--tr, 0.18s cubic-bezier(0.2,0,0,1)), color var(--tr, 0.18s cubic-bezier(0.2,0,0,1))',
-                minHeight: 52,
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              {label}
-            </Link>
-          )
-        })}
-      </div>
-
-      {/* Counter risultati ricerca */}
-      {q && (
-        <p style={{
-          fontFamily: 'DM Sans, sans-serif',
-          fontSize: '13px',
-          color: DS.t2,
-          padding: '0 20px 8px',
-          margin: 0,
-        }}>
-          {lavori.length === 0
-            ? `Nessun risultato per "${q}"`
-            : `${lavori.length} lavoro${lavori.length === 1 ? '' : 'i'} trovato${lavori.length === 1 ? '' : 'i'} per "${q}"`}
-        </p>
-      )}
-
-      {/* Lista lavori */}
-      <section style={{ padding: '0 20px' }}>
-        {lavori.length === 0 ? (
-          <div
-            style={{
-              background: DS.surface,
-              borderRadius: '14px',
-              padding: '40px 24px',
-              textAlign: 'center',
-              boxShadow: DS.shB,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '16px',
-                fontWeight: 600,
-                color: DS.t1,
-                margin: 0,
-              }}
-            >
-              {q ? `Nessun risultato per "${q}"` : statoFiltro ? 'Nessun lavoro con questo stato' : 'Nessun lavoro ancora'}
-            </p>
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '14px',
-                color: DS.t2,
-                margin: 0,
-                lineHeight: 1.5,
-              }}
-            >
-              {statoFiltro
-                ? 'Prova a selezionare uno stato diverso o rimuovi il filtro.'
-                : 'Crea il tuo primo lavoro per iniziare a gestire le commesse del laboratorio.'}
-            </p>
-            {!statoFiltro && (
-              <Link
-                href="/lavori/nuovo"
-                style={{
-                  marginTop: '4px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '12px 24px',
-                  borderRadius: '32px',
-                  background: DS.primary,
-                  color: '#fff',
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  textDecoration: 'none',
-                  boxShadow: DS.shB,
-                  minHeight: '52px',
-                }}
-                aria-label="Crea il primo lavoro"
-              >
-                Crea il primo lavoro →
-              </Link>
-            )}
-          </div>
-        ) : (
-          <ul className="ua-list-grid">
-            {lavori.map((lavoro, i) => {
-              const fasi = (lavoro.lavori_fasi ?? []) as { id: string; eseguita_at: string | null }[]
-              const fasi_totali = fasi.length
-              const fasi_completate = fasi.filter(f => f.eseguita_at !== null).length
-              return (
-                <li key={lavoro.id}>
-                  <LavoroCard
-                    id={lavoro.id}
-                    numero_lavoro={lavoro.numero_lavoro}
-                    stato={lavoro.stato}
-                    priorita={lavoro.priorita}
-                    tipo_dispositivo={lavoro.tipo_dispositivo}
-                    descrizione={lavoro.descrizione}
-                    data_consegna_prevista={lavoro.data_consegna_prevista}
-                    ora_consegna={lavoro.ora_consegna ?? null}
-                    paziente_nome_snapshot={lavoro.paziente_nome_snapshot ?? null}
-                    cliente_display={
-                      lavoro.cliente?.studio_nome ??
-                      (`${lavoro.cliente?.nome ?? ''} ${lavoro.cliente?.cognome ?? ''}`.trim() || '—')
-                    }
-                    animationDelay={i * 0.04}
-                    fasi_completate={fasi_completate}
-                    fasi_totali={fasi_totali}
-                  />
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
-    </PageWrapper>
+    <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+      <div className="ds-grana" aria-hidden />
+      {pila
+        ? <PilaAperta pila={pila} lista={pile.liste[pila]} sub={subMorph(pila, pile, new Date())} />
+        : <LePile conteggi={conteggi} />}
+    </div>
   )
 }

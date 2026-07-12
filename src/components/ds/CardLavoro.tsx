@@ -10,12 +10,20 @@
 // progress bar, niente icone di stato aggiuntive — la pila di provenienza È
 // lo stato.
 //
+// Task 8 (P4) — `conferma`: riga 4 alternativa, riservata dal chiamante a
+// OGNI card della pila blu (i lavori appena arrivati vanno confermati uno
+// per uno, non solo il primo). Rende un `TastoSecondario` «Conferma» a piena
+// larghezza. MAI insieme a `onConsegna` — sono due varianti della stessa
+// riga 4 opzionale, mutuamente esclusive per costruzione del chiamante.
+//
 // Nesting: la card è tappabile E contiene un tasto azione — un `<button>`
 // dentro un `<button>` è HTML non valido. La card è quindi un `<div
 // role="button" tabIndex={0}>` con gestione manuale di click e tastiera
 // (Invio/Spazio), mentre TastoConsegnaInline resta un vero `<button>`
 // figlio: `stopPropagation()` sul suo click impedisce che la pressione sul
-// tasto si propaghi come apertura della card.
+// tasto si propaghi come apertura della card. `TastoSecondario` non porta
+// con sé questa garanzia (componente condiviso, non specifico di questa
+// card): l'involucro di `conferma` la aggiunge dall'esterno, stesso esito.
 //
 // GDPR: `paziente` arriva SEMPRE già pseudonimizzato dal chiamante (formato
 // PZ-xxxx). Il componente lo renderizza così com'è — non lo conosce, non lo
@@ -29,6 +37,7 @@ import { gradiente, raggio, spazio, tipografia, testoSuFaccia } from '@/design-s
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { PillTempo, type Famiglia } from './Pill'
+import { TastoSecondario } from './TastoSecondario'
 
 const H_TASTO_CONSEGNA_INLINE = 54
 // Corsa fisica compressa (§5.8): 4px a riposo (contro i 6 del TastoPrimario a
@@ -112,8 +121,9 @@ export function CardLavoro(props: {
   tempo: { testo: string; famiglia: Famiglia }
   onApri: () => void
   onConsegna?: () => void
+  conferma?: { onClick: () => void }
 }) {
-  const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna } = props
+  const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma } = props
 
   function handleApri() {
     vibra('selection')
@@ -230,6 +240,25 @@ export function CardLavoro(props: {
           <div style={{ marginTop: spazio.m }}>
             <TastoConsegnaInline onClick={onConsegna} />
           </div>
+        )}
+
+        {conferma && (
+          // Stesso schema anti-nesting del TastoConsegnaInline (v. sopra), ma
+          // applicato dall'esterno: `TastoSecondario` è un componente condiviso,
+          // non porta da sé lo stopPropagation. `.ds-card-lavoro-conferma button`
+          // porta il tasto a piena larghezza (§5.8) — `TastoSecondario` non
+          // espone una prop `style`, quindi la resa larga vive qui via classe.
+          <>
+            <style>{`.ds-card-lavoro-conferma button { width: 100%; }`}</style>
+            <span
+              className="ds-card-lavoro-conferma"
+              style={{ display: 'block', marginTop: spazio.m }}
+              onClick={(evento: ReactMouseEvent) => evento.stopPropagation()}
+              onKeyDown={(evento: ReactKeyboardEvent) => evento.stopPropagation()}
+            >
+              <TastoSecondario onClick={conferma.onClick}>Conferma</TastoSecondario>
+            </span>
+          </>
         )}
       </motion.div>
     </>

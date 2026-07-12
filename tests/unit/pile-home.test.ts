@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mapPileHome, type RawLavoroPila } from '@/lib/dashboard/pile-home'
+import { mapPileHome, subMorph, type RawLavoroPila } from '@/lib/dashboard/pile-home'
 
 const OGGI = new Date('2026-07-09T10:00:00') // giovedì 9 luglio — l'ancora del cast mockup
 
@@ -95,5 +95,17 @@ describe('mapPileHome — il cast del mockup, riprodotto (home.html + pila-apert
     expect(pile.striscia.arrivoVecchio).toBe('152') // creato ieri, >24h fa
     expect(pile.striscia.consegneOggiTotali).toBe(2) // n.144 (dovuta ieri, va gestita oggi) + n.147
     expect(pile.striscia.prossimaOra).toBe('16:00')
+  })
+
+  it('rientro (Task 8): l\'unico lavoro viola porta con sé la data di rientro prevista della prova aperta', () => {
+    expect(pile.liste.viola[0].rientro).toBe('2026-07-13')
+  })
+
+  it('subMorph — i numeri utili del morph header', () => {
+    expect(subMorph('rossa', pile, OGGI)).toBe('2 lavori · il più vicino alle 16:00')
+    expect(subMorph('ambra', pile, OGGI)).toBe('3 lavori · il più vicino venerdì 10')
+    expect(subMorph('viola', pile, OGGI)).toBe('1 lavoro · torna lunedì 13')
+    expect(subMorph('blu', pile, OGGI)).toBe('2 lavori · da confermare')
+    expect(subMorph('rossa', mapPileHome([], OGGI), OGGI)).toBeUndefined()
   })
 })

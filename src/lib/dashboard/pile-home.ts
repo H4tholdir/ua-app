@@ -19,6 +19,9 @@ export type LavoroPila = {
   pill: { testo: string; famiglia: Famiglia }
   consegnabile: boolean
   consegna: { data: string; ora: string | null }
+  /** Data (ISO) del rientro previsto della prova aperta — SOLO per i lavori in
+   *  pila viola (§4.1/Task 8), `null` altrimenti. Alimenta `subMorph('viola', …)`. */
+  rientro: string | null
 }
 export type DatiPileStriscia = {
   ritardoPiuGrave: { numero: string; giorni: number } | null
@@ -49,9 +52,12 @@ export function giornoBreve(iso: string, oggi: Date, conNumero = false): string 
 }
 /** Nome del giorno della settimana, SENZA le scorciatoie «oggi»/«domani» — usato dal
  *  sub della pila ambra (banco): un lavoro sul banco non si segnala mai come «per domani»,
- *  la scadenza si legge sempre come giorno della settimana (verificato dal test §5.7). */
-function nomeGiornoSettimana(iso: string): string {
-  return GIORNI[dataLocale(iso).getDay()]
+ *  la scadenza si legge sempre come giorno della settimana (verificato dal test §5.7).
+ *  `conNumero` (Task 8, subMorph ambra) aggiunge il numero del giorno — stessa ragione
+ *  del `giornoBreve(..., conNumero=true)` ma senza mai collassare su «domani» a delta 1. */
+function nomeGiornoSettimana(iso: string, conNumero = false): string {
+  const d = dataLocale(iso)
+  return conNumero ? `${GIORNI[d.getDay()]} ${d.getDate()}` : GIORNI[d.getDay()]
 }
 /** «alle 16» · «alle 16:30» — il minuto :00 si omette (regola subline: il dato non si tronca, si accorcia). */
 function oraBrevissima(ora: string | null): string | null {
@@ -193,6 +199,7 @@ export function mapPileHome(rows: RawLavoroPila[], oggi: Date): PileHome {
       pill: u.pillTempo ?? pillFase(r, oggi),
       consegnabile: u.consegnabile,
       consegna: { data: r.data_consegna_prevista, ora: r.ora_consegna },
+      rientro: provaApertaDi(r)?.data_rientro_prevista ?? null,
       _u: u, _raw: r,
     })
   }
@@ -203,6 +210,54 @@ export function mapPileHome(rows: RawLavoroPila[], oggi: Date): PileHome {
     ))
   }
   return { liste: pulisci(liste), sub: costruisciSub(liste, oggi), striscia: costruisciStriscia(liste, oggi) }
+}
+
+/** «N lavori» / «1 lavoro» — plurale di legge del morph header (§5.28). */
+function contaLavori(n: number): string {
+  return n === 1 ? '1 lavoro' : `${n} lavori`
+}
+
+/** Il primo lavoro della pila NON in fondo (sospesi/fermi esclusi — riconoscibili
+ *  dalla pill «FERMO», l'unica che `derivaUrgenza` assegna a `inFondo`). La lista
+ *  è già ordinata coi fermi in coda (§4.1): quando esiste un lavoro non-fermo è
+ *  sempre lui il primo del filtro; se la pila è TUTTA ferma si ripiega su `lista[0]`. */
+function primoNonInFondo(lista: LavoroPila[]): LavoroPila {
+  return lista.find((l) => l.pill.testo !== 'FERMO') ?? lista[0]
+}
+
+/**
+ * subMorph — la sub-riga del morph header della pila aperta (§5.28, Task 8):
+ * «2 lavori · il più vicino alle 16:00» (rossa) · «4 lavori · il più vicino
+ * venerdì 10» (ambra) · «1 lavoro · torna lunedì 13» (viola) · «2 lavori · da
+ * confermare» (blu). `undefined` a pila vuota — niente sub da mostrare, il
+ * morph a 0 basta da solo (mockup stati-vuoti-errori.html).
+ *
+ * Deviazione documentata (Task 8, verificata dal test): l'ambra usa il nome
+ * del giorno della settimana `conNumero` (mai «domani») — un lavoro sul banco
+ * non si legge mai con le scorciatoie di `giornoBreve`, stessa ragione già
+ * valida per `costruisciSubAmbra` (§5.7).
+ */
+export function subMorph(pila: Pila, pile: PileHome, oggi: Date): string | undefined {
+  const lista = pile.liste[pila]
+  if (lista.length === 0) return undefined
+  const conteggio = contaLavori(lista.length)
+
+  switch (pila) {
+    case 'rossa': {
+      const ora = pile.striscia.prossimaOra
+      return ora ? `${conteggio} · il più vicino alle ${ora}` : conteggio
+    }
+    case 'ambra': {
+      const p = primoNonInFondo(lista)
+      return `${conteggio} · il più vicino ${nomeGiornoSettimana(p.consegna.data, true)}`
+    }
+    case 'viola': {
+      const rientro = lista[0].rientro
+      return rientro ? `${conteggio} · torna ${giornoBreve(rientro, oggi, true)}` : `${conteggio} · in prova`
+    }
+    case 'blu':
+      return `${conteggio} · da confermare`
+  }
 }
 
 export async function getPileHome(svc: SupabaseClient, labId: string, opts: { tecnicoId?: string | null } = {}): Promise<PileHome> {
