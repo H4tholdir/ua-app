@@ -69,6 +69,12 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   const router = useRouter()
   const reduced = useReducedMotion()
   const [stato, setStato] = useState<StatoWizard>(STATO_INIZIALE)
+  // CONTRATTO (Task 10-13): chi avanza DEVE settare `direzione` 'avanti' PRIMA
+  // di cambiare `stato.passo` (come fa `sceltaDentista` qui sotto); chi arretra
+  // DEVE settare 'indietro' (come `vaIndietro`). È `direzione` a scegliere la
+  // coreografia (`wizardAvanti`/`wizardIndietro`): cambiare passo senza
+  // aggiornarla fa scivolare il passo dal lato sbagliato — nessun errore, solo
+  // un bug visivo silenzioso.
   const [direzione, setDirezione] = useState<'avanti' | 'indietro'>('avanti')
 
   const vaIndietro = useCallback(() => {

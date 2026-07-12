@@ -110,4 +110,25 @@ describe('WizardNuovoLavoro — shell + Passo 1 dentisti (Task 8)', () => {
     expect(screen.getByRole('button', { name: /Dr\. Esposito/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Dr\.ssa Bianchi/ })).not.toBeInTheDocument()
   })
+
+  it('PillVoce a ricerca GIÀ aperta con testo digitato: onTesto SOSTITUISCE la query e la lista si rifiltra', async () => {
+    ;(window as unknown as Record<string, unknown>).webkitSpeechRecognition = MockSpeechRecognition
+    render(<WizardNuovoLavoro dati={DATI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    // Apre la ricerca e digita a mano: la lista filtra su Bianchi.
+    await user.click(screen.getByRole('button', { name: /Cerca fra tutti i 5 dentisti/ }))
+    await user.type(screen.getByRole('textbox'), 'bianchi')
+    expect(screen.getByRole('button', { name: /Dr\.ssa Bianchi/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Dr\. Esposito/ })).not.toBeInTheDocument()
+    // Poi parla: il trascritto SOSTITUISCE il testo digitato (non lo accoda) e rifiltra.
+    await user.click(screen.getByRole('button', { name: /dimmelo a voce/i }))
+    const istanza = ultimaIstanza()
+    expect(istanza).not.toBeNull()
+    act(() => {
+      istanza!.onresult?.({ results: [[{ transcript: 'esposito' }]] })
+    })
+    expect(screen.getByRole('textbox')).toHaveValue('esposito')
+    expect(screen.getByRole('button', { name: /Dr\. Esposito/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Dr\.ssa Bianchi/ })).not.toBeInTheDocument()
+  })
 })
