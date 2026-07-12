@@ -87,8 +87,13 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
               tipoLavoro={l.tipoLavoro}
               tempo={l.pill}
               onApri={() => router.push(`/lavori/${l.id}`)}
-              onConsegna={l.id === idPrimoConsegnabile ? () => router.push(`/lavori/${l.id}/consegna`) : undefined}
-              conferma={pila === 'blu' ? { onClick: () => router.push(`/lavori/${l.id}`) } : undefined}
+              // Riga 4 — le due varianti sono mutuamente esclusive per TIPO su
+              // CardLavoro: qui lo sono per costruzione (blu → conferma su ogni
+              // card P4; rossa → consegna inline solo sul primo consegnabile P3),
+              // e lo spread condizionale lo rende evidente anche a tsc.
+              {...(pila === 'blu'
+                ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }
+                : { onConsegna: l.id === idPrimoConsegnabile ? () => router.push(`/lavori/${l.id}/consegna`) : undefined })}
             />
           ))}
         </div>

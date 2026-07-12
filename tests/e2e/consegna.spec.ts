@@ -141,7 +141,9 @@ test.describe('Percorso critico autenticato', () => {
   test('lista lavori accessibile dopo login', async ({ page }) => {
     await loginAs(page, process.env.TEST_USER_EMAIL!, process.env.TEST_USER_PASSWORD!)
     await page.goto('/lavori')
-    await expect(page.locator('h1')).toContainText('Lavori')
+    // /lavori v3 (Task 8): senza ?pila= la vista è «Le pile» (LePile), non più
+    // la lista a tab-filtro v2.3 con h1 «Lavori».
+    await expect(page.locator('h1')).toContainText('Le pile')
   })
 
   test('form nuovo lavoro ha campi obbligatori', async ({ page }) => {

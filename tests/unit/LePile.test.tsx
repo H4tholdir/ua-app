@@ -21,12 +21,20 @@ describe('LePile — vista «Le pile» di /lavori senza param (§4.1, P1)', () =
     expect(screen.getByText('4', { selector: 'a[href="/lavori?pila=ambra"] span:last-child' })).toBeInTheDocument()
   })
 
-  it('il raggruppamento aperto porta il ring di selezione (inset 2.5px --red), gli altri no', () => {
+  it('ring di selezione dark-safe: SOLO il ring sul link (single-value), ombra ambiente separata sul wrapper (pattern TastoPrimario)', () => {
     render(<LePile conteggi={CONTEGGI} pilaAperta="viola" />)
     const violaLink = screen.getByRole('link', { name: /Da rifare/ })
-    expect(violaLink.style.boxShadow).toContain('inset 0 0 0 2.5px var(--red)')
+    // Il ring vive DA SOLO sul link: mai in lista con var(--sh-card) — in dark
+    // quella var risolve a `none`, che dentro una lista box-shadow multi-valore
+    // invalida l'INTERA dichiarazione e il ring sparirebbe in silenzio.
+    expect(violaLink.style.boxShadow).toBe('inset 0 0 0 2.5px var(--red)')
+    // L'ombra ambiente sta sul wrapper, dove resta valida da sola in entrambi i temi.
+    const violaWrapper = violaLink.parentElement as HTMLElement
+    expect(violaWrapper.style.boxShadow).toBe('var(--sh-card)')
+    // I raggruppamenti non selezionati: nessun ring, solo l'ombra del wrapper.
     const rossaLink = screen.getByRole('link', { name: /Da consegnare oggi/ })
-    expect(rossaLink.style.boxShadow).not.toContain('inset')
+    expect(rossaLink.style.boxShadow).toBe('')
+    expect((rossaLink.parentElement as HTMLElement).style.boxShadow).toBe('var(--sh-card)')
   })
 
   it('children (le card del raggruppamento aperto) compaiono sotto l\'elenco', () => {

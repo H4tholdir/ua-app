@@ -36,45 +36,53 @@ export function LePile(props: { conteggi: Record<Pila, number>; pilaAperta?: Pil
         {ORDINE.map(({ pila, label, colore, tint }) => {
           const selezionato = pila === pilaAperta
           return (
-            <Link
-              key={pila}
-              href={`/lavori?pila=${pila}`}
-              aria-current={selezionato ? 'true' : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                width: '100%',
-                padding: '16px 20px',
-                borderRadius: 18,
-                background: 'var(--card)',
-                boxShadow: selezionato ? 'var(--sh-card), inset 0 0 0 2.5px var(--red)' : 'var(--sh-card)',
-                textDecoration: 'none',
-                boxSizing: 'border-box',
-              }}
-            >
-              <span style={{ flex: 1, fontSize: 15, fontWeight: tipografia.weight.extrabold, letterSpacing: '0.12em', textTransform: 'uppercase', color: colore }}>
-                {label}
-              </span>
-              <span
+            // Ombra ambiente sul wrapper, ring sul link — stesso anti-pattern
+            // documentato in TastoPrimario.tsx: in dark `--sh-card` risolve a
+            // `none`, e `none` come membro di una lista box-shadow multi-valore
+            // invalida l'INTERA dichiarazione (CSS: `none` è ammesso solo da
+            // solo) — il ring sparirebbe in silenzio. Separati, restano validi
+            // da soli in entrambi i temi; è anche la resa del mockup, dove il
+            // `.sel` dark porta SOLO il ring.
+            <div key={pila} style={{ borderRadius: 18, boxShadow: 'var(--sh-card)' }}>
+              <Link
+                href={`/lavori?pila=${pila}`}
+                aria-current={selezionato ? 'true' : undefined}
                 style={{
-                  minWidth: 30,
-                  height: 30,
-                  padding: '0 9px',
-                  borderRadius: 999,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 15,
-                  fontWeight: tipografia.weight.extrabold,
-                  fontVariantNumeric: 'tabular-nums',
-                  background: tint,
-                  color: colore,
+                  gap: 14,
+                  width: '100%',
+                  padding: '16px 20px',
+                  borderRadius: 18,
+                  background: 'var(--card)',
+                  boxShadow: selezionato ? 'inset 0 0 0 2.5px var(--red)' : undefined,
+                  textDecoration: 'none',
+                  boxSizing: 'border-box',
                 }}
               >
-                {conteggi[pila]}
-              </span>
-            </Link>
+                <span style={{ flex: 1, fontSize: 15, fontWeight: tipografia.weight.extrabold, letterSpacing: '0.12em', textTransform: 'uppercase', color: colore }}>
+                  {label}
+                </span>
+                <span
+                  style={{
+                    minWidth: 30,
+                    height: 30,
+                    padding: '0 9px',
+                    borderRadius: 999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 15,
+                    fontWeight: tipografia.weight.extrabold,
+                    fontVariantNumeric: 'tabular-nums',
+                    background: tint,
+                    color: colore,
+                  }}
+                >
+                  {conteggi[pila]}
+                </span>
+              </Link>
+            </div>
           )
         })}
       </div>

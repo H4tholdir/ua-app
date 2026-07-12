@@ -153,6 +153,25 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
 
+  it('conferma e onConsegna sono mutuamente esclusive a livello di TIPO (riga 4 unica, §5.8/P4)', () => {
+    // Il vincolo vive nel tipo (never incrociati): passarle entrambe non
+    // compila — è `tsc --noEmit` a validare il @ts-expect-error qui sotto
+    // (fallirebbe se l'espressione tornasse a compilare).
+    // @ts-expect-error — onConsegna e conferma insieme sono vietate
+    const invalida = <CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} conferma={{ onClick: () => {} }} />
+    expect(invalida).toBeTruthy() // l'elemento esiste a runtime; il blocco è compile-time
+  })
+
+  it('con conferma → riga 4 alternativa: TastoSecondario «Conferma», click → onClick senza onApri (stopPropagation)', () => {
+    const onApri = vi.fn()
+    const onClick = vi.fn()
+    render(<CardLavoro {...PROPS_BASE} onApri={onApri} conferma={{ onClick }} />)
+    const tasto = screen.getByRole('button', { name: 'Conferma' })
+    fireEvent.click(tasto)
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(onApri).not.toHaveBeenCalled()
+  })
+
   it('riga 1 — la PillTempo non trabocca mai dalla card (QA visivo T15, 390px): riga a capo consentito, pill mai compressa, sempre a destra', () => {
     // Bug trovato in QA visiva: a 390px «APPENA ARRIVATO» usciva dal bordo
     // destro della card (~8px) perché numero e pill hanno entrambi larghezza

@@ -113,6 +113,14 @@ function TastoConsegnaInline(props: { onClick: () => void }) {
  * GDPR: `paziente` è SEMPRE uno pseudonimo (`PZ-xxxx`) fornito dal chiamante
  * — il componente lo mostra invariato e non deve mai ricevere un nome reale.
  */
+// Esclusione mutua di TIPO fra le due varianti della riga 4 (§5.8/P4): un
+// chiamante può passare `onConsegna` O `conferma`, mai entrambe insieme —
+// `never` incrociati fanno fallire `tsc` sul chiamante che le combina, senza
+// churn sui chiamanti esistenti (che ne passano al più una, o nessuna).
+type Riga4 =
+  | { onConsegna?: () => void; conferma?: never }
+  | { conferma?: { onClick: () => void }; onConsegna?: never }
+
 export function CardLavoro(props: {
   numero: string
   dentista: string
@@ -120,9 +128,7 @@ export function CardLavoro(props: {
   tipoLavoro: string
   tempo: { testo: string; famiglia: Famiglia }
   onApri: () => void
-  onConsegna?: () => void
-  conferma?: { onClick: () => void }
-}) {
+} & Riga4) {
   const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma } = props
 
   function handleApri() {
