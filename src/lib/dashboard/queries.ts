@@ -274,31 +274,6 @@ export async function getMaterialiEsaurimento(
     .slice(0, limit)
 }
 
-export async function getLavoriInProvaRientro(
-  svc: SupabaseClient,
-  labId: string
-): Promise<
-  Array<{
-    id: string
-    numero_lavoro: string
-    descrizione: string
-    data_prima_prova: string | null
-    clienti: { nome: string; cognome: string; studio_nome: string | null } | null
-  }>
-> {
-  const oggi = oggiISO()
-  const { data } = await svc
-    .from('lavori')
-    .select('id, numero_lavoro, descrizione, data_prima_prova, clienti(nome, cognome, studio_nome)')
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .eq('stato', 'in_prova')
-    .lte('data_prima_prova', oggi)
-    .order('data_prima_prova', { ascending: true })
-    .limit(10)
-  return (data ?? []) as never
-}
-
 export async function getTecnicoDashboard(
   svc: SupabaseClient,
   labId: string,
@@ -422,22 +397,6 @@ export async function getTrendMensile(
   }
 
   return result
-}
-
-// ─── LavoroDaFatturareItem ───────────────────────────────────────────────────
-// Task 11: `getLavoriDaFatturare` (la query che popolava questo tipo) è stata
-// rimossa perché priva di ogni consumatore (grep zero-risultati fuori da
-// questo file). Il tipo resta: `DashboardTitolare.tsx` importa
-// `LavoroDaFatturareItem` per una prop opzionale (`lavoriDaFatturare?`) mai
-// valorizzata da chi la monta oggi (solo `admin/labs/[id]/live/page.tsx`,
-// che non la passa) — coerente con `DashboardTitolare` restando in vita SOLO
-// per quel consumatore admin (vedi task-11-report.md).
-export type LavoroDaFatturareItem = {
-  id: string
-  numero_lavoro: string
-  cliente_display: string
-  data_consegna_effettiva: string | null
-  prezzo_unitario: number
 }
 
 export async function getFrontDeskDashboard(
