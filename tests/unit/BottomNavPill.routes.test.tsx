@@ -9,8 +9,9 @@ vi.mock('next/navigation', () => ({
 import { BottomNavPill } from '../../src/components/layout/BottomNavPill'
 
 // P9 (Task 10, spec sp.3 §1): sulle pagine migrate a v3 la pill muore. Il
-// confronto è ESATTO (non prefix) — /lavori/[id] e /lavori/nuovo restano
-// v2.3 e conservano la pill.
+// confronto è ESATTO (non prefix) — /lavori/nuovo è v3 da Ondata 2 (Task 8:
+// il wizard sostituisce il form v2.3) e perde la pill; /lavori/[id] resta
+// v2.3 e la conserva.
 describe('BottomNavPill — ritiro dalle route migrate a v3 (P9)', () => {
   afterEach(() => {
     cleanup()
@@ -35,10 +36,10 @@ describe('BottomNavPill — ritiro dalle route migrate a v3 (P9)', () => {
     expect(container.querySelector('.ua-bottom-nav')).toBeNull()
   })
 
-  it('resta montata su /lavori/nuovo (v2.3, confronto NON-prefix)', () => {
+  it('non si monta su /lavori/nuovo (v3 da Ondata 2, Task 8: wizard)', () => {
     mockPathname = '/lavori/nuovo'
     const { container } = render(<BottomNavPill />)
-    expect(container.querySelector('.ua-bottom-nav')).not.toBeNull()
+    expect(container.querySelector('.ua-bottom-nav')).toBeNull()
   })
 
   it('resta montata su /lavori/abc123 (v2.3, confronto NON-prefix)', () => {

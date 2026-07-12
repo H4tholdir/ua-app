@@ -47,10 +47,10 @@ describe('UserProfileSheet — ritiro dalle route migrate a v3 (speculare a Bott
     expect(container.firstChild).toBeNull()
   })
 
-  it('resta montato su /lavori/nuovo (v2.3, confronto NON-prefix)', () => {
+  it('non si monta su /lavori/nuovo (v3 da Ondata 2, Task 8: wizard)', () => {
     mockPathname = '/lavori/nuovo'
-    const { getByRole } = render(<UserProfileSheet {...PROPS_BASE} />)
-    expect(getByRole('button', { name: 'Apri profilo' })).toBeInTheDocument()
+    const { container } = render(<UserProfileSheet {...PROPS_BASE} />)
+    expect(container.firstChild).toBeNull()
   })
 
   it('resta montato su /lavori/abc (v2.3, confronto NON-prefix)', () => {
