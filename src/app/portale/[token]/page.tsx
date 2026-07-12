@@ -39,6 +39,7 @@ const tipoLabels: Record<TipoDispositivo, string> = {
   ortodonzia: 'Ortodonzia',
   provvisorio: 'Provvisorio',
   riparazione: 'Riparazione',
+  bite_splint: 'Bite / splint',
   altro: 'Altro',
 }
 

@@ -209,6 +209,7 @@ export type TipoDispositivo =
   | 'ortodonzia'
   | 'provvisorio'
   | 'riparazione'
+  | 'bite_splint'
   | 'altro';
 
 // PATCH v1.1: aggiunto 'ricevuto' come stato iniziale prima della lavorazione
