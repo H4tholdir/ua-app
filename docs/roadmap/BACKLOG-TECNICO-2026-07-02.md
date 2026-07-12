@@ -514,7 +514,7 @@ Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdet
 - **O1g — Limit 500 su `getPileHome`:** truncation silenziosa spec-mandated; oltre soglia servirebbe un segnale (design nuovo).
 - **O1h — Back ‹ di PilaAperta sempre a `/dashboard`:** salta la vista «Le pile» per chi arriva da lì (browser-back resta corretto, ADR).
 - **O1i — Profilo nel mondo v3 (advisor UX+DS 12/07, ratificato il fix minimo):** PRIMA che `/impostazioni` migri a v3: voce «Esci» in §7.16 «Il mio laboratorio» (oggi il logout vive solo nello sheet avatar, ritirato dalle route migrate); riga-identità nel footer NavDesk desktop (mockup da approvare, anche casa per Persone/Listino a 1280); segnale trial→StrisciaStato. Nota §14: avatar = chrome v2.3 che si ritira per route.
-- **O1j — Smoke admin `/admin/labs/[id]/live`:** route migrata a Home v3 read-only senza QA e2e possibile (credenziali admin_sistema assenti by design). Fix RSC applicato e review-verificato; smoke manuale di Francesco raccomandato al primo accesso.
+- ~~**O1j — Smoke admin `/admin/labs/[id]/live`**~~ **VERIFICATO da Francesco 12/07/2026 (sera):** anteprima live corretta — banner "ADMIN PREVIEW — Solo lettura", 4 pile nell'ordine di legge coi dati reali del lab, StrisciaStato col segnale giusto ("n.2026/0004 aspetta conferma da ieri"). Fix RSC confermato in produzione, chiuso.
 
 
 - **M1.** KPI dashboard "Da fatturare" in realtà filtra `stato='pronto'` (pronti da **consegnare**, non da fatturare) mentre la lista fatturabile richiede `stato='consegnato' AND incluso_in_fattura=false` — etichetta fuorviante. [Tit] — `supabase/migrations/002_fase2_schema.sql:327-328` vs `fatture/page.tsx:118`.
