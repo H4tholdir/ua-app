@@ -8,10 +8,10 @@ vi.mock('next/navigation', () => ({
 
 import { BottomNavPill } from '../../src/components/layout/BottomNavPill'
 
-// P9 (Task 10, spec sp.3 §1): sulle pagine migrate a v3 la pill muore. Il
-// confronto è ESATTO (non prefix) — /lavori/nuovo è v3 da Ondata 2 (Task 8:
-// il wizard sostituisce il form v2.3) e perde la pill; /lavori/[id] resta
-// v2.3 e la conserva.
+// P9 (Task 10, spec sp.3 §1): sulle pagine migrate a v3 la pill muore.
+// /lavori/nuovo è v3 da Ondata 2 (Task 8: il wizard sostituisce il form v2.3).
+// Polish L1 (2026-07-14): /lavori/[id] e /lavori/[id]/modifica sono v3 (Ondata
+// 3a) e perdono la pill; /lavori/[id]/consegna resta v2.3 e la conserva.
 describe('BottomNavPill — ritiro dalle route migrate a v3 (P9)', () => {
   afterEach(() => {
     cleanup()
@@ -42,8 +42,20 @@ describe('BottomNavPill — ritiro dalle route migrate a v3 (P9)', () => {
     expect(container.querySelector('.ua-bottom-nav')).toBeNull()
   })
 
-  it('resta montata su /lavori/abc123 (v2.3, confronto NON-prefix)', () => {
+  it('non si monta su /lavori/abc123 (scheda-vista v3, Ondata 3a)', () => {
     mockPathname = '/lavori/abc123'
+    const { container } = render(<BottomNavPill />)
+    expect(container.querySelector('.ua-bottom-nav')).toBeNull()
+  })
+
+  it('non si monta su /lavori/abc123/modifica (route-ponte v3)', () => {
+    mockPathname = '/lavori/abc123/modifica'
+    const { container } = render(<BottomNavPill />)
+    expect(container.querySelector('.ua-bottom-nav')).toBeNull()
+  })
+
+  it('resta montata su /lavori/abc123/consegna (flusso consegna v2.3)', () => {
+    mockPathname = '/lavori/abc123/consegna'
     const { container } = render(<BottomNavPill />)
     expect(container.querySelector('.ua-bottom-nav')).not.toBeNull()
   })

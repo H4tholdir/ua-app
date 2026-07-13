@@ -6,10 +6,19 @@
 // v3 — il mockup `home.html` non lo prevede su quelle route). Confronto
 // ESATTO (non prefix) su `ROUTE_MIGRATE_V3`, ESATTO anche su `/lavori`.
 // `/lavori/nuovo` è v3 da Ondata 2 (Task 8: il wizard `WizardNuovoLavoro`
-// sostituisce integralmente il form multi-tab v2.3) — le altre sotto-route di
-// `/lavori` (es. `/lavori/[id]`) restano v2.3.
+// sostituisce integralmente il form multi-tab v2.3).
+//
+// Polish Livello 1 (2026-07-14, ratifica Francesco): la scheda-vista v3
+// `/lavori/[id]` (Ondata 3a) e la route-ponte `/lavori/[id]/modifica` sono ora
+// v3 → avatar + BottomNavPill legacy si ritirano anche lì (su desktop la scheda
+// rende il proprio rail). Il flusso di consegna `/lavori/[id]/consegna` resta
+// v2.3 e NON si migra. `SCHEDA_V3_RE` copre esattamente detail e ponte, mai
+// `/consegna` né altre sotto-route: `[^/]+` è un singolo segmento (l'id), il
+// gruppo `/modifica` è opzionale e chiuso da `$`.
 export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo']
 
+const SCHEDA_V3_RE = /^\/lavori\/[^/]+(\/modifica)?$/
+
 export function isV3MigratedRoute(pathname: string): boolean {
-  return ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori'
+  return ROUTE_MIGRATE_V3.includes(pathname) || pathname === '/lavori' || SCHEDA_V3_RE.test(pathname)
 }
