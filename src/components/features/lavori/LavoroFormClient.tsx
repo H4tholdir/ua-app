@@ -9,7 +9,7 @@ import type {
   LavoroImmagine,
 } from '@/types/domain'
 import { useLavoroForm } from '@/hooks/useLavoroForm'
-import { LavoroFormShell } from './form/LavoroFormShell'
+import { LavoroFormShell, type TabId } from './form/LavoroFormShell'
 import { TabDati } from './form/TabDati'
 import { TabLavorazioni } from './form/TabLavorazioni'
 import { TabClinica } from './form/TabClinica'
@@ -25,9 +25,16 @@ import { SegnalaProblemaSheet } from './SegnalaProblemaSheet'
 interface LavoroFormClientProps {
   lavoro: LavoroDettaglio
   ruolo?: string | null
+  defaultTab?: TabId
+  bridged?: boolean
 }
 
-export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
+export function LavoroFormClient({
+  lavoro,
+  ruolo,
+  defaultTab,
+  bridged,
+}: LavoroFormClientProps) {
   const router = useRouter()
 
   // Stato form campi Lavoro (colonne tabella)
@@ -103,7 +110,7 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
 
   return (
     <div>
-      <LavoroFormShell>
+      <LavoroFormShell defaultTab={defaultTab}>
         {(activeTab) => {
           switch (activeTab) {
             case 'dati':
@@ -375,50 +382,52 @@ export function LavoroFormClient({ lavoro, ruolo }: LavoroFormClientProps) {
         </button>
 
         {/* Pulsante CONSEGNA — salva prima se dirty */}
-        <button
-          type="button"
-          onClick={async () => {
-            if (isDirty) {
-              // save() rilancia l'errore di rete/API dopo aver impostato
-              // saveError (vedi useLavoroForm.ts). Se l'autosave fallisce
-              // NON dobbiamo navigare: il precheck MDR in /consegna legge
-              // i dati direttamente dal DB server-side (CLAUDE.md), quindi
-              // procedere con modifiche non salvate significherebbe
-              // eseguire il precheck su dati stale. isDirty resta true in
-              // questo caso, quindi il pulsante Salva mostra già
-              // "⚠ Errore — riprova" — l'utente resta sulla pagina con
-              // feedback visibile invece di un blocco silenzioso.
-              try {
-                await save(lavoro.id)
-              } catch {
-                return
+        {!bridged && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (isDirty) {
+                // save() rilancia l'errore di rete/API dopo aver impostato
+                // saveError (vedi useLavoroForm.ts). Se l'autosave fallisce
+                // NON dobbiamo navigare: il precheck MDR in /consegna legge
+                // i dati direttamente dal DB server-side (CLAUDE.md), quindi
+                // procedere con modifiche non salvate significherebbe
+                // eseguire il precheck su dati stale. isDirty resta true in
+                // questo caso, quindi il pulsante Salva mostra già
+                // "⚠ Errore — riprova" — l'utente resta sulla pagina con
+                // feedback visibile invece di un blocco silenzioso.
+                try {
+                  await save(lavoro.id)
+                } catch {
+                  return
+                }
               }
-            }
-            router.push(`/lavori/${lavoro.id}/consegna`)
-          }}
-          style={{
-            flex: isDirty ? '0 0 auto' : 1,
-            height: '52px',
-            padding: '0 24px',
-            borderRadius: '14px',
-            border: 'none',
-            background: 'var(--gold, #D4A843)',
-            color: 'var(--t1, #1C1916)',
-            fontFamily: 'DM Sans, sans-serif',
-            fontSize: '15px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            letterSpacing: '0.04em',
-            boxShadow: '0 0 20px hsl(43 65% 55% / 0.4)',
-            whiteSpace: 'nowrap',
-          }}
-          aria-label="Vai alla consegna del lavoro"
-        >
-          CONSEGNA
-          <span aria-hidden="true" style={{ marginLeft: '6px' }}>
-            →
-          </span>
-        </button>
+              router.push(`/lavori/${lavoro.id}/consegna`)
+            }}
+            style={{
+              flex: isDirty ? '0 0 auto' : 1,
+              height: '52px',
+              padding: '0 24px',
+              borderRadius: '14px',
+              border: 'none',
+              background: 'var(--gold, #D4A843)',
+              color: 'var(--t1, #1C1916)',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '15px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              letterSpacing: '0.04em',
+              boxShadow: '0 0 20px hsl(43 65% 55% / 0.4)',
+              whiteSpace: 'nowrap',
+            }}
+            aria-label="Vai alla consegna del lavoro"
+          >
+            CONSEGNA
+            <span aria-hidden="true" style={{ marginLeft: '6px' }}>
+              →
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Bottom sheet Pacchetto Consegna MDR */}
