@@ -8,13 +8,21 @@
 // API, nessun editing avanzato: le voci pesanti del menu e la scheda di
 // fabbricazione restano dei rami già esistenti (§3, §7.1).
 //
-// Aggiornamento ottimistico (piano §Task 6): `lavoroLocale` parte dai props;
-// `onSalvato(patch)` di ModificaRigaSheet fonde il patch nello stato locale per
-// i campi SCALARI (note_interne, data/ora consegna). Per le FOREIGN KEY
-// (cliente_id, tecnico_id) il nome mostrato vive in un join lato server — non lo
-// si ricostruisce a mano: si chiama `router.refresh()` così la pagina rilegge i
-// join. Il merge locale del FK grezzo è innocuo (nessuno lo legge prima del
-// refresh) e tiene la funzione una sola riga.
+// Aggiornamento ottimistico (piano §Task 6, fix round finale — bug FK-refresh):
+// `lavoroLocale` parte dai props; `onSalvato(patch)` di ModificaRigaSheet fonde
+// il patch nello stato locale per i campi SCALARI (note_interne, data/ora
+// consegna). Per le FOREIGN KEY (cliente_id, tecnico_id) il nome mostrato vive
+// in un join lato server — non lo si ricostruisce a mano: si chiama
+// `router.refresh()` così la pagina rilegge i join. Il merge locale del FK
+// grezzo resta innocuo per compatibilità, ma l'aggiornamento vero arriva da un
+// confronto `props.lavoro !== lavoroPropPrecedente` fatto DURANTE il render
+// (pattern "adjusting state" di React, non `useEffect` — vedi commento sopra
+// `lavoroPropPrecedente` più sotto nel file): senza questo, `lavoroLocale`
+// restava congelato al valore del mount e `router.refresh()` passava un
+// `props.lavoro` fresco che il componente non leggeva mai — la scheda
+// mostrava il vecchio tecnico/dentista fino a un ricaricamento manuale. Su un
+// edit scalare `props.lavoro` non cambia reference (nessun refresh), quindi
+// il confronto non scatta e non clobbera l'update ottimistico locale.
 //
 // Nota su AvvisiProvider: NON è montato nel layout `(app)` (solo catalogo e
 // wizard lo montano), e questo componente è renderizzato da solo anche nei test.
@@ -104,6 +112,27 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   const { errore } = useAvvisi()
 
   const [lavoroLocale, setLavoroLocale] = useState<LavoroDettaglio>(props.lavoro)
+
+  // Fix round (final review, bug FK-refresh): `router.refresh()` rilegge il
+  // Server Component e passa un `props.lavoro` fresco coi JOIN aggiornati
+  // (tecnico/cliente) — ma senza questa sincronizzazione `lavoroLocale`
+  // restava congelato al valore del mount e la scheda mostrava il vecchio
+  // nome finché non si ricaricava a mano. Un edit SCALARE (consegna/note) non
+  // chiama `router.refresh()`, quindi il Server Component non rirende e
+  // `props.lavoro` mantiene la STESSA reference → il confronto sotto non
+  // scatta e l'update ottimistico scalare in `lavoroLocale` resta intatto. Un
+  // edit FK, invece, fa girare `router.refresh()` → nuova reference di
+  // `props.lavoro` coi join freschi → si risincronizza col dato autorevole.
+  // Pattern "adjusting state while rendering" di React (NON `useEffect`: un
+  // effetto qui violerebbe la regola lint `react-hooks/set-state-in-effect`
+  // e aggiungerebbe un render extra dopo il mount):
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [lavoroPropPrecedente, setLavoroPropPrecedente] = useState(props.lavoro)
+  if (props.lavoro !== lavoroPropPrecedente) {
+    setLavoroPropPrecedente(props.lavoro)
+    setLavoroLocale(props.lavoro)
+  }
+
   const [campoAttivo, setCampoAttivo] = useState<Campo | null>(null)
   const [menuAperto, setMenuAperto] = useState(false)
   const [documentiAperto, setDocumentiAperto] = useState(false)

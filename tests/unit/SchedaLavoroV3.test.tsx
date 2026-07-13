@@ -70,4 +70,15 @@ describe('SchedaLavoroV3', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByText(/tracciabilità materiali incompleta/i)).not.toBeInTheDocument()
   })
+  it('dopo router.refresh() il nuovo tecnico dal prop fresco sostituisce quello locale (bug FK-refresh)', () => {
+    const lavoroA = makeLavoro({ tecnico: { nome: 'Ciro', cognome: 'B', sigla: 'CB' } as unknown as LavoroDettaglio['tecnico'] })
+    const { rerender } = render(<SchedaLavoroV3 lavoro={lavoroA} />)
+    expect(screen.getByText('Ciro B')).toBeInTheDocument()
+    // Simula ciò che accade dopo `router.refresh()`: il Server Component
+    // rilegge il JOIN e passa un `lavoro` fresco con un tecnico diverso.
+    const lavoroB = makeLavoro({ tecnico: { nome: 'Anna', cognome: 'V', sigla: 'AV' } as unknown as LavoroDettaglio['tecnico'] })
+    rerender(<SchedaLavoroV3 lavoro={lavoroB} />)
+    expect(screen.getByText('Anna V')).toBeInTheDocument()
+    expect(screen.queryByText('Ciro B')).not.toBeInTheDocument()
+  })
 })
