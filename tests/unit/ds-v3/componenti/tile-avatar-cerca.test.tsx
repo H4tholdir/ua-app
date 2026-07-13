@@ -149,6 +149,51 @@ describe('TileScelta — selezione nel wizard (§5.12)', () => {
     )
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
   })
+
+  it('con nomeRiga2 renderizza DUE righe (riga1 + riga2 entrambe nel DOM, §5.12 variante due-righe ratificata)', () => {
+    render(<TileScelta nome="Corona" nomeRiga2="su impianto" onClick={() => {}} />)
+    expect(screen.getByText('Corona')).toBeInTheDocument()
+    expect(screen.getByText('su impianto')).toBeInTheDocument()
+  })
+
+  it('con nomeRiga2 il nome accessibile del bottone resta la concatenazione riga1 + riga2', () => {
+    render(<TileScelta nome="Corona" nomeRiga2="su impianto" onClick={() => {}} />)
+    expect(screen.getByRole('button', { name: /Corona su impianto/ })).toBeInTheDocument()
+  })
+
+  it('senza nomeRiga2 resta una riga sola con gli stili di troncamento invariati (non-regressione)', () => {
+    render(<TileScelta nome="Corona metallo-ceramica lunghissima" onClick={() => {}} />)
+    const nome = screen.getByText('Corona metallo-ceramica lunghissima') as HTMLElement
+    expect(nome.style.whiteSpace).toBe('nowrap')
+    expect(nome.style.overflow).toBe('hidden')
+    expect(nome.style.textOverflow).toBe('ellipsis')
+    expect(nome.style.maxWidth).toBe('100%')
+  })
+
+  it('con nomeRiga2 ogni riga può troncare singolarmente (ellissi per riga, anatomia fissa)', () => {
+    render(
+      <TileScelta
+        nome="Scheletrato con attacchi di precisione lunghissimo"
+        nomeRiga2="fresaggi personalizzati extra lunghi"
+        onClick={() => {}}
+      />
+    )
+    const riga1 = screen.getByText('Scheletrato con attacchi di precisione lunghissimo') as HTMLElement
+    const riga2 = screen.getByText('fresaggi personalizzati extra lunghi') as HTMLElement
+    for (const riga of [riga1, riga2]) {
+      expect(riga.style.whiteSpace).toBe('nowrap')
+      expect(riga.style.overflow).toBe('hidden')
+      expect(riga.style.textOverflow).toBe('ellipsis')
+      expect(riga.style.maxWidth).toBe('100%')
+    }
+  })
+
+  it('con nomeRiga2, nome + nomeRiga2 + sotto passano trovaParoleVietate', () => {
+    const { container } = render(
+      <TileScelta nome="Corona" nomeRiga2="su impianto" sotto="6 · 30gg" onClick={() => {}} />
+    )
+    expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
+  })
 })
 
 describe('TileNuovo — apre la creazione di un nuovo elemento (§5.12)', () => {

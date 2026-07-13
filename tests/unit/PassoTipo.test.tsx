@@ -51,22 +51,34 @@ describe('PassoTipo — Passo 2 del wizard (Task 10)', () => {
     expect(screen.getByText('Tocca il tipo. Poi ci pensa UÀ a stimare i tempi.')).toBeInTheDocument()
   })
 
-  it('mostra 4 TileScelta dai topTipi: nome (labelTipo) + sotto count>0 → "N · 30gg"', () => {
+  it('mostra 4 TileScelta dai topTipi: nome due-righe (riga1 + riga2 dalla tassonomia) + sotto count>0 → "N · 30gg"', () => {
     renderPasso()
+    // Corona zirconia → tile.riga1="Corona" / tile.riga2="zirconia", DUE righe visive (§5.12).
     const tileCorona = screen.getByRole('button', { name: /Corona zirconia/ })
+    expect(within(tileCorona).getByText('Corona')).toBeInTheDocument()
+    expect(within(tileCorona).getByText('zirconia')).toBeInTheDocument()
     expect(within(tileCorona).getByText('9 · 30gg')).toBeInTheDocument()
+    // Riparazione → tile.riga2 assente (nome singolo), resta una riga sola.
     const tileRiparazione = screen.getByRole('button', { name: /Riparazione/ })
+    expect(within(tileRiparazione).getByText('Riparazione')).toBeInTheDocument()
     expect(within(tileRiparazione).getByText('4 · 30gg')).toBeInTheDocument()
   })
 
   it('sotto count=0 → LABEL_MACRO del tipo (mai "0 · 30gg")', () => {
     renderPasso()
+    // Corona su impianto → tile.riga1="Corona" / tile.riga2="su impianto".
     const tileImpianto = screen.getByRole('button', { name: /Corona su impianto/ })
+    expect(within(tileImpianto).getByText('Corona')).toBeInTheDocument()
+    expect(within(tileImpianto).getByText('su impianto')).toBeInTheDocument()
     expect(within(tileImpianto).getByText('Implantologia')).toBeInTheDocument()
     expect(within(tileImpianto).queryByText(/0 · 30gg/)).not.toBeInTheDocument()
 
+    // Provvisorio resina → tile.riga1="Provvisorio" / tile.riga2="resina".
+    // "Provvisorio" compare due volte nel tile: riga1 del nome + LABEL_MACRO
+    // del `sotto` (count=0) — entrambe legittime, si verifica il conteggio.
     const tileProvvisorio = screen.getByRole('button', { name: /Provvisorio resina/ })
-    expect(within(tileProvvisorio).getByText('Provvisorio')).toBeInTheDocument()
+    expect(within(tileProvvisorio).getAllByText('Provvisorio')).toHaveLength(2)
+    expect(within(tileProvvisorio).getByText('resina')).toBeInTheDocument()
   })
 
   it('ogni tile porta un glifo line-SVG aria-hidden, MAI un emoji', () => {

@@ -20,13 +20,11 @@
 //   - la ricerca del passo usa `cercaTipiLavoro` (alias inclusi: 'cappetta'
 //     trova Corona zirconia), non un filtro locale sulla label.
 //
-// DEVIAZIONE ANNOTATA (piano Task 10 Step 3): il nome del tile è su UNA riga
-// (`nome={labelTipo(t)}`, TileScelta tronca con ellissi — truncation reale
-// aggiunto al componente nel fix round 1, prima wrappava), non le due righe
-// visive (riga1 grande + riga2) del parere advisor — la firma reale di
-// TileScelta è `nome: string` e la legge §5.12 ne fissa l'anatomia. La
-// scelta una-riga resta da ratificare al gate; se bocciata: prop additiva
-// `nomeRiga2?: string` in un fix round successivo.
+// RATIFICA FRANCESCO (Task 10b): il nome del tile è su DUE RIGHE — riga1 +
+// riga2 dalla tassonomia (`t.tile.riga1`/`t.tile.riga2`, es. «Corona» /
+// «su impianto»), via la prop `nomeRiga2` di TileScelta (§5.12). Per i tipi a
+// nome singolo (es. «Riparazione») `riga2` è assente → TileScelta ricade sul
+// comportamento una-riga esistente, invariato.
 
 import { useMemo, useState } from 'react'
 import { tipografia } from '@/design-system/v3/tokens'
@@ -37,7 +35,6 @@ import { PillVoce } from '@/components/ds/PillVoce'
 import {
   TIPI_LAVORO,
   LABEL_MACRO,
-  labelTipo,
   trovaTipo,
   cercaTipiLavoro,
   type TipoLavoro,
@@ -78,7 +75,8 @@ export function PassoTipo(props: {
     return (
       <TileScelta
         key={t.id}
-        nome={labelTipo(t)}
+        nome={t.tile.riga1}
+        nomeRiga2={t.tile.riga2}
         sotto={count > 0 ? `${count} · 30gg` : LABEL_MACRO[t.macro]}
         glifo={GLIFI_FAMIGLIA[t.macro]}
         onClick={() => onScegli({ kind: 'catalogo', tipoId: t.id })}

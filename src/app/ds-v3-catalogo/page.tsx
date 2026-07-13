@@ -466,6 +466,50 @@ export default function CatalogoPage() {
             colore, senza stato. TileScelta è una selezione (vibrazione, mai suono); TileNuovo e
             RigaCerca aprono qualcos&apos;altro.
           </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 15,
+            }}
+          >
+            <TileScelta
+              nome="Abutment"
+              nomeRiga2="personalizzato"
+              sotto="3 · 30gg"
+              glifo={
+                // Glifo line-SVG (§4.4), MAI emoji — path Corona riusato da
+                // GLIFI_FAMIGLIA/wizard.html:311 (segnaposto generico anche
+                // qui: il refinement per-tipo è backlog).
+                <svg
+                  viewBox="0 0 24 24"
+                  width="32"
+                  height="32"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.7}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ color: 'var(--blue)' }}
+                >
+                  <path d="M4.5 8.5l3.4 3.2L12 5.5l4.1 6.2 3.4-3.2-1.6 8.5H6.1l-1.6-8.5z" />
+                  <path d="M6.5 20h11" />
+                </svg>
+              }
+              onClick={() => {}}
+            />
+          </div>
+          <p
+            style={{
+              fontSize: tipografia.size.caption,
+              color: 'var(--muted)',
+              margin: 0,
+            }}
+          >
+            Variante due-righe (`nomeRiga2`, ratificata da Francesco): riga1 + riga2 dalla
+            tassonomia (Passo 2 del wizard «Nuovo lavoro»), stesso stile 17.5/700 per riga.
+          </p>
         </div>
       </SezioneCatalogo>
 

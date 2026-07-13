@@ -13,6 +13,23 @@ import { vibra } from '@/design-system/v3/haptic'
 import { suona } from '@/design-system/v3/sound'
 import { Avatar } from '@/components/ds/Avatar'
 
+// Stile riga nome (§5.12): 17.5/700 `--ink`, troncamento ellissi — condiviso
+// dal caso una-riga e da ciascuna delle due righe della variante nomeRiga2
+// (ogni riga tronca per conto suo, l'anatomia del tile resta fissa).
+const stileRigaNome = {
+  maxWidth: '100%',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  fontSize: 17.5,
+  fontWeight: tipografia.weight.bold,
+  color: 'var(--ink)',
+} as const
+
+// Variante due-righe (Task 10b): stesso stile + line-height compatto, per
+// impilare riga1/riga2 senza allargare il tile.
+const stileRigaNomeDueRighe = { ...stileRigaNome, lineHeight: 1.05 } as const
+
 /**
  * TileScelta — una opzione nella griglia del wizard (§5.12).
  *
@@ -20,15 +37,23 @@ import { Avatar } from '@/components/ds/Avatar'
  * `Avatar`) oppure `glifo` 64 in quadrato radius 20 tint · nome 17.5/700 ·
  * sotto 13 `--faint`. Pressione fisica leggera (`molla.press`) + `vibra('selection')`:
  * nessun suono, è una selezione fra opzioni esistenti, non un'azione.
+ *
+ * Nome: UNA riga con ellissi di default (`nome`, comportamento invariato —
+ * PassoDentista e altri consumer). Variante DUE RIGHE opzionale (ratificata
+ * da Francesco, Ondata 2 Task 10b): passando `nomeRiga2` il nome si impila su
+ * due righe (riga1 = `nome`, riga2 = `nomeRiga2`), stesso stile tipografico
+ * 17.5/700 per riga, ciascuna troncabile con ellissi — l'anatomia del tile
+ * (altezza, centratura) resta fissa in entrambi i casi.
  */
 export function TileScelta(props: {
   nome: string
+  nomeRiga2?: string
   sotto?: string
   avatar?: string
   glifo?: ReactNode
   onClick: () => void
 }) {
-  const { nome, sotto, avatar, glifo, onClick } = props
+  const { nome, nomeRiga2, sotto, avatar, glifo, onClick } = props
 
   function handleClick() {
     vibra('selection')
@@ -85,23 +110,34 @@ export function TileScelta(props: {
           </span>
         )}
         {/* Nome su UNA riga, ellissi sui nomi lunghi (§5.12 — anatomia fissa
-            del tile; fix round Task 10): vale per ogni consumer — i nomi
-            dentista lunghi al Passo 1 troncano invece di wrappare, i tipi
-            granulari al Passo 2 restano una riga (deviazione una-riga
-            annotata nel report Task 10, da ratificare al gate). */}
-        <span
-          style={{
-            maxWidth: '100%',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            fontSize: 17.5,
-            fontWeight: tipografia.weight.bold,
-            color: 'var(--ink)',
-          }}
-        >
-          {nome}
-        </span>
+            del tile; fix round Task 10): comportamento di default, invariato
+            per ogni consumer che non passa `nomeRiga2` — i nomi dentista
+            lunghi al Passo 1 troncano invece di wrappare. Variante DUE RIGHE
+            (Task 10b, ratificata da Francesco): quando `nomeRiga2` è presente
+            (tipi granulari al Passo 2: riga1+riga2 dalla tassonomia, es.
+            «Corona» / «su impianto»), il nome si impila su due righe, stesso
+            stile tipografico per riga, ciascuna troncabile indipendentemente
+            — l'anatomia fissa del tile non cambia. Lo spazio letterale fra le
+            due righe (testo, non layout: il flex a colonna scarta i nodi di
+            solo-spazio) mantiene il nome accessibile del bottone identico al
+            caso una-riga ("riga1 riga2"), per i consumer che leggono il nome
+            via ruolo ARIA. */}
+        {nomeRiga2 ? (
+          <span
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              maxWidth: '100%',
+            }}
+          >
+            <span style={stileRigaNomeDueRighe}>{nome}</span>{' '}
+            <span style={stileRigaNomeDueRighe}>{nomeRiga2}</span>
+          </span>
+        ) : (
+          <span style={stileRigaNome}>{nome}</span>
+        )}
         {sotto && (
           <span
             style={{
