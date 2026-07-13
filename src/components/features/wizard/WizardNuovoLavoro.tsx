@@ -25,12 +25,12 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
-import { tipografia } from '@/design-system/v3/tokens'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { ProgressDots } from '@/components/ds/ProgressDots'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { PassoDentista } from './PassoDentista'
 import { PassoTipo } from './PassoTipo'
+import { PassoPaziente } from './PassoPaziente'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
@@ -115,10 +115,28 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 
   // Task 10: la scelta del tipo (tile, catalogo o «Descrivilo») salva `tipo` e
   // avanza al Passo 3 — `direzione` 'avanti' PRIMA del cambio passo (contratto
-  // sopra), stesso schema di `sceltaDentista`.
-  const sceltaTipo = useCallback((tipo: TipoScelto) => {
-    setDirezione('avanti')
-    setStato((s) => ({ ...s, tipo, passo: 3 }))
+  // sopra), stesso schema di `sceltaDentista`. Task 11 (brief): al mount del
+  // Passo 3 il wizard precompila `pz` con `dati.prossimoPz` SE ancora vuoto —
+  // `s.pz || dati.prossimoPz` non sovrascrive mai un codice già scritto
+  // dall'odontotecnico in un giro precedente (indietro poi di nuovo avanti).
+  const sceltaTipo = useCallback(
+    (tipo: TipoScelto) => {
+      setDirezione('avanti')
+      setStato((s) => ({ ...s, tipo, passo: 3, pz: s.pz || dati.prossimoPz }))
+    },
+    [dati.prossimoPz]
+  )
+
+  // Task 11: PassoPaziente è un componente controllato — questo è l'unico
+  // punto che scrive nello stato condiviso i suoi campi (pz/alias/elemento/
+  // colore/foto). Task 12 sostituirà `continuaPaziente`/`inCreazione` con la
+  // persistenza reale; qui restano uno stub perché il contratto delle props
+  // (consumato dal Task 12) va rispettato ORA, non riaperto dopo.
+  const cambiaPaziente = useCallback((patch: Partial<StatoWizard>) => {
+    setStato((s) => ({ ...s, ...patch }))
+  }, [])
+  const continuaPaziente = useCallback(() => {
+    // Segnaposto (Task 12, brief): qui nascerà la creazione vera del lavoro.
   }, [])
 
   const corpo = (
@@ -131,14 +149,30 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       <AnimatePresence mode="popLayout" initial={false}>
         {reduced ? (
           <div key={stato.passo}>
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} onScegliTipo={sceltaTipo} />
+            <RenderPasso
+              stato={stato}
+              dati={dati}
+              onScegli={sceltaDentista}
+              onNuovoDentista={apriSheetDentista}
+              onScegliTipo={sceltaTipo}
+              onCambiaPaziente={cambiaPaziente}
+              onContinuaPaziente={continuaPaziente}
+            />
           </div>
         ) : (
           <motion.div
             key={stato.passo}
             {...(direzione === 'avanti' ? coreografie.wizardAvanti : coreografie.wizardIndietro)}
           >
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} onScegliTipo={sceltaTipo} />
+            <RenderPasso
+              stato={stato}
+              dati={dati}
+              onScegli={sceltaDentista}
+              onNuovoDentista={apriSheetDentista}
+              onScegliTipo={sceltaTipo}
+              onCambiaPaziente={cambiaPaziente}
+              onContinuaPaziente={continuaPaziente}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -167,15 +201,17 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   )
 }
 
-/** Il corpo del passo corrente. Il Passo 3 è un segnaposto minimo — Task 11/12 lo sostituiscono. */
+/** Il corpo del passo corrente. */
 function RenderPasso(props: {
   stato: StatoWizard
   dati: DatiWizard
   onScegli: (d: { id: string; label: string }) => void
   onNuovoDentista: () => void
   onScegliTipo: (t: TipoScelto) => void
+  onCambiaPaziente: (patch: Partial<StatoWizard>) => void
+  onContinuaPaziente: () => void
 }) {
-  const { stato, dati, onScegli, onNuovoDentista, onScegliTipo } = props
+  const { stato, dati, onScegli, onNuovoDentista, onScegliTipo, onCambiaPaziente, onContinuaPaziente } = props
 
   if (stato.passo === 1) {
     return (
@@ -197,10 +233,21 @@ function RenderPasso(props: {
     )
   }
 
-  // Segnaposto minimo (Task 10, brief): il Task 11/12 costruisce PassoPaziente
-  // per intero (codice PZ, dettagli opzionali, foto). Qui SOLO la domanda, per
-  // non lasciare la coreografia passo→passo senza un terzo passo da mostrare.
-  return <h1 style={stileDomanda}>Chi è il paziente?</h1>
+  // Task 11: PassoPaziente per intero (codice PZ, dettagli opzionali, foto).
+  // `onContinua`/`inCreazione` restano uno stub del wizard (Task 12 li
+  // sostituirà con la persistenza reale — vedi `continuaPaziente` sopra).
+  return (
+    <PassoPaziente
+      pz={stato.pz}
+      alias={stato.alias}
+      elemento={stato.elemento}
+      colore={stato.colore}
+      foto={stato.foto}
+      onCambia={onCambiaPaziente}
+      onContinua={onContinuaPaziente}
+      inCreazione={false}
+    />
+  )
 }
 
 /**
@@ -238,16 +285,4 @@ const testataStile: CSSProperties = {
   alignItems: 'center',
   gap: 16,
   marginBottom: 22,
-}
-
-// Duplicato minimo dello stile domanda di PassoDentista.tsx SOLO per il
-// segnaposto del Passo 3 (temporaneo, il Task 11/12 lo rimuove insieme a
-// PassoPaziente — non vale la pena estrarre un modulo condiviso per due file
-// che smetteranno di avere questo duplicato entro l'ondata).
-const stileDomanda: CSSProperties = {
-  fontSize: tipografia.size.question,
-  fontWeight: tipografia.weight.extrabold,
-  letterSpacing: tipografia.tracking.titoli,
-  lineHeight: 1.08,
-  color: 'var(--ink)',
 }
