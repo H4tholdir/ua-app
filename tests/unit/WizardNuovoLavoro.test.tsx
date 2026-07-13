@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act, waitFor } from '@testing-library/react'
+import { render, screen, act, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WizardNuovoLavoro } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
@@ -130,6 +130,47 @@ describe('WizardNuovoLavoro — shell + Passo 1 dentisti (Task 8)', () => {
     expect(screen.getByRole('textbox')).toHaveValue('esposito')
     expect(screen.getByRole('button', { name: /Dr\. Esposito/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Dr\.ssa Bianchi/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('WizardNuovoLavoro — wiring PassoTipo (Task 10)', () => {
+  const DATI_CON_TIPI: DatiWizard = {
+    ...DATI,
+    topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+    frequenzeTipi: { corona_zirconia: 9, riparazione: 4 },
+  }
+
+  async function arrivaAlPasso2(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
+  }
+
+  it('al Passo 2 mostra i tile dai topTipi (PassoTipo, non più il segnaposto)', async () => {
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await arrivaAlPasso2(user)
+    expect(screen.getByRole('button', { name: /Corona zirconia/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '＋ Un altro tipo' })).toBeInTheDocument()
+  })
+
+  it('tap su un tile tipo → salva il tipo e avanza al Passo 3 ("Chi è il paziente?")', async () => {
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await arrivaAlPasso2(user)
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument()
+  })
+
+  it('scelta "Descrivilo" dal catalogo → avanza al Passo 3', async () => {
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await arrivaAlPasso2(user)
+    await user.click(screen.getByRole('button', { name: '＋ Un altro tipo' }))
+    const dialog = screen.getByRole('dialog', { name: 'Tutti i tipi di lavoro' })
+    await user.click(within(dialog).getByRole('button', { name: /Non lo trovi\? Descrivilo/ }))
+    await user.type(within(dialog).getByLabelText('Descrizione'), 'Saldatura gancio')
+    await user.click(within(dialog).getByRole('button', { name: /usa questa descrizione/i }))
+    expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument()
   })
 })
 

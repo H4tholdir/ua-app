@@ -30,6 +30,7 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { ProgressDots } from '@/components/ds/ProgressDots'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { PassoDentista } from './PassoDentista'
+import { PassoTipo } from './PassoTipo'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
@@ -112,6 +113,14 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 
   const apriSheetDentista = useCallback(() => setSheetDentistaAperto(true), [])
 
+  // Task 10: la scelta del tipo (tile, catalogo o «Descrivilo») salva `tipo` e
+  // avanza al Passo 3 — `direzione` 'avanti' PRIMA del cambio passo (contratto
+  // sopra), stesso schema di `sceltaDentista`.
+  const sceltaTipo = useCallback((tipo: TipoScelto) => {
+    setDirezione('avanti')
+    setStato((s) => ({ ...s, tipo, passo: 3 }))
+  }, [])
+
   const corpo = (
     <div style={colonnaStile}>
       <div style={testataStile}>
@@ -122,14 +131,14 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
       <AnimatePresence mode="popLayout" initial={false}>
         {reduced ? (
           <div key={stato.passo}>
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} />
+            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} onScegliTipo={sceltaTipo} />
           </div>
         ) : (
           <motion.div
             key={stato.passo}
             {...(direzione === 'avanti' ? coreografie.wizardAvanti : coreografie.wizardIndietro)}
           >
-            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} />
+            <RenderPasso stato={stato} dati={dati} onScegli={sceltaDentista} onNuovoDentista={apriSheetDentista} onScegliTipo={sceltaTipo} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -158,14 +167,15 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   )
 }
 
-/** Il corpo del passo corrente. Passo 2/3 sono un segnaposto minimo — Task 9/10/12 li sostituiscono. */
+/** Il corpo del passo corrente. Il Passo 3 è un segnaposto minimo — Task 11/12 lo sostituiscono. */
 function RenderPasso(props: {
   stato: StatoWizard
   dati: DatiWizard
   onScegli: (d: { id: string; label: string }) => void
   onNuovoDentista: () => void
+  onScegliTipo: (t: TipoScelto) => void
 }) {
-  const { stato, dati, onScegli, onNuovoDentista } = props
+  const { stato, dati, onScegli, onNuovoDentista, onScegliTipo } = props
 
   if (stato.passo === 1) {
     return (
@@ -178,13 +188,19 @@ function RenderPasso(props: {
   }
 
   if (stato.passo === 2) {
-    // Segnaposto minimo (Task 8, brief): il Task 10 costruisce PassoTipo per
-    // intero (griglia tipi, ricerca, PillVoce). Qui SOLO la domanda, per non
-    // lasciare la coreografia passo→passo senza un secondo passo da mostrare.
-    return <h1 style={stileDomanda}>Che lavoro è?</h1>
+    return (
+      <PassoTipo
+        topTipi={dati.topTipi}
+        frequenze={dati.frequenzeTipi}
+        onScegli={onScegliTipo}
+      />
+    )
   }
 
-  return null
+  // Segnaposto minimo (Task 10, brief): il Task 11/12 costruisce PassoPaziente
+  // per intero (codice PZ, dettagli opzionali, foto). Qui SOLO la domanda, per
+  // non lasciare la coreografia passo→passo senza un terzo passo da mostrare.
+  return <h1 style={stileDomanda}>Chi è il paziente?</h1>
 }
 
 /**
@@ -225,8 +241,8 @@ const testataStile: CSSProperties = {
 }
 
 // Duplicato minimo dello stile domanda di PassoDentista.tsx SOLO per il
-// segnaposto del Passo 2 (temporaneo, il Task 10 lo rimuove insieme a
-// PassoTipo — non vale la pena estrarre un modulo condiviso per due file
+// segnaposto del Passo 3 (temporaneo, il Task 11/12 lo rimuove insieme a
+// PassoPaziente — non vale la pena estrarre un modulo condiviso per due file
 // che smetteranno di avere questo duplicato entro l'ondata).
 const stileDomanda: CSSProperties = {
   fontSize: tipografia.size.question,
