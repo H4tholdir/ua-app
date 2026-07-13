@@ -164,10 +164,14 @@ Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a *
 
 ## 8. Responsive (§12 madre)
 
+La scheda completa v3 è un **componente riusabile** (`SchedaLavoroV3`) montato sulla route standalone `/lavori/[id]`. **Nota architetturale verificata in review:** la vista pile (`/lavori?pila=…&lavoro=…`) usa il DTO ridotto `LavoroPila` (fasi **senza id**), mentre la modifica per-riga e il gesto di completamento fase richiedono `LavoroDettaglio` (fasi con id per `PATCH …/fasi/[faseId]`). Quindi la scheda **interattiva vive sulla route `/lavori/[id]`**, non nel pannello pile.
+
 - **Mobile (390):** scheda piena; `Sheet` = bottom sheet; menu ⋯ = bottom sheet.
-- **768 (split):** lista lavori 360 a sinistra + scheda a destra (pattern pila-aperta 768). `Sheet` → pannello laterale.
-- **1280 (3 pannelli §12.3):** la scheda vive nel **pannello destro** (pattern Ondata 1 `SchedaAnteprima`); `Sheet` → pannello laterale **420px**.
+- **Desktop (768/1280):** la route `/lavori/[id]` mostra la scheda come **card centrata** (max-width ~640); `Sheet`/menu come bottom-sheet o dialog centrato (resa esatta nel piano). Nessuna lista di provenienza: un deep-link contestuale non ha una pila definita (`«quale pila?»` è indefinito per un `in_lavorazione`), quindi la card centrata è la resa standalone coerente — **non una deviazione dal mockup**.
+- **Vista pile invariata:** `SchedaAnteprima` (Ondata 1) resta l'**anteprima read-only** nel pannello destro dello split/3-pannelli, con «Apri la scheda completa» → `/lavori/[id]`. Il commento di `SchedaAnteprima` «la scheda piena con chi/quando arriva in Ondata 3» è soddisfatto dalla route standalone.
 - Entrambi i temi (light + dark). `data-ds="v3"` + `background: var(--bg)` sul page-root.
+
+**Follow-up tracciato (NON in 3a):** upgrade del pannello destro della vista pile da `SchedaAnteprima` (anteprima) alla `SchedaLavoroV3` interattiva — richiede il fetch di `LavoroDettaglio` su `?lavoro=` e la resa `Sheet` → pannello laterale 420px. È il layout split/desktop del mockup gate-0B (`.split`/`.desktop`, pannello destro = full-card); rimandato per tenere 3a fuori dal codice Ondata 1 deployato e dare al problema sheet-as-panel un pass dedicato. Costo contenuto: `SchedaLavoroV3` è già costruita in 3a, il follow-up è «montala nel pannello + 1 fetch + sheet laterale».
 
 ---
 
@@ -199,6 +203,7 @@ Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a *
 - Flussi Prezzi&lavorazioni / Dati clinici / Prove / Foto nativi + N4 → **3b**.
 - Flusso «Produzione» nativo (editing non-conformità di fase) → **3b**.
 - Backend «Annulla lavoro» (soft-delete MDR-conforme) → **stage dedicato**.
+- Upgrade del pannello destro della vista pile a `SchedaLavoroV3` interattiva (fetch `LavoroDettaglio` + sheet-as-panel 420px) → **follow-up desktop dedicato** (§8).
 
 ---
 
