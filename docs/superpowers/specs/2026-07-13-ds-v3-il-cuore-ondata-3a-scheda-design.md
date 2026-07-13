@@ -13,7 +13,7 @@
 
 Ondata 3 (Scheda lavoro) si **decompone in 3a + 3b**. Questa spec copre **3a**: `/lavori/[id]` passa da form-multi-tab v2.3 a **scheda-vista v3** (sola lettura + azioni + modifica per-riga via Sheet). I flussi ⋯ pesanti (Prezzi&lavorazioni, Dati clinici, Prove) e Foto restano a **ponte** verso il form v2.3 esistente (deep-link) fino a 3b, che li nativizza e affronta N4. Il flusso Consegna e la morte di `/lavori/[id]/consegna` sono 4b.
 
-**Invarianti 3a:** zero API nuove · zero migration · zero dominio fiscale · scheda-vista 100% v3 · `CONSEGNA` disabled (4b la riabilita).
+**Invarianti 3a:** zero API nuove · zero migration · zero dominio fiscale · scheda-vista 100% v3 · il tasto `CONSEGNA` naviga al flusso `/consegna` v2.3 esistente quando il lavoro è consegnabile (identica azione del `TastoConsegnaInline` della pila, già in produzione da Ondata 1); 4b lo sostituirà col flusso in-scheda.
 
 ---
 
@@ -31,16 +31,16 @@ Migrare la **scheda lavoro** `/lavori/[id]` a DS v3 secondo §7/§7.1 della spec
 - **Scheda-vista v3** (§3).
 - **Modifica per-riga** via `Sheet` una-domanda (§4).
 - **CardFasi** read-only con gesto di completamento (§5).
-- Voce ⋯ **Annulla lavoro** → `DialogConferma` (§6.2).
+- Voce ⋯ **Annulla lavoro** → presente ma **disabilitata** (§6.2), backend rimandato a stage dedicato.
 - Voce ⋯ **Documenti** → hub download nativo (§6.3).
 - `TastoSecondario` **Rifacimento** e **Segnala problema** contestuali (§3.4).
-- Route-ponte `/lavori/[id]/modifica` con soppressione consegna (§7).
+- Route-ponte `/lavori/[id]/modifica` che sopprime il tasto CONSEGNA fuori contesto (§7).
 
 ### 1.3 Resta a ponte v2.3 fino a 3b
 - Voci ⋯ **Prezzi e lavorazioni** · **Dati clinici** · **Prove** · **Foto** → deep-link al form v2.3 esistente (§7).
 
 ### 1.4 Fuori da 3a (esplicitamente)
-- Flusso Consegna (precheck → `DialogConferma` → esito) e morte di `/lavori/[id]/consegna` → **4b**.
+- Riscrittura del flusso Consegna (precheck → `DialogConferma` → esito in-scheda) e morte di `/lavori/[id]/consegna` → **4b**. In 3a il tasto CONSEGNA usa il flusso `/consegna` v2.3 così com'è (viva fino a 4b), come già fa la pila.
 - Decisione **N4** (fonte di verità del prezzo lavoro: `lavori.prezzo_unitario` vs righe `lavori_lavorazioni`) → **3b**, dentro «Prezzi e lavorazioni».
 - Smontaggio nativo dei tab pesanti e flusso «Produzione» nativo → **3b**.
 
@@ -51,8 +51,8 @@ Migrare la **scheda lavoro** `/lavori/[id]` a DS v3 secondo §7/§7.1 della spec
 | # | Decisione | Origine |
 |---|---|---|
 | D1 | Ondata 3 si decompone in **3a** (scheda-vista + editing comune + flussi leggeri) e **3b** (flussi pesanti nativi + N4). | Francesco |
-| D2 | `TastoPrimario CONSEGNA` **presente ma disabilitato** in 3a (mai nascosto, con callout). Il flusso Consegna resta a 4b. | Francesco (Nodo 1) |
-| D3 | **Regressione accettata**: tra il deploy di 3a e quello di 4b non si consegna dalla scheda. Nessun laboratorio reale in uso quotidiano; 4b arriva subito dopo. | Francesco (Nodo 1) |
+| D2 | Il tasto `TastoPrimario CONSEGNA` della scheda **naviga a `/lavori/[id]/consegna` v2.3** quando il lavoro è consegnabile (stessa azione del `TastoConsegnaInline` della pila, già in produzione), **disabled + callout** quando non consegnabile (§5.1). 4b sostituirà il flusso `/consegna` con quello in-scheda. | Francesco (Nodo 1, rivisto in review) |
+| D3 | **Nessuna regressione consegna** in 3a: scheda e pila portano entrambe allo stesso flusso `/consegna` v2.3 (vivo fino a 4b) → coerenza anche nel desktop split. Fatto emerso in review advisor: la consegna era già raggiungibile dalla pila (Ondata 1, `PilaAperta`/`PilaSplit`), quindi «CONSEGNA disabled» avrebbe creato un'incoerenza pila-consegna/scheda-no sullo stesso schermo. | Advisor + Francesco |
 | D4 | Ponte ai flussi pesanti = **route `/lavori/[id]/modifica`** che rende `LavoroFormClient` con `defaultTab` (deep-link) e `bridged` (**CONSEGNA + barra sticky soppresse**). Il menu ⋯ mostra le **6 etichette del mockup** (no «Modifica avanzata» generica). | Advisor + Francesco |
 | D5 | Confine leggero/pesante di 3a: **nativi** = modifica per-riga, Annulla lavoro, Documenti (hub), Rifacimento e Segnala (TastoSecondario contestuali). **A ponte** = Prezzi&lavorazioni, Dati clinici, Prove, **Foto**. | Francesco (raccomandazione accolta) |
 | D6 | **Documenti nativo** (non a ponte): il ponte sarebbe incompleto perché pacchetto MDR e scheda-fabbricazione non vivono in un tab; l'hub è un elenco di download su endpoint esistenti. | Analisi codice + Francesco |
@@ -76,7 +76,11 @@ Ordine verticale (mobile), fedele al mockup approvato:
 5. **CardFasi** (§5) — solo se il lavoro ha fasi.
 
 ### 3.3 Azione primaria
-`TastoPrimario CONSEGNA` **sempre presente, disabled in 3a**, mai nascosto. Callout sotto: «Disponibile a breve» (o «Completa il controllo finale per consegnare» quando le fasi non sono tutte fatte — la variante di copy si fissa nel piano). L'abilitazione reale (fasi complete + stato `pronto`/`in_ritardo`) è logica di 4b.
+`TastoPrimario CONSEGNA` **sempre presente, mai nascosto**.
+- **Abilitato** quando il lavoro è **consegnabile** (tutte le fasi fatte + stato ∈ `STATI_CONSEGNABILI` — la stessa nozione di `l.consegnabile` usata dalla pila; adapter E4). Al tap: `router.push('/lavori/[id]/consegna')` — il flusso v2.3 vivo, **identico** a ciò che fa già il `TastoConsegnaInline` della pila. Nessun salvataggio globale da fare (la modifica per-riga salva già ottimisticamente).
+- **Disabled** quando non consegnabile, con callout «Completa il controllo finale per consegnare».
+
+In 4b il tasto verrà ricablato al flusso Consegna in-scheda; in 3a riusa il percorso esistente senza aggiungere debito (la pagina `/consegna` muore comunque in 4b).
 
 ### 3.4 Azioni contestuali (TastoSecondario)
 - **Rifacimento** — visibile se `stato ∈ {consegnato, pronto, sospeso}`. Riusa `crea_rifacimento_atomico` via l'attuale endpoint `POST /api/lavori/[id]/rifacimento`. Presentazione v3 (`TastoSecondario` + `DialogConferma`), rimpiazza `RifacimentoButton` v2.3.
@@ -121,10 +125,12 @@ Tap su una `RigaDato` editabile della CardInfo → `Sheet` con **il solo input p
 3. **Prove** → ponte (§7)
 4. **Foto** → ponte (§7)
 5. **Documenti** → hub nativo (§6.3)
-6. **Annulla lavoro** (rossa, staccata) → `DialogConferma` (§6.2)
+6. **Annulla lavoro** (rossa, staccata) → **presente ma disabilitata in 3a** (§6.2)
 
-### 6.2 Annulla lavoro
-`DialogConferma` con oggetto esplicito (numero lavoro + effetto). Riusa il percorso di annullo/eliminazione lavoro esistente (soft-delete `deleted_at`). **Da fissare nel piano:** endpoint esatto (`DELETE`/`PATCH` esistente) e conseguenze MDR (la tracciabilità resta — è annullo, non cancellazione). Nessun nuovo endpoint se quello esistente basta.
+### 6.2 Annulla lavoro — disabilitata in 3a
+La voce compare (mockup 6-voci rispettato) ma è **disabilitata** con indicazione «prossimamente». Motivo verificato in review: **non esiste alcun backend** per annullare un lavoro — nessun `DELETE` sulla route `/api/lavori/[id]` (solo `GET`/`PATCH`), nessun writer di `lavori.deleted_at` (l'unico writer di `deleted_at` è su `lavori_lavorazioni`, cioè le righe). È quindi una **feature nuova**, mai esistita, che tocca MDR (sorte di un lavoro con DdC / consegnato / fatturato — la tracciabilità deve restare) e viola le invarianti «zero API nuove / zero dominio MDR» di 3a.
+
+Il suo progetto (soft-delete MDR-conforme + gestione stati DdC/consegnato/fatturato) è **rimandato a uno stage dedicato conforme** (decisione Francesco), tracciato nel backlog. In 3a la voce è solo un segnaposto disabilitato.
 
 ### 6.3 Documenti (hub nativo)
 `Sheet` che elenca come azioni di download/apertura, riusando endpoint **già esistenti**:
@@ -144,12 +150,13 @@ Le voci si mostrano condizionalmente (es. DdC solo se esiste, scheda-fabbricazio
 Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a **`/lavori/[id]/modifica?tab=…`** (route nuova, `data-ds="v3"` sul guscio). La pagina rende `LavoroFormClient` con due prop nuove:
 
 - `defaultTab: TabId` — deep-link (già supportato da `LavoroFormShell`; va solo inoltrato da `LavoroFormClient`). Mappatura: Prezzi e lavorazioni→`lavorazioni`, Dati clinici→`clinica`, Prove→`prove`, Foto→`immagini`.
-- `bridged: boolean` — quando true **sopprime**:
-  - il `TastoPrimario CONSEGNA` (righe 378-421) — **vincolo critico anti back-door consegna**: senza questo il ponte riaprirebbe il flusso consegna, cancellando la regressione D2/D3.
-  - la barra azioni sticky (Salva + 📦 Documenti MDR + CONSEGNA). L'autosave per-campo di `useLavoroForm` e i salvataggi interni dei tab (Lavorazioni/Prove/Immagini via loro API) restano.
-  - il pulsante «Segnala problema» / banner segnalazione se già portati nella scheda-vista (evitare doppioni) — **da fissare nel piano**.
+- `bridged: boolean` — quando true **sopprime SOLO il `TastoPrimario CONSEGNA`** (righe 378-421). Motivo: la consegna si avvia dalla scheda-vista o dalla pila, non da dentro un sotto-flusso di editing (es. «Prezzi e lavorazioni»); ed evita di mostrare il tasto CONSEGNA gold v2.3 (WCAG-fail) in una superficie gusciata v3.
+  - **La barra Salva RESTA** (correzione emersa in review). Verificato in `useLavoroForm.ts`: i tab a campi (`TabClinica`/`TabDati`/`TabDate`/`TabAccettazione`) mutano stato locale via `onChange={update}` e persistono **solo** su `save()`; l'autosave è debounced a 30s (fires solo con `data.id` presente). Sopprimere Salva farebbe evaporare le modifiche se l'utente chiude prima dei 30s. Salva fa solo `PATCH` e resta sulla pagina → non riapre alcun back-door. Il pulsante 📦 diventa ridondante col nuovo hub Documenti nativo: rimuoverlo dal ponte è cosmetico e opzionale.
+  - Il pulsante «Segnala problema» / banner segnalazione, se già portati nella scheda-vista, vanno evitati come doppione nel ponte — **da fissare nel piano**.
 
 **Header della route-ponte:** `TastoTondo ‹` back → `/lavori/[id]` (torna alla scheda-vista) + titolo `n.147`. Un guscio v3 attorno a contenuto v2.3: è il residuo v2.3 **fuori dalla scheda-vista**, esplicito e temporaneo, che 3b elimina sostituendo la destinazione dietro le stesse etichette.
+
+**Nota:** dopo la revisione D2/D3 il tasto CONSEGNA non è più «disabilitato in 3a», quindi sopprimerlo nel ponte non è più una questione anti-regressione ma di **contesto/coerenza v3**. Il vincolo resta valido (§11.6: audit che nessun tab abbia navigazioni interne autonome verso `/consegna`).
 
 **Perché route e non sheet:** back nativo, deep-link condivisibile, isolamento del residuo v2.3 in un URL dedicato. L'advisor concorda.
 
@@ -172,8 +179,8 @@ Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a *
   - CardInfo: tap su RigaDato apre il Sheet giusto; salvataggio ottimistico + rollback su errore.
   - CardFasi: `CheckTondo` sulla fase attiva emette il PATCH corretto; una sola fase attiva.
   - Documenti hub: mostra solo le voci pertinenti; ogni voce punta all'endpoint giusto.
-  - **Ponte `bridged`:** il form NON rende CONSEGNA né la barra sticky quando `bridged` è true (test di regressione anti back-door consegna); `defaultTab` apre il tab richiesto.
-  - Scheda-vista: CONSEGNA presente e `disabled`; Rifacimento/Segnala compaiono solo alle condizioni di stato/ruolo.
+  - **Ponte `bridged`:** il form NON rende il tasto CONSEGNA quando `bridged` è true, **ma continua a rendere la barra Salva** (test di regressione: le modifiche ai tab a campi restano salvabili); `defaultTab` apre il tab richiesto.
+  - Scheda-vista: CONSEGNA presente; abilitato+naviga a `/consegna` quando consegnabile, `disabled`+callout altrimenti; Rifacimento/Segnala compaiono solo alle condizioni di stato/ruolo; «Annulla lavoro» nel menu è presente e disabilitata.
 - **Verifica (FASE 7):** `tsc --noEmit` + `vitest run` + `next build`, tutti con output reale. Baseline attesa: 1561 pass | 4 skipped + i nuovi test.
 - **QA browser (FASE 9):** lab E2E (`00000000-…-0001`, **mai** lab Filippo), 3 viewport × 2 temi. Verifiche chiave: modifica per-riga persiste; CONSEGNA disabled; il ponte NON permette di consegnare; Documenti scarica i file reali; Rifacimento/Segnala contestuali.
 
@@ -182,26 +189,28 @@ Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a *
 ## 10. Invarianti e non-obiettivi
 
 **Invarianti:**
-- Zero API nuove (tutti gli endpoint esistono: PATCH lavoro, PATCH fasi, rifacimento, segnala, immagini, prove, lavorazioni, ifu/etichetta/ricevuta/scheda-fabbricazione, DdC).
+- Zero API nuove (tutti gli endpoint esistono: PATCH lavoro, PATCH fasi, rifacimento, segnala, immagini, prove, lavorazioni, ifu/etichetta/ricevuta/scheda-fabbricazione, DdC). Reso possibile dal rimando di «Annulla lavoro» (unica voce che avrebbe richiesto backend nuovo).
 - Zero migration.
-- Zero dominio fiscale (N4 in 3b).
-- La scheda-vista è 100% v3; il residuo v2.3 vive solo nella route-ponte `/lavori/[id]/modifica`.
+- Zero dominio fiscale/MDR nuovo (N4 in 3b; backend Annulla lavoro in stage dedicato).
+- La scheda-vista è 100% v3; il residuo v2.3 vive solo nella route-ponte `/lavori/[id]/modifica` e nel flusso `/consegna` v2.3 (raggiunto dal tasto CONSEGNA come già dalla pila), entrambi eliminati/sostituiti nelle ondate successive.
 
 **Non-obiettivi (rimandati):**
-- Consegna funzionante dalla scheda → **4b**.
+- Riscrittura del flusso Consegna in-scheda + morte di `/consegna` → **4b** (in 3a il tasto usa il flusso esistente).
 - Flussi Prezzi&lavorazioni / Dati clinici / Prove / Foto nativi + N4 → **3b**.
 - Flusso «Produzione» nativo (editing non-conformità di fase) → **3b**.
+- Backend «Annulla lavoro» (soft-delete MDR-conforme) → **stage dedicato**.
 
 ---
 
 ## 11. Punti aperti da fissare nel piano (non bloccanti)
 
-1. **Banner annullo in 3a:** mostrarlo disabilitato o rimandarlo del tutto a 4b (evitare azione morta). Default proposto: rimandare a 4b se l'annullo non è funzionale in 3a.
+1. **Banner annullo consegna in 3a:** l'`AnnullaConsegnaBanner` v2.3 esiste già (grace period). In 3a mostrarlo in resa v3 (riusa il percorso di annullo consegna esistente, `annulla-consegna`) o rimandarlo a 4b. Default proposto: portarlo in resa v3 se il percorso di annullo consegna è già funzionante oggi; altrimenti 4b.
 2. **Campo «note»** della modifica per-riga: identificare la colonna esatta (`descrizione` vs nota dedicata) e la presenza in `PATCHABLE_FIELDS`.
 3. **Banner segnalazione non risolta** (titolare/admin_rete «Segna risolta»): portarlo nella scheda-vista in 3a o rimandarlo, evitando doppioni con la route-ponte.
-4. **Annulla lavoro:** endpoint esatto (soft-delete) e copy del `DialogConferma`.
-5. **Copy callout CONSEGNA disabled** («Disponibile a breve» vs «Completa il controllo finale»).
-6. Verificare che la route-ponte con `bridged` non lasci affordance residue verso `/consegna` in nessuno dei tab (audit dei tab per link/navigazioni interne alla consegna).
+4. **Consegnabilità del tasto CONSEGNA:** confermare la fonte esatta di `l.consegnabile` usata dalla pila (adapter/derivazione E4) e riusarla identica nella scheda.
+5. **Copy callout CONSEGNA disabled** e testo «prossimamente» della voce Annulla lavoro disabilitata.
+6. Verificare che la route-ponte con `bridged` non lasci affordance residue verso `/consegna` in nessuno dei tab (audit dei tab per link/navigazioni interne autonome alla consegna).
+7. **Stage dedicato «Annulla lavoro»:** aprire un item di backlog per il design del soft-delete lavoro MDR-conforme (conseguenze su DdC/consegnato/fatturato).
 
 ---
 
