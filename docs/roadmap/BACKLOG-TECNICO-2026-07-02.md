@@ -602,3 +602,13 @@ Tutti non bloccanti per il merge di 3a. Tracciati dalla review finale whole-bran
 - **O6h — Upgrade pannello destro pile a full-card (§8, dal design 3a):** `SchedaAnteprima` read-only → full-card interattiva (fetch `LavoroDettaglio` su `?lavoro=` + sheet-as-panel 420px). Fuori da 3a per decisione esplicita.
 - **O6i — Stage «Annulla lavoro» backend MDR-conforme:** la voce ⋯ è oggi **disabilitata** (nessun backend; `deleted_at` writer solo su `lavori_lavorazioni`). Soft-delete lavoro MDR-conforme = stage dedicato.
 - **O6j — Flussi ⋯ pesanti nativi + N4 prezzo (3b):** Prezzi&lavorazioni/Dati clinici/Prove/Foto oggi vanno **a ponte** al form v2.3 bridged; in 3b diventano superfici v3 native. Include la decisione N4 (fonte di verità prezzo: `prezzo_unitario` vs righe `lavori_lavorazioni`) da chiudere PRIMA di fatturare lavori con righe importate.
+
+---
+
+## O7. Strategia AUDIT UI/UX a 3 livelli (impostata 13/07/2026, richiesta Francesco)
+
+Framework completo in `docs/design/audit-ui-ux/`. Gli item estetici O6 (allineamenti, proporzioni desktop, focus-visible, aria-label, empty-state nota, token DS-v2 in RifacimentoButton, ecc.) confluiscono nel **Livello 1** della scheda.
+
+- **O7-L1 — Micro-pass estetico scheda v3 (PRONTO):** `docs/design/audit-ui-ux/LIVELLO-1-scheda-v3.md`. Da eseguire in sessione nuova (worktree `polish-scheda-v3`). Copre i 7 difetti già individuati in QA + la checklist completa su 3 viewport × 2 temi. Deliverable: fix approvati + screenshot 3×2 + deploy di rifinitura.
+- **O7-L2 — Gate UI/UX di fine ondata (RICORRENTE):** aggiungere come ultimo step nei piani di ogni futura ondata (dopo QA funzionale, prima del merge), auditando la sola superficie dell'ondata contro `CHECKLIST-DS-V3-UI-UX.md`.
+- **O7-L3 — Audit capillare finale (a v3 completo):** `docs/design/audit-ui-ux/LIVELLO-3-audit-capillare-finale.md`. Audit atomico dell'intera PWA (ogni pagina/elemento/sotto-menu/funzione/suono/animazione) multi-agent, gate PRIMA dell'audit generale. Trigger: migrazione DS v3 completa (oggi mancano 3b, 4b, superfici gestionali/admin).
