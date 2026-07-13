@@ -175,8 +175,18 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
     setPronto(true)
   }, [statoSalvato])
 
-  // 'Ricomincia da capo' (e il "Chiudi" dello Sheet, vedi RipresaSheet.tsx):
-  // azzera la persistenza e riparte da un Passo 1 pulito.
+  // Chiusura NON distruttiva (fix round 1): tap-scrim/Esc/swipe/«Chiudi»
+  // chiudono solo l'overlay SENZA azzerare il salvataggio — lo stato resta in
+  // localStorage e ricomparirà al prossimo mount. `pronto` resta `false`
+  // (nessuna interazione decisa): il wizard, di fatto vuoto a Passo 1, non
+  // risalva nulla che sovrascriverebbe lo stato conservato. Solo «Ricomincia
+  // da capo» (sotto) cancella davvero.
+  const chiudiRipresa = useCallback(() => {
+    setSheetRipresaAperto(false)
+  }, [])
+
+  // 'Ricomincia da capo': azzera la persistenza e riparte da un Passo 1
+  // pulito — l'UNICA via distruttiva, sempre esplicita (vedi RipresaSheet.tsx).
   const ricomincia = useCallback(() => {
     azzeraStato()
     // Difensivo: nella pratica lo sheet può chiudersi con "Ricomincia" solo
@@ -285,6 +295,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
         <RipresaSheet
           aperto={sheetRipresaAperto}
           stato={statoSalvato}
+          onChiudi={chiudiRipresa}
           onRiprendi={riprendi}
           onRicomincia={ricomincia}
         />

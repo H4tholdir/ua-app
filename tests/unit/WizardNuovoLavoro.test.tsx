@@ -348,6 +348,48 @@ describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da 
     )
   })
 
+  it('chiusura accidentale (Esc) NON è distruttiva: conserva localStorage, wizard a Passo 1, e rimontando lo sheet ricompare', async () => {
+    seedStatoSalvato()
+    const { unmount } = render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    expect(screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })).toBeInTheDocument()
+    // Esc → onChiudi dello Sheet (via di fuga L6) — NON deve azzerare il salvataggio.
+    await user.keyboard('{Escape}')
+
+    // Overlay chiuso, wizard al Passo 1 pulito.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+    )
+    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+    // Lo stato salvato è CONSERVATO (chiusura non distruttiva).
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).not.toBeNull()
+
+    // Rimontando (es. l'odontotecnico riapre "Nuovo lavoro"), lo sheet ricompare.
+    unmount()
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    expect(screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })).toBeInTheDocument()
+  })
+
+  it('dopo "Ricomincia da capo" un avanzamento reale rifà scattare salvaStato (ref riazzerato)', async () => {
+    seedStatoSalvato()
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: 'Ricomincia da capo' }))
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
+
+    // Un vero avanzamento dopo il reset deve tornare a persistere (il ref
+    // interazione, riazzerato da "Ricomincia", si riaccende su sceltaDentista).
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    await waitFor(() => {
+      const salvato = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato | null
+      expect(salvato).not.toBeNull()
+      expect(salvato!.passo).toBe(2)
+      expect(salvato!.cliente).toEqual({ id: '1', label: 'Dr. Esposito' })
+    })
+  })
+
   it('"Ricomincia da capo" azzera lo stato persistito e riparte da un Passo 1 pulito', async () => {
     seedStatoSalvato()
     render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)

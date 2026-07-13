@@ -14,10 +14,14 @@
 // accadere: si arriva al Passo 3 solo con un tipo scelto) in cui `tipo`
 // risultasse comunque null.
 //
-// Il `LinkQuieto` "Chiudi" che `Sheet` aggiunge sempre in fondo (§5.16, via
-// di fuga L6) qui equivale a "Ricomincia da capo" — non c'è una terza via
-// intermedia sensata: o si riprende, o si riparte da zero (documentato,
-// vedi WizardNuovoLavoro.tsx).
+// Chiusura NON distruttiva (fix round 1, decisione controller): la chiusura
+// accidentale — tap-scrim, Esc, swipe giù, e il `LinkQuieto` "Chiudi" che
+// `Sheet` aggiunge sempre in fondo (§5.16, via di fuga L6) — NON azzera lo
+// stato salvato: chiude solo l'overlay, lasciando localStorage intatto (lo
+// stato riapparirà al prossimo mount). SOLO il `LinkQuieto` esplicito
+// «Ricomincia da capo» (`onRicomincia`) cancella il salvataggio e riparte da
+// zero. Cancellare il progresso su un tap fuori bersaglio sarebbe una perdita
+// di dati su un misclick facile — qui la scelta distruttiva è sempre esplicita.
 
 import type { ReactNode } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
@@ -30,13 +34,14 @@ import { tipografia } from '@/design-system/v3/tokens'
 export function RipresaSheet(props: {
   aperto: boolean
   stato: StatoSalvato | null
+  onChiudi: () => void
   onRiprendi: () => void
   onRicomincia: () => void
 }) {
-  const { aperto, stato, onRiprendi, onRicomincia } = props
+  const { aperto, stato, onChiudi, onRiprendi, onRicomincia } = props
 
   return (
-    <Sheet aperto={aperto} onChiudi={onRicomincia} titolo="Riprendo da dove eri?">
+    <Sheet aperto={aperto} onChiudi={onChiudi} titolo="Riprendo da dove eri?">
       {stato && <Frase stato={stato} />}
       <TastoPrimario onClick={onRiprendi}>Riprendi</TastoPrimario>
       <div style={rigaLinkStile}>
