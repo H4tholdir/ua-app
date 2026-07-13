@@ -145,7 +145,10 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
     : 'Non assegnato'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, padding: `0 ${spazio.ml}px ${spazio.xl}px` }}>
+    <div
+      className="scheda-v3-centrata"
+      style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, padding: `0 ${spazio.ml}px ${spazio.xl}px` }}
+    >
       {/* Header (§3.1): back ‹ · n.{numero} + pill · menu ⋯ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, paddingTop: spazio.m }}>
         <TastoTondo glifo="‹" etichettaAria="Torna ai lavori" onClick={() => router.push('/lavori')} />

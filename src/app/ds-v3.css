@@ -82,6 +82,23 @@
    rispetto al mockup, mai un problema di padding/gap). */
 [data-ds="v3"] .ds-pila-num { font-size: 52px; line-height: 1; }
 
+/* Scheda-vista centrata (Ondata 3a Task 10, §8): su mobile (<768) la scheda
+   resta full-width come oggi. Da 768px in su diventa una card centrata a
+   larghezza fissa — SOLO sheet/menu ⋯ restano bottom-sheet a ogni size, nessun
+   pannello laterale in questa ondata. Il breakpoint richiede una media query
+   in CSS (non riproducibile con style inline React): applicata a un
+   contenitore INTERNO (root di SchedaLavoroV3Corpo), mentre lo sfondo
+   `var(--bg)` full-bleed resta sul wrapper `data-ds="v3"` di page.tsx. */
+[data-ds="v3"] .scheda-v3-centrata {
+  width: 100%;
+}
+@media (min-width: 768px) {
+  [data-ds="v3"] .scheda-v3-centrata {
+    max-width: 640px;
+    margin-inline: auto;
+  }
+}
+
 /* Reduced motion — le coreografie degradano a dissolvenza (spec §8.4) */
 @media (prefers-reduced-motion: reduce) {
   [data-ds="v3"] * { animation-duration: 0.15s !important; transition-duration: 0.15s !important; }
