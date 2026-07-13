@@ -19,15 +19,28 @@ function makeLavoro(over: Partial<LavoroDettaglio> = {}): LavoroDettaglio {
 }
 
 describe('SchedaLavoroV3', () => {
+  // NB (polish L1): il nome del TastoPrimario è ESATTAMENTE 'Consegna'; la riga
+  // editabile della consegna ha nome 'Modifica consegna' (WCAG label-in-name).
+  // Le query usano il nome esatto per non far collidere i due controlli.
   it('CONSEGNA abilitato su lavoro pronto → naviga a /consegna', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro({ stato: 'pronto' })} />)
-    const btn = screen.getByRole('button', { name: /consegna/i })
+    const btn = screen.getByRole('button', { name: 'Consegna' })
     expect(btn).not.toBeDisabled()
   })
   it('CONSEGNA disabilitato su lavoro in_lavorazione con callout', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro({ stato: 'in_lavorazione' })} />)
-    expect(screen.getByRole('button', { name: /consegna/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Consegna' })).toBeDisabled()
     expect(screen.getByText(/completa il controllo finale/i)).toBeInTheDocument()
+  })
+  it('la riga Consegna ha nome accessibile "Modifica consegna" (WCAG 2.5.3 label-in-name)', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
+    expect(screen.getByRole('button', { name: 'Modifica consegna' })).toBeInTheDocument()
+  })
+  it('CONSEGNA disabilitato su lavoro CONSEGNATO mostra "già consegnato", non "completa il controllo" (D6)', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ stato: 'consegnato', data_consegna_effettiva: '2026-07-06T10:00:00Z' })} />)
+    expect(screen.getByRole('button', { name: 'Consegna' })).toBeDisabled()
+    expect(screen.getByText(/già consegnato il 6 lug/i)).toBeInTheDocument()
+    expect(screen.queryByText(/completa il controllo finale/i)).not.toBeInTheDocument()
   })
   it('mostra numero e dati principali', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro()} />)

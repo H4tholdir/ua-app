@@ -99,6 +99,16 @@
   }
 }
 
+/* Polish L1 (D4) — focus-visible v3 sui bottoni inline-styled della scheda
+   (RigaEditabile, NotaLaboratorio, voci degli sheet): avevano solo l'outline
+   nativo del browser, non un ring coerente col DS v3. Ring blu semantico con
+   offset; i browser moderni fanno seguire l'outline al border-radius
+   dell'elemento. Nessun effetto su :focus da mouse (solo :focus-visible). */
+[data-ds="v3"] .ds-tap-v3:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
 /* Reduced motion — le coreografie degradano a dissolvenza (spec §8.4) */
 @media (prefers-reduced-motion: reduce) {
   [data-ds="v3"] * { animation-duration: 0.15s !important; transition-duration: 0.15s !important; }

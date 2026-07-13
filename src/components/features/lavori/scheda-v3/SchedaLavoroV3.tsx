@@ -88,6 +88,19 @@ function formattaConsegna(data: string, ora: string | null): string {
   return ora ? `${testo} · ${ora.slice(0, 5)}` : testo
 }
 
+/** Copy del callout quando il TastoPrimario CONSEGNA è disabilitato, in base
+ * allo stato (polish L1 — D6). Un lavoro GIÀ consegnato non deve invitare a
+ * "Completa il controllo finale per consegnare": mostra invece la conferma di
+ * consegna (con la data effettiva quando disponibile). */
+function motivoConsegnaDisabilitato(lavoro: LavoroDettaglio): string {
+  if (lavoro.stato === 'consegnato') {
+    return lavoro.data_consegna_effettiva
+      ? `Lavoro già consegnato il ${formattaConsegna(lavoro.data_consegna_effettiva.slice(0, 10), null)}`
+      : 'Lavoro già consegnato'
+  }
+  return 'Completa il controllo finale per consegnare'
+}
+
 /** Consegna imminente (oggi o domani) o già scaduta → valore in rosso (§5.10:
  * `urgente` riservato SOLO alla consegna imminente, mai altri significati). */
 function consegnaImminente(data: string, oggi: Date): boolean {
@@ -181,7 +194,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
       {/* Header (§3.1): back ‹ · n.{numero} + pill · menu ⋯ */}
       <div style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, paddingTop: spazio.m }}>
         <TastoTondo glifo="‹" etichettaAria="Torna ai lavori" onClick={() => router.push('/lavori')} />
-        <span style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>n.{lavoro.numero_lavoro}</span>
+        <span style={{ fontSize: tipografia.size.heading, fontWeight: tipografia.weight.extrabold, color: 'var(--ink)' }}>n.{lavoro.numero_lavoro}</span>
         <PillTempo famiglia={pill.famiglia}>{pill.testo}</PillTempo>
         <span style={{ flex: 1 }} />
         <TastoTondo glifo="⋯" etichettaAria="Apri menu" onClick={() => setMenuAperto(true)} />
@@ -212,7 +225,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           chiave="Consegna"
           valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
           urgente={consegnaImminente(lavoro.data_consegna_prevista, oggi)}
-          ariaAzione="Modifica scadenza"
+          ariaAzione="Modifica consegna"
           onApri={() => setCampoAttivo('consegna')}
         />
         <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
@@ -248,7 +261,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
       {/* CONSEGNA — mai nascosto, solo abilitato/disabilitato (§7.4) */}
       <TastoPrimario
         disabled={!consegnabile}
-        motivoDisabilitato="Completa il controllo finale per consegnare"
+        motivoDisabilitato={motivoConsegnaDisabilitato(lavoro)}
         onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
       >
         Consegna
@@ -330,6 +343,7 @@ function NotaLaboratorio(props: { testo: string; onApri: () => void }) {
   return (
     <motion.button
       type="button"
+      className="ds-tap-v3"
       onClick={onApri}
       whileTap={{ scale: 0.99 }}
       transition={molla.press}
@@ -427,8 +441,10 @@ function AvvisoTracciabilita(props: { dettaglio: MaterialeIncompletoDettaglio[] 
  * (§3). L'`ariaAzione` dà al bottone un nome accessibile d'azione («Modifica
  * …») invece della concatenazione chiave+valore: chiarisce allo screen reader
  * che è un controllo di modifica, non solo un dato. Per «Consegna» l'etichetta
- * accessibile è «Modifica scadenza» di proposito — evita di ripetere la parola
- * "Consegna", che altrimenti colliderebbe col nome del TastoPrimario CONSEGNA.
+ * accessibile è «Modifica consegna» (polish L1, WCAG 2.5.3 label-in-name: il
+ * nome accessibile DEVE contenere il testo visibile "Consegna"). I test di
+ * quella riga la selezionano col nome esatto «Modifica consegna» per non
+ * collidere col TastoPrimario CONSEGNA (nome «Consegna»).
  */
 function RigaEditabile(props: {
   chiave: string
@@ -441,6 +457,7 @@ function RigaEditabile(props: {
   return (
     <button
       type="button"
+      className="ds-tap-v3"
       onClick={onApri}
       aria-label={ariaAzione}
       style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}

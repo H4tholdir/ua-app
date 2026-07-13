@@ -88,6 +88,7 @@ export function DocumentiSheet(props: { aperto: boolean; onChiudi: () => void; l
               href={lavoro.ddcUrl}
               target="_blank"
               rel="noopener noreferrer"
+              className="ds-tap-v3"
               style={rigaStile(false)}
             >
               <span style={{ flex: 1 }}>Scarica DdC</span>
@@ -99,6 +100,7 @@ export function DocumentiSheet(props: { aperto: boolean; onChiudi: () => void; l
               key={voce.chiave}
               href={voce.href}
               download
+              className="ds-tap-v3"
               style={rigaStile(indice === vociDownload.length - 1)}
             >
               <span style={{ flex: 1 }}>{voce.etichetta}</span>
@@ -109,6 +111,7 @@ export function DocumentiSheet(props: { aperto: boolean; onChiudi: () => void; l
 
         <button
           type="button"
+          className="ds-tap-v3"
           onClick={() => setPacchettoAperto(true)}
           style={bottonePacchettoStile}
         >

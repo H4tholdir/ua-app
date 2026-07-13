@@ -151,6 +151,7 @@ export function MenuSchedaSheet(props: {
           <button
             key={voce.chiave}
             type="button"
+            className="ds-tap-v3"
             disabled={voce.disabilitata}
             onClick={() => gestisciClick(voce)}
             style={vociStile(indice === voci.length - 1, voce.disabilitata)}
