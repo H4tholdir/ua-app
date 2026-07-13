@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }))
 import { SchedaLavoroV3 } from '../../src/components/features/lavori/scheda-v3/SchedaLavoroV3'
@@ -33,5 +33,20 @@ describe('SchedaLavoroV3', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
     expect(screen.getByText(/2026-0147/)).toBeInTheDocument()
     expect(screen.getByText('Corona zirconia')).toBeInTheDocument()
+  })
+  it('note_interne è mostrata come nota del laboratorio, mai attribuita al dentista', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ note_interne: 'Attenzione: colore A2, non A3' })} />)
+    // Il testo della nota è presente...
+    expect(screen.getByText('Attenzione: colore A2, non A3')).toBeInTheDocument()
+    // ...ma NON è attribuito al dentista/studio (niente citazione stile
+    // NotaDentista '"..." — Studio Esposito'): il nome dello studio non
+    // compare accanto al testo della nota.
+    expect(screen.queryByText(/Attenzione: colore A2, non A3[\s\S]*Studio Esposito/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^".*"\s*—\s*Studio Esposito$/)).not.toBeInTheDocument()
+    // Tap → apre l'editor della nota (ModificaRigaSheet campo="note", che
+    // mostra il titolo "Note interne").
+    const bottone = screen.getByRole('button', { name: /modifica nota del laboratorio/i })
+    fireEvent.click(bottone)
+    expect(screen.getByRole('heading', { name: 'Note interne' })).toBeInTheDocument()
   })
 })

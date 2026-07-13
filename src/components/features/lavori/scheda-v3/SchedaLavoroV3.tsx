@@ -3,9 +3,10 @@
 // Ondata 3a Task 6 — SchedaLavoroV3: il corpo client della scheda-vista v3.
 // Orchestra i pezzi dei Task 1-5 (pill di stato, CardFasiV3, ModificaRigaSheet,
 // MenuSchedaSheet, DocumentiSheet) attorno ai componenti DS v3 (TastoTondo,
-// TastoPrimario, TastoSecondario, CardInfo/RigaDato, NotaDentista, PillTempo,
-// Avviso). Nessuna nuova API, nessun editing avanzato: le voci pesanti del menu
-// e la scheda di fabbricazione restano dei rami già esistenti (§3, §7.1).
+// TastoPrimario, TastoSecondario, CardInfo/RigaDato, PillTempo, Avviso) più
+// `NotaLaboratorio` (locale a questo file — vedi nota sotto). Nessuna nuova
+// API, nessun editing avanzato: le voci pesanti del menu e la scheda di
+// fabbricazione restano dei rami già esistenti (§3, §7.1).
 //
 // Aggiornamento ottimistico (piano §Task 6): `lavoroLocale` parte dai props;
 // `onSalvato(patch)` di ModificaRigaSheet fonde il patch nello stato locale per
@@ -20,23 +21,27 @@
 // Quindi si auto-avvolge: `SchedaLavoroV3 = <AvvisiProvider><Corpo/></...>`, e
 // il Corpo consuma `useAvvisi()` per gli errori (L6).
 //
-// Nota su `note_interne` ↔ NotaDentista: lo schema NON ha un campo di testo
-// libero "nota del dentista" (esiste solo `richiedente_nome`, un nome). L'unico
-// testo libero sul lavoro è `note_interne` (nota del laboratorio, «visibile solo
-// al laboratorio» — vedi TabDati.tsx). Qui si usa il trattamento visivo
-// NotaDentista (§5.23) come "la nota sul lavoro" e il suo tap apre l'editor
-// `campo="note"`: è la nota del LAB, non una citazione autografa del dentista.
-// Limitazione nota, segnalata a Francesco (report Task 6): se in futuro servisse
-// una vera nota autografa del dentista serve un campo dedicato.
+// Nota su `note_interne` (fix round — decisione Francesco 13/07: "3a pulita
+// ora, nota-dentista in 3b"): lo schema NON ha un campo di testo libero "nota
+// del dentista" (esiste solo `richiedente_nome`, un nome). L'unico testo
+// libero sul lavoro è `note_interne`, la nota PRIVATA del laboratorio
+// («visibile solo al laboratorio» — vedi TabDati.tsx). La prima versione di
+// questo file la mostrava dentro `NotaDentista` (§5.23) con
+// `dottore={clienteDisplay(...)}`: attribuiva al dentista una nota che il
+// dentista non ha mai scritto — misattribuzione corretta qui. `NotaLaboratorio`
+// (sotto) la mostra onestamente come nota del LAB, senza alcun nome di dottore,
+// tap → apre lo stesso `ModificaRigaSheet campo="note"` delle altre righe. Il
+// componente DS `NotaDentista` resta nel codebase intatto per la Ondata 3b,
+// quando arriverà un vero campo `note_dentista` autografo dal portale.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
-import { NotaDentista } from '@/components/ds/NotaDentista'
 import { PillTempo } from '@/components/ds/Pill'
 import { CardFasiV3 } from './CardFasiV3'
 import { ModificaRigaSheet } from './ModificaRigaSheet'
@@ -47,7 +52,8 @@ import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProble
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
-import { spazio } from '@/design-system/v3/tokens'
+import { molla } from '@/design-system/v3/motion'
+import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
 import type { LavoroDettaglio } from '@/types/domain'
 
 type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
@@ -166,14 +172,13 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
       </CardInfo>
 
-      {/* NotaDentista — la nota del lavoro (note_interne), editabile al tap.
-          Vedi nota in testa al file sulla semantica. */}
+      {/* NotaLaboratorio — nota_interne del LAB, onesta (nessuna attribuzione
+          al dentista), editabile al tap. Vedi nota in testa al file. Mostrata
+          solo se presente — l'aggiunta di una prima nota da vuoto resta un
+          follow-up (vedi report Task 6: le altre righe editabili hanno un
+          "vuoto" testuale tipo "Non assegnato", la nota no). */}
       {lavoro.note_interne && (
-        <NotaDentista
-          citazione={lavoro.note_interne}
-          dottore={clienteDisplay(lavoro.cliente)}
-          onEspandi={() => setCampoAttivo('note')}
-        />
+        <NotaLaboratorio testo={lavoro.note_interne} onApri={() => setCampoAttivo('note')} />
       )}
 
       {/* Strip foto read-only (§7.4) */}
@@ -262,6 +267,63 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         />
       )}
     </div>
+  )
+}
+
+/**
+ * NotaLaboratorio — card piccola per `note_interne` (fix round, decisione
+ * Francesco: "3a pulita ora, nota-dentista in 3b"). Etichetta caption "Note
+ * (laboratorio)" + testo multi-riga: MAI un nome di dottore accanto, a
+ * differenza di `NotaDentista` (§5.23, quello resta per la vera nota
+ * autografa del dentista in 3b). Tap → `onApri` (apre `ModificaRigaSheet
+ * campo="note"`, stesso `campoAttivo` delle altre righe editabili) con
+ * `whileTap`/`molla.press` come le altre superfici tappabili DS v3.
+ */
+function NotaLaboratorio(props: { testo: string; onApri: () => void }) {
+  const { testo, onApri } = props
+  return (
+    <motion.button
+      type="button"
+      onClick={onApri}
+      whileTap={{ scale: 0.99 }}
+      transition={molla.press}
+      aria-label="Modifica nota del laboratorio"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spazio.xs,
+        width: '100%',
+        border: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+        borderRadius: raggio.tile,
+        padding: '14px 20px',
+        background: 'var(--card)',
+        boxShadow: 'var(--sh-card)',
+      }}
+    >
+      <span
+        style={{
+          fontSize: tipografia.size.caption,
+          fontWeight: tipografia.weight.extrabold,
+          letterSpacing: tipografia.tracking.caption,
+          textTransform: 'uppercase',
+          color: 'var(--faint)',
+        }}
+      >
+        Note (laboratorio)
+      </span>
+      <span
+        style={{
+          fontSize: tipografia.size.callout,
+          fontWeight: tipografia.weight.semibold,
+          color: 'var(--ink)',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {testo}
+      </span>
+    </motion.button>
   )
 }
 
