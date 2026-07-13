@@ -211,3 +211,50 @@ describe('WizardNuovoLavoro — wiring NuovoDentistaSheet (Task 9, A7)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuovo dentista' })).not.toBeInTheDocument())
   })
 })
+
+describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione → Frame Fatto (Task 12)', () => {
+  const DATI_TASK12: DatiWizard = {
+    ...DATI,
+    topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+    frequenzeTipi: { corona_zirconia: 9 },
+    giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('Dentista → Tipo → Continua (Passo 3, precompilato) → crea il lavoro e mostra "Fatto!"', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+    m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ paziente: { id: 'pz-1' } }) })
+    m.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001', stato: 'ricevuto' } }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI_TASK12} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    expect(screen.getByText('Che lavoro è?')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument()
+    // Passo 3 SEMPRE attraversato, precompilato (dati.prossimoPz) — nessuna
+    // scorciatoia lo salta: il «Continua» qui sotto è lo stesso bottone del
+    // percorso "non aggiungo nulla d'altro".
+    expect(screen.getByDisplayValue('PZ-0001')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    expect(m).toHaveBeenCalledTimes(3)
+    // Nessuna testata/ProgressDots nel Frame Fatto (mockup: "non ha testata-dots").
+    expect(screen.queryByRole('img', { name: /Passo \d di 3/ })).not.toBeInTheDocument()
+  })
+})
