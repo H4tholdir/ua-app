@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WizardNuovoLavoro } from '@/components/features/wizard/WizardNuovoLavoro'
+import { CHIAVE_WIZARD, type StatoSalvato } from '@/lib/wizard/persistenza'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
 // Stesso pattern di mock di next/navigation usato in PilaAperta.test.tsx (Task 8).
@@ -50,10 +51,12 @@ beforeEach(() => {
   istanzeCostruite.length = 0
   delete (window as unknown as Record<string, unknown>).SpeechRecognition
   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+  window.localStorage.clear()
 })
 afterEach(() => {
   delete (window as unknown as Record<string, unknown>).SpeechRecognition
   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+  window.localStorage.clear()
 })
 
 describe('WizardNuovoLavoro — shell + Passo 1 dentisti (Task 8)', () => {
@@ -256,5 +259,160 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     expect(m).toHaveBeenCalledTimes(3)
     // Nessuna testata/ProgressDots nel Frame Fatto (mockup: "non ha testata-dots").
     expect(screen.queryByRole('img', { name: /Passo \d di 3/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da dove eri?» (Task 13, spec §9)', () => {
+  const DATI_CON_TIPI: DatiWizard = {
+    ...DATI,
+    topTipi: ['corona_zirconia', 'corona_impianto', 'riparazione', 'provvisorio_resina'],
+    frequenzeTipi: { corona_zirconia: 9 },
+  }
+
+  function seedStatoSalvato(overrides: Partial<StatoSalvato> = {}) {
+    const base: StatoSalvato = {
+      v: 1,
+      salvatoA: Date.now() - 1000, // 1s fa, ben entro le 24h
+      userId: CONTESTO.userId,
+      labId: CONTESTO.labId,
+      passo: 3,
+      cliente: { id: '1', label: 'Dr. Esposito' },
+      tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+      pz: 'PZ-9999',
+      alias: '',
+      elemento: '',
+      colore: '',
+      ...overrides,
+    }
+    window.localStorage.setItem(CHIAVE_WIZARD, JSON.stringify(base))
+  }
+
+  it('mount con stato salvato al Passo 1 → sheet aperto, "avevi appena iniziato"', () => {
+    seedStatoSalvato({ passo: 1, cliente: null, tipo: null, pz: '' })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const dialog = screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })
+    expect(dialog).toHaveTextContent(/avevi appena iniziato/i)
+  })
+
+  it('mount con stato salvato al Passo 2 → sheet aperto, "ti mancava il tipo di lavoro" col dentista', () => {
+    seedStatoSalvato({ passo: 2, cliente: { id: '1', label: 'Dr. Esposito' }, tipo: null })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const dialog = screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })
+    expect(dialog).toHaveTextContent(/Dr\. Esposito.*ti mancava il tipo di lavoro/)
+  })
+
+  it('mount con stato salvato al Passo 3 → sheet aperto, "ti mancava il paziente" con tipo E dentista', () => {
+    seedStatoSalvato({
+      passo: 3,
+      cliente: { id: '1', label: 'Dr. Esposito' },
+      tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+    })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const dialog = screen.getByRole('dialog', { name: 'Riprendo da dove eri?' })
+    expect(dialog).toHaveTextContent(/Corona zirconia.*per il.*Dr\. Esposito.*ti mancava il paziente/)
+  })
+
+  it('mount SENZA stato salvato → nessun sheet «Riprendo da dove eri?»', () => {
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+  })
+
+  it('mount con stato scaduto (>24h) → nessun sheet, chiave rimossa', () => {
+    seedStatoSalvato({ salvatoA: Date.now() - 25 * 60 * 60 * 1000 })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
+  })
+
+  it('mount con stato di un ALTRO userId (dispositivo condiviso) → nessun sheet', () => {
+    seedStatoSalvato({ userId: 'altro-utente' })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+  })
+
+  it('"Riprendi" ripristina lo stato al passo salvato (Passo 3, pz precompilato) e chiude lo sheet', async () => {
+    seedStatoSalvato({
+      passo: 3,
+      cliente: { id: '1', label: 'Dr. Esposito' },
+      tipo: { kind: 'catalogo', tipoId: 'corona_zirconia' },
+      pz: 'PZ-9999',
+    })
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Riprendi' }))
+
+    expect(screen.getByText('Chi è il paziente?')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('PZ-9999')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+    )
+  })
+
+  it('"Ricomincia da capo" azzera lo stato persistito e riparte da un Passo 1 pulito', async () => {
+    seedStatoSalvato()
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Ricomincia da capo' }))
+
+    expect(screen.getByText('Per quale dentista?')).toBeInTheDocument()
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Riprendo da dove eri?' })).not.toBeInTheDocument()
+    )
+  })
+
+  it('ogni avanzamento aggiorna lo stato persistito in localStorage (spy su setItem)', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
+    render(<WizardNuovoLavoro dati={DATI_CON_TIPI} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    await waitFor(() => {
+      const scritture = setItemSpy.mock.calls.filter(([chiave]) => chiave === CHIAVE_WIZARD)
+      expect(scritture.length).toBeGreaterThan(0)
+    })
+    const dopoDentista = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato
+    expect(dopoDentista.passo).toBe(2)
+    expect(dopoDentista.cliente).toEqual({ id: '1', label: 'Dr. Esposito' })
+
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    await waitFor(() => {
+      const dopoTipo = JSON.parse(window.localStorage.getItem(CHIAVE_WIZARD) ?? 'null') as StatoSalvato
+      expect(dopoTipo.passo).toBe(3)
+      expect(dopoTipo.tipo).toEqual({ kind: 'catalogo', tipoId: 'corona_zirconia' })
+    })
+
+    setItemSpy.mockRestore()
+  })
+
+  it('creazione completata (Fatto!) azzera lo stato persistito', async () => {
+    const DATI_TASK13: DatiWizard = {
+      ...DATI_CON_TIPI,
+      giorniPerTipo: { corona_zirconia: { giorni: 6, daStoria: true } },
+    }
+    vi.stubGlobal('fetch', vi.fn())
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+    m.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ paziente: { id: 'pz-1' } }) })
+    m.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ lavoro: { id: 'lav-1', numero_lavoro: '2026/0001', stato: 'ricevuto' } }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI_TASK13} contesto={CONTESTO} />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    // Il "Continua" ha appena scritto in localStorage (avanzamento al Passo 3) —
+    // la creazione riuscita deve azzerarlo, non lasciare residui del lavoro appena creato.
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).not.toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+
+    await waitFor(() => expect(screen.getByText('Fatto!')).toBeInTheDocument())
+    expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
+
+    vi.unstubAllGlobals()
   })
 })

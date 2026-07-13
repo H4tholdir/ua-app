@@ -21,7 +21,7 @@
 // `v3/motion.ts` (`wizardAvanti`/`wizardIndietro`, già tarate su `molla.wizard`)
 // — reduced-motion sostituisce lo scivolamento con un semplice dissolvenza.
 
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
@@ -32,9 +32,11 @@ import { PassoDentista } from './PassoDentista'
 import { PassoTipo } from './PassoTipo'
 import { PassoPaziente } from './PassoPaziente'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
+import { RipresaSheet } from './RipresaSheet'
 import { FrameFatto } from './FrameFatto'
 import { creaLavoroDaWizard, stimaGiorni, descrizioneTipo } from '@/lib/wizard/crea-lavoro'
 import { dataSuggerita } from '@/lib/lavori/tempi-medi'
+import { salvaStato, leggiStato, azzeraStato, type StatoSalvato } from '@/lib/wizard/persistenza'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
 export type TipoScelto = { kind: 'catalogo'; tipoId: string } | { kind: 'libero'; testo: string }
@@ -65,13 +67,13 @@ const STATO_INIZIALE: StatoWizard = {
  * WizardNuovoLavoro — shell del wizard «Nuovo lavoro» (§7.3), montata dalla
  * RSC `page.tsx` con i dati server (`getDatiWizard`, Task 7).
  *
- * `contesto` (userId/labId) non è ancora consumato qui: è nel contratto ORA
- * perché il Task 13 (persistenza) ne avrà bisogno e non deve riaprire questo
- * file per aggiungerlo — vedi task-8-brief.md.
+ * `contesto` (userId/labId) — consumato dal Task 13 (persistenza abbandono
+ * 24h, spec §9): guardia "dispositivo condiviso" di `leggiStato` e chiave
+ * scritta da `salvaStato`. Vedi task-8-brief.md per il perché è nel
+ * contratto fin dal Task 8.
  */
 export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId: string; labId: string } }) {
   const { dati, contesto } = props
-  void contesto // riservato al Task 13 (persistenza) — vedi JSDoc sopra
   const router = useRouter()
   const reduced = useReducedMotion()
   const [stato, setStato] = useState<StatoWizard>(STATO_INIZIALE)
@@ -89,16 +91,117 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // senza un frame intermedio in cui esiste ma è "orfano" del Passo 1.
   const [sheetDentistaAperto, setSheetDentistaAperto] = useState(false)
 
+  // Task 13 (spec §9): stato dello sheet «Riprendo da dove eri?» + il
+  // payload letto da localStorage che lo alimenta. `pronto` è la guardia che
+  // impedisce all'effect di persistenza (sotto) di scrivere PRIMA che
+  // l'odontotecnico abbia deciso Riprendi/Ricomincia — senza, il primo
+  // render (stato ancora STATO_INIZIALE mentre lo sheet è aperto e mostra i
+  // dati salvati) sovrascriverebbe silenziosamente il salvataggio reale con
+  // uno stato vuoto, perdendolo per sempre se l'odontotecnico ricarica la
+  // pagina prima di rispondere. `pronto` parte true quando al mount non
+  // c'era nulla da riprendere (nulla da proteggere).
+  const [sheetRipresaAperto, setSheetRipresaAperto] = useState(false)
+  const [statoSalvato, setStatoSalvato] = useState<StatoSalvato | null>(null)
+  const [pronto, setPronto] = useState(false)
+  // `pronto` da solo NON basta a far scattare un salvataggio: al mount "nulla
+  // da riprendere" e dopo «Ricomincia da capo» `pronto` diventa true nello
+  // STESSO istante in cui `stato` torna a STATO_INIZIALE — un effect che
+  // guardasse solo `pronto` risalverebbe subito quello stato vuoto,
+  // vanificando "scaduto → chiave rimossa" e "Ricomincia → azzerata" (bug
+  // trovato in RED: il test su localStorage falliva perché la chiave
+  // ricompariva un istante dopo la rimozione). Questo ref si accende SOLO
+  // dentro le azioni che sono davvero "un avanzamento/cambiamento" (spec §9)
+  // — mount e reset non lo toccano.
+  const interazioneAvvenutaRef = useRef(false)
+
+  // Lettura al mount — SOLO client (localStorage): deliberatamente non un
+  // lazy initializer di useState, per non disallineare SSR (nessun
+  // `window`) e prima idratazione client (leggerebbe subito il vero
+  // localStorage) — stesso principio "mounted-guard" di `EntrataRidotta`
+  // sotto e di `SheetRidotto` in Sheet.tsx: primo render sempre "niente da
+  // riprendere", poi l'effect corregge.
+  useEffect(() => {
+    // Sync una tantum al mount da una fonte esterna (localStorage, mai
+    // disponibile server-side) — stesso pattern/giustificazione di
+    // `useTheme.ts` (getInitialTheme): non innesca cascata, è l'unica lettura
+    // di questo effect e le sue dipendenze sono vuote.
+    const salvato = leggiStato(contesto.userId, contesto.labId, Date.now())
+    if (salvato) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatoSalvato(salvato)
+      setSheetRipresaAperto(true)
+    } else {
+      setPronto(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al mount, come EntrataRidotta.
+  }, [])
+
+  // Salvataggio ad ogni avanzamento/cambiamento (spec §9) — `foto` ESCLUSA
+  // apposta (File non serializzabile, perdita accettata). Guardato da
+  // `pronto` (vedi sopra). `salvatoA` si aggiorna ad ogni scrittura: la
+  // finestra di 24h scorre dall'ultima modifica, non dalla primissima.
+  useEffect(() => {
+    if (!pronto || !interazioneAvvenutaRef.current) return
+    salvaStato({
+      v: 1,
+      salvatoA: Date.now(),
+      userId: contesto.userId,
+      labId: contesto.labId,
+      passo: stato.passo,
+      cliente: stato.cliente,
+      tipo: stato.tipo,
+      pz: stato.pz,
+      alias: stato.alias,
+      elemento: stato.elemento,
+      colore: stato.colore,
+    })
+  }, [pronto, stato, contesto.userId, contesto.labId])
+
+  // 'Riprendi': ripristina lo stato al passo salvato — `foto` resta `null`
+  // (perdita accettata, spec §9: non persistita, quindi non ripristinabile).
+  const riprendi = useCallback(() => {
+    if (!statoSalvato) return
+    setStato({
+      passo: statoSalvato.passo,
+      cliente: statoSalvato.cliente,
+      tipo: statoSalvato.tipo,
+      pz: statoSalvato.pz,
+      alias: statoSalvato.alias,
+      elemento: statoSalvato.elemento,
+      colore: statoSalvato.colore,
+      foto: null,
+    })
+    setSheetRipresaAperto(false)
+    setPronto(true)
+  }, [statoSalvato])
+
+  // 'Ricomincia da capo' (e il "Chiudi" dello Sheet, vedi RipresaSheet.tsx):
+  // azzera la persistenza e riparte da un Passo 1 pulito.
+  const ricomincia = useCallback(() => {
+    azzeraStato()
+    // Difensivo: nella pratica lo sheet può chiudersi con "Ricomincia" solo
+    // subito dopo il mount (è un modal, l'odontotecnico non può ancora aver
+    // toccato dentista/tipo/paziente sotto), quindi il ref è già `false` — lo
+    // riazzeriamo comunque esplicitamente per non dipendere da quell'assunzione.
+    interazioneAvvenutaRef.current = false
+    setStato(STATO_INIZIALE)
+    setStatoSalvato(null)
+    setSheetRipresaAperto(false)
+    setPronto(true)
+  }, [])
+
   const vaIndietro = useCallback(() => {
     if (stato.passo === 1) {
       router.push('/dashboard')
       return
     }
+    interazioneAvvenutaRef.current = true
     setDirezione('indietro')
     setStato((s) => ({ ...s, passo: (s.passo - 1) as StatoWizard['passo'] }))
   }, [stato.passo, router])
 
   const sceltaDentista = useCallback((cliente: { id: string; label: string }) => {
+    interazioneAvvenutaRef.current = true
     setDirezione('avanti')
     setStato((s) => ({ ...s, cliente, passo: 2 }))
   }, [])
@@ -124,6 +227,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // dall'odontotecnico in un giro precedente (indietro poi di nuovo avanti).
   const sceltaTipo = useCallback(
     (tipo: TipoScelto) => {
+      interazioneAvvenutaRef.current = true
       setDirezione('avanti')
       setStato((s) => ({ ...s, tipo, passo: 3, pz: s.pz || dati.prossimoPz }))
     },
@@ -134,6 +238,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // punto che scrive nello stato condiviso i suoi campi (pz/alias/elemento/
   // colore/foto).
   const cambiaPaziente = useCallback((patch: Partial<StatoWizard>) => {
+    interazioneAvvenutaRef.current = true
     setStato((s) => ({ ...s, ...patch }))
   }, [])
 
@@ -176,6 +281,12 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
           aperto={sheetDentistaAperto}
           onChiudi={() => setSheetDentistaAperto(false)}
           onCreato={dentistaCreato}
+        />
+        <RipresaSheet
+          aperto={sheetRipresaAperto}
+          stato={statoSalvato}
+          onRiprendi={riprendi}
+          onRicomincia={ricomincia}
         />
       </div>
     </AvvisiProvider>
@@ -245,6 +356,10 @@ function CorpoWizard(props: {
       errore('Non sono riuscita a creare il lavoro. Riprova.')
       return
     }
+    // Task 13 (spec §9): creazione completata → azzera la persistenza. Un
+    // nuovo giro di wizard (es. l'odontotecnico torna subito a "Nuovo
+    // lavoro") non deve trovare residui del lavoro appena creato.
+    azzeraStato()
     setFatto({
       lavoro: esito.lavoro,
       accessoriFalliti: esito.accessoriFalliti,
