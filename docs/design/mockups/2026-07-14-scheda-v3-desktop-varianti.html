@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="it" data-theme="light" data-v="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Scheda v3 desktop · 3 varianti</title>
+<style>
+:root,[data-theme="light"]{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --amber-tint:#F8F0E1; --green-tint:#EAF4EC; --blue-tint:#EBF1FA;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset,0 2px 3px rgba(50,40,25,.05),0 16px 30px -18px rgba(50,40,25,.35);
+  --sh-press:0 4px 0 rgba(50,40,25,.12),0 14px 24px -14px rgba(50,40,25,.3),inset 0 1px 0 rgba(255,255,255,.9);
+}
+[data-theme="dark"]{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --amber-tint:rgba(232,161,61,.14); --green-tint:rgba(52,196,104,.14); --blue-tint:rgba(91,155,255,.14);
+  --sh-card:none; --sh-press:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-columns:212px 1fr;min-height:100vh}
+.rail{background:var(--bg-deep);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px;gap:6px;height:100vh;position:sticky;top:0}
+.brand{font-weight:800;font-size:22px;letter-spacing:-.5px;padding:6px 8px 14px}.brand b{color:var(--red)}
+.cta{display:flex;align-items:center;gap:8px;justify-content:center;background:var(--red);color:#fff;font-weight:700;font-size:14px;border:none;border-radius:14px;padding:12px 14px;cursor:pointer;box-shadow:var(--sh-press)}
+[data-theme="dark"] .cta{box-shadow:none}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:14px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px;border-radius:11px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
+.nav a.active{background:var(--card);color:var(--ink);box-shadow:var(--sh-card)}
+[data-theme="dark"] .nav a.active{box-shadow:none;border:1px solid var(--line)}
+.foot{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.ident{display:flex;align-items:center;gap:10px;padding:8px;border-radius:11px}
+.ident .dot{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.ident .who{font-size:12px;line-height:1.2}.ident .who b{display:block;font-size:13px}.ident .who span{color:var(--faint)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:600}
+
+.wrap{padding:26px 34px 60px;max-width:1200px}
+.sched-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.tondo{width:44px;height:44px;border-radius:50%;background:var(--card);box-shadow:var(--sh-card);border:none;font-size:20px;color:var(--ink);cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+[data-theme="dark"] .tondo{box-shadow:none;border:1px solid var(--line)}
+.num{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.pill{font-size:12px;font-weight:800;letter-spacing:.4px;padding:6px 12px;border-radius:999px}
+.pill.green{background:var(--green-tint);color:var(--green)}
+.card{background:var(--card);border-radius:22px;box-shadow:var(--sh-card)}
+[data-theme="dark"] .card{box-shadow:none;border:1px solid var(--line)}
+.pad{padding:8px 20px}.pad2{padding:18px 20px}
+.avviso{background:var(--amber-tint);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);border-radius:18px;padding:16px 18px;margin-bottom:16px}
+.avviso h4{font-size:15px;font-weight:800;margin-bottom:4px}.avviso p{font-size:13px;color:var(--faint);line-height:1.35}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.k{font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--faint)}
+.v{font-size:16px;font-weight:700;text-align:right}.v.red{color:var(--red)}.v.mut{color:var(--muted);font-weight:600}
+.ptitle{font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--faint);padding:0 2px 8px}
+.btn-primary{width:100%;background:var(--red);color:#fff;border:none;border-radius:16px;padding:16px;font-size:17px;font-weight:800;cursor:pointer;box-shadow:var(--sh-press)}
+.btn-primary:disabled{background:var(--elv);color:var(--faint);box-shadow:none;border:1px solid var(--line);cursor:not-allowed}
+[data-theme="dark"] .btn-primary{box-shadow:none}
+.hint{font-size:12.5px;color:var(--faint);text-align:center;margin-top:8px}
+.btn-sec{width:100%;background:transparent;color:var(--ink);border:1.5px solid var(--line);border-radius:16px;padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+.drow{display:flex;align-items:center;gap:12px;padding:13px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.drow:last-child{border-bottom:none}.drow .di{width:34px;height:34px;border-radius:10px;background:var(--bg-deep);display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+.drow .dl{flex:1;font-size:14.5px;font-weight:700}.drow .ch{color:var(--faint)}
+.pkg{width:100%;background:transparent;color:var(--ink);border:1.5px dashed var(--line);border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--bg-deep);border-radius:14px;padding:14px;font-size:14px;font-weight:700;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:74px}
+.tile .ti{font-size:18px}
+.mut{color:var(--muted)}
+
+/* switcher */
+.bar{position:fixed;top:12px;right:16px;display:flex;gap:6px;z-index:9;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px}
+.bar button{border:none;background:transparent;color:var(--muted);font-weight:700;font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer}
+.bar button.on{background:var(--red);color:#fff}
+.stage{display:none}.stage.on{display:block}
+.tag{position:fixed;left:calc(50% + 106px);bottom:14px;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;padding:7px 14px;border-radius:999px;opacity:.9}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button data-var="1" class="on" onclick="setV(1)">V1 · Ariosa</button>
+  <button data-var="2" onclick="setV(2)">V2 · Scocca unica</button>
+  <button data-var="3" onclick="setV(3)">V3 · Bilanciata</button>
+  <button onclick="tog()" id="tgl">🌙 Scuro</button>
+</div>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">U<b>À</b></div>
+    <button class="cta">+ Nuovo lavoro</button>
+    <nav class="nav">
+      <a>▦ Oggi</a><a class="active">≣ Lavori</a><a>◔ Clienti</a><a>🧾 Fatture</a><a>⏱ Sospesi</a><a>☰ Tutto il resto</a>
+    </nav>
+    <div class="foot">
+      <div class="ident"><span class="dot">TT</span><span class="who"><b>Titolare Test</b><span>Lab E2E</span></span></div>
+      <button class="toggle" onclick="tog()">🌙 Tema</button>
+    </div>
+  </aside>
+
+  <div>
+    <!-- ============ V1 · Ariosa (3 colonne) ============ -->
+    <main class="stage on" data-stage="1">
+      <div class="wrap" style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start">
+        <section>
+          <div class="sched-head"><button class="tondo">‹</button><span class="num">n.2026/0005</span><span class="pill green">CONSEGNATO ✓</span></div>
+          <div class="avviso"><h4>Tracciabilità materiali incompleta</h4><p>Corona ceramica test — distinta base (BOM) non definita nel listino</p></div>
+          <div class="card pad">
+            <div class="row"><span class="k">Dentista</span><span class="v">Studio Bianchi</span></div>
+            <div class="row"><span class="k">Paziente</span><span class="v mut">—</span></div>
+            <div class="row"><span class="k">Lavoro</span><span class="v">Corona ceramica test – dente 14, colore A2</span></div>
+            <div class="row"><span class="k">Consegna</span><span class="v red">6 lug</span></div>
+            <div class="row"><span class="k">Tecnico</span><span class="v mut">Non assegnato</span></div>
+          </div>
+        </section>
+        <aside style="display:flex;flex-direction:column;gap:16px;position:sticky;top:26px">
+          <div><div class="ptitle">Azioni</div><button class="btn-primary" disabled>Consegna</button><p class="hint">Lavoro già consegnato il 6 luglio</p></div>
+          <button class="btn-sec">↩ Crea rifacimento</button>
+          <div class="card pad2">
+            <div class="ptitle">Documenti</div>
+            <div class="drow"><span class="di">📄</span><span class="dl">Scarica DdC</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">📘</span><span class="dl">IFU — Istruzioni</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">🏷</span><span class="dl">Etichetta</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">🧾</span><span class="dl">Ricevuta</span><span class="ch">›</span></div>
+          </div>
+          <button class="pkg">📦 Pacchetto Consegna MDR</button>
+        </aside>
+      </div>
+    </main>
+
+    <!-- ============ V2 · Scocca unica ============ -->
+    <main class="stage" data-stage="2">
+      <div class="wrap" style="max-width:1040px">
+        <div class="sched-head"><button class="tondo">‹</button><span class="num">n.2026/0005</span><span class="pill green">CONSEGNATO ✓</span></div>
+        <div class="avviso"><h4>Tracciabilità materiali incompleta</h4><p>Corona ceramica test — distinta base (BOM) non definita nel listino</p></div>
+        <div class="card" style="display:grid;grid-template-columns:1.25fr 1px .95fr;overflow:hidden">
+          <div style="padding:10px 26px">
+            <div class="row"><span class="k">Dentista</span><span class="v">Studio Bianchi</span></div>
+            <div class="row"><span class="k">Paziente</span><span class="v mut">—</span></div>
+            <div class="row"><span class="k">Lavoro</span><span class="v">Corona ceramica test – dente 14, colore A2</span></div>
+            <div class="row"><span class="k">Consegna</span><span class="v red">6 lug</span></div>
+            <div class="row"><span class="k">Tecnico</span><span class="v mut">Non assegnato</span></div>
+          </div>
+          <div style="background:var(--line)"></div>
+          <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <button class="btn-primary" disabled>Consegna</button>
+            <p class="hint" style="margin-top:-6px">Lavoro già consegnato il 6 luglio</p>
+            <button class="btn-sec">↩ Crea rifacimento</button>
+            <div class="ptitle" style="padding-top:6px">Documenti</div>
+            <div class="drow"><span class="di">📄</span><span class="dl">Scarica DdC</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">📘</span><span class="dl">IFU — Istruzioni</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">🏷</span><span class="dl">Etichetta</span><span class="ch">›</span></div>
+            <div class="drow"><span class="di">🧾</span><span class="dl">Ricevuta</span><span class="ch">›</span></div>
+            <button class="pkg" style="margin-top:4px">📦 Pacchetto Consegna MDR</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============ V3 · Bilanciata 60/40 con tiles ============ -->
+    <main class="stage" data-stage="3">
+      <div class="wrap" style="display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:start">
+        <section>
+          <div class="sched-head"><button class="tondo">‹</button><span class="num">n.2026/0005</span><span class="pill green">CONSEGNATO ✓</span></div>
+          <div class="avviso"><h4>Tracciabilità materiali incompleta</h4><p>Corona ceramica test — distinta base (BOM) non definita nel listino</p></div>
+          <div class="card pad">
+            <div class="row"><span class="k">Dentista</span><span class="v">Studio Bianchi</span></div>
+            <div class="row"><span class="k">Paziente</span><span class="v mut">—</span></div>
+            <div class="row"><span class="k">Lavoro</span><span class="v">Corona ceramica test – dente 14, colore A2</span></div>
+            <div class="row"><span class="k">Consegna</span><span class="v red">6 lug</span></div>
+            <div class="row"><span class="k">Tecnico</span><span class="v mut">Non assegnato</span></div>
+          </div>
+          <div class="card pad2" style="margin-top:16px">
+            <div class="ptitle">Nota del laboratorio</div>
+            <p class="mut" style="font-size:14px;line-height:1.4">Nessuna nota. <a style="color:var(--red);font-weight:700;cursor:pointer">+ Aggiungi la prima nota</a></p>
+          </div>
+        </section>
+        <aside style="display:flex;flex-direction:column;gap:16px">
+          <div class="card pad2">
+            <div class="ptitle">Azioni</div>
+            <button class="btn-primary" disabled>Consegna</button>
+            <p class="hint">Lavoro già consegnato il 6 luglio</p>
+            <button class="btn-sec" style="margin-top:12px">↩ Crea rifacimento</button>
+          </div>
+          <div class="card pad2">
+            <div class="ptitle">Documenti</div>
+            <div class="tiles">
+              <div class="tile"><span class="ti">📄</span>Scarica DdC</div>
+              <div class="tile"><span class="ti">📘</span>IFU — Istruzioni</div>
+              <div class="tile"><span class="ti">🏷</span>Etichetta</div>
+              <div class="tile"><span class="ti">🧾</span>Ricevuta</div>
+            </div>
+            <button class="pkg" style="margin-top:12px">📦 Pacchetto Consegna MDR</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="tag" id="tag">MOCKUP · V1 Ariosa · desktop 1280</div>
+<script>
+const names={1:'V1 Ariosa',2:'V2 Scocca unica',3:'V3 Bilanciata'};
+function setV(v){
+  document.documentElement.setAttribute('data-v',v);
+  document.querySelectorAll('.stage').forEach(s=>s.classList.toggle('on',s.dataset.stage==String(v)));
+  document.querySelectorAll('.bar button[data-var]').forEach(b=>b.classList.toggle('on',b.dataset.var==String(v)));
+  document.getElementById('tag').textContent='MOCKUP · '+names[v]+' · desktop 1280';
+}
+function tog(){const h=document.documentElement,d=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',d?'light':'dark');document.getElementById('tgl').textContent=d?'🌙 Scuro':'☀️ Chiaro';}
+</script>
+</body>
+</html>
