@@ -18,4 +18,16 @@ describe('DocumentiSheet', () => {
     expect(screen.getByRole('link', { name: /etichetta/i })).toHaveAttribute('href', '/api/lavori/lav/etichetta')
     expect(screen.getByRole('link', { name: /ricevuta/i })).toHaveAttribute('href', '/api/lavori/lav/ricevuta-consegna')
   })
+  it('mostra la voce DdC con URL firmata quando haDdc=true e ddcUrl è presente', () => {
+    const lavoroConDdc = { ...lavoro, haDdc: true, ddcUrl: 'https://signed.example/ddc.pdf' }
+    render(<DocumentiSheet aperto onChiudi={() => {}} lavoro={lavoroConDdc} />)
+    const ddc = screen.getByRole('link', { name: /^scarica ddc/i })
+    expect(ddc).toHaveAttribute('href', 'https://signed.example/ddc.pdf')
+    expect(ddc).toHaveAttribute('target', '_blank')
+  })
+  it('non mostra la voce DdC quando haDdc=true ma ddcUrl è assente (gate haDdc && ddcUrl)', () => {
+    const lavoroSenzaUrl = { ...lavoro, haDdc: true, ddcUrl: undefined }
+    render(<DocumentiSheet aperto onChiudi={() => {}} lavoro={lavoroSenzaUrl} />)
+    expect(screen.queryByRole('link', { name: /^scarica ddc/i })).toBeNull()
+  })
 })

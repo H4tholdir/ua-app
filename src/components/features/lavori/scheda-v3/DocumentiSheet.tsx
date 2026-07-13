@@ -91,7 +91,7 @@ export function DocumentiSheet(props: { aperto: boolean; onChiudi: () => void; l
               style={rigaStile(false)}
             >
               <span style={{ flex: 1 }}>Scarica DdC</span>
-              <span style={chevStile}>{'›'}</span>
+              <span aria-hidden="true" style={chevStile}>{'›'}</span>
             </a>
           )}
           {vociDownload.map((voce, indice) => (
@@ -102,7 +102,7 @@ export function DocumentiSheet(props: { aperto: boolean; onChiudi: () => void; l
               style={rigaStile(indice === vociDownload.length - 1)}
             >
               <span style={{ flex: 1 }}>{voce.etichetta}</span>
-              <span style={chevStile}>{'›'}</span>
+              <span aria-hidden="true" style={chevStile}>{'›'}</span>
             </a>
           ))}
         </div>
