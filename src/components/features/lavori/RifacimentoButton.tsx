@@ -66,23 +66,23 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
       {/* ── Trigger button ─────────────────────────────────────────────── */}
       <button
         type="button"
+        className="ds-tap-v3"
         onClick={openSheet}
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 6,
+          gap: 8,
           width: '100%',
-          height: 44,
-          borderRadius: 12,
-          background: 'var(--elv, #EDEDEA)',
-          border: '1.5px solid var(--prs, #D4CFC9)',
-          fontFamily: 'DM Sans, sans-serif',
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--t2, #4A3D33)',
+          minHeight: 48,
+          borderRadius: 16,
+          background: 'transparent',
+          border: '1.5px solid var(--line)',
+          fontFamily: 'var(--font-v3)',
+          fontSize: 15,
+          fontWeight: 700,
+          color: 'var(--ink)',
           cursor: 'pointer',
-          outline: 'none',
         }}
         aria-label="Crea rifacimento"
       >
@@ -125,10 +125,10 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                 left: 0,
                 right: 0,
                 zIndex: 301,
-                background: 'var(--bg, #DDD8D3)',
+                background: 'var(--bg)',
                 borderRadius: '20px 20px 0 0',
                 paddingBottom: 'env(safe-area-inset-bottom)',
-                boxShadow: '-5px -5px 11px rgba(255,255,255,.78), 9px 13px 22px -4px rgba(148,128,118,.44)',
+                boxShadow: 'var(--sh-card)',
               }}
             >
               <div style={{ padding: 20 }}>
@@ -137,7 +137,7 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                   width: 32,
                   height: 4,
                   borderRadius: 2,
-                  background: 'var(--prs, #D4CFC9)',
+                  background: 'var(--line)',
                   margin: '0 auto 16px',
                 }} />
 
@@ -145,10 +145,10 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                 <p
                   id="rifacimento-sheet-title"
                   style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3)',
                     fontSize: 16,
                     fontWeight: 700,
-                    color: 'var(--t1, #1C1916)',
+                    color: 'var(--ink)',
                     marginBottom: 4,
                     margin: '0 0 4px',
                   }}
@@ -158,9 +158,9 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
 
                 {/* Subtitle */}
                 <p style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3)',
                   fontSize: 12,
-                  color: 'var(--t2, #4A3D33)',
+                  color: 'var(--muted)',
                   marginBottom: 20,
                   margin: '0 0 20px',
                 }}>
@@ -169,11 +169,11 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
 
                 {/* Motivo label */}
                 <p style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3)',
                   fontSize: 11,
                   fontWeight: 600,
                   textTransform: 'uppercase',
-                  color: 'var(--t2, #4A3D33)',
+                  color: 'var(--muted)',
                   letterSpacing: '0.08em',
                   marginBottom: 10,
                   margin: '0 0 10px',
@@ -204,10 +204,10 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                           alignItems: 'center',
                           justifyContent: 'center',
                           borderRadius: 100,
-                          border: `1.5px solid ${isSelected ? 'var(--primary, #D90012)' : 'var(--prs, #D4CFC9)'}`,
-                          background: isSelected ? 'var(--primary, #D90012)' : 'var(--elv, #EDEDEA)',
-                          color: isSelected ? '#fff' : 'var(--t2, #4A3D33)',
-                          fontFamily: 'DM Sans, sans-serif',
+                          border: `1.5px solid ${isSelected ? 'var(--red)' : 'var(--line)'}`,
+                          background: isSelected ? 'var(--red)' : 'var(--card)',
+                          color: isSelected ? '#fff' : 'var(--muted)',
+                          fontFamily: 'var(--font-v3)',
                           fontSize: 12,
                           fontWeight: isSelected ? 700 : 500,
                           cursor: 'pointer',
@@ -224,11 +224,11 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
 
                 {/* Note label */}
                 <p style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3)',
                   fontSize: 11,
                   fontWeight: 600,
                   textTransform: 'uppercase',
-                  color: 'var(--t2, #4A3D33)',
+                  color: 'var(--muted)',
                   letterSpacing: '0.08em',
                   marginBottom: 6,
                   margin: '0 0 6px',
@@ -244,12 +244,12 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                   onChange={(e) => setNote(e.target.value)}
                   style={{
                     width: '100%',
-                    background: 'var(--sfc, #E4DFD9)',
-                    border: '1px solid var(--prs, #D4CFC9)',
+                    background: 'var(--card)',
+                    border: '1px solid var(--line)',
                     borderRadius: 10,
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3)',
                     fontSize: 13,
-                    color: 'var(--t1, #1C1916)',
+                    color: 'var(--ink)',
                     padding: '10px 12px',
                     resize: 'none',
                     outline: 'none',
@@ -262,10 +262,10 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                 {/* Nota informativa */}
                 {motivo && (
                   <p style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3)',
                     fontSize: 11,
                     fontStyle: 'italic',
-                    color: 'var(--t2, #4A3D33)',
+                    color: 'var(--muted)',
                     marginBottom: 12,
                     margin: '0 0 12px',
                   }}>
@@ -276,9 +276,9 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                 {/* Error message */}
                 {error && (
                   <p style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3)',
                     fontSize: 12,
-                    color: 'var(--primary, #D90012)',
+                    color: 'var(--red)',
                     marginBottom: 8,
                     margin: '0 0 8px',
                   }}>
@@ -296,12 +296,12 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                       flex: 1,
                       height: 48,
                       borderRadius: 12,
-                      background: 'var(--elv, #EDEDEA)',
+                      background: 'var(--card)',
                       border: 'none',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3)',
                       fontSize: 14,
                       fontWeight: 700,
-                      color: 'var(--t2, #4A3D33)',
+                      color: 'var(--muted)',
                       cursor: isPending ? 'not-allowed' : 'pointer',
                       opacity: isPending ? 0.5 : 1,
                       outline: 'none',
@@ -317,9 +317,9 @@ export function RifacimentoButton({ lavoroId, numeroLavoro }: Props) {
                       flex: 2,
                       height: 48,
                       borderRadius: 12,
-                      background: 'var(--primary, #D90012)',
+                      background: 'var(--red)',
                       border: 'none',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3)',
                       fontSize: 14,
                       fontWeight: 700,
                       color: '#fff',
