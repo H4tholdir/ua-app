@@ -182,7 +182,7 @@ Le 4 voci a ponte (Prezzi e lavorazioni, Dati clinici, Prove, Foto) navigano a *
   - **Ponte `bridged`:** il form NON rende il tasto CONSEGNA quando `bridged` è true, **ma continua a rendere la barra Salva** (test di regressione: le modifiche ai tab a campi restano salvabili); `defaultTab` apre il tab richiesto.
   - Scheda-vista: CONSEGNA presente; abilitato+naviga a `/consegna` quando consegnabile, `disabled`+callout altrimenti; Rifacimento/Segnala compaiono solo alle condizioni di stato/ruolo; «Annulla lavoro» nel menu è presente e disabilitata.
 - **Verifica (FASE 7):** `tsc --noEmit` + `vitest run` + `next build`, tutti con output reale. Baseline attesa: 1561 pass | 4 skipped + i nuovi test.
-- **QA browser (FASE 9):** lab E2E (`00000000-…-0001`, **mai** lab Filippo), 3 viewport × 2 temi. Verifiche chiave: modifica per-riga persiste; CONSEGNA disabled; il ponte NON permette di consegnare; Documenti scarica i file reali; Rifacimento/Segnala contestuali.
+- **QA browser (FASE 9):** lab E2E (`00000000-…-0001`, **mai** lab Filippo), 3 viewport × 2 temi. Verifiche chiave: modifica per-riga persiste; CONSEGNA abilitato su lavoro consegnabile porta a `/consegna` (e disabled+callout su lavoro non consegnabile); coerenza pila/scheda nel desktop split; le modifiche nei tab a ponte restano salvabili (barra Salva presente); Documenti scarica i file reali; Rifacimento/Segnala contestuali; «Annulla lavoro» disabilitata.
 
 ---
 
