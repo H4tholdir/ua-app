@@ -98,7 +98,6 @@ export function PassoPaziente(props: {
         />
         <RigaOpzionale
           nome="Nome o alias"
-          esempio="es. Mario R."
           valore={alias}
           ultima
           onAttiva={() => setCampoAttivo('alias')}
@@ -138,7 +137,7 @@ export function PassoPaziente(props: {
  */
 function RigaOpzionale(props: {
   nome: string
-  esempio: string
+  esempio?: string
   valore: string
   ultima: boolean
   onAttiva: () => void
@@ -186,9 +185,8 @@ function RigaOpzionale(props: {
       `}</style>
       <button type="button" className="ds-riga-opzionale-bottone" onClick={apri} style={stileRigaBottone}>
         <span style={stileOpzNome}>{nome}</span>
-        <span style={stileOpzEsempio}>{esempio}</span>
+        {esempio && <span style={stileOpzEsempio}>{esempio}</span>}
       </button>
-      <span style={{ flex: 1 }} />
       <LinkQuieto onClick={salta}>Salta</LinkQuieto>
     </div>
   )
@@ -199,12 +197,14 @@ function RigaOpzionale(props: {
  * wizard.html:162-170), stesso dashed di TileNuovo (§5.12, `gradiente.dashedGuida`).
  *
  * `<input type="file">` reale (accept image/*, capture environment — apre
- * fotocamera su mobile) nidificato dentro la `<label>`: associazione a11y
- * implicita (nessun `htmlFor`/`id` necessario) e `:focus-within` sulla label
- * mostra l'anello di focus quando l'input (visually-hidden) riceve il focus
- * da tastiera. Dopo la selezione, il testo della riga diventa il nome del
- * file scelto (niente anteprima immagine: il piano chiede "nome/thumb", il
- * nome basta a confermare che qualcosa è stato scelto).
+ * fotocamera su mobile) NON nidificato dentro la `<label>`: sono fratelli
+ * nello stesso contenitore, associati esplicitamente via `htmlFor`/`id`
+ * (un solo meccanismo di associazione a11y, non doppio). `:focus-within` è
+ * sul contenitore (ascendente comune) e mostra l'anello di focus sulla
+ * label quando l'input (visually-hidden) riceve il focus da tastiera.
+ * Dopo la selezione, il testo della riga diventa il nome del file scelto
+ * (niente anteprima immagine: il piano chiede "nome/thumb", il nome basta
+ * a confermare che qualcosa è stato scelto).
  */
 function RigaFoto(props: { foto: File | null; onCambia: (f: File) => void }) {
   const { foto, onCambia } = props
@@ -213,25 +213,30 @@ function RigaFoto(props: { foto: File | null; onCambia: (f: File) => void }) {
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) onCambia(file)
+    // Reset del value: senza questo, riselezionare lo STESSO file non
+    // genera un nuovo evento `change` (il browser confronta il value),
+    // quindi l'odontotecnico resterebbe bloccato se rifà la stessa foto.
+    // Pattern identico a TabImmagini.tsx (input camera/galleria).
+    e.target.value = ''
   }
 
   return (
-    <div>
+    <div className="ds-foto-add-wrap">
       <style>{`
-        .ds-foto-add:focus-within {
+        .ds-foto-add-wrap:focus-within .ds-foto-add {
           outline: 2px solid var(--blue);
           outline-offset: 2px;
         }
       `}</style>
+      <input
+        id={id}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleChange}
+        style={stileInputNascosto}
+      />
       <label htmlFor={id} className="ds-foto-add" style={stileFotoAdd}>
-        <input
-          id={id}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleChange}
-          style={stileInputNascosto}
-        />
         {/* Icona fotocamera §4.4: line-SVG (niente emoji) — path VERBATIM
             wizard.html:384. */}
         <svg

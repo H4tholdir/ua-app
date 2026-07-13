@@ -141,6 +141,47 @@ describe('PassoPaziente — Passo 3 del wizard (Task 11)', () => {
     expect(screen.getByText('impronta.jpg')).toBeInTheDocument()
   })
 
+  it('selezione dello STESSO file una seconda volta → onCambia chiamata di nuovo (value resettato)', async () => {
+    // Il browser non ripete l'evento `change` se il value dell'input non
+    // cambia: senza il reset di `e.target.value` dopo la lettura, riselezio-
+    // nare la stessa foto (es. per errore, poi di nuovo la stessa) non
+    // scatterebbe nulla. Harness stateful (come sopra) + spy che conta le
+    // chiamate reali a onCambia per il patch `foto`.
+    const onCambiaSpy = vi.fn()
+    function Harness() {
+      const [foto, setFoto] = useState<File | null>(null)
+      return (
+        <PassoPaziente
+          {...props({
+            foto,
+            onCambia: (patch) => {
+              onCambiaSpy(patch)
+              if ('foto' in patch) setFoto(patch.foto ?? null)
+            },
+          })}
+        />
+      )
+    }
+    render(<Harness />)
+    const input = screen.getByLabelText(/Aggiungi la foto dell.impronta/)
+    const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+    const user = userEvent.setup()
+    await user.upload(input, file)
+    expect(screen.getByText('impronta.jpg')).toBeInTheDocument()
+    expect(onCambiaSpy).toHaveBeenCalledTimes(1)
+    // Riseleziona lo STESSO file: senza il reset del value questo secondo
+    // upload dello stesso File non genererebbe un nuovo evento `change`.
+    await user.upload(input, file)
+    expect(onCambiaSpy).toHaveBeenCalledTimes(2)
+    expect(onCambiaSpy).toHaveBeenNthCalledWith(2, { foto: file })
+  })
+
+  it('riga "Nome o alias" non mostra un esempio (nessun copy inventato/non sourced)', () => {
+    render(<PassoPaziente {...props()} />)
+    expect(screen.getByText('Nome o alias')).toBeInTheDocument()
+    expect(screen.queryByText('es. Mario R.')).not.toBeInTheDocument()
+  })
+
   it('"Continua" è un TastoSecondario (non disabled quando inCreazione=false) e chiama onContinua', async () => {
     const onContinua = vi.fn()
     render(<PassoPaziente {...props({ onContinua, inCreazione: false })} />)
