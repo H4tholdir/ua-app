@@ -15,6 +15,7 @@ import { useId, useState, type ChangeEvent, type CSSProperties } from 'react'
 import { tipografia, raggio, spazio } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 import { ChipScelta } from './ChipScelta'
+import { inizioGiorno, aggiungiGiorni, stessoGiorno } from '@/lib/date/giorni'
 
 const ALTEZZA_CAMPO = 64 // §5.27 — letterale, non in scala spazio/raggio
 
@@ -151,21 +152,16 @@ export function CampoNumero(props: {
 }
 
 // --- CampoData: date math puro (testabile in isolamento) -------------------
-
-/** Mezzanotte locale dello stesso giorno di `d` — azzera l'ora, non il fuso. */
-export function inizioGiorno(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
-}
-
-/** Somma `n` giorni (anche negativi) attraversando correttamente mese/anno. */
-export function aggiungiGiorni(d: Date, n: number): Date {
-  const risultato = new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
-  return risultato
-}
-
-export function stessoGiorno(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-}
+//
+// inizioGiorno/aggiungiGiorni/stessoGiorno sono state estratte in
+// `@/lib/date/giorni` (modulo neutro, nessuna direttiva 'use client'):
+// questo file ha `'use client'` in cima, quindi TUTTI i suoi export sono
+// client reference e non possono essere chiamati da codice server-side
+// (RSC, `server-only`) — bug QA critico che crashava `/lavori/nuovo`.
+// Ri-esportate qui (già importate sopra, usate anche da `prossimoLunedi` e
+// `CampoData` in questo stesso file) per non rompere i consumer client
+// esistenti che importano da `@/components/ds/Campo`.
+export { inizioGiorno, aggiungiGiorni, stessoGiorno }
 
 /**
  * Prossimo lunedì SEMPRE strettamente successivo a `oggi` — mai oggi stesso.

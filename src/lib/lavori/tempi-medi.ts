@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { inizioGiorno, aggiungiGiorni } from '@/components/ds/Campo'
+import { inizioGiorno, aggiungiGiorni } from '@/lib/date/giorni'
 import { TIPI_LAVORO, labelTipo } from '@/lib/domain/tipi-lavoro'
 
 export type CampioneConsegna = {

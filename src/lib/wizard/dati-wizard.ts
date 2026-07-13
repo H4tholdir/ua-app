@@ -1,6 +1,6 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { inizioGiorno, aggiungiGiorni } from '@/components/ds/Campo'
+import { inizioGiorno, aggiungiGiorni } from '@/lib/date/giorni'
 import { TIPI_LAVORO, labelTipo, CANONICI_DAY1 } from '@/lib/domain/tipi-lavoro'
 import { fetchCampioniConsegna, calcolaGiorniPerTipo } from '@/lib/lavori/tempi-medi'
 
