@@ -59,13 +59,11 @@ export function isoDataLocale(d: Date): string {
 /**
  * Nessun campione storico possibile per un tipo "descritto a mano" (nessun
  * id di catalogo su cui `calcolaGiorniPerTipo`, Task 6, possa aver aggregato
- * nulla): placeholder ragionevole, NON ratificato da Francesco — da
- * rivedere se in produzione risulta troppo ottimistico/pessimista per la
- * distribuzione reale dei lavori "Altro". Usato anche come rete di
- * sicurezza difensiva se un id di catalogo scelto non fosse (più) presente
- * in `giorniPerTipo`.
+ * nulla): valore di 7 giorni ratificato da Francesco. Usato anche come rete
+ * di sicurezza difensiva se un id di catalogo scelto non fosse (più)
+ * presente in `giorniPerTipo`.
  */
-export const GIORNI_FALLBACK_LIBERO = 5
+export const GIORNI_FALLBACK_LIBERO = 7
 
 /** Etichetta del tipo per la UI ("Lavoro" in FrameFatto) e come `descrizione` del POST. */
 export function descrizioneTipo(tipo: TipoScelto): string {
