@@ -27,11 +27,14 @@ import { motion, AnimatePresence } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { ProgressDots } from '@/components/ds/ProgressDots'
-import { AvvisiProvider } from '@/components/ds/Avviso'
+import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { PassoDentista } from './PassoDentista'
 import { PassoTipo } from './PassoTipo'
 import { PassoPaziente } from './PassoPaziente'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
+import { FrameFatto } from './FrameFatto'
+import { creaLavoroDaWizard, stimaGiorni, descrizioneTipo } from '@/lib/wizard/crea-lavoro'
+import { dataSuggerita } from '@/lib/lavori/tempi-medi'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 
 export type TipoScelto = { kind: 'catalogo'; tipoId: string } | { kind: 'libero'; testo: string }
@@ -129,59 +132,37 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 
   // Task 11: PassoPaziente è un componente controllato — questo è l'unico
   // punto che scrive nello stato condiviso i suoi campi (pz/alias/elemento/
-  // colore/foto). Task 12 sostituirà `continuaPaziente`/`inCreazione` con la
-  // persistenza reale; qui restano uno stub perché il contratto delle props
-  // (consumato dal Task 12) va rispettato ORA, non riaperto dopo.
+  // colore/foto).
   const cambiaPaziente = useCallback((patch: Partial<StatoWizard>) => {
     setStato((s) => ({ ...s, ...patch }))
   }, [])
-  const continuaPaziente = useCallback(() => {
-    // Segnaposto (Task 12, brief): qui nascerà la creazione vera del lavoro.
-  }, [])
 
+  // Task 12: il corpo vero e proprio (testata+passi, poi FrameFatto) vive in
+  // `CorpoWizard`, un componente FIGLIO di AvvisiProvider — mai in questa
+  // funzione, che è quella che MONTA il provider: un componente non può
+  // consumare un context che sta fornendo nel proprio stesso return
+  // (`useAvvisi()` qui sopra lancerebbe "va chiamato dentro <AvvisiProvider>").
+  // `continuaPaziente`/`inCreazione`/`fatto` vivono quindi dentro CorpoWizard,
+  // non qui: sono l'unico punto che ha bisogno di `useAvvisi()` per
+  // segnalare un fallimento bloccante o gli accessori falliti.
   const corpo = (
-    <div style={colonnaStile}>
-      <div style={testataStile}>
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={vaIndietro} />
-        <ProgressDots passo={stato.passo} />
-      </div>
-
-      <AnimatePresence mode="popLayout" initial={false}>
-        {reduced ? (
-          <div key={stato.passo}>
-            <RenderPasso
-              stato={stato}
-              dati={dati}
-              onScegli={sceltaDentista}
-              onNuovoDentista={apriSheetDentista}
-              onScegliTipo={sceltaTipo}
-              onCambiaPaziente={cambiaPaziente}
-              onContinuaPaziente={continuaPaziente}
-            />
-          </div>
-        ) : (
-          <motion.div
-            key={stato.passo}
-            {...(direzione === 'avanti' ? coreografie.wizardAvanti : coreografie.wizardIndietro)}
-          >
-            <RenderPasso
-              stato={stato}
-              dati={dati}
-              onScegli={sceltaDentista}
-              onNuovoDentista={apriSheetDentista}
-              onScegliTipo={sceltaTipo}
-              onCambiaPaziente={cambiaPaziente}
-              onContinuaPaziente={continuaPaziente}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <CorpoWizard
+      dati={dati}
+      stato={stato}
+      direzione={direzione}
+      reduced={reduced}
+      vaIndietro={vaIndietro}
+      sceltaDentista={sceltaDentista}
+      apriSheetDentista={apriSheetDentista}
+      sceltaTipo={sceltaTipo}
+      cambiaPaziente={cambiaPaziente}
+      onTornaHome={() => router.push('/dashboard')}
+    />
   )
 
   // AvvisiProvider avvolge tutto il wizard (non solo lo sheet): NuovoDentistaSheet
-  // chiama useAvvisi() per l'errore di rete (§5.18), e i passi futuri (Task
-  // 10-13) potranno avvisare dallo stesso provider senza rimontarlo.
+  // e CorpoWizard (Task 12: creazione lavoro + Frame Fatto) chiamano
+  // useAvvisi() per errori di rete (§5.18), tutti dallo stesso provider.
   return (
     <AvvisiProvider>
       <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
@@ -201,6 +182,140 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   )
 }
 
+/** L'esito «Fatto!» — tutto ciò che serve a FrameFatto, calcolato una sola volta alla creazione. */
+type StatoFatto = {
+  lavoro: { id: string; numero_lavoro: string }
+  accessoriFalliti: Array<'dettagli' | 'foto'>
+  dentista: string
+  lavoroLabel: string
+  pz: string
+  giorni: number
+  daStoria: boolean
+  dataConsegna: Date
+}
+
+/**
+ * CorpoWizard — testata + AnimatePresence dei 3 passi, oppure FrameFatto
+ * (Task 12). Componente FIGLIO di AvvisiProvider (vedi commento sopra): è
+ * l'unico posto del wizard che chiama `useAvvisi()` per il ramo di
+ * creazione. Possiede `inCreazione`/`fatto` come stato locale, non
+ * condiviso con `WizardNuovoLavoro` — quello stato non serve a nessun altro
+ * (testata/ProgressDots spariscono insieme al passo-tree quando `fatto` è
+ * valorizzato, quindi non serve nemmeno "risalire" per nasconderli).
+ */
+function CorpoWizard(props: {
+  dati: DatiWizard
+  stato: StatoWizard
+  direzione: 'avanti' | 'indietro'
+  reduced: boolean
+  vaIndietro: () => void
+  sceltaDentista: (d: { id: string; label: string }) => void
+  apriSheetDentista: () => void
+  sceltaTipo: (t: TipoScelto) => void
+  cambiaPaziente: (patch: Partial<StatoWizard>) => void
+  onTornaHome: () => void
+}) {
+  const { dati, stato, direzione, reduced, vaIndietro, sceltaDentista, apriSheetDentista, sceltaTipo, cambiaPaziente, onTornaHome } = props
+  const { errore } = useAvvisi()
+  const [inCreazione, setInCreazione] = useState(false)
+  const [fatto, setFatto] = useState<StatoFatto | null>(null)
+
+  // Task 12: il «Continua» del Passo 3 — sequenza fail-soft spec §7. Il
+  // Passo 3 si attraversa SEMPRE (precompilato dal Task 11): questo è
+  // l'unico punto che chiama `creaLavoroDaWizard`, nessuna scorciatoia lo
+  // bypassa.
+  const continuaPaziente = useCallback(async () => {
+    const { cliente, tipo } = stato
+    if (!cliente || !tipo) return // difensivo: il wizard non arriva al Passo 3 senza i due
+    setInCreazione(true)
+    const { giorni, daStoria } = stimaGiorni(tipo, dati.giorniPerTipo)
+    const dataConsegna = dataSuggerita(giorni)
+    const esito = await creaLavoroDaWizard({
+      cliente,
+      tipo,
+      pz: stato.pz,
+      alias: stato.alias,
+      elemento: stato.elemento,
+      colore: stato.colore,
+      foto: stato.foto,
+      dataConsegna,
+    })
+    setInCreazione(false)
+    if (!esito.lavoro) {
+      errore('Non sono riuscita a creare il lavoro. Riprova.')
+      return
+    }
+    setFatto({
+      lavoro: esito.lavoro,
+      accessoriFalliti: esito.accessoriFalliti,
+      dentista: cliente.label,
+      lavoroLabel: descrizioneTipo(tipo),
+      pz: stato.pz,
+      giorni,
+      daStoria,
+      dataConsegna,
+    })
+  }, [stato, dati.giorniPerTipo, errore])
+
+  if (fatto) {
+    return (
+      <FrameFatto
+        lavoro={fatto.lavoro}
+        accessoriFalliti={fatto.accessoriFalliti}
+        dentista={fatto.dentista}
+        lavoroLabel={fatto.lavoroLabel}
+        pz={fatto.pz}
+        giorni={fatto.giorni}
+        daStoria={fatto.daStoria}
+        dataConsegna={fatto.dataConsegna}
+        onTornaHome={onTornaHome}
+      />
+    )
+  }
+
+  return (
+    <div style={colonnaStile}>
+      <div style={testataStile}>
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={vaIndietro} />
+        <ProgressDots passo={stato.passo} />
+      </div>
+
+      <AnimatePresence mode="popLayout" initial={false}>
+        {reduced ? (
+          <div key={stato.passo}>
+            <RenderPasso
+              stato={stato}
+              dati={dati}
+              onScegli={sceltaDentista}
+              onNuovoDentista={apriSheetDentista}
+              onScegliTipo={sceltaTipo}
+              onCambiaPaziente={cambiaPaziente}
+              onContinuaPaziente={continuaPaziente}
+              inCreazione={inCreazione}
+            />
+          </div>
+        ) : (
+          <motion.div
+            key={stato.passo}
+            {...(direzione === 'avanti' ? coreografie.wizardAvanti : coreografie.wizardIndietro)}
+          >
+            <RenderPasso
+              stato={stato}
+              dati={dati}
+              onScegli={sceltaDentista}
+              onNuovoDentista={apriSheetDentista}
+              onScegliTipo={sceltaTipo}
+              onCambiaPaziente={cambiaPaziente}
+              onContinuaPaziente={continuaPaziente}
+              inCreazione={inCreazione}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 /** Il corpo del passo corrente. */
 function RenderPasso(props: {
   stato: StatoWizard
@@ -210,8 +325,9 @@ function RenderPasso(props: {
   onScegliTipo: (t: TipoScelto) => void
   onCambiaPaziente: (patch: Partial<StatoWizard>) => void
   onContinuaPaziente: () => void
+  inCreazione: boolean
 }) {
-  const { stato, dati, onScegli, onNuovoDentista, onScegliTipo, onCambiaPaziente, onContinuaPaziente } = props
+  const { stato, dati, onScegli, onNuovoDentista, onScegliTipo, onCambiaPaziente, onContinuaPaziente, inCreazione } = props
 
   if (stato.passo === 1) {
     return (
@@ -234,8 +350,8 @@ function RenderPasso(props: {
   }
 
   // Task 11: PassoPaziente per intero (codice PZ, dettagli opzionali, foto).
-  // `onContinua`/`inCreazione` restano uno stub del wizard (Task 12 li
-  // sostituirà con la persistenza reale — vedi `continuaPaziente` sopra).
+  // Task 12: `onContinua`/`inCreazione` sono ora la persistenza reale
+  // (`continuaPaziente` in CorpoWizard sopra), non più uno stub.
   return (
     <PassoPaziente
       pz={stato.pz}
@@ -245,7 +361,7 @@ function RenderPasso(props: {
       foto={stato.foto}
       onCambia={onCambiaPaziente}
       onContinua={onContinuaPaziente}
-      inCreazione={false}
+      inCreazione={inCreazione}
     />
   )
 }
