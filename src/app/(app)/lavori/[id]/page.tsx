@@ -1,14 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { PageWrapper } from '@/components/layout/PageWrapper'
-import { StatoBadge } from '@/components/features/lavori/StatoBadge'
-import { LavoroTimeline } from '@/components/features/lavori/LavoroTimeline'
-import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
-import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
-import { TracciabilitaMaterialiBanner } from '@/components/features/lavori/TracciabilitaMaterialiBanner'
-import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
+import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLavoroV3'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
@@ -84,77 +77,9 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
     )
   }
 
-  const subtitle =
-    lavoroDettaglio.paziente_nome_snapshot ?? lavoroDettaglio.descrizione
-
   return (
-    <PageWrapper>
-      <AppHeader
-        title={lavoroDettaglio.numero_lavoro}
-        subtitle={subtitle}
-        backHref="/lavori"
-        actions={<StatoBadge stato={lavoroDettaglio.stato} />}
-      />
-
-      {/* Banner annulla consegna (grace period 5 min) */}
-      {lavoroDettaglio.stato === 'consegnato' && lavoroDettaglio.data_consegna_effettiva && (
-        <AnnullaConsegnaBanner
-          lavoroId={id}
-          dataConsegnaEffettiva={lavoroDettaglio.data_consegna_effettiva}
-        />
-      )}
-
-      {!lavoroDettaglio.tracciabilita_materiali_ok && lavoroDettaglio.materiali_incompleti_dettaglio && (
-        <TracciabilitaMaterialiBanner dettaglio={lavoroDettaglio.materiali_incompleti_dettaglio} />
-      )}
-
-      {/* Timeline stato */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <LavoroTimeline lavoro={lavoroDettaglio} />
-      </div>
-
-      {/* Form multi-tab */}
-      <LavoroFormClient lavoro={lavoroDettaglio} ruolo={utente.ruolo} />
-
-      {/* Rifacimento — disponibile su consegnato, pronto, sospeso */}
-      {(['consegnato', 'pronto', 'sospeso'] as const).includes(lavoroDettaglio.stato as 'consegnato' | 'pronto' | 'sospeso') && (
-        <div style={{ padding: '0 20px 24px' }}>
-          <RifacimentoButton
-            lavoroId={id}
-            numeroLavoro={lavoroDettaglio.numero_lavoro}
-          />
-        </div>
-      )}
-
-      {/* Scheda di Fabbricazione — download on-demand, disponibile se esistono fasi */}
-      {lavoroDettaglio.fasi.length > 0 && (
-        <div style={{ padding: '0 20px 24px' }}>
-          <a
-            href={`/api/lavori/${id}/scheda-fabbricazione`}
-            download
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              width: '100%',
-              height: 44,
-              borderRadius: 12,
-              background: 'var(--elv, #EDEDEA)',
-              border: '1.5px solid var(--prs, #D4CFC9)',
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--t2, #4A3D33)',
-              textDecoration: 'none',
-              boxSizing: 'border-box',
-            }}
-            aria-label="Scarica Scheda di Fabbricazione"
-          >
-            📄 Scarica Scheda di Fabbricazione
-          </a>
-        </div>
-      )}
-    </PageWrapper>
+    <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+      <SchedaLavoroV3 lavoro={lavoroDettaglio} ruolo={utente.ruolo} />
+    </div>
   )
 }

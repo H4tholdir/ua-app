@@ -54,7 +54,12 @@ import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
 import { molla } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia } from '@/design-system/v3/tokens'
-import type { LavoroDettaglio } from '@/types/domain'
+import type { LavoroDettaglio, MaterialeIncompletoDettaglio } from '@/types/domain'
+
+const MOTIVO_LABEL: Record<MaterialeIncompletoDettaglio['motivo'], string> = {
+  lotto_assente: 'nessun lotto disponibile in magazzino',
+  bom_mancante: 'distinta base (BOM) non definita nel listino',
+}
 
 type Campo = 'consegna' | 'tecnico' | 'dentista' | 'note'
 
@@ -154,6 +159,15 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
       {lavoro.stato === 'consegnato' && lavoro.data_consegna_effettiva && (
         <AnnullaConsegnaBanner lavoroId={lavoro.id} dataConsegnaEffettiva={lavoro.data_consegna_effettiva} />
       )}
+
+      {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre
+          visibile, mai un toast auto-dismiss: derivato direttamente da
+          `lavoro` (già presente sul prop, nessun nuovo dato da caricare). */}
+      {!lavoro.tracciabilita_materiali_ok &&
+        lavoro.materiali_incompleti_dettaglio &&
+        lavoro.materiali_incompleti_dettaglio.length > 0 && (
+          <AvvisoTracciabilita dettaglio={lavoro.materiali_incompleti_dettaglio} />
+        )}
 
       {/* CardInfo — righe editabili come <button> (§3). Le righe con `campo`
           (dentista/consegna/tecnico) aprono ModificaRigaSheet; paziente e
@@ -324,6 +338,55 @@ function NotaLaboratorio(props: { testo: string; onApri: () => void }) {
         {testo}
       </span>
     </motion.button>
+  )
+}
+
+/**
+ * AvvisoTracciabilita — callout MDR (Allegato XIII, tracciabilità
+ * materiali/lotti). A differenza di `Avviso` (ds/Avviso, toast portalato,
+ * auto-dismiss dopo 4s) questo è un blocco STATICO nel flusso della card:
+ * il segnale di non-conformità deve restare visibile finché il dato non è
+ * risolto, non sparire da solo. `role="alert"` + colori ambra (§DS v3 —
+ * stessa famiglia di `IconaFamiglia` tipo "errore/attenzione"). Elenca ogni
+ * materiale incompleto col motivo (stesso mapping/dettaglio della v2.3
+ * `TracciabilitaMaterialiBanner` — nessuna perdita di segnale nel passaggio
+ * a v3, anzi: qui il dato arriva già dentro `lavoro`, zero prop aggiuntive).
+ */
+function AvvisoTracciabilita(props: { dettaglio: MaterialeIncompletoDettaglio[] }) {
+  const { dettaglio } = props
+  return (
+    <div
+      role="alert"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spazio.xs,
+        borderRadius: raggio.riga,
+        padding: `${spazio.sm}px ${spazio.m}px`,
+        background: 'var(--amber-tint)',
+        border: '1px solid var(--amber)',
+      }}
+    >
+      <span
+        style={{
+          fontSize: tipografia.size.callout,
+          fontWeight: tipografia.weight.bold,
+          color: 'var(--ink)',
+        }}
+      >
+        Tracciabilità materiali incompleta
+      </span>
+      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {dettaglio.map((item, i) => (
+          <li
+            key={`${item.magazzino_id ?? 'bom'}-${i}`}
+            style={{ fontSize: tipografia.size.caption, color: 'var(--muted)' }}
+          >
+            {item.nome_materiale} — {MOTIVO_LABEL[item.motivo]}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

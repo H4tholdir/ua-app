@@ -49,4 +49,25 @@ describe('SchedaLavoroV3', () => {
     fireEvent.click(bottone)
     expect(screen.getByRole('heading', { name: 'Note interne' })).toBeInTheDocument()
   })
+  it('mostra il callout tracciabilità materiali (MDR) quando incompleta', () => {
+    render(
+      <SchedaLavoroV3
+        lavoro={makeLavoro({
+          tracciabilita_materiali_ok: false,
+          materiali_incompleti_dettaglio: [
+            { magazzino_id: 'mag-1', nome_materiale: 'Zirconia HT', motivo: 'lotto_assente' },
+          ],
+        })}
+      />
+    )
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/tracciabilità materiali incompleta/i)).toBeInTheDocument()
+    expect(screen.getByText(/Zirconia HT/)).toBeInTheDocument()
+    expect(screen.getByText(/nessun lotto disponibile in magazzino/i)).toBeInTheDocument()
+  })
+  it('non mostra il callout tracciabilità quando i materiali sono ok', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro({ tracciabilita_materiali_ok: true, materiali_incompleti_dettaglio: null })} />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/tracciabilità materiali incompleta/i)).not.toBeInTheDocument()
+  })
 })
