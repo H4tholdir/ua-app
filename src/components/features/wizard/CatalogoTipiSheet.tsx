@@ -3,7 +3,8 @@
 // DS v3 §5.16/§7.3 (Ondata 2, Task 10) — CatalogoTipiSheet: il catalogo
 // COMPLETO dei tipi di lavoro, aperto da «＋ Un altro tipo» al Passo 2 del
 // wizard. Lista dei 38 tipi raggruppata per famiglia macro in ordine canonico
-// (header = LABEL_MACRO, stesso ordine di MACRO_SLUGS), RigaCerca in testa
+// (header = LABEL_MACRO, ordine di prima comparsa in TIPI_LAVORO — vedi
+// FAMIGLIE_ORDINE sotto), RigaCerca in testa
 // (stessa `cercaTipiLavoro` del passo — contains accent/case-insensitive su
 // label + aliases + label macro: 'cappetta' → corona_zirconia), e in fondo
 // «Non lo trovi? Descrivilo» → CampoTesto → `onScegli({kind:'libero', testo})`
@@ -23,7 +24,6 @@ import { tipografia, raggio, spazio } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
 import {
   TIPI_LAVORO,
-  MACRO_SLUGS,
   LABEL_MACRO,
   labelTipo,
   cercaTipiLavoro,
@@ -31,6 +31,18 @@ import {
 } from '@/lib/domain/tipi-lavoro'
 import type { TipoDispositivo } from '@/types/domain'
 import type { TipoScelto } from './WizardNuovoLavoro'
+
+// «Ordine canonico» delle famiglie = ordine di PRIMA COMPARSA in TIPI_LAVORO
+// (fix round Task 10: stessa nozione del test 'query vuota → ordine canonico'
+// di tipi-lavoro.test — la tabella ratificata §3.2 è la fonte, NON l'ordine
+// delle chiavi di LABEL_MACRO/MACRO_SLUGS). 'altro' non ha voci in tabella:
+// accodato per completezza — oggi il suo gruppo resta vuoto e non si mostra,
+// ma se un domani la tabella ne avesse una non sparirebbe in silenzio.
+const FAMIGLIE_ORDINE: TipoDispositivo[] = (() => {
+  const ordine = [...new Set(TIPI_LAVORO.map((t) => t.macro))]
+  if (!ordine.includes('altro')) ordine.push('altro')
+  return ordine
+})()
 
 export function CatalogoTipiSheet(props: {
   aperto: boolean
@@ -48,12 +60,12 @@ export function CatalogoTipiSheet(props: {
     [query]
   )
 
-  // Gruppi per macro in ordine canonico (MACRO_SLUGS = ordine di LABEL_MACRO);
-  // dentro ogni gruppo l'ordine canonico di TIPI_LAVORO è preservato dal filter.
+  // Gruppi per macro in ordine canonico (FAMIGLIE_ORDINE, prima comparsa in
+  // TIPI_LAVORO); dentro ogni gruppo l'ordine canonico è preservato dal filter.
   // Le famiglie senza voci (o svuotate dalla ricerca) NON mostrano l'header.
   const gruppi = useMemo(
     () =>
-      MACRO_SLUGS
+      FAMIGLIE_ORDINE
         .map((macro) => ({ macro, tipi: risultati.filter((t) => t.macro === macro) }))
         .filter((g) => g.tipi.length > 0),
     [risultati]
@@ -119,7 +131,8 @@ export function CatalogoTipiSheet(props: {
   )
 }
 
-/** Un gruppo-famiglia: header MAIUSC (label §4.1) + righe tipo impilate. */
+/** Un gruppo-famiglia: header h3 MAIUSC (label §4.1, a11y: navigazione screen
+ *  reader fra famiglie — il titolo dello Sheet è h2) + righe tipo impilate. */
 function GruppoFamiglia(props: {
   macro: TipoDispositivo
   tipi: TipoLavoro[]
@@ -128,7 +141,7 @@ function GruppoFamiglia(props: {
   const { macro, tipi, onScegli } = props
   return (
     <div>
-      <div style={stileHeaderFamiglia}>{LABEL_MACRO[macro]}</div>
+      <h3 style={stileHeaderFamiglia}>{LABEL_MACRO[macro]}</h3>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {tipi.map((t) => (
           <RigaTipo key={t.id} tipo={t} onClick={() => onScegli(t)} />
@@ -182,6 +195,7 @@ function VoceDescrivilo(props: { onApri: () => void }) {
 }
 
 const stileHeaderFamiglia = {
+  margin: 0, // è un h3: azzera il margine UA, lo spazio lo dà marginBottom
   fontSize: tipografia.size.label,
   fontWeight: tipografia.weight.extrabold,
   letterSpacing: tipografia.tracking.label,

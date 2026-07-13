@@ -105,6 +105,26 @@ describe('PassoTipo — Passo 2 del wizard (Task 10)', () => {
     expect(within(dialog).getByText('Allineatori')).toBeInTheDocument()
   })
 
+  it('catalogo: gruppi in ordine canonico (prima comparsa in TIPI_LAVORO), header = h3 (a11y)', async () => {
+    renderPasso()
+    await userEvent.setup().click(screen.getByRole('button', { name: '＋ Un altro tipo' }))
+    const dialog = screen.getByRole('dialog', { name: 'Tutti i tipi di lavoro' })
+    const headers = within(dialog)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent)
+    expect(headers).toEqual([
+      'Protesi fissa',
+      'Protesi mobile',
+      'Scheletrato',
+      'Implantologia',
+      'Ortodonzia',
+      'Bite / splint',
+      'Provvisorio',
+      'CAD/CAM',
+      'Riparazione',
+    ])
+  })
+
   it('catalogo: ricerca "cappetta" (alias) filtra a "Corona zirconia" soltanto', async () => {
     renderPasso()
     const user = userEvent.setup()

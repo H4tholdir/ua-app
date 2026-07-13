@@ -84,8 +84,17 @@ export function TileScelta(props: {
             {glifo}
           </span>
         )}
+        {/* Nome su UNA riga, ellissi sui nomi lunghi (§5.12 — anatomia fissa
+            del tile; fix round Task 10): vale per ogni consumer — i nomi
+            dentista lunghi al Passo 1 troncano invece di wrappare, i tipi
+            granulari al Passo 2 restano una riga (deviazione una-riga
+            annotata nel report Task 10, da ratificare al gate). */}
         <span
           style={{
+            maxWidth: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             fontSize: 17.5,
             fontWeight: tipografia.weight.bold,
             color: 'var(--ink)',

@@ -134,6 +134,15 @@ describe('TileScelta — selezione nel wizard (§5.12)', () => {
     expect(regola).toContain('outline-offset: 2px')
   })
 
+  it('il nome tronca su UNA riga con ellissi (§5.12 — anatomia fissa, fix round Task 10)', () => {
+    render(<TileScelta nome="Corona metallo-ceramica lunghissima" onClick={() => {}} />)
+    const nome = screen.getByText('Corona metallo-ceramica lunghissima') as HTMLElement
+    expect(nome.style.whiteSpace).toBe('nowrap')
+    expect(nome.style.overflow).toBe('hidden')
+    expect(nome.style.textOverflow).toBe('ellipsis')
+    expect(nome.style.maxWidth).toBe('100%')
+  })
+
   it('nome e sotto passano trovaParoleVietate', () => {
     const { container } = render(
       <TileScelta nome="Studio Bianchi" sotto="12 lavori a giugno" onClick={() => {}} />

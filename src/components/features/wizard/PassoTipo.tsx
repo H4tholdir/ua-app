@@ -21,10 +21,12 @@
 //     trova Corona zirconia), non un filtro locale sulla label.
 //
 // DEVIAZIONE ANNOTATA (piano Task 10 Step 3): il nome del tile è su UNA riga
-// (`nome={labelTipo(t)}`, TileScelta tronca con ellissi), non le due righe
+// (`nome={labelTipo(t)}`, TileScelta tronca con ellissi — truncation reale
+// aggiunto al componente nel fix round 1, prima wrappava), non le due righe
 // visive (riga1 grande + riga2) del parere advisor — la firma reale di
-// TileScelta è `nome: string` e la legge §5.12 ne fissa l'anatomia. Se la
-// review la boccia: prop additiva `nomeRiga2?: string` in un fix round.
+// TileScelta è `nome: string` e la legge §5.12 ne fissa l'anatomia. La
+// scelta una-riga resta da ratificare al gate; se bocciata: prop additiva
+// `nomeRiga2?: string` in un fix round successivo.
 
 import { useMemo, useState } from 'react'
 import { tipografia } from '@/design-system/v3/tokens'
