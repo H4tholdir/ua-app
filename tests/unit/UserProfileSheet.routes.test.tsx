@@ -19,11 +19,11 @@ const PROPS_BASE = { nome: 'Francesco', cognome: 'Formicola', email: 'f@example.
 
 // Ondata 1, review finale (item 4, avviso advisor ratificato 12/07): l'avatar
 // (trigger del bottom sheet profilo) segue la stessa sorte della
-// BottomNavPill sulle route migrate a v3 — sulla home v3 il ☰ TastoTondo È
-// già l'accesso a «Tutto il resto», un secondo controllo fisso top-right
-// (l'avatar) è ridondante e nel mockup home.html non esiste. Stesso predicato
-// `isV3MigratedRoute` di `BottomNavPill.routes.test.tsx` — comportamento
-// SPECULARE, confronto ESATTO (non prefix).
+// BottomNavPill sulle route migrate a v3. Stesso predicato `isV3MigratedRoute`
+// di `BottomNavPill.routes.test.tsx` — comportamento SPECULARE.
+// Polish L1 (2026-07-14): /lavori/[id] e /lavori/[id]/modifica sono v3
+// (Ondata 3a) → l'avatar si ritira anche lì; /lavori/[id]/consegna resta v2.3
+// e lo conserva.
 describe('UserProfileSheet — ritiro dalle route migrate a v3 (speculare a BottomNavPill P9)', () => {
   afterEach(() => {
     cleanup()
@@ -53,8 +53,20 @@ describe('UserProfileSheet — ritiro dalle route migrate a v3 (speculare a Bott
     expect(container.firstChild).toBeNull()
   })
 
-  it('resta montato su /lavori/abc (v2.3, confronto NON-prefix)', () => {
+  it('non si monta su /lavori/abc (scheda-vista v3, Ondata 3a)', () => {
     mockPathname = '/lavori/abc'
+    const { container } = render(<UserProfileSheet {...PROPS_BASE} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('non si monta su /lavori/abc/modifica (route-ponte v3)', () => {
+    mockPathname = '/lavori/abc/modifica'
+    const { container } = render(<UserProfileSheet {...PROPS_BASE} />)
+    expect(container.firstChild).toBeNull()
+  })
+
+  it('resta montato su /lavori/abc/consegna (flusso consegna v2.3)', () => {
+    mockPathname = '/lavori/abc/consegna'
     const { getByRole } = render(<UserProfileSheet {...PROPS_BASE} />)
     expect(getByRole('button', { name: 'Apri profilo' })).toBeInTheDocument()
   })

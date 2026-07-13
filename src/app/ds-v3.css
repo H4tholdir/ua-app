@@ -82,21 +82,85 @@
    rispetto al mockup, mai un problema di padding/gap). */
 [data-ds="v3"] .ds-pila-num { font-size: 52px; line-height: 1; }
 
-/* Scheda-vista centrata (Ondata 3a Task 10, §8): su mobile (<768) la scheda
-   resta full-width come oggi. Da 768px in su diventa una card centrata a
-   larghezza fissa — SOLO sheet/menu ⋯ restano bottom-sheet a ogni size, nessun
-   pannello laterale in questa ondata. Il breakpoint richiede una media query
-   in CSS (non riproducibile con style inline React): applicata a un
-   contenitore INTERNO (root di SchedaLavoroV3Corpo), mentre lo sfondo
-   `var(--bg)` full-bleed resta sul wrapper `data-ds="v3"` di page.tsx. */
-[data-ds="v3"] .scheda-v3-centrata {
-  width: 100%;
+/* Scheda-vista responsive (Ondata 3a §8 + polish L1, variante V3 «Bilanciata»
+   ratificata da Francesco 2026-07-14):
+     • <768  (mobile)  — colonna singola full-width, come spedito. Nessun rail,
+       documenti nel bottom-sheet (menu ⋯).
+     • 768-1023 (tablet) — card centrata a larghezza fissa 640 (invariato).
+     • ≥1024 (desktop) — rail di navigazione (SchedaNavRail) + stage a due
+       colonne 60/40: contenuto a sinistra, Azioni + Documenti (mattonelle) a
+       destra. Sostituisce la card centrata con spazio morto.
+   Il breakpoint vive in CSS (non riproducibile con style inline React); lo
+   sfondo `var(--bg)` full-bleed resta sul wrapper `data-ds="v3"` di page.tsx. */
+[data-ds="v3"] .scheda-shell { width: 100%; }
+[data-ds="v3"] .scheda-rail { display: none; }
+[data-ds="v3"] .scheda-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px 32px;
 }
-@media (min-width: 768px) {
+[data-ds="v3"] .scheda-col-main,
+[data-ds="v3"] .scheda-col-side,
+[data-ds="v3"] .scheda-azioni {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Pannello Documenti desktop: nascosto <1024 (mobile/tablet usano il sheet). */
+[data-ds="v3"] .scheda-documenti-desktop { display: none; }
+
+@media (min-width: 768px) and (max-width: 1023px) {
   [data-ds="v3"] .scheda-v3-centrata {
     max-width: 640px;
     margin-inline: auto;
   }
+}
+
+@media (min-width: 1024px) {
+  [data-ds="v3"] .scheda-shell {
+    display: grid;
+    grid-template-columns: 212px minmax(0, 1fr);
+    min-height: 100dvh;
+  }
+  [data-ds="v3"] .scheda-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 14px;
+    background: var(--bg-deep);
+    border-right: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    align-self: start;
+  }
+  [data-ds="v3"] .scheda-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    gap: 28px;
+    align-items: start;
+    max-width: 1180px;
+    margin-inline: 0;
+    padding: 28px 34px 60px;
+  }
+  [data-ds="v3"] .scheda-col-side {
+    position: sticky;
+    top: 28px;
+  }
+  /* Su desktop le Azioni prendono la scocca card (su mobile restano nude). */
+  [data-ds="v3"] .scheda-azioni {
+    gap: 12px;
+    background: var(--card);
+    box-shadow: var(--sh-card);
+    border-radius: 24px;
+    padding: 18px 20px;
+  }
+  [data-theme="dark"] [data-ds="v3"] .scheda-azioni {
+    box-shadow: none;
+    border: 1px solid var(--line);
+  }
+  [data-ds="v3"] .scheda-documenti-desktop { display: block; }
 }
 
 /* Polish L1 (D4) — focus-visible v3 sui bottoni inline-styled della scheda

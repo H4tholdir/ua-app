@@ -36,7 +36,7 @@ export interface DocumentiSheetLavoro {
   ddcUrl?: string
 }
 
-type VoceDownload = {
+export type VoceDownload = {
   chiave: string
   etichetta: string
   href: string
@@ -44,8 +44,10 @@ type VoceDownload = {
 
 /** Le 4 voci sempre-endpoint-esistente, guidate da un array (nessun blocco
  * copiato 4 volte) — Scheda di Fabbricazione e DdC hanno condizioni proprie,
- * gestite dal chiamante di `costruisciVociDownload`. */
-function costruisciVociDownload(lavoro: DocumentiSheetLavoro): VoceDownload[] {
+ * gestite dal chiamante di `costruisciVociDownload`. Esportata anche per il
+ * pannello Documenti desktop (`DocumentiPannello`), che riusa la stessa
+ * costruzione con presentazione a mattonelle (polish L1, V3). */
+export function costruisciVociDownload(lavoro: DocumentiSheetLavoro): VoceDownload[] {
   const base = `/api/lavori/${lavoro.id}`
   const voci: VoceDownload[] = []
 

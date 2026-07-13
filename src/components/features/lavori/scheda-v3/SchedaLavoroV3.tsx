@@ -55,6 +55,8 @@ import { CardFasiV3 } from './CardFasiV3'
 import { ModificaRigaSheet } from './ModificaRigaSheet'
 import { MenuSchedaSheet } from './MenuSchedaSheet'
 import { DocumentiSheet } from './DocumentiSheet'
+import { DocumentiPannello } from './DocumentiPannello'
+import { SchedaNavRail } from './SchedaNavRail'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
@@ -186,98 +188,128 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
     ? `${lavoro.tecnico.nome} ${lavoro.tecnico.cognome}`.trim()
     : 'Non assegnato'
 
+  // Dati documenti condivisi: stesso oggetto per il DocumentiSheet (mobile) e
+  // per il DocumentiPannello (desktop, ≥1024). La URL firmata è già su
+  // `ddc.pdf_url` (page.tsx firma al render) — nessuna fetch nuova.
+  const documentiLavoro = {
+    id: lavoro.id,
+    numero_lavoro: lavoro.numero_lavoro,
+    cliente_display: clienteDisplay(lavoro.cliente),
+    haFasi: lavoro.fasi.length > 0,
+    haDdc: !!lavoro.ddc,
+    ddcUrl: lavoro.ddc?.pdf_url ?? undefined,
+  }
+
   return (
-    <div
-      className="scheda-v3-centrata"
-      style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, padding: `0 ${spazio.ml}px ${spazio.xl}px` }}
-    >
-      {/* Header (§3.1): back ‹ · n.{numero} + pill · menu ⋯ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, paddingTop: spazio.m }}>
-        <TastoTondo glifo="‹" etichettaAria="Torna ai lavori" onClick={() => router.push('/lavori')} />
-        <span style={{ fontSize: tipografia.size.heading, fontWeight: tipografia.weight.extrabold, color: 'var(--ink)' }}>n.{lavoro.numero_lavoro}</span>
-        <PillTempo famiglia={pill.famiglia}>{pill.testo}</PillTempo>
-        <span style={{ flex: 1 }} />
-        <TastoTondo glifo="⋯" etichettaAria="Apri menu" onClick={() => setMenuAperto(true)} />
+    // Shell responsive (polish L1): <1024 colonna singola (mobile invariato /
+    // tablet card centrata 640); ≥1024 rail di navigazione + stage 60/40
+    // (variante V3 «Bilanciata»). Il layout a colonne è governato da ds-v3.css
+    // (media query, non riproducibile inline).
+    <div className="scheda-shell">
+      <SchedaNavRail />
+
+      <div className="scheda-stage scheda-v3-centrata">
+        {/* ── Colonna principale ─────────────────────────────────────── */}
+        <div className="scheda-col-main">
+          {/* Header (§3.1): back ‹ · n.{numero} + pill · menu ⋯ */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, paddingTop: spazio.m }}>
+            <TastoTondo glifo="‹" etichettaAria="Torna ai lavori" onClick={() => router.push('/lavori')} />
+            <span style={{ fontSize: tipografia.size.heading, fontWeight: tipografia.weight.extrabold, color: 'var(--ink)' }}>n.{lavoro.numero_lavoro}</span>
+            <PillTempo famiglia={pill.famiglia}>{pill.testo}</PillTempo>
+            <span style={{ flex: 1 }} />
+            <TastoTondo glifo="⋯" etichettaAria="Apri menu" onClick={() => setMenuAperto(true)} />
+          </div>
+
+          {/* Banner annulla consegna (§11.1) — solo dopo una consegna effettiva. */}
+          {lavoro.stato === 'consegnato' && lavoro.data_consegna_effettiva && (
+            <AnnullaConsegnaBanner lavoroId={lavoro.id} dataConsegnaEffettiva={lavoro.data_consegna_effettiva} />
+          )}
+
+          {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre
+              visibile, mai un toast auto-dismiss: derivato direttamente da
+              `lavoro` (già presente sul prop, nessun nuovo dato da caricare). */}
+          {!lavoro.tracciabilita_materiali_ok &&
+            lavoro.materiali_incompleti_dettaglio &&
+            lavoro.materiali_incompleti_dettaglio.length > 0 && (
+              <AvvisoTracciabilita dettaglio={lavoro.materiali_incompleti_dettaglio} />
+            )}
+
+          {/* CardInfo — righe editabili come <button> (§3). Le righe con `campo`
+              (dentista/consegna/tecnico) aprono ModificaRigaSheet; paziente e
+              lavoro sono di sola lettura. */}
+          <CardInfo>
+            <RigaEditabile chiave="Dentista" valore={clienteDisplay(lavoro.cliente)} ariaAzione="Modifica dentista" onApri={() => setCampoAttivo('dentista')} />
+            <RigaDato chiave="Paziente" valore={pazienteTesto} />
+            <RigaDato chiave="Lavoro" valore={lavoro.descrizione} />
+            <RigaEditabile
+              chiave="Consegna"
+              valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
+              urgente={consegnaImminente(lavoro.data_consegna_prevista, oggi)}
+              ariaAzione="Modifica consegna"
+              onApri={() => setCampoAttivo('consegna')}
+            />
+            <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
+          </CardInfo>
+
+          {/* NotaLaboratorio — nota_interne del LAB, onesta (nessuna
+              attribuzione al dentista), editabile al tap. Se assente si mostra
+              l'affordance «aggiungi la prima nota» (polish L1 — D10). */}
+          {lavoro.note_interne ? (
+            <NotaLaboratorio testo={lavoro.note_interne} onApri={() => setCampoAttivo('note')} />
+          ) : (
+            <NotaLaboratorioVuota onApri={() => setCampoAttivo('note')} />
+          )}
+
+          {/* Strip foto read-only (§7.4) */}
+          {lavoro.immagini.length > 0 && (
+            <div style={{ display: 'flex', gap: spazio.s, overflowX: 'auto', paddingBottom: 2 }} aria-label="Foto del lavoro">
+              {lavoro.immagini.map((img) => (
+                // eslint-disable-next-line @next/next/no-img-element -- URL Storage firmata a dimensioni variabili (stessa scelta di TabImmagini.tsx), next/image non applicabile
+                <img
+                  key={img.id}
+                  src={img.url}
+                  alt={img.descrizione ?? 'Foto del lavoro'}
+                  style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: 'var(--bg-deep)' }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* CardFasiV3 (§5) — se ci sono fasi */}
+          {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}
+        </div>
+
+        {/* ── Colonna azioni/documenti (a destra su desktop, in coda su
+            mobile) ───────────────────────────────────────────────────── */}
+        <div className="scheda-col-side">
+          <div className="scheda-azioni">
+            {/* CONSEGNA — mai nascosto, solo abilitato/disabilitato (§7.4) */}
+            <TastoPrimario
+              disabled={!consegnabile}
+              motivoDisabilitato={motivoConsegnaDisabilitato(lavoro)}
+              onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
+            >
+              Consegna
+            </TastoPrimario>
+
+            {/* Rifacimento — riusa il meccanismo esistente (trigger + sheet). */}
+            {mostraRifacimento && (
+              <RifacimentoButton lavoroId={lavoro.id} numeroLavoro={lavoro.numero_lavoro} />
+            )}
+
+            {/* Segnala problema — solo per il tecnico */}
+            {ruolo === 'tecnico' && (
+              <TastoSecondario onClick={() => setSegnalaAperto(true)}>Segnala problema</TastoSecondario>
+            )}
+          </div>
+
+          {/* Documenti — pannello a mattonelle SOLO desktop (≥1024). Su
+              mobile/tablet i documenti restano nel bottom-sheet (menu ⋯). */}
+          <DocumentiPannello lavoro={documentiLavoro} />
+        </div>
       </div>
 
-      {/* Banner annulla consegna (§11.1) — solo dopo una consegna effettiva. */}
-      {lavoro.stato === 'consegnato' && lavoro.data_consegna_effettiva && (
-        <AnnullaConsegnaBanner lavoroId={lavoro.id} dataConsegnaEffettiva={lavoro.data_consegna_effettiva} />
-      )}
-
-      {/* Tracciabilità materiali (MDR Allegato XIII, B1) — segnale sempre
-          visibile, mai un toast auto-dismiss: derivato direttamente da
-          `lavoro` (già presente sul prop, nessun nuovo dato da caricare). */}
-      {!lavoro.tracciabilita_materiali_ok &&
-        lavoro.materiali_incompleti_dettaglio &&
-        lavoro.materiali_incompleti_dettaglio.length > 0 && (
-          <AvvisoTracciabilita dettaglio={lavoro.materiali_incompleti_dettaglio} />
-        )}
-
-      {/* CardInfo — righe editabili come <button> (§3). Le righe con `campo`
-          (dentista/consegna/tecnico) aprono ModificaRigaSheet; paziente e
-          lavoro sono di sola lettura. */}
-      <CardInfo>
-        <RigaEditabile chiave="Dentista" valore={clienteDisplay(lavoro.cliente)} ariaAzione="Modifica dentista" onApri={() => setCampoAttivo('dentista')} />
-        <RigaDato chiave="Paziente" valore={pazienteTesto} />
-        <RigaDato chiave="Lavoro" valore={lavoro.descrizione} />
-        <RigaEditabile
-          chiave="Consegna"
-          valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
-          urgente={consegnaImminente(lavoro.data_consegna_prevista, oggi)}
-          ariaAzione="Modifica consegna"
-          onApri={() => setCampoAttivo('consegna')}
-        />
-        <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
-      </CardInfo>
-
-      {/* NotaLaboratorio — nota_interne del LAB, onesta (nessuna attribuzione
-          al dentista), editabile al tap. Vedi nota in testa al file. Mostrata
-          solo se presente — l'aggiunta di una prima nota da vuoto resta un
-          follow-up (vedi report Task 6: le altre righe editabili hanno un
-          "vuoto" testuale tipo "Non assegnato", la nota no). */}
-      {lavoro.note_interne && (
-        <NotaLaboratorio testo={lavoro.note_interne} onApri={() => setCampoAttivo('note')} />
-      )}
-
-      {/* Strip foto read-only (§7.4) */}
-      {lavoro.immagini.length > 0 && (
-        <div style={{ display: 'flex', gap: spazio.s, overflowX: 'auto', paddingBottom: 2 }} aria-label="Foto del lavoro">
-          {lavoro.immagini.map((img) => (
-            // eslint-disable-next-line @next/next/no-img-element -- URL Storage firmata a dimensioni variabili (stessa scelta di TabImmagini.tsx), next/image non applicabile
-            <img
-              key={img.id}
-              src={img.url}
-              alt={img.descrizione ?? 'Foto del lavoro'}
-              style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: 'var(--bg-deep)' }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* CardFasiV3 (§5) — se ci sono fasi */}
-      {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}
-
-      {/* CONSEGNA — mai nascosto, solo abilitato/disabilitato (§7.4) */}
-      <TastoPrimario
-        disabled={!consegnabile}
-        motivoDisabilitato={motivoConsegnaDisabilitato(lavoro)}
-        onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
-      >
-        Consegna
-      </TastoPrimario>
-
-      {/* Rifacimento — riusa il meccanismo esistente (trigger + sheet motivo). */}
-      {mostraRifacimento && (
-        <RifacimentoButton lavoroId={lavoro.id} numeroLavoro={lavoro.numero_lavoro} />
-      )}
-
-      {/* Segnala problema — solo per il tecnico */}
-      {ruolo === 'tecnico' && (
-        <TastoSecondario onClick={() => setSegnalaAperto(true)}>Segnala problema</TastoSecondario>
-      )}
-
-      {/* ── Sheet montati ─────────────────────────────────────────────── */}
+      {/* ── Sheet montati (fuori dalla griglia) ────────────────────────── */}
       {campoAttivo && (
         <ModificaRigaSheet
           key={campoAttivo}
@@ -304,16 +336,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
       <DocumentiSheet
         aperto={documentiAperto}
         onChiudi={() => setDocumentiAperto(false)}
-        lavoro={{
-          id: lavoro.id,
-          numero_lavoro: lavoro.numero_lavoro,
-          cliente_display: clienteDisplay(lavoro.cliente),
-          haFasi: lavoro.fasi.length > 0,
-          haDdc: !!lavoro.ddc,
-          // La URL firmata è già valorizzata su `ddc.pdf_url` lato server
-          // (page.tsx firma con getSignedUrl al render) — nessuna nuova fetch.
-          ddcUrl: lavoro.ddc?.pdf_url ?? undefined,
-        }}
+        lavoro={documentiLavoro}
       />
 
       {ruolo === 'tecnico' && (
@@ -382,6 +405,54 @@ function NotaLaboratorio(props: { testo: string; onApri: () => void }) {
         }}
       >
         {testo}
+      </span>
+    </motion.button>
+  )
+}
+
+/**
+ * NotaLaboratorioVuota — affordance empty-state per la PRIMA nota del
+ * laboratorio (polish L1 — D10). Prima, dalla scheda non si poteva aggiungere
+ * una nota da zero: la card compariva solo se `note_interne` era già presente.
+ * Stesso guscio di `NotaLaboratorio`, ma con un invito rosso all'azione; tap →
+ * apre `ModificaRigaSheet campo="note"`.
+ */
+function NotaLaboratorioVuota(props: { onApri: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      className="ds-tap-v3"
+      onClick={props.onApri}
+      whileTap={{ scale: 0.99 }}
+      transition={molla.press}
+      aria-label="Aggiungi la prima nota del laboratorio"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: spazio.xs,
+        width: '100%',
+        border: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+        borderRadius: raggio.tile,
+        padding: '14px 20px',
+        background: 'var(--card)',
+        boxShadow: 'var(--sh-card)',
+      }}
+    >
+      <span
+        style={{
+          fontSize: tipografia.size.caption,
+          fontWeight: tipografia.weight.extrabold,
+          letterSpacing: tipografia.tracking.caption,
+          textTransform: 'uppercase',
+          color: 'var(--faint)',
+        }}
+      >
+        Note (laboratorio)
+      </span>
+      <span style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.bold, color: 'var(--red)' }}>
+        + Aggiungi la prima nota
       </span>
     </motion.button>
   )
