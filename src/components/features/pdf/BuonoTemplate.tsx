@@ -379,6 +379,16 @@ export function BuonoTemplate({ lavoro, lab, numeroBuono }: BuonoTemplateProps) 
           <Text style={styles.totaleUm}></Text>
         </View>
 
+        {/* ── NOTA DEL DENTISTA ── */}
+        {lavoro.note_dentista ? (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.pazienteLabel}>Nota del dentista</Text>
+            <Text style={{ fontSize: 8, color: '#444444', marginTop: 2 }}>
+              {lavoro.note_dentista}
+            </Text>
+          </View>
+        ) : null}
+
         {/* ── NOTE ── */}
         {lavoro.note_interne ? (
           <View style={{ marginTop: 12 }}>

@@ -33,4 +33,19 @@ describe('BuonoTemplate — audit di completezza (nessun vincolo normativo MDR)'
   it('stampa i dati del cliente/studio', () => {
     expect(pdfText).toContain(LAVORO_FIXTURE.cliente.studio_nome ?? LAVORO_FIXTURE.cliente.cognome)
   })
+
+  it('stampa la nota del dentista sul buono', async () => {
+    const lavoro = { ...LAVORO_FIXTURE, note_dentista: 'colore A2 chiaro', note_interne: null }
+    const element = createElement(BuonoTemplate, { lavoro, lab: LAB_FIXTURE, numeroBuono: 'BUO-2026-0001' })
+    const buffer = await renderPdfDocument(element)
+    const parser = new PDFParse({ data: buffer })
+    const result = await parser.getText()
+    await parser.destroy()
+    const testo = result.text
+
+    expect(testo).toContain('colore A2 chiaro')
+    // styles.pazienteLabel applica text-transform: uppercase, quindi il testo
+    // estratto dal PDF renderizzato è "NOTA DEL DENTISTA" (non "Nota del dentista")
+    expect(testo).toContain('DENTISTA')
+  }, 30_000)
 })
