@@ -64,7 +64,7 @@ Ordine corretto (**claim → effetti atomici → XML fuori RPC**):
 UPDATE fatture SET stornata_at = now()
  WHERE id = p_originale_id AND laboratorio_id = p_laboratorio_id
    AND stornata_at IS NULL AND tipo_documento = 'TD01'
-   AND stato_sdi IN ('ricevuta_sdi','accettata','scaduta');  -- gate fiscale, vedi §7.3
+   AND stato_sdi IN ('smtp_inviata','pec_consegnata','ricevuta_sdi','accettata','scaduta');  -- gate pragmatico, vedi §7.3
 GET DIAGNOSTICS v_rows = ROW_COUNT;
 IF v_rows = 0 THEN RETURN json_build_object('esito','non_stornabile'); END IF;
 ```
@@ -111,7 +111,7 @@ La feature NON è completa senza toccare i lettori (altrimenti fatturato fantasm
 ## 7. Punti aperti / decisioni
 1. **Bollo TD04** [R1-I2]: default = rispecchia la regola dell'originale (imponibile > 77,47€ → €2). Shippable e **senza sanzione** (sovra-versare il bollo non è sanzionato; AdE flagga comunque in Elenco B). Punti fermi: il bollo dell'originale resta **assolto e non recuperabile** (mai importo negativo); se al cliente era stato addebitato €2 in rivalsa e il credito glielo restituisce, l'`ImportoTotaleDocumento` del TD04 deve includerlo per coerenza col credito concesso. **Flag commercialista.**
 2. **Serie numerazione** [R1-#2]: **RISOLTO** — serie unica condivisa (`generaProgressivo('fattura')`) è legittima (Art. 21 c.2 DPR 633/72; Ris. 1/E 2013). Serie dedicata = polish opzionale.
-3. **Gate `stato_sdi`** [R1-C1]: **consentito** solo su `ricevuta_sdi`/`accettata`/`scaduta`; `pec_consegnata` **da confermare** (dipende dalla semantica di consegna SdI dell'app). Vietato su `draft`/`generata`/`smtp_inviata`/`rifiutata` → si eliminano/rigenerano.
+3. **Gate `stato_sdi`** [R1-C1] — **DECISO (Francesco, gate pragmatico):** l'app oggi porta le fatture al massimo a `smtp_inviata` (PEC inviata a `sdi01@pec.fatturapa.it`); nessun writer avanza oltre (nessun tracking ricevute/notifiche SdI). Per non nascere dormiente, lo storno è **consentito da `smtp_inviata` in su**: `stato_sdi IN ('smtp_inviata','pec_consegnata','ricevuta_sdi','accettata','scaduta')`. **Vietato** su `draft`/`generata` (mai inviata → si elimina/rigenera) e `rifiutata` (non emessa). **Caveat documentato:** `smtp_inviata` non è prova di accettazione SdI; quando si aggiungerà il tracking ricevute PEC/notifiche SdI si potrà restringere il gate. (Fiscalmente il reviewer raccomandava solo gli stati SdI-accettati — deviazione consapevole per usabilità immediata, tracciata qui.)
 4. **TD04 rifiutato da SdI** [R2-M2][R3-M1]: se il TD04 finisce `rifiutata`, l'originale è già `stornata_at`-set → serve consentire il ri-storno (azzerare `stornata_at` alla ricezione del rifiuto, o gate che ammette ri-storno se il TD04 esistente è `rifiutata`).
 
 ## 8. Verifica / QA
