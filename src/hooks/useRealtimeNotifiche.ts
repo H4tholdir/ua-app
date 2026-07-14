@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { hapticLight } from '@/lib/feedback/haptic'
+import { isNuovaRichiestaDentista } from '@/lib/portale/richiesta-dentista'
 
 export type TipoNotifica = 'segnalazione' | 'pronto' | 'ordine_dentista' | 'urgente'
 
@@ -120,12 +121,9 @@ export function useRealtimeNotifiche(
         },
         (payload) => {
           const nuovo = payload.new as Record<string, unknown>
-          // Solo lavori con note_interne che iniziano con 'RICHIESTA_DENTISTA'
-          if (
-            typeof nuovo.note_interne === 'string' &&
-            nuovo.note_interne.startsWith('RICHIESTA_DENTISTA') &&
-            (ruolo === 'titolare' || ruolo === 'front_desk')
-          ) {
+          // Ondata 3b: rileva l'origine-portale dal flag pulito, non più da
+          // note_interne (che ora resta vuota per i lavori da portale).
+          if (isNuovaRichiestaDentista(nuovo, ruolo ?? '')) {
             push({
               tipo: 'ordine_dentista',
               titolo: 'Nuova richiesta dentista',
