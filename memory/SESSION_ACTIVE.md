@@ -4,6 +4,6 @@
 
 **Fatto:** helper unico `prezzoEffettivoLavoro` (`src/lib/domain/prezzo-lavoro.ts`) + `divergenzaPrezzo`; refactor di tutti i lettori (generate-xml, contabilità queries, registra-pagamento, portale/scadenzario/pronti-da-fatturare); rimosso prefiltro `.gt('prezzo_unitario',0)` (bug completezza, 3 siti); guard PATCH 422 (carve-out azzeramento); assertion Natura N4 in `generaFatturaPA`; badge divergenza `LavoriInAttesaSection`; token `--c-amber-ink`. Eseguito via subagent-driven-development (10 task TDD + review per-task + review finale whole-branch Opus).
 
-**Follow-up NON N4** (BACKLOG-TECNICO §N): N6 bollo nel dovuto, N7 gate `stato_sdi==='draft'` mancante su `api/fatture/[id]/xml`, N8 CSS invalido `urgencyPillBg`/Border.
+**Follow-up NON N4** (BACKLOG-TECNICO §N): N6 bollo nel dovuto, N7 gate `stato_sdi==='draft'` mancante su `api/fatture/[id]/xml`. **N8 ✅ RISOLTO** (`main` `377ad27`, deployato): fix tint pill via `color-mix` (var()+alpha era CSS invalido → trasparente) in scadenzario + portale + qualità; verificato getComputedStyle VISIBLE light+dark, CI+CD verdi, prod 200.
 
 **PROSSIMO (scelta Francesco):** prossima superficie/ondata DS v3, o uno dei follow-up N6/N7/N8. Worktree `worktree-n4-prezzo` rimuovibile (`git worktree remove`).
