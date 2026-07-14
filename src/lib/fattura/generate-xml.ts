@@ -5,6 +5,7 @@ import { generaProgressivo } from '@/lib/db/progressivi'
 import type { LavoroDettaglio } from '@/types/domain'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { FatturaCortesiaTemplate, type FatturaCortesiaProps } from '@/components/features/pdf/FatturaCortesiaTemplate'
+import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 
 // Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
 import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
@@ -100,10 +101,8 @@ export async function generaFatturaPA(
   }
 
   // ── 3. Calcola importi ───────────────────────────────────────────────────
-  // Fix: se non ci sono lavorazioni, usa prezzo_unitario del lavoro come imponibile
-  const imponibile = lavoro.lavorazioni.length > 0
-    ? lavoro.lavorazioni.reduce((acc, r) => acc + (r.importo ?? 0), 0)
-    : (lavoro.prezzo_unitario ?? 0)
+  // N4: fonte unica del prezzo (righe se esistono, altrimenti prezzo_unitario).
+  const imponibile = prezzoEffettivoLavoro(lavoro)
   const bolloApplicato = imponibile > 77.47 ? 2.00 : 0
   const totale = imponibile + bolloApplicato
 
