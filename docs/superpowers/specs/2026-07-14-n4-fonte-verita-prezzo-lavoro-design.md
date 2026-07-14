@@ -54,24 +54,39 @@ divergenzaPrezzo(l): { divergente: boolean, deltaCents: number }
 // divergente sse esistono righe E prezzo_unitario>0 E |round(sum*100) - round(pu*100)| >= 1
 ```
 
-### 3.2 Consumer dell'helper (refactor a definizione unica)
-- `src/lib/fattura/generate-xml.ts:104-106` — **refactor**: sostituire la copia inline con `prezzoEffettivoLavoro`. (Il batch `fatture/batch/route.ts:272` eredita automaticamente — unico chokepoint.)
+### 3.2 Consumer dell'helper (refactor a definizione unica) — ENUMERAZIONE ESAUSTIVA
+
+Ogni lettore di un **totale-lavoro** deve passare per l'helper (embeddando le righe). Lista completa (verificata sul codice):
+- `src/lib/fattura/generate-xml.ts:104-106` — **refactor**: sostituire la copia inline. (Il batch `fatture/batch/route.ts:272` eredita — unico chokepoint di emissione.)
 - `src/lib/contabilita/queries.ts` — `getContabilitaCliente` (residuo + `lavoriInAttesa.totale`), `getCreditoScadutoPerCliente`.
-- `src/lib/contabilita/registra-pagamento.ts` — `importoDovuto` (aggiungere embed righe al `.single()`).
-- Display lista/portale che oggi mostrano `prezzo_unitario`.
+- `src/lib/contabilita/registra-pagamento.ts:70` — `importoDovuto` (aggiungere embed righe al `.single()`).
+- **`src/app/api/portale/[token]/fatturazione/route.ts:79`** — `prezzo: Number(l.prezzo_unitario ?? 0)`: **è la superficie esterna del dentista, letteralmente il "322 €" del §1.** Oggi seleziona `prezzo_unitario` senza embed righe → diventa consumer dell'helper + SELECT-fragment. (Senza questo, la claim single-source è falsa al deploy.)
+- **`src/app/api/scadenzario/route.ts:148`** — `calcolaResiduo(Number(l.prezzo_unitario ...))`.
+- **`src/app/api/lavori/pronti-da-fatturare/route.ts:50`** — lista candidati batch fattura.
+- Altri display lista che mostrano il totale di un lavoro (verificare con il tripwire §4).
+
+**Reader di SNAPSHOT congelato — restano FUORI scope** (leggono i campi persistiti della fattura, mai il lavoro vivo): `src/app/(app)/fatture/page.tsx`, `fatture/[id]/page.tsx`, `src/components/features/pdf/FatturaCortesiaTemplate.tsx`, `src/app/api/fatture/[id]/xml/route.ts`. Il test di regressione §4 blinda che NON importino l'helper.
 
 ### 3.3 🔴 Bug di completezza da correggere nello stesso seam
-`contabilita/queries.ts:93` e `:225` filtrano i candidati con `.gt('prezzo_unitario', 0)` **a livello DB** = seconda codifica della regola. Con "righe vincono", un lavoro con `prezzo_unitario = 0/null` ma righe che sommano > 0 ha un **credito reale** ma **non viene mai fetchato** → sparisce da crediti / lavori-in-attesa. **Fix:** rimuovere il filtro DB di positività e filtrare in codice su `prezzoEffettivoLavoro(l) > 0` dopo l'embed (o allargare il candidate set con `OR(prezzo_unitario>0, has-active-righe)`). Parte dello scope N4, non nota a margine.
+Il prefiltro `.gt('prezzo_unitario', 0)` **a livello DB** = seconda codifica della regola. Con "righe vincono", un lavoro con `prezzo_unitario = 0/null` ma righe che sommano > 0 ha un **credito reale** ma **non viene mai fetchato** → sparisce da crediti / lavori-in-attesa. Esiste in **tre siti** (verificati):
+- `src/lib/contabilita/queries.ts:93` (`getCreditoScadutoPerCliente`) e `:225` (`getContabilitaCliente`).
+- **`src/app/api/scadenzario/route.ts:77`** — stesso filtro **+ duplica inline** la logica crediti di `getCreditoScadutoPerCliente` (residuo da `prezzo_unitario` grezzo). Divergenza strutturale.
+
+**Fix:** rimuovere il filtro DB di positività e filtrare in codice su `prezzoEffettivoLavoro(l) > 0` dopo l'embed (o allargare il candidate set con `OR(prezzo_unitario>0, has-active-righe)`). **Inoltre** `scadenzario/route.ts` dovrebbe **chiamare `getCreditoScadutoPerCliente`** invece di duplicarla (elimina la terza copia della regola alla radice). Parte dello scope N4, non nota a margine.
 
 ### 3.4 Enforcement server della guard read-only (NECESSARIO)
 La disabilitazione UI non basta per un importo fiscale: `PATCH /api/lavori/[id]` è autenticato ma qualunque client/integrazione futura potrebbe scrivere `prezzo_unitario` con righe presenti e reintrodurre la divergenza. **Due lock server indipendenti:**
 1. `incluso_in_fattura` → tutti i `LOCKED_PRICE_FIELDS` congelati *(già esiste)*.
-2. **righe attive presenti** → la PATCH **rifiuta `prezzo_unitario` e `listino_id` (422** "prezzo gestito dalle righe di lavorazione"). Aggiungere un `count` di `lavori_lavorazioni where deleted_at is null` accanto al fetch `existing`.
+2. **righe attive presenti** → la PATCH **rifiuta `prezzo_unitario` (422** "prezzo gestito dalle righe di lavorazione"). Aggiungere un `count` di `lavori_lavorazioni where deleted_at is null` accanto al fetch `existing`. *(`listino_id`: bloccarlo è defense-in-depth — non guida il totale una volta che le righe vincono, il margine legge `lavori_lavorazioni.listino_id`; **valutare** in fase di piano se includerlo o lasciarlo al solo lock `incluso_in_fattura`.)*
    - **Carve-out (compone con la divergence guard):** consentire **l'azzeramento a `null`** di `prezzo_unitario` anche con righe presenti — è l'azione di riconciliazione finché non c'è l'editor righe (sp.3). Rifiuto solo dei valori non-null.
 
 ### 3.5 Divergence guard fiscale
-- **Display / portale:** badge non bloccante ("verifica prezzo") quando `divergente`.
-- **Emissione (`generaFatturaPA`, unico sito imponibile `generate-xml.ts:104`):** **log + flag di conferma esplicito audit-logged** sulla richiesta (NON 422 duro ora — con `prezzo_unitario` locked e righe non editabili via UI, un hard-block creerebbe un vicolo cieco; le righe vincono comunque deterministicamente, quindi la divergenza non cambia il numero emesso — la guard protegge dal *fraintendimento* dell'operatore). **Hard-block → DS v3 sp.3** quando esiste una UI di riconciliazione. NON aggiungere un precheck batch separato (drift).
+`divergenzaPrezzo(lavoro)` (§3.1) è puro e calcolato a **read-time**: il **badge non bloccante è quindi già di per sé il segnale durevole e visibile**, ovunque il lavoro sia mostrato, senza log persistenti, colonne nuove o audit-sink. Emissione: **le righe vincono deterministicamente → il numero emesso NON cambia**; la guard protegge dal *fraintendimento*, non dal numero. Nessun `422` duro ora (con `prezzo_unitario` locked e righe non editabili via UI creerebbe un vicolo cieco). **Distinguere i due trigger di `generaFatturaPA`:**
+
+- **Display / portale / scadenzario:** badge non bloccante ("verifica prezzo") quando `divergente` — il segnale durevole (read-time, persiste finché non si riconcilia azzerando `prezzo_unitario`).
+- **Percorso OPERATORE (batch, `BatchFatturaSection` → `fatture/batch/route.ts`):** lista di riconciliazione **pre-emissione, per-lavoro** — i lavori divergenti sono evidenziati; l'operatore procede consapevolmente. È un pre-check UI, **nessun cambio di contratto** su `generaFatturaPA`.
+- **Percorso AUTOMATICO senza operatore (ramo CONSEGNA, `generate-xml.ts` `else` senza `fatturaId`):** **procede** (numero corretto via righe) — non c'è nessuno a cui chiedere conferma. La divergenza resta **visibile via il badge sul lavoro** dopo l'emissione (segnale durevole read-time). Aggiungere un **log strutturato** best-effort per ops. Mai emissione bloccante qui.
+- **Hard-block + conferma esplicita → DS v3 sp.3** (quando esiste una UI di riconciliazione righe). NON aggiungere un precheck batch separato lato server (drift): l'unico calcolo imponibile resta `generate-xml.ts:104`.
 - **Tolleranza:** centesimi interi, `|deltaCents| >= 1` (mai epsilon float).
 
 ### 3.6 Assertion Natura IVA (assicurazione fiscale)
@@ -93,7 +108,7 @@ La disabilitazione UI non basta per un importo fiscale: `PATCH /api/lavori/[id]`
 - **PATCH guard (3.4)**: con righe attive, PATCH `prezzo_unitario` non-null → 422; PATCH `prezzo_unitario:null` → accettato; senza righe → accettato come oggi; `incluso_in_fattura` → tutti i LOCKED rifiutati.
 - **Natura N4 (3.6)**: emissione con riga `natura_iva!=='N4'` → blocco.
 - **Regressione documenti storici**: test che asserisce che i read path delle fatture emesse (`fatture/page.tsx`, `fatture/[id]`, `/xml`) **non importano** `prezzoEffettivoLavoro` (leggono lo snapshot congelato).
-- **Grep-tripwire (onesto, non garanzia):** test che segnala nuovi accessi grezzi a `lavori.prezzo_unitario` fuori dall'helper nei moduli-lettori target (contabilità/dashboard-contabile/fattura). Nota: `lavori_lavorazioni.prezzo_unitario` (prezzo unitario di riga) collide testualmente → allowlist mirata, etichettato come **tripwire** non enforcement.
+- **Grep-tripwire (onesto, non garanzia):** test che segnala nuovi accessi grezzi a `lavori.prezzo_unitario` fuori dall'helper nei moduli-lettori target. **Scope: `src/lib/contabilita/**`, `src/lib/fattura/**`, e `src/app/api/**`** (route che leggono `lavori` — portale/scadenzario/pronti-da-fatturare: è lì che vive il bug, escluderle renderebbe il tripwire cieco proprio dove serve). Nota: `lavori_lavorazioni.prezzo_unitario` (prezzo unitario di riga) collide testualmente → allowlist mirata, etichettato come **tripwire** non enforcement. (Enforcement forte via branded type `Euro` = deferito, §7.)
 
 ---
 
@@ -113,12 +128,13 @@ Solo codice (no migration) → rollback = Vercel "promote previous" / `git rever
 
 - **Tenant isolation:** nessun tocco a RLS / `current_lab_id()`. L'helper è puro; le query mantengono i filtri `laboratorio_id` esistenti. Il fix 3.3 rimuove solo un filtro di *positività prezzo*, non un filtro tenant.
 - **Schema drift:** **nessuna migration** → nessun `gen types`.
-- **API contract:** la PATCH lavori aggiunge un rifiuto 422 per `prezzo_unitario`/`listino_id` con righe attive (carve-out `null`). Nuovo comportamento restrittivo — verificare che i client esistenti (`LavoriInAttesaSection`, `BatchFatturaSection`) non editino `prezzo_unitario` su lavori con righe (oggi le righe nascono solo da import → impatto reale ~0, ma il test lo blinda).
+- **API contract:** la PATCH lavori aggiunge un rifiuto 422 per `prezzo_unitario` (e, se incluso in fase di piano, `listino_id`) con righe attive (carve-out: azzeramento a `null` consentito). Nuovo comportamento restrittivo — verificare che i client esistenti (`LavoriInAttesaSection`, `BatchFatturaSection`) non editino `prezzo_unitario` su lavori con righe (oggi le righe nascono solo da import → impatto reale ~0, ma il test lo blinda). Nessun altro cambio di contratto (la divergence guard è read-time/UI, non modifica la firma di `generaFatturaPA`).
 - **Rollback:** §5 (read-only prima, `registra-pagamento` dopo, reconciliation query).
 - **Dominio critico:** fiscale/FatturaPA → percorso GRANDE (questa spec + review specializzata + piano TDD + review per-task + review finale).
 
 ---
 
 ## 7. Deferiti (tracciati, NON in N4)
-- **DS v3 sp.3:** editor righe nativo (fix PUT orfana + persistenza), UI di riconciliazione, hard-block emissione su divergenza, branded type `Euro`.
+- **DS v3 sp.3:** editor righe nativo (fix PUT orfana + persistenza), UI di riconciliazione, hard-block emissione su divergenza, branded type `Euro` (enforcement forte via tsc).
+- **Bollo nel "dovuto" (follow-up dopo N4, non introdotto da N4):** la contabilità calcola dovuto/residuo sull'imponibile **senza bollo** (`queries.ts:270`), mentre la fattura emessa persiste `totale` **con bollo €2** (>77,47€) → lo stesso lavoro salta di €2 passando da non-fatturato a fatturato. Stessa classe di problema (due grandezze non allineate), pre-esistente e fuori scope N4; tracciare come task successivo.
 - **N5** (`generaFatturaPA` hardcoda TD01) resta task separato prerequisito delle note di credito TD04.
