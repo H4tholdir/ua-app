@@ -1,14 +1,11 @@
-# SESSION ACTIVE — 14/07/2026 — HOUSEKEEPING COMPLETATO
+# SESSION ACTIVE — 14/07/2026 — ONDATA 3b (slice): DESIGN + PIANO PRONTI
 
-**Fatto:** eseguito `docs/roadmap/2026-07-14-housekeeping-handoff.md`.
-- **Task A:** push 2 commit docs pendenti (`cdc38c6` gate estetico L2 + `18a57b9` handoff) → CI verde.
-- **Task B:** rimossi worktree già mergiati `dashboard-v2-rewrite` + `worktree-fix-ua-list-grid-reduced-motion` (branch eliminati con `-d` = merge confermato).
-- **Task 2b (GATE Francesco → decisione ARCHIVIA+RIMUOVI):** `plan-c-dashboard-rbac` (7 commit non mergiati, 920 dietro; dashboard-work morto/sostituito dalle pile, admin-preview+impersonation già in main, uniche parti uniche import DentalMaster + e2e Piano E ma scritte su codebase di 920 commit fa) → tag `archive/plan-c-dashboard-rbac` (pushato sul remote) + worktree/branch rimossi.
-- **BP-1:** MEMORY.md + ROADMAP-UFFICIALE.md aggiornati, committati e pushati (`cf59f97`, CI verde).
+**Stato:** brainstorming + piano COMPLETATI e APPROVATI. Nessun codice scritto. La sessione nuova (contesto pulito) **esegue**. Commit **solo locali** (`9b7f426` spec, `80cea7d` piano; `main` avanti di 2 su `origin`, docs-only, non pushati).
 
-**Stato repo:** `main == origin/main == cf59f97`, un solo worktree (principale), albero pulito.
+**Handoff pronto:** `docs/roadmap/2026-07-14-ondata-3b-execution-handoff.md`.
+**Spec:** `docs/superpowers/specs/2026-07-14-ondata-3b-nota-dentista-reskin-ponte-design.md`.
+**Piano:** `docs/superpowers/plans/2026-07-14-ondata-3b-nota-dentista-reskin-ponte.md` (10 task TDD).
 
-**PROSSIMO — scelta di Francesco (menu handoff §3):**
-- **A.** Consegna→portale dentista (deciso 10/07, mai ripreso; dominio critico FatturaPA/N4 → percorso GRANDE; vedi `docs/roadmap/2026-07-10-ledger-4a-interrotta-audit.md`).
-- **B.** Ondata 3b (deferiti scheda: form ponte v3, `note_dentista`+portale, N4 prezzo, flussi ⋯ nativi).
-- **C.** prossima superficie DS v3 (impostazioni/magazzino/qualità/fatture/portale/admin — ognuna un'ondata col gate L2 FASE 9b).
+**Scope slice (decomposto):** P1 nota dentista (3 colonne additive `note_dentista`/`da_portale`/`paziente_codice_richiesta`; write path portale pulito; 🔴 fix hook realtime su `da_portale`; display `NotaDentista` scheda; nota sul buono; colonne fuori da PATCHABLE_FIELDS) + P4 reskin form ponte a v3 (aliasing variabili su scope `.lavoro-form-v3` → fixa bug dark; sweep font DM Sans→font-v3; tab oro→v3). **Deferiti:** P3 rebuild nativo (YAGNI), N4 prezzo (task fiscale GRANDE), chat portale (feature futura su `messaggi`).
+
+**PROSSIMO (SESSIONE NUOVA, contesto pulito):** eseguire il piano via `superpowers:subagent-driven-development` in worktree `worktree-ondata-3b-nota-reskin` (baseline 1596 pass | 4 skipped; Task 1 si ferma al GATE apply migration di Francesco; QA lab E2E `…0001`, MAI lab Filippo; gate L2 dark×3viewport). Decidere se pushare spec+piano (docs-only). Merge/push = gate Francesco.
