@@ -72,12 +72,17 @@ export function urgencyLabel(f: RigaUrgenza): string {
   return 'In sospeso'
 }
 
+// `urgencyColor` restituisce un token DS (`var(--…)`), non un hex grezzo:
+// concatenarci un suffisso alpha (`…22`/`…44`) produce CSS invalido — il
+// browser scarta la dichiarazione e lo sfondo/bordo non renderizza (verificato:
+// getComputedStyle → rgba(0,0,0,0)). `color-mix` applica la trasparenza su un
+// `var()` senza hardcodare hex. 22hex≈13%, 44hex≈27% dell'alpha originale.
 export function urgencyPillBg(f: RigaUrgenza): string {
-  return `${urgencyColor(f)}22`
+  return `color-mix(in srgb, ${urgencyColor(f)} 13%, transparent)`
 }
 
 export function urgencyPillBorder(f: RigaUrgenza): string {
-  return `1px solid ${urgencyColor(f)}44`
+  return `1px solid color-mix(in srgb, ${urgencyColor(f)} 27%, transparent)`
 }
 
 const STATO_SDI_LABEL: Record<string, string> = {

@@ -156,11 +156,11 @@ function InsolutoCard({
               fontSize: '11px',
               fontWeight: 600,
               color: color,
-              background: `${color}22`,
+              background: `color-mix(in srgb, ${color} 13%, transparent)`,
               borderRadius: '8px',
               padding: '3px 8px',
               flexShrink: 0,
-              border: `1px solid ${color}44`,
+              border: `1px solid color-mix(in srgb, ${color} 27%, transparent)`,
             }}
           >
             {label}
