@@ -5,7 +5,8 @@
  * Autenticato via `portale_token` (campo su `clienti`).
  *
  * Il dentista compila il form su /richiedi/[token] → chiama questa API →
- * viene creato un lavoro in stato 'ricevuto' con note_interne = 'RICHIESTA_DENTISTA | ...'
+ * viene creato un lavoro in stato 'ricevuto' con da_portale=true, note_dentista e
+ * paziente_codice_richiesta valorizzati; note_interne resta NULL (spazio privato del lab).
  * Il lab lo vede in /lavori e lo riceve via Supabase Realtime (useRealtimeNotifiche).
  */
 
@@ -77,8 +78,7 @@ export async function POST(req: Request) {
     .from('lavori')
     .select('id', { count: 'exact', head: true })
     .eq('cliente_id', clienteId)
-    .eq('laboratorio_id', labId)
-    .like('note_interne', 'RICHIESTA_DENTISTA%')
+    .eq('da_portale', true)
     .gte('created_at', since24h)
 
   if (countError) {
@@ -108,19 +108,10 @@ export async function POST(req: Request) {
 
   const numero_lavoro = `${anno}/${String(progressivo).padStart(4, '0')}`
 
-  // 7. Costruisci note_interne con flag RICHIESTA_DENTISTA
-  const noteInterne = [
-    `RICHIESTA_DENTISTA`,
-    `Paz: ${pazienteCodice}`,
-    noteText ? `Note: ${noteText}` : null,
-  ]
-    .filter(Boolean)
-    .join(' | ')
-
-  // 8. Descrizione: usa elementi dentali se forniti, altrimenti tipo_dispositivo
+  // 7. Descrizione: usa elementi dentali se forniti, altrimenti tipo_dispositivo
   const descrizione = (body.descrizione ?? body.tipo_dispositivo).substring(0, 255)
 
-  // 9. Inserisci lavoro (bypass RLS con service client)
+  // 8. Inserisci lavoro (bypass RLS con service client)
   const { data: lavoro, error: insertError } = await svc
     .from('lavori')
     .insert({
@@ -133,7 +124,10 @@ export async function POST(req: Request) {
       data_consegna_prevista: body.data_consegna_prevista,
       stato: 'ricevuto',
       priorita: 'normale',
-      note_interne: noteInterne,
+      note_dentista: noteText || null,
+      da_portale: true,
+      paziente_codice_richiesta: pazienteCodice || null,
+      // note_interne resta null: è lo spazio privato del laboratorio
       // Campi MDR con default sicuri
       classe_rischio: 'classe_i',
       da_conformare: true,
