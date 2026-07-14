@@ -2136,6 +2136,7 @@ export type Database = {
           consegna_tap_at: string | null
           created_at: string
           da_conformare: boolean
+          da_portale: boolean
           data_conformazione: string | null
           data_consegna_effettiva: string | null
           data_consegna_prevista: string
@@ -2165,11 +2166,13 @@ export type Database = {
           materiali_incompleti_dettaglio: Json | null
           natura_iva: string
           norma_riferimento: string | null
+          note_dentista: string | null
           note_interne: string | null
           numero_cassetta: string | null
           numero_lavoro: string
           numero_prescrizione: string | null
           ora_consegna: string | null
+          paziente_codice_richiesta: string | null
           paziente_id: string | null
           paziente_nascita_snapshot: string | null
           paziente_nome_snapshot: string | null
@@ -2230,6 +2233,7 @@ export type Database = {
           consegna_tap_at?: string | null
           created_at?: string
           da_conformare?: boolean
+          da_portale?: boolean
           data_conformazione?: string | null
           data_consegna_effettiva?: string | null
           data_consegna_prevista: string
@@ -2259,11 +2263,13 @@ export type Database = {
           materiali_incompleti_dettaglio?: Json | null
           natura_iva?: string
           norma_riferimento?: string | null
+          note_dentista?: string | null
           note_interne?: string | null
           numero_cassetta?: string | null
           numero_lavoro: string
           numero_prescrizione?: string | null
           ora_consegna?: string | null
+          paziente_codice_richiesta?: string | null
           paziente_id?: string | null
           paziente_nascita_snapshot?: string | null
           paziente_nome_snapshot?: string | null
@@ -2324,6 +2330,7 @@ export type Database = {
           consegna_tap_at?: string | null
           created_at?: string
           da_conformare?: boolean
+          da_portale?: boolean
           data_conformazione?: string | null
           data_consegna_effettiva?: string | null
           data_consegna_prevista?: string
@@ -2353,11 +2360,13 @@ export type Database = {
           materiali_incompleti_dettaglio?: Json | null
           natura_iva?: string
           norma_riferimento?: string | null
+          note_dentista?: string | null
           note_interne?: string | null
           numero_cassetta?: string | null
           numero_lavoro?: string
           numero_prescrizione?: string | null
           ora_consegna?: string | null
+          paziente_codice_richiesta?: string | null
           paziente_id?: string | null
           paziente_nascita_snapshot?: string | null
           paziente_nome_snapshot?: string | null

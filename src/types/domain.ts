@@ -263,6 +263,10 @@ export interface Lavoro {
   tipo_dispositivo: TipoDispositivo;
   descrizione: string;
   note_interne: string | null;
+  // Ondata 3b — nota del dentista (portale) separata da note_interne del lab
+  note_dentista: string | null;
+  da_portale: boolean;
+  paziente_codice_richiesta: string | null;
   richiedente_nome: string | null;
   richiedente_email: string | null;
   // Campi colore (tab Clinica)
