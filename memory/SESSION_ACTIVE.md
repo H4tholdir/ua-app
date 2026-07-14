@@ -1,12 +1,11 @@
-# SESSION ACTIVE — 14/07/2026 — N4 + N8 CHIUSI, PRONTO PER SESSIONE PULITA
+# SESSION ACTIVE — 14/07/2026 — QUICK-WIN FISCALI N6+N7 CHIUSI E DEPLOYATI
 
-**Stato:** `main` = `cee678e`, in sync con origin, working tree pulito, un solo worktree. V1.9.3 in produzione (uachelab.com). **Nessun Blocker aperto.**
+**Stato:** `main` = `2dfbfd7`, in sync con origin. **V1.9.3+ in produzione** (uachelab.com 307→/login → 200). CI verde + CD Vercel success + health ✓. **Nessun Blocker aperto.**
 
-**Fatto in questa sessione (entrambi mergiati + deployati, CI+CD verdi, prod 200):**
-- **N4** fonte di verità prezzo lavoro (`b025d61`): helper unico `prezzoEffettivoLavoro`, refactor lettori, rimosso prefiltro `.gt`, guard PATCH 422, assertion Natura N4, badge divergenza. Riconciliazione: 0 divergenti su 286 lavori.
-- **N8** tint pill via `color-mix` (`377ad27`): var()+alpha era CSS invalido → trasparente; fix in scadenzario + portale + qualità, verificato getComputedStyle.
-- Housekeeping git: worktree + branch di sessione rimossi.
+**Fatto in questa sessione (blocco A del handoff, mergiato + deployato):**
+- **N7** (`196c8ec`): gate `stato_sdi` su `POST /api/fatture/[id]/xml` → **409** se non `draft`, PRIMA del loop `generaFatturaPA` (no ri-derivazione imponibile dal lavoro vivo, no consumo progressivo SDI). Test `fatture-xml-gate-stato-sdi.test.ts`.
+- **N6** (`0dd05fc`): invariante «bollo €2 fuori dal dovuto pre-fattura» documentato (decisione C, zero logica) — commento `queries.ts` + test-decisione `contabilita-bollo-n6.test.ts`.
+- Eseguito via `subagent-driven-development` (2 task TDD, review pulite, review finale opus READY TO MERGE). FASE 7: tsc 0, vitest 1676 pass, build verde.
+- Nuovo item backlog **N9** (endpoint PEC-resend dedicato, scoperto in review N7).
 
-**➡️ HANDOFF SESSIONE PULITA:** `docs/roadmap/2026-07-14-next-session-handoff.md` — legge lo stato, i quick-win fiscali (N6 bollo nel dovuto, N7 gate `stato_sdi` su xml route), l'item IMPORTANT (N5 note credito TD04), i 2 filoni strategici (DS v3 sp.3 «Il cuore» / Ondata 4a-server), e il backlog per priorità.
-
-**PROSSIMO:** chiedere a Francesco quale blocco (A: N6+N7 quick-win · B: N5 · C: DS v3 sp.3 · D: Ondata 4a-server) → brainstorming → FASE 3 → piano → worktree → esecuzione.
+**PROSSIMO (dal handoff, menu Francesco):** B (N5 note credito TD04) · C (DS v3 sp.3 «Il cuore») · D (Ondata 4a-server). Housekeeping branch pre-esistenti ancora possibile.
