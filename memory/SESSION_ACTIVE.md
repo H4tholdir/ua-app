@@ -1,11 +1,11 @@
-# SESSION ACTIVE — 14/07/2026 — QUICK-WIN FISCALI N6+N7 CHIUSI E DEPLOYATI
+# SESSION ACTIVE — 15/07/2026 — N6+N7 DEPLOYATI · TD04 SPEC+PIANO PRONTI
 
-**Stato:** `main` = `2dfbfd7`, in sync con origin. **V1.9.3+ in produzione** (uachelab.com 307→/login → 200). CI verde + CD Vercel success + health ✓. **Nessun Blocker aperto.**
+**Stato:** `main` = `68f2161` (origin a `8267c23`; 4 commit docs TD04 su main **locale, non pushati**). V1.9.3+ in produzione. **Nessun Blocker aperto.**
 
-**Fatto in questa sessione (blocco A del handoff, mergiato + deployato):**
-- **N7** (`196c8ec`): gate `stato_sdi` su `POST /api/fatture/[id]/xml` → **409** se non `draft`, PRIMA del loop `generaFatturaPA` (no ri-derivazione imponibile dal lavoro vivo, no consumo progressivo SDI). Test `fatture-xml-gate-stato-sdi.test.ts`.
-- **N6** (`0dd05fc`): invariante «bollo €2 fuori dal dovuto pre-fattura» documentato (decisione C, zero logica) — commento `queries.ts` + test-decisione `contabilita-bollo-n6.test.ts`.
-- Eseguito via `subagent-driven-development` (2 task TDD, review pulite, review finale opus READY TO MERGE). FASE 7: tsc 0, vitest 1676 pass, build verde.
-- Nuovo item backlog **N9** (endpoint PEC-resend dedicato, scoperto in review N7).
+**Fatto in questa sessione:**
+- **N6+N7 (blocco A handoff): MERGIATI E DEPLOYATI** (`2dfbfd7`, CI+CD verdi, prod 200). N7 gate `stato_sdi` (409) su route XML; N6 invariante bollo documentato. BP-1 fatto (`8267c23`). Nuovo backlog N9 (PEC-resend).
+- **N5 → riqualificato in feature GRANDE «Nota di Credito TD04»** (Francesco: opzione B). **Spec v2 + piano (8 task) PRONTI** (non pushati): `docs/superpowers/specs/2026-07-14-nota-credito-td04-design.md`, `docs/superpowers/plans/2026-07-14-nota-credito-td04.md`. Spec rivista da 3 advisor specializzati (fiscale/DB/contabilità): claim atomico, tipo movimento `storno`, gate pragmatico (da `smtp_inviata`), reset lavoro solo-fiscale (MDR), audit letture, DatiFattureCollegate.
 
-**PROSSIMO (dal handoff, menu Francesco):** B (N5 note credito TD04) · C (DS v3 sp.3 «Il cuore») · D (Ondata 4a-server). Housekeeping branch pre-esistenti ancora possibile.
+**Decisioni TD04 prese:** trigger da `/fatture/[id]`, storno totale, lavoro ri-fatturabile, fatture pagate→credito. **Aperto:** bollo TD04 (flag commercialista).
+
+**PROSSIMO:** eseguire il piano TD04 in sessione dedicata (T7 UI richiede mockup + approvazione visiva Francesco). Oppure altri blocchi handoff: C (DS v3 sp.3), D (Ondata 4a-server).
