@@ -108,7 +108,7 @@ export function useRealtimeNotifiche(
         setIsConnected(status === 'SUBSCRIBED')
       })
 
-    // Canale: nuovo lavoro in bozza da dentista (INSERT con flag RICHIESTA_DENTISTA)
+    // Canale: nuovo lavoro in bozza da dentista (INSERT con flag da_portale=true)
     const channelNuovi = supabase
       .channel(`lab-${laboratorioId}-nuovi`)
       .on(
