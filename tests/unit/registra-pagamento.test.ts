@@ -3,7 +3,7 @@ import { eseguiRegistrazionePagamento, type RegistraPagamentoInput } from '@/lib
 
 interface FakeData {
   fatture?: Record<string, { id: string; totale: number; cliente_id: string }>
-  lavori?: Record<string, { id: string; prezzo_unitario: number; cliente_id: string }>
+  lavori?: Record<string, { id: string; prezzo_unitario: number; cliente_id: string; lavorazioni?: Array<{ importo: number | null }> }>
   pagamentiAttivi?: Array<{ importo: number }>
   applicazioni?: Array<{ importo: number }>
   simulaErroreEccedenza?: boolean
@@ -132,6 +132,33 @@ describe('eseguiRegistrazionePagamento', () => {
     expect(r.ok).toBe(true)
     expect(r.eccedenza).toBe(0)
     expect(supabase._inserted.pagamenti[0]).toMatchObject({ fattura_id: null, lavoro_id: 'lav-1', importo: 50 })
+  })
+
+  it('pagamento su lavoro con righe lavorazione usa la somma delle righe come dovuto, non prezzo_unitario (N4)', async () => {
+    const supabase = createFakeSupabase({
+      lavori: {
+        'lav-n4': {
+          id: 'lav-n4',
+          prezzo_unitario: 322,
+          cliente_id: 'cli-3',
+          lavorazioni: [{ importo: 112 }],
+        },
+      },
+    })
+
+    // dovuto reale = 112 (somma righe). Pagando 150, l'eccedenza attesa è
+    // 150 - 112 = 38. Col vecchio codice (dovuto = prezzo_unitario = 322)
+    // l'eccedenza sarebbe erroneamente 0 (150 - 322 < 0 → clamp).
+    const r = await eseguiRegistrazionePagamento(supabase, baseInput({ lavoro_id: 'lav-n4', importo: 150 }))
+
+    expect(r.ok).toBe(true)
+    expect(r.eccedenza).toBe(38)
+    expect(supabase._inserted.credito_clienti_movimenti).toHaveLength(1)
+    expect(supabase._inserted.credito_clienti_movimenti[0]).toMatchObject({
+      tipo: 'eccedenza',
+      cliente_id: 'cli-3',
+      importo: 38,
+    })
   })
 
   it('errore se non è specificato esattamente uno tra fattura_id e lavoro_id', async () => {

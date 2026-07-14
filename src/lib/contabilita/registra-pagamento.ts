@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcolaResiduo, calcolaEccedenza } from './saldo'
+import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 
 export interface RegistraPagamentoInput {
   laboratorio_id: string
@@ -61,13 +62,15 @@ export async function eseguiRegistrazionePagamento(
   } else {
     const { data: lavoro, error } = await supabase
       .from('lavori')
-      .select('id, prezzo_unitario, cliente_id')
+      .select('id, prezzo_unitario, cliente_id, lavorazioni:lavori_lavorazioni(importo)')
       .eq('id', lavoro_id as string)
       .eq('laboratorio_id', laboratorio_id)
       .is('deleted_at', null)
       .single()
     if (error || !lavoro) return { ok: false, errore: 'Lavoro non trovato' }
-    importoDovuto = Number((lavoro as { prezzo_unitario: number | null }).prezzo_unitario ?? 0)
+    importoDovuto = prezzoEffettivoLavoro(
+      lavoro as { prezzo_unitario: number | null; lavorazioni?: Array<{ importo: number | null }> | null }
+    )
     clienteId = (lavoro as { cliente_id: string }).cliente_id
   }
 

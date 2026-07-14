@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcolaResiduo, calcolaCreditoDisponibile } from './saldo'
 import { calcolaCreditoCliente, type CreditoClienteResult } from './credito-cliente'
+import { prezzoEffettivoLavoro, divergenzaPrezzo, SELECT_FRAGMENT_PREZZO } from '@/lib/domain/prezzo-lavoro'
 
 export interface CreditoScadutoPerCliente {
   cliente_id: string
@@ -79,7 +80,7 @@ export async function getCreditoScadutoPerCliente(
   const { data: lavoriData } = await svc
     .from('lavori')
     .select(`
-      id, prezzo_unitario, data_consegna_prevista,
+      id, ${SELECT_FRAGMENT_PREZZO}, data_consegna_prevista,
       clienti:clienti!inner(id, nome, cognome, studio_nome, telefono),
       pagamenti(importo, stato),
       credito_clienti_movimenti(importo, tipo)
@@ -90,17 +91,19 @@ export async function getCreditoScadutoPerCliente(
     .eq('incluso_in_fattura', false)
     .in('decisione_fatturazione', ['non_fatturare', 'fatturare'])
     .lt('data_consegna_prevista', cutoffISO)
-    .gt('prezzo_unitario', 0)
 
   for (const l of (lavoriData ?? []) as unknown as Array<{
     id: string; prezzo_unitario: number | null; data_consegna_prevista: string
+    lavorazioni: Array<{ importo: number | null }> | null
     clienti: ClienteSnap
     pagamenti: Array<{ importo: number; stato: string }>
     credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
   }>) {
+    const totaleLav = prezzoEffettivoLavoro(l)
+    if (totaleLav <= 0) continue
     const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
     const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
-    const residuo = calcolaResiduo(Number(l.prezzo_unitario ?? 0), pagamentiAttivi, applicazioni)
+    const residuo = calcolaResiduo(totaleLav, pagamentiAttivi, applicazioni)
     if (residuo <= 0) continue
     accumula(map, l.clienti, residuo, l.data_consegna_prevista)
   }
@@ -155,6 +158,10 @@ export interface LavoroInAttesa {
   data_consegna_prevista: string
   proposta_dentista: 'fatturare' | 'non_fatturare' | null
   proposta_at: string | null
+  // Task 7b (N4): true quando le righe di lavorazione divergono dal
+  // prezzo_unitario memorizzato (≥1 cent) — calcolato server-side qui perché
+  // il componente riceve solo il totale effettivo già collassato.
+  divergente: boolean
 }
 
 export interface ContabilitaCliente {
@@ -213,7 +220,7 @@ export async function getContabilitaCliente(
   const { data: lavoriRaw, error: lavoriErr } = await svc
     .from('lavori')
     .select(`
-      id, numero_lavoro, prezzo_unitario, data_consegna_prevista, decisione_fatturazione, incluso_in_fattura,
+      id, numero_lavoro, ${SELECT_FRAGMENT_PREZZO}, data_consegna_prevista, decisione_fatturazione, incluso_in_fattura,
       proposta_dentista, proposta_at,
       pagamenti(importo, stato),
       credito_clienti_movimenti(importo, tipo)
@@ -222,7 +229,6 @@ export async function getContabilitaCliente(
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
     .not('stato', 'in', '("annullato")')
-    .gt('prezzo_unitario', 0)
   if (lavoriErr) throw new Error(`[contabilita cliente] lettura lavori: ${lavoriErr.message}`)
 
   const lavoriConfermati: DovutoEstratto[] = []
@@ -236,19 +242,29 @@ export async function getContabilitaCliente(
 
   for (const l of (lavoriRaw ?? []) as unknown as Array<{
     id: string; numero_lavoro: string; prezzo_unitario: number | null; data_consegna_prevista: string
+    lavorazioni: Array<{ importo: number | null }> | null
     decisione_fatturazione: string; incluso_in_fattura: boolean
     proposta_dentista: string | null; proposta_at: string | null
     pagamenti: Array<{ importo: number; stato: string }>
     credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
   }>) {
+    const totaleLav = prezzoEffettivoLavoro(l)
+    // Il `.gt('prezzo_unitario', 0)` DB-side escludeva ogni lavoro a totale 0
+    // PRIMA del branch in_attesa — replichiamo qui lo stesso ordine per non
+    // alterare il comportamento preesistente su in_attesa a totale 0, mentre
+    // includiamo i lavori con prezzo nelle righe e prezzo_unitario 0/null
+    // (fix di completezza).
+    if (totaleLav <= 0) continue
+
     if (l.decisione_fatturazione === 'in_attesa') {
       lavoriInAttesa.push({
         id: l.id,
         numero_lavoro: l.numero_lavoro,
-        prezzo_unitario: Number(l.prezzo_unitario ?? 0),
+        prezzo_unitario: totaleLav,
         data_consegna_prevista: l.data_consegna_prevista,
         proposta_dentista: (l.proposta_dentista as 'fatturare' | 'non_fatturare' | null) ?? null,
         proposta_at: l.proposta_at ?? null,
+        divergente: divergenzaPrezzo(l).divergente,
       })
       continue
     }
@@ -258,7 +274,7 @@ export async function getContabilitaCliente(
 
     const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
     const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
-    const residuo = calcolaResiduo(Number(l.prezzo_unitario ?? 0), pagamentiAttivi, applicazioni)
+    const residuo = calcolaResiduo(totaleLav, pagamentiAttivi, applicazioni)
 
     if (residuo <= 0) continue // saldato — non è più un dovuto
 
@@ -267,7 +283,7 @@ export async function getContabilitaCliente(
       origine: 'lavoro_diretto',
       numero: l.numero_lavoro,
       data: l.data_consegna_prevista,
-      totale: Number(l.prezzo_unitario ?? 0),
+      totale: totaleLav,
       residuo,
       pagata: false,
       giorni_ritardo: Math.floor((now - new Date(l.data_consegna_prevista).getTime()) / 86_400_000),

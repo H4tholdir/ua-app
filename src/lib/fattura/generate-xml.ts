@@ -5,6 +5,7 @@ import { generaProgressivo } from '@/lib/db/progressivi'
 import type { LavoroDettaglio } from '@/types/domain'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { FatturaCortesiaTemplate, type FatturaCortesiaProps } from '@/components/features/pdf/FatturaCortesiaTemplate'
+import { prezzoEffettivoLavoro, divergenzaPrezzo } from '@/lib/domain/prezzo-lavoro'
 
 // Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
 import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
@@ -67,6 +68,16 @@ export async function generaFatturaPA(
     console.warn('[FatturaPA] Cliente senza codice SDI né PEC:', cliente.id)
   }
 
+  // Assertion fiscale — invariante per ENTRAMBI i rami di emissione (draft e
+  // automatico): ogni riga di lavorazione custom-made deve essere Natura N4.
+  // Se una riga porta una natura diversa, l'XML la appiattirebbe comunque a
+  // N4 (hardcoded sotto) producendo un errore fiscale silenzioso: si blocca
+  // l'emissione a monte — PRIMA di generare progressivi (evita di bruciare
+  // un numero fattura/SDI su un'emissione che verrà comunque rigettata).
+  if (lavoro.lavorazioni.some((r) => r.natura_iva && r.natura_iva !== 'N4')) {
+    throw new Error('Natura IVA non N4 su riga di lavorazione: FatturaPA custom-made richiede N4')
+  }
+
   // ── 2. Determina numero fattura e progressivi ────────────────────────────
   // Fix divergenza DB/XML: se fatturaId presente, usa il numero del draft esistente
   // e NON generare un nuovo progressivo fattura (evita duplicati).
@@ -100,10 +111,8 @@ export async function generaFatturaPA(
   }
 
   // ── 3. Calcola importi ───────────────────────────────────────────────────
-  // Fix: se non ci sono lavorazioni, usa prezzo_unitario del lavoro come imponibile
-  const imponibile = lavoro.lavorazioni.length > 0
-    ? lavoro.lavorazioni.reduce((acc, r) => acc + (r.importo ?? 0), 0)
-    : (lavoro.prezzo_unitario ?? 0)
+  // N4: fonte unica del prezzo (righe se esistono, altrimenti prezzo_unitario).
+  const imponibile = prezzoEffettivoLavoro(lavoro)
   const bolloApplicato = imponibile > 77.47 ? 2.00 : 0
   const totale = imponibile + bolloApplicato
 
@@ -353,6 +362,18 @@ export async function generaFatturaPA(
     }
   } else {
     // INSERT: crea nuova riga (flusso CONSEGNA automatica)
+    // Log best-effort (non bloccante): se righe e prezzo_unitario divergono,
+    // le righe vincono comunque (prezzoEffettivoLavoro) — questo warn serve
+    // solo a rendere visibile il disallineamento a valle, senza fermare
+    // l'emissione automatica (nessun operatore presente per confermare).
+    const dv = divergenzaPrezzo(lavoro)
+    if (dv.divergente) {
+      console.warn('[N4] divergenza prezzo in emissione automatica', {
+        lavoroId: lavoro.id,
+        deltaCents: dv.deltaCents,
+      })
+    }
+
     const insertPayload = {
       laboratorio_id: lavoro.laboratorio_id,
       cliente_id: cliente.id,

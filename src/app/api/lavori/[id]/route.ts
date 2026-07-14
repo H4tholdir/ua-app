@@ -219,6 +219,22 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
   }
 
+  // N4: se il prezzo è gestito dalle righe di lavorazione, prezzo_unitario è
+  // read-only (eccezione: azzeramento a null = riconciliazione, consentito).
+  // Se il lavoro è incluso in fattura, prezzo_unitario è già stato rimosso
+  // dal payload sopra, quindi questo blocco non scatta (composizione con il
+  // lock fattura senza query extra).
+  if ('prezzo_unitario' in payload && payload.prezzo_unitario !== null) {
+    const { count: righeAttive } = await svc
+      .from('lavori_lavorazioni')
+      .select('id', { count: 'exact', head: true })
+      .eq('lavoro_id', id)
+      .is('deleted_at', null)
+    if ((righeAttive ?? 0) > 0) {
+      return NextResponse.json({ error: 'prezzo gestito dalle righe di lavorazione' }, { status: 422 })
+    }
+  }
+
   // Fix cross-tenant FK: validare che cliente_id, paziente_id, tecnico_id, ciclo_id
   // appartengano al laboratorio dell'utente prima di aggiornare
   const FK_FIELDS = [

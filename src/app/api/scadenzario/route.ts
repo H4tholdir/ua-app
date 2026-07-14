@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { calcolaResiduo } from '@/lib/contabilita/saldo'
+import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 
 // ─── GET /api/scadenzario ─────────────────────────────────────────────────────
 // Fatture non pagate (stato_sdi != 'draft') + lavori diretti non_fatturare non
@@ -67,14 +68,14 @@ export async function GET() {
       id, numero_lavoro, prezzo_unitario, data_consegna_prevista,
       cliente:clienti(id, nome, cognome, studio_nome, telefono),
       pagamenti(importo, stato),
-      credito_clienti_movimenti(importo, tipo)
+      credito_clienti_movimenti(importo, tipo),
+      lavorazioni:lavori_lavorazioni(importo)
     `)
     .eq('laboratorio_id', labId)
     .in('decisione_fatturazione', ['non_fatturare', 'fatturare'])
     .eq('incluso_in_fattura', false)
     .not('stato', 'in', '("annullato")')
     .is('deleted_at', null)
-    .gt('prezzo_unitario', 0)
 
   if (lavoriError) {
     return NextResponse.json({ error: lavoriError.message }, { status: 500 })
@@ -141,11 +142,12 @@ export async function GET() {
     cliente: ClienteSnap | null
     pagamenti: Array<{ importo: number; stato: string }>
     credito_clienti_movimenti: Array<{ importo: number; tipo: string }>
+    lavorazioni: Array<{ importo: number | null }> | null
   }>) {
     if (!l.cliente) continue
     const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
     const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
-    const residuo = calcolaResiduo(Number(l.prezzo_unitario ?? 0), pagamentiAttivi, applicazioni)
+    const residuo = calcolaResiduo(prezzoEffettivoLavoro(l), pagamentiAttivi, applicazioni)
     if (residuo <= 0) continue
 
     upsertCliente(l.cliente)

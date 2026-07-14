@@ -101,6 +101,17 @@ describe('GET /api/portale/[token]/fatturazione', () => {
     expect((await GET(req(`${SESSIONE_ECONOMICA_COOKIE}=${creaSessioneEconomica('cli-1', 99)}`), ctx)).status).toBe(401)
   })
 
+  it('prezzo effettivo: usa somma righe lavorazioni quando presenti, non prezzo_unitario stantio', async () => {
+    lavori = [
+      { id: 'lav-4', numero_lavoro: '2026-0150', tipo_dispositivo: 'corona', data_consegna_effettiva: '2026-07-05T10:00:00Z', prezzo_unitario: 322, paziente_nome_snapshot: 'BLU MARCO', proposta_dentista: null, proposta_at: null, decisione_fatturazione: 'fatturare', lavorazioni: [{ importo: 60 }, { importo: 52 }] },
+    ]
+    const res = await GET(req(cookieValido()), ctx)
+    const json = await res.json()
+    const tutte = json.gruppi.flatMap((g: { lavori: Array<{ prezzo: number }> }) => g.lavori)
+    expect(tutte).toHaveLength(1)
+    expect(tutte[0].prezzo).toBe(112)
+  })
+
   it('interruttore OFF → 403; token invalido → 401 uniforme', async () => {
     cliente!.portale_fatturazione_attiva = false
     expect((await GET(req(cookieValido()), ctx)).status).toBe(403)
