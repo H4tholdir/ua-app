@@ -71,6 +71,19 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
   }
 
+  // ── Gate stato_sdi (N7) ───────────────────────────────────────────────────
+  // Allowlist: solo una fattura ancora in bozza può essere (ri)generata. Una
+  // fattura già emessa (generata/inviata/…) ri-deriverebbe l'imponibile dal
+  // lavoro VIVO e brucerebbe un progressivo SDI (generaProgressivo è dentro
+  // generaFatturaPA). Il gate vive qui, PRIMA del loop, non nell'helper
+  // (condiviso col flusso Consegna auto-emit). Spec: N7 2026-07-14.
+  if (fatturaCheck.stato_sdi !== 'draft') {
+    return NextResponse.json(
+      { error: `Fattura già emessa (stato: ${fatturaCheck.stato_sdi ?? 'sconosciuto'}). Rigenerazione non consentita.` },
+      { status: 409 }
+    )
+  }
+
   // ── Carica i lavori associati ─────────────────────────────────────────────
   let lavoriQuery = svc
     .from('lavori')

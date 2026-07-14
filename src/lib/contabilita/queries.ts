@@ -274,6 +274,13 @@ export async function getContabilitaCliente(
 
     const pagamentiAttivi = (l.pagamenti ?? []).filter((p) => p.stato === 'attivo')
     const applicazioni = (l.credito_clienti_movimenti ?? []).filter((m) => m.tipo === 'applicazione')
+    // INVARIANTE N6 (decisione C, spec 2026-07-14): il dovuto pre-fattura è
+    // calcolato sull'imponibile SENZA bollo. Il bollo di €2 (imponibile >
+    // 77,47€) è imposta documentale che nasce con l'emissione e vive solo in
+    // fatture.totale — la differenza di €2 tra "lavoro dovuto" e "fattura" è
+    // INTENZIONALE, non un drift. NON piegare mai il bollo dentro
+    // prezzoEffettivoLavoro: alimenta l'imponibile XML, che deve restare
+    // bollo-free. Guardia: tests/unit/contabilita-bollo-n6.test.ts.
     const residuo = calcolaResiduo(totaleLav, pagamentiAttivi, applicazioni)
 
     if (residuo <= 0) continue // saldato — non è più un dovuto
