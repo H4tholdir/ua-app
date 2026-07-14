@@ -214,7 +214,7 @@ export function LavoroFormClient({
             <span style={{ fontSize: 20, flexShrink: 0 }}>⚠</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: 13,
                 fontWeight: 700,
                 color: 'var(--primary, #D90012)',
@@ -224,7 +224,7 @@ export function LavoroFormClient({
               </p>
               {lavoro.segnalazione_nota && (
                 <p style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: 12,
                   color: 'var(--t2, #4A3D33)',
                   margin: '2px 0 0',
@@ -245,7 +245,7 @@ export function LavoroFormClient({
                 border: 'none',
                 background: 'var(--primary, #D90012)',
                 color: '#fff',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '12px',
                 fontWeight: 700,
                 cursor: risolvendo ? 'not-allowed' : 'pointer',
@@ -276,7 +276,7 @@ export function LavoroFormClient({
               borderRadius: '14px',
               background: 'rgba(217,0,18,.07)',
               color: 'var(--primary, #D90012)',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '14px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -318,7 +318,7 @@ export function LavoroFormClient({
               border: 'none',
               background: saving ? 'var(--elv, #EDEDEA)' : 'var(--surface, #E4DFD9)',
               color: saving ? 'var(--t2, #4A3D33)' : 'var(--t1, #1C1916)',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               fontWeight: 700,
               cursor: saving ? 'not-allowed' : 'pointer',
@@ -347,7 +347,7 @@ export function LavoroFormClient({
               background: 'rgba(217,0,18,0.08)',
               border: '1px solid rgba(217,0,18,0.25)',
               color: 'var(--primary, #D90012)',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '13px',
               lineHeight: 1.5,
             }}
@@ -369,7 +369,7 @@ export function LavoroFormClient({
             border: '1.5px solid rgba(0,0,0,.10)',
             background: 'var(--elv, #EDEDEA)',
             color: 'var(--t1, #1C1916)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '20px',
             cursor: 'pointer',
             display: 'flex',
@@ -412,7 +412,7 @@ export function LavoroFormClient({
               border: 'none',
               background: 'var(--gold, #D4A843)',
               color: 'var(--t1, #1C1916)',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               fontWeight: 800,
               cursor: 'pointer',

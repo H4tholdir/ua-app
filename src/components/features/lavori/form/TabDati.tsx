@@ -268,7 +268,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
                     minWidth: '44px',
                     boxShadow: isActive
                       ? 'none'
-                      : '-2px -2px 5px rgba(255,255,255,.72), 3px 4px 8px -1px rgba(148,128,118,.28)',
+                      : 'var(--sh-b)',
                     transition: 'background var(--tr), border-color var(--tr), color var(--tr)',
                   }}
                 >

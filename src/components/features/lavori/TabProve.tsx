@@ -166,7 +166,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
             border: '1px solid rgba(217,0,18,.30)',
             borderRadius: '12px',
             padding: '12px 16px',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '14px',
             color: 'var(--primary, #D90012)',
           }}
@@ -190,7 +190,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
         >
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               color: 'var(--t2, #4A3D33)',
               margin: 0,
@@ -213,7 +213,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
         >
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               color: 'var(--t2, #4A3D33)',
               margin: 0,
@@ -251,7 +251,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                   <div>
                     <span
                       style={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '11px',
                         fontWeight: 700,
                         color: 'var(--t2, #4A3D33)',
@@ -263,7 +263,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     </span>
                     <p
                       style={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '14px',
                         color: 'var(--t1, #1C1916)',
                         margin: '2px 0 0',
@@ -282,7 +282,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                       style={{
                         background: 'var(--elv, #EDEDEA)',
                         color: 'var(--c-amber, #F59E0B)',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '12px',
                         fontWeight: 700,
                         padding: '4px 10px',
@@ -298,7 +298,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                       style={{
                         background: esitoColors.bg,
                         color: esitoColors.color,
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '12px',
                         fontWeight: 700,
                         padding: '4px 10px',
@@ -315,7 +315,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                 {prova.note_dentista && (
                   <p
                     style={{
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '13px',
                       color: 'var(--t2, #4A3D33)',
                       margin: '8px 0 0',
@@ -339,7 +339,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                   >
                     <p
                       style={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '12px',
                         fontWeight: 700,
                         color: 'var(--t2, #4A3D33)',
@@ -377,7 +377,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                               borderRadius: '10px',
                               border: 'none',
                               cursor: 'pointer',
-                              fontFamily: 'DM Sans, sans-serif',
+                              fontFamily: 'var(--font-v3, sans-serif)',
                               fontSize: '12px',
                               fontWeight: 700,
                               background: isSelected ? colors.color : colors.bg,
@@ -432,7 +432,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                           !rientroEsito[prova.id] || rientroSubmitting[prova.id]
                             ? 'var(--t2, #4A3D33)'
                             : 'var(--t1, #1C1916)',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '15px',
                         fontWeight: 700,
                         cursor:
@@ -470,7 +470,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                 border: '1px dashed rgba(0,0,0,.06)',
                 background: 'transparent',
                 color: 'var(--c-amber, #F59E0B)',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '15px',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -495,7 +495,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
             >
               <p
                 style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '12px',
                   fontWeight: 700,
                   color: 'var(--t2, #4A3D33)',
@@ -555,7 +555,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     border: 'none',
                     background: 'var(--elv, #EDEDEA)',
                     color: 'var(--t1, #1C1916)',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -576,7 +576,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
                     border: 'none',
                     background: !dataRientro || submitting ? 'var(--elv, #EDEDEA)' : 'var(--gold, #D4A843)',
                     color: !dataRientro || submitting ? 'var(--t2, #4A3D33)' : 'var(--t1, #1C1916)',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '15px',
                     fontWeight: 700,
                     cursor: !dataRientro || submitting ? 'not-allowed' : 'pointer',

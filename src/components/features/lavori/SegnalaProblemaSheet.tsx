@@ -143,7 +143,7 @@ export function SegnalaProblemaSheet({
             {/* Header */}
             <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--prs, #D4CFC9)' }}>
               <p style={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: 18,
                 fontWeight: 800,
                 color: 'var(--t1, #1C1916)',
@@ -153,7 +153,7 @@ export function SegnalaProblemaSheet({
                 Segnala un problema
               </p>
               <p style={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: 13,
                 color: 'var(--t2, #4A3D33)',
                 margin: '3px 0 0',
@@ -196,7 +196,7 @@ export function SegnalaProblemaSheet({
                       cursor: 'pointer',
                       textAlign: 'left',
                       minHeight: '52px',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '13px',
                       fontWeight: isSelected ? 700 : 500,
                       transition: 'background var(--tr), border-color var(--tr), color var(--tr), box-shadow var(--tr)',
@@ -216,7 +216,7 @@ export function SegnalaProblemaSheet({
             <div style={{ padding: '12px 16px 0' }}>
               <label style={{
                 display: 'block',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: 11,
                 fontWeight: 600,
                 color: 'var(--t3, #6B5C51)',
@@ -238,7 +238,7 @@ export function SegnalaProblemaSheet({
                   borderRadius: '12px',
                   border: '1.5px solid var(--prs, #D4CFC9)',
                   background: 'var(--elv, #EDEDEA)',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '14px',
                   color: 'var(--t1, #1C1916)',
                   boxSizing: 'border-box',
@@ -263,7 +263,7 @@ export function SegnalaProblemaSheet({
                     ? 'rgba(217,0,18,.30)'
                     : 'var(--primary, #D90012)',
                   color: '#fff',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '15px',
                   fontWeight: 700,
                   cursor: loading || !selectedTipo ? 'not-allowed' : 'pointer',
@@ -284,7 +284,7 @@ export function SegnalaProblemaSheet({
               {/* Errore — sotto il pulsante */}
               {errorMsg && (
                 <p style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '13px',
                   color: 'var(--primary, #D90012)',
                   margin: '8px 0 0',

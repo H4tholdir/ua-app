@@ -99,7 +99,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'var(--font-v3, sans-serif)',
           fontSize: '12px',
           color: 'var(--t2, #4A3D33)',
         }}
@@ -113,7 +113,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
     return (
       <span
         style={{
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'var(--font-v3, sans-serif)',
           fontSize: '12px',
           fontWeight: 700,
           color: 'var(--success, #16A34A)',
@@ -129,7 +129,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
     return (
       <span
         style={{
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'var(--font-v3, sans-serif)',
           fontSize: '12px',
           color: 'var(--primary, #D90012)',
         }}
@@ -142,7 +142,7 @@ function StatoBadge({ stato, progress }: { stato: StatoDoc; progress: number }) 
   return (
     <span
       style={{
-        fontFamily: 'DM Sans, sans-serif',
+        fontFamily: 'var(--font-v3, sans-serif)',
         fontSize: '12px',
         color: 'var(--t3, #6B5C51)',
       }}
@@ -369,7 +369,7 @@ export function PacchettoConsegnaSheet({
               {/* Titolo */}
               <h2
                 style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '18px',
                   fontWeight: 800,
                   color: 'var(--t1, #1C1916)',
@@ -380,7 +380,7 @@ export function PacchettoConsegnaSheet({
               </h2>
               <p
                 style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '13px',
                   color: 'var(--t2, #4A3D33)',
                   margin: '0 0 16px',
@@ -465,7 +465,7 @@ export function PacchettoConsegnaSheet({
                       <span
                         style={{
                           flex: 1,
-                          fontFamily: 'DM Sans, sans-serif',
+                          fontFamily: 'var(--font-v3, sans-serif)',
                           fontSize: '13px',
                           fontWeight: doc.selected ? 600 : 400,
                           color: doc.selected
@@ -486,7 +486,7 @@ export function PacchettoConsegnaSheet({
                             rel="noopener noreferrer"
                             aria-label={`Apri ${meta.label}`}
                             style={{
-                              fontFamily: 'DM Sans, sans-serif',
+                              fontFamily: 'var(--font-v3, sans-serif)',
                               fontSize: '12px',
                               fontWeight: 700,
                               color: 'var(--success, #16A34A)',
@@ -534,7 +534,7 @@ export function PacchettoConsegnaSheet({
                         generating || selectedCount === 0
                           ? 'var(--t2, #4A3D33)'
                           : '#ffffff',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '15px',
                       fontWeight: 800,
                       cursor:
@@ -567,7 +567,7 @@ export function PacchettoConsegnaSheet({
                       border: '1.5px solid var(--gold, #D4A843)',
                       background: 'transparent',
                       color: 'var(--t1, #1C1916)',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '15px',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -615,7 +615,7 @@ export function PacchettoConsegnaSheet({
                   height: '44px',
                   background: 'transparent',
                   border: 'none',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '14px',
                   color: 'var(--t2, #4A3D33)',
                   cursor: 'pointer',
