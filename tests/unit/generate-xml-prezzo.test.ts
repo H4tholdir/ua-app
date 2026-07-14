@@ -63,6 +63,17 @@ const LAVORO_SENZA_RIGHE = {
   cliente: CLIENTE,
 } as never
 
+// Lavoro con una riga a Natura IVA non-N4: l'emissione deve essere bloccata
+// (assertion fiscale — righe custom-made devono sempre essere N4).
+const LAVORO_NATURA_INVALIDA = {
+  id: 'lav-11', laboratorio_id: 'lab-1', numero_lavoro: 'n.11', descrizione: 'Corona di test',
+  prezzo_unitario: 100,
+  lavorazioni: [
+    { id: 'r1', descrizione: 'Corona ceramica', quantita: 1, unita_misura: 'PZ', prezzo_unitario: 100, importo: 100, natura_iva: 'N1' },
+  ],
+  cliente: CLIENTE,
+} as never
+
 beforeEach(() => {
   vi.clearAllMocks()
   uploads.length = 0
@@ -110,5 +121,33 @@ describe('generaFatturaPA — imponibile via prezzoEffettivoLavoro (N4)', () => 
     const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
     const xmlContent = String(xmlUpload?.bytes)
     expect(xmlContent).toContain('<ImponibileImporto>322.00</ImponibileImporto>')
+  })
+})
+
+describe('generaFatturaPA — assertion Natura N4', () => {
+  it('rigetta emissione se una riga di lavorazione ha natura_iva diversa da N4', async () => {
+    await expect(generaFatturaPA(LAVORO_NATURA_INVALIDA, undefined)).rejects.toThrow(
+      'Natura IVA non N4 su riga di lavorazione: FatturaPA custom-made richiede N4'
+    )
+    // Nessuna scrittura deve essere avvenuta: l'assertion blocca PRIMA dell'INSERT/UPDATE.
+    expect(insertPayloads).toHaveLength(0)
+  })
+})
+
+describe('generaFatturaPA — log divergenza prezzo sul ramo automatico (senza fatturaId)', () => {
+  it('logga [N4] con console.warn se righe e prezzo_unitario divergono, ma l\'emissione va comunque a buon fine', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    // LAVORO_CON_RIGHE: prezzo_unitario=999 vs somma righe=112 → divergente per costruzione.
+    await generaFatturaPA(LAVORO_CON_RIGHE, undefined)
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[N4] divergenza prezzo in emissione automatica',
+      expect.objectContaining({ lavoroId: 'lav-9' })
+    )
+    expect(insertPayloads).toHaveLength(1)
+    expect(insertPayloads[0].imponibile).toBe(112)
+
+    warnSpy.mockRestore()
   })
 })

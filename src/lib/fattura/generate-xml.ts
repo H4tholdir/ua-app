@@ -5,7 +5,7 @@ import { generaProgressivo } from '@/lib/db/progressivi'
 import type { LavoroDettaglio } from '@/types/domain'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { FatturaCortesiaTemplate, type FatturaCortesiaProps } from '@/components/features/pdf/FatturaCortesiaTemplate'
-import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
+import { prezzoEffettivoLavoro, divergenzaPrezzo } from '@/lib/domain/prezzo-lavoro'
 
 // Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
 import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
@@ -66,6 +66,16 @@ export async function generaFatturaPA(
   if (!cliente.codice_sdi && !cliente.pec) {
     // Warning: cliente senza SDI né PEC — l'XML sarà generato ma forse non recapitabile
     console.warn('[FatturaPA] Cliente senza codice SDI né PEC:', cliente.id)
+  }
+
+  // Assertion fiscale — invariante per ENTRAMBI i rami di emissione (draft e
+  // automatico): ogni riga di lavorazione custom-made deve essere Natura N4.
+  // Se una riga porta una natura diversa, l'XML la appiattirebbe comunque a
+  // N4 (hardcoded sotto) producendo un errore fiscale silenzioso: si blocca
+  // l'emissione a monte — PRIMA di generare progressivi (evita di bruciare
+  // un numero fattura/SDI su un'emissione che verrà comunque rigettata).
+  if (lavoro.lavorazioni.some((r) => r.natura_iva && r.natura_iva !== 'N4')) {
+    throw new Error('Natura IVA non N4 su riga di lavorazione: FatturaPA custom-made richiede N4')
   }
 
   // ── 2. Determina numero fattura e progressivi ────────────────────────────
@@ -352,6 +362,18 @@ export async function generaFatturaPA(
     }
   } else {
     // INSERT: crea nuova riga (flusso CONSEGNA automatica)
+    // Log best-effort (non bloccante): se righe e prezzo_unitario divergono,
+    // le righe vincono comunque (prezzoEffettivoLavoro) — questo warn serve
+    // solo a rendere visibile il disallineamento a valle, senza fermare
+    // l'emissione automatica (nessun operatore presente per confermare).
+    const dv = divergenzaPrezzo(lavoro)
+    if (dv.divergente) {
+      console.warn('[N4] divergenza prezzo in emissione automatica', {
+        lavoroId: lavoro.id,
+        deltaCents: dv.deltaCents,
+      })
+    }
+
     const insertPayload = {
       laboratorio_id: lavoro.laboratorio_id,
       cliente_id: cliente.id,
