@@ -30,22 +30,27 @@
 // il Corpo consuma `useAvvisi()` per gli errori (L6).
 //
 // Nota su `note_interne` (fix round — decisione Francesco 13/07: "3a pulita
-// ora, nota-dentista in 3b"): lo schema NON ha un campo di testo libero "nota
-// del dentista" (esiste solo `richiedente_nome`, un nome). L'unico testo
-// libero sul lavoro è `note_interne`, la nota PRIVATA del laboratorio
-// («visibile solo al laboratorio» — vedi TabDati.tsx). La prima versione di
-// questo file la mostrava dentro `NotaDentista` (§5.23) con
-// `dottore={clienteDisplay(...)}`: attribuiva al dentista una nota che il
-// dentista non ha mai scritto — misattribuzione corretta qui. `NotaLaboratorio`
-// (sotto) la mostra onestamente come nota del LAB, senza alcun nome di dottore,
-// tap → apre lo stesso `ModificaRigaSheet campo="note"` delle altre righe. Il
-// componente DS `NotaDentista` resta nel codebase intatto per la Ondata 3b,
-// quando arriverà un vero campo `note_dentista` autografo dal portale.
+// ora, nota-dentista in 3b"): l'unico testo libero sul lavoro era
+// `note_interne`, la nota PRIVATA del laboratorio («visibile solo al
+// laboratorio» — vedi TabDati.tsx). La prima versione di questo file la
+// mostrava dentro `NotaDentista` (§5.23) con `dottore={clienteDisplay(...)}`:
+// attribuiva al dentista una nota che il dentista non ha mai scritto —
+// misattribuzione corretta qui. `NotaLaboratorio` (sotto) la mostra
+// onestamente come nota del LAB, senza alcun nome di dottore, tap → apre lo
+// stesso `ModificaRigaSheet campo="note"` delle altre righe.
+//
+// Ondata 3b: lo schema ha ora un vero campo `note_dentista` (autografo dal
+// portale, separato da `note_interne`) — vedi `LavoroDettaglio` in
+// `types/domain.ts`. `NotaDentista` (§5.23) lo rende in sola lettura (nessun
+// `onEspandi`), attribuito via `clienteDisplay(lavoro.cliente)`, subito PRIMA
+// del blocco `NotaLaboratorio` sotto. Nessuna misattribuzione qui: è proprio
+// il testo scritto dal dentista.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+import { NotaDentista } from '@/components/ds/NotaDentista'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
@@ -250,6 +255,13 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
             />
             <RigaEditabile chiave="Tecnico" valore={tecnicoTesto} ariaAzione="Modifica tecnico" onApri={() => setCampoAttivo('tecnico')} />
           </CardInfo>
+
+          {/* NotaDentista (§5.23) — nota autografa del dentista dal portale
+              (Ondata 3b), sola lettura (nessun `onEspandi`). Attribuita via
+              `clienteDisplay`, mai confusa con `note_interne` del lab sotto. */}
+          {lavoro.note_dentista ? (
+            <NotaDentista citazione={lavoro.note_dentista} dottore={clienteDisplay(lavoro.cliente)} />
+          ) : null}
 
           {/* NotaLaboratorio — nota_interne del LAB, onesta (nessuna
               attribuzione al dentista), editabile al tap. Se assente si mostra
