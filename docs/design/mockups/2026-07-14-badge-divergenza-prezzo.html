@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badge divergenza prezzo — FASE 9b</title>
+<style>
+  :root{ --c-amber:#F59E0B; --amber-800:#92400E; }
+  *{box-sizing:border-box;font-family:'DM Sans',-apple-system,sans-serif}
+  body{margin:0;padding:24px;background:#111;color:#eee}
+  h1{font-size:16px;font-weight:700;margin:0 0 4px}
+  .sub{font-size:12px;color:#999;margin:0 0 20px}
+  .row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:28px}
+  .pane{flex:1;min-width:320px;border-radius:18px;padding:18px}
+  .pane.light{ --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --t1:#1C1916; --t2:#4A3D33; --t3:#6B5C51; background:var(--bg)}
+  .pane.dark{ --bg:#1A1916; --sfc:#232018; --elv:#2A2620; --t1:#F0EDE8; --t2:#8A8580; --t3:#5A5652; background:var(--bg)}
+  .plabel{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0 0 12px}
+  .light .plabel{color:#6B5C51}.dark .plabel{color:#8A8580}
+  /* card = LavoriInAttesaSection */
+  .card{background:var(--sfc);border-radius:16px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .num{font-size:14px;font-weight:600;color:var(--t1)}
+  .meta{font-size:12px;color:var(--t2);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .btns{display:flex;gap:6px;flex-shrink:0}
+  .btn{padding:8px 12px;border-radius:100px;border:none;background:var(--elv);color:var(--t1);font-size:12px;font-weight:700}
+  .btn.sec{color:var(--t2);font-weight:600}
+  /* BADGE variant A — amber text (attuale) */
+  .badge-a{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;
+    color:var(--c-amber);
+    background:color-mix(in srgb, var(--c-amber) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--c-amber) 34%, transparent)}
+  /* BADGE variant B — testo amber-scuro in light, amber in dark (WCAG pass) */
+  .badge-b{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;
+    background:color-mix(in srgb, var(--c-amber) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--c-amber) 40%, transparent)}
+  .light .badge-b{color:var(--amber-800)}
+  .dark  .badge-b{color:var(--c-amber)}
+  .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.9}
+  .ratio{font-size:10px;color:#999;margin:2px 0 14px}
+  .ok{color:#22C55E}.bad{color:#EF4444}
+</style>
+</head>
+<body>
+  <h1>Badge "verifica prezzo" — gate estetico FASE 9b</h1>
+  <p class="sub">Card "Lavori in attesa" · lavoro con prezzo divergente (righe 112€ ≠ prezzo_unitario 322€). Il totale mostrato è già quello corretto (112€); il badge segnala solo l'incoerenza residua.</p>
+
+  <div class="plabel" style="color:#ccc">VARIANTE A — testo amber (pattern attuale, = urgency "giorni ritardo")</div>
+  <div class="ratio">Contrasto testo: light <span class="bad">1.52:1 ❌ WCAG</span> · dark <span class="ok">6.07:1 ✅</span></div>
+  <div class="row">
+    <div class="pane light">
+      <div class="plabel">Light</div>
+      <div class="card">
+        <div><div class="num">N. 2026-0042</div><div class="meta">14/07/2026 · 112,00&nbsp;€ <span class="badge-a"><span class="dot"></span>verifica prezzo</span></div></div>
+        <div class="btns"><button class="btn">Fatturare</button><button class="btn sec">Non fatt.</button></div>
+      </div>
+    </div>
+    <div class="pane dark">
+      <div class="plabel">Dark</div>
+      <div class="card">
+        <div><div class="num">N. 2026-0042</div><div class="meta">14/07/2026 · 112,00&nbsp;€ <span class="badge-a"><span class="dot"></span>verifica prezzo</span></div></div>
+        <div class="btns"><button class="btn">Fatturare</button><button class="btn sec">Non fatt.</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="plabel" style="color:#ccc">VARIANTE B — testo amber-scuro in light / amber in dark (WCAG pass in entrambi)</div>
+  <div class="ratio">Contrasto testo: light <span class="ok">5.01:1 ✅</span> · dark <span class="ok">6.07:1 ✅</span></div>
+  <div class="row">
+    <div class="pane light">
+      <div class="plabel">Light</div>
+      <div class="card">
+        <div><div class="num">N. 2026-0042</div><div class="meta">14/07/2026 · 112,00&nbsp;€ <span class="badge-b"><span class="dot"></span>verifica prezzo</span></div></div>
+        <div class="btns"><button class="btn">Fatturare</button><button class="btn sec">Non fatt.</button></div>
+      </div>
+    </div>
+    <div class="pane dark">
+      <div class="plabel">Dark</div>
+      <div class="card">
+        <div><div class="num">N. 2026-0042</div><div class="meta">14/07/2026 · 112,00&nbsp;€ <span class="badge-b"><span class="dot"></span>verifica prezzo</span></div></div>
+        <div class="btns"><button class="btn">Fatturare</button><button class="btn sec">Non fatt.</button></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
