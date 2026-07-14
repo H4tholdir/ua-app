@@ -283,7 +283,7 @@ export default async function QualitaPage() {
                       background: isGrave ? 'rgba(217,0,18,0.10)' : 'var(--surface, #E4DFD9)',
                       borderRadius: '12px',
                       padding: '16px',
-                      boxShadow: `inset 0 0 0 1px ${gravitaColor[inc.gravita] ?? 'var(--t2, #4A3D33)'}40`,
+                      boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${gravitaColor[inc.gravita] ?? 'var(--t2, #4A3D33)'} 25%, transparent)`,
                     }}
                   >
                     <div style={{

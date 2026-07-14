@@ -74,7 +74,7 @@ function LavoroCard({ lavoro }: { lavoro: LavoroPortale }) {
             fontSize: '11px',
             fontWeight: 700,
             color: statoColor,
-            background: `${statoColor}22`,
+            background: `color-mix(in srgb, ${statoColor} 13%, transparent)`,
             borderRadius: '6px',
             padding: '3px 10px',
             textTransform: 'uppercase',
