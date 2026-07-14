@@ -60,8 +60,25 @@ export function LavoriInAttesaSection({ lavori, studioNome }: Props) {
                 justifyContent: 'space-between', gap: 12,
               }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 600, color: DS.t1 }}>
-                    N. {l.numero_lavoro}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 600, color: DS.t1 }}>
+                      N. {l.numero_lavoro}
+                    </div>
+                    {l.divergente && (
+                      <span style={{
+                        fontFamily: 'DM Sans, sans-serif', fontSize: 10.5, fontWeight: 700,
+                        color: DS.gold,
+                        // `${DS.gold}1F` non è CSS valido (DS.gold è già una funzione var(),
+                        // non un hex — appendere caratteri produce due token, non un
+                        // 8-digit hex): color-mix() applica la tinta/trasparenza sulla
+                        // stessa custom property senza hardcodare il colore.
+                        background: 'color-mix(in srgb, var(--c-amber, #F59E0B) 12%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--c-amber, #F59E0B) 34%, transparent)',
+                        borderRadius: 100, padding: '2px 8px', lineHeight: 1.5, whiteSpace: 'nowrap',
+                      }}>
+                        verifica prezzo
+                      </span>
+                    )}
                   </div>
                   {!haProposta && (
                     <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: DS.t2 }}>

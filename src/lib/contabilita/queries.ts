@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { calcolaResiduo, calcolaCreditoDisponibile } from './saldo'
 import { calcolaCreditoCliente, type CreditoClienteResult } from './credito-cliente'
-import { prezzoEffettivoLavoro, SELECT_FRAGMENT_PREZZO } from '@/lib/domain/prezzo-lavoro'
+import { prezzoEffettivoLavoro, divergenzaPrezzo, SELECT_FRAGMENT_PREZZO } from '@/lib/domain/prezzo-lavoro'
 
 export interface CreditoScadutoPerCliente {
   cliente_id: string
@@ -158,6 +158,10 @@ export interface LavoroInAttesa {
   data_consegna_prevista: string
   proposta_dentista: 'fatturare' | 'non_fatturare' | null
   proposta_at: string | null
+  // Task 7b (N4): true quando le righe di lavorazione divergono dal
+  // prezzo_unitario memorizzato (≥1 cent) — calcolato server-side qui perché
+  // il componente riceve solo il totale effettivo già collassato.
+  divergente: boolean
 }
 
 export interface ContabilitaCliente {
@@ -260,6 +264,7 @@ export async function getContabilitaCliente(
         data_consegna_prevista: l.data_consegna_prevista,
         proposta_dentista: (l.proposta_dentista as 'fatturare' | 'non_fatturare' | null) ?? null,
         proposta_at: l.proposta_at ?? null,
+        divergente: divergenzaPrezzo(l).divergente,
       })
       continue
     }

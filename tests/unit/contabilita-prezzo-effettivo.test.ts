@@ -131,6 +131,51 @@ describe('getContabilitaCliente — prezzo effettivo unico (regressione 322/112 
     const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
     expect(r.dovuti).toHaveLength(0)
   })
+
+  it('lavoro in_attesa con righe [112] e prezzo_unitario 322 → divergente true (Task 7b)', async () => {
+    const supabase = createFakeSupabase({
+      lavori: [{
+        id: 'l1', numero_lavoro: '2026/0007', prezzo_unitario: 322, data_consegna_prevista: DATA_LONTANA,
+        decisione_fatturazione: 'in_attesa', incluso_in_fattura: false,
+        pagamenti: [], credito_clienti_movimenti: [],
+        proposta_dentista: null, proposta_at: null,
+        lavorazioni: [{ importo: 112 }],
+      }],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.lavoriInAttesa).toHaveLength(1)
+    expect(r.lavoriInAttesa[0]).toMatchObject({ prezzo_unitario: 112, divergente: true })
+  })
+
+  it('lavoro in_attesa con righe che sommano al prezzo_unitario → divergente false (Task 7b)', async () => {
+    const supabase = createFakeSupabase({
+      lavori: [{
+        id: 'l1', numero_lavoro: '2026/0008', prezzo_unitario: 112, data_consegna_prevista: DATA_LONTANA,
+        decisione_fatturazione: 'in_attesa', incluso_in_fattura: false,
+        pagamenti: [], credito_clienti_movimenti: [],
+        proposta_dentista: null, proposta_at: null,
+        lavorazioni: [{ importo: 112 }],
+      }],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.lavoriInAttesa).toHaveLength(1)
+    expect(r.lavoriInAttesa[0]).toMatchObject({ prezzo_unitario: 112, divergente: false })
+  })
+
+  it('lavoro in_attesa senza righe (solo prezzo_unitario) → divergente false (Task 7b)', async () => {
+    const supabase = createFakeSupabase({
+      lavori: [{
+        id: 'l1', numero_lavoro: '2026/0009', prezzo_unitario: 150, data_consegna_prevista: DATA_LONTANA,
+        decisione_fatturazione: 'in_attesa', incluso_in_fattura: false,
+        pagamenti: [], credito_clienti_movimenti: [],
+        proposta_dentista: null, proposta_at: null,
+        lavorazioni: [],
+      }],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.lavoriInAttesa).toHaveLength(1)
+    expect(r.lavoriInAttesa[0]).toMatchObject({ prezzo_unitario: 150, divergente: false })
+  })
 })
 
 describe('getCreditoScadutoPerCliente — prezzo effettivo unico (regressione 322/112 + completezza)', () => {
