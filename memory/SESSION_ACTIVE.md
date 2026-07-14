@@ -1,11 +1,9 @@
-# SESSION ACTIVE — 14/07/2026 — ONDATA 3b (slice): DESIGN + PIANO PRONTI
+# SESSION ACTIVE — 14/07/2026 — N4 FONTE DI VERITÀ PREZZO: IMPLEMENTATA, GATE MERGE
 
-**Stato:** brainstorming + piano COMPLETATI e APPROVATI. Nessun codice scritto. La sessione nuova (contesto pulito) **esegue**. Commit **solo locali** (`9b7f426` spec, `80cea7d` piano; `main` avanti di 2 su `origin`, docs-only, non pushati).
+**Stato:** N4 implementata su branch `worktree-n4-prezzo` (12 commit `9dac640..38c1a5e`). FASE 7 verde: `tsc --noEmit` pulito, `vitest run` 1670 pass | 4 skipped, `next build` pulita. Riconciliazione read-only pre-deploy: 0 lavori divergenti su 286. Badge divergenza FASE 9b Variante B applicata (mockup + decisione salvati). **NON ancora mergiato su `main`** — in attesa del gate esplicito di Francesco.
 
-**Handoff pronto:** `docs/roadmap/2026-07-14-ondata-3b-execution-handoff.md`.
-**Spec:** `docs/superpowers/specs/2026-07-14-ondata-3b-nota-dentista-reskin-ponte-design.md`.
-**Piano:** `docs/superpowers/plans/2026-07-14-ondata-3b-nota-dentista-reskin-ponte.md` (10 task TDD).
+**Fatto:** helper unico `prezzoEffettivoLavoro` (`src/lib/domain/prezzo-lavoro.ts`), refactor di tutti i lettori, rimosso prefiltro `.gt('prezzo_unitario',0)` (bug completezza), guard PATCH 422 su `prezzo_unitario`+righe attive, assertion Natura N4 in `generaFatturaPA`, badge divergenza `LavoriInAttesaSection`, token `--c-amber-ink`.
 
-**Scope slice (decomposto):** P1 nota dentista (3 colonne additive `note_dentista`/`da_portale`/`paziente_codice_richiesta`; write path portale pulito; 🔴 fix hook realtime su `da_portale`; display `NotaDentista` scheda; nota sul buono; colonne fuori da PATCHABLE_FIELDS) + P4 reskin form ponte a v3 (aliasing variabili su scope `.lavoro-form-v3` → fixa bug dark; sweep font DM Sans→font-v3; tab oro→v3). **Deferiti:** P3 rebuild nativo (YAGNI), N4 prezzo (task fiscale GRANDE), chat portale (feature futura su `messaggi`).
+**Follow-up NON parte di N4** (BACKLOG-TECNICO §N): N6 bollo nel dovuto, N7 gate `stato_sdi` mancante su `xml/route.ts`, N8 CSS invalido `urgencyPillBg`/Border.
 
-**PROSSIMO (SESSIONE NUOVA, contesto pulito):** eseguire il piano via `superpowers:subagent-driven-development` in worktree `worktree-ondata-3b-nota-reskin` (baseline 1596 pass | 4 skipped; Task 1 si ferma al GATE apply migration di Francesco; QA lab E2E `…0001`, MAI lab Filippo; gate L2 dark×3viewport). Decidere se pushare spec+piano (docs-only). Merge/push = gate Francesco.
+**PROSSIMO:** gate di merge Francesco → push → CI/CD → smoke uachelab.com.
