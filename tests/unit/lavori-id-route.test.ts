@@ -36,14 +36,16 @@ const params = Promise.resolve({ id: LAVORO_ID })
  * Tabelle coinvolte:
  * - 'utenti'  → risoluzione laboratorio_id dell'utente autenticato
  * - 'lavori'  → SELECT incluso_in_fattura (pre-check) + UPDATE finale
+ * - 'lavori_lavorazioni' → COUNT righe attive (guard N4 prezzo_unitario)
  * - FK tables ('clienti', 'pazienti', 'tecnici', 'cicli_produzione') → validazione cross-tenant
  */
 function buildMockFrom(opts: {
   inclusoInFattura?: boolean
   updateSpy: (payload: Record<string, unknown>) => void
   fkOk?: boolean
+  righeAttive?: number
 }) {
-  const { inclusoInFattura = false, updateSpy, fkOk = true } = opts
+  const { inclusoInFattura = false, updateSpy, fkOk = true, righeAttive = 0 } = opts
 
   return vi.fn((table: string) => {
     if (table === 'utenti') {
@@ -101,6 +103,16 @@ function buildMockFrom(opts: {
             }),
           }
         },
+      }
+    }
+
+    if (table === 'lavori_lavorazioni') {
+      return {
+        select: () => ({
+          eq: () => ({
+            is: async () => ({ count: righeAttive, error: null }),
+          }),
+        }),
       }
     }
 
