@@ -96,7 +96,7 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
   }
 
   return (
-    <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+    <div data-ds="v3" className="lavoro-form-v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <BackHeaderModifica lavoroId={id} />
       <LavoroFormClient
         lavoro={lavoroDettaglio}
