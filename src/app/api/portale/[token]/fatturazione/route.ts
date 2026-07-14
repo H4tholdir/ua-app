@@ -9,6 +9,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { guardieEconomiche } from '@/lib/portale/guardie'
 import { logPortaleAudit } from '@/lib/portale/audit'
 import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
+import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 
 type RouteContext = { params: Promise<{ token: string }> }
 
@@ -40,7 +41,7 @@ export async function GET(req: Request, { params }: RouteContext) {
 
     const { data: lavori, error: lavErr } = await svc
       .from('lavori')
-      .select('id, numero_lavoro, tipo_dispositivo, data_consegna_effettiva, prezzo_unitario, paziente_nome_snapshot, proposta_dentista, proposta_at, decisione_fatturazione')
+      .select('id, numero_lavoro, tipo_dispositivo, data_consegna_effettiva, prezzo_unitario, paziente_nome_snapshot, proposta_dentista, proposta_at, decisione_fatturazione, lavorazioni:lavori_lavorazioni(importo)')
       .eq('cliente_id', cliente.id)
       .eq('laboratorio_id', cliente.laboratorio_id)
       .eq('stato', 'consegnato')
@@ -76,7 +77,7 @@ export async function GET(req: Request, { params }: RouteContext) {
         numero_lavoro: l.numero_lavoro,
         tipo_dispositivo: l.tipo_dispositivo,
         data_consegna: l.data_consegna_effettiva,
-        prezzo: Number(l.prezzo_unitario ?? 0),
+        prezzo: prezzoEffettivoLavoro(l),
         paziente: minimizzaPhi(l.paziente_nome_snapshot) ?? '',
         proposta: (l.proposta_dentista as RigaDaFatturare['proposta']) ?? null,
         proposta_at: l.proposta_at,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 
 export interface LavoroProntoFattura {
   id: string
@@ -49,7 +50,8 @@ export async function GET() {
       numero_lavoro,
       prezzo_unitario,
       data_consegna_effettiva,
-      cliente:clienti(id, nome, cognome, studio_nome)
+      cliente:clienti(id, nome, cognome, studio_nome),
+      lavorazioni:lavori_lavorazioni(importo)
     `)
     .eq('laboratorio_id', labId)
     .eq('stato', 'consegnato')
@@ -63,5 +65,22 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ lavori: (data ?? []) as unknown as LavoroProntoFattura[] })
+  type Row = {
+    id: string
+    numero_lavoro: string
+    prezzo_unitario: number | null
+    data_consegna_effettiva: string | null
+    cliente: LavoroProntoFattura['cliente']
+    lavorazioni: Array<{ importo: number | null }> | null
+  }
+
+  const lavori: LavoroProntoFattura[] = ((data ?? []) as unknown as Row[]).map((l) => ({
+    id: l.id,
+    numero_lavoro: l.numero_lavoro,
+    cliente: l.cliente,
+    prezzo_unitario: prezzoEffettivoLavoro(l),
+    data_consegna_effettiva: l.data_consegna_effettiva,
+  }))
+
+  return NextResponse.json({ lavori })
 }
