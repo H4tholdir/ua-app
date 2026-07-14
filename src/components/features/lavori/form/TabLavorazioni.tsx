@@ -29,7 +29,7 @@ function formatEur(n: number): string {
 // ─── Stili cella tabella ─────────────────────────────────────
 const thStyle: React.CSSProperties = {
   padding: '8px 6px',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '11px',
   fontWeight: 700,
   color: 'var(--t2, #4A3D33)',
@@ -140,7 +140,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                   style={{
                     padding: '24px 0',
                     textAlign: 'center',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '14px',
                     color: 'var(--t2, #4A3D33)',
                   }}
@@ -252,7 +252,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
                   style={{
                     ...tdStyle,
                     textAlign: 'right',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '14px',
                     fontWeight: 600,
                     color: 'var(--t1, #1C1916)',
@@ -312,7 +312,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
           border: '1.5px dashed rgba(0,0,0,.06)',
           background: 'transparent',
           color: 'var(--t2, #4A3D33)',
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'var(--font-v3, sans-serif)',
           fontSize: '14px',
           fontWeight: 600,
           cursor: 'pointer',
@@ -342,7 +342,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
       >
         <span
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '13px',
             color: 'var(--t2, #4A3D33)',
           }}
@@ -352,7 +352,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
         </span>
         <span
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '13px',
             color: 'var(--t2, #4A3D33)',
           }}
@@ -362,7 +362,7 @@ export function TabLavorazioni({ lavorazioni, lavoro_id, onChange }: TabLavorazi
         </span>
         <span
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '14px',
             fontWeight: 700,
             color: 'var(--c-amber, #F59E0B)',

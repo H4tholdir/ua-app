@@ -190,7 +190,7 @@ export function TabClinica({ data, onChange }: TabClinicaProps) {
           <label
             htmlFor="anamnesi_bruxismo"
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               color: 'var(--t1, #1C1916)',
               cursor: 'pointer',

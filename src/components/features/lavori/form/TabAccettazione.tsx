@@ -92,7 +92,7 @@ function ToggleSwitch({ id, checked, onChange, label, sub, reduced }: ToggleSwit
         <p
           id={`${id}-label`}
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '15px',
             fontWeight: 600,
             color: 'var(--t1, #1C1916)',
@@ -105,7 +105,7 @@ function ToggleSwitch({ id, checked, onChange, label, sub, reduced }: ToggleSwit
         {sub && (
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '12px',
               color: 'var(--t2, #4A3D33)',
               margin: '2px 0 0',
@@ -273,7 +273,7 @@ export function TabAccettazione({
             padding: '0 8px',
             borderRadius: '10px',
             background: 'var(--elv, #EDEDEA)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '10px',
             fontWeight: 700,
             color: 'var(--t2, #4A3D33)',
@@ -365,7 +365,7 @@ export function TabAccettazione({
                 borderRadius: 10,
                 fontSize: 14,
                 color: 'var(--t1, #1C1916)',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 minHeight: 44,
                 boxSizing: 'border-box',
                 outline: 'none',
@@ -473,7 +473,7 @@ export function TabAccettazione({
 
                   <span
                     style={{
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '15px',
                       fontWeight: checked ? 600 : 400,
                       color: 'var(--t1, #1C1916)',
@@ -553,7 +553,7 @@ export function TabAccettazione({
         >
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '12px',
               fontWeight: 700,
               color: 'var(--t2, #4A3D33)',
@@ -566,7 +566,7 @@ export function TabAccettazione({
           </p>
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '13px',
               fontWeight: 700,
               color: score === 3 ? 'var(--success, #16A34A)' : 'var(--t2, #4A3D33)',
@@ -618,7 +618,7 @@ export function TabAccettazione({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '13px',
                 color: item.ok ? 'var(--success, #16A34A)' : 'var(--t2, #4A3D33)',
               }}
@@ -652,7 +652,7 @@ export function TabAccettazione({
             marginBottom: '10px',
           }}>
             <p style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '10px',
               fontWeight: 700,
               color: 'var(--success, #16A34A)',
@@ -663,7 +663,7 @@ export function TabAccettazione({
               Messaggio WhatsApp (anteprima)
             </p>
             <p style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '12px',
               color: 'var(--t1, #1C1916)',
               margin: 0,
@@ -689,7 +689,7 @@ export function TabAccettazione({
               borderRadius: '14px',
               background: '#25D366',
               color: '#fff',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '15px',
               fontWeight: 700,
               textDecoration: 'none',

@@ -21,7 +21,7 @@ const inputBase: React.CSSProperties = {
   background: 'var(--bg, #DDD8D3)',
   border: '1px solid rgba(0,0,0,.06)',
   color: 'var(--t1, #1C1916)',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '15px',
   boxShadow:
     'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))',
@@ -31,7 +31,7 @@ const inputBase: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '12px',
   fontWeight: 600,
   color: 'var(--t2, #4A3D33)',
@@ -72,7 +72,7 @@ const errorStyle: React.CSSProperties = {
   fontSize: 12,
   marginTop: 4,
   display: 'block',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
 }
 
 export function TabDati({ data, onChange, clienteId, onClienteChange, fieldErrors, cicloId, onCicloChange }: TabDatiProps) {
@@ -261,7 +261,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
                     color: isActive
                       ? 'var(--primary, #D90012)'
                       : 'var(--t1, #1C1916)',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '13px',
                     fontWeight: isActive ? 600 : 400,
                     cursor: 'pointer',
@@ -290,7 +290,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
                 border: '1.5px dashed rgba(0,0,0,.15)',
                 background: 'transparent',
                 color: 'var(--t3, #6B5C51)',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '13px',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -419,7 +419,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
         <label
           htmlFor="dispositivo_semilavorato"
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '15px',
             color: 'var(--t1, #1C1916)',
             cursor: 'pointer',

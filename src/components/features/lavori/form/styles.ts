@@ -10,7 +10,7 @@ export const inputBase: CSSProperties = {
   background: 'var(--bg, #DDD8D3)',
   border: '1px solid rgba(0,0,0,.06)',
   color: 'var(--t1, #1C1916)',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '15px',
   boxShadow:
     'var(--sh-i, inset 3px 3px 8px rgba(0,0,0,.13), inset -2px -2px 5px rgba(255,255,255,.70))',
@@ -20,7 +20,7 @@ export const inputBase: CSSProperties = {
 
 export const labelStyle: CSSProperties = {
   display: 'block',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '12px',
   fontWeight: 600,
   color: 'var(--t2, #4A3D33)',
@@ -40,7 +40,7 @@ export const sectionSeparator: CSSProperties = {
 }
 
 export const sectionTitle: CSSProperties = {
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '11px',
   fontWeight: 700,
   color: 'var(--t2, #4A3D33)',

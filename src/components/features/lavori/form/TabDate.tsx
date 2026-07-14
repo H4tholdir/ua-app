@@ -153,7 +153,7 @@ export function TabDate({ data, onChange }: TabDateProps) {
                   borderRadius: '12px',
                   background: 'var(--surface, #E4DFD9)',
                   color: 'var(--c-amber, #F59E0B)',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '13px',
                   fontWeight: 700,
                   textDecoration: 'none',

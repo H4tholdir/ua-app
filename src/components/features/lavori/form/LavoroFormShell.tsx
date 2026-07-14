@@ -89,7 +89,7 @@ export function LavoroFormShell({
             <span
               style={{
                 fontSize: 13,
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 color: 'var(--t2, #4A3D33)',
                 fontWeight: activeTab === 'dati' ? 700 : 400,
               }}
@@ -138,7 +138,7 @@ export function LavoroFormShell({
             <span
               style={{
                 fontSize: 13,
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 color: 'var(--t2, #4A3D33)',
                 fontWeight: activeTab === 'accettazione' ? 700 : 400,
               }}
@@ -151,6 +151,12 @@ export function LavoroFormShell({
 
       {/* Tab bar with scroll indicator */}
       <div style={{ position: 'relative' }}>
+        <style>{`
+          .lavoro-tab-btn-v3:focus-visible {
+            outline: 2px solid var(--red);
+            outline-offset: 2px;
+          }
+        `}</style>
         <div
           role="tablist"
           aria-label="Sezioni lavoro"
@@ -173,6 +179,7 @@ export function LavoroFormShell({
                 aria-controls={`tabpanel-${tab.id}`}
                 id={`tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
+                className="lavoro-tab-btn-v3"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -181,22 +188,35 @@ export function LavoroFormShell({
                   minHeight: '52px',
                   padding: '0 16px',
                   borderRadius: '10px',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '13px',
                   fontWeight: isActive ? 700 : 500,
                   whiteSpace: 'nowrap',
                   border: 'none',
                   cursor: 'pointer',
-                  background: isActive ? 'var(--gold, #D4A843)' : 'var(--elv, #EDEDEA)',
-                  color: isActive ? 'var(--t1, #1C1916)' : 'var(--t2, #4A3D33)',
+                  background: 'var(--elv)',
+                  color: isActive ? 'var(--ink)' : 'var(--muted)',
                   flexShrink: 0,
-                  boxShadow: isActive
-                    ? '0 0 12px hsl(43 65% 55% / 0.25)'
-                    : 'var(--sh-b, var(--sh-b))',
+                  boxShadow: 'var(--sh-b, var(--sh-b))',
+                  position: 'relative',
                   transition: `background ${t('fast').duration}s, color ${t('fast').duration}s`,
                 }}
               >
                 {tab.label}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      left: 10,
+                      right: 10,
+                      bottom: 4,
+                      height: 2,
+                      borderRadius: 2,
+                      background: 'var(--red)',
+                    }}
+                  />
+                )}
               </button>
             )
           })}

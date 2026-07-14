@@ -338,7 +338,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             border: '1.5px dashed rgba(0,0,0,.08)',
             background: 'transparent',
             color: 'var(--t1, #1C1916)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -362,7 +362,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             border: '1.5px dashed rgba(0,0,0,.08)',
             background: 'transparent',
             color: 'var(--t1, #1C1916)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -389,7 +389,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
             border: 'none',
             background: 'var(--elv, #EDEDEA)',
             color: 'var(--t2, #4A3D33)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -462,7 +462,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                     {!listaVista && <ProgressRing progress={foto.progress} />}
                     <span
                       style={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: listaVista ? '12px' : '11px',
                         fontWeight: 700,
                         color: listaVista ? 'var(--t2, #4A3D33)' : 'white',
@@ -492,7 +492,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                   >
                     <span
                       style={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '11px',
                         fontWeight: 700,
                         color: listaVista ? 'var(--primary, #D90012)' : 'white',
@@ -531,7 +531,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                         background: 'transparent',
                         border: 'none',
                         color: listaVista ? 'var(--t1, #1C1916)' : 'white',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -559,7 +559,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         <div>
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '12px',
               fontWeight: 700,
               color: 'var(--t2, #4A3D33)',
@@ -605,7 +605,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                 {listaVista && (
                   <span
                     style={{
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '13px',
                       fontWeight: 500,
                       color: 'var(--t1, #1C1916)',
@@ -643,7 +643,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
                         background: 'transparent',
                         border: 'none',
                         color: 'white',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-v3, sans-serif)',
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -677,7 +677,7 @@ export function TabImmagini({ immagini, lavoro_id, onAdd }: TabImmaginiProps) {
         >
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '14px',
               color: 'var(--t2, #4A3D33)',
               margin: 0,

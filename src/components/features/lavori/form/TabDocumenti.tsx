@@ -33,7 +33,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
         >
           <span
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '13px',
               fontWeight: 700,
               color: 'var(--t2, #4A3D33)',
@@ -51,7 +51,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '13px',
                 fontWeight: 700,
                 color: 'var(--success, #16A34A)',
@@ -77,7 +77,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-v3, sans-serif)',
                 fontSize: '13px',
                 fontWeight: 700,
                 color: 'var(--amber, #F08C00)',
@@ -106,7 +106,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
             {ddc.numero_ddc && (
               <p
                 style={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '14px',
                   color: 'var(--t1, #1C1916)',
                   margin: '0 0 8px',
@@ -125,7 +125,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: 'var(--font-v3, sans-serif)',
                   fontSize: '13px',
                   fontWeight: 700,
                   color: 'var(--c-amber, #F59E0B)',
@@ -145,7 +145,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
         ) : (
           <p
             style={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '13px',
               color: 'var(--t2, #4A3D33)',
               margin: 0,
@@ -188,7 +188,7 @@ export function TabDocumenti({ ddc }: TabDocumentiProps) {
         </svg>
         <p
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '13px',
             color: 'var(--t2, #4A3D33)',
             margin: 0,

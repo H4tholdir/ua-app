@@ -52,7 +52,7 @@ type EsitoKey = keyof typeof ESITO_CONFIG
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: 'var(--font-v3, sans-serif)',
   fontSize: '11px',
   fontWeight: 600,
   color: 'var(--t2, #4A3D33)',
@@ -81,7 +81,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
       >
         <p
           style={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-v3, sans-serif)',
             fontSize: '15px',
             color: 'var(--t2, #4A3D33)',
             margin: 0,
@@ -97,7 +97,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
             style={{
               display: 'inline-block',
               marginTop: '10px',
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: 'var(--font-v3, sans-serif)',
               fontSize: '13px',
               fontWeight: 600,
               color: 'var(--primary, #D90012)',
@@ -146,7 +146,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
               <div style={{ minWidth: 0 }}>
                 <span
                   style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '11px',
                     fontWeight: 700,
                     color: 'var(--t2, #4A3D33)',
@@ -158,7 +158,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
                 </span>
                 <p
                   style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '15px',
                     fontWeight: 600,
                     color: 'var(--t1, #1C1916)',
@@ -173,7 +173,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
               {fase.eseguita_at && (
                 <span
                   style={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '11px',
                     color: 'var(--t2, #4A3D33)',
                     flexShrink: 0,
@@ -220,7 +220,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
                       borderRadius: '10px',
                       border: 'none',
                       cursor: 'pointer',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: 'var(--font-v3, sans-serif)',
                       fontSize: '12px',
                       fontWeight: 700,
                       background: isActive ? config.bgActive : config.bg,
@@ -259,7 +259,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
                     background: 'var(--bg, #DDD8D3)',
                     border: '1px solid var(--prs, #D4CFC9)',
                     color: 'var(--t1, #1C1916)',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-v3, sans-serif)',
                     fontSize: '13px',
                     resize: 'vertical',
                     outline: 'none',
