@@ -403,6 +403,9 @@ Due fonti di prezzo indipendenti, MAI sincronizzate: **tutta la contabilità B2*
 **Nuovi follow-up scoperti durante N4 (NON parte di N4, tracciati separatamente sotto):** N6 "bollo nel dovuto", N7 gate `stato_sdi` mancante su `xml/route.ts`, N8 CSS invalido su `urgencyPillBg`/`urgencyPillBorder`.
 
 ### N6. "Bollo nel dovuto": la contabilità netta senza bollo, la fattura persiste il totale CON bollo (scoperto durante N4, 14/07/2026)
+
+> ✅ **DOCUMENTATO (14/07/2026, decisione C)** — spec `docs/superpowers/specs/2026-07-14-n6-n7-quickwin-fiscali-design.md`. Il bollo è imposta documentale che matura con l'emissione: il dovuto pre-fattura resta sull'imponibile per correttezza fiscale, il salto di €2 è intenzionale. Invariante congelato in `src/lib/contabilita/queries.ts` + guardia `tests/unit/contabilita-bollo-n6.test.ts`. Nessuna modifica di logica.
+
 La contabilità (scadenzario, saldi, credito — tutti i consumer di `prezzoEffettivoLavoro`) calcola dovuto/residuo sull'**imponibile senza bollo**; la fattura emessa invece persiste `fatture.totale` **con** il bollo di €2 quando l'imponibile supera 77,47€ (soglia esenzione bollo). Risultato: lo stesso lavoro "salta" di €2 nel momento in cui passa da "in attesa" a "fatturato" — stessa classe di bug di N4 (due fonti di prezzo che non coincidono), qui tra pre-fattura e post-fattura invece che tra contabilità e fattura. **Pre-esistente**, non introdotto da N4 (N4 ha reso `prezzoEffettivoLavoro` la fonte unica lato "lavoro non ancora fatturato", ma non tocca il calcolo del bollo lato fattura). **Destinazione:** task dedicato, da decidere se il bollo va incluso anche nel dovuto pre-fattura o escluso dal totale fattura per farli coincidere.
 
 ### N7. `api/fatture/[id]/xml/route.ts` non fa gate su `stato_sdi==='draft'` (scoperto durante N4, 14/07/2026)
