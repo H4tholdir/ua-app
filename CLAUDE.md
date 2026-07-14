@@ -92,6 +92,12 @@ FASE 6b → MIGRATION GATE (solo se migration presente in questa sessione):
 FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output reale)
 FASE 8  → REVIEW: /gsd-code-review + /superpowers:requesting-code-review
 FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
+FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
+            micro-audit UI/UX della SOLA superficie dell'ondata contro
+            docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md (12 sezioni ×
+            390/768/1280 × light/dark); ogni ❌ risolto o deferito con motivo;
+            screenshot before/after in docs/design/screenshots/<data>-<sup>/.
+            Framework: docs/design/audit-ui-ux/README.md (Livello 2).
 FASE 10 → DEPLOY: merge → push → attendi CI verde → verifica uachelab.com
 FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 ```
@@ -101,6 +107,7 @@ FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 - MAI saltare FASE 6b se hai scritto o modificato una migration in questa sessione
 - MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
 - MAI deployare con CI rosso
+- MAI mergere una superficie UI nuova/modificata senza il GATE ESTETICO L2 (FASE 9b); ogni piano `writing-plans` di un'ondata con UI DEVE includerlo come step finale
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
 
 ---
@@ -111,8 +118,8 @@ Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezion
 
 1. **Ricerca best practice** — cerca sempre pattern UX/UI di riferimento per il dominio specifico (fintech, gestione lavori, MDR compliance, ecc.). Includi: animazioni raccomandate, sound/haptic feedback, pattern viewport.
 2. **Mockup HTML** in `docs/design/mockups/YYYY-MM-DD-nome-feature.html` — **MAI in /tmp/** (i file /tmp vengono cancellati, le decisioni si perdono). Dati reali simulati, nessun placeholder.
-3. **Screenshot Playwright** del mockup — salvare anche in `docs/design/mockups/screenshots/`. Mostrarlo a Francesco.
-4. **Approvazione Francesco** — aspettare esplicito "ok procedi" prima di scrivere React. Scrivere la decisione in `docs/design/decisions/YYYY-MM-DD-nome-feature.md`.
+3. **Screenshot Playwright** del mockup — salvare anche in `docs/design/mockups/screenshots/`. **Mostrare SEMPRE PIÙ VARIANTI** (light+dark) tra cui scegliere, MAI una sola (preferenza permanente di Francesco): l'anteprima precede sempre il codice.
+4. **Approvazione Francesco** — aspettare esplicito "ok procedi"/scelta della variante prima di scrivere React. Scrivere la decisione in `docs/design/decisions/YYYY-MM-DD-nome-feature.md`.
 5. **Implementazione React** — fedele al mockup approvato, con:
    - **Animazioni** da `src/design-system/motion.ts` (SOLO token, MAI inline)
    - **Suoni/Haptic** da `src/lib/feedback/sounds.ts` e `src/lib/feedback/haptic.ts`

@@ -24,7 +24,7 @@ Rifinitura estetica mirata sulla **singola superficie** appena completata, con c
 
 ### 🟡 Livello 2 — Gate UI/UX di fine ondata (D'ORA IN POI, ricorrente)
 Da qui in avanti, **ultimo step di ogni ondata**: un mini-audit estetico sulla *sola* superficie di quell'ondata, contro la [checklist](./CHECKLIST-DS-V3-UI-UX.md). Distribuisce il costo, mantiene sempre presentabile ciò che si spedisce, lavora sempre sul design finale del pezzo.
-- **Integrazione:** aggiungere il gate come step finale nei piani `superpowers:writing-plans` di ogni futura ondata (dopo FASE 9 QA funzionale, prima del merge).
+- **Integrazione:** ✅ integrato in `ua-app/CLAUDE.md` come **BP-2 FASE 9b** (gate obbligatorio dopo FASE 9 QA funzionale, prima del merge) + REGOLA ZERO «MAI mergere UI senza gate L2». Ogni piano `superpowers:writing-plans` di un'ondata con UI deve includerlo come step finale.
 
 ### 🔴 Livello 3 — Audit capillare finale (ALLA FINE, quando v3 è completo)
 L'audit atomico e capillare dell'**intera** PWA: ogni pagina, ogni elemento, ogni sotto-menu, ogni funzionalità, ogni suono, ogni animazione — con gli agent specializzati, contro la checklist DS v3. **Gate finale prima dell'audit generale.** Fatto **una volta sola** sul prodotto stabile.
