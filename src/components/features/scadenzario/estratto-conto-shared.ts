@@ -14,7 +14,13 @@ export const DS = {
   t2:      'var(--t2, #4A3D33)',
   t3:      'var(--t3, #6B5C51)',
   red:     'var(--primary, #D90012)',
-  gold:    'var(--c-amber, #F59E0B)',
+  // `gold` è l'INK ambra per TESTO/VALORI (badge, urgenza, KPI) — teoricamente
+  // "gold" ma in realtà mappa su --c-amber-ink, non --c-amber: #F59E0B come
+  // colore testo è 1.52:1 su tinta chiara (WCAG fail); --c-amber-ink è
+  // theme-aware (scuro #92400E in light, ambra piena #F59E0B in dark) e resta
+  // WCAG AA in entrambi i temi. La tinta/bordo ambra (background, color-mix)
+  // continua a usare --c-amber direttamente — NON questo alias.
+  gold:    'var(--c-amber-ink, #92400E)',
   green:   'var(--success, #16A34A)',
   shB: 'var(--sh-b)',
   shI: 'var(--sh-i)',
