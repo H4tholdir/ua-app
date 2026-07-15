@@ -87,3 +87,49 @@ Questi file sono fixture per lo **spike** (Task 6). Task 7 (parser) e Task 8
   rotazione documentato) invece del certificato di test qui incluso;
 - eventualmente rigenerare fixture firmate "congelate" su disco (oggi generate
   a runtime dal PoC) per i test automatici della pipeline reale.
+
+## 4. Fixture Task 7 (parser `parseRicevutaSdI`, pure function, XXE-safe)
+
+`ufficiale-DT-v1.0.xml` e `ufficiale-AT-v1.0.xml` sono stati aggiunti in questo
+task (Task 7), scaricati con lo stesso procedimento del §1 da
+`https://www.fatturapa.gov.it/export/documenti/messaggi/v1.0/IT01234567890_11111_{DT,AT}_001.xml`
+(2026-07-15) — completano la copertura dei 6 tipi di messaggio SdI verso il
+trasmittente/ricevente definiti in `MessaggiTypes_v1.1.xsd`
+(`RicevutaConsegna`/RC, `NotificaScarto`/NS, `NotificaMancataConsegna`/MC,
+`NotificaEsito`/NE, `NotificaDecorrenzaTermini`/DT,
+`AttestazioneTrasmissioneFattura`/AT). Nomi dei campi e presenza/assenza di
+`DataOraRicezione` per DT verificati leggendo `MessaggiTypes_v1.1.xsd`
+direttamente (`NotificaDecorrenzaTermini_Type` NON ha `DataOraRicezione`, a
+differenza di RC/NS/MC/AT).
+
+Tutte le fixture *-valida.xml / *-ecXX.xml sono **derivate** dagli esempi
+ufficiali §1/§4 (stessa struttura, stessi nomi campo, namespace prefix
+`types:` reale) con queste modifiche mirate, richieste dal test di Task 7:
+
+| File | Derivato da | Modifiche |
+|---|---|---|
+| `rc-valida.xml` | `ufficiale-RC-v1.0.xml` | `NomeFile` senza suffisso `.p7m` (il parser matcha `*.xml`); `ds:Signature` omesso (fuori scope: la verifica firma è Task 8) |
+| `ns-valida.xml` | `ufficiale-NS-v1.0.xml` | `ListaErrori` estesa da 1 a 2 `<Errore>`; `ds:Signature` omesso |
+| `mc-valida.xml` | `ufficiale-MC-v1.0.xml` | `NomeFile` senza `.p7m`; `ds:Signature` omesso |
+| `ne-ec01.xml` | `ufficiale-NE-v1.0.xml` | `NomeFile` senza `.p7m`; `Esito` = `EC01` (accettazione); `ds:Signature` omesso |
+| `ne-ec02.xml` | `ufficiale-NE-v1.0.xml` | come sopra ma `Esito` = `EC02` (rifiuto) |
+| `dt-valida.xml` | `ufficiale-DT-v1.0.xml` | `NomeFile` senza `.p7m`; `ds:Signature` omesso |
+| `at-valida.xml` | `ufficiale-AT-v1.0.xml` | `NomeFile` senza `.p7m`; `ds:Signature` omesso |
+
+Omettere `ds:Signature` è una semplificazione intenzionale e documentata: il
+parser di Task 7 estrae solo i campi anagrafici della ricevuta (tipo,
+`NomeFile`, `IdentificativoSdI`, `DataOraRicezione`, `Esito`, `ListaErrori`) e
+non tocca la firma XAdES — quella è responsabilità di Task 8 (in fallback dopo
+lo spike Task 6, vedi `docs/superpowers/specs/2026-07-16-spike-xades-esito.md`).
+Il parser è comunque stato verificato anche sulle fixture ufficiali **complete**
+(con `ds:Signature` reale, tutti e 6 i tipi) in `parse-ricevuta-sdi.test.ts` —
+il campo firma viene semplicemente ignorato, non causa errori.
+
+Fixture negative:
+
+| File | Scopo |
+|---|---|
+| `malformata.xml` | Tag non chiusi correttamente → `RicevutaNonValidaError` |
+| `non-ricevuta.xml` | XML ben formato ma root element non è un tipo di ricevuta SdI riconosciuto (usa una `FatturaElettronica`, non una ricevuta) → `RicevutaNonValidaError` |
+| `xxe-payload.xml` | `<!DOCTYPE ... <!ENTITY xxe SYSTEM "file:///etc/passwd">` + `&xxe;` nel corpo → rigettato PRIMA del parsing XML (nessuna risoluzione dell'entità) → `RicevutaNonValidaError` |
+| `oversize.xml` | Non salvata su disco — generata a runtime nel test come `Buffer.alloc(1_048_577)` per verificare il size cap (1 MiB) applicato prima del parsing |
