@@ -6,6 +6,7 @@ import { getSignedUrl } from '@/lib/storage/signed-url'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { NotaCreditoButton } from '@/components/features/fatture/NotaCreditoButton'
+import { InviaPecButton, STATO_SDI_LABEL } from '@/components/features/fatture/InviaPecButton'
 import type { StatoSDI } from '@/types/domain'
 
 interface Props { params: Promise<{ id: string }> }
@@ -17,7 +18,7 @@ export default async function FatturaDetailPage({ params }: Props) {
   if (!user) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
+  const { data: utente } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', user.id).single()
   if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
 
   const { data: fattura } = await svc
@@ -35,6 +36,12 @@ export default async function FatturaDetailPage({ params }: Props) {
     .single()
 
   if (!fattura) redirect('/fatture')
+
+  const { data: lab } = await svc
+    .from('laboratori')
+    .select('pec_smtp_configurata')
+    .eq('id', utente.laboratorio_id)
+    .single()
 
   const f = fattura as Record<string, unknown>
   let xmlSignedUrl: string | null = null
@@ -75,6 +82,21 @@ export default async function FatturaDetailPage({ params }: Props) {
 
   const fmtEur = (v: unknown) => typeof v === 'number' ? `€${v.toLocaleString('it-IT', { minimumFractionDigits: 2 })}` : '—'
   const fmtDate = (d: unknown) => typeof d === 'string' ? new Date(d).toLocaleDateString('it-IT') : '—'
+
+  // Dot stato SdI (colore MAI unico segnale — sempre affiancato all'etichetta
+  // testuale STATO_SDI_LABEL). Mappa da mockup 2026-07-15-invia-pec-sdi.html.
+  const STATO_SDI_DOT: Record<string, string> = {
+    draft: 'var(--t3)',
+    generata: 'var(--c-blue)',
+    smtp_inviata: 'var(--c-amber)',
+    pec_consegnata: 'var(--c-amber)',
+    ricevuta_sdi: 'var(--c-amber)',
+    accettata: 'var(--c-green)',
+    rifiutata: 'var(--c-red)',
+    scaduta: 'var(--c-red)',
+  }
+  const statoSdiKey = f.stato_sdi as string
+  const statoSdiLabel = STATO_SDI_LABEL[statoSdiKey] ?? statoSdiKey
 
   const card: React.CSSProperties = {
     background: 'var(--sfc, #E4DFD9)', borderRadius: '18px', padding: '20px',
@@ -201,6 +223,16 @@ export default async function FatturaDetailPage({ params }: Props) {
           <div style={card}>
             <div style={secLabel}>Invio SDI</div>
             <div style={row}>
+              <span style={{ color: 'var(--t2)' }}>Stato SdI</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontWeight: 700 }}>
+                <span
+                  aria-hidden="true"
+                  style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0, background: STATO_SDI_DOT[statoSdiKey] ?? 'var(--t3)' }}
+                />
+                {statoSdiLabel}
+              </span>
+            </div>
+            <div style={row}>
               <span style={{ color: 'var(--t2)' }}>XML</span>
               {xmlSignedUrl ? (
                 <a
@@ -221,6 +253,13 @@ export default async function FatturaDetailPage({ params }: Props) {
                 {f.pec_consegnata_at ? fmtDate(f.pec_consegnata_at) : 'Non inviata'}
               </span>
             </div>
+            <InviaPecButton
+              fatturaId={id}
+              numero={f.numero as string}
+              statoSdi={statoSdiKey}
+              ruolo={(utente.ruolo as string) ?? ''}
+              pecConfigurata={lab?.pec_smtp_configurata === true}
+            />
           </div>
         </div>
       </PageWrapper>
