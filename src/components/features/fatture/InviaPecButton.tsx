@@ -11,6 +11,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { hapticError, hapticLight, hapticMedium } from '@/lib/feedback/haptic'
+import { soundError } from '@/lib/feedback/sounds'
 
 // Re-export dal modulo condiviso per contratto pubblico invariato (test incluso).
 // La mappa NON vive qui: gli export di un file 'use client' diventano client
@@ -23,6 +25,19 @@ const RUOLI_AMMESSI = ['titolare', 'front_desk']
 const FONT = 'var(--font-dm-sans, "DM Sans", system-ui, sans-serif)'
 const BORDER = '1px solid var(--elv)'
 const SCRIM = 'rgba(0,0,0,0.45)'
+
+// Focus ring visibile SOLO da tastiera — pattern di riferimento globals.css:948
+// (.ua-bill-toggle-btn:focus-visible), su token --primary (light #D90012 /
+// dark #E8001A) invece del literal rgba. MAI outline:none inline senza questa
+// alternativa: gli stili inline vincerebbero sulla classe.
+const FOCUS_CSS = `
+  .ua-invia-pec-focusable:focus { outline: none; }
+  .ua-invia-pec-focusable:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+`
 
 interface Props {
   fatturaId: string
@@ -128,7 +143,6 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
     fontWeight: 700,
     boxShadow: 'var(--sh-red)',
     cursor: 'pointer',
-    outline: 'none',
     marginTop: 4,
   }
 
@@ -154,40 +168,60 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
             Per inviare a SdI serve una casella PEC.{' '}
             <Link
               href="/impostazioni/pec"
+              className="ua-invia-pec-focusable"
               style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 2 }}
             >
               Configura PEC ›
             </Link>
           </span>
         </div>
-        <button type="button" disabled style={{ ...btnRed, opacity: 0.42, boxShadow: 'none', cursor: 'not-allowed' }}>
+        <button
+          type="button"
+          disabled
+          className="ua-invia-pec-focusable"
+          style={{ ...btnRed, opacity: 0.42, boxShadow: 'none', cursor: 'not-allowed' }}
+        >
           <span aria-hidden="true">✈</span>
           Invia a SdI
         </button>
+        <style>{FOCUS_CSS}</style>
       </div>
     )
+  }
+
+  function apriConferma() {
+    setConferma(true)
+    hapticLight()
   }
 
   async function invia() {
     setConferma(false)
     setMessaggio(null)
     setPending(true)
+    hapticMedium()
     try {
       const res = await fetch(`/api/fatture/${fatturaId}/invia-pec`, { method: 'POST' })
       const body = await res.json().catch(() => ({}))
       if (res.ok) {
+        // Successo: come NotaCreditoButton, esito non-bloccante senza suono —
+        // la card riflette il nuovo stato SdI col refresh.
         setPending(false)
         router.refresh()
       } else if (res.status === 409) {
-        // Informativo, non un errore ritentabile: lo stato reale arriva col refresh.
+        // Informativo, non un errore ritentabile: lo stato reale arriva col
+        // refresh — nessun feedback d'errore (non è un fallimento).
         setPending(false)
         setMessaggio({ tipo: 'info', testo: body.error ?? 'Invio già in corso o già effettuato' })
         router.refresh()
       } else {
+        hapticError()
+        soundError()
         setPending(false)
         setMessaggio({ tipo: 'errore', testo: body.error ?? 'Invio PEC fallito — riprova' })
       }
     } catch {
+      hapticError()
+      soundError()
       setPending(false)
       setMessaggio({ tipo: 'errore', testo: 'Errore di rete — riprova' })
     }
@@ -197,8 +231,9 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
     <div data-invia-pec="v2.3">
       <button
         type="button"
-        onClick={() => setConferma(true)}
+        onClick={apriConferma}
         disabled={pending}
+        className="ua-invia-pec-focusable"
         style={{ ...btnRed, opacity: pending ? 0.88 : 1, cursor: pending ? 'progress' : 'pointer' }}
       >
         {pending ? (
@@ -331,6 +366,7 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
                   ref={annullaRef}
                   type="button"
                   onClick={() => setConferma(false)}
+                  className="ua-invia-pec-focusable"
                   style={{
                     flex: 1,
                     minHeight: 48,
@@ -342,7 +378,6 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    outline: 'none',
                   }}
                 >
                   Annulla
@@ -350,6 +385,7 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
                 <button
                   type="button"
                   onClick={invia}
+                  className="ua-invia-pec-focusable"
                   style={{
                     flex: 2,
                     minHeight: 48,
@@ -365,7 +401,6 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    outline: 'none',
                     boxShadow: 'var(--sh-red)',
                   }}
                 >
@@ -378,13 +413,14 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
         </>
       )}
 
-      {/* Spinner keyframes: CSS puro, coerente col mockup (docs/design/mockups/2026-07-15-invia-pec-sdi.html) */}
+      {/* Spinner keyframes (CSS puro, coerente col mockup) + focus ring da tastiera */}
       <style>{`
         .ua-invia-pec-spin { animation: ua-invia-pec-spin 0.7s linear infinite; }
         @keyframes ua-invia-pec-spin { to { transform: rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) {
           .ua-invia-pec-spin { animation-duration: 2.4s; }
         }
+        ${FOCUS_CSS}
       `}</style>
     </div>
   )
