@@ -1,1 +1,1 @@
-graphify update . --no-viz 2>/dev/null || true
+# graphify rimosso (2026-07-15) — hook lasciato vuoto intenzionalmente

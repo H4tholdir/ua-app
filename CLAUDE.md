@@ -11,7 +11,6 @@ Prima di qualsiasi lavoro, in ordine:
 1. `memory/SESSION_ACTIVE.md` → contesto sessione corrente (già iniettato all'avvio)
 2. `memory/MEMORY.md` → stato sprint e versione attuale
 3. Identifica dominio del task → leggi `memory/domains/[dominio].md` se esiste
-4. Navigazione strutturale (>2 file)? → `graphify query "<domanda>"`
 
 **SESSION_ACTIVE (aggiornamento obbligatorio):**
 Aggiorna `memory/SESSION_ACTIVE.md` dopo ogni blocco di lavoro significativo (commit, decisione architetturale, bug importante). Sostituisci il file, non appendere. Max 200 token.
@@ -74,7 +73,7 @@ Documento completo: `docs/processes/WORKFLOW-STANDARD.md`. Versione condensata q
 
 ```
 FASE 0  → BP-0: Leggi MEMORY.md + PINNED.md (già automatico via hook)
-FASE 1  → GOAL: Francesco descrive. Se ambiguo usa /gsd-explore (ideazione Socratica).
+FASE 1  → GOAL: Francesco descrive. Se ambiguo, chiarire con domande prima di procedere (FASE 2 aiuta).
 FASE 2  → BRAINSTORM: /superpowers:brainstorming (SEMPRE, anche se sembra ovvio)
 FASE 3  → VALIDAZIONE ARCH (GATE — non si procede senza risposta a tutte e 5):
             □ Tenant isolation: questa change tocca RLS o current_lab_id()?
@@ -90,7 +89,7 @@ FASE 6b → MIGRATION GATE (solo se migration presente in questa sessione):
             npx tsc --noEmit
             Verifica che la migration non rompa RLS policies esistenti
 FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output reale)
-FASE 8  → REVIEW: /gsd-code-review + /superpowers:requesting-code-review
+FASE 8  → REVIEW: /code-review + /superpowers:requesting-code-review
 FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
 FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
             micro-audit UI/UX della SOLA superficie dell'ondata contro
@@ -137,13 +136,7 @@ Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezion
 
 ## 1. Stack
 
-```
-Next.js 16 (App Router) + TypeScript
-TailwindCSS v4 (@tailwindcss/postcss) + shadcn/ui
-Motion 12.x + GSAP (free) + Rive
-Supabase (PostgreSQL + Auth + Storage + Realtime)
-Vercel deploy (git push origin main → auto)
-```
+Vedi `package.json`. Deploy: `git push origin main` → Vercel CI/CD automatico.
 
 ---
 
@@ -164,29 +157,11 @@ npx tsx scripts/seed-e2e.ts    # seed fixture E2E (idempotente)
 
 ---
 
-## 3. Struttura Cartelle
+## 3. Convenzioni Cartelle (non derivabili dal filesystem)
 
-```
-src/
-├── app/
-│   ├── (auth)/          ← login, magic link, invite, reset-password
-│   ├── (app)/           ← pagine operative (NON (dashboard)/)
-│   ├── admin/           ← pannello admin Francesco (/admin)
-│   └── api/             ← API routes (~42)
-├── components/
-│   ├── ui/              ← shadcn/ui primitives SOLO
-│   ├── layout/          ← AppHeader, BottomNavPill, PageWrapper
-│   └── features/        ← LavoroCard, ConsegnaButton, ImpostazioniEditForm...
-├── design-system/
-│   ├── motion.ts        ← token animazioni (UNICA FONTE DI VERITÀ)
-│   ├── haptic.ts
-│   └── tokens.ts
-├── lib/
-│   ├── supabase/        ← server-user.ts, server-service.ts, browser-anon.ts
-│   ├── pdf/             ← DdcTemplate, BuonoTemplate
-│   └── utils/
-└── types/               ← database.types.ts (generato, non editare manualmente)
-```
+- Le pagine operative stanno in `src/app/(app)/` — **NON** creare `(dashboard)/`
+- `src/components/ui/` = primitives shadcn/ui **SOLO**; i componenti di dominio vanno in `components/features/`
+- `src/types/database.types.ts` è **generato** — non editare manualmente
 
 ---
 
@@ -243,36 +218,7 @@ Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
 
 **Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
-**Design system:** v2.2 warm panna conforme in tutte le pagine nuove. Eventuali pagine legacy pre-Piano D: aggiornare i nuovi elementi al v2.2, non riscrivere l'intera pagina.
-
----
-
-## 10. Graphify — Knowledge Graph del Codebase
-
-Il grafo è già generato in `graphify-out/` (2140 nodi, 4349 archi, 186 comunità).
-Si aggiorna automaticamente ad ogni `git commit` via hook `.husky/post-commit` (solo tree-sitter, zero costo API).
-
-```bash
-# Query semantica sul codebase
-graphify query "come funziona il flusso consegna MDR?"
-
-# Traccia percorso tra due componenti
-graphify path "ConsegnaButton" "orchestraConsegna"
-
-# Spiega un simbolo specifico e i suoi vicini
-graphify explain "getServiceClient"
-
-# Rigenera grafo dopo refactoring pesante (zero costo API)
-graphify update . --no-viz
-
-# Rigenera grafo da zero con LLM (costa ~$6, solo se serve reset completo)
-graphify . --no-viz
-```
-
-God nodes critici (più connessi):
-- `getServiceClient()` → 161 archi — hub di tutti gli accessi Supabase
-- `getServerUserClient()` → 134 archi — auth SSR
-- `AppHeader()` → 50 archi — presente in quasi ogni pagina
+**Design system:** v2.3 warm panna (unica fonte di verità — vedi §0). Eventuali pagine legacy pre-Piano D: aggiornare i nuovi elementi al v2.3, non riscrivere l'intera pagina.
 
 ---
 
@@ -296,13 +242,3 @@ God nodes critici (più connessi):
 
 ### Supabase types
 Dopo ogni migration: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` → rimuovere eventuale messaggio CLI in fondo al file → `npx tsc --noEmit`
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
