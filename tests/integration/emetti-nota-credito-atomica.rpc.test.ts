@@ -249,6 +249,40 @@ describe.skipIf(skipIntegrationTests)('emetti_nota_credito_atomica — comportam
     })
   })
 
+  it('sovrapagamento: storno cappato al totale fattura (il surplus resta rappresentato solo dall\'eccedenza)', async () => {
+    await withRollback(async (client) => {
+      const clienteId = await creaCliente(client)
+      // imponibile 100 → bollo 2.00 → totale 102.00 (trigger, config default)
+      const orig = await creaFatturaOriginale(client, clienteId, { statoSdi: 'accettata', imponibile: 100 })
+
+      const { rows: [utente] } = await client.query(
+        `SELECT id FROM utenti WHERE laboratorio_id = $1 LIMIT 1`, [LAB_E2E_ID]
+      )
+      // Il flusso registra-pagamento salva il pagamento attivo per l'INTERO
+      // importo (150) E un movimento 'eccedenza' per il surplus: senza cap la
+      // RPC conterebbe il surplus due volte (storno 150 + eccedenza valida).
+      await client.query(
+        `INSERT INTO pagamenti (laboratorio_id, fattura_id, importo, metodo, data_pagamento, stato, registrato_da)
+         VALUES ($1, $2, 150, 'bonifico', CURRENT_DATE, 'attivo', $3)`,
+        [LAB_E2E_ID, orig.id, utente.id]
+      )
+
+      const { rows: [result] } = await client.query(
+        `SELECT emetti_nota_credito_atomica($1, $2, $3) AS result`,
+        [orig.id, 'storno fattura sovrapagata', LAB_E2E_ID]
+      )
+      expect(result.result.esito).toBe('ok')
+
+      const { rows: storni } = await client.query(
+        `SELECT importo::text AS importo FROM credito_clienti_movimenti
+         WHERE laboratorio_id = $1 AND cliente_id = $2 AND tipo = 'storno'`,
+        [LAB_E2E_ID, clienteId]
+      )
+      expect(storni).toHaveLength(1)
+      expect(storni[0].importo).toBe('102.00') // totale, NON 150.00
+    })
+  })
+
   it('originale mai incassata → nessun movimento storno', async () => {
     await withRollback(async (client) => {
       const clienteId = await creaCliente(client)

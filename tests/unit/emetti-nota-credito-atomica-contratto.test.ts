@@ -12,15 +12,21 @@ import { join } from 'node:path'
 // SUPABASE_DB_URL). Questo test documenta e blocca il contratto statico —
 // firma, esiti ammessi, sicurezza — leggendo la migration.
 //
-// Task 4: il contratto punta alla migration ADDITIVA
-// 20260715110000_credito_storno_nota_credito.sql, che sostituisce l'intero
-// corpo della funzione (CREATE OR REPLACE) aggiungendo il Blocco 3 (credito
-// 'storno'): è quella la definizione deployata.
+// Task 4: il contratto della FUNZIONE punta all'ultima migration additiva
+// (CREATE OR REPLACE con corpo completo — è quella la definizione deployata):
+// 20260715120000_cap_storno_totale_fattura.sql (fix review: cap del credito
+// storno al totale dell'originale, anti doppio-conteggio del sovrapagamento).
+// I CHECK su credito_clienti_movimenti vivono invece in
+// 20260715110000_credito_storno_nota_credito.sql (non ripetuti dopo).
 
 const MIGRATION_PATH = join(
+  __dirname, '..', '..', 'supabase', 'migrations', '20260715120000_cap_storno_totale_fattura.sql'
+)
+const CHECKS_MIGRATION_PATH = join(
   __dirname, '..', '..', 'supabase', 'migrations', '20260715110000_credito_storno_nota_credito.sql'
 )
 const sql = readFileSync(MIGRATION_PATH, 'utf8')
+const sqlChecks = readFileSync(CHECKS_MIGRATION_PATH, 'utf8')
 
 describe('emetti_nota_credito_atomica — contratto (migration statica)', () => {
   it('firma: p_originale_id uuid, p_causale text, p_laboratorio_id uuid → json', () => {
@@ -86,9 +92,16 @@ describe('emetti_nota_credito_atomica — contratto (migration statica)', () => 
 
   describe('blocco 3 — credito storno (Task 4)', () => {
     it('CHECK tipo esteso: accetta storno accanto a eccedenza/applicazione/rimborso', () => {
-      expect(sql).toMatch(
+      expect(sqlChecks).toMatch(
         /ADD CONSTRAINT credito_clienti_movimenti_tipo_check\s*\n\s*CHECK \(tipo IN \('eccedenza','applicazione','rimborso','storno'\)\)/
       )
+    })
+
+    it('cap anti doppio-conteggio: v_pagato mai oltre il totale dell\'originale (il surplus resta solo nell\'eccedenza)', () => {
+      const capIdx = sql.indexOf('v_pagato := LEAST(v_pagato, v_orig.totale);')
+      const gateIdx = sql.indexOf('IF v_pagato > 0 THEN')
+      expect(capIdx).toBeGreaterThan(-1)
+      expect(capIdx).toBeLessThan(gateIdx) // il cap precede il gate/insert
     })
 
     it('inserisce un movimento tipo storno, gateato su incassato > 0', () => {
