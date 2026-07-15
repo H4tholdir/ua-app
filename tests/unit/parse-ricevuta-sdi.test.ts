@@ -77,4 +77,58 @@ describe('parseRicevutaSdI', () => {
   it('oversize → RicevutaNonValidaError', () => {
     expect(() => parseRicevutaSdI(Buffer.alloc(1_048_577, 0x20))).toThrow(RicevutaNonValidaError)
   })
+
+  describe('validazione namespace root (fail-closed)', () => {
+    const SDI_NS = 'http://www.fatturapa.gov.it/sdi/messaggi/v1.0'
+    const body =
+      '<IdentificativoSdI>111</IdentificativoSdI><NomeFile>IT01234567890_11111.xml</NomeFile>'
+
+    it('local name giusto ma namespace attacker → RicevutaNonValidaError', () => {
+      const xml = Buffer.from(
+        `<evil:RicevutaConsegna xmlns:evil="http://attacker.example/x">${body}</evil:RicevutaConsegna>`
+      )
+      expect(() => parseRicevutaSdI(xml)).toThrow(RicevutaNonValidaError)
+      expect(() => parseRicevutaSdI(xml)).toThrow(/namespace root non valido/)
+    })
+
+    it('prefix non dichiarato → RicevutaNonValidaError', () => {
+      const xml = Buffer.from(`<zzz:RicevutaConsegna>${body}</zzz:RicevutaConsegna>`)
+      expect(() => parseRicevutaSdI(xml)).toThrow(RicevutaNonValidaError)
+    })
+
+    it('root senza alcun namespace → RicevutaNonValidaError', () => {
+      const xml = Buffer.from(`<RicevutaConsegna>${body}</RicevutaConsegna>`)
+      expect(() => parseRicevutaSdI(xml)).toThrow(RicevutaNonValidaError)
+    })
+
+    it('namespace di default corretto senza prefix → accettato (namespace-equivalente agli ufficiali)', () => {
+      const xml = Buffer.from(`<RicevutaConsegna xmlns="${SDI_NS}">${body}</RicevutaConsegna>`)
+      const r = parseRicevutaSdI(xml)
+      expect(r.tipo).toBe('RC')
+      expect(r.nomeFileFattura).toBe('IT01234567890_11111.xml')
+    })
+
+    it('prefix diverso da types: ma namespace canonico → accettato (il prefix è arbitrario)', () => {
+      const xml = Buffer.from(
+        `<ns3:RicevutaConsegna xmlns:ns3="${SDI_NS}">${body}</ns3:RicevutaConsegna>`
+      )
+      expect(parseRicevutaSdI(xml).tipo).toBe('RC')
+    })
+  })
+
+  it('difesa in profondità processEntities:false — entità senza DOCTYPE resta letterale, mai risolta', () => {
+    // Riferimento a entità SENZA dichiarazione DOCTYPE/ENTITY: sfugge al
+    // pre-check regex (che matcha solo `<!DOCTYPE`/`<!ENTITY`) e raggiunge il
+    // parser. Con processEntities:false NULLA viene risolto o decodificato —
+    // perfino &amp; resta letterale (con processEntities:true diventerebbe
+    // "&"): la non-decodifica è la prova osservabile che l'opzione è attiva.
+    const xml = Buffer.from(
+      '<types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0">' +
+        '<IdentificativoSdI>111</IdentificativoSdI>' +
+        '<NomeFile>IT_&xxe;_&amp;_x.xml</NomeFile>' +
+        '</types:RicevutaConsegna>'
+    )
+    const r = parseRicevutaSdI(xml)
+    expect(r.nomeFileFattura).toBe('IT_&xxe;_&amp;_x.xml')
+  })
 })

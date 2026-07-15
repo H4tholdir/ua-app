@@ -36,8 +36,18 @@ export class RicevutaNonValidaError extends Error {
 const MAX_SIZE_BYTES = 1_048_576
 
 /**
- * Root element (dopo strip del prefisso di namespace, es. `types:`/`ns3:`) →
- * tipo ricevuta. Nomi verificati sulle fixture ufficiali fatturapa.gov.it e su
+ * Namespace canonico dei messaggi SdI, pinnato dagli esempi UFFICIALI
+ * fatturapa.gov.it (tests/fixtures/ricevute-sdi/ufficiale-*.xml: tutti e 6 i
+ * tipi dichiarano `xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0"`
+ * sul root). Il root element DEVE essere qualificato esattamente con questo
+ * namespace: local name giusto ma namespace assente/diverso/prefix non
+ * dichiarato → RicevutaNonValidaError (fail-closed, anti-spoofing).
+ */
+const SDI_MESSAGGI_NAMESPACE = 'http://www.fatturapa.gov.it/sdi/messaggi/v1.0'
+
+/**
+ * Root element (local name, senza prefisso di namespace) → tipo ricevuta.
+ * Nomi verificati sulle fixture ufficiali fatturapa.gov.it e su
  * MessaggiTypes_v1.1.xsd (RicevutaConsegna, NotificaScarto,
  * NotificaMancataConsegna, NotificaEsito, NotificaDecorrenzaTermini,
  * AttestazioneTrasmissioneFattura sono i soli 6 tipi di messaggio SdI verso il
@@ -136,8 +146,15 @@ export function parseRicevutaSdI(xml: Buffer): RicevutaSdIParsed {
   }
 
   const parser = new XMLParser({
-    ignoreAttributes: true,
-    removeNSPrefix: true, // strip prefisso namespace root (es. `types:`, `ns3:`)
+    // Attributi necessari per leggere le dichiarazioni xmlns sul root e
+    // validare il namespace (vedi sotto). I campi estratti restano testuali.
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    // Il prefisso del root NON viene rimosso: serve per risolverlo alla sua
+    // dichiarazione xmlns e confrontare l'URI con SDI_MESSAGGI_NAMESPACE.
+    // I campi figli nei messaggi SdI reali sono non qualificati (verificato
+    // sulle fixture ufficiali), quindi restano accessibili per nome semplice.
+    removeNSPrefix: false,
     processEntities: false, // XXE hardening secondario (difesa in profondità)
     ignoreDeclaration: true,
     ignorePiTags: true,
@@ -160,16 +177,35 @@ export function parseRicevutaSdI(xml: Buffer): RicevutaSdIParsed {
 
   const rootKeys = Object.keys(parsed as XmlNode)
   const rootKey = rootKeys[0]
-  const tipo = rootKey ? ROOT_ELEMENT_TO_TIPO[rootKey] : undefined
-  if (!tipo) {
+  if (!rootKey) {
+    throw new RicevutaNonValidaError('XML non valido: nessun elemento root')
+  }
+
+  const root = (parsed as XmlNode)[rootKey] as XmlNode
+  if (typeof root !== 'object' || root === null) {
+    throw new RicevutaNonValidaError('XML non valido: struttura ricevuta assente')
+  }
+
+  // Risolvi il prefisso del root alla sua dichiarazione xmlns (che per il root
+  // può stare SOLO sul root stesso — non esistono antenati) e valida che il
+  // namespace sia ESATTAMENTE quello canonico SdI. Fail-closed: root senza
+  // namespace, con namespace diverso, o con prefix non dichiarato → errore.
+  const colonIdx = rootKey.indexOf(':')
+  const rootPrefix = colonIdx >= 0 ? rootKey.slice(0, colonIdx) : null
+  const rootLocalName = colonIdx >= 0 ? rootKey.slice(colonIdx + 1) : rootKey
+  const xmlnsAttr = rootPrefix !== null ? `@_xmlns:${rootPrefix}` : '@_xmlns'
+  const rootNamespace = asText(root[xmlnsAttr])
+  if (rootNamespace !== SDI_MESSAGGI_NAMESPACE) {
     throw new RicevutaNonValidaError(
-      `documento non è una ricevuta SdI riconosciuta (root: ${rootKey ?? '(nessuno)'})`
+      `namespace root non valido: atteso ${SDI_MESSAGGI_NAMESPACE}, trovato ${rootNamespace ?? '(nessuno/prefix non dichiarato)'}`
     )
   }
 
-  const root = (parsed as XmlNode)[rootKey as string] as XmlNode
-  if (typeof root !== 'object' || root === null) {
-    throw new RicevutaNonValidaError('XML non valido: struttura ricevuta assente')
+  const tipo = ROOT_ELEMENT_TO_TIPO[rootLocalName]
+  if (!tipo) {
+    throw new RicevutaNonValidaError(
+      `documento non è una ricevuta SdI riconosciuta (root: ${rootLocalName})`
+    )
   }
 
   const nomeFileFattura = requireText(root, 'NomeFile')
