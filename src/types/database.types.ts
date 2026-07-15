@@ -1113,6 +1113,7 @@ export type Database = {
           aliquota_iva_cassa: string | null
           anno: number
           bollo: number
+          causale_storno: string | null
           cliente_cf: string | null
           cliente_codice_sdi: string | null
           cliente_denominazione: string
@@ -1124,10 +1125,13 @@ export type Database = {
           codice_cup: string | null
           codice_esito_sdi: string | null
           codice_iva: string
+          collegata_data: string | null
+          collegata_numero: string | null
           created_at: string
           data: string
           data_pagamento: string | null
           deleted_at: string | null
+          fattura_collegata_id: string | null
           formato_trasmissione: string
           id: string
           imponibile: number
@@ -1158,6 +1162,7 @@ export type Database = {
           sdi_risposta_at: string | null
           smtp_inviata_at: string | null
           stato_sdi: string
+          stornata_at: string | null
           tipo_documento: string
           totale: number
           updated_at: string
@@ -1174,6 +1179,7 @@ export type Database = {
           aliquota_iva_cassa?: string | null
           anno?: number
           bollo?: number
+          causale_storno?: string | null
           cliente_cf?: string | null
           cliente_codice_sdi?: string | null
           cliente_denominazione: string
@@ -1185,10 +1191,13 @@ export type Database = {
           codice_cup?: string | null
           codice_esito_sdi?: string | null
           codice_iva?: string
+          collegata_data?: string | null
+          collegata_numero?: string | null
           created_at?: string
           data?: string
           data_pagamento?: string | null
           deleted_at?: string | null
+          fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
           imponibile?: number
@@ -1219,6 +1228,7 @@ export type Database = {
           sdi_risposta_at?: string | null
           smtp_inviata_at?: string | null
           stato_sdi?: string
+          stornata_at?: string | null
           tipo_documento?: string
           totale?: number
           updated_at?: string
@@ -1235,6 +1245,7 @@ export type Database = {
           aliquota_iva_cassa?: string | null
           anno?: number
           bollo?: number
+          causale_storno?: string | null
           cliente_cf?: string | null
           cliente_codice_sdi?: string | null
           cliente_denominazione?: string
@@ -1246,10 +1257,13 @@ export type Database = {
           codice_cup?: string | null
           codice_esito_sdi?: string | null
           codice_iva?: string
+          collegata_data?: string | null
+          collegata_numero?: string | null
           created_at?: string
           data?: string
           data_pagamento?: string | null
           deleted_at?: string | null
+          fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
           imponibile?: number
@@ -1280,6 +1294,7 @@ export type Database = {
           sdi_risposta_at?: string | null
           smtp_inviata_at?: string | null
           stato_sdi?: string
+          stornata_at?: string | null
           tipo_documento?: string
           totale?: number
           updated_at?: string
@@ -1306,6 +1321,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "partitario_clienti"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "fatture_fattura_collegata_id_fkey"
+            columns: ["fattura_collegata_id"]
+            isOneToOne: false
+            referencedRelation: "fatture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_fattura_collegata_id_fkey"
+            columns: ["fattura_collegata_id"]
+            isOneToOne: false
+            referencedRelation: "fatture_da_inviare"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "fatture_laboratorio_id_fkey"
