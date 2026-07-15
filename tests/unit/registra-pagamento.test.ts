@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { eseguiRegistrazionePagamento, type RegistraPagamentoInput } from '@/lib/contabilita/registra-pagamento'
 
 interface FakeData {
-  fatture?: Record<string, { id: string; totale: number; cliente_id: string }>
+  fatture?: Record<string, { id: string; totale: number; cliente_id: string; stornata_at?: string | null; tipo_documento?: string }>
   lavori?: Record<string, { id: string; prezzo_unitario: number; cliente_id: string; lavorazioni?: Array<{ importo: number | null }> }>
   pagamentiAttivi?: Array<{ importo: number }>
   applicazioni?: Array<{ importo: number }>
@@ -183,6 +183,29 @@ describe('eseguiRegistrazionePagamento', () => {
     const r = await eseguiRegistrazionePagamento(supabase, baseInput({ fattura_id: 'fatt-inesistente' }))
     expect(r.ok).toBe(false)
     expect(r.errore).toBe('Fattura non trovata')
+    expect(supabase._inserted.pagamenti).toHaveLength(0)
+  })
+
+  // Task 5b: una fattura stornata non è più un dovuto (Task 5) — incassarla
+  // creerebbe un doppio movimento su un documento annullato.
+  it('pagamento su fattura stornata → rifiutato, nessun insert', async () => {
+    const supabase = createFakeSupabase({
+      fatture: { 'fatt-storno': { id: 'fatt-storno', totale: 100, cliente_id: 'cli-1', stornata_at: '2026-07-10T10:00:00Z' } },
+    })
+    const r = await eseguiRegistrazionePagamento(supabase, baseInput({ fattura_id: 'fatt-storno', importo: 100 }))
+    expect(r.ok).toBe(false)
+    expect(r.errore).toMatch(/storn/i)
+    expect(supabase._inserted.pagamenti).toHaveLength(0)
+  })
+
+  // Il TD04 (nota di credito) è un documento di storno: non è MAI pagabile.
+  it('pagamento su nota di credito (TD04) → rifiutato, nessun insert', async () => {
+    const supabase = createFakeSupabase({
+      fatture: { 'fatt-td04': { id: 'fatt-td04', totale: 100, cliente_id: 'cli-1', tipo_documento: 'TD04' } },
+    })
+    const r = await eseguiRegistrazionePagamento(supabase, baseInput({ fattura_id: 'fatt-td04', importo: 100 }))
+    expect(r.ok).toBe(false)
+    expect(r.errore).toMatch(/TD04/)
     expect(supabase._inserted.pagamenti).toHaveLength(0)
   })
 
