@@ -1544,6 +1544,91 @@ export type Database = {
           },
         ]
       }
+      fatture_sdi_eventi: {
+        Row: {
+          content_sha256: string | null
+          created_at: string
+          esito_committente: string | null
+          esito_verifica_firma: string | null
+          fattura_id: string | null
+          id: string
+          identificativo_sdi: string | null
+          laboratorio_id: string
+          lista_errori: Json | null
+          motivo: string | null
+          nome_file_fattura: string | null
+          nome_file_ricevuta: string | null
+          origine: string
+          registrato_da: string | null
+          ricevuta_storage_path: string | null
+          stato_a: string | null
+          stato_da: string | null
+          tipo_ricevuta: string | null
+        }
+        Insert: {
+          content_sha256?: string | null
+          created_at?: string
+          esito_committente?: string | null
+          esito_verifica_firma?: string | null
+          fattura_id?: string | null
+          id?: string
+          identificativo_sdi?: string | null
+          laboratorio_id: string
+          lista_errori?: Json | null
+          motivo?: string | null
+          nome_file_fattura?: string | null
+          nome_file_ricevuta?: string | null
+          origine: string
+          registrato_da?: string | null
+          ricevuta_storage_path?: string | null
+          stato_a?: string | null
+          stato_da?: string | null
+          tipo_ricevuta?: string | null
+        }
+        Update: {
+          content_sha256?: string | null
+          created_at?: string
+          esito_committente?: string | null
+          esito_verifica_firma?: string | null
+          fattura_id?: string | null
+          id?: string
+          identificativo_sdi?: string | null
+          laboratorio_id?: string
+          lista_errori?: Json | null
+          motivo?: string | null
+          nome_file_fattura?: string | null
+          nome_file_ricevuta?: string | null
+          origine?: string
+          registrato_da?: string | null
+          ricevuta_storage_path?: string | null
+          stato_a?: string | null
+          stato_da?: string | null
+          tipo_ricevuta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fatture_sdi_eventi_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_sdi_eventi_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture_da_inviare"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_sdi_eventi_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornitori: {
         Row: {
           attivo: boolean
