@@ -60,14 +60,44 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
   const [conferma, setConferma] = useState(false)
   const [messaggio, setMessaggio] = useState<{ tipo: 'errore' | 'info'; testo: string } | null>(null)
   const [pending, setPending] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const annullaRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
-  // Esc chiude la conferma (mai una X come unica uscita).
+  // Esc chiude la conferma (mai una X come unica uscita) + focus trap:
+  // con aria-modal="true" il Tab NON deve mai uscire dal dialog verso la
+  // pagina dietro lo scrim — cicla tra i focusabili del dialog.
   useEffect(() => {
     if (!conferma) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setConferma(false)
+      if (e.key === 'Escape') {
+        setConferma(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const focusables = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement as HTMLElement | null
+      const inside = active !== null && dialog.contains(active)
+      if (e.shiftKey) {
+        if (!inside || active === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (!inside || active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -202,6 +232,7 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
       {messaggio && (
         <p
           data-tipo={messaggio.tipo}
+          role={messaggio.tipo === 'errore' ? 'alert' : 'status'}
           style={{
             display: 'flex',
             gap: 10,
@@ -235,6 +266,7 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
             aria-hidden="true"
           />
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="invia-pec-title"
@@ -295,7 +327,8 @@ export function InviaPecButton({ fatturaId, numero, statoSdi, ruolo, pecConfigur
                   ⚠
                 </span>
                 <span style={{ fontFamily: FONT, fontSize: 12, color: 'var(--t1)', lineHeight: 1.45 }}>
-                  L&apos;invio è un atto fiscale irreversibile.
+                  <b style={{ fontWeight: 700 }}>L&apos;invio è un atto fiscale irreversibile.</b> La fattura
+                  elettronica parte subito verso il Sistema di Interscambio via PEC e non potrà essere annullata.
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
