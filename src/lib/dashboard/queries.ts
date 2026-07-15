@@ -378,10 +378,19 @@ export async function getTrendMensile(
   // (solo `data` destrutturato, mai `error`), risolvendo sempre in trend
   // vuoto/a-zero. Necessario correggerlo per rendere osservabile la
   // sottrazione TD04 sotto richiesta da questo task.
+  // Predicato revenue ALLINEATO a refresh_dashboard_cache (migration
+  // 20260715130000): deleted_at IS NULL e stato_sdi NOT IN
+  // ('draft','rifiutata','scaduta') — vale per TUTTE le righe (TD01 e TD04).
+  // Senza, un TD04 draft sottrarrebbe ricavo prima di essere emesso e un
+  // TD04 rifiutata (effetti annullati dal trigger di Task 8) continuerebbe
+  // a sottrarre per sempre, contraddicendo l'invariante «TD04 rifiutata =
+  // mai esistita fiscalmente».
   const { data } = await svc
     .from('fatture')
     .select('data, totale, tipo_documento')
     .eq('laboratorio_id', labId)
+    .is('deleted_at', null)
+    .not('stato_sdi', 'in', '("draft","rifiutata","scaduta")')
     .gte('data', startDate.toISOString())
     .not('data', 'is', null)
     .order('data', { ascending: true })

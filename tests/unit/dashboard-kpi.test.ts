@@ -101,21 +101,35 @@ describe('mapFrontDeskConsegneRows', () => {
 // nel mese in cui è stato emesso — l'originale e la nota di credito possono
 // cadere in mesi diversi.
 describe('getTrendMensile', () => {
-  function fakeSupabase(rowsIn: Array<{ data: string; totale: number; tipo_documento: string; stornata_at?: string | null }>) {
+  function fakeSupabase(rowsIn: Array<{
+    data: string; totale: number; tipo_documento: string
+    stornata_at?: string | null; stato_sdi?: string; deleted_at?: string | null
+  }>) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rows: any[] = rowsIn
     const builder = {
       select() { return builder },
       eq() { return builder },
       gte() { return builder },
-      not() { return builder },
       order() { return builder },
-      // Real filter (non no-op): garantisce che, se una futura regressione
-      // aggiungesse `.is('stornata_at', null)` qui (il predicato del
-      // Gruppo A, vietato nel Gruppo B), il test sotto lo intercetti.
+      // Filtri reali (non no-op): garantiscono che il predicato revenue sia
+      // davvero quello atteso — se una futura regressione aggiungesse
+      // `.is('stornata_at', null)` (il predicato del Gruppo A, vietato nel
+      // Gruppo B) o rimuovesse l'esclusione draft/rifiutata/scaduta, i test
+      // sotto lo intercettano.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       is(column: string, value: any) {
         rows = rows.filter((r) => (r[column] ?? null) === value)
+        return builder
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      not(column: string, op: string, value: any) {
+        if (op === 'in') {
+          const esclusi = String(value).replace(/[()"]/g, '').split(',')
+          rows = rows.filter((r) => !esclusi.includes(r[column]))
+        } else if (op === 'is' && value === null) {
+          rows = rows.filter((r) => (r[column] ?? null) !== null)
+        }
         return builder
       },
       then(resolve: (v: { data: unknown; error: null }) => void) {
@@ -161,6 +175,36 @@ describe('getTrendMensile', () => {
     const luglio = result.find((r) => r.month === '2026-07')
     expect(giugno?.totale).toBe(900)
     expect(luglio?.totale).toBe(-900)
+  })
+
+  // Fix pre-merge (review finale whole-branch): getTrendMensile deve usare lo
+  // STESSO predicato revenue di refresh_dashboard_cache (migration
+  // 20260715130000) — stato_sdi NOT IN ('draft','rifiutata','scaduta') e
+  // deleted_at IS NULL. Senza, un TD04 draft sottrae ricavo prima di essere
+  // emesso e un TD04 rifiutata (i cui effetti il trigger di Task 8 ha
+  // annullato) continuerebbe a sottrarre per sempre, contraddicendo
+  // l'invariante «TD04 rifiutata = mai esistita fiscalmente».
+  it('TD04 draft e rifiutata NON sottraggono; TD04 smtp_inviata sì (predicato allineato a refresh_dashboard_cache)', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-07-01', totale: 1000, tipo_documento: 'TD01', stato_sdi: 'accettata' },
+      { data: '2026-07-05', totale: 300, tipo_documento: 'TD04', stato_sdi: 'draft' },
+      { data: '2026-07-08', totale: 400, tipo_documento: 'TD04', stato_sdi: 'rifiutata' },
+      { data: '2026-07-10', totale: 100, tipo_documento: 'TD04', stato_sdi: 'smtp_inviata' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    expect(result).toHaveLength(1)
+    // 1000 - 100 (solo il TD04 emesso conta; draft e rifiutata esclusi)
+    expect(result[0].totale).toBe(900)
+  })
+
+  it('righe soft-deleted escluse dal trend (deleted_at IS NULL, come il predicato SQL)', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-07-01', totale: 700, tipo_documento: 'TD01', stato_sdi: 'accettata' },
+      { data: '2026-07-02', totale: 250, tipo_documento: 'TD01', stato_sdi: 'accettata', deleted_at: '2026-07-03T09:00:00.000Z' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    expect(result).toHaveLength(1)
+    expect(result[0].totale).toBe(700)
   })
 })
 
