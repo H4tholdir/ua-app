@@ -25,7 +25,7 @@ export default async function FatturaDetailPage({ params }: Props) {
     .select(`
       id, numero, data, totale, pagata,
       stato_sdi, tipo_documento, lavoro_id, stornata_at,
-      xml_storage_path, pec_message_id, pec_consegnata_at,
+      xml_storage_path, pdf_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, importo)
     `)
@@ -41,6 +41,18 @@ export default async function FatturaDetailPage({ params }: Props) {
   if (f.xml_storage_path) {
     xmlSignedUrl = await getSignedUrl(svc, 'fatture-pdf', f.xml_storage_path as string, 3600)
   }
+  let pdfSignedUrl: string | null = null
+  if (f.pdf_storage_path) {
+    pdfSignedUrl = await getSignedUrl(svc, 'fatture-pdf', f.pdf_storage_path as string, 3600)
+  }
+
+  // Azioni documento REALI per il menu ⋯ (decisione Francesco 15/07): solo
+  // artefatti già esistenti — il link XML resta anche inline nella card
+  // «Invio SDI» (il menu lo duplica come scorciatoia).
+  const azioniDocumento = [
+    ...(xmlSignedUrl ? [{ id: 'xml', etichetta: 'Scarica XML', icona: '⬇', href: xmlSignedUrl }] : []),
+    ...(pdfSignedUrl ? [{ id: 'pdf', etichetta: 'Scarica PDF cortesia', icona: '📄', href: pdfSignedUrl }] : []),
+  ]
   const cliente = f.cliente as Record<string, string | null> | null
   const righe = (f.righe as Array<Record<string, unknown>>) ?? []
 
@@ -88,6 +100,7 @@ export default async function FatturaDetailPage({ params }: Props) {
             statoSdi={f.stato_sdi as StatoSDI}
             tipoDocumento={(f.tipo_documento as string) ?? 'TD01'}
             stornataAt={stornataAt}
+            azioni={azioniDocumento}
           />
         }
       />

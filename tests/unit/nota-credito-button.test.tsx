@@ -10,6 +10,11 @@ vi.mock('next/navigation', () => ({
 
 type Overrides = Partial<Parameters<typeof NotaCreditoButton>[0]>
 
+const AZIONI_DOC = [
+  { id: 'xml', etichetta: 'Scarica XML', icona: '⬇', href: 'https://x/fattura.xml' },
+  { id: 'pdf', etichetta: 'Scarica PDF cortesia', icona: '📄', href: 'https://x/fattura.pdf' },
+]
+
 function renderButton(overrides: Overrides = {}) {
   const props = {
     fatturaId: 'fat-1',
@@ -21,6 +26,7 @@ function renderButton(overrides: Overrides = {}) {
     statoSdi: 'accettata' as StatoSDI,
     tipoDocumento: 'TD01',
     stornataAt: null as string | null,
+    azioni: AZIONI_DOC,
     ...overrides,
   }
   return render(<NotaCreditoButton {...props} />)
@@ -32,7 +38,7 @@ function openSheet() {
   fireEvent.click(screen.getByRole('menuitem', { name: /emetti nota di credito/i }))
 }
 
-describe('NotaCreditoButton — gate visibilità (variante B)', () => {
+describe('NotaCreditoButton — gate visibilità voce danger (variante B + decisione 15/07)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
     refreshMock.mockClear()
@@ -42,35 +48,85 @@ describe('NotaCreditoButton — gate visibilità (variante B)', () => {
     vi.restoreAllMocks()
   })
 
-  it('fattura stornabile (TD01, accettata, non stornata) → mostra il trigger ⋯', () => {
+  function apriMenu() {
+    fireEvent.click(screen.getByRole('button', { name: /azioni documento/i }))
+  }
+
+  it('fattura stornabile (TD01, accettata, non stornata) → voce danger presente nel menu', () => {
     renderButton()
-    expect(screen.getByRole('button', { name: /azioni documento/i })).toBeInTheDocument()
+    apriMenu()
+    expect(screen.getByRole('menuitem', { name: /emetti nota di credito/i })).toBeInTheDocument()
   })
 
   it.each<StatoSDI>(['smtp_inviata', 'pec_consegnata', 'ricevuta_sdi', 'accettata', 'scaduta'])(
-    'stato_sdi=%s (ammesso) → trigger visibile',
+    'stato_sdi=%s (ammesso) → voce danger presente',
     (statoSdi) => {
       renderButton({ statoSdi })
-      expect(screen.getByRole('button', { name: /azioni documento/i })).toBeInTheDocument()
+      apriMenu()
+      expect(screen.getByRole('menuitem', { name: /emetti nota di credito/i })).toBeInTheDocument()
     },
   )
 
   it.each<StatoSDI>(['draft', 'generata', 'rifiutata'])(
-    'stato_sdi=%s (non ammesso) → nessun trigger',
+    'stato_sdi=%s (non ammesso) → ⋯ visibile (azioni reali) ma voce danger ASSENTE',
     (statoSdi) => {
       renderButton({ statoSdi })
-      expect(screen.queryByRole('button', { name: /azioni documento/i })).not.toBeInTheDocument()
+      apriMenu()
+      expect(screen.getByRole('menuitem', { name: /scarica xml/i })).toBeInTheDocument()
+      expect(screen.queryByRole('menuitem', { name: /emetti nota di credito/i })).not.toBeInTheDocument()
     },
   )
 
-  it('tipo_documento diverso da TD01 → nessun trigger', () => {
+  it('tipo_documento diverso da TD01 → voce danger assente', () => {
     renderButton({ tipoDocumento: 'TD04' })
-    expect(screen.queryByRole('button', { name: /azioni documento/i })).not.toBeInTheDocument()
+    apriMenu()
+    expect(screen.queryByRole('menuitem', { name: /emetti nota di credito/i })).not.toBeInTheDocument()
   })
 
-  it('fattura già stornata (stornata_at valorizzato) → nessun trigger', () => {
+  it('fattura già stornata (stornata_at valorizzato) → voce danger assente', () => {
     renderButton({ stornataAt: '2026-07-15T10:00:00Z' })
+    apriMenu()
+    expect(screen.queryByRole('menuitem', { name: /emetti nota di credito/i })).not.toBeInTheDocument()
+  })
+
+  it('caso limite: nessuna azione E non stornabile → il ⋯ sparisce', () => {
+    renderButton({ azioni: [], statoSdi: 'draft' })
     expect(screen.queryByRole('button', { name: /azioni documento/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('NotaCreditoButton — azioni documento reali nel menu (decisione Francesco 15/07)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+    refreshMock.mockClear()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('voci neutre presenti come link con href reale', () => {
+    renderButton()
+    fireEvent.click(screen.getByRole('button', { name: /azioni documento/i }))
+    const xml = screen.getByRole('menuitem', { name: /scarica xml/i })
+    expect(xml).toHaveAttribute('href', 'https://x/fattura.xml')
+    const pdf = screen.getByRole('menuitem', { name: /scarica pdf cortesia/i })
+    expect(pdf).toHaveAttribute('href', 'https://x/fattura.pdf')
+  })
+
+  it('voce danger «Emetti nota di credito» è SEMPRE ultima', () => {
+    renderButton()
+    fireEvent.click(screen.getByRole('button', { name: /azioni documento/i }))
+    const voci = screen.getAllByRole('menuitem')
+    expect(voci.length).toBe(3)
+    expect(voci[voci.length - 1]).toHaveTextContent(/emetti nota di credito/i)
+  })
+
+  it('⋯ visibile su fattura NON stornabile purché abbia azioni reali', () => {
+    renderButton({ stornataAt: '2026-07-15T10:00:00Z' })
+    expect(screen.getByRole('button', { name: /azioni documento/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /azioni documento/i }))
+    expect(screen.getAllByRole('menuitem').length).toBe(2)
   })
 })
 
@@ -147,8 +203,12 @@ describe('NotaCreditoButton — sheet 2 step', () => {
     fireEvent.click(screen.getByRole('button', { name: /emetti td04/i }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    // foglio ancora aperto: la CTA di conferma è ancora nel DOM
-    expect(screen.getByRole('button', { name: /emetti td04/i })).toBeInTheDocument()
+    // foglio ancora aperto e riutilizzabile: la CTA torna «Emetti TD04»
+    // (waitFor: l'alert può comparire mentre la transition è ancora pending
+    // e la CTA legge «Emissione…»)
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /emetti td04/i })).toBeEnabled(),
+    )
     expect(refreshMock).not.toHaveBeenCalled()
   })
 

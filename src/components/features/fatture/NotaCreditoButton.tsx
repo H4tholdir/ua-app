@@ -31,6 +31,15 @@ const FONT = 'var(--font-dm-sans, "DM Sans", system-ui, sans-serif)'
 const BORDER = '1px solid var(--elv)'
 const SCRIM = 'rgba(0,0,0,0.45)'
 
+/** Azione documento REALE (decisione Francesco 15/07): voce neutra del menu ⋯,
+ * sempre un link a un artefatto/handler già esistente — MAI un'azione finta. */
+export interface AzioneDocumento {
+  id: string
+  etichetta: string
+  icona: string
+  href: string
+}
+
 interface Props {
   fatturaId: string
   numero: string
@@ -41,6 +50,8 @@ interface Props {
   statoSdi: StatoSDI
   tipoDocumento: string
   stornataAt: string | null
+  /** Voci neutre del menu ⋯ (es. Scarica XML, Scarica PDF cortesia). */
+  azioni?: AzioneDocumento[]
 }
 
 /** Desktop breakpoint (≥768px) — mobile-first come SSR (default false → nessun
@@ -59,7 +70,7 @@ function useIsDesktop(): boolean {
 }
 
 export function NotaCreditoButton(props: Props) {
-  const { fatturaId, numero, clienteNome, importo, pagata, lavoroId } = props
+  const { fatturaId, numero, clienteNome, importo, pagata, lavoroId, azioni = [] } = props
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const isDesktop = useIsDesktop()
@@ -88,11 +99,15 @@ export function NotaCreditoButton(props: Props) {
   }, [menuOpen, step, closeSheet])
 
   // ── Gate visibilità ────────────────────────────────────────────────────
+  // Voce danger: SOLO su fattura stornabile (gate vincolante, invariato).
+  // Trigger ⋯: visibile con ≥1 voce reale (decisione Francesco 15/07 — la
+  // danger non è mai l'unica ragione d'essere del menu, ma se non ci sono né
+  // azioni né storno il ⋯ sparisce).
   const stornabile =
     props.tipoDocumento === 'TD01' &&
     !props.stornataAt &&
     STATI_STORNABILI.includes(props.statoSdi)
-  if (!stornabile) return null
+  if (azioni.length === 0 && !stornabile) return null
 
   const causaleTrim = causale.trim()
   const importoFmt = `€${importo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`
@@ -246,33 +261,56 @@ export function NotaCreditoButton(props: Props) {
                   zIndex: 291,
                 }}
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={apriFoglio}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    width: '100%',
-                    minHeight: 48,
-                    padding: '13px 14px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    fontFamily: FONT,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                >
-                  <span aria-hidden="true" style={{ width: 18, textAlign: 'center' }}>
-                    ↩
-                  </span>
-                  Emetti nota di credito
-                </button>
+                {azioni.map((azione, idx) => (
+                  <a
+                    key={azione.id}
+                    role="menuitem"
+                    href={azione.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      ...vocEstile,
+                      color: 'var(--t1)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      borderBottom: idx < azioni.length - 1 ? BORDER : 'none',
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ width: 18, textAlign: 'center' }}>
+                      {azione.icona}
+                    </span>
+                    {azione.etichetta}
+                  </a>
+                ))}
+                {stornabile && (
+                  <>
+                    {azioni.length > 0 && (
+                      <div aria-hidden="true" style={{ height: 1, background: 'var(--prs)', margin: '0' }} />
+                    )}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={apriFoglio}
+                      style={{
+                        ...vocEstile,
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontWeight: 700,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                    >
+                      <span aria-hidden="true" style={{ width: 18, textAlign: 'center' }}>
+                        ↩
+                      </span>
+                      Emetti nota di credito
+                    </button>
+                  </>
+                )}
               </motion.div>
             </>
           )}
@@ -547,6 +585,17 @@ export function NotaCreditoButton(props: Props) {
       </AnimatePresence>
     </div>
   )
+}
+
+/** Stile base condiviso delle voci del menu ⋯ (neutre e danger). */
+const vocEstile: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  minHeight: 48,
+  padding: '13px 14px',
+  fontFamily: FONT,
+  fontSize: 14,
 }
 
 const titleStyle: React.CSSProperties = {

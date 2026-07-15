@@ -15,3 +15,7 @@
 Variante A (bottone in card Azioni + sheet unico) scartata: per un'azione irreversibile e rara si privilegia la protezione da tap accidentale (2 tap intenzionali).
 
 Vincoli DS v2.3: token da `src/design-system/tokens.ts`, DM Sans, #D90012/#E8001A, dark flat, bottom sheet mobile (mai modal centrato), touch ≥44px, colore mai unico segnale.
+
+## Addendum 15/07 — Francesco: azioni documento reali nel menu ⋯
+
+Menu ⋯ con le azioni documento REALI della pagina (Scarica XML; Scarica PDF cortesia — stesso artefatto `pdf_storage_path` già generato da `generaFatturaPA`) come voci neutre + voce danger «↩ Emetti nota di credito» SEMPRE in coda, separata da divider. Il ⋯ resta visibile anche su fatture non stornabili purché abbia ≥1 voce reale (la danger semplicemente non c'è); senza voci né storno il ⋯ sparisce. Nessuna azione finta: «Invia al cliente» esclusa (nessun backend).
