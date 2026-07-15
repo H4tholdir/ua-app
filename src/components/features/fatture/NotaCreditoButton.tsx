@@ -286,7 +286,7 @@ export function NotaCreditoButton(props: Props) {
                 {stornabile && (
                   <>
                     {azioni.length > 0 && (
-                      <div aria-hidden="true" style={{ height: 1, background: 'var(--prs)', margin: '0' }} />
+                      <div role="separator" aria-orientation="horizontal" style={{ height: 1, background: 'var(--prs)', margin: '0' }} />
                     )}
                     <button
                       type="button"
