@@ -165,10 +165,13 @@ export async function generaFatturaPA(
   const clienteCodiceSdiEff = isTd04 ? draft!.cliente_codice_sdi : cliente!.codice_sdi
   const clientePecEff = isTd04 ? draft!.cliente_pec : cliente!.pec
   const cessNazione = isTd04 ? 'IT' : (cliente!.paese ?? 'IT')
-  // Indirizzo: preferisce lo snapshot quando valorizzato (immutabilità fiscale),
-  // fallback al registro (la batch route storicamente scrive '' nello snapshot).
+  // Indirizzo: via PURA dal registro (coerente con CAP/Comune/Provincia presi
+  // da lì), fallback allo snapshot combinato SOLO se la via del registro è
+  // vuota. Lo snapshot cliente_indirizzo è "Via…, CAP Città PROV": supererebbe
+  // il maxLength XSD di 60 su indirizzi reali e duplicherebbe CAP/Comune già
+  // emessi nei campi propri. Troncato a 60 char in ogni caso (anti-scarto XSD).
   const cessIndirizzo = isTd04
-    ? (draft!.cliente_indirizzo || clienteSede!.indirizzo || '')
+    ? (clienteSede!.indirizzo || draft!.cliente_indirizzo || '').slice(0, 60)
     : (cliente!.indirizzo ?? '')
   const cessCap = isTd04 ? (clienteSede!.cap ?? '00000') : (cliente!.cap ?? '00000')
   const cessComune = isTd04 ? (clienteSede!.citta ?? '') : (cliente!.citta ?? '')
@@ -332,6 +335,16 @@ export async function generaFatturaPA(
     ? chunk200(draft!.causale_storno).map((c) => `<Causale>${xe(c)}</Causale>`).join('')
     : ''
 
+  // Provincia: pattern XSD [A-Z]{2} — un <Provincia></Provincia> vuoto è
+  // scarto SdI certo. L'elemento (opzionale) viene OMESSO quando il valore
+  // manca — vale per cedente e cessionario, entrambi i rami (TD01 e TD04).
+  const cedenteProvinciaXml = labRow.provincia
+    ? `\n        <Provincia>${xe(labRow.provincia)}</Provincia>`
+    : ''
+  const cessProvinciaXml = cessProvincia
+    ? `\n        <Provincia>${xe(cessProvincia)}</Provincia>`
+    : ''
+
   // ── 9. Costruisce XML completo ────────────────────────────────────────────
   const nomeFileXml = `IT${labPiva}_${progressivoSdiStr}.xml`
 
@@ -362,8 +375,7 @@ export async function generaFatturaPA(
       <Sede>
         <Indirizzo>${xe(labRow.indirizzo ?? '')}</Indirizzo>
         <CAP>${xe(labRow.cap ?? '00000')}</CAP>
-        <Comune>${xe(labRow.citta ?? '')}</Comune>
-        <Provincia>${xe(labRow.provincia ?? '')}</Provincia>
+        <Comune>${xe(labRow.citta ?? '')}</Comune>${cedenteProvinciaXml}
         <Nazione>IT</Nazione>
       </Sede>
     </CedentePrestatore>
@@ -377,8 +389,7 @@ export async function generaFatturaPA(
       <Sede>
         <Indirizzo>${xe(cessIndirizzo)}</Indirizzo>
         <CAP>${xe(cessCap)}</CAP>
-        <Comune>${xe(cessComune)}</Comune>
-        <Provincia>${xe(cessProvincia)}</Provincia>
+        <Comune>${xe(cessComune)}</Comune>${cessProvinciaXml}
         <Nazione>${xe(cessNazione)}</Nazione>
       </Sede>
     </CessionarioCommittente>

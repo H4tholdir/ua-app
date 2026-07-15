@@ -61,17 +61,23 @@ const DRAFT_TD04 = {
 // i campi strutturali). Denominazione/P.IVA sono DELIBERATAMENTE diverse dallo
 // snapshot per provare il sourcing: se comparissero nell'XML, il ramo TD04
 // starebbe leggendo l'identità fiscale dal registro vivo invece che dallo snapshot.
+// Via del registro deliberatamente > 60 char per provare il troncamento
+// (maxLength XSD di <Indirizzo> = 60).
+const INDIRIZZO_REGISTRO_LUNGO =
+  'Viale della Ricostruzione Industriale Meridionale Isolato 42 Scala B'
+
 const CLIENTE_LIVE = {
   id: 'cli-1',
   studio_nome: 'Studio Rossi RINOMINATO DOPO EMISSIONE',
   partita_iva: '55555555555',
-  indirizzo: 'Via Nuova 99',
+  indirizzo: INDIRIZZO_REGISTRO_LUNGO,
   cap: '80122',
   citta: 'Napoli',
   provincia: 'NA',
 }
 
-function mockDraftTd04() {
+// clienteRow: riga `clienti` restituita dal mock (null = cliente cancellato dal registro).
+function mockDraftTd04(clienteRow: Record<string, unknown> | null = CLIENTE_LIVE) {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'laboratori') {
       const c: Record<string, unknown> = {}
@@ -84,7 +90,10 @@ function mockDraftTd04() {
       const c: Record<string, unknown> = {}
       c.select = () => c
       c.eq = () => c
-      c.single = async () => ({ data: CLIENTE_LIVE, error: null })
+      c.single = async () =>
+        clienteRow
+          ? { data: clienteRow, error: null }
+          : { data: null, error: { message: 'row not found' } }
       return c
     }
     if (table === 'fatture') {
@@ -136,8 +145,11 @@ describe('generaFatturaPA — ramo TD04 (nota di credito, snapshot congelato)', 
     expect(xmlContent).toContain('<Comune>Napoli</Comune>')
     expect(xmlContent).toContain('<CAP>80122</CAP>')
     expect(xmlContent).toContain('<Provincia>NA</Provincia>')
-    // Indirizzo: preferisce lo snapshot quando valorizzato.
-    expect(xmlContent).toContain('<Indirizzo>Via Y 2, 80100 Napoli NA</Indirizzo>')
+    // Indirizzo: via PURA dal registro (non lo snapshot combinato "Via…, CAP
+    // Città PROV" che duplicherebbe CAP/Comune), troncata a 60 char (maxLength XSD).
+    expect(xmlContent).toContain(`<Indirizzo>${INDIRIZZO_REGISTRO_LUNGO.slice(0, 60)}</Indirizzo>`)
+    expect(xmlContent).not.toContain(`>${INDIRIZZO_REGISTRO_LUNGO}<`) // troncato, mai intero
+    expect(xmlContent).not.toContain('Via Y 2, 80100 Napoli NA') // snapshot combinato non emesso
 
     // Identità fiscale dallo SNAPSHOT, mai dal registro live (che nel mock è
     // stato deliberatamente rinominato/ri-P.IVA-to dopo l'emissione).
@@ -173,32 +185,7 @@ describe('generaFatturaPA — ramo TD04 (nota di credito, snapshot congelato)', 
   })
 
   it('cliente non più nel registro: throw esplicito (meglio errore chiaro che XML scartato da SdI)', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'laboratori') {
-        const c: Record<string, unknown> = {}
-        c.select = () => c
-        c.eq = () => c
-        c.single = async () => ({ data: LAB, error: null })
-        return c
-      }
-      if (table === 'clienti') {
-        const c: Record<string, unknown> = {}
-        c.select = () => c
-        c.eq = () => c
-        c.single = async () => ({ data: null, error: { message: 'row not found' } })
-        return c
-      }
-      if (table === 'fatture') {
-        return {
-          select: () => ({ eq: () => ({ single: async () => ({ data: DRAFT_TD04, error: null }) }) }),
-          update: (payload: Record<string, unknown>) => {
-            updatePayloads.push(payload)
-            return { eq: async () => ({ error: null }) }
-          },
-        }
-      }
-      throw new Error(`Unexpected table: ${table}`)
-    })
+    mockDraftTd04(null)
 
     await expect(generaFatturaPA(null, 'fatt-99')).rejects.toThrow(
       /\[TD04\] Cliente cli-1 non trovato nel registro/
@@ -206,5 +193,23 @@ describe('generaFatturaPA — ramo TD04 (nota di credito, snapshot congelato)', 
     // Nessuna scrittura: l'errore blocca PRIMA di upload/UPDATE.
     expect(uploads).toHaveLength(0)
     expect(updatePayloads).toHaveLength(0)
+  })
+
+  it('provincia null nel registro: elemento <Provincia> OMESSO (pattern XSD [A-Z]{2}, mai vuoto)', async () => {
+    // Via del registro vuota → fallback allo snapshot combinato per <Indirizzo>.
+    mockDraftTd04({ ...CLIENTE_LIVE, indirizzo: '', provincia: null })
+
+    await generaFatturaPA(null, 'fatt-99')
+
+    const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
+    const xmlContent = String(xmlUpload?.bytes)
+    // Mai un elemento Provincia vuoto (scarto SdI): omesso quando manca.
+    expect(xmlContent).not.toContain('<Provincia></Provincia>')
+    // Resta solo la Provincia del cedente (LAB, 'NA'): una sola occorrenza.
+    expect(xmlContent.match(/<Provincia>/g)).toHaveLength(1)
+    // Fallback indirizzo: via registro vuota → snapshot combinato (troncato a 60).
+    expect(xmlContent).toContain('<Indirizzo>Via Y 2, 80100 Napoli NA</Indirizzo>')
+    // Comune sempre presente e non vuoto.
+    expect(xmlContent).toContain('<Comune>Napoli</Comune>')
   })
 })
