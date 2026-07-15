@@ -87,6 +87,7 @@
   --c-red:    #EF4444;
   --c-purple: #8B5CF6;
   --c-amber-ink: #92400E;  /* amber INK per testo/valori — WCAG AA su tinta ambra chiara (5.01:1); MAI usare --c-amber come colore testo */
+  --red-ink: #B00010;      /* rosso testo AA — alert saldo negativo (5.6:1 su --sfc light) */
 
   /* Shadows warm-tinted asimmetriche (da admin.css) */
   --sh-c:
@@ -158,6 +159,7 @@
   --t3:      #5A5652;
   --primary: #E8001A;
   --c-amber-ink: #F59E0B;  /* dark: ink = amber pieno (6.07:1 su tinta ambra dark) */
+  --red-ink: #FF5A66;      /* rosso testo AA — alert saldo negativo (5.4:1 su --sfc dark) */
   --sh-c:
     inset 0 1px 0 rgba(255,255,255,.055),
     inset 0 -1px 2px rgba(0,0,0,.22),

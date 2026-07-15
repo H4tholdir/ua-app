@@ -42,7 +42,7 @@ export function CreditoDisponibileSection({ disponibile, clienteId, dovutiApplic
                 Saldo negativo
               </div>
               <div style={{
-                fontFamily: 'DM Sans, sans-serif', fontSize: 24, fontWeight: 700, color: DS.red,
+                fontFamily: 'DM Sans, sans-serif', fontSize: 24, fontWeight: 700, color: DS.redInk,
                 fontVariantNumeric: 'tabular-nums', marginTop: 2,
               }}>
                 {fmt.format(disponibile)}

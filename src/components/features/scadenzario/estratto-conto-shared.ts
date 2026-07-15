@@ -21,6 +21,7 @@ export const DS = {
   // WCAG AA in entrambi i temi. La tinta/bordo ambra (background, color-mix)
   // continua a usare --c-amber direttamente — NON questo alias.
   gold:    'var(--c-amber-ink, #92400E)',
+  redInk:  'var(--red-ink, #B00010)',   /* rosso testo AA per importo alert saldo negativo */
   green:   'var(--success, #16A34A)',
   shB: 'var(--sh-b)',
   shI: 'var(--sh-i)',
