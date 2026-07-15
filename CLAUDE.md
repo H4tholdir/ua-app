@@ -16,9 +16,9 @@ Prima di qualsiasi lavoro, in ordine:
 Aggiorna `memory/SESSION_ACTIVE.md` dopo ogni blocco di lavoro significativo (commit, decisione architetturale, bug importante). Sostituisci il file, non appendere. Max 200 token.
 
 Documenti chiave:
-- `docs/superpowers/specs/2026-05-27-design-system-v2-3.md` → **DESIGN SYSTEM v2.3 — UNICA FONTE DI VERITÀ (sostituisce v2.2)**
-- `src/design-system/tokens.ts` → **TOKEN CSS/TS — importa da qui, MAI inline**
-- `src/design-system/motion.ts` → **MOTION POLICY OBBLIGATORIA**
+- `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md` → **DESIGN SYSTEM v3.2 «Una cosa alla volta» — UNICA FONTE DI VERITÀ per UI (in vigore dal 07/07/2026)**
+- `docs/superpowers/specs/2026-05-27-design-system-v2-3.md` → DS v2.3, **DEPRECATO** — vale SOLO per superfici legacy non ancora migrate
+- **Regola di convivenza (DS v3 §14):** la migrazione è **per route, MAI per componente**. Pagina già v3 (o nuova ondata v3) → token/motion/suoni/haptic da `src/design-system/v3/*`, componenti SOLO da `src/components/ds/`, wrapper `[data-ds="v3"]`. Pagina ancora v2.3 → `src/design-system/{tokens,motion}.ts` + `src/lib/feedback/*`. MAI mischiare i due sistemi nella stessa pagina.
 - `../ANALISI/23_ua_database_schema.md` → schema DB
 - `docs/roadmap/ROADMAP-UFFICIALE.md` → **ROADMAP — fonte di verità su cosa fare e non fare**
 
@@ -120,8 +120,8 @@ Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezion
 3. **Screenshot Playwright** del mockup — salvare anche in `docs/design/mockups/screenshots/`. **Mostrare SEMPRE PIÙ VARIANTI** (light+dark) tra cui scegliere, MAI una sola (preferenza permanente di Francesco): l'anteprima precede sempre il codice.
 4. **Approvazione Francesco** — aspettare esplicito "ok procedi"/scelta della variante prima di scrivere React. Scrivere la decisione in `docs/design/decisions/YYYY-MM-DD-nome-feature.md`.
 5. **Implementazione React** — fedele al mockup approvato, con:
-   - **Animazioni** da `src/design-system/motion.ts` (SOLO token, MAI inline)
-   - **Suoni/Haptic** da `src/lib/feedback/sounds.ts` e `src/lib/feedback/haptic.ts`
+   - **Animazioni** SOLO da token (MAI inline): pagine v3 → `src/design-system/v3/motion.ts` (molle/coreografie); pagine legacy v2.3 → `src/design-system/motion.ts`
+   - **Suoni/Haptic**: pagine v3 → `src/design-system/v3/{sound,haptic}.ts`; pagine legacy v2.3 → `src/lib/feedback/sounds.ts` e `src/lib/feedback/haptic.ts`
    - **3 viewport**: mobile 390px (card-first, bottom sheet), tablet 768px (split-view), desktop 1280px (tabella/layout completo)
    - **Accessibilità**: `prefers-reduced-motion`, touch target ≥ 44px, colore mai unica fonte di stato
 
@@ -167,10 +167,14 @@ npx tsx scripts/seed-e2e.ts    # seed fixture E2E (idempotente)
 
 ## 4. Regola Motion — ASSOLUTA
 
-**NON inventare duration, easing, spring.** Tutto da `src/design-system/motion.ts`.
+**NON inventare duration, easing, spring.** Tutto da token, in base al DS della pagina.
 
 ```typescript
-// ✅ CORRETTO
+// ✅ CORRETTO — pagina v3 (molle §8.1)
+import { molla } from "@/design-system/v3/motion"
+transition={molla.smooth}
+
+// ✅ CORRETTO — pagina legacy v2.3
 import { t } from "@/design-system/motion"
 transition={t("normal", "enter")}
 
@@ -212,13 +216,13 @@ chore(deps): add motion@12
 
 ---
 
-## 8. Stato Attuale (18/05/2026)
+## 8. Stato Attuale (15/07/2026)
 
 Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
 
 **Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
-**Design system:** v2.3 warm panna (unica fonte di verità — vedi §0). Eventuali pagine legacy pre-Piano D: aggiornare i nuovi elementi al v2.3, non riscrivere l'intera pagina.
+**Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`. Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
 
 ---
 
