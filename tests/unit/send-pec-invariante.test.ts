@@ -42,7 +42,8 @@ function selectChain(result: { data: unknown; error: unknown }) {
 }
 function updateChain(result: { data: unknown; error: unknown }) {
   const c: Record<string, unknown> = {}
-  for (const m of ['update', 'eq']) c[m] = () => c
+  // 'select' incluso: send-pec.ts ora chiama .select('id') dopo l'update (guardia D-7)
+  for (const m of ['update', 'eq', 'select']) c[m] = () => c
   ;(c as { then: unknown }).then = (resolve: (v: unknown) => void) => resolve(result)
   return c
 }

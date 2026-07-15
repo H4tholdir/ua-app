@@ -1,0 +1,94 @@
+// tests/unit/send-pec-destinatario.test.ts
+// D-6: destinatario PEC dinamico da laboratori.pec_sdi_address (fallback sdi01@pec.fatturapa.it).
+// D-7: guardia anti-regressione stato_sdi — UPDATE .eq('stato_sdi','generata'); 0 righe =
+// riconciliazione già avvenuta (non un errore) → SOLO log, MAI throw (contratto N10).
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const { mockFrom, mockRpc, mockSendMail } = vi.hoisted(() => ({
+  mockFrom: vi.fn(),
+  mockRpc: vi.fn(),
+  mockSendMail: vi.fn(),
+}))
+
+vi.mock('server-only', () => ({}))
+vi.mock('nodemailer', () => ({
+  default: { createTransport: () => ({ sendMail: mockSendMail }) },
+}))
+vi.mock('@/lib/supabase/server-service', () => ({
+  getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
+}))
+vi.mock('@/lib/storage/signed-url', () => ({
+  getSignedUrl: async () => 'https://signed.example/xml',
+}))
+
+import { sendFatturaPEC } from '@/lib/fattura/send-pec'
+
+function fattura(pecSdiAddress: string | null) {
+  return {
+    id: 'fat-1', numero: '2026-0007', nome_file_xml: 'IT123_00007.xml',
+    xml_storage_path: 'lab-1/2026/IT123_00007.xml', laboratorio_id: 'lab-1', data: '2026-07-15',
+    laboratorio: {
+      id: 'lab-1', nome: 'Lab Test', pec_host: 'pec.example.com', pec_port: 465,
+      pec_user: 'lab@pec.example.com', pec_smtp_configurata: true, pec_vault_key_id: 'k1',
+      pec_sdi_address: pecSdiAddress,
+    },
+  }
+}
+
+function selectChain(result: { data: unknown; error: unknown }) {
+  const c: Record<string, unknown> = {}
+  for (const m of ['select', 'eq']) c[m] = () => c
+  c.single = async () => result
+  return c
+}
+function updateChain(result: { data: unknown; error: unknown }) {
+  const c: Record<string, unknown> = {}
+  for (const m of ['update', 'eq', 'select']) c[m] = () => c
+  ;(c as { then: unknown }).then = (resolve: (v: unknown) => void) => resolve(result)
+  return c
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true,
+    arrayBuffer: async () => new TextEncoder().encode('<xml/>').buffer,
+  })))
+  mockRpc.mockResolvedValue({ data: 'pec-password', error: null })
+  mockSendMail.mockResolvedValue({ messageId: '<msg-1>' })
+})
+
+describe('sendFatturaPEC — destinatario dinamico (D-6) + guardia stato (D-7)', () => {
+  it('pec_sdi_address custom → sendMail "to" usa l\'indirizzo custom', async () => {
+    let updates = 0
+    mockFrom.mockImplementation(() => {
+      if (updates++ === 0) return selectChain({ data: fattura('sdi43@pec.fatturapa.it'), error: null })
+      return updateChain({ data: [{ id: 'fat-1' }], error: null })
+    })
+    await sendFatturaPEC('fat-1')
+    expect(mockSendMail).toHaveBeenCalledWith(expect.objectContaining({ to: 'sdi43@pec.fatturapa.it' }))
+  })
+
+  it('pec_sdi_address NULL → fallback sdi01@pec.fatturapa.it (comportamento identico all\'attuale)', async () => {
+    let updates = 0
+    mockFrom.mockImplementation(() => {
+      if (updates++ === 0) return selectChain({ data: fattura(null), error: null })
+      return updateChain({ data: [{ id: 'fat-1' }], error: null })
+    })
+    await sendFatturaPEC('fat-1')
+    expect(mockSendMail).toHaveBeenCalledWith(expect.objectContaining({ to: 'sdi01@pec.fatturapa.it' }))
+  })
+
+  it('D-7: UPDATE 0 righe (fattura non più "generata") → nessun throw, console.error loggato', async () => {
+    let updates = 0
+    mockFrom.mockImplementation(() => {
+      if (updates++ === 0) return selectChain({ data: fattura(null), error: null })
+      return updateChain({ data: [], error: null })
+    })
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(sendFatturaPEC('fat-1')).resolves.toBeUndefined()
+    expect(mockSendMail).toHaveBeenCalledTimes(1)
+    expect(errSpy).toHaveBeenCalled()
+    errSpy.mockRestore()
+  })
+})

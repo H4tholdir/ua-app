@@ -40,6 +40,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
   const [verifyStepLabel, setVerifyStepLabel] = useState('Connessione al server…')
   const [errorMsg, setErrorMsg] = useState('')
   const [token, setToken] = useState('')
+  const [sdiAddress, setSdiAddress] = useState('')
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const t1Ref = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const t2Ref = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -55,6 +56,14 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
   }, [email])
 
   const canSubmit = !!(email && password && (phase === 'provider_found' || (phase === 'provider_unknown' && host && smtpUser)))
+
+  const handleSdiAddressBlur = useCallback(() => {
+    fetch('/api/impostazioni/pec', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pec_sdi_address: sdiAddress }),
+    }).catch(() => { /* campo opzionale — errori di salvataggio non bloccano il flusso PEC */ })
+  }, [sdiAddress])
 
   const startVerify = useCallback(async () => {
     setPhase('verifying')
@@ -241,6 +250,17 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
       <div style={field}>
         <label style={lbl}>Password PEC</label>
         <input style={inp} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+      </div>
+
+      <div style={field}>
+        <label style={lbl}>Indirizzo PEC SdI (opzionale)</label>
+        <input style={inp} type="email" value={sdiAddress}
+          onChange={e => setSdiAddress(e.target.value)}
+          onBlur={handleSdiAddressBlur}
+          placeholder="sdi01@pec.fatturapa.it" />
+        <div style={{ fontSize: '11px', color: 'var(--t3)', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginTop: '4px' }}>
+          Comunicato da SdI con la prima ricevuta. Lascia vuoto se non ancora ricevuto.
+        </div>
       </div>
 
       {phase === 'idle' && (

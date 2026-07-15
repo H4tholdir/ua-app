@@ -12,6 +12,7 @@ interface LabPecRow {
   pec_user: string | null
   pec_smtp_configurata: boolean
   pec_vault_key_id: string | null
+  pec_sdi_address: string | null
 }
 
 interface FatturaRow {
@@ -44,7 +45,8 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
         pec_port,
         pec_user,
         pec_smtp_configurata,
-        pec_vault_key_id
+        pec_vault_key_id,
+        pec_sdi_address
       )
     `)
     .eq('id', fattura_id)
@@ -121,7 +123,9 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
   // ── 6. Invia a SDI via PEC ───────────────────────────────────────────────
   const info = await transport.sendMail({
     from: lab.pec_user,
-    to: 'sdi01@pec.fatturapa.it',
+    // D-6: destinatario dinamico — sdiNN comunicato da SdI dopo il primo invio,
+    // fallback all'indirizzo generico se non ancora noto (Task 9, spec R1 §3.1).
+    to: lab.pec_sdi_address ?? 'sdi01@pec.fatturapa.it',
     subject: `Fattura ${fattura.nome_file_xml}`,
     text: `Invio fattura elettronica ${fattura.numero} ai sensi delle normative vigenti.`,
     attachments: [
@@ -139,8 +143,10 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
   // un throw qui causerebbe un secondo invio fiscale a SdI.
 
   // ── 7. Aggiorna stato fattura ─────────────────────────────────────────────
+  // guardia D-7: mai regredire uno stato avanzato da una ricevuta; 0 righe =
+  // riconciliazione già avvenuta, non è un errore.
   const now = new Date().toISOString()
-  const { error: updateErr } = await supabase
+  const { data: updated, error: updateErr } = await supabase
     .from('fatture')
     .update({
       stato_sdi: 'smtp_inviata',
@@ -150,10 +156,17 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
       pec_message_id: info.messageId,
     } as Record<string, unknown>)
     .eq('id', fattura_id)
+    .eq('stato_sdi', 'generata')
+    .select('id')
 
   if (updateErr) {
     // Non lanciamo eccezione: la mail è già stata inviata.
     // Loggiamo e continuiamo — un cron potrà recuperare lo stato.
     console.error(`[sendFatturaPEC] UPDATE stato_sdi fallito per fattura ${fattura_id}:`, updateErr.message)
+  } else if (!updated || updated.length === 0) {
+    // guardia D-7: 0 righe = una ricevuta SdI ha già fatto avanzare lo stato
+    // oltre 'generata' (riconciliazione concorrente) — non è un errore, MAI
+    // regredire lo stato scrivendo comunque. Solo log (contratto N10).
+    console.error(`[sendFatturaPEC] UPDATE stato_sdi saltato per fattura ${fattura_id}: stato non più 'generata' (riconciliazione già avvenuta)`)
   }
 }

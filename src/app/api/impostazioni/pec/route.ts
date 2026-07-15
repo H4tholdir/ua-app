@@ -23,7 +23,7 @@ export async function PATCH(req: Request) {
   const labId = await getLabId(user.id)
   if (!labId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 
-  let body: { pec_host?: string; pec_port?: number; pec_user?: string; pec_password?: string } | null = null
+  let body: { pec_host?: string; pec_port?: number; pec_user?: string; pec_password?: string; pec_sdi_address?: string } | null = null
   try {
     body = await req.json()
   } catch {
@@ -38,6 +38,16 @@ export async function PATCH(req: Request) {
   if (body.pec_host !== undefined) updateFields.pec_host = body.pec_host || null
   if (body.pec_port !== undefined) updateFields.pec_port = body.pec_port || null
   if (body.pec_user !== undefined) updateFields.pec_user = body.pec_user || null
+  if (body.pec_sdi_address !== undefined) {
+    const trimmed = body.pec_sdi_address.trim()
+    if (trimmed === '') {
+      updateFields.pec_sdi_address = null
+    } else if (/^sdi\d{2}@pec\.fatturapa\.it$/.test(trimmed)) {
+      updateFields.pec_sdi_address = trimmed
+    } else {
+      return NextResponse.json({ error: 'pec_sdi_address non valido: formato atteso sdiNN@pec.fatturapa.it' }, { status: 400 })
+    }
+  }
 
   if (Object.keys(updateFields).length > 0) {
     const { error } = await svc.from('laboratori').update(updateFields).eq('id', labId)
