@@ -1134,6 +1134,7 @@ export type Database = {
           fattura_collegata_id: string | null
           formato_trasmissione: string
           id: string
+          identificativo_sdi: string | null
           imponibile: number
           imponibile_netto: number | null
           importo_pagato: number
@@ -1200,6 +1201,7 @@ export type Database = {
           fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
+          identificativo_sdi?: string | null
           imponibile?: number
           imponibile_netto?: number | null
           importo_pagato?: number
@@ -1266,6 +1268,7 @@ export type Database = {
           fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
+          identificativo_sdi?: string | null
           imponibile?: number
           imponibile_netto?: number | null
           importo_pagato?: number
@@ -2062,6 +2065,7 @@ export type Database = {
           pec: string | null
           pec_host: string | null
           pec_port: number | null
+          pec_sdi_address: string | null
           pec_smtp_configurata: boolean
           pec_user: string | null
           pec_vault_key_id: string | null
@@ -2126,6 +2130,7 @@ export type Database = {
           pec?: string | null
           pec_host?: string | null
           pec_port?: number | null
+          pec_sdi_address?: string | null
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
@@ -2190,6 +2195,7 @@ export type Database = {
           pec?: string | null
           pec_host?: string | null
           pec_port?: number | null
+          pec_sdi_address?: string | null
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
@@ -5571,6 +5577,10 @@ export type Database = {
         }
         Returns: Json
       }
+      applica_ricevuta_sdi: {
+        Args: { p_evento_id: string; p_laboratorio_id: string }
+        Returns: Json
+      }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
       articoli_sotto_scorta_minima: {
         Args: { p_lab_id: string }
@@ -5675,6 +5685,7 @@ export type Database = {
           tentativi: number
         }[]
       }
+      rank_stato_sdi: { Args: { p_stato: string }; Returns: number }
       refresh_dashboard_cache: {
         Args: { p_lab_id: string }
         Returns: undefined
