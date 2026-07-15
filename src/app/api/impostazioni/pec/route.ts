@@ -39,6 +39,10 @@ export async function PATCH(req: Request) {
   if (body.pec_port !== undefined) updateFields.pec_port = body.pec_port || null
   if (body.pec_user !== undefined) updateFields.pec_user = body.pec_user || null
   if (body.pec_sdi_address !== undefined) {
+    // Type guard PRIMA del trim: null/number/object nel JSON → 400, non TypeError/500
+    if (typeof body.pec_sdi_address !== 'string') {
+      return NextResponse.json({ error: 'pec_sdi_address non valido: attesa una stringa' }, { status: 400 })
+    }
     const trimmed = body.pec_sdi_address.trim()
     if (trimmed === '') {
       updateFields.pec_sdi_address = null

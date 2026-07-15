@@ -50,6 +50,7 @@ export async function GET() {
       regime_fiscale,
       codice_iva_default,
       pec_smtp_configurata,
+      pec_sdi_address,
       piano,
       created_at,
       updated_at

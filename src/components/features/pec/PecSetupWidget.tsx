@@ -41,6 +41,8 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
   const [errorMsg, setErrorMsg] = useState('')
   const [token, setToken] = useState('')
   const [sdiAddress, setSdiAddress] = useState('')
+  const [sdiBaseline, setSdiBaseline] = useState('')
+  const [sdiSaveError, setSdiSaveError] = useState('')
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const t1Ref = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const t2Ref = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -57,13 +59,43 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
 
   const canSubmit = !!(email && password && (phase === 'provider_found' || (phase === 'provider_unknown' && host && smtpUser)))
 
-  const handleSdiAddressBlur = useCallback(() => {
-    fetch('/api/impostazioni/pec', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pec_sdi_address: sdiAddress }),
-    }).catch(() => { /* campo opzionale — errori di salvataggio non bloccano il flusso PEC */ })
-  }, [sdiAddress])
+  // Pre-popola l'indirizzo SdI già salvato: il salvataggio su blur è guardato da
+  // dirty-check contro questa baseline — senza, una semplice revisita della pagina
+  // cancellerebbe ('' → null) l'indirizzo pec_sdi_address esistente.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/impostazioni')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data) return
+        const addr = (data as { laboratorio?: { pec_sdi_address?: string | null } }).laboratorio?.pec_sdi_address ?? ''
+        setSdiAddress(addr)
+        setSdiBaseline(addr)
+      })
+      .catch(() => { /* baseline resta '' → il dirty-check impedisce comunque PATCH involontarie */ })
+    return () => { cancelled = true }
+  }, [])
+
+  const handleSdiAddressBlur = useCallback(async () => {
+    const value = sdiAddress.trim()
+    if (value === sdiBaseline) return // dirty-check: nessuna modifica → nessuna PATCH
+    setSdiSaveError('')
+    try {
+      const res = await fetch('/api/impostazioni/pec', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pec_sdi_address: value }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSdiSaveError((data as { error?: string }).error ?? 'Salvataggio non riuscito. Riprova.')
+        return
+      }
+      setSdiBaseline(value)
+    } catch {
+      setSdiSaveError('Salvataggio non riuscito. Controlla la connessione e riprova.')
+    }
+  }, [sdiAddress, sdiBaseline])
 
   const startVerify = useCallback(async () => {
     setPhase('verifying')
@@ -255,12 +287,17 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
       <div style={field}>
         <label style={lbl}>Indirizzo PEC SdI (opzionale)</label>
         <input style={inp} type="email" value={sdiAddress}
-          onChange={e => setSdiAddress(e.target.value)}
+          onChange={e => { setSdiAddress(e.target.value); if (sdiSaveError) setSdiSaveError('') }}
           onBlur={handleSdiAddressBlur}
           placeholder="sdi01@pec.fatturapa.it" />
         <div style={{ fontSize: '11px', color: 'var(--t3)', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginTop: '4px' }}>
           Comunicato da SdI con la prima ricevuta. Lascia vuoto se non ancora ricevuto.
         </div>
+        {sdiSaveError && (
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#D90012', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginTop: '2px' }}>
+            ❌ {sdiSaveError}
+          </div>
+        )}
       </div>
 
       {phase === 'idle' && (
