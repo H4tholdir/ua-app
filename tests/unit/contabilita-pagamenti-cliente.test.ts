@@ -23,6 +23,12 @@ function createFakeSupabase(data: {
     from(table: string) {
       if (table !== 'pagamenti') throw new Error(`tabella inattesa: ${table}`)
       let via: Via | null = null
+      // Task 5 (audit letture storno TD04, Gruppo E): a differenza degli
+      // altri `is()` (no-op, si assume che la fixture rappresenti già i dati
+      // filtrati da Postgres), il filtro annidato `fatture.stornata_at`
+      // filtra davvero — per testare il comportamento del predicato, non
+      // solo che venga invocato con gli argomenti giusti.
+      let righeFatture = data.viaFatture ?? []
       const builder = {
         select(cols: string) {
           selects.push(cols)
@@ -35,10 +41,15 @@ function createFakeSupabase(data: {
         },
         is(col: string, val: unknown) {
           if (via) isCalls[via].push([col, val])
+          if (via === 'fatture' && col === 'fatture.stornata_at') {
+            righeFatture = righeFatture.filter(
+              (r) => (((r.fatture as Record<string, unknown> | undefined)?.stornata_at) ?? null) === val
+            )
+          }
           return builder
         },
         then(resolve: (v: { data: unknown; error: unknown }) => void) {
-          if (via === 'fatture') resolve({ data: data.erroreFatture ? null : (data.viaFatture ?? []), error: data.erroreFatture ?? null })
+          if (via === 'fatture') resolve({ data: data.erroreFatture ? null : righeFatture, error: data.erroreFatture ?? null })
           else resolve({ data: data.erroreLavori ? null : (data.viaLavori ?? []), error: data.erroreLavori ?? null })
         },
       }
@@ -94,8 +105,30 @@ describe('getPagamentiCliente', () => {
           [`${via}.laboratorio_id`, 'lab-1'],
         ])
       )
-      expect(isCalls[via]).toEqual([[`${via}.deleted_at`, null]])
+      // Task 5 (audit letture storno TD04, Gruppo E): sulla via fatture si
+      // aggiunge il filtro stornata_at — la via lavori non ha questa colonna.
+      expect(isCalls[via]).toEqual(
+        via === 'fatture'
+          ? [['fatture.deleted_at', null], ['fatture.stornata_at', null]]
+          : [['lavori.deleted_at', null]]
+      )
     }
+  })
+
+  // Task 5 (audit letture storno TD04, Gruppo E): un pagamento la cui
+  // fattura è stata stornata non compare più nello storico — il credito
+  // compensativo vive in credito_clienti_movimenti (tipo 'storno', Task 4).
+  it('esclude i pagamenti di una fattura stornata (via fatture)', async () => {
+    const { fake } = createFakeSupabase({
+      viaFatture: [
+        { data_pagamento: '2026-03-10', importo: 300, metodo: 'bonifico', fatture: { numero: '2026-0001', stornata_at: '2026-07-10T10:00:00.000Z' } },
+        { data_pagamento: '2026-04-01', importo: 80, metodo: 'contanti', fatture: { numero: '2026-0002', stornata_at: null } },
+      ],
+      viaLavori: [],
+    })
+    const r = await getPagamentiCliente(fake, 'lab-1', 'cli-1')
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ destinazione: { tipo: 'fattura', numero: '2026-0002' } })
   })
 
   it('errore sulla via fatture → throw (fail-closed, mai lista parziale)', async () => {

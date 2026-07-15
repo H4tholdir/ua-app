@@ -49,7 +49,8 @@ export async function GET(req: Request) {
       bollo,
       stato_sdi,
       pagata,
-      inviata_via
+      inviata_via,
+      tipo_documento
     `
     )
     .eq('laboratorio_id', labId)
@@ -80,6 +81,7 @@ export async function GET(req: Request) {
 
   const header = [
     'Numero Fattura',
+    'Tipo Documento',
     'Data Emissione',
     'Cliente',
     'Cod. Fiscale',
@@ -97,12 +99,21 @@ export async function GET(req: Request) {
     const cfPiva = f.cliente_piva ?? f.cliente_cf ?? ''
     // Escape per CSV: wrap in virgolette doppie, raddoppia le virgolette interne
     const escapeField = (val: string) => `"${val.replace(/"/g, '""')}"`
+    // Task 5 (audit letture storno TD04, Gruppo B): il TD04 pesa come riga
+    // negativa nel proprio mese di emissione — l'originale stornato NON
+    // viene mai filtrato via (resta nel suo mese con l'importo originale,
+    // invariato). `totale` in DB è sempre positivo anche per il TD04 (Task
+    // 3/6): il segno si applica solo qui, in lettura, su tutti gli importi
+    // monetari (coerenza contabile della riga, non solo del totale).
+    const isTD04 = f.tipo_documento === 'TD04'
+    const segno = isTD04 ? -1 : 1
     // Formatto numeri con virgola decimale per Excel IT
     const num = (n: number | null) =>
-      (n ?? 0).toFixed(2).replace('.', ',')
+      ((n ?? 0) * segno).toFixed(2).replace('.', ',')
 
     return [
       f.numero ?? '',
+      isTD04 ? 'Nota di Credito' : 'Fattura',
       f.data?.split('T')[0] ?? '',
       escapeField(f.cliente_denominazione ?? ''),
       f.cliente_cf ?? '',

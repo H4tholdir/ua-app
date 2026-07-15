@@ -67,6 +67,12 @@ export async function getCreditoScadutoPerCliente(
     .eq('pagata', false)
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
+    // Task 5 (audit letture storno TD04): una TD01 stornata non è più un
+    // dovuto scaduto (il credito compensativo vive in
+    // credito_clienti_movimenti, Task 4); il TD04 stesso non è mai un
+    // "pagamento scaduto" (lavoro_id NULL — non rappresenta un incasso atteso).
+    .is('stornata_at', null)
+    .neq('tipo_documento', 'TD04')
     .lt('data', cutoffISO)
 
   for (const f of (fattureData ?? []) as unknown as Array<{
@@ -196,6 +202,11 @@ export async function getContabilitaCliente(
     .eq('laboratorio_id', labId)
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
+    // Task 5 (audit letture storno TD04): stesso invariante di
+    // getCreditoScadutoPerCliente sopra — TD01 stornata e TD04 esclusi dai
+    // dovuti, altrimenti lo stesso importo comparirebbe due volte.
+    .is('stornata_at', null)
+    .neq('tipo_documento', 'TD04')
     .order('data', { ascending: false })
   // Fail-closed (follow-up Ondata 3): mai lista vuota silenziosa su errore —
   // il saldo mostrato (scadenzario lab E portale dentista) sarebbe più basso
@@ -357,7 +368,14 @@ export async function getPagamentiCliente(
       .eq('stato', 'attivo')
       .eq('fatture.cliente_id', clienteId)
       .eq('fatture.laboratorio_id', labId)
-      .is('fatture.deleted_at', null),
+      .is('fatture.deleted_at', null)
+      // Task 5 (audit letture storno TD04, Gruppo E): un pagamento storico su
+      // una fattura poi stornata resta un movimento reale già incassato — non
+      // lo nascondiamo, ma non deve più risultare "su una fattura attiva".
+      // Qui filtriamo comunque le stornate per coerenza con Gruppo A/C: il
+      // credito compensativo del cliente vive in credito_clienti_movimenti
+      // (tipo 'storno'), non in questo elenco pagamenti.
+      .is('fatture.stornata_at', null),
     svc
       .from('pagamenti')
       .select('data_pagamento, importo, metodo, lavori!inner(numero_lavoro)')
