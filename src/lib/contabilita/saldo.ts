@@ -5,7 +5,7 @@ export interface RigaImporto {
 }
 
 export interface MovimentoCreditoRiga {
-  tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'
+  tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso' | 'annullo_storno'
   importo: number
 }
 
@@ -45,13 +45,15 @@ export function calcolaEccedenza(importoPagamento: number, residuoPreEsistente: 
 }
 
 /**
- * Saldo credito cliente = eccedenze + storni - applicazioni - rimborsi.
- * 'storno' è il credito generato dalla nota di credito TD04 su una fattura
- * pagata (Task 4): movimento dedicato, MAI un'eccedenza (nessun pagamento
- * sorgente da gateare).
+ * Saldo credito cliente = eccedenze + storni - applicazioni - rimborsi - annulli storno.
+ * 'annullo_storno' (spec R1 §6, D-2) neutralizza uno 'storno' quando il TD04 viene
+ * RIFIUTATO da SdI: ledger append-only, mai DELETE. Il saldo PUÒ andare negativo
+ * (credito già applicato) — la UI lo mostra come alert, non lo nasconde.
  */
 export function calcolaCreditoDisponibile(movimenti: MovimentoCreditoRiga[]): number {
   const somma = (tipo: MovimentoCreditoRiga['tipo']) =>
     movimenti.filter((m) => m.tipo === tipo).reduce((s, m) => s + m.importo, 0)
-  return round2(somma('eccedenza') + somma('storno') - somma('applicazione') - somma('rimborso'))
+  return round2(
+    somma('eccedenza') + somma('storno') - somma('applicazione') - somma('rimborso') - somma('annullo_storno')
+  )
 }

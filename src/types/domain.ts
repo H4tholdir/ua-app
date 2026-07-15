@@ -628,7 +628,7 @@ export interface Pagamento {
 // ============================================================
 // CREDITO CLIENTI — eccedenze, applicazioni, rimborsi — B2
 // ============================================================
-export type TipoMovimentoCredito = 'eccedenza' | 'applicazione' | 'rimborso';
+export type TipoMovimentoCredito = 'eccedenza' | 'applicazione' | 'rimborso' | 'storno' | 'annullo_storno';
 
 export interface CreditoClienteMovimento {
   id: string;
@@ -642,7 +642,7 @@ export interface CreditoClienteMovimento {
   metodo: MetodoPagamento | null;
   metodo_nota: string | null;
   note: string | null;
-  registrato_da: string;
+  registrato_da: string | null;
   created_at: string;
 }
 
