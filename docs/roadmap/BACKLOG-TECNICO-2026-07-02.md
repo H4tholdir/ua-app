@@ -419,10 +419,21 @@ In `src/components/features/scadenzario/estratto-conto-shared.ts` gli helper `ur
 ### N5. ✅ RISOLTO (15/07/2026, `main` `d0d83c8`) — `generaFatturaPA` hardcoda TD01 — blocca le note di credito TD04 (IMPORTANT, emerso in review Ondata 2, 11/07/2026)
 Risolto dalla feature **Nota di Credito TD04** (spec `docs/superpowers/specs/2026-07-14-nota-credito-td04-design.md`): `TipoDocumento` parametrizzato in `generaFatturaPA` con percorso TD04 dedicato (DatiFattureCollegate, snapshot congelato, importi positivi, N4), template cortesia TD04-aware, test content-check (`tests/unit/generate-xml-td04.test.ts`). Il flusso completo di emissione (RPC atomica + route + UI) è live; resta il follow-up «invio TD04→SdI» (vedi N10 sotto, se tracciato, o MEMORY 15/07).
 
-### N10. Il TD04 non ha un percorso di invio a SdI (scoperto in review finale TD04, 15/07/2026)
+### N10. Il TD04 non ha un percorso di invio a SdI — ✅ RISOLTO (15/07/2026, branch `worktree-n10-invia-pec`, in attesa merge)
+Risolto insieme a N9 dalla feature **Invio PEC a SdI dell'XML congelato** (spec `docs/superpowers/specs/2026-07-15-n10-n9-invio-pec-sdi-design.md`): endpoint dedicato `POST /api/fatture/[id]/invia-pec` che invia l'XML già congelato (zero rigenerazione, zero progressivi) per qualsiasi fattura `generata` (TD01 e TD04), con claim anti-doppio-invio su `smtp_inviata_at`, gate ruolo `titolare`+`front_desk`, bottone «Invia a SdI» (Variante A) + riga stato SDI granulare in `/fatture/[id]`, e hardening del ramo `invia_pec` di `/xml`. Testo originale sotto per storia.
+
+#### (storico) N10. Il TD04 non ha un percorso di invio a SdI (scoperto in review finale TD04, 15/07/2026)
 La nota di credito si ferma a `stato_sdi='generata'`: la route `POST /api/fatture/[id]/xml` (unico percorso PEC) gatea su `draft` (N7) e richiede lavori associati → 409/422 per un TD04 (`lavoro_id` NULL). Gli effetti dello storno (credito, dovuti, lavoro ri-fatturabile) sono già attivi al momento dell'emissione. **Destinazione:** endpoint/opzione di invio che ammetta il TD04 `generata` re-inviando l'XML già congelato senza rigenerarlo (accorpare con N9 PEC-resend). Da chiudere per dichiarare la feature TD04 fiscalmente completa end-to-end. Correlati (stessa review): superficie «riconciliazioni pendenti» + audit del rifiuto TD04 (riserve advisor 2/3), asimmetria `scaduta` gate-storno/revenue, bollo per-lab config vs hardcoded nell'XML.
 
-### N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata (scoperto in review N7, 14/07/2026)
+### N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata — ✅ RISOLTO (15/07/2026, con N10 — vedi sopra)
+Stesso rimedio di N10: `POST /api/fatture/[id]/invia-pec` legge `xml_storage_path`/`nome_file_xml` esistenti e invoca solo `sendFatturaPEC`. Su 502 il claim viene rilasciato e il bottone resta ritentabile. Testo originale sotto per storia.
+
+**Follow-up nuovi aperti dalla feature (15/07/2026):**
+- **Rate-limit per-lab sugli invii PEC** — la route nuova non ha throttling; un client malevolo autenticato può martellare l'endpoint (il claim previene il doppio invio, non il carico SMTP). 🟡
+- **Cron riconciliazione ricevute PEC** — dopo `smtp_inviata` nessun processo aggiorna `pec_consegnata`/`ricevuta_sdi`; inoltre è il rimedio strutturale al claim orfano (crash tra sendMail e UPDATE). 🟡
+- **connectionTimeout nodemailer** — default 2 minuti: con host SMTP irraggiungibile l'utente vede lo spinner per 2 min prima del 502. Valutare timeout esplicito (~20-30s) in `send-pec.ts` (modulo oggi INVARIATO per contratto N10). 🟢
+
+#### (storico) N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata (scoperto in review N7, 14/07/2026)
 Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l'XML ma l'**invio PEC fallisce**, la fattura resta `stato_sdi='generata'`; una seconda chiamata alla stessa route con `invia_pec:true` ora restituisce **409** *prima* di raggiungere `sendFatturaPEC`. Quindi un invio PEC fallito non ha oggi un retry via API. **Non è una regressione di design** (uso della route atomico; il retry pre-N7 era esso stesso dannoso — ri-bruciava un progressivo SDI e ri-derivava l'imponibile dal lavoro vivo). `sendFatturaPEC` ha un solo chiamante (questa route). **Destinazione:** endpoint PEC-resend dedicato che re-invia il file XML **già congelato** senza rigenerarlo né consumare un progressivo SDI (leggere `xml_storage_path`/`nome_file_xml` esistenti e invocare solo `sendFatturaPEC`). Priorità da valutare (🟡, nessun flusso lo esercita finché l'invio PEC non fallisce in produzione).
 
 ---
