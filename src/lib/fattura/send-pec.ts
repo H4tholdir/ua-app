@@ -133,6 +133,11 @@ export async function sendFatturaPEC(fattura_id: string): Promise<void> {
     ],
   })
 
+  // ⚠️ CONTRATTO (N10, test send-pec-invariante.test.ts): da qui in poi la mail
+  // è PARTITA — questa funzione non deve MAI più lanciare. I chiamanti rilasciano
+  // il claim anti-doppio-invio nel catch presumendo «throw = mail non partita»;
+  // un throw qui causerebbe un secondo invio fiscale a SdI.
+
   // ── 7. Aggiorna stato fattura ─────────────────────────────────────────────
   const now = new Date().toISOString()
   const { error: updateErr } = await supabase
