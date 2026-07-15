@@ -46,6 +46,7 @@ const DRAFT_TD04 = {
   collegata_numero: '2026-0012',
   collegata_data: '2026-07-01',
   causale_storno: 'Storno per errore di fatturazione',
+  cliente_id: 'cli-1',
   cliente_denominazione: 'Studio Rossi',
   cliente_piva: '01234567890',
   cliente_cf: null,
@@ -55,6 +56,21 @@ const DRAFT_TD04 = {
   laboratorio_id: 'lab-1',
 }
 
+// Riga `clienti` live — SOLO la Sede (indirizzo/cap/citta/provincia) viene da
+// qui (Amendment 2026-07-15: XSD richiede Comune non vuoto, lo snapshot non ha
+// i campi strutturali). Denominazione/P.IVA sono DELIBERATAMENTE diverse dallo
+// snapshot per provare il sourcing: se comparissero nell'XML, il ramo TD04
+// starebbe leggendo l'identità fiscale dal registro vivo invece che dallo snapshot.
+const CLIENTE_LIVE = {
+  id: 'cli-1',
+  studio_nome: 'Studio Rossi RINOMINATO DOPO EMISSIONE',
+  partita_iva: '55555555555',
+  indirizzo: 'Via Nuova 99',
+  cap: '80122',
+  citta: 'Napoli',
+  provincia: 'NA',
+}
+
 function mockDraftTd04() {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'laboratori') {
@@ -62,6 +78,13 @@ function mockDraftTd04() {
       c.select = () => c
       c.eq = () => c
       c.single = async () => ({ data: LAB, error: null })
+      return c
+    }
+    if (table === 'clienti') {
+      const c: Record<string, unknown> = {}
+      c.select = () => c
+      c.eq = () => c
+      c.single = async () => ({ data: CLIENTE_LIVE, error: null })
       return c
     }
     if (table === 'fatture') {
@@ -106,6 +129,22 @@ describe('generaFatturaPA — ramo TD04 (nota di credito, snapshot congelato)', 
     expect(xmlContent).toContain('Storno integrale fattura n. 2026-0012 del 2026-07-01')
     // nessun importo negativo
     expect(xmlContent).not.toMatch(/>-\d/)
+
+    // Sede cessionario dal registro clienti (Amendment 2026-07-15): <Comune>
+    // non vuoto (XSD minLength=1) + cap/provincia dal registro live.
+    expect(xmlContent).not.toContain('<Comune></Comune>')
+    expect(xmlContent).toContain('<Comune>Napoli</Comune>')
+    expect(xmlContent).toContain('<CAP>80122</CAP>')
+    expect(xmlContent).toContain('<Provincia>NA</Provincia>')
+    // Indirizzo: preferisce lo snapshot quando valorizzato.
+    expect(xmlContent).toContain('<Indirizzo>Via Y 2, 80100 Napoli NA</Indirizzo>')
+
+    // Identità fiscale dallo SNAPSHOT, mai dal registro live (che nel mock è
+    // stato deliberatamente rinominato/ri-P.IVA-to dopo l'emissione).
+    expect(xmlContent).toContain('<Denominazione>Studio Rossi</Denominazione>')
+    expect(xmlContent).toContain('<IdCodice>01234567890</IdCodice>')
+    expect(xmlContent).not.toContain('RINOMINATO')
+    expect(xmlContent).not.toContain('55555555555')
   })
 
   it('non legge il lavoro vivo: lavorazioni diverse non alterano l\'imponibile (resta 100 dallo snapshot)', async () => {
@@ -131,5 +170,41 @@ describe('generaFatturaPA — ramo TD04 (nota di credito, snapshot congelato)', 
     expect(xmlContent).toContain('<ImponibileImporto>100.00</ImponibileImporto>')
     expect(xmlContent).not.toContain('Riga viva')
     expect(updatePayloads[0].imponibile).toBe(100)
+  })
+
+  it('cliente non più nel registro: throw esplicito (meglio errore chiaro che XML scartato da SdI)', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'laboratori') {
+        const c: Record<string, unknown> = {}
+        c.select = () => c
+        c.eq = () => c
+        c.single = async () => ({ data: LAB, error: null })
+        return c
+      }
+      if (table === 'clienti') {
+        const c: Record<string, unknown> = {}
+        c.select = () => c
+        c.eq = () => c
+        c.single = async () => ({ data: null, error: { message: 'row not found' } })
+        return c
+      }
+      if (table === 'fatture') {
+        return {
+          select: () => ({ eq: () => ({ single: async () => ({ data: DRAFT_TD04, error: null }) }) }),
+          update: (payload: Record<string, unknown>) => {
+            updatePayloads.push(payload)
+            return { eq: async () => ({ error: null }) }
+          },
+        }
+      }
+      throw new Error(`Unexpected table: ${table}`)
+    })
+
+    await expect(generaFatturaPA(null, 'fatt-99')).rejects.toThrow(
+      /\[TD04\] Cliente cli-1 non trovato nel registro/
+    )
+    // Nessuna scrittura: l'errore blocca PRIMA di upload/UPDATE.
+    expect(uploads).toHaveLength(0)
+    expect(updatePayloads).toHaveLength(0)
   })
 })

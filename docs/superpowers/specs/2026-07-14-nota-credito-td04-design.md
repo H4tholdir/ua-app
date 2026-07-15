@@ -55,6 +55,7 @@ Le righe esistenti (TD01, `fattura_collegata_id` NULL) soddisfano già il ramo 2
 - **Riga sintetica unica**: `Storno integrale fattura n. {collegata_numero} del {collegata_data}`, importi positivi.
 - `<Data>` documento = **oggi** (data emissione NC); la data originale vive **solo** in `DatiFattureCollegate/Data` [R1-M2].
 - Cedente = laboratorio; cessionario = **snapshot cliente congelato del TD04** (copiato dall'originale, non `cliente` live) [R1-M3].
+  > **Amendment 2026-07-15:** identità fiscale dallo snapshot; blocco Sede (comune/provincia/CAP) dal registro clienti a generation-time, come il percorso TD01 — lo snapshot non contiene i campi strutturali richiesti dall'XSD (Comune minLength=1). Decisione controller in esecuzione, da ratificare da Francesco.
 
 ## 4. RPC atomica `emetti_nota_credito_atomica(p_originale_id, p_causale, p_laboratorio_id)` [R2]
 Ordine corretto (**claim → effetti atomici → XML fuori RPC**):

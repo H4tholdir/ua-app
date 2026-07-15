@@ -70,6 +70,7 @@ export async function generaFatturaPA(
     collegata_numero: string | null
     collegata_data: string | null
     causale_storno: string | null
+    cliente_id: string
     cliente_denominazione: string | null
     cliente_piva: string | null
     cliente_cf: string | null
@@ -84,7 +85,7 @@ export async function generaFatturaPA(
     const { data: draftData, error: draftErr } = await supabase
       .from('fatture')
       .select(
-        'numero, progressivo, data, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
+        'numero, progressivo, data, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_id, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
       )
       .eq('id', fatturaId)
       .single()
@@ -131,8 +132,32 @@ export async function generaFatturaPA(
   }
 
   const labRow = lab as unknown as LabRow
-  // TD04: nessun "cliente" da lavoro — tutto il cessionario viene dallo snapshot.
+  // TD04: nessun "cliente" da lavoro — l'identità fiscale del cessionario viene dallo snapshot.
   const cliente = isTd04 ? null : lavoroEff!.cliente
+
+  // TD04 — blocco strutturale Sede dal registro clienti a generation-time
+  // (Amendment 2026-07-15, decisione controller su [R1-M3]): lo snapshot su
+  // `fatture` non ha comune/provincia/CAP separati e l'XSD richiede <Comune>
+  // minLength=1 — stesso sourcing del ramo TD01. SOLO la Sede: identità
+  // fiscale (denominazione/piva/cf/sdi/pec) e imponibile restano rigorosamente
+  // dallo snapshot congelato. Il registro clienti NON è il lavoro: l'assertion
+  // anti-lavoro (trappola N7, imponibile dal lavoro vivo) resta invariata.
+  type ClienteSedeRow = { indirizzo: string | null; cap: string | null; citta: string | null; provincia: string | null }
+  let clienteSede: ClienteSedeRow | null = null
+  if (isTd04) {
+    const { data: sedeData, error: sedeErr } = await supabase
+      .from('clienti')
+      .select('indirizzo, cap, citta, provincia')
+      .eq('id', draft!.cliente_id)
+      .single()
+    if (sedeErr || !sedeData) {
+      // Meglio un errore esplicito qui che un XML con <Comune> vuoto scartato da SdI.
+      throw new Error(
+        `[TD04] Cliente ${draft!.cliente_id} non trovato nel registro: impossibile costruire la Sede del cessionario (XSD richiede Comune non vuoto): ${sedeErr?.message ?? 'null'}`
+      )
+    }
+    clienteSede = sedeData as unknown as ClienteSedeRow
+  }
 
   // Campi cessionario unificati: snapshot fattura (TD04) oppure cliente vivo (TD01, invariato).
   const clientePivaEff = isTd04 ? draft!.cliente_piva : cliente!.partita_iva
@@ -140,10 +165,14 @@ export async function generaFatturaPA(
   const clienteCodiceSdiEff = isTd04 ? draft!.cliente_codice_sdi : cliente!.codice_sdi
   const clientePecEff = isTd04 ? draft!.cliente_pec : cliente!.pec
   const cessNazione = isTd04 ? 'IT' : (cliente!.paese ?? 'IT')
-  const cessIndirizzo = isTd04 ? (draft!.cliente_indirizzo ?? '') : (cliente!.indirizzo ?? '')
-  const cessCap = isTd04 ? '00000' : (cliente!.cap ?? '00000')
-  const cessComune = isTd04 ? '' : (cliente!.citta ?? '')
-  const cessProvincia = isTd04 ? '' : (cliente!.provincia ?? '')
+  // Indirizzo: preferisce lo snapshot quando valorizzato (immutabilità fiscale),
+  // fallback al registro (la batch route storicamente scrive '' nello snapshot).
+  const cessIndirizzo = isTd04
+    ? (draft!.cliente_indirizzo || clienteSede!.indirizzo || '')
+    : (cliente!.indirizzo ?? '')
+  const cessCap = isTd04 ? (clienteSede!.cap ?? '00000') : (cliente!.cap ?? '00000')
+  const cessComune = isTd04 ? (clienteSede!.citta ?? '') : (cliente!.citta ?? '')
+  const cessProvincia = isTd04 ? (clienteSede!.provincia ?? '') : (cliente!.provincia ?? '')
 
   // Fix: validare identificativo fiscale cedente e cessionario prima di costruire XML
   validaIdentificativoFiscale(labRow.partita_iva, labRow.codice_fiscale, 'Laboratorio (cedente)')
