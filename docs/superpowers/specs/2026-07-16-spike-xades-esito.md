@@ -82,7 +82,7 @@ funziona correttamente quando il transform usato è quello standard
 
 Con un XML-DSig enveloped "da manuale" (transform `enveloped-signature`, quello che
 si ottiene di default componendo una firma con `xml-crypto` stesso), tutti i requisiti
-D-4 sono soddisfatti e verificati empiricamente nel PoC (`scripts/tmp/spike-xades.ts`,
+D-4 sono soddisfatti e verificati empiricamente nel PoC (`docs/superpowers/specs/allegati/2026-07-16-spike-xades-poc.ts.txt (origine: scripts/tmp/spike-xades.ts)`,
 casi 1-6 e 8):
 
 | Requisito D-4 | Evidenza |
@@ -98,7 +98,7 @@ transform (§3-4) verrà chiuso, il resto del meccanismo non va ripensato.
 
 ## 3. Il gap che ha determinato il fallback — output PoC reale
 
-File: `scripts/tmp/spike-xades.ts`, eseguito con `npx tsx scripts/tmp/spike-xades.ts`:
+File: `docs/superpowers/specs/allegati/2026-07-16-spike-xades-poc.ts.txt (origine: scripts/tmp/spike-xades.ts)`, eseguito con `npx tsx docs/superpowers/specs/allegati/2026-07-16-spike-xades-poc.ts.txt (origine: scripts/tmp/spike-xades.ts)`:
 
 ```
 === Spike XAdES — risultati PoC (xml-crypto) ===

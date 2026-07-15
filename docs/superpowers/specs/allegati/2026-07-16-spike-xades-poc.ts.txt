@@ -1,0 +1,253 @@
+/**
+ * Spike XAdES (Task 6, spec D-4) — timeboxed.
+ *
+ * Obiettivo: capire se `xml-crypto` (base XML-DSig di XAdES-BES) può implementare
+ * verificaFirma() con i 3 vincoli non negoziabili di D-4:
+ *   (a) trust anchor pinnato (mai truststore di sistema, mai KeyInfo del documento);
+ *   (b) qualunque eccezione/anomalia → 'fallita' (fail-closed);
+ *   (c) difesa signature-wrapping (l'elemento firmato è la radice; parser e verifier
+ *       operano sugli stessi byte).
+ *
+ * ESITO (vedi docs/superpowers/specs/2026-07-16-spike-xades-esito.md per il dettaglio):
+ * i casi 1-6 e 8 dimostrano che il MECCANISMO (pinning, fail-closed, anti-wrapping)
+ * funziona correttamente con un XML-DSig enveloped "standard" (transform
+ * `enveloped-signature`). Il caso 9 dimostra però che i messaggi SdI REALI non usano
+ * quel transform: usano `http://www.w3.org/2002/06/xmldsig-filter2`
+ * (`Filter="subtract"`, XPath `/descendant::ds:Signature`), che **né xml-crypto né
+ * xadesjs/xmldsigjs supportano nativamente** (verificato leggendo i sorgenti di
+ * entrambe le librerie — nessuna registra un transform per quell'URI). Un tentativo
+ * di transform custom minimale (rimozione DOM del nodo Signature + canonicalizzazione
+ * C14N esplicita, vedi commit history dello spike) NON riproduce il digest atteso
+ * sull'esempio ufficiale — la vera semantica "subtract" di XPath Filter 2.0 opera a
+ * livello di node-set, non di sottoalbero DOM, e non è banale da replicare bene entro
+ * il timebox. **Esito: FALLBACK dichiarato** (D-4) — non "nessuna libreria verifica
+ * XAdES in astratto", ma "nessuna libreria valutata verifica lo specifico transform
+ * che SdI usa davvero, entro i tempi".
+ *
+ * Esegui con: npx tsx scripts/tmp/spike-xades.ts
+ * (richiede `npm i --no-save xml-crypto` — non è nel package.json, è solo lo spike)
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { DOMParser } from "@xmldom/xmldom";
+import * as xpath from "xpath";
+import { SignedXml } from "xml-crypto";
+
+const FIXTURES = join(__dirname, "..", "..", "tests", "fixtures", "ricevute-sdi");
+
+const DS_NS = "http://www.w3.org/2000/09/xmldsig#";
+
+/**
+ * Verifica una firma XAdES-BES enveloped su un documento XML, con trust anchor
+ * iniettato dal chiamante (mai dal contenuto del documento).
+ *
+ * Ritorna `true` SOLO se:
+ *  - esiste esattamente un elemento ds:Signature nel documento;
+ *  - la Reference "documento" ha URI="" (whole-document / enveloped) — qualunque
+ *    altra forma (es. riferimento per ID) viene rifiutata: è la difesa anti-wrapping,
+ *    perché con URI="" il digest copre l'intero documento corrente, non un
+ *    sottoalbero raggiungibile per ID che un attaccante potrebbe lasciare intatto
+ *    altrove nel documento mentre manipola il resto;
+ *  - la firma è crittograficamente valida contro il trust anchor pinnato
+ *    (KeyInfo del documento viene IGNORATO: non passiamo `getCertFromKeyInfo`,
+ *    quindi xml-crypto usa solo `publicCert` che iniettiamo noi).
+ *
+ * Qualunque eccezione → false (fail-closed, mai un default a "valida").
+ */
+export function verificaFirmaXml(xml: Buffer, trustAnchorPem: string): boolean {
+  try {
+    const xmlStr = xml.toString("utf8");
+    const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
+    if (!doc || !doc.documentElement) return false;
+
+    // 1) Esattamente un ds:Signature in tutto il documento.
+    //    (più di uno = superficie per wrapping: firma "buona" altrove nel doc)
+    const sigNodes = xpath.select(
+      "//*[local-name(.)='Signature' and namespace-uri(.)='" + DS_NS + "']",
+      doc,
+    ) as Element[];
+    if (sigNodes.length !== 1) return false;
+    const sigNode = sigNodes[0];
+
+    // 2) Carica la struttura della firma (SignedInfo, References, KeyInfo — quest'ultimo
+    //    letto ma MAI usato per la fiducia, vedi punto 4).
+    const sig = new SignedXml({ publicCert: trustAnchorPem });
+    sig.loadSignature(sigNode);
+
+    // 3) Difesa signature-wrapping: la Reference che copre "il documento" deve avere
+    //    URI="" (enveloped, whole-document). Qualunque riferimento per ID è rifiutato
+    //    a prescindere dalla sua validità crittografica: non è la radice.
+    const refs = sig.getReferences();
+    const documentRefs = refs.filter((r) => (r.uri ?? "") === "");
+    if (documentRefs.length !== 1) return false;
+
+    // 4) Verifica crittografica. `getCertFromKeyInfo` non è stato passato nel
+    //    costruttore → resta noop di default → xml-crypto usa SOLO `publicCert`
+    //    (il trust anchor pinnato), mai il certificato dentro il KeyInfo del documento.
+    const valid = sig.checkSignature(xmlStr);
+    return valid === true;
+  } catch {
+    // Fail-closed: qualunque eccezione (XML malformato, algoritmo inatteso,
+    // struttura Signature inattesa, ecc.) → fallita, mai 'valida'.
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Costruzione fixture di test: XML minimale enveloped-signed con xml-crypto
+// stesso (i file ufficiali fatturapa.gov.it sono firmati ma con un certificato
+// di test Agenzia Entrate scaduto 2011-2014, non utilizzabile come positive-path
+// per un trust anchor iniettabile — vedi README fixture per dettagli).
+// ---------------------------------------------------------------------------
+function creaXmlFirmato(privateKeyPem: string, certPem: string): string {
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0" versione="1.0">' +
+    "<IdentificativoSdI>11111</IdentificativoSdI>" +
+    "<NomeFile>IT01234567890_11111.xml</NomeFile>" +
+    "<DataOraRicezione>2026-07-16T10:00:00</DataOraRicezione>" +
+    "<DataOraConsegna>2026-07-16T10:05:00</DataOraConsegna>" +
+    "</types:RicevutaConsegna>";
+
+  const sig = new SignedXml({
+    privateKey: privateKeyPem,
+    publicCert: certPem,
+    signatureAlgorithm: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    canonicalizationAlgorithm: "http://www.w3.org/2001/10/xml-exc-c14n#",
+  });
+  sig.addReference({
+    xpath: "/*",
+    transforms: [
+      "http://www.w3.org/2000/09/xmldsig#enveloped-signature",
+      "http://www.w3.org/2001/10/xml-exc-c14n#",
+    ],
+    digestAlgorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
+    uri: "",
+    isEmptyUri: true,
+  });
+  sig.computeSignature(xml);
+  return sig.getSignedXml();
+}
+
+/** Come sopra, ma firma con Reference per ID (URI="#_0") invece che whole-document
+ * (URI=""). Crittograficamente valida, ma è la forma classicamente sfruttabile per
+ * signature wrapping (l'attaccante può spostare/duplicare il sottoalbero referenziato
+ * per ID mentre altera il resto del documento che l'applicazione userà). */
+function creaXmlFirmatoConRiferimentoId(privateKeyPem: string, certPem: string): string {
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0" versione="1.0">' +
+    "<IdentificativoSdI>11111</IdentificativoSdI>" +
+    "</types:RicevutaConsegna>";
+
+  const sig = new SignedXml({
+    privateKey: privateKeyPem,
+    publicCert: certPem,
+    signatureAlgorithm: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+    canonicalizationAlgorithm: "http://www.w3.org/2001/10/xml-exc-c14n#",
+  });
+  sig.addReference({
+    xpath: "/*",
+    transforms: [
+      "http://www.w3.org/2000/09/xmldsig#enveloped-signature",
+      "http://www.w3.org/2001/10/xml-exc-c14n#",
+    ],
+    digestAlgorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
+    // URI per ID, non whole-document: è la forma che la nostra policy rifiuta.
+    isEmptyUri: false,
+  });
+  sig.computeSignature(xml);
+  return sig.getSignedXml();
+}
+
+function main() {
+  const trustAnchor = readFileSync(join(FIXTURES, "test-trust-anchor-cert.pem.txt"), "utf8");
+  const trustAnchorKey = readFileSync(join(FIXTURES, "test-trust-anchor-key.pem.txt"), "utf8");
+  const attackerCert = readFileSync(join(FIXTURES, "test-attacker-cert.pem.txt"), "utf8");
+
+  const results: Array<{ nome: string; atteso: boolean; ottenuto: boolean }> = [];
+
+  // --- Caso 1: firma valida, trust anchor corretto → deve passare -----------
+  const xmlValido = creaXmlFirmato(trustAnchorKey, trustAnchor);
+  const r1 = verificaFirmaXml(Buffer.from(xmlValido, "utf8"), trustAnchor);
+  results.push({ nome: "1. firma valida + trust anchor corretto", atteso: true, ottenuto: r1 });
+
+  // --- Caso 2: stesso XML, ma trust anchor NON è quello con cui è stato firmato
+  //     (il documento porta comunque il certificato "giusto" nel suo KeyInfo — la
+  //     verifica deve ignorarlo e usare SOLO l'anchor iniettato) → deve fallire ---
+  const r2 = verificaFirmaXml(Buffer.from(xmlValido, "utf8"), attackerCert);
+  results.push({ nome: "2. firma valida ma trust anchor sbagliato (pinning)", atteso: false, ottenuto: r2 });
+
+  // --- Caso 3: contenuto manomesso dopo la firma → digest mismatch → fallita --
+  const xmlManomesso = xmlValido.replace("11111", "99999");
+  const r3 = verificaFirmaXml(Buffer.from(xmlManomesso, "utf8"), trustAnchor);
+  results.push({ nome: "3. contenuto manomesso dopo la firma", atteso: false, ottenuto: r3 });
+
+  // --- Caso 4: signature wrapping — il documento firmato originale viene
+  //     avvolto in un nuovo elemento radice "attaccante"; la Signature resta
+  //     con URI="" (dereferenzia l'intero documento CORRENTE secondo XMLDSig same
+  //     -document, quindi include ora anche il wrapper) → digest non combacia più
+  //     con quello firmato → deve fallire. Dimostra che l'enveloped whole-document
+  //     reference (URI="") non è "spostabile" senza invalidare la firma. -----------
+  const xmlValidoSenzaProlog = xmlValido.replace(/^<\?xml[^>]*\?>/, "");
+  const xmlWrapped = `<Attaccante>${xmlValidoSenzaProlog}</Attaccante>`;
+  const r4 = verificaFirmaXml(Buffer.from(xmlWrapped, "utf8"), trustAnchor);
+  results.push({ nome: "4. signature wrapping (radice avvolta da elemento estraneo)", atteso: false, ottenuto: r4 });
+
+  // --- Caso 5: XML malformato/troncato → eccezione di parsing → fail-closed ---
+  const xmlRotto = xmlValido.slice(0, xmlValido.length - 50);
+  const r5 = verificaFirmaXml(Buffer.from(xmlRotto, "utf8"), trustAnchor);
+  results.push({ nome: "5. XML malformato/troncato (fail-closed su eccezione)", atteso: false, ottenuto: r5 });
+
+  // --- Caso 6: XML senza alcuna firma → nessun ds:Signature → fallita ---------
+  const xmlSenzaFirma = '<types:RicevutaConsegna xmlns:types="urn:x"><X>1</X></types:RicevutaConsegna>';
+  const r6 = verificaFirmaXml(Buffer.from(xmlSenzaFirma, "utf8"), trustAnchor);
+  results.push({ nome: "6. XML senza firma", atteso: false, ottenuto: r6 });
+
+  // --- Caso 7: esempio ufficiale fatturapa.gov.it (RC v1.0) — firmato ma con
+  //     certificato di test Agenzia Entrate scaduto 2011-2014: non è il nostro
+  //     trust anchor → deve fallire comunque (fail-closed, mai eccezione non gestita)
+  const xmlUfficiale = readFileSync(join(FIXTURES, "ufficiale-RC-v1.0.xml"));
+  const r7 = verificaFirmaXml(xmlUfficiale, trustAnchor);
+  results.push({ nome: "7. esempio ufficiale fatturapa.gov.it (trust anchor diverso)", atteso: false, ottenuto: r7 });
+
+  // --- Caso 8: firma crittograficamente VALIDA ma con Reference per ID (non
+  //     whole-document) — la policy anti-wrapping la rifiuta comunque, perché
+  //     un riferimento per ID è la forma sfruttabile per signature wrapping. ---
+  const xmlRifId = creaXmlFirmatoConRiferimentoId(trustAnchorKey, trustAnchor);
+  const r8 = verificaFirmaXml(Buffer.from(xmlRifId, "utf8"), trustAnchor);
+  results.push({
+    nome: "8. firma valida ma Reference per ID invece di whole-document (rifiutata da policy anti-wrapping)",
+    atteso: false,
+    ottenuto: r8,
+  });
+
+  // --- Caso 9 (DECISIVO): esempio ufficiale, ma stavolta il trust anchor è
+  //     ESATTAMENTE il certificato con cui è firmato (estratto dal suo stesso
+  //     KeyInfo, non più "sbagliato" come nel caso 7) — isola la domanda "questa
+  //     libreria verifica un vero messaggio SdI?" dalla domanda sul trust anchor.
+  //     Atteso ottimisticamente 'true' se xml-crypto gestisse il transform reale
+  //     usato da SdI; risulta invece 'false' perché xml-crypto non supporta
+  //     `xmldsig-filter2` (eccezione "canonicalization algorithm ... is not
+  //     supported", catturata e tradotta in fail-closed). È questo il finding che
+  //     ha determinato il FALLBACK — vedi commento in testa al file. ---
+  const certUfficialeRC = readFileSync(join(FIXTURES, "ufficiale-RC-cert-scaduto.pem.txt"), "utf8");
+  const r9 = verificaFirmaXml(xmlUfficiale, certUfficialeRC);
+  results.push({
+    nome: "9. DECISIVO: esempio ufficiale + trust anchor = il SUO stesso certificato firmante (transform xmldsig-filter2 non supportato)",
+    atteso: false,
+    ottenuto: r9,
+  });
+
+  console.log("=== Spike XAdES — risultati PoC (xml-crypto) ===\n");
+  let tuttiOk = true;
+  for (const { nome, atteso, ottenuto } of results) {
+    const ok = atteso === ottenuto;
+    tuttiOk = tuttiOk && ok;
+    console.log(`[${ok ? "OK" : "FAIL"}] ${nome} — atteso=${atteso} ottenuto=${ottenuto}`);
+  }
+  console.log(`\nEsito complessivo: ${tuttiOk ? "TUTTI I CASI COME ATTESO" : "ALCUNI CASI INATTESI"}`);
+  process.exit(tuttiOk ? 0 : 1);
+}
+
+main();
