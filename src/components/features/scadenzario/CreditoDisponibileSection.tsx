@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { DovutoEstratto } from '@/app/api/scadenzario/[cliente_id]/route'
 import { DS, fmt } from './estratto-conto-shared'
 import { CreditoSheet } from './CreditoSheet'
@@ -15,7 +16,57 @@ interface Props {
 export function CreditoDisponibileSection({ disponibile, clienteId, dovutiApplicabili }: Props) {
   const [mode, setMode] = useState<'applica' | 'rimborsa' | null>(null)
 
-  if (disponibile <= 0) return null
+  if (disponibile === 0) return null
+
+  if (disponibile < 0) {
+    return (
+      <section style={{ margin: '0 16px 24px' }} role="alert">
+        <div style={{ background: DS.sfc, borderRadius: 16, padding: '16px', boxShadow: DS.shB }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, color: DS.red,
+                background: `color-mix(in srgb, ${DS.red} 16%, transparent)`,
+              }}
+            >
+              ⚠
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, color: DS.t2,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+              }}>
+                Saldo negativo
+              </div>
+              <div style={{
+                fontFamily: 'DM Sans, sans-serif', fontSize: 24, fontWeight: 700, color: DS.red,
+                fontVariantNumeric: 'tabular-nums', marginTop: 2,
+              }}>
+                {fmt.format(disponibile)}
+              </div>
+            </div>
+          </div>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: DS.t1, lineHeight: 1.5, margin: '12px 0 14px' }}>
+            Saldo credito negativo: un TD04 è stato rifiutato da SdI dopo che il credito era già stato applicato.
+          </p>
+          <Link
+            href="/fatture/riconciliazioni"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '100%', minHeight: 48, borderRadius: 100,
+              background: DS.red, color: '#fff', fontFamily: 'DM Sans, sans-serif',
+              fontSize: 14, fontWeight: 700, boxShadow: 'var(--sh-red)', textDecoration: 'none',
+            }}
+          >
+            Vai alla riconciliazione →
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section style={{ margin: '0 16px 24px' }}>
