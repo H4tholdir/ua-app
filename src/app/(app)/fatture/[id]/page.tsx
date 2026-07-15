@@ -1,9 +1,12 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { NotaCreditoButton } from '@/components/features/fatture/NotaCreditoButton'
+import type { StatoSDI } from '@/types/domain'
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -21,6 +24,7 @@ export default async function FatturaDetailPage({ params }: Props) {
     .from('fatture')
     .select(`
       id, numero, data, totale, pagata,
+      stato_sdi, tipo_documento, lavoro_id, stornata_at,
       xml_storage_path, pec_message_id, pec_consegnata_at,
       cliente:clienti(nome, cognome, studio_nome, partita_iva, pec),
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, importo)
@@ -40,6 +44,23 @@ export default async function FatturaDetailPage({ params }: Props) {
   const cliente = f.cliente as Record<string, string | null> | null
   const righe = (f.righe as Array<Record<string, unknown>>) ?? []
 
+  const stornataAt = (f.stornata_at as string | null) ?? null
+  const clienteNome = cliente?.studio_nome ?? (`${cliente?.nome ?? ''} ${cliente?.cognome ?? ''}`.trim() || 'Cliente')
+
+  // Post-storno: la nota di credito TD04 collegata (per badge + link).
+  let td04: { id: string; numero: string } | null = null
+  if (stornataAt) {
+    const { data: nota } = await svc
+      .from('fatture')
+      .select('id, numero')
+      .eq('fattura_collegata_id', id)
+      .eq('laboratorio_id', utente.laboratorio_id)
+      .neq('stato_sdi', 'rifiutata')
+      .is('deleted_at', null)
+      .maybeSingle()
+    if (nota) td04 = nota as { id: string; numero: string }
+  }
+
   const fmtEur = (v: unknown) => typeof v === 'number' ? `€${v.toLocaleString('it-IT', { minimumFractionDigits: 2 })}` : '—'
   const fmtDate = (d: unknown) => typeof d === 'string' ? new Date(d).toLocaleDateString('it-IT') : '—'
 
@@ -53,19 +74,85 @@ export default async function FatturaDetailPage({ params }: Props) {
 
   return (
     <>
-      <AppHeader title={`Fattura ${f.numero as string ?? ''}`} backHref="/fatture" />
+      <AppHeader
+        title={`Fattura ${f.numero as string ?? ''}`}
+        backHref="/fatture"
+        actions={
+          <NotaCreditoButton
+            fatturaId={id}
+            numero={f.numero as string}
+            clienteNome={clienteNome}
+            importo={typeof f.totale === 'number' ? (f.totale as number) : 0}
+            pagata={f.pagata === true}
+            lavoroId={(f.lavoro_id as string | null) ?? null}
+            statoSdi={f.stato_sdi as StatoSDI}
+            tipoDocumento={(f.tipo_documento as string) ?? 'TD01'}
+            stornataAt={stornataAt}
+          />
+        }
+      />
       <PageWrapper>
         <div style={{ padding: '0 20px 48px' }}>
+          {stornataAt && td04 && (
+            <Link
+              href={`/fatture/${td04.id}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '11px', padding: '13px 14px',
+                borderRadius: '14px', marginBottom: '12px', textDecoration: 'none',
+                background: 'color-mix(in srgb, var(--purple) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--purple) 32%, transparent)',
+              }}
+            >
+              <span aria-hidden="true" style={{
+                width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px',
+                background: 'color-mix(in srgb, var(--purple) 20%, transparent)', color: 'var(--purple)',
+              }}>↩</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--t1)', fontFamily: 'DM Sans, sans-serif' }}>
+                  Nota di credito TD04 {td04.numero}
+                </span>
+                <span style={{ display: 'block', fontSize: '11px', color: 'var(--t2)', marginTop: '2px', fontFamily: 'DM Sans, sans-serif' }}>
+                  Emessa il {fmtDate(stornataAt)} · dettaglio →
+                </span>
+              </span>
+              <span aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--purple)', fontSize: '16px', fontWeight: 700 }}>›</span>
+            </Link>
+          )}
+
           <div style={card}>
             <div style={secLabel}>Fattura</div>
             <div style={row}><span style={{ color: 'var(--t2)' }}>Numero</span><span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{f.numero as string}</span></div>
             <div style={row}><span style={{ color: 'var(--t2)' }}>Data</span><span>{fmtDate(f.data)}</span></div>
-            <div style={{ ...row, borderBottom: 'none' }}>
+            <div style={stornataAt ? row : { ...row, borderBottom: 'none' }}>
               <span style={{ color: 'var(--t2)' }}>Stato</span>
-              <span style={{ fontWeight: 700, color: f.pagata === true ? '#16A34A' : 'var(--t1)' }}>
-                {f.pagata === true ? 'PAGATA' : 'DA PAGARE'}
-              </span>
+              {stornataAt ? (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 700,
+                  padding: '3px 9px', borderRadius: '100px', color: 'var(--primary)',
+                  background: 'color-mix(in srgb, var(--c-red) 15%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--c-red) 40%, transparent)',
+                }}>
+                  <span aria-hidden="true">⊘</span>Stornata
+                </span>
+              ) : (
+                <span style={{ fontWeight: 700, color: f.pagata === true ? '#16A34A' : 'var(--t1)' }}>
+                  {f.pagata === true ? 'PAGATA' : 'DA PAGARE'}
+                </span>
+              )}
             </div>
+            {stornataAt && (
+              <div style={{ ...row, borderBottom: 'none' }}>
+                <span style={{ color: 'var(--t2)' }}>Con nota</span>
+                {td04 ? (
+                  <Link href={`/fatture/${td04.id}`} style={{ color: 'var(--purple)', fontWeight: 700, textDecoration: 'none' }}>
+                    TD04 {td04.numero} ›
+                  </Link>
+                ) : (
+                  <span style={{ color: 'var(--t2)' }}>{fmtDate(stornataAt)}</span>
+                )}
+              </div>
+            )}
           </div>
 
           {cliente && (
