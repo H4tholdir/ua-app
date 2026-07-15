@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nota di credito TD04 — UI su /fatture/[id] · varianti per approvazione</title>
+<style>
+/* ============================================================
+   TOKEN v2.3 — valori esatti da src/design-system/tokens.ts
+   Scope tema via :root[data-theme]. Default = light.
+   ?theme=dark oppure prefers-color-scheme gestiti dallo script.
+   ============================================================ */
+:root, :root[data-theme="light"]{
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#4A3D33; --t3:#6B5C51; --primary:#D90012;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#92400E; --green-ink:#15803D; --red-ink:#B00010;
+  --line:#CFC9C2;
+  --sh-card: rgba(148,128,118,.22) 3px 5px 10px -2px, rgba(148,128,118,.12) 1px 2px 5px -1px;
+  --sh-btn: rgba(148,128,118,.26) 3px 5px 9px -1px, rgba(255,255,255,.78) -3px -3px 8px;
+  --sh-float: rgba(255,255,255,.72) -8px -8px 18px, rgba(148,128,118,.55) 10px 12px 24px -4px;
+  --sh-red: 0 6px 16px -3px rgba(180,0,10,.42);
+  --overlay: rgba(28,25,22,.42);
+}
+:root[data-theme="dark"]{
+  --bg:#1A1916; --sfc:#232018; --elv:#2A2620; --prs:#141210;
+  --t1:#F0EDE8; --t2:#8A8580; --t3:#5A5652; --primary:#E8001A;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#F59E0B; --green-ink:#3DCB5C; --red-ink:#FF5A66;
+  --line:#3A362F;
+  --sh-card: none;                 /* dark = flat: card sfc +1 stop sopra bg */
+  --sh-btn: none;
+  --sh-float: rgba(0,0,0,.70) 0 12px 28px, rgba(0,0,0,.40) 0 4px 8px;
+  --sh-red: 0 6px 16px -3px rgba(232,0,26,.40);
+  --overlay: rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box;font-family:'DM Sans',-apple-system,system-ui,sans-serif}
+html,body{margin:0}
+body{background:var(--bg);color:var(--t1);padding:0}
+
+/* ---- Chrome descrittivo (non catturato negli screenshot dei device) ---- */
+.doc{padding:28px 24px 80px;max-width:1360px;margin:0 auto}
+.doc h1{font-size:22px;font-weight:700;margin:0 0 4px}
+.doc .lede{font-size:13px;color:var(--t2);max-width:760px;margin:0 0 6px;line-height:1.5}
+.doc .meta{font-size:12px;color:var(--t3);margin:0 0 22px}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 26px}
+.nav a{font-size:12px;font-weight:700;text-decoration:none;color:var(--t1);background:var(--elv);
+  border:1px solid var(--line);padding:7px 12px;border-radius:100px}
+.sechead{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);
+  margin:34px 0 4px;padding-top:14px;border-top:1px dashed var(--line)}
+.secsub{font-size:13px;color:var(--t2);margin:0 0 16px;max-width:820px;line-height:1.5}
+
+/* ---- Regione di cattura: fondo tema, larghezza fissa ---- */
+.cap{background:var(--bg);padding:22px;border-radius:16px;width:max-content}
+.cap.mobile{width:434px}      /* 390 device + 22*2 padding */
+.cap.desktop{width:1244px}    /* 1200 device + 22*2 padding */
+.caphint{font-size:11px;font-weight:700;color:var(--t3);margin:0 0 12px;letter-spacing:.04em}
+.frames{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.framecol{display:flex;flex-direction:column;gap:8px}
+.framelbl{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.02em}
+
+/* ---- Device: phone ---- */
+.phone{width:390px;background:var(--bg);border-radius:26px;border:1px solid var(--line);
+  overflow:hidden;position:relative;box-shadow:var(--sh-card)}
+.phone.tall{min-height:150px}
+.status{height:26px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;font-size:10px;color:var(--t3);font-weight:600}
+.appbar{display:flex;align-items:center;gap:10px;padding:10px 16px 12px}
+.appbar .back{width:34px;height:34px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t1);flex-shrink:0}
+.appbar .ttl{font-size:17px;font-weight:700;color:var(--t1)}
+.appbar .grow{flex:1}
+.kebab{width:40px;height:40px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t1);flex-shrink:0;font-weight:700}
+.body{padding:0 16px 18px}
+
+/* ---- Card (= pagina reale) ---- */
+.card{background:var(--sfc);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-card)}
+.slabel{font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px}
+.r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--elv);font-size:13px}
+.r:last-child{border-bottom:none}
+.r .k{color:var(--t2)}
+.r .v{color:var(--t1);font-weight:600}
+.mono{font-family:'DM Mono',ui-monospace,monospace;font-weight:700}
+.big{font-size:15px;font-weight:700;color:var(--t1)}
+.sub{font-size:12px;color:var(--t2);margin-top:3px}
+.tot{display:flex;justify-content:space-between;padding-top:10px;font-weight:700;font-size:15px}
+
+/* ---- Chip / badge (colore MAI unico segnale: sempre icona+testo) ---- */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;line-height:1.4}
+.chip .ic{font-size:11px;line-height:1}
+.chip.paid{color:var(--green-ink);background:color-mix(in srgb,var(--green) 15%,transparent);border:1px solid color-mix(in srgb,var(--green) 38%,transparent)}
+.chip.sdi{color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent);border:1px solid color-mix(in srgb,var(--blue) 36%,transparent)}
+.chip.storn{color:var(--red-ink);background:color-mix(in srgb,var(--red) 15%,transparent);border:1px solid color-mix(in srgb,var(--red) 40%,transparent)}
+.chip.td04{color:var(--purple);background:color-mix(in srgb,var(--purple) 14%,transparent);border:1px solid color-mix(in srgb,var(--purple) 36%,transparent)}
+
+/* ---- Bottoni ---- */
+.btn-ghost{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:14px;background:transparent;border:1.5px solid var(--line);color:var(--t1);
+  font-size:15px;font-weight:700;cursor:pointer}
+.btn-ghost .ic{font-size:16px}
+.btn-red{min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
+  background:var(--primary);border:none;color:#fff;font-size:14px;font-weight:700;box-shadow:var(--sh-red);cursor:pointer}
+.btn-red.dis{opacity:.45;box-shadow:none;cursor:not-allowed}
+.btn-neutral{min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;
+  background:var(--elv);border:1px solid var(--line);color:var(--t2);font-size:14px;font-weight:700;cursor:pointer}
+.actionsrow{display:flex;gap:10px;margin-top:2px}
+.actionsrow .fill2{flex:2}.actionsrow .fill1{flex:1}
+
+/* ---- Overflow menu (variante B) ---- */
+.menu{position:absolute;top:52px;right:14px;width:236px;background:var(--sfc);border:1px solid var(--line);
+  border-radius:16px;box-shadow:var(--sh-float);overflow:hidden;z-index:5}
+.menu .mi{display:flex;align-items:center;gap:10px;padding:13px 14px;font-size:14px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--elv)}
+.menu .mi:last-child{border-bottom:none}
+.menu .mi.danger{color:var(--red-ink);font-weight:700}
+.menu .mi .ic{width:18px;text-align:center}
+.menu .mi .cr{margin-left:auto;color:var(--t3);font-size:11px;font-weight:600}
+
+/* ---- Bottom sheet (mobile) ---- */
+.scrim{position:absolute;inset:0;background:var(--overlay);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:22px 22px 0 0;
+  z-index:9;box-shadow:var(--sh-float);padding:18px 18px 20px}
+.handle{width:34px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.sh-title{font-size:17px;font-weight:700;color:var(--t1);margin:0 0 3px}
+.sh-sub{font-size:12px;color:var(--t2);margin:0 0 14px}
+.flabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 8px}
+.flabel .req{color:var(--primary)}
+textarea.ta,.ta{width:100%;min-height:74px;background:var(--sfc);border:1.5px solid var(--line);border-radius:12px;
+  padding:11px 12px;font-size:13px;color:var(--t1);resize:none;line-height:1.45}
+.ta.filled{border-color:color-mix(in srgb,var(--t2) 42%,transparent)}
+.helper{display:flex;justify-content:space-between;align-items:center;margin:7px 0 14px;gap:10px}
+.helper .hint{font-size:11px;color:var(--t3);line-height:1.35}
+.helper .count{font-size:11px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- Callout irreversibile ---- */
+.warn{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;margin:0 0 14px;
+  background:color-mix(in srgb,var(--primary) 9%,transparent);border:1px solid color-mix(in srgb,var(--primary) 30%,transparent)}
+.warn .wic{font-size:15px;line-height:1.2;color:var(--primary)}
+.warn .wtx{font-size:12px;color:var(--t1);line-height:1.45}
+.warn .wtx b{font-weight:700}
+
+/* ---- Riepilogo conseguenze ---- */
+.effs{background:var(--sfc);border:1px solid var(--line);border-radius:14px;padding:6px 12px;margin:0 0 14px}
+.eff{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--elv)}
+.eff:last-child{border-bottom:none}
+.eff .ei{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.eff.e-storn .ei{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red-ink)}
+.eff.e-cred .ei{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-ink)}
+.eff.e-refat .ei{background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue)}
+.eff .et{display:block;font-size:13px;color:var(--t1);font-weight:600;line-height:1.35}
+.eff .es{display:block;font-size:11px;color:var(--t2);margin-top:2px;line-height:1.35}
+.eff .es b{color:var(--t1)}
+
+/* ---- Step indicator (variante B) ---- */
+.steps{display:flex;align-items:center;gap:8px;margin:0 0 14px}
+.steps .st{display:flex;align-items:center;gap:7px}
+.steps .dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;background:var(--elv);color:var(--t3);border:1px solid var(--line)}
+.steps .dot.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.steps .dot.done{background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green-ink);border-color:color-mix(in srgb,var(--green) 45%,transparent)}
+.steps .slbl{font-size:11px;font-weight:700;color:var(--t2)}
+.steps .bar{flex:1;height:2px;background:var(--line);border-radius:2px}
+.steps .bar.done{background:color-mix(in srgb,var(--green) 45%,transparent)}
+
+/* ---- Banner post-storno (link al TD04) ---- */
+.tdlink{display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;margin-bottom:12px;
+  background:color-mix(in srgb,var(--purple) 10%,transparent);border:1px solid color-mix(in srgb,var(--purple) 32%,transparent)}
+.tdlink .ti{width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--purple) 20%,transparent);
+  color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tdlink > span{min-width:0}
+.tdlink .tt{display:block;font-size:13px;font-weight:700;color:var(--t1)}
+.tdlink .ts{display:block;font-size:11px;color:var(--t2);margin-top:2px}
+.tdlink .arr{margin-left:auto;color:var(--purple);font-size:16px;font-weight:700}
+.disabled-row{opacity:.5}
+
+/* ---- Desktop shell ---- */
+.desk{width:1200px;background:var(--bg);border-radius:20px;border:1px solid var(--line);overflow:hidden;position:relative}
+.deskbar{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--elv)}
+.deskbar .back{width:36px;height:36px;border-radius:50%;background:var(--elv);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px}
+.deskbar .ttl{font-size:20px;font-weight:700}
+.deskbar .grow{flex:1}
+.deskgrid{display:grid;grid-template-columns:1fr 340px;gap:22px;padding:24px}
+.aside{display:flex;flex-direction:column;gap:12px}
+.aside .apanel{background:var(--sfc);border-radius:18px;padding:18px;box-shadow:var(--sh-card)}
+/* desktop dialog = pannello ancorato (NON modal centrato invadente); dimmed page dietro */
+.deskstage{position:relative;margin-top:8px}
+.dialog{width:440px;background:var(--bg);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-float);padding:20px}
+.stagecap{font-size:11px;font-weight:700;color:var(--t3);margin:0 0 8px;letter-spacing:.03em}
+.col2{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Nota di credito TD04 — azione «Emetti nota di credito» su <span class="mono" style="font-size:15px">/fatture/[id]</span></h1>
+  <p class="lede">Azione <b>irreversibile</b>: storno integrale della fattura elettronica TD01, emissione di una TD04 verso SDI e — se la fattura è pagata — accredito dell'importo al cliente. Richiede <b>causale obbligatoria</b> + <b>conferma esplicita</b>. Due approcci a confronto per l'approvazione di Francesco.</p>
+  <p class="meta">Dati simulati: Fattura <b>2026-0012</b> del 01/07/2026 · Cliente <b>Studio Dott. Rossi</b> · <b>€102,00</b> · stato PAGATA · TD01 accettata da SDI · non stornata. · Design System v2.3 (Warm Panna).</p>
+  <div class="nav">
+    <a href="#va-mobile">A · mobile</a>
+    <a href="#va-desktop">A · desktop</a>
+    <a href="#vb-mobile">B · mobile</a>
+    <a href="#vb-desktop">B · desktop</a>
+  </div>
+
+  <!-- ============================ VARIANTE A ============================ -->
+  <div class="sechead">Variante A — Bottone secondario nella zona azioni + bottom sheet di conferma singola</div>
+  <p class="secsub">Il trigger vive come azione secondaria dedicata sotto le card della fattura (sempre visibile, scopribile). Un unico bottom sheet raccoglie causale, callout di irreversibilità, riepilogo conseguenze e conferma. Adatto a chi vuole l'azione a portata di pollice senza passaggi.</p>
+
+  <a id="va-mobile"></a>
+  <div class="caphint">A · mobile 390px — trigger → sheet (causale + effetti) → stato post-storno</div>
+  <div class="cap mobile" id="cap-A-mobile">
+    <div class="frames">
+      <!-- Frame 1: trigger -->
+      <div class="framecol">
+        <div class="framelbl">1 · Dettaglio fattura — zona azioni</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Fattura</div>
+              <div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div>
+              <div class="r"><span class="k">Data</span><span class="v">01/07/2026</span></div>
+              <div class="r"><span class="k">Tipo</span><span class="v">TD01 · Fattura</span></div>
+              <div class="r"><span class="k">Stato</span><span class="chip paid"><span class="ic">✓</span>Pagata · €102,00</span></div>
+            </div>
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Accettata</span></div>
+              <div class="r"><span class="k">XML</span><span class="v" style="color:var(--amber-ink)">Scarica XML</span></div>
+            </div>
+            <div class="card" style="padding:14px 16px">
+              <div class="slabel">Azioni</div>
+              <button class="btn-ghost"><span class="ic">↩</span>Emetti nota di credito</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 2: sheet open -->
+      <div class="framecol">
+        <div class="framelbl">2 · Bottom sheet — causale + conseguenze</div>
+        <div class="phone" style="height:720px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div></div>
+          <div class="body" style="opacity:.35">
+            <div class="card"><div class="slabel">Fattura</div><div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Emetti nota di credito</div>
+            <div class="sh-sub">Fattura 2026-0012 · Studio Dott. Rossi · €102,00</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Azione irreversibile.</b> La TD01 viene stornata integralmente e una TD04 parte subito verso SDI. Non è annullabile.</span>
+            </div>
+            <div class="flabel">Causale <span class="req">*</span></div>
+            <div class="ta filled">Errore di fatturazione — prestazione non eseguita, storno integrale su richiesta del cliente.</div>
+            <div class="helper">
+              <span class="hint">L'XML suddivide la causale in blocchi da 200 caratteri — nessun limite rigido.</span>
+              <span class="count">92 / 200</span>
+            </div>
+            <div class="flabel">Cosa succede</div>
+            <div class="effs">
+              <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Storno integrale della TD01 2026-0012</span><span class="es">La fattura risulterà <b>Stornata</b>, non più valida.</span></span></div>
+              <div class="eff e-cred"><span class="ei">€</span><span><span class="et">Credito di €102,00 a Studio Dott. Rossi</span><span class="es">La fattura è <b>pagata</b>: l'importo diventa credito del cliente.</span></span></div>
+              <div class="eff e-refat"><span class="ei">↻</span><span><span class="et">Il lavoro collegato torna ri-fatturabile</span><span class="es">Potrai riemettere una nuova fattura per lo stesso lavoro.</span></span></div>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2"><span>↩</span>Emetti nota di credito</button>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl" style="margin-top:4px;color:var(--t3)">Conferma abilitata solo con causale non vuota. Vuota → bottone rosso disabilitato.</div>
+      </div>
+
+      <!-- Frame 3: post-storno -->
+      <div class="framecol">
+        <div class="framelbl">3 · Dopo lo storno — badge «Stornata» + link TD04</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div></div>
+          <div class="body">
+            <div class="tdlink">
+              <span class="ti">↩</span>
+              <span><span class="tt">Nota di credito TD04 2026-0003</span><span class="ts">Emessa il 15/07/2026 · dettaglio →</span></span>
+              <span class="arr">›</span>
+            </div>
+            <div class="card">
+              <div class="slabel">Fattura</div>
+              <div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div>
+              <div class="r"><span class="k">Stato</span><span class="chip storn"><span class="ic">⊘</span>Stornata</span></div>
+              <div class="r"><span class="k">Stornata il</span><span class="v">15/07/2026</span></div>
+              <div class="r"><span class="k">Con nota</span><span class="v" style="color:var(--purple)">TD04 2026-0003 ›</span></div>
+            </div>
+            <div class="card">
+              <div class="slabel">Nota di credito emessa</div>
+              <div class="r"><span class="k">Numero</span><span class="v mono">2026-0003</span></div>
+              <div class="r"><span class="k">Tipo</span><span class="chip td04"><span class="ic">↩</span>TD04</span></div>
+              <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Inviata a SDI</span></div>
+              <div class="r"><span class="k">Credito cliente</span><span class="v" style="color:var(--green-ink)">+€102,00</span></div>
+            </div>
+            <div class="card disabled-row" style="padding:14px 16px">
+              <div class="slabel">Azioni</div>
+              <button class="btn-ghost" style="cursor:not-allowed"><span class="ic">↩</span>Già stornata</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a id="va-desktop"></a>
+  <div class="caphint">A · desktop 1280px — azione in aside + dialog ancorato + stato post-storno</div>
+  <div class="cap desktop" id="cap-A-desktop">
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><span class="chip paid"><span class="ic">✓</span>Pagata · €102,00</span></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">01/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+            <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Accettata</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+          <div class="card">
+            <div class="slabel">Voci</div>
+            <div class="r"><span class="k">Corona in zirconia — elemento 2.6</span><span class="v">€102,00</span></div>
+            <div class="tot"><span>Totale</span><span>€102,00</span></div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="apanel">
+            <div class="slabel">Azioni</div>
+            <button class="btn-ghost" style="margin-bottom:10px"><span class="ic">⬇</span>Scarica XML</button>
+            <button class="btn-ghost"><span class="ic">↩</span>Emetti nota di credito</button>
+          </div>
+          <div class="deskstage">
+            <div class="stagecap">Click «Emetti nota di credito» →</div>
+            <div class="dialog">
+              <div class="sh-title">Emetti nota di credito</div>
+              <div class="sh-sub">Fattura 2026-0012 · Studio Dott. Rossi · €102,00</div>
+              <div class="warn"><span class="wic">⚠</span><span class="wtx"><b>Azione irreversibile.</b> Storno integrale + TD04 immediata verso SDI.</span></div>
+              <div class="flabel">Causale <span class="req">*</span></div>
+              <div class="ta filled">Errore di fatturazione — prestazione non eseguita, storno integrale su richiesta del cliente.</div>
+              <div class="helper"><span class="hint">Blocchi XML da 200 caratteri.</span><span class="count">92 / 200</span></div>
+              <div class="effs">
+                <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Storno integrale TD01 2026-0012</span></span></div>
+                <div class="eff e-cred"><span class="ei">€</span><span><span class="et">Credito €102,00 a Studio Dott. Rossi</span></span></div>
+                <div class="eff e-refat"><span class="ei">↻</span><span><span class="et">Lavoro collegato ri-fatturabile</span></span></div>
+              </div>
+              <div class="actionsrow"><button class="btn-neutral fill1">Annulla</button><button class="btn-red fill2"><span>↩</span>Emetti nota di credito</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="deskgrid" style="padding-top:0">
+        <div>
+          <div class="stagecap">Stato pagina dopo lo storno →</div>
+          <div class="tdlink"><span class="ti">↩</span><span><span class="tt">Nota di credito TD04 2026-0003 emessa</span><span class="ts">15/07/2026 · vai al documento →</span></span><span class="arr">›</span></div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Stato</span><span class="chip storn"><span class="ic">⊘</span>Stornata</span></div>
+            <div class="r"><span class="k">Con nota di credito</span><span class="v" style="color:var(--purple)">TD04 2026-0003 ›</span></div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="apanel">
+            <div class="slabel">Nota di credito</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0003</span></div>
+            <div class="r"><span class="k">Tipo</span><span class="chip td04"><span class="ic">↩</span>TD04</span></div>
+            <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Inviata</span></div>
+            <div class="r"><span class="k">Credito</span><span class="v" style="color:var(--green-ink)">+€102,00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ VARIANTE B ============================ -->
+  <div class="sechead">Variante B — Voce nel menu overflow ⋯ + sheet a 2 step (causale → riepilogo effetti → conferma)</div>
+  <p class="secsub">Il trigger vive nel menu overflow ⋯ dell'header, coerente con le altre azioni di documento (scarica, condividi). Il bottom sheet separa la raccolta della causale (step 1) dalla revisione delle conseguenze e conferma esplicita (step 2): due tap intenzionali per un'azione irreversibile. Adatto a ridurre gli storni accidentali.</p>
+
+  <a id="vb-mobile"></a>
+  <div class="caphint">B · mobile 390px — menu ⋯ → step 1 causale → step 2 riepilogo/conferma → post-storno</div>
+  <div class="cap mobile" id="cap-B-mobile">
+    <div class="frames">
+      <!-- Frame 1: overflow menu -->
+      <div class="framecol">
+        <div class="framelbl">1 · Header ⋯ — menu azioni documento</div>
+        <div class="phone" style="height:300px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><div class="kebab">⋯</div></div>
+          <div class="body">
+            <div class="card"><div class="slabel">Fattura</div><div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div><div class="r"><span class="k">Stato</span><span class="chip paid"><span class="ic">✓</span>Pagata</span></div></div>
+          </div>
+          <div class="menu">
+            <div class="mi"><span class="ic">⬇</span>Scarica XML</div>
+            <div class="mi"><span class="ic">✉</span>Invia al cliente</div>
+            <div class="mi danger"><span class="ic">↩</span>Emetti nota di credito</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 2: step 1 causale -->
+      <div class="framecol">
+        <div class="framelbl">2 · Step 1 — causale obbligatoria</div>
+        <div class="phone" style="height:520px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><div class="kebab">⋯</div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="steps">
+              <div class="st"><span class="dot on">1</span><span class="slbl">Causale</span></div>
+              <div class="bar"></div>
+              <div class="st"><span class="dot">2</span><span class="slbl">Conferma</span></div>
+            </div>
+            <div class="sh-title">Perché stornare questa fattura?</div>
+            <div class="sh-sub">Fattura 2026-0012 · Studio Dott. Rossi · €102,00</div>
+            <div class="flabel">Causale <span class="req">*</span></div>
+            <div class="ta filled">Errore di fatturazione — prestazione non eseguita, storno integrale su richiesta del cliente.</div>
+            <div class="helper"><span class="hint">Finirà nell'XML della nota di credito, in blocchi da 200 caratteri.</span><span class="count">92 / 200</span></div>
+            <div class="actionsrow"><button class="btn-neutral fill1">Annulla</button><button class="btn-red fill2">Continua →</button></div>
+            <div class="framelbl" style="margin-top:10px;color:var(--t3)">Causale vuota → «Continua» disabilitato.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 3: step 2 riepilogo -->
+      <div class="framecol">
+        <div class="framelbl">3 · Step 2 — riepilogo effetti + conferma</div>
+        <div class="phone" style="height:640px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><div class="kebab">⋯</div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="steps">
+              <div class="st"><span class="dot done">✓</span><span class="slbl">Causale</span></div>
+              <div class="bar done"></div>
+              <div class="st"><span class="dot on">2</span><span class="slbl">Conferma</span></div>
+            </div>
+            <div class="sh-title">Confermi lo storno?</div>
+            <div class="warn"><span class="wic">⚠</span><span class="wtx"><b>Irreversibile.</b> Non potrai annullare la nota di credito una volta emessa.</span></div>
+            <div class="flabel">Cosa succede a conferma</div>
+            <div class="effs">
+              <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Storno integrale della TD01 2026-0012</span><span class="es">Diventa <b>Stornata</b>, non più valida.</span></span></div>
+              <div class="eff e-cred"><span class="ei">€</span><span><span class="et">Credito di €102,00 a Studio Dott. Rossi</span><span class="es">Fattura pagata → importo accreditato al cliente.</span></span></div>
+              <div class="eff e-refat"><span class="ei">↻</span><span><span class="et">Lavoro collegato ri-fatturabile</span><span class="es">Potrai riemettere una nuova fattura.</span></span></div>
+            </div>
+            <div class="actionsrow"><button class="btn-neutral fill1">‹ Indietro</button><button class="btn-red fill2"><span>↩</span>Emetti TD04</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 4: post-storno -->
+      <div class="framecol">
+        <div class="framelbl">4 · Dopo lo storno</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><div class="kebab" style="opacity:.4">⋯</div></div>
+          <div class="body">
+            <div class="tdlink"><span class="ti">↩</span><span><span class="tt">Nota di credito TD04 2026-0003</span><span class="ts">Emessa il 15/07/2026 · dettaglio →</span></span><span class="arr">›</span></div>
+            <div class="card">
+              <div class="slabel">Fattura</div>
+              <div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div>
+              <div class="r"><span class="k">Stato</span><span class="chip storn"><span class="ic">⊘</span>Stornata</span></div>
+              <div class="r"><span class="k">Con nota</span><span class="v" style="color:var(--purple)">TD04 2026-0003 ›</span></div>
+            </div>
+            <div class="card">
+              <div class="slabel">Nota di credito emessa</div>
+              <div class="r"><span class="k">Numero</span><span class="v mono">2026-0003</span></div>
+              <div class="r"><span class="k">Tipo</span><span class="chip td04"><span class="ic">↩</span>TD04</span></div>
+              <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Inviata a SDI</span></div>
+              <div class="r"><span class="k">Credito cliente</span><span class="v" style="color:var(--green-ink)">+€102,00</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a id="vb-desktop"></a>
+  <div class="caphint">B · desktop 1280px — ⋯ menu + dialog 2 step affiancati + post-storno</div>
+  <div class="cap desktop" id="cap-B-desktop">
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0012</div><div class="grow"></div><span class="chip paid"><span class="ic">✓</span>Pagata · €102,00</span><div class="kebab">⋯</div></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0012</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">01/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+            <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Accettata</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="apanel" style="position:relative">
+            <div class="slabel">Menu ⋯</div>
+            <div class="menu" style="position:static;width:auto;box-shadow:none;border-color:var(--line)">
+              <div class="mi"><span class="ic">⬇</span>Scarica XML</div>
+              <div class="mi"><span class="ic">✉</span>Invia al cliente</div>
+              <div class="mi danger"><span class="ic">↩</span>Emetti nota di credito</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col2" style="padding:0 24px 24px">
+        <div style="flex:1;min-width:400px">
+          <div class="stagecap">Step 1 — causale</div>
+          <div class="dialog">
+            <div class="steps"><div class="st"><span class="dot on">1</span><span class="slbl">Causale</span></div><div class="bar"></div><div class="st"><span class="dot">2</span><span class="slbl">Conferma</span></div></div>
+            <div class="sh-title">Perché stornare questa fattura?</div>
+            <div class="sh-sub">2026-0012 · Studio Dott. Rossi · €102,00</div>
+            <div class="flabel">Causale <span class="req">*</span></div>
+            <div class="ta filled">Errore di fatturazione — prestazione non eseguita, storno integrale su richiesta del cliente.</div>
+            <div class="helper"><span class="hint">Blocchi XML da 200 caratteri.</span><span class="count">92 / 200</span></div>
+            <div class="actionsrow"><button class="btn-neutral fill1">Annulla</button><button class="btn-red fill2">Continua →</button></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:400px">
+          <div class="stagecap">Step 2 — riepilogo + conferma</div>
+          <div class="dialog">
+            <div class="steps"><div class="st"><span class="dot done">✓</span><span class="slbl">Causale</span></div><div class="bar done"></div><div class="st"><span class="dot on">2</span><span class="slbl">Conferma</span></div></div>
+            <div class="sh-title">Confermi lo storno?</div>
+            <div class="warn"><span class="wic">⚠</span><span class="wtx"><b>Irreversibile.</b> TD04 immediata verso SDI.</span></div>
+            <div class="effs">
+              <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Storno integrale TD01 2026-0012</span></span></div>
+              <div class="eff e-cred"><span class="ei">€</span><span><span class="et">Credito €102,00 a Studio Dott. Rossi</span></span></div>
+              <div class="eff e-refat"><span class="ei">↻</span><span><span class="et">Lavoro collegato ri-fatturabile</span></span></div>
+            </div>
+            <div class="actionsrow"><button class="btn-neutral fill1">‹ Indietro</button><button class="btn-red fill2"><span>↩</span>Emetti TD04</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="deskgrid" style="padding-top:0">
+        <div>
+          <div class="stagecap">Dopo lo storno →</div>
+          <div class="tdlink"><span class="ti">↩</span><span><span class="tt">Nota di credito TD04 2026-0003 emessa</span><span class="ts">15/07/2026 · vai al documento →</span></span><span class="arr">›</span></div>
+          <div class="card"><div class="slabel">Fattura</div><div class="r"><span class="k">Stato</span><span class="chip storn"><span class="ic">⊘</span>Stornata</span></div><div class="r"><span class="k">Con nota</span><span class="v" style="color:var(--purple)">TD04 2026-0003 ›</span></div></div>
+        </div>
+        <div class="aside">
+          <div class="apanel"><div class="slabel">Nota di credito</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0003</span></div>
+            <div class="r"><span class="k">Tipo</span><span class="chip td04"><span class="ic">↩</span>TD04</span></div>
+            <div class="r"><span class="k">Stato SDI</span><span class="chip sdi"><span class="ic">◆</span>Inviata</span></div>
+            <div class="r"><span class="k">Credito</span><span class="v" style="color:var(--green-ink)">+€102,00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tema deterministico: ?theme=dark|light forza data-theme; altrimenti segue l'OS.
+  (function(){
+    var p = new URLSearchParams(location.search).get('theme');
+    if(p==='dark'||p==='light'){ document.documentElement.setAttribute('data-theme', p); }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+      document.documentElement.setAttribute('data-theme','dark');
+    } else {
+      document.documentElement.setAttribute('data-theme','light');
+    }
+  })();
+</script>
+</body>
+</html>
