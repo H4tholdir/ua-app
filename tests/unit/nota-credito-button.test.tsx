@@ -152,6 +152,30 @@ describe('NotaCreditoButton — sheet 2 step', () => {
     expect(refreshMock).not.toHaveBeenCalled()
   })
 
+  it('errore di rete (fetch rejecta) → messaggio dedicato in-sheet, foglio aperto, nessun refresh', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    renderButton()
+    openSheet()
+    fireEvent.change(screen.getByRole('textbox', { name: /causale/i }), {
+      target: { value: 'Storno' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /continua/i }))
+    fireEvent.click(screen.getByRole('button', { name: /emetti td04/i }))
+
+    // Messaggio DEDICATO di rete (percorso catch: nessuna res.json()),
+    // diverso dall'errore API generico
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/connessione assente/i),
+    )
+    // foglio ancora aperto e riutilizzabile: la CTA torna «Emetti TD04»
+    // (waitFor: l'alert può comparire mentre la transition è ancora pending
+    // e la CTA legge «Emissione…»)
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /emetti td04/i })).toBeEnabled(),
+    )
+    expect(refreshMock).not.toHaveBeenCalled()
+  })
+
   it('xml_pending → successo non-bloccante: chiude e fa refresh', async () => {
     ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
