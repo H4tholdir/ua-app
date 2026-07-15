@@ -11,9 +11,14 @@ import { join } from 'node:path'
 // tests/integration/emetti-nota-credito-atomica.rpc.test.ts (richiede
 // SUPABASE_DB_URL). Questo test documenta e blocca il contratto statico —
 // firma, esiti ammessi, sicurezza — leggendo la migration.
+//
+// Task 4: il contratto punta alla migration ADDITIVA
+// 20260715110000_credito_storno_nota_credito.sql, che sostituisce l'intero
+// corpo della funzione (CREATE OR REPLACE) aggiungendo il Blocco 3 (credito
+// 'storno'): è quella la definizione deployata.
 
 const MIGRATION_PATH = join(
-  __dirname, '..', '..', 'supabase', 'migrations', '20260715100000_emetti_nota_credito_rpc.sql'
+  __dirname, '..', '..', 'supabase', 'migrations', '20260715110000_credito_storno_nota_credito.sql'
 )
 const sql = readFileSync(MIGRATION_PATH, 'utf8')
 
@@ -77,5 +82,36 @@ describe('emetti_nota_credito_atomica — contratto (migration statica)', () => 
 
   it('non genera XML (fuori RPC — Task 6)', () => {
     expect(sql).not.toMatch(/xml_fattura_pa|<FatturaElettronica/)
+  })
+
+  describe('blocco 3 — credito storno (Task 4)', () => {
+    it('CHECK tipo esteso: accetta storno accanto a eccedenza/applicazione/rimborso', () => {
+      expect(sql).toMatch(
+        /ADD CONSTRAINT credito_clienti_movimenti_tipo_check\s*\n\s*CHECK \(tipo IN \('eccedenza','applicazione','rimborso','storno'\)\)/
+      )
+    })
+
+    it('inserisce un movimento tipo storno, gateato su incassato > 0', () => {
+      const bloccoIdx = sql.indexOf('IF v_pagato > 0 THEN')
+      const insertIdx = sql.indexOf('INSERT INTO public.credito_clienti_movimenti')
+      expect(bloccoIdx).toBeGreaterThan(-1)
+      expect(insertIdx).toBeGreaterThan(bloccoIdx)
+      expect(sql).toMatch(/'storno', v_pagato, p_originale_id/)
+    })
+
+    it('senza dipendenza da pagamento_id: la colonna non compare nell\'INSERT del movimento', () => {
+      const insertStorno = sql.slice(
+        sql.indexOf('INSERT INTO public.credito_clienti_movimenti'),
+        sql.indexOf('END IF;', sql.indexOf('INSERT INTO public.credito_clienti_movimenti'))
+      )
+      expect(insertStorno).not.toMatch(/pagamento_id/)
+      expect(insertStorno).toMatch(/laboratorio_id/)
+    })
+
+    it('incassato = pagamenti ATTIVI + applicazioni di credito — MAI da fatture_pagamenti (legacy, sempre vuota)', () => {
+      expect(sql).toMatch(/FROM public\.pagamenti p\s*\n\s*WHERE p\.fattura_id = p_originale_id\s*\n\s*AND p\.laboratorio_id = p_laboratorio_id\s*\n\s*AND p\.stato = 'attivo'/)
+      expect(sql).toMatch(/FROM public\.credito_clienti_movimenti m\s*\n\s*WHERE m\.fattura_id = p_originale_id\s*\n\s*AND m\.laboratorio_id = p_laboratorio_id\s*\n\s*AND m\.tipo = 'applicazione'/)
+      expect(sql).not.toMatch(/FROM (public\.)?fatture_pagamenti/)
+    })
   })
 })

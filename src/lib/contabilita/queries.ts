@@ -116,12 +116,15 @@ export async function getCreditoScadutoPerCliente(
  * "fantasma" — quelle il cui pagamento sorgente è stato annullato/sostituito
  * (Task 8 non tocca mai credito_clienti_movimenti: la correzione vive qui,
  * lato lettura, unica fonte usata da Task 10 e Task 15 per calcolaCreditoDisponibile).
+ * Il filtro gatea SOLO 'eccedenza': 'storno' (credito da nota di credito
+ * TD04, Task 4) non ha pagamento sorgente e passa sempre, come
+ * applicazione/rimborso.
  */
 export async function fetchMovimentiCreditoValidi(
   svc: SupabaseClient,
   labId: string,
   clienteId: string
-): Promise<Array<{ tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number }>> {
+): Promise<Array<{ tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number }>> {
   const { data: movimentiRaw, error: movimentiErr } = await svc
     .from('credito_clienti_movimenti')
     .select('tipo, importo, pagamento_id, pagamenti(stato)')
@@ -132,7 +135,7 @@ export async function fetchMovimentiCreditoValidi(
   if (movimentiErr) throw new Error(`[contabilita cliente] lettura movimenti: ${movimentiErr.message}`)
 
   return ((movimentiRaw ?? []) as unknown as Array<{
-    tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number
+    tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number
     pagamento_id: string | null; pagamenti: { stato: string } | null
   }>)
     .filter((m) => m.tipo !== 'eccedenza' || m.pagamenti?.stato === 'attivo')

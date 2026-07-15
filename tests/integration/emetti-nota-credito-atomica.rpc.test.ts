@@ -206,6 +206,69 @@ describe.skipIf(skipIntegrationTests)('emetti_nota_credito_atomica — comportam
     })
   })
 
+  it('originale incassata (pagamenti attivi + applicazione credito) → movimento storno per il totale incassato; gli annullati non contano', async () => {
+    await withRollback(async (client) => {
+      const clienteId = await creaCliente(client)
+      const orig = await creaFatturaOriginale(client, clienteId, { statoSdi: 'accettata', imponibile: 100 })
+
+      const { rows: [utente] } = await client.query(
+        `SELECT id FROM utenti WHERE laboratorio_id = $1 LIMIT 1`, [LAB_E2E_ID]
+      )
+      // pagamento attivo 60 + applicazione credito 40 = incassato 100;
+      // il pagamento annullato da 30 NON deve contare.
+      await client.query(
+        `INSERT INTO pagamenti (laboratorio_id, fattura_id, importo, metodo, data_pagamento, stato, registrato_da)
+         VALUES ($1, $2, 60, 'contanti', CURRENT_DATE, 'attivo', $3),
+                ($1, $2, 30, 'contanti', CURRENT_DATE, 'annullato', $3)`,
+        [LAB_E2E_ID, orig.id, utente.id]
+      )
+      await client.query(
+        `INSERT INTO credito_clienti_movimenti (laboratorio_id, cliente_id, tipo, importo, fattura_id, registrato_da)
+         VALUES ($1, $2, 'applicazione', 40, $3, $4)`,
+        [LAB_E2E_ID, clienteId, orig.id, utente.id]
+      )
+
+      const { rows: [result] } = await client.query(
+        `SELECT emetti_nota_credito_atomica($1, $2, $3) AS result`,
+        [orig.id, 'storno fattura pagata', LAB_E2E_ID]
+      )
+      expect(result.result.esito).toBe('ok')
+
+      const { rows: storni } = await client.query(
+        `SELECT importo::text AS importo, pagamento_id, fattura_id, lavoro_id, registrato_da
+         FROM credito_clienti_movimenti
+         WHERE laboratorio_id = $1 AND cliente_id = $2 AND tipo = 'storno'`,
+        [LAB_E2E_ID, clienteId]
+      )
+      expect(storni).toHaveLength(1)
+      expect(storni[0].importo).toBe('100.00')
+      expect(storni[0].pagamento_id).toBeNull()
+      expect(storni[0].fattura_id).toBe(orig.id)
+      expect(storni[0].lavoro_id).toBeNull()
+      expect(storni[0].registrato_da).toBeNull() // sistema
+    })
+  })
+
+  it('originale mai incassata → nessun movimento storno', async () => {
+    await withRollback(async (client) => {
+      const clienteId = await creaCliente(client)
+      const orig = await creaFatturaOriginale(client, clienteId, { statoSdi: 'accettata', imponibile: 100 })
+
+      const { rows: [result] } = await client.query(
+        `SELECT emetti_nota_credito_atomica($1, $2, $3) AS result`,
+        [orig.id, 'storno fattura non pagata', LAB_E2E_ID]
+      )
+      expect(result.result.esito).toBe('ok')
+
+      const { rows: [count] } = await client.query(
+        `SELECT count(*)::int AS n FROM credito_clienti_movimenti
+         WHERE laboratorio_id = $1 AND cliente_id = $2 AND tipo = 'storno'`,
+        [LAB_E2E_ID, clienteId]
+      )
+      expect(count.n).toBe(0)
+    })
+  })
+
   it('laboratorio diverso → non_trovato (isolamento tenant)', async () => {
     await withRollback(async (client) => {
       const clienteId = await creaCliente(client)

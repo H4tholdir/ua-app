@@ -456,7 +456,7 @@ export type Database = {
           metodo_nota: string | null
           note: string | null
           pagamento_id: string | null
-          registrato_da: string
+          registrato_da: string | null
           tipo: string
         }
         Insert: {
@@ -471,7 +471,7 @@ export type Database = {
           metodo_nota?: string | null
           note?: string | null
           pagamento_id?: string | null
-          registrato_da: string
+          registrato_da?: string | null
           tipo: string
         }
         Update: {
@@ -486,7 +486,7 @@ export type Database = {
           metodo_nota?: string | null
           note?: string | null
           pagamento_id?: string | null
-          registrato_da?: string
+          registrato_da?: string | null
           tipo?: string
         }
         Relationships: [
