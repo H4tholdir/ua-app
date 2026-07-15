@@ -72,7 +72,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (fattura_id) {
     const { data: fattura } = await svc
       .from('fatture')
-      .select('id')
+      .select('id, stornata_at, tipo_documento')
       .eq('id', fattura_id)
       .eq('cliente_id', cliente_id)
       .eq('laboratorio_id', utente.laboratorio_id)
@@ -80,6 +80,15 @@ export async function POST(req: Request, { params }: RouteContext) {
       .single()
     if (!fattura) {
       return NextResponse.json({ error: 'Fattura non trovata per questo cliente' }, { status: 404 })
+    }
+    // Task 5b: una fattura stornata non è più un dovuto (Task 5) — applicarle
+    // credito creerebbe un doppio movimento contabile su un documento annullato.
+    if ((fattura as { stornata_at: string | null }).stornata_at != null) {
+      return NextResponse.json({ error: 'Fattura stornata: applicazione credito non consentita' }, { status: 400 })
+    }
+    // Il TD04 (nota di credito) è un documento di storno: non è MAI pagabile.
+    if ((fattura as { tipo_documento: string }).tipo_documento === 'TD04') {
+      return NextResponse.json({ error: 'Nota di credito (TD04): applicazione credito non consentita' }, { status: 400 })
     }
   } else {
     const { data: lavoro } = await svc

@@ -42,6 +42,10 @@ export async function POST(req: Request, { params }: RouteContext) {
       .eq('laboratorio_id', cliente.laboratorio_id)
       .eq('lavoro_id', lavoro_id)
       .neq('stato_sdi', 'rifiutata')
+      // Task 5 (audit letture storno TD04): una fattura stornata non blocca
+      // più la proposta di fatturazione (il lavoro torna in_attesa via
+      // emetti_nota_credito_atomica, Task 3).
+      .is('stornata_at', null)
       .limit(1)
     if (fatErr) {
       console.error('[portale proposta] lettura fatture:', fatErr.message)

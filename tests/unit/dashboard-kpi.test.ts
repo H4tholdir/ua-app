@@ -4,6 +4,7 @@ import {
   mapTecnicoLavoriRows,
   mapFrontDeskConsegneRows,
   isCacheStale,
+  getTrendMensile,
 } from '@/lib/dashboard/queries'
 
 describe('mapTitolareKpiRow', () => {
@@ -92,6 +93,118 @@ describe('mapFrontDeskConsegneRows', () => {
     const result = mapFrontDeskConsegneRows(rows)
     expect(result[0].ora_consegna).toBe('09:30')
     expect(result[0].cliente_display).toBe('Studio Rossi')
+  })
+})
+
+// Task 5 (audit letture storno TD04, Gruppo B): il trend mensile NON filtra
+// stornata_at (la fattura originale resta nel suo mese) ma sottrae il TD04
+// nel mese in cui è stato emesso — l'originale e la nota di credito possono
+// cadere in mesi diversi.
+describe('getTrendMensile', () => {
+  function fakeSupabase(rowsIn: Array<{
+    data: string; totale: number; tipo_documento: string
+    stornata_at?: string | null; stato_sdi?: string; deleted_at?: string | null
+  }>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let rows: any[] = rowsIn
+    const builder = {
+      select() { return builder },
+      eq() { return builder },
+      gte() { return builder },
+      order() { return builder },
+      // Filtri reali (non no-op): garantiscono che il predicato revenue sia
+      // davvero quello atteso — se una futura regressione aggiungesse
+      // `.is('stornata_at', null)` (il predicato del Gruppo A, vietato nel
+      // Gruppo B) o rimuovesse l'esclusione draft/rifiutata/scaduta, i test
+      // sotto lo intercettano.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      is(column: string, value: any) {
+        rows = rows.filter((r) => (r[column] ?? null) === value)
+        return builder
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      not(column: string, op: string, value: any) {
+        if (op === 'in') {
+          const esclusi = String(value).replace(/[()"]/g, '').split(',')
+          rows = rows.filter((r) => !esclusi.includes(r[column]))
+        } else if (op === 'is' && value === null) {
+          rows = rows.filter((r) => (r[column] ?? null) !== null)
+        }
+        return builder
+      },
+      then(resolve: (v: { data: unknown; error: null }) => void) {
+        resolve({ data: rows, error: null })
+      },
+    }
+    return { from: () => builder } as unknown as Parameters<typeof getTrendMensile>[0]
+  }
+
+  it('sottrae il totale del TD04 dal mese di emissione', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-07-05', totale: 1000, tipo_documento: 'TD01' },
+      { data: '2026-07-10', totale: 200, tipo_documento: 'TD04' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    expect(result).toHaveLength(1)
+    expect(result[0].month).toBe('2026-07')
+    expect(result[0].totale).toBe(800)
+  })
+
+  it('la TD01 stornata resta nel suo mese di emissione (Gruppo B: mai filtrare stornata_at)', async () => {
+    const svc = fakeSupabase([
+      // stornata_at valorizzato: se la query filtrasse stornata_at IS NULL
+      // (come nel Gruppo A), questa riga sparirebbe e il totale sarebbe -500
+      // invece di 0 — la regressione che il Gruppo B vieta esplicitamente.
+      { data: '2026-07-01', totale: 500, tipo_documento: 'TD01', stornata_at: '2026-07-20T10:00:00.000Z' },
+      { data: '2026-07-20', totale: 500, tipo_documento: 'TD04' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    // Stesso mese solare: la TD01 (+500) e il TD04 (-500) si compensano
+    // nell'unico bucket mensile — l'originale non è mai stato filtrato via.
+    expect(result).toHaveLength(1)
+    expect(result[0].totale).toBe(0)
+  })
+
+  it('originale e TD04 in mesi diversi: ognuno pesa sul proprio mese', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-06-15', totale: 900, tipo_documento: 'TD01' },
+      { data: '2026-07-03', totale: 900, tipo_documento: 'TD04' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 2)
+    const giugno = result.find((r) => r.month === '2026-06')
+    const luglio = result.find((r) => r.month === '2026-07')
+    expect(giugno?.totale).toBe(900)
+    expect(luglio?.totale).toBe(-900)
+  })
+
+  // Fix pre-merge (review finale whole-branch): getTrendMensile deve usare lo
+  // STESSO predicato revenue di refresh_dashboard_cache (migration
+  // 20260715130000) — stato_sdi NOT IN ('draft','rifiutata','scaduta') e
+  // deleted_at IS NULL. Senza, un TD04 draft sottrae ricavo prima di essere
+  // emesso e un TD04 rifiutata (i cui effetti il trigger di Task 8 ha
+  // annullato) continuerebbe a sottrarre per sempre, contraddicendo
+  // l'invariante «TD04 rifiutata = mai esistita fiscalmente».
+  it('TD04 draft e rifiutata NON sottraggono; TD04 smtp_inviata sì (predicato allineato a refresh_dashboard_cache)', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-07-01', totale: 1000, tipo_documento: 'TD01', stato_sdi: 'accettata' },
+      { data: '2026-07-05', totale: 300, tipo_documento: 'TD04', stato_sdi: 'draft' },
+      { data: '2026-07-08', totale: 400, tipo_documento: 'TD04', stato_sdi: 'rifiutata' },
+      { data: '2026-07-10', totale: 100, tipo_documento: 'TD04', stato_sdi: 'smtp_inviata' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    expect(result).toHaveLength(1)
+    // 1000 - 100 (solo il TD04 emesso conta; draft e rifiutata esclusi)
+    expect(result[0].totale).toBe(900)
+  })
+
+  it('righe soft-deleted escluse dal trend (deleted_at IS NULL, come il predicato SQL)', async () => {
+    const svc = fakeSupabase([
+      { data: '2026-07-01', totale: 700, tipo_documento: 'TD01', stato_sdi: 'accettata' },
+      { data: '2026-07-02', totale: 250, tipo_documento: 'TD01', stato_sdi: 'accettata', deleted_at: '2026-07-03T09:00:00.000Z' },
+    ])
+    const result = await getTrendMensile(svc, 'lab-1', 1)
+    expect(result).toHaveLength(1)
+    expect(result[0].totale).toBe(700)
   })
 })
 

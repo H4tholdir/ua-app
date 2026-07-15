@@ -371,26 +371,56 @@ export async function getTrendMensile(
   startDate.setDate(1)
   startDate.setHours(0, 0, 0, 0)
 
+  // NOTA (Task 5, audit letture storno TD04): la colonna data emissione di
+  // `fatture` è `data` (non `data_emissione` — quella esiste solo su
+  // buoni_consegna/DdC/DPA). Corretto qui perché la query precedente
+  // interrogava una colonna inesistente: l'errore Postgres veniva ignorato
+  // (solo `data` destrutturato, mai `error`), risolvendo sempre in trend
+  // vuoto/a-zero. Necessario correggerlo per rendere osservabile la
+  // sottrazione TD04 sotto richiesta da questo task.
+  // Predicato revenue ALLINEATO a refresh_dashboard_cache (migration
+  // 20260715130000): deleted_at IS NULL e stato_sdi NOT IN
+  // ('draft','rifiutata','scaduta') — vale per TUTTE le righe (TD01 e TD04).
+  // Senza, un TD04 draft sottrarrebbe ricavo prima di essere emesso e un
+  // TD04 rifiutata (effetti annullati dal trigger di Task 8) continuerebbe
+  // a sottrarre per sempre, contraddicendo l'invariante «TD04 rifiutata =
+  // mai esistita fiscalmente».
   const { data } = await svc
     .from('fatture')
-    .select('data_emissione, totale')
+    .select('data, totale, tipo_documento')
     .eq('laboratorio_id', labId)
-    .gte('data_emissione', startDate.toISOString())
-    .not('data_emissione', 'is', null)
-    .order('data_emissione', { ascending: true })
+    .is('deleted_at', null)
+    .not('stato_sdi', 'in', '("draft","rifiutata","scaduta")')
+    .gte('data', startDate.toISOString())
+    .not('data', 'is', null)
+    .order('data', { ascending: true })
 
-  // Group by month (YYYY-MM)
+  // Group by month (YYYY-MM). Gruppo B (spec Task 5): il TD04 va sottratto
+  // nel mese di emissione — l'originale stornato NON viene mai filtrato qui
+  // e resta nel proprio mese (il fatturato storico non si riscrive).
   const byMonth: Record<string, number> = {}
   for (const f of data ?? []) {
-    const month = (f.data_emissione as string).slice(0, 7) // "2026-01"
-    byMonth[month] = (byMonth[month] ?? 0) + (f.totale ?? 0)
+    const month = (f.data as string).slice(0, 7) // "2026-01"
+    const segno = f.tipo_documento === 'TD04' ? -1 : 1
+    byMonth[month] = (byMonth[month] ?? 0) + (f.totale ?? 0) * segno
   }
 
   // Fill in empty months
+  //
+  // NOTA (Task 5, audit letture storno TD04): la key usava
+  // `cursor.toISOString().slice(0,7)` — su un fuso UTC+ (Italia: sempre
+  // CET/CEST), la mezzanotte locale del giorno 1 diventa le 22-23 UTC del
+  // giorno precedente, quindi la key generata slittava sistematicamente di
+  // un mese indietro rispetto a quella con cui `byMonth` viene popolato sopra
+  // (calcolata dalla stringa `data` grezza, senza passare per UTC). Il
+  // risultato era un trend sempre a zero (nessuna key combaciava mai).
+  // Necessario correggerlo qui: senza, la sottrazione del TD04 richiesta da
+  // questo task finirebbe sempre nel bucket sbagliato (o in nessuno) in
+  // produzione, che gira sempre in un fuso UTC+.
   const result: { month: string; totale: number; label: string }[] = []
   const cursor = new Date(startDate)
   for (let i = 0; i < months; i++) {
-    const key = cursor.toISOString().slice(0, 7)
+    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
     const label = cursor.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' })
     result.push({ month: key, totale: byMonth[key] ?? 0, label })
     cursor.setMonth(cursor.getMonth() + 1)

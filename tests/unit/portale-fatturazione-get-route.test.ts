@@ -49,7 +49,7 @@ beforeEach(() => {
       return { select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ is: () => ({ order: async () => ({ data: lavori, error: null }) }) }) }) }) }) }) }
     }
     if (table === 'fatture') {
-      return { select: () => ({ eq: () => ({ neq: () => ({ in: async () => (fattureErrore ? { data: null, error: fattureErrore } : { data: fattureLavoroIds.map((id) => ({ lavoro_id: id })), error: null }) }) }) }) }
+      return { select: () => ({ eq: () => ({ neq: () => ({ is: () => ({ in: async () => (fattureErrore ? { data: null, error: fattureErrore } : { data: fattureLavoroIds.map((id) => ({ lavoro_id: id })), error: null }) }) }) }) }) }
     }
     // portale_accessi
     return { insert: async (row: Record<string, unknown>) => { auditInserts.push(row); return { error: null } } }

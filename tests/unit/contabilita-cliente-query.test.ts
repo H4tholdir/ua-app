@@ -41,7 +41,15 @@ function createFakeSupabase(data: {
           rows = rows.filter((r) => r[column] !== value)
           return builder
         },
-        is() { return builder },
+        // Task 5 (audit letture storno TD04): `is` filtra davvero, sullo
+        // stesso principio di `neq` sopra — serve a testare la regressione
+        // "fattura stornata / TD04 esclusi dai dovuti" senza simulare
+        // l'intero query planner Postgres.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        is(column: string, value: any) {
+          rows = rows.filter((r) => (r[column] ?? null) === value)
+          return builder
+        },
         not() { return builder },
         gt() { return builder },
         order() { return builder },
@@ -157,6 +165,28 @@ describe('getContabilitaCliente', () => {
     expect(r.dovuti).toHaveLength(1)
     expect(r.dovuti[0]).toMatchObject({ id: 'f2', origine: 'fattura', residuo: 100 })
     expect(r.creditoCliente.confermato).toBe(100)
+  })
+
+  // Task 5 (audit letture storno TD04): una TD01 stornata non è più un
+  // dovuto (il credito compensativo vive in credito_clienti_movimenti,
+  // Task 4) e il TD04 stesso NON è mai un dovuto (lavoro_id NULL, non
+  // rappresenta un lavoro da incassare) — altrimenti lo stesso importo
+  // comparirebbe due volte (originale stornata + nota di credito).
+  it('esclude la fattura stornata e il TD04 dai dovuti', async () => {
+    const supabase = createFakeSupabase({
+      fatture: [
+        {
+          id: 'f1', numero: '2026-0030', data: DATA_LONTANA, totale: 100, importo_pagato: 0,
+          stato_sdi: 'accettata', pagata: false, stornata_at: '2026-07-10T10:00:00.000Z', tipo_documento: 'TD01',
+        },
+        {
+          id: 'f2', numero: '2026-0031', data: DATA_LONTANA, totale: 100, importo_pagato: 0,
+          stato_sdi: 'accettata', pagata: false, stornata_at: null, tipo_documento: 'TD04',
+        },
+      ],
+    })
+    const r = await getContabilitaCliente(supabase, 'lab-1', 'cli-1')
+    expect(r.dovuti.find((d) => d.origine === 'fattura')).toBeUndefined()
   })
 })
 

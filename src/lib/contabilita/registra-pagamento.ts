@@ -51,14 +51,24 @@ export async function eseguiRegistrazionePagamento(
   if (fattura_id) {
     const { data: fattura, error } = await supabase
       .from('fatture')
-      .select('id, totale, cliente_id')
+      .select('id, totale, cliente_id, stornata_at, tipo_documento')
       .eq('id', fattura_id)
       .eq('laboratorio_id', laboratorio_id)
       .is('deleted_at', null)
       .single()
     if (error || !fattura) return { ok: false, errore: 'Fattura non trovata' }
-    importoDovuto = Number((fattura as { totale: number }).totale)
-    clienteId = (fattura as { cliente_id: string }).cliente_id
+    const fatturaRow = fattura as { totale: number; cliente_id: string; stornata_at: string | null; tipo_documento: string }
+    // Task 5b: una fattura stornata non è più un dovuto (Task 5) — incassarla
+    // creerebbe un doppio movimento contabile su un documento annullato.
+    if (fatturaRow.stornata_at != null) {
+      return { ok: false, errore: 'Fattura stornata: pagamento non consentito' }
+    }
+    // Il TD04 (nota di credito) è un documento di storno: non è MAI pagabile.
+    if (fatturaRow.tipo_documento === 'TD04') {
+      return { ok: false, errore: 'Nota di credito (TD04): pagamento non consentito' }
+    }
+    importoDovuto = Number(fatturaRow.totale)
+    clienteId = fatturaRow.cliente_id
   } else {
     const { data: lavoro, error } = await supabase
       .from('lavori')

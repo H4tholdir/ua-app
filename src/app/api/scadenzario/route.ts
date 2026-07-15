@@ -56,6 +56,12 @@ export async function GET() {
     .eq('pagata', false)
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
+    // Task 5 (audit letture storno TD04): stesso invariante di
+    // getContabilitaCliente/getCreditoScadutoPerCliente — TD01 stornata e
+    // TD04 esclusi dallo scadenzario, altrimenti lo stesso importo
+    // comparirebbe due volte (originale stornata + nota di credito).
+    .is('stornata_at', null)
+    .neq('tipo_documento', 'TD04')
     .order('data', { ascending: true })
 
   if (fattureError) {

@@ -11,20 +11,33 @@ function createFakeSupabase(data: {
 }) {
   const fake = {
     from(table: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let rows: any[] =
+        table === 'fatture' ? (data.fatture ?? []) :
+        table === 'lavori' ? (data.lavori ?? []) :
+        table === 'credito_clienti_movimenti' ? (data.movimenti ?? []) :
+        []
       const builder = {
         select() { return builder },
         eq() { return builder },
-        neq() { return builder },
-        is() { return builder },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        neq(column: string, value: any) {
+          rows = rows.filter((r) => r[column] !== value)
+          return builder
+        },
+        // Task 5 (audit letture storno TD04): filtra davvero, come `neq`
+        // sopra — per verificare il comportamento del predicato, non il mock.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        is(column: string, value: any) {
+          rows = rows.filter((r) => (r[column] ?? null) === value)
+          return builder
+        },
         not() { return builder },
         in() { return builder },
         lt() { return builder },
         gt() { return builder },
         then(resolve: (v: { data: unknown; error: null }) => void) {
-          if (table === 'fatture') { resolve({ data: data.fatture ?? [], error: null }); return }
-          if (table === 'lavori') { resolve({ data: data.lavori ?? [], error: null }); return }
-          if (table === 'credito_clienti_movimenti') { resolve({ data: data.movimenti ?? [], error: null }); return }
-          resolve({ data: [], error: null })
+          resolve({ data: rows, error: null })
         },
       }
       return builder
@@ -89,6 +102,21 @@ describe('getCreditoScadutoPerCliente — unifica fatture + lavori diretti scadu
     expect(r).toHaveLength(1)
     expect(r[0].residuo_totale).toBe(150)
     expect(r[0].lavori_count).toBe(2)
+  })
+
+  // Task 5 (audit letture storno TD04): stesso invariante di
+  // getContabilitaCliente — una TD01 stornata e un TD04 non sono mai un
+  // "pagamento scaduto" da mostrare in Dashboard/Front Desk.
+  it('esclude la fattura stornata e il TD04 dai pagamenti scaduti', async () => {
+    const supabase = createFakeSupabase({
+      fatture: [
+        { id: 'f1', totale: 100, importo_pagato: 0, data: DATA_LONTANA, clienti: CLIENTE_1, stornata_at: '2026-07-10T10:00:00.000Z', tipo_documento: 'TD01' },
+        { id: 'f2', totale: 100, importo_pagato: 0, data: DATA_LONTANA, clienti: CLIENTE_1, stornata_at: null, tipo_documento: 'TD04' },
+      ],
+      lavori: [],
+    })
+    const r = await getCreditoScadutoPerCliente(supabase, 'lab-1')
+    expect(r).toHaveLength(0)
   })
 
   it('ordina per residuo_totale decrescente', async () => {

@@ -67,6 +67,12 @@ export async function getCreditoScadutoPerCliente(
     .eq('pagata', false)
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
+    // Task 5 (audit letture storno TD04): una TD01 stornata non è più un
+    // dovuto scaduto (il credito compensativo vive in
+    // credito_clienti_movimenti, Task 4); il TD04 stesso non è mai un
+    // "pagamento scaduto" (lavoro_id NULL — non rappresenta un incasso atteso).
+    .is('stornata_at', null)
+    .neq('tipo_documento', 'TD04')
     .lt('data', cutoffISO)
 
   for (const f of (fattureData ?? []) as unknown as Array<{
@@ -116,12 +122,15 @@ export async function getCreditoScadutoPerCliente(
  * "fantasma" — quelle il cui pagamento sorgente è stato annullato/sostituito
  * (Task 8 non tocca mai credito_clienti_movimenti: la correzione vive qui,
  * lato lettura, unica fonte usata da Task 10 e Task 15 per calcolaCreditoDisponibile).
+ * Il filtro gatea SOLO 'eccedenza': 'storno' (credito da nota di credito
+ * TD04, Task 4) non ha pagamento sorgente e passa sempre, come
+ * applicazione/rimborso.
  */
 export async function fetchMovimentiCreditoValidi(
   svc: SupabaseClient,
   labId: string,
   clienteId: string
-): Promise<Array<{ tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number }>> {
+): Promise<Array<{ tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number }>> {
   const { data: movimentiRaw, error: movimentiErr } = await svc
     .from('credito_clienti_movimenti')
     .select('tipo, importo, pagamento_id, pagamenti(stato)')
@@ -132,7 +141,7 @@ export async function fetchMovimentiCreditoValidi(
   if (movimentiErr) throw new Error(`[contabilita cliente] lettura movimenti: ${movimentiErr.message}`)
 
   return ((movimentiRaw ?? []) as unknown as Array<{
-    tipo: 'eccedenza' | 'applicazione' | 'rimborso'; importo: number
+    tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number
     pagamento_id: string | null; pagamenti: { stato: string } | null
   }>)
     .filter((m) => m.tipo !== 'eccedenza' || m.pagamenti?.stato === 'attivo')
@@ -193,6 +202,11 @@ export async function getContabilitaCliente(
     .eq('laboratorio_id', labId)
     .neq('stato_sdi', 'draft')
     .is('deleted_at', null)
+    // Task 5 (audit letture storno TD04): stesso invariante di
+    // getCreditoScadutoPerCliente sopra — TD01 stornata e TD04 esclusi dai
+    // dovuti, altrimenti lo stesso importo comparirebbe due volte.
+    .is('stornata_at', null)
+    .neq('tipo_documento', 'TD04')
     .order('data', { ascending: false })
   // Fail-closed (follow-up Ondata 3): mai lista vuota silenziosa su errore —
   // il saldo mostrato (scadenzario lab E portale dentista) sarebbe più basso
@@ -354,7 +368,14 @@ export async function getPagamentiCliente(
       .eq('stato', 'attivo')
       .eq('fatture.cliente_id', clienteId)
       .eq('fatture.laboratorio_id', labId)
-      .is('fatture.deleted_at', null),
+      .is('fatture.deleted_at', null)
+      // Task 5 (audit letture storno TD04, Gruppo E): un pagamento storico su
+      // una fattura poi stornata resta un movimento reale già incassato — non
+      // lo nascondiamo, ma non deve più risultare "su una fattura attiva".
+      // Qui filtriamo comunque le stornate per coerenza con Gruppo A/C: il
+      // credito compensativo del cliente vive in credito_clienti_movimenti
+      // (tipo 'storno'), non in questo elenco pagamenti.
+      .is('fatture.stornata_at', null),
     svc
       .from('pagamenti')
       .select('data_pagamento, importo, metodo, lavori!inner(numero_lavoro)')
