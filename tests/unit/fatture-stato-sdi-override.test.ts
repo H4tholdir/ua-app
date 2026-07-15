@@ -277,14 +277,18 @@ describe('POST /api/fatture/[id]/stato-sdi-override — percorso felice', () => 
       stato_a: 'pec_consegnata',
       motivo: 'Confermato manualmente dal portale SdI',
       registrato_da: 'user-1',
-      lista_errori: null,
     })
+    // lista_errori è riservato agli errori NS (Array<{codice, descrizione}>):
+    // l'evento override non deve MAI valorizzarlo.
+    expect(insertPayloads[0]).not.toHaveProperty('lista_errori')
   })
-  it('importo_storno_visto presente → persistito come echo audit in lista_errori', async () => {
+  it('importo_storno_visto presente → accettato ma NON persistito (lista_errori riservato a errori NS)', async () => {
     happyQueue()
     const res = await POST(req({ ...BODY_OK, importo_storno_visto: 123.45 }), ctx)
     expect(res.status).toBe(200)
-    expect(insertPayloads[0].lista_errori).toEqual({ importo_storno_visto: 123.45 })
+    expect(insertPayloads).toHaveLength(1)
+    expect(insertPayloads[0]).not.toHaveProperty('lista_errori')
+    expect(JSON.stringify(insertPayloads[0])).not.toContain('importo_storno_visto')
   })
   it('update guardato ritorna 0 righe (race) → 409, INSERT evento MAI chiamato', async () => {
     fattureQueue = [

@@ -103,12 +103,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   const confermaEffettiStorno = body.conferma_effetti_storno === true
-  // Echo audit-only dell'importo storno visto dall'operatore prima di
-  // confermare (nessuna validazione contro il DB — è una prova che
-  // l'operatore ha letto la cifra corretta, non un vincolo di stato).
-  // Non c'è una colonna dedicata su fatture_sdi_eventi: persistito dentro
-  // lista_errori (jsonb) SOLO quando presente, mai per gli altri override.
-  const importoStornoVisto = typeof body.importo_storno_visto === 'number' ? body.importo_storno_visto : null
+  // importo_storno_visto: confermato dalla UI (payload anti-stale, spec §7),
+  // NON persistito — lista_errori è riservato agli errori NS (Array<{codice,
+  // descrizione}>: producer ingest-ricevuta.ts, consumer applica_ricevuta_sdi).
 
   const { data: fattura } = await svc
     .from('fatture')
@@ -189,7 +186,6 @@ export async function POST(req: Request, { params }: RouteContext) {
     stato_a: nuovoStato,
     motivo,
     registrato_da: user.id,
-    lista_errori: importoStornoVisto !== null ? { importo_storno_visto: importoStornoVisto } : null,
   })
 
   if (insertErr) {
