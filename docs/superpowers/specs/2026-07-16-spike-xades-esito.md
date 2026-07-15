@@ -221,3 +221,29 @@ supporto a `xmldsig-filter2` in nessuna delle due librerie.
     ulteriore lavoro sul filter2.
 - Il meccanismo di pinning/fail-closed/anti-wrapping (§2) resta valido e riusabile
   indipendentemente da quale libreria/implementazione risolverà il gap del transform.
+
+---
+
+## 7. Gate 15/07/2026 — Panel advisor (delegato da Francesco)
+
+Francesco ha delegato la risposta del gate a un panel di 3 advisor specializzati
+(security, architettura, backend). **Verdetto unanime 3/3: CONFERMO FALLBACK.**
+
+Raccomandazioni integrate nell'ondata R1:
+1. **Testo avviso quarantena** (security): «verifica firma non disponibile — controllo
+   manuale obbligatorio» invece di «contenuto potenzialmente contraffatto» — con il
+   fallback il 100% delle ricevute è non verificato: la dicitura allarmistica su ogni
+   riga affogherebbe il segnale reale. La dicitura forte torna quando la verifica reale
+   sarà attiva. → recepito in Task 15/16.
+2. **Override con content-engagement**: il titolare conferma i dati estratti
+   (identificativo SdI, tipo, fattura matchata), mai un OK generico. → già previsto
+   dalla spec (§4.4 + doppia conferma TD04), da mantenere nel mockup Task 15.
+
+A backlog (fuori R1):
+- Procurare 2-3 ricevute SdI **reali e recenti** + trust anchor di produzione con
+  procedura di rotazione (prerequisito di qualsiasi ripresa).
+- Riconfermare che SdI v1.8.1 usi ancora `xmldsig-filter2` (fixture 2011-2014).
+- Secondo spike dedicato (~1-2 gg): (a) `xmlsec-wasm` in Node/Vercel reale;
+  (b) patch filter2 con `xmlsec1 --verify` CLI come oracolo byte-per-byte.
+- Se non converge: microservizio esterno (EU-DSS / Apache Santuario).
+- Contatore/metrica override in quarantena (anti override-fatigue).
