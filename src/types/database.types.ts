@@ -5560,6 +5560,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      emetti_nota_credito_atomica: {
+        Args: {
+          p_causale: string
+          p_laboratorio_id: string
+          p_originale_id: string
+        }
+        Returns: Json
+      }
       genera_numero_ddc: { Args: { p_lab: string }; Returns: string }
       genera_numero_fattura: { Args: { p_lab: string }; Returns: string }
       genera_numero_lavoro: { Args: { p_lab: string }; Returns: string }
