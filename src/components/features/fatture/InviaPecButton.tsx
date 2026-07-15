@@ -12,16 +12,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export const STATO_SDI_LABEL: Record<string, string> = {
-  draft: 'Bozza — XML non generato',
-  generata: "Pronta per l'invio",
-  smtp_inviata: 'Inviata a SdI — in attesa di ricevuta',
-  pec_consegnata: 'PEC consegnata',
-  ricevuta_sdi: 'Ricevuta da SdI',
-  accettata: 'Accettata da SdI',
-  rifiutata: 'Rifiutata da SdI',
-  scaduta: 'Senza risposta SdI (scaduta)',
-}
+// Re-export dal modulo condiviso per contratto pubblico invariato (test incluso).
+// La mappa NON vive qui: gli export di un file 'use client' diventano client
+// reference nei Server Component (→ undefined a runtime). I Server Component
+// devono importarla da '@/lib/fattura/stato-sdi-label'.
+export { STATO_SDI_LABEL } from '@/lib/fattura/stato-sdi-label'
 
 const RUOLI_AMMESSI = ['titolare', 'front_desk']
 

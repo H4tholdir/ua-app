@@ -6,7 +6,11 @@ import { getSignedUrl } from '@/lib/storage/signed-url'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { NotaCreditoButton } from '@/components/features/fatture/NotaCreditoButton'
-import { InviaPecButton, STATO_SDI_LABEL } from '@/components/features/fatture/InviaPecButton'
+import { InviaPecButton } from '@/components/features/fatture/InviaPecButton'
+// STATO_SDI_LABEL dal modulo condiviso, NON dal client component: gli export di
+// un file 'use client' sono client reference in un Server Component (undefined
+// a runtime → la riga «Stato SdI» mostrerebbe la chiave raw). QA browser N10.
+import { STATO_SDI_LABEL } from '@/lib/fattura/stato-sdi-label'
 import type { StatoSDI } from '@/types/domain'
 
 interface Props { params: Promise<{ id: string }> }
