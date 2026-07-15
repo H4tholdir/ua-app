@@ -1,4 +1,4 @@
 # Sessione attiva — 15/07/2026 (3)
 
-**N10+N9 (invio PEC a SdI): MERGIATA E PUSHATA** (`main` merge --no-ff `9310d21`, gate esplicito di Francesco). Review finale READY TO MERGE (0 Critical/Important). QA E2E PASS + cleanup a baseline verificato; gate L2 passato. Follow-up in BACKLOG: «N10 polish», rate-limit PEC, cron riconciliazione ricevute, connectionTimeout.
-**PROSSIMO:** CI verde + smoke uachelab.com → scegliere il prossimo item dalla roadmap con Francesco.
+**N10+N9 (invio PEC a SdI): MERGIATA E DEPLOYATA** (`main` `9310d21`+BP-1 `20518d8`; CI+CD verdi, smoke OK; worktree rimosso). Review finale READY TO MERGE, QA E2E PASS, gate L2 passato. Follow-up in BACKLOG («N10 polish», rate-limit, connectionTimeout).
+**PROSSIMA SESSIONE (contesto pulito):** item **B — Riconciliazioni pendenti + ricevute PEC** (scelta di Francesco). BP-0: `memory/MEMORY.md` + `docs/roadmap/2026-07-15-riconciliazioni-handoff.md`. Percorso GRANDE: brainstorming → validazione arch → spec+panel → piano → esecuzione in worktree. UI → gate §0B.
