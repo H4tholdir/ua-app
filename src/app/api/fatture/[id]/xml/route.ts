@@ -4,6 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { generaFatturaPA } from '@/lib/fattura/generate-xml'
 import { sendFatturaPEC } from '@/lib/fattura/send-pec'
+import { RUOLI_INVIO_PEC, claimInvioPec, releaseInvioPec } from '@/lib/fattura/invio-claim'
 import type { LavoroDettaglio } from '@/types/domain'
 
 interface RouteContext {
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   const { data: utente } = await svc
     .from('utenti')
-    .select('laboratorio_id')
+    .select('laboratorio_id, ruolo')
     .eq('id', user.id)
     .single()
 
@@ -58,6 +59,11 @@ export async function POST(req: Request, { params }: RouteContext) {
   const inviaPec: boolean = body.invia_pec === true
   const lavoriIds: string[] | undefined =
     Array.isArray(body.lavori_ids) ? (body.lavori_ids as string[]) : undefined
+
+  // N10: l'invio fiscale richiede ruolo dedicato; la sola generazione resta libera.
+  if (inviaPec && !RUOLI_INVIO_PEC.includes(utente.ruolo as (typeof RUOLI_INVIO_PEC)[number])) {
+    return NextResponse.json({ error: "Ruolo non autorizzato all'invio fiscale" }, { status: 403 })
+  }
 
   // ── Verifica che la fattura appartenga al laboratorio ─────────────────────
   const { data: fatturaCheck, error: fatturaCheckErr } = await svc
@@ -241,11 +247,22 @@ export async function POST(req: Request, { params }: RouteContext) {
   let pecErrore: string | null = null
 
   if (inviaPec) {
-    try {
-      await sendFatturaPEC(fatturaId)
-      pecInviata = true
-    } catch (err) {
-      pecErrore = err instanceof Error ? err.message : String(err)
+    const { claimed, error: claimErr } = await claimInvioPec(svc, fatturaId, labId)
+    if (claimErr || !claimed) {
+      pecErrore = claimErr
+        ? "Errore durante l'invio — riprova"
+        : 'Invio già in corso o già effettuato'
+      if (claimErr) console.error('[FATTURE-XML] claim invio fallito:', claimErr)
+    } else {
+      try {
+        await sendFatturaPEC(fatturaId)
+        pecInviata = true
+      } catch (err) {
+        // Dettaglio (host SMTP, Vault) SOLO nei log server — mai nel body (N10).
+        console.error('[FATTURE-XML] invio PEC fallito:', err)
+        await releaseInvioPec(svc, fatturaId, labId)
+        pecErrore = 'Invio PEC fallito — riprova o verifica la configurazione PEC'
+      }
     }
   }
 

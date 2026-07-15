@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invio SDI — card «Invia a SdI» su /fatture/[id] · varianti A/B light+dark</title>
+<style>
+/* ============================================================
+   TOKEN v2.3 — valori esatti da src/design-system/tokens.ts
+   Temi SCOPED via .tl (light) / .td (dark): entrambi inline
+   nella stessa pagina. Nessuno script, nessun :root[data-theme].
+   ============================================================ */
+.tl{
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#4A3D33; --t3:#6B5C51; --primary:#D90012;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#92400E; --green-ink:#15803D; --red-ink:#B00010; --blue-ink:#1D4ED8;
+  --line:#CFC9C2;
+  --sh-card: rgba(148,128,118,.22) 3px 5px 10px -2px, rgba(148,128,118,.12) 1px 2px 5px -1px;
+  --sh-btn: rgba(148,128,118,.26) 3px 5px 9px -1px, rgba(255,255,255,.78) -3px -3px 8px;
+  --sh-float: rgba(255,255,255,.72) -8px -8px 18px, rgba(148,128,118,.55) 10px 12px 24px -4px;
+  --sh-red: 0 6px 16px -3px rgba(180,0,10,.42);
+  --overlay: rgba(28,25,22,.42);
+}
+.td{
+  --bg:#1A1916; --sfc:#232018; --elv:#2A2620; --prs:#141210;
+  --t1:#F0EDE8; --t2:#8A8580; --t3:#5A5652; --primary:#E8001A;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#F59E0B; --green-ink:#3DCB5C; --red-ink:#FF5A66; --blue-ink:#7DA9FF;
+  --line:#3A362F;
+  --sh-card: none;                 /* dark = flat: card sfc +1 stop sopra bg */
+  --sh-btn: none;
+  --sh-float: rgba(0,0,0,.70) 0 12px 28px, rgba(0,0,0,.40) 0 4px 8px;
+  --sh-red: 0 6px 16px -3px rgba(232,0,26,.40);
+  --overlay: rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box;font-family:'DM Sans',-apple-system,system-ui,sans-serif}
+html,body{margin:0}
+body{background:#CFC9C2;color:#1C1916;padding:0}
+
+/* ---- Chrome descrittivo ---- */
+.doc{padding:24px 20px 80px;max-width:1400px;margin:0 auto}
+.doc h1{font-size:22px;font-weight:700;margin:0 0 4px;color:#1C1916}
+.doc .lede{font-size:13px;color:#4A3D33;max-width:820px;margin:0 0 6px;line-height:1.5}
+.doc .meta{font-size:12px;color:#6B5C51;margin:0 0 18px}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.nav a{font-size:12px;font-weight:700;text-decoration:none;color:#1C1916;background:#E4DFD9;
+  border:1px solid #CFC9C2;padding:7px 12px;border-radius:100px}
+
+/* ---- Legend mappa stati SDI ---- */
+.legend{background:#E4DFD9;border:1px solid #CFC9C2;border-radius:16px;padding:16px 18px;margin:14px 0 8px}
+.legend h2{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6B5C51;margin:0 0 12px}
+.legend .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px 22px}
+.legend .lrow{display:flex;align-items:center;gap:10px;font-size:12px;padding:3px 0}
+.legend code{font-family:'DM Mono',ui-monospace,monospace;font-size:11px;font-weight:700;color:#1C1916;
+  background:#DDD8D3;border:1px solid #CFC9C2;border-radius:6px;padding:2px 7px;min-width:104px;text-align:center}
+.legend .arr{color:#6B5C51}
+.legend .lbl{color:#1C1916;font-weight:600}
+.legend .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+.sechead{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6B5C51;
+  margin:36px 0 4px;padding-top:14px;border-top:1px dashed #CFC9C2}
+.secsub{font-size:13px;color:#4A3D33;margin:0 0 16px;max-width:880px;line-height:1.5}
+.caphint{font-size:11px;font-weight:700;color:#6B5C51;margin:0 0 10px;letter-spacing:.03em}
+
+/* ---- Regione di cattura: fondo tema ---- */
+.cap{padding:20px;border-radius:16px;background:var(--bg);margin-bottom:14px}
+.captag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--t3);
+  background:var(--elv);border:1px solid var(--line);border-radius:100px;padding:4px 11px;margin:0 0 14px}
+.frames{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.framecol{display:flex;flex-direction:column;gap:8px;width:352px;max-width:100%}
+.framelbl{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.02em}
+.framelbl.mut{color:var(--t3);font-weight:600}
+
+/* ---- Device: phone (fluido: sta nella viewport 390 con padding) ---- */
+.phone{width:100%;max-width:352px;background:var(--bg);border-radius:26px;border:1px solid var(--line);
+  overflow:hidden;position:relative;box-shadow:var(--sh-card)}
+.status{height:26px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;font-size:10px;color:var(--t3);font-weight:600}
+.appbar{display:flex;align-items:center;gap:10px;padding:8px 14px 12px}
+.appbar .back{width:34px;height:34px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t1);flex-shrink:0}
+.appbar .ttl{font-size:17px;font-weight:700;color:var(--t1)}
+.appbar .grow{flex:1}
+.kebab{width:40px;height:40px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t1);flex-shrink:0;font-weight:700}
+.body{padding:0 14px 16px}
+
+/* ---- Card (= pagina reale /fatture/[id]) ---- */
+.card{background:var(--sfc);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-card)}
+.card:last-child{margin-bottom:0}
+.slabel{font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px}
+.r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--elv);font-size:13px}
+.r:last-child{border-bottom:none}
+.r .k{color:var(--t2);flex-shrink:0}
+.r .v{color:var(--t1);font-weight:600;text-align:right}
+.mono{font-family:'DM Mono',ui-monospace,monospace;font-weight:700}
+.linklike{color:var(--amber-ink);font-weight:700;text-decoration:none}
+.linkcfg{color:var(--primary);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+
+/* ---- Stato SdI: dot + testo (colore MAI unico segnale) ---- */
+.sdistate{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--t1);justify-content:flex-end}
+.sdistate .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.d-ready{background:var(--blue)}
+.d-wait{background:var(--amber)}
+.d-ok{background:var(--green)}
+.d-off{background:var(--t3)}
+.d-err{background:var(--red)}
+/* pill stato (variante B) */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:5px 11px;border-radius:100px;line-height:1.3;white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pill.ready{color:var(--blue-ink);background:color-mix(in srgb,var(--blue) 14%,transparent);border:1px solid color-mix(in srgb,var(--blue) 34%,transparent)}
+.pill.wait{color:var(--amber-ink);background:color-mix(in srgb,var(--amber) 16%,transparent);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
+.pill.off{color:var(--t2);background:var(--elv);border:1px solid var(--line)}
+
+/* ---- Bottoni ---- */
+.btn-red{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
+  background:var(--primary);border:none;color:#fff;font-size:15px;font-weight:700;box-shadow:var(--sh-red);cursor:pointer;margin-top:4px}
+.btn-red.dis{opacity:.42;box-shadow:none;cursor:not-allowed}
+.btn-red.busy{background:color-mix(in srgb,var(--primary) 88%,#000);cursor:progress}
+.btn-neutral{min-height:48px;padding:0 16px;display:flex;align-items:center;justify-content:center;border-radius:12px;
+  background:var(--elv);border:1px solid var(--line);color:var(--t2);font-size:14px;font-weight:700;cursor:pointer}
+/* Variante B — pill compatto (visivamente piccolo, tap target ≥44px via min-height+padding) */
+.btn-pill{min-height:44px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:100px;background:var(--primary);border:none;color:#fff;font-size:13px;font-weight:700;
+  box-shadow:var(--sh-red);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-pill.dis{opacity:.42;box-shadow:none;cursor:not-allowed}
+.btn-pill.busy{background:color-mix(in srgb,var(--primary) 88%,#000);cursor:progress}
+.actionsrow{display:flex;gap:10px;margin-top:2px}
+.actionsrow .fill2{flex:2}.actionsrow .fill1{flex:1}
+
+/* ---- Spinner (CSS puro, loop senza JS) ---- */
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+
+/* ---- Callout errore 502 inline ---- */
+.errbox{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;margin:10px 0 4px;
+  background:color-mix(in srgb,var(--red) 12%,transparent);border:1px solid color-mix(in srgb,var(--red) 38%,transparent)}
+.errbox .eic{font-size:15px;line-height:1.2;color:var(--red-ink);flex-shrink:0}
+.errbox .etx{font-size:12px;color:var(--t1);line-height:1.45}
+.errbox .etx b{font-weight:700;color:var(--red-ink)}
+.errbox .etx .rc{display:block;color:var(--t2);font-size:11px;margin-top:2px;font-family:'DM Mono',ui-monospace,monospace}
+
+/* ---- Riga «Configura PEC» avviso ---- */
+.pecwarn{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:12px;margin:10px 0 4px;
+  background:color-mix(in srgb,var(--amber) 12%,transparent);border:1px solid color-mix(in srgb,var(--amber) 36%,transparent)}
+.pecwarn .pic{font-size:14px;color:var(--amber-ink);flex-shrink:0;line-height:1.3}
+.pecwarn .ptx{font-size:12px;color:var(--t1);line-height:1.45}
+
+/* ---- Bottom sheet (mobile) ---- */
+.scrim{position:absolute;inset:0;background:var(--overlay);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:22px 22px 0 0;
+  z-index:9;box-shadow:var(--sh-float);padding:18px 18px 20px}
+.handle{width:34px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.sh-title{font-size:18px;font-weight:700;color:var(--t1);margin:0 0 5px;line-height:1.25}
+.sh-sub{font-size:12px;color:var(--t2);margin:0 0 14px}
+.warn{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;margin:0 0 16px;
+  background:color-mix(in srgb,var(--primary) 9%,transparent);border:1px solid color-mix(in srgb,var(--primary) 30%,transparent)}
+.warn .wic{font-size:15px;line-height:1.2;color:var(--primary);flex-shrink:0}
+.warn .wtx{font-size:12px;color:var(--t1);line-height:1.45}
+.warn .wtx b{font-weight:700}
+
+/* ---- Desktop shell ---- */
+.desk{width:100%;max-width:1120px;background:var(--bg);border-radius:20px;border:1px solid var(--line);overflow:hidden;position:relative}
+.deskbar{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--elv)}
+.deskbar .back{width:36px;height:36px;border-radius:50%;background:var(--elv);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t1)}
+.deskbar .ttl{font-size:20px;font-weight:700;color:var(--t1)}
+.deskbar .grow{flex:1}
+.deskgrid{display:grid;grid-template-columns:1fr 360px;gap:22px;padding:24px}
+.aside{display:flex;flex-direction:column;gap:12px}
+.big{font-size:15px;font-weight:700;color:var(--t1)}
+.sub{font-size:12px;color:var(--t2);margin-top:3px}
+.tot{display:flex;justify-content:space-between;padding-top:10px;font-weight:700;font-size:15px;color:var(--t1)}
+/* desktop dialog = pannello ancorato (NON modal invadente) */
+.deskstage{position:relative;margin-top:10px}
+.stagecap{font-size:11px;font-weight:700;color:var(--t3);margin:0 0 8px;letter-spacing:.03em}
+.dialog{width:420px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh-float);padding:20px}
+
+@media (max-width:460px){
+  .doc{padding:16px 12px 60px}
+  .cap{padding:14px 12px}
+  .framecol{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Invio SDI — nuovo bottone «Invia a SdI» + riga stato granulare su <span class="mono" style="font-size:15px">/fatture/[id]</span></h1>
+  <p class="lede">La card <b>«Invio SDI»</b> della pagina fattura guadagna un'azione per inviare la fattura elettronica al Sistema di Interscambio via PEC e una <b>riga di stato SDI granulare</b>. L'invio è un <b>atto fiscale irreversibile</b>: richiede conferma esplicita. Due approcci a confronto per l'approvazione di Francesco — entrambi in light + dark, con tutti gli stati.</p>
+  <p class="meta">Dati simulati: Fattura <b>2026-0007</b> del 10/07/2026 · Cliente <b>Studio Dott. Rossi</b> · <b>€322,00</b> · TD01 · Design System v2.3 (Warm Panna).</p>
+
+  <div class="nav">
+    <a href="#a-light">A · light</a>
+    <a href="#a-dark">A · dark</a>
+    <a href="#a-desktop">A · desktop</a>
+    <a href="#b-light">B · light</a>
+    <a href="#b-dark">B · dark</a>
+    <a href="#b-desktop">B · desktop</a>
+  </div>
+
+  <!-- ============ LEGEND MAPPA STATI SDI ============ -->
+  <div class="legend tl">
+    <h2>Mappa etichette stato SDI (riga «Stato SdI»)</h2>
+    <div class="grid">
+      <div class="lrow"><code>draft</code><span class="arr">→</span><span class="dot d-off"></span><span class="lbl">Bozza — XML non generato</span></div>
+      <div class="lrow"><code>generata</code><span class="arr">→</span><span class="dot d-ready"></span><span class="lbl">Pronta per l'invio</span></div>
+      <div class="lrow"><code>smtp_inviata</code><span class="arr">→</span><span class="dot d-wait"></span><span class="lbl">Inviata a SdI — in attesa di ricevuta</span></div>
+      <div class="lrow"><code>pec_consegnata</code><span class="arr">→</span><span class="dot d-wait"></span><span class="lbl">PEC consegnata</span></div>
+      <div class="lrow"><code>ricevuta_sdi</code><span class="arr">→</span><span class="dot d-wait"></span><span class="lbl">Ricevuta da SdI</span></div>
+      <div class="lrow"><code>accettata</code><span class="arr">→</span><span class="dot d-ok"></span><span class="lbl">Accettata da SdI</span></div>
+      <div class="lrow"><code>rifiutata</code><span class="arr">→</span><span class="dot d-err"></span><span class="lbl">Rifiutata da SdI</span></div>
+      <div class="lrow"><code>scaduta</code><span class="arr">→</span><span class="dot d-err"></span><span class="lbl">Senza risposta SdI (scaduta)</span></div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- ============================ VARIANTE A ========================== -->
+  <!-- ================================================================= -->
+  <div class="sechead">Variante A — bottone primario rosso pieno «Invia a SdI» sotto le righe della card</div>
+  <p class="secsub">La riga «Stato SdI» apre la card; sotto le righe compare un <b>bottone rosso pieno a tutta larghezza</b>, azione principale inequivocabile. Enfasi massima sull'atto; ideale per chi invia raramente e vuole il bottone impossibile da mancare. Conferma su <b>bottom sheet</b> (mobile).</p>
+
+  <!-- ---------- A · LIGHT ---------- -->
+  <a id="a-light"></a>
+  <div class="caphint">A · mobile 390px · light — pronta · post-invio · PEC non configurata · conferma · invio in corso · errore 502</div>
+  <div class="cap tl">
+    <div class="captag">Variante A — Light</div>
+    <div class="frames">
+
+      <!-- A1 pronta -->
+      <div class="framecol">
+        <div class="framelbl">1 · Pronta per l'invio — bottone attivo</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+              <button class="btn-red"><span>✈</span>Invia a SdI</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A2 post-invio -->
+      <div class="framecol">
+        <div class="framelbl">2 · Dopo l'invio — «Inviata a SdI» dot ambra</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+              <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">In attesa…</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl mut">Nessun bottone: l'invio è già partito, non ripetibile.</div>
+      </div>
+
+      <!-- A3 PEC non configurata -->
+      <div class="framecol">
+        <div class="framelbl">3 · PEC non configurata — bottone disabilitato</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="pecwarn">
+                <span class="pic">⚠</span>
+                <span class="ptx">Per inviare a SdI serve una casella PEC. <a class="linkcfg" href="/impostazioni/pec">Configura PEC ›</a></span>
+              </div>
+              <button class="btn-red dis" disabled><span>✈</span>Invia a SdI</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A4 conferma (bottom sheet) -->
+      <div class="framecol">
+        <div class="framelbl">4 · Conferma — bottom sheet (atto irreversibile)</div>
+        <div class="phone" style="height:520px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body" style="opacity:.35">
+            <div class="card"><div class="slabel">Invio SDI</div><div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+            <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura elettronica parte subito verso il Sistema di Interscambio via PEC e non potrà essere annullata.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A5 pending -->
+      <div class="framecol">
+        <div class="framelbl">5 · Invio in corso — spinner sul bottone</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+              <button class="btn-red busy"><span class="spin"></span>Invio in corso…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A6 errore 502 -->
+      <div class="framecol">
+        <div class="framelbl">6 · Errore 502 — inline, riprovabile</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="errbox">
+                <span class="eic">⚠</span>
+                <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto. Riprova tra poco; la fattura resta pronta.<span class="rc">Errore 502 · Bad Gateway</span></span>
+              </div>
+              <button class="btn-red"><span>↻</span>Riprova invio</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ---------- A · DARK ---------- -->
+  <a id="a-dark"></a>
+  <div class="caphint">A · mobile 390px · dark — stessi stati, tema scuro flat</div>
+  <div class="cap td">
+    <div class="captag">Variante A — Dark</div>
+    <div class="frames">
+
+      <div class="framecol">
+        <div class="framelbl">1 · Pronta per l'invio — bottone attivo</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+              <button class="btn-red"><span>✈</span>Invia a SdI</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Dopo l'invio — «Inviata a SdI» dot ambra</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+              <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">In attesa…</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl mut">Nessun bottone: l'invio è già partito, non ripetibile.</div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · PEC non configurata — bottone disabilitato</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="pecwarn">
+                <span class="pic">⚠</span>
+                <span class="ptx">Per inviare a SdI serve una casella PEC. <a class="linkcfg" href="/impostazioni/pec">Configura PEC ›</a></span>
+              </div>
+              <button class="btn-red dis" disabled><span>✈</span>Invia a SdI</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">4 · Conferma — bottom sheet (atto irreversibile)</div>
+        <div class="phone" style="height:520px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body" style="opacity:.35">
+            <div class="card"><div class="slabel">Invio SDI</div><div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+            <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura elettronica parte subito verso il Sistema di Interscambio via PEC e non potrà essere annullata.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">5 · Invio in corso — spinner sul bottone</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+              <button class="btn-red busy"><span class="spin"></span>Invio in corso…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">6 · Errore 502 — inline, riprovabile</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="errbox">
+                <span class="eic">⚠</span>
+                <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto. Riprova tra poco; la fattura resta pronta.<span class="rc">Errore 502 · Bad Gateway</span></span>
+              </div>
+              <button class="btn-red"><span>↻</span>Riprova invio</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ---------- A · DESKTOP ---------- -->
+  <a id="a-desktop"></a>
+  <div class="caphint">A · desktop 1280px — card fattura + card «Invio SDI» con bottone pieno + dialog ancorato di conferma</div>
+  <div class="cap tl">
+    <div class="captag">Variante A — Desktop · Light</div>
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div><div class="grow"></div></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0007</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">10/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+          <div class="card">
+            <div class="slabel">Voci</div>
+            <div class="r"><span class="k">Corona in zirconia — elemento 2.6</span><span class="v">€322,00</span></div>
+            <div class="tot"><span>Totale</span><span>€322,00</span></div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="card">
+            <div class="slabel">Invio SDI</div>
+            <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+            <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+            <button class="btn-red"><span>✈</span>Invia a SdI</button>
+          </div>
+          <div class="deskstage">
+            <div class="stagecap">Click «Invia a SdI» →</div>
+            <div class="dialog">
+              <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+              <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+              <div class="warn"><span class="wic">⚠</span><span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura parte subito verso SdI via PEC e non potrà essere annullata.</span></div>
+              <div class="actionsrow"><button class="btn-neutral fill1">Annulla</button><button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap td">
+    <div class="captag">Variante A — Desktop · Dark</div>
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div><div class="grow"></div></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0007</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">10/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="card">
+            <div class="slabel">Invio SDI</div>
+            <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+            <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+            <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">In attesa…</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Invio SDI — errore</div>
+            <div class="r"><span class="k">Stato SdI</span><span class="sdistate"><span class="dot d-ready"></span>Pronta per l'invio</span></div>
+            <div class="errbox">
+              <span class="eic">⚠</span>
+              <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto.<span class="rc">Errore 502 · Bad Gateway</span></span>
+            </div>
+            <button class="btn-red"><span>↻</span>Riprova invio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- ============================ VARIANTE B ========================== -->
+  <!-- ================================================================= -->
+  <div class="sechead">Variante B — riga di stato con pill + bottone pill compatto a destra, nella stessa riga</div>
+  <p class="secsub">La riga «Stato SdI» diventa auto-esplicativa: <b>pill di stato</b> a sinistra, <b>bottone pill compatto «Invia a SdI»</b> a destra nella stessa riga. Azione contestuale accanto al suo stato, card più compatta. Tap target del pill ≥ 44px (visivamente piccolo, area estesa). Conferma su <b>bottom sheet</b> (mobile).</p>
+
+  <!-- ---------- B · LIGHT ---------- -->
+  <a id="b-light"></a>
+  <div class="caphint">B · mobile 390px · light — pronta · post-invio · PEC non configurata · conferma · invio in corso · errore 502</div>
+  <div class="cap tl">
+    <div class="captag">Variante B — Light</div>
+    <div class="frames">
+
+      <!-- B1 pronta -->
+      <div class="framecol">
+        <div class="framelbl">1 · Pronta — pill stato + pill «Invia a SdI»</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill"><span>✈</span>Invia a SdI</button>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B2 post-invio -->
+      <div class="framecol">
+        <div class="framelbl">2 · Dopo l'invio — pill ambra, nessun bottone</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="pill wait"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+              <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">In attesa…</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B3 PEC non configurata -->
+      <div class="framecol">
+        <div class="framelbl">3 · PEC non configurata — pill «Invia» disabilitato</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill dis" disabled><span>✈</span>Invia a SdI</button>
+              </div>
+              <div class="pecwarn">
+                <span class="pic">⚠</span>
+                <span class="ptx">Per inviare a SdI serve una casella PEC. <a class="linkcfg" href="/impostazioni/pec">Configura PEC ›</a></span>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B4 conferma -->
+      <div class="framecol">
+        <div class="framelbl">4 · Conferma — bottom sheet (atto irreversibile)</div>
+        <div class="phone" style="height:520px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body" style="opacity:.35">
+            <div class="card"><div class="slabel">Invio SDI</div><div class="r"><span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+            <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura elettronica parte subito verso il Sistema di Interscambio via PEC e non potrà essere annullata.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B5 pending -->
+      <div class="framecol">
+        <div class="framelbl">5 · Invio in corso — spinner sul pill</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill busy"><span class="spin"></span>Invio…</button>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B6 errore 502 -->
+      <div class="framecol">
+        <div class="framelbl">6 · Errore 502 — inline, pill «Riprova»</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill"><span>↻</span>Riprova</button>
+              </div>
+              <div class="errbox">
+                <span class="eic">⚠</span>
+                <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto. Riprova tra poco.<span class="rc">Errore 502 · Bad Gateway</span></span>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ---------- B · DARK ---------- -->
+  <a id="b-dark"></a>
+  <div class="caphint">B · mobile 390px · dark — stessi stati, tema scuro flat</div>
+  <div class="cap td">
+    <div class="captag">Variante B — Dark</div>
+    <div class="frames">
+
+      <div class="framecol">
+        <div class="framelbl">1 · Pronta — pill stato + pill «Invia a SdI»</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill"><span>✈</span>Invia a SdI</button>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Dopo l'invio — pill ambra, nessun bottone</div>
+        <div class="phone">
+          <div class="status"><span>9:42</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r"><span class="pill wait"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+              <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">In attesa…</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · PEC non configurata — pill «Invia» disabilitato</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill dis" disabled><span>✈</span>Invia a SdI</button>
+              </div>
+              <div class="pecwarn">
+                <span class="pic">⚠</span>
+                <span class="ptx">Per inviare a SdI serve una casella PEC. <a class="linkcfg" href="/impostazioni/pec">Configura PEC ›</a></span>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">4 · Conferma — bottom sheet (atto irreversibile)</div>
+        <div class="phone" style="height:520px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body" style="opacity:.35">
+            <div class="card"><div class="slabel">Invio SDI</div><div class="r"><span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span></div></div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+            <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura elettronica parte subito verso il Sistema di Interscambio via PEC e non potrà essere annullata.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">5 · Invio in corso — spinner sul pill</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill busy"><span class="spin"></span>Invio…</button>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+              <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">6 · Errore 502 — inline, pill «Riprova»</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div></div>
+          <div class="body">
+            <div class="card">
+              <div class="slabel">Invio SDI</div>
+              <div class="r" style="align-items:center">
+                <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+                <button class="btn-pill"><span>↻</span>Riprova</button>
+              </div>
+              <div class="errbox">
+                <span class="eic">⚠</span>
+                <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto. Riprova tra poco.<span class="rc">Errore 502 · Bad Gateway</span></span>
+              </div>
+              <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ---------- B · DESKTOP ---------- -->
+  <a id="b-desktop"></a>
+  <div class="caphint">B · desktop 1280px — card «Invio SDI» con riga pill+pill button + dialog ancorato</div>
+  <div class="cap tl">
+    <div class="captag">Variante B — Desktop · Light</div>
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div><div class="grow"></div></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0007</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">10/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+          <div class="card">
+            <div class="slabel">Voci</div>
+            <div class="r"><span class="k">Corona in zirconia — elemento 2.6</span><span class="v">€322,00</span></div>
+            <div class="tot"><span>Totale</span><span>€322,00</span></div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="card">
+            <div class="slabel">Invio SDI</div>
+            <div class="r" style="align-items:center">
+              <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+              <button class="btn-pill"><span>✈</span>Invia a SdI</button>
+            </div>
+            <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+            <div class="r"><span class="k">PEC consegnata</span><span class="v" style="color:var(--t3)">Non inviata</span></div>
+          </div>
+          <div class="deskstage">
+            <div class="stagecap">Click «Invia a SdI» →</div>
+            <div class="dialog">
+              <div class="sh-title">Inviare la fattura 2026-0007 a SdI?</div>
+              <div class="sh-sub">Studio Dott. Rossi · €322,00</div>
+              <div class="warn"><span class="wic">⚠</span><span class="wtx"><b>L'invio è un atto fiscale irreversibile.</b> La fattura parte subito verso SdI via PEC e non potrà essere annullata.</span></div>
+              <div class="actionsrow"><button class="btn-neutral fill1">Annulla</button><button class="btn-red fill2" style="margin-top:0"><span>✈</span>Invia</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap td">
+    <div class="captag">Variante B — Desktop · Dark</div>
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div class="ttl">Fattura 2026-0007</div><div class="grow"></div></div>
+      <div class="deskgrid">
+        <div>
+          <div class="card">
+            <div class="slabel">Fattura</div>
+            <div class="r"><span class="k">Numero</span><span class="v mono">2026-0007</span></div>
+            <div class="r"><span class="k">Data</span><span class="v">10/07/2026</span></div>
+            <div class="r"><span class="k">Tipo documento</span><span class="v">TD01 · Fattura</span></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Cliente</div>
+            <div class="big">Studio Dott. Rossi</div>
+            <div class="sub mono">P.IVA 01234567890</div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="card">
+            <div class="slabel">Invio SDI — in attesa</div>
+            <div class="r"><span class="pill wait"><span class="dot d-wait"></span>Inviata a SdI — in attesa di ricevuta</span></div>
+            <div class="r"><span class="k">Inviata il</span><span class="v">10/07/2026 · 9:42</span></div>
+            <div class="r"><span class="k">XML</span><a class="linklike">Scarica XML</a></div>
+          </div>
+          <div class="card">
+            <div class="slabel">Invio SDI — errore</div>
+            <div class="r" style="align-items:center">
+              <span class="pill ready"><span class="dot d-ready"></span>Pronta per l'invio</span>
+              <button class="btn-pill"><span>↻</span>Riprova</button>
+            </div>
+            <div class="errbox">
+              <span class="eic">⚠</span>
+              <span class="etx"><b>Invio non riuscito.</b> Il provider PEC non ha risposto.<span class="rc">Errore 502 · Bad Gateway</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
