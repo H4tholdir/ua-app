@@ -583,6 +583,12 @@ export interface ConsegnaPrecheckResult {
   mdr_campi_mancanti?: string[];
 }
 
+export interface PrecheckConsegnaResponse {
+  consegnabile: boolean;
+  bloccanti: ConsegnaPrecheckResult['errori'];
+  warnings: string[];
+}
+
 export interface ConsegnaResult {
   ok: true;
   lavoro_id: string;
