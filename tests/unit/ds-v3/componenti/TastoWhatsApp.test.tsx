@@ -26,7 +26,8 @@ describe('TastoWhatsApp — verde dedicato (§5.29)', () => {
     render(<TastoWhatsApp waUrl={URL_OK}>Invia messaggio WhatsApp</TastoWhatsApp>)
     const link = screen.getByRole('link', { name: /whatsapp/i })
     expect(link.style.background).toContain('linear-gradient')
-    expect(link.style.background).toContain('#208650')
+    // jsdom normalizza gli hex nei gradient in rgb(): #208650 → rgb(32, 134, 80)
+    expect(link.style.background).toContain('rgb(32, 134, 80)')
   })
 
   it('waUrl non-wa.me: NON renderizza il link (contratto sicurezza)', () => {
