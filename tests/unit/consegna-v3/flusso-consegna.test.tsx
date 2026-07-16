@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
@@ -133,5 +133,94 @@ describe('FlussoConsegna — macchina a stati (§3.2)', () => {
     expect(onFrameChiuso).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: /chiudi/i }))
     expect(onFrameChiuso).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('FrameConsegnato — annullo (§3.4)', () => {
+  beforeEach(() => vi.restoreAllMocks())
+  afterEach(() => vi.useRealTimers())
+
+  const ANNULLA_URL = '/api/lavori/L1/annulla-consegna'
+
+  // fetch stateful: annulla-consegna risponde in sequenza (500 → 200);
+  // ordine dei match: precheck e annulla PRIMA di consegna (le url si contengono).
+  function mockFetchConAnnullo(rispostAnnulla: Array<{ status: number; json: unknown }>) {
+    let chiamateAnnulla = 0
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes(GET_URL)) return { ok: true, status: 200, json: async () => ({ consegnabile: true, bloccanti: [], warnings: [] }) } as Response
+      if (url.includes(ANNULLA_URL)) {
+        const r = rispostAnnulla[Math.min(chiamateAnnulla, rispostAnnulla.length - 1)]
+        chiamateAnnulla++
+        return { ok: r.status < 400, status: r.status, json: async () => r.json } as Response
+      }
+      if (url.includes(POST_URL)) return { ok: true, status: 200, json: async () => OK_200 } as Response
+      throw new Error(`fetch non mockata: ${url}`)
+    }) as unknown as typeof fetch
+  }
+
+  async function arrivaAlFrame(extra: Partial<Parameters<typeof FlussoConsegna>[0]> = {}) {
+    const utils = montaAperto(extra)
+    fireEvent.click((await screen.findAllByRole('button'))[0]) // «Consegna»
+    await screen.findByText('Consegnato!')
+    return utils
+  }
+
+  it('annullo fallito (500) → nota nel dialog, dialog resta aperto, onFrameChiuso NON chiamato; retry 200 → onFrameChiuso', async () => {
+    const onFrameChiuso = vi.fn()
+    mockFetchConAnnullo([{ status: 500, json: { error: 'boom interno' } }, { status: 200, json: { ok: true } }])
+    await arrivaAlFrame({ onFrameChiuso })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla la consegna' })) // LinkQuieto
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /annulla la consegna/i }))
+
+    // nota generica D-6: MAI la stringa server
+    expect(await screen.findByText(/la consegna resta valida/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).toBeNull()
+    expect(onFrameChiuso).not.toHaveBeenCalled()
+    expect(screen.getByText('Consegnato!')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    // secondo tentativo → 200 → il frame chiude
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /annulla la consegna/i }))
+    await waitFor(() => expect(onFrameChiuso).toHaveBeenCalledTimes(1))
+  })
+
+  it('annullo ok → onFrameChiuso chiamato e nota mai comparsa', async () => {
+    const onFrameChiuso = vi.fn()
+    mockFetchConAnnullo([{ status: 200, json: { ok: true } }])
+    await arrivaAlFrame({ onFrameChiuso })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla la consegna' }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: /annulla la consegna/i }))
+
+    await waitFor(() => expect(onFrameChiuso).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText(/la consegna resta valida/)).toBeNull()
+  })
+
+  it('countdown a 0 → link annullo sparisce e dialog di annullo chiuso', async () => {
+    mockFetchConAnnullo([{ status: 200, json: { ok: true } }])
+
+    // Tutto il flusso vive DENTRO i fake timers (Date compresa): l'interval
+    // del countdown e Date.now() devono avanzare insieme. Niente findBy*
+    // (waitFor coi fake timers è fragile): il fetch mock risolve in microtask,
+    // che advanceTimersByTimeAsync(0) dentro act() svuota.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+    vi.setSystemTime(new Date('2026-07-16T12:00:00Z'))
+    const { unmount } = montaAperto()
+    await act(async () => { await vi.advanceTimersByTimeAsync(0) }) // GET precheck
+    fireEvent.click(screen.getAllByRole('button')[0]) // «Consegna»
+    await act(async () => { await vi.advanceTimersByTimeAsync(0) }) // POST consegna
+    expect(screen.getByText('Consegnato!')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla la consegna' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(10 * 60 * 1000 + 1500) })
+    expect(screen.queryByRole('button', { name: 'Annulla la consegna' })).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    unmount()
   })
 })

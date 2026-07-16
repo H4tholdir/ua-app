@@ -39,10 +39,20 @@ export function FrameConsegnato(props: {
   const [rimasti, setRimasti] = useState(FINESTRA_MS)
   const [annulloAperto, setAnnulloAperto] = useState(false)
   const [annulloInCorso, setAnnulloInCorso] = useState(false)
+  // Feedback D-6 sul fallimento dell'annullo: il dialog RESTA aperto con una
+  // nota ambra generica (mai la stringa server) — un'azione che annulla DdC e
+  // buono non può fallire in silenzio. Reset alla riapertura del dialog.
+  const [annulloFallito, setAnnulloFallito] = useState(false)
 
   useEffect(() => { titoloRef.current?.focus() }, [])
   useEffect(() => {
-    const timer = setInterval(() => setRimasti(Math.max(0, FINESTRA_MS - (Date.now() - t0))), 1000)
+    const timer = setInterval(() => {
+      const r = Math.max(0, FINESTRA_MS - (Date.now() - t0))
+      setRimasti(r)
+      // Fine finestra: oltre a far sparire il link, chiude anche il dialog di
+      // annullo eventualmente aperto — non deve restare azionabile oltre.
+      if (r === 0) setAnnulloAperto(false)
+    }, 1000)
     return () => clearInterval(timer)
   }, [t0])
 
@@ -54,7 +64,12 @@ export function FrameConsegnato(props: {
     try {
       const res = await fetch(`/api/lavori/${lavoroId}/annulla-consegna`, { method: 'POST' })
       if (res.ok) { setAnnulloAperto(false); onChiudi(); return }
-      setAnnulloAperto(false)
+      // Fallimento (HTTP non-ok): il dialog resta aperto con la nota — mai
+      // una chiusura muta su un'azione che annulla DdC e buono.
+      setAnnulloFallito(true)
+    } catch {
+      // Fallimento di rete: stesso trattamento, copy generica.
+      setAnnulloFallito(true)
     } finally {
       setAnnulloInCorso(false)
     }
@@ -100,7 +115,7 @@ export function FrameConsegnato(props: {
         {/* Annullo (Frame 3): LinkQuieto + countdown NON-live; sparisce a 0 */}
         {rimasti > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18, flexWrap: 'wrap' }}>
-            <LinkQuieto onClick={() => setAnnulloAperto(true)}>Annulla la consegna</LinkQuieto>
+            <LinkQuieto onClick={() => { setAnnulloFallito(false); setAnnulloAperto(true) }}>Annulla la consegna</LinkQuieto>
             <span aria-hidden="true" style={{ fontSize: 14.5, fontWeight: tipografia.weight.bold, color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>{mm}:{ss}</span>
           </div>
         )}
@@ -114,6 +129,7 @@ export function FrameConsegnato(props: {
         testo={`Annullando, la Dichiarazione di Conformità e il buono vengono annullati. La ${descrizione} n.${esito.numero_lavoro} torna sul banco.`}
         etichettaDistruttiva={annulloInCorso ? 'Annullo…' : 'Annulla la consegna'}
         etichettaSicura="No, resta consegnato"
+        nota={annulloFallito ? 'Non è andata a buon fine — la consegna resta valida. Riprova.' : undefined}
         onConferma={() => void annulla()}
         onAnnulla={() => setAnnulloAperto(false)}
       />

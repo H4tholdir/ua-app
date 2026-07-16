@@ -102,6 +102,8 @@ export function FlussoConsegna(props: {
   }
 
   async function invia() {
+    // Guard anti double-submit: un POST già in volo non si raddoppia.
+    if (stato.fase === 'invio') return
     setStato({ fase: 'invio' })
     try {
       const res = await fetch(`/api/lavori/${lavoroId}/consegna`, { method: 'POST' })
