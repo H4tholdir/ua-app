@@ -11,7 +11,7 @@
 // registra un canonicalization/transform algorithm per quell'URI). Un tentativo di
 // patch custom (rimozione DOM del nodo Signature, stessa logica di
 // enveloped-signature) NON riproduce il digest atteso sull'esempio ufficiale SdI
-// (caso 9 del PoC, `scripts/tmp/spike-xades.ts`) — la vera semantica "subtract" di
+// (caso 9 del PoC, `docs/superpowers/specs/allegati/2026-07-16-spike-xades-poc.ts.txt`) — la vera semantica "subtract" di
 // XPath Filter 2.0 opera su node-set, non su sottoalberi DOM, ed è un lavoro di
 // canonicalizzazione specialistico fuori scope per uno spike timeboxed.
 //

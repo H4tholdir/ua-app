@@ -15,6 +15,16 @@ interface RpcEsito {
   stato_corrente?: string
 }
 
+// Rank sotto al quale uno stato non ha ancora superato l'invio (spec §4.4,
+// migration 20260716100000: smtp_inviata = rank 2). Finding 4 (review
+// finale Task 17): sotto questa soglia l'override è ammesso SOLO da
+// 'generata' con prova d'invio reale (smtp_inviata_at NOT NULL — claim
+// orfano, stessa semantica D-3 di applica_ricevuta_sdi) — MAI da 'draft' o
+// da 'generata' mai inviata. Replica client-side della guardia sorgente
+// aggiunta a public.override_stato_sdi (migration
+// 20260716130000_override_guardia_sorgente.sql).
+const RANK_SMTP_INVIATA = 2
+
 // Override manuale: SOLO titolare (a differenza dell'invio PEC, dove
 // front_desk è ammesso — qui si sta forzando un dato fiscale a mano).
 const RUOLI_OVERRIDE_SDI = ['titolare'] as const
@@ -55,8 +65,10 @@ const RANK_STATO_SDI: Record<StatoSDI, number> = {
 // transazione tramite la RPC public.override_stato_sdi (Task 12b, migration
 // 20260716110000): un INSERT fallito dopo l'UPDATE riuscito lascerebbe lo
 // stato fiscale cambiato senza audit (dominio ITCA). Le validazioni sotto
-// (ruolo, allowlist, rank client-side, anti-stale-read) restano come difesa
-// in profondità — la RPC replica le stesse guardie sul dato persistito. Un
+// (ruolo, allowlist, rank client-side, anti-stale-read, guardia sorgente —
+// Finding 4 review finale Task 17, migration
+// 20260716130000_override_guardia_sorgente) restano come difesa in
+// profondità — la RPC replica le stesse guardie sul dato persistito. Un
 // TD04 portato a 'rifiutata' fa scattare il trigger di contro-movimento
 // storno (migration 20260716091000): richiede conferma esplicita nel body.
 export async function POST(req: Request, { params }: RouteContext) {
@@ -121,7 +133,7 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   const { data: fattura } = await svc
     .from('fatture')
-    .select('id, numero, stato_sdi, tipo_documento')
+    .select('id, numero, stato_sdi, tipo_documento, smtp_inviata_at')
     .eq('id', fatturaId)
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
@@ -140,6 +152,25 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (statoAtteso !== statoCorrente) {
     return NextResponse.json(
       { error: 'Stato SdI atteso non corrisponde allo stato corrente — ricarica e riprova' },
+      { status: 409 }
+    )
+  }
+
+  // Guardia sorgente (Finding 4): niente override da uno stato che non ha
+  // mai superato l'invio, a meno che non sia un claim orfano reale
+  // (generata + smtp_inviata_at valorizzato — prova d'invio, D-3). Blocca
+  // sia 'draft' sia 'generata' mai inviata, coerentemente con
+  // applica_ricevuta_sdi (che rifiuta le stesse ricevute con
+  // 'stato_incompatibile').
+  if (
+    RANK_STATO_SDI[statoCorrente] < RANK_SMTP_INVIATA &&
+    !(statoCorrente === 'generata' && fattura.smtp_inviata_at != null)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'Fattura mai inviata — non è possibile forzare uno stato SdI senza prova che la mail sia partita',
+      },
       { status: 409 }
     )
   }
@@ -200,6 +231,14 @@ export async function POST(req: Request, { params }: RouteContext) {
       case 'stato_incompatibile':
         return NextResponse.json(
           { error: 'Transizione non valida — il nuovo stato non è successivo a quello corrente' },
+          { status: 409 }
+        )
+      case 'mai_inviata':
+        return NextResponse.json(
+          {
+            error:
+              'Fattura mai inviata — non è possibile forzare uno stato SdI senza prova che la mail sia partita',
+          },
           { status: 409 }
         )
       case 'non_ammesso':

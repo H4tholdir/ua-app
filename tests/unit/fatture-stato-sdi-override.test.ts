@@ -39,7 +39,13 @@ let utenteRow: Record<string, unknown> | null = null
 const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = []
 let rpcResult: { data: unknown; error: { message: string } | null } = { data: null, error: null }
 
-const FATTURA_OK = {
+const FATTURA_OK: {
+  id: string
+  numero: string
+  stato_sdi: string
+  tipo_documento: string
+  smtp_inviata_at?: string | null
+} = {
   id: 'fat-1', numero: '2026-0007', stato_sdi: 'smtp_inviata', tipo_documento: 'TD01',
 }
 
@@ -195,6 +201,59 @@ describe('POST /api/fatture/[id]/stato-sdi-override — anti-stale-read e monoto
       ctx
     )
     expect(res.status).toBe(409)
+  })
+})
+
+describe('POST /api/fatture/[id]/stato-sdi-override — guardia sorgente (Finding 4, review finale Task 17)', () => {
+  // applica_ricevuta_sdi (writer gemello) blocca esplicitamente «generata
+  // mai inviata» — override_stato_sdi deve fare lo stesso, sia lato route
+  // (guardia pre-RPC qui testata) sia nella RPC stessa (migration
+  // 20260716130000_override_guardia_sorgente.sql).
+  it('stato corrente "draft" → 409, nessuna RPC', async () => {
+    fattureQueue = [
+      selectChain({ data: { ...FATTURA_OK, stato_sdi: 'draft', smtp_inviata_at: null }, error: null }),
+    ]
+    const res = await POST(
+      req({ stato_sdi_atteso: 'draft', nuovo_stato: 'pec_consegnata', motivo: 'x' }),
+      ctx
+    )
+    expect(res.status).toBe(409)
+    expect(rpcCalls).toHaveLength(0)
+  })
+
+  it('stato corrente "generata" MAI inviata (smtp_inviata_at NULL) → 409, nessuna RPC', async () => {
+    fattureQueue = [
+      selectChain({ data: { ...FATTURA_OK, stato_sdi: 'generata', smtp_inviata_at: null }, error: null }),
+    ]
+    const res = await POST(
+      req({ stato_sdi_atteso: 'generata', nuovo_stato: 'pec_consegnata', motivo: 'x' }),
+      ctx
+    )
+    expect(res.status).toBe(409)
+    expect(rpcCalls).toHaveLength(0)
+  })
+
+  it('stato corrente "generata" con smtp_inviata_at valorizzato (claim orfano) → passa il gate sorgente, RPC chiamata', async () => {
+    happyQueue({ stato_sdi: 'generata', smtp_inviata_at: '2026-07-16T09:00:00.000Z' })
+    const res = await POST(
+      req({ stato_sdi_atteso: 'generata', nuovo_stato: 'pec_consegnata', motivo: 'x' }),
+      ctx
+    )
+    expect(res.status).toBe(200)
+    expect(rpcCalls).toHaveLength(1)
+  })
+
+  it('RPC ritorna esito "mai_inviata" (difesa in profondità, race sul dato persistito) → 409', async () => {
+    fattureQueue = [
+      selectChain({ data: { ...FATTURA_OK, stato_sdi: 'generata', smtp_inviata_at: '2026-07-16T09:00:00.000Z' }, error: null }),
+    ]
+    rpcResult = { data: { esito: 'mai_inviata', stato_corrente: 'generata' }, error: null }
+    const res = await POST(
+      req({ stato_sdi_atteso: 'generata', nuovo_stato: 'pec_consegnata', motivo: 'x' }),
+      ctx
+    )
+    expect(res.status).toBe(409)
+    expect(rpcCalls).toHaveLength(1)
   })
 })
 

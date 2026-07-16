@@ -31,6 +31,13 @@ export interface PendenzeRiconciliazione {
 }
 
 const SOGLIA_STAGNANTE_MS = 7 * 24 * 60 * 60 * 1000
+// Finding 3 (review finale Task 17): claimInvioPec valorizza smtp_inviata_at
+// PRIMA di sendMail (src/lib/fattura/invio-claim.ts) — durante l'invio reale
+// (finestra di secondi) la fattura apparirebbe come claim orfano sbloccabile,
+// rischiando un doppio invio concorrente se il titolare sblocca mentre la
+// mail sta ancora partendo. 1h è ampiamente conservativa rispetto alla
+// finestra reale.
+const SOGLIA_CLAIM_ORFANO_MS = 60 * 60 * 1000
 
 interface ClienteSnapMinimo {
   id: string
@@ -47,17 +54,26 @@ function clienteNome(c: ClienteSnapMinimo): string {
  * Claim orfani: fattura 'generata' con smtp_inviata_at valorizzato (lock
  * anti-doppio-invio mai rilasciato — vedi src/lib/fattura/invio-claim.ts e
  * la route /api/fatture/[id]/sblocca-claim che li risolve).
+ *
+ * Soglia d'età (Finding 3, review finale Task 17): claimInvioPec valorizza
+ * smtp_inviata_at PRIMA di chiamare sendMail — durante l'invio reale (una
+ * finestra di secondi) la fattura sarebbe altrimenti un claim orfano
+ * "sbloccabile" a tutti gli effetti, con rischio di doppio invio se il
+ * titolare sblocca mentre la mail sta partendo. Solo i claim più vecchi di
+ * 1h (soglia ampiamente conservativa) sono considerati orfani reali.
  */
 async function fetchClaimOrfani(
   svc: SupabaseClient,
   labId: string
 ): Promise<PendenzeRiconciliazione['claimOrfani']> {
+  const unOraFa = new Date(Date.now() - SOGLIA_CLAIM_ORFANO_MS).toISOString()
   const { data, error } = await svc
     .from('fatture')
     .select('id, numero, smtp_inviata_at')
     .eq('laboratorio_id', labId)
     .eq('stato_sdi', 'generata')
     .not('smtp_inviata_at', 'is', null)
+    .lt('smtp_inviata_at', unOraFa)
     .is('deleted_at', null)
   if (error) throw new Error(`[riconciliazioni] lettura claim orfani: ${error.message}`)
 
@@ -99,8 +115,19 @@ async function fetchSmtpStagnanti(
  * vedi route /api/fatture/[id]/nota-credito) è stata rifiutata da SdI — il
  * credito compensativo NON è mai stato emesso validamente, serve intervento.
  *
- * Due query scoped-labId (originali + TD04 rifiutati), match in memoria per
- * id: nessun N+1, indipendentemente dal numero di fatture stornate.
+ * Finding 1 (review finale Task 17): dopo un re-storno legittimo (TD04-A
+ * rifiutata → nuova TD04-B emessa che ri-valorizza stornata_at sull'originale)
+ * l'originale ha ANCORA un TD04-A rifiutata collegato, quindi resterebbe nel
+ * gruppo per sempre anche a TD04-B accettata. Un'originale è esclusa se ha,
+ * oltre al TD04 rifiutato, un ALTRO TD04 collegato con stato_sdi <> 'rifiutata'
+ * (stessa semantica della guardia anti-collisione del trigger
+ * annulla_effetti_storno_td04, migration 20260716091000: un TD04 non-rifiutato
+ * collegato indica che il ciclo storno è stato ri-risolto).
+ *
+ * Due query scoped-labId (originali stornate + TUTTI i TD04 collegati, non
+ * solo i rifiutati — serve l'intero set per rilevare l'"altro" TD04), match
+ * in memoria per id: nessun N+1, indipendentemente dal numero di fatture
+ * stornate.
  */
 async function fetchStornateConTd04Rifiutato(
   svc: SupabaseClient,
@@ -116,23 +143,37 @@ async function fetchStornateConTd04Rifiutato(
 
   const { data: td04Raw, error: td04Err } = await svc
     .from('fatture')
-    .select('numero, fattura_collegata_id')
+    .select('id, numero, stato_sdi, fattura_collegata_id')
     .eq('laboratorio_id', labId)
     .eq('tipo_documento', 'TD04')
-    .eq('stato_sdi', 'rifiutata')
     .not('fattura_collegata_id', 'is', null)
     .is('deleted_at', null)
-  if (td04Err) throw new Error(`[riconciliazioni] lettura TD04 rifiutati: ${td04Err.message}`)
+  if (td04Err) throw new Error(`[riconciliazioni] lettura TD04 collegati: ${td04Err.message}`)
 
-  const td04NumeroPerOriginale = new Map<string, string>()
-  for (const td04 of (td04Raw ?? []) as Array<{ numero: string; fattura_collegata_id: string | null }>) {
-    if (td04.fattura_collegata_id) td04NumeroPerOriginale.set(td04.fattura_collegata_id, td04.numero)
+  const td04PerOriginale = new Map<
+    string,
+    Array<{ id: string; numero: string; stato_sdi: string }>
+  >()
+  for (const td04 of (td04Raw ?? []) as Array<{
+    id: string
+    numero: string
+    stato_sdi: string
+    fattura_collegata_id: string | null
+  }>) {
+    if (!td04.fattura_collegata_id) continue
+    const lista = td04PerOriginale.get(td04.fattura_collegata_id) ?? []
+    lista.push({ id: td04.id, numero: td04.numero, stato_sdi: td04.stato_sdi })
+    td04PerOriginale.set(td04.fattura_collegata_id, lista)
   }
 
   const result: PendenzeRiconciliazione['stornateConTd04Rifiutato'] = []
   for (const o of (originaliRaw ?? []) as Array<{ id: string; numero: string }>) {
-    const td04Numero = td04NumeroPerOriginale.get(o.id)
-    if (td04Numero) result.push({ id: o.id, numero: o.numero, td04_numero: td04Numero })
+    const collegati = td04PerOriginale.get(o.id) ?? []
+    const rifiutato = collegati.find((t) => t.stato_sdi === 'rifiutata')
+    if (!rifiutato) continue
+    const riStornoRisolto = collegati.some((t) => t.id !== rifiutato.id && t.stato_sdi !== 'rifiutata')
+    if (riStornoRisolto) continue
+    result.push({ id: o.id, numero: o.numero, td04_numero: rifiutato.numero })
   }
   return result
 }
@@ -200,6 +241,20 @@ async function fetchSaldiNegativi(
  *     applicata automaticamente — D-5 in ingest-ricevuta.ts).
  * `stato_a IS NULL` è comune a tutti e tre i rami: filtrato una volta sola,
  * poi l'OR distingue solo i tre motivi di parcheggio.
+ *
+ * Finding 2 (review finale Task 17): con il fallback quarantena-all, un
+ * evento parcheggiato per firma fallita/EC02 su una fattura poi risolta dal
+ * titolare via override (stato-sdi-override, che scrive stato_sdi
+ * direttamente sulla fattura e NON completa l'evento — stato_a resta NULL)
+ * restava "parcheggiato per sempre": badge monotono crescente. Fix minimo:
+ * esclude gli eventi con fattura_id valorizzato la cui fattura è già in uno
+ * stato terminale ('accettata'/'rifiutata') — il titolare ha già risolto la
+ * pendenza fiscale, l'evento stesso è solo un residuo di quarantena. Gli
+ * eventi con fattura_id NULL (mai matchati) restano sempre, non hanno una
+ * fattura la cui risoluzione osservare.
+ *
+ * Nessun N+1: una sola select aggiuntiva sugli id di fattura coinvolti
+ * (al più uno per evento parcheggiato).
  */
 async function fetchEventiParcheggiati(
   svc: SupabaseClient,
@@ -213,19 +268,42 @@ async function fetchEventiParcheggiati(
     .or('fattura_id.is.null,esito_verifica_firma.eq.fallita,esito_committente.eq.EC02')
   if (error) throw new Error(`[riconciliazioni] lettura eventi parcheggiati: ${error.message}`)
 
-  return ((data ?? []) as Array<{
+  const eventi = (data ?? []) as Array<{
     id: string
     nome_file_ricevuta: string | null
     esito_verifica_firma: string | null
     esito_committente: string | null
     created_at: string
-  }>).map((e) => ({
-    id: e.id,
-    nome_file_ricevuta: e.nome_file_ricevuta,
-    esito_verifica_firma: e.esito_verifica_firma,
-    esito_committente: e.esito_committente,
-    created_at: e.created_at,
-  }))
+    fattura_id: string | null
+  }>
+
+  const fatturaIds = Array.from(
+    new Set(eventi.map((e) => e.fattura_id).filter((id): id is string => id != null))
+  )
+
+  let idFattureRisolte = new Set<string>()
+  if (fatturaIds.length > 0) {
+    const { data: fattureRaw, error: fattErr } = await svc
+      .from('fatture')
+      .select('id, stato_sdi')
+      .eq('laboratorio_id', labId)
+      .in('id', fatturaIds)
+      .in('stato_sdi', ['accettata', 'rifiutata'])
+    if (fattErr) throw new Error(`[riconciliazioni] lettura fatture eventi parcheggiati: ${fattErr.message}`)
+    idFattureRisolte = new Set(
+      ((fattureRaw ?? []) as Array<{ id: string; stato_sdi: string }>).map((f) => f.id)
+    )
+  }
+
+  return eventi
+    .filter((e) => !(e.fattura_id && idFattureRisolte.has(e.fattura_id)))
+    .map((e) => ({
+      id: e.id,
+      nome_file_ricevuta: e.nome_file_ricevuta,
+      esito_verifica_firma: e.esito_verifica_firma,
+      esito_committente: e.esito_committente,
+      created_at: e.created_at,
+    }))
 }
 
 export async function fetchPendenzeRiconciliazione(

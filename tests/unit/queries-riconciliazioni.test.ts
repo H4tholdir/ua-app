@@ -47,6 +47,10 @@ function createFakeSupabase(data: {
           rows = rows.filter((r) => r[column] != null && r[column] < value)
           return builder
         },
+        in(column: string, values: unknown[]) {
+          rows = rows.filter((r) => values.includes(r[column]))
+          return builder
+        },
         or(filterStr: string) {
           const clauses = filterStr.split(',').map((c) => {
             const [field, op, value] = c.split('.')
@@ -79,8 +83,11 @@ function createFakeSupabase(data: {
 
 const ORA = Date.now()
 const GIORNO_MS = 24 * 60 * 60 * 1000
+const ORA_MS = 60 * 60 * 1000
 const OTTO_GIORNI_FA = new Date(ORA - 8 * GIORNO_MS).toISOString()
 const UN_GIORNO_FA = new Date(ORA - 1 * GIORNO_MS).toISOString()
+const ADESSO = new Date(ORA).toISOString()
+const DUE_ORE_FA = new Date(ORA - 2 * ORA_MS).toISOString()
 
 describe('fetchPendenzeRiconciliazione', () => {
   describe('claimOrfani', () => {
@@ -106,6 +113,27 @@ describe('fetchPendenzeRiconciliazione', () => {
       })
       const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
       expect(r.claimOrfani).toEqual([])
+    })
+
+    // Finding 3 (review finale Task 17): claimInvioPec valorizza
+    // smtp_inviata_at PRIMA di sendMail — durante l'invio reale (finestra di
+    // secondi) la fattura NON deve apparire come claim orfano sbloccabile,
+    // altrimenti rischio di doppio invio se il titolare sblocca in quella
+    // finestra. Solo i claim più vecchi di 1h sono orfani reali.
+    it('claim fresco (smtp_inviata_at = ora) → escluso, finestra d\'invio in corso', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '1/2026', stato_sdi: 'generata', smtp_inviata_at: ADESSO, laboratorio_id: 'lab-1' }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.claimOrfani).toEqual([])
+    })
+
+    it('claim vecchio (smtp_inviata_at = 2h fa) → incluso, orfano reale', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '1/2026', stato_sdi: 'generata', smtp_inviata_at: DUE_ORE_FA, laboratorio_id: 'lab-1' }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.claimOrfani).toEqual([{ id: 'f1', numero: '1/2026', smtp_inviata_at: DUE_ORE_FA }])
     })
   })
 
@@ -167,6 +195,57 @@ describe('fetchPendenzeRiconciliazione', () => {
       })
       const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
       expect(r.stornateConTd04Rifiutato).toEqual([])
+    })
+
+    // Finding 1 (review finale Task 17): falso positivo permanente dopo
+    // re-storno riuscito — TD04-A rifiutata seguita da TD04-B che ri-emette
+    // lo storno e viene accettata. L'originale ha ANCORA TD04-A rifiutata
+    // collegata, ma il ciclo è stato ri-risolto: deve uscire dal gruppo.
+    it('re-storno riuscito (TD04-A rifiutata + TD04-B accettata, stessa originale) → gruppo vuoto', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [
+          { id: 'orig-1', numero: '3/2026', laboratorio_id: 'lab-1', stornata_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'td04-a', numero: '4/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+          { id: 'td04-b', numero: '5/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'accettata', fattura_collegata_id: 'orig-1' },
+        ],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.stornateConTd04Rifiutato).toEqual([])
+    })
+
+    it('re-storno in corso (TD04-A rifiutata + TD04-B ancora generata, non rifiutata) → gruppo vuoto', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [
+          { id: 'orig-1', numero: '3/2026', laboratorio_id: 'lab-1', stornata_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'td04-a', numero: '4/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+          { id: 'td04-b', numero: '5/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'generata', fattura_collegata_id: 'orig-1' },
+        ],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.stornateConTd04Rifiutato).toEqual([])
+    })
+
+    it('solo TD04 rifiutata (nessun altro TD04 collegato) → resta presente', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [
+          { id: 'orig-1', numero: '3/2026', laboratorio_id: 'lab-1', stornata_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'td04-a', numero: '4/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+        ],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.stornateConTd04Rifiutato).toEqual([{ id: 'orig-1', numero: '3/2026', td04_numero: '4/2026' }])
+    })
+
+    it('due TD04 entrambe rifiutate (nessun re-storno risolto) → resta presente', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [
+          { id: 'orig-1', numero: '3/2026', laboratorio_id: 'lab-1', stornata_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'td04-a', numero: '4/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+          { id: 'td04-b', numero: '5/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+        ],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.stornateConTd04Rifiutato).toEqual([{ id: 'orig-1', numero: '3/2026', td04_numero: '4/2026' }])
     })
   })
 
@@ -281,6 +360,61 @@ describe('fetchPendenzeRiconciliazione', () => {
       })
       const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
       expect(r.eventiParcheggiati).toEqual([])
+    })
+
+    // Finding 2 (review finale Task 17): eventi parcheggiati senza fine-vita
+    // nel fallback quarantena-all — l'override del titolare risolve la
+    // fattura (stato_sdi terminale) ma NON completa l'evento (stato_a resta
+    // NULL). Fix minimo: escludere gli eventi la cui fattura è già in stato
+    // terminale ('accettata'/'rifiutata').
+    it('evento in quarantena firma su fattura risolta (accettata) via override → escluso', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '9/2026', stato_sdi: 'accettata', laboratorio_id: 'lab-1' }],
+        fatture_sdi_eventi: [{
+          id: 'ev-8', laboratorio_id: 'lab-1', fattura_id: 'f1', stato_a: null,
+          nome_file_ricevuta: 'rc.xml', esito_verifica_firma: 'fallita', esito_committente: null, created_at: '2026-07-14T10:00:00.000Z',
+        }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.eventiParcheggiati).toEqual([])
+    })
+
+    it('evento in quarantena firma su fattura risolta (rifiutata) via override → escluso', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '9/2026', stato_sdi: 'rifiutata', laboratorio_id: 'lab-1' }],
+        fatture_sdi_eventi: [{
+          id: 'ev-8b', laboratorio_id: 'lab-1', fattura_id: 'f1', stato_a: null,
+          nome_file_ricevuta: 'rc.xml', esito_verifica_firma: 'fallita', esito_committente: null, created_at: '2026-07-14T10:00:00.000Z',
+        }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.eventiParcheggiati).toEqual([])
+    })
+
+    it('evento in quarantena firma su fattura NON ancora risolta (smtp_inviata) → presente', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '9/2026', stato_sdi: 'smtp_inviata', laboratorio_id: 'lab-1' }],
+        fatture_sdi_eventi: [{
+          id: 'ev-9', laboratorio_id: 'lab-1', fattura_id: 'f1', stato_a: null,
+          nome_file_ricevuta: 'rc.xml', esito_verifica_firma: 'fallita', esito_committente: null, created_at: '2026-07-14T10:00:00.000Z',
+        }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.eventiParcheggiati).toHaveLength(1)
+      expect(r.eventiParcheggiati[0].id).toBe('ev-9')
+    })
+
+    it('evento non matchato (fattura_id NULL) resta presente anche con altre fatture del lab già terminali', async () => {
+      const { supabase } = createFakeSupabase({
+        fatture: [{ id: 'f1', numero: '9/2026', stato_sdi: 'accettata', laboratorio_id: 'lab-1' }],
+        fatture_sdi_eventi: [{
+          id: 'ev-10', laboratorio_id: 'lab-1', fattura_id: null, stato_a: null,
+          nome_file_ricevuta: 'ignoto.xml', esito_verifica_firma: null, esito_committente: null, created_at: '2026-07-14T10:00:00.000Z',
+        }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.eventiParcheggiati).toHaveLength(1)
+      expect(r.eventiParcheggiati[0].id).toBe('ev-10')
     })
   })
 
