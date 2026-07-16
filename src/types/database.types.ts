@@ -5678,6 +5678,17 @@ export type Database = {
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
+      override_stato_sdi: {
+        Args: {
+          p_fattura_id: string
+          p_laboratorio_id: string
+          p_motivo: string
+          p_nuovo_stato: string
+          p_registrato_da: string
+          p_stato_atteso: string
+        }
+        Returns: Json
+      }
       portale_pin_tentativo_fallito: {
         Args: { p_cliente_id: string }
         Returns: {
@@ -5708,6 +5719,15 @@ export type Database = {
           p_fasi: Json
           p_laboratorio_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      sblocca_claim_fattura: {
+        Args: {
+          p_fattura_id: string
+          p_laboratorio_id: string
+          p_motivo: string
+          p_registrato_da: string
         }
         Returns: Json
       }

@@ -7,6 +7,11 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
+interface RpcEsito {
+  esito: string
+  stato_corrente?: string
+}
+
 // SOLO titolare — si sta sbloccando manualmente un lock anti-doppio-invio
 // fiscale sulla base di una verifica umana fuori dal sistema.
 const RUOLI_SBLOCCA_CLAIM = ['titolare'] as const
@@ -20,6 +25,10 @@ const RUOLI_SBLOCCA_CLAIM = ['titolare'] as const
 // verificato a mano nella cartella «inviata» della casella PEC che la mail
 // NON sia partita: per questo il body richiede una conferma esplicita,
 // oltre al motivo (audit, CHECK a livello DB su fatture_sdi_eventi — Task 2).
+// UPDATE fatture + INSERT evento avvengono in un'unica transazione tramite
+// la RPC public.sblocca_claim_fattura (Task 12b, migration 20260716110000):
+// un INSERT fallito dopo l'UPDATE riuscito lascerebbe il claim sbloccato
+// senza audit (dominio ITCA).
 export async function POST(req: Request, { params }: RouteContext) {
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
@@ -98,38 +107,38 @@ export async function POST(req: Request, { params }: RouteContext) {
     userId: user.id,
   })
 
-  const { data: updateRows, error: updateErr } = await svc
-    .from('fatture')
-    .update({ smtp_inviata_at: null })
-    .eq('id', fatturaId)
-    .eq('laboratorio_id', labId)
-    .eq('stato_sdi', 'generata')
-    .not('smtp_inviata_at', 'is', null)
-    .select('id')
+  try {
+    const { data, error: rpcErr } = await svc.rpc('sblocca_claim_fattura', {
+      p_fattura_id: fatturaId,
+      p_laboratorio_id: labId,
+      p_motivo: motivo,
+      p_registrato_da: user.id,
+    })
+    if (rpcErr) {
+      throw new Error(`RPC sblocca_claim_fattura fallita: ${rpcErr.message}`)
+    }
 
-  if (updateErr) {
-    console.error('[SBLOCCA-CLAIM] update fallito (Postgres):', updateErr)
+    const result = data as RpcEsito | null
+
+    switch (result?.esito) {
+      case 'sbloccato':
+        return NextResponse.json({ ok: true }, { status: 200 })
+      case 'non_in_claim':
+        return NextResponse.json(
+          { error: 'Fattura non in claim orfano — nessuno sblocco necessario' },
+          { status: 409 }
+        )
+      case 'motivo_mancante':
+        return NextResponse.json({ error: 'Motivo obbligatorio' }, { status: 422 })
+      case 'non_trovato':
+        return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
+      default:
+        throw new Error(`esito RPC inatteso: ${JSON.stringify(result)}`)
+    }
+  } catch (err) {
+    // Dettaglio (Postgres) SOLO nei log server — fail-closed su ogni errore
+    // inatteso, mai un 200/leak del messaggio.
+    console.error('[SBLOCCA-CLAIM] errore:', err)
     return NextResponse.json({ error: 'Errore durante lo sblocco — riprova' }, { status: 500 })
   }
-  if (!updateRows || updateRows.length === 0) {
-    return NextResponse.json(
-      { error: 'Fattura non più in claim orfano — ricarica e riprova' },
-      { status: 409 }
-    )
-  }
-
-  const { error: insertErr } = await svc.from('fatture_sdi_eventi').insert({
-    laboratorio_id: labId,
-    fattura_id: fatturaId,
-    origine: 'sblocco_claim',
-    motivo,
-    registrato_da: user.id,
-  })
-
-  if (insertErr) {
-    console.error('[SBLOCCA-CLAIM] insert evento fallito (Postgres):', insertErr)
-    return NextResponse.json({ error: 'Errore durante la registrazione audit — riprova' }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true })
 }

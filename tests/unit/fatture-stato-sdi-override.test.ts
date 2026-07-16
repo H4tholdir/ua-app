@@ -3,25 +3,29 @@
 // titolare-only di uno stato SdI (fattura bloccata/senza ricevuta
 // automatica riscontrabile). Pattern mock ricalcato da
 // fatture-invia-pec-route.test.ts (coda di chain su from('fatture')).
+//
+// Task 12b: il writer (UPDATE fatture + INSERT evento audit) è stato reso
+// atomico tramite la RPC public.override_stato_sdi (migration
+// 20260716110000) — i test del percorso felice/errori sul writer ora
+// mockano `.rpc()` invece di update/insert su from('fatture').
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockRpc: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
   getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
-  getServiceClient: () => ({ from: mockFrom }),
+  getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
 }))
 
 import { POST } from '../../src/app/api/fatture/[id]/stato-sdi-override/route'
 
 type MockResult = { data: unknown; error: unknown }
-const insertPayloads: Array<Record<string, unknown>> = []
-const updatePayloads: Array<{ payload: Record<string, unknown>; filters: Record<string, unknown> }> = []
 
 function selectChain(result: MockResult) {
   const c: Record<string, unknown> = {}
@@ -29,30 +33,11 @@ function selectChain(result: MockResult) {
   c.single = async () => result
   return c
 }
-function updateChain(result: MockResult) {
-  const filters: Record<string, unknown> = {}
-  const c: Record<string, unknown> = {}
-  let payload: Record<string, unknown> = {}
-  c.update = (p: Record<string, unknown>) => { payload = p; return c }
-  c.eq = (field: string, value: unknown) => { filters[field] = value; return c }
-  c.select = async () => {
-    updatePayloads.push({ payload, filters: { ...filters } })
-    return result
-  }
-  return c
-}
-function insertChain(result: { error: unknown }) {
-  const c: Record<string, unknown> = {}
-  c.insert = (payload: Record<string, unknown>) => {
-    insertPayloads.push(payload)
-    return Promise.resolve(result)
-  }
-  return c
-}
 
 let fattureQueue: Array<Record<string, unknown>> = []
-let eventiQueue: Array<Record<string, unknown>> = []
 let utenteRow: Record<string, unknown> | null = null
+const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = []
+let rpcResult: { data: unknown; error: { message: string } | null } = { data: null, error: null }
 
 const FATTURA_OK = {
   id: 'fat-1', numero: '2026-0007', stato_sdi: 'smtp_inviata', tipo_documento: 'TD01',
@@ -69,12 +54,15 @@ const ctx = { params: Promise.resolve({ id: 'fat-1' }) }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  insertPayloads.length = 0
-  updatePayloads.length = 0
+  rpcCalls.length = 0
+  rpcResult = { data: null, error: null }
   utenteRow = { laboratorio_id: 'lab-1', ruolo: 'titolare' }
   fattureQueue = []
-  eventiQueue = []
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+  mockRpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+    rpcCalls.push({ fn, args })
+    return rpcResult
+  })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') return selectChain({ data: utenteRow, error: null })
     if (table === 'fatture') {
@@ -82,22 +70,22 @@ beforeEach(() => {
       if (!next) throw new Error('fattureQueue esaurita')
       return next
     }
-    if (table === 'fatture_sdi_eventi') {
-      const next = eventiQueue.shift()
-      if (!next) throw new Error('eventiQueue esaurita')
-      return next
-    }
     throw new Error(`Unexpected table: ${table}`)
   })
 })
 
-// Coda standard del percorso felice: select fattura → update ok → insert evento ok.
-function happyQueue(overrides: Partial<typeof FATTURA_OK> = {}) {
-  fattureQueue = [
-    selectChain({ data: { ...FATTURA_OK, ...overrides }, error: null }),
-    updateChain({ data: [{ id: 'fat-1' }], error: null }),
-  ]
-  eventiQueue = [insertChain({ error: null })]
+// Coda standard del percorso felice: select fattura → RPC applicato.
+function happyQueue(overrides: Partial<typeof FATTURA_OK> = {}, esitoOverrides: Record<string, unknown> = {}) {
+  fattureQueue = [selectChain({ data: { ...FATTURA_OK, ...overrides }, error: null })]
+  rpcResult = {
+    data: {
+      esito: 'applicato',
+      stato_da: overrides.stato_sdi ?? FATTURA_OK.stato_sdi,
+      stato_a: BODY_OK.nuovo_stato,
+      ...esitoOverrides,
+    },
+    error: null,
+  }
 }
 
 const BODY_OK = {
@@ -181,13 +169,13 @@ describe('POST /api/fatture/[id]/stato-sdi-override — anti-stale-read e monoto
     const res = await POST(req(BODY_OK), ctx)
     expect(res.status).toBe(404)
   })
-  it('stato_sdi_atteso ≠ stato corrente → 409, nessun update', async () => {
+  it('stato_sdi_atteso ≠ stato corrente → 409, nessuna RPC (guardia route pre-esistente)', async () => {
     fattureQueue = [selectChain({ data: { ...FATTURA_OK, stato_sdi: 'pec_consegnata' }, error: null })]
     const res = await POST(req({ ...BODY_OK, stato_sdi_atteso: 'smtp_inviata' }), ctx)
     expect(res.status).toBe(409)
-    expect(updatePayloads).toHaveLength(0)
+    expect(rpcCalls).toHaveLength(0)
   })
-  it('rank(nuovo_stato) <= rank(corrente) → 409 (transizione non monotona)', async () => {
+  it('rank(nuovo_stato) <= rank(corrente) → 409 (transizione non monotona), nessuna RPC', async () => {
     fattureQueue = [
       selectChain({ data: { ...FATTURA_OK, stato_sdi: 'accettata' }, error: null }),
     ]
@@ -196,7 +184,7 @@ describe('POST /api/fatture/[id]/stato-sdi-override — anti-stale-read e monoto
       ctx
     )
     expect(res.status).toBe(409)
-    expect(updatePayloads).toHaveLength(0)
+    expect(rpcCalls).toHaveLength(0)
   })
   it('rank(nuovo_stato) == rank(corrente) (accettata→rifiutata, entrambi rank 6) → 409', async () => {
     fattureQueue = [
@@ -211,7 +199,7 @@ describe('POST /api/fatture/[id]/stato-sdi-override — anti-stale-read e monoto
 })
 
 describe('POST /api/fatture/[id]/stato-sdi-override — TD04 doppia conferma', () => {
-  it('TD04 → rifiutata SENZA conferma_effetti_storno → 422, nessun update', async () => {
+  it('TD04 → rifiutata SENZA conferma_effetti_storno → 422, nessuna RPC', async () => {
     fattureQueue = [
       selectChain({ data: { ...FATTURA_OK, tipo_documento: 'TD04', stato_sdi: 'pec_consegnata' }, error: null }),
     ]
@@ -220,7 +208,7 @@ describe('POST /api/fatture/[id]/stato-sdi-override — TD04 doppia conferma', (
       ctx
     )
     expect(res.status).toBe(422)
-    expect(updatePayloads).toHaveLength(0)
+    expect(rpcCalls).toHaveLength(0)
   })
   it('TD04 → rifiutata con conferma_effetti_storno:false → 422', async () => {
     fattureQueue = [
@@ -257,70 +245,54 @@ describe('POST /api/fatture/[id]/stato-sdi-override — TD04 doppia conferma', (
 })
 
 describe('POST /api/fatture/[id]/stato-sdi-override — percorso felice', () => {
-  it('caso valido → 200, UPDATE guardato + INSERT evento origine=override_manuale', async () => {
+  it('caso valido → 200, RPC override_stato_sdi con i parametri attesi', async () => {
     happyQueue()
     const res = await POST(req(BODY_OK), ctx)
     expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, stato_da: 'smtp_inviata', stato_a: 'pec_consegnata' })
 
-    expect(updatePayloads).toHaveLength(1)
-    expect(updatePayloads[0].payload).toEqual({ stato_sdi: 'pec_consegnata' })
-    expect(updatePayloads[0].filters).toEqual({
-      id: 'fat-1', laboratorio_id: 'lab-1', stato_sdi: 'smtp_inviata',
+    expect(rpcCalls).toHaveLength(1)
+    expect(rpcCalls[0]).toEqual({
+      fn: 'override_stato_sdi',
+      args: {
+        p_fattura_id: 'fat-1',
+        p_laboratorio_id: 'lab-1',
+        p_stato_atteso: 'smtp_inviata',
+        p_nuovo_stato: 'pec_consegnata',
+        p_motivo: 'Confermato manualmente dal portale SdI',
+        p_registrato_da: 'user-1',
+      },
     })
-
-    expect(insertPayloads).toHaveLength(1)
-    expect(insertPayloads[0]).toMatchObject({
-      laboratorio_id: 'lab-1',
-      fattura_id: 'fat-1',
-      origine: 'override_manuale',
-      stato_da: 'smtp_inviata',
-      stato_a: 'pec_consegnata',
-      motivo: 'Confermato manualmente dal portale SdI',
-      registrato_da: 'user-1',
-    })
-    // lista_errori è riservato agli errori NS (Array<{codice, descrizione}>):
-    // l'evento override non deve MAI valorizzarlo.
-    expect(insertPayloads[0]).not.toHaveProperty('lista_errori')
   })
-  it('importo_storno_visto presente → accettato ma NON persistito (lista_errori riservato a errori NS)', async () => {
+  it('importo_storno_visto presente → accettato ma NON passato alla RPC', async () => {
     happyQueue()
     const res = await POST(req({ ...BODY_OK, importo_storno_visto: 123.45 }), ctx)
     expect(res.status).toBe(200)
-    expect(insertPayloads).toHaveLength(1)
-    expect(insertPayloads[0]).not.toHaveProperty('lista_errori')
-    expect(JSON.stringify(insertPayloads[0])).not.toContain('importo_storno_visto')
+    expect(rpcCalls).toHaveLength(1)
+    expect(JSON.stringify(rpcCalls[0].args)).not.toContain('importo_storno_visto')
   })
-  it('update guardato ritorna 0 righe (race) → 409, INSERT evento MAI chiamato', async () => {
-    fattureQueue = [
-      selectChain({ data: FATTURA_OK, error: null }),
-      updateChain({ data: [], error: null }),
-    ]
+  it('RPC ritorna stato_stantio (race tra pre-check e RPC) → 409, difesa in profondità', async () => {
+    fattureQueue = [selectChain({ data: FATTURA_OK, error: null })]
+    rpcResult = { data: { esito: 'stato_stantio', stato_corrente: 'pec_consegnata' }, error: null }
     const res = await POST(req(BODY_OK), ctx)
     expect(res.status).toBe(409)
-    expect(insertPayloads).toHaveLength(0)
+    expect(rpcCalls).toHaveLength(1)
   })
-  it('errore Postgres su UPDATE → 500 senza leak', async () => {
-    fattureQueue = [
-      selectChain({ data: FATTURA_OK, error: null }),
-      updateChain({ data: null, error: { message: 'deadlock detected (dettaglio sensibile)' } }),
-    ]
+  it('errore Postgres su RPC → 500 senza leak', async () => {
+    fattureQueue = [selectChain({ data: FATTURA_OK, error: null })]
+    rpcResult = { data: null, error: { message: 'deadlock detected (dettaglio sensibile)' } }
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const res = await POST(req(BODY_OK), ctx)
     errSpy.mockRestore()
     expect(res.status).toBe(500)
     expect(JSON.stringify(await res.json())).not.toContain('deadlock')
-    expect(insertPayloads).toHaveLength(0)
   })
-  it('errore Postgres su INSERT evento → 500 senza leak (update già avvenuto)', async () => {
-    fattureQueue = [
-      selectChain({ data: FATTURA_OK, error: null }),
-      updateChain({ data: [{ id: 'fat-1' }], error: null }),
-    ]
-    eventiQueue = [insertChain({ error: { message: 'constraint violata (dettaglio sensibile)' } })]
+  it('esito RPC inatteso → 500 fail-closed (difesa in profondità sul dato persistito)', async () => {
+    fattureQueue = [selectChain({ data: FATTURA_OK, error: null })]
+    rpcResult = { data: { esito: 'boh' }, error: null }
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const res = await POST(req(BODY_OK), ctx)
     errSpy.mockRestore()
     expect(res.status).toBe(500)
-    expect(JSON.stringify(await res.json())).not.toContain('constraint violata')
   })
 })

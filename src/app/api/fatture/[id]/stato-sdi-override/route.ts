@@ -8,6 +8,13 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
+interface RpcEsito {
+  esito: string
+  stato_da?: string
+  stato_a?: string
+  stato_corrente?: string
+}
+
 // Override manuale: SOLO titolare (a differenza dell'invio PEC, dove
 // front_desk è ammesso — qui si sta forzando un dato fiscale a mano).
 const RUOLI_OVERRIDE_SDI = ['titolare'] as const
@@ -43,10 +50,15 @@ const RANK_STATO_SDI: Record<StatoSDI, number> = {
 // Override manuale titolare-only di uno stato SdI quando l'operatore ha
 // verificato l'esito reale sul portale SdI/nella PEC ma il sistema non ha
 // (ancora) ricevuto/applicato la ricevuta corrispondente (Task 9-11).
-// INSERT su fatture_sdi_eventi (Task 2) con origine='override_manuale' e
-// motivo obbligatorio (audit — CHECK a livello DB). Un TD04 portato a
-// 'rifiutata' fa scattare il trigger di contro-movimento storno (migration
-// 20260716091000): richiede conferma esplicita nel body.
+// UPDATE fatture + INSERT su fatture_sdi_eventi (origine='override_manuale',
+// motivo obbligatorio — CHECK a livello DB) avvengono in un'unica
+// transazione tramite la RPC public.override_stato_sdi (Task 12b, migration
+// 20260716110000): un INSERT fallito dopo l'UPDATE riuscito lascerebbe lo
+// stato fiscale cambiato senza audit (dominio ITCA). Le validazioni sotto
+// (ruolo, allowlist, rank client-side, anti-stale-read) restano come difesa
+// in profondità — la RPC replica le stesse guardie sul dato persistito. Un
+// TD04 portato a 'rifiutata' fa scattare il trigger di contro-movimento
+// storno (migration 20260716091000): richiede conferma esplicita nel body.
 export async function POST(req: Request, { params }: RouteContext) {
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
@@ -159,39 +171,53 @@ export async function POST(req: Request, { params }: RouteContext) {
     statoA: nuovoStato,
   })
 
-  const { data: updateRows, error: updateErr } = await svc
-    .from('fatture')
-    .update({ stato_sdi: nuovoStato })
-    .eq('id', fatturaId)
-    .eq('laboratorio_id', labId)
-    .eq('stato_sdi', statoAtteso)
-    .select('id')
+  try {
+    const { data, error: rpcErr } = await svc.rpc('override_stato_sdi', {
+      p_fattura_id: fatturaId,
+      p_laboratorio_id: labId,
+      p_stato_atteso: statoAtteso,
+      p_nuovo_stato: nuovoStato,
+      p_motivo: motivo,
+      p_registrato_da: user.id,
+    })
+    if (rpcErr) {
+      throw new Error(`RPC override_stato_sdi fallita: ${rpcErr.message}`)
+    }
 
-  if (updateErr) {
-    console.error('[STATO-SDI-OVERRIDE] update fallito (Postgres):', updateErr)
+    const result = data as RpcEsito | null
+
+    switch (result?.esito) {
+      case 'applicato':
+        return NextResponse.json(
+          { ok: true, stato_da: result.stato_da, stato_a: result.stato_a },
+          { status: 200 }
+        )
+      case 'stato_stantio':
+        return NextResponse.json(
+          { error: 'Stato SdI modificato nel frattempo — ricarica e riprova' },
+          { status: 409 }
+        )
+      case 'stato_incompatibile':
+        return NextResponse.json(
+          { error: 'Transizione non valida — il nuovo stato non è successivo a quello corrente' },
+          { status: 409 }
+        )
+      case 'non_ammesso':
+        return NextResponse.json(
+          { error: 'nuovo_stato non valido — valori ammessi: pec_consegnata, accettata, rifiutata' },
+          { status: 422 }
+        )
+      case 'motivo_mancante':
+        return NextResponse.json({ error: 'Motivo obbligatorio' }, { status: 422 })
+      case 'non_trovato':
+        return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
+      default:
+        throw new Error(`esito RPC inatteso: ${JSON.stringify(result)}`)
+    }
+  } catch (err) {
+    // Dettaglio (Postgres) SOLO nei log server — fail-closed su ogni errore
+    // inatteso, mai un 200/leak del messaggio.
+    console.error('[STATO-SDI-OVERRIDE] errore:', err)
     return NextResponse.json({ error: "Errore durante l'override — riprova" }, { status: 500 })
   }
-  if (!updateRows || updateRows.length === 0) {
-    return NextResponse.json(
-      { error: 'Stato SdI modificato nel frattempo — ricarica e riprova' },
-      { status: 409 }
-    )
-  }
-
-  const { error: insertErr } = await svc.from('fatture_sdi_eventi').insert({
-    laboratorio_id: labId,
-    fattura_id: fatturaId,
-    origine: 'override_manuale',
-    stato_da: statoCorrente,
-    stato_a: nuovoStato,
-    motivo,
-    registrato_da: user.id,
-  })
-
-  if (insertErr) {
-    console.error('[STATO-SDI-OVERRIDE] insert evento fallito (Postgres):', insertErr)
-    return NextResponse.json({ error: 'Errore durante la registrazione audit — riprova' }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true, stato_da: statoCorrente, stato_a: nuovoStato })
 }
