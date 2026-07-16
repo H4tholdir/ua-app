@@ -45,7 +45,11 @@
 // già da sé Invio/Spazio (apre la SELEZIONE, `?lavoro=`) — senza il guard il
 // suo handler e questo listener globale (che apre `/lavori/{id}`) sparano
 // entrambi sullo stesso Invio, con due `router.push` verso URL diversi nello
-// stesso gesto (due voci di history per una pressione).
+// stesso gesto (due voci di history per una pressione). Stesso hazard con
+// `FlussoConsegna` aperto (Task 14): Invio sul «Consegna» del dialog
+// scatenerebbe ANCHE il push a `/lavori/{id}` (smontando la home a metà
+// flusso), e le frecce cambierebbero la selezione dietro il modal — il
+// listener è disattivato in blocco finché il flusso di consegna è aperto.
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -100,6 +104,10 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
 
     function onKeyDown(evento: KeyboardEvent) {
       if (!mq.matches) return
+      // FlussoConsegna aperto (Task 14): il modal possiede la tastiera — v.
+      // nota in testa al file (Invio duplicato sul «Consegna» del dialog,
+      // frecce che cambiano selezione dietro il modal).
+      if (consegnaId) return
       // Guardia modificatori (review Task 9): cmd/ctrl/alt+tasto sono
       // scorciatoie del browser/OS (cmd+n = nuova finestra, ctrl+/ …) —
       // le nostre valgono SOLO per il tasto nudo.
@@ -136,7 +144,7 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [lista, schedaLavoro, pilaSelezionata, router])
+  }, [lista, schedaLavoro, pilaSelezionata, router, consegnaId])
 
   return (
     <div className="ua-home-desk">

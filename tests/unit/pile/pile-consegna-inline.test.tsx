@@ -4,12 +4,13 @@
 // SOLO alla chiusura del frame (riserva arch #5): un refresh a 200 smonterebbe
 // card+frame a metà countdown. Pattern fetch-mock per-URL copiato da
 // `tests/unit/consegna-v3/flusso-consegna.test.tsx`.
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PilaAperta } from '@/components/features/pile/PilaAperta'
 import { SchedaAnteprima } from '@/components/features/pile/SchedaAnteprima'
-import type { LavoroPila } from '@/lib/dashboard/pile-home'
+import { HomeDesktop } from '@/components/features/home/HomeDesktop'
+import type { LavoroPila, PileHome } from '@/lib/dashboard/pile-home'
 
 const push = vi.fn()
 const refresh = vi.fn()
@@ -73,6 +74,63 @@ describe('PilaAperta — CONSEGNA in-place (Task 14, riserva arch #5)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(refresh).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('HomeDesktop — keydown globale disattivato con FlussoConsegna aperto (review Task 14)', () => {
+  // Il listener globale di HomeDesktop è gated da matchMedia(min-width:1024px)
+  // — il mock globale di tests/setup.ts risponde SEMPRE matches:false, che
+  // renderebbe questo test vacuo (il handler uscirebbe comunque). Qui si
+  // simula il desktop: matches SOLO per la query 1024.
+  const matchMediaOriginale = window.matchMedia
+  beforeEach(() => {
+    window.matchMedia = vi.fn((query: string) => ({
+      matches: query.includes('1024'), media: query, onchange: null,
+      addListener: vi.fn(), removeListener: vi.fn(),
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+  })
+  afterEach(() => { window.matchMedia = matchMediaOriginale })
+
+  const pile: PileHome = {
+    liste: { rossa: [lav('144', { consegnabile: true }), lav('147')], ambra: [], viola: [], blu: [] },
+    sub: { rossa: '', ambra: '', viola: '', blu: '' },
+    striscia: { ritardoPiuGrave: null, consegnaOggiNonPronta: null, provaRientroOggi: null, arrivoVecchio: null, fermo: null, consegneOggiTotali: 0, prossimaOra: null },
+  }
+  const segnale = { attenzione: false, forte: null, testo: '', azione: null }
+
+  it('flusso aperto: Enter NON fa push, ArrowDown NON cambia selezione; a flusso chiuso le scorciatoie tornano vive', async () => {
+    mockFetch({ '/api/lavori/l144/precheck-consegna': { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } } })
+    render(<HomeDesktop pile={pile} pilaSelezionata="rossa" lavoroSelezionato={null} segnale={segnale} />)
+
+    // Sanity: PRIMA di aprire il flusso il listener è vivo (il test non è vacuo).
+    fireEvent.keyDown(document.body, { key: 'ArrowDown' })
+    expect(push).toHaveBeenCalledWith('/dashboard?pila=rossa&lavoro=l147')
+    push.mockClear()
+
+    // Apre il flusso dal CONSEGNA della SchedaAnteprima (schedaLavoro = l144).
+    // `hidden: true`: jsdom applica la regola base `.ua-home-desk{display:none}`
+    // dello <style> del componente (il breakpoint ≥1024 che la ribalta non
+    // esiste in jsdom) → senza il flag le query per ruolo non vedono nulla.
+    await userEvent.setup().click(screen.getByRole('button', { name: /consegna/i, hidden: true }))
+    expect(await screen.findByText(/Consegno\?/)).toBeInTheDocument()
+    push.mockClear() // il click non fa push, ma azzeriamo per isolare i keydown
+
+    // (a) Enter su window → il handler globale NON naviga a /lavori/{id}.
+    fireEvent.keyDown(document.body, { key: 'Enter' })
+    // (b) ArrowDown → la selezione NON cambia (niente push = l'URL, che
+    // POSSIEDE la selezione per ADR B6, resta fermo) e il pannello anteprima
+    // resta sullo stesso lavoro.
+    fireEvent.keyDown(document.body, { key: 'ArrowDown' })
+    expect(push).not.toHaveBeenCalled()
+    // Il pannello anteprima resta su n.144 (card in lista + header scheda).
+    expect(screen.getAllByText('n.144')).toHaveLength(2)
+
+    // Chiuso il flusso («Non ancora» → onChiudi), le scorciatoie tornano vive.
+    // getAll…[0]: DialogConferma rende entrambe le varianti responsive in jsdom.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Non ancora' })[0])
+    fireEvent.keyDown(document.body, { key: 'ArrowDown' })
+    expect(push).toHaveBeenCalledWith('/dashboard?pila=rossa&lavoro=l147')
   })
 })
 
