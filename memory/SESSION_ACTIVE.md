@@ -1,4 +1,4 @@
-# Sessione attiva — 15/07/2026 (3)
+# Sessione attiva — 16/07/2026
 
-**N10+N9 (invio PEC a SdI): MERGIATA E DEPLOYATA** (`main` `9310d21`+BP-1 `20518d8`; CI+CD verdi, smoke OK; worktree rimosso). Review finale READY TO MERGE, QA E2E PASS, gate L2 passato. Follow-up in BACKLOG («N10 polish», rate-limit, connectionTimeout).
-**PROSSIMA SESSIONE (contesto pulito):** item **B — Riconciliazioni pendenti + ricevute PEC** (scelta di Francesco). BP-0: `memory/MEMORY.md` + `docs/roadmap/2026-07-15-riconciliazioni-handoff.md`. Percorso GRANDE: brainstorming → validazione arch → spec+panel → piano → esecuzione in worktree. UI → gate §0B.
+**RICONCILIAZIONI R1: MERGIATA E DEPLOYATA** (`main` `defa346`, 28 commit; CI+CD verdi; smoke prod OK — `/fatture/riconciliazioni` live con redirect login corretto). 6 migration applicate al DB live. Suite 1954 pass | 19 skip. QA 9/9, gate L2 PASS (3 deferiti tracciati), review finale whole-branch Ready to merge dopo fix 4 Important. BP-1 completato (MEMORY, ROADMAP, domains/fatturazione-sdi). Worktree `riconciliazioni-r1` rimosso.
+**PROSSIMA SESSIONE:** rientro binario DS v3 (decisione Francesco 15/07) — ondata «fondamenta residue (5 componenti ds + check-ds su globals.css) + 4b Consegna», poi audit multi-agente, poi «Le sezioni» (Fatture+Scadenzario per prime). Backlog nuovo R1 in ROADMAP (motore firma reale, cap parcheggiati deliberato, minor triaged).
