@@ -20,12 +20,17 @@ import { TastoSecondario } from './TastoSecondario'
  * DialogConferma — conferma distruttiva centrata (§5.17).
  *
  * Card max 340, stesso scrim di `Sheet` (`materia.scrim`, tap → `onAnnulla`),
- * Esc → `onAnnulla`. Ordine azioni: `etichettaSicura` SOPRA come
+ * Esc → `onAnnulla`. Ordine azioni default: `etichettaSicura` SOPRA come
  * `TastoSecondario`, `etichettaDistruttiva` SOTTO come `TastoPrimario` — la
  * mano che scorre incontra prima la via sicura. Nessun suono all'apertura
  * (il suono appartiene all'esito dell'azione, non alla comparsa del dialog):
  * i due tasti suonano/vibrano già per conto proprio al click, questo
  * componente non chiama mai `suona()` direttamente.
+ *
+ * Variante consegna (deroga §5.17, decision record 16/07): `primarioSopra`
+ * inverte l'ordine SOLO per il rito consegna. `occhiello`, `centraTesto` e
+ * `nota` sono tutte opzionali e additive — il default resta invariato
+ * (riserva arch #7: nessun consumatore esistente cambia comportamento).
  *
  * Portal su `document.body` come `Sheet` — stessa eccezione sanzionata alla
  * regola "solo il catalogo monta data-ds" (constraint 3): il DOM vive fuori
@@ -39,8 +44,28 @@ export function DialogConferma(props: {
   etichettaSicura: string
   onConferma: () => void
   onAnnulla: () => void
+  /** Riga 16.5/700 `--muted` centrata sopra il titolo. */
+  occhiello?: string
+  /** Centra titolo+testo (il titolo diventa l'«oggetto» del rito consegna). */
+  centraTesto?: boolean
+  /** Callout ambra compatta (D-6): informazione, mai tappabile. */
+  nota?: string
+  /** Deroga §5.17 consegna: `TastoPrimario` SOPRA, `TastoSecondario` sotto. */
+  primarioSopra?: boolean
 }) {
-  const { aperto, titolo, testo, etichettaDistruttiva, etichettaSicura, onConferma, onAnnulla } = props
+  const {
+    aperto,
+    titolo,
+    testo,
+    etichettaDistruttiva,
+    etichettaSicura,
+    onConferma,
+    onAnnulla,
+    occhiello,
+    centraTesto = false,
+    nota,
+    primarioSopra = false,
+  } = props
   const reduced = useReducedMotion()
   const titoloId = useId()
   const testoId = useId()
@@ -60,13 +85,24 @@ export function DialogConferma(props: {
     if (e.target === e.currentTarget) onAnnulla()
   }
 
+  const tasti = [
+    <TastoSecondario key="sicura" onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>,
+    <TastoPrimario key="distruttiva" onClick={onConferma}>{etichettaDistruttiva}</TastoPrimario>,
+  ]
+
   const contenutoCard = (
     <>
-      <h2 id={titoloId} style={titoloStile}>{titolo}</h2>
-      <p id={testoId} style={testoStile}>{testo}</p>
+      {occhiello && <p style={occhielloStile}>{occhiello}</p>}
+      <h2
+        id={titoloId}
+        style={{ ...titoloStile, ...(centraTesto ? { textAlign: 'center' as const, letterSpacing: '-0.01em' } : null) }}
+      >
+        {titolo}
+      </h2>
+      <p id={testoId} style={{ ...testoStile, ...(centraTesto ? { textAlign: 'center' as const } : null) }}>{testo}</p>
+      {nota && <p style={notaStile}>{nota}</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, marginTop: spazio.l }}>
-        <TastoSecondario onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>
-        <TastoPrimario onClick={onConferma}>{etichettaDistruttiva}</TastoPrimario>
+        {primarioSopra ? [tasti[1], tasti[0]] : tasti}
       </div>
     </>
   )
@@ -158,4 +194,25 @@ const testoStile: CSSProperties = {
   fontWeight: tipografia.weight.regular,
   color: 'var(--muted)',
   margin: `${spazio.s}px 0 0`,
+}
+
+const occhielloStile: CSSProperties = {
+  fontSize: 16.5,
+  fontWeight: tipografia.weight.bold,
+  color: 'var(--muted)',
+  textAlign: 'center',
+  margin: 0,
+}
+
+// Nota ambra compatta (D-6): informazione, non decisione — mai tappabile,
+// mai più evidente dell'oggetto (L1/L3).
+const notaStile: CSSProperties = {
+  fontSize: 14,
+  fontWeight: tipografia.weight.semibold,
+  color: 'var(--amber)',
+  background: 'var(--amber-tint)',
+  borderRadius: raggio.riga - 6,
+  padding: `${spazio.xs + 2}px ${spazio.sm}px`,
+  margin: `${spazio.s}px 0 0`,
+  textAlign: 'center',
 }
