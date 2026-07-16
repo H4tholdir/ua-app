@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE types:RicevutaConsegna [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0">
+  <IdentificativoSdI>111</IdentificativoSdI>
+  <NomeFile>IT01234567890_11111.xml</NomeFile>
+  <Note>&xxe;</Note>
+</types:RicevutaConsegna>

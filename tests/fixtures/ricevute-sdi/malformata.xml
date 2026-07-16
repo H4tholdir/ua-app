@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0">
+  <IdentificativoSdI>111</IdentificativoSdI>
+  <NomeFile>IT01234567890_11111.xml
+  <DataOraRicezione>2026-07-10T09:30:00Z</DataOraRicezione>
+</types:RicevutaConsegna

@@ -130,7 +130,7 @@ export async function fetchMovimentiCreditoValidi(
   svc: SupabaseClient,
   labId: string,
   clienteId: string
-): Promise<Array<{ tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number }>> {
+): Promise<Array<{ tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso' | 'annullo_storno'; importo: number }>> {
   const { data: movimentiRaw, error: movimentiErr } = await svc
     .from('credito_clienti_movimenti')
     .select('tipo, importo, pagamento_id, pagamenti(stato)')
@@ -141,7 +141,7 @@ export async function fetchMovimentiCreditoValidi(
   if (movimentiErr) throw new Error(`[contabilita cliente] lettura movimenti: ${movimentiErr.message}`)
 
   return ((movimentiRaw ?? []) as unknown as Array<{
-    tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso'; importo: number
+    tipo: 'eccedenza' | 'storno' | 'applicazione' | 'rimborso' | 'annullo_storno'; importo: number
     pagamento_id: string | null; pagamenti: { stato: string } | null
   }>)
     .filter((m) => m.tipo !== 'eccedenza' || m.pagamenti?.stato === 'attivo')

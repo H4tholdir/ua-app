@@ -254,7 +254,15 @@ export default async function FatturaDetailPage({ params }: Props) {
             <div style={{ ...row, borderBottom: 'none' }}>
               <span style={{ color: 'var(--t2)' }}>PEC consegnata</span>
               <span style={{ color: f.pec_consegnata_at ? '#16A34A' : 'var(--t3)' }}>
-                {f.pec_consegnata_at ? fmtDate(f.pec_consegnata_at) : 'Non inviata'}
+                {f.pec_consegnata_at
+                  ? fmtDate(f.pec_consegnata_at)
+                  : // Fix cosmetico (spec §5, Task 16): con stato ≥ 'accettata' la
+                    // fattura ha comunque raggiunto un esito SdI reale (es. via
+                    // ricevuta caricata a mano o override) anche senza un evento
+                    // pec_consegnata_at registrato — «Non inviata» sarebbe fuorviante.
+                    statoSdiKey === 'accettata' || statoSdiKey === 'rifiutata'
+                    ? STATO_SDI_LABEL[statoSdiKey]
+                    : 'Non inviata'}
               </span>
             </div>
             <InviaPecButton

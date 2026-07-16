@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Da sistemare — /fatture/riconciliazioni · variante A con copy da banco</title>
+<style>
+/* ============================================================
+   TOKEN v2.3 — valori esatti da src/design-system/tokens.ts.
+   Riusati 1:1 da 2026-07-16-alert-saldo-negativo.html e
+   2026-07-15-nota-credito-td04.html (stessa famiglia di mockup).
+   ============================================================ */
+:root, :root[data-theme="light"]{
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#4A3D33; --t3:#6B5C51; --primary:#D90012;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6; --orange:#F97316;
+  --amber-ink:#92400E; --green-ink:#15803D; --red-ink:#B00010;
+  --line:#CFC9C2;
+  --sh-card: rgba(148,128,118,.22) 3px 5px 10px -2px, rgba(148,128,118,.12) 1px 2px 5px -1px;
+  --sh-btn: rgba(148,128,118,.26) 3px 5px 9px -1px, rgba(255,255,255,.78) -3px -3px 8px;
+  --sh-float: rgba(255,255,255,.72) -8px -8px 18px, rgba(148,128,118,.55) 10px 12px 24px -4px;
+  --sh-red: 0 6px 16px -3px rgba(180,0,10,.42);
+  --overlay: rgba(28,25,22,.42);
+}
+:root[data-theme="dark"]{
+  --bg:#1A1916; --sfc:#232018; --elv:#2A2620; --prs:#141210;
+  --t1:#F0EDE8; --t2:#8A8580; --t3:#5A5652; --primary:#E8001A;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6; --orange:#F97316;
+  --amber-ink:#F59E0B; --green-ink:#3DCB5C; --red-ink:#FF5A66;
+  --line:#3A362F;
+  --sh-card: none;
+  --sh-btn: none;
+  --sh-float: rgba(0,0,0,.70) 0 12px 28px, rgba(0,0,0,.40) 0 4px 8px;
+  --sh-red: 0 6px 16px -3px rgba(232,0,26,.40);
+  --overlay: rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box;font-family:'DM Sans',-apple-system,system-ui,sans-serif}
+html,body{margin:0}
+body{background:var(--bg);color:var(--t1);padding:0}
+
+/* ---- Chrome descrittivo ---- */
+.doc{padding:28px 24px 80px;max-width:1360px;margin:0 auto}
+.doc h1{font-size:22px;font-weight:700;margin:0 0 4px}
+.doc .lede{font-size:13px;color:var(--t2);max-width:820px;margin:0 0 6px;line-height:1.5}
+.doc .meta{font-size:12px;color:var(--t3);margin:0 0 16px;line-height:1.6}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.nav a{font-size:12px;font-weight:700;text-decoration:none;color:var(--t1);background:var(--elv);
+  border:1px solid var(--line);padding:7px 12px;border-radius:100px}
+.themebtn{font-size:12px;font-weight:700;color:var(--t1);background:var(--elv);border:1px solid var(--line);
+  padding:7px 12px;border-radius:100px;cursor:pointer}
+.sechead{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);
+  margin:34px 0 4px;padding-top:14px;border-top:1px dashed var(--line)}
+.secsub{font-size:13px;color:var(--t2);margin:0 0 16px;max-width:820px;line-height:1.5}
+.research{background:var(--elv);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 22px;max-width:900px}
+.research .rt{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 8px}
+.copymap{width:100%;border-collapse:collapse;font-size:12px;max-width:900px}
+.copymap th,.copymap td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);color:var(--t2);vertical-align:top;line-height:1.45}
+.copymap th{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)}
+.copymap td b{color:var(--t1)}
+
+.cap{background:var(--bg);padding:22px;border-radius:16px;width:max-content}
+.caphint{font-size:11px;font-weight:700;color:var(--t3);margin:0 0 12px;letter-spacing:.04em}
+.frames{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.framecol{display:flex;flex-direction:column;gap:8px}
+.framelbl{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.02em}
+
+/* ---- Device: phone ---- */
+.phone{width:390px;background:var(--bg);border-radius:26px;border:1px solid var(--line);
+  overflow:hidden;position:relative;box-shadow:var(--sh-card)}
+.status{height:26px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;font-size:10px;color:var(--t3);font-weight:600}
+.appbar{display:flex;align-items:center;gap:10px;padding:10px 16px 12px}
+.appbar .back{width:34px;height:34px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t1);flex-shrink:0}
+.appbar .ttl{font-size:17px;font-weight:700;color:var(--t1)}
+.appbar .bc{font-size:11px;color:var(--t3);margin-top:1px}
+.appbar .grow{flex:1}
+.body{padding:0 16px 18px}
+
+/* ---- Card generico ---- */
+.card{background:var(--sfc);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh-card)}
+.slabel{font-size:10px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px}
+.r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--elv);font-size:13px;gap:12px}
+.r:last-child{border-bottom:none}
+.r .k{color:var(--t2)}
+.r .v{color:var(--t1);font-weight:600;text-align:right}
+.mono{font-family:'DM Mono',ui-monospace,monospace;font-weight:700}
+
+/* ---- Bottoni condivisi ---- */
+.btn-red{min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;
+  background:var(--primary);border:none;color:#fff;font-size:14px;font-weight:700;box-shadow:var(--sh-red);cursor:pointer}
+.btn-red.dis{opacity:.42;box-shadow:none;cursor:not-allowed}
+.btn-neutral{min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;
+  background:var(--elv);border:1px solid var(--line);color:var(--t2);font-size:14px;font-weight:700;cursor:pointer}
+.actionsrow{display:flex;gap:10px;margin-top:2px}
+.actionsrow .fill2{flex:2}.actionsrow .fill1{flex:1}
+
+/* ---- Bottom sheet ---- */
+.scrim{position:absolute;inset:0;background:var(--overlay);z-index:8}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:22px 22px 0 0;
+  z-index:9;box-shadow:var(--sh-float);padding:18px 18px 20px}
+.handle{width:34px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.sh-title{font-size:17px;font-weight:700;color:var(--t1);margin:0 0 3px}
+.sh-sub{font-size:12px;color:var(--t2);margin:0 0 14px}
+.flabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:0 0 8px}
+.flabel .req{color:var(--primary)}
+
+/* ---- Callout avviso ---- */
+.warn{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;margin:0 0 14px;
+  background:color-mix(in srgb,var(--primary) 9%,transparent);border:1px solid color-mix(in srgb,var(--primary) 30%,transparent)}
+.warn .wic{font-size:15px;line-height:1.2;color:var(--primary)}
+.warn .wtx{font-size:12px;color:var(--t1);line-height:1.45}
+.warn .wtx b{font-weight:700}
+
+/* ---- Riepilogo effetti / dati letti ---- */
+.effs{background:var(--sfc);border:1px solid var(--line);border-radius:14px;padding:6px 12px;margin:0 0 14px}
+.eff{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--elv)}
+.eff:last-child{border-bottom:none}
+.eff .ei{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.eff.e-storn .ei{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red-ink)}
+.eff.e-cred .ei{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green-ink)}
+.eff .et{display:block;font-size:13px;color:var(--t1);font-weight:600;line-height:1.35}
+.eff .es{display:block;font-size:11px;color:var(--t2);margin-top:2px;line-height:1.35}
+.eff .es b{color:var(--t1)}
+
+/* ---- Scelta esito (override «Ho verificato sul portale») ---- */
+.optrow{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;background:var(--sfc);
+  border:1.5px solid var(--line);margin:0 0 8px;cursor:pointer}
+.optrow .odot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--t3);flex-shrink:0;position:relative}
+.optrow.sel{border-color:color-mix(in srgb,var(--primary) 45%,transparent)}
+.optrow.sel .odot{border-color:var(--primary)}
+.optrow.sel .odot::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--primary)}
+.optrow .ol{display:block;font-size:13.5px;font-weight:700;color:var(--t1);line-height:1.3}
+.optrow .ot{display:block;font-size:10.5px;color:var(--t3);margin-top:1px;font-family:'DM Mono',ui-monospace,monospace}
+
+/* ---- Checkbox esplicita override ---- */
+.checkrow{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:12px;background:var(--sfc);
+  border:1.5px solid var(--line);margin:0 0 14px;font-size:12.5px;color:var(--t1);line-height:1.4}
+.cbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--t3);flex-shrink:0;position:relative;margin-top:1px}
+.checkrow.checked{border-color:color-mix(in srgb,var(--primary) 45%,transparent)}
+.checkrow.checked .cbox{background:var(--primary);border-color:var(--primary)}
+.checkrow.checked .cbox::after{content:'✓';color:#fff;font-size:14px;font-weight:800;position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+
+/* ---- Upload ---- */
+.uz-file{display:flex;align-items:center;gap:10px;background:var(--elv);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 16px}
+.uz-file .fi{font-size:16px}
+.uz-file .fn{font-size:12px;font-weight:700;color:var(--t1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uz-file .fx{color:var(--t3);font-size:14px}
+
+/* ---- Toast successo ---- */
+.toast{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--green) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--green) 34%,transparent);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.toast .ti{color:var(--green-ink);font-size:16px}
+.toast .tt{font-size:12px;font-weight:700;color:var(--t1)}
+.toast .ts{font-size:11px;color:var(--t2);margin-top:1px}
+
+/* ---- Badge totale ---- */
+.totalbadge{display:flex;align-items:center;justify-content:space-between;background:var(--sfc);border-radius:16px;
+  padding:14px 16px;margin:0 0 14px;box-shadow:var(--sh-card)}
+.totalbadge .tk{font-size:12px;color:var(--t2)}
+.totalbadge .tv{font-size:22px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+
+/* ---- Icona di gruppo (colori rainbow, 5 gruppi) ---- */
+.groupicon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.gi-td04{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red-ink)}
+.gi-saldi{background:color-mix(in srgb,var(--purple) 20%,transparent);color:var(--purple)}
+.gi-park{background:color-mix(in srgb,var(--orange) 20%,transparent);color:var(--orange)}
+.gi-orfani{background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)}
+.gi-stag{background:color-mix(in srgb,var(--amber) 20%,transparent);color:var(--amber-ink)}
+
+/* ---- Sezioni collassabili (variante A scelta) ---- */
+.groupcard{background:var(--sfc);border-radius:16px;margin-bottom:10px;box-shadow:var(--sh-card);overflow:hidden}
+.grouphead{display:flex;align-items:center;gap:11px;padding:13px 14px;min-height:44px}
+.grouphead .glbl{font-size:13.5px;font-weight:700;color:var(--t1);line-height:1.3}
+.grouphead .gsub{font-size:10.5px;color:var(--t3);margin-top:1px}
+.groupcount{margin-left:auto;font-size:12px;font-weight:800;color:var(--t2);background:var(--elv);border:1px solid var(--line);
+  padding:2px 10px;border-radius:100px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.chev{font-size:11px;color:var(--t3);transition:transform .2s;margin-left:2px;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.groupbody{border-top:1px solid var(--elv)}
+.grouphelp{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;background:var(--elv);
+  font-size:11.5px;color:var(--t2);line-height:1.5;border-bottom:1px solid var(--line)}
+.grouphelp .qi{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--t3);color:var(--t3);
+  font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.grouprow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--elv)}
+.grouprow:last-child{border-bottom:none}
+.gr-main{min-width:0;flex:1}
+.gr-title{font-size:13px;font-weight:600;color:var(--t1);line-height:1.35}
+.gr-sub{font-size:11px;color:var(--t2);margin-top:2px;line-height:1.4}
+.gr-detail{font-size:10px;color:var(--t3);margin-top:3px;line-height:1.35}
+.gr-cta{flex-shrink:0;min-height:44px;padding:0 14px;border-radius:100px;font-size:12px;font-weight:700;
+  border:1.5px solid var(--line);background:var(--elv);color:var(--t1);cursor:pointer;white-space:nowrap}
+.gr-cta.danger{background:var(--primary);border-color:var(--primary);color:#fff}
+
+/* ---- Role badge ---- */
+.rolebadge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.05em;padding:3px 7px;border-radius:100px;background:var(--elv);color:var(--t3);border:1px solid var(--line);white-space:nowrap}
+.rolebadge.solo{background:color-mix(in srgb,var(--primary) 13%,transparent);color:var(--primary);border-color:color-mix(in srgb,var(--primary) 36%,transparent)}
+
+/* ---- Empty state positivo ---- */
+.emptystate{display:flex;flex-direction:column;align-items:center;text-align:center;padding:46px 24px 40px;gap:10px}
+.es-icon{width:60px;height:60px;border-radius:50%;background:color-mix(in srgb,var(--green) 16%,transparent);
+  color:var(--green-ink);display:flex;align-items:center;justify-content:center;font-size:26px}
+.es-title{font-size:16px;font-weight:700;color:var(--t1)}
+.es-sub{font-size:12px;color:var(--t2);max-width:260px;line-height:1.5}
+
+/* ---- Desktop shell ---- */
+.desk{width:1200px;background:var(--bg);border-radius:20px;border:1px solid var(--line);overflow:hidden;position:relative}
+.deskbar{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--elv)}
+.deskbar .back{width:36px;height:36px;border-radius:50%;background:var(--elv);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px}
+.deskbar .ttl{font-size:20px;font-weight:700}
+.deskbar .sub{font-size:12px;color:var(--t3);margin-top:2px}
+.deskbar .grow{flex:1}
+.deskgrid{display:grid;grid-template-columns:1fr 320px;gap:22px;padding:24px}
+.aside{display:flex;flex-direction:column;gap:12px}
+.aside .apanel{background:var(--sfc);border-radius:18px;padding:18px;box-shadow:var(--sh-card)}
+.apanel .atitle{font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px}
+.roler{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--elv);font-size:12px;color:var(--t2);line-height:1.5}
+.roler:last-child{border-bottom:none}
+.roler b{color:var(--t1)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>«Da sistemare» — <span class="mono" style="font-size:15px">/fatture/riconciliazioni</span> · variante A, copy da banco</h1>
+  <p class="lede">Variante A (lista raggruppata con sezioni collassabili, contatore-first) <b>scelta da Francesco</b>, con revisione vincolante del linguaggio: niente parole del software («claim», «SMTP», «stagnante», «riconciliazione» come etichetta). Ogni gruppo racconta <b>cosa è successo</b> in parole semplici e cosa fare; i codici tecnici (TD04, identificativo SdI, nomi file, esiti) restano visibili ma come dettaglio secondario, mai come titolo. Ispirato alla Legge L2 del DS v3 («Parole del banco, mai del software») restando visivamente v2.3.</p>
+  <p class="meta">Dati simulati: laboratorio con <b>12 cose da sistemare</b> al 16/07/2026. Fonte dati: <code>fetchPendenzeRiconciliazione</code> (src/lib/fattura/ricevute/queries-riconciliazioni.ts). Design System v2.3 (Warm Panna) — pagina Fatture, non ancora migrata a v3.</p>
+
+  <div class="research">
+    <p class="rt">Mappa linguaggio — tecnico → banco (per il decision doc)</p>
+    <table class="copymap">
+      <tr><th>Prima (software)</th><th>Ora (banco)</th></tr>
+      <tr><td>Riconciliazioni (titolo pagina)</td><td><b>Da sistemare</b> · sottotitolo «Fatture e ricevute che hanno bisogno di te»</td></tr>
+      <tr><td>Storni con TD04 rifiutato</td><td><b>Note di credito rifiutate dallo Stato</b></td></tr>
+      <tr><td>Saldi credito negativi</td><td><b>Conti clienti da sistemare</b></td></tr>
+      <tr><td>Ricevute parcheggiate / quarantena</td><td><b>Ricevute da controllare a mano</b></td></tr>
+      <tr><td>Claim orfani</td><td><b>Segnate come inviate, ma l'invio non risulta</b></td></tr>
+      <tr><td>SMTP stagnanti (&gt;7gg)</td><td><b>In attesa di risposta da troppo tempo</b></td></tr>
+      <tr><td>Sblocca claim / Sblocca storno / Applica proposta / Analizza ricevuta / Applica comunque</td><td><b>Sblocca e reinvia</b> / <b>Riprova lo storno</b> / <b>Conferma ricevuta</b> / <b>Leggi la ricevuta</b> / <b>Controlla e conferma</b></td></tr>
+      <tr><td>Override stato SdI (titolare)</td><td><b>Ho verificato sul portale</b> → sheet «Cosa dice il portale?» con esiti in parole semplici (Consegnata / Accettata / Rifiutata), termine tecnico piccolo sotto, motivo obbligatorio, avviso «questa azione viene registrata»</td></tr>
+      <tr><td>Pendenze aperte / Riconciliata / Tutto riconciliato ✓</td><td><b>Cose da sistemare</b> / <b>Sistemata ✓</b> / <b>Tutto a posto ✓</b></td></tr>
+    </table>
+  </div>
+
+  <div class="nav">
+    <a href="#va">Pagina · mobile + desktop</a>
+    <a href="#flow-upload">Flusso · carica ricevuta PEC</a>
+    <a href="#flow-portale">Flusso · ho verificato sul portale</a>
+    <a href="#flow-override">Flusso · riprova lo storno</a>
+    <a href="#ruoli">Chi può fare cosa</a>
+    <button class="themebtn" data-mockup-chrome onclick="var r=document.documentElement,c=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',c)">🌓 Cambia tema (anteprima manuale)</button>
+  </div>
+
+  <!-- ============================ PAGINA (VARIANTE A SCELTA) ============================ -->
+  <a id="va"></a>
+  <div class="sechead">Pagina «Da sistemare» — lista raggruppata, sezioni collassabili, contatore-first</div>
+  <p class="secsub">I 5 gruppi sono sezioni collassabili ordinate per gravità. Ogni header: icona colorata + <b>etichetta in parole semplici</b> + contatore sempre visibile + chevron. Ogni gruppo aperto inizia con una riga di aiuto «?» che spiega cosa è successo e cosa fare — mai un muro di testo. SdI viene spiegato alla prima occorrenza: «SdI (il sistema dell'Agenzia delle Entrate)»; «TD04» compare sempre accompagnato da «nota di credito».</p>
+
+  <div class="caphint">Mobile 390px — «Note di credito rifiutate» + «Conti clienti» aperti</div>
+  <div class="cap mobile" id="cap-A-mobile-1">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">1 · Pagina — primi due gruppi aperti</div>
+        <div class="phone" style="height:960px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div><div class="bc">Fatture e ricevute che hanno bisogno di te</div></div></div>
+          <div class="body">
+            <div class="totalbadge"><span class="tk">Cose da sistemare</span><span class="tv">12</span></div>
+
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-td04">⊘</span>
+                <div><div class="glbl">Note di credito rifiutate dallo Stato</div><div class="gsub">La fattura torna valida, il conto va sistemato</div></div>
+                <span class="groupcount">1</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouphelp"><span class="qi">?</span><span>Hai stornato una fattura, ma SdI (il sistema dell'Agenzia delle Entrate) ha rifiutato la nota di credito: lo storno non vale e il conto del cliente va sistemato.</span></div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Fattura 2026-0027 · Odontotecnica Verdi Srl</div>
+                    <div class="gr-sub">La nota di credito è stata rifiutata: lo storno non è valido</div>
+                    <div class="gr-detail">Nota di credito 2026-0006 (TD04) · codice di scarto 00305</div>
+                  </div>
+                  <button class="gr-cta danger">Riprova lo storno</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-saldi">€</span>
+                <div><div class="glbl">Conti clienti da sistemare</div><div class="gsub">Clienti con il conto in negativo</div></div>
+                <span class="groupcount">2</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouphelp"><span class="qi">?</span><span>Questi clienti hanno il conto in negativo: di solito succede quando una nota di credito viene rifiutata dopo che il credito era già stato usato.</span></div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Studio Rossi</div>
+                    <div class="gr-sub">Conto a −60,00&nbsp;€ · la sua nota di credito è stata rifiutata</div>
+                    <div class="gr-detail">Nota di credito 2026/0004 (TD04) rifiutata da SdI</div>
+                  </div>
+                  <button class="gr-cta">Vedi il conto</button>
+                </div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Dental Bianchi Srl</div>
+                    <div class="gr-sub">Conto a −24,50&nbsp;€ · rimborso registrato due volte</div>
+                  </div>
+                  <button class="gr-cta">Vedi il conto</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-park">📥</span>
+                <div><div class="glbl">Ricevute da controllare a mano</div><div class="gsub">UÀ non è riuscita ad abbinarle o verificarle</div></div>
+                <span class="groupcount">4</span><span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-orfani">✉</span>
+                <div><div class="glbl">Segnate come inviate, ma l'invio non risulta</div><div class="gsub">Manca la conferma d'invio</div></div>
+                <span class="groupcount">2</span><span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div><div class="gsub">Inviate da più di 7 giorni, nessuna risposta</div></div>
+                <span class="groupcount">3</span><span class="chev">▾</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caphint">Mobile 390px — «Ricevute da controllare a mano» aperto + stato «Tutto a posto ✓»</div>
+  <div class="cap mobile" id="cap-A-mobile-2">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">2 · Ricevute da controllare — firma non verificabile, consegna fallita, senza abbinamento</div>
+        <div class="phone" style="height:1060px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div><div class="bc">Fatture e ricevute che hanno bisogno di te</div></div></div>
+          <div class="body">
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-td04">⊘</span>
+                <div><div class="glbl">Note di credito rifiutate dallo Stato</div><div class="gsub">La fattura torna valida, il conto va sistemato</div></div>
+                <span class="groupcount">1</span><span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-saldi">€</span>
+                <div><div class="glbl">Conti clienti da sistemare</div><div class="gsub">Clienti con il conto in negativo</div></div>
+                <span class="groupcount">2</span><span class="chev">▾</span>
+              </div>
+            </div>
+
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-park">📥</span>
+                <div><div class="glbl">Ricevute da controllare a mano</div><div class="gsub">UÀ non è riuscita ad abbinarle o verificarle</div></div>
+                <span class="groupcount">4</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouphelp"><span class="qi">?</span><span>UÀ non è riuscita ad abbinare queste ricevute a una fattura, o a verificarne la firma: guardale e conferma tu.</span></div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Ricevuta di oggi · Fattura 2026-0040</div>
+                    <div class="gr-sub" style="color:var(--orange);font-weight:700">⚠ Verifica firma non disponibile — controllo manuale obbligatorio</div>
+                    <div class="gr-detail">File: ricevuta_20260716_rc.xml</div>
+                  </div>
+                  <button class="gr-cta danger">Controlla e conferma</button>
+                </div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Ricevuta di lun 14 luglio · Fattura 2026-0036</div>
+                    <div class="gr-sub">Lo Stato non è riuscito a consegnarla al cliente</div>
+                    <div class="gr-detail">Esito EC02 (mancata consegna) · file: ricevuta_20260714_mc.xml</div>
+                  </div>
+                  <button class="gr-cta">Conferma ricevuta</button>
+                </div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Ricevuta di mar 15 luglio</div>
+                    <div class="gr-sub">Nessuna fattura abbinata: il codice nella ricevuta non corrisponde</div>
+                    <div class="gr-detail">File: ricevuta_20260715_ns.xml</div>
+                  </div>
+                  <button class="gr-cta">Abbina tu</button>
+                </div>
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Ricevuta di sab 12 luglio</div>
+                    <div class="gr-sub">Nessuna fattura abbinata: il nome del file non corrisponde</div>
+                    <div class="gr-detail">File: ricevuta_20260712_ns2.xml</div>
+                  </div>
+                  <button class="gr-cta">Abbina tu</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-orfani">✉</span>
+                <div><div class="glbl">Segnate come inviate, ma l'invio non risulta</div><div class="gsub">Manca la conferma d'invio</div></div>
+                <span class="groupcount">2</span><span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="groupcard">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div><div class="gsub">Inviate da più di 7 giorni, nessuna risposta</div></div>
+                <span class="groupcount">3</span><span class="chev">▾</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl" style="margin-top:4px;color:var(--t3);max-width:390px">Firma non verificabile: icona ⚠ + testo esplicito + CTA rossa — mai il colore da solo. I nomi file e i codici (EC02) restano leggibili ma in piccolo, mai come titolo.</div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · Stato vuoto — «Tutto a posto ✓»</div>
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div><div class="bc">Fatture e ricevute che hanno bisogno di te</div></div></div>
+          <div class="body">
+            <div class="totalbadge"><span class="tk">Cose da sistemare</span><span class="tv">0</span></div>
+            <div class="emptystate">
+              <div class="es-icon">✓</div>
+              <div class="es-title">Tutto a posto</div>
+              <div class="es-sub">Non c'è niente da sistemare. Se qualcosa avrà bisogno di te, apparirà qui.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caphint">Desktop 1280px — lista con pannello «Chi può fare cosa» + legenda ancorati (mai modal centrato)</div>
+  <div class="cap desktop" id="cap-A-desktop">
+    <div class="desk">
+      <div class="deskbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div><div class="sub">Fatture e ricevute che hanno bisogno di te</div></div><div class="grow"></div>
+        <span class="totalbadge" style="margin:0;padding:8px 16px;gap:10px"><span class="tk">Da sistemare</span><span class="tv" style="font-size:16px">12</span></span>
+      </div>
+      <div class="deskgrid">
+        <div>
+          <div class="groupcard">
+            <div class="grouphead">
+              <span class="groupicon gi-orfani">✉</span>
+              <div><div class="glbl">Segnate come inviate, ma l'invio non risulta</div><div class="gsub">Manca la conferma d'invio</div></div>
+              <span class="groupcount">2</span><span class="chev open">▾</span>
+            </div>
+            <div class="groupbody">
+              <div class="grouphelp"><span class="qi">?</span><span>UÀ ha provato a inviare queste fatture ma non ha la conferma che siano partite. Controlla la casella PEC del laboratorio: se non sono partite, sblocca e reinvia.</span></div>
+              <div class="grouprow">
+                <div class="gr-main"><div class="gr-title">Fattura 2026-0031</div><div class="gr-sub">Tentativo d'invio di lun 14 luglio · ferma da 2 giorni</div></div>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta danger">Sblocca e reinvia</button>
+              </div>
+              <div class="grouprow">
+                <div class="gr-main"><div class="gr-title">Fattura 2026-0034</div><div class="gr-sub">Tentativo d'invio di ieri · ferma da 1 giorno</div></div>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta danger">Sblocca e reinvia</button>
+              </div>
+            </div>
+          </div>
+          <div class="groupcard">
+            <div class="grouphead">
+              <span class="groupicon gi-stag">⏱</span>
+              <div><div class="glbl">In attesa di risposta da troppo tempo</div><div class="gsub">Inviate da più di 7 giorni, nessuna risposta</div></div>
+              <span class="groupcount">3</span><span class="chev open">▾</span>
+            </div>
+            <div class="groupbody">
+              <div class="grouphelp"><span class="qi">?</span><span>Inviate da più di 7 giorni e SdI (il sistema dell'Agenzia delle Entrate) non ha ancora risposto. Se la ricevuta ti è arrivata via PEC, caricala qui. Se invece hai controllato l'esito sul portale dell'Agenzia delle Entrate, puoi segnarlo tu (solo titolare).</span></div>
+              <div class="grouprow">
+                <div class="gr-main"><div class="gr-title">Fattura 2026-0019</div><div class="gr-sub">Inviata il 3 luglio · 13 giorni fa, nessuna risposta</div></div>
+                <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
+              </div>
+              <div class="grouprow">
+                <div class="gr-main"><div class="gr-title">Fattura 2026-0022</div><div class="gr-sub">Inviata il 5 luglio · 11 giorni fa, nessuna risposta</div></div>
+                <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
+              </div>
+              <div class="grouprow">
+                <div class="gr-main"><div class="gr-title">Fattura 2026-0025</div><div class="gr-sub">Inviata il 7 luglio · 9 giorni fa, nessuna risposta</div></div>
+                <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
+              </div>
+            </div>
+          </div>
+          <div class="groupcard">
+            <div class="grouphead">
+              <span class="groupicon gi-td04">⊘</span>
+              <div><div class="glbl">Note di credito rifiutate dallo Stato</div><div class="gsub">Vedi mobile — Fattura 2026-0027, Odontotecnica Verdi Srl</div></div>
+              <span class="groupcount">1</span><span class="chev">▾</span>
+            </div>
+          </div>
+          <div class="groupcard">
+            <div class="grouphead">
+              <span class="groupicon gi-saldi">€</span>
+              <div><div class="glbl">Conti clienti da sistemare</div><div class="gsub">Vedi mobile — Studio Rossi, Dental Bianchi Srl</div></div>
+              <span class="groupcount">2</span><span class="chev">▾</span>
+            </div>
+          </div>
+          <div class="groupcard">
+            <div class="grouphead">
+              <span class="groupicon gi-park">📥</span>
+              <div><div class="glbl">Ricevute da controllare a mano</div><div class="gsub">Vedi mobile — firma, consegna fallita, senza abbinamento</div></div>
+              <span class="groupcount">4</span><span class="chev">▾</span>
+            </div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="apanel">
+            <div class="atitle">Chi può fare cosa</div>
+            <div class="roler"><span>👤</span><span><b>Tu e il front desk</b> — Carica ricevuta PEC, Conferma ricevuta (quando UÀ ha trovato l'abbinamento).</span></div>
+            <div class="roler"><span>🔒</span><span><b>Solo tu (titolare)</b> — Sblocca e reinvia, Controlla e conferma le ricevute non verificate, Riprova lo storno, Ho verificato sul portale.</span></div>
+          </div>
+          <div class="apanel">
+            <div class="atitle">Legenda colori</div>
+            <div class="roler"><span class="groupicon gi-td04" style="width:22px;height:22px;font-size:11px">⊘</span><span>Note di credito rifiutate — <b>rosso</b>, soldi in ballo</span></div>
+            <div class="roler"><span class="groupicon gi-saldi" style="width:22px;height:22px;font-size:11px">€</span><span>Conti clienti — <b>viola</b>, conto da sistemare</span></div>
+            <div class="roler"><span class="groupicon gi-park" style="width:22px;height:22px;font-size:11px">📥</span><span>Ricevute da controllare — <b>arancio</b>, serve il tuo occhio</span></div>
+            <div class="roler"><span class="groupicon gi-orfani" style="width:22px;height:22px;font-size:11px">✉</span><span>Invio non confermato — <b>blu</b>, controlla la PEC</span></div>
+            <div class="roler"><span class="groupicon gi-stag" style="width:22px;height:22px;font-size:11px">⏱</span><span>In attesa da troppo — <b>ambra</b>, puoi caricare tu la ricevuta</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ FLUSSO CARICA RICEVUTA ============================ -->
+  <a id="flow-upload"></a>
+  <div class="sechead">Flusso — Carica ricevuta PEC → «Ecco cosa ho letto» → conferma (bottom sheet)</div>
+  <p class="secsub">Da una fattura «In attesa di risposta» o con «invio non confermato». La conferma mostra sempre <b>cosa dice la ricevuta</b> in parole semplici (che ricevuta è, per quale fattura, come cambierà lo stato) — mai un OK generico. Il codice tecnico resta come ultima riga di dettaglio. Possono farlo tu e il front desk. UÀ parla in prima persona solo per le sue automazioni («Ecco cosa ho letto»), come da regola v3 §2.1.</p>
+
+  <div class="cap mobile" id="cap-flow-upload">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">1 · Punto di partenza — fattura in attesa da 11 giorni</div>
+        <div class="phone" style="height:310px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="body">
+            <div class="groupcard" style="margin-bottom:0">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div></div>
+                <span class="groupcount">3</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouprow">
+                  <div class="gr-main"><div class="gr-title">Fattura 2026-0022</div><div class="gr-sub">Inviata il 5 luglio · 11 giorni fa, nessuna risposta</div></div>
+                  <button class="gr-cta">Carica ricevuta PEC</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Sheet — scegli il file</div>
+        <div class="phone" style="height:640px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Carica ricevuta PEC</div>
+            <div class="sh-sub">Fattura 2026-0022 · nessuna risposta dallo Stato finora</div>
+            <div class="flabel">File della ricevuta <span class="req">*</span></div>
+            <div class="uz-file"><span class="fi">📄</span><span class="fn">ricevuta_IT02345678901_00412.xml</span><span class="fx">✕</span></div>
+            <div class="flabel">Dove la trovo?</div>
+            <p style="font-size:12px;color:var(--t2);line-height:1.5;margin:0 0 16px">Nella casella PEC del laboratorio: è l'allegato XML del messaggio arrivato dopo l'invio. Caricalo qui e UÀ lo legge per te.</p>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2">Leggi la ricevuta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · Sheet — «Ecco cosa ho letto» + conferma</div>
+        <div class="phone" style="height:660px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Ecco cosa ho letto</div>
+            <div class="sh-sub">Controlla che torni tutto, poi conferma</div>
+            <div class="card" style="background:var(--sfc);margin:0 0 14px">
+              <div class="slabel">Cosa dice la ricevuta</div>
+              <div class="r"><span class="k">Che ricevuta è</span><span class="v">Consegna avvenuta ✓</span></div>
+              <div class="r"><span class="k">Per quale fattura</span><span class="v">2026-0022 · Studio Dott. Rossi</span></div>
+              <div class="r"><span class="k">La fattura passerà a</span><span class="v" style="color:var(--green-ink)">Consegnata ✓</span></div>
+              <div class="r"><span class="k">Codice SdI</span><span class="v mono" style="font-size:11px;color:var(--t3)">IT02345678901_00412</span></div>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2">Conferma ricevuta</button>
+            </div>
+            <div style="text-align:center;margin-top:10px"><span class="rolebadge">👤 Tu e il front desk</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">4 · Esito — sistemata, contatore aggiornato</div>
+        <div class="phone" style="height:440px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div><div class="bc">Fatture e ricevute che hanno bisogno di te</div></div></div>
+          <div class="body">
+            <div class="toast">
+              <span class="ti">✓</span>
+              <span><span class="tt">Sistemata ✓</span><span class="ts">La fattura 2026-0022 ora risulta consegnata</span></span>
+            </div>
+            <div class="totalbadge"><span class="tk">Cose da sistemare</span><span class="tv">11</span></div>
+            <div class="groupcard" style="margin-bottom:0">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div></div>
+                <span class="groupcount">2</span><span class="chev">▾</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ FLUSSO HO VERIFICATO SUL PORTALE ============================ -->
+  <a id="flow-portale"></a>
+  <div class="sechead">Flusso — «Ho verificato sul portale» (override, solo titolare)</div>
+  <p class="secsub">Da una fattura «In attesa di risposta da troppo tempo». Serve quando hai controllato l'esito <b>sul portale dell'Agenzia delle Entrate</b> (Fatture e Corrispettivi) ma la ricevuta non è mai arrivata via PEC: segni tu cosa hai visto e UÀ aggiorna la fattura. Scelte in parole semplici, termine tecnico piccolo sotto; motivo obbligatorio; l'avviso dice chiaramente che <b>l'azione viene registrata</b> (chi, quando, perché). Solo il titolare può farlo — non è una scorciatoia: se la ricevuta c'è, va caricata con «Carica ricevuta PEC».</p>
+
+  <div class="cap mobile" id="cap-flow-portale">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">1 · Punto di partenza — riga con doppia azione (badge Solo tu)</div>
+        <div class="phone" style="height:360px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="body">
+            <div class="groupcard" style="margin-bottom:0">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div></div>
+                <span class="groupcount">3</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouprow" style="flex-wrap:wrap">
+                  <div class="gr-main" style="flex-basis:100%"><div class="gr-title">Fattura 2026-0022</div><div class="gr-sub">Inviata il 5 luglio · 11 giorni fa, nessuna risposta</div></div>
+                  <button class="gr-cta">Carica ricevuta PEC</button>
+                  <span class="rolebadge solo">🔒 Solo tu</span>
+                  <button class="gr-cta">Ho verificato sul portale</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Sheet — nessuna scelta, motivo vuoto: conferma spenta</div>
+        <div class="phone" style="height:860px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Ho verificato sul portale</div>
+            <div class="sh-sub">Fattura 2026-0022 · inviata 11 giorni fa, nessuna risposta</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Usalo solo se hai controllato l'esito sul portale dell'Agenzia delle Entrate e la ricevuta non è arrivata. Questa azione viene registrata (chi, quando, perché).</span>
+            </div>
+            <div class="flabel">Cosa dice il portale? <span class="req">*</span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Consegnata</span><span class="ot">PEC consegnata</span></span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Accettata</span><span class="ot">accettata da SdI</span></span></div>
+            <div class="optrow" style="margin-bottom:14px"><span class="odot"></span><span><span class="ol">Rifiutata</span><span class="ot">rifiutata da SdI</span></span></div>
+            <div class="flabel">Perché lo stai segnando a mano? <span class="req">*</span></div>
+            <div style="background:var(--sfc);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 14px;font-size:12px;color:var(--t3)">Es. esito visto su Fatture e Corrispettivi il 16/07…</div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2 dis">Aggiorna la fattura</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · Sheet — esito scelto + motivo: conferma accesa</div>
+        <div class="phone" style="height:860px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Ho verificato sul portale</div>
+            <div class="sh-sub">Fattura 2026-0022 · inviata 11 giorni fa, nessuna risposta</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Usalo solo se hai controllato l'esito sul portale dell'Agenzia delle Entrate e la ricevuta non è arrivata. Questa azione viene registrata (chi, quando, perché).</span>
+            </div>
+            <div class="flabel">Cosa dice il portale? <span class="req">*</span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Consegnata</span><span class="ot">PEC consegnata</span></span></div>
+            <div class="optrow sel"><span class="odot"></span><span><span class="ol">Accettata</span><span class="ot">accettata da SdI</span></span></div>
+            <div class="optrow" style="margin-bottom:14px"><span class="odot"></span><span><span class="ol">Rifiutata</span><span class="ot">rifiutata da SdI</span></span></div>
+            <div class="flabel">Perché lo stai segnando a mano? <span class="req">*</span></div>
+            <div style="background:var(--sfc);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 14px;font-size:12px;color:var(--t1)">Esito «accettata» visto su Fatture e Corrispettivi il 16/07, ricevuta PEC mai arrivata.</div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2">Aggiorna la fattura</button>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl" style="margin-top:4px;color:var(--t3);max-width:390px">«Aggiorna la fattura» si accende SOLO con esito scelto + motivo compilato. Il payload porta lo stato mostrato a schermo (anti-stale): se nel frattempo è arrivata una ricevuta, il server rifiuta e chiede di ricaricare.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ FLUSSO RIPROVA STORNO ============================ -->
+  <a id="flow-override"></a>
+  <div class="sechead">Flusso — «Riprova lo storno» con doppia conferma (solo titolare)</div>
+  <p class="secsub">Rimette in gioco uno storno la cui nota di credito è stata rifiutata dallo Stato. Il bottom sheet spiega <b>in parole semplici cosa succede</b> (il credito torna indietro, potrai rifare lo storno — con l'importo esplicito) prima di abilitare la conferma, e chiede una spunta esplicita — non basta scorrere. Stesso pattern della causale obbligatoria già approvata (2026-07-15-nota-credito-td04.html).</p>
+
+  <div class="cap mobile" id="cap-flow-override">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">1 · Punto di partenza — nota di credito rifiutata</div>
+        <div class="phone" style="height:330px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="body">
+            <div class="groupcard" style="margin-bottom:0">
+              <div class="grouphead">
+                <span class="groupicon gi-td04">⊘</span>
+                <div><div class="glbl">Note di credito rifiutate dallo Stato</div></div>
+                <span class="groupcount">1</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouprow">
+                  <div class="gr-main">
+                    <div class="gr-title">Fattura 2026-0027 · Odontotecnica Verdi Srl</div>
+                    <div class="gr-sub">La nota di credito è stata rifiutata: lo storno non è valido</div>
+                    <div class="gr-detail">Nota di credito 2026-0006 (TD04) · codice di scarto 00305</div>
+                  </div>
+                  <button class="gr-cta danger">Riprova lo storno</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Sheet — cosa succede + spunta vuota (conferma spenta)</div>
+        <div class="phone" style="height:780px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Riprova lo storno</div>
+            <div class="sh-sub">Fattura 2026-0027 · Odontotecnica Verdi Srl</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Lo Stato ha rifiutato la nota di credito 2026-0006: lo storno non è mai stato valido e va rifatto da capo.</span>
+            </div>
+            <div class="flabel">Cosa succede se confermi</div>
+            <div class="effs">
+              <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Il credito di €85,00 torna indietro</span><span class="es">Il credito dato a <b>Odontotecnica Verdi Srl</b> per lo storno viene tolto dal suo conto.</span></span></div>
+              <div class="eff e-cred"><span class="ei">↻</span><span><span class="et">Potrai rifare lo storno</span><span class="es">La fattura <b>2026-0027</b> torna stornabile: UÀ preparerà una nuova nota di credito.</span></span></div>
+            </div>
+            <div class="checkrow">
+              <span class="cbox"></span>
+              <span>Ho letto cosa succede e voglio procedere.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2 dis">Sì, procedi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · Sheet — spunta messa, conferma accesa</div>
+        <div class="phone" style="height:780px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Riprova lo storno</div>
+            <div class="sh-sub">Fattura 2026-0027 · Odontotecnica Verdi Srl</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Lo Stato ha rifiutato la nota di credito 2026-0006: lo storno non è mai stato valido e va rifatto da capo.</span>
+            </div>
+            <div class="flabel">Cosa succede se confermi</div>
+            <div class="effs">
+              <div class="eff e-storn"><span class="ei">↩</span><span><span class="et">Il credito di €85,00 torna indietro</span><span class="es">Il credito dato a <b>Odontotecnica Verdi Srl</b> per lo storno viene tolto dal suo conto.</span></span></div>
+              <div class="eff e-cred"><span class="ei">↻</span><span><span class="et">Potrai rifare lo storno</span><span class="es">La fattura <b>2026-0027</b> torna stornabile: UÀ preparerà una nuova nota di credito.</span></span></div>
+            </div>
+            <div class="checkrow checked">
+              <span class="cbox"></span>
+              <span>Ho letto cosa succede e voglio procedere.</span>
+            </div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2">Sì, procedi</button>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl" style="margin-top:4px;color:var(--t3);max-width:390px">«Sì, procedi» si accende SOLO con la spunta messa — coerente con la causale obbligatoria del pattern nota di credito già approvato.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ RUOLI ============================ -->
+  <a id="ruoli"></a>
+  <div class="sechead">Chi può fare cosa</div>
+  <p class="secsub">Applicato in pagina tramite <code>.rolebadge</code>: badge neutro «Tu e il front desk» per azioni condivise, badge rosso «🔒 Solo tu» per azioni riservate al titolare. Mai un'azione riservata senza badge visibile sulla riga.</p>
+  <div class="cap mobile" id="cap-ruoli" style="width:auto">
+    <div class="card" style="max-width:640px">
+      <div class="slabel">Tu e il front desk</div>
+      <div class="r"><span class="k">Carica ricevuta PEC</span><span class="v">Invii non confermati, in attesa da troppo</span></div>
+      <div class="r"><span class="k">Conferma ricevuta</span><span class="v">Quando UÀ ha trovato l'abbinamento</span></div>
+    </div>
+    <div class="card" style="max-width:640px;margin-bottom:0">
+      <div class="slabel">Solo tu (titolare) 🔒</div>
+      <div class="r"><span class="k">Sblocca e reinvia</span><span class="v">Fatture con invio non confermato</span></div>
+      <div class="r"><span class="k">Controlla e conferma</span><span class="v">Ricevute con firma non verificabile</span></div>
+      <div class="r"><span class="k">Riprova lo storno</span><span class="v">Doppia conferma obbligatoria</span></div>
+      <div class="r"><span class="k">Ho verificato sul portale</span><span class="v">In attesa da troppo · esito + motivo, azione registrata</span></div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // Tema deterministico per lo screenshot: scripts/screenshot-mockups.mjs imposta
+  // data-theme via page.evaluate ad ogni passata. In anteprima manuale (browser),
+  // ?theme=dark|light forza il tema, altrimenti segue l'OS.
+  (function(){
+    var p = new URLSearchParams(location.search).get('theme');
+    if(p==='dark'||p==='light'){ document.documentElement.setAttribute('data-theme', p); }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+      document.documentElement.setAttribute('data-theme','dark');
+    } else {
+      document.documentElement.setAttribute('data-theme','light');
+    }
+  })();
+</script>
+</body>
+</html>

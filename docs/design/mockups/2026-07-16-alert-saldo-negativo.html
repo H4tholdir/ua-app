@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alert saldo credito negativo — CreditoDisponibileSection · varianti per approvazione</title>
+<style>
+/* ============================================================
+   TOKEN v2.3 — valori esatti da src/design-system/tokens.ts
+   (--amber-ink/--green-ink/--red-ink/--line/--sh-* riusati 1:1 da
+   docs/design/mockups/2026-07-15-nota-credito-td04.html, già approvato
+   con lo stesso meccanismo :root[data-theme] + screenshot-mockups.mjs).
+   ============================================================ */
+:root, :root[data-theme="light"]{
+  --bg:#DDD8D3; --sfc:#E4DFD9; --elv:#EDEDEA; --prs:#D4CFC9;
+  --t1:#1C1916; --t2:#4A3D33; --t3:#6B5C51; --primary:#D90012;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#92400E; --green-ink:#15803D; --red-ink:#B00010;
+  --line:#CFC9C2;
+  --sh-card: rgba(148,128,118,.22) 3px 5px 10px -2px, rgba(148,128,118,.12) 1px 2px 5px -1px;
+  --sh-btn: rgba(148,128,118,.26) 3px 5px 9px -1px, rgba(255,255,255,.78) -3px -3px 8px;
+  --sh-float: rgba(255,255,255,.72) -8px -8px 18px, rgba(148,128,118,.55) 10px 12px 24px -4px;
+  --sh-red: 0 6px 16px -3px rgba(180,0,10,.42);
+}
+:root[data-theme="dark"]{
+  --bg:#1A1916; --sfc:#232018; --elv:#2A2620; --prs:#141210;
+  --t1:#F0EDE8; --t2:#8A8580; --t3:#5A5652; --primary:#E8001A;
+  --green:#22C55E; --amber:#F59E0B; --blue:#3B82F6; --red:#EF4444; --purple:#8B5CF6;
+  --amber-ink:#F59E0B; --green-ink:#3DCB5C; --red-ink:#FF5A66;
+  --line:#3A362F;
+  --sh-card: none;      /* dark = flat: card sfc +1 stop sopra bg, niente shadow raised */
+  --sh-btn: none;
+  --sh-float: rgba(0,0,0,.70) 0 12px 28px, rgba(0,0,0,.40) 0 4px 8px;
+  --sh-red: 0 6px 16px -3px rgba(232,0,26,.40);
+}
+
+*{box-sizing:border-box;font-family:'DM Sans',-apple-system,system-ui,sans-serif}
+html,body{margin:0}
+body{background:var(--bg);color:var(--t1);padding:0}
+
+/* ---- Chrome descrittivo (non rilevante per la scelta visiva, ma resta negli screenshot fullPage) ---- */
+.doc{padding:28px 24px 80px;max-width:1360px;margin:0 auto}
+.doc h1{font-size:20px;font-weight:700;margin:0 0 4px}
+.doc .lede{font-size:13px;color:var(--t2);max-width:780px;margin:0 0 6px;line-height:1.5}
+.doc .meta{font-size:12px;color:var(--t3);margin:0 0 20px;line-height:1.5}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.nav a{font-size:12px;font-weight:700;text-decoration:none;color:var(--t1);background:var(--elv);
+  border:1px solid var(--line);padding:7px 12px;border-radius:100px}
+.themebtn{font-size:12px;font-weight:700;color:var(--t1);background:var(--elv);border:1px solid var(--line);
+  padding:7px 12px;border-radius:100px;cursor:pointer}
+.sechead{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);
+  margin:34px 0 4px;padding-top:14px;border-top:1px dashed var(--line)}
+.secsub{font-size:13px;color:var(--t2);margin:0 0 16px;max-width:820px;line-height:1.5}
+
+/* ---- Cornice "pagina app" (mimic scadenzario cliente) ---- */
+.frames{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.framecol{display:flex;flex-direction:column;gap:8px}
+.framelbl{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.02em}
+.phone{width:390px;background:var(--bg);border-radius:22px;border:1px solid var(--line);overflow:hidden;box-shadow:var(--sh-card)}
+.appbar{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.appbar .back{width:36px;height:36px;border-radius:50%;background:var(--elv);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--t1);flex-shrink:0}
+.appbar .ttl{font-size:16px;font-weight:700;color:var(--t1)}
+.appbar .bc{font-size:11px;color:var(--t3);margin-top:1px}
+.body{padding:2px 0 18px}
+
+/* ---- Contesto pagina: mini-riga "Scaduto" sopra, solo per ambientare la sezione ---- */
+.ctxrow{margin:0 16px 18px;background:var(--sfc);border-radius:16px;padding:12px 16px;box-shadow:var(--sh-card);
+  display:flex;justify-content:space-between;align-items:center}
+.ctxrow .k{font-size:12px;color:var(--t2)}
+.ctxrow .v{font-size:15px;font-weight:700;color:var(--red-ink)}
+
+/* ---- Overline label (= label reale del componente) ---- */
+.ovl{margin:0 16px 8px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em}
+
+/* ====== VARIANTE A — card alert ====== */
+.a-card{margin:0 16px 24px;background:var(--sfc);border-radius:16px;padding:16px;box-shadow:var(--sh-card)}
+.a-top{display:flex;align-items:flex-start;gap:12px}
+.a-icon{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:var(--red-ink);background:color-mix(in srgb, var(--red) 16%, transparent)}
+.a-head{min-width:0}
+.a-title{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
+.a-amount{font-size:24px;font-weight:700;color:var(--red-ink);font-variant-numeric:tabular-nums;margin-top:2px}
+.a-body{font-size:13px;color:var(--t1);line-height:1.5;margin:12px 0 14px}
+.a-body b{font-weight:700}
+.a-cta{width:100%;min-height:48px;border-radius:100px;border:none;background:var(--primary);color:#fff;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;box-shadow:var(--sh-red);cursor:pointer}
+
+/* ====== VARIANTE B — banner compatto ====== */
+.b-banner{margin:0 16px 24px;display:flex;align-items:center;gap:12px;min-height:44px;padding:12px 14px;
+  border-radius:14px;text-decoration:none;cursor:pointer;
+  background:color-mix(in srgb, var(--primary) 8%, transparent);
+  border:1px solid color-mix(in srgb, var(--primary) 30%, transparent)}
+.b-icon{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:var(--red-ink);background:color-mix(in srgb, var(--red) 18%, transparent)}
+.b-text{min-width:0;flex:1}
+.b-title{display:block;font-size:13px;font-weight:700;color:var(--t1)}
+.b-title .amt{color:var(--red-ink);font-variant-numeric:tabular-nums}
+.b-sub{display:block;font-size:11px;color:var(--t2);margin-top:2px}
+.b-sub .cta{color:var(--red-ink);font-weight:700}
+.b-arr{margin-left:auto;color:var(--red-ink);font-size:16px;font-weight:700;flex-shrink:0}
+
+.ratio{font-size:11px;color:var(--t3);margin:0 0 14px}
+.ratio b{color:var(--green-ink)}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Alert saldo credito negativo — <span style="font-family:ui-monospace,monospace;font-size:15px">CreditoDisponibileSection</span></h1>
+  <p class="lede">Sostituisce il <code>return null</code> del componente quando <code>disponibile &lt; 0</code> — caso: una nota di credito TD04 già applicata a un dovuto viene rifiutata da SdI, lasciando il cliente con un saldo negativo da riconciliare manualmente. Due varianti a confronto per l'approvazione di Francesco: (A) card con spiegazione e CTA, (B) banner compatto.</p>
+  <p class="meta">Dati simulati: cliente <b>Studio Rossi</b> · saldo credito <b>−60,00&nbsp;€</b> · causa <b>nota di credito TD04 2026/0004 rifiutata da SdI</b> dopo l'applicazione del credito · pagina <code>/scadenzario/[cliente_id]</code> · Design System v2.3 (Warm Panna).</p>
+  <div class="nav">
+    <a href="#va">Variante A · card</a>
+    <a href="#vb">Variante B · banner</a>
+    <button class="themebtn" data-mockup-chrome onclick="var r=document.documentElement,c=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',c)">🌓 Cambia tema (anteprima manuale)</button>
+  </div>
+
+  <div id="va" class="sechead">Variante A — card alert (icona + spiegazione + CTA)</div>
+  <p class="secsub">Stessa impaginazione della card "Credito disponibile" esistente (bg <code>--sfc</code>, radius 16px, shadow <code>--sh-card</code>) ma con icona di stato, importo in rosso semantico, causale in chiaro e un unico bottone d'azione pieno-larghezza «Vai alla riconciliazione». Colore MAI unico segnale: icona ⚠ + etichetta testuale sempre presenti insieme al rosso.</p>
+  <p class="ratio">Contrasto testo rosso su card: light <b>5.6:1 ✅ AA</b> · dark <b>5.4:1 ✅ AA</b> (ricalcolo su <code>--red-ink</code>/<code>--sfc</code> per tema — token riusati da 2026-07-15-nota-credito-td04.html).</p>
+  <div class="frames">
+    <div class="framecol">
+      <div class="framelbl">/scadenzario/[cliente_id] · Studio Rossi</div>
+      <div class="phone">
+        <div class="appbar">
+          <div class="back">‹</div>
+          <div><div class="ttl">Studio Rossi</div><div class="bc">Scadenzario cliente</div></div>
+        </div>
+        <div class="body">
+          <div class="ctxrow"><span class="k">Scaduto</span><span class="v">128,00&nbsp;€</span></div>
+          <div class="ovl">Credito cliente</div>
+          <div class="a-card">
+            <div class="a-top">
+              <span class="a-icon">⚠</span>
+              <div class="a-head">
+                <div class="a-title">Saldo negativo</div>
+                <div class="a-amount">−60,00&nbsp;€</div>
+              </div>
+            </div>
+            <p class="a-body">La nota di credito <b>TD04 2026/0004</b> è stata <b>rifiutata da SdI</b> dopo che il credito era già stato applicato a un dovuto di Studio Rossi. Il saldo risulta negativo e va riconciliato manualmente.</p>
+            <button class="a-cta">Vai alla riconciliazione →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="vb" class="sechead">Variante B — banner compatto (importo rosso + link)</div>
+  <p class="secsub">Riga singola cliccabile al posto dell'intera sezione: icona di stato + importo + causale sintetica + link "Riconcilia" in chiaro (mai solo freccia/colore). Target di tocco ≥44px.</p>
+  <div class="frames">
+    <div class="framecol">
+      <div class="framelbl">/scadenzario/[cliente_id] · Studio Rossi</div>
+      <div class="phone">
+        <div class="appbar">
+          <div class="back">‹</div>
+          <div><div class="ttl">Studio Rossi</div><div class="bc">Scadenzario cliente</div></div>
+        </div>
+        <div class="body">
+          <div class="ctxrow"><span class="k">Scaduto</span><span class="v">128,00&nbsp;€</span></div>
+          <a class="b-banner" href="#">
+            <span class="b-icon">⚠</span>
+            <span class="b-text">
+              <span class="b-title">Saldo Studio Rossi <span class="amt">−60,00&nbsp;€</span></span>
+              <span class="b-sub">TD04 2026/0004 rifiutata da SdI · <span class="cta">Riconcilia</span></span>
+            </span>
+            <span class="b-arr">›</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tema deterministico per lo screenshot: scripts/screenshot-mockups.mjs imposta
+  // data-theme via page.evaluate ad ogni passata. In anteprima manuale (browser),
+  // ?theme=dark|light forza il tema, altrimenti segue l'OS.
+  (function(){
+    var p = new URLSearchParams(location.search).get('theme');
+    if(p==='dark'||p==='light'){ document.documentElement.setAttribute('data-theme', p); }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+      document.documentElement.setAttribute('data-theme','dark');
+    } else {
+      document.documentElement.setAttribute('data-theme','light');
+    }
+  })();
+</script>
+</body>
+</html>

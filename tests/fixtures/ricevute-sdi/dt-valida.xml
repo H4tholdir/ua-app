@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="DT_v1.0.xsl"?>
+<types:NotificaDecorrenzaTermini xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" IntermediarioConDupliceRuolo="Si" versione="1.0" xsi:schemaLocation="http://www.fatturapa.gov.it/sdi/messaggi/v1.0 MessaggiTypes_v1.0.xsd ">
+  <IdentificativoSdI>111</IdentificativoSdI>
+  <NomeFile>IT01234567890_11111.xml</NomeFile>
+  <Descrizione>Notifica di esempio</Descrizione>
+  <MessageId>123456</MessageId>
+  <Note>Fixture derivata da ufficiale-DT-v1.0.xml (Task 7) — NomeFile senza .p7m, ds:Signature omesso. Nota: NotificaDecorrenzaTermini_Type NON include DataOraRicezione (verificato su MessaggiTypes_v1.1.xsd).</Note>
+</types:NotificaDecorrenzaTermini>

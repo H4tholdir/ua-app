@@ -1134,6 +1134,7 @@ export type Database = {
           fattura_collegata_id: string | null
           formato_trasmissione: string
           id: string
+          identificativo_sdi: string | null
           imponibile: number
           imponibile_netto: number | null
           importo_pagato: number
@@ -1200,6 +1201,7 @@ export type Database = {
           fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
+          identificativo_sdi?: string | null
           imponibile?: number
           imponibile_netto?: number | null
           importo_pagato?: number
@@ -1266,6 +1268,7 @@ export type Database = {
           fattura_collegata_id?: string | null
           formato_trasmissione?: string
           id?: string
+          identificativo_sdi?: string | null
           imponibile?: number
           imponibile_netto?: number | null
           importo_pagato?: number
@@ -1540,6 +1543,91 @@ export type Database = {
             columns: ["listino_id"]
             isOneToOne: false
             referencedRelation: "listino"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fatture_sdi_eventi: {
+        Row: {
+          content_sha256: string | null
+          created_at: string
+          esito_committente: string | null
+          esito_verifica_firma: string | null
+          fattura_id: string | null
+          id: string
+          identificativo_sdi: string | null
+          laboratorio_id: string
+          lista_errori: Json | null
+          motivo: string | null
+          nome_file_fattura: string | null
+          nome_file_ricevuta: string | null
+          origine: string
+          registrato_da: string | null
+          ricevuta_storage_path: string | null
+          stato_a: string | null
+          stato_da: string | null
+          tipo_ricevuta: string | null
+        }
+        Insert: {
+          content_sha256?: string | null
+          created_at?: string
+          esito_committente?: string | null
+          esito_verifica_firma?: string | null
+          fattura_id?: string | null
+          id?: string
+          identificativo_sdi?: string | null
+          laboratorio_id: string
+          lista_errori?: Json | null
+          motivo?: string | null
+          nome_file_fattura?: string | null
+          nome_file_ricevuta?: string | null
+          origine: string
+          registrato_da?: string | null
+          ricevuta_storage_path?: string | null
+          stato_a?: string | null
+          stato_da?: string | null
+          tipo_ricevuta?: string | null
+        }
+        Update: {
+          content_sha256?: string | null
+          created_at?: string
+          esito_committente?: string | null
+          esito_verifica_firma?: string | null
+          fattura_id?: string | null
+          id?: string
+          identificativo_sdi?: string | null
+          laboratorio_id?: string
+          lista_errori?: Json | null
+          motivo?: string | null
+          nome_file_fattura?: string | null
+          nome_file_ricevuta?: string | null
+          origine?: string
+          registrato_da?: string | null
+          ricevuta_storage_path?: string | null
+          stato_a?: string | null
+          stato_da?: string | null
+          tipo_ricevuta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fatture_sdi_eventi_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_sdi_eventi_fattura_id_fkey"
+            columns: ["fattura_id"]
+            isOneToOne: false
+            referencedRelation: "fatture_da_inviare"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatture_sdi_eventi_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
             referencedColumns: ["id"]
           },
         ]
@@ -1977,6 +2065,7 @@ export type Database = {
           pec: string | null
           pec_host: string | null
           pec_port: number | null
+          pec_sdi_address: string | null
           pec_smtp_configurata: boolean
           pec_user: string | null
           pec_vault_key_id: string | null
@@ -2041,6 +2130,7 @@ export type Database = {
           pec?: string | null
           pec_host?: string | null
           pec_port?: number | null
+          pec_sdi_address?: string | null
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
@@ -2105,6 +2195,7 @@ export type Database = {
           pec?: string | null
           pec_host?: string | null
           pec_port?: number | null
+          pec_sdi_address?: string | null
           pec_smtp_configurata?: boolean
           pec_user?: string | null
           pec_vault_key_id?: string | null
@@ -5486,6 +5577,10 @@ export type Database = {
         }
         Returns: Json
       }
+      applica_ricevuta_sdi: {
+        Args: { p_evento_id: string; p_laboratorio_id: string }
+        Returns: Json
+      }
       apply_updated_at_trigger: { Args: { tbl: string }; Returns: undefined }
       articoli_sotto_scorta_minima: {
         Args: { p_lab_id: string }
@@ -5583,6 +5678,17 @@ export type Database = {
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
+      override_stato_sdi: {
+        Args: {
+          p_fattura_id: string
+          p_laboratorio_id: string
+          p_motivo: string
+          p_nuovo_stato: string
+          p_registrato_da: string
+          p_stato_atteso: string
+        }
+        Returns: Json
+      }
       portale_pin_tentativo_fallito: {
         Args: { p_cliente_id: string }
         Returns: {
@@ -5590,6 +5696,7 @@ export type Database = {
           tentativi: number
         }[]
       }
+      rank_stato_sdi: { Args: { p_stato: string }; Returns: number }
       refresh_dashboard_cache: {
         Args: { p_lab_id: string }
         Returns: undefined
@@ -5612,6 +5719,15 @@ export type Database = {
           p_fasi: Json
           p_laboratorio_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      sblocca_claim_fattura: {
+        Args: {
+          p_fattura_id: string
+          p_laboratorio_id: string
+          p_motivo: string
+          p_registrato_da: string
         }
         Returns: Json
       }

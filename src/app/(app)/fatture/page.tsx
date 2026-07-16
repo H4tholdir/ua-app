@@ -7,6 +7,7 @@ import type { StatoSDI } from '@/types/domain'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { BatchFatturaSection } from '@/components/features/fatture/BatchFatturaSection'
 import type { LavoroProntoFattura } from '@/components/features/fatture/BatchFatturaSection'
+import { fetchPendenzeRiconciliazione } from '@/lib/fattura/ricevute/queries-riconciliazioni'
 
 // ─── Colori badge per ogni stato SDI ─────────────────────────────────────────
 const coloriStatoSDI: Record<StatoSDI, { bg: string; fg: string }> = {
@@ -88,6 +89,11 @@ export default async function FatturePage() {
   // ── Carica fatture ─────────────────────────────────────────────────────────
   let fatture: FatturaRow[] = []
   let lavoriPronti: LavoroProntoFattura[] = []
+  // Badge «Da sistemare» (Task 16): conteggio SOLO, fail-soft deliberato — a
+  // differenza delle letture fiscali della pagina, un badge che non compare
+  // non deve rompere la lista fatture (a differenza di fetchPendenzeRiconciliazione,
+  // che nella sua pagina dedicata resta fail-closed).
+  let pendenzeCount = 0
 
   if (labId) {
     const [fattureResult, lavoriResult] = await Promise.all([
@@ -125,14 +131,73 @@ export default async function FatturePage() {
 
     fatture = (fattureResult.data ?? []) as unknown as FatturaRow[]
     lavoriPronti = (lavoriResult.data ?? []) as unknown as LavoroProntoFattura[]
+
+    try {
+      const pendenze = await fetchPendenzeRiconciliazione(svc, labId)
+      pendenzeCount =
+        pendenze.claimOrfani.length +
+        pendenze.smtpStagnanti.length +
+        pendenze.stornateConTd04Rifiutato.length +
+        pendenze.saldiNegativi.length +
+        pendenze.eventiParcheggiati.length
+    } catch (err) {
+      console.error('[FATTURE] conteggio pendenze riconciliazioni non disponibile:', err)
+    }
   }
 
   return (
     <PageWrapper>
       <AppHeader title="Fatture" />
 
-      {/* Toolbar: export CSV per commercialista */}
-      <div style={{ padding: '0 20px 8px', display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Toolbar: badge «Da sistemare» (Task 16) + export CSV per commercialista */}
+      <div style={{ padding: '0 20px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {pendenzeCount > 0 ? (
+          <Link
+            href="/fatture/riconciliazioni"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              minHeight: 44,
+              padding: '8px 14px',
+              background: 'color-mix(in srgb, var(--primary, #D90012) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--primary, #D90012) 32%, transparent)',
+              borderRadius: 100,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              // --red-ink (non --primary): il testo sulla tinta 10% è sotto AA
+              // con --primary puro in dark (3.56:1 misurato, gate L2) — --red-ink
+              // è calibrato apposta per testo-su-tinta (stesso pattern del saldo
+              // negativo in CreditoDisponibileSection).
+              color: 'var(--red-ink, #B00010)',
+              fontFamily: 'DM Sans, sans-serif',
+            }}
+          >
+            <span aria-hidden="true">⚠</span>
+            Da sistemare
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 18,
+                height: 18,
+                padding: '0 5px',
+                borderRadius: 100,
+                background: 'var(--primary, #D90012)',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 800,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {pendenzeCount}
+            </span>
+          </Link>
+        ) : (
+          <span />
+        )}
         <a
           href={`/api/fatture/export?year=${new Date().getFullYear()}`}
           style={{
