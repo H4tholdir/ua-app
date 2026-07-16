@@ -16,7 +16,8 @@
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sheet } from '@/components/ds/Sheet'
-import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
+import { MenuVoce } from '@/components/ds/MenuVoce'
+import { spazio } from '@/design-system/v3/tokens'
 
 /** Contesto passato a `azione` di ogni voce — `push` verso il ponte di
  * modifica (Task 9) e `onApriDocumenti` per l'unica voce che resta in pagina. */
@@ -148,85 +149,27 @@ export function MenuSchedaSheet(props: {
     <Sheet aperto={aperto} onChiudi={onChiudi}>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {voci.map((voce, indice) => (
-          <button
+          <div
             key={voce.chiave}
-            type="button"
-            className="ds-tap-v3"
-            disabled={voce.disabilitata}
-            onClick={() => gestisciClick(voce)}
-            style={vociStile(indice === voci.length - 1, voce.disabilitata)}
+            style={{
+              // Separatori POSIZIONALI del contenitore (v. MenuVoce): riga fra
+              // le voci standard; il gruppo «butta» (Annulla) si stacca sopra.
+              borderBottom: indice < voci.length - 1 && !voce.disabilitata ? '1.5px solid var(--line)' : 'none',
+              borderTop: voce.disabilitata ? '1.5px solid var(--line)' : 'none',
+              marginTop: voce.disabilitata ? spazio.xs : 0,
+            }}
           >
-            <span style={iconaStile(voce.disabilitata)} aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width={20}
-                height={20}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.7}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {voce.icona}
-              </svg>
-            </span>
-            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span>{voce.etichetta}</span>
-              {voce.nota && <span style={notaStile}>{voce.nota}</span>}
-            </span>
-            {!voce.disabilitata && <span style={chevStile}>{'›'}</span>}
-          </button>
+            <MenuVoce
+              icona={voce.icona}
+              testo={voce.etichetta}
+              nota={voce.nota}
+              butta={voce.disabilitata}
+              disabled={voce.disabilitata}
+              onTap={() => gestisciClick(voce)}
+            />
+          </div>
         ))}
       </div>
     </Sheet>
   )
-}
-
-function vociStile(ultima: boolean, disabilitata?: boolean) {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spazio.m,
-    width: '100%',
-    minHeight: 56,
-    padding: `${spazio.xs + 4}px 0`,
-    border: 'none',
-    background: 'none',
-    color: disabilitata ? 'var(--red)' : 'var(--ink)',
-    fontFamily: tipografia.famiglia,
-    fontSize: tipografia.size.body,
-    fontWeight: tipografia.weight.bold,
-    textAlign: 'left' as const,
-    cursor: disabilitata ? 'default' : 'pointer',
-    opacity: disabilitata ? 0.6 : 1,
-    borderTop: disabilitata ? '1.5px solid var(--line)' : 'none',
-    borderBottom: !ultima && !disabilitata ? '1.5px solid var(--line)' : 'none',
-    marginTop: disabilitata ? spazio.xs : 0,
-  }
-}
-
-function iconaStile(disabilitata?: boolean) {
-  return {
-    flexShrink: 0,
-    width: 38,
-    height: 38,
-    borderRadius: raggio.riga - 7,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: disabilitata ? 'var(--red-tint)' : 'var(--bg-deep)',
-    color: disabilitata ? 'var(--red)' : 'var(--muted)',
-  }
-}
-
-const chevStile = {
-  color: 'var(--faint)',
-  fontSize: 20,
-  fontWeight: tipografia.weight.extrabold,
-}
-
-const notaStile = {
-  fontSize: 13.5,
-  fontWeight: tipografia.weight.semibold,
-  color: 'var(--red)',
 }
