@@ -2,6 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
+// Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
+// useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
+// App Router lancia "invariant expected app router to be mounted" e fa
+// cadere l'intero albero. Stesso pattern di NavDesk.test.tsx.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
 const initSuoniMock = vi.fn()
 const suonaMock = vi.fn()
 vi.mock('@/design-system/v3/sound', () => ({
@@ -98,8 +104,8 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(trovaParoleVietate(testo)).toEqual([])
   })
 
-  it('il catalogo è completo: 16 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
-    expect(INDICE).toHaveLength(16)
+  it('il catalogo è completo: 21 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
+    expect(INDICE).toHaveLength(21)
     expect(INDICE.map((voce) => voce.titolo)).toEqual([
       'TastoPrimario',
       'Tasti secondari e vie di fuga',
@@ -117,6 +123,11 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
       'PillVoce',
       'ChipScelta',
       'ProgressDots',
+      'FotoStrip',
+      'MenuVoce',
+      'TastoWhatsApp',
+      'RigaBloccante',
+      'NavDesk',
     ])
   })
 

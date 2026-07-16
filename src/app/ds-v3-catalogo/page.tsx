@@ -39,6 +39,11 @@ import { CardUAHaFatto } from '@/components/ds/CardUAHaFatto'
 import { NotaDentista } from '@/components/ds/NotaDentista'
 import { GiornoAgenda, RigaAgenda } from '@/components/ds/RigaAgenda'
 import { PillVoce } from '@/components/ds/PillVoce'
+import { FotoStrip } from '@/components/ds/FotoStrip'
+import { MenuVoce } from '@/components/ds/MenuVoce'
+import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
+import { RigaBloccante } from '@/components/ds/RigaBloccante'
+import { NavDesk } from '@/components/ds/NavDesk'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -71,6 +76,11 @@ export const INDICE = [
   { id: 'pill-voce', titolo: 'PillVoce' },
   { id: 'chip-scelta', titolo: 'ChipScelta' },
   { id: 'progress-dots', titolo: 'ProgressDots' },
+  { id: 'foto-strip', titolo: 'FotoStrip' },
+  { id: 'menu-voce', titolo: 'MenuVoce' },
+  { id: 'tasto-whatsapp', titolo: 'TastoWhatsApp' },
+  { id: 'riga-bloccante', titolo: 'RigaBloccante' },
+  { id: 'nav-desk', titolo: 'NavDesk' },
 ] as const
 
 // Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
@@ -1128,6 +1138,51 @@ export default function CatalogoPage() {
             scelta, §7.3), quelli dopo restano neutri. Un solo elemento con role
             «img» racconta il passo a uno screen reader — i tre dot sono decorativi.
           </p>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="foto-strip" titolo="FotoStrip" spec="§5.33">
+        <FotoStrip foto={[
+          { id: 'f1', url: 'https://wa.me/placeholder-non-usato', alt: 'Impronta arcata superiore' },
+        ]} />
+        {/* NB: nel catalogo le thumb non caricano (nessuna signed URL) — la
+            geometria 72×72 resta verificabile. */}
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="menu-voce" titolo="MenuVoce" spec="§5.34">
+        <div style={{ maxWidth: 420 }}>
+          <div style={{ borderBottom: '1.5px solid var(--line)' }}>
+            <MenuVoce icona={<path d="M12 2v20" />} testo="Prezzi e lavorazioni" onTap={() => {}} />
+          </div>
+          <MenuVoce icona={<rect x="3" y="4" width="18" height="16" rx="2.5" />} testo="Foto" onTap={() => {}} />
+          <div style={{ borderTop: '1.5px solid var(--line)', marginTop: 8 }}>
+            <MenuVoce icona={<path d="M4 7h16" />} testo="Annulla lavoro" nota="Prossimamente" butta disabled />
+          </div>
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="tasto-whatsapp" titolo="TastoWhatsApp" spec="§5.29">
+        <TastoWhatsApp waUrl="https://wa.me/393331234567?text=Lavoro%20n.147%20pronto">Invia messaggio WhatsApp</TastoWhatsApp>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="riga-bloccante" titolo="RigaBloccante" spec="§5.30">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420 }}>
+          <RigaBloccante cosa="Manca la prescrizione del dentista" cosaFare="Aggiungila nei dati clinici" onTap={() => {}} />
+          <RigaBloccante cosa="Manca il lotto della zirconia" cosaFare="Registra il lotto in Prove" onTap={() => {}} />
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="nav-desk" titolo="NavDesk" spec="§5.35">
+        {/* segnale: shape reale di SegnaleStriscia (src/lib/dashboard/striscia.ts) —
+            `forte` è `string | null` (non booleano) e `azione` è
+            `{ etichetta, href } | null`. La demo del brief usava `forte: false`,
+            incompatibile col tipo: qui riprendiamo lo stato "tutto a posto" (s9). */}
+        <div style={{ width: 240, height: 480, display: 'flex' }}>
+          <NavDesk
+            conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }}
+            pilaSelezionata="rossa"
+            segnale={{ attenzione: false, forte: 'Tutto a posto:', testo: '3 consegne oggi, la prossima alle 15:30', azione: null }}
+          />
         </div>
       </SezioneCatalogo>
 

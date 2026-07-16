@@ -2,6 +2,12 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
+// Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
+// useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
+// App Router lancia "invariant expected app router to be mounted" e fa
+// cadere l'intero albero. Stesso pattern di NavDesk.test.tsx.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
 // Mock di matchMedia per attivare useReducedMotion — stesso precedente di
 // sheet-dialog.test.tsx (fix di review T10). Restituisce la funzione di ripristino.
 function attivaReducedMotion(): () => void {

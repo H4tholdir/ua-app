@@ -2,6 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
+// Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
+// useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
+// App Router lancia "invariant expected app router to be mounted" e fa
+// cadere l'intero albero. Stesso pattern di NavDesk.test.tsx.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
 const vibraMock = vi.fn()
 const suonaMock = vi.fn()
 vi.mock('@/design-system/v3/haptic', () => ({
