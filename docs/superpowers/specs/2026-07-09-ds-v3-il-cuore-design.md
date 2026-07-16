@@ -191,6 +191,8 @@ TastoConsegnaInline (pila rossa) ─┴→ precheck GET /precheck-materiali
 - L'annullo ripulisce tutto ciò che l'orchestrazione ha prodotto (stato, DdC, tracciabilità già gestita) — con la fattura differita non resta nulla di fiscale da ripulire (chiude il gap B3).
 - **Precondizione:** verifica sul DB reale della CHECK su `dichiarazioni_conformita.stato` (il codice scrive `'annullata'`, lo schema-snapshot ammette solo bozza/generata/firmata/consegnata — anomalia B2). Se la CHECK è stretta → migration correttiva PRIMA di toccare l'annullo (FASE 6b obbligatoria).
 
+> **Nota 16/07/2026:** la 4a-server qui descritta (outbox+cron, emissione differita) NON fu eseguita — sostituita dal modello «fatturazione concordata» (migration 20260710150000_ondata0_pulizia_outbox.sql): la consegna non tocca il fiscale, nessuna fattura nasce alla consegna. La finestra annullo 10 min (C4) e il gate STATI_CONSEGNABILI (E4) sono in produzione. La numerazione DdC resta a t=0 con annullo tracciato (D-1, parere normativo 16/07 — v. decision record 2026-07-16).
+
 ---
 
 ## 10. Modifiche server autorizzate (uniche — tutto il resto è UI)

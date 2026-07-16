@@ -61,7 +61,7 @@ Terzo bloccante «Manca la prescrizione del dentista» (primo — Art. 2(3)+All.
 - **Emendamento §5.x** per gli ~8 pattern nuovi dei mockup (morph header, wa-btn, bloccante, chip, dots, foto-strip, menu-voce, nav-desk) + token WhatsApp e viola in `tokens.ts`, PRIMA di implementarli.
 - **CardLavoro canonico**: margini 12/3 (variante pila-aperta/scheda; il fork con home 10/2 si chiude nel componente unico).
 - **A11y React**: aria-live su StrisciaStato e Consegnato!, countdown NON-live, focus-trap sugli overlay, nomi accessibili dei tasti icona.
-- **Normativo**: numero DdC assegnato al commit dei 10 minuti (mai a t=0); fase «FATTA» firmata dall'utente autenticato; la logica «non fatturare» confinata ad annullo/reso (mai su consegna trattenuta).
+- **Normativo**: numero DdC assegnato al commit dei 10 minuti (mai a t=0); fase «FATTA» firmata dall'utente autenticato; la logica «non fatturare» confinata ad annullo/reso (mai su consegna trattenuta). → **SUPERATA il 16/07/2026 (D-1):** Art. 52(8) impone la DdC redatta PRIMA dell'immissione sul mercato (il dispositivo viaggia accompagnato dalla dichiarazione completa); All. XIII non impone numerazione; ISO 13485 §4.2.4 → annullo tracciato = prassi corretta. Panel normativo+architetturale, ratifica Francesco. V. docs/design/decisions/2026-07-16-ondata-fondamenta-4b-consegna.md.
 - Cosmetici rimandati: «alle 16» (home) vs «16:00» (scheda); wrap «Le fasi» a 1280 (`minWidth: min-content`, carry-over sp.2).
 
 ## Prossimo passo

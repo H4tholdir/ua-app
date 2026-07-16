@@ -646,3 +646,13 @@ Framework completo in `docs/design/audit-ui-ux/`. Gli item estetici O6 (allineam
 - **O7-L1 — Micro-pass estetico scheda v3 (PRONTO):** `docs/design/audit-ui-ux/LIVELLO-1-scheda-v3.md`. Da eseguire in sessione nuova (worktree `polish-scheda-v3`). Copre i 7 difetti già individuati in QA + la checklist completa su 3 viewport × 2 temi. Deliverable: fix approvati + screenshot 3×2 + deploy di rifinitura.
 - **O7-L2 — Gate UI/UX di fine ondata (RICORRENTE):** aggiungere come ultimo step nei piani di ogni futura ondata (dopo QA funzionale, prima del merge), auditando la sola superficie dell'ondata contro `CHECKLIST-DS-V3-UI-UX.md`.
 - **O7-L3 — Audit capillare finale (a v3 completo):** `docs/design/audit-ui-ux/LIVELLO-3-audit-capillare-finale.md`. Audit atomico dell'intera PWA (ogni pagina/elemento/sotto-menu/funzione/suono/animazione) multi-agent, gate PRIMA dell'audit generale. Trigger: migrazione DS v3 completa (oggi mancano 3b, 4b, superfici gestionali/admin).
+
+---
+
+## O8. Follow-up dal design Ondata «Fondamenta residue + 4b Consegna» (16/07/2026, spec `2026-07-16-ds-v3-fondamenta-residue-4b-consegna-design.md`)
+
+Non bloccanti per l'esecuzione dell'ondata. Tracciati durante il brainstorming di design 16/07.
+
+- **O8a — drift `consegna_finalizza_atomica`:** la RPC `consegna_finalizza_atomica` è stata creata dalla migration `20260710150000_ondata0_pulizia_outbox.sql` ma non è mai chiamata da `orchestrate.ts` — l'orchestrazione consegna resta sull'update inline dello Step 5. Allineare (far chiamare la RPC da `orchestraConsegna()`) o droppare la funzione: da decidere in una futura ondata server dedicata (dominio fiscale/consegna, percorso Grande).
+- **O8b — check-ds solo in pre-commit, non in CI:** `scripts/check-ds-compliance.sh` oggi gira esclusivamente da `.husky/pre-commit` — un commit con `--no-verify` (o un merge/push che salta l'hook locale) può introdurre violazioni non rilevate. Aggiungere lo stesso script come step CI (GitHub Actions o equivalente) prima del merge su `main`.
+- **O8c — `csrf.ts:9` ritorna `true` con Origin assente:** il check CSRF corrente considera valida una richiesta priva dell'header `Origin`, comportamento pensato per i browser (sempre presente su richieste same-site cross-origin rilevanti) ma potenzialmente permissivo per futuri client non-browser (script, integrazioni server-to-server) che non impostano `Origin`. Nota per quando UÀ esporrà API a client non-browser: valutare un gate esplicito invece del fallback permissivo.

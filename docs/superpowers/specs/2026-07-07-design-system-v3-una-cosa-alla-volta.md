@@ -264,6 +264,8 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.34 `MenuVoce` (rev. 3.1) — voce del menu ⋯ della scheda: min-height 56 · icona Ø38 radius 11 tint neutra (`--bg-deep`+`--muted`) · testo 17/700 `--ink` · separatore 1.5 `--line` fra le voci · chevron `--faint` · variante `.butta` (distruttiva): colore `--red`, icona `--red-tint`/`--red`, separata in alto da `--line` con margine extra. Fonte di verità visiva: `scheda-lavoro.html` classe `.menu-voce` (React in Ondata 3).
 ### 5.35 `NavDesk` (rev. 3.1) — nav desktop 240px `--bg-deep`: logo `UÀ.` 26/800 (punto rosso) · «+ Nuovo lavoro» TastoPrimario H 52 · voci H 48 radius 12 (16/600 muted; selezionata: bg `--bg` ink 700) · badge 24px pill (tint famiglia per le pile — rossa/ambra/viola/blu, neutro `--bg-deep`+inset line per le sezioni) · footer StrisciaStato. Fonte di verità visiva: `home.html` classe `.nav-desk`.
 
+> **Emendamento 16/07/2026 (D-4):** il tasto «+ Nuovo lavoro» è una variante fisica locale H52/testo 16 (stessa faccia/corsa/suono del TastoPrimario, taglia propria) — NON riusa TastoPrimario (H fissa 70/60; a 1280 coesisterebbe col CONSEGNA di SchedaAnteprima violando «UNO per schermata» §5.1). Decisione visiva su mockup docs/design/mockups/2026-07-16-navdesk-tasto-varianti.html, variante A.
+
 Ogni sezione §5.28-5.35 cita il mockup sorgente come fonte di verità visiva, coerentemente con §5.2 e §5.15.
 
 ---
