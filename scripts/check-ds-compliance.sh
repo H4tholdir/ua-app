@@ -100,9 +100,10 @@ fi
 # ── 5. CSS globali (globals.css + ds-v3.css) — ondata 16/07 ────────────────
 CSS_GLOBALI="src/app/globals.css src/app/ds-v3.css"
 
-# 5a. Gold come testo nei CSS (la DEFINIZIONE --gold:… in globals è legittima)
-CSS_GOLD=$(grep -nE "color:\s*var\(--gold\)|color:\s*#[Dd]4[Aa]843" $CSS_GLOBALI 2>/dev/null \
-  | grep -v "border-color\|background-color\|outline-color\|accent-color\|caret-color" || true)
+# 5a. Gold come testo nei CSS (la DEFINIZIONE --gold:… in globals è legittima).
+# `(^|[^-])color:` = match chirurgico: esclude border-color/background-color/…
+# senza scartare la riga intera (una riga può avere più dichiarazioni).
+CSS_GOLD=$(grep -nE "(^|[^-])color:\s*var\(--gold\)|(^|[^-])color:\s*#[Dd]4[Aa]843" $CSS_GLOBALI 2>/dev/null || true)
 if [ -n "$CSS_GOLD" ]; then
   echo ""
   echo "❌ CSS globali: gold usato come testo (WCAG fail 1.6:1)"
