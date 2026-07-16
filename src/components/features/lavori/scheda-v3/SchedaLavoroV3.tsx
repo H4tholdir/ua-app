@@ -51,6 +51,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { NotaDentista } from '@/components/ds/NotaDentista'
+import { FotoStrip } from '@/components/ds/FotoStrip'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
@@ -272,20 +273,8 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
             <NotaLaboratorioVuota onApri={() => setCampoAttivo('note')} />
           )}
 
-          {/* Strip foto read-only (§7.4) */}
-          {lavoro.immagini.length > 0 && (
-            <div style={{ display: 'flex', gap: spazio.s, overflowX: 'auto', paddingBottom: 2 }} aria-label="Foto del lavoro">
-              {lavoro.immagini.map((img) => (
-                // eslint-disable-next-line @next/next/no-img-element -- URL Storage firmata a dimensioni variabili (stessa scelta di TabImmagini.tsx), next/image non applicabile
-                <img
-                  key={img.id}
-                  src={img.url}
-                  alt={img.descrizione ?? 'Foto del lavoro'}
-                  style={{ flexShrink: 0, width: 72, height: 72, borderRadius: 12, objectFit: 'cover', background: 'var(--bg-deep)' }}
-                />
-              ))}
-            </div>
-          )}
+          {/* Strip foto read-only (§5.33 — componente ds FotoStrip) */}
+          <FotoStrip foto={lavoro.immagini.map((img) => ({ id: img.id, url: img.url, alt: img.descrizione ?? undefined }))} />
 
           {/* CardFasiV3 (§5) — se ci sono fasi */}
           {lavoro.fasi.length > 0 && <CardFasiV3 lavoroId={lavoro.id} fasi={lavoro.fasi} onErrore={(msg) => errore(msg)} />}
