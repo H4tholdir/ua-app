@@ -50,4 +50,23 @@ describe('DialogConferma — variante consegna (deroga §5.17, ondata 16/07)', (
     expect(nota.style.color).toBe('var(--amber)')
     expect(nota.closest('button, a')).toBeNull()
   })
+
+  // Fix review finale (finding IMPORTANTE): in FrameConsegnato `nota` è il
+  // feedback DINAMICO di un annullo fallito — deve avere semantica live
+  // perché uno screen reader lo annunci senza che l'utente ci navighi sopra.
+  it('nota: role="alert" (semantica live per feedback dinamico — es. annullo fallito)', () => {
+    render(
+      <DialogConferma
+        aperto
+        nota="La consegna resta valida — riprova."
+        titolo="Titolo"
+        testo="Testo"
+        etichettaDistruttiva="Distruttiva"
+        etichettaSicura="Sicura"
+        onConferma={() => {}}
+        onAnnulla={() => {}}
+      />
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('La consegna resta valida — riprova.')
+  })
 })

@@ -176,7 +176,11 @@ describe('FrameConsegnato — annullo (§3.4)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /annulla la consegna/i }))
 
     // nota generica D-6: MAI la stringa server
-    expect(await screen.findByText(/la consegna resta valida/)).toBeInTheDocument()
+    const nota = await screen.findByText(/la consegna resta valida/)
+    expect(nota).toBeInTheDocument()
+    // fix review finale (finding IMPORTANTE): feedback dinamico di errore →
+    // deve avere semantica live, non un <p> muto per lo screen reader
+    expect(nota).toHaveAttribute('role', 'alert')
     expect(screen.queryByText(/boom interno/)).toBeNull()
     expect(onFrameChiuso).not.toHaveBeenCalled()
     expect(screen.getByText('Consegnato!')).toBeInTheDocument()

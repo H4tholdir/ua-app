@@ -3,8 +3,8 @@ import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
-import type { TabId } from '@/components/features/lavori/form/LavoroFormShell'
 import { BackHeaderModifica } from './BackHeaderModifica'
+import { risolviTab } from '@/lib/lavori/risolvi-tab'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
 // Ondata 3a Task 9 — route-ponte /lavori/[id]/modifica. La scheda-vista v3
@@ -15,8 +15,6 @@ import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 // firma URL di ddc.pdf_url e immagini) perché LavoroFormClient consuma lo
 // stesso oggetto `lavoro` — nessuna query alternativa, nessun campo mancante.
 
-const TABS_VALIDI = ['lavorazioni', 'clinica', 'prove', 'immagini'] as const
-
 type PageProps = {
   params: Promise<{ id: string }>
   searchParams: Promise<{ tab?: string }>
@@ -26,9 +24,7 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
   const { id } = await params
   const { tab } = await searchParams
 
-  const defaultTab: TabId = (TABS_VALIDI as readonly string[]).includes(tab ?? '')
-    ? (tab as TabId)
-    : 'lavorazioni'
+  const defaultTab = risolviTab(tab)
 
   // Auth (identico a [id]/page.tsx)
   const userClient = await getServerUserClient()

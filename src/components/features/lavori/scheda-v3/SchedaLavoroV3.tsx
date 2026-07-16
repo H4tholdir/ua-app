@@ -155,6 +155,14 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
     setLavoroLocale(props.lavoro)
   }
 
+  // `lavoro`/`oggi`/`consegnabile` calcolati QUI, PRIMA di `consegnaAperta`
+  // sotto (non dopo, come nella versione originale): il deep-link
+  // `?consegna=1` deve poter leggere la stessa consegnabilità reale che
+  // disabilita il TastoPrimario CONSEGNA, non aprirsi incondizionatamente.
+  const lavoro = lavoroLocale
+  const oggi = new Date()
+  const consegnabile = derivaUrgenza(lavoro, oggi).consegnabile
+
   const [campoAttivo, setCampoAttivo] = useState<Campo | null>(null)
   const [menuAperto, setMenuAperto] = useState(false)
   const [documentiAperto, setDocumentiAperto] = useState(false)
@@ -162,12 +170,16 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   // Task 13 — la scheda apre FlussoConsegna IN PLACE (la vecchia pagina
   // `/consegna` muore al Task 15): `apriConsegna` (deep-link `?consegna=1`,
   // letto da page.tsx) auto-apre il flusso al mount.
-  const [consegnaAperta, setConsegnaAperta] = useState(Boolean(props.apriConsegna))
+  //
+  // Fix review finale (finding IMPORTANTE): la vecchia pagina gated
+  // lato server; qui `apriConsegna` da solo apriva incondizionatamente
+  // il rito «Consegno?» anche su un lavoro NON consegnabile (es. già
+  // consegnato) — un bookmark/deep-link stantio mostrava il rito e solo
+  // il 422 del POST salvava l'utente. Si gate anche sul client con la
+  // STESSA `consegnabile` che disabilita già il TastoPrimario sotto.
+  const [consegnaAperta, setConsegnaAperta] = useState(Boolean(props.apriConsegna) && consegnabile)
 
-  const lavoro = lavoroLocale
-  const oggi = new Date()
   const pill = pillStatoScheda(lavoro, oggi)
-  const consegnabile = derivaUrgenza(lavoro, oggi).consegnabile
   const mostraRifacimento = (['consegnato', 'pronto', 'sospeso'] as const).includes(
     lavoro.stato as 'consegnato' | 'pronto' | 'sospeso'
   )

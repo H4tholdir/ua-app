@@ -100,7 +100,10 @@ export function DialogConferma(props: {
         {titolo}
       </h2>
       <p id={testoId} style={{ ...testoStile, ...(centraTesto ? { textAlign: 'center' as const } : null) }}>{testo}</p>
-      {nota && <p style={notaStile}>{nota}</p>}
+      {/* role="alert" (fix review finale, finding IMPORTANTE): in
+          FrameConsegnato `nota` è il feedback DINAMICO di un annullo fallito
+          — senza semantica live uno screen reader non lo annuncia mai. */}
+      {nota && <p role="alert" style={notaStile}>{nota}</p>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m, marginTop: spazio.l }}>
         {primarioSopra ? [tasti[1], tasti[0]] : tasti}
       </div>

@@ -73,4 +73,32 @@ describe('SchedaLavoroV3 — entry point FlussoConsegna in place (Task 13)', () 
     expect(screen.queryByText(/Consegno\?/)).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
   })
+
+  // Fix review finale (finding IMPORTANTE): un bookmark/deep-link
+  // `?consegna=1` su un lavoro NON consegnabile (es. già `consegnato`) non
+  // deve auto-aprire il rito «Consegno?» — solo il 422 del POST salvava
+  // l'utente prima del fix, il gate ora vive già lato client.
+  //
+  // Discriminante reale (non un `queryByText` sincrono, che sarebbe vero
+  // ANCHE col bug: il dialog «Consegno?» compare solo dopo l'`await` del
+  // precheck nell'effect di mount di FlussoConsegna, quindi è assente subito
+  // dopo `render()` a prescindere dal gate): col bug `consegnaAperta` parte
+  // `true` → l'effect di FlussoConsegna chiama SINCRONAMENTE
+  // `fetch(precheck-consegna)` prima di ogni `await`. Il fetch mai chiamato è
+  // la prova che il flusso non si è aperto.
+  it('apriConsegna=true + lavoro NON consegnabile (es. già consegnato) → il flusso non si apre (nessun fetch precheck, «Consegno?» assente)', async () => {
+    const fetchSpy = vi.fn()
+    global.fetch = fetchSpy as unknown as typeof fetch
+
+    render(
+      <SchedaLavoroV3
+        lavoro={makeLavoro({ stato: 'consegnato', data_consegna_effettiva: '2026-07-10T00:00:00Z' })}
+        apriConsegna
+      />
+    )
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Consegno\?/)).not.toBeInTheDocument()
+    expect(push).not.toHaveBeenCalled()
+  })
 })
