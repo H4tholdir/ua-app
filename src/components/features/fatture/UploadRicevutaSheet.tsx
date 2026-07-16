@@ -60,6 +60,10 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
   const [file, setFile] = useState<File | null>(null)
   const [esito, setEsito] = useState<UploadEsito | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Stato dedicato per il duplicato (QA FASE 9, scenario 2): il server risponde
+  // 200 {esito:'duplicata'} senza inserire nulla (dedup sha256, ingest-ricevuta
+  // step 1) — non è un errore, va spiegato in parole del banco.
+  const [duplicata, setDuplicata] = useState(false)
   const [isPending, setIsPending] = useState(false)
 
   // Nessun effect di reset-su-`open`: RiconciliazioniClient monta questo
@@ -71,6 +75,7 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
     hapticMedium()
     setIsPending(true)
     setError(null)
+    setDuplicata(false)
     const formData = new FormData()
     formData.append('file', file)
     let res: Response
@@ -102,6 +107,14 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
       hapticError()
       soundError()
       setError('Troppi caricamenti nelle ultime 24 ore. Riprova più tardi.')
+      return
+    }
+    if (data.esito === 'duplicata') {
+      // Nessun nuovo inserimento (già garantito dal server): messaggio
+      // informativo, non un errore rosso. Nessun link alla riga esistente:
+      // non esiste una pagina per singola ricevuta — se richiede ancora un
+      // intervento è già elencata nei gruppi di questa pagina.
+      setDuplicata(true)
       return
     }
     setEsito(data)
@@ -229,6 +242,23 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
                     Nella casella PEC del laboratorio: è l&apos;allegato XML del messaggio arrivato dopo l&apos;invio.
                     Caricalo qui e UÀ lo legge per te.
                   </p>
+
+                  {duplicata && (
+                    <div
+                      role="status"
+                      style={{
+                        display: 'flex', gap: 10, alignItems: 'flex-start', padding: '11px 12px', borderRadius: 12,
+                        margin: '0 0 14px', background: 'color-mix(in srgb, var(--c-blue) 10%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--c-blue) 32%, transparent)',
+                      }}
+                    >
+                      <span aria-hidden="true" style={{ color: 'var(--c-blue)', fontSize: 15, lineHeight: 1.2 }}>ℹ</span>
+                      <span style={{ fontFamily: FONT, fontSize: 12, color: 'var(--t1)', lineHeight: 1.45 }}>
+                        <b style={{ fontWeight: 700 }}>Questa ricevuta è già stata caricata.</b> Non serve rifarlo:
+                        se richiede ancora un intervento, la trovi già qui tra le cose da sistemare.
+                      </span>
+                    </div>
+                  )}
 
                   {error && (
                     <p role="alert" style={{ fontFamily: FONT, fontSize: 12, fontWeight: 600, color: 'var(--primary)', margin: '0 0 10px' }}>

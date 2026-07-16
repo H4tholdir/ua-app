@@ -8,11 +8,14 @@
 // lingua visiva di NotaCreditoButton.tsx/InviaPecButton.tsx, gli altri
 // componenti già approvati su questa stessa pagina (/fatture/[id]).
 //
-// Ruoli (mockup «Chi può fare cosa»): titolare+front_desk possono Carica
-// ricevuta PEC / Conferma ricevuta; SOLO titolare può Sblocca e reinvia /
-// Controlla e conferma (firma non verificabile) / Riprova lo storno /
-// Ho verificato sul portale — la UI nasconde le CTA riservate per
-// front_desk. Lato server la difesa in profondità NON è uniforme:
+// Ruoli (mockup «Chi può fare cosa» + QA FASE 9 scenario 8): SOLO
+// titolare+front_desk (prop `puoCaricareRicevute`, allowlist RUOLI_INVIO_PEC
+// risolta nel Server Component) vedono Carica ricevuta PEC / Conferma
+// ricevuta; SOLO titolare vede Sblocca e reinvia / Controlla e conferma
+// (firma non verificabile) / Riprova lo storno / Ho verificato sul portale.
+// Ogni altro ruolo (es. tecnico) consulta la pagina in sola lettura: gruppi
+// visibili, azioni nascoste. Lato server la difesa in profondità NON è
+// uniforme:
 //   - override («Ho verificato sul portale») e sblocca-claim hanno allowlist
 //     solo-titolare (RUOLI_OVERRIDE_SDI, RUOLI_SBLOCCA_CLAIM);
 //   - la route applica (/api/pec/ricevute/[id]/applica) ammette anche
@@ -69,6 +72,10 @@ export interface PendenzeRiconciliazioneClient {
 interface Props {
   pendenze: PendenzeRiconciliazioneClient
   ruolo: string
+  /** Ruolo ∈ RUOLI_INVIO_PEC (calcolato nel Server Component — invio-claim.ts
+   * è 'server-only'): gate UI di «Carica ricevuta PEC» e «Conferma ricevuta».
+   * Per i ruoli fuori allowlist (es. tecnico) la pagina è sola lettura. */
+  puoCaricareRicevute: boolean
 }
 
 const RUOLI_TITOLARE_ONLY = ['titolare']
@@ -93,7 +100,7 @@ function fmtGiorniFa(iso: string): string {
   return `${n} giorni fa`
 }
 
-export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
+export function RiconciliazioniClient({ pendenze, ruolo, puoCaricareRicevute }: Props) {
   const router = useRouter()
   const isTitolare = RUOLI_TITOLARE_ONLY.includes(ruolo)
 
@@ -222,7 +229,9 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
                         Controlla e conferma
                       </RowCta>
                     )}
-                    {!firmaFallita && ec02 && <RowCta onClick={() => setRicevutaTarget(item)}>Conferma ricevuta</RowCta>}
+                    {!firmaFallita && ec02 && puoCaricareRicevute && (
+                      <RowCta onClick={() => setRicevutaTarget(item)}>Conferma ricevuta</RowCta>
+                    )}
                   </GroupRow>
                 )
               })}
@@ -277,7 +286,9 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
                   title={`Fattura ${item.numero}`}
                   sub={`Inviata il ${fmtDataParlata(item.smtp_inviata_at)} · ${fmtGiorniFa(item.smtp_inviata_at)}, nessuna risposta`}
                 >
-                  <RowCta onClick={() => setUploadTarget({ id: item.id, numero: item.numero })}>Carica ricevuta PEC</RowCta>
+                  {puoCaricareRicevute && (
+                    <RowCta onClick={() => setUploadTarget({ id: item.id, numero: item.numero })}>Carica ricevuta PEC</RowCta>
+                  )}
                   {isTitolare && (
                     <RowCta
                       soloTu

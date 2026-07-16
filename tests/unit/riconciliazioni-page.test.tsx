@@ -45,7 +45,7 @@ function openGroup(nome: RegExp) {
 
 describe('RiconciliazioniClient — 5 gruppi + conteggi', () => {
   it('renderizza i 5 gruppi con etichette e conteggi corretti', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
 
     expect(screen.getByText('Cose da sistemare')).toBeInTheDocument()
     expect(screen.getByText('6')).toBeInTheDocument() // totale = 1+1+2+1+1
@@ -68,6 +68,7 @@ describe('RiconciliazioniClient — 5 gruppi + conteggi', () => {
       <RiconciliazioniClient
         pendenze={{ ...PENDENZE_VUOTE, saldiNegativi: [{ cliente_id: 'c1', cliente_nome: 'X', saldo: -1 }] }}
         ruolo="titolare"
+        puoCaricareRicevute
       />
     )
     expect(screen.getByRole('button', { name: /conti clienti da sistemare/i })).toBeInTheDocument()
@@ -75,7 +76,7 @@ describe('RiconciliazioniClient — 5 gruppi + conteggi', () => {
   })
 
   it('click sull\'header apre il gruppo e mostra le righe', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
     openGroup(/conti clienti da sistemare/i)
     expect(screen.getByText('Studio Rossi')).toBeInTheDocument()
     expect(screen.getByText(/60,00/)).toBeInTheDocument() // saldo formattato in euro (locale it-IT)
@@ -84,7 +85,7 @@ describe('RiconciliazioniClient — 5 gruppi + conteggi', () => {
 
 describe('RiconciliazioniClient — empty state', () => {
   it('con 0 pendenze mostra «Tutto a posto ✓» e nessun gruppo', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_VUOTE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_VUOTE} ruolo="titolare" puoCaricareRicevute />)
     expect(screen.getByText('Tutto a posto ✓')).toBeInTheDocument()
     expect(screen.getByText('0')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /note di credito/i })).not.toBeInTheDocument()
@@ -93,7 +94,7 @@ describe('RiconciliazioniClient — empty state', () => {
 
 describe('RiconciliazioniClient — gate ruolo front_desk', () => {
   it('front_desk: azioni titolare-only ASSENTI (Riprova lo storno, Sblocca e reinvia, Controlla e conferma, Ho verificato sul portale)', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="front_desk" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="front_desk" puoCaricareRicevute />)
     openGroup(/note di credito rifiutate dallo stato/i)
     openGroup(/segnate come inviate/i)
     openGroup(/ricevute da controllare a mano/i)
@@ -106,7 +107,7 @@ describe('RiconciliazioniClient — gate ruolo front_desk', () => {
   })
 
   it('front_desk: azioni condivise PRESENTI (Carica ricevuta PEC, Conferma ricevuta, Vedi il conto)', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="front_desk" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="front_desk" puoCaricareRicevute />)
     openGroup(/in attesa di risposta da troppo tempo/i)
     openGroup(/ricevute da controllare a mano/i)
     openGroup(/conti clienti da sistemare/i)
@@ -116,8 +117,28 @@ describe('RiconciliazioniClient — gate ruolo front_desk', () => {
     expect(screen.getByRole('link', { name: /vedi il conto/i })).toBeInTheDocument()
   })
 
+  it('tecnico (fuori RUOLI_INVIO_PEC): pagina in sola lettura — gruppi visibili, NESSUNA azione (QA FASE 9, scenario 8)', () => {
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="tecnico" puoCaricareRicevute={false} />)
+    openGroup(/in attesa di risposta da troppo tempo/i)
+    openGroup(/ricevute da controllare a mano/i)
+    openGroup(/note di credito rifiutate dallo stato/i)
+    openGroup(/segnate come inviate/i)
+
+    // Consultazione: i gruppi e le righe restano visibili…
+    expect(screen.getByText('Fattura 2026-0019')).toBeInTheDocument()
+    expect(screen.getAllByText(/ricevuta di/i).length).toBeGreaterThan(0)
+    // …ma upload/conferma (allowlist RUOLI_INVIO_PEC: la route risponderebbe
+    // 403) e le azioni titolare-only sono TUTTE nascoste.
+    expect(screen.queryByRole('button', { name: /carica ricevuta pec/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^conferma ricevuta$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /riprova lo storno/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sblocca e reinvia/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /controlla e conferma/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ho verificato sul portale/i })).not.toBeInTheDocument()
+  })
+
   it('titolare: tutte le azioni riservate sono presenti', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
     openGroup(/note di credito rifiutate dallo stato/i)
     openGroup(/segnate come inviate/i)
     openGroup(/ricevute da controllare a mano/i)
@@ -140,7 +161,7 @@ describe('RiconciliazioniClient — «Ho verificato sul portale» (override stag
   })
 
   function apriSheetPortale() {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
     openGroup(/in attesa di risposta da troppo tempo/i)
     fireEvent.click(screen.getByRole('button', { name: /ho verificato sul portale/i }))
   }
@@ -197,7 +218,7 @@ describe('RiconciliazioniClient — «Ho verificato sul portale» (override stag
 
 describe('RiconciliazioniClient — ricevuta con firma non verificabile', () => {
   it('mostra l\'avviso di quarantena con role="alert"', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
     openGroup(/ricevute da controllare a mano/i)
     expect(screen.getByRole('alert')).toHaveTextContent(/verifica firma non disponibile — controllo manuale obbligatorio/i)
   })
@@ -209,7 +230,7 @@ describe('RiconciliazioniClient — «Riprova lo storno» (TD04 rifiutato)', () 
   })
 
   it('apre il foglio con effetti + spunta obbligatoria; «Sì, procedi» naviga alla scheda fattura', () => {
-    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" puoCaricareRicevute />)
     openGroup(/note di credito rifiutate dallo stato/i)
     fireEvent.click(screen.getByRole('button', { name: /riprova lo storno/i }))
 
@@ -330,6 +351,26 @@ describe('UploadRicevutaSheet — Carica ricevuta PEC', () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled())
     expect(fetchMock).toHaveBeenLastCalledWith('/api/pec/ricevute/evt-42/applica', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('file già caricato → 200 {esito:duplicata}: messaggio «già stata caricata», niente step 2 (QA FASE 9, scenario 2)', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ esito: 'duplicata', ricevutaId: 'evt-esistente' }),
+    })
+    render(<UploadRicevutaSheet open onClose={vi.fn()} onSuccess={vi.fn()} numero="2026-0022" />)
+
+    const file = new File(['<xml/>'], 'ricevuta.xml', { type: 'text/xml' })
+    fireEvent.change(screen.getByLabelText(/file della ricevuta/i), { target: { files: [file] } })
+    fireEvent.click(screen.getByRole('button', { name: /leggi la ricevuta/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/questa ricevuta è già stata caricata/i),
+    )
+    // Resta allo step 1 (nessun «Ecco cosa ho letto», nessuna conferma possibile).
+    expect(screen.queryByText('Ecco cosa ho letto')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^conferma ricevuta$/i })).not.toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(1) // nessuna chiamata /applica
   })
 })
 
