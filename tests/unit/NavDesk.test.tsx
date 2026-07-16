@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { NavDesk } from '@/components/features/home/NavDesk'
+import { NavDesk } from '@/components/ds/NavDesk'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null }

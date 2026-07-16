@@ -49,7 +49,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { NavDesk } from './NavDesk'
+import { NavDesk } from '@/components/ds/NavDesk'
 import { SchedaAnteprima } from '@/components/features/pile/SchedaAnteprima'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
