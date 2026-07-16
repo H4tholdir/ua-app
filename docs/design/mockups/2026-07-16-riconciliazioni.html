@@ -124,6 +124,16 @@ body{background:var(--bg);color:var(--t1);padding:0}
 .eff .es{display:block;font-size:11px;color:var(--t2);margin-top:2px;line-height:1.35}
 .eff .es b{color:var(--t1)}
 
+/* ---- Scelta esito (override «Ho verificato sul portale») ---- */
+.optrow{display:flex;align-items:center;gap:11px;padding:12px;border-radius:12px;background:var(--sfc);
+  border:1.5px solid var(--line);margin:0 0 8px;cursor:pointer}
+.optrow .odot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--t3);flex-shrink:0;position:relative}
+.optrow.sel{border-color:color-mix(in srgb,var(--primary) 45%,transparent)}
+.optrow.sel .odot{border-color:var(--primary)}
+.optrow.sel .odot::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--primary)}
+.optrow .ol{display:block;font-size:13.5px;font-weight:700;color:var(--t1);line-height:1.3}
+.optrow .ot{display:block;font-size:10.5px;color:var(--t3);margin-top:1px;font-family:'DM Mono',ui-monospace,monospace}
+
 /* ---- Checkbox esplicita override ---- */
 .checkrow{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:12px;background:var(--sfc);
   border:1.5px solid var(--line);margin:0 0 14px;font-size:12.5px;color:var(--t1);line-height:1.4}
@@ -228,6 +238,7 @@ body{background:var(--bg);color:var(--t1);padding:0}
       <tr><td>Claim orfani</td><td><b>Segnate come inviate, ma l'invio non risulta</b></td></tr>
       <tr><td>SMTP stagnanti (&gt;7gg)</td><td><b>In attesa di risposta da troppo tempo</b></td></tr>
       <tr><td>Sblocca claim / Sblocca storno / Applica proposta / Analizza ricevuta / Applica comunque</td><td><b>Sblocca e reinvia</b> / <b>Riprova lo storno</b> / <b>Conferma ricevuta</b> / <b>Leggi la ricevuta</b> / <b>Controlla e conferma</b></td></tr>
+      <tr><td>Override stato SdI (titolare)</td><td><b>Ho verificato sul portale</b> → sheet «Cosa dice il portale?» con esiti in parole semplici (Consegnata / Accettata / Rifiutata), termine tecnico piccolo sotto, motivo obbligatorio, avviso «questa azione viene registrata»</td></tr>
       <tr><td>Pendenze aperte / Riconciliata / Tutto riconciliato ✓</td><td><b>Cose da sistemare</b> / <b>Sistemata ✓</b> / <b>Tutto a posto ✓</b></td></tr>
     </table>
   </div>
@@ -235,6 +246,7 @@ body{background:var(--bg);color:var(--t1);padding:0}
   <div class="nav">
     <a href="#va">Pagina · mobile + desktop</a>
     <a href="#flow-upload">Flusso · carica ricevuta PEC</a>
+    <a href="#flow-portale">Flusso · ho verificato sul portale</a>
     <a href="#flow-override">Flusso · riprova lo storno</a>
     <a href="#ruoli">Chi può fare cosa</a>
     <button class="themebtn" data-mockup-chrome onclick="var r=document.documentElement,c=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',c)">🌓 Cambia tema (anteprima manuale)</button>
@@ -467,18 +479,24 @@ body{background:var(--bg);color:var(--t1);padding:0}
               <span class="groupcount">3</span><span class="chev open">▾</span>
             </div>
             <div class="groupbody">
-              <div class="grouphelp"><span class="qi">?</span><span>Inviate da più di 7 giorni e SdI (il sistema dell'Agenzia delle Entrate) non ha ancora risposto. Se la ricevuta ti è arrivata via PEC, caricala qui.</span></div>
+              <div class="grouphelp"><span class="qi">?</span><span>Inviate da più di 7 giorni e SdI (il sistema dell'Agenzia delle Entrate) non ha ancora risposto. Se la ricevuta ti è arrivata via PEC, caricala qui. Se invece hai controllato l'esito sul portale dell'Agenzia delle Entrate, puoi segnarlo tu (solo titolare).</span></div>
               <div class="grouprow">
                 <div class="gr-main"><div class="gr-title">Fattura 2026-0019</div><div class="gr-sub">Inviata il 3 luglio · 13 giorni fa, nessuna risposta</div></div>
                 <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
               </div>
               <div class="grouprow">
                 <div class="gr-main"><div class="gr-title">Fattura 2026-0022</div><div class="gr-sub">Inviata il 5 luglio · 11 giorni fa, nessuna risposta</div></div>
                 <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
               </div>
               <div class="grouprow">
                 <div class="gr-main"><div class="gr-title">Fattura 2026-0025</div><div class="gr-sub">Inviata il 7 luglio · 9 giorni fa, nessuna risposta</div></div>
                 <button class="gr-cta">Carica ricevuta PEC</button>
+                <span class="rolebadge solo">🔒 Solo tu</span>
+                <button class="gr-cta">Ho verificato sul portale</button>
               </div>
             </div>
           </div>
@@ -508,7 +526,7 @@ body{background:var(--bg);color:var(--t1);padding:0}
           <div class="apanel">
             <div class="atitle">Chi può fare cosa</div>
             <div class="roler"><span>👤</span><span><b>Tu e il front desk</b> — Carica ricevuta PEC, Conferma ricevuta (quando UÀ ha trovato l'abbinamento).</span></div>
-            <div class="roler"><span>🔒</span><span><b>Solo tu (titolare)</b> — Sblocca e reinvia, Controlla e conferma le ricevute non verificate, Riprova lo storno.</span></div>
+            <div class="roler"><span>🔒</span><span><b>Solo tu (titolare)</b> — Sblocca e reinvia, Controlla e conferma le ricevute non verificate, Riprova lo storno, Ho verificato sul portale.</span></div>
           </div>
           <div class="apanel">
             <div class="atitle">Legenda colori</div>
@@ -621,6 +639,97 @@ body{background:var(--bg);color:var(--t1);padding:0}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ FLUSSO HO VERIFICATO SUL PORTALE ============================ -->
+  <a id="flow-portale"></a>
+  <div class="sechead">Flusso — «Ho verificato sul portale» (override, solo titolare)</div>
+  <p class="secsub">Da una fattura «In attesa di risposta da troppo tempo». Serve quando hai controllato l'esito <b>sul portale dell'Agenzia delle Entrate</b> (Fatture e Corrispettivi) ma la ricevuta non è mai arrivata via PEC: segni tu cosa hai visto e UÀ aggiorna la fattura. Scelte in parole semplici, termine tecnico piccolo sotto; motivo obbligatorio; l'avviso dice chiaramente che <b>l'azione viene registrata</b> (chi, quando, perché). Solo il titolare può farlo — non è una scorciatoia: se la ricevuta c'è, va caricata con «Carica ricevuta PEC».</p>
+
+  <div class="cap mobile" id="cap-flow-portale">
+    <div class="frames">
+      <div class="framecol">
+        <div class="framelbl">1 · Punto di partenza — riga con doppia azione (badge Solo tu)</div>
+        <div class="phone" style="height:360px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="body">
+            <div class="groupcard" style="margin-bottom:0">
+              <div class="grouphead">
+                <span class="groupicon gi-stag">⏱</span>
+                <div><div class="glbl">In attesa di risposta da troppo tempo</div></div>
+                <span class="groupcount">3</span><span class="chev open">▾</span>
+              </div>
+              <div class="groupbody">
+                <div class="grouprow" style="flex-wrap:wrap">
+                  <div class="gr-main" style="flex-basis:100%"><div class="gr-title">Fattura 2026-0022</div><div class="gr-sub">Inviata il 5 luglio · 11 giorni fa, nessuna risposta</div></div>
+                  <button class="gr-cta">Carica ricevuta PEC</button>
+                  <span class="rolebadge solo">🔒 Solo tu</span>
+                  <button class="gr-cta">Ho verificato sul portale</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">2 · Sheet — nessuna scelta, motivo vuoto: conferma spenta</div>
+        <div class="phone" style="height:860px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Ho verificato sul portale</div>
+            <div class="sh-sub">Fattura 2026-0022 · inviata 11 giorni fa, nessuna risposta</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Usalo solo se hai controllato l'esito sul portale dell'Agenzia delle Entrate e la ricevuta non è arrivata. Questa azione viene registrata (chi, quando, perché).</span>
+            </div>
+            <div class="flabel">Cosa dice il portale? <span class="req">*</span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Consegnata</span><span class="ot">PEC consegnata</span></span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Accettata</span><span class="ot">accettata da SdI</span></span></div>
+            <div class="optrow" style="margin-bottom:14px"><span class="odot"></span><span><span class="ol">Rifiutata</span><span class="ot">rifiutata da SdI</span></span></div>
+            <div class="flabel">Perché lo stai segnando a mano? <span class="req">*</span></div>
+            <div style="background:var(--sfc);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 14px;font-size:12px;color:var(--t3)">Es. esito visto su Fatture e Corrispettivi il 16/07…</div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2 dis">Aggiorna la fattura</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="framecol">
+        <div class="framelbl">3 · Sheet — esito scelto + motivo: conferma accesa</div>
+        <div class="phone" style="height:860px">
+          <div class="status"><span>9:41</span><span>UÀ</span></div>
+          <div class="appbar" style="opacity:.35"><div class="back">‹</div><div><div class="ttl">Da sistemare</div></div></div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sh-title">Ho verificato sul portale</div>
+            <div class="sh-sub">Fattura 2026-0022 · inviata 11 giorni fa, nessuna risposta</div>
+            <div class="warn">
+              <span class="wic">⚠</span>
+              <span class="wtx"><b>Solo tu (titolare) puoi farlo.</b> Usalo solo se hai controllato l'esito sul portale dell'Agenzia delle Entrate e la ricevuta non è arrivata. Questa azione viene registrata (chi, quando, perché).</span>
+            </div>
+            <div class="flabel">Cosa dice il portale? <span class="req">*</span></div>
+            <div class="optrow"><span class="odot"></span><span><span class="ol">Consegnata</span><span class="ot">PEC consegnata</span></span></div>
+            <div class="optrow sel"><span class="odot"></span><span><span class="ol">Accettata</span><span class="ot">accettata da SdI</span></span></div>
+            <div class="optrow" style="margin-bottom:14px"><span class="odot"></span><span><span class="ol">Rifiutata</span><span class="ot">rifiutata da SdI</span></span></div>
+            <div class="flabel">Perché lo stai segnando a mano? <span class="req">*</span></div>
+            <div style="background:var(--sfc);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 14px;font-size:12px;color:var(--t1)">Esito «accettata» visto su Fatture e Corrispettivi il 16/07, ricevuta PEC mai arrivata.</div>
+            <div class="actionsrow">
+              <button class="btn-neutral fill1">Annulla</button>
+              <button class="btn-red fill2">Aggiorna la fattura</button>
+            </div>
+          </div>
+        </div>
+        <div class="framelbl" style="margin-top:4px;color:var(--t3);max-width:390px">«Aggiorna la fattura» si accende SOLO con esito scelto + motivo compilato. Il payload porta lo stato mostrato a schermo (anti-stale): se nel frattempo è arrivata una ricevuta, il server rifiuta e chiede di ricaricare.</div>
       </div>
     </div>
   </div>
@@ -739,6 +848,7 @@ body{background:var(--bg);color:var(--t1);padding:0}
       <div class="r"><span class="k">Sblocca e reinvia</span><span class="v">Fatture con invio non confermato</span></div>
       <div class="r"><span class="k">Controlla e conferma</span><span class="v">Ricevute con firma non verificabile</span></div>
       <div class="r"><span class="k">Riprova lo storno</span><span class="v">Doppia conferma obbligatoria</span></div>
+      <div class="r"><span class="k">Ho verificato sul portale</span><span class="v">In attesa da troppo · esito + motivo, azione registrata</span></div>
     </div>
   </div>
 

@@ -12,15 +12,21 @@
 // e richiede una spunta esplicita PRIMA di abilitare «Sì, procedi» — stesso
 // pattern della causale obbligatoria di NotaCreditoButton.
 //
-// NOTA (Task 16, riconciliazioni pendenti): questo componente è generico e
-// pienamente funzionante/testato in isolamento, ma NON è agganciato al CTA
-// «Riprova lo storno» della pagina /fatture/riconciliazioni — vedi il
-// commento RiprovaStornoSheet in RiconciliazioniClient.tsx per il perché
-// (gap di dati: fetchPendenzeRiconciliazione, Task 14, espone l'id della
-// fattura ORIGINALE + il numero del TD04 come stringa, non l'id del TD04 né
-// il suo stato_sdi corrente — e il TD04 in quel gruppo è già 'rifiutata',
-// quindi un nuovo override sarebbe bloccato dalla monotonia rank lato route.
-// Punto di escalation esplicito per Francesco/orchestrator).
+// DUE MODALITÀ (decisione Francesco 16/07, opzione 1 — addendum in
+// docs/design/decisions/2026-07-16-riconciliazioni.md):
+//   1. `nuovoStato` FISSATO dal chiamante → copy generico («Forza lo stato
+//      SdI», CTA «Sì, procedi») — transizione nota a priori (es. TD04).
+//   2. `nuovoStato` OMESSO → modalità «Ho verificato sul portale» (gruppo
+//      «In attesa di risposta da troppo tempo»): l'operatore sceglie l'esito
+//      visto sul portale AdE tra le 3 opzioni dell'allowlist della route,
+//      in parole semplici col termine tecnico piccolo sotto; motivo
+//      obbligatorio; avviso esplicito che l'azione viene registrata.
+//      Copy dal mockup 2026-07-16-riconciliazioni.html §flow-portale.
+//
+// NOTA storica: il CTA «Riprova lo storno» della stessa pagina NON usa
+// questo foglio — vedi il commento RiprovaStornoSheet in
+// RiconciliazioniClient.tsx (il TD04 di quel gruppo è già 'rifiutata':
+// un override ripetuto sarebbe bloccato dalla monotonia rank lato route).
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -34,16 +40,32 @@ const SCRIM = 'rgba(0,0,0,0.45)'
 
 export type NuovoStatoOverride = 'pec_consegnata' | 'accettata' | 'rifiutata'
 
+// Allowlist UI = allowlist route (NUOVO_STATO_ALLOWLIST in
+// src/app/api/fatture/[id]/stato-sdi-override/route.ts) — parole del banco
+// come etichetta, termine tecnico (STATO_SDI_LABEL-coerente) come dettaglio.
+const OPZIONI_PORTALE: ReadonlyArray<{ value: NuovoStatoOverride; label: string; tecnico: string }> = [
+  { value: 'pec_consegnata', label: 'Consegnata', tecnico: 'PEC consegnata' },
+  { value: 'accettata', label: 'Accettata', tecnico: 'accettata da SdI' },
+  { value: 'rifiutata', label: 'Rifiutata', tecnico: 'rifiutata da SdI' },
+]
+
 export interface OverrideStatoSheetProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
   fatturaId: string
   numero: string
-  tipoDocumento: string
+  /** Se omesso/ignoto: nessun gate TD04 client-side — la route resta comunque
+   * fail-closed (422 con errore esplicito se un TD04 → rifiutata arriva senza
+   * conferma_effetti_storno). */
+  tipoDocumento?: string
   /** Stato mostrato all'operatore in questo momento — anti-stale-read. */
   statoAtteso: string
-  nuovoStato: NuovoStatoOverride
+  /** Fissato dal chiamante → modalità generica. Omesso → modalità
+   * «Ho verificato sul portale» con scelta tra le 3 opzioni allowlist. */
+  nuovoStato?: NuovoStatoOverride
+  /** Riga di contesto sotto il titolo (default: «Fattura {numero}»). */
+  sottotitolo?: string
   /** Importo dello storno visto dall'operatore (solo TD04→rifiutata). */
   importoStornoVisto?: number
 }
@@ -62,9 +84,15 @@ function useIsDesktop(): boolean {
 }
 
 export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
-  const { open, onClose, onSuccess, fatturaId, numero, tipoDocumento, statoAtteso, nuovoStato, importoStornoVisto } = props
+  const { open, onClose, onSuccess, fatturaId, numero, tipoDocumento, statoAtteso, sottotitolo, importoStornoVisto } = props
   const reducedMotion = useReducedMotion()
   const isDesktop = useIsDesktop()
+
+  // Modalità portale (opzione 1, decisione 16/07): nessun nuovoStato fissato
+  // → l'operatore sceglie l'esito visto sul portale AdE tra le 3 opzioni.
+  const pickerMode = props.nuovoStato === undefined
+  const [scelto, setScelto] = useState<NuovoStatoOverride | null>(null)
+  const nuovoStato: NuovoStatoOverride | null = props.nuovoStato ?? scelto
 
   const [motivo, setMotivo] = useState('')
   const [confermaEffetti, setConfermaEffetti] = useState(false)
@@ -88,7 +116,8 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
   }, [open, isPending, onClose])
 
   const motivoTrim = motivo.trim()
-  const canSubmit = motivoTrim.length > 0 && (!richiedeConferma || confermaEffetti) && !isPending
+  const canSubmit =
+    motivoTrim.length > 0 && nuovoStato !== null && (!richiedeConferma || confermaEffetti) && !isPending
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -185,11 +214,69 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
               )}
 
               <h2 id="ovr-sheet-title" style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: 'var(--t1)', margin: '0 0 3px' }}>
-                Forza lo stato SdI
+                {pickerMode ? 'Ho verificato sul portale' : 'Forza lo stato SdI'}
               </h2>
               <p style={{ fontFamily: FONT, fontSize: 12, color: 'var(--t2)', margin: '0 0 14px' }}>
-                Fattura {numero}
+                {sottotitolo ?? `Fattura ${numero}`}
               </p>
+
+              {pickerMode && (
+                <>
+                  <div
+                    style={{
+                      display: 'flex', gap: 10, alignItems: 'flex-start', padding: '11px 12px', borderRadius: 12,
+                      margin: '0 0 14px', background: 'color-mix(in srgb, var(--primary) 9%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)',
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ color: 'var(--primary)', fontSize: 15, lineHeight: 1.2 }}>⚠</span>
+                    <span style={{ fontFamily: FONT, fontSize: 12, color: 'var(--t1)', lineHeight: 1.45 }}>
+                      <b style={{ fontWeight: 700 }}>Solo tu (titolare) puoi farlo.</b> Usalo solo se hai controllato
+                      l&apos;esito sul portale dell&apos;Agenzia delle Entrate e la ricevuta non è arrivata. Questa
+                      azione viene registrata (chi, quando, perché).
+                    </span>
+                  </div>
+
+                  <p style={label}>
+                    Cosa dice il portale? <span style={{ color: 'var(--primary)' }}>*</span>
+                  </p>
+                  <div role="radiogroup" aria-label="Cosa dice il portale?" style={{ margin: '0 0 14px' }}>
+                    {OPZIONI_PORTALE.map((opt) => {
+                      const selected = scelto === opt.value
+                      return (
+                        <label
+                          key={opt.value}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 12,
+                            background: 'var(--sfc)', cursor: 'pointer', marginBottom: 8, minHeight: 44,
+                            border: selected
+                              ? '1.5px solid color-mix(in srgb, var(--primary) 45%, transparent)'
+                              : '1.5px solid var(--elv)',
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="ovr-esito-portale"
+                            value={opt.value}
+                            checked={selected}
+                            onChange={() => setScelto(opt.value)}
+                            aria-label={opt.label}
+                            style={{ width: 20, height: 20, flexShrink: 0, accentColor: 'var(--primary)' }}
+                          />
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: 'block', fontFamily: FONT, fontSize: 13.5, fontWeight: 700, color: 'var(--t1)', lineHeight: 1.3 }}>
+                              {opt.label}
+                            </span>
+                            <span style={{ display: 'block', fontFamily: 'ui-monospace, monospace', fontSize: 10.5, color: 'var(--t3)', marginTop: 1 }}>
+                              {opt.tecnico}
+                            </span>
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
 
               {richiedeConferma && (
                 <>
@@ -249,14 +336,14 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
               )}
 
               <p style={label}>
-                Motivo <span style={{ color: 'var(--primary)' }}>*</span>
+                {pickerMode ? 'Perché lo stai segnando a mano?' : 'Motivo'} <span style={{ color: 'var(--primary)' }}>*</span>
               </p>
               <textarea
                 aria-label="Motivo"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
-                placeholder="Es. verificato sul portale SdI…"
+                placeholder={pickerMode ? 'Es. esito visto su Fatture e Corrispettivi il 16/07…' : 'Es. verificato sul portale SdI…'}
                 style={{
                   width: '100%', minHeight: 74, background: 'var(--sfc)', border: BORDER, borderRadius: 12,
                   padding: '11px 12px', fontFamily: FONT, fontSize: 13, lineHeight: 1.45, color: 'var(--t1)',
@@ -275,7 +362,7 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
                   Annulla
                 </button>
                 <button type="button" onClick={handleSubmit} disabled={!canSubmit} style={ctaRed}>
-                  {isPending ? 'Invio…' : 'Sì, procedi'}
+                  {isPending ? 'Invio…' : pickerMode ? 'Aggiorna la fattura' : 'Sì, procedi'}
                 </button>
               </div>
             </div>

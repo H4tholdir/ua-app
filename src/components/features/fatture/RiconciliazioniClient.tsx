@@ -10,9 +10,16 @@
 //
 // Ruoli (mockup «Chi può fare cosa»): titolare+front_desk possono Carica
 // ricevuta PEC / Conferma ricevuta; SOLO titolare può Sblocca e reinvia /
-// Controlla e conferma (firma non verificabile) / Riprova lo storno — la UI
-// nasconde le CTA riservate per front_desk, il server le ri-gate comunque
-// (route sottili, RUOLI_* allowlist — difesa in profondità).
+// Controlla e conferma (firma non verificabile) / Riprova lo storno /
+// Ho verificato sul portale — la UI nasconde le CTA riservate per
+// front_desk. Lato server la difesa in profondità NON è uniforme:
+//   - override («Ho verificato sul portale») e sblocca-claim hanno allowlist
+//     solo-titolare (RUOLI_OVERRIDE_SDI, RUOLI_SBLOCCA_CLAIM);
+//   - la route applica (/api/pec/ricevute/[id]/applica) ammette anche
+//     front_desk (RUOLI_INVIO_PEC) — per «Controlla e conferma» la vera
+//     protezione server-side non è il ruolo ma la RIVERIFICA FIRMA
+//     fail-closed della route: un evento in quarantena resta 409 finché la
+//     firma non risulta 'valida', chiunque prema il bottone.
 //
 // NOTA IMPORTANTE (escalation aperta — vedi anche OverrideStatoSheet.tsx):
 // il CTA «Riprova lo storno» del gruppo «Note di credito rifiutate» NON
@@ -36,6 +43,7 @@ import { useRouter } from 'next/navigation'
 import { motionTokens, useReducedMotion } from '@/design-system/motion'
 import { UploadRicevutaSheet } from './UploadRicevutaSheet'
 import { SbloccaClaimSheet } from './SbloccaClaimSheet'
+import { OverrideStatoSheet } from './OverrideStatoSheet'
 
 const FONT = 'var(--font-dm-sans, "DM Sans", system-ui, sans-serif)'
 const BORDER = '1px solid var(--elv)'
@@ -106,6 +114,7 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
   const [sbloccaTarget, setSbloccaTarget] = useState<{ id: string; numero: string } | null>(null)
   const [stornoTarget, setStornoTarget] = useState<{ id: string; numero: string; td04Numero: string } | null>(null)
   const [ricevutaTarget, setRicevutaTarget] = useState<PendenzeRiconciliazioneClient['eventiParcheggiati'][number] | null>(null)
+  const [portaleTarget, setPortaleTarget] = useState<{ id: string; numero: string; smtp_inviata_at: string } | null>(null)
 
   function refresh() {
     router.refresh()
@@ -260,7 +269,7 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
               count={pendenze.smtpStagnanti.length}
               open={!!openGroups.stag}
               onToggle={() => toggleGroup('stag')}
-              help="Inviate da più di 7 giorni e SdI (il sistema dell'Agenzia delle Entrate) non ha ancora risposto. Se la ricevuta ti è arrivata via PEC, caricala qui."
+              help="Inviate da più di 7 giorni e SdI (il sistema dell'Agenzia delle Entrate) non ha ancora risposto. Se la ricevuta ti è arrivata via PEC, caricala qui. Se invece hai controllato l'esito sul portale dell'Agenzia delle Entrate, puoi segnarlo tu (solo titolare)."
             >
               {pendenze.smtpStagnanti.map((item) => (
                 <GroupRow
@@ -269,6 +278,14 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
                   sub={`Inviata il ${fmtDataParlata(item.smtp_inviata_at)} · ${fmtGiorniFa(item.smtp_inviata_at)}, nessuna risposta`}
                 >
                   <RowCta onClick={() => setUploadTarget({ id: item.id, numero: item.numero })}>Carica ricevuta PEC</RowCta>
+                  {isTitolare && (
+                    <RowCta
+                      soloTu
+                      onClick={() => setPortaleTarget({ id: item.id, numero: item.numero, smtp_inviata_at: item.smtp_inviata_at })}
+                    >
+                      Ho verificato sul portale
+                    </RowCta>
+                  )}
                 </GroupRow>
               ))}
             </GroupCard>
@@ -320,6 +337,27 @@ export function RiconciliazioniClient({ pendenze, ruolo }: Props) {
           onClose={() => setRicevutaTarget(null)}
           onSuccess={() => {
             setRicevutaTarget(null)
+            refresh()
+          }}
+        />
+      )}
+
+      {portaleTarget && (
+        // Modalità «Ho verificato sul portale» (decisione Francesco 16/07,
+        // opzione 1): nessun nuovoStato fissato → il titolare sceglie l'esito
+        // tra le 3 opzioni allowlist nel foglio. stato_sdi_atteso è SEMPRE
+        // 'smtp_inviata' — lo stato che questa riga sta mostrando (il gruppo
+        // stagnanti è per costruzione .eq('stato_sdi','smtp_inviata')): se nel
+        // frattempo è arrivata una ricevuta, la route risponde 409 (anti-stale).
+        <OverrideStatoSheet
+          open
+          fatturaId={portaleTarget.id}
+          numero={portaleTarget.numero}
+          statoAtteso="smtp_inviata"
+          sottotitolo={`Fattura ${portaleTarget.numero} · inviata ${fmtGiorniFa(portaleTarget.smtp_inviata_at)}, nessuna risposta`}
+          onClose={() => setPortaleTarget(null)}
+          onSuccess={() => {
+            setPortaleTarget(null)
             refresh()
           }}
         />
@@ -445,8 +483,8 @@ function GroupCard({
 
 function GroupRow({ title, sub, detail, children }: { title: string; sub: React.ReactNode; detail?: string; children?: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: BORDER }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: BORDER, flexWrap: 'wrap' }}>
+      <div style={{ minWidth: 0, flex: 1, flexBasis: '60%' }}>
         <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: 'var(--t1)', lineHeight: 1.35 }}>{title}</div>
         <div style={{ fontFamily: FONT, fontSize: 11, color: 'var(--t2)', marginTop: 2, lineHeight: 1.4 }}>{sub}</div>
         {detail && <div style={{ fontFamily: FONT, fontSize: 10, color: 'var(--t3)', marginTop: 3, lineHeight: 1.35 }}>{detail}</div>}

@@ -92,15 +92,17 @@ describe('RiconciliazioniClient — empty state', () => {
 })
 
 describe('RiconciliazioniClient — gate ruolo front_desk', () => {
-  it('front_desk: azioni titolare-only ASSENTI (Riprova lo storno, Sblocca e reinvia, Controlla e conferma)', () => {
+  it('front_desk: azioni titolare-only ASSENTI (Riprova lo storno, Sblocca e reinvia, Controlla e conferma, Ho verificato sul portale)', () => {
     render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="front_desk" />)
     openGroup(/note di credito rifiutate dallo stato/i)
     openGroup(/segnate come inviate/i)
     openGroup(/ricevute da controllare a mano/i)
+    openGroup(/in attesa di risposta da troppo tempo/i)
 
     expect(screen.queryByRole('button', { name: /riprova lo storno/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /sblocca e reinvia/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /controlla e conferma/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ho verificato sul portale/i })).not.toBeInTheDocument()
   })
 
   it('front_desk: azioni condivise PRESENTI (Carica ricevuta PEC, Conferma ricevuta, Vedi il conto)', () => {
@@ -119,10 +121,77 @@ describe('RiconciliazioniClient — gate ruolo front_desk', () => {
     openGroup(/note di credito rifiutate dallo stato/i)
     openGroup(/segnate come inviate/i)
     openGroup(/ricevute da controllare a mano/i)
+    openGroup(/in attesa di risposta da troppo tempo/i)
 
     expect(screen.getByRole('button', { name: /riprova lo storno/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sblocca e reinvia/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /controlla e conferma/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /ho verificato sul portale/i })).toBeInTheDocument()
+  })
+})
+
+describe('RiconciliazioniClient — «Ho verificato sul portale» (override stagnanti, decisione 16/07 opzione 1)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+    refreshMock.mockClear()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function apriSheetPortale() {
+    render(<RiconciliazioniClient pendenze={PENDENZE_PIENE} ruolo="titolare" />)
+    openGroup(/in attesa di risposta da troppo tempo/i)
+    fireEvent.click(screen.getByRole('button', { name: /ho verificato sul portale/i }))
+  }
+
+  it('apre la sheet con le 3 opzioni allowlist in parole semplici e submit spento', () => {
+    apriSheetPortale()
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /ho verificato sul portale/i })).toBeInTheDocument()
+    expect(screen.getByText(/questa azione viene registrata/i)).toBeInTheDocument()
+
+    expect(screen.getByRole('radio', { name: 'Consegnata' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Accettata' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Rifiutata' })).toBeInTheDocument()
+
+    expect(screen.getByRole('button', { name: /aggiorna la fattura/i })).toBeDisabled()
+  })
+
+  it('submit resta spento con solo esito scelto (motivo mancante) e con solo motivo (esito mancante)', () => {
+    apriSheetPortale()
+    const submit = screen.getByRole('button', { name: /aggiorna la fattura/i })
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Accettata' }))
+    expect(submit).toBeDisabled() // manca il motivo
+
+    fireEvent.change(screen.getByRole('textbox', { name: /motivo/i }), { target: { value: '   ' } })
+    expect(submit).toBeDisabled() // motivo solo whitespace
+  })
+
+  it('esito scelto + motivo → POST stato-sdi-override con stato_sdi_atteso=smtp_inviata e nuovo_stato scelto', async () => {
+    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) })
+    apriSheetPortale()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Accettata' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /motivo/i }), {
+      target: { value: 'Esito visto su Fatture e Corrispettivi il 16/07' },
+    })
+    const submit = screen.getByRole('button', { name: /aggiorna la fattura/i })
+    expect(submit).toBeEnabled()
+    fireEvent.click(submit)
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+    const [url, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('/api/fatture/fat-stag-1/stato-sdi-override')
+    const body = JSON.parse(init.body as string)
+    expect(body).toEqual({
+      stato_sdi_atteso: 'smtp_inviata',
+      nuovo_stato: 'accettata',
+      motivo: 'Esito visto su Fatture e Corrispettivi il 16/07',
+    })
+    await waitFor(() => expect(refreshMock).toHaveBeenCalled())
   })
 })
 
