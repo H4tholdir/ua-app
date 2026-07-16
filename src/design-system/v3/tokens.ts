@@ -46,8 +46,9 @@ export const gradiente = {
   tastoPrimario: 'linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010)',   // §5.1
   pillFase: 'linear-gradient(180deg, #1F8544, #166B39)', // §5.4 rev. 3.1 — stop pinnati, mai var(--green) come faccia
   corsaPillFase: '#14602C',                                                      // §5.4
-  whatsapp: 'linear-gradient(180deg, #208650, #17663A)', // §3.3.4 rev. 3.1 — consumato dall'Ondata 4b
-  corsaWhatsApp: '#0E4A28',
+  // §5.29 / §3.3.4 — verde WhatsApp DEDICATO (bucket B 12/07: scurito AA,
+  // bianco 4.58:1 sullo stop chiaro). Riservato ai bottoni che aprono WhatsApp.
+  tastoWhatsApp: 'linear-gradient(180deg, #208650, #17663A)',
   dashedGuida: '#CBC1B0',                                                        // §5.11/5.12
 } as const
 
@@ -114,6 +115,9 @@ export const pillVoce = {
 } as const
 
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
+
+// §5.29 — corsa 3D del TastoWhatsApp (bordo scurito col gradiente, bucket B).
+export const verdeWhatsApp = { corsa: '#0E4A28' } as const
 
 // Valore-legge: testo bianco sopra le facce gradiente (§5.1 TastoPrimario, §5.4 PillFase).
 // Vive qui (non var(--…)) perché è bianco assoluto indipendente dal tema, non un token

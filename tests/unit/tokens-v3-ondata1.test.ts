@@ -1,7 +1,7 @@
 // tests/unit/tokens-v3-ondata1.test.ts
 import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
-import { luce, notte, gradiente } from '@/design-system/v3/tokens'
+import { luce, notte, gradiente, verdeWhatsApp } from '@/design-system/v3/tokens'
 
 describe('token Ondata 1 — revisioni di legge v3.1 (bucket B)', () => {
   it('espone la famiglia viola in entrambi i temi (§3 rev. 3.1)', () => {
@@ -23,8 +23,8 @@ describe('token Ondata 1 — revisioni di legge v3.1 (bucket B)', () => {
   })
 
   it('espone il verde WhatsApp scurito (§3.3.4 rev. 3.1)', () => {
-    expect(gradiente.whatsapp).toBe('linear-gradient(180deg, #208650, #17663A)')
-    expect(gradiente.corsaWhatsApp).toBe('#0E4A28')
+    expect(gradiente.tastoWhatsApp).toBe('linear-gradient(180deg, #208650, #17663A)')
+    expect(verdeWhatsApp.corsa).toBe('#0E4A28')
   })
 
   it('ds-v3.css porta gli stessi valori nei due blocchi scope', () => {
