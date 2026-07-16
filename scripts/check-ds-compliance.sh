@@ -97,6 +97,58 @@ if [ -n "$V3_EXISTS" ]; then
   fi
 fi
 
+# ── 5. CSS globali (globals.css + ds-v3.css) — ondata 16/07 ────────────────
+CSS_GLOBALI="src/app/globals.css src/app/ds-v3.css"
+
+# 5a. Gold come testo nei CSS (la DEFINIZIONE --gold:… in globals è legittima)
+CSS_GOLD=$(grep -nE "color:\s*var\(--gold\)|color:\s*#[Dd]4[Aa]843" $CSS_GLOBALI 2>/dev/null \
+  | grep -v "border-color\|background-color\|outline-color\|accent-color\|caret-color" || true)
+if [ -n "$CSS_GOLD" ]; then
+  echo ""
+  echo "❌ CSS globali: gold usato come testo (WCAG fail 1.6:1)"
+  echo "$CSS_GOLD"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# 5b. Vecchi fallback t2/t3 nei CSS
+CSS_T2=$(grep -n "#96918D\|#B8B3AE" $CSS_GLOBALI 2>/dev/null \
+  | grep -v "era #" || true)
+if [ -n "$CSS_T2" ]; then
+  echo ""
+  echo "❌ CSS globali: vecchi fallback t2/t3 (#96918D o #B8B3AE)"
+  echo "$CSS_T2"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# 5c. Font fuori allowlist. Allowlist: DM Sans + Playfair (legacy v2.3, import
+# storico riga 1 di globals.css) e Plus Jakarta Sans (v3, self-hosted).
+# Un nuovo import Google Fonts o un font vietato (Inter/Roboto) → FAIL.
+CSS_FONT=$(grep -nE "\bInter\b|Roboto" $CSS_GLOBALI 2>/dev/null || true)
+if [ -n "$CSS_FONT" ]; then
+  echo ""
+  echo "❌ CSS globali: font vietato (Inter/Roboto)"
+  echo "$CSS_FONT"
+  ERRORS=$((ERRORS + 1))
+fi
+CSS_GFONTS=$(grep -n "fonts.googleapis" $CSS_GLOBALI 2>/dev/null \
+  | grep -v "DM+Sans\|Playfair" || true)
+if [ -n "$CSS_GFONTS" ]; then
+  echo ""
+  echo "❌ CSS globali: import Google Fonts fuori allowlist (solo DM Sans+Playfair legacy)"
+  echo "$CSS_GFONTS"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# 5d. Anti-leak: i token v3 --sh-card/--sh-press/--font-v3 si DEFINISCONO solo
+# in ds-v3.css (i --sh-b/--sh-c/--sh-i v2.3 in globals.css sono legittimi).
+V3_LEAK=$(grep -nE -- "--sh-card\s*:|--sh-press\s*:|--font-v3\s*:" src/app/globals.css 2>/dev/null || true)
+if [ -n "$V3_LEAK" ]; then
+  echo ""
+  echo "❌ globals.css: token v3 definito fuori da ds-v3.css (anti-leak)"
+  echo "$V3_LEAK"
+  ERRORS=$((ERRORS + 1))
+fi
+
 # ── Report ──────────────────────────────────────────────────────────────────
 if [ $ERRORS -gt 0 ]; then
   echo ""
