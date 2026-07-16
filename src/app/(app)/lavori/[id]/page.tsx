@@ -5,10 +5,11 @@ import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLav
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
-type PageProps = { params: Promise<{ id: string }> }
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ consegna?: string }> }
 
-export default async function LavoroDettaglioPage({ params }: PageProps) {
+export default async function LavoroDettaglioPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const { consegna } = await searchParams
 
   // Auth
   const userClient = await getServerUserClient()
@@ -79,7 +80,7 @@ export default async function LavoroDettaglioPage({ params }: PageProps) {
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
-      <SchedaLavoroV3 lavoro={lavoroDettaglio} ruolo={utente.ruolo} />
+      <SchedaLavoroV3 lavoro={lavoroDettaglio} ruolo={utente.ruolo} apriConsegna={consegna === '1'} />
     </div>
   )
 }

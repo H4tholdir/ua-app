@@ -66,6 +66,7 @@ import { SchedaNavRail } from './SchedaNavRail'
 import { RifacimentoButton } from '@/components/features/lavori/RifacimentoButton'
 import { SegnalaProblemaSheet } from '@/components/features/lavori/SegnalaProblemaSheet'
 import { AnnullaConsegnaBanner } from '@/components/features/lavori/AnnullaConsegnaBanner'
+import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { pillStatoScheda } from '@/lib/lavori/stato-pill'
 import { derivaUrgenza } from '@/lib/lavori/urgenza'
 import { molla } from '@/design-system/v3/motion'
@@ -119,7 +120,7 @@ function consegnaImminente(data: string, oggi: Date): boolean {
   return Math.round((target - oggiZero) / MS_GIORNO) <= 1
 }
 
-export function SchedaLavoroV3(props: { lavoro: LavoroDettaglio; ruolo?: string | null }) {
+export function SchedaLavoroV3(props: { lavoro: LavoroDettaglio; ruolo?: string | null; apriConsegna?: boolean }) {
   return (
     <AvvisiProvider>
       <SchedaLavoroV3Corpo {...props} />
@@ -127,7 +128,7 @@ export function SchedaLavoroV3(props: { lavoro: LavoroDettaglio; ruolo?: string 
   )
 }
 
-function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | null }) {
+function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | null; apriConsegna?: boolean }) {
   const { ruolo } = props
   const router = useRouter()
   const { errore } = useAvvisi()
@@ -158,6 +159,10 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   const [menuAperto, setMenuAperto] = useState(false)
   const [documentiAperto, setDocumentiAperto] = useState(false)
   const [segnalaAperto, setSegnalaAperto] = useState(false)
+  // Task 13 — la scheda apre FlussoConsegna IN PLACE (la vecchia pagina
+  // `/consegna` muore al Task 15): `apriConsegna` (deep-link `?consegna=1`,
+  // letto da page.tsx) auto-apre il flusso al mount.
+  const [consegnaAperta, setConsegnaAperta] = useState(Boolean(props.apriConsegna))
 
   const lavoro = lavoroLocale
   const oggi = new Date()
@@ -288,7 +293,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
             <TastoPrimario
               disabled={!consegnabile}
               motivoDisabilitato={motivoConsegnaDisabilitato(lavoro)}
-              onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
+              onClick={() => setConsegnaAperta(true)}
             >
               Consegna
             </TastoPrimario>
@@ -331,6 +336,30 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         onApriDocumenti={() => {
           setMenuAperto(false)
           setDocumentiAperto(true)
+        }}
+      />
+
+      {/* FlussoConsegna (Task 12/13) — il rito della consegna IN PLACE, mai
+          più una navigazione a `/lavori/{id}/consegna` (pagina morta al Task
+          15). `onConsegnato` fa `router.refresh()` (rilegge i join freschi);
+          `onFrameChiuso` chiude E fa refresh (riserva UX #2: al back dalla
+          scheda lo sheet non deve riaprirsi da solo). `onRisolvi` chiude il
+          flusso PRIMA del push verso il tab di modifica pertinente. */}
+      <FlussoConsegna
+        lavoroId={lavoro.id}
+        numero={lavoro.numero_lavoro}
+        dentista={clienteDisplay(lavoro.cliente)}
+        descrizione={lavoro.descrizione}
+        aperto={consegnaAperta}
+        onChiudi={() => setConsegnaAperta(false)}
+        onConsegnato={() => router.refresh()}
+        onFrameChiuso={() => {
+          setConsegnaAperta(false)
+          router.refresh()
+        }}
+        onRisolvi={(route) => {
+          setConsegnaAperta(false)
+          router.push(`/lavori/${lavoro.id}/modifica?tab=${route}`)
         }}
       />
 

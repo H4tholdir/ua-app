@@ -25,7 +25,7 @@ describe('SchedaLavoroV3', () => {
   // NB (polish L1): il nome del TastoPrimario è ESATTAMENTE 'Consegna'; la riga
   // editabile della consegna ha nome 'Modifica consegna' (WCAG label-in-name).
   // Le query usano il nome esatto per non far collidere i due controlli.
-  it('CONSEGNA abilitato su lavoro pronto → naviga a /consegna', () => {
+  it('CONSEGNA abilitato su lavoro pronto', () => {
     render(<SchedaLavoroV3 lavoro={makeLavoro({ stato: 'pronto' })} />)
     const btn = screen.getByRole('button', { name: 'Consegna' })
     expect(btn).not.toBeDisabled()
