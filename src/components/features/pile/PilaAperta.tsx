@@ -24,6 +24,7 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { RigaCerca } from '@/components/ds/RigaCerca'
 import { CampoTesto } from '@/components/ds/Campo'
 import { Vuoto } from '@/components/ds/Vuoto'
+import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import type { LavoroPila } from '@/lib/dashboard/pile-home'
 import type { Pila } from '@/lib/lavori/urgenza'
 
@@ -52,6 +53,11 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
   const { pila, lista, sub } = props
   const router = useRouter()
   const [cerca, setCerca] = useState<string | null>(null) // null = riga chiusa
+  // Task 14 — il flusso di consegna è POSSEDUTO da questo host (riserva arch
+  // #5): FlussoConsegna monta in place, MAI più la navigazione a
+  // /lavori/[id]/consegna. Nessun `onConsegnato`: nelle pile il refresh vive
+  // SOLO alla chiusura del frame, mai a metà countdown (smonterebbe card+frame).
+  const [consegnaId, setConsegnaId] = useState<string | null>(null)
 
   const filtrata = useMemo(() => {
     if (!cerca) return lista
@@ -60,6 +66,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
   }, [lista, cerca])
 
   const idPrimoConsegnabile = pila === 'rossa' ? lista.find((l) => l.consegnabile)?.id : undefined
+  const lavoroInConsegna = consegnaId ? lista.find((l) => l.id === consegnaId) ?? null : null
   const vuoto = VUOTO[pila]
 
   return (
@@ -93,10 +100,23 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
               // e lo spread condizionale lo rende evidente anche a tsc.
               {...(pila === 'blu'
                 ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }
-                : { onConsegna: l.id === idPrimoConsegnabile ? () => router.push(`/lavori/${l.id}/consegna`) : undefined })}
+                : { onConsegna: l.id === idPrimoConsegnabile ? () => setConsegnaId(l.id) : undefined })}
             />
           ))}
         </div>
+      )}
+
+      {lavoroInConsegna && (
+        <FlussoConsegna
+          lavoroId={lavoroInConsegna.id}
+          numero={lavoroInConsegna.numero}
+          dentista={lavoroInConsegna.dentista}
+          descrizione={lavoroInConsegna.tipoLavoro}
+          aperto
+          onChiudi={() => setConsegnaId(null)}
+          onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
+          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+        />
       )}
     </section>
   )

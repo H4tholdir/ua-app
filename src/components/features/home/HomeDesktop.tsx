@@ -47,12 +47,13 @@
 // entrambi sullo stesso Invio, con due `router.push` verso URL diversi nello
 // stesso gesto (due voci di history per una pressione).
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { NavDesk } from '@/components/ds/NavDesk'
 import { SchedaAnteprima } from '@/components/features/pile/SchedaAnteprima'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
+import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { raggio, tipografia } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` (Task 9), NON da `pile-home.ts`: quel file porta
 // `import 'server-only'` e non può finire nel bundle client (v. nota in testa).
@@ -78,6 +79,10 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
   const { pile, pilaSelezionata, lavoroSelezionato, segnale } = props
   const router = useRouter()
   const listaRef = useRef<HTMLDivElement>(null)
+  // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
+  // stesso pattern di `PilaAperta`/`PilaSplit`: nessun `onConsegnato`, refresh
+  // SOLO alla chiusura del frame (mai a metà countdown).
+  const [consegnaId, setConsegnaId] = useState<string | null>(null)
 
   const lista = pile.liste[pilaSelezionata]
   const conteggi: Record<Pila, number> = { rossa: pile.liste.rossa.length, ambra: pile.liste.ambra.length, viola: pile.liste.viola.length, blu: pile.liste.blu.length }
@@ -85,6 +90,7 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
   const vuoto = VUOTO[pilaSelezionata]
   // Nessuna selezione esplicita (`?lavoro=`) → il primo della pila (mockup: n.147 preselezionato).
   const schedaLavoro = lavoroSelezionato ?? lista[0] ?? null
+  const lavoroInConsegna = consegnaId ? lista.find((l) => l.id === consegnaId) ?? null : null
 
   useEffect(() => {
     // v. nota in testa al file: sotto 1024 il componente resta montato ma
@@ -182,9 +188,22 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
 
       <section style={{ overflowY: 'auto' }}>
         {schedaLavoro
-          ? <SchedaAnteprima lavoro={schedaLavoro} />
+          ? <SchedaAnteprima lavoro={schedaLavoro} onConsegna={() => setConsegnaId(schedaLavoro.id)} />
           : <Vuoto glifo={vuoto.glifo} titolo={vuoto.titolo} guida={vuoto.guida} />}
       </section>
+
+      {lavoroInConsegna && (
+        <FlussoConsegna
+          lavoroId={lavoroInConsegna.id}
+          numero={lavoroInConsegna.numero}
+          dentista={lavoroInConsegna.dentista}
+          descrizione={lavoroInConsegna.tipoLavoro}
+          aperto
+          onChiudi={() => setConsegnaId(null)}
+          onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
+          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+        />
+      )}
     </div>
   )
 }

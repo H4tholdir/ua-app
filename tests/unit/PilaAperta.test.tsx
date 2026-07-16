@@ -22,12 +22,15 @@ describe('PilaAperta — la lista di legge (§4.1)', () => {
     expect(push).toHaveBeenCalledWith('/lavori/l147')
   })
 
-  it('TastoConsegnaInline SOLO sul primo elemento consegnabile della rossa → /lavori/[id]/consegna (P3)', async () => {
+  it('TastoConsegnaInline SOLO sul primo elemento consegnabile della rossa (P3)', () => {
+    // Il flusso di tap (apre `FlussoConsegna` in-place, niente più navigazione
+    // a /lavori/[id]/consegna) è coperto end-to-end da
+    // `tests/unit/pile/pile-consegna-inline.test.tsx` (Task 14) con fetch
+    // mockata — qui resta solo l'invariante «un solo tasto, sul primo
+    // consegnabile».
     render(<PilaAperta pila="rossa" sub="x" lista={[lav('144', { consegnabile: true }), lav('147', { consegnabile: true })]} />)
     const tasti = screen.getAllByRole('button', { name: 'CONSEGNA' })
     expect(tasti).toHaveLength(1)
-    await userEvent.setup().click(tasti[0])
-    expect(push).toHaveBeenCalledWith('/lavori/l144/consegna')
   })
 
   it('pila blu: CTA Conferma su OGNI card → scheda (P4)', () => {

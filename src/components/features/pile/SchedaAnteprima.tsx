@@ -13,7 +13,6 @@
 // — questo componente lo mostra invariato, non lo trasforma mai.
 
 import type { CSSProperties } from 'react'
-import { useRouter } from 'next/navigation'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { RigaFase } from '@/components/ds/RigaFase'
 import { PillTempo } from '@/components/ds/Pill'
@@ -49,9 +48,8 @@ function valoreConsegna(iso: string, oggi: Date): string {
   return maiuscolaIniziale(giornoBreve(iso, oggi))
 }
 
-export function SchedaAnteprima(props: { lavoro: LavoroPila }) {
-  const { lavoro } = props
-  const router = useRouter()
+export function SchedaAnteprima(props: { lavoro: LavoroPila; onConsegna: () => void }) {
+  const { lavoro, onConsegna } = props
   const oggi = new Date()
 
   const ora = lavoro.consegna.ora ? lavoro.consegna.ora.slice(0, 5) : null
@@ -111,7 +109,7 @@ export function SchedaAnteprima(props: { lavoro: LavoroPila }) {
         <TastoPrimario
           disabled={!lavoro.consegnabile}
           motivoDisabilitato="Completa il controllo finale per consegnare"
-          onClick={() => router.push(`/lavori/${lavoro.id}/consegna`)}
+          onClick={onConsegna}
         >
           Consegna
         </TastoPrimario>

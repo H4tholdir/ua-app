@@ -15,7 +15,7 @@ const lavoro: LavoroPila = {
 
 describe('SchedaAnteprima — pannello destro (mockup home.html 1280)', () => {
   it('CardInfo con le RigheDato + fasi + CONSEGNA disabled con callout (§5.1: MAI nascosto)', () => {
-    render(<SchedaAnteprima lavoro={lavoro} />)
+    render(<SchedaAnteprima lavoro={lavoro} onConsegna={vi.fn()} />)
     expect(screen.getByText('PZ-0412')).toBeInTheDocument()
     expect(screen.getByText('Controllo finale')).toBeInTheDocument()
     const consegna = screen.getByRole('button', { name: /consegna/i })
@@ -23,13 +23,15 @@ describe('SchedaAnteprima — pannello destro (mockup home.html 1280)', () => {
     expect(screen.getByText('Completa il controllo finale per consegnare')).toBeInTheDocument()
   })
 
-  it('consegnabile → CONSEGNA attivo che naviga alla consegna (P3)', async () => {
+  it('consegnabile → CONSEGNA attivo che chiama onConsegna (Task 14: host possiede il flusso, MAI più router.push)', async () => {
     const user = (await import('@testing-library/user-event')).default.setup()
-    render(<SchedaAnteprima lavoro={{ ...lavoro, consegnabile: true, fasi: lavoro.fasi.map((f) => ({ ...f, fatta: true })) }} />)
+    const onConsegna = vi.fn()
+    render(<SchedaAnteprima lavoro={{ ...lavoro, consegnabile: true, fasi: lavoro.fasi.map((f) => ({ ...f, fatta: true })) }} onConsegna={onConsegna} />)
     const consegna = screen.getByRole('button', { name: /consegna/i })
     expect(consegna).toBeEnabled()
     await user.click(consegna)
-    expect(push).toHaveBeenCalledWith('/lavori/l147/consegna')
+    expect(onConsegna).toHaveBeenCalledTimes(1)
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('lavoro in ritardo → «Consegna» dice il ritardo in parole del banco, con stile urgente', () => {
@@ -40,7 +42,7 @@ describe('SchedaAnteprima — pannello destro (mockup home.html 1280)', () => {
     treGiorniFa.setDate(treGiorniFa.getDate() - 3)
     const iso = `${treGiorniFa.getFullYear()}-${String(treGiorniFa.getMonth() + 1).padStart(2, '0')}-${String(treGiorniFa.getDate()).padStart(2, '0')}`
 
-    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: '−3 GIORNI', famiglia: 'red' }, consegna: { data: iso, ora: '16:00:00' } }} />)
+    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: '−3 GIORNI', famiglia: 'red' }, consegna: { data: iso, ora: '16:00:00' } }} onConsegna={vi.fn()} />)
     const valore = screen.getByText('3 giorni fa · 16:00')
     expect(valore).toBeInTheDocument()
     expect(valore).toHaveStyle({ color: 'var(--red)' }) // in ritardo = massimamente urgente
@@ -51,7 +53,7 @@ describe('SchedaAnteprima — pannello destro (mockup home.html 1280)', () => {
     ieri.setDate(ieri.getDate() - 1)
     const iso = `${ieri.getFullYear()}-${String(ieri.getMonth() + 1).padStart(2, '0')}-${String(ieri.getDate()).padStart(2, '0')}`
 
-    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: 'DA IERI', famiglia: 'red' }, consegna: { data: iso, ora: null } }} />)
+    render(<SchedaAnteprima lavoro={{ ...lavoro, pill: { testo: 'DA IERI', famiglia: 'red' }, consegna: { data: iso, ora: null } }} onConsegna={vi.fn()} />)
     const valore = screen.getByText('Ieri')
     expect(valore).toBeInTheDocument()
     expect(valore).toHaveStyle({ color: 'var(--red)' })

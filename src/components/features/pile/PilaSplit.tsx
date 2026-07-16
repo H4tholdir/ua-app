@@ -19,11 +19,13 @@
 // sul nodo che possiede lo sfondo), il wrapper qui sotto porta SOLO l'ombra
 // ambiente quando selezionata.
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MorphPila } from '@/components/ds/MorphPila'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { SchedaAnteprima } from './SchedaAnteprima'
+import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { raggio } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` come i fratelli client (review Task 9): il type-only
 // da `pile-home.ts` (server-only) è innocuo a runtime ma incoerente col confine
@@ -45,9 +47,14 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
 export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null }) {
   const { pila, lista, sub, lavoroSelezionato } = props
   const router = useRouter()
+  // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
+  // stesso pattern di `PilaAperta`: nessun `onConsegnato`, refresh SOLO alla
+  // chiusura del frame.
+  const [consegnaId, setConsegnaId] = useState<string | null>(null)
 
   const idPrimoConsegnabile = pila === 'rossa' ? lista.find((l) => l.consegnabile)?.id : undefined
   const schedaLavoro = lavoroSelezionato ?? lista[0] ?? null
+  const lavoroInConsegna = consegnaId ? lista.find((l) => l.id === consegnaId) ?? null : null
   const vuoto = VUOTO[pila]
 
   return (
@@ -80,7 +87,7 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
                   onApri={() => router.push(`/lavori?pila=${pila}&lavoro=${l.id}`)}
                   {...(pila === 'blu'
                     ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }
-                    : { onConsegna: l.id === idPrimoConsegnabile ? () => router.push(`/lavori/${l.id}/consegna`) : undefined })}
+                    : { onConsegna: l.id === idPrimoConsegnabile ? () => setConsegnaId(l.id) : undefined })}
                 />
               </div>
             )
@@ -90,9 +97,22 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
 
       <section style={{ overflowY: 'auto' }}>
         {schedaLavoro
-          ? <SchedaAnteprima lavoro={schedaLavoro} />
+          ? <SchedaAnteprima lavoro={schedaLavoro} onConsegna={() => setConsegnaId(schedaLavoro.id)} />
           : <Vuoto glifo={vuoto.glifo} titolo={vuoto.titolo} guida={vuoto.guida} />}
       </section>
+
+      {lavoroInConsegna && (
+        <FlussoConsegna
+          lavoroId={lavoroInConsegna.id}
+          numero={lavoroInConsegna.numero}
+          dentista={lavoroInConsegna.dentista}
+          descrizione={lavoroInConsegna.tipoLavoro}
+          aperto
+          onChiudi={() => setConsegnaId(null)}
+          onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
+          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+        />
+      )}
     </div>
   )
 }
