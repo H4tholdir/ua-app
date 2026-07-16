@@ -195,7 +195,7 @@ export function RiconciliazioniClient({ pendenze, ruolo, puoCaricareRicevute }: 
               groupKey="park"
               icon="📥"
               iconTint="var(--c-orange)"
-              iconInk="var(--c-orange)"
+              iconInk="var(--c-orange-ink)"
               label="Ricevute da controllare a mano"
               sub="UÀ non è riuscita ad abbinarle o verificarle"
               count={pendenze.eventiParcheggiati.length}
@@ -213,7 +213,7 @@ export function RiconciliazioniClient({ pendenze, ruolo, puoCaricareRicevute }: 
                     title={titolo}
                     sub={
                       firmaFallita ? (
-                        <span role="alert" style={{ color: 'var(--c-orange)', fontWeight: 700 }}>
+                        <span role="alert" style={{ color: 'var(--c-orange-ink)', fontWeight: 700 }}>
                           ⚠ Verifica firma non disponibile — controllo manuale obbligatorio
                         </span>
                       ) : ec02 ? (
@@ -681,7 +681,7 @@ function ConfermaRicevutaSheet({
       </p>
 
       {firmaFallita && (
-        <p role="alert" style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--c-orange)', margin: '0 0 14px', lineHeight: 1.45 }}>
+        <p role="alert" style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--c-orange-ink)', margin: '0 0 14px', lineHeight: 1.45 }}>
           ⚠ Verifica firma non disponibile — controllo manuale obbligatorio
         </p>
       )}
@@ -736,6 +736,15 @@ function useIsDesktopShell(): boolean {
  * questa pagina (Override/Upload/SbloccaClaim). */
 function SheetShell({ titleId, onClose, children }: { titleId: string; onClose: () => void; children: React.ReactNode }) {
   const isDesktop = useIsDesktopShell()
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <>
       <div

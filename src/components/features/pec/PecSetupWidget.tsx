@@ -294,7 +294,7 @@ export function PecSetupWidget({ onSuccess, onSkip }: Props) {
           Comunicato da SdI con la prima ricevuta. Lascia vuoto se non ancora ricevuto.
         </div>
         {sdiSaveError && (
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#D90012', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginTop: '2px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary, #D90012)', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5, marginTop: '2px' }}>
             ❌ {sdiSaveError}
           </div>
         )}

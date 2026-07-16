@@ -87,6 +87,7 @@
   --c-red:    #EF4444;
   --c-purple: #8B5CF6;
   --c-amber-ink: #92400E;  /* amber INK per testo/valori — WCAG AA su tinta ambra chiara (5.01:1); MAI usare --c-amber come colore testo */
+  --c-orange-ink: #9A3412; /* orange INK per testo/alert — WCAG AA su --sfc chiaro (~5.5:1); MAI usare --c-orange come colore testo */
   --red-ink: #B00010;      /* rosso testo AA — alert saldo negativo (5.6:1 su --sfc light) */
 
   /* Shadows warm-tinted asimmetriche (da admin.css) */
@@ -159,6 +160,7 @@
   --t3:      #5A5652;
   --primary: #E8001A;
   --c-amber-ink: #F59E0B;  /* dark: ink = amber pieno (6.07:1 su tinta ambra dark) */
+  --c-orange-ink: #F97316; /* dark: ink = orange pieno (contrasto AA su --sfc dark) */
   --red-ink: #FF5A66;      /* rosso testo AA — alert saldo negativo (5.4:1 su --sfc dark) */
   --sh-c:
     inset 0 1px 0 rgba(255,255,255,.055),
@@ -948,6 +950,15 @@
 }
 .ua-bill-toggle-btn:focus { outline: none; }
 .ua-bill-toggle-btn:focus-visible { outline: 2px solid rgba(217,0,18,0.45); outline-offset: 2px; border-radius: inherit; }
+
+/* Gate L2 «Riconciliazioni R1» — bottoni/textarea dei fogli riconciliazione
+   (UploadRicevutaSheet/SbloccaClaimSheet/OverrideStatoSheet) impostano
+   outline:'none' inline senza sostituto: :focus-visible via classe qui,
+   !important perché lo stile inline vince altrimenti sulla sola pseudo-classe. */
+.ua-riconc-focusable:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px;
+}
 .ua-bill-save-badge {
   position: absolute;
   top: -9px;

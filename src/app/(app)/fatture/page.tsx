@@ -166,7 +166,11 @@ export default async function FatturePage() {
               fontSize: 13,
               fontWeight: 700,
               textDecoration: 'none',
-              color: 'var(--primary, #D90012)',
+              // --red-ink (non --primary): il testo sulla tinta 10% è sotto AA
+              // con --primary puro in dark (3.56:1 misurato, gate L2) — --red-ink
+              // è calibrato apposta per testo-su-tinta (stesso pattern del saldo
+              // negativo in CreditoDisponibileSection).
+              color: 'var(--red-ink, #B00010)',
               fontFamily: 'DM Sans, sans-serif',
             }}
           >

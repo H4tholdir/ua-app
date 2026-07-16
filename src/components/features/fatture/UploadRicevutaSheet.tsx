@@ -70,6 +70,15 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
   // foglio SOLO quando serve e lo smonta alla chiusura — ogni apertura è
   // già un mount fresco con gli useState iniziali sopra.
 
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !isPending) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, isPending, onClose])
+
   async function handleLeggi() {
     if (!file || isPending) return
     hapticMedium()
@@ -267,11 +276,12 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
                   )}
 
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="button" onClick={onClose} disabled={isPending} style={ctaNeutral}>
+                    <button type="button" className="ua-riconc-focusable" onClick={onClose} disabled={isPending} style={ctaNeutral}>
                       Annulla
                     </button>
                     <button
                       type="button"
+                      className="ua-riconc-focusable"
                       onClick={handleLeggi}
                       disabled={!file || isPending}
                       style={{ ...ctaRed, cursor: !file || isPending ? 'not-allowed' : 'pointer', opacity: !file || isPending ? 0.42 : 1, boxShadow: !file || isPending ? 'none' : 'var(--sh-red)' }}
@@ -307,7 +317,7 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
                     </div>
                     {esito?.esitoVerificaFirma === 'fallita' && (
                       <div style={{ ...row, borderBottom: 'none' }} role="alert">
-                        <span style={{ color: 'var(--c-orange)', fontWeight: 700 }}>
+                        <span style={{ color: 'var(--c-orange-ink)', fontWeight: 700 }}>
                           ⚠ Verifica firma non disponibile — controllo manuale obbligatorio
                         </span>
                       </div>
@@ -321,11 +331,12 @@ export function UploadRicevutaSheet(props: UploadRicevutaSheetProps) {
                   )}
 
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="button" onClick={onClose} disabled={isPending} style={ctaNeutral}>
+                    <button type="button" className="ua-riconc-focusable" onClick={onClose} disabled={isPending} style={ctaNeutral}>
                       Annulla
                     </button>
                     <button
                       type="button"
+                      className="ua-riconc-focusable"
                       onClick={handleConferma}
                       disabled={isPending}
                       style={{ ...ctaRed, cursor: isPending ? 'not-allowed' : 'pointer', opacity: isPending ? 0.6 : 1, boxShadow: 'var(--sh-red)' }}

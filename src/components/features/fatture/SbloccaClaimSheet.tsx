@@ -53,6 +53,15 @@ export function SbloccaClaimSheet(props: SbloccaClaimSheetProps) {
   // foglio SOLO quando serve e lo smonta alla chiusura — ogni apertura è
   // già un mount fresco con gli useState iniziali sopra.
 
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !isPending) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, isPending, onClose])
+
   const motivoTrim = motivo.trim()
   const canSubmit = motivoTrim.length > 0 && verificata && !isPending
 
@@ -187,6 +196,7 @@ export function SbloccaClaimSheet(props: SbloccaClaimSheetProps) {
               </p>
               <textarea
                 aria-label="Motivo"
+                className="ua-riconc-focusable"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
@@ -205,10 +215,10 @@ export function SbloccaClaimSheet(props: SbloccaClaimSheetProps) {
               )}
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={onClose} disabled={isPending} style={ctaNeutral}>
+                <button type="button" className="ua-riconc-focusable" onClick={onClose} disabled={isPending} style={ctaNeutral}>
                   Annulla
                 </button>
-                <button type="button" onClick={handleSubmit} disabled={!canSubmit} style={ctaRed}>
+                <button type="button" className="ua-riconc-focusable" onClick={handleSubmit} disabled={!canSubmit} style={ctaRed}>
                   {isPending ? 'Sblocco…' : 'Sblocca e reinvia'}
                 </button>
               </div>

@@ -340,6 +340,7 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
               </p>
               <textarea
                 aria-label="Motivo"
+                className="ua-riconc-focusable"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
@@ -358,10 +359,10 @@ export function OverrideStatoSheet(props: OverrideStatoSheetProps) {
               )}
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={onClose} disabled={isPending} style={ctaNeutral}>
+                <button type="button" className="ua-riconc-focusable" onClick={onClose} disabled={isPending} style={ctaNeutral}>
                   Annulla
                 </button>
-                <button type="button" onClick={handleSubmit} disabled={!canSubmit} style={ctaRed}>
+                <button type="button" className="ua-riconc-focusable" onClick={handleSubmit} disabled={!canSubmit} style={ctaRed}>
                   {isPending ? 'Invio…' : pickerMode ? 'Aggiorna la fattura' : 'Sì, procedi'}
                 </button>
               </div>
