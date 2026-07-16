@@ -11,10 +11,11 @@
 // Polish Livello 1 (2026-07-14, ratifica Francesco): la scheda-vista v3
 // `/lavori/[id]` (Ondata 3a) e la route-ponte `/lavori/[id]/modifica` sono ora
 // v3 → avatar + BottomNavPill legacy si ritirano anche lì (su desktop la scheda
-// rende il proprio rail). Il flusso di consegna `/lavori/[id]/consegna` resta
-// v2.3 e NON si migra. `SCHEDA_V3_RE` copre esattamente detail e ponte, mai
-// `/consegna` né altre sotto-route: `[^/]+` è un singolo segmento (l'id), il
-// gruppo `/modifica` è opzionale e chiuso da `$`.
+// rende il proprio rail). Il flusso di consegna vive in-place nella
+// scheda/pile (ondata 16/07); la route `/consegna` è un semplice redirect →
+// resta correttamente FUORI dal predicato. `SCHEDA_V3_RE` copre esattamente
+// detail e ponte, mai `/consegna` né altre sotto-route: `[^/]+` è un singolo
+// segmento (l'id), il gruppo `/modifica` è opzionale e chiuso da `$`.
 export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo']
 
 const SCHEDA_V3_RE = /^\/lavori\/[^/]+(\/modifica)?$/

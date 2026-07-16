@@ -171,20 +171,4 @@ test.describe('Percorso critico autenticato', () => {
     await page.waitForURL(/\/lavori\/[a-f0-9-]{36}$/, { timeout: 15000 })
     expect(page.url()).toMatch(/\/lavori\/[a-f0-9-]{36}$/)
   })
-
-  test.skip('pagina CONSEGNA mostra riepilogo documenti', async ({ page }) => {
-    await loginAs(page, process.env.TEST_USER_EMAIL!, process.env.TEST_USER_PASSWORD!)
-    await page.goto('/lavori/nuovo')
-    await page.selectOption('select', { index: 1 })
-    await page.fill('textarea', 'E2E test per CONSEGNA — da eliminare')
-    const domani = new Date()
-    domani.setDate(domani.getDate() + 1)
-    await page.fill('input[type=date]', domani.toISOString().split('T')[0])
-    await page.click('button:has-text("Crea lavoro")')
-    await page.waitForURL(/\/lavori\/[a-f0-9-]{36}$/, { timeout: 15000 })
-
-    const lavoroUrl = page.url()
-    await page.goto(lavoroUrl + '/consegna')
-    await expect(page.locator('text=CONSEGNA').first()).toBeVisible({ timeout: 10000 })
-  })
 })

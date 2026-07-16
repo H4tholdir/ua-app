@@ -150,7 +150,7 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
     vi.restoreAllMocks()
   })
 
-  it('autosave fallisce (PATCH 500) → NON naviga a /consegna, resta sulla pagina con errore visibile, nessuna eccezione non gestita', async () => {
+  it('autosave fallisce (PATCH 500) → NON naviga a ?consegna=1, resta sulla pagina con errore visibile, nessuna eccezione non gestita', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 500,
@@ -188,7 +188,7 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
 
       // Il salvataggio è fallito: niente navigazione
       await waitFor(() => {
-        expect(pushMock).not.toHaveBeenCalledWith('/lavori/lavoro-1/consegna')
+        expect(pushMock).not.toHaveBeenCalledWith('/lavori/lavoro-1?consegna=1')
       })
 
       // Feedback visibile: il pulsante Salva mostra il testo di errore
@@ -207,7 +207,7 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
     }
   })
 
-  it('autosave riesce (PATCH 200) → naviga regolarmente a /consegna', async () => {
+  it('autosave riesce (PATCH 200) → naviga regolarmente a ?consegna=1', async () => {
     ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: async () => ({ lavoro: { id: 'lavoro-1' } }),
@@ -222,7 +222,7 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
     fireEvent.click(consegnaButton)
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalled())
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/lavori/lavoro-1/consegna'))
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/lavori/lavoro-1?consegna=1'))
   })
 
   it('form non dirty → naviga subito senza tentare il salvataggio', async () => {
@@ -231,7 +231,7 @@ describe('LavoroFormClient — pulsante CONSEGNA con autosave fallito', () => {
     const consegnaButton = screen.getByRole('button', { name: /Vai alla consegna del lavoro/i })
     fireEvent.click(consegnaButton)
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/lavori/lavoro-1/consegna'))
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/lavori/lavoro-1?consegna=1'))
     // NB: il mount di CicloComboBox con ciclo_id già valorizzato (vedi
     // makeLavoro) fa una fetch di hydration verso /api/cicli?id= — non è il
     // salvataggio che questo test verifica. L'assenza di PATCH verso

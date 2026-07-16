@@ -402,7 +402,7 @@ export function LavoroFormClient({
                   return
                 }
               }
-              router.push(`/lavori/${lavoro.id}/consegna`)
+              router.push(`/lavori/${lavoro.id}?consegna=1`)
             }}
             style={{
               flex: isDirty ? '0 0 auto' : 1,

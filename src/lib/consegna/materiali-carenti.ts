@@ -1,6 +1,7 @@
 // src/lib/consegna/materiali-carenti.ts
-// Estratto da api/lavori/[id]/precheck-materiali (ondata 16/07, riserva
-// backend #3): il calcolo BOM lavorazioni → listino_materiali_auto →
+// Estratto dalla vecchia route GET di precheck materiali (ondata 16/07,
+// riserva backend #3; la route stessa è morta nel Task 15 insieme alla
+// pagina /consegna): il calcolo BOM lavorazioni → listino_materiali_auto →
 // magazzino è condiviso dalla GET precheck-consegna. Logica INVARIATA.
 import type { getServiceClient } from '@/lib/supabase/server-service'
 

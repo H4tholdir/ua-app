@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 
+// 'src/app/(app)/lavori/[id]/consegna/page.tsx' rimosso dalla lista (Task 15,
+// ondata 16/07): la pagina intermedia è morta, ora è un puro redirect senza
+// alcuna lettura DB — non è più un "lettore" di ddc:dichiarazioni_conformita.
 const FILES = [
   'src/app/(app)/lavori/[id]/page.tsx',
-  'src/app/(app)/lavori/[id]/consegna/page.tsx',
   'src/app/api/lavori/[id]/route.ts',
   'src/app/api/fatture/[id]/xml/route.ts',
   'src/app/api/fatture/batch/route.ts',
