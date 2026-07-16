@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-
-interface MaterialeCarente {
-  nome: string
-  quantita_necessaria: number
-  scorta_attuale: number
-  unita_misura: string
-  sufficiente: boolean
-}
+import { materialiCarenti, type MaterialeCarente } from '@/lib/consegna/materiali-carenti'
 
 interface PrecheckMaterialiResponse {
   ok: boolean
@@ -62,67 +55,11 @@ export async function GET(
   ].filter((x): x is string => x !== null)
   const mdrIncompleto = mdrCampiMancanti.length > 0
 
-  // Carica le lavorazioni del lavoro
-  const { data: lavorazioni, error: lavErr } = await svc
-    .from('lavori_lavorazioni')
-    .select('id, listino_id, quantita')
-    .eq('lavoro_id', id)
-    .eq('laboratorio_id', labId)
-
-  if (lavErr || !lavorazioni || lavorazioni.length === 0) {
-    return NextResponse.json<PrecheckMaterialiResponse>({
-      ok: !mdrIncompleto,
-      materiali_carenti: [],
-      mdr_incompleto: mdrIncompleto,
-      mdr_campi_mancanti: mdrCampiMancanti,
-    })
-  }
-
-  const materialiCarenti: MaterialeCarente[] = []
-
-  for (const lavorazione of lavorazioni) {
-    if (!lavorazione.listino_id) continue
-
-    // Carica il BOM per questa lavorazione
-    const { data: bomItems } = await svc
-      .from('listino_materiali_auto')
-      .select('magazzino_id, quantita_per_unita, unita_misura')
-      .eq('listino_id', lavorazione.listino_id)
-      .eq('laboratorio_id', labId)
-
-    if (!bomItems || bomItems.length === 0) continue
-
-    for (const bom of bomItems) {
-      const quantitaNecessaria = Number(bom.quantita_per_unita) * Number(lavorazione.quantita)
-
-      // Carica la scorta attuale del materiale
-      const { data: magazzino } = await svc
-        .from('magazzino')
-        .select('nome, scorta_attuale')
-        .eq('id', bom.magazzino_id)
-        .eq('laboratorio_id', labId)
-        .single()
-
-      if (!magazzino) continue
-
-      const scorta = Number(magazzino.scorta_attuale)
-      const sufficiente = scorta >= quantitaNecessaria
-
-      if (!sufficiente) {
-        materialiCarenti.push({
-          nome: magazzino.nome as string,
-          quantita_necessaria: quantitaNecessaria,
-          scorta_attuale: scorta,
-          unita_misura: bom.unita_misura as string,
-          sufficiente: false,
-        })
-      }
-    }
-  }
+  const materialiCarentiRisultato = await materialiCarenti(svc, id, labId)
 
   const response: PrecheckMaterialiResponse = {
-    ok: materialiCarenti.length === 0 && !mdrIncompleto,
-    materiali_carenti: materialiCarenti,
+    ok: materialiCarentiRisultato.length === 0 && !mdrIncompleto,
+    materiali_carenti: materialiCarentiRisultato,
     mdr_incompleto: mdrIncompleto,
     mdr_campi_mancanti: mdrCampiMancanti,
   }
