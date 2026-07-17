@@ -401,7 +401,8 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 - Regione Vercel = `fra1` (verificata dagli header). Regione Supabase non verificabile da qui (dietro Cloudflare) — **da confermare** che sia eu-central/vicina a fra1.
 - Correlati già a backlog: M3 (asset statici senza cache immutabile), badge `/fatture` con aggregazione completa invece di COUNT (nota R1), A2/M2 (offline/rete lenta).
 
-**Prossimo passo (sessione dedicata P0-PERF):** completare la Fase 1 con strumentazione reale — `Server-Timing` sulle route principali o lettura dei log/observability Vercel (durata funzione vs tempo query), conferma regione+compute Supabase (serve accesso dashboard/MCP Supabase autenticato) — POI decidere i fix alla causa radice (candidati da validare, NON ancora decisi: dedup auth/utenti con `cache()`, parallelizzazione loader, meno chiamate `getUser` per request, query aggregate/RPC, upgrade compute Supabase). Dominio trasversale → percorso GRANDE (BP-2).
+**✅ DIAGNOSI COMPLETATA (17/07/2026, stessa giornata):** causa radice = **funzioni Vercel a `iad1` (USA, default mai configurato) con DB Supabase a `eu-west-1` (Irlanda)** — ogni `await` verso il DB paga ~90ms transatlantici, moltiplicato da 5-10 round-trip sequenziali per request (auth triplicata middleware+layout+page, query `utenti` duplicata, zero `cache()`, 6-18 await seriali). Audit capillare Playwright in prod (27 superfici, lab E2E): TTFB 600-1550ms uniforme, login→dashboard 5,2s, API GET 500-900ms. **Panel advisor (regola 17/07): 3× CONFERMATA CON RISERVE** (solution-architect + sre-guardian + backend-api), tutte integrate. Rapporto completo con misure, piano R1→R2→R3 ratificato, budget di performance e osservabilità: **`docs/roadmap/P0-PERF-DIAGNOSI-2026-07-17.md`**.
+**Piano:** R1 = region `dub1` (config-only, reversibile, gate deploy Francesco) → re-misura → R2 = riduzione round-trip (getClaims middleware → helper `getLabContext` con cache() → Promise.all → consolidamento route; percorso GRANDE, tocca auth) → R3 = Speed Insights/Server-Timing/pg_stat_statements + Supabase Pro al primo cliente pagante. Nuovi item scoperti dal panel: **N11** (sicurezza `deleted_at`) e **N12** (atomicità route prove) — vedi §N.
 
 ---
 
@@ -446,6 +447,12 @@ La nota di credito si ferma a `stato_sdi='generata'`: la route `POST /api/fattur
 
 ### N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata — ✅ RISOLTO (15/07/2026, con N10 — vedi sopra)
 Stesso rimedio di N10: `POST /api/fatture/[id]/invia-pec` legge `xml_storage_path`/`nome_file_xml` esistenti e invoca solo `sendFatturaPEC`. Su 502 il claim viene rilasciato e il bottone resta ritentabile. Testo originale sotto per storia.
+
+### N11. Incoerenza filtro `utenti.deleted_at` — un utente soft-deleted passa layout e API (scoperto dal panel P0-PERF, 17/07/2026) 🔴 sicurezza
+`dashboard/page.tsx:37` filtra `.is('deleted_at', null)`, ma `(app)/layout.tsx:20-24` e `api/clienti/route.ts:18-22` (e verosimilmente altre route con lo stesso pattern) NO. Un utente disattivato/soft-deleted supera il gate del layout e le API finché la sessione è valida. **Destinazione:** si chiude dentro R2a′ di P0-PERF (l'helper unico `getLabContext()` adotta la variante restrittiva) — ma va testato come fix di SICUREZZA, con censimento di tutte le occorrenze del pattern.
+
+### N12. `api/lavori/[id]/prove/route.ts:103-120` — transizione stato + count + insert senza transazione (scoperto dal panel P0-PERF, 17/07/2026)
+3+ round-trip non atomici in dominio MDR: un fallimento a metà lascia stato incoerente. Precedente corretto già in casa: `crea_rifacimento_atomico()`. **Destinazione:** RPC transazionale dedicata, candidata alla fase R2d di P0-PERF o a task dedicato.
 
 **Follow-up nuovi aperti dalla feature (15/07/2026):**
 - **Rate-limit per-lab sugli invii PEC** — la route nuova non ha throttling; un client malevolo autenticato può martellare l'endpoint (il claim previene il doppio invio, non il carico SMTP). 🟡
