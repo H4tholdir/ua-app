@@ -7,6 +7,7 @@ import { PushRegistrar } from '@/components/features/notifications/PushRegistrar
 import { SkipToContent } from '@/components/layout/SkipToContent'
 import { UserProfileSheet } from '@/components/layout/UserProfileSheet'
 import { RealtimeProvider } from '@/components/layout/RealtimeProvider'
+import { LabGuardFetchInterceptor } from '@/components/layout/LabGuardFetchInterceptor'
 
 // Wrapper isolato per il timestamp — react-hooks/purity vieta di chiamare
 // performance.now() direttamente nel corpo del Server Component (vedi anche
@@ -72,6 +73,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* SkipToContent è un Client island — onFocus/onBlur non possono stare in Server Component */}
       <SkipToContent />
+
+      {/* N13: mappa i 403 UA_LAB_* delle API al redirect abbonamento */}
+      <LabGuardFetchInterceptor />
 
       {/* Profilo utente — avatar fisso top-right + bottom sheet */}
       <UserProfileSheet
