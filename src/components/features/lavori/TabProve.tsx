@@ -104,6 +104,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'manda_in_prova',
           data_rientro_prevista: dataRientro,
           istruzioni: istruzioni || null,
         }),
@@ -126,11 +127,12 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
     if (!esito) return
     setRientroSubmitting((prev) => ({ ...prev, [provaId]: true }))
     try {
-      const res = await fetch(`/api/lavori/${lavoroId}/prove/${provaId}/rientro`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/lavori/${lavoroId}/prove`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data_rientro_effettiva: new Date().toISOString().split('T')[0],
+          action: 'registra_rientro',
+          prova_id: provaId,
           esito,
           note_dentista: rientroNote[provaId] || null,
         }),
