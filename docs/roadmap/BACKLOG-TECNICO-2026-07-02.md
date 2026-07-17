@@ -386,6 +386,25 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 
 ---
 
+## 🔴 P0-PERF — Lentezza sistemica della PWA in produzione (segnalazione Francesco 17/07/2026 — PRIMO item della nuova sequenza)
+
+**Sintomo:** ogni operazione e ogni caricamento pagina in produzione (uachelab.com) sono troppo lenti. Requisito esplicito: «la PWA deve essere velocissima e fluida».
+
+**Evidenze del triage iniziale (17/07/2026, sola lettura — Fase 1 systematic-debugging, NON conclusa):**
+- Le pagine **pubbliche** sono veloci (`/login`: TTFB 180-340ms a caldo, `x-vercel-cache: HIT`) → la lentezza vive nelle **pagine autenticate** (tutte dinamiche, render per-request) e nelle mutazioni.
+- **Catena di round-trip sequenziali Vercel→Supabase per OGNI navigazione autenticata** (esempio dashboard, verificato nel codice):
+  1. `middleware.ts:22` → `auth.getUser()` (chiamata di rete ad Auth su ogni request)
+  2. `(app)/layout.tsx` → `auth.getUser()` di nuovo + query `utenti` + query `laboratori` (3 round-trip sequenziali)
+  3. `dashboard/page.tsx:32-44` → `auth.getUser()` una **terza** volta + query `utenti` di nuovo + `getPerimetroHome` → `getPileHome` → `getSegnaleStriscia` (tutti in `await` sequenziale, mai `Promise.all`)
+  → ≥9 round-trip in serie prima del first byte; nessun uso di React `cache()` per dedup per-request.
+- **Supabase su piano FREE** (documentato in B19) → compute Nano condiviso: ogni query paga di più, e le query pesanti (join a 9 tabelle della scheda, aggregazioni badge `/fatture`) lo saturano.
+- Regione Vercel = `fra1` (verificata dagli header). Regione Supabase non verificabile da qui (dietro Cloudflare) — **da confermare** che sia eu-central/vicina a fra1.
+- Correlati già a backlog: M3 (asset statici senza cache immutabile), badge `/fatture` con aggregazione completa invece di COUNT (nota R1), A2/M2 (offline/rete lenta).
+
+**Prossimo passo (sessione dedicata P0-PERF):** completare la Fase 1 con strumentazione reale — `Server-Timing` sulle route principali o lettura dei log/observability Vercel (durata funzione vs tempo query), conferma regione+compute Supabase (serve accesso dashboard/MCP Supabase autenticato) — POI decidere i fix alla causa radice (candidati da validare, NON ancora decisi: dedup auth/utenti con `cache()`, parallelizzazione loader, meno chiamate `getUser` per request, query aggregate/RPC, upgrade compute Supabase). Dominio trasversale → percorso GRANDE (BP-2).
+
+---
+
 ## 🆕 §N — Nuovi item tracciati (09/07/2026, sessione design DS v3 sp.3 «Il cuore» — etichette di destinazione da emendamenti E1-E7)
 
 ### N1. Workflow firma DdC mai implementato

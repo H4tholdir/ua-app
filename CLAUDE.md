@@ -101,6 +101,9 @@ FASE 10 → DEPLOY: merge → push → attendi CI verde → verifica uachelab.co
 FASE 11 → BP-1: aggiorna MEMORY.md + ROADMAP-UFFICIALE.md
 ```
 
+**REGOLA ADVISOR (ratificata da Francesco, 17/07/2026 — permanente):**
+Ogni **decisione significativa** (architetturale, di design, di priorità/roadmap, normativa, fiscale, di performance) va validata da un **panel di 2-3 advisor specializzati** (subagent con prospettive diverse, scelti per dominio: es. solution-architect + sre-guardian + backend-api per performance; + ux-designer per UI; + appsec-auditor per sicurezza/fiscale) **PRIMA** di essere ratificata. Le riserve degli advisor si integrano o si motivano esplicitamente. Esenzioni: decisioni banali, reversibili in minuti, o già coperte da una decisione ratificata precedente. Questo generalizza la prassi dei panel già usata nelle spec: ora vale per OGNI decisione, non solo per le spec di design.
+
 **REGOLE ZERO:**
 - MAI saltare FASE 3 (validazione architetturale) per "feature semplici"
 - MAI saltare FASE 6b se hai scritto o modificato una migration in questa sessione
