@@ -449,11 +449,17 @@ La nota di credito si ferma a `stato_sdi='generata'`: la route `POST /api/fattur
 ### N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata — ✅ RISOLTO (15/07/2026, con N10 — vedi sopra)
 Stesso rimedio di N10: `POST /api/fatture/[id]/invia-pec` legge `xml_storage_path`/`nome_file_xml` esistenti e invoca solo `sendFatturaPEC`. Su 502 il claim viene rilasciato e il bottone resta ritentabile. Testo originale sotto per storia.
 
-### N11. Incoerenza filtro `utenti.deleted_at` — un utente soft-deleted passa layout e API (scoperto dal panel P0-PERF, 17/07/2026) 🔴 sicurezza
-`dashboard/page.tsx:37` filtra `.is('deleted_at', null)`, ma `(app)/layout.tsx:20-24` e `api/clienti/route.ts:18-22` (e verosimilmente altre route con lo stesso pattern) NO. Un utente disattivato/soft-deleted supera il gate del layout e le API finché la sessione è valida. **Destinazione:** si chiude dentro R2a′ di P0-PERF (l'helper unico `getLabContext()` adotta la variante restrittiva) — ma va testato come fix di SICUREZZA, con censimento di tutte le occorrenze del pattern.
+### N11. Incoerenza filtro `utenti.deleted_at` — ✅ RISOLTO in R2 (17/07/2026, branch `worktree-p0-perf-r2`, in attesa di merge) 🔴 sicurezza
+Censimento completo: ~140 lookup del contesto utente corrente, solo 7 filtravano `deleted_at`. Il caso peggiore (scoperto in review): un `admin_sistema` soft-deleted manteneva PIENO accesso admin. Chiuso via helper unici `getLabContext()`/`getFreshLabContext()` (variante restrittiva ovunque, allineata a `current_lab_id()`/`has_role()`), incluse route WebAuthn di enrollment; `accept-invite` = eccezione by-design documentata. Guardia anti-bypass + `n11-security.test.ts` in suite. Runbook di revoca nel rapporto §7. Testo originale: `dashboard/page.tsx:37` filtrava, layout e api/clienti no.
 
-### N12. `api/lavori/[id]/prove/route.ts:103-120` — transizione stato + count + insert senza transazione (scoperto dal panel P0-PERF, 17/07/2026)
-3+ round-trip non atomici in dominio MDR: un fallimento a metà lascia stato incoerente. Precedente corretto già in casa: `crea_rifacimento_atomico()`. **Destinazione:** RPC transazionale dedicata, candidata alla fase R2d di P0-PERF o a task dedicato.
+### N11-bis. Lookup admin di utenti TARGET senza filtro `deleted_at` (scoperto in review finale R2, 17/07/2026) 🟡
+`api/admin/labs/[id]/impersonate/route.ts:40` e `admin/labs/[id]/live/page.tsx:53` cercano il titolare del lab target senza `deleted_at IS NULL`: un titolare soft-deleted resta impersonabile. Superficie admin-only, semantica diversa da N11 (utente target, non contesto corrente). Fix piccolo e circoscritto.
+
+### N12. Route prove non transazionale — ✅ RISOLTO in R2 (17/07/2026, branch `worktree-p0-perf-r2`; 🛑 apply migration = gate Francesco)
+Migration `20260717120000_n12_prove_atomiche.sql`: RPC `manda_in_prova_atomico`/`registra_rientro_atomico` (SECURITY INVOKER, tenant-filter dentro il `FOR UPDATE`, archi 1:1 con `TRANSIZIONI_CONSENTITE`, `numero_prova = MAX+1` sotto lock — race del COUNT eliminata, ERRCODE `UA404`/`UA409`); route riscritta sui RPC. Bonus: TabProve allineato al contratto POST + fix parsing GET (il flusso prove in UI era interamente morto — 2 bug pre-esistenti). Smoke post-apply obbligatorio: UA404/UA409 come status reali via PostgREST (primo uso di ERRCODE custom nel progetto).
+
+### N13. Nessun check `lab.stato` nei handler API (scoperto dal panel R2 — appsec, 17/07/2026) 🟡
+Un lab `sospeso/scaduto/blacklist` è bloccato SOLO dal layout: una PWA/client può chiamare le API direttamente e continuare a leggere/scrivere. Gap PRE-esistente a R2. Col `LabContext` il dato `lab.stato` è ora disponibile gratis in ogni handler → il fix è un guard centrale (helper o check nei 2 helper di contesto). Da decidere la matrice: quali stati bloccano quali metodi (GET vs mutazioni).
 
 **Follow-up nuovi aperti dalla feature (15/07/2026):**
 - **Rate-limit per-lab sugli invii PEC** — la route nuova non ha throttling; un client malevolo autenticato può martellare l'endpoint (il claim previene il doppio invio, non il carico SMTP). 🟡

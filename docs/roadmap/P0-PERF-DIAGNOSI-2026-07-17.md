@@ -132,3 +132,52 @@ Raw data: `scripts/tmp/perf-results.json` (non committato). Script riusabile: `s
 | `/clienti/00000000-0000-0000-0000-000000000003` | 589 | 285 | −52% |
 
 **Verdetto R1:** causa radice confermata empiricamente (la co-locazione da sola dimezza tutto). Il residuo (~350ms mediana vs budget ≤300ms; login→dashboard 2,5s vs budget ≤2s) è il moltiplicatore di round-trip interno → si chiude con **R2**. Rollback non necessario.
+
+---
+
+## 7. Risultati R2 (17/07/2026 — branch `worktree-p0-perf-r2`, 35 commit, IN ATTESA DI MERGE)
+
+**Percorso GRANDE eseguito per intero:** brainstorming con 3 censimenti → FASE 3 → spec rev.2 **validata dal panel advisor (4× CONFERMATA CON RISERVE, zero bloccanti — solution-architect + sre-guardian + backend-api + appsec-auditor, tutte le riserve integrate)** → piano 16 task → worktree → subagent-driven-development (17 task, review per-task + review finale whole-branch «Ready to merge — With fixes», fix applicati) → FASE 7 verde.
+
+### Implementato (spec `docs/superpowers/specs/2026-07-17-p0-perf-r2-design.md`)
+
+- **R2b′** — `getClaims()` nel middleware (verifica ES256 locale contro JWKS, prerequisito `kid` verificato sui token reali): zero rete a token valido; refresh cookie testato (3 assert); `x-pathname` + `Server-Timing` anche sui redirect. Nota: Next 16 segnala `middleware.ts` deprecato a favore di `proxy.ts` (build output: «ƒ Proxy (Middleware)») — rinomina candidata per un task futuro.
+- **R2a′** — `src/lib/supabase/lab-context.ts`: `getLabContext()` (claims + `React.cache()`, 3 RT→1 con embed LEFT `utenti→laboratori`) e `getFreshLabContext()` (getUser, mutazioni/fiscale/admin). Adottati da layout, ~33 pagine, 28 GET categoria A (allowlist versionato + test di guardia 3/3 in suite) e ~75 file B/C. NIENTE RPC `get_lab_context` (embed = stesso guadagno senza SECURITY DEFINER).
+- **N11 CHIUSO** — filtro `deleted_at IS NULL` su TUTTI i ~140 lookup del contesto utente (prima: 7/140). Scoperta review: un `admin_sistema` soft-deleted manteneva PIENO accesso admin. Chiuso anche l'enrollment WebAuthn per soft-deleted. Test di sicurezza `n11-security.test.ts` in suite + guardia anti-bypass. Runbook di revoca: offboarding = `utenti.deleted_at` + `auth.admin.signOut(userId, 'global')`; il ban da dashboard NON è kill-switch sui GET categoria A entro il TTL.
+- **R2c** — `Promise.all`: striscia dashboard (4 query parallele, degrado per-ramo), dashboard (pile∥ingressi), magazzino, qualita, analytics, scheda lavoro (firme DdC∥immagini).
+- **R2d** — riconciliazioni: 4 query→2 (self-join `td04:fatture!fattura_collegata_id` + LEFT embed eventi, entrambi SENZA `!inner`, direzione self-join VERIFICATA sul DB reale); defense-in-depth `td04.laboratorio_id`. **N12 CHIUSO nel codice**: migration `20260717120000_n12_prove_atomiche.sql` (2 RPC transazionali SECURITY INVOKER, tenant-filter nel `FOR UPDATE`, archi 1:1 con `TRANSIZIONI_CONSENTITE`, `MAX+1` sotto lock, ERRCODE `UA404`/`UA409`) + route riscritta. **Bonus (Task 17, richiesto da Francesco):** TabProve allineato al contratto POST + fix parsing GET (il flusso prove esterne in UI era interamente morto — 2 bug pre-esistenti).
+- **Osservabilità** — `Server-Timing` (fasi auth/db/total) su middleware + 28 GET; log strutturato `[layout] {route,authMs,dbMs,totalMs}`; Vercel Speed Insights nel root layout; `perf-audit.ts` v2 (PERF_BASE/RUNS≥5/warmup/BYPASS/ENFORCE, p75 vs budget) + cron GitHub Actions giornaliero `perf-budget.yml` (allarme minimo via fail del job).
+
+### Verifica (FASE 7/8/9, output reali)
+
+`tsc --noEmit` 0 errori · vitest **2090 pass / 19 skip** (da baseline 2008) · `next build` OK · QA su build di produzione locale (lab E2E): login→dashboard OK, superfici chiave 200, riconciliazioni renderizza, write-path PATCH 200, **`Server-Timing: auth;dur=1-2ms` a caldo = verifica claims locale confermata empiricamente** (prima chiamata 94ms = fetch JWKS a freddo, una tantum per lambda). `db;dur≈88ms` in locale è la tratta Italia→Irlanda: da `dub1` sarà ~1-3ms. Nota dev-only: il dev server Turbopack non espone gli header Server-Timing (artefatto dev, verificato assente in produzione).
+
+### Misura contro i budget — POST-MERGE (il progetto Vercel builda solo `main`: nessun preview per branch)
+
+Procedura al deploy: `PERF_RUNS=5 npx tsx scripts/perf-audit.ts` (giro 0 warmup scartato, p75 su pagine/API + login) → confronto con §6 → compilare la tabella qui sotto. Se `/fatture/riconciliazioni` resta sopra budget dopo i consolidamenti → known-issue con follow-up di profiling (NON fallisce il gate). Gap noto: creare 1 lavoro via wizard sul lab E2E per misurare `/lavori/[id]`, poi cleanup.
+
+| Metrica | Post-R1 | Post-R2 (misurare al deploy) | Budget |
+|---|---|---|---|
+| Mediana/p75 TTFB pagine autenticate | 354ms (mediana) | _da misurare_ | p75 ≤ 300ms |
+| Login→dashboard | 2.486ms | _da misurare_ | ≤ 2.000ms |
+| API GET (clienti/listino/fornitori/cicli) | 155-188ms | _da misurare_ | p75 ≤ 250ms |
+
+### Gate e azioni per Francesco (in ordine)
+
+1. 🛑 **Apply migration** `20260717120000_n12_prove_atomiche.sql` (SQL editor dashboard o MCP autorizzato) → poi FASE 6b: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` + `npx tsc --noEmit` (sul branch).
+2. 🛑 **Merge** `worktree-p0-perf-r2` → `main` → deploy → smoke + **QA post-deploy**: flusso prove completo su lab E2E (manda_in_prova → rientro; verifica UA404/UA409 come status 404/409 reali — primo uso di ERRCODE custom via PostgREST), riconciliazioni con asserzione POSITIVA (TD04 rifiutato visibile), refresh oltre scadenza token, push rientro.
+3. **Re-misura** (procedura sopra) + compilare la tabella + aggiornare il regression gate.
+4. **TTL access token 1h → 10-15 min** (dashboard Supabase → Auth → Sessions) — precondizione della finestra di revoca accettata dal panel.
+5. Primo run manuale di `perf-budget.yml` (Actions → workflow_dispatch); poi secrets `PERF_EMAIL`/`PERF_PASSWORD` (le credenziali E2E oggi hanno fallback hardcoded, pre-esistente).
+6. Lettura Query Performance/pg_stat_statements (già attivo) per l'outlier riconciliazioni.
+7. Rollback se serve: **Vercel Instant Rollback** (primario, secondi) o `git revert`.
+
+### Deviazioni dichiarate (ratificate in review, da conoscere)
+
+- Utente soft-deleted/orfano sui percorsi migrati: risponde **401** (prima 403 o passava); nel layout va a `/login` senza `?error=no_lab` (parametro oggi inerte nella login form).
+- Blip DB nel lookup contesto sui GET migrati: **401** invece di 500 (fail-closed, loggato server-side).
+- 409 N12 senza effetti collaterali parziali (prima la prova restava marcata rientrata anche se la transizione falliva — era il bug).
+
+### Follow-up tracciati (BACKLOG)
+
+**N13 (nuovo):** check `lab.stato` (sospeso/scaduto/blacklist) nei handler API — gap PRE-esistente (il gate vive solo nel layout), il LabContext lo rende gratis. **N11-bis (nuovo):** lookup admin di utenti TARGET senza `deleted_at` (impersonate/live — un titolare soft-deleted resta impersonabile). Minori: rinomina `middleware.ts`→`proxy.ts`; test `trial_ends_at NULL`; cleanup dead-code `?error=no_lab`; log drain esterno (opzionale).
