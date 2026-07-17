@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { generateNominaPrrc } from '@/lib/pdf/generate-nomina-prrc'
 
 export async function GET() {
   const context = await getFreshLabContext()
   if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!context.laboratorioId) return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+  const guard = assertLabOperativo(context, 'GET')
+  if (guard) return guard
 
   try {
     const buffer = await generateNominaPrrc(context.laboratorioId)

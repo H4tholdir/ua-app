@@ -25,7 +25,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
 
 import { POST, GET } from '../../src/app/api/tecnici/invite/route'
 
-const TITOLARE_CONTEXT = { userId: 'user-titolare-legit', laboratorioId: 'lab-legit' }
+const TITOLARE_CONTEXT = { userId: 'user-titolare-legit', laboratorioId: 'lab-legit', ruolo: 'titolare', lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Legit' } }
 
 function postRequest(body: unknown) {
   return new Request('http://localhost/api/tecnici/invite', {

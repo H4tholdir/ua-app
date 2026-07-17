@@ -10,6 +10,7 @@
  */
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { PushSubscriptionData } from '@/lib/notifications/push'
@@ -29,6 +30,10 @@ export async function POST(req: Request) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
+
   const svc = getServiceClient()
 
   let body: PushSubscriptionData

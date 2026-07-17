@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { StatoSDI } from '@/types/domain'
@@ -86,6 +87,10 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (!RUOLI_OVERRIDE_SDI.includes(context.ruolo as (typeof RUOLI_OVERRIDE_SDI)[number])) {
     return NextResponse.json({ error: "Ruolo non autorizzato all'override stato SdI" }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
+
   const svc = getServiceClient()
 
   const labId: string = context.laboratorioId

@@ -13,6 +13,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
+  // N13: route ESENTE dalla guard (export GDPR/portabilità aperto a
+  // sospeso/scaduto), ma blacklist resta terminale — self-check esplicito,
+  // stesso pattern di stripe/checkout e stripe/portal. Il canale Art. 15/20
+  // per i lab blacklist è il processo out-of-band (docs/security/).
+  if (context.lab?.stato === 'blacklist') {
+    return NextResponse.json({ error: 'Account disabilitato' }, { status: 403 })
+  }
+
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
 

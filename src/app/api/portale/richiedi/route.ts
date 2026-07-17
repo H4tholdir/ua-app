@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 
 interface RequestBody {
   token: string
@@ -54,12 +55,20 @@ export async function POST(req: Request) {
   // 3. Verifica token cliente
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, laboratorio_id, portale_token_scade_at')
+    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
     .eq('portale_token', body.token)
     .is('deleted_at', null)
     .single()
 
   if (clienteError || !cliente) {
+    return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
+  }
+
+  // 3b. N13: lab blacklist (o embed assente, fail-closed) → 404 generico,
+  // stessa forma del token non valido e PRIMA del check scadenza — nessun
+  // info-leak a terzi. Shadow/kill-switch gestiti dal helper.
+  const labStato = statoLabDaEmbed((cliente as { laboratori?: unknown }).laboratori)
+  if (portaleNonDisponibile(labStato, 'portale/richiedi')) {
     return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
   }
 

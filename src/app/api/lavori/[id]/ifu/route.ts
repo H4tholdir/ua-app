@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { generateIFU } from '@/lib/pdf/generate-ifu'
 
@@ -18,6 +19,9 @@ export async function GET(
     Object.assign(t, timings)
     if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (!context.laboratorioId) return NextResponse.json({ error: 'Lavoro non trovato o accesso negato' }, { status: 404 })
+
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
 
     const supabaseService = getServiceClient()
     // Verifica appartenenza al lab (guard cross-tenant)

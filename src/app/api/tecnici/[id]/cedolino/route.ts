@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { generateCedolinoTecnico } from '@/lib/pdf/generate-cedolino-tecnico'
 
@@ -25,6 +26,11 @@ export async function GET(
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  // Guard PRIMA di qualsiasi query (il check RBAC sotto interroga già il DB)
+  const guard = assertLabOperativo(context, 'GET')
+  if (guard) return guard
+
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
 

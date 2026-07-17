@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -25,6 +26,9 @@ export async function POST(
       { status: 403 }
     )
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
   const svc = getServiceClient()
 
   const tokenHash = createHash('sha256').update(token).digest('hex')

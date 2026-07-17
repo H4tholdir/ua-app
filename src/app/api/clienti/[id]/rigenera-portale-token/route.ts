@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { logPortaleAudit } from '@/lib/portale/audit'
@@ -21,6 +22,8 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (!['titolare', 'front_desk'].includes(context.ruolo)) {
       return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
     }
+    const guard = assertLabOperativo(context, 'POST')
+    if (guard) return guard
     const svc = getServiceClient()
 
     const nuovoToken = randomUUID()

@@ -35,7 +35,7 @@ beforeEach(() => {
   mockGetSignedUrl.mockResolvedValue('https://signed.example/f.pdf?token=abc')
   cliente = {
     id: 'cli-1', laboratorio_id: 'lab-1', studio_nome: 'Studio Bianchi',
-    portale_token_scade_at: null, portale_fatturazione_attiva: true,
+    portale_token_scade_at: null, portale_fatturazione_attiva: true, laboratori: { stato: 'attivo' },
     portale_pin_hash: 'scrypt$32768$8$1$a$b', portale_pin_tentativi: 0,
     portale_pin_bloccato_fino_a: null, portale_pin_generation: 1,
   }

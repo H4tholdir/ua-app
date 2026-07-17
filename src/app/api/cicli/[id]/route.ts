@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { TIPO_DISPOSITIVO_CICLO_OPTIONS, CLASSE_RISCHIO_CICLO_OPTIONS } from '@/lib/domain/cicli-produzione'
@@ -22,6 +23,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'PATCH')
+  if (guard) return guard
   const labId: string = context.laboratorioId
   const svc = getServiceClient()
 
@@ -103,6 +106,8 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'DELETE')
+  if (guard) return guard
   const labId: string = context.laboratorioId
   const svc = getServiceClient()
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 
 export async function GET() {
@@ -14,6 +15,9 @@ export async function GET() {
     if (!context.laboratorioId) {
       return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
     }
+
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
 
     const labId: string = context.laboratorioId
 

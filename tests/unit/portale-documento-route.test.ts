@@ -25,7 +25,7 @@ function makeParams(documento: string) {
 }
 
 function mockCliente(result: { data: unknown; error: unknown } = {
-  data: { id: CLIENTE_ID, laboratorio_id: LAB_ID, portale_token_scade_at: null },
+  data: { id: CLIENTE_ID, laboratorio_id: LAB_ID, portale_token_scade_at: null, laboratori: { stato: 'attivo' } },
   error: null,
 }) {
   return {
@@ -71,7 +71,7 @@ describe('GET /api/portale/[token]/lavori/[lavoro_id]/[documento]', () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'clienti') {
         return mockCliente({
-          data: { id: CLIENTE_ID, laboratorio_id: LAB_ID, portale_token_scade_at: '2020-01-01T00:00:00Z' },
+          data: { id: CLIENTE_ID, laboratorio_id: LAB_ID, portale_token_scade_at: '2020-01-01T00:00:00Z', laboratori: { stato: 'attivo' } },
           error: null,
         })
       }

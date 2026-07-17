@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -31,6 +32,9 @@ export async function POST(
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const admin = await verifyAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+
+  const guard = assertLabOperativo(admin, 'POST')
+  if (guard) return guard
 
   const { id } = await params
   const svc = getServiceClient()

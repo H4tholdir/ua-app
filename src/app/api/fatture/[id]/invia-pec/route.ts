@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { sendFatturaPEC } from '@/lib/fattura/send-pec'
@@ -33,6 +34,10 @@ export async function POST(req: Request, { params }: RouteContext) {
   if (!RUOLI_INVIO_PEC.includes(context.ruolo as (typeof RUOLI_INVIO_PEC)[number])) {
     return NextResponse.json({ error: "Ruolo non autorizzato all'invio fiscale" }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
+
   const svc = getServiceClient()
 
   const labId: string = context.laboratorioId

@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 export async function GET(req: Request) {
@@ -12,6 +13,8 @@ export async function GET(req: Request) {
   const context = await getFreshLabContext()
   if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
+  const guard = assertLabOperativo(context, 'GET')
+  if (guard) return guard
 
   const svc = getServiceClient()
   const { data: lab } = await svc

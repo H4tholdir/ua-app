@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isCacheStale } from '@/lib/dashboard/cache-stale'
 import {
@@ -47,6 +48,8 @@ export async function GET(): Promise<NextResponse> {
     if (!labId) {
       return NextResponse.json({ error: 'Laboratorio non associato' }, { status: 404 })
     }
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
 
     // 2. RBAC routing
     const svc = getServiceClient()

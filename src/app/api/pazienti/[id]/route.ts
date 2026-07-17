@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -21,6 +22,8 @@ export async function PATCH(
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'PATCH')
+  if (guard) return guard
   const svc = getServiceClient()
 
   const body = await req.json()
@@ -72,6 +75,8 @@ export async function DELETE(
   if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'DELETE')
+  if (guard) return guard
   const svc = getServiceClient()
 
   // Verifica che il paziente appartenga al lab e non sia già archiviato

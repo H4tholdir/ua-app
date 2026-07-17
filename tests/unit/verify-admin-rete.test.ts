@@ -102,6 +102,9 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
       userId: 'user-1',
       laboratorioId: 'lab-1',
       rete: { id: 'rete-1', nome: 'Rete Toscana', admin_laboratorio_id: 'lab-1' },
+      // N13: il wrapper espone anche ruolo + lab (LabGuardInput)
+      ruolo: 'titolare',
+      lab: null,
     })
   })
 })

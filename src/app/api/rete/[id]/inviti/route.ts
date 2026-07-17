@@ -3,6 +3,7 @@ import { randomUUID, createHash } from 'crypto'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { verifyAdminRete } from '@/lib/rete/verify-admin-rete'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { sendInvitoReteEmail } from '@/lib/invito/send-invito-rete-email'
 
 export async function POST(
@@ -18,6 +19,9 @@ export async function POST(
   if (!ctx) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(ctx, 'POST')
+  if (guard) return guard
 
   let body: Record<string, unknown>
   try {

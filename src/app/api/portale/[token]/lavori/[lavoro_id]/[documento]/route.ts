@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSignedUrl } from '@/lib/storage/signed-url'
+import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 
 type RouteContext = {
   params: Promise<{ token: string; lavoro_id: string; documento: string }>
@@ -17,12 +18,20 @@ export async function GET(_req: Request, { params }: RouteContext) {
 
   const { data: cliente } = await svc
     .from('clienti')
-    .select('id, laboratorio_id, portale_token_scade_at')
+    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
 
   if (!cliente) {
+    return NextResponse.json({ error: 'Link non valido' }, { status: 404 })
+  }
+
+  // N13: lab blacklist (o embed assente, fail-closed) → 404 generico come
+  // link non valido, PRIMA del check scadenza — il portale sparisce per i
+  // terzi senza info-leak. Shadow/kill-switch gestiti dal helper.
+  const labStato = statoLabDaEmbed((cliente as { laboratori?: unknown }).laboratori)
+  if (portaleNonDisponibile(labStato, 'portale/documento')) {
     return NextResponse.json({ error: 'Link non valido' }, { status: 404 })
   }
 

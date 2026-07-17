@@ -1,8 +1,10 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { transitionLabStato, type LaboStatoValue } from '@/lib/stripe/state-machine'
+import { revocaSessioniLaboratorio } from '@/lib/auth/revoca-sessioni'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 const VALID_STATES: LaboStatoValue[] = ['trial', 'attivo', 'sospeso', 'scaduto', 'blacklist']
@@ -20,6 +22,9 @@ export async function PATCH(
   const admin = await verifyAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
 
+  const guard = assertLabOperativo(admin, 'PATCH')
+  if (guard) return guard
+
   const { id } = await params
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Body JSON non valido' }, { status: 400 })
@@ -36,6 +41,13 @@ export async function PATCH(
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
+  }
+
+  // N13 (appsec R5): blacklist è terminale — ban best-effort degli utenti del
+  // lab (in parallelo; gli errori sono solo loggati e non fanno mai fallire la
+  // transizione, già committata). La guard lab-guard resta il muro primario.
+  if (stato === 'blacklist') {
+    await revocaSessioniLaboratorio(svc, id)
   }
 
   return NextResponse.json({ success: true })
