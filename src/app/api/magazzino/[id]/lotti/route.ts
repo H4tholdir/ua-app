@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -60,29 +59,22 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Verifica che l'articolo appartenga al laboratorio
   const { data: articolo } = await svc
     .from('magazzino')
     .select('id')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   if (!articolo) {
@@ -104,7 +96,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   const insertData = {
-    laboratorio_id: utente.laboratorio_id,
+    laboratorio_id: context.laboratorioId,
     magazzino_id: id,
     numero_lotto: (body.numero_lotto as string).trim(),
     quantita_acquistata: body.quantita_acquistata as number,

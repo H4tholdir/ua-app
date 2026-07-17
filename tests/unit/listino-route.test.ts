@@ -1,16 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockFrom, mockGetLabContextWithTimings, mockGetFreshLabContext } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockGetLabContextWithTimings: vi.fn(),
-}))
-
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({
-    auth: { getUser: mockGetUser },
-  }),
+  mockGetFreshLabContext: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -19,10 +13,10 @@ vi.mock('@/lib/supabase/server-service', () => ({
   }),
 }))
 
-// GET usa getLabContextWithTimings (Task 9); POST (non toccato) resta su
-// getServerUserClient/getUser sopra.
+// GET usa getLabContextWithTimings (Task 9); POST (Task 10) usa getFreshLabContext.
 vi.mock('@/lib/supabase/lab-context', () => ({
   getLabContextWithTimings: mockGetLabContextWithTimings,
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 
 vi.mock('@/lib/utils/csrf', () => ({
@@ -38,16 +32,10 @@ let insertedData: Record<string, unknown> | null = null
 
 function mockUtenteRuolo(ruolo: string) {
   insertedData = null
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null, lab: null,
+  })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'listino') {
       return {
         insert: (data: Record<string, unknown>) => {
@@ -87,7 +75,6 @@ const VOCE_BODY = {
 describe('POST /api/listino — gating ruolo e campi MDR', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
   })
 
   it('ruolo tecnico → 403, nessuna voce creata', async () => {

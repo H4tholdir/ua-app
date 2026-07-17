@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({
-    auth: { getUser: mockGetUser },
-  }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -37,18 +35,11 @@ function postRequest(body: unknown) {
 describe('POST /api/magazzino — gestione errore duplicato', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetFreshLabContext.mockResolvedValue({
+      userId: AUTH_USER.id, email: null, ruolo: 'titolare', laboratorioId: LAB_ID, nome: null, cognome: null, lab: null,
+    })
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
-            }),
-          }),
-        }
-      }
       if (table === 'magazzino') {
         return {
           insert: () => ({
