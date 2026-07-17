@@ -12,7 +12,8 @@ interface Props {
 // `laboratori` separata: i campi coincidono esattamente con LabContext.lab.
 export default async function BillingPage({ searchParams }: Props) {
   const context = await getFreshLabContext()
-  if (!context || !context.laboratorioId || !context.lab) redirect('/login?error=no_lab')
+  if (!context) redirect('/login')
+  if (!context.laboratorioId || !context.lab) redirect('/login?error=no_lab')
 
   const params = await searchParams
   const lab = context.lab

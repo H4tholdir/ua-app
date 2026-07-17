@@ -132,9 +132,9 @@ describe('BillingPage (src/app/billing/page.tsx)', () => {
     return BillingPage({ searchParams: Promise.resolve(searchParams) })
   }
 
-  it('context null (utente soft-deleted / sessione assente) → redirect /login?error=no_lab', async () => {
+  it('context null (utente soft-deleted / sessione assente) → redirect /login', async () => {
     mockGetFreshLabContext.mockResolvedValue(null)
-    await expect(callPage()).rejects.toThrow('REDIRECT:/login?error=no_lab')
+    await expect(callPage()).rejects.toThrow('REDIRECT:/login')
   })
 
   it('laboratorioId null (es. admin_sistema) → redirect /login?error=no_lab (conservativo, fail-closed)', async () => {
