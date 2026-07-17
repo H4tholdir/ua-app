@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { generaFatturaPA } from '@/lib/fattura/generate-xml'
 
@@ -24,21 +24,14 @@ export async function POST(
     return NextResponse.json({ error: 'CSRF' }, { status: 403 })
   }
 
-  const supabase = await getServerUserClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!context.laboratorioId) return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
 
   const { id: originaleId } = await params
   const svc = getServiceClient()
 
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-  if (!utente) return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
-
-  const laboratorioId: string = utente.laboratorio_id
+  const laboratorioId: string = context.laboratorioId
 
   // ── Valida body.causale PRIMA di toccare la RPC ──────────────────────────
   // p_causale NULL non è guardato nella RPC (viola il CHECK causale_storno su

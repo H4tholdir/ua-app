@@ -37,7 +37,7 @@ import { POST } from '../../src/app/api/fatture/[id]/nota-credito/route'
 
 function chain(result: { data: unknown; error: unknown }) {
   const c: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'in']) c[m] = () => c
+  for (const m of ['select', 'eq', 'in', 'is']) c[m] = () => c
   c.single = async () => result
   c.maybeSingle = async () => ({ data: esistenteResult.value, error: null })
   return c
