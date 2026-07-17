@@ -155,8 +155,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     if (error) return mapRpcError(error)
 
-    // tipo rigenerato in FASE 6b post-apply: manda_in_prova_atomico non è
-    // ancora nei types generati da Supabase, `data` è { prova, stato }.
+    // FASE 6b eseguita (types rigenerati post-apply): la RPC ritorna jsonb →
+    // tipo generato `Json`, il cast allo shape reale { prova, stato } resta
+    // necessario e documenta il contratto.
     return NextResponse.json(data as { prova: unknown; stato: string })
   }
 
@@ -201,8 +202,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     if (error) return mapRpcError(error)
 
-    // tipo rigenerato in FASE 6b post-apply: registra_rientro_atomico non è
-    // ancora nei types generati da Supabase.
+    // FASE 6b eseguita (types rigenerati post-apply): la RPC ritorna jsonb →
+    // tipo generato `Json`, il cast allo shape reale resta necessario.
     const result = data as { stato: string; tecnico_id: string | null; numero_lavoro: string | number | null }
 
     // Push notification — prova rientrata → tecnico assegnato (fire-and-forget,

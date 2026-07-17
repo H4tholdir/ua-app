@@ -5678,6 +5678,16 @@ export type Database = {
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
+      manda_in_prova_atomico: {
+        Args: {
+          p_data_rientro: string
+          p_istruzioni: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       override_stato_sdi: {
         Args: {
           p_fattura_id: string
@@ -5700,6 +5710,19 @@ export type Database = {
       refresh_dashboard_cache: {
         Args: { p_lab_id: string }
         Returns: undefined
+      }
+      registra_rientro_atomico: {
+        Args: {
+          p_esito: string
+          p_laboratorio_id: string
+          p_lavoro_id: string
+          p_note: string
+          p_nuova_data_consegna?: string
+          p_prova_id: string
+          p_stato_destinazione: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       ricalcola_pagamento_fattura: {
         Args: { p_fattura_id: string }
