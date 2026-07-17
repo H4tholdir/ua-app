@@ -65,48 +65,45 @@ function usaPagamenti(ruolo: string): boolean {
   return ruolo === 'titolare' || ruolo === 'admin_rete'
 }
 
-export async function getSegnaleStriscia(svc: SupabaseClient, labId: string, ruolo: string, pile: PileHome): Promise<SegnaleStriscia> {
-  let fatturaScartata: IngressiStriscia['fatturaScartata'] = null
-  let materialeRosso: string | null = null
-  let pagamentoScaduto: string | null = null
-  let ddcOggi = 0
-
-  if (usaFiscali(ruolo)) {
-    try {
-      const { data, error } = await svc
-        .from('fatture')
-        .select('id, numero')
-        .eq('laboratorio_id', labId)
-        .in('stato_sdi', SDI_SCARTATE)
-        .order('created_at', { ascending: false })
-        .limit(1)
-      if (error) throw error
-      const riga = (data as Array<{ id: string; numero: string }> | null)?.[0]
-      fatturaScartata = riga ? { id: riga.id, numero: riga.numero } : null
-    } catch (err) {
-      console.error('[getSegnaleStriscia] lettura fatturaScartata fallita — degrado a null:', err)
-      fatturaScartata = null
-    }
-
-    try {
-      const materiali = await getMaterialiEsaurimento(svc, labId, 1)
-      materialeRosso = materiali[0]?.nome ?? null
-    } catch (err) {
-      console.error('[getSegnaleStriscia] lettura materialeRosso fallita — degrado a null:', err)
-      materialeRosso = null
-    }
+async function leggiFatturaScartata(svc: SupabaseClient, labId: string): Promise<IngressiStriscia['fatturaScartata']> {
+  try {
+    const { data, error } = await svc
+      .from('fatture')
+      .select('id, numero')
+      .eq('laboratorio_id', labId)
+      .in('stato_sdi', SDI_SCARTATE)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error) throw error
+    const riga = (data as Array<{ id: string; numero: string }> | null)?.[0]
+    return riga ? { id: riga.id, numero: riga.numero } : null
+  } catch (err) {
+    console.error('[getSegnaleStriscia] lettura fatturaScartata fallita — degrado a null:', err)
+    return null
   }
+}
 
-  if (usaPagamenti(ruolo)) {
-    try {
-      const pagamenti = await getPagamentiScadutiTop(svc, labId, 1)
-      pagamentoScaduto = pagamenti[0]?.cliente_display ?? null
-    } catch (err) {
-      console.error('[getSegnaleStriscia] lettura pagamentoScaduto fallita — degrado a null:', err)
-      pagamentoScaduto = null
-    }
+async function leggiMaterialeRosso(svc: SupabaseClient, labId: string): Promise<string | null> {
+  try {
+    const materiali = await getMaterialiEsaurimento(svc, labId, 1)
+    return materiali[0]?.nome ?? null
+  } catch (err) {
+    console.error('[getSegnaleStriscia] lettura materialeRosso fallita — degrado a null:', err)
+    return null
   }
+}
 
+async function leggiPagamentoScaduto(svc: SupabaseClient, labId: string): Promise<string | null> {
+  try {
+    const pagamenti = await getPagamentiScadutiTop(svc, labId, 1)
+    return pagamenti[0]?.cliente_display ?? null
+  } catch (err) {
+    console.error('[getSegnaleStriscia] lettura pagamentoScaduto fallita — degrado a null:', err)
+    return null
+  }
+}
+
+async function leggiDdcOggi(svc: SupabaseClient, labId: string): Promise<number> {
   try {
     const oggiMezzanotte = new Date()
     oggiMezzanotte.setHours(0, 0, 0, 0)
@@ -117,11 +114,26 @@ export async function getSegnaleStriscia(svc: SupabaseClient, labId: string, ruo
       .neq('stato', 'annullata')
       .gte('created_at', oggiMezzanotte.toISOString())
     if (error) throw error
-    ddcOggi = count ?? 0
+    return count ?? 0
   } catch (err) {
     console.error('[getSegnaleStriscia] lettura ddcOggi fallita — degrado a 0:', err)
-    ddcOggi = 0
+    return 0
   }
+}
 
-  return scegliSegnale(ruolo, { fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi, pile: pile.striscia })
+export async function fetchIngressiStriscia(
+  svc: SupabaseClient, labId: string, ruolo: string
+): Promise<Omit<IngressiStriscia, 'pile'>> {
+  const [fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi] = await Promise.all([
+    usaFiscali(ruolo) ? leggiFatturaScartata(svc, labId) : Promise.resolve(null),
+    usaFiscali(ruolo) ? leggiMaterialeRosso(svc, labId) : Promise.resolve(null),
+    usaPagamenti(ruolo) ? leggiPagamentoScaduto(svc, labId) : Promise.resolve(null),
+    leggiDdcOggi(svc, labId),
+  ])
+  return { fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi }
+}
+
+export async function getSegnaleStriscia(svc: SupabaseClient, labId: string, ruolo: string, pile: PileHome): Promise<SegnaleStriscia> {
+  const ingressi = await fetchIngressiStriscia(svc, labId, ruolo)
+  return scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })
 }
