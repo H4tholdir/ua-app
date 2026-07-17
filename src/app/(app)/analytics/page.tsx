@@ -142,12 +142,15 @@ export default async function AnalyticsPage() {
   let trend: { month: string; totale: number; label: string }[] = []
 
   if (labId) {
-    trend = await getTrendMensile(svc, labId, 12)
-    const { data: cache } = await svc
-      .from('dashboard_kpi_cache')
-      .select('*')
-      .eq('laboratorio_id', labId)
-      .maybeSingle()
+    const [trendResult, { data: cache }] = await Promise.all([
+      getTrendMensile(svc, labId, 12),
+      svc
+        .from('dashboard_kpi_cache')
+        .select('*')
+        .eq('laboratorio_id', labId)
+        .maybeSingle(),
+    ])
+    trend = trendResult
 
     if (cache) {
       stats = {

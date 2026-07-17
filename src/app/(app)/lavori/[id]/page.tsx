@@ -55,19 +55,18 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
   lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
 
-  if (lavoroDettaglio.ddc?.storage_path_pdf) {
-    const signedDdcUrl = await getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
-    if (signedDdcUrl) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
-  }
-
-  if (lavoroDettaglio.immagini.length > 0) {
-    await Promise.all(
+  const [signedDdcUrl] = await Promise.all([
+    lavoroDettaglio.ddc?.storage_path_pdf
+      ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
+      : Promise.resolve(null),
+    Promise.all(
       lavoroDettaglio.immagini.map(async (img) => {
         const signedImgUrl = await getSignedUrl(svc, 'documenti', img.storage_path, 3600)
         if (signedImgUrl) img.url = signedImgUrl
       })
-    )
-  }
+    ),
+  ])
+  if (signedDdcUrl && lavoroDettaglio.ddc) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>

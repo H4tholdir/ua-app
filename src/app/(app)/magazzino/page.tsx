@@ -38,25 +38,27 @@ export default async function MagazzinoPage() {
   let fornitori: Array<{ id: string; ragione_sociale: string }> = []
 
   if (labId) {
-    const { data } = await svc
-      .from('magazzino')
-      .select('id, codice_articolo, nome, produttore, categoria, um_scarico, um_acquisto, fornitore_id, conf_da_ordinare, scorta_attuale, scorta_minima, dispositivo_medico')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .order('nome', { ascending: true })
-      .limit(500)
+    const [{ data }, { data: fornitoriData }] = await Promise.all([
+      svc
+        .from('magazzino')
+        .select('id, codice_articolo, nome, produttore, categoria, um_scarico, um_acquisto, fornitore_id, conf_da_ordinare, scorta_attuale, scorta_minima, dispositivo_medico')
+        .eq('laboratorio_id', labId)
+        .eq('attivo', true)
+        .order('nome', { ascending: true })
+        .limit(500),
+      svc
+        .from('fornitori')
+        .select('id, ragione_sociale')
+        .eq('laboratorio_id', labId)
+        .eq('attivo', true)
+        .order('ragione_sociale', { ascending: true }),
+    ])
     articoli = (data ?? []) as ArticoloRowConOrdine[]
 
     categorieEsistenti = Array.from(
       new Set(articoli.map((a) => a.categoria).filter((c): c is string => !!c))
     ).sort()
 
-    const { data: fornitoriData } = await svc
-      .from('fornitori')
-      .select('id, ragione_sociale')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .order('ragione_sociale', { ascending: true })
     fornitori = fornitoriData ?? []
   }
 

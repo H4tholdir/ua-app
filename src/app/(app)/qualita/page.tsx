@@ -37,33 +37,31 @@ export default async function QualitaPage() {
 
   const svc = getServiceClient()
 
-  // ─── Sezione 1: Non Conformita Recenti ──────────────────────
-  const { data: nc } = await svc
-    .from('lavori_fasi')
-    .select(
-      'id, lavoro_id, azione_correttiva, created_at, lavoro:lavori(numero_lavoro), fase:fasi_produzione(descrizione)'
-    )
-    .eq('laboratorio_id', labId)
-    .eq('non_conforme', true)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  // ─── Sezione 2: Analisi Rischi per Tipo Dispositivo ─────────
-  const { data: rischi } = await svc
-    .from('rischi_tipo_dispositivo')
-    .select('tipo_dispositivo, data_ultima_revisione, versione, rischi_json')
-    .eq('laboratorio_id', labId)
-    .order('tipo_dispositivo')
-
-  // ─── Sezione 3: Incidenti MDR ───────────────────────────────
-  const { data: incidenti } = await svc
-    .from('incidenti_mdr')
-    .select('id, tipo, gravita, data_evento, descrizione, risolto, segnalato_ministero')
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('data_evento', { ascending: false })
-    .limit(10)
+  // ─── Sezioni 1-3: Non Conformita, Rischi, Incidenti — indipendenti ──
+  const [{ data: nc }, { data: rischi }, { data: incidenti }] = await Promise.all([
+    svc
+      .from('lavori_fasi')
+      .select(
+        'id, lavoro_id, azione_correttiva, created_at, lavoro:lavori(numero_lavoro), fase:fasi_produzione(descrizione)'
+      )
+      .eq('laboratorio_id', labId)
+      .eq('non_conforme', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    svc
+      .from('rischi_tipo_dispositivo')
+      .select('tipo_dispositivo, data_ultima_revisione, versione, rischi_json')
+      .eq('laboratorio_id', labId)
+      .order('tipo_dispositivo'),
+    svc
+      .from('incidenti_mdr')
+      .select('id, tipo, gravita, data_evento, descrizione, risolto, segnalato_ministero')
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('data_evento', { ascending: false })
+      .limit(10),
+  ])
 
   return (
     <PageWrapper>
