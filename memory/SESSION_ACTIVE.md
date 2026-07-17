@@ -1,7 +1,9 @@
-# Sessione attiva — N13 deploy + enforce (17/07/2026 notte) — CHIUSA
+# Sessione attiva — chiusura voci N13/N14 (17/07/2026 notte) — CHIUSA
 
-**N13 IN PRODUZIONE, ENFORCE ATTIVO** (autorizzazione Francesco, shadow saltato: PWA senza utenti). Main: N11-bis `882a828` · N14 `2aa33c0` · merge N13 `28a1985` · flip enforce+GDPR doc+fixture `6991c42`. CI verde, CD Vercel OK.
+**Tutto deployato e verificato su prod:** N13 in enforce (voce 9) + collaudo login **p75 1804ms PASS** (utente E2E) + `PERF_BUDGET_LOGIN`→4000 (run perf verde, US 3217ms) + deferral N14 (cap 3 proposte + sezione Sicurezza «Attiva accesso rapido» in /impostazioni, verificata a browser su prod). Commit: `e74154d`, `6593757`. Suite 2153 · tsc 0 · build OK · CI+CD verdi.
 
-**QA prod su lab E2E (ciclo con ripristino):** blacklist → portale API 404 + pagina senza dati ✅ · sospeso → read terzi ok ✅ · attivo ripristinato ✅. Doc GDPR: `docs/security/2026-07-17-gdpr-accesso-dati-lab-blacklist.md`. Kill-switch: `UA_LAB_GUARD_MODE=off|shadow`.
+**Deferiti by design:** restyling modal passkey → gate L2 · orchestrazione prompt nativi (mitigata da delay 800ms).
 
-**Residui Francesco:** collaudo login reale ≤2s + `PERF_BUDGET_LOGIN` · deferral N14 (cap proposte, voce Impostazioni→Sicurezza, restyling modal L2). Prossimo da roadmap: §A e §O, poi (2) funzioni attive.
+**⚠️ Francesco: cambiare la password personale condivisa in chat.**
+
+**PROSSIMO:** roadmap sequenza (1) residui **§A e §O**, poi (2) funzioni attive — sessione nuova consigliata.
