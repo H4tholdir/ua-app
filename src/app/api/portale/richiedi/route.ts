@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   // 3. Verifica token cliente
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, laboratorio_id, portale_token_scade_at')
+    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
     .eq('portale_token', body.token)
     .is('deleted_at', null)
     .single()
@@ -67,6 +67,13 @@ export async function POST(req: Request) {
   const scadenza = (cliente as Record<string, unknown>).portale_token_scade_at as string | null
   if (scadenza && new Date(scadenza) < new Date()) {
     return NextResponse.json({ error: 'Link scaduto' }, { status: 403 })
+  }
+
+  // 4b. N13: lab blacklist (o embed assente, fail-closed) → 404 generico,
+  // stessa forma del token non valido — nessun info-leak a terzi.
+  const labStato = (cliente as unknown as { laboratori?: { stato: string } | null }).laboratori?.stato ?? null
+  if (labStato === null || labStato === 'blacklist') {
+    return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
   }
 
   const labId: string = cliente.laboratorio_id

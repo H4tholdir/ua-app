@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
 
   const { data: cliente } = await svc
     .from('clienti')
-    .select('id, laboratorio_id, portale_token_scade_at')
+    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
@@ -29,6 +29,13 @@ export async function GET(_req: Request, { params }: RouteContext) {
   const scadenza = (cliente as { portale_token_scade_at: string | null }).portale_token_scade_at
   if (scadenza && new Date(scadenza) < new Date()) {
     return NextResponse.json({ error: 'Link scaduto' }, { status: 403 })
+  }
+
+  // N13: lab blacklist (o embed assente, fail-closed) → 404 generico, come
+  // link non valido — il portale sparisce per i terzi, nessun info-leak.
+  const labStato = (cliente as unknown as { laboratori: { stato: string } | null }).laboratori?.stato ?? null
+  if (labStato === null || labStato === 'blacklist') {
+    return NextResponse.json({ error: 'Link non valido' }, { status: 404 })
   }
 
   const { data: lavoro } = await svc

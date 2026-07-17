@@ -35,6 +35,8 @@ export async function POST(req: Request, { params }: RouteContext) {
     const ris = await risolviClientePortale(svc, token)
     if (ris.esito === 'errore') return NextResponse.json({ errore: 'errore_interno' }, { status: 500 })
     if (ris.esito === 'non_autorizzato') return NextResponse.json({ errore: 'non_autorizzato' }, { status: 401 })
+    // N13: lab blacklist — stessa forma di una risorsa inesistente (no info-leak)
+    if (ris.esito === 'non_disponibile') return NextResponse.json({ errore: 'non_trovato' }, { status: 404 })
     const cliente = ris.cliente
 
     // F5 — rate limit per-IP, contato sugli eventi audit PIN degli ultimi 15 min.

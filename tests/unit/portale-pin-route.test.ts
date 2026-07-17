@@ -31,7 +31,7 @@ beforeEach(() => {
   updatePayload = null
   cliente = {
     id: 'cli-1', laboratorio_id: 'lab-1', studio_nome: 'Studio Bianchi',
-    portale_token_scade_at: null, portale_fatturazione_attiva: true,
+    portale_token_scade_at: null, portale_fatturazione_attiva: true, laboratori: { stato: 'attivo' },
     portale_pin_hash: hashPin('483951'), portale_pin_tentativi: 0,
     portale_pin_bloccato_fino_a: null, portale_pin_generation: 1,
   }

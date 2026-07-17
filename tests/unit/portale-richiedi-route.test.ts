@@ -21,7 +21,7 @@ beforeEach(() => {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'clienti') {
       return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({
-        data: { id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null }, error: null,
+        data: { id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null, laboratori: { stato: 'attivo' } }, error: null,
       }) }) }) }) }
     }
     if (table === 'lavori') {
@@ -58,7 +58,7 @@ describe('POST /api/portale/richiedi — campi puliti', () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'clienti') {
         return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({
-          data: { id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null }, error: null,
+          data: { id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null, laboratori: { stato: 'attivo' } }, error: null,
         }) }) }) }) }
       }
       if (table === 'lavori') {
