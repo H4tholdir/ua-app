@@ -14,7 +14,10 @@ jobs:
         with:
           node-version: 22
       - run: npm ci && npx playwright install chromium --with-deps
-      - run: PERF_ENFORCE=1 npx tsx scripts/perf-audit.ts
+      # Soglie calibrate per il runner US (bias geografico ~+100-120ms/richiesta
+      # vs budget utente 300/250/2000 misurati dall'Italia — rapporto P0-PERF §7):
+      # funzione = allarme di regressione, non certificazione del budget utente.
+      - run: PERF_ENFORCE=1 PERF_BUDGET_TTFB=420 PERF_BUDGET_API=370 PERF_BUDGET_LOGIN=3500 npx tsx scripts/perf-audit.ts
 
   # Il fallimento del job genera la mail GitHub di default sui watcher del repo
   # — alerting minimo per il budget di performance, riserva sre R1 per canali dedicati.

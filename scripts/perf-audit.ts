@@ -21,9 +21,13 @@ const RUNS = Number(process.env.PERF_RUNS ?? 5)
 const BYPASS = process.env.PERF_BYPASS
 const ENFORCE = process.env.PERF_ENFORCE === '1'
 
-const BUDGET_TTFB_MS = 300
-const BUDGET_API_MS = 250
-const BUDGET_LOGIN_MS = 2000
+// Budget UTENTE ratificati (p75, misurati dall'Italia — diagnosi §5.9): 300/250/2000.
+// Override via env SOLO per contesti di misura con RTT diverso (es. cron da runner
+// GitHub US: +100-120ms costanti per richiesta → soglie calibrate nel workflow come
+// allarme di REGRESSIONE; il budget utente vero lo certifica Speed Insights RUM).
+const BUDGET_TTFB_MS = Number(process.env.PERF_BUDGET_TTFB ?? 300)
+const BUDGET_API_MS = Number(process.env.PERF_BUDGET_API ?? 250)
+const BUDGET_LOGIN_MS = Number(process.env.PERF_BUDGET_LOGIN ?? 2000)
 
 const EMAIL = process.env.PERF_EMAIL ?? 'e2e-titolare@ua-test.local'
 const PASSWORD = process.env.PERF_PASSWORD ?? 'TestE2E!2026'
