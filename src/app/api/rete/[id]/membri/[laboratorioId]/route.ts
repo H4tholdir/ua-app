@@ -16,22 +16,19 @@ export async function DELETE(
   const { id, laboratorioId } = await params
   const svc = getServiceClient()
 
+  // Doppio percorso di autorizzazione: admin di rete oppure admin_sistema.
+  // Il contesto di fallback è hoistato così la guard è SEMPRE chiamata
+  // (bypass admin_sistema e fail-closed su null vivono dentro la guard).
   const ctx = await verifyAdminRete(id)
-  let autorizzato = ctx !== null
-
-  if (!autorizzato) {
-    const context = await getFreshLabContext()
-    autorizzato = context?.ruolo === 'admin_sistema'
-  }
+  const fallback = ctx ? null : await getFreshLabContext()
+  const autorizzato = ctx !== null || fallback?.ruolo === 'admin_sistema'
 
   if (!autorizzato) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
-  if (ctx) {
-    const guard = assertLabOperativo(ctx, 'DELETE')
-    if (guard) return guard
-  }
+  const guard = assertLabOperativo(ctx ?? fallback, 'DELETE')
+  if (guard) return guard
 
   const { data: rete } = await svc.from('reti').select('admin_laboratorio_id').eq('id', id).single()
   if (!rete) {

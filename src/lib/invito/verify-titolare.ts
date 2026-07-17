@@ -1,12 +1,13 @@
 import 'server-only'
-import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { getFreshLabContext, type LabContext } from '@/lib/supabase/lab-context'
 
 export interface TitolareContext {
   userId: string
   laboratorioId: string
-  // N13: ruolo + lab esposti per assertLabOperativo (LabGuardInput)
-  ruolo: string
-  lab: { stato: string; trial_ends_at: string | null; nome: string } | null
+  // N13: ruolo + lab esposti per assertLabOperativo (LabGuardInput) —
+  // tipi presi da LabContext per non divergere mai dalla fonte.
+  ruolo: LabContext['ruolo']
+  lab: LabContext['lab']
 }
 
 export async function verifyTitolare(): Promise<TitolareContext | null> {

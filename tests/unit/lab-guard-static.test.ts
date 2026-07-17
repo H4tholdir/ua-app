@@ -19,7 +19,9 @@ function walk(dir: string, out: string[] = []): string[] {
 const rel = (p: string) => relative(SRC, p).replaceAll('\\', '/')
 const routes = walk(join(SRC, 'app', 'api')).filter((f) => rel(f).endsWith('route.ts'))
 
-const HANDLER_RE = /export\s+(async\s+)?function\s+(GET|HEAD|POST|PATCH|PUT|DELETE)\b/
+// Copre sia `export async function GET` sia `export const GET = ...`
+// (wrapper/arrow) — un handler in qualunque forma conta come handler.
+const HANDLER_RE = /export\s+((async\s+)?function|const)\s+(GET|HEAD|POST|PATCH|PUT|DELETE)\b/
 
 describe('guardia statica lab-guard (N13)', () => {
   it('ogni route con handler non esente chiama assertLabOperativo(', () => {

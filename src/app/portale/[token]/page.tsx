@@ -1,4 +1,5 @@
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 import { headers } from 'next/headers'
 import type { LavoroPortale, StatoLavoro, TipoDispositivo } from '@/types/domain'
 import { minimizzaPhi } from '@/lib/portale/minimizza-phi'
@@ -276,12 +277,21 @@ export default async function PortalePage({ params }: PageProps) {
   // Verifica token + TTL (portale_token_scade_at)
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at, portale_fatturazione_attiva')
+    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at, portale_fatturazione_attiva, laboratori(stato)')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
 
   if (clienteError || !cliente) {
+    return <LinkScaduto />
+  }
+
+  // N13: lab blacklist → la pagina sparisce come un link non valido (stessa
+  // risposta del token inesistente, PRIMA del check scadenza — no info-leak).
+  // Senza questo check le API 404-ano ma la pagina servirebbe ancora dati
+  // clinici/anagrafici a terzi. Shadow/kill-switch gestiti dal helper.
+  const labStato = statoLabDaEmbed((cliente as { laboratori?: unknown }).laboratori)
+  if (portaleNonDisponibile(labStato, 'portale/page')) {
     return <LinkScaduto />
   }
 

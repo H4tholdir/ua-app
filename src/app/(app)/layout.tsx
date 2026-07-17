@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { isTrialScaduto } from '@/lib/utils/lab-stato'
 import { BottomNavPill } from '@/components/layout/BottomNavPill'
 import { SwRegistration } from '@/components/layout/SwRegistration'
 import { PushRegistrar } from '@/components/features/notifications/PushRegistrar'
@@ -50,12 +51,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (lab.stato === 'sospeso') { logLine(); redirect('/billing') }
   if (lab.stato === 'scaduto') { logLine(); redirect('/billing?expired=true') }
 
-  // Trial expired — trial_ends_at IS NULL = admin override, never expires
-  if (
-    lab.stato === 'trial' &&
-    lab.trial_ends_at !== null &&
-    new Date(lab.trial_ends_at) < new Date()
-  ) {
+  // Trial expired — predicato condiviso con la guard API (lab-guard, N13)
+  if (isTrialScaduto(lab.stato, lab.trial_ends_at)) {
     logLine()
     redirect('/billing?trial_expired=true')
   }

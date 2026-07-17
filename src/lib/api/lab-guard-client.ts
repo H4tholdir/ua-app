@@ -28,8 +28,11 @@ export async function estraiCodiceLabGuard(res: Response): Promise<string | null
 function isApiSameOrigin(input: RequestInfo | URL, origin: string): boolean {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
   if (url.startsWith('/api/')) return true
+  // URL relative senza slash iniziale ('api/x'): il browser le risolve contro
+  // la base del documento, non contro la radice — non classificabili qui, skip.
+  if (!/^https?:\/\//.test(url)) return false
   try {
-    const u = new URL(url, origin)
+    const u = new URL(url)
     return u.origin === origin && u.pathname.startsWith('/api/')
   } catch {
     return false
@@ -50,7 +53,8 @@ export function installLabGuardInterceptor(win: WinLike): () => void {
     void promise.then((res) => {
       if (redirected || res.status !== 403) return
       if (!isApiSameOrigin(input, win.location.origin)) return
-      if (PATH_ESCLUSI.some((p) => win.location.pathname.startsWith(p))) return
+      // Boundary esatto: /billing e /billing/x sì, /billing-storico no
+      if (PATH_ESCLUSI.some((p) => win.location.pathname === p || win.location.pathname.startsWith(p + '/'))) return
       void estraiCodiceLabGuard(res).then((code) => {
         if (!code || redirected) return
         redirected = true

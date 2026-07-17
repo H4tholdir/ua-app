@@ -43,9 +43,9 @@ export async function PATCH(
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  // N13 (appsec R5): blacklist è terminale — revoca best-effort delle sessioni
-  // degli utenti del lab. Non blocca mai la risposta: la guard lab-guard resta
-  // il muro primario a ogni request.
+  // N13 (appsec R5): blacklist è terminale — ban best-effort degli utenti del
+  // lab (in parallelo; gli errori sono solo loggati e non fanno mai fallire la
+  // transizione, già committata). La guard lab-guard resta il muro primario.
   if (stato === 'blacklist') {
     await revocaSessioniLaboratorio(svc, id)
   }

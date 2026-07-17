@@ -19,7 +19,7 @@ vi.mock('@/lib/utils/csrf', () => ({
 
 import { PATCH } from '../../src/app/api/rete/[id]/route'
 
-const CTX = { userId: 'user-1', laboratorioId: 'lab-1', rete: { id: 'rete-1', nome: 'Rete Vecchia', admin_laboratorio_id: 'lab-1' } }
+const CTX = { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'admin_rete', lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Uno' }, rete: { id: 'rete-1', nome: 'Rete Vecchia', admin_laboratorio_id: 'lab-1' } }
 
 let updatedNome: string | null = null
 

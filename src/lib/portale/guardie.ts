@@ -5,6 +5,7 @@
 import type { getServiceClient } from '@/lib/supabase/server-service'
 import { NextResponse } from 'next/server'
 import { verificaSessioneEconomica, estraiCookie, SESSIONE_ECONOMICA_COOKIE } from '@/lib/portale/sessione'
+import { getLabGuardMode } from '@/lib/supabase/lab-guard'
 
 type Svc = ReturnType<typeof getServiceClient>
 
@@ -17,7 +18,31 @@ export type ClientePortale = {
   portale_pin_tentativi: number
   portale_pin_bloccato_fino_a: string | null
   portale_pin_generation: number
-  lab_stato: string
+}
+
+// N13: estrae lo stato lab dall'embed `laboratori(stato)`. Il typegen tipizza
+// l'embed to-one come array mentre PostgREST a runtime ritorna l'oggetto
+// (verificato sull'istanza reale il 17/07/2026) — si gestiscono entrambe le
+// forme per robustezza. null = embed assente (fail-closed a carico del chiamante).
+export function statoLabDaEmbed(value: unknown): string | null {
+  const v = Array.isArray(value) ? value[0] : value
+  const stato = (v as { stato?: unknown } | null | undefined)?.stato
+  return typeof stato === 'string' ? stato : null
+}
+
+// N13: true se il portale del lab deve "sparire" per i terzi (blacklist o
+// embed assente = fail-closed). Rispetta il rollout della guard: in shadow
+// logga soltanto (would-block) e lascia passare; il kill-switch env vale
+// anche qui. Il blocco reale parte col flip a 'enforce'.
+export function portaleNonDisponibile(labStato: string | null, contesto: string): boolean {
+  const bloccherebbe = labStato === null || labStato === 'blacklist'
+  if (!bloccherebbe) return false
+  const mode = getLabGuardMode()
+  if (mode === 'enforce') return true
+  if (mode === 'shadow') {
+    console.warn(`[portale-guard] would-block ${JSON.stringify({ contesto, labStato })}`)
+  }
+  return false
 }
 
 export async function risolviClientePortale(
@@ -39,22 +64,20 @@ export async function risolviClientePortale(
     return { esito: 'errore' }
   }
   if (!data) return { esito: 'non_autorizzato' }
+  // N13: lab blacklist → il portale sparisce per i terzi (404 generico dal
+  // chiamante, no info-leak) — PRIMA del check scadenza, così anche un token
+  // scaduto di un lab blacklist risponde come risorsa inesistente.
+  // sospeso/scaduto restano leggibili (diritto di terzi sui propri documenti
+  // fiscali — decisione ratificata 17/07/2026).
+  if (portaleNonDisponibile(statoLabDaEmbed(data.laboratori), 'risolviClientePortale')) {
+    return { esito: 'non_disponibile' }
+  }
   if (data.portale_token_scade_at && new Date(data.portale_token_scade_at).getTime() < Date.now()) {
     return { esito: 'non_autorizzato' }
   }
-  // N13: lab blacklist → il portale sparisce per i terzi (404 generico dal
-  // chiamante, no info-leak). Embed assente = fail-closed (non dovrebbe
-  // accadere: FK NOT NULL). sospeso/scaduto restano leggibili (diritto di
-  // terzi sui propri documenti fiscali — decisione ratificata 17/07/2026).
-  // NB: typegen tipizza l'embed to-one come array; a runtime PostgREST
-  // ritorna l'oggetto (FK singola) — cast via unknown.
-  const labStato = (data.laboratori as unknown as { stato: string } | null)?.stato ?? null
-  if (labStato === null || labStato === 'blacklist') {
-    return { esito: 'non_disponibile' }
-  }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- omissione intenzionale dei campi dallo spread
   const { portale_token_scade_at: _scade, laboratori: _lab, ...cliente } = data
-  return { esito: 'ok', cliente: { ...cliente, lab_stato: labStato } }
+  return { esito: 'ok', cliente }
 }
 
 /** Guardie comuni delle route economiche: token (401 uniforme) + interruttore + sessione. */

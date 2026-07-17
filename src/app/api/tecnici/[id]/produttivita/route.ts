@@ -89,6 +89,10 @@ export async function GET(
       return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
     }
 
+    // Guard PRIMA di qualsiasi query (il check RBAC sotto interroga già il DB)
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
+
     const labId: string = context.laboratorioId
     const svc = getServiceClient()
 
@@ -110,9 +114,6 @@ export async function GET(
     } else if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
-
-    const guard = assertLabOperativo(context, 'GET')
-    if (guard) return guard
 
     // ─── Dati tecnico ─────────────────────────────────────────────────────────
     const { data: tecnico } = await svc

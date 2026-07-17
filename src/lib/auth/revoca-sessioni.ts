@@ -3,11 +3,18 @@ import type { getServiceClient } from '@/lib/supabase/server-service'
 
 type Svc = ReturnType<typeof getServiceClient>
 
-// N13 (appsec R5): revoca best-effort delle sessioni di tutti gli utenti di un
-// laboratorio via GoTrue admin logout (supabase-js espone solo signOut(jwt),
-// che qui non abbiamo — si usa l'endpoint REST admin con la service key).
-// La guard lab-guard resta il muro primario (stato letto fresco a ogni request);
-// questa revoca accorcia la finestra dei token claims-based (≤900s).
+// N13 (appsec R5): al passaggio a blacklist (terminale) si tagliano le sessioni
+// di tutti gli utenti del lab. GoTrue NON espone un endpoint admin di logout
+// per-utente (verificato su supabase/auth api.go: sotto /admin/users/{id} solo
+// GET/PUT/DELETE + factors/passkeys; admin.signOut richiede il JWT del target,
+// che qui non abbiamo). Il meccanismo corretto con la sola service key è il BAN:
+// updateUserById(id, { ban_duration }) blocca refresh dei token e nuovi login.
+// Gli access token residui restano validi ≤900s — la guard lab-guard è il muro
+// primario a ogni request (stato letto fresco dal DB).
+// Blacklist è terminale (state-machine: nessuna transizione in uscita), quindi
+// il ban de-facto permanente è coerente col dominio.
+const BAN_DURATION = '87600h' // ~10 anni
+
 export async function revocaSessioniLaboratorio(
   svc: Svc,
   laboratorioId: string
@@ -22,33 +29,24 @@ export async function revocaSessioniLaboratorio(
     return { revocati: 0, errori: 1 }
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) {
-    console.error('[revoca-sessioni] env Supabase assente — revoca saltata', { laboratorioId })
-    return { revocati: 0, errori: utenti.length }
-  }
+  // Best-effort in parallelo: un fallimento non blocca gli altri né la transizione.
+  const esiti = await Promise.allSettled(
+    utenti.map(async (u) => {
+      const { error: banErr } = await svc.auth.admin.updateUserById(u.id, {
+        ban_duration: BAN_DURATION,
+      })
+      if (banErr) throw new Error(`${u.id}: ${banErr.message}`)
+    })
+  )
 
   let revocati = 0
   let errori = 0
-  for (const u of utenti) {
-    try {
-      const res = await fetch(`${url}/auth/v1/admin/users/${u.id}/logout`, {
-        method: 'POST',
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
-      })
-      if (res.ok) {
-        revocati++
-      } else {
-        errori++
-        console.error('[revoca-sessioni] logout fallito:', res.status, { userId: u.id, laboratorioId })
-      }
-    } catch (e) {
+  for (const esito of esiti) {
+    if (esito.status === 'fulfilled') {
+      revocati++
+    } else {
       errori++
-      console.error('[revoca-sessioni] logout errore rete:', e instanceof Error ? e.message : e, {
-        userId: u.id,
-        laboratorioId,
-      })
+      console.error('[revoca-sessioni] ban utente fallito:', esito.reason instanceof Error ? esito.reason.message : esito.reason, { laboratorioId })
     }
   }
   return { revocati, errori }

@@ -1,6 +1,11 @@
 // N13: route ESENTI dalla guard lab.stato — ogni riga ha un perché.
 // Il test lab-guard-static.test.ts impone assertLabOperativo( in tutte le altre.
 // Decisione ratificata: docs/design/decisions/2026-07-17-N13-N14-N11bis-ratifiche.md
+//
+// NOTA admin/*: le route admin NON sono esenti — chiamano la guard anche se
+// verifyAdmin() garantisce admin_sistema (bypass by design nella matrice).
+// Scelta deliberata di defense-in-depth: se un domani una route admin
+// allargasse i ruoli ammessi, la guard è già in posizione.
 export const LAB_GUARD_EXEMPT_ROUTES = [
   // Billing: devono restare raggiungibili proprio quando il lab NON è operativo
   // (riattivazione abbonamento). Self-check blacklist già presente nei file.

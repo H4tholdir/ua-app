@@ -1,14 +1,15 @@
 import 'server-only'
-import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { getFreshLabContext, type LabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 export interface AdminReteContext {
   userId: string
   laboratorioId: string
   rete: { id: string; nome: string; admin_laboratorio_id: string }
-  // N13: ruolo + lab esposti per assertLabOperativo (LabGuardInput)
-  ruolo: string
-  lab: { stato: string; trial_ends_at: string | null; nome: string } | null
+  // N13: ruolo + lab esposti per assertLabOperativo (LabGuardInput) —
+  // tipi presi da LabContext per non divergere mai dalla fonte.
+  ruolo: LabContext['ruolo']
+  lab: LabContext['lab']
 }
 
 export async function verifyAdminRete(reteId: string): Promise<AdminReteContext | null> {

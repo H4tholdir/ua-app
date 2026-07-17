@@ -4,6 +4,7 @@
 // MAI in middleware (lab.stato non è nei claims, costerebbe un round-trip DB).
 // Documento: docs/design/decisions/2026-07-17-N13-N14-N11bis-ratifiche.md
 import { NextResponse } from 'next/server'
+import { isTrialScaduto } from '@/lib/utils/lab-stato'
 
 export type LabGuardMode = 'off' | 'shadow' | 'enforce'
 
@@ -15,6 +16,8 @@ export const LAB_GUARD_DEFAULT_MODE: LabGuardMode = 'shadow'
 export type LabGuardInput = {
   ruolo: string
   lab: { stato: string; trial_ends_at: string | null } | null
+  // opzionale, solo per il log shadow (LabContext e i wrapper lo portano già)
+  laboratorioId?: string | null
 }
 export type GuardMethod = 'GET' | 'HEAD' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
@@ -49,8 +52,8 @@ export function decideLabOperativo(ctx: LabGuardInput | null, method: GuardMetho
     case 'attivo':
       return null
     case 'trial': {
-      // trial_ends_at NULL = override admin, non scade mai (stesso semantics del layout (app))
-      const scaduto = ctx.lab.trial_ends_at !== null && new Date(ctx.lab.trial_ends_at) < new Date()
+      // predicato condiviso col gate UX del layout (app) — niente drift
+      const scaduto = isTrialScaduto(ctx.lab.stato, ctx.lab.trial_ends_at)
       return scaduto && !isRead(method) ? 'UA_LAB_TRIAL_SCADUTO' : null
     }
     case 'sospeso':
@@ -70,8 +73,10 @@ export function assertLabOperativo(ctx: LabGuardInput | null, method: GuardMetho
   const code = decideLabOperativo(ctx, method)
   if (!code) return null
   if (mode === 'shadow') {
+    // Il pathname della route è nei metadata della function log su Vercel;
+    // qui si aggiunge il lab per l'analisi aggregata della finestra shadow.
     console.warn(
-      `[lab-guard] would-block ${JSON.stringify({ code, method, ruolo: ctx?.ruolo ?? null, stato: ctx?.lab?.stato ?? null })}`
+      `[lab-guard] would-block ${JSON.stringify({ code, method, ruolo: ctx?.ruolo ?? null, stato: ctx?.lab?.stato ?? null, laboratorioId: ctx?.laboratorioId ?? null })}`
     )
     return null
   }

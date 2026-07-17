@@ -21,7 +21,7 @@ vi.mock('@/lib/invito/send-invito-rete-email', () => ({
 
 import { POST } from '../../src/app/api/rete/[id]/inviti/route'
 
-const CTX = { userId: 'user-1', laboratorioId: 'lab-1', rete: { id: 'rete-1', nome: 'Rete Toscana', admin_laboratorio_id: 'lab-1' } }
+const CTX = { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'admin_rete', lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Uno' }, rete: { id: 'rete-1', nome: 'Rete Toscana', admin_laboratorio_id: 'lab-1' } }
 
 let insertedInvito: Record<string, unknown> | null = null
 let updatedInvito: Record<string, unknown> | null = null

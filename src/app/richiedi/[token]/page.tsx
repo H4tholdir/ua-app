@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 import { RichiestaClientForm } from '@/components/features/portale/RichiestaClientForm'
 
 type PageProps = { params: Promise<{ token: string }> }
@@ -16,12 +17,19 @@ export default async function RichiestaPage({ params }: PageProps) {
   // 1. Fetch cliente by portale_token
   const { data: cliente, error } = await svc
     .from('clienti')
-    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at')
+    .select('id, nome, cognome, studio_nome, laboratorio_id, portale_token, portale_token_scade_at, laboratori(stato)')
     .eq('portale_token', token)
     .is('deleted_at', null)
     .single()
 
   if (error || !cliente) {
+    notFound()
+  }
+
+  // 1b. N13: lab blacklist → la pagina sparisce come un token inesistente
+  // (PRIMA del check scadenza — no info-leak; coerente con l'API richiedi).
+  const labStato = statoLabDaEmbed((cliente as { laboratori?: unknown }).laboratori)
+  if (portaleNonDisponibile(labStato, 'richiedi/page')) {
     notFound()
   }
 

@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 
 interface RequestBody {
   token: string
@@ -63,17 +64,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
   }
 
+  // 3b. N13: lab blacklist (o embed assente, fail-closed) → 404 generico,
+  // stessa forma del token non valido e PRIMA del check scadenza — nessun
+  // info-leak a terzi. Shadow/kill-switch gestiti dal helper.
+  const labStato = statoLabDaEmbed((cliente as { laboratori?: unknown }).laboratori)
+  if (portaleNonDisponibile(labStato, 'portale/richiedi')) {
+    return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
+  }
+
   // 4. Verifica TTL token
   const scadenza = (cliente as Record<string, unknown>).portale_token_scade_at as string | null
   if (scadenza && new Date(scadenza) < new Date()) {
     return NextResponse.json({ error: 'Link scaduto' }, { status: 403 })
-  }
-
-  // 4b. N13: lab blacklist (o embed assente, fail-closed) → 404 generico,
-  // stessa forma del token non valido — nessun info-leak a terzi.
-  const labStato = (cliente as unknown as { laboratori?: { stato: string } | null }).laboratori?.stato ?? null
-  if (labStato === null || labStato === 'blacklist') {
-    return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
   }
 
   const labId: string = cliente.laboratorio_id
