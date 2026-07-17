@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -17,14 +17,10 @@ interface Props { params: Promise<{ id: string }> }
 
 export default async function FatturaDetailPage({ params }: Props) {
   const { id } = await params
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login?error=no_lab')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', user.id).single()
-  if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
-
   const { data: fattura } = await svc
     .from('fatture')
     .select(`
@@ -35,16 +31,17 @@ export default async function FatturaDetailPage({ params }: Props) {
       righe:fatture_righe(descrizione, quantita, prezzo_unitario, importo)
     `)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .single()
 
   if (!fattura) redirect('/fatture')
 
+  // pec_smtp_configurata NON è nel LabContext — query locale mirata.
   const { data: lab } = await svc
     .from('laboratori')
     .select('pec_smtp_configurata')
-    .eq('id', utente.laboratorio_id)
+    .eq('id', context.laboratorioId)
     .single()
 
   const f = fattura as Record<string, unknown>
@@ -77,7 +74,7 @@ export default async function FatturaDetailPage({ params }: Props) {
       .from('fatture')
       .select('id, numero')
       .eq('fattura_collegata_id', id)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .neq('stato_sdi', 'rifiutata')
       .is('deleted_at', null)
       .maybeSingle()
@@ -269,7 +266,7 @@ export default async function FatturaDetailPage({ params }: Props) {
               fatturaId={id}
               numero={f.numero as string}
               statoSdi={statoSdiKey}
-              ruolo={(utente.ruolo as string) ?? ''}
+              ruolo={context.ruolo ?? ''}
               pecConfigurata={lab?.pec_smtp_configurata === true}
             />
           </div>
