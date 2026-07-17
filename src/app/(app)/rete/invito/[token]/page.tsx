@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createHash } from 'crypto'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -22,9 +22,8 @@ function MessaggioInvito({ testo }: { testo: string }) {
 
 export default async function AccettaInvitoRetePage({ params }: Props) {
   const { token } = await params
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
 
   const svc = getServiceClient()
   const tokenHash = createHash('sha256').update(token).digest('hex')
@@ -44,9 +43,7 @@ export default async function AccettaInvitoRetePage({ params }: Props) {
     )
   }
 
-  const { data: utente } = await svc.from('utenti').select('email, ruolo').eq('id', user.id).single()
-
-  if (!utente?.email || utente.email.toLowerCase().trim() !== invito.email.toLowerCase().trim()) {
+  if (!context.email || context.email.toLowerCase().trim() !== invito.email.toLowerCase().trim()) {
     return (
       <>
         <AppHeader title="Invito rete" backHref="/rete" />
@@ -55,7 +52,7 @@ export default async function AccettaInvitoRetePage({ params }: Props) {
     )
   }
 
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return (
       <>
         <AppHeader title="Invito rete" backHref="/rete" />

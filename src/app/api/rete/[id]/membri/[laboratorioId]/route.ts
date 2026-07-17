@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { verifyAdminRete } from '@/lib/rete/verify-admin-rete'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 export async function DELETE(
@@ -19,14 +19,8 @@ export async function DELETE(
   let autorizzato = ctx !== null
 
   if (!autorizzato) {
-    const userClient = await getServerUserClient()
-    const {
-      data: { user },
-    } = await userClient.auth.getUser()
-    if (user) {
-      const { data: utente } = await svc.from('utenti').select('ruolo').eq('id', user.id).single()
-      autorizzato = utente?.ruolo === 'admin_sistema'
-    }
+    const context = await getFreshLabContext()
+    autorizzato = context?.ruolo === 'admin_sistema'
   }
 
   if (!autorizzato) {

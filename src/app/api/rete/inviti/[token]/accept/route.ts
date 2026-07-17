@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'crypto'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -14,33 +14,24 @@ export async function POST(
 
   const { token } = await params
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (utente?.ruolo !== 'titolare' && utente?.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json(
       { error: 'Solo il titolare del laboratorio può accettare questo invito' },
       { status: 403 }
     )
   }
+  const svc = getServiceClient()
 
   const tokenHash = createHash('sha256').update(token).digest('hex')
 
   const { data, error } = await svc.rpc('accept_invito_rete_atomic', {
     p_token_hash: tokenHash,
-    p_user_id: user.id,
+    p_user_id: context.userId,
   })
 
   if (error) {

@@ -1,35 +1,22 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import BillingContent from './billing-content'
 
 interface Props {
   searchParams: Promise<{ expired?: string; trial_expired?: string }>
 }
 
+// getFreshLabContext: getUser() di rete (pagina di gating abbonamento,
+// conservativo) + filtro deleted_at (N11). `context.lab` (stato, nome,
+// trial_ends_at) proviene dalla stessa query — nessuna seconda query
+// `laboratori` separata: i campi coincidono esattamente con LabContext.lab.
 export default async function BillingPage({ searchParams }: Props) {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getFreshLabContext()
+  if (!context) redirect('/login')
+  if (!context.laboratorioId || !context.lab) redirect('/login?error=no_lab')
 
   const params = await searchParams
-  const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, nome')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente) redirect('/login?error=no_lab')
-
-  const { data: lab } = await svc
-    .from('laboratori')
-    .select('stato, nome, trial_ends_at')
-    .eq('id', utente.laboratorio_id)
-    .single()
-
-  if (!lab) redirect('/login?error=no_lab')
+  const lab = context.lab
 
   // Blacklist never lands here — app layout redirects to /blocked
   if (lab.stato === 'blacklist') redirect('/blocked')

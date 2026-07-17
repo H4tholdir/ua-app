@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { calcolaCreditoDisponibile } from '@/lib/contabilita/saldo'
@@ -18,31 +18,23 @@ export async function POST(req: Request, { params }: RouteContext) {
 
   const { id: cliente_id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'front_desk') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'front_desk') {
     return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   const { data: cliente } = await svc
     .from('clienti')
     .select('id')
     .eq('id', cliente_id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .single()
 
@@ -75,7 +67,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       .select('id, stornata_at, tipo_documento')
       .eq('id', fattura_id)
       .eq('cliente_id', cliente_id)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .is('deleted_at', null)
       .single()
     if (!fattura) {
@@ -96,7 +88,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       .select('id')
       .eq('id', lavoro_id as string)
       .eq('cliente_id', cliente_id)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .is('deleted_at', null)
       .single()
     if (!lavoro) {
@@ -108,7 +100,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   // di lettura lancia — risposta JSON pulita, mai messaggi Postgres.
   let movimentiValidi
   try {
-    movimentiValidi = await fetchMovimentiCreditoValidi(svc, utente.laboratorio_id, cliente_id)
+    movimentiValidi = await fetchMovimentiCreditoValidi(svc, context.laboratorioId, cliente_id)
   } catch (err) {
     console.error('[credito applica] lettura movimenti:', err)
     return NextResponse.json({ error: 'Errore lettura credito' }, { status: 500 })
@@ -122,13 +114,13 @@ export async function POST(req: Request, { params }: RouteContext) {
   const { data: movimento, error } = await svc
     .from('credito_clienti_movimenti')
     .insert({
-      laboratorio_id: utente.laboratorio_id,
+      laboratorio_id: context.laboratorioId,
       cliente_id,
       tipo: 'applicazione',
       fattura_id,
       lavoro_id,
       importo,
-      registrato_da: user.id,
+      registrato_da: context.userId,
     })
     .select()
     .single()

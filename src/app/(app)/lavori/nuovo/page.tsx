@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getDatiWizard } from '@/lib/wizard/dati-wizard'
 import { WizardNuovoLavoro } from '@/components/features/wizard/WizardNuovoLavoro'
@@ -14,17 +14,13 @@ export const dynamic = 'force-dynamic'
 // client bypassa RLS). `getDatiWizard` (Task 7) prepara dentisti per
 // frequenza, tipi per frequenza, prossimo codice paziente e tempi medi.
 export default async function NuovoLavoroPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('ruolo, laboratorio_id').eq('id', user.id).is('deleted_at', null).single()
-  if (!utente) redirect('/login')
-  const { ruolo, laboratorio_id: labId } = utente
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
+  const { ruolo, laboratorioId: labId, userId } = context
   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
 
+  const svc = getServiceClient()
   const dati = await getDatiWizard(svc, labId)
 
-  return <WizardNuovoLavoro dati={dati} contesto={{ userId: user.id, labId }} />
+  return <WizardNuovoLavoro dati={dati} contesto={{ userId, labId }} />
 }

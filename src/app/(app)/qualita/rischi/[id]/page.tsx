@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -16,19 +16,15 @@ function formatTipoDispositivo(tipo: string): string {
 
 export default async function RischiDetailPage({ params }: Props) {
   const { id } = await params
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login?error=no_lab')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
-  if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
-
   const { data: rischio } = await svc
     .from('rischi_tipo_dispositivo')
     .select('id, tipo_dispositivo, rischi_json, norme_json, rischi_residui, misure_controllo, data_ultima_revisione, versione')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   if (!rischio) redirect('/qualita/rischi')

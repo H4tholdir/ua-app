@@ -1,6 +1,6 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 export async function GET(req: Request) {
@@ -9,18 +9,15 @@ export async function GET(req: Request) {
 
   if (!token) return NextResponse.json({ error: 'Token mancante' }, { status: 400 })
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
-  if (!utente?.laboratorio_id) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
-
   const { data: lab } = await svc
     .from('laboratori')
     .select('pec_verificata, pec_verified_at, pec_verify_token')
-    .eq('id', utente.laboratorio_id)
+    .eq('id', context.laboratorioId)
     .single()
 
   if (!lab) return NextResponse.json({ error: 'Lab non trovato' }, { status: 404 })

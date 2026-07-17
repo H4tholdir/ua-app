@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AdminHomePreview } from '@/components/features/admin/AdminHomePreview'
 import { getPileHome } from '@/lib/dashboard/pile-home'
@@ -28,23 +28,16 @@ function saluto(d: Date): string {
 export default async function AdminLivePreviewPage({ params }: Props) {
   const { id } = await params
 
-  // ── Verifica admin ────────────────────────────────────────────────────────
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  // ── Verifica admin ── getFreshLabContext: getUser() di rete + filtro
+  // deleted_at (N11) — admin soft-deleted perde l'accesso immediatamente. ───
+  const context = await getFreshLabContext()
+  if (!context) redirect('/login')
 
-  const svc = getServiceClient()
-  const { data: me } = await svc
-    .from('utenti')
-    .select('ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if ((me as Record<string, unknown> | null)?.ruolo !== 'admin_sistema') {
+  if (context.ruolo !== 'admin_sistema') {
     redirect('/admin/labs')
   }
+
+  const svc = getServiceClient()
 
   // ── Carica dati del lab ───────────────────────────────────────────────────
   const { data: lab } = await svc

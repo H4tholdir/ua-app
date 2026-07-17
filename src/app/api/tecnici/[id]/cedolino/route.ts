@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { generateCedolinoTecnico } from '@/lib/pdf/generate-cedolino-tecnico'
 
@@ -17,42 +17,32 @@ export async function GET(
   const mese = /^\d{4}-\d{2}$/.test(meseParam) ? meseParam : meseCorrente
 
   // ─── Auth ────────────────────────────────────────────────────────────────
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-
-  const labId: string = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId: string = context.laboratorioId
 
   // ─── RBAC ────────────────────────────────────────────────────────────────
   // Il tecnico può scaricare solo il proprio cedolino.
-  if (utente.ruolo === 'tecnico') {
+  if (context.ruolo === 'tecnico') {
     const { data: mioTecnico } = await svc
       .from('tecnici')
       .select('id')
       .eq('laboratorio_id', labId)
-      .eq('utente_id', user.id)
+      .eq('utente_id', context.userId)
       .is('deleted_at', null)
       .maybeSingle()
 
     if (!mioTecnico || mioTecnico.id !== tecnicoId) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
-  } else if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  } else if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 

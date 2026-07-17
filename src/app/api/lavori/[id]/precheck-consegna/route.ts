@@ -6,8 +6,9 @@
 // 404 indistinguibile cross-tenant (mai 403). Shape risposta BLINDATO: mai
 // echo di campi lavoro/paziente (Art. 9 GDPR).
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { precheckMDR } from '@/lib/consegna/precheck'
 import { materialiCarenti } from '@/lib/consegna/materiali-carenti'
 import type { LavoroDettaglio, PrecheckConsegnaResponse } from '@/types/domain'
@@ -18,50 +19,50 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
-  }
-  const labId: string = utente.laboratorio_id
+    // Messaggio/status di questo file (404 "Lavoro non trovato", MAI 403 —
+    // vedi commento di testa: 404 indistinguibile cross-tenant) conservato
+    // anche per il ramo laboratorioId assente.
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+    }
+    const labId: string = context.laboratorioId
 
-  // Select MINIMO = lo stesso di orchestraConsegna (orchestrate.ts Step 1) —
-  // ciò che serve a precheckMDR, niente relazioni superflue.
-  const { data: lavoro } = await svc
-    .from('lavori')
-    .select(`
-      *,
-      cliente:clienti(*),
-      paziente:pazienti(*),
-      lavorazioni:lavori_lavorazioni(*),
-      materiali:lavori_materiali(*)
-    `)
-    .eq('id', id)
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .single()
-  if (!lavoro) return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+    const svc = getServiceClient()
+    // Select MINIMO = lo stesso di orchestraConsegna (orchestrate.ts Step 1) —
+    // ciò che serve a precheckMDR, niente relazioni superflue.
+    const { data: lavoro } = await svc
+      .from('lavori')
+      .select(`
+        *,
+        cliente:clienti(*),
+        paziente:pazienti(*),
+        lavorazioni:lavori_lavorazioni(*),
+        materiali:lavori_materiali(*)
+      `)
+      .eq('id', id)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .single()
+    if (!lavoro) return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
 
-  const pre = precheckMDR(lavoro as unknown as LavoroDettaglio)
-  const carenti = await materialiCarenti(svc, id, labId)
+    const pre = precheckMDR(lavoro as unknown as LavoroDettaglio)
+    const carenti = await materialiCarenti(svc, id, labId)
 
-  const warnings: string[] = [
-    ...(pre.mdr_campi_mancanti ?? []).map((c) => `${c} non registrato all'accettazione`),
-    ...carenti.map((m) => `${m.nome} sotto scorta (${m.scorta_attuale} ${m.unita_misura} su ${m.quantita_necessaria})`),
-  ]
+    const warnings: string[] = [
+      ...(pre.mdr_campi_mancanti ?? []).map((c) => `${c} non registrato all'accettazione`),
+      ...carenti.map((m) => `${m.nome} sotto scorta (${m.scorta_attuale} ${m.unita_misura} su ${m.quantita_necessaria})`),
+    ]
 
-  const risposta: PrecheckConsegnaResponse = {
-    consegnabile: pre.ok,
-    bloccanti: pre.errori,
-    warnings,
-  }
-  return NextResponse.json(risposta)
+    const risposta: PrecheckConsegnaResponse = {
+      consegnabile: pre.ok,
+      bloccanti: pre.errori,
+      warnings,
+    }
+    return NextResponse.json(risposta)
+  })
 }

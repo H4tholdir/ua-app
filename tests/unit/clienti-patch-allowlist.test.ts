@@ -1,12 +1,12 @@
 // tests/unit/clienti-patch-allowlist.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -29,20 +29,10 @@ let updatePayload: Record<string, unknown> | null
 
 beforeEach(() => {
   updatePayload = null
-  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
-  mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({
-              data: { laboratorio_id: 'lab-1', ruolo: 'titolare' },
-              error: null,
-            }),
-          }),
-        }),
-      }
-    }
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
+  })
+  mockFrom.mockImplementation(() => {
     // clienti
     return {
       update: (payload: Record<string, unknown>) => {
@@ -106,9 +96,6 @@ describe('PATCH /api/clienti/[id] — allowlist I-2', () => {
   it('403 se tecnico_default_id appartiene a un altro lab', async () => {
     // il mock tecnici risponde "non trovato" per il lab corrente
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
-      }
       if (table === 'tecnici') {
         return {
           select: () => ({
@@ -129,9 +116,6 @@ describe('PATCH /api/clienti/[id] — allowlist I-2', () => {
   it('200 con tecnico_default_id valido (appartiene al lab)', async () => {
     // il mock tecnici risponde con un tecnico trovato per il lab corrente
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
-      }
       if (table === 'tecnici') {
         return {
           select: () => ({

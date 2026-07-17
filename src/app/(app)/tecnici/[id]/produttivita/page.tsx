@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -21,39 +21,27 @@ export default async function ProduttivitaTecnicoPage({ params, searchParams }: 
   const mese = meseParam && /^\d{4}-\d{2}$/.test(meseParam) ? meseParam : meseCorrente
 
   // ─── Auth ────────────────────────────────────────────────────────────────
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .is('deleted_at', null)
-    .single()
-
-  if (!utente?.laboratorio_id) redirect('/login')
-
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
 
   // ─── RBAC — server-side ───────────────────────────────────────────────────
-  if (utente.ruolo === 'tecnico') {
+  if (context.ruolo === 'tecnico') {
     // Un tecnico può vedere solo la propria produttività
     const { data: mioTecnico } = await svc
       .from('tecnici')
       .select('id')
       .eq('laboratorio_id', labId)
-      .eq('utente_id', user.id)
+      .eq('utente_id', context.userId)
       .is('deleted_at', null)
       .maybeSingle()
 
     if (!mioTecnico || mioTecnico.id !== tecnicoId) {
       redirect('/dashboard')
     }
-  } else if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  } else if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     redirect('/dashboard')
   }
 
@@ -234,7 +222,7 @@ export default async function ProduttivitaTecnicoPage({ params, searchParams }: 
     storico_4_mesi: storico4Mesi,
   }
 
-  const isProprioTecnico = utente.ruolo === 'tecnico'
+  const isProprioTecnico = context.ruolo === 'tecnico'
 
   return (
     <PageWrapper>

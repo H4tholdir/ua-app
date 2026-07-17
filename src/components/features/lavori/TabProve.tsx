@@ -80,8 +80,12 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
           signal: controller.signal,
         })
         if (!res.ok) throw new Error(`Errore ${res.status}`)
-        const json = await res.json() as { prove?: Prova[] }
-        setProve(json.prove ?? [])
+        // GET /api/lavori/[id]/prove ritorna un ARRAY GREZZO (route.ts:
+        // `return NextResponse.json(data)`, non `{ prove: data }`). Parsing
+        // difensivo: se il contratto dovesse mai cambiare o rispondere in modo
+        // inatteso, non vogliamo un crash, solo lista vuota.
+        const json: unknown = await res.json()
+        setProve(Array.isArray(json) ? json as Prova[] : [])
         setError(null)
       } catch (e) {
         if ((e as Error).name === 'AbortError') return
@@ -104,6 +108,7 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'manda_in_prova',
           data_rientro_prevista: dataRientro,
           istruzioni: istruzioni || null,
         }),
@@ -126,11 +131,12 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
     if (!esito) return
     setRientroSubmitting((prev) => ({ ...prev, [provaId]: true }))
     try {
-      const res = await fetch(`/api/lavori/${lavoroId}/prove/${provaId}/rientro`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/lavori/${lavoroId}/prove`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data_rientro_effettiva: new Date().toISOString().split('T')[0],
+          action: 'registra_rientro',
+          prova_id: provaId,
           esito,
           note_dentista: rientroNote[provaId] || null,
         }),

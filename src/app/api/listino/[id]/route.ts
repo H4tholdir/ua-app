@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 const PATCH_ALLOWLIST = [
@@ -25,39 +26,34 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    const { data: voce, error } = await svc
+      .from('listino')
+      .select(
+        'id, codice, nome, descrizione, categoria, prezzo_1, prezzo_2, prezzo_3, prezzo_4, compenso_tecnico, unita_misura, attivo'
+      )
+      .eq('id', id)
+      .eq('laboratorio_id', labId)
+      .single()
 
-  const { data: voce, error } = await svc
-    .from('listino')
-    .select(
-      'id, codice, nome, descrizione, categoria, prezzo_1, prezzo_2, prezzo_3, prezzo_4, compenso_tecnico, unita_misura, attivo'
-    )
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .single()
+    if (error || !voce) {
+      return NextResponse.json({ error: 'Voce non trovata' }, { status: 404 })
+    }
 
-  if (error || !voce) {
-    return NextResponse.json({ error: 'Voce non trovata' }, { status: 404 })
-  }
-
-  return NextResponse.json({ voce })
+    return NextResponse.json({ voce })
+  })
 }
 
 export async function PATCH(
@@ -70,36 +66,27 @@ export async function PATCH(
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
   // Solo titolare o admin_rete possono modificare il listino
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Verifica che la voce appartenga al lab
   const { data: existing } = await svc
     .from('listino')
     .select('id')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   if (!existing) {
@@ -129,7 +116,7 @@ export async function PATCH(
     .from('listino')
     .update(updates)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .select('id, codice, nome, prezzo_1, compenso_tecnico')
     .single()
 
@@ -150,36 +137,27 @@ export async function DELETE(
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
   // Solo titolare o admin_rete possono eliminare voci dal listino
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Verifica che la voce appartenga al lab
   const { data: existing } = await svc
     .from('listino')
     .select('id')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   if (!existing) {
@@ -191,7 +169,7 @@ export async function DELETE(
     .from('listino')
     .update({ attivo: false })
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 })

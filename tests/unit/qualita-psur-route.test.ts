@@ -24,7 +24,7 @@ function mockTabelle(opts: {
 }) {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
     }
     if (table === 'psur') {
       return {
@@ -136,7 +136,7 @@ function mockTabellePost(opts: {
   let lavoriCountCallIndex = 0
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
     }
     if (table === 'psur') {
       psurCallCount++

@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockVerifyAdminRete, mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockVerifyAdminRete, mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
   mockVerifyAdminRete: vi.fn(),
-  mockGetUser: vi.fn(),
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
 vi.mock('@/lib/rete/verify-admin-rete', () => ({
   verifyAdminRete: mockVerifyAdminRete,
 }))
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -27,16 +27,10 @@ let deletedFilter: { reteId?: string; laboratorioId?: string } = {}
 
 function mockScenario(opts: { reteAdminLabId: string; ruoloUtente?: string }) {
   deletedFilter = {}
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: 'user-x', email: null, ruolo: opts.ruoloUtente ?? 'tecnico', laboratorioId: 'lab-x', nome: null, cognome: null, lab: null,
+  })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { ruolo: opts.ruoloUtente ?? 'tecnico' }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'reti') {
       return {
         select: () => ({
@@ -91,7 +85,6 @@ describe('DELETE /api/rete/[id]/membri/[laboratorioId] — rimozione membro', ()
 
   it('admin_sistema (verifyAdminRete fallisce, ma ruolo admin_sistema) → 200', async () => {
     mockVerifyAdminRete.mockResolvedValue(null)
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } })
     mockScenario({ reteAdminLabId: 'lab-1', ruoloUtente: 'admin_sistema' })
 
     const res = await DELETE(deleteRequest(), deleteParams())
@@ -101,7 +94,6 @@ describe('DELETE /api/rete/[id]/membri/[laboratorioId] — rimozione membro', ()
 
   it('né admin_rete né admin_sistema → 403, nessuna rimozione', async () => {
     mockVerifyAdminRete.mockResolvedValue(null)
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-x' } } })
     mockScenario({ reteAdminLabId: 'lab-1', ruoloUtente: 'tecnico' })
 
     const res = await DELETE(deleteRequest(), deleteParams())

@@ -1,23 +1,20 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { isTrialExpiringSoon } from '@/lib/utils/lab-stato'
 
 export default async function AbbonamentoPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login?error=no_lab')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('laboratorio_id').eq('id', user.id).single()
-  if (!utente?.laboratorio_id) redirect('/login?error=no_lab')
-
+  // piano/stripe_* NON sono nel LabContext — query locale (1 RT) per questi campi extra.
   const { data: lab } = await svc
     .from('laboratori')
     .select('nome, stato, piano, trial_ends_at, stripe_subscription_status, stripe_customer_id')
-    .eq('id', utente.laboratorio_id).single()
+    .eq('id', context.laboratorioId).single()
 
   if (!lab) redirect('/login?error=no_lab')
 

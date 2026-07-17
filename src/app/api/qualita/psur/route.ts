@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { rilevaGruppi } from '@/lib/utils/sorveglianza-postvendita'
@@ -8,29 +8,22 @@ import { GRUPPO_TO_CLASSI_RISCHIO, type GruppoClassePsur } from '@/types/domain'
 // GET /api/qualita/psur
 // Lista PSUR/PMS del laboratorio + gruppi-classe rilevati dai lavori esistenti
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   const { data, error } = await svc
     .from('psur')
     .select(
       'id, anno_riferimento, gruppo_classe, periodo_inizio, periodo_fine, totale_dispositivi, totale_non_conformita, totale_incidenti, totale_reclami, totale_rifacimenti, stato, pdf_url, pdf_sha256, firmato_at, prrc_nome_snapshot, created_at, updated_at'
     )
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .order('anno_riferimento', { ascending: false })
 
   if (error) {
@@ -40,7 +33,7 @@ export async function GET() {
   const { data: lavoriClassi, error: lavoriClassiError } = await svc
     .from('lavori')
     .select('classe_rischio')
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   if (lavoriClassiError) {
     return NextResponse.json({ error: lavoriClassiError.message }, { status: 500 })
@@ -60,23 +53,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  const labId = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId = context.laboratorioId
 
   let body: Record<string, unknown> = {}
   try {

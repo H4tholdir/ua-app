@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
 
@@ -16,23 +16,16 @@ export async function POST(
     return NextResponse.json({ error: 'CSRF' }, { status: 403 })
   }
 
-  const supabase = await getServerUserClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!context.laboratorioId) return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
 
   const { id: lavoro_id } = await params
   const svc = getServiceClient()
 
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-  if (!utente) return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
-
   const { data, error } = await svc.rpc('annulla_consegna_atomica', {
     p_lavoro_id: lavoro_id,
-    p_laboratorio_id: utente.laboratorio_id,
+    p_laboratorio_id: context.laboratorioId,
     p_finestra_ms: FINESTRA_ANNULLO_MS,
   })
 

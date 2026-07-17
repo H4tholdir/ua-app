@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getTrendMensile } from '@/lib/dashboard/queries'
 import { AppHeader } from '@/components/layout/AppHeader'
@@ -131,30 +131,26 @@ function KpiCard({
 }
 
 export default async function AnalyticsPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  const labId: string = utente?.laboratorio_id ?? ''
+  const labId: string = context.laboratorioId
 
   let stats: DashboardStats = defaultStats
   let cacheUpdatedAt: string | null = null
   let trend: { month: string; totale: number; label: string }[] = []
 
   if (labId) {
-    trend = await getTrendMensile(svc, labId, 12)
-    const { data: cache } = await svc
-      .from('dashboard_kpi_cache')
-      .select('*')
-      .eq('laboratorio_id', labId)
-      .maybeSingle()
+    const [trendResult, { data: cache }] = await Promise.all([
+      getTrendMensile(svc, labId, 12),
+      svc
+        .from('dashboard_kpi_cache')
+        .select('*')
+        .eq('laboratorio_id', labId)
+        .maybeSingle(),
+    ])
+    trend = trendResult
 
     if (cache) {
       stats = {

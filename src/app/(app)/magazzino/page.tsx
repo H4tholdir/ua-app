@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -27,43 +27,38 @@ export type ArticoloRowConOrdine = ArticoloRow & {
 }
 
 export default async function MagazzinoPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  const labId: string = utente?.laboratorio_id ?? ''
+  const labId: string = context.laboratorioId
 
   let articoli: ArticoloRowConOrdine[] = []
   let categorieEsistenti: string[] = []
   let fornitori: Array<{ id: string; ragione_sociale: string }> = []
 
   if (labId) {
-    const { data } = await svc
-      .from('magazzino')
-      .select('id, codice_articolo, nome, produttore, categoria, um_scarico, um_acquisto, fornitore_id, conf_da_ordinare, scorta_attuale, scorta_minima, dispositivo_medico')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .order('nome', { ascending: true })
-      .limit(500)
+    const [{ data }, { data: fornitoriData }] = await Promise.all([
+      svc
+        .from('magazzino')
+        .select('id, codice_articolo, nome, produttore, categoria, um_scarico, um_acquisto, fornitore_id, conf_da_ordinare, scorta_attuale, scorta_minima, dispositivo_medico')
+        .eq('laboratorio_id', labId)
+        .eq('attivo', true)
+        .order('nome', { ascending: true })
+        .limit(500),
+      svc
+        .from('fornitori')
+        .select('id, ragione_sociale')
+        .eq('laboratorio_id', labId)
+        .eq('attivo', true)
+        .order('ragione_sociale', { ascending: true }),
+    ])
     articoli = (data ?? []) as ArticoloRowConOrdine[]
 
     categorieEsistenti = Array.from(
       new Set(articoli.map((a) => a.categoria).filter((c): c is string => !!c))
     ).sort()
 
-    const { data: fornitoriData } = await svc
-      .from('fornitori')
-      .select('id, ragione_sociale')
-      .eq('laboratorio_id', labId)
-      .eq('attivo', true)
-      .order('ragione_sociale', { ascending: true })
     fornitori = fornitoriData ?? []
   }
 

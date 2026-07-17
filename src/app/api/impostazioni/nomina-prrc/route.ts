@@ -1,20 +1,14 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { generateNominaPrrc } from '@/lib/pdf/generate-nomina-prrc'
 
 export async function GET() {
-  const supabase = await getServerUserClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabaseService = getServiceClient()
-  const { data: utente } = await supabaseService
-    .from('utenti').select('laboratorio_id').eq('id', user.id).single()
-  if (!utente) return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!context.laboratorioId) return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
 
   try {
-    const buffer = await generateNominaPrrc(utente.laboratorio_id)
+    const buffer = await generateNominaPrrc(context.laboratorioId)
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',

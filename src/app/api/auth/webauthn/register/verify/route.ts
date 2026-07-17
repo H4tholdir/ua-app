@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { verifyRegistrationResponse } from '@simplewebauthn/server'
 import type { RegistrationResponseJSON } from '@simplewebauthn/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { consumeChallenge } from '@/lib/webauthn/challenge'
 import { RP_ID, ALLOWED_ORIGINS } from '@/lib/webauthn/config'
@@ -11,9 +11,10 @@ import { RP_ID, ALLOWED_ORIGINS } from '@/lib/webauthn/config'
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  // N11: getFreshLabContext filtra deleted_at — chiude l'enrollment WebAuthn
+  // per utenti soft-deleted (riserva appsec 3, spec R2 §6).
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const body: { response: RegistrationResponseJSON; challengeId: string; deviceName?: string } = await req.json()
   const { response, challengeId, deviceName } = body
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
 
   const svc = getServiceClient()
   const { error } = await svc.from('webauthn_credentials').insert({
-    user_id: user.id,
+    user_id: context.userId,
     credential_id: credential.id,
     public_key: Buffer.from(credential.publicKey).toString('base64'),
     counter: credential.counter,

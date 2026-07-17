@@ -25,7 +25,7 @@ describe('POST /api/lavori/[id]/annulla-consegna', () => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1' }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1' }, error: null }) }) }) }) }
       throw new Error(`Unexpected table: ${table}`)
     })
   })

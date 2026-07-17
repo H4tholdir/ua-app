@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSignedUrl } from '@/lib/storage/signed-url'
 import { LavoroFormClient } from '@/components/features/lavori/LavoroFormClient'
@@ -27,19 +27,10 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
   const defaultTab = risolviTab(tab)
 
   // Auth (identico a [id]/page.tsx)
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) notFound()
+  const context = await getLabContext()
+  if (!context?.laboratorioId) notFound()
 
   const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) notFound()
 
   // Carica lavoro con tutti i join (identico a [id]/page.tsx)
   const { data: lavoro, error } = await svc
@@ -58,7 +49,7 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
       laboratorio:laboratori(nome, telefono)
     `)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .neq('ddc.stato', 'annullata')
     .single()
@@ -96,7 +87,7 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
       <BackHeaderModifica lavoroId={id} />
       <LavoroFormClient
         lavoro={lavoroDettaglio}
-        ruolo={utente.ruolo}
+        ruolo={context.ruolo}
         bridged
         defaultTab={defaultTab}
       />

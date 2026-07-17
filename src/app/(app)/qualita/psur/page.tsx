@@ -1,4 +1,4 @@
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -10,31 +10,22 @@ import { PsurGruppoSezione } from '@/components/features/qualita/PsurGruppoSezio
 export const metadata = { title: 'Sorveglianza post-vendita — Qualita MDR' }
 
 export default async function PsurPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
+  const context = await getLabContext()
+  if (!context?.laboratorioId) return null
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) return null
-
   const { data: psurList } = await svc
     .from('psur')
     .select(
       'id, anno_riferimento, gruppo_classe, periodo_inizio, periodo_fine, totale_dispositivi, totale_non_conformita, totale_incidenti, totale_reclami, totale_rifacimenti, stato, pdf_url, firmato_at, prrc_nome_snapshot'
     )
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .order('anno_riferimento', { ascending: false })
 
   const { data: lavoriClassi } = await svc
     .from('lavori')
     .select('classe_rischio')
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   const { gruppiRilevati, nonClassificabili } = rilevaGruppi(
     (lavoriClassi ?? []).map((l) => l.classe_rischio as string)

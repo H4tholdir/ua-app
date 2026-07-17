@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetLabContextWithTimings, mockFrom } = vi.hoisted(() => ({
+  mockGetLabContextWithTimings: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -15,8 +15,12 @@ vi.mock('@/lib/supabase/server-service', () => ({
 
 import { GET } from '../../src/app/api/fasi-produzione/ricerca/route'
 
-const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 const ROWS = [
   { codice_fase: 'OL10', descrizione: 'Disegno modelli progettazione', attrezzatura: null, controllo_misura: null, esito_atteso: null, materiali_nota: null, obbligatoria: true },
@@ -25,7 +29,6 @@ const ROWS = [
 function mockLab(result: { data: unknown; error: unknown }): MockChain {
   const fasiChain = createChain(result)
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
     if (table === 'fasi_produzione') return fasiChain
     throw new Error(`Unexpected table: ${table}`)
   })
@@ -37,11 +40,11 @@ function req(url: string) { return new Request(url) }
 describe('GET /api/fasi-produzione/ricerca', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
   })
 
-  it('non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  it('non autenticato (context null) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
     const res = await GET(req('http://localhost/api/fasi-produzione/ricerca?q=disegno'))
     expect(res.status).toBe(401)
   })

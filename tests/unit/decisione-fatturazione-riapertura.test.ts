@@ -24,7 +24,7 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }) }
     }
     // lavori: select existing + update — chain reale della route
     return {
@@ -77,7 +77,7 @@ it('errore update: no leak del messaggio Postgres', async () => {
   // Mock che ritorna errore durante l'update
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, error: null }) }) }) }) }
     }
     // lavori: select existing (success) + update (error)
     return {

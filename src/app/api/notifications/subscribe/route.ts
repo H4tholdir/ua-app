@@ -9,7 +9,7 @@
  * Poi rimuovi il @ts-expect-error sotto.
  */
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { PushSubscriptionData } from '@/lib/notifications/push'
@@ -21,23 +21,15 @@ export async function POST(req: Request) {
   }
 
   // Auth
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  // Recupera laboratorio_id dal profilo utente (stessa logica di (app)/layout.tsx)
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   let body: PushSubscriptionData
   try {
@@ -53,8 +45,8 @@ export async function POST(req: Request) {
 
   const { error } = await svc.from('push_subscriptions').upsert(
     {
-      user_id: user.id,
-      laboratorio_id: utente.laboratorio_id,
+      user_id: context.userId,
+      laboratorio_id: context.laboratorioId,
       subscription: body,
       updated_at: new Date().toISOString(),
     },

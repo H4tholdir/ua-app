@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -105,19 +105,10 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default async function ClienteDettaglioPage({ params }: PageProps) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) notFound()
+  const context = await getLabContext()
+  if (!context?.laboratorioId) notFound()
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) notFound()
-
   const { data: cliente, error } = await svc
     .from('clienti')
     .select(`
@@ -128,7 +119,7 @@ export default async function ClienteDettaglioPage({ params }: PageProps) {
       non_soggetto_fe, portale_token, portale_fatturazione_attiva, portale_pin_hash, note
     `)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .single()
 

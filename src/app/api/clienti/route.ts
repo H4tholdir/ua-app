@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { pgrestQuote } from '@/lib/utils/escape-postgrest'
 
@@ -8,48 +9,42 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    const svc = getServiceClient()
+    let query = svc
+      .from('clienti')
+      .select(
+        'id, studio_nome, nome, cognome, telefono, email, citta, provincia, partita_iva, codice_fiscale, codice_sdi, pec, listino_numero, sconto_percentuale, note, portale_token'
+      )
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('cognome', { ascending: true })
+      .order('nome', { ascending: true })
+      .limit(500)
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    if (q) {
+      const pattern = pgrestQuote(`%${q}%`)
+      query = query.or(`cognome.ilike.${pattern},nome.ilike.${pattern},studio_nome.ilike.${pattern}`)
+    }
 
-  const labId: string = utente.laboratorio_id
+    const { data, error } = await query
 
-  let query = svc
-    .from('clienti')
-    .select(
-      'id, studio_nome, nome, cognome, telefono, email, citta, provincia, partita_iva, codice_fiscale, codice_sdi, pec, listino_numero, sconto_percentuale, note, portale_token'
-    )
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('cognome', { ascending: true })
-    .order('nome', { ascending: true })
-    .limit(500)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (q) {
-    const pattern = pgrestQuote(`%${q}%`)
-    query = query.or(`cognome.ilike.${pattern},nome.ilike.${pattern},studio_nome.ilike.${pattern}`)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ clienti: data ?? [] })
+    return NextResponse.json({ clienti: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {
@@ -57,24 +52,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
 
   let body: Record<string, unknown>
   try {

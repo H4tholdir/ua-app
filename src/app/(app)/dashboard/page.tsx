@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
-import { getSegnaleStriscia } from '@/lib/dashboard/striscia'
+import { fetchIngressiStriscia, scegliSegnale } from '@/lib/dashboard/striscia'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import type { Pila } from '@/lib/lavori/urgenza'
@@ -29,23 +29,22 @@ function saluto(d: Date): string {
 // la UI è sempre la stessa HomeV3. `preferenza_dashboard` non si legge più.
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
   const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('ruolo, laboratorio_id, nome').eq('id', user.id).is('deleted_at', null).single()
-  if (!utente) redirect('/login')
-  const { ruolo, laboratorio_id: labId } = utente
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
+  const { ruolo, laboratorioId: labId } = context
   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
 
-  const perimetro = await getPerimetroHome(svc, labId, user.id, ruolo)
-  const pile = await getPileHome(svc, labId, perimetro)
-  const segnale = await getSegnaleStriscia(svc, labId, ruolo, pile)
+  const svc = getServiceClient()
+  const perimetro = await getPerimetroHome(svc, labId, context.userId, ruolo)
+  const [pile, ingressi] = await Promise.all([
+    getPileHome(svc, labId, perimetro),
+    fetchIngressiStriscia(svc, labId, ruolo),
+  ])
+  const segnale = scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })
 
   const ora = adessoRoma()
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
-  const nome = utente.nome ?? user.email?.split('@')[0] ?? 'Utente'
+  const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
 
   // Nav a 3 pannelli desktop (Task 9, ADR B6 Candidato A): la selezione vive
   // nell'URL — `pila` default rossa (validata), `lavoro` l'id presente nella

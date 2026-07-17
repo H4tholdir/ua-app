@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 // ─── GET /api/fatture ─────────────────────────────────────────────────────────
 // Lista fatture con join cliente, ordinate per data DESC, max 100
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
+  const context = await getFreshLabContext()
 
-  if (!user) {
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  const labId: string = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId: string = context.laboratorioId
 
   const { data, error } = await svc
     .from('fatture')
@@ -78,28 +67,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
+  const context = await getFreshLabContext()
 
-  if (!user) {
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  const labId: string = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId: string = context.laboratorioId
 
   let body: Record<string, unknown>
   try {

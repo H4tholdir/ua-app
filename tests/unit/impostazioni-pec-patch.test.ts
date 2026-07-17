@@ -39,9 +39,11 @@ beforeEach(() => {
       return {
         select: () => ({
           eq: () => ({
-            single: async () => ({
-              data: { laboratorio_id: 'lab-1', ruolo: 'titolare' },
-              error: null,
+            is: () => ({
+              single: async () => ({
+                data: { laboratorio_id: 'lab-1', ruolo: 'titolare' },
+                error: null,
+              }),
             }),
           }),
         }),

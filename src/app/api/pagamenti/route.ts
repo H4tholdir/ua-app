@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { eseguiRegistrazionePagamento } from '@/lib/contabilita/registra-pagamento'
@@ -13,26 +13,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'front_desk') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'front_desk') {
     return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   let body: Record<string, unknown>
   try {
@@ -56,14 +47,14 @@ export async function POST(req: Request) {
   }
 
   const risultato = await eseguiRegistrazionePagamento(svc, {
-    laboratorio_id: utente.laboratorio_id,
+    laboratorio_id: context.laboratorioId,
     fattura_id,
     lavoro_id,
     importo,
     metodo,
     metodo_nota,
     data_pagamento,
-    registrato_da: user.id,
+    registrato_da: context.userId,
   })
 
   if (!risultato.ok) {

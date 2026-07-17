@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, mockStripeCreate } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom, mockStripeCreate } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
   mockStripeCreate: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -40,9 +40,6 @@ function mockTabelle(opts: {
   updateError?: { message: string } | null
 }) {
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { ruolo: 'admin_sistema' }, error: null }) }) }) }
-    }
     if (table === 'laboratori') {
       return {
         select: () => ({
@@ -82,7 +79,9 @@ function mockTabelle(opts: {
 describe('POST /api/admin/labs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } })
+    mockGetFreshLabContext.mockResolvedValue({
+      userId: 'admin-1', email: null, ruolo: 'admin_sistema', laboratorioId: null, nome: null, cognome: null, lab: null,
+    })
     mockStripeCreate.mockResolvedValue({ id: 'cus_nuovo' })
   })
 

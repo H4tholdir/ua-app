@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { SchedaLavoroV3 } from '@/components/features/lavori/scheda-v3/SchedaLavoroV3'
 import { getSignedUrl } from '@/lib/storage/signed-url'
@@ -12,19 +12,10 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   const { consegna } = await searchParams
 
   // Auth
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) notFound()
+  const context = await getLabContext()
+  if (!context?.laboratorioId) notFound()
 
   const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) notFound()
 
   // Carica lavoro con tutti i join
   const { data: lavoro, error } = await svc
@@ -43,7 +34,7 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
       laboratorio:laboratori(nome, telefono)
     `)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .neq('ddc.stato', 'annullata')
     .single()
@@ -64,23 +55,22 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
   const ddcRaw = lavoroDettaglio.ddc as unknown as DichiarazioneConformita | DichiarazioneConformita[] | null
   lavoroDettaglio.ddc = Array.isArray(ddcRaw) ? (ddcRaw[0] ?? null) : ddcRaw
 
-  if (lavoroDettaglio.ddc?.storage_path_pdf) {
-    const signedDdcUrl = await getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
-    if (signedDdcUrl) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
-  }
-
-  if (lavoroDettaglio.immagini.length > 0) {
-    await Promise.all(
+  const [signedDdcUrl] = await Promise.all([
+    lavoroDettaglio.ddc?.storage_path_pdf
+      ? getSignedUrl(svc, 'documenti', lavoroDettaglio.ddc.storage_path_pdf, 3600)
+      : Promise.resolve(null),
+    Promise.all(
       lavoroDettaglio.immagini.map(async (img) => {
         const signedImgUrl = await getSignedUrl(svc, 'documenti', img.storage_path, 3600)
         if (signedImgUrl) img.url = signedImgUrl
       })
-    )
-  }
+    ),
+  ])
+  if (signedDdcUrl && lavoroDettaglio.ddc) lavoroDettaglio.ddc.pdf_url = signedDdcUrl
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
-      <SchedaLavoroV3 lavoro={lavoroDettaglio} ruolo={utente.ruolo} apriConsegna={consegna === '1'} />
+      <SchedaLavoroV3 lavoro={lavoroDettaglio} ruolo={context.ruolo} apriConsegna={consegna === '1'} />
     </div>
   )
 }

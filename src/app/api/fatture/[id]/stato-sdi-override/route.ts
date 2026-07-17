@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { StatoSDI } from '@/types/domain'
@@ -76,29 +76,19 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  if (!RUOLI_OVERRIDE_SDI.includes(utente.ruolo as (typeof RUOLI_OVERRIDE_SDI)[number])) {
+  if (!RUOLI_OVERRIDE_SDI.includes(context.ruolo as (typeof RUOLI_OVERRIDE_SDI)[number])) {
     return NextResponse.json({ error: "Ruolo non autorizzato all'override stato SdI" }, { status: 403 })
   }
+  const svc = getServiceClient()
 
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
   const { id: fatturaId } = await params
 
   let body: Record<string, unknown> = {}
@@ -197,7 +187,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     fatturaId,
     numero: fattura.numero,
     labId,
-    userId: user.id,
+    userId: context.userId,
     statoDa: statoCorrente,
     statoA: nuovoStato,
   })
@@ -209,7 +199,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       p_stato_atteso: statoAtteso,
       p_nuovo_stato: nuovoStato,
       p_motivo: motivo,
-      p_registrato_da: user.id,
+      p_registrato_da: context.userId,
     })
     if (rpcErr) {
       throw new Error(`RPC override_stato_sdi fallita: ${rpcErr.message}`)

@@ -114,7 +114,11 @@ describe('POST /api/fatture/[id]/stato-sdi-override — guardie', () => {
     expect((await POST(req(BODY_OK), ctx)).status).toBe(401)
   })
   it('utente senza laboratorio → 403', async () => {
-    utenteRow = null
+    // DEVIAZIONE (Task 10, stesso pattern Task 9): riga utenti assente del
+    // tutto collassa su context null (fail-closed getFreshLabContext) → 401,
+    // non più 403. Qui testiamo lo scenario reale distinto: profilo trovato
+    // ma SENZA laboratorio (laboratorio_id: null) → 403 preservato.
+    utenteRow = { laboratorio_id: null, ruolo: 'titolare' }
     expect((await POST(req(BODY_OK), ctx)).status).toBe(403)
   })
   it('ruolo front_desk → 403 (SOLO titolare)', async () => {

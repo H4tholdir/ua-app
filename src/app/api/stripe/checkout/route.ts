@@ -1,7 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { stripe } from '@/lib/stripe/server'
 import { isPriceAllowed } from '@/lib/stripe/products'
@@ -9,26 +9,17 @@ import { isPriceAllowed } from '@/lib/stripe/products'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 async function getUserAndLab() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
+  const context = await getFreshLabContext()
+  if (!context || !context.laboratorioId) return null
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente) return null
-
   const { data: lab } = await svc
     .from('laboratori')
     .select('id, nome, stato, stripe_customer_id, stripe_subscription_id, stripe_subscription_status, partita_iva')
-    .eq('id', utente.laboratorio_id)
+    .eq('id', context.laboratorioId)
     .single()
 
-  return lab ? { user, lab } : null
+  return lab ? { user: { email: context.email, id: context.userId }, lab } : null
 }
 
 // GET /api/stripe/checkout?price=price_xxx

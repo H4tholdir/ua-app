@@ -1,4 +1,4 @@
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -31,47 +31,37 @@ const gravitaColor: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────
 
 export default async function QualitaPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
+  const context = await getLabContext()
+  if (!context?.laboratorioId) return null
+  const labId = context.laboratorioId
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
 
-  if (!utente?.laboratorio_id) return null
-  const labId = utente.laboratorio_id
-
-  // ─── Sezione 1: Non Conformita Recenti ──────────────────────
-  const { data: nc } = await svc
-    .from('lavori_fasi')
-    .select(
-      'id, lavoro_id, azione_correttiva, created_at, lavoro:lavori(numero_lavoro), fase:fasi_produzione(descrizione)'
-    )
-    .eq('laboratorio_id', labId)
-    .eq('non_conforme', true)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  // ─── Sezione 2: Analisi Rischi per Tipo Dispositivo ─────────
-  const { data: rischi } = await svc
-    .from('rischi_tipo_dispositivo')
-    .select('tipo_dispositivo, data_ultima_revisione, versione, rischi_json')
-    .eq('laboratorio_id', labId)
-    .order('tipo_dispositivo')
-
-  // ─── Sezione 3: Incidenti MDR ───────────────────────────────
-  const { data: incidenti } = await svc
-    .from('incidenti_mdr')
-    .select('id, tipo, gravita, data_evento, descrizione, risolto, segnalato_ministero')
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('data_evento', { ascending: false })
-    .limit(10)
+  // ─── Sezioni 1-3: Non Conformita, Rischi, Incidenti — indipendenti ──
+  const [{ data: nc }, { data: rischi }, { data: incidenti }] = await Promise.all([
+    svc
+      .from('lavori_fasi')
+      .select(
+        'id, lavoro_id, azione_correttiva, created_at, lavoro:lavori(numero_lavoro), fase:fasi_produzione(descrizione)'
+      )
+      .eq('laboratorio_id', labId)
+      .eq('non_conforme', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    svc
+      .from('rischi_tipo_dispositivo')
+      .select('tipo_dispositivo, data_ultima_revisione, versione, rischi_json')
+      .eq('laboratorio_id', labId)
+      .order('tipo_dispositivo'),
+    svc
+      .from('incidenti_mdr')
+      .select('id, tipo, gravita, data_evento, descrizione, risolto, segnalato_ministero')
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('data_evento', { ascending: false })
+      .limit(10),
+  ])
 
   return (
     <PageWrapper>

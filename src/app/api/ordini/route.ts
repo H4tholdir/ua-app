@@ -1,65 +1,62 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const stato = searchParams.get('stato')
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const labId: string = context.laboratorioId
 
-  const labId: string = utente.laboratorio_id
+    const svc = getServiceClient()
+    let query = svc
+      .from('ordini_fornitori')
+      .select(`
+        id,
+        numero_ordine,
+        stato,
+        quantita_ordinata,
+        unita_misura,
+        quantita_ricevuta,
+        data_ordine,
+        data_consegna_richiesta,
+        data_consegna_effettiva,
+        note,
+        whatsapp_inviato,
+        email_inviato,
+        created_at,
+        fornitore_id,
+        magazzino_id
+      `)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
 
-  let query = svc
-    .from('ordini_fornitori')
-    .select(`
-      id,
-      numero_ordine,
-      stato,
-      quantita_ordinata,
-      unita_misura,
-      quantita_ricevuta,
-      data_ordine,
-      data_consegna_richiesta,
-      data_consegna_effettiva,
-      note,
-      whatsapp_inviato,
-      email_inviato,
-      created_at,
-      fornitore_id,
-      magazzino_id
-    `)
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+    if (stato) {
+      query = query.eq('stato', stato)
+    }
 
-  if (stato) {
-    query = query.eq('stato', stato)
-  }
+    const { data, error } = await query
 
-  const { data, error } = await query
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ ordini: data ?? [] })
+    return NextResponse.json({ ordini: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {
@@ -67,24 +64,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-
-  const labId: string = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId: string = context.laboratorioId
 
   let body: Record<string, unknown>
   try {
