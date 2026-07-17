@@ -4,6 +4,7 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { transitionLabStato, type LaboStatoValue } from '@/lib/stripe/state-machine'
+import { revocaSessioniLaboratorio } from '@/lib/auth/revoca-sessioni'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 const VALID_STATES: LaboStatoValue[] = ['trial', 'attivo', 'sospeso', 'scaduto', 'blacklist']
@@ -40,6 +41,13 @@ export async function PATCH(
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
+  }
+
+  // N13 (appsec R5): blacklist è terminale — revoca best-effort delle sessioni
+  // degli utenti del lab. Non blocca mai la risposta: la guard lab-guard resta
+  // il muro primario a ogni request.
+  if (stato === 'blacklist') {
+    await revocaSessioniLaboratorio(svc, id)
   }
 
   return NextResponse.json({ success: true })

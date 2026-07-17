@@ -1,12 +1,22 @@
 import 'server-only'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
+
+// N13 (appsec R7): confronto in tempo costante — il digest SHA-256 normalizza
+// le lunghezze, timingSafeEqual evita l'oracolo di timing del !== su stringhe.
+function secretValido(candidato: string | null): boolean {
+  const atteso = process.env.INTERNAL_SECRET
+  if (!candidato || !atteso) return false
+  const a = createHash('sha256').update(candidato).digest()
+  const b = createHash('sha256').update(atteso).digest()
+  return timingSafeEqual(a, b)
+}
 
 // Chiamata da Cloudflare Email Worker quando arriva l'email di verifica
 // Autenticazione: header x-internal-secret
 export async function POST(req: Request) {
-  const secret = req.headers.get('x-internal-secret')
-  if (!secret || secret !== process.env.INTERNAL_SECRET) {
+  if (!secretValido(req.headers.get('x-internal-secret'))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
