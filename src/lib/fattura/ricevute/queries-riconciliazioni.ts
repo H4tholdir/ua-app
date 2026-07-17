@@ -124,51 +124,46 @@ async function fetchSmtpStagnanti(
  * annulla_effetti_storno_td04, migration 20260716091000: un TD04 non-rifiutato
  * collegato indica che il ciclo storno è stato ri-risolto).
  *
- * Due query scoped-labId (originali stornate + TUTTI i TD04 collegati, non
- * solo i rifiutati — serve l'intero set per rilevare l'"altro" TD04), match
- * in memoria per id: nessun N+1, indipendentemente dal numero di fatture
- * stornate.
+ * Task 12 (R2d, spec §D-5): 2 query indipendenti → 1 self-join embed.
+ * Un'unica select su 'fatture' (originali stornate) con embed `td04:
+ * fatture!fattura_collegata_id(...)` — self-join sulla stessa tabella via la
+ * FK fattura_collegata_id → id. L'embed è filtrato SOLO su
+ * tipo_documento='TD04' e deleted_at IS NULL (MAI su stato_sdi: serve
+ * l'INTERO set dei TD04 collegati per la regola anti-loop, altrimenti un
+ * TD04-B non-rifiutato verrebbe scartato prima del match in memoria e
+ * l'originale resterebbe erroneamente nel gruppo). Nessun `!inner`: le
+ * originali senza alcun TD04 collegato devono restare nel risultato con
+ * `td04: []`, per essere scartate dal match in memoria (nessun rifiutato).
+ * laboratorio_id sui figli embed: implicito per invariante same-lab (il
+ * trigger annulla_effetti_storno_td04, migration 20260716091000, garantisce
+ * che fattura_collegata_id punti sempre a una fattura dello stesso
+ * laboratorio) — nessun filtro esplicito necessario sull'embed.
+ * Match in memoria invariato (stessa regola anti-loop), ora su `riga.td04`
+ * invece della Map costruita dalla seconda query: nessun N+1.
  */
 async function fetchStornateConTd04Rifiutato(
   svc: SupabaseClient,
   labId: string
 ): Promise<PendenzeRiconciliazione['stornateConTd04Rifiutato']> {
-  const { data: originaliRaw, error: origErr } = await svc
+  const { data, error } = await svc
     .from('fatture')
-    .select('id, numero')
+    .select('id, numero, stornata_at, td04:fatture!fattura_collegata_id(id, numero, stato_sdi)')
     .eq('laboratorio_id', labId)
     .not('stornata_at', 'is', null)
     .is('deleted_at', null)
-  if (origErr) throw new Error(`[riconciliazioni] lettura fatture stornate: ${origErr.message}`)
+    .eq('td04.tipo_documento', 'TD04')
+    .is('td04.deleted_at', null)
+  if (error) throw new Error(`[riconciliazioni] lettura fatture stornate + TD04 collegati: ${error.message}`)
 
-  const { data: td04Raw, error: td04Err } = await svc
-    .from('fatture')
-    .select('id, numero, stato_sdi, fattura_collegata_id')
-    .eq('laboratorio_id', labId)
-    .eq('tipo_documento', 'TD04')
-    .not('fattura_collegata_id', 'is', null)
-    .is('deleted_at', null)
-  if (td04Err) throw new Error(`[riconciliazioni] lettura TD04 collegati: ${td04Err.message}`)
-
-  const td04PerOriginale = new Map<
-    string,
-    Array<{ id: string; numero: string; stato_sdi: string }>
-  >()
-  for (const td04 of (td04Raw ?? []) as Array<{
+  const righe = (data ?? []) as unknown as Array<{
     id: string
     numero: string
-    stato_sdi: string
-    fattura_collegata_id: string | null
-  }>) {
-    if (!td04.fattura_collegata_id) continue
-    const lista = td04PerOriginale.get(td04.fattura_collegata_id) ?? []
-    lista.push({ id: td04.id, numero: td04.numero, stato_sdi: td04.stato_sdi })
-    td04PerOriginale.set(td04.fattura_collegata_id, lista)
-  }
+    td04: Array<{ id: string; numero: string; stato_sdi: string }> | null
+  }>
 
   const result: PendenzeRiconciliazione['stornateConTd04Rifiutato'] = []
-  for (const o of (originaliRaw ?? []) as Array<{ id: string; numero: string }>) {
-    const collegati = td04PerOriginale.get(o.id) ?? []
+  for (const o of righe) {
+    const collegati = o.td04 ?? []
     const rifiutato = collegati.find((t) => t.stato_sdi === 'rifiutata')
     if (!rifiutato) continue
     const riStornoRisolto = collegati.some((t) => t.id !== rifiutato.id && t.stato_sdi !== 'rifiutata')
@@ -253,8 +248,16 @@ async function fetchSaldiNegativi(
  * eventi con fattura_id NULL (mai matchati) restano sempre, non hanno una
  * fattura la cui risoluzione osservare.
  *
- * Nessun N+1: una sola select aggiuntiva sugli id di fattura coinvolti
- * (al più uno per evento parcheggiato).
+ * Task 12 (R2d, spec §D-5): guard-then-fetch → 1 embed LEFT. Select unica su
+ * 'fatture_sdi_eventi' con embed `fatture(stato_sdi)` sulla FK fattura_id →
+ * fatture.id. MAI `!inner`: gli eventi con fattura_id NULL (mai matchati)
+ * DEVONO restare nel risultato con `fatture: null` — un inner join li
+ * eliminerebbe. laboratorio_id sulla fattura embed: implicito per invariante
+ * same-lab (stessa garanzia trigger di cui sopra) — nessun filtro esplicito.
+ * Filtro di terminalità replicato ESATTAMENTE in memoria: evento tenuto se
+ * `fatture === null` (fattura_id NULL o riga non risolta dall'embed) oppure
+ * lo stato non è terminale ('accettata'/'rifiutata') — stessa semantica di
+ * prima, ora senza la seconda query né il Set idFattureRisolte.
  */
 async function fetchEventiParcheggiati(
   svc: SupabaseClient,
@@ -262,41 +265,27 @@ async function fetchEventiParcheggiati(
 ): Promise<PendenzeRiconciliazione['eventiParcheggiati']> {
   const { data, error } = await svc
     .from('fatture_sdi_eventi')
-    .select('id, nome_file_ricevuta, esito_verifica_firma, esito_committente, created_at, fattura_id, stato_a')
+    .select(
+      'id, nome_file_ricevuta, esito_verifica_firma, esito_committente, created_at, fattura_id, stato_a, fatture(stato_sdi)'
+    )
     .eq('laboratorio_id', labId)
     .is('stato_a', null)
     .or('fattura_id.is.null,esito_verifica_firma.eq.fallita,esito_committente.eq.EC02')
   if (error) throw new Error(`[riconciliazioni] lettura eventi parcheggiati: ${error.message}`)
 
-  const eventi = (data ?? []) as Array<{
+  const eventi = (data ?? []) as unknown as Array<{
     id: string
     nome_file_ricevuta: string | null
     esito_verifica_firma: string | null
     esito_committente: string | null
     created_at: string
     fattura_id: string | null
+    fatture: { stato_sdi: string } | null
   }>
 
-  const fatturaIds = Array.from(
-    new Set(eventi.map((e) => e.fattura_id).filter((id): id is string => id != null))
-  )
-
-  let idFattureRisolte = new Set<string>()
-  if (fatturaIds.length > 0) {
-    const { data: fattureRaw, error: fattErr } = await svc
-      .from('fatture')
-      .select('id, stato_sdi')
-      .eq('laboratorio_id', labId)
-      .in('id', fatturaIds)
-      .in('stato_sdi', ['accettata', 'rifiutata'])
-    if (fattErr) throw new Error(`[riconciliazioni] lettura fatture eventi parcheggiati: ${fattErr.message}`)
-    idFattureRisolte = new Set(
-      ((fattureRaw ?? []) as Array<{ id: string; stato_sdi: string }>).map((f) => f.id)
-    )
-  }
-
+  const TERMINALI = ['accettata', 'rifiutata']
   return eventi
-    .filter((e) => !(e.fattura_id && idFattureRisolte.has(e.fattura_id)))
+    .filter((e) => e.fatture === null || !TERMINALI.includes(e.fatture.stato_sdi))
     .map((e) => ({
       id: e.id,
       nome_file_ricevuta: e.nome_file_ricevuta,

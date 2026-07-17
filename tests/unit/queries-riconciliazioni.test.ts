@@ -9,6 +9,56 @@ import { fetchPendenzeRiconciliazione } from '@/lib/fattura/ricevute/queries-ric
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>
 
+// Embed helper (Task 12, R2d): simula gli embed PostgREST usati dal
+// refactor self-join/LEFT — solo quanto serve a queries-riconciliazioni.ts.
+// - Embed aliased con FK esplicita `alias:table!fkColumn(cols)` → to-many
+//   (self-join fatture!fattura_collegata_id): array dei figli con
+//   figlio[fkColumn] === genitore.id, filtrato SOLO dai filtri registrati
+//   per quell'alias (eq/is con prefisso `alias.`) — semantica LEFT: i filtri
+//   embed non eliminano la riga padre, riducono solo l'array annidato.
+// - Embed "nudo" `table(cols)` → to-one (fatture su fatture_sdi_eventi via
+//   fattura_id): oggetto o null, MAI filtrato (LEFT semplice).
+const EMBED_FK: Record<string, string> = { fatture: 'fattura_id' }
+
+interface EmbedSpec {
+  alias: string
+  table: string
+  fkColumn: string
+  toMany: boolean
+}
+
+function parseEmbeds(selectStr: string): EmbedSpec[] {
+  const embeds: EmbedSpec[] = []
+  const aliasedRe = /(\w+):(\w+)!(\w+)\(([^)]*)\)/g
+  let m: RegExpExecArray | null
+  while ((m = aliasedRe.exec(selectStr))) {
+    embeds.push({ alias: m[1], table: m[2], fkColumn: m[3], toMany: true })
+  }
+  const stripped = selectStr.replace(aliasedRe, '')
+  const bareRe = /(?:^|,)\s*(\w+)\(([^)]*)\)/g
+  while ((m = bareRe.exec(stripped))) {
+    const table = m[1]
+    // Solo le tabelle con un join riconosciuto (EMBED_FK) sono calcolate come
+    // embed: `pagamenti(stato)`/`clienti(...)` in fetchSaldiNegativi arrivano
+    // GIÀ appiattite nelle fixture (non c'è una tabella 'pagamenti'/'clienti'
+    // separata nel fake) — computarle qui le sovrascriverebbe con null.
+    if (!(table in EMBED_FK)) continue
+    embeds.push({ alias: table, table, fkColumn: EMBED_FK[table], toMany: false })
+  }
+  return embeds
+}
+
+function tableRows(data: {
+  fatture?: Row[]
+  fatture_sdi_eventi?: Row[]
+  credito_clienti_movimenti?: Row[]
+}, table: string): Row[] {
+  if (table === 'fatture') return data.fatture ?? []
+  if (table === 'fatture_sdi_eventi') return data.fatture_sdi_eventi ?? []
+  if (table === 'credito_clienti_movimenti') return data.credito_clienti_movimenti ?? []
+  return []
+}
+
 function createFakeSupabase(data: {
   fatture?: Row[]
   fatture_sdi_eventi?: Row[]
@@ -27,14 +77,32 @@ function createFakeSupabase(data: {
         []
 
       const errMsg = data.errors?.[table as 'fatture']
+      let selectStr = ''
+      const embedFilters: Record<string, Array<{ column: string; op: 'eq' | 'is'; value: unknown }>> = {}
+
       const builder = {
-        select() { return builder },
+        select(str?: string) {
+          selectStr = str ?? ''
+          return builder
+        },
         eq(column: string, value: unknown) {
-          rows = rows.filter((r) => r[column] === value)
+          if (column.includes('.')) {
+            const [alias, col] = column.split('.')
+            embedFilters[alias] = embedFilters[alias] ?? []
+            embedFilters[alias].push({ column: col, op: 'eq', value })
+          } else {
+            rows = rows.filter((r) => r[column] === value)
+          }
           return builder
         },
         is(column: string, value: unknown) {
-          rows = rows.filter((r) => (r[column] ?? null) === value)
+          if (column.includes('.')) {
+            const [alias, col] = column.split('.')
+            embedFilters[alias] = embedFilters[alias] ?? []
+            embedFilters[alias].push({ column: col, op: 'is', value })
+          } else {
+            rows = rows.filter((r) => (r[column] ?? null) === value)
+          }
           return builder
         },
         not(column: string, operator: string, value: unknown) {
@@ -69,9 +137,38 @@ function createFakeSupabase(data: {
         then(resolve: (v: { data: unknown; error: { message: string } | null }) => void) {
           if (errMsg) {
             resolve({ data: null, error: { message: errMsg } })
-          } else {
-            resolve({ data: rows, error: null })
+            return
           }
+          const embeds = parseEmbeds(selectStr)
+          if (embeds.length === 0) {
+            resolve({ data: rows, error: null })
+            return
+          }
+          const enriched = rows.map((row) => {
+            const out: Row = { ...row }
+            for (const embed of embeds) {
+              if (embed.toMany) {
+                const children = tableRows(data, embed.table).filter(
+                  (c) => c[embed.fkColumn] === row.id
+                )
+                const filters = embedFilters[embed.alias] ?? []
+                out[embed.alias] = children.filter((c) =>
+                  filters.every((f) => {
+                    if (f.op === 'is') return (c[f.column] ?? null) === f.value
+                    return c[f.column] === f.value
+                  })
+                )
+              } else {
+                const fkValue = row[embed.fkColumn]
+                out[embed.alias] =
+                  fkValue == null
+                    ? null
+                    : tableRows(data, embed.table).find((c) => c.id === fkValue) ?? null
+              }
+            }
+            return out
+          })
+          resolve({ data: enriched, error: null })
         },
       }
       return builder
@@ -415,6 +512,30 @@ describe('fetchPendenzeRiconciliazione', () => {
       const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
       expect(r.eventiParcheggiati).toHaveLength(1)
       expect(r.eventiParcheggiati[0].id).toBe('ev-10')
+    })
+  })
+
+  describe('consolidamento query (Task 12, R2d) — 4 query → 2, nessun N+1 residuo', () => {
+    it('gruppo 3 (storni+TD04) e gruppo 5 (eventi) risolti con 1 query ciascuno: 5 select totali, non 6', async () => {
+      const { supabase, fromCalls } = createFakeSupabase({
+        fatture: [
+          { id: 'orig-1', numero: '3/2026', laboratorio_id: 'lab-1', stornata_at: '2026-07-16T10:00:00.000Z' },
+          { id: 'td04-a', numero: '4/2026', laboratorio_id: 'lab-1', tipo_documento: 'TD04', stato_sdi: 'rifiutata', fattura_collegata_id: 'orig-1' },
+        ],
+        fatture_sdi_eventi: [{
+          id: 'ev-1', laboratorio_id: 'lab-1', fattura_id: null, stato_a: null,
+          nome_file_ricevuta: 'r.xml', esito_verifica_firma: null, esito_committente: null, created_at: '2026-07-14T10:00:00.000Z',
+        }],
+      })
+      const r = await fetchPendenzeRiconciliazione(supabase, 'lab-1')
+      expect(r.stornateConTd04Rifiutato).toEqual([{ id: 'orig-1', numero: '3/2026', td04_numero: '4/2026' }])
+      expect(r.eventiParcheggiati).toHaveLength(1)
+      // claimOrfani + smtpStagnanti + storni (ora 1 sola query, non più 2) = 3
+      // su 'fatture'; eventi = 1 su 'fatture_sdi_eventi'; saldi = 1 su
+      // 'credito_clienti_movimenti'. Totale 5 (prima del refactor: 6).
+      expect(fromCalls.filter((t) => t === 'fatture')).toHaveLength(3)
+      expect(fromCalls.filter((t) => t === 'fatture_sdi_eventi')).toHaveLength(1)
+      expect(fromCalls).toHaveLength(5)
     })
   })
 
