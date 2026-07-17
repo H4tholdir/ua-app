@@ -22,9 +22,8 @@ interface RpcError {
 /**
  * Mappa gli errori delle RPC atomiche N12 sugli status HTTP odierni della route.
  * - UA404: lavoro non trovato o fuori tenant → stesso messaggio odierno.
- * - UA409 / 23505 (unique numero_prova, backstop): conflitto/transizione non
- *   consentita → messaggio della RPC (deviazione dichiarata: prima il 409 su
- *   rientro portava il messaggio generato in TS da transizioneLavoro,
+ * - UA409: transizione non consentita → messaggio della RPC (deviazione dichiarata:
+ *   prima il 409 su rientro portava il messaggio generato in TS da transizioneLavoro,
  *   `Transizione X→Y non consentita`; ora porta quello generato dalla RPC,
  *   `transizione non consentita da X a Y` — stesso significato, testo diverso).
  *   Edge case "prova orfana": se un lavoro esce da in_prova_esterna per altra
@@ -34,6 +33,8 @@ interface RpcError {
  *   TabProve (src/components/features/lavori/TabProve.tsx) non legge il body
  *   dell'errore: mostra solo `Errore ${res.status}`, quindi non fa alcun
  *   matching sul testo e non è impattato da questa deviazione.
+ * - 23505 (unique numero_prova, backstop): messaggio amichevole anziché Postgres
+ *   grezzo, per evitare leak di dettagli interni al client.
  * - 23514 (CHECK lavoro_prove.esito, migration 005): backstop — non dovrebbe
  *   mai scattare perché la whitelist `validEsiti` qui sotto valida PRIMA di
  *   chiamare la RPC; mappato a 400 per coerenza con lo status usato oggi per
@@ -44,8 +45,11 @@ function mapRpcError(error: RpcError): NextResponse {
   if (error.code === 'UA404') {
     return NextResponse.json({ error: 'Lavoro non trovato o accesso negato' }, { status: 404 })
   }
-  if (error.code === 'UA409' || error.code === '23505') {
+  if (error.code === 'UA409') {
     return NextResponse.json({ error: error.message ?? 'Operazione non consentita' }, { status: 409 })
+  }
+  if (error.code === '23505') {
+    return NextResponse.json({ error: 'Prova già in corso — ricarica e riprova' }, { status: 409 })
   }
   if (error.code === '23514') {
     return NextResponse.json({ error: 'esito non valido' }, { status: 400 })

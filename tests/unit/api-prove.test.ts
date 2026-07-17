@@ -126,14 +126,17 @@ describe('POST /api/lavori/[id]/prove — atomico su RPC (N12)', () => {
       expect(body.error).toBe('transizione non consentita da pronto')
     })
 
-    it('RPC 23505 (unique numero_prova, backstop) → 409', async () => {
-      mockRpc.mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate key' } })
+    it('RPC 23505 (unique numero_prova, backstop) → 409 con messaggio amichevole, non Postgres grezzo', async () => {
+      mockRpc.mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "lavoro_prove_numero_prova_key"' } })
 
       const res = await POST(req({
         action: 'manda_in_prova', data_rientro_prevista: '2026-08-01',
       }) as never, { params })
 
       expect(res.status).toBe(409)
+      const body = await res.json()
+      expect(body.error).toBe('Prova già in corso — ricarica e riprova')
+      expect(body.error).not.toMatch(/duplicate key/)
     })
 
     it('RPC errore generico (non UA404/UA409/23505/23514) → 500 sanitizzato', async () => {
