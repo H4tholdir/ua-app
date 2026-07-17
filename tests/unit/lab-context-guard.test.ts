@@ -53,8 +53,7 @@ describe('guardia lab-context (spec R2 §D-2)', () => {
       .map(rel)
     expect(violazioni).toEqual([])
   })
-  // si attiva al Task 10 (fine sweep N11)
-  it.skip('nessun lookup utenti self diretto fuori da lab-context.ts (anti-bypass N11)', () => {
+  it('nessun lookup utenti self diretto fuori da lab-context.ts (anti-bypass N11)', () => {
     const violazioni = files
       .filter((f) => {
         const s = readFileSync(f, 'utf8')
