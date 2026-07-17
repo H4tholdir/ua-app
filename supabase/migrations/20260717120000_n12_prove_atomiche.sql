@@ -13,6 +13,20 @@
 --     di transizioneLavoro) + legacy in_ritardo → in_lavorazione
 --     (TRANSIZIONI_CONSENTITE['in_ritardo'] include anche in_prova_esterna, non rilevante qui).
 --
+-- Emendamento (review Task 14, recepito qui prima dell'apply — la migration
+-- NON è ancora stata applicata):
+--   5) registra_rientro_atomico riceve un 8° parametro opzionale
+--      p_nuova_data_consegna date DEFAULT NULL. Oggi (route.ts, ramo
+--      registra_rientro) se il client passa `nuova_data_consegna` la route
+--      aggiorna anche lavori.data_consegna_prevista in una query separata da
+--      quella di transizione stato — cioè FUORI dalla transazione atomica di
+--      questo N12. Per non perdere quell'aggiornamento e restare atomici, lo
+--      portiamo dentro la funzione: se non NULL, dopo l'update di stato viene
+--      eseguito un secondo UPDATE su lavori per data_consegna_prevista, nella
+--      STESSA transazione della funzione (quindi rollback insieme a tutto il
+--      resto in caso di errore successivo — qui non ce ne sono, ma la garanzia
+--      resta valida per costruzione).
+--
 -- Correzioni rispetto alla bozza del brief (verificate contro
 -- src/app/api/lavori/[id]/prove/route.ts, src/lib/lavori/transizioni.ts,
 -- src/types/database.types.ts e supabase/migrations/005_v1_foundation.sql):
@@ -76,11 +90,15 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.registra_rientro_atomico(
   p_lavoro_id uuid, p_laboratorio_id uuid, p_prova_id uuid,
-  p_esito text, p_note text, p_stato_destinazione text, p_user_id uuid
+  p_esito text, p_note text, p_stato_destinazione text, p_user_id uuid,
+  p_nuova_data_consegna date DEFAULT NULL
 ) RETURNS jsonb
 LANGUAGE plpgsql SECURITY INVOKER
 SET search_path = public, pg_temp
 AS $$
+-- p_user_id: riservato per audit futuro, parità firma con manda_in_prova
+-- (non ancora usato nel corpo — nessuna colonna di audit su lavoro_prove/lavori
+-- lo consuma oggi; mantenuto per non rompere la firma quando verrà aggiunto).
 DECLARE
   v_stato text;
   v_lavoro record;
@@ -112,12 +130,19 @@ BEGIN
 
   UPDATE lavori SET stato = p_stato_destinazione, updated_at = now() WHERE id = p_lavoro_id;
 
+  -- Emendamento 5 (vedi header migration): allineamento data_consegna_prevista,
+  -- oggi fatto da route.ts fuori transazione quando il client passa
+  -- nuova_data_consegna. Stessa transazione della funzione → atomico col resto.
+  IF p_nuova_data_consegna IS NOT NULL THEN
+    UPDATE lavori SET data_consegna_prevista = p_nuova_data_consegna WHERE id = p_lavoro_id;
+  END IF;
+
   RETURN jsonb_build_object('stato', p_stato_destinazione,
     'tecnico_id', v_lavoro.tecnico_id, 'numero_lavoro', v_lavoro.numero_lavoro);
 END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.manda_in_prova_atomico(uuid,uuid,date,text,uuid) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.registra_rientro_atomico(uuid,uuid,uuid,text,text,text,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.registra_rientro_atomico(uuid,uuid,uuid,text,text,text,uuid,date) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.manda_in_prova_atomico(uuid,uuid,date,text,uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.registra_rientro_atomico(uuid,uuid,uuid,text,text,text,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.registra_rientro_atomico(uuid,uuid,uuid,text,text,text,uuid,date) TO service_role;
