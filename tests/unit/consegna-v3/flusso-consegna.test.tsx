@@ -77,6 +77,22 @@ describe('FlussoConsegna — macchina a stati (§3.2)', () => {
     expect(onConsegnato).toHaveBeenCalledTimes(1)
   })
 
+  it('POST 200 → il frame suona la firma «ua» + vibra success, una volta sola (§9.1/§9.3)', async () => {
+    // la history dei mock factory sopravvive fra i test: azzera PRIMA del mount
+    const { suona: suonaMock } = await import('@/design-system/v3/sound')
+    const { vibra: vibraMock } = await import('@/design-system/v3/haptic')
+    vi.mocked(suonaMock).mockClear()
+    vi.mocked(vibraMock).mockClear()
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } }, [POST_URL]: { status: 200, json: OK_200 } })
+    montaAperto()
+    fireEvent.click((await screen.findAllByRole('button'))[0]) // «Consegna»
+    await screen.findByText('Consegnato!')
+    const { suona } = await import('@/design-system/v3/sound')
+    const { vibra } = await import('@/design-system/v3/haptic')
+    expect(vi.mocked(suona).mock.calls.filter((c) => c[0] === 'ua')).toHaveLength(1)
+    expect(vi.mocked(vibra).mock.calls.filter((c) => c[0] === 'success')).toHaveLength(1)
+  })
+
   it('race: POST 422 precheck_fallito → riapre sheet con gli errori del server', async () => {
     mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } },
       [POST_URL]: { status: 422, json: { ok: false, tipo: 'precheck_fallito', messaggio: 'Dati MDR incompleti', errori_precheck: [{ elemento: 3, descrizione: 'Nominativo prescrittore mancante', campo: 'cliente_id', route: 'dati' }] } } })

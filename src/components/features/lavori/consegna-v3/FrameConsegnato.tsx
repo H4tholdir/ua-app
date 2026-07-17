@@ -22,6 +22,8 @@ import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { tipografia, spazio } from '@/design-system/v3/tokens'
+import { suona } from '@/design-system/v3/sound'
+import { vibra } from '@/design-system/v3/haptic'
 import type { ConsegnaResult } from '@/types/domain'
 
 const FINESTRA_MS = 10 * 60 * 1000
@@ -44,7 +46,9 @@ export function FrameConsegnato(props: {
   // buono non può fallire in silenzio. Reset alla riapertura del dialog.
   const [annulloFallito, setAnnulloFallito] = useState(false)
 
-  useEffect(() => { titoloRef.current?.focus() }, [])
+  // §9.1: «ua» è LA FIRMA del Consegnato! (palette chiusa dei 5 suoni) —
+  // abbinamento notification-success (§9.3). Una volta sola, al mount.
+  useEffect(() => { titoloRef.current?.focus(); suona('ua'); vibra('success') }, [])
   useEffect(() => {
     const timer = setInterval(() => {
       const r = Math.max(0, FINESTRA_MS - (Date.now() - t0))
