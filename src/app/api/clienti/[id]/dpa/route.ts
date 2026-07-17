@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { generateDpa } from '@/lib/pdf/generate-dpa'
 
@@ -20,6 +21,8 @@ export async function GET(
     if (!['titolare', 'admin_rete', 'admin_sistema'].includes(context.ruolo ?? '')) {
       return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
     }
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
     const labId: string = context.laboratorioId
 
     try {

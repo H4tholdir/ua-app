@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { verifyAdminRete } from '@/lib/rete/verify-admin-rete'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 
 export async function PATCH(
   req: Request,
@@ -16,6 +17,9 @@ export async function PATCH(
   if (!ctx) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(ctx, 'PATCH')
+  if (guard) return guard
 
   let body: Record<string, unknown>
   try {

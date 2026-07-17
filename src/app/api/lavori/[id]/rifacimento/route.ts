@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 const MOTIVI_VALIDI = [
@@ -29,6 +30,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
 
   const { id: lavoro_id } = await params
   const svc = getServiceClient()

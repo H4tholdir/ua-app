@@ -2,6 +2,7 @@ import 'server-only'
 import { NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { verifyTitolare } from '@/lib/invito/verify-titolare'
 import { revocaInvito } from '@/lib/invito/revoca-invito'
 
@@ -13,6 +14,9 @@ export async function DELETE(
 
   const titolare = await verifyTitolare()
   if (!titolare) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+
+  const guard = assertLabOperativo(titolare, 'DELETE')
+  if (guard) return guard
 
   const { id } = await params
   const svc = getServiceClient()

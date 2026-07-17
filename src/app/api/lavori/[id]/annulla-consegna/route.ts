@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
 
@@ -19,6 +20,9 @@ export async function POST(
   const context = await getFreshLabContext()
   if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!context.laboratorioId) return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
 
   const { id: lavoro_id } = await params
   const svc = getServiceClient()

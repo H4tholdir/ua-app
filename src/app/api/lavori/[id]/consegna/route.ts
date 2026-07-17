@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { orchestraConsegna } from '@/lib/consegna/orchestrate'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 
 export async function POST(
@@ -19,6 +20,9 @@ export async function POST(
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
 
   const { id: lavoro_id } = await params
 

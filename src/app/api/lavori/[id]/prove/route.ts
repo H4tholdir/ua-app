@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { triggerPushToUser } from '@/lib/notifications/trigger'
 import type { StatoLavoro } from '@/types/domain'
@@ -69,6 +70,10 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     if (!context.laboratorioId) {
       return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
     }
+
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
+
     const labId: string = context.laboratorioId
 
     const svc = getServiceClient()
@@ -109,6 +114,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
+
   const svc = getServiceClient()
 
   // Guard cross-tenant — invariato: 404 identico odierno se il lavoro non

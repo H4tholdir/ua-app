@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { calcolaResiduo } from '@/lib/contabilita/saldo'
 import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
@@ -18,6 +19,10 @@ export async function GET() {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'GET')
+  if (guard) return guard
+
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
 

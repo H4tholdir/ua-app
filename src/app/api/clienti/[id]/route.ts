@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
@@ -32,6 +33,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
     if (!context.laboratorioId) {
       return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
     }
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
     const labId: string = context.laboratorioId
 
     const svc = getServiceClient()
@@ -118,6 +121,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'PATCH')
+  if (guard) return guard
   const svc = getServiceClient()
 
   let body: Record<string, unknown>

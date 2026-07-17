@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,6 +110,9 @@ export async function GET(
     } else if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
+
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
 
     // ─── Dati tecnico ─────────────────────────────────────────────────────────
     const { data: tecnico } = await svc

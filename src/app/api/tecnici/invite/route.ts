@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { verifyTitolare } from '@/lib/invito/verify-titolare'
 import { upsertInvito } from '@/lib/invito/upsert-invito'
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
 
   const titolare = await verifyTitolare()
   if (!titolare) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+
+  const guard = assertLabOperativo(titolare, 'POST')
+  if (guard) return guard
 
   const body = await req.json().catch(() => null)
   if (!body?.email || !body?.ruolo) {
@@ -60,6 +64,9 @@ export async function POST(req: Request) {
 export async function GET() {
   const titolare = await verifyTitolare()
   if (!titolare) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+
+  const guard = assertLabOperativo(titolare, 'GET')
+  if (guard) return guard
 
   const svc = getServiceClient()
   const inviti = await listInvitiPendenti(svc, titolare.laboratorioId)

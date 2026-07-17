@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -18,6 +19,9 @@ export async function POST(
   if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Solo il titolare può disattivare un tecnico' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
   const svc = getServiceClient()
 
   // Recupera utente_id (FK → auth.users) dal record tecnici

@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { precheckMDR } from '@/lib/consegna/precheck'
 import { materialiCarenti } from '@/lib/consegna/materiali-carenti'
@@ -30,6 +31,10 @@ export async function GET(
     if (!context.laboratorioId) {
       return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
     }
+
+    const guard = assertLabOperativo(context, 'GET')
+    if (guard) return guard
+
     const labId: string = context.laboratorioId
 
     const svc = getServiceClient()

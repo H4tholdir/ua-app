@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import nodemailer from 'nodemailer'
@@ -16,6 +17,8 @@ export async function PATCH(req: Request) {
   if (!context.laboratorioId || !RUOLI_PEC_SETUP.includes(context.ruolo)) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'PATCH')
+  if (guard) return guard
   const labId = context.laboratorioId
 
   let body: { pec_host?: string; pec_port?: number; pec_user?: string; pec_password?: string; pec_sdi_address?: string } | null = null
@@ -82,6 +85,8 @@ export async function POST(req: Request) {
   if (!context.laboratorioId || !RUOLI_PEC_SETUP.includes(context.ruolo)) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  const guard = assertLabOperativo(context, 'POST')
+  if (guard) return guard
   const labId = context.laboratorioId
 
   const svc = getServiceClient()

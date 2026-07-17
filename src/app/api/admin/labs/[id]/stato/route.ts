@@ -1,6 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { transitionLabStato, type LaboStatoValue } from '@/lib/stripe/state-machine'
 import { isSameOrigin } from '@/lib/utils/csrf'
@@ -19,6 +20,9 @@ export async function PATCH(
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const admin = await verifyAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+
+  const guard = assertLabOperativo(admin, 'PATCH')
+  if (guard) return guard
 
   const { id } = await params
   const body = await req.json().catch(() => null)

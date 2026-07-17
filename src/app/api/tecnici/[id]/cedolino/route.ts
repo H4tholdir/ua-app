@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { generateCedolinoTecnico } from '@/lib/pdf/generate-cedolino-tecnico'
 
@@ -45,6 +46,9 @@ export async function GET(
   } else if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'GET')
+  if (guard) return guard
 
   // ─── Verifica tecnico appartiene al lab ───────────────────────────────────
   const { data: tecnico } = await svc

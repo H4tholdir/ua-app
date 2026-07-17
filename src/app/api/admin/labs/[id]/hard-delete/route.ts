@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
+import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -16,6 +17,9 @@ export async function DELETE(
   if (context.ruolo !== 'admin_sistema') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  const guard = assertLabOperativo(context, 'DELETE')
+  if (guard) return guard
 
   const { id } = await params
   const body = await req.json().catch(() => ({})) as { confirm_nome?: string }
