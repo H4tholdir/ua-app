@@ -20,7 +20,8 @@ import { POST } from '../../src/app/api/rete/inviti/[token]/accept/route'
 
 function mockUtenteRuolo(ruolo: string) {
   mockGetFreshLabContext.mockResolvedValue({
-    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
+    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null,
+    lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
   })
 }
 

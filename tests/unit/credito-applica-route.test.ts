@@ -36,7 +36,7 @@ function mockSupabase(opts: Opts) {
   const utente = opts.utente ?? { laboratorio_id: LAB_ID, ruolo: 'titolare' }
   mockGetFreshLabContext.mockResolvedValue(
     utente
-      ? { userId: 'user-1', email: null, ruolo: utente.ruolo, laboratorioId: utente.laboratorio_id, nome: null, cognome: null, lab: null }
+      ? { userId: 'user-1', email: null, ruolo: utente.ruolo, laboratorioId: utente.laboratorio_id, nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
       : null
   )
   mockFrom.mockImplementation((table: string) => {

@@ -39,12 +39,12 @@ beforeEach(() => {
   mockGetLabContextWithTimings.mockResolvedValue({
     context: {
       userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: 'lab-1',
-      nome: null, cognome: null, lab: null,
+      nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
     },
     timings: { authMs: 1, dbMs: 2 },
   })
   mockGetFreshLabContext.mockImplementation(async () => ({
-    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
+    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
   }))
   mockFrom.mockImplementation((table: string) => {
     if (table === 'portale_accessi') {

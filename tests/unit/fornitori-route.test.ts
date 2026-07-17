@@ -20,7 +20,8 @@ import { GET } from '../../src/app/api/fornitori/route'
 const LAB_ID = 'lab-1'
 const CONTEXT = {
   userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
-  nome: null, cognome: null, lab: null,
+  nome: null, cognome: null,
+  lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
 }
 const TIMINGS = { authMs: 1, dbMs: 2 }
 

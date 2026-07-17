@@ -42,7 +42,13 @@ function mockRischioEsistente(opts: {
         select: () => ({
           eq: () => ({
             is: () => ({
-              single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
+              single: async () => ({
+                data: {
+                  laboratorio_id: LAB_ID,
+                  laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
+                },
+                error: null,
+              }),
             }),
           }),
         }),

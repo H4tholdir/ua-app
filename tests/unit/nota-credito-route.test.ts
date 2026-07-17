@@ -48,7 +48,7 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   mockGeneraFatturaPA.mockResolvedValue({ numero: '2026-0099', stato_sdi: 'generata' })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') return chain({ data: { laboratorio_id: 'lab-1' }, error: null })
+    if (table === 'utenti') return chain({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null })
     if (table === 'fatture') return chain({ data: null, error: null })
     throw new Error(`Unexpected table: ${table}`)
   })

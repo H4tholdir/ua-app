@@ -62,7 +62,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   rpcCalls.length = 0
   rpcResult = { data: null, error: null }
-  utenteRow = { laboratorio_id: 'lab-1', ruolo: 'titolare' }
+  utenteRow = { laboratorio_id: 'lab-1', ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
   fattureQueue = []
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   mockRpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
@@ -122,13 +122,13 @@ describe('POST /api/fatture/[id]/stato-sdi-override — guardie', () => {
     expect((await POST(req(BODY_OK), ctx)).status).toBe(403)
   })
   it('ruolo front_desk → 403 (SOLO titolare)', async () => {
-    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'front_desk' }
+    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'front_desk', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
     const res = await POST(req(BODY_OK), ctx)
     expect(res.status).toBe(403)
     expect(fattureQueue).toHaveLength(0)
   })
   it('ruolo tecnico → 403', async () => {
-    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'tecnico' }
+    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'tecnico', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
     expect((await POST(req(BODY_OK), ctx)).status).toBe(403)
   })
 })

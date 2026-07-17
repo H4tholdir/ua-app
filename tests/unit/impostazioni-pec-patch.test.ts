@@ -41,7 +41,7 @@ beforeEach(() => {
           eq: () => ({
             is: () => ({
               single: async () => ({
-                data: { laboratorio_id: 'lab-1', ruolo: 'titolare' },
+                data: { laboratorio_id: 'lab-1', ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } },
                 error: null,
               }),
             }),

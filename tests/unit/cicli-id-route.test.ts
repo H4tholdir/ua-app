@@ -21,7 +21,7 @@ const CICLO_ID = 'ciclo-1'
 const params = Promise.resolve({ id: CICLO_ID })
 const CONTEXT = {
   userId: AUTH_USER.id, email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
-  nome: null, cognome: null, lab: null,
+  nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
 }
 
 function patchReq(body: unknown) {

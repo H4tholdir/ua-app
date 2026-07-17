@@ -31,7 +31,8 @@ function mockUtenteRuolo(ruolo: string, opts: { existingRete?: { id: string } | 
   insertedReteData = null
   insertedMembroData = null
   mockGetFreshLabContext.mockResolvedValue({
-    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null, lab: null,
+    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null,
+    lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
   })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'reti') {

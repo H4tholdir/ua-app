@@ -33,7 +33,8 @@ let insertedData: Record<string, unknown> | null = null
 function mockUtenteRuolo(ruolo: string) {
   insertedData = null
   mockGetFreshLabContext.mockResolvedValue({
-    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null, lab: null,
+    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null,
+    lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
   })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'listino') {
@@ -130,7 +131,8 @@ describe('POST /api/listino — gating ruolo e campi MDR', () => {
 
 const CONTEXT = {
   userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
-  nome: null, cognome: null, lab: null,
+  nome: null, cognome: null,
+  lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
 }
 const TIMINGS = { authMs: 1, dbMs: 2 }
 

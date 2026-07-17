@@ -127,7 +127,14 @@ beforeEach(() => {
 
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti')
-      return chain({ data: { laboratorio_id: state.labId, ruolo: state.utenteRuolo }, error: null })
+      return chain({
+        data: {
+          laboratorio_id: state.labId,
+          ruolo: state.utenteRuolo,
+          laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
+        },
+        error: null,
+      })
     if (table === 'fatture_sdi_eventi') return eventiTable()
     throw new Error(`Unexpected table: ${table}`)
   })

@@ -64,7 +64,7 @@ const ctx = { params: Promise.resolve({ id: 'fat-1' }) }
 beforeEach(() => {
   vi.clearAllMocks()
   updatePayloads.length = 0
-  utenteRow = { laboratorio_id: 'lab-1', ruolo: 'titolare' }
+  utenteRow = { laboratorio_id: 'lab-1', ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
   fattureQueue = []
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   mockSendFatturaPEC.mockResolvedValue(undefined)
@@ -110,13 +110,13 @@ describe('POST /api/fatture/[id]/invia-pec — guardie', () => {
     expect((await POST(req(), ctx)).status).toBe(403)
   })
   it('ruolo tecnico → 403, sendFatturaPEC MAI chiamato', async () => {
-    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'tecnico' }
+    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'tecnico', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
     const res = await POST(req(), ctx)
     expect(res.status).toBe(403)
     expect(mockSendFatturaPEC).not.toHaveBeenCalled()
   })
   it('ruolo front_desk → ammesso (200)', async () => {
-    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'front_desk' }
+    utenteRow = { laboratorio_id: 'lab-1', ruolo: 'front_desk', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }
     happyQueue()
     expect((await POST(req(), ctx)).status).toBe(200)
   })

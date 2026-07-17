@@ -58,7 +58,7 @@ describe('POST /api/lavori — validazione enum tipo_dispositivo (B2)', () => {
     const insertSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       }
       if (table === 'clienti') {
         return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
@@ -79,7 +79,7 @@ describe('POST /api/lavori — validazione enum tipo_dispositivo (B2)', () => {
   it('tipo_dispositivo granulare (corona_zirconia, non un macro) → 422', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       }
       throw new Error(`Unexpected table: ${table}`)
     })
@@ -94,7 +94,7 @@ describe('POST /api/lavori — validazione enum tipo_dispositivo (B2)', () => {
   it('tipo_dispositivo sconosciuto (xyz) → 422', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       }
       throw new Error(`Unexpected table: ${table}`)
     })
@@ -127,7 +127,7 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
   function buildMockFrom(updateSpy: (payload: Record<string, unknown>) => void) {
     return vi.fn((table: string) => {
       if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       }
       if (table === 'lavori') {
         return {

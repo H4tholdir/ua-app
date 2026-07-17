@@ -18,7 +18,7 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1' }, error: null }) }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
     }
     // lavori: select existing (incluso_in_fattura) + update
     return {

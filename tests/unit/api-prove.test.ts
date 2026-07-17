@@ -36,7 +36,7 @@ const params = Promise.resolve({ id: LAVORO_ID })
 
 const CONTEXT = {
   userId: USER_ID, email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
-  nome: null, cognome: null, lab: null,
+  nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
 }
 
 // Chain generica per il guard cross-tenant su `lavori`

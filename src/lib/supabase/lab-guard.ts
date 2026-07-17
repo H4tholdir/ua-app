@@ -8,10 +8,11 @@ import { isTrialScaduto } from '@/lib/utils/lab-stato'
 
 export type LabGuardMode = 'off' | 'shadow' | 'enforce'
 
-// Default dell'ondata di rollout: shadow (log-only, would-block). Il flip a
-// 'enforce' è un commit dedicato dopo la finestra 24-48h; l'env
-// UA_LAB_GUARD_MODE resta il kill-switch per rollback istantaneo.
-export const LAB_GUARD_DEFAULT_MODE: LabGuardMode = 'shadow'
+// ENFORCE dal 17/07/2026: la finestra shadow è stata saltata su decisione
+// esplicita di Francesco (PWA senza utenti in questa fase — nessun chiamante
+// legittimo da scoprire). L'env UA_LAB_GUARD_MODE resta il kill-switch per
+// rollback istantaneo ('off') o per riattivare l'osservazione ('shadow').
+export const LAB_GUARD_DEFAULT_MODE: LabGuardMode = 'enforce'
 
 export type LabGuardInput = {
   ruolo: string

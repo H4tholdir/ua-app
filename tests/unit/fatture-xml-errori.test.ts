@@ -56,7 +56,7 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   mockGeneraFatturaPA.mockResolvedValue({ numero: '2026-0001', stato_sdi: 'generata' })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') return chain({ data: { laboratorio_id: 'lab-1' }, error: null })
+    if (table === 'utenti') return chain({ data: { laboratorio_id: 'lab-1', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null })
     if (table === 'fatture')
       return chain({ data: { id: 'fat-1', numero: '2026-0001', stato_sdi: 'draft' }, error: null })
     if (table === 'lavori') return lavoriChain()

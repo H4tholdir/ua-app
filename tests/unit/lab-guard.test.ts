@@ -95,10 +95,10 @@ describe('assertLabOperativo — matrice ratificata (enforce)', () => {
 describe('assertLabOperativo — modalità (kill-switch e shadow)', () => {
   afterEach(() => { delete process.env.UA_LAB_GUARD_MODE; vi.restoreAllMocks() })
 
-  it('default senza env = shadow (ondata rollout)', () => {
+  it('default senza env = enforce (flip 17/07/2026, shadow saltato: PWA senza utenti)', () => {
     delete process.env.UA_LAB_GUARD_MODE
-    expect(LAB_GUARD_DEFAULT_MODE).toBe('shadow')
-    expect(getLabGuardMode()).toBe('shadow')
+    expect(LAB_GUARD_DEFAULT_MODE).toBe('enforce')
+    expect(getLabGuardMode()).toBe('enforce')
   })
 
   it('env non valida → default', () => {

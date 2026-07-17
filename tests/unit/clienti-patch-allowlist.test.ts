@@ -30,7 +30,7 @@ let updatePayload: Record<string, unknown> | null
 beforeEach(() => {
   updatePayload = null
   mockGetFreshLabContext.mockResolvedValue({
-    userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
+    userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: 'lab-1', nome: null, cognome: null, lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' },
   })
   mockFrom.mockImplementation(() => {
     // clienti

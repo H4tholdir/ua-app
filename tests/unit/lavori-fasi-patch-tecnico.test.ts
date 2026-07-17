@@ -38,7 +38,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito valorizzato + utente con record tecnici → tecnico_id risolto dal server, non dal body', async () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       if (table === 'tecnici') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: { id: 'tecnico-99' }, error: null }) }) }) }) }
       if (table === 'lavori_fasi') {
         return {
@@ -60,7 +60,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito valorizzato + utente SENZA record tecnici (es. titolare) → tecnico_id non impostato, nessun errore bloccante', async () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       if (table === 'tecnici') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) }) }
       if (table === 'lavori_fasi') {
         return {
@@ -82,7 +82,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito assente dal body (es. solo azione_correttiva) → non risolve tecnico_id, nessuna query su tecnici', async () => {
     const tecniciQuerySpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
       if (table === 'tecnici') { tecniciQuerySpy(); throw new Error('non deve essere chiamato') }
       if (table === 'lavori_fasi') {
         return { update: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ is: () => ({ select: () => ({ single: async () => ({ data: { id: 'fase-1' }, error: null }) }) }) }) }) }) }) }
