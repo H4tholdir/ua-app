@@ -6,6 +6,9 @@ export interface AdminReteContext {
   userId: string
   laboratorioId: string
   rete: { id: string; nome: string; admin_laboratorio_id: string }
+  // N13: ruolo + lab esposti per assertLabOperativo (LabGuardInput)
+  ruolo: string
+  lab: { stato: string; trial_ends_at: string | null; nome: string } | null
 }
 
 export async function verifyAdminRete(reteId: string): Promise<AdminReteContext | null> {
@@ -22,5 +25,11 @@ export async function verifyAdminRete(reteId: string): Promise<AdminReteContext 
 
   if (!rete || rete.admin_laboratorio_id !== context.laboratorioId) return null
 
-  return { userId: context.userId, laboratorioId: context.laboratorioId, rete }
+  return {
+    userId: context.userId,
+    laboratorioId: context.laboratorioId,
+    rete,
+    ruolo: context.ruolo,
+    lab: context.lab,
+  }
 }
