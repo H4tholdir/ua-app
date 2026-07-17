@@ -5,6 +5,7 @@ import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
 import { fetchIngressiStriscia, scegliSegnale } from '@/lib/dashboard/striscia'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
+import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
 import type { Pila } from '@/lib/lavori/urgenza'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <div className="ds-grana" aria-hidden />
       <HomeV3 nome={nome} eyebrow={eyebrow} saluto={saluto(ora)} pile={pile} segnale={segnale} />
       <HomeDesktop pile={pile} pilaSelezionata={pilaSelezionata} lavoroSelezionato={lavoroSelezionato} segnale={segnale} />
+      <PasskeyPromptOnDashboard />
     </div>
   )
 }

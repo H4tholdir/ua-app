@@ -7,14 +7,14 @@ import { safeRedirectPath } from '@/lib/utils/safe-redirect'
 import { useReducedMotion } from '@/design-system/motion'
 import Image from 'next/image'
 import { startAuthentication } from '@simplewebauthn/browser'
-import dynamic from 'next/dynamic'
-
-const PasskeyRegistrationModal = dynamic(
-  () => import('@/components/features/auth/PasskeyRegistrationModal'),
-  { ssr: false }
-)
+import { shouldShowPasskeyModal } from '@/components/features/auth/PasskeyRegistrationModal'
+import { armPasskeyPrompt } from '@/lib/auth/passkey-prompt'
 
 const PASSKEY_EMAIL_KEY = 'ua_passkey_email'
+
+// N14b Opzione C: il redirect NON attende più il modal passkey. Il prompt viene
+// «armato» in sessionStorage e mostrato non-bloccante sopra la dashboard.
+const REDIRECT_DELAY_MS = 250
 
 // ─── Web Audio helpers ──────────────────────────────────────────────────────
 // Lazy-init AudioContext on first interaction (browser autoplay policy)
@@ -156,11 +156,16 @@ export default function LoginForm() {
   const [faceLabel, setFaceLabel] = useState('Face ID')
   const [logoAnimating, setLogoAnimating] = useState(false)
   const [bioLoading, setBioLoading] = useState(false)
-  const [showPasskeyModal, setShowPasskeyModal] = useState(false)
-  const [pendingRedirectPath, setPendingRedirectPath] = useState('/dashboard')
-
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
+
+  // Prefetch della dashboard (+ eventuale `next`) appena il form è pronto:
+  // la navigazione post-login parte a bundle caldo (N14a).
+  useEffect(() => {
+    router.prefetch('/dashboard')
+    const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
+    if (safePath !== '/dashboard') router.prefetch(safePath)
+  }, [router, searchParams])
 
   // Detect system dark mode, allow manual override
   useEffect(() => {
@@ -229,7 +234,7 @@ export default function LoginForm() {
       sndSuccess()
       setBtnState('success')
       const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
-      setTimeout(() => { router.push(safePath); router.refresh() }, 600)
+      setTimeout(() => { router.push(safePath); router.refresh() }, REDIRECT_DELAY_MS)
 
     } catch (e) {
       const msg = (e as Error).message
@@ -286,16 +291,15 @@ export default function LoginForm() {
 
     const safePath = safeRedirectPath(searchParams.get('next'), '/dashboard')
 
-    // Mostra modal passkey se il device lo supporta e non è già registrato
-    const canShowPasskey = bioAvailable && !hasSavedPasskey
-    if (canShowPasskey) {
-      setTimeout(() => setShowPasskeyModal(true), 400)
-    } else {
-      setTimeout(() => { router.push(safePath); router.refresh() }, 600)
+    // N14b Opzione C: redirect immediato, prompt passkey non-bloccante sulla
+    // dashboard. Arma il prompt solo se il device supporta la biometria e
+    // `shouldShowPasskeyModal` lo consente (rispetta lo skip 30gg — prima era
+    // aggirato dalla condizione `!hasSavedPasskey`, rendendo lo skip inerte).
+    if (bioAvailable && shouldShowPasskeyModal(email)) {
+      armPasskeyPrompt(email)
     }
-
-    setPendingRedirectPath(safePath)
-  }, [loading, email, password, router, searchParams, bioAvailable, hasSavedPasskey])
+    setTimeout(() => { router.push(safePath); router.refresh() }, REDIRECT_DELAY_MS)
+  }, [loading, email, password, router, searchParams, bioAvailable])
 
   const theme = isDark ? 'dark' : 'light'
 
@@ -518,17 +522,6 @@ export default function LoginForm() {
         </div>
       </div>
     </div>
-
-    {showPasskeyModal && (
-      <PasskeyRegistrationModal
-        email={email}
-        onDone={() => {
-          setShowPasskeyModal(false)
-          router.push(pendingRedirectPath)
-          router.refresh()
-        }}
-      />
-    )}
     </>
   )
 }
