@@ -1,7 +1,7 @@
-# Sessione attiva — N13 guard lab.stato (17/07/2026 notte) — IMPLEMENTATO, IN ATTESA MERGE
+# Sessione attiva — N13 deploy + enforce (17/07/2026 notte) — CHIUSA
 
-**N13 ✅ completo** su branch `worktree-n13-lab-guard` (worktree `.claude/worktrees/n13-lab-guard`, base main `990b2f1`, 8 commit). Piano: `docs/superpowers/plans/2026-07-17-n13-lab-guard.md`. Guard su 87 route + portale (API **e pagine**) + interceptor client + ban GoTrue su blacklist + pec-verify constant-time. Default **shadow** (kill-switch `UA_LAB_GUARD_MODE`). FASE 7: tsc 0 · vitest 2139 · build OK. Review 5 finder → 10 finding, tutti fixati (top: endpoint GoTrue logout inesistente → ban; leak pagine portale).
+**N13 IN PRODUZIONE, ENFORCE ATTIVO** (autorizzazione Francesco, shadow saltato: PWA senza utenti). Main: N11-bis `882a828` · N14 `2aa33c0` · merge N13 `28a1985` · flip enforce+GDPR doc+fixture `6991c42`. CI verde, CD Vercel OK.
 
-**Working tree main:** contiene ancora N11-bis + N14 NON committati + docs (decisione, handoff, piano N13) untracked. MEMORY.md aggiornata (voce 8).
+**QA prod su lab E2E (ciclo con ripristino):** blacklist → portale API 404 + pagina senza dati ✅ · sospeso → read terzi ok ✅ · attivo ripristinato ✅. Doc GDPR: `docs/security/2026-07-17-gdpr-accesso-dati-lab-blacklist.md`. Kill-switch: `UA_LAB_GUARD_MODE=off|shadow`.
 
-**Residui Francesco:** commit main → merge N13 → deploy shadow 24-48h → doc GDPR out-of-band (`docs/security/`, bloccante per enforce) → flip enforce → QA lab E2E · collaudo login ≤2s + `PERF_BUDGET_LOGIN`.
+**Residui Francesco:** collaudo login reale ≤2s + `PERF_BUDGET_LOGIN` · deferral N14 (cap proposte, voce Impostazioni→Sicurezza, restyling modal L2). Prossimo da roadmap: §A e §O, poi (2) funzioni attive.
