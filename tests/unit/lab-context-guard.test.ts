@@ -33,11 +33,15 @@ function mutationBodies(src: string): string[] {
   return out
 }
 
+// Copre sia getLabContext( sia getLabContextWithTimings( — quest'ultima è la
+// wrapper con Server-Timing usata dai 28 GET categoria A (spec R2 N11).
+const GET_LAB_CONTEXT_RE = /getLabContext(WithTimings)?\(/
+
 describe('guardia lab-context (spec R2 §D-2)', () => {
   it('getLabContext usato SOLO nei route.ts in allowlist', () => {
     const violazioni = files
       .filter((f) => rel(f).endsWith('route.ts'))
-      .filter((f) => readFileSync(f, 'utf8').includes('getLabContext('))
+      .filter((f) => GET_LAB_CONTEXT_RE.test(readFileSync(f, 'utf8')))
       .map(rel)
       .filter((r) => !LAB_CONTEXT_ROUTE_ALLOWLIST.includes(r as never))
     expect(violazioni).toEqual([])
@@ -45,7 +49,7 @@ describe('guardia lab-context (spec R2 §D-2)', () => {
   it('nessun handler mutante usa getLabContext (nemmeno in file allowlist)', () => {
     const violazioni = files
       .filter((f) => rel(f).endsWith('route.ts'))
-      .filter((f) => mutationBodies(readFileSync(f, 'utf8')).some((b) => b.includes('getLabContext(')))
+      .filter((f) => mutationBodies(readFileSync(f, 'utf8')).some((b) => GET_LAB_CONTEXT_RE.test(b)))
       .map(rel)
     expect(violazioni).toEqual([])
   })

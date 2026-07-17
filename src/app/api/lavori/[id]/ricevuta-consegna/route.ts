@@ -17,6 +17,7 @@ export async function GET(
     const { context, timings } = await getLabContextWithTimings()
     Object.assign(t, timings)
     if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!context.laboratorioId) return NextResponse.json({ error: 'Lavoro non trovato o accesso negato' }, { status: 404 })
 
     const supabaseService = getServiceClient()
     // Verifica appartenenza al lab (guard cross-tenant)
@@ -30,7 +31,7 @@ export async function GET(
     if (!lavoro) return NextResponse.json({ error: 'Lavoro non trovato o accesso negato' }, { status: 404 })
 
     try {
-      const buffer = await generateRicevutaConsegna(lavoro_id, context.laboratorioId as string)
+      const buffer = await generateRicevutaConsegna(lavoro_id, context.laboratorioId)
       return new NextResponse(new Uint8Array(buffer), {
         headers: {
           'Content-Type': 'application/pdf',
