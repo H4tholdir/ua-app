@@ -17,10 +17,11 @@ jobs:
       # Soglie calibrate per il runner US (bias geografico ~+100-120ms/richiesta
       # vs budget utente 300/250/2000 misurati dall'Italia — rapporto P0-PERF §7):
       # funzione = allarme di regressione, non certificazione del budget utente.
-      # Login: misura SINGOLA ad alta varianza dal runner (2758 IT / 3016-3809 US) con
-      # 600ms di delay client noto (N14): soglia 4500 = solo regressioni macro; da
-      # abbassare quando N14 chiude.
-      - run: PERF_ENFORCE=1 PERF_BUDGET_TTFB=420 PERF_BUDGET_API=370 PERF_BUDGET_LOGIN=4500 npx tsx scripts/perf-audit.ts
+      # Login: misura SINGOLA ad alta varianza dal runner. Post-N14 (collaudo
+      # 17/07/2026 dall'Italia, utente E2E: p75 1804ms warm, mediana 1674ms,
+      # cold-start ~4.9s): soglia 4000 = allarme regressioni macro con margine
+      # per cold/varianza US; il budget utente ≤2000 lo certifica il RUM.
+      - run: PERF_ENFORCE=1 PERF_BUDGET_TTFB=420 PERF_BUDGET_API=370 PERF_BUDGET_LOGIN=4000 npx tsx scripts/perf-audit.ts
 
   # Il fallimento del job genera la mail GitHub di default sui watcher del repo
   # — alerting minimo per il budget di performance, riserva sre R1 per canali dedicati.
