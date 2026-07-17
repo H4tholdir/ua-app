@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockGetLabContextWithTimings: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
@@ -12,11 +13,21 @@ vi.mock('@/lib/supabase/server-user', () => ({
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
+// GET usa getLabContextWithTimings (Task 9); POST (non toccato) resta su
+// getServerUserClient/getUser + lookup 'utenti' sopra.
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
+}))
 
 import { GET, POST } from '../../src/app/api/cicli/route'
 
 const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 const CICLI_ROWS = [
   { id: 'ciclo-1', codice: 'CNC.TitCer', nome: 'CNC Corona in titanio-ceramica', tipo_dispositivo: 'Protesi fissa' },
@@ -26,9 +37,6 @@ const CICLI_ROWS = [
 function mockLab(cicliResult: { data: unknown; error: unknown }): MockChain {
   const cicliChain = createChain(cicliResult)
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-    }
     if (table === 'cicli_produzione') return cicliChain
     throw new Error(`Unexpected table: ${table}`)
   })
@@ -42,19 +50,23 @@ function req(url: string) {
 describe('GET /api/cicli', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
   })
 
-  it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  // DEVIAZIONE DICHIARATA (spec R2 Task 9): con getLabContext qualunque
+  // impossibilità di risolvere il contesto (utente assente, soft-deleted,
+  // o errore DB nel lookup fail-closed — vedi lab-context.ts) collassa su
+  // context null → 401, non più distinto per causa.
+  it('context null (non autenticato / soft-deleted / errore lookup) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
     expect(res.status).toBe(401)
   })
 
   it('utente senza laboratorio → 403', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) }
-      throw new Error(`Unexpected table: ${table}`)
+    mockGetLabContextWithTimings.mockResolvedValue({
+      context: { ...CONTEXT, laboratorioId: null },
+      timings: TIMINGS,
     })
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
     expect(res.status).toBe(403)
@@ -95,13 +107,13 @@ describe('GET /api/cicli', () => {
     expect(json.error).not.toContain('5432')
   })
 
-  it('errore su lookup laboratorio → 500 (non 403 mascherato)', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: null, error: { message: 'db down' } }) }) }) }
-      throw new Error(`Unexpected table: ${table}`)
-    })
+  // Era 500 prima di Task 9 (lookup 'utenti' con errore esplicito nel route
+  // handler). Ora il lookup vive in getLabContext (fail-closed, loggato) e
+  // la route vede solo context null → 401 — vedi deviazione dichiarata sopra.
+  it('errore su lookup laboratorio (fail-closed in getLabContext) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 2 } })
     const res = await GET(req('http://localhost/api/cicli?q=CNC'))
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(401)
   })
 
   it('lookup per id di un ciclo disattivato (attivo=false) continua a ritornarlo — idratazione CicloComboBox su lavoro esistente', async () => {

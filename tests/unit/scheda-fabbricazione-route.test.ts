@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, mockGenerate } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetLabContextWithTimings, mockFrom, mockGenerate } = vi.hoisted(() => ({
+  mockGetLabContextWithTimings: vi.fn(),
   mockFrom: vi.fn(),
   mockGenerate: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({
-    auth: { getUser: mockGetUser },
-  }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -24,21 +22,16 @@ vi.mock('@/lib/pdf/generate-scheda-fabbricazione', () => ({
 
 import { GET } from '../../src/app/api/lavori/[id]/scheda-fabbricazione/route'
 
-const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
 const LAVORO_ID = 'lav-1'
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 function mockUtenteELavoro(lavoroResult: { data: unknown; error: unknown }) {
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'lavori') {
       const chain: Record<string, unknown> = {}
       const methods = ['select', 'eq', 'is']
@@ -57,34 +50,18 @@ function makeParams(id: string) {
 describe('GET /api/lavori/[id]/scheda-fabbricazione', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
   })
 
-  it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  // DEVIAZIONE DICHIARATA (spec R2 Task 9): "non autenticato" (401) e "utente
+  // senza laboratorio/soft-deleted" (404 "utente non trovato") collassano
+  // entrambi su context null → 401 (getLabContext fail-closed).
+  it('context null (non autenticato / utente non trovato) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
 
     const res = await GET(new Request('http://x'), makeParams(LAVORO_ID))
 
     expect(res.status).toBe(401)
-  })
-
-  it('utente senza laboratorio → 404 (utente non trovato)', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: async () => ({ data: null, error: null }),
-            }),
-          }),
-        }
-      }
-      throw new Error(`Unexpected table: ${table}`)
-    })
-
-    const res = await GET(new Request('http://x'), makeParams(LAVORO_ID))
-
-    expect(res.status).toBe(404)
   })
 
   it('lavoro non trovato o di un altro lab → 404', async () => {

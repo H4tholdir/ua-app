@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
@@ -103,52 +105,49 @@ type RouteContext = { params: Promise<{ id: string }> }
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    const { data: lavoro, error } = await svc
+      .from('lavori')
+      .select(`
+        *,
+        cliente:clienti(*),
+        paziente:pazienti(*),
+        tecnico:tecnici(*),
+        lavorazioni:lavori_lavorazioni(*),
+        appuntamenti:lavori_appuntamenti(*),
+        immagini:lavori_immagini(*),
+        fasi:lavori_fasi(*, fase:fasi_produzione(*)),
+        materiali:lavori_materiali(*),
+        ddc:dichiarazioni_conformita(*)
+      `)
+      .eq('id', id)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .neq('ddc.stato', 'annullata')
+      .single()
 
-  const { data: lavoro, error } = await svc
-    .from('lavori')
-    .select(`
-      *,
-      cliente:clienti(*),
-      paziente:pazienti(*),
-      tecnico:tecnici(*),
-      lavorazioni:lavori_lavorazioni(*),
-      appuntamenti:lavori_appuntamenti(*),
-      immagini:lavori_immagini(*),
-      fasi:lavori_fasi(*, fase:fasi_produzione(*)),
-      materiali:lavori_materiali(*),
-      ddc:dichiarazioni_conformita(*)
-    `)
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .is('deleted_at', null)
-    .neq('ddc.stato', 'annullata')
-    .single()
+    if (error || !lavoro) {
+      const status = error?.code === 'PGRST116' ? 404 : 500
+      return NextResponse.json(
+        { error: error?.message ?? 'Lavoro non trovato' },
+        { status }
+      )
+    }
 
-  if (error || !lavoro) {
-    const status = error?.code === 'PGRST116' ? 404 : 500
-    return NextResponse.json(
-      { error: error?.message ?? 'Lavoro non trovato' },
-      { status }
-    )
-  }
-
-  return NextResponse.json({ lavoro })
+    return NextResponse.json({ lavoro })
+  })
 }
 
 export async function PATCH(req: Request, { params }: RouteContext) {

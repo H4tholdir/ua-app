@@ -1,7 +1,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { generateDpa } from '@/lib/pdf/generate-dpa'
 
 // GET /api/clienti/[id]/dpa
@@ -12,34 +12,29 @@ export async function GET(
 ) {
   const { id: clienteId } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    if (!context.laboratorioId) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
+    if (!['titolare', 'admin_rete', 'admin_sistema'].includes(context.ruolo ?? '')) {
+      return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
+    try {
+      const buffer = await generateDpa(labId, clienteId)
+      const filename = `DPA-${clienteId.slice(0, 8).toUpperCase()}.pdf`
 
-  if (!utente?.laboratorio_id) return NextResponse.json({ error: 'Lab non trovato' }, { status: 403 })
-  if (!['titolare', 'admin_rete', 'admin_sistema'].includes(utente.ruolo ?? '')) {
-    return NextResponse.json({ error: 'Non autorizzato — solo titolari' }, { status: 403 })
-  }
-
-  try {
-    const buffer = await generateDpa(utente.laboratorio_id, clienteId)
-    const filename = `DPA-${clienteId.slice(0, 8).toUpperCase()}.pdf`
-
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Errore generazione DPA'
-    return NextResponse.json({ error: msg }, { status: 400 })
-  }
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Errore generazione DPA'
+      return NextResponse.json({ error: msg }, { status: 400 })
+    }
+  })
 }

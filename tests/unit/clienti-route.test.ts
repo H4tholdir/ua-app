@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetLabContextWithTimings, mockFrom } = vi.hoisted(() => ({
+  mockGetLabContextWithTimings: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -15,8 +15,17 @@ vi.mock('@/lib/supabase/server-service', () => ({
 
 import { GET } from '../../src/app/api/clienti/route'
 
-const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
+const CONTEXT = {
+  userId: 'user-1',
+  email: 'a@b.it',
+  ruolo: 'titolare',
+  laboratorioId: LAB_ID,
+  nome: 'Anna',
+  cognome: 'Bianchi',
+  lab: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Uno' },
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 const CLIENTI_ROWS = [
   { id: 'cliente-1', studio_nome: 'Studio Rossi', nome: 'Mario', cognome: 'Rossi' },
@@ -25,7 +34,6 @@ const CLIENTI_ROWS = [
 function mockLab(result: { data: unknown; error: unknown }): MockChain {
   const clientiChain = createChain(result)
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
     if (table === 'clienti') return clientiChain
     throw new Error(`Unexpected table: ${table}`)
   })
@@ -39,13 +47,33 @@ function req(url: string) {
 describe('GET /api/clienti', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
   })
 
-  it('non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  // DEVIAZIONE DICHIARATA (spec R2 Task 9 §Step 3): prima un utente
+  // soft-deleted (riga `utenti` assente per via del `.is('deleted_at', null)`
+  // solo lato getLabContext, non applicato dal lookup manuale precedente)
+  // poteva passare o prendere 403; ora getLabContext filtra deleted_at →
+  // context null → 401 sempre, anche per soft-deleted.
+  it('non autenticato (o soft-deleted) → context null → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
     const res = await GET(req('http://localhost/api/clienti?q=Rossi'))
     expect(res.status).toBe(401)
+  })
+
+  it('laboratorio non trovato (context senza laboratorioId) → 403', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({
+      context: { ...CONTEXT, laboratorioId: null },
+      timings: TIMINGS,
+    })
+    const res = await GET(req('http://localhost/api/clienti?q=Rossi'))
+    expect(res.status).toBe(403)
+  })
+
+  it('Server-Timing valorizzato con auth/db/total (wiring withServerTiming + getLabContextWithTimings)', async () => {
+    mockLab({ data: CLIENTI_ROWS, error: null })
+    const res = await GET(req('http://localhost/api/clienti?q=Rossi'))
+    expect(res.headers.get('Server-Timing')).toMatch(/^auth;dur=\d+, db;dur=\d+, total;dur=\d+$/)
   })
 
   it('ricerca con match → 200, scoping tenant verificato sugli argomenti esatti di .eq()', async () => {

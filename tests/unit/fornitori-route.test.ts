@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetLabContextWithTimings, mockFrom } = vi.hoisted(() => ({
+  mockGetLabContextWithTimings: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({
-    auth: { getUser: mockGetUser },
-  }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -19,8 +17,12 @@ vi.mock('@/lib/supabase/server-service', () => ({
 
 import { GET } from '../../src/app/api/fornitori/route'
 
-const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 const FORNITORI_ROWS = [
   { id: 'forn-1', ragione_sociale: 'Dental Depot SRL', telefono: '0512345678', email: 'ordini@dentaldepot.it' },
@@ -39,15 +41,6 @@ function fornitoriQueryChain(result: { data: unknown; error: unknown }) {
 
 function mockLab(fornitoriResult: { data: unknown; error: unknown }) {
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'fornitori') {
       return fornitoriQueryChain(fornitoriResult)
     }
@@ -58,11 +51,11 @@ function mockLab(fornitoriResult: { data: unknown; error: unknown }) {
 describe('GET /api/fornitori', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
   })
 
-  it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  it('context null (non autenticato / soft-deleted) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
 
     const res = await GET()
 
@@ -70,17 +63,9 @@ describe('GET /api/fornitori', () => {
   })
 
   it('utente senza laboratorio → 403', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: async () => ({ data: null, error: null }),
-            }),
-          }),
-        }
-      }
-      throw new Error(`Unexpected table: ${table}`)
+    mockGetLabContextWithTimings.mockResolvedValue({
+      context: { ...CONTEXT, laboratorioId: null },
+      timings: TIMINGS,
     })
 
     const res = await GET()
@@ -122,22 +107,15 @@ describe('GET /api/fornitori', () => {
     expect(json.error).not.toContain('5432')
   })
 
-  it('errore Supabase su lookup laboratorio → 500 (non 403 mascherato)', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return {
-          select: () => ({
-            eq: () => ({
-              single: async () => ({ data: null, error: { message: 'connection error' } }),
-            }),
-          }),
-        }
-      }
-      throw new Error(`Unexpected table: ${table}`)
-    })
+  // DEVIAZIONE DICHIARATA (spec R2 Task 9): errore DB nel lookup laboratorio
+  // era 500 quando il route handler leggeva 'utenti' direttamente; ora il
+  // lookup vive in getLabContext (fail-closed, loggato) e collassa su
+  // context null → 401.
+  it('errore su lookup laboratorio (fail-closed in getLabContext) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 2 } })
 
     const res = await GET()
 
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(401)
   })
 })

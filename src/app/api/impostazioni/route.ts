@@ -1,69 +1,68 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    const { data: lab, error } = await svc
+      .from('laboratori')
+      .select(`
+        id,
+        nome,
+        ragione_sociale,
+        partita_iva,
+        codice_fiscale,
+        indirizzo,
+        cap,
+        citta,
+        provincia,
+        telefono,
+        email,
+        pec,
+        logo_url,
+        logo_print_url,
+        codice_itca,
+        srn_eudamed,
+        prrc_nome,
+        prrc_qualifica,
+        firma_ddc_url,
+        sfondo_ddc_url,
+        intestazione_ddc,
+        intestazione_fattura,
+        intestazione_buono,
+        regime_fiscale,
+        codice_iva_default,
+        pec_smtp_configurata,
+        pec_sdi_address,
+        piano,
+        created_at,
+        updated_at
+      `)
+      .eq('id', labId)
+      .single()
 
-  const { data: lab, error } = await svc
-    .from('laboratori')
-    .select(`
-      id,
-      nome,
-      ragione_sociale,
-      partita_iva,
-      codice_fiscale,
-      indirizzo,
-      cap,
-      citta,
-      provincia,
-      telefono,
-      email,
-      pec,
-      logo_url,
-      logo_print_url,
-      codice_itca,
-      srn_eudamed,
-      prrc_nome,
-      prrc_qualifica,
-      firma_ddc_url,
-      sfondo_ddc_url,
-      intestazione_ddc,
-      intestazione_fattura,
-      intestazione_buono,
-      regime_fiscale,
-      codice_iva_default,
-      pec_smtp_configurata,
-      pec_sdi_address,
-      piano,
-      created_at,
-      updated_at
-    `)
-    .eq('id', utente.laboratorio_id)
-    .single()
+    if (error || !lab) {
+      return NextResponse.json({ error: error?.message ?? 'Laboratorio non trovato' }, { status: 500 })
+    }
 
-  if (error || !lab) {
-    return NextResponse.json({ error: error?.message ?? 'Laboratorio non trovato' }, { status: 500 })
-  }
-
-  // Non esponiamo pec_vault_key_id né password PEC
-  return NextResponse.json({ laboratorio: lab })
+    // Non esponiamo pec_vault_key_id né password PEC
+    return NextResponse.json({ laboratorio: lab })
+  })
 }
 
 export async function PATCH(req: Request) {

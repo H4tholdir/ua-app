@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
 import { logPortaleAudit, type AzionePortale } from '@/lib/portale/audit'
@@ -22,88 +24,84 @@ export const PATCHABLE_FIELDS_CLIENTE = [
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    const svc = getServiceClient()
+    // Fetch cliente con count lavori recenti
+    const { data: cliente, error } = await svc
+      .from('clienti')
+      .select(`
+        id,
+        laboratorio_id,
+        studio_nome,
+        nome,
+        cognome,
+        telefono,
+        email,
+        partita_iva,
+        codice_fiscale,
+        codice_sdi,
+        pec,
+        indirizzo,
+        cap,
+        citta,
+        provincia,
+        paese,
+        listino_numero,
+        sconto_percentuale,
+        tecnico_default_id,
+        modalita_pagamento,
+        non_soggetto_fe,
+        portale_token,
+        portale_fatturazione_attiva,
+        portale_pin_hash,
+        note,
+        created_at,
+        updated_at
+      `)
+      .eq('id', id)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .single()
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    if (error || !cliente) {
+      const status = error?.code === 'PGRST116' ? 404 : 500
+      return NextResponse.json(
+        { error: error?.message ?? 'Cliente non trovato' },
+        { status }
+      )
+    }
 
-  // Fetch cliente con count lavori recenti
-  const { data: cliente, error } = await svc
-    .from('clienti')
-    .select(`
-      id,
-      laboratorio_id,
-      studio_nome,
-      nome,
-      cognome,
-      telefono,
-      email,
-      partita_iva,
-      codice_fiscale,
-      codice_sdi,
-      pec,
-      indirizzo,
-      cap,
-      citta,
-      provincia,
-      paese,
-      listino_numero,
-      sconto_percentuale,
-      tecnico_default_id,
-      modalita_pagamento,
-      non_soggetto_fe,
-      portale_token,
-      portale_fatturazione_attiva,
-      portale_pin_hash,
-      note,
-      created_at,
-      updated_at
-    `)
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .is('deleted_at', null)
-    .single()
+    // Count lavori recenti (ultimi 12 mesi) separatamente
+    const dodiciMesiFa = new Date()
+    dodiciMesiFa.setFullYear(dodiciMesiFa.getFullYear() - 1)
+    const dodiciMesiFaISO = dodiciMesiFa.toISOString().split('T')[0]
 
-  if (error || !cliente) {
-    const status = error?.code === 'PGRST116' ? 404 : 500
-    return NextResponse.json(
-      { error: error?.message ?? 'Cliente non trovato' },
-      { status }
-    )
-  }
+    const { count: lavori_recenti_count } = await svc
+      .from('lavori')
+      .select('id', { count: 'exact', head: true })
+      .eq('cliente_id', id)
+      .eq('laboratorio_id', labId)
+      .gte('created_at', dodiciMesiFaISO)
+      .is('deleted_at', null)
 
-  // Count lavori recenti (ultimi 12 mesi) separatamente
-  const dodiciMesiFa = new Date()
-  dodiciMesiFa.setFullYear(dodiciMesiFa.getFullYear() - 1)
-  const dodiciMesiFaISO = dodiciMesiFa.toISOString().split('T')[0]
-
-  const { count: lavori_recenti_count } = await svc
-    .from('lavori')
-    .select('id', { count: 'exact', head: true })
-    .eq('cliente_id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .gte('created_at', dodiciMesiFaISO)
-    .is('deleted_at', null)
-
-  const { portale_pin_hash, ...clientePubblico } = cliente
-  return NextResponse.json({
-    cliente: {
-      ...clientePubblico,
-      portale_pin_impostato: portale_pin_hash != null,
-      lavori_recenti_count: lavori_recenti_count ?? 0,
-    },
+    const { portale_pin_hash, ...clientePubblico } = cliente
+    return NextResponse.json({
+      cliente: {
+        ...clientePubblico,
+        portale_pin_impostato: portale_pin_hash != null,
+        lavori_recenti_count: lavori_recenti_count ?? 0,
+      },
+    })
   })
 }
 

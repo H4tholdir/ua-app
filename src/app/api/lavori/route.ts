@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 
@@ -9,67 +11,61 @@ export async function GET(req: Request) {
   const stato = searchParams.get('stato')
   const q = searchParams.get('q')
 
-  // Authenticate via user client — get session
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  // Resolve laboratorio_id via service client (bypasses RLS)
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const labId: string = context.laboratorioId
 
-  const labId: string = utente.laboratorio_id
+    const svc = getServiceClient()
+    let query = svc
+      .from('lavori')
+      .select(`
+        id,
+        numero_lavoro,
+        stato,
+        priorita,
+        tipo_dispositivo,
+        descrizione,
+        data_consegna_prevista,
+        ora_consegna,
+        paziente_nome_snapshot,
+        conformato,
+        incluso_in_fattura,
+        spedizione_stato,
+        spedizione_tracking,
+        cliente:clienti(id, nome, cognome, studio_nome, telefono),
+        tecnico:tecnici(id, nome, cognome, sigla)
+      `)
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('data_consegna_prevista', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200)
 
-  let query = svc
-    .from('lavori')
-    .select(`
-      id,
-      numero_lavoro,
-      stato,
-      priorita,
-      tipo_dispositivo,
-      descrizione,
-      data_consegna_prevista,
-      ora_consegna,
-      paziente_nome_snapshot,
-      conformato,
-      incluso_in_fattura,
-      spedizione_stato,
-      spedizione_tracking,
-      cliente:clienti(id, nome, cognome, studio_nome, telefono),
-      tecnico:tecnici(id, nome, cognome, sigla)
-    `)
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('data_consegna_prevista', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false })
-    .limit(200)
+    if (stato) {
+      query = query.eq('stato', stato)
+    }
 
-  if (stato) {
-    query = query.eq('stato', stato)
-  }
+    if (q) {
+      query = query.ilike('descrizione', `%${q}%`)
+    }
 
-  if (q) {
-    query = query.ilike('descrizione', `%${q}%`)
-  }
+    const { data, error } = await query
 
-  const { data, error } = await query
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ lavori: data ?? [] })
+    return NextResponse.json({ lavori: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {

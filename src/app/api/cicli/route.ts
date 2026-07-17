@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { pgrestQuote } from '@/lib/utils/escape-postgrest'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { TIPO_DISPOSITIVO_CICLO_OPTIONS, CLASSE_RISCHIO_CICLO_OPTIONS } from '@/lib/domain/cicli-produzione'
@@ -10,52 +12,44 @@ export async function GET(req: Request) {
   const q = searchParams.get('q')?.trim() ?? ''
   const id = searchParams.get('id')?.trim() ?? ''
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  const svc = getServiceClient()
-  const { data: utente, error: utenteError } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    const svc = getServiceClient()
+    let query = svc
+      .from('cicli_produzione')
+      .select('id, codice, nome, tipo_dispositivo')
+      .eq('laboratorio_id', labId)
+      .is('deleted_at', null)
+      .order('codice', { ascending: true })
+      .limit(8)
 
-  if (utenteError) {
-    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
-  }
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
-  const labId: string = utente.laboratorio_id
+    // Lookup by id — usato da CicloComboBox per idratare la label a partire da
+    // un ciclo_id già salvato (es. apertura di un lavoro esistente). Stessa
+    // allowlist tenant (laboratorio_id) della ricerca testuale.
+    if (id) {
+      query = query.eq('id', id)
+    } else if (q) {
+      const pattern = pgrestQuote(`%${q}%`)
+      query = query.eq('attivo', true).or(`codice.ilike.${pattern},nome.ilike.${pattern}`)
+    }
 
-  let query = svc
-    .from('cicli_produzione')
-    .select('id, codice, nome, tipo_dispositivo')
-    .eq('laboratorio_id', labId)
-    .is('deleted_at', null)
-    .order('codice', { ascending: true })
-    .limit(8)
+    const { data, error } = await query
 
-  // Lookup by id — usato da CicloComboBox per idratare la label a partire da
-  // un ciclo_id già salvato (es. apertura di un lavoro esistente). Stessa
-  // allowlist tenant (laboratorio_id) della ricerca testuale.
-  if (id) {
-    query = query.eq('id', id)
-  } else if (q) {
-    const pattern = pgrestQuote(`%${q}%`)
-    query = query.eq('attivo', true).or(`codice.ilike.${pattern},nome.ilike.${pattern}`)
-  }
+    if (error) {
+      return NextResponse.json({ error: 'Errore nel recupero dei cicli' }, { status: 500 })
+    }
 
-  const { data, error } = await query
-
-  if (error) {
-    return NextResponse.json({ error: 'Errore nel recupero dei cicli' }, { status: 500 })
-  }
-
-  return NextResponse.json({ cicli: data ?? [] })
+    return NextResponse.json({ cicli: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {

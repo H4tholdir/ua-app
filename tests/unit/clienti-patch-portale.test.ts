@@ -1,14 +1,19 @@
 // tests/unit/clienti-patch-portale.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(), mockFrom: vi.fn(),
+const { mockGetUser, mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
+  mockGetUser: vi.fn(), mockFrom: vi.fn(), mockGetLabContextWithTimings: vi.fn(),
 }))
 vi.mock('@/lib/supabase/server-user', () => ({
   getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
+}))
+// GET usa getLabContextWithTimings (Task 9); PATCH (non toccato) resta su
+// getServerUserClient/getUser sopra — mock separato, NON sostituisce quello.
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
 
@@ -35,6 +40,13 @@ beforeEach(() => {
     portale_pin_hash: null, portale_pin_generation: 0, portale_fatturazione_attiva: false,
   }
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+  mockGetLabContextWithTimings.mockResolvedValue({
+    context: {
+      userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: 'lab-1',
+      nome: null, cognome: null, lab: null,
+    },
+    timings: { authMs: 1, dbMs: 2 },
+  })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
       return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo }, error: null }) }) }) }

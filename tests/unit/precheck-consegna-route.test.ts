@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, mockMaterialiCarenti } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetLabContextWithTimings, mockFrom, mockMaterialiCarenti } = vi.hoisted(() => ({
+  mockGetLabContextWithTimings: vi.fn(),
   mockFrom: vi.fn(),
   mockMaterialiCarenti: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -18,9 +18,13 @@ vi.mock('@/lib/consegna/materiali-carenti', () => ({
 
 import { GET } from '../../src/app/api/lavori/[id]/precheck-consegna/route'
 
-const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
 const LAVORO_ID = 'lavoro-1'
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
 
 const params = Promise.resolve({ id: LAVORO_ID })
 
@@ -48,25 +52,15 @@ function makeLavoroRow(overrides: Record<string, unknown> = {}) {
 
 /**
  * Mock di `svc.from(table)` per le sole tabelle toccate dalla route:
- * - 'utenti' → risoluzione laboratorio_id dell'utente autenticato
  * - 'lavori' → SELECT completa (select/eq/eq/is/single), stesso pattern di
  *   orchestrate.ts Step 1
+ * Il laboratorio_id ora arriva da getLabContextWithTimings (mockato sopra).
  * `materialiCarenti` è mockato a livello di modulo (vedi vi.mock sopra).
  */
-function buildMockFrom(opts: { utente?: { laboratorio_id: string } | null; lavoro?: Record<string, unknown> | null }) {
-  const { utente = { laboratorio_id: LAB_ID }, lavoro = makeLavoroRow() } = opts
+function buildMockFrom(opts: { lavoro?: Record<string, unknown> | null }) {
+  const { lavoro = makeLavoroRow() } = opts
 
   return vi.fn((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: utente, error: null }),
-          }),
-        }),
-      }
-    }
-
     if (table === 'lavori') {
       return {
         select: () => ({
@@ -88,12 +82,12 @@ function buildMockFrom(opts: { utente?: { laboratorio_id: string } | null; lavor
 describe('GET /api/lavori/[id]/precheck-consegna', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
     mockMaterialiCarenti.mockResolvedValue([])
   })
 
-  it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  it('context null (non autenticato) → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
     const res = await GET(req(), { params })
     expect(res.status).toBe(401)
   })

@@ -1,50 +1,43 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente, error: utenteError } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (utenteError) {
-    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
-  }
+    const labId: string = context.laboratorioId
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    const { data, error } = await svc
+      .from('fornitori')
+      .select('id, ragione_sociale, telefono, email')
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .is('deleted_at', null)
+      .order('ragione_sociale', { ascending: true })
+      .limit(500)
 
-  const labId: string = utente.laboratorio_id
+    if (error) {
+      return NextResponse.json({ error: 'Errore nel recupero dei fornitori' }, { status: 500 })
+    }
 
-  const { data, error } = await svc
-    .from('fornitori')
-    .select('id, ragione_sociale, telefono, email')
-    .eq('laboratorio_id', labId)
-    .eq('attivo', true)
-    .is('deleted_at', null)
-    .order('ragione_sociale', { ascending: true })
-    .limit(500)
+    const fornitori = (data ?? []).map((f) => ({
+      id: f.id,
+      nome: f.ragione_sociale,
+      telefono: f.telefono,
+      email: f.email,
+    }))
 
-  if (error) {
-    return NextResponse.json({ error: 'Errore nel recupero dei fornitori' }, { status: 500 })
-  }
-
-  const fornitori = (data ?? []).map((f) => ({
-    id: f.id,
-    nome: f.ragione_sociale,
-    telefono: f.telefono,
-    email: f.email,
-  }))
-
-  return NextResponse.json({ fornitori })
+    return NextResponse.json({ fornitori })
+  })
 }
