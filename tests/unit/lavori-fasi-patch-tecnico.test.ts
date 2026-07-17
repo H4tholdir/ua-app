@@ -38,7 +38,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito valorizzato + utente con record tecnici → tecnico_id risolto dal server, non dal body', async () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'tecnici') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: { id: 'tecnico-99' }, error: null }) }) }) }) }
       if (table === 'lavori_fasi') {
         return {
@@ -60,7 +60,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito valorizzato + utente SENZA record tecnici (es. titolare) → tecnico_id non impostato, nessun errore bloccante', async () => {
     const updateSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'tecnici') return { select: () => ({ eq: () => ({ eq: () => ({ single: async () => ({ data: null, error: null }) }) }) }) }
       if (table === 'lavori_fasi') {
         return {
@@ -82,7 +82,7 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
   it('esito assente dal body (es. solo azione_correttiva) → non risolve tecnico_id, nessuna query su tecnici', async () => {
     const tecniciQuerySpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'tecnici') { tecniciQuerySpy(); throw new Error('non deve essere chiamato') }
       if (table === 'lavori_fasi') {
         return { update: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ is: () => ({ select: () => ({ single: async () => ({ data: { id: 'fase-1' }, error: null }) }) }) }) }) }) }) }
@@ -96,14 +96,21 @@ describe('PATCH /api/lavori/[id]/fasi/[fase_id] — tecnico_id server-side', () 
     expect(tecniciQuerySpy).not.toHaveBeenCalled()
   })
 
-  it('errore sul lookup laboratorio → 500 (non 403 mascherato) — hardening pattern B10, aggiunto in questo task', async () => {
+  it('errore sul lookup laboratorio → 401 (fail-closed getFreshLabContext, Task 10)', async () => {
+    // DEVIAZIONE DICHIARATA (stesso pattern Task 9, concern #3): con
+    // getFreshLabContext qualunque impossibilità di risolvere il contesto —
+    // utente assente, soft-deleted, O errore DB imprevisto nel lookup — viene
+    // loggata (console.error in lab-context.ts) ma collassa fail-closed su
+    // context null → 401. Non più 500 "non mascherato": il 401 qui non
+    // maschera un permesso negato, riflette l'impossibilità di stabilire un
+    // contesto affidabile.
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: null, error: { message: 'db down' } }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: null, error: { message: 'db down' } }) }) }) }) }
       throw new Error(`Unexpected table: ${table}`)
     })
 
     const res = await PATCH(req({ esito: 'ok' }), { params })
 
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(401)
   })
 })

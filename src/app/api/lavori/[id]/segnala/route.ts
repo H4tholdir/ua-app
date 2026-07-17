@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
@@ -23,29 +23,19 @@ export async function POST(req: Request, { params }: RouteContext) {
   const { id } = await params
 
   // Auth
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-
-  // Ottieni ruolo e lab dell'utente
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('ruolo, laboratorio_id, nome')
-    .eq('id', user.id)
-    .is('deleted_at', null)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  if (utente.ruolo !== 'tecnico' && utente.ruolo !== 'titolare') {
+  if (context.ruolo !== 'tecnico' && context.ruolo !== 'titolare') {
     return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Valida body
   let body: { tipo: TipoSegnalazione; nota?: string }
@@ -69,7 +59,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     .from('lavori')
     .select('id')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .maybeSingle()
 
@@ -84,11 +74,11 @@ export async function POST(req: Request, { params }: RouteContext) {
       segnalazione_tipo: tipo,
       segnalazione_nota: nota ?? null,
       segnalazione_at: new Date().toISOString(),
-      segnalazione_by: user.id,
+      segnalazione_by: context.userId,
       segnalazione_risolta: false,
     }, { count: 'exact' })
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   if (error) {
     console.error('[POST /api/lavori/[id]/segnala] error:', error)
@@ -100,9 +90,9 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // Push notification — problema segnalato → titolare (fire-and-forget safe)
-  await triggerPushByRole(utente.laboratorio_id, 'titolare', {
+  await triggerPushByRole(context.laboratorioId, 'titolare', {
     title: '⚠️ Problema segnalato',
-    body: `${utente.nome ?? 'Un tecnico'} ha segnalato un problema sul lavoro`,
+    body: `${context.nome ?? 'Un tecnico'} ha segnalato un problema sul lavoro`,
     url: `/lavori/${id}`,
   })
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { validaDecisioneFatturazione } from '@/lib/contabilita/decisione-fatturazione'
@@ -15,26 +15,18 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'front_desk') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'front_desk') {
     return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   let body: Record<string, unknown>
   try {
@@ -49,7 +41,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .from('lavori')
     .select('stato, incluso_in_fattura')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .single()
 
@@ -78,7 +70,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .from('lavori')
     .update(updatePayload)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .select('id, decisione_fatturazione')
     .single()
 

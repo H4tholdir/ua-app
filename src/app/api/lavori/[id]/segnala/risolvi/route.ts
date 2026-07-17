@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -13,36 +13,26 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   const { id } = await params
 
   // Auth
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-
-  // Ottieni ruolo e lab dell'utente
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('ruolo, laboratorio_id')
-    .eq('id', user.id)
-    .is('deleted_at', null)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Verifica che il lavoro appartenga al lab
   const { data: lavoro } = await svc
     .from('lavori')
     .select('id')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .maybeSingle()
 
@@ -55,7 +45,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .from('lavori')
     .update({ segnalazione_risolta: true }, { count: 'exact' })
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   if (error) {
     console.error('[PATCH /api/lavori/[id]/segnala/risolvi] error:', error)

@@ -21,7 +21,7 @@ beforeEach(() => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1' }, error: null }) }) }) }
+      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1' }, error: null }) }) }) }) }
     }
     if (table === 'lavori_lavorazioni') {
       // .select('id', { count: 'exact', head: true }).eq('lavoro_id', id).is('deleted_at', null)

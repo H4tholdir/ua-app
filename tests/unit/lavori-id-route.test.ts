@@ -52,7 +52,9 @@ function buildMockFrom(opts: {
       return {
         select: () => ({
           eq: () => ({
-            single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
+            is: () => ({
+              single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }),
+            }),
           }),
         }),
       }
@@ -314,11 +316,17 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
   })
 
   it('utente senza laboratorio_id → 403', async () => {
+    // DEVIAZIONE (Task 10, stesso pattern Task 9): riga utenti assente del
+    // tutto collassa su context null (fail-closed getFreshLabContext) → 401,
+    // non più 403. Qui testiamo lo scenario reale distinto: profilo trovato
+    // ma SENZA laboratorio (laboratorio_id: null) → 403 preservato.
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
         return {
           select: () => ({
-            eq: () => ({ single: async () => ({ data: null, error: null }) }),
+            eq: () => ({
+              is: () => ({ single: async () => ({ data: { laboratorio_id: null }, error: null }) }),
+            }),
           }),
         }
       }
@@ -333,7 +341,9 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
       if (table === 'utenti') {
         return {
           select: () => ({
-            eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }),
+            eq: () => ({
+              is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }),
+            }),
           }),
         }
       }

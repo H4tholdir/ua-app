@@ -46,7 +46,7 @@ describe('POST /api/lavori — generazione fasi da ciclo', () => {
     const insertedRows: unknown[] = []
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       }
       if (table === 'clienti') {
         return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
@@ -93,7 +93,7 @@ describe('POST /api/lavori — generazione fasi da ciclo', () => {
     const insertSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
       if (table === 'lavori_fasi') { insertSpy(); return { insert: () => Promise.resolve({ error: null }) } }
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'clienti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'cicli_produzione') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'lavori') return { insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'lavoro-1', numero_lavoro: '2026/0001', stato: 'ricevuto' }, error: null }) }) }) }
@@ -111,7 +111,7 @@ describe('POST /api/lavori — generazione fasi da ciclo', () => {
     const cicloQuerySpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
       if (table === 'cicli_produzione' || table === 'fasi_produzione') { cicloQuerySpy(table); throw new Error('non deve essere chiamato') }
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'clienti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'lavori') return { insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'lavoro-1', numero_lavoro: '2026/0001', stato: 'ricevuto' }, error: null }) }) }) }
       throw new Error(`Unexpected table: ${table}`)
@@ -126,7 +126,7 @@ describe('POST /api/lavori — generazione fasi da ciclo', () => {
   it('ciclo_id di un altro laboratorio → 403, lavoro non creato', async () => {
     const lavoriInsertSpy = vi.fn()
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
+      if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'clienti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }) }
       if (table === 'cicli_produzione') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'other-lab' }, error: null }) }) }) }) }
       if (table === 'lavori') { lavoriInsertSpy(); return { insert: () => ({ select: () => ({ single: async () => ({ data: null, error: null }) }) }) } }

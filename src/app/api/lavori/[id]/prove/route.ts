@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { triggerPushToUser } from '@/lib/notifications/trigger'
 import { transizioneLavoro } from '@/lib/lavori/transizioni'
@@ -56,27 +55,20 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Guard cross-tenant
   const { data: lavoro } = await svc
     .from('lavori')
     .select('id, stato, laboratorio_id, tecnico_id, numero_lavoro')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .single()
 
@@ -99,7 +91,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Transizione centralizzata: delega a TRANSIZIONI_CONSENTITE in lib/lavori/transizioni.ts
-    const transResult = await transizioneLavoro(svc, id, utente.laboratorio_id, 'in_prova_esterna' as StatoLavoro)
+    const transResult = await transizioneLavoro(svc, id, context.laboratorioId, 'in_prova_esterna' as StatoLavoro)
     if (!transResult.ok) {
       return NextResponse.json({ error: transResult.error }, { status: transResult.status })
     }
@@ -120,7 +112,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         data_uscita: new Date().toISOString().split('T')[0],
         data_rientro_prevista,
         note_dentista: istruzioni ?? null,
-        created_by: user.id,
+        created_by: context.userId,
       })
       .select()
       .single()
@@ -168,7 +160,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Transizione centralizzata via TRANSIZIONI_CONSENTITE
     const transResult = await transizioneLavoro(
-      svc, id, utente.laboratorio_id, nuovoStato,
+      svc, id, context.laboratorioId, nuovoStato,
       nuova_data_consegna ? { data_consegna_prevista: nuova_data_consegna } : undefined,
     )
     if (!transResult.ok) {

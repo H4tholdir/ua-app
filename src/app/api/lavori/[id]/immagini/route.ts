@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { uploadToStorage } from '@/lib/storage/upload'
@@ -25,26 +25,16 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   // Autenticazione
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-
-  // Ricava laboratorio_id dall'utente
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
-  const { laboratorio_id } = utente
+  const laboratorio_id = context.laboratorioId
 
   // Verifica che il lavoro appartenga al laboratorio
   const { data: lavoro } = await svc

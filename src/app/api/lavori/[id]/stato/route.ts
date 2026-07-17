@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import type { StatoLavoro } from '@/types/domain'
@@ -14,22 +14,15 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   let body: { stato: string }
   try {
@@ -43,7 +36,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Campo "stato" obbligatorio' }, { status: 422 })
   }
 
-  const result = await transizioneLavoro(svc, id, utente.laboratorio_id, nuovoStato)
+  const result = await transizioneLavoro(svc, id, context.laboratorioId, nuovoStato)
 
   if (!result.ok) {
     const statusCode = result.status === 409 ? 422 : result.status
@@ -57,7 +50,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .from('lavori')
     .select('id, numero_lavoro, stato, updated_at')
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   return NextResponse.json({ lavoro: updated })
