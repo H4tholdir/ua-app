@@ -100,7 +100,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 
 export default async function ImpostazioniPage() {
   const context = await getLabContext()
-  if (!context?.laboratorioId) redirect('/login')
+  if (!context?.laboratorioId) redirect('/login?error=no_lab')
 
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
