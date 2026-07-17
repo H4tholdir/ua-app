@@ -1,0 +1,33 @@
+// GET categoria A (spec R2 §3, censimento 17/07/2026): SOLO questi route file
+// possono usare getLabContext (claims-based). Ogni altro route.ts usa
+// getFreshLabContext. Il test di guardia lab-context-guard.test.ts fa enforcement.
+export const LAB_CONTEXT_ROUTE_ALLOWLIST = [
+  'app/api/cicli/route.ts',
+  'app/api/clienti/route.ts',
+  'app/api/clienti/[id]/route.ts',
+  'app/api/clienti/[id]/dpa/route.ts',
+  'app/api/clienti/[id]/studio-members/route.ts',
+  'app/api/dashboard/kpi/route.ts',
+  'app/api/fasi-produzione/ricerca/route.ts',
+  'app/api/fornitori/route.ts',
+  'app/api/impostazioni/route.ts',
+  'app/api/lavori/route.ts',
+  'app/api/lavori/[id]/route.ts',
+  'app/api/lavori/[id]/etichetta/route.ts',
+  'app/api/lavori/[id]/ifu/route.ts',
+  'app/api/lavori/[id]/precheck-consegna/route.ts',
+  'app/api/lavori/[id]/prove/route.ts',
+  'app/api/lavori/[id]/ricevuta-consegna/route.ts',
+  'app/api/lavori/[id]/scheda-fabbricazione/route.ts',
+  'app/api/listino/route.ts',
+  'app/api/listino/[id]/route.ts',
+  'app/api/magazzino/route.ts',
+  'app/api/magazzino/[id]/lotti/route.ts',
+  'app/api/ordini/route.ts',
+  'app/api/pazienti/route.ts',
+  'app/api/qualita/incidenti/route.ts',
+  'app/api/qualita/rischi/route.ts',
+  'app/api/rete/route.ts',
+  'app/api/tecnici/route.ts',
+  'app/api/tecnici/[id]/produttivita/route.ts',
+] as const
