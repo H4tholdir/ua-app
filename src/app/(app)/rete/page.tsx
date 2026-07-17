@@ -1,4 +1,4 @@
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -26,24 +26,15 @@ const PIANO_COLOR: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────
 
 export default async function RetePage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
-
+  const context = await getLabContext()
+  if (!context?.laboratorioId) return null
+  const labId = context.laboratorioId
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) return null
-  const labId = utente.laboratorio_id
 
   const fontFamily = "'DM Sans', system-ui, sans-serif"
 
   // Solo titolare e admin_rete hanno accesso alla funzionalita rete
-  const isAdminRete = utente.ruolo === 'admin_rete' || utente.ruolo === 'titolare'
+  const isAdminRete = context.ruolo === 'admin_rete' || context.ruolo === 'titolare'
 
   if (!isAdminRete) {
     return (
