@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   }
   const { token, nome, cognome } = body as { token: string; nome: string; cognome: string }
 
+  // N11: pre-membership by design — nessun lookup utenti (spec R2 §3)
   const userClient = await getServerUserClient()
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -11,19 +11,15 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const svc = getServiceClient()
-  const { data: me } = await svc
-    .from('utenti').select('ruolo').eq('id', user.id).single()
-  if (me?.ruolo !== 'admin_sistema') {
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (context.ruolo !== 'admin_sistema') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
   const body = await req.json().catch(() => ({})) as { confirm_nome?: string }
+  const svc = getServiceClient()
 
   const { data: lab } = await svc
     .from('laboratori').select('nome, stato').eq('id', id).single()

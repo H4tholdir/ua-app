@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -27,16 +27,10 @@ function mockScenario(opts: {
 }) {
   insertedMembro = null
   const reteEsiste = opts.reteEsiste ?? true
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: 'admin-1', email: null, ruolo: opts.ruoloChiamante, laboratorioId: null, nome: null, cognome: null, lab: null,
+  })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { ruolo: opts.ruoloChiamante }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'reti') {
       return {
         select: () => ({
@@ -83,7 +77,6 @@ function postParams() {
 describe('POST /api/admin/reti/[id]/membri — force-add', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } })
   })
 
   it('ruolo non admin_sistema → 403, nessun insert', async () => {

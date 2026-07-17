@@ -1,17 +1,13 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { stripe } from '@/lib/stripe/server'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 async function verifyAdmin() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
-  const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('ruolo').eq('id', user.id).single()
-  return utente?.ruolo === 'admin_sistema' ? user : null
+  const context = await getFreshLabContext()
+  return context?.ruolo === 'admin_sistema' ? context : null
 }
 
 // GET — lista tutti i laboratori (più recenti prima)

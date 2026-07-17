@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+// verifyAdminRete (Task 10) usa getFreshLabContext per il self-lookup —
+// resta solo la query 'reti' su getServiceClient diretto.
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -16,21 +18,17 @@ vi.mock('@/lib/supabase/server-service', () => ({
 import { verifyAdminRete } from '../../src/lib/rete/verify-admin-rete'
 
 interface Scenario {
-  utente?: { laboratorio_id: string | null; ruolo: string } | null
+  context?: { userId: string; laboratorioId: string | null; ruolo: string } | null
   rete?: { id: string; nome: string; admin_laboratorio_id: string } | null
 }
 
-function mockTables({ utente = null, rete = null }: Scenario) {
+function mockScenario({ context = null, rete = null }: Scenario) {
+  mockGetFreshLabContext.mockResolvedValue(
+    context
+      ? { userId: context.userId, email: null, ruolo: context.ruolo, laboratorioId: context.laboratorioId, nome: null, cognome: null, lab: null }
+      : null
+  )
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: utente, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'reti') {
       return {
         select: () => ({
@@ -50,8 +48,7 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('utente non autenticato → null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    mockTables({})
+    mockScenario({ context: null })
 
     const result = await verifyAdminRete('rete-1')
 
@@ -59,8 +56,7 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('utente autenticato ma senza laboratorio_id → null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
-    mockTables({ utente: { laboratorio_id: null, ruolo: 'titolare' } })
+    mockScenario({ context: { userId: 'user-1', laboratorioId: null, ruolo: 'titolare' } })
 
     const result = await verifyAdminRete('rete-1')
 
@@ -68,8 +64,7 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('utente autenticato con laboratorio_id ma ruolo non ammesso (tecnico) → null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
-    mockTables({ utente: { laboratorio_id: 'lab-1', ruolo: 'tecnico' } })
+    mockScenario({ context: { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'tecnico' } })
 
     const result = await verifyAdminRete('rete-1')
 
@@ -77,8 +72,7 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('ruolo titolare, ma la rete richiesta non esiste → null', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
-    mockTables({ utente: { laboratorio_id: 'lab-1', ruolo: 'titolare' }, rete: null })
+    mockScenario({ context: { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'titolare' }, rete: null })
 
     const result = await verifyAdminRete('rete-inesistente')
 
@@ -86,9 +80,8 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('ruolo admin_rete, rete esiste ma admin_laboratorio_id è di un ALTRO lab → null (difesa anti-cross-tenant)', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
-    mockTables({
-      utente: { laboratorio_id: 'lab-1', ruolo: 'admin_rete' },
+    mockScenario({
+      context: { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'admin_rete' },
       rete: { id: 'rete-1', nome: 'Rete Toscana', admin_laboratorio_id: 'lab-ALTRO' },
     })
 
@@ -98,9 +91,8 @@ describe('verifyAdminRete — barriera di isolamento multi-tenant', () => {
   })
 
   it('ruolo titolare, rete esiste e admin_laboratorio_id corrisponde al lab dell\'utente → contesto valido', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
-    mockTables({
-      utente: { laboratorio_id: 'lab-1', ruolo: 'titolare' },
+    mockScenario({
+      context: { userId: 'user-1', laboratorioId: 'lab-1', ruolo: 'titolare' },
       rete: { id: 'rete-1', nome: 'Rete Toscana', admin_laboratorio_id: 'lab-1' },
     })
 

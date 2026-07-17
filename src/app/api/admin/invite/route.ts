@@ -1,6 +1,6 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { upsertInvito } from '@/lib/invito/upsert-invito'
@@ -10,12 +10,8 @@ import type { RuoloInvito } from '@/lib/invito/ruoli'
 const VALID_ROLES: RuoloInvito[] = ['titolare', 'tecnico', 'front_desk', 'admin_rete']
 
 async function verifyAdmin() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
-  const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('ruolo').eq('id', user.id).single()
-  return utente?.ruolo === 'admin_sistema' ? user : null
+  const context = await getFreshLabContext()
+  return context?.ruolo === 'admin_sistema' ? context : null
 }
 
 export async function POST(req: Request) {
@@ -44,7 +40,7 @@ export async function POST(req: Request) {
     laboratorioId: laboratorio_id,
     email,
     ruolo,
-    createdBy: admin.id,
+    createdBy: admin.userId,
   })
 
   if (!result.ok) {
