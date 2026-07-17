@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { RUOLI_INVIO_PEC } from '@/lib/fattura/invio-claim'
@@ -34,29 +34,19 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  if (!RUOLI_INVIO_PEC.includes(utente.ruolo as (typeof RUOLI_INVIO_PEC)[number])) {
+  if (!RUOLI_INVIO_PEC.includes(context.ruolo as (typeof RUOLI_INVIO_PEC)[number])) {
     return NextResponse.json({ error: 'Ruolo non autorizzato ad applicare ricevute SdI' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
   const { id: eventoId } = await params
 
   const { data: evento } = await svc

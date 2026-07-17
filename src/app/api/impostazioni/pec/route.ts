@@ -1,27 +1,22 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import nodemailer from 'nodemailer'
 
-async function getLabId(userId: string): Promise<string | null> {
-  const svc = getServiceClient()
-  const { data } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', userId).single()
-  if (!data || !['titolare', 'admin_rete'].includes(data.ruolo ?? '')) return null
-  return data.laboratorio_id ?? null
-}
+const RUOLI_PEC_SETUP = ['titolare', 'admin_rete']
 
 // PATCH /api/impostazioni/pec — salva host/port/user + password in vault
 export async function PATCH(req: Request) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-
-  const labId = await getLabId(user.id)
-  if (!labId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  if (!context.laboratorioId || !RUOLI_PEC_SETUP.includes(context.ruolo)) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+  }
+  const labId = context.laboratorioId
 
   let body: { pec_host?: string; pec_port?: number; pec_user?: string; pec_password?: string; pec_sdi_address?: string } | null = null
   try {
@@ -82,12 +77,12 @@ export async function PATCH(req: Request) {
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-
-  const labId = await getLabId(user.id)
-  if (!labId) return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  if (!context.laboratorioId || !RUOLI_PEC_SETUP.includes(context.ruolo)) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+  }
+  const labId = context.laboratorioId
 
   const svc = getServiceClient()
   const { data: lab } = await svc.from('laboratori')
