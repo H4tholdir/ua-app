@@ -152,25 +152,36 @@ Raw data: `scripts/tmp/perf-results.json` (non committato). Script riusabile: `s
 
 `tsc --noEmit` 0 errori · vitest **2090 pass / 19 skip** (da baseline 2008) · `next build` OK · QA su build di produzione locale (lab E2E): login→dashboard OK, superfici chiave 200, riconciliazioni renderizza, write-path PATCH 200, **`Server-Timing: auth;dur=1-2ms` a caldo = verifica claims locale confermata empiricamente** (prima chiamata 94ms = fetch JWKS a freddo, una tantum per lambda). `db;dur≈88ms` in locale è la tratta Italia→Irlanda: da `dub1` sarà ~1-3ms. Nota dev-only: il dev server Turbopack non espone gli header Server-Timing (artefatto dev, verificato assente in produzione).
 
-### Misura contro i budget — POST-MERGE (il progetto Vercel builda solo `main`: nessun preview per branch)
+### Misura contro i budget — ESEGUITA post-deploy (17/07 sera; `PERF_RUNS=5`, giro 0 warmup scartato, 108 misure pagina + 16 API, run singolo login)
 
-Procedura al deploy: `PERF_RUNS=5 npx tsx scripts/perf-audit.ts` (giro 0 warmup scartato, p75 su pagine/API + login) → confronto con §6 → compilare la tabella qui sotto. Se `/fatture/riconciliazioni` resta sopra budget dopo i consolidamenti → known-issue con follow-up di profiling (NON fallisce il gate). Gap noto: creare 1 lavoro via wizard sul lab E2E per misurare `/lavori/[id]`, poi cleanup.
+| Metrica | Baseline pre-R1 | Post-R1 | **Post-R2** | Budget | Esito |
+|---|---|---|---|---|---|
+| TTFB pagine autenticate (mediana) | 812ms | 354ms | **175ms (−78% dal baseline)** | — | — |
+| TTFB pagine autenticate (**p75**) | — | — | **198ms** | ≤ 300ms | ✅ |
+| API GET (**p75**) | 500-900ms | 155-188ms | **152ms** (best 126) | ≤ 250ms | ✅ |
+| Login→dashboard | 5.189ms | 2.486ms | **2.758ms** | ≤ 2.000ms | ⚠️ vedi sotto |
+| `/fatture/riconciliazioni` (ex outlier) | 717ms | 660ms | **191ms** | — | ✅ risolto dal consolidamento (nessun indice necessario) |
+| `/dashboard` | 810ms | — | **179ms** | — | ✅ |
 
-| Metrica | Post-R1 | Post-R2 (misurare al deploy) | Budget |
-|---|---|---|---|
-| Mediana/p75 TTFB pagine autenticate | 354ms (mediana) | _da misurare_ | p75 ≤ 300ms |
-| Login→dashboard | 2.486ms | _da misurare_ | ≤ 2.000ms |
-| API GET (clienti/listino/fornitori/cicli) | 155-188ms | _da misurare_ | p75 ≤ 250ms |
+Peggiori residue (uniche >300ms, marginali): `/qualita/rischi` 321ms · `/tutto-il-resto` 307ms. Il p75 «vero» lo certificherà Speed Insights RUM dopo ~7 giorni.
 
-### Gate e azioni per Francesco (in ordine)
+**Login→dashboard 2.758ms — analisi:** il residuo NON è più server-side (dashboard TTFB 179ms). È il flusso client del login: **ritardo deliberato di 600ms** (`login-form.tsx:232/294` — animazione «Bentornato!») + prompt passkey a +400ms + grant password browser→Auth Irlanda + load dashboard. Chiuderlo è una decisione UX/product, non di infrastruttura → nuovo item **N14** (ridurre il delay e/o prefetch di `/dashboard` durante l'animazione: ~−600/800ms stimati, porterebbe sotto budget). Classificato **known-issue con rimedio identificato**, non fallimento del gate R2.
 
-1. 🛑 **Apply migration** `20260717120000_n12_prove_atomiche.sql` (SQL editor dashboard o MCP autorizzato) → poi FASE 6b: `npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts` + `npx tsc --noEmit` (sul branch).
-2. 🛑 **Merge** `worktree-p0-perf-r2` → `main` → deploy → smoke + **QA post-deploy**: flusso prove completo su lab E2E (manda_in_prova → rientro; verifica UA404/UA409 come status 404/409 reali — primo uso di ERRCODE custom via PostgREST), riconciliazioni con asserzione POSITIVA (TD04 rifiutato visibile), refresh oltre scadenza token, push rientro.
-3. **Re-misura** (procedura sopra) + compilare la tabella + aggiornare il regression gate.
-4. **TTL access token 1h → 10-15 min** (dashboard Supabase → Auth → Sessions) — precondizione della finestra di revoca accettata dal panel.
-5. Primo run manuale di `perf-budget.yml` (Actions → workflow_dispatch); poi secrets `PERF_EMAIL`/`PERF_PASSWORD` (le credenziali E2E oggi hanno fallback hardcoded, pre-esistente).
-6. Lettura Query Performance/pg_stat_statements (già attivo) per l'outlier riconciliazioni.
-7. Rollback se serve: **Vercel Instant Rollback** (primario, secondi) o `git revert`.
+### Gate ESEGUITI (17/07 sera — delega esplicita di Francesco «procedi tu con tutti i passaggi che mancano»)
+
+1. ✅ **Migration applicata** al DB live via Management API (201; funzioni verificate: SECURITY INVOKER, ACL solo `postgres`+`service_role`) + **FASE 6b** (types rigenerati con le 2 RPC, tsc 0, commit `9796def`).
+2. ✅ **Smoke ERRCODE**: PostgREST propaga `code: "UA404"` → il mapping della route funziona (verificato PRIMA del merge).
+3. ✅ **Merge `3fbabca` + push → deploy Vercel success** (`5008f39`; + cleanup `.superpowers` dal repo).
+4. ✅ **QA prod flusso prove (lavoro QA dedicato 2026/0009, poi annullato):** crea→conferma→`manda_in_prova` 200 (`numero_prova:1`, stato `in_prova_esterna`) → doppio invio **409 UA409** → `registra_rientro` 200 con **`nuova_data_consegna` applicata atomicamente** (data_consegna_prevista aggiornata) → doppio rientro **409 senza effetti parziali** → lavoro inesistente **404 UA404** → GET prove array grezzo letto correttamente dal TabProve fixato.
+5. ✅ **TTL access token 3600→900s** via Management API, verificato su token reale (`expires_in: 900`).
+6. ✅ Re-misura (tabella sopra) + cleanup lavoro QA a stato terminale.
+
+### Note operative post-deploy
+
+- **`Server-Timing` è strippato dal proxy Vercel in produzione** (presente in locale con `next start`, assente su prod — limitazione piattaforma). Non blocca nulla: l'osservabilità prod passa da log `[layout]` (function logs Vercel), Speed Insights e cron perf-audit. Follow-up opzionale: rinominare in `x-server-timing`.
+- Il middleware gira all'**edge `fra1`** e coi claims locali risolve i redirect **senza toccare `dub1`** (`x-vercel-id: fra1::…` puro sui redirect). Next 16 lo segnala deprecato a favore di `proxy.ts` (follow-up).
+- `/lavori/[id]` non viene scoperta dallo script (le card delle pile non sono `<a>`): la copertura di misura resta indiretta (il costo per-request rimosso è uniforme). Follow-up: aggiungere route detail esplicita allo script.
+- Residui per Francesco (non bloccanti): primo run manuale di `perf-budget.yml` (workflow_dispatch) + secrets `PERF_EMAIL`/`PERF_PASSWORD`; primo invio PEC reale post-R1 ancora da osservare.
 
 ### Deviazioni dichiarate (ratificate in review, da conoscere)
 

@@ -458,6 +458,9 @@ Censimento completo: ~140 lookup del contesto utente corrente, solo 7 filtravano
 ### N12. Route prove non transazionale — ✅ RISOLTO in R2 (17/07/2026, branch `worktree-p0-perf-r2`; 🛑 apply migration = gate Francesco)
 Migration `20260717120000_n12_prove_atomiche.sql`: RPC `manda_in_prova_atomico`/`registra_rientro_atomico` (SECURITY INVOKER, tenant-filter dentro il `FOR UPDATE`, archi 1:1 con `TRANSIZIONI_CONSENTITE`, `numero_prova = MAX+1` sotto lock — race del COUNT eliminata, ERRCODE `UA404`/`UA409`); route riscritta sui RPC. Bonus: TabProve allineato al contratto POST + fix parsing GET (il flusso prove in UI era interamente morto — 2 bug pre-esistenti). Smoke post-apply obbligatorio: UA404/UA409 come status reali via PostgREST (primo uso di ERRCODE custom nel progetto).
 
+### N14. Login→dashboard sopra budget per flusso client (misura post-R2, 17/07/2026) 🟡
+Misurato 2.758ms vs budget ≤2.000ms, ma il server è a posto (dashboard TTFB 179ms): il residuo è il ritardo deliberato di 600ms dell'animazione «Bentornato!» (`login-form.tsx:232/294`) + prompt passkey a +400ms + grant password + load. Rimedio identificato: ridurre il delay e/o `router.prefetch('/dashboard')` durante l'animazione (~−600/800ms stimati → sotto budget). Decisione UX per Francesco.
+
 ### N13. Nessun check `lab.stato` nei handler API (scoperto dal panel R2 — appsec, 17/07/2026) 🟡
 Un lab `sospeso/scaduto/blacklist` è bloccato SOLO dal layout: una PWA/client può chiamare le API direttamente e continuare a leggere/scrivere. Gap PRE-esistente a R2. Col `LabContext` il dato `lab.stato` è ora disponibile gratis in ogni handler → il fix è un guard centrale (helper o check nei 2 helper di contesto). Da decidere la matrice: quali stati bloccano quali metodi (GET vs mutazioni).
 

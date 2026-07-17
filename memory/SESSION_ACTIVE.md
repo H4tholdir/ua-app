@@ -1,11 +1,7 @@
-# Sessione attiva — P0-PERF R2 (17/07/2026)
+# Sessione attiva — P0-PERF R2 (17/07/2026) — CHIUSA
 
-**Stato:** R2 COMPLETO sul branch `worktree-p0-perf-r2` (35 commit, pushato su origin). FASE 7 verde (tsc 0, vitest 2090 pass, build OK). Review finale whole-branch passata, QA locale su build prod PASS (`auth;dur=1-2ms` = claims locali confermati).
+**R2 mergiato (`3fbabca`), deployato (`5008f39` success), QA prod PASS, misurato.** Migration N12 applicata (Management API) + FASE 6b; TTL token 900s attivo; flusso prove verificato end-to-end su prod (UA404/UA409 reali, atomicità confermata, lavoro QA annullato).
 
-**In attesa (gate Francesco, checklist completa in `docs/roadmap/P0-PERF-DIAGNOSI-2026-07-17.md` §7):**
-1. Apply migration `20260717120000_n12_prove_atomiche.sql` + FASE 6b (gen types + tsc)
-2. Merge + deploy + QA post-deploy (smoke UA404/UA409, riconciliazioni asserzione positiva, flusso prove E2E)
-3. Re-misura `PERF_RUNS=5 npx tsx scripts/perf-audit.ts` vs budget + compilare tabella §7
-4. TTL access token → 10-15 min (dashboard Supabase)
+**Misura finale (PERF_RUNS=5):** TTFB pagine mediana 175ms / p75 198ms ✅ (budget 300) · API p75 152ms ✅ (budget 250) · riconciliazioni 660→191ms ✅ · login→dashboard 2.758ms ⚠️ = client-side (N14, decisione UX).
 
-BP-1 fatto (commit `48ad822` su main locale, non pushato). N11+N12 chiusi sul branch; nuovi item N13, N11-bis nel BACKLOG.
+**Residui Francesco:** run manuale `perf-budget.yml` + secrets PERF_*; primo invio PEC reale; decisione N14. Prossimo: sequenza ratificata (N13, N11-bis, N14, §A, §O → funzioni → design → audit → collaudo).
