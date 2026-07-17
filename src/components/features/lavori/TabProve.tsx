@@ -80,8 +80,12 @@ export function TabProve({ lavoroId, statoLavoro, onProvaInviata, onRientroRegis
           signal: controller.signal,
         })
         if (!res.ok) throw new Error(`Errore ${res.status}`)
-        const json = await res.json() as { prove?: Prova[] }
-        setProve(json.prove ?? [])
+        // GET /api/lavori/[id]/prove ritorna un ARRAY GREZZO (route.ts:
+        // `return NextResponse.json(data)`, non `{ prove: data }`). Parsing
+        // difensivo: se il contratto dovesse mai cambiare o rispondere in modo
+        // inatteso, non vogliamo un crash, solo lista vuota.
+        const json: unknown = await res.json()
+        setProve(Array.isArray(json) ? json as Prova[] : [])
         setError(null)
       } catch (e) {
         if ((e as Error).name === 'AbortError') return

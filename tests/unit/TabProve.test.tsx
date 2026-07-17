@@ -23,8 +23,13 @@ function fetchMock() {
   return fetch as unknown as ReturnType<typeof vi.fn>
 }
 
+// Task 17 review round 1: la GET /api/lavori/[id]/prove ritorna un ARRAY
+// GREZZO (route.ts riga ~94: `return NextResponse.json(data)`, non
+// `{ prove: data }`). Il mock deve rispecchiare questo contratto reale —
+// wrapparlo in `{ prove }` nascondeva il bug del componente (che leggeva
+// `json.prove ?? []`, sempre `[]` contro il payload vero).
 function mockGetProve(prove: unknown[]) {
-  fetchMock().mockResolvedValueOnce({ ok: true, json: async () => ({ prove }) })
+  fetchMock().mockResolvedValueOnce({ ok: true, json: async () => prove })
 }
 
 describe('TabProve', () => {
@@ -41,7 +46,8 @@ describe('TabProve', () => {
     fetchMock().mockResolvedValueOnce({ ok: true, json: async () => ({ prova: { id: 'prova-1' }, stato: 'in_prova_esterna' }) })
     // reloadProve() dopo il successo rifà una GET: copriamola con un fallback
     // per evitare un fetch non mockato nell'effect (act()-warning/flakiness).
-    fetchMock().mockResolvedValue({ ok: true, json: async () => ({ prove: [] }) })
+    // Array grezzo — stesso contratto reale della GET (v. commento su mockGetProve).
+    fetchMock().mockResolvedValue({ ok: true, json: async () => [] })
 
     render(<TabProve lavoroId="lavoro-1" statoLavoro="in_lavorazione" />)
 
@@ -72,7 +78,8 @@ describe('TabProve', () => {
     fetchMock().mockResolvedValueOnce({ ok: true, json: async () => ({ esito: 'ok', stato: 'in_lavorazione' }) })
     // reloadProve() dopo il successo rifà una GET: copriamola con un fallback
     // per evitare un fetch non mockato nell'effect (act()-warning/flakiness).
-    fetchMock().mockResolvedValue({ ok: true, json: async () => ({ prove: [] }) })
+    // Array grezzo — stesso contratto reale della GET (v. commento su mockGetProve).
+    fetchMock().mockResolvedValue({ ok: true, json: async () => [] })
 
     render(<TabProve lavoroId="lavoro-1" statoLavoro="in_prova_esterna" />)
 
