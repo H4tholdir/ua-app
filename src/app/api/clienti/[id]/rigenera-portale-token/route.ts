@@ -3,7 +3,7 @@
 // TTL è 1 anno. Invalida il link vecchio all'istante; nuovo TTL 1 anno.
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { logPortaleAudit } from '@/lib/portale/audit'
@@ -15,16 +15,13 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (!isSameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const { id } = await params
 
-    const supabase = await getServerUserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-
-    const svc = getServiceClient()
-    const { data: utente } = await svc.from('utenti').select('laboratorio_id, ruolo').eq('id', user.id).single()
-    if (!utente?.laboratorio_id) return NextResponse.json({ error: 'Nessun laboratorio' }, { status: 403 })
-    if (!['titolare', 'front_desk'].includes(utente.ruolo)) {
+    const context = await getFreshLabContext()
+    if (!context) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+    if (!context.laboratorioId) return NextResponse.json({ error: 'Nessun laboratorio' }, { status: 403 })
+    if (!['titolare', 'front_desk'].includes(context.ruolo)) {
       return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
     }
+    const svc = getServiceClient()
 
     const nuovoToken = randomUUID()
     const { data: aggiornato, error: updErr } = await svc
@@ -35,7 +32,7 @@ export async function POST(req: Request, { params }: RouteContext) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .is('deleted_at', null)
       .select('id')
       .maybeSingle()
@@ -46,8 +43,8 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (!aggiornato) return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
 
     const okAudit = await logPortaleAudit(svc, {
-      laboratorio_id: utente.laboratorio_id, cliente_id: id,
-      azione: 'link_rigenerato', dettaglio: { autore: user.id }, req,
+      laboratorio_id: context.laboratorioId, cliente_id: id,
+      azione: 'link_rigenerato', dettaglio: { autore: context.userId }, req,
     })
     if (!okAudit) return NextResponse.json({ error: 'Errore registrazione audit' }, { status: 500 })
 

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -19,6 +19,10 @@ const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
 const CICLO_ID = 'ciclo-1'
 const params = Promise.resolve({ id: CICLO_ID })
+const CONTEXT = {
+  userId: AUTH_USER.id, email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
 
 function patchReq(body: unknown) {
   return new Request(`http://localhost/api/cicli/${CICLO_ID}`, {
@@ -32,9 +36,6 @@ function mockUpdate(result: { data: unknown; error: unknown }) {
   const updateCalls: unknown[] = []
   const eqCalls: unknown[][] = []
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-    }
     if (table === 'cicli_produzione') {
       return {
         update: (payload: unknown) => {
@@ -61,7 +62,7 @@ function mockUpdate(result: { data: unknown; error: unknown }) {
 describe('PATCH /api/cicli/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
   })
 
   it('aggiornamento parziale (solo nome) → 200', async () => {
@@ -118,7 +119,7 @@ describe('PATCH /api/cicli/[id]', () => {
   })
 
   it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetFreshLabContext.mockResolvedValue(null)
     const res = await PATCH(patchReq({ nome: 'X' }), { params })
     expect(res.status).toBe(401)
   })
@@ -182,7 +183,7 @@ function deleteReq() {
 describe('DELETE /api/cicli/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
   })
 
   function mockDeleteFlow(opts: {
@@ -203,9 +204,6 @@ describe('DELETE /api/cicli/[id]', () => {
     const softDeleteCalls: unknown[] = []
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-      }
       if (table === 'cicli_produzione') {
         return {
           select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({
@@ -279,7 +277,7 @@ describe('DELETE /api/cicli/[id]', () => {
   })
 
   it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetFreshLabContext.mockResolvedValue(null)
     const res = await DELETE(deleteReq(), { params })
     expect(res.status).toBe(401)
   })

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { TIPO_DISPOSITIVO_CICLO_OPTIONS, CLASSE_RISCHIO_CICLO_OPTIONS } from '@/lib/domain/cicli-produzione'
@@ -15,26 +15,15 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente, error: utenteError } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (utenteError) {
-    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
-  }
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
+  const svc = getServiceClient()
 
   let body: Record<string, unknown>
   try {
@@ -77,7 +66,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Il campo "attivo" deve essere booleano' }, { status: 400 })
   }
 
-  payload.updated_by = user.id
+  payload.updated_by = context.userId
 
   const { data: ciclo, error: updateError } = await svc
     .from('cicli_produzione')
@@ -107,26 +96,15 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente, error: utenteError } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (utenteError) {
-    return NextResponse.json({ error: 'Errore nel recupero del laboratorio' }, { status: 500 })
-  }
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-  const labId: string = utente.laboratorio_id
+  const labId: string = context.laboratorioId
+  const svc = getServiceClient()
 
   const { data: existing } = await svc
     .from('cicli_produzione')

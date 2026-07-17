@@ -5,13 +5,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // o mai pagabile — la route deve rifiutare con lo stesso stile 4xx già usato
 // per le altre validazioni (400).
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -33,10 +33,13 @@ interface Opts {
 
 function mockSupabase(opts: Opts) {
   const insertedMovimenti: Record<string, unknown>[] = []
+  const utente = opts.utente ?? { laboratorio_id: LAB_ID, ruolo: 'titolare' }
+  mockGetFreshLabContext.mockResolvedValue(
+    utente
+      ? { userId: 'user-1', email: null, ruolo: utente.ruolo, laboratorioId: utente.laboratorio_id, nome: null, cognome: null, lab: null }
+      : null
+  )
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: opts.utente ?? { laboratorio_id: LAB_ID, ruolo: 'titolare' }, error: null }) }) }) }
-    }
     if (table === 'clienti') {
       return {
         select: () => ({
@@ -82,7 +85,6 @@ const ctx = { params: Promise.resolve({ id: CLIENTE_ID }) }
 describe('POST /api/clienti/[id]/credito/applica', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   })
 
   it('applicazione su fattura TD01 non stornata con credito disponibile → 200, movimento creato', async () => {

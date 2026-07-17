@@ -1,11 +1,11 @@
 // tests/unit/rigenera-portale-token-route.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(), mockFrom: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(), mockFrom: vi.fn(),
 }))
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
@@ -29,11 +29,10 @@ beforeEach(() => {
   auditInserts = []
   ruolo = 'titolare'
   clienteEsiste = true
-  mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+  mockGetFreshLabContext.mockImplementation(async () => ({
+    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
+  }))
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo }, error: null }) }) }) }
-    }
     if (table === 'portale_accessi') {
       return { insert: async (row: Record<string, unknown>) => { auditInserts.push(row); return { error: null } } }
     }
@@ -59,7 +58,7 @@ beforeEach(() => {
 
 describe('POST /api/clienti/[id]/rigenera-portale-token', () => {
   it('401 senza user autenticato', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null })
+    mockGetFreshLabContext.mockResolvedValue(null)
     const res = await POST(req(), ctx)
     expect(res.status).toBe(401)
   })

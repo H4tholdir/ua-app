@@ -1,22 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockFrom, mockGetLabContextWithTimings, mockGetFreshLabContext } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockGetLabContextWithTimings: vi.fn(),
+  mockGetFreshLabContext: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
-}))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
-// GET usa getLabContextWithTimings (Task 9); POST (non toccato) resta su
-// getServerUserClient/getUser + lookup 'utenti' sopra.
+// GET usa getLabContextWithTimings (Task 9); POST (Task 10) usa getFreshLabContext.
 vi.mock('@/lib/supabase/lab-context', () => ({
   getLabContextWithTimings: mockGetLabContextWithTimings,
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 
 import { GET, POST } from '../../src/app/api/cicli/route'
@@ -157,15 +154,12 @@ function crossOriginPostReq(body: unknown) {
 describe('POST /api/cicli', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
   })
 
   function mockInsert(result: { data: unknown; error: unknown }) {
     const insertCalls: unknown[] = []
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-      }
       if (table === 'cicli_produzione') {
         return {
           insert: (payload: unknown) => {
@@ -181,9 +175,6 @@ describe('POST /api/cicli', () => {
 
   function setupMockForValidation() {
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'utenti') {
-        return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-      }
       throw new Error(`Unexpected table: ${table}`)
     })
   }
@@ -253,7 +244,7 @@ describe('POST /api/cicli', () => {
   })
 
   it('utente non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+    mockGetFreshLabContext.mockResolvedValue(null)
     const res = await POST(postReq({ nome: 'X', codice: 'C1', tipo_dispositivo: 'Protesi fissa' }))
     expect(res.status).toBe(401)
   })

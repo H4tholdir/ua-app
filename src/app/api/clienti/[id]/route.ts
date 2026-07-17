@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { validaPinNuovo, hashPin } from '@/lib/portale/pin'
@@ -112,22 +111,14 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   let body: Record<string, unknown>
   try {
@@ -142,14 +133,14 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   let statoAttuale: { portale_pin_hash: string | null; portale_pin_generation: number; portale_fatturazione_attiva: boolean } | null = null
 
   if (toccaPortale) {
-    if (!['titolare', 'front_desk'].includes(utente.ruolo)) {
+    if (!['titolare', 'front_desk'].includes(context.ruolo)) {
       return NextResponse.json({ error: 'Ruolo non autorizzato' }, { status: 403 })
     }
     const { data: attuale, error: attErr } = await svc
       .from('clienti')
       .select('portale_pin_hash, portale_pin_generation, portale_fatturazione_attiva')
       .eq('id', id)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .is('deleted_at', null)
       .single()
     if (attErr || !attuale) {
@@ -172,7 +163,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       .from('tecnici')
       .select('id')
       .eq('id', update.tecnico_default_id as string)
-      .eq('laboratorio_id', utente.laboratorio_id)
+      .eq('laboratorio_id', context.laboratorioId)
       .is('deleted_at', null)
       .maybeSingle()
     if (tecErr) {
@@ -193,7 +184,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       if (body.portale_fatturazione_attiva !== statoAttuale.portale_fatturazione_attiva) {
         azioniAudit.push({
           azione: body.portale_fatturazione_attiva ? 'interruttore_on' : 'interruttore_off',
-          dettaglio: { autore: user.id },
+          dettaglio: { autore: context.userId },
         })
       }
     }
@@ -212,7 +203,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       update.portale_pin_bloccato_fino_a = null
       azioniAudit.push({
         azione: statoAttuale.portale_pin_hash ? 'pin_reimpostato' : 'pin_impostato',
-        dettaglio: { autore: user.id },
+        dettaglio: { autore: context.userId },
       })
     }
   }
@@ -223,7 +214,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     .from('clienti')
     .update(update)
     .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .select('id, nome, cognome, studio_nome, updated_at')
     .single()
@@ -239,7 +230,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   for (const a of azioniAudit) {
     const okAudit = await logPortaleAudit(svc, {
-      laboratorio_id: utente.laboratorio_id,
+      laboratorio_id: context.laboratorioId,
       cliente_id: id,
       azione: a.azione,
       dettaglio: a.dettaglio,

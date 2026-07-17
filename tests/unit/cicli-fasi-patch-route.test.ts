@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom, mockRpc } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
   mockRpc: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
@@ -20,6 +20,10 @@ const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
 const CICLO_ID = 'ciclo-1'
 const params = Promise.resolve({ id: CICLO_ID })
+const CONTEXT = {
+  userId: AUTH_USER.id, email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
 
 function req(body: Record<string, unknown>) {
   return new Request('http://localhost/api/cicli/ciclo-1/fasi', {
@@ -29,24 +33,10 @@ function req(body: Record<string, unknown>) {
   })
 }
 
-/** Mocka mockFrom per la sola lookup 'utenti' (laboratorio_id dell'utente
- *  autenticato) — con la RPC atomica, non c'e' piu' bisogno di mockare
- *  cicli_produzione/fasi_produzione via `from`, tutta la scrittura passa
- *  per `svc.rpc('salva_fasi_ciclo_atomico', ...)`. */
-function setupUtenti() {
-  mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID }, error: null }) }) }) }
-    }
-    throw new Error(`Unexpected table: ${table}`)
-  })
-}
-
 describe('PATCH /api/cicli/[id]/fasi — salvataggio batch (RPC atomica)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
-    setupUtenti()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
   })
 
   it('ciclo di un altro laboratorio → 404 (RPC ritorna { ok: false, error: "Ciclo non trovato" })', async () => {
