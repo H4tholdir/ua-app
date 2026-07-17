@@ -25,8 +25,8 @@ const BUDGET_TTFB_MS = 300
 const BUDGET_API_MS = 250
 const BUDGET_LOGIN_MS = 2000
 
-const EMAIL = 'e2e-titolare@ua-test.local'
-const PASSWORD = 'TestE2E!2026'
+const EMAIL = process.env.PERF_EMAIL ?? 'e2e-titolare@ua-test.local'
+const PASSWORD = process.env.PERF_PASSWORD ?? 'TestE2E!2026'
 
 const LIST_ROUTES = [
   '/dashboard',
@@ -218,7 +218,7 @@ async function main() {
       const m = await visita(page, route, run)
       results.push(m)
       console.log(JSON.stringify(m))
-      if (!('error' in m)) pageTtfbMeasures.push(m.ttfbMs)
+      if (!('error' in m) && m.ttfbMs >= 0) pageTtfbMeasures.push(m.ttfbMs)
     }
   }
 
@@ -244,6 +244,13 @@ async function main() {
   await browser.close()
 
   // ---- p75 + tabella riassuntiva ----
+  if (RUNS < 2) {
+    console.warn('PERF_RUNS<2: nessuna misura post-warmup, p75 non calcolabile')
+    if (ENFORCE) {
+      console.error('PERF_ENFORCE=1 con PERF_RUNS<2: nessuna misura post-warmup, p75 non calcolabile, exit 1.')
+      process.exit(1)
+    }
+  }
   const p75Pages = p75(pageTtfbMeasures)
   const p75Api = p75(apiMsMeasures)
   const pagesOk = p75Pages <= BUDGET_TTFB_MS

@@ -134,10 +134,15 @@ async function fetchSmtpStagnanti(
  * l'originale resterebbe erroneamente nel gruppo). Nessun `!inner`: le
  * originali senza alcun TD04 collegato devono restare nel risultato con
  * `td04: []`, per essere scartate dal match in memoria (nessun rifiutato).
- * laboratorio_id sui figli embed: implicito per invariante same-lab (il
- * trigger annulla_effetti_storno_td04, migration 20260716091000, garantisce
- * che fattura_collegata_id punti sempre a una fattura dello stesso
- * laboratorio) — nessun filtro esplicito necessario sull'embed.
+ * laboratorio_id sui figli embed (review finale R2, Finding I1): l'invariante
+ * same-lab di fattura_collegata_id NON è garantita dal trigger
+ * annulla_effetti_storno_td04 (migration 20260716091000) — quel trigger gestisce
+ * gli effetti dello storno, non rigetta in scrittura un fattura_collegata_id
+ * cross-lab. L'invariante regge perché tutti i writer che valorizzano
+ * fattura_collegata_id sono lab-scoped (operano sempre sul laboratorio_id
+ * corrente). Per difesa in profondità (RLS/bug futuri) l'embed filtra
+ * comunque esplicitamente `td04.laboratorio_id = labId`, così un'eventuale
+ * riga cross-lab non entrerebbe mai nel match in memoria.
  * Match in memoria invariato (stessa regola anti-loop), ora su `riga.td04`
  * invece della Map costruita dalla seconda query: nessun N+1.
  */
@@ -152,6 +157,7 @@ async function fetchStornateConTd04Rifiutato(
     .not('stornata_at', 'is', null)
     .is('deleted_at', null)
     .eq('td04.tipo_documento', 'TD04')
+    .eq('td04.laboratorio_id', labId)
     .is('td04.deleted_at', null)
   if (error) throw new Error(`[riconciliazioni] lettura fatture stornate + TD04 collegati: ${error.message}`)
 
