@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -8,19 +8,12 @@ import type { VoceListino } from '@/components/features/listino/ListinoVoceRow'
 import { ListinoNuovoSheet } from '@/components/features/listino/ListinoNuovoSheet'
 
 export default async function ListinoPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  const labId: string = utente?.laboratorio_id ?? ''
-  const ruolo: string = utente?.ruolo ?? ''
+  const labId: string = context.laboratorioId
+  const ruolo: string = context.ruolo
   const canEdit = ruolo === 'titolare' || ruolo === 'admin_rete'
 
   let voci: VoceListino[] = []

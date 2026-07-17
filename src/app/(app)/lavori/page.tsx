@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome, subMorph } from '@/lib/dashboard/pile-home'
 import { PilaAperta } from '@/components/features/pile/PilaAperta'
@@ -22,17 +22,13 @@ const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
 // A ≥1024 resta il regime mobile a colonna singola (fuori scope di questo task).
 export default async function LavoriPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
   const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
-
-  const svc = getServiceClient()
-  const { data: utente } = await svc.from('utenti').select('ruolo, laboratorio_id').eq('id', user.id).is('deleted_at', null).single()
-  if (!utente) redirect('/login')
-  const { ruolo, laboratorio_id: labId } = utente
+  const context = await getLabContext()
+  if (!context?.laboratorioId) redirect('/login')
+  const { ruolo, laboratorioId: labId } = context
   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
 
-  const perimetro = await getPerimetroHome(svc, labId, user.id, ruolo)
+  const svc = getServiceClient()
+  const perimetro = await getPerimetroHome(svc, labId, context.userId, ruolo)
   const pile = await getPileHome(svc, labId, perimetro)
   const pila = (PILE_VALIDE as readonly string[]).includes(pilaParam ?? '') ? (pilaParam as Pila) : null
   const conteggi = { rossa: pile.liste.rossa.length, ambra: pile.liste.ambra.length, viola: pile.liste.viola.length, blu: pile.liste.blu.length }
