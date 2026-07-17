@@ -1,0 +1,20 @@
+name: perf-budget
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npx playwright install chromium --with-deps
+      - run: PERF_ENFORCE=1 npx tsx scripts/perf-audit.ts
+
+  # Il fallimento del job genera la mail GitHub di default sui watcher del repo
+  # — alerting minimo per il budget di performance, riserva sre R1 per canali dedicati.

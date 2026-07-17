@@ -28,6 +28,7 @@
     "@simplewebauthn/server": "^13.3.0",
     "@supabase/ssr": "^0.5",
     "@supabase/supabase-js": "^2.105.0",
+    "@vercel/speed-insights": "^2.0.0",
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

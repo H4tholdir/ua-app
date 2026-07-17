@@ -1,14 +1,30 @@
 /**
  * P0-PERF — Audit capillare di performance in produzione (17/07/2026)
- * Login col lab E2E (MAI lab Filippo), visita ogni pagina 2 volte,
+ * Login col lab E2E (MAI lab Filippo), visita ogni pagina N volte (PERF_RUNS,
+ * default 5 — il giro 0 è warmup e viene scartato dai calcoli),
  * raccoglie Navigation Timing + chiamate Supabase + pesi risorse.
  * SOLA LETTURA: nessuna mutazione. Output JSON (locale, NON committare) in scripts/tmp/perf-results.json
  * Baseline storiche: docs/roadmap/P0-PERF-DIAGNOSI-2026-07-17.md §3 e §6.
+ *
+ * v2 (Task 13 — osservabilità):
+ * - PERF_BASE: override dell'URL base (default prod https://uachelab.com)
+ * - PERF_RUNS: numero di giri per pagina/API (default 5, giro 0 = warmup scartato)
+ * - PERF_BYPASS: se presente, aggiunge l'header x-vercel-protection-bypass sia sul
+ *   BrowserContext (extraHTTPHeaders) sia sulle singole richieste context.request
+ * - PERF_ENFORCE=1: exit 1 se il p75 supera i budget (pagine/API/login)
  */
 import { chromium, type Page, type BrowserContext } from 'playwright'
 import { writeFileSync } from 'node:fs'
 
-const BASE = 'https://uachelab.com'
+const BASE = process.env.PERF_BASE ?? 'https://uachelab.com'
+const RUNS = Number(process.env.PERF_RUNS ?? 5)
+const BYPASS = process.env.PERF_BYPASS
+const ENFORCE = process.env.PERF_ENFORCE === '1'
+
+const BUDGET_TTFB_MS = 300
+const BUDGET_API_MS = 250
+const BUDGET_LOGIN_MS = 2000
+
 const EMAIL = 'e2e-titolare@ua-test.local'
 const PASSWORD = 'TestE2E!2026'
 
@@ -134,13 +150,27 @@ async function scopriDettagli(page: Page): Promise<string[]> {
   return [...found]
 }
 
+/** 75° percentile (nearest-rank) su un array di numeri. NaN se vuoto. */
+function p75(values: number[]): number {
+  if (values.length === 0) return NaN
+  const sorted = [...values].sort((a, b) => a - b)
+  const idx = Math.min(sorted.length - 1, Math.ceil(0.75 * sorted.length) - 1)
+  return sorted[idx]
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true })
-  const context: BrowserContext = await browser.newContext({
+  const contextOptions: Parameters<typeof browser.newContext>[0] = {
     viewport: { width: 390, height: 844 }, // mobile-first: il viewport reale di Francesco
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.36 UA-PerfAudit',
-  })
+  }
+  if (BYPASS) {
+    contextOptions.extraHTTPHeaders = { 'x-vercel-protection-bypass': BYPASS }
+  }
+  const context: BrowserContext = await browser.newContext(contextOptions)
   const page = await context.newPage()
+
+  console.log(`base=${BASE} runs=${RUNS} bypass=${BYPASS ? 'sì' : 'no'} enforce=${ENFORCE ? 'sì' : 'no'}`)
 
   // ---- LOGIN ----
   console.log('login…')
@@ -154,12 +184,17 @@ async function main() {
   console.log(`login→dashboard: ${loginMs}ms`)
 
   const results: unknown[] = []
-  results.push({ route: '__login_to_dashboard__', run: 1, totalMs: loginMs })
+  results.push({ route: '__login_to_dashboard__', run: 0, totalMs: loginMs })
 
-  // ---- LISTE (run 1) + scoperta dettagli ----
+  // Misure post-warmup (run > 0), usate per il calcolo del p75
+  const pageTtfbMeasures: number[] = []
+  const apiMsMeasures: number[] = []
+
+  // ---- GIRO 0 = WARMUP: liste + scoperta dettagli (scartato dai calcoli) ----
   const dettagli = new Set<string>()
+  console.log('\n--- run 0 (warmup, scartato dai calcoli) ---')
   for (const route of LIST_ROUTES) {
-    const m = await visita(page, route, 1)
+    const m = await visita(page, route, 0)
     results.push(m)
     console.log(JSON.stringify(m))
     for (const d of await scopriDettagli(page)) dettagli.add(d)
@@ -169,29 +204,35 @@ async function main() {
   const dettagliArr = [...dettagli]
   console.log(`dettagli scoperti: ${dettagliArr.length}`, dettagliArr)
 
-  // ---- DETTAGLI (run 1) ----
   for (const route of dettagliArr) {
-    const m = await visita(page, route, 1)
+    const m = await visita(page, route, 0)
     results.push(m)
     console.log(JSON.stringify(m))
   }
 
-  // ---- RUN 2 (warm) su tutte ----
-  for (const route of [...LIST_ROUTES, ...dettagliArr]) {
-    const m = await visita(page, route, 2)
-    results.push(m)
-    console.log(JSON.stringify(m))
+  // ---- GIRI 1..RUNS-1 (misurati) su liste + dettagli ----
+  const tutteLeRoute = [...LIST_ROUTES, ...dettagliArr]
+  for (let run = 1; run < RUNS; run++) {
+    console.log(`\n--- run ${run}/${RUNS - 1} ---`)
+    for (const route of tutteLeRoute) {
+      const m = await visita(page, route, run)
+      results.push(m)
+      console.log(JSON.stringify(m))
+      if (!('error' in m)) pageTtfbMeasures.push(m.ttfbMs)
+    }
   }
 
-  // ---- API GET (3 run ciascuna, con cookie di sessione) ----
+  // ---- API GET (RUNS giri ciascuna, giro 0 = warmup scartato) ----
+  const apiRequestHeaders = BYPASS ? { 'x-vercel-protection-bypass': BYPASS } : undefined
   for (const api of API_GETS) {
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 0; i < RUNS; i++) {
       const t = Date.now()
       try {
-        const r = await context.request.get(BASE + api, { timeout: 45000 })
+        const r = await context.request.get(BASE + api, { timeout: 45000, headers: apiRequestHeaders })
         const ms = Date.now() - t
         results.push({ route: api, run: i, apiMs: ms, status: r.status() })
         console.log(JSON.stringify({ api, run: i, ms, status: r.status() }))
+        if (i > 0) apiMsMeasures.push(ms)
       } catch (e) {
         results.push({ route: api, run: i, error: String(e).slice(0, 120) })
       }
@@ -201,6 +242,25 @@ async function main() {
   writeFileSync('scripts/tmp/perf-results.json', JSON.stringify(results, null, 2))
   console.log(`\nscritti ${results.length} record in scripts/tmp/perf-results.json`)
   await browser.close()
+
+  // ---- p75 + tabella riassuntiva ----
+  const p75Pages = p75(pageTtfbMeasures)
+  const p75Api = p75(apiMsMeasures)
+  const pagesOk = p75Pages <= BUDGET_TTFB_MS
+  const apiOk = p75Api <= BUDGET_API_MS
+  const loginOk = loginMs <= BUDGET_LOGIN_MS
+
+  console.log('\n=== RIEPILOGO p75 (giro 0 escluso, ' + (RUNS - 1) + ' giri misurati) ===')
+  console.table([
+    { metrica: 'pagine TTFB p75 (ms)', valore: Math.round(p75Pages), budget: BUDGET_TTFB_MS, esito: pagesOk ? 'OK' : 'SFORA' },
+    { metrica: 'API p75 (ms)', valore: Math.round(p75Api), budget: BUDGET_API_MS, esito: apiOk ? 'OK' : 'SFORA' },
+    { metrica: 'login→dashboard (ms)', valore: loginMs, budget: BUDGET_LOGIN_MS, esito: loginOk ? 'OK' : 'SFORA' },
+  ])
+
+  if (ENFORCE && (!pagesOk || !apiOk || !loginOk)) {
+    console.error('\nPERF_ENFORCE=1: budget superato, exit 1.')
+    process.exit(1)
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
