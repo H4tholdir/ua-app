@@ -1,27 +1,21 @@
 import { redirect } from 'next/navigation'
-import { getServerUserClient } from '@/lib/supabase/server-user'
-import { getServiceClient } from '@/lib/supabase/server-service'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import AdminNav from './admin-nav'
 import './admin.css'
 
-// Admin role is verified from DB — not from JWT claims (which can be stale)
+// Admin role is verified via getFreshLabContext — getUser() di rete, NON
+// claims cachate (admin = mutazioni/borderline, spec R2 §D-2) + filtro
+// deleted_at SEMPRE applicato (N11: un admin soft-deleted perde l'accesso
+// immediatamente, non al TTL delle claims).
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) redirect('/login')
+  const context = await getFreshLabContext()
+  if (!context) redirect('/login')
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('ruolo, nome, cognome')
-    .eq('id', user.id)
-    .single()
+  if (context.ruolo !== 'admin_sistema') redirect('/dashboard')
 
-  if (utente?.ruolo !== 'admin_sistema') redirect('/dashboard')
-
-  const displayName = utente?.nome
-    ? `${utente.nome} ${utente.cognome ?? ''}`.trim()
-    : (user.email ?? 'Admin')
+  const displayName = context.nome
+    ? `${context.nome} ${context.cognome ?? ''}`.trim()
+    : (context.email ?? 'Admin')
 
   return (
     <div className="adm-body">
