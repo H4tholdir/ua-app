@@ -95,6 +95,30 @@ describe('getLabContext', () => {
     const selectArg = mockSelect.mock.calls[0][0] as string
     expect(selectArg).not.toContain('!inner')
   })
+
+  it('errore DB inatteso (es. timeout 57014) → null + console.error loggato', async () => {
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'u-1' } }, error: null })
+    mockSingle.mockResolvedValue({ data: null, error: { code: '57014', message: 'timeout' } })
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const ctx = await getLabContext()
+
+    expect(ctx).toBeNull()
+    expect(consoleSpy).toHaveBeenCalledWith('[lab-context] lookup utenti fallito — fail-closed:', '57014', 'timeout')
+    consoleSpy.mockRestore()
+  })
+
+  it('errore atteso PGRST116 (zero rows da single) → null + console.error NON loggato', async () => {
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'u-1' } }, error: null })
+    mockSingle.mockResolvedValue({ data: null, error: { code: 'PGRST116' } })
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const ctx = await getLabContext()
+
+    expect(ctx).toBeNull()
+    expect(consoleSpy).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('getFreshLabContext', () => {

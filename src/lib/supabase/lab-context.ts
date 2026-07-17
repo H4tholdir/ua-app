@@ -33,12 +33,15 @@ type UtenteRow = {
 
 async function fetchUtenteRow(userId: string): Promise<UtenteRow | null> {
   const svc = getServiceClient()
-  const { data } = await svc
+  const { data, error } = await svc
     .from('utenti')
     .select(SELECT_CONTEXT)
     .eq('id', userId)
     .is('deleted_at', null)
     .single()
+  if (error && error.code !== 'PGRST116') {
+    console.error('[lab-context] lookup utenti fallito — fail-closed:', error.code, error.message)
+  }
   return (data as UtenteRow | null) ?? null
 }
 
