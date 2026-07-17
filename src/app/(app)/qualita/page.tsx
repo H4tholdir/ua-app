@@ -1,4 +1,4 @@
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -31,19 +31,11 @@ const gravitaColor: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────
 
 export default async function QualitaPage() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return null
+  const context = await getLabContext()
+  if (!context?.laboratorioId) return null
+  const labId = context.laboratorioId
 
   const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) return null
-  const labId = utente.laboratorio_id
 
   // ─── Sezione 1: Non Conformita Recenti ──────────────────────
   const { data: nc } = await svc
