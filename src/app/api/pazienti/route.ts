@@ -1,51 +1,49 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const cliente_id = searchParams.get('cliente_id')
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const labId: string = context.laboratorioId
 
-  const labId: string = utente.laboratorio_id
+    const svc = getServiceClient()
+    let query = svc
+      .from('pazienti')
+      .select('id, laboratorio_id, cliente_id, codice_paziente, nome, cognome, nome_cognome, data_nascita, codice_fiscale, sesso, note, archiviato')
+      .eq('laboratorio_id', labId)
+      .eq('archiviato', false)
+      .order('cognome', { ascending: true })
+      .order('nome', { ascending: true })
+      .limit(500)
 
-  let query = svc
-    .from('pazienti')
-    .select('id, laboratorio_id, cliente_id, codice_paziente, nome, cognome, nome_cognome, data_nascita, codice_fiscale, sesso, note, archiviato')
-    .eq('laboratorio_id', labId)
-    .eq('archiviato', false)
-    .order('cognome', { ascending: true })
-    .order('nome', { ascending: true })
-    .limit(500)
+    if (cliente_id) {
+      query = query.eq('cliente_id', cliente_id)
+    }
 
-  if (cliente_id) {
-    query = query.eq('cliente_id', cliente_id)
-  }
+    const { data, error } = await query
 
-  const { data, error } = await query
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ pazienti: data ?? [] })
+    return NextResponse.json({ pazienti: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {

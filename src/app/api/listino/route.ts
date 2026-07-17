@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { pgrestQuote } from '@/lib/utils/escape-postgrest'
 
@@ -9,52 +11,48 @@ export async function GET(req: Request) {
   const categoria = searchParams.get('categoria')
   const q = searchParams.get('q')
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const labId: string = context.laboratorioId
 
-  const labId: string = utente.laboratorio_id
+    const svc = getServiceClient()
+    let query = svc
+      .from('listino')
+      .select(
+        'id, codice, nome, descrizione, categoria, prezzo_1, prezzo_2, prezzo_3, prezzo_4, unita_misura, tipo_dispositivo_mdr, classe_rischio, da_conformare, attivo, codice_iva'
+      )
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .order('categoria', { ascending: true })
+      .order('nome', { ascending: true })
+      .limit(1000)
 
-  let query = svc
-    .from('listino')
-    .select(
-      'id, codice, nome, descrizione, categoria, prezzo_1, prezzo_2, prezzo_3, prezzo_4, unita_misura, tipo_dispositivo_mdr, classe_rischio, da_conformare, attivo, codice_iva'
-    )
-    .eq('laboratorio_id', labId)
-    .eq('attivo', true)
-    .order('categoria', { ascending: true })
-    .order('nome', { ascending: true })
-    .limit(1000)
+    if (categoria) {
+      query = query.eq('categoria', categoria)
+    }
 
-  if (categoria) {
-    query = query.eq('categoria', categoria)
-  }
+    if (q) {
+      const pattern = pgrestQuote(`%${q}%`)
+      query = query.or(`nome.ilike.${pattern},codice.ilike.${pattern},descrizione.ilike.${pattern}`)
+    }
 
-  if (q) {
-    const pattern = pgrestQuote(`%${q}%`)
-    query = query.or(`nome.ilike.${pattern},codice.ilike.${pattern},descrizione.ilike.${pattern}`)
-  }
+    const { data, error } = await query
 
-  const { data, error } = await query
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ voci: data ?? [] })
+    return NextResponse.json({ voci: data ?? [] })
+  })
 }
 
 export async function POST(req: Request) {

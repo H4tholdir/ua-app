@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -8,50 +10,47 @@ type RouteContext = { params: Promise<{ id: string }> }
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
+    const labId: string = context.laboratorioId
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    // Verifica che l'articolo appartenga al laboratorio
+    const { data: articolo } = await svc
+      .from('magazzino')
+      .select('id')
+      .eq('id', id)
+      .eq('laboratorio_id', labId)
+      .single()
 
-  // Verifica che l'articolo appartenga al laboratorio
-  const { data: articolo } = await svc
-    .from('magazzino')
-    .select('id')
-    .eq('id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .single()
+    if (!articolo) {
+      return NextResponse.json({ error: 'Articolo non trovato' }, { status: 404 })
+    }
 
-  if (!articolo) {
-    return NextResponse.json({ error: 'Articolo non trovato' }, { status: 404 })
-  }
+    const { data, error } = await svc
+      .from('lotti_magazzino')
+      .select(
+        'id, numero_lotto, quantita_acquistata, quantita_residua, costo_acquisto, data_acquisto, data_scadenza, data_ricezione, documento_acquisto_url, note, attivo'
+      )
+      .eq('magazzino_id', id)
+      .eq('laboratorio_id', labId)
+      .order('data_acquisto', { ascending: false })
+      .limit(100)
 
-  const { data, error } = await svc
-    .from('lotti_magazzino')
-    .select(
-      'id, numero_lotto, quantita_acquistata, quantita_residua, costo_acquisto, data_acquisto, data_scadenza, data_ricezione, documento_acquisto_url, note, attivo'
-    )
-    .eq('magazzino_id', id)
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .order('data_acquisto', { ascending: false })
-    .limit(100)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ lotti: data ?? [] })
+    return NextResponse.json({ lotti: data ?? [] })
+  })
 }
 
 export async function POST(req: Request, { params }: RouteContext) {

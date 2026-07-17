@@ -1,41 +1,39 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 // GET /api/qualita/rischi
 // Lista analisi rischi per tipo dispositivo, ordine tipo_dispositivo ASC
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const svc = getServiceClient()
+    const { data, error } = await svc
+      .from('rischi_tipo_dispositivo')
+      .select(
+        'id, tipo_dispositivo, rischi_json, rischi_residui, misure_controllo, data_ultima_revisione, versione, updated_at'
+      )
+      .eq('laboratorio_id', context.laboratorioId)
+      .order('tipo_dispositivo', { ascending: true })
 
-  const { data, error } = await svc
-    .from('rischi_tipo_dispositivo')
-    .select(
-      'id, tipo_dispositivo, rischi_json, rischi_residui, misure_controllo, data_ultima_revisione, versione, updated_at'
-    )
-    .eq('laboratorio_id', utente.laboratorio_id)
-    .order('tipo_dispositivo', { ascending: true })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ rischi: data ?? [] })
+    return NextResponse.json({ rischi: data ?? [] })
+  })
 }
 
 // POST /api/qualita/rischi

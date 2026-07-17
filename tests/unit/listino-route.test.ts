@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockGetLabContextWithTimings: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
@@ -16,6 +17,12 @@ vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({
     from: mockFrom,
   }),
+}))
+
+// GET usa getLabContextWithTimings (Task 9); POST (non toccato) resta su
+// getServerUserClient/getUser sopra.
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getLabContextWithTimings: mockGetLabContextWithTimings,
 }))
 
 vi.mock('@/lib/utils/csrf', () => ({
@@ -134,12 +141,15 @@ describe('POST /api/listino — gating ruolo e campi MDR', () => {
   })
 })
 
+const CONTEXT = {
+  userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
+  nome: null, cognome: null, lab: null,
+}
+const TIMINGS = { authMs: 1, dbMs: 2 }
+
 function mockLabRead(result: { data: unknown; error: unknown }): MockChain {
   const listinoChain = createChain(result)
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return { select: () => ({ eq: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare' }, error: null }) }) }) }
-    }
     if (table === 'listino') return listinoChain
     throw new Error(`Unexpected table: ${table}`)
   })
@@ -153,7 +163,19 @@ function getRequest(url: string) {
 describe('GET /api/listino', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: TIMINGS })
+  })
+
+  it('context null → 401', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: null, timings: { authMs: 1, dbMs: 0 } })
+    const res = await GET(getRequest('http://localhost/api/listino?q=zirconia'))
+    expect(res.status).toBe(401)
+  })
+
+  it('laboratorioId assente → 403', async () => {
+    mockGetLabContextWithTimings.mockResolvedValue({ context: { ...CONTEXT, laboratorioId: null }, timings: TIMINGS })
+    const res = await GET(getRequest('http://localhost/api/listino?q=zirconia'))
+    expect(res.status).toBe(403)
   })
 
   it('ricerca con match → 200, scoping tenant verificato sugli argomenti esatti di .eq()', async () => {

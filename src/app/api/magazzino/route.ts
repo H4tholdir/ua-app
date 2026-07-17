@@ -1,64 +1,62 @@
 import { NextResponse } from 'next/server'
 import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
+  return withServerTiming(async (t) => {
+    const { context, timings } = await getLabContextWithTimings()
+    Object.assign(t, timings)
+    if (!context) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
+    if (!context.laboratorioId) {
+      return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
+    }
 
-  if (!utente?.laboratorio_id) {
-    return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
-  }
+    const labId: string = context.laboratorioId
 
-  const labId: string = utente.laboratorio_id
+    const svc = getServiceClient()
+    const { data, error } = await svc
+      .from('magazzino')
+      .select(`
+        id,
+        codice_articolo,
+        nome,
+        produttore,
+        categoria,
+        sotto_categoria,
+        um_acquisto,
+        um_scarico,
+        scorta_attuale,
+        scorta_minima,
+        dispositivo_medico,
+        traccia_lotto,
+        codice_ce,
+        costo_unitario,
+        attivo,
+        fornitore:fornitori(id, ragione_sociale)
+      `)
+      .eq('laboratorio_id', labId)
+      .eq('attivo', true)
+      .order('nome', { ascending: true })
+      .limit(500)
 
-  const { data, error } = await svc
-    .from('magazzino')
-    .select(`
-      id,
-      codice_articolo,
-      nome,
-      produttore,
-      categoria,
-      sotto_categoria,
-      um_acquisto,
-      um_scarico,
-      scorta_attuale,
-      scorta_minima,
-      dispositivo_medico,
-      traccia_lotto,
-      codice_ce,
-      costo_unitario,
-      attivo,
-      fornitore:fornitori(id, ragione_sociale)
-    `)
-    .eq('laboratorio_id', labId)
-    .eq('attivo', true)
-    .order('nome', { ascending: true })
-    .limit(500)
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+    // Flag alert scorta
+    const articoli = (data ?? []).map((a) => ({
+      ...a,
+      scorta_alert: a.scorta_attuale < a.scorta_minima,
+    }))
 
-  // Flag alert scorta
-  const articoli = (data ?? []).map((a) => ({
-    ...a,
-    scorta_alert: a.scorta_attuale < a.scorta_minima,
-  }))
-
-  return NextResponse.json({ articoli })
+    return NextResponse.json({ articoli })
+  })
 }
 
 export async function POST(req: Request) {
