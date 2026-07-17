@@ -54,6 +54,7 @@ export default async function AdminLivePreviewPage({ params }: Props) {
     .select('nome, cognome, ruolo')
     .eq('laboratorio_id', id)
     .eq('ruolo', 'titolare')
+    .is('deleted_at', null)
     .maybeSingle()
 
   const labRaw = lab as Record<string, unknown>

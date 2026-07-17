@@ -41,6 +41,7 @@ export async function POST(
     .select('id, nome, cognome, email')
     .eq('laboratorio_id', id)
     .eq('ruolo', 'titolare')
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (!titolare?.email) {
