@@ -89,3 +89,46 @@ Raw data: `scripts/tmp/perf-results.json` (non committato). Script riusabile: `s
 10. **Supabase Pro (~$25/mese) = prerequisito di PRODUZIONE al primo cliente pagante**, non ottimizzazione: il FREE ha pause dopo 7 giorni di inattività, ~60 connessioni, retention log 1 giorno. Segnale anticipatore da monitorare: varianza p95/p50 del segmento `db` nel Server-Timing.
 11. **Falsa pista archiviata:** `getServiceClient()` ricreato per chiamata NON è un problema (fetch/undici fa keepalive per-origin); `force-dynamic` sulla dashboard è corretto.
 12. **Verifica residua:** runtime effettivo del middleware (edge vs Node in Next 16 su Vercel) — determina se R1 abbatte anche il suo RT o serve aspettare R2b′; si legge dal deployment output post-R1.
+
+---
+
+## 6. Risultati R1 (deploy `441948b`, 17/07/2026 — funzioni a `dub1`)
+
+**Smoke: PASS** — `x-vercel-id: fra1::dub1` confermato; login + navigazioni 200; write-path esercitato (PATCH no-op cliente E2E: 200 in 283ms, dato invariato); webhook Stripe raggiungibile dalla nuova regione (400 firma-mancante atteso, in 195ms totali). Residuo da osservare: primo invio PEC reale post-R1 (cambia l'IP di uscita — il lab E2E usa smtp fittizio, non testabile in smoke).
+
+**Misure (stesso script della baseline, best-of-2 per route):**
+- **Mediana TTFB pagine autenticate: 812ms → 354ms (−56%)**
+- **Login→dashboard: 5.189ms → 2.486ms (−52%)**
+- **API GET: −70/−80%** — `/api/clienti` 845→188ms · `/api/listino` 540→161ms · `/api/fornitori` 504→156ms · `/api/cicli` 552→155ms
+- Migliore: `/fatture` 1.217→255ms (−79%) · Outlier: `/fatture/riconciliazioni` 717→660ms (−8% — dominata dalle proprie query, candidata prioritaria per R2d/pg_stat_statements)
+
+| Route | TTFB before (ms) | TTFB after (ms) | Δ |
+|---|---|---|---|
+| `/fatture` | 1217 | 255 | −79% |
+| `/lavori` | 1075 | 543 | −49% |
+| `/tutto-il-resto` | 1015 | 368 | −64% |
+| `/agenda` | 1009 | 247 | −76% |
+| `/ordini` | 1001 | 272 | −73% |
+| `/magazzino` | 992 | 451 | −55% |
+| `/impostazioni/pec` | 974 | 471 | −52% |
+| `/qualita/rischi` | 880 | 368 | −58% |
+| `/cicli-produzione` | 879 | 298 | −66% |
+| `/rete` | 865 | 301 | −65% |
+| `/qualita/psur` | 864 | 354 | −59% |
+| `/tecnici` | 858 | 342 | −60% |
+| `/pazienti` | 826 | 314 | −62% |
+| `/listino` | 812 | 354 | −56% |
+| `/impostazioni/abbonamento` | 811 | 380 | −53% |
+| `/lavori/nuovo` | 789 | 416 | −47% |
+| `/analytics` | 784 | 384 | −51% |
+| `/qualita/incidenti/nuovo` | 738 | 275 | −63% |
+| `/qualita` | 718 | 420 | −42% |
+| `/fatture/riconciliazioni` | 717 | 660 | −8% |
+| `/pazienti/42213ed7-a599-4be4-ba26-dac7a8a3ad96` | 717 | 375 | −48% |
+| `/clienti` | 705 | 320 | −55% |
+| `/impostazioni` | 675 | 260 | −61% |
+| `/impostazioni/profilo` | 672 | 387 | −42% |
+| `/scadenzario` | 649 | 336 | −48% |
+| `/clienti/00000000-0000-0000-0000-000000000003` | 589 | 285 | −52% |
+
+**Verdetto R1:** causa radice confermata empiricamente (la co-locazione da sola dimezza tutto). Il residuo (~350ms mediana vs budget ≤300ms; login→dashboard 2,5s vs budget ≤2s) è il moltiplicatore di round-trip interno → si chiude con **R2**. Rollback non necessario.
