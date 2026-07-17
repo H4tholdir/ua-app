@@ -14,7 +14,7 @@
  * - PERF_ENFORCE=1: exit 1 se il p75 supera i budget (pagine/API/login)
  */
 import { chromium, type Page, type BrowserContext } from 'playwright'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, mkdirSync } from 'node:fs'
 
 const BASE = process.env.PERF_BASE ?? 'https://uachelab.com'
 const RUNS = Number(process.env.PERF_RUNS ?? 5)
@@ -239,6 +239,7 @@ async function main() {
     }
   }
 
+  mkdirSync('scripts/tmp', { recursive: true }) // il runner CI parte senza la cartella (gitignorata)
   writeFileSync('scripts/tmp/perf-results.json', JSON.stringify(results, null, 2))
   console.log(`\nscritti ${results.length} record in scripts/tmp/perf-results.json`)
   await browser.close()
