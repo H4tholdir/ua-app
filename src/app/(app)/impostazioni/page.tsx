@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ImpostazioniEditForm } from '@/components/features/impostazioni/ImpostazioniEditForm'
+import { AttivaAccessoRapido } from '@/components/features/impostazioni/AttivaAccessoRapido'
 
 type LabRow = {
   id: string
@@ -275,6 +276,11 @@ export default async function ImpostazioniPage() {
               {lab.pec_smtp_configurata ? 'Modifica configurazione PEC →' : 'Configura PEC →'}
             </Link>
           </div>
+        </SectionCard>
+
+        {/* Sezione Sicurezza (N14): ingresso manuale passkey, sempre disponibile */}
+        <SectionCard title="Sicurezza">
+          <AttivaAccessoRapido email={context.email ?? ''} />
         </SectionCard>
 
         {/* Sezione 4: Marchio */}

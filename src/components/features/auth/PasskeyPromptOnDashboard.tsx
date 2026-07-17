@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { consumePasskeyPrompt } from '@/lib/auth/passkey-prompt'
+import { registraPropostaPasskey } from '@/components/features/auth/PasskeyRegistrationModal'
 
 const PasskeyRegistrationModal = dynamic(
   () => import('@/components/features/auth/PasskeyRegistrationModal'),
@@ -24,7 +25,11 @@ export function PasskeyPromptOnDashboard() {
     // solo se il prompt è entro il TTL (login appena avvenuto).
     const armed = consumePasskeyPrompt()
     if (!armed) return
-    const id = setTimeout(() => setEmail(armed), POST_PAINT_DELAY_MS)
+    const id = setTimeout(() => {
+      // conta la proposta SOLO quando il prompt compare davvero (cap N14)
+      registraPropostaPasskey()
+      setEmail(armed)
+    }, POST_PAINT_DELAY_MS)
     return () => clearTimeout(id)
   }, [])
 

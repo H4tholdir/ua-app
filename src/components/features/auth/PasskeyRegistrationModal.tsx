@@ -5,7 +5,13 @@ import { startRegistration } from '@simplewebauthn/browser'
 
 const PASSKEY_KEY = 'ua_passkey_email'
 const PASSKEY_SKIP_KEY = 'ua_passkey_skip_until'
+const PASSKEY_PROMPT_COUNT_KEY = 'ua_passkey_prompt_count'
 const SKIP_DAYS = 30
+
+// N14 (requisito 4 ratificato): cap lifetime delle proposte automatiche.
+// Oltre il cap il prompt post-login non compare più; resta l'ingresso
+// manuale in Impostazioni→Sicurezza («Attiva accesso rapido»).
+export const PASSKEY_PROMPT_MAX = 3
 
 interface Props {
   email: string
@@ -141,7 +147,19 @@ export default function PasskeyRegistrationModal({ email, onDone }: Props) {
   )
 }
 
-// Helper per sapere se mostrare il modal
+function contaProposte(): number {
+  const raw = localStorage.getItem(PASSKEY_PROMPT_COUNT_KEY)
+  const n = raw === null ? 0 : Number(raw)
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
+
+// Da chiamare quando il prompt automatico viene effettivamente MOSTRATO.
+export function registraPropostaPasskey(): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(PASSKEY_PROMPT_COUNT_KEY, String(contaProposte() + 1))
+}
+
+// Helper per sapere se mostrare il modal (prompt automatico post-login)
 export function shouldShowPasskeyModal(email: string): boolean {
   // Già registrato per questa email
   if (typeof window === 'undefined') return false
@@ -149,5 +167,7 @@ export function shouldShowPasskeyModal(email: string): boolean {
   // Utente ha scelto "non adesso" e il periodo non è scaduto
   const skipUntil = localStorage.getItem(PASSKEY_SKIP_KEY)
   if (skipUntil && new Date(skipUntil) > new Date()) return false
+  // Cap lifetime raggiunto → basta proposte automatiche
+  if (contaProposte() >= PASSKEY_PROMPT_MAX) return false
   return true
 }
