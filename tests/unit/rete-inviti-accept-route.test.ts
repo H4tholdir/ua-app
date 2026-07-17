@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom, mockRpc } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom, mockRpc } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
   mockRpc: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
@@ -19,17 +19,8 @@ vi.mock('@/lib/utils/csrf', () => ({
 import { POST } from '../../src/app/api/rete/inviti/[token]/accept/route'
 
 function mockUtenteRuolo(ruolo: string) {
-  mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { ruolo }, error: null }),
-          }),
-        }),
-      }
-    }
-    throw new Error(`Unexpected table: ${table}`)
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: 'user-1', email: null, ruolo, laboratorioId: 'lab-1', nome: null, cognome: null, lab: null,
   })
 }
 
@@ -44,12 +35,10 @@ function acceptParams() {
 describe('POST /api/rete/inviti/[token]/accept', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
   })
 
   it('non autenticato → 401', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
-    mockUtenteRuolo('titolare')
+    mockGetFreshLabContext.mockResolvedValue(null)
 
     const res = await POST(acceptRequest(), acceptParams())
 

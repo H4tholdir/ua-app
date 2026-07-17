@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { calcolaResiduo } from '@/lib/contabilita/saldo'
 import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
@@ -9,28 +9,17 @@ import { prezzoEffettivoLavoro } from '@/lib/domain/prezzo-lavoro'
 // saldati, raggruppati per cliente, ordinati per anzianità decrescente.
 // Il "credito potenziale" (lavori in_attesa) NON entra in questa lista (B2 §5).
 export async function GET() {
-  const userClient = await getServerUserClient()
-  const {
-    data: { user },
-  } = await userClient.auth.getUser()
+  const context = await getFreshLabContext()
 
-  if (!user) {
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
-
-  const labId: string = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId: string = context.laboratorioId
 
   type ClienteSnap = {
     id: string

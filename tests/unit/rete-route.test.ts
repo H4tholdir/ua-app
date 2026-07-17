@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
-  mockGetUser: vi.fn(),
+const { mockGetFreshLabContext, mockFrom } = vi.hoisted(() => ({
+  mockGetFreshLabContext: vi.fn(),
   mockFrom: vi.fn(),
 }))
 
-vi.mock('@/lib/supabase/server-user', () => ({
-  getServerUserClient: async () => ({
-    auth: { getUser: mockGetUser },
-  }),
+vi.mock('@/lib/supabase/lab-context', () => ({
+  getFreshLabContext: mockGetFreshLabContext,
 }))
 
 vi.mock('@/lib/supabase/server-service', () => ({
@@ -32,16 +30,10 @@ let insertedMembroData: Record<string, unknown> | null = null
 function mockUtenteRuolo(ruolo: string, opts: { existingRete?: { id: string } | null } = {}) {
   insertedReteData = null
   insertedMembroData = null
+  mockGetFreshLabContext.mockResolvedValue({
+    userId: AUTH_USER.id, email: null, ruolo, laboratorioId: LAB_ID, nome: null, cognome: null, lab: null,
+  })
   mockFrom.mockImplementation((table: string) => {
-    if (table === 'utenti') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo }, error: null }),
-          }),
-        }),
-      }
-    }
     if (table === 'reti') {
       return {
         select: () => ({
@@ -91,7 +83,6 @@ function postRequest(body: unknown) {
 describe('POST /api/rete — gating ruolo e guard 1-rete-per-lab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
   })
 
   it('ruolo tecnico → 403, nessuna rete creata', async () => {

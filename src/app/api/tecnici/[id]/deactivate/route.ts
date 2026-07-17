@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
+import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -11,28 +11,21 @@ export async function POST(
 
   const { id } = await params
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await getFreshLabContext()
+  if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const svc = getServiceClient()
-  const { data: caller } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!caller?.laboratorio_id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  if (caller.ruolo !== 'titolare' && caller.ruolo !== 'admin_rete') {
+  if (!context.laboratorioId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json({ error: 'Solo il titolare può disattivare un tecnico' }, { status: 403 })
   }
+  const svc = getServiceClient()
 
   // Recupera utente_id (FK → auth.users) dal record tecnici
   const { data: tecnico } = await svc
     .from('tecnici')
     .select('utente_id, laboratorio_id')
     .eq('id', id)
-    .eq('laboratorio_id', caller.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
     .single()
 
   if (!tecnico) return NextResponse.json({ error: 'Tecnico non trovato' }, { status: 404 })
@@ -41,7 +34,7 @@ export async function POST(
   }
 
   // Sicurezza: non puoi disattivare te stesso
-  if (tecnico.utente_id === user.id) {
+  if (tecnico.utente_id === context.userId) {
     return NextResponse.json({ error: 'Non puoi disattivare il tuo account' }, { status: 400 })
   }
 
@@ -49,7 +42,7 @@ export async function POST(
     .from('lab_memberships')
     .update({ attivo: false }, { count: 'exact' })
     .eq('user_id', tecnico.utente_id)
-    .eq('laboratorio_id', caller.laboratorio_id)
+    .eq('laboratorio_id', context.laboratorioId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

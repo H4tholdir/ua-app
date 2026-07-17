@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerUserClient } from '@/lib/supabase/server-user'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { getLabContextWithTimings } from '@/lib/supabase/lab-context'
+import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 
@@ -68,32 +67,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Richiesta non consentita' }, { status: 403 })
   }
 
-  const userClient = await getServerUserClient()
-  const { data: { user } } = await userClient.auth.getUser()
-  if (!user) {
+  const context = await getFreshLabContext()
+  if (!context) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  const svc = getServiceClient()
-  const { data: utente } = await svc
-    .from('utenti')
-    .select('laboratorio_id, ruolo')
-    .eq('id', user.id)
-    .single()
-
-  if (!utente?.laboratorio_id) {
+  if (!context.laboratorioId) {
     return NextResponse.json({ error: 'Laboratorio non trovato' }, { status: 403 })
   }
 
   // Solo titolare o admin_rete possono creare una rete
-  if (utente.ruolo !== 'titolare' && utente.ruolo !== 'admin_rete') {
+  if (context.ruolo !== 'titolare' && context.ruolo !== 'admin_rete') {
     return NextResponse.json(
       { error: 'Permesso negato — solo il Titolare puo creare una rete multi-sede' },
       { status: 403 }
     )
   }
-
-  const labId = utente.laboratorio_id
+  const svc = getServiceClient()
+  const labId = context.laboratorioId
 
   // Un lab amministra al massimo una rete (no vincolo UNIQUE a DB, solo check applicativo)
   const { data: reteEsistente } = await svc
