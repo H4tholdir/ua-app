@@ -14,6 +14,13 @@ export type IngressiStriscia = {
   materialeRosso: string | null
   pagamentoScaduto: string | null
   ddcOggi: number
+  // O1f (Task 11) — propagati dal chiamante, NON da fetchIngressiStriscia:
+  // `senzaAnagrafica` esce già da getPerimetroHome (perimetro tecnico);
+  // `tecniciSenzaAnagrafica` è una query separata, agganciata nel Promise.all
+  // di `(app)/dashboard/page.tsx`, apposta FUORI da questo modulo — vedi nota
+  // su `leggiTecniciSenzaAnagrafica` più sotto sul perché non vive qui dentro.
+  senzaAnagrafica?: boolean
+  tecniciSenzaAnagrafica?: string[]
   pile: DatiPileStriscia
 }
 
@@ -41,12 +48,28 @@ const s7: Candidato = (i) => i.pagamentoScaduto ? { attenzione: true, forte: i.p
 const s8: Candidato = (i) => i.ddcOggi > 0 ? { attenzione: false, forte: null, testo: `Oggi ho preparato ${i.ddcOggi} DdC ✓`, azione: null } : null
 const s9: Candidato = (i) => ({ attenzione: false, forte: 'Tutto a posto:', testo: i.pile.consegneOggiTotali > 0 ? `${i.pile.consegneOggiTotali} consegne oggi${i.pile.prossimaOra ? `, la prossima alle ${i.pile.prossimaOra}` : ''}` : 'nessuna consegna oggi', azione: null })
 
+// O1f (Task 11) — dead-end silenzioso: un tecnico con account ma senza riga
+// `tecnici` vedeva pile vuote + s9 sereno, senza sapere perché. `sTecAccount`
+// vince su TUTTO (primo in gerarchia tecnico) perché in quel caso le pile
+// sono comunque vuote per costruzione (v. `getPileHome`/`senzaAnagrafica`) —
+// non c'è nulla di più urgente da segnalare al tecnico stesso.
+const sTecAccount: Candidato = (i) => i.senzaAnagrafica
+  ? { attenzione: true, forte: 'Il tuo account', testo: 'non è ancora configurato — avvisa il titolare', azione: null }
+  : null
+// `sTitTecnici` avvisa titolare/admin_rete che uno o più utenti ruolo
+// tecnico non hanno ancora la riga `tecnici` collegata (stesso bug di
+// perimetro dal lato titolare) — sotto ai segnali operativi s1-s7 (che
+// restano più urgenti), sopra al sereno s8/s9.
+const sTitTecnici: Candidato = (i) => i.tecniciSenzaAnagrafica?.length
+  ? { attenzione: true, forte: `Account di ${i.tecniciSenzaAnagrafica[0]}`, testo: 'da completare', azione: { etichetta: 'Apri ›', href: '/tecnici' } }
+  : null
+
 // P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»)
 const GERARCHIE: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
-  admin_rete: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
-  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9],
-  tecnico: [s2, s3, s4, s6, s8, s9],
+  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
+  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
+  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9], // invariato — O1f non tocca front_desk
+  tecnico: [sTecAccount, s2, s3, s4, s6, s8, s9],
 }
 
 export function scegliSegnale(ruolo: string, i: IngressiStriscia): SegnaleStriscia {
@@ -118,6 +141,37 @@ async function leggiDdcOggi(svc: SupabaseClient, labId: string): Promise<number>
   } catch (err) {
     console.error('[getSegnaleStriscia] lettura ddcOggi fallita — degrado a 0:', err)
     return 0
+  }
+}
+
+// O1f (Task 11) — utenti ruolo 'tecnico' attivi/non-deleted del lab SENZA
+// riga `tecnici` corrispondente (confronto via `tecnici.utente_id`).
+// Esportata e chiamata dal CHIAMANTE (`(app)/dashboard/page.tsx`), NON
+// aggiunta al Promise.all di `fetchIngressiStriscia` qui sotto: quella
+// funzione è condivisa anche da `getSegnaleStriscia`, usata dall'anteprima
+// admin (`/admin/labs/[id]/live`) che gira sempre con ruolo 'titolare' — se
+// la query vivesse qui dentro, l'anteprima mostrerebbe segnali reali sui
+// tecnici scoperti del lab osservato. Tenendola fuori, per l'anteprima
+// `tecniciSenzaAnagrafica` resta `undefined` → nessun segnale nuovo (voluto).
+export async function leggiTecniciSenzaAnagrafica(svc: SupabaseClient, labId: string): Promise<string[]> {
+  try {
+    const [utentiRes, tecniciRes] = await Promise.all([
+      svc.from('utenti').select('id, nome').eq('laboratorio_id', labId).eq('ruolo', 'tecnico').eq('attivo', true).is('deleted_at', null),
+      svc.from('tecnici').select('utente_id').eq('laboratorio_id', labId).is('deleted_at', null),
+    ])
+    if (utentiRes.error) throw utentiRes.error
+    if (tecniciRes.error) throw tecniciRes.error
+    const conAnagrafica = new Set(
+      ((tecniciRes.data ?? []) as Array<{ utente_id: string | null }>)
+        .map((t) => t.utente_id)
+        .filter((id): id is string => !!id)
+    )
+    return ((utentiRes.data ?? []) as Array<{ id: string; nome: string }>)
+      .filter((u) => !conAnagrafica.has(u.id))
+      .map((u) => u.nome)
+  } catch (err) {
+    console.error('[getSegnaleStriscia] lettura tecniciSenzaAnagrafica fallita — degrado a []:', err)
+    return []
   }
 }
 

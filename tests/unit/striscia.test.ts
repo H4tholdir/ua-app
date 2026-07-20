@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, type IngressiStriscia } from '@/lib/dashboard/striscia'
+import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, type IngressiStriscia } from '@/lib/dashboard/striscia'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 
@@ -72,6 +72,123 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
     expect(scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, consegneOggiTotali: 2, prossimaOra: '16:00' } }))
       .toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi, la prossima alle 16:00', azione: null })
     expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+  })
+})
+
+// --- O1f: segnale «tecnico senza anagrafica» (Task 11) ---
+
+describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
+  it('(a) tecnico con senzaAnagrafica: true vince su tutto, anche su pile non vuote', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO,
+      senzaAnagrafica: true,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s).toEqual({ attenzione: true, forte: 'Il tuo account',
+      testo: 'non è ancora configurato — avvisa il titolare', azione: null })
+  })
+
+  it('(a) tecnico senza senzaAnagrafica: gerarchia normale (nessun cambiamento)', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+  })
+
+  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] e s1-s7 spenti → segnale «Account di Marco»', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
+    expect(s).toEqual({ attenzione: true, forte: 'Account di Marco', testo: 'da completare',
+      azione: { etichetta: 'Apri ›', href: '/tecnici' } })
+  })
+
+  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] MA s1 (fattura scartata) attivo → vince s1', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      tecniciSenzaAnagrafica: ['Marco'],
+      fatturaScartata: { id: 'f1', numero: '2026-0139' } })
+    expect(s.forte).toBe('Fattura n.2026-0139')
+  })
+
+  it('(c) titolare senza tecnici scoperti → s8/s9 invariati', () => {
+    expect(scegliSegnale('titolare', { ...VUOTO, ddcOggi: 2 })).toEqual({
+      attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null })
+    expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+  })
+
+  it('(d) front_desk con tecniciSenzaAnagrafica valorizzato → NESSUN segnale nuovo (gerarchia invariata)', () => {
+    const s = scegliSegnale('front_desk', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
+    expect(s.attenzione).toBe(false) // cade su s9 come prima — front_desk non vede sTitTecnici
+    expect(s.forte).toBe('Tutto a posto:')
+  })
+
+  it('(d) admin_rete con tecniciSenzaAnagrafica: usa la stessa gerarchia del titolare', () => {
+    const s = scegliSegnale('admin_rete', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
+    expect(s.forte).toBe('Account di Marco')
+  })
+})
+
+// --- leggiTecniciSenzaAnagrafica — query titolare, scoped laboratorio_id ---
+
+type UtentiTecniciResult = { data: unknown; error: unknown }
+
+function makeSvcUtentiTecnici(opts: {
+  utenti: () => Promise<UtentiTecniciResult>
+  tecnici: () => Promise<UtentiTecniciResult>
+}): SupabaseClient {
+  const chainUtenti: Record<string, unknown> = {}
+  for (const m of ['select', 'eq']) chainUtenti[m] = () => chainUtenti
+  chainUtenti.is = () => opts.utenti()
+
+  const chainTecnici: Record<string, unknown> = {}
+  for (const m of ['select', 'eq']) chainTecnici[m] = () => chainTecnici
+  chainTecnici.is = () => opts.tecnici()
+
+  return {
+    from: (table: string) => {
+      if (table === 'utenti') return chainUtenti
+      if (table === 'tecnici') return chainTecnici
+      throw new Error(`tabella non attesa nel mock: ${table}`)
+    },
+  } as unknown as SupabaseClient
+}
+
+describe('leggiTecniciSenzaAnagrafica — utenti ruolo tecnico senza riga tecnici, scoped lab', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('restituisce i nomi degli utenti tecnico attivi senza riga tecnici corrispondente', async () => {
+    const svc = makeSvcUtentiTecnici({
+      utenti: () => Promise.resolve({
+        data: [{ id: 'u1', nome: 'Marco' }, { id: 'u2', nome: 'Luca' }],
+        error: null,
+      }),
+      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u2' }], error: null }),
+    })
+
+    const nomi = await leggiTecniciSenzaAnagrafica(svc, 'lab1')
+
+    expect(nomi).toEqual(['Marco']) // u2 (Luca) ha già la riga tecnici — esclusa
+  })
+
+  it('nessun utente scoperto → array vuoto', async () => {
+    const svc = makeSvcUtentiTecnici({
+      utenti: () => Promise.resolve({ data: [{ id: 'u1', nome: 'Marco' }], error: null }),
+      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u1' }], error: null }),
+    })
+
+    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
+  })
+
+  it('errore su una delle due query degrada a array vuoto (spy console.error)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const svc = makeSvcUtentiTecnici({
+      utenti: () => Promise.reject(new Error('boom utenti')),
+      tecnici: () => Promise.resolve({ data: [], error: null }),
+    })
+
+    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('lettura tecniciSenzaAnagrafica fallita — degrado a []:'),
+      expect.any(Error)
+    )
   })
 })
 

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
-import { fetchIngressiStriscia, scegliSegnale } from '@/lib/dashboard/striscia'
+import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica } from '@/lib/dashboard/striscia'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
@@ -37,11 +37,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const svc = getServiceClient()
   const perimetro = await getPerimetroHome(svc, labId, context.userId, ruolo)
-  const [pile, ingressi] = await Promise.all([
+  // O1f (Task 11): la query tecnici-senza-anagrafica gira SOLO per
+  // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
+  // striscia.ts) — front_desk/tecnico non pagano il round-trip.
+  const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
+  const [pile, ingressi, tecniciSenzaAnagrafica] = await Promise.all([
     getPileHome(svc, labId, perimetro),
     fetchIngressiStriscia(svc, labId, ruolo),
+    usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
   ])
-  const segnale = scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, pile: pile.striscia })
 
   const ora = adessoRoma()
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
