@@ -14,6 +14,8 @@ import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
+import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
+import type { TipoDispositivo } from '@/types/domain'
 
 interface RequestBody {
   token: string
@@ -166,9 +168,11 @@ export async function POST(req: Request) {
   // col runtime serverless (nessun lavoro in background dopo la response); il
   // try/catch resta una difesa aggiuntiva, non deve mai bloccare il 201.
   try {
+    const tipoDispositivoLabel =
+      LABEL_MACRO[body.tipo_dispositivo as TipoDispositivo] ?? body.tipo_dispositivo
     const pushPayload = {
       title: 'Nuova richiesta dal portale',
-      body: `${nomeStudioODentista} ha richiesto: ${body.tipo_dispositivo} (n.${numero_lavoro})`,
+      body: `${nomeStudioODentista} ha richiesto: ${tipoDispositivoLabel} (n.${numero_lavoro})`,
       url: `/lavori/${lavoro.id}`,
     }
     await Promise.allSettled([

@@ -483,7 +483,6 @@ export default async function PortalePage({ params }: PageProps) {
               color: '#374151',
               textDecoration: 'none',
             }}
-            aria-label="Richiedi un nuovo lavoro al laboratorio"
           >
             ➕ Richiedi nuovo lavoro
           </a>

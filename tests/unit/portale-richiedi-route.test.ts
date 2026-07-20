@@ -110,7 +110,7 @@ describe('POST /api/portale/richiedi — push A8', () => {
       expect(labId).toBe('lab-1')
       expect(payload).toEqual({
         title: 'Nuova richiesta dal portale',
-        body: 'Studio Rossi ha richiesto: protesi_fissa (n.2026/0007)',
+        body: 'Studio Rossi ha richiesto: Protesi fissa (n.2026/0007)',
         url: '/lavori/lav-1',
       })
       const serialized = JSON.stringify(payload)
@@ -149,7 +149,7 @@ describe('POST /api/portale/richiedi — push A8', () => {
     }))
 
     const payload = mockTriggerPushByRole.mock.calls[0][2]
-    expect(payload.body).toBe('Mario Rossi ha richiesto: protesi_fissa (n.2026/0007)')
+    expect(payload.body).toBe('Mario Rossi ha richiesto: Protesi fissa (n.2026/0007)')
   })
 
   it('insert fallito → triggerPushByRole mai chiamato', async () => {
