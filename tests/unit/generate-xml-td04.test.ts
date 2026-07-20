@@ -40,7 +40,9 @@ const LAB = {
 const DRAFT_TD04 = {
   numero: '2026-0099',
   progressivo: 99,
+  anno: new Date().getFullYear(), // pari all'anno del clock del test (nessun fake timer in questo file)
   data: '2026-07-10',
+  note: null,
   tipo_documento: 'TD04',
   imponibile: 100,
   collegata_numero: '2026-0012',
