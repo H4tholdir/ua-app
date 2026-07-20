@@ -35,6 +35,31 @@ describe('ConfermaCassettaSheet', () => {
     expect(onConfermato).toHaveBeenCalledWith('l1')
   })
 
+  it('durante il salvataggio, «Conferma senza cassetta» e le chip sono guardate — niente doppio input (review finale 20/07)', async () => {
+    let risolviFetch: (value: Response) => void = () => {}
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () => new Promise((resolve) => { risolviFetch = resolve })
+    )
+    const onConfermato = vi.fn()
+    render(<ConfermaCassettaSheet aperto onChiudi={() => {}} lavoro={lavoro} suggerite={['C7', 'C15']} onConfermato={onConfermato} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /C7/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Conferma in C7' })) // avvia il PATCH → salvando=true, fetch sospesa
+
+    // Mentre il PATCH è in volo: la via di fuga e un tap su un'altra chip non
+    // devono fare nulla — prima del fix mancava il guard `salvando` su entrambi.
+    fireEvent.click(screen.getByRole('button', { name: 'Conferma senza cassetta' }))
+    fireEvent.click(screen.getByRole('button', { name: /C15/ }))
+
+    expect(onConfermato).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Conferma in C7' })).toBeInTheDocument() // selezione invariata
+
+    risolviFetch(new Response(JSON.stringify({}), { status: 200 }))
+    await waitFor(() => expect(onConfermato).toHaveBeenCalledWith('l1'))
+    expect(onConfermato).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('reset chiavato su lavoro.id: un host che rirenda con un NUOVO oggetto letterale ma stesso id non perde la selezione; un cambio di id invece resetta', () => {
     const { rerender } = render(
       <ConfermaCassettaSheet aperto onChiudi={() => {}} lavoro={{ ...lavoro }} suggerite={['C7', 'C15']} onConfermato={() => {}} />

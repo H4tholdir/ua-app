@@ -87,6 +87,10 @@ export function InvitoPersonaSheet(props: { aperto: boolean; onChiudi: () => voi
         const json = await res.json()
         setInviti(json.inviti ?? [])
       }
+    } catch (err) {
+      // Review finale (20/07) — è una lettura: nessun errore in UI, degrado
+      // silenzioso a lista vuota/precedente (era già lo stato prima del retry).
+      console.error('[InvitoPersonaSheet] caricaInviti fallita — degrado silenzioso:', err)
     } finally {
       setCaricandoInviti(false)
     }
@@ -136,11 +140,20 @@ export function InvitoPersonaSheet(props: { aperto: boolean; onChiudi: () => voi
   async function revoca(id: string) {
     if (revocaId) return
     setRevocaId(id)
+    setErrore(null)
     try {
       const res = await fetch(`/api/tecnici/invite/${id}`, { method: 'DELETE' })
       if (res.ok) {
         setInviti((prev) => prev.filter((i) => i.id !== id))
+      } else {
+        // Review finale (20/07) — revoca fallita: l'invito RESTA in lista (nessuna
+        // rimozione ottimistica) e l'errore diventa visibile invece di sparire in
+        // un `finally` senza `catch`.
+        const json = await res.json().catch(() => ({}))
+        setErrore(json.error ?? 'Errore durante la revoca — riprova')
       }
+    } catch {
+      setErrore(MESSAGGIO_ERRORE_RETE)
     } finally {
       setRevocaId(null)
     }

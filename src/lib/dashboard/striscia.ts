@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMaterialiEsaurimento, getPagamentiScadutiTop } from '@/lib/dashboard/queries'
+import { adessoRoma } from '@/lib/utils/data-roma'
 import type { DatiPileStriscia, PileHome } from './pile-home'
 
 export type SegnaleStriscia = {
@@ -67,6 +68,21 @@ const sTecAccount: Candidato = (i) => i.senzaAnagrafica
 const sTitTecnici: Candidato = (i) => i.tecniciSenzaAnagrafica?.length
   ? { attenzione: true, forte: `Account di ${i.tecniciSenzaAnagrafica[0]}`, testo: 'da completare', azione: { etichetta: 'Apri ›', href: '/tecnici' } }
   : null
+
+// Review finale (20/07) — giorni CIVILI di Roma, non periodi di 24h: le copy
+// sTrial («finisce oggi/domani») parlano di calendario. Con una sottrazione
+// fra epoche assolute (Math.ceil((fine - ora)/86.4M)) nell'ULTIMO giorno di
+// trial (poche ore residue) il risultato era 1 → «finisce domani» invece di
+// «finisce oggi», e 0 («finisce oggi») era irraggiungibile prima che il
+// redirect di layout portasse a scaduto. Qui si confronta il giorno civile
+// di Roma di `oggiRoma` (già wall-clock, passare `adessoRoma()`) con quello
+// di `trialEndsAt` convertito allo stesso modo — mai un conteggio di ore.
+export function giorniCiviliRimasti(trialEndsAt: string, oggiRoma: Date): number {
+  const zeroOggi = new Date(oggiRoma.getFullYear(), oggiRoma.getMonth(), oggiRoma.getDate())
+  const fineRoma = adessoRoma(new Date(trialEndsAt))
+  const zeroFine = new Date(fineRoma.getFullYear(), fineRoma.getMonth(), fineRoma.getDate())
+  return Math.max(0, Math.round((zeroFine.getTime() - zeroOggi.getTime()) / 86_400_000))
+}
 
 // O1i — segnale trial (decisions 20/07): ambra informativa finché il trial va,
 // rossa negli ultimi 3 giorni. SOLO titolare/admin_rete (la CTA è Abbonamento).

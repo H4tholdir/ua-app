@@ -197,6 +197,39 @@ describe('InvitoPersonaSheet (Task 13)', () => {
     await waitFor(() => expect(screen.queryByText('mario.rossi@esempio.it')).not.toBeInTheDocument())
   })
 
+  it('revoca fallita (DELETE → 500) → alert visibile, invito ancora in lista (review finale 20/07)', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const url = String(input)
+      const method = (init as RequestInit | undefined)?.method ?? 'GET'
+      if (url === '/api/tecnici/invite' && method === 'GET') {
+        return Promise.resolve(
+          jsonResponse({
+            inviti: [{ id: 'inv-1', email: 'mario.rossi@esempio.it', ruolo: 'tecnico' }],
+          })
+        )
+      }
+      if (url === '/api/tecnici/invite/inv-1' && method === 'DELETE') {
+        return Promise.resolve(jsonResponse({ error: 'Errore del server' }, 500))
+      }
+      return Promise.reject(new Error(`fetch inatteso: ${method} ${url}`))
+    })
+
+    render(<InvitoPersonaSheet aperto onChiudi={() => {}} />)
+
+    const riga = await screen.findByText('mario.rossi@esempio.it')
+    const li = riga.closest('li') as HTMLLIElement
+    expect(li).not.toBeNull()
+
+    fireEvent.click(within(li).getByRole('button', { name: 'Revoca' }))
+
+    const errore = await screen.findByRole('alert')
+    expect(errore).toHaveTextContent('Errore del server')
+
+    // L'invito NON è stato rimosso in modo ottimistico: resta in lista.
+    expect(screen.getByText('mario.rossi@esempio.it')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith('/api/tecnici/invite/inv-1', { method: 'DELETE' })
+  })
+
   it('aperto=false → Sheet non renderizza il dialog', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ inviti: [] }))
     render(<InvitoPersonaSheet aperto={false} onChiudi={() => {}} />)

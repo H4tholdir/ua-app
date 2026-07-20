@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
-import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica } from '@/lib/dashboard/striscia'
+import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
@@ -38,17 +38,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // come ingresso: `scegliSegnale` resta puro, `sTrial` decide da sé
   // ambra/rosso. Scaduto/sospeso non arrivano qui: i redirect di layout li
   // intercettano prima (B15) — `context.lab.stato === 'trial'` è l'unico caso.
-  // FIX: sottrazione tra due epoche vere (Date.now(), non adessoRoma().getTime()
-  // che sposta di 1-2h). Per i dettagli sul trade-off (adessoRoma per wall-clock
-  // componenti come giorno civile, ma NON per elapsed), v. pile-home.ts:37-40.
-  // eslint-disable-next-line react-hooks/purity
-  const now = Date.now()
+  // FIX (review finale 20/07): giorni CIVILI di Roma via `giorniCiviliRimasti`
+  // (striscia.ts), non un conteggio di 24h su epoche assolute — v. commento lì
+  // per il bug che questo sostituisce («finisce domani» nell'ultimo giorno).
+  const ora = adessoRoma()
   const trial = context.lab?.stato === 'trial' && context.lab.trial_ends_at
-    ? { giorniRimasti: Math.max(0, Math.ceil((new Date(context.lab.trial_ends_at).getTime() - now) / 86_400_000)) }
+    ? { giorniRimasti: giorniCiviliRimasti(context.lab.trial_ends_at, ora) }
     : null
   const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, pile: pile.striscia })
 
-  const ora = adessoRoma()
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
 

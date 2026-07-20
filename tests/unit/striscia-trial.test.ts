@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scegliSegnale, type IngressiStriscia } from '@/lib/dashboard/striscia'
+import { scegliSegnale, giorniCiviliRimasti, type IngressiStriscia } from '@/lib/dashboard/striscia'
 
 const sereno: IngressiStriscia = {
   fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
@@ -25,5 +25,23 @@ describe('sTrial (O1i)', () => {
   })
   it('tecnico non vede il segnale trial', () => {
     expect(scegliSegnale('tecnico', { ...sereno, trial: { giorniRimasti: 2 } }).forte).toBe('Tutto a posto:')
+  })
+})
+
+describe('giorniCiviliRimasti — giorni CIVILI di Roma, non periodi di 24h (review finale 20/07)', () => {
+  // `oggiRoma` è già wall-clock Rome (come restituito da adessoRoma()) — qui
+  // costruito diretto: la macchina di test gira su Europe/Rome (v. tests/setup.ts
+  // e data-roma.test.ts, stessa convenzione).
+  const oggiRoma = new Date(2026, 6, 20, 15, 30) // 20/07 pomeriggio a Roma
+
+  it('trial_ends_at nello stesso giorno civile di oggi → 0 ("finisce oggi")', () => {
+    expect(giorniCiviliRimasti('2026-07-20T20:00:00Z', oggiRoma)).toBe(0) // 22:00 CEST, ancora 20/07 a Roma
+  })
+  it('trial_ends_at domani a qualsiasi ora → 1 ("finisce domani"), non conta le ore residue', () => {
+    expect(giorniCiviliRimasti('2026-07-20T23:00:00Z', oggiRoma)).toBe(1) // 01:00 CEST del 21 — appena dopo mezzanotte
+    expect(giorniCiviliRimasti('2026-07-21T21:00:00Z', oggiRoma)).toBe(1) // 23:00 CEST del 21 — quasi mezzanotte
+  })
+  it('trial_ends_at ieri → 0 per clamp (mai negativo)', () => {
+    expect(giorniCiviliRimasti('2026-07-19T09:00:00Z', oggiRoma)).toBe(0) // 11:00 CEST del 19
   })
 })

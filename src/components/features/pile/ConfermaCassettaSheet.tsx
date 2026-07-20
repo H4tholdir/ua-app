@@ -110,6 +110,10 @@ export function ConfermaCassettaSheet(props: {
               key={c}
               selezionata={scelta === c && !nuova.trim()}
               onClick={() => {
+                // Review finale (20/07) — guard: durante il PATCH le chip non hanno
+                // `disabled` (ChipScelta non lo espone), un tap qui non deve
+                // cambiare la selezione sotto una richiesta già in volo.
+                if (salvando) return
                 setScelta(scelta === c ? null : c)
                 setNuova('')
               }}
@@ -144,7 +148,18 @@ export function ConfermaCassettaSheet(props: {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
-        <LinkQuieto onClick={() => lavoro && onConfermato(lavoro.id)}>Conferma senza cassetta</LinkQuieto>
+        {/* Review finale (20/07) — guard `salvando`: LinkQuieto non espone
+            `disabled`, quindi durante il PATCH questa via di fuga resterebbe
+            tappabile e potrebbe far partire un secondo `onConfermato` mentre
+            il primo salvataggio è ancora in corso. */}
+        <LinkQuieto
+          onClick={() => {
+            if (salvando) return
+            if (lavoro) onConfermato(lavoro.id)
+          }}
+        >
+          Conferma senza cassetta
+        </LinkQuieto>
       </div>
     </Sheet>
   )

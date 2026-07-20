@@ -39,3 +39,30 @@ Tutti i file sotto `docs/design/mockups/2026-07-09-il-cuore/`.
 
 ## Screenshot rigenerati
 `pila-aperta` (6), `scheda-lavoro` (6), `consegna` (6), `home --short --no-scroll` (8, assert §3.3 no-scroll PASSATO — nessun ✗, exit 0).
+
+---
+
+# Final review fixes — Ondata A mini-triage (whole-branch review, 20/07/2026)
+
+## 1 — (Important) giorni trial in giorni civili di Roma, non periodi di 24h
+- **Cosa:** `src/app/(app)/dashboard/page.tsx` calcolava `giorniRimasti` con `Math.ceil((trial_ends_at_epoch - Date.now()) / 86_400_000)` — una sottrazione fra epoche assolute (periodi di 24h), mentre le copy di `sTrial` («finisce oggi/domani/dopodomani») parlano di giorno CIVILE. Nell'ULTIMO giorno di trial, con poche ore residue, il calcolo dava ancora `1` → «finisce domani» invece di «finisce oggi»; `0` («finisce oggi») era di fatto irraggiungibile prima che il redirect di layout (B15, stato `scaduto`) intercettasse l'utente.
+- **Fix:** estratta una funzione pura `giorniCiviliRimasti(trialEndsAt: string, oggiRoma: Date): number` in `src/lib/dashboard/striscia.ts` (import di `adessoRoma` da `@/lib/utils/data-roma`). Confronta il giorno civile di Roma di `oggiRoma` (già wall-clock, tipicamente `adessoRoma()`) con quello di `trialEndsAt` convertito allo stesso modo, con `Math.round` sulla differenza in giorni interi e clamp a `>= 0`. `src/app/(app)/dashboard/page.tsx` ora chiama `adessoRoma()` una sola volta (riusata anche per l'eyebrow) e passa il risultato a `giorniCiviliRimasti`.
+- **Test:** aggiunto `describe('giorniCiviliRimasti — …')` in `tests/unit/striscia-trial.test.ts` — 3 casi: fine oggi (qualsiasi ora dello stesso giorno civile) → `0`; fine domani a ridosso della mezzanotte in entrambe le direzioni → `1`; fine ieri → `0` per clamp. `npx vitest run tests/unit/striscia-trial.test.ts` → 8/8 passed.
+
+## 2 — (Important) revoca invito silenziosa + unhandled rejection
+- **Cosa:** `src/components/features/tecnici/InvitoPersonaSheet.tsx` — `revoca()` e `caricaInviti()` avevano `try/finally` senza `catch`: un fetch rifiutato (rete giù) diventava una unhandled promise rejection e, per `revoca()`, un fallimento silenzioso (nessun feedback, nessuna via per riprovare) — l'utente credeva l'invito revocato.
+- **Fix:**
+  - `revoca(id)`: aggiunto `catch` → `setErrore(MESSAGGIO_ERRORE_RETE)` su rigetto di rete; su `res.ok === false` legge `json.error` (fallback a un messaggio fisso) e lo mostra con `setErrore`. In ENTRAMBI i casi l'invito NON viene rimosso dalla lista (nessuna rimozione ottimistica pre-successo).
+  - `caricaInviti()`: aggiunto `catch` che degrada in silenzio con `console.error` (è una lettura — nessun cambiamento UI, coerente con lo stile `leggi*` già in `striscia.ts`).
+- **Test:** aggiunto `it('revoca fallita (DELETE → 500) → alert visibile, invito ancora in lista …')` in `tests/unit/invito-persona-sheet.test.tsx`. `npx vitest run tests/unit/invito-persona-sheet.test.tsx` → 7/7 passed.
+
+## 3 — (Minor) doppio input durante il salvataggio in ConfermaCassettaSheet
+- **Cosa:** `src/components/features/pile/ConfermaCassettaSheet.tsx` — durante `salvando` (PATCH in volo) il tasto primario era già disabilitato, ma la via di fuga «Conferma senza cassetta» (`LinkQuieto`, che non espone `disabled`) e le chip cassetta (`ChipScelta`, idem) restavano tappabili: un doppio tap poteva far partire un secondo `onConfermato` o cambiare la selezione sotto una richiesta già in corso.
+- **Fix:** guard `if (salvando) return` in cima agli `onClick` di entrambe — chip cassetta e link «Conferma senza cassetta» — nessun cambio di API dei componenti DS.
+- **Test:** aggiunto `it('durante il salvataggio, «Conferma senza cassetta» e le chip sono guardate — niente doppio input …')` in `tests/unit/conferma-cassetta-sheet.test.tsx` (fetch sospesa manualmente per simulare `salvando=true`, verifica che i tap guardati non chiamino `onConfermato` né cambino la selezione, poi risoluzione della fetch e verifica di UNA sola chiamata). `npx vitest run tests/unit/conferma-cassetta-sheet.test.tsx` → 5/5 passed.
+
+## Verifica finale
+- `npx vitest run tests/unit/striscia-trial.test.ts tests/unit/invito-persona-sheet.test.tsx tests/unit/conferma-cassetta-sheet.test.tsx` → **3 file, 20/20 test passed**.
+- `npx tsc --noEmit` → nessun errore.
+- `npx eslint` sui file toccati → nessun warning/errore.
+- Full gate `npx vitest run` → **283 file passed, 3 skipped (286) · 2317 test passed, 19 skipped (2336)**.
