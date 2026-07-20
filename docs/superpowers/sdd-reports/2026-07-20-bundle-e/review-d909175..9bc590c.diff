@@ -1,0 +1,87 @@
+# Review package: d90917565d7f51b16d8b630bee04545ea31fc639..HEAD
+
+## Commits
+9bc590c refactor(pdf): estrai meseBoundaries in lib/utils/mese per riuso batch
+
+## Files changed
+ src/lib/pdf/generate-cedolino-tecnico.ts | 13 +------------
+ src/lib/utils/mese.ts                    | 11 +++++++++++
+ tests/unit/mese.test.ts                  | 16 ++++++++++++++++
+ 3 files changed, 28 insertions(+), 12 deletions(-)
+
+## Diff
+diff --git a/src/lib/pdf/generate-cedolino-tecnico.ts b/src/lib/pdf/generate-cedolino-tecnico.ts
+index d9f966e..b8825c9 100644
+--- a/src/lib/pdf/generate-cedolino-tecnico.ts
++++ b/src/lib/pdf/generate-cedolino-tecnico.ts
+@@ -1,30 +1,19 @@
+ import 'server-only'
+ import { createElement } from 'react'
+ import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
+ import { renderPdfDocument } from '@/lib/pdf/render-document'
+ import {
+   CedolinoTecnicoTemplate,
+   type LavorazioneCedolino,
+ } from '@/components/features/pdf/CedolinoTecnicoTemplate'
+-
+-// ─── Helpers ─────────────────────────────────────────────────────────────────
+-
+-function meseBoundaries(mese: string): { from: string; to: string } {
+-  const [year, month] = mese.split('-').map(Number)
+-  const from = new Date(Date.UTC(year, month - 1, 1))
+-  const to   = new Date(Date.UTC(year, month, 1))
+-  return {
+-    from: from.toISOString().split('T')[0],
+-    to:   to.toISOString().split('T')[0],
+-  }
+-}
++import { meseBoundaries } from '@/lib/utils/mese'
+ 
+ // ─── Main ────────────────────────────────────────────────────────────────────
+ 
+ export async function generateCedolinoTecnico(
+   tecnico_id: string,
+   laboratorio_id: string,
+   mese: string  // es. "2026-05"
+ ): Promise<Buffer> {
+   const svc = getTypedServiceClient()
+ 
+diff --git a/src/lib/utils/mese.ts b/src/lib/utils/mese.ts
+new file mode 100644
+index 0000000..7c45b89
+--- /dev/null
++++ b/src/lib/utils/mese.ts
+@@ -0,0 +1,11 @@
++// Confini [from, to) di un mese "YYYY-MM" come date-only ISO. Estratta da
++// generate-cedolino-tecnico per il riuso nel batch cedolini (Bundle E).
++export function meseBoundaries(mese: string): { from: string; to: string } {
++  const [year, month] = mese.split('-').map(Number)
++  const from = new Date(Date.UTC(year, month - 1, 1))
++  const to = new Date(Date.UTC(year, month, 1))
++  return {
++    from: from.toISOString().split('T')[0],
++    to: to.toISOString().split('T')[0],
++  }
++}
+diff --git a/tests/unit/mese.test.ts b/tests/unit/mese.test.ts
+new file mode 100644
+index 0000000..dcef818
+--- /dev/null
++++ b/tests/unit/mese.test.ts
+@@ -0,0 +1,16 @@
++// Estratta da generate-cedolino-tecnico (Bundle E): confini [from, to) di un
++// mese YYYY-MM come date-only ISO — riusata da cedolino singolo e batch.
++import { describe, it, expect } from 'vitest'
++import { meseBoundaries } from '@/lib/utils/mese'
++
++describe('meseBoundaries', () => {
++  it('mese centrale', () => {
++    expect(meseBoundaries('2026-05')).toEqual({ from: '2026-05-01', to: '2026-06-01' })
++  })
++  it('dicembre: to sfora nell anno successivo', () => {
++    expect(meseBoundaries('2026-12')).toEqual({ from: '2026-12-01', to: '2027-01-01' })
++  })
++  it('gennaio', () => {
++    expect(meseBoundaries('2026-01')).toEqual({ from: '2026-01-01', to: '2026-02-01' })
++  })
++})

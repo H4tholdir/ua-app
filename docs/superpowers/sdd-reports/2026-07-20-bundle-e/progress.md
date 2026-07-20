@@ -1,0 +1,12 @@
+Task 1: complete (commits efdf47c..3f12fec, review Approved)
+  Minor pending: (1) csvNumIT -0,00 su arrotondamenti negativi→zero; (2) test composito formula+quote assente
+Task 2: complete (commits 3f12fec..d909175, review Approved)
+  Minor pending: (3) fetchAllPages senza guardia pageSize<=0 e senza cap iterazioni (robustezza call-site)
+Task 3: complete (commits d909175..9bc590c, review Approved, 1 Minor irrilevante posizione import)
+Task 4: complete (commits 9bc590c..4ef846b, review Approved, zero issue)
+Task 5: complete (commits 4ef846b..bea21b3, review Approved; fix brief key aggregazione validato)
+  Minor pending: (4) chiave aggregazione per nome voce (merge se nomi duplicati con prezzi diversi); (5) mese=2026-13 passa la regex (slitta a gennaio con filename sbagliato)
+Task 6: complete (commits bea21b3..a84d736, review Approved; Minor: (6) test injection fatture copre solo =)
+Task 7: complete (tsc 0, vitest 2281 pass | 19 skipped, build OK con 2 route nuove)
+Final review: READY TO MERGE (0 Critical/Important; 6 Minor tutti BACKLOG)
+Follow-up backlog: (a) validazione parametri unificata (year fatture + regex mese stretta su entrambe le route cedolino); (b) decisione soft-delete + voci omonime nei cedolini (singolo+batch insieme)
