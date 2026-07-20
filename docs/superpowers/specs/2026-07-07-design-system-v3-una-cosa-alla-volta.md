@@ -329,7 +329,7 @@ lavoro → CONSEGNA → conferma
 ### 7.2 Pila aperta (liste lavori) — frame 2
 - Titolo colore-famiglia + sub coi numeri utili ("2 lavori · il più vicino alle 16:00") · CardLavoro impilate, ordinate per urgenza · il PRIMO elemento della pila rossa porta il TastoConsegnaInline.
 - "Appena arrivati": la card ha CTA "Conferma" che apre il wizard di conferma (data consegna proposta da UÀ, L5).
-- **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile». **[superata dall'emendamento sotto — «Le pile» come vista bare non esiste più; il riferimento resta valido per la pila aperta.]**
+- **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile».
 - **Nota (emendamento 20/07/2026, ondata A):** «Le pile» come vista bare è **eliminata** — `/lavori` senza `pila` fa redirect a `/dashboard` (§6.1). Il back della pila aperta torna a `/dashboard` (§6.2).
 
 ### 7.3 Wizard "Nuovo lavoro" (dal TastoPiù) — frames 3-4
