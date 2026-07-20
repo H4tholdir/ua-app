@@ -38,8 +38,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // come ingresso: `scegliSegnale` resta puro, `sTrial` decide da sé
   // ambra/rosso. Scaduto/sospeso non arrivano qui: i redirect di layout li
   // intercettano prima (B15) — `context.lab.stato === 'trial'` è l'unico caso.
+  // FIX: sottrazione tra due epoche vere (Date.now(), non adessoRoma().getTime()
+  // che sposta di 1-2h). Per i dettagli sul trade-off (adessoRoma per wall-clock
+  // componenti come giorno civile, ma NON per elapsed), v. pile-home.ts:37-40.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
   const trial = context.lab?.stato === 'trial' && context.lab.trial_ends_at
-    ? { giorniRimasti: Math.max(0, Math.ceil((new Date(context.lab.trial_ends_at).getTime() - adessoRoma().getTime()) / 86_400_000)) }
+    ? { giorniRimasti: Math.max(0, Math.ceil((new Date(context.lab.trial_ends_at).getTime() - now) / 86_400_000)) }
     : null
   const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, pile: pile.striscia })
 
