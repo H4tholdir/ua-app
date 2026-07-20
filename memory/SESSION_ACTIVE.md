@@ -1,7 +1,7 @@
 # Sessione attiva — nessuna (20/07/2026)
 
-Ultima sessione CHIUSA: §A/§O censimento ratificato + **Bundle Q deployato in prod** (main `04cf00b`, CI verde, smoke ok). 11 quick-win chiusi; dettagli MEMORY.md voce (11) + `docs/roadmap/2026-07-20-censimento-a-o.md`.
+Ultima sessione CHIUSA: §A/§O censimento ratificato + **Bundle Q deployato** (main `04cf00b`) + fix push prove + cron perf-budget opzione (c) validata (mediana US 1041ms). Tutto su main ≥ `699c8b1`, working tree pulito. Dettagli: MEMORY.md voce 11.
 
-**PROSSIMA SESSIONE: Bundle T** (ordine certificato: O1b helper «oggi» Europe/Rome → O1a debito test, O4a ClienteComboBox→API, A18 hash firma DdC + policy backfill, fix commento O4b). Poi Bundle E (A16 export), poi mini-triage design (mockup A13/A14/O1h/O1i in unico giro).
+**PROSSIMA SESSIONE: Bundle T → E → mini-triage design** — handoff completo: `docs/roadmap/2026-07-20-bundle-t-handoff.md`. Decisioni da raccogliere lì: A18 backfill, email Resend A8.
 
-**Chiusi in coda di sessione (20/07):** cron perf-budget → login multi-run+mediana+warn-mode (opzione (c) ratificata; run US validato: mediana 1041ms; ricalibrare soglia fra ~7-14 giorni) · bug push «prova rientrata» fixato (`notificaProvaRientrata`). Entrambi deployati (`c4c886b`). Worktree `bundle-q` da rimuovere a piacere. Decisione ancora aperta: email Resend per A8.
+**Promemoria:** ricalibrare soglia login perf-budget fra ~7-14 giorni (poi togliere warn-mode). Worktree `bundle-q` rimovibile (report gitignored dentro — chiedere prima).
