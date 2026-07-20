@@ -79,6 +79,7 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
               <div key={l.id} style={{ borderRadius: raggio.card, boxShadow: selezionato ? 'var(--sh-card)' : undefined }}>
                 <CardLavoro
                   numero={l.numero}
+                  cassetta={l.cassetta}
                   dentista={l.dentista}
                   paziente={l.paziente}
                   tipoLavoro={l.tipoLavoro}

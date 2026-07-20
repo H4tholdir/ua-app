@@ -96,6 +96,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
             <CardLavoro
               key={l.id}
               numero={l.numero}
+              cassetta={l.cassetta}
               dentista={l.dentista}
               paziente={l.paziente}
               tipoLavoro={l.tipoLavoro}

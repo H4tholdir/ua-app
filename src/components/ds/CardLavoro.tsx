@@ -16,6 +16,12 @@
 // larghezza. MAI insieme a `onConsegna` — sono due varianti della stessa
 // riga 4 opzionale, mutuamente esclusive per costruzione del chiamante.
 //
+// Task 2 (A14, decisions 20/07) — `cassetta`: targa opzionale in riga 1, tra
+// il blocco lavoro e la PillTempo — gemella visiva del blocco lavoro
+// (variante A, co-identità, mockup ratificato
+// 2026-07-20-mini-triage-a14bis-cassetta-ripensata.html). Assente
+// (`null`/`undefined`) ⇒ blocco assente, card identica a prima.
+//
 // Nesting: la card è tappabile E contiene un tasto azione — un `<button>`
 // dentro un `<button>` è HTML non valido. La card è quindi un `<div
 // role="button" tabIndex={0}>` con gestione manuale di click e tastiera
@@ -123,6 +129,8 @@ type Riga4 =
 
 export function CardLavoro(props: {
   numero: string
+  // Targa cassetta (A14) — v. nota di testa. Assente ⇒ blocco assente.
+  cassetta?: string | null
   dentista: string
   paziente: string
   tipoLavoro: string
@@ -138,7 +146,7 @@ export function CardLavoro(props: {
   // `PilaAperta`, catalogo DS) restano identici a prima.
   selezionato?: boolean
 } & Riga4) {
-  const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
+  const { numero, cassetta, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
 
   // Guardia dev-only (Task 10, O1c): l'esclusione reciproca di `onConsegna` e
   // `conferma` è garantita SOLO a livello di tipo (`Riga4`, sopra) — un
@@ -241,6 +249,27 @@ export function CardLavoro(props: {
               n.{numero}
             </span>
           </span>
+          {cassetta && (
+            <span
+              role="img"
+              aria-label={`Cassetta ${cassetta}`}
+              style={{
+                flex: 'none',
+                borderRadius: 12,
+                background: 'var(--bg-deep)',
+                boxShadow: 'inset 0 0 0 1.5px var(--line)',
+                padding: '6px 12px 7px',
+                textAlign: 'center',
+              }}
+            >
+              <span style={{ display: 'block', fontSize: 10.5, fontWeight: tipografia.weight.extrabold, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: 1 }}>
+                Cassetta
+              </span>
+              <span style={{ display: 'block', fontSize: tipografia.size.heading, fontWeight: tipografia.weight.extrabold, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1, maxWidth: '7ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {cassetta}
+              </span>
+            </span>
+          )}
           <span style={{ display: 'inline-flex', flexShrink: 0, marginLeft: 'auto' }}>
             <PillTempo famiglia={tempo.famiglia}>{tempo.testo}</PillTempo>
           </span>

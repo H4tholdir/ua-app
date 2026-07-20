@@ -647,6 +647,15 @@ export default function CatalogoPage() {
             onApri={() => {}}
           />
           <CardLavoro
+            numero="163"
+            cassetta="C12"
+            dentista="Dr. Ferrari"
+            paziente="PZ-1156"
+            tipoLavoro="Faccetta estetica"
+            tempo={{ testo: 'DOMANI', famiglia: 'amber' }}
+            onApri={() => {}}
+          />
+          <CardLavoro
             numero="158"
             dentista="Studio Verdi"
             paziente="PZ-1103"
