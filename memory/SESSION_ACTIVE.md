@@ -1,7 +1,9 @@
-# Sessione attiva — nessuna (17/07/2026 notte)
+# Sessione attiva — §A + §O (20/07/2026)
 
-Ultima sessione CHIUSA: N13 in enforce su prod + code N14 chiuse (MEMORY.md voci 8-10). Tutto committato e deployato, working tree pulito, worktree rimossi.
+**FATTO:** censimento completo A1-A20 + O1/O2/O4 (5 agenti, evidenza file:riga) + panel advisor 3× CONFERMA CON RISERVE. Documento: `docs/roadmap/2026-07-20-censimento-a-o.md` (non committato).
 
-**PROSSIMA SESSIONE: §A + §O** (chiusura sequenza (1)) — handoff completo: `docs/roadmap/2026-07-17-a-o-handoff.md`. Primo passo: censimento stato reale item A1-A20 + O1/O2/O4, poi triage con Francesco.
+**Esito chiave:** A2/A4 già risolti; A17 4/5 superficie morta; O4d chiuso. Bundle proposti: Q quick-wins (11 item S), T tecnico (O1b→O1a, O4a, A18), E export (A16), mini-triage design (A13/A14/O1h/O1i), deferral A15/A19/A20/O4b/O4c/O2.
 
-**Promemoria Francesco:** cambiare la password personale condivisa in chat.
+**RATIFICATO (20/07):** triage approvato integralmente; ordine certificato Q → T → E → mini-triage design (mockup in unico giro); calendario deferral in `docs/roadmap/2026-07-20-censimento-a-o.md` §Ratifica. Promemoria password: risolto, rimosso.
+
+**IN CORSO:** Bundle Q (quick wins, worktree dedicato, TDD).
