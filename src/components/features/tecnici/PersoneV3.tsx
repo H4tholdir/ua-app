@@ -28,6 +28,7 @@ import { PillTempo } from '@/components/ds/Pill'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { raggio } from '@/design-system/v3/tokens'
 import { SchedaPersonaSheet } from './SchedaPersonaSheet'
+import { InvitoPersonaSheet } from './InvitoPersonaSheet'
 
 export type TecnicoRow = {
   id: string
@@ -52,6 +53,15 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
   // per questo l'host può ricostruirlo ad ogni render senza perdere stato.
   const [personaAperta, setPersonaAperta] = useState<string | null>(null)
   const personaSelezionata = tecnici.find((t) => t.id === personaAperta) ?? null
+
+  // Sheet invito (Task 13): SOLO `ruolo === 'titolare'` — parità con la
+  // vecchia pagina v2.3 (nessun `admin_rete` qui, a differenza della card
+  // cedolini sotto). Il CTA «+ Invita una persona» è l'UNICO entry point
+  // rimasto: il vecchio bottone header di `InvitaCollaboratoreSheet` (v2.3)
+  // è morto con la migrazione a v3 e il componente legacy è stato rimosso
+  // (orfano, vedi corpo del commit).
+  const mostraInvito = ruolo === 'titolare'
+  const [invitoAperto, setInvitoAperto] = useState(false)
 
   // Card cedolini SOLO titolare/admin_rete, e solo se il lab ha tecnici
   // (brief §Card cedolini): nessun CSV da scaricare per un lab vuoto.
@@ -80,6 +90,10 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
               Scarica (CSV)
             </TastoSecondario>
           </div>
+        )}
+
+        {mostraInvito && (
+          <TastoSecondario onClick={() => setInvitoAperto(true)}>+ Invita una persona</TastoSecondario>
         )}
 
         {tecnici.length === 0 ? (
@@ -148,6 +162,10 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
         ruolo={ruolo}
         onChiudi={() => setPersonaAperta(null)}
       />
+
+      {mostraInvito && (
+        <InvitoPersonaSheet aperto={invitoAperto} onChiudi={() => setInvitoAperto(false)} />
+      )}
     </div>
   )
 }

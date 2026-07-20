@@ -7,10 +7,12 @@ import { adessoRoma, MESI } from '@/lib/utils/data-roma'
 // «Persone» v3 (Task 11, ondata A mini-triage) — migrazione integrale di
 // /tecnici a v3 (spec v3 §14: migrazione per route). Auth/ruolo e query
 // identici alla pagina v2.3 precedente (nessun filtro attivo/deleted_at nella
-// query originale — perimetro conservato as-is). Le vecchie UI inline
+// query originale — perimetro conservato as-is). Le vecchie UI inline v2.3
 // (`TecnicoEditInline`, `TecnicoDeactivateButton`, `InvitaCollaboratoreSheet`)
-// non sono più montate qui — tornano via lo Sheet persona nei Task 12/13, i
-// file non sono rimossi in questo task.
+// non sono più montate qui: tornano via `SchedaPersonaSheet` (Task 12,
+// modifica/disattiva) e `InvitoPersonaSheet` (Task 13, invito) — i tre file
+// legacy erano rimasti orfani (nessun consumer fuori dai propri test) e sono
+// stati eliminati in Task 13 insieme ai loro test.
 export default async function TechniciPage() {
   const context = await getLabContext()
   if (!context?.laboratorioId) redirect('/login')
