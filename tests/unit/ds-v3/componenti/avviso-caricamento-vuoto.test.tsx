@@ -1,6 +1,15 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+
+// Anti-flake sotto carico del pool vitest (diagnosi 20/07, riprodotto con 2
+// suite parallele: 11-12 fail solo in questo file): i waitFor di uscita del
+// toast attendono l'exit animation REALE di AnimatePresence (rAF, non
+// fakeable) col default di 1000ms — sotto contesa dei core sfora; e interi
+// test possono superare i 5s di testTimeout. Margini più larghi non cambiano
+// la semantica: solo QUANDO dichiarare il fallimento.
+configure({ asyncUtilTimeout: 5000 })
+vi.setConfig({ testTimeout: 15_000 })
 
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero

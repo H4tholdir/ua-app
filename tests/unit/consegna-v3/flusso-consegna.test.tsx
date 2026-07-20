@@ -1,5 +1,12 @@
-import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor, act, configure } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// Anti-flake sotto carico del pool vitest (diagnosi 20/07): quando i worker
+// contendono i core, (a) i poll di findBy*/waitFor possono sforare il default
+// di 1000ms, (b) un intero test può sforare i 5s di testTimeout. Margini più
+// larghi non cambiano la semantica: solo QUANDO dichiarare il fallimento.
+configure({ asyncUtilTimeout: 5000 })
+vi.setConfig({ testTimeout: 15_000 })
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
@@ -89,8 +96,12 @@ describe('FlussoConsegna — macchina a stati (§3.2)', () => {
     await screen.findByText('Consegnato!')
     const { suona } = await import('@/design-system/v3/sound')
     const { vibra } = await import('@/design-system/v3/haptic')
-    expect(vi.mocked(suona).mock.calls.filter((c) => c[0] === 'ua')).toHaveLength(1)
-    expect(vi.mocked(vibra).mock.calls.filter((c) => c[0] === 'success')).toHaveLength(1)
+    // Anti-flake: «Consegnato!» compare nel DOM al commit del render, ma il
+    // suono parte nel useEffect del frame — che React flusha DOPO, via
+    // scheduler. Sotto carico la finestra si allarga: si ATTENDE l'effect
+    // invece di leggere la history subito (era il fail «expected [] length 1»).
+    await waitFor(() => expect(vi.mocked(suona).mock.calls.filter((c) => c[0] === 'ua')).toHaveLength(1))
+    await waitFor(() => expect(vi.mocked(vibra).mock.calls.filter((c) => c[0] === 'success')).toHaveLength(1))
   })
 
   it('race: POST 422 precheck_fallito → riapre sheet con gli errori del server', async () => {
