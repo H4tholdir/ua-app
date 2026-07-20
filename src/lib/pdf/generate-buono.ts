@@ -6,6 +6,7 @@ import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { BuonoTemplate } from '@/components/features/pdf/BuonoTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 export async function generateBuono(lavoro: LavoroDettaglio) {
   const supabase = getTypedServiceClient()
@@ -18,7 +19,7 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
     return { numero: lavoro.buono_numero ?? '', url: lavoro.buono_pdf_url }
   }
 
-  const anno = new Date().getFullYear()
+  const anno = annoRoma()
 
   // Carica dati laboratorio
   const { data: labRaw } = await supabase
@@ -32,7 +33,7 @@ export async function generateBuono(lavoro: LavoroDettaglio) {
   const lab = labRaw as Laboratorio
 
   // Genera progressivo
-  const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'buono')
+  const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'buono', anno)
   const numero = `BUO-${anno}-${String(progressivo).padStart(4, '0')}`
 
   // Genera PDF

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 export async function GET(req: Request) {
   // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
 
   // ── Parametri ─────────────────────────────────────────────────────────────────
   const { searchParams } = new URL(req.url)
-  const year = searchParams.get('year') ?? String(new Date().getFullYear())
+  const year = searchParams.get('year') ?? String(annoRoma())
   const dateFrom = `${year}-01-01`
   const dateTo = `${year}-12-31`
 

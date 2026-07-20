@@ -9,17 +9,22 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * @param supabase        - Client Supabase (service role)
  * @param laboratorio_id  - UUID del laboratorio
  * @param tipo            - Tipo progressivo (es. 'ddc', 'fattura', 'buono')
+ * @param anno            - Anno della serie — OBBLIGATORIO e identico a quello
+ *                          stampato nel numero documento (Europe/Rome via
+ *                          annoRoma()): mai ricalcolarlo qui, la divergenza
+ *                          numero/serie a capodanno è il bug chiuso il 20/07.
  * @returns Il numero progressivo generato (intero positivo)
  */
 export async function generaProgressivo(
   supabase: SupabaseClient,
   laboratorio_id: string,
-  tipo: string
+  tipo: string,
+  anno: number
 ): Promise<number> {
   const { data, error } = await supabase.rpc('genera_progressivo', {
     p_laboratorio_id: laboratorio_id,
     p_tipo: tipo,
-    p_anno: new Date().getFullYear(),
+    p_anno: anno,
   })
 
   if (error) {

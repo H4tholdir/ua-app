@@ -5,6 +5,7 @@ import { isStatoConsegnabile } from './costanti'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 export async function orchestraConsegna(
   lavoro_id: string,
@@ -71,10 +72,10 @@ export async function orchestraConsegna(
     })
     const waUrl = buildWhatsappUrl(waMessage, clienteTel || undefined)
 
-    const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${new Date().getFullYear()}-000`
+    const ddcNumero = ddcRow?.numero_ddc ?? `DDC-${annoRoma()}-000`
     const ddcUrl = ddcRow?.pdf_url ?? ''
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const buonoNumero = (lavoro as any)?.buono_numero ?? `BUO-${new Date().getFullYear()}-000`
+    const buonoNumero = (lavoro as any)?.buono_numero ?? `BUO-${annoRoma()}-000`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buonoUrl = (lavoro as any)?.buono_pdf_url ?? ''
 

@@ -3,6 +3,7 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { oggiRomaISO, annoRoma } from '@/lib/utils/data-roma'
 
 // ─── GET /api/fatture ─────────────────────────────────────────────────────────
 // Lista fatture con join cliente, ordinate per data DESC, max 100
@@ -97,8 +98,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'cliente_id obbligatorio' }, { status: 400 })
   }
 
-  // Genera progressivo fattura
-  const anno = new Date().getFullYear()
+  // Fix date fiscali (20/07): un SOLO istante → anno serie, numero e data
+  // sempre coerenti (Europe/Rome), anche a cavallo di capodanno.
+  const adesso = new Date()
+  const oggi = oggiRomaISO(adesso)
+  const anno = annoRoma(adesso)
+
+  // Guard (riserva panel appsec #3): una data documento fuori dall'anno della
+  // serie produrrebbe numero 2026-… su fattura datata 2025 — si rifiuta PRIMA
+  // di bruciare il progressivo. Retrodatazione infra-anno = legittima.
+  const dataRichiesta = typeof body.data === 'string' ? body.data : null
+  if (dataRichiesta && !dataRichiesta.startsWith(`${anno}-`)) {
+    return NextResponse.json(
+      { error: `La data ${dataRichiesta} non appartiene all'anno della serie ${anno}` },
+      { status: 422 }
+    )
+  }
+
   const { data: progressivo, error: rpcError } = await svc.rpc('genera_progressivo', {
     p_laboratorio_id: labId,
     p_tipo: 'fattura',
@@ -114,7 +130,6 @@ export async function POST(req: Request) {
 
   // Trattino obbligatorio: XSD FatturaPA vieta '/' in <Numero>
   const numero = `${anno}-${String(progressivo).padStart(4, '0')}`
-  const oggi = new Date().toISOString().split('T')[0]
 
   const insertData = {
     laboratorio_id: labId,
@@ -122,7 +137,7 @@ export async function POST(req: Request) {
     numero,
     anno,
     progressivo,
-    data: (body.data as string) ?? oggi,
+    data: dataRichiesta ?? oggi,
     tipo_documento: (body.tipo_documento as string) ?? 'TD01',
     stato_sdi: 'draft',
     imponibile: (body.imponibile as number) ?? 0,

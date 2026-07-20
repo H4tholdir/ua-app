@@ -4,6 +4,7 @@ import { getTypedServiceClient } from '@/lib/pdf/typed-service-client'
 import { DpaTemplate } from '@/components/features/pdf/DpaTemplate'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import type { Laboratorio, Cliente } from '@/types/domain'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 function validateDpaData(lab: Laboratorio, cliente: Cliente): void {
   if (!lab.partita_iva && !lab.codice_fiscale) {
@@ -34,7 +35,7 @@ export async function generateDpa(laboratorio_id: string, cliente_id: string): P
 
   validateDpaData(lab, cliente)
 
-  const numero_dpa = `DPA-${new Date().getFullYear()}-${cliente_id.slice(0, 8).toUpperCase()}`
+  const numero_dpa = `DPA-${annoRoma()}-${cliente_id.slice(0, 8).toUpperCase()}`
 
   const dpa = {
     lab: {
