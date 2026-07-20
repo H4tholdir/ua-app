@@ -4,6 +4,7 @@ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 
 export async function GET() {
   return withServerTiming(async (t) => {
@@ -107,6 +108,19 @@ export async function PATCH(req: Request) {
     'logo_url', 'logo_print_url', 'firma_ddc_url', 'sfondo_ddc_url',
     'onboarding_completato',
   ]
+
+  // Review Bundle T (A18): questi URL vengono poi FETCHATI dal server (hash
+  // firma DdC, immagini react-pdf in DdcTemplate) — l'allowlist copre il CAMPO,
+  // qui si valida il VALORE: solo storage pubblico Supabase del progetto, o null.
+  const URL_STORAGE_FIELDS = ['logo_url', 'logo_print_url', 'firma_ddc_url', 'sfondo_ddc_url'] as const
+  for (const field of URL_STORAGE_FIELDS) {
+    if (field in body && body[field] !== null && !isPublicStorageUrl(body[field])) {
+      return NextResponse.json(
+        { error: `Il campo "${field}" deve essere un file dello storage UÀ` },
+        { status: 422 },
+      )
+    }
+  }
 
   const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const field of ALLOWED) {

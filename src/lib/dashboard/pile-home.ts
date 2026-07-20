@@ -1,6 +1,7 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { mapPileHome, type PileHome, type RawLavoroPila } from './pile-home-shared'
+import { adessoRoma } from '@/lib/utils/data-roma'
 
 // I tipi e le funzioni pure (mapPileHome, subMorph, giornoBreve, …) vivono in
 // `pile-home-shared.ts` (Task 9) — NESSUN `import 'server-only'` lì, perché
@@ -16,7 +17,7 @@ export async function getPileHome(svc: SupabaseClient, labId: string, opts: { te
   // short-circuit vive PRIMA della query — non un filtro impossibile dopo,
   // così il perimetro è chiuso per costruzione, non per un WHERE che qualcuno
   // potrebbe rimuovere in un refactor futuro.
-  if (opts.senzaAnagrafica) return mapPileHome([], new Date())
+  if (opts.senzaAnagrafica) return mapPileHome([], adessoRoma())
   let q = svc
     .from('lavori')
     .select(`id, numero_lavoro, stato, data_consegna_prevista, ora_consegna, descrizione, created_at, updated_at,
@@ -32,7 +33,12 @@ export async function getPileHome(svc: SupabaseClient, labId: string, opts: { te
   if (opts.tecnicoId) q = q.eq('tecnico_id', opts.tecnicoId)
   const { data, error } = await q
   if (error) throw new Error(`getPileHome: lettura lavori fallita — ${error.message}`) // fail-closed, mai pile vuote silenziose
-  return mapPileHome((data ?? []) as unknown as RawLavoroPila[], new Date())
+  // O1b (review Bundle T): «oggi» delle pile = giorno civile di Roma, non del
+  // server (UTC dava il giorno prima tra le 00:00 e le 02:00). Trade-off noto:
+  // adessoRoma() sposta getTime() di 1-2h, quindi gli elapsed (fermo ≥5gg,
+  // arrivo >24h in pile-home-shared) anticipano al più di 2h su soglie di
+  // giorni — irrilevante rispetto al giorno civile sbagliato di notte.
+  return mapPileHome((data ?? []) as unknown as RawLavoroPila[], adessoRoma())
 }
 
 export async function getPerimetroHome(svc: SupabaseClient, labId: string, userId: string, ruolo: string): Promise<{ tecnicoId: string | null; senzaAnagrafica: boolean }> {

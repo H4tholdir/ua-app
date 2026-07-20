@@ -6,6 +6,7 @@ import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
+import { isPublicStorageUrl } from '@/lib/utils/storage-url'
 
 // A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
 // decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
@@ -13,6 +14,10 @@ import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 // genera comunque (metadato d'integrità, non condizione di emissione).
 async function hashFirmaDdc(url: string | null): Promise<string | null> {
   if (!url) return null
+  // Difesa in profondità (review Bundle T): il valore è già validato a
+  // scrittura in PATCH /api/impostazioni, ma un dato storico o scritto per
+  // altre vie non deve comunque far fetchare al server un URL arbitrario.
+  if (!isPublicStorageUrl(url)) return null
   try {
     const res = await fetch(url)
     if (!res.ok) return null
