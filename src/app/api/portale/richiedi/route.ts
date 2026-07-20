@@ -11,6 +11,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
@@ -152,7 +153,7 @@ export async function POST(req: Request) {
       codice_iva: 'N4',
       natura_iva: 'N4',
       dispositivo_semilavorato: false,
-      data_ingresso: new Date().toISOString().split('T')[0],
+      data_ingresso: oggiRomaISO(),
       // Nessun paziente_id — viene assegnato dal lab manualmente
     })
     .select('id, numero_lavoro')

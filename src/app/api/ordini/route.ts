@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
     stato: 'bozza',
     quantita_ordinata: body.quantita_ordinata ?? null,
     unita_misura: body.unita_misura ?? 'pz',
-    data_ordine: new Date().toISOString().split('T')[0],
+    data_ordine: oggiRomaISO(),
     data_consegna_richiesta: body.data_consegna_richiesta ?? null,
     note: body.note ?? null,
   }

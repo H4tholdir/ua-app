@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
@@ -109,7 +110,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     costo_acquisto: body.costo_acquisto ?? null,
     data_acquisto: body.data_acquisto ?? null,
     data_scadenza: body.data_scadenza ?? null,
-    data_ricezione: body.data_ricezione ?? new Date().toISOString().split('T')[0],
+    data_ricezione: body.data_ricezione ?? oggiRomaISO(),
     documento_acquisto_url: body.documento_acquisto_url ?? null,
     note: body.note ?? null,
     attivo: true,

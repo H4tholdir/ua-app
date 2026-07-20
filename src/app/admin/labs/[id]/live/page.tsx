@@ -5,24 +5,12 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { AdminHomePreview } from '@/components/features/admin/AdminHomePreview'
 import { getPileHome } from '@/lib/dashboard/pile-home'
 import { getSegnaleStriscia } from '@/lib/dashboard/striscia'
+import { adessoRoma, saluto, GIORNI, MESI } from '@/lib/utils/data-roma'
 
 export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ id: string }>
-}
-
-const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
-const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-
-function adessoRoma(): Date {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }))
-}
-function saluto(d: Date): string {
-  const h = d.getHours()
-  if (h >= 5 && h < 12) return 'Buongiorno'
-  if (h >= 12 && h < 18) return 'Buon pomeriggio'
-  return 'Buonasera'
 }
 
 export default async function AdminLivePreviewPage({ params }: Props) {

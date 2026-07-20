@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
@@ -188,7 +189,7 @@ export async function POST(req: Request) {
     da_conformare: body.da_conformare ?? true,
     codice_iva: body.codice_iva ?? 'N4',
     natura_iva: body.natura_iva ?? 'N4',
-    data_ingresso: new Date().toISOString().split('T')[0],
+    data_ingresso: oggiRomaISO(),
   }
 
   const { data: lavoro, error: insertError } = await svc

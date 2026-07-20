@@ -3,6 +3,7 @@ import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { oggiRomaISO, aggiungiGiorniISO } from '@/lib/utils/data-roma'
 
 type AppuntamentoRow = {
   id: string
@@ -64,11 +65,8 @@ export default async function AgendaPage() {
   let appuntamenti: AppuntamentoRow[] = []
 
   if (labId) {
-    const oggi = new Date()
-    const tra7Giorni = new Date(oggi)
-    tra7Giorni.setDate(tra7Giorni.getDate() + 7)
-    const oggiISO = oggi.toISOString().split('T')[0]
-    const tra7ISO = tra7Giorni.toISOString().split('T')[0]
+    const oggiISO = oggiRomaISO()
+    const tra7ISO = aggiungiGiorniISO(oggiISO, 7)
 
     const { data } = await svc
       .from('appuntamenti')
