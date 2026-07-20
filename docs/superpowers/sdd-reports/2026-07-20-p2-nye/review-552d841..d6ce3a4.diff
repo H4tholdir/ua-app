@@ -1,0 +1,480 @@
+# Review package: 552d841d97b98b7b87d386dda9125fa89a601ee2..HEAD
+
+## Commits
+d6ce3a4 feat(fiscale): rinumerazione draft a cavallo d'anno all'emissione (d1)
+
+## Files changed
+ src/lib/fattura/generate-xml.ts              |  34 +++-
+ tests/unit/generate-xml-draft-nye.test.ts    | 271 +++++++++++++++++++++++++++
+ tests/unit/generate-xml-pdf-cortesia.test.ts |   2 +-
+ tests/unit/generate-xml-td04.test.ts         |   2 +
+ 4 files changed, 303 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/lib/fattura/generate-xml.ts b/src/lib/fattura/generate-xml.ts
+index 08ccd62..9223700 100644
+--- a/src/lib/fattura/generate-xml.ts
++++ b/src/lib/fattura/generate-xml.ts
+@@ -58,42 +58,44 @@ export async function generaFatturaPA(
+ ): Promise<{ numero: string; stato_sdi: 'generata' }> {
+   const supabase = getServiceClient()
+ 
+   // ── 0. Carica SUBITO il draft (quando fatturaId presente) ────────────────
+   // Serve a decidere il ramo (tipo_documento) e, nel caso TD04, a risolvere
+   // laboratorio_id/snapshot cliente dato che quel ramo non riceve `lavoro`.
+   // Sostituisce anche la vecchia lettura separata di numero/progressivo/data.
+   type DraftRow = {
+     numero: string
+     progressivo: number
++    anno: number
+     data: string
++    note: string | null
+     tipo_documento: string | null
+     imponibile: number | null
+     collegata_numero: string | null
+     collegata_data: string | null
+     causale_storno: string | null
+     cliente_id: string
+     cliente_denominazione: string | null
+     cliente_piva: string | null
+     cliente_cf: string | null
+     cliente_indirizzo: string | null
+     cliente_codice_sdi: string | null
+     cliente_pec: string | null
+     laboratorio_id: string
+   }
+ 
+   let draft: DraftRow | null = null
+   if (fatturaId) {
+     const { data: draftData, error: draftErr } = await supabase
+       .from('fatture')
+       .select(
+-        'numero, progressivo, data, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_id, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
++        'numero, progressivo, anno, data, note, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_id, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
+       )
+       .eq('id', fatturaId)
+       .single()
+     if (draftErr || !draftData) {
+       throw new Error(`Draft fattura non trovato (id=${fatturaId}): ${draftErr?.message ?? 'null'}`)
+     }
+     draft = draftData as unknown as DraftRow
+   }
+ 
+   const isTd04 = draft?.tipo_documento === 'TD04'
+@@ -196,37 +198,47 @@ export async function generaFatturaPA(
+   if (!isTd04 && lavoroEff!.lavorazioni.some((r) => r.natura_iva && r.natura_iva !== 'N4')) {
+     throw new Error('Natura IVA non N4 su riga di lavorazione: FatturaPA custom-made richiede N4')
+   }
+ 
+   // ── 2. Determina numero fattura e progressivi ────────────────────────────
+   // Fix divergenza DB/XML: se fatturaId presente, usa il numero del draft esistente
+   // e NON generare un nuovo progressivo fattura (evita duplicati).
+   // Fix date fiscali (20/07): un solo istante → l'anno passato a ENTRAMBE le
+   // serie (sdi_invio e fattura) è lo stesso stampato nel numero e nella data
+   // (riserva panel: se una serie ricalcolasse l'anno, il bug capodanno
+-  // rientrerebbe dalla finestra). Ramo draft (fatturaId): numero/anno/data
+-  // restano CONGELATI sul draft — deliberato (piano 2026-07-20 §Constraints).
++  // rientrerebbe dalla finestra).
++  // Ramo draft (fatturaId): stesso anno → numero/anno/data CONGELATI sul
++  // draft; anno PRECEDENTE → la bozza DIVENTA la fattura dell'anno corrente
++  // (rinumerazione d1, spec 2026-07-20-draft-nye-rinumerazione: decisione
++  // Francesco 20/07 — la traccia dell'ex numero finisce in fatture.note).
+   const adesso = new Date()
+   const anno = annoRoma(adesso)
+   const oggi = oggiRomaISO(adesso)
+   const progressivoSdi = await generaProgressivo(supabase, laboratorioId, 'sdi_invio', anno)
+   const progressivoSdiStr = String(progressivoSdi).padStart(5, '0')
+ 
+   let numero: string
+   let progressivoFattura: number
+   let dataFattura: string
++  let rinumerataDa: { exNumero: string; exData: string } | null = null
+ 
+-  if (fatturaId) {
+-    // draft già caricato in Sezione 0
++  if (fatturaId && draft!.anno === anno) {
++    // draft già caricato in Sezione 0 — stesso anno: congelato
+     numero = draft!.numero
+     progressivoFattura = draft!.progressivo
+     dataFattura = draft!.data
++  } else if (fatturaId) {
++    // draft di un anno precedente: rinumera nella serie corrente (d1)
++    progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura', anno)
++    numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
++    dataFattura = oggi
++    rinumerataDa = { exNumero: draft!.numero, exData: draft!.data }
+   } else {
+     // Nuovo insert: genera progressivo fresco
+     progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura', anno)
+     numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
+     dataFattura = oggi
+   }
+ 
+   // ── 3. Calcola importi ───────────────────────────────────────────────────
+   let imponibile: number
+   if (isTd04) {
+@@ -521,20 +533,32 @@ export async function generaFatturaPA(
+     nome_file_xml: nomeFileXml,
+     xml_hash_sha256: hashHex,
+     // Copia di cortesia PDF (Ondata 2)
+     pdf_storage_path: pdfStoragePath,
+     // Importi (ricalcolati a partire dalle lavorazioni)
+     imponibile,
+     iva_percentuale: 0,
+     iva_importo: 0,
+     bollo: bolloApplicato,
+     totale,
++    // P2-d1: rinumerazione a cavallo d'anno — il DB si allinea a XML/PDF
++    ...(rinumerataDa
++      ? {
++          numero,
++          anno,
++          progressivo: progressivoFattura,
++          data: dataFattura,
++          note:
++            (draft!.note ? `${draft!.note}\n` : '') +
++            `Rinumerata all'emissione: sostituisce la bozza ${rinumerataDa.exNumero} del ${rinumerataDa.exData} (serie anno precedente).`,
++        }
++      : {}),
+   }
+ 
+   // numero è già corretto (risolto in step 2)
+   const numeroFinale = numero
+ 
+   if (fatturaId) {
+     const { error: updateError } = await supabase
+       .from('fatture')
+       .update(xmlFields as Record<string, unknown>)
+       .eq('id', fatturaId)
+diff --git a/tests/unit/generate-xml-draft-nye.test.ts b/tests/unit/generate-xml-draft-nye.test.ts
+new file mode 100644
+index 0000000..004982e
+--- /dev/null
++++ b/tests/unit/generate-xml-draft-nye.test.ts
+@@ -0,0 +1,271 @@
++// tests/unit/generate-xml-draft-nye.test.ts
++// P2-d1: rinumerazione del draft a cavallo d'anno all'emissione — spec
++// docs/superpowers/specs/2026-07-20-draft-nye-rinumerazione-design.md.
++// Ramo draft (fatturaId presente): stesso anno → numero/anno/data restano
++// congelati sul draft (regressione); anno PRECEDENTE quello di Roma alla
++// data di emissione → il draft si rinumera nella serie dell'anno corrente e
++// l'ex numero finisce in fatture.note. Harness di mock ricalcato su
++// generate-xml-td04.test.ts.
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++
++const { mockFrom, uploads, updatePayloads, progressivoCalls } = vi.hoisted(() => ({
++  mockFrom: vi.fn(),
++  uploads: [] as Array<{ bucket: string; path: string; contentType: string; bytes: unknown }>,
++  updatePayloads: [] as Array<Record<string, unknown>>,
++  progressivoCalls: [] as Array<{ tipo: string; anno: number }>,
++}))
++
++vi.mock('@/lib/supabase/server-service', () => ({
++  getServiceClient: () => ({
++    from: mockFrom,
++    storage: {
++      from: (bucket: string) => ({
++        upload: async (path: string, bytes: unknown, opts: { contentType: string }) => {
++          uploads.push({ bucket, path, contentType: opts.contentType, bytes })
++          return { error: null }
++        },
++      }),
++    },
++  }),
++}))
++// Spia su generaProgressivo: registra (serie, anno) e ritorna valori distinti
++// per serie, cosi' gli assert possono distinguere sdi_invio (7) da fattura (3)
++// senza ambiguita' sull'ordine di chiamata.
++vi.mock('@/lib/db/progressivi', () => ({
++  generaProgressivo: vi.fn(async (_supabase: unknown, _laboratorioId: string, tipo: string, anno: number) => {
++    progressivoCalls.push({ tipo, anno })
++    return tipo === 'sdi_invio' ? 7 : 3
++  }),
++}))
++vi.mock('@/lib/pdf/render-document', () => ({ renderPdfDocument: vi.fn(async () => Buffer.from('%PDF-fake')) }))
++
++import { generaFatturaPA } from '@/lib/fattura/generate-xml'
++
++const LAB = {
++  id: 'lab-1', nome: 'Lab', ragione_sociale: 'Lab SRL', partita_iva: '12345678901',
++  codice_fiscale: null, indirizzo: 'Via X 1', cap: '80100', citta: 'Napoli', provincia: 'NA',
++  regime_fiscale: 'RF01', pec: null, pec_host: null, pec_port: null, pec_user: null,
++  pec_smtp_configurata: false, pec_vault_key_id: null,
++}
++
++const CLIENTE = {
++  id: 'cli-1', cognome: 'Rossi', nome: 'Mario', studio_nome: 'Studio Rossi',
++  codice_sdi: 'ABC1234', pec: null, partita_iva: '01234567890', codice_fiscale: null,
++  indirizzo: 'Via Y 2', cap: '80100', citta: 'Napoli', provincia: 'NA',
++}
++
++const LAVORO = {
++  id: 'lav-45', laboratorio_id: 'lab-1', numero_lavoro: 'n.45', descrizione: 'Corona di test',
++  prezzo_unitario: 100, lavorazioni: [],
++  cliente: CLIENTE,
++} as never
++
++// Sede cliente dal registro — usata SOLO dal ramo TD04 (Amendment 2026-07-15).
++const CLIENTE_SEDE = { indirizzo: 'Via Y 2', cap: '80100', citta: 'Napoli', provincia: 'NA' }
++
++let currentDraft: Record<string, unknown>
++
++function mockDraft(draft: Record<string, unknown>) {
++  currentDraft = draft
++  mockFrom.mockImplementation((table: string) => {
++    if (table === 'laboratori') {
++      const c: Record<string, unknown> = {}
++      c.select = () => c
++      c.eq = () => c
++      c.single = async () => ({ data: LAB, error: null })
++      return c
++    }
++    if (table === 'clienti') {
++      const c: Record<string, unknown> = {}
++      c.select = () => c
++      c.eq = () => c
++      c.single = async () => ({ data: CLIENTE_SEDE, error: null })
++      return c
++    }
++    if (table === 'fatture') {
++      return {
++        select: () => ({ eq: () => ({ single: async () => ({ data: currentDraft, error: null }) }) }),
++        update: (payload: Record<string, unknown>) => {
++          updatePayloads.push(payload)
++          return { eq: async () => ({ error: null }) }
++        },
++      }
++    }
++    throw new Error(`Unexpected table: ${table}`)
++  })
++}
++
++// Fixture base draft TD01 — i singoli test sovrascrivono numero/anno/data/note.
++function draftTd01(overrides: Record<string, unknown>) {
++  return {
++    numero: '0000-0000',
++    progressivo: 0,
++    anno: 0,
++    data: '0000-01-01',
++    note: null,
++    tipo_documento: 'TD01',
++    imponibile: 100,
++    collegata_numero: null,
++    collegata_data: null,
++    causale_storno: null,
++    cliente_id: 'cli-1',
++    cliente_denominazione: 'Studio Rossi',
++    cliente_piva: '01234567890',
++    cliente_cf: null,
++    cliente_indirizzo: 'Via Y 2, 80100 Napoli NA',
++    cliente_codice_sdi: 'ABC1234',
++    cliente_pec: null,
++    laboratorio_id: 'lab-1',
++    ...overrides,
++  }
++}
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  uploads.length = 0
++  updatePayloads.length = 0
++  progressivoCalls.length = 0
++})
++
++afterEach(() => {
++  vi.useRealTimers()
++})
++
++const ANNO_CORRENTE = new Date().getFullYear()
++
++describe("generaFatturaPA — rinumerazione draft a cavallo d'anno (d1)", () => {
++  it('1. REGRESSIONE stesso anno: UPDATE senza numero/anno/data/note, generaProgressivo MAI chiamato con serie fattura', async () => {
++    mockDraft(
++      draftTd01({
++        numero: `${ANNO_CORRENTE}-0045`,
++        progressivo: 45,
++        anno: ANNO_CORRENTE,
++        data: `${ANNO_CORRENTE}-06-01`,
++        note: null,
++      })
++    )
++
++    await generaFatturaPA(LAVORO, 'fatt-45')
++
++    expect(updatePayloads).toHaveLength(1)
++    expect(updatePayloads[0]).not.toHaveProperty('numero')
++    expect(updatePayloads[0]).not.toHaveProperty('anno')
++    expect(updatePayloads[0]).not.toHaveProperty('data')
++    expect(updatePayloads[0]).not.toHaveProperty('note')
++    expect(progressivoCalls.some((c) => c.tipo === 'fattura')).toBe(false)
++
++    const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
++    expect(String(xmlUpload?.bytes)).toContain(`<Numero>${ANNO_CORRENTE}-0045</Numero>`)
++  })
++
++  it('2. RINUMERATO: draft anno 2026, clock 2027-01-02T10:00Z → generaProgressivo(fattura, 2027), UPDATE con numero/anno/progressivo/data/note nuovi, XML aggiornato', async () => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2027-01-02T10:00:00Z'))
++    mockDraft(
++      draftTd01({
++        numero: '2026-0045',
++        progressivo: 45,
++        anno: 2026,
++        data: '2026-12-28',
++        note: null,
++      })
++    )
++
++    await generaFatturaPA(LAVORO, 'fatt-45')
++
++    expect(progressivoCalls).toContainEqual({ tipo: 'fattura', anno: 2027 })
++    expect(updatePayloads).toHaveLength(1)
++    const upd = updatePayloads[0]
++    expect(upd.numero).toBe('2027-0003')
++    expect(upd.anno).toBe(2027)
++    expect(upd.progressivo).toBe(3)
++    expect(upd.data).toBe('2027-01-02')
++    expect(upd.note).toContain('sostituisce la bozza 2026-0045 del 2026-12-28')
++
++    const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
++    const xmlContent = String(xmlUpload?.bytes)
++    expect(xmlContent).toContain('<Numero>2027-0003</Numero>')
++    expect(xmlContent).toContain('<Data>2027-01-02</Data>')
++  })
++
++  it("3. CAPODANNO ROMA: clock 2026-12-31T23:30:00Z (= 2027 a Roma), draft anno 2026 → RINUMERATO a 2027 (annoRoma decide, non l'UTC)", async () => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2026-12-31T23:30:00Z'))
++    mockDraft(
++      draftTd01({
++        numero: '2026-0050',
++        progressivo: 50,
++        anno: 2026,
++        data: '2026-12-30',
++        note: null,
++      })
++    )
++
++    await generaFatturaPA(LAVORO, 'fatt-50')
++
++    expect(progressivoCalls).toContainEqual({ tipo: 'fattura', anno: 2027 })
++    expect(updatePayloads).toHaveLength(1)
++    expect(updatePayloads[0].anno).toBe(2027)
++    expect(updatePayloads[0].numero).toBe('2027-0003')
++  })
++
++  it('4. TD04 anno precedente: rinumerato E collegata_numero/collegata_data/causale_storno NON nel payload UPDATE (snapshot storno intatto)', async () => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2027-01-02T10:00:00Z'))
++    mockDraft({
++      numero: '2026-0099',
++      progressivo: 99,
++      anno: 2026,
++      data: '2026-12-28',
++      note: null,
++      tipo_documento: 'TD04',
++      imponibile: 100,
++      collegata_numero: '2026-0012',
++      collegata_data: '2026-07-01',
++      causale_storno: 'Storno per errore di fatturazione',
++      cliente_id: 'cli-1',
++      cliente_denominazione: 'Studio Rossi',
++      cliente_piva: '01234567890',
++      cliente_cf: null,
++      cliente_indirizzo: 'Via Y 2, 80100 Napoli NA',
++      cliente_codice_sdi: 'ABC1234',
++      cliente_pec: null,
++      laboratorio_id: 'lab-1',
++    })
++
++    await generaFatturaPA(null, 'fatt-99')
++
++    expect(updatePayloads).toHaveLength(1)
++    const upd = updatePayloads[0]
++    expect(upd.numero).toBe('2027-0003')
++    expect(upd.anno).toBe(2027)
++    expect(upd).not.toHaveProperty('collegata_numero')
++    expect(upd).not.toHaveProperty('collegata_data')
++    expect(upd).not.toHaveProperty('causale_storno')
++
++    // Lo storno resta riferito alla fattura ORIGINALE stornata, non alla bozza rinumerata.
++    const xmlUpload = uploads.find((u) => u.contentType === 'application/xml')
++    const xmlContent = String(xmlUpload?.bytes)
++    expect(xmlContent).toContain('<IdDocumento>2026-0012</IdDocumento>')
++  })
++
++  it("5. NOTA PREESISTENTE: nota esistente concatenata con \\n, mai sovrascritta", async () => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2027-01-02T10:00:00Z'))
++    mockDraft(
++      draftTd01({
++        numero: '2026-0045',
++        progressivo: 45,
++        anno: 2026,
++        data: '2026-12-28',
++        note: 'Nota esistente',
++      })
++    )
++
++    await generaFatturaPA(LAVORO, 'fatt-45')
++
++    expect(updatePayloads[0].note).toBe(
++      "Nota esistente\nRinumerata all'emissione: sostituisce la bozza 2026-0045 del 2026-12-28 (serie anno precedente)."
++    )
++  })
++})
+diff --git a/tests/unit/generate-xml-pdf-cortesia.test.ts b/tests/unit/generate-xml-pdf-cortesia.test.ts
+index 1429abe..aecd1e1 100644
+--- a/tests/unit/generate-xml-pdf-cortesia.test.ts
++++ b/tests/unit/generate-xml-pdf-cortesia.test.ts
+@@ -55,21 +55,21 @@ beforeEach(() => {
+   mockFrom.mockImplementation((table: string) => {
+     if (table === 'laboratori') {
+       const c: Record<string, unknown> = {}
+       c.select = () => c
+       c.eq = () => c
+       c.single = async () => ({ data: LAB, error: null })
+       return c
+     }
+     if (table === 'fatture') {
+       return {
+-        select: () => ({ eq: () => ({ single: async () => ({ data: { numero: '2026-0007', progressivo: 7, data: '2026-07-01' }, error: null }) }) }),
++        select: () => ({ eq: () => ({ single: async () => ({ data: { numero: '2026-0007', progressivo: 7, anno: new Date().getFullYear(), data: '2026-07-01', note: null }, error: null }) }) }),
+         insert: (payload: Record<string, unknown>) => { insertPayloads.push(payload); return Promise.resolve({ error: null }) },
+         update: (payload: Record<string, unknown>) => { updatePayloads.push(payload); return { eq: async () => ({ error: null }) } },
+       }
+     }
+     throw new Error(`Unexpected table: ${table}`)
+   })
+ })
+ 
+ describe('generaFatturaPA — copia di cortesia PDF + I-6', () => {
+   it('ramo INSERT: upload XML + PDF, pdf_storage_path persistito, xml_url MAI scritto', async () => {
+diff --git a/tests/unit/generate-xml-td04.test.ts b/tests/unit/generate-xml-td04.test.ts
+index c0ea981..2f97d18 100644
+--- a/tests/unit/generate-xml-td04.test.ts
++++ b/tests/unit/generate-xml-td04.test.ts
+@@ -33,21 +33,23 @@ const LAB = {
+   id: 'lab-1', nome: 'Lab', ragione_sociale: 'Lab SRL', partita_iva: '12345678901',
+   codice_fiscale: null, indirizzo: 'Via X 1', cap: '80100', citta: 'Napoli', provincia: 'NA',
+   regime_fiscale: 'RF01', pec: null, pec_host: null, pec_port: null, pec_user: null,
+   pec_smtp_configurata: false, pec_vault_key_id: null,
+ }
+ 
+ // Draft TD04 — riga `fatture` con snapshot congelato (numero/data/cliente/imponibile).
+ const DRAFT_TD04 = {
+   numero: '2026-0099',
+   progressivo: 99,
++  anno: new Date().getFullYear(), // pari all'anno del clock del test (nessun fake timer in questo file)
+   data: '2026-07-10',
++  note: null,
+   tipo_documento: 'TD04',
+   imponibile: 100,
+   collegata_numero: '2026-0012',
+   collegata_data: '2026-07-01',
+   causale_storno: 'Storno per errore di fatturazione',
+   cliente_id: 'cli-1',
+   cliente_denominazione: 'Studio Rossi',
+   cliente_piva: '01234567890',
+   cliente_cf: null,
+   cliente_indirizzo: 'Via Y 2, 80100 Napoli NA',
