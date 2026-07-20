@@ -1,7 +1,9 @@
-# Sessione attiva — nessuna (20/07/2026)
+# Sessione attiva — 20/07/2026 (Bundle T)
 
-Ultima sessione CHIUSA: §A/§O censimento ratificato + **Bundle Q deployato** (main `04cf00b`) + fix push prove + cron perf-budget opzione (c) validata (mediana US 1041ms). Tutto su main ≥ `699c8b1`, working tree pulito. Dettagli: MEMORY.md voce 11.
+**Bundle T COMPLETO e mergiato su main** (`bacfde9`, 11 commit): O1b helper `data-roma.ts` + adozione (dashboard/pile/agenda/API operative), O1a test rami pile, O4a ClienteComboBox→API, A18 hash firma DdC (cut-off 20/07, no backfill — decisione Francesco), anti-SSRF URL storage (da review), timeout webpush, commenti drift O4b. FASE 7: tsc 0 · 2229 pass · build OK. Review: merge SÌ.
 
-**PROSSIMA SESSIONE: Bundle T → E → mini-triage design** — handoff completo: `docs/roadmap/2026-07-20-bundle-t-handoff.md`. Decisioni da raccogliere lì: A18 backfill, email Resend A8.
+**Decisioni Francesco:** A18 cut-off · A8 email Resend pianificata post-Bundle E.
 
-**Promemoria:** ricalibrare soglia login perf-budget fra ~7-14 giorni (poi togliere warn-mode). Worktree `bundle-q` rimovibile (report gitignored dentro — chiedere prima).
+**In corso:** CI run 29736697200 → poi CD Vercel → verifica prod → commit docs BP-1.
+
+**Prossimo:** Bundle E (A16 export CSV, riserve: anti CSV-injection + scoping tenant) → mini-triage design. Task chip creato: date fiscali UTC (fatture/XML) → sessione dedicata FatturaPA.
