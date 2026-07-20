@@ -6,6 +6,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { generaProgressivo } from '@/lib/db/progressivi'
 import { generaFatturaPA } from '@/lib/fattura/generate-xml'
+import { oggiRomaISO, annoRoma } from '@/lib/utils/data-roma'
 import type { LavoroDettaglio } from '@/types/domain'
 
 export interface BatchResult {
@@ -206,8 +207,11 @@ export async function POST(req: Request) {
     // Step 2: Crea draft fattura (stesso pattern di orchestraConsegna Step 6)
     let draftCreatoId: string | null = null
     try {
-      const annoFattura = new Date().getFullYear()
-      const progFattura = await generaProgressivo(svc, labId, 'fattura')
+      // Fix date fiscali (20/07): un solo istante per iterazione — numero,
+      // serie e data del draft sempre coerenti (Europe/Rome).
+      const adessoDraft = new Date()
+      const annoFattura = annoRoma(adessoDraft)
+      const progFattura = await generaProgressivo(svc, labId, 'fattura', annoFattura)
       const numeroDraft = `${annoFattura}-${String(progFattura).padStart(4, '0')}`
 
       const { data: draftFattura, error: draftErr } = await svc
@@ -219,7 +223,7 @@ export async function POST(req: Request) {
           numero: numeroDraft,
           anno: annoFattura,
           progressivo: progFattura,
-          data: new Date().toISOString().split('T')[0],
+          data: oggiRomaISO(adessoDraft),
           tipo_documento: 'TD01',
           stato_sdi: 'draft',
           imponibile: 0,

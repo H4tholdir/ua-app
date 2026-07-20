@@ -7,6 +7,7 @@ import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 import { isPublicStorageUrl } from '@/lib/utils/storage-url'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 // A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
 // decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
@@ -48,7 +49,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     return { numero: ddcEsistente.numero_ddc, url: ddcEsistente.pdf_url ?? '' }
   }
 
-  const anno = new Date().getFullYear()
+  const anno = annoRoma()
 
   // Carica dati laboratorio + rischi residui per tipo dispositivo
   const [{ data: labRaw }, { data: rischiRow }] = await Promise.all([
@@ -66,7 +67,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   const lab = labRaw as Laboratorio
 
   // Genera progressivo
-  const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'ddc')
+  const progressivo = await generaProgressivo(supabase, lavoro.laboratorio_id, 'ddc', anno)
   const numero = `DDC-${anno}-${String(progressivo).padStart(4, '0')}`
 
   // MDR §8: dichiarazione esplicita di conformità (colonna NOT NULL senza default

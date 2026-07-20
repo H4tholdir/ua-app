@@ -6,6 +6,7 @@ import type { LavoroDettaglio } from '@/types/domain'
 import { renderPdfDocument } from '@/lib/pdf/render-document'
 import { FatturaCortesiaTemplate, type FatturaCortesiaProps } from '@/components/features/pdf/FatturaCortesiaTemplate'
 import { prezzoEffettivoLavoro, divergenzaPrezzo } from '@/lib/domain/prezzo-lavoro'
+import { oggiRomaISO, annoRoma } from '@/lib/utils/data-roma'
 
 // Funzioni pure estratte in xml-helpers.ts (importabili anche nei test)
 import { xe, fmt2, validaIdentificativoFiscale } from './xml-helpers'
@@ -199,9 +200,15 @@ export async function generaFatturaPA(
   // ── 2. Determina numero fattura e progressivi ────────────────────────────
   // Fix divergenza DB/XML: se fatturaId presente, usa il numero del draft esistente
   // e NON generare un nuovo progressivo fattura (evita duplicati).
-  const anno = new Date().getFullYear()
-  const oggi = new Date().toISOString().split('T')[0]
-  const progressivoSdi = await generaProgressivo(supabase, laboratorioId, 'sdi_invio')
+  // Fix date fiscali (20/07): un solo istante → l'anno passato a ENTRAMBE le
+  // serie (sdi_invio e fattura) è lo stesso stampato nel numero e nella data
+  // (riserva panel: se una serie ricalcolasse l'anno, il bug capodanno
+  // rientrerebbe dalla finestra). Ramo draft (fatturaId): numero/anno/data
+  // restano CONGELATI sul draft — deliberato (piano 2026-07-20 §Constraints).
+  const adesso = new Date()
+  const anno = annoRoma(adesso)
+  const oggi = oggiRomaISO(adesso)
+  const progressivoSdi = await generaProgressivo(supabase, laboratorioId, 'sdi_invio', anno)
   const progressivoSdiStr = String(progressivoSdi).padStart(5, '0')
 
   let numero: string
@@ -215,7 +222,7 @@ export async function generaFatturaPA(
     dataFattura = draft!.data
   } else {
     // Nuovo insert: genera progressivo fresco
-    progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura')
+    progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura', anno)
     numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
     dataFattura = oggi
   }
