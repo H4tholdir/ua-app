@@ -4,8 +4,8 @@
   "description": "Il laboratorio odontotecnico, finalmente leggero.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0F1E52",
-  "theme_color": "#0F1E52",
+  "background_color": "#DDD8D3",
+  "theme_color": "#D90012",
   "orientation": "portrait-primary",
   "categories": [
     "productivity",
