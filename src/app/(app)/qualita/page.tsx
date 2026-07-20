@@ -22,7 +22,7 @@ function formatDataIT(dateStr: string): string {
 }
 
 const gravitaColor: Record<string, string> = {
-  lieve:    'var(--c-amber, #F59E0B)',
+  lieve:    'var(--c-amber-ink, #92400E)',
   moderata: 'var(--amber, #FD7E14)',
   grave:    'var(--primary, #D90012)',
   critica:  'var(--primary, #D90012)',

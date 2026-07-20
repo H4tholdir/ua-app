@@ -15,7 +15,7 @@ GOLD_TEXT=$(grep -rn "color:.*var(--gold\|color:.*#D4A843\|color:.*#d4a843" \
 if [ -n "$GOLD_TEXT" ]; then
   echo ""
   echo "❌ DS v2.3: gold usato come testo (WCAG fail 1.6:1)"
-  echo "   Usa var(--c-amber, #F59E0B) per testo warning, non --gold"
+  echo "   Usa var(--c-amber-ink, #92400E) per testo warning, non --gold (--c-amber è solo per accenti, mai testo)"
   echo "$GOLD_TEXT"
   ERRORS=$((ERRORS + 1))
 fi
