@@ -126,11 +126,11 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
         />
       )}
 
-      {/* `lavoro` è un oggetto letterale fresco a ogni render di questo host —
-          innocuo: la selezione dentro `ConfermaCassettaSheet` resetta solo
-          quando la REFERENCE di `lavoro` cambia, e finché lo sheet è aperto
-          questo host non ha nulla che lo rirenda (nessun polling/subscription
-          qui, lo scrim blocca l'interazione con la lista sotto). */}
+      {/* `lavoro` è un oggetto letterale fresco a ogni render di questo host
+          (es. quando `cerca`/`setCerca` fa rirenderare l'host mentre lo sheet
+          è aperto) — innocuo: il reset dentro `ConfermaCassettaSheet` è
+          chiavato su `lavoro.id`, non sulla reference, quindi un rirender
+          dell'host con lo STESSO lavoro non tocca la selezione in corso. */}
       <ConfermaCassettaSheet
         aperto={confermaId !== null}
         onChiudi={() => setConfermaId(null)}

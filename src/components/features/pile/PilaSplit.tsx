@@ -120,10 +120,11 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
         />
       )}
 
-      {/* Stessa nota di sicurezza di `PilaAperta.tsx`: `lavoro` è un oggetto
-          letterale fresco a ogni render, ma il reset di `ConfermaCassettaSheet`
-          scatta solo su cambio reference — questo host non ha nulla che lo
-          rirenda mentre lo sheet è aperto (scrim blocca l'interazione sotto). */}
+      {/* Stessa nota di `PilaAperta.tsx`: `lavoro` è un oggetto letterale
+          fresco a ogni render di questo host, ma il reset dentro
+          `ConfermaCassettaSheet` è chiavato su `lavoro.id`, non sulla
+          reference — un rirender dell'host con lo STESSO lavoro (qualunque
+          ne sia la causa) non tocca la selezione in corso. */}
       <ConfermaCassettaSheet
         aperto={confermaId !== null}
         onChiudi={() => setConfermaId(null)}

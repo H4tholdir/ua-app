@@ -34,11 +34,18 @@ type LavoroConferma = { id: string; numero: string; tipoLavoro: string; dentista
  * una chip svuota il campo. `target = nuova.trim() || scelta` è il valore
  * effettivo che va in `numero_cassetta`.
  *
- * Reset dello stato al cambio `lavoro` (pattern "adjusting state while
+ * Reset dello stato al cambio `lavoro.id` (pattern "adjusting state while
  * rendering" di React, stesso schema di `SchedaLavoroV3.tsx:152-156`): NON
  * un `useEffect` (violerebbe `react-hooks/set-state-in-effect` e
  * aggiungerebbe un render extra) — il confronto gira in render, prima che il
  * contenuto dello sheet precedente rimanga visibile con lo stato sbagliato.
+ *
+ * Chiave sull'id, NON sulla reference di `lavoro`: gli host (`PilaAperta`,
+ * `PilaSplit`) costruiscono `lavoro` come oggetto letterale fresco a ogni
+ * loro render, quindi un reference-check resetterebbe lo stato (chip scelta,
+ * testo digitato) ad OGNI rirender dell'host mentre lo sheet è aperto — es.
+ * la ricerca `cerca` in `PilaAperta` — anche se il lavoro sotto conferma è
+ * sempre lo stesso. Con `lavoro?.id` come chiave, quei rirender sono innocui.
  */
 export function ConfermaCassettaSheet(props: {
   aperto: boolean
@@ -54,9 +61,9 @@ export function ConfermaCassettaSheet(props: {
   const [salvando, setSalvando] = useState(false)
   const [erroreMsg, setErroreMsg] = useState<string | null>(null)
 
-  const [lavoroPrecedente, setLavoroPrecedente] = useState(lavoro)
-  if (lavoro !== lavoroPrecedente) {
-    setLavoroPrecedente(lavoro)
+  const [idPrecedente, setIdPrecedente] = useState<string | null>(lavoro?.id ?? null)
+  if ((lavoro?.id ?? null) !== idPrecedente) {
+    setIdPrecedente(lavoro?.id ?? null)
     setScelta(null)
     setNuova('')
     setSalvando(false)

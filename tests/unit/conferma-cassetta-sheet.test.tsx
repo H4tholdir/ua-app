@@ -34,4 +34,33 @@ describe('ConfermaCassettaSheet', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     expect(onConfermato).toHaveBeenCalledWith('l1')
   })
+
+  it('reset chiavato su lavoro.id: un host che rirenda con un NUOVO oggetto letterale ma stesso id non perde la selezione; un cambio di id invece resetta', () => {
+    const { rerender } = render(
+      <ConfermaCassettaSheet aperto onChiudi={() => {}} lavoro={{ ...lavoro }} suggerite={['C7', 'C15']} onConfermato={() => {}} />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /C7/ }))
+    expect(screen.getByRole('button', { name: 'Conferma in C7' })).toBeEnabled()
+
+    // Host re-render (es. `cerca`/`setCerca` in `PilaAperta`) che ricostruisce
+    // `lavoro` come oggetto letterale FRESCO ma con lo STESSO `id`: la
+    // selezione deve sopravvivere — questo è esattamente lo scenario del bug
+    // (reset su reference invece che su id).
+    rerender(
+      <ConfermaCassettaSheet aperto onChiudi={() => {}} lavoro={{ ...lavoro }} suggerite={['C7', 'C15']} onConfermato={() => {}} />
+    )
+    expect(screen.getByRole('button', { name: 'Conferma in C7' })).toBeEnabled()
+
+    // Un lavoro DIVERSO (id diverso) invece deve resettare lo stato.
+    rerender(
+      <ConfermaCassettaSheet
+        aperto
+        onChiudi={() => {}}
+        lavoro={{ id: 'l2', numero: '152', tipoLavoro: 'Corona', dentista: 'Dr. Russo' }}
+        suggerite={['C7', 'C15']}
+        onConfermato={() => {}}
+      />
+    )
+    expect(screen.getByRole('button', { name: /^Conferma$/ })).toBeDisabled()
+  })
 })
