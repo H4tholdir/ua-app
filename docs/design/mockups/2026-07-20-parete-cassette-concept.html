@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Parete delle Cassette — concept, 2 direzioni artistiche (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     LA PARETE DELLE CASSETTE — visione Francesco (secondo giro mini-triage):
+     la griglia a muro coi portalavori fisici (foto di riferimento: griglia
+     metallica bianca + cassette rosse/blu/azzurre appese) diventa una pagina:
+     · griglia che si adatta al numero di cassette
+     · cassette infinite, create al volo
+     · classificazione a colori
+     · drag & drop per ordinarle come sulla parete vera
+     · ricerca per nome cassetta o per lavoro contenuto
+     CONCEPT esplorativo per l'intervista — non è la spec. Due direzioni:
+     A materica (linguaggio DS v3: carta, corsa, ombre calde)
+     B pixel art (8-bit affettuoso, scelta di carattere)
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1120px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .griglia-mock { display: grid; grid-template-columns: repeat(auto-fit, 520px); gap: 30px; justify-content: center; max-width: 1120px; margin: 0 auto; }
+  @media (max-width: 590px) { body { padding: 14px; } .griglia-mock { grid-template-columns: 1fr; } .stage { width: auto; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 96px; }
+  .etichetta .nome { font-size: 17px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 22px 18px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+
+  .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .page-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .riga-cerca {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 50px; border-radius: 999px; padding: 0 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    font-size: 15.5px; font-weight: 600; color: var(--faint);
+    margin-bottom: 18px;
+  }
+  [data-theme="dark"] .riga-cerca { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .riga-cerca svg { width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; flex: none; }
+
+  /* ══ VARIANTE A — MATERICA (parete = --bg-deep con maglia metallica quieta) ══ */
+  .parete {
+    position: relative; border-radius: 18px; padding: 22px 16px 18px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      var(--bg-deep);
+  }
+  [data-theme="dark"] .parete {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      var(--bg-deep);
+  }
+  .parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tray { position: relative; border-radius: 10px 10px 12px 12px; padding: 9px 10px 10px; min-height: 92px;
+    display: flex; flex-direction: column; justify-content: flex-end; cursor: grab;
+    box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
+  }
+  [data-theme="dark"] .tray { box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4); }
+  /* gancio sulla maglia */
+  .tray::before { content: ''; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 10px; border-radius: 4px 4px 0 0; background: inherit; filter: brightness(.85); }
+  /* cavità interna */
+  .tray::after { content: ''; position: absolute; inset: 5px 6px auto 6px; height: 34px; border-radius: 7px;
+    background: rgba(0,0,0,.18); box-shadow: inset 0 3px 6px rgba(0,0,0,.28); }
+  .tray.rossa  { background: linear-gradient(180deg, #E8323B, #C3000F); }
+  .tray.blu    { background: linear-gradient(180deg, #2E6FD0, #174A9C); }
+  .tray.azzurra{ background: linear-gradient(180deg, #6FB1E8, #4187C6); }
+  .tray.grigia { background: linear-gradient(180deg, #9A948E, #6E675F); }
+  .tray.bianca { background: linear-gradient(180deg, #FFFEFA, #E4DCCB); }
+  .tray.verde  { background: linear-gradient(180deg, #2E9C55, #166B39); }
+  .tray .targa {
+    position: relative; z-index: 1; align-self: center;
+    background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
+    font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  .tray .cont { position: relative; z-index: 1; text-align: center; margin-top: 5px;
+    font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+  .tray.bianca .cont, .tray.azzurra .cont { color: rgba(29,25,19,.85); text-shadow: none; }
+  .tray .cont.vuota { color: rgba(255,255,255,.55); font-weight: 700; }
+  .tray.bianca .cont.vuota { color: rgba(29,25,19,.45); }
+  /* drag in corso */
+  .tray.drag { transform: rotate(-4deg) scale(1.06); box-shadow: 0 22px 34px -12px rgba(52,42,26,.5), inset 0 2px 0 rgba(255,255,255,.35); z-index: 3; cursor: grabbing; }
+  .slot-ghost { border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 92px; }
+  /* nuova cassetta */
+  .tray-nuova { border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 92px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3); }
+  .tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
+  .tray-nuova .t { font-size: 12px; font-weight: 700; }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  /* ══ VARIANTE B — PIXEL ART (8-bit affettuoso) ══ */
+  .parete-px {
+    position: relative; border-radius: 18px; padding: 22px 16px 18px;
+    image-rendering: pixelated;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 20px, rgba(50,40,25,.10) 20px 24px),
+      repeating-linear-gradient(90deg, transparent 0 20px, rgba(50,40,25,.10) 20px 24px),
+      var(--bg-deep);
+  }
+  [data-theme="dark"] .parete-px {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 20px, rgba(255,255,255,.07) 20px 24px),
+      repeating-linear-gradient(90deg, transparent 0 20px, rgba(255,255,255,.07) 20px 24px),
+      var(--bg-deep);
+  }
+  .px-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .px-tray { position: relative; min-height: 92px; padding: 10px 10px 8px;
+    display: flex; flex-direction: column; justify-content: flex-end; cursor: grab;
+    border: 4px solid rgba(0,0,0,.35);
+    box-shadow: inset 4px 4px 0 rgba(255,255,255,.35), inset -4px -4px 0 rgba(0,0,0,.25), 6px 6px 0 rgba(52,42,26,.25);
+  }
+  [data-theme="dark"] .px-tray { box-shadow: inset 4px 4px 0 rgba(255,255,255,.22), inset -4px -4px 0 rgba(0,0,0,.4), 6px 6px 0 rgba(0,0,0,.45); }
+  .px-tray::before { content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    width: 28px; height: 8px; background: inherit; border: 4px solid rgba(0,0,0,.35); border-bottom: none; }
+  .px-tray::after { content: ''; position: absolute; inset: 6px 8px auto 8px; height: 30px;
+    background: rgba(0,0,0,.22); box-shadow: inset 3px 3px 0 rgba(0,0,0,.25); }
+  .px-tray.rossa { background: #D90012; }
+  .px-tray.blu { background: #1D5FBF; }
+  .px-tray.azzurra { background: #6FB1E8; }
+  .px-tray.grigia { background: #8A8580; }
+  .px-tray.bianca { background: #FFFEFA; }
+  .px-tray.verde { background: #1B7F3B; }
+  .px-tray .targa { position: relative; z-index: 1; align-self: center;
+    background: #FFFEFA; border: 3px solid rgba(0,0,0,.35); padding: 1px 8px 2px;
+    font-size: 13px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums; }
+  .px-tray .cont { position: relative; z-index: 1; text-align: center; margin-top: 5px;
+    font-size: 11px; font-weight: 800; color: rgba(255,255,255,.95); }
+  .px-tray.bianca .cont, .px-tray.azzurra .cont { color: rgba(29,25,19,.85); }
+  .px-tray .cont.vuota { opacity: .55; font-weight: 700; }
+  .px-tray.drag { transform: translate(-3px,-6px); box-shadow: inset 4px 4px 0 rgba(255,255,255,.35), inset -4px -4px 0 rgba(0,0,0,.25), 12px 14px 0 rgba(52,42,26,.3); z-index: 3; }
+  .px-ghost { border: 4px dashed #CBC1B0; min-height: 92px; }
+  .px-nuova { border: 4px dashed #CBC1B0; min-height: 92px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3); }
+  .px-nuova .plus { font-size: 24px; font-weight: 350; line-height: 1; }
+  .px-nuova .t { font-size: 12px; font-weight: 700; }
+
+  /* Come funziona */
+  .come { max-width: 940px; margin: 34px auto 0; }
+  .come h2 { font-size: 19px; font-weight: 800; color: #1C1917; text-align: center; margin: 0 0 12px; }
+  .come-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .come-card { border-radius: 16px; background: #F7F4EE; box-shadow: 0 6px 20px -14px rgba(50,40,25,.35); padding: 14px 16px; }
+  .come-card .t { font-size: 13.5px; font-weight: 800; color: #1C1917; margin-bottom: 3px; }
+  .come-card .d { font-size: 12.5px; font-weight: 600; color: #6E675F; line-height: 1.45; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>La Parete delle Cassette — primo concept</h1>
+  <p>La tua parete vera, dentro UÀ: griglia che si adatta al numero di cassette, cassette infinite
+  coi loro colori, drag &amp; drop per ordinarle come sul muro, ricerca per cassetta o per lavoro.
+  Nel disegno: C7 è vuota, C12 ha n.144, C15 ha n.146, C21 è trascinata verso il posto tratteggiato.
+  Due direzioni artistiche a confronto — è un concept per l'intervista, non ancora la spec.</p>
+</div>
+
+<div class="griglia-mock">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — Materica (linguaggio DS v3)</div>
+    <div class="desc">Vassoi di plastica veri sulla maglia metallica quieta: gradiente, cavità in ombra,
+    gancio, targa bianca col nome. Coerente al 100% con la carta e la fisicità del resto dell'app
+    (TastoPiu, tasti a corsa).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        Cerca una cassetta o un lavoro…
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa"><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu"><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray bianca"><span class="targa">C7</span><span class="cont vuota">libera</span></div>
+          <div class="slot-ghost"></div>
+          <div class="tray azzurra drag"><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+      <div class="nota-stage">C21 è in trascinamento verso lo slot tratteggiato. La griglia cresce da sola
+      quando aggiungi cassette.</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        Cerca una cassetta o un lavoro…
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa"><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu"><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray bianca"><span class="targa">C7</span><span class="cont vuota">libera</span></div>
+          <div class="slot-ghost"></div>
+          <div class="tray azzurra drag"><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — Pixel art (8-bit affettuoso)</div>
+    <div class="desc">Stessa parete, resa a blocchi: bordi duri, ombre a gradini, targhe squadrate.
+    Ha carattere e simpatia, ma introduce un SECONDO linguaggio visivo nell'app (le 7 Leggi non lo
+    vietano, però andrebbe dichiarato come «licenza» della sola Parete).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        Cerca una cassetta o un lavoro…
+      </div>
+      <div class="parete-px">
+        <div class="px-grid">
+          <div class="px-tray rossa"><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="px-tray blu"><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="px-tray bianca"><span class="targa">C7</span><span class="cont vuota">libera</span></div>
+          <div class="px-ghost"></div>
+          <div class="px-tray azzurra drag"><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <button class="px-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        Cerca una cassetta o un lavoro…
+      </div>
+      <div class="parete-px">
+        <div class="px-grid">
+          <div class="px-tray rossa"><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="px-tray blu"><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="px-tray bianca"><span class="targa">C7</span><span class="cont vuota">libera</span></div>
+          <div class="px-ghost"></div>
+          <div class="px-tray azzurra drag"><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <button class="px-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="come">
+  <h2>Come funziona (proposta base, da rifinire con l'intervista)</h2>
+  <div class="come-grid">
+    <div class="come-card"><div class="t">Griglia adattiva</div><div class="d">Le righe crescono col numero
+    di cassette; l'ordine è il TUO, via drag &amp; drop — così la pagina rispecchia la parete vera.</div></div>
+    <div class="come-card"><div class="t">Cassette infinite, coi colori</div><div class="d">«+ Nuova cassetta»:
+    nome + colore (palette portalavori: bianco, azzurro, rosso, blu, verde, grigio). Il colore classifica
+    quello che decidi tu.</div></div>
+    <div class="come-card"><div class="t">Occupata / libera</div><div class="d">La cassetta mostra il lavoro
+    che contiene (n. + dentista); alla consegna si libera da sola (L5: UÀ lo racconta).</div></div>
+    <div class="come-card"><div class="t">Ricerca</div><div class="d">Per nome cassetta («C12») o per
+    contenuto («144», «Bianchi»): la cassetta giusta si accende, le altre si spengono.</div></div>
+  </div>
+</div>
+
+</body>
+</html>

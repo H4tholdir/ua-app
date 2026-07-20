@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Parete in home — 3 collocazioni possibili (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     COLLOCAZIONE — domanda Francesco: «sarebbe da implementarlo nella home,
+     perché è l'organizzazione interna di tutti i lavori. Cosa proponi?»
+     Vincolo: la home è sacra (§3.3 no-scroll, L1 una cosa alla volta).
+     Tre strade — la 1 è la consigliata: la home diventa una casa a DUE STANZE
+     (Pile = urgenza · Parete = posizione fisica), swipe orizzontale + dots.
+     Ogni stanza resta «una cosa alla volta»; il TastoPiù resta in entrambe.
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1120px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .griglia-mock { display: grid; grid-template-columns: repeat(auto-fit, 340px); gap: 26px; justify-content: center; max-width: 1120px; margin: 0 auto; }
+  @media (max-width: 420px) { body { padding: 14px; } .griglia-mock { grid-template-columns: 1fr; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 118px; }
+  .etichetta .nome { font-size: 16px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 12.5px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .stage {
+    position: relative; border-radius: 22px; overflow: hidden; height: 600px;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 20px 18px 16px;
+    display: flex; flex-direction: column;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  /* home pieces (dal mockup-legge home.html) */
+  .home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .eyebrow { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  .greeting { font-size: 27px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin-top: 5px; color: var(--ink); }
+  .striscia { display: flex; align-items: center; gap: 10px; margin-top: 12px; min-width: 0; }
+  .striscia .ic { flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--green-tint); color: var(--green); }
+  .striscia .ic svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .striscia .txt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .striscia .txt b { color: var(--ink); font-weight: 700; }
+  .pila-wrap { flex: 1; display: flex; flex-direction: column; gap: 11px; justify-content: center; margin-top: 12px; }
+  .pila { display: flex; align-items: center; gap: 14px; padding: 13px 16px !important; }
+  .pila-num { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+  .pila-label { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+  .pila-sub { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pila-sub b { color: var(--ink); font-weight: 700; }
+  .pila.rossa .pila-num, .pila.rossa .pila-label { color: var(--red); }
+  .pila.ambra .pila-num, .pila.ambra .pila-label { color: var(--amber); }
+  .pila.viola .pila-num, .pila.viola .pila-label { color: var(--purple); }
+  .pila.blu .pila-num, .pila.blu .pila-label { color: var(--blue); }
+  .home-foot { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tp-mini { transform: scale(.72); margin: -14px 0; }
+  .tp-label { font-size: 15px; font-weight: 800; color: var(--ink); }
+
+  /* dots delle stanze (ProgressDots §5.32) */
+  .stanze-dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+  .dot.sel { background: var(--ink); width: 18px; border-radius: 999px; }
+
+  /* peek della parete sul bordo destro (stanza accanto) — il contenuto della
+     stanza 1 si stringe per non finirci sotto */
+  .peek-host .home-head, .peek-host .striscia, .peek-host .pila-wrap { margin-right: 34px; }
+  .peek-parete {
+    position: absolute; top: 210px; right: -34px; width: 64px; bottom: 150px;
+    border-radius: 14px 0 0 14px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 18px, rgba(50,40,25,.06) 18px 20px),
+      repeating-linear-gradient(90deg, transparent 0 18px, rgba(50,40,25,.06) 18px 20px),
+      var(--bg-deep);
+    box-shadow: -8px 0 18px -12px rgba(50,40,25,.35);
+    padding: 10px 6px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  }
+  [data-theme="dark"] .peek-parete {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 18px, rgba(255,255,255,.05) 18px 20px),
+      repeating-linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,.05) 18px 20px),
+      var(--bg-deep);
+  }
+  .peek-tray { width: 44px; height: 30px; border-radius: 6px; box-shadow: inset 0 2px 0 rgba(255,255,255,.3), 0 4px 8px -4px rgba(0,0,0,.4); }
+
+  /* parete piena (stanza 2) */
+  .parete {
+    flex: 1; border-radius: 16px; padding: 16px 12px; margin-top: 12px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 20px, rgba(50,40,25,.055) 20px 22px),
+      repeating-linear-gradient(90deg, transparent 0 20px, rgba(50,40,25,.055) 20px 22px),
+      var(--bg-deep);
+  }
+  [data-theme="dark"] .parete {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 20px, rgba(255,255,255,.045) 20px 22px),
+      repeating-linear-gradient(90deg, transparent 0 20px, rgba(255,255,255,.045) 20px 22px),
+      var(--bg-deep);
+  }
+  .parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tray { position: relative; border-radius: 8px 8px 10px 10px; padding: 6px 6px 7px; min-height: 74px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    box-shadow: 0 8px 14px -7px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -10px 14px -8px rgba(0,0,0,.28); }
+  [data-theme="dark"] .tray { box-shadow: 0 8px 14px -7px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -10px 14px -8px rgba(0,0,0,.4); }
+  .tray .cavita { position: absolute; inset: 4px 5px auto 5px; height: 30px; border-radius: 5px;
+    background: rgba(0,0,0,.18); box-shadow: inset 0 2px 5px rgba(0,0,0,.28);
+    display: flex; align-items: center; justify-content: center; }
+  .tray .cavita svg { height: 22px; width: auto; }
+  .tray.rossa { background: linear-gradient(180deg, #E8323B, #C3000F); }
+  .tray.blu { background: linear-gradient(180deg, #2E6FD0, #174A9C); }
+  .tray.azzurra { background: linear-gradient(180deg, #6FB1E8, #4187C6); }
+  .tray.verde { background: linear-gradient(180deg, #2E9C55, #166B39); }
+  .tray.bianca { background: linear-gradient(180deg, #FFFEFA, #E4DCCB); }
+  .tray.grigia { background: linear-gradient(180deg, #9A948E, #6E675F); }
+  .tray .targa { position: relative; z-index: 1; align-self: center;
+    background: rgba(255,255,255,.92); border-radius: 6px; padding: 1px 7px 2px;
+    font-size: 11px; font-weight: 800; color: #1D1913; }
+  .tray.libera .targa { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.75); color: rgba(255,255,255,.9); }
+  .tray.libera.bianca .targa { box-shadow: inset 0 0 0 1.5px rgba(29,25,19,.4); color: rgba(29,25,19,.7); }
+
+  /* opzione 2: sheet preferenza */
+  .sheet-pref { margin-top: auto; background: var(--card); border-radius: 22px; padding: 18px 18px 16px; box-shadow: var(--sh-card); }
+  [data-theme="dark"] .sheet-pref { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .sheet-pref .t { font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+  .scelte { display: flex; flex-direction: column; gap: 8px; }
+  .scelta { display: flex; align-items: center; gap: 10px; min-height: 48px; border-radius: 14px; padding: 0 14px;
+    background: var(--bg-deep); font-size: 15px; font-weight: 700; color: var(--ink); }
+  .scelta.sel { background: var(--green-tint); color: var(--green); }
+  .scelta .r { margin-left: auto; font-weight: 800; }
+
+  /* opzione 3: card sez tutto-il-resto */
+  .sez { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    border: none; cursor: pointer; border-radius: 22px; padding: 13px 14px; font-family: var(--font-v3); }
+  .sez .glifo { flex: none; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); font-size: 21px; }
+  .sez .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sez .nome { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .sez .sub { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .sez .chev { flex: none; font-size: 20px; font-weight: 700; color: var(--faint); }
+  .lista-sez { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .puntini { text-align: center; color: var(--faint); font-size: 16px; font-weight: 800; letter-spacing: .3em; }
+</style>
+</head>
+<body>
+
+<!-- simboli riusati dalla v2 -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="mk-corona" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="#F8F2E6"/>
+  </symbol>
+  <symbol id="mk-ponte" viewBox="0 0 44 24">
+    <path d="M3 10 C3 5.5 5.5 4 9.5 4 C13 4 15 5.5 15 10 C15 13 14.2 16 13.3 18.4 C12.8 19.7 11.2 19.6 10.8 18.3 L10.2 16.2 C9.8 14.9 8.2 14.9 7.8 16.2 L7.2 18.3 C6.8 19.6 5.2 19.7 4.7 18.4 C3.8 16 3 13 3 10 Z" fill="#F8F2E6"/>
+    <path d="M17 10 C17 5.5 19.5 4 22 4 C24.5 4 27 5.5 27 10 C27 13.5 26.4 16.8 25.6 19 C25.2 20.2 23 20.2 22.6 19 L21.4 19 C21 20.2 18.8 20.2 18.4 19 C17.6 16.8 17 13.5 17 10 Z" fill="#EFE6D2"/>
+    <path d="M29 10 C29 5.5 31 4 34.5 4 C38.5 4 41 5.5 41 10 C41 13 40.2 16 39.3 18.4 C38.8 19.7 37.2 19.6 36.8 18.3 L36.2 16.2 C35.8 14.9 34.2 14.9 33.8 16.2 L33.2 18.3 C32.8 19.6 31.2 19.7 30.7 18.4 C29.8 16 29 13 29 10 Z" fill="#F8F2E6"/>
+  </symbol>
+  <symbol id="mk-provvisorio" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.6" stroke-dasharray="3.2 2.4"/>
+  </symbol>
+  <symbol id="mk-totale" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/><circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/>
+    <circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/><circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/>
+    <circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/><circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/>
+  </symbol>
+</svg>
+
+<div class="intro">
+  <h1>Dove vive la Parete — la home a due stanze</h1>
+  <p>Hai ragione: è l'organizzazione interna di tutti i lavori, merita la home. Il vincolo è la legge:
+  la home è sacra (una cosa alla volta, mai scroll). La proposta che sposa le due cose: la home diventa
+  una casa a DUE STANZE affiancate — <b>le Pile</b> (che cosa urge) e <b>la Parete</b> (dove sta
+  fisicamente). Swipe orizzontale, dots sotto, il TastoPiù non ti lascia mai. Ogni stanza resta
+  «una cosa alla volta». Le altre due strade, per confronto, sono più timide.</p>
+</div>
+
+<div class="griglia-mock">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">1 · Home a due stanze — stanza Pile (consigliata)</div>
+    <div class="desc">La home di oggi, intatta; sul bordo destro «sbircia» la Parete (peek) e i dots
+    dicono che c'è una seconda stanza. Swipe ← per entrarci. Emendamento §3.3/§7.1: «la home ha due
+    stanze orizzontali, mai scroll verticale».</div></div>
+    <div class="tema-cap">Light · stanza 1</div>
+    <div class="stage peek-host" data-theme="light">
+      <div class="home-head">
+        <div>
+          <div class="eyebrow">Lunedì 20 luglio</div>
+          <div class="greeting">Buongiorno,<br>Francesco</div>
+        </div>
+        <button class="tasto-tondo" aria-label="Tutto il resto">☰</button>
+      </div>
+      <div class="striscia">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span class="txt"><b>Tutto a posto:</b> 2 consegne oggi</span>
+      </div>
+      <div class="pila-wrap">
+        <div class="card pila rossa"><div class="pila-num">2</div><div style="flex:1;min-width:0"><div class="pila-label">Da consegnare oggi</div><div class="pila-sub"><b>n.144</b> da ieri · <b>n.147</b> alle 16</div></div></div>
+        <div class="card pila ambra"><div class="pila-num">4</div><div style="flex:1;min-width:0"><div class="pila-label">Sul banco</div><div class="pila-sub"><b>n.149</b> per venerdì</div></div></div>
+        <div class="card pila viola"><div class="pila-num">1</div><div style="flex:1;min-width:0"><div class="pila-label">Da rifare / In prova</div><div class="pila-sub"><b>n.145</b> torna lunedì</div></div></div>
+        <div class="card pila blu"><div class="pila-num">2</div><div style="flex:1;min-width:0"><div class="pila-label">Appena arrivati</div><div class="pila-sub"><b>n.151</b> e <b>n.152</b></div></div></div>
+      </div>
+      <div class="home-foot">
+        <button class="tp tp-mini" aria-label="Nuovo lavoro"><span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span></button>
+        <div class="tp-label">Nuovo lavoro</div>
+      </div>
+      <div class="stanze-dots"><span class="dot sel"></span><span class="dot"></span></div>
+      <div class="peek-parete">
+        <span class="peek-tray" style="background:linear-gradient(180deg,#E8323B,#C3000F)"></span>
+        <span class="peek-tray" style="background:linear-gradient(180deg,#2E6FD0,#174A9C)"></span>
+        <span class="peek-tray" style="background:linear-gradient(180deg,#FFFEFA,#E4DCCB)"></span>
+      </div>
+    </div>
+    <div class="nota-stage">Il peek è l'invito: la Parete è a uno swipe.</div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">1 · Home a due stanze — stanza Parete</div>
+    <div class="desc">Swipe ← e sei sulla parete: saluto compresso, le tue cassette come sul muro,
+    stesso TastoPiù. I dots ora accendono la seconda stanza. Tap su cassetta occupata → scheda
+    lavoro. Il drag riordina.</div></div>
+    <div class="tema-cap">Light · stanza 2</div>
+    <div class="stage" data-theme="light">
+      <div class="home-head">
+        <div>
+          <div class="eyebrow">Le cassette</div>
+          <div class="greeting" style="font-size:23px">La parete</div>
+        </div>
+        <button class="tasto-tondo" aria-label="Tutto il resto">☰</button>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span></div>
+          <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span></div>
+          <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span></div>
+          <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span></div>
+          <div class="tray bianca libera"><span class="cavita"></span><span class="targa">C7</span></div>
+          <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span></div>
+        </div>
+      </div>
+      <div class="home-foot">
+        <button class="tp tp-mini" aria-label="Nuovo lavoro"><span class="ghiera"><span class="solco"></span><span class="cappello"><span class="piu">+</span></span></span></button>
+        <div class="tp-label">Nuovo lavoro</div>
+      </div>
+      <div class="stanze-dots"><span class="dot"></span><span class="dot sel"></span></div>
+    </div>
+    <div class="nota-stage">Desktop 1280: la Parete diventa voce «Le cassette» nel NavDesk (pannello centrale).</div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">2 · Preferenza del lab (complemento della 1)</div>
+    <div class="desc">In «Il mio laboratorio → Aspetto»: quale stanza si apre per prima. Il lab
+    cassetta-first vive sulla Parete e swipa verso le Pile. Non è un'alternativa: è la rifinitura
+    della strada 1 (pattern preferenza_dashboard già esistente).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light" style="height:600px">
+      <div class="sheet-pref" style="margin-top:40px">
+        <div class="t">All'apertura mostra</div>
+        <div class="scelte">
+          <div class="scelta sel">Le pile (che cosa urge)<span class="r">✓</span></div>
+          <div class="scelta">La parete (dove stanno)</div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="nota-stage" style="margin-bottom:8px">Vive in «Il mio laboratorio → Aspetto» (§7.16) —
+      arriva con l'ondata F1, o prima se la Parete atterra in home.</div>
+    </div>
+    <div class="nota-stage">&nbsp;</div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">3 · Solo voce in «Tutto il resto» (ripiego)</div>
+    <div class="desc">Home intatta, la Parete è una pagina come le altre: card «Le cassette» fra le
+    voci. Zero emendamenti di legge, MA declassa «l'organizzazione interna di tutti i lavori» a
+    pagina di secondo livello — non è quello che hai chiesto.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head" style="display:flex;align-items:center;gap:12px">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span style="font-size:23px;font-weight:800;color:var(--ink)">Tutto il resto</span>
+      </div>
+      <div class="lista-sez">
+        <div class="puntini">···</div>
+        <button class="card sez">
+          <span class="glifo" aria-hidden="true">🗄️</span>
+          <span class="corpo"><span class="nome">Le cassette</span><span class="sub">5 occupate · 2 libere</span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="glifo" aria-hidden="true">⚙️</span>
+          <span class="corpo"><span class="nome">Il mio laboratorio</span><span class="sub">Profilo, PEC, abbonamento ✓</span></span>
+          <span class="chev">›</span>
+        </button>
+      </div>
+      <div style="flex:1"></div>
+      <div class="nota-stage" style="margin-bottom:8px">Nota: la mappa §6.1 è chiusa a 9 voci —
+      anche questa strada richiede comunque un emendamento.</div>
+    </div>
+    <div class="nota-stage">&nbsp;</div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A13 — Il flusso completo: tap sulla riga «Lavoro» → odontogramma (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     A13 FLOW — cosa succede al tap. Destinazione REALE di oggi: la route-ponte
+     /lavori/[id]/modifica?tab=clinica — guscio v3 (BackHeaderModifica: solo ‹,
+     re-skin .lavoro-form-v3: superfici panna + Plus Jakarta) con dentro il tab
+     Clinica: «Odontogramma FDI» (toggle Adulto/Deciduo, arcate per quadranti,
+     legenda, chip denti) + sezione «Colori» (scala VITA). L'odontogramma NON
+     viene ridisegnato ora: il redesign v3 pieno resta per la sua ondata.
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1100px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 920px; }
+  .flusso-riga { display: grid; grid-template-columns: 370px 70px 370px; gap: 0; justify-content: center; align-items: center; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 860px) { .flusso-riga { grid-template-columns: 1fr; } .freccia { transform: rotate(90deg); margin: 8px auto; } }
+  .tema-titolo { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #6E675F; margin: 26px 0 12px; text-align: center; }
+  .cap { text-align: center; font-size: 13px; font-weight: 700; color: #6E675F; margin-bottom: 10px; }
+  .freccia { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #6E675F; }
+  .freccia .fr { font-size: 30px; font-weight: 800; }
+  .freccia .txt { font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 20px 16px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  /* ── Frame 1: scheda con riga «Lavoro» in evidenza-tap ── */
+  .scheda-head-mini { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .scheda-num { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .scheda-head-mini .sp { flex: 1; }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  .card-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  .card.cardinfo { border-radius: 22px; padding: 4px 20px; }
+  .cardinfo .card-title { margin-top: 12px; }
+  .denti-chips { display: inline-flex; align-items: center; gap: 6px; }
+  .dente-chip {
+    min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--blue-tint); color: var(--blue);
+    font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .riga-dato .chev { font-size: 20px; font-weight: 700; color: var(--faint); line-height: 1; margin-left: 4px; }
+  /* evidenza del tap: ring blu §3.4 (mockup chrome, non parte del design) */
+  .riga-tap { position: relative; border-radius: 12px; box-shadow: 0 0 0 2.5px var(--blue); padding-left: 8px; padding-right: 8px; margin-left: -8px; margin-right: -8px; }
+
+  /* ── Frame 2: route-ponte con odontogramma ── */
+  .tab-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 16px; }
+  .tab-pill {
+    height: 36px; padding: 0 14px; border: none; border-radius: 999px;
+    display: inline-flex; align-items: center;
+    background: var(--bg-deep); color: var(--muted);
+    font-family: var(--font-v3); font-size: 13.5px; font-weight: 800; letter-spacing: .04em;
+  }
+  .tab-pill.sel { background: var(--card); color: var(--ink); box-shadow: var(--sh-press); }
+  [data-theme="dark"] .tab-pill.sel { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .odo-title { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin: 4px 0 10px; }
+  .odo-card { border-radius: 22px; padding: 16px 12px; }
+  .odo-toggle { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .odo-tog { height: 32px; padding: 0 14px; border: none; border-radius: 999px; background: var(--bg-deep); color: var(--muted); font-family: var(--font-v3); font-size: 12.5px; font-weight: 800; }
+  .odo-tog.sel { background: var(--blue-tint); color: var(--blue); }
+  .arcata { display: flex; justify-content: center; gap: 3px; margin: 6px 0; flex-wrap: nowrap; }
+  .dente {
+    width: 19px; height: 19px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); box-shadow: inset 0 0 0 1.2px var(--line);
+    font-size: 8.5px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  .dente.sel { background: var(--blue); color: #FFF; box-shadow: none; }
+  .dente.manc { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1.2px var(--line); text-decoration: line-through; }
+  .dente.imp { background: var(--purple-tint); color: var(--purple); box-shadow: inset 0 0 0 1.5px var(--purple); }
+  .arcata-label { text-align: center; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 2px 0; }
+  .odo-legenda { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  .leg .p { width: 13px; height: 13px; border-radius: 50%; flex: none; }
+  .leg .p.sel { background: var(--blue); }
+  .leg .p.manc { background: transparent; box-shadow: inset 0 0 0 1.2px var(--line); }
+  .leg .p.imp { background: var(--purple-tint); box-shadow: inset 0 0 0 1.5px var(--purple); }
+  .odo-chips { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+  .colori-stub { margin-top: 16px; }
+  .colori-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .campo-fint { border-radius: 14px; background: var(--card); box-shadow: var(--sh-press); padding: 9px 14px; }
+  [data-theme="dark"] .campo-fint { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .campo-fint .l { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+  .campo-fint .v { font-size: 15px; font-weight: 700; color: var(--ink); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>A13 — Cosa succede al tap: il flusso completo</h1>
+  <p>Tap sulla riga «Lavoro» (coi chip dei denti) → si apre il tab Clinica della route-ponte, nel guscio
+  v3 (‹ per tornare alla scheda, superfici panna, Plus Jakarta): l'odontogramma FDI di oggi, com'è —
+  arcate per quadranti, tocco sul dente per selezionarlo, tieni premuto per mancante/impianto, legenda
+  e colori VITA sotto. Il ridisegno pieno dell'odontogramma resta per la sua ondata: questo ponte lo
+  rende solo raggiungibile (e i denti visibili in scheda).</p>
+</div>
+
+<div class="tema-titolo">Light</div>
+<div class="flusso-riga">
+  <div>
+    <div class="cap">1 · La scheda — tap sulla riga «Lavoro»</div>
+    <div class="stage" data-theme="light">
+      <div class="scheda-head-mini">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="scheda-num">n.147</span>
+        <span class="pill fam-verde">Pronta ✓</span>
+        <span class="sp"></span>
+        <button class="tasto-tondo" aria-label="Altro">⋯</button>
+      </div>
+      <div class="card cardinfo">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+        <div class="riga-dato riga-tap"><span class="chiave">Lavoro</span>
+          <span class="valore-col"><span class="valore">Corona zirconia</span>
+            <span class="denti-chips" style="margin-top:4px"><span class="dente-chip">13</span><span class="dente-chip">14</span><span class="chev">›</span></span>
+          </span>
+        </div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+      <div class="nota-stage">Il ring blu segna il tap (chrome del mockup, non fa parte del design).</div>
+    </div>
+  </div>
+
+  <div class="freccia"><span class="fr">→</span><span class="txt">tap</span></div>
+
+  <div>
+    <div class="cap">2 · Il tab Clinica del ponte (guscio v3)</div>
+    <div class="stage" data-theme="light">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px">
+        <button class="tasto-tondo" aria-label="Torna alla scheda lavoro">‹</button>
+        <span style="font-size:17px; font-weight:800; color:var(--ink)">n.147</span>
+      </div>
+      <div class="tab-pills">
+        <span class="tab-pill">Dati</span>
+        <span class="tab-pill">Lavorazioni</span>
+        <span class="tab-pill sel">Clinica</span>
+        <span class="tab-pill">Prove</span>
+        <span class="tab-pill">Immagini</span>
+      </div>
+      <div class="odo-title">Odontogramma FDI</div>
+      <div class="card odo-card">
+        <div class="odo-toggle"><span class="odo-tog sel">Adulto</span><span class="odo-tog">Deciduo</span></div>
+        <div class="arcata-label">Arcata superiore</div>
+        <div class="arcata">
+          <span class="dente">18</span><span class="dente">17</span><span class="dente">16</span><span class="dente">15</span><span class="dente sel">14</span><span class="dente sel">13</span><span class="dente manc">12</span><span class="dente">11</span><span class="dente imp">21</span><span class="dente">22</span><span class="dente">23</span><span class="dente">24</span><span class="dente">25</span><span class="dente">26</span><span class="dente">27</span><span class="dente">28</span>
+        </div>
+        <div class="arcata">
+          <span class="dente">48</span><span class="dente">47</span><span class="dente">46</span><span class="dente">45</span><span class="dente">44</span><span class="dente">43</span><span class="dente">42</span><span class="dente">41</span><span class="dente">31</span><span class="dente">32</span><span class="dente">33</span><span class="dente">34</span><span class="dente">35</span><span class="dente">36</span><span class="dente">37</span><span class="dente">38</span>
+        </div>
+        <div class="arcata-label">Arcata inferiore</div>
+        <div class="odo-legenda">
+          <span class="leg"><span class="p sel"></span>Per il lavoro</span>
+          <span class="leg"><span class="p manc"></span>Mancante</span>
+          <span class="leg"><span class="p imp"></span>Impianto</span>
+        </div>
+        <div class="odo-chips"><span class="dente-chip">13</span><span class="dente-chip">14</span></div>
+      </div>
+      <div class="colori-stub">
+        <div class="odo-title">Colori</div>
+        <div class="colori-grid">
+          <div class="campo-fint"><div class="l">Colore dente</div><div class="v">A2</div></div>
+          <div class="campo-fint"><div class="l">Colore collo</div><div class="v">A3</div></div>
+        </div>
+      </div>
+      <div class="nota-stage">‹ torna alla scheda. Tocco = seleziona per il lavoro · tieni premuto = mancante /
+      impianto / ripristina. Al rientro in scheda i chip si aggiornano.</div>
+    </div>
+  </div>
+</div>
+
+<div class="tema-titolo">Dark</div>
+<div class="flusso-riga">
+  <div>
+    <div class="stage" data-theme="dark">
+      <div class="scheda-head-mini">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="scheda-num">n.147</span>
+        <span class="pill fam-verde">Pronta ✓</span>
+        <span class="sp"></span>
+        <button class="tasto-tondo" aria-label="Altro">⋯</button>
+      </div>
+      <div class="card cardinfo">
+        <div class="card-title">Il lavoro</div>
+        <div class="riga-dato"><span class="chiave">Dentista</span><span class="valore-col"><span class="valore">Dr. Esposito</span></span></div>
+        <div class="riga-dato"><span class="chiave">Paziente</span><span class="valore-col"><span class="valore">PZ-0412</span></span></div>
+        <div class="riga-dato riga-tap"><span class="chiave">Lavoro</span>
+          <span class="valore-col"><span class="valore">Corona zirconia</span>
+            <span class="denti-chips" style="margin-top:4px"><span class="dente-chip">13</span><span class="dente-chip">14</span><span class="chev">›</span></span>
+          </span>
+        </div>
+        <div class="riga-dato"><span class="chiave">Consegna</span><span class="valore-col"><span class="valore urgente">Oggi · 16:00</span></span></div>
+        <div class="riga-dato"><span class="chiave">Tecnico</span><span class="valore-col"><span class="valore">Ciro</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="freccia"><span class="fr">→</span><span class="txt">tap</span></div>
+
+  <div>
+    <div class="stage" data-theme="dark">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px">
+        <button class="tasto-tondo" aria-label="Torna alla scheda lavoro">‹</button>
+        <span style="font-size:17px; font-weight:800; color:var(--ink)">n.147</span>
+      </div>
+      <div class="tab-pills">
+        <span class="tab-pill">Dati</span>
+        <span class="tab-pill">Lavorazioni</span>
+        <span class="tab-pill sel">Clinica</span>
+        <span class="tab-pill">Prove</span>
+        <span class="tab-pill">Immagini</span>
+      </div>
+      <div class="odo-title">Odontogramma FDI</div>
+      <div class="card odo-card">
+        <div class="odo-toggle"><span class="odo-tog sel">Adulto</span><span class="odo-tog">Deciduo</span></div>
+        <div class="arcata-label">Arcata superiore</div>
+        <div class="arcata">
+          <span class="dente">18</span><span class="dente">17</span><span class="dente">16</span><span class="dente">15</span><span class="dente sel">14</span><span class="dente sel">13</span><span class="dente manc">12</span><span class="dente">11</span><span class="dente imp">21</span><span class="dente">22</span><span class="dente">23</span><span class="dente">24</span><span class="dente">25</span><span class="dente">26</span><span class="dente">27</span><span class="dente">28</span>
+        </div>
+        <div class="arcata">
+          <span class="dente">48</span><span class="dente">47</span><span class="dente">46</span><span class="dente">45</span><span class="dente">44</span><span class="dente">43</span><span class="dente">42</span><span class="dente">41</span><span class="dente">31</span><span class="dente">32</span><span class="dente">33</span><span class="dente">34</span><span class="dente">35</span><span class="dente">36</span><span class="dente">37</span><span class="dente">38</span>
+        </div>
+        <div class="arcata-label">Arcata inferiore</div>
+        <div class="odo-legenda">
+          <span class="leg"><span class="p sel"></span>Per il lavoro</span>
+          <span class="leg"><span class="p manc"></span>Mancante</span>
+          <span class="leg"><span class="p imp"></span>Impianto</span>
+        </div>
+        <div class="odo-chips"><span class="dente-chip">13</span><span class="dente-chip">14</span></div>
+      </div>
+      <div class="colori-stub">
+        <div class="odo-title">Colori</div>
+        <div class="colori-grid">
+          <div class="campo-fint"><div class="l">Colore dente</div><div class="v">A2</div></div>
+          <div class="campo-fint"><div class="l">Colore collo</div><div class="v">A3</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

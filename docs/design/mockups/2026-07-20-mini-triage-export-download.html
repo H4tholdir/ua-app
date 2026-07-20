@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Export Bundle E — Scarica lavori (/lavori) + Persone in v3 con cedolini (mini-triage 20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     Bundle E ha portato in prod due route CSV senza UI:
+       · GET /api/lavori/export        (year, default annoRoma) — pagina /lavori (v3)
+       · GET /api/tecnici/cedolini-batch (mese, default Roma; RBAC titolare/admin_rete)
+     DECISIONE FRANCESCO 20/07: /tecnici migra INTERAMENTE a v3 in questa ondata —
+     il bottone cedolini nasce già dentro la pagina migrata (regola §14 rispettata).
+     NB: i nuovi punti di download NON calcolano l'anno client-side (il link
+     fatture usa new Date().getFullYear() — qui si lascia il default della route,
+     che è già annoRoma()/mese Roma).
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1180px; margin: 0 auto 8px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .blocco-titolo { font-size: 19px; font-weight: 800; letter-spacing: -.01em; color: #1C1917; max-width: 1180px; margin: 40px auto 4px; text-align: center; }
+  .blocco-sotto { font-size: 13.5px; font-weight: 600; color: #6E675F; max-width: 800px; margin: 0 auto 16px; text-align: center; line-height: 1.5; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, 420px); gap: 28px; justify-content: center; max-width: 1180px; margin: 0 auto; }
+  @media (max-width: 490px) { body { padding: 16px; } .griglia { grid-template-columns: 1fr; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 88px; }
+  .etichetta .nome { font-size: 16px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 24px 20px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  /* ── Pezzi «Le pile» (verbatim pila-aperta.html regime 1280) ── */
+  .lista-title { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .lista-hint  { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-bottom: 18px; }
+  .lista-head-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .lista-head-row .sp { flex: 1; }
+  .grp-tabs { display: flex; flex-direction: column; gap: 12px; }
+  .grp-tab {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 16px 20px; border: none; border-radius: 18px;
+    background: var(--card); box-shadow: var(--sh-card); cursor: pointer; text-align: left;
+  }
+  [data-theme="dark"] .grp-tab { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .grp-tab .grp-label { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .grp-tab .grp-count {
+    min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .grp-tab.rossa .grp-label { color: var(--red); }   .grp-tab.rossa .grp-count { background: var(--red-tint); color: var(--red); }
+  .grp-tab.ambra .grp-label { color: var(--amber); } .grp-tab.ambra .grp-count { background: var(--amber-tint); color: var(--amber); }
+  .grp-tab.viola .grp-label { color: var(--purple); }.grp-tab.viola .grp-count { background: var(--purple-tint); color: var(--purple); }
+  .grp-tab.blu .grp-label { color: var(--blue); }    .grp-tab.blu .grp-count { background: var(--blue-tint); color: var(--blue); }
+  .scarica-quieto { display: flex; justify-content: center; padding-top: 18px; }
+  /* Variante B — TastoTondo ⤓ nella testata */
+  .tondo-scarica svg { width: 21px; height: 21px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Pezzi «Persone» (/tecnici in v3) ── */
+  .page-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .page-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; color: var(--ink); }
+  .lista-sez { display: flex; flex-direction: column; gap: 12px; }
+  .sez {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    border: none; cursor: pointer; border-radius: 22px; padding: 15px 16px;
+    font-family: var(--font-v3);
+  }
+  .sez .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sez .nome { font-size: 17.5px; font-weight: 700; color: var(--ink); }
+  .sez .sub { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sez .chev { flex: none; font-size: 22px; font-weight: 700; color: var(--faint); line-height: 1; }
+  .av {
+    flex: none; width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #FFF; font-size: 16px; font-weight: 800; letter-spacing: .02em;
+  }
+  .av.blu { background: #1D5FBF; } .av.violaav { background: #7A4DB8; } .av.verdeav { background: #0E8A6B; }
+  .pill.mini { font-size: 11.5px; padding: 4px 9px; letter-spacing: .08em; }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  .sez .subriga { display: flex; align-items: center; gap: 8px; }
+  /* riga «invita» — TileNuovo dashed (§5.12) come riga */
+  .sez.invita { border: 2.5px dashed #CBC1B0; background: transparent; box-shadow: none; justify-content: center; gap: 8px; }
+  .sez.invita .plus { font-size: 22px; font-weight: 350; color: var(--muted); }
+  .sez.invita .nome { color: var(--muted); font-weight: 700; font-size: 16px; }
+  /* card cedolini (variante A) — CardUAHaFatto-like */
+  .card-cedolini { border-radius: 22px; padding: 18px 20px; }
+  .card-cedolini .t { font-size: 12.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  .card-cedolini .r { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .card-cedolini .mese { flex: 1; font-size: 17.5px; font-weight: 700; color: var(--ink); }
+  .card-cedolini .tasto-secondario { height: 58px; padding: 0 20px; } /* H58 di legge §5.3 — niente varianti compatte tacite */
+  /* Dark è flat (§3.2): la faccia --card sparirebbe sulla card — si usa --elv
+     (superficie più chiara = elevazione dark) + luce radente. */
+  [data-theme="dark"] .card-cedolini .tasto-secondario { background: var(--elv); border-top: 1px solid rgba(255,255,255,.06); }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>I bottoni di download del Bundle E</h1>
+  <p>Due punti di download nuovi: tutti i lavori dell'anno (pagina «Le pile», già v3) e i cedolini
+  del mese di tutto il team (pagina Persone — che con questa ondata migra interamente a v3, qui
+  mostrata già migrata). Parole del banco: «Scarica», mai «Export». L'anno/mese li decide il
+  laboratorio (ora di Roma), non l'orologio del telefono.</p>
+</div>
+
+<!-- ══════════════ BLOCCO 1 · SCARICA LAVORI in /lavori ══════════════ -->
+<div class="blocco-titolo">1 · «Scarica i lavori dell'anno» — dove vive in «Le pile»</div>
+<div class="blocco-sotto">Azione rara e amministrativa in una pagina operativa: non deve rubare scena alle pile (L1).
+Serve anche al lab sospeso (portabilità dati, esente N13) — quindi sempre visibile, mai nascosta.</div>
+<div class="griglia">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — LinkQuieto in fondo (consigliata)</div>
+    <div class="desc">Sotto i 4 raggruppamenti: «Scarica tutti i lavori del 2026 (CSV)». La via
+    quieta §5.5: c'è quando la cerchi, invisibile quando lavori.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="lista-title">Le pile</div>
+      <div class="lista-hint">Tocca un raggruppamento per aprirlo</div>
+      <div class="grp-tabs">
+        <button class="grp-tab rossa"><span class="grp-label">Da consegnare oggi</span><span class="grp-count">2</span></button>
+        <button class="grp-tab ambra"><span class="grp-label">Sul banco</span><span class="grp-count">4</span></button>
+        <button class="grp-tab viola"><span class="grp-label">Da rifare / In prova</span><span class="grp-count">1</span></button>
+        <button class="grp-tab blu"><span class="grp-label">Appena arrivati</span><span class="grp-count">2</span></button>
+      </div>
+      <div class="scarica-quieto"><button class="link-quieto">Scarica tutti i lavori del 2026 (CSV)</button></div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="lista-title">Le pile</div>
+      <div class="lista-hint">Tocca un raggruppamento per aprirlo</div>
+      <div class="grp-tabs">
+        <button class="grp-tab rossa"><span class="grp-label">Da consegnare oggi</span><span class="grp-count">2</span></button>
+        <button class="grp-tab ambra"><span class="grp-label">Sul banco</span><span class="grp-count">4</span></button>
+        <button class="grp-tab viola"><span class="grp-label">Da rifare / In prova</span><span class="grp-count">1</span></button>
+        <button class="grp-tab blu"><span class="grp-label">Appena arrivati</span><span class="grp-count">2</span></button>
+      </div>
+      <div class="scarica-quieto"><button class="link-quieto">Scarica tutti i lavori del 2026 (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — TastoTondo ⤓ nella testata</div>
+    <div class="desc">Accanto al titolo «Le pile». Sempre a portata senza scrollare, ma è un'icona
+    muta (che cosa scarica? di che anno?) e aggiunge chrome permanente a una testata oggi pulitissima.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="lista-head-row">
+        <span class="lista-title">Le pile</span>
+        <span class="sp"></span>
+        <button class="tasto-tondo tondo-scarica" aria-label="Scarica tutti i lavori del 2026 (CSV)"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg></button>
+      </div>
+      <div class="lista-hint">Tocca un raggruppamento per aprirlo</div>
+      <div class="grp-tabs">
+        <button class="grp-tab rossa"><span class="grp-label">Da consegnare oggi</span><span class="grp-count">2</span></button>
+        <button class="grp-tab ambra"><span class="grp-label">Sul banco</span><span class="grp-count">4</span></button>
+        <button class="grp-tab viola"><span class="grp-label">Da rifare / In prova</span><span class="grp-count">1</span></button>
+        <button class="grp-tab blu"><span class="grp-label">Appena arrivati</span><span class="grp-count">2</span></button>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="lista-head-row">
+        <span class="lista-title">Le pile</span>
+        <span class="sp"></span>
+        <button class="tasto-tondo tondo-scarica" aria-label="Scarica tutti i lavori del 2026 (CSV)"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg></button>
+      </div>
+      <div class="lista-hint">Tocca un raggruppamento per aprirlo</div>
+      <div class="grp-tabs">
+        <button class="grp-tab rossa"><span class="grp-label">Da consegnare oggi</span><span class="grp-count">2</span></button>
+        <button class="grp-tab ambra"><span class="grp-label">Sul banco</span><span class="grp-count">4</span></button>
+        <button class="grp-tab viola"><span class="grp-label">Da rifare / In prova</span><span class="grp-count">1</span></button>
+        <button class="grp-tab blu"><span class="grp-label">Appena arrivati</span><span class="grp-count">2</span></button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ BLOCCO 2 · PERSONE (/tecnici) MIGRATA A V3 ══════════════ -->
+<div class="blocco-titolo">2 · «Persone» — /tecnici interamente in v3, coi cedolini dentro</div>
+<div class="blocco-sotto">La pagina migra tutta (decisione 20/07): titolo dal Dizionario («Persone», come in Tutto il resto),
+righe-card con Avatar §5.14, PRRC come PillStato verde (estensione vocabolario §5.9 da incidere), invito come riga
+dashed. Tap sulla persona → Sheet v3 con le azioni di oggi (modifica, disattiva, cedolino, produttività) — NESSUNA
+route nuova, API invariate; l'invito rifà solo la UI dello sheet, /api/tecnici/invite NON si tocca. «Scarica i
+cedolini» è visibile SOLO a titolare/admin_rete (RBAC già server-side); mese senza compensi → avviso, non download
+muto. Le due varianti differiscono solo per come vive quel punto di download.</div>
+<div class="griglia">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — Card «I cedolini» in testa (consigliata)</div>
+    <div class="desc">Card dedicata sopra l'elenco: mese corrente + TastoSecondario «Scarica (CSV)».
+    Il compito mensile del titolare ha una casa che si vede — e domani può crescere (mese scorso, totali).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <h1 class="page-title">Persone</h1>
+      </div>
+      <div class="lista-sez">
+        <div class="card card-cedolini">
+          <div class="t">I cedolini</div>
+          <div class="r">
+            <span class="mese">Luglio 2026</span>
+            <button class="tasto-secondario">Scarica (CSV)</button>
+          </div>
+        </div>
+        <button class="card sez">
+          <span class="av blu">FF</span>
+          <span class="corpo"><span class="nome">Francesco Formicola</span>
+            <span class="subriga"><span class="sub">Titolare</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av verdeav">CA</span>
+          <span class="corpo"><span class="nome">Ciro Amato</span>
+            <span class="subriga"><span class="sub">Tecnico</span><span class="pill mini fam-verde">PRRC ✓</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av violaav">SG</span>
+          <span class="corpo"><span class="nome">Salvatore Greco</span>
+            <span class="subriga"><span class="sub">Tecnico</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez invita"><span class="plus">+</span><span class="nome">Invita una persona</span></button>
+      </div>
+      <div class="nota-stage">Card cedolini e riga invito: solo titolare (RBAC già nella route).</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <h1 class="page-title">Persone</h1>
+      </div>
+      <div class="lista-sez">
+        <div class="card card-cedolini">
+          <div class="t">I cedolini</div>
+          <div class="r">
+            <span class="mese">Luglio 2026</span>
+            <button class="tasto-secondario">Scarica (CSV)</button>
+          </div>
+        </div>
+        <button class="card sez">
+          <span class="av blu">FF</span>
+          <span class="corpo"><span class="nome">Francesco Formicola</span>
+            <span class="subriga"><span class="sub">Titolare</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av verdeav">CA</span>
+          <span class="corpo"><span class="nome">Ciro Amato</span>
+            <span class="subriga"><span class="sub">Tecnico</span><span class="pill mini fam-verde">PRRC ✓</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av violaav">SG</span>
+          <span class="corpo"><span class="nome">Salvatore Greco</span>
+            <span class="subriga"><span class="sub">Tecnico</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez invita"><span class="plus">+</span><span class="nome">Invita una persona</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — LinkQuieto in fondo</div>
+    <div class="desc">Stessa pagina, cedolini come via quieta sotto l'elenco: «Scarica i cedolini di
+    luglio (CSV)». Pagina più pulita, ma il compito mensile si scopre solo scrollando —
+    e non ha spazio per crescere.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <h1 class="page-title">Persone</h1>
+      </div>
+      <div class="lista-sez">
+        <button class="card sez">
+          <span class="av blu">FF</span>
+          <span class="corpo"><span class="nome">Francesco Formicola</span>
+            <span class="subriga"><span class="sub">Titolare</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av verdeav">CA</span>
+          <span class="corpo"><span class="nome">Ciro Amato</span>
+            <span class="subriga"><span class="sub">Tecnico</span><span class="pill mini fam-verde">PRRC ✓</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av violaav">SG</span>
+          <span class="corpo"><span class="nome">Salvatore Greco</span>
+            <span class="subriga"><span class="sub">Tecnico</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez invita"><span class="plus">+</span><span class="nome">Invita una persona</span></button>
+      </div>
+      <div class="scarica-quieto"><button class="link-quieto">Scarica i cedolini di luglio (CSV)</button></div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <h1 class="page-title">Persone</h1>
+      </div>
+      <div class="lista-sez">
+        <button class="card sez">
+          <span class="av blu">FF</span>
+          <span class="corpo"><span class="nome">Francesco Formicola</span>
+            <span class="subriga"><span class="sub">Titolare</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av verdeav">CA</span>
+          <span class="corpo"><span class="nome">Ciro Amato</span>
+            <span class="subriga"><span class="sub">Tecnico</span><span class="pill mini fam-verde">PRRC ✓</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez">
+          <span class="av violaav">SG</span>
+          <span class="corpo"><span class="nome">Salvatore Greco</span>
+            <span class="subriga"><span class="sub">Tecnico</span></span></span>
+          <span class="chev">›</span>
+        </button>
+        <button class="card sez invita"><span class="plus">+</span><span class="nome">Invita una persona</span></button>
+      </div>
+      <div class="scarica-quieto"><button class="link-quieto">Scarica i cedolini di luglio (CSV)</button></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

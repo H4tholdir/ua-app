@@ -176,6 +176,28 @@ Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/
 
 ---
 
+## 🗺 CALENDARIO ONDATE MIGRAZIONE v3 — RATIFICATO DA FRANCESCO (20/07/2026)
+
+Direttiva «tutto deve migrare a v3». Censimento: 30 route ancora v2.3 (fonte `src/lib/nav/route-migrate-v3.ts`; griglia completa nel report censimento della sessione 20/07 sera — MEMORY (17)). Validato da panel advisor (solution-architect) con 4 correzioni integrate. Ordine per priorità d'uso + affinità di dominio, **max ~4 route per ondata, mai auth mischiata ad altro**:
+
+| Ondata | Route | Note |
+|---|---|---|
+| **A** (in corso, mini-triage) | `/tecnici` → «Persone» | Qui NASCE il chrome v3 di pagina-lista (titolo + back + slot azioni): nominato in A, promosso a `components/ds` in B |
+| **B** «giro clienti» | `/agenda` + `/clienti` + `/clienti/[id]` | Generalizza il chrome v3 (sostituto AppHeader/PageWrapper). Se `/clienti/[id]` sfora → B1/B2 senza rimescolare |
+| **C** «fiscale» | `/fatture` + `/fatture/[id]` + `/fatture/riconciliazioni` | **Percorso Grande** (dominio critico FatturaPA) |
+| **D** «pazienti e crediti» | `/pazienti` ×2 + `/scadenzario` ×2 | |
+| **E** «banco e magazzino» | `/magazzino` ×2 + `/ordini` + `/listino` | Cicli spostati in G (dominio produzione, advisor) |
+| **F1** «casa» | `/impostazioni` ×4 | Qui nasce la riga «I tuoi dati» (export CSV lavori, §7.16) |
+| **F2** «accessi» | auth (login/forgot/reset/invite) + `/onboarding` + billing/blocked | **Percorso Grande** (OVERRIDE auth) + QA dedicato redirect loop |
+| **F3** «rete» | `/rete` ×3 | |
+| **G** «qualità e produzione» | `/qualita` ×5 + `/cicli-produzione` ×2 + `/tecnici/[id]/produttivita` | + analytics quando arriva la sessione A15 |
+| **Trasversale** | smontaggio bridge `/lavori/[id]/modifica` | Un tab per ondata affine (es. TabClinica con l'ondata odontogramma) |
+| **Milestone finale** | ritiro chrome legacy globale | `BottomNavPill` + `UserProfileSheet` dal layout `(app)` — possibile solo a ultima route migrata; prerequisito O1i (fatto nel mini-triage) |
+
+Fuori scope ondate: admin (DS neomorphic separato, sessione O2 dedicata) · portale dentista (standalone). La navbar a scomparsa (BottomNavPill) muore per sottrazione: già `null` su ogni route v3, sparisce del tutto alla milestone finale.
+
+---
+
 ## V1.9 — Completamento Pre-Collaudo
 **Priorità:** Massima — da fare PRIMA che Filippo usi l'app seriamente.
 
@@ -324,4 +346,7 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 05/07/2026 | 2 fix minori risolti e deployati: `PazientiSearchList` migrato a `ua-list-grid` (chiude follow-up B9), stesso bug scoperto e corretto anche in `ClientiSearchList` (card edge-to-edge in produzione); `useReducedMotion()` hydration mismatch risolto con pattern "mounted guard" (stesso di B18/`useTheme.ts`), trade-off approvato da Francesco. Verificato che il bug z-index bottom-sheet segnalato era già risolto (B8 4/5 + hotfix listino) e che l'infrastruttura test RPC locale era già stata costruita la sessione precedente (non mancante, solo da estendere). Merge `85faad1`, CI verde, deploy confermato. Priorità B4 invariata. | Francesco + Claude |
 | 05/07/2026 | B4 risolto e mergiato (`as any` nei generatori PDF MDR, 11/11 cast eliminati) — scoperto e corretto come effetto collaterale un bug di produzione reale in `generateDdC()`. A seguire: norme armonizzate applicate (MDR §7, `dichiarazioni_conformita.norme_json`) implementate in worktree dedicato — migration `rischi_tipo_dispositivo.norme_json` applicata al DB live, editor/API/generatore/template DdC aggiornati, 6 task via `superpowers:subagent-driven-development`, 478/4 test verdi. Chiude il follow-up aperto da B4. Non ancora mergiato su `main`. | Francesco + Claude |
 | 17/07/2026 | Nuova sequenza operativa ratificata da Francesco: (1) tutti i problemi (nuovo P0-PERF: lentezza sistemica in produzione) → (2) tutte le funzioni attive → (3) design coerente ovunque (sp.4 + admin) → (4) audit multi-agente → (5) collaudo capillare Francesco pagina per pagina. Gli errori grafici visti oggi si raccolgono al collaudo finale. | Francesco + Claude |
+| 20/07/2026 | **Design mini-triage CHIUSO (4 giri) + Parete specificata.** Ratifiche finali: miniature per tipo ✓, home a DUE STANZE Pile↔Parete con personalizzazione per utente (solo pile/sola parete/entrambe) e accesso globale a /cassette (shortcut PWA + Tutto il resto + NavDesk), estetica di riferimento = parete-cassette-v2. Decisioni consolidate in `docs/design/decisions/2026-07-20-mini-triage-e-parete.md`; implementazione ondata A autorizzata — handoff `docs/roadmap/2026-07-21-handoff-implementazione-mini-triage.md` (poi: spec Parete percorso Grande, sessione «Cerca», A8, sessione DB). | Francesco + Claude |
+| 20/07/2026 | **Secondo giro mini-triage:** A13 confermato (ponte, redesign odontogramma resta in ondata bridge) · A14 variante A «co-identità» targa cassetta + assegnazione cassetta alla conferma-arrivo IN ondata · «Le pile» eliminata (redirect → /dashboard, O1h chiuso) · ricerca per cassetta: per-pila in ondata, globale in sessione design dedicata (casa: /lavori liberato) · export CSV → «I tuoi dati» in «Il mio laboratorio» (ondata F1). **NUOVA FEATURE IN DESIGN: «La Parete delle Cassette»** (visione Francesco: griglia adattiva drag&drop delle cassette fisiche colorate, ricerca per cassetta/lavoro) — concept 2 direzioni in `docs/design/mockups/2026-07-20-parete-cassette-concept.html`, intervista in corso, collocazione roadmap da ratificare a spec pronta (sostituisce l'idea «parco cassette gestito V2»). | Francesco + Claude |
+| 20/07/2026 | **Calendario ondate v3 ratificato** (sezione dedicata sopra) + decisioni mini-triage primo giro: O1i 1A+2A+3A (Esci LinkQuieto, identità+Esci NavDesk, trial ambra in striscia) · export cedolini 2A (card in «Persone» v3) · deferral A10/A11 confermati. A13/A14/O1h/export-lavori in secondo giro (flusso odontogramma, cassetta ripensata cassetta-first, proposta eliminazione «Le pile»). | Francesco + Claude |
 | 06/07/2026 | CRUD completo `cicli_produzione` implementato (worktree `worktree-cicli-produzione-crud`) — chiude il follow-up scoperto in QA B5 ("nessun modo di creare un ciclo via UI/API"). Migration live (indice UNIQUE parziale su `codice`, pattern B18), nuove route `POST`/`PATCH`/`DELETE /api/cicli[/id]`, sheet create/edit e bottone elimina. Review finale (Opus) "Ready to merge: Yes" dopo 2 fix Important (validazione PATCH allineata a POST, payload PATCH costruito come delta). 626/626 test, tsc/build puliti. QA browser end-to-end (mai lab Filippo); non verificato manualmente il blocco 409 su DELETE referenziato né il tablet. Non ancora mergiato su `main`. | Francesco + Claude |

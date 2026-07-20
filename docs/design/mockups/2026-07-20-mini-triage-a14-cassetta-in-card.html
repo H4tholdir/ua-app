@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A14 — Numero cassetta in CardLavoro: 4 varianti (mini-triage 20/07/2026)</title>
+<!-- Kit il-cuore: token light/dark via _base.css. Presentazione a colonne come navdesk-tasto-varianti. -->
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     A14 — `lavori.numero_cassetta` (TEXT) esiste a DB ma non arriva né al fetch
+     delle pile né alla CardLavoro. La legge §5.8 vincola la card a MASSIMO
+     4 RIGHE («la pila di provenienza È lo stato»). Decisione di sistema:
+     dove vive la cassetta senza rompere (o rompendo consapevolmente) la legge.
+     Cast: n.144 (Da ieri, consegna inline) e n.147 — cassetta C12 e C7.
+     La card mostrata è quella del caso PEGGIORE (riga 4 presente): se la
+     cassetta regge lì, regge ovunque.
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1420px; margin: 0 auto 28px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, 330px); gap: 24px; justify-content: center; }
+  @media (max-width: 440px) { body { padding: 16px; } .griglia { grid-template-columns: 1fr; } .stage { width: auto; max-width: 100%; } }
+  .colonna { display: flex; flex-direction: column; gap: 14px; }
+  .etichetta { text-align: center; min-height: 120px; }
+  .etichetta .nome { font-size: 16.5px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .stage {
+    width: 330px; margin: 0 auto; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .sezione-tema { max-width: 1420px; margin: 0 auto; }
+  .tema-titolo { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #6E675F; margin: 26px 0 12px; text-align: center; }
+
+  /* ── CardLavoro §5.8 (misure verbatim da pila-aperta.html) ── */
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who  { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
+  .pill.fam-rossa { background: var(--red-tint); color: var(--red); }
+  .consegna-inline {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 54px; margin-top: 16px;
+    border: none; border-radius: 16px;
+    background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010);
+    box-shadow: 0 5px 0 var(--red-dark), 0 14px 24px -16px rgba(50,40,25,.35);
+    color: #FFFFFF; font-family: var(--font-v3);
+    font-size: 17px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  [data-theme="dark"] .consegna-inline { box-shadow: 0 5px 0 var(--red-dark); }
+
+  /* A — cassetta nel prefisso caption della riga 1 */
+  .cl-num small .cass { color: var(--muted); }
+
+  /* B — cassetta in coda alla riga 3 (tipo lavoro) */
+  .cl-tipo .cass { color: var(--faint); }
+
+  /* C — chip neutro di fianco alla PillTempo (riga 1) — superficie di sistema
+     --bg-deep + inset --line (stesso linguaggio dei badge NavDesk non-famiglia):
+     NON è una pill di stato, è un'etichetta fisica di magazzino. */
+  .chip-cass {
+    flex: none; min-width: 34px; height: 30px; padding: 0 9px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); color: var(--muted);
+    box-shadow: inset 0 0 0 1.5px var(--line);
+    font-size: 13.5px; font-weight: 800; letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  }
+
+  /* D — QUINTA riga dedicata (ROMPE §5.8: serve emendamento di legge) */
+  .cl-cass-riga {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    padding-top: 10px; border-top: 1.5px solid var(--line);
+    font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+  }
+  .cl-cass-riga b { font-size: 15px; font-weight: 800; letter-spacing: 0; color: var(--muted); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>A14 — Il numero di cassetta nella card lavoro</h1>
+  <p>La cassetta è dove il lavoro vive fisicamente in laboratorio: serve a trovarlo col lavoro in mano.
+  La legge §5.8 chiude la card a 4 righe. A, B e C restano nella legge (cassetta dentro una riga esistente);
+  D apre una quinta riga e richiede un emendamento esplicito. In ogni variante, se la cassetta non è
+  compilata non si mostra nulla. Ogni colonna mostra il caso peggiore: card con riga 4 (Consegna) presente.</p>
+</div>
+
+<div class="sezione-tema">
+  <div class="tema-titolo">Light</div>
+  <div class="griglia">
+
+    <div class="colonna">
+      <div class="etichetta"><div class="nome">A — Nel prefisso «LAVORO»</div>
+      <div class="desc">Riga 1, caption: «LAVORO · CASS. C12». Zero righe in più, ma la cassetta è
+      piccola (12.5px) e in MAIUSCOLO faint: si legge cercandola, non a colpo d'occhio.</div></div>
+      <div class="stage" data-theme="light">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro · <span class="cass">Cass. C12</span></small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro · <span class="cass">Cass. C7</span></small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+        </div>
+        <div class="nota-stage">Resta nelle 4 righe (§5.8 salva).</div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="etichetta"><div class="nome">B — In coda al tipo lavoro</div>
+      <div class="desc">Riga 3: «Corona zirconia · cass. C7». Zero righe in più e si legge nel flusso,
+      ma sui tipi lunghi l'ellissi si mangia proprio la cassetta (l'informazione nuova è l'ultima
+      a sopravvivere).</div></div>
+      <div class="stage" data-theme="light">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi · <span class="cass">cass. C12</span></div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia · <span class="cass">cass. C7</span></div>
+        </div>
+        <div class="nota-stage">Resta nelle 4 righe (§5.8 salva).</div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="etichetta"><div class="nome">C — Chip fisico in riga 1</div>
+      <div class="desc">Chip neutro «C12» prima della PillTempo: superficie di sistema (--bg-deep +
+      inset --line), NON una pill di stato — il vocabolario §5.9 resta chiuso. Si trova a colpo
+      d'occhio; costo: la riga 1 si affolla (a 390 con pill lunghe può andare a capo).
+      Regola advisor: numero_cassetta è testo libero → max ~6 caratteri poi ellissi; per screen
+      reader legge «Cassetta C12». Richiede micro-emendamento §5.8 (chip-cassetta opzionale in riga 1).</div></div>
+      <div class="stage" data-theme="light">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="chip-cass" style="margin-left:auto">C12</span>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="chip-cass" style="margin-left:auto">C7</span>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+        </div>
+        <div class="nota-stage">Resta nelle 4 righe (§5.8 salva).</div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="etichetta"><div class="nome">D — Quinta riga dedicata (⚠ rompe §5.8)</div>
+      <div class="desc">Riga propria sotto il tipo, separata da --line: massima leggibilità e spazio
+      per cassette con nomi lunghi. MA è la quinta riga: serve un emendamento alla legge
+      («max 4 righe + riga-cassetta opzionale») e ogni card si allunga.</div></div>
+      <div class="stage" data-theme="light">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <div class="cl-cass-riga">Cassetta <b>C12</b></div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+          <div class="cl-cass-riga">Cassetta <b>C7</b></div>
+        </div>
+        <div class="nota-stage">⚠ Emendamento §5.8 necessario.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tema-titolo">Dark</div>
+  <div class="griglia">
+
+    <div class="colonna">
+      <div class="stage" data-theme="dark">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro · <span class="cass">Cass. C12</span></small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro · <span class="cass">Cass. C7</span></small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="stage" data-theme="dark">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi · <span class="cass">cass. C12</span></div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia · <span class="cass">cass. C7</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="stage" data-theme="dark">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="chip-cass" style="margin-left:auto">C12</span>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="chip-cass" style="margin-left:auto">C7</span>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="colonna">
+      <div class="stage" data-theme="dark">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+          <div class="cl-cass-riga">Cassetta <b>C12</b></div>
+          <button class="consegna-inline">Consegna</button>
+        </div>
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.147</div>
+            <span class="pill tempo fam-rossa">Oggi · 16:00</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0412</div>
+          <div class="cl-tipo">Corona zirconia</div>
+          <div class="cl-cass-riga">Cassetta <b>C7</b></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

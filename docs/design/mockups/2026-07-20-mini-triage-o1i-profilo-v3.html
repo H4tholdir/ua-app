@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O1i — Profilo v3 ×3: Esci · identità NavDesk · segnale trial (mini-triage 20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     O1i — Sulle route v3 l'UserProfileSheet (v2.3) ritorna null: OGGI su
+     home/lavori/scheda/wizard/tutto-il-resto non esiste NÉ il logout NÉ
+     l'identità utente NÉ il segnale trial. Tre pezzi minimi:
+       1. voce «Esci» raggiungibile da mobile v3 (lacuna spec §7.16)
+       2. riga identità nel footer del NavDesk (desktop)
+       3. stato trial nella StrisciaStato (oggi solo segnali operativi)
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1180px; margin: 0 auto 8px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .blocco-titolo { font-size: 19px; font-weight: 800; letter-spacing: -.01em; color: #1C1917; max-width: 1180px; margin: 40px auto 4px; text-align: center; }
+  .blocco-sotto { font-size: 13.5px; font-weight: 600; color: #6E675F; max-width: 780px; margin: 0 auto 16px; text-align: center; line-height: 1.5; }
+  .griglia { display: grid; gap: 28px; justify-content: center; max-width: 1180px; margin: 0 auto; }
+  .griglia.due { grid-template-columns: repeat(auto-fit, 400px); }
+  .griglia.quattro { grid-template-columns: repeat(auto-fit, 400px); }
+  @media (max-width: 470px) { body { padding: 16px; } .griglia.due, .griglia.quattro { grid-template-columns: 1fr; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 76px; }
+  .etichetta .nome { font-size: 16px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 22px 20px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+
+  /* ── Pezzi «Tutto il resto» (verbatim tutto-il-resto.html) ── */
+  .lista-sez { display: flex; flex-direction: column; gap: 12px; }
+  .sez {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    border: none; cursor: pointer; border-radius: 22px; padding: 15px 16px;
+    font-family: var(--font-v3);
+  }
+  .sez .glifo {
+    flex: none; width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-deep); font-size: 24px; line-height: 1;
+  }
+  .sez .corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sez .nome { font-size: 17.5px; font-weight: 700; color: var(--ink); }
+  .sez .sub { font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sez .chev { flex: none; font-size: 22px; font-weight: 700; color: var(--faint); line-height: 1; }
+  .esci-quieto { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 18px 0 2px; }
+  .esci-quieto .firma { font-size: 12.5px; font-weight: 600; color: var(--faint); }
+  /* Variante B — «Esci» come voce rossa (via di fuga, famiglia rossa SOLO qui) */
+  .sez.esci .glifo { background: var(--red-tint); color: var(--red); font-size: 20px; }
+  .sez.esci .glifo svg { width: 21px; height: 21px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .sez.esci .nome { color: var(--red); }
+  .puntini { text-align: center; color: var(--faint); font-size: 18px; font-weight: 800; letter-spacing: .3em; padding: 2px 0; }
+
+  /* ── Pezzi NavDesk (verbatim home.html §12.3) ── */
+  .nav-desk { width: 240px; margin: 0 auto; box-sizing: border-box; background: var(--bg-deep); padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; min-height: 520px; border-radius: 16px; }
+  .logo { font-size: 26px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); padding: 0 8px; }
+  .logo em { font-style: normal; color: var(--red); }
+  .nav-nuovo { height: 52px; font-size: 16px; border: none; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center; width: 100%;
+    background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010);
+    box-shadow: 0 6px 0 var(--red-dark); color: #FFF; font-family: var(--font-v3);
+    font-weight: 800; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+  .voci { display: flex; flex-direction: column; gap: 4px; }
+  .voce { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px; border-radius: 12px; color: var(--muted); font-size: 16px; font-weight: 600; }
+  .voce .nome { flex: 1; }
+  .voce.sel { background: var(--bg); color: var(--ink); font-weight: 700; }
+  .badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; box-shadow: inset 0 0 0 1.5px var(--line); background: var(--bg-deep); color: var(--muted); box-sizing: border-box; }
+  .badge.r { background: var(--red-tint); color: var(--red); box-shadow: none; }
+  .badge.a { background: var(--amber-tint); color: var(--amber); box-shadow: none; }
+  .badge.v { background: var(--purple-tint); color: var(--purple); box-shadow: none; }
+  .badge.b { background: var(--blue-tint); color: var(--blue); box-shadow: none; }
+  .nav-foot { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Riga identità (§5.14 Avatar Ø32 colore-da-nome + iniziali) */
+  .identita { display: flex; align-items: center; gap: 10px; padding: 0 8px; min-width: 0; }
+  .identita .av {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #1D5FBF; color: #FFF; font-size: 12.5px; font-weight: 800; letter-spacing: .02em;
+  }
+  .identita .chi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .identita .chi .n { font-size: 14.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .identita .chi .lab { font-size: 12.5px; font-weight: 600; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .identita .esci {
+    flex: none; background: none; border: none; cursor: pointer;
+    color: var(--muted); font-family: var(--font-v3); font-size: 13px; font-weight: 600;
+    text-decoration: underline; text-underline-offset: 3px; padding: 8px 0;
+  }
+
+  /* ── StrisciaStato (verbatim home.html §5.24) ── */
+  .striscia { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px 18px; border-radius: 18px; background: var(--card); box-shadow: var(--sh-card); }
+  [data-theme="dark"] .striscia { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .striscia .ic {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green);
+  }
+  .striscia .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .striscia.trial .ic { background: var(--amber-tint); color: var(--amber); }
+  .striscia.alert .ic { background: var(--red-tint); color: var(--red); }
+  .striscia .txt {
+    flex: 1 1 auto; min-width: 0; font-size: 14.5px; font-weight: 500; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .striscia .txt b { color: var(--ink); font-weight: 700; }
+  .striscia .azione {
+    flex: none; display: inline-flex; align-items: center;
+    min-height: 44px; margin: -13px 0;
+    font-size: 14.5px; color: var(--red); font-weight: 800; text-decoration: none; white-space: nowrap;
+  }
+  .striscia-pila { display: flex; flex-direction: column; gap: 10px; }
+  .nav-foot .striscia { padding: 0; background: none; box-shadow: none; border: none; }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>O1i — Profilo v3: Esci · chi sei · quanto trial resta</h1>
+  <p>Sulle pagine v3 oggi non esiste né il logout né l'identità né il segnale trial (il vecchio sheet
+  profilo ritorna null). Tre pezzi minimi, uno per blocco. Le decisioni sono indipendenti:
+  si può scegliere A per un blocco e B per un altro.</p>
+</div>
+
+<!-- ══════════════ BLOCCO 1 · VOCE «ESCI» (mobile v3) ══════════════ -->
+<div class="blocco-titolo">1 · La voce «Esci» — in fondo a «Tutto il resto»</div>
+<div class="blocco-sotto">Unico posto v3 già raggiungibile da ogni pagina mobile (☰). La spec §7.16 non prevede
+«Esci» da nessuna parte: qualunque scelta è un'estensione di legge da incidere. Prima del logout: DialogConferma (§5.17).</div>
+<div class="griglia quattro">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — LinkQuieto in fondo (consigliata)</div>
+    <div class="desc">Identità come riga NON tappabile («Sei Francesco · Laboratorio Formicola») e sotto
+    «Esci» come LinkQuieto solo, hit-area ≥44px. Il logout è raro: non merita una card. Richiede
+    l'estensione esplicita di §5.5 (LinkQuieto anche per azioni rare e quiete, non solo vie di fuga).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="lista-sez">
+        <div class="puntini">···</div>
+        <button class="card sez" aria-label="Il mio laboratorio">
+          <span class="glifo" aria-hidden="true">⚙️</span>
+          <span class="corpo"><span class="nome">Il mio laboratorio</span><span class="sub">Profilo, PEC, abbonamento ✓</span></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+      </div>
+      <div class="esci-quieto"><span class="firma">Sei Francesco · Laboratorio Formicola</span><button class="link-quieto">Esci</button></div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="lista-sez">
+        <div class="puntini">···</div>
+        <button class="card sez" aria-label="Il mio laboratorio">
+          <span class="glifo" aria-hidden="true">⚙️</span>
+          <span class="corpo"><span class="nome">Il mio laboratorio</span><span class="sub">Profilo, PEC, abbonamento ✓</span></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+      </div>
+      <div class="esci-quieto"><span class="firma">Sei Francesco · Laboratorio Formicola</span><button class="link-quieto">Esci</button></div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — Card-sezione rossa «Esci»</div>
+    <div class="desc">Decima card in fondo, famiglia rossa (pattern «Annulla lavoro» del menu ⋯).
+    Impossibile non trovarla, ma dà al logout il peso visivo di un'azione importante — e il rosso
+    è «sacro» (§7.5).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="lista-sez">
+        <div class="puntini">···</div>
+        <button class="card sez" aria-label="Il mio laboratorio">
+          <span class="glifo" aria-hidden="true">⚙️</span>
+          <span class="corpo"><span class="nome">Il mio laboratorio</span><span class="sub">Profilo, PEC, abbonamento ✓</span></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button class="card sez esci" aria-label="Esci">
+          <span class="glifo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
+          <span class="corpo"><span class="nome">Esci</span><span class="sub">Sei Francesco · Laboratorio Formicola</span></span>
+        </button>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="lista-sez">
+        <div class="puntini">···</div>
+        <button class="card sez" aria-label="Il mio laboratorio">
+          <span class="glifo" aria-hidden="true">⚙️</span>
+          <span class="corpo"><span class="nome">Il mio laboratorio</span><span class="sub">Profilo, PEC, abbonamento ✓</span></span>
+          <span class="chev" aria-hidden="true">›</span>
+        </button>
+        <button class="card sez esci" aria-label="Esci">
+          <span class="glifo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
+          <span class="corpo"><span class="nome">Esci</span><span class="sub">Sei Francesco · Laboratorio Formicola</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ BLOCCO 2 · RIGA IDENTITÀ NEL FOOTER NAVDESK ══════════════ -->
+<div class="blocco-titolo">2 · Chi sei — riga identità nel footer del NavDesk (desktop)</div>
+<div class="blocco-sotto">Il footer (marginTop:auto) oggi ha solo la StrisciaStato. La riga identità le sta sopra:
+Avatar §5.14 Ø32 + nome + laboratorio. In variante A con «Esci» inline; in variante B senza (l'Esci resta solo in ☰/«Il mio laboratorio»).</div>
+<div class="griglia quattro">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — Identità + «Esci» inline (consigliata)</div>
+    <div class="desc">Su desktop «Tutto il resto» non esiste (è la nav): senza questo link il logout
+    non avrebbe una casa desktop. Link quieto 13px, non compete con le voci.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <nav class="nav-desk">
+        <div class="logo">UÀ<em>.</em></div>
+        <button class="nav-nuovo">+ Nuovo lavoro</button>
+        <div class="voci">
+          <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+          <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+          <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
+          <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+          <div class="voce"><span class="nome">Agenda</span></div>
+        </div>
+        <div class="nav-foot">
+          <div class="identita">
+            <span class="av">FF</span>
+            <span class="chi"><span class="n">Francesco</span><span class="lab">Lab Formicola</span></span>
+            <button class="esci">Esci</button>
+          </div>
+          <div class="striscia">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+            <span class="txt"><b>Tutto a posto</b></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <nav class="nav-desk">
+        <div class="logo">UÀ<em>.</em></div>
+        <button class="nav-nuovo">+ Nuovo lavoro</button>
+        <div class="voci">
+          <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+          <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+          <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
+          <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+          <div class="voce"><span class="nome">Agenda</span></div>
+        </div>
+        <div class="nav-foot">
+          <div class="identita">
+            <span class="av">FF</span>
+            <span class="chi"><span class="n">Francesco</span><span class="lab">Lab Formicola</span></span>
+            <button class="esci">Esci</button>
+          </div>
+          <div class="striscia">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+            <span class="txt"><b>Tutto a posto</b></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — Solo identità (niente Esci)</div>
+    <div class="desc">Footer più pulito, ma su desktop il logout resterebbe orfano finché
+    «Il mio laboratorio» non migra a v3 — la lacuna O1i rimarrebbe aperta a 1280.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <nav class="nav-desk">
+        <div class="logo">UÀ<em>.</em></div>
+        <button class="nav-nuovo">+ Nuovo lavoro</button>
+        <div class="voci">
+          <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+          <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+          <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
+          <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+          <div class="voce"><span class="nome">Agenda</span></div>
+        </div>
+        <div class="nav-foot">
+          <div class="identita">
+            <span class="av">FF</span>
+            <span class="chi"><span class="n">Francesco</span><span class="lab">Laboratorio Formicola</span></span>
+          </div>
+          <div class="striscia">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+            <span class="txt"><b>Tutto a posto</b></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <nav class="nav-desk">
+        <div class="logo">UÀ<em>.</em></div>
+        <button class="nav-nuovo">+ Nuovo lavoro</button>
+        <div class="voci">
+          <div class="voce sel"><span class="nome">Oggi</span><span class="badge r">2</span></div>
+          <div class="voce"><span class="nome">Sul banco</span><span class="badge a">4</span></div>
+          <div class="voce"><span class="nome">Da rifare</span><span class="badge v">1</span></div>
+          <div class="voce"><span class="nome">Appena arrivati</span><span class="badge b">2</span></div>
+          <div class="voce"><span class="nome">Agenda</span></div>
+        </div>
+        <div class="nav-foot">
+          <div class="identita">
+            <span class="av">FF</span>
+            <span class="chi"><span class="n">Francesco</span><span class="lab">Laboratorio Formicola</span></span>
+          </div>
+          <div class="striscia">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+            <span class="txt"><b>Tutto a posto</b></span>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ BLOCCO 3 · SEGNALE TRIAL IN STRISCIASTATO ══════════════ -->
+<div class="blocco-titolo">3 · Quanto trial resta — segnale nella StrisciaStato</div>
+<div class="blocco-sotto">Lo stato del lab (trial / trial_ends_at) è già fetchato nel layout ma non arriva alla striscia.
+Proposta: nuovo segnale «prova» con icona AMBRA (clessidra) — terza famiglia per la striscia, oggi solo verde/rossa:
+estensione §5.24 da incidere, CON la regola di precedenza (allarmi operativi &gt; trial &gt; sereno). Diventa ROSSO negli
+ultimi 3 giorni. Trial scaduto/sospeso: gestito dai redirect di layout già esistenti (blocked), la striscia non lo copre —
+coerenza con regola B15 (mai banner contraddittori con la card Abbonamento).</div>
+<div class="griglia due">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — Ambra + CTA «Attiva» (consigliata)</div>
+    <div class="desc">«Prova: mancano 12 giorni · Attiva ›». Informa senza allarmare; la CTA
+    porta ad Abbonamento. Sotto: lo stesso segnale a 2 giorni dalla fine (rosso).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="striscia-pila">
+        <div class="striscia trial">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3c0 7 8 7 8 11M16 3c0 7-8 7-8 11M8 21c0-4 8-4 8-7M16 21c0-4-8-4-8-7"/></svg></span>
+          <span class="txt"><b>Prova:</b> mancano 12 giorni</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+        <div class="striscia alert">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+          <span class="txt"><b>Prova:</b> finisce dopodomani</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+      </div>
+      <div class="nota-stage">Stessa striscia, due momenti: >3 giorni (ambra) · ≤3 giorni (rossa).</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="striscia-pila">
+        <div class="striscia trial">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3c0 7 8 7 8 11M16 3c0 7-8 7-8 11M8 21c0-4 8-4 8-7M16 21c0-4-8-4-8-7"/></svg></span>
+          <span class="txt"><b>Prova:</b> mancano 12 giorni</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+        <div class="striscia alert">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+          <span class="txt"><b>Prova:</b> finisce dopodomani</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — Solo rosso, solo alla fine</div>
+    <div class="desc">Nessun segnale finché il trial va: compare SOLO negli ultimi 3 giorni, rosso.
+    Zero rumore (L7), nessuna estensione ambra a §5.24 — ma chi è in prova non sa mai
+    a che punto è finché non sta per scadere.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="striscia-pila">
+        <div class="striscia">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span class="txt"><b>Tutto a posto:</b> 2 consegne oggi, la prossima alle 16:00</span>
+        </div>
+        <div class="striscia alert">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+          <span class="txt"><b>Prova:</b> finisce dopodomani</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+      </div>
+      <div class="nota-stage">Sopra: durante la prova la striscia resta operativa. Sotto: ultimi 3 giorni.</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="striscia-pila">
+        <div class="striscia">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+          <span class="txt"><b>Tutto a posto:</b> 2 consegne oggi, la prossima alle 16:00</span>
+        </div>
+        <div class="striscia alert">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20.5h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.5v.01"/></svg></span>
+          <span class="txt"><b>Prova:</b> finisce dopodomani</span><a class="azione" href="#">Attiva&nbsp;›</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

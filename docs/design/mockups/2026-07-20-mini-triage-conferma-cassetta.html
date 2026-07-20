@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A14 — «In che cassetta lo metti?» alla conferma dell'arrivo (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     DECISIONE FRANCESCO (secondo giro): l'assegnazione cassetta entra in questa
+     ondata. Momento naturale: la CONFERMA del lavoro appena arrivato (pila blu)
+     — è l'attimo in cui il lavoro fisico finisce in una cassetta vera.
+     L1: una domanda per schermata → sheet dedicato dopo il tap su «Conferma».
+     Opzionale SEMPRE: «Senza cassetta» è una via di fuga visibile (L6).
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1080px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 900px; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, 400px); gap: 28px; justify-content: center; max-width: 1080px; margin: 0 auto; }
+  @media (max-width: 470px) { body { padding: 16px; } .griglia { grid-template-columns: 1fr; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 92px; }
+  .etichetta .nome { font-size: 16.5px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .tema-titolo { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #6E675F; margin: 26px 0 12px; text-align: center; }
+
+  /* Stage = sheet sopra la pila blu scurita */
+  .stage {
+    position: relative; border-radius: 20px; overflow: hidden; height: 560px;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg);
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .peek { padding: 20px 16px; transform: scale(.97); transform-origin: 50% 0; }
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .pill.fam-blu { background: var(--blue-tint); color: var(--blue); }
+  .scrim-m { position: absolute; inset: 0; background: rgba(29,25,19,.35); }
+  .sheet-m {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--card); border-radius: 28px 28px 0 0;
+    padding: 30px 22px 22px; box-shadow: var(--sh-card);
+  }
+  [data-theme="dark"] .sheet-m { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .sheet-m::before {
+    content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 36px; height: 4px; border-radius: 999px; background: var(--line);
+  }
+  .sheet-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
+  .sheet-sotto { font-size: 15px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 48px; padding: 0 20px; border: none; border-radius: 999px;
+    font-family: var(--font-v3); font-size: 16px; font-weight: 700; cursor: pointer;
+    background: var(--card); box-shadow: var(--sh-press); color: var(--ink);
+  }
+  [data-theme="dark"] .chip { background: var(--elv); box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .chip.si { background: var(--green-tint); color: var(--green); box-shadow: none; border: none; }
+  .chip .cdot { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+  .campo-riga { margin-top: 18px; }
+  .campo-label { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); display: block; margin-bottom: 10px; }
+  .campo-finto {
+    display: flex; align-items: center; min-height: 52px; border-radius: 16px;
+    background: var(--bg-deep); box-shadow: inset 0 1px 2px rgba(50,40,25,.06);
+    padding: 0 16px; font-size: 17px; font-weight: 700; color: var(--ink);
+  }
+  [data-theme="dark"] .campo-finto { box-shadow: none; }
+  .campo-finto .ph { color: var(--faint); font-weight: 600; }
+  .sheet-cta { margin-top: 22px; }
+  .tasto-primario.mini { height: 60px; font-size: 18px; }
+  .fuga { display: flex; justify-content: center; margin-top: 14px; }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>«In che cassetta lo metti?» — la domanda alla conferma</h1>
+  <p>Tap su «Conferma» sul lavoro appena arrivato (pila blu) → sheet con UNA domanda (L1): la cassetta.
+  Sempre opzionale — «Senza cassetta» è la via di fuga visibile. Il numero entra in `numero_cassetta`
+  e da lì in poi vive nella targa della card (variante A ratificata).</p>
+</div>
+
+<div class="tema-titolo">Light · Dark</div>
+<div class="griglia">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">A — Chips delle cassette libere + campo (consigliata)</div>
+    <div class="desc">Le cassette già usate di recente e ora libere come chip a un tap (col colore se
+    ce l'hanno); sotto, il campo per scriverne una nuova. Zero digitazione nel caso comune. Pronta a
+    diventare la scelta dal «parco cassette» quando arriverà la Parete.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="peek">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.151</div>
+            <span class="pill fam-blu">Appena arrivato</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0433</div>
+          <div class="cl-tipo">Protesi totale</div>
+        </div>
+      </div>
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">In che cassetta<br>lo metti?</div>
+        <div class="sheet-sotto">n.151 · Protesi totale · Dr. Esposito</div>
+        <div class="chips">
+          <button class="chip si">✓ C7</button>
+          <button class="chip"><span class="cdot" style="background:#1D5FBF"></span>C15</button>
+          <button class="chip"><span class="cdot" style="background:#D90012"></span>C21</button>
+        </div>
+        <div class="campo-riga">
+          <span class="campo-label">O scrivine una nuova</span>
+          <div class="campo-finto"><span class="ph">Es. C22</span></div>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Conferma in C7</button></div>
+        <div class="fuga"><button class="link-quieto">Conferma senza cassetta</button></div>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="peek">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.151</div>
+            <span class="pill fam-blu">Appena arrivato</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0433</div>
+          <div class="cl-tipo">Protesi totale</div>
+        </div>
+      </div>
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">In che cassetta<br>lo metti?</div>
+        <div class="sheet-sotto">n.151 · Protesi totale · Dr. Esposito</div>
+        <div class="chips">
+          <button class="chip si">✓ C7</button>
+          <button class="chip"><span class="cdot" style="background:#5B9BFF"></span>C15</button>
+          <button class="chip"><span class="cdot" style="background:#FF3B44"></span>C21</button>
+        </div>
+        <div class="campo-riga">
+          <span class="campo-label">O scrivine una nuova</span>
+          <div class="campo-finto"><span class="ph">Es. C22</span></div>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Conferma in C7</button></div>
+        <div class="fuga"><button class="link-quieto">Conferma senza cassetta</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">B — Solo campo libero</div>
+    <div class="desc">Nessun suggerimento: scrivi il numero e via. Più semplice da costruire oggi
+    (numero_cassetta è testo libero), ma ogni conferma costa una digitazione e i refusi
+    («C7» vs «c 7») frammentano la ricerca.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="peek">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.151</div>
+            <span class="pill fam-blu">Appena arrivato</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0433</div>
+          <div class="cl-tipo">Protesi totale</div>
+        </div>
+      </div>
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">In che cassetta<br>lo metti?</div>
+        <div class="sheet-sotto">n.151 · Protesi totale · Dr. Esposito</div>
+        <div class="campo-riga">
+          <span class="campo-label">Numero cassetta</span>
+          <div class="campo-finto">C7</div>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Conferma in C7</button></div>
+        <div class="fuga"><button class="link-quieto">Conferma senza cassetta</button></div>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="peek">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.151</div>
+            <span class="pill fam-blu">Appena arrivato</span>
+          </div>
+          <div class="cl-who">Dr. Esposito · PZ-0433</div>
+          <div class="cl-tipo">Protesi totale</div>
+        </div>
+      </div>
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">In che cassetta<br>lo metti?</div>
+        <div class="sheet-sotto">n.151 · Protesi totale · Dr. Esposito</div>
+        <div class="campo-riga">
+          <span class="campo-label">Numero cassetta</span>
+          <div class="campo-finto">C7</div>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Conferma in C7</button></div>
+        <div class="fuga"><button class="link-quieto">Conferma senza cassetta</button></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

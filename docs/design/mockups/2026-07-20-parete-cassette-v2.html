@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Parete v2 — miniature per tipo, ricerca che accende, liberazione, nuova cassetta (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     PARETE v2 — direzione A (materica) ratificata + specifiche Francesco:
+     · griglia = specchio della parete fisica · 1 lavoro per cassetta
+     · colore per lab: standard + selettore libero · tap → scheda lavoro
+     · liberazione automatica alla consegna (L5) · nomi: auto C1..Cn + rinomina
+     · MINIATURE PER TIPO DI LAVORO nella cassetta occupata — riconoscibilità
+       a colpo d'occhio (ricerca: le silhouette di settore sono corona /
+       ponte / impianto / arcata protesica — qui rese materiche, avorio
+       ceramica + rosa gengiva + grigio metallo)
+     · ricerca: «la cassetta giusta si accende, le altre si spengono»
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1120px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 940px; }
+  .blocco-titolo { font-size: 19px; font-weight: 800; letter-spacing: -.01em; color: #1C1917; max-width: 1120px; margin: 38px auto 4px; text-align: center; }
+  .blocco-sotto { font-size: 13.5px; font-weight: 600; color: #6E675F; max-width: 820px; margin: 0 auto 16px; text-align: center; line-height: 1.5; }
+  .griglia-mock { display: grid; grid-template-columns: repeat(auto-fit, 520px); gap: 30px; justify-content: center; max-width: 1120px; margin: 0 auto; }
+  @media (max-width: 590px) { body { padding: 14px; } .griglia-mock { grid-template-columns: 1fr; } }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 22px 18px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .page-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .riga-cerca {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 50px; border-radius: 999px; padding: 0 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    font-size: 15.5px; font-weight: 700; color: var(--ink);
+    margin-bottom: 18px;
+  }
+  [data-theme="dark"] .riga-cerca { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .riga-cerca svg.lente { width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; flex: none; }
+  .riga-cerca .ph { color: var(--faint); font-weight: 600; }
+  .riga-cerca .caret { width: 2px; height: 20px; background: var(--red); }
+
+  /* Parete + tray (dal concept ratificato, variante A) */
+  .parete {
+    position: relative; border-radius: 18px; padding: 22px 16px 18px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      var(--bg-deep);
+  }
+  [data-theme="dark"] .parete {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      var(--bg-deep);
+  }
+  .parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tray { position: relative; border-radius: 10px 10px 12px 12px; padding: 9px 10px 10px; min-height: 104px;
+    display: flex; flex-direction: column; justify-content: flex-end; cursor: grab;
+    box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
+    transition: opacity 200ms;
+  }
+  [data-theme="dark"] .tray { box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4); }
+  .tray::before { content: ''; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 10px; border-radius: 4px 4px 0 0; background: inherit; filter: brightness(.85); }
+  .tray .cavita { position: absolute; inset: 5px 6px auto 6px; height: 46px; border-radius: 7px;
+    background: rgba(0,0,0,.18); box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
+    display: flex; align-items: center; justify-content: center; }
+  .tray.rossa  { background: linear-gradient(180deg, #E8323B, #C3000F); }
+  .tray.blu    { background: linear-gradient(180deg, #2E6FD0, #174A9C); }
+  .tray.azzurra{ background: linear-gradient(180deg, #6FB1E8, #4187C6); }
+  .tray.grigia { background: linear-gradient(180deg, #9A948E, #6E675F); }
+  .tray.bianca { background: linear-gradient(180deg, #FFFEFA, #E4DCCB); }
+  .tray.verde  { background: linear-gradient(180deg, #2E9C55, #166B39); }
+  .tray.corallo{ background: linear-gradient(180deg, #F2836B, #C9563E); } /* colore custom dal selettore */
+  .tray .targa {
+    position: relative; z-index: 1; align-self: center;
+    background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
+    font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  .tray .cont { position: relative; z-index: 1; text-align: center; margin-top: 5px;
+    font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+  .tray.bianca .cont, .tray.azzurra .cont { color: rgba(29,25,19,.85); text-shadow: none; }
+  /* LIBERA: cavità vuota ben visibile + targa "aperta" (outline) + copy quieta */
+  .tray.libera .targa { background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9); }
+  .tray.libera.bianca .targa, .tray.libera.azzurra .targa { box-shadow: inset 0 0 0 2px rgba(29,25,19,.4); color: rgba(29,25,19,.7); }
+  .tray.libera .cont { opacity: .6; font-weight: 700; }
+  /* RICERCA: accesa / spenta */
+  .tray.accesa { box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(52,42,26,.45), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28); }
+  [data-theme="dark"] .tray.accesa { box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18); }
+  .tray.spenta { opacity: .3; filter: saturate(.4); }
+  .tray-nuova { border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3); }
+  .tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
+  .tray-nuova .t { font-size: 12px; font-weight: 700; }
+
+  /* Miniature tipo-lavoro: dentro la cavità */
+  .cavita svg { height: 34px; width: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+
+  /* Legenda miniature */
+  .legenda-min { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; max-width: 980px; margin: 0 auto; }
+  .leg-card { border-radius: 16px; background: #F7F4EE; box-shadow: 0 6px 20px -14px rgba(50,40,25,.35);
+    padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .leg-card .box { width: 84px; height: 52px; border-radius: 8px; background: #4a4238;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+  .leg-card .box svg { height: 36px; width: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .leg-card .n { font-size: 12.5px; font-weight: 800; color: #1C1917; text-align: center; }
+
+  /* Flow liberazione */
+  .avviso-l5 {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 16px; border-radius: 18px;
+    background: var(--card); box-shadow: var(--sh-card);
+    max-width: 420px; margin: 0 auto 16px;
+  }
+  [data-theme="dark"] .avviso-l5 { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .avviso-l5 .ic { flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--green-tint); color: var(--green); }
+  .avviso-l5 .ic svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .avviso-l5 .tx { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.35; }
+  .avviso-l5 .tx small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+
+  /* Sheet nuova cassetta */
+  .sheet-stage { position: relative; border-radius: 20px; overflow: hidden; height: 540px;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4); background: var(--bg-deep); }
+  .sheet-stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .scrim-m { position: absolute; inset: 0; background: rgba(29,25,19,.35); }
+  .sheet-m { position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--card); border-radius: 28px 28px 0 0;
+    padding: 30px 22px 22px; box-shadow: var(--sh-card); }
+  [data-theme="dark"] .sheet-m { box-shadow: none; border-top: 1px solid rgba(255,255,255,.04); }
+  .sheet-m::before { content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 36px; height: 4px; border-radius: 999px; background: var(--line); }
+  .sheet-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .campo-label { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); display: block; margin: 18px 0 10px; }
+  .campo-finto { display: flex; align-items: center; gap: 10px; min-height: 52px; border-radius: 16px;
+    background: var(--bg-deep); box-shadow: inset 0 1px 2px rgba(50,40,25,.06);
+    padding: 0 16px; font-size: 17px; font-weight: 700; color: var(--ink); }
+  [data-theme="dark"] .campo-finto { box-shadow: none; }
+  .campo-finto .hint { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--faint); }
+  .swatches { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .sw { width: 42px; height: 42px; border-radius: 12px; cursor: pointer; box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -6px 10px -6px rgba(0,0,0,.3); }
+  .sw.sel { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .sw.custom { background: conic-gradient(#D90012, #E8A13D, #1B7F3B, #1D5FBF, #7C3F9C, #D90012);
+    display: flex; align-items: center; justify-content: center; }
+  .sw.custom::after { content: '+'; font-size: 20px; font-weight: 800; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .sheet-cta { margin-top: 22px; }
+  .tasto-primario.mini { height: 60px; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIMBOLI SVG — miniature materiche per tipo di lavoro ═══
+     Palette: avorio ceramica #F8F2E6 (+ ombra #D9CDB6) · rosa gengiva #E89AA4
+     (+ #C97783) · grigio metallo #B9BEC6 (+ #8E959E) · resina traslucida. -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="mk-corona" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="#F8F2E6"/>
+    <path d="M6.5 6.5 C7.5 5.4 9.5 4.8 12 4.8" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M4 9.5 C4 13 5 16.5 6.2 19.2 C6.8 20.6 8.6 20.5 9.1 19 L10.1 16" stroke="#D9CDB6" stroke-width="1.2" fill="none"/>
+  </symbol>
+  <symbol id="mk-provvisorio" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.6" stroke-dasharray="3.2 2.4"/>
+  </symbol>
+  <symbol id="mk-impianto" viewBox="0 0 24 32">
+    <path d="M6 7 C6 3.8 8.2 3 12 3 C15.8 3 18 3.8 18 7 C18 9.4 17.3 11.4 16.6 12.8 C16.2 13.7 7.8 13.7 7.4 12.8 C6.7 11.4 6 9.4 6 7 Z" fill="#F8F2E6"/>
+    <rect x="9.4" y="14.5" width="5.2" height="12" rx="2.2" fill="#B9BEC6"/>
+    <path d="M9.4 17.5 H14.6 M9.4 20.5 H14.6 M9.4 23.5 H14.6" stroke="#8E959E" stroke-width="1.4"/>
+  </symbol>
+  <symbol id="mk-ponte" viewBox="0 0 44 24">
+    <path d="M3 10 C3 5.5 5.5 4 9.5 4 C13 4 15 5.5 15 10 C15 13 14.2 16 13.3 18.4 C12.8 19.7 11.2 19.6 10.8 18.3 L10.2 16.2 C9.8 14.9 8.2 14.9 7.8 16.2 L7.2 18.3 C6.8 19.6 5.2 19.7 4.7 18.4 C3.8 16 3 13 3 10 Z" fill="#F8F2E6"/>
+    <path d="M17 10 C17 5.5 19.5 4 22 4 C24.5 4 27 5.5 27 10 C27 13.5 26.4 16.8 25.6 19 C25.2 20.2 23 20.2 22.6 19 L22 17.2 C21.7 16.2 22.3 16.2 22 17.2 L21.4 19 C21 20.2 18.8 20.2 18.4 19 C17.6 16.8 17 13.5 17 10 Z" fill="#EFE6D2"/>
+    <path d="M29 10 C29 5.5 31 4 34.5 4 C38.5 4 41 5.5 41 10 C41 13 40.2 16 39.3 18.4 C38.8 19.7 37.2 19.6 36.8 18.3 L36.2 16.2 C35.8 14.9 34.2 14.9 33.8 16.2 L33.2 18.3 C32.8 19.6 31.2 19.7 30.7 18.4 C29.8 16 29 13 29 10 Z" fill="#F8F2E6"/>
+    <path d="M14.6 8 H17.6 M26.6 8 H29.6" stroke="#D9CDB6" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="mk-totale" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/><circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/>
+    <circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+  </symbol>
+  <symbol id="mk-scheletrato" viewBox="0 0 40 26">
+    <path d="M6 23 C6 13 12 6 20 6 C28 6 34 13 34 23" stroke="#B9BEC6" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 23 C10 15.5 14.5 10.5 20 10.5 C25.5 10.5 30 15.5 30 23" stroke="#8E959E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <path d="M5 19 C3.8 17.5 3.8 15.5 5.2 14.2 M35 19 C36.2 17.5 36.2 15.5 34.8 14.2" stroke="#B9BEC6" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M3.5 23 C3.5 20 4.5 18.5 6.5 18 C8.5 17.7 9.5 19 9.5 21 L9.2 23 Z" fill="#F8F2E6"/>
+    <path d="M36.5 23 C36.5 20 35.5 18.5 33.5 18 C31.5 17.7 30.5 19 30.5 21 L30.8 23 Z" fill="#F8F2E6"/>
+  </symbol>
+</svg>
+
+<div class="intro">
+  <h1>La Parete v2 — le cassette raccontano cosa contengono</h1>
+  <p>Direzione A materica ratificata + le tue specifiche: dentro ogni cassetta occupata c'è la
+  MINIATURA del tipo di lavoro (ceramica avorio, gengiva rosa, metallo grigio — le silhouette che
+  ogni odontotecnico riconosce al volo), le libere mostrano la cavità vuota e la targa «aperta».
+  Sotto: la ricerca che accende, la liberazione automatica alla consegna, e lo sheet «Nuova cassetta»
+  con nome automatico + colore standard o personalizzato.</p>
+</div>
+
+<div class="blocco-titolo">1 · La parete viva — occupate con miniatura, libere a cavità vuota</div>
+<div class="blocco-sotto">C12 corona zirconia · C15 ponte · C21 provvisorio resina · C3 protesi totale ·
+C9 corona su impianto (colore personalizzato corallo) · C7 scheletrato in bianca · C4 libera.
+Tap su una cassetta occupata → si apre la scheda del lavoro.</div>
+<div class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="ph">Cerca una cassetta o un lavoro…</span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+          <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+          <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+          <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+          <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+      <div class="nota-stage">C9 è color corallo: scelto col selettore libero (specifica: «rispecchiare la realtà»).</div>
+    </div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Le cassette</span>
+      </div>
+      <div class="riga-cerca">
+        <svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="ph">Cerca una cassetta o un lavoro…</span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+          <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+          <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+          <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+          <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="blocco-titolo">Le miniature — prima famiglia proposta (si estende col catalogo tipi)</div>
+<div class="blocco-sotto">Materiche, 3 materiali-colore: ceramica avorio · gengiva rosa · metallo grigio.
+Il provvisorio è «di resina»: traslucido e tratteggiato. Ogni tipo del catalogo lavori ne avrà una.</div>
+<div class="legenda-min">
+  <div class="leg-card"><span class="box"><svg><use href="#mk-corona"/></svg></span><span class="n">Corona<br>(zirconia, ceramica)</span></div>
+  <div class="leg-card"><span class="box"><svg><use href="#mk-provvisorio"/></svg></span><span class="n">Provvisorio<br>in resina</span></div>
+  <div class="leg-card"><span class="box"><svg><use href="#mk-impianto"/></svg></span><span class="n">Corona<br>su impianto</span></div>
+  <div class="leg-card"><span class="box"><svg><use href="#mk-ponte"/></svg></span><span class="n">Ponte<br>(più elementi)</span></div>
+  <div class="leg-card"><span class="box"><svg><use href="#mk-totale"/></svg></span><span class="n">Protesi<br>totale</span></div>
+  <div class="leg-card"><span class="box"><svg><use href="#mk-scheletrato"/></svg></span><span class="n">Scheletrato</span></div>
+</div>
+
+<div class="blocco-titolo">2 · La ricerca — la giusta si accende, le altre si spengono</div>
+<div class="blocco-sotto">Cerchi qualsiasi cosa inerente alla cassetta: nome, numero lavoro, dentista, paziente,
+tipo («zirconia»). Qui: query «zirconia» → C12 accesa (anello blu + luce), tutte le altre si attenuano.</div>
+<div class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="riga-cerca">
+        <svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        zirconia<span class="caret"></span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa accesa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu spenta"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra spenta"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <div class="tray verde spenta"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+          <div class="tray corallo spenta"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+          <div class="tray grigia libera spenta"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+        </div>
+      </div>
+      <div class="nota-stage">Il match non è mai SOLO colore: la cassetta accesa ha anello + elevazione (L3).</div>
+    </div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="riga-cerca">
+        <svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        zirconia<span class="caret"></span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa accesa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+          <div class="tray blu spenta"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra spenta"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+          <div class="tray verde spenta"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+          <div class="tray corallo spenta"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+          <div class="tray grigia libera spenta"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="blocco-titolo">3 · La liberazione — alla consegna, da sola (L5)</div>
+<div class="blocco-sotto">Consegni n.144 → UÀ racconta cosa ha fatto: avviso «C12 si è liberata» e sulla
+parete la cassetta torna a cavità vuota, pronta per il prossimo arrivo.</div>
+<div class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="avviso-l5">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span class="tx">Consegnato ✓<small>UÀ ha liberato la cassetta <b>C12</b></small></span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa libera"><span class="cavita"></span><span class="targa">C12</span><span class="cont">libera</span></div>
+          <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+        </div>
+      </div>
+      <div class="nota-stage">Lo storico resta: n.144 «era in C12» rimane trovabile dalla ricerca globale.</div>
+    </div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="avviso-l5">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></span>
+        <span class="tx">Consegnato ✓<small>UÀ ha liberato la cassetta <b>C12</b></small></span>
+      </div>
+      <div class="parete">
+        <div class="parete-grid">
+          <div class="tray rossa libera"><span class="cavita"></span><span class="targa">C12</span><span class="cont">libera</span></div>
+          <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+          <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="blocco-titolo">4 · «Nuova cassetta» — nome automatico MA libero, colore standard o TUO</div>
+<div class="blocco-sotto">Soluzione per «entrambe le cose»: il nome arriva PRECOMPILATO col prossimo numero
+(C22) — chi lavora coi numeri tocca solo «Crea»; chi ha nomi suoi lo cancella e scrive («Banco Ciro»,
+«R-04»…). Colori: i 6 standard portalavori + l'ultimo swatch apre il selettore libero.</div>
+<div class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="sheet-stage" data-theme="light">
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">Nuova cassetta</div>
+        <span class="campo-label">Nome</span>
+        <div class="campo-finto">C22<span class="hint">suggerito · scrivi quello che vuoi</span></div>
+        <span class="campo-label">Colore</span>
+        <div class="swatches">
+          <span class="sw sel" style="background:linear-gradient(180deg,#FFFEFA,#E4DCCB)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#6FB1E8,#4187C6)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#E8323B,#C3000F)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#2E6FD0,#174A9C)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#2E9C55,#166B39)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#9A948E,#6E675F)"></span>
+          <span class="sw custom"></span>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Crea C22</button></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="sheet-stage" data-theme="dark">
+      <div class="scrim-m"></div>
+      <div class="sheet-m">
+        <div class="sheet-title">Nuova cassetta</div>
+        <span class="campo-label">Nome</span>
+        <div class="campo-finto">C22<span class="hint">suggerito · scrivi quello che vuoi</span></div>
+        <span class="campo-label">Colore</span>
+        <div class="swatches">
+          <span class="sw sel" style="background:linear-gradient(180deg,#FFFEFA,#E4DCCB)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#6FB1E8,#4187C6)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#E8323B,#C3000F)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#2E6FD0,#174A9C)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#2E9C55,#166B39)"></span>
+          <span class="sw" style="background:linear-gradient(180deg,#9A948E,#6E675F)"></span>
+          <span class="sw custom"></span>
+        </div>
+        <div class="sheet-cta"><button class="tasto-primario mini">Crea C22</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

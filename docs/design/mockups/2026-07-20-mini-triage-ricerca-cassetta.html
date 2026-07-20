@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ricerca per cassetta — nella pila (ora) + Cerca globale (concept) (20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     RICERCA — decisione Francesco: «fondamentale». Due tempi:
+     1. ORA (questa ondata, costo minimo): la RigaCerca già montata in
+        PilaAperta (§5.13, soglia >15) impara a matchare ANCHE numero_cassetta.
+        È un filtro client: una riga di codice + test.
+     2. CONCEPT (sessione design dedicata, poi prima ondata utile): «Cerca» —
+        ricerca globale fra TUTTI i lavori, anche consegnati (rifacimenti,
+        contestazioni, MDR). Casa naturale: /lavori senza parametro (l'URL
+        liberato dall'eliminazione di «Le pile»). Match: numero, cassetta,
+        dentista, paziente, tipo.
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1080px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 920px; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, 400px); gap: 28px; justify-content: center; max-width: 1080px; margin: 0 auto; }
+  @media (max-width: 470px) { body { padding: 16px; } .griglia { grid-template-columns: 1fr; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 96px; }
+  .etichetta .nome { font-size: 16.5px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .tema-titolo { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #6E675F; margin: 26px 0 12px; text-align: center; }
+  .stage {
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 22px 18px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  /* Testata pila (morph ambra: n.144 vive «Sul banco» in questo scenario? no—
+     cast: n.144 è in rossa. Uso la pila rossa.) */
+  .morph { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 16px; }
+  .morph .m-num { font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; color: var(--red); }
+  .morph .m-txt { flex: 1; min-width: 0; padding-top: 4px; }
+  .morph .m-label { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--red); }
+  .morph .m-sub { font-size: 16px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+
+  /* RigaCerca §5.13 — riga pillosa con lente + query */
+  .riga-cerca {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 52px; border-radius: 999px; padding: 0 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    font-size: 16px; font-weight: 700; color: var(--ink);
+    margin-bottom: 16px;
+  }
+  [data-theme="dark"] .riga-cerca { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .riga-cerca svg { width: 18px; height: 18px; stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; flex: none; }
+  .riga-cerca .q { color: var(--ink); }
+  .riga-cerca .caret { width: 2px; height: 20px; background: var(--red); }
+  .riga-cerca .ph { color: var(--faint); font-weight: 600; }
+
+  /* CardLavoro con targa cassetta (variante A ratificata) */
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .cass-blocco {
+    border-radius: 12px; background: var(--bg-deep);
+    box-shadow: inset 0 0 0 1.5px var(--line);
+    padding: 6px 12px 7px; text-align: center; flex: none;
+  }
+  .cass-blocco small { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 1px; }
+  .cass-blocco .cnum { font-size: 21px; font-weight: 800; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .cass-blocco.match { box-shadow: inset 0 0 0 2.5px var(--blue); }
+  .cass-blocco.match .cnum { color: var(--blue); }
+  .pill.tempo { font-size: 15px; letter-spacing: 0; text-transform: none; }
+  .pill.fam-rossa { background: var(--red-tint); color: var(--red); }
+  .pill.fam-ambra { background: var(--amber-tint); color: var(--amber); }
+  .pill.fam-verde { background: var(--green-tint); color: var(--green); }
+  .filtro-esito { font-size: 13.5px; font-weight: 600; color: var(--muted); text-align: center; margin: 14px 0 0; }
+  .lista { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Concept Cerca globale */
+  .page-head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .page-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .gruppo-label { font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin: 16px 0 10px; }
+  .concept-badge {
+    display: inline-flex; align-items: center; margin-left: 10px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--blue-tint); color: var(--blue);
+    font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Trovare un lavoro dalla cassetta — in due tempi</h1>
+  <p>Subito (questa ondata): la RigaCerca già presente nella pila aperta impara a leggere anche la
+  cassetta — scrivi «C12» e la pila si filtra. Poi (sessione design dedicata): «Cerca», la ricerca
+  globale fra TUTTI i lavori — anche consegnati e archiviati — per numero, cassetta, dentista,
+  paziente. Casa naturale: l'URL /lavori appena liberato da «Le pile».</p>
+</div>
+
+<div class="tema-titolo">1 · Nella pila aperta — subito</div>
+<div class="griglia">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">RigaCerca che capisce la cassetta</div>
+    <div class="desc">Query «C12» → resta solo n.144, con la targa cassetta accesa in blu (è LEI il
+    match). Stessa riga, stesso posto (§5.13): cambia solo cosa sa leggere. Costo: una riga di
+    filtro + test.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="morph">
+        <div class="m-num">2</div>
+        <div class="m-txt">
+          <div class="m-label">Da consegnare oggi</div>
+          <div class="m-sub">2 lavori · il più vicino alle 16:00</div>
+        </div>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="q">C12</span><span class="caret"></span>
+      </div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <div class="cass-blocco match"><small>Cassetta</small><span class="cnum">C12</span></div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+        </div>
+      </div>
+      <div class="filtro-esito">1 lavoro su 2 · <u>mostra tutti</u></div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="morph">
+        <div class="m-num">2</div>
+        <div class="m-txt">
+          <div class="m-label">Da consegnare oggi</div>
+          <div class="m-sub">2 lavori · il più vicino alle 16:00</div>
+        </div>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="q">C12</span><span class="caret"></span>
+      </div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <div class="cass-blocco match"><small>Cassetta</small><span class="cnum">C12</span></div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+        </div>
+      </div>
+      <div class="filtro-esito">1 lavoro su 2 · <u>mostra tutti</u></div>
+    </div>
+  </div>
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">«Cerca» — globale, anche nell'archivio <span class="concept-badge">Concept</span></div>
+    <div class="desc">Query «C12» → trova il lavoro VIVO che è in C12 ora E i consegnati che ci sono
+    passati (rifacimenti, contestazioni, tracciabilità). Raggruppati: «Adesso in laboratorio» /
+    «Consegnati». Da progettare in sessione dedicata — questo è il concept per ratificarne la rotta.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Cerca</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="q">C12</span><span class="caret"></span>
+      </div>
+      <div class="gruppo-label">Adesso in laboratorio</div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <div class="cass-blocco match"><small>Cassetta</small><span class="cnum">C12</span></div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+        </div>
+      </div>
+      <div class="gruppo-label">Consegnati</div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.089</div>
+            <span class="pill fam-verde">Consegnato ✓</span>
+          </div>
+          <div class="cl-who">Dr. Russo · PZ-0311</div>
+          <div class="cl-tipo">Corona metallo-ceramica · era in C12 · marzo</div>
+        </div>
+      </div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="page-head">
+        <button class="tasto-tondo" aria-label="Indietro">‹</button>
+        <span class="page-title">Cerca</span>
+      </div>
+      <div class="riga-cerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+        <span class="q">C12</span><span class="caret"></span>
+      </div>
+      <div class="gruppo-label">Adesso in laboratorio</div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.144</div>
+            <div class="cass-blocco match"><small>Cassetta</small><span class="cnum">C12</span></div>
+            <span class="pill tempo fam-rossa">Da ieri</span>
+          </div>
+          <div class="cl-who">Dr.ssa Bianchi · PZ-0398</div>
+          <div class="cl-tipo">Ponte 3 elementi</div>
+        </div>
+      </div>
+      <div class="gruppo-label">Consegnati</div>
+      <div class="lista">
+        <div class="card cardlav">
+          <div class="cl-top">
+            <div class="cl-num"><small>Lavoro</small>n.089</div>
+            <span class="pill fam-verde">Consegnato ✓</span>
+          </div>
+          <div class="cl-who">Dr. Russo · PZ-0311</div>
+          <div class="cl-tipo">Corona metallo-ceramica · era in C12 · marzo</div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">Nota: «era in C12» richiede lo storico cassetta→lavoro (oggi non tracciato) —
+    nasce con la Parete o con la sessione «Cerca».</div>
+  </div>
+
+</div>
+
+</body>
+</html>
