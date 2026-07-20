@@ -116,6 +116,7 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
             onChange={onClienteChange}
             placeholder="Cerca dentista o studio..."
             hasError={!!fieldErrors?.['cliente_id']}
+            errorId="error-cliente_id"
           />
           {fieldErrors?.['cliente_id'] && (
             <span

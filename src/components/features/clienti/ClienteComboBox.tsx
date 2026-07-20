@@ -32,6 +32,7 @@ export interface ClienteComboBoxProps {
   placeholder?: string
   id?: string
   hasError?: boolean
+  errorId?: string
 }
 
 function buildLabel(option: ClienteOption): string {
@@ -46,6 +47,7 @@ export function ClienteComboBox({
   placeholder = 'Cerca dentista o studio...',
   id,
   hasError = false,
+  errorId,
 }: ClienteComboBoxProps) {
   const inputId = useId()
   const listboxId = useId()
@@ -186,6 +188,8 @@ export function ClienteComboBox({
             ? `${listboxId}-option-${activeIndex}`
             : undefined
         }
+        aria-invalid={hasError || undefined}
+        aria-describedby={hasError && errorId ? errorId : undefined}
         autoComplete="off"
         value={displayValue}
         onChange={handleInputChange}
