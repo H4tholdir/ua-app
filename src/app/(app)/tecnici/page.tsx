@@ -1,24 +1,16 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
-import { AppHeader } from '@/components/layout/AppHeader'
-import { PageWrapper } from '@/components/layout/PageWrapper'
-import { TecnicoEditInline } from '@/components/features/tecnici/TecnicoEditInline'
-import { TecnicoDeactivateButton } from '@/components/features/tecnici/TecnicoDeactivateButton'
-import { InvitaCollaboratoreSheet } from '@/components/features/tecnici/InvitaCollaboratoreSheet'
+import { PersoneV3, type TecnicoRow } from '@/components/features/tecnici/PersoneV3'
+import { adessoRoma, MESI } from '@/lib/utils/data-roma'
 
-type TecnicoRow = {
-  id: string
-  nome: string
-  cognome: string
-  sigla: string | null
-  qualifica: string | null
-  prrc: boolean
-  compenso_base: number | null
-  tipo_compenso: string | null
-}
-
+// «Persone» v3 (Task 11, ondata A mini-triage) — migrazione integrale di
+// /tecnici a v3 (spec v3 §14: migrazione per route). Auth/ruolo e query
+// identici alla pagina v2.3 precedente (nessun filtro attivo/deleted_at nella
+// query originale — perimetro conservato as-is). Le vecchie UI inline
+// (`TecnicoEditInline`, `TecnicoDeactivateButton`, `InvitaCollaboratoreSheet`)
+// non sono più montate qui — tornano via lo Sheet persona nei Task 12/13, i
+// file non sono rimossi in questo task.
 export default async function TechniciPage() {
   const context = await getLabContext()
   if (!context?.laboratorioId) redirect('/login')
@@ -26,7 +18,6 @@ export default async function TechniciPage() {
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
   const ruolo: string = context.ruolo
-  const canViewProduttivita = ruolo === 'titolare' || ruolo === 'admin_rete'
 
   let tecnici: TecnicoRow[] = []
   if (labId) {
@@ -39,202 +30,16 @@ export default async function TechniciPage() {
     tecnici = (data ?? []) as TecnicoRow[]
   }
 
-  const invitaButton = ruolo === 'titolare' ? <InvitaCollaboratoreSheet variant="header" /> : null
+  // Il label mese della card cedolini arriva SEMPRE dal server (regola
+  // ratificata data-fiscali 20/07/2026): mai `new Date().getFullYear()` client.
+  const ora = adessoRoma()
+  const nomeMese = MESI[ora.getMonth()]
+  const meseLabel = `${nomeMese.charAt(0).toUpperCase()}${nomeMese.slice(1)} ${ora.getFullYear()}`
 
   return (
-    <PageWrapper>
-      <AppHeader title="Tecnici" actions={invitaButton} />
-
-      <section style={{ padding: '0 20px' }}>
-        {tecnici.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--surface, #E4DFD9)',
-              borderRadius: '16px',
-              padding: '36px 20px',
-              textAlign: 'center',
-              boxShadow: 'var(--sh-b)',
-            }}
-          >
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '15px',
-                fontWeight: 600,
-                color: 'var(--t1, #1C1916)',
-                margin: '0 0 10px',
-              }}
-            >
-              Nessun tecnico registrato
-            </p>
-            <p
-              style={{
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: '13px',
-                color: 'var(--t2, #4A3D33)',
-                margin: '0 0 16px',
-                lineHeight: 1.6,
-              }}
-            >
-              Invita un collaboratore per assegnargli lavori e tracciare la produttività.
-            </p>
-            {ruolo === 'titolare' && <InvitaCollaboratoreSheet variant="cta" />}
-          </div>
-        ) : (
-          <ul
-            style={{
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            {tecnici.map((tecnico) => (
-              <li key={tecnico.id}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    background: 'var(--surface, #E4DFD9)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    boxShadow: 'var(--sh-b, var(--sh-b))',
-                  }}
-                >
-                  {/* Sigla avatar */}
-                  {tecnico.sigla && (
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
-                        background: 'var(--elv, #EDEDEA)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          color: 'var(--c-amber, #F59E0B)',
-                        }}
-                      >
-                        {tecnico.sigla}
-                      </span>
-                    </div>
-                  )}
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '16px',
-                          fontWeight: 600,
-                          color: 'var(--t1, #1C1916)',
-                          margin: 0,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {tecnico.cognome} {tecnico.nome}
-                      </p>
-
-                      {tecnico.prrc && (
-                        <span
-                          role="img"
-                          aria-label="PRRC — Responsabile della Conformità"
-                          style={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            color: 'var(--success, #16A34A)',
-                            background: 'hsl(159 63% 49% / 0.15)',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            flexShrink: 0,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          PRRC
-                        </span>
-                      )}
-                    </div>
-
-                    {tecnico.qualifica && (
-                      <p
-                        style={{
-                          fontFamily: 'DM Sans, sans-serif',
-                          fontSize: '13px',
-                          color: 'var(--t2, #4A3D33)',
-                          margin: 0,
-                        }}
-                      >
-                        {tecnico.qualifica}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Modifica + Disattiva tecnico — solo titolare/admin_rete */}
-                  {canViewProduttivita && (
-                    <TecnicoEditInline tecnico={tecnico} />
-                  )}
-                  {canViewProduttivita && (
-                    <TecnicoDeactivateButton
-                      tecnicoId={tecnico.id}
-                      tecnicoNome={`${tecnico.nome ?? ''} ${tecnico.cognome ?? ''}`.trim()}
-                    />
-                  )}
-
-                  {/* Link produttività — solo titolare/admin_rete */}
-                  {canViewProduttivita && (
-                    <Link
-                      href={`/tecnici/${tecnico.id}/produttivita`}
-                      aria-label={`Produttività di ${tecnico.nome} ${tecnico.cognome}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '6px 12px',
-                        minHeight: '44px',
-                        borderRadius: '10px',
-                        background: 'var(--elv, #EDEDEA)',
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: 'var(--t2, #4A3D33)',
-                        textDecoration: 'none',
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      <span aria-hidden="true">📊</span>
-                      Produttività
-                    </Link>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </PageWrapper>
+    <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
+      <div className="ds-grana" aria-hidden />
+      <PersoneV3 tecnici={tecnici} ruolo={ruolo} meseLabel={meseLabel} />
+    </div>
   )
 }

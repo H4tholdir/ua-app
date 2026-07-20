@@ -16,7 +16,11 @@
 // resta correttamente FUORI dal predicato. `SCHEDA_V3_RE` copre esattamente
 // detail e ponte, mai `/consegna` né altre sotto-route: `[^/]+` è un singolo
 // segmento (l'id), il gruppo `/modifica` è opzionale e chiuso da `$`.
-export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo']
+//
+// Task 11 (ondata A mini-triage): `/tecnici` migra integralmente a v3 come
+// «Persone» (spec v3 §14: migrazione per route) → avatar + BottomNavPill
+// legacy si ritirano anche lì.
+export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo', '/tecnici']
 
 const SCHEDA_V3_RE = /^\/lavori\/[^/]+(\/modifica)?$/
 

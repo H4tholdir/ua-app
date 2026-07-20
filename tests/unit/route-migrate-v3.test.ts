@@ -29,6 +29,10 @@ describe('isV3MigratedRoute — predicato condiviso route migrate a v3', () => {
     expect(isV3MigratedRoute('/lavori/nuovo')).toBe(true)
   })
 
+  it('true su /tecnici (Task 11, ondata A mini-triage: «Persone» v3)', () => {
+    expect(isV3MigratedRoute('/tecnici')).toBe(true)
+  })
+
   it('true su /lavori/[id] scheda-vista v3 (Ondata 3a, polish L1)', () => {
     expect(isV3MigratedRoute('/lavori/abc123')).toBe(true)
     expect(isV3MigratedRoute('/lavori/f3ce5264-3ba7-4730-becd-3da237ba2fb1')).toBe(true)
