@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { getBrowserClient } from '@/lib/supabase/browser-anon'
 
 // ─── Stili condivisi (allineati a TabDati.tsx) ────────────────
 const inputBase: React.CSSProperties = {
@@ -88,20 +87,18 @@ export function ClienteComboBox({
     setLoading(true)
     const thisRequest = ++requestIdRef.current
     try {
-      const supabase = getBrowserClient()
-      const { data, error } = await supabase
-        .from('clienti')
-        .select('id, nome, cognome, studio_nome')
-        .or(
-          `nome.ilike.%${q}%,cognome.ilike.%${q}%,studio_nome.ilike.%${q}%`
-        )
-        .limit(8)
-
+      // O4a: la ricerca passa dal choke-point GET /api/clienti (guard N13,
+      // escaping PostgREST, ordinamento server-side) — niente query Supabase
+      // diretta dal browser. Il dropdown mostra al più 8 risultati.
+      const res = await fetch(`/api/clienti?q=${encodeURIComponent(q)}`)
+      if (thisRequest !== requestIdRef.current || !res.ok) return
+      const body = (await res.json()) as { clienti: ClienteOption[] }
       if (thisRequest !== requestIdRef.current) return
-      if (!error && data) {
-        setOptions(data as ClienteOption[])
-        setOpen(data.length > 0)
-      }
+      const data = (body.clienti ?? []).slice(0, 8)
+      setOptions(data)
+      setOpen(data.length > 0)
+    } catch {
+      // Rete giù: il campo resta usabile, nessun dropdown.
     } finally {
       if (thisRequest === requestIdRef.current) setLoading(false)
     }
