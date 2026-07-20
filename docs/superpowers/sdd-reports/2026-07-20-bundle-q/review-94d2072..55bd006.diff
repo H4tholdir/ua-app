@@ -1,0 +1,85 @@
+# Review package: 94d2072..HEAD
+
+## Commits
+55bd006 fix(pwa): theme_color e splash allineati al brand (#D90012 / panna) — A5
+
+## Files changed
+ public/manifest.json |  4 ++--
+ public/offline.html  | 12 ++++++------
+ 2 files changed, 8 insertions(+), 8 deletions(-)
+
+## Diff
+diff --git a/public/manifest.json b/public/manifest.json
+index 2f06705..ed316f7 100644
+--- a/public/manifest.json
++++ b/public/manifest.json
+@@ -1,18 +1,18 @@
+ {
+   "name": "UÀ — Laboratorio Odontotecnico",
+   "short_name": "UÀ",
+   "description": "Il laboratorio odontotecnico, finalmente leggero.",
+   "start_url": "/dashboard",
+   "display": "standalone",
+-  "background_color": "#0F1E52",
+-  "theme_color": "#0F1E52",
++  "background_color": "#DDD8D3",
++  "theme_color": "#D90012",
+   "orientation": "portrait-primary",
+   "categories": [
+     "productivity",
+     "medical"
+   ],
+   "icons": [
+     {
+       "src": "/icons/icon-192.png",
+       "sizes": "192x192",
+       "type": "image/png"
+diff --git a/public/offline.html b/public/offline.html
+index 56237bf..837e9e5 100644
+--- a/public/offline.html
++++ b/public/offline.html
+@@ -1,38 +1,38 @@
+ <!DOCTYPE html>
+ <html lang="it">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+-<meta name="theme-color" content="#0F1E52">
++<meta name="theme-color" content="#D90012">
+ <title>UA — Offline</title>
+ <style>
+   * { margin: 0; padding: 0; box-sizing: border-box; }
+   body {
+-    background: #0F1E52;
+-    color: #F0F4FF;
++    background: #DDD8D3;
++    color: #1C1916;
+     font-family: 'DM Sans', system-ui, sans-serif;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     min-height: 100dvh;
+     text-align: center;
+     padding: 24px;
+   }
+   h1 { font-size: 24px; margin-bottom: 12px; font-weight: 700; }
+-  p { color: #8899CC; font-size: 15px; line-height: 1.5; }
++  p { color: #4A3D33; font-size: 15px; line-height: 1.5; }
+   .retry {
+     margin-top: 24px;
+     display: inline-block;
+     padding: 12px 24px;
+-    background: #D4A843;
+-    color: #0F1E52;
++    background: #D90012;
++    color: #FFFFFF;
+     border-radius: 100px;
+     font-weight: 700;
+     text-decoration: none;
+     cursor: pointer;
+     border: none;
+     font-size: 15px;
+   }
+ </style>
+ </head>
+ <body>

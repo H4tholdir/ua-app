@@ -1,0 +1,2108 @@
+# Review package: 94d2072..HEAD
+
+## Commits
+787658f feat(dashboard): segnale striscia per tecnico senza anagrafica — O1f
+bdd11af fix(a11y): sub udibile, chiusura ricerca, warn dev CardLavoro — O1c
+14ab4c9 feat(portale): push a titolare/front_desk su nuova richiesta — A8
+be865b8 feat(lavori): push al tecnico su assegnazione lavoro — A1
+dbfa7ca fix(lavori): countdown AnnullaConsegnaBanner fuori dal render iniziale — A17
+311bc35 fix(a11y): aria-invalid/aria-describedby su ClienteComboBox — A12
+c631c16 feat(portale): navigazione incrociata portale ↔ richiedi — A7
+32c3332 fix(portale): copy successo richiesta senza contraddizione — A9
+333a479 fix(auth): il prefill passkey non sovrascrive l'email digitata — A3
+2f1555e fix(qualita): gravità lieve usa --c-amber-ink (WCAG AA), messaggio check corretto — A6
+efae4a1 fix(qualita): gravità lieve usa --c-amber, mai --gold come testo — A6
+55bd006 fix(pwa): theme_color e splash allineati al brand (#D90012 / panna) — A5
+
+## Files changed
+ public/manifest.json                               |   4 +-
+ public/offline.html                                |  12 +-
+ scripts/check-ds-compliance.sh                     |   2 +-
+ src/app/(app)/dashboard/page.tsx                   |  11 +-
+ src/app/(app)/qualita/page.tsx                     |   2 +-
+ src/app/(auth)/login/login-form.tsx                |   3 +-
+ src/app/api/lavori/[id]/route.ts                   |  70 +++++++-
+ src/app/api/portale/richiedi/route.ts              |  27 ++-
+ src/app/portale/[token]/page.tsx                   |  21 +++
+ src/components/ds/CardLavoro.tsx                   |  10 ++
+ .../features/clienti/ClienteComboBox.tsx           |   4 +
+ .../features/lavori/AnnullaConsegnaBanner.tsx      |  21 ++-
+ src/components/features/lavori/form/TabDati.tsx    |   1 +
+ src/components/features/pile/PilaAperta.tsx        |   9 +-
+ .../features/portale/RichiestaClientForm.tsx       |  25 ++-
+ .../features/tutto-il-resto/TuttoIlResto.tsx       |   2 +-
+ src/lib/dashboard/striscia.ts                      |  62 ++++++-
+ tests/unit/PilaAperta.test.tsx                     |  13 ++
+ tests/unit/annulla-consegna-banner.test.tsx        |  48 ++++++
+ tests/unit/api-lavori-tipo-validazione.test.ts     |   4 +-
+ tests/unit/cliente-combobox-a11y.test.tsx          |  44 +++++
+ tests/unit/ds-v3/componenti/CardLavoro.test.tsx    |  33 ++++
+ tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx  |  22 +++
+ tests/unit/lavori-id-route.test.ts                 | 183 +++++++++++++++++++--
+ tests/unit/login-passkey-prefill.test.tsx          | 103 ++++++++++++
+ tests/unit/portale-richiedi-route.test.ts          | 138 +++++++++++++++-
+ tests/unit/richiesta-client-form-copy.test.tsx     |  59 +++++++
+ tests/unit/striscia.test.ts                        | 119 +++++++++++++-
+ 28 files changed, 997 insertions(+), 55 deletions(-)
+
+## Diff
+diff --git a/public/manifest.json b/public/manifest.json
+index 2f06705..ed316f7 100644
+--- a/public/manifest.json
++++ b/public/manifest.json
+@@ -1,18 +1,18 @@
+ {
+   "name": "UÀ — Laboratorio Odontotecnico",
+   "short_name": "UÀ",
+   "description": "Il laboratorio odontotecnico, finalmente leggero.",
+   "start_url": "/dashboard",
+   "display": "standalone",
+-  "background_color": "#0F1E52",
+-  "theme_color": "#0F1E52",
++  "background_color": "#DDD8D3",
++  "theme_color": "#D90012",
+   "orientation": "portrait-primary",
+   "categories": [
+     "productivity",
+     "medical"
+   ],
+   "icons": [
+     {
+       "src": "/icons/icon-192.png",
+       "sizes": "192x192",
+       "type": "image/png"
+diff --git a/public/offline.html b/public/offline.html
+index 56237bf..837e9e5 100644
+--- a/public/offline.html
++++ b/public/offline.html
+@@ -1,38 +1,38 @@
+ <!DOCTYPE html>
+ <html lang="it">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+-<meta name="theme-color" content="#0F1E52">
++<meta name="theme-color" content="#D90012">
+ <title>UA — Offline</title>
+ <style>
+   * { margin: 0; padding: 0; box-sizing: border-box; }
+   body {
+-    background: #0F1E52;
+-    color: #F0F4FF;
++    background: #DDD8D3;
++    color: #1C1916;
+     font-family: 'DM Sans', system-ui, sans-serif;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     min-height: 100dvh;
+     text-align: center;
+     padding: 24px;
+   }
+   h1 { font-size: 24px; margin-bottom: 12px; font-weight: 700; }
+-  p { color: #8899CC; font-size: 15px; line-height: 1.5; }
++  p { color: #4A3D33; font-size: 15px; line-height: 1.5; }
+   .retry {
+     margin-top: 24px;
+     display: inline-block;
+     padding: 12px 24px;
+-    background: #D4A843;
+-    color: #0F1E52;
++    background: #D90012;
++    color: #FFFFFF;
+     border-radius: 100px;
+     font-weight: 700;
+     text-decoration: none;
+     cursor: pointer;
+     border: none;
+     font-size: 15px;
+   }
+ </style>
+ </head>
+ <body>
+diff --git a/scripts/check-ds-compliance.sh b/scripts/check-ds-compliance.sh
+index 502428c..d26bcf0 100755
+--- a/scripts/check-ds-compliance.sh
++++ b/scripts/check-ds-compliance.sh
+@@ -8,21 +8,21 @@ ERRORS=0
+ 
+ # ── 1. Gold come testo (WCAG fail) ──────────────────────────────────────────
+ GOLD_TEXT=$(grep -rn "color:.*var(--gold\|color:.*#D4A843\|color:.*#d4a843" \
+   $SCOPE --include="*.tsx" --include="*.ts" 2>/dev/null \
+   | grep -v "background\|stroke\|border\|accentColor\|fill\|\.css\|tokens\.ts" \
+   | grep -v "node_modules" || true)
+ 
+ if [ -n "$GOLD_TEXT" ]; then
+   echo ""
+   echo "❌ DS v2.3: gold usato come testo (WCAG fail 1.6:1)"
+-  echo "   Usa var(--c-amber, #F59E0B) per testo warning, non --gold"
++  echo "   Usa var(--c-amber-ink, #92400E) per testo warning, non --gold (--c-amber è solo per accenti, mai testo)"
+   echo "$GOLD_TEXT"
+   ERRORS=$((ERRORS + 1))
+ fi
+ 
+ # ── 2. Vecchi t2/t3 fallback ────────────────────────────────────────────────
+ OLD_T2=$(grep -rn "#96918D\|#B8B3AE" \
+   $SCOPE --include="*.tsx" --include="*.ts" 2>/dev/null \
+   | grep -v "tokens\.ts\|era #\|node_modules" || true)
+ 
+ if [ -n "$OLD_T2" ]; then
+diff --git a/src/app/(app)/dashboard/page.tsx b/src/app/(app)/dashboard/page.tsx
+index dee6d80..90cadd7 100644
+--- a/src/app/(app)/dashboard/page.tsx
++++ b/src/app/(app)/dashboard/page.tsx
+@@ -1,15 +1,15 @@
+ import { redirect } from 'next/navigation'
+ import { getLabContext } from '@/lib/supabase/lab-context'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
+-import { fetchIngressiStriscia, scegliSegnale } from '@/lib/dashboard/striscia'
++import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica } from '@/lib/dashboard/striscia'
+ import { HomeV3 } from '@/components/features/home/HomeV3'
+ import { HomeDesktop } from '@/components/features/home/HomeDesktop'
+ import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
+ import type { Pila } from '@/lib/lavori/urgenza'
+ 
+ export const dynamic = 'force-dynamic'
+ const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
+ 
+ const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+ const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+@@ -30,25 +30,30 @@ function saluto(d: Date): string {
+ // la UI è sempre la stessa HomeV3. `preferenza_dashboard` non si legge più.
+ export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
+   const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
+   const context = await getLabContext()
+   if (!context?.laboratorioId) redirect('/login')
+   const { ruolo, laboratorioId: labId } = context
+   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
+ 
+   const svc = getServiceClient()
+   const perimetro = await getPerimetroHome(svc, labId, context.userId, ruolo)
+-  const [pile, ingressi] = await Promise.all([
++  // O1f (Task 11): la query tecnici-senza-anagrafica gira SOLO per
++  // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
++  // striscia.ts) — front_desk/tecnico non pagano il round-trip.
++  const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
++  const [pile, ingressi, tecniciSenzaAnagrafica] = await Promise.all([
+     getPileHome(svc, labId, perimetro),
+     fetchIngressiStriscia(svc, labId, ruolo),
++    usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
+   ])
+-  const segnale = scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })
++  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, pile: pile.striscia })
+ 
+   const ora = adessoRoma()
+   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
+   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
+ 
+   // Nav a 3 pannelli desktop (Task 9, ADR B6 Candidato A): la selezione vive
+   // nell'URL — `pila` default rossa (validata), `lavoro` l'id presente nella
+   // pila o il primo. `HomeDesktop` e `HomeV3` sono fratelli, il CSS decide chi
+   // si vede (`.ua-home-mobile`/`.ua-home-desk`, breakpoint 1024).
+   const pilaSelezionata: Pila = (PILE_VALIDE as readonly string[]).includes(pilaParam ?? '') ? (pilaParam as Pila) : 'rossa'
+diff --git a/src/app/(app)/qualita/page.tsx b/src/app/(app)/qualita/page.tsx
+index 239cc6d..874252b 100644
+--- a/src/app/(app)/qualita/page.tsx
++++ b/src/app/(app)/qualita/page.tsx
+@@ -15,21 +15,21 @@ function formatDataIT(dateStr: string): string {
+     // un carattere 'T' e l'offset timezone) — concatenare 'T00:00:00' a un
+     // timestamp gia' completo produce una stringa non valida ("Invalid Date").
+     const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
+     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+   } catch {
+     return dateStr
+   }
+ }
+ 
+ const gravitaColor: Record<string, string> = {
+-  lieve:    'var(--gold, #D4A843)',
++  lieve:    'var(--c-amber-ink, #92400E)',
+   moderata: 'var(--amber, #FD7E14)',
+   grave:    'var(--primary, #D90012)',
+   critica:  'var(--primary, #D90012)',
+ }
+ 
+ // ─── Page ─────────────────────────────────────────────────────
+ 
+ export default async function QualitaPage() {
+   const context = await getLabContext()
+   if (!context?.laboratorioId) return null
+diff --git a/src/app/(auth)/login/login-form.tsx b/src/app/(auth)/login/login-form.tsx
+index d1fa2ba..a07150d 100644
+--- a/src/app/(auth)/login/login-form.tsx
++++ b/src/app/(auth)/login/login-form.tsx
+@@ -184,21 +184,22 @@ export default function LoginForm() {
+         setBioAvailable(true)
+         const ua = navigator.userAgent
+         if (/iPhone|iPad/.test(ua)) { setFpLabel('Touch ID'); setFaceLabel('Face ID') }
+         else if (/Macintosh/.test(ua)) { setFpLabel('Touch ID'); setFaceLabel('Face ID') }
+         else if (/Android/.test(ua)) { setFpLabel('Impronta'); setFaceLabel('Volto') }
+         else { setFpLabel('Impronta'); setFaceLabel('Windows Hello') }
+ 
+         // Pre-compila email e abilita bio se questo device ha un passkey registrato
+         const savedEmail = localStorage.getItem(PASSKEY_EMAIL_KEY)
+         if (savedEmail) {
+-          setEmail(savedEmail)
++          // Non sovrascrivere un'email già digitata (race mount→promise, device condivisi — A3)
++          setEmail(prev => (prev === '' ? savedEmail : prev))
+           setHasSavedPasskey(true)
+         }
+       })
+       .catch(() => { /* no biometric */ })
+   }, [])
+ 
+   const handleBioLogin = useCallback(async () => {
+     if (!email || bioLoading) return
+     sndClick()
+     setBioLoading(true)
+diff --git a/src/app/api/lavori/[id]/route.ts b/src/app/api/lavori/[id]/route.ts
+index 0d5d723..81296a2 100644
+--- a/src/app/api/lavori/[id]/route.ts
++++ b/src/app/api/lavori/[id]/route.ts
+@@ -1,17 +1,18 @@
+ import { NextResponse } from 'next/server'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
+ import { withServerTiming } from '@/lib/api/server-timing'
+ import { isSameOrigin } from '@/lib/utils/csrf'
+ import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
++import { triggerPushToUser } from '@/lib/notifications/trigger'
+ 
+ // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
+ const LOCKED_PRICE_FIELDS = [
+   'prezzo_unitario',
+   'listino_id',
+   'codice_iva',
+   'natura_iva',
+ ] as const
+ 
+ // Allowlist esplicita dei campi di `lavori` scrivibili via questa route.
+@@ -95,20 +96,66 @@ const PATCHABLE_FIELDS = [
+   'spedizione_data_prevista',
+   'cliente_id',
+   'paziente_id',
+   'tecnico_id',
+   'ciclo_id',
+   ...LOCKED_PRICE_FIELDS,
+ ] as const
+ 
+ type RouteContext = { params: Promise<{ id: string }> }
+ 
++/**
++ * A1: notifica push al tecnico su assegnazione di un lavoro.
++ *
++ * MAPPING tecnici→utenti (verificato su database.types.ts): `lavori.tecnico_id`
++ * referenzia `tecnici.id`, NON `utenti.id`. `triggerPushToUser` invece filtra
++ * `push_subscriptions.user_id`, colonna che referenzia `auth.users(id)` (= `utenti.id`,
++ * migration 20260521000001_push_subscriptions.sql). Serve quindi risolvere
++ * `tecnici.utente_id` (FK verso `utenti`, nullable) prima di poter inviare il push —
++ * NON si può passare `tecnico_id` direttamente come user_id.
++ * (Nota: `prove/route.ts` passa oggi `tecnico_id` grezzo a `triggerPushToUser` senza
++ * questa risoluzione — deviazione pre-esistente, fuori scope qui; vedi task-8-report.md.)
++ *
++ * Chiamata con `await` dal chiamante (non `void`: su Vercel il lavoro avviato
++ * ma non atteso dopo la response può essere interrotto a metà se l'istanza si
++ * congela) — non deve MAI lanciare né far fallire la risposta della PATCH
++ * (try/catch onnicomprensivo, silenzioso come `triggerPushToUser` stesso).
++ */
++async function notificaAssegnazione(
++  svc: ReturnType<typeof getServiceClient>,
++  tecnicoId: string,
++  laboratorioId: string,
++  numeroLavoro: string,
++  lavoroId: string
++): Promise<void> {
++  try {
++    const { data: tecnico } = await svc
++      .from('tecnici')
++      .select('utente_id')
++      .eq('id', tecnicoId)
++      .eq('laboratorio_id', laboratorioId)
++      .is('deleted_at', null)
++      .single()
++
++    if (!tecnico?.utente_id) return
++
++    // GDPR: MAI nome paziente nel payload push — solo numero lavoro + link.
++    await triggerPushToUser(tecnico.utente_id, laboratorioId, {
++      title: 'Nuovo lavoro assegnato',
++      body: `Il lavoro n.${numeroLavoro} è stato assegnato a te`,
++      url: `/lavori/${lavoroId}`,
++    })
++  } catch {
++    // Mai lanciare — un fallimento qui non deve mai influenzare la risposta PATCH.
++  }
++}
++
+ export async function GET(_req: Request, { params }: RouteContext) {
+   const { id } = await params
+ 
+   return withServerTiming(async (t) => {
+     const { context, timings } = await getLabContextWithTimings()
+     Object.assign(t, timings)
+     if (!context) {
+       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+     }
+ 
+@@ -176,24 +223,25 @@ export async function PATCH(req: Request, { params }: RouteContext) {
+ 
+   const svc = getServiceClient()
+ 
+   let body: Record<string, unknown>
+   try {
+     body = await req.json()
+   } catch {
+     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+   }
+ 
+-  // Verifica se il lavoro è già incluso in fattura — legge solo il campo necessario
++  // Verifica se il lavoro è già incluso in fattura — legge anche tecnico_id/numero_lavoro
++  // per la notifica push su riassegnazione (A1, vedi notificaAssegnazione sopra).
+   const { data: existing } = await svc
+     .from('lavori')
+-    .select('incluso_in_fattura')
++    .select('incluso_in_fattura, tecnico_id, numero_lavoro')
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .is('deleted_at', null)
+     .single()
+ 
+   if (!existing) {
+     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+   }
+ 
+   // Allowlist esplicita: tiene solo le chiavi in PATCHABLE_FIELDS, scartando
+@@ -270,12 +318,30 @@ export async function PATCH(req: Request, { params }: RouteContext) {
+     .update(payload)
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .select('id, numero_lavoro, stato, updated_at')
+     .single()
+ 
+   if (updateError) {
+     return NextResponse.json({ error: updateError.message }, { status: 500 })
+   }
+ 
++  // A1: push al tecnico su assegnazione — SOLO quando tecnico_id cambia verso
++  // un valore non-null. Awaited (non `void`): su runtime serverless (Vercel)
++  // il lavoro non atteso dopo la response può essere terminato a metà se
++  // l'istanza si congela subito dopo l'invio — stesso pattern di
++  // prove/route.ts (push "prova rientrata"), che attende triggerPushToUser
++  // prima di rispondere. notificaAssegnazione non lancia mai (try/catch
++  // onnicomprensivo, come triggerPushToUser stesso), quindi l'await non può
++  // far fallire questa risposta.
++  if (payload.tecnico_id && payload.tecnico_id !== existing.tecnico_id) {
++    await notificaAssegnazione(
++      svc,
++      payload.tecnico_id as string,
++      context.laboratorioId,
++      existing.numero_lavoro,
++      id
++    )
++  }
++
+   return NextResponse.json({ lavoro })
+ }
+diff --git a/src/app/api/portale/richiedi/route.ts b/src/app/api/portale/richiedi/route.ts
+index e1c6cec..8e6ad00 100644
+--- a/src/app/api/portale/richiedi/route.ts
++++ b/src/app/api/portale/richiedi/route.ts
+@@ -6,20 +6,21 @@
+  *
+  * Il dentista compila il form su /richiedi/[token] → chiama questa API →
+  * viene creato un lavoro in stato 'ricevuto' con da_portale=true, note_dentista e
+  * paziente_codice_richiesta valorizzati; note_interne resta NULL (spazio privato del lab).
+  * Il lab lo vede in /lavori e lo riceve via Supabase Realtime (useRealtimeNotifiche).
+  */
+ 
+ import { NextResponse } from 'next/server'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
++import { triggerPushByRole } from '@/lib/notifications/trigger'
+ 
+ interface RequestBody {
+   token: string
+   tipo_dispositivo: string
+   descrizione: string
+   paziente_codice: string
+   data_consegna_prevista: string
+   note?: string
+ }
+ 
+@@ -48,21 +49,21 @@ export async function POST(req: Request) {
+ 
+   // Sanitize paziente_codice (no PHI — GDPR)
+   const pazienteCodice = body.paziente_codice.trim().substring(0, 40)
+   const noteText = (body.note ?? '').trim().substring(0, 500)
+ 
+   const svc = getServiceClient()
+ 
+   // 3. Verifica token cliente
+   const { data: cliente, error: clienteError } = await svc
+     .from('clienti')
+-    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
++    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato), studio_nome, nome, cognome')
+     .eq('portale_token', body.token)
+     .is('deleted_at', null)
+     .single()
+ 
+   if (clienteError || !cliente) {
+     return NextResponse.json({ error: 'Token non valido' }, { status: 404 })
+   }
+ 
+   // 3b. N13: lab blacklist (o embed assente, fail-closed) → 404 generico,
+   // stessa forma del token non valido e PRIMA del check scadenza — nessun
+@@ -73,20 +74,26 @@ export async function POST(req: Request) {
+   }
+ 
+   // 4. Verifica TTL token
+   const scadenza = (cliente as Record<string, unknown>).portale_token_scade_at as string | null
+   if (scadenza && new Date(scadenza) < new Date()) {
+     return NextResponse.json({ error: 'Link scaduto' }, { status: 403 })
+   }
+ 
+   const labId: string = cliente.laboratorio_id
+   const clienteId: string = cliente.id
++  const { studio_nome, nome, cognome } = cliente as unknown as {
++    studio_nome: string | null
++    nome: string
++    cognome: string
++  }
++  const nomeStudioODentista = studio_nome ?? `${nome} ${cognome}`
+ 
+   // 5. Rate limit: max 10 richieste portale nelle ultime 24h per quel cliente
+   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+   const { count: recentCount, error: countError } = await svc
+     .from('lavori')
+     .select('id', { count: 'exact', head: true })
+     .eq('cliente_id', clienteId)
+     .eq('da_portale', true)
+     .gte('created_at', since24h)
+ 
+@@ -147,15 +154,33 @@ export async function POST(req: Request) {
+       // Nessun paziente_id — viene assegnato dal lab manualmente
+     })
+     .select('id, numero_lavoro')
+     .single()
+ 
+   if (insertError) {
+     console.error('[portale/richiedi] insert error:', insertError.message)
+     return NextResponse.json({ error: insertError.message }, { status: 500 })
+   }
+ 
++  // 9. Notifica push a titolare + front_desk (GDPR-safe: mai paziente/paziente_codice_richiesta).
++  // triggerPushByRole non lancia mai in produzione — await comunque per coerenza
++  // col runtime serverless (nessun lavoro in background dopo la response); il
++  // try/catch resta una difesa aggiuntiva, non deve mai bloccare il 201.
++  try {
++    const pushPayload = {
++      title: 'Nuova richiesta dal portale',
++      body: `${nomeStudioODentista} ha richiesto: ${body.tipo_dispositivo} (n.${numero_lavoro})`,
++      url: `/lavori/${lavoro.id}`,
++    }
++    await Promise.allSettled([
++      triggerPushByRole(labId, 'titolare', pushPayload),
++      triggerPushByRole(labId, 'front_desk', pushPayload),
++    ])
++  } catch (pushErr) {
++    console.error('[portale/richiedi] push:', pushErr) // mai bloccare la creazione per una push
++  }
++
+   return NextResponse.json(
+     { ok: true, numero_lavoro: lavoro?.numero_lavoro ?? numero_lavoro },
+     { status: 201 },
+   )
+ }
+diff --git a/src/app/portale/[token]/page.tsx b/src/app/portale/[token]/page.tsx
+index 0567c38..37ac570 100644
+--- a/src/app/portale/[token]/page.tsx
++++ b/src/app/portale/[token]/page.tsx
+@@ -459,20 +459,41 @@ export default async function PortalePage({ params }: PageProps) {
+           <p
+             style={{
+               fontFamily: 'DM Sans, sans-serif',
+               fontSize: '14px',
+               color: '#6B7280',
+               margin: 0,
+             }}
+           >
+             Qui trovi lo stato dei tuoi lavori in corso e l&apos;archivio degli ultimi consegnati.
+           </p>
++          <a
++            href={`/richiedi/${token}`}
++            style={{
++              display: 'inline-flex',
++              alignItems: 'center',
++              gap: '6px',
++              minHeight: '44px',
++              padding: '0 14px',
++              marginTop: '12px',
++              borderRadius: '8px',
++              background: '#F3F4F6',
++              fontFamily: 'DM Sans, sans-serif',
++              fontSize: '13px',
++              fontWeight: 700,
++              color: '#374151',
++              textDecoration: 'none',
++            }}
++            aria-label="Richiedi un nuovo lavoro al laboratorio"
++          >
++            ➕ Richiedi nuovo lavoro
++          </a>
+         </div>
+ 
+         {/* Lavori aperti */}
+         <section style={{ marginBottom: '32px' }}>
+           <h3
+             style={{
+               fontFamily: 'DM Sans, sans-serif',
+               fontSize: '13px',
+               fontWeight: 700,
+               color: '#374151',
+diff --git a/src/components/ds/CardLavoro.tsx b/src/components/ds/CardLavoro.tsx
+index 6ed457e..937a6d7 100644
+--- a/src/components/ds/CardLavoro.tsx
++++ b/src/components/ds/CardLavoro.tsx
+@@ -133,20 +133,30 @@ export function CardLavoro(props: {
+   // che possiede lo sfondo opaco (`background: var(--card)`) — non su un
+   // wrapper esterno: un inset box-shadow dipinto SOTTO un discendente con
+   // sfondo opaco non è mai visibile (bug scoperto in review: `HomeDesktop`/
+   // `PilaSplit` mettevano il ring su un wrapper fuori da questo componente).
+   // Default `false`: i chiamanti che non selezionano nulla (mobile
+   // `PilaAperta`, catalogo DS) restano identici a prima.
+   selezionato?: boolean
+ } & Riga4) {
+   const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
+ 
++  // Guardia dev-only (Task 10, O1c): l'esclusione reciproca di `onConsegna` e
++  // `conferma` è garantita SOLO a livello di tipo (`Riga4`, sopra) — un
++  // chiamante che bypassa `tsc` (spread di due oggetti, `as any`…) supera il
++  // compilatore ma qui sotto i due blocchi JSX (righe 261+/267+) sono `if`
++  // indipendenti, non un if/else: NESSUNA variante vince, vengono montate
++  // ENTRAMBE le righe 4, violando il «massimo 4 righe» della card (§5.8).
++  if (process.env.NODE_ENV !== 'production' && conferma && onConsegna) {
++    console.warn('CardLavoro: conferma e onConsegna sono mutuamente esclusivi — con entrambi impostati vengono renderizzate ENTRAMBE le righe 4 (nessuna variante ne esclude l\'altra)')
++  }
++
+   function handleApri() {
+     vibra('selection')
+     onApri()
+   }
+ 
+   function handleKeyDown(evento: ReactKeyboardEvent) {
+     // Solo se il target è la card stessa: il keydown di Invio/Spazio dato al
+     // TastoConsegnaInline focalizzato bubble-a fin qui, ma quello NON deve
+     // aprire la card (stessa garanzia dello stopPropagation sul click).
+     if (evento.target !== evento.currentTarget) return
+diff --git a/src/components/features/clienti/ClienteComboBox.tsx b/src/components/features/clienti/ClienteComboBox.tsx
+index 7303291..3303804 100644
+--- a/src/components/features/clienti/ClienteComboBox.tsx
++++ b/src/components/features/clienti/ClienteComboBox.tsx
+@@ -25,34 +25,36 @@ interface ClienteOption {
+   cognome: string
+   studio_nome: string | null
+ }
+ 
+ export interface ClienteComboBoxProps {
+   value: string
+   onChange: (id: string, label: string) => void
+   placeholder?: string
+   id?: string
+   hasError?: boolean
++  errorId?: string
+ }
+ 
+ function buildLabel(option: ClienteOption): string {
+   return option.studio_nome
+     ? `${option.studio_nome} — ${option.nome} ${option.cognome}`
+     : `${option.nome} ${option.cognome}`
+ }
+ 
+ export function ClienteComboBox({
+   value,
+   onChange,
+   placeholder = 'Cerca dentista o studio...',
+   id,
+   hasError = false,
++  errorId,
+ }: ClienteComboBoxProps) {
+   const inputId = useId()
+   const listboxId = useId()
+   const containerRef = useRef<HTMLDivElement>(null)
+ 
+   const [query, setQuery] = useState('')
+   const [options, setOptions] = useState<ClienteOption[]>([])
+   const [open, setOpen] = useState(false)
+   const [loading, setLoading] = useState(false)
+   const [selectedLabel, setSelectedLabel] = useState('')
+@@ -179,20 +181,22 @@ export function ClienteComboBox({
+         type="text"
+         role="combobox"
+         aria-autocomplete="list"
+         aria-expanded={open}
+         aria-controls={open ? listboxId : undefined}
+         aria-activedescendant={
+           open && activeIndex >= 0
+             ? `${listboxId}-option-${activeIndex}`
+             : undefined
+         }
++        aria-invalid={hasError || undefined}
++        aria-describedby={hasError && errorId ? errorId : undefined}
+         autoComplete="off"
+         value={displayValue}
+         onChange={handleInputChange}
+         onKeyDown={handleKeyDown}
+         onFocus={() => {
+           if (query && options.length > 0) setOpen(true)
+         }}
+         placeholder={placeholder}
+         style={{
+           ...inputBase,
+diff --git a/src/components/features/lavori/AnnullaConsegnaBanner.tsx b/src/components/features/lavori/AnnullaConsegnaBanner.tsx
+index d8902f2..4504e65 100644
+--- a/src/components/features/lavori/AnnullaConsegnaBanner.tsx
++++ b/src/components/features/lavori/AnnullaConsegnaBanner.tsx
+@@ -5,38 +5,47 @@ import { useRouter } from 'next/navigation'
+ import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
+ 
+ interface Props {
+   lavoroId: string
+   dataConsegnaEffettiva: string
+ }
+ 
+ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props) {
+   const router = useRouter()
+   const [isPending, startTransition] = useTransition()
+-  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+-    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
+-    return Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000))
+-  })
++  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+   const [errore, setErrore] = useState<string | null>(null)
+   const [annullato, setAnnullato] = useState(false)
+ 
+   useEffect(() => {
+-    if (secondsLeft <= 0) return
++    // Calcolo derivato da Date.now() (orologio esterno): deve girare SOLO
++    // dopo il mount, mai nell'initializer di useState, altrimenti il
++    // markup SSR e quello di hydration client possono divergere (A17,
++    // React #418) — non evitabile spostando la logica fuori dall'effetto
++    // (violerebbe la regola react-hooks/set-state-in-effect).
++    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
++    // eslint-disable-next-line react-hooks/set-state-in-effect
++    setSecondsLeft(Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000)))
++  }, [dataConsegnaEffettiva])
++
++  useEffect(() => {
++    if (secondsLeft === null || secondsLeft <= 0) return
+     const interval = setInterval(() => {
+       setSecondsLeft((s) => {
+-        if (s <= 1) { clearInterval(interval); return 0 }
++        if (s === null || s <= 1) { clearInterval(interval); return 0 }
+         return s - 1
+       })
+     }, 1000)
+     return () => clearInterval(interval)
+   }, [secondsLeft])
+ 
++  if (secondsLeft === null) return null
+   if (secondsLeft <= 0 || annullato) return null
+ 
+   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
+   const ss = String(secondsLeft % 60).padStart(2, '0')
+ 
+   const handleAnnulla = async () => {
+     setErrore(null)
+     startTransition(async () => {
+       try {
+         const res = await fetch(`/api/lavori/${lavoroId}/annulla-consegna`, {
+diff --git a/src/components/features/lavori/form/TabDati.tsx b/src/components/features/lavori/form/TabDati.tsx
+index 0108da1..279f72d 100644
+--- a/src/components/features/lavori/form/TabDati.tsx
++++ b/src/components/features/lavori/form/TabDati.tsx
+@@ -109,20 +109,21 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
+           <label htmlFor="field-cliente_id" style={labelStyle}>
+             Dentista / Studio{' '}
+             <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
+           </label>
+           <ClienteComboBox
+             id="field-cliente_id"
+             value={clienteId ?? ''}
+             onChange={onClienteChange}
+             placeholder="Cerca dentista o studio..."
+             hasError={!!fieldErrors?.['cliente_id']}
++            errorId="error-cliente_id"
+           />
+           {fieldErrors?.['cliente_id'] && (
+             <span
+               id="error-cliente_id"
+               role="alert"
+               style={errorStyle}
+             >
+               {fieldErrors['cliente_id']}
+             </span>
+           )}
+diff --git a/src/components/features/pile/PilaAperta.tsx b/src/components/features/pile/PilaAperta.tsx
+index 84b72ea..38811b4 100644
+--- a/src/components/features/pile/PilaAperta.tsx
++++ b/src/components/features/pile/PilaAperta.tsx
+@@ -76,21 +76,28 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
+       </div>
+ 
+       <MorphPila pila={pila} numero={lista.length} label={LABEL[pila]} sub={lista.length > 0 ? sub : undefined} />
+ 
+       {lista.length === 0 ? (
+         <Vuoto glifo={vuoto.glifo} titolo={vuoto.titolo} guida={vuoto.guida} />
+       ) : (
+         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+           {lista.length > SOGLIA_CERCA && (cerca === null
+             ? <RigaCerca totale={lista.length} cosa="lavori" onApri={() => setCerca('')} />
+-            : <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />)}
++            : (
++              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
++                <div style={{ flex: 1 }}>
++                  <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />
++                </div>
++                <TastoTondo glifo="×" etichettaAria="Chiudi ricerca" onClick={() => setCerca(null)} />
++              </div>
++            ))}
+ 
+           {filtrata.map((l) => (
+             <CardLavoro
+               key={l.id}
+               numero={l.numero}
+               dentista={l.dentista}
+               paziente={l.paziente}
+               tipoLavoro={l.tipoLavoro}
+               tempo={l.pill}
+               onApri={() => router.push(`/lavori/${l.id}`)}
+diff --git a/src/components/features/portale/RichiestaClientForm.tsx b/src/components/features/portale/RichiestaClientForm.tsx
+index eed6ba7..a0564ba 100644
+--- a/src/components/features/portale/RichiestaClientForm.tsx
++++ b/src/components/features/portale/RichiestaClientForm.tsx
+@@ -195,50 +195,63 @@ export function RichiestaClientForm({
+         <div style={{ maxWidth: '420px', width: '100%', textAlign: 'center' }}>
+           <AnimatedCheck reduced={reduced} />
+           <motion.div
+             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={reduced ? { duration: motionTokens.duration.fast } : { duration: motionTokens.duration.normal, delay: 0.18, ease: motionTokens.easing.enter }}
+           >
+             <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 700, color: 'var(--t1, #1C1916)', margin: '0 0 12px' }}>
+               Richiesta inviata!
+             </h1>
+-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: '0 0 8px' }}>
+-              Il laboratorio <strong style={{ color: 'var(--t1)' }}>{labNome}</strong> ha ricevuto la tua richiesta.
++            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: numeroLavoro ? '0 0 8px' : '0 0 32px' }}>
++              Il laboratorio <strong style={{ color: 'var(--t1)' }}>{labNome}</strong> la esaminerà e ti contatterà per la conferma.
+             </p>
+             {numeroLavoro && (
+-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', margin: '0 0 24px' }}>
++              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', margin: '0 0 32px' }}>
+                 Numero pratica: <strong style={{ color: 'var(--t1)' }}>#{numeroLavoro}</strong>
+               </p>
+             )}
+-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: '0 0 32px' }}>
+-              Ti contatteranno per la conferma.
+-            </p>
+             <button
+               type="button"
+               onClick={handleReset}
+               style={{
+                 height: '44px',
+                 padding: '0 24px',
+                 borderRadius: '12px',
+                 background: 'var(--sfc, #E4DFD9)',
+                 border: 'none',
+                 fontFamily: 'DM Sans, sans-serif',
+                 fontSize: '14px',
+                 fontWeight: 700,
+                 color: 'var(--t1, #1C1916)',
+                 cursor: 'pointer',
+                 boxShadow: '-5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40)',
+               }}
+             >
+               ← Invia un&apos;altra richiesta
+             </button>
++            <a
++              href={`/portale/${token}`}
++              style={{
++                display: 'inline-block',
++                marginTop: '16px',
++                fontFamily: 'DM Sans, sans-serif',
++                fontSize: '14px',
++                fontWeight: 700,
++                color: 'var(--t1, #1C1916)',
++                textDecoration: 'underline',
++                minHeight: '44px',
++                lineHeight: '44px',
++              }}
++            >
++              ← Torna allo stato lavori
++            </a>
+           </motion.div>
+         </div>
+       </main>
+     )
+   }
+ 
+   // ─── Schermata form ────────────────────────────────────────────────────
+   return (
+     <main style={{ minHeight: '100vh', background: 'var(--bg, #DDD8D3)' }}>
+       {/* Header laboratorio */}
+diff --git a/src/components/features/tutto-il-resto/TuttoIlResto.tsx b/src/components/features/tutto-il-resto/TuttoIlResto.tsx
+index 7df2c09..398fd98 100644
+--- a/src/components/features/tutto-il-resto/TuttoIlResto.tsx
++++ b/src/components/features/tutto-il-resto/TuttoIlResto.tsx
+@@ -52,21 +52,21 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
+         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+           <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
+           <h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Tutto il resto</h1>
+         </div>
+ 
+         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+           {sezioni.map((s) => (
+             <Link
+               key={s.chiave}
+               href={s.href}
+-              aria-label={s.nome}
++              aria-label={s.sub ? `${s.nome}. ${s.sub}` : s.nome}
+               className="ds-card ua-tir-sez"
+               style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: 14,
+                 width: '100%',
+                 textAlign: 'left',
+                 textDecoration: 'none',
+                 borderRadius: raggio.tile,
+                 padding: '15px 16px',
+diff --git a/src/lib/dashboard/striscia.ts b/src/lib/dashboard/striscia.ts
+index fed278f..33103f5 100644
+--- a/src/lib/dashboard/striscia.ts
++++ b/src/lib/dashboard/striscia.ts
+@@ -7,20 +7,27 @@ export type SegnaleStriscia = {
+   attenzione: boolean
+   forte: string | null // parte in grassetto --ink
+   testo: string // resto della riga (1 riga, ellissi CSS)
+   azione: { etichetta: string; href: string } | null // CTA mai troncata
+ }
+ export type IngressiStriscia = {
+   fatturaScartata: { id: string; numero: string } | null
+   materialeRosso: string | null
+   pagamentoScaduto: string | null
+   ddcOggi: number
++  // O1f (Task 11) — propagati dal chiamante, NON da fetchIngressiStriscia:
++  // `senzaAnagrafica` esce già da getPerimetroHome (perimetro tecnico);
++  // `tecniciSenzaAnagrafica` è una query separata, agganciata nel Promise.all
++  // di `(app)/dashboard/page.tsx`, apposta FUORI da questo modulo — vedi nota
++  // su `leggiTecniciSenzaAnagrafica` più sotto sul perché non vive qui dentro.
++  senzaAnagrafica?: boolean
++  tecniciSenzaAnagrafica?: string[]
+   pile: DatiPileStriscia
+ }
+ 
+ // Valori runtime confermati allo Step 1 (grep su src/app/api/fatture, src/types/domain.ts,
+ // migration 002_fase2_schema.sql): lo stato SDI granulare NON conosce 'scartata' né
+ // 'mancata_consegna' (erano valori del CHECK originario in supabase/schema.sql, sostituito
+ // dalla migration 002 con lo StatoSDI attuale). L'unico stato realmente scritto/letto dal
+ // codice che rappresenta un rifiuto SDI è 'rifiutata'.
+ export const SDI_SCARTATE = ['rifiutata']
+ 
+@@ -34,26 +41,42 @@ const s2: Candidato = (i) => {
+   return null
+ }
+ const s3: Candidato = (i) => i.pile.provaRientroOggi ? { attenzione: true, forte: `n.${i.pile.provaRientroOggi}`, testo: 'torna oggi dalla prova', azione: { etichetta: 'Apri ›', href: '/lavori?pila=viola' } } : null
+ const s4: Candidato = (i) => i.pile.arrivoVecchio ? { attenzione: true, forte: `n.${i.pile.arrivoVecchio}`, testo: 'aspetta conferma da ieri', azione: { etichetta: 'Conferma ›', href: '/lavori?pila=blu' } } : null
+ const s5: Candidato = (i) => i.materialeRosso ? { attenzione: true, forte: i.materialeRosso, testo: 'sta per finire', azione: { etichetta: 'Riordina ›', href: '/magazzino' } } : null
+ const s6: Candidato = (i) => i.pile.fermo && i.pile.fermo.giorni >= 5 ? { attenzione: true, forte: `n.${i.pile.fermo.numero}`, testo: `è fermo da ${i.pile.fermo.giorni} giorni`, azione: { etichetta: 'Apri ›', href: `/lavori/${i.pile.fermo.id}` } } : null
+ const s7: Candidato = (i) => i.pagamentoScaduto ? { attenzione: true, forte: i.pagamentoScaduto, testo: 'ha un pagamento scaduto', azione: { etichetta: 'Guarda ›', href: '/scadenzario' } } : null
+ const s8: Candidato = (i) => i.ddcOggi > 0 ? { attenzione: false, forte: null, testo: `Oggi ho preparato ${i.ddcOggi} DdC ✓`, azione: null } : null
+ const s9: Candidato = (i) => ({ attenzione: false, forte: 'Tutto a posto:', testo: i.pile.consegneOggiTotali > 0 ? `${i.pile.consegneOggiTotali} consegne oggi${i.pile.prossimaOra ? `, la prossima alle ${i.pile.prossimaOra}` : ''}` : 'nessuna consegna oggi', azione: null })
+ 
++// O1f (Task 11) — dead-end silenzioso: un tecnico con account ma senza riga
++// `tecnici` vedeva pile vuote + s9 sereno, senza sapere perché. `sTecAccount`
++// vince su TUTTO (primo in gerarchia tecnico) perché in quel caso le pile
++// sono comunque vuote per costruzione (v. `getPileHome`/`senzaAnagrafica`) —
++// non c'è nulla di più urgente da segnalare al tecnico stesso.
++const sTecAccount: Candidato = (i) => i.senzaAnagrafica
++  ? { attenzione: true, forte: 'Il tuo account', testo: 'non è ancora configurato — avvisa il titolare', azione: null }
++  : null
++// `sTitTecnici` avvisa titolare/admin_rete che uno o più utenti ruolo
++// tecnico non hanno ancora la riga `tecnici` collegata (stesso bug di
++// perimetro dal lato titolare) — sotto ai segnali operativi s1-s7 (che
++// restano più urgenti), sopra al sereno s8/s9.
++const sTitTecnici: Candidato = (i) => i.tecniciSenzaAnagrafica?.length
++  ? { attenzione: true, forte: `Account di ${i.tecniciSenzaAnagrafica[0]}`, testo: 'da completare', azione: { etichetta: 'Apri ›', href: '/tecnici' } }
++  : null
++
+ // P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»)
+ const GERARCHIE: Record<string, Candidato[]> = {
+-  titolare: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
+-  admin_rete: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
+-  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9],
+-  tecnico: [s2, s3, s4, s6, s8, s9],
++  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
++  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
++  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9], // invariato — O1f non tocca front_desk
++  tecnico: [sTecAccount, s2, s3, s4, s6, s8, s9],
+ }
+ 
+ export function scegliSegnale(ruolo: string, i: IngressiStriscia): SegnaleStriscia {
+   for (const candidato of GERARCHIE[ruolo] ?? GERARCHIE.tecnico) {
+     const s = candidato(i)
+     if (s) return s
+   }
+   return s9(i) as SegnaleStriscia
+ }
+ 
+@@ -114,20 +137,51 @@ async function leggiDdcOggi(svc: SupabaseClient, labId: string): Promise<number>
+       .neq('stato', 'annullata')
+       .gte('created_at', oggiMezzanotte.toISOString())
+     if (error) throw error
+     return count ?? 0
+   } catch (err) {
+     console.error('[getSegnaleStriscia] lettura ddcOggi fallita — degrado a 0:', err)
+     return 0
+   }
+ }
+ 
++// O1f (Task 11) — utenti ruolo 'tecnico' attivi/non-deleted del lab SENZA
++// riga `tecnici` corrispondente (confronto via `tecnici.utente_id`).
++// Esportata e chiamata dal CHIAMANTE (`(app)/dashboard/page.tsx`), NON
++// aggiunta al Promise.all di `fetchIngressiStriscia` qui sotto: quella
++// funzione è condivisa anche da `getSegnaleStriscia`, usata dall'anteprima
++// admin (`/admin/labs/[id]/live`) che gira sempre con ruolo 'titolare' — se
++// la query vivesse qui dentro, l'anteprima mostrerebbe segnali reali sui
++// tecnici scoperti del lab osservato. Tenendola fuori, per l'anteprima
++// `tecniciSenzaAnagrafica` resta `undefined` → nessun segnale nuovo (voluto).
++export async function leggiTecniciSenzaAnagrafica(svc: SupabaseClient, labId: string): Promise<string[]> {
++  try {
++    const [utentiRes, tecniciRes] = await Promise.all([
++      svc.from('utenti').select('id, nome').eq('laboratorio_id', labId).eq('ruolo', 'tecnico').eq('attivo', true).is('deleted_at', null),
++      svc.from('tecnici').select('utente_id').eq('laboratorio_id', labId).is('deleted_at', null),
++    ])
++    if (utentiRes.error) throw utentiRes.error
++    if (tecniciRes.error) throw tecniciRes.error
++    const conAnagrafica = new Set(
++      ((tecniciRes.data ?? []) as Array<{ utente_id: string | null }>)
++        .map((t) => t.utente_id)
++        .filter((id): id is string => !!id)
++    )
++    return ((utentiRes.data ?? []) as Array<{ id: string; nome: string }>)
++      .filter((u) => !conAnagrafica.has(u.id))
++      .map((u) => u.nome)
++  } catch (err) {
++    console.error('[getSegnaleStriscia] lettura tecniciSenzaAnagrafica fallita — degrado a []:', err)
++    return []
++  }
++}
++
+ export async function fetchIngressiStriscia(
+   svc: SupabaseClient, labId: string, ruolo: string
+ ): Promise<Omit<IngressiStriscia, 'pile'>> {
+   const [fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi] = await Promise.all([
+     usaFiscali(ruolo) ? leggiFatturaScartata(svc, labId) : Promise.resolve(null),
+     usaFiscali(ruolo) ? leggiMaterialeRosso(svc, labId) : Promise.resolve(null),
+     usaPagamenti(ruolo) ? leggiPagamentoScaduto(svc, labId) : Promise.resolve(null),
+     leggiDdcOggi(svc, labId),
+   ])
+   return { fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi }
+diff --git a/tests/unit/PilaAperta.test.tsx b/tests/unit/PilaAperta.test.tsx
+index 49cd099..7b20182 100644
+--- a/tests/unit/PilaAperta.test.tsx
++++ b/tests/unit/PilaAperta.test.tsx
+@@ -41,16 +41,29 @@ describe('PilaAperta — la lista di legge (§4.1)', () => {
+   it('RigaCerca compare SOLO oltre 15 lavori e filtra per contains', async () => {
+     const tanti = Array.from({ length: 16 }, (_, i) => lav(String(200 + i), { tipoLavoro: i === 3 ? 'Scheletrato' : 'Corona' }))
+     render(<PilaAperta pila="ambra" sub="x" lista={tanti} />)
+     const user = userEvent.setup()
+     await user.click(screen.getByRole('button', { name: /cerca/i }))
+     await user.type(screen.getByRole('textbox'), 'schele')
+     expect(screen.getByText(/n\.203/)).toBeInTheDocument()
+     expect(screen.queryByText(/n\.204/)).not.toBeInTheDocument()
+   })
+ 
++  it('Task 10 (O1c) — con ricerca aperta, il bottone «Chiudi ricerca» richiude il campo e riporta RigaCerca', async () => {
++    const tanti = Array.from({ length: 16 }, (_, i) => lav(String(200 + i)))
++    render(<PilaAperta pila="ambra" sub="x" lista={tanti} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /cerca/i }))
++    expect(screen.getByRole('textbox')).toBeInTheDocument()
++    expect(screen.queryByRole('button', { name: /cerca fra tutti/i })).toBeNull()
++
++    await user.click(screen.getByRole('button', { name: 'Chiudi ricerca' }))
++    expect(screen.queryByRole('textbox')).toBeNull()
++    expect(screen.getByRole('button', { name: /cerca fra tutti/i })).toBeInTheDocument()
++  })
++
+   it('pila vuota: morph a 0 senza sub + messaggio quieto (mockup stati-vuoti)', () => {
+     render(<PilaAperta pila="ambra" lista={[]} />)
+     expect(screen.getByText('0')).toBeInTheDocument()
+     expect(screen.getByText('Niente sul banco')).toBeInTheDocument()
+   })
+ })
+diff --git a/tests/unit/annulla-consegna-banner.test.tsx b/tests/unit/annulla-consegna-banner.test.tsx
+new file mode 100644
+index 0000000..9e186a1
+--- /dev/null
++++ b/tests/unit/annulla-consegna-banner.test.tsx
+@@ -0,0 +1,48 @@
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, act } from '@testing-library/react'
++import { renderToStaticMarkup } from 'react-dom/server'
++import { AnnullaConsegnaBanner } from '../../src/components/features/lavori/AnnullaConsegnaBanner'
++
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
++}))
++
++describe('AnnullaConsegnaBanner — countdown hydration-safe (A17-res)', () => {
++  beforeEach(() => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2026-07-20T10:00:00.000Z'))
++  })
++
++  afterEach(() => {
++    vi.useRealTimers()
++  })
++
++  it('primo render sincrono (pre-effect, es. SSR) NON calcola il countdown da Date.now() — markup vuoto', () => {
++    // dataConsegnaEffettiva 1 minuto fa: se il countdown fosse calcolato
++    // nell'initializer di useState (bug A17), il markup SSR conterrebbe già "09:00".
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z'
++    const html = renderToStaticMarkup(
++      <AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />,
++    )
++    // renderToStaticMarkup non esegue gli effect: se il countdown viene
++    // calcolato SOLO in useEffect, il primo render deve restituire null.
++    expect(html).toBe('')
++  })
++
++  it('dopo il mount (effect eseguito) mostra il countdown mm:ss corretto', () => {
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z' // 1 min fa → 9:00 rimasti su 10:00
++    render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />)
++    expect(screen.getByText(/09:00/)).toBeInTheDocument()
++  })
++
++  it('il countdown decrementa di un secondo ad ogni tick del timer', () => {
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z'
++    render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />)
++    expect(screen.getByText(/09:00/)).toBeInTheDocument()
++
++    act(() => {
++      vi.advanceTimersByTime(1000)
++    })
++    expect(screen.getByText(/08:59/)).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/api-lavori-tipo-validazione.test.ts b/tests/unit/api-lavori-tipo-validazione.test.ts
+index 2152d79..a1cc5ea 100644
+--- a/tests/unit/api-lavori-tipo-validazione.test.ts
++++ b/tests/unit/api-lavori-tipo-validazione.test.ts
+@@ -125,22 +125,22 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
+   })
+ 
+   function buildMockFrom(updateSpy: (payload: Record<string, unknown>) => void) {
+     return vi.fn((table: string) => {
+       if (table === 'utenti') {
+         return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
+       }
+       if (table === 'lavori') {
+         return {
+           select: (cols: string) => {
+-            if (cols === 'incluso_in_fattura') {
+-              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }
++            if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
++              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false, tecnico_id: null, numero_lavoro: 'L-001' }, error: null }) }) }) }) }
+             }
+             return { eq: () => ({ eq: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }
+           },
+           update: (payload: Record<string, unknown>) => {
+             updateSpy(payload)
+             return { eq: () => ({ eq: () => ({ select: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }) }
+           },
+         }
+       }
+       throw new Error(`Unexpected table: ${table}`)
+diff --git a/tests/unit/cliente-combobox-a11y.test.tsx b/tests/unit/cliente-combobox-a11y.test.tsx
+new file mode 100644
+index 0000000..76fc139
+--- /dev/null
++++ b/tests/unit/cliente-combobox-a11y.test.tsx
+@@ -0,0 +1,44 @@
++import { describe, it, expect, afterEach, vi } from 'vitest'
++import { render, cleanup, screen } from '@testing-library/react'
++
++// A12 — ClienteComboBox non esponeva `aria-invalid`/`aria-describedby` quando
++// `hasError` era true: il colore del bordo era l'unica fonte di stato
++// (vietato dal DS). `getBrowserClient` è mockato per sicurezza (pattern
++// UserProfileSheet.routes.test.tsx) anche se questi test non digitano nulla
++// nel campo e quindi non attraversano mai `search()`.
++vi.mock('@/lib/supabase/browser-anon', () => ({
++  getBrowserClient: () => ({}),
++}))
++
++import { ClienteComboBox } from '../../src/components/features/clienti/ClienteComboBox'
++
++afterEach(cleanup)
++
++describe('ClienteComboBox — a11y (A12)', () => {
++  it('con hasError + errorId espone aria-invalid e aria-describedby', () => {
++    render(
++      <ClienteComboBox
++        value=""
++        onChange={() => {}}
++        hasError
++        errorId="error-cliente_id"
++      />
++    )
++    const input = screen.getByRole('combobox')
++    expect(input).toHaveAttribute('aria-invalid', 'true')
++    expect(input).toHaveAttribute('aria-describedby', 'error-cliente_id')
++  })
++
++  it('senza hasError non espone né aria-invalid né aria-describedby', () => {
++    render(
++      <ClienteComboBox
++        value=""
++        onChange={() => {}}
++        errorId="error-cliente_id"
++      />
++    )
++    const input = screen.getByRole('combobox')
++    expect(input).not.toHaveAttribute('aria-invalid')
++    expect(input).not.toHaveAttribute('aria-describedby')
++  })
++})
+diff --git a/tests/unit/ds-v3/componenti/CardLavoro.test.tsx b/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
+index 8eb4362..c8e0c68 100644
+--- a/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
++++ b/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
+@@ -187,20 +187,53 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
+ 
+   it('conferma e onConsegna sono mutuamente esclusive a livello di TIPO (riga 4 unica, §5.8/P4)', () => {
+     // Il vincolo vive nel tipo (never incrociati): passarle entrambe non
+     // compila — è `tsc --noEmit` a validare il @ts-expect-error qui sotto
+     // (fallirebbe se l'espressione tornasse a compilare).
+     // @ts-expect-error — onConsegna e conferma insieme sono vietate
+     const invalida = <CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} conferma={{ onClick: () => {} }} />
+     expect(invalida).toBeTruthy() // l'elemento esiste a runtime; il blocco è compile-time
+   })
+ 
++  it('Task 10 (O1c) — conferma E onConsegna insieme (bypass del tipo) → console.warn dev-only, l\'uno non esclude l\'altro a runtime', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
++    render(<CardLavoro {...props} />)
++    expect(spy).toHaveBeenCalledTimes(1)
++    expect(spy.mock.calls[0][0]).toContain('CardLavoro: conferma e onConsegna sono mutuamente esclusivi')
++    spy.mockRestore()
++  })
++
++  it('Task 10 (O1c) — in produzione (NODE_ENV=production), stesse due prop insieme → NIENTE console.warn', () => {
++    vi.stubEnv('NODE_ENV', 'production')
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
++    render(<CardLavoro {...props} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++    vi.unstubAllEnvs()
++  })
++
++  it('Task 10 (O1c) — con SOLO onConsegna (uso normale) → NIENTE console.warn', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++  })
++
++  it('Task 10 (O1c) — con SOLO conferma (uso normale) → NIENTE console.warn', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} conferma={{ onClick: () => {} }} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++  })
++
+   it('con conferma → riga 4 alternativa: TastoSecondario «Conferma», click → onClick senza onApri (stopPropagation)', () => {
+     const onApri = vi.fn()
+     const onClick = vi.fn()
+     render(<CardLavoro {...PROPS_BASE} onApri={onApri} conferma={{ onClick }} />)
+     const tasto = screen.getByRole('button', { name: 'Conferma' })
+     fireEvent.click(tasto)
+     expect(onClick).toHaveBeenCalledTimes(1)
+     expect(onApri).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx b/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx
+new file mode 100644
+index 0000000..112e8be
+--- /dev/null
++++ b/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx
+@@ -0,0 +1,22 @@
++import { describe, it, expect, vi } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import { TuttoIlResto } from '@/components/features/tutto-il-resto/TuttoIlResto'
++import type { Sezione } from '@/lib/dashboard/tutto-il-resto'
++
++vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
++
++const sezione = (extra: Partial<Sezione> = {}): Sezione => ({
++  chiave: 'dentisti', emoji: '🦷', nome: 'Dentisti', sub: 'Esposito, Bianchi e Russo', href: '/clienti', ...extra,
++})
++
++describe('TuttoIlResto — ☰ le 9 voci (§6.1/§6.2, Task 10 O1c)', () => {
++  it('con sub presente → aria-label espone "<nome>. <sub>" (lo screen reader legge anche il sub, non solo il nome)', () => {
++    render(<TuttoIlResto sezioni={[sezione({ nome: 'Dentisti', sub: 'Esposito, Bianchi e Russo' })]} />)
++    expect(screen.getByRole('link', { name: 'Dentisti. Esposito, Bianchi e Russo' })).toBeInTheDocument()
++  })
++
++  it('senza sub (stringa vuota) → aria-label è SOLO il nome, niente punto finale spurio', () => {
++    render(<TuttoIlResto sezioni={[sezione({ nome: 'Il mio laboratorio', sub: '' })]} />)
++    expect(screen.getByRole('link', { name: 'Il mio laboratorio' })).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/lavori-id-route.test.ts b/tests/unit/lavori-id-route.test.ts
+index 189c66c..4526414 100644
+--- a/tests/unit/lavori-id-route.test.ts
++++ b/tests/unit/lavori-id-route.test.ts
+@@ -1,25 +1,29 @@
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+ import type { NextRequest } from 'next/server'
+ 
+-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
++const { mockGetUser, mockFrom, mockTriggerPushToUser } = vi.hoisted(() => ({
+   mockGetUser: vi.fn(),
+   mockFrom: vi.fn(),
++  mockTriggerPushToUser: vi.fn(),
+ }))
+ 
+ vi.mock('@/lib/supabase/server-user', () => ({
+   getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+ }))
+ vi.mock('@/lib/supabase/server-service', () => ({
+   getServiceClient: () => ({ from: mockFrom }),
+ }))
+ vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++vi.mock('@/lib/notifications/trigger', () => ({
++  triggerPushToUser: mockTriggerPushToUser,
++}))
+ 
+ import { PATCH } from '../../src/app/api/lavori/[id]/route'
+ 
+ const AUTH_USER = { id: 'user-1' }
+ const LAB_ID = 'lab-1'
+ const LAVORO_ID = 'lavoro-1'
+ 
+ function req(body: Record<string, unknown>) {
+   return new Request(`http://localhost/api/lavori/${LAVORO_ID}`, {
+     method: 'PATCH',
+@@ -28,31 +32,44 @@ function req(body: Record<string, unknown>) {
+   }) as unknown as NextRequest
+ }
+ 
+ const params = Promise.resolve({ id: LAVORO_ID })
+ 
+ /**
+  * Helper per costruire il mock di `svc.from(table)` usato dalla route.
+  *
+  * Tabelle coinvolte:
+  * - 'utenti'  → risoluzione laboratorio_id dell'utente autenticato
+- * - 'lavori'  → SELECT incluso_in_fattura (pre-check) + UPDATE finale
++ * - 'lavori'  → SELECT incluso_in_fattura/tecnico_id/numero_lavoro (pre-check) + UPDATE finale
+  * - 'lavori_lavorazioni' → COUNT righe attive (guard N4 prezzo_unitario)
+  * - FK tables ('clienti', 'pazienti', 'tecnici', 'cicli_produzione') → validazione cross-tenant
++ *   ('tecnici' è riusata ANCHE dalla risoluzione tecnici→utenti di notificaAssegnazione,
++ *   distinta in base alle colonne selezionate: 'id' = validazione FK, 'utente_id' = mapping push)
+  */
+ function buildMockFrom(opts: {
+   inclusoInFattura?: boolean
+   updateSpy: (payload: Record<string, unknown>) => void
+   fkOk?: boolean
+   righeAttive?: number
++  existingTecnicoId?: string | null
++  numeroLavoro?: string
++  tecnicoUtenteId?: string | null
+ }) {
+-  const { inclusoInFattura = false, updateSpy, fkOk = true, righeAttive = 0 } = opts
++  const {
++    inclusoInFattura = false,
++    updateSpy,
++    fkOk = true,
++    righeAttive = 0,
++    existingTecnicoId = null,
++    numeroLavoro = 'L-001',
++    tecnicoUtenteId = 'utente-tecnico-1',
++  } = opts
+ 
+   return vi.fn((table: string) => {
+     if (table === 'utenti') {
+       return {
+         select: () => ({
+           eq: () => ({
+             is: () => ({
+               single: async () => ({
+                 data: {
+                   laboratorio_id: LAB_ID,
+@@ -62,55 +79,59 @@ function buildMockFrom(opts: {
+               }),
+             }),
+           }),
+         }),
+       }
+     }
+ 
+     if (table === 'lavori') {
+       return {
+         select: (cols: string) => {
+-          // Prima select: pre-check incluso_in_fattura
+-          if (cols === 'incluso_in_fattura') {
++          // Prima select: pre-check incluso_in_fattura + tecnico_id/numero_lavoro
++          if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
+             return {
+               eq: () => ({
+                 eq: () => ({
+                   is: () => ({
+                     single: async () => ({
+-                      data: { incluso_in_fattura: inclusoInFattura },
++                      data: {
++                        incluso_in_fattura: inclusoInFattura,
++                        tecnico_id: existingTecnicoId,
++                        numero_lavoro: numeroLavoro,
++                      },
+                       error: null,
+                     }),
+                   }),
+                 }),
+               }),
+             }
+           }
+           // Select finale dopo update
+           return {
+             eq: () => ({
+               eq: () => ({
+                 single: async () => ({
+-                  data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
++                  data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                   error: null,
+                 }),
+               }),
+             }),
+           }
+         },
+         update: (payload: Record<string, unknown>) => {
+           updateSpy(payload)
+           return {
+             eq: () => ({
+               eq: () => ({
+                 select: () => ({
+                   single: async () => ({
+-                    data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
++                    data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                     error: null,
+                   }),
+                 }),
+               }),
+             }),
+           }
+         },
+       }
+     }
+ 
+@@ -120,28 +141,38 @@ function buildMockFrom(opts: {
+           eq: () => ({
+             is: async () => ({ count: righeAttive, error: null }),
+           }),
+         }),
+       }
+     }
+ 
+     // FK tables
+     if (['clienti', 'pazienti', 'tecnici', 'cicli_produzione'].includes(table)) {
+       return {
+-        select: () => ({
++        select: (cols: string) => ({
+           eq: () => ({
+             eq: () => ({
+               is: () => ({
+-                single: async () => ({
+-                  data: fkOk ? { id: 'fk-ok-id' } : null,
+-                  error: null,
+-                }),
++                single: async () => {
++                  // Mapping tecnici→utenti per notificaAssegnazione (A1)
++                  if (table === 'tecnici' && cols === 'utente_id') {
++                    return {
++                      data: tecnicoUtenteId ? { utente_id: tecnicoUtenteId } : null,
++                      error: null,
++                    }
++                  }
++                  // Validazione FK cross-tenant standard (cols === 'id')
++                  return {
++                    data: fkOk ? { id: 'fk-ok-id' } : null,
++                    error: null,
++                  }
++                },
+               }),
+             }),
+           }),
+         }),
+       }
+     }
+ 
+     throw new Error(`Unexpected table: ${table}`)
+   })
+ }
+@@ -371,10 +402,136 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
+             }),
+           }),
+         }
+       }
+       throw new Error(`Unexpected table: ${table}`)
+     })
+     const res = await PATCH(req({ descrizione: 'x' }), { params })
+     expect(res.status).toBe(404)
+   })
+ })
++
++// Attende il flush delle microtask/macrotask della catena fire-and-forget
++// (notificaAssegnazione: select tecnici → triggerPushToUser) senza legare il
++// test all'implementazione interna della route.
++function flushFireAndForget() {
++  return new Promise((resolve) => setTimeout(resolve, 0))
++}
++
++describe('PATCH /api/lavori/[id] — A1: push al tecnico su assegnazione', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
++  })
++
++  it('tecnico_id nuovo (diverso dal precedente) → triggerPushToUser chiamato 1 volta, body con numero lavoro e senza nome paziente', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        numeroLavoro: 'L-042',
++        tecnicoUtenteId: 'utente-tecnico-1',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
++    const [userId, laboratorioId, payload] = mockTriggerPushToUser.mock.calls[0]
++    expect(userId).toBe('utente-tecnico-1')
++    expect(laboratorioId).toBe(LAB_ID)
++    expect(payload.title).toBe('Nuovo lavoro assegnato')
++    expect(payload.body).toContain('L-042')
++    expect(payload.url).toBe(`/lavori/${LAVORO_ID}`)
++
++    // GDPR: MAI nome paziente nel payload push (nessun nome/paziente in nessun campo)
++    const serialized = JSON.stringify(payload)
++    expect(serialized).not.toMatch(/paziente/i)
++    expect(serialized).not.toMatch(/Mario|Rossi/i)
++  })
++
++  it('tecnico_id invariato (stesso valore già presente) → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-stesso',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-stesso' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('tecnico_id null nel payload → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: null }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('nessun tecnico_id nel body (PATCH di altri campi) → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++      })
++    )
++
++    const res = await PATCH(req({ descrizione: 'Corona ceramica' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('push che rejecta (mock reject) → la risposta PATCH resta 200', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        tecnicoUtenteId: 'utente-tecnico-1',
++      })
++    )
++    mockTriggerPushToUser.mockRejectedValue(new Error('push provider down'))
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
++  })
++
++  it('tecnico senza utente_id collegato (nessun account) → risoluzione mapping fallisce, triggerPushToUser mai chiamato, risposta resta 200', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        tecnicoUtenteId: null,
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++})
+diff --git a/tests/unit/login-passkey-prefill.test.tsx b/tests/unit/login-passkey-prefill.test.tsx
+new file mode 100644
+index 0000000..3036b12
+--- /dev/null
++++ b/tests/unit/login-passkey-prefill.test.tsx
+@@ -0,0 +1,103 @@
++// tests/unit/login-passkey-prefill.test.tsx
++// A3 — il prefill dell'email da passkey locale (localStorage `ua_passkey_email`)
++// non deve sovrascrivere un'email già digitata dall'utente. Su device
++// condivisi in laboratorio, se l'utente inizia a digitare prima che la
++// promise `isUserVerifyingPlatformAuthenticatorAvailable()` risolva, il
++// prefill "secco" (`setEmail(savedEmail)`) cancellava quanto già scritto.
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import LoginForm from '@/app/(auth)/login/login-form'
++
++const PASSKEY_EMAIL_KEY = 'ua_passkey_email'
++
++const pushMock = vi.fn()
++const prefetchMock = vi.fn()
++const refreshMock = vi.fn()
++
++// LoginForm usa useRouter()/useSearchParams() di next/navigation — fuori da
++// un App Router reale vanno mockati (stesso pattern di
++// tests/unit/LavoroFormClient.consegna-autosave.test.tsx).
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({
++    push: pushMock,
++    prefetch: prefetchMock,
++    refresh: refreshMock,
++  }),
++  useSearchParams: () => new URLSearchParams(),
++}))
++
++function createDeferred<T>() {
++  let resolve!: (value: T) => void
++  const promise = new Promise<T>(res => {
++    resolve = res
++  })
++  return { promise, resolve }
++}
++
++function mockPlatformAuthenticator(promise: Promise<boolean>) {
++  Object.defineProperty(window, 'PublicKeyCredential', {
++    configurable: true,
++    writable: true,
++    value: {
++      isUserVerifyingPlatformAuthenticatorAvailable: vi.fn(() => promise),
++    },
++  })
++}
++
++describe('A3 — guard prefill passkey (login-form)', () => {
++  beforeEach(() => {
++    localStorage.clear()
++    pushMock.mockClear()
++    prefetchMock.mockClear()
++    refreshMock.mockClear()
++  })
++
++  afterEach(() => {
++    // @ts-expect-error — pulizia mock test-only, non presente nel tipo Window
++    delete window.PublicKeyCredential
++  })
++
++  it('non sovrascrive l\'email già digitata dall\'utente quando la promise risolve dopo', async () => {
++    localStorage.setItem(PASSKEY_EMAIL_KEY, 'salvata@lab.it')
++    const { promise, resolve } = createDeferred<boolean>()
++    mockPlatformAuthenticator(promise)
++
++    render(<LoginForm />)
++
++    const emailInput = screen.getByLabelText('Indirizzo email') as HTMLInputElement
++    const user = userEvent.setup()
++
++    // L'utente digita PRIMA che isUserVerifyingPlatformAuthenticatorAvailable() risolva
++    await user.type(emailInput, 'mia@lab.it')
++    expect(emailInput.value).toBe('mia@lab.it')
++
++    // Ora la promise risolve — il prefill NON deve sovrascrivere quanto digitato
++    resolve(true)
++
++    await waitFor(() => {
++      expect(document.querySelector('[aria-label="Accesso biometrico"]')).toBeInTheDocument()
++    })
++
++    expect(emailInput.value).toBe('mia@lab.it')
++  })
++
++  it('campo vuoto → dopo il resolve prende l\'email salvata e il flusso bio resta abilitato', async () => {
++    localStorage.setItem(PASSKEY_EMAIL_KEY, 'salvata@lab.it')
++    const { promise, resolve } = createDeferred<boolean>()
++    mockPlatformAuthenticator(promise)
++
++    render(<LoginForm />)
++
++    const emailInput = screen.getByLabelText('Indirizzo email') as HTMLInputElement
++    expect(emailInput.value).toBe('')
++
++    resolve(true)
++
++    await waitFor(() => {
++      expect(emailInput.value).toBe('salvata@lab.it')
++    })
++
++    expect(document.querySelector('[aria-label="Accesso biometrico"]')).toBeInTheDocument()
++  })
++})
+diff --git a/tests/unit/portale-richiedi-route.test.ts b/tests/unit/portale-richiedi-route.test.ts
+index 064095b..ee7e416 100644
+--- a/tests/unit/portale-richiedi-route.test.ts
++++ b/tests/unit/portale-richiedi-route.test.ts
+@@ -1,35 +1,53 @@
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+ 
+-const { mockFrom, mockRpc } = vi.hoisted(() => ({ mockFrom: vi.fn(), mockRpc: vi.fn() }))
++const { mockFrom, mockRpc, mockTriggerPushByRole } = vi.hoisted(() => ({
++  mockFrom: vi.fn(),
++  mockRpc: vi.fn(),
++  mockTriggerPushByRole: vi.fn(),
++}))
+ vi.mock('@/lib/supabase/server-service', () => ({
+   getServiceClient: () => ({ from: mockFrom, rpc: mockRpc }),
+ }))
++vi.mock('@/lib/notifications/trigger', () => ({
++  triggerPushByRole: mockTriggerPushByRole,
++}))
+ import { POST } from '../../src/app/api/portale/richiedi/route'
+ 
+ let insertPayload: Record<string, unknown> | null
+ 
+ function req(body: unknown): Request {
+   return new Request('http://localhost/api/portale/richiedi', {
+     method: 'POST', headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify(body),
+   })
+ }
+ 
++function clienteRow() {
++  return {
++    data: {
++      id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null,
++      laboratori: { stato: 'attivo' },
++      studio_nome: 'Studio Rossi', nome: 'Mario', cognome: 'Rossi',
++    },
++    error: null,
++  }
++}
++
+ beforeEach(() => {
+   insertPayload = null
++  mockTriggerPushByRole.mockReset()
++  mockTriggerPushByRole.mockResolvedValue(undefined)
+   mockRpc.mockResolvedValue({ data: 7, error: null }) // genera_progressivo
+   mockFrom.mockImplementation((table: string) => {
+     if (table === 'clienti') {
+-      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({
+-        data: { id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null, laboratori: { stato: 'attivo' } }, error: null,
+-      }) }) }) }) }
++      return { select: () => ({ eq: () => ({ is: () => ({ single: async () => (clienteRow()) }) }) }) }
+     }
+     if (table === 'lavori') {
+       return {
+         // rate-limit: count
+         select: () => ({ eq: () => ({ eq: () => ({ gte: async () => ({ count: 0, error: null }) }) }) }),
+         // insert
+         insert: (payload: Record<string, unknown>) => {
+           insertPayload = payload
+           return { select: () => ({ single: async () => ({ data: { id: 'lav-1', numero_lavoro: '2026/0007' }, error: null }) }) }
+         },
+@@ -66,10 +84,122 @@ describe('POST /api/portale/richiedi — campi puliti', () => {
+       }
+       throw new Error(`tabella non mockata: ${table}`)
+     })
+     const res = await POST(req({
+       token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
+       paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28', note: 'x',
+     }))
+     expect(res.status).toBe(429)
+   })
+ })
++
++describe('POST /api/portale/richiedi — push A8', () => {
++  it('insert riuscito → push a titolare E front_desk, senza dati paziente', async () => {
++    const res = await POST(req({
++      token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
++      paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28', note: 'colore A2',
++    }))
++    expect(res.status).toBe(201)
++    expect(mockTriggerPushByRole).toHaveBeenCalledTimes(2)
++
++    const roles = mockTriggerPushByRole.mock.calls.map(c => c[1])
++    expect(roles).toContain('titolare')
++    expect(roles).toContain('front_desk')
++
++    for (const call of mockTriggerPushByRole.mock.calls) {
++      const [labId, , payload] = call
++      expect(labId).toBe('lab-1')
++      expect(payload).toEqual({
++        title: 'Nuova richiesta dal portale',
++        body: 'Studio Rossi ha richiesto: protesi_fissa (n.2026/0007)',
++        url: '/lavori/lav-1',
++      })
++      const serialized = JSON.stringify(payload)
++      expect(serialized).not.toMatch(/paziente/i)
++      expect(serialized).not.toMatch(/MR-2026/)
++    }
++  })
++
++  it('usa nome + cognome quando studio_nome è null', async () => {
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'clienti') {
++        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({
++          data: {
++            id: 'cli-1', laboratorio_id: 'lab-1', portale_token_scade_at: null,
++            laboratori: { stato: 'attivo' },
++            studio_nome: null, nome: 'Mario', cognome: 'Rossi',
++          },
++          error: null,
++        }) }) }) }) }
++      }
++      if (table === 'lavori') {
++        return {
++          select: () => ({ eq: () => ({ eq: () => ({ gte: async () => ({ count: 0, error: null }) }) }) }),
++          insert: (payload: Record<string, unknown>) => {
++            insertPayload = payload
++            return { select: () => ({ single: async () => ({ data: { id: 'lav-1', numero_lavoro: '2026/0007' }, error: null }) }) }
++          },
++        }
++      }
++      throw new Error(`tabella non mockata: ${table}`)
++    })
++
++    await POST(req({
++      token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
++      paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28',
++    }))
++
++    const payload = mockTriggerPushByRole.mock.calls[0][2]
++    expect(payload.body).toBe('Mario Rossi ha richiesto: protesi_fissa (n.2026/0007)')
++  })
++
++  it('insert fallito → triggerPushByRole mai chiamato', async () => {
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'clienti') {
++        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => (clienteRow()) }) }) }) }
++      }
++      if (table === 'lavori') {
++        return {
++          select: () => ({ eq: () => ({ eq: () => ({ gte: async () => ({ count: 0, error: null }) }) }) }),
++          insert: () => ({ select: () => ({ single: async () => ({ data: null, error: { message: 'boom' } }) }) }),
++        }
++      }
++      throw new Error(`tabella non mockata: ${table}`)
++    })
++
++    const res = await POST(req({
++      token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
++      paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28',
++    }))
++    expect(res.status).toBe(500)
++    expect(mockTriggerPushByRole).not.toHaveBeenCalled()
++  })
++
++  it('push reject → risposta resta comunque 201', async () => {
++    mockTriggerPushByRole.mockRejectedValue(new Error('push down'))
++
++    const res = await POST(req({
++      token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
++      paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28',
++    }))
++    expect(res.status).toBe(201)
++  })
++
++  it('oltre rate-limit (count ≥10) → 429 e triggerPushByRole mai chiamato', async () => {
++    mockFrom.mockImplementation((table: string) => {
++      if (table === 'clienti') {
++        return { select: () => ({ eq: () => ({ is: () => ({ single: async () => (clienteRow()) }) }) }) }
++      }
++      if (table === 'lavori') {
++        return { select: () => ({ eq: () => ({ eq: () => ({ gte: async () => ({ count: 10, error: null }) }) }) }) }
++      }
++      throw new Error(`tabella non mockata: ${table}`)
++    })
++
++    const res = await POST(req({
++      token: 'tok-1', tipo_dispositivo: 'protesi_fissa', descrizione: 'Corona 14',
++      paziente_codice: 'MR-2026', data_consegna_prevista: '2026-07-28',
++    }))
++    expect(res.status).toBe(429)
++    expect(mockTriggerPushByRole).not.toHaveBeenCalled()
++  })
++})
+diff --git a/tests/unit/richiesta-client-form-copy.test.tsx b/tests/unit/richiesta-client-form-copy.test.tsx
+new file mode 100644
+index 0000000..c5c6950
+--- /dev/null
++++ b/tests/unit/richiesta-client-form-copy.test.tsx
+@@ -0,0 +1,59 @@
++import { render, screen, fireEvent, waitFor } from '@testing-library/react'
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { RichiestaClientForm } from '../../src/components/features/portale/RichiestaClientForm'
++
++// A9: la schermata di successo NON deve più contraddirsi affermando sia che
++// la richiesta è "ricevuta" sia che il laboratorio "contatterà per la
++// conferma" — un solo paragrafo coerente.
++describe('RichiestaClientForm — copy schermata successo (A9)', () => {
++  beforeEach(() => {
++    vi.stubGlobal('fetch', vi.fn())
++  })
++
++  afterEach(() => {
++    vi.unstubAllGlobals()
++  })
++
++  async function submitForm() {
++    render(
++      <RichiestaClientForm
++        token="tok-123"
++        clienteId="cli-1"
++        labNome="Odontolab Rossi"
++        labLogoUrl={null}
++        nomeCliente="Studio Bianchi"
++      />
++    )
++
++    fireEvent.change(screen.getByLabelText('Tipo di lavoro'), { target: { value: 'protesi_fissa' } })
++    fireEvent.change(screen.getByLabelText('Codice paziente'), { target: { value: 'MR-2026' } })
++    fireEvent.change(screen.getByLabelText('Data consegna richiesta'), { target: { value: '2026-12-01' } })
++
++    ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
++      ok: true,
++      status: 201,
++      json: async () => ({ ok: true, numero_lavoro: '00042' }),
++    })
++
++    fireEvent.click(screen.getByRole('button', { name: /Invia richiesta al laboratorio/ }))
++
++    await waitFor(() => expect(screen.getByText('Richiesta inviata!')).toBeTruthy())
++  }
++
++  it('mostra un solo paragrafo coerente senza contraddire "ricevuto" vs "conferma futura"', async () => {
++    await submitForm()
++
++    expect(screen.getByText((_, node) => node?.textContent === 'Il laboratorio Odontolab Rossi la esaminerà e ti contatterà per la conferma.')).toBeTruthy()
++    expect(screen.queryByText(/ha ricevuto la tua richiesta/)).toBeNull()
++    expect(screen.queryByText(/^Ti contatteranno per la conferma\.$/)).toBeNull()
++  })
++
++  // A7: dalla schermata di successo del form richiesta, il dentista deve poter
++  // tornare al portale di stato lavori senza dover recuperare il secondo URL.
++  it('mostra un link di ritorno al portale stato lavori (A7)', async () => {
++    await submitForm()
++
++    const link = screen.getByRole('link', { name: '← Torna allo stato lavori' })
++    expect(link.getAttribute('href')).toBe('/portale/tok-123')
++  })
++})
+diff --git a/tests/unit/striscia.test.ts b/tests/unit/striscia.test.ts
+index d1813a0..d76d948 100644
+--- a/tests/unit/striscia.test.ts
++++ b/tests/unit/striscia.test.ts
+@@ -1,12 +1,12 @@
+ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+-import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, type IngressiStriscia } from '@/lib/dashboard/striscia'
++import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, type IngressiStriscia } from '@/lib/dashboard/striscia'
+ import type { SupabaseClient } from '@supabase/supabase-js'
+ import type { PileHome } from '@/lib/dashboard/pile-home'
+ 
+ const VUOTO: IngressiStriscia = {
+   fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
+   pile: { ritardoPiuGrave: null, consegnaOggiNonPronta: null, provaRientroOggi: null,
+           arrivoVecchio: null, fermo: null, consegneOggiTotali: 0, prossimaOra: null },
+ }
+ 
+ const { mockGetMateriali, mockGetPagamenti } = vi.hoisted(() => ({
+@@ -68,20 +68,137 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
+     expect(s.attenzione).toBe(false)
+   })
+ 
+   it('segnale 9 — sereno, coi numeri del giorno', () => {
+     expect(scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, consegneOggiTotali: 2, prossimaOra: '16:00' } }))
+       .toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi, la prossima alle 16:00', azione: null })
+     expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+   })
+ })
+ 
++// --- O1f: segnale «tecnico senza anagrafica» (Task 11) ---
++
++describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
++  it('(a) tecnico con senzaAnagrafica: true vince su tutto, anche su pile non vuote', () => {
++    const s = scegliSegnale('tecnico', { ...VUOTO,
++      senzaAnagrafica: true,
++      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
++    expect(s).toEqual({ attenzione: true, forte: 'Il tuo account',
++      testo: 'non è ancora configurato — avvisa il titolare', azione: null })
++  })
++
++  it('(a) tecnico senza senzaAnagrafica: gerarchia normale (nessun cambiamento)', () => {
++    const s = scegliSegnale('tecnico', { ...VUOTO,
++      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
++    expect(s.forte).toBe('n.144')
++  })
++
++  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] e s1-s7 spenti → segnale «Account di Marco»', () => {
++    const s = scegliSegnale('titolare', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s).toEqual({ attenzione: true, forte: 'Account di Marco', testo: 'da completare',
++      azione: { etichetta: 'Apri ›', href: '/tecnici' } })
++  })
++
++  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] MA s1 (fattura scartata) attivo → vince s1', () => {
++    const s = scegliSegnale('titolare', { ...VUOTO,
++      tecniciSenzaAnagrafica: ['Marco'],
++      fatturaScartata: { id: 'f1', numero: '2026-0139' } })
++    expect(s.forte).toBe('Fattura n.2026-0139')
++  })
++
++  it('(c) titolare senza tecnici scoperti → s8/s9 invariati', () => {
++    expect(scegliSegnale('titolare', { ...VUOTO, ddcOggi: 2 })).toEqual({
++      attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null })
++    expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
++  })
++
++  it('(d) front_desk con tecniciSenzaAnagrafica valorizzato → NESSUN segnale nuovo (gerarchia invariata)', () => {
++    const s = scegliSegnale('front_desk', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s.attenzione).toBe(false) // cade su s9 come prima — front_desk non vede sTitTecnici
++    expect(s.forte).toBe('Tutto a posto:')
++  })
++
++  it('(d) admin_rete con tecniciSenzaAnagrafica: usa la stessa gerarchia del titolare', () => {
++    const s = scegliSegnale('admin_rete', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s.forte).toBe('Account di Marco')
++  })
++})
++
++// --- leggiTecniciSenzaAnagrafica — query titolare, scoped laboratorio_id ---
++
++type UtentiTecniciResult = { data: unknown; error: unknown }
++
++function makeSvcUtentiTecnici(opts: {
++  utenti: () => Promise<UtentiTecniciResult>
++  tecnici: () => Promise<UtentiTecniciResult>
++}): SupabaseClient {
++  const chainUtenti: Record<string, unknown> = {}
++  for (const m of ['select', 'eq']) chainUtenti[m] = () => chainUtenti
++  chainUtenti.is = () => opts.utenti()
++
++  const chainTecnici: Record<string, unknown> = {}
++  for (const m of ['select', 'eq']) chainTecnici[m] = () => chainTecnici
++  chainTecnici.is = () => opts.tecnici()
++
++  return {
++    from: (table: string) => {
++      if (table === 'utenti') return chainUtenti
++      if (table === 'tecnici') return chainTecnici
++      throw new Error(`tabella non attesa nel mock: ${table}`)
++    },
++  } as unknown as SupabaseClient
++}
++
++describe('leggiTecniciSenzaAnagrafica — utenti ruolo tecnico senza riga tecnici, scoped lab', () => {
++  afterEach(() => {
++    vi.restoreAllMocks()
++  })
++
++  it('restituisce i nomi degli utenti tecnico attivi senza riga tecnici corrispondente', async () => {
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.resolve({
++        data: [{ id: 'u1', nome: 'Marco' }, { id: 'u2', nome: 'Luca' }],
++        error: null,
++      }),
++      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u2' }], error: null }),
++    })
++
++    const nomi = await leggiTecniciSenzaAnagrafica(svc, 'lab1')
++
++    expect(nomi).toEqual(['Marco']) // u2 (Luca) ha già la riga tecnici — esclusa
++  })
++
++  it('nessun utente scoperto → array vuoto', async () => {
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.resolve({ data: [{ id: 'u1', nome: 'Marco' }], error: null }),
++      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u1' }], error: null }),
++    })
++
++    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
++  })
++
++  it('errore su una delle due query degrada a array vuoto (spy console.error)', async () => {
++    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.reject(new Error('boom utenti')),
++      tecnici: () => Promise.resolve({ data: [], error: null }),
++    })
++
++    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
++    expect(spy).toHaveBeenCalledTimes(1)
++    expect(spy).toHaveBeenCalledWith(
++      expect.stringContaining('lettura tecniciSenzaAnagrafica fallita — degrado a []:'),
++      expect.any(Error)
++    )
++  })
++})
++
+ // --- fetchIngressiStriscia (Task 6: split 4 query in Promise.all) ---
+ 
+ type Deferred<T> = { promise: Promise<T>; resolve: (v: T) => void }
+ function deferred<T>(): Deferred<T> {
+   let resolve!: (v: T) => void
+   const promise = new Promise<T>((r) => { resolve = r })
+   return { promise, resolve }
+ }
+ 
+ type FattureResult = { data: unknown; error: unknown }

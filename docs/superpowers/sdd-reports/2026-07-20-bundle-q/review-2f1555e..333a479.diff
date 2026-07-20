@@ -1,0 +1,148 @@
+# Review package: 2f1555e..HEAD
+
+## Commits
+333a479 fix(auth): il prefill passkey non sovrascrive l'email digitata — A3
+
+## Files changed
+ src/app/(auth)/login/login-form.tsx       |   3 +-
+ tests/unit/login-passkey-prefill.test.tsx | 103 ++++++++++++++++++++++++++++++
+ 2 files changed, 105 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/app/(auth)/login/login-form.tsx b/src/app/(auth)/login/login-form.tsx
+index d1fa2ba..a07150d 100644
+--- a/src/app/(auth)/login/login-form.tsx
++++ b/src/app/(auth)/login/login-form.tsx
+@@ -184,21 +184,22 @@ export default function LoginForm() {
+         setBioAvailable(true)
+         const ua = navigator.userAgent
+         if (/iPhone|iPad/.test(ua)) { setFpLabel('Touch ID'); setFaceLabel('Face ID') }
+         else if (/Macintosh/.test(ua)) { setFpLabel('Touch ID'); setFaceLabel('Face ID') }
+         else if (/Android/.test(ua)) { setFpLabel('Impronta'); setFaceLabel('Volto') }
+         else { setFpLabel('Impronta'); setFaceLabel('Windows Hello') }
+ 
+         // Pre-compila email e abilita bio se questo device ha un passkey registrato
+         const savedEmail = localStorage.getItem(PASSKEY_EMAIL_KEY)
+         if (savedEmail) {
+-          setEmail(savedEmail)
++          // Non sovrascrivere un'email già digitata (race mount→promise, device condivisi — A3)
++          setEmail(prev => (prev === '' ? savedEmail : prev))
+           setHasSavedPasskey(true)
+         }
+       })
+       .catch(() => { /* no biometric */ })
+   }, [])
+ 
+   const handleBioLogin = useCallback(async () => {
+     if (!email || bioLoading) return
+     sndClick()
+     setBioLoading(true)
+diff --git a/tests/unit/login-passkey-prefill.test.tsx b/tests/unit/login-passkey-prefill.test.tsx
+new file mode 100644
+index 0000000..3036b12
+--- /dev/null
++++ b/tests/unit/login-passkey-prefill.test.tsx
+@@ -0,0 +1,103 @@
++// tests/unit/login-passkey-prefill.test.tsx
++// A3 — il prefill dell'email da passkey locale (localStorage `ua_passkey_email`)
++// non deve sovrascrivere un'email già digitata dall'utente. Su device
++// condivisi in laboratorio, se l'utente inizia a digitare prima che la
++// promise `isUserVerifyingPlatformAuthenticatorAvailable()` risolva, il
++// prefill "secco" (`setEmail(savedEmail)`) cancellava quanto già scritto.
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, waitFor } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import LoginForm from '@/app/(auth)/login/login-form'
++
++const PASSKEY_EMAIL_KEY = 'ua_passkey_email'
++
++const pushMock = vi.fn()
++const prefetchMock = vi.fn()
++const refreshMock = vi.fn()
++
++// LoginForm usa useRouter()/useSearchParams() di next/navigation — fuori da
++// un App Router reale vanno mockati (stesso pattern di
++// tests/unit/LavoroFormClient.consegna-autosave.test.tsx).
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({
++    push: pushMock,
++    prefetch: prefetchMock,
++    refresh: refreshMock,
++  }),
++  useSearchParams: () => new URLSearchParams(),
++}))
++
++function createDeferred<T>() {
++  let resolve!: (value: T) => void
++  const promise = new Promise<T>(res => {
++    resolve = res
++  })
++  return { promise, resolve }
++}
++
++function mockPlatformAuthenticator(promise: Promise<boolean>) {
++  Object.defineProperty(window, 'PublicKeyCredential', {
++    configurable: true,
++    writable: true,
++    value: {
++      isUserVerifyingPlatformAuthenticatorAvailable: vi.fn(() => promise),
++    },
++  })
++}
++
++describe('A3 — guard prefill passkey (login-form)', () => {
++  beforeEach(() => {
++    localStorage.clear()
++    pushMock.mockClear()
++    prefetchMock.mockClear()
++    refreshMock.mockClear()
++  })
++
++  afterEach(() => {
++    // @ts-expect-error — pulizia mock test-only, non presente nel tipo Window
++    delete window.PublicKeyCredential
++  })
++
++  it('non sovrascrive l\'email già digitata dall\'utente quando la promise risolve dopo', async () => {
++    localStorage.setItem(PASSKEY_EMAIL_KEY, 'salvata@lab.it')
++    const { promise, resolve } = createDeferred<boolean>()
++    mockPlatformAuthenticator(promise)
++
++    render(<LoginForm />)
++
++    const emailInput = screen.getByLabelText('Indirizzo email') as HTMLInputElement
++    const user = userEvent.setup()
++
++    // L'utente digita PRIMA che isUserVerifyingPlatformAuthenticatorAvailable() risolva
++    await user.type(emailInput, 'mia@lab.it')
++    expect(emailInput.value).toBe('mia@lab.it')
++
++    // Ora la promise risolve — il prefill NON deve sovrascrivere quanto digitato
++    resolve(true)
++
++    await waitFor(() => {
++      expect(document.querySelector('[aria-label="Accesso biometrico"]')).toBeInTheDocument()
++    })
++
++    expect(emailInput.value).toBe('mia@lab.it')
++  })
++
++  it('campo vuoto → dopo il resolve prende l\'email salvata e il flusso bio resta abilitato', async () => {
++    localStorage.setItem(PASSKEY_EMAIL_KEY, 'salvata@lab.it')
++    const { promise, resolve } = createDeferred<boolean>()
++    mockPlatformAuthenticator(promise)
++
++    render(<LoginForm />)
++
++    const emailInput = screen.getByLabelText('Indirizzo email') as HTMLInputElement
++    expect(emailInput.value).toBe('')
++
++    resolve(true)
++
++    await waitFor(() => {
++      expect(emailInput.value).toBe('salvata@lab.it')
++    })
++
++    expect(document.querySelector('[aria-label="Accesso biometrico"]')).toBeInTheDocument()
++  })
++})

@@ -1,0 +1,123 @@
+# Review package: 311bc35..HEAD
+
+## Commits
+dbfa7ca fix(lavori): countdown AnnullaConsegnaBanner fuori dal render iniziale — A17
+
+## Files changed
+ .../features/lavori/AnnullaConsegnaBanner.tsx      | 21 +++++++---
+ tests/unit/annulla-consegna-banner.test.tsx        | 48 ++++++++++++++++++++++
+ 2 files changed, 63 insertions(+), 6 deletions(-)
+
+## Diff
+diff --git a/src/components/features/lavori/AnnullaConsegnaBanner.tsx b/src/components/features/lavori/AnnullaConsegnaBanner.tsx
+index d8902f2..4504e65 100644
+--- a/src/components/features/lavori/AnnullaConsegnaBanner.tsx
++++ b/src/components/features/lavori/AnnullaConsegnaBanner.tsx
+@@ -5,38 +5,47 @@ import { useRouter } from 'next/navigation'
+ import { FINESTRA_ANNULLO_MS } from '@/lib/consegna/costanti'
+ 
+ interface Props {
+   lavoroId: string
+   dataConsegnaEffettiva: string
+ }
+ 
+ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props) {
+   const router = useRouter()
+   const [isPending, startTransition] = useTransition()
+-  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+-    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
+-    return Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000))
+-  })
++  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+   const [errore, setErrore] = useState<string | null>(null)
+   const [annullato, setAnnullato] = useState(false)
+ 
+   useEffect(() => {
+-    if (secondsLeft <= 0) return
++    // Calcolo derivato da Date.now() (orologio esterno): deve girare SOLO
++    // dopo il mount, mai nell'initializer di useState, altrimenti il
++    // markup SSR e quello di hydration client possono divergere (A17,
++    // React #418) — non evitabile spostando la logica fuori dall'effetto
++    // (violerebbe la regola react-hooks/set-state-in-effect).
++    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
++    // eslint-disable-next-line react-hooks/set-state-in-effect
++    setSecondsLeft(Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000)))
++  }, [dataConsegnaEffettiva])
++
++  useEffect(() => {
++    if (secondsLeft === null || secondsLeft <= 0) return
+     const interval = setInterval(() => {
+       setSecondsLeft((s) => {
+-        if (s <= 1) { clearInterval(interval); return 0 }
++        if (s === null || s <= 1) { clearInterval(interval); return 0 }
+         return s - 1
+       })
+     }, 1000)
+     return () => clearInterval(interval)
+   }, [secondsLeft])
+ 
++  if (secondsLeft === null) return null
+   if (secondsLeft <= 0 || annullato) return null
+ 
+   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
+   const ss = String(secondsLeft % 60).padStart(2, '0')
+ 
+   const handleAnnulla = async () => {
+     setErrore(null)
+     startTransition(async () => {
+       try {
+         const res = await fetch(`/api/lavori/${lavoroId}/annulla-consegna`, {
+diff --git a/tests/unit/annulla-consegna-banner.test.tsx b/tests/unit/annulla-consegna-banner.test.tsx
+new file mode 100644
+index 0000000..9e186a1
+--- /dev/null
++++ b/tests/unit/annulla-consegna-banner.test.tsx
+@@ -0,0 +1,48 @@
++import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
++import { render, screen, act } from '@testing-library/react'
++import { renderToStaticMarkup } from 'react-dom/server'
++import { AnnullaConsegnaBanner } from '../../src/components/features/lavori/AnnullaConsegnaBanner'
++
++vi.mock('next/navigation', () => ({
++  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
++}))
++
++describe('AnnullaConsegnaBanner — countdown hydration-safe (A17-res)', () => {
++  beforeEach(() => {
++    vi.useFakeTimers()
++    vi.setSystemTime(new Date('2026-07-20T10:00:00.000Z'))
++  })
++
++  afterEach(() => {
++    vi.useRealTimers()
++  })
++
++  it('primo render sincrono (pre-effect, es. SSR) NON calcola il countdown da Date.now() — markup vuoto', () => {
++    // dataConsegnaEffettiva 1 minuto fa: se il countdown fosse calcolato
++    // nell'initializer di useState (bug A17), il markup SSR conterrebbe già "09:00".
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z'
++    const html = renderToStaticMarkup(
++      <AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />,
++    )
++    // renderToStaticMarkup non esegue gli effect: se il countdown viene
++    // calcolato SOLO in useEffect, il primo render deve restituire null.
++    expect(html).toBe('')
++  })
++
++  it('dopo il mount (effect eseguito) mostra il countdown mm:ss corretto', () => {
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z' // 1 min fa → 9:00 rimasti su 10:00
++    render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />)
++    expect(screen.getByText(/09:00/)).toBeInTheDocument()
++  })
++
++  it('il countdown decrementa di un secondo ad ogni tick del timer', () => {
++    const dataConsegnaEffettiva = '2026-07-20T09:59:00.000Z'
++    render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva={dataConsegnaEffettiva} />)
++    expect(screen.getByText(/09:00/)).toBeInTheDocument()
++
++    act(() => {
++      vi.advanceTimersByTime(1000)
++    })
++    expect(screen.getByText(/08:59/)).toBeInTheDocument()
++  })
++})

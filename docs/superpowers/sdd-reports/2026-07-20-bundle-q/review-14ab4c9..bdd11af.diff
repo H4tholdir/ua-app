@@ -1,0 +1,231 @@
+# Review package: 14ab4c9..HEAD
+
+## Commits
+bdd11af fix(a11y): sub udibile, chiusura ricerca, warn dev CardLavoro — O1c
+
+## Files changed
+ src/components/ds/CardLavoro.tsx                   | 10 +++++++
+ src/components/features/pile/PilaAperta.tsx        |  9 +++++-
+ .../features/tutto-il-resto/TuttoIlResto.tsx       |  2 +-
+ tests/unit/PilaAperta.test.tsx                     | 13 +++++++++
+ tests/unit/ds-v3/componenti/CardLavoro.test.tsx    | 33 ++++++++++++++++++++++
+ tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx  | 22 +++++++++++++++
+ 6 files changed, 87 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/src/components/ds/CardLavoro.tsx b/src/components/ds/CardLavoro.tsx
+index 6ed457e..937a6d7 100644
+--- a/src/components/ds/CardLavoro.tsx
++++ b/src/components/ds/CardLavoro.tsx
+@@ -133,20 +133,30 @@ export function CardLavoro(props: {
+   // che possiede lo sfondo opaco (`background: var(--card)`) — non su un
+   // wrapper esterno: un inset box-shadow dipinto SOTTO un discendente con
+   // sfondo opaco non è mai visibile (bug scoperto in review: `HomeDesktop`/
+   // `PilaSplit` mettevano il ring su un wrapper fuori da questo componente).
+   // Default `false`: i chiamanti che non selezionano nulla (mobile
+   // `PilaAperta`, catalogo DS) restano identici a prima.
+   selezionato?: boolean
+ } & Riga4) {
+   const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
+ 
++  // Guardia dev-only (Task 10, O1c): l'esclusione reciproca di `onConsegna` e
++  // `conferma` è garantita SOLO a livello di tipo (`Riga4`, sopra) — un
++  // chiamante che bypassa `tsc` (spread di due oggetti, `as any`…) supera il
++  // compilatore ma qui sotto i due blocchi JSX (righe 261+/267+) sono `if`
++  // indipendenti, non un if/else: NESSUNA variante vince, vengono montate
++  // ENTRAMBE le righe 4, violando il «massimo 4 righe» della card (§5.8).
++  if (process.env.NODE_ENV !== 'production' && conferma && onConsegna) {
++    console.warn('CardLavoro: conferma e onConsegna sono mutuamente esclusivi — con entrambi impostati vengono renderizzate ENTRAMBE le righe 4 (nessuna variante ne esclude l\'altra)')
++  }
++
+   function handleApri() {
+     vibra('selection')
+     onApri()
+   }
+ 
+   function handleKeyDown(evento: ReactKeyboardEvent) {
+     // Solo se il target è la card stessa: il keydown di Invio/Spazio dato al
+     // TastoConsegnaInline focalizzato bubble-a fin qui, ma quello NON deve
+     // aprire la card (stessa garanzia dello stopPropagation sul click).
+     if (evento.target !== evento.currentTarget) return
+diff --git a/src/components/features/pile/PilaAperta.tsx b/src/components/features/pile/PilaAperta.tsx
+index 84b72ea..38811b4 100644
+--- a/src/components/features/pile/PilaAperta.tsx
++++ b/src/components/features/pile/PilaAperta.tsx
+@@ -76,21 +76,28 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
+       </div>
+ 
+       <MorphPila pila={pila} numero={lista.length} label={LABEL[pila]} sub={lista.length > 0 ? sub : undefined} />
+ 
+       {lista.length === 0 ? (
+         <Vuoto glifo={vuoto.glifo} titolo={vuoto.titolo} guida={vuoto.guida} />
+       ) : (
+         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+           {lista.length > SOGLIA_CERCA && (cerca === null
+             ? <RigaCerca totale={lista.length} cosa="lavori" onApri={() => setCerca('')} />
+-            : <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />)}
++            : (
++              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
++                <div style={{ flex: 1 }}>
++                  <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />
++                </div>
++                <TastoTondo glifo="×" etichettaAria="Chiudi ricerca" onClick={() => setCerca(null)} />
++              </div>
++            ))}
+ 
+           {filtrata.map((l) => (
+             <CardLavoro
+               key={l.id}
+               numero={l.numero}
+               dentista={l.dentista}
+               paziente={l.paziente}
+               tipoLavoro={l.tipoLavoro}
+               tempo={l.pill}
+               onApri={() => router.push(`/lavori/${l.id}`)}
+diff --git a/src/components/features/tutto-il-resto/TuttoIlResto.tsx b/src/components/features/tutto-il-resto/TuttoIlResto.tsx
+index 7df2c09..398fd98 100644
+--- a/src/components/features/tutto-il-resto/TuttoIlResto.tsx
++++ b/src/components/features/tutto-il-resto/TuttoIlResto.tsx
+@@ -52,21 +52,21 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
+         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+           <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
+           <h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Tutto il resto</h1>
+         </div>
+ 
+         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+           {sezioni.map((s) => (
+             <Link
+               key={s.chiave}
+               href={s.href}
+-              aria-label={s.nome}
++              aria-label={s.sub ? `${s.nome}. ${s.sub}` : s.nome}
+               className="ds-card ua-tir-sez"
+               style={{
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: 14,
+                 width: '100%',
+                 textAlign: 'left',
+                 textDecoration: 'none',
+                 borderRadius: raggio.tile,
+                 padding: '15px 16px',
+diff --git a/tests/unit/PilaAperta.test.tsx b/tests/unit/PilaAperta.test.tsx
+index 49cd099..7b20182 100644
+--- a/tests/unit/PilaAperta.test.tsx
++++ b/tests/unit/PilaAperta.test.tsx
+@@ -41,16 +41,29 @@ describe('PilaAperta — la lista di legge (§4.1)', () => {
+   it('RigaCerca compare SOLO oltre 15 lavori e filtra per contains', async () => {
+     const tanti = Array.from({ length: 16 }, (_, i) => lav(String(200 + i), { tipoLavoro: i === 3 ? 'Scheletrato' : 'Corona' }))
+     render(<PilaAperta pila="ambra" sub="x" lista={tanti} />)
+     const user = userEvent.setup()
+     await user.click(screen.getByRole('button', { name: /cerca/i }))
+     await user.type(screen.getByRole('textbox'), 'schele')
+     expect(screen.getByText(/n\.203/)).toBeInTheDocument()
+     expect(screen.queryByText(/n\.204/)).not.toBeInTheDocument()
+   })
+ 
++  it('Task 10 (O1c) — con ricerca aperta, il bottone «Chiudi ricerca» richiude il campo e riporta RigaCerca', async () => {
++    const tanti = Array.from({ length: 16 }, (_, i) => lav(String(200 + i)))
++    render(<PilaAperta pila="ambra" sub="x" lista={tanti} />)
++    const user = userEvent.setup()
++    await user.click(screen.getByRole('button', { name: /cerca/i }))
++    expect(screen.getByRole('textbox')).toBeInTheDocument()
++    expect(screen.queryByRole('button', { name: /cerca fra tutti/i })).toBeNull()
++
++    await user.click(screen.getByRole('button', { name: 'Chiudi ricerca' }))
++    expect(screen.queryByRole('textbox')).toBeNull()
++    expect(screen.getByRole('button', { name: /cerca fra tutti/i })).toBeInTheDocument()
++  })
++
+   it('pila vuota: morph a 0 senza sub + messaggio quieto (mockup stati-vuoti)', () => {
+     render(<PilaAperta pila="ambra" lista={[]} />)
+     expect(screen.getByText('0')).toBeInTheDocument()
+     expect(screen.getByText('Niente sul banco')).toBeInTheDocument()
+   })
+ })
+diff --git a/tests/unit/ds-v3/componenti/CardLavoro.test.tsx b/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
+index 8eb4362..c8e0c68 100644
+--- a/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
++++ b/tests/unit/ds-v3/componenti/CardLavoro.test.tsx
+@@ -187,20 +187,53 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
+ 
+   it('conferma e onConsegna sono mutuamente esclusive a livello di TIPO (riga 4 unica, §5.8/P4)', () => {
+     // Il vincolo vive nel tipo (never incrociati): passarle entrambe non
+     // compila — è `tsc --noEmit` a validare il @ts-expect-error qui sotto
+     // (fallirebbe se l'espressione tornasse a compilare).
+     // @ts-expect-error — onConsegna e conferma insieme sono vietate
+     const invalida = <CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} conferma={{ onClick: () => {} }} />
+     expect(invalida).toBeTruthy() // l'elemento esiste a runtime; il blocco è compile-time
+   })
+ 
++  it('Task 10 (O1c) — conferma E onConsegna insieme (bypass del tipo) → console.warn dev-only, l\'uno non esclude l\'altro a runtime', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
++    render(<CardLavoro {...props} />)
++    expect(spy).toHaveBeenCalledTimes(1)
++    expect(spy.mock.calls[0][0]).toContain('CardLavoro: conferma e onConsegna sono mutuamente esclusivi')
++    spy.mockRestore()
++  })
++
++  it('Task 10 (O1c) — in produzione (NODE_ENV=production), stesse due prop insieme → NIENTE console.warn', () => {
++    vi.stubEnv('NODE_ENV', 'production')
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
++    render(<CardLavoro {...props} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++    vi.unstubAllEnvs()
++  })
++
++  it('Task 10 (O1c) — con SOLO onConsegna (uso normale) → NIENTE console.warn', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++  })
++
++  it('Task 10 (O1c) — con SOLO conferma (uso normale) → NIENTE console.warn', () => {
++    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} conferma={{ onClick: () => {} }} />)
++    expect(spy).not.toHaveBeenCalled()
++    spy.mockRestore()
++  })
++
+   it('con conferma → riga 4 alternativa: TastoSecondario «Conferma», click → onClick senza onApri (stopPropagation)', () => {
+     const onApri = vi.fn()
+     const onClick = vi.fn()
+     render(<CardLavoro {...PROPS_BASE} onApri={onApri} conferma={{ onClick }} />)
+     const tasto = screen.getByRole('button', { name: 'Conferma' })
+     fireEvent.click(tasto)
+     expect(onClick).toHaveBeenCalledTimes(1)
+     expect(onApri).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx b/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx
+new file mode 100644
+index 0000000..112e8be
+--- /dev/null
++++ b/tests/unit/ds-v3/componenti/TuttoIlResto.test.tsx
+@@ -0,0 +1,22 @@
++import { describe, it, expect, vi } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import { TuttoIlResto } from '@/components/features/tutto-il-resto/TuttoIlResto'
++import type { Sezione } from '@/lib/dashboard/tutto-il-resto'
++
++vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
++
++const sezione = (extra: Partial<Sezione> = {}): Sezione => ({
++  chiave: 'dentisti', emoji: '🦷', nome: 'Dentisti', sub: 'Esposito, Bianchi e Russo', href: '/clienti', ...extra,
++})
++
++describe('TuttoIlResto — ☰ le 9 voci (§6.1/§6.2, Task 10 O1c)', () => {
++  it('con sub presente → aria-label espone "<nome>. <sub>" (lo screen reader legge anche il sub, non solo il nome)', () => {
++    render(<TuttoIlResto sezioni={[sezione({ nome: 'Dentisti', sub: 'Esposito, Bianchi e Russo' })]} />)
++    expect(screen.getByRole('link', { name: 'Dentisti. Esposito, Bianchi e Russo' })).toBeInTheDocument()
++  })
++
++  it('senza sub (stringa vuota) → aria-label è SOLO il nome, niente punto finale spurio', () => {
++    render(<TuttoIlResto sezioni={[sezione({ nome: 'Il mio laboratorio', sub: '' })]} />)
++    expect(screen.getByRole('link', { name: 'Il mio laboratorio' })).toBeInTheDocument()
++  })
++})

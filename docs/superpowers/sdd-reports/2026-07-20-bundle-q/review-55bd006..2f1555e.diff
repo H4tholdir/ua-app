@@ -1,0 +1,66 @@
+# Review package: 55bd006..HEAD
+
+## Commits
+2f1555e fix(qualita): gravità lieve usa --c-amber-ink (WCAG AA), messaggio check corretto — A6
+efae4a1 fix(qualita): gravità lieve usa --c-amber, mai --gold come testo — A6
+
+## Files changed
+ scripts/check-ds-compliance.sh | 2 +-
+ src/app/(app)/qualita/page.tsx | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/scripts/check-ds-compliance.sh b/scripts/check-ds-compliance.sh
+index 502428c..d26bcf0 100755
+--- a/scripts/check-ds-compliance.sh
++++ b/scripts/check-ds-compliance.sh
+@@ -8,21 +8,21 @@ ERRORS=0
+ 
+ # ── 1. Gold come testo (WCAG fail) ──────────────────────────────────────────
+ GOLD_TEXT=$(grep -rn "color:.*var(--gold\|color:.*#D4A843\|color:.*#d4a843" \
+   $SCOPE --include="*.tsx" --include="*.ts" 2>/dev/null \
+   | grep -v "background\|stroke\|border\|accentColor\|fill\|\.css\|tokens\.ts" \
+   | grep -v "node_modules" || true)
+ 
+ if [ -n "$GOLD_TEXT" ]; then
+   echo ""
+   echo "❌ DS v2.3: gold usato come testo (WCAG fail 1.6:1)"
+-  echo "   Usa var(--c-amber, #F59E0B) per testo warning, non --gold"
++  echo "   Usa var(--c-amber-ink, #92400E) per testo warning, non --gold (--c-amber è solo per accenti, mai testo)"
+   echo "$GOLD_TEXT"
+   ERRORS=$((ERRORS + 1))
+ fi
+ 
+ # ── 2. Vecchi t2/t3 fallback ────────────────────────────────────────────────
+ OLD_T2=$(grep -rn "#96918D\|#B8B3AE" \
+   $SCOPE --include="*.tsx" --include="*.ts" 2>/dev/null \
+   | grep -v "tokens\.ts\|era #\|node_modules" || true)
+ 
+ if [ -n "$OLD_T2" ]; then
+diff --git a/src/app/(app)/qualita/page.tsx b/src/app/(app)/qualita/page.tsx
+index 239cc6d..874252b 100644
+--- a/src/app/(app)/qualita/page.tsx
++++ b/src/app/(app)/qualita/page.tsx
+@@ -15,21 +15,21 @@ function formatDataIT(dateStr: string): string {
+     // un carattere 'T' e l'offset timezone) — concatenare 'T00:00:00' a un
+     // timestamp gia' completo produce una stringa non valida ("Invalid Date").
+     const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
+     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+   } catch {
+     return dateStr
+   }
+ }
+ 
+ const gravitaColor: Record<string, string> = {
+-  lieve:    'var(--gold, #D4A843)',
++  lieve:    'var(--c-amber-ink, #92400E)',
+   moderata: 'var(--amber, #FD7E14)',
+   grave:    'var(--primary, #D90012)',
+   critica:  'var(--primary, #D90012)',
+ }
+ 
+ // ─── Page ─────────────────────────────────────────────────────
+ 
+ export default async function QualitaPage() {
+   const context = await getLabContext()
+   if (!context?.laboratorioId) return null

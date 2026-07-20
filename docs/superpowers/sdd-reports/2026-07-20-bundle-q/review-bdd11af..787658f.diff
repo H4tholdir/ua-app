@@ -1,0 +1,353 @@
+# Review package: bdd11af..HEAD
+
+## Commits
+787658f feat(dashboard): segnale striscia per tecnico senza anagrafica — O1f
+
+## Files changed
+ src/app/(app)/dashboard/page.tsx |  11 +++-
+ src/lib/dashboard/striscia.ts    |  62 ++++++++++++++++++--
+ tests/unit/striscia.test.ts      | 119 ++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 184 insertions(+), 8 deletions(-)
+
+## Diff
+diff --git a/src/app/(app)/dashboard/page.tsx b/src/app/(app)/dashboard/page.tsx
+index dee6d80..90cadd7 100644
+--- a/src/app/(app)/dashboard/page.tsx
++++ b/src/app/(app)/dashboard/page.tsx
+@@ -1,15 +1,15 @@
+ import { redirect } from 'next/navigation'
+ import { getLabContext } from '@/lib/supabase/lab-context'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
+-import { fetchIngressiStriscia, scegliSegnale } from '@/lib/dashboard/striscia'
++import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica } from '@/lib/dashboard/striscia'
+ import { HomeV3 } from '@/components/features/home/HomeV3'
+ import { HomeDesktop } from '@/components/features/home/HomeDesktop'
+ import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
+ import type { Pila } from '@/lib/lavori/urgenza'
+ 
+ export const dynamic = 'force-dynamic'
+ const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
+ 
+ const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+ const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+@@ -30,25 +30,30 @@ function saluto(d: Date): string {
+ // la UI è sempre la stessa HomeV3. `preferenza_dashboard` non si legge più.
+ export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
+   const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
+   const context = await getLabContext()
+   if (!context?.laboratorioId) redirect('/login')
+   const { ruolo, laboratorioId: labId } = context
+   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
+ 
+   const svc = getServiceClient()
+   const perimetro = await getPerimetroHome(svc, labId, context.userId, ruolo)
+-  const [pile, ingressi] = await Promise.all([
++  // O1f (Task 11): la query tecnici-senza-anagrafica gira SOLO per
++  // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
++  // striscia.ts) — front_desk/tecnico non pagano il round-trip.
++  const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
++  const [pile, ingressi, tecniciSenzaAnagrafica] = await Promise.all([
+     getPileHome(svc, labId, perimetro),
+     fetchIngressiStriscia(svc, labId, ruolo),
++    usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
+   ])
+-  const segnale = scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })
++  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, pile: pile.striscia })
+ 
+   const ora = adessoRoma()
+   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
+   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
+ 
+   // Nav a 3 pannelli desktop (Task 9, ADR B6 Candidato A): la selezione vive
+   // nell'URL — `pila` default rossa (validata), `lavoro` l'id presente nella
+   // pila o il primo. `HomeDesktop` e `HomeV3` sono fratelli, il CSS decide chi
+   // si vede (`.ua-home-mobile`/`.ua-home-desk`, breakpoint 1024).
+   const pilaSelezionata: Pila = (PILE_VALIDE as readonly string[]).includes(pilaParam ?? '') ? (pilaParam as Pila) : 'rossa'
+diff --git a/src/lib/dashboard/striscia.ts b/src/lib/dashboard/striscia.ts
+index fed278f..33103f5 100644
+--- a/src/lib/dashboard/striscia.ts
++++ b/src/lib/dashboard/striscia.ts
+@@ -7,20 +7,27 @@ export type SegnaleStriscia = {
+   attenzione: boolean
+   forte: string | null // parte in grassetto --ink
+   testo: string // resto della riga (1 riga, ellissi CSS)
+   azione: { etichetta: string; href: string } | null // CTA mai troncata
+ }
+ export type IngressiStriscia = {
+   fatturaScartata: { id: string; numero: string } | null
+   materialeRosso: string | null
+   pagamentoScaduto: string | null
+   ddcOggi: number
++  // O1f (Task 11) — propagati dal chiamante, NON da fetchIngressiStriscia:
++  // `senzaAnagrafica` esce già da getPerimetroHome (perimetro tecnico);
++  // `tecniciSenzaAnagrafica` è una query separata, agganciata nel Promise.all
++  // di `(app)/dashboard/page.tsx`, apposta FUORI da questo modulo — vedi nota
++  // su `leggiTecniciSenzaAnagrafica` più sotto sul perché non vive qui dentro.
++  senzaAnagrafica?: boolean
++  tecniciSenzaAnagrafica?: string[]
+   pile: DatiPileStriscia
+ }
+ 
+ // Valori runtime confermati allo Step 1 (grep su src/app/api/fatture, src/types/domain.ts,
+ // migration 002_fase2_schema.sql): lo stato SDI granulare NON conosce 'scartata' né
+ // 'mancata_consegna' (erano valori del CHECK originario in supabase/schema.sql, sostituito
+ // dalla migration 002 con lo StatoSDI attuale). L'unico stato realmente scritto/letto dal
+ // codice che rappresenta un rifiuto SDI è 'rifiutata'.
+ export const SDI_SCARTATE = ['rifiutata']
+ 
+@@ -34,26 +41,42 @@ const s2: Candidato = (i) => {
+   return null
+ }
+ const s3: Candidato = (i) => i.pile.provaRientroOggi ? { attenzione: true, forte: `n.${i.pile.provaRientroOggi}`, testo: 'torna oggi dalla prova', azione: { etichetta: 'Apri ›', href: '/lavori?pila=viola' } } : null
+ const s4: Candidato = (i) => i.pile.arrivoVecchio ? { attenzione: true, forte: `n.${i.pile.arrivoVecchio}`, testo: 'aspetta conferma da ieri', azione: { etichetta: 'Conferma ›', href: '/lavori?pila=blu' } } : null
+ const s5: Candidato = (i) => i.materialeRosso ? { attenzione: true, forte: i.materialeRosso, testo: 'sta per finire', azione: { etichetta: 'Riordina ›', href: '/magazzino' } } : null
+ const s6: Candidato = (i) => i.pile.fermo && i.pile.fermo.giorni >= 5 ? { attenzione: true, forte: `n.${i.pile.fermo.numero}`, testo: `è fermo da ${i.pile.fermo.giorni} giorni`, azione: { etichetta: 'Apri ›', href: `/lavori/${i.pile.fermo.id}` } } : null
+ const s7: Candidato = (i) => i.pagamentoScaduto ? { attenzione: true, forte: i.pagamentoScaduto, testo: 'ha un pagamento scaduto', azione: { etichetta: 'Guarda ›', href: '/scadenzario' } } : null
+ const s8: Candidato = (i) => i.ddcOggi > 0 ? { attenzione: false, forte: null, testo: `Oggi ho preparato ${i.ddcOggi} DdC ✓`, azione: null } : null
+ const s9: Candidato = (i) => ({ attenzione: false, forte: 'Tutto a posto:', testo: i.pile.consegneOggiTotali > 0 ? `${i.pile.consegneOggiTotali} consegne oggi${i.pile.prossimaOra ? `, la prossima alle ${i.pile.prossimaOra}` : ''}` : 'nessuna consegna oggi', azione: null })
+ 
++// O1f (Task 11) — dead-end silenzioso: un tecnico con account ma senza riga
++// `tecnici` vedeva pile vuote + s9 sereno, senza sapere perché. `sTecAccount`
++// vince su TUTTO (primo in gerarchia tecnico) perché in quel caso le pile
++// sono comunque vuote per costruzione (v. `getPileHome`/`senzaAnagrafica`) —
++// non c'è nulla di più urgente da segnalare al tecnico stesso.
++const sTecAccount: Candidato = (i) => i.senzaAnagrafica
++  ? { attenzione: true, forte: 'Il tuo account', testo: 'non è ancora configurato — avvisa il titolare', azione: null }
++  : null
++// `sTitTecnici` avvisa titolare/admin_rete che uno o più utenti ruolo
++// tecnico non hanno ancora la riga `tecnici` collegata (stesso bug di
++// perimetro dal lato titolare) — sotto ai segnali operativi s1-s7 (che
++// restano più urgenti), sopra al sereno s8/s9.
++const sTitTecnici: Candidato = (i) => i.tecniciSenzaAnagrafica?.length
++  ? { attenzione: true, forte: `Account di ${i.tecniciSenzaAnagrafica[0]}`, testo: 'da completare', azione: { etichetta: 'Apri ›', href: '/tecnici' } }
++  : null
++
+ // P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»)
+ const GERARCHIE: Record<string, Candidato[]> = {
+-  titolare: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
+-  admin_rete: [s1, s2, s3, s4, s5, s6, s7, s8, s9],
+-  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9],
+-  tecnico: [s2, s3, s4, s6, s8, s9],
++  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
++  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
++  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9], // invariato — O1f non tocca front_desk
++  tecnico: [sTecAccount, s2, s3, s4, s6, s8, s9],
+ }
+ 
+ export function scegliSegnale(ruolo: string, i: IngressiStriscia): SegnaleStriscia {
+   for (const candidato of GERARCHIE[ruolo] ?? GERARCHIE.tecnico) {
+     const s = candidato(i)
+     if (s) return s
+   }
+   return s9(i) as SegnaleStriscia
+ }
+ 
+@@ -114,20 +137,51 @@ async function leggiDdcOggi(svc: SupabaseClient, labId: string): Promise<number>
+       .neq('stato', 'annullata')
+       .gte('created_at', oggiMezzanotte.toISOString())
+     if (error) throw error
+     return count ?? 0
+   } catch (err) {
+     console.error('[getSegnaleStriscia] lettura ddcOggi fallita — degrado a 0:', err)
+     return 0
+   }
+ }
+ 
++// O1f (Task 11) — utenti ruolo 'tecnico' attivi/non-deleted del lab SENZA
++// riga `tecnici` corrispondente (confronto via `tecnici.utente_id`).
++// Esportata e chiamata dal CHIAMANTE (`(app)/dashboard/page.tsx`), NON
++// aggiunta al Promise.all di `fetchIngressiStriscia` qui sotto: quella
++// funzione è condivisa anche da `getSegnaleStriscia`, usata dall'anteprima
++// admin (`/admin/labs/[id]/live`) che gira sempre con ruolo 'titolare' — se
++// la query vivesse qui dentro, l'anteprima mostrerebbe segnali reali sui
++// tecnici scoperti del lab osservato. Tenendola fuori, per l'anteprima
++// `tecniciSenzaAnagrafica` resta `undefined` → nessun segnale nuovo (voluto).
++export async function leggiTecniciSenzaAnagrafica(svc: SupabaseClient, labId: string): Promise<string[]> {
++  try {
++    const [utentiRes, tecniciRes] = await Promise.all([
++      svc.from('utenti').select('id, nome').eq('laboratorio_id', labId).eq('ruolo', 'tecnico').eq('attivo', true).is('deleted_at', null),
++      svc.from('tecnici').select('utente_id').eq('laboratorio_id', labId).is('deleted_at', null),
++    ])
++    if (utentiRes.error) throw utentiRes.error
++    if (tecniciRes.error) throw tecniciRes.error
++    const conAnagrafica = new Set(
++      ((tecniciRes.data ?? []) as Array<{ utente_id: string | null }>)
++        .map((t) => t.utente_id)
++        .filter((id): id is string => !!id)
++    )
++    return ((utentiRes.data ?? []) as Array<{ id: string; nome: string }>)
++      .filter((u) => !conAnagrafica.has(u.id))
++      .map((u) => u.nome)
++  } catch (err) {
++    console.error('[getSegnaleStriscia] lettura tecniciSenzaAnagrafica fallita — degrado a []:', err)
++    return []
++  }
++}
++
+ export async function fetchIngressiStriscia(
+   svc: SupabaseClient, labId: string, ruolo: string
+ ): Promise<Omit<IngressiStriscia, 'pile'>> {
+   const [fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi] = await Promise.all([
+     usaFiscali(ruolo) ? leggiFatturaScartata(svc, labId) : Promise.resolve(null),
+     usaFiscali(ruolo) ? leggiMaterialeRosso(svc, labId) : Promise.resolve(null),
+     usaPagamenti(ruolo) ? leggiPagamentoScaduto(svc, labId) : Promise.resolve(null),
+     leggiDdcOggi(svc, labId),
+   ])
+   return { fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi }
+diff --git a/tests/unit/striscia.test.ts b/tests/unit/striscia.test.ts
+index d1813a0..d76d948 100644
+--- a/tests/unit/striscia.test.ts
++++ b/tests/unit/striscia.test.ts
+@@ -1,12 +1,12 @@
+ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+-import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, type IngressiStriscia } from '@/lib/dashboard/striscia'
++import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, type IngressiStriscia } from '@/lib/dashboard/striscia'
+ import type { SupabaseClient } from '@supabase/supabase-js'
+ import type { PileHome } from '@/lib/dashboard/pile-home'
+ 
+ const VUOTO: IngressiStriscia = {
+   fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
+   pile: { ritardoPiuGrave: null, consegnaOggiNonPronta: null, provaRientroOggi: null,
+           arrivoVecchio: null, fermo: null, consegneOggiTotali: 0, prossimaOra: null },
+ }
+ 
+ const { mockGetMateriali, mockGetPagamenti } = vi.hoisted(() => ({
+@@ -68,20 +68,137 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
+     expect(s.attenzione).toBe(false)
+   })
+ 
+   it('segnale 9 — sereno, coi numeri del giorno', () => {
+     expect(scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, consegneOggiTotali: 2, prossimaOra: '16:00' } }))
+       .toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi, la prossima alle 16:00', azione: null })
+     expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+   })
+ })
+ 
++// --- O1f: segnale «tecnico senza anagrafica» (Task 11) ---
++
++describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
++  it('(a) tecnico con senzaAnagrafica: true vince su tutto, anche su pile non vuote', () => {
++    const s = scegliSegnale('tecnico', { ...VUOTO,
++      senzaAnagrafica: true,
++      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
++    expect(s).toEqual({ attenzione: true, forte: 'Il tuo account',
++      testo: 'non è ancora configurato — avvisa il titolare', azione: null })
++  })
++
++  it('(a) tecnico senza senzaAnagrafica: gerarchia normale (nessun cambiamento)', () => {
++    const s = scegliSegnale('tecnico', { ...VUOTO,
++      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
++    expect(s.forte).toBe('n.144')
++  })
++
++  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] e s1-s7 spenti → segnale «Account di Marco»', () => {
++    const s = scegliSegnale('titolare', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s).toEqual({ attenzione: true, forte: 'Account di Marco', testo: 'da completare',
++      azione: { etichetta: 'Apri ›', href: '/tecnici' } })
++  })
++
++  it('(b) titolare con tecniciSenzaAnagrafica=[Marco] MA s1 (fattura scartata) attivo → vince s1', () => {
++    const s = scegliSegnale('titolare', { ...VUOTO,
++      tecniciSenzaAnagrafica: ['Marco'],
++      fatturaScartata: { id: 'f1', numero: '2026-0139' } })
++    expect(s.forte).toBe('Fattura n.2026-0139')
++  })
++
++  it('(c) titolare senza tecnici scoperti → s8/s9 invariati', () => {
++    expect(scegliSegnale('titolare', { ...VUOTO, ddcOggi: 2 })).toEqual({
++      attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null })
++    expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
++  })
++
++  it('(d) front_desk con tecniciSenzaAnagrafica valorizzato → NESSUN segnale nuovo (gerarchia invariata)', () => {
++    const s = scegliSegnale('front_desk', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s.attenzione).toBe(false) // cade su s9 come prima — front_desk non vede sTitTecnici
++    expect(s.forte).toBe('Tutto a posto:')
++  })
++
++  it('(d) admin_rete con tecniciSenzaAnagrafica: usa la stessa gerarchia del titolare', () => {
++    const s = scegliSegnale('admin_rete', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
++    expect(s.forte).toBe('Account di Marco')
++  })
++})
++
++// --- leggiTecniciSenzaAnagrafica — query titolare, scoped laboratorio_id ---
++
++type UtentiTecniciResult = { data: unknown; error: unknown }
++
++function makeSvcUtentiTecnici(opts: {
++  utenti: () => Promise<UtentiTecniciResult>
++  tecnici: () => Promise<UtentiTecniciResult>
++}): SupabaseClient {
++  const chainUtenti: Record<string, unknown> = {}
++  for (const m of ['select', 'eq']) chainUtenti[m] = () => chainUtenti
++  chainUtenti.is = () => opts.utenti()
++
++  const chainTecnici: Record<string, unknown> = {}
++  for (const m of ['select', 'eq']) chainTecnici[m] = () => chainTecnici
++  chainTecnici.is = () => opts.tecnici()
++
++  return {
++    from: (table: string) => {
++      if (table === 'utenti') return chainUtenti
++      if (table === 'tecnici') return chainTecnici
++      throw new Error(`tabella non attesa nel mock: ${table}`)
++    },
++  } as unknown as SupabaseClient
++}
++
++describe('leggiTecniciSenzaAnagrafica — utenti ruolo tecnico senza riga tecnici, scoped lab', () => {
++  afterEach(() => {
++    vi.restoreAllMocks()
++  })
++
++  it('restituisce i nomi degli utenti tecnico attivi senza riga tecnici corrispondente', async () => {
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.resolve({
++        data: [{ id: 'u1', nome: 'Marco' }, { id: 'u2', nome: 'Luca' }],
++        error: null,
++      }),
++      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u2' }], error: null }),
++    })
++
++    const nomi = await leggiTecniciSenzaAnagrafica(svc, 'lab1')
++
++    expect(nomi).toEqual(['Marco']) // u2 (Luca) ha già la riga tecnici — esclusa
++  })
++
++  it('nessun utente scoperto → array vuoto', async () => {
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.resolve({ data: [{ id: 'u1', nome: 'Marco' }], error: null }),
++      tecnici: () => Promise.resolve({ data: [{ utente_id: 'u1' }], error: null }),
++    })
++
++    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
++  })
++
++  it('errore su una delle due query degrada a array vuoto (spy console.error)', async () => {
++    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
++    const svc = makeSvcUtentiTecnici({
++      utenti: () => Promise.reject(new Error('boom utenti')),
++      tecnici: () => Promise.resolve({ data: [], error: null }),
++    })
++
++    expect(await leggiTecniciSenzaAnagrafica(svc, 'lab1')).toEqual([])
++    expect(spy).toHaveBeenCalledTimes(1)
++    expect(spy).toHaveBeenCalledWith(
++      expect.stringContaining('lettura tecniciSenzaAnagrafica fallita — degrado a []:'),
++      expect.any(Error)
++    )
++  })
++})
++
+ // --- fetchIngressiStriscia (Task 6: split 4 query in Promise.all) ---
+ 
+ type Deferred<T> = { promise: Promise<T>; resolve: (v: T) => void }
+ function deferred<T>(): Deferred<T> {
+   let resolve!: (v: T) => void
+   const promise = new Promise<T>((r) => { resolve = r })
+   return { promise, resolve }
+ }
+ 
+ type FattureResult = { data: unknown; error: unknown }

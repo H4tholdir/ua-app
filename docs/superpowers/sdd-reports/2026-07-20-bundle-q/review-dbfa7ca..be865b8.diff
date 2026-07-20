@@ -1,0 +1,518 @@
+# Review package: dbfa7ca..HEAD
+
+## Commits
+be865b8 feat(lavori): push al tecnico su assegnazione lavoro — A1
+
+## Files changed
+ src/app/api/lavori/[id]/route.ts               |  70 +++++++++-
+ tests/unit/api-lavori-tipo-validazione.test.ts |   4 +-
+ tests/unit/lavori-id-route.test.ts             | 183 +++++++++++++++++++++++--
+ 3 files changed, 240 insertions(+), 17 deletions(-)
+
+## Diff
+diff --git a/src/app/api/lavori/[id]/route.ts b/src/app/api/lavori/[id]/route.ts
+index 0d5d723..81296a2 100644
+--- a/src/app/api/lavori/[id]/route.ts
++++ b/src/app/api/lavori/[id]/route.ts
+@@ -1,17 +1,18 @@
+ import { NextResponse } from 'next/server'
+ import { getServiceClient } from '@/lib/supabase/server-service'
+ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
+ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
+ import { withServerTiming } from '@/lib/api/server-timing'
+ import { isSameOrigin } from '@/lib/utils/csrf'
+ import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
++import { triggerPushToUser } from '@/lib/notifications/trigger'
+ 
+ // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
+ const LOCKED_PRICE_FIELDS = [
+   'prezzo_unitario',
+   'listino_id',
+   'codice_iva',
+   'natura_iva',
+ ] as const
+ 
+ // Allowlist esplicita dei campi di `lavori` scrivibili via questa route.
+@@ -95,20 +96,66 @@ const PATCHABLE_FIELDS = [
+   'spedizione_data_prevista',
+   'cliente_id',
+   'paziente_id',
+   'tecnico_id',
+   'ciclo_id',
+   ...LOCKED_PRICE_FIELDS,
+ ] as const
+ 
+ type RouteContext = { params: Promise<{ id: string }> }
+ 
++/**
++ * A1: notifica push al tecnico su assegnazione di un lavoro.
++ *
++ * MAPPING tecnici→utenti (verificato su database.types.ts): `lavori.tecnico_id`
++ * referenzia `tecnici.id`, NON `utenti.id`. `triggerPushToUser` invece filtra
++ * `push_subscriptions.user_id`, colonna che referenzia `auth.users(id)` (= `utenti.id`,
++ * migration 20260521000001_push_subscriptions.sql). Serve quindi risolvere
++ * `tecnici.utente_id` (FK verso `utenti`, nullable) prima di poter inviare il push —
++ * NON si può passare `tecnico_id` direttamente come user_id.
++ * (Nota: `prove/route.ts` passa oggi `tecnico_id` grezzo a `triggerPushToUser` senza
++ * questa risoluzione — deviazione pre-esistente, fuori scope qui; vedi task-8-report.md.)
++ *
++ * Chiamata con `await` dal chiamante (non `void`: su Vercel il lavoro avviato
++ * ma non atteso dopo la response può essere interrotto a metà se l'istanza si
++ * congela) — non deve MAI lanciare né far fallire la risposta della PATCH
++ * (try/catch onnicomprensivo, silenzioso come `triggerPushToUser` stesso).
++ */
++async function notificaAssegnazione(
++  svc: ReturnType<typeof getServiceClient>,
++  tecnicoId: string,
++  laboratorioId: string,
++  numeroLavoro: string,
++  lavoroId: string
++): Promise<void> {
++  try {
++    const { data: tecnico } = await svc
++      .from('tecnici')
++      .select('utente_id')
++      .eq('id', tecnicoId)
++      .eq('laboratorio_id', laboratorioId)
++      .is('deleted_at', null)
++      .single()
++
++    if (!tecnico?.utente_id) return
++
++    // GDPR: MAI nome paziente nel payload push — solo numero lavoro + link.
++    await triggerPushToUser(tecnico.utente_id, laboratorioId, {
++      title: 'Nuovo lavoro assegnato',
++      body: `Il lavoro n.${numeroLavoro} è stato assegnato a te`,
++      url: `/lavori/${lavoroId}`,
++    })
++  } catch {
++    // Mai lanciare — un fallimento qui non deve mai influenzare la risposta PATCH.
++  }
++}
++
+ export async function GET(_req: Request, { params }: RouteContext) {
+   const { id } = await params
+ 
+   return withServerTiming(async (t) => {
+     const { context, timings } = await getLabContextWithTimings()
+     Object.assign(t, timings)
+     if (!context) {
+       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+     }
+ 
+@@ -176,24 +223,25 @@ export async function PATCH(req: Request, { params }: RouteContext) {
+ 
+   const svc = getServiceClient()
+ 
+   let body: Record<string, unknown>
+   try {
+     body = await req.json()
+   } catch {
+     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+   }
+ 
+-  // Verifica se il lavoro è già incluso in fattura — legge solo il campo necessario
++  // Verifica se il lavoro è già incluso in fattura — legge anche tecnico_id/numero_lavoro
++  // per la notifica push su riassegnazione (A1, vedi notificaAssegnazione sopra).
+   const { data: existing } = await svc
+     .from('lavori')
+-    .select('incluso_in_fattura')
++    .select('incluso_in_fattura, tecnico_id, numero_lavoro')
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .is('deleted_at', null)
+     .single()
+ 
+   if (!existing) {
+     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
+   }
+ 
+   // Allowlist esplicita: tiene solo le chiavi in PATCHABLE_FIELDS, scartando
+@@ -270,12 +318,30 @@ export async function PATCH(req: Request, { params }: RouteContext) {
+     .update(payload)
+     .eq('id', id)
+     .eq('laboratorio_id', context.laboratorioId)
+     .select('id, numero_lavoro, stato, updated_at')
+     .single()
+ 
+   if (updateError) {
+     return NextResponse.json({ error: updateError.message }, { status: 500 })
+   }
+ 
++  // A1: push al tecnico su assegnazione — SOLO quando tecnico_id cambia verso
++  // un valore non-null. Awaited (non `void`): su runtime serverless (Vercel)
++  // il lavoro non atteso dopo la response può essere terminato a metà se
++  // l'istanza si congela subito dopo l'invio — stesso pattern di
++  // prove/route.ts (push "prova rientrata"), che attende triggerPushToUser
++  // prima di rispondere. notificaAssegnazione non lancia mai (try/catch
++  // onnicomprensivo, come triggerPushToUser stesso), quindi l'await non può
++  // far fallire questa risposta.
++  if (payload.tecnico_id && payload.tecnico_id !== existing.tecnico_id) {
++    await notificaAssegnazione(
++      svc,
++      payload.tecnico_id as string,
++      context.laboratorioId,
++      existing.numero_lavoro,
++      id
++    )
++  }
++
+   return NextResponse.json({ lavoro })
+ }
+diff --git a/tests/unit/api-lavori-tipo-validazione.test.ts b/tests/unit/api-lavori-tipo-validazione.test.ts
+index 2152d79..a1cc5ea 100644
+--- a/tests/unit/api-lavori-tipo-validazione.test.ts
++++ b/tests/unit/api-lavori-tipo-validazione.test.ts
+@@ -125,22 +125,22 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
+   })
+ 
+   function buildMockFrom(updateSpy: (payload: Record<string, unknown>) => void) {
+     return vi.fn((table: string) => {
+       if (table === 'utenti') {
+         return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: LAB_ID, ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
+       }
+       if (table === 'lavori') {
+         return {
+           select: (cols: string) => {
+-            if (cols === 'incluso_in_fattura') {
+-              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }
++            if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
++              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false, tecnico_id: null, numero_lavoro: 'L-001' }, error: null }) }) }) }) }
+             }
+             return { eq: () => ({ eq: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }
+           },
+           update: (payload: Record<string, unknown>) => {
+             updateSpy(payload)
+             return { eq: () => ({ eq: () => ({ select: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }) }
+           },
+         }
+       }
+       throw new Error(`Unexpected table: ${table}`)
+diff --git a/tests/unit/lavori-id-route.test.ts b/tests/unit/lavori-id-route.test.ts
+index 189c66c..4526414 100644
+--- a/tests/unit/lavori-id-route.test.ts
++++ b/tests/unit/lavori-id-route.test.ts
+@@ -1,25 +1,29 @@
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+ import type { NextRequest } from 'next/server'
+ 
+-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
++const { mockGetUser, mockFrom, mockTriggerPushToUser } = vi.hoisted(() => ({
+   mockGetUser: vi.fn(),
+   mockFrom: vi.fn(),
++  mockTriggerPushToUser: vi.fn(),
+ }))
+ 
+ vi.mock('@/lib/supabase/server-user', () => ({
+   getServerUserClient: async () => ({ auth: { getUser: mockGetUser } }),
+ }))
+ vi.mock('@/lib/supabase/server-service', () => ({
+   getServiceClient: () => ({ from: mockFrom }),
+ }))
+ vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
++vi.mock('@/lib/notifications/trigger', () => ({
++  triggerPushToUser: mockTriggerPushToUser,
++}))
+ 
+ import { PATCH } from '../../src/app/api/lavori/[id]/route'
+ 
+ const AUTH_USER = { id: 'user-1' }
+ const LAB_ID = 'lab-1'
+ const LAVORO_ID = 'lavoro-1'
+ 
+ function req(body: Record<string, unknown>) {
+   return new Request(`http://localhost/api/lavori/${LAVORO_ID}`, {
+     method: 'PATCH',
+@@ -28,31 +32,44 @@ function req(body: Record<string, unknown>) {
+   }) as unknown as NextRequest
+ }
+ 
+ const params = Promise.resolve({ id: LAVORO_ID })
+ 
+ /**
+  * Helper per costruire il mock di `svc.from(table)` usato dalla route.
+  *
+  * Tabelle coinvolte:
+  * - 'utenti'  → risoluzione laboratorio_id dell'utente autenticato
+- * - 'lavori'  → SELECT incluso_in_fattura (pre-check) + UPDATE finale
++ * - 'lavori'  → SELECT incluso_in_fattura/tecnico_id/numero_lavoro (pre-check) + UPDATE finale
+  * - 'lavori_lavorazioni' → COUNT righe attive (guard N4 prezzo_unitario)
+  * - FK tables ('clienti', 'pazienti', 'tecnici', 'cicli_produzione') → validazione cross-tenant
++ *   ('tecnici' è riusata ANCHE dalla risoluzione tecnici→utenti di notificaAssegnazione,
++ *   distinta in base alle colonne selezionate: 'id' = validazione FK, 'utente_id' = mapping push)
+  */
+ function buildMockFrom(opts: {
+   inclusoInFattura?: boolean
+   updateSpy: (payload: Record<string, unknown>) => void
+   fkOk?: boolean
+   righeAttive?: number
++  existingTecnicoId?: string | null
++  numeroLavoro?: string
++  tecnicoUtenteId?: string | null
+ }) {
+-  const { inclusoInFattura = false, updateSpy, fkOk = true, righeAttive = 0 } = opts
++  const {
++    inclusoInFattura = false,
++    updateSpy,
++    fkOk = true,
++    righeAttive = 0,
++    existingTecnicoId = null,
++    numeroLavoro = 'L-001',
++    tecnicoUtenteId = 'utente-tecnico-1',
++  } = opts
+ 
+   return vi.fn((table: string) => {
+     if (table === 'utenti') {
+       return {
+         select: () => ({
+           eq: () => ({
+             is: () => ({
+               single: async () => ({
+                 data: {
+                   laboratorio_id: LAB_ID,
+@@ -62,55 +79,59 @@ function buildMockFrom(opts: {
+               }),
+             }),
+           }),
+         }),
+       }
+     }
+ 
+     if (table === 'lavori') {
+       return {
+         select: (cols: string) => {
+-          // Prima select: pre-check incluso_in_fattura
+-          if (cols === 'incluso_in_fattura') {
++          // Prima select: pre-check incluso_in_fattura + tecnico_id/numero_lavoro
++          if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
+             return {
+               eq: () => ({
+                 eq: () => ({
+                   is: () => ({
+                     single: async () => ({
+-                      data: { incluso_in_fattura: inclusoInFattura },
++                      data: {
++                        incluso_in_fattura: inclusoInFattura,
++                        tecnico_id: existingTecnicoId,
++                        numero_lavoro: numeroLavoro,
++                      },
+                       error: null,
+                     }),
+                   }),
+                 }),
+               }),
+             }
+           }
+           // Select finale dopo update
+           return {
+             eq: () => ({
+               eq: () => ({
+                 single: async () => ({
+-                  data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
++                  data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                   error: null,
+                 }),
+               }),
+             }),
+           }
+         },
+         update: (payload: Record<string, unknown>) => {
+           updateSpy(payload)
+           return {
+             eq: () => ({
+               eq: () => ({
+                 select: () => ({
+                   single: async () => ({
+-                    data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
++                    data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                     error: null,
+                   }),
+                 }),
+               }),
+             }),
+           }
+         },
+       }
+     }
+ 
+@@ -120,28 +141,38 @@ function buildMockFrom(opts: {
+           eq: () => ({
+             is: async () => ({ count: righeAttive, error: null }),
+           }),
+         }),
+       }
+     }
+ 
+     // FK tables
+     if (['clienti', 'pazienti', 'tecnici', 'cicli_produzione'].includes(table)) {
+       return {
+-        select: () => ({
++        select: (cols: string) => ({
+           eq: () => ({
+             eq: () => ({
+               is: () => ({
+-                single: async () => ({
+-                  data: fkOk ? { id: 'fk-ok-id' } : null,
+-                  error: null,
+-                }),
++                single: async () => {
++                  // Mapping tecnici→utenti per notificaAssegnazione (A1)
++                  if (table === 'tecnici' && cols === 'utente_id') {
++                    return {
++                      data: tecnicoUtenteId ? { utente_id: tecnicoUtenteId } : null,
++                      error: null,
++                    }
++                  }
++                  // Validazione FK cross-tenant standard (cols === 'id')
++                  return {
++                    data: fkOk ? { id: 'fk-ok-id' } : null,
++                    error: null,
++                  }
++                },
+               }),
+             }),
+           }),
+         }),
+       }
+     }
+ 
+     throw new Error(`Unexpected table: ${table}`)
+   })
+ }
+@@ -371,10 +402,136 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
+             }),
+           }),
+         }
+       }
+       throw new Error(`Unexpected table: ${table}`)
+     })
+     const res = await PATCH(req({ descrizione: 'x' }), { params })
+     expect(res.status).toBe(404)
+   })
+ })
++
++// Attende il flush delle microtask/macrotask della catena fire-and-forget
++// (notificaAssegnazione: select tecnici → triggerPushToUser) senza legare il
++// test all'implementazione interna della route.
++function flushFireAndForget() {
++  return new Promise((resolve) => setTimeout(resolve, 0))
++}
++
++describe('PATCH /api/lavori/[id] — A1: push al tecnico su assegnazione', () => {
++  beforeEach(() => {
++    vi.clearAllMocks()
++    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
++  })
++
++  it('tecnico_id nuovo (diverso dal precedente) → triggerPushToUser chiamato 1 volta, body con numero lavoro e senza nome paziente', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        numeroLavoro: 'L-042',
++        tecnicoUtenteId: 'utente-tecnico-1',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
++    const [userId, laboratorioId, payload] = mockTriggerPushToUser.mock.calls[0]
++    expect(userId).toBe('utente-tecnico-1')
++    expect(laboratorioId).toBe(LAB_ID)
++    expect(payload.title).toBe('Nuovo lavoro assegnato')
++    expect(payload.body).toContain('L-042')
++    expect(payload.url).toBe(`/lavori/${LAVORO_ID}`)
++
++    // GDPR: MAI nome paziente nel payload push (nessun nome/paziente in nessun campo)
++    const serialized = JSON.stringify(payload)
++    expect(serialized).not.toMatch(/paziente/i)
++    expect(serialized).not.toMatch(/Mario|Rossi/i)
++  })
++
++  it('tecnico_id invariato (stesso valore già presente) → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-stesso',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-stesso' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('tecnico_id null nel payload → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: null }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('nessun tecnico_id nel body (PATCH di altri campi) → triggerPushToUser mai chiamato', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++      })
++    )
++
++    const res = await PATCH(req({ descrizione: 'Corona ceramica' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++
++  it('push che rejecta (mock reject) → la risposta PATCH resta 200', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        tecnicoUtenteId: 'utente-tecnico-1',
++      })
++    )
++    mockTriggerPushToUser.mockRejectedValue(new Error('push provider down'))
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
++  })
++
++  it('tecnico senza utente_id collegato (nessun account) → risoluzione mapping fallisce, triggerPushToUser mai chiamato, risposta resta 200', async () => {
++    const updateSpy = vi.fn()
++    mockFrom.mockImplementation(
++      buildMockFrom({
++        updateSpy,
++        existingTecnicoId: 'tecnico-vecchio',
++        tecnicoUtenteId: null,
++      })
++    )
++
++    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
++    await flushFireAndForget()
++
++    expect(res.status).toBe(200)
++    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
++  })
++})

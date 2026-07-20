@@ -1,0 +1,37 @@
+# Review package: 55bd006..HEAD
+
+## Commits
+efae4a1 fix(qualita): gravità lieve usa --c-amber, mai --gold come testo — A6
+
+## Files changed
+ src/app/(app)/qualita/page.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+## Diff
+diff --git a/src/app/(app)/qualita/page.tsx b/src/app/(app)/qualita/page.tsx
+index 239cc6d..a13c2b0 100644
+--- a/src/app/(app)/qualita/page.tsx
++++ b/src/app/(app)/qualita/page.tsx
+@@ -15,21 +15,21 @@ function formatDataIT(dateStr: string): string {
+     // un carattere 'T' e l'offset timezone) — concatenare 'T00:00:00' a un
+     // timestamp gia' completo produce una stringa non valida ("Invalid Date").
+     const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00')
+     return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+   } catch {
+     return dateStr
+   }
+ }
+ 
+ const gravitaColor: Record<string, string> = {
+-  lieve:    'var(--gold, #D4A843)',
++  lieve:    'var(--c-amber, #F59E0B)',
+   moderata: 'var(--amber, #FD7E14)',
+   grave:    'var(--primary, #D90012)',
+   critica:  'var(--primary, #D90012)',
+ }
+ 
+ // ─── Page ─────────────────────────────────────────────────────
+ 
+ export default async function QualitaPage() {
+   const context = await getLabContext()
+   if (!context?.laboratorioId) return null

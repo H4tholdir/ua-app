@@ -1,0 +1,124 @@
+# Review package: 32c3332..HEAD
+
+## Commits
+c631c16 feat(portale): navigazione incrociata portale ↔ richiedi — A7
+
+## Files changed
+ src/app/portale/[token]/page.tsx                    | 21 +++++++++++++++++++++
+ .../features/portale/RichiestaClientForm.tsx        | 16 ++++++++++++++++
+ tests/unit/richiesta-client-form-copy.test.tsx      |  9 +++++++++
+ 3 files changed, 46 insertions(+)
+
+## Diff
+diff --git a/src/app/portale/[token]/page.tsx b/src/app/portale/[token]/page.tsx
+index 0567c38..37ac570 100644
+--- a/src/app/portale/[token]/page.tsx
++++ b/src/app/portale/[token]/page.tsx
+@@ -459,20 +459,41 @@ export default async function PortalePage({ params }: PageProps) {
+           <p
+             style={{
+               fontFamily: 'DM Sans, sans-serif',
+               fontSize: '14px',
+               color: '#6B7280',
+               margin: 0,
+             }}
+           >
+             Qui trovi lo stato dei tuoi lavori in corso e l&apos;archivio degli ultimi consegnati.
+           </p>
++          <a
++            href={`/richiedi/${token}`}
++            style={{
++              display: 'inline-flex',
++              alignItems: 'center',
++              gap: '6px',
++              minHeight: '44px',
++              padding: '0 14px',
++              marginTop: '12px',
++              borderRadius: '8px',
++              background: '#F3F4F6',
++              fontFamily: 'DM Sans, sans-serif',
++              fontSize: '13px',
++              fontWeight: 700,
++              color: '#374151',
++              textDecoration: 'none',
++            }}
++            aria-label="Richiedi un nuovo lavoro al laboratorio"
++          >
++            ➕ Richiedi nuovo lavoro
++          </a>
+         </div>
+ 
+         {/* Lavori aperti */}
+         <section style={{ marginBottom: '32px' }}>
+           <h3
+             style={{
+               fontFamily: 'DM Sans, sans-serif',
+               fontSize: '13px',
+               fontWeight: 700,
+               color: '#374151',
+diff --git a/src/components/features/portale/RichiestaClientForm.tsx b/src/components/features/portale/RichiestaClientForm.tsx
+index f0f22f0..a0564ba 100644
+--- a/src/components/features/portale/RichiestaClientForm.tsx
++++ b/src/components/features/portale/RichiestaClientForm.tsx
+@@ -222,20 +222,36 @@ export function RichiestaClientForm({
+                 fontFamily: 'DM Sans, sans-serif',
+                 fontSize: '14px',
+                 fontWeight: 700,
+                 color: 'var(--t1, #1C1916)',
+                 cursor: 'pointer',
+                 boxShadow: '-5px -5px 11px rgba(255,255,255,.72), 9px 12px 22px -4px rgba(148,128,118,.40)',
+               }}
+             >
+               ← Invia un&apos;altra richiesta
+             </button>
++            <a
++              href={`/portale/${token}`}
++              style={{
++                display: 'inline-block',
++                marginTop: '16px',
++                fontFamily: 'DM Sans, sans-serif',
++                fontSize: '14px',
++                fontWeight: 700,
++                color: 'var(--t1, #1C1916)',
++                textDecoration: 'underline',
++                minHeight: '44px',
++                lineHeight: '44px',
++              }}
++            >
++              ← Torna allo stato lavori
++            </a>
+           </motion.div>
+         </div>
+       </main>
+     )
+   }
+ 
+   // ─── Schermata form ────────────────────────────────────────────────────
+   return (
+     <main style={{ minHeight: '100vh', background: 'var(--bg, #DDD8D3)' }}>
+       {/* Header laboratorio */}
+diff --git a/tests/unit/richiesta-client-form-copy.test.tsx b/tests/unit/richiesta-client-form-copy.test.tsx
+index bc148ac..c5c6950 100644
+--- a/tests/unit/richiesta-client-form-copy.test.tsx
++++ b/tests/unit/richiesta-client-form-copy.test.tsx
+@@ -40,11 +40,20 @@ describe('RichiestaClientForm — copy schermata successo (A9)', () => {
+     await waitFor(() => expect(screen.getByText('Richiesta inviata!')).toBeTruthy())
+   }
+ 
+   it('mostra un solo paragrafo coerente senza contraddire "ricevuto" vs "conferma futura"', async () => {
+     await submitForm()
+ 
+     expect(screen.getByText((_, node) => node?.textContent === 'Il laboratorio Odontolab Rossi la esaminerà e ti contatterà per la conferma.')).toBeTruthy()
+     expect(screen.queryByText(/ha ricevuto la tua richiesta/)).toBeNull()
+     expect(screen.queryByText(/^Ti contatteranno per la conferma\.$/)).toBeNull()
+   })
++
++  // A7: dalla schermata di successo del form richiesta, il dentista deve poter
++  // tornare al portale di stato lavori senza dover recuperare il secondo URL.
++  it('mostra un link di ritorno al portale stato lavori (A7)', async () => {
++    await submitForm()
++
++    const link = screen.getByRole('link', { name: '← Torna allo stato lavori' })
++    expect(link.getAttribute('href')).toBe('/portale/tok-123')
++  })
+ })

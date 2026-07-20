@@ -1,0 +1,152 @@
+# Review package: c631c16..HEAD
+
+## Commits
+311bc35 fix(a11y): aria-invalid/aria-describedby su ClienteComboBox — A12
+
+## Files changed
+ .../features/clienti/ClienteComboBox.tsx           |  4 ++
+ src/components/features/lavori/form/TabDati.tsx    |  1 +
+ tests/unit/cliente-combobox-a11y.test.tsx          | 44 ++++++++++++++++++++++
+ 3 files changed, 49 insertions(+)
+
+## Diff
+diff --git a/src/components/features/clienti/ClienteComboBox.tsx b/src/components/features/clienti/ClienteComboBox.tsx
+index 7303291..3303804 100644
+--- a/src/components/features/clienti/ClienteComboBox.tsx
++++ b/src/components/features/clienti/ClienteComboBox.tsx
+@@ -25,34 +25,36 @@ interface ClienteOption {
+   cognome: string
+   studio_nome: string | null
+ }
+ 
+ export interface ClienteComboBoxProps {
+   value: string
+   onChange: (id: string, label: string) => void
+   placeholder?: string
+   id?: string
+   hasError?: boolean
++  errorId?: string
+ }
+ 
+ function buildLabel(option: ClienteOption): string {
+   return option.studio_nome
+     ? `${option.studio_nome} — ${option.nome} ${option.cognome}`
+     : `${option.nome} ${option.cognome}`
+ }
+ 
+ export function ClienteComboBox({
+   value,
+   onChange,
+   placeholder = 'Cerca dentista o studio...',
+   id,
+   hasError = false,
++  errorId,
+ }: ClienteComboBoxProps) {
+   const inputId = useId()
+   const listboxId = useId()
+   const containerRef = useRef<HTMLDivElement>(null)
+ 
+   const [query, setQuery] = useState('')
+   const [options, setOptions] = useState<ClienteOption[]>([])
+   const [open, setOpen] = useState(false)
+   const [loading, setLoading] = useState(false)
+   const [selectedLabel, setSelectedLabel] = useState('')
+@@ -179,20 +181,22 @@ export function ClienteComboBox({
+         type="text"
+         role="combobox"
+         aria-autocomplete="list"
+         aria-expanded={open}
+         aria-controls={open ? listboxId : undefined}
+         aria-activedescendant={
+           open && activeIndex >= 0
+             ? `${listboxId}-option-${activeIndex}`
+             : undefined
+         }
++        aria-invalid={hasError || undefined}
++        aria-describedby={hasError && errorId ? errorId : undefined}
+         autoComplete="off"
+         value={displayValue}
+         onChange={handleInputChange}
+         onKeyDown={handleKeyDown}
+         onFocus={() => {
+           if (query && options.length > 0) setOpen(true)
+         }}
+         placeholder={placeholder}
+         style={{
+           ...inputBase,
+diff --git a/src/components/features/lavori/form/TabDati.tsx b/src/components/features/lavori/form/TabDati.tsx
+index 0108da1..279f72d 100644
+--- a/src/components/features/lavori/form/TabDati.tsx
++++ b/src/components/features/lavori/form/TabDati.tsx
+@@ -109,20 +109,21 @@ export function TabDati({ data, onChange, clienteId, onClienteChange, fieldError
+           <label htmlFor="field-cliente_id" style={labelStyle}>
+             Dentista / Studio{' '}
+             <span aria-hidden="true" style={{ color: 'var(--primary, #D90012)' }}>*</span>
+           </label>
+           <ClienteComboBox
+             id="field-cliente_id"
+             value={clienteId ?? ''}
+             onChange={onClienteChange}
+             placeholder="Cerca dentista o studio..."
+             hasError={!!fieldErrors?.['cliente_id']}
++            errorId="error-cliente_id"
+           />
+           {fieldErrors?.['cliente_id'] && (
+             <span
+               id="error-cliente_id"
+               role="alert"
+               style={errorStyle}
+             >
+               {fieldErrors['cliente_id']}
+             </span>
+           )}
+diff --git a/tests/unit/cliente-combobox-a11y.test.tsx b/tests/unit/cliente-combobox-a11y.test.tsx
+new file mode 100644
+index 0000000..76fc139
+--- /dev/null
++++ b/tests/unit/cliente-combobox-a11y.test.tsx
+@@ -0,0 +1,44 @@
++import { describe, it, expect, afterEach, vi } from 'vitest'
++import { render, cleanup, screen } from '@testing-library/react'
++
++// A12 — ClienteComboBox non esponeva `aria-invalid`/`aria-describedby` quando
++// `hasError` era true: il colore del bordo era l'unica fonte di stato
++// (vietato dal DS). `getBrowserClient` è mockato per sicurezza (pattern
++// UserProfileSheet.routes.test.tsx) anche se questi test non digitano nulla
++// nel campo e quindi non attraversano mai `search()`.
++vi.mock('@/lib/supabase/browser-anon', () => ({
++  getBrowserClient: () => ({}),
++}))
++
++import { ClienteComboBox } from '../../src/components/features/clienti/ClienteComboBox'
++
++afterEach(cleanup)
++
++describe('ClienteComboBox — a11y (A12)', () => {
++  it('con hasError + errorId espone aria-invalid e aria-describedby', () => {
++    render(
++      <ClienteComboBox
++        value=""
++        onChange={() => {}}
++        hasError
++        errorId="error-cliente_id"
++      />
++    )
++    const input = screen.getByRole('combobox')
++    expect(input).toHaveAttribute('aria-invalid', 'true')
++    expect(input).toHaveAttribute('aria-describedby', 'error-cliente_id')
++  })
++
++  it('senza hasError non espone né aria-invalid né aria-describedby', () => {
++    render(
++      <ClienteComboBox
++        value=""
++        onChange={() => {}}
++        errorId="error-cliente_id"
++      />
++    )
++    const input = screen.getByRole('combobox')
++    expect(input).not.toHaveAttribute('aria-invalid')
++    expect(input).not.toHaveAttribute('aria-describedby')
++  })
++})
