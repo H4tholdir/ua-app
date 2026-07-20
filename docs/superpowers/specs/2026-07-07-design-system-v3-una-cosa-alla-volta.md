@@ -124,6 +124,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 2. **5 famiglie di stato, chiuse:** rosso=urgente · ambra=in corso · blu=nuovo/informazione · verde=fatto · **viola=da rifare/in prova** (rev. 3.1, decisione Francesco 12/07). Vietato un sesto colore di stato.
 3. WCAG AA (4.5:1) obbligatorio per ogni testo in entrambi i temi. `--gold`, `#E30613`, `#1B2D6B`, `--t2:#96918D`, `--t3:#B8B3AE` restano BANDITI come in v2.3.
 4. WhatsApp verde `#208650→#17663A` (corsa `#0E4A28`) è riservato ESCLUSIVAMENTE ai bottoni che aprono WhatsApp (rev. 3.1: era `#1F9E52→#2FBE68`, il bianco falliva AA).
+5. **Nota (emendamento 20/07/2026, ondata A):** con la home a due stanze (Pile ↔ Parete, annuncio §7.1) la regola 1 vale in ENTRAMBE le stanze — il TastoPiù resta l'unico rosso pieno, presente identico in ciascuna.
 
 ---
 
@@ -194,6 +195,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.3 `TastoSecondario` — H 58 · radius 18 · faccia `--card` + `--sh-press` · testo 17/700 `--ink`. Per azioni non primarie ("Apri il lavoro").
 ### 5.4 `PillFase` (FATTA ✓) — H 44 · pill · gradiente verde `linear-gradient(180deg, #1F8544, #166B39)` · corsa 3px `#14602C` (invariata) · testo 14.5/800 bianco. Suono `fatta` + notification-success (Android). **Nota (rev. 3.1):** stop PINNATI in hex, MAI `var(--green)` come faccia (in dark risolveva a #34C468: bianco 2.27 ✗); era `#269950→--green`.
 ### 5.5 `LinkQuieto` — solo testo 14.5/muted sottolineato (underline-offset 3). RISERVATO alle vie di fuga (L6): "Aspetta, annulla la consegna".
+- **Nota (emendamento 20/07/2026, ondata A):** riserva estesa anche alle azioni rare e quiete, non solo alle vie di fuga — es. «Esci» in fondo a ☰ Tutto il resto (§7.16), seguito da `DialogConferma` pre-logout (§5.17).
 ### 5.6 `TastoTondo` (back/menu) — Ø 50 · `--card`+`--sh-press` · glifo 19-21/800. Back sempre in alto a sinistra, menu (☰/⋯) in alto a destra. Nient'altro nell'header.
 
 ### 5.7 `Pila` (home)
@@ -206,11 +208,13 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.8 `CardLavoro` (nelle liste)
 - Card 24 · padding 20/22 · riga 1: `n.147` (heading 21/800, prefisso `LAVORO` caption faint) + `PillTempo` a destra · riga 2: dentista+PZ 17.5/700 · riga 3: tipo lavoro 15.5/600 muted · riga 4 (SOLO primo elemento della pila rossa): `TastoConsegnaInline` H 54.
 - **Massimo 4 righe.** Niente progress bar, niente icone stato aggiuntive: la pila di provenienza È lo stato.
+- **Nota (emendamento 20/07/2026, ondata A):** riga 1 ospita anche la targa-cassetta, in **co-identità** col blocco lavoro — «CASSETTA C12» 21/800 su `--bg-deep` con inset `--line`, gemella visiva del blocco lavoro. Se il lavoro non è assegnato a una cassetta, il blocco è **assente** (nessun placeholder). Troncamento ~6 caratteri + ellissi; screen reader legge «Cassetta C12». Catena dati da estendere: `getPileHome` → `LavoroPila` → `CardLavoro`.
 
 ### 5.9 `PillTempo` / `PillStato`
 - Pill · padding 7/13 · 15/800 (PillTempo) o 13.5/800/+0.1em (PillStato) · sfondo tint + testo colore famiglia.
 - Vocabolario stati (chiuso, §2.3): DA CONSEGNARE · OGGI·hh:mm · IN FORNO · IN RIFINITURA · APPENA ARRIVATO · PRONTA ✓ · CONSEGNATO ✓ · DA INCASSARE · INCASSATA ✓ · INVIATA ✓ · STA PER FINIRE · **IN PROVA** (famiglia viola) · **FERMO** · **DA IERI** · **−N GIORNI** (PillTempo negative, famiglia rossa) (rev. 3.1).
 - **Nota (rev. 3.1):** per i lavori in lavorazione la PillStato mostra la fase corrente del ciclo del lab (MAIUSCOLA), `STA PER FINIRE` sull'ultima fase (rev. 3.1 — P6 piano Ondata 1).
+- **Nota (emendamento 20/07/2026, ondata A):** nelle righe di «Persone» (§7.14) compare la pill «PRRC ✓» — famiglia verde di PillTempo — sul tecnico designato.
 
 ### 5.10 `RigaDato` (schede)
 - Dentro `CardInfo` (card 22, padding 4/20): righe `padding 9px 0`, separatore 1.5 `--line`.
@@ -251,6 +255,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.22 `CardUAHaFatto` — card 22, titolo caption "UÀ HA GIÀ FATTO PER TE", righe: check Ø 30 tint + nome 16.5/700 + sub 14/500. Compare dopo ogni automazione multipla (consegna) e in "Tutto il resto" come descrizione delle sezioni.
 ### 5.23 `NotaDentista` — barra verticale 3.5 `--blue` + testo 15/600 muted `"[citazione]" — Dr. X`. Max 2 righe, tap espande in sheet. È l'UNICO residuo visivo del mondo-chat dentro l'app.
 ### 5.24 `StrisciaStato` (home) — check Ø 26 tint verde + 14.5/muted con grassetti `--ink`. Se serve attenzione: icona famiglia e testo che INIZIA col da farsi ("Firma il DdC di n.144 →" tap = azione).
+- **Nota (emendamento 20/07/2026, ondata A):** terzo tono `ambra` — segnale trial, visibile SOLO a `titolare`/`admin_rete`: CTA «Attiva ›» sempre presente, diventa rossa a ≤3 giorni dalla scadenza. **Gerarchia di precedenza** fra i toni: allarmi operativi > trial > sereni. Scaduto/sospeso restano i redirect esistenti (invariato, rispetta B15).
 ### 5.25 Caricamento — **niente spinner.** Skeleton carta (blocchi `--bg-deep` che pulsano opacità 0.6→1, 1.2s) con la STESSA geometria del contenuto atteso. Oltre 3s: riga "Un attimo…". Ottimismo di default: le scritture mostrano subito il risultato e riconciliano dopo (con Avviso se fallisce, L6).
 ### 5.26 Vuoti — mai pagina bianca: glifo 64 + titolo 21/800 + UNA riga guida + eventuale azione ("Nessun lavoro sul banco. Goditi il caffè ☕" / "Il primo dentista si aggiunge dal tasto +").
 ### 5.27 Input testo/numero/data — usati SOLO dentro wizard e sheet: H 64 · card 18 · testo 19/700 · label sopra 13/800 MAIUSCOLA faint · focus: anello 2 `--blue`. Data: mai calendario a griglia come default — scelte rapide ("Oggi · Domani · Lun 14 · Scegli…"). Numero/importo: tastierino numerico nativo (`inputmode`).
@@ -263,6 +268,7 @@ Regola Apple: **l'elevazione è una superficie più chiara, MAI un'ombra.** Ness
 ### 5.33 `FotoStrip` (rev. 3.1) — strip thumbnail orizzontale: thumb 72×72 · radius 12 · cornice interna 1px inset · max 1 riga scrollabile. Fonte di verità visiva: `scheda-lavoro.html` classe `.foto-strip`/`.foto-thumb` (React in Ondata 3).
 ### 5.34 `MenuVoce` (rev. 3.1) — voce del menu ⋯ della scheda: min-height 56 · icona Ø38 radius 11 tint neutra (`--bg-deep`+`--muted`) · testo 17/700 `--ink` · separatore 1.5 `--line` fra le voci · chevron `--faint` · variante `.butta` (distruttiva): colore `--red`, icona `--red-tint`/`--red`, separata in alto da `--line` con margine extra. Fonte di verità visiva: `scheda-lavoro.html` classe `.menu-voce` (React in Ondata 3).
 ### 5.35 `NavDesk` (rev. 3.1) — nav desktop 240px `--bg-deep`: logo `UÀ.` 26/800 (punto rosso) · «+ Nuovo lavoro» TastoPrimario H 52 · voci H 48 radius 12 (16/600 muted; selezionata: bg `--bg` ink 700) · badge 24px pill (tint famiglia per le pile — rossa/ambra/viola/blu, neutro `--bg-deep`+inset line per le sezioni) · footer StrisciaStato. Fonte di verità visiva: `home.html` classe `.nav-desk`.
+- **Nota (emendamento 20/07/2026, ondata A):** footer arricchito con una riga identità (Avatar Ø32, §5.14 + nome + lab, non tappabile) e «Esci» inline (`LinkQuieto`, §5.5, `DialogConferma` pre-logout), sopra la StrisciaStato.
 
 > **Emendamento 16/07/2026 (D-4):** il tasto «+ Nuovo lavoro» è una variante fisica locale H52/testo 16 (stessa faccia/corsa/suono del TastoPrimario, taglia propria) — NON riusa TastoPrimario (H fissa 70/60; a 1280 coesisterebbe col CONSEGNA di SchedaAnteprima violando «UNO per schermata» §5.1). Decisione visiva su mockup docs/design/mockups/2026-07-16-navdesk-tasto-varianti.html, variante A.
 
@@ -293,11 +299,15 @@ lavoro → CONSEGNA → conferma
 - **La home è sacra:** quattro pile (rossa · ambra · viola · blu, §5.7 — rev. 3.1) + tasto + striscia stato + ☰. Nessun KPI, nessun banner, nessuna novità potrà MAI essere aggiunta alla home (vincolo assoluto — le "novità" vivono nella striscia di stato, una alla volta).
 - **Profondità massima: 3 livelli** (home → pila → scheda). Tutto il resto: ☰ → sezione → dettaglio.
 - Route: le route Next.js esistenti restano (nessuna migrazione URL); cambia il contenuto.
+- **Nota (emendamento 20/07/2026, ondata A):** il vincolo assoluto resta — nessun KPI/banner/novità DENTRO una stanza. L'unica eccezione ammessa è l'aggiunta di una seconda stanza intera (Parete, annuncio §7.1/§3.3 regola 5): non un elemento nella home esistente, ma un'altra home affiancata, raggiunta per swipe.
+- **Nota (emendamento 20/07/2026, ondata A) — morte di «Le pile»:** la vista bare `/lavori` (senza `pila`) non esiste più — `if (!pila) redirect('/dashboard')`. I chiamanti legacy (BottomNavPill tab Lavori, SchedaNavRail, SchedaLavoroV3, fatture) ripuntano a `/dashboard`. Il match `'/lavori'` in `route-migrate-v3.ts` resta (non si tocca).
+- **Nota (emendamento 20/07/2026, ondata A) — voce «Le cassette»:** con l'arrivo della Parete delle Cassette, ☰ Tutto il resto guadagna la voce «Le cassette» (route propria `/cassette`), raggiungibile anche da shortcut PWA e da NavDesk/rail desktop senza passare dalla home.
 
 ### 6.2 Navigazione
 - Back `‹` sempre in alto a sinistra; il gesto browser-back DEVE sempre funzionare (PWA history coerente).
 - **Niente tab bar.** La BottomNavPill v2 è eliminata: il pollice in basso appartiene al tasto + (home) o al TastoPrimario (schede).
 - Il menu ☰ apre "Tutto il resto" come pagina (non drawer).
+- **Nota (emendamento 20/07/2026, ondata A):** il back dalla pila aperta torna sempre a `/dashboard` — con «Le pile» eliminata (§6.1) la provenienza è unica (home), nessun contatore di provenienza da mantenere.
 
 ### 6.3 Errori, offline, permessi
 - Offline: striscia persistente ambra sotto la status bar "Sei senza rete — salvo tutto appena torna" + coda di scritture locale. MAI bloccare la lettura.
@@ -314,11 +324,13 @@ lavoro → CONSEGNA → conferma
 - Eyebrow data + `Buongiorno/Buonasera, [nome]` (large-title) + ☰ · StrisciaStato · 4 Pile · TastoPiù.
 - Il saluto segue l'ora (5-12 Buongiorno, 12-18 Buon pomeriggio, 18+ Buonasera). NIENT'ALTRO. Vincolo: la home non scrolla mai (calibrata su 844×390; se il device è più corto, si riducono i gap, non si aggiunge scroll).
 - **Scala device-corti (rev. 3.1, dal commento di `home.html`):** viewport height ≤ 700 → numero pila 52→**42** · padding pila 20/22→14/18 · gap pile 16→10 · gap blocchi 16→10 · padding pagina 24→14 · gap foot 8→6; larghezze, raggi, corpi ≥ heading e TastoPiù invariati.
+- **Nota (emendamento 20/07/2026, ondata A) — home a due stanze:** annuncio, implementazione con la Parete delle Cassette (feature a sé, percorso formale completo). La home guadagna una seconda stanza (Parete) raggiungibile per swipe orizzontale dalle Pile, con dots di posizione e peek del bordo; TastoPiù presente identico in entrambe le stanze (§3.3 regola 5). Preferenza utente «La tua home» (§7.16): solo Pile / solo Parete / due stanze — default due stanze.
 
 ### 7.2 Pila aperta (liste lavori) — frame 2
 - Titolo colore-famiglia + sub coi numeri utili ("2 lavori · il più vicino alle 16:00") · CardLavoro impilate, ordinate per urgenza · il PRIMO elemento della pila rossa porta il TastoConsegnaInline.
 - "Appena arrivati": la card ha CTA "Conferma" che apre il wizard di conferma (data consegna proposta da UÀ, L5).
-- **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile».
+- **Nota (rev. 3.1):** i 4 raggruppamenti della home (rossa · ambra · viola · blu) valgono anche nella pila aperta / vista «Le pile». **[superata dall'emendamento sotto — «Le pile» come vista bare non esiste più; il riferimento resta valido per la pila aperta.]**
+- **Nota (emendamento 20/07/2026, ondata A):** «Le pile» come vista bare è **eliminata** — `/lavori` senza `pila` fa redirect a `/dashboard` (§6.1). Il back della pila aperta torna a `/dashboard` (§6.2).
 
 ### 7.3 Wizard "Nuovo lavoro" (dal TastoPiù) — frames 3-4
 - Passi: **1 Dentista → 2 Tipo lavoro → 3 Paziente e dettagli (tutto opzionale) → Fatto.** Percorso minimo **3 tocchi**: tile dentista → tile tipo → TastoPrimario «Fotografa impronta e prescrizione» (rev. 3.2 — il piano Ondata 0 ne contava 4 col chip «Va bene ✓», rimosso su advisor UX, deviazione B7-2 ratificata 12/07). Ogni passo: back + ProgressDots (§5.32) + domanda (token `question` 35/800) + hint + griglia/`RigaCerca` + PillVoce.
@@ -343,8 +355,12 @@ lavoro → CONSEGNA → conferma
 ### 7.12 Listino — righe: lavorazione + prezzo 17/800 tabulare + modifica via sheet (tastierino). I tier restano funzioni esistenti presentate come "Listini per studio".
 ### 7.13 Documenti e qualità — hub a card-sezione (come "Tutto il resto"): Dichiarazioni di Conformità · Schede di fabbricazione · Sorveglianza post-vendita (PMS/PSUR — la distinzione per classe sarà definita da B20; questa spec impone SOLO la veste: EroeTuttoAPosto + righe-documento + scadenze come RigheAgenda) · Rischi per tipo dispositivo · Incidenti. Ogni documento: riga con PillStato (PRONTO ✓ / DA FIRMARE / SCADE …).
 ### 7.14 Persone — righe con avatar + ruolo in parole del banco (Titolare, Tecnico, Banco accettazione) + invito via sheet.
+- **Nota (emendamento 20/07/2026, ondata A):** pagina migrata INTERA a v3 come «Persone» (era `/tecnici`) — card «I cedolini · [mese] [anno] · Scarica (CSV)» in testa (RBAC titolare/admin_rete, `TastoSecondario` H58; mese vuoto → avviso) · righe con `Avatar` (§5.14) e pill «PRRC ✓» (§5.9) · scheda persona = `Sheet` v3 (nessuna route nuova) · UI invito rifatta (`/api/tecnici/invite` non si tocca). Chrome v3 di pagina-lista nato qui: promozione a componente `ds` condiviso calendarizzata in **ondata B** (§14).
 ### 7.15 La mia rete — solo per `admin_rete`: lista lab + inviti (veste standard, nessun componente nuovo).
 ### 7.16 Il mio laboratorio — righe-sezione: Profilo e dati fiscali · PEC · Abbonamento (card piano + PillStato ATTIVO ✓; MAI banner contraddittori — regola B15) · **Aspetto** (tema Chiaro/Scuro/Automatico) · **Suoni e vibrazione** (interruttore + anteprima suoni) · Assistenza.
+- **Nota (emendamento 20/07/2026, ondata A) — «I tuoi dati»:** riga «I tuoi dati — Scarica tutti i lavori (CSV)». Nasce con **ondata F1**; interim: API via URL. MAI `getFullYear()` client.
+- **Nota (emendamento 20/07/2026, ondata A) — «La tua home»:** annuncio, arriva con la Parete delle Cassette. Preferenza utente: solo Pile / solo Parete / due stanze (default due stanze, §7.1).
+- **Nota (emendamento 20/07/2026, ondata A) — «Esci»:** voce `LinkQuieto` (§5.5) in fondo a ☰ Tutto il resto, con identità (nome + lab) come riga non-tappabile sopra e `DialogConferma` (§5.17) pre-logout.
 ### 7.17 Onboarding — stesso wizard pattern del nuovo lavoro: una domanda a schermo (nome lab → P.IVA → logo → primo dentista → fatto). Alla fine: home vera con StrisciaStato "Benvenuto! Crea il tuo primo lavoro col tasto rosso".
 ### 7.18 Login/auth — pagina carta minima: logo UÀ. + email/passkey. Passkey (Touch ID) proposta come "Entra col dito" (TastoPrimario); magic link come secondario. Stessi token (le esclusioni v2.3 su `(auth)` decadono: TUTTO migra a v3 tranne `/admin`, che resta fuori scope).
 ### 7.19 **Portale Dentista** (`/portale/[token]`) — frame 7 — L'ECCEZIONE CHAT
@@ -484,6 +500,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 | 6 | **Onboarding+auth** | §7.17-7.18 | idem |
 | 7 | **Claude Design sync** | `/design-sync` della libreria `ds/` compilata → claude.ai/design (decisione: "prima i componenti, poi sync") | progetto Claude Design attivo |
 - Ogni sotto-progetto: brainstorm→spec figlia→piano→worktree→TDD→review→QA→deploy (workflow standard BP-2). Durante la migrazione, v2.3 e v3 convivono per pagina (flag per route, mai per componente).
+- **Nota (emendamento 20/07/2026, ondata A):** il chrome v3 di pagina-lista, nato in «Persone» (§7.14, ondata A), è promosso a componente `ds` condiviso in **ondata B** — nuova sezione §5.x da proporre in quella sede, seguendo il processo §13.1 punto 3.
 
 ---
 
