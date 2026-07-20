@@ -20,7 +20,15 @@
 // (stesso metodo, stessa estrazione errore). Trigger `LinkQuieto` «Disattiva»
 // (via di fuga verso una conferma, stesso schema di «Esci» in
 // `TuttoIlResto.tsx` — LinkQuieto apre, DialogConferma decide) →
-// `DialogConferma` → successo: `router.refresh()` e chiude lo sheet.
+// `DialogConferma` → successo: chiude il dialog, `router.refresh()`, chiude
+// lo sheet. Fallimento (fix review, finding IMPORTANTE): il dialog resta
+// APERTO — mai chiuso su errore — e l'errore va nella sua prop `nota`
+// (`DialogConferma.tsx:51,103-106`), perché il dialog è un portal montato
+// dopo lo sheet e lo copre allo stesso zIndex: un `role="alert"` nello sheet
+// da solo resterebbe invisibile finché il dialog è aperto. Il paragrafo
+// `role="alert"` nello sheet resta come backstop, ma SOLO a dialog chiuso
+// (`!dialogAperto`) — altrimenti duplicherebbe lo stesso messaggio dietro la
+// card.
 //
 // Reset dello stato chiavato su `persona.id` (pattern "adjusting state while
 // rendering", NON `useEffect` — stesso schema di `ConfermaCassettaSheet.tsx`,
@@ -200,7 +208,12 @@ export function SchedaPersonaSheet(props: {
               </>
             )}
 
-            {erroreDisattiva && (
+            {/* Backstop SOLO a dialog chiuso: mentre `dialogAperto` è true
+                l'errore vive dentro `DialogConferma` (prop `nota`, vedi
+                sotto) — la card del dialog è un portal successivo che copre
+                questo `role="alert"` allo stesso zIndex, quindi qui
+                resterebbe invisibile finché il dialog resta aperto. */}
+            {erroreDisattiva && !dialogAperto && (
               <p role="alert" style={erroreStile}>
                 {erroreDisattiva}
               </p>
@@ -208,7 +221,19 @@ export function SchedaPersonaSheet(props: {
 
             {puoGestire && (
               <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <LinkQuieto onClick={() => setDialogAperto(true)}>Disattiva</LinkQuieto>
+                <LinkQuieto
+                  onClick={() => {
+                    // Azzera l'errore di un tentativo precedente PRIMA di
+                    // riaprire (fix review): senza questo, riaprire il
+                    // dialog dopo un Annulla post-fallimento mostrerebbe
+                    // subito la `nota` stantia, prima ancora che l'utente
+                    // riclicchi «Disattiva» dentro al dialog.
+                    setErroreDisattiva(null)
+                    setDialogAperto(true)
+                  }}
+                >
+                  Disattiva
+                </LinkQuieto>
               </div>
             )}
           </>
@@ -247,6 +272,7 @@ export function SchedaPersonaSheet(props: {
           etichettaSicura="Annulla"
           onConferma={disattiva}
           onAnnulla={() => setDialogAperto(false)}
+          nota={erroreDisattiva ?? undefined}
         />
       )}
     </>
