@@ -26,6 +26,7 @@ import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { SchedaAnteprima } from './SchedaAnteprima'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
+import { ConfermaCassettaSheet } from '@/components/features/pile/ConfermaCassettaSheet'
 import { raggio } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` come i fratelli client (review Task 9): il type-only
 // da `pile-home.ts` (server-only) è innocuo a runtime ma incoerente col confine
@@ -44,17 +45,21 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null }) {
-  const { pila, lista, sub, lavoroSelezionato } = props
+export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null; cassetteSuggerite?: string[] }) {
+  const { pila, lista, sub, lavoroSelezionato, cassetteSuggerite } = props
   const router = useRouter()
   // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
   // stesso pattern di `PilaAperta`: nessun `onConsegnato`, refresh SOLO alla
   // chiusura del frame.
   const [consegnaId, setConsegnaId] = useState<string | null>(null)
+  // Task 5 (A14) — sheet «In che cassetta lo metti?» sul Conferma della pila
+  // blu, stesso schema di `consegnaId`.
+  const [confermaId, setConfermaId] = useState<string | null>(null)
 
   const idPrimoConsegnabile = pila === 'rossa' ? lista.find((l) => l.consegnabile)?.id : undefined
   const schedaLavoro = lavoroSelezionato ?? lista[0] ?? null
   const lavoroInConsegna = consegnaId ? lista.find((l) => l.id === consegnaId) ?? null : null
+  const lavoroInConferma = confermaId ? lista.find((l) => l.id === confermaId) ?? null : null
   const vuoto = VUOTO[pila]
 
   return (
@@ -87,7 +92,7 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
                   selezionato={selezionato}
                   onApri={() => router.push(`/lavori?pila=${pila}&lavoro=${l.id}`)}
                   {...(pila === 'blu'
-                    ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }
+                    ? { conferma: { onClick: () => setConfermaId(l.id) } }
                     : { onConsegna: l.id === idPrimoConsegnabile ? () => setConsegnaId(l.id) : undefined })}
                 />
               </div>
@@ -114,6 +119,18 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
           onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
         />
       )}
+
+      {/* Stessa nota di sicurezza di `PilaAperta.tsx`: `lavoro` è un oggetto
+          letterale fresco a ogni render, ma il reset di `ConfermaCassettaSheet`
+          scatta solo su cambio reference — questo host non ha nulla che lo
+          rirenda mentre lo sheet è aperto (scrim blocca l'interazione sotto). */}
+      <ConfermaCassettaSheet
+        aperto={confermaId !== null}
+        onChiudi={() => setConfermaId(null)}
+        lavoro={lavoroInConferma ? { id: lavoroInConferma.id, numero: lavoroInConferma.numero, tipoLavoro: lavoroInConferma.tipoLavoro, dentista: lavoroInConferma.dentista } : null}
+        suggerite={cassetteSuggerite ?? []}
+        onConfermato={(id) => { setConfermaId(null); router.push(`/lavori/${id}`) }}
+      />
     </div>
   )
 }

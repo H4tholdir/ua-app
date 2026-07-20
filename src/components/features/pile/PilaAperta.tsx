@@ -26,6 +26,7 @@ import { CampoTesto } from '@/components/ds/Campo'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { filtraLavoriPila } from '@/components/features/pile/filtra-lavori-pila'
+import { ConfermaCassettaSheet } from '@/components/features/pile/ConfermaCassettaSheet'
 import type { LavoroPila } from '@/lib/dashboard/pile-home'
 import type { Pila } from '@/lib/lavori/urgenza'
 
@@ -45,8 +46,8 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string }) {
-  const { pila, lista, sub } = props
+export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string; cassetteSuggerite?: string[] }) {
+  const { pila, lista, sub, cassetteSuggerite } = props
   const router = useRouter()
   const [cerca, setCerca] = useState<string | null>(null) // null = riga chiusa
   // Task 14 — il flusso di consegna è POSSEDUTO da questo host (riserva arch
@@ -54,6 +55,9 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
   // /lavori/[id]/consegna. Nessun `onConsegnato`: nelle pile il refresh vive
   // SOLO alla chiusura del frame, mai a metà countdown (smonterebbe card+frame).
   const [consegnaId, setConsegnaId] = useState<string | null>(null)
+  // Task 5 (A14) — sheet «In che cassetta lo metti?» sul Conferma della pila
+  // blu: stesso schema di `consegnaId`, un id soltanto, montato in coda.
+  const [confermaId, setConfermaId] = useState<string | null>(null)
 
   const filtrata = useMemo(() => {
     return cerca ? filtraLavoriPila(lista, cerca) : lista
@@ -61,6 +65,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
 
   const idPrimoConsegnabile = pila === 'rossa' ? lista.find((l) => l.consegnabile)?.id : undefined
   const lavoroInConsegna = consegnaId ? lista.find((l) => l.id === consegnaId) ?? null : null
+  const lavoroInConferma = confermaId ? lista.find((l) => l.id === confermaId) ?? null : null
   const vuoto = VUOTO[pila]
 
   return (
@@ -101,7 +106,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
               // card P4; rossa → consegna inline solo sul primo consegnabile P3),
               // e lo spread condizionale lo rende evidente anche a tsc.
               {...(pila === 'blu'
-                ? { conferma: { onClick: () => router.push(`/lavori/${l.id}`) } }
+                ? { conferma: { onClick: () => setConfermaId(l.id) } }
                 : { onConsegna: l.id === idPrimoConsegnabile ? () => setConsegnaId(l.id) : undefined })}
             />
           ))}
@@ -120,6 +125,19 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
           onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
         />
       )}
+
+      {/* `lavoro` è un oggetto letterale fresco a ogni render di questo host —
+          innocuo: la selezione dentro `ConfermaCassettaSheet` resetta solo
+          quando la REFERENCE di `lavoro` cambia, e finché lo sheet è aperto
+          questo host non ha nulla che lo rirenda (nessun polling/subscription
+          qui, lo scrim blocca l'interazione con la lista sotto). */}
+      <ConfermaCassettaSheet
+        aperto={confermaId !== null}
+        onChiudi={() => setConfermaId(null)}
+        lavoro={lavoroInConferma ? { id: lavoroInConferma.id, numero: lavoroInConferma.numero, tipoLavoro: lavoroInConferma.tipoLavoro, dentista: lavoroInConferma.dentista } : null}
+        suggerite={cassetteSuggerite ?? []}
+        onConfermato={(id) => { setConfermaId(null); router.push(`/lavori/${id}`) }}
+      />
     </section>
   )
 }

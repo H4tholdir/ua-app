@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome, subMorph } from '@/lib/dashboard/pile-home'
+import { getCassetteSuggerite } from '@/lib/lavori/cassette'
 import { PilaAperta } from '@/components/features/pile/PilaAperta'
 import { LePile } from '@/components/features/pile/LePile'
 import { PilaSplit } from '@/components/features/pile/PilaSplit'
@@ -34,17 +35,21 @@ export default async function LavoriPage({ searchParams }: { searchParams: Promi
   const conteggi = { rossa: pile.liste.rossa.length, ambra: pile.liste.ambra.length, viola: pile.liste.viola.length, blu: pile.liste.blu.length }
   const lista = pila ? pile.liste[pila] : []
   const lavoroSelezionato = pila ? ((lavoroParam ? lista.find((l) => l.id === lavoroParam) : undefined) ?? lista[0] ?? null) : null
+  // A14 (Task 5) — le chip dello sheet conferma-cassetta servono SOLO alla
+  // pila blu (dove il Conferma le apre): fetch condizionale, mai sprecata
+  // sulle altre pile o su «Le pile».
+  const cassetteSuggerite = pila === 'blu' ? await getCassetteSuggerite(svc, labId) : []
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
       <div className="ua-lavori-mobile">
         {pila
-          ? <PilaAperta pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} />
+          ? <PilaAperta pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} cassetteSuggerite={cassetteSuggerite} />
           : <LePile conteggi={conteggi} />}
       </div>
       {pila && (
-        <PilaSplit pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} lavoroSelezionato={lavoroSelezionato} />
+        <PilaSplit pila={pila} lista={lista} sub={subMorph(pila, pile, new Date())} lavoroSelezionato={lavoroSelezionato} cassetteSuggerite={cassetteSuggerite} />
       )}
     </div>
   )
