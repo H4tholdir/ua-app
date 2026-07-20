@@ -5688,6 +5688,7 @@ export type Database = {
         }
         Returns: Json
       }
+      outbox_prepara_draft: { Args: { p_entry_id: string }; Returns: Json }
       override_stato_sdi: {
         Args: {
           p_fattura_id: string
