@@ -12,24 +12,33 @@ interface Props {
 export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
-    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
-    return Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000))
-  })
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [annullato, setAnnullato] = useState(false)
 
   useEffect(() => {
-    if (secondsLeft <= 0) return
+    // Calcolo derivato da Date.now() (orologio esterno): deve girare SOLO
+    // dopo il mount, mai nell'initializer di useState, altrimenti il
+    // markup SSR e quello di hydration client possono divergere (A17,
+    // React #418) — non evitabile spostando la logica fuori dall'effetto
+    // (violerebbe la regola react-hooks/set-state-in-effect).
+    const elapsed = Date.now() - new Date(dataConsegnaEffettiva).getTime()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSecondsLeft(Math.max(0, Math.floor((FINESTRA_ANNULLO_MS - elapsed) / 1000)))
+  }, [dataConsegnaEffettiva])
+
+  useEffect(() => {
+    if (secondsLeft === null || secondsLeft <= 0) return
     const interval = setInterval(() => {
       setSecondsLeft((s) => {
-        if (s <= 1) { clearInterval(interval); return 0 }
+        if (s === null || s <= 1) { clearInterval(interval); return 0 }
         return s - 1
       })
     }, 1000)
     return () => clearInterval(interval)
   }, [secondsLeft])
 
+  if (secondsLeft === null) return null
   if (secondsLeft <= 0 || annullato) return null
 
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
