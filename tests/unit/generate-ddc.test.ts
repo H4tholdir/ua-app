@@ -231,3 +231,15 @@ describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () =>
     expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
   })
 })
+
+describe('numero DDC a capodanno (fix date fiscali 20/07)', () => {
+  afterEach(() => { vi.useRealTimers() })
+  it('23:30 UTC del 31/12 → DDC-2027-0001 e serie ddc con anno 2027 coerente', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-12-31T23:30:00Z'))
+    mockTables(LAB_FIXTURE)
+    const result = await generateDdC(LAVORO_FIXTURE)
+    expect(result.numero).toBe('DDC-2027-0001')
+    expect(mockGeneraProgressivo).toHaveBeenCalledWith(expect.anything(), 'lab-test-001', 'ddc', 2027)
+  })
+})

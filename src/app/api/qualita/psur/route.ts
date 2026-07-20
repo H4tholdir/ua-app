@@ -5,6 +5,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { rilevaGruppi } from '@/lib/utils/sorveglianza-postvendita'
 import { GRUPPO_TO_CLASSI_RISCHIO, type GruppoClassePsur } from '@/types/domain'
+import { annoRoma } from '@/lib/utils/data-roma'
 
 // GET /api/qualita/psur
 // Lista PSUR/PMS del laboratorio + gruppi-classe rilevati dai lavori esistenti
@@ -95,7 +96,7 @@ export async function POST(req: Request) {
       ? annoRaw
       : typeof annoRaw === 'string' && annoRaw.trim() !== '' && Number.isFinite(Number(annoRaw))
         ? Number(annoRaw)
-        : new Date().getFullYear() - 1
+        : annoRoma() - 1
 
   const { data: existing } = await svc
     .from('psur')
