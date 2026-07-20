@@ -27,6 +27,7 @@ import { Avatar } from '@/components/ds/Avatar'
 import { PillTempo } from '@/components/ds/Pill'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { raggio } from '@/design-system/v3/tokens'
+import { SchedaPersonaSheet } from './SchedaPersonaSheet'
 
 export type TecnicoRow = {
   id: string
@@ -43,11 +44,14 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
   const { tecnici, ruolo, meseLabel } = props
   const router = useRouter()
 
-  // Sheet persona arriva al Task 12: qui lo stato esiste già (tap riga →
-  // `personaAperta`) ma non ha ancora un consumatore visivo — `data-aperta`
-  // sulla riga lo rende un utilizzo reale (non morto), non un placeholder di
-  // Sheet vuoto (esplicitamente escluso dal brief).
+  // Sheet persona (Task 12): il tap riga apre `SchedaPersonaSheet`, montato
+  // sempre (`aperto`/`persona` ne governano la visibilità) — stesso schema
+  // di `ConfermaCassettaSheet`/`PilaAperta`. `personaSelezionata` è l'oggetto
+  // pieno risolto per id: `SchedaPersonaSheet` chiave il proprio reset su
+  // `persona.id`, NON sulla reference (finding di review di quest'ondata) —
+  // per questo l'host può ricostruirlo ad ogni render senza perdere stato.
   const [personaAperta, setPersonaAperta] = useState<string | null>(null)
+  const personaSelezionata = tecnici.find((t) => t.id === personaAperta) ?? null
 
   // Card cedolini SOLO titolare/admin_rete, e solo se il lab ha tecnici
   // (brief §Card cedolini): nessun CSV da scaricare per un lab vuoto.
@@ -95,7 +99,6 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
                 key={tecnico.id}
                 type="button"
                 aria-label={`Apri ${nomeCompleto}`}
-                data-aperta={personaAperta === tecnico.id}
                 onClick={() => setPersonaAperta(tecnico.id)}
                 className="ds-card"
                 style={{
@@ -138,6 +141,13 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
           })
         )}
       </div>
+
+      <SchedaPersonaSheet
+        aperto={!!personaAperta}
+        persona={personaSelezionata}
+        ruolo={ruolo}
+        onChiudi={() => setPersonaAperta(null)}
+      />
     </div>
   )
 }
