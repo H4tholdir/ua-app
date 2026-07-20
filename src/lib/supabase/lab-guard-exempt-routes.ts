@@ -33,4 +33,5 @@ export const LAB_GUARD_EXEMPT_ROUTES = [
   'app/api/internal/pec-verify/route.ts',
   // Export GDPR/portabilità: canale in-band ratificato, resta aperto
   'app/api/fatture/export/route.ts',
+  'app/api/lavori/export/route.ts',
 ] as const

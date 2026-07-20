@@ -6,18 +6,7 @@ import {
   CedolinoTecnicoTemplate,
   type LavorazioneCedolino,
 } from '@/components/features/pdf/CedolinoTecnicoTemplate'
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function meseBoundaries(mese: string): { from: string; to: string } {
-  const [year, month] = mese.split('-').map(Number)
-  const from = new Date(Date.UTC(year, month - 1, 1))
-  const to   = new Date(Date.UTC(year, month, 1))
-  return {
-    from: from.toISOString().split('T')[0],
-    to:   to.toISOString().split('T')[0],
-  }
-}
+import { meseBoundaries } from '@/lib/utils/mese'
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 

@@ -37,7 +37,8 @@ beforeEach(() => {
         is: () => builder,
         gte: () => builder,
         lte: () => builder,
-        order: async () => ({ data: fatture, error: null }),
+        order: () => builder,
+        range: async () => ({ data: fatture, error: null }),
       }
       return builder
     }
@@ -98,5 +99,18 @@ describe('GET /api/fatture/export', () => {
     expect(righe).toHaveLength(3)
     expect(righe[1]).toContain('244,00')
     expect(righe[2]).toContain('-244,00')
+  })
+
+  it('anti CSV-injection: denominazione che inizia con = viene neutralizzata', async () => {
+    fatture = [{
+      numero: '2026-0014', data: '2026-07-01', cliente_denominazione: '=CMD()|studio',
+      cliente_cf: null, cliente_piva: null, imponibile: 10, iva_importo: 0,
+      totale: 10, bollo: 0, stato_sdi: 'accettata', pagata: true, inviata_via: 'pec',
+      tipo_documento: 'TD01',
+    }]
+    const res = await GET(req())
+    const csv = await res.text()
+    expect(csv).toContain(`"'=CMD()|studio"`)
+    expect(csv.split('\n')[1]).not.toMatch(/^=|;=/)
   })
 })
