@@ -32,9 +32,9 @@ I numeri formattati da `csvNumIT` non passano da `csvCell` (mai iniziano con car
 **N13:** route ESENTE (aggiunta a `LAB_GUARD_EXEMPT_ROUTES`) — export = portabilità dati, aperto a `sospeso`/`scaduto`; self-check esplicito `context.lab?.stato === 'blacklist'` → 403 (pattern identico a `fatture/export/route.ts:21-23`). Nessuna restrizione di ruolo (come `fatture/export` e `GET /api/lavori`).
 **Parametri:** `year` (`/^\d{4}$/`, default `String(annoRoma())`; valore malformato → default).
 **Query:** `lavori` con `laboratorio_id = labId`, `deleted_at IS NULL`, `created_at >= {year}-01-01` e `< {year+1}-01-01`, join `clienti` e `tecnici` (come `GET /api/lavori`), ordine `created_at ASC`. Confine anno su `created_at` timestamptz = mezzanotte UTC: scarto max 1-2h a capodanno, accettato (serie lavoro già UTC, non fiscale — backlog).
-**Paginazione:** il client Supabase tronca a **1000 righe in silenzio**; la route legge a pagine da 1000 con `.range(offset, offset+999)` in loop finché la pagina torna corta. Nessun cap silenzioso.
+**Paginazione:** PostgREST (`db-max-rows`, default Supabase = 1000) tronca ogni risposta a **1000 righe in silenzio**; la route legge a pagine da 1000 con `.range(offset, offset+999)` in loop finché la pagina torna corta, tramite helper condiviso `fetchAllPages` (vedi §4-bis). **Ordinamento stabile obbligatorio:** `created_at ASC` + tiebreaker `.order('id')` (senza tiebreaker le pagine possono duplicare/saltare righe).
 **Colonne CSV:** `Numero Lavoro · Data Creazione · Stato · Priorità · Tipo Dispositivo · Descrizione · Cliente · Paziente · Tecnico · Consegna Prevista · Consegna Effettiva · Conformato · Fatturato · Spedizione · Tracking`.
-- Cliente = `studio_nome` se presente, altrimenti `cognome nome`; Tecnico = `cognome nome`.
+- Cliente = `studio_nome` se presente, altrimenti `cognome nome`; Tecnico = `cognome nome`; «Fatturato» = campo DB `incluso_in_fattura` (boolean).
 - Date come `YYYY-MM-DD` (per `created_at`: `split('T')[0]`); booleani `Sì`/`No`.
 - TUTTE le celle testuali passano da `csvCell` (descrizione, nomi, tracking… sono input utente).
 **Risposta:** `text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="lavori-{year}.csv"`, `Cache-Control: no-store`. Errore query → 500 `{error}`.
@@ -45,16 +45,20 @@ I numeri formattati da `csvNumIT` non passano da `csvCell` (mai iniziano con car
 **N13:** GUARDED — `assertLabOperativo(context, 'GET')` PRIMA di ogni query (pattern `[id]/cedolino`).
 **RBAC:** solo `titolare` e `admin_rete` → altrimenti 403 (il batch espone i compensi di TUTTI i tecnici; il singolo tecnico usa la route singola).
 **Parametri:** `mese` (`/^\d{4}-\d{2}$/`, default mese corrente **Europe/Rome** = `oggiRomaISO().slice(0, 7)`; malformato → default). NB: la route singola usa ancora il default UTC (backlog residui UTC) — la nuova nasce corretta.
-**Query:** stessa semantica di `generateCedolinoTecnico` ma senza filtro tecnico: `lavori_lavorazioni` con `laboratorio_id = labId`, join `lavori!inner` (`stato = 'consegnato'`, `laboratorio_id = labId`, `data_consegna_effettiva` in `[primo giorno mese, primo giorno mese successivo)`, `tecnico_id NOT NULL`), join `listino!inner` (`compenso_tecnico NOT NULL`), join `tecnici` per nome/cognome (via `lavori.tecnico_id`). Confini mese calcolati come `meseBoundaries` esistente (date-only, nessun problema TZ). Paginazione a pagine da 1000 come sopra.
+**Query:** stessa semantica di `generateCedolinoTecnico` ma senza filtro tecnico: `lavori_lavorazioni` con `laboratorio_id = labId`, join `lavori!inner` (`stato = 'consegnato'`, `laboratorio_id = labId`, `data_consegna_effettiva` in `[primo giorno mese, primo giorno mese successivo)`, filtro `.not('lavori.tecnico_id','is',null)`), join `listino!inner` (`compenso_tecnico NOT NULL`); nome/cognome tecnico via embed annidato `lavori!inner(tecnico_id, tecnici(nome, cognome), …)` (sintassi PostgREST già usata nel repo). Confini mese: `meseBoundaries` viene **estratta** da `generate-cedolino-tecnico.ts` in `src/lib/utils/mese.ts` (esportata) e riusata da entrambi i chiamanti — il test esistente `generate-cedolino-tecnico.test.ts` deve restare verde. Paginazione a pagine da 1000 con `fetchAllPages` + ordinamento stabile (tiebreaker `id`).
 **Aggregazione:** mappa per chiave `(tecnico_id, nome voce listino)` — somma quantità, totale = quantità × compenso unitario. Righe ordinate per cognome/nome tecnico, poi voce. Tecnici senza lavorazioni nel mese: assenti (nessuna riga a zero).
 **Colonne CSV:** `Tecnico · Voce Listino · Quantità · Compenso Unitario (€) · Compenso Totale (€)`; quantità intera senza decimali; ultima colonna vuota di riga totale NON prevista (i totali per tecnico li fa Excel — dettaglio verificabile, decisione «dettaglio per voce»).
 **Risposta:** `attachment; filename="cedolini-{mese}.csv"`, headers come sopra. Errore query → 500 `{error}`.
 
 ## 4. Retrofit `fatture/export`
 
-- Sostituzione dell'escaping locale (`escapeField`) e della formattazione numeri con `csvCell`/`csvNumIT`/`csvRiga` — comportamento invariato TRANNE: celle che iniziano con carattere formula ora prefissate `'` (migliorativo, riserva advisor).
-- Aggiunta paginazione a pagine da 1000 (stesso helper di pattern usato dalle nuove route — se emerge naturale, piccola utility condivisa `fetchAllPages` in `src/lib/utils/`; altrimenti loop inline identico nelle 3 route, scelta al piano).
-- I 3 test esistenti (`fatture-export-route.test.ts`) devono restare verdi senza modifiche ai loro assert (nessuna delle celle nei fixture inizia con caratteri formula).
+- Sostituzione dell'escaping locale (`escapeField`) e della formattazione numeri con `csvCell`/`csvNumIT`/`csvRiga`. Differenze di output: (1) celle che iniziano con carattere formula ora prefissate `'` (migliorativo, riserva advisor); (2) il quoting diventa **condizionale** — `cliente_denominazione` senza caratteri speciali perde i doppi apici incondizionati (`"Studio Rossi"` → `Studio Rossi`): cambiamento byte-level innocuo per Excel/parser CSV, dichiarato qui per onestà del contratto.
+- Aggiunta paginazione con `fetchAllPages` + tiebreaker `id` sull'ordinamento.
+- I 3 test esistenti (`fatture-export-route.test.ts`) devono restare verdi senza modifiche ai loro assert (usano `toContain` su valori senza apici e count righe).
+
+## 4-bis. Helper paginazione — `src/lib/utils/paginate.ts`
+
+`fetchAllPages<T>(getPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>, pageSize = 1000): Promise<{ data: T[]; error: string | null }>` — invoca `getPage(offset, offset+pageSize-1)` in loop finché la pagina torna corta; al primo errore si ferma e lo propaga (fail-closed, niente CSV parziali silenziosi). Ogni route costruisce la propria query e la passa come closure con `.range(from, to)`.
 
 ## 5. Test (TDD — `tests/unit/`)
 
