@@ -1,0 +1,9 @@
+[
+  {
+    "surface": "lavori-redirect",
+    "viewport": "desktop",
+    "theme": "light",
+    "type": "warning",
+    "text": "WebSocket connection to 'wss://iagibumwjstnveqpjbwq.supabase.co/realtime/v1/websocket?apikey=sb_publishable_A7g9Fwz1AJleJsomnp8cRQ_nI_KDLO2&vsn=2.0.0' failed: WebSocket is closed before the connection is established."
+  }
+]

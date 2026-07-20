@@ -1,0 +1,8 @@
+[
+  "/lavori nudo -> redirect a: http://localhost:3017/dashboard (status finale: 200)",
+  "Sheet \"In che cassetta lo metti?\" aperto e chiuso con Esc senza confermare (screenshot: lavori-pila-blu-sheet-cassetta-mobile-light.png)",
+  "Scheda lavoro con denti_coinvolti trovata: id=7d5343a8-3364-4dd2-992f-c0510e8ea026, denti=[\"21\"]",
+  "DialogConferma \"Esci\" testato: aperto, screenshot, poi chiuso con \"Resta\" senza eseguire logout.",
+  "/tecnici: non è stato possibile individuare/aprire una riga persona per lo sheet dettaglio.",
+  "Sheet invito (\"+ Invita una persona\") testato e chiuso con Esc, NESSUN invito reale inviato."
+]
