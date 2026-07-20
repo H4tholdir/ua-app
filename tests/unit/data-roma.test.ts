@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { oggiRomaISO, adessoRoma, aggiungiGiorniISO, GIORNI, MESI, saluto } from '@/lib/utils/data-roma'
+import { oggiRomaISO, adessoRoma, aggiungiGiorniISO, annoRoma, GIORNI, MESI, saluto } from '@/lib/utils/data-roma'
+
+describe('annoRoma — anno del giorno civile di Roma (date fiscali)', () => {
+  it('capodanno: 23:30 UTC del 31/12 è GIÀ il 2027 a Roma (CET +1)', () => {
+    expect(annoRoma(new Date('2026-12-31T23:30:00Z'))).toBe(2027)
+  })
+  it('22:30 UTC del 31/12 è ancora 2026 a Roma (23:30 CET)', () => {
+    expect(annoRoma(new Date('2026-12-31T22:30:00Z'))).toBe(2026)
+  })
+  it("a metà anno coincide con l'anno UTC", () => {
+    expect(annoRoma(new Date('2026-07-20T12:00:00Z'))).toBe(2026)
+  })
+})
 
 describe('oggiRomaISO — il giorno civile a Roma, non in UTC (O1b)', () => {
   it('23:59 UTC in estate (CEST, UTC+2) è già il giorno DOPO a Roma', () => {
