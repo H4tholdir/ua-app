@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { AnnullaConsegnaBanner } from '../../src/components/features/lavori/AnnullaConsegnaBanner'
 
@@ -44,5 +44,39 @@ describe('AnnullaConsegnaBanner — countdown hydration-safe (A17-res)', () => {
       vi.advanceTimersByTime(1000)
     })
     expect(screen.getByText(/08:59/)).toBeInTheDocument()
+  })
+
+  describe('rami scadenza/annullato (Bundle T)', () => {
+    it('finestra già scaduta al mount → il banner non compare', () => {
+      const { container } = render(
+        <AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:45:00.000Z" />,
+      )
+      expect(container).toBeEmptyDOMElement()
+    })
+
+    it('countdown che arriva a 0 → il banner scompare', () => {
+      render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:50:02.000Z" />)
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(3000) })
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('annullo riuscito → banner scomparso', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }))
+      render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      vi.unstubAllGlobals()
+    })
+
+    it('annullo rifiutato dalla API → il banner resta con il messaggio di errore', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Finestra scaduta' }) }))
+      render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(screen.getByText('Finestra scaduta')).toBeInTheDocument()
+      vi.unstubAllGlobals()
+    })
   })
 })
