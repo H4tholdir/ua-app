@@ -187,6 +187,10 @@ export async function fetchIngressiStriscia(
   return { fatturaScartata, materialeRosso, pagamentoScaduto, ddcOggi }
 }
 
+// NB: getSegnaleStriscia NON può emettere sTecAccount/sTitTecnici — quei due
+// candidati dipendono da ingressi (senzaAnagrafica/tecniciSenzaAnagrafica) che
+// solo la home carica e passa direttamente a scegliSegnale; qui non vengono
+// letti. I chiamanti che li vogliono (dashboard/page.tsx) compongono da sé.
 export async function getSegnaleStriscia(svc: SupabaseClient, labId: string, ruolo: string, pile: PileHome): Promise<SegnaleStriscia> {
   const ingressi = await fetchIngressiStriscia(svc, labId, ruolo)
   return scegliSegnale(ruolo, { ...ingressi, pile: pile.striscia })

@@ -10,7 +10,9 @@ export type TipoLavoro = {
 }
 
 // B4 (gate spec): UNICA fonte delle label macro — TabDati, portale, rischi,
-// DdcTemplate importano da qui (Task 4). 10 valori = CHECK a DB (Task 3).
+// DdcTemplate importano da qui (Task 4). ⚠ La CHECK a DB è in DRIFT (O4b):
+// nessuna CHECK contiene `bite_splint` — qui 10 valori, a DB meno. La
+// migration di riallineamento è deferita alla sessione DB dedicata (A20+O4b).
 export const LABEL_MACRO: Record<TipoDispositivo, string> = {
   protesi_fissa: 'Protesi fissa',
   protesi_mobile: 'Protesi mobile',
