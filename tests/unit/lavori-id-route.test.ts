@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 
-const { mockGetUser, mockFrom } = vi.hoisted(() => ({
+const { mockGetUser, mockFrom, mockTriggerPushToUser } = vi.hoisted(() => ({
   mockGetUser: vi.fn(),
   mockFrom: vi.fn(),
+  mockTriggerPushToUser: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/server-user', () => ({
@@ -13,6 +14,9 @@ vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
 vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
+vi.mock('@/lib/notifications/trigger', () => ({
+  triggerPushToUser: mockTriggerPushToUser,
+}))
 
 import { PATCH } from '../../src/app/api/lavori/[id]/route'
 
@@ -35,17 +39,30 @@ const params = Promise.resolve({ id: LAVORO_ID })
  *
  * Tabelle coinvolte:
  * - 'utenti'  → risoluzione laboratorio_id dell'utente autenticato
- * - 'lavori'  → SELECT incluso_in_fattura (pre-check) + UPDATE finale
+ * - 'lavori'  → SELECT incluso_in_fattura/tecnico_id/numero_lavoro (pre-check) + UPDATE finale
  * - 'lavori_lavorazioni' → COUNT righe attive (guard N4 prezzo_unitario)
  * - FK tables ('clienti', 'pazienti', 'tecnici', 'cicli_produzione') → validazione cross-tenant
+ *   ('tecnici' è riusata ANCHE dalla risoluzione tecnici→utenti di notificaAssegnazione,
+ *   distinta in base alle colonne selezionate: 'id' = validazione FK, 'utente_id' = mapping push)
  */
 function buildMockFrom(opts: {
   inclusoInFattura?: boolean
   updateSpy: (payload: Record<string, unknown>) => void
   fkOk?: boolean
   righeAttive?: number
+  existingTecnicoId?: string | null
+  numeroLavoro?: string
+  tecnicoUtenteId?: string | null
 }) {
-  const { inclusoInFattura = false, updateSpy, fkOk = true, righeAttive = 0 } = opts
+  const {
+    inclusoInFattura = false,
+    updateSpy,
+    fkOk = true,
+    righeAttive = 0,
+    existingTecnicoId = null,
+    numeroLavoro = 'L-001',
+    tecnicoUtenteId = 'utente-tecnico-1',
+  } = opts
 
   return vi.fn((table: string) => {
     if (table === 'utenti') {
@@ -69,14 +86,18 @@ function buildMockFrom(opts: {
     if (table === 'lavori') {
       return {
         select: (cols: string) => {
-          // Prima select: pre-check incluso_in_fattura
-          if (cols === 'incluso_in_fattura') {
+          // Prima select: pre-check incluso_in_fattura + tecnico_id/numero_lavoro
+          if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
             return {
               eq: () => ({
                 eq: () => ({
                   is: () => ({
                     single: async () => ({
-                      data: { incluso_in_fattura: inclusoInFattura },
+                      data: {
+                        incluso_in_fattura: inclusoInFattura,
+                        tecnico_id: existingTecnicoId,
+                        numero_lavoro: numeroLavoro,
+                      },
                       error: null,
                     }),
                   }),
@@ -89,7 +110,7 @@ function buildMockFrom(opts: {
             eq: () => ({
               eq: () => ({
                 single: async () => ({
-                  data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                  data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
                   error: null,
                 }),
               }),
@@ -103,7 +124,7 @@ function buildMockFrom(opts: {
               eq: () => ({
                 select: () => ({
                   single: async () => ({
-                    data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
+                    data: { id: LAVORO_ID, numero_lavoro: numeroLavoro, stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' },
                     error: null,
                   }),
                 }),
@@ -127,14 +148,24 @@ function buildMockFrom(opts: {
     // FK tables
     if (['clienti', 'pazienti', 'tecnici', 'cicli_produzione'].includes(table)) {
       return {
-        select: () => ({
+        select: (cols: string) => ({
           eq: () => ({
             eq: () => ({
               is: () => ({
-                single: async () => ({
-                  data: fkOk ? { id: 'fk-ok-id' } : null,
-                  error: null,
-                }),
+                single: async () => {
+                  // Mapping tecnici→utenti per notificaAssegnazione (A1)
+                  if (table === 'tecnici' && cols === 'utente_id') {
+                    return {
+                      data: tecnicoUtenteId ? { utente_id: tecnicoUtenteId } : null,
+                      error: null,
+                    }
+                  }
+                  // Validazione FK cross-tenant standard (cols === 'id')
+                  return {
+                    data: fkOk ? { id: 'fk-ok-id' } : null,
+                    error: null,
+                  }
+                },
               }),
             }),
           }),
@@ -376,5 +407,131 @@ describe('PATCH /api/lavori/[id] — allowlist esplicita', () => {
     })
     const res = await PATCH(req({ descrizione: 'x' }), { params })
     expect(res.status).toBe(404)
+  })
+})
+
+// Attende il flush delle microtask/macrotask della catena fire-and-forget
+// (notificaAssegnazione: select tecnici → triggerPushToUser) senza legare il
+// test all'implementazione interna della route.
+function flushFireAndForget() {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+describe('PATCH /api/lavori/[id] — A1: push al tecnico su assegnazione', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
+  })
+
+  it('tecnico_id nuovo (diverso dal precedente) → triggerPushToUser chiamato 1 volta, body con numero lavoro e senza nome paziente', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-vecchio',
+        numeroLavoro: 'L-042',
+        tecnicoUtenteId: 'utente-tecnico-1',
+      })
+    )
+
+    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
+    const [userId, laboratorioId, payload] = mockTriggerPushToUser.mock.calls[0]
+    expect(userId).toBe('utente-tecnico-1')
+    expect(laboratorioId).toBe(LAB_ID)
+    expect(payload.title).toBe('Nuovo lavoro assegnato')
+    expect(payload.body).toContain('L-042')
+    expect(payload.url).toBe(`/lavori/${LAVORO_ID}`)
+
+    // GDPR: MAI nome paziente nel payload push (nessun nome/paziente in nessun campo)
+    const serialized = JSON.stringify(payload)
+    expect(serialized).not.toMatch(/paziente/i)
+    expect(serialized).not.toMatch(/Mario|Rossi/i)
+  })
+
+  it('tecnico_id invariato (stesso valore già presente) → triggerPushToUser mai chiamato', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-stesso',
+      })
+    )
+
+    const res = await PATCH(req({ tecnico_id: 'tecnico-stesso' }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('tecnico_id null nel payload → triggerPushToUser mai chiamato', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-vecchio',
+      })
+    )
+
+    const res = await PATCH(req({ tecnico_id: null }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('nessun tecnico_id nel body (PATCH di altri campi) → triggerPushToUser mai chiamato', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-vecchio',
+      })
+    )
+
+    const res = await PATCH(req({ descrizione: 'Corona ceramica' }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
+  })
+
+  it('push che rejecta (mock reject) → la risposta PATCH resta 200', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-vecchio',
+        tecnicoUtenteId: 'utente-tecnico-1',
+      })
+    )
+    mockTriggerPushToUser.mockRejectedValue(new Error('push provider down'))
+
+    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('tecnico senza utente_id collegato (nessun account) → risoluzione mapping fallisce, triggerPushToUser mai chiamato, risposta resta 200', async () => {
+    const updateSpy = vi.fn()
+    mockFrom.mockImplementation(
+      buildMockFrom({
+        updateSpy,
+        existingTecnicoId: 'tecnico-vecchio',
+        tecnicoUtenteId: null,
+      })
+    )
+
+    const res = await PATCH(req({ tecnico_id: 'tecnico-nuovo' }), { params })
+    await flushFireAndForget()
+
+    expect(res.status).toBe(200)
+    expect(mockTriggerPushToUser).not.toHaveBeenCalled()
   })
 })

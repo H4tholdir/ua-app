@@ -132,8 +132,8 @@ describe('PATCH /api/lavori/[id] — validazione enum tipo_dispositivo (B2)', ()
       if (table === 'lavori') {
         return {
           select: (cols: string) => {
-            if (cols === 'incluso_in_fattura') {
-              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false }, error: null }) }) }) }) }
+            if (cols === 'incluso_in_fattura, tecnico_id, numero_lavoro') {
+              return { eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { incluso_in_fattura: false, tecnico_id: null, numero_lavoro: 'L-001' }, error: null }) }) }) }) }
             }
             return { eq: () => ({ eq: () => ({ single: async () => ({ data: { id: LAVORO_ID, numero_lavoro: 'L-001', stato: 'in_lavorazione', updated_at: '2026-07-05T00:00:00Z' }, error: null }) }) }) }
           },

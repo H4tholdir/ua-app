@@ -5,6 +5,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+import { triggerPushToUser } from '@/lib/notifications/trigger'
 
 // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
 const LOCKED_PRICE_FIELDS = [
@@ -102,6 +103,52 @@ const PATCHABLE_FIELDS = [
 
 type RouteContext = { params: Promise<{ id: string }> }
 
+/**
+ * A1: notifica push al tecnico su assegnazione di un lavoro.
+ *
+ * MAPPING tecnici→utenti (verificato su database.types.ts): `lavori.tecnico_id`
+ * referenzia `tecnici.id`, NON `utenti.id`. `triggerPushToUser` invece filtra
+ * `push_subscriptions.user_id`, colonna che referenzia `auth.users(id)` (= `utenti.id`,
+ * migration 20260521000001_push_subscriptions.sql). Serve quindi risolvere
+ * `tecnici.utente_id` (FK verso `utenti`, nullable) prima di poter inviare il push —
+ * NON si può passare `tecnico_id` direttamente come user_id.
+ * (Nota: `prove/route.ts` passa oggi `tecnico_id` grezzo a `triggerPushToUser` senza
+ * questa risoluzione — deviazione pre-esistente, fuori scope qui; vedi task-8-report.md.)
+ *
+ * Chiamata con `await` dal chiamante (non `void`: su Vercel il lavoro avviato
+ * ma non atteso dopo la response può essere interrotto a metà se l'istanza si
+ * congela) — non deve MAI lanciare né far fallire la risposta della PATCH
+ * (try/catch onnicomprensivo, silenzioso come `triggerPushToUser` stesso).
+ */
+async function notificaAssegnazione(
+  svc: ReturnType<typeof getServiceClient>,
+  tecnicoId: string,
+  laboratorioId: string,
+  numeroLavoro: string,
+  lavoroId: string
+): Promise<void> {
+  try {
+    const { data: tecnico } = await svc
+      .from('tecnici')
+      .select('utente_id')
+      .eq('id', tecnicoId)
+      .eq('laboratorio_id', laboratorioId)
+      .is('deleted_at', null)
+      .single()
+
+    if (!tecnico?.utente_id) return
+
+    // GDPR: MAI nome paziente nel payload push — solo numero lavoro + link.
+    await triggerPushToUser(tecnico.utente_id, laboratorioId, {
+      title: 'Nuovo lavoro assegnato',
+      body: `Il lavoro n.${numeroLavoro} è stato assegnato a te`,
+      url: `/lavori/${lavoroId}`,
+    })
+  } catch {
+    // Mai lanciare — un fallimento qui non deve mai influenzare la risposta PATCH.
+  }
+}
+
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
@@ -183,10 +230,11 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
 
-  // Verifica se il lavoro è già incluso in fattura — legge solo il campo necessario
+  // Verifica se il lavoro è già incluso in fattura — legge anche tecnico_id/numero_lavoro
+  // per la notifica push su riassegnazione (A1, vedi notificaAssegnazione sopra).
   const { data: existing } = await svc
     .from('lavori')
-    .select('incluso_in_fattura')
+    .select('incluso_in_fattura, tecnico_id, numero_lavoro')
     .eq('id', id)
     .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
@@ -275,6 +323,24 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  // A1: push al tecnico su assegnazione — SOLO quando tecnico_id cambia verso
+  // un valore non-null. Awaited (non `void`): su runtime serverless (Vercel)
+  // il lavoro non atteso dopo la response può essere terminato a metà se
+  // l'istanza si congela subito dopo l'invio — stesso pattern di
+  // prove/route.ts (push "prova rientrata"), che attende triggerPushToUser
+  // prima di rispondere. notificaAssegnazione non lancia mai (try/catch
+  // onnicomprensivo, come triggerPushToUser stesso), quindi l'await non può
+  // far fallire questa risposta.
+  if (payload.tecnico_id && payload.tecnico_id !== existing.tecnico_id) {
+    await notificaAssegnazione(
+      svc,
+      payload.tecnico_id as string,
+      context.laboratorioId,
+      existing.numero_lavoro,
+      id
+    )
   }
 
   return NextResponse.json({ lavoro })
