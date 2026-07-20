@@ -191,7 +191,8 @@ export default function LoginForm() {
         // Pre-compila email e abilita bio se questo device ha un passkey registrato
         const savedEmail = localStorage.getItem(PASSKEY_EMAIL_KEY)
         if (savedEmail) {
-          setEmail(savedEmail)
+          // Non sovrascrivere un'email già digitata (race mount→promise, device condivisi — A3)
+          setEmail(prev => (prev === '' ? savedEmail : prev))
           setHasSavedPasskey(true)
         }
       })
