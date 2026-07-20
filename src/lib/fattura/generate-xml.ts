@@ -65,7 +65,9 @@ export async function generaFatturaPA(
   type DraftRow = {
     numero: string
     progressivo: number
+    anno: number
     data: string
+    note: string | null
     tipo_documento: string | null
     imponibile: number | null
     collegata_numero: string | null
@@ -86,7 +88,7 @@ export async function generaFatturaPA(
     const { data: draftData, error: draftErr } = await supabase
       .from('fatture')
       .select(
-        'numero, progressivo, data, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_id, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
+        'numero, progressivo, anno, data, note, tipo_documento, imponibile, collegata_numero, collegata_data, causale_storno, cliente_id, cliente_denominazione, cliente_piva, cliente_cf, cliente_indirizzo, cliente_codice_sdi, cliente_pec, laboratorio_id'
       )
       .eq('id', fatturaId)
       .single()
@@ -203,8 +205,11 @@ export async function generaFatturaPA(
   // Fix date fiscali (20/07): un solo istante → l'anno passato a ENTRAMBE le
   // serie (sdi_invio e fattura) è lo stesso stampato nel numero e nella data
   // (riserva panel: se una serie ricalcolasse l'anno, il bug capodanno
-  // rientrerebbe dalla finestra). Ramo draft (fatturaId): numero/anno/data
-  // restano CONGELATI sul draft — deliberato (piano 2026-07-20 §Constraints).
+  // rientrerebbe dalla finestra).
+  // Ramo draft (fatturaId): stesso anno → numero/anno/data CONGELATI sul
+  // draft; anno PRECEDENTE → la bozza DIVENTA la fattura dell'anno corrente
+  // (rinumerazione d1, spec 2026-07-20-draft-nye-rinumerazione: decisione
+  // Francesco 20/07 — la traccia dell'ex numero finisce in fatture.note).
   const adesso = new Date()
   const anno = annoRoma(adesso)
   const oggi = oggiRomaISO(adesso)
@@ -214,12 +219,19 @@ export async function generaFatturaPA(
   let numero: string
   let progressivoFattura: number
   let dataFattura: string
+  let rinumerataDa: { exNumero: string; exData: string } | null = null
 
-  if (fatturaId) {
-    // draft già caricato in Sezione 0
+  if (fatturaId && draft!.anno === anno) {
+    // draft già caricato in Sezione 0 — stesso anno: congelato
     numero = draft!.numero
     progressivoFattura = draft!.progressivo
     dataFattura = draft!.data
+  } else if (fatturaId) {
+    // draft di un anno precedente: rinumera nella serie corrente (d1)
+    progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura', anno)
+    numero = `${anno}-${String(progressivoFattura).padStart(4, '0')}`
+    dataFattura = oggi
+    rinumerataDa = { exNumero: draft!.numero, exData: draft!.data }
   } else {
     // Nuovo insert: genera progressivo fresco
     progressivoFattura = await generaProgressivo(supabase, laboratorioId, 'fattura', anno)
@@ -528,6 +540,18 @@ export async function generaFatturaPA(
     iva_importo: 0,
     bollo: bolloApplicato,
     totale,
+    // P2-d1: rinumerazione a cavallo d'anno — il DB si allinea a XML/PDF
+    ...(rinumerataDa
+      ? {
+          numero,
+          anno,
+          progressivo: progressivoFattura,
+          data: dataFattura,
+          note:
+            (draft!.note ? `${draft!.note}\n` : '') +
+            `Rinumerata all'emissione: sostituisce la bozza ${rinumerataDa.exNumero} del ${rinumerataDa.exData} (serie anno precedente).`,
+        }
+      : {}),
   }
 
   // numero è già corretto (risolto in step 2)

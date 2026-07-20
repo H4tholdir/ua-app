@@ -62,7 +62,7 @@ beforeEach(() => {
     }
     if (table === 'fatture') {
       return {
-        select: () => ({ eq: () => ({ single: async () => ({ data: { numero: '2026-0007', progressivo: 7, data: '2026-07-01' }, error: null }) }) }),
+        select: () => ({ eq: () => ({ single: async () => ({ data: { numero: '2026-0007', progressivo: 7, anno: new Date().getFullYear(), data: '2026-07-01', note: null }, error: null }) }) }),
         insert: (payload: Record<string, unknown>) => { insertPayloads.push(payload); return Promise.resolve({ error: null }) },
         update: (payload: Record<string, unknown>) => { updatePayloads.push(payload); return { eq: async () => ({ error: null }) } },
       }
