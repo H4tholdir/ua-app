@@ -7,6 +7,23 @@ import { generaProgressivo } from '@/lib/db/progressivi'
 import { DdcTemplate } from '@/components/features/pdf/DdcTemplate'
 import type { LavoroDettaglio, Laboratorio } from '@/types/domain'
 
+// A18 — hash d'integrità del file firma applicato in DdC (cut-off 20/07/2026,
+// decisione Francesco: nessun backfill sui DdC storici — dati pre-consegna di
+// test). Fail-open: se il download fallisce l'hash resta null e la DdC si
+// genera comunque (metadato d'integrità, non condizione di emissione).
+async function hashFirmaDdc(url: string | null): Promise<string | null> {
+  if (!url) return null
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buf = Buffer.from(await res.arrayBuffer())
+    return crypto.createHash('sha256').update(buf).digest('hex')
+  } catch (err) {
+    console.error('[DdC] hash firma non calcolato:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 export async function generateDdC(lavoro: LavoroDettaglio) {
   const supabase = getTypedServiceClient()
 
@@ -51,6 +68,8 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
   // in dichiarazioni_conformita — mascherata finora dal client non tipizzato).
   const testoConformita = "Il fabbricante dichiara che il presente dispositivo e' conforme ai requisiti generali di sicurezza e prestazione di cui all'Allegato I e ai disposti dell'Allegato XIII del Reg. (UE) 2017/745."
 
+  const firmaSha256 = await hashFirmaDdc((lab.firma_ddc_url ?? null) as string | null)
+
   // Prepara dati snapshot
   const ddc = {
     numero_ddc: numero,
@@ -80,7 +99,7 @@ export async function generateDdC(lavoro: LavoroDettaglio) {
     prrc_nome: (lab.prrc_nome ?? '') as string,
     prrc_qualifica: (lab.prrc_qualifica ?? null) as string | null,
     firma_ddc_storage_path: (lab.firma_ddc_url ?? null) as string | null,
-    firma_ddc_sha256: null as string | null,
+    firma_ddc_sha256: firmaSha256,
     // Priorità: rischi specifici per tipo dispositivo > testo generico del lab
     rischi_residui_snapshot: (rischiRow?.rischi_residui ?? lab.testo_rischi_default ?? null) as string | null,
     norme_json: (rischiRow?.norme_json ?? []) as Array<{ codice: string; titolo: string; anno?: number }>,

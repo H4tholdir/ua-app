@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 import { LAB_FIXTURE, LAVORO_FIXTURE } from './helpers/pdf-fixtures'
 
@@ -181,5 +181,36 @@ describe('generateDdC', () => {
     const result = await generateDdC(LAVORO_FIXTURE)
 
     expect(result).toEqual({ numero: 'DDC-2026-0007', url: 'https://example.test/ddc-vincitrice.pdf' })
+  })
+})
+
+describe('firma_ddc_sha256 (A18 — cut-off 20/07/2026, nessun backfill)', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('con firma configurata scarica il file e inserisce lo SHA-256 esadecimale', async () => {
+    const bytes = new TextEncoder().encode('firma-png-finta')
+    const attesa = (await import('node:crypto')).createHash('sha256').update(bytes).digest('hex')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => bytes.buffer }))
+    mockTables({ ...LAB_FIXTURE, firma_ddc_url: 'https://example.test/firma.png' })
+    await generateDdC(LAVORO_FIXTURE)
+    expect(fetch).toHaveBeenCalledWith('https://example.test/firma.png')
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: attesa }))
+  })
+
+  it('senza firma configurata: hash null e NESSUN download', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    mockTables(LAB_FIXTURE) // firma_ddc_url: null
+    await generateDdC(LAVORO_FIXTURE)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
+  })
+
+  it('download fallito (rete o non-ok): fail-open — hash null ma la DdC si genera', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('storage giù')))
+    mockTables({ ...LAB_FIXTURE, firma_ddc_url: 'https://example.test/firma.png' })
+    const result = await generateDdC(LAVORO_FIXTURE)
+    expect(result.numero).toMatch(/^DDC-\d{4}-0001$/)
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ firma_ddc_sha256: null }))
   })
 })
