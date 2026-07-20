@@ -1,7 +1,7 @@
-# Sessione attiva — nessuna (20/07/2026 sera)
+# Sessione attiva — 20/07/2026 sera (contesto pulito)
 
-Sessione CHIUSA con 3 deploy: Bundle T (`bacfde9`), anti-flake (`9350969`), date fiscali Europe/Rome (`3d5fd31` + migration `20260720150000` applicata e registrata). MEMORY voce (13), ROADMAP (3) aggiornate.
+**Fatto:** Punto 1 handoff CHIUSO — ledger migration riconciliato: policy storage `20260716120000` verificata nel DB (esclusione `ricevute-sdi` su tutte e 4 le policy), 7 migration registrate via INSERT idempotenti, `migration list` pulita (76/76). **`db push` di nuovo utilizzabile.** MEMORY voce (14) scritta. Commit docs/memory NON ancora fatto (serve conferma Francesco).
 
-**PROSSIMA SESSIONE (contesto pulito):** handoff completo in `docs/roadmap/2026-07-20-handoff-riconciliazione-e-roadmap.md` — (1) riconciliazione ledger migration (7 pending, GIÀ verificate tutte applicate al DB: repair a rischio zero; fino ad allora MAI `db push`) · (2) decisione Francesco draft dic→gen (3 opzioni pronte) · poi Bundle E (A16 export CSV) → mini-triage design.
+**In attesa di Francesco:** decisione Punto 2 draft dic→gen (opzioni a/b/c nel handoff `2026-07-20-handoff-riconciliazione-e-roadmap.md`) · conferma commit aggiornamenti memoria · sorte worktree `bundle-q` (report gitignored dentro).
 
-**Promemoria:** ricalibrazione perf-budget ~27/07-03/08 · worktree `bundle-q` rimovibile (report gitignored dentro — chiedere prima).
+**Poi:** Bundle E (A16 export CSV, riserve advisor già raccolte: anti CSV-injection + test scoping tenant, default year `annoRoma()`) → mini-triage design.
