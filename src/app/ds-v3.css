@@ -58,6 +58,14 @@
   --grana-opacity: 0.06;
 }
 [data-theme="dark"] [data-ds="v3"] .ds-card { border-top: 1px solid rgba(255,255,255,.04); }
+/* §5.3 (emendamento 20/07/2026, ondata A) — TastoSecondario in dark: niente
+   bordo pieno --line (quello è la resa light), faccia --elv + hairline
+   superiore come le facce premibili (gemella della regola .ds-card sopra).
+   Vive qui e non nel componente: il valore raw è ammesso solo in questo file. */
+[data-theme="dark"] [data-ds="v3"] .ds-tasto-secondario:not(:disabled) {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
 
 /* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
 [data-ds="v3"] .ds-grana {

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TastoSecondario in dark su card — 3 varianti (fix QA ondata A, 20/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     DIFETTO (QA ondata A, pre-esistente da P4): TastoSecondario = faccia
+     --card + --sh-press (§5.3). In dark --sh-press: none → montato DENTRO una
+     card (Conferma pila blu, card cedolini Persone) ha lo stesso colore della
+     superficie e NESSUN confine: invisibile. Standalone su --bg resta appena
+     leggibile (card è poco più chiara del bg), ma il caso card è rotto.
+     Le 3 varianti sotto cambiano SOLO il confine del tasto; H58, radius 18,
+     testo 17/700 --ink, corsa 2px: INVARIATI (§5.3).
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1180px; margin: 0 auto 24px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0; line-height: 1.5; max-width: 980px; }
+  .griglia { display: grid; grid-template-columns: repeat(auto-fit, 350px); gap: 26px; justify-content: center; max-width: 1180px; margin: 0 auto; }
+  @media (max-width: 440px) { body { padding: 16px; } .griglia { grid-template-columns: 1fr; } .stage { width: auto; max-width: 100%; } }
+  .colonna { display: flex; flex-direction: column; gap: 12px; }
+  .etichetta { text-align: center; min-height: 112px; }
+  .etichetta .nome { font-size: 16.5px; font-weight: 800; color: #1C1917; }
+  .etichetta .desc { font-size: 13px; font-weight: 600; color: #6E675F; line-height: 1.45; margin-top: 4px; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; }
+  .stage {
+    width: 350px; margin: 0 auto; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; line-height: 1.4; }
+
+  /* ── CardLavoro pila blu (verbatim §5.8) ── */
+  .cardlav .cl-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cardlav .cl-num { font-size: 21px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .cardlav .cl-num small { display: block; font-size: 12.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .cardlav .cl-who  { font-size: 17.5px; font-weight: 700; color: var(--ink); margin-top: 12px; }
+  .cardlav .cl-tipo { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .pill.fam-blu { background: var(--blue-tint); color: var(--blue); font-size: 15px; letter-spacing: 0; text-transform: none; }
+
+  /* ── TastoSecondario base (§5.3 invariato: H58 · radius 18 · 17/700 --ink) ── */
+  .tsec {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 58px; margin-top: 16px;
+    border: none; border-radius: 18px; cursor: pointer;
+    font-family: var(--font-v3); font-size: 17px; font-weight: 700; color: var(--ink);
+    background: var(--card); box-shadow: var(--sh-press);
+  }
+  .tsec.solo { margin-top: 0; }
+
+  /* OGGI (per confronto): in dark --sh-press:none → identico alla card. */
+
+  /* A — Faccia elevata: --elv (in light --elv ≡ --card → light IDENTICO a
+     oggi); in dark --elv è il gradino di elevazione già di legge (§3.2
+     «elevazione = superficie più chiara») + hairline superiore come le facce
+     premibili dei mockup ratificati (conferma-cassetta .chip dark). */
+  [data-theme="dark"] .va .tsec { background: var(--elv); box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .va .tsec { background: var(--elv); }
+
+  /* B — Anello inciso: resta --card, in dark si aggiunge l'anello inset
+     --line (stesso trattamento della targa cassetta A14). Light identico. */
+  [data-theme="dark"] .vb .tsec { box-shadow: inset 0 0 0 1.5px var(--line); }
+
+  /* C — Bordo pieno in entrambi i temi: confine sempre dichiarato, ma CAMBIA
+     anche il light (oggi il light funziona già con la sola --sh-press). */
+  .vc .tsec { border: 1.5px solid var(--line); box-shadow: var(--sh-press); }
+  [data-theme="dark"] .vc .tsec { box-shadow: none; }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>TastoSecondario in dark, dentro una card — dove è finito «Conferma»?</h1>
+  <p>Bug pre-esistente trovato dal QA dell'ondata A: in dark il TastoSecondario montato dentro una card
+  (Conferma della pila blu, card cedolini di Persone) è invisibile — faccia <code>--card</code> su superficie
+  <code>--card</code>, e <code>--sh-press</code> in dark è <code>none</code> (§3.2, dark è flat). Ogni stage mostra
+  il caso rotto (card pila blu) + il tasto standalone su <code>--bg</code> (scheda lavoro) per verificare che la
+  cura non regredisca l'uso esistente. Anatomia §5.3 (H58 · radius 18 · 17/700) invariata in tutte le varianti.</p>
+</div>
+
+<div class="tema-titolo" style="font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#6E675F;margin:26px 0 12px;text-align:center;">Oggi (il difetto) · poi le 3 varianti</div>
+<div class="griglia">
+
+  <div class="colonna">
+    <div class="etichetta"><div class="nome">OGGI — com'è in produzione</div>
+    <div class="desc">Light: funziona (la --sh-press dà stacco e corsa). Dark: il tasto nella card
+    sparisce — si vede solo il testo «Conferma» che galleggia. È il difetto da curare.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Sotto la card: lo standalone su --bg (scheda lavoro).</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Il «Conferma» nella card è invisibile: solo testo, nessun tasto.</div>
+    </div>
+  </div>
+
+  <div class="colonna va">
+    <div class="etichetta"><div class="nome">A — Faccia elevata --elv (consigliata)</div>
+    <div class="desc">Dark: faccia <code>--elv</code> (il gradino di elevazione già di legge §3.2) + hairline
+    superiore — lo stesso trattamento delle facce premibili nei mockup ratificati (chips conferma-cassetta).
+    Light: IDENTICO a oggi (<code>--elv ≡ --card</code> in light per definizione).</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Light invariato al pixel.</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Faccia un gradino più chiara + hairline: si vede, resta quieta.</div>
+    </div>
+  </div>
+
+  <div class="colonna vb">
+    <div class="etichetta"><div class="nome">B — Anello inciso --line</div>
+    <div class="desc">Dark: resta <code>--card</code> ma con anello inset <code>--line</code> 1.5px — lo stesso
+    trattamento della targa cassetta (A14). Light: identico a oggi. Più «inciso» che «premibile»:
+    la targa però è un DATO, non un tasto — rischio di confondere i due linguaggi.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Light invariato al pixel.</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Anello --line: visibile ma «da targa», non da tasto.</div>
+    </div>
+  </div>
+
+  <div class="colonna vc">
+    <div class="etichetta"><div class="nome">C — Bordo pieno in entrambi i temi</div>
+    <div class="desc">Bordo <code>--line</code> 1.5px sempre: confine dichiarato in light E dark.
+    Ma il light oggi FUNZIONA già — il bordo aggiunge rumore dove non serve, e in light
+    la doppia affordance (bordo + --sh-press) appesantisce.</div></div>
+    <div class="tema-cap">Light</div>
+    <div class="stage" data-theme="light">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Qui il light CAMBIA (bordo in più rispetto a oggi).</div>
+    </div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage" data-theme="dark">
+      <div class="card cardlav">
+        <div class="cl-top"><div class="cl-num"><small>Lavoro</small>n.151</div><span class="pill fam-blu">Appena arrivato</span></div>
+        <div class="cl-who">Dr. Esposito · PZ-0433</div>
+        <div class="cl-tipo">Protesi totale</div>
+        <button class="tsec">Conferma</button>
+      </div>
+      <button class="tsec solo">Segnala problema</button>
+      <div class="nota-stage">Visibile, ma al prezzo di toccare anche il light.</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

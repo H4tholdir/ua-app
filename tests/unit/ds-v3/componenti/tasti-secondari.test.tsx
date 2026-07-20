@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
@@ -86,6 +88,40 @@ describe('TastoSecondario — azioni non primarie (§5.3)', () => {
   it('il testo passa trovaParoleVietate', () => {
     const { container } = render(<TastoSecondario onClick={() => {}}>Apri il lavoro</TastoSecondario>)
     expect(trovaParoleVietate(container.textContent ?? '')).toEqual([])
+  })
+
+  // Emendamento §5.3 (20/07/2026, fix QA ondata A — light variante C, dark
+  // variante A): faccia --elv + bordo --line in light; in dark il bordo pieno
+  // sparisce e resta la hairline superiore. Il bordo DEVE vivere nel CSS di
+  // componente (non inline), altrimenti l'override dark non può vincere.
+  it('faccia --elv + bordo --line di componente; override dark a hairline in ds-v3.css (emendamento §5.3)', () => {
+    const { container } = render(<TastoSecondario onClick={() => {}}>Apri</TastoSecondario>)
+    const bottone = screen.getByRole('button', { name: 'Apri' })
+    expect(bottone.style.background).toBe('var(--elv)')
+    expect(bottone.style.border).toBe('') // mai inline sull'abilitato
+    const regole = Array.from(container.querySelectorAll('style'))
+      .map((s) => s.textContent ?? '')
+      .join('')
+    expect(regole).toContain('.ds-tasto-secondario:not(:disabled)')
+    expect(regole).toContain('border: 1.5px solid var(--line)')
+    // L'override dark (hairline) è LEGGE di ds-v3.css, non del componente:
+    // il valore raw della hairline è ammesso solo lì (guard check-ds).
+    const cssLegge = readFileSync(resolve(__dirname, '../../../../src/app/ds-v3.css'), 'utf8')
+    expect(cssLegge).toContain('[data-theme="dark"] [data-ds="v3"] .ds-tasto-secondario:not(:disabled)')
+    expect(cssLegge).toContain('border-top: 1px solid rgba(255,255,255,.06)')
+  })
+
+  it('disabled: faccia --bg-deep e nessun bordo (invariato)', () => {
+    render(
+      <TastoSecondario disabled onClick={() => {}}>
+        Apri
+      </TastoSecondario>
+    )
+    const bottone = screen.getByRole('button', { name: 'Apri' })
+    expect(bottone.style.background).toBe('var(--bg-deep)')
+    // jsdom serializza `border: 'none'` in modo non ovvio (width `medium`):
+    // si asserisce lo style di bordo, che è ciò che conta.
+    expect(bottone.style.borderStyle).toBe('none')
   })
 })
 
