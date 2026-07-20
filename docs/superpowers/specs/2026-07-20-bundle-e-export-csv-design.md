@@ -54,7 +54,7 @@ I numeri formattati da `csvNumIT` non passano da `csvCell` (mai iniziano con car
 
 - Sostituzione dell'escaping locale (`escapeField`) e della formattazione numeri con `csvCell`/`csvNumIT`/`csvRiga`. Differenze di output: (1) celle che iniziano con carattere formula ora prefissate `'` (migliorativo, riserva advisor); (2) il quoting diventa **condizionale** — `cliente_denominazione` senza caratteri speciali perde i doppi apici incondizionati (`"Studio Rossi"` → `Studio Rossi`): cambiamento byte-level innocuo per Excel/parser CSV, dichiarato qui per onestà del contratto.
 - Aggiunta paginazione con `fetchAllPages` + tiebreaker `id` sull'ordinamento.
-- I 3 test esistenti (`fatture-export-route.test.ts`) devono restare verdi senza modifiche ai loro assert (usano `toContain` su valori senza apici e count righe).
+- I 3 test esistenti (`fatture-export-route.test.ts`) devono restare verdi **senza modifiche ai loro assert**; il SOLO adeguamento consentito è il mock builder (la catena guadagna `.range()` finale: `order` torna il builder e `range` risolve i dati — plumbing, non semantica).
 
 ## 4-bis. Helper paginazione — `src/lib/utils/paginate.ts`
 
@@ -75,7 +75,7 @@ I numeri formattati da `csvNumIT` non passano da `csvCell` (mai iniziano con car
 - Paginazione: mock che risponde 1000+1000+n → tutte le righe nel CSV.
 
 **`cedolini-batch-route.test.ts`:**
-- 401/403; guard: context `sospeso` → 403 (mock con `lab`, requisito handoff «mock context con lab»).
+- 401/403; guard: context `blacklist` → 403 dalla matrice N13 (terminale anche sui GET); context `sospeso` → 200 (la matrice consente la sola lettura ai GET — la guard qui protegge da blacklist e stati sconosciuti fail-closed). Mock context sempre con `lab` (requisito handoff).
 - RBAC: `tecnico` → 403, `front_desk` → 403, `titolare` e `admin_rete` → 200.
 - Aggregazione: 2 tecnici × voci sovrapposte → righe distinte, somme corrette, ordinamento.
 - `mese` default Roma (fake timers 31/12 23:30 UTC → gennaio anno nuovo a Roma); malformato → default.
