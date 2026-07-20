@@ -477,15 +477,15 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 
 ## 🟠 ALTO — impattano fiducia/compliance/usabilità in modo significativo
 
-### A1. Push notification non collegata a nuova assegnazione lavoro tecnico
+### A1. Push notification non collegata a nuova assegnazione lavoro tecnico — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [FTec] — `src/app/api/lavori/[id]/route.ts` (PATCH `tecnico_id`) non ha alcun `triggerPush*`. Il rientro prova invece funziona (`prove/route.ts:179-186`).
 **Fix:** aggiungere `triggerPushToUser(tecnico_id, ...)` nel PATCH che assegna un lavoro.
 
-### A2. Nessun fallback offline / rete lenta
+### A2. Nessun fallback offline / rete lenta — ✅ GIÀ RISOLTO (verificato 20/07/2026: SW navigate→offline.html + banner SyncBadge)
 **Fonte:** [FTec] + [PWA] — offline totale e rete a 20kbps producono errore nativo Chrome o schermo bianco 15s+, nessun banner "sei offline".
 **Fix:** collegato a B6 (SW navigate intercept) + banner UI dedicato.
 
-### A3. Bug login: autofill email passkey sovrascrive input manuale
+### A3. Bug login: autofill email passkey sovrascrive input manuale — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [FTec] — `src/app/(auth)/login/login-form.tsx:186-192` rilegge `localStorage.ua_passkey_email` e forza `setEmail()`, causando switch involontari di account su device condivisi (laboratorio con più tecnici sullo stesso tablet).
 **Fix:** non sovrascrivere un valore digitato manualmente dall'utente nella sessione corrente.
 
@@ -495,23 +495,23 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fatto (parte 1, durante B2):** l'esclusione delle fetch RSC (header `RSC`/`Next-Router-State-Tree`) dal cache stale-while-revalidate. Causa scoperta durante il sotto-progetto B2: queste fetch (emesse da `router.refresh()`, navigazione client-side, prefetch `<Link>`) venivano servite dalla cache anche quando Next le marca esplicitamente `Cache-Control: no-cache, must-revalidate`, causando UI stale dopo ogni mutazione finché non si ricaricava manualmente la pagina — bug reale confermato con evidenza diretta (header di risposta) e verificato via Playwright dopo il fix.
 **Fatto (parte 2, 03/07/2026, merge `4a36f89`):** versioning automatico del nome cache. `public/sw.js` è ora un file generato (gitignored) da `scripts/generate-sw.mjs` a partire dalla fonte tracciata `scripts/sw-template.js`; `CACHE_NAME` = `ua-<build-id>` risolto in ordine `VERCEL_GIT_COMMIT_SHA` (troncato a 8 caratteri) → `git rev-parse --short=8 HEAD` locale → `Date.now()` di fallback, mai un crash della build; `'dev'` fisso in sviluppo. Hook npm `prebuild`/`predev` lo eseguono automaticamente, sostituendo il bump manuale. **Pulizia TTL esplicitamente esclusa** (decisione in brainstorming): con le fetch RSC già escluse dalla parte 1, ciò che resta cacheable è un set piccolo e fisso di asset statici di `public/` le cui chiavi vengono sovrascritte a ogni deploy, non accumulate — nessun problema reale da risolvere (YAGNI). Spec: `docs/superpowers/specs/2026-07-03-a4-cache-versioning-design.md`.
 
-### A5. `manifest.json` theme_color ancora sbagliato
+### A5. `manifest.json` theme_color ancora sbagliato — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [PWA], invariato da maggio — `#0F1E52` invece di `#D90012`, mismatch con `layout.tsx:22`. Anche `offline.html` usa il colore vecchio.
 **Fix:** allineare a `#D90012` in entrambi i file.
 
-### A6. `qualita/page.tsx`: 2 violazioni anti-pattern invisibili al gate automatico
+### A6. `qualita/page.tsx`: 2 violazioni anti-pattern invisibili al gate automatico — ✅ RISOLTO 20/07/2026 (Bundle Q, con `--c-amber-ink`; resta A6-bis: sweep `--c-amber`-come-testo ~25 file + regex script)
 **Fonte:** [Des] — `gold-come-testo` (riga 21, applicato riga 293) e `var(--cobalt, #1B2D6B)` mai definita (riga 312) — collegato a B11.
 **Fix:** `var(--gold)` → `var(--c-amber)`; vedi B11 per `--cobalt`.
 
-### A7. Portale e Richiedi disconnessi — nessuna navigazione incrociata
+### A7. Portale e Richiedi disconnessi — nessuna navigazione incrociata — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [Den] — nessun link da `/portale/[token]` verso `/richiedi/[token]` e viceversa; il laboratorio deve condividere 2 URL diversi, il bottone "Condividi" manda solo il link di stato.
 **Fix:** aggiungere pulsante "➕ Richiedi nuovo lavoro" nel portale e "← Torna allo stato lavori" nella schermata di successo della richiesta. Stimato 30 min.
 
-### A8. Zero notifica proattiva su richiesta dal portale
+### A8. Zero notifica proattiva su richiesta dal portale — 🔄 PARZIALE 20/07/2026 (Bundle Q: push a titolare+front_desk fatto; email Resend = decisione aperta)
 **Fonte:** [Den] — nessuna email/SMS quando un dentista invia una richiesta, nessun avviso quando lo stato lavoro cambia lato dentista.
 **Fix:** email di conferma via Resend (già configurato altrove) al submit di `/api/portale/richiedi`. Stimato 2-3h.
 
-### A9. Copy contraddittoria nel form richiesta portale
+### A9. Copy contraddittoria nel form richiesta portale — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [Den], segnalata anche a maggio, mai corretta — `RichiestaClientForm.tsx:200-209` dice sia "ha ricevuto" sia "ti contatteranno per la conferma" nella stessa schermata.
 **Fix:** scegliere un solo messaggio coerente. Stimato 5 min.
 
@@ -523,7 +523,7 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [UX] — `TabAccettazione.tsx:285,565` — solo un tooltip aggiunto, intestazione e progress bar restano tecniche.
 **Fix:** rinominare in "Materiali ricevuti" mantenendo il riferimento normativo solo nel tooltip.
 
-### A12. ClienteComboBox priva di attributi accessibilità
+### A12. ClienteComboBox priva di attributi accessibilità — ✅ RISOLTO 20/07/2026 (Bundle Q)
 **Fonte:** [UX], nuova regressione — `ClienteComboBox.tsx:180-200` non imposta `aria-invalid`/`aria-describedby`, a differenza degli altri campi dello stesso form.
 **Fix:** propagare `aria-invalid={hasError}` e `aria-describedby`.
 
@@ -543,7 +543,7 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [Tit] — solo fatture esportabili; mancano export lavori/analytics e cedolini tecnici in batch.
 **Fix:** nuovi endpoint `GET /api/lavori/export`, `GET /api/tecnici/cedolini-batch`.
 
-### A17. Hydration error React #418 sistemico
+### A17. Hydration error React #418 sistemico — ✅ RISOLTO 20/07/2026 (Bundle Q: 4/5 file del claim erano superficie morta post-v3; residuo AnnullaConsegnaBanner fixato)
 **Fonte:** [Sis] + [Tit] + [PWA] (corroborazione tripla) — 9 occorrenze di `new Date()`/`localStorage` in rendering server-first senza mitigazione (`DashboardTitolare.tsx:107-119,632,677-683,883`, `DashboardTecnico.tsx:86-92,167,262-269` incoerente, `SpotlightCard.tsx:37-46`, `TaskItem.tsx:47-54`, `AnnullaConsegnaBanner.tsx:16-19`). Causa confermata: server UTC vs client Europe/Rome producono testo diverso tra le 12:00-13:59 locali ogni giorno.
 **Fix:** spostare il calcolo in `useEffect`+`useState` con placeholder neutro iniziale, o `suppressHydrationWarning` mirato e coerente (oggi applicato solo in un punto su due della stessa funzione).
 
