@@ -58,6 +58,7 @@ import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { PillTempo } from '@/components/ds/Pill'
 import { CardFasiV3 } from './CardFasiV3'
+import { RigaLavoroDenti } from './RigaLavoroDenti'
 import { ModificaRigaSheet } from './ModificaRigaSheet'
 import { MenuSchedaSheet } from './MenuSchedaSheet'
 import { DocumentiSheet } from './DocumentiSheet'
@@ -263,7 +264,11 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           <CardInfo>
             <RigaEditabile chiave="Dentista" valore={clienteDisplay(lavoro.cliente)} ariaAzione="Modifica dentista" onApri={() => setCampoAttivo('dentista')} />
             <RigaDato chiave="Paziente" valore={pazienteTesto} />
-            <RigaDato chiave="Lavoro" valore={lavoro.descrizione} />
+            <RigaLavoroDenti
+              descrizione={lavoro.descrizione}
+              denti={lavoro.denti_coinvolti ?? []}
+              onApri={() => router.push(`/lavori/${lavoro.id}/modifica?tab=clinica`)}
+            />
             <RigaEditabile
               chiave="Consegna"
               valore={formattaConsegna(lavoro.data_consegna_prevista, lavoro.ora_consegna)}
