@@ -112,8 +112,8 @@ type RouteContext = { params: Promise<{ id: string }> }
  * migration 20260521000001_push_subscriptions.sql). Serve quindi risolvere
  * `tecnici.utente_id` (FK verso `utenti`, nullable) prima di poter inviare il push —
  * NON si può passare `tecnico_id` direttamente come user_id.
- * (Nota: `prove/route.ts` passa oggi `tecnico_id` grezzo a `triggerPushToUser` senza
- * questa risoluzione — deviazione pre-esistente, fuori scope qui; vedi task-8-report.md.)
+ * (Stessa risoluzione applicata anche in `prove/route.ts` → `notificaProvaRientrata`,
+ * fix del 20/07/2026 della deviazione pre-esistente.)
  *
  * Chiamata con `await` dal chiamante (non `void`: su Vercel il lavoro avviato
  * ma non atteso dopo la response può essere interrotto a metà se l'istanza si

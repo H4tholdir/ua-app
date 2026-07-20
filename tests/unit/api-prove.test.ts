@@ -58,12 +58,18 @@ function req(body: Record<string, unknown>) {
 
 describe('POST /api/lavori/[id]/prove — atomico su RPC (N12)', () => {
   const lavoroProveUpdate = vi.fn()
+  // Risultato di default per la select su `tecnici` (risoluzione tecnico_id→utente_id
+  // nell'helper notificaProvaRientrata). Mutabile dai singoli test PRIMA della POST:
+  // mockFrom legge questa variabile al momento della chiamata, non alla registrazione.
+  let tecniciResult: { data: unknown; error: unknown } = { data: { utente_id: 'user-9' }, error: null }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    tecniciResult = { data: { utente_id: 'user-9' }, error: null }
     mockGetFreshLabContext.mockResolvedValue(CONTEXT)
     mockFrom.mockImplementation((table: string) => {
       if (table === 'lavori') return lavoriChain({ data: { id: LAVORO_ID }, error: null })
+      if (table === 'tecnici') return lavoriChain(tecniciResult)
       if (table === 'lavoro_prove') {
         return {
           update: (payload: unknown) => {
@@ -172,6 +178,7 @@ describe('POST /api/lavori/[id]/prove — atomico su RPC (N12)', () => {
         data: { stato: statoAtteso, tecnico_id: 'tecnico-1', numero_lavoro: 'LAV-042' },
         error: null,
       })
+      tecniciResult = { data: { utente_id: 'user-tecnico-1' }, error: null }
 
       const res = await POST(req({ ...basePayload, esito }) as never, { params })
 
@@ -188,26 +195,90 @@ describe('POST /api/lavori/[id]/prove — atomico su RPC (N12)', () => {
         p_user_id: USER_ID,
         p_nuova_data_consegna: null,
       })
-      // push chiamata con tecnico_id/numero_lavoro presi dal payload della RPC
+      // push chiamata con l'utente_id risolto da tecnici.utente_id (NON tecnico_id
+      // grezzo) — numero_lavoro preso dal payload della RPC
       expect(mockTriggerPushToUser).toHaveBeenCalledWith(
-        'tecnico-1',
+        'user-tecnico-1',
         LAB_ID,
         expect.objectContaining({ body: expect.stringContaining('LAV-042') }),
       )
     })
 
-    it('legacy in_ritardo→in_lavorazione: RPC ok → 200 + push con tecnico_id/numero_lavoro dal payload RPC', async () => {
+    it('legacy in_ritardo→in_lavorazione: RPC ok → 200 + push con utente_id risolto/numero_lavoro dal payload RPC', async () => {
       mockRpc.mockResolvedValue({
         data: { stato: 'in_lavorazione', tecnico_id: 'tecnico-9', numero_lavoro: 'LAV-099' },
         error: null,
       })
+      tecniciResult = { data: { utente_id: 'user-tecnico-9' }, error: null }
 
       const res = await POST(req({ ...basePayload, esito: 'ok' }) as never, { params })
 
       expect(res.status).toBe(200)
       expect(mockTriggerPushToUser).toHaveBeenCalledWith(
-        'tecnico-9', LAB_ID, expect.objectContaining({ body: expect.stringContaining('LAV-099') }),
+        'user-tecnico-9', LAB_ID, expect.objectContaining({ body: expect.stringContaining('LAV-099') }),
       )
+    })
+
+    it('tecnico_id risolto via tecnici.utente_id: triggerPushToUser chiamato con utente_id, NON tecnico_id grezzo (fix N-push-prove)', async () => {
+      mockRpc.mockResolvedValue({
+        data: { stato: 'in_lavorazione', tecnico_id: 'tec-1', numero_lavoro: 'LAV-1' },
+        error: null,
+      })
+      tecniciResult = { data: { utente_id: 'user-9' }, error: null }
+
+      const res = await POST(req(basePayload) as never, { params })
+
+      expect(res.status).toBe(200)
+      expect(mockTriggerPushToUser).toHaveBeenCalledWith(
+        'user-9',
+        LAB_ID,
+        expect.objectContaining({ title: expect.stringContaining('Prova rientrata'), url: `/lavori/${LAVORO_ID}` }),
+      )
+      expect(mockTriggerPushToUser).not.toHaveBeenCalledWith('tec-1', expect.anything(), expect.anything())
+    })
+
+    it('tecnico senza account utente collegato (utente_id null) → triggerPushToUser MAI chiamato, risposta comunque 200', async () => {
+      mockRpc.mockResolvedValue({
+        data: { stato: 'in_lavorazione', tecnico_id: 'tec-2', numero_lavoro: 'LAV-2' },
+        error: null,
+      })
+      tecniciResult = { data: { utente_id: null }, error: null }
+
+      const res = await POST(req(basePayload) as never, { params })
+
+      expect(res.status).toBe(200)
+      expect(mockTriggerPushToUser).not.toHaveBeenCalled()
+    })
+
+    it('errore nella select tecnici (es. eccezione di rete) → catturato, risposta comunque 200, nessuna push', async () => {
+      mockRpc.mockResolvedValue({
+        data: { stato: 'in_lavorazione', tecnico_id: 'tec-3', numero_lavoro: 'LAV-3' },
+        error: null,
+      })
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'lavori') return lavoriChain({ data: { id: LAVORO_ID }, error: null })
+        if (table === 'tecnici') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  is: () => ({
+                    single: async () => { throw new Error('connessione rifiutata') },
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        throw new Error(`Unexpected table: ${table}`)
+      })
+
+      const res = await POST(req(basePayload) as never, { params })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toEqual({ esito: 'ok', stato: 'in_lavorazione' })
+      expect(mockTriggerPushToUser).not.toHaveBeenCalled()
     })
 
     it('nuova_data_consegna passata dal client → inoltrata come p_nuova_data_consegna alla RPC', async () => {

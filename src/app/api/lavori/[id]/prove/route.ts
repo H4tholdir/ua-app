@@ -21,6 +21,51 @@ interface RpcError {
 }
 
 /**
+ * Push notification al tecnico assegnato — prova rientrata.
+ *
+ * MAPPING tecnici→utenti (stesso schema di `notificaAssegnazione` in
+ * src/app/api/lavori/[id]/route.ts:123-150): `registra_rientro_atomico` ritorna
+ * `tecnico_id`, che referenzia `tecnici.id`, NON `utenti.id`. `triggerPushToUser`
+ * filtra invece `push_subscriptions.user_id`, colonna che referenzia `auth.users(id)`
+ * (= `utenti.id`). Serve quindi risolvere `tecnici.utente_id` (FK verso `utenti`,
+ * nullable) prima di poter inviare il push — non si può passare `tecnico_id` grezzo
+ * come user_id. Corregge la deviazione pre-esistente segnalata nel commento di
+ * `notificaAssegnazione` (push mai recapitato: nessun match su `push_subscriptions.user_id`).
+ *
+ * Chiamata con `await` dal chiamante (non `void`, stesso motivo di `notificaAssegnazione`)
+ * — non deve MAI lanciare né far fallire la risposta della POST (try/catch
+ * onnicomprensivo, silenzioso come `triggerPushToUser` stesso).
+ */
+async function notificaProvaRientrata(
+  svc: ReturnType<typeof getServiceClient>,
+  tecnicoId: string,
+  laboratorioId: string,
+  numeroLavoro: string | number | null,
+  lavoroId: string
+): Promise<void> {
+  try {
+    const { data: tecnico } = await svc
+      .from('tecnici')
+      .select('utente_id')
+      .eq('id', tecnicoId)
+      .eq('laboratorio_id', laboratorioId)
+      .is('deleted_at', null)
+      .single()
+
+    if (!tecnico?.utente_id) return
+
+    // GDPR: MAI nome paziente nel payload push — solo numero lavoro + link.
+    await triggerPushToUser(tecnico.utente_id, laboratorioId, {
+      title: '🔄 Prova rientrata',
+      body: `La prova per il lavoro ${numeroLavoro ?? ''} è rientrata`,
+      url: `/lavori/${lavoroId}`,
+    })
+  } catch {
+    // Mai lanciare — un fallimento qui non deve mai influenzare la risposta POST.
+  }
+}
+
+/**
  * Mappa gli errori delle RPC atomiche N12 sugli status HTTP odierni della route.
  * - UA404: lavoro non trovato o fuori tenant → stesso messaggio odierno.
  * - UA409: transizione non consentita → messaggio della RPC (deviazione dichiarata:
@@ -221,12 +266,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     // tecnico_id/numero_lavoro vengono dal payload della RPC (letti sotto
     // FOR UPDATE nella stessa transazione), non dalla select di guardia
     // sopra — più robusto in caso di modifiche concorrenti al lavoro.
+    // `result.tecnico_id` referenzia `tecnici.id`, non `utenti.id`: la
+    // risoluzione tecnici→utenti (tecnici.utente_id) avviene dentro
+    // notificaProvaRientrata, stesso pattern di notificaAssegnazione
+    // (src/app/api/lavori/[id]/route.ts:123-150).
     if (result.tecnico_id) {
-      await triggerPushToUser(result.tecnico_id, context.laboratorioId, {
-        title: '🔄 Prova rientrata',
-        body: `La prova per il lavoro ${result.numero_lavoro ?? ''} è rientrata`,
-        url: `/lavori/${id}`,
-      })
+      await notificaProvaRientrata(svc, result.tecnico_id, context.laboratorioId, result.numero_lavoro, id)
     }
 
     return NextResponse.json({ esito, stato: result.stato })
