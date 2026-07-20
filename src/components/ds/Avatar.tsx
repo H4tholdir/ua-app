@@ -31,10 +31,12 @@ function inizialiAvatar(nome: string): string {
  * Avatar — identità di un dentista/studio (§5.14).
  *
  * Nessuna foto: colore deterministico (`coloreAvatar`) + iniziali bianche
- * 21/800. Decorativo (`aria-hidden`): il nome completo è sempre leggibile
- * come testo accanto a ogni uso reale dell'Avatar (TileScelta, liste, portale).
+ * 21/800 (12.5/800 a Ø32 — la riga identità del NavDesk footer, Task 9/O1i-2,
+ * è troppo stretta per le iniziali a piena taglia). Decorativo
+ * (`aria-hidden`): il nome completo è sempre leggibile come testo accanto a
+ * ogni uso reale dell'Avatar (TileScelta, liste, portale, NavDesk footer).
  */
-export function Avatar(props: { nome: string; diametro?: 60 | 46 }) {
+export function Avatar(props: { nome: string; diametro?: 60 | 46 | 32 }) {
   const { nome, diametro = 60 } = props
   const colore = coloreAvatar(nome)
   const iniziali = inizialiAvatar(nome)
@@ -52,7 +54,7 @@ export function Avatar(props: { nome: string; diametro?: 60 | 46 }) {
         borderRadius: '50%',
         background: colore,
         color: testoSuFaccia,
-        fontSize: 21,
+        fontSize: diametro === 32 ? 12.5 : 21,
         fontWeight: tipografia.weight.extrabold,
         lineHeight: 1,
       }}

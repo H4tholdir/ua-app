@@ -52,7 +52,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
       <HomeV3 nome={nome} eyebrow={eyebrow} saluto={saluto(ora)} pile={pile} segnale={segnale} />
-      <HomeDesktop pile={pile} pilaSelezionata={pilaSelezionata} lavoroSelezionato={lavoroSelezionato} segnale={segnale} />
+      <HomeDesktop
+        pile={pile}
+        pilaSelezionata={pilaSelezionata}
+        lavoroSelezionato={lavoroSelezionato}
+        segnale={segnale}
+        identita={{ nome, lab: context.lab?.nome ?? '' }}
+      />
       <PasskeyPromptOnDashboard />
     </div>
   )

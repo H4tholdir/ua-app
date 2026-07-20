@@ -1185,12 +1185,15 @@ export default function CatalogoPage() {
         {/* segnale: shape reale di SegnaleStriscia (src/lib/dashboard/striscia.ts) —
             `forte` è `string | null` (non booleano) e `azione` è
             `{ etichetta, href } | null`. La demo del brief usava `forte: false`,
-            incompatibile col tipo: qui riprendiamo lo stato "tutto a posto" (s9). */}
-        <div style={{ width: 240, height: 480, display: 'flex' }}>
+            incompatibile col tipo: qui riprendiamo lo stato "tutto a posto" (s9).
+            `identita` fittizia (Task 9/O1i-2): mostra la riga Avatar Ø32 +
+            nome/lab + «Esci» sopra la StrisciaStato nel footer. */}
+        <div style={{ width: 240, height: 560, display: 'flex' }}>
           <NavDesk
             conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }}
             pilaSelezionata="rossa"
             segnale={{ attenzione: false, forte: 'Tutto a posto:', testo: '3 consegne oggi, la prossima alle 15:30', azione: null }}
+            identita={{ nome: 'Francesco Formicola', lab: 'Lab Formicola' }}
           />
         </div>
       </SezioneCatalogo>

@@ -16,7 +16,7 @@
 // non espone. Stesso schema di `TastoConsegnaInline` in `CardLavoro.tsx` —
 // una variante fisica locale, stessa faccia/corsa/suono/vibra, taglia propria.
 
-import type { ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'motion/react'
@@ -25,6 +25,9 @@ import { gradiente, raggio, tipografia, testoSuFaccia } from '@/design-system/v3
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { StrisciaStato } from './StrisciaStato'
+import { Avatar } from './Avatar'
+import { DialogConferma } from './DialogConferma'
+import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
 
@@ -138,8 +141,87 @@ function Voce(props: { nome: string; href: string; selezionata: boolean; badge?:
   )
 }
 
-export function NavDesk(props: { conteggi: Record<Pila, number>; pilaSelezionata: Pila; segnale: SegnaleStriscia }) {
-  const { conteggi, pilaSelezionata, segnale } = props
+/**
+ * RigaIdentita — riga identità + «Esci» nel footer del NavDesk (Task 9,
+ * O1i-2, mockup blocco 2 variante A ratificata). Stesso rito del Task 8
+ * (O1i-1, firma+LinkQuieto in «Tutto il resto» mobile): qui però la firma
+ * NON è testo isolato ma un vero Avatar Ø32 + nome/lab, e il tasto «Esci»
+ * porta una taglia locale (13/600, non i 14.5/600 di `LinkQuieto`) — troppo
+ * piccola la riga per il componente condiviso, stesso schema fisico
+ * (sottolineato, hit-area verticale) reimplementato qui.
+ */
+function RigaIdentita(props: { identita: { nome: string; lab: string }; onEsci: () => void }) {
+  const { identita, onEsci } = props
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px', minWidth: 0 }}>
+      <Avatar nome={identita.nome} diametro={32} />
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <span
+          style={{
+            fontSize: 14.5,
+            fontWeight: tipografia.weight.bold,
+            color: 'var(--ink)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {identita.nome}
+        </span>
+        <span
+          style={{
+            fontSize: 12.5,
+            fontWeight: tipografia.weight.semibold,
+            color: 'var(--faint)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {identita.lab}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={onEsci}
+        style={{
+          flex: 'none',
+          fontSize: 13,
+          fontWeight: tipografia.weight.semibold,
+          color: 'var(--muted)',
+          textDecoration: 'underline',
+          textUnderlineOffset: 3,
+          background: 'none',
+          border: 'none',
+          padding: '8px 0',
+          cursor: 'pointer',
+        }}
+      >
+        Esci
+      </button>
+    </div>
+  )
+}
+
+export function NavDesk(props: {
+  conteggi: Record<Pila, number>
+  pilaSelezionata: Pila
+  segnale: SegnaleStriscia
+  identita?: { nome: string; lab: string } | null
+}) {
+  const { conteggi, pilaSelezionata, segnale, identita } = props
+  const router = useRouter()
+  const [dialogEsciAperto, setDialogEsciAperto] = useState(false)
+
+  // Pattern IDENTICO a TuttoIlResto.tsx (Task 8, O1i-1) / UserProfileSheet —
+  // stesso import `getBrowserClient`, stessa sequenza signOut → push('/login').
+  // Niente `suona()`/`vibra()` qui: il feedback del tap è già di TastoPrimario
+  // dentro DialogConferma.
+  const logout = useCallback(async () => {
+    const sb = getBrowserClient()
+    await sb.auth.signOut()
+    router.push('/login')
+  }, [router])
 
   return (
     <aside style={{ background: 'var(--bg-deep)', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20, overflow: 'hidden' }}>
@@ -164,11 +246,24 @@ export function NavDesk(props: { conteggi: Record<Pila, number>; pilaSelezionata
         ))}
       </nav>
 
-      <div style={{ marginTop: 'auto' }}>
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
         <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} azione={segnale.azione}>
           {segnale.testo}
         </StrisciaStato>
       </div>
+
+      {identita && (
+        <DialogConferma
+          aperto={dialogEsciAperto}
+          titolo="Vuoi uscire?"
+          testo="Dovrai rifare l'accesso per rientrare."
+          etichettaDistruttiva="Esci"
+          etichettaSicura="Resta"
+          onConferma={logout}
+          onAnnulla={() => setDialogEsciAperto(false)}
+        />
+      )}
     </aside>
   )
 }

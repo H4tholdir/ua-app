@@ -79,8 +79,14 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavoroSelezionato: LavoroPila | null; segnale: SegnaleStriscia }) {
-  const { pile, pilaSelezionata, lavoroSelezionato, segnale } = props
+export function HomeDesktop(props: {
+  pile: PileHome
+  pilaSelezionata: Pila
+  lavoroSelezionato: LavoroPila | null
+  segnale: SegnaleStriscia
+  identita?: { nome: string; lab: string } | null
+}) {
+  const { pile, pilaSelezionata, lavoroSelezionato, segnale, identita } = props
   const router = useRouter()
   const listaRef = useRef<HTMLDivElement>(null)
   // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
@@ -156,7 +162,7 @@ export function HomeDesktop(props: { pile: PileHome; pilaSelezionata: Pila; lavo
         }
       `}</style>
 
-      <NavDesk conteggi={conteggi} pilaSelezionata={pilaSelezionata} segnale={segnale} />
+      <NavDesk conteggi={conteggi} pilaSelezionata={pilaSelezionata} segnale={segnale} identita={identita} />
 
       <section
         key={pilaSelezionata}
