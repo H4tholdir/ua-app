@@ -1,9 +1,7 @@
-# Sessione attiva — 20/07/2026 (Bundle T + date fiscali + anti-flake)
+# Sessione attiva — nessuna (20/07/2026 sera)
 
-**Tre consegne deployate oggi:** (1) Bundle T (`bacfde9`) — O1b/O1a/O4a/A18 + anti-SSRF; (2) fix test flaky (`9350969`) — 5 run consecutive + stress 2 suite verdi; (3) **date fiscali Europe/Rome** (`3d5fd31`) — percorso Grande FatturaPA, panel 3×, review Yes, migration `20260720150000` applicata al DB live e registrata. Tutto: CI+CD verdi, smoke prod OK.
+Sessione CHIUSA con 3 deploy: Bundle T (`bacfde9`), anti-flake (`9350969`), date fiscali Europe/Rome (`3d5fd31` + migration `20260720150000` applicata e registrata). MEMORY voce (13), ROADMAP (3) aggiornate.
 
-**⚠ ANOMALIA:** 7 migration 16-17/07 non registrate nel ledger remoto — MAI `supabase db push` finché non riconciliate (`migration repair`). Sessione dedicata.
+**PROSSIMA SESSIONE (contesto pulito):** handoff completo in `docs/roadmap/2026-07-20-handoff-riconciliazione-e-roadmap.md` — (1) riconciliazione ledger migration (7 pending, GIÀ verificate tutte applicate al DB: repair a rischio zero; fino ad allora MAI `db push`) · (2) decisione Francesco draft dic→gen (3 opzioni pronte) · poi Bundle E (A16 export CSV) → mini-triage design.
 
-**Fuori scope tracciati:** draft dic→gen congelato · serie lavoro/ordine UTC (non fiscali) · guard formato data.
-
-**Prossimo:** Bundle E (A16 export CSV) → mini-triage design (mockup). Worktree date-fiscali-roma rimovibile; bundle-q con report gitignored (chiedere).
+**Promemoria:** ricalibrazione perf-budget ~27/07-03/08 · worktree `bundle-q` rimovibile (report gitignored dentro — chiedere prima).
