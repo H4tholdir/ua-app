@@ -12,6 +12,16 @@
  * - PERF_BYPASS: se presente, aggiunge l'header x-vercel-protection-bypass sia sul
  *   BrowserContext (extraHTTPHeaders) sia sulle singole richieste context.request
  * - PERF_ENFORCE=1: exit 1 se il p75 supera i budget (pagine/API/login)
+ *
+ * v3 (20/07/2026 — opzione (c) ratificata da Francesco, panel §0C sre+platform+backend):
+ * - Login MULTI-RUN: PERF_LOGIN_RUNS giri totali (default 5; giro 0 = il login del
+ *   contesto principale, warm-up scartato come per le pagine), metrica = MEDIANA dei
+ *   giri 1..N-1 su contesti nuovi (sessione pulita) — più robusta del p75 su n piccoli.
+ * - PERF_LOGIN_PAUSE_MS: pausa fra i giri di login (default 5000) — rate-limit auth
+ *   Supabase ~30 req/5min per IP, 5 login/run restano ampiamente sotto.
+ * - PERF_BUDGET_LOGIN_MODE=warn: lo sforamento del budget login logga un warning ma
+ *   NON fa exit 1 (fase transitoria di raccolta baseline; ricalibrazione statistica
+ *   della soglia dopo ~7-14 giorni: mediana storica + 15-20%, vedi MEMORY voce 11).
  */
 import { chromium, type Page, type BrowserContext } from 'playwright'
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -28,6 +38,10 @@ const ENFORCE = process.env.PERF_ENFORCE === '1'
 const BUDGET_TTFB_MS = Number(process.env.PERF_BUDGET_TTFB ?? 300)
 const BUDGET_API_MS = Number(process.env.PERF_BUDGET_API ?? 250)
 const BUDGET_LOGIN_MS = Number(process.env.PERF_BUDGET_LOGIN ?? 2000)
+
+const LOGIN_RUNS = Number(process.env.PERF_LOGIN_RUNS ?? 5)
+const LOGIN_PAUSE_MS = Number(process.env.PERF_LOGIN_PAUSE_MS ?? 5000)
+const LOGIN_MODE: 'fail' | 'warn' = process.env.PERF_BUDGET_LOGIN_MODE === 'warn' ? 'warn' : 'fail'
 
 const EMAIL = process.env.PERF_EMAIL ?? 'e2e-titolare@ua-test.local'
 const PASSWORD = process.env.PERF_PASSWORD ?? 'TestE2E!2026'
@@ -162,6 +176,12 @@ function p75(values: number[]): number {
   return sorted[idx]
 }
 
+function mediana(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true })
   const contextOptions: Parameters<typeof browser.newContext>[0] = {
@@ -176,8 +196,11 @@ async function main() {
 
   console.log(`base=${BASE} runs=${RUNS} bypass=${BYPASS ? 'sì' : 'no'} enforce=${ENFORCE ? 'sì' : 'no'}`)
 
-  // ---- LOGIN ----
-  console.log('login…')
+  // ---- LOGIN (multi-run, opzione (c) ratificata 20/07/2026) ----
+  // Giro 0 = login del contesto principale (resta autenticato per l'audit pagine):
+  // warm-up, scartato dalla metrica come per le pagine. Giri 1..LOGIN_RUNS-1 su
+  // contesti NUOVI (sessione pulita, niente riuso connessioni) → MEDIANA.
+  console.log(`login (giro 0, warm-up — ${LOGIN_RUNS} giri totali)…`)
   await page.goto(BASE + '/login', { waitUntil: 'load' })
   await page.fill('#ua-email', EMAIL)
   await page.fill('#ua-password', PASSWORD)
@@ -185,10 +208,31 @@ async function main() {
   await page.click('button[type="submit"]')
   await page.waitForURL('**/dashboard**', { timeout: 45000 })
   const loginMs = Date.now() - t0
-  console.log(`login→dashboard: ${loginMs}ms`)
+  console.log(`login→dashboard (giro 0, warm-up): ${loginMs}ms`)
 
   const results: unknown[] = []
   results.push({ route: '__login_to_dashboard__', run: 0, totalMs: loginMs })
+
+  const loginMeasures: number[] = []
+  for (let i = 1; i < LOGIN_RUNS; i++) {
+    await new Promise(r => setTimeout(r, LOGIN_PAUSE_MS))
+    const loginCtx = await browser.newContext(contextOptions)
+    try {
+      const loginPage = await loginCtx.newPage()
+      await loginPage.goto(BASE + '/login', { waitUntil: 'load' })
+      await loginPage.fill('#ua-email', EMAIL)
+      await loginPage.fill('#ua-password', PASSWORD)
+      const ti = Date.now()
+      await loginPage.click('button[type="submit"]')
+      await loginPage.waitForURL('**/dashboard**', { timeout: 45000 })
+      const ms = Date.now() - ti
+      console.log(`login→dashboard (giro ${i}): ${ms}ms`)
+      results.push({ route: '__login_to_dashboard__', run: i, totalMs: ms })
+      loginMeasures.push(ms)
+    } finally {
+      await loginCtx.close()
+    }
+  }
 
   // Misure post-warmup (run > 0), usate per il calcolo del p75
   const pageTtfbMeasures: number[] = []
@@ -260,16 +304,24 @@ async function main() {
   const p75Api = p75(apiMsMeasures)
   const pagesOk = p75Pages <= BUDGET_TTFB_MS
   const apiOk = p75Api <= BUDGET_API_MS
-  const loginOk = loginMs <= BUDGET_LOGIN_MS
+  // Metrica login = mediana dei giri post-warmup; fallback al giro 0 se
+  // LOGIN_RUNS<2 (nessun giro misurato — comportamento legacy n=1).
+  const loginMediana = loginMeasures.length > 0 ? mediana(loginMeasures) : loginMs
+  const loginOk = loginMediana <= BUDGET_LOGIN_MS
 
   console.log('\n=== RIEPILOGO p75 (giro 0 escluso, ' + (RUNS - 1) + ' giri misurati) ===')
   console.table([
     { metrica: 'pagine TTFB p75 (ms)', valore: Math.round(p75Pages), budget: BUDGET_TTFB_MS, esito: pagesOk ? 'OK' : 'SFORA' },
     { metrica: 'API p75 (ms)', valore: Math.round(p75Api), budget: BUDGET_API_MS, esito: apiOk ? 'OK' : 'SFORA' },
-    { metrica: 'login→dashboard (ms)', valore: loginMs, budget: BUDGET_LOGIN_MS, esito: loginOk ? 'OK' : 'SFORA' },
+    { metrica: `login→dashboard mediana di ${loginMeasures.length || 1} giri (ms)`, valore: Math.round(loginMediana), budget: BUDGET_LOGIN_MS, esito: loginOk ? 'OK' : (LOGIN_MODE === 'warn' ? 'SFORA (warn)' : 'SFORA') },
   ])
 
-  if (ENFORCE && (!pagesOk || !apiOk || !loginOk)) {
+  if (!loginOk && LOGIN_MODE === 'warn') {
+    console.warn(`\nlogin mediana ${Math.round(loginMediana)}ms > budget ${BUDGET_LOGIN_MS}ms — PERF_BUDGET_LOGIN_MODE=warn: non blocco (fase raccolta baseline, ricalibrazione statistica della soglia dopo ~7-14 giorni di dati multi-run).`)
+  }
+  const loginBlocca = !loginOk && LOGIN_MODE === 'fail'
+
+  if (ENFORCE && (!pagesOk || !apiOk || loginBlocca)) {
     console.error('\nPERF_ENFORCE=1: budget superato, exit 1.')
     process.exit(1)
   }
