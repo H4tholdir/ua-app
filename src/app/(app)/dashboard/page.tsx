@@ -34,7 +34,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     fetchIngressiStriscia(svc, labId, ruolo),
     usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
   ])
-  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, pile: pile.striscia })
+  // O1i (Task 10) — trial calcolato QUI (mai `new Date()` client) e passato
+  // come ingresso: `scegliSegnale` resta puro, `sTrial` decide da sé
+  // ambra/rosso. Scaduto/sospeso non arrivano qui: i redirect di layout li
+  // intercettano prima (B15) — `context.lab.stato === 'trial'` è l'unico caso.
+  const trial = context.lab?.stato === 'trial' && context.lab.trial_ends_at
+    ? { giorniRimasti: Math.max(0, Math.ceil((new Date(context.lab.trial_ends_at).getTime() - adessoRoma().getTime()) / 86_400_000)) }
+    : null
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, pile: pile.striscia })
 
   const ora = adessoRoma()
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`

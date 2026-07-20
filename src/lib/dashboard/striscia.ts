@@ -8,6 +8,7 @@ export type SegnaleStriscia = {
   forte: string | null // parte in grassetto --ink
   testo: string // resto della riga (1 riga, ellissi CSS)
   azione: { etichetta: string; href: string } | null // CTA mai troncata
+  tono?: 'ambra'
 }
 export type IngressiStriscia = {
   fatturaScartata: { id: string; numero: string } | null
@@ -21,6 +22,9 @@ export type IngressiStriscia = {
   // su `leggiTecniciSenzaAnagrafica` più sotto sul perché non vive qui dentro.
   senzaAnagrafica?: boolean
   tecniciSenzaAnagrafica?: string[]
+  // O1i (Task 10) — propagato dal chiamante (stile O1f), NON da
+  // fetchIngressiStriscia: v. nota su `sTrial` più sotto.
+  trial?: { giorniRimasti: number } | null
   pile: DatiPileStriscia
 }
 
@@ -64,10 +68,22 @@ const sTitTecnici: Candidato = (i) => i.tecniciSenzaAnagrafica?.length
   ? { attenzione: true, forte: `Account di ${i.tecniciSenzaAnagrafica[0]}`, testo: 'da completare', azione: { etichetta: 'Apri ›', href: '/tecnici' } }
   : null
 
+// O1i — segnale trial (decisions 20/07): ambra informativa finché il trial va,
+// rossa negli ultimi 3 giorni. SOLO titolare/admin_rete (la CTA è Abbonamento).
+// Scaduto/sospeso NON passano di qui: li gestiscono i redirect di layout (B15).
+const TESTO_FINE: Record<number, string> = { 0: 'finisce oggi', 1: 'finisce domani', 2: 'finisce dopodomani', 3: 'finisce fra 3 giorni' }
+const sTrial: Candidato = (i) => {
+  const g = i.trial?.giorniRimasti
+  if (g === undefined || g === null || g < 0) return null
+  const azione = { etichetta: 'Attiva ›', href: '/impostazioni/abbonamento' }
+  if (g <= 3) return { attenzione: true, forte: 'Prova:', testo: TESTO_FINE[g], azione }
+  return { attenzione: false, tono: 'ambra', forte: 'Prova:', testo: `mancano ${g} giorni`, azione }
+}
+
 // P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»)
 const GERARCHIE: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
-  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, s8, s9],
+  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, s8, s9],
+  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, s8, s9],
   front_desk: [s2, s3, s4, s1, s5, s6, s8, s9], // invariato — O1f non tocca front_desk
   tecnico: [sTecAccount, s2, s3, s4, s6, s8, s9],
 }

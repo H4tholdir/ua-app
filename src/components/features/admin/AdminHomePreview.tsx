@@ -77,8 +77,12 @@ export function AdminHomePreview(props: { nome: string; eyebrow: string; saluto:
       <div style={{ marginTop: 16 }}>
         {/* azione SEMPRE null qui: il segnale reale può portare una CTA verso
             una route tenant (es. `/fatture/[id]`) — in questa vista quella CTA
-            non deve mai comparire, si legge solo lo stato. */}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} azione={null}>
+            non deve mai comparire, si legge solo lo stato. `tono` invece si
+            propaga (O1i): è stato visivo puro, non naviga — oggi resta sempre
+            undefined perché `getSegnaleStriscia` non popola `trial` (v.
+            striscia.ts), ma se in futuro lo facesse l'anteprima deve restare
+            fedele a "esattamente ciò che vede il titolare". */}
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={null}>
           {segnale.testo}
         </StrisciaStato>
       </div>

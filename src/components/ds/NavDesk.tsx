@@ -248,7 +248,7 @@ export function NavDesk(props: {
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} azione={segnale.azione}>
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione}>
           {segnale.testo}
         </StrisciaStato>
       </div>

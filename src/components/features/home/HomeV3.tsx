@@ -62,7 +62,7 @@ export function HomeV3(props: { nome: string; eyebrow: string; saluto: string; p
       </div>
 
       <div className="striscia-slot" style={{ marginTop: 16 }}>
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} azione={segnale.azione}>
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione}>
           {segnale.testo}
         </StrisciaStato>
       </div>

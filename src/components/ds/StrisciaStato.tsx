@@ -35,13 +35,22 @@ export function StrisciaStato(props: {
   children: ReactNode
   forte?: string | null
   attenzione?: boolean
+  tono?: 'ambra'
   azione?: { etichetta: string; href: string } | null
 }) {
-  const { children, forte, attenzione = false, azione } = props
+  const { children, forte, attenzione = false, tono, azione } = props
 
   function handleClickAzione() {
     vibra('selection')
   }
+
+  // O1i — a `attenzione` vince sempre il rosso `!` (allarme, anche se il
+  // segnale è di origine trial negli ultimi 3 giorni); altrimenti `tono`
+  // ambra è lo stato informativo del trial (⏳), il verde `✓` resta il
+  // default sereno.
+  const background = attenzione ? 'var(--red-tint)' : tono === 'ambra' ? 'var(--amber-tint)' : 'var(--green-tint)'
+  const colore = attenzione ? 'var(--red)' : tono === 'ambra' ? 'var(--amber)' : 'var(--green)'
+  const glifo = attenzione ? '!' : tono === 'ambra' ? '⏳' : '✓'
 
   const icona = (
     <span
@@ -54,13 +63,13 @@ export function StrisciaStato(props: {
         width: DIAMETRO,
         height: DIAMETRO,
         borderRadius: '50%',
-        background: attenzione ? 'var(--red-tint)' : 'var(--green-tint)',
-        color: attenzione ? 'var(--red)' : 'var(--green)',
+        background,
+        color: colore,
         fontSize: 13,
         fontWeight: tipografia.weight.extrabold,
       }}
     >
-      {attenzione ? '!' : '✓'}
+      {glifo}
     </span>
   )
 
