@@ -88,4 +88,15 @@ describe('PATCH /api/impostazioni — campi URL solo da storage pubblico UÀ', (
     expect(res.status).toBe(422)
     expect(updatePayloads).toHaveLength(0)
   })
+
+  it('rifiuta 422 il path traversal dentro lo stesso host (../ e %2e)', async () => {
+    for (const url of [
+      `${BASE}/storage/v1/object/public/../../auth/v1/admin`,
+      `${BASE}/storage/v1/object/public/%2e%2e/%2e%2e/rest/v1/laboratori`,
+    ]) {
+      const res = await PATCH(req({ firma_ddc_url: url }))
+      expect(res.status).toBe(422)
+    }
+    expect(updatePayloads).toHaveLength(0)
+  })
 })

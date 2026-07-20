@@ -7,5 +7,15 @@ export function isPublicStorageUrl(value: unknown): boolean {
   if (typeof value !== 'string') return false
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!base) return false
-  return value.startsWith(`${base.replace(/\/+$/, '')}/storage/v1/object/public/`)
+  const prefix = `${base.replace(/\/+$/, '')}/storage/v1/object/public/`
+  if (!value.startsWith(prefix)) return false
+  // Hardening (review): un `..` (anche percent-encoded) dopo il prefisso
+  // normalizza il fetch verso ALTRI path dello stesso host — si rifiuta.
+  // I path storage legittimi (uuid/cartella/file.ext) non li contengono mai.
+  if (/(\.\.|%2e)/i.test(value)) return false
+  try {
+    return new URL(value).href.startsWith(prefix)
+  } catch {
+    return false
+  }
 }
