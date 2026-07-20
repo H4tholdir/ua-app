@@ -25,6 +25,7 @@ import { RigaCerca } from '@/components/ds/RigaCerca'
 import { CampoTesto } from '@/components/ds/Campo'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
+import { filtraLavoriPila } from '@/components/features/pile/filtra-lavori-pila'
 import type { LavoroPila } from '@/lib/dashboard/pile-home'
 import type { Pila } from '@/lib/lavori/urgenza'
 
@@ -44,11 +45,6 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-/** contains normalizzato: minuscolo + NFD senza diacritici (accent-insensitive). */
-function normalizza(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-}
-
 export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string }) {
   const { pila, lista, sub } = props
   const router = useRouter()
@@ -60,9 +56,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
   const [consegnaId, setConsegnaId] = useState<string | null>(null)
 
   const filtrata = useMemo(() => {
-    if (!cerca) return lista
-    const q = normalizza(cerca)
-    return lista.filter((l) => normalizza(`n.${l.numero} ${l.dentista} ${l.paziente} ${l.tipoLavoro}`).includes(q))
+    return cerca ? filtraLavoriPila(lista, cerca) : lista
   }, [lista, cerca])
 
   const idPrimoConsegnabile = pila === 'rossa' ? lista.find((l) => l.consegnabile)?.id : undefined
