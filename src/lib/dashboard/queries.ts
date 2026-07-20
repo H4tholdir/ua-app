@@ -10,6 +10,7 @@ import type {
   PrioritaLavoro,
   TipoDispositivo,
 } from '@/types/domain'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 export { isCacheStale } from './cache-stale'
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -21,10 +22,6 @@ function clienteDisplay(c: {
 } | null): string {
   if (!c) return '—'
   return c.studio_nome ?? `${c.nome} ${c.cognome}`
-}
-
-function oggiISO(): string {
-  return new Date().toISOString().split('T')[0]
 }
 
 // ─── Raw types ───────────────────────────────────────────────
@@ -279,7 +276,7 @@ export async function getTecnicoDashboard(
   labId: string,
   tecnicoId: string
 ): Promise<TecnicoDashboard> {
-  const oggi = oggiISO()
+  const oggi = oggiRomaISO()
   const selectCampi =
     'id, numero_lavoro, stato, priorita, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome)'
 
@@ -433,7 +430,7 @@ export async function getFrontDeskDashboard(
   svc: SupabaseClient,
   labId: string
 ): Promise<FrontDeskDashboard> {
-  const oggi = oggiISO()
+  const oggi = oggiRomaISO()
   const selectCampi =
     'id, numero_lavoro, stato, priorita, tipo_dispositivo, descrizione, data_consegna_prevista, ora_consegna, paziente_nome_snapshot, clienti(nome, cognome, studio_nome, telefono)'
 

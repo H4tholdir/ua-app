@@ -7,22 +7,10 @@ import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
 import type { Pila } from '@/lib/lavori/urgenza'
+import { adessoRoma, saluto, GIORNI, MESI } from '@/lib/utils/data-roma'
 
 export const dynamic = 'force-dynamic'
 const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
-
-const GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
-const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-
-function adessoRoma(): Date {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }))
-}
-function saluto(d: Date): string {
-  const h = d.getHours()
-  if (h >= 5 && h < 12) return 'Buongiorno'
-  if (h >= 12 && h < 18) return 'Buon pomeriggio'
-  return 'Buonasera'
-}
 
 // Home v3 (§7.1 + rev. 3.1) — UNA composizione per tutti i ruoli (A1): le 4
 // dashboard per ruolo escono dalla home QUI (la loro cancellazione fisica dei

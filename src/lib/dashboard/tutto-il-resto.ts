@@ -2,6 +2,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMaterialiEsaurimento } from '@/lib/dashboard/queries'
 import { SDI_SCARTATE } from '@/lib/dashboard/striscia'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 
 // ☰ «Tutto il resto» (§6.1/§6.2, Task 10) — le 9 voci CHIUSE della mappa, nello
 // stesso ordine del mockup `tutto-il-resto.html`: Dentisti · Fatture ·
@@ -138,7 +139,7 @@ async function getMaterialiRossi(svc: SupabaseClient, labId: string): Promise<nu
 
 async function getAgendaOggi(svc: SupabaseClient, labId: string): Promise<{ consegneOggi: number; prossimaOra: string | null }> {
   try {
-    const oggi = new Date().toISOString().split('T')[0]
+    const oggi = oggiRomaISO()
     const { data, error } = await svc
       .from('lavori')
       .select('ora_consegna')
