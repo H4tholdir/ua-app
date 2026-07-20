@@ -1,9 +1,9 @@
-# Sessione attiva — 20/07/2026 (Bundle T)
+# Sessione attiva — 20/07/2026 (Bundle T + date fiscali + anti-flake)
 
-**Bundle T COMPLETO e mergiato su main** (`bacfde9`, 11 commit): O1b helper `data-roma.ts` + adozione (dashboard/pile/agenda/API operative), O1a test rami pile, O4a ClienteComboBox→API, A18 hash firma DdC (cut-off 20/07, no backfill — decisione Francesco), anti-SSRF URL storage (da review), timeout webpush, commenti drift O4b. FASE 7: tsc 0 · 2229 pass · build OK. Review: merge SÌ.
+**Tre consegne deployate oggi:** (1) Bundle T (`bacfde9`) — O1b/O1a/O4a/A18 + anti-SSRF; (2) fix test flaky (`9350969`) — 5 run consecutive + stress 2 suite verdi; (3) **date fiscali Europe/Rome** (`3d5fd31`) — percorso Grande FatturaPA, panel 3×, review Yes, migration `20260720150000` applicata al DB live e registrata. Tutto: CI+CD verdi, smoke prod OK.
 
-**Decisioni Francesco:** A18 cut-off · A8 email Resend pianificata post-Bundle E.
+**⚠ ANOMALIA:** 7 migration 16-17/07 non registrate nel ledger remoto — MAI `supabase db push` finché non riconciliate (`migration repair`). Sessione dedicata.
 
-**In corso:** CI run 29736697200 → poi CD Vercel → verifica prod → commit docs BP-1.
+**Fuori scope tracciati:** draft dic→gen congelato · serie lavoro/ordine UTC (non fiscali) · guard formato data.
 
-**Prossimo:** Bundle E (A16 export CSV, riserve: anti CSV-injection + scoping tenant) → mini-triage design. Task chip creato: date fiscali UTC (fatture/XML) → sessione dedicata FatturaPA.
+**Prossimo:** Bundle E (A16 export CSV) → mini-triage design (mockup). Worktree date-fiscali-roma rimovibile; bundle-q con report gitignored (chiedere).
