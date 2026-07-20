@@ -29,7 +29,9 @@ Il vecchio numero resta bruciato nella serie chiusa (buco ammesso, Ris. 1/E 2013
 
 **Vale per TD01 e TD04** (qualunque draft caricato via `fatturaId`): per il TD04 rinumerato lo snapshot `collegata_numero`/`collegata_data`/`causale_storno` resta INTATTO (riferimento alla fattura stornata, non al numero della bozza).
 
-**Percorsi sanati insieme (stesso punto di codice):** ripresa outbox dopo crash a cavallo d'anno (retry a gennaio di un draft di dicembre) · micro-finestra batch a mezzanotte di capodanno (draft creato alle 23:59:59, emesso alle 00:00:01).
+**Percorsi reali coperti (tutti passano dal ramo `fatturaId`):** emissione via `POST /api/fatture/[id]/xml` di un draft creato con POST /api/fatture · resume TD04 (`nota-credito/route.ts` fase 2/retry) · micro-finestra batch a mezzanotte di capodanno (draft creato alle 23:59:59, `generaFatturaPA` invocato alle 00:00:01 Roma nella stessa richiesta). NB (verificato advisor): l'outbox NON esiste più (smontata con `20260710150000_ondata0_pulizia_outbox`); la RPC `outbox_prepara_draft` ricreata dalla migration date-fiscali del 20/07 è orfana (nessun caller, referenzia tabella droppata) — segnalata a backlog, fuori scope qui.
+
+**Nota operativa (accettata, analoga all'esistente):** la rinumerazione consuma il progressivo nuovo PRIMA degli upload XML/PDF; se l'upload fallisce, il draft resta col numero vecchio e ogni retry brucia un progressivo della serie attiva (buco motivabile, stessa classe dell'esistente). La race di doppia chiamata concorrente su `/xml` (check-then-act su `stato_sdi`) è pre-esistente e resta fuori scope.
 
 **Fuori scope:** guard 422 su POST /api/fatture (invariato) · UI (nessun caller client della route `/xml` oggi; la risposta della route restituisce già la fattura aggiornata col numero definitivo — quando la UI arriverà, mostrare il numero nuovo) · DELETE draft (non serve più: la bozza non resta mai orfana).
 
@@ -46,8 +48,8 @@ Il vecchio numero resta bruciato nella serie chiusa (buco ammesso, Ris. 1/E 2013
 2. **Draft anno precedente → rinumerato:** draft `numero='2026-0045'`, `anno=2026`, `data='2026-12-28'`, clock **2027-01-02 (via fake timers su istante UTC che è già 2027 a Roma)** → `generaProgressivo` chiamato con serie `'fattura'` e anno `2027`; UPDATE contiene `numero='2027-XXXX'`, `anno=2027`, `data='2027-01-02'`, `note` contenente `'sostituisce la bozza 2026-0045'`; il XML contiene numero e data nuovi.
 3. **Capodanno Roma vs UTC:** clock `2026-12-31T23:30:00Z` (= 00:30 di capodanno a Roma) con draft `anno=2026` → RINUMERATO a 2027 (annoRoma decide, non l'anno UTC).
 4. **TD04 draft anno precedente:** rinumerato come sopra E `collegata_numero`/`collegata_data` invariati nell'UPDATE/XML.
-5. **Nota preesistente:** draft con `note='Nota esistente'` → nuova nota = `'Nota esistente\nRinumerata all'emissione: …'`.
-6. I test esistenti generate-xml-* restano verdi senza modifiche.
+5. **Nota preesistente:** draft con `note='Nota esistente'` → nuova nota = `'Nota esistente\nRinumerata all'emissione: …'`. `exData` in formato ISO `YYYY-MM-DD` (com'è in `fatture.data`).
+6. **Fixture esistenti da aggiornare (richiesto dall'advisor):** i mock draft in `generate-xml-td04.test.ts` (e ogni fixture del ramo fatturaId) NON hanno `anno`/`note` → col nuovo codice `draft.anno === undefined` farebbe scattare il ramo rinumerato silenziosamente. Aggiungere `anno: <anno del clock del test>` e `note: null` alle fixture; il mock `generaProgressivo` (`async () => 42`) diventa una spia per gli assert sull'anno richiesto. Dopo l'adeguamento fixture, i test esistenti devono restare verdi con gli assert INVARIATI.
 
 ## Gate FASE 3
 
