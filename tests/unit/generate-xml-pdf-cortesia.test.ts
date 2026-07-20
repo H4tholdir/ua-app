@@ -28,6 +28,7 @@ vi.mock('@/lib/db/progressivi', () => ({ generaProgressivo: vi.fn(async () => 9)
 vi.mock('@/lib/pdf/render-document', () => ({ renderPdfDocument: mockRender }))
 
 import { generaFatturaPA } from '@/lib/fattura/generate-xml'
+import { oggiRomaISO } from '@/lib/utils/data-roma'
 
 const LAB = {
   id: 'lab-1', nome: 'Lab', ragione_sociale: 'Lab SRL', partita_iva: '12345678901',
@@ -97,7 +98,9 @@ describe('generaFatturaPA — copia di cortesia PDF + I-6', () => {
     expect(xmlUpload).toBeDefined()
     const xmlContent = String(xmlUpload?.bytes)
     expect(xmlContent).toContain('<Data>2026-07-01</Data>')
-    const oggi = new Date().toISOString().split('T')[0]
+    // Stessa semantica del codice (fix date fiscali 20/07): l'atteso segue il
+    // giorno civile di Roma — mai più divergente di notte (riserva architect #4).
+    const oggi = oggiRomaISO()
     if (oggi !== '2026-07-01') {
       expect(xmlContent).not.toContain(`<Data>${oggi}</Data>`)
     }
