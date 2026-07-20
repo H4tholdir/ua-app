@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
 const lavoro: LavoroPila = {
   id: 'l147', numero: '147', dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
+  cassetta: null,
   pill: { testo: 'OGGI · 16:00', famiglia: 'red' }, consegnabile: false,
   consegna: { data: '2026-07-09', ora: '16:00:00' }, rientro: null, tecnico: 'Ciro',
   fasi: [{ nome: 'Fresatura', fatta: true }, { nome: 'Sinterizzazione', fatta: true }, { nome: 'Glasatura', fatta: true }, { nome: 'Controllo finale', fatta: false }],

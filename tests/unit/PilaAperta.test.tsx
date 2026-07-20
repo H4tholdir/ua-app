@@ -10,6 +10,7 @@ beforeEach(() => push.mockClear())
 
 const lav = (numero: string, extra: Partial<LavoroPila> = {}): LavoroPila => ({
   id: `l${numero}`, numero, dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
+  cassetta: null,
   pill: { testo: 'OGGI · 16:00', famiglia: 'red' }, consegnabile: false, consegna: { data: '2026-07-09', ora: '16:00:00' }, rientro: null,
   fasi: [], tecnico: null, ...extra,
 })

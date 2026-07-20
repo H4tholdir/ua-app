@@ -5,6 +5,7 @@ import type { PileHome } from '@/lib/dashboard/pile-home'
 
 const lavoro = (numero: string): PileHome['liste']['rossa'][number] => ({
   id: `l${numero}`, numero, dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
+  cassetta: null,
   pill: { testo: 'OGGI · 16:00', famiglia: 'red' }, consegnabile: true, consegna: { data: '2026-07-12', ora: '16:00:00' }, rientro: null,
   fasi: [], tecnico: null,
 })

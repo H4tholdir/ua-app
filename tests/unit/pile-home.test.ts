@@ -14,6 +14,7 @@ function raw(p: Partial<RawLavoroPila>): RawLavoroPila {
     clienti: { nome: 'Aldo', cognome: 'Esposito', studio_nome: 'Studio Esposito' },
     pazienti: { codice_paziente: 'PZ-0412' },
     lavori_fasi: [], lavoro_prove: [], tecnici: null,
+    numero_cassetta: null,
     ...p,
   }
 }
@@ -102,6 +103,17 @@ describe('mapPileHome — il cast del mockup, riprodotto (home.html + pila-apert
 
   it('rientro (Task 8): l\'unico lavoro viola porta con sé la data di rientro prevista della prova aperta', () => {
     expect(pile.liste.viola[0].rientro).toBe('2026-07-13')
+  })
+
+  it('propaga numero_cassetta come LavoroPila.cassetta (A14)', () => {
+    const rows = [
+      raw({ id: 'l1', numero_lavoro: '144', stato: 'ricevuto', numero_cassetta: 'C12' }),
+      raw({ id: 'l2', numero_lavoro: '147', stato: 'ricevuto', numero_cassetta: null }),
+    ]
+    const pile = mapPileHome(rows, OGGI)
+    const blu = pile.liste.blu
+    expect(blu.find((l) => l.id === 'l1')?.cassetta).toBe('C12')
+    expect(blu.find((l) => l.id === 'l2')?.cassetta).toBeNull()
   })
 
   it('subMorph — i numeri utili del morph header', () => {

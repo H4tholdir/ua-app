@@ -11,6 +11,7 @@ import type { Famiglia } from '@/components/ds/Pill'
 export type RawLavoroPila = {
   id: string; numero_lavoro: string; stato: StatoLavoro
   data_consegna_prevista: string; ora_consegna: string | null
+  numero_cassetta: string | null
   descrizione: string; created_at: string; updated_at: string
   clienti: { nome: string; cognome: string; studio_nome: string | null } | null
   pazienti: { codice_paziente: string | null } | null
@@ -23,6 +24,8 @@ export type RawLavoroPila = {
 
 export type LavoroPila = {
   id: string; numero: string; dentista: string; paziente: string; tipoLavoro: string
+  /** Targa cassetta fisica (A14) — null se il lavoro non è in cassetta. */
+  cassetta: string | null
   pill: { testo: string; famiglia: Famiglia }
   consegnabile: boolean
   consegna: { data: string; ora: string | null }
@@ -213,6 +216,7 @@ export function mapPileHome(rows: RawLavoroPila[], oggi: Date): PileHome {
     if (!u.pila) continue
     liste[u.pila].push({
       id: r.id, numero: r.numero_lavoro,
+      cassetta: r.numero_cassetta,
       dentista: r.clienti?.studio_nome ?? (`${r.clienti?.nome ?? ''} ${r.clienti?.cognome ?? ''}`.trim() || '—'),
       paziente: r.pazienti?.codice_paziente ?? '—',
       tipoLavoro: r.descrizione,

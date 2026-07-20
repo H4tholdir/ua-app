@@ -20,7 +20,7 @@ export async function getPileHome(svc: SupabaseClient, labId: string, opts: { te
   if (opts.senzaAnagrafica) return mapPileHome([], adessoRoma())
   let q = svc
     .from('lavori')
-    .select(`id, numero_lavoro, stato, data_consegna_prevista, ora_consegna, descrizione, created_at, updated_at,
+    .select(`id, numero_lavoro, numero_cassetta, stato, data_consegna_prevista, ora_consegna, descrizione, created_at, updated_at,
       clienti(nome, cognome, studio_nome), pazienti(codice_paziente),
       lavori_fasi(eseguita_at, deleted_at, fase:fasi_produzione(descrizione, ordine)),
       lavoro_prove(data_rientro_prevista, data_rientro_effettiva),
