@@ -13,6 +13,7 @@
 import { NextResponse } from 'next/server'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { statoLabDaEmbed, portaleNonDisponibile } from '@/lib/portale/guardie'
+import { triggerPushByRole } from '@/lib/notifications/trigger'
 
 interface RequestBody {
   token: string
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
   // 3. Verifica token cliente
   const { data: cliente, error: clienteError } = await svc
     .from('clienti')
-    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato)')
+    .select('id, laboratorio_id, portale_token_scade_at, laboratori(stato), studio_nome, nome, cognome')
     .eq('portale_token', body.token)
     .is('deleted_at', null)
     .single()
@@ -80,6 +81,12 @@ export async function POST(req: Request) {
 
   const labId: string = cliente.laboratorio_id
   const clienteId: string = cliente.id
+  const { studio_nome, nome, cognome } = cliente as unknown as {
+    studio_nome: string | null
+    nome: string
+    cognome: string
+  }
+  const nomeStudioODentista = studio_nome ?? `${nome} ${cognome}`
 
   // 5. Rate limit: max 10 richieste portale nelle ultime 24h per quel cliente
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -152,6 +159,24 @@ export async function POST(req: Request) {
   if (insertError) {
     console.error('[portale/richiedi] insert error:', insertError.message)
     return NextResponse.json({ error: insertError.message }, { status: 500 })
+  }
+
+  // 9. Notifica push a titolare + front_desk (GDPR-safe: mai paziente/paziente_codice_richiesta).
+  // triggerPushByRole non lancia mai in produzione — await comunque per coerenza
+  // col runtime serverless (nessun lavoro in background dopo la response); il
+  // try/catch resta una difesa aggiuntiva, non deve mai bloccare il 201.
+  try {
+    const pushPayload = {
+      title: 'Nuova richiesta dal portale',
+      body: `${nomeStudioODentista} ha richiesto: ${body.tipo_dispositivo} (n.${numero_lavoro})`,
+      url: `/lavori/${lavoro.id}`,
+    }
+    await Promise.allSettled([
+      triggerPushByRole(labId, 'titolare', pushPayload),
+      triggerPushByRole(labId, 'front_desk', pushPayload),
+    ])
+  } catch (pushErr) {
+    console.error('[portale/richiedi] push:', pushErr) // mai bloccare la creazione per una push
   }
 
   return NextResponse.json(
