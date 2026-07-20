@@ -161,3 +161,42 @@ describe('getPerimetroHome / getPileHome — fail-closed per il tecnico senza an
     expect(segnale).toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null })
   })
 })
+
+describe('rami prose scoperti (O1a) — pillFase 0-branch, sub ambra/viola/blu', () => {
+  it('pillFase: tutte le fasi eseguite → «PER <GIORNO N>» (0-branch, mai «domani»)', () => {
+    const pile = mapPileHome([
+      raw({ id: 'pf0', numero_lavoro: '160', stato: 'in_lavorazione', data_consegna_prevista: '2026-07-14', ora_consegna: null,
+            lavori_fasi: [
+              { eseguita_at: '2026-07-08T10:00:00Z', deleted_at: null, fase: { descrizione: 'Fusione', ordine: 1 } },
+              { eseguita_at: '2026-07-08T11:00:00Z', deleted_at: null, fase: { descrizione: 'Rifinitura', ordine: 2 } },
+            ] }),
+    ], OGGI)
+    expect(pile.liste.ambra[0].pill).toEqual({ testo: 'PER MARTEDÌ 14', famiglia: 'amber' })
+  })
+
+  it('sub ambra: lavoro in lavorazione IN RITARDO (inCima) → frase rossa «n.X da ieri»', () => {
+    const pile = mapPileHome([
+      raw({ id: 'amb-rit', numero_lavoro: '161', stato: 'in_lavorazione', data_consegna_prevista: '2026-07-08', ora_consegna: null }),
+    ], OGGI)
+    expect(pile.sub.ambra).toBe('n.161 da ieri')
+  })
+
+  it('sub viola: prova aperta SENZA data rientro → fallback «n.X in prova»', () => {
+    const pile = mapPileHome([
+      raw({ id: 'v-nd', numero_lavoro: '162', stato: 'in_prova_esterna', data_consegna_prevista: '2026-07-20',
+            lavoro_prove: [{ data_rientro_prevista: null, data_rientro_effettiva: null }] }),
+    ], OGGI)
+    expect(pile.sub.viola).toBe('n.162 in prova')
+    expect(subMorph('viola', pile, OGGI)).toBe('1 lavoro · in prova')
+  })
+
+  it('sub blu: 4 arrivi → «n.A, n.B e altri 2 da confermare»', () => {
+    const pile = mapPileHome([
+      raw({ id: 'b1', numero_lavoro: '170', stato: 'ricevuto', data_consegna_prevista: '2026-07-22', ora_consegna: null, created_at: '2026-07-09T06:00:00Z' }),
+      raw({ id: 'b2', numero_lavoro: '171', stato: 'ricevuto', data_consegna_prevista: '2026-07-23', ora_consegna: null, created_at: '2026-07-09T07:00:00Z' }),
+      raw({ id: 'b3', numero_lavoro: '172', stato: 'ricevuto', data_consegna_prevista: '2026-07-24', ora_consegna: null, created_at: '2026-07-09T08:00:00Z' }),
+      raw({ id: 'b4', numero_lavoro: '173', stato: 'ricevuto', data_consegna_prevista: '2026-07-25', ora_consegna: null, created_at: '2026-07-09T09:00:00Z' }),
+    ], OGGI)
+    expect(pile.sub.blu).toBe('n.170, n.171 e altri 2 da confermare')
+  })
+})
