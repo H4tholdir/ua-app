@@ -202,17 +202,14 @@ export function RichiestaClientForm({
             <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '24px', fontWeight: 700, color: 'var(--t1, #1C1916)', margin: '0 0 12px' }}>
               Richiesta inviata!
             </h1>
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: '0 0 8px' }}>
-              Il laboratorio <strong style={{ color: 'var(--t1)' }}>{labNome}</strong> ha ricevuto la tua richiesta.
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: numeroLavoro ? '0 0 8px' : '0 0 32px' }}>
+              Il laboratorio <strong style={{ color: 'var(--t1)' }}>{labNome}</strong> la esaminerà e ti contatterà per la conferma.
             </p>
             {numeroLavoro && (
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', margin: '0 0 24px' }}>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: 'var(--t2, #4A3D33)', margin: '0 0 32px' }}>
                 Numero pratica: <strong style={{ color: 'var(--t1)' }}>#{numeroLavoro}</strong>
               </p>
             )}
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: 'var(--t2, #4A3D33)', lineHeight: 1.6, margin: '0 0 32px' }}>
-              Ti contatteranno per la conferma.
-            </p>
             <button
               type="button"
               onClick={handleReset}
