@@ -20,10 +20,17 @@ Preparare i mockup HTML in `docs/design/mockups/` (MAI /tmp), **PIÙ VARIANTI li
 2. **A14 — numero cassetta in card lavoro**: `numero_cassetta` è a DB; conflitto con DS v3 §5.8 («4 righe» per card) — è una decisione di sistema, serve la variante che mostra il trade-off.
 3. **O1h — back di PilaAperta**: `PilaAperta.tsx:75` ha hardcoded `/dashboard`.
 4. **O1i — profilo v3 ×3**: voce «Esci» (spec v3 §7.16) · riga identità nel footer NavDesk · segnale trial in StrisciaStato.
-5. **NUOVO — bottoni download export (da Bundle E)**: punto di download per `GET /api/lavori/export` (pagina `/lavori` = superficie **v3**: token/componenti `src/components/ds/`, wrapper `[data-ds="v3"]`) e per `GET /api/tecnici/cedolini-batch` (pagina `/tecnici` = superficie **v2.3**: pattern del bottone export esistente in `fatture/page.tsx:191`). NB il link fatture usa `new Date().getFullYear()` client-side → nei nuovi punti usare l'anno/mese di Roma o lasciare il default della route (che è già `annoRoma()`).
+5. **NUOVO — bottoni download export (da Bundle E)**: punto di download per `GET /api/lavori/export` (pagina `/lavori` = già **v3**: token/componenti `src/components/ds/`, wrapper `[data-ds="v3"]`) e per `GET /api/tecnici/cedolini-batch`. **DECISIONE FRANCESCO (20/07, tarda sera): la pagina `/tecnici` MIGRA A v3 in questa stessa ondata** — il mockup è la pagina /tecnici interamente in v3 col bottone dentro (niente UI nuova su v2.3; regola §14 rispettata migrando la route). NB il link export fatture esistente usa `new Date().getFullYear()` client-side → nei nuovi punti usare l'anno/mese di Roma o lasciare il default della route (che è già `annoRoma()`).
 6. **Da far confermare in coda al giro**: deferral A10 (CTA «+» allo scroll, solo v2.3) e A11 («MDR Allegato XIII» esposto) → ondate delle rispettive superfici.
 
 Riferimenti: censimento `docs/roadmap/2026-07-20-censimento-a-o.md` (§A tabella) · DS v3 spec `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md` · regola di convivenza §14 (migrazione per route, MAI per componente).
+
+## Punto 1-bis — Piano ondate v3: censimento + calendario (DIRETTIVA FRANCESCO 20/07)
+
+**«Tutto deve migrare a v3»** non è più solo il principio di fondo: va tracciato come percorso. Nella prossima sessione (in coda al mini-triage, o in sessione dedicata se il triage si allunga):
+1. **Censimento** di tutte le route ancora v2.3 (griglia: route · complessità · dipendenze · priorità d'uso). Punto di partenza: MEMORY/CLAUDE.md §8 elenca le già migrate (home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` con bridge residui, `/tutto-il-resto`, catalogo) — tutto il resto è v2.3.
+2. **Calendario ondate** da far ratificare a Francesco (con panel advisor UX, Regola Advisor): ordine, raggruppamenti per route affini, e regola operativa «ogni ondata che tocca una pagina v2.3 ne valuta PRIMA la migrazione completa a v3» (come deciso per /tecnici).
+3. Inserire il calendario ratificato in ROADMAP-UFFICIALE come voci con data.
 
 ## Punto 2 — A8: fallback email Resend (ratificata da Francesco il 20/07, riga in ROADMAP tabella V1.9)
 
