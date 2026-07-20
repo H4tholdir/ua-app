@@ -39,21 +39,11 @@ const tabs: Tab[] = [
       </svg>
     ),
   },
-  {
-    href: '/lavori',
-    label: 'Lavori',
-    ariaLabel: 'Lavori — lista lavori',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path
-          d="M4 6h14M4 11h10M4 16h7"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
+  // Task 7 (ondata A mini-triage): la tab «Lavori» → `/lavori` è stata
+  // rimossa. `/lavori` senza `?pila=` ora fa redirect a `/dashboard`
+  // (morte di «Le pile»): un ripuntamento nudo della tab a `/dashboard`
+  // avrebbe duplicato la voce «Oggi» già presente sopra — rimozione =
+  // ripuntamento senza duplicato (decisions doc, caso «rimuovere/ripuntare»).
   {
     href: '/lavori/nuovo',
     label: 'Nuovo',
@@ -129,8 +119,6 @@ const tabs: Tab[] = [
 function isTabActive(tabHref: string, pathname: string): boolean {
   // CTA: exact match only
   if (tabHref === '/lavori/nuovo') return pathname === '/lavori/nuovo'
-  // Lavori: starts with /lavori but NOT /lavori/nuovo
-  if (tabHref === '/lavori') return pathname.startsWith('/lavori') && pathname !== '/lavori/nuovo'
   // All others: startsWith for nested routes
   return pathname.startsWith(tabHref)
 }

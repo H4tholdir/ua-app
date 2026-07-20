@@ -23,9 +23,13 @@ import { ThemeToggleButton } from '@/components/layout/ThemeToggleButton'
 type Voce = { href: string; etichetta: string; glifo: string }
 
 // Stesse destinazioni della BottomNavPill (l'ordine segue la nav mobile).
+// Task 7 (ondata A mini-triage): la voce «Lavori» → `/lavori` è stata
+// rimossa. `/lavori` senza `?pila=` ora fa redirect a `/dashboard` (morte
+// di «Le pile»): un ripuntamento nudo della voce a `/dashboard` avrebbe
+// duplicato «Oggi» già presente sopra — rimozione = ripuntamento senza
+// duplicato (decisions doc, caso «rimuovere/ripuntare»).
 const VOCI: Voce[] = [
   { href: '/dashboard', etichetta: 'Oggi', glifo: '▦' },
-  { href: '/lavori', etichetta: 'Lavori', glifo: '≣' },
   { href: '/clienti', etichetta: 'Clienti', glifo: '◔' },
   { href: '/fatture', etichetta: 'Fatture', glifo: '🧾' },
   { href: '/scadenzario', etichetta: 'Sospesi', glifo: '⏱' },
@@ -33,7 +37,6 @@ const VOCI: Voce[] = [
 ]
 
 function voceAttiva(href: string, pathname: string): boolean {
-  if (href === '/lavori') return pathname.startsWith('/lavori') && pathname !== '/lavori/nuovo'
   return pathname === href || pathname.startsWith(href + '/')
 }
 

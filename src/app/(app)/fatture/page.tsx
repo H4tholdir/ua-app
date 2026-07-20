@@ -245,7 +245,7 @@ export default async function FatturePage() {
           >
             Le fatture vengono generate automaticamente.{' '}
             <Link
-              href="/lavori"
+              href="/dashboard"
               style={{
                 color: 'var(--primary, #D90012)',
                 fontWeight: 600,
