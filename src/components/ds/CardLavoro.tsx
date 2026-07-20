@@ -140,6 +140,16 @@ export function CardLavoro(props: {
 } & Riga4) {
   const { numero, dentista, paziente, tipoLavoro, tempo, onApri, onConsegna, conferma, selezionato = false } = props
 
+  // Guardia dev-only (Task 10, O1c): l'esclusione reciproca di `onConsegna` e
+  // `conferma` è garantita SOLO a livello di tipo (`Riga4`, sopra) — un
+  // chiamante che bypassa `tsc` (spread di due oggetti, `as any`…) supera il
+  // compilatore ma qui sotto i due blocchi JSX (righe 261+/267+) sono `if`
+  // indipendenti, non un if/else: NESSUNA variante vince, vengono montate
+  // ENTRAMBE le righe 4, violando il «massimo 4 righe» della card (§5.8).
+  if (process.env.NODE_ENV !== 'production' && conferma && onConsegna) {
+    console.warn('CardLavoro: conferma e onConsegna sono mutuamente esclusivi — con entrambi impostati vengono renderizzate ENTRAMBE le righe 4 (nessuna variante ne esclude l\'altra)')
+  }
+
   function handleApri() {
     vibra('selection')
     onApri()

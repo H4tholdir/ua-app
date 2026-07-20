@@ -48,6 +48,19 @@ describe('PilaAperta — la lista di legge (§4.1)', () => {
     expect(screen.queryByText(/n\.204/)).not.toBeInTheDocument()
   })
 
+  it('Task 10 (O1c) — con ricerca aperta, il bottone «Chiudi ricerca» richiude il campo e riporta RigaCerca', async () => {
+    const tanti = Array.from({ length: 16 }, (_, i) => lav(String(200 + i)))
+    render(<PilaAperta pila="ambra" sub="x" lista={tanti} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /cerca/i }))
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /cerca fra tutti/i })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Chiudi ricerca' }))
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.getByRole('button', { name: /cerca fra tutti/i })).toBeInTheDocument()
+  })
+
   it('pila vuota: morph a 0 senza sub + messaggio quieto (mockup stati-vuoti)', () => {
     render(<PilaAperta pila="ambra" lista={[]} />)
     expect(screen.getByText('0')).toBeInTheDocument()

@@ -83,7 +83,14 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {lista.length > SOGLIA_CERCA && (cerca === null
             ? <RigaCerca totale={lista.length} cosa="lavori" onApri={() => setCerca('')} />
-            : <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />)}
+            : (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <CampoTesto label="Cerca" valore={cerca} onCambia={setCerca} autoFocus />
+                </div>
+                <TastoTondo glifo="×" etichettaAria="Chiudi ricerca" onClick={() => setCerca(null)} />
+              </div>
+            ))}
 
           {filtrata.map((l) => (
             <CardLavoro

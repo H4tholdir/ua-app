@@ -194,6 +194,39 @@ describe('CardLavoro — nelle liste (§5.8)', () => {
     expect(invalida).toBeTruthy() // l'elemento esiste a runtime; il blocco è compile-time
   })
 
+  it('Task 10 (O1c) — conferma E onConsegna insieme (bypass del tipo) → console.warn dev-only, l\'uno non esclude l\'altro a runtime', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
+    render(<CardLavoro {...props} />)
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0][0]).toContain('CardLavoro: conferma e onConsegna sono mutuamente esclusivi')
+    spy.mockRestore()
+  })
+
+  it('Task 10 (O1c) — in produzione (NODE_ENV=production), stesse due prop insieme → NIENTE console.warn', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const props = { ...PROPS_BASE, onApri: () => {}, onConsegna: () => {}, conferma: { onClick: () => {} } } as unknown as Parameters<typeof CardLavoro>[0]
+    render(<CardLavoro {...props} />)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+    vi.unstubAllEnvs()
+  })
+
+  it('Task 10 (O1c) — con SOLO onConsegna (uso normale) → NIENTE console.warn', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} onConsegna={() => {}} />)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('Task 10 (O1c) — con SOLO conferma (uso normale) → NIENTE console.warn', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    render(<CardLavoro {...PROPS_BASE} onApri={() => {}} conferma={{ onClick: () => {} }} />)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('con conferma → riga 4 alternativa: TastoSecondario «Conferma», click → onClick senza onApri (stopPropagation)', () => {
     const onApri = vi.fn()
     const onClick = vi.fn()

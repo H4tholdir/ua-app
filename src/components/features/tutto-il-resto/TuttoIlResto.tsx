@@ -59,7 +59,7 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
             <Link
               key={s.chiave}
               href={s.href}
-              aria-label={s.nome}
+              aria-label={s.sub ? `${s.nome}. ${s.sub}` : s.nome}
               className="ds-card ua-tir-sez"
               style={{
                 display: 'flex',
