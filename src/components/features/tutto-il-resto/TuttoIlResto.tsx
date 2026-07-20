@@ -9,15 +9,30 @@
 // (HomeDesktop/NavDesk, Task 9). Stesso schema show/hide CSS di
 // HomeV3/HomeDesktop — niente doppio render lato server, un'unica regola in
 // un `<style>` scoped a questo componente.
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TastoTondo } from '@/components/ds/TastoTondo'
+import { LinkQuieto } from '@/components/ds/LinkQuieto'
+import { DialogConferma } from '@/components/ds/DialogConferma'
+import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { raggio, tipografia } from '@/design-system/v3/tokens'
 import type { Sezione } from '@/lib/dashboard/tutto-il-resto'
 
-export function TuttoIlResto(props: { sezioni: Sezione[] }) {
-  const { sezioni } = props
+export function TuttoIlResto(props: { sezioni: Sezione[]; utenteNome: string; labNome: string }) {
+  const { sezioni, utenteNome, labNome } = props
   const router = useRouter()
+  const [dialogEsciAperto, setDialogEsciAperto] = useState(false)
+
+  // Pattern IDENTICO a UserProfileSheet.tsx:76-80 — stesso import
+  // `getBrowserClient`, stessa sequenza signOut → push('/login'). Niente
+  // `sndClick()` legacy qui: in v3 il feedback tattile/sonoro del tap è già
+  // di TastoPrimario dentro DialogConferma (suona()/vibra() §9).
+  const logout = useCallback(async () => {
+    const sb = getBrowserClient()
+    await sb.auth.signOut()
+    router.push('/login')
+  }, [router])
 
   return (
     <>
@@ -89,7 +104,30 @@ export function TuttoIlResto(props: { sezioni: Sezione[] }) {
             </Link>
           ))}
         </div>
+
+        {/* O1i-1 — voce «Esci» (lacuna §7.16 colmata, mockup
+            2026-07-20-mini-triage-o1i-profilo-v3.html blocco 1 variante A).
+            Firma NON tappabile + LinkQuieto: il logout è raro, non merita una
+            card. Vive SOLO qui nel ramo mobile — il ramo desktop (§12.3) non
+            ha bisogno di un Esci proprio, l'identità/logout desktop vivono
+            nel NavDesk (Task 9). */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '18px 0 2px' }}>
+          <span style={{ fontSize: tipografia.size.caption, fontWeight: tipografia.weight.semibold, color: 'var(--faint)' }}>
+            Sei {utenteNome} · {labNome}
+          </span>
+          <LinkQuieto onClick={() => setDialogEsciAperto(true)}>Esci</LinkQuieto>
+        </div>
       </section>
+
+      <DialogConferma
+        aperto={dialogEsciAperto}
+        titolo="Vuoi uscire?"
+        testo="Dovrai rifare l'accesso per rientrare."
+        etichettaDistruttiva="Esci"
+        etichettaSicura="Resta"
+        onConferma={logout}
+        onAnnulla={() => setDialogEsciAperto(false)}
+      />
 
       {/* ≥1024 — nota quieta (§12.3): «Tutto il resto» non è una pagina a desktop. */}
       <div className="ua-tir-desk">

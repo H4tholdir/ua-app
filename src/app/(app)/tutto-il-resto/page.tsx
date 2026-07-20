@@ -21,10 +21,14 @@ export default async function TuttoIlRestoPage() {
   const svc = getServiceClient()
   const sezioni = await getSezioniTuttoIlResto(svc, labId, ruolo)
 
+  // O1i-1 — firma «Sei {nome} · {labNome}» sopra l'Esci (lacuna §7.16).
+  const utenteNome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
+  const labNome = context.lab?.nome ?? ''
+
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
-      <TuttoIlResto sezioni={sezioni} />
+      <TuttoIlResto sezioni={sezioni} utenteNome={utenteNome} labNome={labNome} />
     </div>
   )
 }
