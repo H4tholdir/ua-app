@@ -47,4 +47,13 @@ describe('RichiestaClientForm — copy schermata successo (A9)', () => {
     expect(screen.queryByText(/ha ricevuto la tua richiesta/)).toBeNull()
     expect(screen.queryByText(/^Ti contatteranno per la conferma\.$/)).toBeNull()
   })
+
+  // A7: dalla schermata di successo del form richiesta, il dentista deve poter
+  // tornare al portale di stato lavori senza dover recuperare il secondo URL.
+  it('mostra un link di ritorno al portale stato lavori (A7)', async () => {
+    await submitForm()
+
+    const link = screen.getByRole('link', { name: '← Torna allo stato lavori' })
+    expect(link.getAttribute('href')).toBe('/portale/tok-123')
+  })
 })

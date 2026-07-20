@@ -229,6 +229,22 @@ export function RichiestaClientForm({
             >
               ← Invia un&apos;altra richiesta
             </button>
+            <a
+              href={`/portale/${token}`}
+              style={{
+                display: 'inline-block',
+                marginTop: '16px',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '14px',
+                fontWeight: 700,
+                color: 'var(--t1, #1C1916)',
+                textDecoration: 'underline',
+                minHeight: '44px',
+                lineHeight: '44px',
+              }}
+            >
+              ← Torna allo stato lavori
+            </a>
           </motion.div>
         </div>
       </main>

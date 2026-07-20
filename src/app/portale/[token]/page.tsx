@@ -466,6 +466,27 @@ export default async function PortalePage({ params }: PageProps) {
           >
             Qui trovi lo stato dei tuoi lavori in corso e l&apos;archivio degli ultimi consegnati.
           </p>
+          <a
+            href={`/richiedi/${token}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              minHeight: '44px',
+              padding: '0 14px',
+              marginTop: '12px',
+              borderRadius: '8px',
+              background: '#F3F4F6',
+              fontFamily: 'DM Sans, sans-serif',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#374151',
+              textDecoration: 'none',
+            }}
+            aria-label="Richiedi un nuovo lavoro al laboratorio"
+          >
+            ➕ Richiedi nuovo lavoro
+          </a>
         </div>
 
         {/* Lavori aperti */}
