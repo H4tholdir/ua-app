@@ -266,6 +266,19 @@ describe('POST /api/lavori/[id]/cassetta', () => {
     expect(chiamate).toHaveLength(0)
   })
 
+  // Rifinitura round 3 (review): un body di SOLI SPAZI non è "corpo assente"
+  // (quello ha lunghezza zero) — è un JSON illeggibile come qualunque altro, e
+  // deve fallire il parse -> 400, non cadere nel ramo di libera. Forma fedele
+  // all'istruzione: `raw.length === 0`, non `raw.trim().length === 0`.
+  it('Important #1 (rifinitura): body di soli spazi (non vuoto) → 400, MAI liberazione, nessuna RPC', async () => {
+    mockLavoroTrovato(true)
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', nome: null }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await POST(rawReq('   '), { params })
+    expect(res.status).toBe(400)
+    expect(chiamate).toHaveLength(0)
+  })
+
   it('Minor #1: {cassetta_id: "abc"} (non ha forma UUID) → 422 cassetta_id_non_valido, nessuna RPC (eviterebbe un cast error 500)', async () => {
     mockLavoroTrovato(true)
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', cassetta_id: CASSETTA_1, nome: 'x' }, error: null }])

@@ -29,7 +29,11 @@ type ParsedBody = { ok: true; body: Record<string, unknown> | null } | { ok: fal
  */
 async function parseBody(req: Request): Promise<ParsedBody> {
   const raw = await req.text()
-  if (raw.trim().length === 0) return { ok: true, body: null }
+  // Corpo VUOTO (lunghezza zero, non "solo spazi"): un body whitespace-only
+  // non è «assente», è un JSON illeggibile come qualunque altro — cade nel
+  // `JSON.parse` sotto e finisce nel `catch` → 400, non nel ramo di libera
+  // (review: stessa classe di Important #1, forma fedele all'istruzione).
+  if (raw.length === 0) return { ok: true, body: null }
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
