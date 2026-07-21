@@ -716,6 +716,14 @@ export async function getParete(svc: SupabaseClient, labId: string): Promise<Cas
 >    `cassetta_rinomina_atomica` e in `cassetta_crea_atomica` (è stato tolto solo da `assegna`).
 > 7. **Tutte** le chiamate RPC vanno avvolte in `callRpcWithRetry` (`src/lib/supabase/rpc-retry.ts`,
 >    retry sul SQLSTATE 40P01), le due nuove comprese. **Test in `tests/unit/`** (D-O1).
+> 8bis. **Tre fatti osservati sul DB LIVE dopo l'apply di `090300`** (smoke via `/rest/v1/rpc/`,
+>    `task-4a-report.md` Appendice 2) — non deducibili da un collaudo in container:
+>    - **Tutti gli esiti tornano HTTP 200.** La route deve mappare il **payload** (`data.esito`),
+>      **mai** lo status della chiamata RPC.
+>    - **La `RAISE` del colore torna HTTP 400 con `P0001`.** Quindi `normalizzaColore()` **deve**
+>      fare `.toUpperCase()` sull'hex **prima** di chiamare: un `#ff00aa` minuscolo diventa un 400,
+>      non un esito. (È il contratto R-5 visto dal lato pratico.)
+>    - **`anon` riceve 401**, non 403 né 404.
 > 8. **`nome_occupato` quando il nome è AUTOMATICO non è un 409.** Se `body.nome` è **assente**,
 >    l'utente non ha digitato alcun nome: rispondergli «nome occupato» sarebbe una bugia. Il
 >    fallthrough dei 5 giri interni alla RPC **è raggiungibile** — misurato in collaudo: 0 su 210 fino
