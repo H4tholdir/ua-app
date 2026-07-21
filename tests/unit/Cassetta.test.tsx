@@ -23,6 +23,12 @@ describe('targaScura — regola di luminanza (§5.35, brief Task 10)', () => {
   it("un altro slug standard (es. 'rossa') → NON scura", () => {
     expect(targaScura('rossa')).toBe(false)
   })
+  it("hex '#C0C0C0' (luminanza relativa ≈ 0.527 < 0.55) → NON scura — discrimina dalla luminanza percepita (review M3)", () => {
+    // Una luminanza percepita non linearizzata (es. media pesata diretta sui canali sRGB, senza
+    // gamma correction) darebbe ≈0.75 su questo grigio → true: il caso prova che la formula usa
+    // davvero la linearizzazione WCAG, non un'approssimazione che qui darebbe l'esito opposto.
+    expect(targaScura('#C0C0C0')).toBe(false)
+  })
 })
 
 describe('Cassetta — occupata (§5.35)', () => {
@@ -33,6 +39,14 @@ describe('Cassetta — occupata (§5.35)', () => {
     expect(
       screen.getByRole('button', { name: 'Cassetta C12, occupata: lavoro n.144, Bianchi, corona zirconia' })
     ).toBeInTheDocument()
+  })
+
+  it("senza descrizione, l'aria-label omette quella parte — MAI lo slug macchina di tipoDispositivo (review M5)", () => {
+    const senzaDescrizione = { numero: '160', dentista: 'Neri', descrizione: null, tipoDispositivo: 'protesi_fissa' }
+    render(<Cassetta id="c1" nome="C1" colore="rossa" lavoro={senzaDescrizione} stato="normale" onTap={() => {}} />)
+    const bottone = screen.getByRole('button')
+    expect(bottone).toHaveAttribute('aria-label', 'Cassetta C1, occupata: lavoro n.160, Neri')
+    expect(bottone.getAttribute('aria-label')).not.toMatch(/protesi_fissa/)
   })
 
   it('mostra la targa col nome e la riga "n.144 · Bianchi"', () => {
@@ -156,6 +170,36 @@ describe('Cassetta — gesto long-press (§5.4/§5.35): hold 300ms senza spostam
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('Cassetta — pointerup "orfano" non deve chiamare onTap (review Important)', () => {
+  it('un pointerup senza pointerdown corrispondente su QUESTO bottone non chiama onTap', () => {
+    const onTap = vi.fn()
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={onTap} />)
+    const bottone = screen.getByRole('button')
+    // Nessun pointerdown precedente: su mouse/penna è il caso di chi preme altrove (un'altra
+    // cassetta o lo sfondo) e rilascia sopra questo bottone — un <button> nativo non farebbe
+    // nulla (il click nativo richiede down E up sullo stesso elemento), ma senza la guardia
+    // `inizio.current` questo componente chiamava onTap comunque.
+    fireEvent.pointerUp(bottone, { clientX: 5, clientY: 5 })
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('pointerdown sulla cassetta A e pointerup sulla cassetta B non trasferisce il tap alla B (scenario esatto della review)', () => {
+    const onTapA = vi.fn()
+    const onTapB = vi.fn()
+    render(
+      <>
+        <Cassetta id="a" nome="C1" colore="rossa" lavoro={null} stato="normale" onTap={onTapA} />
+        <Cassetta id="b" nome="C2" colore="blu" lavoro={null} stato="normale" onTap={onTapB} />
+      </>
+    )
+    const [bottoneA, bottoneB] = screen.getAllByRole('button')
+    fireEvent.pointerDown(bottoneA, { clientX: 0, clientY: 0 })
+    fireEvent.pointerUp(bottoneB, { clientX: 200, clientY: 0 })
+    expect(onTapA).not.toHaveBeenCalled() // A non ha mai ricevuto il suo pointerup
+    expect(onTapB).not.toHaveBeenCalled() // B non ha mai ricevuto il suo pointerdown
   })
 })
 

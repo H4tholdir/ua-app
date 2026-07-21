@@ -63,7 +63,7 @@ export function targaScura(colore: string): boolean {
 
 export type StatoCassetta = 'normale' | 'accesa' | 'spenta'
 
-// Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/lavori/cassette.ts`
+// Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
 // (Task 3) — il chiamante (Task 11) passa il dato così com'è, senza rimapping: qui prendiamo
 // solo i campi che ci servono per il testo e per risolvere la miniatura.
 export type LavoroCassetta = {
@@ -126,6 +126,13 @@ export function Cassetta(props: {
   }
 
   function handlePointerUp() {
+    // Guardia (review Task 10, Important): senza un pointerdown corrispondente su QUESTO
+    // elemento, `spostato`/`pressioneLunga` sono nel loro stato di riposo (azzerati solo al
+    // pointerdown, mai al pointerup) — un pointerup "orfano" (down su un'altra cassetta o sullo
+    // sfondo, rilascio qui: raggiungibile con mouse/penna, dove NON c'è pointer capture implicita
+    // come su touch) troverebbe `spostato=false` e chiamerebbe `onTap()` per un gesto mai iniziato
+    // su questo bottone. `inizio.current` è `null` finché non arriva un pointerdown genuino.
+    if (!inizio.current) return
     pulisciTimer()
     if (!spostato.current) {
       if (pressioneLunga.current) {
@@ -172,9 +179,12 @@ export function Cassetta(props: {
     .filter(Boolean)
     .join(' ')
 
-  const tipoTesto = lavoro ? (lavoro.descrizione ?? lavoro.tipoDispositivo) : null
+  // SOLO `descrizione` (testo libero scritto da un umano): `tipoDispositivo` è uno slug macchina
+  // (es. "protesi_fissa") che uno screen reader pronuncerebbe alla lettera — meglio un'etichetta
+  // più corta che una che parla in gergo macchina (review Task 10, M5). Nessuna mappa nuova: se
+  // `descrizione` manca, quella parte dell'etichetta si omette, non si sostituisce.
   const etichetta = lavoro
-    ? `Cassetta ${nome}, occupata: lavoro n.${lavoro.numero}, ${lavoro.dentista}${tipoTesto ? `, ${tipoTesto}` : ''}`
+    ? `Cassetta ${nome}, occupata: lavoro n.${lavoro.numero}, ${lavoro.dentista}${lavoro.descrizione ? `, ${lavoro.descrizione}` : ''}`
     : `Cassetta ${nome}, libera`
 
   return (
@@ -193,7 +203,11 @@ export function Cassetta(props: {
         className={classi}
         style={{
           background: backgroundCustom,
-          transition: cssEase.generico, // NIENTE duration/ease inline: token v3/motion.ts §8.1
+          // Mockup riga 69: `transition: opacity 200ms` — SOLO opacity, non uno shorthand `all`
+          // (che animerebbe anche l'anello di `accesa`, il `filter: saturate()` di `spenta` e il
+          // background custom). `cssEase.generico` resta la fonte del tempo/easing (v3/motion.ts
+          // §8.1) — NIENTE duration/ease inventati, solo la proprietà è esplicita (review M2).
+          transition: `opacity ${cssEase.generico}`,
         }}
         draggable={draggable}
         aria-label={etichetta}
