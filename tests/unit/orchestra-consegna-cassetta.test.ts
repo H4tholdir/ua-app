@@ -171,3 +171,49 @@ describe('orchestraConsegna — liberazione cassetta alla consegna (Task 7, L5)'
     expect(consoleErrorSpy).toHaveBeenCalled()
   })
 })
+
+describe('sentinella «una sola penna» (review Task 7 — Minor): numero_cassetta si azzera SOLO dalla RPC', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  // Modello: tests/unit/lavori-patch-sentinella-cassetta.test.ts (sentinella su
+  // PATCHABLE_FIELDS, Task 5). Qui non esiste una allowlist esportata — il
+  // guard vive nella FORMA dell'oggetto passato a .update() nello Step 5 — quindi
+  // la sentinella cattura quell'oggetto reale e verifica la CHIAVE, non il
+  // valore: `numero_cassetta: undefined` deve far fallire il test esattamente
+  // come `numero_cassetta: null`, perché `hasOwnProperty` è vero in entrambi i
+  // casi (un futuro refactor che "pulisse" un valore a undefined invece di
+  // rimuovere la chiave non sfuggirebbe alla guardia).
+  it('il payload dell\'update di Step 5 (stato:"consegnato") NON ha la chiave numero_cassetta', async () => {
+    const updatePayloads: Array<Record<string, unknown>> = []
+
+    mockRpc.mockImplementation(async (fn: string) => {
+      if (fn === 'consegna_lavoro_lock') return { data: { lock_acquisito: true }, error: null }
+      if (fn === 'cassetta_libera_atomica') return { data: { esito: 'ok', nome: 'C12' }, error: null }
+      throw new Error(`rpc inattesa: ${fn}`)
+    })
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'lavori') {
+        return {
+          select: () => ({ eq: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: LAVORO, error: null }) }) }) }) }),
+          update: (payload: Record<string, unknown>) => {
+            updatePayloads.push(payload)
+            return { eq: () => ({ eq: () => Promise.resolve({ error: null, count: 1 }) }) }
+          },
+        }
+      }
+      throw new Error(`tabella inattesa: ${table}`)
+    })
+
+    const result = await orchestraConsegna('lav-1', 'lab-1')
+    expect(result.ok).toBe(true)
+
+    // Step 5 è identificabile univocamente dal marker stato:'consegnato'
+    // (Step 2.5 aggiorna solo i campi di tracciabilità materiali).
+    const stepCinque = updatePayloads.find((p) => p.stato === 'consegnato')
+    expect(stepCinque).toBeDefined()
+    expect(Object.prototype.hasOwnProperty.call(stepCinque, 'numero_cassetta')).toBe(false)
+  })
+})
