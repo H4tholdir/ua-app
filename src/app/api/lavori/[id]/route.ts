@@ -29,7 +29,7 @@ const LOCKED_PRICE_FIELDS = [
 // - TabDati.tsx:        tipo_dispositivo, descrizione, richiedente_nome,
 //                        data_consegna_prevista, ora_consegna, priorita,
 //                        dispositivo_semilavorato, note_interne
-// - TabAccettazione.tsx: numero_cassetta, tipo_impronte, disinfettante_usato,
+// - TabAccettazione.tsx: tipo_impronte, disinfettante_usato,
 //                        lotto_disinfettante, materiali_allegati,
 //                        anamnesi_bruxismo, anamnesi_difficolta_manuali,
 //                        anamnesi_precauzioni
@@ -61,7 +61,16 @@ const LOCKED_PRICE_FIELDS = [
 // si scrivono SOLO dall'API portale (/api/portale/[token]/fatturazione/[id]).
 // Test di regressione: tests/unit/lavori-patch-invariante-d7.test.ts
 // ═══════════════════════════════════════════════════════════════════════════
-const PATCHABLE_FIELDS = [
+// ═══ SENTINELLA CASSETTA (spec parete-cassette §10, modello invariante D7) ══
+// numero_cassetta NON deve MAI rientrare in questa allowlist: da qui in avanti
+// si scrive SOLO tramite le RPC atomiche cassetta_assegna_atomica/
+// cassetta_libera_atomica (POST /api/lavori/[id]/cassetta), mai con un UPDATE
+// diretto — altrimenti si desincronizza dalla riga viva di `cassette_lavori`.
+// Test di regressione: tests/unit/lavori-patch-sentinella-cassetta.test.ts
+// La const è esportata (era interna) solo per permettere a quel test di
+// leggerla — non per essere riusata altrove.
+// ═══════════════════════════════════════════════════════════════════════════
+export const PATCHABLE_FIELDS = [
   'tipo_dispositivo',
   'descrizione',
   'richiedente_nome',
@@ -70,7 +79,6 @@ const PATCHABLE_FIELDS = [
   'priorita',
   'dispositivo_semilavorato',
   'note_interne',
-  'numero_cassetta',
   'tipo_impronte',
   'disinfettante_usato',
   'lotto_disinfettante',
