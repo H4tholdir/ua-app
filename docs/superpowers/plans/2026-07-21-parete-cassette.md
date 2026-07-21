@@ -43,6 +43,14 @@ applicate il 21/07, FASE 6b eseguita (`tsc --noEmit` exit 0), invarianti sul DB 
    senza, ogni superficie è vuota. Anticiparlo rispetto alla FASE 9.
 5. **`cassette_lavori` è append-only: ogni DELETE viene rifiutato dal trigger.** Un reset di fixture
    con `.delete()` fallisce. L'unica via è `public.cassette_purge_lab(labId)`.
+6. **Le tabelle della Parete sono in SOLA LETTURA anche per `service_role`** (`…090000:148-150`:
+   `REVOKE ALL` + `GRANT SELECT`). Il service client bypassa **RLS**, **non** i GRANT di tabella: un
+   `.insert()`/`.update()` diretto su `cassette` dà `42501 permission denied`. **Ogni scrittura passa
+   da una RPC.** Il Task 4 si era bloccato proprio su questa premessa scritta al contrario, e da lì è
+   nata una **quarta migration**, `20260721090300_cassette_crea_colore.sql` (Task 4a, panel 3×
+   unanime + ratifica di Francesco), che aggiunge `cassetta_crea_atomica` e
+   `cassetta_imposta_colore_atomica`. Se stai leggendo un task che descrive una scrittura diretta su
+   `cassette`, quel testo è vecchio: **fermati e segnalalo.**
 
 ## Global Constraints
 
@@ -677,50 +685,98 @@ export async function getParete(svc: SupabaseClient, labId: string): Promise<Cas
 
 ### Task 4: API `/api/cassette` (POST) + `/api/cassette/[id]` (PATCH, DELETE)
 
-> **⚠️ NOTA 21/07 — nessun cambio di codice, ma due cose da NON «correggere».**
-> 1. Il mapping `nome_non_valido → 422` **resta valido**: quell'esito esiste ancora in
->    `cassetta_rinomina_atomica` (è stato tolto solo da `assegna`). Non rimuoverlo.
-> 2. Il `PATCH` colore continua a fare `UPDATE` diretto sulla tabella: è lecito perché il service
->    client bypassa RLS e i REVOKE. Nessun adeguamento, malgrado le tabelle siano ora in sola lettura
->    per `service_role` via PostgREST.
-> 3. Aggiungi il **retry sul 40P01** e metti i test in `tests/unit/` (D-O1).
+> **⚠️ CORREZIONI 21/07 (riscritte dopo il blocco) — prevalgono sul testo del task qui sotto.**
+>
+> **La versione precedente di questa nota affermava il falso e ha reso il task non implementabile.**
+> Diceva: «il `PATCH` colore continua a fare `UPDATE` diretto sulla tabella: è lecito perché il
+> service client bypassa RLS **e i REVOKE**». **Falso:** il service client bypassa **RLS**, non i
+> **GRANT/REVOKE di tabella**. `20260721090000_parete_cassette.sql:148-150` fa
+> `REVOKE ALL ON cassette, cassette_lavori FROM anon, authenticated, service_role` seguito da
+> `GRANT SELECT … TO authenticated, service_role`: `service_role` ha **solo SELECT**. Un `.insert()`
+> o `.update()` diretto ritorna `42501 permission denied for table cassette` — verificato in
+> container, `.superpowers/sdd/task-4a-report.md` §2.3 prova C5.
+>
+> 1. **Niente scritture dirette su `cassette`: ogni scrittura passa da una RPC.** La migration
+>    `20260721090300_cassette_crea_colore.sql` (Task 4a, panel 3× unanime + ratifica di Francesco)
+>    ha aggiunto le due che mancavano: `cassetta_crea_atomica(p_lab, p_nome, p_colore)` e
+>    `cassetta_imposta_colore_atomica(p_lab, p_cassetta_id, p_colore)`.
+> 2. **Il nome automatico `C{maxN+1}` NON si calcola più in route: vive dentro `cassetta_crea_atomica`.**
+>    Allocare un nome libero sotto un indice unico parziale è un'operazione di concorrenza e va dove
+>    vive l'indice; un read-modify-write attraverso la rete non è rendibile corretto in route.
+> 3. **`cassetta_imposta_colore_atomica` NON tocca `updated_at`** (decisione R-4.2: quel campo mentiva
+>    sull'uso recente e l'ordinamento delle chip è stato spostato su `max(cassette_lavori.assegnato_at)`).
+> 4. **Il `PATCH` accetta ESATTAMENTE UN campo per chiamata** — `{nome}` **oppure** `{colore}`, mai
+>    entrambi; entrambi presenti o nessuno dei due → **422**. Decisione di Francesco del 21/07: una
+>    chiamata = una RPC, e il vecchio passo doppio non atomico sparisce. (Il design system si chiama
+>    «una cosa alla volta».)
+> 5. **Il colore si normalizza in route** (`.toUpperCase()` sull'hex) **prima** di chiamare la RPC:
+>    il `CHECK` di tabella vuole `A-F` maiuscole, quindi `#ff00aa` minuscolo farebbe `RAISE` (→ 500).
+>    È il contratto R-5: il colore lo valida la route, la RPC solleva solo se la route ha sbagliato.
+> 6. Il mapping `nome_non_valido → 422` **resta valido**: quell'esito esiste in
+>    `cassetta_rinomina_atomica` e in `cassetta_crea_atomica` (è stato tolto solo da `assegna`).
+> 7. **Tutte** le chiamate RPC vanno avvolte in `callRpcWithRetry` (`src/lib/supabase/rpc-retry.ts`,
+>    retry sul SQLSTATE 40P01), le due nuove comprese. **Test in `tests/unit/`** (D-O1).
+> 8. **`nome_occupato` quando il nome è AUTOMATICO non è un 409.** Se `body.nome` è **assente**,
+>    l'utente non ha digitato alcun nome: rispondergli «nome occupato» sarebbe una bugia. Il
+>    fallthrough dei 5 giri interni alla RPC **è raggiungibile** — misurato in collaudo: 0 su 210 fino
+>    a 4 sessioni concorrenti, **0,75% a 8, 2,6% a 16** (`task-4a-report.md` §4 riserva 1). In quel
+>    caso la route **ritenta la RPC una volta**. Con `body.nome` **presente**, invece,
+>    `nome_occupato → 409` è la risposta giusta.
 
 **Files:**
 - Create: `src/app/api/cassette/route.ts`
 - Create: `src/app/api/cassette/[id]/route.ts`
-- Test: `src/app/api/cassette/__tests__/route.test.ts`
+- Test: `tests/unit/cassette-route.test.ts`, `tests/unit/cassette-id-route.test.ts` (convenzione reale del repo, cfr. `cicli-route.test.ts` / `cicli-id-route.test.ts`; **non** `src/app/api/**/__tests__/`, che `vitest.config.ts` non scopre)
 
 **Interfaces:**
-- Consumes: RPC Task 1; pattern route `src/app/api/lavori/[id]/route.ts` (CSRF/context/guard); `assertLabOperativo` da `src/lib/supabase/lab-guard.ts`.
-- Produces: `POST /api/cassette {nome?, colore?} → 201 {cassetta}` (nome assente → auto `C{n}`); `PATCH /api/cassette/[id] {nome?, colore?} → 200` ; `DELETE → 200`; errori: 400 payload, 401/403 auth/guard, 404 cassetta, 409 `{errore:'occupata'|'nome_occupato'}`, 422 colore/nome invalidi.
+- Consumes: RPC del Task 1 + le due del Task 4a; `callRpcWithRetry` da `src/lib/supabase/rpc-retry.ts`; pattern route `src/app/api/cicli/route.ts` e `src/app/api/cicli/[id]/route.ts` (CSRF/context/guard); `assertLabOperativo` da `src/lib/supabase/lab-guard.ts`. Import reali: `@/lib/utils/csrf` e `@/lib/supabase/server-service` (`@/lib/security/csrf` e `@/lib/supabase/service` **non esistono**).
+- Produces — **una RPC per operazione**, esiti dalla fonte di verità (il blocco degli esiti in testa a ciascuna funzione nelle migration):
 
-- [ ] **Step 1: Test RED** — mock del service client (pattern dei test API esistenti in `src/app/api/*/__tests__`): casi minimi:
+| Endpoint | RPC | Esiti → HTTP |
+|---|---|---|
+| `POST /api/cassette {nome?, colore?}` | `cassetta_crea_atomica(p_lab, p_nome, p_colore)` | `ok` → **201** `{cassetta}` · `nome_occupato` → **409** (ma vedi correzione 8 se il nome è automatico) · `nome_non_valido` → **422** |
+| `PATCH /api/cassette/[id] {nome}` | `cassetta_rinomina_atomica(p_lab, p_cassetta_id, p_nome)` | `ok` → **200** · `nome_occupato` → **409** · `cassetta_non_trovata` → **404** · `nome_non_valido` → **422** |
+| `PATCH /api/cassette/[id] {colore}` | `cassetta_imposta_colore_atomica(p_lab, p_cassetta_id, p_colore)` | `ok` → **200** · `cassetta_non_trovata` → **404** |
+| `DELETE /api/cassette/[id]` | `cassetta_elimina_atomica(p_lab, p_cassetta_id)` | `ok` → **200** · `occupata` → **409** · `cassetta_non_trovata` → **404** |
+
+  Più, su tutti: 401 senza contesto · 403 cross-origin, lab mancante o guard · **422 colore non valido** (validato in route, mai lasciato arrivare alla RPC) · **422 se il PATCH porta entrambi i campi o nessuno**.
+
+- [ ] **Step 1: Test RED** — mock del service client col pattern reale del repo (`tests/unit/helpers/supabase-chain-mock.ts`, `createChain`; `vi.mock('server-only')` è già in `tests/setup.ts`). Casi minimi:
 
 ```typescript
-// src/app/api/cassette/__tests__/route.test.ts — scheletro casi (adatta i mock al pattern repo)
-// 1. POST senza nome → crea 'C{maxN+1}' (mock: cassette vive C1, C7 → attesa 'C8'), colore default 'bianca', 201
-// 2. POST {nome:'Banco Ciro', colore:'#ff00aa'} → hex NORMALIZZATO '#FF00AA' nel payload insert, 201
-// 3. POST colore 'fucsia' → 422 (né slug né hex)
-// 4. POST nome duplicato vivo (insert ritorna 23505) → 409
-// 5. PATCH nome → chiama rpc('cassetta_rinomina_atomica'); esito 'nome_occupato' → 409
-// 6. DELETE → chiama rpc('cassetta_elimina_atomica'); esito 'occupata' → 409; 'ok' → 200
+// tests/unit/cassette-route.test.ts + tests/unit/cassette-id-route.test.ts — scheletro casi
+// 1. POST senza nome → chiama rpc('cassetta_crea_atomica', {p_lab, p_nome: null, p_colore: 'bianca'}), 201
+//    (il nome automatico C{n} lo calcola la RPC: la route NON legge più le cassette vive)
+// 2. POST {nome:'Banco Ciro', colore:'#ff00aa'} → hex NORMALIZZATO '#FF00AA' nel payload della RPC, 201
+// 3. POST colore 'fucsia' → 422 in route, la RPC NON viene chiamata (né slug né hex)
+// 4. POST {nome:'C7'} con esito {esito:'nome_occupato'} → 409
+// 4b. POST SENZA nome con esito {esito:'nome_occupato'} → la route RITENTA una volta (correzione 8);
+//     se anche il secondo tentativo torna 'nome_occupato' → 409. Asserisci DUE chiamate alla RPC.
+// 5. PATCH {nome} → rpc('cassetta_rinomina_atomica'); esito 'nome_occupato' → 409
+// 5b. PATCH {colore} → rpc('cassetta_imposta_colore_atomica'); 'cassetta_non_trovata' → 404
+// 5c. PATCH {nome, colore} insieme → 422, nessuna RPC chiamata. Idem PATCH {} → 422.
+// 6. DELETE → rpc('cassetta_elimina_atomica'); esito 'occupata' → 409; 'ok' → 200
 // 7. cross-origin (isSameOrigin false) → 403; context null → 401; lab blacklist → assertLabOperativo → 403
+// 8. p_lab è SEMPRE context.laboratorioId, mai un valore del body: assertalo sugli argomenti della RPC
 ```
 
-- [ ] **Step 2: RED** — `npx vitest run src/app/api/cassette` → FAIL.
+- [ ] **Step 2: RED** — `npx vitest run tests/unit/cassette-route.test.ts tests/unit/cassette-id-route.test.ts` → FAIL (guarda l'output: «No test files found» **non** è un RED).
 - [ ] **Step 3: Implementa `route.ts`**
 
 ```typescript
 // src/app/api/cassette/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { isSameOrigin } from '@/lib/security/csrf'          // stesso import di lavori/[id]/route.ts
+import { isSameOrigin } from '@/lib/utils/csrf'
 import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
-import { getServiceClient } from '@/lib/supabase/service'
+import { getServiceClient } from '@/lib/supabase/server-service'
+import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 
 const COLORI = new Set(['bianca', 'azzurra', 'rossa', 'blu', 'verde', 'grigia'])
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
+/** Normalizza in route (R-5): l'hex va MAIUSCOLO perché il CHECK di tabella vuole A-F.
+ *  Un colore non normalizzato che arriva alla RPC fa RAISE, cioè un 500 — non un esito. */
 export function normalizzaColore(input: unknown): string | null {
   if (input == null) return 'bianca'
   if (typeof input !== 'string') return null
@@ -740,47 +796,53 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const colore = normalizzaColore(body.colore)
   if (!colore) return NextResponse.json({ errore: 'colore_non_valido' }, { status: 422 })
-  const svc = getServiceClient()
 
-  let nome: string | null = typeof body.nome === 'string' ? body.nome.trim() : null
+  const nome: string | null = typeof body.nome === 'string' ? body.nome.trim() : null
   if (nome !== null && (nome.length < 1 || nome.length > 20))
     return NextResponse.json({ errore: 'nome_non_valido' }, { status: 422 })
-  const { data: vive } = await svc.from('cassette').select('nome, posizione')
-    .eq('laboratorio_id', context.laboratorioId).is('deleted_at', null)
-  if (!nome) {
-    const maxN = (vive ?? []).reduce((m, c) => {
-      const match = /^C(\d+)$/i.exec(c.nome)
-      return match ? Math.max(m, Number(match[1])) : m
-    }, 0)
-    nome = `C${maxN + 1}`
+
+  const svc = getServiceClient()
+  const chiama = () => svc.rpc('cassetta_crea_atomica', {
+    p_lab: context.laboratorioId, p_nome: nome, p_colore: colore,
+  })
+
+  let { data, error } = await callRpcWithRetry(chiama)
+  // Correzione 8: col nome AUTOMATICO, `nome_occupato` non è colpa dell'utente — non ha digitato
+  // niente. È il fallthrough dei 5 giri interni alla RPC, misurato al 2,6% con 16 sessioni
+  // concorrenti. Si ritenta una volta; solo se ricapita diventa un 409.
+  if (!error && nome === null && data?.esito === 'nome_occupato') {
+    ({ data, error } = await callRpcWithRetry(chiama))
   }
-  const posizione = (vive ?? []).reduce((m, c) => Math.max(m, c.posizione + 1), 0)
-  const { data, error } = await svc.from('cassette')
-    .insert({ laboratorio_id: context.laboratorioId, nome, colore, posizione })
-    .select('id, nome, colore, posizione').single()
-  if (error) {
-    if (error.code === '23505') return NextResponse.json({ errore: 'nome_occupato' }, { status: 409 })
-    return NextResponse.json({ errore: 'creazione_fallita' }, { status: 500 })
-  }
-  return NextResponse.json({ cassetta: data }, { status: 201 })
+  if (error) return NextResponse.json({ errore: 'creazione_fallita' }, { status: 500 })
+  if (data.esito === 'nome_occupato')
+    return NextResponse.json({ errore: 'nome_occupato', nome: data.nome }, { status: 409 })
+  if (data.esito === 'nome_non_valido')
+    return NextResponse.json({ errore: 'nome_non_valido' }, { status: 422 })
+  return NextResponse.json({ cassetta: data.cassetta }, { status: 201 })
 }
 ```
 
-NB: l'INSERT diretto qui è lecito (service role, tabella nuova senza denorm da sincronizzare alla creazione); rinomina/elimina passano SEMPRE dalle RPC. In `[id]/route.ts`:
+NB: **nessuna scrittura diretta.** `service_role` ha solo SELECT su `cassette` (vedi le correzioni in
+testa): creazione, rinomina, colore ed eliminazione passano **tutte** dalle RPC. In `[id]/route.ts`:
 
 ```typescript
-// src/app/api/cassette/[id]/route.ts — PATCH {nome?, colore?} · DELETE
-// Stessa testata guard del POST. Poi:
-// PATCH: se body.nome → rpc('cassetta_rinomina_atomica', {p_lab, p_cassetta_id: id, p_nome: body.nome})
-//        esiti: nome_occupato→409 · cassetta_non_trovata→404 · nome_non_valido→422 · ok→prosegui
-//        se body.colore → normalizzaColore (422 se null) e UPDATE colore/updated_at
-//        .eq('laboratorio_id', …).eq('id', id).is('deleted_at', null)
-// DELETE: rpc('cassetta_elimina_atomica', {p_lab, p_cassetta_id: id})
-//        occupata→409 · cassetta_non_trovata→404 · ok→200
-// Allowlist esplicita: qualsiasi altro campo nel body viene IGNORATO (mai passthrough).
+// src/app/api/cassette/[id]/route.ts — PATCH {nome} XOR {colore} · DELETE
+// Stessa testata guard del POST, e `p_lab` SEMPRE da context.laboratorioId. Poi:
+// PATCH: esattamente UN campo (correzione 4). Entrambi presenti, o nessuno dei due → 422,
+//        nessuna RPC chiamata. Qualsiasi altro campo del body è IGNORATO (allowlist, mai passthrough).
+//   {nome}   → callRpcWithRetry(() => svc.rpc('cassetta_rinomina_atomica',
+//                {p_lab, p_cassetta_id: id, p_nome: body.nome}))
+//              nome_occupato→409 · cassetta_non_trovata→404 · nome_non_valido→422 · ok→200
+//   {colore} → normalizzaColore PRIMA (422 se null), poi
+//              callRpcWithRetry(() => svc.rpc('cassetta_imposta_colore_atomica',
+//                {p_lab, p_cassetta_id: id, p_colore: colore}))
+//              cassetta_non_trovata→404 · ok→200
+//              La RPC NON tocca updated_at (R-4.2): non «ripararlo» in route.
+// DELETE: callRpcWithRetry(() => svc.rpc('cassetta_elimina_atomica', {p_lab, p_cassetta_id: id}))
+//         occupata→409 · cassetta_non_trovata→404 · ok→200
 ```
 
-- [ ] **Step 4: GREEN** — `npx vitest run src/app/api/cassette` → PASS.
+- [ ] **Step 4: GREEN** — `npx vitest run tests/unit/cassette-route.test.ts tests/unit/cassette-id-route.test.ts` → PASS.
 - [ ] **Step 5: Commit** — `git commit -m "feat(cassette): API POST/PATCH/DELETE cassette col pattern guard completo"`
 
 ---
