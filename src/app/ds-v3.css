@@ -462,3 +462,61 @@
 [data-ds="v3"] .ds-sheet-disabilitata { font-size: 15px; font-weight: 700; color: var(--faint); margin: 0; }
 [data-ds="v3"] .ds-sposta-riga { display: flex; align-items: center; gap: 12px; }
 [data-ds="v3"] .ds-sposta-posto { font-size: 14px; font-weight: 700; color: var(--muted); }
+
+/* ─────────────────────────────────────────────────────────────────────────────────────────
+   §6 — La home a due stanze (Task 14). Pager a scroll-snap orizzontale: lo swipe è scroll
+   NATIVO del browser, non un carosello simulato — è per questo che qui c'è CSS e non
+   JavaScript di trascinamento. Il componente (`StanzePager`) tiene solo lo stato di quale
+   stanza è attiva, per `inert`/`aria-hidden` e per i dots.
+
+   Il no-scroll VERTICALE resta legge in entrambe le stanze (§3.3): il viewport scorre solo
+   in x, e ogni stanza è una colonna che si adatta all'altezza disponibile. */
+[data-ds="v3"] .ua-home.is-stanze {
+  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo,
+     altrimenti il peek della stanza accanto resterebbe nascosto sotto il padding. */
+  padding-left: 0;
+  padding-right: 0;
+}
+[data-ds="v3"] .ua-stanze { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+[data-ds="v3"] .ua-stanze-viewport {
+  flex: 1; min-height: 0; display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  /* Niente pull-to-refresh né scroll della pagina sotto mentre si è a metà snap. */
+  overscroll-behavior: contain;
+  /* La barra di scorrimento non esiste: i dots sono l'indicatore di posizione. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-ds="v3"] .ua-stanze-viewport::-webkit-scrollbar { display: none; }
+/* Peek 28px bilaterale (§6): ogni stanza è larga quanto il viewport MENO il peek, così dalla
+   stanza Pile si sbircia la Parete e viceversa. L'ultima aggancia in `end` — la sua posizione
+   di snap in `start` cadrebbe oltre lo scroll massimo, e il peek a sinistra sparirebbe. */
+[data-ds="v3"] .ua-stanza {
+  flex: 0 0 calc(100% - 28px);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex; flex-direction: column;
+  padding: 0 24px;
+}
+[data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
+[data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
+
+/* La stanza Parete: la testata compressa in alto, il muro che assorbe lo slack — stessa
+   meccanica di `.ua-home .pile`, così l'altezza torna in entrambe le forme (pager e sola). */
+[data-ds="v3"] .ua-stanza-parete { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+[data-ds="v3"] .ua-stanza-parete-corpo {
+  flex: 1; margin-top: 16px; display: flex; flex-direction: column; justify-content: center;
+}
+[data-ds="v3"] .ua-parete-titolo { margin-top: 6px; }
+[data-ds="v3"] .ua-parete-titolo:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 8px; }
+/* In home il muro è SEMPRE a 3 colonne (§6): le colonne 4/6 di `.ds-parete-grid` valgono per
+   la pagina `/cassette`, che è larga quanto il viewport — qui la stanza è al massimo 480px,
+   e a 768 quattro tray scenderebbero sotto i 44px di lato. Specificità (0,3,0): vince sulle
+   media query di `.ds-parete-grid` (0,2,0) a prescindere dall'ordine. */
+[data-ds="v3"] .ua-stanza-parete .ds-parete-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-height: 700px) { /* §7.1 rev. 3.1 — stessa scala device-corti della stanza Pile */
+  [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
+  [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
+  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
+}
