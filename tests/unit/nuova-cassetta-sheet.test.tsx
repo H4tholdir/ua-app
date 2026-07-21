@@ -72,6 +72,28 @@ describe('NuovaCassettaSheet — creazione (§5.2)', () => {
     expect(JSON.parse(options.body as string)).toEqual({ nome: 'C22', colore: 'rossa' })
   })
 
+  // Review Task 12, Important 1 — qui il difetto del picker live NON si manifesta (l'unico
+  // effetto di `onScegli` è `setColore`, e il salvataggio è la CTA), ma la copertura serve
+  // comunque: la correzione vive nella composizione dentro `CassettaSheet`, e questo test è la
+  // guardia che `SwatchesColore` continui a servire ANCHE questo chiamante.
+  it('colore CUSTOM: il valore del picker non chiama nessuna API e finisce nel POST alla creazione', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 201, json: async () => ({ cassetta: {} }) })
+    render(<NuovaCassettaSheet aperto onChiudi={() => {}} prossimoNome="C22" onCreata={() => {}} />)
+    // `aria-hidden`/`tabIndex=-1`: è il ponte verso il picker di sistema, nessun ruolo lo trova —
+    // e il `Sheet` ds monta il pannello in un portale, quindi si cerca nel documento.
+    const picker = document.querySelector('input[type="color"]') as HTMLInputElement
+    expect(picker).not.toBeNull()
+
+    fireEvent.change(picker, { target: { value: '#aabbcc' } })
+    expect(fetchMock()).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Colore personalizzato' })).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crea C22' }))
+    await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1))
+    const [, options] = fetchMock().mock.calls[0]
+    expect(JSON.parse(options.body as string)).toEqual({ nome: 'C22', colore: '#aabbcc' })
+  })
+
   it('201 → onCreata + suono/haptic della creazione riuscita', async () => {
     const suona = vi.spyOn(sound, 'suona').mockImplementation(() => {})
     const vibra = vi.spyOn(haptic, 'vibra').mockImplementation(() => {})

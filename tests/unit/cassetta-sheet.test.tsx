@@ -39,6 +39,15 @@ function renderSheet(over: Partial<Parameters<typeof CassettaSheet>[0]> = {}) {
   return props
 }
 
+/** L'`<input type="color">` è `aria-hidden`/`tabIndex=-1` (è il ponte verso il picker di sistema,
+ *  non un controllo a sé): nessuna query per ruolo lo trova. E il `Sheet` ds monta il pannello in
+ *  un portale, quindi non sta nel `container` di RTL ma nel documento. */
+function pickerColore(): HTMLInputElement {
+  const input = document.querySelector('input[type="color"]')
+  if (!input) throw new Error('input[type=color] non trovato nello sheet')
+  return input as HTMLInputElement
+}
+
 describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
   beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
   afterEach(() => {
@@ -76,6 +85,45 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
     expect(url).toBe('/api/cassette/c-lib')
     expect(options.method).toBe('PATCH')
     expect(JSON.parse(options.body as string)).toEqual({ colore: 'verde' })
+  })
+
+  // Review Task 12, Important 1 — il picker nativo emette valori LIVE mentre il cursore si
+  // trascina (React mappa `onChange` sull'evento DOM `input`). Appesa lì, la PATCH salvava un
+  // colore intermedio a caso E chiudeva lo sheet in faccia all'utente al primo movimento.
+  it('colore CUSTOM: i valori live del picker non salvano e non chiudono lo sheet', () => {
+    const { onCambiata } = renderSheet()
+    const picker = pickerColore()
+
+    fireEvent.change(picker, { target: { value: '#aabbcc' } })
+    fireEvent.change(picker, { target: { value: '#112233' } })
+
+    expect(fetchMock()).not.toHaveBeenCalled()
+    expect(onCambiata).not.toHaveBeenCalled()
+    // La scelta però si VEDE: lo swatch custom è selezionato (aria-pressed + ✓), altrimenti chi
+    // sceglie non saprebbe che il colore è stato preso.
+    const custom = screen.getByRole('button', { name: 'Colore personalizzato' })
+    expect(custom).toHaveAttribute('aria-pressed', 'true')
+    expect(custom).toHaveTextContent('✓')
+  })
+
+  it('colore CUSTOM: «Salva il colore» committa UNA sola PATCH, con l\'ULTIMO valore scelto', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    const { onCambiata } = renderSheet()
+    const picker = pickerColore()
+    // Prima del picker il tasto non esiste: le 6 facce standard non ne hanno bisogno (un click è
+    // già una scelta conclusa) e una riga in più sotto gli swatch sarebbe rumore.
+    expect(screen.queryByRole('button', { name: /salva il colore/i })).toBeNull()
+
+    fireEvent.change(picker, { target: { value: '#aabbcc' } })
+    fireEvent.change(picker, { target: { value: '#112233' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva il colore/i }))
+
+    await waitFor(() => expect(onCambiata).toHaveBeenCalledTimes(1))
+    expect(fetchMock()).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchMock().mock.calls[0]
+    expect(url).toBe('/api/cassette/c-lib')
+    expect(options.method).toBe('PATCH')
+    expect(JSON.parse(options.body as string)).toEqual({ colore: '#112233' })
   })
 
   it('«Butta via» attiva: DialogConferma verbatim (MAI «Elimina») → DELETE → onCambiata', async () => {

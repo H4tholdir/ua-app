@@ -392,13 +392,31 @@
    (brief Task 12). `.ds-swatch` riporta la geometria della cella-tray a quella dello swatch 42px
    del mockup ratificato (2026-07-20-parete-cassette-v2.html:153-157) — 44px effettivi qui per il
    touch target di legge (§12, ≥44px) — e spegne la linguetta `::before` della tray. Il conic del
-   custom e i valori raw vivono qui: il check pre-commit vieta hex/rgba letterali nei .tsx. */
+   custom e i valori raw vivono qui: il check pre-commit vieta hex/rgba letterali nei .tsx.
+
+   Come si vince su `.ds-cassetta`, per davvero (correzione review Task 12, Important 2):
+   - GEOMETRIA (width/height/padding/border-radius): `.ds-cassetta` la dichiara SOLO nella regola
+     base `[data-ds="v3"] .ds-cassetta` — (0,2,0), come `.ds-swatch`. Nessun ramo di tema la
+     ridichiara, quindi qui vince l'ORDINE (`.ds-swatch` è più in basso) e vale in light E in dark.
+   - OMBRA: il ramo dark della tray `[data-theme="dark"] [data-ds="v3"] .ds-cassetta` (riga 261) ha
+     specificità (0,3,0) — più alta di `.ds-swatch` (0,2,0). A parità d'ordine vince la specificità,
+     quindi in dark l'ordine NON basta: serve la regola dedicata qui sotto. */
 [data-ds="v3"] .ds-swatches { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 [data-ds="v3"] .ds-swatch {
   width: 44px; height: 44px; min-width: 44px; min-height: 44px;
   padding: 0; border: none; border-radius: 12px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -6px 10px -6px rgba(0,0,0,.3);
+}
+/* Ombra dark dello swatch — (0,3,0) come il ramo dark della tray e dichiarata DOPO, quindi vince.
+   Senza, in dark ogni faccia standard erediterebbe l'ombra disegnata per una tray alta 104px
+   (drop 0 10px 18px + vignetta inset -14px 18px) schiacciata su un quadrato di 44px, dove copre
+   circa il 40% della faccia — mentre il custom, che non porta `ds-cassetta`, terrebbe la propria:
+   in fila si vedrebbero sette swatch con due ombre diverse. Valori: gli stessi inchiostri dark
+   della tray (highlight .18, vignetta .4) sulla geometria dello swatch, e NESSUN drop shadow —
+   in dark il DS v3 è flat (§3.2), la profondità la porta la superficie, non l'ombra. */
+[data-theme="dark"] [data-ds="v3"] .ds-swatch {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -6px 10px -6px rgba(0,0,0,.4);
 }
 [data-ds="v3"] .ds-swatch::before { display: none; }
 [data-ds="v3"] .ds-swatch:disabled { cursor: default; }

@@ -4,7 +4,7 @@
 // NB: `Cassetta` non ha `onClick` — reagisce a pointerdown/pointerup (§5.35, gesto
 // tap/long-press). Un `fireEvent.click` NON chiama `onTap`: qui si usa la stessa coppia di
 // eventi di `tests/unit/Cassetta.test.tsx`.
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
@@ -162,6 +162,60 @@ describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+// Review Task 12, Finding 3 — il requisito centrale del Task 12 («`setSheet(null)` parte da OGNI
+// via d'uscita») era difeso a metà: i test sopra esercitano solo `onChiudi` (il tasto «Chiudi»,
+// Esc). Il ramo del SUCCESSO — `onCreata`/`onCambiata` → `dopoCambio` → `setSheet(null)` — non era
+// coperto da nessuno: togliendo `setSheet(null)` da `dopoCambio` e lasciando solo `router.refresh()`
+// l'intera suite restava verde. Questi due test sono la guardia che manca, uno per sheet.
+//
+// Perché la chiusura si asserisce QUI e non nei test dei due sheet: chiudere non è un fatto dello
+// sheet (che si limita a chiamare la callback), è un fatto del `PareteClient`, l'unico che possiede
+// lo stato `sheet`. Solo montando lui si vede l'anello completo azione → callback → stato → DOM.
+describe('PareteClient — un\'azione RIUSCITA chiude lo sheet (review Task 12, Finding 3)', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  function fetchMock() {
+    return fetch as unknown as ReturnType<typeof vi.fn>
+  }
+
+  it('creazione riuscita (201) → lo sheet «nuova» si chiude e `aria-expanded` torna false', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 201, json: async () => ({ cassetta: {} }) })
+    render(<PareteClient parete={[occupata]} />)
+    const user = userEvent.setup()
+    const tile = screen.getByRole('button', { name: /Nuova cassetta/ })
+    await user.click(tile)
+    expect(tile).toHaveAttribute('aria-expanded', 'true')
+
+    // Nome precompilato: C12 è viva, quindi il prossimo della serie è C13.
+    await user.click(screen.getByRole('button', { name: 'Crea C13' }))
+
+    // Il successo chiude E rilegge: sono due fatti distinti e si asseriscono distinti — con solo
+    // il refresh (la mutazione della review) lo sheet resterebbe aperto sopra la parete nuova.
+    await waitFor(() => expect(tile).toHaveAttribute('aria-expanded', 'false'))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nuova cassetta' })).toBeNull())
+    expect(refresh).toHaveBeenCalled()
+  })
+
+  it('rinomina riuscita (200) → lo sheet cassetta si chiude (non solo la sua «Chiudi»)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    render(<PareteClient parete={[occupata, libera]} />)
+    tap(cassettaLibera())
+    expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Banco Ciro' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
+
+    // `waitFor` come nel test dell'Esc: il `Sheet` ds esce con `AnimatePresence`, il pannello
+    // resta montato per tutta la discesa.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C4' })).toBeNull())
+    expect(refresh).toHaveBeenCalled()
   })
 })
 

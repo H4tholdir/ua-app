@@ -9,6 +9,9 @@
 // butta-via) chiude lo sheet e fa rileggere la parete via `onCambiata` — così non resta mai una
 // `cassetta` stantia montata mentre il muro è già cambiato sotto. L'UNICA eccezione è il riordino
 // ▲▼: resta aperto (si sposta di un posto alla volta, il PareteClient POSTa la lista completa).
+// Quali gesti COMMITTANO, però, lo decide questo sheet e non i suoi componenti: una faccia
+// standard è un click, quindi committa; il colore custom arriva LIVE dal picker nativo, quindi
+// resta in sospeso e lo committa un tasto (`scegliDaiSwatches` — review Task 12, Important 1).
 //
 // Contratti API verbatim dalle route:
 //  • rinomina/colore → PATCH /api/cassette/[id] con UN SOLO campo per chiamata ({nome} XOR
@@ -59,6 +62,8 @@ export function CassettaSheet(props: {
   const [annuncioSposta, setAnnuncioSposta] = useState('')
   const [chiediLibera, setChiediLibera] = useState(false)
   const [chiediButta, setChiediButta] = useState(false)
+  // Colore custom IN SOSPESO (review Task 12, Important 1) — v. `scegliDaiSwatches`.
+  const [colorePending, setColorePending] = useState<string | null>(null)
 
   // Reset in render-phase al cambio di cassetta (id), stesso pattern di ConfermaCassettaSheet:
   // NON un useEffect. Non si resetta sul solo `router.refresh()` di un riordino (l'id resta lo
@@ -74,6 +79,7 @@ export function CassettaSheet(props: {
     setAnnuncioSposta('')
     setChiediLibera(false)
     setChiediButta(false)
+    setColorePending(null)
   }
 
   const occupata = !!cassetta?.lavoro
@@ -81,6 +87,8 @@ export function CassettaSheet(props: {
   const nomeCassetta = cassetta?.nome ?? ''
   const nomeTrim = nomeRinomina.trim()
   const rinominaAbilitata = !!nomeTrim && nomeTrim !== nomeCassetta && !salvando
+  // Stessa forma di `rinominaAbilitata`: si salva solo ciò che è davvero cambiato.
+  const coloreAbilitato = !!colorePending && colorePending !== cassetta?.colore && !salvando
 
   async function salvaNome() {
     if (!cassetta || !rinominaAbilitata) return
@@ -125,6 +133,24 @@ export function CassettaSheet(props: {
     } finally {
       setSalvando(false)
     }
+  }
+
+  /** Ciò che arriva dai swatches NON è sempre una scelta conclusa (review Task 12, Important 1).
+   *  Le 6 facce sì: un click è un valore discreto e finito, quindi si committa subito (una faccia
+   *  = una PATCH = sheet chiuso, come tutte le altre azioni di questo sheet). Il custom no: il
+   *  picker nativo emette valori LIVE mentre il cursore si trascina (React `onChange` = evento DOM
+   *  `input`), e appenderci la PATCH significava salvare un colore intermedio a caso E chiudere lo
+   *  sheet in faccia all'utente al primo pixel di movimento. Qui l'hex resta IN SOSPESO — visibile
+   *  nello swatch, così la scelta si vede — e lo committa il tasto «Salva il colore», esattamente
+   *  come il nome, che per la stessa ragione (input continuo, nessun commit proprio) ha «Salva il
+   *  nome» invece di salvare a ogni tasto premuto. */
+  function scegliDaiSwatches(colore: string) {
+    if (colore.startsWith('#')) {
+      setColorePending(colore)
+      return
+    }
+    setColorePending(null)
+    void scegliColore(colore)
   }
 
   async function spostaLavoroIn(destinazione: CassettaParete) {
@@ -254,12 +280,29 @@ export function CassettaSheet(props: {
               )}
             </div>
 
-            {/* Colore — PATCH {colore}, una faccia = una chiamata. */}
+            {/* Colore — PATCH {colore}. Una faccia standard = un tap = una chiamata; il colore
+                custom resta in sospeso e lo committa «Salva il colore» (v. `scegliDaiSwatches`):
+                il picker nativo emette valori LIVE, salvarli tutti significherebbe scrivere un
+                colore intermedio a caso e chiudere lo sheet a metà scelta. */}
             <div>
               <p className="ds-sheet-sezione">Colore</p>
               <div style={{ marginTop: 10 }}>
-                <SwatchesColore valore={cassetta.colore} onScegli={scegliColore} disabilitato={salvando} />
+                <SwatchesColore
+                  valore={colorePending ?? cassetta.colore}
+                  onScegli={scegliDaiSwatches}
+                  disabilitato={salvando}
+                />
               </div>
+              {colorePending && (
+                <div style={{ marginTop: spazio.s }}>
+                  <TastoSecondario
+                    onClick={() => void scegliColore(colorePending)}
+                    disabled={!coloreAbilitato}
+                  >
+                    Salva il colore
+                  </TastoSecondario>
+                </div>
+              )}
             </div>
 
             {/* Sposta il lavoro in… (solo occupata, se ci sono cassette libere). */}
