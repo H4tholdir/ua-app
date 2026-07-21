@@ -116,6 +116,22 @@ describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {
     await userEvent.setup().click(tile)
     expect(tile).toHaveAttribute('aria-expanded', 'true')
   })
+
+  it('hold 300ms fermo su una cassetta OCCUPATA non degrada in tap-che-naviga (review Task 11, Important 2): senza `onLongPressSheet` il gesto sparirebbe in silenzio dentro `Cassetta` (il timer lì parte solo se la prop è passata) e la pressione lunga ricadrebbe sul tap', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[occupata, libera]} />)
+      const bottone = cassettaOccupata()
+      // Fermo (<8px, mai superata): un pointermove qui eserciterebbe il ramo drag, non quello
+      // long-press — la soglia di movimento è del componente Cassetta, non di questo test.
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+      vi.advanceTimersByTime(300) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx)
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+      expect(push).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('PareteClient — parete vuota e freschezza', () => {
