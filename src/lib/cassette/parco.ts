@@ -54,6 +54,15 @@ export async function getParete(svc: SupabaseClient, labId: string): Promise<Cas
   if (errVive) console.error('[getParete] lettura cassette_lavori fallita:', errVive)
 
   const ids = (vive ?? []).map((v) => v.lavoro_id)
+  // Assunzione (Minor #11, review Task 3): il guard sotto copre l'ERRORE della
+  // query, non una risposta PARZIALE. `ids` vale il numero di cassette
+  // occupate del lab (decine, per costruzione — indice unico parziale su
+  // `cassette_lavori`), ordini di grandezza sotto qualunque `db-max-rows` di
+  // PostgREST: oggi non è azionabile. Se in futuro questo numero crescesse
+  // (es. `in('id', ids)` esteso ad altro), un cap applicato silenziosamente
+  // farebbe apparire "assenti" lavori in realtà attivi, senza `error` — la
+  // stessa condizione che il guard sotto esclude solo quando l'errore è
+  // esplicito.
   const { data: lavori, error: errLavori } = ids.length
     ? await svc.from('lavori')
         .select('id, numero_lavoro, stato, deleted_at, descrizione, tipo_dispositivo, clienti(studio_nome, nome, cognome), pazienti(codice_paziente)')
