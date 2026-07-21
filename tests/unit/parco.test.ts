@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { getParete } from '@/lib/cassette/parco'
 import { createChain } from './helpers/supabase-chain-mock'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -38,6 +38,12 @@ const cassetta = { id: 'c1', nome: 'C1', colore: 'bianca', posizione: 0, created
 const rigaViva = { cassetta_id: 'c1', lavoro_id: 'l1' }
 
 describe('getParete — auto-riparazione (Task 3, fix post-review: Critical #1, Critical #2, Important #3)', () => {
+  // Minor #12 (review Task 3): senza questo restore, uno spy su console.error
+  // lasciato attivo da un test silenzierebbe i log di un test successivo
+  // aggiunto in seguito, senza che nessuno se ne accorga (vitest isola per
+  // file, non per test — un solo file basta a far scattare la trappola).
+  afterEach(() => vi.restoreAllMocks())
+
   it('la riparazione parte davvero: riga viva su lavoro consegnato → RPC dispatched con p_motivo "consegna"', async () => {
     const { rpc, chiamate } = mockRpcLazy({ data: { esito: 'ok', nome: 'C1' }, error: null })
     const svc = {
@@ -99,5 +105,30 @@ describe('getParete — auto-riparazione (Task 3, fix post-review: Critical #1, 
     expect(parete).toHaveLength(1) // fail-soft: la lettura non si blocca
     expect(parete[0].lavoro).toBeNull() // degradazione visibile SOLO in lettura: mostrata libera
     expect(chiamate).toHaveLength(0) // ma NESSUNA scrittura — il guard di Critical #2 ha tenuto
+  })
+
+  // Minor #13 (review Task 3): dispatch, guard e motivo per-id erano coperti;
+  // mancava l'unica asserzione sul ramo di logging di Important #3 — un
+  // `esito` diverso da 'ok' (o un `error` dalla RPC) deve produrre davvero il
+  // `console.error` di `parco.ts`, non restare ingoiato in silenzio.
+  it('esito RPC diverso da "ok" → console.error, non ingoiato in silenzio (Important #3)', async () => {
+    const erroreSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { rpc } = mockRpcLazy({ data: { esito: 'motivo_non_valido' }, error: null })
+    const svc = {
+      from: (tabella: string) => {
+        if (tabella === 'cassette') return createChain({ data: [cassetta], error: null })
+        if (tabella === 'cassette_lavori') return createChain({ data: [rigaViva], error: null })
+        if (tabella === 'lavori') return createChain({ data: [rawLavoro({ stato: 'consegnato' })], error: null })
+        throw new Error(`tabella inattesa nel mock: ${tabella}`)
+      },
+      rpc,
+    } as unknown as SupabaseClient
+
+    await getParete(svc, 'lab-1')
+
+    expect(erroreSpy).toHaveBeenCalledWith(
+      expect.stringContaining('esito inatteso per il lavoro l1'),
+      { esito: 'motivo_non_valido' },
+    )
   })
 })
