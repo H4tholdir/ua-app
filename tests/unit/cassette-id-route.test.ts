@@ -35,7 +35,9 @@ function mockRpcLazy(sequenza: Array<{ data: unknown; error: unknown }>) {
 }
 
 const LAB_ID = 'lab-1'
-const CASSETTA_ID = 'cassetta-1'
+// Forma UUID valida (review Minor #1): la route ora scarta PRIMA della RPC un id che non ha
+// questa forma — un placeholder tipo 'cassetta-1' non passerebbe più la guardia.
+const CASSETTA_ID = '11111111-1111-1111-1111-111111111111'
 const params = Promise.resolve({ id: CASSETTA_ID })
 const CONTEXT = {
   userId: 'user-1', email: null, ruolo: 'titolare', laboratorioId: LAB_ID,
@@ -92,18 +94,42 @@ describe('PATCH /api/cassette/[id]', () => {
     expect(chiamate).toHaveLength(0)
   })
 
-  it('correzione 4: {nome, colore} insieme → 422, nessuna RPC chiamata', async () => {
+  it('review Minor #1: id malformato (non-UUID) nel path → 404 "cassetta_id_non_valido", nessuna RPC chiamata (eviterebbe un 22P02/500)', async () => {
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
     mockRpc.mockImplementation(rpc)
-    const res = await PATCH(patchReq({ nome: 'X', colore: 'blu' }), { params })
-    expect(res.status).toBe(422)
+    const res = await PATCH(patchReq({ nome: 'X' }), { params: Promise.resolve({ id: 'pippo' }) })
+    const json = await res.json()
+    expect(res.status).toBe(404)
+    expect(json.errore).toBe('cassetta_id_non_valido')
     expect(chiamate).toHaveLength(0)
   })
 
-  it('correzione 4: PATCH {} (nessuno dei due campi) → 422, nessuna RPC chiamata', async () => {
+  it('correzione 4: {nome, colore} insieme → 422 "campi_non_validi", nessuna RPC chiamata', async () => {
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await PATCH(patchReq({ nome: 'X', colore: 'blu' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(422)
+    expect(json.errore).toBe('campi_non_validi')
+    expect(chiamate).toHaveLength(0)
+  })
+
+  it('correzione 4: PATCH {} (nessuno dei due campi) → 422 "campi_non_validi", nessuna RPC chiamata', async () => {
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
     mockRpc.mockImplementation(rpc)
     const res = await PATCH(patchReq({}), { params })
+    const json = await res.json()
+    expect(res.status).toBe(422)
+    expect(json.errore).toBe('campi_non_validi')
+    expect(chiamate).toHaveLength(0)
+  })
+
+  it('review Minor #2: body JSON letterale null → equivale a {} (nessuno dei due campi) → 422, niente TypeError', async () => {
+    // req.json() risolve `null` per un body 'null' SENZA lanciare: senza `?? {}` questo
+    // handler farebbe `hasOwnProperty.call(null, 'nome')`, un TypeError, non un 422 pulito.
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await PATCH(patchReq(null), { params })
     expect(res.status).toBe(422)
     expect(chiamate).toHaveLength(0)
   })
@@ -156,6 +182,15 @@ describe('PATCH /api/cassette/[id]', () => {
     expect(res.status).toBe(422)
   })
 
+  it('review Minor #4: {nome} esito sconosciuto dalla RPC → 500 esplicito, non un 200 silenzioso', async () => {
+    const { rpc } = mockRpcLazy([{ data: { esito: 'qualcosa_di_futuro' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await PATCH(patchReq({ nome: 'X' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).toMatch(/esito inatteso/i)
+  })
+
   it('{nome} non stringa (es. numero) → 422 in route, nessuna RPC chiamata', async () => {
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
     mockRpc.mockImplementation(rpc)
@@ -196,6 +231,25 @@ describe('PATCH /api/cassette/[id]', () => {
     expect(res.status).toBe(422)
     expect(json.errore).toBe('colore_non_valido')
     expect(chiamate).toHaveLength(0)
+  })
+
+  it('review Minor #3: {colore: null} → 422 "colore_non_valido", NON un default silenzioso a "bianca" (il campo è presente, non omesso)', async () => {
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', colore: 'bianca' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await PATCH(patchReq({ colore: null }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(422)
+    expect(json.errore).toBe('colore_non_valido')
+    expect(chiamate).toHaveLength(0)
+  })
+
+  it('review Minor #4: {colore} esito sconosciuto dalla RPC → 500 esplicito, non un 200 silenzioso', async () => {
+    const { rpc } = mockRpcLazy([{ data: { esito: 'qualcosa_di_futuro' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await PATCH(patchReq({ colore: 'blu' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).toMatch(/esito inatteso/i)
   })
 
   it('p_lab è SEMPRE dal context, mai dal body — anche se il body prova a iniettarlo', async () => {
@@ -255,6 +309,16 @@ describe('DELETE /api/cassette/[id]', () => {
     expect(chiamate).toHaveLength(0)
   })
 
+  it('review Minor #1: id malformato (non-UUID) nel path → 404 "cassetta_id_non_valido", nessuna RPC chiamata (eviterebbe un 22P02/500)', async () => {
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await DELETE(deleteReq(), { params: Promise.resolve({ id: 'pippo' }) })
+    const json = await res.json()
+    expect(res.status).toBe(404)
+    expect(json.errore).toBe('cassetta_id_non_valido')
+    expect(chiamate).toHaveLength(0)
+  })
+
   it('rpc("cassetta_elimina_atomica", {p_lab, p_cassetta_id}); esito "occupata" → 409', async () => {
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'occupata' }, error: null }])
     mockRpc.mockImplementation(rpc)
@@ -279,6 +343,15 @@ describe('DELETE /api/cassette/[id]', () => {
     mockRpc.mockImplementation(rpc)
     const res = await DELETE(deleteReq(), { params })
     expect(res.status).toBe(200)
+  })
+
+  it('review Minor #4: esito sconosciuto dalla RPC → 500 esplicito, non un 200 silenzioso', async () => {
+    const { rpc } = mockRpcLazy([{ data: { esito: 'qualcosa_di_futuro' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await DELETE(deleteReq(), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).toMatch(/esito inatteso/i)
   })
 
   it('p_lab è SEMPRE dal context server-side (nessun body su DELETE da cui poterlo iniettare, ma lo si asserisce comunque sugli argomenti esatti)', async () => {

@@ -12,7 +12,8 @@ vi.mock('@/lib/supabase/lab-context', () => ({
   getFreshLabContext: mockGetFreshLabContext,
 }))
 
-import { POST, normalizzaColore } from '../../src/app/api/cassette/route'
+import { POST } from '../../src/app/api/cassette/route'
+import { normalizzaColore } from '../../src/lib/cassette/colore'
 
 /**
  * Mock di `.rpc()` che riproduce la pigrizia di `PostgrestFilterBuilder` (stesso
@@ -236,6 +237,28 @@ describe('POST /api/cassette', () => {
     const res = await POST(req({ nome: '   ' }))
     expect(res.status).toBe(422)
     expect(chiamate).toHaveLength(0)
+  })
+
+  it('review Minor #2: body JSON letterale null → trattato come {} (nome automatico, colore bianca), niente TypeError → 201', async () => {
+    // req.json() risolve `null` per un body 'null' SENZA lanciare: `.catch(() => ({}))` da
+    // solo non basterebbe, serve il `?? {}` dopo — altrimenti body.colore lancerebbe.
+    const cassetta = { id: 'c1', nome: 'C1', colore: 'bianca', posizione: 0 }
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', cassetta }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await POST(req(null))
+    const json = await res.json()
+    expect(res.status).toBe(201)
+    expect(json.cassetta).toEqual(cassetta)
+    expect(chiamate[0].args).toEqual(['cassetta_crea_atomica', { p_lab: LAB_ID, p_nome: null, p_colore: 'bianca' }])
+  })
+
+  it('review Minor #4: esito sconosciuto dalla RPC (né ok né nome_occupato né nome_non_valido) → 500 esplicito, non un 201 silenzioso', async () => {
+    const { rpc } = mockRpcLazy([{ data: { esito: 'qualcosa_di_futuro' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await POST(req({ nome: 'C1' }))
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    expect(json.error).toMatch(/esito inatteso/i)
   })
 
   it('errore RPC non-40P01 (es. connessione) → 500', async () => {

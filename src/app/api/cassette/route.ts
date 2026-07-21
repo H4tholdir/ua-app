@@ -4,6 +4,7 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+import { normalizzaColore } from '@/lib/cassette/colore'
 
 // NB (correzioni 21/07 del brief Task 4): NESSUNA scrittura diretta su `cassette`.
 // `service_role` ha SOLO SELECT su quella tabella (REVOKE ALL + GRANT SELECT,
@@ -12,25 +13,12 @@ import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 // 20260721090300_cassette_crea_colore.sql. Un .insert()/.update() diretto qui
 // darebbe 42501 in produzione.
 
-const COLORI = new Set(['bianca', 'azzurra', 'rossa', 'blu', 'verde', 'grigia'])
-const HEX_RE = /^#[0-9a-fA-F]{6}$/
-
-/** Normalizza in route (R-5): l'hex va MAIUSCOLO perché il CHECK di tabella vuole A-F.
- *  Un colore non normalizzato che arriva alla RPC fa RAISE, cioè un 400/P0001 —
- *  non un esito (verificato sul DB live, task-4a-report.md Appendice 2). */
-export function normalizzaColore(input: unknown): string | null {
-  if (input == null) return 'bianca'
-  if (typeof input !== 'string') return null
-  if (COLORI.has(input)) return input
-  if (HEX_RE.test(input)) return input.toUpperCase()
-  return null
-}
-
 type CassettaCreata = { id: string; nome: string; colore: string; posizione: number }
-type EsitoCrea =
-  | { esito: 'ok'; cassetta: CassettaCreata }
-  | { esito: 'nome_occupato'; nome: string | null }
-  | { esito: 'nome_non_valido' }
+// Tipo VOLUTAMENTE largo (non una union discriminata chiusa), come in
+// `cassette/riordino/route.ts` e `lavori/[id]/cassetta/route.ts`: un domani, se la RPC
+// guadagnasse un esito nuovo non ancora gestito qui, deve cadere nel fallback 500 esplicito
+// in fondo alla funzione — non in un "ok" implicito (review Minor #4).
+type EsitoCrea = { esito?: string; cassetta?: CassettaCreata; nome?: string | null }
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'origin' }, { status: 403 })
@@ -41,7 +29,11 @@ export async function POST(req: NextRequest) {
   if (guard) return guard
   const labId: string = context.laboratorioId
 
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
+  // `req.json()` risolve `null` per un body JSON letterale `null` SENZA lanciare (review
+  // Minor #2): senza `?? {}` un body `null` fa fallire `body.colore` più sotto con un
+  // TypeError, non con l'esito 201/422 atteso — e `.catch(() => ({}))` non intercetta un
+  // rifiuto perché la promise non viene mai rifiutata.
+  const body = ((await req.json().catch(() => ({}))) ?? {}) as Record<string, unknown>
   const colore = normalizzaColore(body.colore)
   if (!colore) return NextResponse.json({ errore: 'colore_non_valido' }, { status: 422 })
 
@@ -64,14 +56,24 @@ export async function POST(req: NextRequest) {
   if (!error && nome === null && (data as EsitoCrea | null)?.esito === 'nome_occupato') {
     ({ data, error } = await callRpcWithRetry(chiama))
   }
-  if (error) return NextResponse.json({ errore: 'creazione_fallita' }, { status: 500 })
-
-  const esito = data as EsitoCrea
-  if (esito.esito === 'nome_occupato') {
-    return NextResponse.json({ errore: 'nome_occupato', nome: esito.nome }, { status: 409 })
+  if (error) {
+    console.error('[POST /api/cassette] cassetta_crea_atomica fallita:', error)
+    return NextResponse.json({ errore: 'creazione_fallita' }, { status: 500 })
   }
-  if (esito.esito === 'nome_non_valido') {
+
+  const esito = data as EsitoCrea | null
+  if (esito?.esito === 'nome_occupato') {
+    return NextResponse.json({ errore: 'nome_occupato', nome: esito.nome ?? null }, { status: 409 })
+  }
+  if (esito?.esito === 'nome_non_valido') {
     return NextResponse.json({ errore: 'nome_non_valido' }, { status: 422 })
   }
-  return NextResponse.json({ cassetta: esito.cassetta }, { status: 201 })
+  if (esito?.esito === 'ok') {
+    return NextResponse.json({ cassetta: esito.cassetta }, { status: 201 })
+  }
+  // Contratto RPC (20260721090300_cassette_crea_colore.sql): solo questi tre esiti esistono,
+  // nessuna RAISE. Se arriviamo qui è un bug della route (o un cambio di contratto non
+  // recepito), non un esito di dominio — stesso pattern difensivo di
+  // `cassette/riordino/route.ts` (review Minor #4).
+  return NextResponse.json({ error: 'Esito inatteso dalla RPC cassetta_crea_atomica' }, { status: 500 })
 }
