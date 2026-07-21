@@ -5764,8 +5764,16 @@ export type Database = {
         }
         Returns: Json
       }
+      cassetta_crea_atomica: {
+        Args: { p_colore?: string; p_lab: string; p_nome?: string }
+        Returns: Json
+      }
       cassetta_elimina_atomica: {
         Args: { p_cassetta_id: string; p_lab: string }
+        Returns: Json
+      }
+      cassetta_imposta_colore_atomica: {
+        Args: { p_cassetta_id: string; p_colore: string; p_lab: string }
         Returns: Json
       }
       cassetta_libera_atomica: {
