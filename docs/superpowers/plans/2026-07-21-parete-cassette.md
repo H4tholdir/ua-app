@@ -909,9 +909,21 @@ describe('sentinella cassetta (spec parete §10)', () => {
 >    argomenti PostgREST non trova la funzione (`PGRST202`) e **fallisce**, non silenzia.
 >    Vale per **entrambe** le chiavi: `home` e `parete_intro_vista` (quest'ultima usata dal Task 15).
 > 2. `p_lab` **sempre** da `getFreshLabContext()` server-side, MAI dal body.
-> 3. **Comportamento nuovo da testare:** utente con `laboratorio_id` NULL (admin_sistema), oppure
->    `p_lab` di un altro laboratorio → **no-op silenzioso**, HTTP 200, nessuna eccezione.
->    Aggiungi il caso: «0 righe aggiornate ≠ errore».
+> 3. **Comportamento nuovo da testare — RISCRITTO 21/07 dopo la review, ratificato da Francesco.**
+>    La versione precedente diceva «utente con `laboratorio_id` NULL (admin_sistema) → no-op
+>    silenzioso, HTTP 200», e **collideva con il pattern-route**, che blocca `laboratorioId` NULL con
+>    **403 prima** di qualunque RPC. Governa il pattern:
+>    - **`admin_sistema` (`laboratorio_id` NULL) → 403.** È la risposta onesta: un 200 dichiarerebbe
+>      salvata una preferenza che non è stata scritta. La migration stessa annota che questi utenti
+>      «non usano la home di lab» (`…090000:649`).
+>    - **«0 righe aggiornate ≠ errore» resta valido e va testato:** con `RETURNS void` qualunque
+>      risoluzione senza `error` è un 200, e non c'è modo — né volontà — di dedurre il conteggio righe.
+>    - **`p_lab` di un altro laboratorio → 200**, ma l'unico percorso che lo produce è una **race**
+>      (riga soft-deletata, o lab cambiato fra il fetch del contesto e l'UPDATE): la route invia solo
+>      il proprio `labId`.
+>    La clausola `WHERE … AND laboratorio_id = p_lab AND deleted_at IS NULL` dentro la RPC **resta
+>    indispensabile** a prescindere da questa route: è l'unico guard di tenancy a livello DB su una
+>    superficie `SECURITY DEFINER` dove `auth.uid()` è NULL, e vale per ogni chiamante futuro.
 > 4. `p_valore` NULL solleva `RAISE`: la route non deve mai inoltrare un valore assente.
 > 5. Test in `tests/unit/` (D-O1).
 
