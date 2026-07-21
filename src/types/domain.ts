@@ -598,6 +598,11 @@ export interface ConsegnaResult {
   fattura: { numero: string; stato_sdi: string } | null;
   whatsapp_url: string;
   tempo_ms: number;
+  /** Nome della cassetta liberata alla consegna (Task 7, spec §9.1 — L5), o
+   *  `null` se non c'era niente da liberare/la liberazione è fallita
+   *  (fail-soft: la consegna non si annulla mai per questo). Opzionale per
+   *  compatibilità con payload/mock preesistenti che non lo includono. */
+  cassettaLiberata?: string | null;
 }
 
 export interface ConsegnaError {

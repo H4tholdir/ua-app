@@ -197,6 +197,7 @@ export function FlussoConsegna(props: {
           descrizione={descrizione}
           dentista={dentista}
           onChiudi={onFrameChiuso}
+          cassettaLiberata={stato.esito.cassettaLiberata ?? null}
         />
       )}
     </>

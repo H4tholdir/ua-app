@@ -39,6 +39,10 @@ beforeEach(() => {
     rpcChiamate.push(fn)
     if (fn === 'consegna_lavoro_lock') return { data: { lock_acquisito: true }, error: null }
     if (fn === 'genera_progressivo') return { data: 5, error: null } // pre-fix: usato dall'IIFE Step 6
+    // Task 7 (L5): liberazione cassetta chiamata dopo lo Step 5 riuscito —
+    // senza questo ramo il test passerebbe comunque (fail-soft esterno la
+    // ingoia), ma per la ragione SBAGLIATA (eccezione, non l'esito reale).
+    if (fn === 'cassetta_libera_atomica') return { data: { esito: 'ok', nome: null }, error: null }
     throw new Error(`Unexpected rpc: ${fn}`)
   })
   mockFrom.mockImplementation((table: string) => {

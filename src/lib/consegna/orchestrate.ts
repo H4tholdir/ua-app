@@ -4,8 +4,66 @@ import { precheckMDR } from './precheck'
 import { isStatoConsegnabile } from './costanti'
 import { buildWhatsappMessage, buildWhatsappUrl } from '@/lib/consegna/whatsapp-template'
 import { triggerPushByRole } from '@/lib/notifications/trigger'
+import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 import type { ConsegnaResult, ConsegnaError, LavoroDettaglio } from '@/types/domain'
 import { annoRoma } from '@/lib/utils/data-roma'
+
+/**
+ * Libera la cassetta del lavoro alla consegna (Task 7, spec §9.1 — L5),
+ * via `cassetta_libera_atomica(p_lab, p_lavoro, p_motivo:'consegna')`
+ * (Task 1/4a), avvolta in `callRpcWithRetry` (coda di deadlock 40P01
+ * documentata in testa alla migration — decisione dell'orchestratore, non
+ * un'invenzione di questo task).
+ *
+ * **Fail-soft ASSOLUTO** (vincolo più importante del task — stiamo toccando
+ * un flusso fiscale in produzione): la consegna non deve MAI fallire per
+ * colpa della liberazione. Ogni esito diverso da `{esito:'ok'}` viene
+ * LOGGATO e degradato a `null`, mai propagato:
+ *  - `error` non-null (postgrest-js NON lancia sugli errori del database —
+ *    torna `{data:null, error:{...}}` — quindi va controllato esplicitamente,
+ *    un `try/catch` da solo non lo intercetterebbe);
+ *  - `esito !== 'ok'` (in pratica solo `motivo_non_valido`, irraggiungibile
+ *    qui perché `'consegna'` è un letterale valido — ma va loggato comunque
+ *    se mai arrivasse, non ignorato in silenzio);
+ *  - eccezione di rete vera (`try/catch` esterno, ultima difesa, non l'unica).
+ * `esito:'ok'` con `nome:null` è il caso legittimo e idempotente «niente da
+ * liberare»: NON è un errore, nessun log.
+ *
+ * Condivisa dal ramo Step 5 (consegna nuova) e dal ramo idempotente
+ * `gia_consegnato` (risoluzione #5 dell'orchestratore: stessa forma di
+ * gestione errori, il retry lì è "gratuito" — una riparazione, non un costo).
+ */
+async function liberaCassettaAllaConsegna(
+  supabase: ReturnType<typeof getServiceClient>,
+  laboratorio_id: string,
+  lavoro_id: string
+): Promise<string | null> {
+  try {
+    const { data, error } = await callRpcWithRetry(() =>
+      supabase.rpc('cassetta_libera_atomica', {
+        p_lab: laboratorio_id,
+        p_lavoro: lavoro_id,
+        p_motivo: 'consegna',
+      })
+    )
+
+    if (error) {
+      console.error('[CONSEGNA] liberazione cassetta fail-soft — RPC in errore:', error)
+      return null
+    }
+
+    const esito = (data as { esito?: string; nome?: string | null } | null)?.esito
+    if (esito !== 'ok') {
+      console.error('[CONSEGNA] liberazione cassetta fail-soft — esito inatteso dalla RPC:', data)
+      return null
+    }
+
+    return (data as { nome?: string | null }).nome ?? null
+  } catch (err) {
+    console.error('[CONSEGNA] liberazione cassetta fail-soft — eccezione:', err)
+    return null
+  }
+}
 
 export async function orchestraConsegna(
   lavoro_id: string,
@@ -79,6 +137,11 @@ export async function orchestraConsegna(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buonoUrl = (lavoro as any)?.buono_pdf_url ?? ''
 
+    // Retry gratuito della riparazione (risoluzione #5): un lavoro già
+    // consegnato che arriva di nuovo qui è l'occasione per richiudere una
+    // cassetta rimasta aperta da un tentativo precedente fallito.
+    const cassettaLiberata = await liberaCassettaAllaConsegna(supabase, laboratorio_id, lavoro_id)
+
     return {
       ok: true,
       lavoro_id,
@@ -88,6 +151,7 @@ export async function orchestraConsegna(
       fattura: null,
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
+      cassettaLiberata,
     }
   }
 
@@ -266,6 +330,16 @@ export async function orchestraConsegna(
       }
     }
 
+    // ----------------------------------------------------------------
+    // Step 5.5 — Libera la cassetta (fail-soft, L5 — spec §9.1)
+    // ----------------------------------------------------------------
+    // VINCOLO D'ORDINE (panel R11): DOPO lo Step 5 riuscito, che è già dopo
+    // la generazione del Buono (Step 4 — BuonoTemplate.tsx:341 stampa
+    // numero_cassetta: spostare la liberazione prima stamperebbe un buono
+    // senza targa). `numero_cassetta` si azzera SOLO dentro la RPC (una sola
+    // penna) — mai aggiunto qui all'update di Step 5.
+    const cassettaLiberata = await liberaCassettaAllaConsegna(supabase, laboratorio_id, lavoro_id)
+
     // Push notification — lavoro consegnato → front_desk (fire-and-forget safe)
     await triggerPushByRole(laboratorio_id, 'front_desk', {
       title: 'Lavoro consegnato',
@@ -301,6 +375,7 @@ export async function orchestraConsegna(
       fattura: null,
       whatsapp_url: waUrl,
       tempo_ms: Date.now() - startMs,
+      cassettaLiberata,
     }
   } catch (err) {
     // Catch-all globale — rilascia lock, restituisci errore generico
