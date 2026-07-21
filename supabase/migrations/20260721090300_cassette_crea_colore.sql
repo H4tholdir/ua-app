@@ -32,6 +32,10 @@
 -- mentre attende.** Non può quindi essere il nodo «tiene A, vuole B» di un ciclo: può essere
 -- vittima o bloccante, mai entrambi. **Vale a condizione che 1 RPC = 1 transazione**, che è
 -- regola d'ondata (mai incatenare due RPC della Parete nella stessa transazione).
+-- Unica eccezione alla clausola «senza tenere nulla mentre attende»: in `crea` il controllo FK
+-- gira a **fine statement**, quindi un INSERT riuscito attende il KEY SHARE su `laboratori`
+-- **tenendo già** la chiave d'indice appena inserita. Non chiude comunque cicli, perché chi
+-- blocca `laboratori` in esclusiva non attende mai `cassette`.
 -- Se una modifica futura le facesse acquisire una seconda risorsa prima di ritornare, non è
 -- una riga in più: è un contratto diverso, e va rifatto l'audit dei lock.
 --
@@ -40,7 +44,8 @@
 -- `cassette_laboratorio_id_fkey` — tabella **assente dall'ordine canonico**. Non è un arco
 -- nuovo (`assegna` get-or-create, `riassegna_post_annullo`, `trasferisci_rifacimento` e il
 -- backfill di …090200 lo prendono già) ed è **shared**, quindi conflitta solo con chi chiede
--- un lock esclusivo su quella riga, cioè `admin_delete_laboratorio`. **Non chiudere nulla in
+-- un lock esclusivo su quella riga: oggi `admin_delete_laboratorio` (DELETE) e
+-- `pec_vault_upsert` (`20260518000002_pec_vault_upsert.sql:13`, `FOR UPDATE`). **Non chiudere nulla in
 -- SQL**: è documentazione, non un difetto. `imposta_colore` invece rispetta la frase alla
 -- lettera: un solo lock di riga su `cassette`, nessuna FK attraversata.
 --
