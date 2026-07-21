@@ -17,12 +17,19 @@
 // che è insieme il testo visibile e l'annuncio per lo screen reader (una sola live region,
 // montata sempre: una regione che nasce insieme al suo testo non viene annunciata).
 //
-// Intento sheet (risoluzione C1 dell'ondata): questo componente tiene ORA lo stato
-// dell'intento — cassetta libera (tap), long-press su QUALSIASI cassetta, tile «+», CTA del
-// Vuoto. **I corpi degli sheet li monta il Task 12** su questo stesso stato; qui l'unico
-// consumo possibile è `aria-expanded` sulla tile «+», l'unico controllo di cui possediamo il
-// markup (`Cassetta` è un componente ds del Task 10 e non accetta attributi ARIA dal
-// chiamante).
+// Intento sheet (risoluzione C1 dell'ondata): questo componente tiene lo stato dell'intento —
+// cassetta libera (tap), long-press su QUALSIASI cassetta, tile «+», CTA del Vuoto. Il Task 12
+// ci ha montato sopra i due corpi (`NuovaCassettaSheet`, `CassettaSheet`) e ha chiuso il cerchio:
+// `setSheet(null)` parte da OGNI via d'uscita — chiusura dello sheet (scrim/swipe/Esc/«Chiudi»,
+// che il `Sheet` ds instrada tutte su `onChiudi`) e successo dell'azione (`onCreata`/`onCambiata`,
+// che chiudono e rileggono la parete). Di conseguenza `aria-expanded` della tile «+» — derivato
+// da `sheet?.tipo === 'nuova'` — torna a `false` da sé alla chiusura.
+//
+// Dati che vivono QUI e non nei due sheet: `prossimoNome` (max della serie C sui nomi vivi),
+// `libere`, e l'ORDINE COMPLETO del muro per il riordino ▲▼ — la parete arriva già ordinata da
+// `deriveParete`, qui si ricalcola l'array spostando di una posizione e si POSTa la lista intera.
+// Per questo `CassettaSheet` riceve un callback `onSposta(direzione)` invece dell'ordine: i ▲▼ si
+// rendono là, la lista si compone qui (unico posto che possiede `parete`).
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Cassetta } from '@/components/ds/Cassetta'
@@ -30,10 +37,23 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { filtraCassette } from './filtra-cassette'
+import { NuovaCassettaSheet } from './NuovaCassettaSheet'
+import { CassettaSheet } from './CassettaSheet'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
-/** L'intento di apertura di uno sheet. Il Task 12 monta i corpi su questo stato. */
+/** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
 type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
+
+/** Il prossimo nome della serie «C» sui nomi VIVI della parete (§5.2): `C1`, `C2`, … → il
+ *  prossimo. I nomi fuori serie («Banco Ciro») non partecipano al calcolo. */
+function prossimoNomeSerieC(parete: CassettaParete[]): string {
+  let massimo = 0
+  for (const c of parete) {
+    const trovato = /^C(\d+)$/.exec(c.nome)
+    if (trovato) massimo = Math.max(massimo, Number(trovato[1]))
+  }
+  return `C${massimo + 1}`
+}
 
 export function PareteClient(props: { parete: CassettaParete[] }) {
   const { parete } = props
@@ -61,6 +81,54 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
       window.removeEventListener('focus', rileggi)
     }
   }, [router])
+
+  const prossimoNome = useMemo(() => prossimoNomeSerieC(parete), [parete])
+  const libere = useMemo(() => parete.filter((c) => !c.lavoro), [parete])
+
+  // La cassetta dello sheet si RISOLVE dalla parete corrente, non si copia nell'intento: dopo un
+  // `router.refresh()` un id sparito (cassetta buttata via altrove) dà `null` e lo sheet non si
+  // monta vuoto — `aperto` lo segue.
+  const cassettaAperta = sheet?.tipo === 'cassetta' ? (parete.find((c) => c.id === sheet.id) ?? null) : null
+  const postoAperta = cassettaAperta ? parete.findIndex((c) => c.id === cassettaAperta.id) + 1 : 0
+
+  function chiudiSheet() {
+    setSheet(null)
+  }
+
+  // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato locale.
+  function dopoCambio() {
+    setSheet(null)
+    router.refresh()
+  }
+
+  /** Riordino ▲▼ (§5.4): sposta di UNA posizione e POSTa la lista COMPLETA degli id vivi
+   *  nell'ordine nuovo. Torna `true` SOLO se il muro si è mosso davvero (200): è l'esito su cui
+   *  lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque, anche quando
+   *  la POST fallisce — la parete torna a dire la verità del server invece di restare
+   *  sull'ordine che l'utente credeva di aver dato. */
+  async function riordina(id: string, direzione: 'su' | 'giu'): Promise<boolean> {
+    const indice = parete.findIndex((c) => c.id === id)
+    if (indice < 0) return false
+    const destinazione = direzione === 'su' ? indice - 1 : indice + 1
+    if (destinazione < 0 || destinazione >= parete.length) return false
+    const ordine = parete.map((c) => c.id)
+    ordine[indice] = parete[destinazione].id
+    ordine[destinazione] = parete[indice].id
+    try {
+      const res = await fetch('/api/cassette/riordino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ordine }),
+      })
+      // Ramo di successo esplicito: qualunque altro esito (422 `ordine_non_valido`, 500, rete
+      // caduta) NON è un riordino avvenuto.
+      return res.status === 200
+    } catch {
+      return false
+    } finally {
+      router.refresh()
+    }
+  }
 
   const annuncio = !attiva
     ? ''
@@ -168,6 +236,26 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
           </div>
         </>
       )}
+
+      {/* I due sheet stanno FUORI dal ramo «parete vuota»: anche la CTA del Vuoto apre
+          «Nuova cassetta». Restano montati sempre — è `aperto` a comandarli, così il `Sheet` ds
+          può giocare la propria uscita animata invece di sparire di colpo. */}
+      <NuovaCassettaSheet
+        aperto={sheet?.tipo === 'nuova'}
+        onChiudi={chiudiSheet}
+        prossimoNome={prossimoNome}
+        onCreata={dopoCambio}
+      />
+      <CassettaSheet
+        cassetta={cassettaAperta}
+        libere={libere}
+        posto={postoAperta}
+        totale={parete.length}
+        aperto={sheet?.tipo === 'cassetta' && !!cassettaAperta}
+        onChiudi={chiudiSheet}
+        onCambiata={dopoCambio}
+        onSposta={(direzione) => (cassettaAperta ? riordina(cassettaAperta.id, direzione) : Promise.resolve(false))}
+      />
     </section>
   )
 }

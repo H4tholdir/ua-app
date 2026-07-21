@@ -5,7 +5,7 @@
 // tap/long-press). Un `fireEvent.click` NON chiama `onTap`: qui si usa la stessa coppia di
 // eventi di `tests/unit/Cassetta.test.tsx`.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -115,6 +115,37 @@ describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {
     expect(tile).toHaveAttribute('aria-expanded', 'false')
     await userEvent.setup().click(tile)
     expect(tile).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('Task 12 — lo sheet «nuova» si CHIUDE e `aria-expanded` torna false (l\'intento aveva una sola porta: entrarci)', async () => {
+    render(<PareteClient parete={[occupata]} />)
+    const user = userEvent.setup()
+    const tile = screen.getByRole('button', { name: /Nuova cassetta/ })
+    await user.click(tile)
+    // Il corpo dello sheet è montato davvero (non più un intento senza dialog).
+    expect(screen.getByRole('dialog', { name: 'Nuova cassetta' })).toBeInTheDocument()
+    expect(tile).toHaveAttribute('aria-expanded', 'true')
+
+    // Via d'uscita del `Sheet` ds: il «Chiudi» in fondo instrada su `onChiudi` come scrim ed Esc.
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(tile).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('Task 12 — Esc chiude lo sheet cassetta (il ramo {tipo:\'cassetta\'} ora si legge davvero)', async () => {
+    render(<PareteClient parete={[occupata, libera]} />)
+    tap(cassettaLibera())
+    expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    // `waitFor` e non un assert secco: il `Sheet` ds esce con `AnimatePresence` (§8.2.2), quindi
+    // il pannello resta nel DOM finché la discesa non è finita — la chiusura è vera lo stesso.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C4' })).toBeNull())
+  })
+
+  it('Task 12 — il nome suggerito è il prossimo della serie C sui nomi vivi (fuori serie ignorati)', async () => {
+    const fuoriSerie: CassettaParete = { ...libera, id: 'c-x', nome: 'Banco Ciro', posizione: 2 }
+    render(<PareteClient parete={[{ ...occupata, nome: 'C12' }, fuoriSerie]} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /Nuova cassetta/ }))
+    expect(screen.getByLabelText('Nome')).toHaveValue('C13')
   })
 
   it('hold 300ms fermo su una cassetta OCCUPATA non degrada in tap-che-naviga (review Task 11, Important 2): senza `onLongPressSheet` il gesto sparirebbe in silenzio dentro `Cassetta` (il timer lì parte solo se la prop è passata) e la pressione lunga ricadrebbe sul tap', () => {

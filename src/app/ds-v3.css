@@ -385,3 +385,62 @@
 [data-ds="v3"] .ds-tray-nuova:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 [data-ds="v3"] .ds-tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
 [data-ds="v3"] .ds-tray-nuova .t { font-size: 12px; font-weight: 700; }
+
+/* §5.2 Sheet «Nuova cassetta» + §5.3 Sheet cassetta — swatches colore (Task 12). Il gradiente
+   delle 6 facce standard è RIUSATO da `.ds-cassetta.<slug>` (righe 276-281): lo swatch porta
+   ANCHE le classi `ds-cassetta <slug>`, così il background arriva da lì e NON si ri-dichiara
+   (brief Task 12). `.ds-swatch` riporta la geometria della cella-tray a quella dello swatch 42px
+   del mockup ratificato (2026-07-20-parete-cassette-v2.html:153-157) — 44px effettivi qui per il
+   touch target di legge (§12, ≥44px) — e spegne la linguetta `::before` della tray. Il conic del
+   custom e i valori raw vivono qui: il check pre-commit vieta hex/rgba letterali nei .tsx. */
+[data-ds="v3"] .ds-swatches { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+[data-ds="v3"] .ds-swatch {
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  padding: 0; border: none; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -6px 10px -6px rgba(0,0,0,.3);
+}
+[data-ds="v3"] .ds-swatch::before { display: none; }
+[data-ds="v3"] .ds-swatch:disabled { cursor: default; }
+[data-ds="v3"] .ds-swatch.is-scelto { outline: 3px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-swatch:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+/* Il ✓ dello swatch scelto (L3: mai il solo anello). Inchiostro chiaro di default, scuro sulle
+   facce chiare — `is-chiara` la mette il componente via `targaScura`, la stessa regola con cui la
+   Cassetta decide targa e testi (§5.35). */
+[data-ds="v3"] .ds-swatch-check {
+  font-size: 18px; font-weight: 800; line-height: 1;
+  color: rgba(255,255,255,.95); text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+[data-ds="v3"] .ds-swatch.is-chiara .ds-swatch-check {
+  color: rgba(29,25,19,.85); text-shadow: none;
+}
+[data-ds="v3"] .ds-swatch-custom {
+  background: conic-gradient(#D90012, #E8A13D, #1B7F3B, #1D5FBF, #7C3F9C, #D90012);
+}
+[data-ds="v3"] .ds-swatch-custom .glifo {
+  font-size: 20px; font-weight: 800; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+/* L'`<input type="color">` nativo resta fuori dal flusso: lo apre il click sullo swatch custom
+   (`inputRef.click()`), qui è solo il ponte verso il selettore di sistema. */
+[data-ds="v3"] .ds-swatch-input {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0; pointer-events: none;
+}
+
+/* §5.2/§5.3 — hint del campo nome, riga info «Dentro c'è…», errore inline, sezioni dello sheet. */
+[data-ds="v3"] .ds-sheet-hint {
+  font-size: 12.5px; font-weight: 700; color: var(--faint); margin: 8px 0 0;
+}
+[data-ds="v3"] .ds-sheet-info {
+  font-size: 15px; font-weight: 600; color: var(--muted); margin: 0;
+}
+[data-ds="v3"] .ds-sheet-errore {
+  font-size: 14px; font-weight: 600; color: var(--red); margin: 8px 0 0;
+}
+[data-ds="v3"] .ds-sheet-sezione {
+  font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); margin: 0;
+}
+[data-ds="v3"] .ds-sheet-disabilitata { font-size: 15px; font-weight: 700; color: var(--faint); margin: 0; }
+[data-ds="v3"] .ds-sposta-riga { display: flex; align-items: center; gap: 12px; }
+[data-ds="v3"] .ds-sposta-posto { font-size: 14px; font-weight: 700; color: var(--muted); }
