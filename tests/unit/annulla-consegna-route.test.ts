@@ -58,10 +58,12 @@ function mockRpcLazy(sequenze: Record<string, Array<{ data: unknown; error: unkn
 
 describe('POST /api/lavori/[id]/annulla-consegna', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.clearAllMocks()
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
     mockFrom.mockImplementation((table: string) => {
       if (table === 'utenti') return { select: () => ({ eq: () => ({ is: () => ({ single: async () => ({ data: { laboratorio_id: 'lab-1', ruolo: 'titolare', laboratori: { stato: 'attivo', trial_ends_at: null, nome: 'Lab Test' } }, error: null }) }) }) }) }
@@ -160,7 +162,7 @@ describe('POST /api/lavori/[id]/annulla-consegna', () => {
       })
     })
 
-    it("(c) esito 'niente_da_riassegnare' → campo cassetta ASSENTE dalla response, MA loggato (è diagnostico: l'annullo non ha riaperto il lavoro)", async () => {
+    it("(c) esito 'niente_da_riassegnare' → campo cassetta ASSENTE dalla response, e un console.warn (NON error, review Minor M1: la causa può essere benigna)", async () => {
       const { rpc } = mockRpcLazy({
         annulla_consegna_atomica: [{ data: { esito: 'ok' }, error: null }],
         cassetta_riassegna_post_annullo: [{ data: { esito: 'niente_da_riassegnare' }, error: null }],
@@ -171,7 +173,10 @@ describe('POST /api/lavori/[id]/annulla-consegna', () => {
       const json = await res.json()
       expect(json).toEqual({ ok: true, messaggio: 'Consegna annullata — lavoro riportato a Pronto' })
       expect('cassetta' in json).toBe(false)
-      expect(consoleErrorSpy).toHaveBeenCalled()
+      expect(consoleWarnSpy).toHaveBeenCalled()
+      // M1: un laboratorio senza parete vedrebbe QUESTO esito ad ogni annullo —
+      // non deve accendere il livello error, altrimenti smette di essere un segnale.
+      expect(consoleErrorSpy).not.toHaveBeenCalled()
     })
 
     it('(d) la RPC di riassegnazione torna un OGGETTO errore (postgrest-js non lancia) → fail-soft: annullo resta ok, campo cassetta ASSENTE, loggato', async () => {

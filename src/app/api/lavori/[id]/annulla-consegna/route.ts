@@ -11,7 +11,7 @@ import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 // annulla_consegna_atomica (Ondata 0 spec §3 punto 4). La route mappa solo
 // gli esiti su HTTP.
 
-type RiassegnazioneCassetta = { riassegnata: boolean; nome: string }
+type RiassegnazioneCassetta = { riassegnata: boolean; nome?: string }
 
 /**
  * Task 8: dopo un annullo consegna riuscito, prova a riassegnare al lavoro
@@ -34,11 +34,17 @@ type RiassegnazioneCassetta = { riassegnata: boolean; nome: string }
  *    intercetterebbe) → log, `null` (niente campo `cassetta` in response);
  *  - `esito === 'riassegnata'` → `{riassegnata:true, nome}`;
  *  - `esito === 'occupata_nel_frattempo'` → `{riassegnata:false, nome}`;
- *  - `esito === 'niente_da_riassegnare'` → `null`, MA LOGGATO: il commento a
+ *  - `esito === 'niente_da_riassegnare'` → `null`, con un `console.warn`
+ *    (NON `error`, review Minor M1): il commento a
  *    `supabase/migrations/20260721090000_parete_cassette.sql:510-511`
- *    dichiara questo esito DIAGNOSTICO, non un non-evento — su un lavoro che
- *    dovrebbe essere stato appena riaperto dall'annullo, significa che
- *    l'annullo non ha riaperto il lavoro (un difetto altrove, da inseguire);
+ *    dichiara questo esito diagnostico SOLO per la guardia sul lavoro
+ *    (`:512-514`) — ma la RPC ritorna lo stesso esito anche per altre due
+ *    cause benigne, l'assenza di una riga `liberato_per='consegna'` (`:522`)
+ *    e la cassetta eliminata nel frattempo (`:528`). In un laboratorio che
+ *    non usa la parete delle cassette, OGNI annullo consegna passerebbe per
+ *    la guardia benigna: un `console.error` lì si accenderebbe sempre e
+ *    smetterebbe di essere un segnale. Il testo descrive un'ipotesi da
+ *    verificare, non un'accusa all'annullo;
  *  - esito ignoto (un esito futuro non mappato qui) → log, `null` — mai un
  *    successo silenzioso (stessa guardia del Minor #4 chiuso nel Task 4);
  *  - eccezione di rete vera → `try/catch` esterno, ultima difesa, non
@@ -63,7 +69,7 @@ async function riassegnaCassettaAllAnnullo(
     }
 
     const esito = (data as { esito?: string; nome?: string } | null)?.esito
-    const nome = (data as { nome?: string } | null)?.nome as string
+    const nome = (data as { nome?: string } | null)?.nome
 
     switch (esito) {
       case 'riassegnata':
@@ -71,11 +77,14 @@ async function riassegnaCassettaAllAnnullo(
       case 'occupata_nel_frattempo':
         return { riassegnata: false, nome }
       case 'niente_da_riassegnare':
-        // Diagnostico, non un non-evento (vedi commento sopra e il commento
-        // nella migration): un lavoro appena riaperto dall'annullo che non
-        // trova niente da riassegnare segnala che l'annullo non ha
-        // (ri)aperto il lavoro.
-        console.error('[ANNULLA-CONSEGNA] niente da riassegnare su un lavoro appena riaperto — possibile difetto nell\'annullo consegna:', data)
+        // Review Minor M1: warn, non error — la RPC ritorna questo esito per
+        // tre cause distinte (vedi commento sopra), solo una delle quali è un
+        // difetto dell'annullo. Descrive un'ipotesi da verificare, non
+        // un'imputazione.
+        console.warn(
+          `[ANNULLA-CONSEGNA] nessuna cassetta da riassegnare per il lavoro ${lavoro_id} — se il lavoro è stato riaperto, verificare che l'annullo lo abbia fatto davvero:`,
+          data
+        )
         return null
       default:
         console.error('[ANNULLA-CONSEGNA] riassegnazione cassetta — esito inatteso dalla RPC:', data)
