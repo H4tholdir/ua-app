@@ -112,10 +112,44 @@ GRANT SELECT ON cassette, cassette_lavori TO authenticated;
 -- dormiente consegna_finalizza_atomica come percorso di consegna, portare
 -- la chiamata a cassetta_libera_atomica anche lì.
 --
--- R-5 (ratificata): nessun esito nuovo rispetto alla tabella dei contratti §4.3.
--- Nome e colore si validano IN ROUTE; qui l'unica reazione a un input impossibile
--- è un errore di programmazione (RAISE) o l'esito già previsto `cassetta_non_trovata`.
+-- ============================================================================
+-- CONTRATTO DEGLI ESITI — elenco VERO E COMPLETO, funzione per funzione (D5).
+--
+-- Il commento precedente diceva «R-5: nessun esito nuovo rispetto alla tabella §4.3»:
+-- era FALSO e va letto come corretto qui. R-5 resta la politica (non si inventano esiti
+-- di comodo: nome e colore si validano IN ROUTE), ma i fix dei finding #3 e #6 hanno
+-- reso inevitabili alcuni esiti che la tabella §4.3 della spec non elenca — e §4.3 è
+-- comunque incompleta a monte (difetto noto e tracciato: non elenca nemmeno `ok`,
+-- `cassetta_non_trovata` di elimina/rinomina, né la RPC cassetta_trasferisci_rifacimento).
+--
+-- **QUESTO BLOCCO, NON §4.3, È LA FONTE DI VERITÀ per la mappatura esito→HTTP
+--   dei Task 4/5/8/9.** Ogni funzione ha sopra di sé l'elenco esatto dei propri esiti;
+--   qui il riepilogo. `[nuovo]` = assente dalla tabella §4.3.
+--
+--   cassetta_libera_atomica            → motivo_non_valido [nuovo] · ok
+--   cassetta_assegna_atomica           → lavoro_non_valido [nuovo] · cassetta_non_trovata ·
+--                                        occupata · ok
+--   cassetta_rinomina_atomica          → nome_non_valido [nuovo] · cassetta_non_trovata [nuovo] ·
+--                                        nome_occupato · ok
+--   cassetta_elimina_atomica           → cassetta_non_trovata [nuovo] · occupata · ok
+--   cassette_riordina                  → ordine_non_valido · ok
+--   cassetta_riassegna_post_annullo    → niente_da_riassegnare · occupata_nel_frattempo ·
+--                                        riassegnata   (esattamente i 3 di §4.3)
+--   cassetta_trasferisci_rifacimento   → lavoro_non_valido · niente_da_trasferire ·
+--                                        occupata · trasferita   (RPC intera nuova, D-10)
+--   utente_set_nav_pref                → nessun esito: RETURNS void
+--
+-- Le RAISE elencate sotto ogni funzione NON sono contratto: sono errori di programmazione
+-- (§3.9 — la route non deve mai produrle). Se una route le vede, è un bug della route.
+-- ============================================================================
 
+-- ESITI (json, completi — D5):
+--   {"esito":"motivo_non_valido"}                p_motivo NULL o fuori enum → 422 [nuovo vs §4.3]
+--   {"esito":"ok","nome":"<nome>"}               liberata: `nome` = cassetta appena liberata
+--   {"esito":"ok","nome":null}                   nessuna riga viva: idempotente, non è un errore
+-- RAISE: nessuna.
+-- Nota (D12, INFO): con un p_lavoro di un ALTRO lab l'esito è {"ok",null}, indistinguibile
+-- dall'idempotenza. Nessuna scrittura cross-tenant (verificato): è solo poco informativo.
 CREATE FUNCTION public.cassetta_libera_atomica(p_lab uuid, p_lavoro uuid, p_motivo text)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_nome text;
@@ -140,12 +174,29 @@ BEGIN
   RETURN json_build_object('esito','ok','nome', v_nome);  -- nome NULL = niente da liberare (idempotente)
 END $$;
 
+-- ESITI (json, completi — D5):
+--   {"esito":"lavoro_non_valido"}                     lavoro assente/di altro lab/soft-deleted/
+--                                                     consegnato/annullato → 422 [nuovo vs §4.3]
+--   {"esito":"cassetta_non_trovata"}                  p_cassetta_id assente/di altro lab/eliminata,
+--                                                     OPPURE p_nome NULL/vuoto/>20 char → 404-422
+--   {"esito":"occupata","nome":"<nome>"}              la cassetta ha già dentro un altro lavoro → 409
+--   {"esito":"ok","cassetta_id":"<uuid>","nome":"…"}  assegnata (o già dentro: idempotente)
+-- RAISE: 'colore cassetta non valido: %'  (R-5: il colore lo valida la route; se arriva qui
+--        sbagliato è un bug della route, non un esito di dominio).
+--
+-- ORDINE DEI LOCK (D2 — vale come contratto, non come commento decorativo):
+--   cassette(FOR UPDATE) → cassette_lavori(occupante) → lavori(occupante, FOR NO KEY UPDATE)
+--   → cassette_lavori(entrante) → lavori(entrante) → dashboard_kpi_cache[lab] → lavori(occupante)
+-- cioè: TUTTE le righe di `lavori` che questa RPC toccherà sono bloccate PRIMA che
+-- trg_dashboard_lavori prenda dashboard_kpi_cache[lab]. Vedi il commento a (2b).
 CREATE FUNCTION public.cassetta_assegna_atomica(
   p_lab uuid, p_lavoro uuid, p_cassetta_id uuid DEFAULT NULL,
   p_nome text DEFAULT NULL, p_colore text DEFAULT NULL)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   v_cassetta_id uuid; v_nome text; v_occupante uuid; v_stato_occ text; v_del_occ timestamptz;
+  v_occ_denorm uuid;            -- occupante sfrattato da (2b): la sua denorm si azzera in (6)
+  v_conflitto boolean := false; -- unique_violation in (4): l'esito si rimanda dopo (6)
 BEGIN
   -- (-1) colore: la route lo valida (R-5, nessun esito nuovo). Se arriva qui sbagliato è un
   -- errore di programmazione: RAISE parlante invece di una violazione di CHECK opaca (m3).
@@ -192,8 +243,28 @@ BEGIN
     UPDATE cassette_lavori SET liberato_at = now(),
       liberato_per = CASE WHEN v_stato_occ = 'consegnato' THEN 'consegna' ELSE 'annullo_lavoro' END
     WHERE cassetta_id = v_cassetta_id AND laboratorio_id = p_lab AND liberato_at IS NULL;
-    UPDATE lavori SET numero_cassetta = NULL WHERE id = v_occupante AND laboratorio_id = p_lab;
-    v_occupante := NULL;
+    -- ⚠️ D2 — QUI stava `UPDATE lavori SET numero_cassetta = NULL WHERE id = v_occupante`.
+    -- Quell'UPDATE fa scattare trg_dashboard_lavori → refresh_dashboard_cache → INSERT … ON
+    -- CONFLICT su dashboard_kpi_cache: prendeva il lock per-lab dei KPI PRIMA che lo step (4)
+    -- toccasse la riga storico dell'entrante. cassetta_libera_atomica prende gli stessi due
+    -- nell'ordine opposto (cassette_lavori → lavori → kpi) ⇒ ciclo ⇒ deadlock 40P01
+    -- (riprodotto 5× su ~25.150 chiamate concorrenti, e in forma deterministica).
+    -- L'UPDATE è spostato allo step (6), DOPO lo step (5).
+    --
+    -- Spostarlo e basta però non basta: allo step (6) ci arriveremmo tenendo GIÀ
+    -- dashboard_kpi_cache[lab] (preso dallo step 5) e chiedendo POI la riga di `lavori`
+    -- dell'occupante — cioè kpi → lavori, di nuovo l'inverso di chiunque scriva su `lavori`.
+    -- Il deadlock si sposterebbe, non si chiuderebbe (verificato: si riproduce).
+    -- Perciò il lock di riga sull'occupante si prende ADESSO, con FOR NO KEY UPDATE:
+    --   · non è DML ⇒ NON fa scattare trg_dashboard_lavori ⇒ non tocca i KPI;
+    --   · è compatibile con il FOR KEY SHARE che le FK di cassette_lavori prendono su lavori,
+    --     quindi non blocca gli INSERT di storico altrui;
+    --   · conflitta con qualunque UPDATE su quella riga, che è esattamente ciò che serve.
+    -- Risultato: cassette → cassette_lavori → lavori → kpi, l'ordine canonico dichiarato
+    -- in testa al file, senza eccezioni.
+    PERFORM 1 FROM lavori WHERE id = v_occupante AND laboratorio_id = p_lab FOR NO KEY UPDATE;
+    v_occ_denorm := v_occupante;
+    v_occupante  := NULL;
   END IF;
 
   -- (3) PRE-CHECK sotto il lock: nessuna scrittura prima di sapere che si può entrare (finding #1)
@@ -214,14 +285,44 @@ BEGIN
     INSERT INTO cassette_lavori (laboratorio_id, cassetta_id, lavoro_id)
     VALUES (p_lab, v_cassetta_id, p_lavoro);
   EXCEPTION WHEN unique_violation THEN
-    RETURN json_build_object('esito','occupata','nome', v_nome);
+    -- niente RETURN qui: lo step (6) deve girare comunque. La chiusura della riga
+    -- dell'occupante fatta in (2b) sta FUORI da questo sotto-blocco, quindi resta
+    -- committata anche quando la subtransazione fa rollback: senza (6) l'occupante
+    -- resterebbe con la targa stampata e nessuna riga viva (I3_targa_orfana).
+    v_conflitto := true;
   END;
 
-  -- (5) denormalizzazione
-  UPDATE lavori SET numero_cassetta = v_nome WHERE id = p_lavoro AND laboratorio_id = p_lab;
+  -- (5) denormalizzazione dell'entrante
+  IF NOT v_conflitto THEN
+    UPDATE lavori SET numero_cassetta = v_nome WHERE id = p_lavoro AND laboratorio_id = p_lab;
+  END IF;
+
+  -- (6) denormalizzazione dell'occupante sfrattato in (2b) — spostata qui da D2.
+  -- La riga di `lavori` è già bloccata da (2b) (FOR NO KEY UPDATE), quindi questo UPDATE
+  -- non aspetta nessuno mentre tiene dashboard_kpi_cache[lab].
+  -- Il NOT EXISTS è la stessa guardia di cassetta_libera_atomica (N4): se nel frattempo
+  -- l'occupante ha ottenuto una riga viva altrove, la sua targa è di QUELLA cassetta e
+  -- azzerarla sarebbe il desync che stiamo prevenendo. `numero_cassetta IS NOT NULL`
+  -- evita un UPDATE a vuoto e con esso un ricalcolo KPI inutile (N1).
+  IF v_occ_denorm IS NOT NULL THEN
+    UPDATE lavori l SET numero_cassetta = NULL
+    WHERE l.id = v_occ_denorm AND l.laboratorio_id = p_lab AND l.numero_cassetta IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM cassette_lavori cl2
+                      WHERE cl2.lavoro_id = v_occ_denorm AND cl2.liberato_at IS NULL);
+  END IF;
+
+  IF v_conflitto THEN RETURN json_build_object('esito','occupata','nome', v_nome); END IF;
   RETURN json_build_object('esito','ok','cassetta_id', v_cassetta_id,'nome', v_nome);
 END $$;
 
+-- ESITI (json, completi — D5):
+--   {"esito":"nome_non_valido"}        p_nome NULL/vuoto/solo spazi/>20 char → 422 [nuovo vs §4.3]
+--   {"esito":"cassetta_non_trovata"}   cassetta assente/di altro lab/eliminata → 404 [nuovo vs §4.3]
+--   {"esito":"nome_occupato"}          esiste già una cassetta viva con quel nome normalizzato → 409
+--   {"esito":"ok"}                     rinominata (anche quando il nome non cambia)
+-- RAISE: nessuna.
+--
+-- ORDINE DEI LOCK: cassette(FOR UPDATE) → cassette_lavori(FOR UPDATE) → lavori → kpi. Canonico.
 CREATE FUNCTION public.cassetta_rinomina_atomica(p_lab uuid, p_cassetta_id uuid, p_nome text)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_lavoro uuid;
@@ -238,14 +339,32 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN
     RETURN json_build_object('esito','nome_occupato');
   END;
+  -- ⚠️ D1 — il FOR UPDATE qui NON è ridondante con quello della cassetta (riga sopra).
+  -- Né cassetta_libera_atomica né cassetta_assegna_atomica(L → un'ALTRA cassetta) prendono
+  -- il lock su QUESTA cassetta: la prima non tocca mai `cassette`, la seconda blocca la
+  -- cassetta di DESTINAZIONE. Senza questo lock potevano liberare o spostare l'occupante
+  -- mentre la rinomina era ferma sul lock di riga di `lavori`; alla EPQ recheck il
+  -- `WHERE id = v_lavoro` combaciava ancora e la targa veniva ristampata su un lavoro che
+  -- non è più lì → targa orfana (I3) o targa disallineata (I4), entrambe riprodotte in
+  -- forma deterministica e la seconda osservata anche naturalmente sotto stress.
+  -- Il lock è su cassette_lavori, cioè cassette → cassette_lavori → lavori: ordine canonico,
+  -- nessun nuovo ciclo.
   SELECT lavoro_id INTO v_lavoro FROM cassette_lavori
-  WHERE cassetta_id = p_cassetta_id AND laboratorio_id = p_lab AND liberato_at IS NULL;
+  WHERE cassetta_id = p_cassetta_id AND laboratorio_id = p_lab AND liberato_at IS NULL
+  FOR UPDATE;
   IF v_lavoro IS NOT NULL THEN
     UPDATE lavori SET numero_cassetta = btrim(p_nome) WHERE id = v_lavoro AND laboratorio_id = p_lab;
   END IF;
   RETURN json_build_object('esito','ok');
 END $$;
 
+-- ESITI (json, completi — D5):
+--   {"esito":"cassetta_non_trovata"}   cassetta assente/di altro lab/già eliminata → 404 [nuovo vs §4.3]
+--   {"esito":"occupata"}               c'è dentro un lavoro (riga viva) → 409
+--   {"esito":"ok"}                     soft-delete eseguito
+-- RAISE: nessuna.
+--
+-- ORDINE DEI LOCK: cassette(FOR UPDATE) → (lettura senza lock di cassette_lavori) → cassette.
 CREATE FUNCTION public.cassetta_elimina_atomica(p_lab uuid, p_cassetta_id uuid)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 BEGIN
@@ -260,6 +379,14 @@ BEGIN
   RETURN json_build_object('esito','ok');
 END $$;
 
+-- ESITI (json, completi — D5):
+--   {"esito":"ordine_non_valido"}  array NULL/vuoto · elementi NULL · duplicati ·
+--                                  id estranei al lab o di cassette eliminate → 422
+--   {"esito":"ok"}                 riordino applicato (politica tollerante: le vive non
+--                                  elencate scivolano in coda conservando l'ordine relativo)
+-- RAISE: nessuna.
+--
+-- ORDINE DEI LOCK: solo cassette, e in ordine di id (LockRows sopra Sort — verificato con EXPLAIN).
 CREATE FUNCTION public.cassette_riordina(p_lab uuid, p_ordine uuid[])
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_n int;
@@ -297,17 +424,30 @@ BEGIN
   RETURN json_build_object('esito','ok');
 END $$;
 
+-- ESITI (json, completi — D5): esattamente i 3 della tabella §4.3, nessuno in più.
+--   {"esito":"niente_da_riassegnare"}                      nulla da fare (vedi sotto i 3 casi)
+--   {"esito":"occupata_nel_frattempo","nome":"<nome>"}     qualcun altro è entrato → 409
+--   {"esito":"riassegnata","nome":"<nome>"}                riaperta la riga viva sulla cassetta
+-- RAISE: nessuna. Fail-soft: è chiamata subito dopo un annullo consegna già riuscito, quindi
+-- non deve MAI far fallire l'operazione che la precede.
+--
+-- ORDINE DEI LOCK: (letture senza lock) → cassette(FOR UPDATE) → cassette_lavori(INSERT)
+--                  → lavori → kpi. Canonico.
 CREATE FUNCTION public.cassetta_riassegna_post_annullo(p_lab uuid, p_lavoro uuid)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_cassetta uuid; v_nome text;
 BEGIN
   -- (finding #6) senza questa guardia si apriva una riga viva per un lavoro annullato.
-  -- `lavoro_non_valido` non è un esito «di comodo» (R-5 vieta quelli): è il fix di un finding
-  -- Important e NON è risolvibile in route. La route del Task 9 lo racconta come
-  -- `niente_da_riassegnare` ma lo LOGGA: significa che l'annullo consegna non ha riaperto il lavoro.
+  -- RATIFICATA da Francesco (21/07/2026): l'esito è `niente_da_riassegnare`, NON un
+  -- `lavoro_non_valido` nuovo. Riusare un esito esistente tiene il contratto §4.3 a 3 esiti
+  -- invece di allargarlo a 4, e il comportamento è identico: la RPC è fail-soft e viene
+  -- chiamata subito dopo un annullo riuscito, quindi «il lavoro non è (più) riassegnabile»
+  -- e «non c'è niente da riassegnare» sono la stessa cosa per il chiamante.
+  -- Il Task 9 LOGGA comunque l'esito: `niente_da_riassegnare` su un lavoro che dovrebbe
+  -- essere stato riaperto significa che l'annullo consegna non ha riaperto il lavoro.
   PERFORM 1 FROM lavori WHERE id = p_lavoro AND laboratorio_id = p_lab
     AND deleted_at IS NULL AND stato NOT IN ('consegnato','annullato');
-  IF NOT FOUND THEN RETURN json_build_object('esito','lavoro_non_valido'); END IF;
+  IF NOT FOUND THEN RETURN json_build_object('esito','niente_da_riassegnare'); END IF;
 
   SELECT cl.cassetta_id INTO v_cassetta
   FROM cassette_lavori cl JOIN cassette c ON c.id = cl.cassetta_id
@@ -332,6 +472,23 @@ BEGIN
   RETURN json_build_object('esito','riassegnata','nome', v_nome);
 END $$;
 
+-- ESITI (json, completi — D5): RPC INTERA assente dalla tabella §4.3 (nasce da D-10,
+-- ratificata il 21/07) — l'intero contratto qui sotto è nuovo per chi mappa esito→HTTP.
+--   {"esito":"lavoro_non_valido"}                  p_lavoro_nuovo assente/di altro lab/
+--                                                  soft-deleted/consegnato/annullato → 422
+--   {"esito":"niente_da_trasferire"}               il vecchio non è in nessuna cassetta ·
+--                                                  la cassetta è stata eliminata nel frattempo ·
+--                                                  l'occupante è cambiato sotto il lock
+--   {"esito":"occupata","nome":"<nome>"}           il nuovo ha già una riga viva altrove → 409
+--   {"esito":"trasferita","nome":"<nome>"}         trasferimento eseguito
+-- RAISE: nessuna.
+--
+-- ORDINE DEI LOCK: (letture senza lock) → cassette(FOR UPDATE) → cassette_lavori(FOR UPDATE,
+--                  poi UPDATE+INSERT) → lavori(vecchio) → kpi → lavori(nuovo) → kpi.
+-- Le due righe di `lavori` sono su DUE statement: la seconda si prende mentre kpi[lab] è già
+-- tenuto. È la stessa forma che D2 ha chiuso in `assegna`; qui NON è chiusa (vedi riserve del
+-- report). Resta una finestra molto più stretta: il lavoro nuovo nasce dal rifacimento appena
+-- creato, quindi nessun'altra sessione lo sta scrivendo.
 CREATE FUNCTION public.cassetta_trasferisci_rifacimento(p_lab uuid, p_lavoro_vecchio uuid, p_lavoro_nuovo uuid)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_cassetta uuid; v_nome text; v_occupante uuid;
@@ -379,6 +536,14 @@ BEGIN
   RETURN json_build_object('esito','trasferita','nome', v_nome);
 END $$;
 
+-- ESITI (D5): NESSUNO — questa RPC è `RETURNS void`, non produce json. Per il Task 6 la
+-- mappatura è: ritorno normale → 204/200; qualunque eccezione → 500 (è un bug della route).
+-- RAISE possibili (tutte errori di programmazione, §3.9 — la route non deve mai produrle):
+--   'p_lab obbligatorio' · 'p_user obbligatorio' · 'valore nav_preferences non valido: NULL' ·
+--   'home pref non valida' · 'parete_intro_vista accetta solo true' ·
+--   'chiave nav_preferences non ammessa: %'
+-- 0 righe aggiornate = NO-OP SILENZIOSO (utente di un altro lab, o soft-deleted): non è un errore.
+--
 -- R-4.3: firma con p_lab. L'UPDATE si chiude su laboratorio_id = p_lab AND deleted_at IS NULL:
 -- una route bacata può al massimo toccare utenti del PROPRIO lab (difesa in profondità —
 -- auth.uid() è NULL sotto service_role, quindi il vincolo «solo self» non è esprimibile qui).

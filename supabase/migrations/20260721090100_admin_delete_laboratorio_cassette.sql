@@ -70,8 +70,36 @@ BEGIN
   RETURN v_counts;
 END $$;
 
-REVOKE EXECUTE ON FUNCTION public.cassette_purge_lab(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.cassette_purge_lab(uuid) TO service_role;
+-- ESITI (D5): jsonb con i conteggi dei DELETE, es.
+--   {"cassette_lavori": 12, "cassette": 3, "cassette_backfill_audit": 0}
+-- RAISE: 'cassette_purge_lab: p_lab obbligatorio'.
+-- Non è una RPC di dominio: non ha esiti da mappare su HTTP, non è chiamabile da nessuna route.
+--
+-- ⚠️ D3 — QUI stava `GRANT EXECUTE ON FUNCTION public.cassette_purge_lab(uuid) TO service_role;`.
+-- È stato RIMOSSO, e la rimozione non è cosmetica:
+--   · era INUTILE — admin_delete_laboratorio è SECURITY DEFINER di proprietà dell'owner:
+--     dentro di essa current_user è l'owner, che ha già l'EXECUTE. Verificato: senza il GRANT,
+--     `SET ROLE service_role; SELECT admin_delete_laboratorio('<lab>')` continua a funzionare
+--     e a riportare {"ok": true} con 0 residui;
+--   · era DANNOSO — esponeva su /rest/v1/rpc/cassette_purge_lab, con la sola chiave service_role,
+--     l'UNICA funzione dell'ondata che distrugge dati in modo permanente scavalcando
+--     l'append-only, su un laboratorio_id ARBITRARIO e SENZA cancellare il tenant. Chiamata da
+--     sola lascia lavori.numero_cassetta valorizzato senza riga viva (I3_targa_orfana su tutto
+--     il lab). Nessuno la chiama da fuori: l'unico chiamante è admin_delete_laboratorio, sotto.
+-- NON reintrodurlo.
+--
+-- ⚠️ E NON BASTA TOGLIERLO. Verificato in container: le DEFAULT PRIVILEGES di Supabase
+-- (`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, anon,
+-- authenticated, service_role`) rimettono l'EXECUTE a service_role da sole, al momento del
+-- CREATE FUNCTION. Con il solo REVOKE da PUBLIC, anon, authenticated il risultato era:
+--     proacl = {postgres=X/postgres, service_role=X/postgres}
+--     has_function_privilege('service_role', …, 'EXECUTE') = true
+-- e `SET ROLE service_role; SELECT cassette_purge_lab('<lab B>')` distruggeva davvero lo
+-- storico di un tenant che nessuno stava cancellando (riprodotto). Per chiudere D3 sul serio
+-- service_role deve stare NELLA LISTA DEL REVOKE — è esattamente ciò che l'audit ha
+-- verificato: admin_delete_laboratorio continua a funzionare perché è SECURITY DEFINER e
+-- dentro di essa current_user è l'owner, che l'EXECUTE ce l'ha comunque.
+REVOKE EXECUTE ON FUNCTION public.cassette_purge_lab(uuid) FROM PUBLIC, anon, authenticated, service_role;
 
 -- ============================================================================
 -- 2) admin_delete_laboratorio — testo VIGENTE (20260702030000_b2_fix_admin_delete_laboratorio.sql)
