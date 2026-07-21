@@ -21,6 +21,34 @@
 -- Motivo: la FK cassette_lavori.cassetta_id → cassette.id prende comunque FOR KEY SHARE sulla
 -- riga padre a fine statement. Chi inserisce SENZA aver preso il lock prima lo prende DOPO aver
 -- già scritto l'entry di indice → inversione d'ordine → deadlock 40P01 (riprodotto dal panel).
+--
+-- ⚠️ PERIMETRO DI QUESTA CONVENZIONE — leggere prima di dare la caccia a un 40P01.
+-- L'ordine qui sopra copre i **lock di riga** (FOR UPDATE / FOR NO KEY UPDATE / FOR KEY SHARE
+-- e i lock impliciti di UPDATE/DELETE). **NON copre le attese sugli indici unici**: chi inserisce
+-- o aggiorna una chiave già presente in un indice unico si mette in attesa sulla *transazione*
+-- che la detiene (XactLockTableWait), e quell'attesa non passa da nessuna riga e quindi non
+-- rispetta nessun ordine. Il rilevatore di deadlock la vede comunque: il risultato è un 40P01.
+--
+-- Tre punti NOTI e DELIBERATAMENTE non chiusi in SQL (audit round 2, E5/E7/E9). Sono coda, non
+-- difetti di ordine: chiuderli in SQL costerebbe lock di tabella o indici nuovi, e la cura è
+-- **il retry in route**:
+--   1) `cassetta_rinomina_atomica` × `cassetta_rinomina_atomica` — ciclo sui NOMI su
+--      `cassette_nome_vivo_uidx` (A rinomina X in 'N2' mentre B rinomina Y in 'N1', con X='N1'
+--      e Y='N2'). Misurato: 33/4.800 a 4 sessioni, 0/2.400 a 2. Anche riordina × rinomina: 9/4.800.
+--   2) `cassette_riordina` × `cassetta_assegna_atomica` in get-or-create **con nomi nuovi** — il
+--      `PERFORM … ORDER BY id FOR NO KEY UPDATE` pre-blocca solo le cassette visibili al proprio
+--      snapshot; la seconda UPDATE (politica tollerante) usa uno snapshot nuovo e può incrociare
+--      cassette nate DOPO il pre-lock. Misurato: 3/2.700 (0/2.700 senza nomi nuovi nel mix).
+--   3) `cassetta_assegna_atomica` get-or-create × get-or-create — `max(posizione)+1` è calcolato
+--      senza lock e `(laboratorio_id, posizione)` non è unico: due creazioni concorrenti nascono
+--      con la stessa `posizione`. Non è un 40P01 ma è la stessa classe (nessun lock ordina il
+--      calcolo). Conseguenza: ordine della parete instabile fra un refresh e l'altro ⇒ le letture
+--      DEVONO applicare davvero il tie-break di spec §4.1 `ORDER BY posizione, created_at, id`.
+--
+-- ⇒ **CONTRATTO PER LE ROUTE (Task 4/5/8/9): ogni chiamata a queste RPC va avvolta in un retry
+--    sul SQLSTATE 40P01** (1-2 tentativi, backoff breve). Un 40P01 qui non è un bug da inseguire
+--    in SQL: è la coda prevista di questa architettura. Vedi anche: mai incatenare due RPC della
+--    Parete nella stessa transazione (l'ordine canonico vale PER RPC, non per transazione).
 -- ============================================================================
 
 -- ============ TABELLE ============
@@ -91,9 +119,24 @@ CREATE TRIGGER trg_cassette_lavori_append_only
   BEFORE UPDATE OR DELETE ON cassette_lavori
   FOR EACH ROW EXECUTE FUNCTION public.cassette_lavori_guard();
 
--- ============ RLS (SELECT-only, scrive solo il service role via RPC) ============
+-- ============ RLS (SELECT-only, scrive solo l'owner via RPC SECURITY DEFINER) ============
 -- R-4.4: REVOKE ALL (chiude anche TRUNCATE/REFERENCES/TRIGGER) + GRANT SELECT esplicito
 -- (senza, la lettura resterebbe appesa ai default privileges di Supabase).
+--
+-- ⚠️ E8 — `service_role` va nella lista del REVOKE, esattamente come si è dovuto fare per
+-- `cassette_purge_lab` (D3). Le default privileges di Supabase
+-- (`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon,
+-- authenticated, service_role`) assegnano a `service_role` `arwdDxt` da sole al CREATE TABLE:
+-- senza questo REVOKE il relacl resta `{postgres=arwdDxt, service_role=arwdDxt, authenticated=r}`
+-- e un `SET LOCAL ROLE service_role` + `DELETE FROM cassette_lavori` azzera lo storico di un
+-- laboratorio qualunque (riprodotto: «DELETE 2»). Non è raggiungibile via PostgREST — da lì non
+-- si esegue `SET`/`set_config` — ma è la stessa classe di difetto, e si chiude allo stesso modo.
+--
+-- Il `GRANT SELECT … TO service_role` che segue NON è una svista che riapre il buco: la lettura
+-- deve restare aperta (Task 3 `getParete` interroga queste tabelle col service client) mentre
+-- la scrittura DIRETTA si chiude. Le 8 RPC continuano a scrivere perché sono SECURITY DEFINER
+-- di proprietà dell'owner: dentro di esse `current_user` è l'owner, che ha `arwdDxt`.
+-- Idem `cassette_purge_lab`/`admin_delete_laboratorio` (090100).
 ALTER TABLE cassette ENABLE ROW LEVEL SECURITY;
 CREATE POLICY cassette_select ON cassette FOR SELECT TO authenticated
   USING (laboratorio_id = public.current_lab_id() AND deleted_at IS NULL);
@@ -102,9 +145,9 @@ ALTER TABLE cassette_lavori ENABLE ROW LEVEL SECURITY;
 CREATE POLICY cassette_lavori_select ON cassette_lavori FOR SELECT TO authenticated
   USING (laboratorio_id = public.current_lab_id());
 
-REVOKE ALL ON cassette        FROM anon, authenticated;
-REVOKE ALL ON cassette_lavori FROM anon, authenticated;
-GRANT SELECT ON cassette, cassette_lavori TO authenticated;
+REVOKE ALL ON cassette        FROM anon, authenticated, service_role;
+REVOKE ALL ON cassette_lavori FROM anon, authenticated, service_role;
+GRANT SELECT ON cassette, cassette_lavori TO authenticated, service_role;
 
 -- ============ RPC ============
 -- NOTA ARCHITETTURALE: la liberazione alla consegna è agganciata in
@@ -184,11 +227,14 @@ END $$;
 -- RAISE: 'colore cassetta non valido: %'  (R-5: il colore lo valida la route; se arriva qui
 --        sbagliato è un bug della route, non un esito di dominio).
 --
--- ORDINE DEI LOCK (D2 — vale come contratto, non come commento decorativo):
---   cassette(FOR UPDATE) → cassette_lavori(occupante) → lavori(occupante, FOR NO KEY UPDATE)
---   → cassette_lavori(entrante) → lavori(entrante) → dashboard_kpi_cache[lab] → lavori(occupante)
+-- ORDINE DEI LOCK (D2 + E2 — vale come contratto, non come commento decorativo):
+--   cassette(FOR UPDATE) → cassette_lavori(occupante, FOR UPDATE OF cl) →
+--   lavori(occupante, FOR NO KEY UPDATE) → cassette_lavori(entrante) → lavori(entrante)
+--   → dashboard_kpi_cache[lab] → lavori(occupante)
 -- cioè: TUTTE le righe di `lavori` che questa RPC toccherà sono bloccate PRIMA che
 -- trg_dashboard_lavori prenda dashboard_kpi_cache[lab]. Vedi il commento a (2b).
+-- L'ordine NON cambia con il lock aggiunto in (2): è sulla stessa tabella e sulla stessa riga che
+-- (2b) bloccava comunque con la sua UPDATE, solo preso una statement prima. Vedi il commento a (2).
 CREATE FUNCTION public.cassetta_assegna_atomica(
   p_lab uuid, p_lavoro uuid, p_cassetta_id uuid DEFAULT NULL,
   p_nome text DEFAULT NULL, p_colore text DEFAULT NULL)
@@ -232,9 +278,27 @@ BEGIN
   END IF;
 
   -- (2) chi c'è dentro adesso (sotto il lock della cassetta)
+  -- ⚠️ E2 — il `FOR UPDATE OF cl` NON è ridondante con il lock sulla cassetta preso in (1).
+  -- È la stessa classe di D1, chiusa in cassetta_rinomina_atomica (vedi il commento lì) e
+  -- lasciata aperta qui: il lock su `cassette` non ferma né cassetta_libera_atomica (che non
+  -- tocca mai `cassette`) né cassetta_assegna_atomica(occupante → un'ALTRA cassetta) (che blocca
+  -- la cassetta di DESTINAZIONE). Senza questo lock l'occupante letto qui è già vecchio quando
+  -- lo step (3) lo usa, e il ramo idempotente ristampa `numero_cassetta` ALLA CIECA su un lavoro
+  -- che nel frattempo è stato liberato o spostato:
+  --   · liberato   → targa orfana su un lavoro APERTO (I3) — permanente: la lettura
+  --                  auto-riparante di spec §9.2 chiude le righe vive dei lavori CHIUSI,
+  --                  non ripara un lavoro aperto con la targa di una cassetta vuota;
+  --   · spostato   → targa disallineata (I4): la card dice A1, il lavoro è in A2.
+  -- Entrambe riprodotte (audit round 2, E2; I3 osservata anche naturalmente sotto stress).
+  -- Il lock è su `cassette_lavori`, cioè cassette → cassette_lavori → lavori: ordine canonico,
+  -- nessun ciclo nuovo. `OF cl` e non secco: `lavori` NON va bloccata qui, altrimenti si prende
+  -- un FOR UPDATE (key-level) sull'occupante che bloccherebbe il FOR KEY SHARE delle FK di
+  -- cassette_lavori altrui; la riga di `lavori` dell'occupante si prende in (2b), e solo quando
+  -- serve davvero, con FOR NO KEY UPDATE.
   SELECT cl.lavoro_id, l.stato, l.deleted_at INTO v_occupante, v_stato_occ, v_del_occ
   FROM cassette_lavori cl JOIN lavori l ON l.id = cl.lavoro_id
-  WHERE cl.cassetta_id = v_cassetta_id AND cl.laboratorio_id = p_lab AND cl.liberato_at IS NULL;
+  WHERE cl.cassetta_id = v_cassetta_id AND cl.laboratorio_id = p_lab AND cl.liberato_at IS NULL
+  FOR UPDATE OF cl;
 
   -- (2b) auto-riparazione: occupante chiuso/soft-deleted → chiudi con il motivo GIUSTO (R-4.1).
   -- Con l'etichetta fissa 'consegna' un lavoro ANNULLATO restava eleggibile per
@@ -483,12 +547,11 @@ END $$;
 --   {"esito":"trasferita","nome":"<nome>"}         trasferimento eseguito
 -- RAISE: nessuna.
 --
--- ORDINE DEI LOCK: (letture senza lock) → cassette(FOR UPDATE) → cassette_lavori(FOR UPDATE,
---                  poi UPDATE+INSERT) → lavori(vecchio) → kpi → lavori(nuovo) → kpi.
--- Le due righe di `lavori` sono su DUE statement: la seconda si prende mentre kpi[lab] è già
--- tenuto. È la stessa forma che D2 ha chiuso in `assegna`; qui NON è chiusa (vedi riserve del
--- report). Resta una finestra molto più stretta: il lavoro nuovo nasce dal rifacimento appena
--- creato, quindi nessun'altra sessione lo sta scrivendo.
+-- ORDINE DEI LOCK (E1 — chiuso): (letture senza lock) → cassette(FOR UPDATE) →
+--   cassette_lavori(FOR UPDATE OF cl) → lavori(nuovo, FOR NO KEY UPDATE) →
+--   cassette_lavori(UPDATE+INSERT) → lavori(vecchio) → kpi → lavori(nuovo, già tenuta).
+-- Canonico. Come in `assegna` (2b): TUTTE le righe di `lavori` che questa RPC toccherà sono
+-- bloccate PRIMA che trg_dashboard_lavori prenda dashboard_kpi_cache[lab].
 CREATE FUNCTION public.cassetta_trasferisci_rifacimento(p_lab uuid, p_lavoro_vecchio uuid, p_lavoro_nuovo uuid)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE v_cassetta uuid; v_nome text; v_occupante uuid;
@@ -522,6 +585,19 @@ BEGIN
              WHERE lavoro_id = p_lavoro_nuovo AND liberato_at IS NULL) THEN
     RETURN json_build_object('esito','occupata','nome', v_nome);  -- pre-check: nessuno sfratto (finding #4)
   END IF;
+
+  -- ⚠️ E1 — pre-lock della riga di `lavori` del NUOVO, identico a quello di assegna (2b).
+  -- Senza, questa RPC conserva esattamente l'inversione `kpi → lavori` che D2 ha chiuso in
+  -- `assegna`: l'`UPDATE lavori(vecchio)` qui sotto prende dashboard_kpi_cache[lab] a fine
+  -- statement (trg_dashboard_lavori è AFTER … FOR EACH ROW) e SOLO DOPO si chiede la riga di
+  -- `lavori(nuovo)` — l'inverso di chiunque scriva su `lavori`, che fa lavori → kpi dentro la
+  -- stessa statement. Era l'UNICA delle 8 RPC a chiedere un lock di riga dopo aver preso i KPI
+  -- (audit round 2, E1: 4 lenti su 4, deadlock 40P01 riprodotto 6/6 in forma deterministica,
+  -- con la RPC stessa come vittima ⇒ 500 al posto di 200/409 su un percorso dichiarato atomico).
+  -- `FOR NO KEY UPDATE` per gli stessi tre motivi elencati in assegna (2b): non è DML quindi non
+  -- fa scattare trg_dashboard_lavori; è compatibile con il FOR KEY SHARE che le FK di
+  -- cassette_lavori prendono su `lavori`; conflitta con qualunque UPDATE su quella riga.
+  PERFORM 1 FROM lavori WHERE id = p_lavoro_nuovo AND laboratorio_id = p_lab FOR NO KEY UPDATE;
 
   BEGIN
     UPDATE cassette_lavori SET liberato_at = now(), liberato_per = 'rifacimento'
