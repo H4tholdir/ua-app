@@ -7,6 +7,14 @@ describe('miniaturaPerLavoro', () => {
     expect(miniaturaPerLavoro('Ponte', 'protesi_fissa')).toBe('ponte')
     expect(miniaturaPerLavoro('Provvisorio in resina', 'provvisorio')).toBe('provvisorio')
   })
+  it('il granulare vince sul macro anche quando i due divergono', () => {
+    // Guardia di regressione per GRANULARE: qui il macro darebbe un esito DIVERSO,
+    // quindi l'asserzione può passare solo passando dal livello granulare.
+    // ('Provvisorio in resina' sopra non matcha cercaTipiLavoro — la parola «in»
+    //  spezza la ricerca per sottostringa — e passa in realtà dal macro.)
+    expect(miniaturaPerLavoro('PMMA', 'altro')).toBe('provvisorio')
+    expect(miniaturaPerLavoro('Toronto', 'altro')).toBe('impianto')
+  })
   it('cade sul macro quando la descrizione non matcha', () => {
     expect(miniaturaPerLavoro('Lavoro strano', 'protesi_mobile')).toBe('totale')
     expect(miniaturaPerLavoro(null, 'scheletrato')).toBe('scheletrato')
