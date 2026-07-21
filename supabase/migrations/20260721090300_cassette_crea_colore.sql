@@ -22,16 +22,34 @@
 -- NON aggiungere BEGIN;/COMMIT; — il runner Supabase avvolge già la migration in una transazione.
 --
 -- ============================================================================
--- ORDINE DEI LOCK — perché queste due funzioni sono innocue.
+-- ORDINE DEI LOCK — perché queste due funzioni non possono chiudere un ciclo.
 -- L'ordine canonico dell'ondata è `cassette → cassette_lavori → lavori → dashboard_kpi_cache`
 -- (vedi la testata di …090000). **Nessuna delle due funzioni qui sotto tocca `cassette_lavori`
--- o `lavori`**: prendono al massimo un lock di riga su `cassette`, che è il **primo** elemento
--- dell'ordine, e non proseguono. Quindi non fanno scattare `trg_dashboard_lavori` e **non
--- aggiungono alcun arco al grafo dei deadlock**. Se una modifica futura le facesse scendere più
--- in basso, non è una riga in più: è un contratto diverso, e va rifatto l'audit dei lock.
+-- o `lavori`**, quindi non fanno scattare `trg_dashboard_lavori`.
+--
+-- La proprietà vera è più forte di «prendono un solo lock»: **ciascuna funzione acquisisce al
+-- massimo UNA risorsa contesa e ritorna subito dopo averla acquisita, senza tenere nulla
+-- mentre attende.** Non può quindi essere il nodo «tiene A, vuole B» di un ciclo: può essere
+-- vittima o bloccante, mai entrambi. **Vale a condizione che 1 RPC = 1 transazione**, che è
+-- regola d'ondata (mai incatenare due RPC della Parete nella stessa transazione).
+-- Se una modifica futura le facesse acquisire una seconda risorsa prima di ritornare, non è
+-- una riga in più: è un contratto diverso, e va rifatto l'audit dei lock.
+--
+-- Precisazione su `crea` (la frase «un solo lock di riga su cassette» sarebbe imprecisa):
+-- un INSERT riuscito prende anche un **`FOR KEY SHARE` sulla riga di `laboratori`** via
+-- `cassette_laboratorio_id_fkey` — tabella **assente dall'ordine canonico**. Non è un arco
+-- nuovo (`assegna` get-or-create, `riassegna_post_annullo`, `trasferisci_rifacimento` e il
+-- backfill di …090200 lo prendono già) ed è **shared**, quindi conflitta solo con chi chiede
+-- un lock esclusivo su quella riga, cioè `admin_delete_laboratorio`. **Non chiudere nulla in
+-- SQL**: è documentazione, non un difetto. `imposta_colore` invece rispetta la frase alla
+-- lettera: un solo lock di riga su `cassette`, nessuna FK attraversata.
 --
 -- Resta la coda nota E5/E7 della testata di …090000: l'attesa su un **indice unico**
 -- (`cassette_nome_vivo_uidx`) non passa da nessuna riga e quindi non rispetta nessun ordine.
+-- `crea` è una **seconda sorgente di cassette nuove** oltre al get-or-create di `assegna`, e
+-- riattiva perciò il caso #2 già documentato lì (`cassette_riordina` × creazione concorrente).
+-- Misurato su 2.700 chiamate concorrenti: 9 deadlock, **tutti con `cassette_riordina` come
+-- vittima**, nessuno dentro queste due funzioni.
 -- ⇒ come le altre otto, queste due RPC vanno chiamate **sotto retry sul SQLSTATE 40P01**
 --   (`callRpcWithRetry`), mai incatenate ad altre RPC della Parete nella stessa transazione.
 --
@@ -43,6 +61,18 @@
 -- auditato per l'ordine dei lock, per un difetto invisibile all'utente.
 -- ============================================================================
 
+-- ============================================================================
+-- ⚠️ RIEPILOGO DEGLI ESITI — dove cercarlo adesso.
+-- Il riepilogo canonizzato in `20260721090000_parete_cassette.sql:159-187` si dichiara
+-- «elenco VERO E COMPLETO, funzione per funzione»: da questa migration in poi copre
+-- **8 funzioni su 10**. Le due che mancano sono qui sotto, e i loro blocchi D5 hanno lo
+-- stesso identico valore di fonte di verità per la mappatura esito→HTTP:
+--   cassetta_crea_atomica            → nome_non_valido · nome_occupato · ok
+--   cassetta_imposta_colore_atomica  → cassetta_non_trovata · ok
+-- `…090000` **non va toccata**: è già applicata, e una migration applicata è immutabile.
+-- Chi cerca il contratto completo della Parete deve leggere **i due file insieme**.
+-- ============================================================================
+
 -- ESITI (json, completi — D5, stesso contratto delle altre otto: **questo blocco, non la §4.3
 -- della spec, è la fonte di verità** per la mappatura esito→HTTP del Task 4):
 --   {"esito":"nome_non_valido"}                          p_nome ESPLICITO con btrim fuori da
@@ -52,14 +82,33 @@
 --   {"esito":"ok","cassetta":{id,nome,colore,posizione}} creata → 201
 -- RAISE: 'colore cassetta non valido: %'  (R-5: il colore lo valida la route, come in `assegna`;
 --        se arriva qui sbagliato è un bug della route, non un esito di dominio — §3.9).
+-- RAISE: 'p_lab obbligatorio'  (idem: p_lab viene dal contesto server, mai dal body —
+--        stesso idioma di `utente_set_nav_pref` …090000:631 e `cassette_purge_lab` …090100:32).
 --
 -- NOME AUTOMATICO `C{maxN+1}` — vive QUI, non in route (punto ratificato).
 -- Il *formato* è presentazione, ma *l'allocazione di un nome libero sotto un indice unico
 -- parziale* è un'operazione di concorrenza e va dove vive l'indice: un read-modify-write
 -- attraverso la rete non è rendibile corretto in route senza un loop di rilettura che nessuno
 -- scriverà. Forma: `max(n)+1` sui nomi vivi che matchano il prefisso → `INSERT … ON CONFLICT
--- DO NOTHING` → ritenta, **massimo 5 giri**, fallthrough su `nome_occupato` (praticamente
--- irraggiungibile: servirebbero 5 creazioni concorrenti vincenti di fila).
+-- DO NOTHING` → ritenta, **massimo 5 giri**, fallthrough su `nome_occupato`.
+--
+-- ⚠️ IL FALLTHROUGH È RAGGIUNGIBILE — misurato, non stimato. La bozza di questo contratto lo
+-- dava per «praticamente irraggiungibile»: è **falso** sopra le 4 sessioni concorrenti sullo
+-- stesso laboratorio. Se k sessioni contendono lo stesso `C{n+1}`, una vince e le altre k−1
+-- rifanno il giro; perdere 5 volte di fila non è raro. Misure su container (30 crea/sessione,
+-- DB ricreato da template a ogni ripetizione, esiti aggregati su più ripetizioni):
+--     1 sessione   0 / 60      2 sessioni  0 / 120     4 sessioni  0 / 240
+--     8 sessioni   18 / 1.920  (0,94%)     16 sessioni  73 / 2.400  (3,0%)
+--   Mai un nome duplicato, mai un buco nella sequenza C1..Cmax, mai un errore SQL.
+--
+-- ⇒ **LA ROUTE DEVE RITENTARE quando ha passato `p_nome` NULL.** In quel caso `nome_occupato`
+--   NON è un 409: l'utente non ha digitato nessun nome, e restituirgli un conflitto su un nome
+--   che ha generato il server è un errore di mappatura. La route sa distinguere i due casi
+--   (sa se ha passato `p_nome`), ed è l'unica che può: l'esito è lo stesso.
+--   Con `p_nome` valorizzato, invece, `nome_occupato` → 409 è corretto.
+--   ⚠️ Non basta `callRpcWithRetry`: quello ritenta solo su `error.code === '40P01'`, mentre
+--   `nome_occupato` arriva come **esito valido** con `error: null`. Serve una ritenta a livello
+--   di payload, scritta nella route.
 CREATE FUNCTION public.cassetta_crea_atomica(
   p_lab uuid, p_nome text DEFAULT NULL, p_colore text DEFAULT NULL)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
@@ -72,6 +121,12 @@ DECLARE
   v_nome     text;
   v_id       uuid; v_nome_out text; v_colore_out text; v_pos int;
 BEGIN
+  -- (-2) p_lab: senza questa guardia un p_lab NULL non produce un esito ma una **23502**
+  -- (not-null violation su `laboratorio_id`) generata dall'INSERT, cioè un errore che il
+  -- blocco D5 qui sopra non dichiara. Idioma già ratificato nell'ondata:
+  -- `utente_set_nav_pref` (…090000:631) e `cassette_purge_lab` (…090100:32).
+  IF p_lab IS NULL THEN RAISE EXCEPTION 'p_lab obbligatorio'; END IF;
+
   -- (-1) colore: la route lo valida (R-5, nessun esito nuovo). Se arriva qui sbagliato è un
   -- errore di programmazione: RAISE parlante — identica a quella di `cassetta_assegna_atomica`
   -- (…090000:249-253) — invece di una violazione di CHECK opaca.
@@ -148,7 +203,13 @@ END $$;
 --   {"esito":"ok","colore":"<colore>"}  colore impostato → 200
 -- RAISE: 'colore cassetta non valido: %'  (R-5, come sopra).
 --
--- ORDINE DEI LOCK: solo `cassette`, un lock di riga preso dall'UPDATE stesso. Nient'altro.
+-- Asimmetria voluta con `crea`: qui **non** c'è una guardia su `p_lab` NULL, perché non ce n'è
+-- bisogno — `WHERE laboratorio_id = p_lab` con p_lab NULL non combacia mai e l'esito è
+-- `cassetta_non_trovata`, che il blocco qui sopra **dichiara**. In `crea` la guardia serve
+-- perché lì un p_lab NULL produrrebbe una 23502, cioè un errore non dichiarato.
+--
+-- ORDINE DEI LOCK: solo `cassette`, un lock di riga preso dall'UPDATE stesso. Nient'altro
+-- (nessuna FK attraversata: l'UPDATE non tocca `laboratorio_id`).
 CREATE FUNCTION public.cassetta_imposta_colore_atomica(
   p_lab uuid, p_cassetta_id uuid, p_colore text)
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
@@ -170,9 +231,15 @@ BEGIN
   UPDATE cassette SET colore = p_colore
    WHERE id = p_cassetta_id AND laboratorio_id = p_lab AND deleted_at IS NULL
   RETURNING colore INTO v_colore;
+  -- La sentinella di «riga trovata» è `FOUND`, **non** `v_colore IS NULL`: un VALORE non deve
+  -- mai fare da sentinella. Oggi reggerebbe (`colore` è NOT NULL e `p_colore` è validato
+  -- non-NULL due statement sopra), ma se un domani si ammettesse `p_colore` NULL — per dire,
+  -- «ripristina il default» — un UPDATE **riuscito** tornerebbe `cassetta_non_trovata`, cioè
+  -- un 404 su una scrittura avvenuta. `FOUND` è invariante rispetto al valore ed è l'idioma
+  -- di tutte le RPC di …090000.
   -- niente riga aggiornata = non esiste, non è di questo lab, o è eliminata: per il chiamante
   -- sono lo stesso 404 (e in nessuno dei tre casi è stato scritto alcunché).
-  IF v_colore IS NULL THEN
+  IF NOT FOUND THEN
     RETURN json_build_object('esito','cassetta_non_trovata');
   END IF;
   RETURN json_build_object('esito','ok','colore', v_colore);
