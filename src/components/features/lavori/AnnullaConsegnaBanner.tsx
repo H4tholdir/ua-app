@@ -15,6 +15,12 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const [errore, setErrore] = useState<string | null>(null)
   const [annullato, setAnnullato] = useState(false)
+  // Task 8: riga quieta (NON un allarme) quando la cassetta liberata dalla
+  // consegna era già stata occupata da qualcun altro nel frattempo — succede,
+  // non è un errore dell'annullo (che RESTA riuscito). Valorizzata SOLO se la
+  // route risponde con `cassetta:{riassegnata:false, nome}` (Task 8, response
+  // ADDITIVA di `src/app/api/lavori/[id]/annulla-consegna/route.ts`).
+  const [cassettaMessaggio, setCassettaMessaggio] = useState<string | null>(null)
 
   useEffect(() => {
     // Calcolo derivato da Date.now() (orologio esterno): deve girare SOLO
@@ -39,7 +45,29 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
   }, [secondsLeft])
 
   if (secondsLeft === null) return null
-  if (secondsLeft <= 0 || annullato) return null
+  if (annullato) {
+    // Task 8: il banner sparisce come prima (nessun campo cassetta, o
+    // riassegnata:true) — l'eccezione è la riga quieta quando la cassetta è
+    // stata occupata nel frattempo da qualcun altro. Nessun nome → nessun
+    // messaggio a metà (dato incompleto, mai raccontato).
+    if (!cassettaMessaggio) return null
+    return (
+      <p
+        role="status"
+        style={{
+          margin: '0 20px 16px',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '13px',
+          fontWeight: 600,
+          color: 'var(--t2, #4A3D33)',
+          textAlign: 'center',
+        }}
+      >
+        {cassettaMessaggio}
+      </p>
+    )
+  }
+  if (secondsLeft <= 0) return null
 
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
   const ss = String(secondsLeft % 60).padStart(2, '0')
@@ -53,6 +81,11 @@ export function AnnullaConsegnaBanner({ lavoroId, dataConsegnaEffettiva }: Props
           headers: { 'Content-Type': 'application/json' },
         })
         if (res.ok) {
+          const json = await res.json().catch(() => ({}))
+          const cassetta = (json as { cassetta?: { riassegnata?: boolean; nome?: string } })?.cassetta
+          if (cassetta?.riassegnata === false && cassetta.nome) {
+            setCassettaMessaggio(`La ${cassetta.nome} nel frattempo è occupata`)
+          }
           setAnnullato(true)
           router.refresh()
         } else {
