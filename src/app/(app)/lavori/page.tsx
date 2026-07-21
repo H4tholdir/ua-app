@@ -39,7 +39,8 @@ export default async function LavoriPage({ searchParams }: { searchParams: Promi
   // A14 (Task 5) — le chip dello sheet conferma-cassetta servono SOLO alla
   // pila blu (dove il Conferma le apre): fetch condizionale, mai sprecata
   // sulle altre pile.
-  const cassetteSuggerite = pila === 'blu' ? await getCassetteSuggerite(svc, labId) : []
+  // ponte transitorio: le chip restano nome-only finché il Task 16 Step 2 non porta {id,nome} fino a ConfermaCassettaSheet
+  const cassetteSuggerite = pila === 'blu' ? (await getCassetteSuggerite(svc, labId)).map((c) => c.nome) : []
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
