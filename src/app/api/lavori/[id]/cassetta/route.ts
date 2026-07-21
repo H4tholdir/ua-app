@@ -49,11 +49,15 @@ async function parseBody(req: Request): Promise<ParsedBody> {
  * `PATCHABLE_FIELDS`, `src/app/api/lavori/[id]/route.ts`).
  *
  * Body: `{cassetta_id}` (aggancio a cassetta esistente) | `{nome}` (get-or-create
- * race-safe, delegata alla RPC) | `null`/`{}` (liberazione manuale). La scelta
- * fra i tre rami si decide sulla PRESENZA della chiave (`hasOwnProperty`), non
- * sulla verità del valore derivato: un `cassetta_id`/`nome` presente ma di tipo
- * sbagliato o vuoto dopo il trim è un 422, MAI un fallback silenzioso a libera
- * (review Important #1) — solo l'assenza di ENTRAMBE le chiavi libera.
+ * race-safe, delegata alla RPC) | `null`/`{}` letterali (liberazione manuale).
+ * La scelta fra i rami si decide sulla PRESENZA della chiave (`hasOwnProperty`),
+ * non sulla verità del valore derivato: un `cassetta_id`/`nome` presente ma di
+ * tipo sbagliato o vuoto dopo il trim è un 422, MAI un fallback silenzioso a
+ * libera (review Important #1). Libera SOLO `null` o un oggetto VUOTO: un
+ * oggetto non vuoto che non contiene né `cassetta_id` né `nome` (chiavi
+ * estranee, un refuso tipo `cassettaId` in camelCase) è anch'esso un 422
+ * `corpo_non_riconosciuto` — stessa classe di bug di Important #1 con
+ * un'altra porta, chiusa esplicitamente invece di lasciarla cadere su libera.
  *
  * ⚠️ Correzione 21/07 #1: `cassetta_assegna_atomica` NON valida più il nome
  * (R-5 ha tolto `nome_non_valido` dai suoi esiti: un nome fuori range torna
@@ -137,6 +141,13 @@ export async function POST(req: Request, { params }: RouteContext) {
     }
     pNome = trimmed
     azione = 'assegna'
+  } else if (body != null && Object.keys(body).length > 0) {
+    // Review Important #1 (istruzione letterale): libera SOLO su `null` o `{}`
+    // letterali. Un oggetto non vuoto che non contiene né `cassetta_id` né
+    // `nome` (chiavi estranee, o un refuso tipo `cassettaId` in camelCase) NON
+    // deve liberare in silenzio con 200 — è esattamente la stessa classe di
+    // bug della review, solo con una porta diversa: si rifiuta esplicitamente.
+    return NextResponse.json({ errore: 'corpo_non_riconosciuto' }, { status: 422 })
   }
 
   if (azione === 'libera') {

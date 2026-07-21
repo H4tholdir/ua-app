@@ -257,6 +257,15 @@ describe('POST /api/lavori/[id]/cassetta', () => {
     expect(chiamate).toHaveLength(0)
   })
 
+  it('Important #1: array o primitivo al livello radice del body → 400, MAI liberazione, nessuna RPC', async () => {
+    mockLavoroTrovato(true)
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', nome: null }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await POST(rawReq('["c1","c2"]'), { params })
+    expect(res.status).toBe(400)
+    expect(chiamate).toHaveLength(0)
+  })
+
   it('Minor #1: {cassetta_id: "abc"} (non ha forma UUID) → 422 cassetta_id_non_valido, nessuna RPC (eviterebbe un cast error 500)', async () => {
     mockLavoroTrovato(true)
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', cassetta_id: CASSETTA_1, nome: 'x' }, error: null }])
@@ -268,13 +277,30 @@ describe('POST /api/lavori/[id]/cassetta', () => {
     expect(chiamate).toHaveLength(0)
   })
 
-  it('body con chiave estranea e nessuna delle due note ({foo:"bar"}) → liberazione manuale, come {} (scelta deliberata, non regressione)', async () => {
+  // Il reviewer è stato letterale: «libera SOLO su null o {} letterali». Un
+  // oggetto non vuoto senza cassetta_id/nome (chiavi estranee, o un refuso
+  // camelCase tipo `cassettaId`) NON deve liberare in silenzio — è la stessa
+  // classe di bug di Important #1 con un'altra porta: si rifiuta esplicitamente.
+  it('Important #1 (istruzione letterale): body con SOLO chiavi estranee ({foo:"bar"}) → 422 corpo_non_riconosciuto, MAI liberazione', async () => {
     mockLavoroTrovato(true)
     const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', nome: 'C9' }, error: null }])
     mockRpc.mockImplementation(rpc)
     const res = await POST(req({ foo: 'bar' }), { params })
-    expect(res.status).toBe(200)
-    expect(chiamate[0].args).toEqual(['cassetta_libera_atomica', { p_lab: LAB_ID, p_lavoro: LAVORO_ID, p_motivo: 'manuale' }])
+    expect(res.status).toBe(422)
+    const json = await res.json()
+    expect(json).toEqual({ errore: 'corpo_non_riconosciuto' })
+    expect(chiamate).toHaveLength(0)
+  })
+
+  it('Important #1 (istruzione letterale): refuso camelCase ({cassettaId: "..."}) → 422 corpo_non_riconosciuto, MAI liberazione', async () => {
+    mockLavoroTrovato(true)
+    const { rpc, chiamate } = mockRpcLazy([{ data: { esito: 'ok', nome: 'C9' }, error: null }])
+    mockRpc.mockImplementation(rpc)
+    const res = await POST(req({ cassettaId: CASSETTA_1 }), { params })
+    expect(res.status).toBe(422)
+    const json = await res.json()
+    expect(json).toEqual({ errore: 'corpo_non_riconosciuto' })
+    expect(chiamate).toHaveLength(0)
   })
 
   it('body null → liberazione manuale: chiama rpc(\'cassetta_libera_atomica\', {p_lab, p_lavoro, p_motivo:\'manuale\'}) → 200', async () => {
