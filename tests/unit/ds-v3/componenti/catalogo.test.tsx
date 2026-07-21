@@ -104,8 +104,8 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
     expect(trovaParoleVietate(testo)).toEqual([])
   })
 
-  it('il catalogo è completo: 21 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
-    expect(INDICE).toHaveLength(21)
+  it('il catalogo è completo: 22 sezioni, tutte quelle attese nell\'ordine di legge §14.2', () => {
+    expect(INDICE).toHaveLength(22)
     expect(INDICE.map((voce) => voce.titolo)).toEqual([
       'TastoPrimario',
       'Tasti secondari e vie di fuga',
@@ -128,6 +128,7 @@ describe('catalogo DS v3 — skeleton (§14.2)', () => {
       'TastoWhatsApp',
       'RigaBloccante',
       'NavDesk',
+      'Cassetta · MiniaturaLavoro',
     ])
   })
 
