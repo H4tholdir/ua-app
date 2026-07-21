@@ -319,3 +319,69 @@
   box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
 }
 [data-ds="v3"] .ds-cassetta.is-spenta { opacity: .3; filter: saturate(.4); }
+
+/* §5 La Parete — pagina `/cassette` (Task 11). Anatomia 1:1 dal mockup ratificato
+   (2026-07-20-parete-cassette-v2.html): pillola di ricerca righe 39-49, parete + doppia griglia
+   righe 52-64, `.parete-grid` riga 65, tile «+ Nuova cassetta» righe 101-105. I valori sono
+   VERBATIM da lì (stessa regola del Task 10: non si «normalizzano»). Vivono qui e non inline nel
+   componente perché portano rami `[data-theme="dark"]` e media query, che uno style-object non
+   può esprimere — e perché ds-v3.css è la casa canonica dei valori raw del DS v3. */
+[data-ds="v3"] .ds-parete-shell {
+  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 40px;
+}
+@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-shell { max-width: 720px; } }
+@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-shell { max-width: 1120px; } }
+
+/* La pillola di ricerca (mockup `.riga-cerca`). Qui l'input è VERO (il mockup mostrava un
+   placeholder finto): l'anello di focus sta sulla pillola intera (`:focus-within`), perché il
+   campo non ha bordo proprio. */
+[data-ds="v3"] .ds-parete-cerca {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 50px; border-radius: 999px; padding: 0 18px;
+  background: var(--card); box-shadow: var(--sh-press);
+  margin-bottom: 18px;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-parete-cerca {
+  box-shadow: none; border-top: 1px solid rgba(255,255,255,.06);
+}
+[data-ds="v3"] .ds-parete-cerca .lente {
+  width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5;
+  fill: none; stroke-linecap: round; flex: none;
+}
+[data-ds="v3"] .ds-parete-cerca input {
+  flex: 1; min-width: 0; min-height: 44px; /* touch target di legge (§12) */
+  border: none; background: transparent; outline: none; padding: 0;
+  font-family: var(--font-v3); font-size: 15.5px; font-weight: 700; color: var(--ink);
+}
+[data-ds="v3"] .ds-parete-cerca input::placeholder { color: var(--faint); font-weight: 600; }
+[data-ds="v3"] .ds-parete-cerca:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* La parete: `--bg-deep` + la doppia griglia ripetuta — è il muro del laboratorio, non una
+   texture decorativa. Il ramo dark cambia SOLO il colore delle fughe (chiare invece che scure). */
+[data-ds="v3"] .ds-parete {
+  position: relative; border-radius: 18px; padding: 22px 16px 18px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+    var(--bg-deep);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-parete {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+    var(--bg-deep);
+}
+/* Colonne FISSE 3 / 4 / 6 (spec §5.4): l'ordine lineare è invariante — mai `auto-fit`, che
+   cambierebbe il numero di colonne (e quindi la mappa mentale del muro) a ogni larghezza. */
+[data-ds="v3"] .ds-parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
+
+[data-ds="v3"] .ds-tray-nuova {
+  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
+}
+[data-ds="v3"] .ds-tray-nuova:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
+[data-ds="v3"] .ds-tray-nuova .t { font-size: 12px; font-weight: 700; }

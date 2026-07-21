@@ -20,7 +20,14 @@
 // Task 11 (ondata A mini-triage): `/tecnici` migra integralmente a v3 come
 // «Persone» (spec v3 §14: migrazione per route) → avatar + BottomNavPill
 // legacy si ritirano anche lì.
-export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo', '/tecnici']
+//
+// Ondata «Parete delle Cassette» Task 11: `/cassette` NASCE v3 (spec
+// 2026-07-21-parete-cassette-design.md §5, «La pagina /cassette (v3, chrome
+// pagina-lista)») → stessa sorte. Senza questa riga la pagina renderebbe con
+// l'avatar fisso v2.3 SOPRA il suo ☰ TastoTondo (entrambi in alto a destra) e
+// con la BottomNavPill v2.3 in fondo: due design system nella stessa pagina,
+// che la regola di convivenza (DS v3 §14) vieta.
+export const ROUTE_MIGRATE_V3 = ['/dashboard', '/tutto-il-resto', '/lavori/nuovo', '/tecnici', '/cassette']
 
 const SCHEDA_V3_RE = /^\/lavori\/[^/]+(\/modifica)?$/
 

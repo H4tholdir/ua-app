@@ -47,6 +47,14 @@ describe('UserProfileSheet — ritiro dalle route migrate a v3 (speculare a Bott
     expect(container.firstChild).toBeNull()
   })
 
+  // Ondata Parete, Task 11: /cassette nasce v3 (spec §5) — l'avatar fisso
+  // top-right cadrebbe SOPRA il ☰ TastoTondo della parete.
+  it('non si monta su /cassette (parete v3, ondata Parete)', () => {
+    mockPathname = '/cassette'
+    const { container } = render(<UserProfileSheet {...PROPS_BASE} />)
+    expect(container.firstChild).toBeNull()
+  })
+
   it('non si monta su /lavori/nuovo (v3 da Ondata 2, Task 8: wizard)', () => {
     mockPathname = '/lavori/nuovo'
     const { container } = render(<UserProfileSheet {...PROPS_BASE} />)
