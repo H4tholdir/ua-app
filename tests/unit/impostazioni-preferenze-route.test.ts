@@ -266,22 +266,30 @@ describe('PATCH /api/impostazioni/preferenze', () => {
     expect(chiamate).toHaveLength(2)
   })
 
-  it('errore RPC non-40P01 (es. connessione) → 500, console.error chiamato', async () => {
+  // Convenzione delle route sorelle (cassette/[id], cassette, cassette/riordino): `errore:
+  // '<codice_snake_case>_fallita'` per tutto ciò su cui il client può ramificare, 500 di
+  // fallimento RPC incluso (`rinomina_fallita`, `colore_fallito`, `eliminazione_fallita`...).
+  // `error: '<frase in prosa>'` resta riservato ai rami irraggiungibili e ai guard 401/403.
+  it('errore RPC non-40P01 (es. connessione) → 500 { errore: "preferenza_fallita" }, console.error chiamato', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { rpc } = mockRpcLazy([{ data: null, error: { code: '08006', message: 'connection error' } }])
     mockRpc.mockImplementation(rpc)
     const res = await PATCH(patchReq({ home: 'parete' }))
+    const json = await res.json()
     expect(res.status).toBe(500)
+    expect(json.errore).toBe('preferenza_fallita')
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
 
-  it('RAISE di programmazione dalla RPC (es. p_valore NULL, non dovrebbe mai accadere data la validazione route) → 500, non un esito di dominio 4xx', async () => {
+  it('RAISE di programmazione dalla RPC (es. p_valore NULL, non dovrebbe mai accadere data la validazione route) → 500 { errore: "preferenza_fallita" }, non un esito di dominio 4xx', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { rpc } = mockRpcLazy([{ data: null, error: { code: 'P0001', message: 'valore nav_preferences non valido: NULL' } }])
     mockRpc.mockImplementation(rpc)
     const res = await PATCH(patchReq({ parete_intro_vista: true }))
+    const json = await res.json()
     expect(res.status).toBe(500)
+    expect(json.errore).toBe('preferenza_fallita')
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })

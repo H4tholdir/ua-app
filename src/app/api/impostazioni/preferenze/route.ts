@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest) {
     )
     if (error) {
       console.error('[PATCH /api/impostazioni/preferenze] utente_set_nav_pref(home) fallita:', error)
-      return NextResponse.json({ error: 'Errore aggiornamento preferenza home' }, { status: 500 })
+      return NextResponse.json({ errore: 'preferenza_fallita' }, { status: 500 })
     }
     return NextResponse.json({ esito: 'ok' })
   }
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest) {
   )
   if (error) {
     console.error('[PATCH /api/impostazioni/preferenze] utente_set_nav_pref(parete_intro_vista) fallita:', error)
-    return NextResponse.json({ error: 'Errore aggiornamento preferenza parete_intro_vista' }, { status: 500 })
+    return NextResponse.json({ errore: 'preferenza_fallita' }, { status: 500 })
   }
   return NextResponse.json({ esito: 'ok' })
 }
