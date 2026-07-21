@@ -241,6 +241,133 @@ export type Database = {
           },
         ]
       }
+      cassette: {
+        Row: {
+          colore: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          laboratorio_id: string
+          nome: string
+          posizione: number
+          updated_at: string
+        }
+        Insert: {
+          colore?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          laboratorio_id: string
+          nome: string
+          posizione: number
+          updated_at?: string
+        }
+        Update: {
+          colore?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          laboratorio_id?: string
+          nome?: string
+          posizione?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cassette_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cassette_backfill_audit: {
+        Row: {
+          creato_at: string
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          numero_cassetta_originale: string
+        }
+        Insert: {
+          creato_at?: string
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          motivo: string
+          numero_cassetta_originale: string
+        }
+        Update: {
+          creato_at?: string
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          motivo?: string
+          numero_cassetta_originale?: string
+        }
+        Relationships: []
+      }
+      cassette_lavori: {
+        Row: {
+          assegnato_at: string
+          cassetta_id: string
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          liberato_at: string | null
+          liberato_per: string | null
+        }
+        Insert: {
+          assegnato_at?: string
+          cassetta_id: string
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          liberato_at?: string | null
+          liberato_per?: string | null
+        }
+        Update: {
+          assegnato_at?: string
+          cassetta_id?: string
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          liberato_at?: string | null
+          liberato_per?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cassette_lavori_cassetta_id_fkey"
+            columns: ["cassetta_id"]
+            isOneToOne: false
+            referencedRelation: "cassette"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cassette_lavori_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cassette_lavori_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cassette_lavori_lavoro_id_fkey"
+            columns: ["lavoro_id"]
+            isOneToOne: false
+            referencedRelation: "lavori_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cicli_produzione: {
         Row: {
           attivo: boolean
@@ -5627,6 +5754,45 @@ export type Database = {
         Args: { p_lavoro_id: string }
         Returns: number
       }
+      cassetta_assegna_atomica: {
+        Args: {
+          p_cassetta_id?: string
+          p_colore?: string
+          p_lab: string
+          p_lavoro: string
+          p_nome?: string
+        }
+        Returns: Json
+      }
+      cassetta_elimina_atomica: {
+        Args: { p_cassetta_id: string; p_lab: string }
+        Returns: Json
+      }
+      cassetta_libera_atomica: {
+        Args: { p_lab: string; p_lavoro: string; p_motivo: string }
+        Returns: Json
+      }
+      cassetta_riassegna_post_annullo: {
+        Args: { p_lab: string; p_lavoro: string }
+        Returns: Json
+      }
+      cassetta_rinomina_atomica: {
+        Args: { p_cassetta_id: string; p_lab: string; p_nome: string }
+        Returns: Json
+      }
+      cassetta_trasferisci_rifacimento: {
+        Args: {
+          p_lab: string
+          p_lavoro_nuovo: string
+          p_lavoro_vecchio: string
+        }
+        Returns: Json
+      }
+      cassette_purge_lab: { Args: { p_lab: string }; Returns: Json }
+      cassette_riordina: {
+        Args: { p_lab: string; p_ordine: string[] }
+        Returns: Json
+      }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       consegna_finalizza_atomica: {
         Args: { p_laboratorio_id: string; p_lavoro_id: string }
@@ -5760,6 +5926,15 @@ export type Database = {
       unaccent: { Args: { "": string }; Returns: string }
       upsert_pec_vault_secret: {
         Args: { p_lab_id: string; p_password: string }
+        Returns: undefined
+      }
+      utente_set_nav_pref: {
+        Args: {
+          p_chiave: string
+          p_lab: string
+          p_user: string
+          p_valore: Json
+        }
         Returns: undefined
       }
       xmlescape: { Args: { t: string }; Returns: string }
