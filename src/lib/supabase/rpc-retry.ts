@@ -1,6 +1,11 @@
 import 'server-only'
 import type { PostgrestError } from '@supabase/supabase-js'
 
+const SQLSTATE_DEADLOCK = '40P01'
+const RPC_RETRY_BACKOFF_MS = 50
+
+export type RpcEsito<T> = { data: T | null; error: PostgrestError | null }
+
 /**
  * Retry condiviso per le RPC SECURITY DEFINER della Parete delle Cassette
  * (contratto: `supabase/migrations/20260721090000_parete_cassette.sql:48-52`,
@@ -22,13 +27,7 @@ import type { PostgrestError } from '@supabase/supabase-js'
  * il difetto che ha fatto bocciare il primo giro del Task 3 (vedi
  * `src/lib/cassette/parco.ts`). Per ritentare DAVVERO occorre invocare
  * `svc.rpc(...)` una seconda volta, da cui la thunk.
- */
-const SQLSTATE_DEADLOCK = '40P01'
-const RPC_RETRY_BACKOFF_MS = 50
-
-export type RpcEsito<T> = { data: T | null; error: PostgrestError | null }
-
-/**
+ *
  * Esegue `chiamata()` una prima volta. Se l'errore è un deadlock (40P01),
  * attende un breve backoff e ri-invoca `chiamata()` una seconda (e ultima)
  * volta: un solo ritentativo, due tentativi totali — non di più, anche se

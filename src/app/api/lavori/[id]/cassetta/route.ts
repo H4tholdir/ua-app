@@ -9,8 +9,39 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 const NOME_MIN = 1
 const NOME_MAX = 20
+// Forma UUID canonica (qualunque versione/variante RFC4122): sufficiente a
+// scartare PRIMA della RPC un valore che farebbe fallire il cast Postgres
+// `uuid` con un errore di tipo invece di un esito di dominio (review Minor #1).
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
-type CassettaBody = { cassetta_id?: unknown; nome?: unknown } | null
+type ParsedBody = { ok: true; body: Record<string, unknown> | null } | { ok: false }
+
+/**
+ * Legge il body distinguendo TRE casi (review Important #1 — prima di questo
+ * fix qualunque payload non riconosciuto cadeva silenziosamente nel ramo di
+ * liberazione, rispondendo 200 all'esatto opposto di quanto il chiamante
+ * intendeva): corpo assente/vuoto e JSON letterale `null` sono lo STESSO
+ * segnale — liberazione manuale, contratto esplicito del brief («null (o {})
+ * = liberazione manuale»). Un JSON presente ma sintatticamente non valido, o
+ * un primitivo/array al livello radice, è invece un errore di richiesta (400):
+ * NON va confuso con l'intento di liberare la cassetta solo perché anche lì
+ * `req.json()` avrebbe fallito.
+ */
+async function parseBody(req: Request): Promise<ParsedBody> {
+  const raw = await req.text()
+  if (raw.trim().length === 0) return { ok: true, body: null }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return { ok: false }
+  }
+  if (parsed === null) return { ok: true, body: null }
+  if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return { ok: true, body: parsed as Record<string, unknown> }
+  }
+  return { ok: false }
+}
 
 /**
  * Assegnazione/liberazione della cassetta di un lavoro (spec parete-cassette §10),
@@ -18,7 +49,11 @@ type CassettaBody = { cassetta_id?: unknown; nome?: unknown } | null
  * `PATCHABLE_FIELDS`, `src/app/api/lavori/[id]/route.ts`).
  *
  * Body: `{cassetta_id}` (aggancio a cassetta esistente) | `{nome}` (get-or-create
- * race-safe, delegata alla RPC) | `null`/`{}` (liberazione manuale).
+ * race-safe, delegata alla RPC) | `null`/`{}` (liberazione manuale). La scelta
+ * fra i tre rami si decide sulla PRESENZA della chiave (`hasOwnProperty`), non
+ * sulla verità del valore derivato: un `cassetta_id`/`nome` presente ma di tipo
+ * sbagliato o vuoto dopo il trim è un 422, MAI un fallback silenzioso a libera
+ * (review Important #1) — solo l'assenza di ENTRAMBE le chiavi libera.
  *
  * ⚠️ Correzione 21/07 #1: `cassetta_assegna_atomica` NON valida più il nome
  * (R-5 ha tolto `nome_non_valido` dai suoi esiti: un nome fuori range torna
@@ -28,6 +63,8 @@ type CassettaBody = { cassetta_id?: unknown; nome?: unknown } | null
  * si risponde 422 PRIMA di chiamare la RPC: ogni `cassetta_non_trovata` che
  * arriva dalla RPC dopo questa guardia è quindi SEMPRE un problema di
  * `cassetta_id` (assente/di altro lab/eliminata), mai di nome → 404 corretto.
+ * Stessa logica per `cassetta_id`: forma UUID validata qui, altrimenti 422
+ * `cassetta_id_non_valido` PRIMA della RPC (review Minor #1).
  *
  * `p_colore` non è esposto da questa route (l'interfaccia del body non lo
  * prevede): si passa sempre `null` alla RPC, che applica il default `bianca`
@@ -71,24 +108,34 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Lavoro non trovato' }, { status: 404 })
   }
 
-  const body = (await req.json().catch(() => null)) as CassettaBody
+  const parsedBody = await parseBody(req)
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+  }
+  const body = parsedBody.body
 
-  const cassettaIdRaw = body && typeof body.cassetta_id === 'string' ? body.cassetta_id.trim() : ''
-  const nomeRaw = body && typeof body.nome === 'string' ? body.nome : null
+  const hasCassettaId = body != null && Object.prototype.hasOwnProperty.call(body, 'cassetta_id')
+  const hasNome = body != null && Object.prototype.hasOwnProperty.call(body, 'nome')
 
   let pCassettaId: string | null = null
   let pNome: string | null = null
   let azione: 'assegna' | 'libera' = 'libera'
 
-  if (cassettaIdRaw) {
-    pCassettaId = cassettaIdRaw
+  if (hasCassettaId) {
+    const raw = (body as Record<string, unknown>).cassetta_id
+    const trimmed = typeof raw === 'string' ? raw.trim() : ''
+    if (typeof raw !== 'string' || trimmed.length === 0 || !UUID_RE.test(trimmed)) {
+      return NextResponse.json({ errore: 'cassetta_id_non_valido' }, { status: 422 })
+    }
+    pCassettaId = trimmed
     azione = 'assegna'
-  } else if (nomeRaw !== null) {
-    const nomeTrim = nomeRaw.trim()
-    if (nomeTrim.length < NOME_MIN || nomeTrim.length > NOME_MAX) {
+  } else if (hasNome) {
+    const raw = (body as Record<string, unknown>).nome
+    const trimmed = typeof raw === 'string' ? raw.trim() : ''
+    if (typeof raw !== 'string' || trimmed.length < NOME_MIN || trimmed.length > NOME_MAX) {
       return NextResponse.json({ errore: 'nome_non_valido' }, { status: 422 })
     }
-    pNome = nomeTrim
+    pNome = trimmed
     azione = 'assegna'
   }
 

@@ -5,16 +5,23 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
 
+// Forma UUID canonica: vedi lo stesso pattern e lo stesso motivo in
+// `src/app/api/lavori/[id]/cassetta/route.ts` (review Minor #1).
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
 /**
  * Riordino della parete delle cassette (spec parete-cassette §5).
  *
  * Contratto della RPC `cassette_riordina` (migration 20260721090000_parete_cassette.sql:446-...):
  * unico esito di errore `ordine_non_valido` copre array NULL/vuoto, elementi NULL,
- * duplicati e id estranei al lab o di cassette eliminate — **tutti** validati
- * dalla RPC stessa, non qui: la route inoltra l'array così com'è (correzione
- * 21/07 #3), tranne il caso in cui il body non contenga affatto un array (in
- * quel caso richiamare la RPC produrrebbe solo un errore di firma/cast, non
- * un esito di dominio, quindi si risponde 422 prima di chiamarla).
+ * duplicati e id estranei al lab o di cassette eliminate — validati dalla RPC
+ * stessa: la route non li rifiltra (correzione 21/07 #3, gli elementi NULL
+ * vanno forwardati as-is). La route valida SOLO due cose che, se lasciate
+ * passare, produrrebbero un errore di firma/cast PostgREST invece di un esito
+ * di dominio (mai visto dalla RPC): che il body contenga affatto un array, e
+ * che ogni elemento non-NULL abbia forma UUID valida — un elemento tipo
+ * `'abc'` farebbe fallire il cast Postgres `uuid[]` con un errore 500, non con
+ * l'esito `ordine_non_valido` che la route promette (review Minor #1).
  */
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) {
@@ -33,14 +40,22 @@ export async function POST(req: Request) {
   const labId: string = context.laboratorioId
 
   const body = await req.json().catch(() => null)
-  const ordine =
+  const ordineRaw =
     body && typeof body === 'object' && Array.isArray((body as { ordine?: unknown }).ordine)
-      ? ((body as { ordine: unknown[] }).ordine as (string | null)[])
+      ? (body as { ordine: unknown[] }).ordine
       : null
 
-  if (!ordine) {
+  if (!ordineRaw) {
     return NextResponse.json({ errore: 'ordine_non_valido' }, { status: 422 })
   }
+
+  // NULL ammesso (la RPC lo rifiuta da sé, correzione 21/07 #3 — non va
+  // filtrato qui); qualunque altra cosa deve avere forma UUID valida.
+  const formaValida = ordineRaw.every((el) => el === null || (typeof el === 'string' && UUID_RE.test(el)))
+  if (!formaValida) {
+    return NextResponse.json({ errore: 'ordine_non_valido' }, { status: 422 })
+  }
+  const ordine = ordineRaw as (string | null)[]
 
   const svc = getServiceClient()
   const { data, error } = await callRpcWithRetry(() =>

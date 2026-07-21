@@ -68,6 +68,27 @@ describe('callRpcWithRetry — retry condiviso sul 40P01 (R-C, Task 4)', () => {
     expect(esito).toEqual({ data: { esito: 'ok' }, error: null })
   })
 
+  it('Minor #8 (review): il backoff scorre davvero — la seconda chiamata non parte finché il timer fittizio non avanza', async () => {
+    const { thunk, chiamate } = mockThunkLazy([
+      { data: null, error: { code: '40P01', message: 'deadlock detected', details: null, hint: null } as never },
+      { data: { esito: 'ok' }, error: null },
+    ])
+
+    const promessa = callRpcWithRetry(thunk)
+    // Avanzare di 0ms smaltisce le microtask pendenti (il primo `await
+    // chiamata()`, già risolto) ma non fa scattare il `setTimeout` del
+    // backoff (> 0ms): se il backoff fosse un no-op rimosso per errore, la
+    // seconda invocazione sarebbe già avvenuta qui.
+    await vi.advanceTimersByTimeAsync(0)
+    expect(chiamate).toHaveLength(1)
+
+    await vi.advanceTimersByTimeAsync(1000)
+    const esito = await promessa
+
+    expect(chiamate).toHaveLength(2)
+    expect(esito).toEqual({ data: { esito: 'ok' }, error: null })
+  })
+
   it('anche se il secondo tentativo torna di nuovo 40P01, non c\'è un terzo tentativo: un solo ritentativo (R-C)', async () => {
     const { thunk, chiamate } = mockThunkLazy([
       { data: null, error: { code: '40P01', message: 'deadlock 1', details: null, hint: null } as never },
