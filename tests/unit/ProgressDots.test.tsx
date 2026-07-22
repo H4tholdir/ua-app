@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
+// Budget 15s per il render dell'intera pagina catalogo: vedi il commento nell'helper.
+import './ds-v3/budget-catalogo'
 
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero

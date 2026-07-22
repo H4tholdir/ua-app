@@ -1,3 +1,5 @@
+// Budget 15s per il render dell'intera pagina catalogo: vedi il commento nell'helper.
+import '../budget-catalogo'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { render, screen, fireEvent } from '@testing-library/react'

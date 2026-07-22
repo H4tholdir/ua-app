@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
-import { MotionGlobalConfig } from 'motion/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
 // Anti-flake sotto carico del pool vitest (diagnosi 20/07, riprodotto con 2
@@ -12,17 +11,11 @@ import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 configure({ asyncUtilTimeout: 5000 })
 vi.setConfig({ testTimeout: 15_000 })
 
-// Fix B (diagnosi 22/07): disattiva le animazioni motion per l'intero file,
-// così enter/exit di AnimatePresence sono istantanei e i waitFor di uscita
-// del toast non dipendono più dal tempo di parete della exit animation reale
-// (che sotto contesa multi-worker può sforare asyncUtilTimeout). Nessun test
-// di questo file asserisce valori di animazione motion in volo.
-beforeAll(() => {
-  MotionGlobalConfig.skipAnimations = true
-})
-afterAll(() => {
-  MotionGlobalConfig.skipAnimations = false
-})
+// Fix B (diagnosi 22/07): le animazioni motion sono disattivate per TUTTA la
+// suite da tests/setup.ts (MotionGlobalConfig.skipAnimations = true — intervento
+// di classe, 22/07 notte): enter/exit di AnimatePresence sono istantanei e i
+// waitFor di uscita del toast non dipendono dal tempo di parete. Il toggle
+// per-file che viveva qui è stato assorbito lì.
 
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero

@@ -1,3 +1,5 @@
+// Budget 15s per il render dell'intera pagina catalogo: vedi il commento nell'helper.
+import '../budget-catalogo'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
