@@ -270,6 +270,40 @@ describe('PareteClient — wiring del drag (Task 13, §2.5/§3)', () => {
       vi.useRealTimers()
     }
   })
+
+  // Review Task 13, Critical B-1: il ghost è in portale su `document.body`, FUORI dal
+  // `<div data-ds="v3">` di `cassette/page.tsx`. Tutto il CSS del DS v3 (compreso `.ds-ghost`,
+  // che porta `position:fixed` — senza quella regola il ghost cade nel normal-flow, un
+  // `<button>` grezzo in fondo al body) vive sotto quello scope. jsdom non applica le regole di
+  // `ds-v3.css` (nessun cascade CSS reale in questo ambiente): il presidio è sulla STRUTTURA del
+  // DOM che quella regola richiede — un antenato del ghost con `data-ds="v3"`, come per gli altri
+  // portali del DS (`Sheet`, `DialogConferma`, `Avviso`).
+  it('a drag attivo il ghost portato su document.body porta lo scope data-ds="v3" (review Task 13, B-1)', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[occupata, libera]} />)
+      const bottone = cassettaLibera()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) }) // Cassetta spara onSollevata → il ghost monta in portale
+
+      const nodoPortato = Array.from(document.body.children).find(
+        (el) => el.getAttribute('data-ds') === 'v3',
+      )
+      expect(nodoPortato).toBeTruthy()
+
+      const ghost = nodoPortato?.querySelector('.ds-ghost')
+      expect(ghost).not.toBeNull()
+
+      // La regola `[data-ds="v3"] .ds-ghost` di ds-v3.css è un combinatore DISCENDENTE: serve un
+      // ANTENATO separato con l'attributo, non basta che il ghost porti la classe da solo — questa
+      // è la verifica che discrimina davvero il difetto (senza l'attributo sul wrapper, `closest`
+      // non troverebbe nulla e la regola non matcherebbe alcuna proprietà, `position:fixed`
+      // compreso).
+      expect(ghost?.closest('[data-ds="v3"]')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('PareteClient — parete vuota e freschezza', () => {

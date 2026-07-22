@@ -311,32 +311,49 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
               Le motion value dell'hook (`x`/`y` inseguimento, `scale` lift+atterraggio) pilotano il
               transform: Motion le compone in un unico transform — niente re-render per pixel, niente
               collisione di scrittori (§3.1). Fuori da `MotionConfig` di proposito: l'atterraggio
-              `molla.snappy` è imperativo (`animate`), il reduced-motion è gestito nell'hook. */}
+              `molla.snappy` è imperativo (`animate`), il reduced-motion è gestito nell'hook.
+
+              Wrapper `data-ds="v3"` (review Task 13, B-1): TUTTO il CSS del DS v3 vive sotto
+              `[data-ds="v3"]` (`ds-v3.css:11`), incluso `.ds-ghost` (`position:fixed` + z-index +
+              gradienti `.ds-cassetta.*`). Il portale finisce su `document.body`, FUORI dal
+              `<div data-ds="v3">` di `cassette/page.tsx` — senza un proprio scope qui, `.ds-ghost`
+              e `.ds-cassetta` non matchano NESSUNA regola. Stesso pattern degli altri portali del
+              DS (`Sheet`, `DialogConferma`, `Avviso`): l'attributo va sul nodo portato, non
+              sull'elemento con la classe funzionale — la regola CSS è un combinatore discendente
+              (`[data-ds="v3"] .ds-ghost`), quindi serve un ANTENATO separato che porti l'attributo,
+              non lo stesso nodo che porta già `.ds-ghost` (i due selettori non si "fondono" su un
+              solo elemento). `display:'contents'` (stesso trucco di
+              `NotaCreditoButton.tsx`): il wrapper esiste solo per lo scope, zero box nel layout —
+              `.ds-ghost` resta l'unico elemento con `position:fixed`. Il tema eredita da
+              `data-theme` su `<html>` (`ThemeInitializer`), ancestor comune a `<body>`: nessuna
+              duplicazione necessaria qui. */}
           {ghostDrag && cassettaGhost && typeof document !== 'undefined' &&
             createPortal(
-              <motion.div
-                className="ds-ghost"
-                aria-hidden="true"
-                style={{
-                  left: ghostDrag.left,
-                  top: ghostDrag.top,
-                  width: ghostDrag.width,
-                  height: ghostDrag.height,
-                  willChange: 'transform',
-                  x: ghostMotion.x,
-                  y: ghostMotion.y,
-                  scale: ghostMotion.scale,
-                }}
-              >
-                <Cassetta
-                  id={cassettaGhost.id}
-                  nome={cassettaGhost.nome}
-                  colore={cassettaGhost.colore}
-                  lavoro={cassettaGhost.lavoro}
-                  stato="normale"
-                  onTap={() => {}}
-                />
-              </motion.div>,
+              <div data-ds="v3" style={{ display: 'contents' }}>
+                <motion.div
+                  className="ds-ghost"
+                  aria-hidden="true"
+                  style={{
+                    left: ghostDrag.left,
+                    top: ghostDrag.top,
+                    width: ghostDrag.width,
+                    height: ghostDrag.height,
+                    willChange: 'transform',
+                    x: ghostMotion.x,
+                    y: ghostMotion.y,
+                    scale: ghostMotion.scale,
+                  }}
+                >
+                  <Cassetta
+                    id={cassettaGhost.id}
+                    nome={cassettaGhost.nome}
+                    colore={cassettaGhost.colore}
+                    lavoro={cassettaGhost.lavoro}
+                    stato="normale"
+                    onTap={() => {}}
+                  />
+                </motion.div>
+              </div>,
               document.body,
             )}
         </>
