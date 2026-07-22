@@ -118,3 +118,4 @@ docs/design/mockups/*lello*
 
 # SDD scratch (subagent-driven-development ledger, briefs, review packages)
 .superpowers/
+.gstack/
