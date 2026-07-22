@@ -16,4 +16,13 @@ describe('NavDesk (§5.35) — la nav sostituisce home+☰ su desktop', () => {
     expect(screen.getByRole('link', { name: 'Dentisti' })).toHaveAttribute('href', '/clienti')
     expect(screen.getByRole('button', { name: '+ Nuovo lavoro' })).toBeInTheDocument()
   })
+
+  it('«Le cassette» (Task 17): voce fissa → /cassette, PRIMA di Agenda', () => {
+    render(<NavDesk conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }} pilaSelezionata="rossa" segnale={SEGNALE} />)
+    const cassette = screen.getByRole('link', { name: 'Le cassette' })
+    const agenda = screen.getByRole('link', { name: 'Agenda' })
+    expect(cassette).toHaveAttribute('href', '/cassette')
+    // Ordine di legge: «Le cassette» precede «Agenda» nel DOM.
+    expect(cassette.compareDocumentPosition(agenda) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

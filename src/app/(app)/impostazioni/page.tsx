@@ -6,6 +6,8 @@ import { AppHeader } from '@/components/layout/AppHeader'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ImpostazioniEditForm } from '@/components/features/impostazioni/ImpostazioniEditForm'
 import { AttivaAccessoRapido } from '@/components/features/impostazioni/AttivaAccessoRapido'
+import { SceltaHome } from '@/components/features/impostazioni/SceltaHome'
+import { homePrefDa } from '@/lib/preferenze/home'
 
 type LabRow = {
   id: string
@@ -125,6 +127,12 @@ export default async function ImpostazioniPage() {
 
   if (!lab) redirect('/login?error=no_lab')
 
+  // Preferenza «La tua home» (Task 17): SEMPRE self (`context.userId`), mai cross-utente. Fail-soft:
+  // `homePrefDa` degrada a 'due_stanze' su null/garbage → la radio parte dal default sereno.
+  const prefRes = await svc.from('utenti').select('nav_preferences').eq('id', context.userId).single()
+  if (prefRes.error) console.error('[impostazioni] lettura nav_preferences fallita:', prefRes.error)
+  const homePref = homePrefDa(prefRes.data?.nav_preferences)
+
   const indirizzoCompleto = [lab.indirizzo, lab.cap, lab.citta, lab.provincia]
     .filter(Boolean)
     .join(', ') || null
@@ -135,6 +143,11 @@ export default async function ImpostazioniPage() {
 
       <div style={{ padding: '0 20px 32px' }}>
         <ImpostazioniEditForm initialData={lab} />
+
+        {/* Sezione Aspetto (Task 17): la forma della home */}
+        <SectionCard title="Aspetto">
+          <SceltaHome iniziale={homePref} />
+        </SectionCard>
 
         {/* Sezione 1: Dati laboratorio */}
         <SectionCard title="Dati laboratorio">

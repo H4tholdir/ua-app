@@ -85,6 +85,7 @@ const VOCI_PILA: Array<{ pila: Pila; nome: string; colore: string; tint: string 
 ]
 
 const VOCI_ALTRE: Array<{ nome: string; href: string }> = [
+  { nome: 'Le cassette', href: '/cassette' }, // Task 17 — ingresso in-app alla parete, PRIMA di Agenda
   { nome: 'Agenda', href: '/agenda' },
   { nome: 'Dentisti', href: '/clienti' },
   { nome: 'Fatture', href: '/fatture' },
