@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gap cassette su tablet — varianti di spaziatura (22/07/2026)</title>
+<link rel="stylesheet" href="2026-07-09-il-cuore/_base.css">
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     MINI-GIRO «GAP CASSETTE TABLET» (handoff post-R3, punto 1 — regola 0B)
+     Segnalazione device: spaziatura della griglia cassette su tablet da rivedere.
+
+     Numeri di OGGI a 768px (misurati da ds-v3.css):
+       shell 720px − padding 20×2 = 680 · parete padding 16×2 → griglia 648px
+       4 colonne · gap 16px → tray 150×104 (sul telefono: 95×104, stesso gap 16)
+       → il gap resta quello del telefono ma i tray crescono del 58%:
+         la fuga passa dal ~17% al ~11% della larghezza del tray.
+       In VERTICALE è peggio: la linguetta ::before sporge 7px sopra il tray
+       → il respiro visivo tra le file è ~9px (16−7).
+
+     Ogni variante qui sotto è il viewport tablet SIMULATO (stage 768px,
+     shell max-width 720 + padding 20, come in prod), light + dark.
+     I valori CSS da portare in ds-v3.css sono nel riquadro di ogni variante.
+     ══════════════════════════════════════════════════════════════════════════ */
+  body { margin: 0; padding: 32px; background: #ECE9E4; font-family: var(--font-v3); }
+  .intro { max-width: 1600px; margin: 0 auto 8px; }
+  .intro h1 { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: #1C1917; margin: 0 0 6px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: #6E675F; margin: 0 0 4px; line-height: 1.5; max-width: 1100px; }
+  .blocco-titolo { font-size: 19px; font-weight: 800; letter-spacing: -.01em; color: #1C1917; max-width: 1600px; margin: 40px auto 4px; text-align: center; }
+  .blocco-sotto { font-size: 13.5px; font-weight: 600; color: #6E675F; max-width: 980px; margin: 0 auto 6px; text-align: center; line-height: 1.5; }
+  .blocco-css { font-size: 12px; font-weight: 700; color: #1C1917; background: #F7F4EE; border-radius: 10px;
+    padding: 8px 14px; max-width: 760px; margin: 0 auto 16px; text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.6; }
+  .griglia-mock { display: grid; grid-template-columns: repeat(auto-fit, 768px); gap: 30px; justify-content: center; max-width: 1600px; margin: 0 auto; }
+  .tema-cap { font-size: 11.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #6E675F; text-align: center; margin-bottom: 4px; }
+
+  /* Lo stage = viewport tablet 768px. La shell dentro replica .ds-parete-shell a ≥768:
+     max-width 720, padding 8px 20px 40px (qui accorciato in basso: 24). */
+  .stage {
+    width: 768px; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 30px -18px rgba(50,40,25,.4);
+    background: var(--bg); container-type: inline-size;
+  }
+  .stage[data-theme="dark"] { box-shadow: 0 10px 30px -12px rgba(0,0,0,.55); }
+  .shell { max-width: 720px; margin: 0 auto; padding: 14px 20px 24px; }
+  .nota-stage { font-size: 12px; font-weight: 600; color: var(--faint); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+  .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .page-title { font-size: 27px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .riga-cerca {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 50px; border-radius: 999px; padding: 0 18px;
+    background: var(--card); box-shadow: var(--sh-press);
+    font-size: 15.5px; font-weight: 700; color: var(--ink);
+    margin-bottom: 18px;
+  }
+  [data-theme="dark"] .riga-cerca { box-shadow: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .riga-cerca svg.lente { width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5; fill: none; stroke-linecap: round; flex: none; }
+  .riga-cerca .ph { color: var(--faint); font-weight: 600; }
+
+  /* Parete + tray: VERBATIM dal mockup ratificato 2026-07-20-parete-cassette-v2.html
+     (a parte padding-top 44px del tray, allineato al Gate L2 del 22/07 in ds-v3.css). */
+  .parete {
+    position: relative; border-radius: 18px; padding: 22px 16px 18px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+      var(--bg-deep);
+  }
+  [data-theme="dark"] .parete {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+      var(--bg-deep);
+  }
+  .parete-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .tray { position: relative; border-radius: 10px 10px 12px 12px; padding: 44px 10px 10px; min-height: 104px;
+    display: flex; flex-direction: column; justify-content: flex-end; cursor: grab;
+    box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28); }
+  [data-theme="dark"] .tray { box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4); }
+  .tray::before { content: ''; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 10px; border-radius: 4px 4px 0 0; background: inherit; filter: brightness(.85); }
+  .tray .cavita { position: absolute; inset: 5px 6px auto 6px; height: 46px; border-radius: 7px;
+    background: rgba(0,0,0,.18); box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
+    display: flex; align-items: center; justify-content: center; }
+  .tray.rossa  { background: linear-gradient(180deg, #E8323B, #C3000F); }
+  .tray.blu    { background: linear-gradient(180deg, #2E6FD0, #174A9C); }
+  .tray.azzurra{ background: linear-gradient(180deg, #6FB1E8, #4187C6); }
+  .tray.grigia { background: linear-gradient(180deg, #9A948E, #6E675F); }
+  .tray.bianca { background: linear-gradient(180deg, #FFFEFA, #E4DCCB); }
+  .tray.verde  { background: linear-gradient(180deg, #2E9C55, #166B39); }
+  .tray.corallo{ background: linear-gradient(180deg, #F2836B, #C9563E); }
+  .tray .targa {
+    position: relative; z-index: 1; align-self: center;
+    background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
+    font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  .tray .cont { position: relative; z-index: 1; text-align: center; margin-top: 5px;
+    font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+  .tray.bianca .cont, .tray.azzurra .cont { color: rgba(29,25,19,.85); text-shadow: none; }
+  .tray.libera .targa { background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9); }
+  .tray.libera .cont { opacity: .6; font-weight: 700; }
+  .tray-nuova { border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3); }
+  .tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
+  .tray-nuova .t { font-size: 12px; font-weight: 700; }
+  .cavita svg { height: 34px; width: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+
+  /* ── VARIANTE V0 — stato attuale (riferimento, non una scelta) ─────────────
+     ds-v3.css oggi: gap 16px · parete padding 22px 16px 18px. */
+  .v0 .parete-grid { gap: 16px; }
+
+  /* ── VARIANTE A — «Più fuga» ───────────────────────────────────────────────
+     Un gradino tablet dedicato: gap 24px uniforme + parete che respira di suo
+     (padding 26px 22px 22px). Un solo valore nuovo, zero sorprese. */
+  .va .parete { padding: 26px 22px 22px; }
+  .va .parete-grid { gap: 24px; }
+
+  /* ── VARIANTE B — «Aria verticale» ─────────────────────────────────────────
+     La linguetta (7px sopra il tray) e l'ombra proiettata verso il basso
+     mangiano il gap VERTICALE: qui le file respirano più delle colonne.
+     column-gap 20 · row-gap 30 (respiro visivo tra le file: 30−7 = 23px). */
+  .vb .parete { padding: 26px 18px 20px; }
+  .vb .parete-grid { column-gap: 20px; row-gap: 30px; }
+
+  /* ── VARIANTE C — «Fluida» ─────────────────────────────────────────────────
+     Niente gradini: il gap scala con la larghezza della shell —
+     gap: clamp(16px, 3.2cqw, 26px) → 16 sul telefono (390), ~24.5 a 768,
+     26 dal desktop in su. Stessa formula sul padding della parete.
+     Coerente con la direzione «dimensionamento fluido» già registrata
+     per l'ondata Redesign parete/home. */
+  .vc .parete { padding: clamp(22px, 3.4cqw, 28px) clamp(16px, 2.9cqw, 24px) clamp(18px, 3cqw, 24px); }
+  .vc .parete-grid { gap: clamp(16px, 3.2cqw, 26px); }
+
+  /* ── VARIANTE D — «Cassette da telefono» ───────────────────────────────────
+     La spaziatura si rivede cambiando la PROPORZIONE: 5 colonne su tablet
+     → tray ~117px (vicini ai 95px del telefono, stessa forma mentale)
+     + gap 20px. ⚠️ Emenda la spec §5.4: colonne fisse 3/4/6 → 3/5/6. */
+  .vd .parete { padding: 24px 18px 20px; }
+  .vd .parete-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIMBOLI SVG — miniature (verbatim dal mockup ratificato v2) ═══ -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="mk-corona" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="#F8F2E6"/>
+    <path d="M6.5 6.5 C7.5 5.4 9.5 4.8 12 4.8" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M4 9.5 C4 13 5 16.5 6.2 19.2 C6.8 20.6 8.6 20.5 9.1 19 L10.1 16" stroke="#D9CDB6" stroke-width="1.2" fill="none"/>
+  </symbol>
+  <symbol id="mk-provvisorio" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.6" stroke-dasharray="3.2 2.4"/>
+  </symbol>
+  <symbol id="mk-impianto" viewBox="0 0 24 32">
+    <path d="M6 7 C6 3.8 8.2 3 12 3 C15.8 3 18 3.8 18 7 C18 9.4 17.3 11.4 16.6 12.8 C16.2 13.7 7.8 13.7 7.4 12.8 C6.7 11.4 6 9.4 6 7 Z" fill="#F8F2E6"/>
+    <rect x="9.4" y="14.5" width="5.2" height="12" rx="2.2" fill="#B9BEC6"/>
+    <path d="M9.4 17.5 H14.6 M9.4 20.5 H14.6 M9.4 23.5 H14.6" stroke="#8E959E" stroke-width="1.4"/>
+  </symbol>
+  <symbol id="mk-ponte" viewBox="0 0 44 24">
+    <path d="M3 10 C3 5.5 5.5 4 9.5 4 C13 4 15 5.5 15 10 C15 13 14.2 16 13.3 18.4 C12.8 19.7 11.2 19.6 10.8 18.3 L10.2 16.2 C9.8 14.9 8.2 14.9 7.8 16.2 L7.2 18.3 C6.8 19.6 5.2 19.7 4.7 18.4 C3.8 16 3 13 3 10 Z" fill="#F8F2E6"/>
+    <path d="M17 10 C17 5.5 19.5 4 22 4 C24.5 4 27 5.5 27 10 C27 13.5 26.4 16.8 25.6 19 C25.2 20.2 23 20.2 22.6 19 L22 17.2 C21.7 16.2 22.3 16.2 22 17.2 L21.4 19 C21 20.2 18.8 20.2 18.4 19 C17.6 16.8 17 13.5 17 10 Z" fill="#EFE6D2"/>
+    <path d="M29 10 C29 5.5 31 4 34.5 4 C38.5 4 41 5.5 41 10 C41 13 40.2 16 39.3 18.4 C38.8 19.7 37.2 19.6 36.8 18.3 L36.2 16.2 C35.8 14.9 34.2 14.9 33.8 16.2 L33.2 18.3 C32.8 19.6 31.2 19.7 30.7 18.4 C29.8 16 29 13 29 10 Z" fill="#F8F2E6"/>
+    <path d="M14.6 8 H17.6 M26.6 8 H29.6" stroke="#D9CDB6" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="mk-totale" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/><circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/>
+    <circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+  </symbol>
+  <symbol id="mk-scheletrato" viewBox="0 0 40 26">
+    <path d="M6 23 C6 13 12 6 20 6 C28 6 34 13 34 23" stroke="#B9BEC6" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 23 C10 15.5 14.5 10.5 20 10.5 C25.5 10.5 30 15.5 30 23" stroke="#8E959E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <path d="M5 19 C3.8 17.5 3.8 15.5 5.2 14.2 M35 19 C36.2 17.5 36.2 15.5 34.8 14.2" stroke="#B9BEC6" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M3.5 23 C3.5 20 4.5 18.5 6.5 18 C8.5 17.7 9.5 19 9.5 21 L9.2 23 Z" fill="#F8F2E6"/>
+    <path d="M36.5 23 C36.5 20 35.5 18.5 33.5 18 C31.5 17.7 30.5 19 30.5 21 L30.8 23 Z" fill="#F8F2E6"/>
+  </symbol>
+</svg>
+
+<div class="intro">
+  <h1>Gap cassette su tablet — 4 varianti (+ lo stato attuale come riferimento)</h1>
+  <p><b>Il problema, in numeri:</b> a 768px i tray crescono a 150px di larghezza (dal telefono: 95px)
+  ma il gap resta 16px — la fuga passa dal ~17% al ~11% della cassetta. In verticale è peggio:
+  la linguetta sporge 7px sopra il tray, quindi tra le file il respiro visivo è ~9px.</p>
+  <p>Ogni riquadro è il viewport tablet simulato (768px, shell 720 come in prod). Stessa parete
+  demo dappertutto: 7 cassette + «Nuova cassetta» — 8 celle, 2 file complete.</p>
+</div>
+
+<!-- ════════ V0 — STATO ATTUALE ════════ -->
+<div class="blocco-titolo">V0 · Stato attuale — il riferimento (non una scelta)</div>
+<div class="blocco-sotto">Così è oggi in produzione a 768px: 4 colonne, gap 16px, parete 22/16/18.</div>
+<div class="blocco-css">oggi: .ds-parete-grid { gap: 16px } · .ds-parete { padding: 22px 16px 18px }</div>
+<section id="v0" class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage v0" data-theme="light">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">Tray 150×104 · fuga orizzontale 16px (~11%) · respiro verticale visivo ~9px.</div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage v0" data-theme="dark">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ A — PIÙ FUGA ════════ -->
+<div class="blocco-titolo">A · «Più fuga» — gap 24px uniforme, parete che respira</div>
+<div class="blocco-sotto">Il gradino tablet più semplice: la fuga torna alla proporzione del telefono (~16%),
+la parete allarga il proprio bordo. Un solo numero nuovo, nessun cambio di struttura.</div>
+<div class="blocco-css">@media ≥768: .ds-parete-grid { gap: 24px } · .ds-parete { padding: 26px 22px 22px }</div>
+<section id="va" class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage va" data-theme="light">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">Tray 143×104 · fuga 24px (~17%, come sul telefono) · respiro verticale visivo 17px.</div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage va" data-theme="dark">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ B — ARIA VERTICALE ════════ -->
+<div class="blocco-titolo">B · «Aria verticale» — le file respirano più delle colonne</div>
+<div class="blocco-sotto">La linguetta (7px) e l'ombra del tray pesano sull'asse verticale: qui il row-gap sale a 30px
+(respiro visivo reale 23px) mentre le colonne restano compatte a 20px — la parete tiene le file ben distinte,
+come i portacassette veri montati a muro.</div>
+<div class="blocco-css">@media ≥768: .ds-parete-grid { column-gap: 20px; row-gap: 30px } · .ds-parete { padding: 26px 18px 20px }</div>
+<section id="vb" class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage vb" data-theme="light">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">Tray 147×104 · colonne 20px · file 30px (visivi 23px: linguetta compensata).</div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage vb" data-theme="dark">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ C — FLUIDA ════════ -->
+<div class="blocco-titolo">C · «Fluida» — il gap scala con la larghezza, senza gradini</div>
+<div class="blocco-sotto">gap: clamp(16px, 3.2cqw, 26px) — 16px sul telefono, ~24.5px a 768, 26px sul desktop.
+Nessuna media query: la parete respira in proporzione ovunque, anche nelle larghezze intermedie
+(split-screen iPad, finestre ridimensionate). Anticipa la direzione «fluida» del redesign home.</div>
+<div class="blocco-css">.ds-parete-grid { gap: clamp(16px, 3.2cqw, 26px) } · .ds-parete { padding: clamp(22px,3.4cqw,28px) clamp(16px,2.9cqw,24px) clamp(18px,3cqw,24px) } · container: la shell</div>
+<section id="vc" class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage vc" data-theme="light">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">A 768px rende ~come la A (gap ~24.5px) — ma la stessa formula copre OGNI larghezza.</div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage vc" data-theme="dark">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ D — CASSETTE DA TELEFONO ════════ -->
+<div class="blocco-titolo">D · «Cassette da telefono» — 5 colonne, i tray tengono la forma del mobile</div>
+<div class="blocco-sotto">La spaziatura si rivede cambiando la proporzione: con 5 colonne i tray tornano ~117px
+(vicini ai 95px del telefono — stessa forma, stessa mappa mentale della cassetta) e il gap sale a 20px.
+⚠️ Emenda la spec DS v3 §5.4: colonne fisse 3/4/6 → 3/<b>5</b>/6 (l'ordine lineare resta invariante).</div>
+<div class="blocco-css">@media ≥768: .ds-parete-grid { grid-template-columns: repeat(5, 1fr); gap: 20px } · .ds-parete { padding: 24px 18px 20px }</div>
+<section id="vd" class="griglia-mock">
+  <div>
+    <div class="tema-cap">Light</div>
+    <div class="stage vd" data-theme="light">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="nota-stage">Tray 117×104 · gap 20px (~17%) · 5 per fila: la parete tiene più cassette a colpo d'occhio.</div>
+  </div>
+  <div>
+    <div class="tema-cap">Dark</div>
+    <div class="stage vd" data-theme="dark">
+      <div class="shell">
+        <div class="page-head"><button class="tasto-tondo" aria-label="Indietro">‹</button><span class="page-title">Le cassette</span></div>
+        <div class="riga-cerca"><svg class="lente" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg><span class="ph">Cerca una cassetta o un lavoro…</span></div>
+        <div class="parete">
+          <div class="parete-grid">
+            <div class="tray rossa"><span class="cavita"><svg><use href="#mk-corona"/></svg></span><span class="targa">C12</span><span class="cont">n.144 · Bianchi</span></div>
+            <div class="tray blu"><span class="cavita"><svg><use href="#mk-ponte"/></svg></span><span class="targa">C15</span><span class="cont">n.146 · Bianchi</span></div>
+            <div class="tray azzurra"><span class="cavita"><svg><use href="#mk-provvisorio"/></svg></span><span class="targa">C21</span><span class="cont">n.148 · Verdi</span></div>
+            <div class="tray verde"><span class="cavita"><svg><use href="#mk-totale"/></svg></span><span class="targa">C3</span><span class="cont">n.151 · Esposito</span></div>
+            <div class="tray corallo"><span class="cavita"><svg><use href="#mk-impianto"/></svg></span><span class="targa">C9</span><span class="cont">n.149 · Russo</span></div>
+            <div class="tray bianca"><span class="cavita"><svg><use href="#mk-scheletrato"/></svg></span><span class="targa">C7</span><span class="cont">n.150 · Verdi</span></div>
+            <div class="tray grigia libera"><span class="cavita"></span><span class="targa">C4</span><span class="cont">libera</span></div>
+            <button class="tray-nuova"><span class="plus">+</span><span class="t">Nuova cassetta</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
