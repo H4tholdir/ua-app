@@ -76,6 +76,16 @@ export function targaScura(colore: string): boolean {
   return false
 }
 
+/** Collaudo R1 (P11c) — la faccia custom deriva luce/ombra dall'hex con un CLAMP di luminanza:
+ *  sotto 0.08 (nero, blu notte, ecc.) il derivato SCHIARISCE — `color-mix(…, black)` su una base
+ *  già nera è nero-su-nero e la cassetta diventa piatta (collaudo device 22/07). */
+export function derivaFacciaCustom(hex: string): string {
+  if (luminanzaRelativa(hex) < 0.08) {
+    return `linear-gradient(180deg, color-mix(in srgb, ${hex} 78%, white), ${hex})`
+  }
+  return `linear-gradient(180deg, ${hex}, color-mix(in srgb, ${hex} 72%, black))`
+}
+
 export type StatoCassetta = 'normale' | 'accesa' | 'spenta'
 
 // Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
@@ -259,9 +269,7 @@ export function Cassetta(props: {
   const occupata = !!lavoro
   const scura = targaScura(colore)
   const classeColoreStandard = SLUG_STANDARD.has(colore) ? colore : undefined
-  const backgroundCustom = classeColoreStandard
-    ? undefined
-    : `linear-gradient(180deg, ${colore}, color-mix(in srgb, ${colore} 72%, black))`
+  const backgroundCustom = classeColoreStandard ? undefined : derivaFacciaCustom(colore)
 
   const classi = [
     'ds-cassetta',

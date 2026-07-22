@@ -3,7 +3,7 @@
 // src/components/ds/__tests__/ sarebbe un RED finto.
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { Cassetta, targaScura } from '@/components/ds/Cassetta'
+import { Cassetta, targaScura, derivaFacciaCustom } from '@/components/ds/Cassetta'
 
 const lavoroOccupato = { numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }
 
@@ -339,6 +339,22 @@ describe('Cassetta — colore custom (hex) e i 6 slug standard', () => {
     expect(bottone.style.background).toBe(
       'linear-gradient(180deg, rgb(242, 131, 107), color-mix(in srgb, rgb(242, 131, 107) 72%, black))'
     )
+  })
+})
+
+describe('P11c — derivaFacciaCustom: tridimensionalità su qualsiasi hex', () => {
+  it('hex normale: il secondo stop scurisce (comportamento storico)', () => {
+    const g = derivaFacciaCustom('#E8323B')
+    expect(g).toContain('#E8323B')
+    expect(g).toContain('black')
+  })
+  it('hex scurissimo (#000000): il derivato SCHIARISCE — mai nero-su-nero piatto', () => {
+    const g = derivaFacciaCustom('#000000')
+    expect(g).toContain('white')
+    expect(g).not.toContain('black)')
+  })
+  it('è sempre un linear-gradient a 180deg', () => {
+    expect(derivaFacciaCustom('#123456')).toMatch(/^linear-gradient\(180deg,/)
   })
 })
 

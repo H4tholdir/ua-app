@@ -28,7 +28,7 @@
 // si sceglie con `targaScura` — la stessa funzione con cui la Cassetta decide targa/testi scuri
 // su faccia chiara (§5.35): su bianca/azzurra e sugli hex chiari un ✓ bianco sparirebbe.
 
-import { targaScura } from '@/components/ds/Cassetta'
+import { targaScura, derivaFacciaCustom } from '@/components/ds/Cassetta'
 import { facciaHex } from '@/design-system/v3/tokens'
 
 /** Le 6 facce standard, nell'ordine del mockup (righe 380-387). Lo `slug` è la classe già in
@@ -108,8 +108,9 @@ export function SwatchesColore(props: {
           .filter(Boolean)
           .join(' ')}
         // `valore` è una stringa hex a runtime, non un letterale nel sorgente: la faccia custom
-        // mostra il colore scelto quando è attivo, il conic-gradient di default altrimenti (CSS).
-        style={eHex ? { background: valore } : undefined}
+        // mostra il gradiente derivato (P11c, clamp di luminanza — mai piatto sui neri) quando è
+        // attivo, il conic-gradient di default altrimenti (CSS).
+        style={eHex ? { background: derivaFacciaCustom(valore) } : undefined}
       >
         {eHex ? (
           <span className="ds-swatch-check" aria-hidden="true">
