@@ -618,10 +618,14 @@
   min-width: 0;
   scroll-snap-align: start;
   display: flex; flex-direction: column;
-  /* Collaudo R2 (D-2, 22/07 sera): 22px di respiro in fondo — il viewport è overflow-y:hidden
-     e l'ultima pila finiva a ~3px dal bordo: l'ombra (ink overflow, ~18px in giù) veniva
-     RASATA con un taglio netto sopra il piede. Il respiro sta DENTRO il clip: l'ombra respira. */
-  padding: 0 24px 22px;
+  /* Collaudo R2 (D-2): respiro in fondo — il viewport è overflow-y:hidden e l'ultima pila
+     finiva a ~3px dal bordo: l'ombra veniva RASATA con un taglio netto sopra il piede.
+     Collaudo R3 (22/07 notte): 22px clippavano ANCORA un filo sul device. Misura, non a occhio:
+     l'estensione massima dell'ombra `--sh-card` sotto il bordo della card è
+     offset-y 16 + spread −18 + blur 30 = 28px → 36px = 28px d'ombra + 8px di margine.
+     Il respiro sta DENTRO il clip: l'ombra respira anche nel ramo @media max-height:700px,
+     che NON riduce questo padding (lo spazio lo recuperano gap/padding delle pile). */
+  padding: 0 24px 36px;
 }
 [data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
 [data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
