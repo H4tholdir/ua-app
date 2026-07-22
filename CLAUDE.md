@@ -259,6 +259,12 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 - **Redirect onboarding:** NON mettere `redirect('/onboarding')` nel layout `(app)/layout.tsx` — causa loop infinito (il layout non legge il pathname). Usare SOLO banner dashboard.
 - **complete():** il wizard onboarding deve verificare `res.ok` prima di `router.push('/dashboard')`
 
+### Gotchas UI + navigazione
+- **Back = pagina precedente, OVUNQUE (direttiva permanente di Francesco, 22/07/2026):** ogni
+  tasto/gesto «indietro» della PWA fa `router.back()` con fallback a `/dashboard` solo se non c'è
+  storia di navigazione. MAI `router.push('/dashboard')` (o altra rotta fissa) come back — è il
+  difetto trovato al collaudo device in `SchedaLavoroV3.tsx`. Vale per ogni superficie futura.
+
 ### Gotchas API + sicurezza
 - **PATCH allowlist:** API PATCH di risorse lab usa sempre allowlist esplicita di campi — MAI blocklist
 - **SECURITY DEFINER:** funzioni PL/pgSQL SECURITY DEFINER richiedono `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`

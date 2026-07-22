@@ -1,13 +1,14 @@
-# Sessione attiva — 22/07/2026 sera · PARETE MERGIATA E DEPLOYATA — ondata CHIUSA
+# Sessione attiva — 22/07/2026 sera · COLLAUDO DEVICE: triage 13 punti + 4 ratifiche
 
-**FASE 10 eseguita** (handoff merge): pulizia 6 doc duplicati main tree → `.gstack/` in .gitignore
-(`fac6707`) → stato 21-22/07 committato su main (`e90355d`) → merge `a6d9f50` (60 commit) → push →
-CI 6m15s + CD 2m47s **verdi** → prod verificata (shortcut «Le cassette → /cassette» nel manifest
-live, smoke 307/200) → worktree e branch rimossi. **FASE 11 BP-1 fatta:** MEMORY voce (26), ROADMAP
-(ondata completata + coda post-merge), checklist L2 §4 → Plus Jakarta Sans. Ledger e diagnosi flake
-conservati in `.superpowers/sdd/` locale (`progress-parete-cassette.md`, `diagnosi-flake-vitest.md`).
+**Prima parte sessione:** Parete mergiata e deployata (merge `a6d9f50`, CI+CD verdi, prod
+verificata, worktree rimosso, BP-1 `d4d8ecf`).
 
-**PROSSIMO:** Francesco prova su device IN PRODUZIONE (drag auto-scroll ai bordi, PWA iOS
-edge-swipe, consegna→liberazione+racconto, annullo). Prima sessione di lavoro: **intervento di
-classe sul flake vitest** (commit test-only, `MotionGlobalConfig.skipAnimations`, protocollo A/B),
-poi ondata «Miniature 38 + legenda in-app» (impianto in ROADMAP, panel UX all'apertura).
+**Seconda parte:** Francesco ha collaudato su Android+iPhone → 13 punti. Triage completo con
+verifiche nel codice: `docs/roadmap/2026-07-22-collaudo-device-parete-triage.md` (5 bug · 3
+piattaforma iOS · 3 redesign · 2 decisioni). **Ratificato:** swipe home → `/cassette` diretto
+(anteprima sparisce) · ricerca «filtra e risali» · «Metti un lavoro» su cassetta libera ·
+**direttiva permanente back = pagina precedente** (CLAUDE.md §9). Ordine: flake vitest → ondata
+«Collaudo R1 — bug fix» (3,7,9,10,11) → «iOS fluidità» (1,2,8) → «Redesign parete/home»
+(4,6,12+5+13). Miniature 38 e D-11 scalano dopo.
+
+**PROSSIMO:** brainstorm + piano ondata «Collaudo R1» (FASE 2-4 BP-2), poi esecuzione in worktree.
