@@ -38,6 +38,21 @@ priorità/decisioni di Francesco. Nessun fix ancora applicato.
 | 5 | Lo swipe porta a un'«anteprima widget» della parete, non alla parete | By design (spec home «due stanze»): la seconda stanza È il muro vero ma **read-only** — la home non è un editor; tap su libera → `/cassette`, tap su occupata → lavoro (`StanzaParete.tsx:13-15`) | Tenere l'anteprima (più chiara come porta), renderla operativa, o far sì che lo swipe apra direttamente `/cassette` |
 | 13 | Da una cassetta libera non si può assegnare un lavoro | Confermato: lo sheet della libera offre rinomina/colore/sposta/butta via, **niente «Metti un lavoro»**. Oggi l'assegnazione parte sempre dal lavoro (pila → conferma) o dallo sheet dell'occupata («Sposta il lavoro in…») | Aggiungere «Metti un lavoro» (chip dal parco) allo sheet della libera |
 
+### 📎 Punto 14 (bonus) — shortcut «Le cassette» dal long-press sull'icona: assente su entrambi gli OS
+
+Il manifest live è CORRETTO (verificato: shortcut presente, `url: /cassette` in scope, icona
+192×192 ≥ minimo 96 di Chrome). Spiegazione diversa per OS:
+- **iOS: limite di piattaforma, NON un nostro bug.** Safari/iOS **non supporta** le `shortcuts`
+  del Web App Manifest: il long-press sull'icona di una PWA mostra solo le azioni di sistema.
+  Su iPhone questa shortcut non apparirà mai finché Apple non la implementa. (L'aspettativa era
+  sbagliata nella guida al test — errore nostro di istruzione, non del prodotto.) Accesso rapido
+  alla parete su iOS = swipe home → `/cassette` (ratifica punto 5) e voce in Tutto il resto.
+- **Android: dovrebbe funzionare, ma la WebAPK si aggiorna con ritardo.** Le shortcut si
+  incorporano nell'app installata; Chrome ri-genera la WebAPK ore/giorni dopo un cambio di
+  manifest. Test corretto: **disinstallare la PWA → aprire uachelab.com in Chrome → reinstallare
+  («Aggiungi a schermata Home») → long-press sull'icona.** Se dopo la reinstallazione la shortcut
+  ancora manca → diventa bug dell'ondata R1.
+
 ## Direttiva nuova segnalata da Francesco (da ratificare come permanente)
 > «il tasto back, in ogni parte della PWA, deve prevedere il ritorno alla pagina precedente»
 
