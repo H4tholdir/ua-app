@@ -235,32 +235,60 @@ export function TabAccettazione({
   return (
     <div>
       {/* ═══ 1. POSIZIONE FISICA ═══════════════════════════════════ */}
-      <div style={fieldStyle}>
-        <label htmlFor="numero_cassetta" style={labelStyle}>
-          N° cassetta
-        </label>
-        <input
-          id="numero_cassetta"
-          type="text"
-          inputMode="numeric"
-          placeholder="Es. 42"
-          value={data.numero_cassetta ?? ''}
-          onBlur={(e) => onChange({ numero_cassetta: e.target.value || null })}
-          onChange={(e) => onChange({ numero_cassetta: e.target.value || null })}
-          aria-label="Numero cassetta"
-          style={{
-            ...inputBase,
-            fontSize: '28px',
-            fontWeight: 700,
-            textAlign: 'center',
-            letterSpacing: '0.04em',
-            fontVariantNumeric: 'tabular-nums',
-            padding: '16px 14px',
-          }}
-        />
-      </div>
+      {/* Task 16 / spec §10 (riserva R1): il campo «N° cassetta» editabile è
+          MORTO — la posizione fisica si assegna SOLO dalla Parete (POST
+          /api/lavori/[id]/cassetta via lo sheet «dal parco»), MAI dal PATCH del
+          form (numero_cassetta è fuori da PATCHABLE_FIELDS: era un no-op
+          silenzioso). Qui resta al più una riga di SOLA LETTURA + il rimando
+          alla parete. Superficie v2.3 (questo file importa da @/design-system/
+          motion e @/lib/feedback/*): niente componenti ds v3 (es. LinkQuieto) —
+          il link è un <a> stilato coi token/pattern già in uso nel file. */}
+      {data.numero_cassetta && (
+        <>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Posizione fisica</label>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-v3, sans-serif)',
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color: 'var(--t1, #1C1916)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Cassetta {data.numero_cassetta}
+              </span>
+              <a
+                href="/cassette"
+                style={{
+                  fontFamily: 'var(--font-v3, sans-serif)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--t2, #4A3D33)',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: '44px',
+                }}
+              >
+                Cambia dalla parete
+              </a>
+            </div>
+          </div>
 
-      <div style={sectionSeparator} />
+          <div style={sectionSeparator} />
+        </>
+      )}
 
       {/* ═══ 2. MATERIALI RICEVUTI ══════════════════════════════════ */}
       <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>

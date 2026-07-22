@@ -38,9 +38,9 @@ export default async function LavoriPage({ searchParams }: { searchParams: Promi
   const lavoroSelezionato = (lavoroParam ? lista.find((l) => l.id === lavoroParam) : undefined) ?? lista[0] ?? null
   // A14 (Task 5) — le chip dello sheet conferma-cassetta servono SOLO alla
   // pila blu (dove il Conferma le apre): fetch condizionale, mai sprecata
-  // sulle altre pile.
-  // ponte transitorio: le chip restano nome-only finché il Task 16 Step 2 non porta {id,nome} fino a ConfermaCassettaSheet
-  const cassetteSuggerite = pila === 'blu' ? (await getCassetteSuggerite(svc, labId)).map((c) => c.nome) : []
+  // sulle altre pile. Task 16 — `{id, nome}` fino allo sheet: la chip scelta
+  // POSTa `{cassetta_id}` (aggancio a cassetta esistente), l'id non si butta più.
+  const cassetteSuggerite = pila === 'blu' ? await getCassetteSuggerite(svc, labId) : []
 
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>

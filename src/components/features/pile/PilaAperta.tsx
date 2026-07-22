@@ -46,7 +46,7 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string; cassetteSuggerite?: string[] }) {
+export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string; cassetteSuggerite?: Array<{ id: string; nome: string }> }) {
   const { pila, lista, sub, cassetteSuggerite } = props
   const router = useRouter()
   const [cerca, setCerca] = useState<string | null>(null) // null = riga chiusa

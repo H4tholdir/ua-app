@@ -48,6 +48,13 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
           delete patchBody[field]
         }
       }
+      // numero_cassetta è MORTO come campo del form (Task 16, spec §10/R1): la
+      // posizione fisica si assegna SOLO dalla Parete (POST /api/lavori/[id]/
+      // cassetta). `data` la contiene ancora perché è una colonna del lavoro
+      // caricato, quindi `{ ...data }` la porterebbe nel payload — il server
+      // l'ha tolta da PATCHABLE_FIELDS (no-op silenzioso), ma va tolta ALLA
+      // SORGENTE così il PATCH del form non la invia MAI.
+      delete patchBody.numero_cassetta
 
       const res = await fetch(`/api/lavori/${id}`, {
         method: 'PATCH',
