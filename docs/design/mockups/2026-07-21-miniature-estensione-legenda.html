@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le miniature nuove della Parete — scegli le varianti (21/07/2026)</title>
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     LEGENDA ESTESA — Parete delle Cassette. Solo la legenda: le 6 miniature
+     già ratificate (metro di paragone) + le 4 nuove con le loro varianti.
+     · I 6 simboli ratificati sono copiati VERBATIM dal mockup ratificato
+       docs/design/mockups/2026-07-20-parete-cassette-v2.html (righe 168-201).
+     · Le 4 nuove sono disegnate a mano nella stessa palette FISSA e negli
+       stessi viewBox (24×24 per il dente singolo, 40×26 per l'arcata).
+     · Palette materica — UNA SOLA, dice il materiale, non se ne inventano:
+         ceramica avorio  #F8F2E6   (ombra  #D9CDB6, chiara  #EFE6D2)
+         gengiva rosa     #E89AA4   (ombra  #C97783)
+         metallo grigio   #B9BEC6   (ombra  #8E959E)
+         resina traslucida rgba(248,242,230,.4)   (bordo pieno #F8F2E6)
+         luce             #FFFFFF
+       La resina traslucida ha UN SOLO valore di trasparenza (come il
+       provvisorio ratificato): allineatore e mascherina sono lo stesso
+       materiale — a distinguerli è la FORMA, non l'opacità.
+     · Il box-cavità è scuro (#4a4238) in entrambi i temi, come nella parete
+       vera; la pagina invece si guarda su fondo chiaro E su fondo scuro.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* Token superfici/inchiostri — copiati verbatim da docs/design/mockups/
+     2026-07-09-il-cuore/_base.css (DS v3 «Una cosa alla volta»). Inline: la
+     pagina è autonoma, nessuna dipendenza esterna. */
+  :root, [data-theme="light"] {
+    --bg: #F4F0E7; --bg-deep: #ECE6D9; --card: #FFFEFA;
+    --ink: #1D1913; --muted: #6E6457; --faint: #7B6A59; --line: #EBE4D6;
+  }
+  [data-theme="dark"] {
+    --bg: #171411; --bg-deep: #100E0B; --card: #211D18;
+    --ink: #F2EEE7; --muted: #A69B8C; --faint: #928778; --line: #342E26;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    padding: 40px 32px 56px;
+    min-height: 100vh;
+  }
+
+  .intro { max-width: 1120px; margin: 0 auto 8px; }
+  .intro h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); margin: 0 0 8px; }
+  .intro p { font-size: 15.5px; font-weight: 600; color: var(--muted); margin: 0; line-height: 1.55; max-width: 960px; }
+  .intro .palette { font-size: 13px; font-weight: 600; color: var(--faint); margin-top: 10px; line-height: 1.5; }
+
+  .blocco { max-width: 1120px; margin: 40px auto 0; }
+  .blocco-titolo { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--ink); margin: 0 0 4px; }
+  .blocco-sotto { font-size: 13.5px; font-weight: 600; color: var(--muted); margin: 0 0 18px; line-height: 1.5; max-width: 900px; }
+
+  /* Legenda — stile .legenda-min / .leg-card del mockup v2 (righe 111-117),
+     reso theme-aware: la card segue il tema, il box-cavità resta scuro. */
+  .legenda-min { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 12px; }
+  .leg-card { border-radius: 16px; background: var(--card); box-shadow: 0 6px 20px -14px rgba(50,40,25,.35);
+    padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  [data-theme="dark"] .leg-card { box-shadow: none; border-top: 1px solid rgba(255,255,255,.05); }
+  .leg-card .box { width: 84px; height: 52px; border-radius: 8px; background: #4a4238;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+  .leg-card .box svg { height: 36px; width: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .leg-card .n { font-size: 12.5px; font-weight: 800; color: var(--ink); text-align: center; line-height: 1.3; }
+  .leg-card .tag { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; }
+  .leg-card .tag.rat { color: var(--muted); background: var(--bg-deep); }
+  .leg-card .tag.var { color: #1D5FBF; background: #EBF1FA; }
+  [data-theme="dark"] .leg-card .tag.var { color: #5B9BFF; background: rgba(91,155,255,.14); }
+  .leg-card .desc { font-size: 11.5px; font-weight: 600; color: var(--faint); text-align: center; line-height: 1.4; }
+
+  /* Gruppo di varianti per un simbolo nuovo */
+  .gruppo { margin-top: 22px; }
+  .gruppo-h { font-size: 15px; font-weight: 800; color: var(--ink); margin: 0 0 3px; }
+  .gruppo-h em { font-style: normal; color: var(--muted); font-weight: 700; }
+  .gruppo-sotto { font-size: 12.5px; font-weight: 600; color: var(--faint); margin: 0 0 12px; line-height: 1.45; max-width: 780px; }
+
+  /* Prova del vero: a ~22px, la misura della cavità nella stanza «Parete» della home.
+     Se due simboli si confondono qui, la geometria va spinta più distante. */
+  .prova22 { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .p22 { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .p22 .box { width: 46px; height: 34px; border-radius: 6px; background: #4a4238;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+  .p22 .box svg { height: 22px; width: auto; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+  .p22 .lbl { font-size: 10px; font-weight: 700; color: var(--faint); text-align: center; }
+
+  .nota { max-width: 1120px; margin: 40px auto 0; font-size: 12.5px; font-weight: 600;
+    color: var(--faint); line-height: 1.55; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  @media (max-width: 560px) { body { padding: 20px 14px 40px; } }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIMBOLI SVG — definizioni ═══
+     6 ratificati: copie 1:1 dal mockup ratificato v2 (righe 168-201).
+     8 nuovi: 4 simboli × ≥2 varianti, disegnati a mano nella palette FISSA. -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <!-- ── 6 RATIFICATI (verbatim da 2026-07-20-parete-cassette-v2.html:168-201) ── -->
+  <symbol id="mk-corona" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="#F8F2E6"/>
+    <path d="M6.5 6.5 C7.5 5.4 9.5 4.8 12 4.8" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M4 9.5 C4 13 5 16.5 6.2 19.2 C6.8 20.6 8.6 20.5 9.1 19 L10.1 16" stroke="#D9CDB6" stroke-width="1.2" fill="none"/>
+  </symbol>
+  <symbol id="mk-provvisorio" viewBox="0 0 24 24">
+    <path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.6" stroke-dasharray="3.2 2.4"/>
+  </symbol>
+  <symbol id="mk-impianto" viewBox="0 0 24 32">
+    <path d="M6 7 C6 3.8 8.2 3 12 3 C15.8 3 18 3.8 18 7 C18 9.4 17.3 11.4 16.6 12.8 C16.2 13.7 7.8 13.7 7.4 12.8 C6.7 11.4 6 9.4 6 7 Z" fill="#F8F2E6"/>
+    <rect x="9.4" y="14.5" width="5.2" height="12" rx="2.2" fill="#B9BEC6"/>
+    <path d="M9.4 17.5 H14.6 M9.4 20.5 H14.6 M9.4 23.5 H14.6" stroke="#8E959E" stroke-width="1.4"/>
+  </symbol>
+  <symbol id="mk-ponte" viewBox="0 0 44 24">
+    <path d="M3 10 C3 5.5 5.5 4 9.5 4 C13 4 15 5.5 15 10 C15 13 14.2 16 13.3 18.4 C12.8 19.7 11.2 19.6 10.8 18.3 L10.2 16.2 C9.8 14.9 8.2 14.9 7.8 16.2 L7.2 18.3 C6.8 19.6 5.2 19.7 4.7 18.4 C3.8 16 3 13 3 10 Z" fill="#F8F2E6"/>
+    <path d="M17 10 C17 5.5 19.5 4 22 4 C24.5 4 27 5.5 27 10 C27 13.5 26.4 16.8 25.6 19 C25.2 20.2 23 20.2 22.6 19 L22 17.2 C21.7 16.2 22.3 16.2 22 17.2 L21.4 19 C21 20.2 18.8 20.2 18.4 19 C17.6 16.8 17 13.5 17 10 Z" fill="#EFE6D2"/>
+    <path d="M29 10 C29 5.5 31 4 34.5 4 C38.5 4 41 5.5 41 10 C41 13 40.2 16 39.3 18.4 C38.8 19.7 37.2 19.6 36.8 18.3 L36.2 16.2 C35.8 14.9 34.2 14.9 33.8 16.2 L33.2 18.3 C32.8 19.6 31.2 19.7 30.7 18.4 C29.8 16 29 13 29 10 Z" fill="#F8F2E6"/>
+    <path d="M14.6 8 H17.6 M26.6 8 H29.6" stroke="#D9CDB6" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="mk-totale" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/><circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/>
+    <circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+  </symbol>
+  <symbol id="mk-scheletrato" viewBox="0 0 40 26">
+    <path d="M6 23 C6 13 12 6 20 6 C28 6 34 13 34 23" stroke="#B9BEC6" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 23 C10 15.5 14.5 10.5 20 10.5 C25.5 10.5 30 15.5 30 23" stroke="#8E959E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <path d="M5 19 C3.8 17.5 3.8 15.5 5.2 14.2 M35 19 C36.2 17.5 36.2 15.5 34.8 14.2" stroke="#B9BEC6" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M3.5 23 C3.5 20 4.5 18.5 6.5 18 C8.5 17.7 9.5 19 9.5 21 L9.2 23 Z" fill="#F8F2E6"/>
+    <path d="M36.5 23 C36.5 20 35.5 18.5 33.5 18 C31.5 17.7 30.5 19 30.5 21 L30.8 23 Z" fill="#F8F2E6"/>
+  </symbol>
+
+  <!-- ── 4 NUOVE, con varianti ── -->
+
+  <!-- ALLINEATORE — mascherina trasparente sottile su arcata, resina traslucida
+       tratteggiata. La forma è l'arcata (viewBox 40×26, come totale/scheletrato).
+       Il tratteggio dice «trasparente/rimovibile»; l'ivory la distingue dal
+       metallo grigio dello scheletrato. -->
+  <!-- A: arco aperto, tratteggiato, sottile — la lettura più essenziale. -->
+  <symbol id="mk-allineatore-a" viewBox="0 0 40 26">
+    <path d="M6 23 C6 12.5 12 6 20 6 C28 6 34 12.5 34 23" fill="none" stroke="#F8F2E6" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="3.6 2.6"/>
+  </symbol>
+  <!-- B: fascia sottile con corpo (resina traslucida .4) + bordo tratteggiato —
+       si vede che la mascherina ha uno spessore/guscio. -->
+  <symbol id="mk-allineatore-b" viewBox="0 0 40 26">
+    <path d="M5.5 23.5 C5.5 12 12 6 20 6 C28 6 34.5 12 34.5 23.5 L31 23.5 C31 14 26.5 10 20 10 C13.5 10 9 14 9 23.5 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.3" stroke-dasharray="3 2.2" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- MASCHERINA / BITE — ferro di cavallo PIENO traslucido. Stessa resina
+       dell'allineatore, ma forma piena e bordo continuo (non tratteggiato):
+       è la placca solida, non la mascherina sottile rimovibile. -->
+  <!-- A: ferro di cavallo pieno, bordo continuo. -->
+  <symbol id="mk-mascherina-a" viewBox="0 0 40 26">
+    <path d="M5 24 C5 11.5 11.5 5 20 5 C28.5 5 35 11.5 35 24 L30.5 24 C30.5 14 26 9.5 20 9.5 C14 9.5 9.5 14 9.5 24 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.6" stroke-linejoin="round"/>
+  </symbol>
+  <!-- B: ferro di cavallo più pieno + cresta occlusale (piano di morso) in
+       ombra ceramica — dice «bite», la placca su cui si morde. -->
+  <symbol id="mk-mascherina-b" viewBox="0 0 40 26">
+    <path d="M4.5 24 C4.5 11 11 4.5 20 4.5 C29 4.5 35.5 11 35.5 24 L31.5 24 C31.5 14.5 27 10.5 20 10.5 C13 10.5 8.5 14.5 8.5 24 Z" fill="rgba(248,242,230,.4)" stroke="#F8F2E6" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M7.2 23 C7.7 15 12 10.2 20 10.2 C28 10.2 32.3 15 32.8 23" fill="none" stroke="#D9CDB6" stroke-width="1" stroke-linecap="round" opacity=".7"/>
+  </symbol>
+
+  <!-- RIPARAZIONE — protesi totale rosa (base = totale ratificata) con linea di
+       frattura a zig-zag avorio. L'ombra gengiva (#C97783) dietro la crepa le dà
+       profondità anche dove passa sopra i denti avorio. -->
+  <!-- A: totale completa + crepa verticale sottile al centro (riparazione discreta). -->
+  <symbol id="mk-riparazione-a" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/><circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/>
+    <circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+    <path d="M20 8.5 L18.4 11.5 L21 14.5 L18.6 17.5 L21 20.5 L19.4 24" fill="none" stroke="#C97783" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" opacity=".55"/>
+    <path d="M20 8.5 L18.4 11.5 L21 14.5 L18.6 17.5 L21 20.5 L19.4 24" fill="none" stroke="#F8F2E6" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </symbol>
+  <!-- B: crepa a zig-zag larga e netta (rottura evidente), denti ridotti per
+       lasciare respirare la frattura. -->
+  <symbol id="mk-riparazione-b" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="12.5" cy="12.5" r="2.1" fill="#F8F2E6"/>
+    <circle cx="27.5" cy="12.5" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+    <path d="M22 8 L16.8 12 L22 16 L16.8 20 L21 24" fill="none" stroke="#C97783" stroke-width="3" stroke-linejoin="round" opacity=".55"/>
+    <path d="M22 8 L16.8 12 L22 16 L16.8 20 L21 24" fill="none" stroke="#F8F2E6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- GENERICA — dente singolo avorio semplice. Il fallback: nessun materiale
+       speciale, solo la ceramica. Comprende la radice (≠ corona, che è la sola
+       capsula) così «un dente qualsiasi» si legge subito. -->
+  <!-- A: molare — corona bombata + due radici. -->
+  <symbol id="mk-generica-a" viewBox="0 0 24 24">
+    <path d="M6 8 C6 4 8.2 3 12 3 C15.8 3 18 4 18 8 C18 10.5 17.6 12 17 13.5 L15.6 20.5 C15.4 21.6 14.2 21.6 13.9 20.5 L13 15.2 C12.6 14 11.4 14 11 15.2 L10.1 20.5 C9.8 21.6 8.6 21.6 8.4 20.5 L7 13.5 C6.4 12 6 10.5 6 8 Z" fill="#F8F2E6"/>
+    <path d="M8 6 C9 5 10.5 4.6 12 4.6" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M6 8 C6 10.5 6.4 12 7 13.5 L8.4 20.5" stroke="#D9CDB6" stroke-width="1" fill="none" opacity=".7"/>
+  </symbol>
+  <!-- B: dente anteriore — corona + radice singola affusolata. -->
+  <symbol id="mk-generica-b" viewBox="0 0 24 24">
+    <path d="M7 6.5 C7 3.5 9 3 12 3 C15 3 17 3.5 17 6.5 C17 9.5 16 11.5 14.8 13.5 L12.8 20 C12.4 21.4 11.6 21.4 11.2 20 L9.2 13.5 C8 11.5 7 9.5 7 6.5 Z" fill="#F8F2E6"/>
+    <path d="M8.5 6 C9.5 5 10.8 4.7 12 4.7" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".8"/>
+    <path d="M7 6.5 C7 9.5 8 11.5 9.2 13.5 L11.2 20" stroke="#D9CDB6" stroke-width="1" fill="none" opacity=".6"/>
+  </symbol>
+</svg>
+
+<div class="intro">
+  <h1>Le miniature nuove della Parete — scegli le varianti</h1>
+  <p>Dentro ogni cassetta occupata c'è la miniatura materica del tipo di lavoro. Sei silhouette sono
+  già scelte: qui restano come metro di paragone. Mancano quattro tipi — allineatore, mascherina/bite,
+  riparazione, dente generico — e per ciascuno trovi più proposte fra cui decidere. Sotto ogni gruppo,
+  la stessa miniatura a ~22px: è la misura reale nella stanza «Parete» della home, la prova che regge
+  anche piccola.</p>
+  <p class="palette">Palette FISSA (dice il materiale, non il colore): ceramica avorio · gengiva rosa ·
+  metallo grigio · resina traslucida — un solo valore di trasparenza, condiviso da allineatore e
+  mascherina (stesso materiale, forma diversa).</p>
+</div>
+
+<div class="blocco">
+  <div class="blocco-titolo">Le sei già scelte — il metro di paragone</div>
+  <div class="blocco-sotto">Ratificate nel mockup della Parete del 20/07. Le nuove devono reggere lo
+  stesso confronto visivo: leggibili nel box, distinte fra loro a colpo d'occhio.</div>
+  <div class="legenda-min">
+    <div class="leg-card"><span class="box"><svg><use href="#mk-corona"/></svg></span><span class="n">Corona<br>(zirconia, ceramica)</span><span class="tag rat">Ratificata</span></div>
+    <div class="leg-card"><span class="box"><svg><use href="#mk-provvisorio"/></svg></span><span class="n">Provvisorio<br>in resina</span><span class="tag rat">Ratificata</span></div>
+    <div class="leg-card"><span class="box"><svg><use href="#mk-impianto"/></svg></span><span class="n">Corona<br>su impianto</span><span class="tag rat">Ratificata</span></div>
+    <div class="leg-card"><span class="box"><svg><use href="#mk-ponte"/></svg></span><span class="n">Ponte<br>(più elementi)</span><span class="tag rat">Ratificata</span></div>
+    <div class="leg-card"><span class="box"><svg><use href="#mk-totale"/></svg></span><span class="n">Protesi<br>totale</span><span class="tag rat">Ratificata</span></div>
+    <div class="leg-card"><span class="box"><svg><use href="#mk-scheletrato"/></svg></span><span class="n">Scheletrato</span><span class="tag rat">Ratificata</span></div>
+  </div>
+</div>
+
+<div class="blocco">
+  <div class="blocco-titolo">Le quattro nuove — scegli una variante per ciascuna</div>
+  <div class="blocco-sotto">Per ogni tipo, più di una proposta. Puoi dire, ad esempio: «allineatore B,
+  mascherina A, riparazione A, generica B».</div>
+
+  <!-- ALLINEATORE -->
+  <div class="gruppo">
+    <div class="gruppo-h">Allineatore <em>— mascherina trasparente sottile su arcata</em></div>
+    <div class="gruppo-sotto">Resina traslucida tratteggiata. Il tratteggio (rimovibile/trasparente) e
+    l'avorio la separano dallo scheletrato, che è un arco di metallo grigio pieno.</div>
+    <div class="legenda-min">
+      <div class="leg-card"><span class="box"><svg><use href="#mk-allineatore-a"/></svg></span><span class="n">Allineatore — A</span><span class="tag var">Variante</span><span class="desc">Arco aperto, tratteggiato, essenziale.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-allineatore-b"/></svg></span><span class="n">Allineatore — B</span><span class="tag var">Variante</span><span class="desc">Fascia con corpo: si vede il guscio traslucido.</span></div>
+    </div>
+  </div>
+
+  <!-- MASCHERINA / BITE -->
+  <div class="gruppo">
+    <div class="gruppo-h">Mascherina / bite <em>— ferro di cavallo pieno traslucido</em></div>
+    <div class="gruppo-sotto">Stessa resina dell'allineatore, ma forma piena e bordo continuo (non
+    tratteggiato): la placca solida su cui si morde, non la mascherina sottile.</div>
+    <div class="legenda-min">
+      <div class="leg-card"><span class="box"><svg><use href="#mk-mascherina-a"/></svg></span><span class="n">Mascherina — A</span><span class="tag var">Variante</span><span class="desc">Ferro di cavallo pieno, bordo continuo.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-mascherina-b"/></svg></span><span class="n">Mascherina — B</span><span class="tag var">Variante</span><span class="desc">Più pieno + cresta occlusale (piano di morso).</span></div>
+    </div>
+  </div>
+
+  <!-- RIPARAZIONE -->
+  <div class="gruppo">
+    <div class="gruppo-h">Riparazione <em>— protesi totale rosa con frattura a zig-zag avorio</em></div>
+    <div class="gruppo-sotto">La base è la protesi totale ratificata; la crepa dice «da riparare».
+    L'ombra gengiva dietro la crepa le dà profondità anche sopra i denti avorio.</div>
+    <div class="legenda-min">
+      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-a"/></svg></span><span class="n">Riparazione — A</span><span class="tag var">Variante</span><span class="desc">Totale completa + crepa verticale sottile.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-b"/></svg></span><span class="n">Riparazione — B</span><span class="tag var">Variante</span><span class="desc">Crepa larga e netta, rottura evidente.</span></div>
+    </div>
+  </div>
+
+  <!-- GENERICA -->
+  <div class="gruppo">
+    <div class="gruppo-h">Generica <em>— dente singolo avorio semplice</em></div>
+    <div class="gruppo-sotto">Il fallback per «un lavoro qualsiasi». Comprende la radice (≠ corona, che
+    è la sola capsula), così si legge subito come «un dente», non come una lavorazione precisa.</div>
+    <div class="legenda-min">
+      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-a"/></svg></span><span class="n">Generica — A</span><span class="tag var">Variante</span><span class="desc">Molare: corona bombata + due radici.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-b"/></svg></span><span class="n">Generica — B</span><span class="tag var">Variante</span><span class="desc">Dente anteriore: corona + radice singola.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="blocco">
+  <div class="blocco-titolo">La prova del vero — tutte a ~22px</div>
+  <div class="blocco-sotto">La misura della cavità nella stanza «Parete» della home. Se due si
+  confondono qui, la geometria va rivista prima di passare al codice.</div>
+  <div class="prova22">
+    <div class="p22"><span class="box"><svg><use href="#mk-corona"/></svg></span><span class="lbl">corona</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-provvisorio"/></svg></span><span class="lbl">provvis.</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-impianto"/></svg></span><span class="lbl">impianto</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-ponte"/></svg></span><span class="lbl">ponte</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-totale"/></svg></span><span class="lbl">totale</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-scheletrato"/></svg></span><span class="lbl">scheletr.</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-allineatore-a"/></svg></span><span class="lbl">allin. A</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-allineatore-b"/></svg></span><span class="lbl">allin. B</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-mascherina-a"/></svg></span><span class="lbl">masch. A</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-mascherina-b"/></svg></span><span class="lbl">masch. B</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-a"/></svg></span><span class="lbl">ripar. A</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-b"/></svg></span><span class="lbl">ripar. B</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-generica-a"/></svg></span><span class="lbl">gener. A</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-generica-b"/></svg></span><span class="lbl">gener. B</span></div>
+  </div>
+</div>
+
+<div class="nota">
+  Le sei ratificate sono copie 1:1 dei path del mockup Parete del 20/07 — geometria letterale, non
+  «migliorata». Le quattro nuove usano gli stessi viewBox (24×24 per il dente, 40×26 per l'arcata) e
+  la stessa palette materica FISSA. Nessun colore inventato: la resina traslucida ha un solo valore,
+  condiviso; allineatore e mascherina si distinguono per forma, non per opacità. Approvata la scelta,
+  i path scelti sostituiranno il segnaposto in <code>MiniaturaLavoro</code> (passo successivo, in React).
+</div>
+
+</body>
+</html>
