@@ -1,14 +1,13 @@
-# Sessione attiva — 22/07/2026 sera · COLLAUDO DEVICE: triage 13 punti + 4 ratifiche
+# Sessione attiva — 22/07/2026 sera · COLLAUDO R1: spec+piano PRONTI — esecuzione in sessione nuova
 
-**Prima parte sessione:** Parete mergiata e deployata (merge `a6d9f50`, CI+CD verdi, prod
-verificata, worktree rimosso, BP-1 `d4d8ecf`).
+**Sessione lunga, 3 blocchi:** (1) Parete mergiata e deployata (merge `a6d9f50`, CI+CD verdi,
+prod verificata, worktree rimosso, BP-1). (2) Collaudo device di Francesco → 13 punti → triage
+completo + 4 ratifiche + direttiva permanente back (CLAUDE.md §9). (3) Ondata «Collaudo R1»:
+brainstorming FATTO (domande chiuse, screenshot analizzati), spec con root cause ACCERTATE
+(`docs/superpowers/specs/2026-07-22-collaudo-r1-design.md`), piano 8 task TDD con codice completo
+(`docs/superpowers/plans/2026-07-22-collaudo-r1.md`). Tutto committato e pushato (main `b657fd7`).
 
-**Seconda parte:** Francesco ha collaudato su Android+iPhone → 13 punti. Triage completo con
-verifiche nel codice: `docs/roadmap/2026-07-22-collaudo-device-parete-triage.md` (5 bug · 3
-piattaforma iOS · 3 redesign · 2 decisioni). **Ratificato:** swipe home → `/cassette` diretto
-(anteprima sparisce) · ricerca «filtra e risali» · «Metti un lavoro» su cassetta libera ·
-**direttiva permanente back = pagina precedente** (CLAUDE.md §9). Ordine: flake vitest → ondata
-«Collaudo R1 — bug fix» (3,7,9,10,11) → «iOS fluidità» (1,2,8) → «Redesign parete/home»
-(4,6,12+5+13). Miniature 38 e D-11 scalano dopo.
-
-**PROSSIMO:** brainstorm + piano ondata «Collaudo R1» (FASE 2-4 BP-2), poi esecuzione in worktree.
+**PROSSIMA SESSIONE (contesto pulito — scelta esplicita di Francesco):** eseguire
+`docs/roadmap/2026-07-22-collaudo-r1-execution-handoff.md` — worktree `collaudo-r1` +
+subagent-driven-development sul piano, task 1→8, 🛑 STOP pre-merge per ratifica. NON riaprire
+decisioni di design: sono tutte prese e a verbale nel triage.
