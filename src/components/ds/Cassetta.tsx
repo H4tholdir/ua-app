@@ -37,13 +37,21 @@
 //    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
 //    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
 import { MiniaturaLavoro } from './MiniaturaLavoro'
 
 const SOGLIA_LONG_PRESS_MS = 300
+// Collaudo R2 (P9-bis, 22/07 sera): «busta del tap» per il recupero su pointercancel. Sul device
+// reale lo slop di Chrome Android è ~8px CSS, come la nostra soglia: un tap frettoloso con jitter
+// diventa un micro-PAN — il browser emette pointercancel e MAI click/pointerup, un percorso in cui
+// nessun handler poteva più servire il tap. Se al cancel il gesto è rimasto dentro la busta
+// (poco spazio, poco tempo) e al touchend la pagina NON è davvero scrollata, quello era un tap.
+const SOGLIA_RECUPERO_TAP_PX = 24
+const SOGLIA_RECUPERO_TAP_MS = 300
+const SOGLIA_RECUPERO_SCROLL_PX = 6
 const SOGLIA_MOVIMENTO_PX = 8
 
 // Le 6 facce standard vivono come classi in ds-v3.css (v. nota di testa) — questo Set serve
@@ -146,7 +154,16 @@ export function Cassetta(props: {
   // Dopo un VERO scroll il browser non emette click sull'elemento: su touch, un click che arriva
   // è per definizione un tap — va lasciato passare, non ingoiato come su mouse/pen dopo un drag.
   const ultimoPointer = useRef<string | null>(null)
+  // P9-bis: traccia della busta del tap (ultima posizione nota, istante e scroll di partenza) e
+  // smontaggio del recupero armato al pointercancel (listener one-shot su window).
+  const ultimaPosizione = useRef<{ x: number; y: number } | null>(null)
+  const tsInizio = useRef(0)
+  const scrollBase = useRef(0)
+  const smontaRecupero = useRef<(() => void) | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // P9-bis: allo smontaggio nessun recupero resta armato su window.
+  useEffect(() => () => smontaRecupero.current?.(), [])
 
   function pulisciTimer() {
     if (timer.current) {
@@ -156,8 +173,12 @@ export function Cassetta(props: {
   }
 
   function handlePointerDown(evento: ReactPointerEvent<HTMLButtonElement>) {
+    smontaRecupero.current?.()
     ultimoPointer.current = evento.pointerType
     inizio.current = { x: evento.clientX, y: evento.clientY }
+    ultimaPosizione.current = { x: evento.clientX, y: evento.clientY }
+    tsInizio.current = performance.now()
+    scrollBase.current = typeof window !== 'undefined' ? window.scrollY : 0
     spostato.current = false
     pressioneLunga.current = false
     sollevata.current = false
@@ -181,6 +202,9 @@ export function Cassetta(props: {
   }
 
   function handlePointerMove(evento: ReactPointerEvent<HTMLButtonElement>) {
+    // P9-bis: la posizione si aggiorna SEMPRE, anche dopo `spostato` — al pointercancel serve la
+    // distanza totale reale, non quella congelata alla soglia degli 8px.
+    ultimaPosizione.current = { x: evento.clientX, y: evento.clientY }
     // INVARIANTE (panel §3): dopo il sollevamento Cassetta non insegue più nulla — è l'hook, sui
     // suoi listener di `window`, a leggere ogni movimento. Questo `return` è ciò che il test che
     // VIETA presidia: senza, il ramo mouse rifarebbe `onSollevata` a ogni frame.
@@ -265,10 +289,42 @@ export function Cassetta(props: {
   function handlePointerCancel() {
     // Anche un drag nativo (draggable=true) che prende il sopravvento cancella qui: nessuna
     // azione fantasma al termine di un gesto interrotto.
+    const eraSollevata = sollevata.current
+    const partenza = inizio.current
+    const ultima = ultimaPosizione.current
     pulisciTimer()
     inizio.current = null
     spostato.current = false
     sollevata.current = false
+    // P9-bis: recupero del tap ingoiato dal micro-pan. Solo touch, solo gesti NON passati al
+    // drag, solo dentro la busta spaziale. La conferma arriva dal touchend: se al rilascio il
+    // gesto è durato poco E la pagina non è scrollata davvero, il pan era jitter — è un tap.
+    if (ultimoPointer.current !== 'touch' || eraSollevata || !partenza || !ultima) return
+    if (Math.hypot(ultima.x - partenza.x, ultima.y - partenza.y) > SOGLIA_RECUPERO_TAP_PX) return
+    const t0 = tsInizio.current
+    const scroll0 = scrollBase.current
+    const smonta = () => {
+      window.removeEventListener('touchend', suRilascio)
+      window.removeEventListener('touchmove', suMovimento)
+      if (scadenza) clearTimeout(scadenza)
+      smontaRecupero.current = null
+    }
+    const suMovimento = (te: TouchEvent) => {
+      const dito = te.touches[0]
+      if (!dito) return
+      if (Math.hypot(dito.clientX - partenza.x, dito.clientY - partenza.y) > SOGLIA_RECUPERO_TAP_PX) smonta()
+    }
+    const suRilascio = (te: TouchEvent) => {
+      smonta()
+      if (te.touches.length > 0) return
+      const durata = performance.now() - t0
+      const scrollato = Math.abs(window.scrollY - scroll0)
+      if (durata <= SOGLIA_RECUPERO_TAP_MS && scrollato <= SOGLIA_RECUPERO_SCROLL_PX) onTap()
+    }
+    window.addEventListener('touchend', suRilascio, { passive: true })
+    window.addEventListener('touchmove', suMovimento, { passive: true })
+    const scadenza = setTimeout(smonta, SOGLIA_RECUPERO_TAP_MS + 200)
+    smontaRecupero.current = smonta
   }
 
   function handleKeyDown(evento: ReactKeyboardEvent<HTMLButtonElement>) {

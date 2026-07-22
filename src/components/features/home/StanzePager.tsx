@@ -114,7 +114,10 @@ export function StanzePager(props: {
     if (!focusDaPortare.current) return
     focusDaPortare.current = false
     const entrante = stanze.current[attiva]
-    entrante?.querySelector<HTMLElement>(FOCUSABILI)?.focus()
+    // Collaudo R2 (D-1, 22/07 sera): SEMPRE preventScroll — il focus nudo fa lo scroll-into-view
+    // istantaneo che CANCELLA lo scrollTo smooth di `vaiA`, e lo snap mandatory ri-aggancia alla
+    // stanza di partenza: il tap sul dot sembrava morto. Lo scroll è SOLO di `vaiA`.
+    entrante?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
   }, [attiva])
 
   const vaiA = useCallback(
@@ -130,7 +133,8 @@ export function StanzePager(props: {
       const giaAttiva = destinazione === attiva
       setAttiva(destinazione)
       if (origine === 'tap') {
-        if (giaAttiva) stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus()
+        if (giaAttiva)
+          stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
         else focusDaPortare.current = true
       }
       const contenitore = viewport.current
