@@ -3,6 +3,8 @@ import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
 import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
+import { getParete } from '@/lib/cassette/parco'
+import { homePrefDa, pareteIntroVista, serveParete, vistaHome } from '@/lib/preferenze/home'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
@@ -16,8 +18,8 @@ const PILE_VALIDE = ['rossa', 'ambra', 'viola', 'blu'] as const
 // dashboard per ruolo escono dalla home QUI (la loro cancellazione fisica dei
 // file è al Task 11). Il perimetro dati cambia server-side (getPerimetroHome),
 // la UI è sempre la stessa HomeV3. `preferenza_dashboard` non si legge più.
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string }> }) {
-  const { pila: pilaParam, lavoro: lavoroParam } = await searchParams
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ pila?: string; lavoro?: string; stanza?: string }> }) {
+  const { pila: pilaParam, lavoro: lavoroParam, stanza: stanzaParam } = await searchParams
   const context = await getLabContext()
   if (!context?.laboratorioId) redirect('/login')
   const { ruolo, laboratorioId: labId } = context
@@ -29,11 +31,31 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
   // striscia.ts) — front_desk/tecnico non pagano il round-trip.
   const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
-  const [pile, ingressi, tecniciSenzaAnagrafica] = await Promise.all([
+  const [pile, ingressi, tecniciSenzaAnagrafica, preferenze, pareteLetta] = await Promise.all([
     getPileHome(svc, labId, perimetro),
     fetchIngressiStriscia(svc, labId, ruolo),
     usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
+    // «La tua home» (§7, Task 14): SEMPRE self (`context.userId`), mai cross-utente.
+    svc.from('utenti').select('nav_preferences').eq('id', context.userId).single(),
+    // La parete sta DENTRO il Promise.all (spec §6). Non può essere condizionata alla
+    // preferenza senza uscirne: la preferenza è essa stessa una di queste letture, quindi
+    // gatarla significherebbe un round-trip in fila DOPO — e a pagarlo sarebbe la maggioranza,
+    // perché `due_stanze` è il default e la parete gli serve sempre. Chi ha scelto «solo le
+    // pile» paga 3 query che non guarda, ma in PARALLELO: zero latenza aggiunta. È il baratto
+    // giusto sulla pagina più caricata dell'app.
+    getParete(svc, labId),
   ])
+  if (preferenze.error) {
+    // Fail-soft: `homePrefDa` degrada a 'due_stanze' su null/garbage. Si logga perché una
+    // preferenza che non si legge è un utente che non vede la home che ha scelto.
+    console.error('[dashboard] lettura nav_preferences fallita:', preferenze.error)
+  }
+
+  // La forma della home e l'USO della parete escono dalla STESSA regola (`vistaHome`): così una
+  // stanza Parete non può essere resa con dati che non le appartengono, e — nel verso opposto —
+  // non si porta al client un elenco di cassette che nessuna stanza mostrerà.
+  const homePref = homePrefDa(preferenze.data?.nav_preferences)
+  const parete = serveParete(vistaHome(homePref, stanzaParam)) ? pareteLetta : []
   // O1i (Task 10) — trial calcolato QUI (mai `new Date()` client) e passato
   // come ingresso: `scegliSegnale` resta puro, `sTrial` decide da sé
   // ambra/rosso. Scaduto/sospeso non arrivano qui: i redirect di layout li
@@ -45,7 +67,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const trial = context.lab?.stato === 'trial' && context.lab.trial_ends_at
     ? { giorniRimasti: giorniCiviliRimasti(context.lab.trial_ends_at, ora) }
     : null
-  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, pile: pile.striscia })
+  // Task 15 — racconto backfill (una tantum): il conteggio è il totale REALE delle cassette
+  // (`pareteLetta`, sempre letto, non la `parete` gated dalla vista) + il flag di dismissal
+  // per-utente. `scegliSegnale` resta puro; `sPareteIntro` decide da sé sotto trial e sopra i
+  // sereni. Assente (n=0 o intro già vista) → nessun segnale nuovo.
+  const pareteIntro = { n: pareteLetta.length, introVista: pareteIntroVista(preferenze.data?.nav_preferences) }
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, pile: pile.striscia })
 
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
@@ -61,7 +88,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
-      <HomeV3 nome={nome} eyebrow={eyebrow} saluto={saluto(ora)} pile={pile} segnale={segnale} />
+      <HomeV3
+        nome={nome}
+        eyebrow={eyebrow}
+        saluto={saluto(ora)}
+        pile={pile}
+        segnale={segnale}
+        parete={parete}
+        homePref={homePref}
+        stanzaParam={stanzaParam}
+      />
       <HomeDesktop
         pile={pile}
         pilaSelezionata={pilaSelezionata}

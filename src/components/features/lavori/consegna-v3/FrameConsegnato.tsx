@@ -34,8 +34,13 @@ export function FrameConsegnato(props: {
   descrizione: string
   dentista: string
   onChiudi: () => void
+  /** Task 7 (spec §9.1 — L5): nome della cassetta liberata alla consegna, o
+   *  `null`/assente se non c'era niente da liberare (o la liberazione è
+   *  fallita, fail-soft) — in quel caso NIENTE riga, mai raccontare ciò che
+   *  non è successo. */
+  cassettaLiberata?: string | null
 }) {
-  const { esito, lavoroId, descrizione, dentista, onChiudi } = props
+  const { esito, lavoroId, descrizione, dentista, onChiudi, cassettaLiberata } = props
   const titoloRef = useRef<HTMLHeadingElement>(null)
   const [t0] = useState(() => Date.now())
   const [rimasti, setRimasti] = useState(FINESTRA_MS)
@@ -104,6 +109,8 @@ export function FrameConsegnato(props: {
             { nome: 'Dichiarazione di Conformità', sub: `Generata a ogni consegna ✓ · ${esito.ddc.numero}` },
             { nome: 'Buono di consegna', sub: esito.buono.numero },
             { nome: 'Messaggio WhatsApp', sub: 'Pronto da inviare', fatto: false },
+            // Racconto L5 (spec §9.1): riga aggiuntiva SOLO se davvero liberata.
+            ...(cassettaLiberata ? [{ nome: `UÀ ha liberato la cassetta ${cassettaLiberata}` }] : []),
           ]} />
         </div>
 

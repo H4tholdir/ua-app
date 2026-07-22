@@ -10,6 +10,9 @@ export type SegnaleStriscia = {
   testo: string // resto della riga (1 riga, ellissi CSS)
   azione: { etichetta: string; href: string } | null // CTA mai troncata
   tono?: 'ambra'
+  // Task 15 — marca il racconto backfill: al tap della CTA il chiamante, oltre a navigare,
+  // scrive `parete_intro_vista` (fire-and-forget). Assente su ogni altro segnale.
+  intro?: true
 }
 export type IngressiStriscia = {
   fatturaScartata: { id: string; numero: string } | null
@@ -26,6 +29,11 @@ export type IngressiStriscia = {
   // O1i (Task 10) — propagato dal chiamante (stile O1f), NON da
   // fetchIngressiStriscia: v. nota su `sTrial` più sotto.
   trial?: { giorniRimasti: number } | null
+  // Task 15 — racconto backfill (una tantum): totale cassette del lab (`getParete`, già letto
+  // in dashboard/page.tsx) + se l'utente ha già liquidato l'intro (`nav_preferences
+  // .parete_intro_vista`). Optional come `trial`/`tecniciSenzaAnagrafica`: assente (es. admin
+  // live preview) → nessun segnale nuovo.
+  parete?: { n: number; introVista: boolean }
   pile: DatiPileStriscia
 }
 
@@ -96,12 +104,25 @@ const sTrial: Candidato = (i) => {
   return { attenzione: false, tono: 'ambra', forte: 'Prova:', testo: `mancano ${g} giorni`, azione }
 }
 
-// P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»)
+// Task 15 — racconto backfill (§6, una tantum): segnale QUIETO (attenzione:false, nessun `tono`
+// → il ✓ verde sereno, riuso del tono quieto esistente, nessun tono nuovo). Invita a colorare/
+// ordinare le cassette appena create dal backfill; compare SOLO se ci sono cassette (`n>0`) e
+// l'utente non ha già liquidato l'intro. La clausola azionabile vive in `azione` — l'UNICO
+// elemento tappabile della striscia (§5.24): il tap naviga a /cassette E scrive
+// `parete_intro_vista` (il flag `intro` lo dice al chiamante). Il testo è verbatim dalla spec §6.
+const sPareteIntro: Candidato = (i) =>
+  i.parete && i.parete.n > 0 && !i.parete.introVista
+    ? { attenzione: false, intro: true, forte: null, testo: i.parete.n === 1 ? 'UÀ ha creato 1 cassetta dai tuoi lavori —' : `UÀ ha creato ${i.parete.n} cassette dai tuoi lavori —`, azione: { etichetta: 'colorale e mettile in ordine ›', href: '/cassette' } }
+    : null
+
+// P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»).
+// Precedenza del racconto (spec §6): sotto gli allarmi operativi e il trial, SOPRA i sereni —
+// quindi sPareteIntro subito prima di s8/s9 in ogni ruolo (è lab-wide, vale per tutti).
 const GERARCHIE: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, s8, s9],
-  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, s8, s9],
-  front_desk: [s2, s3, s4, s1, s5, s6, s8, s9], // invariato — O1f non tocca front_desk
-  tecnico: [sTecAccount, s2, s3, s4, s6, s8, s9],
+  titolare: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, sPareteIntro, s8, s9],
+  admin_rete: [s1, s2, s3, s4, s5, s6, s7, sTitTecnici, sTrial, sPareteIntro, s8, s9],
+  front_desk: [s2, s3, s4, s1, s5, s6, sPareteIntro, s8, s9], // O1f non tocca front_desk; il racconto sì (lab-wide)
+  tecnico: [sTecAccount, s2, s3, s4, s6, sPareteIntro, s8, s9],
 }
 
 export function scegliSegnale(ruolo: string, i: IngressiStriscia): SegnaleStriscia {

@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMaterialiEsaurimento } from '@/lib/dashboard/queries'
 import { SDI_SCARTATE } from '@/lib/dashboard/striscia'
 import { oggiRomaISO } from '@/lib/utils/data-roma'
+import type { HomePref } from '@/lib/preferenze/home'
 
 // ☰ «Tutto il resto» (§6.1/§6.2, Task 10) — le 9 voci CHIUSE della mappa, nello
 // stesso ordine del mockup `tutto-il-resto.html`: Dentisti · Fatture ·
@@ -24,6 +25,8 @@ export type DatiTuttoIlResto = {
   consegneOggi: number
   prossimaOra: string | null
   persone: string[] // il primo elemento diventa sempre «Tu» (componiSezioni)
+  cassetteOccupate: number // righe vive di `cassette_lavori` (= cassette occupate, indice unico)
+  cassetteLibere: number // cassette vive del lab − occupate (mai negativo, v. getSezioni…)
 }
 
 /** Elenco in parole del banco: "a", "a e b", "a, b e c" — mai un elenco puntato. */
@@ -52,26 +55,45 @@ function subDentisti(nomi: string[]): string {
   return nomi.length > 0 ? elenco(nomi) : 'Nessun dentista in anagrafica ancora'
 }
 
+function subCassette(occupate: number, libere: number): string {
+  return `${occupate} occupate · ${libere} libere`
+}
+
 function subPersone(nomi: string[]): string {
   const conTu = nomi.length > 0 ? ['Tu', ...nomi.slice(1)] : ['Tu']
   return elenco(conTu)
 }
 
 /**
- * componiSezioni(ruolo, dati) — puro, nessuna I/O. Le 9 voci di §6.1
+ * componiSezioni(ruolo, dati, homePref?) — puro, nessuna I/O. Le 9 voci di §6.1
  * nell'ordine del mockup; `La mia rete` (`/rete`) SOLO per `admin_rete`,
  * penultima voce (subito prima di «Il mio laboratorio»).
+ *
+ * Task 15 (§7, riserva ux B1) — voce condizionale «I lavori» → `/dashboard?stanza=pile`:
+ * SOLO quando la preferenza esclude le pile dalla home (`homePref === 'parete'`), che
+ * altrimenti non avrebbe in home alcuna via verso il lavoro del giorno. Prima voce: è
+ * l'ingresso primario «torna al banco» (la simmetrica «La parete» non serve, c'è già la voce
+ * fissa «Le cassette»). `homePref` optional: assente (chiamate legacy a 2 argomenti) →
+ * nessuna «I lavori», ordine invariato.
  */
-export function componiSezioni(ruolo: string, dati: DatiTuttoIlResto): Sezione[] {
-  const sezioni: Sezione[] = [
+export function componiSezioni(ruolo: string, dati: DatiTuttoIlResto, homePref?: HomePref): Sezione[] {
+  const sezioni: Sezione[] = []
+  if (homePref === 'parete') {
+    sezioni.push({ chiave: 'lavori', emoji: '📋', nome: 'I lavori', sub: 'Le quattro pile', href: '/dashboard?stanza=pile' })
+  }
+  sezioni.push(
     { chiave: 'dentisti', emoji: '🦷', nome: 'Dentisti', sub: subDentisti(dati.dentisti), href: '/clienti' },
+    // «Le cassette» (Task 17) — voce FISSA subito dopo «Dentisti»: l'unico ingresso in-app alla
+    // parete `/cassette` dal menu ☰. Sub coi conteggi vivi (occupate = righe vive di
+    // `cassette_lavori`, libere = totale − occupate, calcolati in getSezioniTuttoIlResto).
+    { chiave: 'cassette', emoji: '🗄️', nome: 'Le cassette', sub: subCassette(dati.cassetteOccupate, dati.cassetteLibere), href: '/cassette' },
     { chiave: 'fatture', emoji: '🧾', nome: 'Fatture', sub: subFatture(dati.fattureDaSistemare), href: '/fatture' },
     { chiave: 'magazzino', emoji: '📦', nome: 'Magazzino', sub: subMagazzino(dati.materialiRossi), href: '/magazzino' },
     { chiave: 'agenda', emoji: '📅', nome: 'Agenda', sub: subAgenda(dati.consegneOggi, dati.prossimaOra), href: '/agenda' },
     { chiave: 'qualita', emoji: '🛡️', nome: 'Documenti e qualità', sub: 'DdC generata a ogni consegna ✓', href: '/qualita' },
     { chiave: 'persone', emoji: '👥', nome: 'Persone', sub: subPersone(dati.persone), href: '/tecnici' },
     { chiave: 'listino', emoji: '🏷️', nome: 'Listino', sub: 'I tuoi prezzi per ogni lavorazione', href: '/listino' },
-  ]
+  )
   if (ruolo === 'admin_rete') {
     sezioni.push({ chiave: 'rete', emoji: '🌐', nome: 'La mia rete', sub: 'I laboratori della tua rete', href: '/rete' })
   }
@@ -158,6 +180,25 @@ async function getAgendaOggi(svc: SupabaseClient, labId: string): Promise<{ cons
   }
 }
 
+/**
+ * Conteggi della parete: cassette vive del lab (totale) e righe vive di `cassette_lavori`
+ * (occupate — indice unico parziale `cassette_lavori_cassetta_viva_uidx`: max una riga viva per
+ * cassetta, quindi righe vive = cassette occupate). `libere = max(0, totale − occupate)`: il
+ * `max(0)` difende dal caso di degrado misto (totale fallito → 0, occupate riuscito → N > 0), che
+ * senza clamp mostrerebbe un numero negativo. Ogni query degrada singolarmente a 0 con console.error.
+ */
+async function getConteggiCassette(svc: SupabaseClient, labId: string): Promise<{ occupate: number; libere: number }> {
+  const [totaleRes, occupateRes] = await Promise.all([
+    svc.from('cassette').select('id', { count: 'exact', head: true }).eq('laboratorio_id', labId).is('deleted_at', null),
+    svc.from('cassette_lavori').select('id', { count: 'exact', head: true }).eq('laboratorio_id', labId).is('liberato_at', null),
+  ])
+  if (totaleRes.error) console.error('[getSezioniTuttoIlResto] conteggio cassette totali fallito — degrado a 0:', totaleRes.error)
+  if (occupateRes.error) console.error('[getSezioniTuttoIlResto] conteggio cassette occupate fallito — degrado a 0:', occupateRes.error)
+  const totale = totaleRes.count ?? 0
+  const occupate = occupateRes.count ?? 0
+  return { occupate, libere: Math.max(0, totale - occupate) }
+}
+
 async function getPersone(svc: SupabaseClient, labId: string): Promise<string[]> {
   try {
     const { data, error } = await svc
@@ -182,13 +223,14 @@ async function getPersone(svc: SupabaseClient, labId: string): Promise<string[]>
  * query degrada singolarmente a un default sereno con `console.error`: la
  * pagina non crasha mai (L5), al massimo mostra un sub più povero.
  */
-export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string, ruolo: string): Promise<Sezione[]> {
-  const [dentisti, fattureDaSistemare, materialiRossi, agenda, persone] = await Promise.all([
+export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string, ruolo: string, homePref?: HomePref): Promise<Sezione[]> {
+  const [dentisti, fattureDaSistemare, materialiRossi, agenda, persone, cassette] = await Promise.all([
     getDentisti(svc, labId),
     getFattureDaSistemare(svc, labId),
     getMaterialiRossi(svc, labId),
     getAgendaOggi(svc, labId),
     getPersone(svc, labId),
+    getConteggiCassette(svc, labId),
   ])
 
   return componiSezioni(ruolo, {
@@ -198,5 +240,7 @@ export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string,
     consegneOggi: agenda.consegneOggi,
     prossimaOra: agenda.prossimaOra,
     persone,
-  })
+    cassetteOccupate: cassette.occupate,
+    cassetteLibere: cassette.libere,
+  }, homePref)
 }

@@ -36,6 +36,14 @@ describe('BottomNavPill — ritiro dalle route migrate a v3 (P9)', () => {
     expect(container.querySelector('.ua-bottom-nav')).toBeNull()
   })
 
+  // Ondata Parete, Task 11: /cassette nasce v3 (spec §5) — la pill v2.3 in
+  // fondo a una pagina v3 sarebbe la mescolanza vietata da DS v3 §14.
+  it('non si monta su /cassette (parete v3, ondata Parete)', () => {
+    mockPathname = '/cassette'
+    const { container } = render(<BottomNavPill />)
+    expect(container.querySelector('.ua-bottom-nav')).toBeNull()
+  })
+
   it('non si monta su /lavori/nuovo (v3 da Ondata 2, Task 8: wizard)', () => {
     mockPathname = '/lavori/nuovo'
     const { container } = render(<BottomNavPill />)

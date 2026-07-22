@@ -23,6 +23,11 @@ describe('sTrial (O1i)', () => {
     const s = scegliSegnale('titolare', { ...sereno, ddcOggi: 3, trial: { giorniRimasti: 12 } })
     expect(s.forte).toBe('Prova:')
   })
+  it('trial e racconto cassette valorizzati INSIEME → vince il trial (sTrial precede sPareteIntro nella gerarchia)', () => {
+    const s = scegliSegnale('titolare', { ...sereno, trial: { giorniRimasti: 12 }, parete: { n: 12, introVista: false } })
+    expect(s.forte).toBe('Prova:')
+    expect(s.intro).toBeUndefined()
+  })
   it('tecnico non vede il segnale trial', () => {
     expect(scegliSegnale('tecnico', { ...sereno, trial: { giorniRimasti: 2 } }).forte).toBe('Tutto a posto:')
   })

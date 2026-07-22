@@ -45,7 +45,7 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
   blu: { glifo: '📥', titolo: 'Nessun nuovo arrivo', guida: 'I lavori appena arrivati compaiono qui.' },
 }
 
-export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null; cassetteSuggerite?: string[] }) {
+export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null; cassetteSuggerite?: Array<{ id: string; nome: string }> }) {
   const { pila, lista, sub, lavoroSelezionato, cassetteSuggerite } = props
   const router = useRouter()
   // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),

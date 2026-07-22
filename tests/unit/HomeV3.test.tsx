@@ -20,9 +20,12 @@ const PILE: PileHome = {
   striscia: { ritardoPiuGrave: null, consegnaOggiNonPronta: null, provaRientroOggi: null, arrivoVecchio: null, fermo: null, consegneOggiTotali: 1, prossimaOra: '16:00' },
 }
 
+// `homePref="pile"` (Task 14): questi test presidiano la stanza Pile, cioè il layout
+// storico della home, che con quella preferenza resta invariato. Le altre due forme (pager a
+// due stanze e sola Parete) hanno i propri test in tests/unit/stanze-pager.test.tsx.
 describe('HomeV3 — la home di legge (§7.1 + rev. 3.1)', () => {
   it('saluto, eyebrow, ☰, 4 pile in ordine di legge, TastoPiù', () => {
-    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} />)
+    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} parete={[]} homePref="pile" />)
     expect(screen.getByRole('heading', { name: /Buon pomeriggio.*Francesco/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
     const labels = ['DA CONSEGNARE OGGI', 'SUL BANCO', 'DA RIFARE / IN PROVA', 'APPENA ARRIVATI']
@@ -35,14 +38,14 @@ describe('HomeV3 — la home di legge (§7.1 + rev. 3.1)', () => {
 
   it('tap sulla pila → /lavori?pila=…', async () => {
     const user = userEvent.setup()
-    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} />)
+    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} parete={[]} homePref="pile" />)
     await user.click(screen.getByText('DA RIFARE / IN PROVA'))
     expect(push).toHaveBeenCalledWith('/lavori?pila=viola')
   })
 
   it('banco libero: con tutte le pile a 0 lo stack lascia il posto al blocco sereno (mockup stati-vuoti)', () => {
     const vuote: PileHome = { ...PILE, liste: { rossa: [], ambra: [], viola: [], blu: [] } }
-    render(<HomeV3 nome="Francesco" eyebrow="Martedì 15 luglio" saluto="Buongiorno" pile={vuote} segnale={SEGNALE} />)
+    render(<HomeV3 nome="Francesco" eyebrow="Martedì 15 luglio" saluto="Buongiorno" pile={vuote} segnale={SEGNALE} parete={[]} homePref="pile" />)
     expect(screen.getByText('Il banco è libero')).toBeInTheDocument()
     expect(screen.queryByText('DA CONSEGNARE OGGI')).not.toBeInTheDocument()
   })

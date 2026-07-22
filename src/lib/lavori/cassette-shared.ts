@@ -1,22 +1,32 @@
-// Conferma-cassetta (decisions 20/07): chips delle cassette usate di recente e
-// ORA libere. Pura e client-safe — la query vive in cassette.ts (server-only).
+// Chips «dal parco» del conferma-cassetta (Task 3, correzione 21/07 #1 /
+// risoluzione R-C): cassette VIVE libere ordinate per uso recente (max 6),
+// comprese quelle mai usate (`ultimoUso: null`), che vanno in coda. Verità
+// dell'uso = max(cassette_lavori.assegnato_at) — MAI `cassette.updated_at`,
+// bump-ato dal get-or-create e che mentirebbe sull'uso recente.
+// Pura e client-safe — la query vive in cassette.ts (server-only).
 const MAX_CHIPS = 6
-const STATI_CHIUSI = new Set(['consegnato', 'annullato'])
 
 export function derivaCassetteSuggerite(
-  rows: Array<{ numero_cassetta: string | null; stato: string }>
-): string[] {
-  const occupate = new Set(
-    rows
-      .filter((r) => r.numero_cassetta && !STATI_CHIUSI.has(r.stato))
-      .map((r) => r.numero_cassetta as string)
-  )
-  const suggerite: string[] = []
-  for (const r of rows) {
-    if (!r.numero_cassetta || !STATI_CHIUSI.has(r.stato)) continue
-    if (occupate.has(r.numero_cassetta) || suggerite.includes(r.numero_cassetta)) continue
-    suggerite.push(r.numero_cassetta)
-    if (suggerite.length === MAX_CHIPS) break
+  cassette: Array<{ id: string; nome: string; ultimoUso: string | null }>,
+  occupate: Set<string>
+): Array<{ id: string; nome: string }> {
+  return cassette
+    .filter((c) => !occupate.has(c.id)) // .filter() ritorna già un array nuovo: .sort() qui non muta l'input
+    .sort(comparaCassette)
+    .slice(0, MAX_CHIPS)
+    .map(({ id, nome }) => ({ id, nome }))
+}
+
+// Ordinamento deterministico (spec §10): ultimoUso desc → null in coda →
+// tie-break nome.localeCompare('it') → poi id.
+function comparaCassette(
+  a: { nome: string; id: string; ultimoUso: string | null },
+  b: { nome: string; id: string; ultimoUso: string | null }
+): number {
+  if (a.ultimoUso !== b.ultimoUso) {
+    if (a.ultimoUso === null) return 1
+    if (b.ultimoUso === null) return -1
+    return b.ultimoUso.localeCompare(a.ultimoUso)
   }
-  return suggerite
+  return a.nome.localeCompare(b.nome, 'it') || a.id.localeCompare(b.id)
 }

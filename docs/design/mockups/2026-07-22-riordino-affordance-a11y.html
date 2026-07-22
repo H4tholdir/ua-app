@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Affordance riordino a11y — proposta (Task 13, difetto 1)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 0; }
+  .tema { flex: 1 1 360px; padding: 24px; min-height: 100vh; }
+  .light { background: #F5F1E9; color: #2A2118; }
+  .dark  { background: #14100c; color: #f4efe6; }
+  h1 { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; opacity: .7; margin: 0 0 4px; }
+  p.note { font-size: 13px; line-height: 1.55; margin: 0 0 20px; opacity: .85; max-width: 40ch; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 360px; }
+  .cell {
+    position: relative; min-height: 104px; border-radius: 10px 10px 12px 12px; padding: 9px 10px 10px;
+    display: flex; flex-direction: column; justify-content: flex-end; color: #fff; font-weight: 800;
+    box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.3);
+  }
+  .cell .cont { font-size: 11px; font-weight: 700; opacity: .85; }
+  /* La maniglia proposta: pastiglia ≥44px in alto a destra, focusabile, visibile solo su
+     hover/focus e su tastiera (sempre nel tab order). Glifo «⠿» = grip. */
+  .maniglia {
+    position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border-radius: 12px;
+    border: none; display: grid; place-items: center; font-size: 18px; cursor: grab;
+    background: rgba(0,0,0,.28); color: #fff; backdrop-filter: blur(2px);
+  }
+  .maniglia:focus-visible { outline: 3px solid #4187C6; outline-offset: 2px; }
+  .cell.afferrata { outline: 3px solid #4187C6; outline-offset: 2px; }
+  .cell.afferrata .maniglia { cursor: grabbing; background: #2E6FD0; }
+  .legenda { margin-top: 22px; font-size: 12.5px; line-height: 1.6; max-width: 44ch; }
+  .legenda b { color: #2E6FD0; } .dark .legenda b { color: #6FB1E8; }
+  kbd { font: inherit; background: rgba(128,128,128,.25); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tema light">
+    <h1>Proposta · Light</h1>
+    <p class="note">Difetto a11y n.1: oggi, da tastiera, su una cassetta OCCUPATA lo sheet (rinomina, colore, «segna come libera», ▲▼) è irraggiungibile. La proposta: una <b>maniglia di riordino</b> focusabile su OGNI cassetta.</p>
+    <div class="grid">
+      <div class="cell" style="background:linear-gradient(180deg,#E8323B,#C3000F)"><button class="maniglia" aria-label="Riordina C12, posto 1 di 6">⠿</button><span>C12</span><span class="cont">n.144 · Bianchi</span></div>
+      <div class="cell afferrata" style="background:linear-gradient(180deg,#2E6FD0,#174A9C)"><button class="maniglia" aria-label="C4 afferrata, posto 2 di 6. Frecce per spostare.">⠿</button><span>C4</span><span class="cont">libera</span></div>
+      <div class="cell" style="background:linear-gradient(180deg,#2E9C55,#166B39)"><button class="maniglia" aria-label="Riordina C7, posto 3 di 6">⠿</button><span>C7</span><span class="cont">n.160 · Neri</span></div>
+    </div>
+  </div>
+  <div class="tema dark">
+    <h1>Proposta · Dark</h1>
+    <p class="note">La maniglia apre lo sheet con <kbd>Invio</kbd> (tap-equivalente) e afferra il riordino con un pulsante dedicato dentro lo sheet; oppure afferra direttamente con <kbd>Spazio</kbd>.</p>
+    <div class="grid">
+      <div class="cell" style="background:linear-gradient(180deg,#E8323B,#C3000F)"><button class="maniglia" aria-label="Riordina C12, posto 1 di 6">⠿</button><span>C12</span><span class="cont">n.144 · Bianchi</span></div>
+      <div class="cell afferrata" style="background:linear-gradient(180deg,#2E6FD0,#174A9C)"><button class="maniglia" aria-label="C4 afferrata, posto 2 di 6. Frecce per spostare.">⠿</button><span>C4</span><span class="cont">libera</span></div>
+      <div class="cell" style="background:linear-gradient(180deg,#9A948E,#6E675F)"><button class="maniglia" aria-label="Riordina C3, posto 3 di 6">⠿</button><span>C3</span><span class="cont">libera</span></div>
+    </div>
+    <div class="legenda">
+      <b>Pattern tastiera (ricerca §5.3)</b> — la maniglia è nel tab order; su di essa:<br>
+      <kbd>Invio</kbd> apre lo sheet (rinomina/colore/segna-libera/▲▼) · <kbd>Spazio</kbd> AFFERRA per il riordino ·
+      <kbd>← → ↑ ↓</kbd> spostano di ±1 nell'ordine · <kbd>Invio</kbd> conferma · <kbd>Esc</kbd> annulla.<br>
+      Una POST al rilascio. Annunci via la live region assertiva già in pagina.
+    </div>
+  </div>
+</div>
+</body>
+</html>

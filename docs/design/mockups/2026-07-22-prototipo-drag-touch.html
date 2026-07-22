@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototipo drag touch — Parete cassette (Task 13)</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #14100c; color: #f4efe6; }
+  .istruzioni { padding: 14px 16px; background: #201a12; font-size: 14px; line-height: 1.5; position: sticky; top: 0; z-index: 5; }
+  .istruzioni b { color: #ffd27a; }
+  h1 { font-size: 16px; margin: 0 0 6px; }
+  .parete { padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .cell {
+    min-height: 104px; border-radius: 10px 10px 12px 12px; display: flex; align-items: flex-end;
+    justify-content: center; padding: 10px; font-weight: 800; color: #fff;
+    box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.25);
+    /* La chiave del conflitto: manipulation tiene VIVO il pan a riposo (niente touch-action:none). */
+    touch-action: manipulation; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+  }
+  .ghost {
+    position: fixed; pointer-events: none; z-index: 40; min-height: 104px; border-radius: 10px 10px 12px 12px;
+    display: flex; align-items: flex-end; justify-content: center; padding: 10px; font-weight: 800; color: #fff;
+    transform: scale(1.06); box-shadow: 0 22px 40px -10px rgba(0,0,0,.7); opacity: .96;
+  }
+  .stato { position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 12px; background: #000a; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="istruzioni">
+    <h1>Prototipo — regge la catena long-press → drag su telefono?</h1>
+    1. <b>Scorri</b> la pagina su e giù col dito su una cella: lo scroll deve funzionare normalmente.<br>
+    2. <b>Tieni premuto fermo ~0,3s</b> su una cella finché «vibra»/si solleva, poi <b>trascina</b>: la cella-fantasma segue il dito e la pagina NON scrolla.<br>
+    3. Rilascia: la cella torna a posto. Prova anche vicino ai bordi e con più dita.
+  </div>
+  <div class="parete" id="parete"></div>
+  <div class="stato" id="stato">Pronto. Tieni premuto una cella per sollevarla.</div>
+
+<script>
+(function () {
+  var COLORI = ['#E8323B','#2E6FD0','#6FB1E8','#9A948E','#2E9C55','#C3000F','#174A9C','#4187C6','#6E675F'];
+  var parete = document.getElementById('parete');
+  var stato = document.getElementById('stato');
+  for (var i = 0; i < 18; i++) {
+    var c = document.createElement('div');
+    c.className = 'cell'; c.style.background = COLORI[i % COLORI.length];
+    c.textContent = 'C' + (i + 1); c.dataset.n = i + 1;
+    parete.appendChild(c);
+  }
+
+  var SOGLIA_MS = 300, SOGLIA_PX = 8;
+  var timer = null, giu = null, dragAttivo = false, ghost = null, pid = null;
+
+  // Listener touchmove NON passivo montato UNA volta (come nell'app): preventDefault SOLO a drag
+  // attivo, con la guardia e.cancelable — è ciò che impedisce lo scroll durante il trascinamento.
+  window.addEventListener('touchmove', function (e) {
+    if (dragAttivo && e.cancelable) e.preventDefault();
+  }, { passive: false });
+
+  function solleva(cell, x, y) {
+    dragAttivo = true;
+    ghost = cell.cloneNode(true);
+    ghost.className = 'ghost';
+    var r = cell.getBoundingClientRect();
+    ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px'; ghost.style.width = r.width + 'px';
+    ghost.dataset.lx = x; ghost.dataset.ly = y; ghost.dataset.ox = r.left; ghost.dataset.oy = r.top;
+    document.body.appendChild(ghost);
+    cell.style.opacity = '.4';
+    ghost.__cell = cell;
+    if (navigator.vibrate) navigator.vibrate(15);
+    stato.textContent = 'Sollevata ' + cell.textContent + ' — trascina, la pagina non scrolla.';
+  }
+
+  parete.addEventListener('pointerdown', function (e) {
+    var cell = e.target.closest('.cell'); if (!cell) return;
+    giu = { x: e.clientX, y: e.clientY, cell: cell }; pid = e.pointerId;
+    timer = setTimeout(function () { if (giu) solleva(cell, giu.x, giu.y); }, SOGLIA_MS);
+  });
+
+  window.addEventListener('pointermove', function (e) {
+    if (e.pointerId !== pid) return;
+    if (!dragAttivo && giu) {
+      // Movimento prima del sollevamento = lo scroll vince: si annulla l'hold.
+      if (Math.hypot(e.clientX - giu.x, e.clientY - giu.y) > SOGLIA_PX) { clearTimeout(timer); giu = null; }
+      return;
+    }
+    if (dragAttivo && ghost) {
+      var dx = e.clientX - (+ghost.dataset.lx), dy = e.clientY - (+ghost.dataset.ly);
+      ghost.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) scale(1.06)';
+    }
+  });
+
+  function fine(e) {
+    if (e && e.pointerId !== pid) return;
+    clearTimeout(timer);
+    if (ghost) { if (ghost.__cell) ghost.__cell.style.opacity = '1'; ghost.remove(); ghost = null; }
+    if (dragAttivo) stato.textContent = 'Rilasciata. Pronto.';
+    dragAttivo = false; giu = null; pid = null;
+  }
+  window.addEventListener('pointerup', fine);
+  window.addEventListener('pointercancel', fine);
+})();
+</script>
+</body>
+</html>

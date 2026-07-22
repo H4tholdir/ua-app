@@ -161,6 +161,23 @@ describe('FlussoConsegna — macchina a stati (§3.2)', () => {
     fireEvent.click(screen.getByRole('button', { name: /chiudi/i }))
     expect(onFrameChiuso).toHaveBeenCalledTimes(1)
   })
+
+  // Task 7 (spec §9.1 — L5): racconto della liberazione cassetta nel Consegnato!.
+  it('POST 200 con cassettaLiberata → riga «UÀ ha liberato la cassetta C12» nella CardUAHaFatto', async () => {
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } }, [POST_URL]: { status: 200, json: { ...OK_200, cassettaLiberata: 'C12' } } })
+    montaAperto()
+    fireEvent.click((await screen.findAllByRole('button'))[0])
+    expect(await screen.findByText('Consegnato!')).toBeInTheDocument()
+    expect(screen.getByText('UÀ ha liberato la cassetta C12')).toBeInTheDocument()
+  })
+
+  it('POST 200 senza cassettaLiberata (assente/null) → NIENTE riga di liberazione (L5: mai raccontare ciò che non è successo)', async () => {
+    mockFetch({ [GET_URL]: { status: 200, json: { consegnabile: true, bloccanti: [], warnings: [] } }, [POST_URL]: { status: 200, json: OK_200 } })
+    montaAperto()
+    fireEvent.click((await screen.findAllByRole('button'))[0])
+    expect(await screen.findByText('Consegnato!')).toBeInTheDocument()
+    expect(screen.queryByText(/UÀ ha liberato la cassetta/)).toBeNull()
+  })
 })
 
 describe('FrameConsegnato — annullo (§3.4)', () => {

@@ -66,6 +66,25 @@
   border: none;
   border-top: 1px solid rgba(255,255,255,.06);
 }
+/* Gate L2 (22/07/2026, ondata Parete) — dark DENTRO gli sheet: ChipScelta
+   (§5.31) e TastoTondo (§5.6) hanno faccia `--card` + `--sh-press`, ma il
+   pannello dello sheet È anch'esso `--card` e in dark `--sh-press` è none →
+   la pillola/il tondo sparivano (restava solo il testo). Rimedio da spec
+   §3.2 (in dark l'elevazione è una superficie PIÙ CHIARA, mai un'ombra):
+   dentro `.ds-sheet` (classe-aggancio sul pannello, v. Sheet.tsx) le loro
+   variabili si rimappano — `--card` → `--elv`, `--sh-press` → hairline
+   superiore (gemella di .ds-card / .ds-tasto-secondario qui sopra). Si
+   ridefiniscono le VARIABILI, non le proprietà: gli style inline dei
+   componenti (`background: var(--card)`, `box-shadow: var(--sh-press)`)
+   restano intatti e risolvono i nuovi valori SOLO in questo contesto; la
+   chip selezionata (faccia `--green-tint`, shadow `none` letterale) e ogni
+   uso fuori dagli sheet (header pagina, wizard, home…) non cambiano. In
+   light la regola non esiste: resa identica a prima. */
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-chip-scelta,
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-tasto-tondo {
+  --card: var(--elv);
+  --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
+}
 
 /* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
 [data-ds="v3"] .ds-grana {
@@ -208,4 +227,395 @@
 [data-theme="dark"] [data-ds="v3"].lavoro-form-v3 {
   --sh-b: none;   /* v3 dark = flat */
   --sh-i: none;
+}
+
+/* §5.36 MiniaturaLavoro (Task 10) — custom property per la palette materica FISSA dal mockup
+   ratificato (2026-07-20-parete-cassette-v2.html:164-202): ceramica avorio, gengiva rosa,
+   metallo grigio, resina traslucida (provvisorio). `--mat-bianco`/`--mat-ceramica-chiara` sono i
+   due valori aggiuntivi 1:1 dai path SVG (highlight della corona, dente centrale del ponte) non
+   citati nel copy del mockup ma presenti nel markup, stessa fonte. Identici in light e dark: è
+   materia fisica (ceramica/gengiva/metallo), non un colore semantico di tema — il mockup non
+   prevede una variante dark per queste miniature. Vivono qui e non in v3/tokens.ts: il check
+   pre-commit 4a vieta hex/rgba letterali in src/components/ds, e la mappa colore→variabile CSS è
+   il modo per rispettarlo restando dentro il perimetro di questo task (tokens.ts è condiviso, non
+   toccato — v. commento di testa in MiniaturaLavoro.tsx). */
+[data-ds="v3"] {
+  --mat-ceramica: #F8F2E6;
+  --mat-ceramica-ombra: #D9CDB6;
+  --mat-ceramica-chiara: #EFE6D2;
+  --mat-ceramica-traslucida: rgba(248,242,230,.4);
+  --mat-gengiva: #E89AA4;
+  --mat-gengiva-ombra: #C97783;
+  --mat-metallo: #B9BEC6;
+  --mat-metallo-ombra: #8E959E;
+  --mat-bianco: #FFFFFF;
+}
+[data-ds="v3"] .ds-miniatura {
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); /* mockup: .cavita svg / .leg-card .box svg */
+}
+
+/* §5.35 Cassetta — tray (Task 10). Anatomia 1:1 dal mockup ratificato
+   (2026-07-20-parete-cassette-v2.html:66-105): corpo gradiente, linguetta ::before, cavità
+   incassata, targa, riga "n.{numero} · {dentista}". Le 6 coppie di gradiente sono FISSE e
+   verbatim dal mockup (righe 77-82) — letterali qui apposta (brief Task 10, risoluzione 4: "non
+   migliorarla, non derivarla da token"). Il colore custom (hex) resta inline nel componente
+   (dato per-istanza, non esprimibile come classe statica). Reduced-motion: già globale sopra
+   (riga ~185, `animation-duration`/`transition-duration` a 0.15s) — nessuna regola dedicata qui. */
+[data-ds="v3"] .ds-cassetta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0;
+  border: none;
+  border-radius: 10px 10px 12px 12px;
+  /* Gate L2 (22/07/2026) — guardia della cavità: il padding-top passa da 9 a
+     44. Nel caso ratificato (contenuto su 1 riga) NON cambia un pixel: lo
+     stack targa+riga è alto 50 e ancorato in basso (flex-end), quindi
+     44 + 50 + 10 = 104 = min-height, targa top a 44 come nel mockup. Quando
+     però il contenuto va a capo (numero lavoro lungo, misurato a 390px), il
+     testo non può più risalire sopra y=44 a coprire la cavità (fascia 5..51,
+     miniatura 11..45): il tile cresce verso il basso invece di invadere.
+     Lavora in coppia con il clamp a 2 righe di `.ds-cassetta-cont` (sotto). */
+  padding: 44px 10px 10px;
+  min-height: 104px;
+  min-width: 44px;
+  cursor: pointer;
+  box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
+  font-family: var(--font-v3);
+  color: inherit;
+  /* Task 13 — pacchetto statico e permanente per il gesto (§2.2 ricerca drag-touch): `manipulation`
+     tiene VIVO il pan a riposo (non abilita il drag: lo fa il listener touchmove non passivo
+     dell'hook) e toglie il double-tap-zoom; il resto sopprime callout/loupe/selezione/DnD nativo e
+     il lampo grigio durante i 300 ms del long-press. */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-cassetta {
+  box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4);
+}
+[data-ds="v3"] .ds-cassetta.is-draggable { cursor: grab; }
+
+/* Task 13 — cella di riordino: il wrapper `motion.div layout` che fa FLIP le sorelle. È l'item di
+   griglia; la cassetta dentro riempie la colonna. `min-width:0` evita che il contenuto forzi la
+   colonna oltre 1fr. */
+[data-ds="v3"] .ds-parete-grid > .ds-cella-riordino { display: flex; min-width: 0; }
+[data-ds="v3"] .ds-cella-riordino > .ds-cassetta { flex: 1 1 auto; width: 100%; }
+
+/* Task 13 — ghost del trascinamento: clone visivo in portale su `document.body`, sopra `.ds-grana`
+   (z-index 40) e la chrome fissa. `position:fixed` in coordinate viewport → immune all'auto-scroll
+   (non serve compensazione). `pointer-events:none`: non è mai bersaglio dell'hit-test. */
+[data-ds="v3"] .ds-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 60;
+  border-radius: 10px 10px 12px 12px;
+}
+[data-ds="v3"] .ds-ghost > .ds-cassetta { width: 100%; height: 100%; }
+
+[data-ds="v3"] .ds-cassetta::before {
+  content: '';
+  position: absolute;
+  top: -7px; left: 50%; transform: translateX(-50%);
+  width: 26px; height: 10px;
+  border-radius: 4px 4px 0 0;
+  background: inherit;
+  filter: brightness(.85);
+}
+
+[data-ds="v3"] .ds-cassetta.rossa   { background: linear-gradient(180deg, #E8323B, #C3000F); }
+[data-ds="v3"] .ds-cassetta.blu     { background: linear-gradient(180deg, #2E6FD0, #174A9C); }
+[data-ds="v3"] .ds-cassetta.azzurra { background: linear-gradient(180deg, #6FB1E8, #4187C6); }
+[data-ds="v3"] .ds-cassetta.grigia  { background: linear-gradient(180deg, #9A948E, #6E675F); }
+[data-ds="v3"] .ds-cassetta.bianca  { background: linear-gradient(180deg, #FFFEFA, #E4DCCB); }
+[data-ds="v3"] .ds-cassetta.verde   { background: linear-gradient(180deg, #2E9C55, #166B39); }
+
+[data-ds="v3"] .ds-cassetta-cavita {
+  position: absolute; inset: 5px 6px auto 6px; height: 46px;
+  border-radius: 7px;
+  background: rgba(0,0,0,.18);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
+  display: flex; align-items: center; justify-content: center;
+}
+
+[data-ds="v3"] .ds-cassetta-targa {
+  position: relative; z-index: 1; align-self: center;
+  max-width: 6ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
+  font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+[data-ds="v3"] .ds-cassetta-cont {
+  position: relative; z-index: 1; text-align: center; margin-top: 5px;
+  font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95);
+  text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  /* Gate L2 (22/07/2026) — clamp a 2 righe con ellissi: nel mockup ratificato
+     la riga «n.{numero} · {dentista}» è sempre UNA; con numeri lavoro lunghi
+     (misurato a 390px: 3 righe) il blocco risaliva a coprire la miniatura.
+     Il nome completo resta nell'`aria-label` del button (troncamento visivo,
+     non semantico — stessa regola della targa ~6ch). In coppia con la
+     guardia padding-top:44 di `.ds-cassetta` (sopra). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
+  color: rgba(29,25,19,.85); text-shadow: none;
+}
+
+[data-ds="v3"] .ds-cassetta.is-libera .ds-cassetta-targa {
+  background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9);
+}
+[data-ds="v3"] .ds-cassetta.is-libera.is-chiara .ds-cassetta-targa {
+  box-shadow: inset 0 0 0 2px rgba(29,25,19,.4); color: rgba(29,25,19,.7);
+}
+[data-ds="v3"] .ds-cassetta.is-libera .ds-cassetta-cont { opacity: .6; font-weight: 700; }
+
+[data-ds="v3"] .ds-cassetta.is-accesa {
+  box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(52,42,26,.45), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-cassetta.is-accesa {
+  box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
+}
+[data-ds="v3"] .ds-cassetta.is-spenta { opacity: .3; filter: saturate(.4); }
+
+/* §5 La Parete — pagina `/cassette` (Task 11). Anatomia 1:1 dal mockup ratificato
+   (2026-07-20-parete-cassette-v2.html): pillola di ricerca righe 39-49, parete + doppia griglia
+   righe 52-64, `.parete-grid` riga 65, tile «+ Nuova cassetta» righe 101-105. I valori sono
+   VERBATIM da lì (stessa regola del Task 10: non si «normalizzano»). Vivono qui e non inline nel
+   componente perché portano rami `[data-theme="dark"]` e media query, che uno style-object non
+   può esprimere — e perché ds-v3.css è la casa canonica dei valori raw del DS v3. */
+[data-ds="v3"] .ds-parete-shell {
+  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 40px;
+}
+@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-shell { max-width: 720px; } }
+@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-shell { max-width: 1120px; } }
+
+/* La pillola di ricerca (mockup `.riga-cerca`). Qui l'input è VERO (il mockup mostrava un
+   placeholder finto): l'anello di focus sta sulla pillola intera (`:focus-within`), perché il
+   campo non ha bordo proprio. */
+[data-ds="v3"] .ds-parete-cerca {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 50px; border-radius: 999px; padding: 0 18px;
+  background: var(--card); box-shadow: var(--sh-press);
+  margin-bottom: 18px;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-parete-cerca {
+  box-shadow: none; border-top: 1px solid rgba(255,255,255,.06);
+}
+[data-ds="v3"] .ds-parete-cerca .lente {
+  width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5;
+  fill: none; stroke-linecap: round; flex: none;
+}
+[data-ds="v3"] .ds-parete-cerca input {
+  flex: 1; min-width: 0; min-height: 44px; /* touch target di legge (§12) */
+  border: none; background: transparent; outline: none; padding: 0;
+  font-family: var(--font-v3); font-size: 15.5px; font-weight: 700; color: var(--ink);
+}
+[data-ds="v3"] .ds-parete-cerca input::placeholder { color: var(--faint); font-weight: 600; }
+[data-ds="v3"] .ds-parete-cerca:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* La parete: `--bg-deep` + la doppia griglia ripetuta — è il muro del laboratorio, non una
+   texture decorativa. Il ramo dark cambia SOLO il colore delle fughe (chiare invece che scure). */
+[data-ds="v3"] .ds-parete {
+  position: relative; border-radius: 18px; padding: 22px 16px 18px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
+    var(--bg-deep);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-parete {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
+    var(--bg-deep);
+}
+/* Colonne FISSE 3 / 4 / 6 (spec §5.4): l'ordine lineare è invariante — mai `auto-fit`, che
+   cambierebbe il numero di colonne (e quindi la mappa mentale del muro) a ogni larghezza. */
+[data-ds="v3"] .ds-parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
+
+[data-ds="v3"] .ds-tray-nuova {
+  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
+}
+[data-ds="v3"] .ds-tray-nuova:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
+[data-ds="v3"] .ds-tray-nuova .t { font-size: 12px; font-weight: 700; }
+
+/* §5.2 Sheet «Nuova cassetta» + §5.3 Sheet cassetta — swatches colore (Task 12). Il gradiente
+   delle 6 facce standard è RIUSATO da `.ds-cassetta.<slug>` (righe 276-281): lo swatch porta
+   ANCHE le classi `ds-cassetta <slug>`, così il background arriva da lì e NON si ri-dichiara
+   (brief Task 12). `.ds-swatch` riporta la geometria della cella-tray a quella dello swatch 42px
+   del mockup ratificato (2026-07-20-parete-cassette-v2.html:153-157) — 44px effettivi qui per il
+   touch target di legge (§12, ≥44px) — e spegne la linguetta `::before` della tray. Il conic del
+   custom e i valori raw vivono qui: il check pre-commit vieta hex/rgba letterali nei .tsx.
+
+   Come si vince su `.ds-cassetta`, per davvero (correzione review Task 12, Important 2):
+   - GEOMETRIA (width/height/padding/border-radius): `.ds-cassetta` la dichiara SOLO nella regola
+     base `[data-ds="v3"] .ds-cassetta` — (0,2,0), come `.ds-swatch`. Nessun ramo di tema la
+     ridichiara, quindi qui vince l'ORDINE (`.ds-swatch` è più in basso) e vale in light E in dark.
+   - OMBRA: il ramo dark della tray `[data-theme="dark"] [data-ds="v3"] .ds-cassetta` (riga 261) ha
+     specificità (0,3,0) — più alta di `.ds-swatch` (0,2,0). A parità d'ordine vince la specificità,
+     quindi in dark l'ordine NON basta: serve la regola dedicata qui sotto. */
+[data-ds="v3"] .ds-swatches { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+[data-ds="v3"] .ds-swatch {
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  padding: 0; border: none; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -6px 10px -6px rgba(0,0,0,.3);
+}
+/* Ombra dark dello swatch — (0,3,0) come il ramo dark della tray e dichiarata DOPO, quindi vince.
+   Senza, in dark ogni faccia standard erediterebbe l'ombra disegnata per una tray alta 104px
+   (drop 0 10px 18px + vignetta inset -14px 18px) schiacciata su un quadrato di 44px, dove copre
+   circa il 40% della faccia — mentre il custom, che non porta `ds-cassetta`, terrebbe la propria:
+   in fila si vedrebbero sette swatch con due ombre diverse. Valori: gli stessi inchiostri dark
+   della tray (highlight .18, vignetta .4) sulla geometria dello swatch, e NESSUN drop shadow —
+   in dark il DS v3 è flat (§3.2), la profondità la porta la superficie, non l'ombra. */
+[data-theme="dark"] [data-ds="v3"] .ds-swatch {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -6px 10px -6px rgba(0,0,0,.4);
+}
+[data-ds="v3"] .ds-swatch::before { display: none; }
+[data-ds="v3"] .ds-swatch:disabled { cursor: default; }
+[data-ds="v3"] .ds-swatch.is-scelto { outline: 3px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-swatch:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+/* Il ✓ dello swatch scelto (L3: mai il solo anello). Inchiostro chiaro di default, scuro sulle
+   facce chiare — `is-chiara` la mette il componente via `targaScura`, la stessa regola con cui la
+   Cassetta decide targa e testi (§5.35). */
+[data-ds="v3"] .ds-swatch-check {
+  font-size: 18px; font-weight: 800; line-height: 1;
+  color: rgba(255,255,255,.95); text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+[data-ds="v3"] .ds-swatch.is-chiara .ds-swatch-check {
+  color: rgba(29,25,19,.85); text-shadow: none;
+}
+[data-ds="v3"] .ds-swatch-custom {
+  background: conic-gradient(#D90012, #E8A13D, #1B7F3B, #1D5FBF, #7C3F9C, #D90012);
+}
+[data-ds="v3"] .ds-swatch-custom .glifo {
+  font-size: 20px; font-weight: 800; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+/* L'`<input type="color">` nativo resta fuori dal flusso: lo apre il click sullo swatch custom
+   (`inputRef.click()`), qui è solo il ponte verso il selettore di sistema. */
+[data-ds="v3"] .ds-swatch-input {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0; pointer-events: none;
+}
+
+/* §5.2/§5.3 — hint del campo nome, riga info «Dentro c'è…», errore inline, sezioni dello sheet. */
+[data-ds="v3"] .ds-sheet-hint {
+  font-size: 12.5px; font-weight: 700; color: var(--faint); margin: 8px 0 0;
+}
+[data-ds="v3"] .ds-sheet-info {
+  font-size: 15px; font-weight: 600; color: var(--muted); margin: 0;
+}
+[data-ds="v3"] .ds-sheet-errore {
+  font-size: 14px; font-weight: 600; color: var(--red); margin: 8px 0 0;
+}
+[data-ds="v3"] .ds-sheet-sezione {
+  font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint); margin: 0;
+}
+[data-ds="v3"] .ds-sheet-disabilitata { font-size: 15px; font-weight: 700; color: var(--faint); margin: 0; }
+[data-ds="v3"] .ds-sposta-riga { display: flex; align-items: center; gap: 12px; }
+[data-ds="v3"] .ds-sposta-posto { font-size: 14px; font-weight: 700; color: var(--muted); }
+
+/* ─────────────────────────────────────────────────────────────────────────────────────────
+   §6 — La home a due stanze (Task 14). Pager a scroll-snap orizzontale: lo swipe è scroll
+   NATIVO del browser, non un carosello simulato — è per questo che qui c'è CSS e non
+   JavaScript di trascinamento. Il componente (`StanzePager`) tiene solo lo stato di quale
+   stanza è attiva, per `inert`/`aria-hidden` e per i dots.
+
+   Il no-scroll VERTICALE resta legge in entrambe le stanze (§3.3): il viewport scorre solo
+   in x, e ogni stanza è una colonna che si adatta all'altezza disponibile. */
+[data-ds="v3"] .ua-home.is-stanze {
+  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo,
+     altrimenti il peek della stanza accanto resterebbe nascosto sotto il padding. */
+  padding-left: 0;
+  padding-right: 0;
+}
+[data-ds="v3"] .ua-stanze { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+[data-ds="v3"] .ua-stanze-viewport {
+  flex: 1; min-height: 0; display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  /* Niente pull-to-refresh né scroll della pagina sotto mentre si è a metà snap. */
+  overscroll-behavior: contain;
+  /* La barra di scorrimento non esiste: i dots sono l'indicatore di posizione. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-ds="v3"] .ua-stanze-viewport::-webkit-scrollbar { display: none; }
+/* Peek 28px bilaterale (§6): ogni stanza è larga quanto il viewport MENO il peek, così dalla
+   stanza Pile si sbircia la Parete e viceversa. L'ultima aggancia in `end` — la sua posizione
+   di snap in `start` cadrebbe oltre lo scroll massimo, e il peek a sinistra sparirebbe. */
+[data-ds="v3"] .ua-stanza {
+  flex: 0 0 calc(100% - 28px);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex; flex-direction: column;
+  padding: 0 24px;
+}
+[data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
+[data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
+
+/* La stanza Parete: la testata compressa in alto, il muro che assorbe lo slack — stessa
+   meccanica di `.ua-home .pile`, così l'altezza torna in entrambe le forme (pager e sola). */
+[data-ds="v3"] .ua-stanza-parete { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+[data-ds="v3"] .ua-stanza-parete-corpo {
+  flex: 1; margin-top: 16px; display: flex; flex-direction: column; justify-content: center;
+}
+[data-ds="v3"] .ua-parete-titolo { margin-top: 6px; }
+[data-ds="v3"] .ua-parete-titolo:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 8px; }
+/* In home il muro è SEMPRE a 3 colonne (§6): le colonne 4/6 di `.ds-parete-grid` valgono per
+   la pagina `/cassette`, che è larga quanto il viewport — qui la stanza è al massimo 480px,
+   e a 768 quattro tray scenderebbero sotto i 44px di lato. Specificità (0,3,0): vince sulle
+   media query di `.ds-parete-grid` (0,2,0) a prescindere dall'ordine. */
+[data-ds="v3"] .ua-stanza-parete .ds-parete-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-height: 700px) { /* §7.1 rev. 3.1 — stessa scala device-corti della stanza Pile */
+  [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
+  [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
+  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
+}
+
+/* Task 15 — cap CSS-driven + tile «Tutte le cassette ›». La cella avvolge la Cassetta (come
+   `.ds-cella-riordino` su /cassette): il componente ds resta intatto, la cella porta il taglio.
+   Si rende il SUPERSET tablet (8 celle) e sotto 768px si nascondono le celle oltre il cap mobile
+   (5): niente misura runtime, stessa meccanica @media della scala device-corti. */
+[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home { display: flex; min-width: 0; }
+[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home > .ds-cassetta { flex: 1 1 auto; width: 100%; }
+@media (max-width: 767px) {
+  [data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home.is-oltre-mobile { display: none; }
+}
+
+/* Il tile finale: stessa figura della tray «+ Nuova cassetta» (`.ds-tray-nuova`), tratteggio e
+   geometria, ma è una destinazione («vedi tutte») non una creazione. I due badge convivono nel
+   DOM; il CSS mostra quello del viewport. `is-solo-mobile`: senza overflow tablet il tile sparisce
+   da 768px in su (là le 8 celle bastano). */
+[data-ds="v3"] .ds-tile-tutte {
+  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
+  text-align: center; padding: 8px;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-tile-tutte { border-color: rgba(255, 255, 255, .16); }
+[data-ds="v3"] .ds-tile-tutte:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-tile-tutte .et { font-size: 12px; font-weight: 800; line-height: 1.15; color: var(--ink); }
+[data-ds="v3"] .ds-tile-tutte .badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--red); color: #FFF; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+[data-ds="v3"] .ds-tile-tutte .badge-tablet { display: none; }
+@media (min-width: 768px) {
+  [data-ds="v3"] .ds-tile-tutte.is-solo-mobile { display: none; }
+  [data-ds="v3"] .ds-tile-tutte .badge-mobile { display: none; }
+  [data-ds="v3"] .ds-tile-tutte .badge-tablet { display: inline-flex; }
 }

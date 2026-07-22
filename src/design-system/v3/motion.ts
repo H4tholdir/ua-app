@@ -12,6 +12,19 @@ export const molla = {
   wizard: { type: 'spring', visualDuration: 0.35, bounce: 0.1 },
 } as const
 
+// Costanti di gesto del trascinamento (Task 13, §3.3 ricerca `.superpowers/sdd/ricerca-drag-touch.md`).
+// Non sono molle né easing: sono i due VALORI del sollevamento che nessun token esprimeva. Dichiarati
+// qui, con nome, invece che sparsi come literal (constraint d'ondata). L'animazione che li porta è
+// `molla.press` (scala al lift) e `cssEase.generico` (opacity della buca) — quelle restano token.
+export const trascinamento = {
+  /** Scala del ghost al sollevamento (riferimento Atlassian/Material): appena percettibile, «si
+   *  stacca dal muro» senza gonfiarsi. Animata con `molla.press`. */
+  scalaSollevamento: 1.06,
+  /** Opacità dell'originale rimasto in flow durante il drag — la «buca» (pattern Atlassian): resta
+   *  visibile e si riordina otticamente con le sorelle. Animata con `cssEase.generico` (solo opacity). */
+  opacitaBuca: 0.4,
+} as const
+
 // Fallback CSS (spec §8.1) — per transition CSS pure (frequency gate) e device low-end
 export const cssEase = {
   sheet: '500ms cubic-bezier(0.32, 0.72, 0, 1)',

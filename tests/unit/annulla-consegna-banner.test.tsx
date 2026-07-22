@@ -79,4 +79,54 @@ describe('AnnullaConsegnaBanner — countdown hydration-safe (A17-res)', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('Task 8 — riga quieta sulla riassegnazione cassetta (response additiva della route)', () => {
+    it('annullo riuscito con cassetta riassegnata (riassegnata:true) → banner scompare comunque, nessuna riga quieta', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true, messaggio: 'x', cassetta: { riassegnata: true, nome: 'C12' } }),
+      }))
+      render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.queryByText(/nel frattempo è occupata/)).not.toBeInTheDocument()
+      vi.unstubAllGlobals()
+    })
+
+    it('annullo riuscito con cassetta occupata nel frattempo (riassegnata:false, nome) → riga quieta col nome, niente più bottone/alert', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true, messaggio: 'x', cassetta: { riassegnata: false, nome: 'C7' } }),
+      }))
+      render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(screen.getByText('La C7 nel frattempo è occupata')).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button')).not.toBeInTheDocument()
+      vi.unstubAllGlobals()
+    })
+
+    it('annullo riuscito con cassetta.riassegnata:false ma SENZA nome → nessuna riga quieta (dato incompleto, mai un messaggio a metà)', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true, messaggio: 'x', cassetta: { riassegnata: false } }),
+      }))
+      const { container } = render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(container).toBeEmptyDOMElement()
+      vi.unstubAllGlobals()
+    })
+
+    it('annullo riuscito senza campo cassetta (esito niente_da_riassegnare, fail-soft) → banner scompare come prima del Task 8', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true, messaggio: 'x' }) }))
+      const { container } = render(<AnnullaConsegnaBanner lavoroId="lav-1" dataConsegnaEffettiva="2026-07-20T09:59:00.000Z" />)
+      fireEvent.click(screen.getByRole('button'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+      expect(container).toBeEmptyDOMElement()
+      vi.unstubAllGlobals()
+    })
+  })
 })

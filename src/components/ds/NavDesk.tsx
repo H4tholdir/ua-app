@@ -1,8 +1,8 @@
 'use client'
 
-// Spostato in components/ds (ondata 16/07, §5.35). D-4: il tasto locale H52 resta — variante A ratificata (mockup 2026-07-16-navdesk-tasto-varianti.html).
+// Spostato in components/ds (ondata 16/07, §5.37 — era §5.35 fino alla rinumerazione del 21/07). D-4: il tasto locale H52 resta — variante A ratificata (mockup 2026-07-16-navdesk-tasto-varianti.html).
 //
-// DS v3 §5.35 (Task 9) — NavDesk: sostituisce home+☰ su desktop (≥1024, mockup
+// DS v3 §5.37 (Task 9) — NavDesk: sostituisce home+☰ su desktop (≥1024, mockup
 // `home.html` `.nav-desk`). Aside 240px `--bg-deep` con logo, «+ Nuovo lavoro»,
 // le 4 voci-pila (badge numerico colore-famiglia) + le sezioni statiche, e in
 // fondo (`marginTop: auto`) la StrisciaStato — che su desktop lascia il footer
@@ -25,6 +25,7 @@ import { gradiente, raggio, tipografia, testoSuFaccia } from '@/design-system/v3
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { StrisciaStato } from './StrisciaStato'
+import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import { Avatar } from './Avatar'
 import { DialogConferma } from './DialogConferma'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
@@ -84,6 +85,7 @@ const VOCI_PILA: Array<{ pila: Pila; nome: string; colore: string; tint: string 
 ]
 
 const VOCI_ALTRE: Array<{ nome: string; href: string }> = [
+  { nome: 'Le cassette', href: '/cassette' }, // Task 17 — ingresso in-app alla parete, PRIMA di Agenda
   { nome: 'Agenda', href: '/agenda' },
   { nome: 'Dentisti', href: '/clienti' },
   { nome: 'Fatture', href: '/fatture' },
@@ -248,7 +250,7 @@ export function NavDesk(props: {
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione}>
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
           {segnale.testo}
         </StrisciaStato>
       </div>

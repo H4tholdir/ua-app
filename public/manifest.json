@@ -49,6 +49,16 @@
           "sizes": "192x192"
         }
       ]
+    },
+    {
+      "name": "Le cassette",
+      "url": "/cassette",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "id": "/dashboard",

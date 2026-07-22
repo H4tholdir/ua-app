@@ -5,7 +5,7 @@ import { NavDesk } from '@/components/ds/NavDesk'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null }
 
-describe('NavDesk (§5.35) — la nav sostituisce home+☰ su desktop', () => {
+describe('NavDesk (§5.37) — la nav sostituisce home+☰ su desktop', () => {
   it('voci pile con badge numerici + sezioni + Nuovo lavoro', () => {
     render(<NavDesk conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }} pilaSelezionata="rossa" segnale={SEGNALE} />)
     // Niente flag `s` (dotAll): il target tsc del repo è ES2017 (TS1501 su `s`) —
@@ -15,5 +15,14 @@ describe('NavDesk (§5.35) — la nav sostituisce home+☰ su desktop', () => {
     expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute('href', '/agenda')
     expect(screen.getByRole('link', { name: 'Dentisti' })).toHaveAttribute('href', '/clienti')
     expect(screen.getByRole('button', { name: '+ Nuovo lavoro' })).toBeInTheDocument()
+  })
+
+  it('«Le cassette» (Task 17): voce fissa → /cassette, PRIMA di Agenda', () => {
+    render(<NavDesk conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }} pilaSelezionata="rossa" segnale={SEGNALE} />)
+    const cassette = screen.getByRole('link', { name: 'Le cassette' })
+    const agenda = screen.getByRole('link', { name: 'Agenda' })
+    expect(cassette).toHaveAttribute('href', '/cassette')
+    // Ordine di legge: «Le cassette» precede «Agenda» nel DOM.
+    expect(cassette.compareDocumentPosition(agenda) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

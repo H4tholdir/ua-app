@@ -44,6 +44,8 @@ import { MenuVoce } from '@/components/ds/MenuVoce'
 import { TastoWhatsApp } from '@/components/ds/TastoWhatsApp'
 import { RigaBloccante } from '@/components/ds/RigaBloccante'
 import { NavDesk } from '@/components/ds/NavDesk'
+import { Cassetta } from '@/components/ds/Cassetta'
+import { MiniaturaLavoro } from '@/components/ds/MiniaturaLavoro'
 
 // Il tema è stato ESTERNO: data-theme su <html>, posseduto da ThemeInitializer
 // (root layout) che lo imposta prima dell'hydration. Lo leggiamo con
@@ -81,6 +83,7 @@ export const INDICE = [
   { id: 'tasto-whatsapp', titolo: 'TastoWhatsApp' },
   { id: 'riga-bloccante', titolo: 'RigaBloccante' },
   { id: 'nav-desk', titolo: 'NavDesk' },
+  { id: 'cassetta', titolo: 'Cassetta · MiniaturaLavoro' },
 ] as const
 
 // Simula le fasi di un lavoro reale (§5.11): 2 già fatte, la prossima (con
@@ -1181,7 +1184,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="nav-desk" titolo="NavDesk" spec="§5.35">
+      <SezioneCatalogo id="nav-desk" titolo="NavDesk" spec="§5.37">
         {/* segnale: shape reale di SegnaleStriscia (src/lib/dashboard/striscia.ts) —
             `forte` è `string | null` (non booleano) e `azione` è
             `{ etichetta, href } | null`. La demo del brief usava `forte: false`,
@@ -1195,6 +1198,81 @@ export default function CatalogoPage() {
             segnale={{ attenzione: false, forte: 'Tutto a posto:', testo: '3 consegne oggi, la prossima alle 15:30', azione: null }}
             identita={{ nome: 'Francesco Formicola', lab: 'Lab Formicola' }}
           />
+        </div>
+      </SezioneCatalogo>
+
+      <SezioneCatalogo id="cassetta" titolo="Cassetta · MiniaturaLavoro" spec="§5.35 Cassetta (tray), §5.36 MiniaturaLavoro">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.l }}>
+          <div>
+            <p style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', margin: '0 0 12px' }}>
+              La parete demo — i 6 colori standard + 1 custom (C9, colore scelto col selettore
+              libero), accesa/spenta dalla ricerca, libera. Fedele al mockup ratificato
+              (`2026-07-20-parete-cassette-v2.html`).
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 88px)', gap: 16 }}>
+              <Cassetta
+                id="c12" nome="C12" colore="rossa" stato="normale"
+                lavoro={{ numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c15" nome="C15" colore="blu" stato="normale"
+                lavoro={{ numero: '146', dentista: 'Bianchi', descrizione: 'ponte 3 elementi', tipoDispositivo: 'protesi_fissa' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c21" nome="C21" colore="azzurra" stato="normale"
+                lavoro={{ numero: '148', dentista: 'Verdi', descrizione: 'provvisorio resina', tipoDispositivo: 'provvisorio' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c3" nome="C3" colore="verde" stato="normale"
+                lavoro={{ numero: '151', dentista: 'Esposito', descrizione: 'protesi totale', tipoDispositivo: 'protesi_mobile' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c9" nome="C9" colore="#F2836B" stato="normale"
+                lavoro={{ numero: '149', dentista: 'Russo', descrizione: 'corona su impianto', tipoDispositivo: 'implantologia' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c7" nome="C7" colore="bianca" stato="normale"
+                lavoro={{ numero: '150', dentista: 'Verdi', descrizione: 'scheletrato', tipoDispositivo: 'scheletrato' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta id="c4" nome="C4" colore="grigia" stato="normale" lavoro={null} onTap={() => {}} />
+              <Cassetta
+                id="c12-accesa" nome="C12" colore="rossa" stato="accesa"
+                lavoro={{ numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+              <Cassetta
+                id="c15-spenta" nome="C15" colore="blu" stato="spenta"
+                lavoro={{ numero: '146', dentista: 'Bianchi', descrizione: 'ponte 3 elementi', tipoDispositivo: 'protesi_fissa' }}
+                onTap={() => {}} onLongPressSheet={() => {}}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', margin: '0 0 12px' }}>
+              Le 4 miniature nuove — allineatore (arco aperto tratteggiato), mascherina
+              (piena con cresta occlusale), riparazione (totale spezzata in due metà),
+              generica (molare occlusale a Y) — ratificate il 22/07 in due giri di mockup.
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {(['allineatore', 'mascherina', 'riparazione', 'generica'] as const).map((idMin) => (
+                <div key={idMin} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <span className="ds-cassetta-cavita" style={{ position: 'relative', inset: 'auto', width: 64, height: 46 }}>
+                    <MiniaturaLavoro id={idMin} height={30} />
+                  </span>
+                  <span style={{ fontSize: tipografia.size.caption, fontWeight: tipografia.weight.bold, color: 'var(--faint)' }}>
+                    {idMin}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </SezioneCatalogo>
 
