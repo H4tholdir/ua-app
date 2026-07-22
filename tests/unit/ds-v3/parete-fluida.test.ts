@@ -33,6 +33,19 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     )
   })
 
+  it('ogni cqw del foglio vive in un selettore col perimetro .ds-parete-shell (vettore di leak reale: la regola BASE di .ds-parete-grid, che la home riusa)', () => {
+    // Review 23/07 (Medium-1): la home riusa .ds-parete/.ds-parete-grid SENZA il
+    // prefisso .ua-stanza-parete — il leak realistico è rendere fluida la regola
+    // base. Quindi: (a) ogni regola che contiene cqw ha .ds-parete-shell nel
+    // selettore; (b) le regole base restano ai valori fissi di oggi.
+    const senzaCommenti = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    for (const m of senzaCommenti.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      if (/cqw/.test(m[2])) expect(m[1]).toContain('.ds-parete-shell')
+    }
+    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete-grid \{ display: grid; grid-template-columns: repeat\(3, 1fr\); gap: 16px; \}/)
+    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*position: relative; border-radius: 18px; padding: 22px 16px 18px;/)
+  })
+
   it('la home resta FUORI dal perimetro: nessuna regola fluida tocca .ua-stanza-parete', () => {
     // Le regole della stanza-parete non devono contenere clamp/cqw: la compatta
     // R3b (gap 12, misure 744px) è sanzionata e non va alterata da questo giro.

@@ -27,6 +27,11 @@ peggio: la linguetta `::before` sporge 7px sopra il tray → respiro visivo tra 
 mockup (3.2→3.6 ecc.) per centrare la stessa àncora ratificata ≈24.5px a 768. Misure QA reali:
 16px @390 (3 colonne) · 24.48px @768 (4 colonne) · 26px @1280 (6 colonne), light e dark.
 
+**Nota di onestà (review 23/07):** finché le max-width della shell restano fisse (480/720/1120),
+la formula produce di fatto solo questi 3 valori — è «fluida per costruzione», non ancora nei
+fatti. Diventerà continua quando la shell stessa sarà fluida (ondata «Redesign parete/home»),
+senza dover ritoccare queste regole.
+
 **Perimetro:** la home (`.ua-stanza-parete`) resta ai valori fissi sanzionati dal collaudo R3b
 (compatta 744px, gap 12) — la direzione fluida della home appartiene all'ondata «Redesign
 parete/home». Guardia: `tests/unit/ds-v3/parete-fluida.test.ts` (4 test, incluso il vincolo che

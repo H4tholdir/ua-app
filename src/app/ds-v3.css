@@ -434,7 +434,9 @@
      containment di layout rende la shell containing block dei discendenti
      position:fixed — dentro ci vive solo la live region visually-hidden del
      drag (PareteClient), che non ha geometria visibile. Il ghost del drag è in
-     portale su body, fuori dal perimetro. */
+     portale su body, fuori dal perimetro. Il containment crea anche uno
+     stacking context sulla shell: ogni futuro overlay z-indexed va montato in
+     portale (come gli Sheet), NON inline qui dentro. */
   container-type: inline-size;
 }
 @media (min-width: 768px)  { [data-ds="v3"] .ds-parete-shell { max-width: 720px; } }
@@ -502,7 +504,11 @@
    gap 16px sul telefono, ~24.5px a 768 (l'àncora del mockup ratificato), 26px dal
    desktop in su. NB misurato in QA: i cqw risolvono sul CONTENT-BOX della shell
    (680px a viewport 768: max-width 720 − padding 20×2) — i coefficienti sono tarati
-   su quello, non sul viewport.
+   su quello, non sul viewport. Onestà (review 23/07): finché le max-width della
+   shell sono FISSE (480/720/1120) il gap assume di fatto 3 soli valori
+   (16/24.48/26) — la formula diventa davvero continua solo quando la shell
+   diventerà fluida (ondata «Redesign parete/home»); non contare su valori
+   intermedi oggi.
    PERIMETRO: solo la pagina /cassette (.ds-parete-shell). La home (.ua-stanza-parete)
    resta ai valori fissi sanzionati dal collaudo R3b (compatta 744px, gap 12) finché non
    arriva l'ondata «Redesign parete/home» — che ha già in dote la direzione fluida. */
