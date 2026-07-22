@@ -38,7 +38,11 @@ priorità/decisioni di Francesco. Nessun fix ancora applicato.
 | 5 | Lo swipe porta a un'«anteprima widget» della parete, non alla parete | By design (spec home «due stanze»): la seconda stanza È il muro vero ma **read-only** — la home non è un editor; tap su libera → `/cassette`, tap su occupata → lavoro (`StanzaParete.tsx:13-15`) | Tenere l'anteprima (più chiara come porta), renderla operativa, o far sì che lo swipe apra direttamente `/cassette` |
 | 13 | Da una cassetta libera non si può assegnare un lavoro | Confermato: lo sheet della libera offre rinomina/colore/sposta/butta via, **niente «Metti un lavoro»**. Oggi l'assegnazione parte sempre dal lavoro (pila → conferma) o dallo sheet dell'occupata («Sposta il lavoro in…») | Aggiungere «Metti un lavoro» (chip dal parco) allo sheet della libera |
 
-### 📎 Punto 14 (bonus) — shortcut «Le cassette» dal long-press sull'icona: assente su entrambi gli OS
+### 📎 Punto 14 (bonus) — shortcut «Le cassette» dal long-press sull'icona — ✅ CHIUSO (22/07 sera)
+
+**Esito: NON è un bug.** Francesco ha disinstallato e reinstallato la PWA su Android: la shortcut
+«Le cassette» ora c'è (conferma diretta). Era la WebAPK non ancora rigenerata. Su iOS resta il
+limite di piattaforma (Safari non supporta le manifest shortcuts). Nessuna azione per l'ondata R1.
 
 Il manifest live è CORRETTO (verificato: shortcut presente, `url: /cassette` in scope, icona
 192×192 ≥ minimo 96 di Chrome). Spiegazione diversa per OS:
