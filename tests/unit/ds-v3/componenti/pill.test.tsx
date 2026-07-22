@@ -2,6 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
+// Timeout 15s (flake di classe — diagnosi .superpowers/sdd/diagnosi-flake-vitest.md):
+// il PRIMO render della pagina catalogo in questo file costa ~0.5s da solo; sotto
+// contesa multi-worker del pool (suite parallele sui core) il tempo di parete sfora
+// i 5s di default. È lavoro CPU sincrono legittimo, non un'animazione da rendere
+// deterministica (quelle sono già spente suite-wide in tests/setup.ts): si calibra
+// il budget — stesso pattern di avviso-caricamento-vuoto.test.tsx.
+vi.setConfig({ testTimeout: 15_000 })
+
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
 // App Router lancia "invariant expected app router to be mounted" e fa
