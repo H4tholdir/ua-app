@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
+import { MotionGlobalConfig } from 'motion/react'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
 // Anti-flake sotto carico del pool vitest (diagnosi 20/07, riprodotto con 2
@@ -10,6 +11,18 @@ import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 // la semantica: solo QUANDO dichiarare il fallimento.
 configure({ asyncUtilTimeout: 5000 })
 vi.setConfig({ testTimeout: 15_000 })
+
+// Fix B (diagnosi 22/07): disattiva le animazioni motion per l'intero file,
+// così enter/exit di AnimatePresence sono istantanei e i waitFor di uscita
+// del toast non dipendono più dal tempo di parete della exit animation reale
+// (che sotto contesa multi-worker può sforare asyncUtilTimeout). Nessun test
+// di questo file asserisce valori di animazione motion in volo.
+beforeAll(() => {
+  MotionGlobalConfig.skipAnimations = true
+})
+afterAll(() => {
+  MotionGlobalConfig.skipAnimations = false
+})
 
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
@@ -36,9 +49,15 @@ function attivaReducedMotion(): () => void {
 }
 
 // Flush del requestAnimationFrame di AvvisoRidotto (entrata: false → true).
+// Fix A (diagnosi 22/07): il rAF reale, sotto starvation multi-worker, può
+// non scattare entro il testTimeout — il test resta appeso dentro un act()
+// mai risolto, che avvelena la coda-act globale di React e fa cadere a
+// cascata OGNI render() successivo del file. Con i fake timers attivati
+// PRIMA del render (vedi il test che chiama flushFrame), l'avanzamento è
+// deterministico e non dipende dal tempo di parete.
 async function flushFrame(): Promise<void> {
   await act(async () => {
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    await vi.advanceTimersByTimeAsync(20)
   })
 }
 
@@ -318,21 +337,29 @@ describe('Avviso — reduced motion (§8.4, ramo AvvisoRidotto)', () => {
   })
 
   it('il toast passa dal ramo ridotto: dissolvenza CSS pura (transition opacity), raggiunge opacity 1', async () => {
-    render(
-      <AvvisiProvider>
-        <DemoAvviso />
-      </AvvisiProvider>
-    )
-    fireEvent.click(screen.getByText('Avvisa'))
-    const toast = screen.getByText(TESTO_NORMALE).closest('.ds-avviso-card') as HTMLElement
-    expect(toast).not.toBeNull()
-    // Discriminatore del ramo ridotto (stessa tecnica del fix T10): la
-    // transizione è la dissolvenza CSS inline (cssEase.generico), che il ramo
-    // a molla (motion.div) non imposta mai come style inline.
-    expect(toast.style.transition).toContain('opacity')
-    await flushFrame()
-    expect(toast.style.opacity).toBe('1')
-    expect(toast).toHaveAttribute('aria-live', 'polite')
+    // Fix A (diagnosi 22/07): fake timers ATTIVI prima del render, così il
+    // rAF interno di AvvisoRidotto è servito da vi.advanceTimersByTimeAsync
+    // dentro flushFrame() e non dal rAF reale del browser/jsdom.
+    vi.useFakeTimers()
+    try {
+      render(
+        <AvvisiProvider>
+          <DemoAvviso />
+        </AvvisiProvider>
+      )
+      fireEvent.click(screen.getByText('Avvisa'))
+      const toast = screen.getByText(TESTO_NORMALE).closest('.ds-avviso-card') as HTMLElement
+      expect(toast).not.toBeNull()
+      // Discriminatore del ramo ridotto (stessa tecnica del fix T10): la
+      // transizione è la dissolvenza CSS inline (cssEase.generico), che il ramo
+      // a molla (motion.div) non imposta mai come style inline.
+      expect(toast.style.transition).toContain('opacity')
+      await flushFrame()
+      expect(toast.style.opacity).toBe('1')
+      expect(toast).toHaveAttribute('aria-live', 'polite')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('ramo ridotto: auto-dismiss dopo 4s e sospensione su hover funzionano anche qui (fake timers)', async () => {
