@@ -91,3 +91,16 @@ piano/spec dove divergono.
 Esecuzione del piano in **sessione nuova a contesto pulito** via
 `superpowers:subagent-driven-development` in worktree dedicato. Handoff:
 `docs/roadmap/2026-07-21-parete-cassette-execution-handoff.md`.
+
+---
+
+## Ratifiche di chiusura ondata (22/07/2026, sessione fasi di chiusura)
+
+1. **Merge RATIFICATO da Francesco**: FASE 10 (pulizia doc duplicati → merge → push → CI →
+   verifica uachelab.com) autorizzata per la sessione successiva. Prova finale su device
+   direttamente in produzione (scelta esplicita di Francesco).
+2. **Riga conteggio ricerca «{n} cassette accese»: VISIBILE** (non sr-only) — com'è implementata.
+3. **Testo striscia n=1 RATIFICATO**: «UÀ ha creato 1 cassetta dai tuoi lavori» (fix `5ec14f4`).
+4. **Istituito il censimento UI/UX** (`docs/design/audit-ui-ux/CENSIMENTO-UI-UX.md`): difetti
+   estetici/UX si censiscono subito e si risolvono quando si tocca la superficie; il residuo
+   arriva organizzato alla review finale globale (L3) di Francesco.
