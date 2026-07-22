@@ -77,9 +77,14 @@ piano/spec dove divergono.
 
 ## Gate residui nel piano
 1. **Apply migration** (Task 1) — conferma esplicita di Francesco prima di `db push`.
-2. **Mockup legenda 4 miniature nuove** (Task 18) — **GATE IN CORSO**: le 4 miniature nuove
-   (`allineatore`, `mascherina`, `riparazione`, `generica`) rendono un segnaposto neutro finché la
-   legenda non è approvata; DS v3 §5.36 le marca **«in ratifica»**. Nessun esito anticipato.
+2. **Mockup legenda 4 miniature nuove** (Task 18) — **GATE SUPERATO il 22/07/2026**, in due giri:
+   al primo Francesco ha scelto **allineatore A** e **mascherina B** e ha chiesto nuove proposte per
+   riparazione e generica («confondibile con la corona»); al secondo ha ratificato **riparazione C**
+   (spezzata in due metà: la frattura è geometria, non disegno) e **generica D** (molare occlusale:
+   punto di vista diverso dalla corona frontale). Path in `MiniaturaLavoro` (commit `fe9e184`);
+   varianti scelte e scartate a verbale nella legenda `2026-07-21-miniature-estensione-legenda.html`.
+   Direttiva collegata (22/07, post-ondata): **un simbolo per ciascuno dei 38 tipi + legenda in-app**
+   — nuova ondata a sé, registrata nel ledger.
 3. **Merge finale** — solo su richiesta esplicita, dopo review + QA + gate L2.
 
 ## Prossimo passo
