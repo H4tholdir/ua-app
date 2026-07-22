@@ -293,6 +293,26 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
     expect(scrollTo).not.toHaveBeenCalled()
   })
 
+  // Review Task 14, Important B-1. La freccia rende attiva la stanza SUBITO lasciando il focus
+  // sui dots; l'Invio che segue chiede quindi una stanza che è GIÀ quella attiva. Lì `setAttiva`
+  // fa bail-out sullo stesso valore, il re-render non avviene e l'effect che porta il focus non
+  // gira mai: senza la correzione l'Invio è morto e chi naviga da tastiera non entra mai nella
+  // stanza che ha appena scelto.
+  it("freccia poi Invio: il focus ENTRA nella stanza già selezionata (la freccia sceglie, l'Invio ci porta dentro)", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+    )
+    preparaViewport(container)
+    const tabs = screen.getAllByRole('tab')
+    tabs[0].focus()
+    await user.keyboard('{ArrowRight}')
+    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
+    expect(document.activeElement).toBe(tabs[1])
+    await user.keyboard('{Enter}')
+    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Cassetta C12' }))
+  })
+
   it('roving tabindex: un solo dot è nel flusso di Tab', () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
     const tabs = screen.getAllByRole('tab')
@@ -336,6 +356,27 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
     primoTab.focus()
     simulaScroll('parete', 0.95)
     expect(document.activeElement).toBe(primoTab)
+  })
+
+  // Review Task 14, Important B-1 — la seconda faccia dello stesso difetto. Il test qui sopra
+  // passa solo perché nessuno tocca un dot prima di scorrere: un tap sulla stanza GIÀ attiva
+  // lasciava un'intenzione di focus appesa, che il primo swipe successivo riscuoteva rubando il
+  // focus a chi stava soltanto guardando.
+  it('un tap sul dot GIÀ attivo non lascia armata alcuna intenzione di focus: il primo swipe non la riscuote', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+    )
+    preparaViewport(container)
+    // Il riferimento si prende PRIMA dello swipe: dopo, la stanza pile è aria-hidden e
+    // `getByRole` non la vedrebbe più.
+    const dentroPile = within(pannello('pile')).getByRole('button', { name: 'Tutto il resto' })
+    await user.click(screen.getAllByRole('tab')[0])
+    // Tap su una stanza già attiva: il suo sottoalbero non è inerte, quindi il focus ci entra
+    // subito — non c'è nulla da rimandare a un re-render che non avverrà.
+    expect(document.activeElement).toBe(dentroPile)
+    simulaScroll('parete', 0.95)
+    expect(document.activeElement).toBe(dentroPile)
   })
 })
 
@@ -410,9 +451,24 @@ describe('vistaHome / serveParete — la preferenza decide, il deep-link corregg
     expect(vistaHome('due_stanze', 'parete')).toEqual({ tipo: 'pager', iniziale: 'parete' })
   })
 
-  it("preferenza 'pile' → una sola stanza, e ?stanza=parete NON la trascina (la parete non viene nemmeno letta)", () => {
-    expect(vistaHome('pile', 'parete')).toEqual({ tipo: 'sola', stanza: 'pile' })
-    expect(serveParete(vistaHome('pile', 'parete'))).toBe(false)
+  it("preferenza 'pile' → una sola stanza quando nessuno chiede altro", () => {
+    expect(vistaHome('pile')).toEqual({ tipo: 'sola', stanza: 'pile' })
+    expect(serveParete(vistaHome('pile'))).toBe(false)
+  })
+
+  // Correzione della review Task 14 (§0): questo caso asseriva `{tipo:'sola', stanza:'pile'}`,
+  // cioè il deep-link scartato in silenzio. Spec §7 dice che `?stanza=` «è la garanzia che
+  // NESSUNA stanza è mai irraggiungibile»: l'asserzione vecchia fissava in verde proprio la
+  // rottura di quella garanzia. È il PAGER e non la sola parete perché chi ha preferenza 'pile'
+  // non ha, in home, alcuna via di ritorno dedicata — la voce «I lavori» esiste solo per chi ha
+  // preferenza 'parete' (§7, Task 15). Col pager la via di casa è a uno swipe.
+  it("preferenza 'pile' + ?stanza=parete → il PAGER aperto sulla parete, non la sola parete (via di ritorno garantita)", () => {
+    expect(vistaHome('pile', 'parete')).toEqual({ tipo: 'pager', iniziale: 'parete' })
+    expect(serveParete(vistaHome('pile', 'parete'))).toBe(true)
+  })
+
+  it("preferenza 'pile' + ?stanza=pile → resta la sola stanza pile (il deep-link conferma, non trasforma)", () => {
+    expect(vistaHome('pile', 'pile')).toEqual({ tipo: 'sola', stanza: 'pile' })
   })
 
   it("preferenza 'parete' → solo la parete; ?stanza=pile riporta alle pile (la via alle pile resta aperta)", () => {
@@ -491,11 +547,18 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
     expect(screen.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
   })
 
-  it("preferenza 'pile' + ?stanza=parete: resta la home delle pile — nessuna parete resa da dati mai letti", () => {
-    renderHome('pile', 'parete', [])
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
-    expect(screen.queryByText('La tua parete è vuota')).not.toBeInTheDocument()
-    expect(screen.getByText('DA CONSEGNARE OGGI')).toBeInTheDocument()
+  // Correzione della review Task 14 (§0): questo caso asseriva che il deep-link non producesse
+  // NULLA — «resta la home delle pile». Era la rottura della garanzia di spec §7 («nessuna
+  // stanza è mai irraggiungibile») fissata in verde. Il pager, e non la sola parete, perché chi
+  // ha preferenza 'pile' non ha alcuna via di ritorno dedicata: la voce «I lavori» esiste solo
+  // per chi ha preferenza 'parete'. Le pile restano montate, a uno swipe di distanza.
+  it("preferenza 'pile' + ?stanza=parete: il deep-link apre il pager SULLA parete, con le pile a uno swipe", () => {
+    renderHome('pile', 'parete')
+    expect(screen.getByRole('tablist')).toBeInTheDocument()
+    expect(document.querySelectorAll('[data-stanza]')).toHaveLength(2)
+    expect(pannello('parete')).toHaveAttribute('aria-hidden', 'false')
+    expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
   it("preferenza 'due_stanze': due stanze, dots, e UN SOLO ☰ raggiungibile (l'altro è dietro aria-hidden)", () => {

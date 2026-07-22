@@ -119,8 +119,20 @@ export function StanzePager(props: {
 
   const vaiA = useCallback(
     (destinazione: StanzaHome, origine: 'tap' | 'freccia') => {
+      // La stanza chiesta può essere quella GIÀ attiva: succede ogni volta che una freccia ha
+      // spostato la selezione (che cambia `attiva` subito, lasciando il focus sui dots) e poi si
+      // preme Invio. In quel caso `setAttiva` fa bail-out sullo stesso valore, il re-render non
+      // avviene e l'effect su `[attiva]` NON gira mai: armare `focusDaPortare` qui lo lascerebbe
+      // acceso a tempo indeterminato — il focus non entrerebbe nella stanza (Invio morto da
+      // tastiera) e il flag verrebbe poi riscosso dal primo swipe, che ruberebbe il focus a chi
+      // stava solo guardando. Quindi: se la stanza è già attiva il suo sottoalbero è già
+      // non-inerte e il focus può entrare SUBITO, senza passare dall'effect.
+      const giaAttiva = destinazione === attiva
       setAttiva(destinazione)
-      if (origine === 'tap') focusDaPortare.current = true
+      if (origine === 'tap') {
+        if (giaAttiva) stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus()
+        else focusDaPortare.current = true
+      }
       const contenitore = viewport.current
       const bersaglio = stanze.current[destinazione]
       // `scrollTo` non esiste in jsdom (e non esisterebbe su un contenitore mai montato): la
@@ -129,7 +141,7 @@ export function StanzePager(props: {
       if (!contenitore || !bersaglio || typeof contenitore.scrollTo !== 'function') return
       contenitore.scrollTo({ left: bersaglio.offsetLeft, behavior: ridotto ? 'auto' : 'smooth' })
     },
-    [ridotto]
+    [ridotto, attiva]
   )
 
   return (

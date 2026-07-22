@@ -31,12 +31,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
   // striscia.ts) — front_desk/tecnico non pagano il round-trip.
   const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
-  const [pile, ingressi, tecniciSenzaAnagrafica, preferenze] = await Promise.all([
+  const [pile, ingressi, tecniciSenzaAnagrafica, preferenze, pareteLetta] = await Promise.all([
     getPileHome(svc, labId, perimetro),
     fetchIngressiStriscia(svc, labId, ruolo),
     usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
     // «La tua home» (§7, Task 14): SEMPRE self (`context.userId`), mai cross-utente.
     svc.from('utenti').select('nav_preferences').eq('id', context.userId).single(),
+    // La parete sta DENTRO il Promise.all (spec §6). Non può essere condizionata alla
+    // preferenza senza uscirne: la preferenza è essa stessa una di queste letture, quindi
+    // gatarla significherebbe un round-trip in fila DOPO — e a pagarlo sarebbe la maggioranza,
+    // perché `due_stanze` è il default e la parete gli serve sempre. Chi ha scelto «solo le
+    // pile» paga 3 query che non guarda, ma in PARALLELO: zero latenza aggiunta. È il baratto
+    // giusto sulla pagina più caricata dell'app.
+    getParete(svc, labId),
   ])
   if (preferenze.error) {
     // Fail-soft: `homePrefDa` degrada a 'due_stanze' su null/garbage. Si logga perché una
@@ -44,13 +51,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     console.error('[dashboard] lettura nav_preferences fallita:', preferenze.error)
   }
 
-  // La forma della home e la lettura della parete escono dalla STESSA regola (`vistaHome`):
-  // così la stanza Parete non può essere resa con dati mai letti. `getParete` non è gratuita
-  // (3 query + eventuali RPC di auto-riparazione, D-5): chi ha scelto «solo le pile» non la
-  // paga mai — nemmeno con `?stanza=parete`, che nessuna superficie dell'app emette.
-  // Le pile invece si leggono SEMPRE: servono a `scegliSegnale` e a `HomeDesktop`.
+  // La forma della home e l'USO della parete escono dalla STESSA regola (`vistaHome`): così una
+  // stanza Parete non può essere resa con dati che non le appartengono, e — nel verso opposto —
+  // non si porta al client un elenco di cassette che nessuna stanza mostrerà.
   const homePref = homePrefDa(preferenze.data?.nav_preferences)
-  const parete = serveParete(vistaHome(homePref, stanzaParam)) ? await getParete(svc, labId) : []
+  const parete = serveParete(vistaHome(homePref, stanzaParam)) ? pareteLetta : []
   // O1i (Task 10) — trial calcolato QUI (mai `new Date()` client) e passato
   // come ingresso: `scegliSegnale` resta puro, `sTrial` decide da sé
   // ambra/rosso. Scaduto/sospeso non arrivano qui: i redirect di layout li
