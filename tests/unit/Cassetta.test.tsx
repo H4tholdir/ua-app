@@ -3,7 +3,7 @@
 // src/components/ds/__tests__/ sarebbe un RED finto.
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { Cassetta, targaScura, derivaFacciaCustom } from '@/components/ds/Cassetta'
+import { Cassetta, targaScura, derivaFacciaCustom, facciaScura } from '@/components/ds/Cassetta'
 
 const lavoroOccupato = { numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }
 
@@ -355,6 +355,41 @@ describe('P11c — derivaFacciaCustom: tridimensionalità su qualsiasi hex', () 
   })
   it('è sempre un linear-gradient a 180deg', () => {
     expect(derivaFacciaCustom('#123456')).toMatch(/^linear-gradient\(180deg,/)
+  })
+})
+
+describe('P11c rev — Variante A nero fedele (ratifica 22/07 sera)', () => {
+  it('facciaScura: #000000 è scura', () => {
+    expect(facciaScura('#000000')).toBe(true)
+  })
+  it('facciaScura: #E8323B non è scura', () => {
+    expect(facciaScura('#E8323B')).toBe(false)
+  })
+  it('facciaScura: #FFFFFF non è scura', () => {
+    expect(facciaScura('#FFFFFF')).toBe(false)
+  })
+
+  it('derivaFacciaCustom su #000000: floor sul gradiente, mai nero assoluto (color-mix su entrambi gli stop)', () => {
+    const g = derivaFacciaCustom('#000000')
+    expect(g.match(/white/g)?.length).toBe(2)
+    expect(g).not.toMatch(/,\s*#000000\)$/)
+  })
+  it('derivaFacciaCustom su #E8323B: ramo storico invariato', () => {
+    const g = derivaFacciaCustom('#E8323B')
+    expect(g).toContain('black')
+  })
+
+  it('Cassetta con colore="#000000" porta la classe is-nera', () => {
+    render(<Cassetta id="cn1" nome="N1" colore="#000000" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).toContain('is-nera')
+  })
+  it('Cassetta con colore="rossa" (slug standard) NON porta is-nera', () => {
+    render(<Cassetta id="cn2" nome="N2" colore="rossa" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).not.toContain('is-nera')
+  })
+  it('Cassetta con custom chiaro (#FFAA00) NON porta is-nera', () => {
+    render(<Cassetta id="cn3" nome="N3" colore="#FFAA00" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).not.toContain('is-nera')
   })
 })
 

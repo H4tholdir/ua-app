@@ -76,12 +76,28 @@ export function targaScura(colore: string): boolean {
   return false
 }
 
-/** Collaudo R1 (P11c) — la faccia custom deriva luce/ombra dall'hex con un CLAMP di luminanza:
- *  sotto 0.08 (nero, blu notte, ecc.) il derivato SCHIARISCE — `color-mix(…, black)` su una base
- *  già nera è nero-su-nero e la cassetta diventa piatta (collaudo device 22/07). */
+/**
+ * facciaScura (Collaudo R1, revisione P11c — ratifica Francesco 22/07 sera) — mirror strutturale
+ * di `targaScura`: hex custom con luminanza relativa WCAG < 0.08 è una faccia "quasi-nera". Sotto
+ * questa soglia il solo gradiente schiarito non basta più — l'intera anatomia scura (cavità,
+ * ombra interna, linguetta) sparisce nero-su-nero: da qui la classe `is-nera` (v. componente sotto
+ * e `ds-v3.css`), che passa alla strategia speculare.
+ */
+export function facciaScura(hex: string): boolean {
+  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return false
+  return luminanzaRelativa(hex) < 0.08
+}
+
+/** Collaudo R1 (P11c, rev. ratifica 22/07 sera — Variante A «nero fedele») — la faccia custom
+ *  deriva luce/ombra dall'hex con un FLOOR sul gradiente: su una faccia quasi-nera (`facciaScura`)
+ *  nessuno dei due stop può essere il colore piatto originale (nero-su-nero, collaudo device
+ *  22/07) — entrambi passano da `color-mix(…, white)`, in modo che il colore letterale scelto
+ *  dall'utente (nero puro incluso) non sopravviva mai come stop finale del gradiente. Il resto
+ *  dell'anatomia (cavità/ombra/linguetta) la ribalta la classe `is-nera` in ds-v3.css con la
+ *  strategia speculare. */
 export function derivaFacciaCustom(hex: string): string {
-  if (luminanzaRelativa(hex) < 0.08) {
-    return `linear-gradient(180deg, color-mix(in srgb, ${hex} 78%, white), ${hex})`
+  if (facciaScura(hex)) {
+    return `linear-gradient(180deg, color-mix(in srgb, ${hex} 77%, white), color-mix(in srgb, ${hex} 94%, white))`
   }
   return `linear-gradient(180deg, ${hex}, color-mix(in srgb, ${hex} 72%, black))`
 }
@@ -270,12 +286,16 @@ export function Cassetta(props: {
   const scura = targaScura(colore)
   const classeColoreStandard = SLUG_STANDARD.has(colore) ? colore : undefined
   const backgroundCustom = classeColoreStandard ? undefined : derivaFacciaCustom(colore)
+  // Collaudo R1 (P11c rev, ratifica 22/07 sera): SOLO il custom (hex) può essere "nero" — gli slug
+  // standard sono le 6 facce fisse del mockup, mai quasi-nere.
+  const nera = !classeColoreStandard && facciaScura(colore)
 
   const classi = [
     'ds-cassetta',
     classeColoreStandard,
     occupata ? undefined : 'is-libera',
     scura ? 'is-chiara' : undefined,
+    nera ? 'is-nera' : undefined,
     stato === 'accesa' ? 'is-accesa' : undefined,
     stato === 'spenta' ? 'is-spenta' : undefined,
     draggable ? 'is-draggable' : undefined,

@@ -30,3 +30,18 @@ describe('SwatchesColore — P11a/P11b (collaudo device 22/07)', () => {
     expect(input).not.toHaveAttribute('tabindex', '-1')
   })
 })
+
+describe('SwatchesColore — P11c rev: is-nera sullo swatch custom (ratifica 22/07 sera)', () => {
+  it('con valore="#000000" lo swatch custom porta is-nera', () => {
+    render(<SwatchesColore valore="#000000" onScegli={vi.fn()} />)
+    const input = screen.getByLabelText('Colore personalizzato')
+    const span = input.closest('.ds-swatch-custom') as HTMLElement
+    expect(span.className).toContain('is-nera')
+  })
+  it('con valore="#88CCEE" (chiaro) lo swatch custom NON porta is-nera', () => {
+    render(<SwatchesColore valore="#88CCEE" onScegli={vi.fn()} />)
+    const input = screen.getByLabelText('Colore personalizzato')
+    const span = input.closest('.ds-swatch-custom') as HTMLElement
+    expect(span.className).not.toContain('is-nera')
+  })
+})
