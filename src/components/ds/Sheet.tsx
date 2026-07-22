@@ -246,6 +246,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
           />
           <motion.div
             ref={dialogRef}
+            className="ds-sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby={ariaLabelledby}
@@ -301,6 +302,7 @@ function SheetRidotto(props: {
       />
       <div
         ref={dialogRef}
+        className="ds-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={ariaLabelledby}
@@ -334,6 +336,11 @@ const scrimStile: CSSProperties = {
   background: materia.scrim,
 }
 
+// Il pannello porta la classe `ds-sheet` (entrambe le varianti, motion e
+// ridotta): NON ha stili propri qui — è l'aggancio contestuale per ds-v3.css
+// (gate L2 22/07/2026: in dark le facce `--card`/`--sh-press` dei componenti
+// premibili DENTRO lo sheet — ChipScelta, TastoTondo — si rimappano su --elv
+// + hairline, altrimenti sparirebbero sul pannello che è anch'esso --card).
 const sheetStile: CSSProperties = {
   position: 'relative',
   width: '100%',

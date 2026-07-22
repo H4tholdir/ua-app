@@ -66,6 +66,25 @@
   border: none;
   border-top: 1px solid rgba(255,255,255,.06);
 }
+/* Gate L2 (22/07/2026, ondata Parete) — dark DENTRO gli sheet: ChipScelta
+   (§5.31) e TastoTondo (§5.6) hanno faccia `--card` + `--sh-press`, ma il
+   pannello dello sheet È anch'esso `--card` e in dark `--sh-press` è none →
+   la pillola/il tondo sparivano (restava solo il testo). Rimedio da spec
+   §3.2 (in dark l'elevazione è una superficie PIÙ CHIARA, mai un'ombra):
+   dentro `.ds-sheet` (classe-aggancio sul pannello, v. Sheet.tsx) le loro
+   variabili si rimappano — `--card` → `--elv`, `--sh-press` → hairline
+   superiore (gemella di .ds-card / .ds-tasto-secondario qui sopra). Si
+   ridefiniscono le VARIABILI, non le proprietà: gli style inline dei
+   componenti (`background: var(--card)`, `box-shadow: var(--sh-press)`)
+   restano intatti e risolvono i nuovi valori SOLO in questo contesto; la
+   chip selezionata (faccia `--green-tint`, shadow `none` letterale) e ogni
+   uso fuori dagli sheet (header pagina, wizard, home…) non cambiano. In
+   light la regola non esiste: resa identica a prima. */
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-chip-scelta,
+[data-theme="dark"] [data-ds="v3"] .ds-sheet .ds-tasto-tondo {
+  --card: var(--elv);
+  --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
+}
 
 /* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
 [data-ds="v3"] .ds-grana {
@@ -250,7 +269,15 @@
   gap: 0;
   border: none;
   border-radius: 10px 10px 12px 12px;
-  padding: 9px 10px 10px;
+  /* Gate L2 (22/07/2026) — guardia della cavità: il padding-top passa da 9 a
+     44. Nel caso ratificato (contenuto su 1 riga) NON cambia un pixel: lo
+     stack targa+riga è alto 50 e ancorato in basso (flex-end), quindi
+     44 + 50 + 10 = 104 = min-height, targa top a 44 come nel mockup. Quando
+     però il contenuto va a capo (numero lavoro lungo, misurato a 390px), il
+     testo non può più risalire sopra y=44 a coprire la cavità (fascia 5..51,
+     miniatura 11..45): il tile cresce verso il basso invece di invadere.
+     Lavora in coppia con il clamp a 2 righe di `.ds-cassetta-cont` (sotto). */
+  padding: 44px 10px 10px;
   min-height: 104px;
   min-width: 44px;
   cursor: pointer;
@@ -326,6 +353,16 @@
   position: relative; z-index: 1; text-align: center; margin-top: 5px;
   font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95);
   text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  /* Gate L2 (22/07/2026) — clamp a 2 righe con ellissi: nel mockup ratificato
+     la riga «n.{numero} · {dentista}» è sempre UNA; con numeri lavoro lunghi
+     (misurato a 390px: 3 righe) il blocco risaliva a coprire la miniatura.
+     Il nome completo resta nell'`aria-label` del button (troncamento visivo,
+     non semantico — stessa regola della targa ~6ch). In coppia con la
+     guardia padding-top:44 di `.ds-cassetta` (sopra). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
   color: rgba(29,25,19,.85); text-shadow: none;
