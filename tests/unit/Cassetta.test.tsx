@@ -341,3 +341,46 @@ describe('Cassetta — colore custom (hex) e i 6 slug standard', () => {
     )
   })
 })
+
+describe('P9 — tap Android con jitter (collaudo device 22/07)', () => {
+  it('touch: movimento oltre soglia interna MA click naturale emesso → onTap DEVE scattare', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onSollevata={vi.fn()} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 111, clientY: 100 }) // 11px: per noi «spostato», per Chrome ancora tap
+    fireEvent.pointerUp(btn, { pointerType: 'touch' })
+    fireEvent.click(btn) // Chrome lo emette: il gesto ERA un tap
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('touch: vero scroll (movimento, NESSUN click dal browser) → onTap NON scatta', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onSollevata={vi.fn()} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 160 })
+    fireEvent.pointerCancel(btn)
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('mouse: trascinamento con drag DISABILITATO resta ingoiato (comportamento invariato)', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'mouse', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'mouse', clientX: 130, clientY: 100 })
+    fireEvent.pointerUp(btn, { pointerType: 'mouse' })
+    fireEvent.click(btn) // il mouse emette click anche dopo un trascinamento
+    expect(onTap).not.toHaveBeenCalled()
+  })
+})

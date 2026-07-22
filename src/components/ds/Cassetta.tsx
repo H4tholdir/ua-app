@@ -114,6 +114,12 @@ export function Cassetta(props: {
   // `tapGestito`: un tap è già stato servito (pointerup o tastiera) in questo ciclo — il click
   // sintetico che segue va ingoiato, così `onClick` (per le AT) non raddoppia l'azione.
   const tapGestito = useRef(false)
+  // `ultimoPointer` (P9, collaudo device 22/07): pointerType dell'ultimo gesto iniziato. Su Chrome
+  // Android il jitter di un tap frettoloso (8-15px) supera la NOSTRA soglia (`spostato = true`)
+  // ma resta dentro lo slop di sistema del browser, che quindi EMETTE comunque il click naturale.
+  // Dopo un VERO scroll il browser non emette click sull'elemento: su touch, un click che arriva
+  // è per definizione un tap — va lasciato passare, non ingoiato come su mouse/pen dopo un drag.
+  const ultimoPointer = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function pulisciTimer() {
@@ -124,6 +130,7 @@ export function Cassetta(props: {
   }
 
   function handlePointerDown(evento: ReactPointerEvent<HTMLButtonElement>) {
+    ultimoPointer.current = evento.pointerType
     inizio.current = { x: evento.clientX, y: evento.clientY }
     spostato.current = false
     pressioneLunga.current = false
@@ -203,12 +210,23 @@ export function Cassetta(props: {
 
   function handleClick() {
     // Difetto a11y n.2 (Task 13): il doppio-tap di VoiceOver/TalkBack emette un `click` puro,
-    // senza sequenza pointer. Se un tap pointer o la tastiera hanno già servito l'azione
-    // (`tapGestito`), o se il gesto è finito in drag/sollevamento (`spostato`/`sollevata`), il
-    // click è solo la coda sintetica e va ingoiato. Altrimenti è un'attivazione AT pura → onTap.
-    if (spostato.current || sollevata.current) {
+    // senza sequenza pointer. Se la tastiera ha già servito l'azione (`tapGestito`), o se il
+    // gesto è finito in sollevamento (`sollevata`), il click è solo la coda sintetica e va
+    // ingoiato. Altrimenti è un'attivazione AT pura → onTap.
+    if (sollevata.current) {
       spostato.current = false
       sollevata.current = false
+      return
+    }
+    // P9 (collaudo device 22/07): il ramo `spostato` ingoia SOLO i puntatori che emettono click
+    // dopo un trascinamento (mouse/pen). Su TOUCH il browser non emette click dopo uno scroll: se
+    // il click arriva, il gesto era un tap dentro lo slop di sistema — è il tap Android che il
+    // collaudo device ha trovato perso. `spostato` si azzera in ogni caso.
+    if (spostato.current) {
+      const eraTouch = ultimoPointer.current === 'touch'
+      spostato.current = false
+      if (!eraTouch) return
+      onTap()
       return
     }
     if (tapGestito.current) {
