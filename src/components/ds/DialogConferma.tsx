@@ -8,13 +8,14 @@
 // esplicito della conferma: è un contratto del chiamante, non verificabile a
 // runtime (come le altre regole "di legge" del design system — solo JSDoc).
 
-import { useEffect, useId, type CSSProperties, type MouseEvent } from 'react'
+import { useEffect, useId, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { tipografia, spazio, raggio, materia } from '@/design-system/v3/tokens'
 import { TastoPrimario } from './TastoPrimario'
 import { TastoSecondario } from './TastoSecondario'
+import { useTapScrim } from './useTapScrim'
 
 /**
  * DialogConferma — conferma distruttiva centrata (§5.17).
@@ -69,6 +70,9 @@ export function DialogConferma(props: {
   const reduced = useReducedMotion()
   const titoloId = useId()
   const testoId = useId()
+  // Collaudo R3 (P9): stesso contratto anti-ghost-click dello Sheet — lo scrim annulla solo se
+  // il gesto è nato sullo scrim (v. useTapScrim). Cablato su ENTRAMBE le varianti.
+  const tapScrim = useTapScrim(aperto, onAnnulla)
 
   useEffect(() => {
     if (!aperto) return
@@ -80,10 +84,6 @@ export function DialogConferma(props: {
   }, [aperto, onAnnulla])
 
   if (typeof document === 'undefined') return null
-
-  function chiudiSeScrim(e: MouseEvent<HTMLDivElement>) {
-    if (e.target === e.currentTarget) onAnnulla()
-  }
 
   const tasti = [
     <TastoSecondario key="sicura" onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>,
@@ -113,7 +113,7 @@ export function DialogConferma(props: {
   const overlay = reduced ? (
     aperto ? (
       <div data-ds="v3" style={wrapperStile}>
-        <div className="ds-dialog-scrim" onClick={chiudiSeScrim} style={scrimStile} />
+        <div className="ds-dialog-scrim" onPointerDown={tapScrim.onPointerDown} onClick={tapScrim.onClick} style={scrimStile} />
         <div role="dialog" aria-modal="true" aria-labelledby={titoloId} aria-describedby={testoId} style={cardStile}>
           {contenutoCard}
         </div>
@@ -125,7 +125,8 @@ export function DialogConferma(props: {
         <motion.div key="dialog-overlay" data-ds="v3" style={wrapperStile}>
           <motion.div
             className="ds-dialog-scrim"
-            onClick={chiudiSeScrim}
+            onPointerDown={tapScrim.onPointerDown}
+            onClick={tapScrim.onClick}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
