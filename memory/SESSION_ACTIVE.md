@@ -1,10 +1,8 @@
-# Sessione attiva — 22/07/2026 notte · R3+R3b DEPLOYATI — PROSSIMA SESSIONE: post-R3
+# Sessione attiva — 22/07/2026 notte · R3+R3b CHIUSI E DEPLOYATI, overlay rimosso
 
-Eseguire `docs/roadmap/2026-07-22-post-r3-handoff.md` in sessione nuova, in ordine:
-(0) verifica device di Francesco → RIMUOVERE overlay `DiagnosticaViewport` ·
-(1) mini-giro «gap cassette tablet» (mockup multipli, scelta di Francesco) ·
-(2) flake vitest di classe (test-only, protocollo in `.superpowers/sdd/diagnosi-flake-vitest.md`) ·
-(3) «iOS fluidità» (profiling su device) · (4) «Redesign parete/home» (Grande, design-first —
-include il dimensionamento verticale FLUIDO della home: scala piena ~900px non entra sui device).
-Chiusi stanotte: P9 (ghost click, confermato su device) · D-2 · P-STATUSBAR (zona morta scala
-device-corti, soglia 700→780 + compatta 744px). Prod verificata no-scroll a 375×755.
+Collaudo R3 COMPLETO: P9 chiuso (ghost click, confermato su device) · D-2 ok · P-STATUSBAR
+risolto (zona morta scala device-corti 700→780, compatta 744px; home conferma di Francesco:
+entra senza scroll) · overlay diagnostico RIMOSSO e deployato. PROSSIMA SESSIONE: eseguire
+`docs/roadmap/2026-07-22-post-r3-handoff.md` dal punto 1, in ordine: (1) mini-giro «gap
+cassette tablet» (mockup multipli) · (2) flake vitest di classe · (3) «iOS fluidità» ·
+(4) «Redesign parete/home» (include dimensionamento verticale fluido della home).

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeInitializer } from '@/components/layout/ThemeInitializer'
-import { DiagnosticaViewport } from '@/components/layout/DiagnosticaViewport'
 import '@fontsource/plus-jakarta-sans/400.css'
 import '@fontsource/plus-jakarta-sans/600.css'
 import '@fontsource/plus-jakarta-sans/700.css'
@@ -56,9 +55,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full flex flex-col antialiased">
         {children}
-        {/* Collaudo R3 (P-STATUSBAR) — overlay diagnostico TEMPORANEO, attivo solo con
-            ?diag=viewport (flag persistito). Rimuovere a collaudo chiuso. */}
-        <DiagnosticaViewport />
         <SpeedInsights />
       </body>
     </html>

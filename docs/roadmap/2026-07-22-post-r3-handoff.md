@@ -12,12 +12,9 @@
 
 ## Da fare, IN ORDINE
 
-### 0. Verifica finale device + rimozione overlay diagnostico (micro, primo atto)
-Francesco riapre la PWA installata → la home deve entrare SENZA scroll (banner incluso).
-A conferma ricevuta: **RIMUOVERE l'overlay** — `src/components/layout/DiagnosticaViewport.tsx`,
-`src/lib/utils/diagnostica-viewport.ts`, `tests/unit/diagnostica-viewport.test.ts`, mount+import in
-`src/app/layout.tsx` (commento «TEMPORANEO» già in loco). Se il device dovesse ancora scrollare:
-l'overlay è già in prod per rimisurare (`?diag=viewport`), NON rimuoverlo.
+### 0. ~~Verifica device + rimozione overlay diagnostico~~ — ✅ CHIUSO il 22/07 notte
+Francesco ha confermato: home senza scroll nella PWA. Overlay RIMOSSO e deployato in questa
+stessa sessione (componente+helper+test+mount). Non c'è più nulla da fare qui.
 
 ### 1. Mini-giro «gap cassette tablet» (design-first, regola 0B)
 Segnalazione device: spaziatura della griglia cassette su tablet da rivedere. Percorso: mockup HTML
