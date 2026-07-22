@@ -41,9 +41,45 @@
   cap N nella stanza home (no-scroll); semantica long-press vs sheet; azioni
   «Sposta in…» / «Segna come libera»; `inert` sulla stanza non attiva.
 
+## Ratifiche del 22/07/2026
+
+Aggiunte in corso d'implementazione, dopo panel/ricerca dedicati. Sostituiscono il testo del
+piano/spec dove divergono.
+
+1. **S2 — trascinamento completo, touch incluso (Task 13).** Il riordino della parete usa il
+   **drag pieno anche su touch**, non la sola variante ▲▼/mouse (S1). Scelta ratificata dopo un
+   panel advisor 3× + una ricerca dedicata (`.superpowers/sdd/ricerca-drag-touch.md`), che
+   sostituisce il testo del Task 13 dove diverge. Conseguenze incise nella spec di design §5.4:
+   **nessun HTML5 DnD** (neutralizzato con `draggable=false` + `preventDefault` su `dragstart`);
+   soglia **8px riqualificata per `pointerType`** (su touch ANNULLA l'hold, su mouse/pen è il
+   trigger); listener nativo `touchmove` su `window` al mount con `{passive:false}` che
+   `preventDefault` **solo a drag attivo**; **niente refetch prima del drag** → snapshot al lift +
+   `riconcilia()` al drop + **una sola POST**; auto-scroll ai bordi obbligatorio.
+
+2. **Doppio tap del colore custom (Task 12).** Nel sheet cassetta le facce **standard** committano
+   con **un solo tap** (è un click discreto); il **colore custom** arriva LIVE dal picker nativo
+   (`<input type="color">`, valori in streaming) e quindi **resta in sospeso**: lo committa un
+   **secondo tap** esplicito (tasto di conferma). Motivo «una cosa alla volta»: un valore che
+   cambia in continuo non deve scrivere a ogni frame. (Codice: `CassettaSheet.tsx`,
+   `scegliDaiSwatches` — review Task 12, Important 1.)
+
+3. **Ricerca «globale» (§5.1 spec di design).** Il pagliaio della ricerca «che accende» è esteso a
+   `nome ∥ n.{numero} ∥ dentista ∥ paziente ∥ descrizione ∥ etichetta leggibile del tipo ∥ colore`.
+   Limite noto e accettato: un **hex custom** può collidere con query numeriche corte — **rumore
+   additivo**, mai un mancato match.
+
+4. **Deroga a11y da tastiera — DEFERITA fuori ondata (§12 spec di design).** L'accessibilità **da
+   tastiera** del **riordino** e dello **sheet su cassetta occupata** è rimandata a un'ondata
+   dedicata: in quest'ondata il **mouse replica il gesto touch**, ma non c'è un equivalente da
+   tastiera del sollevamento (da tastiera si arriva sempre al tap → scheda lavoro). La promessa di
+   spec è stata riformulata perché il documento non menta. Affordance agli atti come mockup:
+   `docs/design/mockups/2026-07-22-riordino-affordance-a11y.html`.
+
 ## Gate residui nel piano
 1. **Apply migration** (Task 1) — conferma esplicita di Francesco prima di `db push`.
-2. **Mockup legenda 4 miniature nuove** (Task 18) — approvazione prima del React.
+2. **Mockup legenda 4 miniature nuove** (Task 18) — **GATE IN CORSO**: le 4 miniature nuove
+   (`allineatore`, `mascherina`, `riparazione`, `generica`) rendono un segnaposto neutro finché la
+   legenda non è approvata; DS v3 §5.36 le marca **«in ratifica»**. Nessun esito anticipato.
 3. **Merge finale** — solo su richiesta esplicita, dopo review + QA + gate L2.
 
 ## Prossimo passo
