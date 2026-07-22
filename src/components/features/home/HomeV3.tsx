@@ -129,8 +129,13 @@ export function HomeV3(props: {
         .ua-home { position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
                    padding: 24px; display: flex; flex-direction: column; min-height: 100dvh; }
         .ua-home .pile { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; margin-top: 16px; }
-        .ua-home .foot { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        @media (max-width: 767px) { .ua-home { height: 100dvh; overflow: hidden; } } /* §3.3 no-scroll */
+        .ua-home .foot { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+                         padding-bottom: env(safe-area-inset-bottom); }
+        /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
+           sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
+           TastoPiù (collaudo device 22/07). min-height + overflow-y:auto = no-scroll quando ci
+           sta, scroll naturale quando non ci sta. */
+        @media (max-width: 767px) { .ua-home { min-height: 100dvh; height: auto; overflow-y: auto; } }
         @media (max-height: 700px) { /* §7.1 rev. 3.1 — scala device-corti */
           .ua-home { padding: 14px 24px; }
           .ua-home .striscia-slot { margin-top: 10px; }
