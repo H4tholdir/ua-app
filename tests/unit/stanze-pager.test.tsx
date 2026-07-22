@@ -586,3 +586,46 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
   })
 })
+
+describe('Collaudo R2 — il focus del cambio stanza non deve scrollare (D-1, 22/07 sera)', () => {
+  // Root cause accertata su Chromium reale: il focus() post-render SENZA preventScroll fa lo
+  // scroll-into-view istantaneo, che CANCELLA lo scrollTo smooth del viewport; lo snap mandatory
+  // ri-aggancia alla stanza di partenza → il tap sul dot sembra morto.
+  it('tap sul dot: ogni focus() porta preventScroll:true', async () => {
+    const chiamate: Array<FocusOptions | undefined> = []
+    const spia = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (opts?: FocusOptions) {
+      chiamate.push(opts)
+    })
+    try {
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      chiamate.length = 0
+      const dots = screen.getAllByRole('tab')
+      await act(async () => {
+        dots[1].click()
+      })
+      expect(chiamate.length).toBeGreaterThan(0)
+      for (const opts of chiamate) expect(opts).toMatchObject({ preventScroll: true })
+    } finally {
+      spia.mockRestore()
+    }
+  })
+
+  it('tap sul dot della stanza GIÀ attiva: anche quel focus è preventScroll', async () => {
+    const chiamate: Array<FocusOptions | undefined> = []
+    const spia = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (opts?: FocusOptions) {
+      chiamate.push(opts)
+    })
+    try {
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      chiamate.length = 0
+      const dots = screen.getAllByRole('tab')
+      await act(async () => {
+        dots[0].click()
+      })
+      expect(chiamate.length).toBeGreaterThan(0)
+      for (const opts of chiamate) expect(opts).toMatchObject({ preventScroll: true })
+    } finally {
+      spia.mockRestore()
+    }
+  })
+})
