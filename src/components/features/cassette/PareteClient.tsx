@@ -186,8 +186,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
   return (
     <section className="ds-parete-shell">
       <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
-        {/* Provenienza multipla (home, «Tutto il resto», scheda lavoro, shortcut PWA): la ‹
-            porta SEMPRE alla home, mai `back()` — che rimanderebbe a un punto imprevedibile. */}
+        {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
         <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
         <h1
           style={{
