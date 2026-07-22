@@ -223,6 +223,23 @@ chore(deps): add motion@12
 
 Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
 
+### ⚠️ I dati nel DB sono di TEST, non di clienti reali (Francesco, 21/07/2026)
+
+Il progetto Supabase `iagibumwjstnveqpjbwq` contiene **solo dati di prova**. Alla consegna della PWA
+in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico da preservare.
+
+**Conseguenze operative — pesare il rischio di conseguenza, senza scorciatoie:**
+- **Migrazione/backfill di dati preesistenti: rischio BASSO.** Non serve progettare reversibilità,
+  tabelle di audit, o preservazione di valori legacy per i dati oggi in DB. Se un backfill sbaglia,
+  si rilancia. NON spendere ondate a proteggere valori di test.
+- **Schema, RLS, RPC, vincoli: rischio ALTO, invariato.** Sopravvivono alla pulizia e reggeranno i
+  dati veri. Correttezza, isolamento tenant e sicurezza si giudicano con lo stesso rigore di sempre.
+- **Una migration che ABORTA resta un problema** anche su dati di test: blocca il deploy e lascia il
+  ledger delle migration disallineato. La robustezza dell'*applicazione* conta; la fedeltà del *dato
+  migrato* no.
+- Vale finché questa riga è qui. **Alla prima onboarding di un laboratorio reale, cancellare questa
+  sezione** — da quel momento ogni valutazione torna a peso pieno.
+
 **Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
 **Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`. Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).

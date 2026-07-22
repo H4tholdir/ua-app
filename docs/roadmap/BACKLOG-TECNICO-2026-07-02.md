@@ -2,6 +2,7 @@
 **Generato:** 2 luglio 2026, sintesi di 11 report di re-audit (`docs/audit-2026-07-02/`)
 **Fonte:** analisi diretta del codice sorgente deployato in produzione + verifica live Playwright, non stime.
 **Scopo:** unica lista prioritizzata di tutto ciò che va sistemato o completato, con file:riga esatti, causa, fix consigliato ed effort stimato dove disponibile.
+**Ultimo allineamento stato:** 21/07/2026 — tabella §0 e intestazioni §A/§N/§O sincronizzate con il censimento `2026-07-20-censimento-a-o.md`, Bundle Q/T/E (20/07), date fiscali + P2-d1 (20/07) e ondata A mini-triage (21/07, main `50e6b79`).
 
 > Legenda fonte: **[Odt]**=Odontotecnico **[Tit]**=Titolare **[Den]**=Dentista **[PWA]**=PWA Engineer **[Des]**=Designer **[UX]**=UX Expert **[SWE]**=Software Engineer **[FT]**=Flow Titolare **[FTec]**=Flow Tecnico **[FFD]**=Flow Front Desk **[Sis]**=Sistematico
 
@@ -42,26 +43,26 @@
 ### 🟠 Alto (20)
 | ID | Titolo | Stato | Data/commit | Note |
 |---|---|---|---|---|
-| A1 | Push assente su nuova assegnazione lavoro | ⏳ | | |
-| A2 | Nessun fallback offline/rete lenta | ⏳ | | |
-| A3 | Bug login autofill email passkey | ⏳ | | |
-| A4 | Cache versioning statico, no TTL | 🔄 | 03/07/2026 · `7fc181b` | Parzialmente risolto: `sw.js` ora esclude esplicitamente le fetch RSC (`_rsc=`, header `RSC`/`Next-Router-State-Tree`) dalla strategia stale-while-revalidate — era la causa di UI stale dopo mutazioni, scoperta durante B2. Restano aperti: versioning cache legato a `NEXT_PUBLIC_BUILD_ID` (non solo bump manuale `ua-v1→ua-v2`) e pulizia entry vecchie con TTL |
-| A5 | `manifest.json` theme_color sbagliato | ⏳ | | |
-| A6 | `qualita/page.tsx` 2 violazioni anti-pattern | ⏳ | | |
-| A7 | Portale/Richiedi disconnessi | ⏳ | | |
-| A8 | Zero notifica proattiva richiesta portale | ⏳ | | |
-| A9 | Copy contraddittoria form richiesta | ⏳ | | |
-| A10 | CTA "+" sparisce con lo scroll | ⏳ | | |
-| A11 | Terminologia MDR troppo tecnica per operatore | ⏳ | | |
-| A12 | ClienteComboBox senza aria-invalid | ⏳ | | |
-| A13 | Odontogramma FDI hidden feature | ⏳ | | |
-| A14 | Cassetta non visibile in lista lavori | ⏳ | | |
-| A15 | Analytics superficiale | ⏳ | | |
-| A16 | Export CSV incompleto (solo fatture) | ⏳ | | |
-| A17 | Hydration error React #418 sistemico | ⏳ | | |
-| A18 | Hash integrità firma DdC mancante | ⏳ | | |
-| A19 | Nessun supporto per allegare il file di progettazione digitale (CAD/STL) | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
-| A20 | `audit_log.actor_id` sempre NULL su tutte le tabelle audita | ⏳ | | Scoperto 04/07/2026 durante analisi B3 — vedi dettaglio sotto |
+| A1 | Push assente su nuova assegnazione lavoro | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | `triggerPush` nel PATCH assegnazione tecnico |
+| A2 | Nessun fallback offline/rete lenta | ✅ | verificato 20/07/2026 | Già risolto de facto: SW navigate→`offline.html` (B6) + banner `SyncBadge` |
+| A3 | Bug login autofill email passkey | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Guard sull'input digitato manualmente |
+| A4 | Cache versioning statico, no TTL | ✅ | 03/07/2026 · `4a36f89` | Risolto definitivamente: cache name = build-id via `generate-sw.mjs`; TTL escluso per decisione (YAGNI) — vedi dettaglio sotto |
+| A5 | `manifest.json` theme_color sbagliato | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | `#D90012` in manifest + offline.html |
+| A6 | `qualita/page.tsx` 2 violazioni anti-pattern | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Con nuovo token `--c-amber-ink`; resta **A6-bis** a backlog (sweep `--c-amber`-come-testo ~25 file + regex check-ds) |
+| A7 | Portale/Richiedi disconnessi | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Link incrociati portale↔richiedi |
+| A8 | Zero notifica proattiva richiesta portale | 🔄 | 20/07/2026 · Bundle Q (push) | Push a titolare+front_desk FATTO; fallback email Resend deciso SÌ (20/07), pianificato come percorso Media dopo la coda corrente |
+| A9 | Copy contraddittoria form richiesta | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | |
+| A10 | CTA "+" sparisce con lo scroll | ➖ | censimento 20/07/2026 | Solo superfici v2.3 (`BottomNavPill`); muore con le ondate v3 (advisor UX) |
+| A11 | Terminologia MDR troppo tecnica per operatore | ➖ | censimento 20/07/2026 | Vive solo in `/lavori/[id]/modifica` legacy; si risolve nell'ondata di quella superficie |
+| A12 | ClienteComboBox senza aria-invalid | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | |
+| A13 | Odontogramma FDI hidden feature | ✅ | 21/07/2026 · Ondata A (`50e6b79`) | Sub-valore denti in CardInfo + tap → `modifica?tab=clinica` |
+| A14 | Cassetta non visibile in lista lavori | ✅ | 21/07/2026 · Ondata A (`50e6b79`) | Targa cassetta in CardLavoro + sheet conferma-cassetta + ricerca per-pila |
+| A15 | Analytics superficiale | ➖ | censimento 20/07/2026 | Deferito CON data: sequenza (3) design, insieme a O2 redesign admin |
+| A16 | Export CSV incompleto (solo fatture) | ✅ | 20/07/2026 · Bundle E (`da8e436`) | `GET /api/lavori/export` + `GET /api/tecnici/cedolini-batch` + helper `csv.ts`/`paginate.ts` |
+| A17 | Hydration error React #418 sistemico | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | 4/5 file del claim erano superficie morta post-v3; residuo `AnnullaConsegnaBanner` fixato |
+| A18 | Hash integrità firma DdC mancante | ✅ | 20/07/2026 · Bundle T (`bacfde9`) | SHA-256 alla generazione, cut-off 20/07 senza backfill (decisione Francesco) + anti-SSRF campi URL storage |
+| A19 | Nessun supporto per allegare il file di progettazione digitale (CAD/STL) | ➖ | censimento 20/07/2026 | Deferito a V2 (feature mai esistita, effort L) |
+| A20 | `audit_log.actor_id` sempre NULL su tutte le tabelle audita | ⏳ | | **Calendarizzato:** sessione DB dedicata insieme a O4b + rimozione RPC `outbox_prepara_draft` orfana (gap compliance attivo, da documentare) |
 
 ### 🟡 Medio (30) — vedi dettaglio nel corpo del documento sotto
 | ID | Titolo | Stato | Data/commit | Note |
@@ -82,7 +83,7 @@
 | M14 | Bottom nav tecnico mostra voci gestionali | ⏳ | | |
 | M15 | Nessuna precompilazione ultimo cliente | ⏳ | | |
 | M16 | "Medico richiedente" opzionale (rischio MDR) | ⏳ | | |
-| M17 | Haptic feedback consegna assente | ⏳ | | |
+| M17 | Haptic feedback consegna assente | ✅ | 17/07/2026 · ondata 4b (`872fe6c`) | Suono firma «ua» + haptic success al frame Consegnato (spec v3 §9.1) |
 | M18 | KPI "Accettati/Consegnati oggi" assente | ⏳ | | |
 | M19 | Sticky header "Materiali ricevuti" assente | ⏳ | | |
 | M20 | Tab default dashboard nasconde fatturato | ⏳ | | |
@@ -94,7 +95,7 @@
 | M26 | Agenda 100% read-only | ⏳ | | |
 | M27 | Nessun DELETE per ordini | ⏳ | | |
 | M28 | `middleware` deprecato → `proxy` | ⏳ | | |
-| M29 | 2 worktree paralleli non mergiati | ⏳ | | |
+| M29 | 2 worktree paralleli non mergiati | ✅ | 14/07/2026 · housekeeping | `dashboard-v2-rewrite` rimosso (già mergiato); `plan-c-dashboard-rbac` archiviato in tag `archive/plan-c-dashboard-rbac` e rimosso (decisione Francesco) |
 | M30 | `colorScheme: 'dark'` hardcoded su input date | ⏳ | | |
 
 ### 🟢 Basso (4)
@@ -105,7 +106,7 @@
 | D3 | Documentazione/FAQ in-app assente | ⏳ | | |
 | D4 | Script compliance DS ha 3 blind spot | ⏳ | | |
 
-**Totale:** 71 item · 2 fatti (documentali) · 69 da fare
+**Totale storico (02/07):** 71 item. **Stato al 21/07/2026:** 🔴 Blocker tutti chiusi · §N chiusi tranne N1/N2/N3 (senza data) · §A: 14 ✅, 1 🔄 (A8-email pianificata), 4 ➖ deferiti con destinazione (A10/A11/A15/A19), 1 ⏳ calendarizzato (A20 → sessione DB) · §M: mai ricensito dopo il 02/07 — mini-censimento consigliato prima della fase (2) «funzioni attive» (M21–M27) · fonte certificata per §A/§O: `2026-07-20-censimento-a-o.md`.
 
 ---
 
@@ -418,18 +419,18 @@ Un secondo finding Important nella route POST (2 gap di test coverage sulla sema
 ### N3. Race condition su `rete/[id]/inviti` (documentata 07/07, mai fixata)
 Invito duplicato possibile su richieste concorrenti; indice UNIQUE pulito non esprimibile per la condizione temporale `expires_at`. Impatto basso a zero utenti. **Destinazione:** gate pre-distribuzione a utenti reali (utenti reali = inviti reali — emendamento E7).
 
-### N4. Fonte di verità del prezzo lavoro: `prezzo_unitario` vs righe `lavori_lavorazioni` divergono (indagine 11/07/2026, follow-up Ondata 3) — ✅ RISOLTO 14/07/2026 (implementato su branch, in attesa di merge)
+### N4. Fonte di verità del prezzo lavoro: `prezzo_unitario` vs righe `lavori_lavorazioni` divergono (indagine 11/07/2026, follow-up Ondata 3) — ✅ RISOLTO, MERGIATO E DEPLOYATO 14/07/2026 (`main` `b025d61`, CI+CD verdi)
 Due fonti di prezzo indipendenti, MAI sincronizzate: **tutta la contabilità B2** (scadenzario, portale dentista, saldi, credito) usa `lavori.prezzo_unitario`; **la fattura** (XML + PDF cortesia, `generate-xml.ts:103-105`) usa la somma di `lavori_lavorazioni.importo` (il `prezzo_unitario` è solo fallback se zero righe). Nessun writer li allinea: il PATCH lavori aggiorna `prezzo_unitario` senza toccare le righe; la route `PUT /api/lavori/[id]/lavorazioni` riscrive le righe senza toccare `prezzo_unitario`. Sintomo dimostrato in QA Ondata 3: portale/lista mostrano 322 €, la fattura esce a 112 €. **Aggravante:** la route PUT lavorazioni è **orfana** — nessun caller nel client; `TabLavorazioni` edita stato locale mai persistito (le righe oggi nascono solo da import/seed). **Serve una decisione di design** (fonte unica del prezzo: derivare `prezzo_unitario` dalle righe quando esistono? trigger di sync? fatturare da `prezzo_unitario`?) — dominio fiscale → percorso Grande. **Destinazione:** task dedicato, naturale dentro il redesign della scheda lavoro DS v3 sp.3 (dove `LavoroFormShell` muore e la modifica per-RigaDato viene riprogettata) — da decidere PRIMA di fatturare lavori con righe per i lab reali importati.
 **Fatto (14/07/2026, branch `worktree-n4-prezzo`, 12 commit `9dac640..38c1a5e`, NON ancora mergiato su `main` — gate di merge di Francesco):** decisa la fonte unica — nuovo helper puro `prezzoEffettivoLavoro(l)` (`src/lib/domain/prezzo-lavoro.ts`) = somma righe `lavori_lavorazioni.importo` se esistono, altrimenti `prezzo_unitario`, stesso rounding di `generate-xml.ts`. Tutti i lettori refactorati a questa unica definizione (`generate-xml`, `contabilita/queries`, `contabilita/registra-pagamento`, `portale/[token]/fatturazione`, `scadenzario`, `lavori/pronti-da-fatturare`); rimosso il prefiltro `.gt('prezzo_unitario',0)` in 3 siti che faceva sparire da crediti/scadenzario i lavori con prezzo solo nelle righe; nuovo guard server `PATCH /api/lavori/[id]` (422 se `prezzo_unitario` non-null con righe attive, carve-out azzeramento a `null`); assertion Natura IVA N4 in `generaFatturaPA`; badge divergenza read-time in `LavoriInAttesaSection`. +61 test (1670 pass | 4 skipped), riconciliazione read-only pre-deploy: 0 divergenti su 286 lavori reali. Vedi `memory/MEMORY.md` §0 per dettaglio completo.
 **Nuovi follow-up scoperti durante N4 (NON parte di N4, tracciati separatamente sotto):** N6 "bollo nel dovuto", N7 gate `stato_sdi` mancante su `xml/route.ts`, N8 CSS invalido su `urgencyPillBg`/`urgencyPillBorder`.
 
-### N6. "Bollo nel dovuto": la contabilità netta senza bollo, la fattura persiste il totale CON bollo (scoperto durante N4, 14/07/2026)
+### N6. ✅ CHIUSO PER DECISIONE (14/07/2026, decisione C, deployato con N7 in `2dfbfd7`) — "Bollo nel dovuto": la contabilità netta senza bollo, la fattura persiste il totale CON bollo (scoperto durante N4, 14/07/2026)
 
 > ✅ **DOCUMENTATO (14/07/2026, decisione C)** — spec `docs/superpowers/specs/2026-07-14-n6-n7-quickwin-fiscali-design.md`. Il bollo è imposta documentale che matura con l'emissione: il dovuto pre-fattura resta sull'imponibile per correttezza fiscale, il salto di €2 è intenzionale. Invariante congelato in `src/lib/contabilita/queries.ts` + guardia `tests/unit/contabilita-bollo-n6.test.ts`. Nessuna modifica di logica.
 
 La contabilità (scadenzario, saldi, credito — tutti i consumer di `prezzoEffettivoLavoro`) calcola dovuto/residuo sull'**imponibile senza bollo**; la fattura emessa invece persiste `fatture.totale` **con** il bollo di €2 quando l'imponibile supera 77,47€ (soglia esenzione bollo). Risultato: lo stesso lavoro "salta" di €2 nel momento in cui passa da "in attesa" a "fatturato" — stessa classe di bug di N4 (due fonti di prezzo che non coincidono), qui tra pre-fattura e post-fattura invece che tra contabilità e fattura. **Pre-esistente**, non introdotto da N4 (N4 ha reso `prezzoEffettivoLavoro` la fonte unica lato "lavoro non ancora fatturato", ma non tocca il calcolo del bollo lato fattura). **Destinazione:** task dedicato, da decidere se il bollo va incluso anche nel dovuto pre-fattura o escluso dal totale fattura per farli coincidere.
 
-### N7. `api/fatture/[id]/xml/route.ts` non fa gate su `stato_sdi==='draft'` (scoperto durante N4, 14/07/2026)
+### N7. ✅ RISOLTO, MERGIATO E DEPLOYATO (14/07/2026, `main` `2dfbfd7`) — `api/fatture/[id]/xml/route.ts` non fa gate su `stato_sdi==='draft'` (scoperto durante N4, 14/07/2026)
 > ✅ **RISOLTO (14/07/2026, decisione: rifiuta)** — spec `docs/superpowers/specs/2026-07-14-n6-n7-quickwin-fiscali-design.md`, piano `docs/superpowers/plans/2026-07-14-n6-n7-quickwin-fiscali.md`. Gate allowlist nella route (solo `stato_sdi==='draft'` procede; altrimenti **409**), posizionato PRIMA del loop `generaFatturaPA` così non ri-deriva l'imponibile dal lavoro vivo né brucia un progressivo SDI. Test `tests/unit/fatture-xml-gate-stato-sdi.test.ts`. Review finale opus «READY TO MERGE».
 Una seconda invocazione della generazione XML su una fattura già in stato `generata` (non più `draft`) ri-deriva l'imponibile dal lavoro **vivo** al momento della chiamata, invece di usare l'imponibile congelato alla prima emissione — se il lavoro è cambiato nel frattempo (es. righe lavorazioni modificate), l'XML rigenerato può divergere dal PDF/dato già comunicato. Rischio **pre-esistente**, non introdotto da N4 (N4 non ha aggiunto invocazioni multiple, solo reso la lettura del prezzo consistente). **Destinazione:** task dedicato — aggiungere un gate esplicito che rifiuta o serve il valore congelato quando `stato_sdi !== 'draft'`.
 
@@ -440,7 +441,7 @@ In `src/components/features/scadenzario/estratto-conto-shared.ts` gli helper `ur
 ### N5. ✅ RISOLTO (15/07/2026, `main` `d0d83c8`) — `generaFatturaPA` hardcoda TD01 — blocca le note di credito TD04 (IMPORTANT, emerso in review Ondata 2, 11/07/2026)
 Risolto dalla feature **Nota di Credito TD04** (spec `docs/superpowers/specs/2026-07-14-nota-credito-td04-design.md`): `TipoDocumento` parametrizzato in `generaFatturaPA` con percorso TD04 dedicato (DatiFattureCollegate, snapshot congelato, importi positivi, N4), template cortesia TD04-aware, test content-check (`tests/unit/generate-xml-td04.test.ts`). Il flusso completo di emissione (RPC atomica + route + UI) è live; resta il follow-up «invio TD04→SdI» (vedi N10 sotto, se tracciato, o MEMORY 15/07).
 
-### N10. Il TD04 non ha un percorso di invio a SdI — ✅ RISOLTO (15/07/2026, branch `worktree-n10-invia-pec`, in attesa merge)
+### N10. Il TD04 non ha un percorso di invio a SdI — ✅ RISOLTO, MERGIATO E DEPLOYATO (15/07/2026, merge `9310d21` su `main`, CI+CD verdi, smoke prod OK)
 Risolto insieme a N9 dalla feature **Invio PEC a SdI dell'XML congelato** (spec `docs/superpowers/specs/2026-07-15-n10-n9-invio-pec-sdi-design.md`): endpoint dedicato `POST /api/fatture/[id]/invia-pec` che invia l'XML già congelato (zero rigenerazione, zero progressivi) per qualsiasi fattura `generata` (TD01 e TD04), con claim anti-doppio-invio su `smtp_inviata_at`, gate ruolo `titolare`+`front_desk`, bottone «Invia a SdI» (Variante A) + riga stato SDI granulare in `/fatture/[id]`, e hardening del ramo `invia_pec` di `/xml`. Testo originale sotto per storia.
 
 #### (storico) N10. Il TD04 non ha un percorso di invio a SdI (scoperto in review finale TD04, 15/07/2026)
@@ -449,19 +450,21 @@ La nota di credito si ferma a `stato_sdi='generata'`: la route `POST /api/fattur
 ### N9. Nessun percorso API pulito per re-inviare la PEC di una fattura già generata — ✅ RISOLTO (15/07/2026, con N10 — vedi sopra)
 Stesso rimedio di N10: `POST /api/fatture/[id]/invia-pec` legge `xml_storage_path`/`nome_file_xml` esistenti e invoca solo `sendFatturaPEC`. Su 502 il claim viene rilasciato e il bottone resta ritentabile. Testo originale sotto per storia.
 
-### N11. Incoerenza filtro `utenti.deleted_at` — ✅ RISOLTO in R2 (17/07/2026, branch `worktree-p0-perf-r2`, in attesa di merge) 🔴 sicurezza
+### N11. Incoerenza filtro `utenti.deleted_at` — ✅ RISOLTO in R2, MERGIATO E DEPLOYATO (17/07/2026, `3fbabca`→`5008f39`) 🔴 sicurezza
 Censimento completo: ~140 lookup del contesto utente corrente, solo 7 filtravano `deleted_at`. Il caso peggiore (scoperto in review): un `admin_sistema` soft-deleted manteneva PIENO accesso admin. Chiuso via helper unici `getLabContext()`/`getFreshLabContext()` (variante restrittiva ovunque, allineata a `current_lab_id()`/`has_role()`), incluse route WebAuthn di enrollment; `accept-invite` = eccezione by-design documentata. Guardia anti-bypass + `n11-security.test.ts` in suite. Runbook di revoca nel rapporto §7. Testo originale: `dashboard/page.tsx:37` filtrava, layout e api/clienti no.
 
-### N11-bis. Lookup admin di utenti TARGET senza filtro `deleted_at` (scoperto in review finale R2, 17/07/2026) 🟡
+### N11-bis. ✅ RISOLTO, MERGIATO E DEPLOYATO (17/07/2026, con N13/N14, `6991c42`) — Lookup admin di utenti TARGET senza filtro `deleted_at` (scoperto in review finale R2, 17/07/2026)
 `api/admin/labs/[id]/impersonate/route.ts:40` e `admin/labs/[id]/live/page.tsx:53` cercano il titolare del lab target senza `deleted_at IS NULL`: un titolare soft-deleted resta impersonabile. Superficie admin-only, semantica diversa da N11 (utente target, non contesto corrente). Fix piccolo e circoscritto.
 
-### N12. Route prove non transazionale — ✅ RISOLTO in R2 (17/07/2026, branch `worktree-p0-perf-r2`; 🛑 apply migration = gate Francesco)
+### N12. Route prove non transazionale — ✅ RISOLTO, MERGIATO E DEPLOYATO in R2 (17/07/2026, `5008f39`; migration applicata al DB live, QA prod PASS)
 Migration `20260717120000_n12_prove_atomiche.sql`: RPC `manda_in_prova_atomico`/`registra_rientro_atomico` (SECURITY INVOKER, tenant-filter dentro il `FOR UPDATE`, archi 1:1 con `TRANSIZIONI_CONSENTITE`, `numero_prova = MAX+1` sotto lock — race del COUNT eliminata, ERRCODE `UA404`/`UA409`); route riscritta sui RPC. Bonus: TabProve allineato al contratto POST + fix parsing GET (il flusso prove in UI era interamente morto — 2 bug pre-esistenti). Smoke post-apply obbligatorio: UA404/UA409 come status reali via PostgREST (primo uso di ERRCODE custom nel progetto).
 
-### N14. Login→dashboard sopra budget per flusso client (misura post-R2, 17/07/2026) 🟡
+### N14. ✅ RISOLTO E DEPLOYATO (17/07/2026) — Login→dashboard sopra budget per flusso client (misura post-R2, 17/07/2026)
+> Collaudo login reale PASS: p75 1804ms ≤ 2000 (utente E2E); `PERF_BUDGET_LOGIN` 4500→4000 (run perf verde); cap 3 proposte passkey + sezione Sicurezza «Attiva accesso rapido» in `/impostazioni`. Deferito by design: restyling modal passkey → gate estetico L2 di ondata.
 Misurato 2.758ms vs budget ≤2.000ms, ma il server è a posto (dashboard TTFB 179ms): il residuo è il ritardo deliberato di 600ms dell'animazione «Bentornato!» (`login-form.tsx:232/294`) + prompt passkey a +400ms + grant password + load. Rimedio identificato: ridurre il delay e/o `router.prefetch('/dashboard')` durante l'animazione (~−600/800ms stimati → sotto budget). Decisione UX per Francesco.
 
-### N13. Nessun check `lab.stato` nei handler API (scoperto dal panel R2 — appsec, 17/07/2026) 🟡
+### N13. ✅ RISOLTO, MERGIATO E DEPLOYATO IN ENFORCE (17/07/2026, `6991c42`) — Nessun check `lab.stato` nei handler API (scoperto dal panel R2 — appsec, 17/07/2026)
+> Guard su 87 route API + portale (API e pagine) + interceptor client + ban sessioni su blacklist; doc GDPR out-of-band in `docs/security/`; QA enforce verificata su prod col lab E2E. Kill-switch: `UA_LAB_GUARD_MODE`. Dettagli: MEMORY.md voce (9) e `docs/superpowers/plans/2026-07-17-n13-lab-guard.md`.
 Un lab `sospeso/scaduto/blacklist` è bloccato SOLO dal layout: una PWA/client può chiamare le API direttamente e continuare a leggere/scrivere. Gap PRE-esistente a R2. Col `LabContext` il dato `lab.stato` è ora disponibile gratis in ogni handler → il fix è un guard centrale (helper o check nei 2 helper di contesto). Da decidere la matrice: quali stati bloccano quali metodi (GET vs mutazioni).
 
 **Follow-up nuovi aperti dalla feature (15/07/2026):**
@@ -507,7 +510,7 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [Den] — nessun link da `/portale/[token]` verso `/richiedi/[token]` e viceversa; il laboratorio deve condividere 2 URL diversi, il bottone "Condividi" manda solo il link di stato.
 **Fix:** aggiungere pulsante "➕ Richiedi nuovo lavoro" nel portale e "← Torna allo stato lavori" nella schermata di successo della richiesta. Stimato 30 min.
 
-### A8. Zero notifica proattiva su richiesta dal portale — 🔄 PARZIALE 20/07/2026 (Bundle Q: push a titolare+front_desk fatto; email Resend = decisione aperta)
+### A8. Zero notifica proattiva su richiesta dal portale — 🔄 PARZIALE 20/07/2026 (Bundle Q: push a titolare+front_desk fatto; fallback email Resend deciso SÌ da Francesco il 20/07 — percorso Media, in coda dopo Parete Cassette e «Cerca» globale)
 **Fonte:** [Den] — nessuna email/SMS quando un dentista invia una richiesta, nessun avviso quando lo stato lavoro cambia lato dentista.
 **Fix:** email di conferma via Resend (già configurato altrove) al submit di `/api/portale/richiedi`. Stimato 2-3h.
 
@@ -515,11 +518,11 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [Den], segnalata anche a maggio, mai corretta — `RichiestaClientForm.tsx:200-209` dice sia "ha ricevuto" sia "ti contatteranno per la conferma" nella stessa schermata.
 **Fix:** scegliere un solo messaggio coerente. Stimato 5 min.
 
-### A10. CTA "+" sparisce durante lo scroll
+### A10. CTA "+" sparisce durante lo scroll — ➖ DEFERITO (censimento 20/07/2026: vive solo in `BottomNavPill` v2.3, le route v3 usano TastoPiu; muore con le ondate v3)
 **Fonte:** [UX], invariato da maggio — `BottomNavPill.tsx:429-450`, l'intero `motion.div` (CTA inclusa) condizionato da `{visible && ...}`.
 **Fix:** separare il bottone "+" dal resto della pill, sempre visibile.
 
-### A11. Terminologia "MDR Allegato XIII" ancora esposta all'operatore
+### A11. Terminologia "MDR Allegato XIII" ancora esposta all'operatore — ➖ DEFERITO (censimento 20/07/2026: montata solo da `/lavori/[id]/modifica` legacy; si risolve nell'ondata v3 di quella superficie)
 **Fonte:** [UX] — `TabAccettazione.tsx:285,565` — solo un tooltip aggiunto, intestazione e progress bar restano tecniche.
 **Fix:** rinominare in "Materiali ricevuti" mantenendo il riferimento normativo solo nel tooltip.
 
@@ -527,19 +530,19 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [UX], nuova regressione — `ClienteComboBox.tsx:180-200` non imposta `aria-invalid`/`aria-describedby`, a differenza degli altri campi dello stesso form.
 **Fix:** propagare `aria-invalid={hasError}` e `aria-describedby`.
 
-### A13. Odontogramma FDI resta "hidden feature"
+### A13. Odontogramma FDI resta "hidden feature" — ✅ RISOLTO 21/07/2026 (Ondata A mini-triage, `50e6b79`: sub-valore denti in CardInfo della scheda v3 + tap → `modifica?tab=clinica`)
 **Fonte:** [UX] + [Odt] — nessun badge/hint, raggiungibile solo esplorando le tab sbloccate post-creazione, isolato in `TabClinica.tsx`.
 **Fix:** badge "Nuovo" o hint in dashboard/onboarding.
 
-### A14. Cassetta non visibile in lista lavori
+### A14. Cassetta non visibile in lista lavori — ✅ RISOLTO 21/07/2026 (Ondata A mini-triage, `50e6b79`: targa cassetta in CardLavoro + sheet «In che cassetta lo metti?» sul Conferma + ricerca per-pila su `numero_cassetta`; evoluzione: feature «Parete delle Cassette» in spec)
 **Fonte:** [Odt], invariato — stimato 1 ora a maggio, mai fatto. `LavoroCardProps` non ha campo `cassetta`.
 **Fix:** aggiungere badge cassetta nella card, dato già in DB.
 
-### A15. Analytics resta superficiale
+### A15. Analytics resta superficiale — ➖ DEFERITO CON DATA (censimento 20/07/2026: effort L; da calendarizzare nella sequenza (3) «design coerente», insieme a O2 redesign admin)
 **Fonte:** [Tit] — solo aggiunto un grafico "Fatturato 12 mesi"; mancano margine, top 5 clienti, % rifacimenti, lead time — tutti richiesti a maggio.
 **Fix:** portare in `/analytics` almeno margine (già calcolato in dashboard, riusabile) + un confronto per cliente/dispositivo.
 
-### A16. Export CSV incompleto per il commercialista
+### A16. Export CSV incompleto per il commercialista — ✅ RISOLTO 20/07/2026 (Bundle E, merge `da8e436`, deployato: `GET /api/lavori/export` CSV annuale esente N13-portabilità + `GET /api/tecnici/cedolini-batch` mensile per tecnico×voce, RBAC titolare/admin_rete; helper condivisi `csv.ts` anti-injection OWASP + `paginate.ts` oltre cap PostgREST; UI download nata nell'ondata A `/tecnici` v3)
 **Fonte:** [Tit] — solo fatture esportabili; mancano export lavori/analytics e cedolini tecnici in batch.
 **Fix:** nuovi endpoint `GET /api/lavori/export`, `GET /api/tecnici/cedolini-batch`.
 
@@ -547,17 +550,17 @@ Effetto collaterale voluto del gate N7: se `POST /api/fatture/[id]/xml` genera l
 **Fonte:** [Sis] + [Tit] + [PWA] (corroborazione tripla) — 9 occorrenze di `new Date()`/`localStorage` in rendering server-first senza mitigazione (`DashboardTitolare.tsx:107-119,632,677-683,883`, `DashboardTecnico.tsx:86-92,167,262-269` incoerente, `SpotlightCard.tsx:37-46`, `TaskItem.tsx:47-54`, `AnnullaConsegnaBanner.tsx:16-19`). Causa confermata: server UTC vs client Europe/Rome producono testo diverso tra le 12:00-13:59 locali ogni giorno.
 **Fix:** spostare il calcolo in `useEffect`+`useState` con placeholder neutro iniziale, o `suppressHydrationWarning` mirato e coerente (oggi applicato solo in un punto su due della stessa funzione).
 
-### A18. Hash di integrità firma DdC mai calcolato
+### A18. Hash di integrità firma DdC mai calcolato — ✅ RISOLTO 20/07/2026 (Bundle T, merge `bacfde9`, deployato: SHA-256 calcolato alla generazione con cut-off 20/07 SENZA backfill — decisione Francesco: dati storici = test; inclusi anti-SSRF sui campi URL storage + anti-traversal)
 **Fonte:** [SWE] — `generate-ddc.ts:60` ha `firma_ddc_sha256: null` hardcoded. Il rendering visivo di logo+firma **funziona già** (`DdcTemplate.tsx:246,294-296,465-472`), ma manca l'evidenza di integrità ai fini MDR.
 **Fix:** calcolare l'hash SHA-256 della firma al momento della generazione. **Nota:** la roadmap attuale segna "Logo + firma DdC" come ⏳ non iniziato — è falso, va corretto (vedi sezione documentazione).
 
-### A19. Nessun supporto per allegare il file di progettazione digitale (CAD/STL)
+### A19. Nessun supporto per allegare il file di progettazione digitale (CAD/STL) — ➖ DEFERITO A V2 (censimento 20/07/2026)
 **Fonte:** [Sis], scoperto 04/07/2026 durante l'analisi di B3.
 **Causa:** `lavori.file_stl_url` esiste come colonna a DB ed è persino letta in `src/app/api/fatture/[id]/xml/route.ts:123` e `src/app/api/fatture/batch/route.ts:146`, ma **nessuna UI la valorizza mai** — zero upload, zero visualizzazione. La fase "Analisi e progettazione (CAD)" del flusso di lavorazione reale (tra accettazione impronte e costruzione/fresatura) resta quindi priva di qualunque tracciamento del file di progettazione digitale nell'app.
 **Fix:** aggiungere un campo di upload file STL/CAD (pattern già esistente per `scheda_tecnica_url`/`scheda_sicurezza_url` in magazzino, B8 1/5) in una tab pertinente (`TabProduzione`/`TabDati`), con storage su Supabase Storage.
 **Effort:** non stimato — non bloccante, funzionalità mai esistita (non una regressione).
 
-### A20. `audit_log.actor_id` sempre NULL su tutte le tabelle audita
+### A20. `audit_log.actor_id` sempre NULL su tutte le tabelle audita — ⏳ CALENDARIZZATO (censimento 20/07/2026: sessione DB dedicata insieme a O4b drift CHECK `listino.categoria` + rimozione RPC `outbox_prepara_draft` orfana; opzione preferita (a) colonne `created_by`/`updated_by` pattern cicli; gap compliance attivo da documentare)
 **Fonte:** [Sis], scoperto 04/07/2026 durante l'analisi di B3 (verifica del meccanismo di audit trail in vista della nuova UI "cicli di produzione").
 **Causa:** trigger generico `_audit_trigger_fn()` agganciato oggi a 7 tabelle (`clienti`, `dichiarazioni_conformita`, `fatture`, `laboratori`, `lavori`, `listino`, `magazzino`, `utenti`). Verificato empiricamente: `select (actor_id is null), count(*) from audit_log where table_name='lavori' group by 1` → **356 righe su 356 con `actor_id NULL`**. Causa root: tutte le scritture applicative passano da `getServiceClient()` (service-role, nessun JWT utente), quindi `auth.uid()` valutato dal trigger è sempre nullo. L'audit trail registra correttamente "quando" e "cosa" (`old_data`/`new_data`), ma **non ha mai registrato "chi"**, su nessuna delle 7 tabelle, da quando esiste (prima riga `laboratori` 17/05/2026).
 **Fix:** il trigger da solo non può risolversi (il service client non porta un JWT); serve o (a) una colonna esplicita `updated_by`/`created_by` per tabella, valorizzata dalle route API con `user.id` prima della scrittura (pattern già usato altrove, es. `lavori_rifacimenti.created_by`), oppure (b) impostare una session GUC (`SET LOCAL app.current_user_id = ...`) prima di ogni scrittura service-role e far leggere quella al trigger come fallback quando `auth.uid()` è nullo — quest'ultima risolverebbe tutte e 7 le tabelle esistenti in un colpo solo, ma tocca una funzione condivisa già in produzione (richiede validazione attenta).
@@ -575,15 +578,15 @@ Francesco ha fatto un giro nella PWA post-Ondata 1 e ha visto diversi problemi. 
 
 ### O1. Residui Ondata 1 Home+pile (triage della review finale, 12/07/2026)
 Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdetto YES). Dettaglio completo nel ledger `.superpowers/sdd/progress-ondata-1-home-pile.md`.
-- **O1a — Debito test rami prose pile/striscia:** pillFase 0-branch e caso «tutte fasi eseguite» (oggi cade nel ramo `PER <giorno>`), subAmbra inCima, subBlu ≥3, subViola fallback, consegnaOggiNonPronta/provaRientroOggi, sub-rami s2, subMorph viola al confine oggi/domani. Da coprire nell'Ondata 2.
-- **O1b — Convenzione «oggi» da unificare:** nella stessa home convivono `adessoRoma()` (eyebrow), `new Date()` locale (pile/striscia) e `toISOString()` UTC (agenda/tutto-il-resto, pattern pre-esistente `oggiISO()`): vicino a mezzanotte possono divergere. Helper unico Europe/Rome + refactor. Inclusa la duplicazione `adessoRoma/saluto/GIORNI/MESI` fra `(app)/dashboard/page.tsx` e admin live.
-- **O1c — A11y follow-up:** `aria-label={s.nome}` sulle card di «Tutto il resto» sopprime il sub agli screen reader (pattern del mockup); pile dentro `inert` nell'anteprima admin invisibili ad AT (riepilogo sr-only statico); affordance per richiudere CampoTesto→RigaCerca; `console.warn` dev-only sull'esclusione conferma/onConsegna di CardLavoro (oggi solo type-level).
+- **O1a — Debito test rami prose pile/striscia:** ✅ RISOLTO 20/07/2026 (Bundle T, `bacfde9`: 4 rami prose coperti). Testo originale: pillFase 0-branch e caso «tutte fasi eseguite» (oggi cade nel ramo `PER <giorno>`), subAmbra inCima, subBlu ≥3, subViola fallback, consegnaOggiNonPronta/provaRientroOggi, sub-rami s2, subMorph viola al confine oggi/domani. Da coprire nell'Ondata 2.
+- **O1b — Convenzione «oggi» da unificare:** ✅ RISOLTO 20/07/2026 (Bundle T, `bacfde9`: helper unico `src/lib/utils/data-roma.ts` con test DST, adottato in dashboard/home/admin-live/agenda/tutto-il-resto/pile-home + 4 date operative API; le date FISCALI restano UTC di proposito → chiuse poi con le date fiscali Europe/Rome, `3d5fd31`). Testo originale: nella stessa home convivono `adessoRoma()` (eyebrow), `new Date()` locale (pile/striscia) e `toISOString()` UTC (agenda/tutto-il-resto, pattern pre-esistente `oggiISO()`): vicino a mezzanotte possono divergere. Helper unico Europe/Rome + refactor. Inclusa la duplicazione `adessoRoma/saluto/GIORNI/MESI` fra `(app)/dashboard/page.tsx` e admin live.
+- **O1c — A11y follow-up:** 🔄 PARZIALE 20/07/2026 (Bundle Q: parti S risolte; inert admin era già ✅). Testo originale: `aria-label={s.nome}` sulle card di «Tutto il resto» sopprime il sub agli screen reader (pattern del mockup); pile dentro `inert` nell'anteprima admin invisibili ad AT (riepilogo sr-only statico); affordance per richiudere CampoTesto→RigaCerca; `console.warn` dev-only sull'esclusione conferma/onConsegna di CardLavoro (oggi solo type-level).
 - **O1d — Nota sistemica line-height:** `.ds-pila-num` ereditava il `line-height:1.5` di Tailwind (il mockup standalone aveva 1) → +26px/card, etichetta TastoPiù clippata. Fixato per `.ds-pila-num`; ALTRI testi DS v3 non stilati possono avere lo stesso scarto rispetto ai mockup — audit mirato alla prossima ondata UI.
 - **O1e — Flake di isolamento `avviso-caricamento-vuoto.test.tsx`:** verde da solo, rosso a intermittenza in-suite (probabile bleed di timer fra file); morso 2 volte il 12/07. Ticket dedicato.
-- **O1f — Segnale «tecnico senza anagrafica»:** col fail-closed ratificato, il tecnico senza riga `tecnici` vede pile vuote e striscia serena — nessuno viene avvisato dell'account mal configurato. Candidato: segnale striscia dedicato (visibile al titolare).
+- **O1f — Segnale «tecnico senza anagrafica»:** ✅ RISOLTO 20/07/2026 (Bundle Q, `04cf00b`: segnale minimo in striscia). Testo originale: col fail-closed ratificato, il tecnico senza riga `tecnici` vede pile vuote e striscia serena — nessuno viene avvisato dell'account mal configurato. Candidato: segnale striscia dedicato (visibile al titolare).
 - **O1g — Limit 500 su `getPileHome`:** truncation silenziosa spec-mandated; oltre soglia servirebbe un segnale (design nuovo).
-- **O1h — Back ‹ di PilaAperta sempre a `/dashboard`:** salta la vista «Le pile» per chi arriva da lì (browser-back resta corretto, ADR).
-- **O1i — Profilo nel mondo v3 (advisor UX+DS 12/07, ratificato il fix minimo):** PRIMA che `/impostazioni` migri a v3: voce «Esci» in §7.16 «Il mio laboratorio» (oggi il logout vive solo nello sheet avatar, ritirato dalle route migrate); riga-identità nel footer NavDesk desktop (mockup da approvare, anche casa per Persone/Listino a 1280); segnale trial→StrisciaStato. Nota §14: avatar = chrome v2.3 che si ritira per route.
+- **O1h — Back ‹ di PilaAperta sempre a `/dashboard`:** ✅ CHIUSO 21/07/2026 (Ondata A: «Le pile» eliminata — redirect + ripuntamenti — quindi nessun lavoro necessario). Testo originale: salta la vista «Le pile» per chi arriva da lì (browser-back resta corretto, ADR).
+- **O1i — Profilo nel mondo v3 (advisor UX+DS 12/07, ratificato il fix minimo):** ✅ RISOLTO ×3 21/07/2026 (Ondata A, `50e6b79`: «Esci» in Tutto il resto con DialogConferma · riga-identità+Esci nel footer NavDesk · segnale trial in StrisciaStato). Testo originale: PRIMA che `/impostazioni` migri a v3: voce «Esci» in §7.16 «Il mio laboratorio» (oggi il logout vive solo nello sheet avatar, ritirato dalle route migrate); riga-identità nel footer NavDesk desktop (mockup da approvare, anche casa per Persone/Listino a 1280); segnale trial→StrisciaStato. Nota §14: avatar = chrome v2.3 che si ritira per route.
 - ~~**O1j — Smoke admin `/admin/labs/[id]/live`**~~ **VERIFICATO da Francesco 12/07/2026 (sera):** anteprima live corretta — banner "ADMIN PREVIEW — Solo lettura", 4 pile nell'ordine di legge coi dati reali del lab, StrisciaStato col segnale giusto ("n.2026/0004 aspetta conferma da ieri"). Fix RSC confermato in produzione, chiuso.
 
 
@@ -622,8 +625,8 @@ Nessuno bloccante — triaged a backlog dalla review finale whole-branch (verdet
 
 Origine: brainstorming/ricerca advisor per la spec `docs/superpowers/specs/2026-07-12-ds-v3-il-cuore-ondata-2-wizard-design.md` (§2.1 per il verbale completo). Dentro l'ondata sono finiti B2 (validazione enum 10 macro-slug in POST/PATCH `/api/lavori` → 422) e B4 (consolidamento mappe label macro in modulo unico). Qui i restanti:
 
-- **O4a — `ClienteComboBox` interroga Supabase direttamente dal browser** (`getBrowserClient()` + `.or(ilike…)`) invece dell'API `GET /api/clienti` (che esiste, con `pgrestQuote`, e non ha consumer). RLS protegge ma il pattern è difforme. Il componente muore con le superfici v2.3 in Ondata 3 — se sopravvivesse, migrarlo all'API. [SWE]
-- **O4b — `listino.categoria` disallineato dall'enum lavori** (CHECK con +`materiale`, −`provvisorio`, e ora −`bite_splint`). Allineamento in sessione dedicata, non urgente. [SWE]
+- **O4a — ✅ RISOLTO 20/07/2026 (Bundle T, `bacfde9`: migrato a `GET /api/clienti`, chiusa anche l'injection filtro PostgREST e il bypass del choke-point N13)** — `ClienteComboBox` interrogava Supabase direttamente dal browser (`getBrowserClient()` + `.or(ilike…)`) invece dell'API `GET /api/clienti` (che esiste, con `pgrestQuote`, e non ha consumer). RLS protegge ma il pattern è difforme. Il componente muore con le superfici v2.3 in Ondata 3 — se sopravvivesse, migrarlo all'API. [SWE]
+- **O4b — `listino.categoria` disallineato dall'enum lavori** (CHECK con +`materiale`, −`provvisorio`, e ora −`bite_splint`; drift A TRE VIE col censimento 20/07: listino 9v ≠ lavori 9v ≠ LABEL_MACRO 10v). Il commento falso in `tipi-lavoro.ts:12-13` è stato corretto nel Bundle T; l'allineamento CHECK (migration = percorso Grande) è **calendarizzato nella sessione DB dedicata** insieme ad A20 + rimozione RPC `outbox_prepara_draft` orfana. [SWE]
 - **O4c — Pattern «completa dati fiscali alla prima fattura»** (ricerca A7): P.IVA/sede sono bloccanti solo all'emissione FatturaPA e il codice SDI non lo è mai (fallback «0000000», Provv. AdE 89757/2018) → mini-form inline «Completa dati fiscali» nel flusso fattura per anagrafiche incomplete + badge quieto «anagrafica incompleta» sulla scheda dentista. Candidato sp.4 (superficie fatture). [Tit] + [SWE]
 - **O4d — Bonifica `classe_rischio` pregressa: CHIUSA senza azione** (decisione Francesco 12/07: DB di test, si azzera prima della produzione). Registrata qui solo perché la decisione non si perda: i lavori pre-tassonomia hanno `classe_i` di default anche dove sarebbe IIa. Se il piano di pulizia pre-produzione cambiasse, riaprire. [Odt]
 
