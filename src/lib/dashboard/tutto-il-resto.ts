@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMaterialiEsaurimento } from '@/lib/dashboard/queries'
 import { SDI_SCARTATE } from '@/lib/dashboard/striscia'
 import { oggiRomaISO } from '@/lib/utils/data-roma'
+import type { HomePref } from '@/lib/preferenze/home'
 
 // ☰ «Tutto il resto» (§6.1/§6.2, Task 10) — le 9 voci CHIUSE della mappa, nello
 // stesso ordine del mockup `tutto-il-resto.html`: Dentisti · Fatture ·
@@ -58,12 +59,23 @@ function subPersone(nomi: string[]): string {
 }
 
 /**
- * componiSezioni(ruolo, dati) — puro, nessuna I/O. Le 9 voci di §6.1
+ * componiSezioni(ruolo, dati, homePref?) — puro, nessuna I/O. Le 9 voci di §6.1
  * nell'ordine del mockup; `La mia rete` (`/rete`) SOLO per `admin_rete`,
  * penultima voce (subito prima di «Il mio laboratorio»).
+ *
+ * Task 15 (§7, riserva ux B1) — voce condizionale «I lavori» → `/dashboard?stanza=pile`:
+ * SOLO quando la preferenza esclude le pile dalla home (`homePref === 'parete'`), che
+ * altrimenti non avrebbe in home alcuna via verso il lavoro del giorno. Prima voce: è
+ * l'ingresso primario «torna al banco» (la simmetrica «La parete» non serve, c'è già la voce
+ * fissa «Le cassette»). `homePref` optional: assente (chiamate legacy a 2 argomenti) →
+ * nessuna «I lavori», ordine invariato.
  */
-export function componiSezioni(ruolo: string, dati: DatiTuttoIlResto): Sezione[] {
-  const sezioni: Sezione[] = [
+export function componiSezioni(ruolo: string, dati: DatiTuttoIlResto, homePref?: HomePref): Sezione[] {
+  const sezioni: Sezione[] = []
+  if (homePref === 'parete') {
+    sezioni.push({ chiave: 'lavori', emoji: '📋', nome: 'I lavori', sub: 'Le quattro pile', href: '/dashboard?stanza=pile' })
+  }
+  sezioni.push(
     { chiave: 'dentisti', emoji: '🦷', nome: 'Dentisti', sub: subDentisti(dati.dentisti), href: '/clienti' },
     { chiave: 'fatture', emoji: '🧾', nome: 'Fatture', sub: subFatture(dati.fattureDaSistemare), href: '/fatture' },
     { chiave: 'magazzino', emoji: '📦', nome: 'Magazzino', sub: subMagazzino(dati.materialiRossi), href: '/magazzino' },
@@ -71,7 +83,7 @@ export function componiSezioni(ruolo: string, dati: DatiTuttoIlResto): Sezione[]
     { chiave: 'qualita', emoji: '🛡️', nome: 'Documenti e qualità', sub: 'DdC generata a ogni consegna ✓', href: '/qualita' },
     { chiave: 'persone', emoji: '👥', nome: 'Persone', sub: subPersone(dati.persone), href: '/tecnici' },
     { chiave: 'listino', emoji: '🏷️', nome: 'Listino', sub: 'I tuoi prezzi per ogni lavorazione', href: '/listino' },
-  ]
+  )
   if (ruolo === 'admin_rete') {
     sezioni.push({ chiave: 'rete', emoji: '🌐', nome: 'La mia rete', sub: 'I laboratori della tua rete', href: '/rete' })
   }
@@ -182,7 +194,7 @@ async function getPersone(svc: SupabaseClient, labId: string): Promise<string[]>
  * query degrada singolarmente a un default sereno con `console.error`: la
  * pagina non crasha mai (L5), al massimo mostra un sub più povero.
  */
-export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string, ruolo: string): Promise<Sezione[]> {
+export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string, ruolo: string, homePref?: HomePref): Promise<Sezione[]> {
   const [dentisti, fattureDaSistemare, materialiRossi, agenda, persone] = await Promise.all([
     getDentisti(svc, labId),
     getFattureDaSistemare(svc, labId),
@@ -198,5 +210,5 @@ export async function getSezioniTuttoIlResto(svc: SupabaseClient, labId: string,
     consegneOggi: agenda.consegneOggi,
     prossimaOra: agenda.prossimaOra,
     persone,
-  })
+  }, homePref)
 }

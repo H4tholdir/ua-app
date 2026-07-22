@@ -547,3 +547,38 @@
   [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
   [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
 }
+
+/* Task 15 — cap CSS-driven + tile «Tutte le cassette ›». La cella avvolge la Cassetta (come
+   `.ds-cella-riordino` su /cassette): il componente ds resta intatto, la cella porta il taglio.
+   Si rende il SUPERSET tablet (8 celle) e sotto 768px si nascondono le celle oltre il cap mobile
+   (5): niente misura runtime, stessa meccanica @media della scala device-corti. */
+[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home { display: flex; min-width: 0; }
+[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home > .ds-cassetta { flex: 1 1 auto; width: 100%; }
+@media (max-width: 767px) {
+  [data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home.is-oltre-mobile { display: none; }
+}
+
+/* Il tile finale: stessa figura della tray «+ Nuova cassetta» (`.ds-tray-nuova`), tratteggio e
+   geometria, ma è una destinazione («vedi tutte») non una creazione. I due badge convivono nel
+   DOM; il CSS mostra quello del viewport. `is-solo-mobile`: senza overflow tablet il tile sparisce
+   da 768px in su (là le 8 celle bastano). */
+[data-ds="v3"] .ds-tile-tutte {
+  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
+  text-align: center; padding: 8px;
+}
+[data-theme="dark"] [data-ds="v3"] .ds-tile-tutte { border-color: rgba(255, 255, 255, .16); }
+[data-ds="v3"] .ds-tile-tutte:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-ds="v3"] .ds-tile-tutte .et { font-size: 12px; font-weight: 800; line-height: 1.15; color: var(--ink); }
+[data-ds="v3"] .ds-tile-tutte .badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--red); color: #FFF; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+[data-ds="v3"] .ds-tile-tutte .badge-tablet { display: none; }
+@media (min-width: 768px) {
+  [data-ds="v3"] .ds-tile-tutte.is-solo-mobile { display: none; }
+  [data-ds="v3"] .ds-tile-tutte .badge-mobile { display: none; }
+  [data-ds="v3"] .ds-tile-tutte .badge-tablet { display: inline-flex; }
+}

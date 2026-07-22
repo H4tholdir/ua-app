@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getSezioniTuttoIlResto } from '@/lib/dashboard/tutto-il-resto'
+import { homePrefDa } from '@/lib/preferenze/home'
 import { TuttoIlResto } from '@/components/features/tutto-il-resto/TuttoIlResto'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,13 @@ export default async function TuttoIlRestoPage() {
   if (!['titolare', 'admin_rete', 'tecnico', 'front_desk'].includes(ruolo)) redirect('/login') // admin_sistema usa /admin
 
   const svc = getServiceClient()
-  const sezioni = await getSezioniTuttoIlResto(svc, labId, ruolo)
+  // «La tua home» (§7, Task 15): la voce condizionale «I lavori» compare SOLO per chi ha
+  // preferenza `parete`. SEMPRE self (`context.userId`), mai cross-utente. Fail-soft:
+  // `homePrefDa` degrada a 'due_stanze' su null/garbage → nessuna voce nuova.
+  const prefRes = await svc.from('utenti').select('nav_preferences').eq('id', context.userId).single()
+  if (prefRes.error) console.error('[tutto-il-resto] lettura nav_preferences fallita:', prefRes.error)
+  const homePref = homePrefDa(prefRes.data?.nav_preferences)
+  const sezioni = await getSezioniTuttoIlResto(svc, labId, ruolo, homePref)
 
   // O1i-1 — firma «Sei {nome} · {labNome}» sopra l'Esci (lacuna §7.16).
   const utenteNome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'

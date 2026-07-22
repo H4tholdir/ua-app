@@ -25,6 +25,7 @@ import { gradiente, raggio, tipografia, testoSuFaccia } from '@/design-system/v3
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { StrisciaStato } from './StrisciaStato'
+import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import { Avatar } from './Avatar'
 import { DialogConferma } from './DialogConferma'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
@@ -248,7 +249,7 @@ export function NavDesk(props: {
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione}>
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
           {segnale.testo}
         </StrisciaStato>
       </div>

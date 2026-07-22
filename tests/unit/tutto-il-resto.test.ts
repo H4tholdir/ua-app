@@ -23,3 +23,22 @@ describe('Tutto il resto — le 9 voci chiuse di §6.1, nell ordine di legge', (
     expect(componiSezioni('titolare', { ...DATI, materialiRossi: 0 })[2].sub).toBe('Tutto rifornito ✓')
   })
 })
+
+describe('Tutto il resto — voce condizionale «I lavori» (§7, Task 15)', () => {
+  it("homePref='parete' → «I lavori» come prima voce (la via alle pile per chi le esclude dalla home)", () => {
+    const s = componiSezioni('titolare', DATI, 'parete')
+    expect(s[0]).toEqual({ chiave: 'lavori', emoji: '📋', nome: 'I lavori', sub: 'Le quattro pile', href: '/dashboard?stanza=pile' })
+  })
+
+  it("homePref='pile' o 'due_stanze' → nessuna voce «I lavori» (le pile sono già in home)", () => {
+    for (const pref of ['pile', 'due_stanze'] as const) {
+      expect(componiSezioni('titolare', DATI, pref).map((v) => v.chiave)).not.toContain('lavori')
+    }
+  })
+
+  it('homePref assente (chiamata a 2 argomenti) → nessuna «I lavori», ordine legacy invariato', () => {
+    const nomi = componiSezioni('titolare', DATI).map((s) => s.nome)
+    expect(nomi).not.toContain('I lavori')
+    expect(nomi[0]).toBe('Dentisti')
+  })
+})

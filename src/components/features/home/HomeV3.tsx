@@ -25,8 +25,9 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
-import { StanzaParete, CAP_PARETE_HOME } from './StanzaParete'
+import { StanzaParete } from './StanzaParete'
 import { vistaHome } from '@/lib/preferenze/home'
+import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
@@ -75,7 +76,7 @@ export function HomeV3(props: {
       </div>
 
       <div className="striscia-slot" style={{ marginTop: 16 }}>
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione}>
+        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
           {segnale.testo}
         </StrisciaStato>
       </div>
@@ -144,12 +145,12 @@ export function HomeV3(props: {
         <StanzePager
           stanzaIniziale={vista.iniziale}
           pile={stanzaPile}
-          parete={<StanzaParete parete={parete} capN={CAP_PARETE_HOME} />}
+          parete={<StanzaParete parete={parete} />}
           footer={piede}
         />
       ) : vista.stanza === 'parete' ? (
         <>
-          <StanzaParete parete={parete} capN={CAP_PARETE_HOME} />
+          <StanzaParete parete={parete} />
           {piede}
         </>
       ) : (

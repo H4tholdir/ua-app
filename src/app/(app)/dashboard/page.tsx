@@ -4,7 +4,7 @@ import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
 import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
 import { getParete } from '@/lib/cassette/parco'
-import { homePrefDa, serveParete, vistaHome } from '@/lib/preferenze/home'
+import { homePrefDa, pareteIntroVista, serveParete, vistaHome } from '@/lib/preferenze/home'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { HomeDesktop } from '@/components/features/home/HomeDesktop'
 import { PasskeyPromptOnDashboard } from '@/components/features/auth/PasskeyPromptOnDashboard'
@@ -67,7 +67,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const trial = context.lab?.stato === 'trial' && context.lab.trial_ends_at
     ? { giorniRimasti: giorniCiviliRimasti(context.lab.trial_ends_at, ora) }
     : null
-  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, pile: pile.striscia })
+  // Task 15 — racconto backfill (una tantum): il conteggio è il totale REALE delle cassette
+  // (`pareteLetta`, sempre letto, non la `parete` gated dalla vista) + il flag di dismissal
+  // per-utente. `scegliSegnale` resta puro; `sPareteIntro` decide da sé sotto trial e sopra i
+  // sereni. Assente (n=0 o intro già vista) → nessun segnale nuovo.
+  const pareteIntro = { n: pareteLetta.length, introVista: pareteIntroVista(preferenze.data?.nav_preferences) }
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, pile: pile.striscia })
 
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'

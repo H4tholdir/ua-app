@@ -75,6 +75,55 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
   })
 })
 
+// --- Task 15: racconto backfill «UÀ ha creato N cassette» (una tantum) ---
+
+describe('scegliSegnale — Task 15: racconto backfill parete_intro', () => {
+  it('titolare, cassette presenti e intro non vista → segnale quieto col racconto verbatim', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 12, introVista: false } })
+    expect(s).toEqual({
+      attenzione: false,
+      intro: true,
+      forte: null,
+      testo: 'UÀ ha creato 12 cassette dai tuoi lavori —',
+      azione: { etichetta: 'colorale e mettile in ordine ›', href: '/cassette' },
+    })
+  })
+
+  it('intro GIÀ vista → nessun racconto, cade sui sereni (s9)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 12, introVista: true } })
+    expect(s.intro).toBeUndefined()
+    expect(s.forte).toBe('Tutto a posto:')
+  })
+
+  it('nessuna cassetta (n=0) → nessun racconto', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 0, introVista: false } })
+    expect(s.intro).toBeUndefined()
+  })
+
+  it('gli allarmi operativi vincono sul racconto', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      parete: { n: 12, introVista: false },
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+  })
+
+  it('il racconto vince sui sereni (s8: DdC di oggi)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, ddcOggi: 3, parete: { n: 12, introVista: false } })
+    expect(s.intro).toBe(true)
+  })
+
+  it('è lab-wide: anche tecnico e front_desk lo vedono (quando nessun allarme è attivo)', () => {
+    expect(scegliSegnale('tecnico', { ...VUOTO, parete: { n: 5, introVista: false } }).intro).toBe(true)
+    expect(scegliSegnale('front_desk', { ...VUOTO, parete: { n: 5, introVista: false } }).intro).toBe(true)
+  })
+
+  it('ingresso parete assente (es. admin live preview) → nessun segnale nuovo (gerarchia invariata)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, ddcOggi: 3 })
+    expect(s.intro).toBeUndefined()
+    expect(s.testo).toBe('Oggi ho preparato 3 DdC ✓')
+  })
+})
+
 // --- O1f: segnale «tecnico senza anagrafica» (Task 11) ---
 
 describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {

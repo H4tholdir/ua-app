@@ -37,11 +37,16 @@ export function StrisciaStato(props: {
   attenzione?: boolean
   tono?: 'ambra'
   azione?: { etichetta: string; href: string } | null
+  /** Task 15 — effetto collaterale opzionale al tap della CTA, OLTRE alla navigazione del
+   *  `<Link>` (es. il racconto backfill scrive `parete_intro_vista` fire-and-forget). La riga
+   *  resta presentazionale: la logica la porta il chiamante, qui si invoca soltanto. */
+  onAzione?: () => void
 }) {
-  const { children, forte, attenzione = false, tono, azione } = props
+  const { children, forte, attenzione = false, tono, azione, onAzione } = props
 
   function handleClickAzione() {
     vibra('selection')
+    onAzione?.()
   }
 
   // O1i — a `attenzione` vince sempre il rosso `!` (allarme, anche se il
