@@ -5,7 +5,7 @@
 // tap/long-press). Un `fireEvent.click` NON chiama `onTap`: qui si usa la stessa coppia di
 // eventi di `tests/unit/Cassetta.test.tsx`.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -216,6 +216,59 @@ describe('PareteClient — un\'azione RIUSCITA chiude lo sheet (review Task 12, 
     // resta montato per tutta la discesa.
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C4' })).toBeNull())
     expect(refresh).toHaveBeenCalled()
+  })
+})
+
+// Task 13 — wiring del drag. Il gesto vero (ghost, FLIP, auto-scroll, preventDefault) è
+// device/Playwright (§6.4): qui si prova solo che PareteClient CABLA l'hook — chi possiede il
+// gesto quando, e che il rilascio fermo dopo il sollevamento apra lo sheet passando per l'hook.
+describe('PareteClient — wiring del drag (Task 13, §2.5/§3)', () => {
+  it('drag abilitato: hold 300ms + rilascio FERMO apre lo sheet passando per l\'hook (onSheet), non per il long-press legacy di Cassetta', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[occupata, libera]} />)
+      const bottone = cassettaLibera()
+      // pointerId esplicito: l'hook filtra i suoi listener di window su quello.
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) }) // Cassetta spara onSollevata → hook.avvia
+      // Il pointerup arriva a window (l'hook), non serve che Cassetta lo gestisca: dopo il
+      // sollevamento Cassetta tace (invariante del panel).
+      act(() => { window.dispatchEvent(new (window.PointerEvent)('pointerup', { pointerId: 1, clientX: 0, clientY: 0 })) })
+      expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('durante la ricerca il drag è SPENTO (parete filtrata = ordine parziale) ma il long-press apre comunque lo sheet (fallback legacy, §5.3)', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[occupata, libera]} />)
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C4' } })
+      // Con la ricerca attiva `onSollevata` NON è passato: il gesto ricade sul long-press di
+      // Cassetta, che al rilascio sul bottone stesso apre lo sheet.
+      const bottone = cassettaOccupata() // occupata, ora spenta ma tappabile e con long-press
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) })
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('con meno di 2 cassette il drag non si arma: hold + rilascio fermo apre lo sheet via long-press (una sola cassetta = niente da riordinare)', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[libera]} />)
+      const bottone = cassettaLibera()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) })
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

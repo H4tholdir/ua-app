@@ -17,10 +17,25 @@
 // + elevazione, `aria-current="true"` — mai solo colore, spec §12) · spenta (opacity .3 +
 // desaturazione — resta un `<button>` NON-disabled e tappabile: è opacità, non inattività).
 //
-// Gesti (spec §5.4/§5.35): tap = azione primaria (`onTap`) · hold 300ms fermo (<8px di
-// spostamento) = apre lo sheet cassetta (`onLongPressSheet`) · spostamento oltre 8px = solleva il
-// drag, gestito dal chiamante (Task 11: griglia/riordino) — qui `draggable` è solo l'affordance
-// (cursor grab + attributo HTML nativo), non l'implementazione del riordino.
+// Gesti (spec §5.4/§5.35 + Task 13). INVARIANTE NORMATIVA (panel Task 13 §3, non negoziabile):
+// Cassetta RICONOSCE il gesto fino al sollevamento; DAL SOLLEVAMENTO IN POI non insegue più NULLA —
+// il gesto passa all'hook del contenitore (`useDragRiordino`, listener su `window`). Il flag
+// `sollevata` rende `handlePointerMove`/`handlePointerUp` no-op dopo il lift: è presidiato da un
+// test che VIETA (Cassetta.test.tsx «VIETA il tracking post-sollevamento»), non da uno che permette.
+//
+//  • tap = azione primaria. Vive su `onClick` (difetto a11y n.2, Task 13): il doppio-tap di
+//    VoiceOver/TalkBack emette un `click`, non una coppia pointerdown/up — senza `onClick` chi usa
+//    uno screen reader su touch non otterrebbe nulla. La macchina pointer resta solo per
+//    discriminare tap/hold/sollevamento e per INGOIARE il click sintetico che segue un drag.
+//  • hold 300ms fermo (<8px): se il chiamante offre il drag (`onSollevata`) → SOLLEVAMENTO
+//    (`onSollevata`), e da lì lo sheet/drop li decide l'hook; altrimenti (solo `onLongPressSheet`,
+//    percorso legacy) → apre lo sheet al rilascio, come prima di Task 13.
+//  • spostamento oltre 8px: su mouse/pen arma SUBITO il sollevamento (§2.4.1 ricerca); su touch
+//    ANNULLA l'hold (lo scroll vince, §2.2) — mai un sollevamento a metà di uno swipe.
+//  • `draggable` HTML è inchiodato a `false` sul button (difesa dal DnD nativo iOS/desktop che, per
+//    spec, emetterebbe `pointercancel` uccidendo il gesto — §2.2 ricerca). La prop `draggable`
+//    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
+//    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
 import { useRef } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
@@ -81,15 +96,24 @@ export function Cassetta(props: {
   stato: StatoCassetta
   onTap: () => void
   onLongPressSheet?: () => void
+  /** Task 13 — sparata allo scattare del sollevamento (timer 300ms fermo su touch; superamento
+   *  degli 8px su mouse/pen). Da qui in poi il gesto è dell'hook del chiamante: Cassetta non
+   *  insegue più nulla (invariante del panel, presidiata dal test che VIETA). */
+  onSollevata?: (evento: ReactPointerEvent<HTMLButtonElement>) => void
   draggable?: boolean
 }) {
-  const { id, nome, colore, lavoro, stato, onTap, onLongPressSheet, draggable = false } = props
+  const { id, nome, colore, lavoro, stato, onTap, onLongPressSheet, onSollevata, draggable = false } = props
 
   // Stato del gesto in ref (non state): niente re-render durante pointermove, il tap/long-press
   // si decide solo al rilascio.
   const inizio = useRef<{ x: number; y: number } | null>(null)
   const spostato = useRef(false)
   const pressioneLunga = useRef(false)
+  // `sollevata`: il gesto ha lasciato Cassetta ed è passato all'hook — da qui move/up sono no-op.
+  const sollevata = useRef(false)
+  // `tapGestito`: un tap è già stato servito (pointerup o tastiera) in questo ciclo — il click
+  // sintetico che segue va ingoiato, così `onClick` (per le AT) non raddoppia l'azione.
+  const tapGestito = useRef(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function pulisciTimer() {
@@ -103,29 +127,58 @@ export function Cassetta(props: {
     inizio.current = { x: evento.clientX, y: evento.clientY }
     spostato.current = false
     pressioneLunga.current = false
-    // Il timer parte solo se il chiamante vuole davvero il gesto: senza `onLongPressSheet` ogni
-    // rilascio fermo ricade sul tap, qualunque sia la durata della pressione (nessuna azione
-    // persa per una cassetta che non offre lo sheet via long-press).
-    if (onLongPressSheet) {
+    sollevata.current = false
+    tapGestito.current = false
+    // Il timer parte se il chiamante vuole il gesto — via drag (`onSollevata`) o via sheet
+    // long-press legacy (`onLongPressSheet`). Senza nessuna delle due, ogni rilascio fermo ricade
+    // sul tap, qualunque sia la durata della pressione (nessuna azione persa).
+    if (onSollevata || onLongPressSheet) {
       timer.current = setTimeout(() => {
-        pressioneLunga.current = true
+        if (!inizio.current || spostato.current || sollevata.current) return
+        if (onSollevata) {
+          // SOLLEVAMENTO (touch e mouse fermo): il gesto passa all'hook. Da qui Cassetta tace.
+          sollevata.current = true
+          onSollevata(evento)
+        } else {
+          // Percorso legacy (nessun drag offerto): l'hold apre lo sheet al rilascio, come prima.
+          pressioneLunga.current = true
+        }
       }, SOGLIA_LONG_PRESS_MS)
     }
   }
 
   function handlePointerMove(evento: ReactPointerEvent<HTMLButtonElement>) {
+    // INVARIANTE (panel §3): dopo il sollevamento Cassetta non insegue più nulla — è l'hook, sui
+    // suoi listener di `window`, a leggere ogni movimento. Questo `return` è ciò che il test che
+    // VIETA presidia: senza, il ramo mouse rifarebbe `onSollevata` a ogni frame.
+    if (sollevata.current || spostato.current) return
     if (!inizio.current) return
     const dx = evento.clientX - inizio.current.x
     const dy = evento.clientY - inizio.current.y
     if (Math.hypot(dx, dy) > SOGLIA_MOVIMENTO_PX) {
-      // Spostamento oltre soglia = sollevamento drag (gestito dal chiamante, Task 11): qui
-      // annulliamo solo il timer, niente tap né sheet al rilascio.
+      const puntatore = evento.pointerType
+      if (onSollevata && (puntatore === 'mouse' || puntatore === 'pen')) {
+        // Mouse/pen: il drag si arma SUBITO al superamento della soglia, senza attendere i 300ms
+        // (§2.4.1 ricerca — su questi puntatori non esiste il conflitto con lo scroll).
+        sollevata.current = true
+        pulisciTimer()
+        onSollevata(evento)
+        return
+      }
+      // Touch (o nessun drag offerto): lo spostamento oltre soglia ANNULLA l'hold — su touch è lo
+      // scroll che ha vinto (§2.2), mai un sollevamento a metà swipe. Niente tap né sheet.
       spostato.current = true
       pulisciTimer()
     }
   }
 
   function handlePointerUp() {
+    // Dopo il sollevamento il rilascio è dell'hook (sheet se fermo, drop se mosso): Cassetta non
+    // fa nulla — ma NON azzera `sollevata`, che serve a `onClick` per ingoiare il click sintetico.
+    if (sollevata.current) {
+      inizio.current = null
+      return
+    }
     // Guardia (review Task 10, Important): senza un pointerdown corrispondente su QUESTO
     // elemento, `spostato`/`pressioneLunga` sono nel loro stato di riposo (azzerati solo al
     // pointerdown, mai al pointerup) — un pointerup "orfano" (down su un'altra cassetta o sullo
@@ -137,11 +190,32 @@ export function Cassetta(props: {
     if (!spostato.current) {
       if (pressioneLunga.current) {
         onLongPressSheet?.()
+        tapGestito.current = true
       } else {
+        // L'azione primaria si esegue qui (tap pointer genuino) E si marca gestita, così il click
+        // sintetico che il browser emette subito dopo viene ingoiato da `handleClick`.
         onTap()
+        tapGestito.current = true
       }
     }
     inizio.current = null
+  }
+
+  function handleClick() {
+    // Difetto a11y n.2 (Task 13): il doppio-tap di VoiceOver/TalkBack emette un `click` puro,
+    // senza sequenza pointer. Se un tap pointer o la tastiera hanno già servito l'azione
+    // (`tapGestito`), o se il gesto è finito in drag/sollevamento (`spostato`/`sollevata`), il
+    // click è solo la coda sintetica e va ingoiato. Altrimenti è un'attivazione AT pura → onTap.
+    if (spostato.current || sollevata.current) {
+      spostato.current = false
+      sollevata.current = false
+      return
+    }
+    if (tapGestito.current) {
+      tapGestito.current = false
+      return
+    }
+    onTap()
   }
 
   function handlePointerCancel() {
@@ -149,13 +223,17 @@ export function Cassetta(props: {
     // azione fantasma al termine di un gesto interrotto.
     pulisciTimer()
     inizio.current = null
+    spostato.current = false
+    sollevata.current = false
   }
 
   function handleKeyDown(evento: ReactKeyboardEvent<HTMLButtonElement>) {
     // Tastiera: Invio/Spazio = SEMPRE azione primaria. Il long-press non ha un equivalente da
     // tastiera (niente pointerdown/up da qui) — chi naviga a tastiera arriva sempre al tap.
+    // `tapGestito` ingoia il click che il button nativo emette dopo Invio/Spazio (no doppione).
     if (evento.key === 'Enter' || evento.key === ' ') {
       evento.preventDefault()
+      tapGestito.current = true
       onTap()
     }
   }
@@ -209,13 +287,17 @@ export function Cassetta(props: {
           // §8.1) — NIENTE duration/ease inventati, solo la proprietà è esplicita (review M2).
           transition: `opacity ${cssEase.generico}`,
         }}
-        draggable={draggable}
+        // HTML `draggable` inchiodato a false (§2.2 ricerca): neutralizza il DnD nativo che, avviato
+        // dal long-press di sistema iOS o dal drag desktop, emetterebbe `pointercancel` sul nodo e
+        // ucciderebbe il gesto. La prop `draggable` resta solo l'affordance visiva (classe cursor).
+        draggable={false}
         aria-label={etichetta}
         aria-current={stato === 'accesa' ? 'true' : undefined}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onClick={handleClick}
         onKeyDown={handleKeyDown}
       >
         <span className="ds-cassetta-cavita">

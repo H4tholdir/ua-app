@@ -30,15 +30,19 @@
 // `deriveParete`, qui si ricalcola l'array spostando di una posizione e si POSTa la lista intera.
 // Per questo `CassettaSheet` riceve un callback `onSposta(direzione)` invece dell'ordine: i ▲▼ si
 // rendono là, la lista si compone qui (unico posto che possiede `parete`).
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { MotionConfig, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { Cassetta } from '@/components/ds/Cassetta'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
+import { molla, trascinamento } from '@/design-system/v3/motion'
 import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
+import { useDragRiordino } from './useDragRiordino'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 /** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
@@ -101,10 +105,27 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
     router.refresh()
   }
 
-  /** Riordino ▲▼ (§5.4): sposta di UNA posizione e POSTa la lista COMPLETA degli id vivi
-   *  nell'ordine nuovo. Torna `true` SOLO se il muro si è mosso davvero (200): è l'esito su cui
-   *  lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque, anche quando
-   *  la POST fallisce — la parete torna a dire la verità del server invece di restare
+  /** Persistenza condivisa dell'ordine (una sola verità sul muro): POSTa la lista COMPLETA degli id
+   *  e torna `true` SOLO su 200. La usano SIA i ▲▼ dello sheet SIA il drop del drag — è la
+   *  meccanica riusata (non il calcolo dello spostamento, che è diverso: swap adiacente per i ▲▼,
+   *  arrayMove arbitrario per il drag). Nessun `router.refresh()` qui dentro: chi chiama decide
+   *  quando rileggere (i ▲▼ subito, il drag SOLO dopo un drop riuscito — mai pre-drag, §8.2). */
+  async function inviaOrdine(ordine: string[]): Promise<boolean> {
+    try {
+      const res = await fetch('/api/cassette/riordino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ordine }),
+      })
+      return res.status === 200
+    } catch {
+      return false
+    }
+  }
+
+  /** Riordino ▲▼ (§5.4): swap di UNA posizione. Torna `true` SOLO se il muro si è mosso davvero:
+   *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque,
+   *  anche quando la POST fallisce — la parete torna a dire la verità del server invece di restare
    *  sull'ordine che l'utente credeva di aver dato. */
   async function riordina(id: string, direzione: 'su' | 'giu'): Promise<boolean> {
     const indice = parete.findIndex((c) => c.id === id)
@@ -114,20 +135,9 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
     const ordine = parete.map((c) => c.id)
     ordine[indice] = parete[destinazione].id
     ordine[destinazione] = parete[indice].id
-    try {
-      const res = await fetch('/api/cassette/riordino', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ordine }),
-      })
-      // Ramo di successo esplicito: qualunque altro esito (422 `ordine_non_valido`, 500, rete
-      // caduta) NON è un riordino avvenuto.
-      return res.status === 200
-    } catch {
-      return false
-    } finally {
-      router.refresh()
-    }
+    const ok = await inviaOrdine(ordine)
+    router.refresh()
+    return ok
   }
 
   const annuncio = !attiva
@@ -137,6 +147,38 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
       : accesi.size === 1
         ? '1 cassetta accesa'
         : `${accesi.size} cassette accese`
+
+  // Il drag NON parte durante una ricerca attiva (parete filtrata = ordine parziale) né con meno di
+  // 2 cassette (§5). Fuori da queste condizioni le cassette NON ricevono `onSollevata`: il gesto
+  // ricade sul long-press legacy (sheet) — e i ▲▼ dello sheet restano l'unica via di riordino.
+  const dragAbilitato = !attiva && parete.length >= 2
+  const gridRef = useRef<HTMLDivElement>(null)
+  // Destrutturato al volo (non `const drag = …`): usare un membro in `ref={}` farebbe inferire
+  // all'intero oggetto natura di ref al React Compiler, che poi bollerebbe gli altri accessi come
+  // «ref durante il render». Con i locali ognuno è quello che è (funzione, stato, descrittore).
+  const {
+    onSollevata: sollevaDrag,
+    idTrascinato: idTrascinato,
+    ordineIds: ordineDrag,
+    ghost: ghostDrag,
+    ghostMotion,
+    annuncio: annuncioDrag,
+  } = useDragRiordino({
+    parete,
+    disabilitato: !dragAbilitato,
+    gridRef,
+    onSheet: (id) => setSheet({ tipo: 'cassetta', id }),
+    inviaOrdine,
+    onRefresh: () => router.refresh(),
+  })
+
+  // Ordine di render: durante il drag comanda l'ordine OTTIMISTICO (le sorelle FLIPpano); a riposo
+  // è quello del server. La mappa id→cassetta risolve ogni id all'ultimo dato conosciuto.
+  const perId = useMemo(() => new Map(parete.map((c) => [c.id, c])), [parete])
+  const cassetteRender = (ordineDrag ?? parete.map((c) => c.id))
+    .map((id) => perId.get(id))
+    .filter((c): c is CassettaParete => !!c)
+  const cassettaGhost = ghostDrag ? perId.get(ghostDrag.id) : null
 
   return (
     <section className="ds-parete-shell">
@@ -200,40 +242,103 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
             {annuncio}
           </p>
 
-          <div className="ds-parete">
-            <div className="ds-parete-grid">
-              {parete.map((c) => (
-                <Cassetta
-                  key={c.id}
-                  id={c.id}
-                  nome={c.nome}
-                  colore={c.colore}
-                  lavoro={c.lavoro}
-                  stato={attiva ? (accesi.has(c.id) ? 'accesa' : 'spenta') : 'normale'}
-                  onTap={() =>
-                    c.lavoro ? router.push(`/lavori/${c.lavoro.id}`) : setSheet({ tipo: 'cassetta', id: c.id })
-                  }
-                  // Senza questa prop il timer di long-press non parte affatto e il gesto
-                  // sparisce in silenzio (§5.35): va passato a OGNI cassetta, anche occupata.
-                  onLongPressSheet={() => setSheet({ tipo: 'cassetta', id: c.id })}
-                />
-              ))}
-              {/* Durante la ricerca la tile sparisce (mockup, blocco 2): una cella tratteggiata
-                  a piena luce competerebbe con l'unica cassetta accesa. */}
-              {!attiva && (
-                <button
-                  type="button"
-                  className="ds-tray-nuova"
-                  aria-haspopup="dialog"
-                  aria-expanded={sheet?.tipo === 'nuova'}
-                  onClick={() => setSheet({ tipo: 'nuova' })}
-                >
-                  <span className="plus" aria-hidden="true">+</span>
-                  <span className="t">Nuova cassetta</span>
-                </button>
-              )}
+          {/* Live region ASSERTIVA del flusso di trascinamento (§5.4): separata dalla `polite`
+              della ricerca — due regioni, due scopi. Visually-hidden, mai `display:none` (che la
+              escluderebbe dall'albero). NB: `aria-live="assertive"` SENZA `role="status"` — la
+              ricerca §5.4 suggerisce `role="status"`, ma quel ruolo qui creerebbe un secondo
+              elemento `status` in pagina (l'altro è la riga della ricerca): resta una live region
+              assertiva a tutti gli effetti, senza l'ambiguità di ruolo. */}
+          <p
+            aria-live="assertive"
+            aria-atomic="true"
+            style={{ position: 'fixed', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(100%)', whiteSpace: 'nowrap' }}
+          >
+            {annuncioDrag}
+          </p>
+
+          {/* MotionConfig `reducedMotion="user"` (§3.5): framer-motion di default IGNORA la
+              preferenza — qui il FLIP delle sorelle degrada a snap e le transform non si animano,
+              mentre l'opacity (la buca) continua. Scoped alla parete: gli sheet restano intatti. */}
+          <MotionConfig reducedMotion="user">
+            <div className="ds-parete">
+              <div className="ds-parete-grid" ref={gridRef}>
+                {cassetteRender.map((c) => (
+                  <motion.div
+                    key={c.id}
+                    layout
+                    transition={molla.smooth}
+                    className="ds-cella-riordino"
+                    animate={{ opacity: idTrascinato === c.id ? trascinamento.opacitaBuca : 1 }}
+                  >
+                    <Cassetta
+                      id={c.id}
+                      nome={c.nome}
+                      colore={c.colore}
+                      lavoro={c.lavoro}
+                      stato={attiva ? (accesi.has(c.id) ? 'accesa' : 'spenta') : 'normale'}
+                      onTap={() =>
+                        c.lavoro ? router.push(`/lavori/${c.lavoro.id}`) : setSheet({ tipo: 'cassetta', id: c.id })
+                      }
+                      // Il gesto di drag: passato SOLO quando il drag è abilitato (fuori dalla
+                      // ricerca, ≥2 cassette). Da lì il gesto è dell'hook.
+                      onSollevata={dragAbilitato ? (evento) => sollevaDrag(c.id, evento) : undefined}
+                      // Senza questa prop il timer di long-press non parte affatto e il gesto
+                      // sparisce in silenzio (§5.35): va passato a OGNI cassetta, anche occupata.
+                      // Resta l'affordance sheet quando il drag è disabilitato (ricerca attiva).
+                      onLongPressSheet={() => setSheet({ tipo: 'cassetta', id: c.id })}
+                    />
+                  </motion.div>
+                ))}
+                {/* Durante la ricerca la tile sparisce (mockup, blocco 2): una cella tratteggiata
+                    a piena luce competerebbe con l'unica cassetta accesa. */}
+                {!attiva && (
+                  <button
+                    type="button"
+                    className="ds-tray-nuova"
+                    aria-haspopup="dialog"
+                    aria-expanded={sheet?.tipo === 'nuova'}
+                    onClick={() => setSheet({ tipo: 'nuova' })}
+                  >
+                    <span className="plus" aria-hidden="true">+</span>
+                    <span className="t">Nuova cassetta</span>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          </MotionConfig>
+
+          {/* Ghost in portale su `document.body` (§3.2): clone visivo che insegue il dito 1:1.
+              Le motion value dell'hook (`x`/`y` inseguimento, `scale` lift+atterraggio) pilotano il
+              transform: Motion le compone in un unico transform — niente re-render per pixel, niente
+              collisione di scrittori (§3.1). Fuori da `MotionConfig` di proposito: l'atterraggio
+              `molla.snappy` è imperativo (`animate`), il reduced-motion è gestito nell'hook. */}
+          {ghostDrag && cassettaGhost && typeof document !== 'undefined' &&
+            createPortal(
+              <motion.div
+                className="ds-ghost"
+                aria-hidden="true"
+                style={{
+                  left: ghostDrag.left,
+                  top: ghostDrag.top,
+                  width: ghostDrag.width,
+                  height: ghostDrag.height,
+                  willChange: 'transform',
+                  x: ghostMotion.x,
+                  y: ghostMotion.y,
+                  scale: ghostMotion.scale,
+                }}
+              >
+                <Cassetta
+                  id={cassettaGhost.id}
+                  nome={cassettaGhost.nome}
+                  colore={cassettaGhost.colore}
+                  lavoro={cassettaGhost.lavoro}
+                  stato="normale"
+                  onTap={() => {}}
+                />
+              </motion.div>,
+              document.body,
+            )}
         </>
       )}
 

@@ -203,6 +203,124 @@ describe('Cassetta — pointerup "orfano" non deve chiamare onTap (review Import
   })
 })
 
+// ─── Task 13 — estensione ADDITIVA per il drag (`onSollevata`) + i due difetti a11y ────────────
+describe('Cassetta — sollevamento (Task 13, §2.4/§2.6 ricerca): Cassetta RICONOSCE, l\'hook insegue', () => {
+  it('touch: hold 300ms fermo → `onSollevata` (il sollevamento), NON `onLongPressSheet` (lo apre il chiamante)', () => {
+    vi.useFakeTimers()
+    try {
+      const onTap = vi.fn()
+      const onSollevata = vi.fn()
+      const onLongPressSheet = vi.fn()
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale"
+          onTap={onTap} onSollevata={onSollevata} onLongPressSheet={onLongPressSheet} />
+      )
+      const bottone = screen.getByRole('button')
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerType: 'touch', pointerId: 1 })
+      vi.advanceTimersByTime(300)
+      expect(onSollevata).toHaveBeenCalledTimes(1)
+      // Rilascio fermo dopo il sollevamento: Cassetta NON apre lo sheet da sé (lo decide l'hook,
+      // che possiede il gesto dal sollevamento in poi) e soprattutto NON ricade sul tap.
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerType: 'touch', pointerId: 1 })
+      expect(onLongPressSheet).not.toHaveBeenCalled()
+      expect(onTap).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('mouse/pen: il drag si arma al superamento degli 8px SENZA attendere il timer (§2.4.1)', () => {
+    const onSollevata = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale"
+        onTap={() => {}} onSollevata={onSollevata} />
+    )
+    const bottone = screen.getByRole('button')
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.pointerMove(bottone, { clientX: 20, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    expect(onSollevata).toHaveBeenCalledTimes(1)
+  })
+
+  it('VIETA il tracking post-sollevamento (invariante del panel §3): dopo il sollevamento un pointermove sul bottone NON produce altre chiamate verso il chiamante', () => {
+    // Test che NEGA, non che permette. Senza il guardia `sollevata`, il ramo mouse rifarebbe
+    // `onSollevata` a ogni pointermove oltre soglia (seconda, terza chiamata): la macchina di
+    // Cassetta continuerebbe a inseguire un gesto che ha già ceduto all'hook.
+    const onTap = vi.fn()
+    const onSollevata = vi.fn()
+    const onLongPressSheet = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale"
+        onTap={onTap} onSollevata={onSollevata} onLongPressSheet={onLongPressSheet} />
+    )
+    const bottone = screen.getByRole('button')
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.pointerMove(bottone, { clientX: 20, clientY: 0, pointerType: 'mouse', pointerId: 1 }) // sollevamento
+    fireEvent.pointerMove(bottone, { clientX: 120, clientY: 40, pointerType: 'mouse', pointerId: 1 }) // l'hook insegue, non Cassetta
+    fireEvent.pointerMove(bottone, { clientX: 240, clientY: 80, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.pointerUp(bottone, { clientX: 240, clientY: 80, pointerType: 'mouse', pointerId: 1 })
+    expect(onSollevata).toHaveBeenCalledTimes(1) // MAI più di una: dopo il lift, Cassetta tace
+    expect(onTap).not.toHaveBeenCalled()
+    expect(onLongPressSheet).not.toHaveBeenCalled()
+  })
+
+  it('touch: un movimento >8px PRIMA dei 300ms annulla l\'hold (lo scroll vince), niente sollevamento', () => {
+    vi.useFakeTimers()
+    try {
+      const onSollevata = vi.fn()
+      const onTap = vi.fn()
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale"
+          onTap={onTap} onSollevata={onSollevata} />
+      )
+      const bottone = screen.getByRole('button')
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerType: 'touch', pointerId: 1 })
+      fireEvent.pointerMove(bottone, { clientX: 30, clientY: 0, pointerType: 'touch', pointerId: 1 })
+      vi.advanceTimersByTime(300)
+      fireEvent.pointerUp(bottone, { clientX: 30, clientY: 0, pointerType: 'touch', pointerId: 1 })
+      expect(onSollevata).not.toHaveBeenCalled() // lo scroll ha vinto: nessun sollevamento
+      expect(onTap).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('Cassetta — onClick per le AT (Task 13, difetto a11y n.2): il doppio-tap screen-reader emette un click', () => {
+  it('un click «puro» (senza sequenza pointer, come il doppio-tap VoiceOver/TalkBack) chiama onTap', () => {
+    const onTap = vi.fn()
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={onTap} />)
+    // Nessun pointerdown/up: la sola attivazione AT. Prima del fix, Cassetta non aveva `onClick`
+    // e chi usa uno screen reader su touch poteva non ottenere NIENTE.
+    fireEvent.click(screen.getByRole('button'))
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('il click sintetico che segue un tap pointer NON raddoppia onTap (una sola azione per gesto)', () => {
+    const onTap = vi.fn()
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={onTap} />)
+    const bottone = screen.getByRole('button')
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+    fireEvent.click(bottone) // il browser lo emette dopo un tap pointer genuino
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('il click che il browser emette DOPO un drag viene ingoiato (guardia `spostato`/`sollevata`)', () => {
+    const onTap = vi.fn()
+    const onSollevata = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale"
+        onTap={onTap} onSollevata={onSollevata} />
+    )
+    const bottone = screen.getByRole('button')
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.pointerMove(bottone, { clientX: 40, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.pointerUp(bottone, { clientX: 40, clientY: 0, pointerType: 'mouse', pointerId: 1 })
+    fireEvent.click(bottone)
+    expect(onTap).not.toHaveBeenCalled()
+  })
+})
+
 describe('Cassetta — colore custom (hex) e i 6 slug standard', () => {
   it('accetta uno slug standard senza produrre background inline', () => {
     render(<Cassetta id="c1" nome="C12" colore="verde" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
