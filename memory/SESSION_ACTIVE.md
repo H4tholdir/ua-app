@@ -1,19 +1,13 @@
-# Sessione attiva — 22/07/2026 pom. · PARETE: FASI DI CHIUSURA COMPLETE — 🛑 attesa ratifica merge
+# Sessione attiva — 22/07/2026 sera · PARETE MERGIATA E DEPLOYATA — ondata CHIUSA
 
-**Fatto oggi (sessione chiusura):** FASE 7 verde (tsc 0 · 2718→2725/19/0 · build · DS) → review
-finale whole-branch «Sì con fix» (0 Critical/Important nuovi; sanity RPC-only/tenant/DS §14 PASS;
-B2 auto-riparazione verificata end-to-end) → 5 fix pre-merge `5ec14f4` (Esc scoped, 422 nome lungo,
-singolare striscia, serie C `/i`, test trial-vs-racconto) con re-review «Merge-ready: Sì» → FASE 9
-QA browser su lab E2E tutta PASS (+ fix catalogo `aeb4316`) → FASE 9b GATE L2 **PASS** dopo fix
-`6a1103b` (chips dark negli sheet, clamp anti-invasione miniatura). **58 commit** da `4853458`,
-HEAD `6a11038`. **Niente mergiato né pushato.**
+**FASE 10 eseguita** (handoff merge): pulizia 6 doc duplicati main tree → `.gstack/` in .gitignore
+(`fac6707`) → stato 21-22/07 committato su main (`e90355d`) → merge `a6d9f50` (60 commit) → push →
+CI 6m15s + CD 2m47s **verdi** → prod verificata (shortcut «Le cassette → /cassette» nel manifest
+live, smoke 307/200) → worktree e branch rimossi. **FASE 11 BP-1 fatta:** MEMORY voce (26), ROADMAP
+(ondata completata + coda post-merge), checklist L2 §4 → Plus Jakarta Sans. Ledger e diagnosi flake
+conservati in `.superpowers/sdd/` locale (`progress-parete-cassette.md`, `diagnosi-flake-vitest.md`).
 
-**✅ MERGE RATIFICATO da Francesco (22/07 sera)** + ratifiche: conteggio ricerca VISIBILE ·
-testo striscia n=1 ok · censimento UI/UX istituito (`docs/design/audit-ui-ux/CENSIMENTO-UI-UX.md`,
-11 voci). Tutto committato: HEAD branch `78eda30` (59 commit).
-
-**PROSSIMA SESSIONE (contesto pulito):** eseguire l'handoff
-`docs/roadmap/2026-07-22-parete-cassette-merge-handoff.md` (nel worktree) — FASE 10 (pulizia doc
-duplicati main tree → commit `.gstack/` in .gitignore → merge → push → CI verde → uachelab.com) →
-FASE 11 BP-1 (MEMORY + ROADMAP: ondata chiusa, «Miniature 38 + legenda», flake di classe come primo
-task post-merge, D-11, checklist §4). Poi Francesco prova su device IN PRODUZIONE.
+**PROSSIMO:** Francesco prova su device IN PRODUZIONE (drag auto-scroll ai bordi, PWA iOS
+edge-swipe, consegna→liberazione+racconto, annullo). Prima sessione di lavoro: **intervento di
+classe sul flake vitest** (commit test-only, `MotionGlobalConfig.skipAnimations`, protocollo A/B),
+poi ondata «Miniature 38 + legenda in-app» (impianto in ROADMAP, panel UX all'apertura).

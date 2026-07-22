@@ -26,7 +26,7 @@
 ## 4. Tipografia & gerarchia
 - [ ] Scala tipografica dai token `tipografia.*` (v3); nessuna dimensione inline arbitraria.
 - [ ] Gerarchia chiara (titolo > label > valore > caption); peso/tracking coerenti.
-- [ ] DM Sans ovunque (❌ MAI Inter). Line-height leggibile; nessun clip verticale (attenzione al line-height Tailwind ereditato su testi DS — bug noto sistemico).
+- [ ] Plus Jakarta Sans ovunque (❌ MAI Inter; DM Sans è deprecato — spec v3, pesi 400/600/700/800). Line-height leggibile; nessun clip verticale (attenzione al line-height Tailwind ereditato su testi DS — bug noto sistemico).
 - [ ] Troncamento/ellissi gestito su testi lunghi; nessun overflow orizzontale.
 
 ## 5. Colore, contrasto, tema
