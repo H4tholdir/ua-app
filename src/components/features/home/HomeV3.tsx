@@ -136,13 +136,22 @@ export function HomeV3(props: {
            TastoPiù (collaudo device 22/07). min-height + overflow-y:auto = no-scroll quando ci
            sta, scroll naturale quando non ci sta. */
         @media (max-width: 767px) { .ua-home { min-height: 100dvh; height: auto; overflow-y: auto; } }
-        @media (max-height: 700px) { /* §7.1 rev. 3.1 — scala device-corti */
-          .ua-home { padding: 14px 24px; }
-          .ua-home .striscia-slot { margin-top: 10px; }
-          .ua-home .pile { gap: 10px; margin-top: 10px; }
-          .ua-home .pile .ds-pila { padding: 14px 18px; }
+        /* §7.1 rev. 3.2 (Collaudo R3b, misure overlay device Francesco): soglia 700→780 e scala
+           più profonda. I numeri, non le impressioni: PWA standalone su quel device = viewport
+           755px STABILE (dvh=svh, insets 0 — la status bar era innocente); in Chrome 699px la
+           vecchia compatta scattava, nella PWA a 755px restava la scala piena (intrinseca ~900px
+           → scroll). La vecchia compatta misurava 774px intrinseci: sopra 755. Questi valori la
+           portano a ~742px (misura Playwright con banner presente): entra a 755 con margine.
+           NOTA SISTEMICA per l'ondata «Redesign parete/home»: la scala PIENA (~900px a 375w con
+           banner) non entra quasi su nessun device reale — lì va ripensata, qui si cura il caso
+           vero. Sotto ~742 resta il degrado scroll sanzionato (P3). */
+        @media (max-height: 780px) {
+          .ua-home { padding: 12px 24px; }
+          .ua-home .striscia-slot { margin-top: 8px; }
+          .ua-home .pile { gap: 8px; margin-top: 8px; }
+          .ua-home .pile .ds-pila { padding: 12px 18px; }
           .ua-home .pile .ds-pila-num { font-size: 42px; }
-          .ua-home .foot { margin-top: 10px; gap: 6px; }
+          .ua-home .foot { margin-top: 8px; gap: 6px; }
         }
       `}</style>
 

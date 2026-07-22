@@ -643,7 +643,7 @@
    e a 768 quattro tray scenderebbero sotto i 44px di lato. Specificità (0,3,0): vince sulle
    media query di `.ds-parete-grid` (0,2,0) a prescindere dall'ordine. */
 [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { grid-template-columns: repeat(3, 1fr); }
-@media (max-height: 700px) { /* §7.1 rev. 3.1 — stessa scala device-corti della stanza Pile */
+@media (max-height: 780px) { /* §7.1 rev. 3.2 (R3b) — stessa soglia device-corti della stanza Pile */
   [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
   [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
   [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
