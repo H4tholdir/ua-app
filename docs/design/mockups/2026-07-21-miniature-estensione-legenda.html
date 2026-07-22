@@ -71,6 +71,10 @@
   .leg-card .tag.rat { color: var(--muted); background: var(--bg-deep); }
   .leg-card .tag.var { color: #1D5FBF; background: #EBF1FA; }
   [data-theme="dark"] .leg-card .tag.var { color: #5B9BFF; background: rgba(91,155,255,.14); }
+  .leg-card .tag.ok { color: #166B39; background: #E4F3E9; }
+  [data-theme="dark"] .leg-card .tag.ok { color: #5BD389; background: rgba(91,211,137,.14); }
+  .leg-card .tag.no { color: var(--faint); background: transparent; border: 1px dashed var(--line); }
+  .leg-card.scartata { opacity: .55; }
   .leg-card .desc { font-size: 11.5px; font-weight: 600; color: var(--faint); text-align: center; line-height: 1.4; }
 
   /* Gruppo di varianti per un simbolo nuovo */
@@ -206,6 +210,64 @@
     <path d="M8.5 6 C9.5 5 10.8 4.7 12 4.7" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round" fill="none" opacity=".8"/>
     <path d="M7 6.5 C7 9.5 8 11.5 9.2 13.5 L11.2 20" stroke="#D9CDB6" stroke-width="1" fill="none" opacity=".6"/>
   </symbol>
+
+  <!-- ══ SECONDO GIRO (22/07) — richiesto da Francesco al gate ══
+       Riparazione: A e B non convincevano → la rottura si dice con la GEOMETRIA
+       (pezzi separati), non con una linea disegnata sopra.
+       Generica: A e B erano denti frontali → confondibili con la corona ratificata.
+       Si cambia punto di vista, non dettaglio. -->
+
+  <!-- RIPARAZIONE C: la totale spezzata in DUE METÀ, scostate e ruotate di pochi
+       gradi — il gap a V al centro È la frattura, nessuna linea sovrapposta. -->
+  <symbol id="mk-riparazione-c" viewBox="0 0 40 26">
+    <g transform="translate(-1.4 1.3) rotate(-4 10 24)">
+      <path d="M4 24 C4 12 10 4 20 4 L20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+      <path d="M7 20.5 C8.5 13.5 13 8 20 8" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+      <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+      <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="17.6" cy="9.9" r="2.1" fill="#F8F2E6"/>
+      <path d="M20 4.6 L20 9.2" stroke="#C97783" stroke-width="1.1" opacity=".8"/>
+    </g>
+    <g transform="translate(1.4 -0.5) rotate(3.5 30 24)">
+      <path d="M20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 Z" fill="#E89AA4"/>
+      <path d="M20 8 C27 8 31.5 13.5 33 20.5" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+      <circle cx="22.4" cy="9.9" r="2.1" fill="#F8F2E6"/><circle cx="26.8" cy="11.9" r="2.1" fill="#F8F2E6"/>
+      <circle cx="30.1" cy="15.9" r="2.1" fill="#F8F2E6"/><circle cx="31.8" cy="21" r="2.1" fill="#F8F2E6"/>
+      <path d="M20 4.6 L20 9.2" stroke="#C97783" stroke-width="1.1" opacity=".8"/>
+    </g>
+  </symbol>
+  <!-- RIPARAZIONE D: alla totale MANCA la spalla destra — taglio netto diagonale —
+       e il frammento giace staccato accanto, leggermente ruotato. -->
+  <symbol id="mk-riparazione-d" viewBox="0 0 40 26">
+    <path d="M4 24 C4 12 10 4 20 4 C25.8 4 30.2 6.6 33 11.2 L28.6 13.8 C26.6 10.9 23.6 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="#E89AA4"/>
+    <path d="M7 20.5 C8.5 13.5 13 8 20 8 C24.3 8 27.6 9.8 29.9 12.7" stroke="#C97783" stroke-width="1.2" fill="none" opacity=".7"/>
+    <circle cx="8.3" cy="21" r="2.1" fill="#F8F2E6"/><circle cx="10" cy="15.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="13.5" cy="11.7" r="2.1" fill="#F8F2E6"/><circle cx="18" cy="9.8" r="2.1" fill="#F8F2E6"/>
+    <circle cx="22.5" cy="9.9" r="2.1" fill="#F8F2E6"/>
+    <path d="M33 11.2 L28.6 13.8" stroke="#F8F2E6" stroke-width="1.5" stroke-linecap="round"/>
+    <g transform="translate(1.6 1.4) rotate(8 32 19)">
+      <path d="M33.4 13.6 C35.1 16.4 36 19.9 36 24 L30.5 24 C30.5 20.7 29.9 17.9 28.9 15.9 Z" fill="#E89AA4"/>
+      <circle cx="31.8" cy="20.4" r="2.1" fill="#F8F2E6"/>
+      <path d="M33.4 13.6 L28.9 15.9" stroke="#F8F2E6" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+  </symbol>
+
+  <!-- GENERICA C: il MODELLO IN GESSO sulla basetta — l'oggetto che al banco dice
+       «un lavoro qualsiasi» meglio di ogni dente. Silhouette con base piatta:
+       nessun altro simbolo ce l'ha, impossibile confonderla con la corona. -->
+  <symbol id="mk-generica-c" viewBox="0 0 24 24">
+    <path d="M3.5 17 H20.5 C21.3 17 22 17.7 22 18.5 V20 C22 20.8 21.3 21.5 20.5 21.5 H3.5 C2.7 21.5 2 20.8 2 20 V18.5 C2 17.7 2.7 17 3.5 17 Z" fill="#EFE6D2"/>
+    <path d="M2 19.8 C2 20.7 2.7 21.5 3.5 21.5 H20.5 C21.3 21.5 22 20.7 22 19.8" stroke="#D9CDB6" stroke-width="1" fill="none" opacity=".8"/>
+    <path d="M6.2 17 C6.2 10 8.7 6 12 6 C15.3 6 17.8 10 17.8 17 L14.9 17 C14.9 12.2 13.7 9.6 12 9.6 C10.3 9.6 9.1 12.2 9.1 17 Z" fill="#F8F2E6"/>
+    <path d="M7.6 15 C7.9 11 9.7 7.8 12 7.8" stroke="#D9CDB6" stroke-width="1" fill="none" opacity=".6"/>
+  </symbol>
+  <!-- GENERICA D: il molare visto DALL'ALTO (vista occlusale) — ovale con i solchi
+       a Y. Punto di vista diverso dalla corona frontale: a 22px si distinguono
+       per silhouette, non per dettaglio. -->
+  <symbol id="mk-generica-d" viewBox="0 0 24 24">
+    <path d="M12 4.5 C17.2 4.5 20.5 7.5 20.5 12 C20.5 16.5 17.2 19.5 12 19.5 C6.8 19.5 3.5 16.5 3.5 12 C3.5 7.5 6.8 4.5 12 4.5 Z" fill="#F8F2E6"/>
+    <path d="M12 4.5 C6.8 4.5 3.5 7.5 3.5 12 C3.5 16.5 6.8 19.5 12 19.5" stroke="#D9CDB6" stroke-width="1.1" fill="none" opacity=".7"/>
+    <path d="M12 6.5 L12 11.6 M12 11.6 C10.2 12.8 8.6 13.4 7 15.6 M12 11.6 C13.8 12.8 15.4 13.4 17 15.6" fill="none" stroke="#D9CDB6" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
 </svg>
 
 <div class="intro">
@@ -245,8 +307,8 @@
     <div class="gruppo-sotto">Resina traslucida tratteggiata. Il tratteggio (rimovibile/trasparente) e
     l'avorio la separano dallo scheletrato, che è un arco di metallo grigio pieno.</div>
     <div class="legenda-min">
-      <div class="leg-card"><span class="box"><svg><use href="#mk-allineatore-a"/></svg></span><span class="n">Allineatore — A</span><span class="tag var">Variante</span><span class="desc">Arco aperto, tratteggiato, essenziale.</span></div>
-      <div class="leg-card"><span class="box"><svg><use href="#mk-allineatore-b"/></svg></span><span class="n">Allineatore — B</span><span class="tag var">Variante</span><span class="desc">Fascia con corpo: si vede il guscio traslucido.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-allineatore-a"/></svg></span><span class="n">Allineatore — A</span><span class="tag ok">Scelta · 22/07</span><span class="desc">Arco aperto, tratteggiato, essenziale.</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-allineatore-b"/></svg></span><span class="n">Allineatore — B</span><span class="tag no">Scartata</span><span class="desc">Fascia con corpo: si vede il guscio traslucido.</span></div>
     </div>
   </div>
 
@@ -256,30 +318,34 @@
     <div class="gruppo-sotto">Stessa resina dell'allineatore, ma forma piena e bordo continuo (non
     tratteggiato): la placca solida su cui si morde, non la mascherina sottile.</div>
     <div class="legenda-min">
-      <div class="leg-card"><span class="box"><svg><use href="#mk-mascherina-a"/></svg></span><span class="n">Mascherina — A</span><span class="tag var">Variante</span><span class="desc">Ferro di cavallo pieno, bordo continuo.</span></div>
-      <div class="leg-card"><span class="box"><svg><use href="#mk-mascherina-b"/></svg></span><span class="n">Mascherina — B</span><span class="tag var">Variante</span><span class="desc">Più pieno + cresta occlusale (piano di morso).</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-mascherina-a"/></svg></span><span class="n">Mascherina — A</span><span class="tag no">Scartata</span><span class="desc">Ferro di cavallo pieno, bordo continuo.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-mascherina-b"/></svg></span><span class="n">Mascherina — B</span><span class="tag ok">Scelta · 22/07</span><span class="desc">Più pieno + cresta occlusale (piano di morso).</span></div>
     </div>
   </div>
 
-  <!-- RIPARAZIONE -->
+  <!-- RIPARAZIONE — secondo giro richiesto al gate del 22/07 -->
   <div class="gruppo">
-    <div class="gruppo-h">Riparazione <em>— protesi totale rosa con frattura a zig-zag avorio</em></div>
-    <div class="gruppo-sotto">La base è la protesi totale ratificata; la crepa dice «da riparare».
-    L'ombra gengiva dietro la crepa le dà profondità anche sopra i denti avorio.</div>
+    <div class="gruppo-h">Riparazione <em>— secondo giro: la rottura è geometria, non disegno</em></div>
+    <div class="gruppo-sotto">Le prime due proposte dicevano «rotta» con una linea disegnata sopra la
+    totale. Qui la frattura è nella forma stessa: pezzi separati, che restano leggibili anche a 22px.</div>
     <div class="legenda-min">
-      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-a"/></svg></span><span class="n">Riparazione — A</span><span class="tag var">Variante</span><span class="desc">Totale completa + crepa verticale sottile.</span></div>
-      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-b"/></svg></span><span class="n">Riparazione — B</span><span class="tag var">Variante</span><span class="desc">Crepa larga e netta, rottura evidente.</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-riparazione-a"/></svg></span><span class="n">Riparazione — A</span><span class="tag no">Scartata</span><span class="desc">Crepa verticale sottile.</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-riparazione-b"/></svg></span><span class="n">Riparazione — B</span><span class="tag no">Scartata</span><span class="desc">Crepa zig-zag larga.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-c"/></svg></span><span class="n">Riparazione — C</span><span class="tag var">Nuova proposta</span><span class="desc">Spezzata in due metà, scostate e ruotate: il vuoto a V è la frattura.</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-riparazione-d"/></svg></span><span class="n">Riparazione — D</span><span class="tag var">Nuova proposta</span><span class="desc">Manca la spalla destra; il frammento giace staccato accanto.</span></div>
     </div>
   </div>
 
-  <!-- GENERICA -->
+  <!-- GENERICA — secondo giro richiesto al gate del 22/07 -->
   <div class="gruppo">
-    <div class="gruppo-h">Generica <em>— dente singolo avorio semplice</em></div>
-    <div class="gruppo-sotto">Il fallback per «un lavoro qualsiasi». Comprende la radice (≠ corona, che
-    è la sola capsula), così si legge subito come «un dente», non come una lavorazione precisa.</div>
+    <div class="gruppo-h">Generica <em>— secondo giro: si cambia punto di vista, non dettaglio</em></div>
+    <div class="gruppo-sotto">Le prime due erano denti frontali — confondibili con la corona ratificata.
+    Qui la silhouette è di un'altra famiglia: un oggetto del banco, o un punto di vista diverso.</div>
     <div class="legenda-min">
-      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-a"/></svg></span><span class="n">Generica — A</span><span class="tag var">Variante</span><span class="desc">Molare: corona bombata + due radici.</span></div>
-      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-b"/></svg></span><span class="n">Generica — B</span><span class="tag var">Variante</span><span class="desc">Dente anteriore: corona + radice singola.</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-generica-a"/></svg></span><span class="n">Generica — A</span><span class="tag no">Scartata</span><span class="desc">Molare frontale (≈ corona).</span></div>
+      <div class="leg-card scartata"><span class="box"><svg><use href="#mk-generica-b"/></svg></span><span class="n">Generica — B</span><span class="tag no">Scartata</span><span class="desc">Anteriore frontale (≈ corona).</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-c"/></svg></span><span class="n">Generica — C</span><span class="tag var">Nuova proposta</span><span class="desc">Il modello in gesso sulla basetta: l'oggetto che dice «un lavoro qualsiasi».</span></div>
+      <div class="leg-card"><span class="box"><svg><use href="#mk-generica-d"/></svg></span><span class="n">Generica — D</span><span class="tag var">Nuova proposta</span><span class="desc">Molare visto dall'alto (occlusale), con i solchi a Y.</span></div>
     </div>
   </div>
 </div>
@@ -299,10 +365,10 @@
     <div class="p22"><span class="box"><svg><use href="#mk-allineatore-b"/></svg></span><span class="lbl">allin. B</span></div>
     <div class="p22"><span class="box"><svg><use href="#mk-mascherina-a"/></svg></span><span class="lbl">masch. A</span></div>
     <div class="p22"><span class="box"><svg><use href="#mk-mascherina-b"/></svg></span><span class="lbl">masch. B</span></div>
-    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-a"/></svg></span><span class="lbl">ripar. A</span></div>
-    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-b"/></svg></span><span class="lbl">ripar. B</span></div>
-    <div class="p22"><span class="box"><svg><use href="#mk-generica-a"/></svg></span><span class="lbl">gener. A</span></div>
-    <div class="p22"><span class="box"><svg><use href="#mk-generica-b"/></svg></span><span class="lbl">gener. B</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-c"/></svg></span><span class="lbl">ripar. C</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-riparazione-d"/></svg></span><span class="lbl">ripar. D</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-generica-c"/></svg></span><span class="lbl">gener. C</span></div>
+    <div class="p22"><span class="box"><svg><use href="#mk-generica-d"/></svg></span><span class="lbl">gener. D</span></div>
   </div>
 </div>
 
