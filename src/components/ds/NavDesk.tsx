@@ -1,8 +1,8 @@
 'use client'
 
-// Spostato in components/ds (ondata 16/07, §5.35). D-4: il tasto locale H52 resta — variante A ratificata (mockup 2026-07-16-navdesk-tasto-varianti.html).
+// Spostato in components/ds (ondata 16/07, §5.37 — era §5.35 fino alla rinumerazione del 21/07). D-4: il tasto locale H52 resta — variante A ratificata (mockup 2026-07-16-navdesk-tasto-varianti.html).
 //
-// DS v3 §5.35 (Task 9) — NavDesk: sostituisce home+☰ su desktop (≥1024, mockup
+// DS v3 §5.37 (Task 9) — NavDesk: sostituisce home+☰ su desktop (≥1024, mockup
 // `home.html` `.nav-desk`). Aside 240px `--bg-deep` con logo, «+ Nuovo lavoro»,
 // le 4 voci-pila (badge numerico colore-famiglia) + le sezioni statiche, e in
 // fondo (`marginTop: auto`) la StrisciaStato — che su desktop lascia il footer

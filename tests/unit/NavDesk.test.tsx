@@ -5,7 +5,7 @@ import { NavDesk } from '@/components/ds/NavDesk'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null }
 
-describe('NavDesk (§5.35) — la nav sostituisce home+☰ su desktop', () => {
+describe('NavDesk (§5.37) — la nav sostituisce home+☰ su desktop', () => {
   it('voci pile con badge numerici + sezioni + Nuovo lavoro', () => {
     render(<NavDesk conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }} pilaSelezionata="rossa" segnale={SEGNALE} />)
     // Niente flag `s` (dotAll): il target tsc del repo è ES2017 (TS1501 su `s`) —

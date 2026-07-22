@@ -3,7 +3,7 @@ import { render, screen, fireEvent, within, waitFor, act } from '@testing-librar
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 
-// Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
+// Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
 // App Router lancia "invariant expected app router to be mounted" e fa
 // cadere l'intero albero. Stesso pattern di NavDesk.test.tsx.

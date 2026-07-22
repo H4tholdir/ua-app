@@ -3,7 +3,7 @@
 // Polish Livello 1 (2026-07-14) — SchedaNavRail: il rail di navigazione desktop
 // della scheda-vista v3. Nasce perché registrando `/lavori/[id]` come route v3
 // (isV3MigratedRoute) si ritirano avatar + BottomNavPill legacy: su desktop la
-// scheda resterebbe senza navigazione. Il NavDesk della home (§5.35) è
+// scheda resterebbe senza navigazione. Il NavDesk della home (§5.37) è
 // pile-specifico (richiede conteggi/segnale/StrisciaStato), quindi qui vive un
 // rail GENERICO — logo, «+ Nuovo lavoro», le voci-app standard (le stesse
 // destinazioni della BottomNavPill) e il toggle tema in fondo. Reso solo da

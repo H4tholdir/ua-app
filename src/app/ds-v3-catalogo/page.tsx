@@ -1184,7 +1184,7 @@ export default function CatalogoPage() {
         </div>
       </SezioneCatalogo>
 
-      <SezioneCatalogo id="nav-desk" titolo="NavDesk" spec="§5.35">
+      <SezioneCatalogo id="nav-desk" titolo="NavDesk" spec="§5.37">
         {/* segnale: shape reale di SegnaleStriscia (src/lib/dashboard/striscia.ts) —
             `forte` è `string | null` (non booleano) e `azione` è
             `{ etichetta, href } | null`. La demo del brief usava `forte: false`,

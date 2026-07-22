@@ -11,7 +11,7 @@ import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 configure({ asyncUtilTimeout: 5000 })
 vi.setConfig({ testTimeout: 15_000 })
 
-// Il catalogo (page.tsx) monta ora anche NavDesk (§5.35), che chiama
+// Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
 // useRouter() per «+ Nuovo lavoro»: senza mock, il render fuori da un vero
 // App Router lancia "invariant expected app router to be mounted" e fa
 // cadere l'intero albero. Stesso pattern di NavDesk.test.tsx.
