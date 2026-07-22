@@ -423,6 +423,15 @@
   width: 17px; height: 17px; stroke: var(--muted); stroke-width: 2.5;
   fill: none; stroke-linecap: round; flex: none;
 }
+/* P7 — la «×» di pulizia NOSTRA (il clear nativo di type="search" si nasconde in globals.css:
+   esiste solo su Chrome). Identica sui due OS per costruzione. */
+[data-ds="v3"] .ds-parete-cerca .pulisci {
+  min-width: 44px; min-height: 44px; margin-right: -12px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; line-height: 1; color: var(--muted);
+  font-family: var(--font-v3);
+}
 [data-ds="v3"] .ds-parete-cerca input {
   flex: 1; min-width: 0; min-height: 44px; /* touch target di legge (§12) */
   border: none; background: transparent; outline: none; padding: 0;

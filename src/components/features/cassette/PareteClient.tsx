@@ -44,6 +44,7 @@ import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
 import { useDragRiordino } from './useDragRiordino'
+import { svuotaRicerca } from '@/lib/ui/svuota-ricerca'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 /** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
@@ -67,6 +68,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
+  const inputCerca = useRef<HTMLInputElement>(null)
 
   // «Filtro attivo» si decide dal `trim()` della query, MAI dalla dimensione del Set: zero
   // match e nessuna ricerca danno entrambi un Set vuoto, ma sono due pareti opposte (tutte
@@ -219,6 +221,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
               <path d="M16.5 16.5 21 21" />
             </svg>
             <input
+              ref={inputCerca}
               type="search"
               value={query}
               onChange={(evento) => setQuery(evento.target.value)}
@@ -226,6 +229,16 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
               aria-label="Cerca una cassetta o un lavoro"
               enterKeyHint="search"
             />
+            {attiva && (
+              <button
+                type="button"
+                className="pulisci"
+                aria-label="Svuota la ricerca"
+                onClick={() => svuotaRicerca(inputCerca.current, () => setQuery(''))}
+              >
+                ×
+              </button>
+            )}
           </div>
 
           {/* Riga quieta + live region insieme: un solo testo, letto una volta sola.
