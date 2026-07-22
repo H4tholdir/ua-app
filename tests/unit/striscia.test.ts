@@ -89,6 +89,11 @@ describe('scegliSegnale — Task 15: racconto backfill parete_intro', () => {
     })
   })
 
+  it('n=1 → singolare «1 cassetta», non «1 cassette» (review finale whole-branch)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 1, introVista: false } })
+    expect(s.testo).toBe('UÀ ha creato 1 cassetta dai tuoi lavori —')
+  })
+
   it('intro GIÀ vista → nessun racconto, cade sui sereni (s9)', () => {
     const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 12, introVista: true } })
     expect(s.intro).toBeUndefined()

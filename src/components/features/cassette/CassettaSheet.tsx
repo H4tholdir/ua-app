@@ -38,6 +38,7 @@ import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import { SwatchesColore } from './SwatchesColore'
 
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
+const ERRORE_NOME_LUNGO = 'Il nome è troppo lungo (massimo 20 caratteri)'
 const ERRORE_GENERICO = 'Non ci sono riuscito — riprova'
 
 export function CassettaSheet(props: {
@@ -102,6 +103,14 @@ export function CassettaSheet(props: {
       })
       if (res.status === 200) {
         onCambiata()
+        return
+      }
+      if (res.status === 422) {
+        // Contratto route (PATCH /api/cassette/[id]): 422 {errore:'nome_non_valido'} = nome
+        // fuori misura (1-20 char; qui il vuoto non parte mai, `rinominaAbilitata` lo blocca).
+        // Un «riprova» cieco sarebbe un vicolo cieco: riprovare non accorcia il nome.
+        const dati = (await res.json().catch(() => ({}))) as { errore?: string }
+        setErroreRinomina(dati.errore === 'nome_non_valido' ? ERRORE_NOME_LUNGO : ERRORE_GENERICO)
         return
       }
       setErroreRinomina(res.status === 409 ? ERRORE_NOME_OCCUPATO : ERRORE_GENERICO)
@@ -253,9 +262,15 @@ export function CassettaSheet(props: {
   const puoSalire = posto > 1
   const puoScendere = posto < totale
 
+  // Review finale whole-branch, Fix 1 — Sheet e DialogConferma ascoltano ENTRAMBI Esc su window:
+  // con un dialog di conferma aperto, un solo Esc chiudeva dialog E sheet insieme (e lo scrim
+  // dello sheet sotto un dialog distruttivo non deve comunque chiudere). La guardia vive qui,
+  // nel compositore: i due componenti ds restano intatti (altre superfici li usano da soli).
+  const dialogAperto = chiediLibera || chiediButta
+
   return (
     <>
-      <Sheet aperto={aperto} onChiudi={onChiudi} titolo={nomeCassetta}>
+      <Sheet aperto={aperto} onChiudi={() => { if (!dialogAperto) onChiudi() }} titolo={nomeCassetta}>
         {cassetta && (
           <>
             {occupata && (

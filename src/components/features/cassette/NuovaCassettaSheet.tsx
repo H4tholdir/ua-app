@@ -27,6 +27,7 @@ import { vibra } from '@/design-system/v3/haptic'
 import { SwatchesColore } from './SwatchesColore'
 
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
+const ERRORE_NOME_LUNGO = 'Il nome è troppo lungo (massimo 20 caratteri)'
 const ERRORE_GENERICO = 'Non sono riuscito a creare la cassetta — riprova'
 
 export function NuovaCassettaSheet(props: {
@@ -79,6 +80,14 @@ export function NuovaCassettaSheet(props: {
       }
       if (res.status === 409) {
         setErroreMsg(ERRORE_NOME_OCCUPATO)
+        return
+      }
+      if (res.status === 422) {
+        // Contratto route (POST /api/cassette): 422 {errore:'nome_non_valido'} = nome fuori
+        // misura (1-20 char; il vuoto qui non parte, la CTA è disabilitata). Un «riprova»
+        // cieco sarebbe un vicolo cieco: riprovare non accorcia il nome.
+        const dati = (await res.json().catch(() => ({}))) as { errore?: string }
+        setErroreMsg(dati.errore === 'nome_non_valido' ? ERRORE_NOME_LUNGO : ERRORE_GENERICO)
         return
       }
       setErroreMsg(ERRORE_GENERICO)

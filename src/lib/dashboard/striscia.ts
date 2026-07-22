@@ -112,7 +112,7 @@ const sTrial: Candidato = (i) => {
 // `parete_intro_vista` (il flag `intro` lo dice al chiamante). Il testo è verbatim dalla spec §6.
 const sPareteIntro: Candidato = (i) =>
   i.parete && i.parete.n > 0 && !i.parete.introVista
-    ? { attenzione: false, intro: true, forte: null, testo: `UÀ ha creato ${i.parete.n} cassette dai tuoi lavori —`, azione: { etichetta: 'colorale e mettile in ordine ›', href: '/cassette' } }
+    ? { attenzione: false, intro: true, forte: null, testo: i.parete.n === 1 ? 'UÀ ha creato 1 cassetta dai tuoi lavori —' : `UÀ ha creato ${i.parete.n} cassette dai tuoi lavori —`, azione: { etichetta: 'colorale e mettile in ordine ›', href: '/cassette' } }
     : null
 
 // P7 — gerarchie per ruolo (spec §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»).

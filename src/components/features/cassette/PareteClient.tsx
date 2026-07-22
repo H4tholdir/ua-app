@@ -49,11 +49,13 @@ import type { CassettaParete } from '@/lib/cassette/parco-shared'
 type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
 
 /** Il prossimo nome della serie «C» sui nomi VIVI della parete (§5.2): `C1`, `C2`, … → il
- *  prossimo. I nomi fuori serie («Banco Ciro») non partecipano al calcolo. */
+ *  prossimo. I nomi fuori serie («Banco Ciro») non partecipano al calcolo. Case-insensitive
+ *  (review finale): l'indice unico DB è su `lower(btrim(nome))`, quindi anche «c12» conta —
+ *  ignorarla suggerirebbe un nome che sbatte su 409. */
 function prossimoNomeSerieC(parete: CassettaParete[]): string {
   let massimo = 0
   for (const c of parete) {
-    const trovato = /^C(\d+)$/.exec(c.nome)
+    const trovato = /^C(\d+)$/i.exec(c.nome)
     if (trovato) massimo = Math.max(massimo, Number(trovato[1]))
   }
   return `C${massimo + 1}`

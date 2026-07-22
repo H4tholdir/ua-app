@@ -115,6 +115,16 @@ describe('NuovaCassettaSheet — creazione (§5.2)', () => {
     expect(onCreata).not.toHaveBeenCalled()
   })
 
+  it('422 nome_non_valido (nome > 20 caratteri) → messaggio dedicato, non un «riprova» cieco', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 422, json: async () => ({ errore: 'nome_non_valido' }) })
+    const onCreata = vi.fn()
+    render(<NuovaCassettaSheet aperto onChiudi={() => {}} prossimoNome="C22" onCreata={onCreata} />)
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Un nome davvero troppo lungo' } })
+    fireEvent.click(screen.getByRole('button', { name: /crea/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Il nome è troppo lungo (massimo 20 caratteri)')
+    expect(onCreata).not.toHaveBeenCalled()
+  })
+
   it('un esito non-201/409 (422/500) NON cade nel successo: errore, mai onCreata', async () => {
     fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({ errore: 'creazione_fallita' }) })
     const onCreata = vi.fn()

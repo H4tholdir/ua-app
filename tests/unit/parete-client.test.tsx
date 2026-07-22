@@ -148,6 +148,12 @@ describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {
     expect(screen.getByLabelText('Nome')).toHaveValue('C13')
   })
 
+  it('serie C case-insensitive (review finale): «c3» minuscola conta — l\'indice DB è su lower(nome), suggerire «C1» sbatterebbe su 409', async () => {
+    render(<PareteClient parete={[{ ...libera, nome: 'c3' }]} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /Nuova cassetta/ }))
+    expect(screen.getByLabelText('Nome')).toHaveValue('C4')
+  })
+
   it('hold 300ms fermo su una cassetta OCCUPATA non degrada in tap-che-naviga (review Task 11, Important 2): senza `onLongPressSheet` il gesto sparirebbe in silenzio dentro `Cassetta` (il timer lì parte solo se la prop è passata) e la pressione lunga ricadrebbe sul tap', () => {
     vi.useFakeTimers()
     try {

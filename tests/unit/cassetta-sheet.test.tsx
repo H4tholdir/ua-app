@@ -139,6 +139,31 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
     expect(options.method).toBe('DELETE')
   })
 
+  it('rinomina 422 (nome > 20 caratteri) → messaggio dedicato, non un «riprova» cieco', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 422, json: async () => ({ errore: 'nome_non_valido' }) })
+    const { onCambiata } = renderSheet()
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Un nome davvero troppo lungo' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Il nome è troppo lungo (massimo 20 caratteri)')
+    expect(onCambiata).not.toHaveBeenCalled()
+  })
+
+  // Review finale whole-branch, Fix 1 — Sheet e DialogConferma ascoltano ENTRAMBI Esc su window:
+  // senza guardia un solo Esc sul dialog «Butta via» chiudeva anche lo sheet sotto (flusso
+  // distruttivo che collassa). Con dialog aperto Esc deve chiudere SOLO il dialog.
+  it('Esc con DialogConferma «Butta via» aperto: chiude SOLO il dialog, il secondo Esc chiude lo sheet', async () => {
+    const { onChiudi } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Butta via' }))
+    await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /butto via/i })).toBeNull())
+    expect(onChiudi).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onChiudi).toHaveBeenCalledTimes(1)
+  })
+
   it('nessuna azione «Sposta il lavoro in…» su una cassetta libera (non c\'è lavoro da spostare)', () => {
     renderSheet()
     expect(screen.queryByText(/sposta il lavoro in/i)).toBeNull()
@@ -213,6 +238,19 @@ describe('CassettaSheet — cassetta OCCUPATA (§5.3)', () => {
     expect(options.method).toBe('POST')
     // Liberazione: body deve essere il letterale `null` (NON {cassetta_id:null}, che è 422).
     expect(options.body).toBe(JSON.stringify(null))
+  })
+
+  it('Esc con DialogConferma «Segna come libera» aperto: chiude SOLO il dialog, non lo sheet', async () => {
+    const { onChiudi } = renderSheet({ cassetta: occupata, libere: [libera], posto: 1, totale: 4 })
+    fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
+    await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /esce dalla/i })).toBeNull())
+    expect(onChiudi).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onChiudi).toHaveBeenCalledTimes(1)
   })
 
   it('«Butta via» DISABILITATA su occupata: riga bloccante «Dentro c\'è il n.144», nessun DELETE', () => {
