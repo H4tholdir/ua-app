@@ -1256,9 +1256,9 @@ export default function CatalogoPage() {
 
           <div>
             <p style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', margin: '0 0 12px' }}>
-              Le 4 miniature nuove (allineatore, mascherina, riparazione, generica) NON hanno
-              ancora un mockup di legenda approvato — fino ad allora rendono tutte lo stesso
-              segnaposto neutro sotto (prescritto dal piano, non una svista).
+              Le 4 miniature nuove — allineatore (arco aperto tratteggiato), mascherina
+              (piena con cresta occlusale), riparazione (totale spezzata in due metà),
+              generica (molare occlusale a Y) — ratificate il 22/07 in due giri di mockup.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {(['allineatore', 'mascherina', 'riparazione', 'generica'] as const).map((idMin) => (
