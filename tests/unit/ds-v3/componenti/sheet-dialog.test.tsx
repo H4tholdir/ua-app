@@ -45,6 +45,7 @@ vi.mock('@/design-system/v3/haptic', () => ({
 }))
 
 import { Sheet, deveChiudere } from '@/components/ds/Sheet'
+import { useTapScrim } from '@/components/ds/useTapScrim'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { RigaDato } from '@/components/ds/CardInfo'
 
@@ -967,6 +968,27 @@ describe('Ghost click Android (Collaudo R3, P9) — lo scrim chiude solo se il g
     fireEvent.click(scrim)
     expect(onAnnulla).toHaveBeenCalledTimes(1)
     expect(onConferma).not.toHaveBeenCalled()
+  })
+
+  it('review I-1: pointerdown sullo scrim A SHEET CHIUSO (uscita animata) non arma la riapertura', () => {
+    // Harness diretto del hook: durante l'exit di AnimatePresence lo scrim resta montato con
+    // aperto=false — un pointerdown lì NON deve armare; alla riapertura un click orfano (il
+    // ghost della riapertura via pointerup) NON deve chiudere.
+    const onChiudi = vi.fn()
+    function Harness({ aperto }: { aperto: boolean }) {
+      const tap = useTapScrim(aperto, onChiudi)
+      return <div data-testid="scrim-harness" onPointerDown={tap.onPointerDown} onClick={tap.onClick} />
+    }
+    const { rerender } = render(<Harness aperto={false} />)
+    const scrim = screen.getByTestId('scrim-harness')
+    fireEvent.pointerDown(scrim) // gesto anomalo durante l'uscita
+    rerender(<Harness aperto />) // riapertura
+    fireEvent.click(scrim) // ghost click della riapertura
+    expect(onChiudi).not.toHaveBeenCalled()
+    // e il tap reale a sheet aperto continua a chiudere
+    fireEvent.pointerDown(scrim)
+    fireEvent.click(scrim)
+    expect(onChiudi).toHaveBeenCalledTimes(1)
   })
 
   it('DialogConferma ridotto: ghost click NON annulla, tap reale sì', () => {

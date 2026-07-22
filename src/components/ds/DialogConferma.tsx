@@ -85,7 +85,6 @@ export function DialogConferma(props: {
 
   if (typeof document === 'undefined') return null
 
-
   const tasti = [
     <TastoSecondario key="sicura" onClick={onAnnulla}>{etichettaSicura}</TastoSecondario>,
     <TastoPrimario key="distruttiva" onClick={onConferma}>{etichettaDistruttiva}</TastoPrimario>,

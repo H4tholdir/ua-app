@@ -88,6 +88,10 @@ export function DiagnosticaViewport() {
   const [unita, setUnita] = useState<{ dvh: number; svh: number; lvh: number; insets: string } | null>(null)
   const [displayMode, setDisplayMode] = useState('')
 
+  // Effect 1 — la DECISIONE, solo al mount (hard load): la PWA parte dallo start_url, e il
+  // flusso documentato passa da un full load col query param; una navigazione client-side con
+  // ?diag=… non riconsulta (accettato, review M-4). Accensione un frame dopo (pattern
+  // sanzionato di SheetRidotto): il lint del React Compiler vieta il setState SINCRONO in effect.
   useEffect(() => {
     let flagSalvato: string | null = null
     try {
@@ -103,22 +107,30 @@ export function DiagnosticaViewport() {
       /* come sopra */
     }
     if (!esito.attiva) return
-
-    // t0 condiviso in un globale simbolico: se il componente rimonta (navigazione), il tempo
-    // resta relativo al PRIMO mount — è la timeline dell'avvio che interessa.
+    // t0 fissato SUBITO (non nel raf): è la timeline dell'avvio che interessa. Condiviso in un
+    // globale simbolico: se il componente rimonta (navigazione), il tempo resta relativo al
+    // PRIMO mount.
     const g = globalThis as Record<symbol, unknown>
     if (typeof g[T0] !== 'number') g[T0] = adesso()
-    const t0 = g[T0] as number
+    const rafId = requestAnimationFrame(() => setAttiva(true))
+    return () => cancelAnimationFrame(rafId)
+  }, [])
 
-    const campiona = (evento: string) => {
+  // Effect 2 — le MISURE, agganciate ad `attiva`: «Spegni» (setAttiva(false)) esegue la cleanup
+  // e stacca listener e timer (review M-1 — prima restavano vivi fino al reload).
+  useEffect(() => {
+    if (!attiva) return
+    const g = globalThis as Record<symbol, unknown>
+    const t0 = typeof g[T0] === 'number' ? (g[T0] as number) : adesso()
+
+    // `conSonde=false` per gli eventi a frequenza di frame (vv-scroll durante il pinch): le
+    // sonde DOM forzano layout e perturberebbero la misura stessa (review M-2). dvh/insets
+    // cambiano solo coi resize: lì le sonde girano.
+    const campiona = (evento: string, conSonde = true) => {
       setStorico((prima) => [...prima.slice(-11), misura(evento, t0)]) // ultime 12 righe
-      setUnita(misuraUnitaEInsets())
+      if (conSonde) setUnita(misuraUnitaEInsets())
     }
-    // Accensione un frame dopo il mount (pattern sanzionato di SheetRidotto): il lint del
-    // React Compiler vieta il setState SINCRONO nel corpo dell'effect. Il frame di ritardo
-    // non falsa la timeline: t0 è già fissato sopra.
     const rafId = requestAnimationFrame(() => {
-      setAttiva(true)
       campiona('mount')
       setDisplayMode(
         ['standalone', 'fullscreen', 'minimal-ui', 'browser'].find(
@@ -129,7 +141,7 @@ export function DiagnosticaViewport() {
 
     const suResize = () => campiona('resize')
     const suVvResize = () => campiona('vv-resize')
-    const suVvScroll = () => campiona('vv-scroll')
+    const suVvScroll = () => campiona('vv-scroll', false)
     window.addEventListener('resize', suResize)
     window.visualViewport?.addEventListener('resize', suVvResize)
     window.visualViewport?.addEventListener('scroll', suVvScroll)
@@ -142,7 +154,7 @@ export function DiagnosticaViewport() {
       window.visualViewport?.removeEventListener('scroll', suVvScroll)
       timer.forEach((id) => window.clearTimeout(id))
     }
-  }, [])
+  }, [attiva])
 
   if (!attiva) return null
 

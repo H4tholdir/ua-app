@@ -35,13 +35,20 @@ export function useTapScrim(aperto: boolean, onChiudi: () => void): {
   onClick: (e: MouseEvent<HTMLDivElement>) => void
 } {
   const armato = useRef(false)
+  // Review R3, I-1: `aperto` letto da un REF, non dalla prop in closure — durante l'uscita di
+  // AnimatePresence lo scrim smontando conserva gli handler dell'ULTIMO render utile (closure
+  // stantia in cui `aperto` era ancora true); il ref è stabile e dice la verità corrente. Senza,
+  // un pointerdown sullo scrim in uscita armerebbe la riapertura e il ghost click della
+  // riapertura richiuderebbe subito: esattamente il bug P9, dalla porta di servizio.
+  const apertoRef = useRef(aperto)
 
   useEffect(() => {
+    apertoRef.current = aperto
     if (!aperto) armato.current = false
   }, [aperto])
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
-    if (e.target === e.currentTarget) armato.current = true
+    if (apertoRef.current && e.target === e.currentTarget) armato.current = true
   }
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
