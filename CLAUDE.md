@@ -114,6 +114,17 @@ Ogni **decisione significativa** (architetturale, di design, di priorità/roadma
 
 ---
 
+## 0D. Come parlare con Francesco (ratificata 23/07/2026 — OGNI messaggio in chat)
+
+Linguaggio piano, zero tecnicismi non spiegati: ogni concetto tecnico si racconta prima con
+parole comuni o un'analogia concreta, poi (se serve) col suo nome tecnico. Struttura a racconto
+(problema → perché → cosa ho fatto → cosa cambia per te), mai elenchi di sigle/hash/file come
+frase principale. Dettaglio tecnico solo in un breve blocco finale dichiarato. Il registro
+tecnico pieno resta in commit, codice, docs e diagnosi. Testo completo della direttiva:
+`../CLAUDE.md` §7 («Come parlare con Francesco»).
+
+---
+
 ## 0B. Workflow UI — Obbligatorio per ogni nuova pagina/feature
 
 Per **ogni nuova pagina o feature con UI**, seguire questo ordine senza eccezioni:
