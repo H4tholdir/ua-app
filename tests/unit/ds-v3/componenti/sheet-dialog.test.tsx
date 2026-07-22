@@ -1,3 +1,5 @@
+// Budget 15s per il render dell'intera pagina catalogo: vedi il commento nell'helper.
+import '../budget-catalogo'
 import { useState } from 'react'
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -235,10 +237,16 @@ describe('Sheet — bottom sheet (§5.16)', () => {
         <p>Contenuto</p>
       </Sheet>
     )
-    // Subito dopo aperto=false il pannello sta ancora scendendo (molla.smooth,
-    // ~500ms): il body DEVE restare bloccato, altrimenti la scrollbar
-    // ricompare a metà animazione e il wrapper centrato si ricentra spostando
-    // il pannello lateralmente di qualche px.
+    // Subito dopo aperto=false l'uscita è avviata ma non notificata: il body
+    // DEVE restare bloccato, altrimenti la scrollbar ricompare a metà uscita
+    // e il wrapper centrato si ricentra spostando il pannello di qualche px.
+    // NB (intervento flake 22/07): con MotionGlobalConfig.skipAnimations
+    // (tests/setup.ts) l'exit non dura più ~500ms di molla.smooth — completa
+    // al primo tick di motion, ma la notifica (onExitComplete → sblocco)
+    // resta ASINCRONA rispetto all'act del rerender: è questo che tiene vera
+    // l'asserzione sincrona qui sotto. Se un upgrade di motion rendesse il
+    // completamento sincrono, questo assert fallirebbe con 'scroll' — rosso
+    // rumoroso, ripartire da questa nota (vale per i 4 test scroll-lock).
     expect(document.body.style.overflow).toBe('hidden')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.body.style.overflow).toBe('scroll')
@@ -268,7 +276,8 @@ describe('Sheet — bottom sheet (§5.16)', () => {
           <p>Contenuto</p>
         </Sheet>
       )
-      // Ancora compensato mentre il pannello scende — coerente col lock.
+      // Ancora compensato tra l'avvio dell'uscita e la sua notifica — coerente
+      // col lock (vedi la nota skipAnimations nel primo test scroll-lock).
       expect(document.body.style.paddingRight).toBe('17px')
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
       expect(document.body.style.paddingRight).toBe(precedentePaddingRight)
@@ -292,7 +301,8 @@ describe('Sheet — bottom sheet (§5.16)', () => {
         <p>Contenuto</p>
       </Sheet>
     )
-    // Uscita avviata, ancora bloccato (comportamento atteso, testato sopra).
+    // Uscita avviata ma non ancora notificata, ancora bloccato (comportamento
+    // atteso, testato sopra — vedi la nota skipAnimations nel primo test).
     expect(document.body.style.overflow).toBe('hidden')
     // Riapre PRIMA che l'uscita precedente completi: senza la guardia,
     // questo effect ri-catturerebbe 'hidden' come "valore precedente",
@@ -344,7 +354,8 @@ describe('Sheet — bottom sheet (§5.16)', () => {
         <p>Contenuto</p>
       </Sheet>
     )
-    // Ancora bloccato durante l'uscita (il componente resta montato).
+    // Ancora bloccato tra avvio e notifica dell'uscita (il componente resta
+    // montato — vedi la nota skipAnimations nel primo test scroll-lock).
     expect(document.body.style.overflow).toBe('hidden')
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(document.body.style.overflow).toBe('scroll')
