@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation'
 import { MorphPila } from '@/components/ds/MorphPila'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { TastoTondo } from '@/components/ds/TastoTondo'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { RigaCerca } from '@/components/ds/RigaCerca'
 import { CampoTesto } from '@/components/ds/Campo'
 import { Vuoto } from '@/components/ds/Vuoto'
@@ -71,7 +72,7 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
   return (
     <section style={{ width: '100%', maxWidth: 480, margin: '0 auto', padding: '8px 24px 40px' }}>
       <div style={{ marginBottom: 18 }}>
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
       </div>
 
       <MorphPila pila={pila} numero={lista.length} label={LABEL[pila]} sub={lista.length > 0 ? sub : undefined} />

@@ -3,7 +3,7 @@
 // src/components/ds/__tests__/ sarebbe un RED finto.
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { Cassetta, targaScura } from '@/components/ds/Cassetta'
+import { Cassetta, targaScura, derivaFacciaCustom, facciaScura } from '@/components/ds/Cassetta'
 
 const lavoroOccupato = { numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }
 
@@ -339,5 +339,99 @@ describe('Cassetta — colore custom (hex) e i 6 slug standard', () => {
     expect(bottone.style.background).toBe(
       'linear-gradient(180deg, rgb(242, 131, 107), color-mix(in srgb, rgb(242, 131, 107) 72%, black))'
     )
+  })
+})
+
+describe('P11c — derivaFacciaCustom: tridimensionalità su qualsiasi hex', () => {
+  it('hex normale: il secondo stop scurisce (comportamento storico)', () => {
+    const g = derivaFacciaCustom('#E8323B')
+    expect(g).toContain('#E8323B')
+    expect(g).toContain('black')
+  })
+  it('hex scurissimo (#000000): il derivato SCHIARISCE — mai nero-su-nero piatto', () => {
+    const g = derivaFacciaCustom('#000000')
+    expect(g).toContain('white')
+    expect(g).not.toContain('black)')
+  })
+  it('è sempre un linear-gradient a 180deg', () => {
+    expect(derivaFacciaCustom('#123456')).toMatch(/^linear-gradient\(180deg,/)
+  })
+})
+
+describe('P11c rev — Variante A nero fedele (ratifica 22/07 sera)', () => {
+  it('facciaScura: #000000 è scura', () => {
+    expect(facciaScura('#000000')).toBe(true)
+  })
+  it('facciaScura: #E8323B non è scura', () => {
+    expect(facciaScura('#E8323B')).toBe(false)
+  })
+  it('facciaScura: #FFFFFF non è scura', () => {
+    expect(facciaScura('#FFFFFF')).toBe(false)
+  })
+
+  it('derivaFacciaCustom su #000000: floor sul gradiente, mai nero assoluto (color-mix su entrambi gli stop)', () => {
+    const g = derivaFacciaCustom('#000000')
+    expect(g.match(/white/g)?.length).toBe(2)
+    expect(g).not.toMatch(/,\s*#000000\)$/)
+  })
+  it('derivaFacciaCustom su #E8323B: ramo storico invariato', () => {
+    const g = derivaFacciaCustom('#E8323B')
+    expect(g).toContain('black')
+  })
+
+  it('Cassetta con colore="#000000" porta la classe is-nera', () => {
+    render(<Cassetta id="cn1" nome="N1" colore="#000000" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).toContain('is-nera')
+  })
+  it('Cassetta con colore="rossa" (slug standard) NON porta is-nera', () => {
+    render(<Cassetta id="cn2" nome="N2" colore="rossa" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).not.toContain('is-nera')
+  })
+  it('Cassetta con custom chiaro (#FFAA00) NON porta is-nera', () => {
+    render(<Cassetta id="cn3" nome="N3" colore="#FFAA00" lavoro={null} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').className).not.toContain('is-nera')
+  })
+})
+
+describe('P9 — tap Android con jitter (collaudo device 22/07)', () => {
+  it('touch: movimento oltre soglia interna MA click naturale emesso → onTap DEVE scattare', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onSollevata={vi.fn()} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 111, clientY: 100 }) // 11px: per noi «spostato», per Chrome ancora tap
+    fireEvent.pointerUp(btn, { pointerType: 'touch' })
+    fireEvent.click(btn) // Chrome lo emette: il gesto ERA un tap
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('touch: vero scroll (movimento, NESSUN click dal browser) → onTap NON scatta', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onSollevata={vi.fn()} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 160 })
+    fireEvent.pointerCancel(btn)
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('mouse: trascinamento con drag DISABILITATO resta ingoiato (comportamento invariato)', () => {
+    const onTap = vi.fn()
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onLongPressSheet={vi.fn()} />
+    )
+    const btn = screen.getByRole('button')
+    fireEvent.pointerDown(btn, { pointerType: 'mouse', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'mouse', clientX: 130, clientY: 100 })
+    fireEvent.pointerUp(btn, { pointerType: 'mouse' })
+    fireEvent.click(btn) // il mouse emette click anche dopo un trascinamento
+    expect(onTap).not.toHaveBeenCalled()
   })
 })

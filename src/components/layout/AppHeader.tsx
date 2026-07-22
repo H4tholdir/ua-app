@@ -1,6 +1,11 @@
-// Server-safe — NO 'use client'. ThemeToggleButton e SyncBadge sono Client islands.
+'use client'
+
+// Direttiva permanente 22/07/2026 (CLAUDE.md §9): il back torna alla pagina PRECEDENTE
+// (tornaIndietro), non più un Link statico verso `backHref` — che resta solo il fallback
+// per quando non c'è storia di navigazione (deep-link, shortcut PWA, notifica push).
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { ThemeToggleButton } from './ThemeToggleButton'
 import { SyncBadge } from './SyncBadge'
 
@@ -22,6 +27,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = true, lastUpdatedAt }: AppHeaderProps) {
+  const router = useRouter()
   // Always add 64px right padding to leave space for the fixed UserProfileSheet avatar (right:16 + width:40 = 56px → 64px safe)
   return (
     <header
@@ -34,9 +40,10 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
       }}
     >
       {backHref && (
-        <Link
-          href={backHref}
+        <button
+          type="button"
           aria-label="Torna indietro"
+          onClick={() => tornaIndietro(router, backHref)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -51,6 +58,8 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
             flexShrink: 0,
             boxShadow: DS.shB,
             textDecoration: 'none',
+            border: 'none',
+            cursor: 'pointer',
           }}
         >
           <svg
@@ -68,7 +77,7 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
               strokeLinejoin="round"
             />
           </svg>
-        </Link>
+        </button>
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>

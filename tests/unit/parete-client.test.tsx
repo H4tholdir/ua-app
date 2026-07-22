@@ -83,6 +83,25 @@ describe('PareteClient — la ricerca che accende (§5.1)', () => {
     expect(cassettaOccupata().className).toContain('is-spenta')
     expect(cassettaLibera().className).toContain('is-spenta')
   })
+
+  // P7 (collaudo device 22/07, ratifica Francesco) — la «×» di pulizia è NOSTRA (il clear
+  // nativo di type="search" si nasconde in globals.css: esiste solo su Chrome, mai su Safari).
+  it('P7 — la «×» «Svuota la ricerca» appare mentre si digita e, cliccata, svuota la query e la parete torna piena', async () => {
+    render(<PareteClient parete={[occupata, libera]} />)
+    const user = userEvent.setup()
+    expect(screen.queryByRole('button', { name: 'Svuota la ricerca' })).toBeNull()
+
+    const campo = screen.getByPlaceholderText('Cerca una cassetta o un lavoro…')
+    await user.type(campo, 'zirconia')
+    const pulisci = screen.getByRole('button', { name: 'Svuota la ricerca' })
+    expect(pulisci).toBeInTheDocument()
+
+    await user.click(pulisci)
+    expect(screen.queryByRole('button', { name: 'Svuota la ricerca' })).toBeNull()
+    expect(campo).toHaveValue('')
+    expect(cassettaOccupata().className).not.toContain('is-accesa')
+    expect(cassettaLibera().className).not.toContain('is-spenta')
+  })
 })
 
 describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {

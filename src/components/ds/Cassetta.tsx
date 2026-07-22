@@ -76,6 +76,32 @@ export function targaScura(colore: string): boolean {
   return false
 }
 
+/**
+ * facciaScura (Collaudo R1, revisione P11c — ratifica Francesco 22/07 sera) — mirror strutturale
+ * di `targaScura`: hex custom con luminanza relativa WCAG < 0.08 è una faccia "quasi-nera". Sotto
+ * questa soglia il solo gradiente schiarito non basta più — l'intera anatomia scura (cavità,
+ * ombra interna, linguetta) sparisce nero-su-nero: da qui la classe `is-nera` (v. componente sotto
+ * e `ds-v3.css`), che passa alla strategia speculare.
+ */
+export function facciaScura(hex: string): boolean {
+  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return false
+  return luminanzaRelativa(hex) < 0.08
+}
+
+/** Collaudo R1 (P11c, rev. ratifica 22/07 sera — Variante A «nero fedele») — la faccia custom
+ *  deriva luce/ombra dall'hex con un FLOOR sul gradiente: su una faccia quasi-nera (`facciaScura`)
+ *  nessuno dei due stop può essere il colore piatto originale (nero-su-nero, collaudo device
+ *  22/07) — entrambi passano da `color-mix(…, white)`, in modo che il colore letterale scelto
+ *  dall'utente (nero puro incluso) non sopravviva mai come stop finale del gradiente. Il resto
+ *  dell'anatomia (cavità/ombra/linguetta) la ribalta la classe `is-nera` in ds-v3.css con la
+ *  strategia speculare. */
+export function derivaFacciaCustom(hex: string): string {
+  if (facciaScura(hex)) {
+    return `linear-gradient(180deg, color-mix(in srgb, ${hex} 77%, white), color-mix(in srgb, ${hex} 94%, white))`
+  }
+  return `linear-gradient(180deg, ${hex}, color-mix(in srgb, ${hex} 72%, black))`
+}
+
 export type StatoCassetta = 'normale' | 'accesa' | 'spenta'
 
 // Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
@@ -114,6 +140,12 @@ export function Cassetta(props: {
   // `tapGestito`: un tap è già stato servito (pointerup o tastiera) in questo ciclo — il click
   // sintetico che segue va ingoiato, così `onClick` (per le AT) non raddoppia l'azione.
   const tapGestito = useRef(false)
+  // `ultimoPointer` (P9, collaudo device 22/07): pointerType dell'ultimo gesto iniziato. Su Chrome
+  // Android il jitter di un tap frettoloso (8-15px) supera la NOSTRA soglia (`spostato = true`)
+  // ma resta dentro lo slop di sistema del browser, che quindi EMETTE comunque il click naturale.
+  // Dopo un VERO scroll il browser non emette click sull'elemento: su touch, un click che arriva
+  // è per definizione un tap — va lasciato passare, non ingoiato come su mouse/pen dopo un drag.
+  const ultimoPointer = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function pulisciTimer() {
@@ -124,6 +156,7 @@ export function Cassetta(props: {
   }
 
   function handlePointerDown(evento: ReactPointerEvent<HTMLButtonElement>) {
+    ultimoPointer.current = evento.pointerType
     inizio.current = { x: evento.clientX, y: evento.clientY }
     spostato.current = false
     pressioneLunga.current = false
@@ -203,12 +236,23 @@ export function Cassetta(props: {
 
   function handleClick() {
     // Difetto a11y n.2 (Task 13): il doppio-tap di VoiceOver/TalkBack emette un `click` puro,
-    // senza sequenza pointer. Se un tap pointer o la tastiera hanno già servito l'azione
-    // (`tapGestito`), o se il gesto è finito in drag/sollevamento (`spostato`/`sollevata`), il
-    // click è solo la coda sintetica e va ingoiato. Altrimenti è un'attivazione AT pura → onTap.
-    if (spostato.current || sollevata.current) {
+    // senza sequenza pointer. Se la tastiera ha già servito l'azione (`tapGestito`), o se il
+    // gesto è finito in sollevamento (`sollevata`), il click è solo la coda sintetica e va
+    // ingoiato. Altrimenti è un'attivazione AT pura → onTap.
+    if (sollevata.current) {
       spostato.current = false
       sollevata.current = false
+      return
+    }
+    // P9 (collaudo device 22/07): il ramo `spostato` ingoia SOLO i puntatori che emettono click
+    // dopo un trascinamento (mouse/pen). Su TOUCH il browser non emette click dopo uno scroll: se
+    // il click arriva, il gesto era un tap dentro lo slop di sistema — è il tap Android che il
+    // collaudo device ha trovato perso. `spostato` si azzera in ogni caso.
+    if (spostato.current) {
+      const eraTouch = ultimoPointer.current === 'touch'
+      spostato.current = false
+      if (!eraTouch) return
+      onTap()
       return
     }
     if (tapGestito.current) {
@@ -241,15 +285,17 @@ export function Cassetta(props: {
   const occupata = !!lavoro
   const scura = targaScura(colore)
   const classeColoreStandard = SLUG_STANDARD.has(colore) ? colore : undefined
-  const backgroundCustom = classeColoreStandard
-    ? undefined
-    : `linear-gradient(180deg, ${colore}, color-mix(in srgb, ${colore} 72%, black))`
+  const backgroundCustom = classeColoreStandard ? undefined : derivaFacciaCustom(colore)
+  // Collaudo R1 (P11c rev, ratifica 22/07 sera): SOLO il custom (hex) può essere "nero" — gli slug
+  // standard sono le 6 facce fisse del mockup, mai quasi-nere.
+  const nera = !classeColoreStandard && facciaScura(colore)
 
   const classi = [
     'ds-cassetta',
     classeColoreStandard,
     occupata ? undefined : 'is-libera',
     scura ? 'is-chiara' : undefined,
+    nera ? 'is-nera' : undefined,
     stato === 'accesa' ? 'is-accesa' : undefined,
     stato === 'spenta' ? 'is-spenta' : undefined,
     draggable ? 'is-draggable' : undefined,

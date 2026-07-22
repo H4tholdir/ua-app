@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { MagazzinoAddSheet } from './MagazzinoAddSheet'
 import type { FornitoreOption, ArticoloCreato } from './MagazzinoAddSheet'
+import { svuotaRicerca } from '@/lib/ui/svuota-ricerca'
 
 type ArticoloRow = {
   id: string
@@ -26,6 +27,7 @@ interface MagazzinoSearchListProps {
 export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornitori = [] }: MagazzinoSearchListProps) {
   const [query, setQuery] = useState('')
   const [localArticoli, setLocalArticoli] = useState<ArticoloRow[]>(articoli)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const handleArticoloCreato = (articolo: ArticoloCreato) => {
@@ -103,6 +105,7 @@ export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornito
               </svg>
 
               <input
+                ref={inputRef}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -121,33 +124,51 @@ export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornito
                 }}
               />
 
+              {/* Pulsante clear — P7 (ratifica 22/07, adattamento in place, Opzione B): stessa
+                  icona/badge v2.3 di sempre, ma etichetta ed effetto unificati col resto delle
+                  superfici (`svuotaRicerca`: svuota + ri-focalizza) e target tattile ≥44px
+                  (margini negativi per non spostare il layout della pillola). */}
               {query && (
                 <button
-                  onClick={() => setQuery('')}
-                  aria-label="Cancella ricerca"
+                  type="button"
+                  onClick={() => svuotaRicerca(inputRef.current, () => setQuery(''))}
+                  aria-label="Svuota la ricerca"
                   style={{
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: 'var(--prs, #D4CFC9)',
+                    minWidth: '44px',
+                    minHeight: '44px',
+                    marginLeft: '-8px',
+                    marginRight: '-8px',
+                    background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'var(--t2, #4A3D33)',
                     padding: 0,
                   }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <path
-                      d="M2 2l8 8M10 2L2 10"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'var(--prs, #D4CFC9)',
+                      color: 'var(--t2, #4A3D33)',
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path
+                        d="M2 2l8 8M10 2L2 10"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </span>
                 </button>
               )}
             </div>
