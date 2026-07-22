@@ -134,6 +134,17 @@
   flex-direction: column;
   gap: 16px;
 }
+/* Collaudo R1 (P10b) — la testata sta SEMPRE nel viewport: a 390px titolo+pill+2 tasti
+   sommano ~450px, la riga sborda e ‹/⋯ finiscono tagliati ai lati (screenshot device 22/07).
+   Sotto 768px la pill scende su una seconda riga; il titolo può comprimersi (min-width:0). */
+[data-ds="v3"] .scheda-testata {
+  display: flex; align-items: center; gap: 8px; padding-top: 16px; flex-wrap: wrap;
+}
+[data-ds="v3"] .scheda-testata-titolo { min-width: 0; }
+@media (max-width: 767px) {
+  [data-ds="v3"] .scheda-testata-pill { order: 5; flex-basis: 100%; }
+}
+
 /* Pannello Documenti desktop: nascosto <1024 (mobile/tablet usano il sheet). */
 [data-ds="v3"] .scheda-documenti-desktop { display: none; }
 
