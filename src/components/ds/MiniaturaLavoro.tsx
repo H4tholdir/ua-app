@@ -2,32 +2,42 @@
 
 // DS v3 §5.36 (spec docs/superpowers/specs/2026-07-21-parete-cassette-design.md §8/§13) —
 // MiniaturaLavoro: SVG materico inline dentro la cavità della Cassetta (§5.35, Cassetta.tsx).
-// I 6 simboli RATIFICATI (corona/provvisorio/impianto/ponte/totale/scheletrato) sono copie 1:1
-// dei path del mockup ratificato `docs/design/mockups/2026-07-20-parete-cassette-v2.html:167-202`
-// — geometria letterale, MAI "migliorata". La palette (ceramica avorio, gengiva rosa, metallo
-// grigio, resina traslucida) è quella stessa FISSA del mockup (righe 164-166): vive come custom
-// property CSS `--mat-*` in `src/app/ds-v3.css` (§5.36) e NON in `v3/tokens.ts` — check
-// pre-commit 4a vieta hex/rgba letterali in questo file, e la mappa colore→variabile CSS resta
-// fuori dal perimetro assegnato a questo task (tokens.ts è un file condiviso, non toccato).
-//
+// I 6 simboli del primo giro (corona/provvisorio/impianto/ponte/totale/scheletrato) sono copie
+// 1:1 dei path del mockup ratificato `docs/design/mockups/2026-07-20-parete-cassette-v2.html:167-202`.
 // Le 4 miniature NUOVE (allineatore, mascherina, riparazione, generica — v. MiniaturaId in
-// `src/lib/domain/miniature-lavoro.ts`) NON hanno ancora un mockup di legenda ratificato: quel
-// gate è il Task 18 (🛑, handoff `docs/roadmap/2026-07-21-parete-cassette-execution-handoff.md`).
-// Fino ad allora tutte e 4 rendono lo STESSO segnaposto neutro sotto (`risolvi`) — è prescritto
-// dal piano/brief Task 10, non una scorciatoia dimenticata: quando Task 18 approva la legenda, si
-// sostituiscono i path SOLO per questi 4 id.
+// `src/lib/domain/miniature-lavoro.ts`) hanno superato il gate Task 18: Francesco ha scelto le
+// varianti il 22/07 (due giri) dal mockup di legenda
+// `docs/design/mockups/2026-07-21-miniature-estensione-legenda.html` — allineatore=A (arco aperto
+// tratteggiato, #mk-allineatore-a), mascherina=B (piena + cresta occlusale, #mk-mascherina-b),
+// riparazione=C (totale spezzata in due metà scostate/ruotate, #mk-riparazione-c), generica=D
+// (molare occlusale, solchi a Y, #mk-generica-d). Anche queste sono copie 1:1 di quei `<symbol>`:
+// geometria (`d`/`transform`) LETTERALE, MAI "migliorata".
+// La palette (ceramica avorio, gengiva rosa, metallo grigio, resina traslucida) è quella FISSA del
+// mockup: vive come custom property CSS `--mat-*` in `src/app/ds-v3.css` (§5.36) e NON in
+// `v3/tokens.ts` — il check pre-commit 4a vieta hex/rgba letterali in questo file. La trascrizione
+// «carattere per carattere» vale per la GEOMETRIA; i `fill`/`stroke` del mockup diventano le
+// `var(--mat-*)` corrispondenti (ceramica / ceramica-ombra / ceramica-traslucida / gengiva /
+// gengiva-ombra) — la mappa valore-letterale→variabile vive in `ds-v3.css` e nel report Task 18.
+//
+// L'UNICO fallback residuo è ora l'id SCONOSCIUTO a runtime (dato non validato a monte), che cade
+// sulla generica — che è la D ratificata, non più un rettangolo segnaposto.
 
 import type { MiniaturaId } from '@/lib/domain/miniature-lavoro'
 
-const RATIFICATE = new Set<MiniaturaId>(['corona', 'provvisorio', 'impianto', 'ponte', 'totale', 'scheletrato'])
+const RATIFICATE = new Set<MiniaturaId>([
+  'corona', 'provvisorio', 'impianto', 'ponte', 'totale', 'scheletrato',
+  'allineatore', 'mascherina', 'riparazione', 'generica',
+])
 
-type IdRisolto = 'corona' | 'provvisorio' | 'impianto' | 'ponte' | 'totale' | 'scheletrato' | 'generica'
+type IdRisolto =
+  | 'corona' | 'provvisorio' | 'impianto' | 'ponte' | 'totale' | 'scheletrato'
+  | 'allineatore' | 'mascherina' | 'riparazione' | 'generica'
 
 /**
  * risolvi — un solo punto di fallback, esplicito e commentato (mai un successo silenzioso):
- * sia le 4 miniature nuove non ancora ratificate, sia un eventuale `id` sconosciuto a runtime
- * (dato non validato a monte — es. un cast `as MiniaturaId` su una stringa arbitraria che
- * bypassa il type-check) cadono QUI sulla generica, con lo stesso percorso.
+ * ora TUTTI i 10 id ratificati rendono il proprio simbolo. Cade QUI sulla generica (D) SOLO un
+ * `id` sconosciuto a runtime (dato non validato a monte — es. un cast `as MiniaturaId` su una
+ * stringa arbitraria che bypassa il type-check).
  */
 function risolvi(id: MiniaturaId): IdRisolto {
   if (RATIFICATE.has(id)) return id as IdRisolto
@@ -41,6 +51,9 @@ const VIEWBOX: Record<IdRisolto, string> = {
   ponte: '0 0 44 24',
   totale: '0 0 40 26',
   scheletrato: '0 0 40 26',
+  allineatore: '0 0 40 26',
+  mascherina: '0 0 40 26',
+  riparazione: '0 0 40 26',
   generica: '0 0 24 24',
 }
 
@@ -160,11 +173,92 @@ function Simbolo({ id }: { id: IdRisolto }) {
           />
         </>
       )
+    case 'allineatore':
+      // Variante A (#mk-allineatore-a): arco aperto tratteggiato, resina traslucida (il tratteggio
+      // dice «trasparente/rimovibile»; l'avorio la distingue dal metallo dello scheletrato).
+      return (
+        <path
+          d="M6 23 C6 12.5 12 6 20 6 C28 6 34 12.5 34 23"
+          fill="none"
+          stroke="var(--mat-ceramica)"
+          strokeWidth={3.2}
+          strokeLinecap="round"
+          strokeDasharray="3.6 2.6"
+        />
+      )
+    case 'mascherina':
+      // Variante B (#mk-mascherina-b): ferro di cavallo pieno traslucido (bordo continuo, non
+      // tratteggiato) + cresta occlusale (piano di morso) in ombra ceramica — la placca su cui si morde.
+      return (
+        <>
+          <path
+            d="M4.5 24 C4.5 11 11 4.5 20 4.5 C29 4.5 35.5 11 35.5 24 L31.5 24 C31.5 14.5 27 10.5 20 10.5 C13 10.5 8.5 14.5 8.5 24 Z"
+            fill="var(--mat-ceramica-traslucida)"
+            stroke="var(--mat-ceramica)"
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M7.2 23 C7.7 15 12 10.2 20 10.2 C28 10.2 32.3 15 32.8 23"
+            fill="none"
+            stroke="var(--mat-ceramica-ombra)"
+            strokeWidth={1}
+            strokeLinecap="round"
+            opacity={0.7}
+          />
+        </>
+      )
+    case 'riparazione':
+      // Variante C (#mk-riparazione-c): la totale rosa spezzata in DUE metà, scostate e ruotate di
+      // pochi gradi — il gap a V al centro È la frattura, nessuna linea sovrapposta.
+      return (
+        <>
+          <g transform="translate(-1.4 1.3) rotate(-4 10 24)">
+            <path d="M4 24 C4 12 10 4 20 4 L20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="var(--mat-gengiva)" />
+            <path d="M7 20.5 C8.5 13.5 13 8 20 8" stroke="var(--mat-gengiva-ombra)" strokeWidth={1.2} fill="none" opacity={0.7} />
+            <circle cx={8.3} cy={21} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={10} cy={15.8} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={13.5} cy={11.7} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={17.6} cy={9.9} r={2.1} fill="var(--mat-ceramica)" />
+            <path d="M20 4.6 L20 9.2" stroke="var(--mat-gengiva-ombra)" strokeWidth={1.1} opacity={0.8} />
+          </g>
+          <g transform="translate(1.4 -0.5) rotate(3.5 30 24)">
+            <path d="M20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 Z" fill="var(--mat-gengiva)" />
+            <path d="M20 8 C27 8 31.5 13.5 33 20.5" stroke="var(--mat-gengiva-ombra)" strokeWidth={1.2} fill="none" opacity={0.7} />
+            <circle cx={22.4} cy={9.9} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={26.8} cy={11.9} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={30.1} cy={15.9} r={2.1} fill="var(--mat-ceramica)" />
+            <circle cx={31.8} cy={21} r={2.1} fill="var(--mat-ceramica)" />
+            <path d="M20 4.6 L20 9.2" stroke="var(--mat-gengiva-ombra)" strokeWidth={1.1} opacity={0.8} />
+          </g>
+        </>
+      )
     case 'generica':
-      // Segnaposto neutro (v. nota di testa): nessun dettaglio distintivo, SOLO la ceramica
-      // avorio già ratificata — non pretende di essere un'icona finita. Task 18 la sostituirà
-      // per allineatore/mascherina/riparazione/generica con path propri.
-      return <rect x={5} y={5} width={14} height={14} rx={4} fill="var(--mat-ceramica)" />
+      // Variante D (#mk-generica-d): molare visto DALL'ALTO (vista occlusale) — ovale con i solchi
+      // a Y. Punto di vista diverso dalla corona frontale: a ~22px si distinguono per silhouette.
+      // È anche il fallback per un id sconosciuto a runtime (v. `risolvi`).
+      return (
+        <>
+          <path
+            d="M12 4.5 C17.2 4.5 20.5 7.5 20.5 12 C20.5 16.5 17.2 19.5 12 19.5 C6.8 19.5 3.5 16.5 3.5 12 C3.5 7.5 6.8 4.5 12 4.5 Z"
+            fill="var(--mat-ceramica)"
+          />
+          <path
+            d="M12 4.5 C6.8 4.5 3.5 7.5 3.5 12 C3.5 16.5 6.8 19.5 12 19.5"
+            stroke="var(--mat-ceramica-ombra)"
+            strokeWidth={1.1}
+            fill="none"
+            opacity={0.7}
+          />
+          <path
+            d="M12 6.5 L12 11.6 M12 11.6 C10.2 12.8 8.6 13.4 7 15.6 M12 11.6 C13.8 12.8 15.4 13.4 17 15.6"
+            fill="none"
+            stroke="var(--mat-ceramica-ombra)"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+          />
+        </>
+      )
   }
 }
 
