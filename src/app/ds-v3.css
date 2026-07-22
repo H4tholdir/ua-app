@@ -429,6 +429,13 @@
    può esprimere — e perché ds-v3.css è la casa canonica dei valori raw del DS v3. */
 [data-ds="v3"] .ds-parete-shell {
   width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 40px;
+  /* Variante C «fluida» (decisione 23/07/2026, gap cassette tablet): la shell è
+     il container su cui risolvono i cqw della griglia qui sotto. Nota: il
+     containment di layout rende la shell containing block dei discendenti
+     position:fixed — dentro ci vive solo la live region visually-hidden del
+     drag (PareteClient), che non ha geometria visibile. Il ghost del drag è in
+     portale su body, fuori dal perimetro. */
+  container-type: inline-size;
 }
 @media (min-width: 768px)  { [data-ds="v3"] .ds-parete-shell { max-width: 720px; } }
 @media (min-width: 1280px) { [data-ds="v3"] .ds-parete-shell { max-width: 1120px; } }
@@ -486,6 +493,21 @@
 [data-ds="v3"] .ds-parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 @media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
+
+/* Variante C «fluida» — gap cassette tablet (mockup 2026-07-22-gap-cassette-tablet.html,
+   ratifica Francesco 23/07/2026): sul telefono il gap 16px era giusto, ma a 768px i tray
+   crescono a ~150px col gap fermo (fuga ~11% vs ~17% mobile; in verticale la linguetta
+   ::before mangia 7px → respiro visivo ~9px). Qui spaziatura e cornice della parete
+   scalano CON la larghezza della shell (cqw sul container qui sopra), senza gradini:
+   gap 16px sul telefono, ~24.5px a 768 (l'àncora del mockup ratificato), 26px dal
+   desktop in su. NB misurato in QA: i cqw risolvono sul CONTENT-BOX della shell
+   (680px a viewport 768: max-width 720 − padding 20×2) — i coefficienti sono tarati
+   su quello, non sul viewport.
+   PERIMETRO: solo la pagina /cassette (.ds-parete-shell). La home (.ua-stanza-parete)
+   resta ai valori fissi sanzionati dal collaudo R3b (compatta 744px, gap 12) finché non
+   arriva l'ondata «Redesign parete/home» — che ha già in dote la direzione fluida. */
+[data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) clamp(18px, 3.4cqw, 24px); }
+[data-ds="v3"] .ds-parete-shell .ds-parete-grid { gap: clamp(16px, 3.6cqw, 26px); }
 
 [data-ds="v3"] .ds-tray-nuova {
   border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
