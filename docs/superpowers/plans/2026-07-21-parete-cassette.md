@@ -1183,6 +1183,24 @@ describe('filtraCassette', () => {
 
 ### Task 13: Drag & drop riordino su `/cassette`
 
+> **⚠️ CORREZIONI 22/07 — questo task è stato riscritto da un panel advisor 3× + una ricerca
+> dedicata, ratificati da Francesco (S2: trascinamento completo, touch incluso).**
+> Il documento operativo che SOSTITUISCE il testo qui sotto dove divergono è
+> `.superpowers/sdd/ricerca-drag-touch.md` (fonti primarie, correzioni al brief in §8).
+> In particolare, il testo storico di questo task contiene TRE prescrizioni SBAGLIATE:
+> 1. **NIENTE HTML5 DnD** (né su desktop né su touch): su iOS il long-press di sistema avvierebbe
+>    il drag nativo, che per spec emette `pointercancel` e ucciderebbe lo sheet già spedito.
+> 2. **NIENTE `router.refresh()` prima del drag** (rimonterebbe la griglia sotto il dito):
+>    snapshot al sollevamento + buffer + `riconcilia()` al drop, una sola POST.
+> 3. `touch-action: manipulation` da solo NON abilita il drag col dito (per spec lascia passare
+>    il panning): serve un listener nativo `touchmove` su `window`, registrato al mount con
+>    `{passive:false}`, che fa `preventDefault` SOLO a drag attivo (guardia `e.cancelable`).
+> Architettura ratificata (panel-task13-sintesi.md §3): **`Cassetta` riconosce** il gesto
+> (+1 prop `onSollevata?`), **l'hook insegue** dal sollevamento in poi (listener su `window`,
+> hit-testing aritmetico O(1), MAI `Reorder` di framer-motion), **`PareteClient` persiste**.
+> Test in `tests/unit/` (D-O1). Il Task 13 chiude anche i 2 difetti a11y censiti dal panel
+> (sheet irraggiungibile da tastiera su cassetta occupata · nessun `onClick` per le AT).
+
 **Files:**
 - Modify: `src/components/features/cassette/PareteClient.tsx`
 - Create: `src/components/features/cassette/useDragRiordino.ts`
