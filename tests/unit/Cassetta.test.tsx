@@ -435,3 +435,69 @@ describe('P9 — tap Android con jitter (collaudo device 22/07)', () => {
     expect(onTap).not.toHaveBeenCalled()
   })
 })
+
+describe('P9-bis — recupero del tap dopo pointercancel (collaudo device R2, 22/07 sera)', () => {
+  function montaCassetta(onTap: () => void) {
+    render(
+      <Cassetta id="c1" nome="C1" colore="bianca" lavoro={null} stato="normale"
+        onTap={onTap} onSollevata={vi.fn()} onLongPressSheet={vi.fn()} />
+    )
+    return screen.getByRole('button')
+  }
+
+  it('micro-pan da jitter: pointercancel + touchend immediato senza scroll → onTap DEVE scattare', () => {
+    const onTap = vi.fn()
+    const btn = montaCassetta(onTap)
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 111 })
+    fireEvent.pointerCancel(btn, { pointerType: 'touch' })
+    fireEvent.touchEnd(window, { touches: [] })
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('vero scroll: dopo il cancel il dito CONTINUA (touchmove oltre busta) → onTap NON scatta', () => {
+    const onTap = vi.fn()
+    const btn = montaCassetta(onTap)
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 111 })
+    fireEvent.pointerCancel(btn, { pointerType: 'touch' })
+    fireEvent.touchMove(window, { touches: [{ clientX: 100, clientY: 180 }] })
+    fireEvent.touchEnd(window, { touches: [] })
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('cancel oltre la busta spaziale (già lontano al cancel) → nessun recupero armato', () => {
+    const onTap = vi.fn()
+    const btn = montaCassetta(onTap)
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 160 })
+    fireEvent.pointerCancel(btn, { pointerType: 'touch' })
+    fireEvent.touchEnd(window, { touches: [] })
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('cancel su mouse (drag nativo) → nessun recupero', () => {
+    const onTap = vi.fn()
+    const btn = montaCassetta(onTap)
+    fireEvent.pointerDown(btn, { pointerType: 'mouse', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'mouse', clientX: 108, clientY: 100 })
+    fireEvent.pointerCancel(btn, { pointerType: 'mouse' })
+    fireEvent.touchEnd(window, { touches: [] })
+    expect(onTap).not.toHaveBeenCalled()
+  })
+
+  it('il recupero non raddoppia: pointercancel poi un secondo gesto pulito → un solo onTap per gesto', () => {
+    const onTap = vi.fn()
+    const btn = montaCassetta(onTap)
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(btn, { pointerType: 'touch', clientX: 100, clientY: 111 })
+    fireEvent.pointerCancel(btn, { pointerType: 'touch' })
+    fireEvent.touchEnd(window, { touches: [] })
+    expect(onTap).toHaveBeenCalledTimes(1)
+    // secondo gesto: tap fermo classico (pointerup + click sintetico)
+    fireEvent.pointerDown(btn, { pointerType: 'touch', clientX: 100, clientY: 100 })
+    fireEvent.pointerUp(btn, { pointerType: 'touch' })
+    fireEvent.click(btn)
+    expect(onTap).toHaveBeenCalledTimes(2)
+  })
+})
