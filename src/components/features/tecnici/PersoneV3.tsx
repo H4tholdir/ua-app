@@ -22,6 +22,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TastoTondo } from '@/components/ds/TastoTondo'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { Avatar } from '@/components/ds/Avatar'
 import { PillTempo } from '@/components/ds/Pill'
@@ -70,7 +71,7 @@ export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLab
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 24px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/tutto-il-resto')} />
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router, '/tutto-il-resto')} />
         <h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Persone</h1>
       </div>
 

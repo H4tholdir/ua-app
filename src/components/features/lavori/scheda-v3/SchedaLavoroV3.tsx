@@ -48,6 +48,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { NotaDentista } from '@/components/ds/NotaDentista'
@@ -237,7 +238,7 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
         <div className="scheda-col-main">
           {/* Header (§3.1): back ‹ · n.{numero} + pill · menu ⋯ */}
           <div style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, paddingTop: spazio.m }}>
-            <TastoTondo glifo="‹" etichettaAria="Torna alla home" onClick={() => router.push('/dashboard')} />
+            <TastoTondo glifo="‹" etichettaAria="Torna indietro" onClick={() => tornaIndietro(router)} />
             <span style={{ fontSize: tipografia.size.heading, fontWeight: tipografia.weight.extrabold, color: 'var(--ink)' }}>n.{lavoro.numero_lavoro}</span>
             <PillTempo famiglia={pill.famiglia}>{pill.testo}</PillTempo>
             <span style={{ flex: 1 }} />

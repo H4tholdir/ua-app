@@ -36,6 +36,7 @@ import { MotionConfig, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { Cassetta } from '@/components/ds/Cassetta'
 import { TastoTondo } from '@/components/ds/TastoTondo'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { molla, trascinamento } from '@/design-system/v3/motion'
@@ -187,7 +188,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
       <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
         {/* Provenienza multipla (home, «Tutto il resto», scheda lavoro, shortcut PWA): la ‹
             porta SEMPRE alla home, mai `back()` — che rimanderebbe a un punto imprevedibile. */}
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
         <h1
           style={{
             flex: 1,

@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TastoTondo } from '@/components/ds/TastoTondo'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
@@ -65,7 +66,7 @@ export function TuttoIlResto(props: { sezioni: Sezione[]; utenteNome: string; la
           questo tag altrove. */}
       <section className="ua-tir-mobile">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => router.push('/dashboard')} />
+          <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
           <h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)' }}>Tutto il resto</h1>
         </div>
 
