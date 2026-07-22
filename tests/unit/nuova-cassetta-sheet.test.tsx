@@ -39,7 +39,9 @@ describe('NuovaCassettaSheet — creazione (§5.2)', () => {
     for (const nome of ['Bianca', 'Azzurra', 'Rossa', 'Blu', 'Verde', 'Grigia']) {
       expect(screen.getByRole('button', { name: nome })).toBeInTheDocument()
     }
-    expect(screen.getByRole('button', { name: 'Colore personalizzato' })).toBeInTheDocument()
+    // Collaudo R1 (P11a) — il custom non è più un bottone: è l'`<input type="color">` reale,
+    // sovrapposto allo swatch decorativo (v. SwatchesColore.tsx).
+    expect(screen.getByLabelText('Colore personalizzato')).toBeInTheDocument()
     // Bianca è la selezione di default (mockup: prima swatch `.sel`), portata da aria-pressed.
     expect(screen.getByRole('button', { name: 'Bianca' })).toHaveAttribute('aria-pressed', 'true')
   })
@@ -79,14 +81,15 @@ describe('NuovaCassettaSheet — creazione (§5.2)', () => {
   it('colore CUSTOM: il valore del picker non chiama nessuna API e finisce nel POST alla creazione', async () => {
     fetchMock().mockResolvedValueOnce({ status: 201, json: async () => ({ cassetta: {} }) })
     render(<NuovaCassettaSheet aperto onChiudi={() => {}} prossimoNome="C22" onCreata={() => {}} />)
-    // `aria-hidden`/`tabIndex=-1`: è il ponte verso il picker di sistema, nessun ruolo lo trova —
-    // e il `Sheet` ds monta il pannello in un portale, quindi si cerca nel documento.
-    const picker = document.querySelector('input[type="color"]') as HTMLInputElement
+    // Collaudo R1 (P11a) — l'input color è il controllo REALE (nome accessibile «Colore
+    // personalizzato»), non più un ponte nascosto dietro un bottone.
+    const picker = screen.getByLabelText('Colore personalizzato') as HTMLInputElement
     expect(picker).not.toBeNull()
 
     fireEvent.change(picker, { target: { value: '#aabbcc' } })
     expect(fetchMock()).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Colore personalizzato' })).toHaveAttribute('aria-pressed', 'true')
+    // La scelta si VEDE sullo swatch decorativo che racchiude l'input (✓ + classe is-scelto).
+    expect(picker.closest('.ds-swatch-custom')).toHaveClass('is-scelto')
 
     fireEvent.click(screen.getByRole('button', { name: 'Crea C22' }))
     await waitFor(() => expect(fetchMock()).toHaveBeenCalledTimes(1))

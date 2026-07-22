@@ -116,6 +116,18 @@ export const pillVoce = {
 
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 
+/** Hex BASE delle 6 facce standard della Parete (il primo stop dei gradienti
+ *  `.ds-cassetta.<slug>`, ds-v3.css:341-346 — se cambiano lì, cambiare qui).
+ *  Serve al `value` controllato dell'input color: MAI ridichiarare questi hex nei .tsx. */
+export const facciaHex = {
+  bianca: '#FFFEFA',
+  azzurra: '#6FB1E8',
+  rossa: '#E8323B',
+  blu: '#2E6FD0',
+  verde: '#2E9C55',
+  grigia: '#9A948E',
+} as const
+
 // §5.29 — corsa 3D del TastoWhatsApp (bordo scurito col gradiente, bucket B).
 export const verdeWhatsApp = { corsa: '#0E4A28' } as const
 

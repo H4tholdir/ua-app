@@ -19,14 +19,17 @@
 // stringa a runtime (`valore`), MAI come letterale nel sorgente (nessun hex nei .tsx).
 //
 // A11y (constraint 6): ogni swatch ha un nome accessibile che DICE il colore (non solo la
-// faccia), e lo stato selezionato porta TRE segnali insieme — il ✓ visibile, l'anello blu e
-// `aria-pressed`. Mai il solo anello: è la stessa legge L3 già incisa in `ChipScelta` (§5.31) e
-// in `CampoData` («porta sempre un ✓ e aria-pressed, mai solo il tint verde»). L'inchiostro del ✓
+// faccia), e lo stato selezionato porta più segnali insieme — mai il solo anello: è la stessa
+// legge L3 già incisa in `ChipScelta` (§5.31) e in `CampoData` («porta sempre un ✓ e aria-pressed,
+// mai solo il tint verde»). Le 6 facce standard (bottoni reali) portano ✓ + anello + `aria-pressed`;
+// il custom (Collaudo R1, P11a) è un `<input type="color">` REALE — non un bottone — quindi il suo
+// stato non è un booleano ma il proprio `value`: lo screen reader lo annuncia letteralmente (l'hex
+// scelto), oltre a ✓ e anello visibili sullo `span` decorativo che lo racchiude. L'inchiostro del ✓
 // si sceglie con `targaScura` — la stessa funzione con cui la Cassetta decide targa/testi scuri
 // su faccia chiara (§5.35): su bianca/azzurra e sugli hex chiari un ✓ bianco sparirebbe.
 
-import { useRef } from 'react'
 import { targaScura } from '@/components/ds/Cassetta'
+import { facciaHex } from '@/design-system/v3/tokens'
 
 /** Le 6 facce standard, nell'ordine del mockup (righe 380-387). Lo `slug` è la classe già in
  *  ds-v3.css; il `nome` è il nome accessibile italiano. */
@@ -56,8 +59,10 @@ export function SwatchesColore(props: {
   disabilitato?: boolean
 }) {
   const { valore, onScegli, disabilitato = false } = props
-  const inputRef = useRef<HTMLInputElement>(null)
   const eHex = valore.startsWith('#')
+  // `value` controllato dell'input color: mai il default #000000 del browser (P11b), sempre
+  // l'hex della faccia corrente o l'hex custom già scelto.
+  const hexCorrente = eHex ? valore : (facciaHex[valore as keyof typeof facciaHex] ?? facciaHex.bianca)
 
   return (
     <div className="ds-swatches" role="group" aria-label="Colore della cassetta">
@@ -89,8 +94,11 @@ export function SwatchesColore(props: {
           </button>
         )
       })}
-      <button
-        type="button"
+      {/* Collaudo R1 (P11a) — lo swatch custom è uno `span` decorativo: l'elemento TOCCATO è
+          l'input color sovrapposto (opacity 0, a tutta area). Safari iOS apre il picker di
+          sistema solo su interazione diretta dell'utente con l'input — il vecchio pattern
+          (bottone + `inputRef.click()` programmatico) non lo apriva MAI su iPhone. */}
+      <span
         className={[
           'ds-swatch',
           'ds-swatch-custom',
@@ -102,10 +110,6 @@ export function SwatchesColore(props: {
         // `valore` è una stringa hex a runtime, non un letterale nel sorgente: la faccia custom
         // mostra il colore scelto quando è attivo, il conic-gradient di default altrimenti (CSS).
         style={eHex ? { background: valore } : undefined}
-        aria-label="Colore personalizzato"
-        aria-pressed={eHex}
-        disabled={disabilitato}
-        onClick={() => inputRef.current?.click()}
       >
         {eHex ? (
           <span className="ds-swatch-check" aria-hidden="true">
@@ -116,18 +120,17 @@ export function SwatchesColore(props: {
             +
           </span>
         )}
-      </button>
-      <input
-        ref={inputRef}
-        type="color"
-        className="ds-swatch-input"
-        aria-hidden="true"
-        tabIndex={-1}
-        disabled={disabilitato}
-        // LIVE durante il trascinamento (React `onChange` = evento DOM `input`): è un'anteprima
-        // continua, non una scelta conclusa — v. il contratto di `onScegli` sopra.
-        onChange={(e) => onScegli(e.target.value)}
-      />
+        <input
+          type="color"
+          className="ds-swatch-input"
+          aria-label="Colore personalizzato"
+          value={hexCorrente}
+          disabled={disabilitato}
+          // LIVE durante il trascinamento (React `onChange` = evento DOM `input`): è un'anteprima
+          // continua, non una scelta conclusa — v. il contratto di `onScegli` sopra.
+          onChange={(e) => onScegli(e.target.value)}
+        />
+      </span>
     </div>
   )
 }

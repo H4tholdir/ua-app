@@ -39,9 +39,10 @@ function renderSheet(over: Partial<Parameters<typeof CassettaSheet>[0]> = {}) {
   return props
 }
 
-/** L'`<input type="color">` è `aria-hidden`/`tabIndex=-1` (è il ponte verso il picker di sistema,
- *  non un controllo a sé): nessuna query per ruolo lo trova. E il `Sheet` ds monta il pannello in
- *  un portale, quindi non sta nel `container` di RTL ma nel documento. */
+/** Collaudo R1 (P11a) — l'`<input type="color">` è il controllo REALE (nome accessibile «Colore
+ *  personalizzato»), sovrapposto allo swatch custom. Si cerca via `querySelector` e non
+ *  `getByLabelText` solo perché il `Sheet` ds monta il pannello in un portale fuori dal
+ *  `container` di RTL: `screen` copre comunque il documento intero, ma il tipo qui serve certo. */
 function pickerColore(): HTMLInputElement {
   const input = document.querySelector('input[type="color"]')
   if (!input) throw new Error('input[type=color] non trovato nello sheet')
@@ -99,10 +100,10 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
 
     expect(fetchMock()).not.toHaveBeenCalled()
     expect(onCambiata).not.toHaveBeenCalled()
-    // La scelta però si VEDE: lo swatch custom è selezionato (aria-pressed + ✓), altrimenti chi
-    // sceglie non saprebbe che il colore è stato preso.
-    const custom = screen.getByRole('button', { name: 'Colore personalizzato' })
-    expect(custom).toHaveAttribute('aria-pressed', 'true')
+    // La scelta però si VEDE: lo swatch custom (span decorativo attorno all'input) è selezionato
+    // (classe is-scelto + ✓), altrimenti chi sceglie non saprebbe che il colore è stato preso.
+    const custom = picker.closest('.ds-swatch-custom')
+    expect(custom).toHaveClass('is-scelto')
     expect(custom).toHaveTextContent('✓')
   })
 

@@ -508,16 +508,27 @@
   color: rgba(29,25,19,.85); text-shadow: none;
 }
 [data-ds="v3"] .ds-swatch-custom {
+  position: relative;
   background: conic-gradient(#D90012, #E8A13D, #1B7F3B, #1D5FBF, #7C3F9C, #D90012);
 }
 [data-ds="v3"] .ds-swatch-custom .glifo {
   font-size: 20px; font-weight: 800; color: #FFF; text-shadow: 0 1px 2px rgba(0,0,0,.4);
 }
-/* L'`<input type="color">` nativo resta fuori dal flusso: lo apre il click sullo swatch custom
-   (`inputRef.click()`), qui è solo il ponte verso il selettore di sistema. */
+/* Collaudo R1 (P11a) — l'input color è il controllo REALE, sovrapposto allo swatch custom (a
+   tutta area, `opacity:0`): Safari iOS apre il picker di sistema solo su tocco diretto
+   dell'input, MAI su un `.click()` programmatico da un bottone-fratello (il pattern 1×1px +
+   `pointer-events:none` di prima non si apriva MAI su iPhone). */
 [data-ds="v3"] .ds-swatch-input {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); border: 0; opacity: 0; pointer-events: none;
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: 0; padding: 0;
+}
+/* var(--blue): stessa variabile di focus già usata da `.ds-swatch:focus-visible` sopra e da
+   `.ds-parete-cerca`/`.ds-tray-nuova` (grep `outline` in questo file) — `--blu-focus` non esiste,
+   niente valori nuovi inventati. `:focus-within` (non `:focus-visible` su `.ds-swatch-custom`,
+   che è ora uno `span` non focusabile) perché l'elemento che riceve davvero il focus è l'input
+   figlio. */
+[data-ds="v3"] .ds-swatch-custom:focus-within {
+  outline: 2px solid var(--blue); outline-offset: 2px;
 }
 
 /* §5.2/§5.3 — hint del campo nome, riga info «Dentro c'è…», errore inline, sezioni dello sheet. */
