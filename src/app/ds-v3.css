@@ -138,7 +138,7 @@
    sommano ~450px, la riga sborda e ‹/⋯ finiscono tagliati ai lati (screenshot device 22/07).
    Sotto 768px la pill scende su una seconda riga; il titolo può comprimersi (min-width:0). */
 [data-ds="v3"] .scheda-testata {
-  display: flex; align-items: center; gap: 8px; padding-top: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 12px; padding-top: 16px; flex-wrap: wrap;
 }
 [data-ds="v3"] .scheda-testata-titolo { min-width: 0; }
 @media (max-width: 767px) {
