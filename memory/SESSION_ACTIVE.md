@@ -1,8 +1,8 @@
-# Sessione attiva — 22/07/2026 notte · COLLAUDO R3 DEPLOYATO IN PROD
+# Sessione attiva — 22/07/2026 notte · R3 + R3b DEPLOYATI — collaudo quasi chiuso
 
-Merge `4709e1f`, CI+CD verdi, prod verificata (overlay diag live). P9 chiuso (ghost click Android
-→ `useTapScrim` su Sheet+DialogConferma) · D-2 36px · worktree/branch rimossi. **Prossimo passo,
-device di Francesco:** tap/hold cassetta (sheet deve restare aperto) · ombra pila · P-STATUSBAR:
-`uachelab.com/dashboard?diag=viewport` in Chrome POI avviare la PWA installata → screenshot
-dell'overlay (ora esiste in prod; al primo giro non era ancora deployato). Coi numeri: fix vero
-e rimozione overlay. Coda: gap tablet → flake vitest → iOS fluidità → Redesign parete/home.
+R3: P9 CHIUSO (confermato da Francesco su device) · D-2 ok. R3b (merge `69bf6cb`, prod verificata):
+P-STATUSBAR risolto — non era la status bar: zona morta scala device-corti (soglia 700→780 +
+compatta 744px; PWA 755px stabile, insets 0). Nota sistemica per «Redesign parete/home»: scala
+piena ~900px non entra quasi mai → dimensionamento verticale da ripensare. **Prossimi passi:**
+Francesco riapre la PWA → home senza scroll; se ok, RIMUOVERE overlay `DiagnosticaViewport`
+(+helper+test+mount). Coda: gap tablet → flake vitest → iOS fluidità → Redesign parete/home.
