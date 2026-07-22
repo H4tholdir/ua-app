@@ -138,6 +138,7 @@ describe('Sheet — bottom sheet (§5.16)', () => {
     )
     const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
     expect(scrim).not.toBeNull()
+    fireEvent.pointerDown(scrim) // contratto R3: il tap-scrim reale nasce sullo scrim
     fireEvent.click(scrim)
     expect(onChiudi).toHaveBeenCalledTimes(1)
   })
@@ -598,6 +599,7 @@ describe('DialogConferma — conferma distruttiva centrata (§5.17)', () => {
     )
     const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
     expect(scrim).not.toBeNull()
+    fireEvent.pointerDown(scrim) // contratto R3: il tap-scrim reale nasce sullo scrim
     fireEvent.click(scrim)
     expect(onAnnulla).toHaveBeenCalledTimes(1)
     expect(onConferma).not.toHaveBeenCalled()
@@ -753,6 +755,7 @@ describe('Sheet · DialogConferma — reduced motion (§8.4)', () => {
     expect(within(dialog).getByText('Butto via il lavoro n.148 di Studio Bianchi?')).toBeInTheDocument()
     const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
     expect(scrim).not.toBeNull()
+    fireEvent.pointerDown(scrim) // contratto R3: il tap-scrim reale nasce sullo scrim
     fireEvent.click(scrim)
     expect(onAnnulla).toHaveBeenCalledTimes(1)
     expect(onConferma).not.toHaveBeenCalled()
@@ -827,5 +830,171 @@ describe('dizionario sui testi del catalogo — sezione «Sheet · DialogConferm
     const CatalogoPage = (await import('../../../../src/app/ds-v3-catalogo/page')).default
     render(<CatalogoPage />)
     expect(screen.getByRole('heading', { name: /Sheet · DialogConferma/i })).toBeInTheDocument()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collaudo R3 (P9, 22/07 notte) — ghost click di Chrome Android sullo scrim.
+// Root cause PROVATA con touch CDP reali (scripts/tmp/repro-ghost-click.mjs):
+// quando lo sheet viene aperto da un handler `pointerup` (tap della Cassetta),
+// il click sintetico post-touchend viene RI-HIT-TESTATO sul DOM aggiornato e
+// atterra sullo scrim appena montato → chiusura immediata. Il contratto nuovo:
+// lo scrim chiude SOLO se il gesto è NATO sullo scrim (pointerdown sullo scrim
+// stesso). Un click orfano — senza pointerdown corrispondente — è per
+// definizione il ghost click e va ignorato. iOS non re-hit-testa: lì il tap
+// scrim reale resta down+click sullo stesso nodo, invariato.
+describe('Ghost click Android (Collaudo R3, P9) — lo scrim chiude solo se il gesto è nato lì', () => {
+  it('Sheet: click sullo scrim SENZA pointerdown (ghost click) → onChiudi NON chiamato', () => {
+    const onChiudi = vi.fn()
+    render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    expect(scrim).not.toBeNull()
+    fireEvent.click(scrim)
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
+  it('Sheet: pointerdown + click sullo scrim (tap reale) → onChiudi', () => {
+    const onChiudi = vi.fn()
+    render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    fireEvent.pointerDown(scrim)
+    fireEvent.click(scrim)
+    expect(onChiudi).toHaveBeenCalledTimes(1)
+  })
+
+  it('Sheet: pointerdown sul pannello, click che atterra sullo scrim → NON chiude', () => {
+    const onChiudi = vi.fn()
+    render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    fireEvent.pointerDown(screen.getByRole('dialog'))
+    const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    fireEvent.click(scrim)
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
+  it('Sheet: il consumo disarma — dopo un tap-scrim servito, un secondo click orfano NON richiude', () => {
+    const onChiudi = vi.fn()
+    render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    fireEvent.pointerDown(scrim)
+    fireEvent.click(scrim)
+    expect(onChiudi).toHaveBeenCalledTimes(1)
+    fireEvent.click(scrim) // orfano: nessun pointerdown nuovo
+    expect(onChiudi).toHaveBeenCalledTimes(1)
+  })
+
+  it('Sheet: alla riapertura lo scrim riparte disarmato (reset su aperto=false)', async () => {
+    const onChiudi = vi.fn()
+    const { rerender } = render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    // Arma senza consumare (pointerdown sullo scrim, nessun click), poi chiudi e riapri.
+    fireEvent.pointerDown(document.querySelector('.ds-sheet-scrim') as HTMLElement)
+    rerender(
+      <Sheet aperto={false} onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    rerender(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const scrimNuovo = document.querySelector('.ds-sheet-scrim') as HTMLElement
+    expect(scrimNuovo).not.toBeNull()
+    fireEvent.click(scrimNuovo) // ghost: senza pointerdown in QUESTA apertura
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
+  it('SheetRidotto (reduced motion): ghost click NON chiude, tap reale sì', async () => {
+    const ripristina = attivaReducedMotion()
+    try {
+      const onChiudi = vi.fn()
+      render(
+        <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+          <p>Contenuto</p>
+        </Sheet>
+      )
+      await flushFrame()
+      const scrim = document.querySelector('.ds-sheet-scrim') as HTMLElement
+      expect(scrim).not.toBeNull()
+      fireEvent.click(scrim)
+      expect(onChiudi).not.toHaveBeenCalled()
+      fireEvent.pointerDown(scrim)
+      fireEvent.click(scrim)
+      expect(onChiudi).toHaveBeenCalledTimes(1)
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('DialogConferma: ghost click NON annulla, tap reale sì (mai la distruttiva)', () => {
+    const onConferma = vi.fn()
+    const onAnnulla = vi.fn()
+    render(
+      <DialogConferma
+        aperto
+        titolo="Sei sicuro?"
+        testo="Butto via il lavoro n.148 di Studio Bianchi?"
+        etichettaDistruttiva="Sì, buttalo via"
+        etichettaSicura="No, tienilo"
+        onConferma={onConferma}
+        onAnnulla={onAnnulla}
+      />
+    )
+    const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
+    expect(scrim).not.toBeNull()
+    fireEvent.click(scrim)
+    expect(onAnnulla).not.toHaveBeenCalled()
+    fireEvent.pointerDown(scrim)
+    fireEvent.click(scrim)
+    expect(onAnnulla).toHaveBeenCalledTimes(1)
+    expect(onConferma).not.toHaveBeenCalled()
+  })
+
+  it('DialogConferma ridotto: ghost click NON annulla, tap reale sì', () => {
+    const ripristina = attivaReducedMotion()
+    try {
+      const onConferma = vi.fn()
+      const onAnnulla = vi.fn()
+      render(
+        <DialogConferma
+          aperto
+          titolo="Sei sicuro?"
+          testo="Butto via il lavoro n.148 di Studio Bianchi?"
+          etichettaDistruttiva="Sì, buttalo via"
+          etichettaSicura="No, tienilo"
+          onConferma={onConferma}
+          onAnnulla={onAnnulla}
+        />
+      )
+      const scrim = document.querySelector('.ds-dialog-scrim') as HTMLElement
+      expect(scrim).not.toBeNull()
+      fireEvent.click(scrim)
+      expect(onAnnulla).not.toHaveBeenCalled()
+      fireEvent.pointerDown(scrim)
+      fireEvent.click(scrim)
+      expect(onAnnulla).toHaveBeenCalledTimes(1)
+      expect(onConferma).not.toHaveBeenCalled()
+    } finally {
+      ripristina()
+    }
   })
 })

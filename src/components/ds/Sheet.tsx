@@ -13,7 +13,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type MouseEvent,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -22,6 +21,7 @@ import { motion, AnimatePresence, animate as animaValore, useMotionValue } from 
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
+import { useTapScrim } from './useTapScrim'
 
 /**
  * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
@@ -98,6 +98,11 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // swipe (sotto) leggono/scrivono TUTTI questa stessa MotionValue — evita il
   // conflitto fra due sistemi di animazione paralleli sullo stesso `y`.
   const yPannello = useMotionValue(0)
+
+  // Collaudo R3 (P9): lo scrim chiude solo se il gesto è NATO sullo scrim — il click orfano che
+  // Chrome Android ri-hit-testa sull'overlay appena montato (ghost click) viene ignorato. Vale per
+  // ENTRAMBE le varianti (motion e ridotta): i due handler vanno cablati su ogni scrim.
+  const tapScrim = useTapScrim(aperto, onChiudi)
 
   // Esc → onChiudi, SOLO mentre aperto.
   useEffect(() => {
@@ -190,10 +195,6 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // render server — sul client document esiste sempre già al primo render.
   if (typeof document === 'undefined') return null
 
-  function chiudiSeScrim(e: MouseEvent<HTMLDivElement>) {
-    if (e.target === e.currentTarget) onChiudi()
-  }
-
   // Swipe giù per chiudere (§5.16 — gap di spec, mai implementato prima
   // d'ora). `deveChiudere` decide; se non supera la soglia il pannello torna
   // su con `molla.smooth`. `dragMomentum={false}` sul pannello (sotto) è
@@ -227,7 +228,7 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 
   const overlay = reduced ? (
     aperto ? (
-      <SheetRidotto dialogRef={dialogRef} chiudiSeScrim={chiudiSeScrim} ariaLabelledby={ariaLabelledby}>
+      <SheetRidotto dialogRef={dialogRef} tapScrim={tapScrim} ariaLabelledby={ariaLabelledby}>
         {contenutoDialog}
       </SheetRidotto>
     ) : null
@@ -237,7 +238,8 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
         <motion.div key="sheet-overlay" data-ds="v3" style={wrapperStile}>
           <motion.div
             className="ds-sheet-scrim"
-            onClick={chiudiSeScrim}
+            onPointerDown={tapScrim.onPointerDown}
+            onClick={tapScrim.onClick}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -281,11 +283,11 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
  */
 function SheetRidotto(props: {
   dialogRef: RefObject<HTMLDivElement | null>
-  chiudiSeScrim: (e: MouseEvent<HTMLDivElement>) => void
+  tapScrim: ReturnType<typeof useTapScrim>
   ariaLabelledby?: string
   children: ReactNode
 }) {
-  const { dialogRef, chiudiSeScrim, ariaLabelledby, children } = props
+  const { dialogRef, tapScrim, ariaLabelledby, children } = props
   const [entrata, setEntrata] = useState(false)
 
   useEffect(() => {
@@ -297,7 +299,8 @@ function SheetRidotto(props: {
     <div data-ds="v3" style={wrapperStile}>
       <div
         className="ds-sheet-scrim"
-        onClick={chiudiSeScrim}
+        onPointerDown={tapScrim.onPointerDown}
+        onClick={tapScrim.onClick}
         style={{ ...scrimStile, opacity: entrata ? 1 : 0, transition: `opacity ${cssEase.generico}` }}
       />
       <div
