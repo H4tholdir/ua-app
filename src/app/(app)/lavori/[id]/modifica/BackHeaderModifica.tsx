@@ -5,11 +5,14 @@
 // form bridged è raggiunto in deep-link dalle 4 voci pesanti del menu, Task 4).
 // TastoTondo è 'use client' e richiede un onClick — non un href — quindi non
 // può vivere direttamente nella page.tsx (Server Component): questo wrapper
-// isola l'unico bit interattivo (router.push) dietro il confine client.
+// isola l'unico bit interattivo (tornaIndietro) dietro il confine client.
+// Direttiva permanente 22/07/2026 (CLAUDE.md §9): back = pagina precedente.
+// Fallback dinamico alla scheda lavoro solo se non c'è storia (deep-link).
 
 import { useRouter } from 'next/navigation'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { spazio } from '@/design-system/v3/tokens'
+import { tornaIndietro } from '@/lib/nav/torna-indietro'
 
 export function BackHeaderModifica({ lavoroId }: { lavoroId: string }) {
   const router = useRouter()
@@ -25,8 +28,8 @@ export function BackHeaderModifica({ lavoroId }: { lavoroId: string }) {
     >
       <TastoTondo
         glifo="‹"
-        etichettaAria="Torna alla scheda lavoro"
-        onClick={() => router.push(`/lavori/${lavoroId}`)}
+        etichettaAria="Torna indietro"
+        onClick={() => tornaIndietro(router, `/lavori/${lavoroId}`)}
       />
     </div>
   )
