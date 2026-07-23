@@ -140,7 +140,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -c 'if ((.tool_input.command // \"\") | test(\"(^|[;&|(`\\\\s])rm\\\\s\")) and ((.tool_input.command // \"\") | test(\"\\\\s(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)(\\\\s|$)\")) and (((.tool_input.command // \"\") | test(\"/private/tmp/claude-|scripts/tmp|node_modules\")) | not) then {hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"REGOLA rm-guard (incidente 24/07/2026): cancellazioni ricorsive (rm -r/-rf/--recursive) VIETATE fuori da /private/tmp/claude-* (scratchpad), scripts/tmp/ e node_modules. Cancella solo file creati da te nella sessione, per percorso esplicito e file per file. Se serve davvero una cancellazione ricorsiva, fermati e chiedila esplicitamente a Francesco.\"}} else empty end'",
+            "command": "jq -c 'if ((.tool_input.command // \"\") | test(\"(^|[;&|(`\\\\s])rm\\\\s\")) and ((.tool_input.command // \"\") | test(\"\\\\s(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)(\\\\s|$)\")) and (((.tool_input.command // \"\") | test(\"/private/tmp/claude-|scripts/tmp|node_modules\")) | not) then {hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"REGOLA rm-guard (incidente 24/07/2026): niente rm ricorsivo definitivo fuori da /private/tmp/claude-*, scripts/tmp/ e node_modules. RIFORMULA il comando usando /usr/bin/trash al posto di rm (stessi percorsi, es. trash ./cartella): sposta nel Cestino di macOS ed è RIPRISTINABILE, poi prosegui normalmente. La cancellazione definitiva si usa solo nelle aree temporanee o su richiesta esplicita di Francesco.\"}} else empty end'",
             "statusMessage": "rm-guard"
           }
         ]
