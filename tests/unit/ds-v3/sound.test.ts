@@ -62,6 +62,81 @@ describe('sound v3 (spec §9.2)', () => {
   })
 })
 
+// FIX-D1 (verbale QA 2026-07-24, «Ri-collaudo device #1», punto D1 — primo tocco muto):
+// il prefetch dei 7 file e la creazione del contesto devono partire SUBITO a initSuoni(),
+// senza attendere alcun gesto, e lo sblocco vero (resume dell'AudioContext) deve avvenire
+// sul primo `pointerdown` — che nella sequenza reale di un tap arriva PRIMA di click/touchend
+// — cosi il primo tap utile suona già, non solo i successivi.
+describe('sound v3 — FIX-D1 primo tocco muto', () => {
+  it('initSuoni() avvia SUBITO il fetch dei file, senza aspettare un gesto', async () => {
+    const { initSuoni } = await import('@/design-system/v3/sound')
+    const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+    initSuoni()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    // 7 file (tap, fatta, ua, errore, arrivo, stacco, riaggancio)
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('pointerdown da solo sblocca l\'audio (prima ancora di touchend/click)', async () => {
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    // lascia il tempo al prefetch (fetch+decode) di completarsi, come accadrebbe nella
+    // finestra reale fra apertura pagina e primo tap dell'utente
+    await new Promise(r => setTimeout(r, 0))
+    document.dispatchEvent(new Event('pointerdown'))
+    // tempo reale fra dito-giù (pointerdown) e dito-su (click): basta un tick perché il
+    // resume() asincrono si risolva, PRIMA che il tap chiami suona() nel proprio onClick
+    await new Promise(r => setTimeout(r, 0))
+    suona('tap')
+    expect(started.length).toBeGreaterThan(0)
+  })
+
+  it('D1 end-to-end: il PRIMO tap (pointerdown → click) suona già, non è più muto', async () => {
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0)) // prefetch completo prima del primo tap
+    // simula il gesto reale: pointerdown (dito giù) ...
+    document.dispatchEvent(new Event('pointerdown'))
+    await new Promise(r => setTimeout(r, 0)) // ... poi, dopo un istante, dito-su/click:
+    // il bottone chiama suona() nel proprio onClick, PRIMA che il click raggiunga in bubbling
+    // l'eventuale listener di fallback su document
+    document.dispatchEvent(new Event('click'))
+    suona('tap')
+    expect(started.length).toBeGreaterThan(0)
+  })
+
+  it('senza alcun gesto resta muto (niente autoplay), pur con prefetch già pronto', async () => {
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0)) // prefetch pronto
+    suona('tap') // nessun pointerdown/touchend/click ancora avvenuto
+    expect(started).toHaveLength(0)
+  })
+
+  it('preferenza spenta rispettata anche dopo pointerdown', async () => {
+    const { initSuoni, suona, impostaSuoni } = await import('@/design-system/v3/sound')
+    impostaSuoni(false)
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    document.dispatchEvent(new Event('pointerdown'))
+    await new Promise(r => setTimeout(r, 0))
+    suona('ua')
+    expect(started).toHaveLength(0)
+  })
+
+  it('initSuoni() è idempotente: chiamate ripetute non ri-scaricano i file', async () => {
+    const { initSuoni } = await import('@/design-system/v3/sound')
+    const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+    initSuoni()
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const chiamateDopoPrimoInit = fetchMock.mock.calls.length
+    initSuoni()
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    expect(fetchMock.mock.calls.length).toBe(chiamateDopoPrimoInit)
+  })
+})
+
 // sound.ts è collaudabile solo a runtime browser (AudioContext): qui la guardia è
 // testuale, stesso pattern di parete-fluida.test.ts.
 const src = readFileSync(join(process.cwd(), 'src/design-system/v3/sound.ts'), 'utf8')
