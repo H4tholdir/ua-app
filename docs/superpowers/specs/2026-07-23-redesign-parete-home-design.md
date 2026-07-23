@@ -1,5 +1,6 @@
 # Redesign parete/home — Spec di design (rev. 2, post-panel)
-**Data:** 23 luglio 2026 · **Stato:** rev. 2 — panel advisor integrato, IN ATTESA DI RATIFICA
+**Data:** 23 luglio 2026 · **Stato:** ✅ **RATIFICATA da Francesco il 23/07/2026** («ratifico
+tutto, procedi col piano») — inclusa la composizione della divergenza sul suono d'annullo (§2.6/§8)
 **Panel (Regola Advisor):** ux-designer + solution-architect + frontend-ui-builder —
 **3× CONFERMATA CON RISERVE**, tutte le riserve integrate qui sotto (§8 = verbale).
 **Ondata:** «Redesign parete/home» (design-first, percorso Grande) — punto 4 dell'handoff
@@ -270,4 +271,4 @@ linguetta fuori dal containment → §3.2 · R6 pipeline file + aggancio al gest
 targa accoppiato al budget home → §2.3/§6.2 · R8 QA device come gate di metà ondata → §3.1.
 **Divergenza composta:** suono su annullo-drag (UX: sì attenuato / FE: no) — adottata la
 tesi UX per il target utente, con la condizione FE recepita (suona solo se lo stacco era
-stato percepito). Da confermare in ratifica.
+stato percepito). **Confermata in ratifica (23/07).**
