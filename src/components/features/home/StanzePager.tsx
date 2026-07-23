@@ -48,6 +48,50 @@ const SOGLIA_STANZA_ATTIVA = 0.6
 
 const FOCUSABILI = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
+// QA device T15.2 (verbale 2026-07-24, fix-list punto 2 — direttiva NUOVA, non un difetto
+// osservato in QUESTO codice: il focus automatico che segue oggi esiste porta al primo
+// focusabile del pannello («‹ Indietro», MAI la ricerca — verificato, v. report FIX-C), ma la
+// direttiva vale per QUALUNQUE elemento, presente o futuro). Su un dito (mobile/tablet touch)
+// portare il focus dentro il pannello che si apre farebbe salire la tastiera se quel primo
+// focusabile fosse mai un campo testo — un utente col dito non ha chiesto di scrivere, ha
+// chiesto di guardare. Su desktop il focus resta: chi naviga da tastiera (dot con Invio/frecce)
+// deve poter entrare nel pannello. `(pointer: coarse)` è il segnale — un mouse ha sempre un
+// puntatore fine, un dito è sempre grossolano, indipendentemente dalla larghezza dello schermo
+// (a differenza di `min-width`, usato altrove per desktop vs mobile: qui il segnale giusto è
+// l'INPUT, non la LARGHEZZA — un tablet touch largo non deve prendere la tastiera lo stesso).
+function puntatoreTattile(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+}
+
+/** QA device T15.8 (verbale 2026-07-24, fix-list punto 8) — CAUSA TROVATA (v. report FIX-C,
+ *  verificata in browser reale con harness a livello di history, non jsdom): il FIX-A (URL sync
+ *  shallow verso `/cassette`) risolve solo METÀ della catena. Sequenza dove si rompe: utente
+ *  arriva sulla parete (swipe/dot → `pushState('/cassette')`, invariato) → tap su una cassetta
+ *  con lavoro → `router.push('/lavori/[id]')`, una navigazione VERA, non shallow → il router di
+ *  Next tiene l'albero di `/dashboard` (con questo pager) nella sua cache client per un ritorno
+ *  rapido → l'utente preme «‹» nella scheda del lavoro (`tornaIndietro`, `router.back()`) →
+ *  Next RIPRISTINA l'albero cachato invece di rifare il fetch — e quell'albero porta lo stato
+ *  DEL PRIMO MONTAGGIO: `useState(stanzaIniziale)` riparte dal prop server-side calcolato al
+ *  primo caricamento di `/dashboard` (quasi sempre `'pile'`), perché l'avanzamento a `'parete'`
+ *  fatto dal dot/swipe era stato solo `setAttiva` in memoria — MAI arrivato al server, MAI
+ *  scritto da nessuna parte che il router-cache legga. Risultato osservato: l'indirizzo torna
+ *  correttamente a mostrare `/cassette` (il FIX-A quello lo fa), ma il contenuto mostrato è la
+ *  home con le PILE — il difetto esatto del verbale, sopravvissuto al FIX-A perché quel fix
+ *  sincronizza l'URL ma non sa che un remount dal router-cache può ignorarlo.
+ *
+ *  Rimedio: NON fidarsi solo del prop `stanzaIniziale` per l'attiva iniziale — se il browser
+ *  mostra GIÀ `/cassette` nell'istante in cui QUESTA istanza nasce (mount vero O remount da
+ *  router-cache: per `useState`/l'effect di scroll qui sotto sono indistinguibili, ed è
+ *  esattamente il punto — leggere l'indirizzo CORRENTE, che la storia del browser porta con sé
+ *  attraverso qualunque tipo di remount, batte un prop che può essere stantio), la parete è la
+ *  stanza giusta, a prescindere da cosa dica il prop. Il pager non monta MAI sulla vera pagina
+ *  standalone `/cassette` (quella non usa `StanzePager` — v. `HomeV3.tsx`), quindi questo
+ *  controllo non rischia mai di intercettare un caso che non è suo. */
+function stanzaEffettiva(stanzaIniziale: StanzaHome): StanzaHome {
+  if (typeof window !== 'undefined' && window.location.pathname === '/cassette') return 'parete'
+  return stanzaIniziale
+}
+
 /** QA device T15 (addendum 24/07, supera Task 12/D2) — la stanza parete della home: componente
  *  LOCALE (vive qui, non un file a parte — l'anteprima cap-8 che occupava `StanzaParete.tsx` è
  *  morta col suo test) che avvolge la `PareteClient` VERA con un mount differito (riserva ARCH
@@ -127,7 +171,10 @@ export function StanzePager(props: {
   onStanzaChange?: (stanza: StanzaHome) => void
 }) {
   const { stanzaIniziale, pile, parete, footer, onStanzaChange } = props
-  const [attiva, setAttiva] = useState<StanzaHome>(stanzaIniziale)
+  // QA device T15.8 — `stanzaEffettiva` (v. commento sopra), non il prop nudo: un remount dal
+  // router-cache di Next (back da una navigazione vera, es. dalla scheda di un lavoro) deve
+  // ripartire dalla stanza che l'indirizzo dice ORA, non da quella del primissimo caricamento.
+  const [attiva, setAttiva] = useState<StanzaHome>(() => stanzaEffettiva(stanzaIniziale))
   const viewport = useRef<HTMLDivElement | null>(null)
   const stanze = useRef<Record<StanzaHome, HTMLDivElement | null>>({ pile: null, parete: null })
   // `true` solo fra una scelta esplicita (dot/tastiera) e il re-render che ne consegue: è lì
@@ -176,7 +223,11 @@ export function StanzePager(props: {
   // la history (altrimenti un `history.back()` a vuoto manderebbe l'utente a una pagina precedente
   // arbitraria, fuori dalla home). Letta/scritta SOLO da `sincronizzaUrlStanza` e dal listener
   // `popstate` sotto — mai durante il render (niente scritture di ref lì, gate di lint del repo).
-  const urlPushataRef = useRef(false)
+  // QA device T15.8 — inizializzato a `true` quando l'indirizzo è GIÀ `/cassette` alla nascita di
+  // questa istanza (remount da router-cache, v. `stanzaEffettiva`): l'entry è comunque quella che
+  // QUESTO pager aveva spinto prima di uscire — il ritorno alle pile deve ancora fare
+  // `history.back()`, non una `pushState` in più (che impilerebbe un'entry fantasma).
+  const urlPushataRef = useRef(typeof window !== 'undefined' && window.location.pathname === '/cassette')
   // QA device T15 — verificato in browser reale (v. report FIX-A): dopo `pushState('/cassette')`
   // Next.js aggiorna il proprio `canonicalUrl` a `/cassette` (intercetta il pushState nudo, è il
   // meccanismo shallow VOLUTO), ma questo rende PERICOLOSO ogni `router.refresh()` chiamato
@@ -187,7 +238,11 @@ export function StanzePager(props: {
   // SOLO il proprio refresh silenzioso su focus/visibilitychange (v. commento lì — gli altri
   // `router.refresh()` di `PareteClient`, dopo un'azione ESPLICITA dell'utente, restano invariati
   // e sono annotati come limitazione nota, non risolta qui).
-  const [urlDivergente, setUrlDivergente] = useState(false)
+  // QA device T15.8 — stesso motivo di `urlPushataRef`: se rinasciamo con l'indirizzo già su
+  // `/cassette`, `PareteClient` deve nascere con `sospendiRefresh` già attivo (altrimenti il primo
+  // focus/visibilitychange dopo il remount rifarebbe un `router.refresh()` silenzioso mentre
+  // l'albero mostrato non è ancora quello vero di `/cassette` — v. commento su `sospendiRefresh`).
+  const [urlDivergente, setUrlDivergente] = useState(() => typeof window !== 'undefined' && window.location.pathname === '/cassette')
   const sincronizzaUrlStanza = useCallback((nuova: StanzaHome) => {
     if (typeof window === 'undefined') return
     if (attivaRef.current === 'pile' && nuova === 'parete' && !urlPushataRef.current) {
@@ -248,7 +303,12 @@ export function StanzePager(props: {
     // L'ordine conta: farlo prima di `observe()` significa che l'IO comincia a misurare su
     // una posizione già giusta, senza dipendere da quando il browser consegna la prima
     // notifica.
-    const iniziale = stanze.current[stanzaIniziale]
+    // QA device T15.8 — `stanzaEffettiva`, non il prop nudo: stesso motivo dell'inizializzazione
+    // di `attiva` sopra, altrimenti un remount da router-cache con l'indirizzo già su `/cassette`
+    // posizionerebbe il viewport sulle pile mentre lo stato (corretto) dice parete — i due
+    // andrebbero fuori sincrono, con l'IO che poi "corregge" lo stato di nuovo verso le pile al
+    // primo scatto sopra soglia sulla stanza che il viewport mostra per davvero.
+    const iniziale = stanze.current[stanzaEffettiva(stanzaIniziale)]
     if (iniziale && typeof contenitore.scrollTo === 'function') {
       contenitore.scrollTo({ left: iniziale.offsetLeft, behavior: 'auto' })
     }
@@ -284,6 +344,9 @@ export function StanzePager(props: {
   useEffect(() => {
     if (!focusDaPortare.current) return
     focusDaPortare.current = false
+    // QA device T15.2 — su dito NIENTE focus automatico nel pannello che si apre (v. commento
+    // su `puntatoreTattile` sopra): resta solo per chi è arrivato da tastiera.
+    if (puntatoreTattile()) return
     const entrante = stanze.current[attiva]
     // Collaudo R2 (D-1, 22/07 sera): SEMPRE preventScroll — il focus nudo fa lo scroll-into-view
     // istantaneo che CANCELLA lo scrollTo smooth di `vaiA`, e lo snap mandatory ri-aggancia alla
@@ -317,8 +380,12 @@ export function StanzePager(props: {
         setAttiva(destinazione)
       } else impostaAttiva(destinazione)
       if (origine === 'tap') {
-        if (giaAttiva)
-          stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
+        // QA device T15.2 — stesso guard del focus differito sopra: su dito niente focus, la
+        // stanza è già non-inerte e basta a chi guarda.
+        if (giaAttiva) {
+          if (!puntatoreTattile())
+            stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
+        }
         else focusDaPortare.current = true
       }
       const contenitore = viewport.current

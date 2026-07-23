@@ -441,6 +441,68 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
   })
 })
 
+// QA device T15.8 (verbale 2026-07-24, fix-list punto 8) — CAUSA TROVATA (v. report FIX-C,
+// verificata anche in browser reale con harness a livello di history): il FIX-A sincronizza
+// l'URL, ma un `router.back()` da una navigazione VERA (es. tap cassetta → scheda del lavoro →
+// «‹ Indietro») può far RIPRISTINARE da Next il proprio albero cachato di `/dashboard` — che
+// riparte da `useState(stanzaIniziale)`, cioè lo stato del PRIMISSIMO caricamento (quasi sempre
+// 'pile'), perdendo l'avanzamento a 'parete' fatto in memoria dal dot/swipe. Qui si simula
+// esattamente quell'istante: un'istanza NUOVA del pager (mount) che nasce mentre
+// `window.location.pathname` è GIÀ `/cassette` — indistinguibile, per `useState`, da un
+// remount dal router-cache.
+describe('StanzePager — remount con indirizzo già /cassette (QA device T15.8, punto 8 del verbale)', () => {
+  const percorsoOriginale = () => window.location.pathname
+  let percorsoDiPartenza: string
+
+  beforeEach(() => {
+    percorsoDiPartenza = percorsoOriginale()
+  })
+  afterEach(() => {
+    window.history.replaceState({}, '', percorsoDiPartenza)
+  })
+
+  it("nasce con la parete attiva (non le pile) se l'indirizzo è già /cassette al mount, anche con stanzaIniziale='pile'", () => {
+    window.history.replaceState({}, '', '/cassette')
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+    expect(pannello('pile')).toHaveAttribute('inert')
+    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it("il viewport si posiziona sulla parete (non le pile) nello stesso scenario — stato e scroll non vanno fuori sincrono", () => {
+    window.history.replaceState({}, '', '/cassette')
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    const { scrollTo } = preparaViewport(container)
+    // `preparaViewport` gira DOPO il mount (l'effect di posizionamento iniziale è già passato,
+    // niente da asserire su `scrollTo` qui — ciò che conta l'ha già presidiato il test sopra via
+    // `inert`/`aria-selected`). Il fatto che scrollTo non sia stato chiamato con { left: 0 }
+    // (la posizione delle pile) è la garanzia che serve.
+    expect(scrollTo).not.toHaveBeenCalledWith({ left: 0, behavior: 'auto' })
+  })
+
+  it("indietro dalla parete ricostituita (già attiva al mount) fa comunque history.back, mai un'altra pushState", async () => {
+    window.history.replaceState({}, '', '/cassette')
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    pushStateSpy.mockClear()
+    await user.click(screen.getAllByRole('tab')[0]) // parete → pile
+    expect(historyBackSpy).toHaveBeenCalledTimes(1)
+    expect(pushStateSpy).not.toHaveBeenCalled()
+  })
+
+  it("con l'indirizzo NON /cassette il mount resta invariato: usa `stanzaIniziale` come sempre (nessuna regressione)", () => {
+    window.history.replaceState({}, '', '/qualcosa-altro')
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+  })
+})
+
 // QA device T15 (addendum 24/07, punto 3) — «niente TastoPiù nel lato cassette»: il chiamante
 // (HomeV3) decide la visibilità del piede da questo callback. Qui si presidia SOLO che il pager
 // lo chiami coi valori giusti, ai momenti giusti — la sparizione vera e propria del piede è un
@@ -587,6 +649,71 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
     const tabs = screen.getAllByRole('tab')
     expect(tabs[0]).toHaveAttribute('tabindex', '0')
     expect(tabs[1]).toHaveAttribute('tabindex', '-1')
+  })
+})
+
+// QA device T15.2 (verbale 2026-07-24, fix-list punto 2 — direttiva nuova): su un dito niente
+// focus automatico nel pannello che si apre — la tastiera virtuale non deve salire da sola. Il
+// test sopra («tap sul secondo dot… focus nella stanza entrante») copre già il ramo desktop
+// (matchMedia di default in tests/setup.ts torna `matches: false` per qualunque query, quindi
+// anche per `(pointer: coarse)`): qui si copre l'altro ramo, mockando `(pointer: coarse)` a
+// `true`, stesso pattern del mock di `prefers-reduced-motion` sopra.
+function mockPuntatoreCoarse() {
+  const originale = window.matchMedia
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes('pointer: coarse'),
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia
+  return () => { window.matchMedia = originale }
+}
+
+describe('StanzePager — niente focus automatico su dito (QA device T15.2, direttiva nuova)', () => {
+  it('tap sul dot su pointer coarse: la stanza entra (inert tolto) ma il focus NON si sposta', async () => {
+    const ripristina = mockPuntatoreCoarse()
+    try {
+      const user = userEvent.setup()
+      const { container } = render(
+        <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+      )
+      preparaViewport(container)
+      const primaDelTap = document.activeElement
+      await user.click(screen.getAllByRole('tab')[1])
+      expect(pannello('parete')).not.toHaveAttribute('inert')
+      // Il focus non è entrato nel pannello — è rimasto dov'era (sul dot che ha ricevuto il tap,
+      // MAI sul primo focusabile della stanza, «‹ Indietro»).
+      expect(document.activeElement).not.toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+      expect(document.activeElement).not.toBe(primaDelTap === document.body ? null : primaDelTap)
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('freccia poi Invio su pointer coarse: la stanza già selezionata NON prende il focus', async () => {
+    const ripristina = mockPuntatoreCoarse()
+    try {
+      const user = userEvent.setup()
+      const { container } = render(
+        <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+      )
+      preparaViewport(container)
+      const tabs = screen.getAllByRole('tab')
+      tabs[0].focus()
+      await user.keyboard('{ArrowRight}')
+      expect(document.activeElement).toBe(tabs[1])
+      await user.keyboard('{Enter}')
+      // Da tastiera coarse non esiste davvero, ma il guard è sul SEGNALE — verifica che con
+      // `(pointer: coarse)` true il ramo "già attiva" non chiami .focus() sul pannello.
+      expect(document.activeElement).not.toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+      expect(document.activeElement).toBe(tabs[1])
+    } finally {
+      ripristina()
+    }
   })
 })
 
