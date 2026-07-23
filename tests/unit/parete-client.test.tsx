@@ -147,16 +147,85 @@ describe('PareteClient — sospendiRefresh (QA device T15, difetto trovato in ve
     fireEvent(window, new Event('focus'))
     expect(refresh).toHaveBeenCalled()
   })
+})
 
-  it('sospendiRefresh NON gate le altre chiamate a router.refresh (azione esplicita dell\'utente, limitazione nota — v. commento sulla prop)', async () => {
+// QA device (verbale 25/07, fix-list D5b/D8) — CAUSA ACCERTATA: con l'indirizzo già /cassette
+// (pushState dello swipe), un `router.refresh()` qualunque — non solo quello silenzioso di
+// focus/visibilitychange — rifà il fetch della route VERA e SOSTITUISCE il pager con la pagina
+// standalone: è sia il «si sistema da solo» di D5 sia la radice del back incoerente di D8
+// (listener popstate e urlPushataRef del pager distrutti nello smontaggio). Il gate
+// `sospendiRefresh` (finora limitato al refresh silenzioso) si estende qui a TUTTI i
+// `router.refresh()` del percorso parete: il drop del drag (`onRefresh` di `useDragRiordino`),
+// `dopoCambio` (creazione/rinomina riuscita) e `riordina` (▲▼ dello sheet). In embedded si tiene
+// lo stato ottimistico già in pagina — la rilettura vera avverrà al prossimo caricamento reale
+// della route. Sulla route standalone (`sospendiRefresh` di default `false`) il comportamento
+// resta l'INVARIATO di sempre — le guardie in
+// `describe('PareteClient — un'azione RIUSCITA chiude lo sheet …')` sotto continuano a passare
+// senza `sospendiRefresh` e restano la prova di non-regressione.
+describe('PareteClient — sospendiRefresh estende il gate a TUTTI i refresh del percorso parete (QA device D5b/D8)', () => {
+  it('con sospendiRefresh=true, una rinomina riuscita (dopoCambio) NON chiama router.refresh — resta lo stato ottimistico', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ esito: 'ok' }) }))
     try {
       render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
       tap(cassettaLibera())
       fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Banco Ciro' } })
       fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
-      await waitFor(() => expect(refresh).toHaveBeenCalled())
+      // Lo sheet si chiude comunque (setSheet(null) non è gated, solo il refresh lo è).
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C4' })).toBeNull())
+      expect(refresh).not.toHaveBeenCalled()
     } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('con sospendiRefresh=true, uno spostamento ▲▼ riuscito (riordina) NON chiama router.refresh', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ esito: 'ok' }) }))
+    try {
+      const c1: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
+      const c2: CassettaParete = { id: 'c-2', nome: 'C2', colore: 'blu', posizione: 1, lavoro: null }
+      render(<PareteClient parete={[c1, c2]} sospendiRefresh />)
+      const user = userEvent.setup()
+      // Long-press legacy: con ricerca spenta e ≥2 cassette il drag è abilitato, ma lo sheet
+      // resta raggiungibile via long-press (§5.35) — qui basta aprirlo per arrivare ai ▲▼.
+      fireEvent.pointerDown(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+      fireEvent.pointerUp(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+      await user.click(screen.getByRole('button', { name: 'Sposta giù' }))
+      await waitFor(() => expect(fetch).toHaveBeenCalled())
+      expect(refresh).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  // Stesso harness di `use-drag-riordino.test.ts` (pointerdown fermo 300ms → lift → pointermove
+  // oltre soglia → pointerup su `window`): qui si monta `PareteClient` VERO (via `Cassetta`, che
+  // riconosce il gesto da sé), non l'harness isolato dell'hook — il punto sotto esame è il
+  // CALLBACK che PareteClient passa come `onRefresh`, non l'hook. Fake timers per il lift a
+  // 300ms (stesso pattern del test «drag abilitato» sopra in questo file), poi `act(async …)`
+  // per lasciar risolvere la POST prima di leggere `refresh` (stesso pattern del test del drop
+  // in `use-drag-riordino.test.ts`).
+  it('con sospendiRefresh=true, un drop di drag riuscito NON chiama router.refresh (D8: il pager resterebbe montato)', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ esito: 'ok' }) }))
+    try {
+      const c1: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
+      const c2: CassettaParete = { id: 'c-2', nome: 'C2', colore: 'blu', posizione: 1, lavoro: null }
+      const c3: CassettaParete = { id: 'c-3', nome: 'C3', colore: 'verde', posizione: 2, lavoro: null }
+      render(<PareteClient parete={[c1, c2, c3]} sospendiRefresh />)
+      const bottone = screen.getByRole('button', { name: /^Cassetta C1/ })
+      fireEvent.pointerDown(bottone, { clientX: 10, clientY: 10, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) }) // Cassetta spara onSollevata → hook.avvia
+      act(() => {
+        window.dispatchEvent(new (window.PointerEvent)('pointermove', { pointerId: 1, clientX: 200, clientY: 200 }))
+      })
+      await act(async () => {
+        window.dispatchEvent(new (window.PointerEvent)('pointerup', { pointerId: 1, clientX: 200, clientY: 200 }))
+      })
+      expect(fetch).toHaveBeenCalledTimes(1)
+      await act(async () => {}) // lascia risolvere la POST prima di leggere il refresh che ne segue
+      expect(refresh).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
       vi.unstubAllGlobals()
     }
   })

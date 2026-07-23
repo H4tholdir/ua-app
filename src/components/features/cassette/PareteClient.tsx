@@ -103,22 +103,23 @@ export function PareteClient(props: {
    *  `true` (comportamento di `/cassette` invariato: sempre in primo piano). */
   attivo?: boolean
   /** QA device T15 (addendum 24/07, scoperto in verifica browser reale — v. report FIX-A) —
-   *  SOLO il refresh SILENZIOSO su focus/visibilitychange va sospeso mentre l'indirizzo è stato
-   *  spinto a `/cassette` da dentro il pannello (`sincronizzaUrlStanza`, `StanzePager.tsx`):
-   *  Next.js intercetta il `pushState` nudo e aggiorna il proprio `canonicalUrl` a `/cassette`
-   *  (è il meccanismo shallow VOLUTO, verificato leggendo `app-router.js`), ma questo significa
-   *  che un `router.refresh()` chiamato mentre l'albero montato è ancora quello di `/dashboard`
-   *  rifà il fetch della ROTTA VERA `/cassette` sul server e ne sostituisce il contenuto al
-   *  posto del pager — uno scambio silenzioso, senza alcun gesto dell'utente, verificato in
-   *  browser (`window.dispatchEvent(new Event('focus'))` dopo lo swipe → il DOM del pager
-   *  spariva). Le altre chiamate a `router.refresh()` qui sotto (`dopoCambio`, `riordina`) NON
-   *  sono gated: seguono un'azione ESPLICITA dell'utente (crea/rinomina/riordina una cassetta) e
-   *  l'indirizzo mostra già `/cassette` — il risultato è la pagina /cassette vera con l'esito
-   *  dell'azione, non uno scambio a sorpresa. È una limitazione nota (il pager si "smonta" per
-   *  chi interagisce con lo sheet mentre guarda il pannello): annotata per Francesco, non
-   *  risolta qui — risolverla per bene servirebbe un endpoint GET dedicato per rileggere la
-   *  parete senza passare da `router.refresh()`, fuori perimetro di questo fix. Default `false`
-   *  (comportamento di `/cassette` invariato). */
+   *  mentre l'indirizzo è stato spinto a `/cassette` da dentro il pannello
+   *  (`sincronizzaUrlStanza`, `StanzePager.tsx`), Next.js intercetta il `pushState` nudo e
+   *  aggiorna il proprio `canonicalUrl` a `/cassette` (è il meccanismo shallow VOLUTO,
+   *  verificato leggendo `app-router.js`), ma questo significa che QUALUNQUE `router.refresh()`
+   *  chiamato mentre l'albero montato è ancora quello di `/dashboard` rifà il fetch della ROTTA
+   *  VERA `/cassette` sul server e SOSTITUISCE il pager con la pagina standalone — uno scambio
+   *  silenzioso, verificato in browser (`window.dispatchEvent(new Event('focus'))` dopo lo
+   *  swipe → il DOM del pager spariva).
+   *  QA device (verbale 25/07, fix-list D5b/D8) — CORREZIONE: prima questo gate copriva SOLO il
+   *  refresh silenzioso su focus/visibilitychange; le altre chiamate a `router.refresh()` qui
+   *  sotto (`dopoCambio`, `riordina`, il drop del drag) restavano fuori — era annotata come
+   *  «limitazione nota», ma è proprio quello smontaggio silenzioso del pager (D5, «si sistema
+   *  da solo») a distruggere i listener `popstate`/`urlPushataRef` del pager e a rendere il
+   *  primo back successivo incoerente (D8). Il gate ora si estende a TUTTE e tre: in embedded si
+   *  tiene lo stato ottimistico già in pagina — la rilettura vera arriva al prossimo
+   *  caricamento reale della route (v. `rileggiParete` sotto). Sulla route standalone
+   *  `sospendiRefresh` resta di default `false`: comportamento INVARIATO. */
   sospendiRefresh?: boolean
 }) {
   const { parete, attivo = true, onIndietro, sospendiRefresh = false } = props
@@ -183,6 +184,18 @@ export function PareteClient(props: {
     [attiva, parete, accesi],
   )
 
+  // QA device (verbale 25/07, fix-list D5b/D8) — `rileggiParete()`: il punto che chiama
+  // `router.refresh()` per le TRE azioni esplicite sotto (`dopoCambio`, `riordina`, il drop del
+  // drag) — prima non erano gated, solo il refresh silenzioso qui sotto lo era (v. commento
+  // sulla prop `sospendiRefresh`). Non usata nell'effect qui sotto: quello resta con la
+  // guardia inline com'era (`sospendiRefreshRef.current` letto direttamente), per non aggiungere
+  // `rileggiParete` — una funzione ricreata a ogni render, non uno `useCallback` — alle
+  // dipendenze dell'effect (la ri-registrerebbe a ogni render, gate `react-hooks/exhaustive-deps`
+  // di questo repo).
+  function rileggiParete() {
+    if (!sospendiRefreshRef.current) router.refresh()
+  }
+
   // §5.5 Freschezza — senza realtime, la parete non deve mentire a chi la guarda da un'ora:
   // si rilegge quando la pagina torna in primo piano (ritorno da /lavori/[id], app riaperta).
   // `!sospendiRefreshRef.current` (QA device T15, v. commento sulla prop): questo refresh è
@@ -213,10 +226,12 @@ export function PareteClient(props: {
     setSheet(null)
   }
 
-  // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato locale.
+  // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato
+  // locale — ECCETTO in embedded (`sospendiRefresh`, v. `rileggiParete` sopra), dove si tiene lo
+  // stato ottimistico invece di far sparire il pager sotto una lettura server silenziosa.
   function dopoCambio() {
     setSheet(null)
-    router.refresh()
+    rileggiParete()
   }
 
   /** Persistenza condivisa dell'ordine (una sola verità sul muro): POSTa la lista COMPLETA degli id
@@ -240,7 +255,7 @@ export function PareteClient(props: {
   /** Riordino ▲▼ (§5.4): swap di UNA posizione. Torna `true` SOLO se il muro si è mosso davvero:
    *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque,
    *  anche quando la POST fallisce — la parete torna a dire la verità del server invece di restare
-   *  sull'ordine che l'utente credeva di aver dato. */
+   *  sull'ordine che l'utente credeva di aver dato (ECCETTO in embedded, `rileggiParete` sopra). */
   async function riordina(id: string, direzione: 'su' | 'giu'): Promise<boolean> {
     const indice = parete.findIndex((c) => c.id === id)
     if (indice < 0) return false
@@ -250,7 +265,7 @@ export function PareteClient(props: {
     ordine[indice] = parete[destinazione].id
     ordine[destinazione] = parete[indice].id
     const ok = await inviaOrdine(ordine)
-    router.refresh()
+    rileggiParete()
     return ok
   }
 
@@ -300,7 +315,7 @@ export function PareteClient(props: {
     gridRef,
     onSheet: (id) => setSheet({ tipo: 'cassetta', id }),
     inviaOrdine,
-    onRefresh: () => router.refresh(),
+    onRefresh: () => rileggiParete(),
     scrollerRef: props.scrollerRef,
   })
 
