@@ -123,7 +123,7 @@ export function HomeV3(props: {
   // stanze (§3.3 regola 5). Sta FUORI dal pager, così non scorre e non si sdoppia a metà snap.
   const piede = (
     <div className="foot">
-      <TastoPiu onClick={() => router.push('/lavori/nuovo')} />
+      <TastoPiu compatto onClick={() => router.push('/lavori/nuovo')} />
     </div>
   )
 
@@ -151,7 +151,15 @@ export function HomeV3(props: {
         .ua-home .pile .ds-pila { padding: clamp(11px, 1.9cqh, 16px) 18px; }
         .ua-home .pile .ds-pila-num { font-size: clamp(38px, 6.5cqh, 52px); }
         .ua-home .striscia-slot { margin-top: clamp(8px, 1.8cqh, 16px); }
-        .ua-home .foot { margin-top: clamp(8px, 1.8cqh, 16px); display: flex; flex-direction: column; align-items: center; gap: 8px;
+        /* QA device T15 (verbale 2026-07-24, fix 1a) — il piede («puntini + TastoPiù +
+           etichetta») mangiava ~30% dello schermo a 390×660: la ghiera del TastoPiù (110px,
+           tasto fisico ratificato, INVARIATA — v. TastoPiu.tsx) e i 44px di hit-area dei
+           puntini (touch target di legge, §12, INVARIATI) restano un pavimento fisso; ciò
+           che si comprime è SOLO lo spazio intorno — questo margin-top scende dal floor 8 al
+           floor 4 (dimezzato), e la prop compatto su TastoPiu (v. sopra) stringe il gap
+           ghiera-etichetta da 12 a 4. Misurato in browser reale (non jsdom): v.
+           .superpowers/sdd/fixB-report.md per i numeri prima/dopo. */
+        .ua-home .foot { margin-top: clamp(4px, 0.9cqh, 8px); display: flex; flex-direction: column; align-items: center; gap: 8px;
                          padding-bottom: env(safe-area-inset-bottom); }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il

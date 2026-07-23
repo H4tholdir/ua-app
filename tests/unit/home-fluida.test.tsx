@@ -55,4 +55,16 @@ describe('StanzePager — la stanza Pile ha una sua superficie di scroll interna
   it('StanzePager.tsx avvolge il contenuto della stanza pile in `.ua-stanza-pile-scroll`', () => {
     expect(srcPager).toMatch(/className="ua-stanza-pile-scroll"/)
   })
+
+  // QA device T15 (verbale 2026-07-24, fix 1c) — «barra grigia laterale fissa nella home» era
+  // la scrollbar di QUESTA rete di sicurezza: resta funzionante (overflow-y: auto invariato,
+  // guardia sopra) ma non deve più essere VISIBILE. Verificato in browser reale (non jsdom, che
+  // non renderizza scrollbar): `.superpowers/sdd/fixB-report.md` — scrollbarWidth passa da
+  // 'auto' a 'none' a parità di overflow.
+  it('`.ua-stanza-pile-scroll` nasconde la propria scrollbar (scrollbar-width + pseudo-elemento webkit) senza disattivare lo scroll', () => {
+    expect(srcCss).toMatch(
+      /\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll\s*\{[^}]*overflow-y:\s*auto;[^}]*scrollbar-width:\s*none;[^}]*-ms-overflow-style:\s*none;/
+    )
+    expect(srcCss).toMatch(/\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll::-webkit-scrollbar\s*\{\s*display:\s*none;\s*\}/)
+  })
 })
