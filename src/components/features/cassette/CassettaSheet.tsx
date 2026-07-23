@@ -40,6 +40,21 @@ import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
 import { DEBOUNCE_FILTRO_MS } from './PareteClient'
 import { SwatchesColore } from './SwatchesColore'
 
+// Gap disclosure sul FIX-E (review del report — v. `.superpowers/sdd/fixE-report.md`) — il fix
+// precedente copriva SOLO rinomina/colore (`patch`), lasciando le altre quattro azioni di questo
+// sheet (assegna-lavoro, sposta-lavoro, segna-libera, butta-via) senza alcun riflesso ottimistico:
+// in embedded (`sospendiRefresh`, `PareteClient.tsx`) restavano stantie sul muro fino al prossimo
+// caricamento vero. `EffettoCassetta` generalizza il `patch` di prima a un elenco di effetti — un
+// array, non un singolo oggetto, perché sposta-lavoro tocca DUE cassette in un colpo solo
+// (sorgente che si libera, destinazione che si occupa): il chiamante (`PareteClient.dopoCambio`)
+// applica ogni elemento allo STESSO overlay già in vigore (`overrides`), più un nuovo insieme
+// `rimosse` per butta-via (l'unica azione che fa sparire una cassetta dal muro, non solo cambiarla).
+export type EffettoCassetta =
+  | { tipo: 'patch'; id: string; nome?: string; colore?: string }
+  | { tipo: 'occupa'; id: string; lavoro: NonNullable<CassettaParete['lavoro']> }
+  | { tipo: 'libera'; id: string }
+  | { tipo: 'rimuovi'; id: string }
+
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
 const ERRORE_NOME_LUNGO = 'Il nome è troppo lungo (massimo 20 caratteri)'
 const ERRORE_GENERICO = 'Non ci sono riuscito — riprova'
@@ -76,13 +91,13 @@ export function CassettaSheet(props: {
   totale: number
   aperto: boolean
   onChiudi: () => void
-  /** Review FIX-E (Important) — `patch` porta il valore SOTTOMESSO (non una rilettura server) SOLO
-   *  per rinomina/colore (`salvaNome`/`scegliColore`), le due azioni per cui `PareteClient` tiene
-   *  un riflesso ottimistico. Le altre azioni di questo sheet (sposta-lavoro, segna-libera,
-   *  butta-via, assegna-lavoro) chiamano `onCambiata()` SENZA patch — restano fuori scope di
-   *  questo fix (toccano l'assegnazione fra cassette diverse, non un singolo campo di questa): in
-   *  embedded restano stantie finché non arriva un caricamento vero, come da finding originale. */
-  onCambiata: (patch?: { id: string; nome?: string; colore?: string }) => void
+  /** Gap disclosure sul FIX-E — `effetti` porta ciò che questo sheet ha GIÀ in mano al momento del
+   *  successo (valore sottomesso per rinomina/colore, il `lavoro` pieno per sposta/assegna — mai
+   *  una rilettura server, il contratto delle route qui sopra non la offre comunque). Un'azione
+   *  che tocca UNA sola cassetta manda un array a un elemento; `spostaLavoroIn` (le tocca DUE) ne
+   *  manda due. `PareteClient` li applica tutti allo stesso overlay ottimistico di rinomina/colore
+   *  (v. `pareteVista`/`dopoCambio`) — nessun secondo meccanismo. */
+  onCambiata: (effetti?: EffettoCassetta[]) => void
   /** Riordino di UNA posizione: il PareteClient compone e POSTa la lista completa e risponde se
    *  il muro si è davvero mosso — l'annuncio `aria-live` dipende da questo esito. */
   onSposta: (direzione: 'su' | 'giu') => Promise<boolean>
@@ -164,7 +179,7 @@ export function CassettaSheet(props: {
         // Review FIX-E (Important) — `nomeTrim` è ciò che ABBIAMO GIÀ appena spedito nella PATCH
         // riuscita: nessun bisogno di rileggerlo dal corpo della risposta (che qui non lo porta
         // comunque, v. contratto route). `PareteClient` lo usa per il riflesso ottimistico.
-        onCambiata({ id: cassetta.id, nome: nomeTrim })
+        onCambiata([{ tipo: 'patch', id: cassetta.id, nome: nomeTrim }])
         return
       }
       if (res.status === 422) {
@@ -197,7 +212,7 @@ export function CassettaSheet(props: {
       if (res.status === 200) {
         // Review FIX-E (Important) — stesso principio di `salvaNome`: `colore` è il valore
         // sottomesso nella PATCH appena riuscita, non serve rileggerlo dal server.
-        onCambiata({ id: cassetta.id, colore })
+        onCambiata([{ tipo: 'patch', id: cassetta.id, colore }])
         return
       }
       setErroreAzione(ERRORE_GENERICO)
@@ -238,7 +253,15 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ cassetta_id: destinazione.id }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Gap disclosure sul FIX-E — DUE cassette cambiano in un colpo solo: la sorgente
+        // (`cassetta`, quella aperta in questo sheet) si libera, la destinazione riceve il
+        // `lavoro` PIENO che la sorgente aveva già in mano (dati completi: `parete` lo porta
+        // sempre con paziente/tipoDispositivo/descrizione, nessun residuo qui a differenza di
+        // `assegnaLavoro` sotto, che parte da `LavoroLibero` — un contratto route più povero).
+        onCambiata([
+          { tipo: 'libera', id: cassetta.id },
+          { tipo: 'occupa', id: destinazione.id, lavoro: cassetta.lavoro },
+        ])
         return
       }
       if (res.status === 409) {
@@ -267,7 +290,8 @@ export function CassettaSheet(props: {
       })
       if (res.status === 200) {
         setChiediLibera(false)
-        onCambiata()
+        // Gap disclosure sul FIX-E — la cassetta esce libera: nessun `lavoro` residuo da riflettere.
+        onCambiata([{ tipo: 'libera', id: cassetta.id }])
         return
       }
       setChiediLibera(false)
@@ -288,7 +312,10 @@ export function CassettaSheet(props: {
       const res = await fetch(`/api/cassette/${cassetta.id}`, { method: 'DELETE' })
       if (res.status === 200) {
         setChiediButta(false)
-        onCambiata()
+        // Gap disclosure sul FIX-E — la cassetta sparisce dal muro: `PareteClient` la toglie da
+        // `pareteVista` (insieme `rimosse`), non solo dall'array `overrides` (che modifica una
+        // cassetta viva, non la fa sparire).
+        onCambiata([{ tipo: 'rimuovi', id: cassetta.id }])
         return
       }
       setChiediButta(false)
@@ -338,7 +365,27 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ cassetta_id: cassetta.id }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Gap disclosure sul FIX-E — RESIDUO dichiarato (non un dato inventato): il contratto di
+        // `GET /api/cassette/lavori-liberi` (`LavoroLibero`, sopra) è più povero di `CassettaParete
+        // ['lavoro']` — manca `paziente`/`tipoDispositivo`/`descrizione`. `paziente` cade sul
+        // fallback '—' (identico a quanto la targa (`Cassetta.tsx`) farebbe comunque con un dato
+        // assente, quando `pazienteAlias` è null); `tipoDispositivo`/`descrizione` restano `null` →
+        // `miniaturaPerLavoro` degrada da sé alla miniatura 'generica' (mai un crash). Il refresh
+        // (standalone) o il prossimo caricamento vero (embedded) sostituiscono questo riflesso
+        // parziale col dato pieno appena arriva — v. residuo nel report FIX-E.
+        onCambiata([{
+          tipo: 'occupa',
+          id: cassetta.id,
+          lavoro: {
+            id: lavoro.id,
+            numero: lavoro.numero,
+            dentista: lavoro.dentista,
+            paziente: lavoro.pazienteAlias ?? '—',
+            pazienteAlias: lavoro.pazienteAlias,
+            tipoDispositivo: null,
+            descrizione: null,
+          },
+        }])
         return
       }
       setLiberiErrore(ERRORE_GENERICO)

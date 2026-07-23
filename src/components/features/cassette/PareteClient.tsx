@@ -45,6 +45,15 @@
 // ottimistico del drop del drag (`useDragRiordino`): si applica SUBITO, resta se la POST riesce,
 // si annulla se fallisce. Tutti e tre vivono SOLO qui, mai nei sheet: quelli restano stateless
 // sul "cosa è successo", non sul "cosa mostrare ora".
+//
+// Gap disclosure sul FIX-E (v. `.superpowers/sdd/fixE-report.md`) — le quattro azioni RIMANENTI di
+// `CassettaSheet` (assegna-lavoro, sposta-lavoro, segna-libera, butta-via) chiamavano `onCambiata()`
+// senza alcun dato: stesso sintomo delle tre sopra, mai chiuso per queste quattro. `dopoCambio` ora
+// accetta un array di `EffettoCassetta` (tipo esportato da `CassettaSheet.tsx`, dove le azioni
+// costruiscono ciò che hanno già in mano): `overrides` si allarga per portare anche `lavoro`
+// (occupa/libera una cassetta), e un nuovo Set `rimosse` toglie dalla vista una cassetta buttata
+// via — STESSO overlay di prima, nessun secondo meccanismo. Sposta-lavoro tocca DUE cassette
+// (sorgente + destinazione) in un solo array: `dopoCambio` applica ogni elemento allo stesso stato.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
@@ -61,6 +70,7 @@ import { initSuoni } from '@/design-system/v3/sound'
 import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
+import type { EffettoCassetta } from './CassettaSheet'
 import { useDragRiordino } from './useDragRiordino'
 import { svuotaRicerca } from '@/lib/ui/svuota-ricerca'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -175,12 +185,19 @@ export function PareteClient(props: {
   // combattere un dato fresco.
   const [pareteBase, setPareteBase] = useState(parete)
   const [extra, setExtra] = useState<CassettaParete[]>([])
-  const [overrides, setOverrides] = useState<Record<string, { nome?: string; colore?: string }>>({})
+  // Gap disclosure sul FIX-E — `overrides` si allarga da {nome?, colore?} a includere anche
+  // `lavoro` (occupa/libera una cassetta): stesso override per-id di prima, un campo in più.
+  // `rimosse` è NUOVO — l'unico effetto che non È un override di una cassetta viva ma la sua
+  // sparizione dal muro (butta-via): un Set di id, non un override, perché non c'è nessun campo
+  // da mostrare per una cassetta che non c'è più.
+  const [overrides, setOverrides] = useState<Record<string, { nome?: string; colore?: string; lavoro?: CassettaParete['lavoro'] }>>({})
+  const [rimosse, setRimosse] = useState<Set<string>>(new Set())
   const [ordineManuale, setOrdineManuale] = useState<string[] | null>(null)
   if (pareteBase !== parete) {
     setPareteBase(parete)
     setExtra([])
     setOverrides({})
+    setRimosse(new Set())
     setOrdineManuale(null)
   }
 
@@ -189,19 +206,27 @@ export function PareteClient(props: {
   // esempio) restano in coda — non spariscono mai dalla vista. Questo È l'unico posto che compone
   // l'overlay: ogni calcolo a valle (ricerca, riordino, sheet, drag) lavora su questo derivato, mai
   // sul prop nudo — così ▲▼ e ricerca restano coerenti fra loro (niente doppia fonte di ordine).
+  //
+  // Gap disclosure sul FIX-E — `overrides` ora applica anche `lavoro` (oltre a nome/colore) SIA
+  // alle cassette del prop SIA a quelle `extra` (una cassetta appena creata potrebbe, in teoria,
+  // ricevere un lavoro prima che il refresh la sostituisca con la sua versione server — edge case
+  // remoto ma lo stesso overlay lo copre senza sforzo in più). `rimosse` filtra DOPO il patch: una
+  // cassetta buttata via non compare più, a prescindere da cosa porterebbe il suo override.
   const pareteVista = useMemo(() => {
-    const conPatch = parete.map((c) => {
+    const applicaPatch = (c: CassettaParete) => {
       const patch = overrides[c.id]
       return patch ? { ...c, ...patch } : c
-    })
-    const base = extra.length ? [...conPatch, ...extra] : conPatch
+    }
+    const conPatch = parete.map(applicaPatch)
+    const extraConPatch = extra.map(applicaPatch)
+    const base = (extraConPatch.length ? [...conPatch, ...extraConPatch] : conPatch).filter((c) => !rimosse.has(c.id))
     if (!ordineManuale) return base
     const perIdBase = new Map(base.map((c) => [c.id, c]))
     const ordinata = ordineManuale.map((id) => perIdBase.get(id)).filter((c): c is CassettaParete => !!c)
     const idsOrdinati = new Set(ordineManuale)
     const fuoriOrdine = base.filter((c) => !idsOrdinati.has(c.id))
     return [...ordinata, ...fuoriOrdine]
-  }, [parete, overrides, extra, ordineManuale])
+  }, [parete, overrides, extra, ordineManuale, rimosse])
 
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
@@ -282,22 +307,48 @@ export function PareteClient(props: {
   // locale — ECCETTO in embedded (`sospendiRefresh`, v. `rileggiParete` sopra), dove si tiene lo
   // stato ottimistico invece di far sparire il pager sotto una lettura server silenziosa.
   //
-  // Review FIX-E, Important — `patch` è ciò che rinomina/colore hanno GIÀ in mano (il valore
-  // SOTTOMESSO, non una rilettura dal server: `CassettaSheet` lo sa perché è lui che l'ha appena
-  // spedito nella PATCH riuscita). Applicato SOLO qui, mai nei rami di errore di `CassettaSheet` —
-  // un fallimento non chiama mai `onCambiata`, quindi l'overlay non si applica mai su un dato che
-  // il server ha rifiutato. Il merge (non la sostituzione) sull'override esistente tiene un
-  // rinomina e una ricolorazione fatte in sequenza sulla stessa cassetta senza perdersi a vicenda.
-  function dopoCambio(patch?: { id: string; nome?: string; colore?: string }) {
-    if (patch) {
-      setOverrides((prev) => ({
-        ...prev,
-        [patch.id]: {
-          ...prev[patch.id],
-          ...(patch.nome !== undefined ? { nome: patch.nome } : {}),
-          ...(patch.colore !== undefined ? { colore: patch.colore } : {}),
-        },
-      }))
+  // Review FIX-E, Important — `effetti` è ciò che CassettaSheet ha GIÀ in mano al momento del
+  // successo (valore SOTTOMESSO per rinomina/colore, il `lavoro` pieno per sposta/assegna — mai
+  // una rilettura dal server). Applicato SOLO qui, mai nei rami di errore di `CassettaSheet` — un
+  // fallimento non chiama mai `onCambiata`, quindi l'overlay non si applica mai su un dato che il
+  // server ha rifiutato (guardia presidiata dai test «FALLITA»/409 in parete-client.test.tsx).
+  //
+  // Gap disclosure sul FIX-E — generalizzato da un singolo `patch` a un ARRAY di `EffettoCassetta`:
+  // sposta-lavoro tocca DUE cassette (sorgente che si libera, destinazione che si occupa) in un
+  // solo successo, un singolo oggetto non basterebbe a portarle entrambe. Ogni elemento si applica
+  // allo stesso `overrides` di prima (merge, non sostituzione — una rinomina e un'occupazione in
+  // sequenza sulla stessa cassetta non si perdono a vicenda); `rimuovi` va in `rimosse` invece che
+  // in `overrides` (butta-via fa sparire la cassetta, non le cambia un campo).
+  function dopoCambio(effetti?: EffettoCassetta[]) {
+    if (effetti?.length) {
+      // `daRimuovere` derivato PRIMA di `setOverrides`, non accumulato dentro il suo updater:
+      // un updater React deve restare puro (può girare più di una volta, es. StrictMode) — leggerlo
+      // subito dopo la chiamata funzionava solo per l'ottimizzazione di "eager state" di React,
+      // niente su cui costruire un contratto (review pre-commit).
+      const daRimuovere = effetti.filter((effetto) => effetto.tipo === 'rimuovi').map((effetto) => effetto.id)
+      setOverrides((prev) => {
+        const next = { ...prev }
+        for (const effetto of effetti) {
+          if (effetto.tipo === 'rimuovi') continue
+          const attuale = next[effetto.id] ?? {}
+          if (effetto.tipo === 'patch') {
+            next[effetto.id] = {
+              ...attuale,
+              ...(effetto.nome !== undefined ? { nome: effetto.nome } : {}),
+              ...(effetto.colore !== undefined ? { colore: effetto.colore } : {}),
+            }
+          } else if (effetto.tipo === 'occupa') {
+            next[effetto.id] = { ...attuale, lavoro: effetto.lavoro }
+          } else {
+            // 'libera'
+            next[effetto.id] = { ...attuale, lavoro: null }
+          }
+        }
+        return next
+      })
+      if (daRimuovere.length) {
+        setRimosse((prev) => new Set([...prev, ...daRimuovere]))
+      }
     }
     setSheet(null)
     rileggiParete()

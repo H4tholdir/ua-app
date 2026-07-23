@@ -478,3 +478,129 @@ rimasto (la linguetta).
   vedrebbe l'intera parete invece del solo filtro (stesso tipo di scavalcamento che il piano
   iniziale rischiava di introdurre per il ▲▼, qui però preesistente al di fuori di questo fix, non
   introdotto da esso). Segnalato, non risolto: fuori dai tre percorsi del finding.
+
+---
+
+## Chiusura del gap dichiarato sopra — riflesso ottimistico anche per assegna/sposta/segna-libera/butta-via
+
+**Riferimento:** il limite dichiarato nella sezione precedente («Quattro azioni di `CassettaSheet`
+restano senza riflesso ottimistico») — dispatch dedicato a chiuderlo, riusando LO STESSO
+meccanismo (`pareteVista`, overlay in `PareteClient.tsx`), non un secondo sistema parallelo.
+
+### Il meccanismo generalizzato: da `patch` singolo a `EffettoCassetta[]`
+
+Il fix precedente passava a `onCambiata` un singolo oggetto `{id, nome?, colore?}` — bastava per
+rinomina/colore, che toccano sempre UNA cassetta con UN campo. Le quattro azioni mancanti non ci
+stavano dentro: sposta-lavoro tocca DUE cassette in un solo successo (la sorgente che si libera, la
+destinazione che si occupa). `CassettaSheet.tsx` esporta ora un tipo `EffettoCassetta` (discriminato
+su `tipo`) e `onCambiata` accetta un ARRAY:
+
+```ts
+export type EffettoCassetta =
+  | { tipo: 'patch'; id: string; nome?: string; colore?: string }
+  | { tipo: 'occupa'; id: string; lavoro: NonNullable<CassettaParete['lavoro']> }
+  | { tipo: 'libera'; id: string }
+  | { tipo: 'rimuovi'; id: string }
+```
+
+`PareteClient.dopoCambio(effetti?: EffettoCassetta[])` applica ogni elemento allo STESSO
+`overrides` di prima (`patch`/`occupa`/`libera` sono tutti un merge sull'override esistente — una
+rinomina e un'occupazione in sequenza sulla stessa cassetta non si perdono a vicenda), più un nuovo
+Set `rimosse` per `rimuovi` (l'unico effetto che non modifica una cassetta viva ma la fa sparire dal
+muro — `pareteVista` ora filtra `rimosse` DOPO aver applicato i patch, sia sulle cassette del prop
+sia su quelle `extra`). Nessun secondo overlay: stesso `pareteVista`, stesso reset in render-phase
+quando l'identità del prop `parete` cambia (righe già presidiate dai test FIX-E precedenti, verdi
+senza modifiche).
+
+### Cosa cambia, per azione
+
+- **assegna-lavoro** (`CassettaSheet.assegnaLavoro`, sottovista «Metti un lavoro») — POST riuscita
+  → `onCambiata([{tipo:'occupa', id: cassetta.id, lavoro: {...}}])`. Il `lavoro` si costruisce dal
+  contratto di `GET /api/cassette/lavori-liberi` (`LavoroLibero`: id/numero/dentista/pazienteAlias/
+  urgenza) — **RESIDUO dichiarato, non un dato inventato**: `LavoroLibero` non porta `paziente`
+  (nome pieno, fallback quando manca l'alias)/`tipoDispositivo`/`descrizione` (usati da
+  `Cassetta.tsx` per la miniatura granulare). Si riflette SOLO ciò che si ha: `paziente` cade sul
+  fallback `'—'` (identico a quanto la targa farebbe comunque con un dato assente),
+  `tipoDispositivo`/`descrizione` restano `null` → `miniaturaPerLavoro` degrada da sé alla
+  miniatura `'generica'` (mai un crash, mai un valore fabbricato). Il refresh (standalone) o il
+  prossimo caricamento vero (embedded) sostituiscono questo riflesso parziale col dato pieno.
+- **sposta-lavoro** (`CassettaSheet.spostaLavoroIn`) — POST riuscita → un array a DUE elementi:
+  `{tipo:'libera', id: cassetta.id}` (la sorgente, quella aperta nello sheet) e
+  `{tipo:'occupa', id: destinazione.id, lavoro: cassetta.lavoro}` (la destinazione riceve il
+  `lavoro` PIENO che la sorgente aveva già in `parete` — nessun residuo qui, a differenza di
+  assegna-lavoro: il contratto della parete porta sempre tutti i campi).
+- **segna-libera** (`CassettaSheet.segnaComeLibera`) — POST (body `null`) riuscita →
+  `onCambiata([{tipo:'libera', id: cassetta.id}])`. Nessun residuo: liberare non richiede dati in
+  più, solo azzerare `lavoro`.
+- **butta-via** (`CassettaSheet.buttaVia`) — DELETE riuscita (SOLO su cassetta libera, invariato) →
+  `onCambiata([{tipo:'rimuovi', id: cassetta.id}])`. `PareteClient` la toglie da `pareteVista` via
+  `rimosse`: con quella l'unica cassetta della parete, il muro passa allo stato vuoto ds (`Vuoto`,
+  «La tua parete è vuota») — verificato dal test dedicato.
+
+Le due azioni già coperte dal fix precedente (rinomina/colore) sono state riscritte nello stesso
+formato ad array (`onCambiata([{tipo:'patch', ...}])`) per uniformità — comportamento invariato,
+i test esistenti (che verificano solo `toHaveBeenCalledTimes(1)`, mai la forma dell'argomento) sono
+rimasti verdi senza modifiche.
+
+### TDD — RED poi GREEN
+
+RED (le quattro guardie di successo fallivano — le guardie di fallimento/409 passavano già,
+perché "non cambiare nulla" era vero anche prima del fix; sono guardie di non-regressione, non un
+sintomo nuovo):
+
+```
+$ npx vitest run tests/unit/parete-client.test.tsx -t "gap disclosure"
+ × assegna-lavoro riuscita in embedded: la cassetta libera mostra SUBITO il lavoro assegnato, senza un vero refresh
+ × sposta-lavoro riuscita in embedded: la sorgente torna libera e la destinazione mostra il lavoro, SUBITO, senza un vero refresh
+ × segna-libera riuscita in embedded: la cassetta torna libera SUBITO sul muro, senza un vero refresh
+ × butta-via riuscita in embedded: la cassetta sparisce SUBITO dal muro, senza un vero refresh
+ Tests  4 failed | 4 passed | 47 skipped (55)
+```
+
+GREEN, dopo l'implementazione (`EffettoCassetta[]` in `CassettaSheet.tsx` + `overrides` con
+`lavoro` + `rimosse` in `PareteClient.tsx`):
+
+```
+$ npx vitest run tests/unit/parete-client.test.tsx
+ Test Files  1 passed (1)
+      Tests  55 passed (55)
+
+$ npx vitest run tests/unit/parete-client.test.tsx tests/unit/cassetta-sheet.test.tsx \
+    tests/unit/nuova-cassetta-sheet.test.tsx tests/unit/stanze-pager.test.tsx
+ Test Files  4 passed (4)
+      Tests  158 passed (158)
+```
+
+Gate finali (tutti e tre, output reale):
+
+```
+$ npx tsc --noEmit
+(0 errori)
+
+$ npx vitest run
+ Test Files  316 passed | 3 skipped (319)
+      Tests  2893 passed | 19 skipped (2912)
+
+$ npx next build
+(completata, tutte le route generate, nessun errore)
+```
+
+2893/2912 contro la baseline 2885/2904 di prima di questo dispatch: +8 test, tutti nuovi (le 4
+guardie di successo + le 4 guardie di fallimento/409, una per azione), zero rimossi, zero rotti.
+
+### Limiti (residui dichiarati, non dimenticanze)
+
+- **assegna-lavoro riflette dati parziali** (v. sopra): `paziente` sul fallback `'—'` quando manca
+  l'alias, miniatura sempre `'generica'` (mai quella granulare/macro) finché non arriva un
+  caricamento vero. Causa strutturale: il contratto di `GET /api/cassette/lavori-liberi` è più
+  povero di `CassettaParete['lavoro']` — allargarlo (aggiungere `paziente`/`tipoDispositivo`/
+  `descrizione` alla route) risolverebbe la radice ma è un cambio di contratto API, fuori scope
+  di un fix sul solo client.
+- **`ordineDrag` persistente in embedded oltre il drop** (limite già dichiarato nella sezione FIX-E
+  precedente): invariato da questo dispatch, non toccato.
+- **Nessuna combinazione multi-azione testata** (es. sposta-lavoro subito seguito da segna-libera
+  sulla stessa cassetta destinazione, entrambe prima di un refresh vero): l'architettura del merge
+  su `overrides` la supporta (ogni effetto fa merge sull'override esistente, mai sostituzione), ma
+  non c'è un test dedicato a una sequenza di due azioni in embedded — lo stesso principio già vale
+  per rinomina+colore in sequenza dal fix precedente, dove nessun test dedicato esisteva neppure
+  lì.

@@ -5,7 +5,7 @@
 // tap/long-press). Un `fireEvent.click` NON chiama `onTap`: qui si usa la stessa coppia di
 // eventi di `tests/unit/Cassetta.test.tsx`.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -690,5 +690,165 @@ describe('PareteClient — riflesso ottimistico in embedded, review FIX-E Import
         nomi.findIndex((n) => n?.startsWith('Cassetta C2')),
       )
     })
+  })
+})
+
+// Gap disclosure sul FIX-E precedente — `dopoCambio` gestiva SOLO rinomina/colore (`patch`).
+// Le altre quattro azioni di `CassettaSheet` (assegna-lavoro, sposta-lavoro, segna-libera,
+// butta-via) chiamavano `onCambiata()` SENZA alcun dato: in embedded (`sospendiRefresh`)
+// restavano stantie sul muro fino al prossimo caricamento vero — stesso sintomo delle tre già
+// corrette, mai chiuso per queste quattro. Qui si estende lo STESSO overlay (`pareteVista`,
+// `overrides`/`rimosse`) — non un secondo meccanismo — a tutte e quattro. Le guardie di
+// fallimento (409 «occupata» compreso) provano il contrario: un esito non-200 non deve mai
+// muovere un lavoro sul muro che il server non ha spostato davvero.
+describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-libera/butta-via (gap disclosure FIX-E)', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  function fetchMock() {
+    return fetch as unknown as ReturnType<typeof vi.fn>
+  }
+
+  it('assegna-lavoro riuscita in embedded: la cassetta libera mostra SUBITO il lavoro assegnato, senza un vero refresh', async () => {
+    const unLibero = { id: 'l9', numero: '151', dentista: 'Studio Bruno', pazienteAlias: 'Rossi Mario', urgenza: 1 }
+    fetchMock()
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    render(<PareteClient parete={[libera]} sospendiRefresh />)
+    const user = userEvent.setup()
+    tap(cassettaLibera())
+    await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await user.click(await screen.findByRole('button', { name: /n\.151/i }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /^Cassetta C4, occupata: Studio Bruno, paziente Rossi Mario/ }),
+      ).toBeInTheDocument(),
+    )
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('assegna-lavoro FALLITA in embedded: la cassetta resta libera (l\'ottimistico non si applica su errore)', async () => {
+    const unLibero = { id: 'l9', numero: '151', dentista: 'Studio Bruno', pazienteAlias: null, urgenza: 1 }
+    fetchMock()
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+      .mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    render(<PareteClient parete={[libera]} sospendiRefresh />)
+    const user = userEvent.setup()
+    tap(cassettaLibera())
+    await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await user.click(await screen.findByRole('button', { name: /n\.151/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
+  })
+
+  it('sposta-lavoro riuscita in embedded: la sorgente torna libera e la destinazione mostra il lavoro, SUBITO, senza un vero refresh', async () => {
+    vi.useFakeTimers()
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok', nome: 'C4' }) })
+    try {
+      render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) }) // Cassetta spara onSollevata → hook.avvia (drag abilitato, ≥2 cassette)
+      act(() => {
+        window.dispatchEvent(new (window.PointerEvent)('pointerup', { pointerId: 1, clientX: 0, clientY: 0 }))
+      })
+      expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'C4' }))
+      await act(async () => {}) // lascia risolvere la POST
+
+      expect(fetch).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('button', { name: /^Cassetta C4, occupata: Bianchi, paziente MAR-42/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
+      expect(refresh).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sposta-lavoro 409 (occupata) in embedded: NON applica il cambiamento — sorgente resta occupata, destinazione resta libera', async () => {
+    vi.useFakeTimers()
+    fetchMock().mockResolvedValueOnce({ status: 409, json: async () => ({ errore: 'occupata', nome: 'C4' }) })
+    try {
+      render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) })
+      act(() => {
+        window.dispatchEvent(new (window.PointerEvent)('pointerup', { pointerId: 1, clientX: 0, clientY: 0 }))
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'C4' }))
+      await act(async () => {})
+
+      expect(screen.getByRole('button', { name: /^Cassetta C12, occupata/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('segna-libera riuscita in embedded: la cassetta torna libera SUBITO sul muro, senza un vero refresh', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok', nome: 'C12' }) })
+    vi.useFakeTimers()
+    render(<PareteClient parete={[occupata]} sospendiRefresh />)
+    const bottone = cassettaOccupata()
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+    act(() => { vi.advanceTimersByTime(300) }) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx, drag disabilitato con 1 sola cassetta)
+    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+    vi.useRealTimers() // trovando 300ms scaduti (findByRole/waitFor sotto contano su timer VERI)
+    expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
+    const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
+    fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
+    await act(async () => {})
+
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('segna-libera FALLITA in embedded: la cassetta resta occupata (l\'ottimistico non si applica su errore)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    vi.useFakeTimers()
+    render(<PareteClient parete={[occupata]} sospendiRefresh />)
+    const bottone = cassettaOccupata()
+    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+    act(() => { vi.advanceTimersByTime(300) })
+    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+    vi.useRealTimers()
+    fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
+    const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
+    fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
+    await act(async () => {})
+
+    expect(screen.getByRole('button', { name: /^Cassetta C12, occupata/ })).toBeInTheDocument()
+  })
+
+  it('butta-via riuscita in embedded: la cassetta sparisce SUBITO dal muro, senza un vero refresh', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    render(<PareteClient parete={[libera]} sospendiRefresh />)
+    const user = userEvent.setup()
+    tap(cassettaLibera())
+    await user.click(screen.getByRole('button', { name: 'Butta via' }))
+    const dialog = await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
+    await user.click(within(dialog).getByRole('button', { name: 'Butta via' }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'La tua parete è vuota' })).toBeInTheDocument())
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('butta-via FALLITA in embedded: la cassetta resta sul muro (l\'ottimistico non si applica su errore)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    render(<PareteClient parete={[libera]} sospendiRefresh />)
+    const user = userEvent.setup()
+    tap(cassettaLibera())
+    await user.click(screen.getByRole('button', { name: 'Butta via' }))
+    const dialog = await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
+    await user.click(within(dialog).getByRole('button', { name: 'Butta via' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
   })
 })
