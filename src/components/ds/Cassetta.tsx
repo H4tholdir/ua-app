@@ -14,8 +14,9 @@
 // formula `color-mix` data dal brief.
 //
 // Stati: libera (cavità vuota, targa outline, «libera» al 60%) · accesa (ricerca: anello blu 3px
-// + elevazione, `aria-current="true"` — mai solo colore, spec §12) · spenta (opacity .3 +
-// desaturazione — resta un `<button>` NON-disabled e tappabile: è opacità, non inattività).
+// + elevazione, `aria-current="true"` — mai solo colore, spec §12). Lo stato `spenta` è MORTO
+// (ratifica 22/07, spec redesign §2.4 — «filtra e risali»): con ricerca attiva le non-match non
+// si affievoliscono più, si SMONTANO — il chiamante (`PareteClient`) non le rende affatto.
 //
 // Gesti (spec §5.4/§5.35 + Task 13). INVARIANTE NORMATIVA (panel Task 13 §3, non negoziabile):
 // Cassetta RICONOSCE il gesto fino al sollevamento; DAL SOLLEVAMENTO IN POI non insegue più NULLA —
@@ -110,7 +111,7 @@ export function derivaFacciaCustom(hex: string): string {
   return `linear-gradient(180deg, ${hex}, color-mix(in srgb, ${hex} 72%, black))`
 }
 
-export type StatoCassetta = 'normale' | 'accesa' | 'spenta'
+export type StatoCassetta = 'normale' | 'accesa'
 
 // Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
 // (Task 3) — il chiamante (Task 11) passa il dato così com'è, senza rimapping: qui prendiamo
@@ -353,7 +354,6 @@ export function Cassetta(props: {
     scura ? 'is-chiara' : undefined,
     nera ? 'is-nera' : undefined,
     stato === 'accesa' ? 'is-accesa' : undefined,
-    stato === 'spenta' ? 'is-spenta' : undefined,
     draggable ? 'is-draggable' : undefined,
   ]
     .filter(Boolean)
@@ -384,9 +384,9 @@ export function Cassetta(props: {
         style={{
           background: backgroundCustom,
           // Mockup riga 69: `transition: opacity 200ms` — SOLO opacity, non uno shorthand `all`
-          // (che animerebbe anche l'anello di `accesa`, il `filter: saturate()` di `spenta` e il
-          // background custom). `cssEase.generico` resta la fonte del tempo/easing (v3/motion.ts
-          // §8.1) — NIENTE duration/ease inventati, solo la proprietà è esplicita (review M2).
+          // (che animerebbe anche l'anello di `accesa` e il background custom). `cssEase.generico`
+          // resta la fonte del tempo/easing (v3/motion.ts §8.1) — NIENTE duration/ease inventati,
+          // solo la proprietà è esplicita (review M2).
           transition: `opacity ${cssEase.generico}`,
         }}
         // HTML `draggable` inchiodato a false (§2.2 ricerca): neutralizza il DnD nativo che, avviato

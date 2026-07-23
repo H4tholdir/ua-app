@@ -10,12 +10,18 @@
 // La parete arriva GIÀ ordinata da `deriveParete` (`posizione, created_at, id`): qui non si
 // riordina nulla — l'ordine è la mappa mentale del muro fisico.
 //
-// Ricerca «che accende» (§5.1): nessuna cassetta sparisce mai, i non-match si SPENGONO
-// (opacity + desaturazione) e restano tappabili — spento è opacità, non inattività.
+// Ricerca «filtra e risali» (ratifica 22/07, spec redesign §2.4 — sostituisce la vecchia
+// ricerca «che accende» del §5.1): con ricerca attiva le non-match si SMONTANO (secco, niente
+// `AnimatePresence`) e le match risalgono in testa nell'ordine relativo della parete. Lo stato
+// `'spenta'` è morto — muore dal tipo `Cassetta` e dal CSS, non resta zombie. L'input resta
+// controllato ISTANTANEO (`query`); il filtro/riordino segue a `DEBOUNCE_FILTRO_MS` di debounce
+// (riserva FE R4 — un FLIP per keystroke su 30 celle è il punto esatto dove peggiora WebKit).
 // Il colore non è mai l'unica fonte di stato: la cassetta accesa porta `aria-current` (§5.35)
 // e l'esito della ricerca è DETTO in parole nella riga quieta `role="status"` sopra la parete,
 // che è insieme il testo visibile e l'annuncio per lo screen reader (una sola live region,
-// montata sempre: una regione che nasce insieme al suo testo non viene annunciata).
+// montata sempre: una regione che nasce insieme al suo testo non viene annunciata). Durante la
+// ricerca il drag non convive con essa: il long-press segnala il blocco con un hint invece di
+// aprire lo sheet in silenzio (riserva UX 1).
 //
 // Intento sheet (risoluzione C1 dell'ondata): questo componente tiene lo stato dell'intento —
 // cassetta libera (tap), long-press su QUALSIASI cassetta, tile «+», CTA del Vuoto. Il Task 12
@@ -41,6 +47,7 @@ import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { molla, trascinamento } from '@/design-system/v3/motion'
+import { vibra } from '@/design-system/v3/haptic'
 import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
@@ -50,6 +57,13 @@ import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 /** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
 type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
+
+// Ratifica 22/07 (spec redesign §2.4) — «filtra e risali»: il filtro/riordino della parete segue
+// la query con questo ritardo (l'input resta istantaneo, solo il FLIP delle celle è debounced).
+const DEBOUNCE_FILTRO_MS = 180
+// Durata dell'hint «Svuota la ricerca…» quando il long-press cade durante una ricerca attiva
+// (il drag non convive con la ricerca — riserva UX 1).
+const HINT_DRAG_BLOCCATO_MS = 2500
 
 /** Il prossimo nome della serie «C» sui nomi VIVI della parete (§5.2): `C1`, `C2`, … → il
  *  prossimo. I nomi fuori serie («Banco Ciro») non partecipano al calcolo. Case-insensitive
@@ -76,12 +90,32 @@ export function PareteClient(props: {
   const [sheet, setSheet] = useState<IntentoSheet>(null)
   const inputCerca = useRef<HTMLInputElement>(null)
 
-  // «Filtro attivo» si decide dal `trim()` della query, MAI dalla dimensione del Set: zero
-  // match e nessuna ricerca danno entrambi un Set vuoto, ma sono due pareti opposte (tutte
-  // spente vs tutte normali).
-  const cercato = query.trim()
+  // Debounce del filtro (riserva FE R4): l'input resta controllato ISTANTANEO (`query`), il
+  // riordino/smontaggio segue a `DEBOUNCE_FILTRO_MS` — un FLIP per keystroke su 30 celle è il
+  // punto esatto dove si peggiora WebKit.
+  const [queryFiltro, setQueryFiltro] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setQueryFiltro(query), DEBOUNCE_FILTRO_MS)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // La «×» di pulizia segue la query ISTANTANEA (affordance dell'input, non del filtro): deve
+  // apparire subito mentre si digita, senza attendere il debounce.
+  const digitando = query.trim().length > 0
+
+  // «Filtro attivo» si decide dal `trim()` della query DEBOUNCED, MAI dalla dimensione del Set:
+  // zero match e nessuna ricerca danno entrambi un Set vuoto, ma sono due pareti opposte (tutte
+  // fuori dalla vista vs tutte normali).
+  const cercato = queryFiltro.trim()
   const attiva = cercato.length > 0
-  const accesi = useMemo(() => filtraCassette(parete, query), [parete, query])
+  const accesi = useMemo(() => filtraCassette(parete, queryFiltro), [parete, queryFiltro])
+
+  // «Filtra e risali» (ratifica 22/07): le match risalgono in testa nell'ordine relativo di
+  // parete, le altre NON si rendono. A riposo (ricerca spenta) l'ordine è quello del muro.
+  const visibili = useMemo(
+    () => (attiva ? parete.filter((c) => accesi.has(c.id)) : parete),
+    [attiva, parete, accesi],
+  )
 
   // §5.5 Freschezza — senza realtime, la parete non deve mentire a chi la guarda da un'ora:
   // si rilegge quando la pagina torna in primo piano (ritorno da /lavori/[id], app riaperta).
@@ -151,13 +185,30 @@ export function PareteClient(props: {
     return ok
   }
 
+  // Riga conteggio (§2.4): conta le VISIBILI (= i match), non il Set — sono la stessa cosa a
+  // ricerca attiva, ma `visibili` è la fonte di verità di cosa è davvero in pagina.
   const annuncio = !attiva
     ? ''
-    : accesi.size === 0
-      ? `Niente per “${cercato}”`
-      : accesi.size === 1
-        ? '1 cassetta accesa'
-        : `${accesi.size} cassette accese`
+    : visibili.length === 0
+      ? `Niente per “${cercato}” — prova con meno lettere`
+      : visibili.length === 1
+        ? '1 cassetta trovata'
+        : `${visibili.length} cassette trovate`
+
+  // Hint del drag bloccato (riserva UX 1): il drag non convive con la ricerca — invece di
+  // lasciar sparire il long-press in silenzio (§5.35 lo esigerebbe come apertura sheet), si
+  // segnala il perché con un hint che vince sulla riga conteggio (stessa riga, stesso ruolo).
+  const [hintDrag, setHintDrag] = useState(false)
+  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (hintTimeout.current) clearTimeout(hintTimeout.current)
+  }, [])
+  function segnalaDragBloccato() {
+    vibra('light')
+    setHintDrag(true)
+    if (hintTimeout.current) clearTimeout(hintTimeout.current)
+    hintTimeout.current = setTimeout(() => setHintDrag(false), HINT_DRAG_BLOCCATO_MS)
+  }
 
   // Il drag NON parte durante una ricerca attiva (parete filtrata = ordine parziale) né con meno di
   // 2 cassette (§5). Fuori da queste condizioni le cassette NON ricevono `onSollevata`: il gesto
@@ -185,9 +236,12 @@ export function PareteClient(props: {
   })
 
   // Ordine di render: durante il drag comanda l'ordine OTTIMISTICO (le sorelle FLIPpano); a riposo
-  // è quello del server. La mappa id→cassetta risolve ogni id all'ultimo dato conosciuto.
+  // è `visibili` — la parete intera quando la ricerca è spenta, solo le match (risalite in testa
+  // nell'ordine relativo) quando è accesa. Il drag non convive con la ricerca (§2.4): quando
+  // `ordineDrag` è valorizzato, la ricerca è per forza spenta e `visibili === parete`. La mappa
+  // id→cassetta risolve ogni id all'ultimo dato conosciuto.
   const perId = useMemo(() => new Map(parete.map((c) => [c.id, c])), [parete])
-  const cassetteRender = (ordineDrag ?? parete.map((c) => c.id))
+  const cassetteRender = (ordineDrag ?? visibili.map((c) => c.id))
     .map((id) => perId.get(id))
     .filter((c): c is CassettaParete => !!c)
   const cassettaGhost = ghostDrag ? perId.get(ghostDrag.id) : null
@@ -236,7 +290,7 @@ export function PareteClient(props: {
               aria-label="Cerca una cassetta o un lavoro"
               enterKeyHint="search"
             />
-            {attiva && (
+            {digitando && (
               <button
                 type="button"
                 className="pulisci"
@@ -249,7 +303,8 @@ export function PareteClient(props: {
           </div>
 
           {/* Riga quieta + live region insieme: un solo testo, letto una volta sola.
-              `minHeight` tiene ferma la parete mentre si digita. */}
+              `minHeight` tiene ferma la parete mentre si digita. L'hint del drag bloccato VINCE
+              sul conteggio (stessa riga, stesso ruolo — mai due status contemporaneamente). */}
           <p
             role="status"
             aria-live="polite"
@@ -261,7 +316,7 @@ export function PareteClient(props: {
               color: 'var(--muted)',
             }}
           >
-            {annuncio}
+            {hintDrag ? 'Svuota la ricerca per spostare le cassette' : annuncio}
           </p>
 
           {/* Live region ASSERTIVA del flusso di trascinamento (§5.4): separata dalla `polite`
@@ -284,10 +339,13 @@ export function PareteClient(props: {
           <MotionConfig reducedMotion="user">
             <div className="ds-parete">
               <div className="ds-parete-grid" ref={gridRef}>
+                {/* Niente `AnimatePresence`: lo smontaggio delle non-match è SECCO (riserva FE
+                    R4 — mai popLayout in griglia). `layout="position"` (non il booleano `layout`)
+                    anima solo la posizione delle sorelle, mai le loro dimensioni (riserva FE R4). */}
                 {cassetteRender.map((c) => (
                   <motion.div
                     key={c.id}
-                    layout
+                    layout="position"
                     transition={molla.smooth}
                     className="ds-cella-riordino"
                     animate={{ opacity: idTrascinato === c.id ? trascinamento.opacitaBuca : 1 }}
@@ -297,7 +355,7 @@ export function PareteClient(props: {
                       nome={c.nome}
                       colore={c.colore}
                       lavoro={c.lavoro}
-                      stato={attiva ? (accesi.has(c.id) ? 'accesa' : 'spenta') : 'normale'}
+                      stato={attiva ? 'accesa' : 'normale'}
                       onTap={() =>
                         c.lavoro ? router.push(`/lavori/${c.lavoro.id}`) : setSheet({ tipo: 'cassetta', id: c.id })
                       }
@@ -306,8 +364,9 @@ export function PareteClient(props: {
                       onSollevata={dragAbilitato ? (evento) => sollevaDrag(c.id, evento) : undefined}
                       // Senza questa prop il timer di long-press non parte affatto e il gesto
                       // sparisce in silenzio (§5.35): va passato a OGNI cassetta, anche occupata.
-                      // Resta l'affordance sheet quando il drag è disabilitato (ricerca attiva).
-                      onLongPressSheet={() => setSheet({ tipo: 'cassetta', id: c.id })}
+                      // A ricerca attiva il drag non convive con essa (§2.4): il long-press
+                      // segnala il blocco con un hint invece di aprire lo sheet in silenzio.
+                      onLongPressSheet={attiva ? segnalaDragBloccato : () => setSheet({ tipo: 'cassetta', id: c.id })}
                     />
                   </motion.div>
                 ))}

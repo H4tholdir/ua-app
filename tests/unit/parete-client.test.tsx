@@ -49,58 +49,124 @@ describe('PareteClient — la parete e il suo chrome (§5)', () => {
   })
 })
 
-describe('PareteClient — la ricerca che accende (§5.1)', () => {
-  it('la query accende chi matcha e spegne gli altri, e lo DICE (aria-live, mai solo colore)', async () => {
-    render(<PareteClient parete={[occupata, libera]} />)
-    await userEvent.setup().type(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), 'zirconia')
+// Ratifica 22/07 (spec redesign §2.4) — la ricerca «che accende» muore: con ricerca attiva le
+// non-match si SMONTANO (niente più `is-spenta`, il valore muore dal tipo `Cassetta`) e le match
+// risalgono in testa nell'ordine relativo della parete. Il filtro/riordino è debounced a ~180ms
+// (riserva FE R4 — un FLIP per keystroke su 30 celle è il punto dove peggiora WebKit); l'input
+// resta controllato ISTANTANEO (la «×» segue `query`, non il valore debounced).
+describe('PareteClient — ricerca «filtra e risali» (ratifica 22/07, spec redesign §2.4)', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
 
-    expect(cassettaOccupata()).toHaveAttribute('aria-current', 'true')
-    expect(cassettaOccupata().className).toContain('is-accesa')
-    expect(cassettaLibera()).not.toHaveAttribute('aria-current')
-    expect(cassettaLibera().className).toContain('is-spenta')
-    expect(screen.getByRole('status')).toHaveTextContent('1 cassetta accesa')
+  const c1SenzaMatch: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
+  const c2ConMatch: CassettaParete = {
+    id: 'c-2', nome: 'C2', colore: 'rossa', posizione: 1,
+    lavoro: { id: 'l2', numero: '200', dentista: 'Esposito', paziente: 'PAZ-1', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null },
+  }
+  const c3ConMatch: CassettaParete = {
+    id: 'c-3', nome: 'C3', colore: 'blu', posizione: 2,
+    lavoro: { id: 'l3', numero: '201', dentista: 'Esposito', paziente: 'PAZ-2', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null },
+  }
+
+  // Helper del file: input controllato istantaneo via `fireEvent.change` (`userEvent.type` sotto
+  // fake timers si impalla senza `advanceTimers` configurato — il test del drag a riga ~272 già
+  // usa `fireEvent.change` sotto fake timers in questo stesso file).
+  function digita(testo: string) {
+    fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: testo } })
+  }
+
+  // Ancorato a `/^Cassetta/i`: `/cassetta/i` da solo prenderebbe anche la tile «+ Nuova cassetta»
+  // (nome accessibile "Nuova cassetta", contiene comunque "cassetta").
+  function primaCassetta() {
+    return screen.getAllByRole('button', { name: /^Cassetta/i })[0]
+  }
+
+  function longPress(elemento: HTMLElement) {
+    fireEvent.pointerDown(elemento, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+    act(() => { vi.advanceTimersByTime(300) }) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx)
+    fireEvent.pointerUp(elemento, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+  }
+
+  it('con ricerca attiva le non pertinenti SPARISCONO e le trovate risalgono in ordine relativo', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch, c3ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) }) // oltre il debounce di 180ms
+    const nomi = screen.getAllByRole('button', { name: /^Cassetta/i }).map((b) => b.getAttribute('aria-label'))
+    expect(nomi.join(' ')).not.toMatch(/C1,/)
+    expect(nomi.findIndex((n) => /^Cassetta C2/.test(n ?? ''))).toBeLessThan(nomi.findIndex((n) => /^Cassetta C3/.test(n ?? '')))
   })
 
-  it('senza query nessuna cassetta è accesa o spenta, e l\'annuncio tace', () => {
-    render(<PareteClient parete={[occupata, libera]} />)
-    expect(cassettaOccupata().className).not.toContain('is-accesa')
-    expect(cassettaLibera().className).not.toContain('is-spenta')
-    // `toHaveTextContent('')` passerebbe con QUALUNQUE testo (match per
-    // sottostringa vuota): il silenzio si asserisce sull'elemento vuoto.
+  it('riga conteggio: «2 cassette trovate» / «1 cassetta trovata» / vuoto con invito', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch, c3ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) })
+    expect(screen.getByRole('status')).toHaveTextContent('2 cassette trovate')
+  })
+
+  it('un solo match → singolare «1 cassetta trovata»', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) })
+    expect(screen.getByRole('status')).toHaveTextContent('1 cassetta trovata')
+  })
+
+  it('zero match → riga quieta con invito, nessuna cassetta rimane montata', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
+    digita('xyz')
+    act(() => { vi.advanceTimersByTime(250) })
+    expect(screen.getByRole('status')).toHaveTextContent('Niente per “xyz” — prova con meno lettere')
+    expect(screen.queryAllByRole('button', { name: /^Cassetta/i })).toHaveLength(0)
+  })
+
+  it('senza query nessuna cassetta è accesa, e l\'annuncio tace', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
+    expect(primaCassetta().className).not.toContain('is-accesa')
+    // `toHaveTextContent('')` passerebbe con QUALUNQUE testo (match per sottostringa vuota): il
+    // silenzio si asserisce sull'elemento vuoto.
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
-  it('più match → plurale «2 cassette accese»', async () => {
-    render(<PareteClient parete={[occupata, { ...libera, nome: 'C121' }]} />)
-    await userEvent.setup().type(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), 'C12')
-    expect(screen.getByRole('status')).toHaveTextContent('2 cassette accese')
+  it('il valore che filtra è debounced (~180ms): a 100ms la parete è ancora intera', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(100) })
+    expect(screen.getAllByRole('button', { name: /^Cassetta/i })).toHaveLength(2)
   })
 
-  it('zero match → riga quieta «Niente per “…”» e parete tutta spenta (L5: non si nasconde niente)', async () => {
-    render(<PareteClient parete={[occupata, libera]} />)
-    await userEvent.setup().type(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), 'xyz')
-    expect(screen.getByRole('status')).toHaveTextContent('Niente per “xyz”')
-    expect(cassettaOccupata().className).toContain('is-spenta')
-    expect(cassettaLibera().className).toContain('is-spenta')
+  it('una cassetta trovata resta tappabile durante la ricerca (naviga al lavoro)', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) })
+    tap(screen.getByRole('button', { name: /^Cassetta C2/ }))
+    expect(push).toHaveBeenCalledWith('/lavori/l2')
+  })
+
+  it('long-press durante la ricerca: hint «Svuota la ricerca…» al posto del fallimento silenzioso', () => {
+    render(<PareteClient parete={[c2ConMatch, c3ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) })
+    longPress(primaCassetta())
+    expect(screen.getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
   })
 
   // P7 (collaudo device 22/07, ratifica Francesco) — la «×» di pulizia è NOSTRA (il clear
   // nativo di type="search" si nasconde in globals.css: esiste solo su Chrome, mai su Safari).
-  it('P7 — la «×» «Svuota la ricerca» appare mentre si digita e, cliccata, svuota la query e la parete torna piena', async () => {
-    render(<PareteClient parete={[occupata, libera]} />)
-    const user = userEvent.setup()
+  // La «×» segue la query ISTANTANEA — appare subito, senza attendere il debounce del filtro.
+  it('P7 — la «×» «Svuota la ricerca» appare mentre si digita (istantanea) e, cliccata, svuota la query e la parete torna piena', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch]} />)
     expect(screen.queryByRole('button', { name: 'Svuota la ricerca' })).toBeNull()
 
     const campo = screen.getByPlaceholderText('Cerca una cassetta o un lavoro…')
-    await user.type(campo, 'zirconia')
+    digita('esposito')
+    // Nessun avanzamento di timer: la «×» è già lì, prima che il debounce scada.
     const pulisci = screen.getByRole('button', { name: 'Svuota la ricerca' })
     expect(pulisci).toBeInTheDocument()
 
-    await user.click(pulisci)
+    fireEvent.click(pulisci)
+    act(() => { vi.advanceTimersByTime(250) })
     expect(screen.queryByRole('button', { name: 'Svuota la ricerca' })).toBeNull()
     expect(campo).toHaveValue('')
-    expect(cassettaOccupata().className).not.toContain('is-accesa')
-    expect(cassettaLibera().className).not.toContain('is-spenta')
+    expect(screen.getAllByRole('button', { name: /^Cassetta/i })).toHaveLength(2)
   })
 })
 
@@ -108,16 +174,6 @@ describe('PareteClient — i tap (§5, semantica gesti §5.35)', () => {
   it('tap su cassetta occupata → scheda del lavoro', () => {
     render(<PareteClient parete={[occupata, libera]} />)
     tap(cassettaOccupata())
-    expect(push).toHaveBeenCalledWith('/lavori/l1')
-  })
-
-  it('una cassetta SPENTA resta tappabile (mai pointer-events:none — §8.2)', async () => {
-    render(<PareteClient parete={[occupata, libera]} />)
-    await userEvent.setup().type(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), 'C4')
-    const spenta = cassettaOccupata()
-    expect(spenta.className).toContain('is-spenta')
-    expect(spenta).not.toBeDisabled()
-    tap(spenta)
     expect(push).toHaveBeenCalledWith('/lavori/l1')
   })
 
@@ -265,18 +321,20 @@ describe('PareteClient — wiring del drag (Task 13, §2.5/§3)', () => {
     }
   })
 
-  it('durante la ricerca il drag è SPENTO (parete filtrata = ordine parziale) ma il long-press apre comunque lo sheet (fallback legacy, §5.3)', () => {
+  it('durante la ricerca il drag è SPENTO (parete filtrata = ordine parziale) e il long-press segnala il blocco (hint, ratifica 22/07 §2.4) invece di aprire lo sheet', () => {
     vi.useFakeTimers()
     try {
       render(<PareteClient parete={[occupata, libera]} />)
-      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C4' } })
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C12' } })
+      act(() => { vi.advanceTimersByTime(250) }) // oltre il debounce di 180ms
       // Con la ricerca attiva `onSollevata` NON è passato: il gesto ricade sul long-press di
-      // Cassetta, che al rilascio sul bottone stesso apre lo sheet.
-      const bottone = cassettaOccupata() // occupata, ora spenta ma tappabile e con long-press
+      // Cassetta — che ora chiama `segnalaDragBloccato` (hint), non più lo sheet.
+      const bottone = cassettaOccupata() // occupata, unica trovata, resta montata
       fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
       act(() => { vi.advanceTimersByTime(300) })
       fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
-      expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'C12' })).toBeNull()
+      expect(screen.getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
     } finally {
       vi.useRealTimers()
     }

@@ -1206,7 +1206,7 @@ export default function CatalogoPage() {
           <div>
             <p style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', margin: '0 0 12px' }}>
               La parete demo — i 6 colori standard + 1 custom (C9, colore scelto col selettore
-              libero), accesa/spenta dalla ricerca, libera. Fedele al mockup ratificato
+              libero), accesa dalla ricerca, libera. Fedele al mockup ratificato
               (`2026-07-20-parete-cassette-v2.html`).
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 88px)', gap: 16 }}>
@@ -1244,11 +1244,6 @@ export default function CatalogoPage() {
               <Cassetta
                 id="c12-accesa" nome="C12" colore="rossa" stato="accesa"
                 lavoro={{ numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }}
-                onTap={() => {}} onLongPressSheet={() => {}}
-              />
-              <Cassetta
-                id="c15-spenta" nome="C15" colore="blu" stato="spenta"
-                lavoro={{ numero: '146', dentista: 'Bianchi', descrizione: 'ponte 3 elementi', tipoDispositivo: 'protesi_fissa' }}
                 onTap={() => {}} onLongPressSheet={() => {}}
               />
             </div>

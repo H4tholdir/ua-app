@@ -84,20 +84,6 @@ describe('Cassetta — libera', () => {
   })
 })
 
-describe('Cassetta — stato "spenta" resta tappabile (non è inattività, è opacità)', () => {
-  it('è un <button> NON disabled anche da spenta, e il tap funziona ancora', () => {
-    const onTap = vi.fn()
-    render(
-      <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="spenta" onTap={onTap} />
-    )
-    const bottone = screen.getByRole('button')
-    expect(bottone).not.toBeDisabled()
-    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
-    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
-    expect(onTap).toHaveBeenCalledTimes(1)
-  })
-})
-
 describe('Cassetta — stato "accesa" porta aria-current (mai solo colore, §12 spec)', () => {
   it('aria-current="true" SOLO quando accesa', () => {
     const { rerender } = render(

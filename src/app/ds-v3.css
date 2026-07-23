@@ -419,7 +419,6 @@
 [data-theme="dark"] [data-ds="v3"] .ds-cassetta.is-accesa {
   box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
 }
-[data-ds="v3"] .ds-cassetta.is-spenta { opacity: .3; filter: saturate(.4); }
 
 /* §5 La Parete — pagina `/cassette` (Task 11). Anatomia 1:1 dal mockup ratificato
    (2026-07-20-parete-cassette-v2.html): pillola di ricerca righe 39-49, parete + doppia griglia
