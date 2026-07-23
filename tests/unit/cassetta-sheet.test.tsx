@@ -257,7 +257,7 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     expect(screen.queryByLabelText(/cerca/i)).toBeNull()
   })
 
-  it('più di 8 liberi → campo di ricerca che filtra client-side su numero/dentista/alias', async () => {
+  it('più di 8 liberi → campo di ricerca che filtra client-side su numero/dentista/alias (dopo il debounce, D9b FIX-F)', async () => {
     const molti = Array.from({ length: 9 }, (_, i) => ({
       id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
     }))
@@ -267,7 +267,31 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     await screen.findByRole('button', { name: /n\.100/i })
 
     fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
-    expect(screen.queryByRole('button', { name: /n\.100/i })).toBeNull()
+    // Il filtro è debounced (D9b): non è sincrono al keystroke, quindi si aspetta l'esito.
+    await waitFor(() => expect(screen.queryByRole('button', { name: /n\.100/i })).toBeNull())
+    expect(screen.getByRole('button', { name: /n\.103/i })).toBeInTheDocument()
+  })
+
+  // D9b (FIX-F) — root cause: `liberiFiltrati` (CassettaSheet.tsx ~359-364, prima del fix) era
+  // ricalcolato in modo SINCRONO e non memoizzato a ogni keystroke, senza debounce — a differenza
+  // del gemello ratificato in `PareteClient.tsx` (`DEBOUNCE_FILTRO_MS`, riserva FE R4: «un FLIP
+  // per keystroke è il punto esatto dove peggiora WebKit»). Qui si prova l'effetto osservabile:
+  // subito dopo il tasto premuto (PRIMA che passi il debounce) la lista precedente resta ancora
+  // visibile — se ricalcolasse sincrono, n.100 sparirebbe immediatamente.
+  it('il filtro NON ricalcola sincrono ad ogni tasto: subito dopo il keystroke la lista precedente resta, il filtro scatta solo dopo il debounce', async () => {
+    const molti = Array.from({ length: 9 }, (_, i) => ({
+      id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
+    }))
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /n\.100/i })
+
+    fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
+    // Subito dopo — nessun debounce ancora passato: la lista NON si è rifiltrata.
+    expect(screen.getByRole('button', { name: /n\.100/i })).toBeInTheDocument()
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /n\.100/i })).toBeNull())
     expect(screen.getByRole('button', { name: /n\.103/i })).toBeInTheDocument()
   })
 

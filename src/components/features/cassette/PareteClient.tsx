@@ -61,7 +61,9 @@ type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
 
 // Ratifica 22/07 (spec redesign §2.4) — «filtra e risali»: il filtro/riordino della parete segue
 // la query con questo ritardo (l'input resta istantaneo, solo il FLIP delle celle è debounced).
-const DEBOUNCE_FILTRO_MS = 180
+// Esportata (FIX-F, D9b): `CassettaSheet` (la lista «Metti un lavoro») riusa la STESSA costante —
+// stesso gemello, stesso ritardo, nessun numero magico duplicato.
+export const DEBOUNCE_FILTRO_MS = 180
 // Durata dell'hint «Svuota la ricerca…» quando il long-press cade durante una ricerca attiva
 // (il drag non convive con la ricerca — riserva UX 1).
 const HINT_DRAG_BLOCCATO_MS = 2500

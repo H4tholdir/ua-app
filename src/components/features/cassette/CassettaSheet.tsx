@@ -24,7 +24,7 @@
 //
 // Dizionario (constraint 5): «Butta via», MAI «Elimina» — nell'etichetta E nel testo del dialog.
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
 import { CampoTesto } from '@/components/ds/Campo'
 import { TastoPrimario } from '@/components/ds/TastoPrimario'
@@ -37,6 +37,7 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
+import { DEBOUNCE_FILTRO_MS } from './PareteClient'
 import { SwatchesColore } from './SwatchesColore'
 
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
@@ -102,6 +103,14 @@ export function CassettaSheet(props: {
   const [liberiErrore, setLiberiErrore] = useState<string | null>(null)
   const [assegnando, setAssegnando] = useState(false)
   const [queryMetti, setQueryMetti] = useState('')
+  // D9b (FIX-F) — stesso pattern del gemello `PareteClient` (`DEBOUNCE_FILTRO_MS`, riserva FE
+  // R4): l'input resta controllato ISTANTANEO (`queryMetti`), il filtro segue con questo
+  // ritardo — un FLIP per keystroke sulla lista è il punto dove peggiora WebKit.
+  const [queryMettiDebounced, setQueryMettiDebounced] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setQueryMettiDebounced(queryMetti), DEBOUNCE_FILTRO_MS)
+    return () => clearTimeout(t)
+  }, [queryMetti])
 
   // Reset in render-phase al cambio di cassetta (id), stesso pattern di ConfermaCassettaSheet:
   // NON un useEffect. Non si resetta sul solo `router.refresh()` di un riordino (l'id resta lo
@@ -124,6 +133,7 @@ export function CassettaSheet(props: {
     setLiberiErrore(null)
     setAssegnando(false)
     setQueryMetti('')
+    setQueryMettiDebounced('')
   }
 
   const occupata = !!cassetta?.lavoro
@@ -356,12 +366,16 @@ export function CassettaSheet(props: {
   // Ricerca client-side (§2.5 punto 13): SOLO se ci sono più di `SOGLIA_RICERCA` liberi — sotto
   // soglia, scorrere è più veloce che digitare. Pagliaio: numero, dentista, alias (stessi campi
   // del contratto della route, `normalizza` CONDIVISA con `filtra-lavori-pila.ts`/`filtra-cassette.ts`).
-  const queryMettiTrim = queryMetti.trim()
-  const liberiFiltrati = !liberi
-    ? null
-    : queryMettiTrim
-      ? liberi.filter((l) => normalizza(`n.${l.numero} ${l.dentista} ${l.pazienteAlias ?? ''}`).includes(normalizza(queryMettiTrim)))
-      : liberi
+  // D9b (FIX-F): `useMemo` + query DEBOUNCED (sopra) — prima ricalcolava in modo sincrono e non
+  // memoizzato a ogni keystroke, un FLIP per tasto premuto sulla lista (gemello di PareteClient).
+  const liberiFiltrati = useMemo(() => {
+    if (!liberi) return null
+    const queryMettiTrim = queryMettiDebounced.trim()
+    if (!queryMettiTrim) return liberi
+    return liberi.filter((l) =>
+      normalizza(`n.${l.numero} ${l.dentista} ${l.pazienteAlias ?? ''}`).includes(normalizza(queryMettiTrim)),
+    )
+  }, [liberi, queryMettiDebounced])
 
   // Review finale whole-branch, Fix 1 — Sheet e DialogConferma ascoltano ENTRAMBI Esc su window:
   // con un dialog di conferma aperto, un solo Esc chiudeva dialog E sheet insieme (e lo scrim

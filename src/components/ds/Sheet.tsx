@@ -17,7 +17,7 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, animate as animaValore, useMotionValue } from 'motion/react'
+import { motion, AnimatePresence, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
@@ -72,12 +72,19 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * verificato live: uno swipe corto finiva comunque quasi fuori schermo).
  * SOLO sul ramo animato: `SheetRidotto` (reduced motion, sotto) non ha drag —
  * è feedback fisico, non essenziale con le animazioni già ridotte a
- * dissolvenza (§8.4); restano comunque scrim/Esc/Chiudi. CAVEAT (documentato
- * per il sotto-progetto 3): l'intero pannello è draggable, contenuto
- * compreso — se in futuro il contenuto avrà scroll interno lungo, drag e
- * scroll verticale "litigheranno" sullo stesso gesto; qui il contenuto demo è
- * corto e non scrolla, quindi non si manifesta. Da risolvere quando servirà
- * (es. `dragListener` solo sul grabber, o soglia di attivazione sul target).
+ * dissolvenza (§8.4); restano comunque scrim/Esc/Chiudi. FIX D9a (QA
+ * device #1, verbale 2026-07-24): il caveat che viveva qui («l'intero
+ * pannello è draggable, contenuto compreso — drag e scroll litigheranno») si
+ * è manifestato appena la lista «Metti un lavoro» ha avuto contenuto
+ * scrollabile — con `dragListener` di default (true) Motion impone
+ * `touch-action: pan-x` sull'INTERO pannello, e su touch lo swipe verticale
+ * dentro la lista veniva letto come trascinamento del pannello, mai come
+ * scroll. Risolto col pattern che il caveat stesso indicava:
+ * `useDragControls()` + `dragListener={false}` sul pannello, drag avviato
+ * SOLO da `onPointerDown` sul grabber (`dragControls.start`, sotto) — Motion
+ * non impone più `touch-action` sul pannello (la regola interna scatta solo
+ * con `dragListener !== false`), lo scroll nativo del contenuto torna libero
+ * ovunque tranne che afferrando il grabber.
  *
  * Portal su `document.body`: essendo l'unico overlay che deve scappare dallo
  * scope del catalogo (e in futuro da qualunque pagina scalata a .96 dal
@@ -98,6 +105,11 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // swipe (sotto) leggono/scrivono TUTTI questa stessa MotionValue — evita il
   // conflitto fra due sistemi di animazione paralleli sullo stesso `y`.
   const yPannello = useMotionValue(0)
+  // FIX D9a: il drag del pannello parte SOLO dal grabber — `dragListener={false}` sul
+  // motion.div disattiva il listener automatico di Motion (che altrimenti arma il drag da
+  // QUALSIASI pointerdown sul pannello, contenuto scrollabile incluso); `dragControls.start`
+  // sull'`onPointerDown` del grabber (sotto) lo riattiva SOLO da lì.
+  const dragControls = useDragControls()
 
   // Collaudo R3 (P9): lo scrim chiude solo se il gesto è NATO sullo scrim — il click orfano che
   // Chrome Android ri-hit-testa sull'overlay appena montato (ghost click) viene ignorato. Vale per
@@ -217,7 +229,16 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 
   const contenutoDialog = (
     <>
-      <div className="ds-sheet-grabber" aria-hidden="true" style={grabberStile} />
+      {/* FIX D9a: `onPointerDown` avvia il drag SOLO da qui (`dragControls.start`) — nel ramo
+          ridotto (`SheetRidotto`, niente drag) è un no-op innocuo: `dragControls.start` non
+          trova nessun `motion.div` iscritto (v. framer-motion `DragControls.start`, che itera
+          un Set vuoto) e non fa nulla. */}
+      <div
+        className="ds-sheet-grabber"
+        aria-hidden="true"
+        style={grabberStile}
+        onPointerDown={(e) => dragControls.start(e)}
+      />
       {titolo && <h2 id={titoloId} style={titoloStile}>{titolo}</h2>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>{children}</div>
       <div style={{ marginTop: spazio.l, display: 'flex', justifyContent: 'center' }}>
@@ -257,6 +278,8 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
             animate={coreografie.sheetSu.animate}
             exit={coreografie.sheetSu.exit}
             drag="y"
+            dragListener={false}
+            dragControls={dragControls}
             dragConstraints={{ top: 0 }}
             dragElastic={0.15}
             dragMomentum={false}
@@ -368,6 +391,12 @@ const grabberStile: CSSProperties = {
   height: 4,
   borderRadius: raggio.pill,
   background: 'var(--line)',
+  // D9a (FIX-F): con `dragListener={false}` Motion NON impone più `touch-action` da solo (né sul
+  // pannello — l'obiettivo — né sul grabber). Il grabber è ora l'UNICO innesco manuale del drag
+  // (`dragControls.start` sul suo `onPointerDown`): senza `touch-action: none` qui, su touch il
+  // browser reclamerebbe il gesto (scroll/overscroll) prima che il pan session parta, esattamente
+  // come documentato dal pattern `useDragControls` di Motion per gli elementi-innesco.
+  touchAction: 'none',
 }
 
 const titoloStile: CSSProperties = {

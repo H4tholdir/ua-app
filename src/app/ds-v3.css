@@ -86,6 +86,20 @@
   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
 }
 
+/* D9a (FIX-F, QA device #1, 2026-07-24) — il grabber (Sheet.tsx) resta visivamente 36×4: questo
+   ::before invisibile allarga solo l'AREA DI PRESA (dove `onPointerDown` avvia il drag via
+   `dragControls.start`) a ≥44px di lato (WCAG 2.5.5), senza cambiare il disegno. `touch-action`
+   NON si eredita dagli pseudo-elementi: il `touchAction:'none'` inline sul grabber (Sheet.tsx,
+   `grabberStile`) copre solo la barra visibile 36×4 — questo `none` esplicito copre anche il
+   margine allargato, altrimenti un dito che atterra lì (fuori dalla barra ma dentro l'hit-area)
+   lascerebbe il browser reclamare lo scroll prima che il pan session parta. */
+[data-ds="v3"] .ds-sheet-grabber::before {
+  content: '';
+  position: absolute;
+  inset: -20px -8px;
+  touch-action: none;
+}
+
 /* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
 [data-ds="v3"] .ds-grana {
   position: fixed; inset: 0; pointer-events: none; z-index: 40;
