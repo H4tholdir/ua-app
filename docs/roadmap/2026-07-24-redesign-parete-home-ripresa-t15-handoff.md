@@ -9,7 +9,7 @@ vengono deviate su `trash` (Cestino). Nei dispatch ai subagent: mai `rm -r` fuor
 ## Base di lavoro (NON ricreare niente)
 
 - **Worktree ESISTENTE:** `.claude/worktrees/redesign-parete-home`, branch `worktree-redesign-parete-home`,
-  ultimo commit **`a8dc937`**. `.env.local`/`.env.test` già copiati. Suite baseline: **2865 verdi, tsc 0, build ok**.
+  ultimo commit **`47b3311`**. `.env.local`/`.env.test` già copiati. Suite baseline: **2865 verdi, tsc 0, build ok**.
 - **Ledger (mappa fedele di tutto):** `<worktree>/.superpowers/sdd/progress.md` — contiene anche i
   **Minor accumulati per la review finale** (NON perderli: la review whole-branch del T17 li triaggia).
 - Report per task/fix: `<worktree>/.superpowers/sdd/task-N-report.md` e `fix{A,B,C}-report.md`.
