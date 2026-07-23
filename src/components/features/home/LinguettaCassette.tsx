@@ -30,7 +30,12 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
 
-const KEY = 'ua_linguetta_v3'
+// QA device (verbale 25/07, fix-list D4, parte meccanica) — v3 era saturo (≥3 accessi) sui
+// device usati nei collaudi: la linguetta non compariva più su NESSUN device di prova,
+// apprendimento vero o no. Bump a v4: invalida i vecchi contatori senza toccare soglia (3),
+// durata (5s) o policy — quella è una decisione di Francesco ancora da ratificare (fuori
+// scope di questo fix, v. brief FIX-E).
+const KEY = 'ua_linguetta_v4'
 const ACCESSI_APPRESA = 3
 const MS_IN_VISTA = 5000
 

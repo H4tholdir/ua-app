@@ -61,6 +61,6 @@ describe('HomeV3 — la home di legge (§7.1 + rev. 3.1)', () => {
     const linguetta = screen.getByRole('button', { name: /le cassette/i })
     await user.click(linguetta)
     expect(push).toHaveBeenCalledWith('/cassette')
-    expect(JSON.parse(localStorage.getItem('ua_linguetta_v3') ?? '0')).toBe(1)
+    expect(JSON.parse(localStorage.getItem('ua_linguetta_v4') ?? '0')).toBe(1)
   })
 })

@@ -50,11 +50,28 @@ describe('LinguettaCassette (D7, mockup C2 ratificato)', () => {
     render(<LinguettaCassette onVai={onVai} visibile />)
     fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
     expect(onVai).toHaveBeenCalled()
-    expect(JSON.parse(localStorage.getItem('ua_linguetta_v3') ?? '0')).toBe(1)
+    expect(JSON.parse(localStorage.getItem('ua_linguetta_v4') ?? '0')).toBe(1)
   })
 
   it('visibile=false (stanza parete attiva): mai renderizzata', () => {
     render(<LinguettaCassette onVai={() => {}} visibile={false} />)
     expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull()
+  })
+
+  // QA device (verbale 25/07, fix-list D4, parte meccanica) — CAUSA: il contatore
+  // `ua_linguetta_v3` era saturo (≥3) sui device dei collaudi, quindi la linguetta non
+  // compariva più a prescindere da quanto fosse davvero appresa la scoperta della parete su
+  // QUESTO device. Bump della chiave a `ua_linguetta_v4`: un vecchio contatore rimasto sotto
+  // la chiave morta non deve più avere alcun effetto — la linguetta torna a comparire.
+  it('D4 (bump chiave) — un vecchio contatore saturo sotto la chiave morta ua_linguetta_v3 NON impedisce più la comparsa', () => {
+    localStorage.setItem('ua_linguetta_v3', '3')
+    render(<LinguettaCassette onVai={() => {}} visibile />)
+    expect(screen.getByRole('button', { name: /le cassette/i })).toBeTruthy()
+  })
+
+  it('D4 — la persistenza vive sotto la chiave ua_linguetta_v4 (non più v3)', () => {
+    registraAccessoParete()
+    expect(localStorage.getItem('ua_linguetta_v4')).toBe('1')
+    expect(localStorage.getItem('ua_linguetta_v3')).toBeNull()
   })
 })
