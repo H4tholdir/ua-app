@@ -832,11 +832,21 @@
      che NON riduce questo padding (lo spazio lo recuperano gap/padding delle pile). */
   padding: 0 24px 36px;
 }
-/* QA device T15 (verbale 2026-07-24, fix 1a) — 10px → 4px: stesso ragionamento del margin-top
-   di `.foot` (HomeV3.tsx, commento lì) — l'hit-area 44px dei dot (touch target di legge) resta
-   intatta, si comprime solo lo spazio intorno. Dà anche qualche px in più a
-   `.ua-stanza-pile-scroll` (fix 1c), che vive nel fratello sopra questa riga. */
-[data-ds="v3"] .ua-stanze-dots { margin-top: 4px; display: flex; justify-content: center; }
+/* QA device (verbale 25/07, fix-list D5a) — CAUSA MISURATA: il padding orizzontale della
+   regola base sopra (24px per lato, invariato per la stanza Pile) si applicava ANCHE alla
+   stanza Parete, restringendo la sua shell interna a ≈302px contro i ≈350px della route
+   standalone /cassette — la parete eredita GIÀ il proprio padding orizzontale da
+   `.ds-parete-shell`/`.ds-parete` (v. sopra, §6 del foglio), quindi quello di `.ua-stanza` qui
+   è un secondo strato che la route standalone non paga. Scoped al SOLO lato parete via
+   l'attributo `data-stanza` (già scritto da `StanzePager.tsx` su ogni pannello, invariato):
+   la stanza Pile non cambia larghezza di un pixel. */
+[data-ds="v3"] .ua-stanza[data-stanza="parete"] { padding-left: 0; padding-right: 0; }
+/* QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — ABROGATA: `.ua-stanze-dots`
+   (il wrapper dei due dot indicatore/selettore di stanza) è morta insieme al componente che
+   scopava (`ProgressDotsStanze`, v. `ProgressDots.tsx`) — i dot sono stati rimossi del tutto,
+   markup e stili compresi. I ~48px di budget verticale che occupava (margin-top 4px + hit-area
+   44px del tablist) tornano a `.ua-stanza-pile-scroll` (D2, v. sotto — la guardia in
+   `tests/unit/home-fluida.test.tsx`/`tests/unit/stanze-pager.test.tsx` presidia l'assenza). */
 
 /* Task 13 (D7) — linguetta «Le cassette» (mockup C2 ratificato 23/07/2026, valori verbatim).
    Il button è LARGO 44px (hit-area di legge, riserva UX 3a); il disegno (card 26px) è il suo
@@ -880,7 +890,14 @@
   flex: 1; min-height: 0; overflow-y: auto;
   overscroll-behavior-y: contain;
   touch-action: pan-y pan-x;
+  /* QA device (verbale 25/07, fix-list D5a) — il gemello `.ua-stanza-pile-scroll` (sotto)
+     aveva già ricevuto il nascondi-scrollbar (fix 1c, QA T15 24/07): questo contenitore ne era
+     rimasto senza, una scrollbar visibile SOLO sul lato parete del pager, assente sulla route
+     standalone /cassette. Stessa ricetta: lo scroll resta, la barra sparisce. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+[data-ds="v3"] .ua-stanza-parete-scroll::-webkit-scrollbar { display: none; }
 
 /* Task 14 — fix round 2 (review Critical, P3 pager). `.ua-stanze-viewport` (sopra) è
    `overflow-x: auto; overflow-y: hidden`: quell'`hidden` CLIPPA in silenzio ogni pixel di

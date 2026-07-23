@@ -76,6 +76,33 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
       /\[data-ds="v3"\] \.ua-stanza-parete-scroll \{[^}]*overflow-y: auto;[^}]*overscroll-behavior-y: contain;/
     )
   })
+
+  // QA device (verbale 25/07, fix-list D5a) — CAUSA MISURATA: `.ua-stanza-parete-scroll` non
+  // aveva la stessa ricetta nascondi-scrollbar del gemello `.ua-stanza-pile-scroll`
+  // (home-fluida.test.tsx, fix 1c): la scrollbar era visibile SOLO sul lato parete del pager,
+  // una divergenza rispetto alla route standalone /cassette (che non la mostra — v.
+  // `.ds-parete-shell` non scrolla lui, scrolla il body della pagina senza libreria custom).
+  // Stessa coppia di proprietà del gemello: lo scroll resta, solo la barra sparisce.
+  it('`.ua-stanza-parete-scroll` nasconde la propria scrollbar (scrollbar-width + pseudo-elemento webkit) senza disattivare lo scroll — stessa ricetta del gemello .ua-stanza-pile-scroll', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ua-stanza-parete-scroll \{[^}]*overflow-y: auto;[^}]*overscroll-behavior-y: contain;[^}]*scrollbar-width: none;[^}]*-ms-overflow-style: none;/
+    )
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ua-stanza-parete-scroll::-webkit-scrollbar \{ display: none; \}/)
+  })
+
+  // QA device (verbale 25/07, fix-list D5a) — CAUSA MISURATA: `.ua-stanza { padding: 0 24px
+  // 36px }` (regola base, invariata per la stanza Pile) si applicava ANCHE alla stanza Parete
+  // dentro il pager, restringendo la shell interna a ≈302px contro i ≈350px della route
+  // standalone /cassette (−48px di larghezza utile, misurati a runtime). La stanza Parete
+  // eredita già il proprio padding orizzontale da `.ds-parete-shell`/`.ds-parete` (v. sopra):
+  // il padding di `.ua-stanza` qui sopra è un secondo strato che la route standalone non ha.
+  // Fix scoped SOLO al lato parete via l'attributo `data-stanza` (già scritto da
+  // `StanzePager.tsx` su ogni pannello) — la stanza Pile NON viene toccata.
+  it('la stanza parete del pager azzera il padding orizzontale duplicato di `.ua-stanza` (D5a — larghezza pari alla route standalone)', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ua-stanza\[data-stanza="parete"\] \{ padding-left: 0; padding-right: 0; \}/
+    )
+  })
 })
 
 // Guardia «Task 8 — la rete disegnata» (docs/design/decisions/2026-07-24-rete-gancetto-targa.md
