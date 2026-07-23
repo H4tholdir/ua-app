@@ -52,3 +52,16 @@ esplicito; cancellazioni ricorsive solo su richiesta esplicita di Francesco.
 
 Fix 1-5, 7, 8 in lavorazione subito (subagent + review); fix 6 dopo il chiarimento.
 Ri-collaudo device di Francesco sulla build corretta PRIMA di passare al Task 16.
+
+## Addendum — Intervista post-QA (24/07 sera, decisioni ratificate)
+
+1. **Lo swipe dalla home porta alla PAGINA /cassette vera** (non più stanza/widget): assetto
+   completo della pagina (titolo, tasto menu, barra ricerca, griglia centrata, NIENTE tasto
+   nuovo lavoro), con tutte le decisioni ratificate (rete P44, gancetti, targa). Il gesto
+   SEGUE IL DITO (pannello fisico già montato, zero loading); al completamento si aggiorna
+   solo l'indirizzo a /cassette (History API shallow) — il back del telefono torna alla home.
+   La D2 originale («stanza parete embedded senza header») è SUPERATA da questa decisione.
+2. **Home lato pile: NIENTE scroll** — tutto visibile a occhio, si lavora senza scrollare.
+   Lo scroll interno resta solo come rete di sicurezza invisibile (scrollbar nascosta).
+3. **Inviti in home: linguetta + puntini** (entrambi restano).
+4. **Piede**: compatto in home; ASSENTE nel lato cassette (niente TastoPiù/etichetta lì).
