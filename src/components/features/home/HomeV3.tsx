@@ -147,12 +147,25 @@ export function HomeV3(props: {
                          padding-bottom: env(safe-area-inset-bottom); }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
-           TastoPiù (collaudo device 22/07). min-height + overflow-y:auto = no-scroll quando ci
-           sta, scroll naturale quando non ci sta. Task 14 (D8): la scala fluida RIDUCE i casi
-           in cui questo degrado scatta, non lo abroga — resta la rete di sicurezza sotto la
-           scala continua (v. decision record 2026-07-25, guardia sostituita in
-           tests/unit/home-fluida.test.tsx). */
-        @media (max-width: 767px) { .ua-home { min-height: 100dvh; height: auto; overflow-y: auto; } }
+           TastoPiù (collaudo device 22/07). Task 14 (D8) SPOSTA dove vive l'overflow-y:auto,
+           da .ua-home a .corpo — non lo stesso posto di prima, un aggiustamento necessario
+           scoperto in verifica browser (jsdom non fa layout, non l'avrebbe mai mostrato):
+           container-type: size rende .corpo size-contained, cioè la SUA size è calcolata
+           come se non avesse contenuto — quindi se .ua-home restasse height: auto (come
+           prima del Task 14) il suo auto-height non «vedrebbe» più quanto cresce .pile dentro
+           .corpo, e il contenuto in eccesso finirebbe SOVRAPPOSTO al .foot invece che
+           spingerlo più in basso (verificato con una pagina di prova in browser: card in più
+           renderizzate esattamente sopra la barra del piede, nessuno scroll utile a vederle).
+           Soluzione: .ua-home resta un box a size definita (il suo min-height: 100dvh di
+           base, invariato, senza più un override height: auto qui); è .corpo — che ha già
+           una size definita dal flex (necessaria perché il container-type funzioni bene) — a
+           scorrere INTERNAMENTE quando il contenuto anche al floor del clamp non ci sta. Il
+           .foot resta sempre visibile in fondo, mai spinto fuori schermo. Riverificato in
+           browser dopo la correzione: nessuna sovrapposizione, testo del piede sempre leggibile
+           (v. task-14-report.md per screenshot/misure). La scala fluida RIDUCE i casi in cui
+           questo degrado scatta, non lo abroga — resta la rete di sicurezza sotto la scala
+           continua (guardia in tests/unit/home-fluida.test.tsx). */
+        @media (max-width: 767px) { .ua-home .corpo { overflow-y: auto; } }
       `}</style>
 
       {vista.tipo === 'pager' ? (

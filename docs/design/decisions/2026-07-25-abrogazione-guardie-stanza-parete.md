@@ -95,8 +95,9 @@ originale). Al suo posto: un wrapper interno `.corpo` (`container-type: size`) c
 `cqh` gap/padding/font-size dei blocchi (`.pile`, `.ds-pila`, `.ds-pila-num`, `.striscia-slot`,
 `.foot`) — una scala CONTINUA invece di un gradino unico a 780px. Le pile si centrano nello spazio
 residuo (`justify-content: center` su `.pile`, flex:1) invece di limitarsi ad assorbire lo slack in
-alto. Il degrado scroll P3 (`overflow-y: auto` sotto 767px) **resta**: la fluida riduce i casi in
-cui serve, non lo abroga.
+alto. Il degrado scroll P3 (`overflow-y: auto` sotto 767px) **resta**, ma **cambia dove vive**: da
+`.ua-home` (prima del Task 14) a `.corpo` (da questo task in poi) — v. correzione sotto, non una
+scelta stilistica.
 
 Guardia sostituita: `tests/unit/home-fluida.test.tsx` (nuova) presidia `container-type: size`, il
 gap fluido `clamp(8px, 2.2cqh, 16px)` e la morte testuale di `@media (max-height: 780px)` — non
@@ -120,3 +121,30 @@ precedente, mai a occhio): la misura reale su device via Playwright è demandata
 device) — qui la guardia testuale presidia solo che il CSS DICHIARI la formula giusta, non che
 risolva al pixel corretto su un viewport reale (jsdom non fa layout, stesso limite dichiarato in
 testa a `tests/unit/ds-v3/parete-fluida.test.ts`).
+
+### Correzione in corso d'opera — perché l'overflow-y:auto si sposta da `.ua-home` a `.corpo`
+
+Trovata in un consulto con l'advisor DOPO il primo commit di questo task (poi corretta prima della
+chiusura, v. `task-14-report.md` per la cronologia completa): la prima versione lasciava
+`overflow-y: auto` su `.ua-home`, con `.ua-home { min-height: 100dvh; height: auto; overflow-y:
+auto }` invariato dal pre-Task-14. Ma `container-type: size` rende `.corpo` **size-contained**: la
+sua size è calcolata come se non avesse contenuto, per costruzione (è la premessa che fa risolvere
+`cqh` senza un loop di dipendenza taglia↔contenuto). Se l'ANTENATO (`.ua-home`) resta ad altezza
+`auto`, il suo calcolo di auto-height non «vede» più quanto cresce davvero `.pile` dentro `.corpo`
+— il contenuto in eccesso trabocca fuori dal box di `.corpo` e finisce **sovrapposto** al `.foot`
+sottostante, invece di spingerlo più in basso e attivare lo scroll. Verificato con una pagina di
+prova renderizzata in browser (non jsdom, che non fa layout): a 390×660 con contenuto forzato oltre
+il viewport, le card in eccesso si rendevano esattamente SOPRA la barra del piede, senza alcuno
+scroll utile a raggiungerle — l'esatto guasto che P3 esiste per evitare, riprodotto proprio dal
+`container-type: size` introdotto da questo task.
+
+**Correzione:** `.ua-home` resta un box a size sempre DEFINITA (il suo `min-height: 100dvh` di
+base, senza più l'override `height: auto` sotto 767px); è `.corpo` — che riceve comunque una size
+definita dalla distribuzione flex dentro `.ua-home` — a scorrere INTERNAMENTE
+(`overflow-y: auto` spostato lì) quando il contenuto, anche al floor del clamp, non ci sta.
+Riverificato nella stessa pagina di prova dopo la correzione: nessuna sovrapposizione, il testo del
+piede resta sempre interamente leggibile. Quello che NON è stato possibile chiudere del tutto in
+questa sessione (ambiente browser di verifica, non un device reale): un residuo di qualche decina
+di pixel di scroll a livello di documento compariva anche nel caso «il contenuto ci sta comodo»
+(4 pile, ben sotto budget) — v. dubbio dedicato in `task-14-report.md`, demandato alla misura vera
+del Task 15 insieme alla taratura dei coefficienti.
