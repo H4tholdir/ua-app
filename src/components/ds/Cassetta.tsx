@@ -38,7 +38,7 @@
 //    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
 //    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
@@ -136,8 +136,20 @@ export function Cassetta(props: {
    *  insegue più nulla (invariante del panel, presidiata dal test che VIETA). */
   onSollevata?: (evento: ReactPointerEvent<HTMLButtonElement>) => void
   draggable?: boolean
+  /** Task 9 (D1) — SOLO `true` sul clone dentro `.ds-ghost` (`PareteClient.tsx`): lo stato
+   *  «staccato dal filo» si rende sul GHOST, mai sull'originale (che resta la «buca» in flow,
+   *  riserva FE R3). Pilota la classe `is-staccato` sul gancetto SVG — la rotazione/alzata la fa
+   *  il CSS (`ds-v3.css`), nessun literal qui. */
+  staccata?: boolean
 }) {
-  const { id, nome, colore, lavoro, stato, onTap, onLongPressSheet, onSollevata, draggable = false } = props
+  const {
+    id, nome, colore, lavoro, stato, onTap, onLongPressSheet, onSollevata, draggable = false, staccata = false,
+  } = props
+  // Task 9 (D1) — id univoco per il gradiente metallico del gancetto: molte Cassette vivono sulla
+  // stessa pagina (la parete), un `id` SVG letterale (come nel mockup statico, un solo esemplare)
+  // colliderebbe in duplicati DOM (`url(#mMetal)` risolverebbe sempre sul primo). `useId()` è lo
+  // stesso pattern già in uso altrove nel repo (Campo.tsx, Sheet.tsx…) per gli id di accessibilità.
+  const idMetalloGancetto = useId()
 
   // Stato del gesto in ref (non state): niente re-render durante pointermove, il tap/long-press
   // si decide solo al rilascio.
@@ -402,6 +414,34 @@ export function Cassetta(props: {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
       >
+        {/* D1 — gancetto G2 (mockup 2026-07-24-rete-gancetto-targa.html rev.3, verbale
+            docs/design/decisions/2026-07-24-rete-gancetto-targa.md §4): gancio metallico legato
+            alla linguetta `::before` (INVARIATA, spec mockup — "interno = produzione"), che
+            scavalca il filo del muro. SVG inline come le miniature (mai <img>: riattiverebbe il
+            DnD nativo neutralizzato a `draggable={false}` sotto). Nessun filo proprio (rev.3: la
+            meccanica «il gancetto porta il filo» è BOCCIATA — al drag il muro resta fermo, si
+            stacca solo la cassetta). */}
+        <svg
+          className={`ds-gancetto${staccata ? ' is-staccato' : ''}`}
+          aria-hidden="true"
+          viewBox="0 0 28 22"
+        >
+          <defs>
+            <linearGradient id={idMetalloGancetto} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--gan-metal-hi)" />
+              <stop offset=".5" stopColor="var(--gan-metal-mid)" />
+              <stop offset="1" stopColor="var(--gan-metal-lo)" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M12 16 L12 6 C12 2 18 2 18 6.5 L18 9.5"
+            fill="none"
+            stroke={`url(#${idMetalloGancetto})`}
+            strokeWidth={3.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <span className="ds-cassetta-cavita">
           {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} />}
         </span>

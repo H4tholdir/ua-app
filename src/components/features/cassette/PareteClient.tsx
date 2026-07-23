@@ -431,6 +431,10 @@ export function PareteClient(props: {
                     colore={cassettaGhost.colore}
                     lavoro={cassettaGhost.lavoro}
                     stato="normale"
+                    // Task 9 (D1, riserva FE R3): lo stato «staccato dal filo» si rende SOLO qui,
+                    // sul ghost che insegue il dito — l'originale in `.ds-cella-riordino` resta la
+                    // «buca» (opacità ridotta, gancetto normale).
+                    staccata
                     onTap={() => {}}
                   />
                 </motion.div>

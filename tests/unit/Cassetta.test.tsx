@@ -84,6 +84,31 @@ describe('Cassetta — libera', () => {
   })
 })
 
+describe('Cassetta — gancetto G2 + stato «staccato» (Task 9, D1, mockup 2026-07-24-rete-gancetto-targa.html)', () => {
+  it('il gancetto è un SVG aria-hidden dentro il button (mai <img>)', () => {
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
+    const bottone = screen.getByRole('button')
+    const svg = bottone.querySelector('svg.ds-gancetto')
+    expect(svg).toBeTruthy()
+    expect(svg?.getAttribute('aria-hidden')).toBe('true')
+    expect(bottone.querySelector('img')).toBeNull()
+  })
+
+  it('staccata: la classe di stato va sul gancetto (la rotazione/alzata la fa il CSS)', () => {
+    render(
+      <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} staccata />
+    )
+    const svg = screen.getByRole('button').querySelector('svg.ds-gancetto')
+    expect(svg?.classList.contains('is-staccato')).toBe(true)
+  })
+
+  it('senza `staccata` (default false): il gancetto NON porta la classe is-staccato — solo il ghost la riceve', () => {
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
+    const svg = screen.getByRole('button').querySelector('svg.ds-gancetto')
+    expect(svg?.classList.contains('is-staccato')).toBe(false)
+  })
+})
+
 describe('Cassetta — stato "accesa" porta aria-current (mai solo colore, §12 spec)', () => {
   it('aria-current="true" SOLO quando accesa', () => {
     const { rerender } = render(
