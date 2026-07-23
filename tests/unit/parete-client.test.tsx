@@ -588,3 +588,107 @@ describe('PareteClient — parete vuota e freschezza', () => {
     expect(refresh).toHaveBeenCalledTimes(2)
   })
 })
+
+// Review FIX-E, Important — E4 gated OGNI `router.refresh()` del percorso parete dietro
+// `sospendiRefresh` (D5b/D8, v. `rileggiParete`), ma tre percorsi di mutazione non avevano MAI
+// avuto uno stato ottimistico locale: in embedded (pager) restavano silenziosamente stantii fino
+// al prossimo caricamento reale della route. Questi test riproducono i tre percorsi (creazione,
+// rinomina/ricolorazione, ▲▼) con `sospendiRefresh` attivo — SENZA di esso il refresh mockato
+// avrebbe comunque "risolto" il sintomo nel test (anche se non nel pannello reale, dove
+// `router.refresh()` è vietato): è per questo che il difetto viveva solo in embedded, mai in
+// standalone. Le ultime due guardie coprono l'esito NEGATO: un fallimento della scrittura non
+// deve corrompere ciò che la parete mostra (mirror del contratto già in vigore per il drag).
+describe('PareteClient — riflesso ottimistico in embedded, review FIX-E Important (create/rinomina-colore/▲▼)', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  function fetchMock() {
+    return fetch as unknown as ReturnType<typeof vi.fn>
+  }
+
+  it('creazione riuscita in embedded: la nuova cassetta appare SUBITO, senza un vero refresh', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 201,
+      json: async () => ({ cassetta: { id: 'c-new', nome: 'C13', colore: 'bianca', posizione: 1 } }),
+    })
+    render(<PareteClient parete={[occupata]} sospendiRefresh />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Nuova cassetta/ }))
+    await user.click(screen.getByRole('button', { name: 'Crea C13' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cassetta C13, libera' })).toBeInTheDocument())
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('rinomina riuscita in embedded: il nome nuovo appare SUBITO sul muro, senza un vero refresh', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
+    tap(cassettaLibera())
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Banco Ciro' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C4' })).toBeNull())
+    expect(screen.getByRole('button', { name: 'Cassetta Banco Ciro, libera' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cassetta C4, libera' })).toBeNull()
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('▲▼ riuscito in embedded: il muro si sposta SUBITO, senza un vero refresh', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({}) })
+    const c1: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
+    const c2: CassettaParete = { id: 'c-2', nome: 'C2', colore: 'blu', posizione: 1, lavoro: null }
+    render(<PareteClient parete={[c1, c2]} sospendiRefresh />)
+    const user = userEvent.setup()
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+    await user.click(screen.getByRole('button', { name: 'Sposta giù' }))
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    await waitFor(() => {
+      const nomi = screen.getAllByRole('button', { name: /^Cassetta/i }).map((b) => b.getAttribute('aria-label'))
+      expect(nomi.findIndex((n) => n?.startsWith('Cassetta C2'))).toBeLessThan(
+        nomi.findIndex((n) => n?.startsWith('Cassetta C1')),
+      )
+    })
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('creazione FALLITA in embedded: nessuna cassetta fantasma appare (l\'ottimistico non si applica su errore)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({ errore: 'creazione_fallita' }) })
+    render(<PareteClient parete={[occupata]} sospendiRefresh />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Nuova cassetta/ }))
+    await user.click(screen.getByRole('button', { name: /^Crea/ }))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getAllByRole('button', { name: /^Cassetta/i })).toHaveLength(1)
+  })
+
+  it('rinomina FALLITA in embedded: il nome vecchio resta (l\'ottimistico non si applica su errore)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
+    tap(cassettaLibera())
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Banco Ciro' } })
+    fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Banco Ciro/ })).toBeNull()
+  })
+
+  it('▲▼ FALLITO in embedded: il muro NON si sposta (rollback ottico, mirror del contratto del drag)', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    const c1: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
+    const c2: CassettaParete = { id: 'c-2', nome: 'C2', colore: 'blu', posizione: 1, lavoro: null }
+    render(<PareteClient parete={[c1, c2]} sospendiRefresh />)
+    const user = userEvent.setup()
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+    fireEvent.pointerUp(screen.getByRole('button', { name: /^Cassetta C1/ }), { clientX: 0, clientY: 0 })
+    await user.click(screen.getByRole('button', { name: 'Sposta giù' }))
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    await waitFor(() => {
+      const nomi = screen.getAllByRole('button', { name: /^Cassetta/i }).map((b) => b.getAttribute('aria-label'))
+      expect(nomi.findIndex((n) => n?.startsWith('Cassetta C1'))).toBeLessThan(
+        nomi.findIndex((n) => n?.startsWith('Cassetta C2')),
+      )
+    })
+  })
+})

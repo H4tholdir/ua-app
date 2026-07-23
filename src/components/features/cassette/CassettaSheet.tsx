@@ -76,7 +76,13 @@ export function CassettaSheet(props: {
   totale: number
   aperto: boolean
   onChiudi: () => void
-  onCambiata: () => void
+  /** Review FIX-E (Important) — `patch` porta il valore SOTTOMESSO (non una rilettura server) SOLO
+   *  per rinomina/colore (`salvaNome`/`scegliColore`), le due azioni per cui `PareteClient` tiene
+   *  un riflesso ottimistico. Le altre azioni di questo sheet (sposta-lavoro, segna-libera,
+   *  butta-via, assegna-lavoro) chiamano `onCambiata()` SENZA patch — restano fuori scope di
+   *  questo fix (toccano l'assegnazione fra cassette diverse, non un singolo campo di questa): in
+   *  embedded restano stantie finché non arriva un caricamento vero, come da finding originale. */
+  onCambiata: (patch?: { id: string; nome?: string; colore?: string }) => void
   /** Riordino di UNA posizione: il PareteClient compone e POSTa la lista completa e risponde se
    *  il muro si è davvero mosso — l'annuncio `aria-live` dipende da questo esito. */
   onSposta: (direzione: 'su' | 'giu') => Promise<boolean>
@@ -155,7 +161,10 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ nome: nomeTrim }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Review FIX-E (Important) — `nomeTrim` è ciò che ABBIAMO GIÀ appena spedito nella PATCH
+        // riuscita: nessun bisogno di rileggerlo dal corpo della risposta (che qui non lo porta
+        // comunque, v. contratto route). `PareteClient` lo usa per il riflesso ottimistico.
+        onCambiata({ id: cassetta.id, nome: nomeTrim })
         return
       }
       if (res.status === 422) {
@@ -186,7 +195,9 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ colore }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Review FIX-E (Important) — stesso principio di `salvaNome`: `colore` è il valore
+        // sottomesso nella PATCH appena riuscita, non serve rileggerlo dal server.
+        onCambiata({ id: cassetta.id, colore })
         return
       }
       setErroreAzione(ERRORE_GENERICO)

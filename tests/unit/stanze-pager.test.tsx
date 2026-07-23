@@ -135,9 +135,10 @@ beforeEach(() => {
   refresh.mockClear()
   vi.stubGlobal('IntersectionObserver', IOFinto)
   // Task 13 (D7) — dal Task 13 in poi il pager monta SEMPRE anche `LinguettaCassette`, che
-  // legge/scrive `ua_linguetta_v3`: senza reset, gli accessi pile→parete di test precedenti
-  // (swipe/dot, in questo stesso file) si accumulerebbero e farebbero apprendere la
-  // linguetta prima del tempo per i test dedicati più sotto.
+  // legge/scrive `ua_linguetta_v4` (D4, bump chiave — v. `CHIAVE_LINGUETTA` sotto): senza reset,
+  // gli accessi pile→parete di test precedenti (swipe, in questo stesso file) si accumulerebbero
+  // e farebbero apprendere la linguetta prima del tempo per i test dedicati più sotto. I dot sono
+  // rimossi (D3): l'unico trigger esplicito rimasto è la linguetta stessa.
   localStorage.clear()
   pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {})
   historyBackSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {})

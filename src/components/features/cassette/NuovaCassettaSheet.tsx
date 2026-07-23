@@ -34,7 +34,11 @@ export function NuovaCassettaSheet(props: {
   aperto: boolean
   onChiudi: () => void
   prossimoNome: string
-  onCreata: () => void
+  /** Review FIX-E (Important) — porta con sé la cassetta APPENA creata (corpo 201 della RPC,
+   *  `cassetta_crea_atomica`) così chi monta questo sheet può rifletterla subito sul muro senza
+   *  attendere un refresh (`PareteClient`, in embedded). Un corpo malformato/assente resta
+   *  possibile (difensivo, come altrove in questo file) — `undefined` = nessun dato da riflettere. */
+  onCreata: (cassetta?: { id: string; nome: string; colore: string; posizione: number }) => void
 }) {
   const { aperto, onChiudi, prossimoNome, onCreata } = props
 
@@ -73,9 +77,16 @@ export function NuovaCassettaSheet(props: {
       // Ramo di successo ESPLICITO e unico (constraint 7): solo 201 crea. Ogni altro esito è un
       // errore, mai un successo implicito.
       if (res.status === 201) {
+        // Review FIX-E (Important) — il corpo 201 porta la cassetta vera (`{cassetta: {...}}`,
+        // v. `POST /api/cassette`): la si passa a `onCreata` per il riflesso ottimistico. `.catch`
+        // difensivo come nel resto del file — un corpo illeggibile non deve far esplodere il
+        // ramo di successo, semplicemente non porta dati da riflettere.
+        const dati = (await res.json().catch(() => ({}))) as {
+          cassetta?: { id: string; nome: string; colore: string; posizione: number }
+        }
         suona('tap')
         vibra('light')
-        onCreata()
+        onCreata(dati.cassetta)
         return
       }
       if (res.status === 409) {

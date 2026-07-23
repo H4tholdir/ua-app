@@ -36,6 +36,15 @@
 // `deriveParete`, qui si ricalcola l'array spostando di una posizione e si POSTa la lista intera.
 // Per questo `CassettaSheet` riceve un callback `onSposta(direzione)` invece dell'ordine: i ▲▼ si
 // rendono là, la lista si compone qui (unico posto che possiede `parete`).
+//
+// Riflesso ottimistico (review FIX-E, Important — v. commento su `pareteVista` più sotto):
+// `onCreata` (creazione) e `onCambiata` (rinomina/colore) NON sono più lo stesso `dopoCambio` —
+// la creazione porta con sé la cassetta nuova (corpo 201 della RPC) e diventa `dopoCreata`, che
+// alimenta `extra`; rinomina/colore portano il valore SOTTOMESSO (non una rilettura server) e
+// alimentano `overrides`. Il ▲▼ (`riordina`) alimenta `ordineManuale`, con lo stesso contratto
+// ottimistico del drop del drag (`useDragRiordino`): si applica SUBITO, resta se la POST riesce,
+// si annulla se fallisce. Tutti e tre vivono SOLO qui, mai nei sheet: quelli restano stateless
+// sul "cosa è successo", non sul "cosa mostrare ora".
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
@@ -153,6 +162,47 @@ export function PareteClient(props: {
   useEffect(() => {
     sospendiRefreshRef.current = sospendiRefresh
   })
+  // Riflesso ottimistico in embedded (review FIX-E, Important) — `parete` è un prop SERVER, mai
+  // mutato: E4 (D5b/D8) gated OGNI `router.refresh()` del percorso parete per non far sparire il
+  // pager sotto un refresh silenzioso, ma questo lasciava TRE percorsi di mutazione senza alcun
+  // riflesso finché non arrivava un vero caricamento della route — creazione, rinomina/colore, ▲▼
+  // restavano stantii in embedded. Overlay MINIMO sopra il prop, non un secondo stato di verità:
+  // `overrides` (patch nome/colore per id), `extra` (cassette create non ancora nel prop) e
+  // `ordineManuale` (▲▼ ottimistico, stesso ruolo di `ordineIds` nel drag — v. `useDragRiordino`).
+  // Reset in render-phase quando l'IDENTITÀ del prop cambia (pattern di `pareteRif` nell'hook del
+  // drag): è il MOMENTO in cui arriva un dato vero dal server (standalone dopo il refresh, o
+  // embedded al prossimo mount reale della route) — il server vince SEMPRE, l'overlay non deve mai
+  // combattere un dato fresco.
+  const [pareteBase, setPareteBase] = useState(parete)
+  const [extra, setExtra] = useState<CassettaParete[]>([])
+  const [overrides, setOverrides] = useState<Record<string, { nome?: string; colore?: string }>>({})
+  const [ordineManuale, setOrdineManuale] = useState<string[] | null>(null)
+  if (pareteBase !== parete) {
+    setPareteBase(parete)
+    setExtra([])
+    setOverrides({})
+    setOrdineManuale(null)
+  }
+
+  // La parete "vista": prop + overlay, nell'ordine giusto. `ordineManuale` (quando presente)
+  // comanda l'ordine; le cassette non elencate in esso (una `extra` appena creata dopo un ▲▼, per
+  // esempio) restano in coda — non spariscono mai dalla vista. Questo È l'unico posto che compone
+  // l'overlay: ogni calcolo a valle (ricerca, riordino, sheet, drag) lavora su questo derivato, mai
+  // sul prop nudo — così ▲▼ e ricerca restano coerenti fra loro (niente doppia fonte di ordine).
+  const pareteVista = useMemo(() => {
+    const conPatch = parete.map((c) => {
+      const patch = overrides[c.id]
+      return patch ? { ...c, ...patch } : c
+    })
+    const base = extra.length ? [...conPatch, ...extra] : conPatch
+    if (!ordineManuale) return base
+    const perIdBase = new Map(base.map((c) => [c.id, c]))
+    const ordinata = ordineManuale.map((id) => perIdBase.get(id)).filter((c): c is CassettaParete => !!c)
+    const idsOrdinati = new Set(ordineManuale)
+    const fuoriOrdine = base.filter((c) => !idsOrdinati.has(c.id))
+    return [...ordinata, ...fuoriOrdine]
+  }, [parete, overrides, extra, ordineManuale])
+
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
   const inputCerca = useRef<HTMLInputElement>(null)
@@ -175,13 +225,15 @@ export function PareteClient(props: {
   // fuori dalla vista vs tutte normali).
   const cercato = queryFiltro.trim()
   const attiva = cercato.length > 0
-  const accesi = useMemo(() => filtraCassette(parete, queryFiltro), [parete, queryFiltro])
+  const accesi = useMemo(() => filtraCassette(pareteVista, queryFiltro), [pareteVista, queryFiltro])
 
   // «Filtra e risali» (ratifica 22/07): le match risalgono in testa nell'ordine relativo di
   // parete, le altre NON si rendono. A riposo (ricerca spenta) l'ordine è quello del muro.
+  // `pareteVista` (non il prop nudo): l'overlay ottimistico (create/rinomina/colore/▲▼, v. sopra)
+  // partecipa alla ricerca e all'ordine esattamente come farebbe un dato vero del server.
   const visibili = useMemo(
-    () => (attiva ? parete.filter((c) => accesi.has(c.id)) : parete),
-    [attiva, parete, accesi],
+    () => (attiva ? pareteVista.filter((c) => accesi.has(c.id)) : pareteVista),
+    [attiva, pareteVista, accesi],
   )
 
   // QA device (verbale 25/07, fix-list D5b/D8) — `rileggiParete()`: il punto che chiama
@@ -213,14 +265,14 @@ export function PareteClient(props: {
     }
   }, [router])
 
-  const prossimoNome = useMemo(() => prossimoNomeSerieC(parete), [parete])
-  const libere = useMemo(() => parete.filter((c) => !c.lavoro), [parete])
+  const prossimoNome = useMemo(() => prossimoNomeSerieC(pareteVista), [pareteVista])
+  const libere = useMemo(() => pareteVista.filter((c) => !c.lavoro), [pareteVista])
 
   // La cassetta dello sheet si RISOLVE dalla parete corrente, non si copia nell'intento: dopo un
   // `router.refresh()` un id sparito (cassetta buttata via altrove) dà `null` e lo sheet non si
   // monta vuoto — `aperto` lo segue.
-  const cassettaAperta = sheet?.tipo === 'cassetta' ? (parete.find((c) => c.id === sheet.id) ?? null) : null
-  const postoAperta = cassettaAperta ? parete.findIndex((c) => c.id === cassettaAperta.id) + 1 : 0
+  const cassettaAperta = sheet?.tipo === 'cassetta' ? (pareteVista.find((c) => c.id === sheet.id) ?? null) : null
+  const postoAperta = cassettaAperta ? pareteVista.findIndex((c) => c.id === cassettaAperta.id) + 1 : 0
 
   function chiudiSheet() {
     setSheet(null)
@@ -229,7 +281,44 @@ export function PareteClient(props: {
   // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato
   // locale — ECCETTO in embedded (`sospendiRefresh`, v. `rileggiParete` sopra), dove si tiene lo
   // stato ottimistico invece di far sparire il pager sotto una lettura server silenziosa.
-  function dopoCambio() {
+  //
+  // Review FIX-E, Important — `patch` è ciò che rinomina/colore hanno GIÀ in mano (il valore
+  // SOTTOMESSO, non una rilettura dal server: `CassettaSheet` lo sa perché è lui che l'ha appena
+  // spedito nella PATCH riuscita). Applicato SOLO qui, mai nei rami di errore di `CassettaSheet` —
+  // un fallimento non chiama mai `onCambiata`, quindi l'overlay non si applica mai su un dato che
+  // il server ha rifiutato. Il merge (non la sostituzione) sull'override esistente tiene un
+  // rinomina e una ricolorazione fatte in sequenza sulla stessa cassetta senza perdersi a vicenda.
+  function dopoCambio(patch?: { id: string; nome?: string; colore?: string }) {
+    if (patch) {
+      setOverrides((prev) => ({
+        ...prev,
+        [patch.id]: {
+          ...prev[patch.id],
+          ...(patch.nome !== undefined ? { nome: patch.nome } : {}),
+          ...(patch.colore !== undefined ? { colore: patch.colore } : {}),
+        },
+      }))
+    }
+    setSheet(null)
+    rileggiParete()
+  }
+
+  // Review FIX-E, Important — la creazione riuscita arriva da `NuovaCassettaSheet` col corpo 201
+  // della RPC (`{id, nome, colore, posizione}`, v. `POST /api/cassette`). Guardia sui campi
+  // (stringhe non vuote): un corpo malformato/inatteso non deve montare una `Cassetta` con prop
+  // `undefined` — meglio nessun riflesso ottimistico che uno rotto; il refresh (standalone) o il
+  // prossimo caricamento vero (embedded) restano la rete di sicurezza.
+  function dopoCreata(cassetta?: { id?: string; nome?: string; colore?: string; posizione?: number }) {
+    if (cassetta && typeof cassetta.id === 'string' && cassetta.id && typeof cassetta.nome === 'string' && typeof cassetta.colore === 'string') {
+      const nuova: CassettaParete = {
+        id: cassetta.id,
+        nome: cassetta.nome,
+        colore: cassetta.colore,
+        posizione: cassetta.posizione ?? pareteVista.length,
+        lavoro: null,
+      }
+      setExtra((prev) => [...prev, nuova])
+    }
     setSheet(null)
     rileggiParete()
   }
@@ -253,18 +342,28 @@ export function PareteClient(props: {
   }
 
   /** Riordino ▲▼ (§5.4): swap di UNA posizione. Torna `true` SOLO se il muro si è mosso davvero:
-   *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque,
-   *  anche quando la POST fallisce — la parete torna a dire la verità del server invece di restare
-   *  sull'ordine che l'utente credeva di aver dato (ECCETTO in embedded, `rileggiParete` sopra). */
+   *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n».
+   *
+   *  Review FIX-E, Important — `ordineManuale` si imposta OTTIMISTICAMENTE prima di attendere la
+   *  POST (mirror del contratto del drag, `useDragRiordino`: lì `ordineIds` si imposta al lift,
+   *  qui al click ▲▼): il muro si sposta subito, la conferma del server arriva dopo. Fallita la
+   *  POST → rollback immediato (`setOrdineManuale(null)`, stessa mossa del drop fallito del drag).
+   *  Riuscita → resta (non lo si azzera qui): sparisce da solo quando arriva un `parete` vero
+   *  (standalone dopo il refresh; embedded al prossimo caricamento reale, v. `pareteBase` sopra).
+   *  Il refresh gira comunque, anche quando la POST fallisce — in standalone la parete torna a
+   *  dire la verità del server (ECCETTO in embedded, `rileggiParete` sopra, dove il rollback ottico
+   *  è l'unica correzione finché non arriva un caricamento vero). */
   async function riordina(id: string, direzione: 'su' | 'giu'): Promise<boolean> {
-    const indice = parete.findIndex((c) => c.id === id)
+    const indice = pareteVista.findIndex((c) => c.id === id)
     if (indice < 0) return false
     const destinazione = direzione === 'su' ? indice - 1 : indice + 1
-    if (destinazione < 0 || destinazione >= parete.length) return false
-    const ordine = parete.map((c) => c.id)
-    ordine[indice] = parete[destinazione].id
-    ordine[destinazione] = parete[indice].id
+    if (destinazione < 0 || destinazione >= pareteVista.length) return false
+    const ordine = pareteVista.map((c) => c.id)
+    ordine[indice] = pareteVista[destinazione].id
+    ordine[destinazione] = pareteVista[indice].id
+    setOrdineManuale(ordine)
     const ok = await inviaOrdine(ordine)
+    if (!ok) setOrdineManuale(null)
     rileggiParete()
     return ok
   }
@@ -297,7 +396,7 @@ export function PareteClient(props: {
   // Il drag NON parte durante una ricerca attiva (parete filtrata = ordine parziale) né con meno di
   // 2 cassette (§5). Fuori da queste condizioni le cassette NON ricevono `onSollevata`: il gesto
   // ricade sul long-press legacy (sheet) — e i ▲▼ dello sheet restano l'unica via di riordino.
-  const dragAbilitato = !attiva && parete.length >= 2
+  const dragAbilitato = !attiva && pareteVista.length >= 2
   const gridRef = useRef<HTMLDivElement>(null)
   // Destrutturato al volo (non `const drag = …`): usare un membro in `ref={}` farebbe inferire
   // all'intero oggetto natura di ref al React Compiler, che poi bollerebbe gli altri accessi come
@@ -310,7 +409,7 @@ export function PareteClient(props: {
     ghostMotion,
     annuncio: annuncioDrag,
   } = useDragRiordino({
-    parete,
+    parete: pareteVista,
     disabilitato: !dragAbilitato,
     gridRef,
     onSheet: (id) => setSheet({ tipo: 'cassetta', id }),
@@ -320,11 +419,13 @@ export function PareteClient(props: {
   })
 
   // Ordine di render: durante il drag comanda l'ordine OTTIMISTICO (le sorelle FLIPpano); a riposo
-  // è `visibili` — la parete intera quando la ricerca è spenta, solo le match (risalite in testa
-  // nell'ordine relativo) quando è accesa. Il drag non convive con la ricerca (§2.4): quando
-  // `ordineDrag` è valorizzato, la ricerca è per forza spenta e `visibili === parete`. La mappa
-  // id→cassetta risolve ogni id all'ultimo dato conosciuto.
-  const perId = useMemo(() => new Map(parete.map((c) => [c.id, c])), [parete])
+  // è `visibili` — la parete intera (`pareteVista`, overlay incluso) quando la ricerca è spenta,
+  // solo le match (risalite in testa nell'ordine relativo) quando è accesa. Il drag non convive
+  // con la ricerca (§2.4): quando `ordineDrag` è valorizzato, la ricerca è per forza spenta e
+  // `visibili === pareteVista`. Il ▲▼ (`ordineManuale`) NON compare qui: è già dentro `pareteVista`
+  // (v. sopra) — un solo posto compone l'ordine, mai due fonti che potrebbero disaccordarsi. La
+  // mappa id→cassetta risolve ogni id all'ultimo dato conosciuto.
+  const perId = useMemo(() => new Map(pareteVista.map((c) => [c.id, c])), [pareteVista])
   const cassetteRender = (ordineDrag ?? visibili.map((c) => c.id))
     .map((id) => perId.get(id))
     .filter((c): c is CassettaParete => !!c)
@@ -353,7 +454,7 @@ export function PareteClient(props: {
         <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
       </header>
 
-      {parete.length === 0 ? (
+      {pareteVista.length === 0 ? (
         <Vuoto
           glifo="🗄️"
           titolo="La tua parete è vuota"
@@ -538,13 +639,13 @@ export function PareteClient(props: {
         aperto={sheet?.tipo === 'nuova'}
         onChiudi={chiudiSheet}
         prossimoNome={prossimoNome}
-        onCreata={dopoCambio}
+        onCreata={dopoCreata}
       />
       <CassettaSheet
         cassetta={cassettaAperta}
         libere={libere}
         posto={postoAperta}
-        totale={parete.length}
+        totale={pareteVista.length}
         aperto={sheet?.tipo === 'cassetta' && !!cassettaAperta}
         onChiudi={chiudiSheet}
         onCambiata={dopoCambio}
