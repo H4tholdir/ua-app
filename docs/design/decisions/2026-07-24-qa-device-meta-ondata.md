@@ -69,3 +69,46 @@ Ri-collaudo device di Francesco sulla build corretta PRIMA di passare al Task 16
    muro è diverso dal fondo della pagina che la ospita: uniformare. Il tile «+ Nuova cassetta»
    tratteggiato non è leggibile sopra la maglia: dargli presenza (fondo velato/tratteggio e
    testo più marcati), senza perdere il linguaggio del tratteggio.
+
+## Ri-collaudo device #1 (25/07 sera, build post FIX-A/B/C @ 47b3311, Xiaomi Chrome, :3020)
+
+**Esiti sui 3 fix di FIX-C:**
+- **Suoni (punto 1): ⚠️ PARZIALE.** Appena entrati nella PWA i suoni NON si sentono (es. primo
+  tocco di un pulsante muto); dopo il primo gesto/navigazione i suoni funzionano tutti.
+  → Nuovo punto D1 (primo tocco muto).
+- **Tastiera/focus (punto 2): ✅ PASS.** La tastiera resta giù entrando nella stanza cassette.
+- **Back dalla scheda (punto 8): ✅ PASS.** Con login vero si torna alle cassette, non alla home.
+
+**Nuova fix-list ratificata da Francesco (ordine suo, con screenshot agli atti):**
+- **D1 — Primo tocco muto:** al primo ingresso il primo tocco non emette suono; i suoni partono
+  solo dai gesti successivi. Obiettivo: suono già dal primo tocco utile.
+- **D2 (a) — Pila «Appena arrivati» tagliata in home:** la card della pila è clippata
+  dall'elemento immediatamente sotto.
+- **D3 (b) — DECISIONE: eliminare i dot** indicatori di pagina, sia dalla home sia dalla
+  pagina delle cassette. (Supera parzialmente la voce «linguetta + puntini» dell'intervista
+  24/07: i puntini SPARISCONO, la linguetta resta.)
+- **D4 (c) — Linguetta «cassette» non vista:** l'invito laterale che segnala la pagina
+  swipabile non è apparso durante il collaudo. Capire perché (apprendimento localStorage?
+  soppressione?) e garantirne la visibilità per un utente che non ha ancora appreso il gesto.
+- **D5 (d) — Pagina cassette «compressa» dopo lo swipe dalla home:** cassette schiacciate ai
+  lati, scrollbar a sinistra, dot in basso. Al PRIMO drag di una cassetta il layout si
+  sistema da solo (si allarga, scrollbar e dot spariscono). Da riprodurre e correggere:
+  l'assetto giusto deve esserci SUBITO dopo lo swipe.
+- **D6 (e) — Griglia «chiusa» anche a sinistra:** nella schermata cassette corretta la rete
+  risulta rifilata/chiusa sul bordo destro; replicare la stessa chiusura sul bordo sinistro.
+- **D7 (f) — Ricerca «C5» restituisce 2 cassette (C5 e C12):** capire perché e correggere
+  (attese: solo C5, salvo match legittimo su contenuto — da spiegare a schermo se è questo).
+- **D8 (g) — Back incoerente dopo il «ripristino» del layout:** nello stato post-drag di D5,
+  il primo back non fa nulla, il secondo apre il wizard nuovo lavoro, il terzo porta alla
+  home. Catena history da sanare (correlato a D5).
+- **D9 (h) — Sheet «Metti un lavoro»:** lo scroll della lista lavori non funziona
+  correttamente; la lista va RIVISTA per identificare meglio il lavoro (design da proporre a
+  Francesco con varianti); rivedere anche il comportamento del focus dopo l'inserimento di
+  valori nella barra di ricerca dello sheet.
+- **D10 (i) — Drag sfalsato:** durante il drag alcune cassette risultano sfalsate — l'ombra
+  (anteprima/ghost) non segue il dito sul punto di appoggio. Negli screenshot: C19 doppia
+  (tile trascinato + ghost fuori posizione), C3 ghost traslato.
+
+**Decisioni ancora aperte (non toccate dal ri-collaudo):** piede P1/P2/P3 (D3 lo cambia:
+senza dot il piede si compatta da sé — da rivalutare a valle), traccia 220 a vista, overflow
+residuo 50px@660, forma «solo parete» senza piede.
