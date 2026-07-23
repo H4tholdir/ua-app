@@ -65,3 +65,7 @@ Ri-collaudo device di Francesco sulla build corretta PRIMA di passare al Task 16
    Lo scroll interno resta solo come rete di sicurezza invisibile (scrollbar nascosta).
 3. **Inviti in home: linguetta + puntini** (entrambi restano).
 4. **Piede**: compatto in home; ASSENTE nel lato cassette (niente TastoPiù/etichetta lì).
+5. **(nuovi, 24/07 sera, con screenshot)** Il colore di sfondo sotto/attorno alla griglia del
+   muro è diverso dal fondo della pagina che la ospita: uniformare. Il tile «+ Nuova cassetta»
+   tratteggiato non è leggibile sopra la maglia: dargli presenza (fondo velato/tratteggio e
+   testo più marcati), senza perdere il linguaggio del tratteggio.
