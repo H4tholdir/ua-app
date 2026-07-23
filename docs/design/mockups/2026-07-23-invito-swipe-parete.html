@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invito allo swipe — 4 varianti · UÀ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Token v3 (da src/design-system/v3/tokens.ts) ─────────────────────── */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF; --purple:#7C3F9C;
+  --red-tint:#FBEDEC; --blue-tint:#EBF1FA;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --filo:#FDFCF9; --filo-ombra:rgba(50,40,25,.14);
+}
+.notte{
+  --bg:#171411; --bg-deep:#131009; --card:#211D18;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF; --purple:#B98BE8;
+  --red-tint:rgba(255,59,68,.12); --blue-tint:rgba(91,155,255,.12);
+  --sh-card:none;
+  --filo:#3A342B; --filo-ombra:rgba(0,0,0,.5);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:28px 20px 60px;transition:background .3s}
+h1{font-size:27px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px}
+.sotto{color:var(--muted);font-size:15.5px;max-width:760px;margin-bottom:8px}
+.toggle{position:fixed;top:16px;right:16px;z-index:50;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font:600 14px 'Plus Jakarta Sans';cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.griglia{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:36px 28px;margin-top:28px;max-width:1500px}
+.variante h2{font-size:21px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px}
+.variante h2 .tag{display:inline-block;background:var(--red);color:#fff;border-radius:999px;font-size:12.5px;padding:2px 10px;vertical-align:3px;margin-right:8px;letter-spacing:.05em}
+.variante p{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:14px;min-height:84px}
+
+/* ── Cornice telefono ──────────────────────────────────────────────────── */
+.telefono{width:330px;height:640px;border-radius:38px;border:8px solid #2A2620;overflow:hidden;position:relative;background:var(--bg);box-shadow:0 24px 50px -20px rgba(0,0,0,.45);margin:0 auto}
+.notte .telefono{border-color:#000}
+
+/* ── Home replica (semplificata ma fedele) ─────────────────────────────── */
+.pista{display:flex;width:200%;height:100%}
+.stanza-pile{width:50%;height:100%;padding:22px 18px 16px;display:flex;flex-direction:column;flex-shrink:0}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+.saluto{font-size:25px;font-weight:800;letter-spacing:-0.02em;margin:2px 0 12px}
+.striscia{background:var(--card);border-radius:18px;box-shadow:var(--sh-card);border:1px solid var(--line);padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:14px}
+.striscia b{color:var(--ink);font-weight:600}
+.pile{display:flex;flex-direction:column;gap:10px;flex:1}
+.pila{background:var(--card);border-radius:22px;box-shadow:var(--sh-card);border:1px solid var(--line);padding:13px 16px;display:flex;align-items:center;justify-content:space-between}
+.pila .nome{font-size:15.5px;font-weight:600}
+.pila .conta{font-size:25px;font-weight:800;letter-spacing:-0.02em}
+.c-rossa{color:var(--red)}.c-ambra{color:var(--amber)}.c-viola{color:var(--purple)}.c-blu{color:var(--blue)}
+.piede{display:flex;align-items:center;justify-content:center;padding-top:12px;position:relative}
+.dots{position:absolute;left:0;right:0;top:-2px;display:flex;gap:6px;justify-content:center}
+.dot{width:6px;height:6px;border-radius:99px;background:var(--faint);opacity:.4}
+.dot.on{opacity:1;background:var(--ink)}
+.tasto-piu{width:64px;height:64px;border-radius:99px;background:radial-gradient(circle at 50% 30%,#FFF, #F5F0E6 75%,#EBE4D4);box-shadow:0 10px 20px rgba(52,42,26,.2), inset 0 2px 2px #FFF;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:400;color:var(--red)}
+.notte .tasto-piu{background:radial-gradient(circle at 50% 28%,#37312A,#2E2921 55%,#252017);box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 1.5px 1px rgba(255,255,255,.08)}
+
+/* ── Bordo di parete (la fetta che si vede) ────────────────────────────── */
+.fetta-parete{width:50%;height:100%;flex-shrink:0;background:var(--bg-deep);position:relative;
+  background-image:
+    repeating-linear-gradient(0deg, var(--filo) 0 2px, transparent 2px 26px),
+    repeating-linear-gradient(90deg, var(--filo) 0 2px, transparent 2px 26px);
+  background-position:12px 30px;
+  box-shadow:inset 6px 0 12px -6px rgba(0,0,0,.25)}
+.cass{position:absolute;border-radius:10px 0 0 10px;box-shadow:-6px 8px 14px -6px var(--filo-ombra)}
+.cass::before{content:'';position:absolute;top:-14px;left:10px;width:22px;height:14px;border-radius:5px 5px 0 0;background:inherit;filter:brightness(.92)}
+.cass::after{content:'';position:absolute;top:-9px;left:17px;width:8px;height:5px;border-radius:3px;background:#C9C4BC;box-shadow:0 1px 1px rgba(0,0,0,.3)}
+.cass.rossa{background:linear-gradient(180deg,#E8323B,#C00010);width:84px;height:56px}
+.cass.blu2{background:linear-gradient(180deg,#3E7BD6,#1D5FBF);width:84px;height:56px}
+
+/* ── Variante A — il bordo che sbircia (peek permanente) ───────────────── */
+.vA .pista{transform:translateX(0)}
+.vA .stanza-pile{width:calc(50% - 0px)}
+.vA .fetta-parete{margin-left:-34px; clip-path:inset(0 0 0 34px)}
+/* trucco: la stanza pile si restringe e la parete spunta di 34px */
+.vA .stanza-pile{padding-right:52px}
+.vA .pista{width:200%;margin-left:0;transform:translateX(0)}
+.vA .fetta-parete{position:absolute;right:0;top:0;width:34px;clip-path:none;margin:0;
+  background-position:6px 30px}
+.vA .cass.rossa{right:0;top:130px;width:26px;border-radius:8px 0 0 8px}
+.vA .cass.rossa::before,.vA .cass.rossa::after{display:none}
+.vA .cass.blu2{right:0;top:320px;width:26px;border-radius:8px 0 0 8px}
+.vA .cass.blu2::before,.vA .cass.blu2::after{display:none}
+
+/* ── Variante B — il rimbalzo dopo fermo ───────────────────────────────── */
+.vB .pista,.vC .pista,.vD .pista{width:100%}
+.vB .pista{animation:sbircia 6s cubic-bezier(.34,1.4,.4,1) infinite}
+@keyframes sbircia{
+  0%,78%{transform:translateX(0)}
+  84%{transform:translateX(-46px)}
+  90%{transform:translateX(0)}
+  94%{transform:translateX(-10px)}
+  100%{transform:translateX(0)}
+}
+.vB .fetta-parete{width:70px;position:absolute;right:-70px;top:0;height:100%}
+.vB .cass.rossa{right:8px;top:130px;width:48px}
+.vB .cass.blu2{right:8px;top:320px;width:48px}
+
+/* ── Variante C — la linguetta «Le cassette» ───────────────────────────── */
+.vC .linguetta{position:absolute;right:0;top:46%;transform:translateY(-50%);z-index:5;
+  background:var(--card);border:1px solid var(--line);border-right:none;
+  border-radius:16px 0 0 16px;box-shadow:-8px 6px 18px -8px rgba(50,40,25,.35);
+  padding:14px 8px 14px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  animation:pulsa 3s ease-in-out infinite}
+.notte .vC .linguetta{box-shadow:-8px 6px 18px -8px rgba(0,0,0,.6)}
+.vC .linguetta .fre{font-size:15px;color:var(--red);font-weight:800}
+.vC .linguetta .eti{writing-mode:vertical-rl;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.vC .linguetta .mini-rete{width:16px;height:22px;background:
+  repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 6px),
+  repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 6px);
+  opacity:.5;border-radius:2px}
+@keyframes pulsa{0%,100%{transform:translateY(-50%) translateX(0)}50%{transform:translateY(-50%) translateX(-5px)}}
+
+/* ── Variante D — la guida esplicita (prime volte) ─────────────────────── */
+.vD .velo{position:absolute;inset:0;background:rgba(29,25,19,.35);z-index:10;display:flex;align-items:center;justify-content:center}
+.vD .guida{background:var(--card);border-radius:24px;padding:24px 22px;width:76%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.35)}
+.vD .guida .mano{font-size:42px;display:inline-block;animation:scorri 2.2s ease-in-out infinite}
+@keyframes scorri{0%,15%{transform:translateX(26px);opacity:0}30%{opacity:1}70%{transform:translateX(-26px);opacity:1}85%,100%{transform:translateX(-30px);opacity:0}}
+.vD .guida .testo{font-size:17px;font-weight:700;letter-spacing:-0.01em;margin-top:8px}
+.vD .guida .nota{font-size:13px;color:var(--muted);margin-top:6px}
+.vD .guida .ok{margin-top:16px;background:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);color:#fff;border:none;border-radius:20px;padding:12px 28px;font:700 15.5px 'Plus Jakarta Sans';box-shadow:0 5px 0 rgba(50,40,25,.12)}
+
+.legenda{margin-top:44px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px 26px;max-width:760px;box-shadow:var(--sh-card)}
+.legenda h3{font-size:17px;font-weight:800;margin-bottom:8px}
+.legenda p{font-size:14px;color:var(--muted);line-height:1.55}
+</style>
+</head>
+<body>
+<button class="toggle" onclick="document.body.classList.toggle('notte')">☀ / ☾ Cambia tema</button>
+<h1>L'invito allo swipe — 4 strade</h1>
+<p class="sotto">La home deve dire da sola, senza equivoci, che accanto c'è la parete delle cassette.
+Ogni telefono qui sotto è animato: guardalo qualche secondo. Le varianti si possono anche combinare.</p>
+
+<div class="griglia">
+
+  <!-- ═══ VARIANTE A ═══ -->
+  <div class="variante" id="var-a">
+    <h2><span class="tag">A</span>Il bordo che sbircia</h2>
+    <p>La parete <b>si vede sempre</b>: una fetta di rete metallica con i bordi delle cassette colorate
+    spunta fissa sul lato destro. Non è un simbolo: è il muro vero che continua oltre lo schermo.
+    Chiunque capisce che lì c'è dell'altro e che si può tirare.</p>
+    <div class="telefono vA">
+      <div class="pista">
+        <div class="stanza-pile">
+          <div class="eyebrow">Martedì 23 luglio</div>
+          <div class="saluto">Buon pomeriggio,<br>Francesco</div>
+          <div class="striscia">🔵 <b>UÀ ha liberato C12</b> dopo la consegna</div>
+          <div class="pile">
+            <div class="pila"><span class="nome">Da consegnare</span><span class="conta c-rossa">3</span></div>
+            <div class="pila"><span class="nome">Sul banco</span><span class="conta c-ambra">5</span></div>
+            <div class="pila"><span class="nome">Da rifare / In prova</span><span class="conta c-viola">1</span></div>
+            <div class="pila"><span class="nome">Appena arrivati</span><span class="conta c-blu">2</span></div>
+          </div>
+          <div class="piede"><div class="dots"><span class="dot on"></span><span class="dot"></span></div><div class="tasto-piu">+</div></div>
+        </div>
+      </div>
+      <div class="fetta-parete"><div class="cass rossa"></div><div class="cass blu2"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ VARIANTE B ═══ -->
+  <div class="variante" id="var-b">
+    <h2><span class="tag">B</span>Il rimbalzo dopo fermo</h2>
+    <p>La home resta <b>pulita</b>. Ma se ti fermi qualche secondo, la pagina fa capolino da sola:
+    scivola di lato, mostra la rete e le cassette, e torna a posto con un molleggio.
+    È l'app che ti fa vedere il gesto giusto, come un invito.</p>
+    <div class="telefono vB">
+      <div class="pista">
+        <div class="stanza-pile" style="width:100%">
+          <div class="eyebrow">Martedì 23 luglio</div>
+          <div class="saluto">Buon pomeriggio,<br>Francesco</div>
+          <div class="striscia">🔵 <b>UÀ ha liberato C12</b> dopo la consegna</div>
+          <div class="pile">
+            <div class="pila"><span class="nome">Da consegnare</span><span class="conta c-rossa">3</span></div>
+            <div class="pila"><span class="nome">Sul banco</span><span class="conta c-ambra">5</span></div>
+            <div class="pila"><span class="nome">Da rifare / In prova</span><span class="conta c-viola">1</span></div>
+            <div class="pila"><span class="nome">Appena arrivati</span><span class="conta c-blu">2</span></div>
+          </div>
+          <div class="piede"><div class="dots"><span class="dot on"></span><span class="dot"></span></div><div class="tasto-piu">+</div></div>
+          <div class="fetta-parete"><div class="cass rossa"></div><div class="cass blu2"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VARIANTE C ═══ -->
+  <div class="variante" id="var-c">
+    <h2><span class="tag">C</span>La linguetta «Le cassette»</h2>
+    <p>Una <b>maniglia con la scritta</b>, sempre appesa al bordo destro: dentro c'è una mini-rete
+    e la freccia rossa. Si legge, si tocca, si tira: tre modi per arrivare alla parete.
+    È la strada più esplicita — nessuna interpretazione richiesta.</p>
+    <div class="telefono vC">
+      <div class="pista">
+        <div class="stanza-pile" style="width:100%">
+          <div class="eyebrow">Martedì 23 luglio</div>
+          <div class="saluto">Buon pomeriggio,<br>Francesco</div>
+          <div class="striscia">🔵 <b>UÀ ha liberato C12</b> dopo la consegna</div>
+          <div class="pile">
+            <div class="pila"><span class="nome">Da consegnare</span><span class="conta c-rossa">3</span></div>
+            <div class="pila"><span class="nome">Sul banco</span><span class="conta c-ambra">5</span></div>
+            <div class="pila"><span class="nome">Da rifare / In prova</span><span class="conta c-viola">1</span></div>
+            <div class="pila"><span class="nome">Appena arrivati</span><span class="conta c-blu">2</span></div>
+          </div>
+          <div class="piede"><div class="dots"><span class="dot on"></span><span class="dot"></span></div><div class="tasto-piu">+</div></div>
+        </div>
+      </div>
+      <div class="linguetta"><span class="fre">‹</span><span class="mini-rete"></span><span class="eti">Le cassette</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ VARIANTE D ═══ -->
+  <div class="variante" id="var-d">
+    <h2><span class="tag">D</span>La guida esplicita, le prime volte</h2>
+    <p>Le <b>prime tre aperture</b>, l'app lo dice e basta: una mano che scorre e la frase
+    «Scorri per vedere la parete». Dopo che l'hai fatto tre volte, la guida sparisce per sempre
+    e resta la home pulita coi puntini. Si può abbinare a qualunque altra variante.</p>
+    <div class="telefono vD">
+      <div class="pista">
+        <div class="stanza-pile" style="width:100%">
+          <div class="eyebrow">Martedì 23 luglio</div>
+          <div class="saluto">Buon pomeriggio,<br>Francesco</div>
+          <div class="striscia">🔵 <b>UÀ ha liberato C12</b> dopo la consegna</div>
+          <div class="pile">
+            <div class="pila"><span class="nome">Da consegnare</span><span class="conta c-rossa">3</span></div>
+            <div class="pila"><span class="nome">Sul banco</span><span class="conta c-ambra">5</span></div>
+            <div class="pila"><span class="nome">Da rifare / In prova</span><span class="conta c-viola">1</span></div>
+            <div class="pila"><span class="nome">Appena arrivati</span><span class="conta c-blu">2</span></div>
+          </div>
+          <div class="piede"><div class="dots"><span class="dot on"></span><span class="dot"></span></div><div class="tasto-piu">+</div></div>
+        </div>
+      </div>
+      <div class="velo">
+        <div class="guida">
+          <span class="mano">👈</span>
+          <div class="testo">Scorri per vedere<br>la parete delle cassette</div>
+          <div class="nota">Le tue cassette, come sul muro del laboratorio</div>
+          <button class="ok">Ho capito</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legenda">
+  <h3>Come leggerle</h3>
+  <p><b>A</b> è sempre presente ma toglie ~34px alla home · <b>B</b> lascia la home intera e si fa
+  notare a tempo (rispetta chi vuole meno movimento: con «riduci animazioni» attivo si ferma) ·
+  <b>C</b> è la più esplicita e non si muove quasi · <b>D</b> insegna il gesto una volta per tutte
+  e poi si leva di torno. Combinazioni sensate: <b>D + B</b> (impari il gesto, poi il rimbalzo te
+  lo ricorda ogni tanto) oppure <b>D + A</b> (impari, e il bordo resta come promemoria fisso).</p>
+</div>
+</body>
+</html>
