@@ -474,24 +474,60 @@
 [data-ds="v3"] .ds-parete-cerca input::placeholder { color: var(--faint); font-weight: 600; }
 [data-ds="v3"] .ds-parete-cerca:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-/* La parete: `--bg-deep` + la doppia griglia ripetuta — è il muro del laboratorio, non una
-   texture decorativa. Il ramo dark cambia SOLO il colore delle fughe (chiare invece che scure). */
+/* La parete: la maglia metallica disegnata (Task 8, «la rete disegnata» — mockup ratificato
+   docs/design/mockups/2026-07-24-rete-gancetto-targa.html rev.3, verbale
+   docs/design/decisions/2026-07-24-rete-gancetto-targa.md §Vincoli Task 8-10). Sostituisce la
+   doppia griglia piatta precedente: il muro è il laboratorio, non una texture decorativa.
+
+   GRIGLIA FISSA + SNAP — MECCANICA (COPIATA VERBATIM dal blocco CSS del mockup; i px sono i
+   valori RATIFICATI 24/07, non quelli ipotizzati dal piano):
+   · Il MURO disegna una maglia quadrata continua a passo fisso --passo-maglia (fili
+     orizzontali E verticali), SEMPRE, dietro tutto — indipendente dalle cassette.
+   · Le RIGHE di `.ds-parete-grid` hanno altezza (--track) quantizzata: track = 4 · passo-maglia
+     (qui 44 → 176px). `grid-auto-rows: var(--track); row-gap: 0;` + celle ancorate in alto
+     (`align-items: start`) — vedi regola sotto.
+   · Il gancio della cassetta sporge --hook-above (14px) sopra il bordo-alto del tile → quota di
+     morso hook_n = wall-pad-top − hook-above + n·track. Poiché track = 4·passo-maglia, PER
+     COSTRUZIONE hook_n ≡ wire-center (mod passo-maglia): il gancio di OGNI riga cade su un filo
+     vero, a qualsiasi larghezza di colonna (3/4/6) e qualsiasi contenuto (garanzia verificata
+     empiricamente nel mockup: scarto 0.0px).
+   · --wire-center = wall-pad-top − hook-above (24 − 14 = 10px): quota del primo filo
+     orizzontale — il ramo dark la usa in `background-position`; l'SVG light la incorpora già
+     nella propria geometria (pattern offset y=8.5).
+   ⚠️ ACCOPPIAMENTO: se cambia passo-maglia/hook-above, --track (calc automatico) resta multiplo
+   esatto del passo per costruzione; --wire-center va invece ricalcolato (qui è già una calc()
+   sugli stessi due ingredienti, quindi si aggiorna da sé).
+   ⚠️ LIMITE NOTO E ACCETTATO (rimando a QA Task 15/17, stessa categoria per entrambi i punti):
+   1) il pattern SVG light qui sotto ha la geometria HARDCODED al passo 44 (background-size
+      fisso `44px 44px`) — NON segue il clamp fluido di --passo-maglia nella shell (il verbale:
+      «il muro light usa il pattern a 44 fisso; la taratura fluida fine è demandata alla QA»).
+   2) --wall-pad-top è fissato a 24px per il calcolo di --wire-center, ma sotto
+      `.ds-parete-shell` il padding-top REALE resta quello della regola fluida preesistente
+      (riga ~530 qui sotto, `clamp(22px, 3.8cqw, 28px)`, decisione 23/07/2026 non toccata da
+      questo task): a larghezze intermedie della shell lo scarto gancio↔filo resta piccolo
+      (≤4px) ma non è mai perfettamente zero. Stesso bucket del punto 1, stesso rimando.
+   Dark: due repeating-linear-gradient piatti (nessun volume/ombra, legge v3) — verbatim dal
+   ramo `.notte` del mockup: filo `rgba(255,255,255,.07)`, spessore --wire-w (3px). */
 [data-ds="v3"] .ds-parete {
-  position: relative; border-radius: 18px; padding: 22px 16px 18px;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
-    repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
-    var(--bg-deep);
+  --passo-maglia: 44px; --track: calc(var(--passo-maglia) * 4); --hook-above: 14px;
+  --wall-pad-top: 24px; --wire-center: calc(var(--wall-pad-top) - var(--hook-above)); --wire-w: 3px;
+  position: relative; border-radius: 18px; padding: var(--wall-pad-top) 16px 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat: repeat; background-size: 44px 44px; background-color: var(--bg-deep);
 }
 [data-theme="dark"] [data-ds="v3"] .ds-parete {
-  background:
-    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
-    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
-    var(--bg-deep);
+  --filo-flat: rgba(255,255,255,.07);
+  background: repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), var(--bg-deep);
+  background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0, 0 0;
 }
 /* Colonne FISSE 3 / 4 / 6 (spec §5.4): l'ordine lineare è invariante — mai `auto-fit`, che
    cambierebbe il numero di colonne (e quindi la mappa mentale del muro) a ogni larghezza. */
 [data-ds="v3"] .ds-parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+/* Quantizzazione (Task 8, stessa fonte sopra): regola SEPARATA (stesso selettore, dichiarazioni
+   aggiuntive) per non toccare il testo della regola-guardia qui sopra. `row-gap: 0` sovrascrive
+   SOLO la componente riga dello shorthand `gap: 16px` (column-gap 16px resta invariato); vince
+   per ordine di sorgente a parità di specificità (0,1,0). */
+[data-ds="v3"] .ds-parete-grid { grid-auto-rows: var(--track); row-gap: 0; align-items: start; }
 @media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
 
@@ -513,6 +549,14 @@
    arriva l'ondata «Redesign parete/home» — che ha già in dote la direzione fluida. */
 [data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) clamp(18px, 3.4cqw, 24px); }
 [data-ds="v3"] .ds-parete-shell .ds-parete-grid { gap: clamp(16px, 3.6cqw, 26px); }
+/* Task 8 — passo fluido SOLO nel perimetro shell (riserva FE R1, stessa meccanica cqw del gap
+   qui sopra): --track (dichiarato una sola volta su .ds-parete base come
+   calc(var(--passo-maglia) * 4)) si ricalcola da sé per qualsiasi elemento sotto questo
+   perimetro, perché legge il --passo-maglia vincente per QUEL preciso elemento — non serve
+   ridichiararlo. Il `row-gap: 0` qui sotto vince sulla regola-guardia del gap fluido qui sopra
+   (stessa specificità 0,2,0, ordine di sorgente successivo): sovrascrive solo la componente riga. */
+[data-ds="v3"] .ds-parete-shell .ds-parete { --passo-maglia: clamp(40px, 10.2cqw, 50px); }
+[data-ds="v3"] .ds-parete-shell .ds-parete-grid { row-gap: 0; }
 
 [data-ds="v3"] .ds-tray-nuova {
   border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
@@ -674,6 +718,14 @@
   [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
   [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
   [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
+  /* Task 8 — il `gap: 12px` qui sopra riscrive anche row-gap: senza questa riga la
+     quantizzazione (row-gap:0 dichiarata sulla regola base .ds-parete-grid, specificità
+     0,1,0) perderebbe qui, dove `.ua-stanza-parete .ds-parete-grid` ha specificità 0,3,0
+     più alta. ⚠️ RISCHIO NOTO (da confermare in QA Task 9b/15/17): `grid-auto-rows: var(--track)`
+     (176px fisso, non scala col device-corto) può rendere il muro home più alto di quanto
+     tarato dal collaudo R3b compatto — qui si preserva SOLO l'aggancio riga↔filo, non si
+     ritara l'altezza complessiva del R3b, fuori perimetro di questo task. */
+  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { row-gap: 0; }
 }
 
 /* Task 15 — cap CSS-driven + tile «Tutte le cassette ›». La cella avvolge la Cassetta (come

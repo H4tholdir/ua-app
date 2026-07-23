@@ -43,7 +43,9 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
       if (/cqw/.test(m[2])) expect(m[1]).toContain('.ds-parete-shell')
     }
     expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete-grid \{ display: grid; grid-template-columns: repeat\(3, 1fr\); gap: 16px; \}/)
-    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*position: relative; border-radius: 18px; padding: 22px 16px 18px;/)
+    // Task 8 (adeguamento del testo guardato, NON abrogazione — le custom property
+    // GRIGLIA FISSA + SNAP ratificate 24/07 vivono PRIMA di position: relative):
+    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 4\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/)
   })
 
   it('la home resta FUORI dal perimetro: nessuna regola fluida tocca .ua-stanza-parete', () => {
@@ -57,5 +59,55 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     for (const m of regole) {
       expect(m[1]).not.toMatch(/clamp|cqw/)
     }
+  })
+})
+
+// Guardia «Task 8 — la rete disegnata» (docs/design/decisions/2026-07-24-rete-gancetto-targa.md
+// §Vincoli Task 8-10, mockup ratificato 2026-07-24-rete-gancetto-targa.html rev.3 P=44): la
+// maglia metallica fissa sul MURO (.ds-parete, MAI la shell) + la griglia quantizzata
+// (grid-auto-rows/row-gap/align-items su .ds-parete-grid) coi valori ratificati.
+describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica 24/07/2026, P=44)', () => {
+  it('.ds-parete dichiara i parametri GRIGLIA FISSA + SNAP ratificati (P=44 · track=4P · hook-above=14 · wall-pad-top=24 · wire-center=wall-pad-top-hook-above · wire-w=3) PRIMA di position: relative — poi la maglia SVG light + fallback colore', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 4\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/
+    )
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-image: url\("data:image\/svg\+xml,/)
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-size: 44px 44px;/)
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-color: var\(--bg-deep\);/)
+  })
+
+  it('dark = flat, verbatim mockup .notte: due repeating-linear-gradient (filo rgba(255,255,255,.07), spessore --wire-w) + background-position ancorato a wire-center - wire-w/2', () => {
+    expect(norm).toMatch(
+      /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-parete \{ --filo-flat: rgba\(255,255,255,\.07\); background: repeating-linear-gradient\(180deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), repeating-linear-gradient\(90deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), var\(--bg-deep\); background-position: 0 calc\(var\(--wire-center\) - var\(--wire-w\) \/ 2\), 0 0, 0 0; \}/
+    )
+  })
+
+  it('.ds-parete-grid è quantizzata: grid-auto-rows: var(--track), row-gap: 0, align-items: start — SENZA toccare la regola base esistente (gap: 16px resta verbatim per la guardia)', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete-grid \{ grid-auto-rows: var\(--track\); row-gap: 0; align-items: start; \}/
+    )
+    // la regola-guardia preesistente non deve sparire: deve continuare a matchare verbatim
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete-grid \{ display: grid; grid-template-columns: repeat\(3, 1fr\); gap: 16px; \}/
+    )
+  })
+
+  it('il row-gap:0 vince anche dentro il perimetro shell (specificità 0,2,0, DOPO la regola-guardia del gap fluido — non la tocca) e nel ramo home a device corti (max-height:780px)', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ row-gap: 0; \}/
+    )
+    // la regola-guardia del gap fluido shell resta intatta (assert esistente riga 24-28)
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ gap: clamp\(16px, 3\.6cqw, 26px\); \}/
+    )
+    expect(norm).toMatch(
+      /@media \(max-height: 780px\) \{[\s\S]*?\.ua-stanza-parete \.ds-parete-grid \{ row-gap: 0; \}\s*\}/
+    )
+  })
+
+  it('passo fluido SOLO nel perimetro shell (riserva FE R1, clamp ratificato 40-50 vs 10.2cqw) — il track resta accoppiato via calc(), non va ridichiarato', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete \{ --passo-maglia: clamp\(40px, 10\.2cqw, 50px\); \}/
+    )
   })
 })
