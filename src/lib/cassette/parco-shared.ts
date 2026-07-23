@@ -40,14 +40,19 @@ export type RawLavoro = {
  *  #6 della migration). */
 export type Riparazione = { lavoroId: string; motivo: 'consegna' | 'annullo_lavoro' }
 
-const CHIUSI = new Set(['consegnato', 'annullato'])
+// Esportato (Task 5, §2.5): `GET /api/cassette/lavori-liberi` filtra i lavori vivi con lo
+// STESSO Set, non una copia — «Stati VIVI = non chiusi» è un'unica verità in tutta l'app.
+export const CHIUSI = new Set(['consegnato', 'annullato'])
 
 // Riserva ARCH R4: per i pazienti-wizard senza alias il trigger
 // `sync_paziente_nome_cognome` scrive il CODICE in `nome_cognome` (upper +
 // spazio finale): un rendering ingenuo «alias vince sul codice» mostrerebbe
 // il codice travestito. Alias = nome_cognome trim-normalizzato, null se
 // coincide col codice.
-function derivaAlias(p: RawLavoro['pazienti']): string | null {
+// Esportata dal Task 5 (§2.5, punto 13): era privata al Task 1 (usata solo qui dentro), ora
+// serve anche a `GET /api/cassette/lavori-liberi` per proiettare `pazienteAlias` — STESSA
+// logica, non una riscritta altrove.
+export function derivaAlias(p: RawLavoro['pazienti']): string | null {
   const grezzo = p?.nome_cognome?.trim()
   if (!grezzo) return null
   const codice = p?.codice_paziente?.trim()

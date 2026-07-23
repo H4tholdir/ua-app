@@ -27,19 +27,46 @@
 import { useState } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
 import { CampoTesto } from '@/components/ds/Campo'
+import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { ChipScelta } from '@/components/ds/ChipScelta'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { RigaBloccante } from '@/components/ds/RigaBloccante'
 import { TastoTondo } from '@/components/ds/TastoTondo'
-import { spazio } from '@/design-system/v3/tokens'
+import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
+import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
 import { SwatchesColore } from './SwatchesColore'
 
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
 const ERRORE_NOME_LUNGO = 'Il nome è troppo lungo (massimo 20 caratteri)'
 const ERRORE_GENERICO = 'Non ci sono riuscito — riprova'
+
+// «Metti un lavoro» (Task 5, spec redesign §2.5, punto 13) — la sottovista interna della
+// cassetta LIBERA. Contratto verbatim di `GET /api/cassette/lavori-liberi` (route Task 5).
+type LavoroLibero = { id: string; numero: string; dentista: string; pazienteAlias: string | null; urgenza: number }
+
+// Sopra la soglia, compare il campo di ricerca client-side (brief §Step 6): con pochi liberi
+// scorrere la lista è più veloce che digitare.
+const SOGLIA_RICERCA = 8
+
+// Riga della lista «Metti un lavoro»: hit area ≥44 (constraint 10), classe `ds-tap-v3` per
+// l'anello focus-visible di legge (già definito globalmente in ds-v3.css, stesso aggancio di
+// `MenuVoce`/`RigaEditabile` — nessun nuovo CSS da introdurre qui).
+const rigaLavoroLiberoStile = {
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: 2,
+  width: '100%',
+  minHeight: spazio.xxl,
+  borderRadius: raggio.riga,
+  border: 'none',
+  background: 'var(--bg-deep)',
+  padding: `${spazio.s}px ${spazio.m}px`,
+  textAlign: 'left' as const,
+  cursor: 'pointer',
+}
 
 export function CassettaSheet(props: {
   cassetta: CassettaParete | null
@@ -66,6 +93,16 @@ export function CassettaSheet(props: {
   // Colore custom IN SOSPESO (review Task 12, Important 1) — v. `scegliDaiSwatches`.
   const [colorePending, setColorePending] = useState<string | null>(null)
 
+  // «Metti un lavoro» (Task 5, §2.5 punto 13) — sottovista interna, stesso pattern di
+  // `colorePending`: stato locale, nessuna navigazione. `liberi === null` = non ancora
+  // caricato (distingue "sto caricando" da "caricato, zero risultati" → stato vuoto).
+  const [vista, setVista] = useState<'azioni' | 'metti'>('azioni')
+  const [liberi, setLiberi] = useState<LavoroLibero[] | null>(null)
+  const [liberiCaricando, setLiberiCaricando] = useState(false)
+  const [liberiErrore, setLiberiErrore] = useState<string | null>(null)
+  const [assegnando, setAssegnando] = useState(false)
+  const [queryMetti, setQueryMetti] = useState('')
+
   // Reset in render-phase al cambio di cassetta (id), stesso pattern di ConfermaCassettaSheet:
   // NON un useEffect. Non si resetta sul solo `router.refresh()` di un riordino (l'id resta lo
   // stesso), così l'annuncio ▲▼ e il campo sopravvivono a uno spostamento.
@@ -81,6 +118,12 @@ export function CassettaSheet(props: {
     setChiediLibera(false)
     setChiediButta(false)
     setColorePending(null)
+    setVista('azioni')
+    setLiberi(null)
+    setLiberiCaricando(false)
+    setLiberiErrore(null)
+    setAssegnando(false)
+    setQueryMetti('')
   }
 
   const occupata = !!cassetta?.lavoro
@@ -237,6 +280,54 @@ export function CassettaSheet(props: {
     }
   }
 
+  /** Apre la sottovista «Metti un lavoro» e carica la lista (Task 5, §2.5 punto 13). Fetch nel
+   *  click handler, non in un `useEffect`: stesso stile "adjusting state" del resto del file —
+   *  niente re-fetch nascosti a ogni render, un solo punto che sa quando la richiesta parte. */
+  async function apriMetti() {
+    setVista('metti')
+    setLiberiCaricando(true)
+    setLiberiErrore(null)
+    try {
+      const res = await fetch('/api/cassette/lavori-liberi')
+      if (res.status !== 200) {
+        setLiberiErrore(ERRORE_GENERICO)
+        return
+      }
+      const dati = (await res.json()) as { lavori: LavoroLibero[] }
+      setLiberi(dati.lavori)
+    } catch {
+      setLiberiErrore(ERRORE_GENERICO)
+    } finally {
+      setLiberiCaricando(false)
+    }
+  }
+
+  /** Tap su una riga della lista → POST /api/lavori/{id}/cassetta {cassetta_id} (route
+   *  ESISTENTE, riuso — stesso contratto di `spostaLavoroIn` sopra). Successo → `onCambiata()`
+   *  (chiude e rilegge, come ogni altra azione che committa in questo sheet). Errore → riga
+   *  quieta, MAI chiusura silenziosa (brief §Step 6). */
+  async function assegnaLavoro(lavoro: LavoroLibero) {
+    if (!cassetta || assegnando) return
+    setAssegnando(true)
+    setLiberiErrore(null)
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/cassetta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cassetta_id: cassetta.id }),
+      })
+      if (res.status === 200) {
+        onCambiata()
+        return
+      }
+      setLiberiErrore(ERRORE_GENERICO)
+    } catch {
+      setLiberiErrore(ERRORE_GENERICO)
+    } finally {
+      setAssegnando(false)
+    }
+  }
+
   // L'annuncio (§5.4) parte SOLO a riordino avvenuto: una live region che dice «spostata al
   // posto 3» mentre la POST è fallita mentirebbe a chi non vede il muro — e il muro, al refresh,
   // resterebbe com'era. Il posto nuovo lo si calcola qui (di una posizione, sempre), la lista
@@ -262,6 +353,16 @@ export function CassettaSheet(props: {
   const puoSalire = posto > 1
   const puoScendere = posto < totale
 
+  // Ricerca client-side (§2.5 punto 13): SOLO se ci sono più di `SOGLIA_RICERCA` liberi — sotto
+  // soglia, scorrere è più veloce che digitare. Pagliaio: numero, dentista, alias (stessi campi
+  // del contratto della route, `normalizza` CONDIVISA con `filtra-lavori-pila.ts`/`filtra-cassette.ts`).
+  const queryMettiTrim = queryMetti.trim()
+  const liberiFiltrati = !liberi
+    ? null
+    : queryMettiTrim
+      ? liberi.filter((l) => normalizza(`n.${l.numero} ${l.dentista} ${l.pazienteAlias ?? ''}`).includes(normalizza(queryMettiTrim)))
+      : liberi
+
   // Review finale whole-branch, Fix 1 — Sheet e DialogConferma ascoltano ENTRAMBI Esc su window:
   // con un dialog di conferma aperto, un solo Esc chiudeva dialog E sheet insieme (e lo scrim
   // dello sheet sotto un dialog distruttivo non deve comunque chiudere). La guardia vive qui,
@@ -271,12 +372,77 @@ export function CassettaSheet(props: {
   return (
     <>
       <Sheet aperto={aperto} onChiudi={() => { if (!dialogAperto) onChiudi() }} titolo={nomeCassetta}>
-        {cassetta && (
+        {cassetta && vista === 'metti' && (
+          <>
+            {/* «Metti un lavoro» (Task 5, §2.5 punto 13) — sottovista interna: rimpiazza le
+                azioni, non le affianca ("una cosa alla volta"). Via d'uscita SENZA azione:
+                «Le altre azioni» torna indietro; «Chiudi» (sempre in fondo allo Sheet) resta
+                raggiungibile invariato. */}
+            <div style={{ display: 'flex' }}>
+              <LinkQuieto onClick={() => setVista('azioni')}>← Le altre azioni</LinkQuieto>
+            </div>
+
+            {liberi && liberi.length > SOGLIA_RICERCA && (
+              <CampoTesto label="Cerca" valore={queryMetti} onCambia={setQueryMetti} placeholder="numero, dentista…" />
+            )}
+
+            {liberiCaricando && <p className="ds-sheet-hint">Carico i lavori…</p>}
+
+            {!liberiCaricando && liberi && liberi.length === 0 && (
+              <p className="ds-sheet-hint">Tutti i lavori hanno già una cassetta</p>
+            )}
+
+            {/* «Mai una pagina bianca» (§5.26): zero liberi TOTALI (sopra) e zero liberi TROVATI
+                dalla ricerca sono stati vuoti distinti — qui l'area lista non deve restare bianca
+                senza spiegazione mentre la query stessa ha risultati. */}
+            {!liberiCaricando && liberi && liberi.length > 0 && liberiFiltrati?.length === 0 && (
+              <p className="ds-sheet-hint">Nessun lavoro trovato</p>
+            )}
+
+            {!liberiCaricando && liberiFiltrati && liberiFiltrati.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.xs }}>
+                {liberiFiltrati.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className="ds-tap-v3"
+                    disabled={assegnando}
+                    onClick={() => void assegnaLavoro(l)}
+                    style={rigaLavoroLiberoStile}
+                  >
+                    <span style={{ fontSize: tipografia.size.body, fontWeight: tipografia.weight.bold, color: 'var(--ink)' }}>
+                      n.{l.numero} · {l.dentista}
+                    </span>
+                    {l.pazienteAlias && (
+                      <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--muted)' }}>{l.pazienteAlias}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {liberiErrore && (
+              <p role="alert" className="ds-sheet-errore">
+                {liberiErrore}
+              </p>
+            )}
+          </>
+        )}
+
+        {cassetta && vista === 'azioni' && (
           <>
             {occupata && (
               <p className="ds-sheet-info">
                 n.{numero} · {cassetta.lavoro?.dentista}
               </p>
+            )}
+
+            {/* Metti un lavoro (Task 5, §2.5 punto 13) — azione primaria, SOLO su cassetta
+                LIBERA, sopra rinomina/colore/butta-via. */}
+            {!occupata && (
+              <div>
+                <TastoPrimario onClick={() => void apriMetti()}>Metti un lavoro</TastoPrimario>
+              </div>
             )}
 
             {/* Rinomina — PATCH {nome}. Non un TastoPrimario (uno per schermata, §5.1): un

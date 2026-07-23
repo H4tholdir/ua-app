@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveParete, targheInCollisione } from '@/lib/cassette/parco-shared'
+import { deriveParete, targheInCollisione, derivaAlias } from '@/lib/cassette/parco-shared'
 
 const cassetta = (id: string, nome: string, pos: number, createdAt = '2026-07-21T00:00:00Z') =>
   ({ id, nome, colore: 'bianca', posizione: pos, created_at: createdAt })
@@ -132,6 +132,29 @@ describe('alias paziente (spec redesign §2.3, riserva ARCH R4)', () => {
     const { parete } = deriveParete(cassette, vive, [{ ...lavoroBase, pazienti: null }])
     expect(parete[0].lavoro?.paziente).toBe('—')
     expect(parete[0].lavoro?.pazienteAlias).toBeNull()
+  })
+})
+
+// Task 5 (§2.5, punto 13) — `derivaAlias` era privata al Task 1 (usata solo dentro
+// `deriveParete`, sopra). La route `GET /api/cassette/lavori-liberi` la vuole per proiettare
+// `pazienteAlias` sui lavori senza cassetta — STESSA logica, non una riscritta: da qui
+// l'esportazione. Test minimo di import + comportamento (già coperto indirettamente sopra
+// via `deriveParete`, ma questo prova che la funzione è raggiungibile ed è la STESSA usata lì).
+describe('derivaAlias (esportata, Task 5 §2.5)', () => {
+  it('è importabile come funzione dal modulo', () => {
+    expect(typeof derivaAlias).toBe('function')
+  })
+
+  it('alias presente, diverso dal codice → ritorna il nome normalizzato (trim)', () => {
+    expect(derivaAlias({ codice_paziente: 'PZ-0012', nome_cognome: 'ROSSI MARIO ' })).toBe('ROSSI MARIO')
+  })
+
+  it('nome_cognome coincide col codice (case-insensitive) → null', () => {
+    expect(derivaAlias({ codice_paziente: 'pz-0012', nome_cognome: 'PZ-0012 ' })).toBeNull()
+  })
+
+  it('pazienti null → null', () => {
+    expect(derivaAlias(null)).toBeNull()
   })
 })
 
