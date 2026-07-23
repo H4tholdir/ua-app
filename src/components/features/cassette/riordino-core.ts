@@ -96,3 +96,34 @@ export function riconcilia(
   risultato.splice(posPred + 1, 0, idTrascinato)
   return risultato
 }
+
+/** Adapter dello scroller (spec redesign §3.1, riserva ARCH R1): il riordino non assume
+ *  più `window`. Su /cassette scrolla la pagina (el=null); nella stanza home scrolla il
+ *  contenitore della stanza. `sogliaAlta` = y viewport dove inizia la vista scrollabile
+ *  (0 per window, rect.top per un contenitore): la fascia di auto-scroll parte da lì. */
+export type Scroller = {
+  pos(): number
+  max(): number
+  by(px: number): void
+  altezzaVista(): number
+  sogliaAlta(): number
+}
+
+export function creaScroller(el: HTMLElement | null): Scroller {
+  if (el) {
+    return {
+      pos: () => el.scrollTop,
+      max: () => el.scrollHeight - el.clientHeight,
+      by: (px) => { el.scrollTop += px },
+      altezzaVista: () => el.clientHeight,
+      sogliaAlta: () => el.getBoundingClientRect().top,
+    }
+  }
+  return {
+    pos: () => (typeof window !== 'undefined' ? window.scrollY || 0 : 0),
+    max: () => (typeof document !== 'undefined' ? (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0) : 0),
+    by: (px) => window.scrollBy(0, px),
+    altezzaVista: () => (typeof window !== 'undefined' ? window.innerHeight || 0 : 0),
+    sogliaAlta: () => 0,
+  }
+}

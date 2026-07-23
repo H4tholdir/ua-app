@@ -3,10 +3,11 @@
 // (preventDefault reale, scroll, rect, ghost): quello è device/Playwright (§6.4). Qui vivono i bug
 // della griglia che va a capo (hit-testing aritmetico closestCenter), l'arrayMove, la rampa
 // dell'auto-scroll e la riconciliazione drag-vs-realtime.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   type Geometria,
   calcolaNuovoOrdine,
+  creaScroller,
   indiceDaPunto,
   riconcilia,
   velocitaAutoScroll,
@@ -97,5 +98,32 @@ describe('riconcilia — drag-vs-realtime al drop (§6, design derivato)', () =>
   })
   it('se il predecessore è sparito dal server → l’id trascinato va in testa (fallback onesto)', () => {
     expect(riconcilia(['a', 'b', 'c'], 'c', 'z')).toEqual(['c', 'a', 'b'])
+  })
+})
+
+describe('creaScroller (spec redesign §3.1, riserva ARCH R1)', () => {
+  it('con elemento: pos/max/vista leggono scrollTop/scrollHeight/clientHeight, by muta scrollTop, sogliaAlta è il top del rect', () => {
+    const el = {
+      scrollTop: 100, scrollHeight: 1000, clientHeight: 400,
+      getBoundingClientRect: () => ({ top: 80 }),
+    } as unknown as HTMLElement
+    const s = creaScroller(el)
+    expect(s.pos()).toBe(100)
+    expect(s.max()).toBe(600)          // scrollHeight - clientHeight
+    expect(s.altezzaVista()).toBe(400)
+    expect(s.sogliaAlta()).toBe(80)
+    s.by(50)
+    expect(s.pos()).toBe(150)
+  })
+
+  it('senza elemento (null): delega a window — pos=scrollY, vista=innerHeight, sogliaAlta=0', () => {
+    // jsdom: window.scrollY/innerHeight esistono; scrollBy va stubbato
+    const spy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+    const s = creaScroller(null)
+    expect(s.sogliaAlta()).toBe(0)
+    expect(s.altezzaVista()).toBe(window.innerHeight)
+    s.by(10)
+    expect(spy).toHaveBeenCalledWith(0, 10)
+    spy.mockRestore()
   })
 })

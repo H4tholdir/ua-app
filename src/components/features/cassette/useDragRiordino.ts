@@ -38,7 +38,9 @@ import { vibra } from '@/design-system/v3/haptic'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import {
   type Geometria,
+  type Scroller,
   calcolaNuovoOrdine,
+  creaScroller,
   indiceDaPunto,
   riconcilia,
   velocitaAutoScroll,
@@ -73,6 +75,9 @@ export function useDragRiordino(opts: {
   onSheet: (id: string) => void
   inviaOrdine: (ordine: string[]) => Promise<boolean>
   onRefresh: () => void
+  /** Scroller del gesto (riserva ARCH R1, pre-embed home): assente → window, comportamento
+   *  IDENTICO a oggi. Nella stanza home passerà il contenitore scrollabile della stanza. */
+  scrollerRef?: RefObject<HTMLElement | null>
 }): UsaDrag {
   const { parete, disabilitato, gridRef, onSheet, inviaOrdine, onRefresh } = opts
 
@@ -117,6 +122,7 @@ export function useDragRiordino(opts: {
   const centroOrigineRef = useRef({ x: 0, y: 0 })
   const origineRectRef = useRef({ left: 0, top: 0 })
   const geoRef = useRef<Geometria | null>(null)
+  const scrollerRef = useRef<Scroller | null>(null)
   const scrollLiftRef = useRef(0)
   const origineRef = useRef(0)
   const correnteRef = useRef(0)
@@ -206,10 +212,12 @@ export function useDragRiordino(opts: {
     const dt = ultimoTsRef.current ? ts - ultimoTsRef.current : 16
     ultimoTsRef.current = ts
 
-    if (geo && typeof window !== 'undefined') {
-      const h = window.innerHeight || 0
+    const scroller = scrollerRef.current
+    if (geo && scroller) {
+      const base = scroller.sogliaAlta()
+      const h = scroller.altezzaVista()
       const fascia = Math.min(0.25 * h, FASCIA_BORDO_MAX)
-      const y = puntoRef.current.y
+      const y = puntoRef.current.y - base // coordinate RELATIVE alla vista scrollabile
       let dir = 0
       let dist = fascia
       if (y < fascia) {
@@ -222,10 +230,8 @@ export function useDragRiordino(opts: {
       if (dir !== 0 && fascia > 0) {
         if (!ingaggioBordoRef.current) ingaggioBordoRef.current = ts
         const v = velocitaAutoScroll(dt, dist, fascia, ts - ingaggioBordoRef.current)
-        const maxY = (document.documentElement.scrollHeight || 0) - h
-        const scrollY = window.scrollY || 0
-        const aFine = (dir < 0 && scrollY <= 0) || (dir > 0 && scrollY >= maxY)
-        if (!aFine && v > 0) window.scrollBy(0, dir * v)
+        const aFine = (dir < 0 && scroller.pos() <= 0) || (dir > 0 && scroller.pos() >= scroller.max())
+        if (!aFine && v > 0) scroller.by(dir * v)
       } else {
         ingaggioBordoRef.current = 0
       }
@@ -235,7 +241,7 @@ export function useDragRiordino(opts: {
         x: centroOrigineRef.current.x + (puntoRef.current.x - liftRef.current.x),
         y: centroOrigineRef.current.y + (puntoRef.current.y - liftRef.current.y),
       }
-      const scrollDelta = (window.scrollY || 0) - scrollLiftRef.current
+      const scrollDelta = scroller.pos() - scrollLiftRef.current
       const n = snapshotRef.current.length
       const nuovo = indiceDaPunto(centro, { ...geo, scrollDelta }, n)
       if (nuovo !== correnteRef.current) {
@@ -279,11 +285,14 @@ export function useDragRiordino(opts: {
     const origine = snapshot.indexOf(id)
     if (origine < 0 || snapshot.length < 2) return
 
+    const scroller = creaScroller(opts.scrollerRef?.current ?? null)
+    scrollerRef.current = scroller
+
     const misura = misuraGeometria(id)
     pointerIdRef.current = evento.pointerId
     puntoRef.current = { x: evento.clientX, y: evento.clientY }
     liftRef.current = { x: evento.clientX, y: evento.clientY }
-    scrollLiftRef.current = typeof window !== 'undefined' ? window.scrollY || 0 : 0
+    scrollLiftRef.current = scroller.pos()
     snapshotRef.current = snapshot
     origineRef.current = origine
     correnteRef.current = origine

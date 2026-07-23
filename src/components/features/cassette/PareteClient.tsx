@@ -31,6 +31,7 @@
 // Per questo `CassettaSheet` riceve un callback `onSposta(direzione)` invece dell'ordine: i ▲▼ si
 // rendono là, la lista si compone qui (unico posto che possiede `parete`).
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { MotionConfig, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
@@ -63,7 +64,12 @@ function prossimoNomeSerieC(parete: CassettaParete[]): string {
   return `C${massimo + 1}`
 }
 
-export function PareteClient(props: { parete: CassettaParete[] }) {
+export function PareteClient(props: {
+  parete: CassettaParete[]
+  /** Scroller del gesto di riordino (riserva ARCH R1, pre-embed home): assente → window,
+   *  comportamento IDENTICO a oggi su /cassette. Pass-through puro verso `useDragRiordino`. */
+  scrollerRef?: RefObject<HTMLElement | null>
+}) {
   const { parete } = props
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -175,6 +181,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
     onSheet: (id) => setSheet({ tipo: 'cassetta', id }),
     inviaOrdine,
     onRefresh: () => router.refresh(),
+    scrollerRef: props.scrollerRef,
   })
 
   // Ordine di render: durante il drag comanda l'ordine OTTIMISTICO (le sorelle FLIPpano); a riposo
