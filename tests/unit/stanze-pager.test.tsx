@@ -114,10 +114,18 @@ beforeEach(() => {
   push.mockClear()
   refresh.mockClear()
   vi.stubGlobal('IntersectionObserver', IOFinto)
+  // Task 13 (D7) — dal Task 13 in poi il pager monta SEMPRE anche `LinguettaCassette`, che
+  // legge/scrive `ua_linguetta_v3`: senza reset, gli accessi pile→parete di test precedenti
+  // (swipe/dot, in questo stesso file) si accumulerebbero e farebbero apprendere la
+  // linguetta prima del tempo per i test dedicati più sotto.
+  localStorage.clear()
 })
 afterEach(() => {
   vi.unstubAllGlobals()
 })
+
+const CHIAVE_LINGUETTA = 'ua_linguetta_v3'
+const accessiRegistrati = () => Number(localStorage.getItem(CHIAVE_LINGUETTA) ?? '0')
 
 describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
   it("con stanzaIniziale='pile' la stanza pile è attiva e la parete è inert + aria-hidden", () => {
@@ -686,5 +694,61 @@ describe('Collaudo R2 — il focus del cambio stanza non deve scrollare (D-1, 22
     } finally {
       spia.mockRestore()
     }
+  })
+})
+
+// Task 13 (D7, §3.2) — chi arriva alla stanza Parete registra l'accesso (riserva UX 3b: dopo 3
+// arrivi la linguetta «Le cassette» smette di comparire). Il punto di registrazione è il
+// setter della stanza attiva (`impostaAttiva` in StanzePager), NON la linguetta da sola: uno
+// swipe o un tap sul dot non passano mai dalla linguetta eppure devono contare.
+describe('StanzePager — registrazione accesso alla Parete (Task 13, D7, riserva UX 3b)', () => {
+  it('lo swipe (IO) che porta alla parete registra un accesso', () => {
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(accessiRegistrati()).toBe(0)
+    simulaScroll('parete', 0.9)
+    expect(accessiRegistrati()).toBe(1)
+  })
+
+  it('il tap sul dot della parete registra un accesso', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(accessiRegistrati()).toBe(1)
+  })
+
+  it('tornare sulle pile e poi risvoltare alla parete registra un SECONDO accesso (solo le transizioni pile→parete contano)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(accessiRegistrati()).toBe(1)
+    await user.click(screen.getAllByRole('tab')[0])
+    expect(accessiRegistrati()).toBe(1) // parete→pile non registra nulla
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(accessiRegistrati()).toBe(2)
+  })
+
+  it('il tap sulla linguetta «Le cassette» conta UN solo accesso, non due (niente doppio conteggio fra la linguetta e il setter del pager)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    // Portale su `document.body`: `screen` (bound a `document.body`) la trova comunque, pur
+    // essendo fuori da `container`.
+    const linguetta = screen.getByRole('button', { name: /le cassette/i })
+    await user.click(linguetta)
+    expect(accessiRegistrati()).toBe(1)
+    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('la stanza Pile non registra nulla al mount: zero accessi finché non si arriva davvero alla parete', () => {
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(accessiRegistrati()).toBe(0)
   })
 })

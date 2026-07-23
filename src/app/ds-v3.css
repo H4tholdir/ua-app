@@ -743,8 +743,9 @@
    Il no-scroll VERTICALE resta legge in entrambe le stanze (§3.3): il viewport scorre solo
    in x, e ogni stanza è una colonna che si adatta all'altezza disponibile. */
 [data-ds="v3"] .ua-home.is-stanze {
-  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo,
-     altrimenti il peek della stanza accanto resterebbe nascosto sotto il padding. */
+  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo, così
+     ogni stanza (100% pieno, Task 13 — morte del peek) copre davvero l'intero schermo invece
+     di lasciare un margine morto ai lati. */
   padding-left: 0;
   padding-right: 0;
 }
@@ -760,11 +761,13 @@
   -ms-overflow-style: none;
 }
 [data-ds="v3"] .ua-stanze-viewport::-webkit-scrollbar { display: none; }
-/* Peek 28px bilaterale (§6): ogni stanza è larga quanto il viewport MENO il peek, così dalla
-   stanza Pile si sbircia la Parete e viceversa. L'ultima aggancia in `end` — la sua posizione
-   di snap in `start` cadrebbe oltre lo scroll massimo, e il peek a sinistra sparirebbe. */
+/* Morte del peek 28px (Task 13, D7, §3.2): ogni stanza occupa il viewport INTERO — niente
+   più sbirciata laterale della stanza vicina. Il peek bilaterale era l'invito implicito allo
+   swipe (§6 originale); la riserva UX 3b lo sostituisce con un invito ESPLICITO e
+   auto-apprendente (la linguetta «Le cassette», v. `LinguettaCassette.tsx`), che non paga il
+   costo permanente di 28px di stanza sbagliata sempre in vista. */
 [data-ds="v3"] .ua-stanza {
-  flex: 0 0 calc(100% - 28px);
+  flex: 0 0 100%;
   min-width: 0;
   scroll-snap-align: start;
   display: flex; flex-direction: column;
@@ -777,8 +780,36 @@
      che NON riduce questo padding (lo spazio lo recuperano gap/padding delle pile). */
   padding: 0 24px 36px;
 }
-[data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
 [data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
+
+/* Task 13 (D7) — linguetta «Le cassette» (mockup C2 ratificato 23/07/2026, valori verbatim).
+   Il button è LARGO 44px (hit-area di legge, riserva UX 3a); il disegno (card 26px) è il suo
+   bordo destro — il resto è tocco invisibile. Portale su `document.body`
+   (`LinguettaCassette.tsx`): il wrapper `[data-ds="v3"]` che la scopa vive DENTRO il ramo
+   condizionale del componente, non qui. */
+[data-ds="v3"] .ds-linguetta {
+  position: fixed; right: 0; bottom: 84px; z-index: 40;
+  width: 44px; min-height: 96px;
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+}
+[data-ds="v3"] .ds-linguetta::before {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 26px;
+  background: var(--card); border: 1px solid var(--line); border-right: none;
+  border-radius: 14px 0 0 14px; box-shadow: -6px 5px 14px -8px rgba(50,40,25,.3);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-linguetta::before { box-shadow: -6px 5px 14px -8px rgba(0,0,0,.55); }
+[data-ds="v3"] .ds-linguetta .fre { position: relative; font-size: 13px; font-weight: 800; color: var(--red); width: 26px; text-align: center; }
+[data-ds="v3"] .ds-linguetta .mini-rete {
+  position: relative; width: 13px; height: 18px; margin: 6px 6.5px; border-radius: 2px; opacity: .45;
+  background:
+    repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 5px);
+}
+[data-ds="v3"] .ds-linguetta .eti {
+  position: relative; writing-mode: vertical-rl; width: 26px; text-align: center;
+  font-size: 10px; font-weight: 700; letter-spacing: .13em; color: var(--muted); text-transform: uppercase;
+}
 
 /* Task 12 (D2, spec redesign §3.1) — la stanza Parete NON è più un'anteprima con testata e
    griglia proprie: è la STESSA `PareteClient` di `/cassette` (`.ds-parete-shell` e tutto il

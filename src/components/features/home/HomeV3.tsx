@@ -28,6 +28,7 @@ import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
+import { LinguettaCassette } from './LinguettaCassette'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -175,6 +176,12 @@ export function HomeV3(props: {
         <>
           {stanzaPile}
           {piede}
+          {/* Task 13 (D7) — forma «solo pile»: nessun pager, quindi nessuna via di ritorno
+              dedicata alla parete (§7, preferenza 'pile'). La linguetta è l'unico invito
+              rimasto e porta DIRETTAMENTE a `/cassette` — non a una stanza Parete che qui
+              non esiste. Registra il proprio accesso da sé: qui non c'è alcun setter di
+              stanza attiva che lo faccia al posto suo (a differenza del pager). */}
+          <LinguettaCassette visibile onVai={() => router.push('/cassette')} />
         </>
       )}
     </section>

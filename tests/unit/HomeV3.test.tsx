@@ -49,4 +49,18 @@ describe('HomeV3 — la home di legge (§7.1 + rev. 3.1)', () => {
     expect(screen.getByText('Il banco è libero')).toBeInTheDocument()
     expect(screen.queryByText('DA CONSEGNARE OGGI')).not.toBeInTheDocument()
   })
+
+  // Task 13 (D7) — chi ha preferenza 'pile' non ha alcun pager: la linguetta «Le cassette» è
+  // l'unico invito rimasto, e porta DIRETTAMENTE a `/cassette` (non a una stanza Parete che
+  // qui non esiste). Registra il proprio accesso da sé (v. `LinguettaCassette.tsx`): nessun
+  // setter di stanza attiva lo fa al posto suo in questa forma.
+  it("preferenza 'pile': la linguetta «Le cassette» compare e porta a /cassette registrando l'accesso", async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} parete={[]} homePref="pile" />)
+    const linguetta = screen.getByRole('button', { name: /le cassette/i })
+    await user.click(linguetta)
+    expect(push).toHaveBeenCalledWith('/cassette')
+    expect(JSON.parse(localStorage.getItem('ua_linguetta_v3') ?? '0')).toBe(1)
+  })
 })

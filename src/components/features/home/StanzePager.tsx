@@ -4,9 +4,10 @@
 // §6, emendamenti DS v3 §3.3 regola 5 / §7.1). Due stanze affiancate in un contenitore a
 // scroll-snap orizzontale: lo swipe è scroll NATIVO, non un finto carosello.
 //
-// Il CSS (viewport, peek 28px, snap, no-scrollbar) vive in `src/app/ds-v3.css`
-// (`.ua-stanze*`), come per `.ds-parete*` di PareteClient: porta media query e regole che
-// uno style-object non sa esprimere, ed è la casa canonica dei valori del DS v3.
+// Il CSS (viewport, snap, no-scrollbar; il peek 28px è morto col Task 13/D7 — ogni stanza è
+// ora larga il 100% del viewport) vive in `src/app/ds-v3.css` (`.ua-stanze*`), come per
+// `.ds-parete*` di PareteClient: porta media query e regole che uno style-object non sa
+// esprimere, ed è la casa canonica dei valori del DS v3.
 //
 // ── Perché `inert` conta qui più che altrove ──────────────────────────────────────────────
 // La stanza fuori campo è ancora nel DOM, a 28px di distanza. Senza `inert` + `aria-hidden`
@@ -31,6 +32,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ProgressDotsStanze, idTabStanza } from '@/components/ds/ProgressDots'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
+import { LinguettaCassette, registraAccessoParete } from './LinguettaCassette'
 import { useReducedMotion } from '@/design-system/v3/motion'
 import type { StanzaHome } from '@/lib/preferenze/home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -114,6 +116,27 @@ export function StanzePager(props: {
 
   const indice = ORDINE.indexOf(attiva) as 0 | 1
 
+  // Task 13 (D7) — chi arriva alla stanza Parete (swipe O dot/tastiera) registra l'accesso
+  // (riserva UX 3b, spegne la linguetta dopo 3 arrivi): punto unico, nel setter della stanza
+  // attiva, quando la transizione è DAVVERO pile→parete. La stanza corrente si legge da un
+  // ref, non dalla chiusura dell'effect IO (che monta una volta sola, senza dipendenza da
+  // `attiva` — leggerlo lì darebbe sempre la stanza del PRIMO render); il ref si aggiorna in
+  // un effect dedicato (mai scrivere un ref DURANTE il render — gate di lint di questo repo,
+  // `react-hooks/refs`), che gira dopo ogni commit e quindi è sempre fresco prima della
+  // prossima interazione utente/IO che possa chiamare `impostaAttiva`. `registraAccessoParete`
+  // NON può vivere dentro l'updater di `setAttiva`: React StrictMode (attivo di default in
+  // `next dev`) invoca due volte gli updater funzionali in sviluppo, quindi un effetto
+  // collaterale lì dentro scriverebbe due accessi per ogni transizione reale — la stessa
+  // doppia registrazione che questo task esiste per evitare, resuscitata in dev.
+  const attivaRef = useRef(attiva)
+  useEffect(() => {
+    attivaRef.current = attiva
+  }, [attiva])
+  const impostaAttiva = useCallback((nuova: StanzaHome) => {
+    if (attivaRef.current === 'pile' && nuova === 'parete') registraAccessoParete()
+    setAttiva(nuova)
+  }, [])
+
   // Swipe: l'IO è l'unica fonte per il gesto continuo. Nessuna dipendenza — le ref sono
   // stabili e la callback legge solo il DOM.
   useEffect(() => {
@@ -144,7 +167,7 @@ export function StanzePager(props: {
           // parete rimetterebbe attiva la stanza che si sta lasciando.
           if (voce.intersectionRatio < SOGLIA_STANZA_ATTIVA) continue
           const nome = (voce.target as HTMLElement).dataset.stanza as StanzaHome | undefined
-          if (nome) setAttiva(nome)
+          if (nome) impostaAttiva(nome)
         }
       },
       { root: contenitore, threshold: SOGLIA_STANZA_ATTIVA }
@@ -156,7 +179,9 @@ export function StanzePager(props: {
     return () => osservatore.disconnect()
     // `stanzaIniziale` cambia solo con una nuova navigazione server (`?stanza=` diverso): in
     // quel caso riposizionarsi sulla stanza chiesta è esattamente ciò che si vuole.
-  }, [stanzaIniziale])
+    // `impostaAttiva` è stabile (`useCallback` a deps `[]`): elencarla non fa girare l'effect
+    // più spesso, soddisfa solo `react-hooks/exhaustive-deps`.
+  }, [stanzaIniziale, impostaAttiva])
 
   // Il focus entra nella stanza SOLO dopo il re-render che le ha tolto `inert`: chiamarlo
   // prima sarebbe un `focus()` silenziosamente inefficace su un sottoalbero inerte.
@@ -171,7 +196,13 @@ export function StanzePager(props: {
   }, [attiva])
 
   const vaiA = useCallback(
-    (destinazione: StanzaHome, origine: 'tap' | 'freccia') => {
+    // Task 13 (D7) — `opts.giaRegistrato`: la linguetta «Le cassette» registra il proprio
+    // accesso DA SÉ (serve anche fuori dal pager, nella forma «solo pile» di HomeV3, dove
+    // non esiste alcun `impostaAttiva`). Dentro il pager il suo `onVai` finisce comunque qui:
+    // senza questo flag la STESSA visita alla parete verrebbe contata due volte (una dalla
+    // linguetta, una da `impostaAttiva` sotto) — non un doppio conteggio innocuo, ma una
+    // stanza che si spegnerebbe dopo ~1.5 tap reali invece che dopo 3.
+    (destinazione: StanzaHome, origine: 'tap' | 'freccia', opts?: { giaRegistrato?: boolean }) => {
       // La stanza chiesta può essere quella GIÀ attiva: succede ogni volta che una freccia ha
       // spostato la selezione (che cambia `attiva` subito, lasciando il focus sui dots) e poi si
       // preme Invio. In quel caso `setAttiva` fa bail-out sullo stesso valore, il re-render non
@@ -181,7 +212,8 @@ export function StanzePager(props: {
       // stava solo guardando. Quindi: se la stanza è già attiva il suo sottoalbero è già
       // non-inerte e il focus può entrare SUBITO, senza passare dall'effect.
       const giaAttiva = destinazione === attiva
-      setAttiva(destinazione)
+      if (opts?.giaRegistrato) setAttiva(destinazione)
+      else impostaAttiva(destinazione)
       if (origine === 'tap') {
         if (giaAttiva)
           stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
@@ -195,7 +227,7 @@ export function StanzePager(props: {
       if (!contenitore || !bersaglio || typeof contenitore.scrollTo !== 'function') return
       contenitore.scrollTo({ left: bersaglio.offsetLeft, behavior: ridotto ? 'auto' : 'smooth' })
     },
-    [ridotto, attiva]
+    [ridotto, attiva, impostaAttiva]
   )
 
   return (
@@ -234,6 +266,11 @@ export function StanzePager(props: {
           onSceglie={(scelta, origine) => vaiA(ORDINE[scelta], origine)}
         />
       </div>
+
+      {/* Task 13 (D7) — visibile SOLO dalla stanza Pile (dalla Parete non c'è nulla da
+          invitare). `giaRegistrato: true`: la linguetta ha già registrato il proprio accesso
+          da sé (v. commento su `vaiA` sopra) — qui si chiede solo lo scroll/focus. */}
+      <LinguettaCassette visibile={attiva === 'pile'} onVai={() => vaiA('parete', 'tap', { giaRegistrato: true })} />
     </div>
   )
 }
