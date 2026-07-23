@@ -597,8 +597,18 @@
    SOLO la componente riga dello shorthand `gap: 16px` (column-gap 16px resta invariato); vince
    per ordine di sorgente a parità di specificità (0,1,0). */
 [data-ds="v3"] .ds-parete-grid { grid-auto-rows: var(--track); row-gap: 0; align-items: start; }
-@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
+/* Task 11 — colonne in CONTAINER query (riserva ARCH R7, pre-embed Task 12): la shell
+   (.ds-parete-shell, container-type: inline-size dichiarato sopra) è già il container di
+   riferimento dei cqw del gap/padding fluidi — le colonne ora risolvono sulla STESSA
+   larghezza, non più sul viewport. Necessario per l'embed della parete nella home (Task 12),
+   dove la shell non è larga quanto il viewport. Soglie = content-box shell agli stessi
+   breakpoint di prima (shell 720 → content 680; shell 1120 → content 1060, 40px di padding
+   orizzontale, stessa misura del punto 1 «gap cassette»). Nota: il content-box reale a shell
+   1120 è 1080 (1120 − 40) — 1060 lascia 20px di margine sotto quel valore, innocuo oggi perché
+   la shell è quantizzata (720/1120, mai un valore intermedio) e tornerà utile quando la shell
+   diventerà fluida. La regola base (riga sopra, repeat(3, 1fr)) resta invariata. */
+@container (min-width: 680px)  { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
+@container (min-width: 1060px) { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
 
 /* Variante C «fluida» — gap cassette tablet (mockup 2026-07-22-gap-cassette-tablet.html,
    ratifica Francesco 23/07/2026): sul telefono il gap 16px era giusto, ma a 768px i tray

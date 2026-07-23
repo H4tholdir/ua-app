@@ -111,3 +111,17 @@ describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica
     )
   })
 })
+
+// Guardia «Task 11 — colonne della parete in container query» (riserva ARCH R7,
+// pre-embed Task 12): le colonne 4/6 della griglia devono rispondere al CONTAINER
+// (la shell, già container-type: inline-size), non al viewport — indispensabile per
+// l'embed della parete nella home (Task 12), dove la shell non è larga quanto il
+// viewport.
+describe('parete /cassette — colonne in container query (Task 11, riserva ARCH R7)', () => {
+  it('le colonne della griglia rispondono al CONTAINER, non al viewport (riserva ARCH R7)', () => {
+    expect(norm).toMatch(/@container \(min-width: 680px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\(4, 1fr\); \} \}/)
+    expect(norm).toMatch(/@container \(min-width: 1060px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\(6, 1fr\); \} \}/)
+    // le vecchie media query viewport sulle colonne NON devono più esistere:
+    expect(norm).not.toMatch(/@media \(min-width: 768px\)\s*\{ \[data-ds="v3"\] \.ds-parete-grid/)
+  })
+})
