@@ -24,14 +24,18 @@ type HarnessProps = {
   onSheet: (id: string) => void
   inviaOrdine: (ordine: string[]) => Promise<boolean>
   onRefresh: () => void
+  /** D10 (FIX-F): default PARETE (3, invariato per i test esistenti) — il test del pitchY usa
+   *  una parete più grande (9, 3 colonne × 3 righe) per avere una riga ≥2 da colpire. */
+  parete?: CassettaParete[]
 }
 
 // Espone la superficie testabile dell'hook. `onSollevata(id, evento)` è ciò che Cassetta chiama al
 // lift; qui lo invochiamo a mano con un evento sintetico, poi guidiamo `window` come farebbe il dito.
 function Harness(props: HarnessProps) {
   const gridRef = useRef<HTMLDivElement>(null)
+  const parete = props.parete ?? PARETE
   const drag = useDragRiordino({
-    parete: PARETE,
+    parete,
     disabilitato: props.disabilitato ?? false,
     gridRef,
     onSheet: props.onSheet,
@@ -44,7 +48,7 @@ function Harness(props: HarnessProps) {
     React.createElement(
       'div',
       { ref: gridRef, className: 'ds-parete-grid' },
-      PARETE.map((c) =>
+      parete.map((c) =>
         React.createElement('button', {
           key: c.id,
           'data-cassetta-id': c.id,
@@ -56,11 +60,11 @@ function Harness(props: HarnessProps) {
   )
 }
 
-function sollevaC(id: string) {
-  const bottone = screen.getByText(PARETE.find((c) => c.id === id)!.nome)
+function sollevaC(id: string, parete: CassettaParete[] = PARETE, coordinate = { clientX: 10, clientY: 10 }) {
+  const bottone = screen.getByText(parete.find((c) => c.id === id)!.nome)
   act(() => {
     bottone.dispatchEvent(
-      new PointerEvent('pointerdown', { pointerId: 7, pointerType: 'touch', clientX: 10, clientY: 10, bubbles: true }),
+      new PointerEvent('pointerdown', { pointerId: 7, pointerType: 'touch', bubbles: true, ...coordinate }),
     )
   })
 }
@@ -137,5 +141,79 @@ describe('useDragRiordino — sollevamento poi MOVIMENTO = drop: UNA POST della 
     expect(inviaOrdine).toHaveBeenCalledTimes(1)
     await act(async () => {})
     expect(onRefresh).not.toHaveBeenCalled()
+  })
+})
+
+// D10 (FIX-F, QA device #1, verbale 2026-07-24) — root cause: `.ds-parete-grid` (ds-v3.css
+// ~624/664) ha `grid-auto-rows: var(--track)` + `align-items:start`: le celle NON riempiono la
+// riga, il passo di riga vero è il track, non `cellaH + gapY` (prova pura in
+// `riordino-core.test.ts`). Qui si prova l'INTEGRAZIONE: `misuraGeometria` (useDragRiordino.ts)
+// deve leggere il track da `getComputedStyle(grid).gridAutoRows` e usarlo per `pitchY`. jsdom non
+// fa layout reale (i rect sono zeri di default — v. commento in testa al file): qui si mockano
+// `getBoundingClientRect`/`getComputedStyle` per rendere l'aritmetica non degenere, l'UNICO modo
+// di dimostrare il bersaglio corretto su una riga ≥2 (dove il difetto si manifesta).
+describe('useDragRiordino — D10 (FIX-F): il passo di riga è il TRACK, non cellaH+gapY', () => {
+  // Griglia 3×3 (9 cassette): cella 100×100, gap 20, track (--track risolto a runtime) 250px —
+  // celle più basse del track, come nella parete reale con `align-items:start`.
+  const PARETE_9: CassettaParete[] = Array.from({ length: 9 }, (_, i) => ({
+    id: String.fromCharCode(97 + i), // a..i
+    nome: `C${i + 1}`,
+    colore: 'grigia',
+    posizione: i,
+    lavoro: null,
+  }))
+
+  it('sollevando la prima cassetta e trascinando al centro della riga 2 (secondo il track vero), il bersaglio è la 4ª cassetta — non la 7ª (bersaglio della formula sbagliata cellaH+gapY, una riga intera più giù)', async () => {
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const vuoto = { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON() {} }
+      if (this.classList?.contains('ds-parete-grid')) {
+        // width tale che (340+20)/(100+20) = 3 colonne.
+        return { ...vuoto, width: 340, height: 460, right: 340, bottom: 460 } as DOMRect
+      }
+      if (this.getAttribute('data-cassetta-id') === 'a') {
+        // La prima cassetta ('a', celle[0] nel DOM) è sia "primo" (misura cellaW/cellaH) sia
+        // l'origine sollevata: stesso rect, un solo mock basta.
+        return { ...vuoto, width: 100, height: 100, right: 100, bottom: 100 } as DOMRect
+      }
+      return vuoto as DOMRect
+    })
+    const origGetComputedStyle = window.getComputedStyle
+    const computedSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((el: Element, pseudo?: string | null) => {
+      if ((el as HTMLElement).classList?.contains?.('ds-parete-grid')) {
+        return { columnGap: '20px', rowGap: '20px', gridAutoRows: '250px' } as CSSStyleDeclaration
+      }
+      return origGetComputedStyle(el, pseudo)
+    })
+
+    try {
+      const inviaOrdine = vi.fn().mockResolvedValue(true)
+      const onRefresh = vi.fn()
+      render(React.createElement(Harness, { onSheet: vi.fn(), inviaOrdine, onRefresh, parete: PARETE_9 }))
+
+      sollevaC('a', PARETE_9, { clientX: 50, clientY: 50 }) // centro della cella 'a' (0,0)-(100,100)
+      muoviWindow(50, 300) // centro riga2/colonna0 SECONDO IL TRACK vero: pitchY = 250 + gapY(20) = 270 → 270·1+50 ≈ 300
+
+      // Il ricalcolo di riga avviene nel loop rAF (`frame()`), non nei listener sincroni sopra:
+      // jsdom implementa `requestAnimationFrame` con un `setInterval` REALE (1000/60 ≈ 16.7ms —
+      // v. jsdom `Window.js`), quindi serve un'attesa reale (non solo `act(async () => {})`,
+      // che flush-a solo i microtask) perché almeno un tick giri prima del rilascio.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60))
+      })
+      await act(async () => {
+        rilasciaWindow(50, 300)
+      })
+      await act(async () => {})
+
+      expect(inviaOrdine).toHaveBeenCalledTimes(1)
+      const ordine = inviaOrdine.mock.calls[0][0] as string[]
+      // Bersaglio CORRETTO (pitchY dal track, 270): 'a' si inserisce all'indice 3 →
+      // ['b','c','d','a','e','f','g','h','i']. La formula sbagliata (cellaH+gapY=120) l'avrebbe
+      // messa all'indice 6 → ['b','c','d','e','f','g','h','a','i'] — una riga intera più giù.
+      expect(ordine).toEqual(['b', 'c', 'd', 'a', 'e', 'f', 'g', 'h', 'i'])
+    } finally {
+      rectSpy.mockRestore()
+      computedSpy.mockRestore()
+    }
   })
 })

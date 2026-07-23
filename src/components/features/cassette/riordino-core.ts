@@ -6,7 +6,12 @@
 // (preventDefault reale, scroll, rect, FLIP) è device/Playwright — MAI finto in jsdom.
 
 /** Geometria della griglia, misurata UNA volta al sollevamento (§2.4.3): celle uniformi a colonne
- *  fisse. `scrollDelta = scrollY_ora − scrollY_lift` compensa l'auto-scroll a coordinate viewport. */
+ *  fisse. `scrollDelta = scrollY_ora − scrollY_lift` compensa l'auto-scroll a coordinate viewport.
+ *  `pitchY` (D10, FIX-F): il passo VERO di riga — su `.ds-parete-grid` (ds-v3.css ~624/664) è il
+ *  track (`grid-auto-rows: var(--track)`), non `cellaH + gapY`: con `align-items:start` le celle
+ *  non riempiono la riga, quindi l'altezza della cella misurata NON è il passo. `cellaH` resta
+ *  per la centratura locale (v. `useDragRiordino.misuraGeometria`), `pitchY` è SOLO per il
+ *  calcolo di riga in `indiceDaPunto`. */
 export type Geometria = {
   gridLeft: number
   gridTop: number
@@ -15,6 +20,7 @@ export type Geometria = {
   gapX: number
   gapY: number
   colonne: number
+  pitchY: number
   scrollDelta: number
 }
 
@@ -32,12 +38,13 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 export function indiceDaPunto(punto: Punto, geo: Geometria, n: number): number {
   if (n <= 0) return 0
   const pitchX = geo.cellaW + geo.gapX
-  const pitchY = geo.cellaH + geo.gapY
   const relX = punto.x - geo.gridLeft
   const relY = punto.y - geo.gridTop + geo.scrollDelta
   const colonna = clamp(Math.round((relX - geo.cellaW / 2) / pitchX), 0, geo.colonne - 1)
   const righeMax = Math.ceil(n / geo.colonne) - 1
-  const riga = clamp(Math.round((relY - geo.cellaH / 2) / pitchY), 0, righeMax)
+  // D10 (FIX-F): il passo di riga è `geo.pitchY` (il track vero), MAI `cellaH + gapY` — v. JSDoc
+  // di `Geometria` sopra.
+  const riga = clamp(Math.round((relY - geo.cellaH / 2) / geo.pitchY), 0, righeMax)
   return clamp(riga * geo.colonne + colonna, 0, n - 1)
 }
 

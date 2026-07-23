@@ -272,11 +272,20 @@ export function useDragRiordino(opts: {
     const gapY = num(cs?.rowGap || cs?.gap)
     const cellaW = primo.width
     const cellaH = primo.height
+    // D10 (FIX-F): il passo di riga vero è il TRACK della griglia (`--track`, `grid-auto-rows`,
+    // già risolto in px dal browser via getComputedStyle) — su `.ds-parete-grid` (ds-v3.css
+    // ~624/664) le celle NON riempiono la riga (`align-items:start`), quindi `cellaH` da solo
+    // sfalsa il bersaglio scendendo di riga. Fallback a `cellaH` se il valore letto non è un
+    // numero finito >0 (griglia non-CSS-grid, o non ancora misurabile) — riproduce il
+    // comportamento precedente (pitch = cellaH + gapY).
+    const trackYraw = parseFloat(cs?.gridAutoRows ?? '')
+    const trackY = Number.isFinite(trackYraw) && trackYraw > 0 ? trackYraw : cellaH
+    const pitchY = trackY + gapY
     const gridRect = grid.getBoundingClientRect()
     let colonne = Math.round((gridRect.width + gapX) / (cellaW + gapX))
     if (!Number.isFinite(colonne) || colonne < 1) colonne = 1
     return {
-      geo: { gridLeft: primo.left, gridTop: primo.top, cellaW, cellaH, gapX, gapY, colonne, scrollDelta: 0 },
+      geo: { gridLeft: primo.left, gridTop: primo.top, cellaW, cellaH, gapX, gapY, colonne, pitchY, scrollDelta: 0 },
       origine,
     }
   }

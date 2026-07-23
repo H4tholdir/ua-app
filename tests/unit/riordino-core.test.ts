@@ -13,7 +13,9 @@ import {
   velocitaAutoScroll,
 } from '@/components/features/cassette/riordino-core'
 
-// Griglia uniforme di riferimento: 3 colonne, celle 100×100, gap 20, origine (0,0).
+// Griglia uniforme di riferimento: 3 colonne, celle 100×100, gap 20, origine (0,0). `pitchY`
+// coincide qui con `cellaH + gapY` (120): i test sotto NON toccano il difetto D10 (celle che
+// riempiono la riga, track = cella + gap), servono a coprire il resto della semantica.
 const geo: Geometria = {
   gridLeft: 0,
   gridTop: 0,
@@ -22,6 +24,7 @@ const geo: Geometria = {
   gapX: 20,
   gapY: 20,
   colonne: 3,
+  pitchY: 120,
   scrollDelta: 0,
 }
 
@@ -41,6 +44,27 @@ describe('indiceDaPunto — hit-testing aritmetico O(1), semantica closestCenter
   it('sopra/a sinistra dell’origine → clamp a 0 (mai negativo)', () => {
     expect(indiceDaPunto({ x: -100, y: -100 }, geo, 7)).toBe(0)
   })
+  // D10 (FIX-F, QA device #1, verbale 2026-07-24) — root cause: `.ds-parete-grid` (ds-v3.css
+  // ~624/664) ha `grid-auto-rows: var(--track)` + `align-items:start`: le celle NON riempiono la
+  // riga, il passo di riga VERO è il track, non `cellaH + gapY`. Qui `pitchY` (250) è
+  // DELIBERATAMENTE diverso da `cellaH + gapY` (120) — celle più basse del track, come nella
+  // parete reale — per dimostrare che `indiceDaPunto` usa `pitchY`, non l'altezza della cella.
+  const geoTrack: Geometria = { ...geo, pitchY: 250 }
+
+  it('D10: il passo di riga è pitchY (track), non cellaH+gapY — riga 2 col track più alto delle celle', () => {
+    // Centro della cella di riga 2 (0-based riga 1) colonna 0 SECONDO IL TRACK VERO (250): relY =
+    // 250·1 + cellaH/2 = 300. Con la formula sbagliata (cellaH+gapY=120) l'indice cadrebbe alla
+    // riga 2 (0-based), cioè indice 6 invece di 3 — esattamente lo sfalsamento del difetto.
+    expect(indiceDaPunto({ x: 50, y: 300 }, geoTrack, 7)).toBe(3)
+  })
+
+  it('D10: stesso punto, ma con pitchY = cellaH+gapY (griglia "vecchia" senza track) → riga più sotto', () => {
+    // Controprova: con lo STESSO punto (50,300) ma pitchY=120 (comportamento pre-fix, celle che
+    // riempiono la riga), il bersaglio è un'ALTRA cella (indice 6) — la differenza è
+    // interamente dovuta a pitchY, non ad altro nella funzione.
+    expect(indiceDaPunto({ x: 50, y: 300 }, geo, 7)).toBe(6)
+  })
+
   it('compensa lo scroll: un punto viewport fermo con scrollDelta=120 cade una riga più giù', () => {
     // Stesso punto viewport (50,50) del primo caso, ma il documento è sceso di una riga intera:
     // il bersaglio deve seguire il muro, non il dito immobile.
