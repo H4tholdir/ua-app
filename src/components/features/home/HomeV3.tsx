@@ -11,7 +11,9 @@
 // decise server-side da `vistaHome` (preferenza «La tua home» + `?stanza=`):
 //   pager  → StanzePager con dentro le due stanze;
 //   pile   → esattamente il layout storico, invariato;
-//   parete → la sola stanza Parete, che porta la propria testata compressa.
+//   parete → la sola stanza Parete — Task 12 (D2, spec redesign §3.1): non più un'anteprima con
+//            testata propria, ma la `PareteClient` VERA di `/cassette` (`contesto="stanza"`,
+//            niente chrome di pagina — quello ce l'ha già la home).
 // In ogni forma il TastoPiù è UNO e sta nel piede, fuori dal pager.
 //
 // La StrisciaStato vive nella stanza Pile — anche nella forma «solo parete»,
@@ -23,9 +25,9 @@ import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
+import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
-import { StanzaParete } from './StanzaParete'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -156,15 +158,17 @@ export function HomeV3(props: {
       `}</style>
 
       {vista.tipo === 'pager' ? (
-        <StanzePager
-          stanzaIniziale={vista.iniziale}
-          pile={stanzaPile}
-          parete={<StanzaParete parete={parete} />}
-          footer={piede}
-        />
+        <StanzePager stanzaIniziale={vista.iniziale} pile={stanzaPile} parete={parete} footer={piede} />
       ) : vista.stanza === 'parete' ? (
         <>
-          <StanzaParete parete={parete} />
+          {/* Task 12 (D2) — forma «solo parete»: niente pager, quindi niente mount differito da
+              fare (la stanza è l'unica cosa in pagina, si legge già server-side) — monta
+              `PareteClient` DIRETTAMENTE, sempre attiva. Stesso contenitore scrollabile
+              (`.ua-stanza-parete-scroll`, ds-v3.css) della stanza omonima dentro il pager: la
+              legge «no-scroll» (§3.3) decade qui per dichiarazione esplicita di spec §3.1. */}
+          <div className="ua-stanza-parete-scroll">
+            <PareteClient parete={parete} contesto="stanza" attivo />
+          </div>
           {piede}
         </>
       ) : (

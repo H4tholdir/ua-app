@@ -2,9 +2,14 @@
 // (ratifica Francesco 23/07/2026 — docs/design/decisions/2026-07-22-gap-cassette-tablet.md):
 // sulla pagina /cassette la spaziatura della parete scala con la larghezza della
 // shell (container query), SENZA gradini di media query — 16px sul telefono,
-// ~23px a shell 720 (tablet), 26px dal desktop. La home (.ua-stanza-parete) NON
-// è nel perimetro: resta ai valori fissi misurati del collaudo R3b (744px
-// compatta) finché non arriva l'ondata «Redesign parete/home».
+// ~23px a shell 720 (tablet), 26px dal desktop.
+// Task 12 (D2, spec redesign §3.1, 25/07) — l'ondata «Redesign parete/home» è arrivata: la
+// stanza Parete della home NON ha più una propria superficie CSS (`.ua-stanza-parete*` è
+// morta) — monta la STESSA `PareteClient`/`.ds-parete-shell` di `/cassette`, quindi eredita
+// questo stesso perimetro fluido by design. Le due guardie che presidiavano il VECCHIO
+// perimetro («la home resta fuori», «il leak vettore via home riusa la regola base») sono
+// state abrogate e sostituite (panel ARCH R6 + FE R2, spec §5.4) — v. decision record
+// `docs/design/decisions/2026-07-25-abrogazione-guardie-stanza-parete.md`.
 // Stesso pattern di css-sync.test.ts: il CSS è verificato come testo, jsdom non
 // fa layout.
 import { describe, it, expect } from 'vitest'
@@ -33,11 +38,16 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     )
   })
 
-  it('ogni cqw del foglio vive in un selettore col perimetro .ds-parete-shell (vettore di leak reale: la regola BASE di .ds-parete-grid, che la home riusa)', () => {
-    // Review 23/07 (Medium-1): la home riusa .ds-parete/.ds-parete-grid SENZA il
-    // prefisso .ua-stanza-parete — il leak realistico è rendere fluida la regola
-    // base. Quindi: (a) ogni regola che contiene cqw ha .ds-parete-shell nel
-    // selettore; (b) le regole base restano ai valori fissi di oggi.
+  // Task 12 (D2, 25/07) — ABROGATA e SOSTITUITA (panel ARCH R6 + FE R2, spec §5.4; era «assert
+  // 4» del piano dell'ondata). La guardia originale presidiava un leak preciso: la home, prima
+  // del Task 12, rendeva `.ds-parete`/`.ds-parete-grid` SENZA passare da `.ds-parete-shell` (un
+  // proprio `.ua-stanza-parete .ds-parete-grid` sovrascriveva solo le colonne) — rendere fluida
+  // la regola BASE l'avrebbe fatta trapelare lì. Quella premessa non esiste più: la home monta
+  // la stessa `PareteClient` di `/cassette`, quindi il SUO `.ds-parete-shell` è il perimetro
+  // anche per la home — non c'è più un consumatore della regola base fuori da questo perimetro.
+  // Le due asserzioni strutturali (loop cqw→shell, valori base verbatim) restano perché vere e
+  // utili, ma sotto un titolo che non promette più una guardia specifica per la home.
+  it('ogni cqw del foglio vive in un selettore col perimetro .ds-parete-shell — un solo perimetro fluido, home inclusa dal Task 12 in poi', () => {
     const senzaCommenti = css.replace(/\/\*[\s\S]*?\*\//g, '')
     for (const m of senzaCommenti.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
       if (/cqw/.test(m[2])) expect(m[1]).toContain('.ds-parete-shell')
@@ -48,17 +58,18 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 4\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/)
   })
 
-  it('la home resta FUORI dal perimetro: nessuna regola fluida tocca .ua-stanza-parete', () => {
-    // Le regole della stanza-parete non devono contenere clamp/cqw: la compatta
-    // R3b (gap 12, misure 744px) è sanzionata e non va alterata da questo giro.
-    // I commenti CSS vanno spogliati PRIMA del match: menzionare la stanza-parete
-    // in un commento è lecito (e succede), toccarne le regole no.
-    const senzaCommenti = css.replace(/\/\*[\s\S]*?\*\//g, '')
-    const regole = [...senzaCommenti.matchAll(/\.ua-stanza-parete[^{]*\{([^}]*)\}/g)]
-    expect(regole.length).toBeGreaterThan(0) // la guardia deve guardare qualcosa
-    for (const m of regole) {
-      expect(m[1]).not.toMatch(/clamp|cqw/)
-    }
+  // Task 12 (D2, 25/07) — ABROGATA e SOSTITUITA (panel ARCH R6 + FE R2, spec §5.4; era «assert
+  // 5» del piano dell'ondata: «la home resta FUORI dal perimetro: nessuna regola fluida tocca
+  // .ua-stanza-parete»). L'oggetto della guardia (le regole `.ua-stanza-parete*`, il perimetro
+  // CSS proprio della vecchia anteprima cap-8) non esiste più — `regole.length` cadrebbe a 0 by
+  // design, un RED che certificherebbe solo che il componente è morto, non un difetto. La nuova
+  // guardia presidia il contratto CSS che lo sostituisce: la stanza Parete della home è oggi
+  // `.ua-stanza-parete-scroll`, il contenitore di scroll interno attorno alla `PareteClient`
+  // vera (§3.1) — v. decision record 2026-07-25 per il resto delle regole morte.
+  it('la stanza parete della home è il contenitore di scroll del riordino (decisione 2026-07-25)', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ua-stanza-parete-scroll \{[^}]*overflow-y: auto;[^}]*overscroll-behavior-y: contain;/
+    )
   })
 })
 
@@ -92,16 +103,23 @@ describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica
     )
   })
 
-  it('il row-gap:0 vince anche dentro il perimetro shell (specificità 0,2,0, DOPO la regola-guardia del gap fluido — non la tocca) e nel ramo home a device corti (max-height:780px)', () => {
+  // Task 12 (25/07) — il terzo `expect` di questo test («…e nel ramo home a device corti») è
+  // una conseguenza MECCANICA (non prescritta dal piano, scoperta in implementazione) della
+  // stessa rimozione delle guardie qui sopra: presidiava che `.ua-stanza-parete .ds-parete-grid
+  // { row-gap: 0; }` ribadisse la quantizzazione dentro `@media (max-height:780px)`, perché lì
+  // `.ua-stanza-parete .ds-parete-grid { gap: 12px; }` (shorthand — azzerava anche row-gap)
+  // vinceva per specificità sulla regola base. Quella coppia di regole home-specifiche non
+  // esiste più: la home non ha più un proprio ramo di gap fisso, usa lo stesso
+  // `.ds-parete-shell .ds-parete-grid` fluido di `/cassette` — la quantizzazione della regola
+  // base (Task 8) vale già, senza bisogno di un contro-effetto home-specifico. V. decision
+  // record 2026-07-25. Il resto del test (perimetro shell) resta intatto.
+  it('il row-gap:0 vince anche dentro il perimetro shell (specificità 0,2,0, DOPO la regola-guardia del gap fluido — non la tocca)', () => {
     expect(norm).toMatch(
       /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ row-gap: 0; \}/
     )
     // la regola-guardia del gap fluido shell resta intatta (assert esistente riga 24-28)
     expect(norm).toMatch(
       /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ gap: clamp\(16px, 3\.6cqw, 26px\); \}/
-    )
-    expect(norm).toMatch(
-      /@media \(max-height: 780px\) \{[\s\S]*?\.ua-stanza-parete \.ds-parete-grid \{ row-gap: 0; \}\s*\}/
     )
   })
 

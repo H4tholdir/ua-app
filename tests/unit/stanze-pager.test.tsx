@@ -24,7 +24,13 @@ import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 const push = vi.fn()
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+// Task 12 — `parete` non è più un ReactNode arbitrario: la stanza parete monta la `PareteClient`
+// VERA, che registra il proprio effect di freschezza (`router.refresh` su focus/visibilitychange,
+// gated da `attivo` — riserva ARCH R2). `refresh`/`back` nel mock evitano un crash silenzioso se
+// un test arriva a far scattare quell'effect (nessuno lo asserisce qui: quel comportamento è
+// presidiato in `tests/unit/parete-client.test.tsx`).
+const refresh = vi.fn()
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, back: vi.fn() }) }))
 
 // ── Stub di IntersectionObserver che si può PILOTARE ────────────────────────────────────
 type Osservatore = {
@@ -94,17 +100,19 @@ const CONTENUTO_PILE = (
     <button type="button">Tutto il resto</button>
   </div>
 )
-const CONTENUTO_PARETE = (
-  <div>
-    <h1>La parete</h1>
-    <button type="button">Cassetta C12</button>
-  </div>
-)
+// Task 12 — `parete` è ora `CassettaParete[]`: la stanza parete monta la `PareteClient` vera
+// (contesto='stanza'), non più un ReactNode generico. Una sola cassetta libera basta a questi
+// test — l'accessible name reale di `Cassetta` («Cassetta {nome}, libera») sostituisce il vecchio
+// stand-in testuale «Cassetta C12».
+const PARETE_STANZA_TEST: CassettaParete[] = [
+  { id: 'c1', nome: 'C12', colore: 'rossa', posizione: 1, lavoro: null },
+]
 
 beforeEach(() => {
   osservatori = []
   eventi = []
   push.mockClear()
+  refresh.mockClear()
   vi.stubGlobal('IntersectionObserver', IOFinto)
 })
 afterEach(() => {
@@ -113,7 +121,7 @@ afterEach(() => {
 
 describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
   it("con stanzaIniziale='pile' la stanza pile è attiva e la parete è inert + aria-hidden", () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
     expect(pannello('pile')).not.toHaveAttribute('inert')
     expect(pannello('parete')).toHaveAttribute('aria-hidden', 'true')
@@ -121,7 +129,7 @@ describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
   })
 
   it("con stanzaIniziale='parete' è la stanza pile a essere inert + aria-hidden", () => {
-    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     expect(pannello('parete')).toHaveAttribute('aria-hidden', 'false')
     expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
@@ -129,15 +137,15 @@ describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
   })
 
   it('la stanza fuori campo sparisce dall’albero a11y: un solo «Tutto il resto» raggiungibile', () => {
-    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     // `getByRole` esclude di default ciò che è nascosto agli screen reader: se aria-hidden
     // mancasse sulla stanza uscente, questo bottone sarebbe comunque interrogabile.
     expect(screen.queryByRole('button', { name: 'Tutto il resto' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cassetta C12' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
   })
 
   it('le due stanze sono tabpanel etichettati dai rispettivi tab', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     const tabs = screen.getAllByRole('tab')
     expect(tabs).toHaveLength(2)
     expect(pannello('pile')).toHaveAttribute('role', 'tabpanel')
@@ -176,7 +184,7 @@ describe('StanzePager — dove si apre il viewport al primo render', () => {
   it("aprendo sulla parete il viewport ci si posiziona SUBITO e senza animazione — altrimenti si vedrebbe la stanza pile, che è inerte", () => {
     conProtoStubato((scrollTo) => {
       const { container } = render(
-        <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+        <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
       )
       expect(scrollTo).toHaveBeenCalledWith({ left: 362, behavior: 'auto' })
       expect(scrollTo.mock.contexts[0]).toBe(container.querySelector('.ua-stanze-viewport'))
@@ -185,14 +193,14 @@ describe('StanzePager — dove si apre il viewport al primo render', () => {
 
   it('aprendo sulle pile il viewport è già al suo posto: left 0', () => {
     conProtoStubato((scrollTo) => {
-      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
       expect(scrollTo).toHaveBeenCalledWith({ left: 0, behavior: 'auto' })
     })
   })
 
   it("il posizionamento iniziale avviene PRIMA di osservare: l'IO parte da una posizione già giusta", () => {
     conProtoStubato(() => {
-      render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
       // `eventi` registra l'ordine reale delle chiamate. Se si osservasse prima di scrollare,
       // la prima misura dell'IO cadrebbe sulla stanza sbagliata: nel browser vero i dots
       // sfarfallerebbero (e `attiva` potrebbe restare sulla stanza da cui si è appena usciti).
@@ -201,9 +209,52 @@ describe('StanzePager — dove si apre il viewport al primo render', () => {
   })
 })
 
+// Task 12 (D2, spec redesign §3.1) — la stanza parete monta la `PareteClient` VERA: col peek
+// morto (Task 13) la stanza inattiva è del tutto fuori schermo, niente serve montarla subito.
+// `[data-cassetta-id]` (non `getByRole`) è il marcatore usato qui per il contenuto NON ancora
+// visibile/attivo: la stanza inattiva è `aria-hidden`, e `getByRole` la escluderebbe comunque
+// dall'albero a11y — il punto da presidiare è se `PareteClient` è nel DOM, non se è raggiungibile.
+describe('StanzePager — mount differito della stanza parete (Task 12, riserva ARCH R3)', () => {
+  it('inattiva al montaggio: NON monta la PareteClient finché non arriva il fallback idle (jsdom non ha requestIdleCallback)', () => {
+    vi.useFakeTimers()
+    try {
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      expect(pannello('parete').querySelector('[data-cassetta-id]')).toBeNull()
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('deep-link `stanzaIniziale="parete"`: monta la PareteClient SUBITO, senza attendere l\'idle', () => {
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
+  })
+
+  it('tap sul dot verso la parete: monta la PareteClient SUBITO, nello stesso giro (niente attesa dell\'idle)', async () => {
+    const user = userEvent.setup()
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(pannello('parete').querySelector('[data-cassetta-id]')).toBeNull()
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
+  })
+
+  it('una volta montata resta montata: tornando inattiva la PareteClient non si smonta (solo inert/aria-hidden)', async () => {
+    const user = userEvent.setup()
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
+    await user.click(screen.getAllByRole('tab')[0])
+    expect(pannello('parete')).toHaveAttribute('inert')
+    expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
+  })
+})
+
 describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
   it('i dots sono un tablist vero con aria-selected sulla stanza attiva', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     expect(screen.getByRole('tablist')).toBeInTheDocument()
     const tabs = screen.getAllByRole('tab')
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
@@ -213,7 +264,7 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
   it('tap sul secondo dot: scrollTo verso la stanza parete (smooth), inert invertito, focus nella stanza entrante', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
 
@@ -224,14 +275,16 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
     expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
-    // Il focus entra nella stanza: il primo elemento focusabile della parete.
-    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Cassetta C12' }))
+    // Il focus entra nella stanza: il primo elemento focusabile della parete VERA (Task 12) è
+    // la pillola di ricerca di `PareteClient`, non più la prima cassetta (il vecchio stand-in
+    // testuale non aveva ricerca — con la parete vera l'ordine del DOM cambia davvero).
+    expect(document.activeElement).toBe(within(pannello('parete')).getByPlaceholderText('Cerca una cassetta o un lavoro…'))
   })
 
   it('tornare al primo dot riporta lo scroll a sinistra (left = offsetLeft della stanza pile)', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
     await user.click(screen.getAllByRole('tab')[0])
@@ -253,7 +306,7 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
     try {
       const user = userEvent.setup()
       const { container } = render(
-        <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+        <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
       )
       const { scrollTo } = preparaViewport(container)
       await user.click(screen.getAllByRole('tab')[1])
@@ -268,7 +321,7 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
   it('freccia → cambia stanza e LASCIA il focus sui dots (il ritorno resta a un tasto)', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
     const tabs = screen.getAllByRole('tab')
@@ -284,7 +337,7 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
   it('freccia ← sulla prima stanza non fa nulla (non si esce dal muro)', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
     screen.getAllByRole('tab')[0].focus()
@@ -301,7 +354,7 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
   it("freccia poi Invio: il focus ENTRA nella stanza già selezionata (la freccia sceglie, l'Invio ci porta dentro)", async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
     const tabs = screen.getAllByRole('tab')
@@ -310,11 +363,12 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
     expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
     expect(document.activeElement).toBe(tabs[1])
     await user.keyboard('{Enter}')
-    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Cassetta C12' }))
+    // Come sopra: il primo focusabile della parete VERA è la ricerca, non una cassetta.
+    expect(document.activeElement).toBe(within(pannello('parete')).getByPlaceholderText('Cerca una cassetta o un lavoro…'))
   })
 
   it('roving tabindex: un solo dot è nel flusso di Tab', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     const tabs = screen.getAllByRole('tab')
     expect(tabs[0]).toHaveAttribute('tabindex', '0')
     expect(tabs[1]).toHaveAttribute('tabindex', '-1')
@@ -324,7 +378,7 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
 describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanza attiva', () => {
   it('osserva le due stanze con soglia 0.6 e root il viewport', () => {
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const osservatore = osservatori.at(-1)
     expect(osservatore?.osservati).toHaveLength(2)
@@ -334,7 +388,7 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
 
   it('la parete che copre il 90% del viewport diventa la stanza attiva — senza alcuno scrollTo', () => {
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
     simulaScroll('parete', 0.9)
@@ -344,14 +398,14 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
   })
 
   it('una parete a metà strada (40%) NON cambia la stanza attiva: la soglia è vera, non decorativa', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     simulaScroll('parete', 0.4)
     expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true')
     expect(pannello('parete')).toHaveAttribute('inert')
   })
 
   it("lo swipe NON ruba il focus (a differenza del tap sul dot): resta dov'è", () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     const primoTab = screen.getAllByRole('tab')[0]
     primoTab.focus()
     simulaScroll('parete', 0.95)
@@ -365,7 +419,7 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
   it('un tap sul dot GIÀ attivo non lascia armata alcuna intenzione di focus: il primo swipe non la riscuote', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
     // Il riferimento si prende PRIMA dello swipe: dopo, la stanza pile è aria-hidden e
@@ -578,11 +632,16 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
     expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
-  it("preferenza 'parete': solo la parete, nessun pager, e comunque il TastoPiù", () => {
+  // Task 12 (D2) — la stanza parete NON porta più un proprio titolo «La parete ›» (l'anteprima
+  // cap-8 è morta): è la `PareteClient` VERA, in `contesto='stanza'` (niente chrome di pagina —
+  // v. `PareteClient.test.tsx`). Il segno che siamo davvero sulla parete embeddata è il suo
+  // chrome FUNZIONALE (ricerca) e le sue cassette, non un titolo.
+  it("preferenza 'parete': solo la parete VERA (D2), nessun pager, e comunque il TastoPiù", () => {
     renderHome('parete')
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(screen.queryByText('DA CONSEGNARE OGGI')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'La parete' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Cassetta C12/ })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
   })
 })
@@ -597,7 +656,7 @@ describe('Collaudo R2 — il focus del cambio stanza non deve scrollare (D-1, 22
       chiamate.push(opts)
     })
     try {
-      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
       chiamate.length = 0
       const dots = screen.getAllByRole('tab')
       await act(async () => {
@@ -616,7 +675,7 @@ describe('Collaudo R2 — il focus del cambio stanza non deve scrollare (D-1, 22
       chiamate.push(opts)
     })
     try {
-      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={CONTENUTO_PARETE} />)
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
       chiamate.length = 0
       const dots = screen.getAllByRole('tab')
       await act(async () => {

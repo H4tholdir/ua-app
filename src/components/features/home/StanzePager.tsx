@@ -30,8 +30,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ProgressDotsStanze, idTabStanza } from '@/components/ds/ProgressDots'
+import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { useReducedMotion } from '@/design-system/v3/motion'
 import type { StanzaHome } from '@/lib/preferenze/home'
+import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 const ORDINE: readonly StanzaHome[] = ['pile', 'parete']
 const ID_PANNELLI = ['ua-stanza-pile', 'ua-stanza-parete'] as const
@@ -44,10 +46,58 @@ const SOGLIA_STANZA_ATTIVA = 0.6
 
 const FOCUSABILI = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
+/** Task 12 (D2, spec redesign §3.1) — la stanza parete della home: componente LOCALE (vive
+ *  qui, non un file a parte — l'anteprima cap-8 che occupava `StanzaParete.tsx` è morta col suo
+ *  test) che avvolge la `PareteClient` VERA con un mount differito (riserva ARCH R3). Il pager
+ *  è l'unico a possedere `attiva`: qui pilota insieme `inert`/`aria-hidden` (dal genitore), il
+ *  refresh gated di `PareteClient` (riserva ARCH R2, `attivo`) e il momento del mount.
+ *
+ *  Mount: se la stanza è già attiva al render (deep-link `?stanza=parete`) o lo diventa mentre
+ *  l'utente la sceglie (dot/freccia/swipe), monta SUBITO — l'aggiustamento di stato avviene nel
+ *  render stesso (`if (props.attiva && !montata) setMontata(true)`), non in un effect passivo:
+ *  un effect qui arriverebbe DOPO l'effect del pager che sposta il focus nella stanza entrante
+ *  (v. `[attiva]` sotto), trovandola ancora vuota — la stanza fisicamente esiste ma il primo
+ *  focusable interno non c'è ancora. Se invece resta inattiva, il mount pieno aspetta il primo
+ *  idle (fallback `setTimeout` 300ms — jsdom e alcuni browser non hanno
+ *  `requestIdleCallback`): col peek morto (Task 13) la stanza è del tutto fuori schermo, niente
+ *  serve montarla subito. Requisito UX di collaudo: il primo swipe non deve stutterare — mai un
+ *  mount sincrono e pesante a metà gesto, da cui il ramo idle. Una volta montata RESTA montata
+ *  (mai `setMontata(false)`): un dot che torna sulle pile non deve smontare/rimontare il muro. */
+function StanzaParete(props: { parete: CassettaParete[]; attiva: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [montata, setMontata] = useState(props.attiva)
+  if (props.attiva && !montata) setMontata(true)
+  useEffect(() => {
+    if (montata) return
+    // `typeof window.requestIdleCallback === 'function'` (non `'requestIdleCallback' in
+    // window`): lib.dom.d.ts dichiara il metodo NON opzionale su `Window`, quindi l'operatore
+    // `in` farebbe restringere il ramo «assente» a `never` (falso per TypeScript, vero in jsdom
+    // e in browser che non lo implementano) — `tsc --noEmit` cadrebbe su un tipo fantasma.
+    const idle =
+      typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback(() => setMontata(true))
+        : window.setTimeout(() => setMontata(true), 300)
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle as number)
+      else clearTimeout(idle as number)
+    }
+  }, [montata])
+  return (
+    <div ref={scrollRef} className="ua-stanza-parete-scroll">
+      {montata ? (
+        <PareteClient parete={props.parete} contesto="stanza" attivo={props.attiva} scrollerRef={scrollRef} />
+      ) : null}
+    </div>
+  )
+}
+
 export function StanzePager(props: {
   stanzaIniziale: StanzaHome
   pile: ReactNode
-  parete: ReactNode
+  /** Task 12 (D2): non più un `ReactNode` composto dal chiamante — il pager possiede l'unico
+   *  dato che gli serve davvero (`attiva`) per pilotare il mount differito, quindi possiede
+   *  anche il rendering della stanza (v. `StanzaParete` locale sopra). */
+  parete: CassettaParete[]
   /** Il piano fisso sotto le stanze: UN solo TastoPiù, identico e immobile in entrambe
    *  (§3.3 regola 5) — mai un doppione visibile a metà snap. Sta fuori dal viewport, così
    *  non scorre con le stanze. */
@@ -167,7 +217,7 @@ export function StanzePager(props: {
                 stanze.current[nome] = nodo
               }}
             >
-              {nome === 'pile' ? pile : parete}
+              {nome === 'pile' ? pile : <StanzaParete parete={parete} attiva={eAttiva} />}
             </div>
           )
         })}

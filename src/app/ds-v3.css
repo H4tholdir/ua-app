@@ -780,41 +780,19 @@
 [data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
 [data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
 
-/* La stanza Parete: la testata compressa in alto, il muro che assorbe lo slack — stessa
-   meccanica di `.ua-home .pile`, così l'altezza torna in entrambe le forme (pager e sola). */
-[data-ds="v3"] .ua-stanza-parete { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-[data-ds="v3"] .ua-stanza-parete-corpo {
-  flex: 1; margin-top: 16px; display: flex; flex-direction: column; justify-content: center;
-}
-[data-ds="v3"] .ua-parete-titolo { margin-top: 6px; }
-[data-ds="v3"] .ua-parete-titolo:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 8px; }
-/* In home il muro è SEMPRE a 3 colonne (§6): le colonne 4/6 di `.ds-parete-grid` valgono per
-   la pagina `/cassette`, che è larga quanto il viewport — qui la stanza è al massimo 480px,
-   e a 768 quattro tray scenderebbero sotto i 44px di lato. Specificità (0,3,0): vince sulle
-   media query di `.ds-parete-grid` (0,2,0) a prescindere dall'ordine. */
-[data-ds="v3"] .ua-stanza-parete .ds-parete-grid { grid-template-columns: repeat(3, 1fr); }
-@media (max-height: 780px) { /* §7.1 rev. 3.2 (R3b) — stessa soglia device-corti della stanza Pile */
-  [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
-  [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
-  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
-  /* Task 8 — il `gap: 12px` qui sopra riscrive anche row-gap: senza questa riga la
-     quantizzazione (row-gap:0 dichiarata sulla regola base .ds-parete-grid, specificità
-     0,1,0) perderebbe qui, dove `.ua-stanza-parete .ds-parete-grid` ha specificità 0,3,0
-     più alta. ⚠️ RISCHIO NOTO (da confermare in QA Task 9b/15/17): `grid-auto-rows: var(--track)`
-     (176px fisso, non scala col device-corto) può rendere il muro home più alto di quanto
-     tarato dal collaudo R3b compatto — qui si preserva SOLO l'aggancio riga↔filo, non si
-     ritara l'altezza complessiva del R3b, fuori perimetro di questo task. */
-  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { row-gap: 0; }
-}
-
-/* Task 15 — cap CSS-driven + tile «Tutte le cassette ›». La cella avvolge la Cassetta (come
-   `.ds-cella-riordino` su /cassette): il componente ds resta intatto, la cella porta il taglio.
-   Si rende il SUPERSET tablet (8 celle) e sotto 768px si nascondono le celle oltre il cap mobile
-   (5): niente misura runtime, stessa meccanica @media della scala device-corti. */
-[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home { display: flex; min-width: 0; }
-[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home > .ds-cassetta { flex: 1 1 auto; width: 100%; }
-@media (max-width: 767px) {
-  [data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home.is-oltre-mobile { display: none; }
+/* Task 12 (D2, spec redesign §3.1) — la stanza Parete NON è più un'anteprima con testata e
+   griglia proprie: è la STESSA `PareteClient` di `/cassette` (`.ds-parete-shell` e tutto il
+   resto, container query comprese — riserva ARCH R7 del Task 11), montata dentro questo
+   contenitore di scroll. La legge «no-scroll verticale in entrambe le stanze» (§3.3) DECADE qui
+   per dichiarazione esplicita di spec §3.1: la parete embeddata scorre come scorre su
+   `/cassette`. `overscroll-behavior-y: contain` per non far rimbalzare la home sotto;
+   `touch-action: pan-y pan-x` lascia al pager lo swipe orizzontale di cambio stanza mentre la
+   stanza stessa scorre in verticale (v. decision record 2026-07-25 per la sorte delle vecchie
+   regole `.ua-stanza-parete*`/`.ds-cella-parete-home` e delle guardie CSS abrogate). */
+[data-ds="v3"] .ua-stanza-parete-scroll {
+  flex: 1; min-height: 0; overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pan-x;
 }
 
 /* Il tile finale: stessa figura della tray «+ Nuova cassetta» (`.ds-tray-nuova`), tratteggio e

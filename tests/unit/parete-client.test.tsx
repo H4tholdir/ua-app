@@ -49,6 +49,38 @@ describe('PareteClient — la parete e il suo chrome (§5)', () => {
   })
 })
 
+// Task 12 (D2, spec redesign §3.1) — la stessa `PareteClient` di `/cassette` si monta anche
+// dentro la stanza Parete della home: `contesto='stanza'` spegne l'intero chrome di pagina
+// (niente «‹ Indietro», niente «☰ Tutto il resto» — la stanza vive già dentro la home, che ha il
+// proprio ☰ nella stanza Pile) e `attivo` sospende il refresh su focus/visibilitychange (riserva
+// ARCH R2) finché l'utente non sta guardando DAVVERO quella stanza — mai rifare l'intera
+// dashboard mentre sta sulle pile.
+describe('PareteClient — contesto stanza (D2, spec redesign §3.1, Task 12)', () => {
+  it('in stanza: nessun header di pagina (niente «Indietro», niente «Tutto il resto»)', () => {
+    render(<PareteClient parete={[occupata]} contesto="stanza" attivo />)
+    expect(screen.queryByRole('button', { name: 'Indietro' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tutto il resto' })).toBeNull()
+  })
+
+  it('refresh gated (riserva ARCH R2): con attivo=false il focus NON chiama router.refresh', () => {
+    render(<PareteClient parete={[occupata]} contesto="stanza" attivo={false} />)
+    fireEvent(window, new Event('focus'))
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('con attivo=true il focus rilegge (comportamento di /cassette conservato)', () => {
+    render(<PareteClient parete={[occupata]} contesto="stanza" attivo />)
+    fireEvent(window, new Event('focus'))
+    expect(refresh).toHaveBeenCalled()
+  })
+
+  it('contesto di default resta "pagina" (comportamento invariato su /cassette: nessuna prop nuova da passare lì)', () => {
+    render(<PareteClient parete={[occupata]} />)
+    expect(screen.getByRole('button', { name: 'Indietro' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
+  })
+})
+
 // Ratifica 22/07 (spec redesign §2.4) — la ricerca «che accende» muore: con ricerca attiva le
 // non-match si SMONTANO (niente più `is-spenta`, il valore muore dal tipo `Cassetta`) e le match
 // risalgono in testa nell'ordine relativo della parete. Il filtro/riordino è debounced a ~180ms

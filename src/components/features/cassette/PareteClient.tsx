@@ -83,9 +83,26 @@ export function PareteClient(props: {
   /** Scroller del gesto di riordino (riserva ARCH R1, pre-embed home): assente → window,
    *  comportamento IDENTICO a oggi su /cassette. Pass-through puro verso `useDragRiordino`. */
   scrollerRef?: RefObject<HTMLElement | null>
+  /** Task 12 (D2, spec redesign §3.1) — dove vive questa parete: `'pagina'` (default,
+   *  `/cassette`) porta il proprio chrome («‹ Indietro», «☰ Tutto il resto»); `'stanza'` (la
+   *  stanza Parete della home) lo spegne del tutto — niente back (la stanza vive già dentro la
+   *  home), niente ☰ (quello della stanza Pile basta, è LO STESSO «Tutto il resto»). */
+  contesto?: 'pagina' | 'stanza'
+  /** Solo per `contesto='stanza'` (default `true`, comportamento di `/cassette` invariato): se
+   *  `false` la stanza NON è quella che l'utente sta guardando — il refresh su
+   *  focus/visibilitychange resta sospeso (riserva ARCH R2, v. `attivoRef` sotto). */
+  attivo?: boolean
 }) {
-  const { parete } = props
+  const { parete, contesto = 'pagina', attivo = true } = props
   const router = useRouter()
+  // Refresh gated (riserva ARCH R2): mai rifare l'intera dashboard mentre l'utente sta sulle
+  // pile e la stanza Parete è solo un peek morto fuori schermo. `attivoRef` (non `attivo`
+  // direttamente) per non ri-registrare i listener di focus/visibilitychange a ogni cambio di
+  // stanza — l'effect sotto dipende solo da `router`, come prima del Task 12.
+  const attivoRef = useRef(attivo)
+  useEffect(() => {
+    attivoRef.current = attivo
+  })
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
   const inputCerca = useRef<HTMLInputElement>(null)
@@ -121,7 +138,7 @@ export function PareteClient(props: {
   // si rilegge quando la pagina torna in primo piano (ritorno da /lavori/[id], app riaperta).
   useEffect(() => {
     const rileggi = () => {
-      if (document.visibilityState === 'visible') router.refresh()
+      if (document.visibilityState === 'visible' && attivoRef.current) router.refresh()
     }
     document.addEventListener('visibilitychange', rileggi)
     window.addEventListener('focus', rileggi)
@@ -248,23 +265,28 @@ export function PareteClient(props: {
 
   return (
     <section className="ds-parete-shell">
-      <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
-        {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
-        <h1
-          style={{
-            flex: 1,
-            margin: 0,
-            fontSize: tipografia.size.title,
-            fontWeight: tipografia.weight.extrabold,
-            letterSpacing: tipografia.tracking.titoli,
-            color: 'var(--ink)',
-          }}
-        >
-          Le cassette
-        </h1>
-        <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
-      </header>
+      {/* Task 12 (D2, spec redesign §3.1) — il chrome di pagina è SOLO per `/cassette`
+          (`contesto='pagina'`): la stanza Parete della home (`contesto='stanza'`) non porta né
+          back né ☰, vive già dentro la home (che ha il proprio ☰ nella stanza Pile). */}
+      {contesto === 'pagina' && (
+        <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
+          {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
+          <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
+          <h1
+            style={{
+              flex: 1,
+              margin: 0,
+              fontSize: tipografia.size.title,
+              fontWeight: tipografia.weight.extrabold,
+              letterSpacing: tipografia.tracking.titoli,
+              color: 'var(--ink)',
+            }}
+          >
+            Le cassette
+          </h1>
+          <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
+        </header>
+      )}
 
       {parete.length === 0 ? (
         <Vuoto
