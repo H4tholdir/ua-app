@@ -434,24 +434,45 @@
   font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
   box-shadow: 0 1px 2px rgba(0,0,0,.25);
 }
+/* Task 10 (D4, punto 12) — «la targa nuova», VERBATIM dal mockup ratificato
+   (2026-07-24-rete-gancetto-targa.html rev.3 `.cont`/`.r`/`.dent`/`.pz`/`.r.shrink`, verbale
+   §6/§7/§8). Due righe (dentista + paziente), MAI una terza: il clamp del testo lungo vive sui
+   wrapper INTERNI (`.ds-cassetta-dent`/`.ds-cassetta-paz`), MAI su `.ds-cassetta` (il tile) — un
+   `overflow:hidden` lì taglierebbe il gancetto che sporge sopra il bordo (verbale, vincoli
+   Task 8-10). `display:flex;flex-direction:column` sostituisce il vecchio `-webkit-line-clamp:2`
+   applicato all'intero blocco (Gate L2 22/07): quel clamp mescolava due informazioni diverse
+   (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. */
 [data-ds="v3"] .ds-cassetta-cont {
   position: relative; z-index: 1; text-align: center; margin-top: 5px;
-  font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95);
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 11.5px; line-height: 1.28;
+  color: rgba(255,255,255,.95);
   text-shadow: 0 1px 1px rgba(0,0,0,.3);
-  /* Gate L2 (22/07/2026) — clamp a 2 righe con ellissi: nel mockup ratificato
-     la riga «n.{numero} · {dentista}» è sempre UNA; con numeri lavoro lunghi
-     (misurato a 390px: 3 righe) il blocco risaliva a coprire la miniatura.
-     Il nome completo resta nell'`aria-label` del button (troncamento visivo,
-     non semantico — stessa regola della targa ~6ch). In coppia con la
-     guardia padding-top:44 di `.ds-cassetta` (sopra). */
+}
+[data-ds="v3"] .ds-cassetta-dent,
+[data-ds="v3"] .ds-cassetta-paz {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Tipografia (verbale §7, vincolante — ovunque): il CLINICO è senza grassetto, il PAZIENTE è in
+   grassetto. */
+[data-ds="v3"] .ds-cassetta-dent { font-weight: 400; opacity: .94; }
+[data-ds="v3"] .ds-cassetta-paz { font-weight: 700; }
+/* T2 (verbale §8, ratificata — T1 scartata): nome lungo, shrink a 10px poi 2 righe + tronca. Il
+   peso NON cambia col rimpicciolimento (resta 400/700 come sopra, ereditato). */
+[data-ds="v3"] .ds-cassetta-dent.is-shrink,
+[data-ds="v3"] .ds-cassetta-paz.is-shrink {
+  font-size: 10px; line-height: 1.15; white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
 }
+/* Contrasto automatico per luminanza (targaScura, Cassetta.tsx): faccia chiara → inchiostro
+   scuro sulla riga; il clinico si affievolisce anche di più (.94→.7, verbatim mockup) perché
+   sulle facce chiare l'inchiostro scuro già emerge di più da solo. */
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
   color: rgba(29,25,19,.85); text-shadow: none;
 }
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-dent { opacity: .7; }
 
 [data-ds="v3"] .ds-cassetta.is-libera .ds-cassetta-targa {
   background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9);

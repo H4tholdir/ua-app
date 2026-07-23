@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Cassetta, targaScura, derivaFacciaCustom, facciaScura } from '@/components/ds/Cassetta'
 
-const lavoroOccupato = { numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }
+const lavoroOccupato = {
+  numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa',
+  paziente: 'PZ-0144', pazienteAlias: 'Mario Rossi',
+}
 
 describe('targaScura — regola di luminanza (§5.35, brief Task 10)', () => {
   it("slug 'bianca' → sempre scura", () => {
@@ -31,30 +34,73 @@ describe('targaScura — regola di luminanza (§5.35, brief Task 10)', () => {
   })
 })
 
-describe('Cassetta — occupata (§5.35)', () => {
-  it('aria-label verbatim dal brief: numero, dentista e descrizione del lavoro', () => {
+describe('Cassetta — occupata, targa D4 (Task 10, mockup 2026-07-24-rete-gancetto-targa.html §4, verbale §6/§7/§9)', () => {
+  it('targa D4: dentista + paziente (alias vince sul codice), MAI il numero lavoro', () => {
     render(
       <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />
     )
+    const btn = screen.getByRole('button')
+    expect(btn.textContent).toContain('Bianchi')
+    expect(btn.textContent).toContain('Mario Rossi')
+    expect(btn.textContent).not.toContain('PZ-0144')
+    expect(btn.textContent).not.toContain('144')
+  })
+
+  it('senza alias: si mostra il codice, verbatim (nessuna Title Case sul codice)', () => {
+    const senzaAlias = { ...lavoroOccupato, pazienteAlias: null, paziente: 'PZ-0012' }
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={senzaAlias} stato="normale" onTap={() => {}} />)
+    expect(screen.getByRole('button').textContent).toContain('PZ-0012')
+  })
+
+  it('alias in MAIUSCOLO dal DB è reso in Title Case in targa (verbale §6)', () => {
+    const conAliasGrezzo = { ...lavoroOccupato, pazienteAlias: 'RUSSO MARIA' }
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={conAliasGrezzo} stato="normale" onTap={() => {}} />)
+    expect(screen.getByText('Russo Maria')).toBeInTheDocument()
+  })
+
+  it('gemelle identiche (stesso dentista+paziente, numeri diversi): MAI il numero lavoro su nessuna delle due (decisione O1)', () => {
+    const gemellaA = { ...lavoroOccupato, numero: '14' }
+    const gemellaB = { ...lavoroOccupato, numero: '15' }
+    render(
+      <>
+        <Cassetta id="a" nome="C14" colore="rossa" lavoro={gemellaA} stato="normale" onTap={() => {}} />
+        <Cassetta id="b" nome="C15" colore="rossa" lavoro={gemellaB} stato="normale" onTap={() => {}} />
+      </>
+    )
+    const [btnA, btnB] = screen.getAllByRole('button')
+    expect(btnA.textContent).not.toMatch(/\b14\b/)
+    expect(btnB.textContent).not.toMatch(/\b15\b/)
+    expect(btnA.getAttribute('aria-label')).not.toMatch(/\b14\b/)
+    expect(btnB.getAttribute('aria-label')).not.toMatch(/\b15\b/)
+  })
+
+  it('aria-label D4: dentista e paziente, senza numero (mai) — verbatim dal punto 12 adattato', () => {
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
     expect(
-      screen.getByRole('button', { name: 'Cassetta C12, occupata: lavoro n.144, Bianchi, corona zirconia' })
+      screen.getByRole('button', { name: 'Cassetta C12, occupata: Bianchi, paziente Mario Rossi' })
     ).toBeInTheDocument()
   })
 
-  it("senza descrizione, l'aria-label omette quella parte — MAI lo slug macchina di tipoDispositivo (review M5)", () => {
-    const senzaDescrizione = { numero: '160', dentista: 'Neri', descrizione: null, tipoDispositivo: 'protesi_fissa' }
-    render(<Cassetta id="c1" nome="C1" colore="rossa" lavoro={senzaDescrizione} stato="normale" onTap={() => {}} />)
-    const bottone = screen.getByRole('button')
-    expect(bottone).toHaveAttribute('aria-label', 'Cassetta C1, occupata: lavoro n.160, Neri')
-    expect(bottone.getAttribute('aria-label')).not.toMatch(/protesi_fissa/)
-  })
-
-  it('mostra la targa col nome e la riga "n.144 · Bianchi"', () => {
+  it('tipografia: la riga dentista porta la classe ds-cassetta-dent, quella paziente ds-cassetta-paz (clinico senza grassetto, paziente in grassetto — verbale §7)', () => {
     render(
       <Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />
     )
-    expect(screen.getByText('C12')).toBeInTheDocument()
-    expect(screen.getByText('n.144 · Bianchi')).toBeInTheDocument()
+    const btn = screen.getByRole('button')
+    expect(btn.querySelector('.ds-cassetta-dent')?.textContent).toBe('Bianchi')
+    expect(btn.querySelector('.ds-cassetta-paz')?.textContent).toBe('Mario Rossi')
+  })
+
+  it('nome lungo (T2): oltre soglia la riga porta la classe di shrink', () => {
+    const dentistaLungo = { ...lavoroOccupato, dentista: 'Dott.ssa Annamaria Bellinghieri' }
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={dentistaLungo} stato="normale" onTap={() => {}} />)
+    const riga = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+    expect(riga?.classList.contains('is-shrink')).toBe(true)
+  })
+
+  it('nome corto: NON porta la classe di shrink', () => {
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
+    const riga = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+    expect(riga?.classList.contains('is-shrink')).toBe(false)
   })
 
   it('un tap secco (senza attesa) chiama onTap, non onLongPressSheet', () => {

@@ -5,7 +5,16 @@
 // `docs/design/mockups/2026-07-20-parete-cassette-v2.html` (righe 66-105 CSS, 229-268 markup
 // demo). Corpo gradiente + linguetta `::before` + cavità con `MiniaturaLavoro` (§5.36) + targa
 // (troncamento CSS ~6ch, SR legge il nome completo via `aria-label` — il troncamento è visivo,
-// non semantico) + riga «n.{numero} · {dentista}».
+// non semantico).
+//
+// Task 10 (D4, punto 12) — «la targa nuova» (mockup `2026-07-24-rete-gancetto-targa.html` §4,
+// verbale `docs/design/decisions/2026-07-24-rete-gancetto-targa.md` §6/§7/§8/§9): il contenuto
+// occupata è dentista + paziente (alias vince sul codice, Task 1) su due righe — MAI il numero
+// lavoro né il tipo (la terza riga è MORTA, anche in collisione: decisione O1, gemelle identiche
+// by design, disambiguatore = ricerca per numero lavoro, non la targa). Tipografia: clinico
+// SENZA grassetto, paziente IN grassetto, sempre (verbale §7). Nomi lunghi: T2, riduzione del
+// font poi 2 righe (verbale §8). La prop `inCollisione`/`targheInCollisione` (Task 1) NON si
+// consuma qui — resta esportata per chi la usa altrove (es. ricerca), O1 non la vuole in targa.
 //
 // Le 6 coppie di gradiente standard (righe 77-82 del mockup) sono FISSE e verbatim — vivono come
 // classi CSS in `src/app/ds-v3.css` (`.ds-cassetta.<slug>`), non come token derivato: sono valori
@@ -54,6 +63,34 @@ const SOGLIA_RECUPERO_TAP_PX = 24
 const SOGLIA_RECUPERO_TAP_MS = 300
 const SOGLIA_RECUPERO_SCROLL_PX = 6
 const SOGLIA_MOVIMENTO_PX = 8
+
+// Task 10 (T2, verbale §8) — soglia oltre la quale una riga della targa (dentista o paziente)
+// passa alla variante «shrink» (font ridotto, 2 righe con troncamento — v. `.is-shrink` in
+// ds-v3.css). Interpolata dai casi limite del mockup ratificato (§4/§4e): il caso NON rimpicciolito
+// più lungo è «Del Grosso Maria» (16 caratteri), i due casi rimpiccioliti più corti sono
+// «Maria Vittoria Del Grosso» (25) e «Dott.ssa Annamaria Bellinghieri» (32) — 20 è il valore
+// tondo nel mezzo di quella forbice, senza un numero verbatim nel mockup (che applica la classe
+// staticamente sugli esempi, non via una formula a runtime).
+const SOGLIA_NOME_LUNGO = 20
+
+/**
+ * titleCase (verbale §6 «Casing del paziente») — `pazienteAlias` (Task 1, `derivaAlias`) arriva
+ * già trimmato ma NON ricasato: il trigger DB `sync_paziente_nome_cognome` scrive il nome in
+ * MAIUSCOLO. Qui, solo per la targa, lo normalizziamo in Iniziali Maiuscole («RUSSO MARIA» →
+ * «Russo Maria», «DEL GROSSO MARIA» → «Del Grosso Maria» — nessuna gestione speciale delle
+ * particelle, ogni parola prende la propria maiuscola iniziale, verbatim dalla tabella del
+ * mockup §6). Il CODICE (fallback quando l'alias manca) non passa MAI da qui: resta letterale
+ * (es. «PZ-0042»), come nella stessa tabella.
+ */
+function titleCase(testo: string): string {
+  return testo
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((parola) => parola.charAt(0).toUpperCase() + parola.slice(1))
+    .join(' ')
+}
 
 // Le 6 facce standard vivono come classi in ds-v3.css (v. nota di testa) — questo Set serve
 // SOLO a decidere "applica la classe" vs "componi il gradiente custom inline" (il solo caso
@@ -115,10 +152,16 @@ export type StatoCassetta = 'normale' | 'accesa'
 
 // Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
 // (Task 3) — il chiamante (Task 11) passa il dato così com'è, senza rimapping: qui prendiamo
-// solo i campi che ci servono per il testo e per risolvere la miniatura.
+// solo i campi che ci servono per il testo e per risolvere la miniatura. `paziente`/
+// `pazienteAlias` (Task 1/10) sono OPZIONALI qui pur essendo sempre presenti in
+// `CassettaParete['lavoro']` reale (`paziente` è '—' al minimo, mai assente): la catalog demo
+// (`ds-v3-catalogo/page.tsx`, fuori dal perimetro di questo task) costruisce ancora `lavoro`
+// senza quei campi — opzionali qui evita di doverla toccare, con un fallback a '—' nel render.
 export type LavoroCassetta = {
   numero: string
   dentista: string
+  paziente?: string
+  pazienteAlias?: string | null
   descrizione: string | null
   tipoDispositivo: string | null
 }
@@ -371,12 +414,17 @@ export function Cassetta(props: {
     .filter(Boolean)
     .join(' ')
 
-  // SOLO `descrizione` (testo libero scritto da un umano): `tipoDispositivo` è uno slug macchina
-  // (es. "protesi_fissa") che uno screen reader pronuncerebbe alla lettera — meglio un'etichetta
-  // più corta che una che parla in gergo macchina (review Task 10, M5). Nessuna mappa nuova: se
-  // `descrizione` manca, quella parte dell'etichetta si omette, non si sostituisce.
+  // Task 10 (D4) — «parlato» del paziente: l'alias (Task 1) vince sul codice, Title Case solo
+  // sull'alias (mai sul codice, verbatim §6). MAI il numero lavoro né la descrizione/tipo: la
+  // targa dice solo chi e per chi, il dettaglio si apre nella cassetta (verbale §6/§9).
+  const pazienteReso = lavoro
+    ? lavoro.pazienteAlias
+      ? titleCase(lavoro.pazienteAlias)
+      : (lavoro.paziente ?? '—')
+    : ''
+
   const etichetta = lavoro
-    ? `Cassetta ${nome}, occupata: lavoro n.${lavoro.numero}, ${lavoro.dentista}${lavoro.descrizione ? `, ${lavoro.descrizione}` : ''}`
+    ? `Cassetta ${nome}, occupata: ${lavoro.dentista}, paziente ${pazienteReso}`
     : `Cassetta ${nome}, libera`
 
   return (
@@ -446,7 +494,20 @@ export function Cassetta(props: {
           {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} />}
         </span>
         <span className="ds-cassetta-targa">{nome}</span>
-        <span className="ds-cassetta-cont">{occupata ? `n.${lavoro.numero} · ${lavoro.dentista}` : 'libera'}</span>
+        <span className="ds-cassetta-cont">
+          {lavoro ? (
+            <>
+              <span className={`ds-cassetta-dent${lavoro.dentista.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
+                {lavoro.dentista}
+              </span>
+              <span className={`ds-cassetta-paz${pazienteReso.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
+                {pazienteReso}
+              </span>
+            </>
+          ) : (
+            'libera'
+          )}
+        </span>
       </button>
     </>
   )
