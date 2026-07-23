@@ -1,10 +1,7 @@
-# Sessione attiva — 23/07/2026 notte · sessione CHIUSA, ripartire dall'handoff
-
-PROSSIMA SESSIONE: eseguire `docs/roadmap/2026-07-23-post-punti-1-2-handoff.md`.
-Punti 1 (gap cassette, variante C fluida) e 2 (flake vitest) CHIUSI e deployati.
-(3) «iOS fluidità» 🛑 bloccata sul device di Francesco (iPhone 15: no ghost,
-fluidità < Xiaomi 17). (4) «Redesign parete/home» eseguibile — parte dal
-brainstorming con Francesco.
-
-⚠️ NUOVA DIRETTIVA (23/07): ogni messaggio in chat a Francesco in linguaggio
-piano, zero tecnicismi non spiegati — CLAUDE.md padre §7 / ua-app §0D.
+# Sessione attiva — handoff
+**Stato:** ondata «Redesign parete/home» PRONTA ALL'ESECUZIONE (23/07 sera).
+Spec ratificata rev.2 + piano 17 task committati (`5560833`). La PROSSIMA sessione parte da:
+`docs/roadmap/2026-07-23-redesign-parete-home-execution-handoff.md`
+(worktree `redesign-parete-home`, subagent-driven, task 1→17, 5 fermate 🛑:
+ascolto suoni · mockup rete/gancetto/targa · mockup striscia · QA device metà ondata · merge).
+Nessuna migration nell'ondata. iOS fluidità resta 🛑 sul device.
