@@ -54,6 +54,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // La forma della home e l'USO della parete escono dalla STESSA regola (`vistaHome`): così una
   // stanza Parete non può essere resa con dati che non le appartengono, e — nel verso opposto —
   // non si porta al client un elenco di cassette che nessuna stanza mostrerà.
+  //
+  // QA device T15 (addendum 24/07, punto 5) — niente redirect server-side qui: `HomeDesktop`
+  // (sotto) rende SEMPRE il layout a 3 pannelli, ignorando la preferenza «solo parete» (che è
+  // mobile-only, spenta da CSS su >=1024px — v. commento in testa a `HomeV3.tsx`). Un
+  // `redirect('/cassette')` qui spegnerebbe `HomeDesktop` anche per chi la guarda da desktop,
+  // dove quella preferenza non si applica affatto. La scelta minima vive in `HomeV3.tsx`: la
+  // forma «solo parete» monta la `PareteClient` VERA (stesso chrome di pagina, niente redirect).
   const homePref = homePrefDa(preferenze.data?.nav_preferences)
   const parete = serveParete(vistaHome(homePref, stanzaParam)) ? pareteLetta : []
   // O1i (Task 10) — trial calcolato QUI (mai `new Date()` client) e passato

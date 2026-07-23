@@ -49,35 +49,88 @@ describe('PareteClient — la parete e il suo chrome (§5)', () => {
   })
 })
 
-// Task 12 (D2, spec redesign §3.1) — la stessa `PareteClient` di `/cassette` si monta anche
-// dentro la stanza Parete della home: `contesto='stanza'` spegne l'intero chrome di pagina
-// (niente «‹ Indietro», niente «☰ Tutto il resto» — la stanza vive già dentro la home, che ha il
-// proprio ☰ nella stanza Pile) e `attivo` sospende il refresh su focus/visibilitychange (riserva
-// ARCH R2) finché l'utente non sta guardando DAVVERO quella stanza — mai rifare l'intera
-// dashboard mentre sta sulle pile.
-describe('PareteClient — contesto stanza (D2, spec redesign §3.1, Task 12)', () => {
-  it('in stanza: nessun header di pagina (niente «Indietro», niente «Tutto il resto»)', () => {
-    render(<PareteClient parete={[occupata]} contesto="stanza" attivo />)
-    expect(screen.queryByRole('button', { name: 'Indietro' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Tutto il resto' })).toBeNull()
+// QA device T15 (addendum 24/07) — la D2 originale (Task 12, spec redesign §3.1: `contesto`
+// 'pagina'/'stanza', header spento nella stanza embeddata) è SUPERATA: Francesco, al collaudo,
+// ha deciso che lo swipe non porta più a una stanza a chrome ridotto ma alla pagina /cassette
+// VERA — quindi il chrome di pagina rende SEMPRE, ovunque questa `PareteClient` sia montata
+// (pannello del pager, forma «solo parete» della home, `/cassette` standalone). Il prop
+// `contesto` è morto con questa decisione. Quel che resta configurabile: `onIndietro` (il
+// pannello del pager sostituisce il back di default con un ritorno alle pile) e `attivo`
+// (refresh gated, riserva ARCH R2 — invariato).
+describe('PareteClient — chrome di pagina SEMPRE presente (QA device T15, supera Task 12/D2)', () => {
+  it('l\'header rende sempre: titolo, «‹ Indietro» e «☰ Tutto il resto», con o senza `attivo`', () => {
+    render(<PareteClient parete={[occupata]} attivo />)
+    expect(screen.getByRole('heading', { name: 'Le cassette' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Indietro' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
   })
 
-  it('refresh gated (riserva ARCH R2): con attivo=false il focus NON chiama router.refresh', () => {
-    render(<PareteClient parete={[occupata]} contesto="stanza" attivo={false} />)
+  it('senza `onIndietro` il back usa il default (`tornaIndietro` → push su /dashboard senza storia)', async () => {
+    render(<PareteClient parete={[occupata]} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+    expect(push).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('con `onIndietro` il back del pannello chiama il callback del pager, MAI router.back/push', async () => {
+    const onIndietro = vi.fn()
+    render(<PareteClient parete={[occupata]} onIndietro={onIndietro} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+    expect(onIndietro).toHaveBeenCalledTimes(1)
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('refresh gated (riserva ARCH R2, invariato): con attivo=false il focus NON chiama router.refresh', () => {
+    render(<PareteClient parete={[occupata]} attivo={false} />)
     fireEvent(window, new Event('focus'))
     expect(refresh).not.toHaveBeenCalled()
   })
 
-  it('con attivo=true il focus rilegge (comportamento di /cassette conservato)', () => {
-    render(<PareteClient parete={[occupata]} contesto="stanza" attivo />)
+  it('con attivo=true (default) il focus rilegge (comportamento di /cassette conservato)', () => {
+    render(<PareteClient parete={[occupata]} />)
+    fireEvent(window, new Event('focus'))
+    expect(refresh).toHaveBeenCalled()
+  })
+})
+
+// QA device T15 — scoperto in verifica browser reale (v. report FIX-A): dopo il pushState su
+// /cassette da dentro il pannello del pager, Next.js aggiorna il proprio `canonicalUrl` a
+// `/cassette` (shallow, VOLUTO), ma questo rende pericoloso un `router.refresh()` SILENZIOSO
+// (nessun gesto dell'utente) mentre l'albero montato è ancora quello di `/dashboard`: rifà il
+// fetch della rotta VERA `/cassette` sul server e ne sostituisce il contenuto al pannello.
+// `sospendiRefresh` gate SOLO questo refresh — verificato riproducendo esattamente il trigger
+// (evento `focus` sintetico) che in browser reale innescava lo scambio.
+describe('PareteClient — sospendiRefresh (QA device T15, difetto trovato in verifica browser)', () => {
+  it('con sospendiRefresh=true il focus NON chiama router.refresh, anche con attivo=true', () => {
+    render(<PareteClient parete={[occupata]} attivo sospendiRefresh />)
+    fireEvent(window, new Event('focus'))
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('con sospendiRefresh=true anche il visibilitychange NON chiama router.refresh', () => {
+    render(<PareteClient parete={[occupata]} attivo sospendiRefresh />)
+    fireEvent(document, new Event('visibilitychange'))
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('sospendiRefresh di default è false: il comportamento di /cassette standalone resta invariato', () => {
+    render(<PareteClient parete={[occupata]} attivo />)
     fireEvent(window, new Event('focus'))
     expect(refresh).toHaveBeenCalled()
   })
 
-  it('contesto di default resta "pagina" (comportamento invariato su /cassette: nessuna prop nuova da passare lì)', () => {
-    render(<PareteClient parete={[occupata]} />)
-    expect(screen.getByRole('button', { name: 'Indietro' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
+  it('sospendiRefresh NON gate le altre chiamate a router.refresh (azione esplicita dell\'utente, limitazione nota — v. commento sulla prop)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ esito: 'ok' }) }))
+    try {
+      render(<PareteClient parete={[occupata, libera]} sospendiRefresh />)
+      tap(cassettaLibera())
+      fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Banco Ciro' } })
+      fireEvent.click(screen.getByRole('button', { name: /salva il nome/i }))
+      await waitFor(() => expect(refresh).toHaveBeenCalled())
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 

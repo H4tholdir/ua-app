@@ -83,17 +83,42 @@ export function PareteClient(props: {
   /** Scroller del gesto di riordino (riserva ARCH R1, pre-embed home): assente → window,
    *  comportamento IDENTICO a oggi su /cassette. Pass-through puro verso `useDragRiordino`. */
   scrollerRef?: RefObject<HTMLElement | null>
-  /** Task 12 (D2, spec redesign §3.1) — dove vive questa parete: `'pagina'` (default,
-   *  `/cassette`) porta il proprio chrome («‹ Indietro», «☰ Tutto il resto»); `'stanza'` (la
-   *  stanza Parete della home) lo spegne del tutto — niente back (la stanza vive già dentro la
-   *  home), niente ☰ (quello della stanza Pile basta, è LO STESSO «Tutto il resto»). */
-  contesto?: 'pagina' | 'stanza'
-  /** Solo per `contesto='stanza'` (default `true`, comportamento di `/cassette` invariato): se
-   *  `false` la stanza NON è quella che l'utente sta guardando — il refresh su
-   *  focus/visibilitychange resta sospeso (riserva ARCH R2, v. `attivoRef` sotto). */
+  /** QA device metà ondata (T15, addendum 24/07) — il chrome di pagina («‹ Indietro», titolo,
+   *  «☰ Tutto il resto») ora rende SEMPRE: la D2 originale (`contesto='stanza'`, header
+   *  spento quando la parete viveva embeddata nella home) è SUPERATA — Francesco: lo swipe non
+   *  porta più a una stanza ridotta ma alla pagina /cassette VERA, assetto completo, anche
+   *  quando vive dentro il pannello destro del pager (`StanzePager.tsx`). Il prop `contesto`
+   *  è morto con questa decisione: non c'è più nessuna variante senza header da scegliere. */
+  /** Override del back dell'header (default: `tornaIndietro`, la direttiva permanente
+   *  «back = pagina precedente»). Chi monta questa parete DENTRO il pannello del pager
+   *  (`StanzePager.tsx`) passa qui un callback che torna alla stanza Pile invece di fare
+   *  `router.back()` — che lascerebbe la home per una pagina precedente arbitraria, non per le
+   *  pile. Assente → comportamento invariato di `/cassette` standalone. */
+  onIndietro?: () => void
+  /** Se `false` la parete NON è quella che l'utente sta guardando — il refresh su
+   *  focus/visibilitychange resta sospeso (riserva ARCH R2, v. `attivoRef` sotto). Default
+   *  `true` (comportamento di `/cassette` invariato: sempre in primo piano). */
   attivo?: boolean
+  /** QA device T15 (addendum 24/07, scoperto in verifica browser reale — v. report FIX-A) —
+   *  SOLO il refresh SILENZIOSO su focus/visibilitychange va sospeso mentre l'indirizzo è stato
+   *  spinto a `/cassette` da dentro il pannello (`sincronizzaUrlStanza`, `StanzePager.tsx`):
+   *  Next.js intercetta il `pushState` nudo e aggiorna il proprio `canonicalUrl` a `/cassette`
+   *  (è il meccanismo shallow VOLUTO, verificato leggendo `app-router.js`), ma questo significa
+   *  che un `router.refresh()` chiamato mentre l'albero montato è ancora quello di `/dashboard`
+   *  rifà il fetch della ROTTA VERA `/cassette` sul server e ne sostituisce il contenuto al
+   *  posto del pager — uno scambio silenzioso, senza alcun gesto dell'utente, verificato in
+   *  browser (`window.dispatchEvent(new Event('focus'))` dopo lo swipe → il DOM del pager
+   *  spariva). Le altre chiamate a `router.refresh()` qui sotto (`dopoCambio`, `riordina`) NON
+   *  sono gated: seguono un'azione ESPLICITA dell'utente (crea/rinomina/riordina una cassetta) e
+   *  l'indirizzo mostra già `/cassette` — il risultato è la pagina /cassette vera con l'esito
+   *  dell'azione, non uno scambio a sorpresa. È una limitazione nota (il pager si "smonta" per
+   *  chi interagisce con lo sheet mentre guarda il pannello): annotata per Francesco, non
+   *  risolta qui — risolverla per bene servirebbe un endpoint GET dedicato per rileggere la
+   *  parete senza passare da `router.refresh()`, fuori perimetro di questo fix. Default `false`
+   *  (comportamento di `/cassette` invariato). */
+  sospendiRefresh?: boolean
 }) {
-  const { parete, contesto = 'pagina', attivo = true } = props
+  const { parete, attivo = true, onIndietro, sospendiRefresh = false } = props
   const router = useRouter()
   // Refresh gated (riserva ARCH R2): mai rifare l'intera dashboard mentre l'utente sta sulle
   // pile e la stanza Parete è solo un peek morto fuori schermo. `attivoRef` (non `attivo`
@@ -102,6 +127,12 @@ export function PareteClient(props: {
   const attivoRef = useRef(attivo)
   useEffect(() => {
     attivoRef.current = attivo
+  })
+  // QA device T15 — stesso pattern di `attivoRef` sopra: un ref, non `sospendiRefresh` diretto,
+  // per non ri-registrare il listener a ogni cambio (v. commento sulla prop).
+  const sospendiRefreshRef = useRef(sospendiRefresh)
+  useEffect(() => {
+    sospendiRefreshRef.current = sospendiRefresh
   })
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
@@ -136,9 +167,12 @@ export function PareteClient(props: {
 
   // §5.5 Freschezza — senza realtime, la parete non deve mentire a chi la guarda da un'ora:
   // si rilegge quando la pagina torna in primo piano (ritorno da /lavori/[id], app riaperta).
+  // `!sospendiRefreshRef.current` (QA device T15, v. commento sulla prop): questo refresh è
+  // SILENZIOSO, senza alcun gesto dell'utente — il solo che va sospeso mentre l'indirizzo è
+  // stato spinto a `/cassette` dal pannello, per non far sparire il pager sotto un focus/tab-switch.
   useEffect(() => {
     const rileggi = () => {
-      if (document.visibilityState === 'visible' && attivoRef.current) router.refresh()
+      if (document.visibilityState === 'visible' && attivoRef.current && !sospendiRefreshRef.current) router.refresh()
     }
     document.addEventListener('visibilitychange', rileggi)
     window.addEventListener('focus', rileggi)
@@ -265,28 +299,26 @@ export function PareteClient(props: {
 
   return (
     <section className="ds-parete-shell">
-      {/* Task 12 (D2, spec redesign §3.1) — il chrome di pagina è SOLO per `/cassette`
-          (`contesto='pagina'`): la stanza Parete della home (`contesto='stanza'`) non porta né
-          back né ☰, vive già dentro la home (che ha il proprio ☰ nella stanza Pile). */}
-      {contesto === 'pagina' && (
-        <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
-          {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
-          <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
-          <h1
-            style={{
-              flex: 1,
-              margin: 0,
-              fontSize: tipografia.size.title,
-              fontWeight: tipografia.weight.extrabold,
-              letterSpacing: tipografia.tracking.titoli,
-              color: 'var(--ink)',
-            }}
-          >
-            Le cassette
-          </h1>
-          <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
-        </header>
-      )}
+      {/* QA device T15 (addendum 24/07) — il chrome di pagina rende SEMPRE (v. commento sulle
+          prop sopra): niente più ramo condizionale su `contesto`. `onIndietro` (se passato dal
+          pannello del pager) sostituisce `tornaIndietro` — v. commento sulla prop. */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
+        {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={onIndietro ?? (() => tornaIndietro(router))} />
+        <h1
+          style={{
+            flex: 1,
+            margin: 0,
+            fontSize: tipografia.size.title,
+            fontWeight: tipografia.weight.extrabold,
+            letterSpacing: tipografia.tracking.titoli,
+            color: 'var(--ink)',
+          }}
+        >
+          Le cassette
+        </h1>
+        <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
+      </header>
 
       {parete.length === 0 ? (
         <Vuoto

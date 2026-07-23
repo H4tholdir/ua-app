@@ -9,17 +9,19 @@
 // L'unica eccezione ammessa al «niente altro nella home» non è un elemento in
 // più: è un'ALTRA home affiancata (la Parete), raggiunta per swipe. Tre forme,
 // decise server-side da `vistaHome` (preferenza «La tua home» + `?stanza=`):
-//   pager  → StanzePager con dentro le due stanze;
+//   pager  → StanzePager con dentro le due stanze — il pannello destro rende la pagina
+//            /cassette VERA (QA device T15, addendum 24/07: supera Task 12/D2 sotto);
 //   pile   → esattamente il layout storico, invariato;
-//   parete → la sola stanza Parete — Task 12 (D2, spec redesign §3.1): non più un'anteprima con
-//            testata propria, ma la `PareteClient` VERA di `/cassette` (`contesto="stanza"`,
-//            niente chrome di pagina — quello ce l'ha già la home).
-// In ogni forma il TastoPiù è UNO e sta nel piede, fuori dal pager.
-//
-// La StrisciaStato vive nella stanza Pile — anche nella forma «solo parete»,
-// dove quindi su mobile non appare: è il mockup ratificato (colonna «stanza
-// Parete»), non una dimenticanza. Su desktop HomeDesktop continua a mostrarla,
-// e i dati delle pile si leggono comunque (servono a `scegliSegnale`).
+//   parete → la sola stanza Parete — monta la `PareteClient` VERA di `/cassette`, chrome di
+//            pagina completo (stesso componente del pannello del pager, v. sotto). Niente
+//            redirect a `/cassette`: `HomeDesktop` (fratello di questo componente, montato
+//            SEMPRE da `dashboard/page.tsx`) ignora questa preferenza — è mobile-only, spenta
+//            da CSS a ≥1024px — e un redirect server-side la spegnerebbe anche lì.
+// In ogni forma del pager il TastoPiù è UNO e sta nel piede, fuori dal pager — MA sparisce
+// quando la stanza attiva è la Parete (§3 dell'addendum: «niente TastoPiù nel lato cassette»).
+// Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette che questo
+// ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
@@ -35,7 +37,7 @@ import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
-import type { HomePref } from '@/lib/preferenze/home'
+import type { HomePref, StanzaHome } from '@/lib/preferenze/home'
 
 const ORDINE: Array<{ pila: Pila; tipo: 'daConsegnare' | 'sulBanco' | 'daRifareInProva' | 'appenaArrivati' }> = [
   { pila: 'rossa', tipo: 'daConsegnare' },
@@ -62,6 +64,12 @@ export function HomeV3(props: {
   // `dashboard/page.tsx` per decidere se leggere la parete: una regola sola, così la stanza
   // Parete non può mai essere resa con dati mai letti (v. `vistaHome`).
   const vista = vistaHome(homePref, stanzaParam)
+
+  // QA device T15 (addendum 24/07, punto 3) — quale stanza del pager è visibile ORA: decide se
+  // il piede (TastoPiù) si vede. Inizializzata dalla stanza di apertura; nelle forme non-pager
+  // resta sul valore iniziale e non viene più letta (il piede lì segue `vista`, non questo
+  // stato — v. sotto).
+  const [stanzaAttiva, setStanzaAttiva] = useState<StanzaHome>(vista.tipo === 'pager' ? vista.iniziale : 'pile')
 
   // La stanza Pile: esattamente la home di sempre (saluto · StrisciaStato · 4 pile). Vive in
   // una variabile perché il pager la riceve come figlio, ma il contenuto non cambia di una
@@ -173,25 +181,38 @@ export function HomeV3(props: {
           {/* Task 14 (D8) — `.corpo` avvolge il pager (le due stanze + dots + linguetta): il
               `piede` NON si passa più come `footer` a `StanzePager` (che lo renderebbe dentro
               il proprio ritorno, quindi dentro `.corpo`) — resta un fratello fuori, fisso in
-              fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style). */}
+              fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style).
+              QA device T15 (addendum 24/07, punto 3) — ORA il piede sparisce anche quando la
+              stanza attiva è la Parete (`onStanzaChange` tiene `stanzaAttiva` sincronizzata col
+              pager): resta un fratello fuori da `.corpo`, il TastoPiù non rimpicciolisce mai
+              nemmeno mentre appare/sparisce. */}
           <div className="corpo">
-            <StanzePager stanzaIniziale={vista.iniziale} pile={stanzaPile} parete={parete} />
+            <StanzePager
+              stanzaIniziale={vista.iniziale}
+              pile={stanzaPile}
+              parete={parete}
+              onStanzaChange={setStanzaAttiva}
+            />
           </div>
-          {piede}
+          {stanzaAttiva === 'pile' && piede}
         </>
       ) : vista.stanza === 'parete' ? (
         <>
-          {/* Task 12 (D2) — forma «solo parete»: niente pager, quindi niente mount differito da
-              fare (la stanza è l'unica cosa in pagina, si legge già server-side) — monta
-              `PareteClient` DIRETTAMENTE, sempre attiva. Stesso contenitore scrollabile
+          {/* QA device T15 (addendum 24/07, punto 5, supera Task 12/D2) — forma «solo parete»:
+              niente pager, quindi niente mount differito da fare (la stanza è l'unica cosa in
+              pagina, si legge già server-side) — monta la `PareteClient` VERA, chrome di pagina
+              completo (stesso componente montato nel pannello del pager). Niente `onIndietro`:
+              qui NON c'è un pager a cui tornare — il back di default (`tornaIndietro`) è
+              corretto, esattamente come su `/cassette` standalone. Niente `{piede}`: la pagina
+              /cassette che questa forma rispecchia non ha un «nuovo lavoro» — un TastoPiù qui
+              la farebbe divergere dalla superficie reale. Stesso contenitore scrollabile
               (`.ua-stanza-parete-scroll`, ds-v3.css) della stanza omonima dentro il pager: la
               legge «no-scroll» (§3.3) decade qui per dichiarazione esplicita di spec §3.1. */}
           <div className="corpo">
             <div className="ua-stanza-parete-scroll">
-              <PareteClient parete={parete} contesto="stanza" attivo />
+              <PareteClient parete={parete} attivo />
             </div>
           </div>
-          {piede}
         </>
       ) : (
         <>

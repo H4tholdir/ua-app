@@ -48,11 +48,14 @@ const SOGLIA_STANZA_ATTIVA = 0.6
 
 const FOCUSABILI = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-/** Task 12 (D2, spec redesign §3.1) — la stanza parete della home: componente LOCALE (vive
- *  qui, non un file a parte — l'anteprima cap-8 che occupava `StanzaParete.tsx` è morta col suo
- *  test) che avvolge la `PareteClient` VERA con un mount differito (riserva ARCH R3). Il pager
- *  è l'unico a possedere `attiva`: qui pilota insieme `inert`/`aria-hidden` (dal genitore), il
- *  refresh gated di `PareteClient` (riserva ARCH R2, `attivo`) e il momento del mount.
+/** QA device T15 (addendum 24/07, supera Task 12/D2) — la stanza parete della home: componente
+ *  LOCALE (vive qui, non un file a parte — l'anteprima cap-8 che occupava `StanzaParete.tsx` è
+ *  morta col suo test) che avvolge la `PareteClient` VERA con un mount differito (riserva ARCH
+ *  R3). Il pannello destro NON è più una stanza a chrome ridotto: è la pagina /cassette intera
+ *  (header titolo+back+☰, ricerca, griglia) — `onIndietro` porta il back dell'header alle pile
+ *  invece di lasciare la home (v. commento su `PareteClient`). Il pager resta l'unico a
+ *  possedere `attiva`: qui pilota insieme `inert`/`aria-hidden` (dal genitore), il refresh
+ *  gated di `PareteClient` (riserva ARCH R2, `attivo`) e il momento del mount.
  *
  *  Mount: se la stanza è già attiva al render (deep-link `?stanza=parete`) o lo diventa mentre
  *  l'utente la sceglie (dot/freccia/swipe), monta SUBITO — l'aggiustamento di stato avviene nel
@@ -65,7 +68,14 @@ const FOCUSABILI = 'a[href], button:not([disabled]), input:not([disabled]), sele
  *  serve montarla subito. Requisito UX di collaudo: il primo swipe non deve stutterare — mai un
  *  mount sincrono e pesante a metà gesto, da cui il ramo idle. Una volta montata RESTA montata
  *  (mai `setMontata(false)`): un dot che torna sulle pile non deve smontare/rimontare il muro. */
-function StanzaParete(props: { parete: CassettaParete[]; attiva: boolean }) {
+function StanzaParete(props: {
+  parete: CassettaParete[]
+  attiva: boolean
+  onIndietro: () => void
+  /** QA device T15 — pass-through verso `PareteClient` (v. il commento sulla prop lì): `true`
+   *  mentre l'indirizzo è stato spinto a `/cassette` da questo pannello. */
+  sospendiRefresh: boolean
+}) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [montata, setMontata] = useState(props.attiva)
   if (props.attiva && !montata) setMontata(true)
@@ -87,7 +97,13 @@ function StanzaParete(props: { parete: CassettaParete[]; attiva: boolean }) {
   return (
     <div ref={scrollRef} className="ua-stanza-parete-scroll">
       {montata ? (
-        <PareteClient parete={props.parete} contesto="stanza" attivo={props.attiva} scrollerRef={scrollRef} />
+        <PareteClient
+          parete={props.parete}
+          attivo={props.attiva}
+          scrollerRef={scrollRef}
+          onIndietro={props.onIndietro}
+          sospendiRefresh={props.sospendiRefresh}
+        />
       ) : null}
     </div>
   )
@@ -104,8 +120,13 @@ export function StanzePager(props: {
    *  (§3.3 regola 5) — mai un doppione visibile a metà snap. Sta fuori dal viewport, così
    *  non scorre con le stanze. */
   footer?: ReactNode
+  /** QA device T15 (addendum 24/07, punto 3) — il piede vive FUORI dal pager (in `HomeV3.tsx`,
+   *  non passato come `footer` qui: v. commento lì) ma deve sparire quando la stanza attiva è
+   *  la parete («niente TastoPiù nel lato cassette»). Il pager è l'unico a sapere quale stanza
+   *  è attiva in ogni istante — questo callback lo comunica al chiamante a ogni cambio. */
+  onStanzaChange?: (stanza: StanzaHome) => void
 }) {
-  const { stanzaIniziale, pile, parete, footer } = props
+  const { stanzaIniziale, pile, parete, footer, onStanzaChange } = props
   const [attiva, setAttiva] = useState<StanzaHome>(stanzaIniziale)
   const viewport = useRef<HTMLDivElement | null>(null)
   const stanze = useRef<Record<StanzaHome, HTMLDivElement | null>>({ pile: null, parete: null })
@@ -132,10 +153,85 @@ export function StanzePager(props: {
   useEffect(() => {
     attivaRef.current = attiva
   }, [attiva])
+
+  // QA device T15 (addendum 24/07, punto 3) — il chiamante (HomeV3) decide da questo callback
+  // se mostrare il piede: separato da `registraAccessoParete` sopra apposta, gira ad OGNI
+  // cambio di stanza (non solo pile→parete) e non deve mai essere gated dal flag
+  // `giaRegistrato` che la linguetta usa per evitare il doppio conteggio (§ altrove) — qui non
+  // si conta nulla, si comunica solo «la stanza visibile ORA è questa».
+  useEffect(() => {
+    onStanzaChange?.(attiva)
+  }, [attiva, onStanzaChange])
+
+  // QA device T15 (addendum 24/07, punto 1/2) — URL sync SENZA router: il pannello destro del
+  // pager rende la pagina /cassette vera (v. `StanzaParete`/`PareteClient`), quindi l'indirizzo
+  // deve dirlo, ma senza passare da `router.push` (che farebbe fetch/rendering della route reale
+  // — esattamente il "loading" che il gesto non deve avere). Next 16 intercetta
+  // `history.pushState`/`replaceState` chiamate fuori dal proprio router (v.
+  // `node_modules/next/dist/client/components/app-router.js`, `applyUrlFromHistoryPushReplace`)
+  // e aggiorna `usePathname()`/`useSearchParams()` SENZA rifare fetch — è il meccanismo "shallow"
+  // che il verbale cita. `urlPushataRef` distingue «questo pager ha spinto lui l'entry /cassette»
+  // da «la parete è attiva per un altro motivo» (deep-link `?stanza=parete`, preferenza
+  // `due_stanze` che apre lì di default): SOLO nel primo caso il ritorno alle pile deve muovere
+  // la history (altrimenti un `history.back()` a vuoto manderebbe l'utente a una pagina precedente
+  // arbitraria, fuori dalla home). Letta/scritta SOLO da `sincronizzaUrlStanza` e dal listener
+  // `popstate` sotto — mai durante il render (niente scritture di ref lì, gate di lint del repo).
+  const urlPushataRef = useRef(false)
+  // QA device T15 — verificato in browser reale (v. report FIX-A): dopo `pushState('/cassette')`
+  // Next.js aggiorna il proprio `canonicalUrl` a `/cassette` (intercetta il pushState nudo, è il
+  // meccanismo shallow VOLUTO), ma questo rende PERICOLOSO ogni `router.refresh()` chiamato
+  // mentre l'albero montato è ancora quello di `/dashboard`: rifà il fetch della rotta VERA
+  // `/cassette` sul server e ne sostituisce il contenuto al pannello, silenziosamente. Stato
+  // REATTIVO (non solo `urlPushataRef`, che è un ref e non farebbe ri-renderizzare
+  // `PareteClient` col nuovo valore): `PareteClient` lo riceve come `sospendiRefresh` e sospende
+  // SOLO il proprio refresh silenzioso su focus/visibilitychange (v. commento lì — gli altri
+  // `router.refresh()` di `PareteClient`, dopo un'azione ESPLICITA dell'utente, restano invariati
+  // e sono annotati come limitazione nota, non risolta qui).
+  const [urlDivergente, setUrlDivergente] = useState(false)
+  const sincronizzaUrlStanza = useCallback((nuova: StanzaHome) => {
+    if (typeof window === 'undefined') return
+    if (attivaRef.current === 'pile' && nuova === 'parete' && !urlPushataRef.current) {
+      window.history.pushState({}, '', '/cassette')
+      urlPushataRef.current = true
+      setUrlDivergente(true)
+    } else if (attivaRef.current === 'parete' && nuova === 'pile' && urlPushataRef.current) {
+      urlPushataRef.current = false
+      setUrlDivergente(false)
+      // `history.back()`, non `pushState`/`replaceState`: è la stessa entry che abbiamo spinto
+      // sopra, tornarci indietro (invece di impilarne una nuova su /dashboard) tiene la history
+      // pulita — un secondo back dell'utente da qui in poi lascia la home per davvero, come ci
+      // si aspetta da uno swipe che ha solo "aperto" le cassette.
+      window.history.back()
+    }
+  }, [])
+
+  // Back hardware/gesto del telefono mentre si guarda il pannello cassette: il browser fa DA SÉ
+  // la traversal della history (Next la intercetta a sua volta per `usePathname` — v. sopra),
+  // ma il pager resta un componente client con un proprio stato `attiva`: nessuno lo riporta
+  // sulle pile da solo. Questo listener chiude il cerchio, SENZA reload (`popstate` è un evento
+  // same-document) e senza richiamare `history.back()` di nuovo (la traversal è già avvenuta).
+  useEffect(() => {
+    function alPopState() {
+      if (urlPushataRef.current && attivaRef.current === 'parete') {
+        urlPushataRef.current = false
+        setUrlDivergente(false)
+        setAttiva('pile')
+        const contenitore = viewport.current
+        const bersaglio = stanze.current.pile
+        if (contenitore && bersaglio && typeof contenitore.scrollTo === 'function') {
+          contenitore.scrollTo({ left: bersaglio.offsetLeft, behavior: 'auto' })
+        }
+      }
+    }
+    window.addEventListener('popstate', alPopState)
+    return () => window.removeEventListener('popstate', alPopState)
+  }, [])
+
   const impostaAttiva = useCallback((nuova: StanzaHome) => {
     if (attivaRef.current === 'pile' && nuova === 'parete') registraAccessoParete()
+    sincronizzaUrlStanza(nuova)
     setAttiva(nuova)
-  }, [])
+  }, [sincronizzaUrlStanza])
 
   // Swipe: l'IO è l'unica fonte per il gesto continuo. Nessuna dipendenza — le ref sono
   // stabili e la callback legge solo il DOM.
@@ -212,8 +308,14 @@ export function StanzePager(props: {
       // stava solo guardando. Quindi: se la stanza è già attiva il suo sottoalbero è già
       // non-inerte e il focus può entrare SUBITO, senza passare dall'effect.
       const giaAttiva = destinazione === attiva
-      if (opts?.giaRegistrato) setAttiva(destinazione)
-      else impostaAttiva(destinazione)
+      if (opts?.giaRegistrato) {
+        // La linguetta ha già registrato l'accesso da sé (v. commento sopra): qui manca SOLO
+        // `registraAccessoParete`, non la URL sync — anche questa via deve spingere/tornare
+        // dall'entry /cassette, altrimenti tap sulla linguetta e tap sul dot si comporterebbero
+        // diversamente sulla stessa transizione pile→parete.
+        sincronizzaUrlStanza(destinazione)
+        setAttiva(destinazione)
+      } else impostaAttiva(destinazione)
       if (origine === 'tap') {
         if (giaAttiva)
           stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
@@ -227,7 +329,7 @@ export function StanzePager(props: {
       if (!contenitore || !bersaglio || typeof contenitore.scrollTo !== 'function') return
       contenitore.scrollTo({ left: bersaglio.offsetLeft, behavior: ridotto ? 'auto' : 'smooth' })
     },
-    [ridotto, attiva, impostaAttiva]
+    [ridotto, attiva, impostaAttiva, sincronizzaUrlStanza]
   )
 
   return (
@@ -259,7 +361,17 @@ export function StanzePager(props: {
                 // riproduzione e il perché.
                 <div className="ua-stanza-pile-scroll">{pile}</div>
               ) : (
-                <StanzaParete parete={parete} attiva={eAttiva} />
+                // QA device T15 (addendum 24/07, punto 1) — il back dell'header DENTRO il
+                // pannello torna alla stanza Pile (stesso gesto di uno swipe/dot inverso), MAI
+                // `router.back()`: quello lascerebbe la home per una pagina precedente
+                // arbitraria. `vaiA` porta con sé focus/scroll/URL sync — un solo posto per
+                // tutte le vie di ritorno alle pile.
+                <StanzaParete
+                  parete={parete}
+                  attiva={eAttiva}
+                  onIndietro={() => vaiA('pile', 'tap')}
+                  sospendiRefresh={urlDivergente}
+                />
               )}
             </div>
           )

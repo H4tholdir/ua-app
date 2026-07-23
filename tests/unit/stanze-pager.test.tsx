@@ -14,7 +14,7 @@
 // - NON è verificato qui (e non è verificabile in jsdom): che lo scroll-snap CSS agganci
 //   davvero, che il peek di 28px si veda, che l'IO reale scatti a fine snap.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, within, act } from '@testing-library/react'
+import { render, screen, within, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StanzePager } from '@/components/features/home/StanzePager'
 import { HomeV3 } from '@/components/features/home/HomeV3'
@@ -108,6 +108,14 @@ const PARETE_STANZA_TEST: CassettaParete[] = [
   { id: 'c1', nome: 'C12', colore: 'rossa', posizione: 1, lavoro: null },
 ]
 
+// QA device T15 (addendum 24/07, punto 1/2) — URL sync: il pager ora chiama
+// `window.history.pushState`/`back` DAVVERO (v. `StanzePager.tsx`, `sincronizzaUrlStanza`).
+// Mockati QUI, a livello di file (non solo nel describe dedicato): senza questo, ogni test che
+// cambia stanza pile↔parete muterebbe per davvero `window.location` in jsdom, facendo
+// trapelare stato fra un test e l'altro nello stesso file (nessun altro punto lo resetta).
+let pushStateSpy: ReturnType<typeof vi.spyOn>
+let historyBackSpy: ReturnType<typeof vi.spyOn>
+
 beforeEach(() => {
   osservatori = []
   eventi = []
@@ -119,9 +127,13 @@ beforeEach(() => {
   // (swipe/dot, in questo stesso file) si accumulerebbero e farebbero apprendere la
   // linguetta prima del tempo per i test dedicati più sotto.
   localStorage.clear()
+  pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {})
+  historyBackSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {})
 })
 afterEach(() => {
   vi.unstubAllGlobals()
+  pushStateSpy.mockRestore()
+  historyBackSpy.mockRestore()
 })
 
 const CHIAVE_LINGUETTA = 'ua_linguetta_v3'
@@ -144,11 +156,16 @@ describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
     expect(pannello('pile')).toHaveAttribute('inert')
   })
 
-  it('la stanza fuori campo sparisce dall’albero a11y: un solo «Tutto il resto» raggiungibile', () => {
+  // QA device T15 (addendum 24/07, supera Task 12/D2) — prima la stanza Parete non portava
+  // alcun «Tutto il resto» (header spento): l'unico raggiungibile era quello, inerte, della
+  // stanza Pile — cioè NESSUNO. Ora il pannello Parete rende il proprio chrome di pagina VERO
+  // (con il suo «☰ Tutto il resto»): resta UN solo raggiungibile, ma è quello reale della
+  // parete, non più l'assenza totale — lo stand-in della stanza Pile resta inerte comunque.
+  it('la stanza fuori campo sparisce dall’albero a11y: un solo «Tutto il resto» raggiungibile (quello vero della parete)', () => {
     render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     // `getByRole` esclude di default ciò che è nascosto agli screen reader: se aria-hidden
-    // mancasse sulla stanza uscente, questo bottone sarebbe comunque interrogabile.
-    expect(screen.queryByRole('button', { name: 'Tutto il resto' })).not.toBeInTheDocument()
+    // mancasse sulla stanza uscente, questo bottone sarebbe raggiungibile DUE volte.
+    expect(screen.getAllByRole('button', { name: 'Tutto il resto' })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
   })
 
@@ -260,6 +277,196 @@ describe('StanzePager — mount differito della stanza parete (Task 12, riserva 
   })
 })
 
+// QA device T15 (addendum 24/07, punto 1) — la decisione più importante del collaudo: il
+// pannello destro non è più una stanza a chrome ridotto, è la pagina /cassette VERA. Questi
+// test presidiano ESATTAMENTE quel contratto: titolo + back + ☰ rendono nel pannello, e il back
+// dell'header torna alle pile passando per il pager (mai `router.back`).
+describe('StanzePager — il pannello destro rende l\'assetto pagina COMPLETO (QA device T15, supera Task 12/D2)', () => {
+  it('titolo «Le cassette», «‹ Indietro» e «☰ Tutto il resto» rendono nel pannello parete', () => {
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    const pannelloParete = within(pannello('parete'))
+    expect(pannelloParete.getByRole('heading', { name: 'Le cassette' })).toBeInTheDocument()
+    expect(pannelloParete.getByRole('button', { name: 'Indietro' })).toBeInTheDocument()
+    expect(pannelloParete.getByRole('button', { name: 'Tutto il resto' })).toBeInTheDocument()
+    expect(pannelloParete.getByPlaceholderText('Cerca una cassetta o un lavoro…')).toBeInTheDocument()
+  })
+
+  it('il back dell\'header nel pannello torna alle pile — MAI router.back/push (callback verso il pager)', async () => {
+    const user = userEvent.setup()
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    await user.click(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+    expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('«☰ Tutto il resto» del pannello resta una vera navigazione (router.push, non intercettato dal pager)', async () => {
+    const user = userEvent.setup()
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    await user.click(within(pannello('parete')).getByRole('button', { name: 'Tutto il resto' }))
+    expect(push).toHaveBeenCalledWith('/tutto-il-resto')
+  })
+})
+
+// QA device T15 (addendum 24/07, punto 2) — «il gesto segue il dito, zero loading»: l'indirizzo
+// si aggiorna con l'History API nuda (mai `router.push`, che rifarebbe fetch/render della route
+// reale). `urlPushataRef` (interno) distingue «questo pager ha spinto lui l'entry /cassette» da
+// «la parete è attiva per un altro motivo» (deep-link, preferenza che apre lì di default): questi
+// test presidiano quella distinzione dall'esterno, sugli effetti osservabili (pushState/back).
+describe('StanzePager — URL sync con /cassette via History API (QA device T15, addendum punto 2)', () => {
+  it('tap sul dot verso la parete: pushState su /cassette, shallow (mai router.push)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/cassette')
+    expect(push).not.toHaveBeenCalledWith('/cassette')
+  })
+
+  it('lo swipe (IO) verso la parete pusha /cassette una sola volta, anche con più notifiche sopra soglia', () => {
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    simulaScroll('parete', 0.9)
+    simulaScroll('parete', 0.95)
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+  })
+
+  // QA device T15 — difetto trovato in verifica browser reale (v. report FIX-A): dopo il
+  // pushState, Next aggiorna il proprio `canonicalUrl` a `/cassette` (shallow, VOLUTO), ma un
+  // `router.refresh()` SILENZIOSO (focus/visibilitychange, nessun gesto dell'utente) chiamato
+  // mentre l'albero montato è ancora quello di `/dashboard` rifà il fetch della rotta VERA
+  // `/cassette` sul server e sostituisce il contenuto al pannello. Questo test presidia l'intera
+  // catena end-to-end (pager → StanzaParete → PareteClient), non solo `PareteClient` isolato.
+  it('dopo lo swipe verso la parete, un focus (refresh silenzioso) NON chiama router.refresh — il pager non deve sparire sotto un tab-switch', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
+    refresh.mockClear()
+    fireEvent(window, new Event('focus'))
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('un secondo giro pile→parete riarma la sospensione (non è un flag che si consuma una volta sola)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete (1° giro)
+    await user.click(screen.getAllByRole('tab')[0]) // parete → pile: urlDivergente torna false
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete (2° giro): urlDivergente torna true
+    refresh.mockClear()
+    fireEvent(window, new Event('focus'))
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('deep-link `?stanza=parete` (nessun pushState nostro): il focus rilegge normalmente, nessuna sospensione', () => {
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    refresh.mockClear()
+    fireEvent(window, new Event('focus'))
+    expect(refresh).toHaveBeenCalled()
+  })
+
+  it('tornare alle pile (dot) dopo essere arrivati via pager chiama history.back — non una pushState', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    await user.click(screen.getAllByRole('tab')[0]) // parete → pile
+    expect(historyBackSpy).toHaveBeenCalledTimes(1)
+    expect(pushStateSpy).toHaveBeenCalledTimes(1) // niente seconda push per il ritorno
+  })
+
+  it('il back dell\'header nel pannello (arrivo via pager) chiama history.back', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
+    await user.click(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+    expect(historyBackSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('la parete già attiva al mount (deep-link `?stanza=parete`) NON pusha /cassette: non è un cambio generato dal pager', () => {
+    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    expect(pushStateSpy).not.toHaveBeenCalled()
+  })
+
+  it('tornare alle pile da una parete raggiunta via deep-link NON chiama history.back (nessuna entry nostra da disfare)', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[0])
+    expect(historyBackSpy).not.toHaveBeenCalled()
+  })
+
+  it('popstate (back del telefono) mentre si guarda la parete riporta il pager sulle pile, senza reload e senza un secondo history.back', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
+    historyBackSpy.mockClear()
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true')
+    // La traversal l'ha già fatta il browser (o, qui, il tap che ha simulato l'evento): il
+    // listener del pager non deve richiamare `history.back()` una seconda volta.
+    expect(historyBackSpy).not.toHaveBeenCalled()
+  })
+
+  it('un popstate mentre si è sulle pile (nessuna entry nostra pendente) non fa nulla di osservabile', () => {
+    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
+    expect(historyBackSpy).not.toHaveBeenCalled()
+  })
+})
+
+// QA device T15 (addendum 24/07, punto 3) — «niente TastoPiù nel lato cassette»: il chiamante
+// (HomeV3) decide la visibilità del piede da questo callback. Qui si presidia SOLO che il pager
+// lo chiami coi valori giusti, ai momenti giusti — la sparizione vera e propria del piede è un
+// test di `HomeV3.tsx` (v. `HomeV3 — le tre forme della home`).
+describe('StanzePager — onStanzaChange (QA device T15, addendum punto 3)', () => {
+  it('chiamato subito al mount con la stanza iniziale', () => {
+    const onStanzaChange = vi.fn()
+    render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onStanzaChange={onStanzaChange} />
+    )
+    expect(onStanzaChange).toHaveBeenCalledWith('pile')
+  })
+
+  it('chiamato con "parete" dopo lo swipe/tap verso la parete', async () => {
+    const onStanzaChange = vi.fn()
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onStanzaChange={onStanzaChange} />
+    )
+    preparaViewport(container)
+    onStanzaChange.mockClear()
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(onStanzaChange).toHaveBeenLastCalledWith('parete')
+  })
+})
+
 describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
   it('i dots sono un tablist vero con aria-selected sulla stanza attiva', () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
@@ -283,10 +490,10 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
     expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
-    // Il focus entra nella stanza: il primo elemento focusabile della parete VERA (Task 12) è
-    // la pillola di ricerca di `PareteClient`, non più la prima cassetta (il vecchio stand-in
-    // testuale non aveva ricerca — con la parete vera l'ordine del DOM cambia davvero).
-    expect(document.activeElement).toBe(within(pannello('parete')).getByPlaceholderText('Cerca una cassetta o un lavoro…'))
+    // Il focus entra nella stanza: il primo elemento focusabile della parete VERA è ora il tasto
+    // «‹ Indietro» del suo header di pagina (QA device T15 — prima, senza header, era la pillola
+    // di ricerca; con l'header il tasto la precede nel DOM).
+    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
   })
 
   it('tornare al primo dot riporta lo scroll a sinistra (left = offsetLeft della stanza pile)', async () => {
@@ -371,8 +578,8 @@ describe('StanzePager — tastiera (§6, frecce ←→)', () => {
     expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
     expect(document.activeElement).toBe(tabs[1])
     await user.keyboard('{Enter}')
-    // Come sopra: il primo focusabile della parete VERA è la ricerca, non una cassetta.
-    expect(document.activeElement).toBe(within(pannello('parete')).getByPlaceholderText('Cerca una cassetta o un lavoro…'))
+    // Come sopra: il primo focusabile della parete VERA è il tasto «‹ Indietro» del suo header.
+    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
   })
 
   it('roving tabindex: un solo dot è nel flusso di Tab', () => {
@@ -640,16 +847,51 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
     expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
-  // Task 12 (D2) — la stanza parete NON porta più un proprio titolo «La parete ›» (l'anteprima
-  // cap-8 è morta): è la `PareteClient` VERA, in `contesto='stanza'` (niente chrome di pagina —
-  // v. `PareteClient.test.tsx`). Il segno che siamo davvero sulla parete embeddata è il suo
-  // chrome FUNZIONALE (ricerca) e le sue cassette, non un titolo.
-  it("preferenza 'parete': solo la parete VERA (D2), nessun pager, e comunque il TastoPiù", () => {
+  // QA device T15 (addendum 24/07, punto 5, supera Task 12/D2) — la stanza parete ora porta il
+  // TITOLO VERO «Le cassette» (chrome di pagina completo, stesso componente di `/cassette`),
+  // non più un titolo home-specifico né l'assenza totale di header della D2 originale. Niente
+  // TastoPiù qui (a differenza di prima): la pagina /cassette che questa forma rispecchia non
+  // ne ha uno — un doppione l'avrebbe fatta divergere dalla superficie reale (v. `HomeV3.tsx`).
+  it("preferenza 'parete': la pagina /cassette VERA (chrome completo), nessun pager, niente TastoPiù", () => {
     renderHome('parete')
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(screen.queryByText('DA CONSEGNARE OGGI')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Le cassette' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Cassetta C12/ })).toBeInTheDocument()
+    expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
+  })
+
+  it("preferenza 'parete': il back dell'header usa il default (nessun pager a cui tornare — comportamento di /cassette)", async () => {
+    const user = userEvent.setup()
+    renderHome('parete')
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+    expect(push).toHaveBeenCalledWith('/dashboard')
+  })
+})
+
+// QA device T15 (addendum 24/07, punto 3) — «niente TastoPiù nel lato cassette»: verificato qui
+// (non solo in `stanze-pager.test.tsx`) perché è `HomeV3` a possedere il piede e a decidere,
+// dal callback `onStanzaChange` del pager, se renderlo.
+describe('HomeV3 — il piede sparisce sul lato cassette del pager (QA device T15, addendum punto 3)', () => {
+  it('preferenza \'due_stanze\': il TastoPiù c\'è mentre si guardano le pile (stanza iniziale)', () => {
+    renderHome('due_stanze')
+    expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
+  })
+
+  it('preferenza \'due_stanze\' + ?stanza=parete: il TastoPiù NON c\'è quando si apre già sulla parete', () => {
+    renderHome('due_stanze', 'parete')
+    expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
+  })
+
+  it('tap sul dot verso la parete: il TastoPiù sparisce; tornando alle pile riappare', async () => {
+    const user = userEvent.setup()
+    const { container } = renderHome('due_stanze')
+    preparaViewport(container)
+    expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
+    await user.click(screen.getAllByRole('tab')[1])
+    expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
+    await user.click(screen.getAllByRole('tab')[0])
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
   })
 })
