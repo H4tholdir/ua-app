@@ -249,7 +249,18 @@ export function StanzePager(props: {
                 stanze.current[nome] = nodo
               }}
             >
-              {nome === 'pile' ? pile : <StanzaParete parete={parete} attiva={eAttiva} />}
+              {nome === 'pile' ? (
+                // Fix round 2 (review Task 14, Critical P3) — `.ua-stanza-pile-scroll`
+                // (ds-v3.css, accanto a `.ua-stanza-parete-scroll`): stessa ricetta della
+                // stanza Parete, DENTRO `.ua-stanza` e quindi PRIMA del clip verticale di
+                // `.ua-stanze-viewport` (overflow-y:hidden, due livelli più in fuori). Senza
+                // questo wrapper il degrado scroll P3 di `.corpo` (HomeV3.tsx) non riceve mai
+                // l'overflow della stanza Pile nella forma pager — v. commento CSS per la
+                // riproduzione e il perché.
+                <div className="ua-stanza-pile-scroll">{pile}</div>
+              ) : (
+                <StanzaParete parete={parete} attiva={eAttiva} />
+              )}
             </div>
           )
         })}

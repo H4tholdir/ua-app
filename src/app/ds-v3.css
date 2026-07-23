@@ -826,6 +826,36 @@
   touch-action: pan-y pan-x;
 }
 
+/* Task 14 — fix round 2 (review Critical, P3 pager). `.ua-stanze-viewport` (sopra) è
+   `overflow-x: auto; overflow-y: hidden`: quell'`hidden` CLIPPA in silenzio ogni pixel di
+   `.ua-stanza` che sfora, DUE livelli PRIMA che l'overflow possa mai arrivare al
+   `.corpo .foot` scrollabile di `HomeV3.tsx` (§ commento lì) — `.corpo` è `container-type:
+   size`, la sua altezza è quella del layout flex, non quella del contenuto: non «vede» mai
+   quanto cresce `.ua-stanza-viewport` dentro di sé, quindi il suo `overflow-y: auto` non
+   scatta MAI per questo caso. Riprodotto in browser reale (non jsdom): a 390×660 con 6 pile
+   invece di 4, la Pila 6 finiva SOTTO il bordo clippato di `.ua-stanze-viewport`,
+   irraggiungibile da qualunque scroll (né `.corpo` né il documento crescevano di una virgola
+   — `corpo.scrollHeight === corpo.clientHeight`). La stanza Parete NON aveva questo problema
+   perché ha già una superficie di scroll propria (`.ua-stanza-parete-scroll` sopra) DENTRO
+   `.ua-stanza`, cioè PRIMA del clip di `.ua-stanze-viewport`: il fix dà alla stanza Pile la
+   stessa ricetta, invece che tentare (di nuovo) di spostare l'`overflow-y:auto` più in alto —
+   dove il clip di `.ua-stanze-viewport` lo intercetterebbe comunque. `display: flex;
+   flex-direction: column`: la stanza Pile (testata · striscia · `.pile`) è pensata per vivere
+   dentro un antenato flex-column diretto (`.pile { flex: 1 }` prende lo spazio residuo e si
+   centra) — senza questa regola il wrapper sarebbe un blocco anonimo e `.pile` non avrebbe
+   nulla da cui prendere `flex: 1`. `touch-action: pan-y pan-x` (stessa scelta di
+   `.ua-stanza-parete-scroll`, non solo `pan-y`): un pan orizzontale che comincia su questo
+   wrapper deve poter arrivare intatto allo scroll-snap di `.ua-stanze-viewport` (il pager),
+   non essere bloccato qui — il wrapper stesso non scorre in x (nessun `overflow-x`), quindi
+   il browser risale al primo antenato che lo fa. Quando il contenuto ci sta, questa regola è
+   inerte: nessuno scroll compare, nessun pixel cambia posto (verificato di seguito). */
+[data-ds="v3"] .ua-stanza-pile-scroll {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pan-x;
+}
+
 /* Il tile finale: stessa figura della tray «+ Nuova cassetta» (`.ds-tray-nuova`), tratteggio e
    geometria, ma è una destinazione («vedi tutte») non una creazione. I due badge convivono nel
    DOM; il CSS mostra quello del viewport. `is-solo-mobile`: senza overflow tablet il tile sparisce
