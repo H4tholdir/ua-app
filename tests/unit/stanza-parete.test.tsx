@@ -29,7 +29,7 @@ function cassetta(nome: string, posizione: number, occupata = false): CassettaPa
     colore: 'rossa',
     posizione,
     lavoro: occupata
-      ? { id: `lav-${nome}`, numero: `1${posizione}0`, dentista: 'Bianchi', paziente: 'PZ-1', tipoDispositivo: 'protesi_fissa', descrizione: 'corona zirconia' }
+      ? { id: `lav-${nome}`, numero: `1${posizione}0`, dentista: 'Bianchi', paziente: 'PZ-1', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'corona zirconia' }
       : null,
   }
 }

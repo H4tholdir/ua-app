@@ -65,7 +65,7 @@ export async function getParete(svc: SupabaseClient, labId: string): Promise<Cas
   // esplicito.
   const { data: lavori, error: errLavori } = ids.length
     ? await svc.from('lavori')
-        .select('id, numero_lavoro, stato, deleted_at, descrizione, tipo_dispositivo, clienti(studio_nome, nome, cognome), pazienti(codice_paziente)')
+        .select('id, numero_lavoro, stato, deleted_at, descrizione, tipo_dispositivo, clienti(studio_nome, nome, cognome), pazienti(codice_paziente, nome_cognome)')
         .eq('laboratorio_id', labId).in('id', ids)
     : { data: [] as RawLavoro[], error: null }
   if (errLavori) console.error('[getParete] lettura lavori fallita:', errLavori)

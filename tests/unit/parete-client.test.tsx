@@ -17,7 +17,7 @@ beforeEach(() => { push.mockClear(); refresh.mockClear() })
 
 const occupata: CassettaParete = {
   id: 'c-a', nome: 'C12', colore: 'rossa', posizione: 0,
-  lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia' },
+  lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia' },
 }
 const libera: CassettaParete = { id: 'c-b', nome: 'C4', colore: 'grigia', posizione: 1, lavoro: null }
 

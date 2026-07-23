@@ -9,7 +9,7 @@ import { LABEL_MACRO } from '@/lib/domain/tipi-lavoro'
 
 const par = [
   { id: 'a', nome: 'C12', colore: 'rossa', posizione: 0,
-    lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42',
+    lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null,
               tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia' } },
   { id: 'b', nome: 'C4', colore: 'grigia', posizione: 1, lavoro: null },
 ]
@@ -33,7 +33,7 @@ describe('filtraCassette', () => {
     const tre = [
       ...par,
       { id: 'c', nome: 'C7', colore: 'bianca', posizione: 2,
-        lavoro: { id: 'l2', numero: '150', dentista: 'Bianchi', paziente: 'VER-9',
+        lavoro: { id: 'l2', numero: '150', dentista: 'Bianchi', paziente: 'VER-9', pazienteAlias: null,
                   tipoDispositivo: 'protesi_mobile', descrizione: 'Scheletrato' } },
     ]
     expect(filtraCassette(tre, 'bianchi')).toEqual(new Set(['a', 'c']))
@@ -60,15 +60,25 @@ describe('filtraCassette', () => {
   it('tipoDispositivo null o slug ignoto non rompono la ricerca né sporcano il pagliaio con "undefined"', () => {
     const bordo = [
       { id: 'e', nome: 'C1', colore: 'verde', posizione: 4,
-        lavoro: { id: 'l3', numero: '200', dentista: 'Verdi', paziente: 'LUC-1',
+        lavoro: { id: 'l3', numero: '200', dentista: 'Verdi', paziente: 'LUC-1', pazienteAlias: null,
                   tipoDispositivo: null, descrizione: 'Modello' } },
       { id: 'f', nome: 'C2', colore: 'blu', posizione: 5,
-        lavoro: { id: 'l4', numero: '201', dentista: 'Neri', paziente: 'PAO-2',
+        lavoro: { id: 'l4', numero: '201', dentista: 'Neri', paziente: 'PAO-2', pazienteAlias: null,
                   tipoDispositivo: 'slug_ignoto_xyz', descrizione: 'Altro' } },
     ]
     expect(() => filtraCassette(bordo, 'qualsiasi')).not.toThrow()
     expect(filtraCassette(bordo, 'undefined').size).toBe(0)
     expect(filtraCassette(bordo, 'verde')).toEqual(new Set(['e']))
     expect(filtraCassette(bordo, 'blu')).toEqual(new Set(['f']))
+  })
+
+  it("trova per alias paziente E per codice: l'alias si AGGIUNGE, non sostituisce", () => {
+    const parete = [
+      { id: 'a', nome: 'C12', colore: 'rossa', posizione: 0,
+        lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'PZ-0012', pazienteAlias: 'Rossi Mario',
+                  tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia' } },
+    ]
+    expect(filtraCassette(parete, 'rossi').size).toBe(1)
+    expect(filtraCassette(parete, 'pz-0012').size).toBe(1)
   })
 })

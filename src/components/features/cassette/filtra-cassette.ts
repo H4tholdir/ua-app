@@ -46,7 +46,7 @@ export function filtraCassette(parete: CassettaParete[], query: string): Set<str
       : ''
     const pagliaio = normalizza(
       l
-        ? `${c.nome} n.${l.numero} ${l.dentista} ${l.paziente} ${l.descrizione ?? ''} ${etichettaTipo} ${c.colore}`
+        ? `${c.nome} n.${l.numero} ${l.dentista} ${l.paziente} ${l.pazienteAlias ?? ''} ${l.descrizione ?? ''} ${etichettaTipo} ${c.colore}`
         : `${c.nome} ${c.colore}`
     )
     if (pagliaio.includes(q)) accesi.add(c.id)

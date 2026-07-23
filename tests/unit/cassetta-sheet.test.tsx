@@ -18,7 +18,7 @@ const occupata: CassettaParete = {
   nome: 'C12',
   colore: 'rossa',
   posizione: 1,
-  lavoro: { id: 'lav-1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', tipoDispositivo: 'protesi_fissa', descrizione: 'Corona' },
+  lavoro: { id: 'lav-1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'Corona' },
 }
 const libera: CassettaParete = { id: 'c-lib', nome: 'C4', colore: 'grigia', posizione: 3, lavoro: null }
 const altraLibera: CassettaParete = { id: 'c-lib2', nome: 'C7', colore: 'blu', posizione: 4, lavoro: null }

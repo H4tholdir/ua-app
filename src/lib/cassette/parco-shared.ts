@@ -10,6 +10,7 @@ export type CassettaParete = {
     numero: string
     dentista: string
     paziente: string
+    pazienteAlias: string | null
     tipoDispositivo: string | null
     descrizione: string | null
   } | null
@@ -25,7 +26,7 @@ export type RawLavoro = {
   descrizione: string | null
   tipo_dispositivo: string | null
   clienti: { studio_nome: string | null; nome: string | null; cognome: string | null } | null
-  pazienti: { codice_paziente: string | null } | null
+  pazienti: { codice_paziente: string | null; nome_cognome: string | null } | null
 }
 
 /** Motivo da passare a `cassetta_libera_atomica` per la riga da riparare
@@ -40,6 +41,19 @@ export type RawLavoro = {
 export type Riparazione = { lavoroId: string; motivo: 'consegna' | 'annullo_lavoro' }
 
 const CHIUSI = new Set(['consegnato', 'annullato'])
+
+// Riserva ARCH R4: per i pazienti-wizard senza alias il trigger
+// `sync_paziente_nome_cognome` scrive il CODICE in `nome_cognome` (upper +
+// spazio finale): un rendering ingenuo «alias vince sul codice» mostrerebbe
+// il codice travestito. Alias = nome_cognome trim-normalizzato, null se
+// coincide col codice.
+function derivaAlias(p: RawLavoro['pazienti']): string | null {
+  const grezzo = p?.nome_cognome?.trim()
+  if (!grezzo) return null
+  const codice = p?.codice_paziente?.trim()
+  if (codice && grezzo.toLowerCase() === codice.toLowerCase()) return null
+  return grezzo
+}
 
 export function deriveParete(
   cassette: RawCassetta[],
@@ -69,6 +83,7 @@ export function deriveParete(
               numero: l.numero_lavoro,
               dentista: l.clienti?.studio_nome ?? (`${l.clienti?.nome ?? ''} ${l.clienti?.cognome ?? ''}`.trim() || '—'),
               paziente: l.pazienti?.codice_paziente ?? '—',
+              pazienteAlias: derivaAlias(l.pazienti),
               tipoDispositivo: l.tipo_dispositivo,
               descrizione: l.descrizione,
             }
@@ -76,4 +91,20 @@ export function deriveParete(
       }
     })
   return { parete, daRiparare }
+}
+
+// Riserva UX 4: le cassette la cui coppia dentista+paziente non è unica
+// sulla parete mostrano il disambiguatore (Task 10). Chiave sul PARLATO
+// della targa (alias se c'è, altrimenti codice), normalizzata lowercase.
+export function targheInCollisione(parete: CassettaParete[]): Set<string> {
+  const perChiave = new Map<string, string[]>()
+  for (const c of parete) {
+    if (!c.lavoro) continue
+    const paz = (c.lavoro.pazienteAlias ?? c.lavoro.paziente).toLowerCase()
+    const chiave = `${c.lavoro.dentista.toLowerCase()}|${paz}`
+    perChiave.set(chiave, [...(perChiave.get(chiave) ?? []), c.id])
+  }
+  const collisioni = new Set<string>()
+  for (const ids of perChiave.values()) if (ids.length > 1) ids.forEach((id) => collisioni.add(id))
+  return collisioni
 }
