@@ -13,7 +13,18 @@ import type { CassettaParete } from '@/lib/cassette/parco-shared'
 const push = vi.fn()
 const refresh = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, back: vi.fn() }) }))
-beforeEach(() => { push.mockClear(); refresh.mockClear() })
+
+// QA device T15.1 (verbale 2026-07-24, fix-list punto 1) — CAUSA TROVATA: `initSuoni()` (sound.ts)
+// non veniva MAI chiamato in nessuna superficie reale (solo nel catalogo demo), quindi l'unlock
+// dell'AudioContext non si armava mai e stacco/riaggancio del drag restavano muti — v. report
+// FIX-C. Qui si presidia il CABLAGGIO: `initSuoni` deve essere chiamato al mount di `PareteClient`
+// (la superficie con la parete vera, montata in ogni percorso home/pannello/standalone). `suona`
+// resta un no-op tracciabile: altri test in questo file non lo asseriscono, ma un mock parziale
+// che lo perdesse romperebbe TastoTondo/useDragRiordino silenziosamente.
+const { initSuoniSpy, suonaSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn(), suonaSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', () => ({ initSuoni: initSuoniSpy, suona: suonaSpy }))
+
+beforeEach(() => { push.mockClear(); refresh.mockClear(); initSuoniSpy.mockClear(); suonaSpy.mockClear() })
 
 const occupata: CassettaParete = {
   id: 'c-a', nome: 'C12', colore: 'rossa', posizione: 0,
@@ -28,6 +39,23 @@ function tap(elemento: HTMLElement) {
   fireEvent.pointerDown(elemento, { clientX: 0, clientY: 0 })
   fireEvent.pointerUp(elemento, { clientX: 0, clientY: 0 })
 }
+
+describe('PareteClient — sblocco audio (QA device T15.1, verbale 2026-07-24, fix-list punto 1)', () => {
+  it('chiama initSuoni() al mount — senza questo, sbloccato resta false per sempre e ogni suono v3 (stacco/riaggancio incluso) esce subito da suona() (v. sound.ts)', () => {
+    render(<PareteClient parete={[occupata, libera]} />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('chiama initSuoni() anche a parete vuota (nessuna cassetta) — il cablaggio non dipende dal contenuto', () => {
+    render(<PareteClient parete={[]} />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('chiama initSuoni() anche montato dentro il pannello del pager (onIndietro presente, come in StanzePager.tsx)', () => {
+    render(<PareteClient parete={[occupata]} onIndietro={vi.fn()} attivo />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('PareteClient — la parete e il suo chrome (§5)', () => {
   it('rende titolo, ricerca e le cassette nell\'ordine ricevuto (nessun riordino a valle di getParete)', () => {

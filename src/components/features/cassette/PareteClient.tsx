@@ -48,6 +48,7 @@ import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { molla, trascinamento } from '@/design-system/v3/motion'
 import { vibra } from '@/design-system/v3/haptic'
+import { initSuoni } from '@/design-system/v3/sound'
 import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
@@ -120,6 +121,21 @@ export function PareteClient(props: {
 }) {
   const { parete, attivo = true, onIndietro, sospendiRefresh = false } = props
   const router = useRouter()
+  // QA device T15.1 (verbale 2026-07-24, fix-list punto 1) — CAUSA TROVATA (v. report FIX-C):
+  // `initSuoni()` (sound.ts) registra l'unlock dell'`AudioContext` una tantum al primo
+  // touchend/click del documento (policy iOS §9), ma prima di questo fix l'unica chiamata a
+  // `initSuoni()` in tutto il repo viveva in `ds-v3-catalogo/page.tsx` — un artefatto del
+  // catalogo demo, MAI raggiunto navigando l'app vera. Risultato: su ogni superficie reale
+  // `sbloccato` restava `false` per sempre, `ctx` non veniva mai creato e `suona()` usciva
+  // subito (v. sound.ts) — stacco/riaggancio (e in realtà OGNI suono v3, tap incluso) restavano
+  // muti fuori dal catalogo. Questa è la superficie con la parete VERA (drag incluso, via
+  // `useDragRiordino`), montata in ogni percorso home/pannello (pager, «solo parete», /cassette
+  // standalone): registrare qui copre tutti e tre. `initSuoni()` è di per sé idempotente
+  // (`initFatto`) e non riproduce nulla da sola — solo REGISTRA i listener, il suono parte al
+  // primo gesto reale dell'utente (mai autoplay).
+  useEffect(() => {
+    initSuoni()
+  }, [])
   // Refresh gated (riserva ARCH R2): mai rifare l'intera dashboard mentre l'utente sta sulle
   // pile e la stanza Parete è solo un peek morto fuori schermo. `attivoRef` (non `attivo`
   // direttamente) per non ri-registrare i listener di focus/visibilitychange a ogni cambio di
