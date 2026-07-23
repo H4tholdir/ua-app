@@ -135,3 +135,10 @@ Verificato nello stesso harness: il piede (TastoPiù) resta **assente** quando `
 ## Note sull'ambiente di verifica
 
 Le screenshot Playwright (headless Chromium) mostrano scrollbar overlay invisibili di default anche nello stato "prima" — la prova primaria della barra visibile è la misura `getComputedStyle(...).scrollbarWidth` (`'auto'` prima, `'none'` dopo), non il pixel dello screenshot. Il Browser pane interattivo (Chromium con rendering "classico") aveva invece mostrato la barra grigia visibile nello stato "prima" nella prima ispezione di questa sessione (non salvata su disco, solo osservata a schermo) — coerente con la misura DOM.
+
+## Correzione del controller (post-review)
+La review ha rilevato che «l'unica leva rimasta = ghiera» è INESATTO: l'etichetta
+«Nuovo lavoro» (fontSize 17.5, non parte della ratifica del TastoPiù) è una terza
+leva reale e inesplorata. Le opzioni per Francesco sono TRE: (P1) accettare
+28.8%@660/22.7%@844 · (P2) ridurre/togliere l'etichetta in home (≈ -1-4%) ·
+(P3) derogare sulla ghiera del tasto (richiede sua ratifica esplicita).
