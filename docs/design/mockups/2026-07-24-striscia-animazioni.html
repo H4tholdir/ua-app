@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Striscia F2 — le animazioni, da scegliere · UÀ</title>
+<style>
+/* ============================================================================
+   DEMO INTERATTIVA — animazioni della striscia F2 «card con voce» (ratificata).
+   Rev. 2: self-contained (ZERO rete), vista CONFRONTO come principale, stato
+   iniziale in silenzio, rallentatore per apprezzare i caratteri.
+
+   FONT: qui uso lo stack di sistema perché il file deve funzionare offline, senza
+   nessuna risorsa esterna (il visualizzatore blocca le richieste di rete). NEL
+   PRODOTTO VERO il font è Plus Jakarta Sans, preso dai token DS v3 (--font-v3).
+
+   Le MOLLE sono quelle di casa, da src/design-system/v3/motion.ts:
+     molla.smooth = { visualDuration: 0.5, bounce: 0 }     → nessun overshoot
+     molla.snappy = { visualDuration: 0.5, bounce: 0.15 }  → deciso
+     molla.bouncy = { visualDuration: 0.5, bounce: 0.3 }   → rimbalzo CONTENUTO
+     uscita = coreografie.avviso.exit → y:-8, opacity:0, 140ms cubic-bezier(0.4,0,1,1)
+   Ricreate per WAAPI (ζ = 1 − bounce, ω₀ = 2π/visualDuration): stessi parametri,
+   così il React userà le molle Motion identiche. MAI loop, MAI lampeggi.
+   ==========================================================================*/
+
+/* ---- Token DS v3 — VERBATIM da src/app/ds-v3.css ------------------------- */
+.ds{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E;
+  --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+  --purple:#7C3F9C; --purple-tint:#F3EAF7;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --ring:217,0,18;
+  color:var(--ink);
+}
+.ds.dark{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910;
+  --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --red-tint:rgba(255,59,68,.14); --amber-tint:rgba(232,161,61,.14);
+  --blue-tint:rgba(91,155,255,.14); --green-tint:rgba(52,196,104,.14);
+  --purple:#B98BE8; --purple-tint:rgba(185,139,232,.14);
+  --sh-card:none;
+  --ring:255,59,68;
+}
+
+/* Stack di sistema (nessuna @font-face, nessun link esterno). */
+:root{ --font-sys: -apple-system, "SF Pro Text", "Segoe UI", system-ui, Roboto, sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-sys);background:#E7E1D4;color:#1D1913;min-height:100vh}
+body.night{background:#0C0A08;color:#F2EEE7}
+.ds{font-family:var(--font-sys)}
+.wrap{max-width:1220px;margin:0 auto;padding:26px 24px 60px}
+.doc-head h1{font-size:26px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px}
+.doc-head p{font-size:14px;line-height:1.55;color:#5b5347;max-width:780px}
+body.night .doc-head p{color:#A69B8C}
+
+.stageRow{display:flex;gap:30px;align-items:flex-start;margin-top:22px;flex-wrap:wrap}
+
+/* ---- Controlli ----------------------------------------------------------- */
+.controls{flex:0 0 300px;max-width:320px}
+.grp{margin-bottom:18px}
+.grp h3{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#8a8073;margin-bottom:9px}
+body.night .grp h3{color:#7d7365}
+
+.seg{display:flex;gap:8px}
+.seg button{flex:1;padding:12px 8px;border-radius:14px;border:1.5px solid #D8D0C0;background:#FFFEFA;color:#1D1913;
+  font:800 14px var(--font-sys);cursor:pointer;transition:transform .08s, border-color .12s, background .12s;text-align:center;line-height:1.15}
+.seg button small{display:block;font-weight:600;font-size:11px;color:#8a8073;margin-top:2px;letter-spacing:0}
+.seg button:active{transform:translateY(1px)}
+.seg button[aria-pressed="true"]{border-color:#D90012;background:#FBEDEC}
+body.night .seg button{background:#211D18;border-color:#342E26;color:#F2EEE7}
+body.night .seg button small{color:#928778}
+body.night .seg button[aria-pressed="true"]{border-color:#FF3B44;background:rgba(255,59,68,.14)}
+
+.scenari{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.scenari button{padding:12px 12px;border-radius:14px;border:1px solid #DDD6C8;background:#FFFEFA;color:#1D1913;
+  font:700 13px var(--font-sys);cursor:pointer;text-align:left;transition:transform .08s, background .12s;line-height:1.2}
+.scenari button:hover{background:#F6F1E7}
+.scenari button:active{transform:translateY(1px)}
+.scenari button.wide{grid-column:1 / -1}
+body.night .scenari button{background:#211D18;border-color:#342E26;color:#F2EEE7}
+body.night .scenari button:hover{background:#2B2620}
+
+.switches{display:flex;flex-direction:column;gap:10px}
+.sw{display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:600;color:#4a4339;cursor:pointer;user-select:none}
+body.night .sw{color:#C9BFB0}
+.sw .track{width:44px;height:26px;border-radius:99px;background:#CFC7B7;position:relative;transition:background .16s;flex:none}
+.sw .track::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:left .16s}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw input:checked + .track{background:#D90012}
+.sw input:checked + .track::after{left:21px}
+body.night .sw input:checked + .track{background:#FF3B44}
+
+.hint{margin-top:6px;font-size:12px;line-height:1.5;color:#8a8073}
+body.night .hint{color:#7d7365}
+.liveline{margin-top:16px;padding:12px 14px;border-radius:14px;background:#FFFEFA;border:1px solid #E4DDCF;font-size:12.5px;color:#5b5347;line-height:1.5;min-height:58px}
+.liveline b{color:#1D1913}
+body.night .liveline{background:#211D18;border-color:#342E26;color:#A69B8C}
+body.night .liveline b{color:#F2EEE7}
+.legenda{margin-top:16px;font-size:12px;line-height:1.55;color:#6b6154}
+.legenda b{color:#1D1913}
+body.night .legenda{color:#9a907f}
+body.night .legenda b{color:#F2EEE7}
+
+/* ---- Palco --------------------------------------------------------------- */
+.stage{flex:1 1 640px;min-width:560px}
+.stageTop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.viewseg{display:flex;gap:8px}
+.viewseg button{padding:9px 16px;border-radius:999px;border:1.5px solid #D8D0C0;background:#FFFEFA;color:#1D1913;font:800 13px var(--font-sys);cursor:pointer}
+.viewseg button[aria-pressed="true"]{border-color:#1D1913;background:#1D1913;color:#F4F0E7}
+body.night .viewseg button{background:#211D18;border-color:#342E26;color:#F2EEE7}
+body.night .viewseg button[aria-pressed="true"]{border-color:#F2EEE7;background:#F2EEE7;color:#171411}
+.tema-toggle{background:#FFFEFA;color:#1D1913;border:1px solid #E4DDCF;border-radius:999px;padding:9px 16px;font:700 13px var(--font-sys);cursor:pointer}
+body.night .tema-toggle{background:#211D18;color:#F2EEE7;border-color:#342E26}
+
+.bighint{padding:16px 18px;border-radius:16px;border:1px dashed #C9C0AF;background:rgba(255,255,255,.4);color:#7a7062;font-size:13.5px;font-weight:600;margin-bottom:14px}
+body.night .bighint{border-color:#3a352c;background:rgba(255,255,255,.03);color:#8a8073}
+
+/* Confronto: 3 mini-telefoni — SEMPRE su una riga (colpo d'occhio) */
+#viewConfronto{display:flex;gap:16px;flex-wrap:nowrap}
+.minicol{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px;align-items:center}
+.minilabel{font-size:15px;font-weight:800;letter-spacing:.02em}
+.minilabel .vtag{display:inline-block;min-width:34px;text-align:center;padding:2px 8px;border-radius:8px;background:#1D1913;color:#F4F0E7;margin-right:8px}
+body.night .minilabel .vtag{background:#F2EEE7;color:#171411}
+.mini{width:100%;height:196px;background:var(--bg);border-radius:22px;border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;box-shadow:0 16px 34px -20px rgba(0,0,0,.4);position:relative;overflow:hidden}
+.mini .m-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.mini .m-saluto{font-size:18px;font-weight:800;letter-spacing:-0.02em;line-height:1.08;margin-top:3px;color:var(--ink)}
+.mini .slot{min-height:60px;margin-top:12px;overflow:hidden}   /* spazio RISERVATO: isola il carattere del movimento */
+.minicap{font-size:12.5px;font-weight:600;color:#6b6154;text-align:center;line-height:1.35;min-height:34px}
+body.night .minicap{color:#9a907f}
+
+/* Dettaglio: la home 390 intera */
+#viewDettaglio{display:flex;justify-content:center}
+.home{width:390px;height:722px;background:var(--bg);border-radius:30px;border:1px solid var(--line);padding:24px;display:flex;flex-direction:column;overflow:hidden;position:relative;box-shadow:0 30px 60px -30px rgba(0,0,0,.5)}
+.testa{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.eyebrow{font-size:13px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:var(--faint)}
+.saluto{font-size:31px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;margin-top:6px;color:var(--ink)}
+.tondo{flex:none;width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh-card);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--ink)}
+.dark .tondo{box-shadow:none;border-top:1px solid rgba(255,255,255,.04)}
+.home > .slot{overflow:hidden}   /* altezza ANIMATA (spinta/respiro pile) nel dettaglio */
+.pile{flex:1;display:flex;flex-direction:column;gap:16px;justify-content:center;margin-top:16px}
+.pila{width:100%;display:flex;align-items:center;gap:20px;border-radius:24px;background:var(--card);box-shadow:var(--sh-card);padding:20px 22px;text-align:left}
+.dark .pila{box-shadow:none;border-top:1px solid rgba(255,255,255,.04)}
+.pila .num{min-width:60px;text-align:center;font-size:52px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.pila .col{display:flex;flex-direction:column;min-width:0;flex:1;gap:4px}
+.pila .lab{font-size:13px;font-weight:800;letter-spacing:0.16em}
+.pila .sub{font-size:16px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-red{color:var(--red)}.c-amber{color:var(--amber)}.c-purple{color:var(--purple)}.c-blue{color:var(--blue)}
+.foot{margin-top:16px;display:flex;justify-content:center}
+.piu{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--red);
+  background:radial-gradient(circle at 50% 28%,#FFFFFF 0%,#FEFCF8 40%,#F5F0E6 75%,#EBE4D4 100%);
+  box-shadow:0 3px 6px rgba(52,42,26,.18), inset 0 2px 2px rgba(255,255,255,1), inset 0 -4px 8px rgba(52,42,26,.06)}
+.dark .piu{background:radial-gradient(circle at 50% 28%,#37312A 0%,#2E2921 55%,#252017 100%);
+  box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 1.5px 1px rgba(255,255,255,.08), inset 0 -3px 6px rgba(0,0,0,.3)}
+
+/* ---- La striscia F2 (valori ratificati) --------------------------------- */
+.s-red  {--st:var(--red);  --st-tint:var(--red-tint)}
+.s-amber{--st:var(--amber);--st-tint:var(--amber-tint)}
+.s-blue {--st:var(--blue); --st-tint:var(--blue-tint)}
+.striscia{display:flex;align-items:center;gap:12px;min-width:0;background:var(--st-tint);border-radius:18px;padding:12px 14px;border:1px solid var(--line);will-change:transform,opacity}
+.striscia.taprow,.striscia .cta{cursor:pointer}
+.striscia .ico{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;line-height:1;background:var(--elv);color:var(--st)}
+.striscia .txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px;font-weight:500;color:var(--muted);text-align:left}
+.striscia .txt b{color:var(--ink);font-weight:700}
+.striscia .cta{flex:none;display:inline-flex;align-items:center;min-height:44px;margin:-13px 0;font-size:14.5px;font-weight:800;color:var(--red);text-decoration:none}
+.striscia .chev{flex:none;font-size:19px;font-weight:800;color:var(--st);margin-left:2px;line-height:1}
+/* nei mini la striscia è un filo più compatta, testo 13.5 per stare nei 240px */
+.mini .striscia{padding:10px 12px}
+.mini .striscia .txt{font-size:13.5px}
+.mini .striscia .cta{font-size:13.5px}
+
+/* Toast "dove porta il tap" */
+.toast{position:absolute;left:16px;right:16px;bottom:16px;z-index:9;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;font-size:12.5px;font-weight:700;text-align:center;opacity:0;pointer-events:none;box-shadow:0 12px 30px -12px rgba(0,0,0,.5)}
+.home .toast{bottom:100px;left:24px;right:24px;padding:12px 16px;font-size:13.5px;border-radius:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="doc-head">
+    <h1>Le animazioni della striscia — scegli la coreografia</h1>
+    <p>La forma è quella che hai scelto (F2 «card con voce»). Qui decidi <b>come si muove</b>. La vista
+    <b>Confronto</b> mostra le tre coreografie fianco a fianco: premi uno scenario e le vedi partire <b>insieme</b>,
+    così la differenza si coglie in un colpo d'occhio. Attiva <b>«al rallentatore»</b> per studiarle con calma.
+    Passa a <b>Dettaglio</b> per vederne una sola nella home intera e provare il tap. Rispondi pure con «V1» e basta.</p>
+  </div>
+
+  <div class="stageRow">
+    <!-- Controlli -->
+    <div class="controls">
+      <div class="grp" id="grpVariant" style="display:none">
+        <h3>Coreografia (in Dettaglio)</h3>
+        <div class="seg" id="seg">
+          <button data-v="v1" aria-pressed="true">V1<small>per livello</small></button>
+          <button data-v="v2" aria-pressed="false">V2<small>uniforme</small></button>
+          <button data-v="v3" aria-pressed="false">V3<small>respiro</small></button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h3>Scenario (rigiocabile)</h3>
+        <div class="scenari" id="scenari">
+          <button data-s="urgenza">Appare urgenza singola</button>
+          <button data-s="aggregato">Appare aggregato (3 scadenze)</button>
+          <button data-s="racconto">Appare racconto</button>
+          <button data-s="trial">Appare trial</button>
+          <button data-s="cambio" class="wide">Il segnale cambia (racconto → urgenza)</button>
+          <button data-s="silenzio" class="wide">Silenzio (la striscia sparisce)</button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <h3>Prove</h3>
+        <div class="switches">
+          <label class="sw"><input type="checkbox" id="slow"><span class="track"></span>Al rallentatore (0,25×)</label>
+          <label class="sw"><input type="checkbox" id="rm"><span class="track"></span>Movimento ridotto (solo dissolvenze)</label>
+        </div>
+        <div class="hint">In Dettaglio, tocca la striscia nel telefono per vedere <b>dove porta il tap</b>.</div>
+      </div>
+
+      <div class="liveline" id="live">Premi uno scenario — le tre coreografie partono insieme.</div>
+
+      <div class="legenda">
+        <b>V1 · per livello:</b> urgenza decisa con rimbalzo contenuto (molla.bouncy); racconto in punta di piedi (fade + rise, smooth); trial come l'urgenza ma senza rimbalzo.<br>
+        <b>V2 · uniforme:</b> tutti scivolano dall'alto uguali (smooth) — sobrietà massima.<br>
+        <b>V3 · respiro:</b> come V1, ma al 1° allarme un solo micro-pulse del bordo (una volta, mai loop).
+      </div>
+    </div>
+
+    <!-- Palco -->
+    <div class="stage">
+      <div class="stageTop">
+        <div class="viewseg" id="viewseg">
+          <button data-view="confronto" aria-pressed="true">Confronto</button>
+          <button data-view="dettaglio" aria-pressed="false">Dettaglio</button>
+        </div>
+        <button class="tema-toggle" id="tema">☀ / ☾ Tema</button>
+      </div>
+
+      <div class="ds" id="dsroot">
+        <div class="bighint" id="bighint">Premi uno scenario qui a sinistra — oppure aspetta un attimo, parte da solo.</div>
+
+        <!-- CONFRONTO: 3 mini-telefoni -->
+        <div id="viewConfronto">
+          <div class="minicol">
+            <div class="minilabel"><span class="vtag">V1</span>per livello</div>
+            <div class="mini" id="miniV1">
+              <div class="m-eyebrow">GIOVEDÌ 24 LUGLIO</div>
+              <div class="m-saluto">Buon pomeriggio,<br>Francesco</div>
+              <div class="slot" data-mini="v1"></div>
+              <div class="toast"></div>
+            </div>
+            <div class="minicap">Urgenza decisa con rimbalzo contenuto</div>
+          </div>
+          <div class="minicol">
+            <div class="minilabel"><span class="vtag">V2</span>uniforme</div>
+            <div class="mini" id="miniV2">
+              <div class="m-eyebrow">GIOVEDÌ 24 LUGLIO</div>
+              <div class="m-saluto">Buon pomeriggio,<br>Francesco</div>
+              <div class="slot" data-mini="v2"></div>
+              <div class="toast"></div>
+            </div>
+            <div class="minicap">Tutti uguali, scivolata dall'alto</div>
+          </div>
+          <div class="minicol">
+            <div class="minilabel"><span class="vtag">V3</span>respiro</div>
+            <div class="mini" id="miniV3">
+              <div class="m-eyebrow">GIOVEDÌ 24 LUGLIO</div>
+              <div class="m-saluto">Buon pomeriggio,<br>Francesco</div>
+              <div class="slot" data-mini="v3"></div>
+              <div class="toast"></div>
+            </div>
+            <div class="minicap">Come V1 + respiro al 1° allarme</div>
+          </div>
+        </div>
+
+        <!-- DETTAGLIO: la home 390 intera -->
+        <div id="viewDettaglio" style="display:none">
+          <div class="home" id="home">
+            <div class="testa">
+              <div>
+                <div class="eyebrow">GIOVEDÌ 24 LUGLIO</div>
+                <div class="saluto">Buon pomeriggio,<br>Francesco</div>
+              </div>
+              <div class="tondo">☰</div>
+            </div>
+            <div class="slot" id="bigSlot"></div>
+            <div class="pile">
+              <div class="pila"><span class="num c-red">3</span><span class="col"><span class="lab c-red">DA CONSEGNARE OGGI</span><span class="sub">ponte Dr. Bianchi</span></span></div>
+              <div class="pila"><span class="num c-amber">5</span><span class="col"><span class="lab c-amber">SUL BANCO</span><span class="sub">2 in cottura</span></span></div>
+              <div class="pila"><span class="num c-purple">1</span><span class="col"><span class="lab c-purple">DA RIFARE / IN PROVA</span><span class="sub">prova Dr.ssa Ricci</span></span></div>
+              <div class="pila"><span class="num c-blue">2</span><span class="col"><span class="lab c-blue">APPENA ARRIVATI</span><span class="sub">stamattina</span></span></div>
+            </div>
+            <div class="foot"><div class="piu">+</div></div>
+            <div class="toast" id="bigToast"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+//  MOLLE DI CASA (motion.ts) ricreate per WAAPI. ζ = 1 − bounce, ω₀ = 2π/vDur.
+// =============================================================================
+const MOLLA = {
+  smooth: { visualDuration: 0.5, bounce: 0.0 },
+  snappy: { visualDuration: 0.5, bounce: 0.15 },
+  bouncy: { visualDuration: 0.5, bounce: 0.3 },
+};
+function springSamples(spec, N = 64) {
+  const zeta = Math.min(1, Math.max(0, 1 - spec.bounce));
+  const w0 = (2 * Math.PI) / spec.visualDuration;
+  const total = spec.visualDuration * 1.9;
+  const out = [];
+  for (let i = 0; i < N; i++) {
+    const t = (i / (N - 1)) * total;
+    let x;
+    if (zeta < 1) {
+      const wd = w0 * Math.sqrt(1 - zeta * zeta);
+      x = 1 - Math.exp(-zeta * w0 * t) * (Math.cos(wd * t) + (zeta * w0 / wd) * Math.sin(wd * t));
+    } else {
+      x = 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+    }
+    out.push({ offset: i / (N - 1), x });
+  }
+  return { samples: out, durMs: Math.round(total * 1000) };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+function contentKeyframes(recipe) {
+  const { samples } = springSamples(recipe.spring);
+  return samples.map(s => ({
+    offset: s.offset,
+    transform: `translateY(${lerp(recipe.y, 0, s.x)}px) scale(${lerp(recipe.scale, 1, s.x)})`,
+    opacity: String(clamp01(recipe.o + (1 - recipe.o) * Math.min(1, s.x * 1.3))),
+    easing: 'linear',
+  }));
+}
+function heightKeyframes(h, spec) {
+  const { samples } = springSamples(spec);
+  return samples.map(s => ({
+    offset: s.offset,
+    height: `${lerp(0, h, clamp01(s.x))}px`,
+    marginTop: `${lerp(0, 16, clamp01(s.x))}px`,
+    easing: 'linear',
+  }));
+}
+function recipeFor(variant, key) {
+  const isAllarme = key === 'urgenza' || key === 'aggregato';
+  if (variant === 'v2') return { y: -16, scale: 1, o: 0, spring: MOLLA.smooth, label: "scivolata dall'alto, uguale per tutti (smooth)" };
+  if (isAllarme) return { y: 12, scale: 0.96, o: 0, spring: MOLLA.bouncy, label: 'scatto deciso con rimbalzo contenuto (bouncy)' };
+  if (key === 'trial') return { y: 12, scale: 0.98, o: 0, spring: MOLLA.smooth, label: "decisa come l'urgenza, senza rimbalzo (smooth)" };
+  return { y: 6, scale: 1, o: 0, spring: MOLLA.smooth, label: 'fade + rise di pochi px, in punta di piedi (smooth)' };
+}
+
+// =============================================================================
+//  STATI (testi ACCORCIATI: interi a 390px). dest = dove porta il tap.
+// =============================================================================
+const STATI = {
+  urgenza:   { key:'urgenza',   cls:'s-red',   glyph:'!', forte:'Consegna oggi',      rest:'— ponte Dr. Bianchi', cta:'Apri ›', taprow:false, dest:'apre la scheda del lavoro' },
+  aggregato: { key:'aggregato', cls:'s-red',   glyph:'!', forte:'3 scadenze oggi',    rest:'', cta:'Vedi ›', taprow:false, dest:'apre i lavori di oggi' },
+  racconto:  { key:'racconto',  cls:'s-blue',  glyph:'✦', forte:'UÀ ha liberato C12', rest:'', cta:null, taprow:true, dest:'apre la parete · C12' },
+  trial:     { key:'trial',     cls:'s-amber', glyph:'⏳', forte:'Prova gratuita',     rest:'— 9 giorni', cta:'Attiva ›', taprow:false, dest:"apre l'abbonamento" },
+};
+function buildStriscia(st, onTap) {
+  const el = document.createElement('div');
+  el.className = `striscia ${st.cls}${st.taprow ? ' taprow' : ''}`;
+  if (!st.taprow) el.setAttribute('role', 'status');
+  el.innerHTML = `<span class="ico">${st.glyph}</span>
+    <span class="txt"><b>${st.forte}</b> ${st.rest}</span>
+    ${st.cta ? `<span class="cta">${st.cta}</span>` : ''}${st.taprow ? '<span class="chev">›</span>' : ''}`;
+  el.addEventListener('click', () => onTap && onTap(st));
+  return el;
+}
+
+// =============================================================================
+//  MOTORE — opera su un "phone" generico. reserve=true → spazio fisso (mini),
+//  reserve=false → altezza animata + pile (big).
+// =============================================================================
+function pause(ms){ return new Promise(r => setTimeout(r, ms)); }
+function clearAnims(el){ el.getAnimations().forEach(a => a.cancel()); }
+function makePhone(slot, variant, reserve, toastEl){ return { slot, variant, reserve, toastEl, cur:null, state:null }; }
+
+function showDest(phone, st){
+  const t = phone.toastEl; if(!t) return;
+  t.textContent = '→ ' + st.dest;
+  t.getAnimations().forEach(a=>a.cancel());
+  t.animate([{transform:'translateY(-14px)',opacity:0},{transform:'translateY(0)',opacity:1}],
+            {duration:400, easing:'cubic-bezier(0.2,0.7,0.2,1)', fill:'both'});
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.animate([{opacity:1},{opacity:0}],{duration:180,easing:'ease',fill:'both'}); }, 1500);
+}
+
+async function enter(phone, st, cfg){ // cfg = {reduced, scale}
+  const el = buildStriscia(st, (s)=>showDest(phone, s));
+  phone.slot.appendChild(el);
+  const recipe = recipeFor(phone.variant, st.key);
+  if (phone.reserve){
+    if (cfg.reduced){
+      await el.animate([{opacity:0},{opacity:1}], {duration:150*cfg.scale, easing:'ease', fill:'both'}).finished;
+    } else {
+      const dur = springSamples(recipe.spring).durMs * cfg.scale;
+      await el.animate(contentKeyframes(recipe), {duration:dur, easing:'linear', fill:'both'}).finished;
+    }
+    clearAnims(el);
+  } else {
+    phone.slot.style.marginTop='16px'; phone.slot.style.height='auto';
+    const h = el.offsetHeight;
+    phone.slot.style.height='0px'; phone.slot.style.marginTop='0px';
+    let aH, aC;
+    if (cfg.reduced){
+      aH = phone.slot.animate([{height:'0px',marginTop:'0px'},{height:h+'px',marginTop:'16px'}],{duration:150*cfg.scale,easing:'ease',fill:'both'});
+      aC = el.animate([{opacity:0},{opacity:1}],{duration:150*cfg.scale,easing:'ease',fill:'both'});
+    } else {
+      const dur = springSamples(recipe.spring).durMs * cfg.scale;
+      aH = phone.slot.animate(heightKeyframes(h, recipe.spring),{duration:dur,easing:'linear',fill:'both'});
+      aC = el.animate(contentKeyframes(recipe),{duration:dur,easing:'linear',fill:'both'});
+    }
+    await Promise.all([aH.finished, aC.finished]);
+    clearAnims(el); phone.slot.getAnimations().forEach(a=>a.cancel());
+    phone.slot.style.height='auto'; phone.slot.style.marginTop='16px';
+  }
+  if (!cfg.reduced && phone.variant==='v3' && (st.key==='urgenza'||st.key==='aggregato')){
+    el.animate([
+      {boxShadow:'0 0 0 0 rgba(var(--ring),0)'},
+      {boxShadow:'0 0 0 5px rgba(var(--ring),.22)', offset:0.45},
+      {boxShadow:'0 0 0 0 rgba(var(--ring),0)'},
+    ], {duration:680*cfg.scale, easing:'ease-out', iterations:1});
+  }
+  phone.cur=el; phone.state=st;
+}
+
+async function exit(phone, cfg){ // uscita SECCA (non scalata dal rallentatore)
+  if (!phone.cur) return;
+  const el = phone.cur;
+  const aC = cfg.reduced
+    ? el.animate([{opacity:1},{opacity:0}],{duration:110,easing:'ease',fill:'both'})
+    : el.animate([{transform:'translateY(0) scale(1)',opacity:1},{transform:'translateY(-8px) scale(1)',opacity:0}],{duration:150,easing:'cubic-bezier(0.4,0,1,1)',fill:'both'});
+  let aH = null;
+  if (!phone.reserve){
+    const h = el.offsetHeight;
+    aH = phone.slot.animate([{height:h+'px',marginTop:'16px'},{height:'0px',marginTop:'0px'}],{duration:190,easing:'cubic-bezier(0.4,0,1,1)',fill:'both'});
+  }
+  await Promise.all([aC.finished, aH ? aH.finished : Promise.resolve()]);
+  phone.slot.innerHTML='';
+  if (!phone.reserve){ phone.slot.style.height='auto'; phone.slot.style.marginTop='16px'; }
+  phone.cur=null; phone.state=null;
+}
+
+// =============================================================================
+//  Palco + orchestrazione
+// =============================================================================
+let view = 'confronto';
+let selectedVariant = 'v1';
+let reduced = false, slow = false;
+let lastScenario = null;
+let busy = false;
+
+const bigToast = document.getElementById('bigToast');
+const bigPhone = makePhone(document.getElementById('bigSlot'), 'v1', false, bigToast);
+function miniPhone(id, v){ const box=document.getElementById(id); return makePhone(box.querySelector('.slot'), v, true, box.querySelector('.toast')); }
+const minis = [ miniPhone('miniV1','v1'), miniPhone('miniV2','v2'), miniPhone('miniV3','v3') ];
+
+function activePhones(){
+  if (view==='confronto') return minis;
+  bigPhone.variant = selectedVariant;
+  return [bigPhone];
+}
+
+const live = document.getElementById('live');
+const bighint = document.getElementById('bighint');
+function setLive(txt){ live.innerHTML = txt; }
+function scenLabel(k){ return {urgenza:'Appare urgenza singola', aggregato:'Appare aggregato (3 scadenze)', racconto:'Appare racconto', trial:'Appare trial', cambio:'Il segnale cambia (racconto → urgenza)', silenzio:'Silenzio'}[k]; }
+
+async function runScenario(scenario){
+  if (busy) return; busy = true;
+  bighint.style.display = 'none';
+  try {
+    const phones = activePhones();
+    const cfg = { reduced, scale: slow ? 4 : 1 };
+    const rm = reduced ? ' · <b>movimento ridotto</b>' : '';
+    const sm = slow ? ' · <b>al rallentatore</b>' : '';
+
+    if (scenario === 'silenzio'){
+      setLive(`<b>Silenzio</b> — la striscia sparisce, il saluto respira${rm}${sm}`);
+      await Promise.all(phones.map(p => exit(p, cfg)));
+    } else if (scenario === 'cambio'){
+      setLive(`<b>Il segnale cambia</b> — racconto → urgenza${rm}${sm}`);
+      await Promise.all(phones.map(p => exit(p, cfg)));
+      await pause(250);
+      await Promise.all(phones.map(p => enter(p, STATI.racconto, cfg)));
+      await pause(1000);
+      await Promise.all(phones.map(p => exit(p, cfg)));
+      await pause(450);
+      await Promise.all(phones.map(p => enter(p, STATI.urgenza, cfg)));
+    } else {
+      // Appare X — SEMPRE: sparisce secca → pausa 450 → ingresso animato
+      const rec = recipeFor(view==='confronto' ? 'v1' : selectedVariant, scenario);
+      setLive(`<b>${scenLabel(scenario)}</b>${view==='dettaglio' ? ' — '+rec.label : ''}${rm}${sm}`);
+      await Promise.all(phones.map(p => exit(p, cfg)));
+      await pause(450);
+      await Promise.all(phones.map(p => enter(p, STATI[scenario], cfg)));
+    }
+    lastScenario = scenario;
+  } finally { busy = false; }
+}
+
+async function repopulate(){
+  if (!lastScenario || lastScenario==='silenzio'){ return; }
+  await runScenario(lastScenario);
+}
+
+// ---- Wiring --------------------------------------------------------------
+document.getElementById('scenari').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b) return; runScenario(b.dataset.s);
+});
+document.getElementById('viewseg').addEventListener('click', async (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  view = b.dataset.view;
+  [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  document.getElementById('viewConfronto').style.display = view==='confronto' ? 'flex' : 'none';
+  document.getElementById('viewDettaglio').style.display = view==='dettaglio' ? 'flex' : 'none';
+  document.getElementById('grpVariant').style.display = view==='dettaglio' ? '' : 'none';
+  await repopulate();
+});
+document.getElementById('seg').addEventListener('click', async (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  selectedVariant = b.dataset.v;
+  [...e.currentTarget.children].forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  if (view==='dettaglio') await repopulate();
+});
+document.getElementById('slow').addEventListener('change', e=>{ slow = e.target.checked; });
+document.getElementById('rm').addEventListener('change', e=>{ reduced = e.target.checked; });
+const dsroot = document.getElementById('dsroot');
+document.getElementById('tema').addEventListener('click', ()=>{ document.body.classList.toggle('night'); dsroot.classList.toggle('dark'); });
+
+// Avvio: silenzio + hint; dopo 800ms parte da solo l'urgenza (in Confronto).
+window.addEventListener('load', ()=>{ setTimeout(()=>runScenario('urgenza'), 800); });
+</script>
+</body>
+</html>
