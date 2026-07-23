@@ -54,8 +54,13 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     }
     expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete-grid \{ display: grid; grid-template-columns: repeat\(3, 1fr\); gap: 16px; \}/)
     // Task 8 (adeguamento del testo guardato, NON abrogazione — le custom property
-    // GRIGLIA FISSA + SNAP ratificate 24/07 vivono PRIMA di position: relative):
-    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 4\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/)
+    // GRIGLIA FISSA + SNAP ratificate 24/07 vivono PRIMA di position: relative). QA device T15
+    // (verbale 2026-07-24, fix 7/e, 25/07 notte) — SECONDO adeguamento del testo guardato: track
+    // sale da 4· a 5·passo-maglia (176→220 a scala base) — la VERA altezza massima del tile (T2,
+    // due righe) misurata in browser reale clippava il gancio della riga sotto a 4·, v.
+    // ds-v3.css per i numeri e per la dimostrazione che la garanzia hook≡wire-center (mod
+    // passo-maglia) non dipende dal multiplo scelto.
+    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/)
   })
 
   // Task 12 (D2, 25/07) — ABROGATA e SOSTITUITA (panel ARCH R6 + FE R2, spec §5.4; era «assert
@@ -77,19 +82,22 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
 // §Vincoli Task 8-10, mockup ratificato 2026-07-24-rete-gancetto-targa.html rev.3 P=44): la
 // maglia metallica fissa sul MURO (.ds-parete, MAI la shell) + la griglia quantizzata
 // (grid-auto-rows/row-gap/align-items su .ds-parete-grid) coi valori ratificati.
-describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica 24/07/2026, P=44)', () => {
-  it('.ds-parete dichiara i parametri GRIGLIA FISSA + SNAP ratificati (P=44 · track=4P · hook-above=14 · wall-pad-top=24 · wire-center=wall-pad-top-hook-above · wire-w=3) PRIMA di position: relative — poi la maglia SVG light + fallback colore', () => {
+describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica 24/07/2026, P=44; track 4→5 dal QA T15 25/07)', () => {
+  it('.ds-parete dichiara i parametri GRIGLIA FISSA + SNAP ratificati (P=44 · track=5P (QA T15, fix 7/e) · hook-above=14 · wall-pad-top=24 · wire-center=wall-pad-top-hook-above · wire-w=3) PRIMA di position: relative — poi la maglia SVG light + fallback colore', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 4\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/
+      /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/
     )
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-image: url\("data:image\/svg\+xml,/)
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-size: 44px 44px;/)
-    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-color: var\(--bg-deep\);/)
+    // QA device T15 (verbale 2026-07-24, addendum punto 5) — il fondo del muro era --bg-deep
+    // (stonava col fondo pagina, screenshot Francesco): ora è --bg, lo stesso token del
+    // page-root che ospita la parete (v. ds-v3.css per il ragionamento completo).
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-color: var\(--bg\);/)
   })
 
-  it('dark = flat, verbatim mockup .notte: due repeating-linear-gradient (filo rgba(255,255,255,.07), spessore --wire-w) + background-position ancorato a wire-center - wire-w/2', () => {
+  it('dark = flat, verbatim mockup .notte MA con l\'adeguamento QA T15 (fondo --bg + filo alzato .07→.09 per compensare, v. ds-v3.css): due repeating-linear-gradient (filo rgba(255,255,255,.09), spessore --wire-w) + background-position ancorato a wire-center - wire-w/2', () => {
     expect(norm).toMatch(
-      /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-parete \{ --filo-flat: rgba\(255,255,255,\.07\); background: repeating-linear-gradient\(180deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), repeating-linear-gradient\(90deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), var\(--bg-deep\); background-position: 0 calc\(var\(--wire-center\) - var\(--wire-w\) \/ 2\), 0 0, 0 0; \}/
+      /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-parete \{ --filo-flat: rgba\(255,255,255,\.09\); background: repeating-linear-gradient\(180deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), repeating-linear-gradient\(90deg, var\(--filo-flat\) 0 var\(--wire-w\), transparent var\(--wire-w\) var\(--passo-maglia\)\), var\(--bg\); background-position: 0 calc\(var\(--wire-center\) - var\(--wire-w\) \/ 2\), 0 0, 0 0; \}/
     )
   })
 
@@ -126,6 +134,23 @@ describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica
   it('passo fluido SOLO nel perimetro shell (riserva FE R1, clamp ratificato 40-50 vs 10.2cqw) — il track resta accoppiato via calc(), non va ridichiarato', () => {
     expect(norm).toMatch(
       /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete \{ --passo-maglia: clamp\(40px, 10\.2cqw, 50px\); \}/
+    )
+  })
+})
+
+// QA device T15 (verbale 2026-07-24, addendum punto 5) — «il tile "+ Nuova cassetta" non è
+// leggibile sopra la maglia»: NUOVA guardia (il tile non ne aveva una prima) — scrim velato +
+// bordo/testo più marcati, contrasto WCAG AA verificato in entrambi i temi (calcolo in
+// fixB-report.md, >9:1 light e >13:1 dark contro il fondo scrim+muro peggiore plausibile).
+// PROPOSTA per il ri-collaudo di Francesco — v. ds-v3.css per il ragionamento.
+describe('parete /cassette — tile «+ Nuova cassetta» leggibile sopra la maglia (QA T15, fix 3)', () => {
+  it('scrim velato (non trasparente, non opaco) + tratteggio e testo più marcati, entrambi i temi', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-tray-nuova \{ border: 2\.5px dashed #9C9080; border-radius: 12px; min-height: 104px;/
+    )
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-tray-nuova \{[^}]*color: #4A4030; background: rgba\(255, 254, 250, \.68\);/)
+    expect(norm).toMatch(
+      /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-tray-nuova \{ border-color: #756A5C; color: #EDE6D8; background: rgba\(33, 29, 24, \.62\); \}/
     )
   })
 })
