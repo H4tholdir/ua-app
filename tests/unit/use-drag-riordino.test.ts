@@ -81,6 +81,33 @@ function rilasciaWindow(clientX = 10, clientY = 10) {
   })
 }
 
+// D10 (review Important, FIX-F) — harness deterministico per requestAnimationFrame: jsdom lo
+// implementa con un setInterval REALE (1000/60 ≈ 16.7ms — jsdom `Window.js`), quindi un test che
+// aspetta un tick vero (`setTimeout(60)`) dipende dal tempo di parete e sotto contesa multi-worker
+// può saltare il tick (v. tests/setup.ts + `.superpowers/sdd/diagnosi-flake-vitest.md`). Qui si
+// sostituisce `requestAnimationFrame`/`cancelAnimationFrame` con una coda pilotata a mano: il test
+// decide quando un frame «gira» (`flush`), zero attesa reale, stesso comportamento del loop
+// (`frame()` in useDragRiordino.ts si re-invoca chiamando di nuovo `requestAnimationFrame`, che va
+// nella stessa coda mock — il rilascio poi lo cancella via `cancelAnimationFrame`).
+function creaRafDeterministico() {
+  let coda: Array<{ id: number; cb: FrameRequestCallback }> = []
+  let prossimoId = 1
+  const raf = (cb: FrameRequestCallback) => {
+    const id = prossimoId++
+    coda.push({ id, cb })
+    return id
+  }
+  const cancel = (id: number) => {
+    coda = coda.filter((voce) => voce.id !== id)
+  }
+  const flush = (ts: number) => {
+    const pendenti = coda
+    coda = []
+    for (const voce of pendenti) voce.cb(ts)
+  }
+  return { raf, cancel, flush }
+}
+
 describe('useDragRiordino — guardia: niente drag quando disabilitato (ricerca attiva / <2 cassette)', () => {
   it('a drag disabilitato, il sollevamento è un no-op: nessuna cassetta trascinata, nessuna POST', () => {
     const inviaOrdine = vi.fn().mockResolvedValue(true)
@@ -185,6 +212,10 @@ describe('useDragRiordino — D10 (FIX-F): il passo di riga è il TRACK, non cel
       return origGetComputedStyle(el, pseudo)
     })
 
+    const rafMock = creaRafDeterministico()
+    vi.stubGlobal('requestAnimationFrame', rafMock.raf)
+    vi.stubGlobal('cancelAnimationFrame', rafMock.cancel)
+
     try {
       const inviaOrdine = vi.fn().mockResolvedValue(true)
       const onRefresh = vi.fn()
@@ -193,12 +224,12 @@ describe('useDragRiordino — D10 (FIX-F): il passo di riga è il TRACK, non cel
       sollevaC('a', PARETE_9, { clientX: 50, clientY: 50 }) // centro della cella 'a' (0,0)-(100,100)
       muoviWindow(50, 300) // centro riga2/colonna0 SECONDO IL TRACK vero: pitchY = 250 + gapY(20) = 270 → 270·1+50 ≈ 300
 
-      // Il ricalcolo di riga avviene nel loop rAF (`frame()`), non nei listener sincroni sopra:
-      // jsdom implementa `requestAnimationFrame` con un `setInterval` REALE (1000/60 ≈ 16.7ms —
-      // v. jsdom `Window.js`), quindi serve un'attesa reale (non solo `act(async () => {})`,
-      // che flush-a solo i microtask) perché almeno un tick giri prima del rilascio.
+      // Il ricalcolo di riga avviene nel loop rAF (`frame()`), non nei listener sincroni sopra: qui
+      // lo si fa girare A COMANDO (un frame basta — il punto è già fermo a (50,300) da `muoviWindow`,
+      // niente auto-scroll da inseguire: v. commento sopra `creaRafDeterministico`), invece di
+      // aspettare un tick reale di jsdom.
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 60))
+        rafMock.flush(16)
       })
       await act(async () => {
         rilasciaWindow(50, 300)
@@ -214,6 +245,7 @@ describe('useDragRiordino — D10 (FIX-F): il passo di riga è il TRACK, non cel
     } finally {
       rectSpy.mockRestore()
       computedSpy.mockRestore()
+      vi.unstubAllGlobals()
     }
   })
 })
