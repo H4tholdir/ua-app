@@ -14,11 +14,10 @@
 // - NON è verificato qui (e non è verificabile in jsdom): che lo scroll-snap CSS agganci
 //   davvero, che il peek di 28px si veda, che l'IO reale scatti a fine snap.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, within, act, fireEvent } from '@testing-library/react'
+import { render, screen, within, act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StanzePager } from '@/components/features/home/StanzePager'
 import { HomeV3 } from '@/components/features/home/HomeV3'
-import { ProgressDotsStanze } from '@/components/ds/ProgressDots'
 import { vistaHome, serveParete } from '@/lib/preferenze/home'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -94,6 +93,19 @@ function pannello(nome: 'pile' | 'parete'): HTMLElement {
   return el as HTMLElement
 }
 
+// QA device (verbale 25/07, fix-list D3, decisione ratificata) — i dot sono STATI RIMOSSI (v.
+// StanzePager.tsx): le due sole vie ESPLICITE rimaste per cambiare stanza (a differenza dello
+// swipe, pilotato da `simulaScroll` sopra) sono la linguetta «Le cassette» (pile→parete) e il
+// tasto «‹ Indietro» dell'header della parete (parete→pile) — entrambi bottoni VERI,
+// raggiungibili e attivabili da tastiera senza alcun codice dedicato. Questi due helper
+// sostituiscono ovunque i vecchi `user.click(screen.getAllByRole('tab')[…])`.
+function viaLinguetta(user: ReturnType<typeof userEvent.setup>) {
+  return user.click(screen.getByRole('button', { name: /le cassette/i }))
+}
+function viaIndietroParete(user: ReturnType<typeof userEvent.setup>) {
+  return user.click(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+}
+
 const CONTENUTO_PILE = (
   <div>
     <h1>Buon pomeriggio, Francesco</h1>
@@ -136,7 +148,9 @@ afterEach(() => {
   historyBackSpy.mockRestore()
 })
 
-const CHIAVE_LINGUETTA = 'ua_linguetta_v3'
+// D4 (bump chiave, QA device verbale 25/07) — il contatore precedente `ua_linguetta_v3` era
+// saturo sui device dei collaudi: bump a `ua_linguetta_v4` (v. LinguettaCassette.tsx).
+const CHIAVE_LINGUETTA = 'ua_linguetta_v4'
 const accessiRegistrati = () => Number(localStorage.getItem(CHIAVE_LINGUETTA) ?? '0')
 
 describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
@@ -169,13 +183,18 @@ describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
     expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
   })
 
-  it('le due stanze sono tabpanel etichettati dai rispettivi tab', () => {
+  // QA device (verbale 25/07, fix-list D3, decisione ratificata) — SOSTITUISCE «le due stanze
+  // sono tabpanel etichettati dai rispettivi tab»: coi dot rimossi non esiste più alcun
+  // `role="tablist"`/`role="tab"`, quindi nemmeno un `role="tabpanel"` da etichettare (un
+  // `aria-labelledby` verso un tab inesistente sarebbe un riferimento a vuoto, un difetto di
+  // per sé). Le due stanze restano identificabili via `data-stanza` (usato da questo stesso
+  // file, da `HomeV3.tsx` e dal CSS scoped di E3) — questo è il contratto che resta.
+  it('niente più tablist/tab/tabpanel: le stanze sono identificate SOLO da data-stanza', () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs).toHaveLength(2)
-    expect(pannello('pile')).toHaveAttribute('role', 'tabpanel')
-    expect(tabs[0].getAttribute('aria-controls')).toBe(pannello('pile').id)
-    expect(tabs[1].getAttribute('aria-controls')).toBe(pannello('parete').id)
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
+    expect(pannello('pile')).not.toHaveAttribute('role', 'tabpanel')
+    expect(pannello('parete')).not.toHaveAttribute('role', 'tabpanel')
   })
 })
 
@@ -259,19 +278,24 @@ describe('StanzePager — mount differito della stanza parete (Task 12, riserva 
     expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
   })
 
-  it('tap sul dot verso la parete: monta la PareteClient SUBITO, nello stesso giro (niente attesa dell\'idle)', async () => {
+  // QA device (verbale 25/07, fix-list D3) — trigger sostituito: prima era il tap sul dot,
+  // ora è la linguetta (unica via ESPLICITA rimasta verso la parete) — stesso contratto sotto
+  // esame (mount sincrono, niente attesa dell'idle).
+  it('tap sulla linguetta verso la parete: monta la PareteClient SUBITO, nello stesso giro (niente attesa dell\'idle)', async () => {
     const user = userEvent.setup()
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    const { container } = render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    preparaViewport(container)
     expect(pannello('parete').querySelector('[data-cassetta-id]')).toBeNull()
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
   })
 
   it('una volta montata resta montata: tornando inattiva la PareteClient non si smonta (solo inert/aria-hidden)', async () => {
     const user = userEvent.setup()
-    render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    const { container } = render(<StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+    preparaViewport(container)
     expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
-    await user.click(screen.getAllByRole('tab')[0])
+    await viaIndietroParete(user)
     expect(pannello('parete')).toHaveAttribute('inert')
     expect(pannello('parete').querySelector('[data-cassetta-id]')).not.toBeNull()
   })
@@ -315,13 +339,16 @@ describe('StanzePager — il pannello destro rende l\'assetto pagina COMPLETO (Q
 // «la parete è attiva per un altro motivo» (deep-link, preferenza che apre lì di default): questi
 // test presidiano quella distinzione dall'esterno, sugli effetti osservabili (pushState/back).
 describe('StanzePager — URL sync con /cassette via History API (QA device T15, addendum punto 2)', () => {
-  it('tap sul dot verso la parete: pushState su /cassette, shallow (mai router.push)', async () => {
+  // QA device (verbale 25/07, fix-list D3) — trigger sostituito ovunque: i dot sono rimossi,
+  // le due sole vie ESPLICITE rimaste sono la linguetta (pile→parete) e «‹ Indietro»
+  // (parete→pile) — v. `viaLinguetta`/`viaIndietroParete` sopra.
+  it('tap sulla linguetta verso la parete: pushState su /cassette, shallow (mai router.push)', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/cassette')
     expect(push).not.toHaveBeenCalledWith('/cassette')
   })
@@ -339,13 +366,12 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
   // mentre l'albero montato è ancora quello di `/dashboard` rifà il fetch della rotta VERA
   // `/cassette` sul server e sostituisce il contenuto al pannello. Questo test presidia l'intera
   // catena end-to-end (pager → StanzaParete → PareteClient), non solo `PareteClient` isolato.
-  it('dopo lo swipe verso la parete, un focus (refresh silenzioso) NON chiama router.refresh — il pager non deve sparire sotto un tab-switch', async () => {
-    const user = userEvent.setup()
+  it('dopo lo swipe verso la parete, un focus (refresh silenzioso) NON chiama router.refresh — il pager non deve sparire sotto un tab-switch', () => {
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
+    simulaScroll('parete', 0.9) // pile → parete, pushState armato
     refresh.mockClear()
     fireEvent(window, new Event('focus'))
     expect(refresh).not.toHaveBeenCalled()
@@ -357,9 +383,9 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete (1° giro)
-    await user.click(screen.getAllByRole('tab')[0]) // parete → pile: urlDivergente torna false
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete (2° giro): urlDivergente torna true
+    simulaScroll('parete', 0.9) // pile → parete (1° giro)
+    await viaIndietroParete(user) // parete → pile: urlDivergente torna false
+    simulaScroll('parete', 0.9) // pile → parete (2° giro): urlDivergente torna true
     refresh.mockClear()
     fireEvent(window, new Event('focus'))
     expect(refresh).not.toHaveBeenCalled()
@@ -372,15 +398,15 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
     expect(refresh).toHaveBeenCalled()
   })
 
-  it('tornare alle pile (dot) dopo essere arrivati via pager chiama history.back — non una pushState', async () => {
+  it('tornare alle pile dopo essere arrivati via pager (back dell\'header) chiama history.back — non una pushState', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete
+    await viaLinguetta(user) // pile → parete
     expect(pushStateSpy).toHaveBeenCalledTimes(1)
-    await user.click(screen.getAllByRole('tab')[0]) // parete → pile
+    await viaIndietroParete(user) // parete → pile
     expect(historyBackSpy).toHaveBeenCalledTimes(1)
     expect(pushStateSpy).toHaveBeenCalledTimes(1) // niente seconda push per il ritorno
   })
@@ -391,8 +417,8 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
-    await user.click(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+    await viaLinguetta(user) // pile → parete, pushState armato
+    await viaIndietroParete(user)
     expect(historyBackSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -407,7 +433,7 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
       <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[0])
+    await viaIndietroParete(user)
     expect(historyBackSpy).not.toHaveBeenCalled()
   })
 
@@ -417,7 +443,7 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1]) // pile → parete, pushState armato
+    await viaLinguetta(user) // pile → parete, pushState armato
     historyBackSpy.mockClear()
     act(() => {
       window.dispatchEvent(new Event('popstate'))
@@ -425,9 +451,8 @@ describe('StanzePager — URL sync con /cassette via History API (QA device T15,
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
     expect(pannello('pile')).not.toHaveAttribute('inert')
     expect(pannello('parete')).toHaveAttribute('inert')
-    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true')
-    // La traversal l'ha già fatta il browser (o, qui, il tap che ha simulato l'evento): il
-    // listener del pager non deve richiamare `history.back()` una seconda volta.
+    // La traversal l'ha già fatta il browser (o, qui, l'evento sintetico): il listener del
+    // pager non deve richiamare `history.back()` una seconda volta.
     expect(historyBackSpy).not.toHaveBeenCalled()
   })
 
@@ -466,7 +491,6 @@ describe('StanzePager — remount con indirizzo già /cassette (QA device T15.8,
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('inert')
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
   it("il viewport si posiziona sulla parete (non le pile) nello stesso scenario — stato e scroll non vanno fuori sincrono", () => {
@@ -490,7 +514,7 @@ describe('StanzePager — remount con indirizzo già /cassette (QA device T15.8,
     )
     preparaViewport(container)
     pushStateSpy.mockClear()
-    await user.click(screen.getAllByRole('tab')[0]) // parete → pile
+    await viaIndietroParete(user) // parete → pile
     expect(historyBackSpy).toHaveBeenCalledTimes(1)
     expect(pushStateSpy).not.toHaveBeenCalled()
   })
@@ -524,31 +548,27 @@ describe('StanzePager — onStanzaChange (QA device T15, addendum punto 3)', () 
     )
     preparaViewport(container)
     onStanzaChange.mockClear()
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(onStanzaChange).toHaveBeenLastCalledWith('parete')
   })
 })
 
-describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
-  it('i dots sono un tablist vero con aria-selected sulla stanza attiva', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
-    expect(screen.getByRole('tablist')).toBeInTheDocument()
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
-    expect(tabs[1]).toHaveAttribute('aria-selected', 'false')
-  })
-
-  it('tap sul secondo dot: scrollTo verso la stanza parete (smooth), inert invertito, focus nella stanza entrante', async () => {
+// QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — SOSTITUISCE «dots tablist e
+// tap-to-snap» + «tastiera (frecce ←→)»: i dot sono morti, quindi anche il tap sul dot e le
+// frecce ←→ come meccanismi di navigazione. Il tap-to-snap (scrollTo/inert/focus) resta
+// presidiato, ma dalla linguetta (pile→parete) e dal tasto «‹ Indietro» (parete→pile) — le due
+// vie ESPLICITE che restano.
+describe('StanzePager — navigazione esplicita: linguetta e «‹ Indietro» (D3, sostituisce i dot)', () => {
+  it('tap sulla linguetta verso la parete: scrollTo (smooth), inert invertito, focus nella stanza entrante', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
 
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
 
     expect(scrollTo).toHaveBeenCalledWith({ left: 362, behavior: 'smooth' })
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
     expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
@@ -558,17 +578,17 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
     expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
   })
 
-  it('tornare al primo dot riporta lo scroll a sinistra (left = offsetLeft della stanza pile)', async () => {
+  it('tap su «‹ Indietro» dalla parete: scrollTo a sinistra (left = offsetLeft della stanza pile)', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     const { scrollTo } = preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[0])
+    await viaIndietroParete(user)
     expect(scrollTo).toHaveBeenCalledWith({ left: 0, behavior: 'smooth' })
   })
 
-  it('con prefers-reduced-motion lo snap è un salto: behavior "auto"', async () => {
+  it('con prefers-reduced-motion lo snap (via linguetta) è un salto: behavior "auto"', async () => {
     const originale = window.matchMedia
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query.includes('prefers-reduced-motion'),
@@ -586,7 +606,7 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
         <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
       )
       const { scrollTo } = preparaViewport(container)
-      await user.click(screen.getAllByRole('tab')[1])
+      await viaLinguetta(user)
       expect(scrollTo).toHaveBeenCalledWith({ left: 362, behavior: 'auto' })
     } finally {
       window.matchMedia = originale
@@ -594,70 +614,50 @@ describe('StanzePager — dots tablist e tap-to-snap (§6)', () => {
   })
 })
 
-describe('StanzePager — tastiera (§6, frecce ←→)', () => {
-  it('freccia → cambia stanza e LASCIA il focus sui dots (il ritorno resta a un tasto)', async () => {
+// QA device (verbale 25/07, fix-list D3) — la garanzia esplicitamente richiesta dal brief: con
+// i dot rimossi (e quindi niente più frecce ←→/roving tabindex), la stanza Parete deve restare
+// raggiungibile da TASTIERA senza reintrodurre un indicatore visivo. La linguetta «Le cassette»
+// è un `<button>` React vero — Tab la raggiunge nell'ordine naturale del documento, Invio/Spazio
+// la attivano come qualunque bottone nativo, NESSUN codice dedicato in più serve per questo (a
+// differenza dei dot, che avevano bisogno di roving tabindex + un handler `onKeyDown` scritto a
+// mano). Il ritorno (parete→pile) passa dal tasto «‹ Indietro» dell'header, stesso discorso.
+describe('StanzePager — percorso da tastiera dopo la rimozione dei dot (D3)', () => {
+  it('Tab raggiunge la linguetta «Le cassette» e Invio la attiva: pushState + la parete diventa la stanza attiva', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    const tabs = screen.getAllByRole('tab')
-    tabs[0].focus()
-    await user.keyboard('{ArrowRight}')
-    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
-    expect(document.activeElement).toBe(tabs[1])
-    await user.keyboard('{ArrowLeft}')
-    expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
-    expect(document.activeElement).toBe(tabs[0])
-  })
-
-  it('freccia ← sulla prima stanza non fa nulla (non si esce dal muro)', async () => {
-    const user = userEvent.setup()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-    )
-    const { scrollTo } = preparaViewport(container)
-    screen.getAllByRole('tab')[0].focus()
-    await user.keyboard('{ArrowLeft}')
-    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true')
-    expect(scrollTo).not.toHaveBeenCalled()
-  })
-
-  // Review Task 14, Important B-1. La freccia rende attiva la stanza SUBITO lasciando il focus
-  // sui dots; l'Invio che segue chiede quindi una stanza che è GIÀ quella attiva. Lì `setAttiva`
-  // fa bail-out sullo stesso valore, il re-render non avviene e l'effect che porta il focus non
-  // gira mai: senza la correzione l'Invio è morto e chi naviga da tastiera non entra mai nella
-  // stanza che ha appena scelto.
-  it("freccia poi Invio: il focus ENTRA nella stanza già selezionata (la freccia sceglie, l'Invio ci porta dentro)", async () => {
-    const user = userEvent.setup()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-    )
-    preparaViewport(container)
-    const tabs = screen.getAllByRole('tab')
-    tabs[0].focus()
-    await user.keyboard('{ArrowRight}')
-    expect(tabs[1]).toHaveAttribute('aria-selected', 'true')
-    expect(document.activeElement).toBe(tabs[1])
+    const linguetta = screen.getByRole('button', { name: /le cassette/i })
+    linguetta.focus()
+    expect(document.activeElement).toBe(linguetta)
     await user.keyboard('{Enter}')
-    // Come sopra: il primo focusabile della parete VERA è il tasto «‹ Indietro» del suo header.
-    expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
+    expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/cassette')
+    expect(pannello('parete')).not.toHaveAttribute('inert')
   })
 
-  it('roving tabindex: un solo dot è nel flusso di Tab', () => {
-    render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs[0]).toHaveAttribute('tabindex', '0')
-    expect(tabs[1]).toHaveAttribute('tabindex', '-1')
+  it('dentro il pannello parete, Tab raggiunge «‹ Indietro» e Invio riporta alle pile', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <StanzePager stanzaIniziale="parete" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    const indietro = within(pannello('parete')).getByRole('button', { name: 'Indietro' })
+    indietro.focus()
+    expect(document.activeElement).toBe(indietro)
+    await user.keyboard('{Enter}')
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
   })
 })
 
 // QA device T15.2 (verbale 2026-07-24, fix-list punto 2 — direttiva nuova): su un dito niente
 // focus automatico nel pannello che si apre — la tastiera virtuale non deve salire da sola. Il
-// test sopra («tap sul secondo dot… focus nella stanza entrante») copre già il ramo desktop
+// test sopra («tap sulla linguetta… focus nella stanza entrante») copre già il ramo desktop
 // (matchMedia di default in tests/setup.ts torna `matches: false` per qualunque query, quindi
 // anche per `(pointer: coarse)`): qui si copre l'altro ramo, mockando `(pointer: coarse)` a
-// `true`, stesso pattern del mock di `prefers-reduced-motion` sopra.
+// `true`, stesso pattern del mock di `prefers-reduced-motion` sopra. Trigger sostituito (QA
+// device D3): il dot non esiste più, la linguetta è l'unica via ESPLICITA rimasta su dito.
 function mockPuntatoreCoarse() {
   const originale = window.matchMedia
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -674,7 +674,7 @@ function mockPuntatoreCoarse() {
 }
 
 describe('StanzePager — niente focus automatico su dito (QA device T15.2, direttiva nuova)', () => {
-  it('tap sul dot su pointer coarse: la stanza entra (inert tolto) ma il focus NON si sposta', async () => {
+  it('tap sulla linguetta su pointer coarse: la stanza entra (inert tolto) ma il focus NON si sposta', async () => {
     const ripristina = mockPuntatoreCoarse()
     try {
       const user = userEvent.setup()
@@ -683,34 +683,12 @@ describe('StanzePager — niente focus automatico su dito (QA device T15.2, dire
       )
       preparaViewport(container)
       const primaDelTap = document.activeElement
-      await user.click(screen.getAllByRole('tab')[1])
+      await viaLinguetta(user)
       expect(pannello('parete')).not.toHaveAttribute('inert')
-      // Il focus non è entrato nel pannello — è rimasto dov'era (sul dot che ha ricevuto il tap,
-      // MAI sul primo focusabile della stanza, «‹ Indietro»).
+      // Il focus non è entrato nel pannello — è rimasto dov'era (sulla linguetta che ha
+      // ricevuto il tap, MAI sul primo focusabile della stanza, «‹ Indietro»).
       expect(document.activeElement).not.toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
       expect(document.activeElement).not.toBe(primaDelTap === document.body ? null : primaDelTap)
-    } finally {
-      ripristina()
-    }
-  })
-
-  it('freccia poi Invio su pointer coarse: la stanza già selezionata NON prende il focus', async () => {
-    const ripristina = mockPuntatoreCoarse()
-    try {
-      const user = userEvent.setup()
-      const { container } = render(
-        <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-      )
-      preparaViewport(container)
-      const tabs = screen.getAllByRole('tab')
-      tabs[0].focus()
-      await user.keyboard('{ArrowRight}')
-      expect(document.activeElement).toBe(tabs[1])
-      await user.keyboard('{Enter}')
-      // Da tastiera coarse non esiste davvero, ma il guard è sul SEGNALE — verifica che con
-      // `(pointer: coarse)` true il ramo "già attiva" non chiami .focus() sul pannello.
-      expect(document.activeElement).not.toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
-      expect(document.activeElement).toBe(tabs[1])
     } finally {
       ripristina()
     }
@@ -734,7 +712,7 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
     )
     const { scrollTo } = preparaViewport(container)
     simulaScroll('parete', 0.9)
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
+    expect(pannello('parete')).not.toHaveAttribute('inert')
     expect(pannello('pile')).toHaveAttribute('inert')
     expect(scrollTo).not.toHaveBeenCalled()
   })
@@ -742,100 +720,26 @@ describe('StanzePager — swipe: è l’IntersectionObserver a decidere la stanz
   it('una parete a metà strada (40%) NON cambia la stanza attiva: la soglia è vera, non decorativa', () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     simulaScroll('parete', 0.4)
-    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true')
+    expect(pannello('pile')).not.toHaveAttribute('inert')
     expect(pannello('parete')).toHaveAttribute('inert')
   })
 
-  it("lo swipe NON ruba il focus (a differenza del tap sul dot): resta dov'è", () => {
+  // QA device (verbale 25/07, fix-list D3) — trigger sostituito: prima si dava il focus a un dot
+  // (ora morto), qui basta un focusabile qualunque fuori dalle stanze — la linguetta «Le
+  // cassette», visibile mentre la pile è attiva.
+  it("lo swipe NON ruba il focus: resta dov'è", () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
-    const primoTab = screen.getAllByRole('tab')[0]
-    primoTab.focus()
+    const linguetta = screen.getByRole('button', { name: /le cassette/i })
+    linguetta.focus()
     simulaScroll('parete', 0.95)
-    expect(document.activeElement).toBe(primoTab)
-  })
-
-  // Review Task 14, Important B-1 — la seconda faccia dello stesso difetto. Il test qui sopra
-  // passa solo perché nessuno tocca un dot prima di scorrere: un tap sulla stanza GIÀ attiva
-  // lasciava un'intenzione di focus appesa, che il primo swipe successivo riscuoteva rubando il
-  // focus a chi stava soltanto guardando.
-  it('un tap sul dot GIÀ attivo non lascia armata alcuna intenzione di focus: il primo swipe non la riscuote', async () => {
-    const user = userEvent.setup()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-    )
-    preparaViewport(container)
-    // Il riferimento si prende PRIMA dello swipe: dopo, la stanza pile è aria-hidden e
-    // `getByRole` non la vedrebbe più.
-    const dentroPile = within(pannello('pile')).getByRole('button', { name: 'Tutto il resto' })
-    await user.click(screen.getAllByRole('tab')[0])
-    // Tap su una stanza già attiva: il suo sottoalbero non è inerte, quindi il focus ci entra
-    // subito — non c'è nulla da rimandare a un re-render che non avverrà.
-    expect(document.activeElement).toBe(dentroPile)
-    simulaScroll('parete', 0.95)
-    expect(document.activeElement).toBe(dentroPile)
+    expect(document.activeElement).toBe(linguetta)
   })
 })
 
-describe('ProgressDotsStanze — variante «stanze» di §5.32', () => {
-  it('è un tablist con 2 tab, etichette parlanti e hit-area ≥44px', () => {
-    render(
-      <ProgressDotsStanze
-        etichetta="Le stanze"
-        etichette={['Le pile', 'La parete']}
-        idPannelli={['p-pile', 'p-parete']}
-        attiva={0}
-        onSceglie={() => {}}
-      />
-    )
-    expect(screen.getByRole('tablist', { name: 'Le stanze' })).toBeInTheDocument()
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs).toHaveLength(2)
-    expect(tabs[0]).toHaveAccessibleName('Le pile')
-    expect(tabs[1]).toHaveAccessibleName('La parete')
-    for (const tab of tabs) {
-      expect(tab.style.minWidth).toBe('44px')
-      expect(tab.style.minHeight).toBe('44px')
-    }
-  })
-
-  it('avvisa il chiamante distinguendo il tap dalla freccia (il focus si comporta diversamente)', async () => {
-    const user = userEvent.setup()
-    const onSceglie = vi.fn()
-    render(
-      <ProgressDotsStanze
-        etichetta="Le stanze"
-        etichette={['Le pile', 'La parete']}
-        idPannelli={['p-pile', 'p-parete']}
-        attiva={0}
-        onSceglie={onSceglie}
-      />
-    )
-    await user.click(screen.getAllByRole('tab')[1])
-    expect(onSceglie).toHaveBeenCalledWith(1, 'tap')
-    onSceglie.mockClear()
-    screen.getAllByRole('tab')[0].focus()
-    await user.keyboard('{ArrowRight}')
-    expect(onSceglie).toHaveBeenCalledWith(1, 'freccia')
-  })
-
-  it('il pallino attivo è a pillola e in inchiostro, MAI rosso (§3.3 regola 1: il rosso è del TastoPiù)', () => {
-    const { container } = render(
-      <ProgressDotsStanze
-        etichetta="Le stanze"
-        etichette={['Le pile', 'La parete']}
-        idPannelli={['p-pile', 'p-parete']}
-        attiva={1}
-        onSceglie={() => {}}
-      />
-    )
-    const pallini = Array.from(container.querySelectorAll('[aria-hidden="true"]')) as HTMLElement[]
-    expect(pallini).toHaveLength(2)
-    expect(pallini[1].style.width).toBe('30px')
-    expect(pallini[1].style.background).toBe('var(--ink)')
-    expect(pallini[0].style.width).toBe('11px')
-    expect(pallini[0].style.background).toBe('var(--line)')
-  })
-})
+// QA device (verbale 25/07, fix-list D3, decisione ratificata) — `ProgressDotsStanze` (il
+// componente dei dot) è STATO RIMOSSO da `ProgressDots.tsx`: v. `tests/unit/ProgressDots.test.tsx`
+// per la guardia dell'assenza dell'export. Non c'è più nulla da testare qui — questo describe
+// esisteva solo per quel componente.
 
 // ── La vista risolta: una sola regola per il fetch (page.tsx) e per il render (HomeV3) ────
 describe('vistaHome / serveParete — la preferenza decide, il deep-link corregge', () => {
@@ -948,19 +852,19 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
   // stanza è mai irraggiungibile») fissata in verde. Il pager, e non la sola parete, perché chi
   // ha preferenza 'pile' non ha alcuna via di ritorno dedicata: la voce «I lavori» esiste solo
   // per chi ha preferenza 'parete'. Le pile restano montate, a uno swipe di distanza.
+  // QA device (verbale 25/07, fix-list D3) — niente più `tablist`/`tab`: le due stanze si
+  // riconoscono solo da `data-stanza`/`aria-hidden` (v. commento sul pager).
   it("preferenza 'pile' + ?stanza=parete: il deep-link apre il pager SULLA parete, con le pile a uno swipe", () => {
     renderHome('pile', 'parete')
-    expect(screen.getByRole('tablist')).toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(document.querySelectorAll('[data-stanza]')).toHaveLength(2)
     expect(pannello('parete')).toHaveAttribute('aria-hidden', 'false')
     expect(pannello('pile')).toHaveAttribute('aria-hidden', 'true')
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
-  it("preferenza 'due_stanze': due stanze, dots, e UN SOLO ☰ raggiungibile (l'altro è dietro aria-hidden)", () => {
+  it("preferenza 'due_stanze': due stanze, niente dots, e UN SOLO ☰ raggiungibile (l'altro è dietro aria-hidden)", () => {
     renderHome('due_stanze')
-    expect(screen.getByRole('tablist')).toBeInTheDocument()
-    expect(screen.getAllByRole('tab')).toHaveLength(2)
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Tutto il resto' })).toHaveLength(1)
     // Un solo TastoPiù, fuori dal pager (§3.3 regola 5): mai un doppione a metà snap.
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
@@ -971,7 +875,6 @@ describe('HomeV3 — le tre forme della home (§7)', () => {
     renderHome('due_stanze', 'parete')
     expect(pannello('parete')).toHaveAttribute('aria-hidden', 'false')
     expect(pannello('pile')).toHaveAttribute('inert')
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
   })
 
   // QA device T15 (addendum 24/07, punto 5, supera Task 12/D2) — la stanza parete ora porta il
@@ -1011,14 +914,14 @@ describe('HomeV3 — il piede sparisce sul lato cassette del pager (QA device T1
     expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
   })
 
-  it('tap sul dot verso la parete: il TastoPiù sparisce; tornando alle pile riappare', async () => {
+  it('navigazione esplicita verso la parete: il TastoPiù sparisce; tornando alle pile riappare', async () => {
     const user = userEvent.setup()
     const { container } = renderHome('due_stanze')
     preparaViewport(container)
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
-    await user.click(screen.getAllByRole('tab')[0])
+    await viaIndietroParete(user)
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
   })
 })
@@ -1026,37 +929,20 @@ describe('HomeV3 — il piede sparisce sul lato cassette del pager (QA device T1
 describe('Collaudo R2 — il focus del cambio stanza non deve scrollare (D-1, 22/07 sera)', () => {
   // Root cause accertata su Chromium reale: il focus() post-render SENZA preventScroll fa lo
   // scroll-into-view istantaneo, che CANCELLA lo scrollTo smooth del viewport; lo snap mandatory
-  // ri-aggancia alla stanza di partenza → il tap sul dot sembra morto.
-  it('tap sul dot: ogni focus() porta preventScroll:true', async () => {
+  // ri-aggancia alla stanza di partenza → il tap sembra morto. Trigger sostituito (QA device
+  // D3): il dot non esiste più, la linguetta è la via ESPLICITA rimasta.
+  it('tap sulla linguetta: ogni focus() porta preventScroll:true', async () => {
     const chiamate: Array<FocusOptions | undefined> = []
     const spia = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (opts?: FocusOptions) {
       chiamate.push(opts)
     })
     try {
-      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      const { container } = render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      preparaViewport(container)
       chiamate.length = 0
-      const dots = screen.getAllByRole('tab')
+      const linguetta = screen.getByRole('button', { name: /le cassette/i })
       await act(async () => {
-        dots[1].click()
-      })
-      expect(chiamate.length).toBeGreaterThan(0)
-      for (const opts of chiamate) expect(opts).toMatchObject({ preventScroll: true })
-    } finally {
-      spia.mockRestore()
-    }
-  })
-
-  it('tap sul dot della stanza GIÀ attiva: anche quel focus è preventScroll', async () => {
-    const chiamate: Array<FocusOptions | undefined> = []
-    const spia = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (opts?: FocusOptions) {
-      chiamate.push(opts)
-    })
-    try {
-      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
-      chiamate.length = 0
-      const dots = screen.getAllByRole('tab')
-      await act(async () => {
-        dots[0].click()
+        linguetta.click()
       })
       expect(chiamate.length).toBeGreaterThan(0)
       for (const opts of chiamate) expect(opts).toMatchObject({ preventScroll: true })
@@ -1078,27 +964,17 @@ describe('StanzePager — registrazione accesso alla Parete (Task 13, D7, riserv
     expect(accessiRegistrati()).toBe(1)
   })
 
-  it('il tap sul dot della parete registra un accesso', async () => {
-    const user = userEvent.setup()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-    )
-    preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1])
-    expect(accessiRegistrati()).toBe(1)
-  })
-
   it('tornare sulle pile e poi risvoltare alla parete registra un SECONDO accesso (solo le transizioni pile→parete contano)', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(accessiRegistrati()).toBe(1)
-    await user.click(screen.getAllByRole('tab')[0])
+    await viaIndietroParete(user)
     expect(accessiRegistrati()).toBe(1) // parete→pile non registra nulla
-    await user.click(screen.getAllByRole('tab')[1])
+    await viaLinguetta(user)
     expect(accessiRegistrati()).toBe(2)
   })
 
@@ -1108,16 +984,63 @@ describe('StanzePager — registrazione accesso alla Parete (Task 13, D7, riserv
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
     preparaViewport(container)
-    // Portale su `document.body`: `screen` (bound a `document.body`) la trova comunque, pur
-    // essendo fuori da `container`.
-    const linguetta = screen.getByRole('button', { name: /le cassette/i })
-    await user.click(linguetta)
+    await viaLinguetta(user)
     expect(accessiRegistrati()).toBe(1)
-    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true')
+    expect(pannello('parete')).not.toHaveAttribute('inert')
   })
 
   it('la stanza Pile non registra nulla al mount: zero accessi finché non si arriva davvero alla parete', () => {
     render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
     expect(accessiRegistrati()).toBe(0)
+  })
+})
+
+// QA device (verbale 25/07, fix-list D5b/D8) — il criterio di accettazione ESATTO del brief:
+// dallo stato «swipe → parete → azione che rifarebbe router.refresh() riuscita», il pager deve
+// restare montato (non sostituito dalla pagina standalone, D5), e il back fisico deve tornare
+// alle pile secondo la catena pushState del pager (D8), non a un back "a vuoto". Riusa il
+// pattern di mock di history + popstate già in uso in questo file. L'azione scelta (▲▼ dello
+// sheet cassetta) è la via più diretta per esercitare `riordina` — il drop del drag vero e
+// proprio, con lo stesso gate, è presidiato a livello di componente in
+// `tests/unit/parete-client.test.tsx` (harness pointerdown/move/up, stesso pattern di
+// `use-drag-riordino.test.ts`).
+describe('StanzePager — D8: il pager resta montato dopo un\'azione con refresh gated; il back fisico torna alle pile', () => {
+  it('swipe → parete → riordino ▲▼ riuscito: nessun router.refresh, il pager resta montato; popstate riporta alle pile', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({ esito: 'ok' }) }))
+    try {
+      const user = userEvent.setup()
+      const dueCassette: CassettaParete[] = [
+        { id: 'c1', nome: 'C1', colore: 'grigia', posizione: 1, lavoro: null },
+        { id: 'c2', nome: 'C2', colore: 'blu', posizione: 2, lavoro: null },
+      ]
+      const { container } = render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={dueCassette} />)
+      preparaViewport(container)
+      simulaScroll('parete', 0.9) // swipe → parete: pushState armato, sospendiRefresh true
+
+      const cassettaC1 = within(pannello('parete')).getByRole('button', { name: /^Cassetta C1/ })
+      fireEvent.pointerDown(cassettaC1, { clientX: 0, clientY: 0 })
+      fireEvent.pointerUp(cassettaC1, { clientX: 0, clientY: 0 }) // fermo = sheet, non drop
+      // Lo sheet è in portale su document.body (`Sheet.tsx`), FUORI da `pannello('parete')`.
+      await user.click(screen.getByRole('button', { name: 'Sposta giù' }))
+      await waitFor(() => expect(fetch).toHaveBeenCalled())
+
+      // D5b — nessun router.refresh: il pager NON viene sostituito dalla pagina standalone.
+      expect(refresh).not.toHaveBeenCalled()
+      // Il pager è ancora quello vero: il pannello pile esiste ancora nel DOM (non un remount
+      // da router-cache che avrebbe perso lo stato).
+      expect(pannello('pile')).toBeInTheDocument()
+
+      // D8 — back fisico: popstate riporta il pager sulle pile, senza un secondo history.back.
+      historyBackSpy.mockClear()
+      act(() => {
+        window.dispatchEvent(new Event('popstate'))
+      })
+      expect(pannello('pile')).toHaveAttribute('aria-hidden', 'false')
+      expect(pannello('pile')).not.toHaveAttribute('inert')
+      expect(pannello('parete')).toHaveAttribute('inert')
+      expect(historyBackSpy).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

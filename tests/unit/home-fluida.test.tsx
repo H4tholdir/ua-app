@@ -45,6 +45,50 @@ describe('HomeV3 — scala verticale fluida + pile centrate (D8, §3.3)', () => 
   })
 })
 
+// QA device (verbale 25/07, fix-list D2) — CAUSA MISURATA a 390×640: `.ua-stanza-pile-scroll`
+// box 377px vs `scrollHeight` 446px (67 overflow); `justify-content: center` di `.pile` centra
+// l'eccesso invece di ancorarlo in alto — la 4ª pila finisce interamente sotto la piega, dove
+// prima cominciavano i dot (ora morti, E1). Fix: `safe center` — centra quando ci sta, degrada
+// ad ancoraggio in alto quando sfora (l'eccesso cade nel fondo scrollabile, mai nascosto).
+// Supporto verificato per i target del collaudo (Chrome Android, Safari iOS correnti): il
+// valore `safe` per `justify-content` è supportato da entrambi da tempo — da riverificare su
+// device reale in FASE 9 (QA browser), non un blocco: la doppia dichiarazione (v. sotto) rende
+// innocuo anche un eventuale mancato supporto.
+// Fallback progressivo, non un salto secco: la dichiarazione `center` PRIMA di `safe center`
+// nella stessa regola tiene il comportamento di oggi su un ipotetico motore che non
+// riconoscesse `safe` (un parser CSS scarta la seconda dichiarazione se il valore non è
+// valido, mai l'intera regola — l'ultima dichiarazione VALIDA vince).
+describe('HomeV3 — D2: `.pile` degrada a "safe center" (mai una pila nascosta dal centraggio)', () => {
+  it('`.ua-home .pile` dichiara center come fallback E POI safe center (progressive enhancement)', () => {
+    expect(srcHome).toMatch(/\.ua-home \.pile \{[^}]*justify-content: center; justify-content: safe center;/)
+  })
+
+  // Calcolo documentato (non un test di layout — jsdom non fa layout, v. commento in testa al
+  // file): la rimozione dei dot (E1) libera il margin-top di `.ua-stanze-dots` (4px) + l'intera
+  // hit-area del tablist (44px, touch target di legge) = 48px, restituiti a
+  // `.ua-stanza-pile-scroll`. Non annulla lo sforo misurato dal QA (69px) — la taratura fine del
+  // clamp resta demandata (già a ledger) — ma lo riduce, e con `safe center` l'eccesso residuo
+  // è SEMPRE raggiungibile in fondo allo scroll, mai nascosto dal centraggio.
+  it('D2 — calcolo documentato: il budget liberato da E1 (48px) riduce (senza azzerarlo) lo sforo misurato a 390×640', () => {
+    const boxPrima = 377
+    const scrollHeight = 446
+    const overflowPrima = scrollHeight - boxPrima
+    expect(overflowPrima).toBe(69)
+
+    const budgetLiberatoDaiDot = 4 /* margin-top .ua-stanze-dots */ + 44 /* hit-area tablist */
+    expect(budgetLiberatoDaiDot).toBe(48)
+
+    const boxDopo = boxPrima + budgetLiberatoDaiDot
+    const overflowDopo = scrollHeight - boxDopo
+    expect(overflowDopo).toBe(21)
+    expect(overflowDopo).toBeLessThan(overflowPrima)
+    // Il fit perfetto ad ogni altezza NON è richiesto qui (taratura clamp demandata): quel che
+    // conta è che l'eccesso resti SEMPRE raggiungibile via lo scroll di sicurezza invariato
+    // (`.ua-stanza-pile-scroll`), mai nascosto dal centraggio — garanzia di `safe center`.
+    expect(overflowDopo).toBeGreaterThan(0)
+  })
+})
+
 describe('StanzePager — la stanza Pile ha una sua superficie di scroll interna (fix round 2, Critical P3 pager)', () => {
   it('`.ua-stanza-pile-scroll` esiste in ds-v3.css con la stessa ricetta di `.ua-stanza-parete-scroll`', () => {
     expect(srcCss).toMatch(

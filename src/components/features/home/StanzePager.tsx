@@ -22,15 +22,35 @@
 //   l'IntersectionObserver a soglia .6 («la stanza che occupa la maggior parte del viewport»),
 //   che è il «a fine snap» della spec. Il focus NON si sposta: l'utente sta guardando, non
 //   ha chiesto nulla.
-// - DOT / TASTIERA: la destinazione è nota nell'istante del tap → lo stato cambia SUBITO
-//   (deviazione dichiarata dal «aggiornati a fine snap» della spec, che descrive lo swipe) e
-//   il focus si sposta come prescritto. Aspettare l'IO qui vorrebbe dire lasciare
-//   `aria-selected` a mentire per tutta la durata dello smooth scroll, e — su
+// - NAVIGAZIONE ESPLICITA (linguetta pile→parete, «‹ Indietro» dell'header parete→pile): la
+//   destinazione è nota nell'istante del tap → lo stato cambia SUBITO (deviazione dichiarata
+//   dal «aggiornati a fine snap» della spec, che descrive lo swipe) e il focus si sposta come
+//   prescritto (salvo QA device T15.2 sotto). Aspettare l'IO qui vorrebbe dire lasciare
+//   l'indirizzo/URL sync a mentire per tutta la durata dello smooth scroll, e — su
 //   reduced-motion, dove lo scroll è istantaneo — potenzialmente per sempre se l'IO non
 //   scattasse. Le due strade sono idempotenti: l'IO che arriva dopo conferma e basta.
+//
+// ── QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — morte dei dot ─────────
+// I due dot indicatore/selettore di stanza (`ProgressDotsStanze`, ex `role="tablist"` con
+// frecce ←→) sono STATI RIMOSSI: componente, markup, stili (`.ua-stanze-dots`/`.ds-dot-stanza`
+// in ds-v3.css) e l'handler dedicato alla navigazione da freccia. I dot erano anche l'unico
+// percorso da TASTIERA per raggiungere la stanza Parete senza swipe — la garanzia che
+// sostituisce quel percorso, SENZA reintrodurre un indicatore visivo: la linguetta «Le
+// cassette» (`LinguettaCassette.tsx`) è un `<button>` vero — focusabile e attivabile da
+// tastiera (Invio/Spazio) come qualunque altro bottone, nessun codice dedicato in più le serve
+// per esserlo — e il tasto «‹ Indietro» dell'header della parete (già un `<button>` reale nel
+// chrome di pagina, v. `PareteClient.tsx`) chiude il percorso in senso inverso. `vaiA` sotto,
+// coi due soli chiamanti rimasti (linguetta e back button), tratta ogni chiamata come un
+// gesto esplicito — non serve più distinguere un'origine «freccia» che non esiste più.
+// LIMITE NOTO (fuori scope qui — la policy della linguetta, soglia/durata, attende una
+// decisione di Francesco): la linguetta è TRANSITORIA (~5s per apparizione, mai più dopo 3
+// accessi riusciti — `LinguettaCassette.tsx`), quindi il percorso da tastiera che garantisce è
+// disponibile SOLO mentre lei è in vista — non un accesso permanente. Se in futuro serve una
+// via da tastiera SEMPRE presente, la soluzione pulita è un controllo dedicato (es. un bottone
+// visivamente nascosto, sempre nel DOM, SENZA indicatore visivo) — una decisione nuova, non
+// implementata da questo fix.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ProgressDotsStanze, idTabStanza } from '@/components/ds/ProgressDots'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { LinguettaCassette, registraAccessoParete } from './LinguettaCassette'
 import { useReducedMotion } from '@/design-system/v3/motion'
@@ -38,8 +58,6 @@ import type { StanzaHome } from '@/lib/preferenze/home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 const ORDINE: readonly StanzaHome[] = ['pile', 'parete']
-const ID_PANNELLI = ['ua-stanza-pile', 'ua-stanza-parete'] as const
-const ETICHETTE = ['Le pile', 'La parete'] as const
 
 // La stanza «attiva» è quella che occupa la maggior parte del viewport: .6 è la soglia della
 // spec §6 — abbastanza alta da non scattare a metà swipe (dove ENTRAMBE le stanze stanno
@@ -54,11 +72,12 @@ const FOCUSABILI = 'a[href], button:not([disabled]), input:not([disabled]), sele
 // direttiva vale per QUALUNQUE elemento, presente o futuro). Su un dito (mobile/tablet touch)
 // portare il focus dentro il pannello che si apre farebbe salire la tastiera se quel primo
 // focusabile fosse mai un campo testo — un utente col dito non ha chiesto di scrivere, ha
-// chiesto di guardare. Su desktop il focus resta: chi naviga da tastiera (dot con Invio/frecce)
-// deve poter entrare nel pannello. `(pointer: coarse)` è il segnale — un mouse ha sempre un
-// puntatore fine, un dito è sempre grossolano, indipendentemente dalla larghezza dello schermo
-// (a differenza di `min-width`, usato altrove per desktop vs mobile: qui il segnale giusto è
-// l'INPUT, non la LARGHEZZA — un tablet touch largo non deve prendere la tastiera lo stesso).
+// chiesto di guardare. Su desktop il focus resta: chi naviga da tastiera (Tab sulla linguetta
+// + Invio/Spazio) deve poter entrare nel pannello. `(pointer: coarse)` è il segnale — un mouse
+// ha sempre un puntatore fine, un dito è sempre grossolano, indipendentemente dalla larghezza
+// dello schermo (a differenza di `min-width`, usato altrove per desktop vs mobile: qui il
+// segnale giusto è l'INPUT, non la LARGHEZZA — un tablet touch largo non deve prendere la
+// tastiera lo stesso).
 function puntatoreTattile(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
 }
@@ -102,16 +121,17 @@ function stanzaEffettiva(stanzaIniziale: StanzaHome): StanzaHome {
  *  gated di `PareteClient` (riserva ARCH R2, `attivo`) e il momento del mount.
  *
  *  Mount: se la stanza è già attiva al render (deep-link `?stanza=parete`) o lo diventa mentre
- *  l'utente la sceglie (dot/freccia/swipe), monta SUBITO — l'aggiustamento di stato avviene nel
- *  render stesso (`if (props.attiva && !montata) setMontata(true)`), non in un effect passivo:
- *  un effect qui arriverebbe DOPO l'effect del pager che sposta il focus nella stanza entrante
- *  (v. `[attiva]` sotto), trovandola ancora vuota — la stanza fisicamente esiste ma il primo
- *  focusable interno non c'è ancora. Se invece resta inattiva, il mount pieno aspetta il primo
- *  idle (fallback `setTimeout` 300ms — jsdom e alcuni browser non hanno
- *  `requestIdleCallback`): col peek morto (Task 13) la stanza è del tutto fuori schermo, niente
- *  serve montarla subito. Requisito UX di collaudo: il primo swipe non deve stutterare — mai un
- *  mount sincrono e pesante a metà gesto, da cui il ramo idle. Una volta montata RESTA montata
- *  (mai `setMontata(false)`): un dot che torna sulle pile non deve smontare/rimontare il muro. */
+ *  l'utente la sceglie (linguetta/back button/swipe — QA device D3: erano anche dot/freccia,
+ *  morti insieme ai dot), monta SUBITO — l'aggiustamento di stato avviene nel render stesso
+ *  (`if (props.attiva && !montata) setMontata(true)`), non in un effect passivo: un effect qui
+ *  arriverebbe DOPO l'effect del pager che sposta il focus nella stanza entrante (v. `[attiva]`
+ *  sotto), trovandola ancora vuota — la stanza fisicamente esiste ma il primo focusable interno
+ *  non c'è ancora. Se invece resta inattiva, il mount pieno aspetta il primo idle (fallback
+ *  `setTimeout` 300ms — jsdom e alcuni browser non hanno `requestIdleCallback`): col peek morto
+ *  (Task 13) la stanza è del tutto fuori schermo, niente serve montarla subito. Requisito UX di
+ *  collaudo: il primo swipe non deve stutterare — mai un mount sincrono e pesante a metà gesto,
+ *  da cui il ramo idle. Una volta montata RESTA montata (mai `setMontata(false)`): un ritorno
+ *  alle pile non deve smontare/rimontare il muro. */
 function StanzaParete(props: {
   parete: CassettaParete[]
   attiva: boolean
@@ -177,16 +197,14 @@ export function StanzePager(props: {
   const [attiva, setAttiva] = useState<StanzaHome>(() => stanzaEffettiva(stanzaIniziale))
   const viewport = useRef<HTMLDivElement | null>(null)
   const stanze = useRef<Record<StanzaHome, HTMLDivElement | null>>({ pile: null, parete: null })
-  // `true` solo fra una scelta esplicita (dot/tastiera) e il re-render che ne consegue: è lì
-  // che il focus può entrare nella stanza, quando l'`inert` è già stato tolto.
+  // `true` solo fra una scelta esplicita (linguetta/back button) e il re-render che ne
+  // consegue: è lì che il focus può entrare nella stanza, quando l'`inert` è già stato tolto.
   const focusDaPortare = useRef(false)
   const ridotto = useReducedMotion()
 
-  const indice = ORDINE.indexOf(attiva) as 0 | 1
-
-  // Task 13 (D7) — chi arriva alla stanza Parete (swipe O dot/tastiera) registra l'accesso
-  // (riserva UX 3b, spegne la linguetta dopo 3 arrivi): punto unico, nel setter della stanza
-  // attiva, quando la transizione è DAVVERO pile→parete. La stanza corrente si legge da un
+  // Task 13 (D7) — chi arriva alla stanza Parete (swipe O navigazione esplicita) registra
+  // l'accesso (riserva UX 3b, spegne la linguetta dopo 3 arrivi): punto unico, nel setter della
+  // stanza attiva, quando la transizione è DAVVERO pile→parete. La stanza corrente si legge da un
   // ref, non dalla chiusura dell'effect IO (che monta una volta sola, senza dipendenza da
   // `attiva` — leggerlo lì darebbe sempre la stanza del PRIMO render); il ref si aggiorna in
   // un effect dedicato (mai scrivere un ref DURANTE il render — gate di lint di questo repo,
@@ -296,10 +314,10 @@ export function StanzePager(props: {
 
     // Posizionamento iniziale, PRIMA di osservare (review del proprio diff): il viewport
     // nasce a scrollLeft 0, cioè sulla stanza Pile. Entrando con `?stanza=parete` — o con la
-    // preferenza che apre sulla Parete — senza questo scroll si vedrebbe la stanza Pile
-    // mentre lo stato la dà per uscente: inerte, aria-hidden e con i dots che indicano
-    // l'altra. Sempre `'auto'`: non è un movimento che l'utente ha chiesto, è il punto in cui
-    // la pagina comincia — animarlo sarebbe un carosello che parte da solo.
+    // preferenza che apre sulla Parete — senza questo scroll si vedrebbe la stanza Pile mentre
+    // lo stato la dà per uscente: inerte, aria-hidden, mentre l'attiva vera è l'altra. Sempre
+    // `'auto'`: non è un movimento che l'utente ha chiesto, è il punto in cui la pagina
+    // comincia — animarlo sarebbe un carosello che parte da solo.
     // L'ordine conta: farlo prima di `observe()` significa che l'IO comincia a misurare su
     // una posizione già giusta, senza dipendere da quando il browser consegna la prima
     // notifica.
@@ -350,44 +368,32 @@ export function StanzePager(props: {
     const entrante = stanze.current[attiva]
     // Collaudo R2 (D-1, 22/07 sera): SEMPRE preventScroll — il focus nudo fa lo scroll-into-view
     // istantaneo che CANCELLA lo scrollTo smooth di `vaiA`, e lo snap mandatory ri-aggancia alla
-    // stanza di partenza: il tap sul dot sembrava morto. Lo scroll è SOLO di `vaiA`.
+    // stanza di partenza: il tap sembrava morto. Lo scroll è SOLO di `vaiA`.
     entrante?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
   }, [attiva])
 
+  // QA device (verbale 25/07, fix-list D3) — coi dot morti, `vaiA` ha oggi SOLO due chiamanti:
+  // la linguetta (pile→parete) e il tasto «‹ Indietro» dell'header della parete (parete→pile,
+  // v. il render sotto). Entrambi sono gesti ESPLICITI verso la stanza OPPOSTA a quella attiva
+  // — non esiste più un caso «tap sulla stanza già attiva» (quello nasceva SOLO dal dot della
+  // stanza corrente): niente più da distinguere per origine, il focus entra sempre nella
+  // stanza entrante via l'effect su `[attiva]` sopra (che già applica il guard T15.2 su dito).
   const vaiA = useCallback(
-    // Task 13 (D7) — `opts.giaRegistrato`: la linguetta «Le cassette» registra il proprio
+    // `opts.giaRegistrato` (Task 13, D7): la linguetta «Le cassette» registra il proprio
     // accesso DA SÉ (serve anche fuori dal pager, nella forma «solo pile» di HomeV3, dove
     // non esiste alcun `impostaAttiva`). Dentro il pager il suo `onVai` finisce comunque qui:
     // senza questo flag la STESSA visita alla parete verrebbe contata due volte (una dalla
     // linguetta, una da `impostaAttiva` sotto) — non un doppio conteggio innocuo, ma una
     // stanza che si spegnerebbe dopo ~1.5 tap reali invece che dopo 3.
-    (destinazione: StanzaHome, origine: 'tap' | 'freccia', opts?: { giaRegistrato?: boolean }) => {
-      // La stanza chiesta può essere quella GIÀ attiva: succede ogni volta che una freccia ha
-      // spostato la selezione (che cambia `attiva` subito, lasciando il focus sui dots) e poi si
-      // preme Invio. In quel caso `setAttiva` fa bail-out sullo stesso valore, il re-render non
-      // avviene e l'effect su `[attiva]` NON gira mai: armare `focusDaPortare` qui lo lascerebbe
-      // acceso a tempo indeterminato — il focus non entrerebbe nella stanza (Invio morto da
-      // tastiera) e il flag verrebbe poi riscosso dal primo swipe, che ruberebbe il focus a chi
-      // stava solo guardando. Quindi: se la stanza è già attiva il suo sottoalbero è già
-      // non-inerte e il focus può entrare SUBITO, senza passare dall'effect.
-      const giaAttiva = destinazione === attiva
+    (destinazione: StanzaHome, opts?: { giaRegistrato?: boolean }) => {
       if (opts?.giaRegistrato) {
         // La linguetta ha già registrato l'accesso da sé (v. commento sopra): qui manca SOLO
         // `registraAccessoParete`, non la URL sync — anche questa via deve spingere/tornare
-        // dall'entry /cassette, altrimenti tap sulla linguetta e tap sul dot si comporterebbero
-        // diversamente sulla stessa transizione pile→parete.
+        // dall'entry /cassette.
         sincronizzaUrlStanza(destinazione)
         setAttiva(destinazione)
       } else impostaAttiva(destinazione)
-      if (origine === 'tap') {
-        // QA device T15.2 — stesso guard del focus differito sopra: su dito niente focus, la
-        // stanza è già non-inerte e basta a chi guarda.
-        if (giaAttiva) {
-          if (!puntatoreTattile())
-            stanze.current[destinazione]?.querySelector<HTMLElement>(FOCUSABILI)?.focus({ preventScroll: true })
-        }
-        else focusDaPortare.current = true
-      }
+      focusDaPortare.current = true
       const contenitore = viewport.current
       const bersaglio = stanze.current[destinazione]
       // `scrollTo` non esiste in jsdom (e non esisterebbe su un contenitore mai montato): la
@@ -396,22 +402,19 @@ export function StanzePager(props: {
       if (!contenitore || !bersaglio || typeof contenitore.scrollTo !== 'function') return
       contenitore.scrollTo({ left: bersaglio.offsetLeft, behavior: ridotto ? 'auto' : 'smooth' })
     },
-    [ridotto, attiva, impostaAttiva, sincronizzaUrlStanza]
+    [ridotto, impostaAttiva, sincronizzaUrlStanza]
   )
 
   return (
     <div className="ua-stanze">
       <div className="ua-stanze-viewport" ref={viewport}>
-        {ORDINE.map((nome, i) => {
+        {ORDINE.map((nome) => {
           const eAttiva = nome === attiva
           return (
             <div
               key={nome}
-              id={ID_PANNELLI[i]}
               className="ua-stanza"
               data-stanza={nome}
-              role="tabpanel"
-              aria-labelledby={idTabStanza(ID_PANNELLI[i])}
               aria-hidden={!eAttiva}
               inert={!eAttiva}
               ref={(nodo) => {
@@ -429,14 +432,14 @@ export function StanzePager(props: {
                 <div className="ua-stanza-pile-scroll">{pile}</div>
               ) : (
                 // QA device T15 (addendum 24/07, punto 1) — il back dell'header DENTRO il
-                // pannello torna alla stanza Pile (stesso gesto di uno swipe/dot inverso), MAI
+                // pannello torna alla stanza Pile (stesso gesto di uno swipe inverso), MAI
                 // `router.back()`: quello lascerebbe la home per una pagina precedente
                 // arbitraria. `vaiA` porta con sé focus/scroll/URL sync — un solo posto per
                 // tutte le vie di ritorno alle pile.
                 <StanzaParete
                   parete={parete}
                   attiva={eAttiva}
-                  onIndietro={() => vaiA('pile', 'tap')}
+                  onIndietro={() => vaiA('pile')}
                   sospendiRefresh={urlDivergente}
                 />
               )}
@@ -447,20 +450,13 @@ export function StanzePager(props: {
 
       {footer}
 
-      <div className="ua-stanze-dots">
-        <ProgressDotsStanze
-          etichetta="Le stanze della home"
-          etichette={ETICHETTE}
-          idPannelli={ID_PANNELLI}
-          attiva={indice}
-          onSceglie={(scelta, origine) => vaiA(ORDINE[scelta], origine)}
-        />
-      </div>
-
       {/* Task 13 (D7) — visibile SOLO dalla stanza Pile (dalla Parete non c'è nulla da
           invitare). `giaRegistrato: true`: la linguetta ha già registrato il proprio accesso
-          da sé (v. commento su `vaiA` sopra) — qui si chiede solo lo scroll/focus. */}
-      <LinguettaCassette visibile={attiva === 'pile'} onVai={() => vaiA('parete', 'tap', { giaRegistrato: true })} />
+          da sé (v. commento su `vaiA` sopra) — qui si chiede solo lo scroll/focus.
+          QA device (verbale 25/07, fix-list D3) — coi dot rimossi, la linguetta è anche IL
+          percorso da tastiera verso la parete (v. commento in testa al file): resta un
+          `<button>` vero, nessun trucco di focus dedicato le serve. */}
+      <LinguettaCassette visibile={attiva === 'pile'} onVai={() => vaiA('parete', { giaRegistrato: true })} />
     </div>
   )
 }

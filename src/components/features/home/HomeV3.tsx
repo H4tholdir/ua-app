@@ -145,8 +145,25 @@ export function HomeV3(props: {
            ne diventerebbe il containing block e la clipperebbe dentro il frame della home
            invece che nel viewport reale. */
         .ua-home .corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; container-type: size; }
-        /* pile centrate (D8): il blocco assorbe lo slack e si centra nello spazio residuo */
-        .ua-home .pile { flex: 1; display: flex; flex-direction: column; justify-content: center;
+        /* pile centrate (D8): il blocco assorbe lo slack e si centra nello spazio residuo.
+           QA device (verbale 25/07, fix-list D2) — CAUSA MISURATA a 390×640:
+           '.ua-stanza-pile-scroll' box 377px vs scrollHeight 446px (69px di sforo); 'center'
+           puro centra anche l'ECCESSO, spingendone metà sopra il bordo superiore visibile
+           quanto sotto — la 4ª pila finiva interamente sotto la piega, tranciata dove
+           cominciavano i dot (ora morti, E1 — la loro rimozione libera ~48px di budget
+           verticale, v. calcolo documentato in tests/unit/home-fluida.test.tsx, che riduce ma
+           non azzera lo sforo). Fix: 'safe center' — centra quando il contenuto ci sta,
+           degrada ad ancoraggio in alto ('start') quando sfora, cadendo nel fondo scrollabile
+           di '.ua-stanza-pile-scroll' (invariato) invece che sopra il bordo. Supporto
+           verificato per i target del collaudo (Chrome Android, Safari iOS correnti — 'safe'
+           su flexbox è supportato da entrambi da tempo — riverificare su device reale in FASE
+           9 non fa male, la doppia dichiarazione sotto rende innocuo anche un mancato
+           supporto): la doppia dichiarazione è
+           progressive enhancement, non un salto secco — un motore che non riconoscesse 'safe
+           center' scarta SOLO quella dichiarazione (valore non valido), la precedente
+           'center' resta l'ultima valida e il comportamento di oggi non regredisce. */
+        .ua-home .pile { flex: 1; display: flex; flex-direction: column;
+                         justify-content: center; justify-content: safe center;
                          gap: clamp(8px, 2.2cqh, 16px); margin-top: clamp(8px, 1.8cqh, 16px); }
         .ua-home .pile .ds-pila { padding: clamp(11px, 1.9cqh, 16px) 18px; }
         .ua-home .pile .ds-pila-num { font-size: clamp(38px, 6.5cqh, 52px); }
@@ -186,7 +203,8 @@ export function HomeV3(props: {
 
       {vista.tipo === 'pager' ? (
         <>
-          {/* Task 14 (D8) — `.corpo` avvolge il pager (le due stanze + dots + linguetta): il
+          {/* Task 14 (D8) — `.corpo` avvolge il pager (le due stanze + linguetta — niente più
+              dots dentro, rimossi da QA device D3): il
               `piede` NON si passa più come `footer` a `StanzePager` (che lo renderebbe dentro
               il proprio ritorno, quindi dentro `.corpo`) — resta un fratello fuori, fisso in
               fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style).
