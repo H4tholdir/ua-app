@@ -130,36 +130,42 @@ export function HomeV3(props: {
     <section className={`ua-home ua-home-mobile${vista.tipo === 'pager' ? ' is-stanze' : ''}`}>
       <style>{`
         .ua-home { position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
-                   padding: 24px; display: flex; flex-direction: column; min-height: 100dvh; }
-        .ua-home .pile { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; margin-top: 16px; }
-        .ua-home .foot { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+                   padding: clamp(12px, 2.6cqh, 24px) 24px; display: flex; flex-direction: column; min-height: 100dvh; }
+        /* Task 14 (D8, §3.3) — wrapper fluido: la flex gli dà altezza definita → cqh risolve.
+           ATTENZIONE (riserva FE R5): niente position:fixed DISCENDENTE — la linguetta è in
+           portale su body apposta (v. LinguettaCassette.tsx), altrimenti questo container-type
+           ne diventerebbe il containing block e la clipperebbe dentro il frame della home
+           invece che nel viewport reale. */
+        .ua-home .corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; container-type: size; }
+        /* pile centrate (D8): il blocco assorbe lo slack e si centra nello spazio residuo */
+        .ua-home .pile { flex: 1; display: flex; flex-direction: column; justify-content: center;
+                         gap: clamp(8px, 2.2cqh, 16px); margin-top: clamp(8px, 1.8cqh, 16px); }
+        .ua-home .pile .ds-pila { padding: clamp(11px, 1.9cqh, 16px) 18px; }
+        .ua-home .pile .ds-pila-num { font-size: clamp(38px, 6.5cqh, 52px); }
+        .ua-home .striscia-slot { margin-top: clamp(8px, 1.8cqh, 16px); }
+        .ua-home .foot { margin-top: clamp(8px, 1.8cqh, 16px); display: flex; flex-direction: column; align-items: center; gap: 8px;
                          padding-bottom: env(safe-area-inset-bottom); }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
            TastoPiù (collaudo device 22/07). min-height + overflow-y:auto = no-scroll quando ci
-           sta, scroll naturale quando non ci sta. */
+           sta, scroll naturale quando non ci sta. Task 14 (D8): la scala fluida RIDUCE i casi
+           in cui questo degrado scatta, non lo abroga — resta la rete di sicurezza sotto la
+           scala continua (v. decision record 2026-07-25, guardia sostituita in
+           tests/unit/home-fluida.test.tsx). */
         @media (max-width: 767px) { .ua-home { min-height: 100dvh; height: auto; overflow-y: auto; } }
-        /* §7.1 rev. 3.2 (Collaudo R3b, misure overlay device Francesco): soglia 700→780 e scala
-           più profonda. I numeri, non le impressioni: PWA standalone su quel device = viewport
-           755px STABILE (dvh=svh, insets 0 — la status bar era innocente); in Chrome 699px la
-           vecchia compatta scattava, nella PWA a 755px restava la scala piena (intrinseca ~900px
-           → scroll). La vecchia compatta misurava 774px intrinseci: sopra 755. Questi valori la
-           portano a ~742px (misura Playwright con banner presente): entra a 755 con margine.
-           NOTA SISTEMICA per l'ondata «Redesign parete/home»: la scala PIENA (~900px a 375w con
-           banner) non entra quasi su nessun device reale — lì va ripensata, qui si cura il caso
-           vero. Sotto ~742 resta il degrado scroll sanzionato (P3). */
-        @media (max-height: 780px) {
-          .ua-home { padding: 12px 24px; }
-          .ua-home .striscia-slot { margin-top: 8px; }
-          .ua-home .pile { gap: 8px; margin-top: 8px; }
-          .ua-home .pile .ds-pila { padding: 12px 18px; }
-          .ua-home .pile .ds-pila-num { font-size: 42px; }
-          .ua-home .foot { margin-top: 8px; gap: 6px; }
-        }
       `}</style>
 
       {vista.tipo === 'pager' ? (
-        <StanzePager stanzaIniziale={vista.iniziale} pile={stanzaPile} parete={parete} footer={piede} />
+        <>
+          {/* Task 14 (D8) — `.corpo` avvolge il pager (le due stanze + dots + linguetta): il
+              `piede` NON si passa più come `footer` a `StanzePager` (che lo renderebbe dentro
+              il proprio ritorno, quindi dentro `.corpo`) — resta un fratello fuori, fisso in
+              fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style). */}
+          <div className="corpo">
+            <StanzePager stanzaIniziale={vista.iniziale} pile={stanzaPile} parete={parete} />
+          </div>
+          {piede}
+        </>
       ) : vista.stanza === 'parete' ? (
         <>
           {/* Task 12 (D2) — forma «solo parete»: niente pager, quindi niente mount differito da
@@ -167,14 +173,16 @@ export function HomeV3(props: {
               `PareteClient` DIRETTAMENTE, sempre attiva. Stesso contenitore scrollabile
               (`.ua-stanza-parete-scroll`, ds-v3.css) della stanza omonima dentro il pager: la
               legge «no-scroll» (§3.3) decade qui per dichiarazione esplicita di spec §3.1. */}
-          <div className="ua-stanza-parete-scroll">
-            <PareteClient parete={parete} contesto="stanza" attivo />
+          <div className="corpo">
+            <div className="ua-stanza-parete-scroll">
+              <PareteClient parete={parete} contesto="stanza" attivo />
+            </div>
           </div>
           {piede}
         </>
       ) : (
         <>
-          {stanzaPile}
+          <div className="corpo">{stanzaPile}</div>
           {piede}
           {/* Task 13 (D7) — forma «solo pile»: nessun pager, quindi nessuna via di ritorno
               dedicata alla parete (§7, preferenza 'pile'). La linguetta è l'unico invito

@@ -83,3 +83,40 @@ in `StanzePager.tsx`) tiene sotto controllo il costo di questa unificazione.
   task È quell'ondata)
 - L'altra abrogazione prescritta dal piano dell'ondata è nel Task 14, fuori dal perimetro di
   questo file
+
+## Addendum — Task 14 (D8, §3.3): la seconda abrogazione, «home fuori perimetro» → «home fluida»
+
+**Data:** 23/07/2026 (data di sistema; sessione Task 14) · **Task:** 14 — «Scala verticale fluida
++ pile centrate»
+
+Muore il ramo `@media (max-height: 780px)` di `HomeV3.tsx` (la scala «compatta R3b» a gradini fissi
+— padding/gap/font-size fissi sotto 780px di altezza viewport, v. §7.1 rev. 3.2 nel commento
+originale). Al suo posto: un wrapper interno `.corpo` (`container-type: size`) che fa risolvere in
+`cqh` gap/padding/font-size dei blocchi (`.pile`, `.ds-pila`, `.ds-pila-num`, `.striscia-slot`,
+`.foot`) — una scala CONTINUA invece di un gradino unico a 780px. Le pile si centrano nello spazio
+residuo (`justify-content: center` su `.pile`, flex:1) invece di limitarsi ad assorbire lo slack in
+alto. Il degrado scroll P3 (`overflow-y: auto` sotto 767px) **resta**: la fluida riduce i casi in
+cui serve, non lo abroga.
+
+Guardia sostituita: `tests/unit/home-fluida.test.tsx` (nuova) presidia `container-type: size`, il
+gap fluido `clamp(8px, 2.2cqh, 16px)` e la morte testuale di `@media (max-height: 780px)` — non
+esisteva una guardia dedicata precedente su questo blocco style (la vecchia protezione «home fuori
+perimetro» a cui allude il piano dell'ondata è quella abrogata sopra nel Task 12, sullo stesso
+perimetro CSS; qui non c'è un file di test da eliminare, solo il testo CSS da sostituire).
+
+Struttura JSX: `.corpo` avvolge il contenuto di ciascuna delle tre forme (pager, sola-parete,
+sola-pile); il `piede` (`.foot`, col TastoPiù) resta sempre un fratello FUORI da `.corpo` — in
+particolare, nella forma pager, `piede` non è più passato come prop `footer` a `StanzePager` (che
+lo avrebbe reso dentro il proprio ritorno, quindi dentro `.corpo`), ma reso da `HomeV3` come
+fratello del `<div className="corpo">` che contiene `<StanzePager>`. Verificato (riserva FE R5):
+nessun discendente DENTRO `.corpo` usa `position: fixed` direttamente — gli unici elementi fixed
+del perimetro (`.ds-linguetta` di `LinguettaCassette.tsx`, `.ds-ghost` di `PareteClient.tsx`, gli
+overlay di `Sheet.tsx`) montano tutti via `createPortal(..., document.body)`, quindi il loro nodo
+DOM reale non è mai discendente di `.corpo` a prescindere da dove il componente sia invocato
+nell'albero React.
+
+I coefficienti dei `clamp()` sono DEFAULT dichiarati «a taratura QA» (stessa cautela della scala
+precedente, mai a occhio): la misura reale su device via Playwright è demandata al Task 15 (QA
+device) — qui la guardia testuale presidia solo che il CSS DICHIARI la formula giusta, non che
+risolva al pixel corretto su un viewport reale (jsdom non fa layout, stesso limite dichiarato in
+testa a `tests/unit/ds-v3/parete-fluida.test.ts`).
