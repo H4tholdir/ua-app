@@ -35,6 +35,7 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { animate, useMotionValue, type MotionValue } from 'motion/react'
 import { molla, trascinamento } from '@/design-system/v3/motion'
 import { vibra } from '@/design-system/v3/haptic'
+import { suona } from '@/design-system/v3/sound'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import {
   type Geometria,
@@ -128,6 +129,7 @@ export function useDragRiordino(opts: {
   const correnteRef = useRef(0)
   const snapshotRef = useRef<string[]>([])
   const mossoRef = useRef(false)
+  const staccoSuonatoRef = useRef(false)
   const rafRef = useRef<number | null>(null)
   const ultimoTsRef = useRef(0)
   const ingaggioBordoRef = useRef(0)
@@ -322,6 +324,8 @@ export function useDragRiordino(opts: {
         'Frecce per spostare, Invio per confermare, Esc per annullare.',
     )
     vibra('light') // §2.4.3: haptic al lift, se previsto — no-op dove navigator.vibrate manca (iOS)
+    suona('stacco')
+    staccoSuonatoRef.current = true
 
     // Scala al lift: la molla interattiva iOS (§3.3). A reduced-motion è un set istantaneo.
     if (reduced()) ghostScale.set(trascinamento.scalaSollevamento)
@@ -364,16 +368,22 @@ export function useDragRiordino(opts: {
 
       if (!mosso && !annullato) {
         // Rilascio fermo (non annullato) = apri lo sheet (§2.5, comportamento già spedito). Il ghost
-        // sparisce mentre lo sheet sale (nessun atterraggio: non c'è stato spostamento).
+        // sparisce mentre lo sheet sale (nessun atterraggio: non c'è stato spostamento). Nessun suono:
+        // il lift qui non è percepito come uno spostamento.
         onSheetRef.current(idTrasc)
         smontaGhost()
+        staccoSuonatoRef.current = false
         return
       }
       if (annullato) {
         // pointercancel (annullo di sistema): il ghost torna alla cella d'origine (§2.4.7). NESSUNA POST.
+        // Ri-aggancio attenuato (D5, spec redesign §2.6): «non è cambiato niente» — SOLO se lo stacco
+        // era stato suonato al lift (altrimenti niente lift percepito, niente suono di chiusura).
+        if (staccoSuonatoRef.current) suona('riaggancio', { gain: 0.4 })
         setAnnuncio('Spostamento annullato.')
         setOrdineIds(null) // rollback ottico allo snapshot
         atterra(0, 0)
+        staccoSuonatoRef.current = false
         return
       }
       // DROP: lista finale = ordine ottimistico, riconciliato con l'ultima verità del server.
@@ -384,6 +394,8 @@ export function useDragRiordino(opts: {
       setAnnuncio(
         `Cassetta ${pareteRef.current[origineRef.current]?.nome ?? ''} rilasciata al posto ${correnteRef.current + 1} di ${snapshotRef.current.length}.`,
       )
+      suona('riaggancio')
+      vibra('medium') // haptic di successo (riserva UX 7): il laboratorio è rumoroso
       void inviaRef.current(daPostare).then((ok) => {
         if (ok) onRefreshRef.current()
         else setOrdineIds(null) // POST fallita → rollback ottico (niente refresh, riga quieta)
@@ -392,6 +404,7 @@ export function useDragRiordino(opts: {
       const bersaglio = gridRef.current?.querySelector<HTMLElement>(`[data-cassetta-id="${idTrasc}"]`)?.getBoundingClientRect()
       if (bersaglio) atterra(bersaglio.left - origineRectRef.current.left, bersaglio.top - origineRectRef.current.top)
       else smontaGhost()
+      staccoSuonatoRef.current = false
     }
   }
 

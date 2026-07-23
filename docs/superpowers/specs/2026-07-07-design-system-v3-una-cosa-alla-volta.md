@@ -455,6 +455,7 @@ lavoro → CONSEGNA → conferma
 - **Default: attivi** (decisione Francesco 07/07) · toggle in "Il mio laboratorio → Suoni" (persistito per utente).
 - L'interruttore silenzioso iOS NON è rilevabile via web → i suoni non veicolano MAI informazione esclusiva (L3: c'è sempre il visivo).
 - Mai suoni in loop, mai più di 1 suono per gesto, `tap` mai su azioni di sola lettura.
+- **Deroga (ratifica 23/07/2026, spec redesign §2.6):** il trascinamento cassetta suona DUE volte — stacco al lift, clack al drop (attenuato sull'annullo) — perché sono due momenti dello stesso gesto continuo. Unica coppia ammessa.
 
 ### 9.3 Haptics (`src/design-system/haptic.ts` v3) — la verità sul web
 - **iOS Safari NON supporta `navigator.vibrate`** (stato 2026, caniuse). Quindi: haptics = progressive enhancement Android; su iPhone il "tatto" si costruisce con molla `press` + suono (compensazione, da ricerca).

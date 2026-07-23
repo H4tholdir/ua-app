@@ -1,14 +1,18 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const started: string[] = []
 class FakeSource { buffer: unknown = null; connect() { return this } start() { started.push('start') } }
+class FakeGain { gain = { value: 1 }; connect() { return this } }
 class FakeAudioContext {
   state = 'suspended'
   destination = {}
   resume = vi.fn(async () => { this.state = 'running' })
   decodeAudioData = vi.fn(async () => ({ duration: 0.1 }))
   createBufferSource() { return new FakeSource() }
+  createGain() { return new FakeGain() }
 }
 
 beforeEach(() => {
@@ -55,5 +59,20 @@ describe('sound v3 (spec §9.2)', () => {
     document.dispatchEvent(new Event('touchend'))
     await new Promise(r => setTimeout(r, 0))
     expect(() => suona('errore')).not.toThrow()
+  })
+})
+
+// sound.ts è collaudabile solo a runtime browser (AudioContext): qui la guardia è
+// testuale, stesso pattern di parete-fluida.test.ts.
+const src = readFileSync(join(process.cwd(), 'src/design-system/v3/sound.ts'), 'utf8')
+
+describe('suoni cassetta (spec redesign §2.6, D5)', () => {
+  it('stacco e riaggancio sono suoni firmati con file dedicato', () => {
+    expect(src).toMatch(/stacco: '\/sounds\/stacco\.wav'/)
+    expect(src).toMatch(/riaggancio: '\/sounds\/riaggancio\.wav'/)
+  })
+  it('suona accetta un gain opzionale (ri-aggancio attenuato su annullo)', () => {
+    expect(src).toMatch(/opts\?: \{ gain\?: number \}/)
+    expect(src).toMatch(/createGain/)
   })
 })

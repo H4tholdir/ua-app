@@ -2,10 +2,11 @@
 // (policy iOS Safari: il gesto valido è il sollevamento del dito).
 // I suoni NON veicolano mai informazione esclusiva (c'è sempre il visivo — L3).
 
-export type NomeSuono = 'tap' | 'fatta' | 'ua' | 'errore' | 'arrivo'
+export type NomeSuono = 'tap' | 'fatta' | 'ua' | 'errore' | 'arrivo' | 'stacco' | 'riaggancio'
 const FILES: Record<NomeSuono, string> = {
   tap: '/sounds/tap.wav', fatta: '/sounds/fatta.wav', ua: '/sounds/ua.wav',
   errore: '/sounds/errore.wav', arrivo: '/sounds/arrivo.wav',
+  stacco: '/sounds/stacco.wav', riaggancio: '/sounds/riaggancio.wav',
 }
 const KEY = 'ua_sounds_v3'
 
@@ -53,15 +54,21 @@ export function initSuoni(): void {
   document.addEventListener('click', handler, { once: true, passive: true })
 }
 
-/** Fire-and-forget: mai throw, mai await necessario. Max 1 suono per gesto (§9.2). */
-export function suona(nome: NomeSuono): void {
+/** Fire-and-forget: mai throw, mai await necessario. Max 1 suono per gesto (§9.2);
+ *  DEROGA ratificata 23/07 (spec redesign §2.6): stacco+riaggancio sono due momenti
+ *  dello STESSO gesto continuo di trascinamento — l'unica coppia ammessa.
+ *  `gain` < 1 = variante attenuata (ri-aggancio dopo annullo). */
+export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
   try {
     if (!suoniAttivi() || !sbloccato || !ctx) return
     const buf = buffers.get(nome)
     if (!buf) return
     const src = ctx.createBufferSource()
     src.buffer = buf
-    src.connect(ctx.destination)
+    const g = ctx.createGain()
+    g.gain.value = opts?.gain ?? 1
+    src.connect(g)
+    g.connect(ctx.destination)
     src.start()
   } catch { /* mai rompere l'app per un suono */ }
 }
