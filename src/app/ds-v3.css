@@ -1032,8 +1032,27 @@
     repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 5px),
     repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 5px);
 }
+/* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G3-grafica) — CAUSA
+   TROVATA: `text-align: center` agisce sull'asse INLINE (qui verticale, alto-basso, per via
+   di `writing-mode: vertical-rl`), MAI sull'asse di blocco (qui orizzontale, lo spessore
+   della colonna) — è quest'ultimo che va centrato, perché l'etichetta «Le cassette» (una
+   sola riga, non va mai a capo dentro i 26px dichiarati) resta larga solo quanto il suo
+   testo (~metà dei 26px), e senza una regola sull'asse di blocco resta appoggiata al lato
+   di partenza del blocco (fisicamente destra, per `vertical-rl`) invece che centrata —
+   esattamente il difetto segnalato, il testo appoggiato a un bordo della targhetta invece
+   che in mezzo. Fix: `display: flex` rende `.eti` stessa un contenitore flex (il testo
+   diventa un item flex anonimo); per un contenitore `writing-mode: vertical-rl` l'asse
+   principale di `flex-direction: row` (default, invariata) è l'asse inline (verticale) e
+   l'asse trasverso è l'asse di blocco (orizzontale) — `align-items: center` centra quindi
+   ESATTAMENTE lo spessore della colonna, `justify-content: center` fa lo stesso sull'altro
+   asse (innocuo oggi, a riga singola non c'è slack da ridistribuire, ma protegge se mai
+   servisse più respiro verticale). `text-align: center` è rimosso: con `display: flex` non
+   ha più alcun effetto (nessuna riga da giustificare), tenerlo sarebbe stato codice morto.
+   Grandezza (width: 26px, font-size, letter-spacing) e comportamento INVARIATI — SOLO il
+   meccanismo di centratura cambia. */
 [data-ds="v3"] .ds-linguetta .eti {
-  position: relative; writing-mode: vertical-rl; width: 26px; text-align: center;
+  position: relative; writing-mode: vertical-rl; width: 26px;
+  display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; letter-spacing: .13em; color: var(--muted); text-transform: uppercase;
 }
 
