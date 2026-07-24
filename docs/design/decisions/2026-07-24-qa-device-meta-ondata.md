@@ -339,3 +339,29 @@ desktop punto, nient'altro». Il difetto 1 dell'indagine H5 (ganci/maglia) NON s
 in questa wave. REQUISITO VERO da cui ripartire quando si riprenderà: parete CENTRATA nella
 visualizzazione tablet e desktop — niente redesign del filo. I mockup f1236d5/105c6ba
 restano in docs come materiale di studio, non ratificati.
+
+---
+
+## APPEND — 25/07 notte, VERIFICA FINALE wave H (build 22aed23, esiti Francesco 21:26-21:31)
+
+1. **Piede — MIGLIORATO ma non chiuso:** animazione ok, niente più flicker/stati persi; MA
+   subito dopo lo swipe, sulla pagina cassette compare un QUADRATO PANNA che copre le
+   cassette e POI scompare (transiente, non più permanente). Ipotesi di Francesco a
+   verbale: «l'animazione della scomparsa del pulsante nuovo lavoro si chiude in quella
+   pagina e quindi non fa scomparire in tempo il riquadro». Coerente col design del fix:
+   il collasso del box avviene solo al riposo esatto (scrollend+molla ~110ms dopo
+   l'arrivo) — nel frattempo il box del piede resta dipinto sopra la pagina nuova.
+2. **Fascia C — PASS con 2 difetti:** (a) il paziente lungo NON va su due righe nella
+   pratica (screenshot: «Ciruzzo Toz» sfumato su C12/C4) — causa strutturale: alla
+   larghezza mobile quasi OGNI nome di clinico va a capo su 2 righe («BARALE S.A.S.»,
+   «DI SANTI CATERINA», «STUDI MEDICI DI SANTI») → il budget condiviso ratificato
+   (clinico 2 → paziente 1) non lascia praticamente mai le 2 righe al paziente;
+   (b) leggera sfumatura in basso sul nome di ALCUNI medici che NON sbordano (falso
+   positivo del rilevatore is-troncato, da tarare).
+3. **iPad — cassette ANCORA «rotte»** nella pancia (zona fascia: etichetta+nomi), con
+   hardening text-size-adjust+overflow a bordo → meccanismo (A) insufficiente/escluso;
+   resta (B) compositore o una terza causa WebKit. Prossimo gradino: Safari macOS reale.
+4. **Suoni — 2 casi residui device-specifici (scoperta di Francesco, prima azione a PWA
+   fresca):** (a) primo gesto = swipe+DRAG → suono di sgancio MUTO, riaggancio al
+   rilascio OK, poi tutto ok — su TUTTI i mobili; (b) primo gesto = TAP su pulsante →
+   suono OK sui telefoni, MUTO su iPad, OK su desktop.
