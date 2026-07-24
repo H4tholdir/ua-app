@@ -329,3 +329,13 @@ Tre difetti dalla visualizzazione su iPad (griglia a 6 colonne):
 Su desktop: cassette TUTTE integre e animazioni ok → «cassette rotte» e «drag scattoso»
 sono SOLO-iPad (WebKit). I gancetti però risultano fuori filo ANCHE su desktop →
 il disallineamento dalla maglia è cross-engine e cross-larghezza: geometria nostra.
+
+### Addendum 3 — Rete/ganci: PARCHEGGIATO per ordine di Francesco (25/07 sera)
+
+Parole a verbale: «lasciamo stare questa cosa della rete e della centratura delle cassette
+sul desktop, poi ci torneremo, non mi convincono questi mock, stai usando le cassette
+vecchie, cambi il filo, a me serve solo che venga centrato nella visualizzazione tablet e
+desktop punto, nient'altro». Il difetto 1 dell'indagine H5 (ganci/maglia) NON si implementa
+in questa wave. REQUISITO VERO da cui ripartire quando si riprenderà: parete CENTRATA nella
+visualizzazione tablet e desktop — niente redesign del filo. I mockup f1236d5/105c6ba
+restano in docs come materiale di studio, non ratificati.
