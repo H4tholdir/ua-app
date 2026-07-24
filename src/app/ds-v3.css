@@ -1090,10 +1090,17 @@
    `tests/unit/home-fluida.test.tsx`/`tests/unit/stanze-pager.test.tsx` presidia l'assenza). */
 
 /* Task 13 (D7) — linguetta «Le cassette» (mockup C2 ratificato 23/07/2026, valori verbatim).
-   Il button è LARGO 44px (hit-area di legge, riserva UX 3a); il disegno (card 26px) è il suo
+   Il button è LARGO 44px (hit-area di legge, riserva UX 3a); il disegno (card, sotto) è il suo
    bordo destro — il resto è tocco invisibile. Portale su `document.body`
    (`LinguettaCassette.tsx`): il wrapper `[data-ds="v3"]` che la scopa vive DENTRO il ramo
-   condizionale del componente, non qui. */
+   condizionale del componente, non qui.
+   Task H4a (F2+T2, ratifica ri-collaudo #3, mockup 2026-07-25-linguetta-e-piede-proposte.html
+   `.lng.big`, valore verbatim) — la card passa da 26px (T1) a 34px (T2): SOLO dimensione,
+   sfondo/bordo/ombra restano `var(--card)`/`var(--line)`/gli stessi box-shadow di sempre (il
+   mockup del 25/07 è uno schema comparativo, disegna anche il T1 «Attuale» in rosso pieno —
+   MAI stato lo skin reale, che è questo `var(--card)` neutro del mockup ratificato 23/07: il
+   rosso pieno lì è un artefatto del disegno comparativo, non un valore da importare). Il
+   button resta 44px: la card più larga (34px) ci sta comunque dentro (44 > 34). */
 [data-ds="v3"] .ds-linguetta {
   position: fixed; right: 0; bottom: 84px; z-index: 40;
   width: 44px; min-height: 96px;
@@ -1101,14 +1108,14 @@
   background: none; border: none; padding: 0; cursor: pointer;
 }
 [data-ds="v3"] .ds-linguetta::before {
-  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 26px;
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 34px;
   background: var(--card); border: 1px solid var(--line); border-right: none;
   border-radius: 14px 0 0 14px; box-shadow: -6px 5px 14px -8px rgba(50,40,25,.3);
 }
 [data-theme="dark"] [data-ds="v3"] .ds-linguetta::before { box-shadow: -6px 5px 14px -8px rgba(0,0,0,.55); }
-[data-ds="v3"] .ds-linguetta .fre { position: relative; font-size: 13px; font-weight: 800; color: var(--red); width: 26px; text-align: center; }
+[data-ds="v3"] .ds-linguetta .fre { position: relative; font-size: 13px; font-weight: 800; color: var(--red); width: 34px; text-align: center; }
 [data-ds="v3"] .ds-linguetta .mini-rete {
-  position: relative; width: 13px; height: 18px; margin: 6px 6.5px; border-radius: 2px; opacity: .45;
+  position: relative; width: 13px; height: 18px; margin: 6px 10.5px; border-radius: 2px; opacity: .45;
   background:
     repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 5px),
     repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 5px);
@@ -1117,8 +1124,8 @@
    TROVATA: `text-align: center` agisce sull'asse INLINE (qui verticale, alto-basso, per via
    di `writing-mode: vertical-rl`), MAI sull'asse di blocco (qui orizzontale, lo spessore
    della colonna) — è quest'ultimo che va centrato, perché l'etichetta «Le cassette» (una
-   sola riga, non va mai a capo dentro i 26px dichiarati) resta larga solo quanto il suo
-   testo (~metà dei 26px), e senza una regola sull'asse di blocco resta appoggiata al lato
+   sola riga, non va mai a capo dentro la colonna dichiarata) resta larga solo quanto il suo
+   testo (~metà della colonna), e senza una regola sull'asse di blocco resta appoggiata al lato
    di partenza del blocco (fisicamente destra, per `vertical-rl`) invece che centrata —
    esattamente il difetto segnalato, il testo appoggiato a un bordo della targhetta invece
    che in mezzo. Fix: `display: flex` rende `.eti` stessa un contenitore flex (il testo
@@ -1129,12 +1136,30 @@
    asse (innocuo oggi, a riga singola non c'è slack da ridistribuire, ma protegge se mai
    servisse più respiro verticale). `text-align: center` è rimosso: con `display: flex` non
    ha più alcun effetto (nessuna riga da giustificare), tenerlo sarebbe stato codice morto.
-   Grandezza (width: 26px, font-size, letter-spacing) e comportamento INVARIATI — SOLO il
-   meccanismo di centratura cambia. */
+   Comportamento e meccanismo di centratura INVARIATI — la grandezza (width) segue la card
+   (Task H4a bump 26px→34px, sotto), font-size bump a 11.5px, valore verbatim T2. */
 [data-ds="v3"] .ds-linguetta .eti {
-  position: relative; writing-mode: vertical-rl; width: 26px;
+  position: relative; writing-mode: vertical-rl; width: 34px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; letter-spacing: .13em; color: var(--muted); text-transform: uppercase;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .13em; color: var(--muted); text-transform: uppercase;
+}
+/* Task H4a (F2 «impara e si assottiglia», mockup `.lng.slim`, valori verbatim) — dal 4°
+   passaggio riuscito (`linguettaAppresa()` vero) la linguetta non sparisce più: si assottiglia
+   a un filo rosso, sempre nel DOM e sempre tappabile. Il button resta 44px (hit-area
+   invariata, sopra) — SOLO la card `::before` si restringe e cambia colore; freccia,
+   decorazione e etichetta non vengono renderizzate in questo modo (`LinguettaCassette.tsx`,
+   `modo === 'piena'`), il filo è disegnato dalla card stessa + una barra bianca `::after`
+   indipendente. Sfondo: `rgba(217,0,18,.85)` del mockup = `var(--red)` all'85% di opacità —
+   usato via `color-mix` (non l'esadecimale fisso) perché `--red` cambia già valore fra i due
+   temi (v. inizio file): così il filo resta coerente in light E dark, cosa che il mockup
+   (solo light) non poteva dichiarare da sé. */
+[data-ds="v3"] .ds-linguetta.is-filo::before {
+  width: 10px;
+  background: color-mix(in srgb, var(--red) 85%, transparent);
+}
+[data-ds="v3"] .ds-linguetta.is-filo::after {
+  content: ''; position: absolute; right: 3.5px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 34px; border-radius: 2px; background: rgba(255,255,255,.85);
 }
 
 /* Task 12 (D2, spec redesign §3.1) — la stanza Parete NON è più un'anteprima con testata e
