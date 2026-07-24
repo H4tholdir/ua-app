@@ -112,3 +112,43 @@ Ri-collaudo device di Francesco sulla build corretta PRIMA di passare al Task 16
 **Decisioni ancora aperte (non toccate dal ri-collaudo):** piede P1/P2/P3 (D3 lo cambia:
 senza dot il piede si compatta da sé — da rivalutare a valle), traccia 220 a vista, overflow
 residuo 50px@660, forma «solo parete» senza piede.
+
+## Ri-collaudo device #2 (25/07 mattina, build a063fd5, Xiaomi Chrome, :3020)
+
+**Esiti wave D:** tastiera ✅ · back cassette→home ✅ · pila liberata ✅ · linguetta riappare ✅ ·
+assetto post-swipe ✅ · scroll sheet ✅ · bersaglio drag ✅ · targa aggiornata subito ✅.
+
+**Decisioni RATIFICATE da Francesco:**
+- **Lista «Metti un lavoro»: V2 «targhetta»** (mockup 2026-07-25-sheet-metti-lavoro-lista.html) — da implementare.
+- **Cornice della rete: V1 «filo di bordo»** (mockup 2026-07-25-rete-cornice-bordi.html) — da implementare.
+- **Ricerca (ex D7): ELIMINARE il match sul codice esadecimale del colore** («inutile per un
+  laboratorio»). **AGGIUNGERE la ricerca sul campo note laboratorio** (oggi assente).
+  Aperto: quali altri campi rendere cercabili (tecnico? paziente? consegna?) — Francesco chiede
+  l'elenco dei campi disponibili per decidere.
+
+**Nuova fix-list ratificata (ordine suo):**
+- **G1 — Suoni primo tocco ANCORA KO:** funzionano solo dal secondo tocco. (Ipotesi da
+  verificare: `initSuoni()` vive nel mount DIFFERITO di PareteClient dentro il pager → il primo
+  tocco precede l'accensione del motore.)
+- **G2 — Pile: clip dell'ombra RIapparsa** (già risolta una volta nella PWA in produzione —
+  recuperare quel fix) **+ gestione dello spazio:** più aria, pile più grandi sfruttando lo
+  spazio libero tra l'ultima pila e il tasto «Nuovo lavoro».
+- **G3 — Linguetta:** grafica errata (contenuto non centrato); rivederne funzionamento e
+  grandezza ora che i puntini non ci sono più (proposta da presentare).
+- **G4 — Piede della home nello swipe:** il blocco del TastoPiù scompare/ricompare di colpo
+  durante lo swipe verso le cassette — poco elegante. Proposta di transizione da presentare.
+- **G5 — Back gesture non chiude lo sheet:** con lo sheet aperto, il gesto indietro del telefono
+  deve chiudere lo sheet (non navigare).
+- **G6 — Gancetto sfalsato dal filo (screenshot):** il gancetto non aggancia il filo della
+  griglia. (Ipotesi: pattern SVG light fisso a 44px vs `--passo-maglia` clampato — limite già
+  documentato che ora è visibile.)
+- **G7 — Ricerca:** attuare la decisione ratificata sopra (hex via, note dentro) + enumerare i
+  campi disponibili per la scelta finale.
+- **G8 — Miniatura generica dopo «Metti un lavoro»:** appena inserito un lavoro la cassetta
+  mostra sempre l'SVG generico; al refresh appare quello giusto. (Causa nota e dichiarata:
+  il contratto di GET /api/cassette/lavori-liberi non porta tipoDispositivo/descrizione —
+  estendere la route e l'overlay ottimistico.)
+- **G9 — Implementare le due ratifiche:** lista V2 «targhetta» + cornice rete V1 «filo di bordo».
+
+**Restano in coda decisioni:** funzionamento/grandezza linguetta (dopo proposta G3) ·
+transizione piede (dopo proposta G4) · campi ricerca aggiuntivi (dopo elenco G7).
