@@ -285,18 +285,42 @@ export function Cassetta(props: {
     let vivo = true
     const misura = () => {
       if (!vivo) return
-      setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      // H2c (verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND
+      // «verifica finale» punto 2b: «leggera sfumatura nella parte inferiore del nome di
+      // alcuni medici» che stanno ESATTAMENTE in 2 righe, senza sforare) — root cause taratura
+      // insufficiente: il confronto originale (`scrollHeight > clientHeight + 1`, un epsilon
+      // fisso di 1px) confrontava due misure che il motore di rendering arrotonda in modo
+      // INDIPENDENTE l'una dall'altra. `line-height: 1.16` (ds-v3.css, `.ds-cassetta-dent`) su
+      // `font-size: 10px` risolve a 11.6px per riga — NON un intero — e `max-height:
+      // calc(2 * 1.16em)` a 23.2px: nessuno dei due è un multiplo esatto del pixel fisico su
+      // DPR frazionari (es. 2.75, comune su Android; anche 1.5/3 accumulano lo stesso effetto
+      // in scala minore). Ogni riga di testo viene arrotondata al pixel-device più vicino
+      // INDIPENDENTEMENTE dall'arrotondamento del box `max-height` che la contiene: su 2 righe
+      // l'errore di quantizzazione può sommarsi oltre l'unico pixel CSS di tolleranza che
+      // avevamo, pur senza NESSUN overflow reale di contenuto — il falso positivo del verbale.
+      // Fix (taratura ancorata alla metrica reale, non un numero magico più grande): invece di
+      // confrontare le due altezze in px, le confrontiamo in UNITÀ DI RIGA — `scrollHeight` e
+      // `clientHeight` divisi per la stessa `lineHeight` del nodo e arrotondati a intero. Un
+      // arrotondamento a riga intera assorbe QUALSIASI rumore sub-pixel di quantizzazione
+      // (che sull'ordine dei centesimi/decimi di pixel non può mai spostare un rapporto di
+      // riga dal proprio intero più vicino), mentre uno sforo REALE di contenuto sposta il
+      // conteggio delle righe di un'unità intera — è la differenza tra "arrotondare 1.02 a 1"
+      // e "arrotondare 1.9 a 2": la prima è rumore, la seconda è un fatto.
       // In produzione `getComputedStyle(nodo).lineHeight` risolve sempre a un valore in px (il
       // CSS reale di ds-v3.css è caricato) — verificato via cascata reale renderizzata (v.
-      // report H2b). In ambienti senza foglio di stile applicato (jsdom nei test unitari, senza
-      // stub esplicito) risolve a un valore non numerico ("normal"): il fallback tiene
-      // `dentDueRighe` false, coerente col comportamento pre-H2b di ogni altro test che non
-      // stubba esplicitamente le misure.
+      // report H2b/H2c). In ambienti senza foglio di stile applicato (jsdom nei test unitari,
+      // senza stub esplicito) risolve a un valore non numerico ("normal"): qui il fallback
+      // torna al confronto px puro (`scrollHeight > clientHeight + 1`, comportamento
+      // pre-H2c) — nessun test esistente che stubba solo scrollHeight/clientHeight (senza
+      // lineHeight) cambia risultato.
       const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
       if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
-        const righe = Math.round(nodo.clientHeight / altezzaRiga)
-        setDentDueRighe(righe >= 2)
+        const righeContenuto = Math.round(nodo.scrollHeight / altezzaRiga)
+        const righeVisibili = Math.round(nodo.clientHeight / altezzaRiga)
+        setDentTroncato(righeContenuto > righeVisibili)
+        setDentDueRighe(righeVisibili >= 2)
       } else {
+        setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
         setDentDueRighe(false)
       }
     }
@@ -335,7 +359,22 @@ export function Cassetta(props: {
     }
     let vivo = true
     const misura = () => {
-      if (vivo) setPazTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      if (!vivo) return
+      // H2c — il rilevatore gemello del paziente condivide LA STESSA debolezza del clinico
+      // (v. commento esteso sopra, sull'effetto `useEffect` di `dentRef`): stessa famiglia di
+      // meccanismo (`scrollHeight`/`clientHeight` misurati in JS), stessa correzione. Il
+      // paziente ha il proprio `line-height` (1.24, diverso da 1.16 del clinico — v.
+      // `.ds-cassetta-paz` in ds-v3.css) quindi si legge `getComputedStyle` sul NODO del
+      // paziente stesso, non si riusa la lineHeight del dent. Fallback identico: senza CSS
+      // reale applicato (jsdom senza stub) si torna al confronto px puro pre-H2c.
+      const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
+      if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
+        const righeContenuto = Math.round(nodo.scrollHeight / altezzaRiga)
+        const righeVisibili = Math.round(nodo.clientHeight / altezzaRiga)
+        setPazTroncato(righeContenuto > righeVisibili)
+      } else {
+        setPazTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      }
     }
     misura()
     if (typeof document !== 'undefined' && document.fonts?.ready) {

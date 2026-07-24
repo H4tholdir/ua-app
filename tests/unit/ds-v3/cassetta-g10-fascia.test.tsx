@@ -68,13 +68,25 @@ describe('H2 — finestra/cavità: 8..48 (era 8..74) — opzione B restringe la 
 describe('H2 — «fascia etichetta»: ORA ad altezza FISSA (opzione B), non più ad abbraccio del contenuto', () => {
   it('.ds-cassetta-fascia: margin/radius/padding/box-shadow invariati dal mockup rev.3 P3b, height:72px + justify-content:center (H2) invariati — H2b (variante C, decisione d5eeed5): background scurente 0,34 (era .28, «un filo più profondo» sulle facce scure) + overflow:hidden NUOVO (hardening iOS, indagine H5 Difetto 2 meccanismo A: la fascia è ad altezza VERA e FISSA, niente deve mai sbordarne nemmeno con font gonfiati da iOS)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*height: 72px;\s*background: rgba\(0,0,0,\.34\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*overflow: hidden;\s*\}/
+      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*width: calc\(100% - 8px\);\s*height: 72px;\s*background: rgba\(0,0,0,\.34\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*overflow: hidden;\s*\}/
     )
   })
 
   it('H2b — guardia negativa: il vecchio scrim uniforme .28/.14 non deve ricomparire (la polarità ora dipende da is-chiara, non è più un solo valore fisso)', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-fascia \{[^}]*\}/)
     expect(blocco![0]).not.toMatch(/rgba\(0,0,0,\.28\)/)
+  })
+
+  it('H2c (indagine H6, .superpowers/sdd/h6-indagine-safari-report.md) — .ds-cassetta-fascia DICHIARA una width esplicita: calc(100% - 8px), dove 8 = i 4px+4px dell\'inset orizzontale già dichiarato da "margin: 0 4px 4px" in questa stessa regola. Senza una width propria, su Safari macOS reale (non riprodotto da Playwright-WebKit) la fascia si stretchava fino a +48.5px oltre il bordo del tile quando il clinico va a 2 righe E il paziente è presente — root cause provata nell\'harness fedele di H6 (3/21 cassette rotte, numeri 189.2/201.5/164.1px vs i 149px attesi). Guardia di non-regressione: chi tocca di nuovo questa regola non deve rimuovere la width senza rifare la verifica su Safari reale.', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-fascia \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-fascia non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/width: calc\(100% - 8px\);/)
+    // guardia numerica sull'8: deve combaciare con l'inset orizzontale dichiarato da margin
+    // (4px sinistra + 4px destra) — non un valore magico slegato dalla geometria reale.
+    const margineDichiarato = blocco![0].match(/margin: 0 (\d+)px \d+px;/)
+    expect(margineDichiarato, 'margin orizzontale non trovato nella regola').toBeTruthy()
+    const inset = Number(margineDichiarato![1])
+    expect(inset * 2).toBe(8)
   })
 
   it('H2b (variante C, ratifica d5eeed5, mockup 2026-07-25-fascia-leggibilita-varianti.html) — is-chiara: scrim INVERTITO, ora SCHIARENTE (rgba(255,255,255,.20)), non più scurente (rgba(29,25,19,.14)) — riusa la discriminazione is-chiara/targaScura ESISTENTE, nessuna nuova soglia', () => {
@@ -294,8 +306,12 @@ describe('H2b — variante C (d5eeed5): budget righe condiviso — is-due-righe 
     dentLineHeightPx?: number
     pazScrollHeight?: number
     pazClientHeight?: number
+    pazLineHeightPx?: number
   }) {
-    const { dentScrollHeight = 0, dentClientHeight = 0, dentLineHeightPx, pazScrollHeight = 0, pazClientHeight = 0 } = opts
+    const {
+      dentScrollHeight = 0, dentClientHeight = 0, dentLineHeightPx,
+      pazScrollHeight = 0, pazClientHeight = 0, pazLineHeightPx,
+    } = opts
     const scrollDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')!
     const clientDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')!
     Object.defineProperty(Element.prototype, 'scrollHeight', {
@@ -315,14 +331,22 @@ describe('H2b — variante C (d5eeed5): budget righe condiviso — is-due-righe 
       },
     })
     let gcsSpy: ReturnType<typeof vi.spyOn> | undefined
-    if (dentLineHeightPx !== undefined) {
+    if (dentLineHeightPx !== undefined || pazLineHeightPx !== undefined) {
       const originaleGCS = window.getComputedStyle.bind(window)
       gcsSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((el: Element, pseudo?: string | null) => {
         const reale = originaleGCS(el, pseudo ?? undefined)
-        if (el.classList?.contains('ds-cassetta-dent')) {
+        if (dentLineHeightPx !== undefined && el.classList?.contains('ds-cassetta-dent')) {
           return new Proxy(reale, {
             get(target, prop, receiver) {
               if (prop === 'lineHeight') return `${dentLineHeightPx}px`
+              return Reflect.get(target, prop, receiver)
+            },
+          })
+        }
+        if (pazLineHeightPx !== undefined && el.classList?.contains('ds-cassetta-paz')) {
+          return new Proxy(reale, {
+            get(target, prop, receiver) {
+              if (prop === 'lineHeight') return `${pazLineHeightPx}px`
               return Reflect.get(target, prop, receiver)
             },
           })
@@ -416,6 +440,80 @@ describe('H2b — variante C (d5eeed5): budget righe condiviso — is-due-righe 
       )
       const paz = screen.getByRole('button').querySelector('.ds-cassetta-paz')
       expect(paz?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  // H2c (verbale docs/design/decisions/2026-07-24-qa-device-meta-ondata.md, APPEND «verifica
+  // finale» punto 2b: «leggera sfumatura nella parte inferiore del nome di alcuni medici» che
+  // stanno ESATTAMENTE in 2 righe, senza sforo reale — falso positivo del rilevatore
+  // is-troncato). Root cause: l'epsilon fisso `scrollHeight > clientHeight + 1` confronta due
+  // misure arrotondate INDIPENDENTEMENTE dal motore su DPR frazionari (line-height 1.16em su
+  // font-size 10px = 11.6px/riga, non intero) — l'errore di quantizzazione può superare 1px
+  // pur senza nessun overflow reale. Taratura: confronto in UNITÀ DI RIGA
+  // (round(scrollHeight/lineHeight) > round(clientHeight/lineHeight)), che assorbe il rumore
+  // sub-pixel restando sensibile a uno sforo REALE di una riga intera.
+  it('H2c — falso positivo del vecchio epsilon (dent 2 righe esatte, rumore sub-pixel > 1px): scrollHeight=24.3 clientHeight=23.2 (diff 1.1px, l\'epsilon +1 pre-H2c l\'avrebbe marcato troncato) — con la taratura a righe intere (24.3/11.6≈2, 23.2/11.6=2) NON è troncato', () => {
+    const ripristina = stubMisure({ dentClientHeight: 23.2, dentScrollHeight: 24.3, dentLineHeightPx: 11.6 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studio Di Santi Rossi' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-due-righe')
+      expect(dent?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('H2c — sforo REALE di una riga intera con lo stesso rumore sub-pixel (dent: scrollHeight=36.5, clientHeight=23.2, lineHeight=11.6 → 3 righe di contenuto contro 2 visibili): resta troncato — la taratura non deve mai spegnersi su un overflow vero', () => {
+    const ripristina = stubMisure({ dentClientHeight: 23.2, dentScrollHeight: 36.5, dentLineHeightPx: 11.6 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('H2c — stesso falso positivo sul rilevatore gemello del paziente (line-height 1.24 su font-size 11.5px ereditato dal cont = 14.26px/riga, max-height 2 righe = 28.52px — v. commento .ds-cassetta-paz in ds-v3.css; scrollHeight=29.6 clientHeight=28.52, diff 1.08px > vecchio epsilon): NON troncato con la taratura a righe intere (round(29.6/14.26)=2, round(28.52/14.26)=2)', () => {
+    const ripristina = stubMisure({ pazClientHeight: 28.52, pazScrollHeight: 29.6, pazLineHeightPx: 14.26 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, pazienteAlias: 'Maria Vittoria Del Grosso' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const paz = screen.getByRole('button').querySelector('.ds-cassetta-paz')
+      expect(paz?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('H2c — sforo REALE sul paziente con lo stesso rumore sub-pixel (pazScrollHeight=43.6, pazClientHeight=28.52, lineHeight=14.26 → 3 righe contro 2): resta troncato', () => {
+    const ripristina = stubMisure({ pazClientHeight: 28.52, pazScrollHeight: 43.6, pazLineHeightPx: 14.26 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, pazienteAlias: 'Maria Vittoria Del Grosso Esposito Immacolata' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const paz = screen.getByRole('button').querySelector('.ds-cassetta-paz')
+      expect(paz?.className).toContain('is-troncato')
     } finally {
       ripristina()
     }

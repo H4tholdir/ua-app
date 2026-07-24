@@ -492,12 +492,41 @@
    commento su `.ds-cassetta-cont`/`.ds-parete` altrove in questo file) riguarda contenitori PIÙ
    IN ALTO nell'albero (`.ds-cassetta`/`.ds-parete`), non questo. Verificato su tutta la matrice
    nomi (corto/lungo/estremo × occupata/libera, 390px, light+dark): zero sbordi legittimi
-   tagliati — v. report H2b. */
+   tagliati — v. report H2b.
+
+   H2c (indagine H6, .superpowers/sdd/h6-indagine-safari-report.md — root cause provata su
+   Safari macOS REALE, Safari 18.6, non Playwright-WebKit) — width NUOVO: la regola non
+   dichiarava mai una width propria, affidandosi solo allo stretch di default come flex-item
+   di .ds-cassetta (flex-direction:column). Difetto del verbale
+   docs/design/decisions/2026-07-24-qa-device-meta-ondata.md (addendum iPad, ri-collaudo #4):
+   "cassette rotte" - finestra e fascia disallineate, pezzi che sporgono dalla sagoma. Su una
+   build di Safari reale, quando il clinico va a capo su 2 righe E il paziente e presente
+   (2 flex-column annidate fascia->cont->dent/paz), il motore risolve lo stretch fino a
+   +48.5px oltre il bordo del tile (misurato nell'harness fedele di H6: 189.2/201.5/164.1px
+   invece dei 149px attesi, su 3 cassette di 21) - il pezzo in eccesso sfonda l'assenza di
+   clip dei genitori (.ds-cassetta/.ds-cella-riordino, nessuno ha overflow:hidden
+   orizzontale) e sbrodola nella cassetta adiacente.
+   calc(100% - 8px): l'8 non e un valore inventato - e l'inset ORIZZONTALE che questa stessa
+   regola gia dichiara (margin: 0 4px 4px sopra, 4px sinistra + 4px destra = 8px), reso
+   esplicito invece di lasciato implicito allo stretch. Bisezione dell'indagine H6 (harness
+   fedele, getComputedStyle verificato ad ogni passo): overflow:hidden rimosso -> numeri
+   identici (non e la causa, il box e gia disegnato piu largo a monte); mask-image rimosso ->
+   numeri identici; min-width:0 da solo -> numeri identici (ipotesi min-content respinta con
+   la prova); width: calc(100% - 8px) da solo -> 0 cassette rotte su 21, fascia esattamente
+   149x72 su ognuna, comprese le 3 originarie - QUESTO e il fix minimo, validato prima/dopo su
+   Safari reale a 6 e 4 colonne, light e dark (overflow identico al decimo di pixel a
+   entrambe le colonne: il difetto e guidato dal CONTENUTO, non dalla larghezza disponibile
+   della colonna).
+   Su Chromium (reale, real-render) il fix non cambia nulla al pixel: lo stretch implicito
+   risolveva gia a questo stesso valore, la regola lo rende solo esplicito, non lo altera -
+   comparativo in .superpowers/sdd/h2c-fascia-fix-report.md. Guardia sorgente in
+   tests/unit/ds-v3/cassetta-g10-fascia.test.tsx. */
 [data-ds="v3"] .ds-cassetta-fascia {
   position: relative; z-index: 1;
   margin: 0 4px 4px;
   border-radius: 4px 4px 9px 9px;
   padding: 5px 8px 6px;
+  width: calc(100% - 8px);
   height: 72px;
   background: rgba(0,0,0,.34);
   box-shadow: inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
