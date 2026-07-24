@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linguetta (G3) e piede nello swipe (G4) — proposte · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP — le due proposte rimaste della fix-list G:
+   G3 — LINGUETTA: ora che i puntini sono stati eliminati (D3) è l'UNICO invito
+        allo swipe verso le cassette. Oggi: appare 5s, impara dopo 3 passaggi e
+        SPARISCE PER SEMPRE. Tre proposte di funzionamento + due taglie.
+   G4 — PIEDE nello swipe: oggi il blocco TastoPiù+etichetta scompare/ricompare
+        DI COLPO durante lo swipe home↔cassette. Due coreografie proposte
+        (storyboard a 3 fotogrammi — la motion vera userà le molle v3).
+   ==========================================================================*/
+body{margin:0;background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1150px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:900px}
+.sez{padding:26px 28px 40px}
+.sez.alt{background:#ECE6D9}
+.sez h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.sez .sub{font-size:13.5px;color:#6E6457;margin-bottom:20px;max-width:860px;line-height:1.5}
+.row{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:250px;line-height:1.5}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:3px;color:#6E6457}
+.cap b{color:#1D1913}
+
+/* — riquadro home in miniatura per contesto — */
+.mini{position:relative;width:250px;height:300px;border-radius:22px;background:#F4F0E7;
+  border:1px solid #EBE4D6;overflow:hidden;padding:14px}
+.mini .pila{height:44px;border-radius:14px;background:#FFFEFA;margin-bottom:9px;
+  box-shadow:0 2px 3px rgba(50,40,25,.05)}
+.mini .piede{position:absolute;left:0;right:0;bottom:10px;display:flex;flex-direction:column;
+  align-items:center;gap:2px}
+.mini .tasto{width:54px;height:54px;border-radius:50%;background:#FFFEFA;display:flex;
+  align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#D90012;
+  box-shadow:0 3px 5px rgba(50,40,25,.18),inset 0 2px 0 rgba(255,255,255,.8)}
+.mini .eti{font-size:11px;font-weight:800}
+
+/* — la linguetta (verticale, destra) — */
+.lng{position:absolute;right:0;top:50%;transform:translateY(-50%);
+  width:26px;padding:14px 0;border-radius:10px 0 0 10px;background:#D90012;color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:-2px 2px 6px rgba(50,40,25,.25)}
+.lng .txt{writing-mode:vertical-rl;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.lng .fre{font-size:11px;transform:rotate(180deg)}
+.lng.big{width:34px;padding:18px 0;gap:8px}
+.lng.big .txt{font-size:11.5px}
+.lng.slim{width:10px;padding:22px 0;background:rgba(217,0,18,.85)}
+.lng.slim .txt,.lng.slim .fre{display:none}
+.lng.slim::after{content:'';width:3px;height:34px;border-radius:2px;background:rgba(255,255,255,.85)}
+
+/* — storyboard piede — */
+.frame{position:relative;width:190px;height:230px;border-radius:18px;background:#F4F0E7;
+  border:1px solid #EBE4D6;overflow:hidden;padding:10px}
+.frame .pila{height:30px;border-radius:10px;background:#FFFEFA;margin-bottom:7px}
+.frame .muro{position:absolute;inset:10px;border-radius:12px;
+  background:repeating-linear-gradient(180deg,rgba(140,126,96,.18) 0 2px,transparent 2px 30px),repeating-linear-gradient(90deg,rgba(140,126,96,.18) 0 2px,transparent 2px 30px)}
+.frame .piede{position:absolute;left:0;right:0;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.frame .tasto{width:44px;height:44px;border-radius:50%;background:#FFFEFA;display:flex;
+  align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#D90012;
+  box-shadow:0 3px 5px rgba(50,40,25,.18),inset 0 2px 0 rgba(255,255,255,.8)}
+.frame .eti{font-size:10px;font-weight:800}
+.fr-label{position:absolute;top:6px;left:10px;font-size:10px;font-weight:800;color:#7B6A59;letter-spacing:.06em}
+.arrow{font-size:22px;color:#7B6A59;align-self:center;font-weight:800}
+.gruppo{display:flex;gap:10px;align-items:center}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>Le ultime due decisioni: la linguetta e il piede nello swipe</h1>
+  <p>Ora che i puntini non ci sono più, la linguetta è l'unico invito a scoprire la parete —
+  e il suo «appare 3 volte e poi mai più» va ripensato. E il blocco del tasto «Nuovo lavoro»
+  non deve più sparire di colpo durante lo swipe. Qui le proposte: scegli una riga per
+  sezione (o combina).</p>
+</div>
+
+<div class="sez">
+  <h2>G3 — Il funzionamento della linguetta</h2>
+  <div class="sub">Oggi: appare quando sei sul lato pile, resta 5 secondi, e dopo 3 passaggi
+  alla parete si spegne PER SEMPRE. Tre proposte di comportamento:</div>
+  <div class="row">
+    <div class="cell">
+      <div class="mini">
+        <div class="pila"></div><div class="pila"></div><div class="pila"></div>
+        <div class="lng"><span class="fre">‹</span><span class="txt">Cassette</span></div>
+        <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+      </div>
+      <div class="cap"><b>F1 — «Sempre presente»</b><em>la linguetta non sparisce mai: è la maniglia
+      fissa della parete, come una linguetta di quaderno. Niente timer, niente apprendimento.</em></div>
+    </div>
+    <div class="cell">
+      <div class="mini">
+        <div class="pila"></div><div class="pila"></div><div class="pila"></div>
+        <div class="lng slim"></div>
+        <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+      </div>
+      <div class="cap"><b>F2 — «Impara e si assottiglia»</b><em>i primi 3 passaggi la linguetta è
+      piena (testo+freccia); poi NON sparisce: si riduce a un filo rosso discreto, sempre
+      tappabile. Il migliore dei due mondi.</em></div>
+    </div>
+    <div class="cell">
+      <div class="mini">
+        <div class="pila"></div><div class="pila"></div><div class="pila"></div>
+        <div class="lng"><span class="fre">‹</span><span class="txt">Cassette</span></div>
+        <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+      </div>
+      <div class="cap"><b>F3 — «Come oggi ma più paziente»</b><em>resta il timer e l'apprendimento,
+      ma: 10 secondi a schermo, soglia 5 passaggi, e ricompare dopo 7 giorni di non-uso della
+      parete.</em></div>
+    </div>
+  </div>
+  <div class="sub" style="margin-top:18px">E la taglia (vale per F1/F3, e per la fase «piena» di F2):</div>
+  <div class="row">
+    <div class="cell">
+      <div class="mini" style="height:190px">
+        <div class="pila"></div><div class="pila"></div>
+        <div class="lng"><span class="fre">‹</span><span class="txt">Cassette</span></div>
+      </div>
+      <div class="cap"><b>T1 — Attuale</b><em>26px di spessore</em></div>
+    </div>
+    <div class="cell">
+      <div class="mini" style="height:190px">
+        <div class="pila"></div><div class="pila"></div>
+        <div class="lng big"><span class="fre">‹</span><span class="txt">Cassette</span></div>
+      </div>
+      <div class="cap"><b>T2 — Più presente</b><em>34px, testo più leggibile — dito più comodo</em></div>
+    </div>
+  </div>
+</div>
+
+<div class="sez alt">
+  <h2>G4 — Il piede durante lo swipe (storyboard)</h2>
+  <div class="sub">Oggi il blocco TastoPiù+«Nuovo lavoro» c'è sulla home e NON c'è sul lato
+  cassette (decisione ratificata) — ma nel passaggio scompare/ricompare di colpo. Due
+  coreografie (le molle esatte verranno dai token motion v3):</div>
+  <div class="row">
+    <div class="gruppo">
+      <div class="cell">
+        <div class="frame"><span class="fr-label">HOME</span>
+          <div class="pila"></div><div class="pila"></div>
+          <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+        </div>
+        <div class="cap">inizio</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="cell">
+        <div class="frame"><span class="fr-label">A METÀ SWIPE</span>
+          <div class="pila" style="opacity:.4"></div><div class="pila" style="opacity:.4"></div>
+          <div class="piede" style="opacity:.45;transform:translateY(14px)"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+        </div>
+        <div class="cap">il piede SEGUE IL DITO: scivola giù e sfuma in proporzione allo swipe</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="cell">
+        <div class="frame"><span class="fr-label">CASSETTE</span>
+          <div class="muro"></div>
+        </div>
+        <div class="cap">arrivo: piede assente</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap" style="max-width:640px;text-align:left;margin-top:6px"><b>C1 — «Scivola col dito»</b>:
+  opacità e discesa del piede legate alla posizione del dito (reversibile a metà gesto, come il
+  pannello). Se molli lo swipe, il piede risale con la stessa molla.</div>
+  <div class="row" style="margin-top:22px">
+    <div class="gruppo">
+      <div class="cell">
+        <div class="frame"><span class="fr-label">HOME</span>
+          <div class="pila"></div><div class="pila"></div>
+          <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+        </div>
+        <div class="cap">inizio</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="cell">
+        <div class="frame"><span class="fr-label">A METÀ SWIPE</span>
+          <div class="pila" style="opacity:.4"></div><div class="pila" style="opacity:.4"></div>
+          <div class="piede"><div class="tasto" style="transform:scale(.72)">+</div></div>
+        </div>
+        <div class="cap">l'etichetta svanisce subito, il TASTO si rimpicciolisce restando al suo posto</div>
+      </div>
+      <span class="arrow">→</span>
+      <div class="cell">
+        <div class="frame"><span class="fr-label">CASSETTE</span>
+          <div class="muro"></div>
+        </div>
+        <div class="cap">arrivo: il tasto si è spento del tutto</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap" style="max-width:640px;text-align:left;margin-top:6px"><b>C2 — «Il tasto si ritira»</b>:
+  l'etichetta sfuma per prima, il tasto tondo si rimpicciolisce fino a sparire — un movimento
+  più «fisico», il tasto che si tira indietro.</div>
+</div>
+</body>
+</html>
