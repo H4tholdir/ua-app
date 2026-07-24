@@ -114,11 +114,14 @@ export function initSuoni(): void {
   }))
   // `statechange` è additivo (nessun handler esistente lo usava): non altera il motore, serve
   // solo a vedere le transizioni suspended/running/interrupted sull'overlay. Aggiunto solo se
-  // qualcuno lo sta osservando (H1b) — zero listener in più per l'utente normale.
+  // qualcuno lo sta osservando (H1b) — zero listener in più per l'utente normale. try/catch
+  // difensivo: questa è l'unica riga H1b che tocca il vero AudioContext, non deve MAI romperlo.
   if (c && suonoDiagAttivo()) {
-    c.addEventListener('statechange', () => {
-      suonoDiagEmetti('statechange', () => ({ state: c.state }))
-    })
+    try {
+      c.addEventListener('statechange', () => {
+        suonoDiagEmetti('statechange', () => ({ state: c.state }))
+      })
+    } catch { /* contesto senza addEventListener: nessuna transizione osservata, motore intatto */ }
   }
   if (c) void precarica()
   const handler = () => { void sblocca() }

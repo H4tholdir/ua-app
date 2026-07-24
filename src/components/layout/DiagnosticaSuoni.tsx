@@ -81,10 +81,10 @@ export function DiagnosticaSuoni() {
 
   if (!attiva) return null
 
+  const primoInit = storico.find((e) => e.tipo === 'init')
   const primoPointerdown = storico.find((e) => e.tipo === 'gesto' && e.dettagli.evento === 'pointerdown')
-  const ultimoInit = [...storico].reverse().find((e) => e.tipo === 'init')
   const ultimoStatechange = [...storico].reverse().find((e) => e.tipo === 'statechange')
-  const stateAttuale = (ultimoStatechange?.dettagli.state ?? ultimoInit?.dettagli.state ?? 'n/d') as string
+  const stateAttuale = (ultimoStatechange?.dettagli.state ?? primoInit?.dettagli.state ?? 'n/d') as string
   const bufferOk = new Set(
     storico.filter((e) => e.tipo === 'prefetch' && e.dettagli.fase === 'decode-fine').map((e) => e.dettagli.nome),
   ).size
@@ -103,7 +103,10 @@ export function DiagnosticaSuoni() {
       <div style={{ opacity: 0.85 }}>
         {righe.map((e, i) => (
           <div key={i}>
-            t+{formattaDelta(e.t, primoPointerdown?.t)}ms [{e.tipo}] {formattaDettagli(e.dettagli)}
+            {/* baseline: t0 = init() (ms da initSuoni, item 3 del brief); suona() aggiunge in
+                più il delta dal primo pointerdown (item 6), non lo sostituisce */}
+            t+{formattaDelta(e.t, primoInit?.t)}ms [{e.tipo}] {formattaDettagli(e.dettagli)}
+            {e.tipo === 'suona' && primoPointerdown ? ` Δpd=${formattaDelta(e.t, primoPointerdown.t)}ms` : ''}
           </div>
         ))}
       </div>
@@ -111,10 +114,10 @@ export function DiagnosticaSuoni() {
   )
 }
 
-/** ms dal primo pointerdown (item 6 del brief H1b); se non ancora avvenuto, ms assoluti da t=0
- *  di `performance.now()` — comunque un numero leggibile, mai una riga rotta. */
-function formattaDelta(t: number, tPointerdown: number | undefined): number {
-  return Math.round(t - (tPointerdown ?? 0))
+/** ms da un t0 di riferimento (`performance.now()`); se il t0 non esiste ancora, ms assoluti —
+ *  comunque un numero leggibile, mai una riga rotta. */
+function formattaDelta(t: number, t0: number | undefined): number {
+  return Math.round(t - (t0 ?? 0))
 }
 
 function formattaDettagli(dettagli: Record<string, unknown>): string {

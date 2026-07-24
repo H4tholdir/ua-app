@@ -104,3 +104,73 @@ describe('canale diagnostico suoni — senza ?diag=suoni, emetti() è un no-op (
     expect(ultimoStorico).toEqual([])
   })
 })
+
+// Integrazione con sound.ts — la riga più rischiosa dell'instrumentazione H1b è l'unica che
+// tocca il vero AudioContext (`c.addEventListener('statechange', ...)` in `initSuoni`, attiva
+// SOLO sotto ?diag=suoni). `sound.test.ts` non la esercita mai (nessun test lì apre l'overlay),
+// quindi va coperta qui: deve non lanciare MAI, e deve davvero emettere `statechange`.
+describe('integrazione sound.ts — initSuoni() sotto ?diag=suoni non deve mai alterare/rompere il motore', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    window.history.replaceState(null, '', '/?diag=suoni')
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })))
+  })
+
+  it('con un AudioContext reale (EventTarget), initSuoni() non lancia e lo statechange arriva sull\'overlay', async () => {
+    class FakeSource { buffer: unknown = null; connect() { return this }; start() {} }
+    class FakeGain { gain = { value: 1 }; connect() { return this } }
+    class FakeAudioContextEventTarget extends EventTarget {
+      state = 'suspended'
+      sampleRate = 44100
+      baseLatency = 0.01
+      destination = {}
+      decodeAudioData = vi.fn(async () => ({ duration: 0.1 }))
+      createBufferSource() { return new FakeSource() }
+      createGain() { return new FakeGain() }
+      resume = vi.fn(async () => {
+        this.state = 'running'
+        this.dispatchEvent(new Event('statechange')) // additivo, come farebbe un browser vero
+      })
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContextEventTarget)
+
+    const { initSuoni } = await import('@/design-system/v3/sound')
+    const { suonoDiagRegistra } = await import('@/design-system/v3/sound-diag')
+    const tipiRicevuti: string[] = []
+    suonoDiagRegistra((storico) => {
+      tipiRicevuti.length = 0
+      tipiRicevuti.push(...storico.map((e) => e.tipo))
+    })
+
+    expect(() => initSuoni()).not.toThrow()
+    expect(tipiRicevuti).toContain('init')
+
+    // sblocca() chiama resume() sul primo pointerdown → la fake dispatcha statechange
+    expect(() => document.dispatchEvent(new Event('pointerdown'))).not.toThrow()
+    await vi.waitFor(() => expect(tipiRicevuti).toContain('statechange'))
+  })
+
+  it('con un AudioContext SENZA addEventListener (ambiente non standard), initSuoni() non lancia comunque (try/catch difensivo)', async () => {
+    // Fake minimale come quello di sound.test.ts: nessun EventTarget/addEventListener.
+    // Riproduce esattamente il rischio segnalato in review — il try/catch attorno a
+    // `c.addEventListener('statechange', ...)` deve assorbirlo senza toccare il motore.
+    class FakeSource { buffer: unknown = null; connect() { return this }; start() {} }
+    class FakeGain { gain = { value: 1 }; connect() { return this } }
+    class FakeAudioContextMinimale {
+      state = 'suspended'
+      destination = {}
+      resume = vi.fn(async () => { this.state = 'running' })
+      decodeAudioData = vi.fn(async () => ({ duration: 0.1 }))
+      createBufferSource() { return new FakeSource() }
+      createGain() { return new FakeGain() }
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContextMinimale)
+
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    expect(() => initSuoni()).not.toThrow()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(() => document.dispatchEvent(new Event('pointerdown'))).not.toThrow()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(() => suona('tap')).not.toThrow() // il motore resta pienamente funzionante
+  })
+})
