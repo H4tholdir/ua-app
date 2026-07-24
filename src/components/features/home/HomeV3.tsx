@@ -25,7 +25,7 @@
 // `onStanzaChange` — v. sotto) — cambia solo COME appare/scompare nel frattempo.
 // Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette che questo
 // ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { animate, useMotionValue } from 'motion/react'
 import { Pila as PilaCard } from '@/components/ds/Pila'
@@ -174,6 +174,31 @@ export function HomeV3(props: {
   // l'ultima parola, SEMPRE: quando `stanzaAttiva` cambia, ferma qualunque molla in volo e
   // riporta `progressoSwipe` al valore di riposo che quella stanza impone — rendendo IMPOSSIBILE
   // uno stato di riposo divergente, a prescindere da quanto la stima al rilascio abbia sbagliato.
+  // FIX ri-collaudo #4 (review round 2) — estratta da dentro l'effect sotto perché ORA la
+  // richiama anche `onScrollAssestato` (v. sotto): ferma qualunque molla in volo e porta
+  // `progressoSwipe` al valore di riposo ESATTO che `stanzaAttiva` impone (0 o 1) — `.set()`
+  // diretto se reduced-motion o se la differenza è già sotto la soglia percettiva (niente molla
+  // per un residuo impercettibile), altrimenti `animate(..., molla.press)`, coerente con
+  // `onRilascioSwipe`/il resto della coreografia.
+  const riconcilia = useCallback(() => {
+    const bersaglio = bersaglioStanza(stanzaAttiva)
+    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) return
+    controlliRilascioRef.current?.stop()
+    controlliRilascioRef.current = null
+    if (ridotto) {
+      rilasciandoRef.current = false
+      progressoSwipe.set(bersaglio)
+      return
+    }
+    rilasciandoRef.current = true
+    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
+      ...molla.press,
+      onComplete: () => {
+        rilasciandoRef.current = false
+      },
+    })
+  }, [stanzaAttiva, ridotto, progressoSwipe])
+
   const montatoRef = useRef(false)
   useEffect(() => {
     if (!montatoRef.current) {
@@ -192,26 +217,36 @@ export function HomeV3(props: {
       // l'inseguimento 1:1 di `onProgressoSwipe` è già l'autorità in tempo reale in questo
       // istante, nessuna molla da avviare qui (partirebbe comunque verso il bersaglio giusto, ma
       // in corsa non deterministica col prossimo tick di scroll che la scavalcherebbe un istante
-      // dopo).
+      // dopo). FIX ri-collaudo #4 (review round 2) — CRUCIALE: uscire qui senza riconciliare NON
+      // basta da solo. Su OGNI transizione da gesto reale `stanzaAttiva` cambia mentre
+      // `scorrendoRef` è ancora vero (l'IO scatta a soglia 0.6, molto prima che lo scroll si
+      // fermi) — quindi questo effect esce QUI quasi sempre, e prima di questo fix nessuno
+      // riprendeva il lavoro dopo: il collasso/la scala esatta restavano affidati al singolo tick
+      // nativo che consegnasse `scrollLeft` ESATTAMENTE al bordo (`progressoDaScroll` produce 1
+      // solo se `scrollLeft === clientWidth` esatto) — su arrotondamenti sub-pixel/HiDPI lo
+      // scroll può assestarsi a es. 0.998: il tondo invisibile (opacità/scala già ~0, sotto la
+      // soglia percettiva) ma il BOX di `.foot` (~150px margin+gap+safe-area) ancora presente
+      // (`piedeSenzaIngombro` richiede `>= 1` esatto) — il «blocco panna» del verbale, ancora
+      // vivo. Il gate riapriva esattamente il buco che §3/§4 dichiaravano chiuso. Rimedio in
+      // `onScrollAssestato` sotto: `scrollend` (il segnale nativo che lo scroll si è DAVVERO
+      // fermato, in ENTRAMBE le direzioni) non si limita più a liberare il gate — chiama
+      // `riconcilia()`, agganciando il riposo ESATTO nel momento giusto.
       return
     }
-    const bersaglio = bersaglioStanza(stanzaAttiva)
-    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) return
-    controlliRilascioRef.current?.stop()
-    controlliRilascioRef.current = null
-    if (ridotto) {
-      rilasciandoRef.current = false
-      progressoSwipe.set(bersaglio)
-      return
+    riconcilia()
+  }, [stanzaAttiva, ridotto, progressoSwipe, riconcilia])
+
+  // FIX ri-collaudo #4 (review round 2) — igiene: una molla di riconciliazione/rilascio ancora
+  // in volo allo smontaggio del componente (navigazione via `router.push` mentre il piede sta
+  // ancora assestandosi) resta orfana — `animate()` di Motion non si autodistrugge da sé al
+  // gc, e scrivere su una motion value dopo che il nodo DOM che la consuma è sparito è lavoro
+  // sprecato (mai un crash, `piedeRef.current` è già `null` lì, ma un frame di lavoro a vuoto).
+  // Annotato come limite noto fin dal report H4c originale (§9), chiuso qui di passaggio.
+  useEffect(() => {
+    return () => {
+      controlliRilascioRef.current?.stop()
     }
-    rilasciandoRef.current = true
-    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
-      ...molla.press,
-      onComplete: () => {
-        rilasciandoRef.current = false
-      },
-    })
-  }, [stanzaAttiva, ridotto, progressoSwipe])
+  }, [])
 
   function onProgressoSwipe(p: number) {
     if (rilasciandoRef.current) {
@@ -255,14 +290,20 @@ export function HomeV3(props: {
       },
     })
   }
-  // FIX ri-collaudo #4 (review) — `scrollend` nativo (StanzePager.tsx): l'unico segnale, per
-  // input NON touch (rotellina/trackpad/uno `scrollTo` programmatico), che lo scroll si è
-  // DAVVERO fermato. `onRilascioSwipe` sopra copre già il touch (touchend/touchcancel); questo
-  // chiude il gate anche per gli altri input — senza, `scorrendoRef` resterebbe `true` per
-  // sempre dopo un qualunque scroll a rotellina, bloccando la riconciliazione anche a gesto
-  // ormai fermo da tempo.
+  // FIX ri-collaudo #4 (review round 2) — `scrollend` nativo (StanzePager.tsx): il segnale che
+  // lo scroll si è DAVVERO fermato, in ENTRAMBE le direzioni e per QUALUNQUE input (fa scattare
+  // anche dopo uno scroll trascinato dal dito, non solo rotellina/trackpad — non è un evento
+  // "non-touch", è "scroll finito", punto). Prima di questo fix liberava SOLO il gate
+  // (`scorrendoRef = false`), lasciando `progressoSwipe` a qualunque valore l'ultimo tick nativo
+  // avesse consegnato — su un dispositivo con arrotondamenti sub-pixel/HiDPI quel valore può
+  // essere 0.998 invece di 1 esatto: il tondo già invisibile (sotto soglia percettiva) ma il BOX
+  // di `.foot` ancora presente (`piedeSenzaIngombro` vuole `>= 1` esatto) — il «blocco panna» del
+  // verbale, riaperto proprio dal gate che doveva chiuderlo (v. il commento nell'effect sopra).
+  // Ora `scrollend` è il momento giusto per agganciare il riposo ESATTO: libera il gate E
+  // riconcilia, in un colpo solo, verso il valore che `stanzaAttiva` impone davvero.
   function onScrollAssestato() {
     scorrendoRef.current = false
+    riconcilia()
   }
 
   // La stanza Pile: esattamente la home di sempre (saluto · StrisciaStato · 4 pile). Vive in

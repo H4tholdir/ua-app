@@ -555,14 +555,114 @@ describe('HomeV3 — riconciliazione da stanzaAttiva: nessuno stato di riposo pu
     act(() => {
       fireEvent(viewport, new Event('scrollend')) // lo scroll si ferma DAVVERO
     })
+    // FIX ri-collaudo #4 (review round 2): scrollend non si limita più a sbloccare il gate — ORA
+    // riconcilia anche subito, agganciando `progressoSwipe` al riposo ESATTO (1) che
+    // `stanzaAttiva` (già 'parete') impone, indipendentemente dal valore frazionario (0.7) che il
+    // tick di scroll grezzo aveva lasciato.
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    expect(animateSpy.mock.calls[0][1]).toBe(1)
+    animateSpy.mockClear()
 
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Indietro' })) // stanzaAttiva -> pile
     })
-    expect(animateSpy).toHaveBeenCalledTimes(1) // il gate si è sbloccato: la riconciliazione riparte
+    expect(animateSpy).toHaveBeenCalledTimes(1) // il gate resta sbloccato: la riconciliazione riparte
     const [, bersaglio, transizione] = animateSpy.mock.calls[0]
     expect(bersaglio).toBe(0)
     expect(transizione).toMatchObject(molla.press)
+  })
+
+  // FIX ri-collaudo #4 (review round 2) — CASO SCOPERTO dal reviewer: lo scroll nativo si
+  // assesta a un progress FRAZIONARIO (arrotondamento sub-pixel/HiDPI, es. 0.998) mentre
+  // `stanzaAttiva` è GIÀ sul bersaglio corretto (il gate `scorrendoRef` aveva già bloccato la
+  // riconciliazione al momento del cambio di stanza, com'è la norma su un gesto reale — l'IO
+  // scatta a soglia 0.6, ben prima che lo scroll finisca di assestarsi). Prima di questo fix
+  // `onScrollAssestato` si limitava a liberare il gate: `progressoSwipe` restava a 0.998 per
+  // sempre — tondo invisibile ma box `.foot` ancora presente (`piedeSenzaIngombro` vuole `>= 1`
+  // esatto), il «blocco panna» riaperto proprio dal gate che doveva chiuderlo.
+  it('progress frazionario a scrollend con stanzaAttiva già sul bersaglio: riconciliato a 1 esatto, is-vuoto presente, box collassato', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    // lo scroll (nessun touch: rotellina/trackpad, o un residuo dopo che l'IO ha già deciso)
+    // porta stanzaAttiva sulla Parete mentre il gate è ancora armato...
+    simulaScroll(viewport, 273, 390) // un tick qualunque, il gate scatta al primo movimento
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i })) // stanzaAttiva -> parete, gate ancora armato -> nessuna molla
+    })
+    animateSpy.mockClear()
+    // ...e SOLO ORA arriva l'ultimo tick, con l'arrotondamento sub-pixel/HiDPI: 0.998, non 1.
+    simulaScroll(viewport, 389.22, 390) // 389.22/390 = 0.99795 circa, mai esattamente 1
+
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(false) // ancora NON collassato (progress < 1 esatto)
+
+    act(() => {
+      fireEvent(viewport, new Event('scrollend')) // lo scroll si è DAVVERO fermato
+    })
+
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    const [valoreMV, bersaglio, transizione] = animateSpy.mock.calls[0]
+    expect(bersaglio).toBe(1)
+    expect(valoreMV.get()).toBeCloseTo(389.22 / 390, 5) // parte dal frazionario reale, non da 0
+    expect(transizione).toMatchObject(molla.press)
+    // reduced-motion: v. test simmetrico sotto per il ramo `.set()` diretto (nessuna molla).
+  })
+
+  it('simmetrico: progress frazionario a scrollend con stanzaAttiva tornata sulle Pile: riconciliato a 0 esatto', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    // porta la stanza sulla Parete per davvero, a riposo esatto (nessuna ambiguità qui).
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+    animateSpy.mockClear()
+
+    // ritorno: un tick qualunque porta stanzaAttiva sulle Pile mentre il gate è ancora armato...
+    simulaScroll(viewport, 117, 390)
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Indietro' })) // stanzaAttiva -> pile, gate ancora armato -> nessuna molla
+    })
+    animateSpy.mockClear()
+    // ...e l'ultimo tick reale lascia un residuo frazionario vicino a 0, non esattamente 0.
+    simulaScroll(viewport, 0.78, 390) // 0.002 circa
+
+    act(() => {
+      fireEvent(viewport, new Event('scrollend'))
+    })
+
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    const [, bersaglio, transizione] = animateSpy.mock.calls[0]
+    expect(bersaglio).toBe(0)
+    expect(transizione).toMatchObject(molla.press)
+  })
+
+  it('reduced-motion: la riconciliazione a scrollend usa .set() diretto, MAI animate()', () => {
+    const ripristina = mockReducedMotion(true)
+    try {
+      const { container } = renderHome()
+      const viewport = preparaViewport(container)
+
+      simulaScroll(viewport, 273, 390)
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+      })
+      animateSpy.mockClear()
+      simulaScroll(viewport, 389.22, 390) // frazionario
+
+      act(() => {
+        fireEvent(viewport, new Event('scrollend'))
+      })
+
+      expect(animateSpy).not.toHaveBeenCalled()
+      const nodo = piede(container)
+      expect(nodo.style.getPropertyValue('--piede-tondo-scala')).toBe('1') // reduced: scala SEMPRE 1
+      expect(Number(nodo.style.getPropertyValue('--piede-tondo-opacita'))).toBeCloseTo(0, 5)
+      expect(nodo.classList.contains('is-vuoto')).toBe(true) // riconciliato a 1 esatto: collassato
+    } finally {
+      ripristina()
+    }
   })
 
   it('al mount (deep-link diretto sulla Parete) non parte alcuna molla spuria', () => {
