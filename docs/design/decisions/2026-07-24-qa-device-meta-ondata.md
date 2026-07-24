@@ -211,3 +211,44 @@ segnale di stato della targa. La targa dentro la fascia resta: **ad anello quand
 cassetta è libera, PIENA (bianca) quando contiene un lavoro** — comportamento attuale
 conservato. Decade quindi la deroga al gate targa (Task 10) annotata nella ratifica
 precedente: il gate resta pienamente in vigore.
+
+## Ri-collaudo device #3 (25/07 pomeriggio, build aa4993a, Xiaomi Chrome, :3020)
+
+**PASS confermati da Francesco:** gancetto sul filo a ogni larghezza ✅ · cornice filo di
+bordo su entrambi i lati ✅ · back del telefono chiude lo sheet ✅ · miniatura giusta subito
+dopo «Metti un lavoro» ✅ · lista «Metti un lavoro» V2 targhetta ✅ · pile più grandi e
+ariose ✅ · ricerca (niente hex, note laboratorio) ✅.
+
+**Decisioni RATIFICATE:** linguetta **F2 «impara e si assottiglia»** + taglia **T2 (34px)** ·
+piede **C2 «il tasto si ritira»** — MA Francesco vuole VEDERE le due animazioni (C1 vs C2)
+in demo animata prima della conferma definitiva: preparare la demo PRIMA di implementare.
+
+**Nuova fix-list ratificata (wave H, ordine suo):**
+- **H1 — Suoni primo tocco ANCORA KO (terzo giro):** il suono parte sempre dal secondo tocco.
+  Direttiva di Francesco: BASTA fix alla cieca — prima RICERCA dedicata (policy audio di
+  Chrome Android/WebView, user activation, timing di resume/decode) e CONFRONTO CON PANEL DI
+  ADVISOR SPECIALIZZATI (Regola Advisor 17/07) con evidenza raccolta DAL DEVICE (es. overlay
+  diagnostico come il P-STATUSBAR del Collaudo R3), POI il fix.
+- **H2 — Cassetta nuova: NON ci siamo (tre difetti, sue parole):**
+  (a) «avevo chiesto espressamente di avere la forma delle cassette tutte come quella libera,
+  invece ne vedo due tipi» — a schermo le occupate hanno fascia più alta/tile più alto
+  (colpevoli: fascia che abbraccia il contenuto + is-nome-lungo min-height 142). UNA SOLA
+  sagoma, SEMPRE.
+  (b) «le etichette non devono stare sul bordo, ma nella pancia della cassetta come quelle
+  libere; l'altezza delle etichette deve essere SEMPRE FISSA, piena e vuota» — fascia in
+  posizione e altezza IDENTICHE per tutte, come la resa delle libere.
+  (c) «i nomi non mi sembra restino interi, li vedo ancora troncati» — BARALE S.…,
+  DI SANTI C.…, STUDI MEDICI DI SANTI… Il troncamento netto non va bene. ⚠ (b) altezza
+  fissa e (c) nomi interi sono in tensione: serve una PROPOSTA DESIGN con mockup di
+  conferma PRIMA del codice (niente altra implementazione al buio).
+- **H3 — BUG riordino (nuovo):** «quando tengo premuto e la cassetta si stacca, si
+  auto-ordinano altre cassette non riferite a quella ancor prima che io rilasci il dito o
+  decida la posizione». Indagare `useDragRiordino`: quando scatta il primo ricalcolo
+  dell'ordine ottimistico al lift; distinguere bug (indice sbagliato al distacco) da design
+  percepito male (FLIP che «apre la buca» troppo presto).
+- **H4 — Implementare le ratifiche:** linguetta F2+T2; piede C2 SOLO dopo la demo animata
+  C1 vs C2 e conferma.
+
+**Direttiva di processo (Francesco, vincolante):** contesto della sessione al ~60% — da qui
+in poi ogni lavoro va scritto, appuntato, certificato e SVOLTO IN UNA NUOVA SESSIONE a
+contesto pulito. Handoff: `docs/roadmap/2026-07-25-redesign-parete-home-wave-h-handoff.md`.
