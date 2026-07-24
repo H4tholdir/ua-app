@@ -23,6 +23,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render, screen } from '@testing-library/react'
+import { createRoot } from 'react-dom/client'
+import { flushSync } from 'react-dom'
 import { Cassetta } from '@/components/ds/Cassetta'
 
 const css = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
@@ -339,6 +341,108 @@ describe('H2 — adjudicazione: is-troncato MISURATO in JS (scrollHeight/clientH
       expect(dent?.className).not.toContain('is-troncato')
     } finally {
       ripristina()
+    }
+  })
+})
+
+describe('H2d round 2 (review post-fix del clip-path H2d, .superpowers/sdd/h2d-discendenti-report.md) — is-troncato deve essere GIÀ presente PRIMA del paint', () => {
+  // Perché questo test non basta farlo con `render()` di testing-library: `render()` avvolge
+  // in `act()`, che flusha SIA gli effetti layout SIA quelli passivi (`useEffect`) prima di
+  // ritornare — con quello, il test qui sotto passerebbe ANCHE con `useEffect` (nessuna
+  // distinzione osservabile, falso positivo). Per vedere davvero la differenza di TIMING che il
+  // fix corregge serve leggere il DOM nello stesso istante sincrono del commit, PRIMA che un
+  // eventuale effetto passivo possa flushare — `flushSync` (react-dom) fa esattamente questo:
+  // forza il commit + gli effetti LAYOUT in modo sincrono, ma NON flusha gli effetti passivi
+  // (`useEffect`), che restano schedulati per dopo. Verificato con un esperimento a parte
+  // (due componenti minimi, uno con `useEffect` uno con `useLayoutEffect`, stesso
+  // `flushSync(() => root.render(...))`): con `useEffect` il DOM subito dopo NON riflette
+  // ancora lo stato; con `useLayoutEffect` lo riflette già. Stessa tecnica qui, sul componente
+  // vero.
+  it('nome a 3 righe reali (scrollHeight > clientHeight, overflow VERO) al primo render: `is-troncato` è già sul nodo subito dopo flushSync — PRIMA che un eventuale effetto passivo possa flushare. RED→GREEN dichiarato: con la versione precedente di Cassetta.tsx (stesso identico test, solo `useEffect` invece di `useIsomorphicLayoutEffect` alle righe ~279/~369) questo stesso assert FALLISCE (`dent?.className` non contiene `is-troncato` a questo punto sincrono) — provato eseguendo il test con `useEffect` temporaneamente ripristinato prima del fix, v. report H2d round 2. Con `useIsomorphicLayoutEffect` passa: è esattamente il frame in cui, prima del fix, il clip-path esteso (H2d) avrebbe mostrato un filo della riga successiva (misurato: già a +0.4px la 3ª riga comincia a comparire, v. report H2d).', () => {
+    const scrollDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')!
+    const clientDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')!
+    Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => 40 })
+    Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => 23 }) // 2 righe da 11.6px = 23.2, contenuto reale più alto (3 righe) — stesso stub di stubAltezze() sopra
+
+    // React avviserebbe (console.error) di un update fuori da act() — qui è intenzionale e
+    // atteso (flushSync grezzo, non testing-library render()): è l'unico modo per osservare il
+    // punto sincrono PRIMA del flush degli effetti passivi. Silenziato solo per questo test.
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    try {
+      flushSync(() => {
+        root.render(
+          <Cassetta id="c-red-green-h2d" nome="C12" colore="rossa"
+            lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+            stato="normale" onTap={() => {}}
+          />
+        )
+      })
+      const dent = container.querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-troncato')
+    } finally {
+      root.unmount()
+      document.body.removeChild(container)
+      Object.defineProperty(Element.prototype, 'scrollHeight', scrollDesc)
+      Object.defineProperty(Element.prototype, 'clientHeight', clientDesc)
+      consoleSpy.mockRestore()
+    }
+  })
+
+  // Minor del reviewer: "trasforma almeno una delle presence-check regex in un assert di
+  // comportamento se fattibile in jsdom". Scoperta empirica (non assunta): jsdom APPLICA
+  // davvero un `<style>` iniettato nel documento — `getComputedStyle` su un nodo renderizzato
+  // riflette correttamente selettore/specificità/cascata reali del CSS vero (verificato con un
+  // esperimento a parte: `getComputedStyle(dent).clipPath` su un render con il CSS reale
+  // iniettato risolve a `inset(0 0 -1px 0)`, non a un valore vuoto/di default) — quindi qui, a
+  // differenza del resto del file (persistenza voluta: "il CSS è verificato come testo, jsdom
+  // non fa layout"), possiamo verificare il comportamento REALE della cascata invece di solo la
+  // stringa CSS. Sostituisce due dei presence-check regex sopra (clip-path base/is-troncato) con
+  // un assert sul valore effettivamente risolto da jsdom sullo stesso nodo, nei due stati.
+  it('comportamento reale via cascata (jsdom + CSS iniettato): il clip-path RISOLTO su un nodo dent NON troncato è quello con respiro (inset(0 0 -1px 0)); sullo STESSO meccanismo, quando is-troncato è applicato, la cascata reale risolve a inset(0 0 0 0) — la specificità più alta della regola `.is-troncato` vince davvero, non solo sulla carta', () => {
+    const styleEl = document.createElement('style')
+    styleEl.textContent = css
+    document.head.appendChild(styleEl)
+    try {
+      // Stato 1: NON troncato (jsdom di default, scrollHeight===clientHeight===0)
+      const { container: c1, unmount: unmount1 } = render(
+        <div data-ds="v3">
+          <Cassetta id="c-cascata-1" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />
+        </div>
+      )
+      const dent1 = c1.querySelector('.ds-cassetta-dent')!
+      expect(dent1.className).not.toContain('is-troncato')
+      expect(getComputedStyle(dent1).clipPath).toBe('inset(0 0 -1px 0)')
+      expect(getComputedStyle(dent1).overflow).toBe('visible')
+      unmount1()
+
+      // Stato 2: troncato (scrollHeight > clientHeight simulato) — stessa cascata reale, stesso
+      // nodo, la classe in più deve ribaltare il clip-path risolto.
+      const scrollDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')!
+      const clientDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')!
+      Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => 40 })
+      Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => 23 })
+      try {
+        const { container: c2, unmount: unmount2 } = render(
+          <div data-ds="v3">
+            <Cassetta id="c-cascata-2" nome="C12" colore="rossa"
+              lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+              stato="normale" onTap={() => {}}
+            />
+          </div>
+        )
+        const dent2 = c2.querySelector('.ds-cassetta-dent')!
+        expect(dent2.className).toContain('is-troncato')
+        expect(getComputedStyle(dent2).clipPath).toBe('inset(0 0 0 0)')
+        unmount2()
+      } finally {
+        Object.defineProperty(Element.prototype, 'scrollHeight', scrollDesc)
+        Object.defineProperty(Element.prototype, 'clientHeight', clientDesc)
+      }
+    } finally {
+      document.head.removeChild(styleEl)
     }
   })
 })

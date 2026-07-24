@@ -84,6 +84,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect'
 import { MiniaturaLavoro } from './MiniaturaLavoro'
 
 const SOGLIA_LONG_PRESS_MS = 300
@@ -275,7 +276,21 @@ export function Cassetta(props: {
   // righe = altezza renderizzata / line-height, arrotondato): `dentTroncato` implica sempre
   // `dentDueRighe` (per sforare oltre 2 righe bisogna prima averle raggiunte), mai il contrario.
   const [dentDueRighe, setDentDueRighe] = useState(false)
-  useEffect(() => {
+  // H2d round 2 (review post-fix, .superpowers/sdd/h2d-discendenti-report.md) —
+  // `useIsomorphicLayoutEffect` (NON `useEffect`): il fix H2d ha dato respiro incondizionato al
+  // clip-path (regola BASE di `.ds-cassetta-dent`/`.ds-cassetta-paz` in ds-v3.css), azzerato
+  // SOLO da `.is-troncato` — ma `useEffect` gira DOPO il paint del browser. Al PRIMISSIMO render
+  // di una cassetta con un nome a 3+ righe, per un frame la classe `is-troncato` non c'è ancora
+  // (`dentTroncato` parte `false`, v. `useState` sopra) mentre il clip-path esteso È già nel CSS
+  // — esattamente lo stato per cui questa stessa indagine ha misurato che una clearance
+  // incondizionata rivela un filo della riga successiva (già a +0.4px, v. report H7/H2d). Prima
+  // del fix H2d, `overflow:hidden` (senza clip-path) copriva anche quel frame — un regressione
+  // introdotta dal fix, non presente prima. `useIsomorphicLayoutEffect` gira PRIMA del paint
+  // (sincrono, subito dopo il commit DOM): la misura/classe sono già corrette al primo frame,
+  // il leak muore per costruzione — SOLO il timing cambia, l'aritmetica (righe intere, H2c)
+  // resta verbatim identica. `document.fonts.ready`/`ResizeObserver` restano invariati: le
+  // RI-misure possono restare post-paint, il caso critico era solo il primo frame.
+  useIsomorphicLayoutEffect(() => {
     const nodo = dentRef.current
     if (!nodo) {
       setDentTroncato(false)
@@ -351,7 +366,10 @@ export function Cassetta(props: {
   // clinico occupa 1 riga, questa è la misura CORRETTA (overflow verticale sul wrap a 2 righe).
   const pazRef = useRef<HTMLSpanElement | null>(null)
   const [pazTroncato, setPazTroncato] = useState(false)
-  useEffect(() => {
+  // H2d round 2 — stesso `useIsomorphicLayoutEffect` del dent (v. commento esteso sopra) e
+  // stessa ragione: il gemello paziente condivide 1:1 il fix H2d (clip-path condizionale) quindi
+  // condivide lo stesso rischio di leak-al-primo-frame senza questo timing.
+  useIsomorphicLayoutEffect(() => {
     const nodo = pazRef.current
     if (!nodo) {
       setPazTroncato(false)

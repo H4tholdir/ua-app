@@ -715,7 +715,14 @@
    crescente con l'estensione. Per questo il respiro NON è incondizionato: la regola sotto
    (`.is-troncato`) lo azzera esattamente quando `Cassetta.tsx` misura un overflow REALE (3+
    righe), riportando il clip a filo del bordo — la 3ª riga resta invisibile in OGNI caso
-   verificato (stesso script, Test B). Sfumatura (`mask-image`, sotto) INVARIATA. */
+   verificato (stesso script, Test B). Sfumatura (`mask-image`, sotto) INVARIATA.
+   ⚠️ ASSUNZIONE (review H2d round 2, minor): l'equivalenza misurata `clip-path: inset(0 0 0 0)`
+   ≡ il vecchio `overflow:hidden` regge SOLO perché QUESTA regola non ha `padding`/`border` (zero
+   su entrambi, oggi) — `clip-path` senza `<geometry-box>` esplicito usa di default il
+   BORDER-box, mentre `overflow:hidden` ritaglia al PADDING-box: sono la STESSA box solo quando
+   `border` è zero (il padding non separa le due box da solo). Chi in futuro aggiunge
+   `padding`/`border` a `.ds-cassetta-dent`/`.ds-cassetta-paz` deve ri-misurare questa
+   equivalenza (`debug-h2d-dent-equiv.mjs`/`debug-h2d-paz-equiv.mjs`), non darla per scontata. */
 [data-ds="v3"] .ds-cassetta-dent.is-troncato {
   clip-path: inset(0 0 0 0);
   -webkit-clip-path: inset(0 0 0 0);
@@ -770,7 +777,10 @@
    `clip-path` a inset orizzontale 0/0, misurato 0 pixel di differenza sul confronto diretto:
    nessuna regressione sulla sfumatura orizzontale 84%→99% quando il fratello dent occupa 2
    righe). `is-troncato` non scatta MAI in quel regime nowrap (una sola riga per costruzione,
-   nessuna riga successiva da nascondere) — il respiro resta sempre attivo lì, correttamente. */
+   nessuna riga successiva da nascondere) — il respiro resta sempre attivo lì, correttamente.
+   ⚠️ Stessa ASSUNZIONE del dent (v. commento su `.ds-cassetta-dent.is-troncato` sopra):
+   l'equivalenza clip-path↔overflow:hidden regge solo perché anche `.ds-cassetta-paz` ha
+   `padding`/`border` a zero oggi — da ri-misurare se questo cambia. */
 [data-ds="v3"] .ds-cassetta-paz.is-troncato {
   clip-path: inset(0 0 0 0);
   -webkit-clip-path: inset(0 0 0 0);
