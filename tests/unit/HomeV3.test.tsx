@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HomeV3 } from '@/components/features/home/HomeV3'
@@ -6,6 +6,23 @@ import type { PileHome } from '@/lib/dashboard/pile-home'
 
 const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+
+// QA device #2 (verbale 2026-07-24 «Ri-collaudo device #2», fix-list punto G1) — CAUSA
+// TROVATA: `initSuoni()` viveva SOLO nell'effect di mount di `PareteClient.tsx` (v.
+// FIX-D1/T15.1), ma su questa superficie `PareteClient` monta DIFFERITO dentro
+// `StanzaParete` (`StanzePager.tsx`) — nella forma di apertura più comune (`homePref`
+// diverso da 'parete') la stanza Pile è quella iniziale, quindi `PareteClient` non monta
+// finché non arriva un idle callback (o mai, se l'utente resta sulle pile). Un tap veloce
+// su un elemento della home PRIMA di quell'idle (Pila, TastoTondo, TastoPiù — tutti import
+// diretti di `@/design-system/v3/sound` via i componenti `ds/`) trovava il motore audio mai
+// inizializzato: nessun listener `pointerdown` registrato, `sbloccato` mai impostato,
+// `suona()` usciva subito. `initSuoni()` deve partire al mount della HOME stessa, non
+// aspettare il pannello differito.
+const { initSuoniSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', async (importOriginal) => {
+  const reale = await importOriginal<typeof import('@/design-system/v3/sound')>()
+  return { ...reale, initSuoni: initSuoniSpy }
+})
 
 const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi, la prossima alle 16:00', azione: null }
 const lavoro = (numero: string): PileHome['liste']['rossa'][number] => ({
@@ -62,5 +79,18 @@ describe('HomeV3 — la home di legge (§7.1 + rev. 3.1)', () => {
     await user.click(linguetta)
     expect(push).toHaveBeenCalledWith('/cassette')
     expect(JSON.parse(localStorage.getItem('ua_linguetta_v4') ?? '0')).toBe(1)
+  })
+})
+
+// QA device #2 (verbale 2026-07-24 «Ri-collaudo device #2», fix-list punto G1) — v. commento
+// sul mock in testa al file per la causa. `homePref="pile"` qui apposta: è la forma dove
+// `PareteClient` NON monta affatto (niente pager, niente stanza Parete) — se il test passa
+// solo con questa preferenza, il motore audio non può più dipendere dal pannello differito.
+describe('HomeV3 — motore audio al mount (QA device #2, G1)', () => {
+  beforeEach(() => { initSuoniSpy.mockClear() })
+
+  it('chiama initSuoni() al mount della home — anche quando PareteClient non monta mai (homePref "pile")', () => {
+    render(<HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} parete={[]} homePref="pile" />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
   })
 })

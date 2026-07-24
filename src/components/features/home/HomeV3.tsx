@@ -21,13 +21,14 @@
 // quando la stanza attiva è la Parete (§3 dell'addendum: «niente TastoPiù nel lato cassette»).
 // Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette che questo
 // ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
+import { initSuoni } from '@/design-system/v3/sound'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
@@ -58,6 +59,26 @@ export function HomeV3(props: {
 }) {
   const { nome, eyebrow, saluto, pile, segnale, parete, homePref, stanzaParam } = props
   const router = useRouter()
+
+  // QA device #2 (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G1) — CAUSA TROVATA:
+  // prima di questo fix `initSuoni()` (sound.ts) veniva chiamato SOLO nell'effect di mount di
+  // `PareteClient.tsx` (FIX-D1/T15.1). Su QUESTA superficie però `PareteClient` monta DIFFERITO
+  // — dentro `StanzaParete` (`StanzePager.tsx`) se la home apre nella forma a due stanze
+  // (idle callback, fino a 300ms dopo il primo paint, MAI prima), oppure non monta affatto
+  // nella forma «solo pile» (`homePref === 'pile'`, v. sotto in questo file). Nel frattempo la
+  // home stessa espone elementi che chiamano `suona()` al primo tap — Pila, TastoTondo (☰),
+  // TastoPiù, tutti componenti `ds/` che importano `@/design-system/v3/sound` — quindi un tap
+  // rapido su uno di questi PRIMA che `PareteClient` monti trovava il motore audio mai
+  // inizializzato: nessun listener `pointerdown` registrato (v. `initSuoni` in sound.ts),
+  // `sbloccato` mai `true`, `suona()` usciva subito. Fix: `initSuoni()` parte qui, al mount
+  // della home stessa — la superficie più a monte, root della route `/dashboard` — così il
+  // motore precede qualunque primo tap reale, indipendentemente da quale stanza/forma la home
+  // apre. La chiamata in `PareteClient` resta (idempotente via `initFatto`, v. sound.ts):
+  // ancora l'unica che copre la pagina standalone `/cassette`, che non passa mai da qui.
+  useEffect(() => {
+    initSuoni()
+  }, [])
+
   const bancoLibero = ORDINE.every(({ pila }) => pile.liste[pila].length === 0)
 
   // La forma della home in QUESTA visita. La stessa funzione la calcola in
