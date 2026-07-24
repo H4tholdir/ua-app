@@ -13,6 +13,14 @@ export type CassettaParete = {
     pazienteAlias: string | null
     tipoDispositivo: string | null
     descrizione: string | null
+    // FIX-K (G7, ratifica 25/07 — docs/design/decisions/2026-07-24-qa-device-meta-ondata.md,
+    // sezione «Ri-collaudo device #2»): le note di laboratorio, per la ricerca `filtraCassette`
+    // (v. `filtra-cassette.ts`) sulle cassette OCCUPATE. Da `lavori.note_interne` — MAI
+    // `note_dentista`, campo diverso e fuori scope. Un'assegnazione appena fatta via l'overlay
+    // ottimistico di `CassettaSheet.assegnaLavoro` non la conosce ancora (il contratto di `GET
+    // /api/cassette/lavori-liberi`, `LavoroLibero`, non la porta): resta cercabile solo dal
+    // prossimo caricamento vero — residuo dichiarato, non un dato inventato (v. CassettaSheet.tsx).
+    noteInterne: string | null
   } | null
 }
 
@@ -25,6 +33,12 @@ export type RawLavoro = {
   deleted_at: string | null
   descrizione: string | null
   tipo_dispositivo: string | null
+  // FIX-K (G7, ratifica 25/07) — additivo: opzionale (a differenza dei fratelli sopra, che sono
+  // required) per NON forzare un aggiornamento di ogni fixture di test già esistente che non
+  // costruisce questo campo (nessuna di quelle esercita note_interne) — scelta deliberata, non
+  // una svista: `?? null` sotto copre sia `undefined` (assente) sia `null` (nessuna nota) con
+  // lo stesso esito.
+  note_interne?: string | null
   clienti: { studio_nome: string | null; nome: string | null; cognome: string | null } | null
   pazienti: { codice_paziente: string | null; nome_cognome: string | null } | null
 }
@@ -91,6 +105,7 @@ export function deriveParete(
               pazienteAlias: derivaAlias(l.pazienti),
               tipoDispositivo: l.tipo_dispositivo,
               descrizione: l.descrizione,
+              noteInterne: l.note_interne ?? null,
             }
           : null,
       }

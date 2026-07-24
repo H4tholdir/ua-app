@@ -383,6 +383,13 @@ export function CassettaSheet(props: {
             pazienteAlias: lavoro.pazienteAlias,
             tipoDispositivo: lavoro.tipoDispositivo,
             descrizione: lavoro.descrizione,
+            // FIX-K (G7) — RESIDUO dichiarato, non un dato inventato: `LavoroLibero` (sopra) non
+            // porta `note_interne` (il contratto di `GET /api/cassette/lavori-liberi` non lo
+            // seleziona — fuori scope di questo fix, che tocca solo la query della pagina
+            // cassette). Un lavoro APPENA assegnato qui non è quindi cercabile per nota fino al
+            // prossimo caricamento vero (refresh in standalone, prossimo giro di `getParete` in
+            // embedded), che sostituisce questo riflesso parziale col dato pieno.
+            noteInterne: null,
           },
         }])
         return

@@ -20,6 +20,32 @@ describe('deriveParete', () => {
     expect(out.daRiparare).toEqual([])
   })
 
+  // FIX-K / K2 (G7, ratifica 25/07) — `note_interne` (raw, snake_case dal DB) deve arrivare sul
+  // parete come `lavoro.noteInterne` (camelCase, come gli altri campi derivati): senza questo
+  // mapping il pagliaio di `filtraCassette` (che legge `l.noteInterne`) resterebbe vuoto anche
+  // se la query server selezionasse davvero la colonna — un test sull'haystack con fixture
+  // proprie (v. filtra-cassette.test.ts) non lo scoprirebbe.
+  it('propaga note_interne (raw) → lavoro.noteInterne (FIX-K/K2)', () => {
+    const out = deriveParete(
+      [cassetta('c1', 'C1', 0)],
+      [{ cassetta_id: 'c1', lavoro_id: 'l1' }],
+      [{ id: 'l1', numero_lavoro: '144', stato: 'in_lavorazione', deleted_at: null,
+         descrizione: null, tipo_dispositivo: null, note_interne: 'prova colore A2',
+         clienti: null, pazienti: null }],
+    )
+    expect(out.parete[0].lavoro?.noteInterne).toBe('prova colore A2')
+  })
+
+  it('note_interne assente/null → lavoro.noteInterne null (mai undefined nel pagliaio)', () => {
+    const out = deriveParete(
+      [cassetta('c1', 'C1', 0)],
+      [{ cassetta_id: 'c1', lavoro_id: 'l1' }],
+      [{ id: 'l1', numero_lavoro: '144', stato: 'in_lavorazione', deleted_at: null,
+         descrizione: null, tipo_dispositivo: null, clienti: null, pazienti: null }],
+    )
+    expect(out.parete[0].lavoro?.noteInterne).toBeNull()
+  })
+
   // Minor #5 (review Task 3): la migration dichiara esplicitamente che due
   // creazioni concorrenti possono nascere con la STESSA posizione (max+1
   // senza lock, tie-break "ORDER BY posizione, created_at, id" — il riordino

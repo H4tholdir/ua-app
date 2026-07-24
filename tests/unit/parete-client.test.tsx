@@ -28,7 +28,7 @@ beforeEach(() => { push.mockClear(); refresh.mockClear(); initSuoniSpy.mockClear
 
 const occupata: CassettaParete = {
   id: 'c-a', nome: 'C12', colore: 'rossa', posizione: 0,
-  lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia' },
+  lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'Corona zirconia', noteInterne: null },
 }
 const libera: CassettaParete = { id: 'c-b', nome: 'C4', colore: 'grigia', posizione: 1, lavoro: null }
 
@@ -243,11 +243,11 @@ describe('PareteClient — ricerca «filtra e risali» (ratifica 22/07, spec red
   const c1SenzaMatch: CassettaParete = { id: 'c-1', nome: 'C1', colore: 'grigia', posizione: 0, lavoro: null }
   const c2ConMatch: CassettaParete = {
     id: 'c-2', nome: 'C2', colore: 'rossa', posizione: 1,
-    lavoro: { id: 'l2', numero: '200', dentista: 'Esposito', paziente: 'PAZ-1', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null },
+    lavoro: { id: 'l2', numero: '200', dentista: 'Esposito', paziente: 'PAZ-1', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null, noteInterne: null },
   }
   const c3ConMatch: CassettaParete = {
     id: 'c-3', nome: 'C3', colore: 'blu', posizione: 2,
-    lavoro: { id: 'l3', numero: '201', dentista: 'Esposito', paziente: 'PAZ-2', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null },
+    lavoro: { id: 'l3', numero: '201', dentista: 'Esposito', paziente: 'PAZ-2', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: null, noteInterne: null },
   }
 
   // Helper del file: input controllato istantaneo via `fireEvent.change` (`userEvent.type` sotto
