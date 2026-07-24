@@ -54,6 +54,12 @@ describe('parete — G6: il pattern del filo SEGUE --passo-maglia (non più fiss
     expect(svg).not.toMatch(/<pattern[^>]*\by='8\.5'/)
   })
 
+  it('l\'SVG dichiara un viewBox esplicito (0 0 44 44): senza, un <svg width/height> renderizzato in un background-size diverso dall\'intrinseco NON scala il contenuto (gotcha SVG-senza-viewBox) — resterebbe ancorato a 44 unità native dentro un riquadro più grande, lasciando una banda vuota/"a scacchi" a passo ≠44 anche se il PERIODO del tiling (background-size) è corretto. Col viewBox il rescaling uniforme è garantito dallo user-agent, non da un\'assunzione implicita', () => {
+    const img = norm.match(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-image: url\("([^"]+)"\)/)
+    const svg = decodeURIComponent(img![1])
+    expect(svg).toContain("<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'>")
+  })
+
   it('a 3 larghezze di content-box (390/768/1280 → shell 440/680/1080), --passo-maglia risolto CAMBIA davvero — un letterale fisso a 44 sarebbe rimasto costante e avrebbe divergito da questi valori: qui background-size lo segue per costruzione (var(), non calc separato)', () => {
     const mobile = resolvePasso(CONTENUTO_SHELL_PER_VIEWPORT.mobile)
     const tablet = resolvePasso(CONTENUTO_SHELL_PER_VIEWPORT.tablet)
