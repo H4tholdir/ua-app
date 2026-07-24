@@ -503,9 +503,22 @@
    colonna 3/4/6 della griglia — v. `.ds-parete-grid` sotto); `min-width: 0` toglie il floor
    `min-width:auto` che i flex item hanno di default (altrimenti non potrebbero mai restringersi
    sotto la larghezza intrinseca del testo `nowrap`, vanificando lo stretch). */
+/* Re-review FIX-L (Importante, misurato con Playwright reale in un harness a parte) —
+   `align-self:stretch` sopra fa ereditare a `.ds-cassetta-cont` la larghezza REALE della fascia
+   (giusto, risolve il troncamento sulle tile strette), MA lascia il cross-axis PER I SUOI FIGLI
+   (`.ds-cassetta-dent`/`-paz`, capati a `max-width:96px` sotto) sul default `align-items:stretch`.
+   Uno stretch-item con max-width più piccolo del container disponibile si allinea come
+   `flex-start` per lo spazio residuo (spec box-alignment §align-self, "stretch"-then-"start"
+   quando il max-size vince) — cioè a SINISTRA: misurato in un fascia di 220px, gap sinistro 0px
+   / gap destro 124px invece che ~62/62. `align-items: center` qui sotto ricentra i figli capati
+   SENZA disfare lo stretch di `.ds-cassetta-cont` verso `.ds-cassetta-fascia` — sono proprietà
+   ortogonali: quello è l'`align-self` del cont dentro la fascia (suo genitore), questo è
+   l'`align-items` del cont sui SUOI figli. Misurato dopo il fix: gap sinistro≈gap destro (±2px)
+   su tile larghe, ellissi ancora attiva su tile strette (v. fixL-report.md per i numeri e lo
+   script Playwright). */
 [data-ds="v3"] .ds-cassetta-cont {
   position: relative; z-index: 1; text-align: center;
-  display: flex; flex-direction: column; gap: 1px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
   align-self: stretch; min-width: 0;
   font-size: 11.5px; line-height: 1.28;
   color: rgba(255,255,255,.95);

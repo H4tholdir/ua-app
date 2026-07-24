@@ -184,6 +184,22 @@ describe('Review FIX-L (Importante) — nomi troncati DENTRO la fascia, non più
     expect(blocco![0]).toMatch(/max-width: 96px;/)
     expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
   })
+
+  // Re-review FIX-L (Importante, misurato con Playwright reale): con `.ds-cassetta-cont` in
+  // `align-self:stretch` (test sopra), il cross-axis di `.ds-cassetta-cont` stesso resta
+  // `align-items` di default (stretch) per i SUOI figli (`.ds-cassetta-dent`/`-paz`, capati a
+  // 96px). Uno stretch-item con max-width più piccolo del container si allinea come
+  // `flex-start` per lo spazio residuo (spec box-alignment) — cioè a SINISTRA, non al centro:
+  // su qualsiasi tile più largo di ~96px+padding (griglia 4/6 colonne, 3 colonne desktop) i nomi
+  // risultavano incollati al bordo sinistro invece che centrati come nel mockup ratificato.
+  // Fix: `align-items: center` su `.ds-cassetta-cont` ricentra i figli capati SENZA disfare lo
+  // stretch di `.ds-cassetta-cont` verso `.ds-cassetta-fascia` (proprietà ortogonali: quello è
+  // `align-self` del cont dentro la fascia, questo è `align-items` del cont sui SUOI figli).
+  it('.ds-cassetta-cont: align-items:center — ricentra dent/paz (capati a 96px) quando il cont è più largo di loro (re-review FIX-L)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/align-items: center;/)
+  })
 })
 
 describe('FIX-L — guardia della cavità RICALCOLATA per la nuova geometria: il caso peggiore resta ben sotto --track (220)', () => {
