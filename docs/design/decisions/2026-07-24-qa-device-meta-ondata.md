@@ -202,3 +202,12 @@ versione PIÙ SPESSA. Ratifica attesa sul mockup rev.3.
   questa ratifica per la superficie parete.
 
 → In coda di implementazione come **FIX-L** (dopo FIX-J/K: stesso file ds-v3.css).
+
+### G10 — precisazione di Francesco (25/07, vincolante)
+
+**La targa che si «riempie» RESTA:** l'uniformità ratificata riguarda la STRUTTURA della
+cassetta (fascia etichetta compatta, finestra, bordino — identiche per tutte), NON il
+segnale di stato della targa. La targa dentro la fascia resta: **ad anello quando la
+cassetta è libera, PIENA (bianca) quando contiene un lavoro** — comportamento attuale
+conservato. Decade quindi la deroga al gate targa (Task 10) annotata nella ratifica
+precedente: il gate resta pienamente in vigore.
