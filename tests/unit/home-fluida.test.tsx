@@ -33,7 +33,11 @@ const srcPager = readFileSync(join(process.cwd(), 'src/components/features/home/
 describe('HomeV3 — scala verticale fluida + pile centrate (D8, §3.3)', () => {
   it('il wrapper interno è un size-container e i blocchi usano cqh con floor px', () => {
     expect(srcHome).toMatch(/container-type: size/)
-    expect(srcHome).toMatch(/gap: clamp\(8px, 2\.2cqh, 16px\)/)
+    // QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2b) — ceiling
+    // salito da 16px (spazio.m) a 20px (spazio.ml, v3/tokens.ts §4.2): il floor/preferred
+    // cqh (che governa il degrado sui device corti, D2) resta invariato, guardia aggiornata
+    // sotto (describe dedicato G2b) col resto del gradino.
+    expect(srcHome).toMatch(/gap: clamp\(8px, 2\.2cqh, 20px\)/)
   })
 
   it('il degrado scroll P3 resta (mai abrogato dalla fluida)', () => {
@@ -110,5 +114,72 @@ describe('StanzePager — la stanza Pile ha una sua superficie di scroll interna
       /\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll\s*\{[^}]*overflow-y:\s*auto;[^}]*scrollbar-width:\s*none;[^}]*-ms-overflow-style:\s*none;/
     )
     expect(srcCss).toMatch(/\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll::-webkit-scrollbar\s*\{\s*display:\s*none;\s*\}/)
+  })
+})
+
+// QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2a) — la clip
+// dell'ombra dell'ultima pila era già stata risolta nel pager delle stanze (Collaudo R2/R3,
+// `552e9f5`/`b8dbd31`: 36px di respiro) con un padding-bottom messo su `.ua-stanza`. Il fix
+// round 2 (Task 14, `ff65f21`, arrivato DOPO quei due commit) ha inserito
+// `.ua-stanza-pile-scroll` come unico figlio flex:1 di `.ua-stanza`, con un proprio
+// `overflow-y: auto`: da quel momento è QUESTO il contenitore che clippa davvero, e il
+// padding-bottom di `.ua-stanza` (un livello più fuori) è diventato spazio morto SOTTO il
+// clip — la regressione osservata il 24/07. Le due guardie sotto presidiano la CAUSA (non
+// solo l'effetto): il respiro deve stare nella scatola che clippa, non fuori da essa.
+describe('HomeV3/ds-v3.css — G2a: il respiro dell\'ombra vive nella scatola che clippa davvero (regressione post `ff65f21`)', () => {
+  it('`.ua-stanza` non porta più il padding-bottom morto (era un livello troppo fuori rispetto al clip vero)', () => {
+    expect(srcCss).toMatch(/\[data-ds="v3"\] \.ua-stanza \{[^}]*padding: 0 24px;/)
+    // Guardia negativa esplicita: se qualcuno reintroducesse un terzo valore qui, tornerebbe
+    // a essere spazio morto (v. commento in ds-v3.css) — non un semplice refuso da tollerare.
+    expect(srcCss).not.toMatch(/\[data-ds="v3"\] \.ua-stanza \{[^}]*padding: 0 24px 36px;/)
+  })
+
+  it('`.ua-stanza-pile-scroll` porta il respiro (36px, stessa formula di `b8dbd31`: 28px d\'ombra + 8px di margine) DENTRO il proprio overflow-y:auto', () => {
+    expect(srcCss).toMatch(
+      /\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll\s*\{[^}]*overflow-y:\s*auto;[^}]*padding-bottom:\s*36px;/
+    )
+    // Calcolo documentato (riusato verbatim da `b8dbd31`, non un numero nuovo): l'estensione
+    // massima dell'ombra --sh-card sotto il bordo della card è offset-y 16 + spread −18 +
+    // blur 30 = 28px; il respiro aggiunge 8px di margine oltre quel massimo.
+    const offsetY = 16
+    const spread = -18
+    const blur = 30
+    const estensioneOmbra = offsetY + spread + blur
+    expect(estensioneOmbra).toBe(28)
+    const margine = 8
+    expect(estensioneOmbra + margine).toBe(36)
+  })
+})
+
+// QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2b, ratificata da
+// Francesco — la taratura del clamp era demandata, v. commento D2 sopra) — «ingrandiamo le
+// pile sfruttando lo spazio libero tra l'ultima pila ed il pulsante nuovo lavoro»: il ceiling
+// di gap/margin-top/padding-verticale della card sale di UN gradino sulla scala chiusa 8px
+// (`spazio` in src/design-system/v3/tokens.ts, §4.2: …12·16·20·24…) — 16 (spazio.m) → 20
+// (spazio.ml), lo stesso valore già usato come padding verticale canonico di `.ds-pila` fuori
+// dalla home (ds-v3.css riga ~116: `padding: 20px 22px`). Il font-size del numero resta
+// fermo a 52 = `tipografia.size.display`, la cima della scala tipografica CHIUSA (§4.1): non
+// c'è un gradino sopra senza uscire dal vocabolario chiuso.
+describe('HomeV3 — G2b: le pile crescono nello spazio libero (ceiling sul gradino 8px sopra, mai un numero nuovo)', () => {
+  it('gap e margin-top di `.pile` salgono al ceiling 20px (spazio.ml) — floor/preferred cqh (degrado D2) invariati', () => {
+    expect(srcHome).toMatch(/gap: clamp\(8px, 2\.2cqh, 20px\); margin-top: clamp\(8px, 1\.8cqh, 20px\);/)
+  })
+
+  it('il padding verticale di `.ds-pila` sale allo stesso ceiling 20px — pari al padding verticale canonico di `.ds-pila` fuori dalla home', () => {
+    expect(srcHome).toMatch(/\.ua-home \.pile \.ds-pila \{ padding: clamp\(11px, 1\.9cqh, 20px\) 18px; \}/)
+    expect(srcCss).toMatch(/\[data-ds="v3"\] \.ds-pila \{ padding: 20px 22px; \}/)
+  })
+
+  it('il font-size del numero resta al tetto della scala tipografica chiusa (52px) — nessun gradino sopra senza uscire dal vocabolario chiuso', () => {
+    expect(srcHome).toMatch(/\.ua-home \.pile \.ds-pila-num \{ font-size: clamp\(38px, 6\.5cqh, 52px\); \}/)
+  })
+
+  it('il gradino scelto (16→20) è il successivo sulla scala 8px, non un valore inventato', () => {
+    const scala8px = [4, 8, 12, 16, 20, 24, 32, 44] // spazio: xs·s·sm·m·ml·l·xl·xxl (tokens.ts §4.2)
+    const vecchioCeiling = 16
+    const nuovoCeiling = 20
+    expect(scala8px).toContain(vecchioCeiling)
+    expect(scala8px).toContain(nuovoCeiling)
+    expect(scala8px.indexOf(nuovoCeiling)).toBe(scala8px.indexOf(vecchioCeiling) + 1)
   })
 })

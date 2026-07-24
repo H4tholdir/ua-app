@@ -183,10 +183,30 @@ export function HomeV3(props: {
            progressive enhancement, non un salto secco — un motore che non riconoscesse 'safe
            center' scarta SOLO quella dichiarazione (valore non valido), la precedente
            'center' resta l'ultima valida e il comportamento di oggi non regredisce. */
+        /* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2b, ratificata da
+           Francesco — la taratura del clamp fluido era demandata, v. commento D2 sopra, ed È
+           questa) — «diamo più aria e ingrandiamo le pile sfruttando lo spazio libero tra
+           l'ultima pila ed il pulsante nuovo lavoro»: a schermo alto il floor/preferred cqh
+           di ognuno di questi tre clamp restava INVARIATO (giusto: è la parte che degrada sui
+           device corti, v. D2), ma il CEILING era fissato al valore della grafica classica
+           pre-fluida (16px, 52px) — cioè le pile non potevano MAI superare la densità di
+           sempre, nemmeno quando il container-query height ('.corpo', size-container da D8)
+           avanzava decine di px liberi sopra il piede. Il ceiling sale di un solo gradino
+           sulla scala chiusa 8px ('spazio' in v3/tokens.ts, §4.2: …12·16·20·24…) — 16→20
+           ('spazio.ml') per gap/margin-top/padding verticale della card — non un numero
+           nuovo, il gradino subito sopra quello di oggi. Il font-size del numero resta
+           fermo a 52: è già 'tipografia.size.display', la cima della scala tipografica CHIUSA
+           (§4.1) — non c'è un gradino sopra senza uscire dal vocabolario chiuso, quindi lì
+           «più aria» viene dal padding della card che lo contiene, non dal glifo. La crescita
+           resta comunque LIMITATA dall'invariante «tutto visibile senza scroll» (ratificata
+           24/07): essendo espressa in cqh (proporzionale all'altezza REALE disponibile), un
+           ceiling più alto si raggiunge solo quando quell'altezza c'è per davvero — il floor e
+           la formula cqh che governano il degrado sui device corti (D2, safe center, scroll
+           di sicurezza di '.ua-stanza-pile-scroll') non cambiano di un pixel. */
         .ua-home .pile { flex: 1; display: flex; flex-direction: column;
                          justify-content: center; justify-content: safe center;
-                         gap: clamp(8px, 2.2cqh, 16px); margin-top: clamp(8px, 1.8cqh, 16px); }
-        .ua-home .pile .ds-pila { padding: clamp(11px, 1.9cqh, 16px) 18px; }
+                         gap: clamp(8px, 2.2cqh, 20px); margin-top: clamp(8px, 1.8cqh, 20px); }
+        .ua-home .pile .ds-pila { padding: clamp(11px, 1.9cqh, 20px) 18px; }
         .ua-home .pile .ds-pila-num { font-size: clamp(38px, 6.5cqh, 52px); }
         .ua-home .striscia-slot { margin-top: clamp(8px, 1.8cqh, 16px); }
         /* QA device T15 (verbale 2026-07-24, fix 1a) — il piede («puntini + TastoPiù +

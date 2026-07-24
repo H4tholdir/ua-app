@@ -977,14 +977,20 @@
   min-width: 0;
   scroll-snap-align: start;
   display: flex; flex-direction: column;
-  /* Collaudo R2 (D-2): respiro in fondo — il viewport è overflow-y:hidden e l'ultima pila
-     finiva a ~3px dal bordo: l'ombra veniva RASATA con un taglio netto sopra il piede.
-     Collaudo R3 (22/07 notte): 22px clippavano ANCORA un filo sul device. Misura, non a occhio:
-     l'estensione massima dell'ombra `--sh-card` sotto il bordo della card è
-     offset-y 16 + spread −18 + blur 30 = 28px → 36px = 28px d'ombra + 8px di margine.
-     Il respiro sta DENTRO il clip: l'ombra respira anche nel ramo @media max-height:700px,
-     che NON riduce questo padding (lo spazio lo recuperano gap/padding delle pile). */
-  padding: 0 24px 36px;
+  /* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2a) — la clip
+     dell'ombra dell'ultima pila era già stata risolta (Collaudo R2/R3, `552e9f5`/`b8dbd31`:
+     36px di respiro in fondo, v. il ragionamento — invariato — su `.ua-stanza-pile-scroll`
+     qui sotto) con un padding-bottom messo QUI, su `.ua-stanza`. Il fix round 2 (Task 14,
+     `ff65f21`, arrivato DOPO quei due commit) ha inserito `.ua-stanza-pile-scroll` come UNICO
+     figlio flex:1 di `.ua-stanza`, con un proprio `overflow-y: auto` — cioè un NUOVO
+     contenitore che clippa PRIMA di arrivare a questo padding: il respiro restava fuori dal
+     bordo che clippa davvero, diventando spazio morto sotto lo scroll invece che margine
+     dentro di esso — l'ombra dell'ultima pila tornava a essere rasata, la regressione del
+     24/07 segnalata da Francesco («si vede nuovamente la clip dell'ombra»). Il
+     padding verticale si sposta quindi su `.ua-stanza-pile-scroll` (stesso valore, stessa
+     formula, solo nella scatola giusta); qui resta SOLO l'orizzontale, che non ha mai avuto
+     questo problema (non è mai stato dentro un contenitore con un proprio clip). */
+  padding: 0 24px;
 }
 /* QA device (verbale 25/07, fix-list D5a) — CAUSA MISURATA: il padding orizzontale della
    regola base sopra (24px per lato, invariato per la stanza Pile) si applicava ANCHE alla
@@ -1081,6 +1087,16 @@
   overflow-y: auto;
   overscroll-behavior-y: contain;
   touch-action: pan-y pan-x;
+  /* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2a) — QUESTO è il
+     contenitore che clippa DAVVERO l'ultima pila (`overflow-y: auto` sopra), da quando
+     esiste (fix round 2, commento sopra) — quindi è qui che deve stare il respiro
+     dell'ombra, non su `.ua-stanza` (v. commento lì per la regressione: il padding era
+     rimasto un livello troppo fuori, diventato spazio morto sotto il clip vero). Stessa
+     misura e stessa formula del fix storico (Collaudo R2/R3, `552e9f5`/`b8dbd31`): l'ombra
+     `--sh-card` si estende al massimo offset-y 16 + spread −18 + blur 30 = 28px sotto la
+     card → 36px = 28px d'ombra + 8px di margine. Riutilizzato verbatim, solo spostato nella
+     scatola giusta — non un numero nuovo. */
+  padding-bottom: 36px;
   /* QA device T15 (verbale 2026-07-24, fix 1c) — «barra grigia laterale fissa nella home» era
      la scrollbar di QUESTO scroll interno. La rete di sicurezza (fix round 2, commento sopra)
      RESTA: lo scroll continua a funzionare se il contenuto sfora, ma non si vede più — stessa
