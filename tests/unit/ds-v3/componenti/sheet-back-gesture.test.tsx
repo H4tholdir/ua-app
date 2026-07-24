@@ -32,9 +32,27 @@ function attivaReducedMotion(): () => void {
 let pushStateSpy: ReturnType<typeof vi.spyOn>
 let historyBackSpy: ReturnType<typeof vi.spyOn>
 
+// Stato di history finto, letto da `window.history.state` (getter ridefinito qui sotto): serve
+// al gate della review FIX-I («back del cleanup solo se l'entry è in cima») che ora legge
+// `window.history.state?.uaSheet` oltre al ref — senza questo, `pushState`/`back` mockati come
+// puri no-op (necessari per non far trapelare un vero cambio di `window.location` fra test)
+// lascerebbero `state` sempre `null`, rendendo il gate impossibile da esercitare in isolamento.
+let statoHistoryFinto: unknown = null
+
 beforeEach(() => {
-  pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {})
-  historyBackSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+  statoHistoryFinto = null
+  Object.defineProperty(window.history, 'state', {
+    configurable: true,
+    get: () => statoHistoryFinto,
+  })
+  pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation((state: unknown) => {
+    statoHistoryFinto = state
+  })
+  historyBackSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {
+    // Simula il pop reale: l'entry in cima sparisce, si torna a quella precedente (nei nostri
+    // scenari, mai marcata `{uaSheet:true}`).
+    statoHistoryFinto = null
+  })
   document.body.style.overflow = ''
   document.body.style.paddingRight = ''
 })
@@ -211,6 +229,50 @@ describe('Sheet — G5, history-entry per il back gesture', () => {
     expect(pushStateSpy).toHaveBeenCalledTimes(1)
     unmount()
     expect(historyBackSpy).toHaveBeenCalledTimes(1)
+  })
+
+  // Review FIX-I (G5): due consumatori reali fanno `router.push` mentre lo sheet resta montato
+  // e aperto — `MenuSchedaSheet.tsx:145` verso `/lavori/[id]/modifica`,
+  // `SchedaPersonaSheet.tsx:205` verso `/tecnici/[id]/produttivita`. Next impila la nuova entry
+  // SOPRA quella `{uaSheet:true}` di questo componente: alla cleanup (chiusura esplicita o
+  // smontaggio) l'entry in cima non è più la nostra, e un `history.back()` cieco consumerebbe
+  // l'entry del consumer — nel caso peggiore una back-navigation che ribalta il tap dell'utente.
+  it('un consumer pusha un\'entry PROPRIA (router.push) mentre lo sheet è aperto: allo smontaggio NON si chiama history.back (l\'entry in cima non è più quella dello sheet)', () => {
+    const onChiudi = vi.fn()
+    const { unmount } = render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    // Simula il router che impila una entry propria, non marcata `uaSheet`, mentre il ref dello
+    // sheet non è stato toccato (nessun popstate, nessuna chiusura esplicita è passata di qui).
+    act(() => {
+      window.history.pushState({}, '', '/lavori/1/modifica')
+    })
+    unmount()
+    expect(historyBackSpy).not.toHaveBeenCalled()
+  })
+
+  // Stessa scena, ma la chiusura arriva per via esplicita (rerender aperto=false) invece dello
+  // smontaggio — entrambi i percorsi passano per la STESSA cleanup, quindi devono comportarsi
+  // allo stesso modo.
+  it('un consumer pusha un\'entry PROPRIA mentre lo sheet è aperto: la chiusura esplicita successiva NON chiama history.back', () => {
+    const onChiudi = vi.fn()
+    const { rerender } = render(
+      <Sheet aperto onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    act(() => {
+      window.history.pushState({}, '', '/lavori/1/modifica')
+    })
+    rerender(
+      <Sheet aperto={false} onChiudi={onChiudi} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    expect(historyBackSpy).not.toHaveBeenCalled()
   })
 
   it('smontaggio DOPO un popstate già consumato: nessun history.back in più (l\'entry non c\'è già più)', () => {

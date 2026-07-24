@@ -94,10 +94,27 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  *
  * G5 (verbale ri-collaudo #2) — back del telefono chiude lo sheet: history-entry marcata
  * `{uaSheet:true}` pushata all'apertura, popstate la consuma e chiama `onChiudi`; alla
- * chiusura esplicita si fa `history.back()` solo se l'entry è ancora in cima (v. commento
- * sull'effect dedicato, sotto). Non interferisce con la catena pushState del pager
- * (`StanzePager.alPopState`, guardia `window.location.pathname !== '/cassette'` — v. commento
- * lì): il pop dell'entry dello sheet lascia il pathname invariato, il pager resta zitto.
+ * chiusura esplicita si fa `history.back()` solo se l'entry è ancora in cima **E** quell'entry
+ * in cima è davvero la nostra (`window.history.state?.uaSheet === true`, oltre al ref — v.
+ * commento sull'effect dedicato, sotto e LIMITE NOTO «consumer che naviga», sotto). Non
+ * interferisce con la catena pushState del pager (`StanzePager.alPopState`, guardia
+ * `window.location.pathname !== '/cassette'` — v. commento lì): il pop dell'entry dello sheet
+ * lascia il pathname invariato, il pager resta zitto.
+ *
+ * LIMITE NOTO — consumer che naviga (`router.push`) mentre lo sheet resta aperto (review
+ * FIX-I, G5): due consumatori lo fanno davvero, non solo in teoria — `MenuSchedaSheet.tsx:145`
+ * (verso `/lavori/[id]/modifica`) e `SchedaPersonaSheet.tsx:205` (verso
+ * `/tecnici/[id]/produttivita`) — senza chiudere prima lo sheet. Next impila la LORO entry
+ * SOPRA quella `{uaSheet:true}` di questo componente; alla cleanup successiva (chiusura
+ * esplicita o smontaggio) l'entry in cima non è più la nostra, e il gate
+ * `window.history.state?.uaSheet === true` lo rileva e rinuncia al `history.back()` — non
+ * consuma mai l'entry sbagliata. Quello che resta: la nostra entry `{uaSheet:true}`, ormai
+ * sepolta sotto quella del consumer, non viene mai disfatta esplicitamente — resta appesa in
+ * history finché un back futuro non la attraversa. Innocuo: quel back in più salta un'entry
+ * marcata che non ha più un componente montato ad ascoltarne il popstate, un'entry di history
+ * in eccesso, mai una navigazione invertita rispetto al tap dell'utente. Non risolvibile qui
+ * senza coordinamento fra `Sheet` e il router del consumer (fuori scope di questo fix, che
+ * riguarda solo `Sheet.tsx`).
  *
  * LIMITE NOTO (non risolto qui, fuori scope FIX-I): quando un `DialogConferma` si apre SOPRA
  * questo sheet restando montato con `aperto` invariato (pattern `CassettaSheet`: la guardia
@@ -184,9 +201,23 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
       // Chiusura esplicita (o smontaggio mentre aperto): se l'entry è ancora in cima (non
       // consumata da un back già avvenuto), la disfiamo noi — mai lasciarla lì a farsi
       // consumare da un back futuro che l'utente non si aspetta più legato a questo sheet.
+      //
+      // Review FIX-I (G5): `entryInCimaRef` da solo non basta. Due consumatori reali fanno
+      // `router.push` mentre questo sheet resta montato e aperto (`MenuSchedaSheet.tsx` verso
+      // `/lavori/[id]/modifica`, `SchedaPersonaSheet.tsx` verso `/tecnici/[id]/produttivita`):
+      // Next impila la LORO entry SOPRA quella `{uaSheet:true}` di questo componente, ma il ref
+      // — booleano cieco, non sa cosa c'è davvero in cima — resterebbe `true` fino alla cleanup.
+      // Un `history.back()` incondizionato a quel punto non disfa la NOSTRA entry (già sepolta
+      // sotto quella del consumer): disfa la LORO, cioè inverte la navigazione appena fatta
+      // dall'utente. Il controllo `window.history.state?.uaSheet === true` verifica che l'entry
+      // ANCORA in cima sia effettivamente la nostra prima di consumarla — se non lo è, si
+      // rinuncia al `back()` e si accetta che l'entry `{uaSheet:true}` resti appesa in history
+      // (limite noto, sotto): innocua, un back futuro la salterà silenziosamente.
       if (entryInCimaRef.current) {
         entryInCimaRef.current = false
-        window.history.back()
+        if (window.history.state?.uaSheet === true) {
+          window.history.back()
+        }
       }
     }
   }, [aperto])
