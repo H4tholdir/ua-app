@@ -95,3 +95,27 @@ describe('parete — G6: la relazione hook ≡ wire-center (mod passo) vale sui 
     expect(norm).toMatch(/--track: calc\(var\(--passo-maglia\) \* 5\);/)
   })
 })
+
+describe('parete — G9-cornice: filo di bordo V1 «a filo dei bordi» (ratifica mockup 2026-07-25-rete-cornice-bordi.html)', () => {
+  it('.ds-parete disegna un filo verticale a SINISTRA (::before) e a DESTRA (::after), 2px dal bordo, stesso linguaggio del filo verticale del pattern (gradiente marrone→bianco→marrone, wire-w, radius 1.5px, ombra leggera) — VERBATIM dalla variante .v1 del mockup', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-parete::before, \[data-ds="v3"\] \.ds-parete::after \{ content: ''; position: absolute; top: 0; bottom: 0; width: var\(--wire-w\); border-radius: 1\.5px; background: linear-gradient\(90deg, #5A4E38, #FFFFFD 50%, #5A4E38\); box-shadow: 0 0 2px rgba\(42, 34, 20, \.42\); pointer-events: none; \}/
+    )
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete::before \{ left: 2px; \}/)
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete::after \{ right: 2px; \}/)
+  })
+
+  it('dark: stesso pseudo-elemento MA flat (rgba bianco trasparente, nessuna ombra — legge v3 dark=flat)', () => {
+    expect(norm).toMatch(
+      /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-parete::before, \[data-theme="dark"\] \[data-ds="v3"\] \.ds-parete::after \{ background: rgba\(255, 255, 255, \.13\); box-shadow: none; \}/
+    )
+  })
+
+  it('.ds-parete clippa i pseudo-elementi agli angoli arrotondati (overflow: hidden, come .muro nel mockup) — il ghost del drag è in portale su document.body (PareteClient.tsx), quindi resta FUORI da questo overflow e non viene mai tagliato', () => {
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*overflow: hidden;/)
+  })
+
+  it('la cornice è dichiarata sulla regola BASE .ds-parete (non scoped a .ds-parete-shell): vale sia sulla route /cassette standalone sia nel pannello embedded della home, che montano entrambe la stessa .ds-parete (PareteClient condivisa)', () => {
+    expect(norm).not.toMatch(/\.ds-parete-shell \.ds-parete::before/)
+  })
+})

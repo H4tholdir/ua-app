@@ -623,11 +623,25 @@
       (≤4px) ma non è mai perfettamente zero. Residuo noto, non nel perimetro di FIX-H (G6
       copriva solo il punto 1 — verbale).
    Dark: due repeating-linear-gradient piatti (nessun volume/ombra, legge v3) — verbatim dal
-   ramo `.notte` del mockup: filo `rgba(255,255,255,.07)`, spessore --wire-w (3px). */
+   ramo `.notte` del mockup: filo `rgba(255,255,255,.07)`, spessore --wire-w (3px).
+
+   [FIX-H, G9-cornice, RATIFICATO 25/07 — verbale §G9, mockup ratificato
+   docs/design/mockups/2026-07-25-rete-cornice-bordi.html, variante V1 «filo di bordo»] Un
+   filo verticale esplicito su ENTRAMBI i lati della parete (`::before` sinistra, `::after`
+   destra, 2px dal bordo, per tutta l'altezza), stesso linguaggio del filo verticale del
+   pattern interno (gradiente marrone→bianco→marrone, `--wire-w`, ombra leggera in light;
+   flat rgba bianco in dark, legge v3 dark=flat). Decorativo: non tocca padding/larghezza
+   utile della griglia, non entra nello snap/drag. `overflow: hidden` su `.ds-parete` (come
+   `.muro` nel mockup) clippa i due fili agli angoli arrotondati — SICURO per il drag perché
+   il ghost trascinato è in portale su `document.body` (PareteClient.tsx, `position: fixed`),
+   fuori dal sottoalbero di `.ds-parete`: non viene mai clippato in corsa. Dichiarato sulla
+   regola BASE (non scoped a `.ds-parete-shell`): vale sia su `/cassette` standalone sia nel
+   pannello embedded della home, che condividono la stessa `PareteClient`/`.ds-parete`. */
 [data-ds="v3"] .ds-parete {
   --passo-maglia: 44px; --track: calc(var(--passo-maglia) * 5); --hook-above: 14px;
   --wall-pad-top: 24px; --wire-center: calc(var(--wall-pad-top) - var(--hook-above)); --wire-w: 3px;
   position: relative; border-radius: 18px; padding: var(--wall-pad-top) 16px 18px;
+  overflow: hidden;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
   /* QA device T15 (verbale 2026-07-24, addendum punto 5, screenshot Francesco) — il fondo del
      muro era `--bg-deep`, un tono diverso dal fondo della pagina che lo ospita (`--bg`, dipinto
@@ -644,6 +658,21 @@
   --filo-flat: rgba(255,255,255,.09);
   background: repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), var(--bg);
   background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0, 0 0;
+}
+/* FIX-H — G9-cornice V1 «filo di bordo» (v. commento di testa sopra la regola-guardia
+   GRIGLIA FISSA + SNAP per il ragionamento completo). Verbatim dal mockup ratificato
+   (.v1::before/.v1::after, riga 48-56 del file): gradiente orizzontale marrone→bianco→
+   marrone, stesso spessore/raggio del filo verticale del pattern interno. */
+[data-ds="v3"] .ds-parete::before, [data-ds="v3"] .ds-parete::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: var(--wire-w); border-radius: 1.5px;
+  background: linear-gradient(90deg, #5A4E38, #FFFFFD 50%, #5A4E38);
+  box-shadow: 0 0 2px rgba(42, 34, 20, .42);
+  pointer-events: none;
+}
+[data-ds="v3"] .ds-parete::before { left: 2px; }
+[data-ds="v3"] .ds-parete::after { right: 2px; }
+[data-theme="dark"] [data-ds="v3"] .ds-parete::before, [data-theme="dark"] [data-ds="v3"] .ds-parete::after {
+  background: rgba(255, 255, 255, .13); box-shadow: none;
 }
 /* Colonne FISSE 3 / 4 / 6 (spec §5.4): l'ordine lineare è invariante — mai `auto-fit`, che
    cambierebbe il numero di colonne (e quindi la mappa mentale del muro) a ogni larghezza. */
