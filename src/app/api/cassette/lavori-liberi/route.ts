@@ -10,12 +10,22 @@ export interface LavoroLibero {
   dentista: string
   pazienteAlias: string | null
   urgenza: number
+  // G8 (FIX-I, fix-list ri-collaudo #2) — additivi, MAI rimossi/rinominati campi esistenti: il
+  // contratto è quello di `getParete`/`CassettaParete['lavoro']` (`parco-shared.ts`), qui in
+  // sola lettura. Servono all'overlay ottimistico di `assegnaLavoro` (`CassettaSheet.tsx`), che
+  // prima di questo fix passava sempre `null` a `miniaturaPerLavoro` — la miniatura corretta
+  // arrivava solo al prossimo caricamento vero (bug confermato da Francesco, causa nota dal
+  // report FIX-E).
+  tipoDispositivo: string | null
+  descrizione: string | null
 }
 
 type RawLavoroLibero = {
   id: string
   numero_lavoro: string
   data_consegna_prevista: string | null
+  descrizione: string | null
+  tipo_dispositivo: string | null
   clienti: { studio_nome: string | null; nome: string | null; cognome: string | null } | null
   pazienti: { codice_paziente: string | null; nome_cognome: string | null } | null
 }
@@ -82,7 +92,7 @@ export async function GET() {
     svc
       .from('lavori')
       .select(
-        'id, numero_lavoro, data_consegna_prevista, clienti(studio_nome, nome, cognome), pazienti(codice_paziente, nome_cognome)'
+        'id, numero_lavoro, data_consegna_prevista, descrizione, tipo_dispositivo, clienti(studio_nome, nome, cognome), pazienti(codice_paziente, nome_cognome)'
       )
       .eq('laboratorio_id', labId)
       .is('deleted_at', null)
@@ -105,6 +115,8 @@ export async function GET() {
       dentista: l.clienti?.studio_nome ?? (`${l.clienti?.nome ?? ''} ${l.clienti?.cognome ?? ''}`.trim() || '—'),
       pazienteAlias: derivaAlias(l.pazienti),
       urgenza: -giorniAllaConsegna(l.data_consegna_prevista, oggi),
+      tipoDispositivo: l.tipo_dispositivo,
+      descrizione: l.descrizione,
     }))
     // Urgenza DECRESCENTE (semantica pile, §2.5): valore più alto = consegna più vicina o già
     // scaduta. Equivalente a "data di consegna crescente" (senza data → in fondo, sentinella

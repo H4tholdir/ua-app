@@ -31,6 +31,8 @@ const lavoro = (id: string, over: Partial<{
   numero_lavoro: string
   stato: string
   data_consegna_prevista: string | null
+  descrizione: string | null
+  tipo_dispositivo: string | null
   clienti: { studio_nome: string | null; nome: string | null; cognome: string | null } | null
   pazienti: { codice_paziente: string | null; nome_cognome: string | null } | null
 }> = {}) => ({
@@ -41,6 +43,10 @@ const lavoro = (id: string, over: Partial<{
   // (caso "senza data di consegna"), NON ricadere sul default — `??` tratterebbe `null` come
   // assente e nasconderebbe il caso che i test qui sotto vogliono esercitare.
   data_consegna_prevista: 'data_consegna_prevista' in over ? over.data_consegna_prevista ?? null : '2026-08-01',
+  // G8 (FIX-I) — additivi al contratto: default non-null così i test PRE-esistenti (che non li
+  // conoscono) restano su un valore realistico, non un `undefined` mai esercitato dal codice reale.
+  descrizione: 'descrizione' in over ? over.descrizione ?? null : 'Corona',
+  tipo_dispositivo: 'tipo_dispositivo' in over ? over.tipo_dispositivo ?? null : 'protesi_fissa',
   clienti: over.clienti ?? { studio_nome: 'Studio Bruno', nome: null, cognome: null },
   pazienti: over.pazienti ?? null,
 })
@@ -83,10 +89,12 @@ describe('GET /api/cassette/lavori-liberi (spec redesign §2.5, punto 13)', () =
     expect(lavori.map((l: { id: string }) => l.id)).toEqual(['l1'])
   })
 
-  it('proietta esattamente il contratto {id, numero, dentista, pazienteAlias, urgenza}', async () => {
+  it('proietta esattamente il contratto {id, numero, dentista, pazienteAlias, urgenza, tipoDispositivo, descrizione}', async () => {
     mockQueries(
       [lavoro('l1', {
         numero_lavoro: '151',
+        descrizione: 'Corona',
+        tipo_dispositivo: 'protesi_fissa',
         clienti: { studio_nome: 'Studio Bruno', nome: null, cognome: null },
         pazienti: { codice_paziente: 'PZ-9', nome_cognome: 'ROSSI MARIO' },
       })],
@@ -95,8 +103,24 @@ describe('GET /api/cassette/lavori-liberi (spec redesign §2.5, punto 13)', () =
     const res = await GET()
     const { lavori } = await res.json()
     expect(lavori).toEqual([
-      { id: 'l1', numero: '151', dentista: 'Studio Bruno', pazienteAlias: 'ROSSI MARIO', urgenza: expect.any(Number) },
+      {
+        id: 'l1', numero: '151', dentista: 'Studio Bruno', pazienteAlias: 'ROSSI MARIO', urgenza: expect.any(Number),
+        tipoDispositivo: 'protesi_fissa', descrizione: 'Corona',
+      },
     ])
+  })
+
+  // G8 (FIX-I) — additivo: un lavoro senza tipo/descrizione (dati storici incompleti) non deve
+  // crashare né degradare a stringhe vuote inventate — `null` verbatim, come la colonna DB.
+  it('tipoDispositivo/descrizione assenti (colonna null in DB) → null verbatim, mai stringa vuota inventata', async () => {
+    mockQueries(
+      [lavoro('l1', { numero_lavoro: '160', descrizione: null, tipo_dispositivo: null })],
+      [],
+    )
+    const res = await GET()
+    const { lavori } = await res.json()
+    expect(lavori[0].tipoDispositivo).toBeNull()
+    expect(lavori[0].descrizione).toBeNull()
   })
 
   it('due lavori liberi con date di consegna diverse → ordinati con la consegna più vicina in testa (urgenza decrescente)', async () => {
