@@ -37,3 +37,15 @@ nome completo. per il riordino seguiamo la tua raccomandazione. per il piede c2.
   `molla.press`; ritorno reversibile a metà gesto.
 - Da implementare fedele alla demo + proposta statica
   (`2026-07-25-linguetta-e-piede-proposte.html`, variante C2).
+
+## Rifinitura fascia (post ri-collaudo #4) — VARIANTE C ratificata (25/07 sera, chat: «Scelgo la variante C»)
+
+- Mockup: `docs/design/mockups/2026-07-25-fascia-leggibilita-varianti.html` (ecd8a7c), variante C.
+- Meccanismo: sulle facce CHIARE lo scrim della fascia si INVERTE (schiarisce invece di
+  scurire) e il testo passa a inchiostro pieno — riusa la logica `targaScura` già nel
+  componente. Contrasti misurati: azzurra clinico 2,50→6,99 · bianca 3,78→14,68 (WCAG AA
+  chiuso su tutte le facce ostiche). Corpi e finestra INVARIATI, zero spazio rubato.
+- Paziente su più righe: fino a 2 righe col budget condiviso della variante A (clinico
+  1 riga → paziente 2; clinico 2 → paziente 1), sfumatura verticale come il clinico.
+- Respinte: A (risolveva solo il multiriga), B (finestra −30% e rapporto di contrasto
+  comunque invariato).
