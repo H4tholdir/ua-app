@@ -323,3 +323,9 @@ Tre difetti dalla visualizzazione su iPad (griglia a 6 colonne):
    ovvio dalla foto (miste libere/occupate) — da isolare in riproduzione.
 3. **Animazione del drag scattosa** su iPad (si collega al filone «iOS fluidità» già
    in ROADMAP, ma da diagnosticare qui per distinguere cause nuove della wave).
+
+### Addendum 2 — screenshot desktop (Francesco, 25/07 sera, Chrome ~6 colonne)
+
+Su desktop: cassette TUTTE integre e animazioni ok → «cassette rotte» e «drag scattoso»
+sono SOLO-iPad (WebKit). I gancetti però risultano fuori filo ANCHE su desktop →
+il disallineamento dalla maglia è cross-engine e cross-larghezza: geometria nostra.
