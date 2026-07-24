@@ -169,3 +169,14 @@ Francesco orienta sulla **P3 «fascia etichetta»** e chiede il mockup «pari al
 reale» (pagina cassette completa) prima della ratifica, con UNA variante in più: il bordino
 super sottile tra la fascia dell'etichetta e la finestra (il vuoto) mostrato anche in
 versione PIÙ SPESSA. Ratifica attesa sul mockup rev.3.
+
+### G10 — RATIFICA parziale (25/07, su mockup rev.3)
+
+- **RATIFICATO: P3b «fascia etichetta» col bordino SPESSO (8px)** — finestra 66, fascia
+  ancorata in basso, tile 132.
+- **Vincolo nuovo ratificato: grafica UNIFORME** — la cassetta NON cambia veste tra occupata
+  e libera: sempre la veste della versione «libera» (targa ad anello, stessa fascia); a
+  cambiare è solo il contenuto (miniatura nella finestra, nomi al posto di «libera»).
+  ⚠ Deroga consapevole alla targa piena bianca del gate targa (Task 10) per le occupate.
+- **Aperto: trattamento dei nomi lunghi** — «non troncare di netto i nomi dei medici»:
+  varianti da presentare (due righe / sfumatura / abbreviazione) su mockup rev.4.
