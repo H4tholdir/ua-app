@@ -5,7 +5,7 @@
 // liberazione con body `null` letterale, sposta-lavoro {cassetta_id}, DELETE, riordino via
 // callback nel PareteClient. Dizionario: «Butta via», MAI «Elimina».
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { CassettaSheet } from '@/components/features/cassette/CassettaSheet'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
@@ -163,6 +163,33 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
 
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onChiudi).toHaveBeenCalledTimes(1)
+  })
+
+  // LIMITE NOTO G5 (v. JSDoc «LIMITE NOTO» su Sheet.tsx, fuori scope FIX-I) — gemello del test
+  // Esc sopra, ma per il back gesture: a differenza di Esc (un listener passivo che non consuma
+  // nulla, quindi la guardia `dialogAperto` basta a fermare SOLO onChiudi), il back del telefono
+  // consuma DAVVERO l'unica history-entry pushata (quella dello Sheet — DialogConferma non ne
+  // pusha una propria). `onChiudi` gira ma la guardia lo blocca: né lo sheet né il dialog si
+  // chiudono, e l'entry è comunque persa — un secondo back navigherebbe via dalla pagina sotto
+  // senza aver chiuso nulla (desync, non riproducibile qui in isolamento: richiede una history
+  // reale sotto CassettaSheet). Questo test PIN-a il comportamento oggi, non lo approva: se un
+  // fix futuro (fuori da questo FIX-I) insegna a DialogConferma a discriminare via
+  // `window.history.state`, questo test andrà aggiornato insieme.
+  it('LIMITE NOTO G5 — back con DialogConferma «Butta via» aperto: consuma l\'entry dello sheet ma NON chiude nulla (guardia dialogAperto blocca onChiudi)', async () => {
+    const { onChiudi } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Butta via' }))
+    await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
+    expect(screen.getAllByRole('dialog')).toHaveLength(2) // Sheet + DialogConferma, entrambi aperti
+
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+
+    expect(onChiudi).not.toHaveBeenCalled()
+    // Entrambi restano visivamente aperti — l'entry di history è comunque stata consumata dal
+    // browser: qui si vede solo il sintomo (nulla si chiude), non la history stessa.
+    expect(screen.getAllByRole('dialog')).toHaveLength(2)
+    expect(screen.getByRole('dialog', { name: /butto via la cassetta c4/i })).toBeInTheDocument()
   })
 
   it('nessuna azione «Sposta il lavoro in…» su una cassetta libera (non c\'è lavoro da spostare)', () => {

@@ -91,6 +91,27 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * sotto-progetto 3), porta con sé `data-ds="v3"` — eccezione sanzionata alla
  * regola "solo il catalogo lo monta" (constraint 3), perché qui il DOM vive
  * fuori dal subtree del catalogo/pagina.
+ *
+ * G5 (verbale ri-collaudo #2) — back del telefono chiude lo sheet: history-entry marcata
+ * `{uaSheet:true}` pushata all'apertura, popstate la consuma e chiama `onChiudi`; alla
+ * chiusura esplicita si fa `history.back()` solo se l'entry è ancora in cima (v. commento
+ * sull'effect dedicato, sotto). Non interferisce con la catena pushState del pager
+ * (`StanzePager.alPopState`, guardia `window.location.pathname !== '/cassette'` — v. commento
+ * lì): il pop dell'entry dello sheet lascia il pathname invariato, il pager resta zitto.
+ *
+ * LIMITE NOTO (non risolto qui, fuori scope FIX-I): quando un `DialogConferma` si apre SOPRA
+ * questo sheet restando montato con `aperto` invariato (pattern `CassettaSheet`: la guardia
+ * `onChiudi={() => { if (!dialogAperto) onChiudi() }}`), un back del telefono consuma
+ * comunque l'UNICA entry pushata da questo componente — `onChiudi` gira ma la guardia lo
+ * blocca, quindi lo sheet (e il dialog sopra) restano visivamente aperti mentre la history
+ * ha già perso l'entry. Un secondo back naviga via dalla pagina sotto senza chiudere nulla
+ * (desync). Causa architetturale: ogni overlay ascolta `popstate` in isolamento con un
+ * proprio ref booleano — nessuno dei due sa "quanti livelli sono impilati sopra di me", quindi
+ * non può distinguere "la MIA entry è stata consumata" da "un'entry di un overlay sopra di me
+ * è stata consumata". Risolverlo per davvero richiede che anche `DialogConferma` adotti lo
+ * stesso pattern con discriminazione via `window.history.state` (non un secondo ref cieco,
+ * che chiuderebbe ENTRAMBI in un colpo solo, resuscitando il difetto che la guardia
+ * `dialogAperto` esiste per evitare) — riserva per un fix futuro dedicato, non FIX-I.
  */
 export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: string; children: ReactNode }) {
   const { aperto, onChiudi, titolo, children } = props
@@ -125,6 +146,50 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [aperto, onChiudi])
+
+  // G5 (verbale ri-collaudo #2) — il gesto back del telefono deve CHIUDERE lo sheet, non
+  // navigare sotto. Pattern history-entry standard dei bottom sheet: all'apertura si pusha
+  // un'entry «leggera» marcata `{ uaSheet: true }`; un popstate la consuma e chiude SOLO lo
+  // sheet; alla chiusura esplicita (scrim/grabber/Esc/«Chiudi»/azione completata — tutte
+  // instradano su `onChiudi`, mai duplicate qui) si fa `history.back()` SOLO se l'entry è
+  // ancora quella in cima (`entryInCimaRef`), così non si consuma un'entry altrui.
+  //
+  // `onChiudiRef` (non `onChiudi` nudo nelle deps sotto): `onChiudi` è quasi sempre una
+  // chiusura inline ricreata a ogni render del chiamante (es. CassettaSheet:
+  // `onChiudi={() => { if (!dialogAperto) onChiudi() }}`) — se l'effect dipendesse da
+  // `onChiudi` si ri-registrerebbe (e ri-pusherebbe/pop-erebbe una entry) a OGNI keystroke
+  // di un campo dentro lo sheet, non solo all'apertura/chiusura vera. L'effect sotto dipende
+  // SOLO da `aperto`: apre/chiude l'entry esattamente una volta per ciclo di vita dello sheet.
+  const onChiudiRef = useRef(onChiudi)
+  useEffect(() => {
+    onChiudiRef.current = onChiudi
+  }, [onChiudi])
+
+  const entryInCimaRef = useRef(false)
+  useEffect(() => {
+    if (!aperto) return
+    window.history.pushState({ uaSheet: true }, '')
+    entryInCimaRef.current = true
+    // Consumo dell'entry via gesto/back del browser: la traversal l'ha già fatta il browser
+    // (o, in test, l'evento sintetico) — qui si chiude lo stato React, MAI un secondo
+    // `history.back()` (raddoppierebbe la traversal).
+    function alPopState() {
+      if (!entryInCimaRef.current) return
+      entryInCimaRef.current = false
+      onChiudiRef.current()
+    }
+    window.addEventListener('popstate', alPopState)
+    return () => {
+      window.removeEventListener('popstate', alPopState)
+      // Chiusura esplicita (o smontaggio mentre aperto): se l'entry è ancora in cima (non
+      // consumata da un back già avvenuto), la disfiamo noi — mai lasciarla lì a farsi
+      // consumare da un back futuro che l'utente non si aspetta più legato a questo sheet.
+      if (entryInCimaRef.current) {
+        entryInCimaRef.current = false
+        window.history.back()
+      }
+    }
+  }, [aperto])
 
   // Blocco scroll "esteso" (bug QA live Francesco): il body deve restare
   // bloccato per TUTTA la discesa del pannello, non solo mentre `aperto` è

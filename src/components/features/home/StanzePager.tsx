@@ -283,9 +283,21 @@ export function StanzePager(props: {
   // ma il pager resta un componente client con un proprio stato `attiva`: nessuno lo riporta
   // sulle pile da solo. Questo listener chiude il cerchio, SENZA reload (`popstate` è un evento
   // same-document) e senza richiamare `history.back()` di nuovo (la traversal è già avvenuta).
+  //
+  // G5 (FIX-I) — guardia `window.location.pathname !== '/cassette'`: da quando il `Sheet` ds
+  // (v. `Sheet.tsx`) pusha una SUA entry «leggera» quando un `CassettaSheet`/`NuovaCassettaSheet`
+  // è aperto sul pannello, un back può consumare QUELLA entry (chiudendo solo lo sheet) invece
+  // di quella di questo pager — senza guardia, questo listener reagirebbe comunque (le due
+  // condizioni sopra restano vere) e riporterebbe erroneamente alle pile mentre l'utente ha
+  // solo chiuso uno sheet restando sulla parete. L'entry dello sheet non cambia l'indirizzo
+  // (`Sheet.tsx` pusha senza url, stessa pagina): il pathname resta `/cassette` finché
+  // l'entry consumata è la SUA, non quella di questo pager — quando invece è DAVVERO la entry
+  // del pager a essere consumata, il pathname torna alla pagina precedente (mai `/cassette`),
+  // e la guardia lascia passare la reazione. Verificato con `dedicated tests`
+  // (`stanze-pager.test.tsx`, describe «G5 — sheet embedded non interferisce…»).
   useEffect(() => {
     function alPopState() {
-      if (urlPushataRef.current && attivaRef.current === 'parete') {
+      if (urlPushataRef.current && attivaRef.current === 'parete' && window.location.pathname !== '/cassette') {
         urlPushataRef.current = false
         setUrlDivergente(false)
         setAttiva('pile')

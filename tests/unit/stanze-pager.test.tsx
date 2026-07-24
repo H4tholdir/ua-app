@@ -528,6 +528,81 @@ describe('StanzePager — remount con indirizzo già /cassette (QA device T15.8,
   })
 })
 
+// G5 (FIX-I, verbale ri-collaudo #2) — un `CassettaSheet` aperto sul pannello «embedded» pusha
+// la SUA entry di history (v. `Sheet.tsx`) SOPRA quella già pushata dal pager per `/cassette`
+// (v. describe URL sync sopra). Qui si presidia che le due catene NON si pestino i piedi: il
+// PRIMO back deve chiudere SOLO lo sheet (restando sulla parete), il SECONDO deve seguire la
+// catena esistente parete→pile. `window.location.pathname` è manipolato con `replaceState`
+// VERO (mai mockato in questo describe, stesso precedente della describe «remount» sopra) —
+// è la guardia che distingue "l'entry consumata è quella dello sheet" (pathname resta
+// `/cassette`, lo sheet pusha senza url) da "l'entry consumata è quella del pager" (pathname
+// torna alla pagina precedente).
+describe('StanzePager — G5, sheet embedded non interferisce con la catena pushState del pager', () => {
+  const percorsoOriginale = () => window.location.pathname
+  let percorsoDiPartenza: string
+
+  beforeEach(() => {
+    percorsoDiPartenza = percorsoOriginale()
+  })
+  afterEach(() => {
+    window.history.replaceState({}, '', percorsoDiPartenza)
+  })
+
+  it('1° back: chiude SOLO il CassettaSheet aperto, si resta sulla parete (il pager non reagisce) · 2° back: catena esistente, torna alle pile', async () => {
+    // Remount con l'indirizzo già /cassette (stesso precedente T15.8 sopra): il pager nasce con
+    // la parete attiva, `urlPushataRef`/`attivaRef` già coerenti — non serve passare dalla
+    // linguetta (che qui pusherebbe attraverso lo spy no-op, senza muovere il pathname reale).
+    window.history.replaceState({}, '', '/cassette')
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+
+    // Apre il CassettaSheet sulla cassetta libera «C12» (tap, v. PareteClient `onTap`): il
+    // `Sheet` ds pusha la sua entry marcata (spy no-op, il pathname reale resta `/cassette`).
+    fireEvent.click(within(pannello('parete')).getByRole('button', { name: 'Cassetta C12, libera' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+
+    // 1° back — il browser consuma l'entry dello sheet (pathname invariato, `/cassette`): lo
+    // sheet chiude, il pager NON deve richiamare la sua chiusura verso le pile.
+    historyBackSpy.mockClear()
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+    expect(pannello('pile')).toHaveAttribute('inert')
+    expect(historyBackSpy).not.toHaveBeenCalled()
+
+    // 2° back — QUESTA volta l'entry consumata è davvero quella del pager: il browser lascia
+    // `/cassette` per la pagina precedente (simulato col replaceState, stesso principio della
+    // describe «remount» sopra — qui la traversal l'ha già fatta il browser).
+    window.history.replaceState({}, '', '/dashboard')
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+  })
+
+  it('un back con lo sheet aperto ma su un percorso NON /cassette (ipotesi difensiva) non blocca comunque il pager se davvero si lascia la pagina', () => {
+    // Percorso di controllo: senza CassettaSheet aperto, un solo back sulla parete raggiunta
+    // dalla linguetta segue la catena invariata (nessuna regressione dalla guardia aggiunta).
+    const contesto = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(contesto.container)
+    simulaScroll('parete', 0.9)
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+  })
+})
+
 // QA device T15 (addendum 24/07, punto 3) — «niente TastoPiù nel lato cassette»: il chiamante
 // (HomeV3) decide la visibilità del piede da questo callback. Qui si presidia SOLO che il pager
 // lo chiami coi valori giusti, ai momenti giusti — la sparizione vera e propria del piede è un
