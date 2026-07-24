@@ -493,16 +493,36 @@
    (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. FIX-L: niente
    più `margin-top` — vive dentro `.ds-cassetta-fascia`, che porta già il proprio `gap: 2` verso
    la targa. */
+/* Review FIX-L (Importante, riscontrato in Chromium headless) — `.ds-cassetta-fascia` è
+   `align-items:center`: senza vincolo, `.ds-cassetta-cont` (flex item, colonna) shrink-wrappa sul
+   proprio contenuto invece di ereditare la larghezza REALE della fascia. Con un paziente lungo
+   («Maria Vittoria Del Grosso Esposito») il blocco cresceva ~175px, sforando fascia E tile sulle
+   celle vicine — l'ellissi sotto non scattava mai perché `.ds-cassetta-dent`/`-paz` non avevano
+   mai una larghezza-vincolo reale contro cui troncare. `align-self: stretch` fa ereditare a
+   `.ds-cassetta-cont` la larghezza di `.ds-cassetta-fascia` (il vincolo REALE, che cambia con la
+   colonna 3/4/6 della griglia — v. `.ds-parete-grid` sotto); `min-width: 0` toglie il floor
+   `min-width:auto` che i flex item hanno di default (altrimenti non potrebbero mai restringersi
+   sotto la larghezza intrinseca del testo `nowrap`, vanificando lo stretch). */
 [data-ds="v3"] .ds-cassetta-cont {
   position: relative; z-index: 1; text-align: center;
   display: flex; flex-direction: column; gap: 1px;
+  align-self: stretch; min-width: 0;
   font-size: 11.5px; line-height: 1.28;
   color: rgba(255,255,255,.95);
   text-shadow: 0 1px 1px rgba(0,0,0,.3);
 }
+/* `max-width: 96px` VERBATIM dal mockup ratificato (2026-07-25-cassetta-g10-rev3-p3-reale.html
+   righe ~97-98, `.dent`/`.paz{...max-width:96px}`). I due vincoli lavorano su assi diversi e
+   vince il più stretto (`min()` implicito di due max-width in cascata):
+   - Tile STRETTE (es. griglia 3 colonne su schermi piccoli, fascia interna < 96px): lo stretch
+     su `.ds-cassetta-cont` sopra è quello che tronca davvero — 96px da solo qui sforerebbe
+     ancora oltre la fascia reale, che è esattamente il difetto della review.
+   - Tile LARGHE (fascia interna > 96px, es. griglia 4/6 colonne o desktop): senza questo cap
+     `.ds-cassetta-cont` si stenderebbe fino al bordo reale della fascia, mostrando più testo di
+     quanto il mockup ratificato preveda — i 96px riproducono ESATTAMENTE la resa approvata. */
 [data-ds="v3"] .ds-cassetta-dent,
 [data-ds="v3"] .ds-cassetta-paz {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 96px;
 }
 /* Tipografia (verbale §7, vincolante — ovunque): il CLINICO è senza grassetto, il PAZIENTE è in
    grassetto. */

@@ -161,6 +161,31 @@ describe('FIX-L — componente Cassetta: struttura (fascia unica, miniatura scal
   })
 })
 
+describe('Review FIX-L (Importante) — nomi troncati DENTRO la fascia, non più liberi di sforare sulle celle vicine', () => {
+  // Riscontro empirico (Chromium headless): senza un vincolo di larghezza su `.ds-cassetta-cont`,
+  // la fascia è `align-items:center` → `.ds-cassetta-cont` (flex item, colonna) shrink-wrappa sul
+  // proprio contenuto invece di ereditare la larghezza reale della fascia. Con un paziente lungo
+  // («Maria Vittoria Del Grosso Esposito») il blocco cresce ~175px e sfora sia la fascia sia il
+  // tile, sulle celle confinanti — l'ellissi su `.ds-cassetta-dent`/`.ds-cassetta-paz` non scatta
+  // mai perché quei nodi non hanno mai una larghezza-vincolo contro cui troncare.
+  // jsdom non fa layout (niente scrollWidth/clientWidth reali) — stesso pattern del resto del
+  // file: verifichiamo testualmente le proprietà CSS che REALIZZANO il contenimento, sulle
+  // regole giuste, invece di un numero misurato in browser (quello vive in fixL-report.md).
+  it('.ds-cassetta-cont: align-self:stretch + min-width:0 — eredita la larghezza REALE della fascia (non shrink-wrap) a qualsiasi dimensione di tile', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/align-self: stretch;/)
+    expect(blocco![0]).toMatch(/min-width: 0;/)
+  })
+
+  it('.ds-cassetta-dent/.ds-cassetta-paz: max-width:96px (VERBATIM mockup rev.3 righe ~97-98, `.dent`/`.paz{...max-width:96px}`) — cap fisso che riproduce ESATTAMENTE il mockup quando la fascia è più larga di 96px', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent,\s*\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
+    expect(blocco, 'blocco condiviso .ds-cassetta-dent, .ds-cassetta-paz non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/max-width: 96px;/)
+    expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
+  })
+})
+
 describe('FIX-L — guardia della cavità RICALCOLATA per la nuova geometria: il caso peggiore resta ben sotto --track (220)', () => {
   // Il vecchio meccanismo di guardia (padding-top fisso pari al fondo della cavità) è stato
   // sostituito dal layout a flusso della fascia (v. commento in ds-v3.css su `.ds-cassetta`):
