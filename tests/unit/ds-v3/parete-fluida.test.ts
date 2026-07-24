@@ -115,7 +115,11 @@ describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica
       /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/
     )
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-image: url\("data:image\/svg\+xml,/)
-    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-size: 44px 44px;/)
+    // FIX-H, G6 (24/07) — il pattern light ora SEGUE --passo-maglia invece di un letterale
+    // fisso (era `44px 44px`, sfasava dal passo clampato della shell — v. commento di testa
+    // di `.ds-parete` in ds-v3.css e tests/unit/ds-v3/parete-gancio-cornice.test.ts per la
+    // dimostrazione sui valori risolti). Guardia aggiornata al valore corretto.
+    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-size: var\(--passo-maglia\) var\(--passo-maglia\);/)
     // QA device T15 (verbale 2026-07-24, addendum punto 5) — il fondo del muro era --bg-deep
     // (stonava col fondo pagina, screenshot Francesco): ora è --bg, lo stesso token del
     // page-root che ospita la parete (v. ds-v3.css per il ragionamento completo).

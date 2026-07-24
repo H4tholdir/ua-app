@@ -596,22 +596,39 @@
    ⚠️ ACCOPPIAMENTO: se cambia passo-maglia/hook-above, --track (calc automatico) resta multiplo
    esatto del passo per costruzione; --wire-center va invece ricalcolato (qui è già una calc()
    sugli stessi due ingredienti, quindi si aggiorna da sé).
-   ⚠️ LIMITE NOTO E ACCETTATO (rimando a QA Task 15/17, stessa categoria per entrambi i punti):
-   1) il pattern SVG light qui sotto ha la geometria HARDCODED al passo 44 (background-size
-      fisso `44px 44px`) — NON segue il clamp fluido di --passo-maglia nella shell (il verbale:
-      «il muro light usa il pattern a 44 fisso; la taratura fluida fine è demandata alla QA»).
+   ⚠️ LIMITE NOTO E ACCETTATO (rimando a QA Task 15/17):
+   1) [FIX-H, G6, RISOLTO 24/07 — verbale docs/design/decisions/2026-07-24-qa-device-meta-ondata.md
+      §G6, screenshot Francesco] il pattern SVG light AVEVA la geometria HARDCODED al passo 44
+      (`background-size: 44px 44px`) mentre --passo-maglia nella shell è un clamp fluido
+      (40-50px, sotto): il gancio veniva posizionato al passo RISOLTO (fino a 50px, misurato
+      —track risolto 250px ⇒ passo 50) ma i fili erano disegnati ogni 44px sempre — lo
+      sfasamento fra gancio e filo cresceva riga dopo riga. Fix: `background-size:
+      var(--passo-maglia) var(--passo-maglia)` (sotto) — il pattern segue lo STESSO passo
+      risolto dell'hook, per riferimento, non per un secondo calcolo da tenere sincronizzato a
+      mano. L'SVG (tile nativo 44×44, nessun viewBox) si scala uniformemente col
+      background-size: la geometria interna (spessori dei fili, nodo) scala in proporzione, MA
+      l'offset verticale che porta il primo filo alla quota giusta NON può più vivere dentro
+      l'SVG (scalerebbe proporzionalmente al passo, non restando ancorato al px assoluto
+      wire-center=10 che dipende da wall-pad-top/hook-above, NON dal passo) — è stato tolto
+      dal `<pattern y='8.5'>` e spostato su `background-position: 0 calc(var(--wire-center) -
+      var(--wire-w) / 2)`, IDENTICO al meccanismo già usato dal ramo dark sotto (stessa
+      formula, stesso significato: quota assoluta, indipendente dalla scala del tile).
+      Verifica: a passo 44 la formula risolve a 8.5 — lo stesso valore letterale di prima,
+      zero regressione visiva alla scala base; a passo ≠44 ora resta ancorata (prima
+      scalava proporzionalmente e divergeva). Guardia: test/unit/ds-v3/parete-gancio-cornice.test.ts.
    2) --wall-pad-top è fissato a 24px per il calcolo di --wire-center, ma sotto
       `.ds-parete-shell` il padding-top REALE resta quello della regola fluida preesistente
       (riga ~530 qui sotto, `clamp(22px, 3.8cqw, 28px)`, decisione 23/07/2026 non toccata da
       questo task): a larghezze intermedie della shell lo scarto gancio↔filo resta piccolo
-      (≤4px) ma non è mai perfettamente zero. Stesso bucket del punto 1, stesso rimando.
+      (≤4px) ma non è mai perfettamente zero. Residuo noto, non nel perimetro di FIX-H (G6
+      copriva solo il punto 1 — verbale).
    Dark: due repeating-linear-gradient piatti (nessun volume/ombra, legge v3) — verbatim dal
    ramo `.notte` del mockup: filo `rgba(255,255,255,.07)`, spessore --wire-w (3px). */
 [data-ds="v3"] .ds-parete {
   --passo-maglia: 44px; --track: calc(var(--passo-maglia) * 5); --hook-above: 14px;
   --wall-pad-top: 24px; --wire-center: calc(var(--wall-pad-top) - var(--hook-above)); --wire-w: 3px;
   position: relative; border-radius: 18px; padding: var(--wall-pad-top) 16px 18px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
   /* QA device T15 (verbale 2026-07-24, addendum punto 5, screenshot Francesco) — il fondo del
      muro era `--bg-deep`, un tono diverso dal fondo della pagina che lo ospita (`--bg`, dipinto
      inline dal page-root — v. nota di testa del file): la card della parete "stonava" contro la
@@ -621,7 +638,7 @@
      in dark l'alpha del filo è stata alzata .07→.09 (v. sotto) perché --bg è più chiaro di
      --bg-deep e il filo bianco-trasparente perdeva un po' di contrasto — unica modifica di
      alpha, annotata come richiesto dal verbale. PROPOSTA per il ri-collaudo di Francesco. */
-  background-repeat: repeat; background-size: 44px 44px; background-color: var(--bg);
+  background-repeat: repeat; background-size: var(--passo-maglia) var(--passo-maglia); background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2); background-color: var(--bg);
 }
 [data-theme="dark"] [data-ds="v3"] .ds-parete {
   --filo-flat: rgba(255,255,255,.09);
