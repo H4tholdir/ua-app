@@ -311,3 +311,15 @@ Esiti di Francesco (chat, 19:08, con screenshot /cassette):
    → Coincide (aggravato) coi concern dichiarati da implementer e reviewer H4c
    (flick senza velocità · contesa molla↔scroll-snap · riconciliazione da stanzaAttiva
    annotata come mitigazione): fix con riproduzione flick-veloci obbligatoria.
+
+### Addendum ri-collaudo #4 — appunto iPad (Francesco, 19:2x, foto /cassette da tablet)
+
+Tre difetti dalla visualizzazione su iPad (griglia a 6 colonne):
+1. **Cassette NON agganciate correttamente ai fili** della rete (gancetti fuori maglia).
+2. **Alcune cassette «rotte», altre no** (foto a verbale): nei tile rotti la finestra
+   e la fascia appaiono DISALLINEATE rispetto al corpo (finestra spostata in alto/sx,
+   fascia in basso/dx, pezzi che sporgono dalla sagoma). Colpite tra le altre:
+   C9, C12, C3, C21, C4, C16, C19, C20; normali: C5, C10, C8, C1, C7. Pattern non
+   ovvio dalla foto (miste libere/occupate) — da isolare in riproduzione.
+3. **Animazione del drag scattosa** su iPad (si collega al filone «iOS fluidità» già
+   in ROADMAP, ma da diagnosticare qui per distinguere cause nuove della wave).
