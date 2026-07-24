@@ -182,7 +182,22 @@ export function HomeV3(props: {
   // `onRilascioSwipe`/il resto della coreografia.
   const riconcilia = useCallback(() => {
     const bersaglio = bersaglioStanza(stanzaAttiva)
-    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) return
+    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) {
+      // FIX ri-collaudo #4 (review round 3) — PRIMA di questo fix un `return` nudo qui lasciava
+      // `progressoSwipe` frazionario (es. 0.9995) quando la differenza dal riposo era già sotto
+      // la soglia percettiva: impercettibile per l'OPACITÀ/SCALA (mappaPiedeSwipe è continua),
+      // ma `piedeSenzaIngombro` vuole `>= 1` ESATTO (invariante voluta, v. piede-swipe.ts — non
+      // va rilassata: "il riposo è esattamente 0 o 1") — quindi `is-vuoto` non scattava MAI in
+      // quella finestra, il box restava presente: lo stesso «blocco panna», ~1000× più stretto,
+      // ma ancora vivo. Atterra ESATTO con `.set()` (mai `animate`: il movimento residuo è
+      // sub-percettivo, una molla qui sarebbe lavoro sprecato) anche quando la differenza è già
+      // minima — coerente col ramo `ridotto` sotto, che fa lo stesso per un motivo diverso.
+      controlliRilascioRef.current?.stop()
+      controlliRilascioRef.current = null
+      rilasciandoRef.current = false
+      progressoSwipe.set(bersaglio)
+      return
+    }
     controlliRilascioRef.current?.stop()
     controlliRilascioRef.current = null
     if (ridotto) {

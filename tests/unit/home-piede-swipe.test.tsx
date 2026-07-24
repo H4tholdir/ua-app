@@ -665,6 +665,72 @@ describe('HomeV3 — riconciliazione da stanzaAttiva: nessuno stato di riposo pu
     }
   })
 
+  // FIX ri-collaudo #4 (review round 3) — CASO SCOPERTO dal reviewer: la guardia epsilon di
+  // `riconcilia` (`< 0.001 → return` nudo, PRIMA di questo fix) non era allineata alla soglia
+  // ESATTA di `piedeSenzaIngombro` (`>= 1`). Per un residuo DENTRO la finestra epsilon (es.
+  // 0.9995, diff 0.0005 < 0.001 — un assestamento a 0.39px dal bordo su DPR frazionario, uno
+  // scenario ANCORA più stretto del 0.998 del round 2, che l'ancora non copriva) il `return`
+  // nudo lasciava `progressoSwipe` frazionario per sempre: impercettibile per opacità/scala
+  // (continue), ma `is-vuoto` non scatta MAI sotto l'1 esatto — stesso «blocco panna», ~1000×
+  // più stretto, ma ancora vivo. Il test del round 2 (diff 0.00205) esercitava il punto in cui
+  // FUNZIONAVA, non questo residuo.
+  it('progress DENTRO la finestra epsilon (0.9995, diff < 0.001) con stanzaAttiva già sul bersaglio: dopo scrollend, progress === 1 esatto via .set() (mai animate), is-vuoto presente', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    simulaScroll(viewport, 273, 390) // gate armato
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i })) // stanzaAttiva -> parete, gate ancora armato -> nessuna molla
+    })
+    animateSpy.mockClear()
+    // l'ultimo tick lascia un residuo ANCORA più stretto del round 2, dentro la finestra epsilon.
+    simulaScroll(viewport, 389.8, 390) // 389.8/390 = 0.99948..., diff da 1 = 0.00052 < 0.001
+
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(false) // ancora NON collassato prima di scrollend
+
+    act(() => {
+      fireEvent(viewport, new Event('scrollend'))
+    })
+
+    expect(animateSpy).not.toHaveBeenCalled() // dentro la finestra epsilon: .set() diretto, MAI animate
+    // `mappaPiedeSwipe(1, false).tondoScala` è ESATTAMENTE 0 (clamp01(1-1)) SOLO se `progressoSwipe`
+    // è atterrato ESATTAMENTE a 1 — un residuo frazionario avrebbe dato uno scala > 0 e
+    // `is-vuoto` assente: le due assert insieme provano l'atterraggio esatto.
+    expect(nodo.style.getPropertyValue('--piede-tondo-scala')).toBe('0')
+    expect(nodo.classList.contains('is-vuoto')).toBe(true)
+  })
+
+  it('simmetrico: progress DENTRO la finestra epsilon (0.0005) con stanzaAttiva tornata sulle Pile: dopo scrollend, progress === 0 esatto via .set(), is-vuoto assente', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+    animateSpy.mockClear()
+
+    simulaScroll(viewport, 117, 390) // gate armato
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Indietro' })) // stanzaAttiva -> pile, gate ancora armato -> nessuna molla
+    })
+    animateSpy.mockClear()
+    simulaScroll(viewport, 0.2, 390) // 0.2/390 = 0.000512..., dentro la finestra epsilon verso 0
+
+    act(() => {
+      fireEvent(viewport, new Event('scrollend'))
+    })
+
+    expect(animateSpy).not.toHaveBeenCalled() // dentro la finestra epsilon: .set() diretto, MAI animate
+    // `mappaPiedeSwipe(0, false)` è pieno su tutti e tre gli assi SOLO se `progressoSwipe` è
+    // atterrato ESATTAMENTE a 0 — un residuo frazionario avrebbe dato scala < 1 ed
+    // etichetta non del tutto opaca.
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-tondo-scala')).toBe('1')
+    expect(nodo.style.getPropertyValue('--piede-etichetta-opacita')).toBe('1')
+    expect(nodo.classList.contains('is-vuoto')).toBe(false) // riposo su Pile: mai collassato
+  })
+
   it('al mount (deep-link diretto sulla Parete) non parte alcuna molla spuria', () => {
     const { container } = render(
       <HomeV3
