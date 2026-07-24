@@ -574,27 +574,48 @@
    Opzione B (decisione ratificata, verbale §H2 vincolo (a) sagoma unica + (c) nomi mai troncati
    di netto) rende quel comportamento PERMANENTE per il dent e uniforme per il paz, qualunque sia
    la lunghezza del nome — niente più soglia, niente più `is-shrink`, niente più `SOGLIA_NOME_LUNGO`
-   in Cassetta.tsx. Split verbatim dal mockup B (`.optB .dent`/`.optB .paz`, righe 156-160):
-   - DENT: va SEMPRE a capo tra le parole (mai un taglio a metà — `overflow-wrap:break-word`),
-     max 2 righe (`-webkit-line-clamp:2`), poi CLIP silenzioso (non ellipsis "…": un clinico che
-     sfora la 2ª riga è il residuo onestamente dichiarato dal mockup stesso, §"limite alla
-     larghezza vera" — vince comunque su un'abbreviazione o un rimpicciolimento non richiesti).
-     `mask-image:none` (esplicito, il mockup lo spegne apposta): il clamp basta da solo, non
-     serve la sfumatura qui.
-   - PAZ: resta SEMPRE 1 riga (`white-space:nowrap`), MA `text-overflow:clip` (non più
-     `ellipsis`) + una sfumatura morbida (`mask-image`, ereditata dal mockup base .paz, righe
-     130-131) sul bordo destro — questo è il "trattamento del caso limite" per il paziente a
-     NOME COMPLETO (delta ratificato H2): un nome che non entra sfuma invece di finire coi tre
-     puntini a metà parola (vincolo (c) del verbale, la stessa lamentela di Francesco su
-     "BARALE S.…"). Sui nomi che ci stanno, la maschera non tocca il testo (il fade comincia
-     all'84% della LARGHEZZA DEL BOX, non del testo — su un nome corto e centrato è oltre la
-     fine del testo, quindi invisibile). */
+   in Cassetta.tsx.
+   - PAZ: split verbatim dal mockup B (`.optB .paz`, riga 160) — resta SEMPRE 1 riga
+     (`white-space:nowrap`), MA `text-overflow:clip` (non più `ellipsis`) + una sfumatura morbida
+     (`mask-image`, ereditata dal mockup base .paz, righe 130-131) sul bordo destro — questo è il
+     "trattamento del caso limite" per il paziente a NOME COMPLETO (delta ratificato H2): un nome
+     che non entra sfuma invece di finire coi tre puntini a metà parola (vincolo (c) del verbale,
+     la stessa lamentela di Francesco su "BARALE S.…"). Sui nomi che ci stanno, la maschera non
+     tocca il testo (il fade comincia all'84% della LARGHEZZA DEL BOX, non del testo — su un nome
+     corto e centrato è oltre la fine del testo, quindi invisibile).
+   - DENT: qui il mockup B (`.optB .dent`, `-webkit-line-clamp:2` + `mask-image:none`) NON è
+     stato ripreso verbatim — ADJUDICAZIONE del controller (post-implementazione, sulla base
+     della prosa ratificata in `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H2: "la
+     sfumatura morbida, mai ellipsis netta" — dove la prosa vincolante contraddice il CSS
+     letterale del mockup, vince la prosa): misurato empiricamente (Playwright, harness a
+     parte) che `-webkit-line-clamp` inietta SEMPRE una "…" sull'ultima riga quando il
+     contenuto eccede le 2 righe, IGNORANDO `text-overflow` — non sopprimibile col solo CSS,
+     su un nome clinico davvero estremo (>~26 caratteri) questo riproduce ESATTAMENTE la
+     lamentela originale del verbale ("STUDI MEDICI DI SANTI…"). Sostituito con un clip ad
+     ALTEZZA dichiarata (`max-height: calc(2 * 1.16em)`, ancorata allo stesso line-height 1.16
+     del mockup: 2 righe esatte, il taglio cade nel gap tra riga 2 e riga 3, mai a metà glifo —
+     misurato) + una sfumatura CONDIZIONALE (`.is-troncato`, sotto) applicata SOLO quando
+     `Cassetta.tsx` misura in JS un overflow reale (`scrollHeight > clientHeight`): un clinico
+     che riempie ESATTAMENTE 2 righe senza sforare non prende MAI la classe, quindi la
+     sfumatura non "mangia" lettere legittime dell'ultima riga (a differenza di un mask
+     permanente legato a un confine di altezza fisso, che rischierebbe di attenuare glifi
+     realmente visibili). */
 [data-ds="v3"] .ds-cassetta-dent {
   font-weight: 400; opacity: .94;
   white-space: normal; overflow-wrap: break-word; word-break: normal;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  display: block; overflow: hidden;
   font-size: 10px; line-height: 1.16;
-  mask-image: none; -webkit-mask-image: none;
+  max-height: calc(2 * 1.16em);
+}
+/* Sfumatura del clinico troncato (H2, adjudicazione — v. commento sopra): SOLO sull'ultima
+   fetta verticale del blocco (~4-5px su 23.2px totali, 20% ≈ 4.6px), applicata SOLO quando
+   `.is-troncato` è presente (misurata in JS in Cassetta.tsx via ResizeObserver + scrollHeight/
+   clientHeight — pattern di classe-calcolata-a-runtime già in uso nel componente per gli altri
+   stati, es. `is-chiara`/`is-nera`/`is-accesa`, qui esteso a una misura DOM reale invece che a
+   un dato noto in anticipo). */
+[data-ds="v3"] .ds-cassetta-dent.is-troncato {
+  mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
 }
 [data-ds="v3"] .ds-cassetta-paz {
   font-weight: 700;

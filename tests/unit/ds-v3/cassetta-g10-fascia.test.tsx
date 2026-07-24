@@ -106,16 +106,31 @@ describe('Targa: dimensioni ridotte per la fascia compatta, MA il segnale di sta
 })
 
 describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SEMPRE 1 riga con sfumatura — niente più soglia/is-shrink', () => {
-  it('.ds-cassetta-dent: wrap permanente (non più condizionato da is-shrink), clamp a 2 righe, font 10/1.16, mask-image spenta (il clamp basta da solo)', () => {
+  it('ADJUDICAZIONE (post-implementazione): .ds-cassetta-dent NON usa -webkit-line-clamp — clip ad altezza dichiarata (2 righe esatte), mai una ellissi "…" forzata dal browser', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-dent non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/white-space: normal;/)
     expect(blocco![0]).toMatch(/overflow-wrap: break-word;/)
-    expect(blocco![0]).toMatch(/-webkit-line-clamp: 2;/)
-    expect(blocco![0]).toMatch(/-webkit-box-orient: vertical;/)
+    expect(blocco![0]).toMatch(/display: block; overflow: hidden;/)
+    expect(blocco![0]).toMatch(/max-height: calc\(2 \* 1\.16em\);/)
     expect(blocco![0]).toMatch(/font-size: 10px; line-height: 1\.16;/)
-    expect(blocco![0]).toMatch(/mask-image: none;/)
     expect(blocco![0]).toMatch(/font-weight: 400; opacity: \.94;/)
+    // guardia negativa: il meccanismo del mockup B (-webkit-line-clamp) inietta SEMPRE una "…"
+    // (misurato, non sopprimibile con text-overflow) — il verbale vieta l'ellissi netta, quindi
+    // NON deve ricomparire qui (v. commento CSS per la misura empirica).
+    expect(blocco![0]).not.toMatch(/-webkit-line-clamp/)
+    expect(blocco![0]).not.toMatch(/-webkit-box-orient/)
+  })
+
+  it('.ds-cassetta-dent.is-troncato: sfumatura verticale SOLO quando applicata (misurata in JS, non in CSS puro) — mai un mask permanente legato al confine di altezza', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent\.is-troncato \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-dent.is-troncato non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/mask-image: linear-gradient\(180deg, #000 80%, transparent 100%\);/)
+    // guardia negativa: la regola BASE .ds-cassetta-dent (senza .is-troncato) non deve portare
+    // un mask-image proprio — altrimenti sfumerebbe SEMPRE, anche sui nomi che riempiono le 2
+    // righe senza sforare (esattamente il rischio che l'adjudicazione vuole evitare).
+    const base = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent \{[^}]*\}/)
+    expect(base![0]).not.toMatch(/mask-image/)
   })
 
   it('.ds-cassetta-paz: SEMPRE 1 riga (nowrap), MA text-overflow:clip (non più ellipsis) + sfumatura morbida (mask-image) — mai i tre puntini a metà nome (vincolo (c) del verbale)', () => {
@@ -140,6 +155,68 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
   it('.ds-cassetta-cont: niente margin-top (vive dentro la fascia, che porta già il proprio gap verso la targa) — invariato', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco![0]).not.toMatch(/margin-top/)
+  })
+})
+
+describe('H2 — adjudicazione: is-troncato MISURATO in JS (scrollHeight/clientHeight), non dedotto dalla lunghezza della stringa', () => {
+  // jsdom non fa layout reale: scrollHeight/clientHeight sono 0 di default su ogni nodo — qui
+  // stubbiamo i due getter (entrambi configurabili su Element.prototype in jsdom, verificato)
+  // per simulare un overflow reale PRIMA del render, così la misura sincrona dentro il primo
+  // `useEffect` (che gira durante l'`act()` implicito di `render()`) la rileva. Il
+  // `ResizeObserver` non esiste in jsdom (il componente lo guarda con `typeof` prima di usarlo:
+  // nessun crash, semplicemente non osserva — la misura iniziale resta comunque valida).
+  function stubAltezze(scrollHeight: number, clientHeight: number) {
+    const scrollDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')!
+    const clientDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')!
+    Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => scrollHeight })
+    Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => clientHeight })
+    return () => {
+      Object.defineProperty(Element.prototype, 'scrollHeight', scrollDesc)
+      Object.defineProperty(Element.prototype, 'clientHeight', clientDesc)
+    }
+  }
+
+  it('default jsdom (scrollHeight === clientHeight, nessun overflow reale): NESSUNA classe is-troncato, anche con un nome estremo', () => {
+    render(
+      <Cassetta id="c1" nome="C12" colore="rossa"
+        lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+        stato="normale" onTap={() => {}}
+      />
+    )
+    const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+    expect(dent?.className).not.toContain('is-troncato')
+  })
+
+  it('scrollHeight > clientHeight (overflow reale simulato): APPLICA is-troncato', () => {
+    const ripristina = stubAltezze(40, 23) // 2 righe da 11.6px = 23.2, contenuto reale più alto
+    try {
+      render(
+        <Cassetta id="c2" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('scrollHeight === clientHeight (2 righe esatte, NESSUno sforo reale): NON applica is-troncato — la sfumatura non deve mangiarsi lettere legittime', () => {
+    const ripristina = stubAltezze(23, 23)
+    try {
+      render(
+        <Cassetta id="c3" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studio Di Santi Rossi' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
   })
 })
 

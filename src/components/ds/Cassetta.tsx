@@ -34,9 +34,20 @@
 // 40×0.58≈23.2). Risultato: la sagoma è unica per COSTRUZIONE (mai più di 132px di contenuto di
 // flusso), non serve più calcolare una soglia sul testo — `SOGLIA_NOME_LUNGO`/`nomeLungo`/
 // `is-nome-lungo`/`is-shrink` sono RIMOSSI, non sostituiti. Il clinico va SEMPRE a capo (max 2
-// righe, mockup `.optB .dent`), il paziente resta SEMPRE 1 riga con una sfumatura morbida sul
-// bordo (mockup `.optB .paz` + base `.paz` — mai un'ellissi "…" a metà nome, vincolo (c) del
-// verbale). Misure reali (real-render Playwright) in `.superpowers/sdd/h2-impl-report.md`.
+// righe), il paziente resta SEMPRE 1 riga con una sfumatura morbida sul bordo (mockup
+// `.optB .paz` + base `.paz` — mai un'ellissi "…" a metà nome, vincolo (c) del verbale). Misure
+// reali (real-render Playwright) in `.superpowers/sdd/h2-impl-report.md`.
+//
+// H2 — ADJUDICAZIONE (post-implementazione, dal controller): il mockup B usa
+// `-webkit-line-clamp:2` per il clinico, ma quel meccanismo inietta SEMPRE un'ellissi "…"
+// quando il testo eccede 2 righe (misurato: `text-overflow` non la sopprime) — su un nome
+// clinico estremo riproduce esattamente la lamentela originale del verbale ("STUDI MEDICI DI
+// SANTI…"). Dove la prosa ratificata ("sfumatura morbida, mai ellipsis netta") contraddice il
+// CSS letterale del mockup, vince la prosa. Il clinico è quindi tagliato con un `max-height`
+// dichiarato (2 righe esatte, MAI `-webkit-line-clamp`) + una sfumatura APPLICATA SOLO quando
+// `dentRef`/`dentTroncato` (sotto) misurano un overflow REALE nel DOM — mai un mask permanente
+// legato al confine di altezza, che rischierebbe di attenuare lettere legittime sui nomi che
+// riempiono le 2 righe senza sforare. V. `.ds-cassetta-dent`/`.is-troncato` in ds-v3.css.
 //
 // Le 6 coppie di gradiente standard (righe 77-82 del mockup) sono FISSE e verbatim — vivono come
 // classi CSS in `src/app/ds-v3.css` (`.ds-cassetta.<slug>`), non come token derivato: sono valori
@@ -69,7 +80,7 @@
 //    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
 //    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
@@ -240,6 +251,46 @@ export function Cassetta(props: {
 
   // P9-bis: allo smontaggio nessun recupero resta armato su window.
   useEffect(() => () => smontaRecupero.current?.(), [])
+
+  // H2 (0c37f25, adjudicazione post-implementazione — v. commento su `.ds-cassetta-dent` in
+  // ds-v3.css) — il clinico è tagliato ad altezza fissa (2 righe, CSS `max-height`), MAI con
+  // `-webkit-line-clamp` (quel meccanismo inietta sempre una "…" che il verbale vieta). La
+  // sfumatura che segnala "il nome continua" va applicata SOLO quando il taglio è REALE — non
+  // possiamo saperlo dalla sola lunghezza della stringa (dipende dal font reale E dalla
+  // larghezza della colonna, che è fluida — v. brief §"larghezza fluida"), quindi si MISURA nel
+  // DOM dopo il render: `scrollHeight > clientHeight` sul nodo del clinico. `ResizeObserver`
+  // (non solo un effetto al mount) perché la stessa cassetta può ricevere più o meno spazio
+  // quando la griglia cambia colonne (3/4/6) senza che il componente si smonti — la larghezza
+  // disponibile per il testo cambia, quindi il bisogno del taglio può comparire o sparire.
+  const dentRef = useRef<HTMLSpanElement | null>(null)
+  const [dentTroncato, setDentTroncato] = useState(false)
+  useEffect(() => {
+    const nodo = dentRef.current
+    if (!nodo) {
+      setDentTroncato(false)
+      return
+    }
+    let vivo = true
+    const misura = () => {
+      if (vivo) setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+    }
+    misura()
+    // I font web (Plus Jakarta Sans) possono ancora caricare al primo render: una ri-misura a
+    // caricamento completato evita un falso negativo/positivo transitorio sulla metrica del
+    // fallback font.
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(misura)
+    }
+    let ro: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(misura)
+      ro.observe(nodo)
+    }
+    return () => {
+      vivo = false
+      ro?.disconnect()
+    }
+  }, [lavoro?.dentista])
 
   function pulisciTimer() {
     if (timer.current) {
@@ -536,7 +587,9 @@ export function Cassetta(props: {
           <span className="ds-cassetta-cont">
             {lavoro ? (
               <>
-                <span className="ds-cassetta-dent">{lavoro.dentista}</span>
+                <span ref={dentRef} className={`ds-cassetta-dent${dentTroncato ? ' is-troncato' : ''}`}>
+                  {lavoro.dentista}
+                </span>
                 <span className="ds-cassetta-paz">{pazienteReso}</span>
               </>
             ) : (
