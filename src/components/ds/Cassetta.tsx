@@ -16,6 +16,16 @@
 // font poi 2 righe (verbale §8). La prop `inCollisione`/`targheInCollisione` (Task 1) NON si
 // consuma qui — resta esportata per chi la usa altrove (es. ricerca), O1 non la vuole in targa.
 //
+// FIX-L (G10, RATIFICA FINALE 25/07, mockup `2026-07-25-cassetta-g10-rev3-p3-reale.html`
+// variante P3b, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §G10):
+// «fascia etichetta» — targa+cont non sono più due elementi affiancati liberi nel corpo del
+// tile, ma vivono DENTRO un contenitore unico `.ds-cassetta-fascia` (compatto, abbraccia il
+// contenuto, ancorato in basso), identico per libere e occupate. La cavità sale (8..74, era
+// 18..64) e la miniatura scala di conseguenza (§56% — v. `height={37}` sotto). La targa
+// mantiene il segnale di stato (anello quando libera, piena bianca quando occupata — gate
+// targa Task 10 pienamente in vigore, precisazione Francesco 25/07 vincolante): la sola
+// STRUTTURA (fascia/finestra/bordino) è uniforme, non la targa.
+//
 // Le 6 coppie di gradiente standard (righe 77-82 del mockup) sono FISSE e verbatim — vivono come
 // classi CSS in `src/app/ds-v3.css` (`.ds-cassetta.<slug>`), non come token derivato: sono valori
 // letterali già ratificati (brief Task 10, risoluzione 4 — "non normalizzarla, non derivarla da
@@ -402,18 +412,6 @@ export function Cassetta(props: {
   // standard sono le 6 facce fisse del mockup, mai quasi-nere.
   const nera = !classeColoreStandard && facciaScura(colore)
 
-  const classi = [
-    'ds-cassetta',
-    classeColoreStandard,
-    occupata ? undefined : 'is-libera',
-    scura ? 'is-chiara' : undefined,
-    nera ? 'is-nera' : undefined,
-    stato === 'accesa' ? 'is-accesa' : undefined,
-    draggable ? 'is-draggable' : undefined,
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   // Task 10 (D4) — «parlato» del paziente: l'alias (Task 1) vince sul codice, Title Case solo
   // sull'alias (mai sul codice, verbatim §6). MAI il numero lavoro né la descrizione/tipo: la
   // targa dice solo chi e per chi, il dettaglio si apre nella cassetta (verbale §6/§9).
@@ -422,6 +420,34 @@ export function Cassetta(props: {
       ? titleCase(lavoro.pazienteAlias)
       : (lavoro.paziente ?? '—')
     : ''
+
+  // FIX-L — guardia della cavità RICALCOLATA per la nuova geometria (brief: «oggi tarata su
+  // padding-top 66/cavità 18..64; la nuova è 8..74 + fascia in flusso»). Misura reale
+  // (Playwright, harness `scripts/tmp/fixL-misura.html`, non committato — v. fixL-report.md):
+  // con la fascia in flusso (`.ds-cassetta` senza più un padding-top fisso, `justify-content:
+  // flex-end`) il caso RATIFICATO (0 o 1 riga per il clinico, mai in `is-shrink`) resta
+  // sotto min-height 132 con margine (fascia-top misurato ≥65.5, ben sopra il fondo della
+  // miniatura ≈59.5) — IDENTICO al rendering reale del mockup P3b. Il solo caso a rischio è
+  // quello con `is-shrink` attivo (T2, Opzione A): lì il caso PEGGIORE misurato (dentista 2
+  // righe + paziente 1 riga NON shrink, che essendo a font 11.5 invece di 10 è più alto della
+  // coppia shrink+shrink) porta la fascia a un solo ~1px dal fondo della miniatura — troppo
+  // fragile tra motori/metriche font diverse. `is-nome-lungo` alza min-height a 142 SOLO in
+  // quel caso (clearance misurata ≥7.8px in ogni combinazione provata), restando ben sotto
+  // `--track` (220, v. `.ds-parete` in ds-v3.css) — nessun impatto sul caso comune.
+  const nomeLungo = !!lavoro && (lavoro.dentista.length > SOGLIA_NOME_LUNGO || pazienteReso.length > SOGLIA_NOME_LUNGO)
+
+  const classi = [
+    'ds-cassetta',
+    classeColoreStandard,
+    occupata ? undefined : 'is-libera',
+    scura ? 'is-chiara' : undefined,
+    nera ? 'is-nera' : undefined,
+    nomeLungo ? 'is-nome-lungo' : undefined,
+    stato === 'accesa' ? 'is-accesa' : undefined,
+    draggable ? 'is-draggable' : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   const etichetta = lavoro
     ? `Cassetta ${nome}, occupata: ${lavoro.dentista}, paziente ${pazienteReso}`
@@ -491,22 +517,31 @@ export function Cassetta(props: {
           />
         </svg>
         <span className="ds-cassetta-cavita">
-          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} />}
+          {/* FIX-L — finestra 8..74 (era 18..64): la miniatura scala a ~56% dell'altezza della
+              cavità (66px → 37px, verbatim mockup rev.3 `.fin svg{height:56%}`), invariata
+              nel resto (SVG inline, mai <img>). */}
+          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} height={37} />}
         </span>
-        <span className="ds-cassetta-targa">{nome}</span>
-        <span className="ds-cassetta-cont">
-          {lavoro ? (
-            <>
-              <span className={`ds-cassetta-dent${lavoro.dentista.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
-                {lavoro.dentista}
-              </span>
-              <span className={`ds-cassetta-paz${pazienteReso.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
-                {pazienteReso}
-              </span>
-            </>
-          ) : (
-            'libera'
-          )}
+        {/* FIX-L — «fascia etichetta»: targa+cont vivono ora dentro questo unico contenitore
+            compatto, ancorato in basso, identico per libere e occupate (struttura uniforme,
+            ratifica G10). La targa dentro NON perde il segnale di stato (anello/piena — gate
+            Task 10 invariato, v. CSS). */}
+        <span className="ds-cassetta-fascia">
+          <span className="ds-cassetta-targa">{nome}</span>
+          <span className="ds-cassetta-cont">
+            {lavoro ? (
+              <>
+                <span className={`ds-cassetta-dent${lavoro.dentista.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
+                  {lavoro.dentista}
+                </span>
+                <span className={`ds-cassetta-paz${pazienteReso.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
+                  {pazienteReso}
+                </span>
+              </>
+            ) : (
+              'libera'
+            )}
+          </span>
         </span>
       </button>
     </>

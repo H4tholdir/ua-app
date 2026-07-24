@@ -294,26 +294,26 @@
   gap: 0;
   border: none;
   border-radius: 10px 10px 12px 12px;
-  /* Gate L2 (22/07/2026) — guardia della cavità: il padding-top passa da 9 a
-     44. Nel caso ratificato (contenuto su 1 riga) NON cambia un pixel: lo
-     stack targa+riga è alto 50 e ancorato in basso (flex-end), quindi
-     44 + 50 + 10 = 104 = min-height, targa top a 44 come nel mockup. Quando
-     però il contenuto va a capo (numero lavoro lungo, misurato a 390px), il
-     testo non può più risalire sopra y=44 a coprire la cavità (fascia 5..51,
-     miniatura 11..45): il tile cresce verso il basso invece di invadere.
-     Lavora in coppia con il clamp a 2 righe di `.ds-cassetta-cont` (sotto).
-     Task 9 (D1, mockup 2026-07-24-rete-gancetto-targa.html rev.3 §3, verbale
-     §4/§Vincoli Task 8-10) — RESPIRO tra la miniatura e la linguetta del
-     gancetto (direttiva Francesco: mai accavallare): 44→66 VERBATIM dal
-     mockup (`.cassetta{padding:66px 10px 12px;min-height:132px}`). Non
-     invade il tile naturale nella traccia fissa da 176px del muro (Task 8,
-     decisione §3: «il tile naturale sta comodo sotto i 176»). QA device T15 (verbale
-     2026-07-24, fix 7/e, 25/07) — la traccia È SALITA a 220px (v. `.ds-parete` sotto): il
-     tile a UNA riga (min-height 132, questo commento) restava comodo anche a 176, il
-     problema era il caso T2 a DUE righe (dentista+paziente entrambi >20 caratteri, ~158px
-     misurati in browser), che a 176 clippava il gancio della riga sotto — v. `.ds-parete`
-     per la misura e il ragionamento. */
-  padding: 66px 10px 12px;
+  /* FIX-L (G10, RATIFICA FINALE 25/07, mockup 2026-07-25-cassetta-g10-rev3-p3-reale.html P3b)
+     — SOSTITUISCE il vecchio meccanismo di guardia (era `padding: 66px 10px 12px`, un
+     padding-top fisso che riservava SEMPRE lo spazio della cavità nel flusso). La nuova
+     «fascia etichetta» (`.ds-cassetta-fascia` sotto) abbraccia il proprio contenuto e vive
+     SOLO nel flusso (la cavità resta assoluta, fuori flusso): niente padding qui, la fascia è
+     l'unico figlio di flusso e `justify-content: flex-end` la ancora in basso da sola, esattamente
+     come il mockup ratificato (`.k` senza alcun padding). Misura reale (Playwright headless contro IL
+     MOCKUP COMMITTATO, non un ricalco — v. fixL-report.md): col caso ratificato (targa+"libera"
+     1 riga, o dentista+paziente corti 2 righe MAI in is-shrink) il tile resta a min-height 132
+     — IDENTICO, byte-per-byte di misura, al rendering del mockup P3b (fascia-top 65.6/81.3px,
+     ben sopra il fondo della miniatura ≈59.5px: TUTTO invariato per il caso comune, come da
+     brief). Il solo caso a rischio è quello con `.is-shrink` attivo (T2, Opzione A nomi lunghi,
+     sotto): lì la clearance misurata scende a ~1px dal fondo della miniatura — troppo fragile
+     tra motori di rendering/metriche font diversi. `.is-nome-lungo` (sotto) alza min-height a
+     142px SOLO in quel caso (classe applicata da Cassetta.tsx quando dentista O paziente
+     supera `SOGLIA_NOME_LUNGO`), riportando la clearance a ≥7.8px misurati nel caso peggiore
+     (dentista 2 righe + paziente 1 riga NON shrink, la combinazione più alta perché il
+     paziente a font 11.5 è più alto della coppia shrink+shrink) — 142px resta ben sotto
+     `--track` (220px, v. `.ds-parete`). */
+  padding: 0;
   min-height: 132px;
   min-width: 44px;
   cursor: pointer;
@@ -335,6 +335,10 @@
   box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4);
 }
 [data-ds="v3"] .ds-cassetta.is-draggable { cursor: grab; }
+/* FIX-L — guardia della cavità per i nomi lunghi (v. commento sopra su `.ds-cassetta`): alza il
+   pavimento SOLO quando `.is-shrink` è in gioco (classe gemella calcolata in Cassetta.tsx dalla
+   stessa `SOGLIA_NOME_LUNGO`), lasciando invariato il caso comune. */
+[data-ds="v3"] .ds-cassetta.is-nome-lungo { min-height: 142px; }
 
 /* Task 13 — cella di riordino: il wrapper `motion.div layout` che fa FLIP le sorelle. È l'item di
    griglia; la cassetta dentro riempie la colonna. `min-width:0` evita che il contenuto forzi la
@@ -434,23 +438,49 @@
   box-shadow: inset 0 3px 6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.15);
 }
 
-/* Task 9 (D1) — `inset` top 5→18: RESPIRO tra la linguetta/gancetto e la miniatura del lavoro
-   (direttiva Francesco, verbale §4: mai accavallare), VERBATIM dal mockup
-   (`.cassetta .cavita{inset:18px 6px auto 6px;height:46px}`). Coppia col padding-top 66 di
-   `.ds-cassetta` sopra. */
+/* FIX-L (G10, mockup rev.3 P3b) — bordo alto sottile: la finestra sale a 8..74 (era 18..64,
+   VERBATIM `.fin{inset:8px 6px auto 6px;height:66px}`) — 8px di bordino visibile tra il fondo
+   della finestra e il bordo alto della fascia (sotto). Stile della cavità INVARIATO (bg/inset
+   shadow/radius). */
 [data-ds="v3"] .ds-cassetta-cavita {
-  position: absolute; inset: 18px 6px auto 6px; height: 46px;
+  position: absolute; inset: 8px 6px auto 6px; height: 66px;
   border-radius: 7px;
   background: rgba(0,0,0,.18);
   box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
   display: flex; align-items: center; justify-content: center;
 }
 
+/* FIX-L — «fascia etichetta» (sostituisce targa+cont liberi nel corpo del tile): unico
+   contenitore in flusso, VERBATIM dal mockup rev.3 P3b (`.fascia{margin:0 4px 4px;
+   border-radius:4px 4px 9px 9px;padding:5px 8px 6px;background:rgba(0,0,0,.28);box-shadow:
+   inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12)}`), colonna centrata
+   gap 2. Struttura UNIFORME per libere e occupate (ratifica G10) — abbraccia il contenuto,
+   NIENTE min-height fissa: 1 riga per le libere, 2 per le occupate, cresce coi nomi lunghi
+   (v. `.is-nome-lungo` su `.ds-cassetta` sopra). */
+[data-ds="v3"] .ds-cassetta-fascia {
+  position: relative; z-index: 1;
+  margin: 0 4px 4px;
+  border-radius: 4px 4px 9px 9px;
+  padding: 5px 8px 6px;
+  background: rgba(0,0,0,.28);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+/* Contrasto-auto (targaScura, invariato): faccia chiara → fascia più chiara, VERBATIM mockup. */
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-fascia {
+  background: rgba(29,25,19,.14);
+}
+
+/* Targa — gate Task 10 PIENAMENTE in vigore (precisazione Francesco 25/07, vincolante):
+   questa è la resa PIENA (bianca), cioè quella dell'occupata — l'uniformità G10 riguarda SOLO
+   la struttura (fascia/finestra/bordino), non il segnale di stato della targa. Dimensioni
+   ridotte per stare nella fascia compatta (VERBATIM mockup rev.3: font 12.5/800, radius 6,
+   padding 1px 8px 2px, max-width 8ch — era 14px/800/radius 8/padding 3px 10px 4px/6ch). */
 [data-ds="v3"] .ds-cassetta-targa {
   position: relative; z-index: 1; align-self: center;
-  max-width: 6ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
-  font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+  max-width: 8ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: rgba(255,255,255,.92); border-radius: 6px; padding: 1px 8px 2px;
+  font-size: 12.5px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
   box-shadow: 0 1px 2px rgba(0,0,0,.25);
 }
 /* Task 10 (D4, punto 12) — «la targa nuova», VERBATIM dal mockup ratificato
@@ -460,9 +490,11 @@
    `overflow:hidden` lì taglierebbe il gancetto che sporge sopra il bordo (verbale, vincoli
    Task 8-10). `display:flex;flex-direction:column` sostituisce il vecchio `-webkit-line-clamp:2`
    applicato all'intero blocco (Gate L2 22/07): quel clamp mescolava due informazioni diverse
-   (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. */
+   (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. FIX-L: niente
+   più `margin-top` — vive dentro `.ds-cassetta-fascia`, che porta già il proprio `gap: 2` verso
+   la targa. */
 [data-ds="v3"] .ds-cassetta-cont {
-  position: relative; z-index: 1; text-align: center; margin-top: 5px;
+  position: relative; z-index: 1; text-align: center;
   display: flex; flex-direction: column; gap: 1px;
   font-size: 11.5px; line-height: 1.28;
   color: rgba(255,255,255,.95);
@@ -476,14 +508,20 @@
    grassetto. */
 [data-ds="v3"] .ds-cassetta-dent { font-weight: 400; opacity: .94; }
 [data-ds="v3"] .ds-cassetta-paz { font-weight: 700; }
-/* T2 (verbale §8, ratificata — T1 scartata): nome lungo, shrink a 10px poi 2 righe + tronca. Il
-   peso NON cambia col rimpicciolimento (resta 400/700 come sopra, ereditato). */
-[data-ds="v3"] .ds-cassetta-dent.is-shrink,
-[data-ds="v3"] .ds-cassetta-paz.is-shrink {
+/* FIX-L — Opzione A ratificata (25/07): il CLINICO può andare a capo (corpo 10px, line-height
+   1.15, max 2 righe poi tronca — riusa la meccanica shrink T2, estesa da "shrink su soglia" a
+   "wrap sempre permesso quando non ci sta"). Il PAZIENTE resta SEMPRE 1 riga bold ellipsis
+   (verbale G10 finale): stesso font ridotto quando lungo, ma SENZA `white-space:normal`/
+   line-clamp — eredita `white-space:nowrap` dalla regola base sopra, quindi tronca su una riga
+   sola come sempre. */
+[data-ds="v3"] .ds-cassetta-dent.is-shrink {
   font-size: 10px; line-height: 1.15; white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+[data-ds="v3"] .ds-cassetta-paz.is-shrink {
+  font-size: 10px; line-height: 1.15;
 }
 /* Contrasto automatico per luminanza (targaScura, Cassetta.tsx): faccia chiara → inchiostro
    scuro sulla riga; il clinico si affievolisce anche di più (.94→.7, verbatim mockup) perché
@@ -493,6 +531,8 @@
 }
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-dent { opacity: .7; }
 
+/* Targa ad ANELLO quando libera (segnale di stato — precisazione Francesco 25/07, vincolante:
+   l'uniformità G10 è SOLO strutturale, la targa resta il segnale binario libera/occupata). */
 [data-ds="v3"] .ds-cassetta.is-libera .ds-cassetta-targa {
   background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9);
 }
