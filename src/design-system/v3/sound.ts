@@ -13,6 +13,15 @@
 // la finestra reale fra dito-giù e dito-su per completarsi prima che il tap chiami `suona()`.
 // touchend/click restano come fallback per i rari contesti senza Pointer Events.
 // I suoni NON veicolano mai informazione esclusiva (c'è sempre il visivo — L3).
+//
+// H1b (verbale QA 2026-07-24, stesso punto D1) — CANALE DIAGNOSTICO TEMPORANEO: il fix sopra
+// non ha chiuso il sintomo sul device Android di Francesco (primo tocco ancora muto). Prima di
+// un altro fix alla cieca, le chiamate a `suonoDiagEmetti` sotto raccolgono evidenza reale
+// (overlay `?diag=suoni`, v. `sound-diag.ts` e `DiagnosticaSuoni.tsx`). Sono SOLA lettura/
+// notifica: no-op per chi non ha aperto l'overlay, non toccano `sbloccato`/`ctx`/l'ordine dei
+// listener. DA RIMUOVERE (queste righe + i due file) quando il fix definitivo è chiuso.
+
+import { suonoDiagAttivo, suonoDiagEmetti } from './sound-diag'
 
 export type NomeSuono = 'tap' | 'fatta' | 'ua' | 'errore' | 'arrivo' | 'stacco' | 'riaggancio'
 const FILES: Record<NomeSuono, string> = {
@@ -52,10 +61,15 @@ async function precarica(): Promise<void> {
   await Promise.all((Object.keys(FILES) as NomeSuono[]).map(async nome => {
     try {
       const res = await fetch(FILES[nome])
+      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'fetch-fine', ok: res.ok }))
       if (!res.ok) return
       const dati = await res.arrayBuffer()
       buffers.set(nome, await c.decodeAudioData(dati))
-    } catch { /* singolo file mancante: quel suono resta muto */ }
+      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'decode-fine' }))
+    } catch (e) {
+      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'errore', msg: e instanceof Error ? e.message : String(e) }))
+      /* singolo file mancante: quel suono resta muto */
+    }
   }))
 }
 
@@ -63,14 +77,27 @@ async function precarica(): Promise<void> {
  *  SINCRONAMENTE dentro l'handler del gesto (pointerdown, o touchend/click di fallback). */
 async function sblocca(): Promise<void> {
   if (sbloccato) return
+  const inizio = performance.now()
   try {
     const c = creaContesto()
     if (!c) return
+    const statePrima = c.state
+    suonoDiagEmetti('sblocca', () => ({ fase: 'inizio', statePrima }))
     if (c.state === 'suspended') await c.resume()
     sbloccato = true
     rimuoviListener?.()
     rimuoviListener = null
-  } catch { /* dispositivo senza audio: resta muto */ }
+    suonoDiagEmetti('sblocca', () => ({
+      fase: 'esito', esito: 'resolve', durataMs: Math.round(performance.now() - inizio),
+      statePrima, stateDopo: c.state,
+    }))
+  } catch (e) {
+    suonoDiagEmetti('sblocca', () => ({
+      fase: 'esito', esito: 'reject', durataMs: Math.round(performance.now() - inizio),
+      msg: e instanceof Error ? e.message : String(e),
+    }))
+    /* dispositivo senza audio: resta muto */
+  }
 }
 
 /** Avvia prefetch + registra l'unlock. Chiamare una volta nel root client dell'app v3.
@@ -79,6 +106,20 @@ export function initSuoni(): void {
   if (typeof window === 'undefined' || initFatto) return
   initFatto = true
   const c = creaContesto()
+  suonoDiagEmetti('init', () => ({
+    esito: c ? 'ok' : 'fallita',
+    state: c?.state ?? null,
+    sampleRate: c?.sampleRate ?? null,
+    baseLatency: c?.baseLatency ?? null,
+  }))
+  // `statechange` è additivo (nessun handler esistente lo usava): non altera il motore, serve
+  // solo a vedere le transizioni suspended/running/interrupted sull'overlay. Aggiunto solo se
+  // qualcuno lo sta osservando (H1b) — zero listener in più per l'utente normale.
+  if (c && suonoDiagAttivo()) {
+    c.addEventListener('statechange', () => {
+      suonoDiagEmetti('statechange', () => ({ state: c.state }))
+    })
+  }
   if (c) void precarica()
   const handler = () => { void sblocca() }
   // pointerdown: arriva prima di click/touchend nella sequenza reale di un tap (FIX-D1).
@@ -99,9 +140,26 @@ export function initSuoni(): void {
  *  `gain` < 1 = variante attenuata (ri-aggancio dopo annullo). */
 export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
   try {
-    if (!suoniAttivi() || !sbloccato || !ctx) return
+    // Stesso ordine di valutazione dell'originale `if (!suoniAttivi() || !sbloccato || !ctx)
+    // return` (§9, invariato) — solo diviso in guardie sequenziali per etichettare il motivo
+    // esatto di scarto sull'overlay (H1b), senza cambiare quale condizione decide l'uscita.
+    if (!suoniAttivi()) {
+      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !suoniAttivi' }))
+      return
+    }
+    if (!sbloccato) {
+      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !sbloccato' }))
+      return
+    }
+    if (!ctx) {
+      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !ctx' }))
+      return
+    }
     const buf = buffers.get(nome)
-    if (!buf) return
+    if (!buf) {
+      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: buffer mancante' }))
+      return
+    }
     const src = ctx.createBufferSource()
     src.buffer = buf
     const g = ctx.createGain()
@@ -109,5 +167,9 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
     src.connect(g)
     g.connect(ctx.destination)
     src.start()
-  } catch { /* mai rompere l'app per un suono */ }
+    suonoDiagEmetti('suona', () => ({ nome, esito: 'giocato' }))
+  } catch (e) {
+    suonoDiagEmetti('suona', () => ({ nome, esito: `errore: ${e instanceof Error ? e.message : String(e)}` }))
+    /* mai rompere l'app per un suono */
+  }
 }

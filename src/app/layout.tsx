@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeInitializer } from '@/components/layout/ThemeInitializer'
+import { DiagnosticaSuoni } from '@/components/layout/DiagnosticaSuoni'
 import '@fontsource/plus-jakarta-sans/400.css'
 import '@fontsource/plus-jakarta-sans/600.css'
 import '@fontsource/plus-jakarta-sans/700.css'
@@ -55,6 +56,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full flex flex-col antialiased">
         {children}
+        {/* H1b (verbale QA 2026-07-24, punto D1) — overlay diagnostico TEMPORANEO del motore
+            suoni, attivo solo con ?diag=suoni. Monta DOPO {children} di proposito (v. commento
+            di testa in DiagnosticaSuoni.tsx). Rimuovere a fix chiuso. */}
+        <DiagnosticaSuoni />
         <SpeedInsights />
       </body>
     </html>
