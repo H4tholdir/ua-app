@@ -247,7 +247,7 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
     expect(fetchMock().mock.calls[0][0]).toBe('/api/cassette/lavori-liberi')
 
-    fireEvent.click(await screen.findByRole('button', { name: /n\.151/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /151/i }))
     await waitFor(() => expect(onCambiata).toHaveBeenCalledTimes(1))
 
     const [url, options] = fetchMock().mock.calls[1]
@@ -266,6 +266,74 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     expect(await screen.findByText(/rossi mario/i)).toBeInTheDocument()
   })
 
+  // G9-lista (FIX-I) — V2 «targhetta» RATIFICATA: il numero vive in un chip col bordo, SENZA
+  // il prefisso «n.» (mockup `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html`,
+  // variante V2 — «2026/0007», non «n.2026/0007»).
+  it('il chip del numero è SENZA prefisso «n.» (V2 «targhetta»)', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, numero: '2026/0007' }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const chip = await screen.findByText('2026/0007')
+    expect(chip).toHaveClass('ds-riga-metti-chip')
+    expect(screen.queryByText('n.2026/0007')).toBeNull()
+  })
+
+  // G9-lista — riga urgente (`urgenza > 0`): tinta rossa + label «URGENTE» a destra.
+  it('riga con urgenza > 0: classe is-urgente + label «Urgente» visibile', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, urgenza: 1 }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const riga = await screen.findByRole('button', { name: /151/i })
+    expect(riga).toHaveClass('ds-riga-metti')
+    expect(riga).toHaveClass('is-urgente')
+    expect(within(riga).getByText('Urgente')).toHaveClass('ds-riga-metti-urgente')
+  })
+
+  // G9-lista — riga NON urgente (`urgenza === 0`): niente tinta, niente label.
+  it('riga con urgenza 0: NIENTE classe is-urgente e NIENTE label «Urgente»', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, urgenza: 0 }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const riga = await screen.findByRole('button', { name: /151/i })
+    expect(riga).not.toHaveClass('is-urgente')
+    expect(within(riga).queryByText('Urgente')).toBeNull()
+  })
+
+  // G9-lista — testo: paziente 15.5/800 (bold), dentista 13/500 (muted) — classi dedicate.
+  it('paziente in classe bold dedicata, dentista in classe muted dedicata', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, pazienteAlias: 'Rossi Mario' }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(await screen.findByText('Rossi Mario')).toHaveClass('ds-riga-metti-paziente')
+    expect(screen.getByText('Studio Bruno')).toHaveClass('ds-riga-metti-dentista')
+  })
+
+  // G9-lista — `pazienteAlias` assente → «— nessun paziente» (peso 600, colore --faint via
+  // `.is-assente`), non più una riga muta senza alcun testo paziente (comportamento pre-G9).
+  it('pazienteAlias assente → «— nessun paziente» con classe is-assente', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, pazienteAlias: null }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const assente = await screen.findByText('— nessun paziente')
+    expect(assente).toHaveClass('ds-riga-metti-paziente')
+    expect(assente).toHaveClass('is-assente')
+  })
+
   it('nessun lavoro libero → «Tutti i lavori hanno già una cassetta»', async () => {
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [] }) })
     renderSheet()
@@ -280,7 +348,7 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: pochi }) })
     renderSheet()
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await screen.findByRole('button', { name: /n\.100/i })
+    await screen.findByRole('button', { name: /100/i })
     expect(screen.queryByLabelText(/cerca/i)).toBeNull()
   })
 
@@ -291,12 +359,12 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
     renderSheet()
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await screen.findByRole('button', { name: /n\.100/i })
+    await screen.findByRole('button', { name: /100/i })
 
     fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
     // Il filtro è debounced (D9b): non è sincrono al keystroke, quindi si aspetta l'esito.
-    await waitFor(() => expect(screen.queryByRole('button', { name: /n\.100/i })).toBeNull())
-    expect(screen.getByRole('button', { name: /n\.103/i })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /100/i })).toBeNull())
+    expect(screen.getByRole('button', { name: /103/i })).toBeInTheDocument()
   })
 
   // D9b (FIX-F) — root cause: `liberiFiltrati` (CassettaSheet.tsx ~359-364, prima del fix) era
@@ -312,14 +380,14 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
     renderSheet()
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await screen.findByRole('button', { name: /n\.100/i })
+    await screen.findByRole('button', { name: /100/i })
 
     fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
     // Subito dopo — nessun debounce ancora passato: la lista NON si è rifiltrata.
-    expect(screen.getByRole('button', { name: /n\.100/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /100/i })).toBeInTheDocument()
 
-    await waitFor(() => expect(screen.queryByRole('button', { name: /n\.100/i })).toBeNull())
-    expect(screen.getByRole('button', { name: /n\.103/i })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: /100/i })).toBeNull())
+    expect(screen.getByRole('button', { name: /103/i })).toBeInTheDocument()
   })
 
   // «Mai una pagina bianca» (§5.26): con liberi presenti ma ricerca a zero risultati, l'area
@@ -332,7 +400,7 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
     renderSheet()
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await screen.findByRole('button', { name: /n\.100/i })
+    await screen.findByRole('button', { name: /100/i })
 
     fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'zzz-nessuno' } })
     expect(await screen.findByText(/nessun lavoro trovato/i)).toBeInTheDocument()
@@ -353,7 +421,7 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
       .mockResolvedValueOnce({ status: 500, json: async () => ({}) })
     const { onCambiata, onChiudi } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    fireEvent.click(await screen.findByRole('button', { name: /n\.151/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /151/i }))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(onCambiata).not.toHaveBeenCalled()
     expect(onChiudi).not.toHaveBeenCalled()
@@ -374,11 +442,11 @@ describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 
     }
     const { rerender } = render(<CassettaSheet {...props} />)
     fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await screen.findByRole('button', { name: /n\.151/i })
+    await screen.findByRole('button', { name: /151/i })
 
     rerender(<CassettaSheet {...props} cassetta={altraLibera} />)
     expect(screen.getByRole('button', { name: /metti un lavoro/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /n\.151/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /151/i })).toBeNull()
   })
 })
 

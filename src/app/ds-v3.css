@@ -838,6 +838,84 @@
 [data-ds="v3"] .ds-sposta-riga { display: flex; align-items: center; gap: 12px; }
 [data-ds="v3"] .ds-sposta-posto { font-size: 14px; font-weight: 700; color: var(--muted); }
 
+/* G9-lista (FIX-I) — riga della lista «Metti un lavoro» (CassettaSheet.tsx), variante V2
+   «Targhetta» RATIFICATA (verbale ri-collaudo #2): valori copiati VERBATIM dal mockup
+   `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html` (classi `.v2-*` lì, `.ds-riga-metti*`
+   qui — stesso linguaggio della targa sulla cassetta, il numero vive in un chip col bordo). Il
+   mockup usa gli stessi nomi di variabile del tema v3 (`--bg`/`--line`/`--red-tint`/…): nessun
+   blocco dark separato serve qui, le custom property risolvono già da sole via
+   `[data-theme="dark"] [data-ds="v3"]` (sopra in questo file). Bottone reset (`border`/`background`
+   nativi del browser) non serve: le regole sotto sono già complete, il markup è un `<button>`
+   (mai il `<div>` decorativo del mockup — qui l'elemento resta interattivo/tappabile). */
+[data-ds="v3"] .ds-riga-metti {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+[data-ds="v3"] .ds-riga-metti.is-urgente {
+  background: var(--red-tint);
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
+}
+[data-ds="v3"] .ds-riga-metti-chip {
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 4px 8px;
+  letter-spacing: .01em;
+  background: var(--card);
+}
+[data-ds="v3"] .ds-riga-metti.is-urgente .ds-riga-metti-chip {
+  border-color: var(--red);
+  color: var(--red);
+}
+[data-ds="v3"] .ds-riga-metti-testo {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+}
+[data-ds="v3"] .ds-riga-metti-paziente {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ds="v3"] .ds-riga-metti-paziente.is-assente {
+  font-weight: 600;
+  color: var(--faint);
+}
+[data-ds="v3"] .ds-riga-metti-dentista {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ds="v3"] .ds-riga-metti-urgente {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────────────────
    §6 — La home a due stanze (Task 14). Pager a scroll-snap orizzontale: lo swipe è scroll
    NATIVO del browser, non un carosello simulato — è per questo che qui c'è CSS e non

@@ -34,7 +34,7 @@ import { ChipScelta } from '@/components/ds/ChipScelta'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { RigaBloccante } from '@/components/ds/RigaBloccante'
 import { TastoTondo } from '@/components/ds/TastoTondo'
-import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
+import { spazio } from '@/design-system/v3/tokens'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
 import { DEBOUNCE_FILTRO_MS } from './PareteClient'
@@ -61,28 +61,28 @@ const ERRORE_GENERICO = 'Non ci sono riuscito — riprova'
 
 // «Metti un lavoro» (Task 5, spec redesign §2.5, punto 13) — la sottovista interna della
 // cassetta LIBERA. Contratto verbatim di `GET /api/cassette/lavori-liberi` (route Task 5).
-type LavoroLibero = { id: string; numero: string; dentista: string; pazienteAlias: string | null; urgenza: number }
+// G8 (FIX-I) — `tipoDispositivo`/`descrizione` additivi (route Task 5 estesa): prima mancavano
+// del tutto, e `assegnaLavoro` sotto passava sempre `null` all'overlay ottimistico — la
+// miniatura corretta arrivava solo al prossimo caricamento vero (bug confermato da Francesco).
+type LavoroLibero = {
+  id: string
+  numero: string
+  dentista: string
+  pazienteAlias: string | null
+  urgenza: number
+  tipoDispositivo: string | null
+  descrizione: string | null
+}
 
 // Sopra la soglia, compare il campo di ricerca client-side (brief §Step 6): con pochi liberi
 // scorrere la lista è più veloce che digitare.
 const SOGLIA_RICERCA = 8
 
-// Riga della lista «Metti un lavoro»: hit area ≥44 (constraint 10), classe `ds-tap-v3` per
-// l'anello focus-visible di legge (già definito globalmente in ds-v3.css, stesso aggancio di
-// `MenuVoce`/`RigaEditabile` — nessun nuovo CSS da introdurre qui).
-const rigaLavoroLiberoStile = {
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: 2,
-  width: '100%',
-  minHeight: spazio.xxl,
-  borderRadius: raggio.riga,
-  border: 'none',
-  background: 'var(--bg-deep)',
-  padding: `${spazio.s}px ${spazio.m}px`,
-  textAlign: 'left' as const,
-  cursor: 'pointer',
-}
+// Riga della lista «Metti un lavoro» — V2 «targhetta» RATIFICATA (G9, FIX-I): stili in
+// `ds-v3.css` (classi `.ds-riga-metti*`, valori copiati verbatim dal mockup
+// `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html`), non più inline — hit area
+// ≥44 già garantita da `min-height:60px` (constraint 10), `ds-tap-v3` per l'anello
+// focus-visible di legge (stesso aggancio di `MenuVoce`/`RigaEditabile`).
 
 export function CassettaSheet(props: {
   cassetta: CassettaParete | null
@@ -365,14 +365,13 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ cassetta_id: cassetta.id }),
       })
       if (res.status === 200) {
-        // Gap disclosure sul FIX-E — RESIDUO dichiarato (non un dato inventato): il contratto di
-        // `GET /api/cassette/lavori-liberi` (`LavoroLibero`, sopra) è più povero di `CassettaParete
-        // ['lavoro']` — manca `paziente`/`tipoDispositivo`/`descrizione`. `paziente` cade sul
-        // fallback '—' (identico a quanto la targa (`Cassetta.tsx`) farebbe comunque con un dato
-        // assente, quando `pazienteAlias` è null); `tipoDispositivo`/`descrizione` restano `null` →
-        // `miniaturaPerLavoro` degrada da sé alla miniatura 'generica' (mai un crash). Il refresh
-        // (standalone) o il prossimo caricamento vero (embedded) sostituiscono questo riflesso
-        // parziale col dato pieno appena arriva — v. residuo nel report FIX-E.
+        // G8 (FIX-I) — CHIUSO il residuo dichiarato nel report FIX-E: `tipoDispositivo`/
+        // `descrizione` ora arrivano DAVVERO dal contratto esteso di `GET
+        // /api/cassette/lavori-liberi` (v. `LavoroLibero` sopra), non più `null` a mano — la
+        // miniatura giusta (`miniaturaPerLavoro`, via `Cassetta.tsx`) appare SUBITO invece di
+        // degradare a quella generica fino al prossimo caricamento vero. `paziente` resta sul
+        // fallback '—' quando `pazienteAlias` è assente (identico a quanto la targa farebbe
+        // comunque con un dato mancante — non un residuo, è il contratto normale di `Cassetta`).
         onCambiata([{
           tipo: 'occupa',
           id: cassetta.id,
@@ -382,8 +381,8 @@ export function CassettaSheet(props: {
             dentista: lavoro.dentista,
             paziente: lavoro.pazienteAlias ?? '—',
             pazienteAlias: lavoro.pazienteAlias,
-            tipoDispositivo: null,
-            descrizione: null,
+            tipoDispositivo: lavoro.tipoDispositivo,
+            descrizione: lavoro.descrizione,
           },
         }])
         return
@@ -473,23 +472,27 @@ export function CassettaSheet(props: {
 
             {!liberiCaricando && liberiFiltrati && liberiFiltrati.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.xs }}>
-                {liberiFiltrati.map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    className="ds-tap-v3"
-                    disabled={assegnando}
-                    onClick={() => void assegnaLavoro(l)}
-                    style={rigaLavoroLiberoStile}
-                  >
-                    <span style={{ fontSize: tipografia.size.body, fontWeight: tipografia.weight.bold, color: 'var(--ink)' }}>
-                      n.{l.numero} · {l.dentista}
-                    </span>
-                    {l.pazienteAlias && (
-                      <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--muted)' }}>{l.pazienteAlias}</span>
-                    )}
-                  </button>
-                ))}
+                {liberiFiltrati.map((l) => {
+                  const urgente = l.urgenza > 0
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      className={`ds-tap-v3 ds-riga-metti${urgente ? ' is-urgente' : ''}`}
+                      disabled={assegnando}
+                      onClick={() => void assegnaLavoro(l)}
+                    >
+                      <span className="ds-riga-metti-chip">{l.numero}</span>
+                      <span className="ds-riga-metti-testo">
+                        <span className={`ds-riga-metti-paziente${l.pazienteAlias ? '' : ' is-assente'}`}>
+                          {l.pazienteAlias ?? '— nessun paziente'}
+                        </span>
+                        <span className="ds-riga-metti-dentista">{l.dentista}</span>
+                      </span>
+                      {urgente && <span className="ds-riga-metti-urgente">Urgente</span>}
+                    </button>
+                  )
+                })}
               </div>
             )}
 

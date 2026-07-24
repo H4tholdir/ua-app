@@ -721,12 +721,37 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
     const user = userEvent.setup()
     tap(cassettaLibera())
     await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await user.click(await screen.findByRole('button', { name: /n\.151/i }))
+    await user.click(await screen.findByRole('button', { name: /151/i }))
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: /^Cassetta C4, occupata: Studio Bruno, paziente Rossi Mario/ }),
       ).toBeInTheDocument(),
     )
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  // G8 (FIX-I, bug confermato da Francesco) — CAUSA: il contratto di
+  // `GET /api/cassette/lavori-liberi` non portava `tipoDispositivo`/`descrizione`, quindi
+  // l'overlay ottimistico costruiva un `lavoro` parziale e `miniaturaPerLavoro` degradava alla
+  // miniatura 'generica' finché non arrivava una riletta vera. Qui si prova il fix end-to-end:
+  // il tipo VERO (non 'generica') appare SUBITO, senza refresh — `tipoDispositivo:
+  // 'implantologia'` risolve deterministicamente su 'impianto' (v. `miniature-lavoro.ts`,
+  // MACRO — nessuna dipendenza dal match fuzzy di `descrizione`).
+  it('assegna-lavoro riuscita in embedded: la miniatura riflette SUBITO il tipo vero, non la generica (G8)', async () => {
+    const unLibero = {
+      id: 'l9', numero: '151', dentista: 'Studio Bruno', pazienteAlias: 'Rossi Mario', urgenza: 1,
+      tipoDispositivo: 'implantologia', descrizione: null,
+    }
+    fetchMock()
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    render(<PareteClient parete={[libera]} sospendiRefresh />)
+    const user = userEvent.setup()
+    tap(cassettaLibera())
+    await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await user.click(await screen.findByRole('button', { name: /151/i }))
+    const cassettaOra = await screen.findByRole('button', { name: /^Cassetta C4, occupata/ })
+    expect(cassettaOra.querySelector('[data-miniatura-id]')).toHaveAttribute('data-miniatura-id', 'impianto')
     expect(refresh).not.toHaveBeenCalled()
   })
 
@@ -739,7 +764,7 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
     const user = userEvent.setup()
     tap(cassettaLibera())
     await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
-    await user.click(await screen.findByRole('button', { name: /n\.151/i }))
+    await user.click(await screen.findByRole('button', { name: /151/i }))
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
   })
