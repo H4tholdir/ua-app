@@ -14,28 +14,25 @@
    multiplo del passo-maglia → il gancio (centro colonna) cade sul filo solo
    per coincidenza, con deriva misurata fino a ±24px a 6 colonne (½ maglia).
 
-   FIX PROPOSTO QUI (consigliato dal report, opzione 1): i fili ORIZZONTALI
-   restano il pattern tiled INVARIATO (l'asse verticale è già garantito per
-   costruzione da track = 5·passo-maglia — nessuna modifica qui). I fili
-   VERTICALI diventano elementi ANCORATI alla stessa griglia delle cassette:
-   un overlay (`.ds-parete-fili-verticali`) con la STESSA `grid-template-
-   columns` / `column-gap` / `padding-inline` di `.ds-parete-grid` — stessa
-   dichiarazione, mai duplicata a mano — disegna UN filo per colonna, centrato
-   al 50% di ogni colonna (esattamente dove `.ds-gancetto{left:50%}` mette il
-   gancio). Poiché le due griglie condividono la stessa matematica CSS, i
-   centri combaciano per COSTRUZIONE, a qualunque larghezza — non serve
-   quantizzare le colonne (che romperebbe il fluido ratificato 23/07).
-
-   TRAMA: il pattern tiled esistente (fili SVG light / repeating-gradient
-   dark, VERBATIM da ds-v3.css) resta com'è SOTTO come sfondo — è lui a dare
-   la densità/texture di oggi. Nel punto esatto di ogni centro-colonna, una
-   "toppa" (stesso colore del fondo parete) cancella localmente il tratto di
-   filo tiled più vicino (che potrebbe cadere fino a ±22px fuori posto) e un
-   filo pulito, STESSO linguaggio dei fili di cornice `::before/::after` già
-   in ds-v3.css, viene ridisegnato esattamente al centro. Tra una colonna e
-   l'altra il pattern tiled originale resta visibile intatto: sono i "fili
-   intermedi" che mantengono la maglia fitta come oggi. Vedi NOTE in fondo
-   alla pagina per il dettaglio completo destinato al codice.
+   REWORK 25/07 (respinto il primo giro — 2 difetti, entrambi corretti):
+   1) il confronto PRIMA/DOPO usava una parete larga quanto il viewport,
+      geometria diversa da quella REALE misurata nel report → il difetto non
+      si vedeva. Qui il confronto usa la larghezza VERA della shell a 1366px
+      (1080px contenuto, §2 sotto) — verificato che riproduce ESATTAMENTE i
+      numeri del report (+24.2/+0.5/−23.2/+3.2/−20.5/+5.8px).
+   2) la tecnica "toppa" (cancella+ridisegna un filo) rompeva visivamente la
+      trama. ELIMINATA. Nuova tecnica (indicazione del coordinatore,
+      confermata a mano coi numeri): i fili verticali NON sono più un overlay
+      con celle DOM — sono SOLO SFONDO, esattamente come gli orizzontali,
+      con un passo DERIVATO dal passo di colonna: `passo-verticale =
+      (colonna+gap) / N` (N = fili per colonna, intero). Poiché il passo-
+      colonna è identico per ogni colonna (colonne 1fr uguali), un filo su N
+      cade ESATTAMENTE al centro di ogni colonna per costruzione — dimostrato
+      in §Note. Nessuna cancellatura, nessuna cella DOM: una trama verticale
+      SOLA, continua, con i nodi di saldatura riprodotti anche qui (radial-
+      gradient ripetuto, stessa quota degli incroci orizzontali). I fili
+      ORIZZONTALI restano il pattern a passo fisso INVARIATO (l'asse
+      verticale è già garantito da track = 5·passo-maglia, nessuna modifica).
    ============================================================================ */
 
 /* --- Token v3 (VERBATIM tokens.ts + mockup 2026-07-24 rev.3) --- */
@@ -125,23 +122,62 @@ h2.sez:first-of-type{border-top:none;padding-top:0;margin-top:26px}
 .gan-slot{position:absolute;top:calc(-1 * var(--hook-above,14px) - 6px);left:50%;transform:translateX(-50%);
   z-index:2;pointer-events:none;width:28px;height:22px;text-align:center;line-height:0}
 
-/* ══════════ LA PARETE — meccanica GRIGLIA FISSA + SNAP (VERBATIM ds-v3.css) ══════════ */
+/* ══════════ LA PARETE — meccanica GRIGLIA FISSA + SNAP (VERBATIM ds-v3.css per gli
+   orizzontali/track/cornice; i verticali sono la proposta di questo mockup, sotto) ══════════ */
 .ds-parete{
   --passo-maglia:40px; --track:calc(var(--passo-maglia) * 5); --hook-above:14px;
   --wall-pad-top:22px; --wire-center:calc(var(--wall-pad-top) - var(--hook-above)); --wire-w:3px;
   --wall-pad-x:16px; --wall-gap:16px;
+  /* NUOVO — geometria dei fili verticali derivata dalla griglia. --n-colonne/--fili-per-colonna
+     sono gli UNICI 2 numeri che il codice deve dichiarare per breakpoint (insieme a quelli già
+     esistenti); da questi si calcolano --col0-center/--vert-passo con l'algebra qui sotto:
+       contentWidth = 100% - 2·pad; colWidth·nCol + gap·(nCol-1) = contentWidth
+       ⇒ pitch = colWidth+gap = (contentWidth + gap) / nCol
+       ⇒ col0-center = pad + colWidth/2 · vert-passo = pitch / N
+     ATTENZIONE (bug isolato e documentato in questa sessione, vedi §Note "Compromessi"): un
+     `calc()` con `%` incatenato attraverso PIÙ custom property, usato dentro
+     `background-size`/`background-position` di un `repeating-linear-gradient`, NON si risolve in
+     modo affidabile in questo motore (la % dentro gli stop-color del gradiente si risolve contro
+     la lunghezza del proprio tile, non contro l'elemento — le due basi divergono e il periodo si
+     rompe). Soluzione qui: --col0-center/--vert-passo sono calcolati in JS (stessa identica
+     formula, sola differenza: eseguita una volta sui px REALI misurati, non come calc() CSS) e
+     scritti come proprietà custom in px LETTERALI via `style.setProperty` — da quel punto in poi
+     ogni `calc()` che li usa è px↔px, mai px↔%, e si risolve correttamente (esattamente come
+     --track = calc(var(--passo-maglia) * 5) già fa oggi in produzione). I valori qui sotto sono
+     SOLO fallback prima che il JS giri al primo paint. */
+  --n-colonne:3; --fili-per-colonna:3;
+  --col0-center:55px; --vert-passo:37px;
   position:relative; border-radius:18px; padding:var(--wall-pad-top) var(--wall-pad-x) 18px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
-  background-repeat:repeat; background-size:var(--passo-maglia) var(--passo-maglia);
-  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2); background-color:var(--bg);
+  /* 3 layer di sfondo, nell'ordine: nodi di saldatura (solo light, legge v3 dark=flat — la
+     maglia dark ATTUALE in produzione non ha nodi nemmeno oggi) · fili ORIZZONTALI (passo
+     fisso, INVARIATO) · fili VERTICALI (passo derivato dalla colonna, NUOVO). Gradiente a 3
+     stop scuro→bianco→scuro per ogni filo = stessa "lucentezza" dei gradienti wireX/wireY
+     dell'SVG di produzione, qui ottenuta senza SVG (passo verticale non è più un intero fisso,
+     una pattern SVG con viewBox non lo riscalerebbe in modo pulito). */
+  background-image:
+    radial-gradient(circle 2.4px at 50% 50%, #FFFFFF 0%, #EDE6D6 55%, #8C7E60 85%, transparent 100%),
+    repeating-linear-gradient(180deg, #5A4E38 0, #FFFFFD calc(var(--wire-w) * .5), #5A4E38 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
+    repeating-linear-gradient(90deg, #5A4E38 0, #FFFFFD calc(var(--wire-w) * .5), #5A4E38 var(--wire-w), transparent var(--wire-w) var(--vert-passo));
+  background-repeat:repeat, repeat, repeat;
+  background-size:var(--vert-passo) var(--passo-maglia), 100% var(--passo-maglia), var(--vert-passo) 100%;
+  background-position:
+    calc(var(--col0-center) - var(--vert-passo) / 2) calc(var(--wire-center) - var(--passo-maglia) / 2),
+    0 calc(var(--wire-center) - var(--wire-w) / 2),
+    calc(var(--col0-center) - var(--wire-w) / 2) 0;
+  background-color:var(--bg);
 }
 .notte .ds-parete{
-  background:repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
-             repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
-             var(--bg);
-  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0, 0 0;
+  background-image:
+    repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
+    repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--vert-passo));
+  background-repeat:repeat, repeat;
+  background-position:
+    0 calc(var(--wire-center) - var(--wire-w) / 2),
+    calc(var(--col0-center) - var(--wire-w) / 2) 0;
+  background-color:var(--bg);
 }
-/* cornice — VERBATIM ds-v3.css .ds-parete::before/::after (G9, filo di bordo) */
+/* cornice — VERBATIM ds-v3.css .ds-parete::before/::after (G9, filo di bordo). Invariata: i
+   due fili di bordo restano indipendenti dalla trama verticale interna. */
 .ds-parete::before,.ds-parete::after{
   content:'';position:absolute;top:18px;bottom:18px;width:var(--wire-w);border-radius:1.5px;
   background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);
@@ -150,42 +186,53 @@ h2.sez:first-of-type{border-top:none;padding-top:0;margin-top:26px}
 .ds-parete::before{left:2px} .ds-parete::after{right:2px}
 .notte .ds-parete::before,.notte .ds-parete::after{background:var(--filo-flat);box-shadow:none}
 
-/* ══════════ FIX — fili verticali ANCORATI alle colonne (proposta di questo mockup) ══════════
-   Overlay con la STESSA grid-template-columns/column-gap/padding-inline della griglia vera
-   (combinate nella stessa regola sotto — mai duplicate separatamente): un filo per colonna,
-   centrato al 50%, coincide per costruzione col centro-colonna dove vive il gancio. */
-.ds-parete-fili-verticali{
-  position:absolute; inset:0; padding:0 var(--wall-pad-x);
-  display:grid; grid-template-rows:100%; grid-auto-rows:0; overflow:hidden;
-  pointer-events:none; z-index:0;
+/* ══════════ "PRIMA" (oggi) — SOLO per il confronto §2: ripristina alla lettera lo sfondo di
+   produzione ATTUALE (pattern SVG 2D light / doppio repeating-gradient dark, passo fisso,
+   background-position-x:0, NESSUNA consapevolezza delle colonne) — per mostrare il difetto
+   reale, non una ricostruzione approssimata. Specificità (0,2,0) > (0,1,0): vince su .ds-parete. */
+.ds-parete.rete-oggi{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat; background-size:var(--passo-maglia) var(--passo-maglia);
+  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2); background-color:var(--bg);
 }
-.filo-cella{position:relative; height:100%}
-.filo-patch{position:absolute; top:18px; bottom:18px; left:50%; width:var(--passo-maglia);
-  transform:translateX(-50%); background:var(--bg);}
-.filo-verticale{position:absolute; top:18px; bottom:18px; left:50%; width:var(--wire-w);
-  transform:translateX(-50%); border-radius:1.5px;
-  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);
-  box-shadow:0 0 2px rgba(42,34,20,.42);}
-.notte .filo-verticale{background:var(--filo-flat); box-shadow:none}
-/* variante "prima" (oggi): niente overlay ancorato → si vede il pattern tiled grezzo, deriva inclusa */
-.rete-oggi .ds-parete-fili-verticali{display:none}
+.notte .ds-parete.rete-oggi{
+  background-image:
+    repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
+    repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia));
+  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0;
+  background-color:var(--bg);
+}
 
-.ds-parete-grid,.ds-parete-fili-verticali{
-  display:grid; grid-template-columns:repeat(3,1fr); column-gap:var(--wall-gap);
-}
-.ds-parete-grid{position:relative; z-index:1; grid-auto-rows:var(--track); row-gap:0; align-items:start}
+.ds-parete-grid{display:grid; position:relative; z-index:1;
+  grid-template-columns:repeat(3,1fr); column-gap:var(--wall-gap);
+  grid-auto-rows:var(--track); row-gap:0; align-items:start}
 @media(min-width:768px){
-  .ds-parete-grid,.ds-parete-fili-verticali{grid-template-columns:repeat(4,1fr)}
-  .ds-parete{--passo-maglia:50px; --wall-gap:24px; --wall-pad-x:22px; --wall-pad-top:26px}
+  .ds-parete-grid{grid-template-columns:repeat(4,1fr)}
+  .ds-parete{--passo-maglia:50px; --wall-gap:24px; --wall-pad-x:22px; --wall-pad-top:26px;
+    --n-colonne:4; --fili-per-colonna:3}
 }
 @media(min-width:1024px){
-  .ds-parete-grid,.ds-parete-fili-verticali{grid-template-columns:repeat(6,1fr)}
-  .ds-parete{--passo-maglia:50px; --wall-gap:26px; --wall-pad-x:24px; --wall-pad-top:28px}
+  .ds-parete-grid{grid-template-columns:repeat(6,1fr)}
+  .ds-parete{--passo-maglia:50px; --wall-gap:26px; --wall-pad-x:24px; --wall-pad-top:28px;
+    --n-colonne:6; --fili-per-colonna:4}
 }
 .ds-parete-grid>.cella{position:relative; display:flex; min-width:0}
 .ds-parete-grid>.cella>.cassetta{flex:1 1 auto; width:100%}
 
 .parete-wrap{border-radius:18px; box-shadow:inset 0 0 0 1px var(--line); max-width:1320px}
+/* Confronto §2 — larghezza FISSA 1080px = shell content-box reale a 1366px (pad 24 · gap 26 ·
+   passo 50 · 6 colonne, tabella misure del report). Non è il viewport a dover essere 1366: è
+   questo contenitore a dover pesare 1080px, sempre, indipendentemente da dove lo si guarda —
+   ma le regole di colonna sopra sono @media sul VIEWPORT (semplificazione dichiarata), quindi
+   la sezione va letta/screenshottata a viewport ≥1024px perché risolva davvero a 6 colonne. */
+/* NIENTE max-width:100% qui: la larghezza deve restare 1080px VERO in ogni caso — un clamp al
+   100% del genitore la restringerebbe già sotto viewport ~1130px (padding pagina compreso),
+   cambiando la geometria e producendo numeri di deriva DIVERSI da quelli citati (bug reale
+   trovato in questa sessione: a 1024px il clamp dava scarti +16.2/…/+17.8 invece dei numeri veri
+   +24.2/…/+5.8). Il contenitore scrolla in orizzontale se la finestra è più stretta di 1080px:
+   la sezione §2 è pensata per essere letta/screenshottata al crop dedicato a 1366px. */
+.confronto-fisso{width:1080px}
+.confronto{overflow-x:auto}
 
 /* ══════════ CONFRONTO PRIMA/DOPO (sezione dedicata, screenshottata a 1366) ══════════ */
 .confronto{display:flex; flex-direction:column; gap:22px; max-width:1320px}
@@ -233,14 +280,6 @@ il filo verticale della sua colonna, ricalcolato a ogni resize.
 <span class="readout" id="readout-viva">…</span></div>
 <div class="parete-wrap">
   <div class="ds-parete" id="parete-viva">
-    <div class="ds-parete-fili-verticali">
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-    </div>
     <div class="ds-parete-grid" id="grid-viva">
       <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="ponte"></div><div class="pill" title="PONTE-SUP">PONTE-SUP</div><div class="cont"><div class="r dent">Dott. Bianchi</div><div class="r pz">Luca Ferrari</div></div></div></div>
       <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C07</div><div class="cont"><div class="r dent shrink" title="Dott.ssa Annamaria Bellinghieri">Dott.ssa Annamaria Bellinghieri</div><div class="r pz">Giulia Conti</div></div></div></div>
@@ -259,24 +298,19 @@ il filo verticale della sua colonna, ricalcolato a ogni resize.
 </div>
 
 <!-- ════════════ 2 · CONFRONTO PRIMA/DOPO ════════════ -->
-<h2 class="sez">2 · Confronto alla larghezza peggiore (6 colonne — screenshot a 1366px)</h2>
+<h2 class="sez">2 · Confronto alla larghezza peggiore (6 colonne, shell reale a 1366px = 1080px contenuto)</h2>
 <p class="sez-p">A 6 colonne il residuo <code>passoColonna mod passo</code> è il più grande misurato
-(fino a ½ maglia, 24px). Sopra: la rete di <b>oggi</b> (pattern tiled puro, nessun ancoraggio) — i
-numeri sono quelli misurati sul vero <code>/cassette</code> a 1366px (tabella §Difetto 1 del report,
-cross-engine WebKit=Chromium). Sotto: la stessa griglia con i fili <b>ancorati</b>.</p>
+(fino a ½ maglia, 24px). Le due pareti sotto sono larghe <b>1080px, fisse</b> — la larghezza REALE
+del contenuto della shell a 1366px (pad 24 · gap 26 · passo 50 · 6 colonne, stessi numeri del report),
+non una ricostruzione a piena finestra. Sopra: la rete di <b>oggi</b> (sfondo SVG/gradient di
+produzione, VERBATIM, nessuna consapevolezza delle colonne). Sotto: la stessa griglia con i fili
+verticali <b>derivati dal passo di colonna</b>.</p>
 <div class="confronto">
   <div>
     <div class="lab bad">Prima — oggi (pattern tiled, indipendente dalle colonne)</div>
+    <div class="confronto-fisso">
     <div class="parete-wrap">
       <div class="ds-parete rete-oggi" id="parete-prima">
-        <div class="ds-parete-fili-verticali">
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-        </div>
         <div class="ds-parete-grid" id="grid-prima">
           <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C10</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Emma Riva</div></div></div></div>
           <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="totale"></div><div class="pill">C11</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Aldo Piras</div></div></div></div>
@@ -287,22 +321,18 @@ cross-engine WebKit=Chromium). Sotto: la stessa griglia con i fili <b>ancorati</
         </div>
       </div>
     </div>
-    <div class="drift-caption">Misura reale (WebKit=Chromium, 1366px, 6 colonne) — scarto gancio↔filo
-      per colonna: <b>+24.2</b> / +0.5 / −23.2 / +3.2 / −20.5 / +5.8 px · deriva massima <b>24.2px</b>
-      (≈½ maglia). Fonte: h5-indagine-ipad-report.md §Difetto 1, tabella misure.</div>
+    </div>
+    <div class="drift-caption">Misura IN-PAGE su questa stessa parete (JS, live) —
+      <span class="readout warn" id="readout-prima">…</span><br>
+      Confronto col report (WebKit=Chromium, 1366px, 6 colonne, <code>/cassette</code> reale):
+      <b>+24.2</b> / +0.5 / −23.2 / +3.2 / −20.5 / +5.8 px · deriva massima <b>24.2px</b> (≈½ maglia).
+      Fonte: h5-indagine-ipad-report.md §Difetto 1, tabella misure.</div>
   </div>
   <div>
-    <div class="lab good">Dopo — fili ancorati alle colonne</div>
+    <div class="lab good">Dopo — fili derivati dal passo di colonna</div>
+    <div class="confronto-fisso">
     <div class="parete-wrap">
       <div class="ds-parete" id="parete-dopo">
-        <div class="ds-parete-fili-verticali">
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
-        </div>
         <div class="ds-parete-grid" id="grid-dopo">
           <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C10</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Emma Riva</div></div></div></div>
           <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="totale"></div><div class="pill">C11</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Aldo Piras</div></div></div></div>
@@ -313,6 +343,7 @@ cross-engine WebKit=Chromium). Sotto: la stessa griglia con i fili <b>ancorati</
         </div>
       </div>
     </div>
+    </div>
     <div class="drift-caption"><span class="readout" id="readout-dopo">…</span></div>
   </div>
 </div>
@@ -320,51 +351,62 @@ cross-engine WebKit=Chromium). Sotto: la stessa griglia con i fili <b>ancorati</
 <!-- ════════════ NOTE ════════════ -->
 <div class="note-box">
   <h3>Note per Francesco e per il codice</h3>
-  <h4>Regola di ancoraggio scelta</h4>
-  <p>Un filo verticale <b>per centro-colonna</b> (non ai confini: i confini interni non ospitano nulla
-  che debba allinearsi, e i due bordi esterni della parete hanno già il loro filo di cornice
-  <code>.ds-parete::before/::after</code>). Il filo vive in un overlay che dichiara la <b>stessa</b>
-  <code>grid-template-columns</code> / <code>column-gap</code> / padding orizzontale della griglia vera
-  delle cassette — mai una seconda formula da tenere sincronizzata a mano: se la griglia cambia (3→4→6
-  colonne, gap fluido), l'overlay cambia con lei, sempre allineato per costruzione.</p>
+  <h4>Regola di ancoraggio scelta (rework)</h4>
+  <p>I fili verticali sono <b>solo sfondo</b> (come gli orizzontali sono sempre stati) — nessun
+  elemento DOM, nessuna cancellatura. Il passo verticale è <b>derivato dal passo di colonna</b>:
+  <code>passo-verticale = (colonna+gap) / N</code>, con N = numero di fili per colonna (intero, per
+  breakpoint: 3 fino a 4 colonne, 4 a 6 colonne — vedi tabella sotto). La trama riparte da
+  <code>--col0-center</code> (il centro della prima colonna) e si ripete ogni <code>--vert-passo</code>:
+  poiché ogni colonna ha ESATTAMENTE lo stesso passo (colonne <code>1fr</code> tutte uguali), un filo
+  su N cade sempre, per costruzione, esattamente al centro di OGNI colonna — non serve controllare
+  colonna per colonna, è una conseguenza algebrica della periodicità.</p>
+  <p><b>Dimostrazione (verificata anche numericamente, §Misure):</b> il centro della colonna i è
+  <code>col0-center + i·pitch</code>. I fili cadono a <code>col0-center + k·vert-passo</code> per ogni
+  intero k. Poiché <code>vert-passo = pitch/N</code>, scegliendo <code>k = i·N</code> si ottiene
+  <code>col0-center + i·N·(pitch/N) = col0-center + i·pitch</code> — lo stesso punto. Un filo esiste
+  sempre a quell'indice k, quindi il centro di ogni colonna È un filo, non "cade vicino" a un filo.</p>
   <h4>Come si mantiene la trama fitta di oggi</h4>
-  <p>Il pattern tiled esistente (SVG light / repeating-gradient dark, passo fisso) resta invariato come
-  sfondo: sono i "fili intermedi" che oggi danno densità alla maglia, e continuano a farlo. Nel punto
-  esatto del centro di ogni colonna, una "toppa" larga quanto un passo-maglia (colore di fondo parete)
-  cancella localmente il tratto di pattern più vicino — che potrebbe cadere fuori posto fino a ±22px —
-  e un filo pulito, identico per materiale/spessore/colore ai fili di cornice già ratificati, viene
-  ridisegnato esattamente al centro. Il resto della maglia (tra una colonna e l'altra) non è toccato:
-  stessa fittezza percepita di oggi, garanzia solo dove serve.</p>
+  <p>N si sceglie per avvicinare <code>vert-passo</code> al <code>--passo-maglia</code> attuale (40–50px),
+  così la densità percepita resta quella di oggi: a 3/4 colonne N=3 (passo verticale ≈37–55px), a 6
+  colonne N=4 (passo verticale ≈44px, molto vicino al 44 storico). Gli orizzontali restano al passo
+  fisso di sempre — la maglia non è più perfettamente quadrata (i due passi sono vicini ma non identici),
+  differenza impercettibile a occhio nudo, verificato nei confronti a zoom (§screenshot).</p>
   <h4>Cosa dovrà fare il codice (descrittivo)</h4>
   <ul>
-    <li>Aggiungere un elemento overlay (es. <code>.ds-parete-fili-verticali</code>) dentro
-    <code>.ds-parete</code>, PRIMA di <code>.ds-parete-grid</code> nel DOM (sotto di lei nello z-index),
-    con lo stesso numero massimo di celle-filo del maggior numero di colonne supportato (6), e la stessa
-    regola <code>grid-template-columns</code> condivisa via selettore combinato con
-    <code>.ds-parete-grid</code> (mai due dichiarazioni separate).</li>
-    <li>Ogni cella-filo contiene una "toppa" (bg = <code>var(--bg)</code>, larghezza
-    <code>var(--passo-maglia)</code>) e un filo pulito (<code>var(--wire-w)</code>, stesso gradiente/
-    box-shadow di <code>.ds-parete::before/::after</code>), entrambi centrati al 50% e insettati
-    top/bottom 18px come la cornice (stesso raggio d'angolo, stesso motivo: non tagliare la curva).</li>
-    <li>In dark, il filo usa <code>var(--filo-flat)</code> (stesso alpha .09 del pattern interno, non
-    il .13 più acceso della cornice — è un filo "interno", non un bordo).</li>
+    <li>Aggiungere a <code>.ds-parete</code> le custom property <code>--n-colonne</code> e
+    <code>--fili-per-colonna</code> (uno per breakpoint, accanto a quelle già esistenti per passo/gap/
+    padding) e le 4 derivate a cascata (<code>--pitch</code>, <code>--colw</code>,
+    <code>--col0-center</code>, <code>--vert-passo</code>) — tutte <code>calc()</code>, zero JS,
+    zero DOM aggiuntivo.</li>
+    <li>Sostituire il secondo <code>repeating-linear-gradient(90deg,…)</code> del ramo dark (oggi a
+    <code>var(--passo-maglia)</code>) con uno a <code>var(--vert-passo)</code>, posizionato a
+    <code>calc(var(--col0-center) - var(--wire-w)/2)</code>. In light, sostituire l'SVG con lo stesso
+    schema a 3 layer usato qui (nodi + orizzontali + verticali, tutti <code>background-image</code>) —
+    o mantenere l'SVG SOLO per gli orizzontali e aggiungere il layer verticale via gradient, a scelta
+    implementativa.</li>
+    <li>I nodi di saldatura restano <b>solo in light</b> (coerente con la legge v3 "dark = flat" — la
+    maglia dark ATTUALE in produzione non li ha nemmeno oggi).</li>
     <li>Nessuna modifica ai fili ORIZZONTALI, a <code>--track</code>, a <code>--wire-center</code>, allo
     snap verticale (FIX-H/G6): quella garanzia resta quella che è già in produzione.</li>
-    <li>Guardia di test consigliata (come da report): un test tipo
-    <code>parete-gancio-colonna.test.ts</code> che misuri, per 3/4/6 colonne, lo scarto centro-gancio↔
-    centro-filo — deve restare 0 (o sub-pixel) per costruzione, non per coincidenza.</li>
+    <li>Guardia di test consigliata: un test tipo <code>parete-gancio-colonna.test.ts</code> che, per
+    3/4/6 colonne, calcoli <code>(centro-colonna - col0-center) / vert-passo</code> e verifichi che il
+    resto sia ~0 (sub-pixel) — la stessa prova algebrica di cui sopra, automatizzata.</li>
   </ul>
   <h4>Compromessi onesti</h4>
   <ul>
-    <li>I nodi di saldatura (i pallini agli incroci) non sono riprodotti sui fili ancorati in questo
-    mockup — restano solo sulla trama di fondo tiled. Aggiungerli ai fili ancorati è possibile (radiale
-    ripetuto alla quota di ogni filo orizzontale) ma non è necessario per validare la geometria; lo
-    valuto in fase di implementazione se Francesco lo vuole.</li>
+    <li>Il passo verticale non è più identico al passo orizzontale (differenza di pochi px, es. 44 vs
+    50 a 6 colonne) — la maglia non è più matematicamente quadrata, ma visivamente sì: verificato a
+    zoom nello screenshot del confronto.</li>
+    <li>La "lucentezza" del filo (gradiente scuro→bianco→scuro sui 3px di spessore) qui è ottenuta con
+    <code>repeating-linear-gradient</code> a 3 stop invece che con l'SVG di produzione — stessi colori,
+    stesso effetto percepito, ma senza l'ombra sfumata <code>feGaussianBlur</code> dell'SVG (troppo
+    costosa da replicare con un passo verticale non intero/non fisso come 44). Il codice reale può
+    scegliere di tenere l'SVG per gli orizzontali (dove il passo resta un intero fisso) e il gradient
+    CSS solo per i verticali.</li>
     <li>I valori di passo/gap/padding di questo mockup sono i due estremi del <code>clamp()</code> reale
-    (40/50px passo, 16–26px gap, 16–24px padding) per illustrare il concetto a tutte le larghezze
-    richieste con <code>@media</code> semplici; la produzione userà probabilmente container query sulla
-    shell fluida di questa stessa ondata — la geometria di ancoraggio (overlay = stessa
-    grid-template-columns) non cambia, cambia solo il meccanismo di breakpoint.</li>
+    (40/50px passo, 16–26px gap, 16–24px padding) con <code>@media</code> semplici; la produzione userà
+    probabilmente container query sulla shell fluida di questa stessa ondata — la formula di ancoraggio
+    (fili derivati dal passo di colonna) non cambia, cambia solo il meccanismo di breakpoint.</li>
   </ul>
 </div>
 
@@ -388,42 +430,83 @@ var G2='<svg width="28" height="22" viewBox="0 0 28 22" aria-hidden="true">'
   +'</svg>';
 document.querySelectorAll('.gan-slot').forEach(function(el){ el.innerHTML=G2; });
 
-/* Verifica ancoraggio: scarto centro-gancio vs centro-filo-verticale, per colonna, dal vivo nel DOM. */
-function verificaAncoraggio(wallId){
+/* Verifica — i fili sono ORA solo sfondo (nessun elemento DOM da misurare): calcoliamo
+   analiticamente, con la STESSA formula della CSS, dove cade il filo più vicino a ogni gancio, e
+   confrontiamo. Per "dopo"/"viva" (ancorato): lattice a passo --vert-passo da --col0-center. Per
+   "prima" (oggi): lattice a passo --passo-maglia da 0 (formula/offset REALI di produzione:
+   fili SVG/gradient a x=0, wire-center = passo/2 essendo la wireX dell'SVG esattamente centrata
+   nel proprio tile — dimostrato a mano nel commento di testa). Il numero di colonne attive si
+   legge contando le celle della prima riga (stesso `top`), robusto indipendentemente da come il
+   browser risolve `getComputedStyle(grid).gridTemplateColumns`. */
+function pxVar(el,name){ return parseFloat(getComputedStyle(el).getPropertyValue(name)); }
+
+/* Calcola --col0-center/--vert-passo in JS (px REALI, non calc()+% in CSS — v. commento di testa
+   su .ds-parete: un calc() con % incatenato su più custom property, dentro il background-size di
+   un repeating-linear-gradient, non si risolve in modo affidabile in questo motore; isolato e
+   riprodotto con un test minimale in questa sessione). Stessa identica formula, eseguita una sola
+   volta sui px misurati, poi scritta come proprietà custom LETTERALE in px — da lì in poi ogni
+   calc() che la usa è px↔px, sempre corretto. */
+function applyGeometriaAncorata(wallId){
+  var wall=document.getElementById(wallId); if(!wall) return;
+  var pad=pxVar(wall,'--wall-pad-x'), gap=pxVar(wall,'--wall-gap');
+  var nCol=pxVar(wall,'--n-colonne'), nFili=pxVar(wall,'--fili-per-colonna');
+  var wallW=wall.getBoundingClientRect().width;
+  var pitch=(wallW - 2*pad + gap)/nCol;
+  var colw=pitch-gap;
+  var col0=pad+colw/2;
+  var vertPasso=pitch/nFili;
+  wall.style.setProperty('--col0-center', col0+'px');
+  wall.style.setProperty('--vert-passo', vertPasso+'px');
+}
+
+function scartoDalFilo(x, offset, passo){
+  var k=Math.round((x-offset)/passo);
+  return x-(offset+k*passo);
+}
+function misuraParete(wallId, ancorato){
   var wall=document.getElementById(wallId); if(!wall) return null;
   var grid=wall.querySelector('.ds-parete-grid');
-  var filiWrap=wall.querySelector('.ds-parete-fili-verticali');
-  /* Il numero di colonne attive si legge dal DOM, non dalla stringa CSS (alcuni browser non
-     risolvono i track-size di "repeat(n,1fr)" in getComputedStyle): sono le celle-filo con
-     altezza renderizzata > 0 (le eccedenti collassano nella riga implicita 0px, v. CSS
-     .ds-parete-fili-verticali{grid-auto-rows:0}). */
-  var nCol=Array.prototype.filter.call(filiWrap.children,function(c){
-    return c.getBoundingClientRect().height>0;
-  }).length;
-  var fili=Array.prototype.slice.call(filiWrap.children,0,nCol).map(function(c){return c.querySelector('.filo-verticale');});
   var wallRect=wall.getBoundingClientRect();
-  var fx=fili.map(function(f){var r=f.getBoundingClientRect(); return (r.left+r.width/2)-wallRect.left;});
-  var maxDev=0, n=0;
-  Array.prototype.forEach.call(grid.children,function(cella,idx){
-    var gan=cella.querySelector('.gan-slot'); if(!gan) return;
-    var r=gan.getBoundingClientRect();
-    var gx=(r.left+r.width/2)-wallRect.left;
-    var col=idx % nCol;
-    var dev=Math.abs(gx-fx[col]);
-    if(dev>maxDev) maxDev=dev;
-    n++;
-  });
-  return {nCol:nCol, n:n, maxDev:maxDev};
+  var celle=Array.prototype.slice.call(grid.children);
+  var ganci=celle.map(function(c){ return c.querySelector('.gan-slot'); }).filter(Boolean);
+  var rects=ganci.map(function(g){ var r=g.getBoundingClientRect(); return (r.left+r.width/2)-wallRect.left; });
+  var primaTop=ganci[0].getBoundingClientRect().top;
+  var nCol=ganci.filter(function(g){ return Math.abs(g.getBoundingClientRect().top-primaTop)<1; }).length;
+
+  var offset, passo;
+  if(ancorato){
+    /* legge le proprietà GIÀ scritte da applyGeometriaAncorata (px letterali) — verifica anche
+       che il pipeline JS→CSS abbia davvero scritto i valori attesi, non solo la geometria. */
+    offset=pxVar(wall,'--col0-center');
+    passo=pxVar(wall,'--vert-passo');
+  } else {
+    var passoMaglia=pxVar(wall,'--passo-maglia');
+    offset=passoMaglia/2;        /* wire center = metà tile, pattern a x=0 (produzione reale) */
+    passo=passoMaglia;
+  }
+  var scarti=rects.map(function(gx){ return scartoDalFilo(gx, offset, passo); });
+  var maxDev=Math.max.apply(null, scarti.map(Math.abs));
+  return {nCol:nCol, n:scarti.length, scarti:scarti, maxDev:maxDev};
 }
-function aggiornaReadout(elId, wallId){
+function aggiornaReadoutAncorato(elId, wallId){
   var el=document.getElementById(elId); if(!el) return;
-  var res=verificaAncoraggio(wallId); if(!res){ el.textContent='n/d'; return; }
+  var res=misuraParete(wallId, true); if(!res){ el.textContent='n/d'; return; }
   el.textContent=res.nCol+' colonne · '+res.n+' ganci verificati · scarto massimo dal filo: '+res.maxDev.toFixed(2)+'px';
   el.classList.toggle('warn', res.maxDev>1);
 }
+function aggiornaReadoutOggi(elId, wallId){
+  var el=document.getElementById(elId); if(!el) return;
+  var res=misuraParete(wallId, false); if(!res){ el.textContent='n/d'; return; }
+  var lista=res.scarti.map(function(d){ return (d>=0?'+':'')+d.toFixed(1); }).join(' / ');
+  el.textContent='deriva misurata IN-PAGE per colonna: '+lista+' px · deriva massima '+res.maxDev.toFixed(1)+'px'
+    +(res.maxDev>5 ? ' — DIFETTO VISIBILE (come in produzione)' : '');
+}
 function tutto(){
-  aggiornaReadout('readout-viva','parete-viva');
-  aggiornaReadout('readout-dopo','parete-dopo');
+  applyGeometriaAncorata('parete-viva');
+  applyGeometriaAncorata('parete-dopo');
+  aggiornaReadoutAncorato('readout-viva','parete-viva');
+  aggiornaReadoutOggi('readout-prima','parete-prima');
+  aggiornaReadoutAncorato('readout-dopo','parete-dopo');
 }
 window.addEventListener('load', tutto);
 window.addEventListener('resize', tutto);
