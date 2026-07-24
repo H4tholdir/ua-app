@@ -629,89 +629,15 @@ describe('StanzePager — onStanzaChange (QA device T15, addendum punto 3)', () 
   })
 })
 
-// Capitolo H4c (decisione 0c37f25, demo ebf4edb) — il progress CONTINUO del gesto, non ancora
-// esposto prima di questo capitolo (`onStanzaChange` sopra scatta solo a soglia 0.6/fine snap).
-// Qui si presidia SOLO che il pager lo calcoli e lo comunichi ai momenti giusti (scroll nativo,
-// touchstart, touchend/touchcancel) — la coreografia visiva del piede (mappatura progress→stile,
-// molla.press al rilascio) è un test di `piede-swipe.test.ts` (core puro) e di `HomeV3.tsx`.
-function simulaProgressoScroll(viewport: HTMLElement, scrollLeft: number, larghezza = 390) {
-  Object.defineProperty(viewport, 'scrollLeft', { value: scrollLeft, configurable: true })
-  Object.defineProperty(viewport, 'clientWidth', { value: larghezza, configurable: true })
-  act(() => {
-    fireEvent.scroll(viewport)
-  })
-}
-
-describe('StanzePager — onProgressoSwipe/onPresaSwipe/onRilascioSwipe (capitolo H4c)', () => {
-  it('onProgressoSwipe riceve il progress calcolato da scrollLeft/clientWidth del viewport nativo', () => {
-    const onProgressoSwipe = vi.fn()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onProgressoSwipe={onProgressoSwipe} />
-    )
-    const { viewport } = preparaViewport(container)
-    onProgressoSwipe.mockClear()
-
-    simulaProgressoScroll(viewport, 0, 390)
-    expect(onProgressoSwipe).toHaveBeenLastCalledWith(0)
-
-    simulaProgressoScroll(viewport, 195, 390)
-    expect(onProgressoSwipe).toHaveBeenLastCalledWith(0.5)
-
-    simulaProgressoScroll(viewport, 390, 390)
-    expect(onProgressoSwipe).toHaveBeenLastCalledWith(1)
-  })
-
-  it('onPresaSwipe scatta al touchstart del viewport, onRilascioSwipe al touchend', () => {
-    const onPresaSwipe = vi.fn()
-    const onRilascioSwipe = vi.fn()
-    const { container } = render(
-      <StanzePager
-        stanzaIniziale="pile"
-        pile={CONTENUTO_PILE}
-        parete={PARETE_STANZA_TEST}
-        onPresaSwipe={onPresaSwipe}
-        onRilascioSwipe={onRilascioSwipe}
-      />
-    )
-    const { viewport } = preparaViewport(container)
-
-    act(() => {
-      fireEvent.touchStart(viewport)
-    })
-    expect(onPresaSwipe).toHaveBeenCalledTimes(1)
-    expect(onRilascioSwipe).not.toHaveBeenCalled()
-
-    act(() => {
-      fireEvent.touchEnd(viewport)
-    })
-    expect(onRilascioSwipe).toHaveBeenCalledTimes(1)
-  })
-
-  it('onRilascioSwipe scatta anche al touchcancel (annullo di sistema)', () => {
-    const onRilascioSwipe = vi.fn()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onRilascioSwipe={onRilascioSwipe} />
-    )
-    const { viewport } = preparaViewport(container)
-
-    act(() => {
-      fireEvent.touchCancel(viewport)
-    })
-    expect(onRilascioSwipe).toHaveBeenCalledTimes(1)
-  })
-
-  it('scrollLeft oltre clientWidth (overscroll/rimbalzo nativo) resta clampato a progress 1', () => {
-    const onProgressoSwipe = vi.fn()
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onProgressoSwipe={onProgressoSwipe} />
-    )
-    const { viewport } = preparaViewport(container)
-    onProgressoSwipe.mockClear()
-
-    simulaProgressoScroll(viewport, 420, 390)
-    expect(onProgressoSwipe).toHaveBeenLastCalledWith(1)
-  })
-})
+// Piede statico (verbale 26/07, commit `5957b24`) — RIMOSSO il describe block
+// «onProgressoSwipe/onPresaSwipe/onRilascioSwipe (capitolo H4c)» che viveva qui: presidiava i
+// listener scroll/touchstart/touchend/touchcancel che StanzePager montava SOLO per calcolare e
+// comunicare alla coreografia del piede (in HomeV3.tsx) il progress continuo del gesto —
+// listener e callback abrogati insieme alla coreografia stessa (v. `piede-swipe.ts`, rimosso,
+// e il commento in testa a questo file/a HomeV3.tsx). Codice morto testato è codice morto e
+// basta: nessun comportamento superstite da questo blocco giustificava tenerlo. Il piede
+// «esiste/tap/forme» resta presidiato più sotto (`HomeV3 — il piede sparisce sul lato
+// cassette del pager`) e in `HomeV3.test.tsx`.
 
 // QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — SOSTITUISCE «dots tablist e
 // tap-to-snap» + «tastiera (frecce ←→)»: i dot sono morti, quindi anche il tap sul dot e le
@@ -1083,6 +1009,62 @@ describe('HomeV3 — il piede sparisce sul lato cassette del pager (QA device T1
     expect(screen.queryAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(0)
     await viaIndietroParete(user)
     expect(screen.getAllByRole('button', { name: /nuovo lavoro/i })).toHaveLength(1)
+  })
+})
+
+// Piede statico (verbale 26/07, commit `5957b24` — abroga il capitolo H4c): il piede vive
+// DENTRO il pannello della stanza Pile del pager, fermo, senza alcuna coreografia legata allo
+// swipe; sul pannello Parete non esiste per costruzione (né nodo né ingombro).
+describe('HomeV3 — piede statico nel pager (verbale 26/07, abroga H4c)', () => {
+  it('il piede è un discendente DOM di [data-stanza="pile"], mai di [data-stanza="parete"]', () => {
+    const { container } = renderHome('due_stanze')
+    const nelPannelloPile = within(pannello('pile')).getByRole('button', { name: /nuovo lavoro/i })
+    expect(nelPannelloPile).toBeInTheDocument()
+    expect(pannello('parete').querySelector('.foot')).toBeNull()
+    // Nessun ingombro riservato-ma-vuoto: il nodo `.foot` semplicemente non esiste nel
+    // sottoalbero della parete, non un elemento nascosto/collassato via classe o stile.
+    expect(container.querySelectorAll('.foot')).toHaveLength(1)
+  })
+
+  it('il piede non porta alcuna custom property di coreografia (né inline né da un ref)', () => {
+    const { container } = renderHome('due_stanze')
+    const piede = container.querySelector('.foot') as HTMLElement
+    expect(piede).not.toBeNull()
+    // Capitolo H4c scriveva --piede-etichetta-opacita/--piede-tondo-scala/--piede-tondo-opacita/
+    // --piede-ingombro via ref a ogni tick di scroll (v. HomeV3.tsx, ABROGATO): un piede
+    // DAVVERO statico non ha alcuno stile inline scritto imperativamente.
+    expect(piede.getAttribute('style')).toBeNull()
+    expect(piede.classList.contains('is-vuoto')).toBe(false)
+  })
+
+  it('lo scroll nativo del pager non scrive più nulla sul piede (nessun listener di coreografia residuo)', () => {
+    const { container } = renderHome('due_stanze')
+    const { viewport } = preparaViewport(container)
+    const piede = container.querySelector('.foot') as HTMLElement
+    act(() => {
+      Object.defineProperty(viewport, 'scrollLeft', { value: 195, configurable: true })
+      Object.defineProperty(viewport, 'clientWidth', { value: 390, configurable: true })
+      fireEvent.scroll(viewport)
+    })
+    expect(piede.getAttribute('style')).toBeNull()
+  })
+
+  it('il tap sul piede porta al wizard, invariato', async () => {
+    const user = userEvent.setup()
+    renderHome('due_stanze')
+    await user.click(screen.getByRole('button', { name: /nuovo lavoro/i }))
+    expect(push).toHaveBeenCalledWith('/lavori/nuovo')
+  })
+
+  it('forma "pile" (nessun pager): il piede resta fuori da qualunque stanza, invariato', () => {
+    const { container } = renderHome('pile')
+    expect(container.querySelector('[data-stanza]')).toBeNull()
+    expect(container.querySelector('.foot')).not.toBeNull()
+  })
+
+  it('forma "parete" (nessun pager): il piede non esiste, invariato', () => {
+    const { container } = renderHome('parete')
+    expect(container.querySelector('.foot')).toBeNull()
   })
 })
 

@@ -49,11 +49,19 @@
 // via da tastiera SEMPRE presente, la soluzione pulita è un controllo dedicato (es. un bottone
 // visivamente nascosto, sempre nel DOM, SENZA indicatore visivo) — una decisione nuova, non
 // implementata da questo fix.
+//
+// ── Piede statico (verbale 26/07, commit `5957b24`) — abrogazione del capitolo H4c ────────
+// H4c aveva aggiunto QUI listener `scroll`/`touchstart`/`touchend`/`touchcancel`/`scrollend`
+// sul viewport SOLO per calcolare/comunicare alla coreografia del piede (in HomeV3.tsx) il
+// progress continuo del gesto — tutti RIMOSSI (v. l'effect di swipe sotto, e la storia intera
+// in `.superpowers/sdd/h4c-fix-report.md`, non riscritta qui). Il piede stesso ora vive DENTRO
+// il pannello della stanza Pile (prop `piedePile`, v. sotto): scorre via per natura dello
+// scroll nativo, niente da osservare pixel per pixel. Tutto il resto di questo file — IO a
+// soglia 0.6, URL sync, `vaiA`, popstate — PREDATA H4c e resta invariato.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { LinguettaCassette, registraAccessoParete } from './LinguettaCassette'
-import { progressoDaScroll } from './piede-swipe'
 import { useReducedMotion } from '@/design-system/v3/motion'
 import type { StanzaHome } from '@/lib/preferenze/home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -183,57 +191,32 @@ export function StanzePager(props: {
   parete: CassettaParete[]
   /** Il piano fisso sotto le stanze: UN solo TastoPiù, identico e immobile in entrambe
    *  (§3.3 regola 5) — mai un doppione visibile a metà snap. Sta fuori dal viewport, così
-   *  non scorre con le stanze. */
+   *  non scorre con le stanze. NOTA (piede statico, verbale 26/07, commit `5957b24`): questo
+   *  prop resta com'era PRIMA del capitolo H4c (nessun chiamante lo passa oggi — v. `piedePile`
+   *  sotto per dove il piede vive davvero ora), non toccato da questa abrogazione. */
   footer?: ReactNode
-  /** QA device T15 (addendum 24/07, punto 3) — il piede vive FUORI dal pager (in `HomeV3.tsx`,
-   *  non passato come `footer` qui: v. commento lì) ma deve sparire quando la stanza attiva è
-   *  la parete («niente TastoPiù nel lato cassette»). Il pager è l'unico a sapere quale stanza
-   *  è attiva in ogni istante — questo callback lo comunica al chiamante a ogni cambio. */
+  /** Piede statico (verbale 26/07, commit `5957b24`, abroga il capitolo H4c) — il piede va
+   *  DENTRO il pannello della stanza Pile (fuori da `.ua-stanza-pile-scroll`, per non scorrere
+   *  col suo scroll verticale di sicurezza — v. il render sotto), non più fuori dal pager come
+   *  ai tempi di H4c: così scorre via in orizzontale CON la stanza Pile per natura dello scroll
+   *  nativo, senza alcuna coreografia dedicata, e non esiste affatto nel pannello Parete (né
+   *  dipinto né ingombro, per costruzione — nessun elemento, nessun collasso da calcolare).
+   *  `inert`/`aria-hidden` della stanza ospite (sotto, invariati) coprono già l'accessibilità:
+   *  nessun trattamento separato serve al piede stesso. */
+  piedePile?: ReactNode
+  /** QA device T15 (addendum 24/07, punto 3) — il pager è l'unico a sapere quale stanza è
+   *  attiva in ogni istante: questo callback lo comunica al chiamante a ogni cambio (usato oggi
+   *  solo da chi ha bisogno di saperlo fuori dal pager — HomeV3 non lo consuma più dal piede
+   *  statico, v. commento lì). */
   onStanzaChange?: (stanza: StanzaHome) => void
-  /** Capitolo H4c (decisione 0c37f25, demo ebf4edb) — il progress CONTINUO dello swipe
-   *  home↔parete (0 = Pile, 1 = Parete), NON esposto prima di questo capitolo: `onStanzaChange`
-   *  sopra scatta solo a soglia 0.6 raggiunta (fine snap), mai durante il gesto. Il chiamante
-   *  (HomeV3) lo usa per animare il piede in scala/opacità 1:1 col dito (v. `piede-swipe.ts`),
-   *  invece di farlo sparire/ricomparire di colpo. Letto dallo scrollLeft nativo del viewport
-   *  (`.ua-stanze-viewport`, scroll-snap — mai un carosello simulato, v. commento in testa al
-   *  file): un `scroll` passivo, NON un secondo sistema di trascinamento. */
-  onProgressoSwipe?: (progress: number) => void
-  /** Il dito tocca il viewport (touchstart) — HomeV3 lo usa per fermare un eventuale
-   *  assestamento (`molla.press`) ancora in corso da un rilascio precedente e riprendere a
-   *  inseguire 1:1 (v. commento su `onRilascioSwipe`). `touchstart`/`touchend`, non
-   *  `pointerdown`/`pointerup`: uno scroll nativo (questo lo È, per costruzione) cancella il
-   *  pointer con `pointercancel` non appena il browser prende in mano il pan — i Touch Event,
-   *  più bassi livello, sopravvivono invece alla presa in carico nativa (verificato: è lo
-   *  stesso motivo per cui `useDragRiordino` deve intercettare `touchmove` a parte per il SUO
-   *  gesto, che invece non è scroll nativo). */
-  onPresaSwipe?: () => void
-  /** Il dito si solleva (touchend/touchcancel) — il momento «mollo» della demo: da qui in poi
-   *  HomeV3 assesta il piede con `molla.press`, indipendentemente da quale curva usi lo
-   *  scroll-snap nativo per assestare lo scrollLeft (i due sono disaccoppiati per costruzione:
-   *  questo pager non guida né rincorre lo scroll nativo, lo osserva soltanto). */
-  onRilascioSwipe?: () => void
-  /** FIX ri-collaudo #4 (review) — `scrollend` nativo: il segnale che lo scroll del viewport si
-   *  è DAVVERO fermato, a prescindere da COME è stato mosso (dito, rotellina/trackpad, uno
-   *  `scrollTo` programmatico). `onPresaSwipe`/`onRilascioSwipe` sopra intercettano solo il
-   *  touch — su desktop/tablet con mouse o trackpad (fuori dal breakpoint mobile-only di questa
-   *  forma, ma raggiungibile durante lo sviluppo/QA in finestra stretta) una rotellina non
-   *  genera MAI `touchstart`/`touchend`, quindi quel gate non scatterebbe: la riconciliazione da
-   *  `stanzaAttiva` in HomeV3.tsx avrebbe potuto far partire una molla mentre lo scroll nativo
-   *  (a rotellina) era ancora a metà, producendo lo stesso "hitch" (salto avanti poi indietro)
-   *  che il gate touch-only evita sul dito — riprodotto dal vivo su `:3042` con uno scroll a
-   *  rotellina reale prima di questo fix. `scrollend` generalizza il gate a QUALUNQUE input. */
-  onScrollAssestato?: () => void
 }) {
   const {
     stanzaIniziale,
     pile,
     parete,
     footer,
+    piedePile,
     onStanzaChange,
-    onProgressoSwipe,
-    onPresaSwipe,
-    onRilascioSwipe,
-    onScrollAssestato,
   } = props
   // QA device T15.8 — `stanzaEffettiva` (v. commento sopra), non il prop nudo: un remount dal
   // router-cache di Next (back da una navigazione vera, es. dalla scheda di un lavoro) deve
@@ -262,24 +245,6 @@ export function StanzePager(props: {
   useEffect(() => {
     attivaRef.current = attiva
   }, [attiva])
-
-  // Capitolo H4c — le tre callback del gesto (`onProgressoSwipe`/`onPresaSwipe`/
-  // `onRilascioSwipe`) vivono in ref per lo stesso motivo di `attivaRef`: HomeV3 le passa come
-  // closure fresche a ogni render (non memoizzate — sarebbe un onere sproporzionato per tre
-  // funzioni che leggono solo motion value/ref), e l'effect di scroll/touch sotto monta i
-  // listener UNA volta sola (mai a ogni render, altrimenti il pager li stacca/riattacca durante
-  // ogni frame del gesto che sta osservando). Sync in un plain effect, mai durante il render
-  // (stesso gate di lint del repo).
-  const onProgressoSwipeRef = useRef(onProgressoSwipe)
-  const onPresaSwipeRef = useRef(onPresaSwipe)
-  const onRilascioSwipeRef = useRef(onRilascioSwipe)
-  const onScrollAssestatoRef = useRef(onScrollAssestato)
-  useEffect(() => {
-    onProgressoSwipeRef.current = onProgressoSwipe
-    onPresaSwipeRef.current = onPresaSwipe
-    onRilascioSwipeRef.current = onRilascioSwipe
-    onScrollAssestatoRef.current = onScrollAssestato
-  })
 
   // QA device T15 (addendum 24/07, punto 3) — il chiamante (HomeV3) decide da questo callback
   // se mostrare il piede: separato da `registraAccessoParete` sopra apposta, gira ad OGNI
@@ -405,49 +370,14 @@ export function StanzePager(props: {
       contenitore.scrollTo({ left: iniziale.offsetLeft, behavior: 'auto' })
     }
 
-    // Capitolo H4c (decisione 0c37f25, demo ebf4edb) — progress CONTINUO del gesto, letto dallo
-    // scrollLeft nativo (mai un secondo sistema di trascinamento, v. commento su
-    // `onProgressoSwipe` sopra): INDIPENDENTE dall'IO sotto, che decide solo quale stanza è
-    // "attiva a fine snap" (soglia 0.6, mai durante il gesto) — questi listener devono girare
-    // anche in un ambiente senza `IntersectionObserver` (v. guardia poco sotto), quindi vivono
-    // PRIMA di quella guardia, con la propria teardown in ENTRAMBI i rami di ritorno.
-    function onScroll() {
-      const progress = progressoDaScroll(contenitore!.scrollLeft, contenitore!.clientWidth)
-      onProgressoSwipeRef.current?.(progress)
-    }
-    // touchstart/touchend, non pointerdown/pointerup (v. commento su `onPresaSwipe` sopra): il
-    // browser cancella il pointer (`pointercancel`) non appena prende in mano il pan nativo, i
-    // Touch Event invece sopravvivono alla presa in carico.
-    function onTouchStart() {
-      onPresaSwipeRef.current?.()
-    }
-    function onTouchFine() {
-      onRilascioSwipeRef.current?.()
-    }
-    // FIX ri-collaudo #4 (review) — `scrollend`: si ferma DAVVERO lo scroll, a prescindere da
-    // come è stato mosso (v. commento su `onScrollAssestato` sopra). Evento recente (Chrome
-    // 114+/Firefox 109+/Safari 17+) — non tutti i target lo supportano ancora (jsdom non lo
-    // implementa affatto): nessuna guardia `'onscrollend' in window` prima di registrarlo,
-    // `addEventListener` accetta qualunque nome di evento senza errore, semplicemente non
-    // scatterà mai dove il browser non lo emette — degrado, non rottura (la riconciliazione in
-    // HomeV3.tsx resta comunque coperta dal gate touch per quei target).
-    function onScrollend() {
-      onScrollAssestatoRef.current?.()
-    }
-    contenitore.addEventListener('scroll', onScroll, { passive: true })
-    contenitore.addEventListener('touchstart', onTouchStart, { passive: true })
-    contenitore.addEventListener('touchend', onTouchFine, { passive: true })
-    contenitore.addEventListener('touchcancel', onTouchFine, { passive: true })
-    contenitore.addEventListener('scrollend', onScrollend, { passive: true })
-    function staccaGesto() {
-      contenitore!.removeEventListener('scroll', onScroll)
-      contenitore!.removeEventListener('touchstart', onTouchStart)
-      contenitore!.removeEventListener('touchend', onTouchFine)
-      contenitore!.removeEventListener('touchcancel', onTouchFine)
-      contenitore!.removeEventListener('scrollend', onScrollend)
-    }
-
-    if (typeof IntersectionObserver === 'undefined') return staccaGesto
+    // Piede statico (verbale 26/07, commit `5957b24`) — ABROGATI qui i listener `scroll`/
+    // `touchstart`/`touchend`/`touchcancel`/`scrollend` del capitolo H4c: esistevano SOLO per
+    // calcolare/comunicare il progress continuo del gesto alla coreografia del piede in
+    // HomeV3.tsx (v. `.superpowers/sdd/h4c-fix-report.md` per la storia, non riscritta qui).
+    // Niente li sostituisce: il piede ora scorre via per natura dello scroll nativo (v.
+    // `piedePile` sopra), non serve più osservarlo pixel per pixel. Resta SOLO l'IntersectionObserver
+    // sotto, che decide la stanza "attiva a fine snap" (soglia 0.6) — invariato, predata H4c.
+    if (typeof IntersectionObserver === 'undefined') return
     const osservatore = new IntersectionObserver(
       (voci) => {
         for (const voce of voci) {
@@ -468,7 +398,6 @@ export function StanzePager(props: {
     }
     return () => {
       osservatore.disconnect()
-      staccaGesto()
     }
     // `stanzaIniziale` cambia solo con una nuova navigazione server (`?stanza=` diverso): in
     // quel caso riposizionarsi sulla stanza chiesta è esattamente ciò che si vuole.
@@ -541,14 +470,26 @@ export function StanzePager(props: {
               }}
             >
               {nome === 'pile' ? (
-                // Fix round 2 (review Task 14, Critical P3) — `.ua-stanza-pile-scroll`
-                // (ds-v3.css, accanto a `.ua-stanza-parete-scroll`): stessa ricetta della
-                // stanza Parete, DENTRO `.ua-stanza` e quindi PRIMA del clip verticale di
-                // `.ua-stanze-viewport` (overflow-y:hidden, due livelli più in fuori). Senza
-                // questo wrapper il degrado scroll P3 di `.corpo` (HomeV3.tsx) non riceve mai
-                // l'overflow della stanza Pile nella forma pager — v. commento CSS per la
-                // riproduzione e il perché.
-                <div className="ua-stanza-pile-scroll">{pile}</div>
+                <>
+                  {/* Fix round 2 (review Task 14, Critical P3) — `.ua-stanza-pile-scroll`
+                      (ds-v3.css, accanto a `.ua-stanza-parete-scroll`): stessa ricetta della
+                      stanza Parete, DENTRO `.ua-stanza` e quindi PRIMA del clip verticale di
+                      `.ua-stanze-viewport` (overflow-y:hidden, due livelli più in fuori). Senza
+                      questo wrapper il degrado scroll P3 di `.corpo` (HomeV3.tsx) non riceve mai
+                      l'overflow della stanza Pile nella forma pager — v. commento CSS per la
+                      riproduzione e il perché. */}
+                  <div className="ua-stanza-pile-scroll">{pile}</div>
+                  {/* Piede statico (verbale 26/07, commit `5957b24`) — `piedePile` è un FRATELLO
+                      di `.ua-stanza-pile-scroll`, non un figlio: `.ua-stanza` è già
+                      `display:flex; flex-direction:column` (v. ds-v3.css), quindi il piede si
+                      posiziona in fondo esattamente come faceva da fratello di `.corpo` in
+                      HomeV3.tsx — SENZA scorrere insieme al contenuto quando
+                      `.ua-stanza-pile-scroll` (flex:1, overflow-y:auto, la rete di sicurezza
+                      verticale) trabocca. L'ancoraggio verticale di sempre, mai toccato; quello
+                      che cambia è SOLO che ora il piede è dentro il pannello che scorre in
+                      orizzontale col pager, invece che fuori da esso. */}
+                  {piedePile}
+                </>
               ) : (
                 // QA device T15 (addendum 24/07, punto 1) — il back dell'header DENTRO il
                 // pannello torna alla stanza Pile (stesso gesto di uno swipe inverso), MAI

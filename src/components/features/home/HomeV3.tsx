@@ -17,35 +17,46 @@
 //            redirect a `/cassette`: `HomeDesktop` (fratello di questo componente, montato
 //            SEMPRE da `dashboard/page.tsx`) ignora questa preferenza — è mobile-only, spenta
 //            da CSS a ≥1024px — e un redirect server-side la spegnerebbe anche lì.
-// In ogni forma del pager il TastoPiù è UNO e sta nel piede, fuori dal pager. Nel pager, durante
-// lo swipe verso la Parete, NON sparisce più di colpo (la lamentela d'origine del ri-collaudo
-// #3): capitolo H4c (decisione 0c37f25, demo animata ebf4edb) — coreografia C2 «il tasto si
-// ritira», v. i commenti su `piedeRef`/`progressoSwipe` più sotto. Resta invariato COSA decide
-// quando il piede è interattivo (§3 dell'addendum: `stanzaAttiva === 'parete'`, sincronizzata da
-// `onStanzaChange` — v. sotto) — cambia solo COME appare/scompare nel frattempo.
-// Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette che questo
-// ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
-import { useCallback, useEffect, useRef, useState } from 'react'
+// In ogni forma del pager il TastoPiù è UNO e sta nel piede. Capitolo H4c (decisione 0c37f25,
+// demo animata ebf4edb) aveva costruito una coreografia C2 «il tasto si ritira» — scala/opacità
+// pilotate 1:1 dal progress dello swipe, riconciliazione a scrollend, collasso discreto
+// dell'ingombro (4 round, v. `piede-swipe.ts` e `.superpowers/sdd/h4c-fix-report.md` per la
+// storia intera, NON riscritta qui). ABROGATA dalla prova device (verbale
+// `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND 26/07, commit `5957b24`):
+// parole di Francesco, «il blocco resta tutto fermo nella home, quando swippo si entra
+// direttamente nella zona delle cassette, punto» — niente più animazione legata al gesto. Il
+// piede ORA appartiene VISIVAMENTE alla stanza Pile (vive DENTRO il suo pannello nel pager,
+// passato come `piedePile` a `StanzePager` — v. sotto): scorre via col resto della home per
+// natura dello scroll orizzontale nativo, si ferma con essa, niente dissolvenza/scala/curva.
+// Sulla stanza Parete non esiste per costruzione (non è nel suo pannello) — né dipinto né come
+// ingombro di layout, risolvendo anche l'altro difetto del verbale («resta anche una piccola
+// fascia del blocco panna in basso»). COSA decide se il piede è interattivo resta invariato: è
+// la stanza ospite (`.ua-stanza[data-stanza="pile"]`, `inert`/`aria-hidden` dalla sua propria
+// `attiva` interna — StanzePager, invariata) a portare quella semantica per l'intero
+// sottoalbero — HomeV3 non tiene più un proprio stato «stanza attiva» per il piede (era SOLO
+// per questo, v. sotto), il piede stesso non dichiara più un proprio `inert`/`aria-hidden`
+// (semplificazione: un solo posto che lo decide, non due). Nella forma «solo pile» (nessun
+// pager) il piede resta un fratello fuori da `.corpo`,
+// come sempre. Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette
+// che questo ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { animate, useMotionValue } from 'motion/react'
 import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { initSuoni } from '@/design-system/v3/sound'
-import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
-import { bersaglioRilascio, bersaglioStanza, mappaPiedeSwipe, piedeIngombro, piedeSenzaIngombro } from './piede-swipe'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
-import type { HomePref, StanzaHome } from '@/lib/preferenze/home'
+import type { HomePref } from '@/lib/preferenze/home'
 
 const ORDINE: Array<{ pila: Pila; tipo: 'daConsegnare' | 'sulBanco' | 'daRifareInProva' | 'appenaArrivati' }> = [
   { pila: 'rossa', tipo: 'daConsegnare' },
@@ -93,243 +104,12 @@ export function HomeV3(props: {
   // Parete non può mai essere resa con dati mai letti (v. `vistaHome`).
   const vista = vistaHome(homePref, stanzaParam)
 
-  // QA device T15 (addendum 24/07, punto 3) — quale stanza del pager è visibile ORA: decide se
-  // il piede (TastoPiù) si vede. Inizializzata dalla stanza di apertura; nelle forme non-pager
-  // resta sul valore iniziale e non viene più letta (il piede lì segue `vista`, non questo
-  // stato — v. sotto).
-  const [stanzaAttiva, setStanzaAttiva] = useState<StanzaHome>(vista.tipo === 'pager' ? vista.iniziale : 'pile')
-
-  // ── Capitolo H4c — piede C2 «il tasto si ritira» (decisione 0c37f25, demo animata ebf4edb,
-  // docs/design/mockups/2026-07-25-piede-demo-c1-vs-c2.html ramo `c2` di `render()`) ──────────
-  // `stanzaAttiva` sopra resta l'UNICA fonte per «il piede è interattivo o no» (COSA, invariato);
-  // qui vive SOLO il COME appare/scompare: una motion value di progress (0 = Pile, 1 = Parete),
-  // aggiornata 1:1 dallo scroll nativo del pager via `onProgressoSwipe` (StanzePager.tsx, che
-  // legge `scrollLeft`/`clientWidth` — mai un secondo sistema di trascinamento). Niente
-  // `useState`/re-render per tick di scroll (pattern `useDragRiordino.ts` §3.4, «niente
-  // re-render per pixel di movimento»): le tre grandezze derivate (`mappaPiedeSwipe`, core puro
-  // in `piede-swipe.ts`) si scrivono DIRETTAMENTE come custom property CSS su `.foot` via ref —
-  // `stanzaPile`/`StanzePager` non ri-renderizzano mai per un frame del gesto.
-  const ridotto = useReducedMotion()
-  const piedeRef = useRef<HTMLDivElement | null>(null)
-  const progressoSwipe = useMotionValue(0)
-  // `true` SOLO fra `onRilascioSwipe` (parte l'assestamento con `molla.press`, o la
-  // riconciliazione da `stanzaAttiva` più sotto) e il suo `onComplete` (o un nuovo
-  // `onPresaSwipe`/tick di scroll, che la fermano prima). FIX ri-collaudo #4 (difetto b): NON
-  // fa più ignorare i tick di scroll successivi — `onProgressoSwipe` la legge per FERMARE la
-  // molla e riprendere 1:1 (v. lì), mai per scartare il tick. Un tick di scroll reale resta
-  // sempre più autorevole di una qualunque molla in volo.
-  const rilasciandoRef = useRef(false)
-  const controlliRilascioRef = useRef<ReturnType<typeof animate> | null>(null)
-  // FIX ri-collaudo #4 (review) — `true` mentre un gesto di scroll è IN CORSO, a prescindere da
-  // come è mosso (dito, rotellina/trackpad): durante un gesto ancora in corso l'inseguimento 1:1
-  // dello scroll nativo (`onProgressoSwipe`) è GIÀ l'autorità in tempo reale — non serve (e
-  // farebbe rumore) far partire la molla di riconciliazione sotto se `stanzaAttiva` cambia
-  // mentre lo scroll è ancora vivo (l'IO scatta a soglia 0.6, cioè PRIMA che il gesto finisca in
-  // un drag/scroll lento): senza questa guardia la riconciliazione partirebbe comunque verso il
-  // bersaglio giusto, ma in corsa col prossimo tick di scroll che arriva un istante dopo —
-  // riprodotto DAL VIVO su `:3042` con uno scroll a rotellina reale (screenshot/log nel report):
-  // un salto avanti (la molla) poi indietro (il tick vero che la scavalca) percepibile come
-  // "hitch". Impostato `true` a ogni tick (`onProgressoSwipe`, copre QUALUNQUE input fin dal
-  // primo movimento) e su `onPresaSwipe` (il touch, prima ancora che arrivi un tick); tolto SOLO
-  // da un segnale nativo che lo scroll si è DAVVERO fermato — `onRilascioSwipe` (touchend/
-  // touchcancel) o `onScrollAssestato` (`scrollend`, generalizza a rotellina/trackpad/
-  // programmatico, v. StanzePager.tsx) — mai un timer: un segnale nativo, non una scommessa su
-  // quanto ci mette una corsa a risolversi.
-  const scorrendoRef = useRef(false)
-
-  useEffect(() => {
-    const applica = (p: number) => {
-      const nodo = piedeRef.current
-      if (!nodo) return
-      const stile = mappaPiedeSwipe(p, ridotto)
-      nodo.style.setProperty('--piede-etichetta-opacita', String(stile.etichettaOpacita))
-      nodo.style.setProperty('--piede-tondo-scala', String(stile.tondoScala))
-      nodo.style.setProperty('--piede-tondo-opacita', String(stile.tondoOpacita))
-      // FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetto a — «blocco panna
-      // che copre la pagina delle cassette»): le tre custom property sopra fanno sparire il
-      // CONTENUTO (scala/opacità), ma da sole non restituiscono lo spazio di layout che `.foot`
-      // riserva comunque (margini/padding fissi, v. la regola CSS `.is-vuoto` più sotto) — a
-      // riposo su Parete quello spazio vuoto lasciava intravedere lo sfondo della PAGINA sotto
-      // il piede, non un colore estraneo (`.foot` non ne dichiara uno). Il collasso DISCRETO
-      // scatta a `p === 1` esatto (mai a metà coreografia, v. `piedeSenzaIngombro`) e resta
-      // l'AUTORITÀ sul riposo vero (anche per i casi senza gesto continuo, es. deep-link).
-      nodo.classList.toggle('is-vuoto', piedeSenzaIngombro(p))
-      // FIX verifica device di Francesco (round 4) — «resta il quadrato panna... e POI
-      // scompare»: il collasso discreto sopra da solo arriva troppo tardi rispetto alla
-      // percezione reale del gesto — fra "il contenuto è già sfumato" (progress ~0.8-0.9) e "lo
-      // scroll-snap si è DAVVERO fermato" (scrollend, round 2-3) restava una finestra di
-      // 100-300ms in cui il box, ancora a piena dimensione, lasciava intravedere lo sfondo della
-      // pagina. `--piede-ingombro` è il SECONDO canale, continuo (v. `piedeIngombro`, curva
-      // dedicata che chiude per progress ~0.9 — un po' prima della finestra 0.78-1 di
-      // `tondoOpacita`, apposta: l'ingombro deve chiudersi PRIMA del contenuto, mai dopo): guida
-      // margine/padding/altezza massima di `.foot` in CSS (v. sotto), così l'ingombro è già
-      // azzerato DENTRO il gesto, indipendentemente da quando il progress numerico tocca
-      // esattamente 1 — il collasso discreto resta il backstop finale, non il solo meccanismo.
-      nodo.style.setProperty('--piede-ingombro', String(piedeIngombro(p)))
-    }
-    applica(progressoSwipe.get())
-    return progressoSwipe.on('change', applica)
-  }, [progressoSwipe, ridotto])
-
-  // FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b): `stanzaAttiva`
-  // (sopra) è l'AUTORITÀ finale su dove si trova davvero il pager (IO a soglia 0.6 o
-  // navigazione esplicita — mai la sola stima di `bersaglioRilascio` al rilascio, che legge
-  // solo la POSIZIONE del gesto, non la sua velocità: un flick veloce può far agganciare lo
-  // scroll-snap nativo nel verso OPPOSTO alla stima immediata). PRIMA di questo fix nessun
-  // codice riconciliava `progressoSwipe` quando l'autorità cambiava idea dopo che la molla del
-  // rilascio era già partita (o già finita) nel verso sbagliato — la motion value restava
-  // bloccata lì per sempre (mai un altro tick di scroll a correggerla, se lo scroll nativo si
-  // era già fermato): il piede restava visibile/opaco sulla Parete (difetto a, aggravato dal
-  // mancato collasso dell'ingombro sopra) o scompariva sulle Pile (difetto b). Questo effect è
-  // l'ultima parola, SEMPRE: quando `stanzaAttiva` cambia, ferma qualunque molla in volo e
-  // riporta `progressoSwipe` al valore di riposo che quella stanza impone — rendendo IMPOSSIBILE
-  // uno stato di riposo divergente, a prescindere da quanto la stima al rilascio abbia sbagliato.
-  // FIX ri-collaudo #4 (review round 2) — estratta da dentro l'effect sotto perché ORA la
-  // richiama anche `onScrollAssestato` (v. sotto): ferma qualunque molla in volo e porta
-  // `progressoSwipe` al valore di riposo ESATTO che `stanzaAttiva` impone (0 o 1) — `.set()`
-  // diretto se reduced-motion o se la differenza è già sotto la soglia percettiva (niente molla
-  // per un residuo impercettibile), altrimenti `animate(..., molla.press)`, coerente con
-  // `onRilascioSwipe`/il resto della coreografia.
-  const riconcilia = useCallback(() => {
-    const bersaglio = bersaglioStanza(stanzaAttiva)
-    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) {
-      // FIX ri-collaudo #4 (review round 3) — PRIMA di questo fix un `return` nudo qui lasciava
-      // `progressoSwipe` frazionario (es. 0.9995) quando la differenza dal riposo era già sotto
-      // la soglia percettiva: impercettibile per l'OPACITÀ/SCALA (mappaPiedeSwipe è continua),
-      // ma `piedeSenzaIngombro` vuole `>= 1` ESATTO (invariante voluta, v. piede-swipe.ts — non
-      // va rilassata: "il riposo è esattamente 0 o 1") — quindi `is-vuoto` non scattava MAI in
-      // quella finestra, il box restava presente: lo stesso «blocco panna», ~1000× più stretto,
-      // ma ancora vivo. Atterra ESATTO con `.set()` (mai `animate`: il movimento residuo è
-      // sub-percettivo, una molla qui sarebbe lavoro sprecato) anche quando la differenza è già
-      // minima — coerente col ramo `ridotto` sotto, che fa lo stesso per un motivo diverso.
-      controlliRilascioRef.current?.stop()
-      controlliRilascioRef.current = null
-      rilasciandoRef.current = false
-      progressoSwipe.set(bersaglio)
-      return
-    }
-    controlliRilascioRef.current?.stop()
-    controlliRilascioRef.current = null
-    if (ridotto) {
-      rilasciandoRef.current = false
-      progressoSwipe.set(bersaglio)
-      return
-    }
-    rilasciandoRef.current = true
-    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
-      ...molla.press,
-      onComplete: () => {
-        rilasciandoRef.current = false
-      },
-    })
-  }, [stanzaAttiva, ridotto, progressoSwipe])
-
-  const montatoRef = useRef(false)
-  useEffect(() => {
-    if (!montatoRef.current) {
-      // Primo render: un deep-link diretto sulla Parete (`?stanza=parete`) arriva già con
-      // `stanzaAttiva === 'parete'` mentre `progressoSwipe` è ancora al suo default (0) — lo
-      // `scrollTo` iniziale di StanzePager (v. commento lì) farà arrivare a breve un vero tick
-      // di scroll che porta `progressoSwipe` a 1 da solo, senza bisogno di alcuna molla. Farla
-      // partire QUI produrrebbe uno "sparire" spurio del piede subito dopo il primissimo
-      // caricamento — un'animazione che nessun gesto ha chiesto.
-      montatoRef.current = true
-      return
-    }
-    if (scorrendoRef.current) {
-      // Lo scroll è ancora in corso (v. commento su `scorrendoRef` sopra, QUALUNQUE input):
-      // l'IO può scattare a soglia 0.6 mentre il gesto è ancora vivo, ben prima che si fermi —
-      // l'inseguimento 1:1 di `onProgressoSwipe` è già l'autorità in tempo reale in questo
-      // istante, nessuna molla da avviare qui (partirebbe comunque verso il bersaglio giusto, ma
-      // in corsa non deterministica col prossimo tick di scroll che la scavalcherebbe un istante
-      // dopo). FIX ri-collaudo #4 (review round 2) — CRUCIALE: uscire qui senza riconciliare NON
-      // basta da solo. Su OGNI transizione da gesto reale `stanzaAttiva` cambia mentre
-      // `scorrendoRef` è ancora vero (l'IO scatta a soglia 0.6, molto prima che lo scroll si
-      // fermi) — quindi questo effect esce QUI quasi sempre, e prima di questo fix nessuno
-      // riprendeva il lavoro dopo: il collasso/la scala esatta restavano affidati al singolo tick
-      // nativo che consegnasse `scrollLeft` ESATTAMENTE al bordo (`progressoDaScroll` produce 1
-      // solo se `scrollLeft === clientWidth` esatto) — su arrotondamenti sub-pixel/HiDPI lo
-      // scroll può assestarsi a es. 0.998: il tondo invisibile (opacità/scala già ~0, sotto la
-      // soglia percettiva) ma il BOX di `.foot` (~150px margin+gap+safe-area) ancora presente
-      // (`piedeSenzaIngombro` richiede `>= 1` esatto) — il «blocco panna» del verbale, ancora
-      // vivo. Il gate riapriva esattamente il buco che §3/§4 dichiaravano chiuso. Rimedio in
-      // `onScrollAssestato` sotto: `scrollend` (il segnale nativo che lo scroll si è DAVVERO
-      // fermato, in ENTRAMBE le direzioni) non si limita più a liberare il gate — chiama
-      // `riconcilia()`, agganciando il riposo ESATTO nel momento giusto.
-      return
-    }
-    riconcilia()
-  }, [stanzaAttiva, ridotto, progressoSwipe, riconcilia])
-
-  // FIX ri-collaudo #4 (review round 2) — igiene: una molla di riconciliazione/rilascio ancora
-  // in volo allo smontaggio del componente (navigazione via `router.push` mentre il piede sta
-  // ancora assestandosi) resta orfana — `animate()` di Motion non si autodistrugge da sé al
-  // gc, e scrivere su una motion value dopo che il nodo DOM che la consuma è sparito è lavoro
-  // sprecato (mai un crash, `piedeRef.current` è già `null` lì, ma un frame di lavoro a vuoto).
-  // Annotato come limite noto fin dal report H4c originale (§9), chiuso qui di passaggio.
-  useEffect(() => {
-    return () => {
-      controlliRilascioRef.current?.stop()
-    }
-  }, [])
-
-  function onProgressoSwipe(p: number) {
-    if (rilasciandoRef.current) {
-      // FIX ri-collaudo #4 (difetto b, «scattering/rimbalzo» sul flick veloce) — PRIMA di
-      // questo fix un tick di scroll reale arrivato durante l'assestamento veniva IGNORATO
-      // fino all'`onComplete` della molla: se lo scroll nativo/snap continuava a muoversi DOPO
-      // il rilascio (fling veloce) più a lungo dei ~110ms della molla, quei tick andavano
-      // persi — la molla si assestava sulla stima sbagliata e nessuno la correggeva più (fino
-      // all'eventuale, tardivo, cambio di `stanzaAttiva` sopra). Un tick di scroll reale è
-      // sempre più autorevole di una stima al rilascio: fermalo e riprendi a inseguire 1:1,
-      // esattamente come farebbe un nuovo `onPresaSwipe`.
-      controlliRilascioRef.current?.stop()
-      controlliRilascioRef.current = null
-      rilasciandoRef.current = false
-    }
-    scorrendoRef.current = true
-    progressoSwipe.set(p)
-  }
-  function onPresaSwipe() {
-    // Il dito riafferra: un eventuale assestamento in corso da un rilascio precedente non deve
-    // più scrivere sopra i tick di scroll che stanno per arrivare.
-    controlliRilascioRef.current?.stop()
-    controlliRilascioRef.current = null
-    rilasciandoRef.current = false
-    scorrendoRef.current = true
-  }
-  function onRilascioSwipe() {
-    scorrendoRef.current = false
-    const bersaglio = bersaglioRilascio(progressoSwipe.get())
-    if (ridotto) {
-      // prefers-reduced-motion: set diretto, MAI `animate()` — stessa regola di
-      // `useDragRiordino.ts` (`reduced() ? ghostScale.set(...) : animate(...)`).
-      progressoSwipe.set(bersaglio)
-      return
-    }
-    rilasciandoRef.current = true
-    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
-      ...molla.press,
-      onComplete: () => {
-        rilasciandoRef.current = false
-      },
-    })
-  }
-  // FIX ri-collaudo #4 (review round 2) — `scrollend` nativo (StanzePager.tsx): il segnale che
-  // lo scroll si è DAVVERO fermato, in ENTRAMBE le direzioni e per QUALUNQUE input (fa scattare
-  // anche dopo uno scroll trascinato dal dito, non solo rotellina/trackpad — non è un evento
-  // "non-touch", è "scroll finito", punto). Prima di questo fix liberava SOLO il gate
-  // (`scorrendoRef = false`), lasciando `progressoSwipe` a qualunque valore l'ultimo tick nativo
-  // avesse consegnato — su un dispositivo con arrotondamenti sub-pixel/HiDPI quel valore può
-  // essere 0.998 invece di 1 esatto: il tondo già invisibile (sotto soglia percettiva) ma il BOX
-  // di `.foot` ancora presente (`piedeSenzaIngombro` vuole `>= 1` esatto) — il «blocco panna» del
-  // verbale, riaperto proprio dal gate che doveva chiuderlo (v. il commento nell'effect sopra).
-  // Ora `scrollend` è il momento giusto per agganciare il riposo ESATTO: libera il gate E
-  // riconcilia, in un colpo solo, verso il valore che `stanzaAttiva` impone davvero.
-  function onScrollAssestato() {
-    scorrendoRef.current = false
-    riconcilia()
-  }
+  // Piede statico (verbale 26/07, commit `5957b24`) — HomeV3 non tiene più uno stato
+  // `stanzaAttiva`: prima serviva SOLO a decidere `inert`/`aria-hidden` del piede (QA device
+  // T15, addendum punto 3), e ora quella semantica arriva per eredità dalla stanza ospite
+  // (`.ua-stanza[data-stanza="pile"]` in StanzePager, che già la porta da sé — v. il commento su
+  // `piede` più sotto). Un pezzo di stato in meno da tenere sincrono, non un comportamento in
+  // meno: StanzePager continua a gestire la propria `attiva` internamente, invariato.
 
   // La stanza Pile: esattamente la home di sempre (saluto · StrisciaStato · 4 pile). Vive in
   // una variabile perché il pager la riceve come figlio, ma il contenuto non cambia di una
@@ -379,22 +159,17 @@ export function HomeV3(props: {
     </>
   )
 
-  // Il piano fisso: UN solo TastoPiù, identico in ogni forma della home e in entrambe le
-  // stanze (§3.3 regola 5). Sta FUORI dal pager, così non scorre e non si sdoppia a metà snap.
-  // Capitolo H4c — `ref`/le tre custom property CSS (v. l'effect sopra) pilotano l'aspetto
-  // durante lo swipe SOLO nella forma pager (lì le proprietà cambiano davvero, v. sotto); nelle
-  // altre forme restano ai default dichiarati nel CSS (piede sempre pieno, invariato). `inert`/
-  // `aria-hidden` restano legati a `stanzaAttiva` (COSA è interattivo, invariato §3
-  // dell'addendum) — nella forma «solo pile» `stanzaAttiva` resta per costruzione `'pile'` (v.
-  // l'inizializzazione sopra), quindi qui non cambia mai nulla per quella forma: nessun tocco
-  // comportamentale fuori dal pager (§ vincoli del brief H4c).
+  // Il piano fisso: UN solo TastoPiù, identico in ogni forma della home. Piede STATICO (verbale
+  // 26/07, commit `5957b24` — abroga la coreografia C2 del capitolo H4c, v. il commento in testa
+  // al file): niente ref, niente custom property, niente stato — un `<div>` con dentro il
+  // bottone, punto. Nella forma pager questo stesso nodo va DENTRO il pannello della stanza Pile
+  // (passato come `piedePile` a `StanzePager`, v. il render sotto): l'`inert`/`aria-hidden` che
+  // decide se è interattivo (COSA, invariato §3 dell'addendum QA T15) arriva per EREDITÀ dalla
+  // stanza ospite (`.ua-stanza[data-stanza="pile"]`, già la porta StanzePager) — un solo posto a
+  // dichiararlo, non più due. Nelle forme non-pager («solo pile») non c'è alcuna stanza che lo
+  // ospiti: resta un fratello fuori da `.corpo`, sempre interattivo, come sempre.
   const piede = (
-    <div
-      ref={piedeRef}
-      className="foot"
-      aria-hidden={stanzaAttiva === 'parete'}
-      inert={stanzaAttiva === 'parete'}
-    >
+    <div className="foot">
       <TastoPiu compatto onClick={() => router.push('/lavori/nuovo')} />
     </div>
   )
@@ -468,67 +243,23 @@ export function HomeV3(props: {
            floor 4 (dimezzato), e la prop compatto su TastoPiu (v. sopra) stringe il gap
            ghiera-etichetta da 12 a 4. Misurato in browser reale (non jsdom): v.
            .superpowers/sdd/fixB-report.md per i numeri prima/dopo. */
-        /* FIX verifica device di Francesco (round 4) — margin-top/padding-bottom moltiplicati
-           per --piede-ingombro (0→1, v. l'effect su piedeRef/piedeIngombro sopra): a differenza
-           delle tre custom property della coreografia C2 (che restano SOLO scala/opacità del
-           CONTENUTO), questa quarta guida l'ingombro di layout del CONTENITORE stesso — la
-           parte che H4c non faceva mai partecipare al gesto, lasciando intravedere lo sfondo
-           della pagina nello spazio riservato-ma-vuoto («il quadrato panna... e POI scompare»,
-           parole di Francesco dal device). max-height + overflow:hidden chiudono anche
-           l'eventuale residuo di altezza del contenuto stesso (il tondo/l'etichetta, già quasi
-           invisibili in quella finestra ma non ancora a dimensione zero): 240px è un tetto
-           generoso rispetto al contenuto reale (ghiera 110 + gap + etichetta + margini/safe-area
-           calcolati sopra, mai raggiunto nella pratica — serve solo a garantire che il taglio
-           avvenga SEMPRE, qualunque combinazione di clamp/safe-area il device produca) — a
-           --piede-ingombro:1 (default, invariato per ogni forma non-pager) il taglio non
-           interviene mai (240px eccede sempre il contenuto reale). calc(<length> * <number>) è
-           calc() valido (moltiplicazione di una lunghezza per un numero puro) — stesso pattern
-           già in uso altrove nel repo (v. ds-v3.css). Il collasso DISCRETO (.is-vuoto,
-           display:none) resta INVARIATO sotto — questa curva continua lo ANTICIPA dentro il
-           gesto, non lo sostituisce (v. commento su piedeIngombro in piede-swipe.ts sul perché
-           serve comunque un backstop esatto). */
+        /* Piede STATICO (verbale 26/07, commit 5957b24 — abroga la coreografia C2 del
+           capitolo H4c: 4 round di custom property --piede-*/--piede-ingombro, collasso
+           discreto .is-vuoto, curve dedicate in piede-swipe.ts (rimosso) — storia intera in
+           .superpowers/sdd/h4c-fix-report.md, non riscritta qui). Nessuna delle vecchie regole
+           sopravvive: .foot è oggi un box a dimensione fissa, niente calc(*var(--piede-*)),
+           niente stile pilotato da ref. Nella forma pager questo stesso .foot vive DENTRO
+           .ua-stanza[data-stanza=pile] (v. piedePile in StanzePager.tsx): scorre via con
+           tutto il resto della stanza quando il pager scorre in orizzontale — non serve alcuna
+           regola CSS dedicata per farlo, è la conseguenza diretta di essere un discendente del
+           pannello che si muove. Sulla stanza Parete il selettore non trova nulla: il piede non
+           è nel suo sottoalbero, quindi né dipinto né un pixel di ingombro — risolve anche
+           l'altro difetto del verbale («resta anche una piccola fascia del blocco panna in
+           basso»), per costruzione, non per un collasso calcolato. */
         .ua-home .foot {
-          margin-top: calc(clamp(4px, 0.9cqh, 8px) * var(--piede-ingombro, 1));
+          margin-top: clamp(4px, 0.9cqh, 8px);
           display: flex; flex-direction: column; align-items: center; gap: 8px;
-          padding-bottom: calc(env(safe-area-inset-bottom) * var(--piede-ingombro, 1));
-          max-height: calc(240px * var(--piede-ingombro, 1));
-          overflow: hidden;
-        }
-        /* Capitolo H4c (decisione 0c37f25, demo ebf4edb) — coreografia C2 «il tasto si ritira».
-           Le tre custom property sono scritte via ref DIRETTAMENTE sul nodo .foot (v. l'effect
-           su piedeRef/progressoSwipe sopra, NON uno style React per pixel di gesto — stesso
-           motivo per cui useDragRiordino.ts scrive le sue motion value senza passare da
-           setState): il default qui sotto (1) è quanto vede ogni forma della home DIVERSA dal
-           pager (lì le custom property non cambiano mai — nessun listener le scrive), quindi il
-           piede vi resta sempre pieno, invariato (vincoli del brief H4c, «il gesto esiste solo
-           dove esiste lo swipe»). TastoPiu.tsx NON viene toccato: le due classi target
-           (.ds-tastopiu = il tondo vero, il suo motion.button; l'ultimo span figlio del suo
-           wrapper = l'etichetta «Nuovo lavoro») sono già la superficie CSS pubblica del
-           componente, la cascata delle custom property arriva a loro attraverso .foot senza
-           che debbano saperlo. */
-        .ua-home .foot .ds-tastopiu {
-          transform: scale(var(--piede-tondo-scala, 1));
-          opacity: var(--piede-tondo-opacita, 1);
-          will-change: transform, opacity;
-        }
-        .ua-home .foot > div > span:last-child {
-          opacity: var(--piede-etichetta-opacita, 1);
-          will-change: opacity;
-        }
-        /* FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetto a — "blocco panna
-           che copre la pagina delle cassette"): a riposo vero (progress 1, v. applica/
-           piedeSenzaIngombro sopra) il contenitore stesso esce dal flusso — non solo il suo
-           contenuto è invisibile, il box smette di esistere. display:none (non solo
-           height:0/opacity:0): elimina insieme lo spazio riservato (la pagina /cassette
-           riguadagna quei pixel, niente più striscia vuota color pagina in fondo allo schermo),
-           qualunque background implicito e qualunque area residua che potrebbe intercettare un
-           tocco — ridondante con inert (che già blocca l'interazione), ma una garanzia CSS
-           esplicita non fa mai male su una superficie dove un dito reale tocca lo schermo. Il
-           nodo React resta MONTATO (H4c, invariato): display:none è solo pittura, non
-           smonta/rimonta nulla — la classe è un toggle imperativo via ref, mai in conflitto con
-           className="foot" statico dichiarato nel JSX (React non lo tocca a ogni render). */
-        .ua-home .foot.is-vuoto {
-          display: none;
+          padding-bottom: env(safe-area-inset-bottom);
         }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
@@ -555,32 +286,23 @@ export function HomeV3(props: {
 
       {vista.tipo === 'pager' ? (
         <>
-          {/* Task 14 (D8) — `.corpo` avvolge il pager (le due stanze + linguetta — niente più
-              dots dentro, rimossi da QA device D3): il
-              `piede` NON si passa più come `footer` a `StanzePager` (che lo renderebbe dentro
-              il proprio ritorno, quindi dentro `.corpo`) — resta un fratello fuori, fisso in
-              fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style).
-              QA device T15 (addendum 24/07, punto 3) — quando la stanza attiva è la Parete il
-              piede resta interattivamente assente (`inert`/`aria-hidden` su `stanzaAttiva`,
-              invariato). Capitolo H4c (supera la nota «sparisce di colpo» qui sopra) — il piede
-              ORA resta SEMPRE montato in questa forma (mai più smontato/rimontato a ogni cambio
-              di stanza): è la coreografia C2 su `--piede-*` (v. l'effect su `piedeRef` sopra) a
-              farlo apparire/scomparire con grazia durante il gesto, agganciata al progress che
-              `StanzePager` espone dallo scroll nativo. Resta un fratello fuori da `.corpo`, il
-              TastoPiù non rimpicciolisce mai per via del layout — solo per via del gesto. */}
+          {/* Piede statico (verbale 26/07, commit `5957b24`, abroga H4c) — `piede` va DENTRO il
+              pager come `piedePile`, non più come fratello fuori da `.corpo`: StanzePager lo
+              rende dentro `.ua-stanza[data-stanza="pile"]`, fuori da `.ua-stanza-pile-scroll`
+              (v. il commento lì per l'ancoraggio verticale) — così scorre via in orizzontale
+              CON la stanza Pile quando il pager scorre, si ferma con essa, e non esiste affatto
+              nel sottoalbero della stanza Parete (né dipinto né ingombro, per costruzione).
+              `inert`/`aria-hidden` (COSA è interattivo, invariato §3 dell'addendum QA T15)
+              arrivano per eredità dalla stanza ospite — StanzePager già li porta su `.ua-stanza`,
+              nessun codice in più qui. */}
           <div className="corpo">
             <StanzePager
               stanzaIniziale={vista.iniziale}
               pile={stanzaPile}
+              piedePile={piede}
               parete={parete}
-              onStanzaChange={setStanzaAttiva}
-              onProgressoSwipe={onProgressoSwipe}
-              onPresaSwipe={onPresaSwipe}
-              onRilascioSwipe={onRilascioSwipe}
-              onScrollAssestato={onScrollAssestato}
             />
           </div>
-          {piede}
         </>
       ) : vista.stanza === 'parete' ? (
         <>
