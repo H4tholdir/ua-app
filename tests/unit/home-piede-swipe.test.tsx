@@ -7,7 +7,7 @@
 // l'opposto. Quello che jsdom NON può reggere (la curva reale della molla nel tempo, il feel a
 // schermo) resta verifica visiva live (v. il report H4c).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { HomeV3 } from '@/components/features/home/HomeV3'
 import { molla } from '@/design-system/v3/motion'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -123,12 +123,21 @@ function mockReducedMotion(matches: boolean) {
   }
 }
 
+// `pushStateSpy` mockato (stesso pattern di `stanze-pager.test.tsx`): i test di riconciliazione
+// sotto cliccano la linguetta «Le cassette», che fa DAVVERO `window.history.pushState` in
+// StanzePager.tsx (`sincronizzaUrlStanza`) — senza questo mock la mutazione reale di
+// `window.location.pathname` sopravviverebbe al test (jsdom non resetta `window.location` fra
+// gli `it()` di uno stesso file) e farebbe leakare `/cassette` sui test successivi
+// (`stanzaEffettiva` la rilegge al mount).
+let pushStateSpy: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', IOFinto)
   animateSpy.mockClear()
+  pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {})
 })
 afterEach(() => {
   vi.unstubAllGlobals()
+  pushStateSpy.mockRestore()
 })
 
 describe('HomeV3 — il piede resta montato durante lo swipe (H4c supera lo smonta/rimonta di colpo)', () => {
@@ -306,6 +315,270 @@ describe('HomeV3 — forma "solo pile" (nessun pager, nessun gesto): il piede è
     expect(nodo.style.getPropertyValue('--piede-etichetta-opacita')).toBe('1')
     expect(nodo.style.getPropertyValue('--piede-tondo-scala')).toBe('1')
     expect(nodo.style.getPropertyValue('--piede-tondo-opacita')).toBe('1')
+    expect(animateSpy).not.toHaveBeenCalled()
+  })
+})
+
+// FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetto b — «scattering/rimbalzo»
+// sul flick veloce): un tick di scroll reale arrivato DOPO il rilascio (il momentum/snap
+// nativo può continuare a muovere lo scrollLeft più a lungo della molla, ~110ms) deve SEMPRE
+// vincere sulla stima di `bersaglioRilascio` — mai restare ignorato fino all'`onComplete`.
+describe('HomeV3 — un tick di scroll reale dopo il rilascio insegue lo scroll vero (difetto b, flick veloce)', () => {
+  it('un tick di scroll durante l\'assestamento ferma la molla in volo e riprende 1:1', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    simulaScroll(viewport, 117, 390) // 0.3 -> bersaglioRilascio = 0 (guess "torna pieno")
+    animateSpy.mockClear()
+    act(() => {
+      fireEvent.touchEnd(viewport) // la molla parte verso 0
+    })
+    const controlli = animateSpy.mock.calls[0]?.[3] as { stop: () => void } | undefined
+    expect(controlli).toBeDefined()
+    const stopSpy = vi.spyOn(controlli!, 'stop')
+
+    // il fling nativo prosegue DOPO il rilascio (il pager non guida né rincorre lo scroll
+    // nativo, lo osserva soltanto — v. StanzePager.tsx): un vero tick di scroll arriva mentre
+    // la molla guessata (sbagliata, in questo scenario) è ancora in volo.
+    simulaScroll(viewport, 370, 390) // 0.949 — lo scroll reale sta arrivando alla Parete
+
+    expect(stopSpy).toHaveBeenCalledTimes(1)
+    const nodo = piede(container)
+    expect(Number(nodo.style.getPropertyValue('--piede-tondo-scala'))).toBeCloseTo(1 - 370 / 390, 5)
+  })
+
+  it('flick veloce end-to-end: la stima al rilascio sbaglia verso (guess 0) ma lo scroll reale prosegue fino in fondo — il piede converge SEMPRE allo stato vero, mai bloccato', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    simulaScroll(viewport, 40, 390) // progress ~0.10, ben sotto la soglia 0.5 -> guess 0
+    act(() => {
+      fireEvent.touchEnd(viewport) // molla verso 0 — SBAGLIATA in questo scenario
+    })
+    // pochi tick ravvicinati, come il momentum/snap nativo dopo un flick veloce
+    simulaScroll(viewport, 200, 390)
+    simulaScroll(viewport, 390, 390)
+
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-tondo-scala')).toBe('0')
+    expect(Number(nodo.style.getPropertyValue('--piede-tondo-opacita'))).toBeCloseTo(0, 5)
+    expect(nodo.classList.contains('is-vuoto')).toBe(true)
+  })
+})
+
+// FIX ri-collaudo #4, difetto (a) — «blocco panna che copre la pagina»: il contenitore .foot
+// deve collassare (classe is-vuoto → display:none) SOLO a riposo vero, mai a metà coreografia.
+describe('HomeV3 — collasso dell\'ingombro del .foot a riposo vero (difetto a, blocco panna)', () => {
+  it('a riposo iniziale (progress 0) il contenitore NON è collassato', () => {
+    const { container } = renderHome()
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(false)
+  })
+
+  it('a metà gesto (progress 0.5) il contenitore NON è ancora collassato', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 195, 390)
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(false)
+  })
+
+  it('appena sotto il traguardo (progress 0.99) il contenitore NON è ancora collassato (niente pop anticipato)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 386, 390) // 0.9897
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(false)
+  })
+
+  it('a riposo vero su Parete (progress 1) il contenitore collassa (classe is-vuoto)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 390, 390)
+    const nodo = piede(container)
+    expect(nodo.classList.contains('is-vuoto')).toBe(true)
+  })
+
+  it('un gesto lento all\'indietro dalla Parete fa riespandere subito il contenitore (reversibilità)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 390, 390)
+    expect(piede(container).classList.contains('is-vuoto')).toBe(true)
+    simulaScroll(viewport, 385, 390) // torna appena sotto 1
+    expect(piede(container).classList.contains('is-vuoto')).toBe(false)
+  })
+})
+
+// FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b) — riconciliazione:
+// `stanzaAttiva` (autorità finale del pager, IO/navigazione esplicita) deve SEMPRE poter
+// correggere `progressoSwipe`, anche se una molla guessata al rilascio sta già puntando (o ha
+// già puntato) nel verso sbagliato.
+describe('HomeV3 — riconciliazione da stanzaAttiva: nessuno stato di riposo può restare divergente', () => {
+  it('la stima al rilascio sbaglia (guess 0), ma la navigazione esplicita conferma la Parete: la molla si corregge verso 1', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    simulaScroll(viewport, 117, 390) // 0.3 -> bersaglioRilascio = 0 (guess "torna pieno")
+    act(() => {
+      fireEvent.touchEnd(viewport) // molla verso 0 — la stima presume un ritorno alle Pile
+    })
+    const controlliSbagliati = animateSpy.mock.calls[0]?.[3] as { stop: () => void } | undefined
+    expect(controlliSbagliati).toBeDefined()
+    const stopSpy = vi.spyOn(controlliSbagliati!, 'stop')
+    animateSpy.mockClear()
+
+    // il pager, indipendentemente dalla stima, conferma che la stanza reale è la Parete —
+    // stesso segnale che l'IntersectionObserver darebbe a soglia 0.6 in direzione opposta alla
+    // stima, qui ottenuto via la via esplicita (linguetta) per non dipendere da un IO finto.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+
+    expect(stopSpy).toHaveBeenCalled()
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    const [, bersaglio, transizione] = animateSpy.mock.calls[0]
+    expect(bersaglio).toBe(1)
+    expect(transizione).toMatchObject(molla.press)
+  })
+
+  it('se la stima al rilascio era già corretta, la riconciliazione non avvia alcuna molla ridondante', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    simulaScroll(viewport, 390, 390) // 1 -> bersaglioRilascio = 1, già corretto
+    act(() => {
+      fireEvent.touchEnd(viewport)
+    })
+    animateSpy.mockClear()
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+
+    expect(animateSpy).not.toHaveBeenCalled()
+  })
+
+  it('simmetrico: la stima al rilascio sbaglia (guess 1), ma la navigazione esplicita conferma le Pile: la molla si corregge verso 0 ("il pulsante sparisce dalla home", difetto b)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    // porta la stanza attiva sulla Parete per davvero (navigazione esplicita): la molla
+    // guessata al rilascio sotto può quindi sbagliare nella direzione OPPOSTA — verso le Pile.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+    animateSpy.mockClear()
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    simulaScroll(viewport, 273, 390) // 0.7 -> bersaglioRilascio = 1 (SBAGLIATA in questo scenario)
+    act(() => {
+      fireEvent.touchEnd(viewport) // molla verso 1
+    })
+    const controlliSbagliati = animateSpy.mock.calls[0]?.[3] as { stop: () => void } | undefined
+    expect(controlliSbagliati).toBeDefined()
+    const stopSpy = vi.spyOn(controlliSbagliati!, 'stop')
+    animateSpy.mockClear()
+
+    // il pager conferma indipendentemente che la stanza reale è tornata alle Pile (back
+    // esplicito dell'header della parete).
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Indietro' }))
+    })
+
+    expect(stopSpy).toHaveBeenCalled()
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    const [, bersaglio, transizione] = animateSpy.mock.calls[0]
+    expect(bersaglio).toBe(0)
+    expect(transizione).toMatchObject(molla.press)
+  })
+
+  it('mentre il dito è ancora giù (fra onPresaSwipe e onRilascioSwipe) la riconciliazione NON parte, anche se stanzaAttiva cambia (niente hitch a metà drag)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport) // dito giù
+    })
+    simulaScroll(viewport, 273, 390) // 0.7, ancora durante il drag
+    animateSpy.mockClear()
+
+    // mentre il dito è ancora giù, la stanza attiva cambia (nella realtà: l'IO a soglia 0.6
+    // durante un drag ancora in corso, PRIMA del rilascio) — qui ottenuto via la via esplicita,
+    // che aggiorna comunque `stanzaAttiva` indipendentemente dal touch sul viewport.
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i }))
+    })
+
+    expect(animateSpy).not.toHaveBeenCalled()
+
+    act(() => {
+      fireEvent.touchEnd(viewport) // il dito solleva: bersaglioRilascio(0.7) = 1, coerente
+    })
+    expect(animateSpy).toHaveBeenCalledTimes(1) // il rilascio, non la riconciliazione
+    expect(animateSpy.mock.calls[0][1]).toBe(1)
+  })
+
+  // FIX ri-collaudo #4 (review, riprodotto dal vivo su :3042 con uno scroll a rotellina reale,
+  // v. report §"root cause 1 bis"): il gate sopra si basava SOLO su touchstart/touchend — una
+  // rotellina/trackpad non genera mai quegli eventi, quindi lo stesso "hitch" (molla di
+  // riconciliazione che parte a metà scroll, poi scavalcata dal tick successivo) restava
+  // riproducibile su un gesto non-touch. `scorrendoRef` ora si arma a OGNI tick di scroll (non
+  // solo al touchstart) e si libera SOLO da un segnale nativo di scroll fermo: `onRilascioSwipe`
+  // (touch) o `onScrollAssestato` (`scrollend`, StanzePager.tsx — copre rotellina/trackpad/
+  // scrollTo programmatico).
+  it('scroll non-touch (rotellina/trackpad, nessun touchstart): la riconciliazione resta bloccata finché non arriva scrollend, poi torna a valere', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+
+    simulaScroll(viewport, 273, 390) // tick di scroll grezzo, SENZA alcun touchstart
+    animateSpy.mockClear()
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /le cassette/i })) // stanzaAttiva -> parete
+    })
+    expect(animateSpy).not.toHaveBeenCalled() // bloccato: lo scroll è ancora "in corso" per il gate
+
+    act(() => {
+      fireEvent(viewport, new Event('scrollend')) // lo scroll si ferma DAVVERO
+    })
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Indietro' })) // stanzaAttiva -> pile
+    })
+    expect(animateSpy).toHaveBeenCalledTimes(1) // il gate si è sbloccato: la riconciliazione riparte
+    const [, bersaglio, transizione] = animateSpy.mock.calls[0]
+    expect(bersaglio).toBe(0)
+    expect(transizione).toMatchObject(molla.press)
+  })
+
+  it('al mount (deep-link diretto sulla Parete) non parte alcuna molla spuria', () => {
+    const { container } = render(
+      <HomeV3
+        nome="Francesco"
+        eyebrow="Giovedì 9 luglio"
+        saluto="Buon pomeriggio"
+        pile={PILE}
+        segnale={SEGNALE}
+        parete={PARETE}
+        homePref="due_stanze"
+        stanzaParam="parete"
+      />
+    )
+    preparaViewport(container)
     expect(animateSpy).not.toHaveBeenCalled()
   })
 })

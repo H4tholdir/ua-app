@@ -67,14 +67,48 @@ export function mappaPiedeSwipe(progress: number, reduced: boolean): StilePiedeS
   }
 }
 
-/** Al rilascio a metà gesto, il bersaglio dell'assestamento (`molla.press`, in HomeV3.tsx) è lo
- *  stato più vicino: sotto metà torna pieno (0), sopra metà prosegue verso l'assenza (1) —
- *  stessa soglia "midpoint" con cui uno scroll-snap mandatory a due pannelli di pari larghezza
- *  decide dove agganciare in assenza di velocità di rilascio significativa (v. nota nel report
- *  H4c sulla discriminante da verificare in QA browser: un flick veloce può far agganciare lo
- *  scroll-snap nativo nella direzione opposta a questa stima — il pager resta comunque
- *  l'autorità finale via `onStanzaChange`/`stanzaAttiva`, questa è solo la stima immediata al
- *  sollevamento del dito, prima che l'IO/lo snap abbiano deciso). */
+/** Al rilascio a metà gesto, il bersaglio PROVVISORIO dell'assestamento (`molla.press`, in
+ *  HomeV3.tsx) è lo stato più vicino: sotto metà torna pieno (0), sopra metà prosegue verso
+ *  l'assenza (1) — stessa soglia "midpoint" con cui uno scroll-snap mandatory a due pannelli di
+ *  pari larghezza decide dove agganciare in assenza di velocità di rilascio significativa.
+ *
+ *  FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b): questa stima usa
+ *  SOLO la posizione al momento del rilascio, mai la velocità del gesto — un flick veloce può
+ *  far agganciare lo scroll-snap nativo nel verso OPPOSTO a questa stima (l'utente solleva il
+ *  dito quando il progress è ancora, es., 0.1, ma il momentum nativo lo porta comunque fino a
+ *  1). Per questo NON è più l'ultima parola: resta solo il punto di partenza dell'assestamento
+ *  visivo, sempre sovrascrivibile da (1) un tick di scroll reale successivo (la molla si ferma,
+ *  v. `onProgressoSwipe` in HomeV3.tsx — «insegue lo scroll reale anche dopo il rilascio») e
+ *  sempre, in ultima istanza, da (2) `bersaglioStanza(stanzaAttiva)`, riconciliato ogni volta
+ *  che il pager (IO/navigazione esplicita) cambia idea. Le due reti di sicurezza rendono
+ *  IMPOSSIBILE uno stato di riposo divergente, a prescindere da quanto questa stima sbagli. */
 export function bersaglioRilascio(progress: number): 0 | 1 {
   return progress > 0.5 ? 1 : 0
+}
+
+/** Il valore di riposo che la stanza ATTIVA impone a `progressoSwipe`: 0 su Pile (piede pieno),
+ *  1 su Parete (piede assente). `stanzaAttiva` (HomeV3.tsx, sincronizzata da
+ *  `StanzePager.onStanzaChange`) è l'AUTORITÀ finale su dove si trova davvero il pager — IO a
+ *  soglia 0.6 o navigazione esplicita, mai la sola stima di `bersaglioRilascio` sopra. Usata
+ *  dall'effect di riconciliazione in HomeV3.tsx per riportare SEMPRE `progressoSwipe` al valore
+ *  giusto quando la stanza attiva cambia, fermando qualunque molla in volo che stesse (ancora)
+ *  puntando altrove. */
+export function bersaglioStanza(stanza: 'pile' | 'parete'): 0 | 1 {
+  return stanza === 'parete' ? 1 : 0
+}
+
+/** A riposo (progress 1, cioè il tondo già a scala/opacità zero) il CONTENITORE del piede
+ *  (`.foot`) non deve più occupare spazio di layout: FIX ri-collaudo #4, difetto (a) — «blocco
+ *  panna che copre la pagina» delle cassette. `.foot` non dichiara alcuno sfondo proprio (v.
+ *  HomeV3.tsx): il "blocco" che si vedeva non era un colore estraneo, ma lo sfondo della PAGINA
+ *  che si intravedeva nello spazio che il box riservava comunque (margini/padding fissi),
+ *  anche a contenuto già invisibile — H4c aveva reso il piede sempre MONTATO durante lo swipe,
+ *  ma non aveva mai fatto collassare l'ingombro del box quando il gesto arriva davvero a riposo.
+ *  Soglia `>= 1`, non un intorno: ogni valore-riposo che questo modulo produce (`bersaglioStanza`,
+ *  lo scroll nativo clampato da `progressoDaScroll`) è ESATTAMENTE 0 o 1, mai un residuo
+ *  intermedio — il collasso scatta quindi solo quando il tondo è GIÀ a scala/opacità zero in
+ *  entrambe le modalità (normale: finestra 0.78-1; reduced: 1:1 su tutto il gesto, comunque 0
+ *  esatto solo a p=1), mai a metà coreografia. */
+export function piedeSenzaIngombro(progress: number): boolean {
+  return clamp01(progress) >= 1
 }

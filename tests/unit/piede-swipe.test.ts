@@ -5,8 +5,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   bersaglioRilascio,
+  bersaglioStanza,
   clamp01,
   mappaPiedeSwipe,
+  piedeSenzaIngombro,
   progressoDaScroll,
 } from '@/components/features/home/piede-swipe'
 
@@ -120,5 +122,41 @@ describe('bersaglioRilascio — dove si assesta la molla.press al rilascio', () 
   })
   it('esattamente a metà (0.5): non oltre la soglia → torna pieno (0), per costruzione ">"', () => {
     expect(bersaglioRilascio(0.5)).toBe(0)
+  })
+})
+
+// FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b) — riconciliazione:
+// il valore di riposo che la stanza ATTIVA (autorità finale, mai la sola stima al rilascio)
+// impone a `progressoSwipe`.
+describe('bersaglioStanza — il valore di riposo che la stanza attiva impone (autorità finale)', () => {
+  it("stanza 'pile' → 0 (piede pieno)", () => {
+    expect(bersaglioStanza('pile')).toBe(0)
+  })
+  it("stanza 'parete' → 1 (piede assente)", () => {
+    expect(bersaglioStanza('parete')).toBe(1)
+  })
+})
+
+// FIX ri-collaudo #4, difetto (a) — «blocco panna che copre la pagina»: il contenitore .foot
+// deve collassare (niente ingombro di layout) SOLO a riposo vero (progress 1), mai a metà
+// coreografia (altrimenti riprodurrebbe un pop, lo stesso difetto (b)).
+describe('piedeSenzaIngombro — collasso del contenitore SOLO a riposo vero (progress 1)', () => {
+  it('a riposo su Pile (progress 0): NON collassato', () => {
+    expect(piedeSenzaIngombro(0)).toBe(false)
+  })
+  it('a metà gesto (0.5): NON collassato', () => {
+    expect(piedeSenzaIngombro(0.5)).toBe(false)
+  })
+  it('appena sotto il traguardo (0.999): ANCORA NON collassato (niente pop anticipato)', () => {
+    expect(piedeSenzaIngombro(0.999)).toBe(false)
+  })
+  it('esattamente a riposo su Parete (progress 1): collassato', () => {
+    expect(piedeSenzaIngombro(1)).toBe(true)
+  })
+  it('oltre 1 (overscroll/rimbalzo nativo, clampato): collassato', () => {
+    expect(piedeSenzaIngombro(1.4)).toBe(true)
+  })
+  it('sotto 0 (difesa): non collassato', () => {
+    expect(piedeSenzaIngombro(-0.3)).toBe(false)
   })
 })

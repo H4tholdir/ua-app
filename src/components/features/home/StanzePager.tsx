@@ -212,8 +212,29 @@ export function StanzePager(props: {
    *  scroll-snap nativo per assestare lo scrollLeft (i due sono disaccoppiati per costruzione:
    *  questo pager non guida né rincorre lo scroll nativo, lo osserva soltanto). */
   onRilascioSwipe?: () => void
+  /** FIX ri-collaudo #4 (review) — `scrollend` nativo: il segnale che lo scroll del viewport si
+   *  è DAVVERO fermato, a prescindere da COME è stato mosso (dito, rotellina/trackpad, uno
+   *  `scrollTo` programmatico). `onPresaSwipe`/`onRilascioSwipe` sopra intercettano solo il
+   *  touch — su desktop/tablet con mouse o trackpad (fuori dal breakpoint mobile-only di questa
+   *  forma, ma raggiungibile durante lo sviluppo/QA in finestra stretta) una rotellina non
+   *  genera MAI `touchstart`/`touchend`, quindi quel gate non scatterebbe: la riconciliazione da
+   *  `stanzaAttiva` in HomeV3.tsx avrebbe potuto far partire una molla mentre lo scroll nativo
+   *  (a rotellina) era ancora a metà, producendo lo stesso "hitch" (salto avanti poi indietro)
+   *  che il gate touch-only evita sul dito — riprodotto dal vivo su `:3042` con uno scroll a
+   *  rotellina reale prima di questo fix. `scrollend` generalizza il gate a QUALUNQUE input. */
+  onScrollAssestato?: () => void
 }) {
-  const { stanzaIniziale, pile, parete, footer, onStanzaChange, onProgressoSwipe, onPresaSwipe, onRilascioSwipe } = props
+  const {
+    stanzaIniziale,
+    pile,
+    parete,
+    footer,
+    onStanzaChange,
+    onProgressoSwipe,
+    onPresaSwipe,
+    onRilascioSwipe,
+    onScrollAssestato,
+  } = props
   // QA device T15.8 — `stanzaEffettiva` (v. commento sopra), non il prop nudo: un remount dal
   // router-cache di Next (back da una navigazione vera, es. dalla scheda di un lavoro) deve
   // ripartire dalla stanza che l'indirizzo dice ORA, non da quella del primissimo caricamento.
@@ -252,10 +273,12 @@ export function StanzePager(props: {
   const onProgressoSwipeRef = useRef(onProgressoSwipe)
   const onPresaSwipeRef = useRef(onPresaSwipe)
   const onRilascioSwipeRef = useRef(onRilascioSwipe)
+  const onScrollAssestatoRef = useRef(onScrollAssestato)
   useEffect(() => {
     onProgressoSwipeRef.current = onProgressoSwipe
     onPresaSwipeRef.current = onPresaSwipe
     onRilascioSwipeRef.current = onRilascioSwipe
+    onScrollAssestatoRef.current = onScrollAssestato
   })
 
   // QA device T15 (addendum 24/07, punto 3) — il chiamante (HomeV3) decide da questo callback
@@ -401,15 +424,27 @@ export function StanzePager(props: {
     function onTouchFine() {
       onRilascioSwipeRef.current?.()
     }
+    // FIX ri-collaudo #4 (review) — `scrollend`: si ferma DAVVERO lo scroll, a prescindere da
+    // come è stato mosso (v. commento su `onScrollAssestato` sopra). Evento recente (Chrome
+    // 114+/Firefox 109+/Safari 17+) — non tutti i target lo supportano ancora (jsdom non lo
+    // implementa affatto): nessuna guardia `'onscrollend' in window` prima di registrarlo,
+    // `addEventListener` accetta qualunque nome di evento senza errore, semplicemente non
+    // scatterà mai dove il browser non lo emette — degrado, non rottura (la riconciliazione in
+    // HomeV3.tsx resta comunque coperta dal gate touch per quei target).
+    function onScrollend() {
+      onScrollAssestatoRef.current?.()
+    }
     contenitore.addEventListener('scroll', onScroll, { passive: true })
     contenitore.addEventListener('touchstart', onTouchStart, { passive: true })
     contenitore.addEventListener('touchend', onTouchFine, { passive: true })
     contenitore.addEventListener('touchcancel', onTouchFine, { passive: true })
+    contenitore.addEventListener('scrollend', onScrollend, { passive: true })
     function staccaGesto() {
       contenitore!.removeEventListener('scroll', onScroll)
       contenitore!.removeEventListener('touchstart', onTouchStart)
       contenitore!.removeEventListener('touchend', onTouchFine)
       contenitore!.removeEventListener('touchcancel', onTouchFine)
+      contenitore!.removeEventListener('scrollend', onScrollend)
     }
 
     if (typeof IntersectionObserver === 'undefined') return staccaGesto

@@ -38,7 +38,7 @@ import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
-import { bersaglioRilascio, mappaPiedeSwipe } from './piede-swipe'
+import { bersaglioRilascio, bersaglioStanza, mappaPiedeSwipe, piedeSenzaIngombro } from './piede-swipe'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -112,13 +112,30 @@ export function HomeV3(props: {
   const ridotto = useReducedMotion()
   const piedeRef = useRef<HTMLDivElement | null>(null)
   const progressoSwipe = useMotionValue(0)
-  // `true` SOLO fra `onRilascioSwipe` (parte l'assestamento con `molla.press`) e il suo
-  // `onComplete` (o un nuovo `onPresaSwipe`, se il dito riafferra prima che l'assestamento
-  // finisca): mentre è vero, `onProgressoSwipe` ignora nuovi tick di scroll — altrimenti lo
-  // `scrollLeft` nativo (che continua a muoversi durante lo snap-back del browser) e la molla
-  // scriverebbero entrambi sulla STESSA motion value nello stesso istante.
+  // `true` SOLO fra `onRilascioSwipe` (parte l'assestamento con `molla.press`, o la
+  // riconciliazione da `stanzaAttiva` più sotto) e il suo `onComplete` (o un nuovo
+  // `onPresaSwipe`/tick di scroll, che la fermano prima). FIX ri-collaudo #4 (difetto b): NON
+  // fa più ignorare i tick di scroll successivi — `onProgressoSwipe` la legge per FERMARE la
+  // molla e riprendere 1:1 (v. lì), mai per scartare il tick. Un tick di scroll reale resta
+  // sempre più autorevole di una qualunque molla in volo.
   const rilasciandoRef = useRef(false)
   const controlliRilascioRef = useRef<ReturnType<typeof animate> | null>(null)
+  // FIX ri-collaudo #4 (review) — `true` mentre un gesto di scroll è IN CORSO, a prescindere da
+  // come è mosso (dito, rotellina/trackpad): durante un gesto ancora in corso l'inseguimento 1:1
+  // dello scroll nativo (`onProgressoSwipe`) è GIÀ l'autorità in tempo reale — non serve (e
+  // farebbe rumore) far partire la molla di riconciliazione sotto se `stanzaAttiva` cambia
+  // mentre lo scroll è ancora vivo (l'IO scatta a soglia 0.6, cioè PRIMA che il gesto finisca in
+  // un drag/scroll lento): senza questa guardia la riconciliazione partirebbe comunque verso il
+  // bersaglio giusto, ma in corsa col prossimo tick di scroll che arriva un istante dopo —
+  // riprodotto DAL VIVO su `:3042` con uno scroll a rotellina reale (screenshot/log nel report):
+  // un salto avanti (la molla) poi indietro (il tick vero che la scavalca) percepibile come
+  // "hitch". Impostato `true` a ogni tick (`onProgressoSwipe`, copre QUALUNQUE input fin dal
+  // primo movimento) e su `onPresaSwipe` (il touch, prima ancora che arrivi un tick); tolto SOLO
+  // da un segnale nativo che lo scroll si è DAVVERO fermato — `onRilascioSwipe` (touchend/
+  // touchcancel) o `onScrollAssestato` (`scrollend`, generalizza a rotellina/trackpad/
+  // programmatico, v. StanzePager.tsx) — mai un timer: un segnale nativo, non una scommessa su
+  // quanto ci mette una corsa a risolversi.
+  const scorrendoRef = useRef(false)
 
   useEffect(() => {
     const applica = (p: number) => {
@@ -128,13 +145,89 @@ export function HomeV3(props: {
       nodo.style.setProperty('--piede-etichetta-opacita', String(stile.etichettaOpacita))
       nodo.style.setProperty('--piede-tondo-scala', String(stile.tondoScala))
       nodo.style.setProperty('--piede-tondo-opacita', String(stile.tondoOpacita))
+      // FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetto a — «blocco panna
+      // che copre la pagina delle cassette»): le tre custom property sopra fanno sparire il
+      // CONTENUTO (scala/opacità), ma da sole non restituiscono lo spazio di layout che `.foot`
+      // riserva comunque (margini/padding fissi, v. la regola CSS `.is-vuoto` più sotto) — a
+      // riposo su Parete quello spazio vuoto lasciava intravedere lo sfondo della PAGINA sotto
+      // il piede, non un colore estraneo (`.foot` non ne dichiara uno). Il collasso scatta SOLO
+      // a `p === 1` (mai a metà coreografia, v. `piedeSenzaIngombro`): a quel punto il tondo è
+      // GIÀ a scala/opacità zero in entrambe le modalità, quindi togliere anche il box non
+      // produce alcun pop percepibile — semplicemente restituisce alla pagina lo spazio che un
+      // elemento già invisibile non doveva più trattenere.
+      nodo.classList.toggle('is-vuoto', piedeSenzaIngombro(p))
     }
     applica(progressoSwipe.get())
     return progressoSwipe.on('change', applica)
   }, [progressoSwipe, ridotto])
 
+  // FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b): `stanzaAttiva`
+  // (sopra) è l'AUTORITÀ finale su dove si trova davvero il pager (IO a soglia 0.6 o
+  // navigazione esplicita — mai la sola stima di `bersaglioRilascio` al rilascio, che legge
+  // solo la POSIZIONE del gesto, non la sua velocità: un flick veloce può far agganciare lo
+  // scroll-snap nativo nel verso OPPOSTO alla stima immediata). PRIMA di questo fix nessun
+  // codice riconciliava `progressoSwipe` quando l'autorità cambiava idea dopo che la molla del
+  // rilascio era già partita (o già finita) nel verso sbagliato — la motion value restava
+  // bloccata lì per sempre (mai un altro tick di scroll a correggerla, se lo scroll nativo si
+  // era già fermato): il piede restava visibile/opaco sulla Parete (difetto a, aggravato dal
+  // mancato collasso dell'ingombro sopra) o scompariva sulle Pile (difetto b). Questo effect è
+  // l'ultima parola, SEMPRE: quando `stanzaAttiva` cambia, ferma qualunque molla in volo e
+  // riporta `progressoSwipe` al valore di riposo che quella stanza impone — rendendo IMPOSSIBILE
+  // uno stato di riposo divergente, a prescindere da quanto la stima al rilascio abbia sbagliato.
+  const montatoRef = useRef(false)
+  useEffect(() => {
+    if (!montatoRef.current) {
+      // Primo render: un deep-link diretto sulla Parete (`?stanza=parete`) arriva già con
+      // `stanzaAttiva === 'parete'` mentre `progressoSwipe` è ancora al suo default (0) — lo
+      // `scrollTo` iniziale di StanzePager (v. commento lì) farà arrivare a breve un vero tick
+      // di scroll che porta `progressoSwipe` a 1 da solo, senza bisogno di alcuna molla. Farla
+      // partire QUI produrrebbe uno "sparire" spurio del piede subito dopo il primissimo
+      // caricamento — un'animazione che nessun gesto ha chiesto.
+      montatoRef.current = true
+      return
+    }
+    if (scorrendoRef.current) {
+      // Lo scroll è ancora in corso (v. commento su `scorrendoRef` sopra, QUALUNQUE input):
+      // l'IO può scattare a soglia 0.6 mentre il gesto è ancora vivo, ben prima che si fermi —
+      // l'inseguimento 1:1 di `onProgressoSwipe` è già l'autorità in tempo reale in questo
+      // istante, nessuna molla da avviare qui (partirebbe comunque verso il bersaglio giusto, ma
+      // in corsa non deterministica col prossimo tick di scroll che la scavalcherebbe un istante
+      // dopo).
+      return
+    }
+    const bersaglio = bersaglioStanza(stanzaAttiva)
+    if (Math.abs(progressoSwipe.get() - bersaglio) < 0.001) return
+    controlliRilascioRef.current?.stop()
+    controlliRilascioRef.current = null
+    if (ridotto) {
+      rilasciandoRef.current = false
+      progressoSwipe.set(bersaglio)
+      return
+    }
+    rilasciandoRef.current = true
+    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
+      ...molla.press,
+      onComplete: () => {
+        rilasciandoRef.current = false
+      },
+    })
+  }, [stanzaAttiva, ridotto, progressoSwipe])
+
   function onProgressoSwipe(p: number) {
-    if (rilasciandoRef.current) return
+    if (rilasciandoRef.current) {
+      // FIX ri-collaudo #4 (difetto b, «scattering/rimbalzo» sul flick veloce) — PRIMA di
+      // questo fix un tick di scroll reale arrivato durante l'assestamento veniva IGNORATO
+      // fino all'`onComplete` della molla: se lo scroll nativo/snap continuava a muoversi DOPO
+      // il rilascio (fling veloce) più a lungo dei ~110ms della molla, quei tick andavano
+      // persi — la molla si assestava sulla stima sbagliata e nessuno la correggeva più (fino
+      // all'eventuale, tardivo, cambio di `stanzaAttiva` sopra). Un tick di scroll reale è
+      // sempre più autorevole di una stima al rilascio: fermalo e riprendi a inseguire 1:1,
+      // esattamente come farebbe un nuovo `onPresaSwipe`.
+      controlliRilascioRef.current?.stop()
+      controlliRilascioRef.current = null
+      rilasciandoRef.current = false
+    }
+    scorrendoRef.current = true
     progressoSwipe.set(p)
   }
   function onPresaSwipe() {
@@ -143,8 +236,10 @@ export function HomeV3(props: {
     controlliRilascioRef.current?.stop()
     controlliRilascioRef.current = null
     rilasciandoRef.current = false
+    scorrendoRef.current = true
   }
   function onRilascioSwipe() {
+    scorrendoRef.current = false
     const bersaglio = bersaglioRilascio(progressoSwipe.get())
     if (ridotto) {
       // prefers-reduced-motion: set diretto, MAI `animate()` — stessa regola di
@@ -159,6 +254,15 @@ export function HomeV3(props: {
         rilasciandoRef.current = false
       },
     })
+  }
+  // FIX ri-collaudo #4 (review) — `scrollend` nativo (StanzePager.tsx): l'unico segnale, per
+  // input NON touch (rotellina/trackpad/uno `scrollTo` programmatico), che lo scroll si è
+  // DAVVERO fermato. `onRilascioSwipe` sopra copre già il touch (touchend/touchcancel); questo
+  // chiude il gate anche per gli altri input — senza, `scorrendoRef` resterebbe `true` per
+  // sempre dopo un qualunque scroll a rotellina, bloccando la riconciliazione anche a gesto
+  // ormai fermo da tempo.
+  function onScrollAssestato() {
+    scorrendoRef.current = false
   }
 
   // La stanza Pile: esattamente la home di sempre (saluto · StrisciaStato · 4 pile). Vive in
@@ -321,6 +425,21 @@ export function HomeV3(props: {
           opacity: var(--piede-etichetta-opacita, 1);
           will-change: opacity;
         }
+        /* FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetto a — "blocco panna
+           che copre la pagina delle cassette"): a riposo vero (progress 1, v. applica/
+           piedeSenzaIngombro sopra) il contenitore stesso esce dal flusso — non solo il suo
+           contenuto è invisibile, il box smette di esistere. display:none (non solo
+           height:0/opacity:0): elimina insieme lo spazio riservato (la pagina /cassette
+           riguadagna quei pixel, niente più striscia vuota color pagina in fondo allo schermo),
+           qualunque background implicito e qualunque area residua che potrebbe intercettare un
+           tocco — ridondante con inert (che già blocca l'interazione), ma una garanzia CSS
+           esplicita non fa mai male su una superficie dove un dito reale tocca lo schermo. Il
+           nodo React resta MONTATO (H4c, invariato): display:none è solo pittura, non
+           smonta/rimonta nulla — la classe è un toggle imperativo via ref, mai in conflitto con
+           className="foot" statico dichiarato nel JSX (React non lo tocca a ogni render). */
+        .ua-home .foot.is-vuoto {
+          display: none;
+        }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
            TastoPiù (collaudo device 22/07). Task 14 (D8) SPOSTA dove vive l'overflow-y:auto,
@@ -368,6 +487,7 @@ export function HomeV3(props: {
               onProgressoSwipe={onProgressoSwipe}
               onPresaSwipe={onPresaSwipe}
               onRilascioSwipe={onRilascioSwipe}
+              onScrollAssestato={onScrollAssestato}
             />
           </div>
           {piede}
