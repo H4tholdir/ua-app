@@ -49,6 +49,31 @@
 // l'auto-resume su `start()` con contesto non-running è comportamento Chromium, NON WebKit —
 // il `resume()` esplicito nel gesto (`void sblocca()`) resta quindi OBBLIGATORIO in coppia
 // con l'enqueue, non un residuo da rimuovere.
+//
+// H1d (`.superpowers/sdd/h1d-suoni-webkit-brief.md` — verbale QA
+// `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND «VERIFICA FINALE» wave H,
+// punto 4: due residui device-specifici scoperti da Francesco al PRIMO gesto di una PWA fresca.
+// (b) primo gesto = TAP su pulsante -> suono OK sui telefoni, MUTO su iPad, OK su desktop -> e'
+// esattamente la riserva R1 del panel (`h1-diagnosi.md`), rimasta APERTA finche' nessun device
+// iOS l'aveva ancora esercitata: l'enqueue di H1c confidava che Chromium facesse partire DA SOLA
+// la source accodata al passaggio `suspended/interrupted -> running`; su WebKit quella source non
+// parte MAI da sola (`start()` chiamato a contesto non-`running` resta silenzioso per sempre,
+// anche dopo il resume). Fix: la partenza NON dipende piu' dal comportamento implicito del
+// motore -- e' resa DETERMINISTICA su entrambi i motori da un listener `statechange` di
+// PRODUZIONE (a differenza di quello H1b sotto, sempre attivo, non solo sotto `?diag=suoni`):
+// al passaggio a `running`, se esiste una pending non ancora scaduta, si ferma (guardata) la
+// source vecchia e se ne crea+avvia una nuova identica (stesso buffer, stesso gain). Su
+// Chromium la vecchia stava per partire esattamente in quell'istante: stop+restart e'
+// indistinguibile da un solo suono udibile (nessun buco percepibile, nessun doppio suono). Su
+// WebKit la vecchia non e' mai partita (lo `stop()` su una source mai avviata e' un no-op
+// silenzioso -- guardato comunque con try/catch, mai un throw): la nuova suona, il primo tap e'
+// finalmente udibile anche su iPad. La scadenza 150ms e il vincolo "max 1 pending" restano
+// esattamente quelli di H1c: se il `running` non arriva in tempo la pending viene gia' scartata
+// dal timer (invariato) e il listener di restart non trova piu' nulla da riavviare (guardia
+// naturale: `pendingSource` e' gia' `null` a quel punto, niente stato aggiuntivo da tracciare).
+// (a) primo gesto = DRAG (swipe/long-press) -> suono di sgancio MUTO ovunque, riaggancio al
+// rilascio OK: v. il commento sul ramo 4b piu' sotto -- e' un LIMITE DI PIATTAFORMA, non un bug,
+// e non va aggirato (v. anche report H1d, requisito 2, per il verdetto documentato).
 
 import { suonoDiagAttivo, suonoDiagEmetti } from './sound-diag'
 
@@ -77,9 +102,65 @@ const buffers = new Map<NomeSuono, AudioBuffer>()
 const SCADENZA_ENQUEUE_MS = 150
 let pendingSource: AudioBufferSourceNode | null = null
 let pendingNome: NomeSuono | null = null
+let pendingGain: number = 1 // H1d: il restart al running deve ricreare la source con lo STESSO
+// gain di quella accodata (es. riaggancio attenuato, `gain: 0.4`) — tracciato accanto a
+// `pendingSource`/`pendingNome`, stesso ciclo di vita.
 let pendingTimer: ReturnType<typeof setTimeout> | null = null
 let resumeInVolo = false // H1c (tidy, panel): evita i resume() concorrenti osservati sul
 // device (pointerdown+touchend+click sullo stesso tap chiamavano 3 resume() ridondanti).
+
+/** H1c/H1d: crea, collega e avvia una source per `nome`/`gain` sul contesto `c`. Estratta a
+ *  funzione di modulo (non più chiusura locale a `suona()`) perché H1d la richiama anche dal
+ *  listener `statechange` di produzione per ricreare la source al restart — stesso identico
+ *  percorso `connect()` (innesco auto-resume) → `start()`, invariato rispetto a H1c. */
+function creaSource(c: AudioContext, buf: AudioBuffer, gain: number): AudioBufferSourceNode {
+  const src = c.createBufferSource()
+  src.buffer = buf
+  const g = c.createGain()
+  g.gain.value = gain
+  src.connect(g)
+  g.connect(c.destination)
+  src.start()
+  return src
+}
+
+/** H1d — riserva R1 del panel (`h1-diagnosi.md`), confermata dal device: su WebKit la source
+ *  avviata a contesto non-`running` (ramo 4a di `suona()`) NON riparte da sola quando il
+ *  contesto passa a `running` — a differenza di Chromium. Chiamata dal listener `statechange`
+ *  di PRODUZIONE (v. `initSuoni()`), SEMPRE, non solo sotto `?diag=suoni`: se c'è una pending
+ *  ancora viva (non scaduta — la scadenza 150ms l'ha già azzerata da sé, v. `scartaPending`
+ *  dentro il timer di `suona()`), ferma la vecchia (guardata: su WebKit è un no-op perché mai
+ *  partita) e ne crea una nuova identica. Su Chromium la vecchia stava per partire in
+ *  quell'istante esatto: stop+restart è indistinguibile da un solo suono udibile (nessun buco,
+ *  nessun doppio suono) — per questo la funzione NON fa alcuna distinzione fra motori, chiamata
+ *  identica su entrambi (v. test «Chromium-path equivalente», dichiarazione esplicita
+ *  dell'equivalenza invece di due implementazioni parallele). Mai throw: un buffer mancante
+ *  (non dovrebbe accadere — la pending esiste solo se il buffer c'era al momento dell'enqueue)
+ *  si limita a pulire lo stato senza riavviare nulla. */
+function riavviaAlRunning(c: AudioContext): void {
+  try {
+    if (!pendingSource || !pendingNome) return
+    if (c.state !== 'running') return
+    const nome = pendingNome
+    const gain = pendingGain
+    const vecchia = pendingSource
+    if (pendingTimer) clearTimeout(pendingTimer)
+    pendingSource = null
+    pendingNome = null
+    pendingGain = 1
+    pendingTimer = null
+    try { vecchia.stop() } catch { /* mai partita (WebKit) o già finita: ignora, guardata */ }
+    const buf = buffers.get(nome)
+    if (!buf) return // difesa: non dovrebbe accadere (v. commento sopra)
+    creaSource(c, buf, gain)
+    suonoDiagEmetti('suona', () => ({ nome, esito: 'riavviata-al-running' }))
+  } catch (e) {
+    suonoDiagEmetti('suona', () => ({
+      nome: pendingNome, esito: `errore: ${e instanceof Error ? e.message : String(e)}`,
+    }))
+    /* mai rompere il motore per un restart fallito */
+  }
+}
 
 /** H1c: scarta la source pending corrente (stop + pulizia timer/stato) ed emette il motivo
  *  sul canale diagnostico. Chiamata sia quando una nuova `suona()` la soppianta, sia quando
@@ -91,6 +172,7 @@ function scartaPending(motivo: string): void {
   suonoDiagEmetti('suona', () => ({ nome: pendingNome, esito: motivo }))
   pendingSource = null
   pendingNome = null
+  pendingGain = 1
   pendingTimer = null
 }
 
@@ -178,10 +260,27 @@ export function initSuoni(): void {
     sampleRate: c?.sampleRate ?? null,
     baseLatency: c?.baseLatency ?? null,
   }))
-  // `statechange` è additivo (nessun handler esistente lo usava): non altera il motore, serve
-  // solo a vedere le transizioni suspended/running/interrupted sull'overlay. Aggiunto solo se
-  // qualcuno lo sta osservando (H1b) — zero listener in più per l'utente normale. try/catch
-  // difensivo: questa è l'unica riga H1b che tocca il vero AudioContext, non deve MAI romperlo.
+  // H1d — listener `statechange` di PRODUZIONE: SEMPRE attivo (a differenza di quello
+  // diagnostico H1b sotto, gated su `?diag=suoni`) — chiude la riserva R1 del panel confermata
+  // dal device (WebKit non riparte da solo una source accodata a contesto non-running).
+  // Stessa cura difensiva del listener diagnostico: try/catch, mai un throw se `addEventListener`
+  // manca (Safari legacy/ambienti di test minimali) — il motore resta intatto, semplicemente
+  // nessun restart possibile (fallback: la pending scade comunque ai 150ms, invariato).
+  // Distinto (non duplicato) dal listener diagnostico sotto: uno fa il restart (produzione,
+  // sempre), l'altro emette solo per l'overlay (diagnostica, solo sotto `?diag=suoni`) — quando
+  // entrambe le condizioni sono vere restano due listener separati sullo stesso evento, ciascuno
+  // con un solo compito; `initFatto` in testa alla funzione impedisce la doppia registrazione a
+  // chiamate ripetute di `initSuoni()` (idempotente, invariato da H1c).
+  if (c) {
+    try {
+      c.addEventListener('statechange', () => { riavviaAlRunning(c) })
+    } catch { /* contesto senza addEventListener: nessun restart possibile, motore intatto */ }
+  }
+  // H1b — listener DIAGNOSTICO (overlay `?diag=suoni`): è additivo (nessun handler esistente lo
+  // usava prima di H1b): non altera il motore, serve solo a vedere le transizioni
+  // suspended/running/interrupted sull'overlay. Aggiunto solo se qualcuno lo sta osservando —
+  // zero listener in più per l'utente normale. try/catch difensivo: questa è l'unica riga H1b
+  // che tocca il vero AudioContext, non deve MAI romperlo.
   if (c && suonoDiagAttivo()) {
     try {
       c.addEventListener('statechange', () => {
@@ -232,16 +331,8 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
       return
     }
 
-    const avvia = (): AudioBufferSourceNode => {
-      const src = c.createBufferSource()
-      src.buffer = buf
-      const g = c.createGain()
-      g.gain.value = opts?.gain ?? 1
-      src.connect(g)
-      g.connect(c.destination)
-      src.start()
-      return src
-    }
+    const gain = opts?.gain ?? 1
+    const avvia = (): AudioBufferSourceNode => creaSource(c, buf, gain)
 
     if (c.state === 'running') {
       avvia()
@@ -265,16 +356,41 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
     if (!ua.isActive) {
       // 4b — fuori gesto (es. `arrivo` da evento di rete, tab in background): MAI accodare
       // (riserva R2 panel — niente suoni fantasma al rientro).
+      //
+      // H1d — requisito 2 (limite di piattaforma, VERIFICATO, non un bug — v. report H1d):
+      // questo è ANCHE il ramo che scarta il caso «primo gesto ASSOLUTO della pagina = drag»
+      // (verbale QA, APPEND «VERIFICA FINALE» wave H, punto 4a: sgancio muto su TUTTI i mobili
+      // al primo drag, riaggancio al rilascio OK). Il lift di un long-press/drag (`onSollevata`
+      // in `useDragRiordino.ts`, chiamato da un timer di hold sul `pointerdown` — v.
+      // `Cassetta.tsx`) scatta mentre il dito è ANCORA giù: nessun `touchend`/`pointerup`/
+      // `click` è ancora avvenuto in questa pagina. Per spec HTML («activation triggering
+      // input event», confermata in `.superpowers/sdd/h1a-ricerca-report.md` §1) sono
+      // `touchend`/`pointerup`(non-mouse)/`click` a concedere la user activation — MAI
+      // `touchstart`/`pointerdown` da tocco (esclusione deliberata, per non attivare la pagina
+      // su un semplice swipe/scroll accidentale, whatwg/html#7341). Se questo drag è il primo
+      // gesto della vita della pagina, `isActive` è `false` QUI per lo stesso motivo per cui lo
+      // è al primo `pointerdown` di un tap (diagnosi H1/H1c) — nessuna activation è mai stata
+      // concessa alla pagina, quindi nessun permesso audio esiste ancora: `resume()` non
+      // potrebbe comunque avviare l'hardware. Il riaggancio suona perché arriva al rilascio
+      // (`pointerup`), quando l'activation è finalmente concessa. NON si aggira: niente enqueue
+      // senza activation (riserva R2 del panel resta valida anche qui) e niente suono in
+      // ritardo oltre la scadenza (requisito UX invariato) — un fix che facesse suonare lo
+      // stacco DOPO il rilascio sarebbe percettibilmente disallineato dal gesto, peggio del
+      // silenzio. Comportamento corretto data la policy del browser, non un difetto del motore.
       suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: fuori-gesto' }))
       return
     }
     // 4a — gesto in corso, contesto non pronto: enqueue sincrono (fix H1c). Max 1 pending:
-    // una nuova suona() in finestra sopprime la precedente.
+    // una nuova suona() in finestra sopprime la precedente. H1d: la partenza EFFETTIVA non è
+    // più delegata al motore (v. `riavviaAlRunning`, chiamata dal listener `statechange` di
+    // produzione in `initSuoni()`) — qui si accoda soltanto, tracciando anche il `gain` (serve
+    // al restart per ricreare una source identica).
     if (pendingSource) scartaPending('scartato: soppiantato')
     const statePrima = c.state
     const src = avvia()
     pendingSource = src
     pendingNome = nome
+    pendingGain = gain
     void sblocca() // R1 panel: resume esplicito nel gesto resta OBBLIGATORIO per iOS/WebKit
     pendingTimer = setTimeout(() => {
       if (pendingSource !== src) return // già superata da un'altra suona() o già scaduta
@@ -284,6 +400,7 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
       }
       pendingSource = null
       pendingNome = null
+      pendingGain = 1
       pendingTimer = null
     }, SCADENZA_ENQUEUE_MS)
     suonoDiagEmetti('suona', () => ({ nome, esito: `enqueued (state=${statePrima})` }))

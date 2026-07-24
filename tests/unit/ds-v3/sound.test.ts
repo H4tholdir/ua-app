@@ -19,12 +19,25 @@ class FakeSource {
   start() { started.push('start') }
 }
 class FakeGain { gain = { value: 1 }; connect() { return this } }
-class FakeAudioContext {
+// H1d — estende EventTarget: nel browser reale `AudioContext` DISPATCHA `statechange` da solo
+// (evento nativo su una transizione di stato); qui va simulato per poter esercitare il listener
+// di produzione (v. `sound.ts`, `riavviaAlRunning`). Il dispatch di `resume()` è messo in coda
+// con `queueMicrotask` — non sincrono — perché così si comporta il device reale (misura
+// `h1-diagnosi.md`: il resolve del resume e l'evento `statechange` sono due righe di log
+// distinte, l'evento ~1ms dopo). Test che asseriscono SUBITO dopo `suona()` (nessun `await` di
+// mezzo) restano quindi immuni al restart: il microtask non ha ancora girato.
+class FakeAudioContext extends EventTarget {
   state: string = initialState
   destination = {}
-  resume = vi.fn(async () => { this.state = 'running' })
+  resume = vi.fn(async () => {
+    const statePrima = this.state
+    this.state = 'running'
+    if (statePrima !== 'running') {
+      queueMicrotask(() => this.dispatchEvent(new Event('statechange')))
+    }
+  })
   decodeAudioData = vi.fn(async () => ({ duration: 0.1 }))
-  constructor() { audioContexts.push(this) }
+  constructor() { super(); audioContexts.push(this) }
   createBufferSource() { const s = new FakeSource(); createdSources.push(s); return s }
   createGain() { return new FakeGain() }
 }
@@ -52,6 +65,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   setUserActivation(undefined)
+  window.history.replaceState(null, '', '/') // H1d: alcuni test attivano ?diag=suoni (canale H1b)
 })
 
 describe('sound v3 (spec §9.2)', () => {
@@ -243,16 +257,20 @@ describe('sound v3 — H1c primo tocco muto (enqueue nel gesto)', () => {
     expect(pending.stop).toHaveBeenCalled()
   })
 
-  it('6b. scadenza enqueue: nessuno stop se il running arriva prima dei 150ms', async () => {
+  it('6b. scadenza enqueue: il running arriva prima dei 150ms → NON è lo scarto per scadenza (H1d: la vecchia viene comunque stop()pata dal restart deterministico, ma una nuova source parte subito — v. gruppo H1d sotto)', async () => {
     setUserActivation(true)
     const { initSuoni, suona } = await import('@/design-system/v3/sound')
     initSuoni()
     await new Promise(r => setTimeout(r, 0))
     vi.useFakeTimers()
-    suona('tap') // il resume mock (default) risolve subito a 'running'
+    suona('tap') // il resume mock (default) risolve a 'running' e dispatcha statechange (microtask)
     const pending = createdSources[0]
-    await vi.advanceTimersByTimeAsync(150) // SCADENZA_ENQUEUE_MS
-    expect(pending.stop).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(150) // SCADENZA_ENQUEUE_MS: qui girano anche i microtask del resume
+    // H1d: la vecchia È stata stop()pata — ma dal restart-al-running (deterministico), non dallo
+    // scarto-per-scadenza. Prova: è partita una SECONDA source (il vecchio comportamento H1c non
+    // ne creava una seconda in questo scenario).
+    expect(pending.stop).toHaveBeenCalled()
+    expect(createdSources.length).toBeGreaterThan(1)
   })
 
   it('7. max 1 pending: la seconda suona() nella finestra ferma e sostituisce la prima', async () => {
@@ -293,6 +311,190 @@ describe('sound v3 — H1c primo tocco muto (enqueue nel gesto)', () => {
     setUserActivation(true) // il ritentativo passa da suona() ramo 4a, nel nuovo gesto
     suona('tap')
     expect(audioContexts[0].resume).toHaveBeenCalledTimes(2)
+  })
+})
+
+// H1d (`.superpowers/sdd/h1d-suoni-webkit-brief.md`, riserva R1 del panel — `h1-diagnosi.md` —
+// confermata dal device: su WebKit l'auto-resume su `start()` a contesto suspended NON è
+// garantito, a differenza di Chromium) — «primo tap muto SOLO su iPad»: il ramo 4a di H1c
+// confidava che Chromium facesse partire da sola la source accodata al passaggio a `running`;
+// su WebKit quella source non parte MAI da sola. Fix: un listener `statechange` di PRODUZIONE
+// (sempre attivo, non solo sotto `?diag=suoni`) che, al passaggio a `running` con una pending
+// non scaduta, ferma (guardata) la source vecchia e ne crea+avvia una nuova. Su Chromium la
+// vecchia stava per partire in quello stesso istante: stop+restart è indistinguibile (nessun
+// buco, nessun doppio suono UDIBILE) — da cui l'equivalenza dei due path, dichiarata dai test
+// sotto invece di duplicare la stessa asserzione per «engine».
+describe('sound v3 — H1d partenza deterministica al running (fix WebKit)', () => {
+  it('1. WebKit-path: suspended + isActive → enqueue; poi statechange→running entro scadenza → stop su vecchia + start su nuova, pending pulita', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    // Simula WebKit: il resume() risolve ma NON produce da solo alcuna transizione osservabile
+    // qui (niente auto-dispatch) — il running arriverà solo quando il test lo simula a mano,
+    // esattamente come sul device reale (la vecchia source resta muta finché non si riparte).
+    audioContexts[0].resume = vi.fn(async () => { /* WebKit: nessun effetto immediato osservato */ })
+    suona('tap')
+    expect(started).toHaveLength(1) // solo la vecchia, accodata (H1c)
+    const vecchia = createdSources[0]
+    expect(vecchia.stop).not.toHaveBeenCalled()
+
+    // Il running arriva (l'ipotesi WebKit: mai da sola sulla vecchia, ma il contesto TRANSITA).
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+
+    expect(vecchia.stop).toHaveBeenCalled() // guardata: stop della vecchia (mai partita su WebKit)
+    expect(createdSources).toHaveLength(2) // una nuova source creata
+    expect(started).toHaveLength(2) // avviata
+
+    // Pending pulita: un secondo statechange non deve rifare nulla.
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(started).toHaveLength(2)
+    expect(createdSources).toHaveLength(2)
+  })
+
+  it('2. Chromium-path equivalente (un solo test parametrico, equivalenza dichiarata): stesso stop+restart quando il running arriva dentro la promise di resume', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    // Comportamento di default del mock (Chromium-style): resume() risolve e dispatcha
+    // `statechange` in un microtask — qui la vecchia "starebbe per partire da sola" nello
+    // stesso istante: lo stop+restart è indistinguibile da un solo suono udibile.
+    suona('tap')
+    expect(started).toHaveLength(1)
+    const vecchia = createdSources[0]
+    await new Promise(r => setTimeout(r, 0)) // flush del microtask: consegna lo statechange
+    expect(vecchia.stop).toHaveBeenCalled() // IDENTICO al path WebKit sopra
+    expect(createdSources).toHaveLength(2)
+    expect(started).toHaveLength(2)
+  })
+
+  it('3. running arriva DOPO la scadenza (150ms): nessun restart, resta lo scarto attuale', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    audioContexts[0].resume = vi.fn(() => new Promise(() => {})) // resta appeso oltre la scadenza
+    vi.useFakeTimers()
+    suona('tap')
+    const vecchia = createdSources[0]
+    await vi.advanceTimersByTimeAsync(150) // scadenza: scarto come oggi (invariato)
+    expect(vecchia.stop).toHaveBeenCalledTimes(1) // dallo SCARTO per scadenza, non da un restart
+    expect(started).toHaveLength(1) // nessuna nuova source creata dalla scadenza
+
+    // Ora arriva (tardi) il running: la pending era già stata pulita dalla scadenza → no-op.
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(started).toHaveLength(1) // ancora nessuna nuova source
+    expect(vecchia.stop).toHaveBeenCalledTimes(1) // nessuna chiamata stop ulteriore sulla vecchia
+  })
+
+  it('4. soppiantamento durante l\'attesa: al running riparte SOLO l\'ultima', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    audioContexts[0].resume = vi.fn(() => new Promise(() => {})) // entrambe restano in coda
+    suona('tap')
+    const prima = createdSources[0]
+    suona('fatta') // soppianta la prima (comportamento H1c invariato: scartaPending la ferma già)
+    expect(prima.stop).toHaveBeenCalledTimes(1)
+    const seconda = createdSources[1]
+    expect(started).toHaveLength(2) // prima + seconda, come in H1c
+
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+
+    expect(started).toHaveLength(3) // SOLO la terza (restart della seconda, l'ultima pending) parte
+    expect(seconda.stop).toHaveBeenCalledTimes(1) // la seconda (ultima pending) viene fermata e sostituita
+    expect(prima.stop).toHaveBeenCalledTimes(1) // la prima non riceve stop aggiuntivi dal restart
+  })
+
+  it('5. esito diagnostico "riavviata-al-running" emesso sotto ?diag=suoni', async () => {
+    window.history.replaceState(null, '', '/?diag=suoni')
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    const { suonoDiagRegistra } = await import('@/design-system/v3/sound-diag')
+    const esiti: unknown[] = []
+    suonoDiagRegistra((storico) => {
+      esiti.length = 0
+      esiti.push(...storico.filter(e => e.tipo === 'suona').map(e => (e.dettagli as { esito?: string }).esito))
+    })
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    audioContexts[0].resume = vi.fn(async () => { /* WebKit-style: niente auto-dispatch */ })
+    suona('tap')
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(esiti).toContain('riavviata-al-running')
+  })
+
+  it('6. i test H1c esistenti restano verdi (v. sopra) — qui solo un canary di non-regressione: running SUBITO (già running al gesto) resta 1 solo start, nessun restart spurio', async () => {
+    initialState = 'running'
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    suona('tap')
+    expect(started).toHaveLength(1)
+    // Un eventuale statechange (nessuna transizione reale, ma testiamo la difensiva) non deve
+    // creare una seconda source: non c'è alcuna pending quando si parte già `running`.
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(started).toHaveLength(1)
+  })
+})
+
+describe('sound v3 — H1d listener statechange di PRODUZIONE (sempre attivo, non solo sotto ?diag=suoni)', () => {
+  it('a. attivo anche SENZA ?diag=suoni: il running ripartisce la pending', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    // Nessun ?diag=suoni in URL in questo test: il listener di produzione deve funzionare
+    // comunque (a differenza di quello diagnostico H1b, gated su suonoDiagAttivo()).
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    audioContexts[0].resume = vi.fn(async () => {})
+    suona('tap')
+    const vecchia = createdSources[0]
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(vecchia.stop).toHaveBeenCalled()
+    expect(started).toHaveLength(2)
+  })
+
+  it('b. try/catch difensivo: AudioContext senza addEventListener non rompe initSuoni()/suona() (stesso pattern del listener diagnostico H1b)', async () => {
+    class FakeSourceMinimale { buffer: unknown = null; stop = vi.fn(); connect() { return this }; start() { started.push('start') } }
+    class FakeGainMinimale { gain = { value: 1 }; connect() { return this } }
+    class FakeAudioContextMinimale {
+      state: string = 'suspended'
+      destination = {}
+      resume = vi.fn(async () => { this.state = 'running' })
+      decodeAudioData = vi.fn(async () => ({ duration: 0.1 }))
+      createBufferSource() { return new FakeSourceMinimale() }
+      createGain() { return new FakeGainMinimale() }
+      // NESSUN addEventListener: ambiente non-EventTarget (rischio che il try/catch deve assorbire).
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContextMinimale)
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    expect(() => initSuoni()).not.toThrow()
+    await new Promise(r => setTimeout(r, 0))
+    expect(() => suona('tap')).not.toThrow()
+  })
+
+  it('c. non duplica: initSuoni() ripetuto (idempotente) non moltiplica i restart al running', async () => {
+    setUserActivation(true)
+    const { initSuoni, suona } = await import('@/design-system/v3/sound')
+    initSuoni()
+    initSuoni() // idempotente (initFatto) — non deve aggiungere un secondo listener di restart
+    initSuoni()
+    await new Promise(r => setTimeout(r, 0))
+    audioContexts[0].resume = vi.fn(async () => {})
+    suona('tap')
+    const vecchia = createdSources[0]
+    audioContexts[0].state = 'running'
+    audioContexts[0].dispatchEvent(new Event('statechange'))
+    expect(vecchia.stop).toHaveBeenCalledTimes(1) // non fermata più volte da listener duplicati
+    expect(started).toHaveLength(2) // un solo restart, non N restart per N ipotetici listener
   })
 })
 
