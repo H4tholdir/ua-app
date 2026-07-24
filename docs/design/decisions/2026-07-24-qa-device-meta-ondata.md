@@ -180,3 +180,25 @@ versione PIÙ SPESSA. Ratifica attesa sul mockup rev.3.
   ⚠ Deroga consapevole alla targa piena bianca del gate targa (Task 10) per le occupate.
 - **Aperto: trattamento dei nomi lunghi** — «non troncare di netto i nomi dei medici»:
   varianti da presentare (due righe / sfumatura / abbreviazione) su mockup rev.4.
+
+### G10 — RATIFICA FINALE (25/07, chiusa)
+
+**La cassetta nuova (da implementare, valori dai mockup committati):**
+- Base: **P3b «fascia etichetta», bordino spesso 8px** (rev.3, `2026-07-25-cassetta-g10-rev3-p3-reale.html`):
+  tile 132 · finestra 8..74 (h 66) · fascia ancorata in basso.
+- **Veste UNIFORME = ESATTAMENTE la grafica delle cassette VUOTE della rev.3** (indicazione
+  esplicita di Francesco: «usa esattamente la grafica di queste due cassette vuote e non
+  quella che mi hai proposto» — quindi NON la fascia ad altezza fissa della rev.4):
+  fascia compatta che abbraccia il contenuto (margin 0 4px 4px, radius 4/4/9/9, padding
+  5px 8px 6px, fondo rgba(0,0,0,.28) — is-chiara rgba(29,25,19,.14)), **targa SEMPRE ad
+  anello** (come le libere: inset ring 2px, testo bianco .9 / scuro .7 su faccia chiara),
+  identica per occupate e libere; contenuto: «libera» oppure clinico (regular) + paziente
+  (bold), contrasto-auto invariato.
+- **Nomi lunghi: OPZIONE A «due righe»** — il clinico va a capo (corpo 10px, line-height
+  1.15, max 2 righe poi tronca; meccanica shrink T2 riusata); il paziente resta 1 riga bold.
+  Conseguenza accettata: la fascia cresce di ~10px sui nomi lunghi.
+- Restano ratificati: gancetto/aggancio invariati · cornice V1 filo di bordo · geometria
+  passo/track invariata. La targa piena bianca del gate targa (Task 10) è SOSTITUITA da
+  questa ratifica per la superficie parete.
+
+→ In coda di implementazione come **FIX-L** (dopo FIX-J/K: stesso file ds-v3.css).
