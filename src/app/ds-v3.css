@@ -677,17 +677,48 @@
 [data-ds="v3"] .ds-cassetta-dent {
   font-weight: 500; opacity: .94;
   white-space: normal; overflow-wrap: break-word; word-break: normal;
-  display: block; overflow: hidden;
+  display: block; overflow: visible;
   font-size: 10px; line-height: 1.16;
   max-height: calc(2 * 1.16em);
+  clip-path: inset(0 0 -1px 0);
+  -webkit-clip-path: inset(0 0 -1px 0);
 }
-/* Sfumatura del clinico troncato (H2, adjudicazione — v. commento sopra): SOLO sull'ultima
-   fetta verticale del blocco (~4-5px su 23.2px totali, 20% ≈ 4.6px), applicata SOLO quando
-   `.is-troncato` è presente (misurata in JS in Cassetta.tsx via ResizeObserver + scrollHeight/
-   clientHeight — pattern di classe-calcolata-a-runtime già in uso nel componente per gli altri
-   stati, es. `is-chiara`/`is-nera`/`is-accesa`, qui esteso a una misura DOM reale invece che a
-   un dato noto in anticipo). */
+/* H2d (indagine H7, report h7-indagine-sfumatura-report.md + h2d-discendenti-report.md) — la
+   "sfumatura fantasma" che Francesco vedeva su clinici che riempiono ESATTAMENTE 2 righe (MAI
+   `.is-troncato`, quindi senza la sfumatura intenzionale sotto): pixel-diff reale (Playwright+
+   sharp, non geometria calcolata a mano) ha provato che `line-height: 1.16` è più STRETTO delle
+   metriche naturali del font (misurato: alturaFontNaturale 12.000px contro altezzaRigaCss
+   11.600px a font-size 10px) — un discendente (g/j/p/q/y) sull'ultima riga tocca il bordo del
+   box quasi esattamente, e la frangia anti-aliased più esterna finiva tagliata da
+   `overflow:hidden` anche quando NON c'era nessun overflow reale di contenuto.
+   Perché non basta alzare `max-height`: con `box-sizing:border-box` (reset globale, globals.css)
+   il contenuto di 2 righe (~23.19px) sta già SOTTO `max-height` (23.2px) col margine ORIGINALE —
+   il border-box che `overflow:hidden` ritaglia resta fisso alla propria altezza naturale
+   qualunque valore si dia a `max-height` sopra quel minimo (misurato via harness: rectHeight
+   identico per ogni valore di max-height provato). `padding-bottom` funzionerebbe ma sposta il
+   fratello `.ds-cassetta-paz` in basso (stesso flex-column, gap fisso) — effetto collaterale sul
+   layout ratificato, scartato.
+   Fix scelto: `overflow: visible` + `clip-path: inset(0 0 -1px 0)` come UNICO meccanismo di
+   ritaglio verticale. `clip-path` non partecipa al box model (misurato: rectHeight e la
+   posizione del fratello paziente restano IDENTICI per ogni valore provato) — apre SOLO la
+   finestra di paint di 1px sotto il bordo naturale delle 2 righe, senza toccare `max-height`
+   (che resta il governo dell'altezza di LAYOUT, quindi del budget righe/3ª riga e del
+   rilevatore `is-troncato` in Cassetta.tsx, invariato — scrollHeight/clientHeight letti da JS
+   sono risultati IDENTICI con `overflow:hidden` o `overflow:visible`, verificato). 1px è il
+   minimo che azzera il pixel-diff clippato-vs-non-clippato su un discendente reale
+   ("Dr. Giorgio Bagheria", riga 2 = "Bagheria") a DPR 1/2/2.75/3 (zero-diff già da 0.875px,
+   1px lascia margine): script `scripts/tmp/h2d-clip-clearance.mjs`.
+   ATTENZIONE — rischio 3ª riga (verificato, non solo dichiarato): un'espansione UNIFORME della
+   finestra di clip-path (stesso meccanismo di squeeze-al-bordo-riga, simmetrico) rivela SEMPRE
+   un filo della riga successiva quando il contenuto ne ha una — misurato: già a +0.4px la 3ª
+   riga di un nome che wrappa su 3 righe comincia a comparire (3-13px di diff secondo il DPR),
+   crescente con l'estensione. Per questo il respiro NON è incondizionato: la regola sotto
+   (`.is-troncato`) lo azzera esattamente quando `Cassetta.tsx` misura un overflow REALE (3+
+   righe), riportando il clip a filo del bordo — la 3ª riga resta invisibile in OGNI caso
+   verificato (stesso script, Test B). Sfumatura (`mask-image`, sotto) INVARIATA. */
 [data-ds="v3"] .ds-cassetta-dent.is-troncato {
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
   mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
 }
@@ -706,20 +737,43 @@
 [data-ds="v3"] .ds-cassetta-paz {
   font-weight: 800;
   white-space: normal; overflow-wrap: break-word; word-break: normal;
-  display: block; overflow: hidden;
+  display: block; overflow: visible;
   text-overflow: clip;
   line-height: 1.24;
   max-height: calc(2 * 1.24em);
   margin-top: 1px;
   mask-image: none;
   -webkit-mask-image: none;
+  clip-path: inset(0 0 -1.5px 0);
+  -webkit-clip-path: inset(0 0 -1.5px 0);
 }
 /* Sfumatura VERTICALE del paziente troncato — STESSA famiglia `is-troncato` del clinico (misura
    in JS via ResizeObserver + scrollHeight/clientHeight, riuso 1:1 del meccanismo esistente,
    NESSUNA nuova soglia): applicata SOLO quando `Cassetta.tsx` misura un overflow REALE, mai un
    mask permanente legato al confine di altezza (stesso principio del dent — v. commento sopra).
-   82%→100% (leggermente diverso dall'80%→100% del dent): verbatim mockup C. */
+   82%→100% (leggermente diverso dall'80%→100% del dent): verbatim mockup C.
+   H2d — il gemello paziente NON era già sano (ipotesi da verificare esplicitamente, non da
+   assumere): misurato via canvas (`scripts/tmp/debug-h2d-paz-metrics.mjs`)
+   alturaFontNaturale=15px (ascent 12 + descent 3, font-size 11.5px/peso 800) contro
+   altezzaRigaCss=14.26px (line-height 1.24) — deficit REALE 0.74px per riga, più stretto in
+   valore assoluto di quello del clinico (0.4px): l'aritmetica "1.24 > ~1.2 naturale quindi già
+   sano" (ipotesi iniziale) era SBAGLIATA — il rapporto naturale ascent+descent di questo
+   font/peso non è ~1.2, è ~1.304. Pixel-diff reale confermato: clip ORIGINALE tagliava 428/45.440
+   px (Δmax 41/765) su un paziente a 2 righe con discendente in fondo ("Giuseppe Bagheria" →
+   riga 2 "Bagheria") — più severo del clinico (232/45.440, Δmax 25/765).
+   `overflow:visible` + `clip-path: inset(0 0 -1.5px 0)` (1.5px, zero-diff verificato da 1.4px in
+   su a DPR 1/2/2.75/3 — script `scripts/tmp/h2d-clip-clearance-paz.mjs`): STESSA tecnica del
+   clinico e stessa ragione (`clip-path` non tocca il box model, quindi non sposta nulla; verifica
+   empirica anche per l'`overflow:hidden`→`visible` sul regime forzato nowrap a 1 riga —
+   `.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz` sotto — il taglio orizzontale che prima
+   veniva da `text-overflow:clip`+`overflow:hidden` è ORA equivalente-al-pixel via lo stesso
+   `clip-path` a inset orizzontale 0/0, misurato 0 pixel di differenza sul confronto diretto:
+   nessuna regressione sulla sfumatura orizzontale 84%→99% quando il fratello dent occupa 2
+   righe). `is-troncato` non scatta MAI in quel regime nowrap (una sola riga per costruzione,
+   nessuna riga successiva da nascondere) — il respiro resta sempre attivo lì, correttamente. */
 [data-ds="v3"] .ds-cassetta-paz.is-troncato {
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
   mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
 }

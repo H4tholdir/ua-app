@@ -150,9 +150,23 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(blocco, 'blocco .ds-cassetta-dent non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/white-space: normal;/)
     expect(blocco![0]).toMatch(/overflow-wrap: break-word;/)
-    expect(blocco![0]).toMatch(/display: block; overflow: hidden;/)
+    // H2d (indagine H7 + report h2d-discendenti-report.md) — overflow ORA `visible` (era
+    // `hidden`): il ritaglio verticale non è più affidato al box-clip di overflow (che pixel-diff
+    // reale ha provato tagliare la frangia anti-aliased dei discendenti sull'ultima riga anche
+    // SENZA overflow reale di contenuto — 232/45.440px, Δmax 25/765 misurati pre-fix) ma a
+    // `clip-path`, sotto — l'unico meccanismo che dà respiro al bordo SENZA toccare il box model
+    // (verificato: max-height, scrollHeight/clientHeight letti da Cassetta.tsx e la posizione del
+    // fratello .ds-cassetta-paz restano IDENTICI a prima, per costruzione).
+    expect(blocco![0]).toMatch(/display: block; overflow: visible;/)
     expect(blocco![0]).toMatch(/max-height: calc\(2 \* 1\.16em\);/)
     expect(blocco![0]).toMatch(/font-size: 10px; line-height: 1\.16;/)
+    // H2d — clearance minima che azzera il pixel-diff clippato-vs-non-clippato su un discendente
+    // reale (g/j/p/q/y) sull'ultima riga, misurata via harness Playwright+sharp
+    // (scripts/tmp/h2d-clip-clearance.mjs): zero-diff già da 0.875px a DPR 1/2/2.75/3, 1px lascia
+    // un margine di sicurezza. Il respiro è SOLO qui (regola base, cioè quando NON è
+    // `.is-troncato`) — la regola sotto lo azzera quando il rilevatore misura un overflow REALE.
+    expect(blocco![0]).toMatch(/clip-path: inset\(0 0 -1px 0\);/)
+    expect(blocco![0]).toMatch(/-webkit-clip-path: inset\(0 0 -1px 0\);/)
     // H2b (variante C, d5eeed5) — peso su: 500 (era 400). L'opacità .94 resta INVARIATA: il
     // mockup C alza l'opacità SOLO sulla faccia chiara (via l'override is-chiara sotto, .7→1),
     // qui nella regola base (facce scure) non tocca opacity — verificato anche via cascata reale
@@ -177,6 +191,21 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(base![0]).not.toMatch(/mask-image/)
   })
 
+  it('H2d — guardia sul clearance: .ds-cassetta-dent.is-troncato AZZERA il clip-path (torna a filo del bordo, inset(0 0 0 0)) quando il rilevatore misura un overflow REALE (3+ righe) — altrimenti il respiro di 1px della regola base rivelerebbe un filo della riga successiva (rischio verificato via pixel-diff: già a +0.4px la 3ª riga comincia a comparire, scripts/tmp/h2d-clip-clearance.mjs Test B). Pixel-diff diretto (scripts/tmp/h2d-verifica-finale.mjs) conferma che questo stato risulta pixel-identico al comportamento pre-fix (overflow:hidden, nessun clip-path) sia per il dent (4/182.400px, rumore) sia per il paziente (0/211.200px) — nessuna regressione sul troncamento legittimo.', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent\.is-troncato \{[^}]*\}/)
+    expect(blocco![0]).toMatch(/clip-path: inset\(0 0 0 0\);/)
+    expect(blocco![0]).toMatch(/-webkit-clip-path: inset\(0 0 0 0\);/)
+  })
+
+  it('H2d — l\'aritmetica del rilevatore a righe intere (Cassetta.tsx, invariato) resta esatta: round(clientHeight/lineHeight) deve ancora dare 2, perché il fix NON tocca max-height/line-height (solo clip-path, che non è letto da scrollHeight/clientHeight)', () => {
+    const dentBlocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent \{[^}]*\}/)
+    expect(dentBlocco![0]).toMatch(/max-height: calc\(2 \* 1\.16em\);/) // 23.2px a font-size 10px
+    expect(Math.round((2 * 1.16 * 10) / (1.16 * 10))).toBe(2)
+    const pazBlocco = norm.match(/(?<!, )\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
+    expect(pazBlocco![0]).toMatch(/max-height: calc\(2 \* 1\.24em\);/) // 28.52px a font-size 11.5px
+    expect(Math.round((2 * 1.24 * 11.5) / (1.24 * 11.5))).toBe(2)
+  })
+
   // H2b (variante C, decisione d5eeed5) — SOSTITUISCE il vecchio regime "paziente SEMPRE 1
   // riga nowrap": ora il budget è CONDIVISO col clinico (clinico 1 riga -> paziente fino a 2
   // righe con sfumatura VERTICALE, stessa famiglia is-troncato del clinico; clinico 2 righe ->
@@ -194,12 +223,27 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(blocco, 'blocco .ds-cassetta-paz non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/white-space: normal;/)
     expect(blocco![0]).toMatch(/overflow-wrap: break-word;/)
-    expect(blocco![0]).toMatch(/display: block; overflow: hidden;/)
+    // H2d — overflow ORA `visible` (era `hidden`), stessa ragione del dent: il gemello paziente
+    // NON era già sano come l'aritmetica a occhio (1.24 > ~1.2 naturale) suggeriva — misurato via
+    // canvas (scripts/tmp/debug-h2d-paz-metrics.mjs) alturaFontNaturale=15px (font-size 11.5px/
+    // peso 800) contro altezzaRigaCss=14.26px: deficit REALE 0.74px/riga, più stretto di quello
+    // del dent (0.4px). Pixel-diff pre-fix: 428/45.440px tagliati (Δmax 41/765), più severo del
+    // dent. `text-overflow:clip` resta SOLO cosmetico ora (niente più ellissi, invariato) — il
+    // taglio orizzontale REALE per il regime nowrap forzato (fratello sotto) è ORA equivalente-
+    // al-pixel via lo stesso `clip-path` (inset orizzontale 0/0): 0 pixel di differenza misurati
+    // sul confronto diretto (scripts/tmp/debug-h2d-paz-nowrap.mjs) — nessuna regressione sulla
+    // sfumatura orizzontale 84%→99% quando il fratello dent occupa 2 righe.
+    expect(blocco![0]).toMatch(/display: block; overflow: visible;/)
     expect(blocco![0]).toMatch(/text-overflow: clip;/)
     expect(blocco![0]).toMatch(/line-height: 1\.24;/)
     expect(blocco![0]).toMatch(/max-height: calc\(2 \* 1\.24em\);/)
     expect(blocco![0]).toMatch(/mask-image: none;/)
     expect(blocco![0]).toMatch(/font-weight: 800;/)
+    // H2d — clearance minima (paziente): zero-diff verificato da 1.4px in su a DPR 1/2/2.75/3
+    // (scripts/tmp/h2d-clip-clearance-paz.mjs), 1.5px lascia un margine di sicurezza — maggiore
+    // di quella del dent (1px) perché il deficit reale misurato è maggiore (0.74px vs 0.4px).
+    expect(blocco![0]).toMatch(/clip-path: inset\(0 0 -1\.5px 0\);/)
+    expect(blocco![0]).toMatch(/-webkit-clip-path: inset\(0 0 -1\.5px 0\);/)
     // guardia negativa: il vecchio regime "sempre 1 riga" non deve ricomparire qui
     expect(blocco![0]).not.toMatch(/white-space: nowrap;/)
   })
@@ -209,6 +253,12 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(blocco, 'blocco .ds-cassetta-paz.is-troncato non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/mask-image: linear-gradient\(180deg, #000 82%, transparent 100%\);/)
     expect(blocco![0]).toMatch(/-webkit-mask-image: linear-gradient\(180deg, #000 82%, transparent 100%\);/)
+  })
+
+  it('H2d — guardia sul clearance (paziente): .ds-cassetta-paz.is-troncato AZZERA il clip-path (inset(0 0 0 0)) quando c\'è un overflow REALE — stessa ragione del dent, verificato che la 3ª riga resti invisibile (pixel-identico al pre-fix: 0/211.200px di differenza, scripts/tmp/debug-h2d-paz-equiv.mjs)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-paz\.is-troncato \{[^}]*\}/)
+    expect(blocco![0]).toMatch(/clip-path: inset\(0 0 0 0\);/)
+    expect(blocco![0]).toMatch(/-webkit-clip-path: inset\(0 0 0 0\);/)
   })
 
   it('.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz (H2b): quando il clinico occupa 2 righe, il budget condiviso forza il paziente a 1 riga — stesso mask ORIZZONTALE che aveva SEMPRE prima di H2b (90deg, 84%→99%, invariato), ora condizionale al fratello', () => {
