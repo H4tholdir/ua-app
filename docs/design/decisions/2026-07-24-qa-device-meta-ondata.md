@@ -284,3 +284,30 @@ sulla parete `stacco` e `riaggancio` `giocato`. Conferma verbale di Francesco in
 **Coda:** overlay diagnostico e canale (`sound-diag.ts`) restano montati per il ri-collaudo
 #4 di fine wave; rimozione con commit dedicato dopo (pattern `9416d25`). Nota per T17: spec
 DS v3 §9 da allineare (7 suoni + semantica enqueue-nel-gesto).
+
+---
+
+## APPEND — 25/07 sera, RI-COLLAUDO #4 (wave H completa, build 44ce44c)
+
+Esiti di Francesco (chat, 19:08, con screenshot /cassette):
+
+1. **Suoni — PASS** («ok tutto bene»).
+2. **Linguetta F2/T2 — PASS** («tutto ok»).
+3. **Cassetta B — PASS con 2 richieste di rifinitura:**
+   (a) paziente su PIÙ RIGHE se non entra, come il clinico (oggi 1 riga + sfumatura —
+   screenshot: «Ciruzzo Toz» sfumato su C12);
+   (b) «valutiamo come rendere più leggibili le scritte, in alcuni casi un po' difficili
+   da leggere, soprattutto sul cellulare».
+   → Trattate INSIEME (stessa fascia a budget fisso): proposta design con varianti su
+   screenshot, scelta di Francesco, poi codice.
+4. **Riordino aggancio-al-dito — PASS** («tutto ok»). [dati muro non più necessari:
+   comportamento corretto confermato → ipotesi C (collasso gridAutoRows su device)
+   di fatto smentita dal PASS a dito fermo]
+5. **Piede C2 — FAIL, 2 difetti:**
+   (a) dopo lo swipe, sulla pagina cassette resta un BLOCCO PANNA che copre la pagina
+   (screenshot: il piede col tasto + visibile sopra /cassette);
+   (b) animazione ok se lenta; veloce → scattering/rimbalzo brutto, a volte non avviene,
+   a volte il pulsante SPARISCE dalla home o APPARE sulla pagina cassette.
+   → Coincide (aggravato) coi concern dichiarati da implementer e reviewer H4c
+   (flick senza velocità · contesa molla↔scroll-snap · riconciliazione da stanzaAttiva
+   annotata come mitigazione): fix con riproduzione flick-veloci obbligatoria.
