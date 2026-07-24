@@ -38,7 +38,7 @@ import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
-import { bersaglioRilascio, bersaglioStanza, mappaPiedeSwipe, piedeSenzaIngombro } from './piede-swipe'
+import { bersaglioRilascio, bersaglioStanza, mappaPiedeSwipe, piedeIngombro, piedeSenzaIngombro } from './piede-swipe'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -150,12 +150,22 @@ export function HomeV3(props: {
       // CONTENUTO (scala/opacità), ma da sole non restituiscono lo spazio di layout che `.foot`
       // riserva comunque (margini/padding fissi, v. la regola CSS `.is-vuoto` più sotto) — a
       // riposo su Parete quello spazio vuoto lasciava intravedere lo sfondo della PAGINA sotto
-      // il piede, non un colore estraneo (`.foot` non ne dichiara uno). Il collasso scatta SOLO
-      // a `p === 1` (mai a metà coreografia, v. `piedeSenzaIngombro`): a quel punto il tondo è
-      // GIÀ a scala/opacità zero in entrambe le modalità, quindi togliere anche il box non
-      // produce alcun pop percepibile — semplicemente restituisce alla pagina lo spazio che un
-      // elemento già invisibile non doveva più trattenere.
+      // il piede, non un colore estraneo (`.foot` non ne dichiara uno). Il collasso DISCRETO
+      // scatta a `p === 1` esatto (mai a metà coreografia, v. `piedeSenzaIngombro`) e resta
+      // l'AUTORITÀ sul riposo vero (anche per i casi senza gesto continuo, es. deep-link).
       nodo.classList.toggle('is-vuoto', piedeSenzaIngombro(p))
+      // FIX verifica device di Francesco (round 4) — «resta il quadrato panna... e POI
+      // scompare»: il collasso discreto sopra da solo arriva troppo tardi rispetto alla
+      // percezione reale del gesto — fra "il contenuto è già sfumato" (progress ~0.8-0.9) e "lo
+      // scroll-snap si è DAVVERO fermato" (scrollend, round 2-3) restava una finestra di
+      // 100-300ms in cui il box, ancora a piena dimensione, lasciava intravedere lo sfondo della
+      // pagina. `--piede-ingombro` è il SECONDO canale, continuo (v. `piedeIngombro`, curva
+      // dedicata che chiude per progress ~0.9 — un po' prima della finestra 0.78-1 di
+      // `tondoOpacita`, apposta: l'ingombro deve chiudersi PRIMA del contenuto, mai dopo): guida
+      // margine/padding/altezza massima di `.foot` in CSS (v. sotto), così l'ingombro è già
+      // azzerato DENTRO il gesto, indipendentemente da quando il progress numerico tocca
+      // esattamente 1 — il collasso discreto resta il backstop finale, non il solo meccanismo.
+      nodo.style.setProperty('--piede-ingombro', String(piedeIngombro(p)))
     }
     applica(progressoSwipe.get())
     return progressoSwipe.on('change', applica)
@@ -458,8 +468,32 @@ export function HomeV3(props: {
            floor 4 (dimezzato), e la prop compatto su TastoPiu (v. sopra) stringe il gap
            ghiera-etichetta da 12 a 4. Misurato in browser reale (non jsdom): v.
            .superpowers/sdd/fixB-report.md per i numeri prima/dopo. */
-        .ua-home .foot { margin-top: clamp(4px, 0.9cqh, 8px); display: flex; flex-direction: column; align-items: center; gap: 8px;
-                         padding-bottom: env(safe-area-inset-bottom); }
+        /* FIX verifica device di Francesco (round 4) — margin-top/padding-bottom moltiplicati
+           per --piede-ingombro (0→1, v. l'effect su piedeRef/piedeIngombro sopra): a differenza
+           delle tre custom property della coreografia C2 (che restano SOLO scala/opacità del
+           CONTENUTO), questa quarta guida l'ingombro di layout del CONTENITORE stesso — la
+           parte che H4c non faceva mai partecipare al gesto, lasciando intravedere lo sfondo
+           della pagina nello spazio riservato-ma-vuoto («il quadrato panna... e POI scompare»,
+           parole di Francesco dal device). max-height + overflow:hidden chiudono anche
+           l'eventuale residuo di altezza del contenuto stesso (il tondo/l'etichetta, già quasi
+           invisibili in quella finestra ma non ancora a dimensione zero): 240px è un tetto
+           generoso rispetto al contenuto reale (ghiera 110 + gap + etichetta + margini/safe-area
+           calcolati sopra, mai raggiunto nella pratica — serve solo a garantire che il taglio
+           avvenga SEMPRE, qualunque combinazione di clamp/safe-area il device produca) — a
+           --piede-ingombro:1 (default, invariato per ogni forma non-pager) il taglio non
+           interviene mai (240px eccede sempre il contenuto reale). calc(<length> * <number>) è
+           calc() valido (moltiplicazione di una lunghezza per un numero puro) — stesso pattern
+           già in uso altrove nel repo (v. ds-v3.css). Il collasso DISCRETO (.is-vuoto,
+           display:none) resta INVARIATO sotto — questa curva continua lo ANTICIPA dentro il
+           gesto, non lo sostituisce (v. commento su piedeIngombro in piede-swipe.ts sul perché
+           serve comunque un backstop esatto). */
+        .ua-home .foot {
+          margin-top: calc(clamp(4px, 0.9cqh, 8px) * var(--piede-ingombro, 1));
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+          padding-bottom: calc(env(safe-area-inset-bottom) * var(--piede-ingombro, 1));
+          max-height: calc(240px * var(--piede-ingombro, 1));
+          overflow: hidden;
+        }
         /* Capitolo H4c (decisione 0c37f25, demo ebf4edb) — coreografia C2 «il tasto si ritira».
            Le tre custom property sono scritte via ref DIRETTAMENTE sul nodo .foot (v. l'effect
            su piedeRef/progressoSwipe sopra, NON uno style React per pixel di gesto — stesso

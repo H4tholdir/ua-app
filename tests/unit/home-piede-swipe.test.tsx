@@ -415,6 +415,94 @@ describe('HomeV3 — collasso dell\'ingombro del .foot a riposo vero (difetto a,
   })
 })
 
+// FIX verifica device di Francesco (round 4) — «non appena effettuo lo swipe, nella pagina
+// delle cassette resta il quadrato panna che copre le cassette e POI scompare»: diagnosi provata
+// dal vivo su :3042 (v. report) — il "quadrato" è l'ingombro di layout di `.foot` (margine-top +
+// gap + safe-area), ancora a piena dimensione durante la finestra fra "il contenuto è già
+// sfumato" e "lo scroll-snap si è DAVVERO fermato" (scrollend). Il collasso DISCRETO
+// (`is-vuoto`/`display:none`, round 1) arriva troppo tardi da solo — questi test verificano il
+// SECONDO canale, continuo (`--piede-ingombro`, `piedeIngombro` in piede-swipe.ts), che chiude
+// l'ingombro DENTRO il gesto (progress ~0.9), ben prima del collasso discreto a progress===1.
+describe('HomeV3 — il contenitore .foot partecipa alla coreografia (round 4): niente ingombro dipinto all\'arrivo', () => {
+  it('a riposo su Pile (progress 0): --piede-ingombro pieno (1)', () => {
+    const { container } = renderHome()
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('1')
+  })
+
+  it('a metà gesto (progress 0.5): --piede-ingombro ancora pieno (nessun restringimento anticipato)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 195, 390)
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('1')
+  })
+
+  it('«il frame arrivo su cassette con progress<1»: a 0.9 l\'ingombro è GIÀ a 0, ben prima del collasso discreto (is-vuoto ancora assente)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 351, 390) // 351/390 = 0.9 esatto
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('0')
+    expect(nodo.classList.contains('is-vuoto')).toBe(false) // il collasso discreto non è ancora scattato
+  })
+
+  it('«il frame arrivo su cassette con progress<1» (0.95, 0.99): l\'ingombro resta a 0 per tutta la finestra pre-collasso — nessun pixel dipinto dal piede', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    const nodo = piede(container)
+
+    simulaScroll(viewport, 370.5, 390) // 0.95
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('0')
+    expect(nodo.classList.contains('is-vuoto')).toBe(false)
+
+    simulaScroll(viewport, 386, 390) // 0.99
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('0')
+    expect(nodo.classList.contains('is-vuoto')).toBe(false)
+  })
+
+  it('a riposo vero (progress 1): --piede-ingombro 0 E is-vuoto presente (i due canali convergono)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 390, 390)
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('0')
+    expect(nodo.classList.contains('is-vuoto')).toBe(true)
+  })
+
+  it('un gesto lento all\'indietro (da 0.9 verso le Pile) riespande subito l\'ingombro (reversibilità)', () => {
+    const { container } = renderHome()
+    const viewport = preparaViewport(container)
+    simulaScroll(viewport, 351, 390) // 0.9 -> ingombro 0
+    expect(piede(container).style.getPropertyValue('--piede-ingombro')).toBe('0')
+    simulaScroll(viewport, 273, 390) // torna a 0.7 -> ingombro pieno
+    expect(piede(container).style.getPropertyValue('--piede-ingombro')).toBe('1')
+  })
+
+  it('reduced-motion: --piede-ingombro chiude comunque a progress 0.9 (indipendente dalla formula ridotta di tondo/etichetta)', () => {
+    const ripristina = mockReducedMotion(true)
+    try {
+      const { container } = renderHome()
+      const viewport = preparaViewport(container)
+      simulaScroll(viewport, 351, 390) // 0.9
+      const nodo = piede(container)
+      expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('0')
+      // la coreografia reduced (dissolvenza semplice) resta INVARIATA: v. gruppo di test dedicato
+      // più sopra — qui si verifica SOLO che il nuovo canale ingombro non ne dipenda.
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('forma "solo pile" (nessun pager): --piede-ingombro resta al default (1), mai scritto', () => {
+    const { container } = render(
+      <HomeV3 nome="Francesco" eyebrow="Giovedì 9 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={SEGNALE} parete={[]} homePref="pile" />
+    )
+    const nodo = piede(container)
+    expect(nodo.style.getPropertyValue('--piede-ingombro')).toBe('1')
+  })
+})
+
 // FIX ri-collaudo #4 (verbale 2026-07-24, APPEND 25/07 sera, difetti a+b) — riconciliazione:
 // `stanzaAttiva` (autorità finale del pager, IO/navigazione esplicita) deve SEMPRE poter
 // correggere `progressoSwipe`, anche se una molla guessata al rilascio sta già puntando (o ha

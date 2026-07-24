@@ -112,3 +112,29 @@ export function bersaglioStanza(stanza: 'pile' | 'parete'): 0 | 1 {
 export function piedeSenzaIngombro(progress: number): boolean {
   return clamp01(progress) >= 1
 }
+
+/** FIX ri-collaudo #4 (verifica device di Francesco, round 4) — «non appena effettuo lo swipe,
+ *  nella pagina delle cassette resta il quadrato panna che copre le cassette e POI scompare».
+ *  Diagnosi provata dal vivo (:3042, evidenza nel report): il "quadrato" non è un colore dipinto
+ *  DA `.foot` (nessuno sfondo proprio, invariato) — è l'INGOMBRO DI LAYOUT che il box riserva
+ *  comunque (margine-top + gap + safe-area) mentre `piedeSenzaIngombro` (sopra) resta `false`
+ *  per costruzione fino al progress ESATTO 1: nello spazio riservato-ma-vuoto si intravede lo
+ *  sfondo della PAGINA (`body`), che taglia l'ultima riga della griglia cassette — visibile per
+ *  tutta la finestra fra "il tondo/l'etichetta sono già scomparsi" (progress ~0.8-0.9) e "il
+ *  gesto/scroll-snap si è DAVVERO fermato" (scrollend, round 2-3): su un flick reale quella
+ *  finestra dura quanto il momentum nativo (100-300ms), abbastanza per essere notata («resta...
+ *  e POI scompare»). Il collasso discreto (`display:none` a progress===1 esatto, via
+ *  `piedeSenzaIngombro`/`is-vuoto`) NON viene toccato — resta l'autorità sul riposo vero (anche
+ *  per i casi senza un gesto continuo, es. deep-link). Questa funzione aggiunge un SECONDO
+ *  canale, continuo, che chiude l'ingombro DENTRO la coreografia: una curva dedicata (non le
+ *  formule ratificate di etichetta/tondo, invariate) che arriva a 0 per progress ~0.9 — un po'
+ *  PRIMA che l'utente possa dirsi "arrivato" sulle cassette, in modo che quando la pagina è
+ *  visivamente lì non ci sia più nulla da intravedere nello spazio riservato, indipendentemente
+ *  da quando il progress numerico tocca esattamente 1. Finestra 0.7→0.9 (non 0.78→1, la
+ *  finestra di `tondoOpacita`): chiude un po' PRIMA di quella del tondo apposta, così l'ingombro
+ *  è già a zero quando il tondo stesso sta ancora finendo di sfumare — mai il contrario (un
+ *  ingombro che sparisce DOPO il contenuto riprodurrebbe lo stesso ritardo percepito). */
+export function piedeIngombro(progress: number): number {
+  const p = clamp01(progress)
+  return clamp01(1 - Math.max(0, p - 0.7) / 0.2)
+}

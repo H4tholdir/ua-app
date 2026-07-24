@@ -8,6 +8,7 @@ import {
   bersaglioStanza,
   clamp01,
   mappaPiedeSwipe,
+  piedeIngombro,
   piedeSenzaIngombro,
   progressoDaScroll,
 } from '@/components/features/home/piede-swipe'
@@ -158,5 +159,43 @@ describe('piedeSenzaIngombro — collasso del contenitore SOLO a riposo vero (pr
   })
   it('sotto 0 (difesa): non collassato', () => {
     expect(piedeSenzaIngombro(-0.3)).toBe(false)
+  })
+})
+
+// FIX ri-collaudo #4 (verifica device di Francesco, round 4) — «il quadrato panna che copre le
+// cassette e POI scompare»: `piedeIngombro` è la curva CONTINUA (distinta dal collasso discreto
+// di `piedeSenzaIngombro`, invariato) che chiude l'ingombro di layout DENTRO la coreografia,
+// prima che il gesto finisca — il collasso discreto a progress===1 esatto resta come
+// backstop/autorità sul riposo vero.
+describe('piedeIngombro — curva continua che chiude l\'ingombro DENTRO la coreografia (round 4)', () => {
+  it('a riposo su Pile (progress 0): ingombro pieno (1)', () => {
+    expect(piedeIngombro(0)).toBe(1)
+  })
+  it('l\'ingombro resta pieno fino a 0.7 (nessun restringimento anticipato)', () => {
+    expect(piedeIngombro(0.7)).toBe(1)
+    expect(piedeIngombro(0.5)).toBe(1)
+  })
+  it('a metà della finestra di chiusura (0.8): ingombro a metà', () => {
+    expect(piedeIngombro(0.8)).toBeCloseTo(0.5, 5)
+  })
+  it('chiude interamente per progress 0.9 (richiesta esplicita: "chiude a progress ~0.9")', () => {
+    expect(piedeIngombro(0.9)).toBe(0)
+  })
+  it('resta a 0 per tutto il resto del gesto (0.9→1), non solo esattamente a 0.9', () => {
+    expect(piedeIngombro(0.95)).toBe(0)
+    expect(piedeIngombro(1)).toBe(0)
+  })
+  it('chiude PIÙ IN FRETTA della finestra di tondoOpacita (0.78-1): a 0.8 l\'ingombro è già a metà mentre il tondo ha appena cominciato a sfumare', () => {
+    // Requisito del round 4: l'ingombro deve essere a ZERO ben prima che il contenuto (tondo)
+    // abbia finito di sfumare — mai il contrario (un ingombro che sparisce DOPO il contenuto
+    // riprodurrebbe lo stesso ritardo percepito, "il quadrato che poi scompare").
+    const tondoOpacita = mappaPiedeSwipe(0.8, false).tondoOpacita
+    expect(tondoOpacita).toBeCloseTo(0.909, 2) // il tondo ha appena iniziato la propria finestra (0.78-1)
+    expect(piedeIngombro(0.8)).toBeCloseTo(0.5, 5) // l'ingombro è già a metà chiusura
+    expect(piedeIngombro(0.8)).toBeLessThan(tondoOpacita)
+  })
+  it('clampa un progress fuori range [0,1] (difesa)', () => {
+    expect(piedeIngombro(-0.3)).toBe(1)
+    expect(piedeIngombro(1.4)).toBe(0)
   })
 })
