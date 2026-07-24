@@ -103,9 +103,9 @@ describe('parete — G6: la relazione hook ≡ wire-center (mod passo) vale sui 
 })
 
 describe('parete — G9-cornice: filo di bordo V1 «a filo dei bordi» (ratifica mockup 2026-07-25-rete-cornice-bordi.html)', () => {
-  it('.ds-parete disegna un filo verticale a SINISTRA (::before) e a DESTRA (::after), 2px dal bordo, stesso linguaggio del filo verticale del pattern (gradiente marrone→bianco→marrone, wire-w, radius 1.5px, ombra leggera) — VERBATIM dalla variante .v1 del mockup', () => {
+  it('.ds-parete disegna un filo verticale a SINISTRA (::before) e a DESTRA (::after), 2px dal bordo, stesso linguaggio del filo verticale del pattern (gradiente marrone→bianco→marrone, wire-w, radius 1.5px, ombra leggera) — VERBATIM dalla variante .v1 del mockup, ECCETTO top/bottom: il mockup usava top:0/bottom:0 sotto `overflow:hidden` per tagliare il filo agli angoli arrotondati; qui (review FIX-H) il filo è invece INSET verticalmente di 18px — lo stesso raggio di border-radius di `.ds-parete` (riga ~649) — così il tratto dritto non attraversa MAI la curva dell\'angolo, senza bisogno di clippare l\'intero muro (che taglierebbe gancetti/ombre delle cassette, v. guardia sotto)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-parete::before, \[data-ds="v3"\] \.ds-parete::after \{ content: ''; position: absolute; top: 0; bottom: 0; width: var\(--wire-w\); border-radius: 1\.5px; background: linear-gradient\(90deg, #5A4E38, #FFFFFD 50%, #5A4E38\); box-shadow: 0 0 2px rgba\(42, 34, 20, \.42\); pointer-events: none; \}/
+      /\[data-ds="v3"\] \.ds-parete::before, \[data-ds="v3"\] \.ds-parete::after \{ content: ''; position: absolute; top: 18px; bottom: 18px; width: var\(--wire-w\); border-radius: 1\.5px; background: linear-gradient\(90deg, #5A4E38, #FFFFFD 50%, #5A4E38\); box-shadow: 0 0 2px rgba\(42, 34, 20, \.42\); pointer-events: none; \}/
     )
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete::before \{ left: 2px; \}/)
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete::after \{ right: 2px; \}/)
@@ -117,8 +117,23 @@ describe('parete — G9-cornice: filo di bordo V1 «a filo dei bordi» (ratifica
     )
   })
 
-  it('.ds-parete clippa i pseudo-elementi agli angoli arrotondati (overflow: hidden, come .muro nel mockup) — il ghost del drag è in portale su document.body (PareteClient.tsx), quindi resta FUORI da questo overflow e non viene mai tagliato', () => {
-    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*overflow: hidden;/)
+  // Review FIX-H (24/07-25/07): `overflow: hidden` su `.ds-parete` (copiato da `.muro` del
+  // mockup per clippare SOLO i due fili agli angoli) tagliava anche l'hardware vero delle
+  // cassette che sporge oltre il bordo del tile — il gancetto `.ds-gancetto` (ds-v3.css ~375,
+  // `top: calc(-1*var(--hook-above,14px) - 6px)`, 20px sopra il tile) con margine di sicurezza
+  // misurato di soli 2px nel caso peggiore (shell padding-top clamp(22px,3.8cqw,28px) − 20px),
+  // e la coda dell'ombra di riposo delle cassette in fondo (0 10px 18px -8px, ~20px verso il
+  // basso, contro un padding minimo di 18px). Il commento di guardia già in ds-v3.css ~460
+  // («Task 9 (D1)... un overflow:hidden lì taglierebbe il gancetto che sporge sopra il bordo»,
+  // scritto per `.ds-cassetta`) descrive esattamente questo stesso pericolo, qui riapplicato per
+  // errore un livello più in alto su `.ds-parete`. Fix: l'overflow è sparito, la clippatura degli
+  // angoli è ora demandata all'inset verticale dei soli due fili (guardia sopra) — il fondo
+  // muro resta comunque arrotondato da solo (`border-radius` clippa il proprio
+  // background/bordo indipendentemente da `overflow`, v. rapporto fixH per la verifica).
+  it('.ds-parete NON deve dichiarare overflow: hidden (regressione review FIX-H — tagliava gancetti/ombre, stesso pericolo del monito ds-v3.css ~460 su .ds-cassetta-cont)', () => {
+    const bloccoBase = norm.match(/\[data-ds="v3"\] \.ds-parete \{[^}]*\}/)
+    expect(bloccoBase, 'blocco .ds-parete non trovato').toBeTruthy()
+    expect(bloccoBase![0]).not.toMatch(/overflow: hidden/)
   })
 
   it('la cornice è dichiarata sulla regola BASE .ds-parete (non scoped a .ds-parete-shell): vale sia sulla route /cassette standalone sia nel pannello embedded della home, che montano entrambe la stessa .ds-parete (PareteClient condivisa)', () => {
