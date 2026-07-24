@@ -162,3 +162,10 @@ transizione piede (dopo proposta G4) · campi ricerca aggiuntivi (dopo elenco G7
   presentare varianti sia del punto specifico (bordo sottile + finestra più grande) sia
   della cassetta intera. Vincolo: targa ratificata (pill + clinico/paziente) resta salvo
   esplicita deroga; geometria gancetto/snap invariata.
+
+### G10 — orientamento di Francesco (25/07, su mockup rev.2)
+
+Francesco orienta sulla **P3 «fascia etichetta»** e chiede il mockup «pari alla situazione
+reale» (pagina cassette completa) prima della ratifica, con UNA variante in più: il bordino
+super sottile tra la fascia dell'etichetta e la finestra (il vuoto) mostrato anche in
+versione PIÙ SPESSA. Ratifica attesa sul mockup rev.3.
