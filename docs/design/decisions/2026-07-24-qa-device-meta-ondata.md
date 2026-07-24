@@ -152,3 +152,13 @@ assetto post-swipe ✅ · scroll sheet ✅ · bersaglio drag ✅ · targa aggior
 
 **Restano in coda decisioni:** funzionamento/grandezza linguetta (dopo proposta G3) ·
 transizione piede (dopo proposta G4) · campi ricerca aggiuntivi (dopo elenco G7).
+
+### Aggiunta al ri-collaudo #2 (stessa sessione, screenshot vecchia PWA agli atti)
+
+- **G10 — Design della cassetta (nuova richiesta):** nella vecchia visualizzazione di
+  produzione il bordo in alto della cassetta (vicino al gancetto) è SOTTILE e lo spazio
+  «vuoto» che accoglie l'SVG del lavoro (la finestra/cavità) è PIÙ GRANDE. Francesco chiede
+  di portare le cassette v3 verso quel rapporto, con conferma visiva PRIMA del codice:
+  presentare varianti sia del punto specifico (bordo sottile + finestra più grande) sia
+  della cassetta intera. Vincolo: targa ratificata (pill + clinico/paziente) resta salvo
+  esplicita deroga; geometria gancetto/snap invariata.
