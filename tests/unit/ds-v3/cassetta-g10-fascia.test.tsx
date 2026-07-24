@@ -178,10 +178,10 @@ describe('Review FIX-L (Importante) — nomi troncati DENTRO la fascia, non più
     expect(blocco![0]).toMatch(/min-width: 0;/)
   })
 
-  it('.ds-cassetta-dent/.ds-cassetta-paz: max-width:96px (VERBATIM mockup rev.3 righe ~97-98, `.dent`/`.paz{...max-width:96px}`) — cap fisso che riproduce ESATTAMENTE il mockup quando la fascia è più larga di 96px', () => {
+  it('.ds-cassetta-dent/.ds-cassetta-paz: STORICO — il cap max-width:96px (VERBATIM mockup rev.3 righe ~97-98) è stato SOSTITUITO da width:min(100%,96px) (v. describe "Re-re-review" sotto): un max-width fisso ignora la larghezza REALE del cont quando questa è < 96px, sforando la fascia (misurato: cont 46px → overflow 25px/lato; cont 36px → 30px/lato). Questo test resta come guardia negativa.', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent,\s*\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
     expect(blocco, 'blocco condiviso .ds-cassetta-dent, .ds-cassetta-paz non trovato').toBeTruthy()
-    expect(blocco![0]).toMatch(/max-width: 96px;/)
+    expect(blocco![0]).not.toMatch(/max-width: 96px;/)
     expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
   })
 
@@ -199,6 +199,52 @@ describe('Review FIX-L (Importante) — nomi troncati DENTRO la fascia, non più
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/align-items: center;/)
+  })
+})
+
+describe('Re-re-review FIX-L (Importante, misurato con Playwright reale) — width:min(100%,96px) chiude il DOPPIO regime', () => {
+  // Storia completa (per chi legge questo file senza il verbale):
+  // Round 1: `.ds-cassetta-cont` shrink-wrappava sul proprio contenuto invece di ereditare la
+  //   larghezza REALE della fascia → nomi lunghi sforavano di ~175px. Fix: `align-self:stretch` +
+  //   `min-width:0` su `.ds-cassetta-cont`.
+  // Round 2: con lo stretch, i figli (`dent`/`paz`, capati a `max-width:96px`) ereditavano il
+  //   default `align-items:stretch` del cont e si allineavano a SINISTRA sulle tile larghe
+  //   (gap 0/124 invece di 62/62). Fix: `align-items:center` su `.ds-cassetta-cont`.
+  // Round 3 (QUESTO fix, re-review 25/07): con `align-items:center`, i figli tornano a
+  //   dimensionarsi sul proprio contenuto, capato SOLO dal proprio `max-width:96px` — che
+  //   IGNORA la larghezza reale del cont quando questa è < 96px (tile compatte della home,
+  //   744px/gap-12, v. nota ds-v3.css ~801-816). Misurato: cont 46px → paz 96px (overflow
+  //   25px/lato); cont 36px → overflow 30px/lato. Fix: `width: min(100%, 96px)` — il box non è
+  //   mai più largo del proprio container REALE (100% risolve contro il cont, che a sua volta
+  //   eredita la fascia via align-self:stretch del Round 1) NÉ di 96px. La centratura resta
+  //   quella del Round 2 (`align-items:center` sul cont) — un box a larghezza esplicita minore
+  //   del container è centrato da `align-items:center` esattamente come un box shrink-wrapped,
+  //   quindi il fix è sicuro senza toccare quella regola (v. fixL-report.md per i numeri).
+  it('.ds-cassetta-dent/.ds-cassetta-paz: width:min(100%,96px) — mai più largo del cont reale NÉ di 96px, in ENTRAMBI i regimi (cont < 96 e cont > 96)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent,\s*\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
+    expect(blocco, 'blocco condiviso .ds-cassetta-dent, .ds-cassetta-paz non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/width: min\(100%, 96px\);/)
+    // guardia negativa: il vecchio cap indipendente (max-width:96px da solo, senza il min()
+    // contro il container) non deve ricomparire — è esattamente il difetto di questo round.
+    expect(blocco![0]).not.toMatch(/max-width: 96px;/)
+    expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
+  })
+
+  it('.ds-cassetta-cont: align-items:center invariato — la centratura del Round 2 resta valida anche con width:min() sui figli (proprietà ortogonali, nessuna modifica necessaria)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/align-self: stretch;/)
+    expect(blocco![0]).toMatch(/min-width: 0;/)
+    expect(blocco![0]).toMatch(/align-items: center;/)
+  })
+
+  it('.ds-cassetta-dent.is-shrink: il clamp a 2 righe (Opzione A) resta intatto — wrappa contro la larghezza vincolata dal width:min() della regola base, non un valore a parte', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent\.is-shrink \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-dent.is-shrink non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/white-space: normal;/)
+    expect(blocco![0]).toMatch(/-webkit-line-clamp: 2;/)
+    // nessuna width propria qui: eredita width:min(100%,96px) dalla regola base condivisa sopra
+    expect(blocco![0]).not.toMatch(/width:/)
   })
 })
 

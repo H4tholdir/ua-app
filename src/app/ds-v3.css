@@ -493,29 +493,21 @@
    (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. FIX-L: niente
    più `margin-top` — vive dentro `.ds-cassetta-fascia`, che porta già il proprio `gap: 2` verso
    la targa. */
-/* Review FIX-L (Importante, riscontrato in Chromium headless) — `.ds-cassetta-fascia` è
+/* FIX-L, Round 1 (Importante, riscontrato in Chromium headless) — `.ds-cassetta-fascia` è
    `align-items:center`: senza vincolo, `.ds-cassetta-cont` (flex item, colonna) shrink-wrappa sul
    proprio contenuto invece di ereditare la larghezza REALE della fascia. Con un paziente lungo
    («Maria Vittoria Del Grosso Esposito») il blocco cresceva ~175px, sforando fascia E tile sulle
-   celle vicine — l'ellissi sotto non scattava mai perché `.ds-cassetta-dent`/`-paz` non avevano
-   mai una larghezza-vincolo reale contro cui troncare. `align-self: stretch` fa ereditare a
-   `.ds-cassetta-cont` la larghezza di `.ds-cassetta-fascia` (il vincolo REALE, che cambia con la
-   colonna 3/4/6 della griglia — v. `.ds-parete-grid` sotto); `min-width: 0` toglie il floor
-   `min-width:auto` che i flex item hanno di default (altrimenti non potrebbero mai restringersi
-   sotto la larghezza intrinseca del testo `nowrap`, vanificando lo stretch). */
-/* Re-review FIX-L (Importante, misurato con Playwright reale in un harness a parte) —
-   `align-self:stretch` sopra fa ereditare a `.ds-cassetta-cont` la larghezza REALE della fascia
-   (giusto, risolve il troncamento sulle tile strette), MA lascia il cross-axis PER I SUOI FIGLI
-   (`.ds-cassetta-dent`/`-paz`, capati a `max-width:96px` sotto) sul default `align-items:stretch`.
-   Uno stretch-item con max-width più piccolo del container disponibile si allinea come
-   `flex-start` per lo spazio residuo (spec box-alignment §align-self, "stretch"-then-"start"
-   quando il max-size vince) — cioè a SINISTRA: misurato in un fascia di 220px, gap sinistro 0px
-   / gap destro 124px invece che ~62/62. `align-items: center` qui sotto ricentra i figli capati
-   SENZA disfare lo stretch di `.ds-cassetta-cont` verso `.ds-cassetta-fascia` — sono proprietà
-   ortogonali: quello è l'`align-self` del cont dentro la fascia (suo genitore), questo è
-   l'`align-items` del cont sui SUOI figli. Misurato dopo il fix: gap sinistro≈gap destro (±2px)
-   su tile larghe, ellissi ancora attiva su tile strette (v. fixL-report.md per i numeri e lo
-   script Playwright). */
+   celle vicine. `align-self: stretch` fa ereditare a `.ds-cassetta-cont` la larghezza di
+   `.ds-cassetta-fascia` (il vincolo REALE, che cambia con la colonna 3/4/6 della griglia — v.
+   `.ds-parete-grid` sotto); `min-width: 0` toglie il floor `min-width:auto` dei flex item
+   (altrimenti non potrebbero restringersi sotto la larghezza intrinseca del testo `nowrap`).
+   Round 2 — lo stretch lasciava il cross-axis PER I FIGLI (`.ds-cassetta-dent`/`-paz`) sul
+   default `align-items:stretch`: un figlio con max-size più piccolo del container si allineava a
+   SINISTRA (gap 0/124px invece di ~62/62). `align-items: center` sotto ricentra i figli SENZA
+   disfare lo stretch del cont verso la fascia (proprietà ortogonali). Round 3 (doppio regime,
+   overflow quando il cont è < 96px) — v. commento completo sopra la regola `.ds-cassetta-dent,
+   .ds-cassetta-paz` sotto, dove vive il fix (`width: min(100%, 96px)`); questa regola qui non è
+   cambiata, la centratura resta valida. Numeri in fixL-report.md. */
 [data-ds="v3"] .ds-cassetta-cont {
   position: relative; z-index: 1; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -524,18 +516,34 @@
   color: rgba(255,255,255,.95);
   text-shadow: 0 1px 1px rgba(0,0,0,.3);
 }
-/* `max-width: 96px` VERBATIM dal mockup ratificato (2026-07-25-cassetta-g10-rev3-p3-reale.html
-   righe ~97-98, `.dent`/`.paz{...max-width:96px}`). I due vincoli lavorano su assi diversi e
-   vince il più stretto (`min()` implicito di due max-width in cascata):
-   - Tile STRETTE (es. griglia 3 colonne su schermi piccoli, fascia interna < 96px): lo stretch
-     su `.ds-cassetta-cont` sopra è quello che tronca davvero — 96px da solo qui sforerebbe
-     ancora oltre la fascia reale, che è esattamente il difetto della review.
-   - Tile LARGHE (fascia interna > 96px, es. griglia 4/6 colonne o desktop): senza questo cap
-     `.ds-cassetta-cont` si stenderebbe fino al bordo reale della fascia, mostrando più testo di
-     quanto il mockup ratificato preveda — i 96px riproducono ESATTAMENTE la resa approvata. */
+/* Terza review FIX-L (Importante, misurato con Playwright reale in un harness a parte, 25/07) —
+   STORIA COMPLETA DEL DOPPIO REGIME (chi tocca questa regola DEVE leggerla tutta):
+   Round 1 — `.ds-cassetta-cont` (sopra) shrink-wrappava sul proprio contenuto invece di
+     ereditare la larghezza REALE della fascia: nomi lunghi sforavano di ~175px. Fix:
+     `align-self:stretch` + `min-width:0` su `.ds-cassetta-cont`.
+   Round 2 — con lo stretch, questi due figli (capati allora da un `max-width:96px` isolato)
+     ereditavano il default `align-items:stretch` del cont e si allineavano a SINISTRA sulle
+     tile larghe (gap 0/124px invece di ~62/62). Fix: `align-items:center` su `.ds-cassetta-cont`.
+   Round 3 (QUESTO fix) — con `align-items:center`, questi figli tornavano a dimensionarsi SOLO
+     sul proprio `max-width:96px`, ignorando la larghezza reale del cont quando questa è < 96px
+     (tile compatte della home, 744px/gap-12 — v. nota ~801-816 sotto): misurato cont 46px →
+     box paz 96px (overflow 25px/lato); cont 36px → overflow 30px/lato — il cap fisso VERBATIM
+     dal mockup (2026-07-25-cassetta-g10-rev3-p3-reale.html righe ~97-98) bastava solo quando la
+     fascia era già ≥ 96px.
+   Fix (chiude ENTRAMBI i regimi): `width: min(100%, 96px)` — il box non è mai più largo del
+     proprio container REALE (il 100% risolve contro `.ds-cassetta-cont`, che a sua volta eredita
+     la larghezza vera della fascia dal Round 1) NÉ di 96px:
+   - Tile STRETTE (fascia interna < 96px): `min(100%, 96px)` = 100% del cont → il box combacia
+     esattamente col cont, niente più sforo (era il difetto di questo round).
+   - Tile LARGHE (fascia interna > 96px): `min(100%, 96px)` = 96px → stessa resa VERBATIM del
+     mockup approvato di prima (Round 2), invariata.
+   La centratura resta quella del Round 2 (`align-items:center` su `.ds-cassetta-cont`, sopra,
+   INVARIATA): un box a larghezza esplicita minore del container viene centrato da
+   `align-items:center` esattamente come un box shrink-wrapped — proprietà ortogonali, nessuna
+   necessità di `margin:0 auto` in aggiunta. Numeri completi in fixL-report.md. */
 [data-ds="v3"] .ds-cassetta-dent,
 [data-ds="v3"] .ds-cassetta-paz {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 96px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: min(100%, 96px);
 }
 /* Tipografia (verbale §7, vincolante — ovunque): il CLINICO è senza grassetto, il PAZIENTE è in
    grassetto. */
