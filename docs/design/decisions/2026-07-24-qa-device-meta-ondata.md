@@ -365,3 +365,22 @@ restano in docs come materiale di studio, non ratificati.
    fresca):** (a) primo gesto = swipe+DRAG → suono di sgancio MUTO, riaggancio al
    rilascio OK, poi tutto ok — su TUTTI i mobili; (b) primo gesto = TAP su pulsante →
    suono OK sui telefoni, MUTO su iPad, OK su desktop.
+
+---
+
+## APPEND — 26/07 (verifica secondo giro fix, build 1303d1f — esiti Francesco)
+
+1. **Piede — C2 ABROGATA da Francesco (sue parole):** «l'animazione "divisa" in due step
+   non mi piace per nulla… non possiamo fare in modo che non ci siano animazioni? il blocco
+   resta tutto fermo nella home, quando swippo si entra direttamente nella zona delle
+   cassette, punto». Inoltre: «resta anche una piccola fascia del blocco panna in basso».
+   → NUOVA RATIFICA: piede STATICO, NESSUNA animazione legata allo swipe; il piede
+   appartiene alla home e scivola via con essa; sulla pagina cassette non esiste
+   (né paint né ingombro). La coreografia C2 (demo ebf4edb, decisione 0c37f25 §H4)
+   è ABROGATA dalla prova device.
+2. **Suono primo-drag:** limite di piattaforma ACCETTATO da Francesco («assumiamo questo
+   limite») — ratificato come comportamento noto documentato.
+3. **iPad cassette rotte: RISOLTO** («risolto») — fix width fascia H2c efficace.
+4. **Sfumatura sui nomi di alcuni medici: PERSISTE** dopo la taratura H2c → serve
+   riproduzione a densità di schermo reale (DPR device) prima di altri fix a tavolino.
+5. **Priorità paziente/nomi in fascia: DEFERITA** («per i nomi lasciamo così per adesso»).
