@@ -252,3 +252,35 @@ in demo animata prima della conferma definitiva: preparare la demo PRIMA di impl
 **Direttiva di processo (Francesco, vincolante):** contesto della sessione al ~60% — da qui
 in poi ogni lavoro va scritto, appuntato, certificato e SVOLTO IN UNA NUOVA SESSIONE a
 contesto pulito. Handoff: `docs/roadmap/2026-07-25-redesign-parete-home-wave-h-handoff.md`.
+
+---
+
+## APPEND — 25/07 pomeriggio, wave H: H1 CHIUSO SUL DEVICE (Francesco: «abbiamo risolto»)
+
+**Metodo eseguito come da direttiva (niente fix alla cieca):**
+ricerca con fonti primarie (`.superpowers/sdd/h1a-ricerca-report.md`) → overlay diagnostico
+temporaneo `?diag=suoni` (pattern P-STATUSBAR; commit `d91f2ac`+`59b7cfd`, review a due stadi)
+→ evidenza DAL device (screenshot 14:09) → PANEL 3 ADVISOR (Regola 17/07; sintesi in
+`.superpowers/sdd/h1-diagnosi.md`) → fix `6823daa` (review APPROVED) → collaudo device 14:48.
+
+**Diagnosi provata (misure 14:09):** `pointerdown` da tocco non conferisce user activation
+(`isActive=false` a schermo) → il `resume()` chiamato lì restava appeso; `suona('tap')` del
+click veniva scartata (`!sbloccato`) 11ms PRIMA del resolve dei resume. Race di ordinamento,
+non latenza hardware (resume in 8-15ms una volta attivato).
+
+**Fix ratificato dal panel (3/3 con riserve, tutte integrate):** suono accodato SINCRONAMENTE
+dentro il gesto (`connect`→`start()` anche a contesto non-running) + `resume()` esplicito in
+coppia (obbligo iOS/WebKit) · guardia `userActivation.isActive` (mai enqueue fuori gesto —
+niente suoni fantasma) · scadenza 150ms + max 1 pending (requisiti UX) · copertura stato
+`interrupted` (bug NUOVO scoperto dal panel: post-telefonata il motore restava muto per
+sempre) · fallback legacy esatto dove `userActivation` manca.
+
+**Evidenza di chiusura (screenshot 14:48, Chrome Android):** primo tap:
+`[gesto] pointerdown isActive=false` → `[suona] tap esito=enqueued (state=suspended) Δpd=71ms`
+→ `[statechange] running` 16ms dopo → suono UDITO da Francesco. Tap successivi `giocato`;
+sulla parete `stacco` e `riaggancio` `giocato`. Conferma verbale di Francesco in chat:
+«abbiamo risolto».
+
+**Coda:** overlay diagnostico e canale (`sound-diag.ts`) restano montati per il ri-collaudo
+#4 di fine wave; rimozione con commit dedicato dopo (pattern `9416d25`). Nota per T17: spec
+DS v3 §9 da allineare (7 suoni + semantica enqueue-nel-gesto).
