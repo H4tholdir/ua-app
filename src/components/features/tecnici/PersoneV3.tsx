@@ -19,7 +19,7 @@
 // Nessun regime desktop dedicato in quest'ondata (a differenza di
 // TuttoIlResto/HomeDesktop): a ≥1024 la pagina resta la stessa colonna
 // centrata a 480px (spec §14, brief Task 11).
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
@@ -28,6 +28,7 @@ import { Avatar } from '@/components/ds/Avatar'
 import { PillTempo } from '@/components/ds/Pill'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { raggio } from '@/design-system/v3/tokens'
+import { initSuoni } from '@/design-system/v3/sound'
 import { SchedaPersonaSheet } from './SchedaPersonaSheet'
 import { InvitoPersonaSheet } from './InvitoPersonaSheet'
 
@@ -45,6 +46,16 @@ export type TecnicoRow = {
 export function PersoneV3(props: { tecnici: TecnicoRow[]; ruolo: string; meseLabel: string }) {
   const { tecnici, ruolo, meseLabel } = props
   const router = useRouter()
+
+  // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
+  // componente è il root client SEMPRE montato di `/tecnici` e renderizza `TastoTondo`/
+  // `TastoSecondario` (`suona('tap')`) più `SchedaPersonaSheet`/`InvitoPersonaSheet` nei
+  // propri discendenti (idem, via `TastoPrimario`), senza che nulla a monte chiamasse mai
+  // `initSuoni()`: primo tap muto, stesso bug di G1. Fix: stesso schema di `HomeV3.tsx`.
+  // Idempotente (v. `initFatto` in `sound.ts`).
+  useEffect(() => {
+    initSuoni()
+  }, [])
 
   // Sheet persona (Task 12): il tap riga apre `SchedaPersonaSheet`, montato
   // sempre (`aperto`/`persona` ne governano la visibilità) — stesso schema

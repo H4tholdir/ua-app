@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }))
 vi.mock('@/lib/supabase/browser-anon', () => ({
   getBrowserClient: () => ({ auth: { signOut: signOutMock } }),
 }))
-vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
+vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn(), initSuoni: vi.fn() }))
 vi.mock('@/design-system/v3/haptic', () => ({ vibra: vi.fn() }))
 vi.mock('@/design-system/v3/motion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/design-system/v3/motion')>()

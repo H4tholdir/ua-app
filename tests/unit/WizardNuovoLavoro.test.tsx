@@ -9,6 +9,16 @@ import type { DatiWizard } from '@/lib/wizard/dati-wizard'
 const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, back: vi.fn() }) }))
 
+// Review finding G1 (fix-list FIX-G) — il wizard renderizza `TastoTondo` (`suona('tap')`)
+// più `TileScelta`/`FrameFatto` nei propri passi (idem, `suona('tap')`/`suona('fatta')`)
+// senza che nulla a monte chiamasse mai `initSuoni()`: primo tap muto, stesso bug chiuso
+// su /dashboard con `HomeV3.tsx`.
+const { initSuoniSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', async (importOriginal) => {
+  const reale = await importOriginal<typeof import('@/design-system/v3/sound')>()
+  return { ...reale, initSuoni: initSuoniSpy }
+})
+
 // Mock minimo del Web Speech API (stesso approccio di PillVoce.test.tsx): cattura
 // l'ultima istanza costruita così il test può pilotare `onresult` a mano.
 type Evento = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
@@ -48,6 +58,7 @@ const CONTESTO = { userId: 'u1', labId: 'lab1' }
 
 beforeEach(() => {
   push.mockClear()
+  initSuoniSpy.mockClear()
   istanzeCostruite.length = 0
   delete (window as unknown as Record<string, unknown>).SpeechRecognition
   delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition
@@ -456,5 +467,12 @@ describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da 
     expect(window.localStorage.getItem(CHIAVE_WIZARD)).toBeNull()
 
     vi.unstubAllGlobals()
+  })
+})
+
+describe('WizardNuovoLavoro — motore audio al mount (G1, review FIX-G)', () => {
+  it('chiama initSuoni() al mount — root client di /lavori/nuovo', () => {
+    render(<WizardNuovoLavoro dati={DATI} contesto={CONTESTO} />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
   })
 })

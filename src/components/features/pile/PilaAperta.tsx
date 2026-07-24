@@ -16,7 +16,7 @@
 // la lista intera è già leggibile in una schermata, cercare sarebbe un passo
 // in più senza motivo. Il filtro è un contains normalizzato (NFD, senza
 // accenti) su numero, dentista, paziente e tipo lavoro.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MorphPila } from '@/components/ds/MorphPila'
 import { CardLavoro } from '@/components/ds/CardLavoro'
@@ -28,6 +28,7 @@ import { Vuoto } from '@/components/ds/Vuoto'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { filtraLavoriPila } from '@/components/features/pile/filtra-lavori-pila'
 import { ConfermaCassettaSheet } from '@/components/features/pile/ConfermaCassettaSheet'
+import { initSuoni } from '@/design-system/v3/sound'
 import type { LavoroPila } from '@/lib/dashboard/pile-home'
 import type { Pila } from '@/lib/lavori/urgenza'
 
@@ -50,6 +51,20 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
 export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string; cassetteSuggerite?: Array<{ id: string; nome: string }> }) {
   const { pila, lista, sub, cassetteSuggerite } = props
   const router = useRouter()
+
+  // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
+  // componente è il root client SEMPRE montato di `/lavori` (l'altro root della route,
+  // `PilaSplit`, resta solo CSS-hidden sotto i 768px, mai smontato — v.
+  // `.ua-lavori-mobile`/`.ua-lavori-split`), ma renderizza `CardLavoro`/`TastoTondo`
+  // (entrambi `suona('tap')`) senza che nulla a monte chiamasse mai `initSuoni()`: primo
+  // tap muto, stesso bug di G1. Fix: stesso schema di `HomeV3.tsx` — `initSuoni()` al
+  // mount di QUESTO componente basta per l'intera route (il listener che sblocca l'audio
+  // vive su `document`, in `sound.ts`, non sull'elemento: un solo mount a monte copre
+  // anche `PilaSplit`, sibling non discendente). Idempotente (v. `initFatto` in `sound.ts`).
+  useEffect(() => {
+    initSuoni()
+  }, [])
+
   const [cerca, setCerca] = useState<string | null>(null) // null = riga chiusa
   // Task 14 — il flusso di consegna è POSSEDUTO da questo host (riserva arch
   // #5): FlussoConsegna monta in place, MAI più la navigazione a

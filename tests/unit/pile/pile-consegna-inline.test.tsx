@@ -15,7 +15,7 @@ import type { LavoroPila, PileHome } from '@/lib/dashboard/pile-home'
 const push = vi.fn()
 const refresh = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh, back: vi.fn() }) }))
-vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn() }))
+vi.mock('@/design-system/v3/sound', () => ({ suona: vi.fn(), initSuoni: vi.fn() }))
 vi.mock('@/design-system/v3/haptic', () => ({ vibra: vi.fn() }))
 vi.mock('@/design-system/v3/motion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/design-system/v3/motion')>()

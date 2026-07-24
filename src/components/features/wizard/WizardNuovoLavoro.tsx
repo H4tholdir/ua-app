@@ -28,6 +28,7 @@ import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { ProgressDots } from '@/components/ds/ProgressDots'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+import { initSuoni } from '@/design-system/v3/sound'
 import { PassoDentista } from './PassoDentista'
 import { PassoTipo } from './PassoTipo'
 import { PassoPaziente } from './PassoPaziente'
@@ -90,6 +91,16 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
   // avanza subito al Passo 2, e lo sheet deve chiudersi nello stesso istante
   // senza un frame intermedio in cui esiste ma è "orfano" del Passo 1.
   const [sheetDentistaAperto, setSheetDentistaAperto] = useState(false)
+
+  // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
+  // componente è il root client SEMPRE montato di `/lavori/nuovo` e renderizza
+  // `TastoTondo` (`suona('tap')`) più `TileScelta`/`FrameFatto` nei propri passi (idem,
+  // `suona('tap')`/`suona('fatta')`), senza che nulla a monte chiamasse mai `initSuoni()`:
+  // primo tap muto, stesso bug di G1. Fix: stesso schema di `HomeV3.tsx`. Idempotente (v.
+  // `initFatto` in `sound.ts`).
+  useEffect(() => {
+    initSuoni()
+  }, [])
 
   // Task 13 (spec §9): stato dello sheet «Riprendo da dove eri?» + il
   // payload letto da localStorage che lo alimenta. `pronto` è la guardia che

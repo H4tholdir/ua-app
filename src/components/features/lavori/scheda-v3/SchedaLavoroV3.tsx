@@ -46,11 +46,12 @@
 // del blocco `NotaLaboratorio` sotto. Nessuna misattribuzione qui: è proprio
 // il testo scritto dal dentista.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
+import { initSuoni } from '@/design-system/v3/sound'
 import { NotaDentista } from '@/components/ds/NotaDentista'
 import { FotoStrip } from '@/components/ds/FotoStrip'
 import { TastoTondo } from '@/components/ds/TastoTondo'
@@ -134,6 +135,17 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
   const { ruolo } = props
   const router = useRouter()
   const { errore } = useAvvisi()
+
+  // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questa scheda
+  // è il root client SEMPRE montato di `/lavori/[id]` e renderizza `TastoTondo`/
+  // `TastoPrimario`/`TastoSecondario` (`suona('tap')`) più `SchedaNavRail` e
+  // `FrameConsegnato` nei propri discendenti (idem, `suona('tap')`/`suona('ua')`), senza che
+  // nulla a monte chiamasse mai `initSuoni()`: primo tap muto, stesso bug di G1. Fix: stesso
+  // schema di `HomeV3.tsx` — `initSuoni()` al mount di QUESTO componente, la superficie più a
+  // monte della route. Idempotente (v. `initFatto` in `sound.ts`).
+  useEffect(() => {
+    initSuoni()
+  }, [])
 
   const [lavoroLocale, setLavoroLocale] = useState<LavoroDettaglio>(props.lavoro)
 
