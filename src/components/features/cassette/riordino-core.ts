@@ -49,6 +49,48 @@ export function indiceDaPunto(punto: Punto, geo: Geometria, n: number): number {
 }
 
 /**
+ * indiceRettangoloDaPunto — hit-test GEOMETRICO «aggancio al dito» (H3 v2, indagine PROVATA
+ * `.superpowers/sdd/h3-indagine-report.md`, decisione ratificata 0c37f25 —
+ * `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3: «il riordino scatta SOLO quando il
+ * PUNTO DEL DITO entra nell'area reale di un'ALTRA cassetta; finché il dito è sul vuoto della
+ * rete o sulla cassetta d'origine, nessun ricalcolo»).
+ *
+ * Differenza da `indiceDaPunto` (sopra, INVARIATA — resta la mappa punto→cella, closestCenter sul
+ * TRACK, provata corretta nell'indagine): qui il punto deve cadere DENTRO il RETTANGOLO REALE di
+ * una cella — `[colonna·pitchX, colonna·pitchX + cellaW] × [riga·pitchY, riga·pitchY + cellaH]` —
+ * non nel track intero. Su `.ds-parete-grid` (`align-items:start`, cassetta fissa 132px per tutte
+ * dal commit 21a0b17 «cassetta B») il track (`pitchY`) è molto più alto della cassetta
+ * (`cellaH`): la maglia VUOTA sotto ogni cassetta (`cellaH`..`pitchY`) — dove cadeva il vecchio
+ * punto di flip, il punto medio fra i centri-track — NON è area di scatto. Un punto lì (o fuori
+ * griglia, o oltre l'ultima cella di una riga parziale) restituisce `null`: NESSUN bersaglio, non
+ * un indice "clampato" che finga un ingresso mai avvenuto — a differenza di `indiceDaPunto`
+ * (che clampa sempre a `[0, n-1]`, closestCenter), qui fuori da ogni rettangolo è "nessun
+ * ingresso", il chiamante (`useDragRiordino.frame()`) tiene l'ultimo bersaglio valido (one-way per
+ * posizione, mai un "annullo" solo perché si ripassa sul vuoto).
+ */
+export function indiceRettangoloDaPunto(punto: Punto, geo: Geometria, n: number): number | null {
+  if (n <= 0) return null
+  const pitchX = geo.cellaW + geo.gapX
+  if (pitchX <= 0 || geo.pitchY <= 0 || geo.colonne <= 0) return null
+  const relX = punto.x - geo.gridLeft
+  const relY = punto.y - geo.gridTop + geo.scrollDelta
+
+  const colonna = Math.floor(relX / pitchX)
+  if (colonna < 0 || colonna >= geo.colonne) return null
+  const xInCella = relX - colonna * pitchX
+  if (xInCella < 0 || xInCella > geo.cellaW) return null // nella fascia di gapX: vuoto, non scatta
+
+  const riga = Math.floor(relY / geo.pitchY)
+  if (riga < 0) return null
+  const yInCella = relY - riga * geo.pitchY
+  if (yInCella < 0 || yInCella > geo.cellaH) return null // nella maglia vuota sotto la cassetta
+
+  const indice = riga * geo.colonne + colonna
+  if (indice >= n) return null // riga parziale: lo slot geometrico esiste, la cassetta no
+  return indice
+}
+
+/**
  * calcolaNuovoOrdine — arrayMove per INSERIMENTO, MAI scambio (§1): togli l'elemento da `da` e
  * infilalo in `a`, gli altri scalano. È l'unica semantica che preserva l'ordine relativo delle
  * altre cassette — la mappa mentale del muro.

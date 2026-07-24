@@ -9,6 +9,7 @@ import {
   calcolaNuovoOrdine,
   creaScroller,
   indiceDaPunto,
+  indiceRettangoloDaPunto,
   riconcilia,
   velocitaAutoScroll,
 } from '@/components/features/cassette/riordino-core'
@@ -69,6 +70,101 @@ describe('indiceDaPunto — hit-testing aritmetico O(1), semantica closestCenter
     // Stesso punto viewport (50,50) del primo caso, ma il documento è sceso di una riga intera:
     // il bersaglio deve seguire il muro, non il dito immobile.
     expect(indiceDaPunto({ x: 50, y: 50 }, { ...geo, scrollDelta: 120 }, 7)).toBe(3)
+  })
+})
+
+// H3 v2 — Riordino «aggancio al dito» (opzione 1 RATIFICATA da Francesco, decisione 0c37f25,
+// `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3). Root cause PROVATA nell'indagine
+// `.superpowers/sdd/h3-indagine-report.md`: `indiceDaPunto` (sopra) è aritmeticamente CORRETTO
+// (closestCenter sul TRACK), ma il TRIGGER attuale confronta il centro del ghost col punto medio
+// fra due centri-track — punto che, con `align-items:start` e track >> cassetta (commit 21a0b17:
+// cassetta fissa 132px per tutte), cade nella maglia VUOTA sotto la cassetta, non su una
+// cassetta vera. La decisione ratificata cambia il GATE: si riordina SOLO quando il PUNTO DEL
+// DITO entra nel RETTANGOLO REALE di un'ALTRA cassetta — `indiceDaPunto` resta la mappa
+// punto→cella (invariata, vedi describe sopra), `indiceRettangoloDaPunto` è il nuovo cancello.
+//
+// Geometria di riferimento QUI = quella REALE del worktree, non quella sintetica di `geo` sopra:
+// `.ds-parete-grid` ha `grid-auto-rows: var(--track)` (`--track = --passo-maglia · 5`), a mobile
+// 390 `--passo-maglia` risolve a 40px ⇒ `pitchY = 200`; `row-gap: 0` (ds-v3.css:855/895); la
+// cassetta (commit 21a0b17, «cassetta B») è FISSA a 132px per tutte ⇒ 68px di maglia vuota sotto
+// ogni cassetta — esattamente la geometria che ha prodotto il riordino "fantasma".
+const geoRete: Geometria = {
+  gridLeft: 0,
+  gridTop: 0,
+  cellaW: 100,
+  cellaH: 132,
+  gapX: 20,
+  gapY: 0,
+  colonne: 3,
+  pitchY: 200,
+  scrollDelta: 0,
+}
+
+describe('indiceRettangoloDaPunto — hit-test GEOMETRICO: dentro il RETTANGOLO reale, mai nel vuoto (H3 v2, decisione 0c37f25)', () => {
+  // Gruppo 1 (brief §Test 1) — caso Francesco: qualunque punto DENTRO la cassetta d'origine,
+  // qualunque sia la presa (alta/bassa), risolve al SUO STESSO indice. Morto per costruzione:
+  // qui non esiste un "centro del ghost" da inseguire, solo il rettangolo vero della cella —
+  // niente offset presa↔centro che possa far scattare un bersaglio prima del tempo.
+  it('presa in ALTO sulla cassetta (bordo superiore, y=2 dentro la cella) → indice della cella stessa (0)', () => {
+    expect(indiceRettangoloDaPunto({ x: 50, y: 2 }, geoRete, 6)).toBe(0)
+  })
+  it('presa in BASSO sulla cassetta (y=130, appena sopra il bordo) → indice della cella stessa (0)', () => {
+    expect(indiceRettangoloDaPunto({ x: 50, y: 130 }, geoRete, 6)).toBe(0)
+  })
+
+  // Gruppo 2 (brief §Test 2) — la maglia VUOTA sotto la cassetta (il VECCHIO punto di scatto,
+  // che cadeva nel punto medio fra i due centri-track — v. guardia di regressione sotto) NON è
+  // area di scatto: nessun indice, per costruzione del rettangolo (mai il track intero).
+  it('nel vuoto di maglia sotto la propria cassetta (y=166, fra cellaH=132 e pitchY=200) → null (nessun bersaglio)', () => {
+    expect(indiceRettangoloDaPunto({ x: 50, y: 166 }, geoRete, 6)).toBeNull()
+  })
+  it('appena sotto la cassetta (y=133, 1px dentro il vuoto) → null', () => {
+    expect(indiceRettangoloDaPunto({ x: 50, y: 133 }, geoRete, 6)).toBeNull()
+  })
+
+  // Gruppo 3 (brief §Test 3) — dentro il rettangolo di un'ALTRA cassetta: il bersaglio è
+  // l'indice di QUELLA cassetta. Stessa riga (colonna diversa) e riga diversa.
+  it('dentro il rettangolo della cassetta della colonna accanto, stessa riga → suo indice (1)', () => {
+    expect(indiceRettangoloDaPunto({ x: 170, y: 50 }, geoRete, 6)).toBe(1)
+  })
+  it('dentro il rettangolo della cassetta della riga sotto → suo indice (3 = riga1·colonne)', () => {
+    expect(indiceRettangoloDaPunto({ x: 50, y: 250 }, geoRete, 6)).toBe(3)
+  })
+
+  // Gruppo 5 (brief §Test 5) — scroll durante il drag: stessa convenzione `scrollDelta` di
+  // `indiceDaPunto` (compensazione additiva su `relY`). Un punto che senza scroll cade nel
+  // vuoto, con lo scroll giusto cade dentro la cassetta sotto.
+  it('compensa lo scroll: un punto nel vuoto (senza scroll) entra nella cassetta sotto quando il muro è sceso di scrollDelta', () => {
+    // (50,166) è nel vuoto (§gruppo 2); con scrollDelta=68 → relY=234, dentro [200,332] (riga1).
+    expect(indiceRettangoloDaPunto({ x: 50, y: 166 }, { ...geoRete, scrollDelta: 68 }, 6)).toBe(3)
+  })
+
+  // Gruppo 6 (brief §Test 6) — GUARDIA DI REGRESSIONE sul VECCHIO trigger (indagine v2 §2,
+  // decisione 0c37f25): il flip cadeva al punto medio fra i due CENTRI CASSETTA — qui
+  // (centro riga0 = cellaH/2 = 66, centro riga1 = pitchY + cellaH/2 = 266) → midpoint = 166,
+  // che è la maglia VUOTA (§gruppo 2). `indiceDaPunto` (closestCenter sul track, MAI cambiato —
+  // FIX-F resta corretto, v. describe sopra) risolve GIÀ quel punto alla riga sotto: è
+  // esattamente il difetto provato nell'indagine, riprodotto qui in forma pura.
+  // `indiceRettangoloDaPunto` sullo STESSO punto deve restare `null`: la prova che è cambiato
+  // SOLO il gate d'ingresso, non l'aritmetica di riga/colonna sottostante (che resta condivisa).
+  it('REGRESSIONE (vecchio trigger): il punto medio fra i centri (y=166) fa scattare indiceDaPunto (closestCenter) alla riga sotto, ma indiceRettangoloDaPunto lo rifiuta (vuoto, non è un\'altra cassetta)', () => {
+    expect(indiceDaPunto({ x: 50, y: 166 }, geoRete, 6)).toBe(3) // vecchia mappa, invariata: non è più il gate
+    expect(indiceRettangoloDaPunto({ x: 50, y: 166 }, geoRete, 6)).toBeNull() // nuovo gate: rifiuta
+  })
+
+  // Guardie aggiuntive (fuori dai 6 gruppi, ma necessarie per un hit-test onesto: mai un indice
+  // "clampato" che finga un bersaglio inesistente — a differenza di `indiceDaPunto`, che clampa
+  // sempre a `[0, n-1]`, qui fuori da ogni rettangolo è "nessun ingresso").
+  it('fuori dalla griglia (colonna oltre l’ultima) → null, mai clampato', () => {
+    expect(indiceRettangoloDaPunto({ x: 400, y: 50 }, geoRete, 6)).toBeNull()
+  })
+  it('punto sopra/a sinistra dell’origine → null, mai negativo/clampato', () => {
+    expect(indiceRettangoloDaPunto({ x: -50, y: -50 }, geoRete, 6)).toBeNull()
+  })
+  it('dentro un rettangolo geometrico che non ha una cassetta vera (riga parziale, n=5) → null', () => {
+    // Indice geometrico 5 (riga1, colonna2) non esiste con solo 5 cassette (0..4): non è un
+    // bersaglio valido, anche se il rettangolo "ci sarebbe" nella griglia.
+    expect(indiceRettangoloDaPunto({ x: 260, y: 250 }, geoRete, 5)).toBeNull()
   })
 })
 

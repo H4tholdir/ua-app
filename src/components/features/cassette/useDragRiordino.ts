@@ -29,6 +29,22 @@
 // Nota sullo stile (React Compiler lint): gli handler sono FUNZIONI SEMPLICI nel corpo del hook (lo
 // stesso pattern di `Cassetta.tsx`), non `useCallback` — così l'accesso ai ref è quello lecito degli
 // event handler. Le prop più fresche si sincronizzano in un `useEffect`.
+//
+// CAPITOLO H3 v2 — riordino «aggancio al dito» (opzione 1 RATIFICATA da Francesco, decisione
+// 0c37f25, `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3). Indagine PROVATA:
+// `.superpowers/sdd/h3-indagine-report.md`. Root cause: `frame()` confrontava il CENTRO DEL
+// GHOST (`centroOrigineRef` + delta dal lift) col punto medio fra due centri-TRACK di
+// `indiceDaPunto` — su `.ds-parete-grid` (`align-items:start`, track ≫ cassetta: 200/250px vs
+// 132px fissi dal commit 21a0b17 «cassetta B») quel punto medio cade nella maglia VUOTA sotto la
+// cassetta, non su una cassetta vera; e se la presa non è al centro (si afferra la targa in
+// alto, il caso reale), il ghost-centro "precede" il dito — il riordino scattava mentre il dito
+// era ancora sopra la cassetta d'origine. FIX-F/`pitchY` restano CORRETTI e INVARIATI (l'indagine
+// li ha provati esatti): cambia solo il TRIGGER. Ora `frame()` passa il PUNTO DEL DITO
+// (`puntoRef`, mai più un centro derivato) a `indiceRettangoloDaPunto` (riordino-core.ts): il
+// ricalcolo scatta SOLO quando il dito è DENTRO il rettangolo reale di un'altra cassetta;
+// `null` (vuoto di rete, cornice, propria cassetta) → nessun nuovo `setOrdineIds`, l'ultimo
+// bersaglio valido resta (one-way per posizione). `centroOrigineRef` è sparito: non serve più
+// nessun offset presa↔centro, la trappola è morta per costruzione.
 
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
@@ -42,7 +58,7 @@ import {
   type Scroller,
   calcolaNuovoOrdine,
   creaScroller,
-  indiceDaPunto,
+  indiceRettangoloDaPunto,
   riconcilia,
   velocitaAutoScroll,
 } from './riordino-core'
@@ -120,7 +136,6 @@ export function useDragRiordino(opts: {
   const pointerIdRef = useRef<number | null>(null)
   const puntoRef = useRef({ x: 0, y: 0 })
   const liftRef = useRef({ x: 0, y: 0 })
-  const centroOrigineRef = useRef({ x: 0, y: 0 })
   const origineRectRef = useRef({ left: 0, top: 0 })
   const geoRef = useRef<Geometria | null>(null)
   const scrollerRef = useRef<Scroller | null>(null)
@@ -238,15 +253,15 @@ export function useDragRiordino(opts: {
         ingaggioBordoRef.current = 0
       }
 
-      // Bersaglio dal CENTRO del ghost (§1), coordinate viewport, con compensazione scroll.
-      const centro = {
-        x: centroOrigineRef.current.x + (puntoRef.current.x - liftRef.current.x),
-        y: centroOrigineRef.current.y + (puntoRef.current.y - liftRef.current.y),
-      }
+      // Bersaglio dal PUNTO DEL DITO (H3 v2, decisione 0c37f25 — v. capitolo in testa al file),
+      // coordinate viewport, con compensazione scroll. `indiceRettangoloDaPunto` è il GATE: torna
+      // `null` (vuoto di rete, cornice, propria cassetta) finché il dito non entra nel
+      // rettangolo REALE di un'altra cassetta — in quel caso l'ultimo bersaglio valido resta
+      // (one-way per posizione: passare di nuovo sul vuoto non annulla un riordino già mostrato).
       const scrollDelta = scroller.pos() - scrollLiftRef.current
       const n = snapshotRef.current.length
-      const nuovo = indiceDaPunto(centro, { ...geo, scrollDelta }, n)
-      if (nuovo !== correnteRef.current) {
+      const nuovo = indiceRettangoloDaPunto(puntoRef.current, { ...geo, scrollDelta }, n)
+      if (nuovo !== null && nuovo !== correnteRef.current) {
         correnteRef.current = nuovo
         setOrdineIds(calcolaNuovoOrdine(snapshotRef.current, origineRef.current, nuovo))
         setAnnuncio(`Posto ${nuovo + 1} di ${n}`)
@@ -319,7 +334,9 @@ export function useDragRiordino(opts: {
 
     if (misura) {
       geoRef.current = misura.geo
-      centroOrigineRef.current = { x: misura.origine.left + misura.geo.cellaW / 2, y: misura.origine.top + misura.geo.cellaH / 2 }
+      // H3 v2 — niente più `centroOrigineRef`: il bersaglio segue il PUNTO DEL DITO (`puntoRef`,
+      // v. `frame()`), non un centro-ghost derivato dalla presa. `origineRectRef` resta: serve
+      // solo per l'offset di ATTERRAGGIO al drop (`atterra`), non per l'hit-test.
       origineRectRef.current = { left: misura.origine.left, top: misura.origine.top }
       setGhost({ id, left: misura.origine.left, top: misura.origine.top, width: misura.origine.width, height: misura.origine.height })
     } else {
