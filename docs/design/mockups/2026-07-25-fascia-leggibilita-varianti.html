@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetta B — fascia: paziente multiriga + leggibilità (varianti, ri-collaudo #4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP DI CONFERMA — NON è codice src/. Riproduce fedelmente le regole vere
+   di `src/app/ds-v3.css` (.ds-cassetta / .ds-cassetta-fascia / -targa / -cont /
+   -dent / -paz) così com'erano al build 44ce44c (ri-collaudo #4), poi propone
+   3 varianti come OVERRIDE per wrapper (.vA / .vB / .vC).
+   Il background della fascia NON è hardcoded: è il gradiente reale della faccia
+   + lo scrim reale (rgba semi-trasparente) — il compositing lo fa il browser,
+   quindi lo screenshot mostra il colore VERO su cui cade il testo.
+   Le 6 coppie gradiente sono verbatim da ds-v3.css righe 412-417.
+   ========================================================================== */
+:root{
+  --wall-l:#EFE8DC; --wall-l2:#E4DACB;
+  --ink-doc-l:#2B2620; --ink-doc-soft-l:#6E675E;
+  --card-l:#FBF7EF; --card-border-l:rgba(43,38,32,.10);
+}
+[data-theme="dark"]{
+  --wall-l:#171310; --wall-l2:#0F0C0A;
+  --ink-doc-l:#EDE6D9; --ink-doc-soft-l:#A79E90;
+  --card-l:#211B15; --card-border-l:rgba(255,255,255,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:linear-gradient(180deg,var(--wall-l),var(--wall-l2));
+  color:var(--ink-doc-l);
+  -webkit-font-smoothing:antialiased;
+  padding:20px 0 60px;
+}
+.doc{max-width:1180px;margin:0 auto;padding:0 18px}
+h1{font-size:19px;font-weight:800;margin:0 0 4px}
+.sub{font-size:12.5px;color:var(--ink-doc-soft-l);margin:0 0 22px;line-height:1.5}
+h2{font-size:16px;font-weight:800;margin:30px 0 3px}
+.vlead{font-size:12.5px;color:var(--ink-doc-soft-l);margin:0 0 14px;line-height:1.5;max-width:760px}
+.badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:8px}
+.b-star{background:#1E7A3D;color:#fff}
+.b-cost{background:#B4881F;color:#fff}
+.b-fail{background:#B02A2A;color:#fff}
+
+/* ---- riproduzione fedele della parete a 390px (3 colonne, gap 16) --------- */
+.phone{
+  width:390px;padding:14px 20px 20px;border-radius:22px;
+  background:linear-gradient(180deg,var(--wall-l),var(--wall-l2));
+  border:1px solid var(--card-border-l);
+  box-shadow:0 12px 30px -14px rgba(0,0,0,.35);
+}
+.phone-cap{font-size:10.5px;font-weight:700;color:var(--ink-doc-soft-l);margin:0 0 10px;letter-spacing:.02em}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+/* fedelta': il vero `.ds-cella-riordino` e' min-width:0 e la cassetta riempie la colonna
+   (ds-v3.css 350-351) — senza, le colonne 1fr crescono sul min-content dei nomi lunghi
+   e i tile diventano disuguali/stretti, non rappresentativi della parete reale. */
+.grid > .case{min-width:0}
+.grid > .case .ds-cassetta{width:100%}
+.phones{display:flex;gap:26px;flex-wrap:wrap}
+
+/* =========================================================================
+   BASE — verbatim da ds-v3.css (valori reali, build 44ce44c)
+   ========================================================================= */
+.ds-cassetta{
+  position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:0;
+  border:none;border-radius:10px 10px 12px 12px;height:132px;min-height:132px;
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
+  font-family:'DM Sans',sans-serif;color:inherit;overflow:visible;
+}
+[data-theme="dark"] .ds-cassetta{
+  box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4);
+}
+/* linguetta ::before (accenno, per realismo del bordo alto) */
+.ds-cassetta::before{content:"";position:absolute;left:50%;top:-6px;width:34px;height:8px;
+  transform:translateX(-50%);border-radius:6px 6px 0 0;background:rgba(0,0,0,.14)}
+
+/* gradienti verbatim ds-v3.css 412-417 */
+.rossa   {background:linear-gradient(180deg,#E8323B,#C3000F)}
+.blu     {background:linear-gradient(180deg,#2E6FD0,#174A9C)}
+.azzurra {background:linear-gradient(180deg,#6FB1E8,#4187C6)}
+.grigia  {background:linear-gradient(180deg,#9A948E,#6E675F)}
+.bianca  {background:linear-gradient(180deg,#FFFEFA,#E4DCCB)}
+.verde   {background:linear-gradient(180deg,#2E9C55,#166B39)}
+
+/* cavità / finestra — 8..48 (h40), verbatim */
+.ds-cassetta-cavita{position:absolute;inset:8px 6px auto 6px;height:40px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+
+/* fascia — 72px fissa, verbatim */
+.ds-cassetta-fascia{
+  position:relative;z-index:1;margin:0 4px 4px;border-radius:4px 4px 9px 9px;padding:5px 8px 6px;height:72px;
+  background:rgba(0,0,0,.28);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;
+}
+.is-chiara .ds-cassetta-fascia{background:rgba(29,25,19,.14)} /* scrim SCURENTE su faccia chiara (attuale) */
+
+.ds-cassetta-targa{position:relative;z-index:1;align-self:center;max-width:8ch;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.92);border-radius:6px;padding:1px 8px 2px;
+  font-size:12.5px;font-weight:800;color:#1D1913;font-variant-numeric:tabular-nums;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.is-libera .ds-cassetta-targa{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);color:rgba(255,255,255,.9)}
+.is-libera.is-chiara .ds-cassetta-targa{box-shadow:inset 0 0 0 2px rgba(29,25,19,.4);color:rgba(29,25,19,.7)}
+
+.ds-cassetta-cont{position:relative;z-index:1;text-align:center;display:flex;flex-direction:column;
+  align-items:center;gap:1px;align-self:stretch;min-width:0;font-size:11.5px;line-height:1.28;
+  color:rgba(255,255,255,.95);text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.ds-cassetta-dent,.ds-cassetta-paz{width:min(100%,96px)}
+.is-libera .ds-cassetta-cont{opacity:.6;font-weight:700}
+
+.ds-cassetta-dent{font-weight:400;opacity:.94;white-space:normal;overflow-wrap:break-word;word-break:normal;
+  display:block;overflow:hidden;font-size:10px;line-height:1.16;max-height:calc(2 * 1.16em)}
+.ds-cassetta-dent.is-troncato{
+  -webkit-mask-image:linear-gradient(180deg,#000 80%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 80%,transparent 100%)}
+.ds-cassetta-paz{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:clip;margin-top:1px;
+  -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent 99%);
+  mask-image:linear-gradient(90deg,#000 84%,transparent 99%)}
+.is-chiara .ds-cassetta-cont{color:rgba(29,25,19,.85);text-shadow:none}
+.is-chiara .ds-cassetta-dent{opacity:.7}
+
+/* etichetta caso sotto la tile */
+.case{display:flex;flex-direction:column;gap:6px}
+.case .tag{font-size:9.5px;font-weight:700;color:var(--ink-doc-soft-l);text-align:center;line-height:1.3}
+
+/* =========================================================================
+   VARIANTE A — budget righe condiviso, fascia 72px INVARIATA
+   Paziente wrappa fino a 2 righe con sfumatura VERTICALE «come il clinico».
+   Budget dinamico: clinico 1 riga -> paziente fino a 2; clinico 2 -> paziente 1.
+   Corpi INVARIATI (10 / 11.5): a 72px non c'e' spazio per ingrandirli.
+   ========================================================================= */
+.vA .ds-cassetta-paz{
+  white-space:normal;overflow-wrap:break-word;word-break:normal;display:block;overflow:hidden;
+  text-overflow:clip;line-height:1.24;max-height:calc(2 * 1.24em);
+  -webkit-mask-image:none;mask-image:none;margin-top:1px;
+}
+.vA .ds-cassetta-paz.is-troncato{
+  -webkit-mask-image:linear-gradient(180deg,#000 82%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 82%,transparent 100%)}
+/* clinico a 2 righe -> paziente forzato a 1 riga (budget condiviso) */
+.vA .ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz{max-height:calc(1 * 1.24em);white-space:nowrap;
+  -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent 99%);mask-image:linear-gradient(90deg,#000 84%,transparent 99%)}
+
+/* =========================================================================
+   VARIANTE B — fascia piu' alta (84px), sagoma 132px INVARIATA.
+   Ruba px alla finestra (cavita' 40 -> 28px, -30%). Corpi su (11 / 12).
+   Paziente sempre fino a 2 righe, sfumatura verticale.
+   ========================================================================= */
+.vB .ds-cassetta-fascia{height:84px}
+.vB .ds-cassetta-cavita{height:28px}          /* finestra ridotta: costo esplicito */
+/* ghost del costo: contorno tratteggiato dei 40px ORIGINALI attorno alla finestra ridotta a
+   28px — i 12px tagliati (-30%) sono la fascia vuota fra il tratteggio e il bordo pieno. */
+.vB .ds-cassetta-cavita::after{
+  content:"− 12px";position:absolute;left:-1px;right:-1px;top:-1px;height:40px;
+  border:1.5px dashed rgba(255,255,255,.85);border-radius:8px;pointer-events:none;
+  display:flex;align-items:flex-end;justify-content:center;
+  font-size:8px;font-weight:800;color:rgba(255,255,255,.9);padding-bottom:1px;letter-spacing:.02em}
+.vB .ds-cassetta.is-chiara .ds-cassetta-cavita::after{border-color:rgba(29,25,19,.55);color:rgba(29,25,19,.7)}
+.vB .ds-cassetta-cont{font-size:12px;line-height:1.24}
+.vB .ds-cassetta-dent{font-size:11px;line-height:1.18;max-height:calc(2 * 1.18em)}
+.vB .ds-cassetta-paz{
+  font-size:12px;white-space:normal;overflow-wrap:break-word;word-break:normal;display:block;overflow:hidden;
+  text-overflow:clip;line-height:1.24;max-height:calc(2 * 1.24em);
+  -webkit-mask-image:none;mask-image:none;margin-top:1px}
+.vB .ds-cassetta-paz.is-troncato{
+  -webkit-mask-image:linear-gradient(180deg,#000 82%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 82%,transparent 100%)}
+
+/* =========================================================================
+   VARIANTE C — leggibilita' via SCRIM-POLARITY + peso + inchiostro pieno.
+   Corpi INVARIATI (10 / 11.5). Paziente 2 righe col budget condiviso di A.
+   Chiave: sulle facce CHIARE lo scrim della fascia si INVERTE (schiarisce
+   invece di scurire) -> il testo scuro guadagna contrasto reale; peso su e
+   inchiostro pieno (via l'opacita' .7 del clinico). Sulle facce SCURE lo
+   scrim scurisce un filo di piu' e il testo bianco resta pieno.
+   ========================================================================= */
+/* scrim invertito sulle facce chiare: SCHIARENTE */
+.vC.is-chiara .ds-cassetta-fascia,
+.vC .ds-cassetta.is-chiara .ds-cassetta-fascia{background:rgba(255,255,255,.20)}
+/* facce scure: scrim un filo piu' profondo */
+.vC .ds-cassetta:not(.is-chiara) .ds-cassetta-fascia{background:rgba(0,0,0,.34)}
+/* inchiostro PIENO su faccia chiara (niente piu' .85 / .7) + peso */
+.vC .ds-cassetta.is-chiara .ds-cassetta-cont{color:rgba(29,25,19,1)}
+.vC .ds-cassetta.is-chiara .ds-cassetta-dent{opacity:1}
+.vC .ds-cassetta-dent{font-weight:500}
+.vC.is-chiara .ds-cassetta-dent{font-weight:600}
+.vC .ds-cassetta-paz{font-weight:800}
+/* testo bianco pieno + ombra un filo piu' netta sulle facce scure */
+.vC .ds-cassetta:not(.is-chiara) .ds-cassetta-cont{color:#fff;text-shadow:0 1px 1.5px rgba(0,0,0,.45)}
+/* paziente 2 righe come in A */
+.vC .ds-cassetta-paz{
+  white-space:normal;overflow-wrap:break-word;word-break:normal;display:block;overflow:hidden;
+  text-overflow:clip;line-height:1.24;max-height:calc(2 * 1.24em);
+  -webkit-mask-image:none;mask-image:none;margin-top:1px}
+.vC .ds-cassetta-paz.is-troncato{
+  -webkit-mask-image:linear-gradient(180deg,#000 82%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 82%,transparent 100%)}
+.vC .ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz{max-height:calc(1 * 1.24em);white-space:nowrap;
+  -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent 99%);mask-image:linear-gradient(90deg,#000 84%,transparent 99%)}
+
+/* ---- note finali ---- */
+.notes{margin-top:40px;background:var(--card-l);border:1px solid var(--card-border-l);border-radius:14px;padding:20px 22px}
+.notes h3{margin:0 0 10px;font-size:15px}
+.notes h4{margin:18px 0 6px;font-size:13px}
+.notes p,.notes li{font-size:12.5px;line-height:1.55}
+table{border-collapse:collapse;width:100%;margin:8px 0 4px;font-size:12px}
+th,td{border:1px solid var(--card-border-l);padding:5px 8px;text-align:left}
+th{background:rgba(127,127,127,.10);font-weight:700}
+td.pass{color:#1E7A3D;font-weight:700}
+td.fail{background:rgba(176,42,42,.14);color:#B02A2A;font-weight:800}
+td.warn{color:#B4881F;font-weight:700}
+code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:rgba(127,127,127,.14);padding:1px 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Cassetta B — fascia: paziente su piu' righe + leggibilita'</h1>
+  <p class="sub">Rifinitura ri-collaudo #4 (build 44ce44c) · richieste (a) paziente multiriga come il clinico · (b) scritte piu' leggibili, soprattutto su cellulare · Le due vivono nella stessa fascia a budget fisso: si scelgono insieme. · Casi VERI dallo screenshot di Francesco (C9/C12/C5/C17 + estremo). Ogni blocco: parete a 390px, tile piene + una libera. Vincoli che restano legge: sagoma unica 132px · fascia altezza fissa · nomi mai troncati di netto (sfumatura come ultima spiaggia) · targa binaria libera/occupata.</p>
+
+  <!-- ===================== TEMPLATE MACRO via JS-free markup ===================== -->
+  <!-- VARIANTE A -->
+  <h2>Variante A — budget righe condiviso, fascia 72px invariata <span class="badge b-star">nessun costo di spazio</span></h2>
+  <p class="vlead">3 righe totali divise dinamicamente: clinico corto -> paziente fino a 2 righe; clinico su 2 righe -> paziente 1 riga. Il paziente che non entra sfuma in VERTICALE (come il clinico), niente piu' fade orizzontale a meta' parola. Corpi INVARIATI (clinico 10, paziente 11.5): a 72px non c'e' spazio per ingrandirli, e senza lo scrim invertito di C il contrasto non cambia — quindi A risolve solo (a), NON (b). E' il limite onesto di restare a fascia ferma.</p>
+  <div class="phones" id="rowA"></div>
+
+  <!-- VARIANTE B -->
+  <h2>Variante B — fascia piu' alta (84px), sagoma invariata <span class="badge b-cost">la finestra si accorcia ~30%</span></h2>
+  <p class="vlead">La fascia sale da 72 a 84px rubando spazio alla cavita'/finestra (40 -> 28px). In cambio i corpi crescono (clinico 11, paziente 12) e il paziente ha SEMPRE 2 righe piene, anche quando il clinico ne occupa gia' 2. Piu' comoda da leggere per dimensione — ma attenzione: caratteri piu' grandi non alzano il RAPPORTO di contrasto, quindi l'azzurra resta sotto norma come oggi; e il «cassetto» perde visibilmente altezza di vetrina.</p>
+  <div class="phones" id="rowB"></div>
+
+  <!-- VARIANTE C -->
+  <h2>Variante C — leggibilita' via scrim + peso, corpi invariati <span class="badge b-star">consigliata</span></h2>
+  <p class="vlead">Sulle facce chiare (azzurra, bianca) lo scrim della fascia si INVERTE: schiarisce invece di scurire, e il testo scuro passa a inchiostro pieno + peso su. E' l'unica via che porta l'azzurra — il caso «difficile da leggere» dello screenshot — sopra la soglia WCAG AA senza rubare spazio alla finestra. Paziente 2 righe col budget condiviso di A. Corpi invariati (10 / 11.5).</p>
+  <div class="phones" id="rowC"></div>
+
+  <!-- ===================== NOTE ===================== -->
+  <div class="notes">
+    <h3>Confronto e contrasti misurati</h3>
+    <p>Numeri <b>misurati</b>, non stimati: il fondo della fascia (gradiente della faccia + scrim reale, compositati dal browser) e' stato CAMPIONATO pixel-per-pixel dal rendering Playwright su una tile a fascia vuota (media di una toppa 12×12 al centro); il testo e' poi composto analiticamente sopra quel fondo con l'opacita' reale (inchiostro 0,85 paziente / 0,595 clinico oggi; pieno in C). Contrasto con formula WCAG 2.1 (soglia AA: 4,5:1 testo piccolo). La faccia e' un oggetto colorato intrinseco: <b>nessun override in dark</b> per fascia/testi — questi valori valgono IDENTICI in chiaro e scuro (verificato: nessun selettore <code>[data-theme="dark"] .ds-cassetta-cont/-dent/-paz/-fascia</code>).</p>
+
+    <h4>Il caso ostico: azzurra e bianca, riga CLINICO (oggi opacita' 0,85 × 0,7 = inchiostro sbiadito)</h4>
+    <table>
+      <tr><th>Faccia · testo</th><th>OGGI</th><th>Var. A (72px, corpi invariati)</th><th>Var. B (84px, corpi +)</th><th>Var. C (scrim invertito + inchiostro pieno)</th></tr>
+      <tr><td>Azzurra · <b>clinico</b></td><td class="fail">2,50 ❌</td><td class="fail">2,50 ❌</td><td class="fail">2,50 ❌</td><td class="pass">6,99 ✓</td></tr>
+      <tr><td>Azzurra · <b>paziente</b></td><td class="warn">3,64 ⚠</td><td class="warn">3,64 ⚠</td><td class="warn">3,64 ⚠</td><td class="pass">6,99 ✓</td></tr>
+      <tr><td>Bianca · <b>clinico</b></td><td class="fail">3,78 ❌</td><td class="fail">3,78 ❌</td><td class="fail">3,78 ❌</td><td class="pass">14,68 ✓</td></tr>
+      <tr><td>Bianca · <b>paziente</b></td><td class="pass">7,57 ✓</td><td class="pass">7,57 ✓</td><td class="pass">7,57 ✓</td><td class="pass">14,68 ✓</td></tr>
+      <tr><td>Rossa · testo bianco</td><td class="pass">8,29 ✓</td><td class="pass">8,29 ✓</td><td class="pass">8,29 ✓</td><td class="pass">10,11 ✓</td></tr>
+      <tr><td>Grigia · testo bianco</td><td class="pass">6,97 ✓</td><td class="pass">6,97 ✓</td><td class="pass">6,97 ✓</td><td class="pass">8,39 ✓</td></tr>
+    </table>
+    <p><b>Lettura onesta (il punto piu' importante):</b> il vero difetto di leggibilita' e' sistematico e misurabile — sta nel CLINICO sulle facce chiare (azzurra 2,50:1, bianca 3,78:1), perche' oggi e' inchiostro grigio-scuro reso al 60% di opacita' su un fondo medio-chiaro: e' l'anti-slop «testo grigio chiaro su colore chiaro». <b>Ne' A ne' B cambiano questo numero:</b> A non tocca l'inchiostro; B ingrandisce il carattere ma il RAPPORTO di contrasto non dipende dalla dimensione (e a 11px resta comunque «testo piccolo» per WCAG, soglia 4,5) — un testo sbiadito piu' grande e' sempre sbiadito. Solo <b>invertire la polarita' dello scrim</b> (schiarire il fondo della fascia sulle facce chiare) + inchiostro pieno porta azzurra e bianca ben sopra 4,5:1. Per questo la leggibilita' e' la spina di C, non un ingrandimento.</p>
+
+    <h4>Come ogni variante risolve (a) e (b), e cosa cede</h4>
+    <table>
+      <tr><th>Var.</th><th>(a) Paziente multiriga</th><th>(b) Leggibilita'</th><th>Cosa cede</th></tr>
+      <tr><td><b>A</b></td><td class="pass">Si', fino a 2 righe con sfumatura verticale, budget condiviso col clinico (mai 4 righe). Vedi C12: «Ciruzzo / Tozzetti» ora su 2 righe.</td><td class="fail">NON affrontata: a 72px non c'e' spazio per ingrandire i corpi e l'inchiostro resta quello di oggi. Azzurra ferma a 2,50:1.</td><td>Nessuno spazio: sagoma e finestra intatte. Cede tutto sul punto (b).</td></tr>
+      <tr><td><b>B</b></td><td class="pass">Si', 2 righe SEMPRE piene anche nei casi densi (vedi estremo: «Maria Vittoria / Del Grosso»), corpi piu' grandi (11/12).</td><td class="warn">Solo PERCEZIONE: caratteri piu' grandi si leggono piu' comodi, ma il contrasto NON migliora — l'azzurra resta a 2,50:1, sotto norma AA. Migliora il comfort, non la conformita'.</td><td class="fail">La finestra/cavita' cala da 40 a 28px (-30%): il «cassetto» perde vetrina, visibile a colpo d'occhio.</td></tr>
+      <tr><td><b>C</b></td><td class="pass">Si', come A (2 righe, budget condiviso, sfumatura verticale).</td><td class="pass">Piena e conforme: azzurra 6,99:1, bianca 14,68:1. L'unica che chiude AA su tutte le facce ostiche.</td><td>Il clinico perde la resa «leggera» (inchiostro pieno + peso 600): la gerarchia clinico/paziente ora sta sul peso (600 vs 800), non sull'opacita'. Corpi e spazio invariati.</td></tr>
+    </table>
+
+    <h4>Variante che NON regge, in chiaro</h4>
+    <p><b>«A con corpi ingranditi» (l'ipotesi V1 originale) non regge a 72px.</b> Verifica: la fascia ha 61px utili (72 − 11 di padding); targa ~18px + gap 2 + clinico + gap 1 + paziente. Col paziente a 2 righe (line-height 1,28 ereditato = ~14,7px/riga) il caso «clinico 1 riga + paziente 2 righe» misura gia' ~62px ai corpi ATTUALI — cioe' sfora di ~1px senza toccare nulla. Ingrandire i corpi E dare 2 righe al paziente insieme, a fascia ferma, non entra: o l'uno o l'altro. Per questo A tiene i corpi fermi (e per la leggibilita' non puo' fare nulla senza lo scrim di C) e chi vuole i corpi grandi deve pagare lo spazio della finestra (B). Nel mockup il budget e' misurato a runtime (numero righe del clinico -> cap del paziente), come fa oggi il componente per <code>is-troncato</code>: nessuna tile sfora.</p>
+
+    <h4>Perche' C e' la consigliata</h4>
+    <p>Risolve (a) senza costi (come A) e chiude (b) davvero (a differenza di A e B) senza toccare ne' la sagoma ne' la finestra. Il meccanismo — scrim che cambia verso a seconda che la faccia sia chiara o scura — riusa la funzione <code>targaScura</code> gia' esistente nel componente (decide gia' oggi inchiostro scuro/chiaro): l'implementazione e' un cambio di 3-4 regole CSS + la misura del numero righe (gia' fatta in JS per <code>is-troncato</code>). Nessun nuovo meccanismo.</p>
+  </div>
+</div>
+
+<script>
+/* Casi VERI del ri-collaudo #4. `due` NON e' piu' un flag di layout: il numero di righe del
+   clinico e il cap del paziente sono MISURATI dopo il render (come fa il componente vero via
+   ResizeObserver), cosi' il budget condiviso si applica da solo e nessuna variante sfora. */
+const CASI = [
+  {n:'9',  slug:'azzurra', chiara:true,  dent:'DI SANTI CATERINA',            paz:'',                       tag:'C9 azzurra · clinico lungo'},
+  {n:'12', slug:'azzurra', chiara:true,  dent:'BARALE S.A.S.',                paz:'Ciruzzo Tozzetti',        tag:'C12 azzurra · clinico + paziente lungo'},
+  {n:'6',  slug:'azzurra', chiara:true,  dent:'Studio Rossi',                paz:'Ciruzzo Tozzetti',        tag:'(a)-VITTORIA · clinico corto + paziente lungo -> 2 righe'},
+  {n:'5',  slug:'rossa',   chiara:false, dent:'STUDI MEDICI DI SANTI',        paz:'',                        tag:'C5 rossa · clinico lungo'},
+  {n:'17', slug:'bianca',  chiara:true,  dent:'Studio Bianchi',               paz:'Anna Verdi',              tag:'C17 bianca · leggibilita'},
+  {n:'21', slug:'grigia',  chiara:false, dent:'Odontoiatria Sud',             paz:'Luca Neri',               tag:'C21 grigia · testo bianco'},
+  {n:'8',  slug:'blu',     chiara:false, dent:'STUDIO DENTISTICO ASSOCIATO',  paz:'Maria Vittoria Del Grosso', tag:'ESTREMO · clinico 2 righe + paziente lungo'},
+  {n:'3',  slug:'azzurra', chiara:true,  libera:true, dent:'', paz:'',        tag:'libera (targa ad anello)'},
+];
+
+function tile(c){
+  const cls = ['ds-cassetta', c.slug];
+  if(c.chiara) cls.push('is-chiara');
+  if(c.libera) cls.push('is-libera');
+  const contInner = c.libera ? ''
+    : `<div class="ds-cassetta-dent">${c.dent}</div>${c.paz?`<div class="ds-cassetta-paz">${c.paz}</div>`:''}`;
+  return `<div class="case">
+    <div class="${cls.join(' ')}">
+      <div class="ds-cassetta-cavita"></div>
+      <div class="ds-cassetta-fascia">
+        <div class="ds-cassetta-targa">n.${c.n}</div>
+        ${c.libera?'':`<div class="ds-cassetta-cont">${contInner}</div>`}
+      </div>
+    </div>
+    <div class="tag">${c.tag}</div>
+  </div>`;
+}
+
+function buildPhone(variantClass, label){
+  return `<div class="phone ${variantClass}">
+    <p class="phone-cap">${label}</p>
+    <div class="grid">${CASI.map(tile).join('')}</div>
+  </div>`;
+}
+
+document.getElementById('rowA').innerHTML = buildPhone('vA','Variante A · 390px');
+document.getElementById('rowB').innerHTML = buildPhone('vB','Variante B · 390px');
+document.getElementById('rowC').innerHTML = buildPhone('vC','Variante C · 390px');
+
+/* Misura post-render, identica alla logica del componente:
+   1) numero righe del clinico (altezza / altezza-riga). Se 2 righe -> is-due-righe sul dent
+      (il budget condiviso caps il paziente a 1 riga via CSS `~ .ds-cassetta-paz`).
+   2) sfumatura: is-troncato dove il testo sfora davvero (scrollHeight>clientHeight per il
+      wrap verticale del paziente, o scrollWidth>clientWidth per il paziente a 1 riga). */
+function rifinisci(){
+  document.querySelectorAll('.ds-cassetta-cont').forEach(cont => {
+    const dent = cont.querySelector('.ds-cassetta-dent');
+    const paz  = cont.querySelector('.ds-cassetta-paz');
+    if(dent){
+      const lh = parseFloat(getComputedStyle(dent).lineHeight);
+      const righe = Math.round(dent.getBoundingClientRect().height / lh);
+      if(righe >= 2){ dent.classList.add('is-due-righe'); if(dent.scrollHeight > dent.clientHeight+1) dent.classList.add('is-troncato'); }
+    }
+    if(paz){
+      // dopo aver (eventualmente) capato il paziente a 1 riga, misura il troncamento reale
+      requestAnimationFrame(() => {
+        const oneLine = getComputedStyle(paz).whiteSpace === 'nowrap';
+        const tronca = oneLine ? (paz.scrollWidth > paz.clientWidth+1) : (paz.scrollHeight > paz.clientHeight+1);
+        if(tronca) paz.classList.add('is-troncato');
+      });
+    }
+  });
+}
+rifinisci();
+</script>
+</body>
+</html>
