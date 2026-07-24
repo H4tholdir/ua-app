@@ -296,24 +296,28 @@
   border-radius: 10px 10px 12px 12px;
   /* FIX-L (G10, RATIFICA FINALE 25/07, mockup 2026-07-25-cassetta-g10-rev3-p3-reale.html P3b)
      — SOSTITUISCE il vecchio meccanismo di guardia (era `padding: 66px 10px 12px`, un
-     padding-top fisso che riservava SEMPRE lo spazio della cavità nel flusso). La nuova
-     «fascia etichetta» (`.ds-cassetta-fascia` sotto) abbraccia il proprio contenuto e vive
-     SOLO nel flusso (la cavità resta assoluta, fuori flusso): niente padding qui, la fascia è
-     l'unico figlio di flusso e `justify-content: flex-end` la ancora in basso da sola, esattamente
-     come il mockup ratificato (`.k` senza alcun padding). Misura reale (Playwright headless contro IL
-     MOCKUP COMMITTATO, non un ricalco — v. fixL-report.md): col caso ratificato (targa+"libera"
-     1 riga, o dentista+paziente corti 2 righe MAI in is-shrink) il tile resta a min-height 132
-     — IDENTICO, byte-per-byte di misura, al rendering del mockup P3b (fascia-top 65.6/81.3px,
-     ben sopra il fondo della miniatura ≈59.5px: TUTTO invariato per il caso comune, come da
-     brief). Il solo caso a rischio è quello con `.is-shrink` attivo (T2, Opzione A nomi lunghi,
-     sotto): lì la clearance misurata scende a ~1px dal fondo della miniatura — troppo fragile
-     tra motori di rendering/metriche font diversi. `.is-nome-lungo` (sotto) alza min-height a
-     142px SOLO in quel caso (classe applicata da Cassetta.tsx quando dentista O paziente
-     supera `SOGLIA_NOME_LUNGO`), riportando la clearance a ≥7.8px misurati nel caso peggiore
-     (dentista 2 righe + paziente 1 riga NON shrink, la combinazione più alta perché il
-     paziente a font 11.5 è più alto della coppia shrink+shrink) — 142px resta ben sotto
-     `--track` (220px, v. `.ds-parete`). */
+     padding-top fisso che riservava SEMPRE lo spazio della cavità nel flusso): niente padding
+     qui, la fascia (unico figlio di flusso, sotto) è ancorata in basso da
+     `justify-content: flex-end` — esattamente come il mockup (`.k` senza alcun padding).
+     H2 (RATIFICA 25/07, decisione 0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html
+     opzione B, verbale 2026-07-24-qa-device-meta-ondata.md §H2) — CHIUDE il doppio regime che
+     FIX-L aveva dovuto introdurre: prima, un `min-height:142` di `.is-nome-lungo` esisteva
+     SOLO perché la fascia di FIX-L «abbracciava il contenuto» (nessuna `height` propria) — con
+     nomi lunghi in `.is-shrink` la clearance verso la finestra scendeva a ~1px, un margine
+     giudicato troppo fragile tra motori di rendering diversi. L'opzione B elimina la causa,
+     non il sintomo: la fascia (`.ds-cassetta-fascia` sotto) ha ORA un'altezza VERA e FISSA
+     (`height: 72px`, non più a abbraccio) che riserva SEMPRE lo spazio del caso peggiore
+     (clinico 2 righe + paziente 1 riga), e la finestra si restringe (66→40px, v.
+     `.ds-cassetta-cavita`) per farle posto — trade-off esplicito e accettato da Francesco
+     ("finestra più piccola in via permanente", verbale §H2). Risultato: il contenuto di
+     flusso (fascia 72 + il suo margin-bottom 4 = 76px) è SEMPRE più corto di 132px, quindi il
+     tile non ha più bisogno di una seconda soglia — la classe `is-nome-lungo` e la sua soglia
+     (`SOGLIA_NOME_LUNGO` in Cassetta.tsx) sono state RIMOSSE, non solo disattivate: la sagoma è
+     ORA letteralmente unica per costruzione (`height` E `min-height` allo stesso valore, non
+     solo un floor), piena o vuota, nomi corti o estremi — misure reali (real-render Playwright,
+     matrice corto/medio/lungo/estremo × occupata/libera) in h2-impl-report.md. */
   padding: 0;
+  height: 132px;
   min-height: 132px;
   min-width: 44px;
   cursor: pointer;
@@ -335,10 +339,10 @@
   box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4);
 }
 [data-ds="v3"] .ds-cassetta.is-draggable { cursor: grab; }
-/* FIX-L — guardia della cavità per i nomi lunghi (v. commento sopra su `.ds-cassetta`): alza il
-   pavimento SOLO quando `.is-shrink` è in gioco (classe gemella calcolata in Cassetta.tsx dalla
-   stessa `SOGLIA_NOME_LUNGO`), lasciando invariato il caso comune. */
-[data-ds="v3"] .ds-cassetta.is-nome-lungo { min-height: 142px; }
+/* H2 (0c37f25) — `.is-nome-lungo`/`min-height:142px` RIMOSSA: era la guardia FIX-L per il
+   doppio regime (v. commento su `.ds-cassetta` sopra), superflua ora che la fascia ha altezza
+   fissa (72px) e la sagoma è unica per costruzione a 132px, sempre. Grep-guard nel test
+   `cassetta-g10-fascia.test.tsx` verifica che questa regola non ricompaia. */
 
 /* Task 13 — cella di riordino: il wrapper `motion.div layout` che fa FLIP le sorelle. È l'item di
    griglia; la cassetta dentro riempie la colonna. `min-width:0` evita che il contenuto forzi la
@@ -438,12 +442,14 @@
   box-shadow: inset 0 3px 6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.15);
 }
 
-/* FIX-L (G10, mockup rev.3 P3b) — bordo alto sottile: la finestra sale a 8..74 (era 18..64,
-   VERBATIM `.fin{inset:8px 6px auto 6px;height:66px}`) — 8px di bordino visibile tra il fondo
-   della finestra e il bordo alto della fascia (sotto). Stile della cavità INVARIATO (bg/inset
-   shadow/radius). */
+/* FIX-L (G10, mockup rev.3 P3b) — bordo alto sottile: la finestra saliva a 8..74 (era 18..64).
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B, `.optB .fin{height:40px}`,
+   top INVARIATO a 8px) — la finestra si restringe ULTERIORMENTE a 8..48 (era 8..74): è il
+   trade-off esplicito di option B, la finestra cede spazio permanentemente perché la fascia
+   sotto ne guadagni (72px fissi, v. `.ds-cassetta-fascia`). Stile della cavità INVARIATO
+   (bg/inset shadow/radius) — cambia SOLO l'altezza. */
 [data-ds="v3"] .ds-cassetta-cavita {
-  position: absolute; inset: 8px 6px auto 6px; height: 66px;
+  position: absolute; inset: 8px 6px auto 6px; height: 40px;
   border-radius: 7px;
   background: rgba(0,0,0,.18);
   box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
@@ -454,17 +460,23 @@
    contenitore in flusso, VERBATIM dal mockup rev.3 P3b (`.fascia{margin:0 4px 4px;
    border-radius:4px 4px 9px 9px;padding:5px 8px 6px;background:rgba(0,0,0,.28);box-shadow:
    inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12)}`), colonna centrata
-   gap 2. Struttura UNIFORME per libere e occupate (ratifica G10) — abbraccia il contenuto,
-   NIENTE min-height fissa: 1 riga per le libere, 2 per le occupate, cresce coi nomi lunghi
-   (v. `.is-nome-lungo` su `.ds-cassetta` sopra). */
+   gap 2. Struttura UNIFORME per libere e occupate (ratifica G10).
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B, `.optB .fascia{height:
+   72px}`) — CAMBIA il comportamento verticale: non abbraccia più il contenuto (niente più
+   crescita coi nomi lunghi, niente più `.is-nome-lungo`), ha un'altezza VERA e FISSA (72px,
+   IDENTICA piena o vuota, corta o estrema — il caso peggiore, clinico 2 righe + paziente 1
+   riga, è riservato SEMPRE) — `justify-content: center` (nuovo) centra verticalmente targa+cont
+   dentro lo spazio fisso, dove prima bastava il flusso naturale del contenuto ad altezza
+   variabile. */
 [data-ds="v3"] .ds-cassetta-fascia {
   position: relative; z-index: 1;
   margin: 0 4px 4px;
   border-radius: 4px 4px 9px 9px;
   padding: 5px 8px 6px;
+  height: 72px;
   background: rgba(0,0,0,.28);
   box-shadow: inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
 }
 /* Contrasto-auto (targaScura, invariato): faccia chiara → fascia più chiara, VERBATIM mockup. */
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-fascia {
@@ -540,29 +552,56 @@
    La centratura resta quella del Round 2 (`align-items:center` su `.ds-cassetta-cont`, sopra,
    INVARIATA): un box a larghezza esplicita minore del container viene centrato da
    `align-items:center` esattamente come un box shrink-wrapped — proprietà ortogonali, nessuna
-   necessità di `margin:0 auto` in aggiunta. Numeri completi in fixL-report.md. */
+   necessità di `margin:0 auto` in aggiunta. Numeri completi in fixL-report.md.
+
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B) — `width: min(100%, 96px)`
+   RESTA, invariata: nel mockup B il dent porta anche un `max-width:104px` proprio (riga 158 del
+   mockup), ma è un NO-OP nella cascata — `width` (96, dalla regola base condivisa qui sotto) è
+   già più piccolo di `max-width` (104), quindi `max-width` non stringe mai ulteriormente
+   (vince il valore più piccolo fra i due, per costruzione CSS). Risultato: dent e paz risolvono
+   alla STESSA larghezza effettiva di prima — non riprodurre il 104 letterale, sarebbe un valore
+   morto che non farebbe nulla. */
 [data-ds="v3"] .ds-cassetta-dent,
 [data-ds="v3"] .ds-cassetta-paz {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: min(100%, 96px);
+  width: min(100%, 96px);
 }
 /* Tipografia (verbale §7, vincolante — ovunque): il CLINICO è senza grassetto, il PAZIENTE è in
-   grassetto. */
-[data-ds="v3"] .ds-cassetta-dent { font-weight: 400; opacity: .94; }
-[data-ds="v3"] .ds-cassetta-paz { font-weight: 700; }
-/* FIX-L — Opzione A ratificata (25/07): il CLINICO può andare a capo (corpo 10px, line-height
-   1.15, max 2 righe poi tronca — riusa la meccanica shrink T2, estesa da "shrink su soglia" a
-   "wrap sempre permesso quando non ci sta"). Il PAZIENTE resta SEMPRE 1 riga bold ellipsis
-   (verbale G10 finale): stesso font ridotto quando lungo, ma SENZA `white-space:normal`/
-   line-clamp — eredita `white-space:nowrap` dalla regola base sopra, quindi tronca su una riga
-   sola come sempre. */
-[data-ds="v3"] .ds-cassetta-dent.is-shrink {
-  font-size: 10px; line-height: 1.15; white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+   grassetto.
+   H2 (0c37f25) — CHIUDE il secondo doppio regime della cassetta (dopo quello di `.ds-cassetta`/
+   `.is-nome-lungo`): prima, dent e paz condividevano `overflow:hidden; text-overflow:ellipsis;
+   white-space:nowrap` come caso comune, e SOLO oltre `SOGLIA_NOME_LUNGO` il dent passava a
+   `.is-shrink` (wrap + clamp 2 righe + font 10) mentre il paz restava 1 riga con font ridotto.
+   Opzione B (decisione ratificata, verbale §H2 vincolo (a) sagoma unica + (c) nomi mai troncati
+   di netto) rende quel comportamento PERMANENTE per il dent e uniforme per il paz, qualunque sia
+   la lunghezza del nome — niente più soglia, niente più `is-shrink`, niente più `SOGLIA_NOME_LUNGO`
+   in Cassetta.tsx. Split verbatim dal mockup B (`.optB .dent`/`.optB .paz`, righe 156-160):
+   - DENT: va SEMPRE a capo tra le parole (mai un taglio a metà — `overflow-wrap:break-word`),
+     max 2 righe (`-webkit-line-clamp:2`), poi CLIP silenzioso (non ellipsis "…": un clinico che
+     sfora la 2ª riga è il residuo onestamente dichiarato dal mockup stesso, §"limite alla
+     larghezza vera" — vince comunque su un'abbreviazione o un rimpicciolimento non richiesti).
+     `mask-image:none` (esplicito, il mockup lo spegne apposta): il clamp basta da solo, non
+     serve la sfumatura qui.
+   - PAZ: resta SEMPRE 1 riga (`white-space:nowrap`), MA `text-overflow:clip` (non più
+     `ellipsis`) + una sfumatura morbida (`mask-image`, ereditata dal mockup base .paz, righe
+     130-131) sul bordo destro — questo è il "trattamento del caso limite" per il paziente a
+     NOME COMPLETO (delta ratificato H2): un nome che non entra sfuma invece di finire coi tre
+     puntini a metà parola (vincolo (c) del verbale, la stessa lamentela di Francesco su
+     "BARALE S.…"). Sui nomi che ci stanno, la maschera non tocca il testo (il fade comincia
+     all'84% della LARGHEZZA DEL BOX, non del testo — su un nome corto e centrato è oltre la
+     fine del testo, quindi invisibile). */
+[data-ds="v3"] .ds-cassetta-dent {
+  font-weight: 400; opacity: .94;
+  white-space: normal; overflow-wrap: break-word; word-break: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 10px; line-height: 1.16;
+  mask-image: none; -webkit-mask-image: none;
 }
-[data-ds="v3"] .ds-cassetta-paz.is-shrink {
-  font-size: 10px; line-height: 1.15;
+[data-ds="v3"] .ds-cassetta-paz {
+  font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: clip;
+  margin-top: 1px;
+  mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
+  -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
 }
 /* Contrasto automatico per luminanza (targaScura, Cassetta.tsx): faccia chiara → inchiostro
    scuro sulla riga; il clinico si affievolisce anche di più (.94→.7, verbatim mockup) perché

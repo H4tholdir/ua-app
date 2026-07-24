@@ -19,12 +19,24 @@
 // FIX-L (G10, RATIFICA FINALE 25/07, mockup `2026-07-25-cassetta-g10-rev3-p3-reale.html`
 // variante P3b, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §G10):
 // «fascia etichetta» — targa+cont non sono più due elementi affiancati liberi nel corpo del
-// tile, ma vivono DENTRO un contenitore unico `.ds-cassetta-fascia` (compatto, abbraccia il
-// contenuto, ancorato in basso), identico per libere e occupate. La cavità sale (8..74, era
-// 18..64) e la miniatura scala di conseguenza (§56% — v. `height={37}` sotto). La targa
-// mantiene il segnale di stato (anello quando libera, piena bianca quando occupata — gate
-// targa Task 10 pienamente in vigore, precisazione Francesco 25/07 vincolante): la sola
-// STRUTTURA (fascia/finestra/bordino) è uniforme, non la targa.
+// tile, ma vivono DENTRO un contenitore unico `.ds-cassetta-fascia`, identico per libere e
+// occupate. La targa mantiene il segnale di stato (anello quando libera, piena bianca quando
+// occupata — gate targa Task 10 pienamente in vigore, precisazione Francesco 25/07 vincolante):
+// la sola STRUTTURA (fascia/finestra/bordino) è uniforme, non la targa.
+//
+// H2 (RATIFICA 25/07, decisione 0c37f25, mockup `2026-07-25-cassetta-h2-proposte.html` opzione
+// B, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §H2) — CHIUDE il
+// doppio regime che FIX-L aveva lasciato aperto (`is-nome-lungo`/min-height 142 +
+// `is-shrink`/`SOGLIA_NOME_LUNGO`): la fascia passa da "abbraccia il contenuto" a un'altezza
+// VERA e FISSA (72px, v. `.ds-cassetta-fascia` in ds-v3.css) che riserva SEMPRE lo spazio del
+// caso peggiore (clinico 2 righe + paziente 1 riga) — la finestra si restringe di conseguenza
+// (66→40px) e la miniatura scala a `height={23}` sotto (§58% del mockup, `.fin svg{height:58%}`,
+// 40×0.58≈23.2). Risultato: la sagoma è unica per COSTRUZIONE (mai più di 132px di contenuto di
+// flusso), non serve più calcolare una soglia sul testo — `SOGLIA_NOME_LUNGO`/`nomeLungo`/
+// `is-nome-lungo`/`is-shrink` sono RIMOSSI, non sostituiti. Il clinico va SEMPRE a capo (max 2
+// righe, mockup `.optB .dent`), il paziente resta SEMPRE 1 riga con una sfumatura morbida sul
+// bordo (mockup `.optB .paz` + base `.paz` — mai un'ellissi "…" a metà nome, vincolo (c) del
+// verbale). Misure reali (real-render Playwright) in `.superpowers/sdd/h2-impl-report.md`.
 //
 // Le 6 coppie di gradiente standard (righe 77-82 del mockup) sono FISSE e verbatim — vivono come
 // classi CSS in `src/app/ds-v3.css` (`.ds-cassetta.<slug>`), non come token derivato: sono valori
@@ -74,14 +86,12 @@ const SOGLIA_RECUPERO_TAP_MS = 300
 const SOGLIA_RECUPERO_SCROLL_PX = 6
 const SOGLIA_MOVIMENTO_PX = 8
 
-// Task 10 (T2, verbale §8) — soglia oltre la quale una riga della targa (dentista o paziente)
-// passa alla variante «shrink» (font ridotto, 2 righe con troncamento — v. `.is-shrink` in
-// ds-v3.css). Interpolata dai casi limite del mockup ratificato (§4/§4e): il caso NON rimpicciolito
-// più lungo è «Del Grosso Maria» (16 caratteri), i due casi rimpiccioliti più corti sono
-// «Maria Vittoria Del Grosso» (25) e «Dott.ssa Annamaria Bellinghieri» (32) — 20 è il valore
-// tondo nel mezzo di quella forbice, senza un numero verbatim nel mockup (che applica la classe
-// staticamente sugli esempi, non via una formula a runtime).
-const SOGLIA_NOME_LUNGO = 20
+// H2 (0c37f25) — `SOGLIA_NOME_LUNGO`/`.is-shrink` (Task 10, T2, verbale §8) RIMOSSA: era la
+// soglia oltre cui la targa passava a font ridotto/2 righe SOLO per i nomi lunghi. L'opzione B
+// rende quel trattamento (clinico a capo, max 2 righe) PERMANENTE per qualunque lunghezza — la
+// fascia ha ora un'altezza fissa che riserva sempre lo spazio del caso peggiore (v.
+// `.ds-cassetta-fascia` in ds-v3.css) — quindi non serve più decidere runtime "è lungo?": il
+// CSS si comporta identico per «Bianchi» e per «Studio Di Santi Rossi».
 
 /**
  * titleCase (verbale §6 «Casing del paziente») — `pazienteAlias` (Task 1, `derivaAlias`) arriva
@@ -421,20 +431,12 @@ export function Cassetta(props: {
       : (lavoro.paziente ?? '—')
     : ''
 
-  // FIX-L — guardia della cavità RICALCOLATA per la nuova geometria (brief: «oggi tarata su
-  // padding-top 66/cavità 18..64; la nuova è 8..74 + fascia in flusso»). Misura reale
-  // (Playwright, harness `scripts/tmp/fixL-misura.html`, non committato — v. fixL-report.md):
-  // con la fascia in flusso (`.ds-cassetta` senza più un padding-top fisso, `justify-content:
-  // flex-end`) il caso RATIFICATO (0 o 1 riga per il clinico, mai in `is-shrink`) resta
-  // sotto min-height 132 con margine (fascia-top misurato ≥65.5, ben sopra il fondo della
-  // miniatura ≈59.5) — IDENTICO al rendering reale del mockup P3b. Il solo caso a rischio è
-  // quello con `is-shrink` attivo (T2, Opzione A): lì il caso PEGGIORE misurato (dentista 2
-  // righe + paziente 1 riga NON shrink, che essendo a font 11.5 invece di 10 è più alto della
-  // coppia shrink+shrink) porta la fascia a un solo ~1px dal fondo della miniatura — troppo
-  // fragile tra motori/metriche font diverse. `is-nome-lungo` alza min-height a 142 SOLO in
-  // quel caso (clearance misurata ≥7.8px in ogni combinazione provata), restando ben sotto
-  // `--track` (220, v. `.ds-parete` in ds-v3.css) — nessun impatto sul caso comune.
-  const nomeLungo = !!lavoro && (lavoro.dentista.length > SOGLIA_NOME_LUNGO || pazienteReso.length > SOGLIA_NOME_LUNGO)
+  // H2 (0c37f25) — la guardia FIX-L della cavità («oggi tarata su padding-top 66/cavità 18..64;
+  // la nuova è 8..74 + fascia in flusso») è SOSTITUITA dalla fascia ad altezza fissa (72px, v.
+  // `.ds-cassetta-fascia` in ds-v3.css): non c'è più un caso "a rischio" da coprire con una
+  // seconda soglia (`is-nome-lungo`/142) — la fascia riserva SEMPRE lo spazio del caso peggiore,
+  // piena o vuota, nomi corti o estremi. Misure reali (real-render Playwright, matrice
+  // corto/medio/lungo/estremo × occupata/libera) in `.superpowers/sdd/h2-impl-report.md`.
 
   const classi = [
     'ds-cassetta',
@@ -442,7 +444,6 @@ export function Cassetta(props: {
     occupata ? undefined : 'is-libera',
     scura ? 'is-chiara' : undefined,
     nera ? 'is-nera' : undefined,
-    nomeLungo ? 'is-nome-lungo' : undefined,
     stato === 'accesa' ? 'is-accesa' : undefined,
     draggable ? 'is-draggable' : undefined,
   ]
@@ -517,26 +518,26 @@ export function Cassetta(props: {
           />
         </svg>
         <span className="ds-cassetta-cavita">
-          {/* FIX-L — finestra 8..74 (era 18..64): la miniatura scala a ~56% dell'altezza della
-              cavità (66px → 37px, verbatim mockup rev.3 `.fin svg{height:56%}`), invariata
+          {/* H2 (0c37f25) — finestra 8..48 (era 8..74, opzione B: si restringe permanentemente
+              per fare spazio alla fascia fissa): la miniatura scala a ~58% dell'altezza della
+              cavità (40px × 0.58 ≈ 23px, verbatim mockup H2 `.fin svg{height:58%}`), invariata
               nel resto (SVG inline, mai <img>). */}
-          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} height={37} />}
+          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} height={23} />}
         </span>
-        {/* FIX-L — «fascia etichetta»: targa+cont vivono ora dentro questo unico contenitore
-            compatto, ancorato in basso, identico per libere e occupate (struttura uniforme,
-            ratifica G10). La targa dentro NON perde il segnale di stato (anello/piena — gate
-            Task 10 invariato, v. CSS). */}
+        {/* FIX-L — «fascia etichetta»: targa+cont vivono dentro questo unico contenitore,
+            identico per libere e occupate (struttura uniforme, ratifica G10). La targa dentro
+            NON perde il segnale di stato (anello/piena — gate Task 10 invariato, v. CSS).
+            H2 (0c37f25) — niente più calcolo `is-shrink`/`SOGLIA_NOME_LUNGO` qui: dent e paz
+            portano SEMPRE lo stesso trattamento, qualunque sia la lunghezza del testo (il CSS
+            in ds-v3.css fa tutto il lavoro — wrap+clamp per il dent, nowrap+sfumatura per il
+            paz). */}
         <span className="ds-cassetta-fascia">
           <span className="ds-cassetta-targa">{nome}</span>
           <span className="ds-cassetta-cont">
             {lavoro ? (
               <>
-                <span className={`ds-cassetta-dent${lavoro.dentista.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
-                  {lavoro.dentista}
-                </span>
-                <span className={`ds-cassetta-paz${pazienteReso.length > SOGLIA_NOME_LUNGO ? ' is-shrink' : ''}`}>
-                  {pazienteReso}
-                </span>
+                <span className="ds-cassetta-dent">{lavoro.dentista}</span>
+                <span className="ds-cassetta-paz">{pazienteReso}</span>
               </>
             ) : (
               'libera'

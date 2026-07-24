@@ -1,11 +1,24 @@
 // FIX-L — G10 «la cassetta nuova» (P3b uniforme, RATIFICA FINALE 25/07).
-// Fonte requisiti: .superpowers/sdd/fixL-brief.md · verbale
+// Fonte requisiti originaria: .superpowers/sdd/fixL-brief.md · verbale
 // docs/design/decisions/2026-07-24-qa-device-meta-ondata.md §G10 (parziale + finale +
 // precisazione) · mockup ratificato docs/design/mockups/2026-07-25-cassetta-g10-rev3-p3-reale.html
 // (variante P3b, grafica delle cassette LIBERE).
+//
+// H2 (RATIFICA 25/07, commit 0c37f25, brief .superpowers/sdd/h2-impl-brief.md) — CHIUDE il
+// doppio regime che FIX-L aveva dovuto lasciare aperto per i nomi lunghi (`.is-nome-lungo`/
+// min-height 142 su `.ds-cassetta`, `.is-shrink` su dent/paz): fonti, in ordine di autorità,
+// decisione ratificata `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H2 · mockup
+// `docs/design/mockups/2026-07-25-cassetta-h2-proposte.html` (SOLO opzione B) · verbale
+// `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §H2. I describe sotto marcati
+// "H2" sostituiscono/aggiornano gli assert del vecchio regime FIX-L; quelli non toccati (targa,
+// cont, width:min(100%,96px)) restano validi perché l'opzione B non li cambia — v. motivazione
+// puntuale in ciascuno.
+//
 // Stesso pattern testuale di css-sync.test.ts/parete-fluida.test.ts: il CSS è verificato come
 // testo — jsdom non fa layout. La componente `Cassetta.tsx` (classi/struttura) è invece
-// verificata via render (testing-library), come in Cassetta.test.tsx.
+// verificata via render (testing-library), come in Cassetta.test.tsx. Le misure reali (altezza
+// tile, fascia, overflow) sono state prese con Playwright reale in un harness a parte — v.
+// `.superpowers/sdd/h2-impl-report.md`.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -20,62 +33,63 @@ const lavoroCorto = {
   paziente: 'PZ-0144', pazienteAlias: 'Mario Rossi',
 }
 
-describe('FIX-L — .ds-cassetta: niente più padding-top fisso (la fascia vive nel flusso)', () => {
-  it('padding: 0 (era 66px 10px 12px) — min-height 132 resta invariata', () => {
+describe('H2 — .ds-cassetta: sagoma UNICA per costruzione (height E min-height, non solo un floor)', () => {
+  it('padding: 0 (invariato da FIX-L) — height E min-height 132px (H2: prima solo min-height + bump condizionale a 142)', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/padding: 0;/)
+    expect(blocco![0]).toMatch(/height: 132px;/)
     expect(blocco![0]).toMatch(/min-height: 132px;/)
-    // il tile resta un flex-column ancorato in basso — invariato, è quello che rende la fascia
-    // "che abbraccia il contenuto" possibile senza reintrodurre un padding-top
+    // il tile resta un flex-column ancorato in basso — invariato
     expect(blocco![0]).toMatch(/flex-direction: column;/)
     expect(blocco![0]).toMatch(/justify-content: flex-end;/)
   })
 
-  it('.is-nome-lungo alza min-height a 142 SOLO quando serve (dentista o paziente oltre soglia) — resta ben sotto --track (220)', () => {
-    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-cassetta\.is-nome-lungo \{ min-height: 142px; \}/)
+  it('H2 — .is-nome-lungo NON esiste più (grep-guard): il doppio regime è chiuso, non solo disattivato', () => {
+    expect(norm).not.toMatch(/\.ds-cassetta\.is-nome-lungo/)
+    expect(norm).not.toMatch(/min-height: 142px/)
   })
 })
 
-describe('FIX-L — finestra/cavità: 8..74 (era 18..64)', () => {
-  it('inset 8px 6px auto 6px; height 66px — bordino di 8px verso la fascia (74 + 8 = 82, v. test di misura sotto)', () => {
+describe('H2 — finestra/cavità: 8..48 (era 8..74) — opzione B restringe la finestra per fare posto alla fascia fissa', () => {
+  it('inset 8px 6px auto 6px; height 40px (era 66px)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-cavita \{\s*position: absolute; inset: 8px 6px auto 6px; height: 66px;/
+      /\[data-ds="v3"\] \.ds-cassetta-cavita \{\s*position: absolute; inset: 8px 6px auto 6px; height: 40px;/
     )
-    // guardia negativa: la vecchia finestra 18..64 non deve ricomparire nella dichiarazione REALE
+    // guardia negativa: la vecchia finestra FIX-L (66px) e quella pre-FIX-L (18..64/46px) non
+    // devono ricomparire nella dichiarazione REALE
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cavita \{[^}]*\}/)
-    expect(blocco![0]).not.toMatch(/inset: 18px 6px auto 6px/)
+    expect(blocco![0]).not.toMatch(/height: 66px/)
     expect(blocco![0]).not.toMatch(/height: 46px/)
+    expect(blocco![0]).not.toMatch(/inset: 18px 6px auto 6px/)
   })
 })
 
-describe('FIX-L — «fascia etichetta»: nuovo contenitore unico, uniforme per libere e occupate', () => {
-  it('.ds-cassetta-fascia: margin/radius/padding/background/box-shadow VERBATIM dal mockup rev.3 P3b', () => {
+describe('H2 — «fascia etichetta»: ORA ad altezza FISSA (opzione B), non più ad abbraccio del contenuto', () => {
+  it('.ds-cassetta-fascia: margin/radius/padding/background/box-shadow invariati dal mockup rev.3 P3b, MA height:72px + justify-content:center nuovi', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*background: rgba\(0,0,0,\.28\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; gap: 2px;\s*\}/
+      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*height: 72px;\s*background: rgba\(0,0,0,\.28\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*\}/
     )
   })
 
-  it('is-chiara: fascia più chiara (rgba(29,25,19,.14), verbatim mockup)', () => {
+  it('is-chiara: fascia più chiara (rgba(29,25,19,.14), invariato)', () => {
     expect(norm).toMatch(
       /\[data-ds="v3"\] \.ds-cassetta\.is-chiara \.ds-cassetta-fascia \{\s*background: rgba\(29,25,19,\.14\);\s*\}/
     )
   })
 })
 
-describe('FIX-L — targa: dimensioni ridotte per la fascia compatta, MA il segnale di stato resta (gate Task 10)', () => {
-  it('font 12.5/800, radius 6, padding 1px 8px 2px, max-width 8ch (era 14px/800/radius 8/padding 3px 10px 4px/6ch)', () => {
+describe('Targa: dimensioni ridotte per la fascia compatta, MA il segnale di stato resta (gate Task 10) — invariata dall\'opzione B (verbale H2: l\'uniformità è SOLO strutturale)', () => {
+  it('font 12.5/800, radius 6, padding 1px 8px 2px, max-width 8ch', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-targa \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-targa non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/max-width: 8ch;/)
     expect(blocco![0]).toMatch(/border-radius: 6px;/)
     expect(blocco![0]).toMatch(/padding: 1px 8px 2px;/)
     expect(blocco![0]).toMatch(/font-size: 12\.5px;/)
-    expect(blocco![0]).not.toMatch(/max-width: 6ch/)
-    expect(blocco![0]).not.toMatch(/font-size: 14px/)
   })
 
-  it('.is-libera .ds-cassetta-targa resta ad ANELLO (precisazione Francesco 25/07: l\'uniformità G10 è SOLO strutturale, non tocca il segnale di stato)', () => {
+  it('.is-libera .ds-cassetta-targa resta ad ANELLO', () => {
     expect(norm).toMatch(
       /\[data-ds="v3"\] \.ds-cassetta\.is-libera \.ds-cassetta-targa \{ background: transparent; box-shadow: inset 0 0 0 2px rgba\(255,255,255,\.75\); color: rgba\(255,255,255,\.9\); \}/
     )
@@ -84,35 +98,52 @@ describe('FIX-L — targa: dimensioni ridotte per la fascia compatta, MA il segn
     )
   })
 
-  it('occupata (nessuna classe is-libera): la targa resta PIENA bianca — gate Task 10, nessuna deroga (regola base, non sovrascritta)', () => {
+  it('occupata (nessuna classe is-libera): la targa resta PIENA bianca', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-targa \{[^}]*\}/)
     expect(blocco![0]).toMatch(/background: rgba\(255,255,255,\.92\);/)
     expect(blocco![0]).toMatch(/color: #1D1913;/)
   })
 })
 
-describe('FIX-L — Opzione A nomi lunghi: il CLINICO va a capo (max 2 righe), il PAZIENTE resta SEMPRE 1 riga', () => {
-  it('.ds-cassetta-dent.is-shrink: font 10, line-height 1.15, wrap consentito, clamp a 2 righe', () => {
-    expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-dent\.is-shrink \{\s*font-size: 10px; line-height: 1\.15; white-space: normal;\s*display: -webkit-box;\s*-webkit-line-clamp: 2;\s*-webkit-box-orient: vertical;\s*\}/
-    )
+describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SEMPRE 1 riga con sfumatura — niente più soglia/is-shrink', () => {
+  it('.ds-cassetta-dent: wrap permanente (non più condizionato da is-shrink), clamp a 2 righe, font 10/1.16, mask-image spenta (il clamp basta da solo)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-dent non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/white-space: normal;/)
+    expect(blocco![0]).toMatch(/overflow-wrap: break-word;/)
+    expect(blocco![0]).toMatch(/-webkit-line-clamp: 2;/)
+    expect(blocco![0]).toMatch(/-webkit-box-orient: vertical;/)
+    expect(blocco![0]).toMatch(/font-size: 10px; line-height: 1\.16;/)
+    expect(blocco![0]).toMatch(/mask-image: none;/)
+    expect(blocco![0]).toMatch(/font-weight: 400; opacity: \.94;/)
   })
 
-  it('.ds-cassetta-paz.is-shrink: SOLO font/line-height ridotti — NESSUN wrap/clamp (eredita white-space:nowrap dalla regola base)', () => {
-    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-paz\.is-shrink \{[^}]*\}/)
-    expect(blocco, 'blocco .ds-cassetta-paz.is-shrink non trovato').toBeTruthy()
-    expect(blocco![0]).toMatch(/font-size: 10px; line-height: 1\.15;/)
-    expect(blocco![0]).not.toMatch(/white-space: normal/)
-    expect(blocco![0]).not.toMatch(/-webkit-line-clamp/)
+  it('.ds-cassetta-paz: SEMPRE 1 riga (nowrap), MA text-overflow:clip (non più ellipsis) + sfumatura morbida (mask-image) — mai i tre puntini a metà nome (vincolo (c) del verbale)', () => {
+    // Lookbehind negativo: senza, il match "greedy in avanti ma primo trovato" cadrebbe sul
+    // `.ds-cassetta-paz {` della regola CONDIVISA (dent, paz { width: ... }) — lì `.paz` è
+    // l'ultimo selettore prima della graffa, preceduto da "dent, " nella stringa normalizzata.
+    // Qui invece serve la regola SOLO-paz (font-weight/white-space/mask-image).
+    const blocco = norm.match(/(?<!, )\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-paz non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/white-space: nowrap;/)
+    expect(blocco![0]).toMatch(/text-overflow: clip;/)
+    expect(blocco![0]).not.toMatch(/text-overflow: ellipsis/)
+    expect(blocco![0]).toMatch(/mask-image: linear-gradient\(90deg, #000 84%, transparent 99%\);/)
+    expect(blocco![0]).toMatch(/font-weight: 700;/)
   })
 
-  it('.ds-cassetta-cont: niente più margin-top (vive dentro la fascia, che porta già il proprio gap verso la targa)', () => {
+  it('H2 — grep-guard: nessuna regola .is-shrink residua in ds-v3.css', () => {
+    expect(norm).not.toMatch(/\.ds-cassetta-dent\.is-shrink/)
+    expect(norm).not.toMatch(/\.ds-cassetta-paz\.is-shrink/)
+  })
+
+  it('.ds-cassetta-cont: niente margin-top (vive dentro la fascia, che porta già il proprio gap verso la targa) — invariato', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco![0]).not.toMatch(/margin-top/)
   })
 })
 
-describe('FIX-L — componente Cassetta: struttura (fascia unica, miniatura scalata, is-nome-lungo)', () => {
+describe('FIX-L — componente Cassetta: struttura (fascia unica, miniatura scalata)', () => {
   it('targa e cont vivono dentro un unico .ds-cassetta-fascia', () => {
     render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />)
     const fascia = screen.getByRole('button').querySelector('.ds-cassetta-fascia')
@@ -131,143 +162,80 @@ describe('FIX-L — componente Cassetta: struttura (fascia unica, miniatura scal
     expect(fascia?.querySelector('.ds-cassetta-cont')).toBeTruthy()
   })
 
-  it('la miniatura scala nella finestra più grande: height 37 (~56% di 66, verbatim mockup .fin svg{height:56%})', () => {
+  it('H2 — la miniatura scala nella finestra più piccola: height 23 (~58% di 40, verbatim mockup H2 .fin svg{height:58%}, era 37/56% di 66)', () => {
     render(<Cassetta id="c3" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />)
     const miniatura = screen.getByRole('button').querySelector('.ds-miniatura') as HTMLElement | null
     expect(miniatura).toBeTruthy()
-    expect(miniatura?.style.height).toBe('37px')
+    expect(miniatura?.style.height).toBe('23px')
   })
 
-  it('is-nome-lungo: presente quando il dentista supera la soglia', () => {
-    const dentistaLungo = { ...lavoroCorto, dentista: 'Dott.ssa Annamaria Bellinghieri' }
-    render(<Cassetta id="c4" nome="C12" colore="rossa" lavoro={dentistaLungo} stato="normale" onTap={() => {}} />)
-    expect(screen.getByRole('button').className).toContain('is-nome-lungo')
-  })
-
-  it('is-nome-lungo: presente quando il paziente (alias reso) supera la soglia, anche col dentista corto', () => {
-    const pazienteLungo = { ...lavoroCorto, dentista: 'Bianchi', pazienteAlias: 'Maria Vittoria Del Grosso Esposito' }
-    render(<Cassetta id="c5" nome="C12" colore="rossa" lavoro={pazienteLungo} stato="normale" onTap={() => {}} />)
-    expect(screen.getByRole('button').className).toContain('is-nome-lungo')
-  })
-
-  it('is-nome-lungo: ASSENTE coi nomi corti (caso comune) — il tile resta a min-height 132', () => {
-    render(<Cassetta id="c6" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />)
-    expect(screen.getByRole('button').className).not.toContain('is-nome-lungo')
-  })
-
-  it('is-nome-lungo: ASSENTE su una cassetta libera (mai nomi lunghi da mostrare)', () => {
-    render(<Cassetta id="c7" nome="C4" colore="grigia" lavoro={null} stato="normale" onTap={() => {}} />)
-    expect(screen.getByRole('button').className).not.toContain('is-nome-lungo')
+  it('H2 — grep-guard componente: is-nome-lungo MAI presente sul button, con nomi corti, lunghi, estremi o cassetta libera', () => {
+    const casi = [
+      { id: 'a', lavoro: lavoroCorto },
+      { id: 'b', lavoro: { ...lavoroCorto, dentista: 'Dott.ssa Annamaria Bellinghieri' } },
+      { id: 'c', lavoro: { ...lavoroCorto, pazienteAlias: 'Maria Vittoria Del Grosso Esposito' } },
+      { id: 'd', lavoro: { ...lavoroCorto, dentista: 'Studio Di Santi Rossi', pazienteAlias: 'Esposito Immacolata Concetta' } },
+      { id: 'e', lavoro: null },
+    ]
+    for (const c of casi) {
+      const { unmount } = render(
+        <Cassetta id={c.id} nome="C12" colore="rossa" lavoro={c.lavoro} stato="normale" onTap={() => {}} />
+      )
+      expect(screen.getByRole('button').className, `caso ${c.id}`).not.toContain('is-nome-lungo')
+      unmount()
+    }
   })
 })
 
-describe('Review FIX-L (Importante) — nomi troncati DENTRO la fascia, non più liberi di sforare sulle celle vicine', () => {
-  // Riscontro empirico (Chromium headless): senza un vincolo di larghezza su `.ds-cassetta-cont`,
-  // la fascia è `align-items:center` → `.ds-cassetta-cont` (flex item, colonna) shrink-wrappa sul
-  // proprio contenuto invece di ereditare la larghezza reale della fascia. Con un paziente lungo
-  // («Maria Vittoria Del Grosso Esposito») il blocco cresce ~175px e sfora sia la fascia sia il
-  // tile, sulle celle confinanti — l'ellissi su `.ds-cassetta-dent`/`.ds-cassetta-paz` non scatta
-  // mai perché quei nodi non hanno mai una larghezza-vincolo contro cui troncare.
-  // jsdom non fa layout (niente scrollWidth/clientWidth reali) — stesso pattern del resto del
-  // file: verifichiamo testualmente le proprietà CSS che REALIZZANO il contenimento, sulle
-  // regole giuste, invece di un numero misurato in browser (quello vive in fixL-report.md).
-  it('.ds-cassetta-cont: align-self:stretch + min-width:0 — eredita la larghezza REALE della fascia (non shrink-wrap) a qualsiasi dimensione di tile', () => {
+describe('FIX-L — nomi contenuti DENTRO la fascia (stretch/min-width/align-items sul cont) — invariato dall\'opzione B: riguarda la larghezza fluida, non la fascia', () => {
+  it('.ds-cassetta-cont: align-self:stretch + min-width:0 — eredita la larghezza REALE della fascia a qualsiasi dimensione di tile', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/align-self: stretch;/)
     expect(blocco![0]).toMatch(/min-width: 0;/)
   })
 
-  it('.ds-cassetta-dent/.ds-cassetta-paz: STORICO — il cap max-width:96px (VERBATIM mockup rev.3 righe ~97-98) è stato SOSTITUITO da width:min(100%,96px) (v. describe "Re-re-review" sotto): un max-width fisso ignora la larghezza REALE del cont quando questa è < 96px, sforando la fascia (misurato: cont 46px → overflow 25px/lato; cont 36px → 30px/lato). Questo test resta come guardia negativa.', () => {
-    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent,\s*\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
-    expect(blocco, 'blocco condiviso .ds-cassetta-dent, .ds-cassetta-paz non trovato').toBeTruthy()
-    expect(blocco![0]).not.toMatch(/max-width: 96px;/)
-    expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
-  })
-
-  // Re-review FIX-L (Importante, misurato con Playwright reale): con `.ds-cassetta-cont` in
-  // `align-self:stretch` (test sopra), il cross-axis di `.ds-cassetta-cont` stesso resta
-  // `align-items` di default (stretch) per i SUOI figli (`.ds-cassetta-dent`/`-paz`, capati a
-  // 96px). Uno stretch-item con max-width più piccolo del container si allinea come
-  // `flex-start` per lo spazio residuo (spec box-alignment) — cioè a SINISTRA, non al centro:
-  // su qualsiasi tile più largo di ~96px+padding (griglia 4/6 colonne, 3 colonne desktop) i nomi
-  // risultavano incollati al bordo sinistro invece che centrati come nel mockup ratificato.
-  // Fix: `align-items: center` su `.ds-cassetta-cont` ricentra i figli capati SENZA disfare lo
-  // stretch di `.ds-cassetta-cont` verso `.ds-cassetta-fascia` (proprietà ortogonali: quello è
-  // `align-self` del cont dentro la fascia, questo è `align-items` del cont sui SUOI figli).
-  it('.ds-cassetta-cont: align-items:center — ricentra dent/paz (capati a 96px) quando il cont è più largo di loro (re-review FIX-L)', () => {
+  it('.ds-cassetta-cont: align-items:center — ricentra dent/paz quando il cont è più largo di loro', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/align-items: center;/)
   })
 })
 
-describe('Re-re-review FIX-L (Importante, misurato con Playwright reale) — width:min(100%,96px) chiude il DOPPIO regime', () => {
-  // Storia completa (per chi legge questo file senza il verbale):
-  // Round 1: `.ds-cassetta-cont` shrink-wrappava sul proprio contenuto invece di ereditare la
-  //   larghezza REALE della fascia → nomi lunghi sforavano di ~175px. Fix: `align-self:stretch` +
-  //   `min-width:0` su `.ds-cassetta-cont`.
-  // Round 2: con lo stretch, i figli (`dent`/`paz`, capati a `max-width:96px`) ereditavano il
-  //   default `align-items:stretch` del cont e si allineavano a SINISTRA sulle tile larghe
-  //   (gap 0/124 invece di 62/62). Fix: `align-items:center` su `.ds-cassetta-cont`.
-  // Round 3 (QUESTO fix, re-review 25/07): con `align-items:center`, i figli tornano a
-  //   dimensionarsi sul proprio contenuto, capato SOLO dal proprio `max-width:96px` — che
-  //   IGNORA la larghezza reale del cont quando questa è < 96px (tile compatte della home,
-  //   744px/gap-12, v. nota ds-v3.css ~801-816). Misurato: cont 46px → paz 96px (overflow
-  //   25px/lato); cont 36px → overflow 30px/lato. Fix: `width: min(100%, 96px)` — il box non è
-  //   mai più largo del proprio container REALE (100% risolve contro il cont, che a sua volta
-  //   eredita la fascia via align-self:stretch del Round 1) NÉ di 96px. La centratura resta
-  //   quella del Round 2 (`align-items:center` sul cont) — un box a larghezza esplicita minore
-  //   del container è centrato da `align-items:center` esattamente come un box shrink-wrapped,
-  //   quindi il fix è sicuro senza toccare quella regola (v. fixL-report.md per i numeri).
-  it('.ds-cassetta-dent/.ds-cassetta-paz: width:min(100%,96px) — mai più largo del cont reale NÉ di 96px, in ENTRAMBI i regimi (cont < 96 e cont > 96)', () => {
+describe('Re-re-review FIX-L — width:min(100%,96px): KEPT dall\'opzione B (H2 non lo tocca — v. motivazione)', () => {
+  // H2 — dubbio esplicito del brief: il mockup B porta un `max-width:104px` proprio sul .dent
+  // (oltre al `width:min(100%,96px)` ereditato dalla regola base .dent del mockup). Verificato
+  // algebricamente (v. commento ds-v3.css sopra la regola condivisa): quando `width` e
+  // `max-width` sono entrambi dichiarati, vince il PIÙ PICCOLO — 96 < 104, quindi il 104 non
+  // stringe mai nulla. Riprodurre 104 sarebbe un valore morto: la scelta è stata di NON
+  // riportarlo, e lasciare `width: min(100%, 96px)` condiviso esattamente come prima di H2.
+  it('.ds-cassetta-dent/.ds-cassetta-paz: width:min(100%,96px) — INVARIATO, ancora la larghezza effettiva giusta (il max-width:104 del mockup B è un no-op nella cascata)', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent,\s*\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
     expect(blocco, 'blocco condiviso .ds-cassetta-dent, .ds-cassetta-paz non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/width: min\(100%, 96px\);/)
-    // guardia negativa: il vecchio cap indipendente (max-width:96px da solo, senza il min()
-    // contro il container) non deve ricomparire — è esattamente il difetto di questo round.
     expect(blocco![0]).not.toMatch(/max-width: 96px;/)
-    expect(blocco![0]).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
+    expect(blocco![0]).not.toMatch(/max-width: 104px;/)
   })
 
-  it('.ds-cassetta-cont: align-items:center invariato — la centratura del Round 2 resta valida anche con width:min() sui figli (proprietà ortogonali, nessuna modifica necessaria)', () => {
+  it('.ds-cassetta-cont: align-self:stretch + min-width:0 + align-items:center — tutti e tre ancora presenti (nessuna modifica necessaria)', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/align-self: stretch;/)
     expect(blocco![0]).toMatch(/min-width: 0;/)
     expect(blocco![0]).toMatch(/align-items: center;/)
   })
-
-  it('.ds-cassetta-dent.is-shrink: il clamp a 2 righe (Opzione A) resta intatto — wrappa contro la larghezza vincolata dal width:min() della regola base, non un valore a parte', () => {
-    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent\.is-shrink \{[^}]*\}/)
-    expect(blocco, 'blocco .ds-cassetta-dent.is-shrink non trovato').toBeTruthy()
-    expect(blocco![0]).toMatch(/white-space: normal;/)
-    expect(blocco![0]).toMatch(/-webkit-line-clamp: 2;/)
-    // nessuna width propria qui: eredita width:min(100%,96px) dalla regola base condivisa sopra
-    expect(blocco![0]).not.toMatch(/width:/)
-  })
 })
 
-describe('FIX-L — guardia della cavità RICALCOLATA per la nuova geometria: il caso peggiore resta ben sotto --track (220)', () => {
-  // Il vecchio meccanismo di guardia (padding-top fisso pari al fondo della cavità) è stato
-  // sostituito dal layout a flusso della fascia (v. commento in ds-v3.css su `.ds-cassetta`):
-  // qui NON c'è più un calcolo puramente aritmetico da verificare (non esiste più una formula
-  // testuale nel foglio, a differenza di --track/--passo-maglia) — la garanzia è stata invece
-  // MISURATA in un browser reale (Playwright headless, Chromium), contro un harness che
-  // riproduce 1:1 il CSS committato in questo commit (non un ricalco a mano): v. fixL-report.md
-  // per lo script e la tabella completa dei numeri. Questo test fissa quei numeri MISURATI come
-  // regressione: se la geometria del foglio cambia senza aggiornare questa nota, la garanzia va
-  // rimisurata (non ri-derivata a mente).
-  it('caso comune (nessun is-shrink): il tile resta a min-height 132 — IDENTICO al rendering del mockup ratificato P3b (fascia-top misurato 65.6/81.3px, mai sopra il fondo della miniatura ≈59.5px)', () => {
-    // Valori letti dal CSS: nessuna crescita imposta quando .is-nome-lungo non è applicata.
-    expect(norm).toMatch(/\[data-ds="v3"\] \.ds-cassetta \{[^}]*min-height: 132px;/)
-  })
-
-  it('caso peggiore (.is-nome-lungo, dentista 2 righe wrap + paziente 1 riga NON shrink — la combinazione misurata più alta): tile 142px, ben sotto --track 220px (margine 78px)', () => {
+describe('H2 — guardia --track: la sagoma unica (132px, invariata) lascia un margine ampio sotto --track (220px)', () => {
+  // Il vecchio worst-case (.is-nome-lungo, 142px) non esiste più: c'è UN solo caso, sempre
+  // 132px, perché la fascia ha ora un'altezza fissa che riserva sempre lo spazio del caso
+  // peggiore (v. commento su .ds-cassetta-fascia in ds-v3.css). Margine invariato rispetto al
+  // caso comune pre-H2 (era già 88px per il caso senza is-shrink).
+  it('132px (unico caso, piena o vuota) è ben sotto --track 220px (margine 88px)', () => {
     const trackBase = 44 * 5 // --passo-maglia 44 * --track: calc(... * 5), v. parete-fluida.test.ts
-    const worstTile = 142 // .ds-cassetta.is-nome-lungo { min-height: 142px } — v. sopra
+    const tile = 132 // .ds-cassetta { height: 132px; min-height: 132px } — v. sopra, sempre lo stesso valore
     expect(trackBase).toBe(220)
-    expect(worstTile).toBeLessThan(trackBase)
-    expect(trackBase - worstTile).toBeGreaterThanOrEqual(70) // margine ampio, non un pareggio risicato
+    expect(tile).toBeLessThan(trackBase)
+    expect(trackBase - tile).toBe(88)
   })
 })

@@ -90,17 +90,30 @@ describe('Cassetta — occupata, targa D4 (Task 10, mockup 2026-07-24-rete-gance
     expect(btn.querySelector('.ds-cassetta-paz')?.textContent).toBe('Mario Rossi')
   })
 
-  it('nome lungo (T2): oltre soglia la riga porta la classe di shrink', () => {
+  it('H2 (0c37f25) — nome lungo: niente più classe di shrink, la doppia soglia è stata rimossa (sagoma unica per costruzione, non per calcolo)', () => {
     const dentistaLungo = { ...lavoroOccupato, dentista: 'Dott.ssa Annamaria Bellinghieri' }
     render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={dentistaLungo} stato="normale" onTap={() => {}} />)
-    const riga = screen.getByRole('button').querySelector('.ds-cassetta-dent')
-    expect(riga?.classList.contains('is-shrink')).toBe(true)
+    const btn = screen.getByRole('button')
+    const riga = btn.querySelector('.ds-cassetta-dent')
+    expect(riga?.className).toBe('ds-cassetta-dent')
+    expect(btn.className).not.toContain('is-nome-lungo')
   })
 
-  it('nome corto: NON porta la classe di shrink', () => {
+  it('H2 — nome corto: stessa classe, nessuna deroga (dent/paz identici indipendentemente dalla lunghezza)', () => {
     render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
-    const riga = screen.getByRole('button').querySelector('.ds-cassetta-dent')
-    expect(riga?.classList.contains('is-shrink')).toBe(false)
+    const btn = screen.getByRole('button')
+    expect(btn.querySelector('.ds-cassetta-dent')?.className).toBe('ds-cassetta-dent')
+    expect(btn.querySelector('.ds-cassetta-paz')?.className).toBe('ds-cassetta-paz')
+    expect(btn.className).not.toContain('is-nome-lungo')
+  })
+
+  it('H2 — paziente a nome completo estremo: stessa classe ds-cassetta-paz, nessuna classe di shrink (il trattamento del caso limite è tutto in CSS — sfumatura, non JS)', () => {
+    const pazienteEstremo = { ...lavoroOccupato, pazienteAlias: 'Esposito Immacolata Concetta' }
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={pazienteEstremo} stato="normale" onTap={() => {}} />)
+    const btn = screen.getByRole('button')
+    expect(btn.querySelector('.ds-cassetta-paz')?.textContent).toBe('Esposito Immacolata Concetta')
+    expect(btn.querySelector('.ds-cassetta-paz')?.className).toBe('ds-cassetta-paz')
+    expect(btn.className).not.toContain('is-nome-lungo')
   })
 
   it('un tap secco (senza attesa) chiama onTap, non onLongPressSheet', () => {
