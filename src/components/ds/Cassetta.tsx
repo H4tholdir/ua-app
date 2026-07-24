@@ -264,15 +264,41 @@ export function Cassetta(props: {
   // disponibile per il testo cambia, quindi il bisogno del taglio può comparire o sparire.
   const dentRef = useRef<HTMLSpanElement | null>(null)
   const [dentTroncato, setDentTroncato] = useState(false)
+  // H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
+  // `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «budget righe condiviso»:
+  // il paziente arriva fino a 2 righe SOLO quando il clinico ne occupa 1 (v. CSS, selettore
+  // fratello `.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz` in ds-v3.css). `dentDueRighe`
+  // è il segnale "il clinico si sta rendendo su 2 righe" — DIVERSO da `dentTroncato` (che dice
+  // "il clinico STA SFORANDO oltre le 2 righe consentite"): un nome che riempie ESATTAMENTE 2
+  // righe senza sforare è già `is-due-righe` (il budget del paziente deve stringersi) ma NON è
+  // `is-troncato` (nessuna sfumatura sul clinico). Misura verbatim dal mockup C (numero di
+  // righe = altezza renderizzata / line-height, arrotondato): `dentTroncato` implica sempre
+  // `dentDueRighe` (per sforare oltre 2 righe bisogna prima averle raggiunte), mai il contrario.
+  const [dentDueRighe, setDentDueRighe] = useState(false)
   useEffect(() => {
     const nodo = dentRef.current
     if (!nodo) {
       setDentTroncato(false)
+      setDentDueRighe(false)
       return
     }
     let vivo = true
     const misura = () => {
-      if (vivo) setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      if (!vivo) return
+      setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      // In produzione `getComputedStyle(nodo).lineHeight` risolve sempre a un valore in px (il
+      // CSS reale di ds-v3.css è caricato) — verificato via cascata reale renderizzata (v.
+      // report H2b). In ambienti senza foglio di stile applicato (jsdom nei test unitari, senza
+      // stub esplicito) risolve a un valore non numerico ("normal"): il fallback tiene
+      // `dentDueRighe` false, coerente col comportamento pre-H2b di ogni altro test che non
+      // stubba esplicitamente le misure.
+      const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
+      if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
+        const righe = Math.round(nodo.clientHeight / altezzaRiga)
+        setDentDueRighe(righe >= 2)
+      } else {
+        setDentDueRighe(false)
+      }
     }
     misura()
     // I font web (Plus Jakarta Sans) possono ancora caricare al primo render: una ri-misura a
@@ -291,6 +317,40 @@ export function Cassetta(props: {
       ro?.disconnect()
     }
   }, [lavoro?.dentista])
+
+  // H2b — il paziente riusa 1:1 lo STESSO meccanismo del clinico (`is-troncato` misurato in JS
+  // via scrollHeight/clientHeight, nessuna nuova soglia): quando il clinico occupa 2 righe il
+  // CSS (selettore fratello) forza il paziente a 1 riga nowrap con una sfumatura ORIZZONTALE
+  // INCONDIZIONATA (identica a quella che aveva SEMPRE prima di H2b) — in quel regime questa
+  // misura verticale è innocua anche se non "giusta" per quel layout, perché la regola CSS del
+  // fratello ha specificità più alta e vince comunque (v. commento ds-v3.css). Quando il
+  // clinico occupa 1 riga, questa è la misura CORRETTA (overflow verticale sul wrap a 2 righe).
+  const pazRef = useRef<HTMLSpanElement | null>(null)
+  const [pazTroncato, setPazTroncato] = useState(false)
+  useEffect(() => {
+    const nodo = pazRef.current
+    if (!nodo) {
+      setPazTroncato(false)
+      return
+    }
+    let vivo = true
+    const misura = () => {
+      if (vivo) setPazTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+    }
+    misura()
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(misura)
+    }
+    let ro: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(misura)
+      ro.observe(nodo)
+    }
+    return () => {
+      vivo = false
+      ro?.disconnect()
+    }
+  }, [lavoro?.paziente, lavoro?.pazienteAlias, dentDueRighe])
 
   function pulisciTimer() {
     if (timer.current) {
@@ -587,10 +647,15 @@ export function Cassetta(props: {
           <span className="ds-cassetta-cont">
             {lavoro ? (
               <>
-                <span ref={dentRef} className={`ds-cassetta-dent${dentTroncato ? ' is-troncato' : ''}`}>
+                <span
+                  ref={dentRef}
+                  className={`ds-cassetta-dent${dentDueRighe ? ' is-due-righe' : ''}${dentTroncato ? ' is-troncato' : ''}`}
+                >
                   {lavoro.dentista}
                 </span>
-                <span className="ds-cassetta-paz">{pazienteReso}</span>
+                <span ref={pazRef} className={`ds-cassetta-paz${pazTroncato ? ' is-troncato' : ''}`}>
+                  {pazienteReso}
+                </span>
               </>
             ) : (
               'libera'

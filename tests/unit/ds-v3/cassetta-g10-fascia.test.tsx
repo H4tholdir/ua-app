@@ -19,7 +19,7 @@
 // verificata via render (testing-library), come in Cassetta.test.tsx. Le misure reali (altezza
 // tile, fascia, overflow) sono state prese con Playwright reale in un harness a parte — v.
 // `.superpowers/sdd/h2-impl-report.md`.
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render, screen } from '@testing-library/react'
@@ -66,15 +66,42 @@ describe('H2 — finestra/cavità: 8..48 (era 8..74) — opzione B restringe la 
 })
 
 describe('H2 — «fascia etichetta»: ORA ad altezza FISSA (opzione B), non più ad abbraccio del contenuto', () => {
-  it('.ds-cassetta-fascia: margin/radius/padding/background/box-shadow invariati dal mockup rev.3 P3b, MA height:72px + justify-content:center nuovi', () => {
+  it('.ds-cassetta-fascia: margin/radius/padding/box-shadow invariati dal mockup rev.3 P3b, height:72px + justify-content:center (H2) invariati — H2b (variante C, decisione d5eeed5): background scurente 0,34 (era .28, «un filo più profondo» sulle facce scure) + overflow:hidden NUOVO (hardening iOS, indagine H5 Difetto 2 meccanismo A: la fascia è ad altezza VERA e FISSA, niente deve mai sbordarne nemmeno con font gonfiati da iOS)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*height: 72px;\s*background: rgba\(0,0,0,\.28\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*\}/
+      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*height: 72px;\s*background: rgba\(0,0,0,\.34\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*overflow: hidden;\s*\}/
     )
   })
 
-  it('is-chiara: fascia più chiara (rgba(29,25,19,.14), invariato)', () => {
+  it('H2b — guardia negativa: il vecchio scrim uniforme .28/.14 non deve ricomparire (la polarità ora dipende da is-chiara, non è più un solo valore fisso)', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-fascia \{[^}]*\}/)
+    expect(blocco![0]).not.toMatch(/rgba\(0,0,0,\.28\)/)
+  })
+
+  it('H2b (variante C, ratifica d5eeed5, mockup 2026-07-25-fascia-leggibilita-varianti.html) — is-chiara: scrim INVERTITO, ora SCHIARENTE (rgba(255,255,255,.20)), non più scurente (rgba(29,25,19,.14)) — riusa la discriminazione is-chiara/targaScura ESISTENTE, nessuna nuova soglia', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta\.is-chiara \.ds-cassetta-fascia \{\s*background: rgba\(29,25,19,\.14\);\s*\}/
+      /\[data-ds="v3"\] \.ds-cassetta\.is-chiara \.ds-cassetta-fascia \{\s*background: rgba\(255,255,255,\.20\);\s*\}/
+    )
+  })
+})
+
+describe('H2b — variante C (ratifica d5eeed5): inchiostro pieno + scrim per polarità, valori verbatim dal mockup (verificati anche via cascata reale renderizzata, non solo lettura del CSS — v. report)', () => {
+  it('.ds-cassetta-cont (base, facce SCURE): inchiostro bianco PIENO #fff (era rgba(255,255,255,.95)) + ombra un filo più netta 0 1px 1.5px rgba(0,0,0,.45) (era 0 1px 1px rgba(0,0,0,.3))', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-cont \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-cont non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/color: #fff;/)
+    expect(blocco![0]).toMatch(/text-shadow: 0 1px 1\.5px rgba\(0,0,0,\.45\);/)
+    expect(blocco![0]).not.toMatch(/rgba\(255,255,255,\.95\)/)
+  })
+
+  it('.ds-cassetta.is-chiara .ds-cassetta-cont: inchiostro scuro PIENO rgba(29,25,19,1) (era .85) — text-shadow:none INVARIATO (il mockup non lo ritocca)', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-cassetta\.is-chiara \.ds-cassetta-cont \{\s*color: rgba\(29,25,19,1\); text-shadow: none;\s*\}/
+    )
+  })
+
+  it('.ds-cassetta.is-chiara .ds-cassetta-dent: opacity 1 (era .7) — il clinico su faccia chiara non si affievolisce più', () => {
+    expect(norm).toMatch(
+      /\[data-ds="v3"\] \.ds-cassetta\.is-chiara \.ds-cassetta-dent \{ opacity: 1; \}/
     )
   })
 })
@@ -114,7 +141,12 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(blocco![0]).toMatch(/display: block; overflow: hidden;/)
     expect(blocco![0]).toMatch(/max-height: calc\(2 \* 1\.16em\);/)
     expect(blocco![0]).toMatch(/font-size: 10px; line-height: 1\.16;/)
-    expect(blocco![0]).toMatch(/font-weight: 400; opacity: \.94;/)
+    // H2b (variante C, d5eeed5) — peso su: 500 (era 400). L'opacità .94 resta INVARIATA: il
+    // mockup C alza l'opacità SOLO sulla faccia chiara (via l'override is-chiara sotto, .7→1),
+    // qui nella regola base (facce scure) non tocca opacity — verificato anche via cascata reale
+    // renderizzata (scripts/tmp/h2b-mockup-cascade.mjs): dentOpacity resta "0.94" sulle facce
+    // scure del mockup, "1" solo su quelle chiare.
+    expect(blocco![0]).toMatch(/font-weight: 500; opacity: \.94;/)
     // guardia negativa: il meccanismo del mockup B (-webkit-line-clamp) inietta SEMPRE una "…"
     // (misurato, non sopprimibile con text-overflow) — il verbale vieta l'ellissi netta, quindi
     // NON deve ricomparire qui (v. commento CSS per la misura empirica).
@@ -133,18 +165,47 @@ describe('H2 — il clinico va SEMPRE a capo (max 2 righe), il paziente resta SE
     expect(base![0]).not.toMatch(/mask-image/)
   })
 
-  it('.ds-cassetta-paz: SEMPRE 1 riga (nowrap), MA text-overflow:clip (non più ellipsis) + sfumatura morbida (mask-image) — mai i tre puntini a metà nome (vincolo (c) del verbale)', () => {
+  // H2b (variante C, decisione d5eeed5) — SOSTITUISCE il vecchio regime "paziente SEMPRE 1
+  // riga nowrap": ora il budget è CONDIVISO col clinico (clinico 1 riga -> paziente fino a 2
+  // righe con sfumatura VERTICALE, stessa famiglia is-troncato del clinico; clinico 2 righe ->
+  // paziente forzato a 1 riga, stesso mask ORIZZONTALE di prima, via il selettore fratello
+  // `.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz`). Verbatim dal mockup
+  // 2026-07-25-fascia-leggibilita-varianti.html (variante C) — verificato anche via cascata
+  // reale renderizzata (scripts/tmp/h2b-mockup-cascade.mjs, righe reali di paz: 2*1.24*11.5 =
+  // 28.52px default, 1*1.24*11.5 = 14.26px forzato).
+  it('.ds-cassetta-paz (DEFAULT, budget condiviso — H2b): come il clinico, wrappa fino a 2 righe (white-space:normal, max-height:calc(2 * 1.24em)) — mask-image:none di default (nessuna sfumatura permanente, mai un mask legato a un confine fisso — stesso principio del dent)', () => {
     // Lookbehind negativo: senza, il match "greedy in avanti ma primo trovato" cadrebbe sul
     // `.ds-cassetta-paz {` della regola CONDIVISA (dent, paz { width: ... }) — lì `.paz` è
     // l'ultimo selettore prima della graffa, preceduto da "dent, " nella stringa normalizzata.
-    // Qui invece serve la regola SOLO-paz (font-weight/white-space/mask-image).
+    // Qui invece serve la regola SOLO-paz DEFAULT (non quella con .is-troncato o il fratello).
     const blocco = norm.match(/(?<!, )\[data-ds="v3"\] \.ds-cassetta-paz \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta-paz non trovato').toBeTruthy()
-    expect(blocco![0]).toMatch(/white-space: nowrap;/)
+    expect(blocco![0]).toMatch(/white-space: normal;/)
+    expect(blocco![0]).toMatch(/overflow-wrap: break-word;/)
+    expect(blocco![0]).toMatch(/display: block; overflow: hidden;/)
     expect(blocco![0]).toMatch(/text-overflow: clip;/)
-    expect(blocco![0]).not.toMatch(/text-overflow: ellipsis/)
+    expect(blocco![0]).toMatch(/line-height: 1\.24;/)
+    expect(blocco![0]).toMatch(/max-height: calc\(2 \* 1\.24em\);/)
+    expect(blocco![0]).toMatch(/mask-image: none;/)
+    expect(blocco![0]).toMatch(/font-weight: 800;/)
+    // guardia negativa: il vecchio regime "sempre 1 riga" non deve ricomparire qui
+    expect(blocco![0]).not.toMatch(/white-space: nowrap;/)
+  })
+
+  it('.ds-cassetta-paz.is-troncato (H2b): sfumatura VERTICALE, stessa famiglia is-troncato del clinico (mask 180deg, 82%→100% — leggermente diverso dall\'80% del dent, verbatim mockup) — SOLO quando misurata in JS (scrollHeight>clientHeight), mai permanente', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-paz\.is-troncato \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-paz.is-troncato non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/mask-image: linear-gradient\(180deg, #000 82%, transparent 100%\);/)
+    expect(blocco![0]).toMatch(/-webkit-mask-image: linear-gradient\(180deg, #000 82%, transparent 100%\);/)
+  })
+
+  it('.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz (H2b): quando il clinico occupa 2 righe, il budget condiviso forza il paziente a 1 riga — stesso mask ORIZZONTALE che aveva SEMPRE prima di H2b (90deg, 84%→99%, invariato), ora condizionale al fratello', () => {
+    const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent\.is-due-righe ~ \.ds-cassetta-paz \{[^}]*\}/)
+    expect(blocco, 'blocco .ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz non trovato').toBeTruthy()
+    expect(blocco![0]).toMatch(/max-height: calc\(1 \* 1\.24em\);/)
+    expect(blocco![0]).toMatch(/white-space: nowrap;/)
     expect(blocco![0]).toMatch(/mask-image: linear-gradient\(90deg, #000 84%, transparent 99%\);/)
-    expect(blocco![0]).toMatch(/font-weight: 700;/)
+    expect(blocco![0]).toMatch(/-webkit-mask-image: linear-gradient\(90deg, #000 84%, transparent 99%\);/)
   })
 
   it('H2 — grep-guard: nessuna regola .is-shrink residua in ds-v3.css', () => {
@@ -217,6 +278,163 @@ describe('H2 — adjudicazione: is-troncato MISURATO in JS (scrollHeight/clientH
     } finally {
       ripristina()
     }
+  })
+})
+
+describe('H2b — variante C (d5eeed5): budget righe condiviso — is-due-righe MISURATO in JS (altezza/line-height, come il mockup), paz.is-troncato riusa lo STESSO meccanismo del dent', () => {
+  // A differenza di stubAltezze() sopra (che stubba scrollHeight/clientHeight sullo STESSO
+  // valore per QUALSIASI nodo), qui serve distinguere dent da paz — il budget condiviso ha
+  // bisogno di misurare i due indipendentemente. jsdom non risolve mai un valore reale per
+  // getComputedStyle(...).lineHeight (nessun foglio di stile è applicato nei test component-
+  // level): il componente in produzione lo legge dal CSS vero (verificato via cascata reale
+  // renderizzata, v. report); qui lo stubbiamo esplicitamente per il solo nodo dent.
+  function stubMisure(opts: {
+    dentScrollHeight?: number
+    dentClientHeight?: number
+    dentLineHeightPx?: number
+    pazScrollHeight?: number
+    pazClientHeight?: number
+  }) {
+    const { dentScrollHeight = 0, dentClientHeight = 0, dentLineHeightPx, pazScrollHeight = 0, pazClientHeight = 0 } = opts
+    const scrollDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight')!
+    const clientDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight')!
+    Object.defineProperty(Element.prototype, 'scrollHeight', {
+      configurable: true,
+      get(this: Element) {
+        if (this.classList.contains('ds-cassetta-dent')) return dentScrollHeight
+        if (this.classList.contains('ds-cassetta-paz')) return pazScrollHeight
+        return 0
+      },
+    })
+    Object.defineProperty(Element.prototype, 'clientHeight', {
+      configurable: true,
+      get(this: Element) {
+        if (this.classList.contains('ds-cassetta-dent')) return dentClientHeight
+        if (this.classList.contains('ds-cassetta-paz')) return pazClientHeight
+        return 0
+      },
+    })
+    let gcsSpy: ReturnType<typeof vi.spyOn> | undefined
+    if (dentLineHeightPx !== undefined) {
+      const originaleGCS = window.getComputedStyle.bind(window)
+      gcsSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((el: Element, pseudo?: string | null) => {
+        const reale = originaleGCS(el, pseudo ?? undefined)
+        if (el.classList?.contains('ds-cassetta-dent')) {
+          return new Proxy(reale, {
+            get(target, prop, receiver) {
+              if (prop === 'lineHeight') return `${dentLineHeightPx}px`
+              return Reflect.get(target, prop, receiver)
+            },
+          })
+        }
+        return reale
+      })
+    }
+    return () => {
+      Object.defineProperty(Element.prototype, 'scrollHeight', scrollDesc)
+      Object.defineProperty(Element.prototype, 'clientHeight', clientDesc)
+      gcsSpy?.mockRestore()
+    }
+  }
+
+  it('default jsdom (nessuno stub): il clinico è a 1 riga (nessun line-height risolvibile) → NIENTE is-due-righe sul dent, NIENTE is-troncato sul paz', () => {
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />)
+    const btn = screen.getByRole('button')
+    expect(btn.querySelector('.ds-cassetta-dent')?.className).not.toContain('is-due-righe')
+    expect(btn.querySelector('.ds-cassetta-paz')?.className).not.toContain('is-troncato')
+  })
+
+  it('clinico renderizzato su 1 riga (clientHeight ≈ 1 × line-height) → NIENTE is-due-righe', () => {
+    const ripristina = stubMisure({ dentClientHeight: 11.6, dentScrollHeight: 11.6, dentLineHeightPx: 11.6 })
+    try {
+      render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroCorto} stato="normale" onTap={() => {}} />)
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).not.toContain('is-due-righe')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('clinico renderizzato su 2 righe ESATTE, nessuno sforo (clientHeight ≈ 2 × line-height, scrollHeight uguale) → is-due-righe SÌ, is-troncato (dent) NO — il budget scatta anche senza troncamento', () => {
+    const ripristina = stubMisure({ dentClientHeight: 23.2, dentScrollHeight: 23.2, dentLineHeightPx: 11.6 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studio Di Santi Rossi' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-due-righe')
+      expect(dent?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('clinico 2 righe TRONCATE (scrollHeight > clientHeight): is-due-righe E is-troncato insieme (coerente: chi sfora oltre 2 righe è per forza già a 2 righe)', () => {
+    const ripristina = stubMisure({ dentClientHeight: 23.2, dentScrollHeight: 34.8, dentLineHeightPx: 11.6 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, dentista: 'Studi Medici Di Santi Gennaro s.r.l.' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const dent = screen.getByRole('button').querySelector('.ds-cassetta-dent')
+      expect(dent?.className).toContain('is-due-righe')
+      expect(dent?.className).toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('paz.is-troncato — RIUSA lo stesso meccanismo del dent (scrollHeight>clientHeight+1): overflow reale simulato → is-troncato applicata, indipendentemente dal clinico', () => {
+    const ripristina = stubMisure({ pazScrollHeight: 40, pazClientHeight: 28 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, pazienteAlias: 'Ciruzzo Tozzetti Esposito Immacolata' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const paz = screen.getByRole('button').querySelector('.ds-cassetta-paz')
+      expect(paz?.className).toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('paz.is-troncato — nessuno sforo reale (scrollHeight===clientHeight): NON applicata — stesso criterio "non mangiare lettere legittime" del dent', () => {
+    const ripristina = stubMisure({ pazScrollHeight: 28, pazClientHeight: 28 })
+    try {
+      render(
+        <Cassetta id="c1" nome="C12" colore="rossa"
+          lavoro={{ ...lavoroCorto, pazienteAlias: 'Ciruzzo Tozzetti' }}
+          stato="normale" onTap={() => {}}
+        />
+      )
+      const paz = screen.getByRole('button').querySelector('.ds-cassetta-paz')
+      expect(paz?.className).not.toContain('is-troncato')
+    } finally {
+      ripristina()
+    }
+  })
+})
+
+describe('H2b — hardening iOS (indagine H5, .superpowers/sdd/h5-indagine-ipad-report.md, Difetto 2 meccanismo A): text-size-adjust globale', () => {
+  const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
+  const normGlobals = globalsCss.replace(/\s+/g, ' ')
+
+  it('html porta -webkit-text-size-adjust:100% e text-size-adjust:100% nel punto canonico del reset (@layer base)', () => {
+    expect(normGlobals).toMatch(/-webkit-text-size-adjust: 100%;/)
+    expect(normGlobals).toMatch(/(?<!-webkit-)text-size-adjust: 100%;/)
+  })
+
+  it('vive dentro la regola html del layer base (non uno scope isolato es. .ds-cassetta), è un enforcement GLOBALE dell\'app', () => {
+    const blocco = normGlobals.match(/html \{[^}]*\}/)
+    expect(blocco, 'blocco html non trovato in globals.css').toBeTruthy()
+    expect(blocco![0]).toMatch(/-webkit-text-size-adjust: 100%;/)
   })
 })
 

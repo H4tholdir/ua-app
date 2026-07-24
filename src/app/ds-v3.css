@@ -467,20 +467,47 @@
    IDENTICA piena o vuota, corta o estrema — il caso peggiore, clinico 2 righe + paziente 1
    riga, è riservato SEMPRE) — `justify-content: center` (nuovo) centra verticalmente targa+cont
    dentro lo spazio fisso, dove prima bastava il flusso naturale del contenuto ad altezza
-   variabile. */
+   variabile.
+
+   H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
+   `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «scrim-polarity»: prima la
+   fascia scuriva SEMPRE (rgba(0,0,0,.28) fisso, invariato di faccia in faccia); ORA il verso
+   dipende dalla luminanza della faccia (STESSA discriminazione `targaScura`/`is-chiara` già
+   esistente — nessuna nuova soglia): sulle facce SCURE la fascia scurisce un filo di più
+   (.28→.34), sulle facce CHIARE lo scrim si INVERTE e schiarisce (v. override `.is-chiara`
+   sotto, era rgba(29,25,19,.14) scurente, ora rgba(255,255,255,.20) schiarente). Motivazione
+   (verbale d5eeed5): è l'unica via misurata che porta il clinico su azzurra/bianca sopra la
+   soglia WCAG AA senza rubare spazio alla finestra (contrasti in fondo al file dei contrasti
+   campionati, v. report H2b) — B (fascia più alta) ci riusciva ma costava il 30% della
+   finestra, A (solo multiriga) non toccava affatto il contrasto.
+   `overflow: hidden` NUOVO — hardening iOS (indagine H5,
+   `.superpowers/sdd/h5-indagine-ipad-report.md`, Difetto 2, meccanismo (A) sospetto: iOS
+   Safari può gonfiare i font della fascia di sua iniziativa, quota mai neutralizzata prima —
+   v. `text-size-adjust:100%` in `globals.css`). La fascia è ad altezza VERA e FISSA (72px):
+   questo NON è estetica, è enforcement — niente deve mai sbordarne, nemmeno con un font
+   gonfiato da un agente esterno che sfugge al nostro CSS. Il gancetto (`.ds-gancetto`) e la
+   linguetta (`::before` su `.ds-cassetta`) NON sono figli di questo elemento (sono fratelli,
+   figli diretti di `.ds-cassetta` — v. markup in Cassetta.tsx) quindi restano fuori dal
+   perimetro di questo clip: l'avviso sull'`overflow:hidden` che taglierebbe il gancetto (v.
+   commento su `.ds-cassetta-cont`/`.ds-parete` altrove in questo file) riguarda contenitori PIÙ
+   IN ALTO nell'albero (`.ds-cassetta`/`.ds-parete`), non questo. Verificato su tutta la matrice
+   nomi (corto/lungo/estremo × occupata/libera, 390px, light+dark): zero sbordi legittimi
+   tagliati — v. report H2b. */
 [data-ds="v3"] .ds-cassetta-fascia {
   position: relative; z-index: 1;
   margin: 0 4px 4px;
   border-radius: 4px 4px 9px 9px;
   padding: 5px 8px 6px;
   height: 72px;
-  background: rgba(0,0,0,.28);
+  background: rgba(0,0,0,.34);
   box-shadow: inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  overflow: hidden;
 }
-/* Contrasto-auto (targaScura, invariato): faccia chiara → fascia più chiara, VERBATIM mockup. */
+/* Contrasto-auto (targaScura, invariato) — H2b: la polarità dello scrim si INVERTE sulla faccia
+   chiara (schiarente, non più scurente), verbatim mockup C. */
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-fascia {
-  background: rgba(29,25,19,.14);
+  background: rgba(255,255,255,.20);
 }
 
 /* Targa — gate Task 10 PIENAMENTE in vigore (precisazione Francesco 25/07, vincolante):
@@ -520,13 +547,17 @@
    overflow quando il cont è < 96px) — v. commento completo sopra la regola `.ds-cassetta-dent,
    .ds-cassetta-paz` sotto, dove vive il fix (`width: min(100%, 96px)`); questa regola qui non è
    cambiata, la centratura resta valida. Numeri in fixL-report.md. */
+/* H2b (d5eeed5, variante C) — inchiostro PIENO sulle facce scure: #fff (era rgba(255,255,255,.95))
+   + ombra un filo più netta (0 1px 1.5px rgba(0,0,0,.45), era 0 1px 1px rgba(0,0,0,.3)) — verbatim
+   mockup C, verificato anche via cascata reale renderizzata (v. report H2b). Sulle facce chiare
+   l'override `.is-chiara .ds-cassetta-cont` sotto vince (specificità maggiore). */
 [data-ds="v3"] .ds-cassetta-cont {
   position: relative; z-index: 1; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
   align-self: stretch; min-width: 0;
   font-size: 11.5px; line-height: 1.28;
-  color: rgba(255,255,255,.95);
-  text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  color: #fff;
+  text-shadow: 0 1px 1.5px rgba(0,0,0,.45);
 }
 /* Terza review FIX-L (Importante, misurato con Playwright reale in un harness a parte, 25/07) —
    STORIA COMPLETA DEL DOPPIO REGIME (chi tocca questa regola DEVE leggerla tutta):
@@ -600,8 +631,22 @@
      sfumatura non "mangia" lettere legittime dell'ultima riga (a differenza di un mask
      permanente legato a un confine di altezza fisso, che rischierebbe di attenuare glifi
      realmente visibili). */
+/* H2b (d5eeed5, variante C) — peso su: 500 (era 400), verbatim mockup C. `opacity: .94` resta
+   INVARIATA qui (regola BASE, facce scure): il mockup C alza l'opacità SOLO sulla faccia chiara
+   (via l'override `.is-chiara .ds-cassetta-dent` sotto, .7→1).
+   ⚠️ PUNTO APERTO (non deciso in autonomia, v. report H2b §1/§8): il mockup C dichiara ANCHE
+   `.vC.is-chiara .ds-cassetta-dent{font-weight:600}` (commento sorgente «+ peso», un peso più
+   alto apposta per il clinico su faccia chiara). Verificato via cascata reale renderizzata che
+   quel selettore preciso NON matcha mai un nodo nel DOM del mockup (refuso di sintassi: usa il
+   compound `.vC.is-chiara` invece del discendente `.vC .ds-cassetta.is-chiara` che le due
+   regole sopra/sotto usano correttamente) — quindi il mockup C, così com'è, dipinge SEMPRE 500,
+   anche sulla faccia chiara. Qui è implementato il comportamento REALMENTE RESO (500 ovunque),
+   non l'intento scritto-ma-mai-eseguito (600 su chiara) — ma la scelta fra le due letture non è
+   stata arbitrata da chi ha scritto questo commit: se la review conferma l'intento (600), la
+   riga da aggiungere è `.ds-cassetta.is-chiara .ds-cassetta-dent{font-weight:600}` (vince per
+   specificità). */
 [data-ds="v3"] .ds-cassetta-dent {
-  font-weight: 400; opacity: .94;
+  font-weight: 500; opacity: .94;
   white-space: normal; overflow-wrap: break-word; word-break: normal;
   display: block; overflow: hidden;
   font-size: 10px; line-height: 1.16;
@@ -617,20 +662,60 @@
   mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
 }
+/* H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup 2026-07-25-fascia-leggibilita-varianti.html
+   SOLO variante C) — «paziente fino a 2 righe col budget condiviso»: SOSTITUISCE il regime H2
+   "paziente SEMPRE 1 riga nowrap" (v. storia sopra). Il paziente ora riceve lo STESSO
+   trattamento del clinico — wrap fino a 2 righe con sfumatura VERTICALE `is-troncato` — a MENO
+   che il clinico stesso occupi già 2 righe, nel qual caso il budget lo forza a 1 riga (v.
+   selettore fratello sotto). Verbatim dal mockup C, verificato via cascata reale renderizzata
+   (`scripts/tmp/h2b-mockup-cascade.mjs`, v. report H2b): con clinico 1 riga, `max-height`
+   risolve a 28.52px = 2 × 1.24 × 11.5px (font-size ereditato da `.ds-cassetta-cont`); con
+   clinico 2 righe, il fratello sotto lo ricapa a 14.26px = 1 × 1.24 × 11.5px.
+   `font-weight: 800` (era 700) — verbatim mockup C, il paziente resta il più marcato dei due
+   (la gerarchia clinico/paziente ora sta anche sul peso: 500 vs 800, non più solo su
+   opacità/font-weight base). */
 [data-ds="v3"] .ds-cassetta-paz {
-  font-weight: 700;
-  white-space: nowrap; overflow: hidden; text-overflow: clip;
+  font-weight: 800;
+  white-space: normal; overflow-wrap: break-word; word-break: normal;
+  display: block; overflow: hidden;
+  text-overflow: clip;
+  line-height: 1.24;
+  max-height: calc(2 * 1.24em);
   margin-top: 1px;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+/* Sfumatura VERTICALE del paziente troncato — STESSA famiglia `is-troncato` del clinico (misura
+   in JS via ResizeObserver + scrollHeight/clientHeight, riuso 1:1 del meccanismo esistente,
+   NESSUNA nuova soglia): applicata SOLO quando `Cassetta.tsx` misura un overflow REALE, mai un
+   mask permanente legato al confine di altezza (stesso principio del dent — v. commento sopra).
+   82%→100% (leggermente diverso dall'80%→100% del dent): verbatim mockup C. */
+[data-ds="v3"] .ds-cassetta-paz.is-troncato {
+  mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+}
+/* Budget condiviso: quando il clinico (fratello PRECEDENTE nel DOM, v. markup Cassetta.tsx —
+   dent poi paz dentro `.ds-cassetta-cont`) occupa 2 righe (`.is-due-righe`, misurato in JS in
+   Cassetta.tsx da altezza/line-height, come il mockup), il paziente torna al regime PRE-H2b:
+   1 riga, nowrap, sfumatura ORIZZONTALE — stessi identici valori (90deg, 84%→99%) che aveva
+   SEMPRE prima di questo cambio, ora condizionali. Specificità (0,3,0, tre classi) più alta
+   della regola `.is-troncato` sola (0,2,0): quando il clinico è a 2 righe questa vince sempre,
+   a prescindere dall'ordine nel foglio — v. verifica cascata nel report H2b. */
+[data-ds="v3"] .ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz {
+  max-height: calc(1 * 1.24em);
+  white-space: nowrap;
   mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
   -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
 }
 /* Contrasto automatico per luminanza (targaScura, Cassetta.tsx): faccia chiara → inchiostro
-   scuro sulla riga; il clinico si affievolisce anche di più (.94→.7, verbatim mockup) perché
-   sulle facce chiare l'inchiostro scuro già emerge di più da solo. */
+   scuro sulla riga.
+   H2b (d5eeed5, variante C) — inchiostro PIENO: rgba(29,25,19,1) (era .85) sul cont, opacity 1
+   (era .7) sul dent — il clinico su faccia chiara non si affievolisce più. `text-shadow: none`
+   INVARIATO (il mockup C non lo ritocca). Verbatim, verificato via cascata reale renderizzata. */
 [data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
-  color: rgba(29,25,19,.85); text-shadow: none;
+  color: rgba(29,25,19,1); text-shadow: none;
 }
-[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-dent { opacity: .7; }
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-dent { opacity: 1; }
 
 /* Targa ad ANELLO quando libera (segnale di stato — precisazione Francesco 25/07, vincolante:
    l'uniformità G10 è SOLO strutturale, la targa resta il segnale binario libera/occupata). */

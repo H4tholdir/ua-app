@@ -229,6 +229,15 @@
   }
   html {
     @apply font-sans;
+    /* H2b — hardening iOS (indagine H5, .superpowers/sdd/h5-indagine-ipad-report.md, Difetto 2
+       meccanismo A): l'app non aveva MAI impostato questa proprietà (grep storico: zero
+       occorrenze in src/). Senza, iOS Safari può gonfiare autonomamente il font-size di blocchi
+       di testo piccoli (euristica di leggibilità del motore, non richiesta né controllabile
+       dall'app) — con superfici ad altezza VERA e FISSA (es. `.ds-cassetta-fascia`, 72px) un
+       font gonfiato può sforare la sagoma ratificata. Enforcement GLOBALE (non scoped a una
+       superficie): "il font-size dichiarato è quello reso, punto". */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
