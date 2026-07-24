@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rete ancorata alle colonne — ganci sempre sul filo (difetto 1, ri-collaudo #4) · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP — chiusura difetto 1 «ganci fuori maglia» (H5, verbale
+   .superpowers/sdd/h5-indagine-ipad-report.md). Root cause: i fili VERTICALI
+   della rete erano un pattern tiled a passo fisso (indipendente dalle
+   colonne); le colonne del grid sono fluide (1fr) e il loro passo non è mai
+   multiplo del passo-maglia → il gancio (centro colonna) cade sul filo solo
+   per coincidenza, con deriva misurata fino a ±24px a 6 colonne (½ maglia).
+
+   FIX PROPOSTO QUI (consigliato dal report, opzione 1): i fili ORIZZONTALI
+   restano il pattern tiled INVARIATO (l'asse verticale è già garantito per
+   costruzione da track = 5·passo-maglia — nessuna modifica qui). I fili
+   VERTICALI diventano elementi ANCORATI alla stessa griglia delle cassette:
+   un overlay (`.ds-parete-fili-verticali`) con la STESSA `grid-template-
+   columns` / `column-gap` / `padding-inline` di `.ds-parete-grid` — stessa
+   dichiarazione, mai duplicata a mano — disegna UN filo per colonna, centrato
+   al 50% di ogni colonna (esattamente dove `.ds-gancetto{left:50%}` mette il
+   gancio). Poiché le due griglie condividono la stessa matematica CSS, i
+   centri combaciano per COSTRUZIONE, a qualunque larghezza — non serve
+   quantizzare le colonne (che romperebbe il fluido ratificato 23/07).
+
+   TRAMA: il pattern tiled esistente (fili SVG light / repeating-gradient
+   dark, VERBATIM da ds-v3.css) resta com'è SOTTO come sfondo — è lui a dare
+   la densità/texture di oggi. Nel punto esatto di ogni centro-colonna, una
+   "toppa" (stesso colore del fondo parete) cancella localmente il tratto di
+   filo tiled più vicino (che potrebbe cadere fino a ±22px fuori posto) e un
+   filo pulito, STESSO linguaggio dei fili di cornice `::before/::after` già
+   in ds-v3.css, viene ridisegnato esattamente al centro. Tra una colonna e
+   l'altra il pattern tiled originale resta visibile intatto: sono i "fili
+   intermedi" che mantengono la maglia fitta come oggi. Vedi NOTE in fondo
+   alla pagina per il dettaglio completo destinato al codice.
+   ============================================================================ */
+
+/* --- Token v3 (VERBATIM tokens.ts + mockup 2026-07-24 rev.3) --- */
+:root{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA;
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --green:#1B7F3B; --blue:#1D5FBF;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --wall:#ECE6D9;
+  --filo-flat:rgba(255,255,255,.09); /* dark, VERBATIM ds-v3.css .ds-parete[data-theme=dark] (alpha .07→.09, QA T15) */
+  --mat-ceramica:#F8F2E6; --mat-ceramica-ombra:#D9CDB6; --mat-ceramica-chiara:#EFE6D2;
+  --mat-gengiva:#E89AA4; --mat-gengiva-ombra:#C97783;
+  --mat-metallo:#B9BEC6; --mat-metallo-ombra:#8E959E; --mat-bianco:#FFFFFF;
+  --gan-metal-hi:#F1ECE1; --gan-metal-mid:#C4BBAC; --gan-metal-lo:#8B8275;
+}
+.notte{
+  --bg:#171411; --bg-deep:#131009; --card:#211D18;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --green:#34C468; --blue:#5B9BFF;
+  --sh-card:none;
+  --wall:#131009;
+  --filo-flat:rgba(255,255,255,.09);
+  --gan-metal-hi:#4A443B; --gan-metal-mid:#39332C; --gan-metal-lo:#252017;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--ink);padding:26px 20px 90px;transition:background .3s}
+h1{font-size:26px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;max-width:920px}
+.sotto{color:var(--muted);font-size:15px;max-width:900px;margin-bottom:10px;line-height:1.55}
+.toggle{position:fixed;top:14px;right:14px;z-index:80;background:var(--card);color:var(--ink);
+  border:1px solid var(--line);border-radius:999px;padding:10px 18px;font:600 14px 'Plus Jakarta Sans',sans-serif;
+  cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.14)}
+h2.sez{font-size:20px;font-weight:800;letter-spacing:-0.02em;margin:40px 0 4px;padding-top:14px;border-top:2px solid var(--line)}
+h2.sez:first-of-type{border-top:none;padding-top:0;margin-top:26px}
+.sez-p{color:var(--muted);font-size:13.5px;max-width:900px;margin-bottom:16px;line-height:1.55}
+.callout{position:relative;z-index:1;margin:0 0 16px;padding:11px 15px;border-radius:12px;
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--sh-card);
+  font-size:13px;color:var(--muted);line-height:1.5;max-width:900px}
+.callout b{color:var(--ink)}
+.readout{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--green);
+  font-family:ui-monospace,monospace}
+.readout.warn{color:var(--red)}
+.eti{display:inline-block;background:var(--red);color:#fff;border-radius:999px;font-size:11.5px;
+  font-weight:700;padding:2px 10px;letter-spacing:.03em;margin-right:8px;vertical-align:2px}
+.eti.g{background:var(--green)}
+
+/* ══════════ CASSETTA — ANATOMIA DI PRODUZIONE (VERBATIM ds-v3.css §5.35/§5.36) ══════════ */
+.cassetta{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:0;
+  border:none;border-radius:10px 10px 12px 12px;
+  padding:66px 10px 12px;
+  min-height:132px;min-width:44px;color:inherit;
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28)}
+.notte .cassetta{box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4)}
+.cassetta::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:26px;height:10px;border-radius:4px 4px 0 0;background:inherit;filter:brightness(.85)}
+.cassetta.rossa  {background:linear-gradient(180deg,#E8323B,#C3000F)}
+.cassetta.blu    {background:linear-gradient(180deg,#2E6FD0,#174A9C)}
+.cassetta.azzurra{background:linear-gradient(180deg,#6FB1E8,#4187C6)}
+.cassetta.grigia {background:linear-gradient(180deg,#9A948E,#6E675F)}
+.cassetta.bianca {background:linear-gradient(180deg,#FFFEFA,#E4DCCB)}
+.cassetta.verde  {background:linear-gradient(180deg,#2E9C55,#166B39)}
+.cassetta .cavita{position:absolute;inset:18px 6px auto 6px;height:46px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+.cassetta .cavita .mini{height:34px;width:auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.cassetta .pill{position:relative;z-index:1;align-self:center;
+  max-width:6ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:rgba(255,255,255,.92);border-radius:8px;padding:3px 10px 4px;
+  font-size:13.5px;font-weight:800;color:#1D1913;font-variant-numeric:tabular-nums;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cassetta .cont{position:relative;z-index:1;text-align:center;margin-top:5px;width:100%}
+.cassetta .cont .r{font-size:11px;line-height:1.28;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 1px rgba(0,0,0,.3);color:rgba(255,255,255,.95)}
+.cassetta .cont .dent{font-weight:400;opacity:.94}
+.cassetta .cont .pz{font-weight:700}
+.cassetta .cont .r.shrink{font-size:9.5px;white-space:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.15}
+.cassetta.chiara .cont .r{color:rgba(29,25,19,.85);text-shadow:none}
+.cassetta.chiara .cont .dent{opacity:.7}
+.cassetta.libera .pill{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);color:rgba(255,255,255,.9)}
+.cassetta.libera.chiara .pill{box-shadow:inset 0 0 0 2px rgba(29,25,19,.4);color:rgba(29,25,19,.7)}
+.cassetta.libera .cont{opacity:.6;font-weight:700}
+
+/* gancetto — VERBATIM ds-v3.css .ds-gancetto (G2, top = -hook-above -6) */
+.gan-slot{position:absolute;top:calc(-1 * var(--hook-above,14px) - 6px);left:50%;transform:translateX(-50%);
+  z-index:2;pointer-events:none;width:28px;height:22px;text-align:center;line-height:0}
+
+/* ══════════ LA PARETE — meccanica GRIGLIA FISSA + SNAP (VERBATIM ds-v3.css) ══════════ */
+.ds-parete{
+  --passo-maglia:40px; --track:calc(var(--passo-maglia) * 5); --hook-above:14px;
+  --wall-pad-top:22px; --wire-center:calc(var(--wall-pad-top) - var(--hook-above)); --wire-w:3px;
+  --wall-pad-x:16px; --wall-gap:16px;
+  position:relative; border-radius:18px; padding:var(--wall-pad-top) var(--wall-pad-x) 18px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat; background-size:var(--passo-maglia) var(--passo-maglia);
+  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2); background-color:var(--bg);
+}
+.notte .ds-parete{
+  background:repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
+             repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)),
+             var(--bg);
+  background-position:0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0, 0 0;
+}
+/* cornice — VERBATIM ds-v3.css .ds-parete::before/::after (G9, filo di bordo) */
+.ds-parete::before,.ds-parete::after{
+  content:'';position:absolute;top:18px;bottom:18px;width:var(--wire-w);border-radius:1.5px;
+  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);
+  box-shadow:0 0 2px rgba(42,34,20,.42); pointer-events:none;
+}
+.ds-parete::before{left:2px} .ds-parete::after{right:2px}
+.notte .ds-parete::before,.notte .ds-parete::after{background:var(--filo-flat);box-shadow:none}
+
+/* ══════════ FIX — fili verticali ANCORATI alle colonne (proposta di questo mockup) ══════════
+   Overlay con la STESSA grid-template-columns/column-gap/padding-inline della griglia vera
+   (combinate nella stessa regola sotto — mai duplicate separatamente): un filo per colonna,
+   centrato al 50%, coincide per costruzione col centro-colonna dove vive il gancio. */
+.ds-parete-fili-verticali{
+  position:absolute; inset:0; padding:0 var(--wall-pad-x);
+  display:grid; grid-template-rows:100%; grid-auto-rows:0; overflow:hidden;
+  pointer-events:none; z-index:0;
+}
+.filo-cella{position:relative; height:100%}
+.filo-patch{position:absolute; top:18px; bottom:18px; left:50%; width:var(--passo-maglia);
+  transform:translateX(-50%); background:var(--bg);}
+.filo-verticale{position:absolute; top:18px; bottom:18px; left:50%; width:var(--wire-w);
+  transform:translateX(-50%); border-radius:1.5px;
+  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);
+  box-shadow:0 0 2px rgba(42,34,20,.42);}
+.notte .filo-verticale{background:var(--filo-flat); box-shadow:none}
+/* variante "prima" (oggi): niente overlay ancorato → si vede il pattern tiled grezzo, deriva inclusa */
+.rete-oggi .ds-parete-fili-verticali{display:none}
+
+.ds-parete-grid,.ds-parete-fili-verticali{
+  display:grid; grid-template-columns:repeat(3,1fr); column-gap:var(--wall-gap);
+}
+.ds-parete-grid{position:relative; z-index:1; grid-auto-rows:var(--track); row-gap:0; align-items:start}
+@media(min-width:768px){
+  .ds-parete-grid,.ds-parete-fili-verticali{grid-template-columns:repeat(4,1fr)}
+  .ds-parete{--passo-maglia:50px; --wall-gap:24px; --wall-pad-x:22px; --wall-pad-top:26px}
+}
+@media(min-width:1024px){
+  .ds-parete-grid,.ds-parete-fili-verticali{grid-template-columns:repeat(6,1fr)}
+  .ds-parete{--passo-maglia:50px; --wall-gap:26px; --wall-pad-x:24px; --wall-pad-top:28px}
+}
+.ds-parete-grid>.cella{position:relative; display:flex; min-width:0}
+.ds-parete-grid>.cella>.cassetta{flex:1 1 auto; width:100%}
+
+.parete-wrap{border-radius:18px; box-shadow:inset 0 0 0 1px var(--line); max-width:1320px}
+
+/* ══════════ CONFRONTO PRIMA/DOPO (sezione dedicata, screenshottata a 1366) ══════════ */
+.confronto{display:flex; flex-direction:column; gap:22px; max-width:1320px}
+.confronto .lab{font-size:12.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:8px}
+.confronto .lab.bad{color:var(--red)} .confronto .lab.good{color:var(--green)}
+.drift-caption{margin-top:8px; font-size:12px; color:var(--muted); line-height:1.55; max-width:1000px;
+  font-family:ui-monospace,monospace}
+.drift-caption b{color:var(--red); font-family:'Plus Jakarta Sans',sans-serif}
+
+/* ══════════ NOTE finali ══════════ */
+.note-box{margin-top:34px; background:var(--card); border:1px solid var(--line); border-radius:20px;
+  padding:24px 26px; max-width:1000px; box-shadow:var(--sh-card)}
+.note-box h3{font-size:17px; font-weight:800; margin-bottom:10px}
+.note-box h4{font-size:13.5px; font-weight:800; margin:16px 0 6px; color:var(--ink)}
+.note-box p,.note-box li{font-size:13px; color:var(--muted); line-height:1.6}
+.note-box ul{padding-left:20px; margin-bottom:4px}
+.note-box code{font-family:ui-monospace,monospace; font-size:12px; color:var(--ink); background:var(--bg-deep); padding:1px 5px; border-radius:4px}
+</style>
+</head>
+<body>
+<button class="toggle" onclick="document.body.classList.toggle('notte')">☀ / ☾ Tema</button>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="mMetal" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="var(--gan-metal-hi)"/><stop offset=".5" stop-color="var(--gan-metal-mid)"/><stop offset="1" stop-color="var(--gan-metal-lo)"/>
+  </linearGradient>
+</defs></svg>
+
+<h1>Rete ancorata alle colonne — il gancio cade sempre su un filo vero</h1>
+<p class="sotto">Difetto 1 del ri-collaudo #4 (<code>.superpowers/sdd/h5-indagine-ipad-report.md</code>):
+i fili <b>verticali</b> della rete erano disegnati a passo fisso, indipendenti dalle colonne, che sono
+fluide. Il gancio (sempre al centro della colonna) cadeva sul filo solo per coincidenza — a 6 colonne
+la deriva misurata arrivava a ±24px, mezza maglia. Qui sotto la rete con i fili verticali <b>ancorati</b>
+alla stessa griglia delle cassette: stessa densità visiva di oggi, ma il filo del gancio è garantito a
+ogni larghezza. Premi «Tema» per chiaro/scuro. Ridimensiona la finestra: il filo segue sempre la colonna.</p>
+
+<!-- ════════════ 1 · LA PARETE FISSATA, RESPONSIVE ════════════ -->
+<h2 class="sez">1 · La parete nuova — ridimensiona per vedere 3 / 4 / 6 colonne</h2>
+<p class="sez-p">Stessa maglia, stesso passo, stesse cassette di produzione. L'unica differenza da oggi:
+i fili verticali non sono più "a caso" rispetto alle colonne — sono ancorati. Il riquadro sotto misura
+dal vivo lo scarto gancio↔filo: deve restare 0.00px a qualunque larghezza.</p>
+<div class="callout"><b>Verifica automatica</b> — scarto massimo misurato tra il centro di ogni gancio e
+il filo verticale della sua colonna, ricalcolato a ogni resize.
+<span class="readout" id="readout-viva">…</span></div>
+<div class="parete-wrap">
+  <div class="ds-parete" id="parete-viva">
+    <div class="ds-parete-fili-verticali">
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+      <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+    </div>
+    <div class="ds-parete-grid" id="grid-viva">
+      <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="ponte"></div><div class="pill" title="PONTE-SUP">PONTE-SUP</div><div class="cont"><div class="r dent">Dott. Bianchi</div><div class="r pz">Luca Ferrari</div></div></div></div>
+      <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C07</div><div class="cont"><div class="r dent shrink" title="Dott.ssa Annamaria Bellinghieri">Dott.ssa Annamaria Bellinghieri</div><div class="r pz">Giulia Conti</div></div></div></div>
+      <div class="cella"><div class="cassetta azzurra chiara"><span class="gan-slot"></span><div class="cavita" data-mini="totale"></div><div class="pill">C11</div><div class="cont"><div class="r dent">Dott. Greco</div><div class="r pz shrink" title="Maria Vittoria Del Grosso">Maria Vittoria Del Grosso</div></div></div></div>
+      <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C14</div><div class="cont"><div class="r dent">Dott. Russo</div><div class="r pz">Anna Marino</div></div></div></div>
+      <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C15</div><div class="cont"><div class="r dent">Dott. Russo</div><div class="r pz">Anna Marino</div></div></div></div>
+      <div class="cella"><div class="cassetta grigia"><span class="gan-slot"></span><div class="cavita" data-mini="scheletrato"></div><div class="pill">C18</div><div class="cont"><div class="r dent">Dott. De Luca</div><div class="r pz">PZ-0042</div></div></div></div>
+      <div class="cella"><div class="cassetta blu"><span class="gan-slot"></span><div class="cavita" data-mini="impianto"></div><div class="pill">C21</div><div class="cont"><div class="r dent">Dott. Sanna</div><div class="r pz">Del Grosso Maria</div></div></div></div>
+      <div class="cella"><div class="cassetta bianca libera chiara"><span class="gan-slot"></span><div class="cavita"></div><div class="pill">C22</div><div class="cont"><div class="r dent">libera</div></div></div></div>
+      <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="generica"></div><div class="pill">C09</div><div class="cont"><div class="r dent">Dott. Villa</div><div class="r pz">Marco Costa</div></div></div></div>
+      <div class="cella"><div class="cassetta azzurra chiara"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C32</div><div class="cont"><div class="r dent">Dott. Amato</div><div class="r pz">Vera Longo</div></div></div></div>
+      <div class="cella"><div class="cassetta grigia"><span class="gan-slot"></span><div class="cavita" data-mini="ponte"></div><div class="pill">C38</div><div class="cont"><div class="r dent">Dott. Neri</div><div class="r pz">Sara Gallo</div></div></div></div>
+      <div class="cella"><div class="cassetta bianca chiara libera"><span class="gan-slot"></span><div class="cavita"></div><div class="pill">C40</div><div class="cont"><div class="r dent">libera</div></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 2 · CONFRONTO PRIMA/DOPO ════════════ -->
+<h2 class="sez">2 · Confronto alla larghezza peggiore (6 colonne — screenshot a 1366px)</h2>
+<p class="sez-p">A 6 colonne il residuo <code>passoColonna mod passo</code> è il più grande misurato
+(fino a ½ maglia, 24px). Sopra: la rete di <b>oggi</b> (pattern tiled puro, nessun ancoraggio) — i
+numeri sono quelli misurati sul vero <code>/cassette</code> a 1366px (tabella §Difetto 1 del report,
+cross-engine WebKit=Chromium). Sotto: la stessa griglia con i fili <b>ancorati</b>.</p>
+<div class="confronto">
+  <div>
+    <div class="lab bad">Prima — oggi (pattern tiled, indipendente dalle colonne)</div>
+    <div class="parete-wrap">
+      <div class="ds-parete rete-oggi" id="parete-prima">
+        <div class="ds-parete-fili-verticali">
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+        </div>
+        <div class="ds-parete-grid" id="grid-prima">
+          <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C10</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Emma Riva</div></div></div></div>
+          <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="totale"></div><div class="pill">C11</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Aldo Piras</div></div></div></div>
+          <div class="cella"><div class="cassetta blu"><span class="gan-slot"></span><div class="cavita" data-mini="impianto"></div><div class="pill">C12</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Iris Sala</div></div></div></div>
+          <div class="cella"><div class="cassetta grigia"><span class="gan-slot"></span><div class="cavita" data-mini="scheletrato"></div><div class="pill">C13</div><div class="cont"><div class="r dent">Dott. Villa</div><div class="r pz">Marco Costa</div></div></div></div>
+          <div class="cella"><div class="cassetta azzurra chiara"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C14</div><div class="cont"><div class="r dent">Dott. Greco</div><div class="r pz">Ugo Fontana</div></div></div></div>
+          <div class="cella"><div class="cassetta bianca chiara"><span class="gan-slot"></span><div class="cavita" data-mini="ponte"></div><div class="pill">C15</div><div class="cont"><div class="r dent">Dott. Ricci</div><div class="r pz">Nino Testa</div></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="drift-caption">Misura reale (WebKit=Chromium, 1366px, 6 colonne) — scarto gancio↔filo
+      per colonna: <b>+24.2</b> / +0.5 / −23.2 / +3.2 / −20.5 / +5.8 px · deriva massima <b>24.2px</b>
+      (≈½ maglia). Fonte: h5-indagine-ipad-report.md §Difetto 1, tabella misure.</div>
+  </div>
+  <div>
+    <div class="lab good">Dopo — fili ancorati alle colonne</div>
+    <div class="parete-wrap">
+      <div class="ds-parete" id="parete-dopo">
+        <div class="ds-parete-fili-verticali">
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+          <div class="filo-cella"><span class="filo-patch"></span><span class="filo-verticale"></span></div>
+        </div>
+        <div class="ds-parete-grid" id="grid-dopo">
+          <div class="cella"><div class="cassetta rossa"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C10</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Emma Riva</div></div></div></div>
+          <div class="cella"><div class="cassetta verde"><span class="gan-slot"></span><div class="cavita" data-mini="totale"></div><div class="pill">C11</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Aldo Piras</div></div></div></div>
+          <div class="cella"><div class="cassetta blu"><span class="gan-slot"></span><div class="cavita" data-mini="impianto"></div><div class="pill">C12</div><div class="cont"><div class="r dent">Dott. Longo</div><div class="r pz">Iris Sala</div></div></div></div>
+          <div class="cella"><div class="cassetta grigia"><span class="gan-slot"></span><div class="cavita" data-mini="scheletrato"></div><div class="pill">C13</div><div class="cont"><div class="r dent">Dott. Villa</div><div class="r pz">Marco Costa</div></div></div></div>
+          <div class="cella"><div class="cassetta azzurra chiara"><span class="gan-slot"></span><div class="cavita" data-mini="corona"></div><div class="pill">C14</div><div class="cont"><div class="r dent">Dott. Greco</div><div class="r pz">Ugo Fontana</div></div></div></div>
+          <div class="cella"><div class="cassetta bianca chiara"><span class="gan-slot"></span><div class="cavita" data-mini="ponte"></div><div class="pill">C15</div><div class="cont"><div class="r dent">Dott. Ricci</div><div class="r pz">Nino Testa</div></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="drift-caption"><span class="readout" id="readout-dopo">…</span></div>
+  </div>
+</div>
+
+<!-- ════════════ NOTE ════════════ -->
+<div class="note-box">
+  <h3>Note per Francesco e per il codice</h3>
+  <h4>Regola di ancoraggio scelta</h4>
+  <p>Un filo verticale <b>per centro-colonna</b> (non ai confini: i confini interni non ospitano nulla
+  che debba allinearsi, e i due bordi esterni della parete hanno già il loro filo di cornice
+  <code>.ds-parete::before/::after</code>). Il filo vive in un overlay che dichiara la <b>stessa</b>
+  <code>grid-template-columns</code> / <code>column-gap</code> / padding orizzontale della griglia vera
+  delle cassette — mai una seconda formula da tenere sincronizzata a mano: se la griglia cambia (3→4→6
+  colonne, gap fluido), l'overlay cambia con lei, sempre allineato per costruzione.</p>
+  <h4>Come si mantiene la trama fitta di oggi</h4>
+  <p>Il pattern tiled esistente (SVG light / repeating-gradient dark, passo fisso) resta invariato come
+  sfondo: sono i "fili intermedi" che oggi danno densità alla maglia, e continuano a farlo. Nel punto
+  esatto del centro di ogni colonna, una "toppa" larga quanto un passo-maglia (colore di fondo parete)
+  cancella localmente il tratto di pattern più vicino — che potrebbe cadere fuori posto fino a ±22px —
+  e un filo pulito, identico per materiale/spessore/colore ai fili di cornice già ratificati, viene
+  ridisegnato esattamente al centro. Il resto della maglia (tra una colonna e l'altra) non è toccato:
+  stessa fittezza percepita di oggi, garanzia solo dove serve.</p>
+  <h4>Cosa dovrà fare il codice (descrittivo)</h4>
+  <ul>
+    <li>Aggiungere un elemento overlay (es. <code>.ds-parete-fili-verticali</code>) dentro
+    <code>.ds-parete</code>, PRIMA di <code>.ds-parete-grid</code> nel DOM (sotto di lei nello z-index),
+    con lo stesso numero massimo di celle-filo del maggior numero di colonne supportato (6), e la stessa
+    regola <code>grid-template-columns</code> condivisa via selettore combinato con
+    <code>.ds-parete-grid</code> (mai due dichiarazioni separate).</li>
+    <li>Ogni cella-filo contiene una "toppa" (bg = <code>var(--bg)</code>, larghezza
+    <code>var(--passo-maglia)</code>) e un filo pulito (<code>var(--wire-w)</code>, stesso gradiente/
+    box-shadow di <code>.ds-parete::before/::after</code>), entrambi centrati al 50% e insettati
+    top/bottom 18px come la cornice (stesso raggio d'angolo, stesso motivo: non tagliare la curva).</li>
+    <li>In dark, il filo usa <code>var(--filo-flat)</code> (stesso alpha .09 del pattern interno, non
+    il .13 più acceso della cornice — è un filo "interno", non un bordo).</li>
+    <li>Nessuna modifica ai fili ORIZZONTALI, a <code>--track</code>, a <code>--wire-center</code>, allo
+    snap verticale (FIX-H/G6): quella garanzia resta quella che è già in produzione.</li>
+    <li>Guardia di test consigliata (come da report): un test tipo
+    <code>parete-gancio-colonna.test.ts</code> che misuri, per 3/4/6 colonne, lo scarto centro-gancio↔
+    centro-filo — deve restare 0 (o sub-pixel) per costruzione, non per coincidenza.</li>
+  </ul>
+  <h4>Compromessi onesti</h4>
+  <ul>
+    <li>I nodi di saldatura (i pallini agli incroci) non sono riprodotti sui fili ancorati in questo
+    mockup — restano solo sulla trama di fondo tiled. Aggiungerli ai fili ancorati è possibile (radiale
+    ripetuto alla quota di ogni filo orizzontale) ma non è necessario per validare la geometria; lo
+    valuto in fase di implementazione se Francesco lo vuole.</li>
+    <li>I valori di passo/gap/padding di questo mockup sono i due estremi del <code>clamp()</code> reale
+    (40/50px passo, 16–26px gap, 16–24px padding) per illustrare il concetto a tutte le larghezze
+    richieste con <code>@media</code> semplici; la produzione userà probabilmente container query sulla
+    shell fluida di questa stessa ondata — la geometria di ancoraggio (overlay = stessa
+    grid-template-columns) non cambia, cambia solo il meccanismo di breakpoint.</li>
+  </ul>
+</div>
+
+<script>
+var VIEWBOX={corona:'0 0 24 24',ponte:'0 0 44 24',totale:'0 0 40 26',impianto:'0 0 24 32',scheletrato:'0 0 40 26',generica:'0 0 24 24'};
+var SYM={
+  corona:'<path d="M4 9.5 C4 4.5 7 3 12 3 C17 3 20 4.5 20 9.5 C20 13 19 16.5 17.8 19.2 C17.2 20.6 15.4 20.5 14.9 19 L13.9 16 C13.3 14.4 10.7 14.4 10.1 16 L9.1 19 C8.6 20.5 6.8 20.6 6.2 19.2 C5 16.5 4 13 4 9.5 Z" fill="var(--mat-ceramica)"/><path d="M6.5 6.5 C7.5 5.4 9.5 4.8 12 4.8" stroke="var(--mat-bianco)" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.8"/><path d="M4 9.5 C4 13 5 16.5 6.2 19.2 C6.8 20.6 8.6 20.5 9.1 19 L10.1 16" stroke="var(--mat-ceramica-ombra)" stroke-width="1.2" fill="none"/>',
+  ponte:'<path d="M3 10 C3 5.5 5.5 4 9.5 4 C13 4 15 5.5 15 10 C15 13 14.2 16 13.3 18.4 C12.8 19.7 11.2 19.6 10.8 18.3 L10.2 16.2 C9.8 14.9 8.2 14.9 7.8 16.2 L7.2 18.3 C6.8 19.6 5.2 19.7 4.7 18.4 C3.8 16 3 13 3 10 Z" fill="var(--mat-ceramica)"/><path d="M17 10 C17 5.5 19.5 4 22 4 C24.5 4 27 5.5 27 10 C27 13.5 26.4 16.8 25.6 19 C25.2 20.2 23 20.2 22.6 19 L22 17.2 C21.7 16.2 22.3 16.2 22 17.2 L21.4 19 C21 20.2 18.8 20.2 18.4 19 C17.6 16.8 17 13.5 17 10 Z" fill="var(--mat-ceramica-chiara)"/><path d="M29 10 C29 5.5 31 4 34.5 4 C38.5 4 41 5.5 41 10 C41 13 40.2 16 39.3 18.4 C38.8 19.7 37.2 19.6 36.8 18.3 L36.2 16.2 C35.8 14.9 34.2 14.9 33.8 16.2 L33.2 18.3 C32.8 19.6 31.2 19.7 30.7 18.4 C29.8 16 29 13 29 10 Z" fill="var(--mat-ceramica)"/><path d="M14.6 8 H17.6 M26.6 8 H29.6" stroke="var(--mat-ceramica-ombra)" stroke-width="2.4" stroke-linecap="round"/>',
+  totale:'<path d="M4 24 C4 12 10 4 20 4 C30 4 36 12 36 24 L30.5 24 C30.5 14.5 26 9.5 20 9.5 C14 9.5 9.5 14.5 9.5 24 Z" fill="var(--mat-gengiva)"/><path d="M7 20.5 C8.5 13.5 13 8 20 8 C27 8 31.5 13.5 33 20.5" stroke="var(--mat-gengiva-ombra)" stroke-width="1.2" fill="none" opacity="0.7"/><circle cx="8.3" cy="21" r="2.1" fill="var(--mat-ceramica)"/><circle cx="10" cy="15.8" r="2.1" fill="var(--mat-ceramica)"/><circle cx="13.5" cy="11.7" r="2.1" fill="var(--mat-ceramica)"/><circle cx="18" cy="9.8" r="2.1" fill="var(--mat-ceramica)"/><circle cx="22.5" cy="9.9" r="2.1" fill="var(--mat-ceramica)"/><circle cx="26.8" cy="11.9" r="2.1" fill="var(--mat-ceramica)"/><circle cx="30.1" cy="15.9" r="2.1" fill="var(--mat-ceramica)"/><circle cx="31.8" cy="21" r="2.1" fill="var(--mat-ceramica)"/>',
+  impianto:'<path d="M6 7 C6 3.8 8.2 3 12 3 C15.8 3 18 3.8 18 7 C18 9.4 17.3 11.4 16.6 12.8 C16.2 13.7 7.8 13.7 7.4 12.8 C6.7 11.4 6 9.4 6 7 Z" fill="var(--mat-ceramica)"/><rect x="9.4" y="14.5" width="5.2" height="12" rx="2.2" fill="var(--mat-metallo)"/><path d="M9.4 17.5 H14.6 M9.4 20.5 H14.6 M9.4 23.5 H14.6" stroke="var(--mat-metallo-ombra)" stroke-width="1.4"/>',
+  scheletrato:'<path d="M6 23 C6 13 12 6 20 6 C28 6 34 13 34 23" stroke="var(--mat-metallo)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M10 23 C10 15.5 14.5 10.5 20 10.5 C25.5 10.5 30 15.5 30 23" stroke="var(--mat-metallo-ombra)" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M5 19 C3.8 17.5 3.8 15.5 5.2 14.2 M35 19 C36.2 17.5 36.2 15.5 34.8 14.2" stroke="var(--mat-metallo)" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M3.5 23 C3.5 20 4.5 18.5 6.5 18 C8.5 17.7 9.5 19 9.5 21 L9.2 23 Z" fill="var(--mat-ceramica)"/><path d="M36.5 23 C36.5 20 35.5 18.5 33.5 18 C31.5 17.7 30.5 19 30.5 21 L30.8 23 Z" fill="var(--mat-ceramica)"/>',
+  generica:'<path d="M12 4.5 C17.2 4.5 20.5 7.5 20.5 12 C20.5 16.5 17.2 19.5 12 19.5 C6.8 19.5 3.5 16.5 3.5 12 C3.5 7.5 6.8 4.5 12 4.5 Z" fill="var(--mat-ceramica)"/><path d="M12 4.5 C6.8 4.5 3.5 7.5 3.5 12 C3.5 16.5 6.8 19.5 12 19.5" stroke="var(--mat-ceramica-ombra)" stroke-width="1.1" fill="none" opacity="0.7"/><path d="M12 6.5 L12 11.6 M12 11.6 C10.2 12.8 8.6 13.4 7 15.6 M12 11.6 C13.8 12.8 15.4 13.4 17 15.6" fill="none" stroke="var(--mat-ceramica-ombra)" stroke-width="1.6" stroke-linecap="round"/>'
+};
+document.querySelectorAll('.cavita[data-mini]').forEach(function(el){
+  var id=el.getAttribute('data-mini'); if(!SYM[id])return;
+  el.innerHTML='<svg class="mini" aria-hidden="true" viewBox="'+VIEWBOX[id]+'">'+SYM[id]+'</svg>';
+});
+
+var G2='<svg width="28" height="22" viewBox="0 0 28 22" aria-hidden="true">'
+  +'<path d="M12 16 L12 6 C12 2 18 2 18 6.5 L18 9.5" fill="none" stroke="url(#mMetal)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>'
+  +'</svg>';
+document.querySelectorAll('.gan-slot').forEach(function(el){ el.innerHTML=G2; });
+
+/* Verifica ancoraggio: scarto centro-gancio vs centro-filo-verticale, per colonna, dal vivo nel DOM. */
+function verificaAncoraggio(wallId){
+  var wall=document.getElementById(wallId); if(!wall) return null;
+  var grid=wall.querySelector('.ds-parete-grid');
+  var filiWrap=wall.querySelector('.ds-parete-fili-verticali');
+  /* Il numero di colonne attive si legge dal DOM, non dalla stringa CSS (alcuni browser non
+     risolvono i track-size di "repeat(n,1fr)" in getComputedStyle): sono le celle-filo con
+     altezza renderizzata > 0 (le eccedenti collassano nella riga implicita 0px, v. CSS
+     .ds-parete-fili-verticali{grid-auto-rows:0}). */
+  var nCol=Array.prototype.filter.call(filiWrap.children,function(c){
+    return c.getBoundingClientRect().height>0;
+  }).length;
+  var fili=Array.prototype.slice.call(filiWrap.children,0,nCol).map(function(c){return c.querySelector('.filo-verticale');});
+  var wallRect=wall.getBoundingClientRect();
+  var fx=fili.map(function(f){var r=f.getBoundingClientRect(); return (r.left+r.width/2)-wallRect.left;});
+  var maxDev=0, n=0;
+  Array.prototype.forEach.call(grid.children,function(cella,idx){
+    var gan=cella.querySelector('.gan-slot'); if(!gan) return;
+    var r=gan.getBoundingClientRect();
+    var gx=(r.left+r.width/2)-wallRect.left;
+    var col=idx % nCol;
+    var dev=Math.abs(gx-fx[col]);
+    if(dev>maxDev) maxDev=dev;
+    n++;
+  });
+  return {nCol:nCol, n:n, maxDev:maxDev};
+}
+function aggiornaReadout(elId, wallId){
+  var el=document.getElementById(elId); if(!el) return;
+  var res=verificaAncoraggio(wallId); if(!res){ el.textContent='n/d'; return; }
+  el.textContent=res.nCol+' colonne · '+res.n+' ganci verificati · scarto massimo dal filo: '+res.maxDev.toFixed(2)+'px';
+  el.classList.toggle('warn', res.maxDev>1);
+}
+function tutto(){
+  aggiornaReadout('readout-viva','parete-viva');
+  aggiornaReadout('readout-dopo','parete-dopo');
+}
+window.addEventListener('load', tutto);
+window.addEventListener('resize', tutto);
+</script>
+</body>
+</html>
