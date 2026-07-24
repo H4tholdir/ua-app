@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetta occupata H2 — sagoma unica, fascia in pancia fissa · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   H2 — PROPOSTE cassetta OCCUPATA (per scelta di Francesco).
+   Vincoli a verbale (VINCOLANTI):
+     1. UNA sola sagoma: via il doppio regime (niente is-nome-lungo/142px).
+        Tile SEMPRE 132px, piena o vuota, nomi corti o lunghi.
+     2. Fascia dei nomi nella PANCIA, altezza SEMPRE FISSA (piena e vuota).
+     3. Nomi NON troncati di netto (niente «…» a metà nome).
+   Tensione: altezza-fissa ↔ nomi-interi. Qui 3 vie di conciliazione (A/B/C).
+   Estetica VERBATIM da ds-v3.css / mockup ratificati rev.3-rev.4 (stessi
+   gradienti, ombre, linguetta, gancetto, targa, finestra): è QUELLA cassetta,
+   cambia SOLO come si comporta la fascia.
+   ==========================================================================*/
+:root{
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#E7E1D4;font-family:var(--font);color:#1D1913}
+.doc-head{padding:30px 28px 6px;max-width:1180px}
+.doc-head h1{font-size:27px;font-weight:800;letter-spacing:-0.02em;margin:0 0 8px}
+.doc-head p{font-size:14.5px;line-height:1.55;color:#5b5347;max-width:900px;margin:0 0 6px}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 0}
+.legenda .chip{font-size:12.5px;font-weight:700;color:#4A4235;background:#F4F0E7;
+  border:1px solid #D9D1C0;border-radius:10px;padding:8px 12px;line-height:1.4;max-width:340px}
+.legenda .chip b{color:#1D1913}
+
+.panel{padding:26px 24px 40px}
+.panel.light{background:#ECE6D9}
+.panel.dark{background:#100E0B;color:#F2EEE7}
+.panel h2{font-size:20px;font-weight:800;margin:0 0 4px}
+.panel .sub{font-size:13.5px;color:#6E6457;margin:0 0 18px;max-width:760px;line-height:1.5}
+.panel.dark .sub{color:#A69B8C}
+.row{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:390px;line-height:1.45}
+.panel.dark .cap{color:#928778}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:2px;color:#6E6457}
+.panel.dark .cap em{color:#A69B8C}
+
+/* ==== PAGINA + MURO (cornice V1 ratificata, come rev.3/rev.4) ============ */
+.page{width:390px;border-radius:30px;border:1px solid #EBE4D6;background:#F4F0E7;
+  padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px}
+.panel.dark .page{background:#171411;border-color:#342E26}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.head .tondo{width:48px;height:48px;border-radius:50%;background:#FFFEFA;display:flex;
+  align-items:center;justify-content:center;font-size:19px;font-weight:800;
+  box-shadow:0 2px 3px rgba(50,40,25,.08),0 12px 22px -16px rgba(50,40,25,.4)}
+.panel.dark .head .tondo{background:#211D18;box-shadow:none;border:1px solid #342E26;color:#F2EEE7}
+.head h3{font-size:27px;font-weight:800;letter-spacing:-0.02em}
+.cerca{display:flex;align-items:center;gap:10px;background:#FFFEFA;border-radius:24px;
+  padding:13px 16px;font-size:15px;color:#7B6A59;
+  box-shadow:0 2px 3px rgba(50,40,25,.06),0 14px 24px -18px rgba(50,40,25,.4)}
+.panel.dark .cerca{background:#211D18;box-shadow:none;border:1px solid #342E26;color:#928778}
+.wall{
+  --passo:44px; --wire-w:3px;
+  position:relative;border-radius:18px;padding:24px 10px 16px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:44px 44px;background-color:#F4F0E7;
+}
+.panel.dark .wall{
+  --filo-flat:rgba(255,255,255,.09);
+  background:repeating-linear-gradient(180deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),repeating-linear-gradient(90deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),#171411;
+}
+.wall::before,.wall::after{content:'';position:absolute;top:18px;bottom:18px;width:3px;border-radius:1.5px;
+  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);box-shadow:0 0 2px rgba(42,34,20,.42)}
+.wall::before{left:2px}
+.wall::after{right:2px}
+.panel.dark .wall::before,.panel.dark .wall::after{background:rgba(255,255,255,.13);box-shadow:none}
+/* griglia 3 colonne come la parete vera (ds-v3.css .ds-parete-grid). minmax(0,1fr)
+   = colonne STRETTAMENTE uguali: senza lo `0`, `1fr` vale `minmax(auto,1fr)` e la
+   colonna col nome più lungo cresce sul min-content (occupate larghe il doppio).
+   Nella parete reale lo stesso effetto lo dà il wrapper `.ds-cella-riordino`
+   (min-width:0) attorno alla cassetta — qui i tile sono grid-item diretti, quindi
+   lo `0` va messo sulla traccia. TUTTI i tile identici in larghezza. */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;margin-top:12px}
+
+/* ==== CASSETTA — BASE VERBATIM (gradienti/ombre/linguetta/gancetto/targa) = */
+.k{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:0;
+  border:none;border-radius:10px 10px 12px 12px;padding:0;min-height:132px;height:132px;
+  color:#fff;font-size:11.5px;
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28)}
+.panel.dark .k{box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4)}
+.k::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:26px;height:10px;border-radius:4px 4px 0 0;background:inherit;filter:brightness(.85)}
+.gan{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:28px;height:22px;z-index:2}
+.verde{background:linear-gradient(180deg,#2E9C55,#166B39)}
+.grigia{background:linear-gradient(180deg,#9A948E,#6E675F)}
+.bianca{background:linear-gradient(180deg,#FFFEFA,#E4DCCB)}
+.gialla{background:linear-gradient(180deg,#D8D820,#A8A800)}
+.rosa{background:linear-gradient(180deg,#D77BC1,#A94A93)}
+.turchese{background:linear-gradient(180deg,#28CCC9,#0E9C9A)}
+.rossa{background:linear-gradient(180deg,#E8323B,#C3000F)}
+.blu{background:linear-gradient(180deg,#2E6FD0,#174A9C)}
+.arancio{background:linear-gradient(180deg,#F0913E,#C86414)}
+.fin{position:absolute;left:6px;right:6px;top:8px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+.fin svg{height:58%;width:auto}
+/* fascia: base comune. L'ALTEZZA è FISSA (height, non min-height) e la fissa
+   ogni opzione qui sotto; il contenuto è centrato → piena e vuota IDENTICHE. */
+.fascia{position:relative;z-index:1;margin:0 4px 4px;border-radius:4px 4px 9px 9px;
+  padding:5px 8px 6px;background:rgba(0,0,0,.28);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.k.is-chiara .fascia{background:rgba(29,25,19,.14)}
+/* targa: segnale di stato BINARIO — VERBATIM da ds-v3.css (~479 / ~577):
+   OCCUPATA = targhetta piena bianca · LIBERA = anello. La sagoma (struttura) è
+   unica, ma la targa resta il segnale libera/occupata (precisazione Francesco
+   25/07, vincolante: l'uniformità G10 è SOLO strutturale, non tocca la targa). */
+.targa{align-self:center;max-width:8ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:rgba(255,255,255,.92);border-radius:6px;padding:1px 8px 2px;
+  font-size:12.5px;font-weight:800;color:#1D1913;font-variant-numeric:tabular-nums;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.k.is-libera .targa{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);color:rgba(255,255,255,.9)}
+.k.is-libera.is-chiara .targa{box-shadow:inset 0 0 0 2px rgba(29,25,19,.4);color:rgba(29,25,19,.7)}
+.cont{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.28;
+  width:100%;min-width:0;
+  color:rgba(255,255,255,.95);text-shadow:0 1px 1px rgba(0,0,0,.3)}
+/* nomi: MAI «…» netto — soft-fade sul bordo (mask) su TUTTE le opzioni; i nomi
+   che ci stanno non ne sono toccati (il testo non arriva al bordo). */
+.dent{font-weight:400;opacity:.94;width:min(100%,96px);
+  -webkit-mask-image:linear-gradient(90deg,#000 82%,transparent 99%);mask-image:linear-gradient(90deg,#000 82%,transparent 99%)}
+.paz{font-weight:700;width:min(100%,96px);
+  -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent 99%);mask-image:linear-gradient(90deg,#000 84%,transparent 99%)}
+.k.is-chiara .cont{color:rgba(29,25,19,.85);text-shadow:none}
+.k.is-chiara .dent{opacity:.7}
+.libera-txt{opacity:.6;font-weight:700}
+.nuova{min-height:132px;height:132px;border-radius:12px;border:2.5px dashed rgba(90,78,56,.75);
+  background:rgba(244,240,231,.82);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;color:#4A4235;font-weight:800;font-size:13px}
+.nuova .piu{font-size:24px;line-height:1}
+.panel.dark .nuova{border-color:rgba(255,255,255,.4);background:rgba(33,29,24,.85);color:#F2EEE7}
+
+/* ========================================================================= */
+/*  OPZIONE A — Fascia fissa 2 righe + ABBREVIAZIONE intelligente del clinico */
+/*  Finestra 52px · fascia FISSA 58px · clinico 1 riga abbreviata · pz 1 riga */
+/* ========================================================================= */
+.optA .fin{height:52px}
+.optA .fascia{height:58px}
+.optA .dent{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.optA .paz{white-space:nowrap;overflow:hidden;text-overflow:clip}
+
+/* ========================================================================= */
+/*  OPZIONE B — Fascia fissa ALTA + finestra fissa piccola (nomi a capo)      */
+/*  Finestra 40px · fascia FISSA 72px · clinico va a capo max 2 righe · pz 1  */
+/* ========================================================================= */
+.optB .fin{height:40px}
+.optB .fascia{height:72px}
+.optB .dent{white-space:normal;overflow-wrap:break-word;word-break:normal;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-size:10px;line-height:1.16;max-width:104px;
+  -webkit-mask-image:none;mask-image:none}
+.optB .paz{white-space:nowrap;overflow:hidden;text-overflow:clip;margin-top:1px}
+
+/* ========================================================================= */
+/*  OPZIONE C — Fascia fissa 2 righe + clinico che SCALA (auto-fit font)      */
+/*  Finestra 52px · fascia FISSA 58px · font clinico si riduce a misura · pz  */
+/*  (in React la misura la fa il componente; qui simulata per lunghezza)      */
+/* ========================================================================= */
+.optC .fin{height:52px}
+.optC .fascia{height:58px}
+.optC .dent{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.optC .dent.fit-m{font-size:9.5px}
+.optC .dent.fit-s{font-size:8px;letter-spacing:-0.1px}
+.optC .paz{white-space:nowrap;overflow:hidden;text-overflow:clip}
+
+/* ==== PROVA ALTEZZA — riga dedicata con guida a 132px ==================== */
+.proof{position:relative;display:flex;gap:14px;align-items:flex-start;
+  padding:14px 16px 18px;border-radius:16px;background:rgba(255,255,255,.5);
+  border:1px solid #DAD2C1}
+.panel.dark .proof{background:rgba(255,255,255,.04);border-color:#342E26}
+.proof .slot{width:100px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.proof .slot .k{width:100px;min-width:0}
+.proof .lbl{font-size:11px;font-weight:700;color:#7B6A59}
+.panel.dark .proof .lbl{color:#928778}
+.proof .guide{position:absolute;left:12px;right:12px;top:calc(14px + 132px);height:0;
+  border-top:2px dashed #C8583E;pointer-events:none}
+.proof .guide span{position:absolute;right:0;top:-9px;font-size:10.5px;font-weight:800;
+  color:#C8583E;background:#ECE6D9;padding:0 4px}
+.panel.dark .proof .guide span{background:#100E0B}
+/* caso limite isolato — tile a larghezza vera */
+.lim-wrap{width:100px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.lim-wrap .k{width:100px;min-width:0}
+.lim-wrap .lbl{font-size:11px;font-weight:700;color:#7B6A59;text-align:center;max-width:150px;line-height:1.35}
+.panel.dark .lim-wrap .lbl{color:#928778}
+
+/* ==== NOTE / confronto =================================================== */
+.notes{padding:34px 28px 60px;max-width:1000px}
+.notes h2{font-size:22px;font-weight:800;margin:0 0 16px}
+.opt-note{background:#F4F0E7;border:1px solid #D9D1C0;border-radius:14px;padding:18px 20px;margin:0 0 16px}
+.opt-note h3{font-size:16.5px;font-weight:800;margin:0 0 8px}
+.opt-note .tag{display:inline-block;font-size:11.5px;font-weight:800;color:#fff;background:#4A4235;
+  border-radius:6px;padding:2px 8px;margin-right:8px;vertical-align:middle}
+.opt-note p{font-size:13.5px;line-height:1.6;color:#3f382d;margin:6px 0}
+.opt-note .win{color:#166B39;font-weight:700}
+.opt-note .lose{color:#B23A1E;font-weight:700}
+.opt-note ul{margin:6px 0;padding-left:20px;font-size:13.5px;line-height:1.6;color:#3f382d}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>La cassetta occupata — una sola sagoma, fascia in pancia sempre uguale</h1>
+  <p>Come chiesto: la cassetta ha <b>una forma sola</b> — <b>stessa larghezza e stessa altezza
+  (132px) di una cassetta libera</b>, che sia piena o vuota, con nomi corti o lunghi. La
+  <b>targhetta dei nomi</b> vive nella pancia (come le libere) e ha <b>altezza fissa</b>: piena e
+  vuota sono identiche a colpo d'occhio. I nomi <b>non si tagliano di netto</b>.</p>
+  <p>C'è una tensione vera: dentro la larghezza stretta di una libera (una colonna su tre, ~100px)
+  ci sta poco. Qui <b>tre modi</b> di far entrare i nomi <b>senza allargare la cassetta</b> — scegli
+  quello che ti convince (o un mix). Ogni opzione è mostrata <b>piena nomi-corti · piena
+  nomi-lunghi · vuota</b> nel muro vero a 390px (3 colonne, tutte le cassette identiche), più la
+  <b>prova d'altezza</b> e un <b>caso limite</b>, in chiaro e scuro. Nel muro standard (paziente =
+  cognome + iniziale) <b>nessun nome è tagliato</b>.</p>
+  <div class="legenda">
+    <div class="chip"><b>A — Abbreviazione:</b> targhetta a 2 righe fisse; il clinico si accorcia
+      con criterio («Studi Medici Di Santi Gennaro s.r.l.» → «Di&nbsp;Santi&nbsp;G.») per stare su una riga; paziente intero.</div>
+    <div class="chip"><b>B — Va a capo:</b> targhetta fissa più alta; il clinico va a capo (max 2
+      righe) senza spezzarsi; la finestra resta più piccola per lasciarle spazio.</div>
+    <div class="chip"><b>C — Il testo si adatta:</b> targhetta a 2 righe fisse; il clinico si
+      rimpicciolisce quel tanto che basta per starci tutto, senza cambiarlo né tagliarlo.</div>
+  </div>
+</div>
+
+<div id="app"></div>
+
+<div class="notes">
+  <h2>Come ogni opzione scioglie la tensione (e cosa cede)</h2>
+
+  <div class="opt-note">
+    <h3><span class="tag">A</span>Fascia fissa a 2 righe + abbreviazione intelligente del clinico</h3>
+    <p><b>Come concilia:</b> la targhetta è bloccata su due righe fisse (una per il clinico, una
+    per il paziente). Il clinico entra sempre in una riga perché, quando è lungo, lo
+    <b>accorciamo con criterio</b> tenendo le parole-chiave e puntando le altre
+    («Studi Medici Di Santi Gennaro s.r.l.» → «Di&nbsp;Santi&nbsp;G.»). Il paziente
+    resta sempre intero (cognome + iniziale). Piena e vuota hanno la stessa identica pancia.</p>
+    <p><span class="win">Si guadagna:</span> sagoma perfettamente stabile, lettura pulita su una
+    riga, nessun taglio. <span class="lose">Si perde:</span> l'abbreviazione <b>altera il
+    testo</b> — il nome per esteso non si legge tutto, e serve una <b>regola di abbreviazione
+    condivisa</b> abbastanza aggressiva (sulle cassette da ~95px del telefono lo spazio utile è
+    ~12 caratteri: si tiene il cognome-studio + iniziale, si puntano «Studi», «Medici», «s.r.l.»).</p>
+  </div>
+
+  <div class="opt-note">
+    <h3><span class="tag">B</span>Fascia fissa alta + finestra più piccola (il nome va a capo)</h3>
+    <p><b>Come concilia:</b> la targhetta riserva <b>sempre</b> lo spazio del caso peggiore
+    (clinico su due righe + paziente su una) e resta di quell'altezza anche quando è vuota o coi
+    nomi corti (contenuto centrato). Il clinico <b>va a capo tra le parole</b>, mai spezzato a
+    metà. Per far stare tutto senza allungare la cassetta, la <b>finestra è più piccola</b> in via
+    permanente. Questa è la lettura onesta del tuo «fascia fissa + cavità variabile»: perché la
+    fascia sia <i>davvero</i> sempre uguale, è la finestra che cede spazio una volta per tutte.</p>
+    <p><span class="win">Si guadagna:</span> il nome resta <b>intero e reale</b>, nessuna
+    abbreviazione, nessun rimpicciolimento. <span class="lose">Si perde:</span> la finestra
+    (la miniatura del lavoro) è più piccola per tutte le cassette, e sui nomi corti la targhetta
+    ha un po' di aria vuota (il prezzo dell'altezza fissa alta).</p>
+    <p style="font-size:12.5px;color:#6b5">⚠️ <b>Limite onesto alla larghezza vera (~100px):</b> due
+    righe da 10px tengono un clinico fino a ~26 caratteri (es. «Studio Di Santi»). Un nome ancora
+    più lungo («Studi Medici Di Santi Gennaro s.r.l.») sforerebbe la <b>terza</b> riga: lì o si
+    accetta la sfumatura morbida in fondo, o serve comunque un pizzico di abbreviazione. B è la
+    scelta migliore per nomi <b>medio-lunghi</b>, non per quelli estremi.</p>
+  </div>
+
+  <div class="opt-note">
+    <h3><span class="tag">C</span>Fascia fissa a 2 righe + il clinico che si adatta (auto-fit)</h3>
+    <p><b>Come concilia:</b> stessa targhetta a due righe fisse dell'opzione A, ma invece di
+    accorciare il testo lo <b>rimpiccioliamo</b> quel tanto che serve per farlo stare intero su una
+    riga (il componente misura e sceglie il corpo giusto, da 11,5px fino a ~8px). Niente
+    abbreviazioni, niente parole tagliate; solo nei nomi lunghissimi, arrivati al corpo minimo, il
+    testo <b>sfuma dolcemente</b> sul bordo invece di tagliarsi con i puntini. Paziente intero.</p>
+    <p><span class="win">Si guadagna:</span> il testo resta <b>letterale e completo</b> (non lo
+    cambiamo), sagoma stabile. <span class="lose">Si perde:</span> i nomi molto lunghi diventano
+    <b>piccoli</b> (fino a ~8px) e la dimensione del clinico non è più uniforme tra cassette
+    diverse (chi ha il nome lungo lo legge più minuto).</p>
+    <p style="font-size:12.5px;color:#6b5">⚠️ <b>Limite onesto alla larghezza vera (~100px):</b> a
+    corpo minimo (~8px) una riga tiene ~14-15 caratteri. Un clinico oltre quella soglia
+    («Studi Medici Di Santi Gennaro s.r.l.») diventerebbe <b>illeggibile</b> se rimpicciolito fino
+    a farlo stare: lì subentra la sfumatura morbida. C è ottima per nomi <b>corti e medi</b>; sui
+    nomi estremi il testo o è minuscolo o sfuma.</p>
+  </div>
+
+  <div class="opt-note" style="background:#EFE8DA">
+    <h3>Nota comune a tutte e tre + un dubbio da chiarire</h3>
+    <ul>
+      <li><b>Sagoma unica garantita:</b> tile fissa a 132px, <b>stessa larghezza di una libera</b>
+        (misurato: occupate e libere identiche al pixel in tutte e tre le opzioni) e fascia ad
+        altezza fissa (CSS <code>height</code>, non <code>min-height</code>) — sparisce del tutto il
+        vecchio doppio regime <code>is-nome-lungo</code>/142px. La riga «prova altezza» lo mostra:
+        piena e vuota toccano la stessa linea rossa a 132px.</li>
+      <li><b>Nel muro standard nessun nome è tagliato:</b> con il paziente in forma cognome +
+        iniziale, ogni cassetta del muro mostra i nomi <b>interi</b>. La <b>sfumatura morbida</b>
+        (mai i tre puntini) compare <b>solo</b> nel caso limite isolato qui sopra — il paziente
+        scritto per esteso.</li>
+      <li><b>Targa = segnale di stato</b> (piena bianca per l'occupata, ad anello per la libera) e
+        <b>finestra/gancetto/gradienti</b> restano IDENTICI alla cassetta che hai già approvato:
+        la sagoma è unica solo nella struttura, cambia solo il comportamento della fascia.</li>
+      <li class="lose"><b>Dubbio da sciogliere:</b> «paziente sempre intero» — nei mockup ratificati
+        il paziente è <b>cognome + iniziale</b> («ROSSI M.», «ESPOSITO I.»): così sta sempre in una
+        riga. Se invece intendi il <b>nome completo</b> («Esposito Immacolata Concetta»), su una
+        cassetta da 95px non può stare intero su una riga in nessuna delle tre opzioni — lì servirà
+        comunque la sfumatura (mostrata in una cassetta d'esempio per opzione). Confermami quale dei
+        due intendi.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const TOOTH = `<svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg>`;
+const MASK = `<svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg>`;
+const GAN = (id)=>`<svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#${id})" stroke-width="4" stroke-linecap="round"/></svg>`;
+
+// una cassetta. o = {opt, color, chiara, targa, mini, dent, paz, dentCls, libera}
+function K(o){
+  const cls = ['k', 'opt'+o.opt, o.color];
+  if(o.chiara) cls.push('is-chiara');
+  if(o.libera) cls.push('is-libera');
+  const gid = o.dark ? 'm2' : 'm1';
+  const mini = o.libera ? '' : (o.mini==='mask'?MASK:TOOTH);
+  let body;
+  if(o.libera){
+    body = `<div class="fascia"><span class="targa">${o.targa}</span><div class="cont"><span class="libera-txt">libera</span></div></div>`;
+  } else {
+    const dentCls = 'dent' + (o.dentCls? ' '+o.dentCls : '');
+    const pazCls  = 'paz'  + (o.pazCls? ' '+o.pazCls : '');
+    body = `<div class="fascia"><span class="targa">${o.targa}</span><div class="cont"><span class="${dentCls}">${o.dent}</span><span class="${pazCls}">${o.paz}</span></div></div>`;
+  }
+  return `<div class="${cls.join(' ')}">${GAN(gid)}<div class="fin">${mini}</div>${body}</div>`;
+}
+
+// Il CLINICO lungo, gestito dal meccanismo di OGNI opzione DENTRO la larghezza
+// vera di una cassetta (~100px, come le libere). Nessun taglio nel muro standard:
+//  A abbrevia («Studi Medici Di Santi Gennaro s.r.l.» → «Di Santi G.», ≤~12 car.);
+//  B lascia il nome INTERO ma lo manda a capo (2 righe che ci stanno);
+//  C tiene il testo letterale e riduce il corpo (fit-m ≈ 9,5px) per una riga sola.
+function verdeLong(opt){
+  return opt==='A' ? {t:'Di Santi G.', c:''}
+       : opt==='B' ? {t:'Studio Di Santi Rossi', c:''}
+       :             {t:'Studi Di Santi', c:'fit-m'};
+}
+
+// MURO STANDARD — solo nomi che l'opzione regge PULITI a larghezza vera
+// (paziente = cognome + iniziale): nessun tile deve mostrare testo tagliato/sfumato.
+function wallCassette(opt, dark){
+  const L = verdeLong(opt);
+  return [
+    K({opt,dark,color:'gialla',chiara:true,targa:'C2',mini:'tooth',dent:'Studio Sud',paz:'ROSSI M.'}),
+    K({opt,dark,color:'rosa',libera:true,targa:'C9'}),
+    K({opt,dark,color:'turchese',libera:true,targa:'C5'}),
+    K({opt,dark,color:'verde',targa:'C7',mini:'tooth',dent:L.t,paz:'ESPOSITO I.',dentCls:L.c}),
+    K({opt,dark,color:'blu',targa:'C3',mini:'mask',dent:'Dr. Rossi',paz:'BARALE S.'}),
+    K({opt,dark,color:'bianca',chiara:true,targa:'C21',mini:'tooth',dent:'Studio Alba',paz:'GRECO L.'}),
+    K({opt,dark,color:'arancio',targa:'C8',mini:'mask',dent:'Studio Neri',paz:'RUSSO A.'}),
+    K({opt,dark,color:'grigia',libera:true,targa:'C12'}),
+    `<div class="nuova"><span class="piu">+</span>Nuova<br>cassetta</div>`,
+  ].join('');
+}
+
+function wall(opt, dark){
+  return `<div class="page">
+    <div class="head"><div class="tondo">‹</div><h3>Le cassette</h3><div class="tondo">☰</div></div>
+    <div class="cerca">⌕&nbsp; Cerca una cassetta o un lavoro…</div>
+    <div class="wall"><div class="grid">${wallCassette(opt,dark)}</div></div>
+  </div>`;
+}
+
+// prova altezza: vuota / piena-corta / piena-lunga, con guida a 132px (larghezza vera)
+function proof(opt, dark){
+  const L = verdeLong(opt);
+  return `<div class="proof">
+    <div class="guide"><span>132px</span></div>
+    <div class="slot"><div class="lbl">vuota</div>${K({opt,dark,color:'turchese',libera:true,targa:'C5'})}</div>
+    <div class="slot"><div class="lbl">piena · corto</div>${K({opt,dark,color:'gialla',chiara:true,targa:'C2',mini:'tooth',dent:'Studio Sud',paz:'ROSSI M.'})}</div>
+    <div class="slot"><div class="lbl">piena · lungo</div>${K({opt,dark,color:'verde',targa:'C7',mini:'tooth',dent:L.t,paz:'ESPOSITO I.',dentCls:L.c})}</div>
+  </div>`;
+}
+
+// CASO LIMITE (isolato) — clinico gestito dall'opzione + PAZIENTE per esteso:
+// qui, e SOLO qui, il paziente non ci sta e sfuma sul bordo → domanda a Francesco.
+function limite(opt, dark){
+  const L = verdeLong(opt);
+  return `<div class="lim-wrap">
+    <div class="lbl">caso limite · paziente per esteso</div>
+    ${K({opt,dark,color:'verde',targa:'C7',mini:'tooth',dent:L.t,paz:'Esposito Immacolata Concetta',dentCls:L.c})}
+  </div>`;
+}
+
+const OPTS = [
+  {id:'A', title:'Opzione A — Abbreviazione intelligente del clinico',
+   sub:'Targhetta a 2 righe fisse. Il clinico lungo si accorcia con criterio per stare su una riga; il paziente resta intero (cognome + iniziale). Finestra piena. Guarda la prova d’altezza: vuota e piena toccano la stessa linea.'},
+  {id:'B', title:'Opzione B — Il nome va a capo (finestra più piccola)',
+   sub:'Targhetta fissa più alta che riserva sempre lo spazio del caso peggiore. Il clinico va a capo tra le parole (max 2 righe), mai spezzato. La finestra è più piccola per tutte, sempre.'},
+  {id:'C', title:'Opzione C — Il testo del clinico si adatta (auto-fit)',
+   sub:'Targhetta a 2 righe fisse. Il clinico si rimpicciolisce quel tanto che basta per starci intero, senza cambiarlo né tagliarlo; solo i nomi lunghissimi sfumano sul bordo. Paziente intero.'},
+];
+
+let html = '';
+for(const o of OPTS){
+  // LIGHT
+  html += `<div class="panel light">
+    <h2>${o.title}</h2>
+    <div class="sub">${o.sub} — <b>Light</b></div>
+    <div class="row">
+      <div class="cell">${wall(o.id,false)}<div class="cap">Muro reale 390px, 3 colonne — TUTTE le cassette identiche in larghezza; nessun nome tagliato</div></div>
+      <div class="cell" style="align-self:center;gap:22px">
+        <div>${proof(o.id,false)}<div class="cap" style="margin-top:10px">Prova d’altezza — stessa sagoma 132px, fascia identica</div></div>
+        <div>${limite(o.id,false)}<div class="cap">Solo qui il paziente per esteso sfuma (domanda a Francesco)</div></div>
+      </div>
+    </div>
+  </div>`;
+  // DARK
+  html += `<div class="panel dark">
+    <div class="sub" style="margin-top:0"><b>${o.title} — Dark</b></div>
+    <div class="row">
+      <div class="cell">${wall(o.id,true)}<div class="cap">Muro reale 390px — dark</div></div>
+      <div class="cell" style="align-self:center;gap:22px">
+        <div>${proof(o.id,true)}<div class="cap" style="margin-top:10px">Prova d’altezza — dark</div></div>
+        <div>${limite(o.id,true)}<div class="cap">Caso limite — dark</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+document.getElementById('app').innerHTML = html;
+
+// gradienti gancetto (light m1 / dark m2), iniettati una volta
+const defs = document.createElementNS('http://www.w3.org/2000/svg','svg');
+defs.setAttribute('width','0');defs.setAttribute('height','0');defs.style.position='absolute';
+defs.innerHTML = `<defs>
+  <linearGradient id="m1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1ECE1"/><stop offset=".5" stop-color="#C4BBAC"/><stop offset="1" stop-color="#8B8275"/></linearGradient>
+  <linearGradient id="m2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A443B"/><stop offset=".5" stop-color="#39332C"/><stop offset="1" stop-color="#252017"/></linearGradient>
+</defs>`;
+document.body.appendChild(defs);
+</script>
+</body>
+</html>
