@@ -17,21 +17,28 @@
 //            redirect a `/cassette`: `HomeDesktop` (fratello di questo componente, montato
 //            SEMPRE da `dashboard/page.tsx`) ignora questa preferenza — è mobile-only, spenta
 //            da CSS a ≥1024px — e un redirect server-side la spegnerebbe anche lì.
-// In ogni forma del pager il TastoPiù è UNO e sta nel piede, fuori dal pager — MA sparisce
-// quando la stanza attiva è la Parete (§3 dell'addendum: «niente TastoPiù nel lato cassette»).
+// In ogni forma del pager il TastoPiù è UNO e sta nel piede, fuori dal pager. Nel pager, durante
+// lo swipe verso la Parete, NON sparisce più di colpo (la lamentela d'origine del ri-collaudo
+// #3): capitolo H4c (decisione 0c37f25, demo animata ebf4edb) — coreografia C2 «il tasto si
+// ritira», v. i commenti su `piedeRef`/`progressoSwipe` più sotto. Resta invariato COSA decide
+// quando il piede è interattivo (§3 dell'addendum: `stanzaAttiva === 'parete'`, sincronizzata da
+// `onStanzaChange` — v. sotto) — cambia solo COME appare/scompare nel frattempo.
 // Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette che questo
 // ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { animate, useMotionValue } from 'motion/react'
 import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { StrisciaStato } from '@/components/ds/StrisciaStato'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { initSuoni } from '@/design-system/v3/sound'
+import { molla, useReducedMotion } from '@/design-system/v3/motion'
 import { tipografia } from '@/design-system/v3/tokens'
 import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
+import { bersaglioRilascio, mappaPiedeSwipe } from './piede-swipe'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
 import type { PileHome } from '@/lib/dashboard/pile-home'
@@ -92,6 +99,68 @@ export function HomeV3(props: {
   // stato — v. sotto).
   const [stanzaAttiva, setStanzaAttiva] = useState<StanzaHome>(vista.tipo === 'pager' ? vista.iniziale : 'pile')
 
+  // ── Capitolo H4c — piede C2 «il tasto si ritira» (decisione 0c37f25, demo animata ebf4edb,
+  // docs/design/mockups/2026-07-25-piede-demo-c1-vs-c2.html ramo `c2` di `render()`) ──────────
+  // `stanzaAttiva` sopra resta l'UNICA fonte per «il piede è interattivo o no» (COSA, invariato);
+  // qui vive SOLO il COME appare/scompare: una motion value di progress (0 = Pile, 1 = Parete),
+  // aggiornata 1:1 dallo scroll nativo del pager via `onProgressoSwipe` (StanzePager.tsx, che
+  // legge `scrollLeft`/`clientWidth` — mai un secondo sistema di trascinamento). Niente
+  // `useState`/re-render per tick di scroll (pattern `useDragRiordino.ts` §3.4, «niente
+  // re-render per pixel di movimento»): le tre grandezze derivate (`mappaPiedeSwipe`, core puro
+  // in `piede-swipe.ts`) si scrivono DIRETTAMENTE come custom property CSS su `.foot` via ref —
+  // `stanzaPile`/`StanzePager` non ri-renderizzano mai per un frame del gesto.
+  const ridotto = useReducedMotion()
+  const piedeRef = useRef<HTMLDivElement | null>(null)
+  const progressoSwipe = useMotionValue(0)
+  // `true` SOLO fra `onRilascioSwipe` (parte l'assestamento con `molla.press`) e il suo
+  // `onComplete` (o un nuovo `onPresaSwipe`, se il dito riafferra prima che l'assestamento
+  // finisca): mentre è vero, `onProgressoSwipe` ignora nuovi tick di scroll — altrimenti lo
+  // `scrollLeft` nativo (che continua a muoversi durante lo snap-back del browser) e la molla
+  // scriverebbero entrambi sulla STESSA motion value nello stesso istante.
+  const rilasciandoRef = useRef(false)
+  const controlliRilascioRef = useRef<ReturnType<typeof animate> | null>(null)
+
+  useEffect(() => {
+    const applica = (p: number) => {
+      const nodo = piedeRef.current
+      if (!nodo) return
+      const stile = mappaPiedeSwipe(p, ridotto)
+      nodo.style.setProperty('--piede-etichetta-opacita', String(stile.etichettaOpacita))
+      nodo.style.setProperty('--piede-tondo-scala', String(stile.tondoScala))
+      nodo.style.setProperty('--piede-tondo-opacita', String(stile.tondoOpacita))
+    }
+    applica(progressoSwipe.get())
+    return progressoSwipe.on('change', applica)
+  }, [progressoSwipe, ridotto])
+
+  function onProgressoSwipe(p: number) {
+    if (rilasciandoRef.current) return
+    progressoSwipe.set(p)
+  }
+  function onPresaSwipe() {
+    // Il dito riafferra: un eventuale assestamento in corso da un rilascio precedente non deve
+    // più scrivere sopra i tick di scroll che stanno per arrivare.
+    controlliRilascioRef.current?.stop()
+    controlliRilascioRef.current = null
+    rilasciandoRef.current = false
+  }
+  function onRilascioSwipe() {
+    const bersaglio = bersaglioRilascio(progressoSwipe.get())
+    if (ridotto) {
+      // prefers-reduced-motion: set diretto, MAI `animate()` — stessa regola di
+      // `useDragRiordino.ts` (`reduced() ? ghostScale.set(...) : animate(...)`).
+      progressoSwipe.set(bersaglio)
+      return
+    }
+    rilasciandoRef.current = true
+    controlliRilascioRef.current = animate(progressoSwipe, bersaglio, {
+      ...molla.press,
+      onComplete: () => {
+        rilasciandoRef.current = false
+      },
+    })
+  }
+
   // La stanza Pile: esattamente la home di sempre (saluto · StrisciaStato · 4 pile). Vive in
   // una variabile perché il pager la riceve come figlio, ma il contenuto non cambia di una
   // virgola fra le tre forme.
@@ -142,8 +211,20 @@ export function HomeV3(props: {
 
   // Il piano fisso: UN solo TastoPiù, identico in ogni forma della home e in entrambe le
   // stanze (§3.3 regola 5). Sta FUORI dal pager, così non scorre e non si sdoppia a metà snap.
+  // Capitolo H4c — `ref`/le tre custom property CSS (v. l'effect sopra) pilotano l'aspetto
+  // durante lo swipe SOLO nella forma pager (lì le proprietà cambiano davvero, v. sotto); nelle
+  // altre forme restano ai default dichiarati nel CSS (piede sempre pieno, invariato). `inert`/
+  // `aria-hidden` restano legati a `stanzaAttiva` (COSA è interattivo, invariato §3
+  // dell'addendum) — nella forma «solo pile» `stanzaAttiva` resta per costruzione `'pile'` (v.
+  // l'inizializzazione sopra), quindi qui non cambia mai nulla per quella forma: nessun tocco
+  // comportamentale fuori dal pager (§ vincoli del brief H4c).
   const piede = (
-    <div className="foot">
+    <div
+      ref={piedeRef}
+      className="foot"
+      aria-hidden={stanzaAttiva === 'parete'}
+      inert={stanzaAttiva === 'parete'}
+    >
       <TastoPiu compatto onClick={() => router.push('/lavori/nuovo')} />
     </div>
   )
@@ -219,6 +300,27 @@ export function HomeV3(props: {
            .superpowers/sdd/fixB-report.md per i numeri prima/dopo. */
         .ua-home .foot { margin-top: clamp(4px, 0.9cqh, 8px); display: flex; flex-direction: column; align-items: center; gap: 8px;
                          padding-bottom: env(safe-area-inset-bottom); }
+        /* Capitolo H4c (decisione 0c37f25, demo ebf4edb) — coreografia C2 «il tasto si ritira».
+           Le tre custom property sono scritte via ref DIRETTAMENTE sul nodo .foot (v. l'effect
+           su piedeRef/progressoSwipe sopra, NON uno style React per pixel di gesto — stesso
+           motivo per cui useDragRiordino.ts scrive le sue motion value senza passare da
+           setState): il default qui sotto (1) è quanto vede ogni forma della home DIVERSA dal
+           pager (lì le custom property non cambiano mai — nessun listener le scrive), quindi il
+           piede vi resta sempre pieno, invariato (vincoli del brief H4c, «il gesto esiste solo
+           dove esiste lo swipe»). TastoPiu.tsx NON viene toccato: le due classi target
+           (.ds-tastopiu = il tondo vero, il suo motion.button; l'ultimo span figlio del suo
+           wrapper = l'etichetta «Nuovo lavoro») sono già la superficie CSS pubblica del
+           componente, la cascata delle custom property arriva a loro attraverso .foot senza
+           che debbano saperlo. */
+        .ua-home .foot .ds-tastopiu {
+          transform: scale(var(--piede-tondo-scala, 1));
+          opacity: var(--piede-tondo-opacita, 1);
+          will-change: transform, opacity;
+        }
+        .ua-home .foot > div > span:last-child {
+          opacity: var(--piede-etichetta-opacita, 1);
+          will-change: opacity;
+        }
         /* Collaudo R1 (P3): il no-scroll resta l'intento (§3.3), ma quando il contenuto
            sfora il viewport la home DEVE poter scorrere invece di tagliare le pile sotto il
            TastoPiù (collaudo device 22/07). Task 14 (D8) SPOSTA dove vive l'overflow-y:auto,
@@ -249,19 +351,26 @@ export function HomeV3(props: {
               `piede` NON si passa più come `footer` a `StanzePager` (che lo renderebbe dentro
               il proprio ritorno, quindi dentro `.corpo`) — resta un fratello fuori, fisso in
               fondo, così il TastoPiù non rimpicciolisce mai (v. commento sul blocco style).
-              QA device T15 (addendum 24/07, punto 3) — ORA il piede sparisce anche quando la
-              stanza attiva è la Parete (`onStanzaChange` tiene `stanzaAttiva` sincronizzata col
-              pager): resta un fratello fuori da `.corpo`, il TastoPiù non rimpicciolisce mai
-              nemmeno mentre appare/sparisce. */}
+              QA device T15 (addendum 24/07, punto 3) — quando la stanza attiva è la Parete il
+              piede resta interattivamente assente (`inert`/`aria-hidden` su `stanzaAttiva`,
+              invariato). Capitolo H4c (supera la nota «sparisce di colpo» qui sopra) — il piede
+              ORA resta SEMPRE montato in questa forma (mai più smontato/rimontato a ogni cambio
+              di stanza): è la coreografia C2 su `--piede-*` (v. l'effect su `piedeRef` sopra) a
+              farlo apparire/scomparire con grazia durante il gesto, agganciata al progress che
+              `StanzePager` espone dallo scroll nativo. Resta un fratello fuori da `.corpo`, il
+              TastoPiù non rimpicciolisce mai per via del layout — solo per via del gesto. */}
           <div className="corpo">
             <StanzePager
               stanzaIniziale={vista.iniziale}
               pile={stanzaPile}
               parete={parete}
               onStanzaChange={setStanzaAttiva}
+              onProgressoSwipe={onProgressoSwipe}
+              onPresaSwipe={onPresaSwipe}
+              onRilascioSwipe={onRilascioSwipe}
             />
           </div>
-          {stanzaAttiva === 'pile' && piede}
+          {piede}
         </>
       ) : vista.stanza === 'parete' ? (
         <>

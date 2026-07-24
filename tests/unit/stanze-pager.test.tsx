@@ -629,6 +629,90 @@ describe('StanzePager — onStanzaChange (QA device T15, addendum punto 3)', () 
   })
 })
 
+// Capitolo H4c (decisione 0c37f25, demo ebf4edb) — il progress CONTINUO del gesto, non ancora
+// esposto prima di questo capitolo (`onStanzaChange` sopra scatta solo a soglia 0.6/fine snap).
+// Qui si presidia SOLO che il pager lo calcoli e lo comunichi ai momenti giusti (scroll nativo,
+// touchstart, touchend/touchcancel) — la coreografia visiva del piede (mappatura progress→stile,
+// molla.press al rilascio) è un test di `piede-swipe.test.ts` (core puro) e di `HomeV3.tsx`.
+function simulaProgressoScroll(viewport: HTMLElement, scrollLeft: number, larghezza = 390) {
+  Object.defineProperty(viewport, 'scrollLeft', { value: scrollLeft, configurable: true })
+  Object.defineProperty(viewport, 'clientWidth', { value: larghezza, configurable: true })
+  act(() => {
+    fireEvent.scroll(viewport)
+  })
+}
+
+describe('StanzePager — onProgressoSwipe/onPresaSwipe/onRilascioSwipe (capitolo H4c)', () => {
+  it('onProgressoSwipe riceve il progress calcolato da scrollLeft/clientWidth del viewport nativo', () => {
+    const onProgressoSwipe = vi.fn()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onProgressoSwipe={onProgressoSwipe} />
+    )
+    const { viewport } = preparaViewport(container)
+    onProgressoSwipe.mockClear()
+
+    simulaProgressoScroll(viewport, 0, 390)
+    expect(onProgressoSwipe).toHaveBeenLastCalledWith(0)
+
+    simulaProgressoScroll(viewport, 195, 390)
+    expect(onProgressoSwipe).toHaveBeenLastCalledWith(0.5)
+
+    simulaProgressoScroll(viewport, 390, 390)
+    expect(onProgressoSwipe).toHaveBeenLastCalledWith(1)
+  })
+
+  it('onPresaSwipe scatta al touchstart del viewport, onRilascioSwipe al touchend', () => {
+    const onPresaSwipe = vi.fn()
+    const onRilascioSwipe = vi.fn()
+    const { container } = render(
+      <StanzePager
+        stanzaIniziale="pile"
+        pile={CONTENUTO_PILE}
+        parete={PARETE_STANZA_TEST}
+        onPresaSwipe={onPresaSwipe}
+        onRilascioSwipe={onRilascioSwipe}
+      />
+    )
+    const { viewport } = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchStart(viewport)
+    })
+    expect(onPresaSwipe).toHaveBeenCalledTimes(1)
+    expect(onRilascioSwipe).not.toHaveBeenCalled()
+
+    act(() => {
+      fireEvent.touchEnd(viewport)
+    })
+    expect(onRilascioSwipe).toHaveBeenCalledTimes(1)
+  })
+
+  it('onRilascioSwipe scatta anche al touchcancel (annullo di sistema)', () => {
+    const onRilascioSwipe = vi.fn()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onRilascioSwipe={onRilascioSwipe} />
+    )
+    const { viewport } = preparaViewport(container)
+
+    act(() => {
+      fireEvent.touchCancel(viewport)
+    })
+    expect(onRilascioSwipe).toHaveBeenCalledTimes(1)
+  })
+
+  it('scrollLeft oltre clientWidth (overscroll/rimbalzo nativo) resta clampato a progress 1', () => {
+    const onProgressoSwipe = vi.fn()
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} onProgressoSwipe={onProgressoSwipe} />
+    )
+    const { viewport } = preparaViewport(container)
+    onProgressoSwipe.mockClear()
+
+    simulaProgressoScroll(viewport, 420, 390)
+    expect(onProgressoSwipe).toHaveBeenLastCalledWith(1)
+  })
+})
+
 // QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — SOSTITUISCE «dots tablist e
 // tap-to-snap» + «tastiera (frecce ←→)»: i dot sono morti, quindi anche il tap sul dot e le
 // frecce ←→ come meccanismi di navigazione. Il tap-to-snap (scrollTo/inert/focus) resta

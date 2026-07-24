@@ -53,6 +53,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
 import { LinguettaCassette, registraAccessoParete } from './LinguettaCassette'
+import { progressoDaScroll } from './piede-swipe'
 import { useReducedMotion } from '@/design-system/v3/motion'
 import type { StanzaHome } from '@/lib/preferenze/home'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
@@ -189,8 +190,30 @@ export function StanzePager(props: {
    *  la parete («niente TastoPiù nel lato cassette»). Il pager è l'unico a sapere quale stanza
    *  è attiva in ogni istante — questo callback lo comunica al chiamante a ogni cambio. */
   onStanzaChange?: (stanza: StanzaHome) => void
+  /** Capitolo H4c (decisione 0c37f25, demo ebf4edb) — il progress CONTINUO dello swipe
+   *  home↔parete (0 = Pile, 1 = Parete), NON esposto prima di questo capitolo: `onStanzaChange`
+   *  sopra scatta solo a soglia 0.6 raggiunta (fine snap), mai durante il gesto. Il chiamante
+   *  (HomeV3) lo usa per animare il piede in scala/opacità 1:1 col dito (v. `piede-swipe.ts`),
+   *  invece di farlo sparire/ricomparire di colpo. Letto dallo scrollLeft nativo del viewport
+   *  (`.ua-stanze-viewport`, scroll-snap — mai un carosello simulato, v. commento in testa al
+   *  file): un `scroll` passivo, NON un secondo sistema di trascinamento. */
+  onProgressoSwipe?: (progress: number) => void
+  /** Il dito tocca il viewport (touchstart) — HomeV3 lo usa per fermare un eventuale
+   *  assestamento (`molla.press`) ancora in corso da un rilascio precedente e riprendere a
+   *  inseguire 1:1 (v. commento su `onRilascioSwipe`). `touchstart`/`touchend`, non
+   *  `pointerdown`/`pointerup`: uno scroll nativo (questo lo È, per costruzione) cancella il
+   *  pointer con `pointercancel` non appena il browser prende in mano il pan — i Touch Event,
+   *  più bassi livello, sopravvivono invece alla presa in carico nativa (verificato: è lo
+   *  stesso motivo per cui `useDragRiordino` deve intercettare `touchmove` a parte per il SUO
+   *  gesto, che invece non è scroll nativo). */
+  onPresaSwipe?: () => void
+  /** Il dito si solleva (touchend/touchcancel) — il momento «mollo» della demo: da qui in poi
+   *  HomeV3 assesta il piede con `molla.press`, indipendentemente da quale curva usi lo
+   *  scroll-snap nativo per assestare lo scrollLeft (i due sono disaccoppiati per costruzione:
+   *  questo pager non guida né rincorre lo scroll nativo, lo osserva soltanto). */
+  onRilascioSwipe?: () => void
 }) {
-  const { stanzaIniziale, pile, parete, footer, onStanzaChange } = props
+  const { stanzaIniziale, pile, parete, footer, onStanzaChange, onProgressoSwipe, onPresaSwipe, onRilascioSwipe } = props
   // QA device T15.8 — `stanzaEffettiva` (v. commento sopra), non il prop nudo: un remount dal
   // router-cache di Next (back da una navigazione vera, es. dalla scheda di un lavoro) deve
   // ripartire dalla stanza che l'indirizzo dice ORA, non da quella del primissimo caricamento.
@@ -218,6 +241,22 @@ export function StanzePager(props: {
   useEffect(() => {
     attivaRef.current = attiva
   }, [attiva])
+
+  // Capitolo H4c — le tre callback del gesto (`onProgressoSwipe`/`onPresaSwipe`/
+  // `onRilascioSwipe`) vivono in ref per lo stesso motivo di `attivaRef`: HomeV3 le passa come
+  // closure fresche a ogni render (non memoizzate — sarebbe un onere sproporzionato per tre
+  // funzioni che leggono solo motion value/ref), e l'effect di scroll/touch sotto monta i
+  // listener UNA volta sola (mai a ogni render, altrimenti il pager li stacca/riattacca durante
+  // ogni frame del gesto che sta osservando). Sync in un plain effect, mai durante il render
+  // (stesso gate di lint del repo).
+  const onProgressoSwipeRef = useRef(onProgressoSwipe)
+  const onPresaSwipeRef = useRef(onPresaSwipe)
+  const onRilascioSwipeRef = useRef(onRilascioSwipe)
+  useEffect(() => {
+    onProgressoSwipeRef.current = onProgressoSwipe
+    onPresaSwipeRef.current = onPresaSwipe
+    onRilascioSwipeRef.current = onRilascioSwipe
+  })
 
   // QA device T15 (addendum 24/07, punto 3) — il chiamante (HomeV3) decide da questo callback
   // se mostrare il piede: separato da `registraAccessoParete` sopra apposta, gira ad OGNI
@@ -343,7 +382,37 @@ export function StanzePager(props: {
       contenitore.scrollTo({ left: iniziale.offsetLeft, behavior: 'auto' })
     }
 
-    if (typeof IntersectionObserver === 'undefined') return
+    // Capitolo H4c (decisione 0c37f25, demo ebf4edb) — progress CONTINUO del gesto, letto dallo
+    // scrollLeft nativo (mai un secondo sistema di trascinamento, v. commento su
+    // `onProgressoSwipe` sopra): INDIPENDENTE dall'IO sotto, che decide solo quale stanza è
+    // "attiva a fine snap" (soglia 0.6, mai durante il gesto) — questi listener devono girare
+    // anche in un ambiente senza `IntersectionObserver` (v. guardia poco sotto), quindi vivono
+    // PRIMA di quella guardia, con la propria teardown in ENTRAMBI i rami di ritorno.
+    function onScroll() {
+      const progress = progressoDaScroll(contenitore!.scrollLeft, contenitore!.clientWidth)
+      onProgressoSwipeRef.current?.(progress)
+    }
+    // touchstart/touchend, non pointerdown/pointerup (v. commento su `onPresaSwipe` sopra): il
+    // browser cancella il pointer (`pointercancel`) non appena prende in mano il pan nativo, i
+    // Touch Event invece sopravvivono alla presa in carico.
+    function onTouchStart() {
+      onPresaSwipeRef.current?.()
+    }
+    function onTouchFine() {
+      onRilascioSwipeRef.current?.()
+    }
+    contenitore.addEventListener('scroll', onScroll, { passive: true })
+    contenitore.addEventListener('touchstart', onTouchStart, { passive: true })
+    contenitore.addEventListener('touchend', onTouchFine, { passive: true })
+    contenitore.addEventListener('touchcancel', onTouchFine, { passive: true })
+    function staccaGesto() {
+      contenitore!.removeEventListener('scroll', onScroll)
+      contenitore!.removeEventListener('touchstart', onTouchStart)
+      contenitore!.removeEventListener('touchend', onTouchFine)
+      contenitore!.removeEventListener('touchcancel', onTouchFine)
+    }
+
+    if (typeof IntersectionObserver === 'undefined') return staccaGesto
     const osservatore = new IntersectionObserver(
       (voci) => {
         for (const voce of voci) {
@@ -362,7 +431,10 @@ export function StanzePager(props: {
       const elemento = stanze.current[nome]
       if (elemento) osservatore.observe(elemento)
     }
-    return () => osservatore.disconnect()
+    return () => {
+      osservatore.disconnect()
+      staccaGesto()
+    }
     // `stanzaIniziale` cambia solo con una nuova navigazione server (`?stanza=` diverso): in
     // quel caso riposizionarsi sulla stanza chiesta è esattamente ciò che si vuole.
     // `impostaAttiva` è stabile (`useCallback` a deps `[]`): elencarla non fa girare l'effect
