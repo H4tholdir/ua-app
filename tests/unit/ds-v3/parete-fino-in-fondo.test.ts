@@ -58,10 +58,18 @@ describe('Parete — il muro arriva fino in fondo (difetto 1b, ratificato 26/07)
   // Guardare una regola sola non basta: qui si pretende il recupero da OGNI regola del foglio
   // che dichiari `padding` su `.ds-parete`, quale che sia il selettore. Una regola nuova che
   // domani ridichiarasse lo shorthand senza il recupero fallirebbe subito.
+  //
+  // Verifica finale d'ondata (26/07, difetto A5) — il regex pretendeva che il selettore FINISSE
+  // su `.ds-parete`: `.ds-parete.is-compatta { padding: … }` o `.ds-parete:hover { padding: … }`
+  // gli sfuggivano del tutto. Sarebbe stato lo stesso identico difetto (uno shorthand più
+  // specifico che scarta in silenzio il recupero) a una forma di selettore di distanza, sotto una
+  // guardia che promette «OGNI regola del foglio». Ora si accettano anche le parti composte e le
+  // pseudo-classi in coda; la negative lookahead esclude i PARENTI di nome (`.ds-parete-grid`,
+  // `.ds-parete-shell`), che sono altri elementi e hanno un padding tutto loro.
   it('OGNI regola che ridichiara il padding del muro porta con sé il recupero del fondo', () => {
     const senzaCommenti = css.replace(/\/\*[\s\S]*?\*\//g, '')
     const regoleConPadding: { selettore: string; padding: string }[] = []
-    const re = /([^{}]*\.ds-parete)\s*\{([^{}]*)\}/g
+    const re = /([^{}]*\.ds-parete(?![\w-])[^{},]*)\{([^{}]*)\}/g
     let m: RegExpExecArray | null
     while ((m = re.exec(senzaCommenti)) !== null) {
       const padding = m[2].match(/(?:^|;)\s*padding: *([^;]+)/)?.[1]

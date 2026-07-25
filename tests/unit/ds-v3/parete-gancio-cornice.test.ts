@@ -7,8 +7,12 @@
 // (G6) è verificata risolvendo a mano in JS la formula `clamp(40px, 10.2cqw, 50px)` dichiarata
 // nel foglio (letta col MEDESIMO regex del test esistente, non ridigitata a mano) a 3 larghezze
 // di CONTENT-BOX della shell — non il viewport — che replicano i 3 viewport obbligatori
-// (390/768/1280): shell max-width 480/720/1120 (righe ~518,529,530) meno il padding
-// `8px 20px 40px` della shell stessa (20px per lato) = 440/680/1080. Nessun valore di questo
+// (390/768/1280): shell max-width 480/720/1120 (righe ~518,529,530) meno il padding orizzontale
+// della shell stessa (20px per lato) = 440/680/1080. Verifica finale d'ondata (26/07, difetto A9):
+// qui era citato il padding `8px 20px 40px`, valore che QUESTA STESSA ondata ha già cambiato in
+// `8px 20px 0` (i 40px del fondo sono passati dentro `.ds-parete`, v. parete-fino-in-fondo.test.ts).
+// La derivazione non ne risente — conta solo il 20px orizzontale, invariato — ma il numero citato
+// non esisteva più: si nomina solo ciò che serve davvero. Nessun valore di questo
 // file ripete "44" come verità del fix (compare solo come riferimento al vecchio letterale
 // rotto, per dimostrare il contrasto — mai in un `.toBe`/assert di correttezza).
 import { describe, it, expect } from 'vitest'
@@ -17,6 +21,14 @@ import { join } from 'node:path'
 
 const css = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
 const norm = css.replace(/\s+/g, ' ')
+// Verifica finale d'ondata (26/07, difetto A4a) — copia SENZA commenti, per la sola guardia
+// negativa in fondo. Isolare un blocco con `[^}]*\}` su un testo che contiene ancora i commenti
+// significa fidarsi che nessun commento dentro le graffe contenga una `}`: se ne compare una (un
+// esempio di regola citato nella prosa, uno snippet), il blocco isolato si tronca lì e
+// un'asserzione NEGATIVA passa a vuoto su tutto ciò che segue — cioè smette di essere una guardia
+// proprio mentre continua a dire di esserlo. I commenti li toglie il parser CSS del browser: qui
+// si fa lo stesso, così la guardia non dipende più dall'igiene dei commenti.
+const nudo = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ')
 
 /** Risolve `clamp(40px, 10.2cqw, 50px)` per una data larghezza di container in px. */
 function resolvePasso(containerWidthPx: number): number {
@@ -131,9 +143,15 @@ describe('parete — G9-cornice: filo di bordo V1 «a filo dei bordi» (ratifica
   // muro resta comunque arrotondato da solo (`border-radius` clippa il proprio
   // background/bordo indipendentemente da `overflow`, v. rapporto fixH per la verifica).
   it('.ds-parete NON deve dichiarare overflow: hidden (regressione review FIX-H — tagliava gancetti/ombre, stesso pericolo del monito ds-v3.css ~460 su .ds-cassetta-cont)', () => {
-    const bloccoBase = norm.match(/\[data-ds="v3"\] \.ds-parete \{[^}]*\}/)
+    // su `nudo` (senza commenti), non su `norm`: v. la nota in testa al file, difetto A4a
+    const bloccoBase = nudo.match(/\[data-ds="v3"\] \.ds-parete \{[^}]*\}/)
     expect(bloccoBase, 'blocco .ds-parete non trovato').toBeTruthy()
     expect(bloccoBase![0]).not.toMatch(/overflow: hidden/)
+    // e il blocco isolato deve arrivare DAVVERO in fondo alla regola, non fermarsi a metà: se
+    // domani si tronca, questa asserzione cade prima che quella negativa qui sopra passi a vuoto
+    expect(bloccoBase![0], 'il blocco isolato di .ds-parete non arriva fino a background-color: ' +
+      'si è troncato prima, quindi la guardia negativa qui sopra non sta più guardando tutto')
+      .toMatch(/background-color: var\(--bg\);/)
   })
 
   it('la cornice è dichiarata sulla regola BASE .ds-parete (non scoped a .ds-parete-shell): vale sia sulla route /cassette standalone sia nel pannello embedded della home, che montano entrambe la stessa .ds-parete (PareteClient condivisa)', () => {

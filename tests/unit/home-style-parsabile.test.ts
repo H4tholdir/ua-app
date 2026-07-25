@@ -16,17 +16,32 @@
 // guardia testuale la trova e passa, mentre il browser l'ha buttata via. L'unico modo di
 // vedere il difetto è SIMULARE LA RIMOZIONE DEI COMMENTI come fa un parser CSS (primo `*/`
 // che chiude, nessun annidamento) e cercare le regole in ciò che RESTA.
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { describe, it, expect } from 'vitest'
 
 const srcHome = readFileSync(join(process.cwd(), 'src/components/features/home/HomeV3.tsx'), 'utf8')
 
-/** Il blocco `<style>{`…`}</style>` di HomeV3, testo grezzo. */
+/** Il blocco `<style>{`…`}</style>` di un sorgente, testo grezzo (il primo, se ce n'è più d'uno). */
 function bloccoStile(sorgente: string): string {
   const dopo = sorgente.split('<style>{`')[1]
-  expect(dopo, 'blocco <style> di HomeV3 non trovato').toBeDefined()
+  expect(dopo, 'blocco <style> non trovato nel sorgente').toBeDefined()
   return dopo.split('`}</style>')[0]
+}
+
+/** Tutti i sorgenti sotto `src/` che portano un blocco `<style>{`…`}</style>`. */
+function sorgentiConStile(): string[] {
+  const trovati: string[] = []
+  const gira = (dir: string) => {
+    for (const voce of readdirSync(dir)) {
+      const percorso = join(dir, voce)
+      if (statSync(percorso).isDirectory()) { gira(percorso); continue }
+      if (!/\.(tsx|ts)$/.test(voce)) continue
+      if (readFileSync(percorso, 'utf8').includes('<style>{`')) trovati.push(percorso)
+    }
+  }
+  gira(join(process.cwd(), 'src'))
+  return trovati.sort()
 }
 
 /**
@@ -105,4 +120,42 @@ describe('HomeV3 — il blocco <style> deve sopravvivere al parser CSS (difetto 
       expect(vivi, `regola \`${atteso}\` persa dal parser`).toContain(atteso)
     }
   })
+})
+
+// ⚠️ Verifica finale d'ondata (26/07, difetto A4b) — QUESTO FILE ERA CABLATO SU UN FILE SOLO.
+// Le tre funzioni qui sopra (`senzaCommenti`, `selettoriVivi`, `dichiarazioniDi`) sono già
+// generiche: solo la lettura del sorgente era fissata a `HomeV3.tsx`. Ma il difetto che questo
+// file esiste per incarnare — un `*/` scritto nella prosa di un commento, che chiude il commento
+// in anticipo e INGHIOTTE la regola seguente — non ha niente di specifico della home: vive
+// identico in ognuno dei sorgenti che portano un blocco `<style>{`…`}</style>`, e ce ne sono una
+// trentina, `Cassetta.tsx` compreso — il componente che questa ondata ha riscritto di più.
+// Ovunque succeda, il sorgente resta perfetto a leggerlo, quindi ogni guardia testuale `toMatch`
+// su di esso passa serena mentre il browser ha buttato via la regola. Qui si passa a tappeto
+// l'invariante più diretta sulla causa: dentro un blocco `<style>` i `/*` e i `*/` devono
+// bilanciarsi. Il file non va elencato a mano: si scoprono da sé, così un componente nuovo è
+// coperto dal giorno in cui nasce.
+describe('ogni blocco <style> del progetto deve sopravvivere al parser CSS (difetto 1a, generalizzato)', () => {
+  const sorgenti = sorgentiConStile()
+
+  it('la scoperta dei sorgenti funziona ancora (se cade a zero, è il parser di questa guardia a essere rotto)', () => {
+    expect(sorgenti.length).toBeGreaterThan(1)
+    // i due che questa ondata ha toccato di più devono esserci per forza
+    const relativi = sorgenti.map((f) => relative(process.cwd(), f))
+    expect(relativi).toContain('src/components/features/home/HomeV3.tsx')
+    expect(relativi).toContain('src/components/ds/Cassetta.tsx')
+  })
+
+  it.each(sorgentiConStile().map((f) => relative(process.cwd(), f)))(
+    '%s — nessun commento del blocco <style> si chiude in anticipo dentro la prosa',
+    (relativo) => {
+      const blocco = bloccoStile(readFileSync(join(process.cwd(), relativo), 'utf8'))
+      const aperture = blocco.match(/\/\*/g)?.length ?? 0
+      const chiusure = blocco.match(/\*\//g)?.length ?? 0
+      expect(chiusure, `${relativo}: commenti sbilanciati — ${aperture} aperture, ${chiusure} ` +
+        'chiusure. Un `*/` scritto nella prosa di un commento lo chiude in anticipo: il testo che ' +
+        'segue viene letto come selettore fino alla prima `{` e INGHIOTTE la regola dopo. Nel ' +
+        'sorgente si continua a vedere tutto, quindi nessuna guardia `toMatch` se ne accorge.')
+        .toBe(aperture)
+    },
+  )
 })
