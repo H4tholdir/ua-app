@@ -231,7 +231,7 @@ export function LavoroFormShell({
             right: 0,
             bottom: '12px',
             width: '48px',
-            background: 'linear-gradient(to left, var(--bg, #DDD8D3) 0%, transparent 100%)',
+            background: 'linear-gradient(to left, var(--bg, #F4F0E7) 0%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />

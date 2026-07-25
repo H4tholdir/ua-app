@@ -229,7 +229,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   paddingRight: '4px',
                   borderRadius: '6px',
                   border: '1px solid var(--elv, #EDEDEA)',
-                  background: 'var(--bg, #DDD8D3)',
+                  background: 'var(--bg, #F4F0E7)',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   color: voce.compenso_tecnico != null
@@ -305,7 +305,7 @@ export function ListinoVoceRow({ voce, showBorderTop, canEdit }: ListinoVoceRowP
                   paddingRight: '4px',
                   borderRadius: '6px',
                   border: '1px solid var(--elv, #EDEDEA)',
-                  background: 'var(--bg, #DDD8D3)',
+                  background: 'var(--bg, #F4F0E7)',
                   fontFamily: 'DM Sans, sans-serif',
                   fontSize: '11px',
                   color: voce.costo_materiali_estimated != null

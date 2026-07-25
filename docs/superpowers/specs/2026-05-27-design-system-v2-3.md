@@ -34,7 +34,9 @@ Questo file è la **UNICA FONTE DI VERITÀ** per il design system di UÀ.
 
 ```css
 /* Base surfaces — stile admin (flat, zero shadows) */
---bg:  #1A1916;   /* body background */
+--bg:  #171411;   /* body background — ⚠️ era #1A1916 (chiaro: #DDD8D3) fino al 26/07/2026:
+                     allineato al fondo v3 per RATIFICA di Francesco, v.
+                     docs/design/decisions/2026-07-26-sfondo-unico.md */
 --sfc: #232018;   /* card background (+1 stop sopra bg) */
 --prs: #141210;   /* recessed / pressed */
 

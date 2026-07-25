@@ -5,7 +5,7 @@
 
 // ─── COLORI LIGHT ────────────────────────────────────────────────────────────
 export const colorLight = {
-  bg:      '#DDD8D3',
+  bg:      '#F4F0E7',
   sfc:     '#E4DFD9',
   elv:     '#EDEDEA',
   prs:     '#D4CFC9',
@@ -17,7 +17,7 @@ export const colorLight = {
 
 // ─── COLORI DARK ─────────────────────────────────────────────────────────────
 export const colorDark = {
-  bg:      '#1A1916',
+  bg:      '#171411',
   sfc:     '#232018',   // card bg — +1 stop sopra il bg
   prs:     '#141210',
   t1:      '#F0EDE8',

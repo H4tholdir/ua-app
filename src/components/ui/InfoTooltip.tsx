@@ -52,7 +52,7 @@ export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
               left: '50%',
               transform: 'translateX(-50%)',
               background: 'var(--t1, #1C1916)',
-              color: 'var(--bg, #DDD8D3)',
+              color: 'var(--bg, #F4F0E7)',
               padding: '8px 12px',
               borderRadius: 8,
               fontSize: 12,

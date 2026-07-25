@@ -5,7 +5,9 @@
 
 /* ── Light tokens ── */
 :root {
-  --adm-bg:   #DDD8D3;
+  /* v. ratifica 26/07 sul `--bg` di globals.css: terzo e ultimo posto in cui vive il fondo
+     pagina (qui l'area admin). I tre valori si muovono insieme. */
+  --adm-bg:   #F4F0E7;
   --adm-sfc:  #E4DFD9;
   --adm-elv:  #EDEDEA;
   --adm-prs:  #D4CFC9;
@@ -33,7 +35,7 @@
 
 /* ── Dark tokens ── */
 [data-theme="dark"] {
-  --adm-bg:   #1A1916;
+  --adm-bg:   #171411;
   --adm-sfc:  #222019;
   --adm-elv:  #2C2A27;
   --adm-prs:  #121110;

@@ -256,7 +256,7 @@ export function TabProduzione({ fasi, onUpdateFase, hasCiclo }: TabProduzionePro
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '10px',
-                    background: 'var(--bg, #DDD8D3)',
+                    background: 'var(--bg, #F4F0E7)',
                     border: '1px solid var(--prs, #D4CFC9)',
                     color: 'var(--t1, #1C1916)',
                     fontFamily: 'var(--font-v3, sans-serif)',

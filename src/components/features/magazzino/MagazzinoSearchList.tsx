@@ -73,7 +73,7 @@ export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornito
               position: 'sticky',
               top: 0,
               zIndex: 10,
-              background: 'var(--bg, #DDD8D3)',
+              background: 'var(--bg, #F4F0E7)',
               display: 'flex',
               gap: '10px',
               alignItems: 'center',
@@ -85,7 +85,7 @@ export function MagazzinoSearchList({ articoli, categorieEsistenti = [], fornito
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                background: 'var(--bg, #DDD8D3)',
+                background: 'var(--bg, #F4F0E7)',
                 borderRadius: '14px',
                 padding: '0 14px',
                 boxShadow:

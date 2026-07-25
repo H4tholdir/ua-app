@@ -18,7 +18,7 @@ const inputBase: React.CSSProperties = {
   width: '100%',
   padding: '12px 14px',
   borderRadius: '12px',
-  background: 'var(--bg, #DDD8D3)',
+  background: 'var(--bg, #F4F0E7)',
   border: '1px solid rgba(0,0,0,.06)',
   color: 'var(--t1, #1C1916)',
   fontFamily: 'var(--font-v3, sans-serif)',

@@ -237,7 +237,7 @@ export default function OnboardingWizard({ nomeTitolare, initialData }: Props) {
 
   return (
     <div style={{
-      minHeight: '100dvh', background: 'var(--bg, #DDD8D3)',
+      minHeight: '100dvh', background: 'var(--bg, #F4F0E7)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
       fontFamily: 'DM Sans, sans-serif',
     }}>

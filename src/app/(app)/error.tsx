@@ -22,7 +22,7 @@ export default function AppError({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '32px 24px',
-        background: 'var(--bg, #DDD8D3)',
+        background: 'var(--bg, #F4F0E7)',
         gap: '20px',
         textAlign: 'center',
       }}

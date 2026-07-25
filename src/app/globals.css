@@ -56,8 +56,20 @@
   --font-playfair: 'Playfair Display', Georgia, serif;
 
   /* ── Design System v2.3 — Global tokens (app pages) ──────────────── */
-  /* Sfondo panna warm — da admin.css, confermato pixel-check          */
-  --bg:      #DDD8D3;
+  /* ⚠️ RATIFICA 26/07/2026 (Francesco, verifica finale wave H — verbale
+     `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` APPEND 26/07, difetto 3b;
+     decisione dedicata: `docs/design/decisions/2026-07-26-sfondo-unico.md`).
+     Il fondo pagina v2.3 era `#DDD8D3` (light) / `#1A1916` (dark), diverso da quello v3
+     (`#F4F0E7` / `#171411`, ds-v3.css). Dove la superficie v3 non arrivava — la banda dietro
+     la barra gesture Android — riaffiorava il `body`, più scuro: il gradino di colore visto da
+     Francesco sul telefono. Ora il fondo è UNO SOLO in tutta l'app.
+     Il costo è stato misurato e ACCETTATO da Francesco vedendo il confronto: sulle pagine
+     ancora v2.3 in tema chiaro la card (`--sfc: #E4DFD9`) diventa più SCURA del fondo invece
+     che più chiara, quindi non sembra più sollevata (l'ombra `--sh-c` è costruita sul
+     presupposto opposto). Screenshot: `docs/design/screenshots/2026-07-26-sfondo-globale/`.
+     Il rilievo si recupererebbe schiarendo anche `--sfc`: intervento SEPARATO, non fatto qui.
+     Il valore vive in TRE posti — qui, `.login-root` più sotto, `admin.css`: vanno insieme. */
+  --bg:      #F4F0E7;
   --surface: #E4DFD9;
   --sfc:     #E4DFD9;   /* alias v2.3 — usa --sfc nei nuovi componenti */
   --elv:     #EDEDEA;
@@ -150,7 +162,7 @@
 
 .dark {
   /* ── Design System v2.3 — Dark mode tokens ──────────────────── */
-  --bg:      #1A1916;
+  --bg:      #171411;
   --surface: #232018;
   --sfc:     #232018;   /* alias v2.3 */
   --elv:     #2C2A27;
@@ -222,7 +234,7 @@
   }
   body {
     @apply text-foreground;
-    background-color: var(--bg, #DDD8D3);
+    background-color: var(--bg, #F4F0E7);
     font-family: var(--font-dm-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -253,7 +265,10 @@
 
 /* ── Design tokens (scoped) ── */
 .login-root[data-login-theme="light"] {
-  --ua-bg:   #DDD8D3;
+  /* v. ratifica 26/07 sul `--bg` in cima: la schermata di accesso ha una copia propria
+     della tavolozza legacy e deve seguire, o resterebbe del vecchio colore mentre il resto
+     dell'app cambia — è la PRIMA schermata che si vede. */
+  --ua-bg:   #F4F0E7;
   --ua-sfc:  #E4DFD9;
   --ua-elv:  #EDEDEA;
   --ua-prs:  #D4CFC9;
@@ -284,7 +299,7 @@
 }
 
 .login-root[data-login-theme="dark"] {
-  --ua-bg:   #1A1916;
+  --ua-bg:   #171411;
   --ua-sfc:  #222019;
   --ua-elv:  #2C2A27;
   --ua-prs:  #121110;
@@ -1352,7 +1367,7 @@
     left: 0 !important;
     right: 0 !important;
     padding: 8px 24px !important;
-    background: var(--bg, #DDD8D3);
+    background: var(--bg, #F4F0E7);
     border-top: 1px solid var(--border, rgba(0,0,0,.06));
     display: flex !important;
     justify-content: center !important;

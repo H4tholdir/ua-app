@@ -191,7 +191,7 @@ export function RichiestaClientForm({
   // ─── Schermata successo ─────────────────────────────────────────────────
   if (formState === 'successo') {
     return (
-      <main style={{ minHeight: '100vh', background: 'var(--bg, #DDD8D3)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <main style={{ minHeight: '100vh', background: 'var(--bg, #F4F0E7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
         <div style={{ maxWidth: '420px', width: '100%', textAlign: 'center' }}>
           <AnimatedCheck reduced={reduced} />
           <motion.div
@@ -253,7 +253,7 @@ export function RichiestaClientForm({
 
   // ─── Schermata form ────────────────────────────────────────────────────
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg, #DDD8D3)' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg, #F4F0E7)' }}>
       {/* Header laboratorio */}
       <header
         style={{

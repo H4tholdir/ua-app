@@ -168,7 +168,7 @@ export function LavoroTimeline({ lavoro }: LavoroTimelineProps) {
                         width: isCompleted ? '16px' : '14px',
                         height: isCompleted ? '16px' : '14px',
                         borderRadius: '50%',
-                        background: isCompleted ? dotColor : 'var(--bg, #DDD8D3)',
+                        background: isCompleted ? dotColor : 'var(--bg, #F4F0E7)',
                         border: `2px solid ${dotBorder}`,
                       }}
                       aria-hidden="true"

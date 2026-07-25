@@ -301,7 +301,7 @@ export function LavoroFormClient({
           padding: '12px 20px',
           display: 'flex',
           gap: '10px',
-          background: 'linear-gradient(to top, var(--bg, #DDD8D3) 60%, transparent)',
+          background: 'linear-gradient(to top, var(--bg, #F4F0E7) 60%, transparent)',
           zIndex: 10,
         }}
       >

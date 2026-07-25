@@ -6,7 +6,7 @@ interface RigaUrgenza {
 }
 
 export const DS = {
-  bg:      'var(--bg, #DDD8D3)',
+  bg:      'var(--bg, #F4F0E7)',
   sfc:     'var(--sfc, #E4DFD9)',
   elv:     'var(--elv, #EDEDEA)',
   prs:     'var(--prs, #D4CFC9)',
