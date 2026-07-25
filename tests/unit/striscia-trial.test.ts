@@ -16,14 +16,19 @@ describe('sTrial (O1i)', () => {
     expect(scegliSegnale('titolare', { ...sereno, trial: { giorniRimasti: 2 } })).toMatchObject({ testo: 'finisce dopodomani', attenzione: true })
   })
   // D3 (Task 16, spec §3.4): questo test verificava che un ritardo «vincesse» sul trial sotto
-  // la vecchia gerarchia a eliminazione singola. Il trial ≤3gg ora ESCALA a livello 1 (riserva
-  // UX 5b): con un allarme operativo acceso insieme, i due AGGREGANO invece di eliminarsi — mai
-  // un allarme nascosto dietro l'altro (v. anche describe 'striscia D3' in striscia.test.ts).
-  it('un ritardo + trial ≤3gg aggregano insieme (D3 §3.4) — non si eliminano più a vicenda', () => {
+  // la vecchia gerarchia a eliminazione singola. Il trial ≤3gg ESCALA a livello 1 (riserva UX
+  // 5b): con un allarme operativo acceso insieme, i due non si eliminano più a vicenda — mai un
+  // allarme nascosto dietro l'altro. Task 16a-bis (ratifica 26/07): il vecchio aggregato
+  // sintetico «2 scadenze oggi» è MORTO (v. striscia.test.ts per il perché) — ora il trial va in
+  // TESTA quando acceso (candidatiLivello1) e NOMINA la striscia: a giorni dal blocco dell'app
+  // dev'essere lui a parlare, non un allarme operativo qualsiasi. Il ritardo finisce in `altri`.
+  it('un ritardo + trial ≤3gg aggregano insieme (D3 §3.4) — il trial nomina, il ritardo si conta (ratifica 26/07)', () => {
     const conRitardo = { ...sereno, trial: { giorniRimasti: 2 }, pile: { ...sereno.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } }
     const s = scegliSegnale('titolare', conRitardo)
-    expect(s.forte).toBe('2 scadenze oggi') // s2 (ritardo) + trial escalato — 2 candidati accesi, aggregati
-    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
+    expect(s.forte).toBe('Prova:')
+    expect(s.testo).toBe('finisce dopodomani')
+    expect(s.azione).toEqual({ etichetta: 'Attiva ›', href: '/impostazioni/abbonamento' })
+    expect(s.altri).toBe(1) // s2 (ritardo) — non nomina più, ma resta contato
   })
   it('il trial vince sui sereni', () => {
     const s = scegliSegnale('titolare', { ...sereno, ddcOggi: 3, trial: { giorniRimasti: 12 } })

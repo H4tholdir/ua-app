@@ -23,6 +23,15 @@ export type SegnaleStriscia = {
   // dopo il primo tap. Presente solo sui segnali «racconto» (oggi: sRaccontoLiberazione);
   // assente altrove.
   eventoId?: string
+  // Task 16a-bis (ratifica 26/07/2026) — numero degli ALTRI allarmi di livello 1 accesi insieme
+  // a questo (count - 1), quando 2+ sono accesi. Presente SOLO in quel caso — con un solo
+  // allarme il campo è assente (mai `altri: 0`, v. `scegliSegnale`). La UI (tranche 16b, fuori
+  // scope qui) lo renderizza in un nodo separato che non si accorcia — MAI concatenato dentro
+  // `testo`, che StrisciaStato.tsx:93-104 tronca con ellissi CSS a 390px. Copy esatta da usare,
+  // verbatim, per la tranche UI:
+  //   altri === 1  → «e un'altra»
+  //   altri > 1    → «e altre N»
+  altri?: number
 }
 export type IngressiStriscia = {
   fatturaScartata: { id: string; numero: string } | null
@@ -78,6 +87,25 @@ const s2b: Candidato = (i) => {
   const c = i.pile.consegnaOggiNonPronta
   return c ? { attenzione: true, forte: `n.${c.numero}`, testo: c.ora ? `non è ancora pronto per le ${c.ora}` : 'non è ancora pronto per oggi', azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } } : null
 }
+// Task 16a-bis, punto 3 — verificato in `src/lib/lavori/urgenza.ts:69-70`: lo stato
+// `in_ritardo` forza `giorniRitardo = Math.max(1, dalleDate)` ANCHE quando la data di consegna
+// prevista è oggi (`dalleDate=0`, la data non è ancora passata — il trigger ha già marcato il
+// lavoro in ritardo prima che scadesse). Quel lavoro finisce `inCima` nella pila ambra CON
+// `deltaGiorni(consegna.data, oggi) === 0` — la STESSA condizione che accende
+// `consegnaOggiNonPronta` (v. `costruisciStriscia` in pile-home-shared.ts:172-182, che non
+// esclude gli `inCima` dal proprio filtro). `ritardoPiuGrave` e `consegnaOggiNonPronta` NON sono
+// quindi garantiti disgiunti: un solo lavoro fisico può accendere sia s2 sia s2b, e leggerebbe
+// come «e un'altra» per un lavoro che non esiste. Si confronta per `numero` — unico
+// identificatore condiviso dai due campi di `DatiPileStriscia` (niente `id` qui): stesso numero
+// → stesso lavoro.
+function stessoLavoroRitardoOggi(i: IngressiStriscia): boolean {
+  const r = i.pile.ritardoPiuGrave
+  const c = i.pile.consegnaOggiNonPronta
+  return !!r && !!c && r.numero === c.numero
+}
+// `s2b` si spegne (torna null) quando è lo STESSO lavoro di `s2` — resta solo il ritardo (più
+// informativo: dice da quanti giorni doveva uscire), mai contato due volte nell'aggregato.
+const s2bDedup: Candidato = (i) => (stessoLavoroRitardoOggi(i) ? null : s2b(i))
 const s3: Candidato = (i) => i.pile.provaRientroOggi ? { attenzione: true, forte: `n.${i.pile.provaRientroOggi}`, testo: 'torna oggi dalla prova', azione: { etichetta: 'Apri ›', href: '/lavori?pila=viola' } } : null
 const s4: Candidato = (i) => i.pile.arrivoVecchio ? { attenzione: true, forte: `n.${i.pile.arrivoVecchio}`, testo: 'aspetta conferma da ieri', azione: { etichetta: 'Conferma ›', href: '/lavori?pila=blu' } } : null
 const s5: Candidato = (i) => i.materialeRosso ? { attenzione: true, forte: i.materialeRosso, testo: 'sta per finire', azione: { etichetta: 'Riordina ›', href: '/magazzino' } } : null
@@ -144,24 +172,29 @@ const sPareteIntro: Candidato = (i) =>
     ? { attenzione: false, intro: true, forte: null, testo: i.parete.n === 1 ? 'UÀ ha creato 1 cassetta dai tuoi lavori —' : `UÀ ha creato ${i.parete.n} cassette dai tuoi lavori —`, azione: { etichetta: 'colorale e mettile in ordine ›', href: '/cassette' } }
     : null
 
-// Task 16 (D3 §3.4) — livello 1 con AGGREGAZIONE (riserva UX 5a): mai un allarme nascosto
-// dietro un altro. Stesso perimetro per ruolo di prima (P7 §6 tabella Ruoli + §3.2 front_desk
-// «parte dagli operativi»): i candidati ammessi per ruolo non cambiano — cambia SOLO come si
-// compongono quando 2+ sono accesi insieme: prima vinceva il primo in ordine di array (gli altri
-// sparivano), ora aggregano tutti (l'ordine nell'array conta solo per il caso a un solo
-// allarme, dove è ininfluente: risponde comunque quell'unico). Il trial ≤3gg (riserva UX 5b)
-// entra qui SOLO per titolare/admin_rete (unici ruoli che lo vedono, O1i) — v.
-// `candidatiLivello1`.
+// Task 16 (D3 §3.4) — livello 1: mai un allarme nascosto dietro un altro. Stesso perimetro per
+// ruolo di prima (P7 §6 tabella Ruoli + §3.2 front_desk «parte dagli operativi»): i candidati
+// ammessi per ruolo non cambiano.
+// Task 16a-bis (ratifica 26/07/2026) — «chi nomina, chi conta»: quando 2+ sono accesi insieme
+// NON si sintetizza più un aggregato «N scadenze oggi» (v. `scegliSegnale`) — vince il PRIMO
+// dell'array, che nomina la striscia con la propria copy/href verbatim; gli altri si contano
+// (v. `SegnaleStriscia.altri`). L'ORDINE DI QUESTO ARRAY È ORA PORTANTE — prima era ininfluente
+// (con l'aggregazione a numero nessuno leggeva quale fosse il primo); ora decide QUALE allarme
+// parla quando 2+ sono accesi insieme. Il trial ≤3gg (riserva UX 5b) entra qui SOLO per
+// titolare/admin_rete (unici ruoli che lo vedono, O1i) — v. `candidatiLivello1`, che lo mette in
+// TESTA (non in coda) quando acceso: a giorni dal blocco dell'app dev'essere lui a parlare, non
+// un allarme operativo qualsiasi arrivato prima in quest'array.
 // Fix review Task 16a #1: `s2b` (consegna oggi non pronta, ex metà di s2) aggiunta SUBITO dopo
 // `s2` (ritardo) in ogni lista di ruolo — stesso perimetro di prima (s2b era già raggiungibile
-// da ogni ruolo che vedeva s2, solo nascosta dentro la stessa funzione), l'ordine s2→s2b non
-// cambia nulla quando è acceso un solo allarme (risponde comunque quell'unico, byte-identico a
-// prima del fix) e serve solo a mantenere leggibile la provenienza dei due candidati.
+// da ogni ruolo che vedeva s2, solo nascosta dentro la stessa funzione). Task 16a-bis: qui sotto
+// si usa `s2bDedup`, non `s2b` — ritardo e consegna-oggi-non-pronta NON sono garantiti disgiunti
+// (v. commento su `stessoLavoroRitardoOggi` sopra s2bDedup), un lavoro in stato `in_ritardo` con
+// consegna prevista oggi accende ENTRAMBI per lo stesso lavoro fisico.
 const LIVELLO1_PER_RUOLO: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s2b, s3, s4, s5, s6, s7],
-  admin_rete: [s1, s2, s2b, s3, s4, s5, s6, s7],
-  front_desk: [s2, s2b, s3, s4, s1, s5, s6], // niente s7 (pagamenti — P7: solo tit/admin_rete)
-  tecnico: [s2, s2b, s3, s4, s6], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
+  titolare: [s1, s2, s2bDedup, s3, s4, s5, s6, s7],
+  admin_rete: [s1, s2, s2bDedup, s3, s4, s5, s6, s7],
+  front_desk: [s2, s2bDedup, s3, s4, s1, s5, s6], // niente s7 (pagamenti — P7: solo tit/admin_rete)
+  tecnico: [s2, s2bDedup, s3, s4, s6], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
 }
 function candidatiLivello1(ruolo: string, i: IngressiStriscia): SegnaleStriscia[] {
   const perRuolo = LIVELLO1_PER_RUOLO[ruolo] ?? LIVELLO1_PER_RUOLO.tecnico
@@ -169,7 +202,11 @@ function candidatiLivello1(ruolo: string, i: IngressiStriscia): SegnaleStriscia[
   const g = i.trial?.giorniRimasti
   if ((ruolo === 'titolare' || ruolo === 'admin_rete') && g !== undefined && g !== null && g >= 0 && g <= 3) {
     const t = sTrial(i)
-    if (t) accesi.push(t)
+    // Ratifica 26/07 — «ordine di parola»: il trial ≤3gg va in TESTA (unshift), non in coda
+    // (push, come prima). La testa dell'array è ora l'allarme che `scegliSegnale` NOMINA — a
+    // giorni dal blocco dell'app dev'essere il trial a parlare per primo, mai un allarme
+    // operativo qualsiasi che sia arrivato prima nella lista di ruolo.
+    if (t) accesi.unshift(t)
   }
   return accesi
 }
@@ -202,11 +239,21 @@ const FALLBACK_PER_RUOLO: Record<string, Candidato[]> = {
 }
 
 export function scegliSegnale(ruolo: string, i: IngressiStriscia): SegnaleStriscia {
-  // 1) allarmi di livello 1 (già filtrati per ruolo), aggregati se 2+ (riserva UX 5a).
+  // 1) allarmi di livello 1 (già filtrati per ruolo, trial in testa se acceso — v.
+  // `candidatiLivello1`). Task 16a-bis (ratifica 26/07/2026, Francesco Formicola): il vecchio
+  // aggregato sintetico «N scadenze oggi — Vedi › /lavori» è MORTO. Due fatti emersi dopo la
+  // ratifica 24/07 (D3 §3.4): (1) `/lavori` senza `?pila=` fa redirect a `/dashboard`
+  // (src/app/(app)/lavori/page.tsx:36) — la CTA riportava l'utente esattamente alla home da cui
+  // era partito, per QUALSIASI aggregato, non solo quelli misti; (2) il livello 1 non è un
+  // insieme omogeneo di "scadenze" — include anche stati SENZA finestra temporale (materiale in
+  // esaurimento, pagamento scaduto), quindi «2+ accesi» è il riposo del laboratorio, non
+  // un'eccezione. Ora: la striscia NOMINA il primo allarme (copy/href suoi, verbatim, invariati)
+  // e CONTA gli altri in `altri`. Con un solo allarme: passthrough, NESSUN campo `altri` (mai
+  // `altri: 0`) — byte-identico a prima di questa tranche.
   const allarmi = candidatiLivello1(ruolo, i)
-  if (allarmi.length >= 2) return {
-    attenzione: true, forte: `${allarmi.length} scadenze oggi`, testo: 'da guardare',
-    azione: { etichetta: 'Vedi ›', href: '/lavori' },
+  if (allarmi.length >= 2) {
+    const [primo, ...resto] = allarmi
+    return { ...primo, altri: resto.length }
   }
   if (allarmi.length === 1) return allarmi[0]
   // 2) fallback per ruolo: account/tecnici scoperti · trial fuori dall'ultima finestra ·

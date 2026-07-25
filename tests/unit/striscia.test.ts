@@ -433,23 +433,61 @@ describe('fetchIngressiStriscia — 4 query in Promise.all, degrado per-ramo', (
 })
 
 // --- Task 16 (D3 §3.4): livello 1 aggregato, racconti, silenzio ---
+// Task 16a-bis (ratifica 26/07/2026, Francesco Formicola, panel 2 advisor): l'aggregato
+// sintetico «N scadenze oggi — Vedi › /lavori» è MORTO. Due fatti emersi dopo la ratifica 24/07:
+// (1) `/lavori` senza `?pila=` fa redirect a `/dashboard` (src/app/(app)/lavori/page.tsx:36) — la
+// CTA riportava l'utente esattamente alla home da cui era partito, per QUALSIASI aggregato; (2)
+// il livello 1 non è un insieme omogeneo di "scadenze" — include anche stati senza finestra
+// temporale (materiale in esaurimento, pagamento scaduto). La nuova regola: la striscia NOMINA
+// il primo allarme acceso (copy/href suoi, verbatim, invariati) e CONTA gli altri in `altri`.
+describe('scegliSegnale — Task 16a-bis (ratifica 26/07): nomina il primo allarme, conta gli altri', () => {
+  it('con UN SOLO allarme di livello 1: nessun campo `altri` — byte-identico a prima (mai `altri: 0`)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.altri).toBeUndefined()
+    expect('altri' in s).toBe(false)
+  })
 
-describe('scegliSegnale — Task 16 (D3 §3.4): aggregazione livello 1, racconto liberazione, silenzio', () => {
-  it('aggregazione (riserva UX 5a): 2+ allarmi di livello 1 aggregano in «N scadenze oggi» (N = conteggio dei candidati REALMENTE accesi)', () => {
+  it('2+ allarmi di livello 1: nomina il PRIMO in ordine di ruolo (copy/href verbatim) e conta gli altri in `altri`', () => {
     // 2 allarmi operativi distinti per il titolare: s2 (ritardo) + s3 (prova rientro oggi).
+    // Ordine LIVELLO1_PER_RUOLO per titolare: s2 precede s3 → s2 nomina, s3 va in `altri`.
     const i: IngressiStriscia = { ...VUOTO,
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 }, provaRientroOggi: '150' } }
     const s = scegliSegnale('titolare', i)
-    expect(s.forte).toBe('2 scadenze oggi') // derivato dai 2 candidati accesi (s2 + s3), non un numero copiato
-    expect(s.testo).toBe('da guardare')
-    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(s.altri).toBe(1)
     expect(s.attenzione).toBe(true)
   })
 
-  it('3 allarmi di livello 1 → «3 scadenze oggi» (la regola vale per QUALSIASI N ≥ 2, non solo 2)', () => {
+  it('3 allarmi di livello 1 → nomina sempre il primo, `altri` = N-1 (vale per QUALSIASI N ≥ 2, non solo 2)', () => {
     const i: IngressiStriscia = { ...VUOTO,
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 }, provaRientroOggi: '150', arrivoVecchio: '151' } }
-    expect(scegliSegnale('titolare', i).forte).toBe('3 scadenze oggi')
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(2)
+  })
+
+  // L'ordine per ruolo in LIVELLO1_PER_RUOLO è ORA PORTANTE (v. commento lì) — questo test lo
+  // rende eseguibile: stesso ingresso (fattura scartata + ritardo), ordini DIVERSI per ruolo
+  // (titolare: [s1, s2, …] — s1 prima; front_desk: [s2, s2bDedup, s3, s4, s1, …] — s2 prima), e
+  // quindi named-alarm DIVERSO. Un futuro riordino di LIVELLO1_PER_RUOLO che invertisse questa
+  // differenza passerebbe inosservato senza questo test (i test sopra pinnano solo s2-prima-di-s3
+  // e s2-prima-di-s4, mai s1-vs-s2, che è dove gli ordini per ruolo divergono davvero).
+  it('l\'ordine di LIVELLO1_PER_RUOLO decide chi nomina: stesso ingresso, ruoli diversi → allarme nominato diverso', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      fatturaScartata: { id: 'f1', numero: '2026-0139' },
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } }
+
+    const titolare = scegliSegnale('titolare', i) // titolare: s1 precede s2 → nomina la fattura
+    expect(titolare.forte).toBe('Fattura n.2026-0139')
+    expect(titolare.azione).toEqual({ etichetta: 'Sistemala ›', href: '/fatture/f1' })
+    expect(titolare.altri).toBe(1)
+
+    const frontDesk = scegliSegnale('front_desk', i) // front_desk: s2 precede s1 → nomina il ritardo
+    expect(frontDesk.forte).toBe('n.144')
+    expect(frontDesk.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(frontDesk.altri).toBe(1)
   })
 
   // Il conteggio deve sommare SOLO i candidati ammessi per il ruolo (P7) — non «tutti i campi
@@ -464,14 +502,17 @@ describe('scegliSegnale — Task 16 (D3 §3.4): aggregazione livello 1, racconto
     expect(s.forte).toBe('n.144') // s1 non è di livello 1 per il tecnico → nessun aggregato
   })
 
-  it('trial ≤3gg ESCALA a livello 1 (riserva UX 5b): entra nell\'aggregato invece di affamare o essere affamato da un allarme operativo', () => {
+  it('trial ≤3gg ESCALA a livello 1 (riserva UX 5b) e va in TESTA (ratifica 26/07 — «ordine di parola»): nomina lui, non l\'allarme operativo', () => {
     const i: IngressiStriscia = { ...VUOTO,
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } },
       trial: { giorniRimasti: 2 } }
     const s = scegliSegnale('titolare', i)
-    // 2 candidati accesi: s2 (ritardo) + il trial escalato — il conteggio li somma entrambi.
-    expect(s.forte).toBe('2 scadenze oggi')
-    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
+    // 2 candidati accesi: il trial (in testa, v. candidatiLivello1) + s2 (ritardo). A giorni dal
+    // blocco dell'app il trial deve parlare per primo — s2 finisce in `altri`.
+    expect(s.forte).toBe('Prova:')
+    expect(s.testo).toBe('finisce dopodomani')
+    expect(s.azione).toEqual({ etichetta: 'Attiva ›', href: '/impostazioni/abbonamento' })
+    expect(s.altri).toBe(1)
   })
 
   it('racconto (riserva UX 5c): liberazione <24h → segnale quieto, tappabile, con eventoId stabile', () => {
@@ -518,15 +559,16 @@ describe('scegliSegnale — Task 16 (D3 §3.4): aggregazione livello 1, racconto
 // solo a metà. `s2` è stato diviso in `s2` (ritardo) + `s2b` (consegna oggi non pronta),
 // candidati indipendenti con copy/href INVARIATI verbatim.
 describe('scegliSegnale — fix review Task 16a #1: ritardo e consegna-oggi-non-pronta sono allarmi indipendenti', () => {
-  it('entrambi accesi insieme → 2 allarmi nell\'aggregato, nessuno nascosto (PRIMA del fix: solo 1, il ritardo)', () => {
+  it('entrambi accesi insieme (lavori DIVERSI, numeri 144/147) → 2 allarmi, nessuno nascosto: nomina il ritardo, conta l\'altro (ratifica 26/07)', () => {
     const i: IngressiStriscia = { ...VUOTO,
       pile: { ...VUOTO.pile,
         ritardoPiuGrave: { numero: '144', giorni: 1 },
         consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } }
     const s = scegliSegnale('titolare', i)
-    expect(s.forte).toBe('2 scadenze oggi')
-    expect(s.testo).toBe('da guardare')
-    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(s.altri).toBe(1)
   })
 
   it('solo il ritardo acceso → passthrough invariato, copy/href identici a prima del fix', () => {
@@ -541,6 +583,50 @@ describe('scegliSegnale — fix review Task 16a #1: ritardo e consegna-oggi-non-
       pile: { ...VUOTO.pile, consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } })
     expect(s).toEqual({ attenzione: true, forte: 'n.147', testo: 'non è ancora pronto per le 16:00',
       azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } })
+  })
+})
+
+// --- Task 16a-bis, punto 3: `ritardoPiuGrave` e `consegnaOggiNonPronta` NON sono garantiti
+// disgiunti. Verificato in src/lib/lavori/urgenza.ts:69-70: lo stato `in_ritardo` forza
+// `giorniRitardo = Math.max(1, dalleDate)` ANCHE quando la data di consegna prevista è oggi
+// (`dalleDate=0` — la data non è ancora passata, ma il trigger ha già marcato il lavoro in
+// ritardo). Quel lavoro finisce `inCima` in pila ambra CON `deltaGiorni(consegna.data, oggi) ===
+// 0` — la STESSA condizione che accende `consegnaOggiNonPronta` (costruisciStriscia in
+// pile-home-shared.ts:172-182, che non esclude gli `inCima` dal proprio filtro). Un lavoro FISICO
+// solo accenderebbe sia s2 sia s2b: senza dedup leggerebbe come «e un'altra» per un lavoro che
+// non esiste. Si deduplica per `numero` (unico identificatore condiviso dai due campi),
+// mantenendo il ritardo (più informativo: dice da quanti giorni doveva uscire).
+describe('scegliSegnale — Task 16a-bis punto 3: dedup ritardo/consegna-oggi-non-pronta stesso lavoro', () => {
+  it('stesso numero in ritardoPiuGrave e consegnaOggiNonPronta → un solo lavoro fisico: s2b si spegne, passthrough di s2, niente `altri`', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '144', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s).toEqual({ attenzione: true, forte: 'n.144', testo: 'doveva uscire ieri',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } })
+    expect(s.altri).toBeUndefined()
+  })
+
+  it('stesso lavoro + un terzo allarme distinto → `altri` conta 1 (ritardo deduplicato + la prova), NON 2', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '144', ora: '16:00' },
+        provaRientroOggi: '150' } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(1) // s2 (ritardo) + s3 (prova) — s2b deduplicato via numero condiviso
+  })
+
+  it('numeri diversi → NON è lo stesso lavoro, entrambi contano (fix review Task 16a #1 resta valido)', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(1)
   })
 })
 
