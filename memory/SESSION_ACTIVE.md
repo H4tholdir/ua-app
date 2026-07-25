@@ -2,7 +2,7 @@
 
 **RIPRESA: `docs/roadmap/2026-07-26-wave-h-handoff.md`** — leggilo per primo.
 
-Ondata «Redesign parete/home», worktree `redesign-parete-home` @ `a9d3453`.
+Ondata «Redesign parete/home», worktree `redesign-parete-home` @ `87e7313`.
 **Suite 3127 verdi / 19 skip · tsc 0 · build ok.** Ramo anche su `origin` (solo backup).
 
 **Collaudo device 4/5 PASS.** Barra gesture: NON è un difetto (limite della scheda di browser);
