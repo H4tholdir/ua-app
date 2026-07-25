@@ -117,3 +117,24 @@ soli fotogrammi citati sopra (`clienti-lista-densa`, `clienti`, `analytics`, `lo
 390 light) più il prima/dopo dei fix 1a/1b: il set completo dei 92 resta su disco nel worktree,
 in `docs/design/screenshots/2026-07-26-sfondo-globale/`. Chi rigenera la cartella deve
 ricordarsi il `-f`, altrimenti la crede committata e non lo è.
+
+## Ri-misura dei token con affermazioni di contrasto (26/07, dopo il cambio di fondo)
+
+Sei commenti di `globals.css` dichiaravano un rapporto di contrasto misurato contro il **vecchio**
+fondo. Ri-misurati tutti sul nuovo; **nessuno era diventato insicuro — tutti hanno guadagnato**,
+ma il numero scritto non era più quello vero, e un'affermazione che non corrisponde più al
+render è la stessa classe di difetto del `padding` sovrascritto in cascata. Corretti in questo
+stesso giro (solo commenti, zero effetto sul comportamento):
+
+| token | dichiarava | su card `--sfc` (invariata) | su fondo NUOVO |
+|---|---|---|---|
+| `--t1` `#1C1916` | 12,4:1 su `--bg` | — | **15,39:1** |
+| `--t2` `#4A3D33` | 7,4:1 su `--bg` | — | **9,20:1** |
+| `--t3` `#6B5C51` | 4,5:1 su `--bg` (al pelo) | — | **5,64:1** |
+| `--c-amber-ink` `#92400E` | 5,01:1 «su tinta ambra chiara» | 5,35:1 | **6,23:1** |
+| `--c-orange-ink` `#9A3412` | ~5,5:1 «su --sfc chiaro» | 5,52:1 | **6,42:1** |
+| `--red-ink` `#B00010` | 5,6:1 «su --sfc light» | 5,56:1 | **6,47:1** |
+
+Nota: il 5,01 di `--c-amber-ink` coincide **esattamente** col valore sul vecchio `#DDD8D3` —
+conferma che quei numeri erano tarati sul fondo pagina di allora, non sulla tinta citata nel
+commento. I commenti ora dicono su quale superficie vale ciascun numero.

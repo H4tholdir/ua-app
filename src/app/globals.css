@@ -76,9 +76,9 @@
   --prs:     #D4CFC9;
 
   /* Testo warm — tutti WCAG AA (v2.3: t2/t3 aggiornati) */
-  --t1:      #1C1916;   /* 12.4:1 su --bg → AAA */
-  --t2:      #4A3D33;   /* 7.4:1 su --bg → AAA (era #96918D: WCAG fail) */
-  --t3:      #6B5C51;   /* 4.5:1 su --bg → AA  (era #B8B3AE: WCAG fail) */
+  --t1:      #1C1916;   /* 15.4:1 su --bg → AAA (era 12.4 sul vecchio fondo #DDD8D3) */
+  --t2:      #4A3D33;   /* 9.2:1 su --bg → AAA (il 7.4 scritto prima era sul vecchio fondo; il grigio pre-v2.3 era WCAG fail) */
+  --t3:      #6B5C51;   /* 5.6:1 su --bg → AA  (il 4.5 scritto prima era sul vecchio fondo, cioè al pelo; il grigio pre-v2.3 era WCAG fail) */
 
   /* Colori semantici legacy */
   --primary:   #D90012;
@@ -98,9 +98,9 @@
   --c-orange: #F97316;
   --c-red:    #EF4444;
   --c-purple: #8B5CF6;
-  --c-amber-ink: #92400E;  /* amber INK per testo/valori — WCAG AA su tinta ambra chiara (5.01:1); MAI usare --c-amber come colore testo */
-  --c-orange-ink: #9A3412; /* orange INK per testo/alert — WCAG AA su --sfc chiaro (~5.5:1); MAI usare --c-orange come colore testo */
-  --red-ink: #B00010;      /* rosso testo AA — alert saldo negativo (5.6:1 su --sfc light) */
+  --c-amber-ink: #92400E;  /* amber INK per testo/valori — 5.35:1 su --sfc, 6.23:1 su --bg (ri-misurato 26/07 dopo il fondo unico: il 5.01 scritto prima era sul vecchio #DDD8D3); MAI usare --c-amber come colore testo */
+  --c-orange-ink: #9A3412; /* orange INK per testo/alert — 5.52:1 su --sfc, 6.42:1 su --bg (ri-misurato 26/07); MAI usare --c-orange come colore testo */
+  --red-ink: #B00010;      /* rosso testo AA — alert saldo negativo: 5.56:1 su --sfc, 6.47:1 su --bg (ri-misurato 26/07) */
 
   /* Shadows warm-tinted asimmetriche (da admin.css) */
   --sh-c:
