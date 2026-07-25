@@ -586,6 +586,59 @@ describe('StanzePager — G5, sheet embedded non interferisce con la catena push
     expect(pannello('parete')).toHaveAttribute('inert')
   })
 
+  // Review finale whole-branch, C2 — la scena a tre tap del verbale: sheet aperto, dialog
+  // distruttivo SOPRA di esso, e il back fisico del telefono. Prima del fix esisteva UNA sola
+  // entry per lo sheet e nessuna per il dialog: il 1° back la consumava, `Sheet.onChiudi`
+  // partiva, la guardia `dialogAperto` di `CassettaSheet` lo bloccava — niente si chiudeva, ma
+  // l'entry era sparita. Il 2° back consumava allora quella del PAGER: le pile tornavano in
+  // vista mentre sheet E dialog distruttivo — due portali su `document.body`, fuori dalla
+  // stanza che è appena diventata `inert` — restavano dipinti sopra, e interattivi.
+  it('C2 — dialog distruttivo sopra lo sheet: 1° back chiude SOLO il dialog, 2° back SOLO lo sheet, 3° back torna alle pile', async () => {
+    window.history.replaceState({}, '', '/cassette')
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+
+    // Sheet della cassetta libera «C12» → «Butta via» apre il DialogConferma SOPRA lo sheet,
+    // che resta aperto (pattern `CassettaSheet`: la guardia `dialogAperto` impedisce che la
+    // chiusura dello sheet passi mentre il dialog è in scena).
+    fireEvent.click(within(pannello('parete')).getByRole('button', { name: 'Cassetta C12, libera' }))
+    expect(await screen.findByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Butta via'))
+    expect(await screen.findByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeInTheDocument()
+
+    // 1° back — si chiude il PIÙ ALTO, e solo lui: il dialog. Lo sheet resta, e resta
+    // protetto (l'entry viene ri-spinta per lui), la parete resta la stanza attiva.
+    historyBackSpy.mockClear()
+    pushStateSpy.mockClear()
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeNull())
+    expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+    expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+
+    // 2° back — ora tocca allo sheet. La stanza non si muove ancora.
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'C12' })).toBeNull())
+    expect(pannello('parete')).not.toHaveAttribute('inert')
+    expect(historyBackSpy).not.toHaveBeenCalled()
+
+    // 3° back — solo adesso l'entry consumata è quella del pager (il pathname lascia
+    // `/cassette`, v. describe sopra): si torna alle pile, con nulla dipinto sopra.
+    window.history.replaceState({}, '', '/dashboard')
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+    expect(pannello('pile')).not.toHaveAttribute('inert')
+    expect(pannello('parete')).toHaveAttribute('inert')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('un back con lo sheet aperto ma su un percorso NON /cassette (ipotesi difensiva) non blocca comunque il pager se davvero si lascia la pagina', () => {
     // Percorso di controllo: senza CassettaSheet aperto, un solo back sulla parete raggiunta
     // dalla linguetta segue la catena invariata (nessuna regressione dalla guardia aggiunta).

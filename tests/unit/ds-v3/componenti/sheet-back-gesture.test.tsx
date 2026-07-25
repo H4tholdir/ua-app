@@ -9,9 +9,11 @@
 // `window.dispatchEvent`. Il test di NON interferenza col pager (che richiede un pathname reale)
 // vive invece in `stanze-pager.test.tsx`, dove quella manipolazione è già di casa (v. describe
 // «remount con indirizzo già /cassette»).
+import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { Sheet } from '@/components/ds/Sheet'
+import { DialogConferma } from '@/components/ds/DialogConferma'
 
 function attivaReducedMotion(): () => void {
   const originalMatchMedia = window.matchMedia
@@ -288,6 +290,120 @@ describe('Sheet — G5, history-entry per il back gesture', () => {
     historyBackSpy.mockClear()
     unmount()
     expect(historyBackSpy).not.toHaveBeenCalled()
+  })
+
+  // C2 (review finale whole-branch) — un `DialogConferma` aperto SOPRA lo sheet (pattern
+  // `CassettaSheet`: il compositore tiene lo sheet aperto e guarda la chiusura con
+  // `if (!dialogAperto)`). Da qui in poi la meccanica di history è condivisa
+  // (`storia-overlay.ts`): UNA entry per l'intera pila, a un back reagisce solo il più alto,
+  // l'entry si disfa quando la pila si svuota — in QUALUNQUE ordine escano i due overlay.
+  describe('C2 — DialogConferma impilato sopra lo Sheet', () => {
+    /** Riproduce l'anatomia di `CassettaSheet`: dialog fratello dello sheet, sheet che resta
+     *  aperto mentre il dialog è in scena, chiusura dello sheet guardata da `dialogAperto`.
+     *  `dialogPrima` inverte l'ordine di MONTAGGIO dei due: React esegue le cleanup in ordine
+     *  di setup, quindi è l'unica leva che ha un test per provare che l'unwind non dipende da
+     *  chi si è montato per primo. */
+    function Composto(props: { dialogPrima?: boolean }) {
+      const [sheetAperto, setSheetAperto] = useState(true)
+      const [dialogAperto, setDialogAperto] = useState(false)
+      const sheet = (
+        <Sheet
+          key="sheet"
+          aperto={sheetAperto}
+          onChiudi={() => {
+            if (!dialogAperto) setSheetAperto(false)
+          }}
+          titolo="Dettagli"
+        >
+          <button type="button" onClick={() => setDialogAperto(true)}>
+            Butta via
+          </button>
+        </Sheet>
+      )
+      const dialog = (
+        <DialogConferma
+          key="dialog"
+          aperto={dialogAperto}
+          titolo="Butto via la cassetta C12?"
+          testo="Sparisce dalla parete."
+          etichettaDistruttiva="Butta via"
+          etichettaSicura="Tienila"
+          // Conferma riuscita: dialog E sheet si chiudono nello STESSO commit (è ciò che fa
+          // `segnaComeLibera`/`buttaVia` in `CassettaSheet`) — il caso in cui due meccaniche
+          // separate si pestavano i piedi sulla history.
+          onConferma={() => {
+            setDialogAperto(false)
+            setSheetAperto(false)
+          }}
+          onAnnulla={() => setDialogAperto(false)}
+        />
+      )
+      return <>{props.dialogPrima ? [dialog, sheet] : [sheet, dialog]}</>
+    }
+
+    async function apriDialog() {
+      fireEvent.click(screen.getByText('Butta via'))
+      expect(await screen.findByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeInTheDocument()
+    }
+
+    it('aprire il dialog NON spinge una seconda entry: quella dello sheet protegge già tutta la pila', async () => {
+      render(<Composto />)
+      expect(pushStateSpy).toHaveBeenCalledTimes(1)
+      await apriDialog()
+      expect(pushStateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('back col dialog aperto: si chiude SOLO il dialog, lo sheet resta (e resta protetto da una entry ri-spinta)', async () => {
+      render(<Composto />)
+      await apriDialog()
+      pushStateSpy.mockClear()
+      act(() => {
+        window.dispatchEvent(new Event('popstate'))
+      })
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeNull())
+      expect(screen.getByRole('dialog', { name: 'Dettagli' })).toBeInTheDocument()
+      // Ri-push: lo sheet rimasto sotto deve restare protetto, altrimenti il back successivo
+      // se ne andrebbe dalla pagina invece di chiuderlo.
+      expect(pushStateSpy).toHaveBeenCalledTimes(1)
+      expect(historyBackSpy).not.toHaveBeenCalled()
+    })
+
+    it('un secondo back chiude lo sheet — e SOLO allora la pila è vuota', async () => {
+      render(<Composto />)
+      await apriDialog()
+      act(() => {
+        window.dispatchEvent(new Event('popstate'))
+      })
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeNull())
+      act(() => {
+        window.dispatchEvent(new Event('popstate'))
+      })
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Dettagli' })).toBeNull())
+      // La traversal l'ha fatta il browser tutte e due le volte: mai un `back()` nostro sopra.
+      expect(historyBackSpy).not.toHaveBeenCalled()
+    })
+
+    it('«Tienila» (annulla): il dialog se ne va da solo e l\'entry NON si consuma — resta a proteggere lo sheet', async () => {
+      render(<Composto />)
+      await apriDialog()
+      pushStateSpy.mockClear()
+      fireEvent.click(screen.getByText('Tienila'))
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: /Butto via la cassetta C12/ })).toBeNull())
+      expect(screen.getByRole('dialog', { name: 'Dettagli' })).toBeInTheDocument()
+      expect(historyBackSpy).not.toHaveBeenCalled()
+      expect(pushStateSpy).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['sheet montato per primo', false],
+      ['dialog montato per primo (ordine di cleanup invertito)', true],
+    ])('conferma riuscita (%s): dialog e sheet si chiudono nello stesso commit → ESATTAMENTE un history.back, nessuna entry appesa', async (_nome, dialogPrima) => {
+      render(<Composto dialogPrima={dialogPrima} />)
+      await apriDialog()
+      fireEvent.click(screen.getAllByText('Butta via')[1] ?? screen.getByText('Butta via'))
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(historyBackSpy).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('reduced motion (§8.4) — il push/pop non dipende dal ramo animato', () => {

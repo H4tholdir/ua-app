@@ -22,6 +22,7 @@ import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v
 import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
 import { useTapScrim } from './useTapScrim'
+import { entraOverlay, esciOverlay } from './storia-overlay'
 
 /**
  * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
@@ -92,14 +93,15 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * regola "solo il catalogo lo monta" (constraint 3), perché qui il DOM vive
  * fuori dal subtree del catalogo/pagina.
  *
- * G5 (verbale ri-collaudo #2) — back del telefono chiude lo sheet: history-entry marcata
- * `{uaSheet:true}` pushata all'apertura, popstate la consuma e chiama `onChiudi`; alla
- * chiusura esplicita si fa `history.back()` solo se l'entry è ancora in cima **E** quell'entry
- * in cima è davvero la nostra (`window.history.state?.uaSheet === true`, oltre al ref — v.
- * commento sull'effect dedicato, sotto e LIMITE NOTO «consumer che naviga», sotto). Non
- * interferisce con la catena pushState del pager (`StanzePager.alPopState`, guardia
- * `window.location.pathname !== '/cassette'` — v. commento lì): il pop dell'entry dello sheet
- * lascia il pathname invariato, il pager resta zitto.
+ * G5 (verbale ri-collaudo #2) + C2 (review finale whole-branch) — back del telefono chiude lo
+ * sheet: history-entry marcata `{uaSheet:true}` all'apertura, `popstate` la consuma e chiama
+ * `onChiudi`; alla chiusura esplicita la si disfa con `history.back()`. Dal fix C2 la meccanica
+ * non è più privata di questo componente ma vive in `storia-overlay.ts` — UNA entry per
+ * l'INTERA pila di overlay aperti, con una pila LIFO di chi la usa: a un back reagisce SOLO il
+ * più alto, e l'entry si consuma quando la pila si svuota (v. il modulo per il perché non basta
+ * una entry per overlay). Non interferisce con la catena pushState del pager
+ * (`StanzePager.alPopState`, guardia `window.location.pathname !== '/cassette'` — v. commento
+ * lì): il pop di un'entry di overlay lascia il pathname invariato, il pager resta zitto.
  *
  * LIMITE NOTO — consumer che naviga (`router.push`) mentre lo sheet resta aperto (review
  * FIX-I, G5): due consumatori lo fanno davvero, non solo in teoria — `MenuSchedaSheet.tsx:145`
@@ -116,19 +118,17 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * senza coordinamento fra `Sheet` e il router del consumer (fuori scope di questo fix, che
  * riguarda solo `Sheet.tsx`).
  *
- * LIMITE NOTO (non risolto qui, fuori scope FIX-I): quando un `DialogConferma` si apre SOPRA
- * questo sheet restando montato con `aperto` invariato (pattern `CassettaSheet`: la guardia
- * `onChiudi={() => { if (!dialogAperto) onChiudi() }}`), un back del telefono consuma
- * comunque l'UNICA entry pushata da questo componente — `onChiudi` gira ma la guardia lo
- * blocca, quindi lo sheet (e il dialog sopra) restano visivamente aperti mentre la history
- * ha già perso l'entry. Un secondo back naviga via dalla pagina sotto senza chiudere nulla
- * (desync). Causa architetturale: ogni overlay ascolta `popstate` in isolamento con un
- * proprio ref booleano — nessuno dei due sa "quanti livelli sono impilati sopra di me", quindi
- * non può distinguere "la MIA entry è stata consumata" da "un'entry di un overlay sopra di me
- * è stata consumata". Risolverlo per davvero richiede che anche `DialogConferma` adotti lo
- * stesso pattern con discriminazione via `window.history.state` (non un secondo ref cieco,
- * che chiuderebbe ENTRAMBI in un colpo solo, resuscitando il difetto che la guardia
- * `dialogAperto` esiste per evitare) — riserva per un fix futuro dedicato, non FIX-I.
+ * DIALOG SOPRA LO SHEET (era un LIMITE NOTO fino al fix C2 — ora è coperto): quando un
+ * `DialogConferma` si apre SOPRA questo sheet restando montato con `aperto` invariato (pattern
+ * `CassettaSheet`: la guardia `onChiudi={() => { if (!dialogAperto) onChiudi() }}`), i due
+ * overlay condividono la stessa entry e la stessa pila (`storia-overlay.ts`). Il primo back
+ * chiude SOLO il dialog e l'entry viene ri-spinta per lo sheet che resta sotto; il secondo
+ * chiude lo sheet e disfa l'entry; il terzo è finalmente della pagina. Prima invece il primo
+ * back consumava l'unica entry esistente senza chiudere niente (la guardia bloccava
+ * `onChiudi`), e il secondo si mangiava l'entry di chi stava sotto — lasciando sheet e dialog
+ * dipinti sopra una stanza diversa. Nessun secondo ref booleano cieco: quello chiuderebbe
+ * ENTRAMBI in un colpo solo, cioè proprio il difetto che la guardia `dialogAperto` esiste per
+ * evitare.
  */
 export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: string; children: ReactNode }) {
   const { aperto, onChiudi, titolo, children } = props
@@ -182,44 +182,19 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     onChiudiRef.current = onChiudi
   }, [onChiudi])
 
-  const entryInCimaRef = useRef(false)
+  // C2 (review finale whole-branch) — la meccanica di push/pop non vive più QUI: è delegata a
+  // `storia-overlay.ts`, che tiene UNA sola entry per l'intera pila di overlay aperti e una
+  // pila LIFO di chi la usa. Motivo: quando un `DialogConferma` si apre SOPRA questo sheet
+  // (pattern `CassettaSheet`), due meccaniche indipendenti non sanno l'una dell'altra — la
+  // vecchia versione consumava l'unica entry esistente al primo back, non chiudeva nulla (la
+  // guardia `dialogAperto` del compositore bloccava `onChiudi`) e lasciava il back successivo
+  // a mangiarsi l'entry di chi sta sotto. Il ragionamento completo (incluso perché NON una
+  // entry per overlay) è nel modulo. Da qui si vede solo il contratto: entra, esce, e la
+  // chiusura arriva quando è il TURNO di questo sheet.
   useEffect(() => {
     if (!aperto) return
-    window.history.pushState({ uaSheet: true }, '')
-    entryInCimaRef.current = true
-    // Consumo dell'entry via gesto/back del browser: la traversal l'ha già fatta il browser
-    // (o, in test, l'evento sintetico) — qui si chiude lo stato React, MAI un secondo
-    // `history.back()` (raddoppierebbe la traversal).
-    function alPopState() {
-      if (!entryInCimaRef.current) return
-      entryInCimaRef.current = false
-      onChiudiRef.current()
-    }
-    window.addEventListener('popstate', alPopState)
-    return () => {
-      window.removeEventListener('popstate', alPopState)
-      // Chiusura esplicita (o smontaggio mentre aperto): se l'entry è ancora in cima (non
-      // consumata da un back già avvenuto), la disfiamo noi — mai lasciarla lì a farsi
-      // consumare da un back futuro che l'utente non si aspetta più legato a questo sheet.
-      //
-      // Review FIX-I (G5): `entryInCimaRef` da solo non basta. Due consumatori reali fanno
-      // `router.push` mentre questo sheet resta montato e aperto (`MenuSchedaSheet.tsx` verso
-      // `/lavori/[id]/modifica`, `SchedaPersonaSheet.tsx` verso `/tecnici/[id]/produttivita`):
-      // Next impila la LORO entry SOPRA quella `{uaSheet:true}` di questo componente, ma il ref
-      // — booleano cieco, non sa cosa c'è davvero in cima — resterebbe `true` fino alla cleanup.
-      // Un `history.back()` incondizionato a quel punto non disfa la NOSTRA entry (già sepolta
-      // sotto quella del consumer): disfa la LORO, cioè inverte la navigazione appena fatta
-      // dall'utente. Il controllo `window.history.state?.uaSheet === true` verifica che l'entry
-      // ANCORA in cima sia effettivamente la nostra prima di consumarla — se non lo è, si
-      // rinuncia al `back()` e si accetta che l'entry `{uaSheet:true}` resti appesa in history
-      // (limite noto, sotto): innocua, un back futuro la salterà silenziosamente.
-      if (entryInCimaRef.current) {
-        entryInCimaRef.current = false
-        if (window.history.state?.uaSheet === true) {
-          window.history.back()
-        }
-      }
-    }
+    const token = entraOverlay('uaSheet', () => onChiudiRef.current())
+    return () => esciOverlay(token)
   }, [aperto])
 
   // Blocco scroll "esteso" (bug QA live Francesco): il body deve restare
