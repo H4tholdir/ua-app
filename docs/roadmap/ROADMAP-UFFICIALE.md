@@ -208,6 +208,26 @@ Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/
 
 ---
 
+### 📌 CODA DELL'ONDATA «REDESIGN PARETE/HOME» (aggiornata 26/07/2026)
+
+Handoff: `docs/roadmap/2026-07-26-wave-h-handoff.md`. Nell'ordine:
+
+1. **Nome e cognome del paziente nel wizard** — RATIFICATO 26/07 («facciamo chiedere nome e
+   cognome al wizard, ovviamente un campo non obbligatorio»). Percorso BP-2 pieno. Serve perché
+   oggi l'app **non sa quale parola è il cognome**: wizard e form paziente compongono
+   `nome_cognome` in ordine opposto e alla parete arriva solo la stringa già composta. Confronto
+   visivo pronto: `docs/design/mockups/2026-07-26-nomi-paziente.html`.
+2. **T16 — la striscia in home** (valori ratificati, brief nel piano del 23/07).
+3. **T17 — chiusura ondata**: overlay diagnostico suoni via · pulizia `scripts/tmp/` · FASE 7 ·
+   review whole-branch con la lista MINOR del ledger (~15) · allineamento spec DS v3 ·
+   FASE 9 Playwright · **FASE 9b gate estetico L2** · 🛑 merge a parola di Francesco · BP-1.
+
+**Deferito alle ondate proprietarie** (ratifica 26/07): bottone oro e i difetti di leggibilità
+già appuntati sotto — «può essere che scomparirà del tutto quando revisioneremo le pagine».
+**Non si fa** (ratifica 26/07): campo «nome breve» in anagrafica cliente.
+
+---
+
 ## 🗺 CALENDARIO ONDATE MIGRAZIONE v3 — RATIFICATO DA FRANCESCO (20/07/2026)
 
 Direttiva «tutto deve migrare a v3». Censimento: 30 route ancora v2.3 (fonte `src/lib/nav/route-migrate-v3.ts`; griglia completa nel report censimento della sessione 20/07 sera — MEMORY (17)). Validato da panel advisor (solution-architect) con 4 correzioni integrate. Ordine per priorità d'uso + affinità di dominio, **max ~4 route per ondata, mai auth mischiata ad altro**:
