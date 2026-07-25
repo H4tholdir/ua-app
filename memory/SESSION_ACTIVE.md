@@ -1,5 +1,5 @@
 # Sessione attiva — 26/07/2026 (verifica finale wave H, 2° rientro)
-Worktree `redesign-parete-home` @ `a407512`. Suite **3079 verdi / 19 skip · tsc 0 · build ok**.
+Worktree `redesign-parete-home` @ `646ddd2`. Suite **3121 verdi / 19 skip · tsc 0 · build ok**.
 Collaudo :3020 riavviato sulla build corrente (guardia stili verificata).
 
 **Chiusi:** 1a TastoPiù centrato (`5dd3166`, causa: `*/` nella prosa di un commento CSS) ·
@@ -14,10 +14,15 @@ l'ultima riga di pixel (misurato). Ipotesi da confermare: in Chrome-browser quel
 dipinta dal BROWSER col fondo del documento (colore ora giusto, ma senza trama) — non
 riproducibile in Playwright. **Attesa foto di Francesco** (pagina cassette a fondo scroll).
 
-**Ratificato:** nomi lunghi = **variante 6** (prima un gradino di corpo, poi via le parole di
-categoria). Francesco chiede di estendere la stessa logica ai **pazienti** → serve mockup:
-lo step «parole di categoria» non esiste sui nomi di persona, va ridefinito (es. nome proprio
-→ iniziale). Non ancora progettato.
+**FATTO — nomi lunghi, variante 6** (`ea02c45` + `8c2f81a` + `646ddd2`, suite **3121 verdi /
+19 skip**, +42 test nuovi, nessuno tolto): il clinico prova 10 → 9,5 → 9px sul nome intero, poi
+gli stessi corpi sul nome senza le parole di categoria in testa, poi la sfumatura di oggi. Sui 4
+nomi veri (misurato in browser, DPR 1/2,75/3): `STUDI MEDICI DI SANTI GIUSEPPE` resta **intero**
+a 9px senza sfumatura, gli altri 3 invariati. Lista delle parole + guardie (mai vuoto, residuo
+≥ 4 lettere) e motivazioni: `docs/design/decisions/2026-07-26-nomi-lunghi-variante6.md` — **la
+lista è una proposta, Francesco la può correggere lì senza toccare codice**.
+Francesco chiede la stessa logica sui **pazienti** → mockup separato, lo step «parole di
+categoria» non esiste sui nomi di persona (es. nome proprio → iniziale). Non progettato qui.
 
 **Ratificato:** i difetti di leggibilità NON si correggono ora — appuntati in ROADMAP dentro le
 ondate che possiedono le pagine. Verifica di copertura fatta: le ondate coprono tutto; il
