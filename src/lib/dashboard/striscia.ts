@@ -62,12 +62,21 @@ export const SDI_SCARTATE = ['rifiutata']
 
 type Candidato = (i: IngressiStriscia) => SegnaleStriscia | null
 const s1: Candidato = (i) => i.fatturaScartata && { attenzione: true, forte: `Fattura n.${i.fatturaScartata.numero}`, testo: 'scartata', azione: { etichetta: 'Sistemala ›', href: `/fatture/${i.fatturaScartata.id}` } }
+// Fix review Task 16a, finding importante #1: s2 bundlava DUE allarmi distinti (ritardo più
+// grave E consegna di oggi non pronta) in un'unica funzione con precedenza interna — se
+// entrambi i campi delle pile erano valorizzati insieme (routine: un lavoro in ritardo grave +
+// un altro con consegna di oggi non ancora pronta), il secondo restava invisibile ANCHE sotto
+// l'aggregazione, perché `candidatiLivello1` conta le FUNZIONI candidate, non gli allarmi
+// effettivamente accesi — la riserva UX 5a («mai un allarme nascosto dietro un altro») valeva
+// solo a metà. Divisi in due candidati indipendenti — copy e href INVARIATI verbatim — così
+// possono accendersi insieme e contribuire entrambi al conteggio dell'aggregato.
 const s2: Candidato = (i) => {
   const r = i.pile.ritardoPiuGrave
-  if (r) return { attenzione: true, forte: `n.${r.numero}`, testo: r.giorni === 1 ? 'doveva uscire ieri' : `doveva uscire ${r.giorni} giorni fa`, azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } }
+  return r ? { attenzione: true, forte: `n.${r.numero}`, testo: r.giorni === 1 ? 'doveva uscire ieri' : `doveva uscire ${r.giorni} giorni fa`, azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } } : null
+}
+const s2b: Candidato = (i) => {
   const c = i.pile.consegnaOggiNonPronta
-  if (c) return { attenzione: true, forte: `n.${c.numero}`, testo: c.ora ? `non è ancora pronto per le ${c.ora}` : 'non è ancora pronto per oggi', azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } }
-  return null
+  return c ? { attenzione: true, forte: `n.${c.numero}`, testo: c.ora ? `non è ancora pronto per le ${c.ora}` : 'non è ancora pronto per oggi', azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } } : null
 }
 const s3: Candidato = (i) => i.pile.provaRientroOggi ? { attenzione: true, forte: `n.${i.pile.provaRientroOggi}`, testo: 'torna oggi dalla prova', azione: { etichetta: 'Apri ›', href: '/lavori?pila=viola' } } : null
 const s4: Candidato = (i) => i.pile.arrivoVecchio ? { attenzione: true, forte: `n.${i.pile.arrivoVecchio}`, testo: 'aspetta conferma da ieri', azione: { etichetta: 'Conferma ›', href: '/lavori?pila=blu' } } : null
@@ -143,11 +152,16 @@ const sPareteIntro: Candidato = (i) =>
 // allarme, dove è ininfluente: risponde comunque quell'unico). Il trial ≤3gg (riserva UX 5b)
 // entra qui SOLO per titolare/admin_rete (unici ruoli che lo vedono, O1i) — v.
 // `candidatiLivello1`.
+// Fix review Task 16a #1: `s2b` (consegna oggi non pronta, ex metà di s2) aggiunta SUBITO dopo
+// `s2` (ritardo) in ogni lista di ruolo — stesso perimetro di prima (s2b era già raggiungibile
+// da ogni ruolo che vedeva s2, solo nascosta dentro la stessa funzione), l'ordine s2→s2b non
+// cambia nulla quando è acceso un solo allarme (risponde comunque quell'unico, byte-identico a
+// prima del fix) e serve solo a mantenere leggibile la provenienza dei due candidati.
 const LIVELLO1_PER_RUOLO: Record<string, Candidato[]> = {
-  titolare: [s1, s2, s3, s4, s5, s6, s7],
-  admin_rete: [s1, s2, s3, s4, s5, s6, s7],
-  front_desk: [s2, s3, s4, s1, s5, s6], // niente s7 (pagamenti — P7: solo tit/admin_rete)
-  tecnico: [s2, s3, s4, s6], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
+  titolare: [s1, s2, s2b, s3, s4, s5, s6, s7],
+  admin_rete: [s1, s2, s2b, s3, s4, s5, s6, s7],
+  front_desk: [s2, s2b, s3, s4, s1, s5, s6], // niente s7 (pagamenti — P7: solo tit/admin_rete)
+  tecnico: [s2, s2b, s3, s4, s6], // niente s1/s5/s7 (fiscali/pagamenti — P7: mai al tecnico)
 }
 function candidatiLivello1(ruolo: string, i: IngressiStriscia): SegnaleStriscia[] {
   const perRuolo = LIVELLO1_PER_RUOLO[ruolo] ?? LIVELLO1_PER_RUOLO.tecnico

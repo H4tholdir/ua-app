@@ -164,6 +164,27 @@ describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
       testo: 'non è ancora configurato — avvisa il titolare', azione: null })
   })
 
+  // Fix review Task 16a, finding importante #2 — GUARDIA DI PRECEDENZA (non uno scenario
+  // raggiungibile in produzione): il test sopra è stato indebolito nella tranche A, perdendo
+  // `pile.ritardoPiuGrave` accanto a `senzaAnagrafica: true` — proprio l'input che lo rendeva un
+  // test di precedenza. Sotto la VECCHIA gerarchia a eliminazione singola, `sTecAccount` era il
+  // primo candidato tecnico e vinceva SEMPRE, anche con un allarme operativo acceso. Con
+  // l'aggregazione di livello 1, `sTecAccount` è sceso nella catena di fallback (valutata SOLO
+  // se il livello 1 produce 0 allarmi, v. `FALLBACK_PER_RUOLO`/`scegliSegnale`): la precedenza si
+  // è INVERTITA di proposito — ora, se un allarme di livello 1 è acceso, vince LUI, non più
+  // `sTecAccount`. Questo test riafferma quella nuova precedenza esplicitamente. In produzione
+  // questo stato (senzaAnagrafica true CON pile popolate) non si presenta mai — con
+  // `senzaAnagrafica` le pile sono vuote per costruzione (v. commento su `sTecAccount` in
+  // striscia.ts) — il test guarda la REGOLA di ordinamento in sé, non uno stato raggiungibile.
+  it('(a) senzaAnagrafica: true CON un allarme di livello 1 (stato irraggiungibile in produzione) → ora vince l\'allarme, non più sTecAccount', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO,
+      senzaAnagrafica: true,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+  })
+
   it('(a) tecnico senza senzaAnagrafica: gerarchia normale (nessun cambiamento)', () => {
     const s = scegliSegnale('tecnico', { ...VUOTO,
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
@@ -488,6 +509,41 @@ describe('scegliSegnale — Task 16 (D3 §3.4): aggregazione livello 1, racconto
   })
 })
 
+// --- Fix review Task 16a, finding importante #1: s2 bundlava DUE allarmi distinti (ritardo più
+// grave E consegna di oggi non pronta) in un'unica funzione con precedenza interna — se entrambi
+// i campi delle pile erano valorizzati insieme (routine: un lavoro in ritardo grave + un altro
+// lavoro con consegna di oggi non ancora pronta), il secondo restava invisibile ANCHE sotto la
+// nuova aggregazione, perché `candidatiLivello1` contava le FUNZIONI candidate, non gli allarmi
+// effettivamente accesi — la riserva UX 5a («mai un allarme nascosto dietro un altro») valeva
+// solo a metà. `s2` è stato diviso in `s2` (ritardo) + `s2b` (consegna oggi non pronta),
+// candidati indipendenti con copy/href INVARIATI verbatim.
+describe('scegliSegnale — fix review Task 16a #1: ritardo e consegna-oggi-non-pronta sono allarmi indipendenti', () => {
+  it('entrambi accesi insieme → 2 allarmi nell\'aggregato, nessuno nascosto (PRIMA del fix: solo 1, il ritardo)', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('2 scadenze oggi')
+    expect(s.testo).toBe('da guardare')
+    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
+  })
+
+  it('solo il ritardo acceso → passthrough invariato, copy/href identici a prima del fix', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s).toEqual({ attenzione: true, forte: 'n.144', testo: 'doveva uscire ieri',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } })
+  })
+
+  it('solo la consegna-oggi-non-pronta accesa → passthrough invariato, copy/href identici a prima del fix', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      pile: { ...VUOTO.pile, consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } })
+    expect(s).toEqual({ attenzione: true, forte: 'n.147', testo: 'non è ancora pronto per le 16:00',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } })
+  })
+})
+
 // --- leggiLiberazioneRecente (Task 16, D3 §3.4) — ultima liberazione per consegna, scoped lab ---
 
 type CassetteLavoriResult = { data: unknown; error: unknown }
@@ -498,7 +554,10 @@ function makeSvcLiberazione(fn: () => Promise<CassetteLavoriResult>) {
   for (const m of ['select', 'eq', 'gt', 'order']) {
     chain[m] = (...args: unknown[]) => { chiamate.push({ metodo: m, args }); return chain }
   }
-  chain.limit = () => fn()
+  // Fix review Task 16a, finding minore: `limit` non registrava i propri argomenti (a differenza
+  // di select/eq/gt/order) — impossibile verificare `.limit(1)` dal test. Registrato come gli
+  // altri, PRIMA di invocare `fn()` (che chiude la catena e restituisce il risultato mockato).
+  chain.limit = (...args: unknown[]) => { chiamate.push({ metodo: 'limit', args }); return fn() }
   const svc = {
     from: (table: string) => {
       if (table === 'cassette_lavori') return chain
@@ -532,6 +591,39 @@ describe('leggiLiberazioneRecente — ultima liberazione per consegna nelle ulti
     await leggiLiberazioneRecente(svc, 'lab-42')
     const eqLab = chiamate.find((c) => c.metodo === 'eq' && c.args[0] === 'laboratorio_id')
     expect(eqLab?.args).toEqual(['laboratorio_id', 'lab-42'])
+  })
+
+  // Fix review Task 16a, finding minore: tre assert mancanti sulla query — un filtro
+  // `liberato_per` perso farebbe scattare il racconto «UÀ ha liberato…» anche per liberazioni
+  // NON di consegna (es. liberazioni manuali/altro motivo), senza che nessun test se ne accorga.
+  it('filtra per liberato_per=consegna — un filtro assente farebbe scattare il racconto su liberazioni non di consegna', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const eqConsegna = chiamate.find((c) => c.metodo === 'eq' && c.args[0] === 'liberato_per')
+    expect(eqConsegna?.args).toEqual(['liberato_per', 'consegna'])
+  })
+
+  it('filtra sulle ultime 24h con gt su liberato_at', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    const prima = Date.now()
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const dopo = Date.now()
+    const gtCall = chiamate.find((c) => c.metodo === 'gt')
+    expect(gtCall?.args[0]).toBe('liberato_at')
+    // Il bound esatto dipende da Date.now() al momento della chiamata — si verifica che cada
+    // nella finestra [prima, dopo] meno 24h, non un valore letterale (che sarebbe flaky).
+    const bound = new Date(gtCall?.args[1] as string).getTime()
+    expect(bound).toBeGreaterThanOrEqual(prima - 24 * 60 * 60 * 1000)
+    expect(bound).toBeLessThanOrEqual(dopo - 24 * 60 * 60 * 1000)
+  })
+
+  it('ordina per liberato_at discendente e limita a 1 riga — la più recente', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const orderCall = chiamate.find((c) => c.metodo === 'order')
+    expect(orderCall?.args).toEqual(['liberato_at', { ascending: false }])
+    const limitCall = chiamate.find((c) => c.metodo === 'limit')
+    expect(limitCall?.args).toEqual([1])
   })
 
   it('errore → degrado a null, come leggiFatturaScartata (spy console.error)', async () => {
