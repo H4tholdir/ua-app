@@ -484,3 +484,58 @@ browser**, non la PWA installata (comportamento della nav bar diverso fra le due
 
 **Stato dei gate:** 🛑 T15 NON chiudibile — 1a è una regressione confermata; 2, 1b e 3b
 attendono ratifica di Francesco.
+
+---
+
+## APPEND — 26/07 pomeriggio (collaudo device di Francesco al rientro, build `5ccc564`)
+
+**Esiti dichiarati (telefono Android, Chrome come BROWSER — non PWA installata):**
+
+1. **1b parete — la striscia panna liscia è SPARITA** («la fascia piccolina di color panna è
+   sparita»). Il difetto segnalato è chiuso. **Resta** che il contenuto non continua sotto la
+   barra gesture: «come vedi il tutto non continua sotto la barra delle gestures».
+   → **NON è un difetto dell'app: è il limite della scheda di browser.** In Chrome-tab l'area
+   della barra di navigazione appartiene al browser e nessuna pagina può disegnarci sopra;
+   `env(safe-area-inset-bottom)` resta 0 e `viewport-fit: cover` non ha effetto lì. Il manifest
+   dichiara `display: standalone` (`public/manifest.json:6`), quindi **da PWA installata** la
+   pagina prende tutto lo schermo e il muro arriva sotto la barra — è anche la modalità d'uso
+   reale del laboratorio. **Da riprovare installando l'app da icona.** Non c'è codice da scrivere.
+2. **Nomi studio — la variante 6 funziona, la PREVISIONE del controller era sbagliata.**
+   Francesco legge «DI SANTI GIUSEPPE», non il nome intero. Misurato il perché
+   (`scripts/tmp/nome-a-larghezze.mjs`, DPR 3):
+
+   | viewport | colonna nome | nome intero entra? |
+   |---|---|---|
+   | 320 / 344 / 360 / 375 | 48 → 66px | **NO**, nemmeno a 9px |
+   | 390 / 393 | 71,3 / 72,3px | sì, a 9px |
+   | 412 | 78,7px | sì, già a 9,5px |
+   | 430 | 84,7px | sì, a corpo pieno |
+
+   Il telefono di Francesco è **più stretto di 390px**: il gradino di corpo non basta e la regola
+   passa correttamente al passo 3 (via le parole di categoria). Il comportamento è quello
+   ratificato; era la promessa «si legge tutto intero» a essere tarata su 390px. 🛑 Da confermare
+   con Francesco se «DI SANTI GIUSEPPE» va bene (parere del controller: sì — «STUDI MEDICI» non
+   distingue nulla) o se si vuole scendere sotto i 9px perdendo leggibilità.
+3. **1a TastoPiù centrato: PASS** («tutto ok»).
+4. **Fondo unico: PASS in home** («almeno nella home tutto ok»).
+5. **Suoni: PASS** dopo tutti i cambi della giornata.
+
+**Residuo trovato dal controller durante questo giro:** `public/manifest.json` portava ancora
+`background_color: #DDD8D3` — il colore della schermata di avvio della PWA installata era rimasto
+quello vecchio. I posti dove viveva il fondo erano **quattro**, non tre. Corretto in `5ccc564`.
+
+**Decisioni di Francesco su questo giro:**
+- **Parole di categoria:** «fai un po di ricerche su internet e poi fatti aiutare da advisor
+  specializzati» → ricerca su **1.604 nomi reali** consegnata
+  (`2026-07-26-parole-categoria-ricerca.md`) + panel di 3 advisor (UX · architettura · dati)
+  convocato. **Difetto VERIFICATO dalla ricerca e riprodotto dal controller:** la guardia
+  `MIN_LETTERE_NOME_ACCORCIATO` conta le lettere di TUTTO il residuo, quindi su nomi reali la
+  cassetta scriverebbe «SRL UNIPERSONALE», «STP S.R.L.», «S.A.S. DI GIUSEPPE SANNINO»,
+  «- CLINICA DEL SORRISO» al posto del nome. Correzione in attesa del parere del panel.
+- **Nomi paziente:** RATIFICATO — «facciamo chiedere nome e cognome al wizard (ovviamente un
+  campo non obbligatorio)». È il dato che oggi manca: le due strade di scrittura compongono
+  `nome_cognome` in ordine opposto, quindi l'app non sa quale parola sia il cognome (verificato:
+  `src/lib/wizard/crea-lavoro.ts:144-145` vs trigger `sync_paziente_nome_cognome`).
+- **Bottone oro:** DEFERITO — «può essere che scomparirà del tutto quando revisioneremo le pagine
+  che lo contengono». Resta appuntato in ROADMAP dentro le ondate proprietarie; nessun
+  investimento ora.
