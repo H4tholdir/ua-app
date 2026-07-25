@@ -80,10 +80,11 @@
 //    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
 //    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
+import { costruisciScalaNome } from '@/lib/domain/nome-studio'
 import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect'
 import { MiniaturaLavoro } from './MiniaturaLavoro'
 
@@ -265,6 +266,35 @@ export function Cassetta(props: {
   // disponibile per il testo cambia, quindi il bisogno del taglio può comparire o sparire.
   const dentRef = useRef<HTMLSpanElement | null>(null)
   const [dentTroncato, setDentTroncato] = useState(false)
+  // Variante 6 «la combinata» (ratifica 26/07, mockup 2026-07-26-nomi-lunghi-cassetta.html §6,
+  // verbale docs/design/decisions/2026-07-26-nomi-lunghi-variante6.md) — la SCALA del clinico.
+  // Prima di questa consegna c'era una sola resa possibile (corpo pieno + sfumatura se sforava);
+  // ora ce ne sono fino a sei, provate IN ORDINE e fermandosi alla prima che entra in 2 righe:
+  // nome intero a 10 → 9,5 → 9px, poi (solo se a 9px ancora sfora) nome senza le parole di
+  // categoria in testa, di nuovo a 10 → 9,5 → 9px. Finita la scala senza trovarne una, resta la
+  // sfumatura di oggi — punto 4 della regola, ultima spiaggia.
+  // I candidati sono PURI (`costruisciScalaNome`, src/lib/domain/nome-studio.ts, con i suoi test);
+  // qui vive solo il "quale". La scelta è una MISURA nel DOM, mai una soglia sulla lunghezza del
+  // testo: la larghezza della colonna è fluida e il font è quello reale, esattamente la ragione
+  // per cui `SOGLIA_NOME_LUNGO` era stata rimossa da H2 e non va reintrodotta.
+  const nomeStudio = lavoro?.dentista ?? ''
+  const scalaNome = useMemo(() => costruisciScalaNome(nomeStudio), [nomeStudio])
+  // Lo stato porta con sé il NOME per cui è stato calcolato: se il nome cambia, il gradino
+  // vecchio non si eredita (si riparte dal corpo pieno) senza bisogno di un setState in fase di
+  // render né di un effetto di reset — la derivazione qui sotto lo rende semplicemente inerte.
+  const [scalino, setScalino] = useState<{ nome: string; passo: number }>({ nome: nomeStudio, passo: 0 })
+  const passoNome = scalino.nome === nomeStudio ? Math.min(scalino.passo, scalaNome.length - 1) : 0
+  const gradinoNome = scalaNome[passoNome]
+  // Larghezza dell'ultima misura: distingue «è cambiata la colonna» (motivo VERO per rifare la
+  // scala dall'inizio) da «si è accorciata la scatola perché ho appena cambiato io il corpo»
+  // (nessun motivo: ripartire lì dentro sarebbe un ciclo infinito ResizeObserver ⇄ gradino).
+  // La larghezza del clinico non dipende dal corpo — `width: min(100%, 96px)` in ds-v3.css —
+  // quindi è una chiave esatta per questa distinzione.
+  const larghezzaNota = useRef<number | null>(null)
+  // I font web possono ancora caricare al primo render: la ri-misura a caricamento finito rifà
+  // la scala da capo (le metriche del fallback possono aver fatto scendere un gradino di troppo).
+  // Una volta sola, altrimenti il reset a gradino 0 e la discesa si inseguirebbero all'infinito.
+  const fontRimisurati = useRef(false)
   // H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
   // `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «budget righe condiviso»:
   // il paziente arriva fino a 2 righe SOLO quando il clinico ne occupa 1 (v. CSS, selettore
@@ -328,34 +358,71 @@ export function Cassetta(props: {
       // torna al confronto px puro (`scrollHeight > clientHeight + 1`, comportamento
       // pre-H2c) — nessun test esistente che stubba solo scrollHeight/clientHeight (senza
       // lineHeight) cambia risultato.
+      larghezzaNota.current = nodo.getBoundingClientRect().width
       const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
+      let sfora: boolean
       if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
         const righeContenuto = Math.round(nodo.scrollHeight / altezzaRiga)
         const righeVisibili = Math.round(nodo.clientHeight / altezzaRiga)
-        setDentTroncato(righeContenuto > righeVisibili)
+        sfora = righeContenuto > righeVisibili
+        setDentTroncato(sfora)
         setDentDueRighe(righeVisibili >= 2)
       } else {
-        setDentTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+        sfora = nodo.scrollHeight > nodo.clientHeight + 1
+        setDentTroncato(sfora)
         setDentDueRighe(false)
+      }
+      // Variante 6 — il gradino successivo si prova SOLO dopo aver aggiornato `is-troncato` qui
+      // sopra, mai al posto suo: durante la discesa la scatola contiene davvero più righe di
+      // quante ne mostri, ed è ESATTAMENTE lo stato in cui H2d ha misurato che il respiro di 1px
+      // del clip-path lascia intravedere un filo della riga successiva. Tenere la sfumatura
+      // accesa mentre si scende costa nulla (il clip torna a filo del bordo, comportamento già
+      // in produzione) e non può innescare un ciclo: `is-troncato` cambia solo clip-path e
+      // mask-image, che non toccano il box model — scrollHeight/clientHeight restano identici.
+      if (sfora && passoNome < scalaNome.length - 1) {
+        setScalino({ nome: nomeStudio, passo: passoNome + 1 })
       }
     }
     misura()
     // I font web (Plus Jakarta Sans) possono ancora caricare al primo render: una ri-misura a
     // caricamento completato evita un falso negativo/positivo transitorio sulla metrica del
-    // fallback font.
-    if (typeof document !== 'undefined' && document.fonts?.ready) {
-      document.fonts.ready.then(misura)
+    // fallback font. Variante 6: se nel frattempo la scala era già scesa, si RIPARTE dal corpo
+    // pieno — con le metriche vere il gradino potrebbe non servire più. `fontRimisurati` fa sì
+    // che accada una volta sola: senza, reset e discesa si inseguirebbero all'infinito.
+    if (typeof document !== 'undefined' && document.fonts?.ready && !fontRimisurati.current) {
+      document.fonts.ready.then(() => {
+        if (!vivo) return
+        fontRimisurati.current = true
+        if (passoNome > 0) setScalino({ nome: nomeStudio, passo: 0 })
+        else misura()
+      })
     }
     let ro: ResizeObserver | undefined
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(misura)
+      ro = new ResizeObserver(() => {
+        if (!vivo) return
+        // Variante 6 — perché non basta ri-misurare: la scala scende sola ma non risale, e la
+        // stessa cassetta può ricevere PIÙ spazio quando la griglia cambia colonne (3/4/6) senza
+        // smontarsi. Quando cambia la LARGHEZZA si riparte dal corpo pieno; quando la larghezza
+        // è la stessa, l'unico ridimensionamento possibile è quello in ALTEZZA che ho appena
+        // provocato io scendendo di gradino — lì ripartire sarebbe un ciclo infinito.
+        const larghezza = nodo.getBoundingClientRect().width
+        const cambiataLarghezza =
+          larghezzaNota.current === null || Math.abs(larghezza - larghezzaNota.current) > 0.5
+        if (cambiataLarghezza && passoNome > 0) {
+          larghezzaNota.current = larghezza
+          setScalino({ nome: nomeStudio, passo: 0 })
+          return
+        }
+        misura()
+      })
       ro.observe(nodo)
     }
     return () => {
       vivo = false
       ro?.disconnect()
     }
-  }, [lavoro?.dentista])
+  }, [nomeStudio, passoNome, scalaNome.length])
 
   // H2b — il paziente riusa 1:1 lo STESSO meccanismo del clinico (`is-troncato` misurato in JS
   // via scrollHeight/clientHeight, nessuna nuova soglia): quando il clinico occupa 2 righe il
@@ -704,11 +771,24 @@ export function Cassetta(props: {
           <span className="ds-cassetta-cont">
             {lavoro ? (
               <>
+                {/* Variante 6 — `gradinoNome` è il gradino della scala che ha superato la
+                    misura: testo (intero o senza le parole di categoria in testa) + classe del
+                    corpo. Il `title` compare SOLO quando ciò che si legge non è il nome per
+                    intero — accorciato o sfumato: il nome vero resta comunque nell'`aria-label`
+                    del bottone (sotto), che è la via che leggono gli screen reader e che NON
+                    passa mai dalla scala. Il dato a database non viene toccato da nulla di
+                    tutto questo. */}
                 <span
                   ref={dentRef}
-                  className={`ds-cassetta-dent${dentDueRighe ? ' is-due-righe' : ''}${dentTroncato ? ' is-troncato' : ''}`}
+                  className={[
+                    'ds-cassetta-dent',
+                    gradinoNome.classeCorpo,
+                    dentDueRighe ? 'is-due-righe' : null,
+                    dentTroncato ? 'is-troncato' : null,
+                  ].filter(Boolean).join(' ')}
+                  title={gradinoNome.testo !== nomeStudio || dentTroncato ? nomeStudio : undefined}
                 >
-                  {lavoro.dentista}
+                  {gradinoNome.testo}
                 </span>
                 <span ref={pazRef} className={`ds-cassetta-paz${pazTroncato ? ' is-troncato' : ''}`}>
                   {pazienteReso}

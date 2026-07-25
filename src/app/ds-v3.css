@@ -683,6 +683,26 @@
   clip-path: inset(0 0 -1px 0);
   -webkit-clip-path: inset(0 0 -1px 0);
 }
+/* Variante 6 «la combinata» (ratifica Francesco 26/07/2026, mockup
+   2026-07-26-nomi-lunghi-cassetta.html §6, verbale docs/design/decisions/2026-07-26-nomi-lunghi-variante6.md)
+   — I DUE GRADINI DI CORPO del clinico. Quando il nome non entra in 2 righe, PRIMA di togliergli
+   parole si prova a rimpicciolirlo di un gradino: 10 → 9,5 → 9px. Sotto i 9px non si scende (limite
+   di leggibilità dichiarato nel mockup): non esiste una terza classe, ed è presidiato da una guardia
+   in tests/unit/ds-v3/cassetta-nomi-lunghi.test.tsx.
+   La classe la mette `Cassetta.tsx` SOLO dopo aver MISURATO che il gradino precedente sfora
+   (stessa aritmetica a righe intere di H2c) — non è una regola che scatta sulla lunghezza del testo.
+   Queste due regole toccano SOLO `font-size`, di proposito:
+   - `line-height: 1.16` è un numero puro → scala da sé col corpo (11,6 / 11,02 / 10,44px);
+   - `max-height: calc(2 * 1.16em)` è in EM → segue il corpo dell'elemento stesso, quindi il budget
+     resta 2 RIGHE ESATTE a ogni gradino. Valori RISOLTI misurati in Chromium reale sulla parete
+     (scripts/tmp/nomi-lunghi-v6-misure.mjs): 23,2 / 22,04 / 20,88px, con round(clientHeight/lineHeight)
+     = 2 a tutti e tre — la terza riga non entra mai nel budget.
+   - clip-path/mask-image NON si ridichiarano qui: il respiro di 1px della regola base e il suo
+     azzeramento su `.is-troncato` (H2d) restano gli unici governi del ritaglio, identici a prima.
+   Specificità (0,3,0 col perimetro [data-ds]) > regola base (0,2,0): il gradino vince sul corpo
+   pieno, e non entra in conflitto con `.is-troncato`/`.is-due-righe` (proprietà disgiunte). */
+[data-ds="v3"] .ds-cassetta-dent.is-corpo-95 { font-size: 9.5px; }
+[data-ds="v3"] .ds-cassetta-dent.is-corpo-9 { font-size: 9px; }
 /* H2d (indagine H7, report h7-indagine-sfumatura-report.md + h2d-discendenti-report.md) — la
    "sfumatura fantasma" che Francesco vedeva su clinici che riempiono ESATTAMENTE 2 righe (MAI
    `.is-troncato`, quindi senza la sfumatura intenzionale sotto): pixel-diff reale (Playwright+
