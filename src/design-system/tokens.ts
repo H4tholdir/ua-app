@@ -9,9 +9,15 @@ export const colorLight = {
   sfc:     '#E4DFD9',
   elv:     '#EDEDEA',
   prs:     '#D4CFC9',
-  t1:      '#1C1916',   // 12.4:1 su bg → AAA
-  t2:      '#4A3D33',   // 7.4:1 su bg → AAA (era #96918D: WCAG fail)
-  t3:      '#6B5C51',   // 4.5:1 su bg → AA  (era #B8B3AE: WCAG fail)
+  // ⚠️ I rapporti qui sotto sono misurati SU `bg` (#F4F0E7, riga 8) e su nient'altro: la lezione
+  // di questa ondata è che un contrasto scritto in un commento SCADE quando la superficie si
+  // sposta. Chi cambia `bg` deve ri-misurare tutte e tre le righe — nominare la superficie serve
+  // proprio a rendere visibile lo scarto invece di lasciarlo silenzioso. Stessi valori, stessa
+  // misura e stessa formulazione di `globals.css` (`--t1/--t2/--t3`, righe 79-81): i due file
+  // devono raccontare la stessa cosa.
+  t1:      '#1C1916',   // 15.4:1 su bg #F4F0E7 → AAA (il 12.4 scritto prima era sul vecchio fondo #DDD8D3)
+  t2:      '#4A3D33',   // 9.2:1  su bg #F4F0E7 → AAA (il 7.4 era sul vecchio fondo; il grigio pre-v2.3 #96918D era WCAG fail)
+  t3:      '#6B5C51',   // 5.6:1  su bg #F4F0E7 → AA  (il 4.5 era sul vecchio fondo, cioè al pelo della soglia; il grigio pre-v2.3 #B8B3AE era WCAG fail)
   primary: '#D90012',
 } as const
 
