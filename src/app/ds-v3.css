@@ -834,7 +834,14 @@
    componente perché portano rami `[data-theme="dark"]` e media query, che uno style-object non
    può esprimere — e perché ds-v3.css è la casa canonica dei valori raw del DS v3. */
 [data-ds="v3"] .ds-parete-shell {
-  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 40px;
+  /* Verifica finale wave H (verbale 26/07, difetto 1b — RATIFICATO da Francesco: «il muro
+     arriva fino in fondo») — il `40px` che stava QUI, in coda al padding, era 40px FUORI dal
+     muro: si vedeva il fondo pagina panna PIATTO, senza la trama della rete, tra l'ultima riga
+     del muro e il bordo inferiore dello schermo (misurato a fondo scroll: muro chiuso a 40px
+     dal bordo, `scripts/tmp/collaudo-26-prova2.mjs`). Lo spazio NON è stato eliminato: è stato
+     spostato DENTRO `.ds-parete` (v. il suo `padding` sotto), dove è fatto di rete invece che
+     di panna liscia. La quantità di respiro sotto l'ultima fila di cassette resta identica. */
+  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 0;
   /* Variante C «fluida» (decisione 23/07/2026, gap cassette tablet): la shell è
      il container su cui risolvono i cqw della griglia qui sotto. Nota: il
      containment di layout rende la shell containing block dei discendenti
@@ -982,10 +989,21 @@
    il pattern di sfondo del muro si arrotonda da sé (il `border-radius` clippa SEMPRE il
    proprio background/bordo, a prescindere da `overflow`) — zero regressione lì. Guardia
    negativa: tests/unit/ds-v3/parete-gancio-cornice.test.ts. */
+/* Verifica finale wave H (verbale 26/07, difetto 1b) — il `padding-bottom` del muro accoglie i
+   40px che prima stavano su `.ds-parete-shell` (v. lì il perché) PIÙ la safe-area: sui telefoni
+   con barra gesture il muro deve continuare ANCHE sotto la barra — è esattamente il bordo da cui
+   è nata la segnalazione di Francesco. `env(...)` con fallback 0px: dove la safe-area non esiste
+   (desktop, browser senza notch) il valore degrada ai soli 18px+40px, cioè al respiro di prima.
+   Il lato ALTO non si tocca: `--wall-pad-top` governa l'aggancio dei gancetti alla prima fila
+   (geometria ratificata H3), spostarlo disallineerebbe ganci e fili.
+   ⚠️ Il corpo di questa regola è presidiato ALLA LETTERA da `tests/unit/ds-v3/parete-fluida.test.ts`
+   su una versione del foglio con i soli spazi normalizzati (i commenti NON vengono rimossi):
+   ogni commento va tenuto FUORI dalle graffe, come questo, o le due guardie si rompono. */
 [data-ds="v3"] .ds-parete {
   --passo-maglia: 44px; --track: calc(var(--passo-maglia) * 5); --hook-above: 14px;
   --wall-pad-top: 24px; --wire-center: calc(var(--wall-pad-top) - var(--hook-above)); --wire-w: 3px;
-  position: relative; border-radius: 18px; padding: var(--wall-pad-top) 16px 18px;
+  position: relative; border-radius: 18px;
+  padding: var(--wall-pad-top) 16px calc(18px + 40px + env(safe-area-inset-bottom, 0px));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
   /* QA device T15 (verbale 2026-07-24, addendum punto 5, screenshot Francesco) — il fondo del
      muro era `--bg-deep`, un tono diverso dal fondo della pagina che lo ospita (`--bg`, dipinto

@@ -60,7 +60,13 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     // due righe) misurata in browser reale clippava il gancio della riga sotto a 4·, v.
     // ds-v3.css per i numeri e per la dimostrazione che la garanzia hook≡wire-center (mod
     // passo-maglia) non dipende dal multiplo scelto.
-    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/)
+    // Verifica finale wave H (verbale 26/07, difetto 1b — RATIFICATO da Francesco: «il muro
+    // arriva fino in fondo»): il SOLO padding-bottom passa da `18px` a
+    // `calc(18px + 40px + env(safe-area-inset-bottom, 0px))` — i 40px arrivano da
+    // `.ds-parete-shell`, che li aveva FUORI dal muro (là si vedeva panna liscia senza trama).
+    // Tutto il resto della guardia resta verbatim: parametri di griglia, ordine di
+    // dichiarazione, `--wall-pad-top` in cima (geometria dei gancetti, H3) e i 16px laterali.
+    expect(senzaCommenti).toMatch(/\[data-ds="v3"\] \.ds-parete \{\s*--passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px;\s*--wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px;\s*position: relative; border-radius: 18px;\s*padding: var\(--wall-pad-top\) 16px calc\(18px \+ 40px \+ env\(safe-area-inset-bottom, 0px\)\);/)
   })
 
   // Task 12 (D2, 25/07) — ABROGATA e SOSTITUITA (panel ARCH R6 + FE R2, spec §5.4; era «assert
@@ -111,8 +117,12 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
 // (grid-auto-rows/row-gap/align-items su .ds-parete-grid) coi valori ratificati.
 describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica 24/07/2026, P=44; track 4→5 dal QA T15 25/07)', () => {
   it('.ds-parete dichiara i parametri GRIGLIA FISSA + SNAP ratificati (P=44 · track=5P (QA T15, fix 7/e) · hook-above=14 · wall-pad-top=24 · wire-center=wall-pad-top-hook-above · wire-w=3) PRIMA di position: relative — poi la maglia SVG light + fallback colore', () => {
+    // Verifica finale wave H (verbale 26/07, difetto 1b, RATIFICATO): stessa singola modifica
+    // dichiarata sulla guardia gemella sopra — cambia SOLO il padding-bottom del muro, che
+    // assorbe i 40px prima appesi alla shell più la safe-area. Parametri di griglia, ordine e
+    // lato alto (`--wall-pad-top`, geometria gancetti H3) verbatim e presidiati come prima.
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px 18px;/
+      /\[data-ds="v3"\] \.ds-parete \{ --passo-maglia: 44px; --track: calc\(var\(--passo-maglia\) \* 5\); --hook-above: 14px; --wall-pad-top: 24px; --wire-center: calc\(var\(--wall-pad-top\) - var\(--hook-above\)\); --wire-w: 3px; position: relative; border-radius: 18px; padding: var\(--wall-pad-top\) 16px calc\(18px \+ 40px \+ env\(safe-area-inset-bottom, 0px\)\);/
     )
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-parete \{[^}]*background-image: url\("data:image\/svg\+xml,/)
     // FIX-H, G6 (24/07) — il pattern light ora SEGUE --passo-maglia invece di un letterale
