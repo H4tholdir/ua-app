@@ -1,20 +1,27 @@
-# Sessione attiva — 26/07/2026 (verifica finale wave H rientrata)
-Worktree `redesign-parete-home` @ `8b2bc01`. Suite **3078 verdi / 19 skip · tsc 0 · build ok**.
+# Sessione attiva — 26/07/2026 (verifica finale wave H, 2° rientro)
+Worktree `redesign-parete-home` @ `a407512`. Suite **3079 verdi / 19 skip · tsc 0 · build ok**.
+Collaudo :3020 riavviato sulla build corrente (guardia stili verificata).
 
-**Esiti device Francesco:** piede PASS · suoni PASS (gate esteso H1d CHIUSO su telefono+iPad).
-**Sfumatura nomi: NON è un bug** — misurato a DPR 1/2,75/3, zero falsi positivi; il nome vero è
-`STUDI MEDICI DI SANTI GIUSEPPE` (3 righe, 2 disponibili). Diventa ri-apertura di decisione
-ratificata → mockup in corso.
+**Chiusi:** 1a TastoPiù centrato (`5dd3166`, causa: `*/` nella prosa di un commento CSS) ·
+1b muro fino in fondo (`8b2bc01` + round 2 `71c6a8b`: una regola più specifica scartava il
+recupero — guardia nuova su OGNI regola con `padding` su `.ds-parete`) · fondo unico in tutta
+l'app (`90f3940`, 3 posti: `--bg`, `--ua-bg`, `--adm-bg`) · ri-misura di 6 note di contrasto
+scadute (`fc4c428`).
 
-**Chiusi in questa sessione:**
-- 1a TastoPiù scentrato (`5dd3166`) — regressione di `d232808`: un `*/` nella prosa di un
-  commento in HomeV3 inghiottiva `.ua-home .foot`. Provato col parser (7 vs 8 regole). −114,3px → 0.
-- 1b muro fino in fondo (`8b2bc01`) — i 40px della shell spostati dentro `.ds-parete` + safe-area.
+**🛑 APERTO — difetto 1b NON chiuso sul device:** Francesco vede ancora una fascia panna liscia
+sotto la barra gesture. Sul banco headless il muro arriva a 0px dal bordo e la trama copre
+l'ultima riga di pixel (misurato). Ipotesi da confermare: in Chrome-browser quella fascia è
+dipinta dal BROWSER col fondo del documento (colore ora giusto, ma senza trama) — non
+riproducibile in Playwright. **Attesa foto di Francesco** (pagina cassette a fondo scroll).
 
-**In volo (2 subagent):** mockup varianti nomi lunghi · prima/dopo sfondo globale
-`--bg` #DDD8D3→#F4F0E7 sulle pagine v2.3 (Francesco ha scelto «cambia dappertutto», gli mostro
-i contrasti card-su-fondo prima di toccare).
+**Ratificato:** nomi lunghi = **variante 6** (prima un gradino di corpo, poi via le parole di
+categoria). Francesco chiede di estendere la stessa logica ai **pazienti** → serve mockup:
+lo step «parole di categoria» non esiste sui nomi di persona, va ridefinito (es. nome proprio
+→ iniziale). Non ancora progettato.
 
-**Poi:** T15 chiudibile solo dopo le 2 ratifiche → T16 striscia → T17 chiusura+merge a sua parola.
-Verbale (LEGGE): `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND 26/07.
-Handoff: `docs/roadmap/2026-07-25-wave-h-chiusura-handoff.md`.
+**Ratificato:** i difetti di leggibilità NON si correggono ora — appuntati in ROADMAP dentro le
+ondate che possiedono le pagine. Verifica di copertura fatta: le ondate coprono tutto; il
+censimento in testa diceva 30 route, sono **37**; `/analytics` ha collocazione condizionale.
+
+**Poi:** T15 chiudibile solo dopo 1b sul device → T16 striscia → T17 chiusura+merge a sua parola.
+Verbale (LEGGE): `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` APPEND 26/07.
