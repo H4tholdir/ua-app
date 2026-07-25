@@ -138,3 +138,12 @@ stesso giro (solo commenti, zero effetto sul comportamento):
 Nota: il 5,01 di `--c-amber-ink` coincide **esattamente** col valore sul vecchio `#DDD8D3` —
 conferma che quei numeri erano tarati sul fondo pagina di allora, non sulla tinta citata nel
 commento. I commenti ora dicono su quale superficie vale ciascun numero.
+
+## Residuo trovato al collaudo device (26/07, dopo il rientro di Francesco)
+
+`public/manifest.json` portava ancora `"background_color": "#DDD8D3"` — il **vecchio** fondo.
+È il colore della schermata di avvio della PWA **installata**: sarebbe rimasto un lampo del
+tono vecchio a ogni apertura dell'app da icona, mentre tutto il resto è passato al panna.
+Sfuggito al censimento perché la ricerca era stata fatta su `src/`, e il manifest sta in
+`public/`. **Allineato a `#F4F0E7`.**
+Lezione: i tre posti dichiarati sopra erano tre di quattro. Il quarto è il manifest.
