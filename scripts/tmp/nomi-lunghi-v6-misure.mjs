@@ -50,6 +50,7 @@ const PROFILI = [
   { nome: 'dpr1.00-390x844', width: 390, height: 844, dpr: 1, mobile: true },
   { nome: 'dpr2.75-390x844', width: 390, height: 844, dpr: 2.75, mobile: true },
   { nome: 'dpr3.00-393x873', width: 393, height: 873, dpr: 3, mobile: true },
+  { nome: 'dpr2.00-768x1024', width: 768, height: 1024, dpr: 2, mobile: false },
   { nome: 'dpr2.00-1280x800', width: 1280, height: 800, dpr: 2, mobile: false },
 ]
 
