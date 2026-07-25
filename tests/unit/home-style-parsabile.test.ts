@@ -22,11 +22,21 @@ import { describe, it, expect } from 'vitest'
 
 const srcHome = readFileSync(join(process.cwd(), 'src/components/features/home/HomeV3.tsx'), 'utf8')
 
-/** Il blocco `<style>{`…`}</style>` di un sorgente, testo grezzo (il primo, se ce n'è più d'uno). */
+/**
+ * TUTTI i blocchi `<style>{`…`}</style>` di un sorgente, testo grezzo.
+ * Cinque componenti ne portano più d'uno (Campo, CardLavoro — 3 a testa —, TileScelta,
+ * CatalogoTipiSheet, PassoPaziente — 2): fermarsi al primo lascerebbe scoperti proprio i file più
+ * densi di CSS inline, che sono anche quelli dove il difetto ha più occasioni di capitare.
+ */
+function blocchiStile(sorgente: string): string[] {
+  const pezzi = sorgente.split('<style>{`').slice(1)
+  expect(pezzi.length, 'nessun blocco <style> trovato nel sorgente').toBeGreaterThan(0)
+  return pezzi.map((p) => p.split('`}</style>')[0])
+}
+
+/** Il primo blocco `<style>{`…`}</style>` di un sorgente. */
 function bloccoStile(sorgente: string): string {
-  const dopo = sorgente.split('<style>{`')[1]
-  expect(dopo, 'blocco <style> non trovato nel sorgente').toBeDefined()
-  return dopo.split('`}</style>')[0]
+  return blocchiStile(sorgente)[0]
 }
 
 /** Tutti i sorgenti sotto `src/` che portano un blocco `<style>{`…`}</style>`. */
@@ -145,17 +155,36 @@ describe('ogni blocco <style> del progetto deve sopravvivere al parser CSS (dife
     expect(relativi).toContain('src/components/ds/Cassetta.tsx')
   })
 
-  it.each(sorgentiConStile().map((f) => relative(process.cwd(), f)))(
-    '%s — nessun commento del blocco <style> si chiude in anticipo dentro la prosa',
-    (relativo) => {
-      const blocco = bloccoStile(readFileSync(join(process.cwd(), relativo), 'utf8'))
+  // un caso per BLOCCO, non per file: cinque componenti ne portano più d'uno (v. `blocchiStile`),
+  // e un `*/` di troppo nel secondo blocco è invisibile a chi guarda solo il primo
+  it.each(
+    sorgentiConStile().flatMap((f) => {
+      const relativo = relative(process.cwd(), f)
+      return blocchiStile(readFileSync(f, 'utf8')).map((_, i) => [relativo, i] as const)
+    }),
+  )('%s (blocco #%i) — nessun commento del blocco <style> si chiude in anticipo dentro la prosa',
+    (relativo, indice) => {
+      const blocco = blocchiStile(readFileSync(join(process.cwd(), relativo), 'utf8'))[indice]
       const aperture = blocco.match(/\/\*/g)?.length ?? 0
       const chiusure = blocco.match(/\*\//g)?.length ?? 0
-      expect(chiusure, `${relativo}: commenti sbilanciati — ${aperture} aperture, ${chiusure} ` +
-        'chiusure. Un `*/` scritto nella prosa di un commento lo chiude in anticipo: il testo che ' +
-        'segue viene letto come selettore fino alla prima `{` e INGHIOTTE la regola dopo. Nel ' +
-        'sorgente si continua a vedere tutto, quindi nessuna guardia `toMatch` se ne accorge.')
+      expect(chiusure, `${relativo}, blocco <style> #${indice}: commenti sbilanciati — ` +
+        `${aperture} aperture, ${chiusure} chiusure. Un \`*/\` scritto nella prosa di un commento ` +
+        'lo chiude in anticipo: il testo che segue viene letto come selettore fino alla prima `{` ' +
+        'e INGHIOTTE la regola dopo. Nel sorgente si continua a vedere tutto, quindi nessuna ' +
+        'guardia `toMatch` se ne accorge.')
         .toBe(aperture)
     },
   )
+
+  it('i file con PIÙ blocchi <style> sono coperti tutti, non solo il primo', () => {
+    // guardia della guardia: se un domani `blocchiStile` tornasse a fermarsi al primo blocco,
+    // i casi qui sopra scenderebbero in silenzio da «uno per blocco» a «uno per file»
+    const conPiuBlocchi = sorgentiConStile()
+      .map((f) => ({ f: relative(process.cwd(), f), n: blocchiStile(readFileSync(f, 'utf8')).length }))
+      .filter((x) => x.n > 1)
+    expect(conPiuBlocchi.length,
+      'nessun sorgente con più di un blocco <style>: o il progetto è cambiato, o `blocchiStile` ' +
+      'ha smesso di trovarli tutti — in entrambi i casi va guardato, non ignorato')
+      .toBeGreaterThan(0)
+  })
 })

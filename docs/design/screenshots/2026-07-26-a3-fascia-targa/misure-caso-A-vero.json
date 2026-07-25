@@ -1,0 +1,182 @@
+[
+  {
+    "tema": "light",
+    "provini": [
+      {
+        "nome": "Studio Rossi Pagani",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Dentistico Puglia",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Clinica Odontoiatrica Y",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Bianchi Puglisi",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Dentistico Gy",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Centro Odontoiatrico Gy",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Odontoiatrico G",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Poliambulatorio Puglia",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Medico Bagheria",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      }
+    ],
+    "vincente": {
+      "nome": "Studio Rossi Pagani",
+      "cls": "ds-cassetta-dent is-due-righe",
+      "righe": 2,
+      "h": 23.188
+    },
+    "casoAvero": {
+      "dentCls": "ds-cassetta-dent is-due-righe",
+      "pazCls": "ds-cassetta-paz",
+      "dentH": 23.188,
+      "dentRighe": 2,
+      "pazH": 14.25,
+      "pazRighe": 1,
+      "contH": 39.438,
+      "targaH": 19.563,
+      "targaScroll": 22,
+      "targaClient": 20,
+      "targaTagliata": 2,
+      "boxUtile": 61,
+      "margineSopra": 0,
+      "margineSotto": -1.5,
+      "margineSottoSenzaRespiro": 0,
+      "stackNaturale": 63.188,
+      "pixel": {
+        "diversi": 35,
+        "deltaMax": 1,
+        "rigaMin": 30,
+        "rigaMax": 84,
+        "alt": 240
+      }
+    }
+  },
+  {
+    "tema": "dark",
+    "provini": [
+      {
+        "nome": "Studio Rossi Pagani",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Dentistico Puglia",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Clinica Odontoiatrica Y",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Bianchi Puglisi",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Dentistico Gy",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Centro Odontoiatrico Gy",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Odontoiatrico G",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Poliambulatorio Puglia",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      },
+      {
+        "nome": "Studio Medico Bagheria",
+        "cls": "ds-cassetta-dent is-due-righe",
+        "righe": 2,
+        "h": 23.188
+      }
+    ],
+    "vincente": {
+      "nome": "Studio Rossi Pagani",
+      "cls": "ds-cassetta-dent is-due-righe",
+      "righe": 2,
+      "h": 23.188
+    },
+    "casoAvero": {
+      "dentCls": "ds-cassetta-dent is-due-righe",
+      "pazCls": "ds-cassetta-paz",
+      "dentH": 23.188,
+      "dentRighe": 2,
+      "pazH": 14.25,
+      "pazRighe": 1,
+      "contH": 39.438,
+      "targaH": 19.563,
+      "targaScroll": 22,
+      "targaClient": 20,
+      "targaTagliata": 2,
+      "boxUtile": 61,
+      "margineSopra": 0,
+      "margineSotto": -1.5,
+      "margineSottoSenzaRespiro": 0,
+      "stackNaturale": 63.188,
+      "pixel": {
+        "diversi": 35,
+        "deltaMax": 1,
+        "rigaMin": 30,
+        "rigaMax": 84,
+        "alt": 240
+      }
+    }
+  }
+]
