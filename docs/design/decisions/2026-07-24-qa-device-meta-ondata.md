@@ -384,3 +384,103 @@ restano in docs come materiale di studio, non ratificati.
 4. **Sfumatura sui nomi di alcuni medici: PERSISTE** dopo la taratura H2c → serve
    riproduzione a densità di schermo reale (DPR device) prima di altri fix a tavolino.
 5. **Priorità paziente/nomi in fascia: DEFERITA** («per i nomi lasciamo così per adesso»).
+
+---
+
+## APPEND — 26/07 (VERIFICA FINALE wave H, build congelata `800dd45` su :3020 — esiti Francesco + diagnosi misurata)
+
+**Esiti dichiarati da Francesco (device reale: telefono Android/Chrome + iPad):**
+
+1. **Piede statico: PASS** («piede, tutto ok»). Due difetti NUOVI segnalati nello stesso giro
+   (v. 1a e 1b sotto).
+2. **Sfumatura: INCOMPRENSIONE CHIARITA.** Ciò che Francesco segnala dal collaudo del 25/07
+   («sfumatura medici PERSISTE») NON è il clipping dei discendenti chiuso da H2d: è **la
+   dissolvenza verticale del NOME** («la scritta di santi… ha una leggera sfumatura dall'alto
+   verso il basso»), cioè la `mask-image` di `.is-troncato`. Screenshot zoom allegato dal
+   collaudo (cassette C8 verde e C17 chiara, entrambe «STUDI MEDICI DI SANTI»).
+3. **Suoni: PASS** («i suoni funzionano, con quella riserva che abbiamo certificato»)
+   — ri-verificati su telefono E iPad, quindi il **gate esteso del reviewer H1d è CHIUSO**
+   (il cambio di path Chromium non ha regredito il primo tap sui telefoni). Il limite
+   primo-gesto=drag resta accettato; approfondimento futuro deferito («per adesso non è
+   importante»).
+
+**Difetti nuovi aperti da questo giro:**
+
+- **1a — TastoPiù «Nuovo lavoro» non più centrato** (regressione, non difetto storico).
+- **1b — striscia panna in fondo a `/cassette`**, sopra la barra gesture Android
+  («copre gli elementi della pagina, vorrei eliminarla»).
+- **3b — banda dietro la barra gesture Android leggermente più scura dello sfondo PWA**
+  (dichiarata NON fondamentale da Francesco: «è giusto una sottigliezza»; riferimento
+  citato: app di sistema Android con barra trasparente che riflette il contenuto sotto).
+
+---
+
+### Diagnosi MISURATA (non ipotesi) — Playwright su :3020 @`800dd45`, DPR 1 / 2,75 / 3
+
+Script: `scripts/tmp/collaudo-26-misure.mjs`, `collaudo-26-diagnosi.mjs`, `collaudo-26-prova2.mjs`
+(untracked, di lavoro). Nomi clinica REALI letti dal DB (`clienti.studio_nome`, lab «Filippo
+Opromolla») e iniettati nel nodo `.ds-cassetta-dent` della pagina VIVA — contesto di render
+reale (font, larghezza tile, `ds-v3.css`, DPR), nessuna scrittura su DB.
+
+**Punto 2 — la sfumatura NON è un difetto: è il comportamento ratificato che funziona.**
+Il nome vero a DB è **`STUDI MEDICI DI SANTI GIUSEPPE`**: «GIUSEPPE» non entra nelle 2 righe,
+quindi `is-troncato` scatta correttamente e il nome dissolve invece di finire con «…»
+(prosa ratificata H2: «la sfumatura morbida, mai ellipsis netta»,
+`2026-07-25-wave-h-scelte.md`). Misura, pagina PULITA per ogni nome, identica ai 3 DPR:
+
+| nome (dal DB) | righe contenuto/visibili | sfora davvero | `is-troncato` | esito |
+|---|---|---|---|---|
+| `STUDI MEDICI DI SANTI GIUSEPPE` | 3 / 2 | **SÌ** | SÌ | ✅ corretto |
+| `DI SANTI CATERINA` | 2 / 2 | no | no | ✅ corretto |
+| `BARALE S.A.S.` | 1 / 1 | no | no | ✅ corretto |
+| `C.O.M. s.r.l. uninominale` | 2 / 2 | no | no | ✅ corretto |
+
+→ **ZERO falsi positivi a DPR 1, 2,75 e 3.** La taratura H2c regge. Quindi il punto 2 NON è un
+bug da correggere: è una **richiesta di ri-apertura di una decisione ratificata** (che aspetto
+debba avere un nome che non ci sta) → gate mockup-prima-del-codice + scelta esplicita di
+Francesco, MAI implementazione su un «vorrei eliminarla» verbale.
+⚠️ Nota metodologica: un primo giro di misura aveva segnalato un falso positivo su
+`DI SANTI CATERINA`. Era un artefatto DEL MIO HARNESS (nomi iniettati in sequenza sullo stesso
+nodo: il `ResizeObserver` non riscatta quando il contenuto cresce ma la scatola resta cappata da
+`max-height`, quindi la classe restava quella del nome precedente). Corretto con un reload per
+ogni nome. Registrato perché è una trappola riutilizzabile per chiunque misuri `is-troncato`.
+
+**Punto 1a — TastoPiù scentrato: ROOT CAUSE PROVATA, regressione di `d232808`.**
+`HomeV3.tsx:247` contiene, DENTRO un commento CSS, la sequenza `--piede-*/--piede-ingombro`:
+quel **`*/` chiude il commento in anticipo**. Tutto il testo residuo del commento viene poi
+letto come selettore fino alla prima `{`, e **inghiotte la regola `.ua-home .foot`** che segue
+subito dopo. Prova diretta col parser del browser sullo STESSO testo sorgente:
+
+| testo del blocco `<style>` | regole valide | `.ua-home .foot` nel CSSOM |
+|---|---|---|
+| così com'è oggi | 7 | **assente** |
+| con il solo `*/` neutralizzato | 8 | **presente** |
+
+Effetto misurato (390×844, tutti i DPR): `.foot` computa `display:block` / `align-items:normal`
+/ `margin-top:0px` invece di `flex` / `center` / `clamp(4px,0.9cqh,8px)` → il TastoPiù cade a
+sinistra, **scarto −114,3px** dal centro del viewport (centro `.foot` 195 = corretto, centro
+tasto 80,7). Perse anche le altre dichiarazioni della stessa regola, incluso
+`padding-bottom: env(safe-area-inset-bottom)` (rilevante per 1b/3b).
+
+**Punto 1b — striscia panna in fondo a `/cassette`: mecanismo misurato.**
+Con muro più alto del viewport e pagina scrollata a fondo: `.ds-parete` (il muro, con la sua
+trama) termina a 40px dal bordo inferiore, perché `.ds-parete-shell` porta
+`padding-bottom: 40px` (+ `.ds-parete` `padding-bottom: 18px`). In quei 40px si vede il
+wrapper di pagina, panna PIATTA `rgb(244,240,231)` **senza la trama del muro** — è la striscia
+segnalata. Nessun elemento `fixed`/`sticky` sovrapposto in quella banda (l'unico `fixed` è
+`.ds-grana`, trasparente, texture globale) → non è un overlay che «copre», è il muro che
+finisce prima del bordo. Cosa debba esserci al suo posto = scelta visiva, da ratificare.
+
+**Punto 3b — banda dietro la barra gesture: due sfondi diversi convivono.**
+`body` è dipinto col fondo **v2.3** `--bg: #DDD8D3` (`globals.css:60/225`), mentre le superfici
+v3 usano `--bg: #F4F0E7` (`ds-v3.css:13`, `v3/tokens.ts`). Ovunque la superficie v3 non arrivi
+— tipicamente la banda della barra gesture — affiora il `body`, **più scuro di 19 punti per
+canale**: corrisponde esattamente alla descrizione di Francesco. Attenzione: `body` è
+condiviso con TUTTE le pagine ancora v2.3 → non si tocca il token globale senza decisione
+(regola di convivenza DS v3 §14). `viewport-fit: cover` è GIÀ impostato (`layout.tsx:33`);
+`themeColor: '#D90012'` colora la barra URL in alto, NON la barra gesture — non è la leva.
+Va inoltre stabilito su quale superficie vale la richiesta: gli screenshot sono **Chrome come
+browser**, non la PWA installata (comportamento della nav bar diverso fra le due).
+
+**Stato dei gate:** 🛑 T15 NON chiudibile — 1a è una regressione confermata; 2, 1b e 3b
+attendono ratifica di Francesco.
