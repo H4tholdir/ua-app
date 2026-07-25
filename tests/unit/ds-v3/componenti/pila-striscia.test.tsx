@@ -243,9 +243,13 @@ describe('StrisciaStato — anatomia mockup (§5.24, forte + azione, aria-live)'
 // Task 16b, punto 3 — coreografia V1 «carattere per livello» (ratifica 24/07, decisione
 // docs/design/decisions/2026-07-24-striscia-home.md §Ratifiche 2, valori VERBATIM dalla demo
 // docs/design/mockups/2026-07-24-striscia-animazioni.html righe ~355-358). Le funzioni pure
-// sono testate isolate dal render: Motion non espone i propri `initial`/`animate` come
-// attributi DOM ispezionabili in jsdom, quindi la garanzia sui VALORI vive qui — il render
-// garantisce solo che la card compaia (v. sotto).
+// sono testate isolate qui SOPRA (i VALORI di ogni carattere, senza rumore di rendering); che
+// siano davvero AGGANCIATE all'elemento (non solo funzioni pure orfane) lo verifica un test a
+// parte più sotto («la molla è agganciata all'elemento») — review Minor 1 (task-16b-report.md
+// addendum), che ha trovato che cancellare `initial={initial}`/`animate={animate}` dal JSX
+// lasciava l'intera suite verde: Motion SCRIVE `initial` come stile inline sincrono al commit
+// (jsdom lo espone regolarmente, verificato — v. quel test), la lacuna era non averlo mai
+// controllato, non un limite dell'ambiente.
 describe('StrisciaStato — coreografia V1 «carattere per livello» (punto 3)', () => {
   it('carattereStriscia: attenzione vince sempre → urgenza; poi tono ambra → trial; altrimenti → racconto', () => {
     expect(carattereStriscia(true)).toBe('urgenza')
@@ -370,6 +374,20 @@ describe('StrisciaStato — forma F2 «card con voce» (punto 1)', () => {
     )
     expect(screen.getByRole('status').style.boxShadow).toBe('')
   })
+
+  // Review Minor 1 (task-16b-report.md addendum) — le funzioni pure sopra garantiscono i VALORI
+  // della coreografia, ma non che siano DAVVERO passate a `<motion.div initial={} animate={}>`:
+  // cancellare quelle due prop dal JSX lasciava l'intera suite verde prima di questo test.
+  // Motion scrive `initial` come stile inline SINCRONO al commit (nessuna AnimatePresence qui a
+  // farlo scattare subito, nessun rAF reale ancora passato in jsdom) — leggibile subito dopo
+  // `render()`, senza `waitFor`. Copre il carattere «racconto» (default quieto, molla.smooth,
+  // y:6 scale:1 opacity:0 — v. `ingressoStriscia`).
+  it('la molla è AGGANCIATA all\'elemento — lo stato `initial` (y:6, opacity:0) è nello stile reale, non solo in una funzione pura isolata', () => {
+    render(<StrisciaStato>Hai già consegnato 4 lavori oggi</StrisciaStato>)
+    const card = screen.getByRole('status')
+    expect(card.style.opacity).toBe('0')
+    expect(card.style.transform).toContain('translateY(6px)')
+  })
 })
 
 // Task 16b, punto 2 — il conteggio «altri»: un nodo che non si restringe (v. dispatch — «l'UNICO
@@ -444,14 +462,23 @@ describe('StrisciaStato — punto 4: il racconto (eventoId) è tappabile su tutt
     expect(screen.getAllByRole('link')).toHaveLength(1) // niente interattivi annidati
   })
 
-  it("l'etichetta della CTA non compare come testo separato — l'affordance è il chevron (mockup .chev)", () => {
+  it("l'etichetta della CTA non compare come testo separato — l'affordance è il chevron (mockup .chev), tipografia verbatim 19/800/--st/marginLeft:2", () => {
     render(
       <StrisciaStato azione={AZIONE} eventoId="lib-c1-2026-07-24T10:00:00.000Z">
         UÀ ha liberato C12
       </StrisciaStato>
     )
     expect(screen.queryByText('Guarda ›')).toBeNull()
-    expect(screen.getByText('›')).toBeInTheDocument()
+    const chevron = screen.getByText('›')
+    expect(chevron).toBeInTheDocument()
+    // Review Minor 1 — valori pinnati, non solo presenza (mockup .chev: font-size:19px;
+    // font-weight:800; color:var(--st); margin-left:2px; line-height:1). `--st` per il
+    // racconto è `--blue` (v. `eBlu` in StrisciaStato.tsx — stesso colore dell'icona ✦).
+    expect(chevron.style.fontSize).toBe('19px')
+    expect(chevron.style.fontWeight).toBe('800')
+    expect(chevron.style.color).toBe('var(--blue)')
+    expect(chevron.style.marginLeft).toBe('2px')
+    expect(chevron.style.lineHeight).toBe('1')
   })
 
   it('click ovunque sul link → vibra("selection"), MAI suona', () => {

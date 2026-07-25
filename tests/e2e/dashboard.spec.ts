@@ -85,7 +85,7 @@ async function assertHomeV3Shell(page: Page) {
 test.describe('Home v3 — Titolare', () => {
   test.skip(!HAS_TITOLARE_CREDS, 'Richiede E2E_TITOLARE_EMAIL e E2E_TITOLARE_PASSWORD')
 
-  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+  test('mostra le 4 pile di legge + TastoPiù, e la striscia di stato SE il segnale non è silenzio', async ({ page }) => {
     await loginAs(page, process.env.E2E_TITOLARE_EMAIL!, process.env.E2E_TITOLARE_PASSWORD!)
     await assertHomeV3Shell(page)
   })
@@ -94,7 +94,7 @@ test.describe('Home v3 — Titolare', () => {
 test.describe('Home v3 — Tecnico', () => {
   test.skip(!HAS_TECNICO_CREDS, 'Richiede E2E_TECNICO_EMAIL e E2E_TECNICO_PASSWORD')
 
-  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+  test('mostra le 4 pile di legge + TastoPiù, e la striscia di stato SE il segnale non è silenzio', async ({ page }) => {
     await loginAs(page, process.env.E2E_TECNICO_EMAIL!, process.env.E2E_TECNICO_PASSWORD!)
     await assertHomeV3Shell(page)
   })
@@ -117,7 +117,7 @@ test.describe('Home v3 — Tecnico', () => {
 test.describe('Home v3 — Front Desk', () => {
   test.skip(!HAS_FRONTDESK_CREDS, 'Richiede E2E_FRONTDESK_EMAIL e E2E_FRONTDESK_PASSWORD')
 
-  test('mostra le 4 pile di legge + TastoPiù + striscia di stato', async ({ page }) => {
+  test('mostra le 4 pile di legge + TastoPiù, e la striscia di stato SE il segnale non è silenzio', async ({ page }) => {
     await loginAs(page, process.env.E2E_FRONTDESK_EMAIL!, process.env.E2E_FRONTDESK_PASSWORD!)
     await assertHomeV3Shell(page)
   })
