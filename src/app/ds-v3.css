@@ -400,19 +400,47 @@
   z-index: 2;
   width: 28px; height: 22px;
   pointer-events: none;
-  /* Stato «staccato» (SOLO sul ghost, prop `staccata` — Cassetta.tsx): transizione CSS pura,
-     tempi da `cssEase.generico` (v3/motion.ts, 200ms cubic-bezier(0.25,0.1,0.25,1)) — reduced-motion
-     è già globale (riga ~216, transition-duration 0.15s !important). */
-  transition: transform 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* Stato «staccato» (SOLO sul ghost, prop `staccata` — Cassetta.tsx): transizione CSS pura, tempi
+     da `cssEase.generico` (v3/motion.ts). Verifica finale d'ondata (26/07, difetto A7): il valore
+     NON è più ricopiato a mano qui. Era identico byte per byte al token, e il commento lo diceva —
+     ma niente lo teneva legato: cambiare il token in motion.ts avrebbe lasciato QUESTA curva al
+     valore vecchio, in silenzio, perché è l'unica `transition:` del foglio e nessuno l'avrebbe
+     ricontrollata. Ora passa dalla variabile pubblicata sotto, e una guardia
+     (`tests/unit/ds-v3/motion-css.test.ts`) pretende che la variabile sia LA STESSA STRINGA del
+     token: se i due divergono, il test è rosso prima del browser. */
+  transition: transform var(--ease-generico);
 }
 [data-ds="v3"] .ds-gancetto.is-staccato {
   transform: translateX(-50%) translateY(-3px) rotate(-10deg);
+}
+/* Verifica finale d'ondata (26/07, difetto A7) — reduced-motion: il gancetto si DISSOLVE, non si
+   muove. La regola globale in cima al foglio (`transition-duration: 0.15s !important`) accorcia
+   soltanto: il gancetto continuava a fare i suoi 3px di salita e i 10° di rotazione, solo più in
+   fretta — mentre la legge del sistema (spec §8.4) dice che sotto `prefers-reduced-motion` le
+   coreografie degradano a DISSOLVENZA. Qui il transform torna alla sola centratura, quindi non
+   resta nessuno spostamento da percepire.
+   PERCHÉ QUI e non nel blocco reduced-motion globale: quel blocco sta PRIMA nel foglio e ha la
+   stessa specificità di `.is-staccato` (0,3,0) — messo là dentro perderebbe per ordine di
+   sorgente e non farebbe assolutamente nulla. Deve stare DOPO la regola che neutralizza.
+   Nessun segnale va perso: lo stacco resta leggibile dagli altri indizi del sollevamento
+   (`scalaSollevamento` e `opacitaBuca`, v3/motion.ts), che non sono spostamenti. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ds="v3"] .ds-gancetto.is-staccato { transform: translateX(-50%); }
 }
 
 /* Metallo del gancetto — gradiente CSS-driven, VERBATIM dai valori `--gan-metal-*` del mockup
    (riga 48/66 del file citato sopra). Decorativo, non in v3/tokens.ts: stessa scelta di
    `--mat-*` sopra (§5.36) — il check pre-commit 4a vieta hex/rgba letterali in src/components/ds,
    Cassetta.tsx referenzia solo `var(--gan-metal-*)` nel proprio `<linearGradient>`. */
+/* Verifica finale d'ondata (26/07, difetto A7) — l'easing generico pubblicato come variabile CSS.
+   È la stessa stringa di `cssEase.generico` (src/design-system/v3/motion.ts): il token TS resta la
+   FONTE (lo usano i componenti in JS), questa riga è la sua unica porta d'ingresso nel foglio, così
+   una `transition:` scritta in CSS non può più essere una copia scollegata. Sincronia presidiata da
+   `tests/unit/ds-v3/motion-css.test.ts` (confronto stringa-a-stringa col token). */
+[data-ds="v3"] {
+  --ease-generico: 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
 [data-ds="v3"] {
   --gan-metal-hi: #F1ECE1;
   --gan-metal-mid: #C4BBAC;
