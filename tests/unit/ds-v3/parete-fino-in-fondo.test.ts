@@ -48,6 +48,37 @@ describe('Parete — il muro arriva fino in fondo (difetto 1b, ratificato 26/07)
     expect(padding).toMatch(/env\(safe-area-inset-bottom/)
   })
 
+  // ⚠️ LA GUARDIA CHE MANCAVA (round 2, difetto trovato da una verifica indipendente).
+  // Le due asserzioni sopra guardano la regola BASE di `.ds-parete` e passavano — ma sulla
+  // build vera il `padding-bottom` risolveva a 18px, cioè il recupero non arrivava a schermo:
+  // `[data-ds="v3"] .ds-parete-shell .ds-parete` RIDICHIARA lo shorthand `padding` e, avendo
+  // specificità più alta (0,3,0 contro 0,2,0), sostituisce l'intero valore — silenziosamente.
+  // Entrambe le superfici che montano il muro (`/cassette` e la stanza parete della home)
+  // stanno dentro `.ds-parete-shell`, quindi il recupero era morto OVUNQUE.
+  // Guardare una regola sola non basta: qui si pretende il recupero da OGNI regola del foglio
+  // che dichiari `padding` su `.ds-parete`, quale che sia il selettore. Una regola nuova che
+  // domani ridichiarasse lo shorthand senza il recupero fallirebbe subito.
+  it('OGNI regola che ridichiara il padding del muro porta con sé il recupero del fondo', () => {
+    const senzaCommenti = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    const regoleConPadding: { selettore: string; padding: string }[] = []
+    const re = /([^{}]*\.ds-parete)\s*\{([^{}]*)\}/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(senzaCommenti)) !== null) {
+      const padding = m[2].match(/(?:^|;)\s*padding: *([^;]+)/)?.[1]
+      if (padding) regoleConPadding.push({ selettore: m[1].replace(/\s+/g, ' ').trim(), padding })
+    }
+    expect(regoleConPadding.length, 'nessuna regola con `padding` su `.ds-parete`: il parser ' +
+      'di questa guardia non sta più trovando nulla — va corretto, non ignorato')
+      .toBeGreaterThanOrEqual(2)
+    for (const { selettore, padding } of regoleConPadding) {
+      expect(padding, `\`${selettore}\` ridichiara il padding del muro SENZA i 40px recuperati ` +
+        'dalla shell: a schermo il respiro sotto l\'ultima fila torna a 18px').toMatch(/40px/)
+      expect(padding, `\`${selettore}\` ridichiara il padding del muro SENZA la safe-area: sui ` +
+        'telefoni con barra gesture l\'ultima fila finisce sotto la barra')
+        .toMatch(/env\(safe-area-inset-bottom/)
+    }
+  })
+
   it('lo spazio in cima al muro non è stato toccato', () => {
     // guardia anti-effetto-collaterale: il fix è SOLO sul fondo. `--wall-pad-top` governa
     // l'aggancio dei gancetti alla prima fila (geometria ratificata H3) — se cambiasse,

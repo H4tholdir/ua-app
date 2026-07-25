@@ -1078,7 +1078,20 @@
    PERIMETRO: solo la pagina /cassette (.ds-parete-shell). La home (.ua-stanza-parete)
    resta ai valori fissi sanzionati dal collaudo R3b (compatta 744px, gap 12) finché non
    arriva l'ondata «Redesign parete/home» — che ha già in dote la direzione fluida. */
-[data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) clamp(18px, 3.4cqw, 24px); }
+/* ⚠️ Verifica finale wave H (difetto 1b, round 2) — questa regola RIDICHIARA lo shorthand
+   `padding`, quindi vince sull'INTERO padding della regola base di `.ds-parete` (specificità
+   0,3,0 contro 0,2,0), componente per componente: il fondo recuperato scritto là veniva
+   scartato in silenzio. Misurato sulla build vera: `padding-bottom` risolveva a 18px su
+   ENTRAMBE le superfici che montano il muro (`/cassette` e la stanza parete della home — tutte
+   e due stanno dentro `.ds-parete-shell`), cioè il respiro sotto l'ultima fila era passato da
+   58px a 18px e la safe-area non era onorata: le cassette finivano appiccicate al bordo e, sui
+   telefoni con barra gesture, sotto la barra. Il muro arrivava al bordo lo stesso, ma per il
+   solo merito del `padding-bottom: 0` della shell — l'effetto giusto per la ragione sbagliata.
+   Il recupero va quindi ripetuto QUI, sul valore fluido di questa regola. I due punti sono
+   presidiati insieme da `tests/unit/ds-v3/parete-fino-in-fondo.test.ts`, che pretende il
+   recupero da OGNI regola del foglio che dichiari `padding` su `.ds-parete` — è la guardia che
+   avrebbe preso questo errore, e che prima non c'era. */
+[data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) calc(clamp(18px, 3.4cqw, 24px) + 40px + env(safe-area-inset-bottom, 0px)); }
 [data-ds="v3"] .ds-parete-shell .ds-parete-grid { gap: clamp(16px, 3.6cqw, 26px); }
 /* Task 8 — passo fluido SOLO nel perimetro shell (riserva FE R1, stessa meccanica cqw del gap
    qui sopra): --track (dichiarato una sola volta su .ds-parete base come

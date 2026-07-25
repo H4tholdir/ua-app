@@ -32,9 +32,15 @@ describe('parete /cassette — variante C fluida (decisione 23/07/2026)', () => 
     )
   })
 
-  it('il padding della parete scala con la stessa formula (22-28 / 16-24 / 18-24)', () => {
+  // Verifica finale wave H (verbale 26/07, difetto 1b, round 2): la formula fluida NON cambia —
+  // i tre clamp restano quelli ratificati. Cambia solo il fatto che il clamp del FONDO è ora
+  // sommato al recupero (i 40px tolti a `.ds-parete-shell` + la safe-area), perché questa regola
+  // ridichiara lo shorthand e altrimenti scarterebbe in silenzio il recupero scritto sulla
+  // regola base — è il difetto misurato: padding-bottom a 18px invece di 58px su ENTRAMBE le
+  // superfici. Il presidio sul recupero vive in `parete-fino-in-fondo.test.ts`.
+  it('il padding della parete scala con la stessa formula (22-28 / 16-24 / 18-24, col fondo + recupero)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete \{ padding: clamp\(22px, 3\.8cqw, 28px\) clamp\(16px, 3\.2cqw, 24px\) clamp\(18px, 3\.4cqw, 24px\); \}/
+      /\[data-ds="v3"\] \.ds-parete-shell \.ds-parete \{ padding: clamp\(22px, 3\.8cqw, 28px\) clamp\(16px, 3\.2cqw, 24px\) calc\(clamp\(18px, 3\.4cqw, 24px\) \+ 40px \+ env\(safe-area-inset-bottom, 0px\)\); \}/
     )
   })
 
