@@ -390,9 +390,17 @@ export function Cassetta(props: {
     // pieno — con le metriche vere il gradino potrebbe non servire più. `fontRimisurati` fa sì
     // che accada una volta sola: senza, reset e discesa si inseguirebbero all'infinito.
     if (typeof document !== 'undefined' && document.fonts?.ready && !fontRimisurati.current) {
+      // Panel advisor 26/07 (parere di architettura, difetto secondario verificato): la bandierina
+      // va alzata QUI, alla PRENOTAZIONE, non dentro la `.then`. Alzandola dentro, mentre la scala
+      // scendeva di gradino l'effetto si ri-registrava e prenotava la stessa promessa più volte —
+      // la guardia sopra la trovava ancora `false`. Conseguenza misurabile: su ogni nome lungo la
+      // discesa girava DUE volte, e la seconda dopo il primo disegno; aprendo la parete si poteva
+      // vedere un nome cambiare grandezza (o passare da accorciato a intero) un istante dopo.
+      // Con l'assegnazione qui il codice fa esattamente quello che il commento sotto dichiara:
+      // «una volta sola».
+      fontRimisurati.current = true
       document.fonts.ready.then(() => {
         if (!vivo) return
-        fontRimisurati.current = true
         if (passoNome > 0) setScalino({ nome: nomeStudio, passo: 0 })
         else misura()
       })
