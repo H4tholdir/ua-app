@@ -21,7 +21,10 @@ vi.mock('@/design-system/v3/motion', async (importOriginal) => {
 
 import { NavDesk } from '@/components/ds/NavDesk'
 
-const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null }
+// Task 16b (D3 §3.4) — il vecchio s9 «Tutto a posto» è morto (v. src/lib/dashboard/striscia.ts):
+// fixture generica per i test che non presidiano il CONTENUTO della striscia, aggiornata a un
+// segnale quieto REALE e tuttora raggiungibile (s8, il racconto del DdC del giorno).
+const SEGNALE = { attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null }
 const CONTEGGI = { rossa: 2, ambra: 4, viola: 1, blu: 2 }
 
 beforeEach(() => {

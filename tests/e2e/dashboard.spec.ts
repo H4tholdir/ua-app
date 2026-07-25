@@ -60,7 +60,8 @@ test.describe('Dashboard — redirect non autenticato', () => {
 // differenza di ruolo verificata qui è quella osservabile senza dipendere
 // dai dati seedati in quel preciso momento: la Striscia di stato del tecnico
 // non riporta MAI segnali fiscali (P7, `src/lib/dashboard/striscia.ts`
-// `GERARCHIE.tecnico` esclude s1/s7), le altre gerarchie possono.
+// `LIVELLO1_PER_RUOLO.tecnico`/`FALLBACK_PER_RUOLO.tecnico` escludono s1/s7 —
+// `GERARCHIE` non esiste più, sostituita da questa coppia nel Task 16).
 
 const PILE_LABELS = ['DA CONSEGNARE OGGI', 'SUL BANCO', 'DA RIFARE / IN PROVA', 'APPENA ARRIVATI']
 
@@ -70,7 +71,15 @@ async function assertHomeV3Shell(page: Page) {
     await expect(page.locator(`text=${label}`)).toBeVisible()
   }
   await expect(page.locator('[aria-label="Nuovo lavoro"]')).toBeVisible()
-  await expect(page.locator('[role="status"]')).toBeVisible()
+  // Task 16 (D3 §3.4) — la striscia può essere ASSENTE (silenzio: nessun segnale da mostrare,
+  // lo slot non renderizza affatto — v. `scegliSegnale` in striscia.ts). Non è più garantita
+  // visibile ad ogni caricamento: se i dati seedati in quel momento non accendono nulla,
+  // `[role="status"]` semplicemente non esiste nel DOM — comportamento corretto, non un errore.
+  // Qui si verifica solo che, SE compare, sia visibile (mai un nodo fantasma nascosto via CSS).
+  const striscia = page.locator('[role="status"]')
+  if (await striscia.count() > 0) {
+    await expect(striscia).toBeVisible()
+  }
 }
 
 test.describe('Home v3 — Titolare', () => {
@@ -94,8 +103,14 @@ test.describe('Home v3 — Tecnico', () => {
     await loginAs(page, process.env.E2E_TECNICO_EMAIL!, process.env.E2E_TECNICO_PASSWORD!)
     await page.goto('/dashboard')
     const striscia = page.locator('[role="status"]')
-    await expect(striscia).toBeVisible()
-    await expect(striscia.locator('text=/scartat|fattur/i')).toHaveCount(0)
+    // D3 (§3.4) — può essere assente (silenzio): l'invariante P7 vale comunque per costruzione
+    // (niente di fiscale nella catena candidati del tecnico, v. LIVELLO1_PER_RUOLO/
+    // FALLBACK_PER_RUOLO in striscia.ts). Il testo si verifica SOLO quando la striscia compare —
+    // un'assenza non è una violazione di P7, è il caso più forte (nessun segnale, a maggior
+    // ragione nessun segnale fiscale).
+    if (await striscia.count() > 0) {
+      await expect(striscia.locator('text=/scartat|fattur/i')).toHaveCount(0)
+    }
   })
 })
 

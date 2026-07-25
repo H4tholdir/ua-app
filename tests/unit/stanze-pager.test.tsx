@@ -903,7 +903,10 @@ const PILE: PileHome = {
     prossimaOra: '16:00',
   },
 }
-const SEGNALE = { attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi', azione: null }
+// Task 16b (D3 §3.4) — il vecchio s9 «Tutto a posto» è morto (v. src/lib/dashboard/striscia.ts):
+// fixture generica per i test che non presidiano il CONTENUTO della striscia, aggiornata a un
+// segnale quieto REALE e tuttora raggiungibile (s8, il racconto del DdC del giorno).
+const SEGNALE = { attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null }
 const PARETE: CassettaParete[] = [
   { id: 'c1', nome: 'C12', colore: 'rossa', posizione: 1, lavoro: { id: 'l1', numero: '144', dentista: 'Bianchi', paziente: 'PZ-1', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'corona', noteInterne: null } },
   { id: 'c2', nome: 'C7', colore: 'bianca', posizione: 2, lavoro: null },

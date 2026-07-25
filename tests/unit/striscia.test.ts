@@ -499,7 +499,13 @@ describe('scegliSegnale — Task 16a-bis (ratifica 26/07): nomina il primo allar
     const s = scegliSegnale('tecnico', { ...VUOTO,
       fatturaScartata: { id: 'f1', numero: '2026-0139' },
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
-    expect(s.forte).toBe('n.144') // s1 non è di livello 1 per il tecnico → nessun aggregato
+    expect(s.forte).toBe('n.144') // s1 non è di livello 1 per il tecnico → un solo allarme nomina
+    // Task 16b — guardia esplicita: un leak che aggiungesse s1 in CODA a LIVELLO1_PER_RUOLO.tecnico
+    // (invece che ometterlo) farebbe passare comunque `s.forte` sopra (il PRIMO resta il ritardo),
+    // ma farebbe apparire silenziosamente `altri: 1` — un allarme fiscale che il tecnico non deve
+    // MAI vedere (P7) finirebbe comunque contato, solo non nominato. `s.forte` da solo non lo
+    // cattura: serve l'assenza di `altri`.
+    expect(s.altri).toBeUndefined()
   })
 
   it('trial ≤3gg ESCALA a livello 1 (riserva UX 5b) e va in TESTA (ratifica 26/07 — «ordine di parola»): nomina lui, non l\'allarme operativo', () => {
