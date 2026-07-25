@@ -13,8 +13,10 @@ inoltrarli**.
 ## Base di lavoro (NON ricreare niente)
 
 - **Worktree ESISTENTE:** `.claude/worktrees/redesign-parete-home`, branch
-  `worktree-redesign-parete-home`, HEAD **`a1c4fcb`** + la voce di memoria sopra.
-  **Suite 3127 verdi / 19 skip · tsc 0 · build ok.**
+  `worktree-redesign-parete-home`, HEAD **`87e7313`** (corretto il 26/07 in sessione nuova: la riga
+  diceva `a1c4fcb`, che è indietro di due commit di soli documenti — `f11c1ed` su main aveva
+  allineato gli ALTRI handoff, non questo). **Suite 3127 verdi / 19 skip · tsc 0 · build ok** —
+  numeri RI-VERIFICATI di persona nel worktree il 26/07, non ripresi dal dichiarato.
 - **Il ramo è ora anche su GitHub** (`origin/worktree-redesign-parete-home`, spinto il 26/07).
   ⚠️ Non fa partire nessuna pubblicazione: `deploy.yml` gira **solo da `main`**, e `ci.yml` solo
   su `main`/`develop`. È un backup, non un'anteprima.
@@ -28,7 +30,10 @@ inoltrarli**.
 - **Verbale QA unico (È LEGGE):** `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`
   — tutti i collaudi e le ratifiche, compresi i due APPEND del 26/07.
 - **Ledger:** `<worktree>/.superpowers/sdd/progress.md` (gitignorato). La **lista MINOR per la
-  review finale T17** è lì: cerca «Minor (per review finale)», ~15 voci.
+  review finale T17** è lì: cerca «Minor (per review finale)». ⚠️ **NON sono «~15»**: sono **30
+  righe**, e diverse righe portano più voci separate da `·` — il conto vero è più alto. Prima della
+  review finale vanno estratte in un elenco numerato, una voce per riga: se la FASE 8 lavora su un
+  numero invece che su una lista, la copertura mancata resta invisibile.
 - ⚠️ **La memoria di questo ramo è INDIETRO rispetto a `main`**: il worktree è a MEMORY (38),
   `main` è a (40)+. Le voci nuove vanno su **main**, dove la sessione nuova legge (BP-0). Questo
   handoff è copiato su main apposta — è la stessa trappola annotata dalla sessione scorsa.
