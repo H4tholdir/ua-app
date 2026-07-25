@@ -16,6 +16,31 @@
 // (`.ua-home`) ne farebbe il containing block di un `position:fixed` e la clipperebbe dentro
 // il frame della home invece che nel viewport reale.
 //
+// ── Il rovescio del portale: la linguetta NON è spenta da chi spegne la home (review finale
+// whole-branch, C1) ────────────────────────────────────────────────────────────────────────
+// `HomeV3` è mobile-only: da 1024px in su `HomeDesktop` la spegne con
+// `.ua-home-mobile { display: none }` (dentro il proprio `@media (min-width:1024px)`). Quella
+// regola è un discendente: raggiunge tutto ciò che sta DENTRO `.ua-home` — cioè tutto tranne
+// questo componente, che vive in portale su `document.body`. Su desktop restava quindi una
+// linguetta fissa sul bordo destro sopra `HomeDesktop`, e in fase «filo» (che non programma
+// alcun timer, v. sotto) non se ne andava mai più. Il danno vero non era ottico: era
+// CLICCABILE — un tap chiamava `vaiA('parete')` del pager, che spinge l'indirizzo a
+// `/cassette` (`sincronizzaUrlStanza`) mentre la superficie visibile resta la home desktop.
+// L'indirizzo mentiva, `urlDivergente` si accendeva, e un reload da lì apriva la parete
+// standalone a chi non l'aveva mai chiesta.
+// Rimedio a due metà, tutte e due necessarie:
+//  1. QUI (metà portante): a ≥1024px il portale non si rende affatto — niente da dipingere,
+//     niente da cliccare, niente timer da far girare. Un fix di solo CSS spegnerebbe il
+//     disegno e il click, ma lascerebbe il componente montato coi suoi timer, e soprattutto
+//     dipenderebbe dal fatto che il wrapper `[data-ds="v3"]` resti esattamente dov'è (tutto
+//     il CSS del DS vive sotto quello scope): il controllo in render è invariante a questo.
+//  2. In `ds-v3.css` (`.ds-linguetta` dentro `@media (min-width: 1024px)`): difesa in
+//     profondità per il frame prima che il JS abbia deciso, e perché chi legge il foglio di
+//     stile trovi la regola dove se l'aspetta.
+// `matchMedia` e non una `useState` sulla larghezza: è lo stesso segnale che il CSS usa, e
+// così i due bracci non possono divergere. Il listener `change` (non una sola lettura al
+// mount) copre il ridimensionamento della finestra e la rotazione di un tablet.
+//
 // Wrapper `data-ds="v3"` (stesso pattern di `Sheet`/`PareteClient` — v. `ds-ghost`): l'attributo
 // va su un ANTENATO separato, DENTRO il ramo condizionale di `AnimatePresence`, non su un
 // contenitore sempre presente. Un wrapper sempre montato (anche a "0 contenuto", come il
@@ -53,6 +78,15 @@ import { molla, useReducedMotion } from '@/design-system/v3/motion'
 const KEY = 'ua_linguetta_v4'
 const ACCESSI_APPRESA = 3
 const MS_IN_VISTA = 5000
+
+/** La stessa soglia con cui `HomeDesktop` spegne la home mobile (v. commento in testa): da qui
+ *  in su la linguetta non esiste — non è una preferenza dell'utente, è la larghezza dello
+ *  schermo, quindi si legge con la stessa media query del CSS. */
+const QUERY_DESKTOP = '(min-width: 1024px)'
+
+function schermoDesktop(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(QUERY_DESKTOP).matches
+}
 
 /** True quando la linguetta ha già fatto il suo lavoro (≥3 accessi registrati). Da Task H4a
  *  (F2) NON significa più «non compare più»: significa «da qui in poi si mostra come filo»
@@ -114,19 +148,39 @@ export function LinguettaCassette(props: { onVai: () => void; visibile: boolean 
 
   const reduced = useReducedMotion()
 
+  // C1 — larghezza dello schermo, non preferenza: valore noto in anticipo (inizializzatore
+  // pigro, come `modo` sopra), poi aggiornato dal `change` della media query — un
+  // ridimensionamento della finestra o la rotazione di un tablet devono far comparire/sparire
+  // la linguetta come farebbero col resto della home. `setDesktop` vive dentro il CALLBACK di
+  // un evento esterno (stesso schema del timer sotto), non è un setState sincrono nel corpo
+  // dell'effect.
+  const [desktop, setDesktop] = useState(schermoDesktop)
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    const mq = window.matchMedia(QUERY_DESKTOP)
+    const alCambio = (evento: MediaQueryListEvent) => setDesktop(evento.matches)
+    mq.addEventListener('change', alCambio)
+    return () => mq.removeEventListener('change', alCambio)
+  }, [])
+
   // Il ritiro a ~5s vale SOLO per la fase `piena` (comportamento preservato, il mockup F2 non
   // lo tocca — la fase piena resta identica a prima, solo più larga/T2). Il `filo` non
   // programma alcun timer: resta finché `visibile` non torna false (mai sparita, F2). Qui SOLO
   // lo scheduling: `setModo('nascosta')` vive dentro il CALLBACK del timer (una reazione a un
   // evento futuro esterno, il tempo che passa — il caso d'uso canonico di un effect), non è
   // una call sincrona nel corpo dell'effect stesso.
+  // C1 — su desktop non c'è nulla in vista da ritirare: niente timer da far girare a vuoto.
   useEffect(() => {
-    if (modo !== 'piena') return
+    if (desktop || modo !== 'piena') return
     const t = setTimeout(() => setModo('nascosta'), MS_IN_VISTA)
     return () => clearTimeout(t)
-  }, [modo])
+  }, [modo, desktop])
 
   if (typeof document === 'undefined') return null
+  // C1 — da 1024px in su la home mobile è spenta: il portale non deve esistere (v. commento in
+  // testa al file). Dopo gli hook, mai prima: l'ordine delle chiamate resta invariato quando la
+  // finestra attraversa la soglia in entrambi i sensi.
+  if (desktop) return null
 
   return createPortal(
     <AnimatePresence>

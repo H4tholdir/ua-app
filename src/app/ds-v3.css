@@ -1450,6 +1450,19 @@
   content: ''; position: absolute; right: 3.5px; top: 50%; transform: translateY(-50%);
   width: 3px; height: 34px; border-radius: 2px; background: rgba(255,255,255,.85);
 }
+/* Review finale whole-branch (C1) — la linguetta invita a una stanza che su desktop non
+   esiste: da 1024px in su `HomeDesktop` spegne l'intera home mobile
+   (`.ua-home-mobile { display: none }`, nel suo stesso @media), ma quella regola è un
+   discendente e la linguetta vive in PORTALE su `document.body` — fuori dalla sua portata.
+   Questo braccio è la METÀ CSS del fix: la metà portante è in `LinguettaCassette.tsx`, che a
+   ≥1024px non rende affatto il portale (niente mount, niente timer, niente click possibile —
+   era il click a spingere l'indirizzo a `/cassette` sopra la home desktop). Qui si copre il
+   frame prima che il JS abbia deciso, e si lascia la regola dove chi legge il foglio di stile
+   se l'aspetta. Stessa soglia (1024px) di HomeDesktop e del componente: un solo numero, tre
+   posti che si muovono insieme. */
+@media (min-width: 1024px) {
+  [data-ds="v3"] .ds-linguetta { display: none; }
+}
 
 /* Task 12 (D2, spec redesign §3.1) — la stanza Parete NON è più un'anteprima con testata e
    griglia proprie: è la STESSA `PareteClient` di `/cassette` (`.ds-parete-shell` e tutto il

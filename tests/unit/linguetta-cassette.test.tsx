@@ -166,6 +166,76 @@ describe('LinguettaCassette — fase filo (F2, dal 4° passaggio, soglia raggiun
   })
 })
 
+// Review finale whole-branch, C1 — la linguetta è in PORTALE su `document.body`, quindi la
+// regola che spegne tutta la home mobile a ≥1024px (`.ua-home-mobile { display: none }`, dentro
+// il `@media (min-width:1024px)` di `HomeDesktop.tsx`) non la raggiunge: il suo sottoalbero non
+// è più discendente di `.ua-home`. Su desktop compariva quindi una linguetta fissa sul bordo
+// destro SOPRA `HomeDesktop`, e — peggio — un click su di essa spingeva l'indirizzo a
+// `/cassette` mentre la superficie visibile restava la home desktop (desync dell'URL).
+// Doppia difesa, provata qui: il componente non rende affatto il portale a ≥1024px (niente
+// mount, niente timer, niente click possibile) E il CSS porta il proprio braccio desktop.
+describe('LinguettaCassette — C1: mai su desktop (il portale sfugge a `.ua-home-mobile`)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  /** Solo `(min-width: 1024px)` risponde `true`: `prefers-reduced-motion` e le altre query
+   *  restano `false` come nel default di `tests/setup.ts` — qui si simula la LARGHEZZA, non
+   *  una preferenza di movimento. */
+  function attivaViewportDesktop(): () => void {
+    const originale = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: /min-width:\s*1024px/.test(query),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+    return () => {
+      window.matchMedia = originale
+    }
+  }
+
+  it('a ≥1024px la linguetta in fase piena non entra proprio nell’albero', () => {
+    const ripristina = attivaViewportDesktop()
+    try {
+      render(<LinguettaCassette onVai={() => {}} visibile />)
+      expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull()
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('a ≥1024px nemmeno il filo (soglia raggiunta) entra nell’albero — è quello che non se ne andrebbe MAI da solo', () => {
+    registraAccessoParete()
+    registraAccessoParete()
+    registraAccessoParete()
+    const ripristina = attivaViewportDesktop()
+    try {
+      render(<LinguettaCassette onVai={() => {}} visibile />)
+      expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull()
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('sotto i 1024px nulla cambia: la linguetta resta quella di sempre', () => {
+    render(<LinguettaCassette onVai={() => {}} visibile />)
+    expect(screen.getByRole('button', { name: /le cassette/i })).toBeTruthy()
+  })
+
+  // Braccio CSS (metà dichiarata del fix C1): difesa in profondità per il frame prima che il
+  // JS abbia deciso, e per chi legge il foglio di stile invece del componente.
+  it('il CSS porta il braccio desktop: `.ds-linguetta` spenta dentro un @media (min-width: 1024px)', () => {
+    expect(srcCss).toMatch(
+      /@media \(min-width:\s*1024px\) \{\s*\[data-ds="v3"\] \.ds-linguetta \{ display: none; \}\s*\}/
+    )
+  })
+})
+
 // QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G3-grafica) — il
 // contenuto della linguetta non era centrato nel suo corpo (card 26px). Causa: `text-align`
 // centra l'asse INLINE, che per `.eti` (writing-mode: vertical-rl) è verticale, non

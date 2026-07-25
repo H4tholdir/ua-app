@@ -700,6 +700,61 @@ describe('StanzePager — navigazione esplicita: linguetta e «‹ Indietro» (D
   })
 })
 
+// Review finale whole-branch, C1 — il danno VERO della linguetta scappata su desktop non è
+// estetico: `HomeV3` è spenta a ≥1024px da `.ua-home-mobile { display: none }` (HomeDesktop.tsx),
+// ma la linguetta vive in PORTALE su `document.body`, fuori da quel sottoalbero, quindi quella
+// regola non la raggiunge. Restava un bottone fisso e CLICCABILE sopra `HomeDesktop`: un tap
+// spingeva l'indirizzo a `/cassette` (`vaiA` → `sincronizzaUrlStanza` → `pushState`) mentre la
+// superficie visibile restava la home desktop — e da lì un reload apriva la parete standalone a
+// un utente che non l'aveva mai chiesta. Questo test presidia la conseguenza, non solo la
+// presenza: anche un fix che la nascondesse SOLO otticamente (senza toglierla dall'albero)
+// lascerebbe il click possibile, e questo test lo prenderebbe.
+describe('StanzePager — C1: a ≥1024px la linguetta non esiste e non può desincronizzare l\'indirizzo', () => {
+  function attivaViewportDesktop(): () => void {
+    const originale = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: /min-width:\s*1024px/.test(query),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+    return () => {
+      window.matchMedia = originale
+    }
+  }
+
+  it('nessun bottone «Le cassette» in pagina, e nessuna pushState verso /cassette', async () => {
+    const ripristina = attivaViewportDesktop()
+    try {
+      const user = userEvent.setup()
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      const linguetta = screen.queryByRole('button', { name: /le cassette/i })
+      // Se il fix regredisse a una sola sparizione ottica, la linguetta sarebbe ancora qui e
+      // ancora tappabile: il click sotto la userebbe, e l'asserzione sulla pushState cadrebbe.
+      if (linguetta) await user.click(linguetta)
+      expect(linguetta).toBeNull()
+      expect(pushStateSpy).not.toHaveBeenCalledWith(expect.anything(), '', '/cassette')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('e nemmeno il conteggio dei 3 accessi si muove (nessun tap possibile)', async () => {
+    const ripristina = attivaViewportDesktop()
+    try {
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull()
+      expect(accessiRegistrati()).toBe(0)
+    } finally {
+      ripristina()
+    }
+  })
+})
+
 // QA device (verbale 25/07, fix-list D3) — la garanzia esplicitamente richiesta dal brief: con
 // i dot rimossi (e quindi niente più frecce ←→/roving tabindex), la stanza Parete deve restare
 // raggiungibile da TASTIERA senza reintrodurre un indicatore visivo. La linguetta «Le cassette»
