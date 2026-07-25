@@ -108,3 +108,12 @@ Nessun test guardava i valori cambiati (verificato: nessun riferimento a `#DDD8D
 - `/qualita/psur`: alert blu e arancio su tinta chiara, 2,4-2,1:1 (migliorano col cambio, restano
   insufficienti).
 - `/impostazioni`: badge ambra `#F59E0B` a 12px, 1,62:1.
+
+## Nota sugli screenshot (trappola registrata)
+
+`.gitignore:58` ignora `*.png`: gli screenshot storici del progetto sono stati aggiunti con
+`git add -f`, e un normale `git add -A` li **salta in silenzio**. Nel repo sono stati messi i
+soli fotogrammi citati sopra (`clienti-lista-densa`, `clienti`, `analytics`, `login`, tutti a
+390 light) più il prima/dopo dei fix 1a/1b: il set completo dei 92 resta su disco nel worktree,
+in `docs/design/screenshots/2026-07-26-sfondo-globale/`. Chi rigenera la cartella deve
+ricordarsi il `-f`, altrimenti la crede committata e non lo è.
