@@ -422,10 +422,22 @@ export function StanzePager(props: {
 
   // QA device (verbale 25/07, fix-list D3) — coi dot morti, `vaiA` ha oggi SOLO due chiamanti:
   // la linguetta (pile→parete) e il tasto «‹ Indietro» dell'header della parete (parete→pile,
-  // v. il render sotto). Entrambi sono gesti ESPLICITI verso la stanza OPPOSTA a quella attiva
-  // — non esiste più un caso «tap sulla stanza già attiva» (quello nasceva SOLO dal dot della
-  // stanza corrente): niente più da distinguere per origine, il focus entra sempre nella
-  // stanza entrante via l'effect su `[attiva]` sopra (che già applica il guard T15.2 su dito).
+  // v. il render sotto). Entrambi sono gesti ESPLICITI verso la stanza OPPOSTA a quella attiva.
+  //
+  // Review finale whole-branch — CORREZIONE a quanto diceva qui: il caso «tap sulla stanza GIÀ
+  // attiva» NON è morto insieme ai dot. La linguetta vive in PORTALE su `document.body`, cioè
+  // fuori dal sottoalbero che il pager rende `inert`, e resta montata e cliccabile per tutta la
+  // propria uscita di `AnimatePresence`. Un secondo tap in quella finestra — col dito è
+  // facilissimo, il bersaglio è ancora lì — chiedeva di nuovo la parete a parete già attiva:
+  // `setAttiva` non cambiava nulla, l'effect su `[attiva]` non girava, e il flag del focus
+  // restava ARMATO fino al cambio di stanza SUCCESSIVO, dove rubava il focus a chi aveva solo
+  // swipato (su dito il guard T15.2 lo salva; con un mouse no). E la linguetta contava un
+  // secondo accesso: si sarebbe spenta dopo un tap e mezzo invece che dopo tre — lo stesso
+  // doppio conteggio che `giaRegistrato` esiste per evitare, per un'altra via.
+  // Rimedio: una richiesta verso la stanza che è GIÀ attiva non è un cambio di stanza, quindi
+  // non arma il focus e non registra nulla. Lo scroll invece si rifà lo stesso (sotto, fuori da
+  // questa guardia): se il viewport è a metà strada per qualunque motivo, il tap deve comunque
+  // riportarcelo — è ciò che l'utente ha chiesto.
   const vaiA = useCallback(
     // `opts.giaRegistrato` (Task 13, D7): la linguetta «Le cassette» registra il proprio
     // accesso DA SÉ (serve anche fuori dal pager, nella forma «solo pile» di HomeV3, dove
@@ -434,14 +446,19 @@ export function StanzePager(props: {
     // linguetta, una da `impostaAttiva` sotto) — non un doppio conteggio innocuo, ma una
     // stanza che si spegnerebbe dopo ~1.5 tap reali invece che dopo 3.
     (destinazione: StanzaHome, opts?: { giaRegistrato?: boolean }) => {
-      if (opts?.giaRegistrato) {
-        // La linguetta ha già registrato l'accesso da sé (v. commento sopra): qui manca SOLO
-        // `registraAccessoParete`, non la URL sync — anche questa via deve spingere/tornare
-        // dall'entry /cassette.
-        sincronizzaUrlStanza(destinazione)
-        setAttiva(destinazione)
-      } else impostaAttiva(destinazione)
-      focusDaPortare.current = true
+      // Doppio tap sulla linguetta in uscita (v. commento sopra): la stanza chiesta è quella in
+      // cui siamo già — niente da cambiare, niente da contare, nessun focus da armare.
+      const cambiaStanza = attivaRef.current !== destinazione
+      if (cambiaStanza) {
+        if (opts?.giaRegistrato) {
+          // La linguetta ha già registrato l'accesso da sé (v. commento sopra): qui manca SOLO
+          // `registraAccessoParete`, non la URL sync — anche questa via deve spingere/tornare
+          // dall'entry /cassette.
+          sincronizzaUrlStanza(destinazione)
+          setAttiva(destinazione)
+        } else impostaAttiva(destinazione)
+        focusDaPortare.current = true
+      }
       const contenitore = viewport.current
       const bersaglio = stanze.current[destinazione]
       // `scrollTo` non esiste in jsdom (e non esisterebbe su un contenitore mai montato): la

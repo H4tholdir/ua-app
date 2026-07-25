@@ -65,7 +65,7 @@
 // fire-and-forget per una preferenza server-side scorrelata («intro Parete vista»), il
 // conteggio dei 3 passaggi vive qui (`KEY`, `ACCESSI_APPRESA`, `linguettaAppresa`,
 // `registraAccessoParete`, sotto) fin dal Task 13/QA D4. Editato qui, non lì.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
@@ -148,6 +148,20 @@ export function LinguettaCassette(props: { onVai: () => void; visibile: boolean 
 
   const reduced = useReducedMotion()
 
+  // Review finale whole-branch — un tap sola volta per apparizione. Il bottone resta nel DOM (e
+  // sotto il dito) per tutta l'uscita di `AnimatePresence`: un secondo tap in quella finestra
+  // contava un secondo accesso — bruciando il budget dei 3 passaggi al doppio della velocità,
+  // esattamente il difetto che `giaRegistrato` evita sull'altra via — e richiamava `onVai` verso
+  // una stanza già raggiunta. Un REF, non `modo`: l'elemento in uscita che `AnimatePresence`
+  // tiene in scena porta con sé le chiusure dell'ULTIMO render in cui era presente, dove `modo`
+  // era ancora `'piena'` — un controllo su quel valore non vedrebbe mai il tap già speso. Il ref
+  // è invece uno solo per istanza, condiviso da tutte le chiusure.
+  const tapSpeso = useRef(false)
+  useEffect(() => {
+    // Nuova apparizione (ritorno sulla stanza Pile) = nuovo tap disponibile.
+    if (props.visibile) tapSpeso.current = false
+  }, [props.visibile])
+
   // C1 — larghezza dello schermo, non preferenza: valore noto in anticipo (inizializzatore
   // pigro, come `modo` sopra), poi aggiornato dal `change` della media query — un
   // ridimensionamento della finestra o la rotazione di un tablet devono far comparire/sparire
@@ -195,6 +209,8 @@ export function LinguettaCassette(props: { onVai: () => void; visibile: boolean 
             exit={reduced ? { opacity: 0 } : { x: '110%' }}
             transition={molla.smooth}
             onClick={() => {
+              if (tapSpeso.current) return
+              tapSpeso.current = true
               registraAccessoParete()
               setModo('nascosta')
               props.onVai()

@@ -70,15 +70,22 @@ describe('Cassetta — occupata, targa D4 (Task 10, mockup 2026-07-24-rete-gance
     const [btnA, btnB] = screen.getAllByRole('button')
     expect(btnA.textContent).not.toMatch(/\b14\b/)
     expect(btnB.textContent).not.toMatch(/\b15\b/)
-    expect(btnA.getAttribute('aria-label')).not.toMatch(/\b14\b/)
-    expect(btnB.getAttribute('aria-label')).not.toMatch(/\b15\b/)
+    // …ma il nome ACCESSIBILE sì (review finale whole-branch): due gemelle indistinguibili a
+    // vista devono restarlo — è la decisione O1 — mentre chi ascolta non ha nessun budget di
+    // righe da rispettare e resterebbe altrimenti con due voci identiche e nessun modo di
+    // dirle diverse. Il ratificato («MAI numero lavoro/tipo IN TARGA», verbale 24/07 §7/§9)
+    // parla della targa dipinta, non del nome accessibile — coerente col principio già
+    // dichiarato in testa a `Cassetta.tsx`: il troncamento è visivo, non semantico.
+    expect(btnA.getAttribute('aria-label')).toMatch(/n\.14\b/)
+    expect(btnB.getAttribute('aria-label')).toMatch(/n\.15\b/)
   })
 
-  it('aria-label D4: dentista e paziente, senza numero (mai) — verbatim dal punto 12 adattato', () => {
+  it('aria-label D4: numero, dentista e paziente — il numero vive SOLO qui, mai nella targa dipinta', () => {
     render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
     expect(
-      screen.getByRole('button', { name: 'Cassetta C12, occupata: Bianchi, paziente Mario Rossi' })
+      screen.getByRole('button', { name: 'Cassetta C12, occupata: n.144, Bianchi, paziente Mario Rossi' })
     ).toBeInTheDocument()
+    expect(screen.getByRole('button').textContent).not.toMatch(/144/)
   })
 
   it('tipografia: la riga dentista porta la classe ds-cassetta-dent, quella paziente ds-cassetta-paz (clinico senza grassetto, paziente in grassetto — verbale §7)', () => {

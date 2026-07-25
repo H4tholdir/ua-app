@@ -717,8 +717,16 @@ export function Cassetta(props: {
     .filter(Boolean)
     .join(' ')
 
+  // Review finale whole-branch — il numero del lavoro torna nel nome ACCESSIBILE (e solo lì: la
+  // targa dipinta resta senza, invariata). Il ratificato che lo vieta parla della TARGA — «MAI
+  // numero lavoro/tipo in targa», «gemelle: nessun segno in targa» (verbale 24/07 §7/§9) — e la
+  // sua ragione è il budget di due righe, che a un nome accessibile non si applica: qui non c'è
+  // niente da impaginare. Lo stesso verbale indica la ricerca per numero lavoro come IL
+  // disambiguatore fra due gemelle: senza il numero qui, chi ascolta sente due voci identiche e
+  // non ha modo di dirle diverse. Stesso principio già dichiarato in testa a questo file per il
+  // troncamento della targa: è visivo, non semantico.
   const etichetta = lavoro
-    ? `Cassetta ${nome}, occupata: ${lavoro.dentista}, paziente ${pazienteReso}`
+    ? `Cassetta ${nome}, occupata: n.${lavoro.numero}, ${lavoro.dentista}, paziente ${pazienteReso}`
     : `Cassetta ${nome}, libera`
 
   return (

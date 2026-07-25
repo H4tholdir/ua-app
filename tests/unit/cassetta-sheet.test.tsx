@@ -4,6 +4,8 @@
 // (verbatim dalle route) sono la parte graded: PATCH un campo per volta ({nome} XOR {colore}),
 // liberazione con body `null` letterale, sposta-lavoro {cassetta_id}, DELETE, riordino via
 // callback nel PareteClient. Dizionario: «Butta via», MAI «Elimina».
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { CassettaSheet } from '@/components/features/cassette/CassettaSheet'
@@ -515,5 +517,27 @@ describe('CassettaSheet — cassetta OCCUPATA (§5.3)', () => {
     expect(screen.queryByRole('dialog', { name: /butto via/i })).toBeNull()
     // La riga bloccante c'è (testo verbatim del brief).
     expect(screen.getAllByText(/Dentro c'è il n\.144/).length).toBeGreaterThan(0)
+  })
+})
+
+// Review finale whole-branch — ciclo di import fra i due moduli: `CassettaSheet` importava
+// `DEBOUNCE_FILTRO_MS` da `PareteClient`, che importa `CassettaSheet`. Sopravviveva solo perché
+// la costante veniva letta pigramente dentro un `useEffect`: il primo uso a livello di modulo
+// (una costante derivata, un valore di default) sarebbe diventato un `ReferenceError` in fase di
+// import — dipendente dall'ordine con cui il bundler risolve il ciclo, quindi un crash che si
+// vede in produzione e non in un test unitario che importa `CassettaSheet` da solo. La costante
+// vive ora in un modulo foglia (`@/lib/ui/debounce-ricerca`), che non importa nessuno dei due.
+describe('CassettaSheet — nessun ciclo di import con PareteClient', () => {
+  it('non importa nulla da `./PareteClient`', () => {
+    const sorgente = readFileSync(join(process.cwd(), 'src/components/features/cassette/CassettaSheet.tsx'), 'utf8')
+    expect(sorgente).not.toMatch(/from '\.\/PareteClient'/)
+    expect(sorgente).toMatch(/import \{ DEBOUNCE_FILTRO_MS \} from '@\/lib\/ui\/debounce-ricerca'/)
+  })
+
+  it('e i due gemelli condividono lo STESSO ritardo: un solo numero, non due copie', async () => {
+    const { DEBOUNCE_FILTRO_MS } = await import('@/lib/ui/debounce-ricerca')
+    const parete = readFileSync(join(process.cwd(), 'src/components/features/cassette/PareteClient.tsx'), 'utf8')
+    expect(parete).toMatch(/from '@\/lib\/ui\/debounce-ricerca'/)
+    expect(DEBOUNCE_FILTRO_MS).toBe(180)
   })
 })

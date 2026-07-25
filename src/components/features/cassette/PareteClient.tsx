@@ -73,6 +73,7 @@ import { CassettaSheet } from './CassettaSheet'
 import type { EffettoCassetta } from './CassettaSheet'
 import { useDragRiordino } from './useDragRiordino'
 import { svuotaRicerca } from '@/lib/ui/svuota-ricerca'
+import { DEBOUNCE_FILTRO_MS } from '@/lib/ui/debounce-ricerca'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 /** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
@@ -80,9 +81,10 @@ type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
 
 // Ratifica 22/07 (spec redesign §2.4) — «filtra e risali»: il filtro/riordino della parete segue
 // la query con questo ritardo (l'input resta istantaneo, solo il FLIP delle celle è debounced).
-// Esportata (FIX-F, D9b): `CassettaSheet` (la lista «Metti un lavoro») riusa la STESSA costante —
-// stesso gemello, stesso ritardo, nessun numero magico duplicato.
-export const DEBOUNCE_FILTRO_MS = 180
+// La costante è CONDIVISA con `CassettaSheet` (la lista «Metti un lavoro»): stesso gemello,
+// stesso ritardo, nessun numero magico duplicato. Review finale whole-branch — non vive più
+// QUI: stava in questo file e `CassettaSheet` (che questo file importa) la leggeva a ritroso,
+// chiudendo un ciclo di import. Ora in un modulo foglia, v. il commento lì.
 // Durata dell'hint «Svuota la ricerca…» quando il long-press cade durante una ricerca attiva
 // (il drag non convive con la ricerca — riserva UX 1).
 const HINT_DRAG_BLOCCATO_MS = 2500
@@ -594,7 +596,17 @@ export function PareteClient(props: {
                       nome={c.nome}
                       colore={c.colore}
                       lavoro={c.lavoro}
-                      stato={attiva ? 'accesa' : 'normale'}
+                      // Review finale whole-branch — SEMPRE `normale`, anche a ricerca attiva.
+                      // «accesa» è un residuo della ricerca «che accende» (§5.1), superata dalla
+                      // ratifica 22/07: da allora le non-match si SMONTANO, quindi ogni cassetta
+                      // ancora in pagina È un match e accenderle tutte non distingue nulla — né a
+                      // vista (un anello blu su ognuna, contrasto contro il nulla) né all'ascolto,
+                      // dove `aria-current="true"` su OGNI voce fa dire «corrente» a tutta la
+                      // lista. Che il filtro sia acceso, e con che esito, lo dice già la riga
+                      // conteggio `role="status"` qui sopra, in parole. Lo stato `accesa` resta
+                      // vivo nel componente (catalogo, e chiunque ne abbia bisogno in futuro): è
+                      // questo chiamante a non averne più uno.
+                      stato="normale"
                       onTap={() =>
                         c.lavoro ? router.push(`/lavori/${c.lavoro.id}`) : setSheet({ tipo: 'cassetta', id: c.id })
                       }

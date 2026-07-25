@@ -278,6 +278,25 @@ describe('PareteClient — ricerca «filtra e risali» (ratifica 22/07, spec red
     expect(nomi.findIndex((n) => /^Cassetta C2/.test(n ?? ''))).toBeLessThan(nomi.findIndex((n) => /^Cassetta C3/.test(n ?? '')))
   })
 
+  // Review finale whole-branch — «accesa» è un residuo della ricerca «che accende» (spec §5.1),
+  // superata dalla ratifica 22/07 «filtra e risali»: da allora le non-match si SMONTANO, quindi
+  // ogni cassetta ancora in pagina È un match. Accenderle tutte non distingue nulla — né a
+  // vista (un anello blu su ognuna) né all'ascolto, dove `aria-current="true"` su OGNI voce fa
+  // dire «corrente» a tutta la lista. Lo stato del filtro lo porta già la riga conteggio, in
+  // parole. Lo stato `accesa` del componente resta vivo (catalogo, test di `Cassetta`): è QUESTO
+  // chiamante a non averne più bisogno.
+  it('con ricerca attiva nessuna cassetta è «accesa»: niente aria-current su ogni voce (le non-match sono già smontate)', () => {
+    render(<PareteClient parete={[c1SenzaMatch, c2ConMatch, c3ConMatch]} />)
+    digita('esposito')
+    act(() => { vi.advanceTimersByTime(250) })
+    const trovate = screen.getAllByRole('button', { name: /^Cassetta/i })
+    expect(trovate.length).toBeGreaterThan(1)
+    for (const b of trovate) {
+      expect(b).not.toHaveAttribute('aria-current')
+      expect(b.className).not.toContain('is-accesa')
+    }
+  })
+
   it('riga conteggio: «2 cassette trovate» / «1 cassetta trovata» / vuoto con invito', () => {
     render(<PareteClient parete={[c1SenzaMatch, c2ConMatch, c3ConMatch]} />)
     digita('esposito')
@@ -756,7 +775,7 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
     await user.click(await screen.findByRole('button', { name: /151/i }))
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: /^Cassetta C4, occupata: Studio Bruno, paziente Rossi Mario/ }),
+        screen.getByRole('button', { name: /^Cassetta C4, occupata: n\.151, Studio Bruno, paziente Rossi Mario/ }),
       ).toBeInTheDocument(),
     )
     expect(refresh).not.toHaveBeenCalled()
@@ -818,7 +837,7 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
       await act(async () => {}) // lascia risolvere la POST
 
       expect(fetch).toHaveBeenCalledTimes(1)
-      expect(screen.getByRole('button', { name: /^Cassetta C4, occupata: Bianchi, paziente MAR-42/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Cassetta C4, occupata: n\.144, Bianchi, paziente MAR-42/ })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
       expect(refresh).not.toHaveBeenCalled()
     } finally {

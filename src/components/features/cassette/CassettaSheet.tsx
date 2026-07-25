@@ -37,7 +37,11 @@ import { TastoTondo } from '@/components/ds/TastoTondo'
 import { spazio } from '@/design-system/v3/tokens'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
-import { DEBOUNCE_FILTRO_MS } from './PareteClient'
+// Modulo FOGLIA (review finale whole-branch): la costante stava in `PareteClient`, che importa
+// questo file — un ciclo di import che reggeva solo perché il valore veniva letto pigramente
+// dentro un `useEffect`. V. il commento nel modulo per cosa sarebbe successo al primo uso a
+// livello di modulo.
+import { DEBOUNCE_FILTRO_MS } from '@/lib/ui/debounce-ricerca'
 import { SwatchesColore } from './SwatchesColore'
 
 // Gap disclosure sul FIX-E (review del report — v. `.superpowers/sdd/fixE-report.md`) — il fix

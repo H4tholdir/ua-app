@@ -717,6 +717,43 @@ describe('StanzePager — navigazione esplicita: linguetta e «‹ Indietro» (D
     expect(document.activeElement).toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
   })
 
+  // Review finale whole-branch — il commento su `vaiA` dava per morto il caso «tap sulla stanza
+  // GIÀ attiva» (nasceva dal dot della stanza corrente, rimosso con D3). Non è morto: la
+  // linguetta è in portale FUORI dal sottoalbero che il pager rende `inert`, e resta montata e
+  // cliccabile per tutta la sua uscita di `AnimatePresence`. Un secondo tap in quella finestra
+  // (facilissimo col dito, il bersaglio è ancora lì sotto) chiedeva di nuovo la parete mentre la
+  // parete era già attiva: `setAttiva` non cambia nulla, l'effect su `[attiva]` non gira, e il
+  // flag del focus restava ARMATO fino al prossimo cambio di stanza — dove rubava il focus a chi
+  // aveva solo swipato. E `registraAccessoParete` veniva chiamata due volte: la linguetta si
+  // sarebbe spenta dopo un tap e mezzo invece che dopo tre, che è esattamente il doppio
+  // conteggio per cui esiste `giaRegistrato`.
+  // NB sul simulatore: i due tap sono `fireEvent.click`, non `userEvent.click`. Il secondo tap
+  // cade su un elemento che `AnimatePresence` tiene in scena mentre lo smonta — nel DOM, visibile,
+  // `pointer-events: auto` (verificato) — ma i controlli extra di `userEvent` lo scartano in
+  // silenzio in jsdom, senza errore. Su un device quel tap ARRIVA: `fireEvent.click` è qui il
+  // modello fedele (e infatti, senza il fix, fa contare due accessi).
+  it('doppio tap sulla linguetta (resta cliccabile durante la propria uscita): un solo accesso contato e nessun focus armato per il cambio stanza successivo', () => {
+    const { container } = render(
+      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
+    )
+    preparaViewport(container)
+    // Catturato ORA, mentre le pile sono la stanza attiva: da inerte non sarebbe più
+    // raggiungibile per ruolo (è il senso di `inert`), ma il nodo resta lo stesso.
+    const primoFocusabileDellePile = within(pannello('pile')).getByRole('button', { name: 'Tutto il resto' })
+
+    const linguetta = screen.getByRole('button', { name: /le cassette/i })
+    fireEvent.click(linguetta)
+    // Ancora lì: l'uscita è in corso, il bersaglio non è sparito da sotto il dito.
+    expect(screen.getByRole('button', { name: /le cassette/i })).toBe(linguetta)
+    fireEvent.click(linguetta)
+    expect(accessiRegistrati()).toBe(1)
+
+    // Il cambio stanza successivo è uno SWIPE (nessuna richiesta di focus da parte dell'utente):
+    // il focus non deve entrare nella stanza che arriva.
+    simulaScroll('pile', 0.9)
+    expect(document.activeElement).not.toBe(primoFocusabileDellePile)
+  })
+
   it('tap su «‹ Indietro» dalla parete: scrollTo a sinistra (left = offsetLeft della stanza pile)', async () => {
     const user = userEvent.setup()
     const { container } = render(
