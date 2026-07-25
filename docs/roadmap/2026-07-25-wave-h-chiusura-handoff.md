@@ -12,7 +12,9 @@ lezione doppia di questa sessione: due respingimenti per mockup non verificati).
 
 - **Worktree ESISTENTE:** `.claude/worktrees/redesign-parete-home`, branch
   `worktree-redesign-parete-home`, codice a **`800dd45`**. Suite: **3071 verdi / 19 skip ·
-  tsc 0 · build ok.** Server collaudo: build produzione su **:3020** @ 800dd45 (se giù:
+  tsc 0 · build ok.** Server collaudo: build produzione su **:3020** @ 800dd45 — ⚠️ **VERIFICARE SEMPRE ALL'AVVIO** (`curl -s -o /dev/null -w '%{http_code}' http://localhost:3020/`, atteso 307): i server avviati in una sessione precedente vengono terminati con essa. Riavvio sganciato che sopravvive:
+  `(setsid nohup npx next start -p 3020 -H 0.0.0.0 > /tmp/ua-3020.log 2>&1 < /dev/null &)` DAL worktree.
+  (se serve ricostruire:
   `npx next build && npx next start -p 3020 -H 0.0.0.0` DAL worktree; IP
   `ipconfig getifaddr en0`; ⚠️ :3020 è una build CONGELATA — le verifiche live di sessione
   si fanno sul dev :3042). Login collaudo: `e2e-titolare@ua-test.local` / fixture E2E.
@@ -53,7 +55,7 @@ lezione doppia di questa sessione: due respingimenti per mockup non verificati).
 4. **T17 — chiusura ondata:** rimozione overlay diagnostico `?diag=suoni` + canale
    `sound-diag.ts` (commit dedicato, pattern `9416d25`) · FASE 7 reale (tsc+vitest+build,
    output) · FASE 8 review WHOLE-BRANCH con la **LISTA MINOR dal ledger** (cerca «Minor
-   (per review finale)» in progress.md — ce ne sono ~15 accumulati) · allineamento spec DS
+   (per review finale)» in progress.md — sono 29 voci, contate) · allineamento spec DS
    v3 §9 (7 suoni + semantica enqueue/restart) e §piede (statico) · FASE 9 Playwright
    390/768/1280 × 2 temi · FASE 9b GATE ESTETICO L2 · 🛑 **merge SOLO a parola di
    Francesco** · FASE 11 BP-1 pieno (MEMORY (41) + ROADMAP (14)).
