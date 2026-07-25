@@ -71,6 +71,13 @@ parete**: `STUDIO DENTISTICO ROSSI` e `CENTRO ODONTOIATRICO ROSSI` finirebbero t
 nome di studio italiano. **Allungarla è una decisione, non un automatismo.** Nota che il rischio
 si corre solo sui nomi che non entrano nemmeno a 9 punti: sugli altri non si toglie niente.
 
+### Un'asimmetria che ho lasciato apposta
+
+Nella lista ci sono `clinica` e `cliniche` (il posto), **non** `clinico` e `clinici`
+(l'aggettivo). Vuol dire che da `CENTRO CLINICO ROSSI` si toglie solo `CENTRO` e resta
+`CLINICO ROSSI`. L'ho lasciata così per non allungare la lista oltre quello che serve davvero —
+ma è esattamente il tipo di riga che puoi aggiungere tu, se ti sembra che valga la pena.
+
 **Dove si cambia:** `PAROLE_CATEGORIA_STUDIO` in `src/lib/domain/nome-studio.ts` — un elenco di
 parole, tutte minuscole. Le prove che accompagnano la lista stanno in
 `tests/unit/nome-studio.test.ts`.
@@ -127,3 +134,13 @@ sfumatura: è il punto 4, dichiarato.
 - **Accessibilità:** l'`aria-label` del bottone porta da sempre `lavoro.dentista` per intero e non
   passa dalla scala (verificato in browser in tutti gli stati); il `title` sul testo compare solo
   quando ciò che si legge non è il nome intero.
+- **Compromesso dichiarato — la sfumatura di passaggio.** `is-troncato` si aggiorna a OGNI misura,
+  anche sui gradini intermedi: un nome che scende porta quindi la sfumatura per un istante prima
+  di fermarsi. Nella catena degli effetti di layout succede prima del paint (invisibile); sui
+  percorsi ResizeObserver e font-caricati è dopo il paint, quindi al cambio di colonne o a una
+  rotazione può dipingersi per un frame. È voluto: l'alternativa (accendere la sfumatura solo a
+  scala finita) è esattamente lo stato che H2d ha misurato mentre rivela un filo della terza riga.
+  Il caso peggiore di questa scelta è una sfumatura di troppo per un frame — cioè il
+  comportamento già in produzione oggi; il caso peggiore dell'altra è il difetto registrato.
+  **Non ho fotografato il primo frame:** l'argomento è di costruzione (la classe non viene mai
+  differita), non una misura.
