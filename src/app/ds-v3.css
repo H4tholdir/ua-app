@@ -1159,8 +1159,17 @@
    orizzontale, stessa misura del punto 1 «gap cassette»). Nota: il content-box reale a shell
    1120 è 1080 (1120 − 40) — 1060 lascia 20px di margine sotto quel valore, innocuo oggi perché
    la shell è quantizzata (720/1120, mai un valore intermedio) e tornerà utile quando la shell
-   diventerà fluida. La regola base (riga sopra, repeat(3, 1fr)) resta invariata. */
-@container (min-width: 680px)  { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
+   diventerà fluida. La regola base (riga sopra, repeat(3, 1fr)) resta invariata.
+   Verifica finale d'ondata (26/07, difetto A8) — la soglia del TABLET aveva invece margine ZERO:
+   content-box reale a shell 720 = 720 − 40 di padding orizzontale = 680, ed era scritta
+   `min-width: 680px`, cioè esattamente sul filo. Bastava che qualcuno ritoccasse di 1px il padding
+   della shell (dichiarazione che QUESTA STESSA ondata ha già riscritto, per il fondo del muro) e a
+   768px il muro sarebbe silenziosamente sceso da 4 colonne a 3, senza nessun test rosso.
+   Ora la soglia è 660: stessi 20px di slack del gradino desktop, per la stessa ragione. È un
+   cambio a comportamento NULLO oggi — i content-box reali sono ~350-440 (telefono) / 680 (tablet)
+   / 1080 (desktop): nessuno di loro cade fra 660 e 680, quindi nessuna larghezza reale cambia
+   numero di colonne. È margine, non un valore tarato: non "avvicinarlo" al content-box vero. */
+@container (min-width: 660px)  { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
 @container (min-width: 1060px) { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
 
 /* Variante C «fluida» — gap cassette tablet (mockup 2026-07-22-gap-cassette-tablet.html,

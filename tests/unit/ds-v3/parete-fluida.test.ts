@@ -213,9 +213,54 @@ describe('parete /cassette — tile «+ Nuova cassetta» leggibile sopra la magl
 // viewport.
 describe('parete /cassette — colonne in container query (Task 11, riserva ARCH R7)', () => {
   it('le colonne della griglia rispondono al CONTAINER, non al viewport (riserva ARCH R7)', () => {
-    expect(norm).toMatch(/@container \(min-width: 680px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\(4, 1fr\); \} \}/)
+    expect(norm).toMatch(/@container \(min-width: 660px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\(4, 1fr\); \} \}/)
     expect(norm).toMatch(/@container \(min-width: 1060px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\(6, 1fr\); \} \}/)
     // le vecchie media query viewport sulle colonne NON devono più esistere:
     expect(norm).not.toMatch(/@media \(min-width: 768px\)\s*\{ \[data-ds="v3"\] \.ds-parete-grid/)
+  })
+
+  // Verifica finale d'ondata (26/07, difetto A8). Il tablet era scritto `min-width: 680px` contro
+  // un content-box reale di ESATTAMENTE 680 (shell max-width 720 meno i 20px di padding per lato):
+  // margine zero. Il gradino desktop, invece, tiene di proposito 20px di slack e lo dice nel
+  // proprio commento. Questa guardia non ricopia le due soglie: le CONFRONTA coi content-box che
+  // il foglio stesso dichiara, e pretende che stiano sotto — così un ritocco al padding della
+  // shell (dichiarazione che questa ondata ha già riscritto una volta) non può più far scivolare
+  // il muro da 4 colonne a 3 in silenzio.
+  it('ogni soglia @container sta SOTTO il content-box che deve servire, con margine — non sul filo', () => {
+    // le tre max-width della shell, lette dal foglio
+    const base = norm.match(/\[data-ds="v3"\] \.ds-parete-shell \{[^}]*max-width: (\d+)px/)
+    const tablet = norm.match(/@media \(min-width: 768px\) *\{ \[data-ds="v3"\] \.ds-parete-shell \{ max-width: (\d+)px; \} \}/)
+    const desktop = norm.match(/@media \(min-width: 1280px\) *\{ \[data-ds="v3"\] \.ds-parete-shell \{ max-width: (\d+)px; \} \}/)
+    expect(base, 'max-width base della shell non trovata').toBeTruthy()
+    expect(tablet, 'max-width tablet della shell non trovata').toBeTruthy()
+    expect(desktop, 'max-width desktop della shell non trovata').toBeTruthy()
+
+    // il padding orizzontale della shell, sempre dal foglio (2° valore dello shorthand)
+    const padding = norm.match(/\[data-ds="v3"\] \.ds-parete-shell \{[^}]*padding: *(\S+) *(\S+) *([^;]+);/)
+    expect(padding, 'padding della shell non trovato').toBeTruthy()
+    const padX = parseFloat(padding![2])
+    expect(Number.isFinite(padX), `padding orizzontale non numerico: ${padding![2]}`).toBe(true)
+
+    const contentBox = (maxWidth: string) => Number(maxWidth) - 2 * padX
+    const soglie = [...norm.matchAll(/@container \(min-width: (\d+)px\) \{ \[data-ds="v3"\] \.ds-parete-shell \.ds-parete-grid \{ grid-template-columns: repeat\((\d+), 1fr\); \} \}/g)]
+      .map((m) => ({ soglia: Number(m[1]), colonne: Number(m[2]) }))
+    expect(soglie.length, 'nessuna soglia @container trovata: il parser di questa guardia va corretto').toBe(2)
+
+    const SLACK_MINIMO = 10 // il gradino desktop ne tiene 20 e lo motiva; sotto i 10 si è sul filo
+    const attese = [
+      { colonne: 4, contentBox: contentBox(tablet![1]) },
+      { colonne: 6, contentBox: contentBox(desktop![1]) },
+    ]
+    for (const { colonne, contentBox: cb } of attese) {
+      const trovata = soglie.find((s) => s.colonne === colonne)
+      expect(trovata, `nessuna soglia per ${colonne} colonne`).toBeTruthy()
+      expect(cb - trovata!.soglia,
+        `la soglia a ${colonne} colonne (${trovata!.soglia}px) è troppo vicina al content-box reale ` +
+        `(${cb}px): basta un ritocco al padding della shell per far cadere il muro a meno colonne ` +
+        'senza che nessun test se ne accorga').toBeGreaterThanOrEqual(SLACK_MINIMO)
+      // e non così bassa da scattare sul telefono (content-box mobile: shell base meno il padding)
+      expect(trovata!.soglia, `la soglia a ${colonne} colonne scatterebbe già sul telefono`)
+        .toBeGreaterThan(contentBox(base![1]))
+    }
   })
 })
