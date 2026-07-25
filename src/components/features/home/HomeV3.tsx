@@ -244,7 +244,7 @@ export function HomeV3(props: {
            ghiera-etichetta da 12 a 4. Misurato in browser reale (non jsdom): v.
            .superpowers/sdd/fixB-report.md per i numeri prima/dopo. */
         /* Piede STATICO (verbale 26/07, commit 5957b24 — abroga la coreografia C2 del
-           capitolo H4c: 4 round di custom property --piede-*/--piede-ingombro, collasso
+           capitolo H4c: 4 round di custom property --piede-* e --piede-ingombro, collasso
            discreto .is-vuoto, curve dedicate in piede-swipe.ts (rimosso) — storia intera in
            .superpowers/sdd/h4c-fix-report.md, non riscritta qui). Nessuna delle vecchie regole
            sopravvive: .foot è oggi un box a dimensione fissa, niente calc(*var(--piede-*)),
