@@ -320,8 +320,9 @@
      nomi lunghi in `.is-shrink` la clearance verso la finestra scendeva a ~1px, un margine
      giudicato troppo fragile tra motori di rendering diversi. L'opzione B elimina la causa,
      non il sintomo: la fascia (`.ds-cassetta-fascia` sotto) ha ORA un'altezza VERA e FISSA
-     (`height: 72px`, non più a abbraccio) che riserva SEMPRE lo spazio del caso peggiore
-     (clinico 2 righe + paziente 1 riga), e la finestra si restringe (66→40px, v.
+     (`height: 72px`, non più a abbraccio) — pensata per riservare lo spazio del caso peggiore
+     (clinico 2 righe + paziente 1 riga; ⚠️ MISURATO 26/07 che NON ci riesce — v. nota A3 sotto,
+     sopra `.ds-cassetta-fascia`), e la finestra si restringe (66→40px, v.
      `.ds-cassetta-cavita`) per farle posto — trade-off esplicito e accettato da Francesco
      ("finestra più piccola in via permanente", verbale §H2). Risultato: il contenuto di
      flusso (fascia 72 + il suo margin-bottom 4 = 76px) è SEMPRE più corto di 132px, quindi il
@@ -535,6 +536,37 @@
    risolveva gia a questo stesso valore, la regola lo rende solo esplicito, non lo altera -
    comparativo in .superpowers/sdd/h2c-fascia-fix-report.md. Guardia sorgente in
    tests/unit/ds-v3/cassetta-g10-fascia.test.tsx. */
+/* ⚠️ A3 — NOTA DI MISURA (verifica finale d'ondata, 26/07). NON DECISO: aperto per Francesco.
+   Il commento di H2 sopra `.ds-cassetta` diceva che questi 72px «riservano SEMPRE lo spazio del
+   caso peggiore». Misurato sul muro vero (build di collaudo, /cassette, 390px, DPR 3, light E dark
+   — numeri identici nei due temi; banchi in scripts/tmp/a3-*.mjs, dati in scripts/tmp/a3-out/):
+     box utile della fascia = 72 − 5 di padding sopra − 6 sotto = 61,000px
+     pila reale = targa 21,750 + gap 2 + cont (dent + 2 + paz)   ← i 2 fra dent e paz sono
+                                                                   gap 1 del cont + margin-top 1 del paz
+     · caso comune  (dent 1 riga + paz 1 riga)  = 21,750 + 2 + 27,844 = 51,594  → ci sta, 9,4 di aria
+     · caso A       (dent 2 righe + paz 1 riga) = 21,750 + 2 + 39,438 = 63,188  → SFORA di 2,188
+     · caso B       (dent 1 riga + paz 2 righe) = 21,750 + 2 + 42,109 = 65,859  → SFORA di 4,859
+   Il caso A è ESATTAMENTE quello che il commento dichiarava riservato: non lo è. Il caso B, aperto
+   da H2b (paziente fino a 2 righe), è ancora peggio ed è raggiungibile con uno studio dal nome
+   corto e un paziente dal nome lungo («Bianchi» / «Maria Vittoria Del Giglio», il caso misurato).
+   CHE COSA SUCCEDE DAVVERO quando sfora — e qui la previsione era sbagliata, per questo si misura:
+   NON si perde la frangia dei discendenti. Il pixel-diff della stessa finestra con `overflow:hidden`
+   (com'è) e `overflow:visible` è 0 su 69.120 pixel nel caso B e 35 con Δmax 1/255 nel caso A (rumore
+   di antialiasing, e nella banda della targa, non sul fondo): il ritaglio di questa fascia non toglie
+   nulla di visibile, il respiro di 1px/1,5px aperto da H2d coi clip-path resta salvo.
+   A cedere è la TARGA. È un flex item con `overflow: hidden`, quindi la sua altezza minima
+   automatica è 0 e si lascia comprimere; `.ds-cassetta-cont` ha overflow visible, quindi la sua è
+   il contenuto e NON si comprime. Tutta la pressione finisce lì: targa misurata 21,750 → 19,563
+   (caso A, testo tagliato di 2px) → 16,891 (caso B, tagliato di 5px). Sulla stessa foto tre targhe
+   di tre altezze diverse (scripts/tmp/a3-out/*-tre-targhe.png): la «sagoma unica» che H2 ha
+   ratificato regge per il tile, ma si rompe per la targa appena il clinico va a 2 righe.
+   PERCHÉ NON È STATO CORRETTO QUI: ogni rimedio tocca un visual RATIFICATO. Alzare la fascia
+   (72 → ~78) ruba altezza alla finestra, già scesa a 40px per un trade-off accettato
+   esplicitamente da Francesco («finestra più piccola in via permanente», verbale §H2). Dare
+   `flex: none` alla targa la salva ma sposta lo sforo sul contenuto, che è proprio ciò che H2d
+   proteggeva. Alzare il tile oltre 132px cambia la sagoma. Sono scelte di design, non di
+   implementazione: la decisione è di Francesco. Qui resta il fatto misurato, al posto della
+   frase che diceva il contrario. */
 [data-ds="v3"] .ds-cassetta-fascia {
   position: relative; z-index: 1;
   margin: 0 4px 4px;
