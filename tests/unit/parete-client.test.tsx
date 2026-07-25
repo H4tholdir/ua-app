@@ -323,12 +323,16 @@ describe('PareteClient — ricerca «filtra e risali» (ratifica 22/07, spec red
     expect(push).toHaveBeenCalledWith('/lavori/l2')
   })
 
+  // I5 — lo sheet che ora si apre insieme all'hint porta con sé la PROPRIA `role="status"`
+  // (l'annuncio dei ▲▼, vuoto finché non si sposta nulla): la riga del muro si cerca dentro
+  // `container`, non su tutta la pagina — il pannello dello sheet vive in portale su
+  // `document.body`, fuori di lì.
   it('long-press durante la ricerca: hint «Svuota la ricerca…» al posto del fallimento silenzioso', () => {
-    render(<PareteClient parete={[c2ConMatch, c3ConMatch]} />)
+    const { container } = render(<PareteClient parete={[c2ConMatch, c3ConMatch]} />)
     digita('esposito')
     act(() => { vi.advanceTimersByTime(250) })
     longPress(primaCassetta())
-    expect(screen.getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
+    expect(within(container).getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
   })
 
   // P7 (collaudo device 22/07, ratifica Francesco) — la «×» di pulizia è NOSTRA (il clear
@@ -503,20 +507,48 @@ describe('PareteClient — wiring del drag (Task 13, §2.5/§3)', () => {
     }
   })
 
-  it('durante la ricerca il drag è SPENTO (parete filtrata = ordine parziale) e il long-press segnala il blocco (hint, ratifica 22/07 §2.4) invece di aprire lo sheet', () => {
+  // Review finale whole-branch, I5 — questo test diceva «…invece di aprire lo sheet», ed era il
+  // difetto messo per iscritto: il ragionamento della riserva UX 1 riguarda il DRAG (che con la
+  // parete filtrata non può convivere), ma il rimedio aveva sostituito il long-press per intero.
+  // Su una cassetta OCCUPATA il long-press è l'UNICA via allo sheet — il tap naviga al lavoro —
+  // quindi durante una ricerca sparivano rinomina, colore, «Segna come libera», ▲▼ e posizione:
+  // per rinominare la cassetta che la ricerca aveva appena trovato bisognava svuotare la ricerca
+  // e ritrovarla a occhio sul muro intero. Spec §5.35: il long-press apre lo sheet su QUALSIASI
+  // cassetta. L'hint resta — il drag È bloccato davvero, e dirlo è ancora giusto — ma accompagna
+  // lo sheet invece di prenderne il posto.
+  it('durante la ricerca il drag è SPENTO (parete filtrata = ordine parziale): il long-press apre COMUNQUE lo sheet, e l\'hint spiega perché il muro non si è sollevato', () => {
     vi.useFakeTimers()
     try {
-      render(<PareteClient parete={[occupata, libera]} />)
+      const { container } = render(<PareteClient parete={[occupata, libera]} />)
       fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C12' } })
       act(() => { vi.advanceTimersByTime(250) }) // oltre il debounce di 180ms
       // Con la ricerca attiva `onSollevata` NON è passato: il gesto ricade sul long-press di
-      // Cassetta — che ora chiama `segnalaDragBloccato` (hint), non più lo sheet.
+      // Cassetta — che apre lo sheet (§5.35) e segnala il blocco del solo drag.
       const bottone = cassettaOccupata() // occupata, unica trovata, resta montata
       fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
       act(() => { vi.advanceTimersByTime(300) })
       fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
-      expect(screen.queryByRole('dialog', { name: 'C12' })).toBeNull()
-      expect(screen.getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
+      expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+      // La riga del muro, non quella dei ▲▼ dentro lo sheet (v. nota nella describe ricerca).
+      expect(within(container).getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('I5 — e lo sheet aperto durante la ricerca è quello VERO della cassetta trovata: rinomina, colore e «Segna come libera» a portata di mano', () => {
+    vi.useFakeTimers()
+    try {
+      render(<PareteClient parete={[occupata, libera]} />)
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C12' } })
+      act(() => { vi.advanceTimersByTime(250) })
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) })
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      const sheet = screen.getByRole('dialog', { name: 'C12' })
+      expect(within(sheet).getByLabelText('Nome')).toBeInTheDocument()
+      expect(within(sheet).getByText('Segna come libera')).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }

@@ -11,7 +11,7 @@
 // scala è finita. La fedeltà tipografica (quante righe occupa un nome) la prova il browser, non
 // questo file.
 import { describe, expect, it, afterEach, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Cassetta } from '@/components/ds/Cassetta'
@@ -41,6 +41,12 @@ const RIGHE_MISURATE = new Map<string, number>([
   ['Bianchi@10', 1],
 ])
 
+// Override dell'oracolo, vivo solo dentro un test: serve a chi simula il PASSAGGIO dalle
+// metriche del font di ripiego a quelle del font vero (I3) — la stessa stringa allo stesso
+// corpo occupa un numero di righe DIVERSO prima e dopo il caricamento. Stessa chiave
+// `${testo}@${corpo}`, precedenza sulla tabella misurata. Svuotato in `afterEach`.
+const righeOverride = new Map<string, number>()
+
 function corpoDi(el: Element): number {
   if (el.classList.contains('is-corpo-9')) return 9
   if (el.classList.contains('is-corpo-95')) return 9.5
@@ -48,7 +54,7 @@ function corpoDi(el: Element): number {
 }
 function righeDi(el: Element): number {
   const chiave = `${(el.textContent ?? '').trim()}@${corpoDi(el)}`
-  const righe = RIGHE_MISURATE.get(chiave)
+  const righe = righeOverride.get(chiave) ?? RIGHE_MISURATE.get(chiave)
   if (righe === undefined) throw new Error(`oracolo mancante per «${chiave}» — misurarlo in browser prima di usarlo qui`)
   return righe
 }
@@ -92,6 +98,7 @@ afterEach(() => {
   window.getComputedStyle = originaleGetComputedStyle
   if (descrittoriOriginali.scroll) Object.defineProperty(Element.prototype, 'scrollHeight', descrittoriOriginali.scroll)
   if (descrittoriOriginali.client) Object.defineProperty(Element.prototype, 'clientHeight', descrittoriOriginali.client)
+  righeOverride.clear()
 })
 
 const base = { numero: '144', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa', paziente: 'PZ-0144', pazienteAlias: 'Mario Rossi' }
@@ -220,5 +227,80 @@ describe('ds-v3.css — i due gradini di corpo del clinico', () => {
       expect(blocco, `blocco .${classe} non trovato`).toBeTruthy()
       expect(blocco![0]).not.toMatch(/clip-path|mask-image|max-height|line-height/)
     }
+  })
+})
+
+// Review finale whole-branch, I3 — la ri-misura «a font caricati» esiste per UN caso solo:
+// caricamento a freddo, Plus Jakarta Sans non ancora in cache, la prima misura fatta con le
+// metriche del font di ripiego. Ed era morta esattamente lì. La prenotazione di
+// `document.fonts.ready` viveva DENTRO l'effetto di misura, con una bandierina «una volta
+// sola» alzata al momento della prenotazione: ma la misura stessa fa scendere la scala, la
+// discesa è un `setScalino` dentro un layout effect (flush sincrono), il flush rilancia
+// l'effetto, e la sua pulizia spegne il `vivo` che la `.then` già prenotata controlla. Quando
+// i font arrivavano davvero, la `.then` trovava `vivo === false` e non faceva nulla — mentre
+// la bandierina, ormai alzata, impediva al secondo giro di riprenotarsi. Il nome restava
+// rimpicciolito (o senza le parole di categoria) per tutta la sessione, pur entrando benissimo
+// a corpo pieno col font vero.
+describe('variante 6 — I3: la ri-misura a font caricati sopravvive alla discesa che l\'ha innescata', () => {
+  let descrittoreFonts: PropertyDescriptor | undefined
+
+  /** Installa un `document.fonts.ready` che si risolve QUANDO decide il test — è il momento
+   *  «il font vero è arrivato», l'unico istante in cui la ri-misura ha senso. */
+  function fontsPilotati(): { arrivati: () => Promise<void> } {
+    let sblocca: () => void = () => {}
+    const pronti = new Promise<void>((res) => {
+      sblocca = res
+    })
+    descrittoreFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: pronti } })
+    return {
+      arrivati: async () => {
+        await act(async () => {
+          sblocca()
+          await pronti
+        })
+      },
+    }
+  }
+
+  afterEach(() => {
+    if (descrittoreFonts) Object.defineProperty(document, 'fonts', descrittoreFonts)
+    else Reflect.deleteProperty(document, 'fonts')
+    descrittoreFonts = undefined
+  })
+
+  const dentDelDom = () => screen.getByRole('button').querySelector('.ds-cassetta-dent') as HTMLElement
+
+  it('col font vero il nome torna al corpo pieno, dopo essere sceso di un gradino sulle metriche del ripiego', async () => {
+    // Ripiego: «DI SANTI CATERINA» a 10px occupa 3 righe (sfora le 2 di budget) e ne occupa 2 a
+    // 9,5. Col font vero ci sta in 2 righe già a 10px — la discesa non serviva.
+    righeOverride.set('DI SANTI CATERINA@10', 3)
+    righeOverride.set('DI SANTI CATERINA@9.5', 2)
+    const fonts = fontsPilotati()
+
+    const { dent } = renderizza('DI SANTI CATERINA')
+    expect(dent.className).toContain('is-corpo-95')
+
+    righeOverride.set('DI SANTI CATERINA@10', 2)
+    await fonts.arrivati()
+
+    expect(dentDelDom().className).not.toContain('is-corpo-95')
+    expect(dentDelDom().textContent).toBe('DI SANTI CATERINA')
+  })
+
+  it('se col font vero il nome sfora ANCORA, la scala riscende: la ri-misura riparte da capo, non impone il corpo pieno', async () => {
+    righeOverride.set('CENTRO ODONTOIATRICO SANTA MARIA@10', 4)
+    righeOverride.set('CENTRO ODONTOIATRICO SANTA MARIA@9.5', 4)
+    righeOverride.set('CENTRO ODONTOIATRICO SANTA MARIA@9', 3)
+    const fonts = fontsPilotati()
+
+    renderizza('CENTRO ODONTOIATRICO SANTA MARIA')
+    // Metriche del ripiego: la scala col nome intero non basta, si passa al nome senza le
+    // parole di categoria («SANTA MARIA»).
+    expect(dentDelDom().textContent).toBe('SANTA MARIA')
+
+    await fonts.arrivati()
+    // Col font vero le righe non cambiano: l'esito deve restare lo stesso, senza oscillare.
+    expect(dentDelDom().textContent).toBe('SANTA MARIA')
   })
 })

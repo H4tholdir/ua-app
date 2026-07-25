@@ -603,9 +603,20 @@ export function PareteClient(props: {
                       onSollevata={dragAbilitato ? (evento) => sollevaDrag(c.id, evento) : undefined}
                       // Senza questa prop il timer di long-press non parte affatto e il gesto
                       // sparisce in silenzio (§5.35): va passato a OGNI cassetta, anche occupata.
-                      // A ricerca attiva il drag non convive con essa (§2.4): il long-press
-                      // segnala il blocco con un hint invece di aprire lo sheet in silenzio.
-                      onLongPressSheet={attiva ? segnalaDragBloccato : () => setSheet({ tipo: 'cassetta', id: c.id })}
+                      // Review finale whole-branch (I5) — a ricerca attiva lo sheet si apre
+                      // LO STESSO. Ciò che non convive con la ricerca è il DRAG (parete filtrata
+                      // = ordine parziale, §2.4), e infatti è `dragAbilitato` a togliere
+                      // `onSollevata` qui sopra; il long-press invece è anche l'UNICA via allo
+                      // sheet di una cassetta occupata (il suo tap naviga al lavoro), quindi
+                      // sostituirlo con un hint significava perdere rinomina, colore, «Segna come
+                      // libera», ▲▼ e posizione proprio sulla cassetta che la ricerca aveva
+                      // appena trovato — l'esatto lavoro per cui si era cercato. L'hint resta
+                      // (il drag è bloccato davvero, e va detto: riserva UX 1) ma ACCOMPAGNA lo
+                      // sheet invece di prenderne il posto.
+                      onLongPressSheet={() => {
+                        if (attiva) segnalaDragBloccato()
+                        setSheet({ tipo: 'cassetta', id: c.id })
+                      }}
                     />
                   </motion.div>
                 ))}

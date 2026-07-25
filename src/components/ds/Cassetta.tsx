@@ -294,7 +294,34 @@ export function Cassetta(props: {
   // I font web possono ancora caricare al primo render: la ri-misura a caricamento finito rifà
   // la scala da capo (le metriche del fallback possono aver fatto scendere un gradino di troppo).
   // Una volta sola, altrimenti il reset a gradino 0 e la discesa si inseguirebbero all'infinito.
+  //
+  // Review finale whole-branch (I3) — la bandierina segna «la ri-misura È AVVENUTA», non «è
+  // stata prenotata»: è la differenza che teneva morto proprio il caso per cui esiste. Prima la
+  // prenotazione viveva DENTRO l'effetto di misura, e la bandierina si alzava al momento di
+  // prenotare — ma la misura stessa fa scendere la scala, la discesa è un `setScalino` dentro
+  // un layout effect (flush SINCRONO, prima di qualunque microtask), il flush rilancia
+  // l'effetto e la sua pulizia spegne il `vivo` che la `.then` già prenotata controllava.
+  // Quando i font arrivavano davvero, la `.then` usciva subito e la bandierina alzata impediva
+  // al giro nuovo di riprenotarsi: nome rimpicciolito per tutta la sessione anche se col font
+  // vero ci stava a corpo pieno. Ora l'attesa dei font vive in un effetto tutto suo, a
+  // dipendenze vuote (niente lo rilancia, niente lo può spegnere a metà), che si limita ad
+  // accendere `fontsPronte`; la ri-misura è una conseguenza di quello stato, non di una
+  // promessa catturata in una chiusura che nel frattempo è morta.
   const fontRimisurati = useRef(false)
+  const [fontsPronte, setFontsPronte] = useState(false)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts?.ready) return
+    let vivo = true
+    // `setFontsPronte` vive nel callback di un evento ESTERNO (i font che finiscono di
+    // caricare), non è un setState sincrono nel corpo dell'effetto. `vivo` qui è sano: questo
+    // effetto non si rilancia mai (deps vuote), quindi si spegne solo allo smontaggio vero.
+    document.fonts.ready.then(() => {
+      if (vivo) setFontsPronte(true)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
   // H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
   // `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «budget righe condiviso»:
   // il paziente arriva fino a 2 righe SOLO quando il clinico ne occupa 1 (v. CSS, selettore
@@ -328,6 +355,19 @@ export function Cassetta(props: {
       return
     }
     let vivo = true
+    // I3 — i font sono arrivati e la scala era già scesa sulle metriche del ripiego: si riparte
+    // dal corpo pieno PRIMA di misurare, perché con le metriche vere quel gradino potrebbe non
+    // servire più. Una volta sola per montaggio (`fontRimisurati`): senza, ogni discesa
+    // successiva rilancerebbe questo stesso reset e reset e discesa si inseguirebbero senza
+    // fine. Stessa forma del ramo «è cambiata la colonna» del ResizeObserver più sotto — si
+    // esce subito, la misura la fa il giro che il reset stesso innesca.
+    if (fontsPronte && !fontRimisurati.current) {
+      fontRimisurati.current = true
+      if (passoNome > 0) {
+        setScalino({ nome: nomeStudio, passo: 0 })
+        return
+      }
+    }
     const misura = () => {
       if (!vivo) return
       // H2c (verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND
@@ -384,27 +424,11 @@ export function Cassetta(props: {
       }
     }
     misura()
-    // I font web (Plus Jakarta Sans) possono ancora caricare al primo render: una ri-misura a
-    // caricamento completato evita un falso negativo/positivo transitorio sulla metrica del
-    // fallback font. Variante 6: se nel frattempo la scala era già scesa, si RIPARTE dal corpo
-    // pieno — con le metriche vere il gradino potrebbe non servire più. `fontRimisurati` fa sì
-    // che accada una volta sola: senza, reset e discesa si inseguirebbero all'infinito.
-    if (typeof document !== 'undefined' && document.fonts?.ready && !fontRimisurati.current) {
-      // Panel advisor 26/07 (parere di architettura, difetto secondario verificato): la bandierina
-      // va alzata QUI, alla PRENOTAZIONE, non dentro la `.then`. Alzandola dentro, mentre la scala
-      // scendeva di gradino l'effetto si ri-registrava e prenotava la stessa promessa più volte —
-      // la guardia sopra la trovava ancora `false`. Conseguenza misurabile: su ogni nome lungo la
-      // discesa girava DUE volte, e la seconda dopo il primo disegno; aprendo la parete si poteva
-      // vedere un nome cambiare grandezza (o passare da accorciato a intero) un istante dopo.
-      // Con l'assegnazione qui il codice fa esattamente quello che il commento sotto dichiara:
-      // «una volta sola».
-      fontRimisurati.current = true
-      document.fonts.ready.then(() => {
-        if (!vivo) return
-        if (passoNome > 0) setScalino({ nome: nomeStudio, passo: 0 })
-        else misura()
-      })
-    }
+    // I3 — qui NON si prenota più nulla su `document.fonts.ready`: l'attesa vive nel suo
+    // effetto dedicato (v. `fontsPronte` sopra) e la ri-misura è il ramo in testa a questo
+    // stesso effetto. Prenotare qui significava legare una promessa lunga quanto il
+    // caricamento di un font al `vivo` di un effetto che la propria misura fa rilanciare
+    // subito dopo: la promessa sopravviveva, il suo effetto no.
     let ro: ResizeObserver | undefined
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => {
@@ -430,7 +454,7 @@ export function Cassetta(props: {
       vivo = false
       ro?.disconnect()
     }
-  }, [nomeStudio, passoNome, scalaNome.length])
+  }, [nomeStudio, passoNome, scalaNome.length, fontsPronte])
 
   // H2b — il paziente riusa 1:1 lo STESSO meccanismo del clinico (`is-troncato` misurato in JS
   // via scrollHeight/clientHeight, nessuna nuova soglia): quando il clinico occupa 2 righe il

@@ -39,7 +39,7 @@
 // pager) il piede resta un fratello fuori da `.corpo`,
 // come sempre. Nella forma «solo parete» il piede non c'è MAI (mai c'era: la pagina /cassette
 // che questo ramo rispecchia non ha un «nuovo lavoro» — v. `PareteClient.tsx`).
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pila as PilaCard } from '@/components/ds/Pila'
 import { TastoPiu } from '@/components/ds/TastoPiu'
@@ -104,6 +104,16 @@ export function HomeV3(props: {
   // L'hook vive QUI (non dentro StrisciaStato) perché è questo componente a decidere anche il
   // resto — il div `.striscia-slot` col suo `marginTop` fisso, che deve sparire CON la striscia,
   // non restare un contenitore vuoto orfano.
+  // Review finale whole-branch (I4) — il contenitore che scorre DAVVERO nella forma «solo
+  // parete»: `.ua-stanza-parete-scroll` (`flex:1; min-height:0; overflow-y:auto`), non la
+  // finestra — `.ua-home` è inchiodata a `min-height: 100dvh`, il documento non scorre quasi
+  // mai. Senza questo ref `useDragRiordino` riceveva `null` e ripiegava sull'adattatore della
+  // finestra: l'auto-scroll del trascinamento chiamava `window.scrollBy` (che non muove nulla)
+  // e calcolava la fascia alta da 0 invece che dal bordo del contenitore. Il pannello destro del
+  // pager fa già così da sempre (v. `StanzaParete` in StanzePager.tsx): qui si allinea la forma
+  // gemella, che era rimasta indietro.
+  const scrollPareteRef = useRef<HTMLDivElement>(null)
+
   const raccontoGiaVisto = useRaccontoVisto(segnale.eventoId)
   const nascondiStriscia = segnale.silenzio || raccontoGiaVisto
 
@@ -335,10 +345,12 @@ export function HomeV3(props: {
               /cassette che questa forma rispecchia non ha un «nuovo lavoro» — un TastoPiù qui
               la farebbe divergere dalla superficie reale. Stesso contenitore scrollabile
               (`.ua-stanza-parete-scroll`, ds-v3.css) della stanza omonima dentro il pager: la
-              legge «no-scroll» (§3.3) decade qui per dichiarazione esplicita di spec §3.1. */}
+              legge «no-scroll» (§3.3) decade qui per dichiarazione esplicita di spec §3.1 — e,
+              come là, è QUESTO contenitore (non la finestra) a essere passato al gesto di
+              riordino via `scrollerRef` (I4, v. commento su `scrollPareteRef` sopra). */}
           <div className="corpo">
-            <div className="ua-stanza-parete-scroll">
-              <PareteClient parete={parete} attivo />
+            <div className="ua-stanza-parete-scroll" ref={scrollPareteRef}>
+              <PareteClient parete={parete} attivo scrollerRef={scrollPareteRef} />
             </div>
           </div>
         </>
