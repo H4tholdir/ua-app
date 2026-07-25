@@ -26,6 +26,7 @@ import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { StrisciaStato } from './StrisciaStato'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
+import { useRaccontoVisto } from '@/hooks/useRaccontoVisto'
 import { Avatar } from './Avatar'
 import { DialogConferma } from './DialogConferma'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
@@ -215,6 +216,12 @@ export function NavDesk(props: {
   const router = useRouter()
   const [dialogEsciAperto, setDialogEsciAperto] = useState(false)
 
+  // Task 16b, punto 5/6 (D3 §3.4) — stesso `segnale` di HomeV3 (montano insieme, il CSS decide
+  // chi si vede — v. dashboard/page.tsx): stesso trattamento, silenzio dal server o racconto già
+  // visto nascondono la striscia allo stesso modo.
+  const raccontoGiaVisto = useRaccontoVisto(segnale.eventoId)
+  const nascondiStriscia = segnale.silenzio || raccontoGiaVisto
+
   // Pattern IDENTICO a TuttoIlResto.tsx (Task 8, O1i-1) / UserProfileSheet —
   // stesso import `getBrowserClient`, stessa sequenza signOut → push('/login').
   // Niente `suona()`/`vibra()` qui: il feedback del tap è già di TastoPrimario
@@ -250,9 +257,19 @@ export function NavDesk(props: {
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
-          {segnale.testo}
-        </StrisciaStato>
+        {!nascondiStriscia && (
+          <StrisciaStato
+            attenzione={segnale.attenzione}
+            forte={segnale.forte}
+            tono={segnale.tono}
+            azione={segnale.azione}
+            altri={segnale.altri}
+            eventoId={segnale.eventoId}
+            onAzione={segnale.intro ? segnaPareteIntroVista : undefined}
+          >
+            {segnale.testo}
+          </StrisciaStato>
+        )}
       </div>
 
       {identita && (

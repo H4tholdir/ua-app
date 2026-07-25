@@ -52,6 +52,7 @@ import { StanzePager } from './StanzePager'
 import { LinguettaCassette } from './LinguettaCassette'
 import { vistaHome } from '@/lib/preferenze/home'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
+import { useRaccontoVisto } from '@/hooks/useRaccontoVisto'
 import type { PileHome } from '@/lib/dashboard/pile-home'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
@@ -97,6 +98,15 @@ export function HomeV3(props: {
     initSuoni()
   }, [])
 
+  // Task 16b, punto 5/6 (D3 §3.4) — «silenzio» copre DUE cause distinte con lo stesso effetto
+  // (lo slot non renderizza affatto): il server non ha nulla da dire (`segnale.silenzio`) o il
+  // client ha già mostrato questo racconto (`useRaccontoVisto`, localStorage, dedup punto 6).
+  // L'hook vive QUI (non dentro StrisciaStato) perché è questo componente a decidere anche il
+  // resto — il div `.striscia-slot` col suo `marginTop` fisso, che deve sparire CON la striscia,
+  // non restare un contenitore vuoto orfano.
+  const raccontoGiaVisto = useRaccontoVisto(segnale.eventoId)
+  const nascondiStriscia = segnale.silenzio || raccontoGiaVisto
+
   const bancoLibero = ORDINE.every(({ pila }) => pile.liste[pila].length === 0)
 
   // La forma della home in QUESTA visita. La stessa funzione la calcola in
@@ -126,11 +136,21 @@ export function HomeV3(props: {
         <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
       </div>
 
-      <div className="striscia-slot" style={{ marginTop: 16 }}>
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
-          {segnale.testo}
-        </StrisciaStato>
-      </div>
+      {!nascondiStriscia && (
+        <div className="striscia-slot" style={{ marginTop: 16 }}>
+          <StrisciaStato
+            attenzione={segnale.attenzione}
+            forte={segnale.forte}
+            tono={segnale.tono}
+            azione={segnale.azione}
+            altri={segnale.altri}
+            eventoId={segnale.eventoId}
+            onAzione={segnale.intro ? segnaPareteIntroVista : undefined}
+          >
+            {segnale.testo}
+          </StrisciaStato>
+        </div>
+      )}
 
       {bancoLibero ? (
         <div className="pile" style={{ alignItems: 'center', textAlign: 'center', gap: 14 }}>
