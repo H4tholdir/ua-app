@@ -25,7 +25,8 @@ inoltrarli**.
   ⚠️ **Ogni `next build` invalida i chunk del server acceso**: dopo aver ricompilato, RIAVVIALO,
   altrimenti serve file che non esistono più e le pagine arrivano **senza CSS** — sembrano giuste
   perché ogni stile inline ha un fallback, ma **ogni misura fatta in quello stato è falsa**.
-  Guardia pronta: `scripts/tmp/guardia-stili-3020.mjs`.
+  Guardia pronta: `scripts/guardia-stili-collaudo.mjs` (promossa il 26/07 da `scripts/tmp/`, dove
+  sarebbe stata cancellata dalla pulizia di fine ondata insieme ai banchi di misura).
   Login collaudo: `e2e-titolare@ua-test.local` / `TestE2E!2026`.
   ⚠️ **Il comando di riavvio «che sopravvive» scritto nel ledger del 25/07 NON funziona su questo
   Mac**: usa `setsid`, che è un comando Linux e **non esiste su macOS** (`which setsid` → *not
