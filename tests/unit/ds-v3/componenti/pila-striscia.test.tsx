@@ -322,6 +322,35 @@ describe('StrisciaStato — forma F2 «card con voce» (punto 1)', () => {
     expect(screen.getByRole('status').style.background).toBe('var(--green-tint)')
   })
 
+  // Adeguamento post-consegna (controller, verificato sul mockup ratificato
+  // docs/design/mockups/2026-07-24-striscia-home.html:132/219 — s3 «Racconto quieto» è
+  // `.s-blue`, non verde). Discriminante: STESSO usato per il whole-card-tap (eventoId + azione,
+  // né attenzione né tono ambra) — mai inferito da "non è un allarme e ha un'azione".
+  it('il racconto (eventoId) rende blu con stella ✦ — non verde, non il ✓ del default quieto', () => {
+    render(
+      <StrisciaStato azione={{ etichetta: 'Guarda ›', href: '/dashboard?stanza=parete' }} eventoId="lib-c1-x">
+        UÀ ha liberato C12
+      </StrisciaStato>
+    )
+    expect(screen.getByRole('status').style.background).toBe('var(--blue-tint)')
+    const icona = screen.getByText('✦')
+    expect(icona.style.background).toBe('var(--elv)')
+    expect(icona.style.color).toBe('var(--blue)')
+    expect(screen.queryByText('✓')).toBeNull()
+  })
+
+  it('gli altri segnali quieti (senza eventoId) restano verdi col ✓ — sPareteIntro/s8 non ratificati blu', () => {
+    // sPareteIntro-shaped: attenzione false, azione presente, NESSUN eventoId — resta verde
+    // (Task 15, «nessun tono nuovo», v. il commento sul candidato in striscia.ts).
+    render(
+      <StrisciaStato azione={{ etichetta: 'colorale e mettile in ordine ›', href: '/cassette' }}>
+        UÀ ha creato 2 cassette dai tuoi lavori —
+      </StrisciaStato>
+    )
+    expect(screen.getByRole('status').style.background).toBe('var(--green-tint)')
+    expect(screen.getByText('✓')).toBeInTheDocument()
+  })
+
   it('il disco icona è la superficie elevata (--elv) — su F2 NON è più la tinta', () => {
     render(
       <StrisciaStato attenzione azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>

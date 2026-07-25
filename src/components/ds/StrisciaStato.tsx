@@ -3,14 +3,17 @@
 // DS v3 §5.24 — StrisciaStato (home): riga di stato con voce, sotto le pile.
 // Task 16b (forma F2 «card con voce», ratifica 23-24/07/2026 —
 // docs/design/decisions/2026-07-24-striscia-home.md §Ratifiche 1): non è più la riga F1 nuda di
-// prima — vive dentro una card tinta di stato (rossa/ambra/verde), valori VERBATIM dal mockup
-// ratificato docs/design/mockups/2026-07-24-striscia-home.html (.f2/.ico/.txt/.cta, righe
-// 149-160). Variante default = rassicurazione (check verde: "va tutto bene, guarda").
+// prima — vive dentro una card tinta di stato (rossa/ambra/blu/verde), valori VERBATIM dal
+// mockup ratificato docs/design/mockups/2026-07-24-striscia-home.html (.f2/.ico/.txt/.cta,
+// righe 149-160). Variante default = rassicurazione (check verde: "va tutto bene, guarda").
 // Variante `attenzione` = chiede un'azione: icona famiglia rossa al posto del check.
 // Il RACCONTO (segnale con `eventoId`, v. src/lib/dashboard/striscia.ts — presente SOLO su
-// sRaccontoLiberazione) è l'UNICA variante tappabile su tutta la card, deep-link diretto con un
-// chevron come affordance (Task 16b punto 4, mockup `.taprow`/`.chev`); ogni altro stato resta
-// come sempre: region viva e educata (`role="status"` `aria-live="polite"`), MAI un elemento
+// sRaccontoLiberazione) è l'UNICA variante blu (stella `✦`, verificato sul mockup dal
+// controller: righe 132/219 — stato s3 «Racconto quieto», `.s-blue`) ed è tappabile su tutta la
+// card, deep-link diretto con un chevron come affordance (Task 16b punto 4, mockup
+// `.taprow`/`.chev`); ogni altro segnale quieto (sPareteIntro, s8) resta verde — NON ha mai un
+// `eventoId`, quindi non prende né il blu né il whole-card-tap. Ogni altro stato resta come
+// sempre: region viva e educata (`role="status"` `aria-live="polite"`), MAI un elemento
 // interattivo di per sé, con la sola CTA `azione` — un `<Link>` separato dal blocco di testo
 // troncabile. Al tap: `vibra('selection')`, MAI `suona()` (il suono è riservato ai tasti fisici
 // che fanno qualcosa).
@@ -85,8 +88,9 @@ export function uscitaStriscia(reduced: boolean) {
  * Contenitore `role="status" aria-live="polite"`, card tinta di stato (`background` tint,
  * `border-radius: raggio.riga`, `padding: 12px 14px`, `border: 1px solid var(--line)` — dark
  * resta FLAT, nessuna ombra). Dentro: icona Ø26 (check verde tint / triangolo `!` rosso tint in
- * `attenzione` / clessidra ambra nel trial — il disco è sempre la superficie `--elv`, mai più la
- * tinta) + testo `flex: 1 1 auto; minWidth: 0` 14.5/500 `--muted` su una riga con ellissi:
+ * `attenzione` / clessidra ambra nel trial / stella `✦` blu nel racconto con `eventoId` — il
+ * disco è sempre la superficie `--elv`, mai più la tinta) + testo `flex: 1 1 auto; minWidth: 0`
+ * 14.5/500 `--muted` su una riga con ellissi:
  * `forte` (opzionale) apre il testo in grassetto `--ink` 700, poi `children`. Se il chiamante
  * passa `altri` compare un nodo `flex: none` subito dopo (Task 16b punto 2 — mai dentro il testo
  * troncabile). Se il chiamante passa `azione` compare una CTA `<Link>` `flex-none` 14.5/800
@@ -124,13 +128,21 @@ export function StrisciaStato(props: {
     onAzione?.()
   }
 
-  // O1i — a `attenzione` vince sempre il rosso `!` (allarme, anche se il segnale è di origine
-  // trial negli ultimi 3 giorni); altrimenti `tono` ambra è lo stato informativo del trial (⏳),
-  // il verde `✓` resta il default sereno. `background` è la tinta della CARD F2 (era quella
-  // dell'icona in F1).
-  const background = attenzione ? 'var(--red-tint)' : tono === 'ambra' ? 'var(--amber-tint)' : 'var(--green-tint)'
-  const colore = attenzione ? 'var(--red)' : tono === 'ambra' ? 'var(--amber)' : 'var(--green)'
-  const glifo = attenzione ? '!' : tono === 'ambra' ? '⏳' : '✓'
+  // Adeguamento post-consegna (verificato dal controller sul mockup ratificato,
+  // docs/design/mockups/2026-07-24-striscia-home.html:132/219 — stato s3 «Racconto quieto»:
+  // `cls:'s-blue'`, `glyph:'✦'`, `.s-blue{--st:var(--blue);--st-tint:var(--blue-tint)}`):
+  // il RACCONTO tappabile (eventoId + azione, v. `tappabileIntera` sotto) rende blu con stella
+  // `✦`, non verde. Il discriminante è lo STESSO usato per il whole-card-tap — mai un
+  // "attenzione:false e ha un'azione" inferito: `sPareteIntro` (Task 15, «nessun tono nuovo» —
+  // v. il suo commento in striscia.ts) e `s8` (DdC del giorno) restano verdi, non hanno mai un
+  // `eventoId`. `attenzione` vince sempre il rosso `!` (allarme, anche se il segnale è di
+  // origine trial negli ultimi 3 giorni); poi `tono` ambra è lo stato informativo del trial
+  // (⏳); poi il racconto blu (✦); il verde `✓` resta il default sereno per tutto il resto.
+  // `background` è la tinta della CARD F2 (era quella dell'icona in F1).
+  const eBlu = !!eventoId && !!azione && !attenzione && tono !== 'ambra'
+  const background = attenzione ? 'var(--red-tint)' : tono === 'ambra' ? 'var(--amber-tint)' : eBlu ? 'var(--blue-tint)' : 'var(--green-tint)'
+  const colore = attenzione ? 'var(--red)' : tono === 'ambra' ? 'var(--amber)' : eBlu ? 'var(--blue)' : 'var(--green)'
+  const glifo = attenzione ? '!' : tono === 'ambra' ? '⏳' : eBlu ? '✦' : '✓'
 
   const icona = (
     <span
@@ -187,7 +199,9 @@ export function StrisciaStato(props: {
 
   // Task 16b punto 4 — SOLO il racconto (eventoId presente + una destinazione reale) è tappabile
   // su tutta la card: allarmi e trial restano com'erano, la CTA sola è l'unico interattivo.
-  const tappabileIntera = !!eventoId && !!azione && !attenzione && tono !== 'ambra'
+  // STESSO discriminante `eBlu` del colore sopra (mai due condizioni scritte due volte che
+  // potrebbero divergere — "tappabile" e "blu" sono la stessa domanda: è un racconto?).
+  const tappabileIntera = eBlu
 
   const { initial, animate } = ingressoStriscia(carattereStriscia(attenzione, tono), reduced)
   const exit = uscitaStriscia(reduced)
