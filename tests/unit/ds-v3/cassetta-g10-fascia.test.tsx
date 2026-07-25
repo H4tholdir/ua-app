@@ -40,8 +40,11 @@ describe('H2 — .ds-cassetta: sagoma UNICA per costruzione (height E min-height
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/padding: 0;/)
-    expect(blocco![0]).toMatch(/height: 132px;/)
-    expect(blocco![0]).toMatch(/min-height: 132px;/)
+    // Verifica finale d'ondata (26/07, difetto A2): il numero non è più scritto qui né nel foglio
+    // due volte — `height` e `min-height` referenziano entrambe `--altezza-cassetta`, la stessa
+    // variabile che legge il tile «+ Nuova cassetta» (v. la guardia dedicata in fondo al file).
+    expect(blocco![0]).toMatch(/height: var\(--altezza-cassetta\);/)
+    expect(blocco![0]).toMatch(/min-height: var\(--altezza-cassetta\);/)
     // il tile resta un flex-column ancorato in basso — invariato
     expect(blocco![0]).toMatch(/flex-direction: column;/)
     expect(blocco![0]).toMatch(/justify-content: flex-end;/)
@@ -773,16 +776,78 @@ describe('Re-re-review FIX-L — width:min(100%,96px): KEPT dall\'opzione B (H2 
   })
 })
 
-describe('H2 — guardia --track: la sagoma unica (132px, invariata) lascia un margine ampio sotto --track (220px)', () => {
-  // Il vecchio worst-case (.is-nome-lungo, 142px) non esiste più: c'è UN solo caso, sempre
-  // 132px, perché la fascia ha ora un'altezza fissa che riserva sempre lo spazio del caso
-  // peggiore (v. commento su .ds-cassetta-fascia in ds-v3.css). Margine invariato rispetto al
-  // caso comune pre-H2 (era già 88px per il caso senza is-shrink).
-  it('132px (unico caso, piena o vuota) è ben sotto --track 220px (margine 88px)', () => {
-    const trackBase = 44 * 5 // --passo-maglia 44 * --track: calc(... * 5), v. parete-fluida.test.ts
-    const tile = 132 // .ds-cassetta { height: 132px; min-height: 132px } — v. sopra, sempre lo stesso valore
-    expect(trackBase).toBe(220)
-    expect(tile).toBeLessThan(trackBase)
-    expect(trackBase - tile).toBe(88)
+describe('H2 — guardia --track: la sagoma unica sta dentro la riga di maglia, e il tile «+ Nuova cassetta» le è alto uguale', () => {
+  // Il vecchio worst-case (.is-nome-lungo, 142px) non esiste più: c'è UN solo caso, sempre lo
+  // stesso, perché la fascia ha ora un'altezza fissa (v. commento su .ds-cassetta-fascia in
+  // ds-v3.css). Margine invariato rispetto al caso comune pre-H2 (era già 88px senza is-shrink).
+  //
+  // ⚠️ Verifica finale d'ondata (26/07, difetto A6) — QUESTA GUARDIA NON POTEVA FALLIRE. Prima
+  // dichiarava `const trackBase = 44 * 5` e `const tile = 132` come letterali DIGITATI NEL TEST e
+  // poi faceva aritmetica su quei letterali: non leggeva il foglio nemmeno una volta. Portare
+  // `height` a 240px in ds-v3.css la lasciava verde mentre il tile sfondava la propria riga di
+  // maglia. Adesso i tre numeri arrivano tutti da `ds-v3.css` — se là cambiano, qui si vede.
+  // I commenti del foglio CITANO valori vecchi e valori di altri elementi (è la loro funzione):
+  // qualunque lettura di numeri veri va fatta su una copia SENZA commenti, o si legge la storia
+  // al posto del codice.
+  const nudo = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ')
+  /** Il blocco di dichiarazioni della regola `[data-ds="v3"] <selettore> { … }`, senza commenti. */
+  const regola = (selettore: string): string => {
+    const m = nudo.match(new RegExp(`\\[data-ds="v3"\\] ${selettore.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^{}]*)\\}`))
+    expect(m, `regola \`${selettore}\` non trovata in ds-v3.css`).toBeTruthy()
+    return m![1]
+  }
+  /** Il valore di una custom property, cercata dentro un blocco preciso (mai a tappeto sul foglio:
+   *  `--passo-maglia`, per esempio, è dichiarata due volte — base e fluida nel perimetro shell). */
+  const variabileIn = (blocco: string, nome: string, dove: string): string => {
+    const v = blocco.match(new RegExp(`--${nome}: *([^;]+);`))?.[1]?.trim()
+    expect(v, `--${nome} non è dichiarata in ${dove}`).toBeDefined()
+    return v!
+  }
+  /** Una custom property che il foglio deve dichiarare UNA volta sola, ovunque essa viva. */
+  const variabileUnica = (nome: string): string => {
+    const trovate = [...nudo.matchAll(new RegExp(`--${nome}: *([^;]+);`, 'g'))].map((m) => m[1].trim())
+    expect(trovate.length,
+      `--${nome} deve essere dichiarata esattamente una volta in ds-v3.css, trovate ${trovate.length} ` +
+      `(${trovate.join(' | ')}): due dichiarazioni sono di nuovo due numeri da tenere allineati a mano`)
+      .toBe(1)
+    return trovate[0]
+  }
+  const px = (v: string): number => {
+    const n = parseFloat(v)
+    expect(Number.isFinite(n), `valore non in px: ${v}`).toBe(true)
+    return n
+  }
+
+  it('l\'altezza del tile arriva dal foglio e sta sotto --track risolto alla scala base', () => {
+    const altezzaTile = px(variabileUnica('altezza-cassetta'))
+    const parete = regola('.ds-parete')
+    const passoBase = px(variabileIn(parete, 'passo-maglia', '.ds-parete'))
+    // --track è dichiarato in funzione del passo: si legge la FORMULA, non un numero
+    const formulaTrack = variabileIn(parete, 'track', '.ds-parete')
+    const moltiplicatore = formulaTrack.match(/calc\(var\(--passo-maglia\) \* (\d+(?:\.\d+)?)\)/)?.[1]
+    expect(moltiplicatore,
+      `--track non è più agganciato a --passo-maglia (vale «${formulaTrack}»): se diventa un ` +
+      'letterale, la garanzia gancio≡filo smette di generalizzare — v. parete-gancio-cornice.test.ts')
+      .toBeDefined()
+    const track = passoBase * Number(moltiplicatore)
+    expect(altezzaTile,
+      `il tile (${altezzaTile}px) non entra nella riga di maglia (--track = ${track}px): sborderebbe ` +
+      'sulla fila sotto, clippando i gancetti').toBeLessThan(track)
+  })
+
+  it('difetto A2 — cassetta e tile «+ Nuova cassetta» leggono LA STESSA altezza, nessuno dei due la ridigita', () => {
+    // blocchi letti SENZA commenti: la prosa di `.ds-cassetta` cita `height: 72px` (della fascia)
+    // e il vecchio 132 — su una copia coi commenti la guardia negativa qui sotto leggerebbe quelli
+    const cassetta = regola('.ds-cassetta')
+    const tray = regola('.ds-tray-nuova')
+    // entrambi devono REFERENZIARE la variabile: un letterale qui è esattamente il difetto A2
+    // (cassetta a 132, tile fermo a 104 → il tratteggiato chiudeva 28px più su, e nessuno
+    // stirava l'uno sull'altro perché .ds-parete-grid è align-items: start)
+    expect(cassetta).toMatch(/min-height: var\(--altezza-cassetta\);/)
+    expect(tray).toMatch(/min-height: var\(--altezza-cassetta\);/)
+    for (const [nome, blocco] of [['.ds-cassetta', cassetta], ['.ds-tray-nuova', tray]] as const) {
+      expect(blocco, `${nome} ridichiara un'altezza in px invece di leggere --altezza-cassetta: ` +
+        'i due si possono desincronizzare di nuovo').not.toMatch(/(?:^|[;{] ?)(?:min-|max-)?height: *[\d.]/)
+    }
   })
 })

@@ -211,14 +211,38 @@ describe('ds-v3.css — i due gradini di corpo del clinico', () => {
     expect(corpi.sort()).toEqual([9, 9.5])
   })
 
-  it('il budget resta 2 righe esatte a ogni gradino, perché max-height è in em (segue il corpo) e line-height è un numero puro', () => {
+  // ⚠️ Verifica finale d'ondata (26/07, difetto A6) — il cuore di questo test era una TAUTOLOGIA:
+  // `Math.round((2 * 1.16 * px) / (1.16 * px))` vale 2 per QUALSIASI px e per qualsiasi numero al
+  // posto di 1.16 — l'1.16 si semplifica. Non guardava il foglio: non poteva diventare rossa.
+  // L'invariante VERA che il commento prometteva è un ACCOPPIAMENTO fra due dichiarazioni: il
+  // numero dentro `max-height: calc(N * Xem)` deve essere lo STESSO `line-height` dichiarato sulla
+  // regola, e N deve valere 2. È il difetto che può succedere davvero — qualcuno ritocca il
+  // `line-height` e si dimentica del `max-height`: da quel momento il budget non è più 2 righe
+  // esatte, il taglio cade a metà glifo e `is-troncato` misura su un confine sbagliato.
+  it('il budget è 2 righe ESATTE perché max-height e line-height sono lo stesso numero, letto dal foglio', () => {
     const base = norm.match(/\[data-ds="v3"\] \.ds-cassetta-dent \{[^}]*\}/)
-    expect(base![0]).toMatch(/max-height: calc\(2 \* 1\.16em\);/)
-    for (const px of [10, 9.5, 9]) {
-      expect(Math.round((2 * 1.16 * px) / (1.16 * px))).toBe(2)
-    }
-    // valori RISOLTI misurati in Chromium reale (nomi-lunghi-v6-*.json): 23,2 / 22,04 / 20,88px
-    expect([10, 9.5, 9].map((px) => +(2 * 1.16 * px).toFixed(2))).toEqual([23.2, 22.04, 20.88])
+    expect(base, 'blocco base .ds-cassetta-dent non trovato').toBeTruthy()
+
+    const lineHeight = base![0].match(/(?:^|[;{] ?)line-height: *([\d.]+) *;/)?.[1]
+    const maxHeight = base![0].match(/max-height: calc\(([\d.]+) \* ([\d.]+)em\);/)
+    expect(lineHeight, '`line-height` non trovato sulla regola base del clinico').toBeDefined()
+    expect(maxHeight, '`max-height: calc(N * Xem)` non trovato sulla regola base del clinico').toBeTruthy()
+
+    const [, righe, unita] = maxHeight!
+    expect(Number(righe), 'il budget del clinico non è più di 2 righe').toBe(2)
+    expect(unita,
+      `max-height usa ${unita}em ma il line-height dichiarato è ${lineHeight}: i due si sono ` +
+      'staccati, il budget non è più un numero intero di righe e il taglio può cadere a metà glifo')
+      .toBe(lineHeight)
+    // `line-height` numero puro (non px, non %) e `max-height` in em: è ciò che fa scalare il
+    // budget da sé sui gradini di corpo, senza una riga in più per gradino
+    expect(base![0], 'line-height deve restare un numero puro, o non scalerebbe col corpo')
+      .not.toMatch(/line-height: *[\d.]+(?:px|%|em|rem)/)
+
+    // valori RISOLTI misurati in Chromium reale (nomi-lunghi-v6-*.json): 23,2 / 22,04 / 20,88px —
+    // ricalcolati QUI dai numeri appena letti dal foglio, non ridigitati
+    const corpi = [10, 9.5, 9]
+    expect(corpi.map((px) => +(Number(righe) * Number(unita) * px).toFixed(2))).toEqual([23.2, 22.04, 20.88])
   })
 
   it('i gradini toccano SOLO il corpo: nessuno ridichiara clip-path, mask-image o max-height (che azzererebbe in silenzio il lavoro di H2d)', () => {

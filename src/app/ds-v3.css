@@ -286,6 +286,20 @@
    migliorarla, non derivarla da token"). Il colore custom (hex) resta inline nel componente
    (dato per-istanza, non esprimibile come classe statica). Reduced-motion: già globale sopra
    (riga ~185, `animation-duration`/`transition-duration` a 0.15s) — nessuna regola dedicata qui. */
+/* Verifica finale d'ondata (26/07, difetto A2) — L'ALTEZZA DEL POSTO SUL MURO, UNA SOLA.
+   La cassetta (`.ds-cassetta`, sotto) e il tile «+ Nuova cassetta» (`.ds-tray-nuova`, in fondo al
+   file) stanno FIANCO A FIANCO nella stessa riga di `.ds-parete-grid`, che è `align-items: start`
+   — quindi nessuno dei due viene stirato dall'altro: se i due numeri divergono, il tratteggiato
+   finisce più corto delle cassette accanto, a ogni viewport e in entrambi i temi. Era già
+   successo: H2 ha portato la cassetta a 132px e il tile è rimasto al 104px con cui era stato
+   scritto (lo stesso 104 che portava anche il defunto `.ds-tile-tutte` — segno che non era un
+   valore SCELTO per il tile, ma copiato da un'altra sagoma). Da qui in poi il numero vive UNA
+   volta sola: chi cambia la sagoma cambia questa riga e i due si muovono insieme per costruzione.
+   Presidiata da `tests/unit/ds-v3/cassetta-g10-fascia.test.tsx` (legge il valore dal foglio e
+   pretende che entrambe le regole lo referenzino, invece di ridigitarlo). */
+[data-ds="v3"] {
+  --altezza-cassetta: 132px;
+}
 [data-ds="v3"] .ds-cassetta {
   position: relative;
   display: flex;
@@ -317,8 +331,8 @@
      solo un floor), piena o vuota, nomi corti o estremi — misure reali (real-render Playwright,
      matrice corto/medio/lungo/estremo × occupata/libera) in h2-impl-report.md. */
   padding: 0;
-  height: 132px;
-  min-height: 132px;
+  height: var(--altezza-cassetta);
+  min-height: var(--altezza-cassetta);
   min-width: 44px;
   cursor: pointer;
   box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
@@ -1132,8 +1146,15 @@
    come `var(--card)` pieno: coprirebbe la maglia anche fuori dal tile se il bordo non fosse
    preciso), bordo e testo più marcati. Contrasto testo/scrim verificato WCAG AA (>4.5:1) in
    entrambi i temi — v. fixB-report.md per i calcoli. PROPOSTA per il ri-collaudo di Francesco. */
+/* Verifica finale d'ondata (26/07, difetto A2) — il tile tratteggiato è alto ESATTAMENTE come una
+   cassetta: legge `--altezza-cassetta` (dichiarata sopra `.ds-cassetta`), non un numero proprio.
+   Resta `min-height` e non `height`: al tile serve un pavimento, non un soffitto — se un domani il
+   suo contenuto crescesse (una riga di testo in più) deve poter crescere, mentre la cassetta ha una
+   sagoma FISSA per costruzione (height E min-height, v. H2). Prima di questa riga il valore era
+   104px, 28px meno della cassetta accanto: `.ds-parete-grid` è `align-items: start`, quindi niente
+   lo stirava e il tratteggiato chiudeva 28px sopra il fondo delle cassette della sua stessa riga. */
 [data-ds="v3"] .ds-tray-nuova {
-  border: 2.5px dashed #9C9080; border-radius: 12px; min-height: 104px;
+  border: 2.5px dashed #9C9080; border-radius: 12px; min-height: var(--altezza-cassetta);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   color: #4A4030; background: rgba(255, 254, 250, .68); cursor: pointer; font-family: var(--font-v3);
 }

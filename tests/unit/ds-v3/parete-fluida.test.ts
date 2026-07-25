@@ -192,9 +192,13 @@ describe('parete /cassette — rete disegnata «griglia fissa + snap» (ratifica
 // PROPOSTA per il ri-collaudo di Francesco — v. ds-v3.css per il ragionamento.
 describe('parete /cassette — tile «+ Nuova cassetta» leggibile sopra la maglia (QA T15, fix 3)', () => {
   it('scrim velato (non trasparente, non opaco) + tratteggio e testo più marcati, entrambi i temi', () => {
+    // Verifica finale d'ondata (26/07, difetto A2): il `104px` letterale è sparito — l'altezza del
+    // tile è la STESSA della cassetta accanto e arriva da `--altezza-cassetta` (v. la guardia
+    // dedicata in cassetta-g10-fascia.test.tsx, che confronta i due riferimenti col valore vero).
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-tray-nuova \{ border: 2\.5px dashed #9C9080; border-radius: 12px; min-height: 104px;/
+      /\[data-ds="v3"\] \.ds-tray-nuova \{ border: 2\.5px dashed #9C9080; border-radius: 12px; min-height: var\(--altezza-cassetta\);/
     )
+    expect(norm).not.toMatch(/\.ds-tray-nuova \{[^}]*min-height: 104px/)
     expect(norm).toMatch(/\[data-ds="v3"\] \.ds-tray-nuova \{[^}]*color: #4A4030; background: rgba\(255, 254, 250, \.68\);/)
     expect(norm).toMatch(
       /\[data-theme="dark"\] \[data-ds="v3"\] \.ds-tray-nuova \{ border-color: #756A5C; color: #EDE6D8; background: rgba\(33, 29, 24, \.62\); \}/
