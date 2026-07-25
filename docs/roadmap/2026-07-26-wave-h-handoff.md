@@ -27,6 +27,13 @@ inoltrarli**.
   perché ogni stile inline ha un fallback, ma **ogni misura fatta in quello stato è falsa**.
   Guardia pronta: `scripts/tmp/guardia-stili-3020.mjs`.
   Login collaudo: `e2e-titolare@ua-test.local` / `TestE2E!2026`.
+  ⚠️ **Il comando di riavvio «che sopravvive» scritto nel ledger del 25/07 NON funziona su questo
+  Mac**: usa `setsid`, che è un comando Linux e **non esiste su macOS** (`which setsid` → *not
+  found*, verificato il 26/07 — il comando falliva con `command not found`, quindi il riavvio
+  dichiarato «verificato, pid sganciato» non può essere avvenuto per quella via). Il server visto
+  vivo a inizio sessione era quello lanciato normalmente. Per un processo che sopravvive alla fine
+  sessione usare `nohup … & disown` (senza `setsid`), oppure riavviarlo a mano a ogni sessione:
+  **verificalo SEMPRE all'avvio** con `curl -o /dev/null -w "%{http_code}" http://127.0.0.1:3020/`.
 - **Verbale QA unico (È LEGGE):** `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`
   — tutti i collaudi e le ratifiche, compresi i due APPEND del 26/07.
 - **Ledger:** `<worktree>/.superpowers/sdd/progress.md` (gitignorato). La **lista MINOR per la
