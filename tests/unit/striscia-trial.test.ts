@@ -15,9 +15,15 @@ describe('sTrial (O1i)', () => {
   it('rosso negli ultimi 3 giorni', () => {
     expect(scegliSegnale('titolare', { ...sereno, trial: { giorniRimasti: 2 } })).toMatchObject({ testo: 'finisce dopodomani', attenzione: true })
   })
-  it('gli allarmi operativi vincono sul trial', () => {
+  // D3 (Task 16, spec §3.4): questo test verificava che un ritardo «vincesse» sul trial sotto
+  // la vecchia gerarchia a eliminazione singola. Il trial ≤3gg ora ESCALA a livello 1 (riserva
+  // UX 5b): con un allarme operativo acceso insieme, i due AGGREGANO invece di eliminarsi — mai
+  // un allarme nascosto dietro l'altro (v. anche describe 'striscia D3' in striscia.test.ts).
+  it('un ritardo + trial ≤3gg aggregano insieme (D3 §3.4) — non si eliminano più a vicenda', () => {
     const conRitardo = { ...sereno, trial: { giorniRimasti: 2 }, pile: { ...sereno.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } }
-    expect(scegliSegnale('titolare', conRitardo).forte).toBe('n.144')
+    const s = scegliSegnale('titolare', conRitardo)
+    expect(s.forte).toBe('2 scadenze oggi') // s2 (ritardo) + trial escalato — 2 candidati accesi, aggregati
+    expect(s.azione).toEqual({ etichetta: 'Vedi ›', href: '/lavori' })
   })
   it('il trial vince sui sereni', () => {
     const s = scegliSegnale('titolare', { ...sereno, ddcOggi: 3, trial: { giorniRimasti: 12 } })
@@ -29,7 +35,9 @@ describe('sTrial (O1i)', () => {
     expect(s.intro).toBeUndefined()
   })
   it('tecnico non vede il segnale trial', () => {
-    expect(scegliSegnale('tecnico', { ...sereno, trial: { giorniRimasti: 2 } }).forte).toBe('Tutto a posto:')
+    // D3 (Task 16): il vecchio s9 «Tutto a posto:» è morto — se il tecnico non vede il trial e
+    // non c'è altro, ora cade sul silenzio, non su una copy sostitutiva.
+    expect(scegliSegnale('tecnico', { ...sereno, trial: { giorniRimasti: 2 } }).silenzio).toBe(true)
   })
 })
 

@@ -163,14 +163,17 @@ describe('getPerimetroHome / getPileHome — fail-closed per il tecnico senza an
     expect(pile.liste).toEqual({ rossa: [], ambra: [], viola: [], blu: [] })
   })
 
-  it('pile vuote da fail-closed → la striscia del tecnico cade sul segnale 9 sereno ("nessuna consegna oggi")', async () => {
+  // D3 (Task 16, spec §3.4): il vecchio segnale 9 «Tutto a posto: nessuna consegna oggi» è
+  // morto — con pile fail-closed vuote e nessun altro ingresso valorizzato, la striscia ora
+  // sparisce (silenzio) invece di riempirsi con una copy sostitutiva.
+  it('pile vuote da fail-closed → la striscia del tecnico cade sul silenzio (D3)', async () => {
     const svc = svcTecnicoSenzaRiga()
     const pile = await getPileHome(svc, 'lab-1', { tecnicoId: null, senzaAnagrafica: true })
     const segnale = scegliSegnale('tecnico', {
       fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
       pile: pile.striscia,
     })
-    expect(segnale).toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: 'nessuna consegna oggi', azione: null })
+    expect(segnale).toEqual({ attenzione: false, forte: null, testo: '', azione: null, silenzio: true })
   })
 })
 

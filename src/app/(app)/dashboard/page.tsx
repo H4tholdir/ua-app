@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getPileHome, getPerimetroHome } from '@/lib/dashboard/pile-home'
-import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
+import { fetchIngressiStriscia, scegliSegnale, leggiTecniciSenzaAnagrafica, leggiLiberazioneRecente, giorniCiviliRimasti } from '@/lib/dashboard/striscia'
 import { getParete } from '@/lib/cassette/parco'
 import { homePrefDa, pareteIntroVista, serveParete, vistaHome } from '@/lib/preferenze/home'
 import { HomeV3 } from '@/components/features/home/HomeV3'
@@ -31,10 +31,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // titolare/admin_rete (unici ruoli con `sTitTecnici` in gerarchia, v.
   // striscia.ts) — front_desk/tecnico non pagano il round-trip.
   const usaTecniciSenzaAnagrafica = ruolo === 'titolare' || ruolo === 'admin_rete'
-  const [pile, ingressi, tecniciSenzaAnagrafica, preferenze, pareteLetta] = await Promise.all([
+  const [pile, ingressi, tecniciSenzaAnagrafica, liberazioneRecente, preferenze, pareteLetta] = await Promise.all([
     getPileHome(svc, labId, perimetro),
     fetchIngressiStriscia(svc, labId, ruolo),
     usaTecniciSenzaAnagrafica ? leggiTecniciSenzaAnagrafica(svc, labId) : Promise.resolve([] as string[]),
+    // Task 16 (D3 §3.4) — racconto «UÀ ha liberato…»: SEMPRE, non gated da `serveParete`/vista
+    // home (a differenza della `parete` sotto) — vale anche in modalità solo-pile, dove la
+    // parete non si vede ma il racconto della liberazione sì (spec esplicita).
+    leggiLiberazioneRecente(svc, labId),
     // «La tua home» (§7, Task 14): SEMPRE self (`context.userId`), mai cross-utente.
     svc.from('utenti').select('nav_preferences').eq('id', context.userId).single(),
     // La parete sta DENTRO il Promise.all (spec §6). Non può essere condizionata alla
@@ -79,7 +83,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // per-utente. `scegliSegnale` resta puro; `sPareteIntro` decide da sé sotto trial e sopra i
   // sereni. Assente (n=0 o intro già vista) → nessun segnale nuovo.
   const pareteIntro = { n: pareteLetta.length, introVista: pareteIntroVista(preferenze.data?.nav_preferences) }
-  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, pile: pile.striscia })
+  const segnale = scegliSegnale(ruolo, { ...ingressi, senzaAnagrafica: perimetro.senzaAnagrafica, tecniciSenzaAnagrafica, trial, parete: pareteIntro, liberazioneRecente, pile: pile.striscia })
 
   const eyebrow = `${GIORNI[ora.getDay()]} ${ora.getDate()} ${MESI[ora.getMonth()]}`
   const nome = context.nome ?? context.email?.split('@')[0] ?? 'Utente'
