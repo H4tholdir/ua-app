@@ -64,6 +64,34 @@ export const PAROLE_CATEGORIA_STUDIO: readonly string[] = [
 const INSIEME_CATEGORIA = new Set(PAROLE_CATEGORIA_STUDIO)
 
 /**
+ * Le forme societarie, per la guardia sulla prima parola del residuo (v. `accorciaNomeStudio`).
+ *
+ * ⚠️ Questa lista è un ANIMALE DIVERSO da `PAROLE_CATEGORIA_STUDIO`, e la differenza è la sua
+ * difesa (panel advisor 26/07, parere di architettura): le parole di categoria sono un
+ * **vocabolario d'uso** — descrivono come la gente sceglie di chiamarsi, cambiano con la moda,
+ * non finiscono mai, e ogni aggiunta è un rischio (v. il caso `dental`). Le forme societarie
+ * invece sono **chiuse dal Codice Civile**, non dall'uso: sono nove sigle, non cambiano da
+ * decenni, e nessuna di esse è mai un cognome. Si scrive una volta e non si tocca più.
+ *
+ * CRITERIO DI AMMISSIONE (senza, fra sei mesi qualcuno la allunga a intuito): entra solo una
+ * forma societaria prevista dall'ordinamento italiano, e solo se non è omografa di un cognome o
+ * dell'inizio di un nome di studio reale.
+ *
+ * Due esclusioni dichiarate:
+ * - `ss` (società semplice) è FUORI: `SS. ANNUNZIATA` è un nome di studio italiano del tutto
+ *   plausibile, e un `S.S.` isolato è già fermato dalla soglia delle 4 lettere sul residuo.
+ * - `spa` è DENTRO sapendo che esistono le «dental spa». Se un giorno arrivasse un cliente così,
+ *   l'unico effetto è che il suo nome non verrebbe accorciato: direzione di fallimento sicura.
+ *
+ * I valori sono già normalizzati (minuscoli, senza punti): `normalizzaParola` porta «S.R.L.»,
+ * «SRL» e «(s.r.l.)» tutte e tre a `srl`.
+ */
+export const FORME_SOCIETARIE: ReadonlySet<string> = new Set([
+  'srl', 'srls', 'sas', 'snc', 'spa', 'sapa', 'stp',
+  'unipersonale', 'uninominale',
+])
+
+/**
  * Quante lettere deve avere ALMENO quello che resta perché l'accorciamento sia lecito.
  *
  * Quattro. Sotto le quattro lettere, in questo campo, non resta un nome: restano le sigle della
@@ -113,6 +141,32 @@ export function accorciaNomeStudio(nome: string): string | null {
   if (i >= token.length) return null // toglierle tutte svuoterebbe il nome
 
   const residuo = testo.slice(token[i].index).trim()
+
+  // Guardia sulla PRIMA PAROLA del residuo (panel advisor 26/07, via A ratificata da Francesco —
+  // verbale `docs/design/decisions/2026-07-26-parole-categoria-panel.md`).
+  //
+  // Il difetto che chiude: la guardia sotto conta le lettere di TUTTO il residuo, quindi
+  // «SRL UNIPERSONALE» (16 lettere) passava e la cassetta avrebbe scritto la sigla della società
+  // al posto del nome dello studio. Trovato su 6 nomi reali dalla ricerca sui 1.604 nomi.
+  //
+  // ⚠️ Chiede DUE cose soltanto, e mai una soglia di lunghezza: il documento di ricerca propone
+  // in un punto «4 lettere sulla prima parola», e preso alla lettera ucciderebbe due esiti già
+  // ratificati — `DI SANTI GIUSEPPE` («DI» = 2 lettere) e `SAN RAFFAELE` («SAN» = 3). In italiano
+  // «San», «Santa», «Di», «Del», «De» sono fra le teste di nome più comuni che esistano.
+  //
+  // Direzione di fallimento SICURA: questa guardia può solo trasformare «accorciato» in
+  // «non accorciato», mai produrre un'etichetta che oggi non esista già. È la ragione per cui il
+  // panel ha scelto la via A e non la via B («salto la sigla e riprendo»): la B introdurrebbe il
+  // concetto «salto un pezzo e vado avanti», che indebolisce la regola «solo dalla testa, solo di
+  // seguito» — l'unica cosa che oggi salva `Studio Dentistico Del Corso`. La B resta aggiungibile
+  // sopra questa in qualunque momento; il contrario no.
+  const primaParola = residuo.split(/\s+/)[0] ?? ''
+  // (a) niente lettere = punteggiatura, e commerciale, cifra, parentesi: non è l'inizio di un nome
+  if (contaLettere(primaParola) === 0) return null
+  // (b) forma societaria: `normalizzaParola` toglie già i punti, quindi «S.R.L.» → «srl» e la
+  //     lista non ha bisogno di inseguire le varianti puntate.
+  if (FORME_SOCIETARIE.has(normalizzaParola(primaParola))) return null
+
   if (contaLettere(residuo) < MIN_LETTERE_NOME_ACCORCIATO) return null
   return residuo
 }

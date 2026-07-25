@@ -17,7 +17,14 @@ import {
   CORPI_CLINICO,
   MIN_LETTERE_NOME_ACCORCIATO,
   PAROLE_CATEGORIA_STUDIO,
+  FORME_SOCIETARIE,
 } from '@/lib/domain/nome-studio'
+
+/** Copia locale della normalizzazione del modulo: il test non deve dipendere da un export
+ *  interno, ma l'invariante ha bisogno di confrontare come lo fa la funzione vera. */
+function normalizzaPerTest(parola: string): string {
+  return parola.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '')
+}
 
 describe('accorciaNomeStudio — i tre esiti attesi dal mockup ratificato (§6, tabella esiti)', () => {
   it('«STUDI MEDICI DI SANTI GIUSEPPE» → «DI SANTI GIUSEPPE» (il DI resta: non è una parola di categoria)', () => {
@@ -165,5 +172,98 @@ describe('costruisciScalaNome — l’ordine dei tentativi È la regola ratifica
 
   it('nome vuoto: un solo testo, nessun crash', () => {
     expect(costruisciScalaNome('').every((g) => g.testo === '')).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel advisor del 26/07 (verbale `docs/design/decisions/2026-07-26-parole-categoria-panel.md`)
+// — VIA A ratificata da Francesco.
+//
+// Il difetto: la guardia contava le lettere di TUTTO il residuo, quindi «SRL UNIPERSONALE»
+// (16 lettere) passava e sulla cassetta si sarebbe letta la sigla della società al posto del
+// nome dello studio. Trovato dalla ricerca sui 1.604 nomi reali, riprodotto sul modulo vero.
+//
+// ⚠️ TRAPPOLA EVITATA (riserva bloccante dell'advisor di architettura): il documento di ricerca,
+// in un punto, propone «le 4 lettere contate sulla PRIMA parola». Preso alla lettera ucciderebbe
+// due esiti che Francesco ha già approvato — `DI SANTI GIUSEPPE` («DI» = 2 lettere) e
+// `SAN RAFFAELE` («SAN» = 3). In italiano «San», «Santa», «Di», «Del», «De» sono fra le teste di
+// nome più comuni: tagliarle è una regressione, non una taratura.
+// Quindi: la soglia delle 4 lettere RESTA sul residuo intero, e sulla prima parola si AGGIUNGE
+// una guardia che chiede solo due cose — almeno una lettera, e non una forma societaria.
+describe('accorciaNomeStudio — guardia sulla prima parola del residuo (via A, 26/07)', () => {
+  it('rinuncia quando quel che resta comincia con una forma societaria', () => {
+    // i sei nomi reali trovati dalla ricerca: oggi la cassetta scriverebbe la sigla
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO SRL UNIPERSONALE')).toBeNull()
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO STP S.R.L.')).toBeNull()
+    expect(accorciaNomeStudio('STUDIO DENTISTICO S.A.S. DI GIUSEPPE SANNINO')).toBeNull()
+    expect(accorciaNomeStudio('CENTRO DENTALE S.R.L.S. ROSSI')).toBeNull()
+    expect(accorciaNomeStudio('AMBULATORIO ODONTOIATRICO SNC BIANCHI')).toBeNull()
+    expect(accorciaNomeStudio('STUDIO MEDICO SPA VERDI')).toBeNull()
+  })
+
+  it('rinuncia quando quel che resta comincia con un segno o una cifra', () => {
+    // il trattino: la via B della ricerca qui avrebbe tolto anche CLINICA, lasciando
+    // «DEL SORRISO» — cioè amputando il marchio. La via A non tocca niente.
+    expect(accorciaNomeStudio('AMBULATORIO ODONTOIATRICO - CLINICA DEL SORRISO')).toBeNull()
+    expect(accorciaNomeStudio('STUDIO DENTISTICO & DENTISTI ASSOCIATI S.R.L.')).toBeNull()
+    expect(accorciaNomeStudio('STUDIO 2 V S.A.S. DI DOMENELLA SIMONE')).toBeNull()
+  })
+
+  it('NON tocca gli esiti già ratificati da Francesco — le teste corte di nome italiane', () => {
+    // se la guardia chiedesse 4 lettere sulla PRIMA parola, questi due morirebbero
+    expect(accorciaNomeStudio('STUDI MEDICI DI SANTI GIUSEPPE')).toBe('DI SANTI GIUSEPPE')
+    expect(accorciaNomeStudio('POLIAMBULATORIO ODONTOIATRICO SAN RAFFAELE')).toBe('SAN RAFFAELE')
+    expect(accorciaNomeStudio('CENTRO ODONTOIATRICO SANTA MARIA')).toBe('SANTA MARIA')
+  })
+
+  it('non tocca i tre clienti veri che oggi hanno la stessa testa', () => {
+    // l'argomento più forte a favore di tutta la regola: tre cassette indistinguibili
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO SCIENGA FRANCO')).toBe('SCIENGA FRANCO')
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO PIEGARI GIANFRANCO')).toBe('PIEGARI GIANFRANCO')
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO SICA FRANCESCO')).toBe('SICA FRANCESCO')
+    // e il quarto cliente, che si chiama SOLO così: non resterebbe niente
+    expect(accorciaNomeStudio('STUDIO ODONTOIATRICO')).toBeNull()
+  })
+
+  // La prova che regge da sola qualunque parola venga aggiunta alla lista in futuro: non parla
+  // della lista, parla della guardia. È la risposta alla domanda «cosa si rompe il giorno che
+  // Francesco aggiunge una parola?» — con questa, la guardia si difende da sé.
+  it('INVARIANTE: se accorcia, quel che resta comincia sempre come un nome', () => {
+    const campione = [
+      'STUDI MEDICI DI SANTI GIUSEPPE', 'POLIAMBULATORIO ODONTOIATRICO SAN RAFFAELE',
+      'CENTRO ODONTOIATRICO SANTA MARIA', 'STUDIO ODONTOIATRICO SCIENGA FRANCO',
+      'STUDIO ODONTOIATRICO SRL UNIPERSONALE', 'STUDIO ODONTOIATRICO STP S.R.L.',
+      'AMBULATORIO ODONTOIATRICO - CLINICA DEL SORRISO', 'STUDIO DENTISTICO & DENTISTI ASSOCIATI',
+      'DI SANTI CATERINA', 'BARALE S.A.S.', 'C.O.M. s.r.l. uninominale', 'STUDIO ODONTOIATRICO',
+      'Dental Center s.r.l. uninominale', 'Dott. Mario Rossi', 'STUDIO DENTISTICO E. ROSSI',
+      'Studio Dentistico Del Corso', 'CENTRO CLINICO ROSSI', 'STUDIO 2 V S.A.S.',
+    ]
+    for (const nome of campione) {
+      const r = accorciaNomeStudio(nome)
+      if (r === null) continue
+      const prima = r.split(/\s+/)[0]
+      expect(prima, `«${nome}» → «${r}»: la prima parola non ha nemmeno una lettera`)
+        .toMatch(/[a-zA-Z]/)
+      expect(FORME_SOCIETARIE.has(normalizzaPerTest(prima)),
+        `«${nome}» → «${r}»: comincia con una forma societaria`).toBe(false)
+      expect((r.match(/[a-zA-Z]/g) ?? []).length,
+        `«${nome}» → «${r}»: meno di ${MIN_LETTERE_NOME_ACCORCIATO} lettere in tutto`)
+        .toBeGreaterThanOrEqual(MIN_LETTERE_NOME_ACCORCIATO)
+    }
+  })
+
+  // Prova che VIETA, non che permette (stesso schema già usato in Cassetta.test.tsx). Il motivo
+  // sta nel nome: la ricerca dedica un paragrafo intero a `dental`, e sui dati di Francesco
+  // metterla in lista trasformerebbe «Dental Center s.r.l. uninominale» in «s.r.l. uninominale».
+  // Con le prove di prima, aggiungerla non avrebbe fatto fallire NIENTE.
+  it('VIETA le parole che spaccherebbero i marchi', () => {
+    for (const vietata of ['dental', 'center', 'centre', 'clinic', 'smile', 'dent', 'care']) {
+      expect(PAROLE_CATEGORIA_STUDIO,
+        `«${vietata}» non è una categoria: è la prima metà di un marchio (v. ricerca §5.2)`)
+        .not.toContain(vietata)
+    }
+    // i titoli dicono la persona, non il posto; le particelle sono pezzi di cognome
+    for (const vietata of ['dott', 'dottor', 'dottore', 'dr', 'prof', 'di', 'del', 'de', 'la', 'lo'])
+      expect(PAROLE_CATEGORIA_STUDIO).not.toContain(vietata)
   })
 })
