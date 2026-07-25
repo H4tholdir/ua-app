@@ -65,7 +65,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   setUserActivation(undefined)
-  window.history.replaceState(null, '', '/') // H1d: alcuni test attivano ?diag=suoni (canale H1b)
 })
 
 describe('sound v3 (spec §9.2)', () => {
@@ -411,26 +410,7 @@ describe('sound v3 — H1d partenza deterministica al running (fix WebKit)', () 
     expect(prima.stop).toHaveBeenCalledTimes(1) // la prima non riceve stop aggiuntivi dal restart
   })
 
-  it('5. esito diagnostico "riavviata-al-running" emesso sotto ?diag=suoni', async () => {
-    window.history.replaceState(null, '', '/?diag=suoni')
-    setUserActivation(true)
-    const { initSuoni, suona } = await import('@/design-system/v3/sound')
-    const { suonoDiagRegistra } = await import('@/design-system/v3/sound-diag')
-    const esiti: unknown[] = []
-    suonoDiagRegistra((storico) => {
-      esiti.length = 0
-      esiti.push(...storico.filter(e => e.tipo === 'suona').map(e => (e.dettagli as { esito?: string }).esito))
-    })
-    initSuoni()
-    await new Promise(r => setTimeout(r, 0))
-    audioContexts[0].resume = vi.fn(async () => { /* WebKit-style: niente auto-dispatch */ })
-    suona('tap')
-    audioContexts[0].state = 'running'
-    audioContexts[0].dispatchEvent(new Event('statechange'))
-    expect(esiti).toContain('riavviata-al-running')
-  })
-
-  it('6. i test H1c esistenti restano verdi (v. sopra) — qui solo un canary di non-regressione: running SUBITO (già running al gesto) resta 1 solo start, nessun restart spurio', async () => {
+  it('5. i test H1c esistenti restano verdi (v. sopra) — qui solo un canary di non-regressione: running SUBITO (già running al gesto) resta 1 solo start, nessun restart spurio', async () => {
     initialState = 'running'
     const { initSuoni, suona } = await import('@/design-system/v3/sound')
     initSuoni()

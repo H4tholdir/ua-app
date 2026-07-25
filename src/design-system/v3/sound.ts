@@ -14,13 +14,13 @@
 // touchend/click restano come fallback per i rari contesti senza Pointer Events.
 // I suoni NON veicolano mai informazione esclusiva (c'è sempre il visivo — L3).
 //
-// H1b (verbale QA 2026-07-24, stesso punto D1) — CANALE DIAGNOSTICO TEMPORANEO: il fix sopra
-// non ha chiuso il sintomo sul device Android di Francesco (primo tocco ancora muto). Prima di
-// un altro fix alla cieca, le chiamate a `suonoDiagEmetti` sotto raccolgono evidenza reale
-// (overlay `?diag=suoni`, v. `sound-diag.ts` e `DiagnosticaSuoni.tsx`). Sono SOLA lettura/
-// notifica: no-op per chi non ha aperto l'overlay, non toccano `sbloccato`/`ctx`/l'ordine dei
-// listener. RESTA (a differenza di quanto previsto sopra): serve al ri-collaudo device #4
-// del fix H1c sotto — DA RIMUOVERE (queste righe + i due file) solo dopo quel collaudo.
+// H1b (verbale QA 2026-07-24, stesso punto D1) — CANALE DIAGNOSTICO TEMPORANEO (RIMOSSO): il fix
+// sopra non aveva chiuso il sintomo sul device Android di Francesco (primo tocco ancora muto).
+// Prima di un altro fix alla cieca, un overlay dietro `?diag=suoni` (`sound-diag.ts` +
+// `DiagnosticaSuoni.tsx`, sola lettura/notifica: mai toccato `sbloccato`/`ctx`/l'ordine dei
+// listener) ha raccolto evidenza reale dal device — la diagnosi è in `.superpowers/sdd/
+// h1-diagnosi.md`. Servito fino al ri-collaudo device #4 del fix H1c sotto, poi rimosso
+// (componente, helper e chiamate) a diagnosi chiusa e ratificata.
 //
 // H1c (diagnosi device provata al millisecondo + panel 3 advisor — solution-architect,
 // specialista Web Audio, UX — 3/3 «strategia approvata con riserve», v.
@@ -60,7 +60,8 @@
 // parte MAI da sola (`start()` chiamato a contesto non-`running` resta silenzioso per sempre,
 // anche dopo il resume). Fix: la partenza NON dipende piu' dal comportamento implicito del
 // motore -- e' resa DETERMINISTICA su entrambi i motori da un listener `statechange` di
-// PRODUZIONE (a differenza di quello H1b sotto, sempre attivo, non solo sotto `?diag=suoni`):
+// PRODUZIONE, SEMPRE attivo (a differenza del listener diagnostico H1b, gated su `?diag=suoni`
+// e rimosso a diagnosi chiusa -- v. nota H1b sopra):
 // al passaggio a `running`, se esiste una pending non ancora scaduta, si ferma (guardata) la
 // source vecchia e se ne crea+avvia una nuova identica (stesso buffer, stesso gain). Su
 // Chromium la vecchia stava per partire esattamente in quell'istante: stop+restart e'
@@ -74,8 +75,6 @@
 // (a) primo gesto = DRAG (swipe/long-press) -> suono di sgancio MUTO ovunque, riaggancio al
 // rilascio OK: v. il commento sul ramo 4b piu' sotto -- e' un LIMITE DI PIATTAFORMA, non un bug,
 // e non va aggirato (v. anche report H1d, requisito 2, per il verdetto documentato).
-
-import { suonoDiagAttivo, suonoDiagEmetti } from './sound-diag'
 
 export type NomeSuono = 'tap' | 'fatta' | 'ua' | 'errore' | 'arrivo' | 'stacco' | 'riaggancio'
 const FILES: Record<NomeSuono, string> = {
@@ -153,23 +152,18 @@ function riavviaAlRunning(c: AudioContext): void {
     const buf = buffers.get(nome)
     if (!buf) return // difesa: non dovrebbe accadere (v. commento sopra)
     creaSource(c, buf, gain)
-    suonoDiagEmetti('suona', () => ({ nome, esito: 'riavviata-al-running' }))
-  } catch (e) {
-    suonoDiagEmetti('suona', () => ({
-      nome: pendingNome, esito: `errore: ${e instanceof Error ? e.message : String(e)}`,
-    }))
+  } catch {
     /* mai rompere il motore per un restart fallito */
   }
 }
 
-/** H1c: scarta la source pending corrente (stop + pulizia timer/stato) ed emette il motivo
- *  sul canale diagnostico. Chiamata sia quando una nuova `suona()` la soppianta, sia quando
- *  scade senza che il contesto sia arrivato a `running`. */
-function scartaPending(motivo: string): void {
+/** H1c: scarta la source pending corrente (stop + pulizia timer/stato). Chiamata sia quando
+ *  una nuova `suona()` la soppianta, sia quando scade senza che il contesto sia arrivato a
+ *  `running`. */
+function scartaPending(): void {
   if (!pendingSource) return
   try { pendingSource.stop() } catch { /* già ferma/finita: ignora */ }
   if (pendingTimer) clearTimeout(pendingTimer)
-  suonoDiagEmetti('suona', () => ({ nome: pendingNome, esito: motivo }))
   pendingSource = null
   pendingNome = null
   pendingGain = 1
@@ -200,13 +194,10 @@ async function precarica(): Promise<void> {
   await Promise.all((Object.keys(FILES) as NomeSuono[]).map(async nome => {
     try {
       const res = await fetch(FILES[nome])
-      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'fetch-fine', ok: res.ok }))
       if (!res.ok) return
       const dati = await res.arrayBuffer()
       buffers.set(nome, await c.decodeAudioData(dati))
-      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'decode-fine' }))
-    } catch (e) {
-      suonoDiagEmetti('prefetch', () => ({ nome, fase: 'errore', msg: e instanceof Error ? e.message : String(e) }))
+    } catch {
       /* singolo file mancante: quel suono resta muto */
     }
   }))
@@ -226,22 +217,11 @@ async function sblocca(): Promise<void> {
   if (c.state !== 'suspended' && c.state !== 'interrupted') return // già running: nulla da fare
   if (resumeInVolo) return
   resumeInVolo = true
-  const inizio = performance.now()
-  const statePrima = c.state
   try {
-    suonoDiagEmetti('sblocca', () => ({ fase: 'inizio', statePrima }))
     await c.resume()
     sbloccato = true
     if (rimuoviListener) { rimuoviListener(); rimuoviListener = null }
-    suonoDiagEmetti('sblocca', () => ({
-      fase: 'esito', esito: 'resolve', durataMs: Math.round(performance.now() - inizio),
-      statePrima, stateDopo: c.state,
-    }))
-  } catch (e) {
-    suonoDiagEmetti('sblocca', () => ({
-      fase: 'esito', esito: 'reject', durataMs: Math.round(performance.now() - inizio),
-      msg: e instanceof Error ? e.message : String(e),
-    }))
+  } catch {
     /* dispositivo senza audio: resta muto */
   } finally {
     resumeInVolo = false
@@ -254,39 +234,19 @@ export function initSuoni(): void {
   if (typeof window === 'undefined' || initFatto) return
   initFatto = true
   const c = creaContesto()
-  suonoDiagEmetti('init', () => ({
-    esito: c ? 'ok' : 'fallita',
-    state: c?.state ?? null,
-    sampleRate: c?.sampleRate ?? null,
-    baseLatency: c?.baseLatency ?? null,
-  }))
-  // H1d — listener `statechange` di PRODUZIONE: SEMPRE attivo (a differenza di quello
-  // diagnostico H1b sotto, gated su `?diag=suoni`) — chiude la riserva R1 del panel confermata
-  // dal device (WebKit non riparte da solo una source accodata a contesto non-running).
-  // Stessa cura difensiva del listener diagnostico: try/catch, mai un throw se `addEventListener`
-  // manca (Safari legacy/ambienti di test minimali) — il motore resta intatto, semplicemente
-  // nessun restart possibile (fallback: la pending scade comunque ai 150ms, invariato).
-  // Distinto (non duplicato) dal listener diagnostico sotto: uno fa il restart (produzione,
-  // sempre), l'altro emette solo per l'overlay (diagnostica, solo sotto `?diag=suoni`) — quando
-  // entrambe le condizioni sono vere restano due listener separati sullo stesso evento, ciascuno
-  // con un solo compito; `initFatto` in testa alla funzione impedisce la doppia registrazione a
-  // chiamate ripetute di `initSuoni()` (idempotente, invariato da H1c).
+  // H1d — listener `statechange` di PRODUZIONE: SEMPRE attivo — chiude la riserva R1 del panel
+  // confermata dal device (WebKit non riparte da solo una source accodata a contesto
+  // non-running). Fino alla chiusura di H1b conviveva con un secondo listener diagnostico,
+  // gated su `?diag=suoni`, che si limitava a emettere sull'overlay (rimosso a diagnosi chiusa
+  // — v. nota H1b in testa al file): i due erano additivi e distinti, mai lo stesso listener.
+  // try/catch difensivo: mai un throw se `addEventListener` manca (Safari legacy/ambienti di
+  // test minimali) — il motore resta intatto, semplicemente nessun restart possibile (fallback:
+  // la pending scade comunque ai 150ms, invariato). `initFatto` in testa alla funzione impedisce
+  // la doppia registrazione a chiamate ripetute di `initSuoni()` (idempotente, invariato da H1c).
   if (c) {
     try {
       c.addEventListener('statechange', () => { riavviaAlRunning(c) })
     } catch { /* contesto senza addEventListener: nessun restart possibile, motore intatto */ }
-  }
-  // H1b — listener DIAGNOSTICO (overlay `?diag=suoni`): è additivo (nessun handler esistente lo
-  // usava prima di H1b): non altera il motore, serve solo a vedere le transizioni
-  // suspended/running/interrupted sull'overlay. Aggiunto solo se qualcuno lo sta osservando —
-  // zero listener in più per l'utente normale. try/catch difensivo: questa è l'unica riga H1b
-  // che tocca il vero AudioContext, non deve MAI romperlo.
-  if (c && suonoDiagAttivo()) {
-    try {
-      c.addEventListener('statechange', () => {
-        suonoDiagEmetti('statechange', () => ({ state: c.state }))
-      })
-    } catch { /* contesto senza addEventListener: nessuna transizione osservata, motore intatto */ }
   }
   if (c) void precarica()
   const handler = () => { void sblocca() }
@@ -317,17 +277,14 @@ export function initSuoni(): void {
 export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
   try {
     if (!suoniAttivi()) {
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !suoniAttivi' }))
       return
     }
     if (!ctx) {
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !ctx' }))
       return
     }
     const c = ctx
     const buf = buffers.get(nome)
     if (!buf) {
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: buffer mancante' }))
       return
     }
 
@@ -336,7 +293,6 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
 
     if (c.state === 'running') {
       avvia()
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'giocato' }))
       return
     }
 
@@ -346,11 +302,9 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
     if (!ua) {
       // 4c — API assente (Safari legacy/jsdom): fallback ESATTO al comportamento pre-H1c.
       if (!sbloccato) {
-        suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: !sbloccato' }))
         return
       }
       avvia()
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'giocato' }))
       return
     }
     if (!ua.isActive) {
@@ -377,7 +331,6 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
       // ritardo oltre la scadenza (requisito UX invariato) — un fix che facesse suonare lo
       // stacco DOPO il rilascio sarebbe percettibilmente disallineato dal gesto, peggio del
       // silenzio. Comportamento corretto data la policy del browser, non un difetto del motore.
-      suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: fuori-gesto' }))
       return
     }
     // 4a — gesto in corso, contesto non pronto: enqueue sincrono (fix H1c). Max 1 pending:
@@ -385,8 +338,7 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
     // più delegata al motore (v. `riavviaAlRunning`, chiamata dal listener `statechange` di
     // produzione in `initSuoni()`) — qui si accoda soltanto, tracciando anche il `gain` (serve
     // al restart per ricreare una source identica).
-    if (pendingSource) scartaPending('scartato: soppiantato')
-    const statePrima = c.state
+    if (pendingSource) scartaPending()
     const src = avvia()
     pendingSource = src
     pendingNome = nome
@@ -396,16 +348,13 @@ export function suona(nome: NomeSuono, opts?: { gain?: number }): void {
       if (pendingSource !== src) return // già superata da un'altra suona() o già scaduta
       if (!ctx || ctx.state !== 'running') {
         try { src.stop() } catch { /* già ferma/finita: ignora */ }
-        suonoDiagEmetti('suona', () => ({ nome, esito: 'scartato: scadenza 150ms' }))
       }
       pendingSource = null
       pendingNome = null
       pendingGain = 1
       pendingTimer = null
     }, SCADENZA_ENQUEUE_MS)
-    suonoDiagEmetti('suona', () => ({ nome, esito: `enqueued (state=${statePrima})` }))
-  } catch (e) {
-    suonoDiagEmetti('suona', () => ({ nome, esito: `errore: ${e instanceof Error ? e.message : String(e)}` }))
+  } catch {
     /* mai rompere l'app per un suono */
   }
 }
