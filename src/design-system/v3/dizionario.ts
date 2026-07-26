@@ -7,6 +7,11 @@ export const PAROLE_VIETATE: ReadonlyArray<{ vietata: RegExp; usa: string }> = [
   { vietata: /\bform\b/i,                 usa: 'una domanda alla volta (il concetto sparisce)' },
   { vietata: /\brecord\b/i,               usa: 'lavoro / scheda' },
   { vietata: /\bsubmit\b/i,               usa: 'Fatto ✓' },
+  // ECCEZIONE RATIFICATA (Francesco, 26/07/2026): i due tasti della scheda cassetta restano
+  // «Salva il nome» e «Salva il colore» — erano nei mockup approvati, e nel progetto vince la resa
+  // ratificata su ciò che il testo di una regola prescrive (stesso principio del 500-vs-600 della
+  // fascia C). Verbale: docs/design/decisions/2026-07-26-salva-nome-colore.md. NON «correggerle»:
+  // sono state guardate e tenute. La regola qui sotto resta valida ovunque altro.
   { vietata: /\bsalva\b/i,                usa: 'Fatto ✓ (o salvataggio automatico silenzioso)' },
   { vietata: /\bfiltr\w+/i,               usa: 'Cerca (le pile sono i filtri)' },
   { vietata: /\bquery\b/i,                usa: '—' },
