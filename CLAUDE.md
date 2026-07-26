@@ -159,7 +159,7 @@ Vedi `package.json`. Deploy: `git push origin main` → Vercel CI/CD automatico.
 ```bash
 npm run dev                    # localhost:3000
 npx tsc --noEmit               # TypeScript check (zero errori richiesti)
-npx vitest run                 # 136 test unitari
+npx vitest run                 # 3283 test unitari (26/07/2026) — il numero invecchia: fidati dell'output, non di questa riga
 npx next build                 # Build production locale
 
 # Dopo ogni migration Supabase:
