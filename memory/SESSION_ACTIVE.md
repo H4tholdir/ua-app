@@ -15,8 +15,17 @@ Impostazioni); la barra di stato è il fondo della superficie corrente. **Assorb
 **Tappa 1 IMPLEMENTATA e verificata:** nuovo `src/design-system/colore-barra-sistema.ts` (colori
 derivati dai token v3, upsert sui meta) · `ThemeInitializer.tsx` esporta `SCRIPT_TEMA`, imposta la
 barra e osserva `data-theme` · `layout.tsx` non dichiara più `themeColor`.
-**tsc 0 · vitest 3306 verdi / 19 skip · next build ok · nessun `<meta theme-color>` statico
+**tsc 0 · vitest 3309 verdi / 19 skip · next build ok · nessun `<meta theme-color>` statico
 nell'HTML emesso** (il tag lo crea solo lo script).
+
+**Code review fatta (BP-2 FASE 8), 2 revisori indipendenti, 0 bloccanti, 3 rilievi corretti:**
+`try` unico → con `localStorage` che lancia cadeva TUTTO (misurato) · `impostaColoreBarra` era
+codice morto usato solo dal test → rimossa, asserzioni spostate su `SCRIPT_TEMA` · validazione
+esadecimale dei valori interpolati. Guardie aggiunte: classe `dark`, meta dentro `<head>`,
+alternanze, nessun `themeColor` in `src/app`.
+**Trovati fuori mappa, per la tappa 3:** metà del CSS è agganciata a `.dark` e metà a `data-theme`
+(corsa reale su `/admin` fra `ua-theme` e `ua-admin-theme`) · `portale/[token]/layout.tsx:15` ha un
+fondo `#F8F9FA` cotto a mano ed era fuori dal censimento.
 
 🛑 **PROSSIMO PASSO — serve il via libera di Francesco:** merge su `main` + deploy, poi la **prova
 sul suo device** (Task 5 del piano). L'osservazione decisiva è **premere l'interruttore del tema DA
