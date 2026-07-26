@@ -1,9 +1,13 @@
 # Sessione attiva — Ondata «Redesign parete/home» CHIUSA e MERGIATA (26/07/2026)
 
-**RIPRESA: `docs/roadmap/2026-07-27-post-ondata-handoff.md`** — leggilo per primo.
+**RIPRESA: `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`** — leggilo per primo.
+È l'handoff **più recente** ed è l'unico punto di ripresa: prima questo file ne dava due, e quello
+che compariva per primo (`2026-07-27-post-ondata-handoff.md`) era il più vecchio dei due. Quello
+resta utile come storia dell'ondata, non come punto di partenza.
 
-T16 (striscia) e T17 (chiusura) completi, merge in `main` fatto su via libera esplicita di
-Francesco. Ramo `worktree-redesign-parete-home` @ `ca913236`, 175 commit.
+T16 (striscia) e T17 (chiusura) completi, **merge in `main` fatto e pubblicato** su via libera
+esplicita di Francesco (merge `5504a20a`, `main` a `8c482e90`, CI e deploy verdi, `uachelab.com`
+verificata). Ramo `worktree-redesign-parete-home` fermo a `ca913236`, 175 commit: è storia.
 **Suite 3283 verdi / 19 skip · tsc 0 · build ok** — ri-verificati dal controller, non riferiti.
 
 **Fatto:** review whole-branch in 5 aree · triage di 69 rilievi → **0 bloccanti** · review delta
@@ -27,17 +31,18 @@ da 768 in su.
 
 ---
 
-## 🛑 RIPRESA: `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`
+## 🛑 COSA C'È DA FARE — dall'handoff di ripresa qui sopra
 
 Francesco ha **installato la PWA e collaudata** dopo il deploy. Quattro punti aperti, tutti scritti
-lì: (1) la linguetta «LE CASSETTE» sta stretta — la voce 52 del backlog era «cosmetica, da
-confermare a vista» ed è **scaduta**: lui l'ha vista e non gli va bene; (2) 🛑 **la barra dei gesti
+lì: (1) la linguetta «LE CASSETTE» sta stretta **nello stato pieno** — la deviazione vera è che il
+mockup ratificato le dà 18px di respiro sopra e sotto il contenuto e il codice ne dà 0 (la voce 52
+del backlog parla invece dello stato «filo» e resta aperta a parte); (2) 🛑 **la barra dei gesti
 è un difetto vero anche da PWA installata** — il verbale che la dava per «NON un difetto» è
 SBAGLIATO e va corretto, non ereditato; accertato nel codice che `theme_color` è `#D90012` fisso in
-`manifest.json` **e** in `layout.tsx:28`, quindi non segue né il fondo unificato né il tema; da
-misurare sul device installato prima di scrivere codice; (3) **proposta di Francesco: un centro
-notifiche vero**, dove poi spostare la striscia — da progettare col percorso GRANDE, non ratificata;
-(4) chiesto se restava lavoro incompiuto: **no**, 0 bloccanti, 30 rimandati con motivazione nel
-backlog (tranne la 52, ora da fare).
+`manifest.json`, in `layout.tsx:28` **e in `public/offline.html:6`** (tre posti, non due); da
+misurare sul device installato prima di scrivere codice, dopo ricerca e panel di advisor come ha
+chiesto Francesco; (3) **centro notifiche: accettato come direzione, ma ULTIMO** — sua decisione del
+26/07, «alla fine della roadmap che abbiamo»; (4) chiesto se restava lavoro incompiuto: **no**,
+0 bloccanti, 30 rimandati con motivazione nel backlog.
 
 **Poi, già in coda:** nome+cognome paziente nel wizard, percorso BP-2 pieno.
