@@ -54,7 +54,19 @@ entrambi i fix**, e ogni misura di questo documento è presa su di esso.
 Confronto col difetto documentato: striscia `144.55` con `matrix(0.96,…,11.90)`, linguetta `393.99` cioè
 **interamente fuori dal bordo destro di 48px**. Ora i quattro casi sono **identici a riposo**: la preferenza
 cambia la transizione, mai il bersaglio — esattamente la legge che il fix dichiarava di voler scrivere.
-Catture: `gate-l2/390-{light,dark}-riposo3s-reduced-{attivo,controllo}.png`.
+
+**La prova più forte non è la tabella, sono le catture: a riposo sono byte per byte lo stesso file.**
+
+```
+6aef60e5…451b  390-light-riposo3s-reduced-attivo.png
+6aef60e5…451b  390-light-riposo3s-reduced-controllo.png
+bb3e5623…f323a  390-dark-riposo3s-reduced-attivo.png
+bb3e5623…f323a  390-dark-riposo3s-reduced-controllo.png
+```
+
+Stesso SHA-256 fra preferenza accesa e spenta, in entrambi i temi: a riposo la home è **pixel per pixel
+identica**. Non «abbastanza vicina» — identica. Nessun residuo di posizione, di scala o di opacità può
+nascondersi dentro un confronto di questo tipo.
 
 > Vale la pena dirlo esplicitamente perché è la sola cosa che avrebbe potuto bloccare il merge:
 > **la parete resta raggiungibile con «Riduci movimento» acceso**, in entrambi i temi.
