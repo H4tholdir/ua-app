@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { COLORE_BARRA } from '@/design-system/colore-barra-sistema'
 import { luce, notte } from '@/design-system/v3/tokens'
 import { SCRIPT_TEMA } from '@/components/layout/ThemeInitializer'
+import { CHIAVE_TEMA, MODO_PREDEFINITO, isModoTema, risolviTema } from '@/lib/preferenze/tema'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 
@@ -79,15 +80,56 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
   })
 
-  it('la preferenza salvata vince sul sistema', () => {
+  // Le due direzioni servono ENTRAMBE, e vanno tenute CONTRO il sistema. Un test
+  // in cui preferenza e telefono concordano non distingue nulla: passerebbe anche
+  // se lo script leggesse una chiave che non esiste (null -> segui il telefono ->
+  // stesso risultato). La chiave nel testo dello script e' battuta a mano, perche'
+  // una stringa iniettata non puo' importare: un carattere sbagliato deve fallire.
+  it('bloccato sul chiaro, ignora il telefono scuro', () => {
     sistemaScuro(true)
-    localStorage.setItem('ua-theme', 'light')
+    localStorage.setItem('ua-tema', 'chiaro')
 
     eseguiScript()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  it('bloccato sullo scuro, ignora il telefono chiaro', () => {
+    sistemaScuro(false)
+    localStorage.setItem('ua-tema', 'scuro')
+
+    eseguiScript()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+
+  // La chiave vecchia conteneva light/dark scritti da un interruttore a DUE stati,
+  // dove «Automatico» non era nemmeno offerto: quel valore non esprime la volonta'
+  // di bloccare il tema. Si ignora E si cancella, cosi' nessuno resta bloccato per
+  // un'opzione che non ha mai scelto. Questo e' anche il controllo piu' severo sulla
+  // chiave: se lo script leggesse ancora 'ua-theme', qui uscirebbe scuro.
+  it('ignora e cancella la chiave vecchia', () => {
+    localStorage.setItem('ua-theme', 'dark')
+    sistemaScuro(false)
+
+    eseguiScript()
+
+    expect(localStorage.getItem('ua-theme')).toBeNull()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  it('un valore non previsto nella chiave nuova ricade sul sistema', () => {
+    localStorage.setItem('ua-tema', 'turchese')
+    sistemaScuro(true)
+
+    eseguiScript()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
   // Chrome ignora un theme-color che non sta in <head>. querySelectorAll cerca in
@@ -150,7 +192,7 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
   })
 
   it('con data-theme RIMOSSO torna chiaro, non scuro (caso ds-v3-catalogo)', async () => {
-    localStorage.setItem('ua-theme', 'dark')
+    localStorage.setItem('ua-tema', 'scuro')
     eseguiScript()
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
 
@@ -189,6 +231,49 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     expect(SCRIPT_TEMA).toContain(COLORE_BARRA.dark)
     expect(SCRIPT_TEMA).not.toContain('#D90012')
   })
+})
+
+// «Una regola sola» rischia di essere vera nelle intenzioni e falsa nei fatti: la
+// regola esiste in DUE copie, perche' uno script iniettato come stringa non puo'
+// importare `risolviTema` e deve riscriverla a mano. Le guardie del censimento
+// dicono CHI legge il tema, non SE le due copie sono d'accordo. Questa matrice
+// confronta il codice che gira davvero con la funzione che e' la fonte, su ogni
+// combinazione: il giorno che una delle due cambia da sola, fallisce qui.
+describe('Le due copie della regola dicono la stessa cosa', () => {
+  const memorizzati = [null, 'sistema', 'chiaro', 'scuro', 'light', 'dark', 'turchese', '']
+  const sistemi = [false, true]
+
+  beforeEach(() => {
+    document.head.innerHTML = ''
+    document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.remove('dark')
+    localStorage.clear()
+  })
+
+  for (const memorizzato of memorizzati) {
+    for (const scuro of sistemi) {
+      const etichetta = `${memorizzato === null ? 'niente' : `'${memorizzato}'`} + telefono ${scuro ? 'scuro' : 'chiaro'}`
+
+      it(`concordano con ${etichetta}`, () => {
+        if (memorizzato !== null) localStorage.setItem(CHIAVE_TEMA, memorizzato)
+        sistemaScuro(scuro)
+
+        eseguiScript()
+
+        // Un valore non riconosciuto vale quanto nessun valore: si torna al
+        // predefinito. E' la stessa clausola che lo script scrive come
+        // «m!=='chiaro' && sistema».
+        const atteso = risolviTema(
+          isModoTema(memorizzato) ? memorizzato : MODO_PREDEFINITO,
+          scuro,
+        )
+
+        expect(document.documentElement.getAttribute('data-theme')).toBe(atteso)
+        expect(document.documentElement.classList.contains('dark')).toBe(atteso === 'dark')
+        expect(metaTemi()).toEqual([COLORE_BARRA[atteso]])
+      })
+    }
+  }
 })
 
 describe('layout.tsx — nessun theme-color posseduto da React', () => {

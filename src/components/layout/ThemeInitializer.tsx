@@ -17,10 +17,21 @@ export const SCRIPT_TEMA = `(function(){
      faceva cadere tutto il resto — niente tema, niente classe, niente meta — e da
      quando layout.tsx non dichiara piu' themeColor non ci sarebbe nemmeno piu' un
      colore di riserva nell'HTML. Misurato in review, non ipotizzato. */
-  var s=null;
-  try{s=localStorage.getItem('ua-theme');}catch(e){}
+  var m=null;
   try{
-  var d=s==='dark'||(!s&&!!window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+    m=localStorage.getItem('ua-tema');
+    /* la chiave vecchia si ignora E si cancella: conteneva light/dark scritti da un
+       interruttore a DUE stati, dove 'Automatico' non era nemmeno offerto. Quel
+       valore non esprime la volonta' di bloccare il tema. V. lib/preferenze/tema.ts */
+    localStorage.removeItem('ua-theme');
+  }catch(e){}
+  try{
+  var sis=!!window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  /* SECONDA COPIA di risolviTema (lib/preferenze/tema.ts): una stringa iniettata non
+     puo' importare. Un valore non riconosciuto vale quanto nessun valore -> si segue
+     il telefono. Le due copie sono confrontate su ogni combinazione in
+     tests/unit/colore-barra-sistema.test.ts. */
+  var d=m==='scuro'||(m!=='chiaro'&&sis);
   var h=document.documentElement;
   if(d){h.classList.add('dark');h.setAttribute('data-theme','dark');}
   else{h.classList.remove('dark');h.setAttribute('data-theme','light');}
