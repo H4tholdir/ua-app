@@ -439,7 +439,12 @@ fonte anche quando le sezioni la separano.
   · file/simbolo: garanzia 150ms (`sound.ts`)
   · stato dichiarato: aperta (vincolo di piano da confermare, non un difetto di per sé)
 
-- [ ] **52.** La colonna rossa del filo è a tutta altezza del bottone (96px) contro i ~78px dello schema del mockup. I valori sono comunque quelli ratificati verbatim; l'estensione va confermata a vista.
+- [ ] **52.** ⚠️ **NON PIÙ RIMANDATA — Francesco l'ha vista sulla PWA installata il 26/07/2026 e
+  non gli va bene** («la linguetta non dà il giusto spazio al suo contenuto, la parte inferiore si
+  chiude troppo sotto alla scritta cassette»). Era classificata «cosmetica, da confermare a vista»:
+  la conferma a vista è arrivata ed è negativa. Da fare, v.
+  `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` §1. Testo originale del rilievo:
+  La colonna rossa del filo è a tutta altezza del bottone (96px) contro i ~78px dello schema del mockup. I valori sono comunque quelli ratificati verbatim; l'estensione va confermata a vista.
   · fonte: riga 191 del ledger (etichetta «Minor (per review finale + collaudo #4)»)
   · file/simbolo: linguetta/colonna rossa (area F2/T2)
   · stato dichiarato: aperta

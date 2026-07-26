@@ -24,5 +24,20 @@ finestrella» · «Salva il nome/il colore» restano (eccezione a verbale) · ri
 da 768 in su.
 
 **Backlog tracciato:** `docs/roadmap/2026-07-26-backlog-ondata-parete-home.md`
-**Prossimo:** verifica di uachelab.com dopo il deploy → prova della PWA installata da icona
-(decisione di Francesco) → nome+cognome paziente nel wizard, percorso BP-2 pieno.
+
+---
+
+## 🛑 RIPRESA: `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`
+
+Francesco ha **installato la PWA e collaudata** dopo il deploy. Quattro punti aperti, tutti scritti
+lì: (1) la linguetta «LE CASSETTE» sta stretta — la voce 52 del backlog era «cosmetica, da
+confermare a vista» ed è **scaduta**: lui l'ha vista e non gli va bene; (2) 🛑 **la barra dei gesti
+è un difetto vero anche da PWA installata** — il verbale che la dava per «NON un difetto» è
+SBAGLIATO e va corretto, non ereditato; accertato nel codice che `theme_color` è `#D90012` fisso in
+`manifest.json` **e** in `layout.tsx:28`, quindi non segue né il fondo unificato né il tema; da
+misurare sul device installato prima di scrivere codice; (3) **proposta di Francesco: un centro
+notifiche vero**, dove poi spostare la striscia — da progettare col percorso GRANDE, non ratificata;
+(4) chiesto se restava lavoro incompiuto: **no**, 0 bloccanti, 30 rimandati con motivazione nel
+backlog (tranne la 52, ora da fare).
+
+**Poi, già in coda:** nome+cognome paziente nel wizard, percorso BP-2 pieno.
