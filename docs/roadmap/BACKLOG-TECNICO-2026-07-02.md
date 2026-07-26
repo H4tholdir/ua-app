@@ -1,4 +1,17 @@
 # UÀ — Backlog Tecnico Preciso
+
+> 🗄️ **QUESTO FILE È UN ARCHIVIO, NON LO STATO DI OGGI.** Fotografa il re-audit del 2 luglio 2026 e
+> i suoi seguiti, ed è prezioso per capire *com'era* un problema e *perché* è stato risolto in un
+> certo modo. **Non è una lista di stato affidabile:** lo ammette il suo stesso intestazione più
+> sotto («il conteggio "18" della label storica non coincide col totale reale di righe»), e la
+> tabella §0 e le sezioni narrative si contraddicono in più punti — alcuni disallineamenti sono
+> dichiarati e **mai risolti**. Diverse righe segnate ✅ sono state chiuse per lo scopo che avevano
+> allora e sono **tornate difetti** quando il progetto è cambiato intorno: il caso vivo è **A5**
+> (`theme_color`), riaperta il 26/07/2026.
+>
+> **Chi cerca lo stato corrente legge `docs/roadmap/ROADMAP-UFFICIALE.md` e `memory/MEMORY.md`**,
+> non questo file. La roadmap rimanda qui per il *dettaglio* di un item, mai per sapere se è fatto.
+
 **Generato:** 2 luglio 2026, sintesi di 11 report di re-audit (`docs/audit-2026-07-02/`)
 **Fonte:** analisi diretta del codice sorgente deployato in produzione + verifica live Playwright, non stime.
 **Scopo:** unica lista prioritizzata di tutto ciò che va sistemato o completato, con file:riga esatti, causa, fix consigliato ed effort stimato dove disponibile.
@@ -47,7 +60,7 @@
 | A2 | Nessun fallback offline/rete lenta | ✅ | verificato 20/07/2026 | Già risolto de facto: SW navigate→`offline.html` (B6) + banner `SyncBadge` |
 | A3 | Bug login autofill email passkey | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Guard sull'input digitato manualmente |
 | A4 | Cache versioning statico, no TTL | ✅ | 03/07/2026 · `4a36f89` | Risolto definitivamente: cache name = build-id via `generate-sw.mjs`; TTL escluso per decisione (YAGNI) — vedi dettaglio sotto |
-| A5 | `manifest.json` theme_color sbagliato | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | `#D90012` in manifest + offline.html |
+| A5 | `manifest.json` theme_color sbagliato | ⏳ **RIAPERTA 26/07/2026** | chiusa il 20/07/2026 · Bundle Q (`04cf00b`), riaperta il 26/07/2026 | 🛑 **NON leggere questa riga come chiusa.** Nel luglio 2026 il lavoro era `#D90012` in manifest + offline.html, ed **era giusto per il suo scopo di allora**: il fondo dell'app non era ancora unificato. **È diventato un difetto dopo**, quando l'ondata «redesign parete/home» del 26/07 ha unificato lo sfondo (`#F4F0E7` chiaro / `#171411` scuro): oggi quel rosso è **parte del problema della barra dei gesti** che Francesco ha visto sulla PWA installata. Vive in **tre** posti (`public/manifest.json`, `src/app/layout.tsx:28`, **`public/offline.html:6`**) e non segue né il fondo unificato né il tema chiaro/scuro. Non si tocca prima di ricerca + misure sul device + panel di advisor, per ordine di Francesco: `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` §2 |
 | A6 | `qualita/page.tsx` 2 violazioni anti-pattern | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Con nuovo token `--c-amber-ink`; resta **A6-bis** a backlog (sweep `--c-amber`-come-testo ~25 file + regex check-ds) |
 | A7 | Portale/Richiedi disconnessi | ✅ | 20/07/2026 · Bundle Q (`04cf00b`) | Link incrociati portale↔richiedi |
 | A8 | Zero notifica proattiva richiesta portale | 🔄 | 20/07/2026 · Bundle Q (push) | Push a titolare+front_desk FATTO; fallback email Resend deciso SÌ (20/07), pianificato come percorso Media dopo la coda corrente |

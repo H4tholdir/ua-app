@@ -1,4 +1,16 @@
 # Prossima Sessione — Piano Operativo
+
+> 🗑️ **DOCUMENTO OBSOLETO — NON SEGUIRLO.** Scritto il **22 maggio 2026** e mai più toccato. Il
+> lavoro che pianifica — un re-audit multi-agente della PWA — **è stato fatto il 2 luglio 2026**:
+> i suoi risultati sono in `docs/audit-2026-07-02/` e in
+> `docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`. Il titolo «Prossima Sessione» lo fa sembrare il
+> punto di partenza di chi apre la cartella: **non lo è da oltre due mesi.**
+>
+> **Il punto di ripresa vero** sta in `memory/SESSION_ACTIVE.md`, che indica sempre l'handoff più
+> recente. Lo stato del progetto sta in `memory/MEMORY.md` e `docs/roadmap/ROADMAP-UFFICIALE.md`.
+>
+> Resta nel repo come storia (com'era organizzato il lavoro a maggio), non come piano.
+
 **Data prevista:** appena Francesco vuole
 **Contesto:** Sessione nuova e pulita. Il hook inject-ua-context.js fornirà automaticamente PINNED.md + MEMORY.md.
 
