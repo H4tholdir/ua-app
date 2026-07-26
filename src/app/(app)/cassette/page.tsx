@@ -3,9 +3,6 @@ import { getLabContext } from '@/lib/supabase/lab-context'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getParete } from '@/lib/cassette/parco'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
-// TEMPORANEO — collaudo PWA installata 26/07/2026. Rende `null` senza `?diag=fondo`.
-// Va rimosso a diagnosi chiusa insieme a `public/diagnostica-barre.html`.
-import { DiagFondo } from '@/components/features/cassette/DiagFondo'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +26,6 @@ export default async function CassettePage() {
     <div data-ds="v3" style={{ background: 'var(--bg)', minHeight: '100dvh' }}>
       <div className="ds-grana" aria-hidden />
       <PareteClient parete={parete} />
-      <DiagFondo />
     </div>
   )
 }
