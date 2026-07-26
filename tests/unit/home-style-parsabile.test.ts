@@ -19,6 +19,10 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, it, expect } from 'vitest'
+// `senzaCommenti` vive in `tests/helpers/css.ts` da quando serve anche alle guardie CSS di
+// altri file (review finale whole-branch): una copia per file avrebbe significato che la
+// lezione di QUESTO file valeva solo qui.
+import { senzaCommenti } from '../helpers/css'
 
 const srcHome = readFileSync(join(process.cwd(), 'src/components/features/home/HomeV3.tsx'), 'utf8')
 
@@ -52,25 +56,6 @@ function sorgentiConStile(): string[] {
   }
   gira(join(process.cwd(), 'src'))
   return trovati.sort()
-}
-
-/**
- * Rimuove i commenti CSS con la semantica REALE del parser: `/*` apre, il PRIMO `* /`
- * successivo chiude, i commenti NON si annidano. È esattamente il punto in cui un `* /`
- * scritto per sbaglio dentro la prosa fa saltare tutto ciò che segue.
- */
-function senzaCommenti(css: string): string {
-  let fuori = ''
-  let i = 0
-  while (i < css.length) {
-    const apre = css.indexOf('/*', i)
-    if (apre === -1) { fuori += css.slice(i); break }
-    fuori += css.slice(i, apre)
-    const chiude = css.indexOf('*/', apre + 2)
-    if (chiude === -1) break // commento mai chiuso: da lì in poi il parser ignora tutto
-    i = chiude + 2
-  }
-  return fuori
 }
 
 /** I selettori che aprono davvero una regola nel CSS ripulito dai commenti. */
@@ -133,8 +118,8 @@ describe('HomeV3 — il blocco <style> deve sopravvivere al parser CSS (difetto 
 })
 
 // ⚠️ Verifica finale d'ondata (26/07, difetto A4b) — QUESTO FILE ERA CABLATO SU UN FILE SOLO.
-// Le tre funzioni qui sopra (`senzaCommenti`, `selettoriVivi`, `dichiarazioniDi`) sono già
-// generiche: solo la lettura del sorgente era fissata a `HomeV3.tsx`. Ma il difetto che questo
+// Le tre funzioni usate qui (`senzaCommenti` — ora in `tests/helpers/css.ts` —, `selettoriVivi`,
+// `dichiarazioniDi`) sono già generiche: solo la lettura del sorgente era fissata a `HomeV3.tsx`. Ma il difetto che questo
 // file esiste per incarnare — un `*/` scritto nella prosa di un commento, che chiude il commento
 // in anticipo e INGHIOTTE la regola seguente — non ha niente di specifico della home: vive
 // identico in ognuno dei sorgenti che portano un blocco `<style>{`…`}</style>`, e ce ne sono una

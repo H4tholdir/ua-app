@@ -166,11 +166,10 @@ describe('alias paziente (spec redesign §2.3, riserva ARCH R4)', () => {
 // `pazienteAlias` sui lavori senza cassetta — STESSA logica, non una riscritta: da qui
 // l'esportazione. Test minimo di import + comportamento (già coperto indirettamente sopra
 // via `deriveParete`, ma questo prova che la funzione è raggiungibile ed è la STESSA usata lì).
+// Review finale whole-branch — tolto `expect(typeof derivaAlias).toBe('function')`: se non lo
+// fosse, a cadere sarebbe già l'import in testa a questo file (e prima ancora `tsc`). I tre
+// casi sotto provano l'export molto meglio, usandolo.
 describe('derivaAlias (esportata, Task 5 §2.5)', () => {
-  it('è importabile come funzione dal modulo', () => {
-    expect(typeof derivaAlias).toBe('function')
-  })
-
   it('alias presente, diverso dal codice → ritorna il nome normalizzato (trim)', () => {
     expect(derivaAlias({ codice_paziente: 'PZ-0012', nome_cognome: 'ROSSI MARIO ' })).toBe('ROSSI MARIO')
   })

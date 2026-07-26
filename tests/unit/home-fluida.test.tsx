@@ -25,6 +25,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
+import { spazio } from '@/design-system/v3/tokens'
+import { dichiarazioniDi, contenutoMedia } from '../helpers/css'
 
 const srcHome = readFileSync(join(process.cwd(), 'src/components/features/home/HomeV3.tsx'), 'utf8')
 const srcCss = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
@@ -40,8 +42,21 @@ describe('HomeV3 — scala verticale fluida + pile centrate (D8, §3.3)', () => 
     expect(srcHome).toMatch(/gap: clamp\(8px, 2\.2cqh, 20px\)/)
   })
 
-  it('il degrado scroll P3 resta (mai abrogato dalla fluida)', () => {
-    expect(srcHome).toMatch(/overflow-y: auto/)
+  // Review finale whole-branch — il nome diceva «il degrado scroll P3 resta», ma l'asserzione
+  // era un `toMatch(/overflow-y: auto/)` senza alcun ancoraggio: prendeva la prima occorrenza
+  // del testo ovunque nel sorgente (oggi la regola vera solo perché i commenti vicini scrivono
+  // `overflow-y:auto` senza lo spazio — una coincidenza tipografica, non una garanzia). E
+  // taceva il fatto più importante: la regola vive dentro `@media (max-width: 767px)`, quindi
+  // la rete di sicurezza esiste SOLO sotto i 768px. Ora è ancorata al selettore, dentro quel
+  // media, e il nome lo dice.
+  it('il degrado scroll P3 di `.corpo` resta — ma vale solo sotto i 768px, dove la regola vive', () => {
+    const sottoI768 = contenutoMedia(srcHome, /max-width:\s*767px/)
+    expect(dichiarazioniDi(sottoI768, '.ua-home .corpo')).toContain('overflow-y: auto')
+    // Fuori dal media `.corpo` non scorre: è il size-container della scala fluida, e lo scroll
+    // è il degrado, non il comportamento normale.
+    const base = dichiarazioniDi(srcHome, '.ua-home .corpo')
+    expect(base).not.toBeNull()
+    expect(base?.some((d) => d.startsWith('overflow-y'))).toBe(false)
   })
 
   it('la vecchia scala a gradini è morta', () => {
@@ -67,30 +82,18 @@ describe('HomeV3 — D2: `.pile` degrada a "safe center" (mai una pila nascosta 
     expect(srcHome).toMatch(/\.ua-home \.pile \{[^}]*justify-content: center; justify-content: safe center;/)
   })
 
-  // Calcolo documentato (non un test di layout — jsdom non fa layout, v. commento in testa al
-  // file): la rimozione dei dot (E1) libera il margin-top di `.ua-stanze-dots` (4px) + l'intera
-  // hit-area del tablist (44px, touch target di legge) = 48px, restituiti a
-  // `.ua-stanza-pile-scroll`. Non annulla lo sforo misurato dal QA (69px) — la taratura fine del
-  // clamp resta demandata (già a ledger) — ma lo riduce, e con `safe center` l'eccesso residuo
-  // è SEMPRE raggiungibile in fondo allo scroll, mai nascosto dal centraggio.
-  it('D2 — calcolo documentato: il budget liberato da E1 (48px) riduce (senza azzerarlo) lo sforo misurato a 390×640', () => {
-    const boxPrima = 377
-    const scrollHeight = 446
-    const overflowPrima = scrollHeight - boxPrima
-    expect(overflowPrima).toBe(69)
-
-    const budgetLiberatoDaiDot = 4 /* margin-top .ua-stanze-dots */ + 44 /* hit-area tablist */
-    expect(budgetLiberatoDaiDot).toBe(48)
-
-    const boxDopo = boxPrima + budgetLiberatoDaiDot
-    const overflowDopo = scrollHeight - boxDopo
-    expect(overflowDopo).toBe(21)
-    expect(overflowDopo).toBeLessThan(overflowPrima)
-    // Il fit perfetto ad ogni altezza NON è richiesto qui (taratura clamp demandata): quel che
-    // conta è che l'eccesso resti SEMPRE raggiungibile via lo scroll di sicurezza invariato
-    // (`.ua-stanza-pile-scroll`), mai nascosto dal centraggio — garanzia di `safe center`.
-    expect(overflowDopo).toBeGreaterThan(0)
-  })
+  // D2 — CALCOLO DOCUMENTATO, non un test (review finale whole-branch: qui c'erano quattro
+  // `expect` che verificavano aritmetica su letterali dichiarati tre righe sopra — `expect(4 +
+  // 44).toBe(48)` e simili. Sarebbero passati anche con `HomeV3.tsx` cancellato: contavano
+  // nella suite senza presidiare nulla. Un commento documenta il calcolo altrettanto bene).
+  //
+  // Misure del QA device a 390×640: `.ua-stanza-pile-scroll` alta 377px contro 446px di
+  // contenuto → 69px di sforo. La rimozione dei dot (E1) restituisce il margin-top di
+  // `.ua-stanze-dots` (4px) più l'intera hit-area del tablist (44px, touch target di legge) =
+  // 48px, quindi la scatola sale a 425px e lo sforo scende a 21px. Non è azzerato — la
+  // taratura fine del clamp resta demandata, già a ledger — ma con `safe center` l'eccesso
+  // residuo è SEMPRE raggiungibile in fondo allo scroll, mai nascosto dal centraggio: è quella
+  // la garanzia, e la presidia il test qui sopra sulla doppia dichiarazione.
 })
 
 describe('StanzePager — la stanza Pile ha una sua superficie di scroll interna (fix round 2, Critical P3 pager)', () => {
@@ -134,20 +137,15 @@ describe('HomeV3/ds-v3.css — G2a: il respiro dell\'ombra vive nella scatola ch
     expect(srcCss).not.toMatch(/\[data-ds="v3"\] \.ua-stanza \{[^}]*padding: 0 24px 36px;/)
   })
 
-  it('`.ua-stanza-pile-scroll` porta il respiro (36px, stessa formula di `b8dbd31`: 28px d\'ombra + 8px di margine) DENTRO il proprio overflow-y:auto', () => {
+  // Calcolo documentato (riusato verbatim da `b8dbd31`, non un numero nuovo): l'estensione
+  // massima dell'ombra --sh-card sotto il bordo della card è offset-y 16 + spread −18 + blur
+  // 30 = 28px; il respiro aggiunge 8px di margine oltre quel massimo → 36px. Anche qui le due
+  // `expect` aritmetiche su letterali sono state tolte (review finale whole-branch): non
+  // toccavano né il CSS né il componente.
+  it('`.ua-stanza-pile-scroll` porta il respiro (36px = 28px d\'ombra + 8px di margine) DENTRO il proprio overflow-y:auto', () => {
     expect(srcCss).toMatch(
       /\[data-ds="v3"\]\s*\.ua-stanza-pile-scroll\s*\{[^}]*overflow-y:\s*auto;[^}]*padding-bottom:\s*36px;/
     )
-    // Calcolo documentato (riusato verbatim da `b8dbd31`, non un numero nuovo): l'estensione
-    // massima dell'ombra --sh-card sotto il bordo della card è offset-y 16 + spread −18 +
-    // blur 30 = 28px; il respiro aggiunge 8px di margine oltre quel massimo.
-    const offsetY = 16
-    const spread = -18
-    const blur = 30
-    const estensioneOmbra = offsetY + spread + blur
-    expect(estensioneOmbra).toBe(28)
-    const margine = 8
-    expect(estensioneOmbra + margine).toBe(36)
   })
 })
 
@@ -174,12 +172,16 @@ describe('HomeV3 — G2b: le pile crescono nello spazio libero (ceiling sul grad
     expect(srcHome).toMatch(/\.ua-home \.pile \.ds-pila-num \{ font-size: clamp\(38px, 6\.5cqh, 52px\); \}/)
   })
 
-  it('il gradino scelto (16→20) è il successivo sulla scala 8px, non un valore inventato', () => {
-    const scala8px = [4, 8, 12, 16, 20, 24, 32, 44] // spazio: xs·s·sm·m·ml·l·xl·xxl (tokens.ts §4.2)
-    const vecchioCeiling = 16
-    const nuovoCeiling = 20
-    expect(scala8px).toContain(vecchioCeiling)
-    expect(scala8px).toContain(nuovoCeiling)
-    expect(scala8px.indexOf(nuovoCeiling)).toBe(scala8px.indexOf(vecchioCeiling) + 1)
+  // Review finale whole-branch — questo test ricopiava la scala a mano (`[4, 8, 12, 16, 20,
+  // 24, 32, 44]`), cioè presidiava una COPIA della verità invece della verità: se `spazio.ml`
+  // diventasse 18, il tetto di 20px scritto nel CSS smetterebbe di essere un gradino del
+  // token e il test resterebbe verde lo stesso. Ora la scala si legge dai token e i due
+  // gradini si RICAVANO da lì — la loro identità numerica (16 e 20) resta asserita perché è
+  // quella che compare nel CSS controllato dai test qui sopra.
+  it('il gradino scelto (spazio.m → spazio.ml) è il successivo sulla scala 8px dei token, non un valore inventato', () => {
+    const scala8px = Object.values(spazio) // tokens.ts §4.2 — xs·s·sm·m·ml·l·xl·xxl, in ordine
+    expect(spazio.m).toBe(16) // il vecchio ceiling, e il valore che il CSS aveva prima di G2b
+    expect(spazio.ml).toBe(20) // il nuovo, quello scritto nei clamp presidiati qui sopra
+    expect(scala8px.indexOf(spazio.ml)).toBe(scala8px.indexOf(spazio.m) + 1)
   })
 })

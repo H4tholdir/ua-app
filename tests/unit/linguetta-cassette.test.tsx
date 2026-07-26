@@ -17,8 +17,24 @@ import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
 import { LinguettaCassette, registraAccessoParete } from '@/components/features/home/LinguettaCassette'
+// Review finale whole-branch — le guardie CSS di questo file facevano `toMatch` sul testo
+// grezzo del foglio di stile, con le dichiarazioni elencate in fila: pinnavano l'ORDINE e gli
+// spazi singoli (una riformattazione di `ds-v3.css` le rompeva senza che nulla fosse
+// peggiorato) e, nell'altro verso, provavano soltanto che quel testo esiste da qualche parte —
+// il fallimento per cui esiste `home-style-parsabile.test.ts`. Ora si passa dagli stessi aiuti
+// che le guardie ds-v3 vicine avevano già adottato: la regola va trovata COME REGOLA, dopo la
+// rimozione dei commenti, e ogni dichiarazione si controlla per conto suo.
+import { dichiarazioniDi, contenutoMedia } from '../helpers/css'
 
 const srcCss = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
+
+/** Le dichiarazioni di una regola di `ds-v3.css`, con un errore parlante se la regola non c'è
+ *  più (senza, un `null` finirebbe in un `toContain` con un messaggio incomprensibile). */
+function regola(selettore: string, css: string = srcCss): string[] {
+  const dichiarazioni = dichiarazioniDi(css, selettore)
+  expect(dichiarazioni, `regola \`${selettore}\` assente dal foglio di stile (o inghiottita da un commento)`).not.toBeNull()
+  return dichiarazioni as string[]
+}
 
 describe('LinguettaCassette — fase piena (F2, passaggi 1-3, taglia T2)', () => {
   beforeEach(() => {
@@ -46,7 +62,11 @@ describe('LinguettaCassette — fase piena (F2, passaggi 1-3, taglia T2)', () =>
     await waitFor(() => expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull())
   })
 
-  it('hit-area ≥44px anche se il disegno è ~34px T2 (riserva UX 3a): il button porta la classe con l’estensione', () => {
+  // Nome rettificato (review finale whole-branch): prometteva «hit-area ≥44px», ma jsdom non
+  // misura niente — qui si verifica solo che il button porti la classe che quella hit-area la
+  // dichiara. I 44px veri sono presidiati sul foglio di stile, più sotto («il button resta
+  // largo 44px»); il pixel a schermo è materia del QA device.
+  it('il button porta la classe `ds-linguetta`, quella che dichiara la hit-area da 44px (il disegno T2 è ~34px)', () => {
     render(<LinguettaCassette onVai={() => {}} visibile />)
     expect(screen.getByRole('button', { name: /le cassette/i }).className).toContain('ds-linguetta')
   })
@@ -139,7 +159,8 @@ describe('LinguettaCassette — fase filo (F2, dal 4° passaggio, soglia raggiun
     expect(screen.getByRole('button', { name: /le cassette/i })).toBeTruthy()
   })
 
-  it('hit-area del filo resta ≥44px (stessa classe base `ds-linguetta` dell’estensione hit-area)', () => {
+  // Stessa rettifica del gemello in fase piena: si controlla la classe, non i pixel.
+  it('anche a filo il button resta sulla classe base `ds-linguetta` (quella che dichiara la hit-area da 44px)', () => {
     registraAccessoParete()
     registraAccessoParete()
     registraAccessoParete()
@@ -229,10 +250,13 @@ describe('LinguettaCassette — C1: mai su desktop (il portale sfugge a `.ua-hom
 
   // Braccio CSS (metà dichiarata del fix C1): difesa in profondità per il frame prima che il
   // JS abbia deciso, e per chi legge il foglio di stile invece del componente.
-  it('il CSS porta il braccio desktop: `.ds-linguetta` spenta dentro un @media (min-width: 1024px)', () => {
-    expect(srcCss).toMatch(
-      /@media \(min-width:\s*1024px\) \{\s*\[data-ds="v3"\] \.ds-linguetta \{ display: none; \}\s*\}/
-    )
+  it('il CSS porta il braccio desktop: `.ds-linguetta` spenta DENTRO un @media (min-width: 1024px)', () => {
+    // «Dentro quel media» è metà del contratto: la stessa `display: none` scritta fuori
+    // spegnerebbe la linguetta anche sul telefono, cioè l'esatto contrario del fix.
+    const desktop = contenutoMedia(srcCss, /min-width:\s*1024px/)
+    expect(regola('[data-ds="v3"] .ds-linguetta', desktop)).toContain('display: none')
+    // …e fuori dal media la linguetta resta viva: la regola di base non la spegne.
+    expect(regola('[data-ds="v3"] .ds-linguetta')).not.toContain('display: none')
   })
 })
 
@@ -246,18 +270,27 @@ describe('LinguettaCassette — C1: mai su desktop (il portale sfugge a `.ua-hom
 // finale — quello è compito del QA device).
 describe('LinguettaCassette — G3-grafica: `.eti` centrato sull\'asse di blocco (writing-mode: vertical-rl)', () => {
   it('`.eti` è un contenitore flex con align-items/justify-content: center — non più solo text-align (che non centra l\'asse di blocco in vertical-rl)', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta \.eti \{[^}]*writing-mode:\s*vertical-rl;\s*width:\s*34px;\s*display:\s*flex;\s*align-items:\s*center;\s*justify-content:\s*center;/
-    )
+    const eti = regola('[data-ds="v3"] .ds-linguetta .eti')
+    expect(eti).toContain('writing-mode: vertical-rl')
+    expect(eti).toContain('display: flex')
+    expect(eti).toContain('align-items: center')
+    expect(eti).toContain('justify-content: center')
+    // `text-align: center` è stato RIMOSSO: con `display: flex` non ha più alcun effetto
+    // (nessuna riga da giustificare). Se tornasse, tornerebbe la falsa sicurezza di prima.
+    expect(eti).not.toContain('text-align: center')
   })
 
   // H4a (T2, valore verbatim dal mockup `.lng.big{width:34px}` / `.lng.big .txt{font-size:11.5px}`)
   // — width e font-size del testo bumpano da 26px/10px (T1) a 34px/11.5px (T2, ratificata).
   // Letter-spacing/color/text-transform INVARIATI: il mockup T2 non li tocca.
   it('H4a — taglia T2: width 34px, font-size 11.5px (letter-spacing/color/text-transform invariati)', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta \.eti \{[^}]*width:\s*34px;[^}]*font-size:\s*11\.5px;\s*font-weight:\s*700;\s*letter-spacing:\s*\.13em;\s*color:\s*var\(--muted\);\s*text-transform:\s*uppercase;/
-    )
+    const eti = regola('[data-ds="v3"] .ds-linguetta .eti')
+    expect(eti).toContain('width: 34px')
+    expect(eti).toContain('font-size: 11.5px')
+    expect(eti).toContain('font-weight: 700')
+    expect(eti).toContain('letter-spacing: .13em')
+    expect(eti).toContain('color: var(--muted)')
+    expect(eti).toContain('text-transform: uppercase')
   })
 
   // H4a — `.fre` (freccia) e `.mini-rete` (decorazione puntini) restano allineati alla NUOVA
@@ -266,15 +299,22 @@ describe('LinguettaCassette — G3-grafica: `.eti` centrato sull\'asse di blocco
   // `.mini-rete`, 13px + 2×10.5px = 34px) — se non si aggiornano insieme alla card, la
   // freccia e i puntini restano decentrati verso sinistra nella scheda più larga.
   it('H4a — `.fre` segue la card a 34px (era 26px in T1); font-size/color invariati', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta \.fre \{ position: relative; font-size: 13px; font-weight: 800; color: var\(--red\); width: 34px; text-align: center; \}/
-    )
+    const fre = regola('[data-ds="v3"] .ds-linguetta .fre')
+    expect(fre).toContain('width: 34px')
+    expect(fre).toContain('text-align: center')
+    expect(fre).toContain('font-size: 13px')
+    expect(fre).toContain('font-weight: 800')
+    expect(fre).toContain('color: var(--red)')
   })
 
   it('H4a — `.mini-rete` resta centrato nella card 34px (margin orizzontale 10.5px, non più 6.5px)', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta \.mini-rete \{\s*position: relative; width: 13px; height: 18px; margin: 6px 10\.5px; border-radius: 2px; opacity: \.45;/
-    )
+    const miniRete = regola('[data-ds="v3"] .ds-linguetta .mini-rete')
+    // 13px di contenuto + 2 × 10.5px di margine = 34px, la larghezza della card.
+    expect(miniRete).toContain('width: 13px')
+    expect(miniRete).toContain('margin: 6px 10.5px')
+    expect(miniRete).toContain('height: 18px')
+    expect(miniRete).toContain('border-radius: 2px')
+    expect(miniRete).toContain('opacity: .45')
   })
 })
 
@@ -284,18 +324,20 @@ describe('LinguettaCassette — G3-grafica: `.eti` centrato sull\'asse di blocco
 // `color-mix`), barra bianca `::after` 3×34px raggio 2px rgba(255,255,255,.85).
 describe('LinguettaCassette — H4a: filo rosso, valori verbatim dal mockup `.lng.slim`', () => {
   it('il button resta largo 44px (hit-area) anche quando il disegno si assottiglia a filo — invariante non toccato da `.is-filo`', () => {
-    expect(srcCss).toMatch(/\[data-ds="v3"\] \.ds-linguetta \{[^}]*width:\s*44px;/)
+    expect(regola('[data-ds="v3"] .ds-linguetta')).toContain('width: 44px')
   })
 
   it('`.is-filo::before` — larghezza 10px, sfondo var(--red) all\'85% (color-mix, coerente sui due temi)', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta\.is-filo::before \{[^}]*width:\s*10px;[^}]*background:\s*color-mix\(in srgb, var\(--red\) 85%, transparent\);/
-    )
+    const filo = regola('[data-ds="v3"] .ds-linguetta.is-filo::before')
+    expect(filo).toContain('width: 10px')
+    expect(filo).toContain('background: color-mix(in srgb, var(--red) 85%, transparent)')
   })
 
   it('`.is-filo::after` — la barra bianca 3px×34px, raggio 2px, rgba(255,255,255,.85) (valori verbatim `.lng.slim::after`)', () => {
-    expect(srcCss).toMatch(
-      /\[data-ds="v3"\] \.ds-linguetta\.is-filo::after \{[^}]*width:\s*3px;\s*height:\s*34px;\s*border-radius:\s*2px;\s*background:\s*rgba\(255,255,255,\.85\);/
-    )
+    const barra = regola('[data-ds="v3"] .ds-linguetta.is-filo::after')
+    expect(barra).toContain('width: 3px')
+    expect(barra).toContain('height: 34px')
+    expect(barra).toContain('border-radius: 2px')
+    expect(barra).toContain('background: rgba(255,255,255,.85)')
   })
 })

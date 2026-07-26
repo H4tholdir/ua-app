@@ -97,29 +97,25 @@ describe('Cassetta — occupata, targa D4 (Task 10, mockup 2026-07-24-rete-gance
     expect(btn.querySelector('.ds-cassetta-paz')?.textContent).toBe('Mario Rossi')
   })
 
-  it('H2 (0c37f25) — nome lungo: niente più classe di shrink, la doppia soglia è stata rimossa (sagoma unica per costruzione, non per calcolo)', () => {
-    const dentistaLungo = { ...lavoroOccupato, dentista: 'Dott.ssa Annamaria Bellinghieri' }
-    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={dentistaLungo} stato="normale" onTap={() => {}} />)
-    const btn = screen.getByRole('button')
-    const riga = btn.querySelector('.ds-cassetta-dent')
-    expect(riga?.className).toBe('ds-cassetta-dent')
-    expect(btn.className).not.toContain('is-nome-lungo')
-  })
-
-  it('H2 — nome corto: stessa classe, nessuna deroga (dent/paz identici indipendentemente dalla lunghezza)', () => {
-    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={lavoroOccupato} stato="normale" onTap={() => {}} />)
+  // Review finale whole-branch — qui c'erano TRE test quasi identici (dentista lungo, nome
+  // corto, paziente estremo), tutti a verificare l'assenza della classe `is-nome-lungo` su un
+  // percorso di codice che sulla lunghezza non si dirama PIÙ: la doppia soglia è stata rimossa
+  // con H2, quindi le tre stringhe di prova esercitavano esattamente lo stesso ramo. Ne resta
+  // uno — il caso lungo, l'unico che avrebbe fatto scattare la vecchia soglia e quindi l'unico
+  // che può accorgersi se qualcuno la reintroduce — esteso a coprire anche la riga paziente,
+  // che era l'unico contributo dei due gemelli cancellati.
+  it('H2 (0c37f25) — niente più classe di shrink, la doppia soglia è stata rimossa (sagoma unica per costruzione, non per calcolo)', () => {
+    const estremi = {
+      ...lavoroOccupato,
+      dentista: 'Dott.ssa Annamaria Bellinghieri',
+      pazienteAlias: 'Esposito Immacolata Concetta',
+    }
+    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={estremi} stato="normale" onTap={() => {}} />)
     const btn = screen.getByRole('button')
     expect(btn.querySelector('.ds-cassetta-dent')?.className).toBe('ds-cassetta-dent')
     expect(btn.querySelector('.ds-cassetta-paz')?.className).toBe('ds-cassetta-paz')
-    expect(btn.className).not.toContain('is-nome-lungo')
-  })
-
-  it('H2 — paziente a nome completo estremo: stessa classe ds-cassetta-paz, nessuna classe di shrink (il trattamento del caso limite è tutto in CSS — sfumatura, non JS)', () => {
-    const pazienteEstremo = { ...lavoroOccupato, pazienteAlias: 'Esposito Immacolata Concetta' }
-    render(<Cassetta id="c1" nome="C12" colore="rossa" lavoro={pazienteEstremo} stato="normale" onTap={() => {}} />)
-    const btn = screen.getByRole('button')
+    // Il testo non viene accorciato in JS: il trattamento del caso limite è tutto in CSS.
     expect(btn.querySelector('.ds-cassetta-paz')?.textContent).toBe('Esposito Immacolata Concetta')
-    expect(btn.querySelector('.ds-cassetta-paz')?.className).toBe('ds-cassetta-paz')
     expect(btn.className).not.toContain('is-nome-lungo')
   })
 
