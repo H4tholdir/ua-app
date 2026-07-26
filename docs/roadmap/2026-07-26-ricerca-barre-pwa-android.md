@@ -589,6 +589,46 @@ maggiore. Niente più occhio: un numero.
 | **~56 px** | §7.3-ter **dimostrato**: la pagina non arriva in fondo, il meccanismo è di Chrome, il nostro CSS è estraneo |
 | **0 px** | §7.3-ter **falso**: la pagina arriva in fondo, e la striscia di `/cassette` è **nostra** — si riparte dalla struttura di quella pagina, non da Chrome |
 
+#### 🛑 VERDETTO, 26/07 15:43, app installata — **§7.3-ter È FALSO**
+
+> `finestra 755 · documento 1764 · impagina 755` → **`RESIDUO SCOPERTO: 0 px`** — la pagina arriva
+> in fondo.
+
+**La spiegazione del §7.3-ter è smentita da una misura, non da un'impressione.** Va letta come
+storia di un'ipotesi caduta, non come diagnosi: **non ereditarla.**
+
+**E si vede anche DOVE sbagliava.** In questo screenshot `impagina` vale **755**, non 699. Il 699
+del §7.3-ter era stato letto su una pagina **che non scorreva**: in quel caso Chrome tiene il
+viewport «piccolo», ma **appena la pagina scorre `clientHeight` diventa 755 e combacia con la
+finestra.** I 56 punti «irraggiungibili» non esistono: erano un artefatto della pagina di prova,
+non una proprietà della PWA. 🛑 **Lezione di metodo:** la misura era giusta, la *condizione* in cui
+era stata presa no — un numero letto in una condizione diversa da quella del difetto **non è una
+misura del difetto**.
+
+#### ➡️ Conseguenza: la striscia panna di `/cassette` è NOSTRA, e non è ancora spiegata
+
+Quello che regge dopo la smentita:
+- ✅ **Nell'app installata il documento arriva all'ultimo pixel** — misurato, 0 px di residuo.
+- ✅ **Sul banco il muro chiude a filo**, anche al **viewport esatto di Francesco** (375×755, dpr
+  3.25, stesso laboratorio e stesse cassette): `muro.bottom = 755` su `innerHeight = 755`,
+  `padding-bottom` 58px, shell a 0, e agli ultimi pixel `elementFromPoint` risponde `.ds-parete`.
+- ❌ **Sul suo device il muro invece non ci arriva**, e sotto resta panna.
+
+Tre fatti misurati che non stanno insieme. **Le strade aperte, nessuna verificata:**
+1. **Lo screenshot non era a fine scroll** — o era durante l'*overscroll* (il rimbalzo di Android),
+   che sposta il contenuto e scopre il fondo del `body`. È l'ipotesi più economica e va esclusa per
+   prima: basta un secondo scatto, a scorrimento fermo.
+2. **Qualcosa nel documento sta sotto il muro solo sul device** — non riprodotto sul banco.
+3. Qualcosa che il banco headless non riproduce affatto (barra di stato, gestione dell'overscroll,
+   comportamento del WebAPK).
+
+**Prossimo passo se la (1) non basta:** un overlay diagnostico temporaneo su `/cassette` dietro
+query string — `?diag=fondo` — che stampi sulla pagina VERA gli stessi numeri della PROVA 2, più la
+distanza fra il bordo inferiore del muro e il fondo della finestra. **C'è precedente in questo
+repo**: `59b7cfd3` («overlay suoni `?diag=suoni` — evidenza device per H1, temporaneo»). È l'unico
+modo di misurare *il difetto* invece che una sua imitazione — che è esattamente l'errore appena
+corretto.
+
 ### 7.4 La striscia panna — cosa serve vedere
 
 Uno screenshot di `/cassette` **a fondo scroll** e uno **in cima**, sulla PWA installata, più la
