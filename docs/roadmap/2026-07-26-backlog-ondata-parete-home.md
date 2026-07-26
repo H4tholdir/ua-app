@@ -67,10 +67,17 @@ Non fanno parte delle 69: sono emerse dalle cinque review di area e dalla review
   correzione H2c ha dovuto essere applicata a mano su entrambi.
 - **La maglia scura è sfasata di mezzo periodo** rispetto a quella chiara: il filo più a sinistra
   finisce sotto il filo di bordo e si legge come una riga più spessa su quel solo lato.
-- **`--track` riserva un passo di maglia in più** del necessario (righe da 220-250px per cassette
-  da 138): la motivazione scritta è precedente al ridimensionamento del tile. **Se lo spazio fra le
-  righe è quello ratificato va detto nel commento; altrimenti è un avanzo che costa uno schermo di
-  scroll su una parete piena.** Decisione di Francesco, non di chi implementa.
+- ~~**`--track` riserva un passo di maglia in più** del necessario: la motivazione scritta è
+  precedente al ridimensionamento del tile.~~ **CHIUSA il 26/07/2026** — Francesco ha deciso
+  «avvicino le righe», v. R1 nella sezione delle raccomandazioni del gate qui sotto.
+  ⚠️ **Due numeri di questa riga erano sbagliati** e vanno corretti dove sono stati ripetuti:
+  le righe NON erano «da 220-250px». Sul telefono sono **200px**, perché lì il passo della maglia
+  sta al suo pavimento di **40px** (5 × 40); i 220 nascono da un `--passo-maglia: 44px` che è solo
+  il valore della regola base, mai quello risolto dentro la shell. E i valori non erano due ma
+  **tre**: la stanza parete della home a 768 ne aveva un terzo mai documentato in nessun
+  collaudo — **track 224,4px** a passo 44,88 — perché il suo container è largo 440px contro i 680
+  di `/cassette` alla stessa larghezza di finestra. Tutti e tre misurati sulla build vera il
+  26/07/2026.
 - **Residuo A3 dichiarato**: esiste un fotogramma transitorio (studio già a 2 righe, paziente non
   ancora ricapato a 1) con una pila da ~77,5px, che richiederebbe una fascia da 88px. Preesistente,
   non misurato, fuori dal perimetro della decisione del 26/07.
@@ -86,6 +93,77 @@ Non fanno parte delle 69: sono emerse dalle cinque review di area e dalla review
 - **Le due etichette «Salva il nome/il colore» non rimandano al loro verbale**: l'eccezione è
   registrata nel dizionario, ma chi le «corregge» sta editando `CassettaSheet.tsx`, che tace.
   Stesso trattamento meriterebbe il numero di lavoro rimesso nel nome accessibile della cassetta.
+
+## Le sei raccomandazioni del gate estetico L2 (26/07/2026)
+
+Il gate estetico L2 dell'ondata (FASE 9b — verdetto PASS, nessun difetto bloccante) ha lasciato
+sei raccomandazioni. Vivevano solo dentro il suo rapporto, che è un file di lavoro e non entra nel
+repo: qui restano. **Due sono CHIUSE**, decise da Francesco il 26/07/2026 e implementate nello
+stesso giro di commit di questa riga. Le altre quattro sono da fare dopo.
+
+### CHIUSE — decise da Francesco il 26/07/2026, fatte
+
+- **R1 — «Avvicino le righe.» CHIUSA.** Lo spazio riservato a ogni fila del muro era 5 maglie
+  ovunque. Quel quinto passo serviva a un tile che cresceva col contenuto; l'H2 di quest'ondata ha
+  fissato la cassetta a 138px, quindi non serviva più, e su un muro pieno a 1280 spezzava la
+  parete in strisce staccate. Ora sono **4 maglie dal tablet in su, 5 sul telefono** (a 390 il
+  passo è al pavimento di 40px: con 4 i gancetti della fila sotto sfiorerebbero la cassetta sopra).
+  La soglia è una media query sui 768px del viewport e non una container query, perché le due
+  pareti — `/cassette` e la stanza parete della home — hanno container di larghezza diversa alla
+  stessa finestra e su una soglia di container cambierebbero passo in due momenti diversi.
+  `src/app/ds-v3.css`, guardia `tests/unit/ds-v3/parete-gancio-cornice.test.ts`.
+- **R2 — «Il numero del lavoro non si taglia mai.» CHIUSA.** Numero e frase stavano nello stesso
+  blocco con una sola ellissi, quindi a 390 spariva il numero: si leggeva `n.2026/000…`, che non
+  distingue il lavoro 0001 dal 0009. Ora il numero ha un blocco suo e a stringersi è solo la frase;
+  il conteggio «e altre N» resta intoccabile com'era. `src/components/ds/StrisciaStato.tsx`,
+  guardia `tests/unit/ds-v3/componenti/pila-striscia.test.tsx`.
+
+### Da fare dopo
+
+- **R3 — i 10px con cui la linguetta sborda sulla colonna delle pile non li presidia nessuno.**
+  A 390, in fase piena, la card della linguetta entra di 10px oltre il bordo destro della colonna
+  delle pile. Non è un difetto estetico: a vedersi legge come una linguetta attaccata al bordo
+  dello schermo, che è esattamente quello che è, e le due bande verticali oggi non si toccano.
+  È un difetto di **durabilità**: colonna e linguetta sono ancorate a due riferimenti diversi (la
+  colonna al centro con `max-width: 480px`, la linguetta a `right: 0`) e nessun test guarda quei
+  10px. **Rimandarla non costa niente oggi.** Diventa urgente il giorno in cui una pila cresce in
+  altezza o il piede si abbassa: le due bande si incontrerebbero e non se ne accorgerebbe nessuno.
+  `LinguettaCassette.tsx` / `.ua-home`.
+- **R4 — a 390 l'etichetta «Nuova cassetta» arriva sopra i trattini del suo bordo.** Il testo è
+  largo 90,81px dentro un tile da 95,33px con un bordo tratteggiato da 2,5px. Non è tagliato
+  (sforo zero, misurato), è stretto: il testo tocca il tratteggio invece di respirarci dentro. A
+  768 e 1280 il tile è largo 140-150px e il problema non esiste. **Rimandarla costa un tile un po'
+  sciatto sul telefono**, l'unico elemento della parete che si vede sempre. Diventa urgente se
+  quella parola cambia o si allunga (o alla prima lingua diversa dall'italiano).
+  `ds-v3.css`, `.ds-tray-nuova`.
+- **R5 — in tema scuro i gancetti si appiattiscono in una macchia.** Non è un problema di stacco
+  sul muro: è il gancetto che perde il proprio chiaroscuro interno, cioè quello che gli dà forma
+  di pezzo di metallo. Lo scarto fra la sua luce e la sua ombra passa da 3,21:1 in chiaro a
+  **1,68:1 in scuro**. Il tema scuro *è* stato considerato (l'override esiste), ma è stato portato
+  troppo giù. **Rimandarla costa l'idea su cui poggia tutto il redesign**: in scuro il gesto
+  «appeso al muro» non si legge. Diventa urgente al primo utente che tiene il telefono in tema
+  scuro tutto il giorno — cioè presto. `ds-v3.css` (`--gan-metal-*`).
+- **R6 — apostrofo dritto accanto a virgolette curve.** `un'altra`, `c'è` con l'apostrofo dritto
+  della tastiera, e nella stessa schermata `“…”` con le virgolette tipografiche. È
+  un'incoerenza tipografica, non un errore d'italiano. **Rimandarla non costa quasi niente.**
+  Si fa insieme al prossimo giro sulle parole, mai da sola. Trasversale.
+
+### Aggiunta di questo giro — non era nel gate, l'ha trovata la decisione 1
+
+- **Nel rail del desktop la striscia non ha spazio per dire DI CHE COSA parla.** A 1280 la
+  striscia non vive più nella colonna della home ma nel rail di `NavDesk`, che le lascia **178px**
+  di larghezza utile. Icona, conteggio e CTA da soli ne chiedono 208: il soggetto resta a zero e
+  la CTA esce di 30px oltre il bordo interno della card. A schermo si legge «**! e un'altra
+  Conferma ›**» — un allarme senza soggetto, cioè esattamente la classe di difetto per cui il
+  conteggio era stato inventato. **È PREESISTENTE alla decisione del 26/07** e non è peggiorata:
+  misurata identica prima e dopo (stesso sforo di 30,03px, stesso soggetto a zero) — la decisione
+  «il numero non si taglia mai» semplicemente **là non è applicabile**, perché non c'è lo spazio
+  fisico per applicarla. **Rimandarla costa una striscia muta su desktop** ogni volta che gli
+  allarmi accesi sono due o più. Diventa urgente appena qualcuno usa UÀ da computer sul serio.
+  Non si risolve con il layout della striscia: o il rail diventa più largo, o lì la striscia va su
+  due righe, o su desktop il conteggio si racconta in un altro modo — è una decisione di forma,
+  da portare a Francesco. `src/components/ds/NavDesk.tsx`, cattura
+  `docs/design/screenshots/2026-07-26-redesign-parete-home/gate-l2/1280-{light,dark}-striscia-rail-navdesk-DOPO.png`.
 
 ## Una voce che è una DECISIONE di Francesco, non una pulizia
 
