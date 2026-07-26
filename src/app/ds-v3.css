@@ -1587,6 +1587,18 @@
    l'attributo `data-stanza` (già scritto da `StanzePager.tsx` su ogni pannello, invariato):
    la stanza Pile non cambia larghezza di un pixel. */
 [data-ds="v3"] .ua-stanza[data-stanza="parete"] { padding-left: 0; padding-right: 0; }
+/* Striscia panna della stanza parete (collaudo PWA installata 26/07/2026) — la METÀ di ritorno
+   del rimedio, l'altra metà è nel blocco `<style>` di `HomeV3.tsx` (v. lì il ragionamento intero).
+   Il respiro verticale è stato tolto al frame `.ua-home` perché la stanza parete non lo paghi: qui
+   la stanza PILE se lo riprende. 🛑 Non è facoltativo: il piede ha come unico stacco dal bordo
+   `env(safe-area-inset-bottom)`, che sulla PWA installata di Francesco MISURA 0 (verificato il
+   26/07) — senza questa riga il TastoPiù finirebbe a filo della barra dei gesti di Android, con
+   gesti di sistema che partono al posto del bottone. Riaprirebbe il fix T15/1a.
+   ⚠️ NON confondere con il respiro d'ombra G2a: quei 36px sono un'altra cosa, stanno DENTRO
+   `.ua-stanza-pile-scroll` (sotto) e servono a non rasare l'ombra dell'ultima pila. Questo padding
+   sta FUORI dallo scroller, è l'inset del frame. Scambiarli di posto riapre G2a — la guardia
+   `tests/unit/home-parete-fino-in-fondo.test.ts` pretende che restino separati. */
+[data-ds="v3"] .ua-stanza[data-stanza="pile"] { padding-bottom: var(--ua-pad-v); }
 /* QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — ABROGATA: `.ua-stanze-dots`
    (il wrapper dei due dot indicatore/selettore di stanza) è morta insieme al componente che
    scopava (`ProgressDotsStanze`, v. `ProgressDots.tsx`) — i dot sono stati rimossi del tutto,
