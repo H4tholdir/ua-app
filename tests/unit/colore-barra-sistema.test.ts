@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { COLORE_BARRA, impostaColoreBarra } from '@/design-system/colore-barra-sistema'
+import { COLORE_BARRA } from '@/design-system/colore-barra-sistema'
 import { luce, notte } from '@/design-system/v3/tokens'
 import { SCRIPT_TEMA } from '@/components/layout/ThemeInitializer'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { resolve, join } from 'node:path'
 
 function metaTemi(): string[] {
   return Array.from(document.querySelectorAll('meta[name="theme-color"]'))
@@ -15,47 +15,15 @@ describe('COLORE_BARRA — deriva dal fondo, non lo ridigita', () => {
     expect(COLORE_BARRA.light).toBe(luce.bg)
     expect(COLORE_BARRA.dark).toBe(notte.bg)
   })
-})
 
-describe('impostaColoreBarra — upsert, mai no-op silenzioso', () => {
-  beforeEach(() => {
-    document.head.innerHTML = ''
-  })
-
-  it('crea il meta quando non ce ne sono', () => {
-    expect(metaTemi()).toHaveLength(0)
-
-    impostaColoreBarra('dark')
-
-    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
-  })
-
-  it('aggiorna TUTTI i meta presenti, non solo il primo', () => {
-    document.head.innerHTML =
-      '<meta name="theme-color" content="#D90012">' +
-      '<meta name="theme-color" content="#D90012" media="(prefers-color-scheme: dark)">'
-
-    impostaColoreBarra('light')
-
-    expect(metaTemi()).toEqual([COLORE_BARRA.light, COLORE_BARRA.light])
-  })
-
-  it('non ne crea un secondo se ce n_e gia uno', () => {
-    document.head.innerHTML = '<meta name="theme-color" content="#D90012">'
-
-    impostaColoreBarra('dark')
-
-    expect(metaTemi()).toHaveLength(1)
-    expect(metaTemi()[0]).toBe(COLORE_BARRA.dark)
-  })
-
-  it('non tocca i meta di altro nome', () => {
-    document.head.innerHTML = '<meta name="description" content="UA">'
-
-    impostaColoreBarra('dark')
-
-    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('UA')
-    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  // I valori finiscono INTERPOLATI dentro apici singoli nella stringa di uno script
+  // iniettato via dangerouslySetInnerHTML. Un valore con un apice, un backslash o
+  // '</script' produrrebbe un errore di sintassi che il try/catch dello script NON
+  // puo' catturare (uccide lo script che lo contiene) — rottura muta in produzione.
+  it('sono esadecimali a sei cifre, interpolabili senza escape', () => {
+    for (const valore of Object.values(COLORE_BARRA)) {
+      expect(valore).toMatch(/^#[0-9A-Fa-f]{6}$/)
+    }
   })
 })
 
@@ -79,6 +47,11 @@ function sistemaScuro(scuro: boolean): void {
   })
 }
 
+// NOTA sugli osservatori: ogni eseguiScript() installa un MutationObserver su
+// documentElement che non viene mai disconnesso (in produzione vive quanto il
+// documento, ed e' corretto cosi'). A fine file ne restano diversi vivi sullo
+// stesso documento: innocui, perche' scrivono tutti lo stesso valore. Se un
+// giorno si volesse asserire QUANTE volte gira barra(), questo va cambiato.
 describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura', () => {
   beforeEach(() => {
     document.head.innerHTML = ''
@@ -92,6 +65,7 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     eseguiScript()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(metaTemi()).toEqual([COLORE_BARRA.light])
   })
 
@@ -101,6 +75,7 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     eseguiScript()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
   })
 
@@ -111,7 +86,17 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     eseguiScript()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  // Chrome ignora un theme-color che non sta in <head>. querySelectorAll cerca in
+  // tutto il documento: senza questa asserzione un appendChild sul body passerebbe.
+  it('mette il meta dentro <head>, non altrove', () => {
+    eseguiScript()
+
+    const meta = document.querySelector('meta[name="theme-color"]')
+    expect(meta?.parentElement).toBe(document.head)
   })
 
   it('aggiorna il meta gia emesso da Next invece di aggiungerne un altro', () => {
@@ -121,6 +106,25 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     eseguiScript()
 
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+
+  it('aggiorna TUTTI i meta presenti, non solo il primo', () => {
+    document.head.innerHTML =
+      '<meta name="theme-color" content="#D90012">' +
+      '<meta name="theme-color" content="#D90012" media="(prefers-color-scheme: dark)">'
+
+    eseguiScript()
+
+    expect(metaTemi()).toEqual([COLORE_BARRA.light, COLORE_BARRA.light])
+  })
+
+  it('non tocca i meta di altro nome', () => {
+    document.head.innerHTML = '<meta name="description" content="UA">'
+
+    eseguiScript()
+
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('UA')
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
   })
 
   it('segue dal vivo il cambio di data-theme — e questa e la cosa da provare sul device', async () => {
@@ -133,6 +137,18 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
   })
 
+  // Chiude il caso «scatta solo la prima volta»: l'osservatore deve reggere le
+  // alternanze, non un singolo cambio.
+  it('regge le alternanze ripetute, non solo il primo cambio', async () => {
+    eseguiScript()
+
+    for (const atteso of ['dark', 'light', 'dark'] as const) {
+      document.documentElement.setAttribute('data-theme', atteso)
+      await new Promise(r => setTimeout(r, 0))
+      expect(metaTemi()).toEqual([COLORE_BARRA[atteso]])
+    }
+  })
+
   it('con data-theme RIMOSSO torna chiaro, non scuro (caso ds-v3-catalogo)', async () => {
     localStorage.setItem('ua-theme', 'dark')
     eseguiScript()
@@ -142,6 +158,30 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     await new Promise(r => setTimeout(r, 0))
 
     expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  // Il difetto trovato in review, misurato: con localStorage che lancia (privacy
+  // del browser, cookie bloccati, WebView, policy aziendali) un try unico faceva
+  // cadere TUTTO — niente tema, niente classe, niente meta — e da quando layout.tsx
+  // non dichiara piu' themeColor non c'e' nemmeno piu' un colore di riserva
+  // nell'HTML. Lo storage deve degradare al sistema, non azzerare lo script.
+  it('se localStorage lancia, degrada al sistema invece di cadere del tutto', () => {
+    const originale = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() { throw new Error('SecurityError: storage bloccato') },
+    })
+    sistemaScuro(true)
+
+    try {
+      eseguiScript()
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+      expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+    } finally {
+      if (originale) Object.defineProperty(window, 'localStorage', originale)
+    }
   })
 
   it('non contiene colori scritti a mano', () => {
@@ -160,6 +200,7 @@ describe('layout.tsx — nessun theme-color posseduto da React', () => {
       sorgente.indexOf('export default function RootLayout'),
     )
 
+    expect(blocco.length).toBeGreaterThan(0)
     expect(blocco).not.toContain('themeColor')
   })
 
@@ -173,5 +214,37 @@ describe('layout.tsx — nessun theme-color posseduto da React', () => {
 
   it('non tocca statusBarStyle di Apple, che e un altra piattaforma', () => {
     expect(sorgente).toContain("statusBarStyle: 'default'")
+  })
+
+  // Oggi layout.tsx e' l'unico export viewport dell'app, ma niente lo presidia:
+  // una pagina futura che dichiara themeColor reintrodurrebbe un meta posseduto
+  // da React, rimontabile a ogni navigazione, e nessun test se ne accorgerebbe.
+  it('NESSUNA pagina di src/app dichiara themeColor', () => {
+    const colpevoli: string[] = []
+
+    // Si guarda il codice, non i commenti: layout.tsx nomina 'themeColor' proprio
+    // nella riga che spiega perche' non lo dichiara piu'.
+    const senzaCommenti = (sorgente: string) =>
+      sorgente
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n')
+        .map(riga => riga.replace(/\/\/.*$/, ''))
+        .join('\n')
+
+    function scandaglia(cartella: string): void {
+      for (const voce of readdirSync(cartella)) {
+        const percorso = join(cartella, voce)
+        if (statSync(percorso).isDirectory()) {
+          scandaglia(percorso)
+        } else if (voce.endsWith('.tsx') || voce.endsWith('.ts')) {
+          const codice = senzaCommenti(readFileSync(percorso, 'utf-8'))
+          if (codice.includes('themeColor')) colpevoli.push(percorso)
+        }
+      }
+    }
+
+    scandaglia(resolve(process.cwd(), 'src/app'))
+
+    expect(colpevoli).toEqual([])
   })
 })

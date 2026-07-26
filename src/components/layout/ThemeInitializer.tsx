@@ -11,9 +11,16 @@
 // commenti — chiudono il template literal e producono un TS1381 oscuro. Apici singoli.
 import { COLORE_BARRA } from '@/design-system/colore-barra-sistema'
 
-export const SCRIPT_TEMA = `(function(){try{
-  var s=localStorage.getItem('ua-theme');
-  var d=s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+export const SCRIPT_TEMA = `(function(){
+  /* Lo storage sta in un try SUO: se lancia (privacy del browser, cookie bloccati,
+     WebView, policy aziendali) si degrada al tema di sistema. In un try unico
+     faceva cadere tutto il resto — niente tema, niente classe, niente meta — e da
+     quando layout.tsx non dichiara piu' themeColor non ci sarebbe nemmeno piu' un
+     colore di riserva nell'HTML. Misurato in review, non ipotizzato. */
+  var s=null;
+  try{s=localStorage.getItem('ua-theme');}catch(e){}
+  try{
+  var d=s==='dark'||(!s&&!!window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
   var h=document.documentElement;
   if(d){h.classList.add('dark');h.setAttribute('data-theme','dark');}
   else{h.classList.remove('dark');h.setAttribute('data-theme','light');}
@@ -22,6 +29,9 @@ export const SCRIPT_TEMA = `(function(){try{
     /* la condizione e' 'dark' ? scuro : chiaro — mai il contrario: data-theme puo'
        essere ASSENTE (ds-v3-catalogo lo rimuove), e assente significa chiaro. */
     var c=h.getAttribute('data-theme')==='dark'?SCURO:CHIARO;
+    /* si scrivono TUTTI i meta trovati. Oggi ce n'e' al massimo uno; se un domani
+       tornasse la forma a coppia chiaro/scuro con l'attributo media, questo ciclo
+       li porterebbe entrambi allo stesso valore annullando la distinzione. */
     var m=document.querySelectorAll('meta[name="theme-color"]');
     if(!m.length){
       var n=document.createElement('meta');
