@@ -582,7 +582,9 @@ Cinque passi, **in quest'ordine**:
 1. **Chiudi UÀ dai recenti** (o forza arresto). Senza questo Android ripristina il task, il documento vecchio resta vivo, non arriva nessun HTML nuovo: falso negativo garantito.
 2. Apri l'app e **riferisci il colore della barra in cima**.
 3. 🛑 **Con la sessione aperta, DA DENTRO L'APP** (mai dalla schermata di accesso), tocca l'interruttore chiaro/scuro e **riferisci se la barra cambia dal vivo**. È l'osservazione decisiva.
+   **Dove si trova, verificato:** la home **non** ha il sole/luna in testata (non monta `AppHeader`). L'interruttore è nel **pannello del profilo** — avatar in alto a destra → voce **«Tema»** (`UserProfileSheet.tsx:243`, montato in `(app)/layout.tsx:78`, quindi presente su tutte le pagine dell'area app).
    **Perché non dal login:** in questa tappa il suo sole/luna muta solo stato React e non scrive `data-theme`, quindi l'osservatore non scatta e la barra non si muove **per costruzione**. Premerlo lì produrrebbe la frase «non cambia» che questo intero rollout esiste per non farsi dire per sbaglio.
+   ⚠️ Il pannello del profilo copre parte dello schermo: guardare **la striscia in cima**, che resta visibile.
 4. Naviga fra due pagine e **riferisci se la barra regge**.
 5. 🛑 **Non giudicare dallo splash:** in questa tappa la schermata d'avvio è ancora rossa **per definizione** — è il manifest, e il manifest non è stato toccato.
 
