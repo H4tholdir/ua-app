@@ -12,6 +12,12 @@ dal repo principale, `next build` fallisce su `/api/admin/labs` via Stripe.
 **Piano tappa 1:** `docs/superpowers/plans/2026-07-26-tappa-1-meccanismo-barra-di-stato.md`
 Dettaglio pieno: **voce 45** di `MEMORY.md`.
 
+✅ **TAPPA 2 IN PRODUZIONE** (merge `850e3f26`, CI+CD verdi, verificata live: manifest e pagina
+offline servono il fondo unico). Guardia `tests/unit/un-tema-solo-e-la-barra-lo-segue.test.ts`,
+10 controlli, con controprova. Suite **3319 verdi / 19 skip**. Dettaglio: **voce 46** di `MEMORY.md`.
+⚠️ Sul device installato **splash e scheda nei recenti cambiano solo quando Android rigenera il
+pacchetto**: per vederlo subito, disinstallare e reinstallare.
+
 ✅ **PROVA SUL DEVICE SUPERATA (19:28).** «La barra ha cambiato colore, in modo corretto e in base
 alla sezione del tema cambia colore in automatico». **Il meta `theme-color` È onorato nelle PWA
 installate su Android, anche mutato a runtime** — lacuna §3.3 della ricerca chiusa empiricamente.
