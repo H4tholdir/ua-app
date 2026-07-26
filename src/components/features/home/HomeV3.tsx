@@ -212,10 +212,53 @@ export function HomeV3(props: {
     // due `<main>` annidati sono HTML non valido (un solo landmark main per
     // documento). L'aria resta intatta: nessun ruolo/aria-* qui dipendeva dal
     // tag `main`.
-    <section className={`ua-home ua-home-mobile${vista.tipo === 'pager' ? ' is-stanze' : ''}`}>
+    <section className={`ua-home ua-home-mobile${
+      vista.tipo === 'pager' ? ' is-stanze'
+      : vista.stanza === 'parete' ? ' is-parete-sola'
+      : ''}`}>
       <style>{`
-        .ua-home { position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
-                   padding: clamp(12px, 2.6cqh, 24px) 24px; display: flex; flex-direction: column; min-height: 100dvh; }
+        /* Striscia panna della stanza parete (collaudo PWA installata 26/07/2026, panel advisor —
+           guardia 'tests/unit/home-parete-fino-in-fondo.test.ts'). Il respiro verticale del frame
+           valeva anche IN FONDO, e la stanza parete ci stava dentro: il muro chiudeva 19,6px prima
+           del bordo dello schermo e sotto restava il fondo di '.ua-home', panna liscia contro la
+           rete del muro. Sulla rotta standalone '/cassette' no — ed è lo stesso indirizzo, quindi
+           il difetto era invisibile a chi guardava l'URL invece della superficie.
+
+           Il valore vive ora in UN token, letto e mai ridigitato. 'svh' e non 'cqh': una custom
+           property che contiene unità di container si RI-RISOLVE su ogni elemento che la legge —
+           su '.ua-stanze' darebbe 18,61px invece di 19,63px, cioè padding e margine qui sotto non
+           si annullerebbero più esattamente e resterebbe uno scroll spurio di un pixel. Oggi è un
+           no-op numerico (il 'cqh' di '.ua-home' ricade già sul viewport piccolo: gli unici
+           'container-type' del progetto sono suoi DISCENDENTI), e immunizza il valore se un domani
+           nascesse un container antenato. */
+        .ua-home { --ua-pad-v: clamp(12px, 2.6svh, 24px);
+                   position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
+                   padding: var(--ua-pad-v) 24px; display: flex; flex-direction: column; min-height: 100dvh; }
+        /* Stesso schema già ratificato per l'asse ORIZZONTALE ('ds-v3.css': '.ua-home.is-stanze'
+           azzera, '.ua-stanza' restituisce, '[data-stanza="parete"]' non prende), ruotato di 90°.
+           La coppia padding-su-'.corpo' + margine-negativo-su-'.ua-stanze' non è un ornamento: i
+           bordi che clippano sotto la parete sono DUE — '.ua-stanze-viewport' ('overflow-y:hidden')
+           e '.corpo' stesso, che sotto 768px è 'overflow-y:auto' (v. la media query in fondo a
+           questo blocco). Un margine negativo senza il padding compensativo sforerebbe il padding
+           box di '.corpo' e verrebbe clippato, aggiungendogli per giunta scroll verticale spurio.
+           Così invece il CONTENT BOX di '.corpo' resta identico a prima: '.corpo' è
+           'container-type: size' e su di lui risolvono TUTTI i 'cqh' della stanza pile (gap,
+           imbottiture, corpo dei numeri) — la loro scala non si muove di un centesimo, e le
+           tarature ratificate D2/G2a/G2b/R2/R3 restano fuori dal raggio.
+           🛑 NON sostituire con «azzera il padding quando la stanza attiva è la parete»: quella
+           forma cambierebbe l'altezza di '.corpo' alla soglia 0.6 dell'IntersectionObserver, cioè
+           A METÀ SWIPE — la stanza che si sta lasciando si ri-impagina sotto il dito. */
+        .ua-home.is-stanze { padding-bottom: 0; }
+        .ua-home.is-stanze .corpo { padding-bottom: var(--ua-pad-v); }
+        .ua-home.is-stanze .ua-stanze { margin-bottom: calc(-1 * var(--ua-pad-v)); }
+        /* Forma «solo parete» (preferenza utente 'parete'): non ha 'is-stanze', quindi non prende
+           NESSUNA delle regole qui sopra né quelle dell'asse orizzontale. Senza questa riga
+           resterebbe con i 19,6px sotto E 24px di inset per lato che '/cassette' non paga — cioè
+           il difetto D5a sopravvissuto in una terza superficie. Azzerare tutto la allinea alla
+           rotta standalone, che è esattamente ciò che quella forma rispecchia (v. il commento sul
+           ramo che la rende). ⚠️ Applicata su parere del panel senza misura preventiva sul device,
+           per decisione esplicita di Francesco del 26/07: la misura è stata fatta DOPO. */
+        .ua-home.is-parete-sola { padding: 0; }
         /* Task 14 (D8, §3.3) — wrapper fluido: la flex gli dà altezza definita → cqh risolve.
            ATTENZIONE (riserva FE R5): niente position:fixed DISCENDENTE — la linguetta è in
            portale su body apposta (v. LinguettaCassette.tsx), altrimenti questo container-type
