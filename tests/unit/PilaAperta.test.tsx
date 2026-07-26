@@ -8,6 +8,27 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, back: vi.fn() }) }))
 beforeEach(() => push.mockClear())
 
+// Review finding G1 (fix-list FIX-G) — `PilaAperta` è il root client SEMPRE montato di
+// `/lavori` (l'altro root, `PilaSplit`, resta solo CSS-hidden sotto i 768px: v.
+// `.ua-lavori-mobile`/`.ua-lavori-split` in `lavori/page.tsx`/`PilaSplit.tsx`), ma renderizza
+// `CardLavoro`/`TastoTondo` — entrambi chiamano `suona('tap')` — senza che nulla a monte
+// avesse mai chiamato `initSuoni()`: primo tap muto, stesso bug di G1 su `/dashboard`
+// (HomeV3.tsx). Stesso fix, stesso posto: il mount della home client di questa route.
+const { initSuoniSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', async (importOriginal) => {
+  const reale = await importOriginal<typeof import('@/design-system/v3/sound')>()
+  return { ...reale, initSuoni: initSuoniSpy }
+})
+
+describe('PilaAperta — motore audio al mount (G1, review FIX-G)', () => {
+  beforeEach(() => { initSuoniSpy.mockClear() })
+
+  it('chiama initSuoni() al mount — root client sempre montato di /lavori', () => {
+    render(<PilaAperta pila="rossa" sub="2 lavori" lista={[]} />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
 const lav = (numero: string, extra: Partial<LavoroPila> = {}): LavoroPila => ({
   id: `l${numero}`, numero, dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
   cassetta: null,

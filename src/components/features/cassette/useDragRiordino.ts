@@ -29,17 +29,40 @@
 // Nota sullo stile (React Compiler lint): gli handler sono FUNZIONI SEMPLICI nel corpo del hook (lo
 // stesso pattern di `Cassetta.tsx`), non `useCallback` — così l'accesso ai ref è quello lecito degli
 // event handler. Le prop più fresche si sincronizzano in un `useEffect`.
+//
+// CAPITOLO H3 v2 — riordino «aggancio al dito» (opzione 1 RATIFICATA da Francesco, decisione
+// 0c37f25, `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3). Indagine PROVATA:
+// `.superpowers/sdd/h3-indagine-report.md`. Root cause: `frame()` confrontava il CENTRO DEL
+// GHOST (`centroOrigineRef` + delta dal lift) col punto medio fra due centri-TRACK di
+// `indiceDaPunto` — su `.ds-parete-grid` (`align-items:start`, track PIÙ ALTO della cassetta:
+// 200px sul telefono, 179,52-200 dal tablet in su dopo la decisione «avvicino le righe» del
+// 26/07/2026 — erano 200/250 prima; il track è comunque LETTO a runtime da `grid-auto-rows`, mai
+// ricopiato qui, quindi la decisione non tocca questo codice — contro l'altezza fissa del commit
+// 21a0b17 «cassetta B», oggi 138px dopo la ratifica A3 del 26/07/2026, anche lei letta a runtime
+// da un rect vero) quel punto medio cade nella maglia VUOTA sotto la
+// cassetta, non su una cassetta vera; e se la presa non è al centro (si afferra la targa in
+// alto, il caso reale), il ghost-centro "precede" il dito — il riordino scattava mentre il dito
+// era ancora sopra la cassetta d'origine. FIX-F/`pitchY` restano CORRETTI e INVARIATI (l'indagine
+// li ha provati esatti): cambia solo il TRIGGER. Ora `frame()` passa il PUNTO DEL DITO
+// (`puntoRef`, mai più un centro derivato) a `indiceRettangoloDaPunto` (riordino-core.ts): il
+// ricalcolo scatta SOLO quando il dito è DENTRO il rettangolo reale di un'altra cassetta;
+// `null` (vuoto di rete, cornice, propria cassetta) → nessun nuovo `setOrdineIds`, l'ultimo
+// bersaglio valido resta (one-way per posizione). `centroOrigineRef` è sparito: non serve più
+// nessun offset presa↔centro, la trappola è morta per costruzione.
 
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { animate, useMotionValue, type MotionValue } from 'motion/react'
 import { molla, trascinamento } from '@/design-system/v3/motion'
 import { vibra } from '@/design-system/v3/haptic'
+import { suona } from '@/design-system/v3/sound'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 import {
   type Geometria,
+  type Scroller,
   calcolaNuovoOrdine,
-  indiceDaPunto,
+  creaScroller,
+  indiceRettangoloDaPunto,
   riconcilia,
   velocitaAutoScroll,
 } from './riordino-core'
@@ -73,6 +96,9 @@ export function useDragRiordino(opts: {
   onSheet: (id: string) => void
   inviaOrdine: (ordine: string[]) => Promise<boolean>
   onRefresh: () => void
+  /** Scroller del gesto (riserva ARCH R1, pre-embed home): assente → window, comportamento
+   *  IDENTICO a oggi. Nella stanza home passerà il contenitore scrollabile della stanza. */
+  scrollerRef?: RefObject<HTMLElement | null>
 }): UsaDrag {
   const { parete, disabilitato, gridRef, onSheet, inviaOrdine, onRefresh } = opts
 
@@ -114,14 +140,15 @@ export function useDragRiordino(opts: {
   const pointerIdRef = useRef<number | null>(null)
   const puntoRef = useRef({ x: 0, y: 0 })
   const liftRef = useRef({ x: 0, y: 0 })
-  const centroOrigineRef = useRef({ x: 0, y: 0 })
   const origineRectRef = useRef({ left: 0, top: 0 })
   const geoRef = useRef<Geometria | null>(null)
+  const scrollerRef = useRef<Scroller | null>(null)
   const scrollLiftRef = useRef(0)
   const origineRef = useRef(0)
   const correnteRef = useRef(0)
   const snapshotRef = useRef<string[]>([])
   const mossoRef = useRef(false)
+  const staccoSuonatoRef = useRef(false)
   const rafRef = useRef<number | null>(null)
   const ultimoTsRef = useRef(0)
   const ingaggioBordoRef = useRef(0)
@@ -206,10 +233,12 @@ export function useDragRiordino(opts: {
     const dt = ultimoTsRef.current ? ts - ultimoTsRef.current : 16
     ultimoTsRef.current = ts
 
-    if (geo && typeof window !== 'undefined') {
-      const h = window.innerHeight || 0
+    const scroller = scrollerRef.current
+    if (geo && scroller) {
+      const base = scroller.sogliaAlta()
+      const h = scroller.altezzaVista()
       const fascia = Math.min(0.25 * h, FASCIA_BORDO_MAX)
-      const y = puntoRef.current.y
+      const y = puntoRef.current.y - base // coordinate RELATIVE alla vista scrollabile
       let dir = 0
       let dist = fascia
       if (y < fascia) {
@@ -222,23 +251,21 @@ export function useDragRiordino(opts: {
       if (dir !== 0 && fascia > 0) {
         if (!ingaggioBordoRef.current) ingaggioBordoRef.current = ts
         const v = velocitaAutoScroll(dt, dist, fascia, ts - ingaggioBordoRef.current)
-        const maxY = (document.documentElement.scrollHeight || 0) - h
-        const scrollY = window.scrollY || 0
-        const aFine = (dir < 0 && scrollY <= 0) || (dir > 0 && scrollY >= maxY)
-        if (!aFine && v > 0) window.scrollBy(0, dir * v)
+        const aFine = (dir < 0 && scroller.pos() <= 0) || (dir > 0 && scroller.pos() >= scroller.max())
+        if (!aFine && v > 0) scroller.by(dir * v)
       } else {
         ingaggioBordoRef.current = 0
       }
 
-      // Bersaglio dal CENTRO del ghost (§1), coordinate viewport, con compensazione scroll.
-      const centro = {
-        x: centroOrigineRef.current.x + (puntoRef.current.x - liftRef.current.x),
-        y: centroOrigineRef.current.y + (puntoRef.current.y - liftRef.current.y),
-      }
-      const scrollDelta = (window.scrollY || 0) - scrollLiftRef.current
+      // Bersaglio dal PUNTO DEL DITO (H3 v2, decisione 0c37f25 — v. capitolo in testa al file),
+      // coordinate viewport, con compensazione scroll. `indiceRettangoloDaPunto` è il GATE: torna
+      // `null` (vuoto di rete, cornice, propria cassetta) finché il dito non entra nel
+      // rettangolo REALE di un'altra cassetta — in quel caso l'ultimo bersaglio valido resta
+      // (one-way per posizione: passare di nuovo sul vuoto non annulla un riordino già mostrato).
+      const scrollDelta = scroller.pos() - scrollLiftRef.current
       const n = snapshotRef.current.length
-      const nuovo = indiceDaPunto(centro, { ...geo, scrollDelta }, n)
-      if (nuovo !== correnteRef.current) {
+      const nuovo = indiceRettangoloDaPunto(puntoRef.current, { ...geo, scrollDelta }, n)
+      if (nuovo !== null && nuovo !== correnteRef.current) {
         correnteRef.current = nuovo
         setOrdineIds(calcolaNuovoOrdine(snapshotRef.current, origineRef.current, nuovo))
         setAnnuncio(`Posto ${nuovo + 1} di ${n}`)
@@ -264,11 +291,20 @@ export function useDragRiordino(opts: {
     const gapY = num(cs?.rowGap || cs?.gap)
     const cellaW = primo.width
     const cellaH = primo.height
+    // D10 (FIX-F): il passo di riga vero è il TRACK della griglia (`--track`, `grid-auto-rows`,
+    // già risolto in px dal browser via getComputedStyle) — su `.ds-parete-grid` (ds-v3.css
+    // ~624/664) le celle NON riempiono la riga (`align-items:start`), quindi `cellaH` da solo
+    // sfalsa il bersaglio scendendo di riga. Fallback a `cellaH` se il valore letto non è un
+    // numero finito >0 (griglia non-CSS-grid, o non ancora misurabile) — riproduce il
+    // comportamento precedente (pitch = cellaH + gapY).
+    const trackYraw = parseFloat(cs?.gridAutoRows ?? '')
+    const trackY = Number.isFinite(trackYraw) && trackYraw > 0 ? trackYraw : cellaH
+    const pitchY = trackY + gapY
     const gridRect = grid.getBoundingClientRect()
     let colonne = Math.round((gridRect.width + gapX) / (cellaW + gapX))
     if (!Number.isFinite(colonne) || colonne < 1) colonne = 1
     return {
-      geo: { gridLeft: primo.left, gridTop: primo.top, cellaW, cellaH, gapX, gapY, colonne, scrollDelta: 0 },
+      geo: { gridLeft: primo.left, gridTop: primo.top, cellaW, cellaH, gapX, gapY, colonne, pitchY, scrollDelta: 0 },
       origine,
     }
   }
@@ -279,11 +315,14 @@ export function useDragRiordino(opts: {
     const origine = snapshot.indexOf(id)
     if (origine < 0 || snapshot.length < 2) return
 
+    const scroller = creaScroller(opts.scrollerRef?.current ?? null)
+    scrollerRef.current = scroller
+
     const misura = misuraGeometria(id)
     pointerIdRef.current = evento.pointerId
     puntoRef.current = { x: evento.clientX, y: evento.clientY }
     liftRef.current = { x: evento.clientX, y: evento.clientY }
-    scrollLiftRef.current = typeof window !== 'undefined' ? window.scrollY || 0 : 0
+    scrollLiftRef.current = scroller.pos()
     snapshotRef.current = snapshot
     origineRef.current = origine
     correnteRef.current = origine
@@ -299,7 +338,9 @@ export function useDragRiordino(opts: {
 
     if (misura) {
       geoRef.current = misura.geo
-      centroOrigineRef.current = { x: misura.origine.left + misura.geo.cellaW / 2, y: misura.origine.top + misura.geo.cellaH / 2 }
+      // H3 v2 — niente più `centroOrigineRef`: il bersaglio segue il PUNTO DEL DITO (`puntoRef`,
+      // v. `frame()`), non un centro-ghost derivato dalla presa. `origineRectRef` resta: serve
+      // solo per l'offset di ATTERRAGGIO al drop (`atterra`), non per l'hit-test.
       origineRectRef.current = { left: misura.origine.left, top: misura.origine.top }
       setGhost({ id, left: misura.origine.left, top: misura.origine.top, width: misura.origine.width, height: misura.origine.height })
     } else {
@@ -313,6 +354,8 @@ export function useDragRiordino(opts: {
         'Frecce per spostare, Invio per confermare, Esc per annullare.',
     )
     vibra('light') // §2.4.3: haptic al lift, se previsto — no-op dove navigator.vibrate manca (iOS)
+    suona('stacco')
+    staccoSuonatoRef.current = true
 
     // Scala al lift: la molla interattiva iOS (§3.3). A reduced-motion è un set istantaneo.
     if (reduced()) ghostScale.set(trascinamento.scalaSollevamento)
@@ -355,16 +398,22 @@ export function useDragRiordino(opts: {
 
       if (!mosso && !annullato) {
         // Rilascio fermo (non annullato) = apri lo sheet (§2.5, comportamento già spedito). Il ghost
-        // sparisce mentre lo sheet sale (nessun atterraggio: non c'è stato spostamento).
+        // sparisce mentre lo sheet sale (nessun atterraggio: non c'è stato spostamento). Nessun suono:
+        // il lift qui non è percepito come uno spostamento.
         onSheetRef.current(idTrasc)
         smontaGhost()
+        staccoSuonatoRef.current = false
         return
       }
       if (annullato) {
         // pointercancel (annullo di sistema): il ghost torna alla cella d'origine (§2.4.7). NESSUNA POST.
+        // Ri-aggancio attenuato (D5, spec redesign §2.6): «non è cambiato niente» — SOLO se lo stacco
+        // era stato suonato al lift (altrimenti niente lift percepito, niente suono di chiusura).
+        if (staccoSuonatoRef.current) suona('riaggancio', { gain: 0.4 })
         setAnnuncio('Spostamento annullato.')
         setOrdineIds(null) // rollback ottico allo snapshot
         atterra(0, 0)
+        staccoSuonatoRef.current = false
         return
       }
       // DROP: lista finale = ordine ottimistico, riconciliato con l'ultima verità del server.
@@ -375,6 +424,8 @@ export function useDragRiordino(opts: {
       setAnnuncio(
         `Cassetta ${pareteRef.current[origineRef.current]?.nome ?? ''} rilasciata al posto ${correnteRef.current + 1} di ${snapshotRef.current.length}.`,
       )
+      suona('riaggancio')
+      vibra('medium') // haptic di successo (riserva UX 7): il laboratorio è rumoroso
       void inviaRef.current(daPostare).then((ok) => {
         if (ok) onRefreshRef.current()
         else setOrdineIds(null) // POST fallita → rollback ottico (niente refresh, riga quieta)
@@ -383,6 +434,7 @@ export function useDragRiordino(opts: {
       const bersaglio = gridRef.current?.querySelector<HTMLElement>(`[data-cassetta-id="${idTrasc}"]`)?.getBoundingClientRect()
       if (bersaglio) atterra(bersaglio.left - origineRectRef.current.left, bersaglio.top - origineRectRef.current.top)
       else smontaGhost()
+      staccoSuonatoRef.current = false
     }
   }
 

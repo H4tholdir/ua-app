@@ -24,9 +24,10 @@
 //
 // Dizionario (constraint 5): «Butta via», MAI «Elimina» — nell'etichetta E nel testo del dialog.
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Sheet } from '@/components/ds/Sheet'
 import { CampoTesto } from '@/components/ds/Campo'
+import { TastoPrimario } from '@/components/ds/TastoPrimario'
 import { TastoSecondario } from '@/components/ds/TastoSecondario'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { ChipScelta } from '@/components/ds/ChipScelta'
@@ -35,11 +36,57 @@ import { RigaBloccante } from '@/components/ds/RigaBloccante'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { spazio } from '@/design-system/v3/tokens'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
+import { normalizza } from '@/components/features/pile/filtra-lavori-pila'
+// Modulo FOGLIA (review finale whole-branch): la costante stava in `PareteClient`, che importa
+// questo file — un ciclo di import che reggeva solo perché il valore veniva letto pigramente
+// dentro un `useEffect`. V. il commento nel modulo per cosa sarebbe successo al primo uso a
+// livello di modulo.
+import { DEBOUNCE_FILTRO_MS } from '@/lib/ui/debounce-ricerca'
 import { SwatchesColore } from './SwatchesColore'
+
+// Gap disclosure sul FIX-E (review del report — v. `.superpowers/sdd/fixE-report.md`) — il fix
+// precedente copriva SOLO rinomina/colore (`patch`), lasciando le altre quattro azioni di questo
+// sheet (assegna-lavoro, sposta-lavoro, segna-libera, butta-via) senza alcun riflesso ottimistico:
+// in embedded (`sospendiRefresh`, `PareteClient.tsx`) restavano stantie sul muro fino al prossimo
+// caricamento vero. `EffettoCassetta` generalizza il `patch` di prima a un elenco di effetti — un
+// array, non un singolo oggetto, perché sposta-lavoro tocca DUE cassette in un colpo solo
+// (sorgente che si libera, destinazione che si occupa): il chiamante (`PareteClient.dopoCambio`)
+// applica ogni elemento allo STESSO overlay già in vigore (`overrides`), più un nuovo insieme
+// `rimosse` per butta-via (l'unica azione che fa sparire una cassetta dal muro, non solo cambiarla).
+export type EffettoCassetta =
+  | { tipo: 'patch'; id: string; nome?: string; colore?: string }
+  | { tipo: 'occupa'; id: string; lavoro: NonNullable<CassettaParete['lavoro']> }
+  | { tipo: 'libera'; id: string }
+  | { tipo: 'rimuovi'; id: string }
 
 const ERRORE_NOME_OCCUPATO = 'Questo nome è già sulla parete'
 const ERRORE_NOME_LUNGO = 'Il nome è troppo lungo (massimo 20 caratteri)'
 const ERRORE_GENERICO = 'Non ci sono riuscito — riprova'
+
+// «Metti un lavoro» (Task 5, spec redesign §2.5, punto 13) — la sottovista interna della
+// cassetta LIBERA. Contratto verbatim di `GET /api/cassette/lavori-liberi` (route Task 5).
+// G8 (FIX-I) — `tipoDispositivo`/`descrizione` additivi (route Task 5 estesa): prima mancavano
+// del tutto, e `assegnaLavoro` sotto passava sempre `null` all'overlay ottimistico — la
+// miniatura corretta arrivava solo al prossimo caricamento vero (bug confermato da Francesco).
+type LavoroLibero = {
+  id: string
+  numero: string
+  dentista: string
+  pazienteAlias: string | null
+  urgenza: number
+  tipoDispositivo: string | null
+  descrizione: string | null
+}
+
+// Sopra la soglia, compare il campo di ricerca client-side (brief §Step 6): con pochi liberi
+// scorrere la lista è più veloce che digitare.
+const SOGLIA_RICERCA = 8
+
+// Riga della lista «Metti un lavoro» — V2 «targhetta» RATIFICATA (G9, FIX-I): stili in
+// `ds-v3.css` (classi `.ds-riga-metti*`, valori copiati verbatim dal mockup
+// `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html`), non più inline — hit area
+// ≥44 già garantita da `min-height:60px` (constraint 10), `ds-tap-v3` per l'anello
+// focus-visible di legge (stesso aggancio di `MenuVoce`/`RigaEditabile`).
 
 export function CassettaSheet(props: {
   cassetta: CassettaParete | null
@@ -48,7 +95,13 @@ export function CassettaSheet(props: {
   totale: number
   aperto: boolean
   onChiudi: () => void
-  onCambiata: () => void
+  /** Gap disclosure sul FIX-E — `effetti` porta ciò che questo sheet ha GIÀ in mano al momento del
+   *  successo (valore sottomesso per rinomina/colore, il `lavoro` pieno per sposta/assegna — mai
+   *  una rilettura server, il contratto delle route qui sopra non la offre comunque). Un'azione
+   *  che tocca UNA sola cassetta manda un array a un elemento; `spostaLavoroIn` (le tocca DUE) ne
+   *  manda due. `PareteClient` li applica tutti allo stesso overlay ottimistico di rinomina/colore
+   *  (v. `pareteVista`/`dopoCambio`) — nessun secondo meccanismo. */
+  onCambiata: (effetti?: EffettoCassetta[]) => void
   /** Riordino di UNA posizione: il PareteClient compone e POSTa la lista completa e risponde se
    *  il muro si è davvero mosso — l'annuncio `aria-live` dipende da questo esito. */
   onSposta: (direzione: 'su' | 'giu') => Promise<boolean>
@@ -66,6 +119,24 @@ export function CassettaSheet(props: {
   // Colore custom IN SOSPESO (review Task 12, Important 1) — v. `scegliDaiSwatches`.
   const [colorePending, setColorePending] = useState<string | null>(null)
 
+  // «Metti un lavoro» (Task 5, §2.5 punto 13) — sottovista interna, stesso pattern di
+  // `colorePending`: stato locale, nessuna navigazione. `liberi === null` = non ancora
+  // caricato (distingue "sto caricando" da "caricato, zero risultati" → stato vuoto).
+  const [vista, setVista] = useState<'azioni' | 'metti'>('azioni')
+  const [liberi, setLiberi] = useState<LavoroLibero[] | null>(null)
+  const [liberiCaricando, setLiberiCaricando] = useState(false)
+  const [liberiErrore, setLiberiErrore] = useState<string | null>(null)
+  const [assegnando, setAssegnando] = useState(false)
+  const [queryMetti, setQueryMetti] = useState('')
+  // D9b (FIX-F) — stesso pattern del gemello `PareteClient` (`DEBOUNCE_FILTRO_MS`, riserva FE
+  // R4): l'input resta controllato ISTANTANEO (`queryMetti`), il filtro segue con questo
+  // ritardo — un FLIP per keystroke sulla lista è il punto dove peggiora WebKit.
+  const [queryMettiDebounced, setQueryMettiDebounced] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setQueryMettiDebounced(queryMetti), DEBOUNCE_FILTRO_MS)
+    return () => clearTimeout(t)
+  }, [queryMetti])
+
   // Reset in render-phase al cambio di cassetta (id), stesso pattern di ConfermaCassettaSheet:
   // NON un useEffect. Non si resetta sul solo `router.refresh()` di un riordino (l'id resta lo
   // stesso), così l'annuncio ▲▼ e il campo sopravvivono a uno spostamento.
@@ -81,6 +152,13 @@ export function CassettaSheet(props: {
     setChiediLibera(false)
     setChiediButta(false)
     setColorePending(null)
+    setVista('azioni')
+    setLiberi(null)
+    setLiberiCaricando(false)
+    setLiberiErrore(null)
+    setAssegnando(false)
+    setQueryMetti('')
+    setQueryMettiDebounced('')
   }
 
   const occupata = !!cassetta?.lavoro
@@ -102,7 +180,10 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ nome: nomeTrim }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Review FIX-E (Important) — `nomeTrim` è ciò che ABBIAMO GIÀ appena spedito nella PATCH
+        // riuscita: nessun bisogno di rileggerlo dal corpo della risposta (che qui non lo porta
+        // comunque, v. contratto route). `PareteClient` lo usa per il riflesso ottimistico.
+        onCambiata([{ tipo: 'patch', id: cassetta.id, nome: nomeTrim }])
         return
       }
       if (res.status === 422) {
@@ -133,7 +214,9 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ colore }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Review FIX-E (Important) — stesso principio di `salvaNome`: `colore` è il valore
+        // sottomesso nella PATCH appena riuscita, non serve rileggerlo dal server.
+        onCambiata([{ tipo: 'patch', id: cassetta.id, colore }])
         return
       }
       setErroreAzione(ERRORE_GENERICO)
@@ -174,7 +257,15 @@ export function CassettaSheet(props: {
         body: JSON.stringify({ cassetta_id: destinazione.id }),
       })
       if (res.status === 200) {
-        onCambiata()
+        // Gap disclosure sul FIX-E — DUE cassette cambiano in un colpo solo: la sorgente
+        // (`cassetta`, quella aperta in questo sheet) si libera, la destinazione riceve il
+        // `lavoro` PIENO che la sorgente aveva già in mano (dati completi: `parete` lo porta
+        // sempre con paziente/tipoDispositivo/descrizione, nessun residuo qui a differenza di
+        // `assegnaLavoro` sotto, che parte da `LavoroLibero` — un contratto route più povero).
+        onCambiata([
+          { tipo: 'libera', id: cassetta.id },
+          { tipo: 'occupa', id: destinazione.id, lavoro: cassetta.lavoro },
+        ])
         return
       }
       if (res.status === 409) {
@@ -203,7 +294,8 @@ export function CassettaSheet(props: {
       })
       if (res.status === 200) {
         setChiediLibera(false)
-        onCambiata()
+        // Gap disclosure sul FIX-E — la cassetta esce libera: nessun `lavoro` residuo da riflettere.
+        onCambiata([{ tipo: 'libera', id: cassetta.id }])
         return
       }
       setChiediLibera(false)
@@ -224,7 +316,10 @@ export function CassettaSheet(props: {
       const res = await fetch(`/api/cassette/${cassetta.id}`, { method: 'DELETE' })
       if (res.status === 200) {
         setChiediButta(false)
-        onCambiata()
+        // Gap disclosure sul FIX-E — la cassetta sparisce dal muro: `PareteClient` la toglie da
+        // `pareteVista` (insieme `rimosse`), non solo dall'array `overrides` (che modifica una
+        // cassetta viva, non la fa sparire).
+        onCambiata([{ tipo: 'rimuovi', id: cassetta.id }])
         return
       }
       setChiediButta(false)
@@ -234,6 +329,80 @@ export function CassettaSheet(props: {
       setErroreAzione(ERRORE_GENERICO)
     } finally {
       setSalvando(false)
+    }
+  }
+
+  /** Apre la sottovista «Metti un lavoro» e carica la lista (Task 5, §2.5 punto 13). Fetch nel
+   *  click handler, non in un `useEffect`: stesso stile "adjusting state" del resto del file —
+   *  niente re-fetch nascosti a ogni render, un solo punto che sa quando la richiesta parte. */
+  async function apriMetti() {
+    setVista('metti')
+    setLiberiCaricando(true)
+    setLiberiErrore(null)
+    try {
+      const res = await fetch('/api/cassette/lavori-liberi')
+      if (res.status !== 200) {
+        setLiberiErrore(ERRORE_GENERICO)
+        return
+      }
+      const dati = (await res.json()) as { lavori: LavoroLibero[] }
+      setLiberi(dati.lavori)
+    } catch {
+      setLiberiErrore(ERRORE_GENERICO)
+    } finally {
+      setLiberiCaricando(false)
+    }
+  }
+
+  /** Tap su una riga della lista → POST /api/lavori/{id}/cassetta {cassetta_id} (route
+   *  ESISTENTE, riuso — stesso contratto di `spostaLavoroIn` sopra). Successo → `onCambiata()`
+   *  (chiude e rilegge, come ogni altra azione che committa in questo sheet). Errore → riga
+   *  quieta, MAI chiusura silenziosa (brief §Step 6). */
+  async function assegnaLavoro(lavoro: LavoroLibero) {
+    if (!cassetta || assegnando) return
+    setAssegnando(true)
+    setLiberiErrore(null)
+    try {
+      const res = await fetch(`/api/lavori/${lavoro.id}/cassetta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cassetta_id: cassetta.id }),
+      })
+      if (res.status === 200) {
+        // G8 (FIX-I) — CHIUSO il residuo dichiarato nel report FIX-E: `tipoDispositivo`/
+        // `descrizione` ora arrivano DAVVERO dal contratto esteso di `GET
+        // /api/cassette/lavori-liberi` (v. `LavoroLibero` sopra), non più `null` a mano — la
+        // miniatura giusta (`miniaturaPerLavoro`, via `Cassetta.tsx`) appare SUBITO invece di
+        // degradare a quella generica fino al prossimo caricamento vero. `paziente` resta sul
+        // fallback '—' quando `pazienteAlias` è assente (identico a quanto la targa farebbe
+        // comunque con un dato mancante — non un residuo, è il contratto normale di `Cassetta`).
+        onCambiata([{
+          tipo: 'occupa',
+          id: cassetta.id,
+          lavoro: {
+            id: lavoro.id,
+            numero: lavoro.numero,
+            dentista: lavoro.dentista,
+            paziente: lavoro.pazienteAlias ?? '—',
+            pazienteAlias: lavoro.pazienteAlias,
+            tipoDispositivo: lavoro.tipoDispositivo,
+            descrizione: lavoro.descrizione,
+            // FIX-K (G7) — RESIDUO dichiarato, non un dato inventato: `LavoroLibero` (sopra) non
+            // porta `note_interne` (il contratto di `GET /api/cassette/lavori-liberi` non lo
+            // seleziona — fuori scope di questo fix, che tocca solo la query della pagina
+            // cassette). Un lavoro APPENA assegnato qui non è quindi cercabile per nota fino al
+            // prossimo caricamento vero (refresh in standalone, prossimo giro di `getParete` in
+            // embedded), che sostituisce questo riflesso parziale col dato pieno.
+            noteInterne: null,
+          },
+        }])
+        return
+      }
+      setLiberiErrore(ERRORE_GENERICO)
+    } catch {
+      setLiberiErrore(ERRORE_GENERICO)
+    } finally {
+      setAssegnando(false)
     }
   }
 
@@ -262,6 +431,20 @@ export function CassettaSheet(props: {
   const puoSalire = posto > 1
   const puoScendere = posto < totale
 
+  // Ricerca client-side (§2.5 punto 13): SOLO se ci sono più di `SOGLIA_RICERCA` liberi — sotto
+  // soglia, scorrere è più veloce che digitare. Pagliaio: numero, dentista, alias (stessi campi
+  // del contratto della route, `normalizza` CONDIVISA con `filtra-lavori-pila.ts`/`filtra-cassette.ts`).
+  // D9b (FIX-F): `useMemo` + query DEBOUNCED (sopra) — prima ricalcolava in modo sincrono e non
+  // memoizzato a ogni keystroke, un FLIP per tasto premuto sulla lista (gemello di PareteClient).
+  const liberiFiltrati = useMemo(() => {
+    if (!liberi) return null
+    const queryMettiTrim = queryMettiDebounced.trim()
+    if (!queryMettiTrim) return liberi
+    return liberi.filter((l) =>
+      normalizza(`n.${l.numero} ${l.dentista} ${l.pazienteAlias ?? ''}`).includes(normalizza(queryMettiTrim)),
+    )
+  }, [liberi, queryMettiDebounced])
+
   // Review finale whole-branch, Fix 1 — Sheet e DialogConferma ascoltano ENTRAMBI Esc su window:
   // con un dialog di conferma aperto, un solo Esc chiudeva dialog E sheet insieme (e lo scrim
   // dello sheet sotto un dialog distruttivo non deve comunque chiudere). La guardia vive qui,
@@ -271,12 +454,81 @@ export function CassettaSheet(props: {
   return (
     <>
       <Sheet aperto={aperto} onChiudi={() => { if (!dialogAperto) onChiudi() }} titolo={nomeCassetta}>
-        {cassetta && (
+        {cassetta && vista === 'metti' && (
+          <>
+            {/* «Metti un lavoro» (Task 5, §2.5 punto 13) — sottovista interna: rimpiazza le
+                azioni, non le affianca ("una cosa alla volta"). Via d'uscita SENZA azione:
+                «Le altre azioni» torna indietro; «Chiudi» (sempre in fondo allo Sheet) resta
+                raggiungibile invariato. */}
+            <div style={{ display: 'flex' }}>
+              <LinkQuieto onClick={() => setVista('azioni')}>← Le altre azioni</LinkQuieto>
+            </div>
+
+            {liberi && liberi.length > SOGLIA_RICERCA && (
+              <CampoTesto label="Cerca" valore={queryMetti} onCambia={setQueryMetti} placeholder="numero, dentista…" />
+            )}
+
+            {liberiCaricando && <p className="ds-sheet-hint">Carico i lavori…</p>}
+
+            {!liberiCaricando && liberi && liberi.length === 0 && (
+              <p className="ds-sheet-hint">Tutti i lavori hanno già una cassetta</p>
+            )}
+
+            {/* «Mai una pagina bianca» (§5.26): zero liberi TOTALI (sopra) e zero liberi TROVATI
+                dalla ricerca sono stati vuoti distinti — qui l'area lista non deve restare bianca
+                senza spiegazione mentre la query stessa ha risultati. */}
+            {!liberiCaricando && liberi && liberi.length > 0 && liberiFiltrati?.length === 0 && (
+              <p className="ds-sheet-hint">Nessun lavoro trovato</p>
+            )}
+
+            {!liberiCaricando && liberiFiltrati && liberiFiltrati.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.xs }}>
+                {liberiFiltrati.map((l) => {
+                  const urgente = l.urgenza > 0
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      className={`ds-tap-v3 ds-riga-metti${urgente ? ' is-urgente' : ''}`}
+                      disabled={assegnando}
+                      onClick={() => void assegnaLavoro(l)}
+                    >
+                      <span className="ds-riga-metti-chip">{l.numero}</span>
+                      <span className="ds-riga-metti-testo">
+                        <span className={`ds-riga-metti-paziente${l.pazienteAlias ? '' : ' is-assente'}`}>
+                          {l.pazienteAlias ?? '— nessun paziente'}
+                        </span>
+                        <span className="ds-riga-metti-dentista">{l.dentista}</span>
+                      </span>
+                      {urgente && <span className="ds-riga-metti-urgente">Urgente</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {liberiErrore && (
+              <p role="alert" className="ds-sheet-errore">
+                {liberiErrore}
+              </p>
+            )}
+          </>
+        )}
+
+        {cassetta && vista === 'azioni' && (
           <>
             {occupata && (
               <p className="ds-sheet-info">
                 n.{numero} · {cassetta.lavoro?.dentista}
               </p>
+            )}
+
+            {/* Metti un lavoro (Task 5, §2.5 punto 13) — azione primaria, SOLO su cassetta
+                LIBERA, sopra rinomina/colore/butta-via. */}
+            {!occupata && (
+              <div>
+                <TastoPrimario onClick={() => void apriMetti()}>Metti un lavoro</TastoPrimario>
+              </div>
             )}
 
             {/* Rinomina — PATCH {nome}. Non un TastoPrimario (uno per schermata, §5.1): un
@@ -285,6 +537,8 @@ export function CassettaSheet(props: {
               <CampoTesto label="Nome" valore={nomeRinomina} onCambia={setNomeRinomina} />
               <div style={{ marginTop: spazio.s }}>
                 <TastoSecondario onClick={salvaNome} disabled={!rinominaAbilitata}>
+                  {/* NON «correggere» in «Fatto ✓»: eccezione ratificata al dizionario §2.3,
+                      v. docs/design/decisions/2026-07-26-salva-nome-colore.md */}
                   Salva il nome
                 </TastoSecondario>
               </div>
@@ -314,6 +568,8 @@ export function CassettaSheet(props: {
                     onClick={() => void scegliColore(colorePending)}
                     disabled={!coloreAbilitato}
                   >
+                    {/* NON «correggere» in «Fatto ✓»: eccezione ratificata al dizionario §2.3,
+                        v. docs/design/decisions/2026-07-26-salva-nome-colore.md */}
                     Salva il colore
                   </TastoSecondario>
                 </div>

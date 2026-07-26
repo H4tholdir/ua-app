@@ -10,12 +10,18 @@
 // La parete arriva GIÀ ordinata da `deriveParete` (`posizione, created_at, id`): qui non si
 // riordina nulla — l'ordine è la mappa mentale del muro fisico.
 //
-// Ricerca «che accende» (§5.1): nessuna cassetta sparisce mai, i non-match si SPENGONO
-// (opacity + desaturazione) e restano tappabili — spento è opacità, non inattività.
+// Ricerca «filtra e risali» (ratifica 22/07, spec redesign §2.4 — sostituisce la vecchia
+// ricerca «che accende» del §5.1): con ricerca attiva le non-match si SMONTANO (secco, niente
+// `AnimatePresence`) e le match risalgono in testa nell'ordine relativo della parete. Lo stato
+// `'spenta'` è morto — muore dal tipo `Cassetta` e dal CSS, non resta zombie. L'input resta
+// controllato ISTANTANEO (`query`); il filtro/riordino segue a `DEBOUNCE_FILTRO_MS` di debounce
+// (riserva FE R4 — un FLIP per keystroke su 30 celle è il punto esatto dove peggiora WebKit).
 // Il colore non è mai l'unica fonte di stato: la cassetta accesa porta `aria-current` (§5.35)
 // e l'esito della ricerca è DETTO in parole nella riga quieta `role="status"` sopra la parete,
 // che è insieme il testo visibile e l'annuncio per lo screen reader (una sola live region,
-// montata sempre: una regione che nasce insieme al suo testo non viene annunciata).
+// montata sempre: una regione che nasce insieme al suo testo non viene annunciata). Durante la
+// ricerca il drag non convive con essa: il long-press segnala il blocco con un hint invece di
+// aprire lo sheet in silenzio (riserva UX 1).
 //
 // Intento sheet (risoluzione C1 dell'ondata): questo componente tiene lo stato dell'intento —
 // cassetta libera (tap), long-press su QUALSIASI cassetta, tile «+», CTA del Vuoto. Il Task 12
@@ -30,7 +36,26 @@
 // `deriveParete`, qui si ricalcola l'array spostando di una posizione e si POSTa la lista intera.
 // Per questo `CassettaSheet` riceve un callback `onSposta(direzione)` invece dell'ordine: i ▲▼ si
 // rendono là, la lista si compone qui (unico posto che possiede `parete`).
+//
+// Riflesso ottimistico (review FIX-E, Important — v. commento su `pareteVista` più sotto):
+// `onCreata` (creazione) e `onCambiata` (rinomina/colore) NON sono più lo stesso `dopoCambio` —
+// la creazione porta con sé la cassetta nuova (corpo 201 della RPC) e diventa `dopoCreata`, che
+// alimenta `extra`; rinomina/colore portano il valore SOTTOMESSO (non una rilettura server) e
+// alimentano `overrides`. Il ▲▼ (`riordina`) alimenta `ordineManuale`, con lo stesso contratto
+// ottimistico del drop del drag (`useDragRiordino`): si applica SUBITO, resta se la POST riesce,
+// si annulla se fallisce. Tutti e tre vivono SOLO qui, mai nei sheet: quelli restano stateless
+// sul "cosa è successo", non sul "cosa mostrare ora".
+//
+// Gap disclosure sul FIX-E (v. `.superpowers/sdd/fixE-report.md`) — le quattro azioni RIMANENTI di
+// `CassettaSheet` (assegna-lavoro, sposta-lavoro, segna-libera, butta-via) chiamavano `onCambiata()`
+// senza alcun dato: stesso sintomo delle tre sopra, mai chiuso per queste quattro. `dopoCambio` ora
+// accetta un array di `EffettoCassetta` (tipo esportato da `CassettaSheet.tsx`, dove le azioni
+// costruiscono ciò che hanno già in mano): `overrides` si allarga per portare anche `lavoro`
+// (occupa/libera una cassetta), e un nuovo Set `rimosse` toglie dalla vista una cassetta buttata
+// via — STESSO overlay di prima, nessun secondo meccanismo. Sposta-lavoro tocca DUE cassette
+// (sorgente + destinazione) in un solo array: `dopoCambio` applica ogni elemento allo stesso stato.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { MotionConfig, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
@@ -40,15 +65,29 @@ import { tornaIndietro } from '@/lib/nav/torna-indietro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { spazio, tipografia } from '@/design-system/v3/tokens'
 import { molla, trascinamento } from '@/design-system/v3/motion'
+import { vibra } from '@/design-system/v3/haptic'
+import { initSuoni } from '@/design-system/v3/sound'
 import { filtraCassette } from './filtra-cassette'
 import { NuovaCassettaSheet } from './NuovaCassettaSheet'
 import { CassettaSheet } from './CassettaSheet'
+import type { EffettoCassetta } from './CassettaSheet'
 import { useDragRiordino } from './useDragRiordino'
 import { svuotaRicerca } from '@/lib/ui/svuota-ricerca'
+import { DEBOUNCE_FILTRO_MS } from '@/lib/ui/debounce-ricerca'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 /** L'intento di apertura di uno sheet: il Task 12 ci monta sopra i due corpi. */
 type IntentoSheet = { tipo: 'nuova' } | { tipo: 'cassetta'; id: string } | null
+
+// Ratifica 22/07 (spec redesign §2.4) — «filtra e risali»: il filtro/riordino della parete segue
+// la query con questo ritardo (l'input resta istantaneo, solo il FLIP delle celle è debounced).
+// La costante è CONDIVISA con `CassettaSheet` (la lista «Metti un lavoro»): stesso gemello,
+// stesso ritardo, nessun numero magico duplicato. Review finale whole-branch — non vive più
+// QUI: stava in questo file e `CassettaSheet` (che questo file importa) la leggeva a ritroso,
+// chiudendo un ciclo di import. Ora in un modulo foglia, v. il commento lì.
+// Durata dell'hint «Svuota la ricerca…» quando il long-press cade durante una ricerca attiva
+// (il drag non convive con la ricerca — riserva UX 1).
+const HINT_DRAG_BLOCCATO_MS = 2500
 
 /** Il prossimo nome della serie «C» sui nomi VIVI della parete (§5.2): `C1`, `C2`, … → il
  *  prossimo. I nomi fuori serie («Banco Ciro») non partecipano al calcolo. Case-insensitive
@@ -63,25 +102,187 @@ function prossimoNomeSerieC(parete: CassettaParete[]): string {
   return `C${massimo + 1}`
 }
 
-export function PareteClient(props: { parete: CassettaParete[] }) {
-  const { parete } = props
+export function PareteClient(props: {
+  parete: CassettaParete[]
+  /** Scroller del gesto di riordino (riserva ARCH R1, pre-embed home): assente → window,
+   *  comportamento IDENTICO a oggi su /cassette. Pass-through puro verso `useDragRiordino`. */
+  scrollerRef?: RefObject<HTMLElement | null>
+  /** QA device metà ondata (T15, addendum 24/07) — il chrome di pagina («‹ Indietro», titolo,
+   *  «☰ Tutto il resto») ora rende SEMPRE: la D2 originale (`contesto='stanza'`, header
+   *  spento quando la parete viveva embeddata nella home) è SUPERATA — Francesco: lo swipe non
+   *  porta più a una stanza ridotta ma alla pagina /cassette VERA, assetto completo, anche
+   *  quando vive dentro il pannello destro del pager (`StanzePager.tsx`). Il prop `contesto`
+   *  è morto con questa decisione: non c'è più nessuna variante senza header da scegliere. */
+  /** Override del back dell'header (default: `tornaIndietro`, la direttiva permanente
+   *  «back = pagina precedente»). Chi monta questa parete DENTRO il pannello del pager
+   *  (`StanzePager.tsx`) passa qui un callback che torna alla stanza Pile invece di fare
+   *  `router.back()` — che lascerebbe la home per una pagina precedente arbitraria, non per le
+   *  pile. Assente → comportamento invariato di `/cassette` standalone. */
+  onIndietro?: () => void
+  /** Se `false` la parete NON è quella che l'utente sta guardando — il refresh su
+   *  focus/visibilitychange resta sospeso (riserva ARCH R2, v. `attivoRef` sotto). Default
+   *  `true` (comportamento di `/cassette` invariato: sempre in primo piano). */
+  attivo?: boolean
+  /** QA device T15 (addendum 24/07, scoperto in verifica browser reale — v. report FIX-A) —
+   *  mentre l'indirizzo è stato spinto a `/cassette` da dentro il pannello
+   *  (`sincronizzaUrlStanza`, `StanzePager.tsx`), Next.js intercetta il `pushState` nudo e
+   *  aggiorna il proprio `canonicalUrl` a `/cassette` (è il meccanismo shallow VOLUTO,
+   *  verificato leggendo `app-router.js`), ma questo significa che QUALUNQUE `router.refresh()`
+   *  chiamato mentre l'albero montato è ancora quello di `/dashboard` rifà il fetch della ROTTA
+   *  VERA `/cassette` sul server e SOSTITUISCE il pager con la pagina standalone — uno scambio
+   *  silenzioso, verificato in browser (`window.dispatchEvent(new Event('focus'))` dopo lo
+   *  swipe → il DOM del pager spariva).
+   *  QA device (verbale 25/07, fix-list D5b/D8) — CORREZIONE: prima questo gate copriva SOLO il
+   *  refresh silenzioso su focus/visibilitychange; le altre chiamate a `router.refresh()` qui
+   *  sotto (`dopoCambio`, `riordina`, il drop del drag) restavano fuori — era annotata come
+   *  «limitazione nota», ma è proprio quello smontaggio silenzioso del pager (D5, «si sistema
+   *  da solo») a distruggere i listener `popstate`/`urlPushataRef` del pager e a rendere il
+   *  primo back successivo incoerente (D8). Il gate ora si estende a TUTTE e tre: in embedded si
+   *  tiene lo stato ottimistico già in pagina — la rilettura vera arriva al prossimo
+   *  caricamento reale della route (v. `rileggiParete` sotto). Sulla route standalone
+   *  `sospendiRefresh` resta di default `false`: comportamento INVARIATO. */
+  sospendiRefresh?: boolean
+}) {
+  const { parete, attivo = true, onIndietro, sospendiRefresh = false } = props
   const router = useRouter()
+  // QA device T15.1 (verbale 2026-07-24, fix-list punto 1) — CAUSA TROVATA (v. report FIX-C):
+  // `initSuoni()` (sound.ts) registra l'unlock dell'`AudioContext` una tantum al primo
+  // touchend/click del documento (policy iOS §9), ma prima di questo fix l'unica chiamata a
+  // `initSuoni()` in tutto il repo viveva in `ds-v3-catalogo/page.tsx` — un artefatto del
+  // catalogo demo, MAI raggiunto navigando l'app vera. Risultato: su ogni superficie reale
+  // `sbloccato` restava `false` per sempre, `ctx` non veniva mai creato e `suona()` usciva
+  // subito (v. sound.ts) — stacco/riaggancio (e in realtà OGNI suono v3, tap incluso) restavano
+  // muti fuori dal catalogo. Questa è la superficie con la parete VERA (drag incluso, via
+  // `useDragRiordino`), montata in ogni percorso home/pannello (pager, «solo parete», /cassette
+  // standalone): registrare qui copre tutti e tre. `initSuoni()` è di per sé idempotente
+  // (`initFatto`) e non riproduce nulla da sola — solo REGISTRA i listener, il suono parte al
+  // primo gesto reale dell'utente (mai autoplay).
+  useEffect(() => {
+    initSuoni()
+  }, [])
+  // Refresh gated (riserva ARCH R2): mai rifare l'intera dashboard mentre l'utente sta sulle
+  // pile e la stanza Parete è solo un peek morto fuori schermo. `attivoRef` (non `attivo`
+  // direttamente) per non ri-registrare i listener di focus/visibilitychange a ogni cambio di
+  // stanza — l'effect sotto dipende solo da `router`, come prima del Task 12.
+  const attivoRef = useRef(attivo)
+  useEffect(() => {
+    attivoRef.current = attivo
+  })
+  // QA device T15 — stesso pattern di `attivoRef` sopra: un ref, non `sospendiRefresh` diretto,
+  // per non ri-registrare il listener a ogni cambio (v. commento sulla prop).
+  const sospendiRefreshRef = useRef(sospendiRefresh)
+  useEffect(() => {
+    sospendiRefreshRef.current = sospendiRefresh
+  })
+  // Riflesso ottimistico in embedded (review FIX-E, Important) — `parete` è un prop SERVER, mai
+  // mutato: E4 (D5b/D8) gated OGNI `router.refresh()` del percorso parete per non far sparire il
+  // pager sotto un refresh silenzioso, ma questo lasciava TRE percorsi di mutazione senza alcun
+  // riflesso finché non arrivava un vero caricamento della route — creazione, rinomina/colore, ▲▼
+  // restavano stantii in embedded. Overlay MINIMO sopra il prop, non un secondo stato di verità:
+  // `overrides` (patch nome/colore per id), `extra` (cassette create non ancora nel prop) e
+  // `ordineManuale` (▲▼ ottimistico, stesso ruolo di `ordineIds` nel drag — v. `useDragRiordino`).
+  // Reset in render-phase quando l'IDENTITÀ del prop cambia (pattern di `pareteRif` nell'hook del
+  // drag): è il MOMENTO in cui arriva un dato vero dal server (standalone dopo il refresh, o
+  // embedded al prossimo mount reale della route) — il server vince SEMPRE, l'overlay non deve mai
+  // combattere un dato fresco.
+  const [pareteBase, setPareteBase] = useState(parete)
+  const [extra, setExtra] = useState<CassettaParete[]>([])
+  // Gap disclosure sul FIX-E — `overrides` si allarga da {nome?, colore?} a includere anche
+  // `lavoro` (occupa/libera una cassetta): stesso override per-id di prima, un campo in più.
+  // `rimosse` è NUOVO — l'unico effetto che non È un override di una cassetta viva ma la sua
+  // sparizione dal muro (butta-via): un Set di id, non un override, perché non c'è nessun campo
+  // da mostrare per una cassetta che non c'è più.
+  const [overrides, setOverrides] = useState<Record<string, { nome?: string; colore?: string; lavoro?: CassettaParete['lavoro'] }>>({})
+  const [rimosse, setRimosse] = useState<Set<string>>(new Set())
+  const [ordineManuale, setOrdineManuale] = useState<string[] | null>(null)
+  if (pareteBase !== parete) {
+    setPareteBase(parete)
+    setExtra([])
+    setOverrides({})
+    setRimosse(new Set())
+    setOrdineManuale(null)
+  }
+
+  // La parete "vista": prop + overlay, nell'ordine giusto. `ordineManuale` (quando presente)
+  // comanda l'ordine; le cassette non elencate in esso (una `extra` appena creata dopo un ▲▼, per
+  // esempio) restano in coda — non spariscono mai dalla vista. Questo È l'unico posto che compone
+  // l'overlay: ogni calcolo a valle (ricerca, riordino, sheet, drag) lavora su questo derivato, mai
+  // sul prop nudo — così ▲▼ e ricerca restano coerenti fra loro (niente doppia fonte di ordine).
+  //
+  // Gap disclosure sul FIX-E — `overrides` ora applica anche `lavoro` (oltre a nome/colore) SIA
+  // alle cassette del prop SIA a quelle `extra` (una cassetta appena creata potrebbe, in teoria,
+  // ricevere un lavoro prima che il refresh la sostituisca con la sua versione server — edge case
+  // remoto ma lo stesso overlay lo copre senza sforzo in più). `rimosse` filtra DOPO il patch: una
+  // cassetta buttata via non compare più, a prescindere da cosa porterebbe il suo override.
+  const pareteVista = useMemo(() => {
+    const applicaPatch = (c: CassettaParete) => {
+      const patch = overrides[c.id]
+      return patch ? { ...c, ...patch } : c
+    }
+    const conPatch = parete.map(applicaPatch)
+    const extraConPatch = extra.map(applicaPatch)
+    const base = (extraConPatch.length ? [...conPatch, ...extraConPatch] : conPatch).filter((c) => !rimosse.has(c.id))
+    if (!ordineManuale) return base
+    const perIdBase = new Map(base.map((c) => [c.id, c]))
+    const ordinata = ordineManuale.map((id) => perIdBase.get(id)).filter((c): c is CassettaParete => !!c)
+    const idsOrdinati = new Set(ordineManuale)
+    const fuoriOrdine = base.filter((c) => !idsOrdinati.has(c.id))
+    return [...ordinata, ...fuoriOrdine]
+  }, [parete, overrides, extra, ordineManuale, rimosse])
+
   const [query, setQuery] = useState('')
   const [sheet, setSheet] = useState<IntentoSheet>(null)
   const inputCerca = useRef<HTMLInputElement>(null)
 
-  // «Filtro attivo» si decide dal `trim()` della query, MAI dalla dimensione del Set: zero
-  // match e nessuna ricerca danno entrambi un Set vuoto, ma sono due pareti opposte (tutte
-  // spente vs tutte normali).
-  const cercato = query.trim()
+  // Debounce del filtro (riserva FE R4): l'input resta controllato ISTANTANEO (`query`), il
+  // riordino/smontaggio segue a `DEBOUNCE_FILTRO_MS` — un FLIP per keystroke su 30 celle è il
+  // punto esatto dove si peggiora WebKit.
+  const [queryFiltro, setQueryFiltro] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setQueryFiltro(query), DEBOUNCE_FILTRO_MS)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // La «×» di pulizia segue la query ISTANTANEA (affordance dell'input, non del filtro): deve
+  // apparire subito mentre si digita, senza attendere il debounce.
+  const digitando = query.trim().length > 0
+
+  // «Filtro attivo» si decide dal `trim()` della query DEBOUNCED, MAI dalla dimensione del Set:
+  // zero match e nessuna ricerca danno entrambi un Set vuoto, ma sono due pareti opposte (tutte
+  // fuori dalla vista vs tutte normali).
+  const cercato = queryFiltro.trim()
   const attiva = cercato.length > 0
-  const accesi = useMemo(() => filtraCassette(parete, query), [parete, query])
+  const accesi = useMemo(() => filtraCassette(pareteVista, queryFiltro), [pareteVista, queryFiltro])
+
+  // «Filtra e risali» (ratifica 22/07): le match risalgono in testa nell'ordine relativo di
+  // parete, le altre NON si rendono. A riposo (ricerca spenta) l'ordine è quello del muro.
+  // `pareteVista` (non il prop nudo): l'overlay ottimistico (create/rinomina/colore/▲▼, v. sopra)
+  // partecipa alla ricerca e all'ordine esattamente come farebbe un dato vero del server.
+  const visibili = useMemo(
+    () => (attiva ? pareteVista.filter((c) => accesi.has(c.id)) : pareteVista),
+    [attiva, pareteVista, accesi],
+  )
+
+  // QA device (verbale 25/07, fix-list D5b/D8) — `rileggiParete()`: il punto che chiama
+  // `router.refresh()` per le TRE azioni esplicite sotto (`dopoCambio`, `riordina`, il drop del
+  // drag) — prima non erano gated, solo il refresh silenzioso qui sotto lo era (v. commento
+  // sulla prop `sospendiRefresh`). Non usata nell'effect qui sotto: quello resta con la
+  // guardia inline com'era (`sospendiRefreshRef.current` letto direttamente), per non aggiungere
+  // `rileggiParete` — una funzione ricreata a ogni render, non uno `useCallback` — alle
+  // dipendenze dell'effect (la ri-registrerebbe a ogni render, gate `react-hooks/exhaustive-deps`
+  // di questo repo).
+  function rileggiParete() {
+    if (!sospendiRefreshRef.current) router.refresh()
+  }
 
   // §5.5 Freschezza — senza realtime, la parete non deve mentire a chi la guarda da un'ora:
   // si rilegge quando la pagina torna in primo piano (ritorno da /lavori/[id], app riaperta).
+  // `!sospendiRefreshRef.current` (QA device T15, v. commento sulla prop): questo refresh è
+  // SILENZIOSO, senza alcun gesto dell'utente — il solo che va sospeso mentre l'indirizzo è
+  // stato spinto a `/cassette` dal pannello, per non far sparire il pager sotto un focus/tab-switch.
   useEffect(() => {
     const rileggi = () => {
-      if (document.visibilityState === 'visible') router.refresh()
+      if (document.visibilityState === 'visible' && attivoRef.current && !sospendiRefreshRef.current) router.refresh()
     }
     document.addEventListener('visibilitychange', rileggi)
     window.addEventListener('focus', rileggi)
@@ -91,23 +292,88 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
     }
   }, [router])
 
-  const prossimoNome = useMemo(() => prossimoNomeSerieC(parete), [parete])
-  const libere = useMemo(() => parete.filter((c) => !c.lavoro), [parete])
+  const prossimoNome = useMemo(() => prossimoNomeSerieC(pareteVista), [pareteVista])
+  const libere = useMemo(() => pareteVista.filter((c) => !c.lavoro), [pareteVista])
 
   // La cassetta dello sheet si RISOLVE dalla parete corrente, non si copia nell'intento: dopo un
   // `router.refresh()` un id sparito (cassetta buttata via altrove) dà `null` e lo sheet non si
   // monta vuoto — `aperto` lo segue.
-  const cassettaAperta = sheet?.tipo === 'cassetta' ? (parete.find((c) => c.id === sheet.id) ?? null) : null
-  const postoAperta = cassettaAperta ? parete.findIndex((c) => c.id === cassettaAperta.id) + 1 : 0
+  const cassettaAperta = sheet?.tipo === 'cassetta' ? (pareteVista.find((c) => c.id === sheet.id) ?? null) : null
+  const postoAperta = cassettaAperta ? pareteVista.findIndex((c) => c.id === cassettaAperta.id) + 1 : 0
 
   function chiudiSheet() {
     setSheet(null)
   }
 
-  // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato locale.
-  function dopoCambio() {
+  // Successo di un'azione = chiudi E rileggi: la parete è la fonte di verità, mai lo stato
+  // locale — ECCETTO in embedded (`sospendiRefresh`, v. `rileggiParete` sopra), dove si tiene lo
+  // stato ottimistico invece di far sparire il pager sotto una lettura server silenziosa.
+  //
+  // Review FIX-E, Important — `effetti` è ciò che CassettaSheet ha GIÀ in mano al momento del
+  // successo (valore SOTTOMESSO per rinomina/colore, il `lavoro` pieno per sposta/assegna — mai
+  // una rilettura dal server). Applicato SOLO qui, mai nei rami di errore di `CassettaSheet` — un
+  // fallimento non chiama mai `onCambiata`, quindi l'overlay non si applica mai su un dato che il
+  // server ha rifiutato (guardia presidiata dai test «FALLITA»/409 in parete-client.test.tsx).
+  //
+  // Gap disclosure sul FIX-E — generalizzato da un singolo `patch` a un ARRAY di `EffettoCassetta`:
+  // sposta-lavoro tocca DUE cassette (sorgente che si libera, destinazione che si occupa) in un
+  // solo successo, un singolo oggetto non basterebbe a portarle entrambe. Ogni elemento si applica
+  // allo stesso `overrides` di prima (merge, non sostituzione — una rinomina e un'occupazione in
+  // sequenza sulla stessa cassetta non si perdono a vicenda); `rimuovi` va in `rimosse` invece che
+  // in `overrides` (butta-via fa sparire la cassetta, non le cambia un campo).
+  function dopoCambio(effetti?: EffettoCassetta[]) {
+    if (effetti?.length) {
+      // `daRimuovere` derivato PRIMA di `setOverrides`, non accumulato dentro il suo updater:
+      // un updater React deve restare puro (può girare più di una volta, es. StrictMode) — leggerlo
+      // subito dopo la chiamata funzionava solo per l'ottimizzazione di "eager state" di React,
+      // niente su cui costruire un contratto (review pre-commit).
+      const daRimuovere = effetti.filter((effetto) => effetto.tipo === 'rimuovi').map((effetto) => effetto.id)
+      setOverrides((prev) => {
+        const next = { ...prev }
+        for (const effetto of effetti) {
+          if (effetto.tipo === 'rimuovi') continue
+          const attuale = next[effetto.id] ?? {}
+          if (effetto.tipo === 'patch') {
+            next[effetto.id] = {
+              ...attuale,
+              ...(effetto.nome !== undefined ? { nome: effetto.nome } : {}),
+              ...(effetto.colore !== undefined ? { colore: effetto.colore } : {}),
+            }
+          } else if (effetto.tipo === 'occupa') {
+            next[effetto.id] = { ...attuale, lavoro: effetto.lavoro }
+          } else {
+            // 'libera'
+            next[effetto.id] = { ...attuale, lavoro: null }
+          }
+        }
+        return next
+      })
+      if (daRimuovere.length) {
+        setRimosse((prev) => new Set([...prev, ...daRimuovere]))
+      }
+    }
     setSheet(null)
-    router.refresh()
+    rileggiParete()
+  }
+
+  // Review FIX-E, Important — la creazione riuscita arriva da `NuovaCassettaSheet` col corpo 201
+  // della RPC (`{id, nome, colore, posizione}`, v. `POST /api/cassette`). Guardia sui campi
+  // (stringhe non vuote): un corpo malformato/inatteso non deve montare una `Cassetta` con prop
+  // `undefined` — meglio nessun riflesso ottimistico che uno rotto; il refresh (standalone) o il
+  // prossimo caricamento vero (embedded) restano la rete di sicurezza.
+  function dopoCreata(cassetta?: { id?: string; nome?: string; colore?: string; posizione?: number }) {
+    if (cassetta && typeof cassetta.id === 'string' && cassetta.id && typeof cassetta.nome === 'string' && typeof cassetta.colore === 'string') {
+      const nuova: CassettaParete = {
+        id: cassetta.id,
+        nome: cassetta.nome,
+        colore: cassetta.colore,
+        posizione: cassetta.posizione ?? pareteVista.length,
+        lavoro: null,
+      }
+      setExtra((prev) => [...prev, nuova])
+    }
+    setSheet(null)
+    rileggiParete()
   }
 
   /** Persistenza condivisa dell'ordine (una sola verità sul muro): POSTa la lista COMPLETA degli id
@@ -129,34 +395,61 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
   }
 
   /** Riordino ▲▼ (§5.4): swap di UNA posizione. Torna `true` SOLO se il muro si è mosso davvero:
-   *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n». Il refresh gira comunque,
-   *  anche quando la POST fallisce — la parete torna a dire la verità del server invece di restare
-   *  sull'ordine che l'utente credeva di aver dato. */
+   *  è l'esito su cui lo sheet decide se annunciare «spostata al posto n».
+   *
+   *  Review FIX-E, Important — `ordineManuale` si imposta OTTIMISTICAMENTE prima di attendere la
+   *  POST (mirror del contratto del drag, `useDragRiordino`: lì `ordineIds` si imposta al lift,
+   *  qui al click ▲▼): il muro si sposta subito, la conferma del server arriva dopo. Fallita la
+   *  POST → rollback immediato (`setOrdineManuale(null)`, stessa mossa del drop fallito del drag).
+   *  Riuscita → resta (non lo si azzera qui): sparisce da solo quando arriva un `parete` vero
+   *  (standalone dopo il refresh; embedded al prossimo caricamento reale, v. `pareteBase` sopra).
+   *  Il refresh gira comunque, anche quando la POST fallisce — in standalone la parete torna a
+   *  dire la verità del server (ECCETTO in embedded, `rileggiParete` sopra, dove il rollback ottico
+   *  è l'unica correzione finché non arriva un caricamento vero). */
   async function riordina(id: string, direzione: 'su' | 'giu'): Promise<boolean> {
-    const indice = parete.findIndex((c) => c.id === id)
+    const indice = pareteVista.findIndex((c) => c.id === id)
     if (indice < 0) return false
     const destinazione = direzione === 'su' ? indice - 1 : indice + 1
-    if (destinazione < 0 || destinazione >= parete.length) return false
-    const ordine = parete.map((c) => c.id)
-    ordine[indice] = parete[destinazione].id
-    ordine[destinazione] = parete[indice].id
+    if (destinazione < 0 || destinazione >= pareteVista.length) return false
+    const ordine = pareteVista.map((c) => c.id)
+    ordine[indice] = pareteVista[destinazione].id
+    ordine[destinazione] = pareteVista[indice].id
+    setOrdineManuale(ordine)
     const ok = await inviaOrdine(ordine)
-    router.refresh()
+    if (!ok) setOrdineManuale(null)
+    rileggiParete()
     return ok
   }
 
+  // Riga conteggio (§2.4): conta le VISIBILI (= i match), non il Set — sono la stessa cosa a
+  // ricerca attiva, ma `visibili` è la fonte di verità di cosa è davvero in pagina.
   const annuncio = !attiva
     ? ''
-    : accesi.size === 0
-      ? `Niente per “${cercato}”`
-      : accesi.size === 1
-        ? '1 cassetta accesa'
-        : `${accesi.size} cassette accese`
+    : visibili.length === 0
+      ? `Niente per “${cercato}” — prova con meno lettere`
+      : visibili.length === 1
+        ? '1 cassetta trovata'
+        : `${visibili.length} cassette trovate`
+
+  // Hint del drag bloccato (riserva UX 1): il drag non convive con la ricerca — invece di
+  // lasciar sparire il long-press in silenzio (§5.35 lo esigerebbe come apertura sheet), si
+  // segnala il perché con un hint che vince sulla riga conteggio (stessa riga, stesso ruolo).
+  const [hintDrag, setHintDrag] = useState(false)
+  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (hintTimeout.current) clearTimeout(hintTimeout.current)
+  }, [])
+  function segnalaDragBloccato() {
+    vibra('light')
+    setHintDrag(true)
+    if (hintTimeout.current) clearTimeout(hintTimeout.current)
+    hintTimeout.current = setTimeout(() => setHintDrag(false), HINT_DRAG_BLOCCATO_MS)
+  }
 
   // Il drag NON parte durante una ricerca attiva (parete filtrata = ordine parziale) né con meno di
   // 2 cassette (§5). Fuori da queste condizioni le cassette NON ricevono `onSollevata`: il gesto
   // ricade sul long-press legacy (sheet) — e i ▲▼ dello sheet restano l'unica via di riordino.
-  const dragAbilitato = !attiva && parete.length >= 2
+  const dragAbilitato = !attiva && pareteVista.length >= 2
   const gridRef = useRef<HTMLDivElement>(null)
   // Destrutturato al volo (non `const drag = …`): usare un membro in `ref={}` farebbe inferire
   // all'intero oggetto natura di ref al React Compiler, che poi bollerebbe gli altri accessi come
@@ -169,27 +462,36 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
     ghostMotion,
     annuncio: annuncioDrag,
   } = useDragRiordino({
-    parete,
+    parete: pareteVista,
     disabilitato: !dragAbilitato,
     gridRef,
     onSheet: (id) => setSheet({ tipo: 'cassetta', id }),
     inviaOrdine,
-    onRefresh: () => router.refresh(),
+    onRefresh: () => rileggiParete(),
+    scrollerRef: props.scrollerRef,
   })
 
   // Ordine di render: durante il drag comanda l'ordine OTTIMISTICO (le sorelle FLIPpano); a riposo
-  // è quello del server. La mappa id→cassetta risolve ogni id all'ultimo dato conosciuto.
-  const perId = useMemo(() => new Map(parete.map((c) => [c.id, c])), [parete])
-  const cassetteRender = (ordineDrag ?? parete.map((c) => c.id))
+  // è `visibili` — la parete intera (`pareteVista`, overlay incluso) quando la ricerca è spenta,
+  // solo le match (risalite in testa nell'ordine relativo) quando è accesa. Il drag non convive
+  // con la ricerca (§2.4): quando `ordineDrag` è valorizzato, la ricerca è per forza spenta e
+  // `visibili === pareteVista`. Il ▲▼ (`ordineManuale`) NON compare qui: è già dentro `pareteVista`
+  // (v. sopra) — un solo posto compone l'ordine, mai due fonti che potrebbero disaccordarsi. La
+  // mappa id→cassetta risolve ogni id all'ultimo dato conosciuto.
+  const perId = useMemo(() => new Map(pareteVista.map((c) => [c.id, c])), [pareteVista])
+  const cassetteRender = (ordineDrag ?? visibili.map((c) => c.id))
     .map((id) => perId.get(id))
     .filter((c): c is CassettaParete => !!c)
   const cassettaGhost = ghostDrag ? perId.get(ghostDrag.id) : null
 
   return (
     <section className="ds-parete-shell">
+      {/* QA device T15 (addendum 24/07) — il chrome di pagina rende SEMPRE (v. commento sulle
+          prop sopra): niente più ramo condizionale su `contesto`. `onIndietro` (se passato dal
+          pannello del pager) sostituisce `tornaIndietro` — v. commento sulla prop. */}
       <header style={{ display: 'flex', alignItems: 'center', gap: spazio.sm, marginBottom: spazio.m }}>
         {/* Direttiva permanente 22/07/2026: back = pagina precedente; fallback /dashboard solo senza storia. */}
-        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={() => tornaIndietro(router)} />
+        <TastoTondo glifo="‹" etichettaAria="Indietro" onClick={onIndietro ?? (() => tornaIndietro(router))} />
         <h1
           style={{
             flex: 1,
@@ -205,7 +507,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
         <TastoTondo glifo="☰" etichettaAria="Tutto il resto" onClick={() => router.push('/tutto-il-resto')} />
       </header>
 
-      {parete.length === 0 ? (
+      {pareteVista.length === 0 ? (
         <Vuoto
           glifo="🗄️"
           titolo="La tua parete è vuota"
@@ -229,7 +531,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
               aria-label="Cerca una cassetta o un lavoro"
               enterKeyHint="search"
             />
-            {attiva && (
+            {digitando && (
               <button
                 type="button"
                 className="pulisci"
@@ -242,7 +544,8 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
           </div>
 
           {/* Riga quieta + live region insieme: un solo testo, letto una volta sola.
-              `minHeight` tiene ferma la parete mentre si digita. */}
+              `minHeight` tiene ferma la parete mentre si digita. L'hint del drag bloccato VINCE
+              sul conteggio (stessa riga, stesso ruolo — mai due status contemporaneamente). */}
           <p
             role="status"
             aria-live="polite"
@@ -254,7 +557,7 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
               color: 'var(--muted)',
             }}
           >
-            {annuncio}
+            {hintDrag ? 'Svuota la ricerca per spostare le cassette' : annuncio}
           </p>
 
           {/* Live region ASSERTIVA del flusso di trascinamento (§5.4): separata dalla `polite`
@@ -277,10 +580,13 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
           <MotionConfig reducedMotion="user">
             <div className="ds-parete">
               <div className="ds-parete-grid" ref={gridRef}>
+                {/* Niente `AnimatePresence`: lo smontaggio delle non-match è SECCO (riserva FE
+                    R4 — mai popLayout in griglia). `layout="position"` (non il booleano `layout`)
+                    anima solo la posizione delle sorelle, mai le loro dimensioni (riserva FE R4). */}
                 {cassetteRender.map((c) => (
                   <motion.div
                     key={c.id}
-                    layout
+                    layout="position"
                     transition={molla.smooth}
                     className="ds-cella-riordino"
                     animate={{ opacity: idTrascinato === c.id ? trascinamento.opacitaBuca : 1 }}
@@ -290,7 +596,17 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
                       nome={c.nome}
                       colore={c.colore}
                       lavoro={c.lavoro}
-                      stato={attiva ? (accesi.has(c.id) ? 'accesa' : 'spenta') : 'normale'}
+                      // Review finale whole-branch — SEMPRE `normale`, anche a ricerca attiva.
+                      // «accesa» è un residuo della ricerca «che accende» (§5.1), superata dalla
+                      // ratifica 22/07: da allora le non-match si SMONTANO, quindi ogni cassetta
+                      // ancora in pagina È un match e accenderle tutte non distingue nulla — né a
+                      // vista (un anello blu su ognuna, contrasto contro il nulla) né all'ascolto,
+                      // dove `aria-current="true"` su OGNI voce fa dire «corrente» a tutta la
+                      // lista. Che il filtro sia acceso, e con che esito, lo dice già la riga
+                      // conteggio `role="status"` qui sopra, in parole. Lo stato `accesa` resta
+                      // vivo nel componente (catalogo, e chiunque ne abbia bisogno in futuro): è
+                      // questo chiamante a non averne più uno.
+                      stato="normale"
                       onTap={() =>
                         c.lavoro ? router.push(`/lavori/${c.lavoro.id}`) : setSheet({ tipo: 'cassetta', id: c.id })
                       }
@@ -299,8 +615,20 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
                       onSollevata={dragAbilitato ? (evento) => sollevaDrag(c.id, evento) : undefined}
                       // Senza questa prop il timer di long-press non parte affatto e il gesto
                       // sparisce in silenzio (§5.35): va passato a OGNI cassetta, anche occupata.
-                      // Resta l'affordance sheet quando il drag è disabilitato (ricerca attiva).
-                      onLongPressSheet={() => setSheet({ tipo: 'cassetta', id: c.id })}
+                      // Review finale whole-branch (I5) — a ricerca attiva lo sheet si apre
+                      // LO STESSO. Ciò che non convive con la ricerca è il DRAG (parete filtrata
+                      // = ordine parziale, §2.4), e infatti è `dragAbilitato` a togliere
+                      // `onSollevata` qui sopra; il long-press invece è anche l'UNICA via allo
+                      // sheet di una cassetta occupata (il suo tap naviga al lavoro), quindi
+                      // sostituirlo con un hint significava perdere rinomina, colore, «Segna come
+                      // libera», ▲▼ e posizione proprio sulla cassetta che la ricerca aveva
+                      // appena trovato — l'esatto lavoro per cui si era cercato. L'hint resta
+                      // (il drag è bloccato davvero, e va detto: riserva UX 1) ma ACCOMPAGNA lo
+                      // sheet invece di prenderne il posto.
+                      onLongPressSheet={() => {
+                        if (attiva) segnalaDragBloccato()
+                        setSheet({ tipo: 'cassetta', id: c.id })
+                      }}
                     />
                   </motion.div>
                 ))}
@@ -365,6 +693,10 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
                     colore={cassettaGhost.colore}
                     lavoro={cassettaGhost.lavoro}
                     stato="normale"
+                    // Task 9 (D1, riserva FE R3): lo stato «staccato dal filo» si rende SOLO qui,
+                    // sul ghost che insegue il dito — l'originale in `.ds-cella-riordino` resta la
+                    // «buca» (opacità ridotta, gancetto normale).
+                    staccata
                     onTap={() => {}}
                   />
                 </motion.div>
@@ -381,13 +713,13 @@ export function PareteClient(props: { parete: CassettaParete[] }) {
         aperto={sheet?.tipo === 'nuova'}
         onChiudi={chiudiSheet}
         prossimoNome={prossimoNome}
-        onCreata={dopoCambio}
+        onCreata={dopoCreata}
       />
       <CassettaSheet
         cassetta={cassettaAperta}
         libere={libere}
         posto={postoAperta}
-        totale={parete.length}
+        totale={pareteVista.length}
         aperto={sheet?.tipo === 'cassetta' && !!cassettaAperta}
         onChiudi={chiudiSheet}
         onCambiata={dopoCambio}

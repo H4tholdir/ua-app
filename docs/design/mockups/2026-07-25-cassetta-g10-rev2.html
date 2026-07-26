@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetta G10 rev.2 — proposte con parete reale · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP G10 rev.2 — feedback Francesco 25/07 sul rev.1:
+   (1) estetica ESATTA della cassetta attuale (valori VERBATIM da ds-v3.css:
+       tile, linguetta ::before, gancetto metallico, cavità, targa, righe
+       clinico/paziente, pattern del muro, griglia 3 col, traccia 220);
+   (2) proposte VERE, non allungamenti: ogni variante ridistribuisce la faccia
+       della cassetta A PARITÀ DI ALTEZZA (132px, la stessa di oggi);
+   (3) per ogni variante la PARETE REALE a 390px (2 righe, mix occupate/libere,
+       nomi veri lunghi e corti, colori fissi + custom).
+   ==========================================================================*/
+body{margin:0;background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1220px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:900px}
+.legenda{margin:18px 40px 0;padding:18px 22px;background:#FFFEFA;border:1px solid #EBE4D6;border-radius:20px;max-width:980px}
+.legenda li{font-size:13.5px;line-height:1.6;color:#5b5347;margin-bottom:3px}
+.legenda b{color:#1D1913}
+.panel{padding:30px 28px 44px}
+.panel.light{background:#ECE6D9}
+.panel.dark{background:#100E0B;color:#F2EEE7}
+.panel h2{font-size:20px;font-weight:800;margin-bottom:18px}
+.row{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:290px;line-height:1.45}
+.panel.dark .cap{color:#928778}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:2px;color:#6E6457}
+.panel.dark .cap em{color:#A69B8C}
+.cap .warn{display:block;margin-top:3px;font-weight:800;color:#9A5C00}
+
+/* ==== IL MURO — pattern SVG VERBATIM (.ds-parete), viewport 390 ========== */
+.wall{
+  --passo:44px; --wire-w:3px;
+  width:390px; border-radius:18px; padding:24px 16px 18px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:44px 44px;background-color:#F4F0E7;
+}
+.panel.dark .wall{
+  --filo-flat:rgba(255,255,255,.09);
+  background:repeating-linear-gradient(180deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),repeating-linear-gradient(90deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),#171411;
+}
+/* griglia reale: 3 colonne gap 16, traccia 220 (5·44), celle in alto */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;row-gap:0;grid-auto-rows:220px;align-items:start;margin-top:20px}
+
+/* ==== LA CASSETTA — VERBATIM ds-v3.css ================================== */
+.k{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:0;
+  border:none;border-radius:10px 10px 12px 12px;padding:66px 10px 12px;min-height:132px;
+  color:#fff;font-size:11.5px;
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28)}
+.panel.dark .k{box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4)}
+/* linguetta (::before verbatim: 26×10, top -7, brightness .85) */
+.k::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:26px;height:10px;border-radius:4px 4px 0 0;background:inherit;filter:brightness(.85)}
+/* gancetto metallico (28×22 sopra la linguetta) */
+.gan{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:28px;height:22px;z-index:2}
+/* colori fissi verbatim + custom delle schermate reali */
+.verde{background:linear-gradient(180deg,#2E9C55,#166B39)}
+.grigia{background:linear-gradient(180deg,#9A948E,#6E675F)}
+.bianca{background:linear-gradient(180deg,#FFFEFA,#E4DCCB)}
+.gialla{background:linear-gradient(180deg,#D8D820,#A8A800)}
+.rosa{background:linear-gradient(180deg,#D77BC1,#A94A93)}
+.turchese{background:linear-gradient(180deg,#28CCC9,#0E9C9A)}
+/* cavità (finestra) attuale: top 18, h 46 */
+.fin{position:absolute;inset:18px 6px auto 6px;height:46px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+.fin svg{height:72%;width:auto}
+/* targa + righe (verbatim; libera = anello) */
+.targa{position:relative;z-index:1;align-self:center;max-width:6ch;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.92);border-radius:8px;
+  padding:3px 10px 4px;font-size:14px;font-weight:800;color:#1D1913;
+  font-variant-numeric:tabular-nums;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cont{position:relative;z-index:1;text-align:center;margin-top:5px;display:flex;
+  flex-direction:column;gap:1px;line-height:1.28;color:rgba(255,255,255,.95);
+  text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.dent{font-weight:400;opacity:.94;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paz{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k.is-chiara .cont{color:rgba(29,25,19,.85);text-shadow:none}
+.k.is-chiara .dent{opacity:.7}
+.k.is-libera .targa{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);color:rgba(255,255,255,.9)}
+.k.is-libera.is-chiara .targa{box-shadow:inset 0 0 0 2px rgba(29,25,19,.4);color:rgba(29,25,19,.7)}
+.k.is-libera .cont{opacity:.6;font-weight:700}
+
+/* ==== P1 «targa a cavallo» — STESSA altezza 132: bordo 18→8, finestra 46→64,
+        la targa scavalca il bordo basso della finestra, righe sotto ========= */
+.p1{justify-content:flex-start;padding-top:60px;padding-bottom:10px} /* targa parte a 60, la finestra finisce a 72 → scavalco di 12px */
+.p1 .fin{inset:8px 6px auto 6px;height:64px}
+
+/* ==== P2 «sportello a tutta faccia» — STESSA altezza 132: la finestra È la
+        faccia (8..124), targa+righe DENTRO il vetro in basso ============== */
+.p2{padding:0 0 10px;justify-content:flex-end}
+.p2 .fin{inset:8px 6px 8px 6px;height:auto;align-items:flex-start;justify-content:center;padding-top:12px}
+.p2 .fin svg{height:52px}
+.p2 .vetro{position:relative;z-index:1;margin:0 6px -2px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;padding:8px 10px 8px;border-radius:0 0 7px 7px;
+  background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.32))}
+.p2 .cont{margin-top:0}
+
+/* ==== P3 «fascia etichetta» — STESSA altezza 132: bordo 8, finestra 8..80,
+        fascia porta-cartellino scura in basso con targa mini + righe ======= */
+.p3{padding:0;justify-content:flex-end}
+.p3 .fin{inset:8px 6px auto 6px;height:72px}
+.p3 .fascia{position:relative;z-index:1;margin:0 4px 4px;border-radius:4px 4px 9px 9px;
+  padding:5px 8px 6px;background:rgba(0,0,0,.28);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;gap:2px}
+.p3 .targa{font-size:12.5px;padding:1px 8px 2px;border-radius:6px}
+.p3 .cont{margin-top:0}
+.p3.is-chiara .fascia{background:rgba(29,25,19,.14)}
+.p3.is-chiara .fascia .cont{color:rgba(29,25,19,.85)}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>G10 rev.2 — tre modi diversi di dare spazio al lavoro</h1>
+  <p>Feedback recepito: estetica esatta della cassetta di oggi, e proposte che NON allungano il
+  tile — tutte e tre restano ad altezza 132px come oggi (stesse cassette per schermata), il
+  bordo alto scende a 8px, e lo spazio guadagnato va alla finestra in tre modi diversi.
+  Sotto ogni proposta: la parete reale a 390px, due righe, occupate e libere mescolate.</p>
+</div>
+<div class="legenda">
+  <ul>
+    <li><b>OGGI</b> — bordo 18, finestra 46, targa e righe sotto la finestra.</li>
+    <li><b>P1 «targa a cavallo»</b> — finestra 46→<b>64</b>; la targa <b>scavalca</b> il bordo basso
+        della finestra (come il cartellino appoggiato sul vetro). Righe ratificate al loro posto.</li>
+    <li><b>P2 «sportello a tutta faccia»</b> — la finestra diventa <b>l'intera faccia</b> della
+        cassetta (come guardare dentro dallo sportello trasparente); targa e righe vivono su un
+        velo scuro in basso, DENTRO il vetro. <span class="warn" style="display:inline">⚠ targa ricollocata (contenuto invariato)</span></li>
+    <li><b>P3 «fascia etichetta»</b> — finestra 46→<b>72</b> + una <b>fascia porta-cartellino</b>
+        scura in basso (come le etichette delle cassette vere da laboratorio) che raccoglie targa
+        mini e righe. <span class="warn" style="display:inline">⚠ targa ricollocata (contenuto invariato)</span></li>
+    <li>In tutte: gancetto, aggancio alla rete, colori, ombre e contrasto-auto INVARIATI.</li>
+  </ul>
+</div>
+
+<!-- ============================ LIGHT ============================ -->
+<div class="panel light">
+  <h2>Light — parete reale (390px, 2 righe)</h2>
+  <div class="row">
+
+    <!-- OGGI -->
+    <div class="cell">
+      <div class="wall"><div class="grid">
+        <div class="k gialla is-chiara"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/><defs><linearGradient id="m1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1ECE1"/><stop offset=".5" stop-color="#C4BBAC"/><stop offset="1" stop-color="#8B8275"/></linearGradient></defs></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div>
+        <div class="k rosa is-libera"><svg class="gan" viewBox="0 0 28 22"><use href="#g1"/><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k turchese is-libera"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k verde"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div>
+        <div class="k grigia is-libera"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k bianca is-chiara"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div>
+      </div></div>
+      <div class="cap">OGGI<em>bordo 18 · finestra 46 · tile 132</em></div>
+    </div>
+
+    <!-- P1 -->
+    <div class="cell">
+      <div class="wall"><div class="grid">
+        <div class="k gialla is-chiara p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div>
+        <div class="k rosa is-libera p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k turchese is-libera p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k verde p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div>
+        <div class="k grigia is-libera p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k bianca is-chiara p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div>
+      </div></div>
+      <div class="cap">P1 — Targa a cavallo<em>bordo 8 · finestra 64 · tile 132 (uguale a oggi)</em></div>
+    </div>
+
+    <!-- P2 -->
+    <div class="cell">
+      <div class="wall"><div class="grid">
+        <div class="k gialla is-chiara p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="vetro"><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div></div>
+        <div class="k rosa is-libera p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="vetro"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k turchese is-libera p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="vetro"><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k verde p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="vetro"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+        <div class="k grigia is-libera p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="vetro"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k bianca is-chiara p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><div class="vetro"><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div></div>
+      </div></div>
+      <div class="cap">P2 — Sportello a tutta faccia<em>la finestra È la faccia · tile 132</em><span class="warn">⚠ targa dentro il vetro</span></div>
+    </div>
+
+    <!-- P3 -->
+    <div class="cell">
+      <div class="wall"><div class="grid">
+        <div class="k gialla is-chiara p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div></div>
+        <div class="k rosa is-libera p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k turchese is-libera p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k verde p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+        <div class="k grigia is-libera p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k bianca is-chiara p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><div class="fascia"><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div></div>
+      </div></div>
+      <div class="cap">P3 — Fascia etichetta<em>bordo 8 · finestra 72 · fascia porta-cartellino · tile 132</em><span class="warn">⚠ targa nella fascia</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================ DARK ============================ -->
+<div class="panel dark">
+  <h2>Dark — una riga per variante</h2>
+  <div class="row">
+    <div class="cell">
+      <div class="wall" style="padding-bottom:8px"><div class="grid" style="grid-auto-rows:200px">
+        <div class="k verde"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/><defs><linearGradient id="m2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A443B"/><stop offset=".5" stop-color="#39332C"/><stop offset="1" stop-color="#252017"/></linearGradient></defs></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div>
+        <div class="k rosa is-libera"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k grigia is-libera"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div>
+      </div></div>
+      <div class="cap">OGGI</div>
+    </div>
+    <div class="cell">
+      <div class="wall" style="padding-bottom:8px"><div class="grid" style="grid-auto-rows:200px">
+        <div class="k verde p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div>
+        <div class="k rosa is-libera p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div>
+        <div class="k grigia is-libera p1"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div>
+      </div></div>
+      <div class="cap">P1 — Targa a cavallo</div>
+    </div>
+    <div class="cell">
+      <div class="wall" style="padding-bottom:8px"><div class="grid" style="grid-auto-rows:200px">
+        <div class="k verde p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="vetro"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+        <div class="k rosa is-libera p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="vetro"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k grigia is-libera p2"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="vetro"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+      </div></div>
+      <div class="cap">P2 — Sportello a tutta faccia</div>
+    </div>
+    <div class="cell">
+      <div class="wall" style="padding-bottom:8px"><div class="grid" style="grid-auto-rows:200px">
+        <div class="k verde p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+        <div class="k rosa is-libera p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        <div class="k grigia is-libera p3"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+      </div></div>
+      <div class="cap">P3 — Fascia etichetta</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

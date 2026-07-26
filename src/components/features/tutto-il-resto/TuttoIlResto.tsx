@@ -9,31 +9,49 @@
 // (HomeDesktop/NavDesk, Task 9). Stesso schema show/hide CSS di
 // HomeV3/HomeDesktop — niente doppio render lato server, un'unica regola in
 // un `<style>` scoped a questo componente.
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { TastoTondo } from '@/components/ds/TastoTondo'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { LinkQuieto } from '@/components/ds/LinkQuieto'
 import { DialogConferma } from '@/components/ds/DialogConferma'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { raggio, tipografia } from '@/design-system/v3/tokens'
+import { initSuoni } from '@/design-system/v3/sound'
 import type { Sezione } from '@/lib/dashboard/tutto-il-resto'
 
 export function TuttoIlResto(props: { sezioni: Sezione[]; utenteNome: string; labNome: string }) {
   const { sezioni, utenteNome, labNome } = props
   const router = useRouter()
+  const navigaDaOverlay = useNavigaDaOverlay()
   const [dialogEsciAperto, setDialogEsciAperto] = useState(false)
+
+  // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
+  // componente è il root client SEMPRE montato di `/tutto-il-resto` e renderizza
+  // `TastoTondo` (`suona('tap')`) più `DialogConferma` nei propri discendenti (idem, via
+  // `TastoPrimario`, v. nota sopra), senza che nulla a monte chiamasse mai `initSuoni()`:
+  // primo tap muto, stesso bug di G1. Fix: stesso schema di `HomeV3.tsx`. Idempotente (v.
+  // `initFatto` in `sound.ts`).
+  useEffect(() => {
+    initSuoni()
+  }, [])
 
   // Pattern IDENTICO a UserProfileSheet.tsx:76-80 — stesso import
   // `getBrowserClient`, stessa sequenza signOut → push('/login'). Niente
   // `sndClick()` legacy qui: in v3 il feedback tattile/sonoro del tap è già
   // di TastoPrimario dentro DialogConferma (suona()/vibra() §9).
+  // Il logout CHIUDE la pagina e ne apre un'altra mentre il `DialogConferma` è ancora montato:
+  // è una navigazione che parte da dentro un overlay, quindi passa da `navigaDaOverlay` e mai
+  // da `router.push` nudo. Col push l'entry del dialog restava sepolta sotto `/login` e al
+  // ritorno costava una pressione back MORTA (D-1, misurato in browser il 26/07/2026); con la
+  // cessione dell'entry la destinazione la SOSTITUISCE e il conto torna.
   const logout = useCallback(async () => {
     const sb = getBrowserClient()
     await sb.auth.signOut()
-    router.push('/login')
-  }, [router])
+    navigaDaOverlay('/login')
+  }, [navigaDaOverlay])
 
   return (
     <>

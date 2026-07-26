@@ -820,7 +820,7 @@ export function OdontogrammaFDI({
               borderRadius: '20px',
               border: '1px solid var(--prs, #D4CFC9)',
               background: dentizione === tipo ? 'var(--t1, #1C1916)' : 'var(--elv, #EDEDEA)',
-              color: dentizione === tipo ? 'var(--bg, #DDD8D3)' : 'var(--t2, #4A3D33)',
+              color: dentizione === tipo ? 'var(--bg, #F4F0E7)' : 'var(--t2, #4A3D33)',
               fontFamily: 'DM Sans, sans-serif',
               fontSize: '12px',
               fontWeight: 600,

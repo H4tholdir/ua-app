@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il piede nello swipe — C1 «scivola col dito» vs C2 «il tasto si ritira» · UÀ</title>
+<style>
+/* ============================================================================
+   DEMO ANIMATA — le due coreografie del PIEDE (blocco TastoPiù + «Nuovo lavoro»)
+   durante lo swipe home ↔ cassette. Storyboard statico ratificato:
+   docs/design/mockups/2026-07-25-linguetta-e-piede-proposte.html (sez. G4).
+   Formato ripreso dalla demo che Francesco ha già apprezzato:
+   docs/design/mockups/2026-07-24-striscia-animazioni.html.
+
+   COSA DECIDE FRANCESCO: come si SENTE il movimento. La grafica (piede, tasto,
+   pile, «Nuovo lavoro») è quella dello storyboard; qui c'è SOLO il moto.
+
+   FONT: stack di sistema, perché il file deve funzionare offline senza rete (il
+   visualizzatore blocca le richieste esterne). NEL PRODOTTO VERO il font è Plus
+   Jakarta Sans, dai token DS v3 (--font-v3).
+
+   ── LE MOLLE VERE, da src/design-system/v3/motion.ts ─────────────────────────
+   C1 «scivola col dito»  → il piede scende/sfuma legato al dito (1:1 durante il
+        trascinamento, LINEARE, nessuna molla). Quando MOLLI lo swipe, il piede
+        si assesta con  molla.smooth = { visualDuration: 0.5, bounce: 0 }.
+        PERCHÉ smooth: lo storyboard dice «reversibile a metà gesto, come il
+        pannello», e il pannello/sheet nel DS usa molla.smooth
+        (coreografie.sheetSu → transition: molla.smooth). Glide senza rimbalzo.
+
+   C2 «il tasto si ritira» → l'etichetta sfuma, poi il tasto tondo RIMPICCIOLISCE
+        (scale) restando al suo posto. Durante il trascinamento è 1:1 col dito;
+        al rilascio lo scale si assesta con
+        molla.press = { stiffness: 1754, damping: 72, mass: 1 }.
+        PERCHÉ press: nel DS lo scale «al sollevamento» di un elemento è animato
+        proprio con molla.press (trascinamento.scalaSollevamento, riga 22 di
+        motion.ts → «Animata con molla.press»). Molla interattiva, scatto fisico.
+
+   Le molle sono ricreate per le Web Animations API campionando la risposta di
+   un oscillatore smorzato del 2° ordine — stessa tecnica della demo striscia,
+   estesa per accettare ANCHE la forma stiffness/damping/mass di molla.press:
+     forma visualDuration/bounce → ζ = 1 − bounce ,  ω₀ = 2π / visualDuration
+     forma stiffness/damping/mass → ω₀ = √(k/m) ,     ζ = c / (2·√(k·m))
+   Così il React userà, un domani, le molle Motion IDENTICHE.
+
+   NB ONESTO: molla.press si assesta in ~110 ms — a velocità piena è quasi
+   impercettibile. Per questo c'è il tasto «al rallentatore»: è l'unico modo
+   per giudicare davvero C2. C1 (smooth ~0,95 s) si legge bene anche a 1×.
+   ==========================================================================*/
+
+/* ---- Token DS v3 — VERBATIM da src/app/ds-v3.css ------------------------- */
+.ds{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E;
+  --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF; --purple:#7C3F9C;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  color:var(--ink);
+}
+.ds.dark{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910;
+  --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF; --purple:#B98BE8;
+  --sh-card:none;
+}
+
+:root{ --font-sys:-apple-system,"SF Pro Text","Segoe UI",system-ui,Roboto,sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-sys);background:#E7E1D4;color:#1D1913;min-height:100vh}
+body.night{background:#0C0A08;color:#F2EEE7}
+.ds{font-family:var(--font-sys)}
+.wrap{max-width:900px;margin:0 auto;padding:26px 22px 60px}
+.doc-head h1{font-size:25px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px}
+.doc-head p{font-size:14px;line-height:1.55;color:#5b5347;max-width:760px}
+body.night .doc-head p{color:#A69B8C}
+
+/* ---- Barra controlli ----------------------------------------------------- */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0 6px}
+.btn{padding:11px 18px;border-radius:999px;border:1.5px solid #D8D0C0;background:#FFFEFA;color:#1D1913;
+  font:800 14px var(--font-sys);cursor:pointer;transition:transform .08s}
+.btn:active{transform:translateY(1px)}
+.btn.primary{border-color:#D90012;background:#D90012;color:#fff}
+body.night .btn{background:#211D18;border-color:#342E26;color:#F2EEE7}
+body.night .btn.primary{border-color:#FF3B44;background:#FF3B44;color:#171411}
+.sw{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:#4a4339;cursor:pointer;user-select:none}
+body.night .sw{color:#C9BFB0}
+.sw .track{width:44px;height:26px;border-radius:99px;background:#CFC7B7;position:relative;transition:background .16s;flex:none}
+.sw .track::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:left .16s}
+.sw input{position:absolute;opacity:0;pointer-events:none}
+.sw input:checked + .track{background:#D90012}
+.sw input:checked + .track::after{left:21px}
+body.night .sw input:checked + .track{background:#FF3B44}
+.spacer{flex:1 1 auto}
+
+.liveline{margin:12px 0 0;padding:12px 15px;border-radius:14px;background:#FFFEFA;border:1px solid #E4DDCF;
+  font-size:13px;color:#5b5347;line-height:1.5;min-height:44px}
+.liveline b{color:#1D1913}
+body.night .liveline{background:#211D18;border-color:#342E26;color:#A69B8C}
+body.night .liveline b{color:#F2EEE7}
+
+/* ---- Palco: due telefoni affiancati -------------------------------------- */
+.stageRow{display:flex;gap:26px;align-items:flex-start;margin-top:20px;flex-wrap:wrap;justify-content:center}
+.col{display:flex;flex-direction:column;gap:12px;align-items:center;flex:1 1 300px;max-width:360px}
+.coltitle{text-align:center}
+.coltitle .tag{display:inline-block;padding:3px 12px;border-radius:9px;background:#1D1913;color:#F4F0E7;font-size:13px;font-weight:800;letter-spacing:.02em}
+body.night .coltitle .tag{background:#F2EEE7;color:#171411}
+.coltitle .nm{font-size:16px;font-weight:800;margin-top:7px}
+.coltitle .molla{font-size:11.5px;font-weight:700;color:#8a8073;margin-top:2px;letter-spacing:.02em}
+body.night .coltitle .molla{color:#7d7365}
+
+/* Il telefono (rappresenta la home a 390px) */
+.phone{width:100%;max-width:320px;aspect-ratio:390/720;background:var(--bg);border-radius:30px;
+  border:1px solid var(--line);position:relative;overflow:hidden;box-shadow:0 26px 54px -28px rgba(0,0,0,.5)}
+.screen{position:absolute;inset:0;padding:22px 20px}
+.testa{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.saluto{font-size:23px;font-weight:800;letter-spacing:-0.02em;line-height:1.08;margin-top:5px;color:var(--ink)}
+.tondo{flex:none;width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh-card);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink)}
+.dark .tondo{box-shadow:none}
+.pile{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+.pila{display:flex;align-items:center;gap:16px;border-radius:20px;background:var(--card);box-shadow:var(--sh-card);padding:15px 18px}
+.dark .pila{box-shadow:none;border-top:1px solid rgba(255,255,255,.04)}
+.pila .num{min-width:42px;text-align:center;font-size:38px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.pila .col2{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pila .lab{font-size:10.5px;font-weight:800;letter-spacing:.14em}
+.pila .sub{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-red{color:var(--red)}.c-amber{color:var(--amber)}.c-purple{color:var(--purple)}
+
+/* Il PIEDE — blocco TastoPiù + etichetta */
+.piede{position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column;align-items:center;gap:8px;will-change:transform,opacity}
+.tasto{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:29px;font-weight:800;color:var(--red);will-change:transform,opacity;
+  background:radial-gradient(circle at 50% 28%,#FFFFFF 0%,#FEFCF8 40%,#F5F0E6 75%,#EBE4D4 100%);
+  box-shadow:0 3px 6px rgba(52,42,26,.18), inset 0 2px 2px rgba(255,255,255,1), inset 0 -4px 8px rgba(52,42,26,.06)}
+.dark .tasto{background:radial-gradient(circle at 50% 28%,#37312A 0%,#2E2921 55%,#252017 100%);
+  box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 1.5px 1px rgba(255,255,255,.08), inset 0 -3px 6px rgba(0,0,0,.3)}
+.eti{font-size:12.5px;font-weight:800;color:var(--ink);will-change:opacity}
+
+/* La parete cassette che entra da destra (contesto dello swipe) */
+.wall{position:absolute;inset:0;background:var(--bg-deep);
+  background-image:
+    repeating-linear-gradient(180deg,rgba(140,126,96,.16) 0 2px,transparent 2px 42px),
+    repeating-linear-gradient(90deg,rgba(140,126,96,.16) 0 2px,transparent 2px 42px);
+  transform:translateX(100%);will-change:transform}
+.dark .wall{background-image:
+    repeating-linear-gradient(180deg,rgba(255,255,255,.05) 0 2px,transparent 2px 42px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 2px,transparent 2px 42px)}
+.wall .wlab{position:absolute;top:22px;left:20px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+
+/* Il dito simulato */
+.finger{position:absolute;width:46px;height:46px;border-radius:50%;top:64%;left:82%;
+  transform:translate(-50%,-50%);pointer-events:none;opacity:0;will-change:left,opacity,transform;
+  background:radial-gradient(circle at 38% 34%,rgba(255,255,255,.55),rgba(80,70,55,.30) 60%,rgba(60,50,40,.18));
+  border:1.5px solid rgba(60,50,40,.28);box-shadow:0 4px 12px rgba(0,0,0,.22)}
+.dark .finger{background:radial-gradient(circle at 38% 34%,rgba(255,255,255,.30),rgba(255,255,255,.10) 60%,rgba(255,255,255,.04));border-color:rgba(255,255,255,.22)}
+
+.frameflag{position:absolute;top:0;left:0;right:0;text-align:center;padding:6px;font-size:10.5px;font-weight:800;
+  letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(29,25,19,.0);transition:background .2s;z-index:5;pointer-events:none}
+
+/* ---- Note trade-off ------------------------------------------------------ */
+.note{margin-top:30px;padding:18px 20px;border-radius:16px;background:#FFFEFA;border:1px solid #E4DDCF}
+body.night .note{background:#211D18;border-color:#342E26}
+.note h3{font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a8073;margin-bottom:10px}
+.note ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.note li{font-size:13.5px;line-height:1.5;color:#5b5347;padding-left:18px;position:relative}
+.note li::before{content:'—';position:absolute;left:0;color:var(--red,#D90012);font-weight:800}
+.note li b{color:#1D1913}
+body.night .note li{color:#A69B8C}
+body.night .note li b{color:#F2EEE7}
+.note .neutro{margin-top:12px;font-size:12.5px;font-style:italic;color:#8a8073}
+body.night .note .neutro{color:#7d7365}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="doc-head">
+    <h1>Il piede nello swipe: due modi di sparire</h1>
+    <p>Il blocco col tasto «+» e «Nuovo lavoro» c'è sulla home e non c'è sulle cassette. Oggi
+    scompare di colpo. Qui due modi di farlo con grazia — <b>parte da solo e si ripete</b>. Le
+    animazioni usano le molle vere del design (le stesse che userà l'app). Il <b>dito</b> mostra il
+    gesto; a metà «lo mollo» apposta, così vedi la molla che riporta il piede a casa.
+    Prova <b>«al rallentatore»</b> soprattutto per C2 (si assesta in un lampo). Rispondi pure «C1» o «C2».</p>
+  </div>
+
+  <div class="bar">
+    <button class="btn primary" id="replay">▷ Rigioca</button>
+    <label class="sw"><input type="checkbox" id="slow"><span class="track"></span>Al rallentatore (0,25×)</label>
+    <label class="sw"><input type="checkbox" id="rm"><span class="track"></span>Movimento ridotto</label>
+    <span class="spacer"></span>
+    <button class="btn" id="tema">☀ / ☾ Tema</button>
+  </div>
+  <div class="liveline" id="live">L'animazione parte tra un istante…</div>
+
+  <div class="ds" id="dsroot">
+    <div class="stageRow">
+      <div class="col">
+        <div class="coltitle">
+          <span class="tag">C1</span>
+          <div class="nm">Scivola col dito</div>
+          <div class="molla">assestamento: molla.smooth</div>
+        </div>
+        <div class="phone" data-variant="c1">
+          <div class="frameflag" data-flag></div>
+          <div class="screen">
+            <div class="testa">
+              <div><div class="eyebrow">VEN 25 LUGLIO</div><div class="saluto">Buongiorno,<br>Francesco</div></div>
+              <div class="tondo">☰</div>
+            </div>
+            <div class="pile">
+              <div class="pila"><span class="num c-red">3</span><span class="col2"><span class="lab c-red">DA CONSEGNARE OGGI</span><span class="sub">ponte Dr. Bianchi</span></span></div>
+              <div class="pila"><span class="num c-amber">5</span><span class="col2"><span class="lab c-amber">SUL BANCO</span><span class="sub">2 in cottura</span></span></div>
+              <div class="pila"><span class="num c-purple">1</span><span class="col2"><span class="lab c-purple">DA RIFARE / IN PROVA</span><span class="sub">prova Dr.ssa Ricci</span></span></div>
+            </div>
+            <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+          </div>
+          <div class="wall"><span class="wlab">Cassette</span></div>
+          <div class="finger"></div>
+        </div>
+        <div class="minicap"></div>
+      </div>
+
+      <div class="col">
+        <div class="coltitle">
+          <span class="tag">C2</span>
+          <div class="nm">Il tasto si ritira</div>
+          <div class="molla">assestamento: molla.press</div>
+        </div>
+        <div class="phone" data-variant="c2">
+          <div class="frameflag" data-flag></div>
+          <div class="screen">
+            <div class="testa">
+              <div><div class="eyebrow">VEN 25 LUGLIO</div><div class="saluto">Buongiorno,<br>Francesco</div></div>
+              <div class="tondo">☰</div>
+            </div>
+            <div class="pile">
+              <div class="pila"><span class="num c-red">3</span><span class="col2"><span class="lab c-red">DA CONSEGNARE OGGI</span><span class="sub">ponte Dr. Bianchi</span></span></div>
+              <div class="pila"><span class="num c-amber">5</span><span class="col2"><span class="lab c-amber">SUL BANCO</span><span class="sub">2 in cottura</span></span></div>
+              <div class="pila"><span class="num c-purple">1</span><span class="col2"><span class="lab c-purple">DA RIFARE / IN PROVA</span><span class="sub">prova Dr.ssa Ricci</span></span></div>
+            </div>
+            <div class="piede"><div class="tasto">+</div><div class="eti">Nuovo lavoro</div></div>
+          </div>
+          <div class="wall"><span class="wlab">Cassette</span></div>
+          <div class="finger"></div>
+        </div>
+        <div class="minicap"></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <h3>Le due sensazioni, senza consigli</h3>
+      <ul>
+        <li><b>C1 «scivola col dito»</b> lega tutto il piede al gesto: scende e sfuma <b>insieme</b> alla pagina, un blocco solo. Se ti fermi a metà e molli, risale come un cassetto che rientra — coerente col pannello che stai trascinando. In cambio, il tasto non ha un momento suo: è «un pezzo della pagina che se ne va».</li>
+        <li><b>C2 «il tasto si ritira»</b> dà al tasto un gesto proprio: l'etichetta sparisce per prima, poi il tondo si ritrae su sé stesso con uno scatto fisico. Si nota di più, sembra «un oggetto che si tira indietro». In cambio è un movimento <b>più veloce e secco</b> (~0,1 s): a schermo pieno lo cogli appena — per questo la molla press va vista al rallentatore.</li>
+        <li>A <b>metà gesto</b> entrambe sono reversibili: molli e il piede torna. C1 torna con un glide morbido (smooth), C2 con lo scatto della molla interattiva (press) — la differenza di carattere è tutta lì.</li>
+        <li>Con <b>movimento ridotto</b> attivo, nessuna delle due «viaggia»: il piede fa una semplice dissolvenza. È il ripiego per chi ha disattivato le animazioni nel telefono.</li>
+      </ul>
+      <div class="neutro">La scelta è tua: qui c'è solo come si sentono. Rispondi «C1», «C2» (o «C1 con qualcosa di C2»).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================================================
+//  LE MOLLE DI CASA (src/design-system/v3/motion.ts) ricreate per WAAPI/rAF.
+//  Oscillatore smorzato del 2° ordine, campionato. Accetta DUE forme di spec:
+//    { visualDuration, bounce }              → ζ = 1 − bounce , ω₀ = 2π/vDur
+//    { stiffness, damping, mass }  (press)   → ω₀ = √(k/m) ,  ζ = c/(2√(k·m))
+// =============================================================================
+const MOLLA = {
+  smooth: { visualDuration: 0.5, bounce: 0.0 },                 // C1: assestamento del piede (come il pannello/sheet)
+  press:  { stiffness: 1754, damping: 72, mass: 1 },            // C2: scale del tasto che si ritira (interactive spring)
+};
+function springCurve(spec, N = 90){
+  let zeta, w0, total;
+  if (spec.stiffness != null){
+    w0   = Math.sqrt(spec.stiffness / spec.mass);               // ≈ 41.88 rad/s
+    zeta = spec.damping / (2 * Math.sqrt(spec.stiffness * spec.mass)); // ≈ 0.860
+    total = 4 / (zeta * w0);                                    // tempo di assestamento ≈ 0.111 s
+  } else {
+    zeta = Math.min(1, Math.max(0, 1 - spec.bounce));
+    w0   = (2 * Math.PI) / spec.visualDuration;
+    total = spec.visualDuration * 1.9;                          // ≈ 0.95 s per smooth
+  }
+  const out = [];
+  for (let i = 0; i < N; i++){
+    const t = (i / (N - 1)) * total;
+    let x;
+    if (zeta < 1){
+      const wd = w0 * Math.sqrt(1 - zeta * zeta);
+      x = 1 - Math.exp(-zeta * w0 * t) * (Math.cos(wd * t) + (zeta * w0 / wd) * Math.sin(wd * t));
+    } else {
+      x = 1 - Math.exp(-w0 * t) * (1 + w0 * t);                 // criticamente smorzato (smooth): nessun overshoot
+    }
+    out.push({ o: i / (N - 1), x });
+  }
+  return { samples: out, durMs: Math.round(total * 1000) };
+}
+function sampleAt(samples, frac){
+  if (frac <= 0) return samples[0].x;
+  if (frac >= 1) return samples[samples.length - 1].x;
+  const p = frac * (samples.length - 1);
+  const i = Math.floor(p), f = p - i;
+  return samples[i].x + (samples[i + 1].x - samples[i].x) * f;
+}
+const clamp01 = v => Math.min(1, Math.max(0, v));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// =============================================================================
+//  MODELLO TELEFONO — un solo "progress" 0→1 pilota tutto. Il rendering DIFFERISCE
+//  per variante; il gesto (dito) è lo STESSO per C1 e C2 → confronto onesto.
+// =============================================================================
+function makePhone(el){
+  const v = el.dataset.variant;
+  return {
+    v, el,
+    piede: el.querySelector('.piede'),
+    tasto: el.querySelector('.tasto'),
+    eti:   el.querySelector('.eti'),
+    wall:  el.querySelector('.wall'),
+    pile:  el.querySelector('.pile'),
+    finger:el.querySelector('.finger'),
+    flag:  el.querySelector('[data-flag]'),
+    spring: v === 'c1' ? MOLLA.smooth : MOLLA.press,
+  };
+}
+const phones = [...document.querySelectorAll('.phone')].map(makePhone);
+
+function render(ph, p){
+  p = Math.max(0, p);                                   // consenti p<0 solo internamente, il clamp è sul visivo
+  ph.wall.style.transform = `translateX(${(1 - clamp01(p)) * 100}%)`;
+  ph.pile.style.opacity = String(1 - clamp01(p) * 0.55);
+  if (ph.v === 'c1'){
+    // Tutto il piede scende e sfuma, legato alla pagina.
+    ph.piede.style.transform = `translateY(${clamp01(p) * 46}px)`;
+    ph.piede.style.opacity   = String(clamp01(1 - p * 1.12));
+    ph.tasto.style.transform = '';
+    ph.tasto.style.opacity   = '';
+    ph.eti.style.opacity     = '';
+  } else {
+    // C2: l'etichetta sfuma per prima, poi il tondo si ritrae (scale) restando fermo.
+    ph.piede.style.transform = '';
+    ph.piede.style.opacity   = '1';
+    ph.eti.style.opacity     = String(clamp01(1 - p / 0.30));
+    const s = clamp01(1 - p);
+    ph.tasto.style.transform = `scale(${s})`;
+    ph.tasto.style.opacity   = String(clamp01(1 - Math.max(0, p - 0.78) / 0.22));
+  }
+}
+function setFinger(ph, p, visible){
+  ph.finger.style.opacity = visible ? '1' : '0';
+  ph.finger.style.left = `${(1 - clamp01(p)) * 66 + 16}%`;      // da ~82% (destra) a ~16% (sinistra)
+}
+function fingerLift(ph){
+  ph.finger.getAnimations().forEach(a => a.cancel());
+  ph.finger.animate(
+    [{ opacity: 1, transform: 'translate(-50%,-50%) scale(1)' },
+     { opacity: 0, transform: 'translate(-50%,-58%) scale(1.35)' }],
+    { duration: 200, easing: 'cubic-bezier(0.2,0.7,0.2,1)', fill: 'forwards' });
+}
+function setFlag(ph, txt, tone){
+  ph.flag.textContent = txt;
+  ph.flag.style.background = txt
+    ? (tone === 'cassette' ? 'rgba(29,25,19,.55)' : 'rgba(29,25,19,.32)')
+    : 'transparent';
+}
+
+// =============================================================================
+//  ORCHESTRAZIONE — un solo driver per il TRASCINAMENTO (lineare, 1:1 col dito,
+//  NESSUNA molla). Le molle v3 entrano SOLO al RILASCIO (assestamento).
+// =============================================================================
+let EPOCH = 0;
+let slow = false, reduced = false;
+const live = document.getElementById('live');
+const setLive = html => { live.innerHTML = html; };
+
+// Trascinamento lineare condiviso: aggiorna progress su TUTTI i telefoni identico.
+function drag(fromP, toP, ms, epoch){
+  return new Promise(res => {
+    const t0 = performance.now(), dur = ms * (slow ? 4 : 1);
+    (function frame(now){
+      if (epoch !== EPOCH) return res();
+      const k = Math.min(1, (now - t0) / dur);
+      const p = fromP + (toP - fromP) * k;
+      phones.forEach(ph => { render(ph, p); setFinger(ph, p, true); });
+      k < 1 ? requestAnimationFrame(frame) : res();
+    })(performance.now());
+  });
+}
+// Rilascio: OGNI telefono si assesta con la SUA molla v3 (durate diverse → onesto).
+function release(ph, fromP, toP, epoch){
+  const { samples, durMs } = springCurve(ph.spring);
+  const dur = durMs * (slow ? 4 : 1);
+  return new Promise(res => {
+    const t0 = performance.now();
+    (function frame(now){
+      if (epoch !== EPOCH) return res();
+      const frac = (now - t0) / dur;
+      if (frac >= 1){ render(ph, toP); return res(); }
+      const x = sampleAt(samples, frac);
+      render(ph, fromP + (toP - fromP) * x);
+      requestAnimationFrame(frame);
+    })(performance.now());
+  });
+}
+function resetHome(){
+  phones.forEach(ph => { render(ph, 0); setFinger(ph, 0, false); setFlag(ph, ''); });
+}
+
+async function choreography(epoch){
+  // ── Ripiego MOVIMENTO RIDOTTO: solo dissolvenza del piede, nessun viaggio ──
+  if (reduced){
+    while (epoch === EPOCH){
+      setLive('<b>Movimento ridotto</b> — il piede fa una semplice dissolvenza (ripiego per animazioni disattivate).');
+      phones.forEach(ph => setFlag(ph, 'Home'));
+      resetHome();
+      await wait(900); if (epoch !== EPOCH) return;
+      phones.forEach(ph => {
+        setFlag(ph, 'Cassette', 'cassette');
+        ph.piede.animate([{opacity:1},{opacity:0}], {duration:160, easing:'ease', fill:'forwards'});
+        ph.wall.animate([{transform:'translateX(100%)'},{transform:'translateX(0)'}], {duration:200, easing:'ease', fill:'forwards'});
+      });
+      await wait(1400); if (epoch !== EPOCH) return;
+      phones.forEach(ph => { ph.piede.getAnimations().forEach(a=>a.cancel()); ph.wall.getAnimations().forEach(a=>a.cancel()); });
+      await wait(200);
+    }
+    return;
+  }
+
+  // ── SCENA 1: porti lo swipe fino in fondo → il piede se ne va, arrivi alle cassette ──
+  while (epoch === EPOCH){
+    resetHome();
+    phones.forEach(ph => setFlag(ph, 'Home'));
+    setLive('<b>Scena 1 · vai fino in fondo.</b> Il dito trascina verso le cassette: il piede segue il gesto…');
+    await wait(650); if (epoch !== EPOCH) return;
+
+    await drag(0, 0.86, 1150, epoch); if (epoch !== EPOCH) return;
+    setLive('<b>Scena 1 · rilasci oltre metà.</b> Il piede si assesta con la sua molla e sparisce — sei sulle cassette.');
+    phones.forEach(ph => { fingerLift(ph); setFlag(ph, 'Cassette', 'cassette'); });
+    await Promise.all(phones.map(ph => release(ph, 0.86, 1, epoch))); if (epoch !== EPOCH) return;
+    await wait(1100); if (epoch !== EPOCH) return;
+
+    // ── SCENA 2: ci ripensi a metà → molli e il piede RISALE (la molla in bella vista) ──
+    resetHome();
+    phones.forEach(ph => setFlag(ph, 'Home'));
+    setLive('<b>Scena 2 · ci ripensi.</b> Trascini solo a metà strada, poi molli…');
+    await wait(650); if (epoch !== EPOCH) return;
+
+    await drag(0, 0.42, 700, epoch); if (epoch !== EPOCH) return;
+    setLive('<b>Scena 2 · molli a metà.</b> C1 risale con un glide (smooth), C2 con lo scatto (press): il piede torna a casa.');
+    phones.forEach(ph => { fingerLift(ph); setFlag(ph, 'Home'); });
+    await Promise.all(phones.map(ph => release(ph, 0.42, 0, epoch))); if (epoch !== EPOCH) return;
+    await wait(1300); if (epoch !== EPOCH) return;
+  }
+}
+
+function restart(){
+  EPOCH++;
+  const ep = EPOCH;
+  phones.forEach(ph => { ph.piede.getAnimations().forEach(a=>a.cancel()); ph.wall.getAnimations().forEach(a=>a.cancel()); ph.finger.getAnimations().forEach(a=>a.cancel()); });
+  resetHome();
+  choreography(ep);
+}
+
+// ---- Wiring --------------------------------------------------------------
+document.getElementById('replay').addEventListener('click', restart);
+document.getElementById('slow').addEventListener('change', e => { slow = e.target.checked; restart(); });
+const dsroot = document.getElementById('dsroot');
+document.getElementById('tema').addEventListener('click', () => {
+  document.body.classList.toggle('night'); dsroot.classList.toggle('dark');
+});
+const rmBox = document.getElementById('rm');
+rmBox.addEventListener('change', e => { reduced = e.target.checked; restart(); });
+
+// prefers-reduced-motion REALE del sistema (non solo il toggle): rispettato all'avvio.
+const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+if (mq.matches){ reduced = true; rmBox.checked = true; }
+mq.addEventListener && mq.addEventListener('change', e => { reduced = e.matches; rmBox.checked = e.matches; restart(); });
+
+window.addEventListener('load', () => setTimeout(restart, 500));
+</script>
+</body>
+</html>

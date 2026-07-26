@@ -105,6 +105,18 @@ describe('ProgressDots — dots wizard (§5.32)', () => {
   })
 })
 
+// QA device (verbale 25/07, fix-list D3, decisione ratificata) — i dot indicatori delle DUE
+// stanze della home vengono rimossi del tutto: componente, markup, stili e handler dedicati
+// (v. StanzePager.tsx, ds-v3.css). `ProgressDots` (wizard, §5.32) resta invariato — solo la
+// variante «stanze» muore, non il file.
+describe('D3 (decisione ratificata) — la variante «stanze» dei dots è stata rimossa', () => {
+  it('ProgressDots.tsx non esporta più ProgressDotsStanze né idTabStanza', async () => {
+    const mod = await import('@/components/ds/ProgressDots')
+    expect((mod as Record<string, unknown>).ProgressDotsStanze).toBeUndefined()
+    expect((mod as Record<string, unknown>).idTabStanza).toBeUndefined()
+  })
+})
+
 describe('dizionario sui testi del catalogo — sezione ProgressDots (§5.32)', () => {
   it('i testi dimostrativi passano trovaParoleVietate', async () => {
     const CatalogoPage = (await import('../../src/app/ds-v3-catalogo/page')).default

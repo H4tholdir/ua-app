@@ -4,6 +4,23 @@
 
 export { useReducedMotion } from '../motion'
 
+// La «transizione» dell'accessibilità: nessuna transizione affatto. NON è una curva di design —
+// è la clamp che spegne il movimento sotto `prefers-reduced-motion` (spec §8.4), stessa natura
+// (e stessa esenzione, già ratificata) del `transition-duration: 0.15s !important` che il foglio
+// ds-v3.css applica nei blocchi reduced-motion dal commit a909717. Vive QUI, con un nome, perché
+// la «REGOLA MOTION — ASSOLUTA» vieta un `{ duration: 0 }` scritto a mano dentro un componente:
+// anche l'assenza di movimento è un valore, e i valori stanno nei token.
+//
+// COME SI USA — la regola nata dal difetto D1/D2 del 26/07 (linguetta «LE CASSETTE» rimasta
+// fuori schermo, striscia rimasta 13px più in basso; v. il commento esteso su `useReducedMotion`
+// in ../motion.ts): sotto reduced-motion si cambia la TRANSIZIONE, MAI il bersaglio. Ogni chiave
+// di spostamento che l'ingresso può aver già scritto nel DOM (x, y, scale…) deve restare dentro
+// `animate`/`exit` e arrivarci con `istantaneo`. Toglierla dal bersaglio NON la riporta a casa:
+// Motion muove solo ciò che sta nel bersaglio, quindi la chiave tolta resta congelata dov'era —
+// che è esattamente il difetto. Uso per-chiave: `transition={{ ...molla.smooth, x: istantaneo }}`
+// (le altre proprietà continuano a usare la molla dichiarata: la dissolvenza resta una molla).
+export const istantaneo = { duration: 0 } as const
+
 export const molla = {
   snappy: { type: 'spring', visualDuration: 0.5, bounce: 0.15 },
   smooth: { type: 'spring', visualDuration: 0.5, bounce: 0 },

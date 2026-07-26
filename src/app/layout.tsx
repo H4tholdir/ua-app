@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeInitializer } from '@/components/layout/ThemeInitializer'
+import { ConfigMovimento } from '@/components/layout/ConfigMovimento'
 import '@fontsource/plus-jakarta-sans/400.css'
 import '@fontsource/plus-jakarta-sans/600.css'
 import '@fontsource/plus-jakarta-sans/700.css'
@@ -54,7 +55,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
       </head>
       <body className="min-h-full flex flex-col antialiased">
-        {children}
+        {/* «Riduci movimento» detto a Motion una volta sola, per tutta l'app (v. il commento
+            esteso in ConfigMovimento.tsx): gli spostamenti diventano istantanei, le dissolvenze
+            restano. `children` resta reso dal server — è un involucro di contesto, non porta
+            l'albero lato client. */}
+        <ConfigMovimento>{children}</ConfigMovimento>
         <SpeedInsights />
       </body>
     </html>

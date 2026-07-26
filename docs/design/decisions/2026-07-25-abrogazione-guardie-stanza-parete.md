@@ -1,0 +1,150 @@
+# Decisione — Abrogazione delle guardie stanza-parete (Task 12, D2)
+
+**Data:** 25/07/2026 · **Ondata:** «Redesign parete/home» · **Task:** 12 — «L'embed della parete
+vera nella home»
+**Spec:** `docs/superpowers/specs/2026-07-23-redesign-parete-home-design.md` §3.1 (D2) e §5.4
+(guardie test, panel ARCH R6 + FE R2)
+
+## Che cosa muore
+
+`StanzaParete.tsx` — l'anteprima cap-8 (5/8 cassette + tile «Tutte le cassette ›») della stanza
+Parete in home — sparisce col proprio test (`tests/unit/stanza-parete.test.tsx`). Al suo posto la
+stanza Parete monta la **`PareteClient` vera**, la stessa che serve `/cassette` (`contesto="stanza"`
+spegne il chrome di pagina — niente back, niente ☰, che la home ha già nella stanza Pile), dentro
+un contenitore di scroll nuovo (`.ua-stanza-parete-scroll`). Con questo la home smette di avere una
+propria superficie CSS per il muro: eredita `.ds-parete-shell`/`.ds-parete`/`.ds-parete-grid` (e le
+loro container query fluide, riserva ARCH R7 del Task 11) **per costruzione**, non per
+duplicazione — riserva ARCH R6 di spec §5.4.
+
+CSS rimosso da `src/app/ds-v3.css`: `.ua-stanza-parete`, `.ua-stanza-parete-corpo`,
+`.ua-parete-titolo` (2 regole), l'override colonne `.ua-stanza-parete .ds-parete-grid` (Task 11 lo
+aveva già previsto: «muore col Task 12»), il ramo `@media (max-height: 780px)` dedicato alla home
+(padding/gap/row-gap fissi «compatta R3b»), `.ds-cella-parete-home` (2 regole) e il suo
+`@media (max-width: 767px)`. `.ds-tile-tutte` **resta**, deliberatamente: non è mai stato nel
+perimetro `.ua-stanza-parete*`, non ha altri consumatori ora che `StanzaParete.tsx` è morto, ma la
+sua rimozione non è nel file-list di questo task — segnalato come cleanup separato, non fatto qui
+in silenzio.
+
+## Guardie abrogate (`tests/unit/ds-v3/parete-fluida.test.ts`)
+
+Spec §5.4 prescrive l'abrogazione (non l'estensione) degli assert 4 e 5 del primo `describe` del
+file. In implementazione è emersa una terza conseguenza, meccanica e non prescritta dal piano, nel
+secondo `describe`: documentata qui per intero, così che nessuna delle tre resti un «test sistemato
+in silenzio».
+
+1. **Assert 4 — «ogni cqw…vettore di leak reale…che la home riusa».** Presidiava che rendere fluida
+   la regola BASE `.ds-parete-grid` (fuori da `.ds-parete-shell`) avrebbe fatto trapelare i cqw
+   nella home, perché la home — prima del Task 12 — renderizzava `.ds-parete`/`.ds-parete-grid`
+   SENZA passare da `.ds-parete-shell` (un proprio `.ua-stanza-parete .ds-parete-grid` sovrascriveva
+   solo le colonne). Quella premessa è falsa oggi: la home monta la stessa `PareteClient`, quindi
+   il SUO `.ds-parete-shell` è il perimetro anche per la home. Le due asserzioni strutturali (loop
+   cqw→shell, valori base verbatim) sono vere e restano — sotto un titolo che non promette più una
+   guardia home-specifica.
+
+2. **Assert 5 — «la home resta FUORI dal perimetro: nessuna regola fluida tocca
+   .ua-stanza-parete».** Il suo oggetto (le regole `.ua-stanza-parete*`) non esiste più:
+   `regole.length` cadrebbe a 0 by design — non un difetto, la certificazione che il componente è
+   morto. **Nota tecnica:** il regex `/\.ua-stanza-parete[^{]*\{/` avrebbe per coincidenza
+   continuato a fare match sulla NUOVA regola `.ua-stanza-parete-scroll` (stesso prefisso
+   letterale) e il test sarebbe rimasto verde — un falso positivo da manuale (guardia cieca che
+   promette di guardare l'oggetto sbagliato). Abrogato comunque, per la lettera e lo spirito di
+   spec §5.4. Sostituito da una guardia sul nuovo contratto: `.ua-stanza-parete-scroll` è il
+   contenitore di scroll (`overflow-y: auto` + `overscroll-behavior-y: contain`).
+
+3. **Il terzo `expect` di «il row-gap:0 vince…e nel ramo home a device corti (max-height:780px)»**
+   (nel secondo `describe`, Task 8 — NON uno degli assert 4-5 del piano). Presidiava che
+   `.ua-stanza-parete .ds-parete-grid { row-gap: 0; }` ribadisse la quantizzazione dentro
+   `@media (max-height:780px)`, perché lì `.ua-stanza-parete .ds-parete-grid { gap: 12px; }`
+   (shorthand, azzerava anche row-gap) vinceva per specificità sulla regola base. Quella coppia di
+   regole home-specifiche (gap fisso + il suo contro-effetto) è sparita con la rimozione sopra: la
+   home non ha più un proprio ramo di gap fisso, usa lo stesso `.ds-parete-shell .ds-parete-grid`
+   fluido di `/cassette` — la quantizzazione della regola base (Task 8) vale già, senza bisogno di
+   un contro-effetto home-specifico. Rimosso il solo terzo `expect`; le prime due asserzioni
+   (perimetro shell, invariate) restano nello stesso test.
+
+## Perché si abroga e non si «ripara»
+
+Reintrodurre una regola home-specifica solo per far ripassare un test che presidiava un difetto di
+specificità CSS ormai inesistente produrrebbe una guardia verde ma cieca — l'esatto rischio che le
+guardie testuali di `parete-fluida.test.ts` esistono per evitare (v. nota di testa del file: «il CSS
+è verificato come testo»). Dopo il Task 12 la home non ha più bisogno di correggersi da sola: eredita
+il comportamento di `/cassette` per costruzione (riserva ARCH R6 — nessuna divergenza CSS tra le due
+superfici che mostrano lo stesso muro), e il mount differito (riserva ARCH R3, `StanzaParete` locale
+in `StanzePager.tsx`) tiene sotto controllo il costo di questa unificazione.
+
+## Riferimenti
+
+- Spec: `docs/superpowers/specs/2026-07-23-redesign-parete-home-design.md` §3.1 (D2 — le due
+  stanze, senza copie), §5.4 (guardie test, panel ARCH R6 + FE R2)
+- Riserve: ARCH R2 (refresh gated), ARCH R3 (mount differito), ARCH R6 (nessuna divergenza CSS
+  home/`/cassette`), ARCH R7 (colonne in container query, Task 11), FE R2 (guardie riscritte)
+- Decision record precedente sullo stesso perimetro CSS: `2026-07-22-gap-cassette-tablet.md`
+  (dichiarava esplicitamente che la home ne restava fuori «finché non arriva l'ondata» — questo
+  task È quell'ondata)
+- L'altra abrogazione prescritta dal piano dell'ondata è nel Task 14, fuori dal perimetro di
+  questo file
+
+## Addendum — Task 14 (D8, §3.3): la seconda abrogazione, «home fuori perimetro» → «home fluida»
+
+**Data:** 23/07/2026 (data di sistema; sessione Task 14) · **Task:** 14 — «Scala verticale fluida
++ pile centrate»
+
+Muore il ramo `@media (max-height: 780px)` di `HomeV3.tsx` (la scala «compatta R3b» a gradini fissi
+— padding/gap/font-size fissi sotto 780px di altezza viewport, v. §7.1 rev. 3.2 nel commento
+originale). Al suo posto: un wrapper interno `.corpo` (`container-type: size`) che fa risolvere in
+`cqh` gap/padding/font-size dei blocchi (`.pile`, `.ds-pila`, `.ds-pila-num`, `.striscia-slot`,
+`.foot`) — una scala CONTINUA invece di un gradino unico a 780px. Le pile si centrano nello spazio
+residuo (`justify-content: center` su `.pile`, flex:1) invece di limitarsi ad assorbire lo slack in
+alto. Il degrado scroll P3 (`overflow-y: auto` sotto 767px) **resta**, ma **cambia dove vive**: da
+`.ua-home` (prima del Task 14) a `.corpo` (da questo task in poi) — v. correzione sotto, non una
+scelta stilistica.
+
+Guardia sostituita: `tests/unit/home-fluida.test.tsx` (nuova) presidia `container-type: size`, il
+gap fluido `clamp(8px, 2.2cqh, 16px)` e la morte testuale di `@media (max-height: 780px)` — non
+esisteva una guardia dedicata precedente su questo blocco style (la vecchia protezione «home fuori
+perimetro» a cui allude il piano dell'ondata è quella abrogata sopra nel Task 12, sullo stesso
+perimetro CSS; qui non c'è un file di test da eliminare, solo il testo CSS da sostituire).
+
+Struttura JSX: `.corpo` avvolge il contenuto di ciascuna delle tre forme (pager, sola-parete,
+sola-pile); il `piede` (`.foot`, col TastoPiù) resta sempre un fratello FUORI da `.corpo` — in
+particolare, nella forma pager, `piede` non è più passato come prop `footer` a `StanzePager` (che
+lo avrebbe reso dentro il proprio ritorno, quindi dentro `.corpo`), ma reso da `HomeV3` come
+fratello del `<div className="corpo">` che contiene `<StanzePager>`. Verificato (riserva FE R5):
+nessun discendente DENTRO `.corpo` usa `position: fixed` direttamente — gli unici elementi fixed
+del perimetro (`.ds-linguetta` di `LinguettaCassette.tsx`, `.ds-ghost` di `PareteClient.tsx`, gli
+overlay di `Sheet.tsx`) montano tutti via `createPortal(..., document.body)`, quindi il loro nodo
+DOM reale non è mai discendente di `.corpo` a prescindere da dove il componente sia invocato
+nell'albero React.
+
+I coefficienti dei `clamp()` sono DEFAULT dichiarati «a taratura QA» (stessa cautela della scala
+precedente, mai a occhio): la misura reale su device via Playwright è demandata al Task 15 (QA
+device) — qui la guardia testuale presidia solo che il CSS DICHIARI la formula giusta, non che
+risolva al pixel corretto su un viewport reale (jsdom non fa layout, stesso limite dichiarato in
+testa a `tests/unit/ds-v3/parete-fluida.test.ts`).
+
+### Correzione in corso d'opera — perché l'overflow-y:auto si sposta da `.ua-home` a `.corpo`
+
+Trovata in un consulto con l'advisor DOPO il primo commit di questo task (poi corretta prima della
+chiusura, v. `task-14-report.md` per la cronologia completa): la prima versione lasciava
+`overflow-y: auto` su `.ua-home`, con `.ua-home { min-height: 100dvh; height: auto; overflow-y:
+auto }` invariato dal pre-Task-14. Ma `container-type: size` rende `.corpo` **size-contained**: la
+sua size è calcolata come se non avesse contenuto, per costruzione (è la premessa che fa risolvere
+`cqh` senza un loop di dipendenza taglia↔contenuto). Se l'ANTENATO (`.ua-home`) resta ad altezza
+`auto`, il suo calcolo di auto-height non «vede» più quanto cresce davvero `.pile` dentro `.corpo`
+— il contenuto in eccesso trabocca fuori dal box di `.corpo` e finisce **sovrapposto** al `.foot`
+sottostante, invece di spingerlo più in basso e attivare lo scroll. Verificato con una pagina di
+prova renderizzata in browser (non jsdom, che non fa layout): a 390×660 con contenuto forzato oltre
+il viewport, le card in eccesso si rendevano esattamente SOPRA la barra del piede, senza alcuno
+scroll utile a raggiungerle — l'esatto guasto che P3 esiste per evitare, riprodotto proprio dal
+`container-type: size` introdotto da questo task.
+
+**Correzione:** `.ua-home` resta un box a size sempre DEFINITA (il suo `min-height: 100dvh` di
+base, senza più l'override `height: auto` sotto 767px); è `.corpo` — che riceve comunque una size
+definita dalla distribuzione flex dentro `.ua-home` — a scorrere INTERNAMENTE
+(`overflow-y: auto` spostato lì) quando il contenuto, anche al floor del clamp, non ci sta.
+Riverificato nella stessa pagina di prova dopo la correzione: nessuna sovrapposizione, il testo del
+piede resta sempre interamente leggibile. Quello che NON è stato possibile chiudere del tutto in
+questa sessione (ambiente browser di verifica, non un device reale): un residuo di qualche decina
+di pixel di scroll a livello di documento compariva anche nel caso «il contenuto ci sta comodo»
+(4 pile, ben sotto budget) — v. dubbio dedicato in `task-14-report.md`, demandato alla misura vera
+del Task 15 insieme alla taratura dei coefficienti.

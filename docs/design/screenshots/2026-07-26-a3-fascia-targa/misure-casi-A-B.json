@@ -1,0 +1,166 @@
+[
+  {
+    "tema": "light",
+    "caso": "A",
+    "testi": {
+      "dent": "Studio Odontoiatrico Bianchi Puglisi",
+      "paz": "Mario Puglisi"
+    },
+    "stabile": {
+      "frameStabili": 8,
+      "dent": "Studio Odontoiatrico Bianchi Puglisi",
+      "paz": "Mario Puglisi"
+    },
+    "fasciaH": 72,
+    "padTop": 253,
+    "padBot": 314,
+    "boxUtile": 61,
+    "targaH": 21.75,
+    "targaTop": 253.063,
+    "targaBot": 274.813,
+    "contH": 37.125,
+    "dentH": 20.875,
+    "dentRighe": 2,
+    "dentCls": "ds-cassetta-dent is-corpo-9 is-due-righe is-troncato",
+    "pazH": 14.25,
+    "pazRighe": 1,
+    "pazCls": "ds-cassetta-paz",
+    "pazBot": 313.938,
+    "margineSopra": 0.063,
+    "margineSotto": -1.437,
+    "margineSottoSenzaRespiro": 0.063,
+    "targaSchiacciata": 0,
+    "stack": 60.875,
+    "pixel": {
+      "totali": 69120,
+      "diversi": 34,
+      "deltaMax": 1,
+      "rigaMin": 30,
+      "rigaMax": 90,
+      "altezzaImg": 240
+    }
+  },
+  {
+    "tema": "light",
+    "caso": "B",
+    "testi": {
+      "dent": "Bianchi",
+      "paz": "Maria Vittoria Del Giglio"
+    },
+    "stabile": {
+      "frameStabili": 8,
+      "dent": "Bianchi",
+      "paz": "Maria Vittoria Del Giglio"
+    },
+    "fasciaH": 72,
+    "padTop": 253,
+    "padBot": 314,
+    "boxUtile": 61,
+    "targaH": 16.891,
+    "targaTop": 253,
+    "targaBot": 269.891,
+    "contH": 42.109,
+    "dentH": 11.594,
+    "dentRighe": 1,
+    "dentCls": "ds-cassetta-dent",
+    "pazH": 28.516,
+    "pazRighe": 2,
+    "pazCls": "ds-cassetta-paz is-troncato",
+    "pazBot": 314,
+    "margineSopra": 0,
+    "margineSotto": -1.5,
+    "margineSottoSenzaRespiro": 0,
+    "targaSchiacciata": 4.859,
+    "stack": 61,
+    "pixel": {
+      "totali": 69120,
+      "diversi": 0,
+      "deltaMax": 0,
+      "rigaMin": null,
+      "rigaMax": null,
+      "altezzaImg": 240
+    }
+  },
+  {
+    "tema": "dark",
+    "caso": "A",
+    "testi": {
+      "dent": "Studio Odontoiatrico Bianchi Puglisi",
+      "paz": "Mario Puglisi"
+    },
+    "stabile": {
+      "frameStabili": 8,
+      "dent": "Studio Odontoiatrico Bianchi Puglisi",
+      "paz": "Mario Puglisi"
+    },
+    "fasciaH": 72,
+    "padTop": 253,
+    "padBot": 314,
+    "boxUtile": 61,
+    "targaH": 21.75,
+    "targaTop": 253.063,
+    "targaBot": 274.813,
+    "contH": 37.125,
+    "dentH": 20.875,
+    "dentRighe": 2,
+    "dentCls": "ds-cassetta-dent is-corpo-9 is-due-righe is-troncato",
+    "pazH": 14.25,
+    "pazRighe": 1,
+    "pazCls": "ds-cassetta-paz",
+    "pazBot": 313.938,
+    "margineSopra": 0.063,
+    "margineSotto": -1.437,
+    "margineSottoSenzaRespiro": 0.063,
+    "targaSchiacciata": 0,
+    "stack": 60.875,
+    "pixel": {
+      "totali": 69120,
+      "diversi": 34,
+      "deltaMax": 1,
+      "rigaMin": 30,
+      "rigaMax": 90,
+      "altezzaImg": 240
+    }
+  },
+  {
+    "tema": "dark",
+    "caso": "B",
+    "testi": {
+      "dent": "Bianchi",
+      "paz": "Maria Vittoria Del Giglio"
+    },
+    "stabile": {
+      "frameStabili": 8,
+      "dent": "Bianchi",
+      "paz": "Maria Vittoria Del Giglio"
+    },
+    "fasciaH": 72,
+    "padTop": 253,
+    "padBot": 314,
+    "boxUtile": 61,
+    "targaH": 16.891,
+    "targaTop": 253,
+    "targaBot": 269.891,
+    "contH": 42.109,
+    "dentH": 11.594,
+    "dentRighe": 1,
+    "dentCls": "ds-cassetta-dent",
+    "pazH": 28.516,
+    "pazRighe": 2,
+    "pazCls": "ds-cassetta-paz is-troncato",
+    "pazBot": 314,
+    "margineSopra": 0,
+    "margineSotto": -1.5,
+    "margineSottoSenzaRespiro": 0,
+    "targaSchiacciata": 4.859,
+    "stack": 61,
+    "pixel": {
+      "totali": 69120,
+      "diversi": 0,
+      "deltaMax": 0,
+      "rigaMin": null,
+      "rigaMax": null,
+      "altezzaImg": 240
+    }
+  }
+]

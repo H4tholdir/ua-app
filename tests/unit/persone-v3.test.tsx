@@ -1,11 +1,20 @@
 // tests/unit/persone-v3.test.tsx — Task 11 (ondata A mini-triage): «Persone»
 // v3 — pagina, righe, card cedolini. Fixture da task-11-brief.md §Step 1.
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PersoneV3, type TecnicoRow } from '@/components/features/tecnici/PersoneV3'
 
 const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+
+// Review finding G1 (fix-list FIX-G) — «Persone» renderizza `TastoTondo`/`TastoSecondario`
+// (`suona('tap')`) senza che nulla a monte chiamasse mai `initSuoni()`: primo tap muto,
+// stesso bug chiuso su /dashboard con `HomeV3.tsx`.
+const { initSuoniSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', async (importOriginal) => {
+  const reale = await importOriginal<typeof import('@/design-system/v3/sound')>()
+  return { ...reale, initSuoni: initSuoniSpy }
+})
 
 const tecnici: TecnicoRow[] = [
   { id: 't1', nome: 'Ciro', cognome: 'Esposito', sigla: 'CE', qualifica: null, prrc: true, compenso_base: null, tipo_compenso: null },
@@ -47,5 +56,14 @@ describe('PersoneV3 (Task 11)', () => {
     render(<PersoneV3 tecnici={tecnici} ruolo="titolare" meseLabel="Luglio 2026" />)
     screen.getByRole('button', { name: 'Indietro' }).click()
     expect(push).toHaveBeenCalledWith('/tutto-il-resto')
+  })
+})
+
+describe('PersoneV3 — motore audio al mount (G1, review FIX-G)', () => {
+  beforeEach(() => { initSuoniSpy.mockClear() })
+
+  it('chiama initSuoni() al mount — root client di /tecnici', () => {
+    render(<PersoneV3 tecnici={tecnici} ruolo="titolare" meseLabel="Luglio 2026" />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
   })
 })

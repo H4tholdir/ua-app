@@ -250,6 +250,56 @@ Direttiva «tutto deve migrare a v3». Censimento: 30 route ancora v2.3 (fonte `
 
 Fuori scope ondate: admin (DS neomorphic separato, sessione O2 dedicata) · portale dentista (standalone). La navbar a scomparsa (BottomNavPill) muore per sottrazione: già `null` su ogni route v3, sparisce del tutto alla milestone finale.
 
+### ✅ VERIFICA DI COPERTURA (26/07/2026, su richiesta di Francesco)
+
+Incrociato l'elenco REALE delle route (`src/app/**/page.tsx`, 55 pagine) col calendario qui
+sopra. **Nessuna pagina resta scoperta: le ondate B→G coprono tutto.** I conteggi per famiglia
+del calendario tornano uno a uno con il codice (`/qualita` ×5, `/rete` ×3, `/pazienti` ×2,
+`/scadenzario` ×2, `/magazzino` ×2, `/impostazioni` ×4, `/cicli-produzione` ×2, `/fatture` ×3).
+
+Due correzioni al testo sopra:
+
+1. **Il censimento «30 route ancora v2.3» è SOTTOSTIMATO: sono 37.** Il conteggio corretto:
+   55 pagine totali − 9 già v3 (`/dashboard`, `/tutto-il-resto`, `/lavori`, `/lavori/nuovo`,
+   `/lavori/[id]`(+`/modifica`), `/tecnici`, `/cassette`, `/ds-v3-catalogo`) − 2 redirect non
+   migrabili (`/` e `/lavori/[id]/consegna`, quest'ultimo già dichiarato fuori dal predicato) −
+   7 fuori scope (admin ×5, portale, richiedi) = **37**. Le ondate ne elencano 37: la copertura
+   era già giusta, era sbagliato solo il numero in testa.
+2. **`/analytics` è l'unica route con collocazione CONDIZIONALE** («+ analytics quando arriva la
+   sessione A15»). È anche la pagina con più difetti di leggibilità aperti (v. sotto): se A15
+   slitta, `/analytics` slitta con lei. Da sciogliere.
+
+### 📌 DIFETTI DI LEGGIBILITÀ APPUNTATI ALLE ONDATE (26/07/2026 — ratifica Francesco: NON si interviene ora)
+
+Misurati il 26/07 durante la verifica del fondo unico (contrasti campionati dai pixel resi).
+**Decisione di Francesco:** quelle pagine devono comunque essere migrate, riviste e rifatte —
+correggerle adesso in v2.3 sarebbe lavoro buttato. Si appuntano qui e si risolvono **dentro
+l'ondata che possiede la pagina**, con gli inchiostri già progettati.
+
+Materiale pronto da riusare: mockup `docs/design/mockups/2026-07-26-leggibilita-colori-v23.html`
+(prima/dopo misurati, chiaro e scuro) · token proposti e tarati: `--gold-ink`, `--c-blue-ink`,
+`--c-green-ink`, `--gold-fg`.
+
+| Ondata | Pagina | Difetto misurato | Soglia |
+|---|---|---|---|
+| **G** (cond. A15) | `/analytics` | numeroni KPI: oro **1,67:1** ×2 (esadecimale scritto a mano, non il token), verde `--success` **2,49:1**, arancio `--urgente` **2,12:1** | 3:1 (testo grande) |
+| **G** | `/qualita/psur` | alert blu **2,4:1** e arancio **2,1:1** su tinta chiara semi-trasparente | 4,5:1 |
+| **F1** | `/impostazioni` | badge ambra `--c-amber` come testo a 12px, **1,62:1** — c'è già `--c-amber-ink` per questo | 4,5:1 |
+| **B** | `/clienti` | stesso uso di `--c-amber` come testo (`ClientiSearchList.tsx:248`) | 4,5:1 |
+| **G** | `/tecnici/[id]/produttivita` | stesso uso di `--c-amber` come testo | 4,5:1 |
+| **F1 + F2 + B + trasversale** | bottone oro, **13 punti** | testo bianco su oro **2,21:1**; e 10 di quei punti usano `var(--t1)` sopra l'oro → 7,90:1 in chiaro ma **1,90:1 in SCURO** (il token si schiarisce col tema, l'oro no) | 4,5:1 |
+
+⚠️ **Il bottone oro è trasversale a più ondate** e porta una scelta di gusto ancora aperta
+(inchiostro scuro sull'oro, che tiene l'oro di sempre a 7,90:1 · oppure bianco su oro più scuro
+`#8A6716` a 5,21:1). Chi arriva per primo su una di quelle route deve chiedere a Francesco e poi
+applicare la STESSA scelta ovunque, in una volta: `.ua-btn-gold` in `globals.css` più le copie
+inline. Il caso «etichetta *consigliato* a 9px su scheda al 55% di opacità» resta sotto soglia
+con entrambe le vie — è un problema di opacità, non di colore, e va risolto lì.
+
+Nota trasversale: `/analytics` passa il colore come **esadecimale scritto a mano** invece del
+token. Anche dopo la correzione, un valore scritto a mano scavalca il sistema e tornerà a
+divergere — nella sua ondata va ricondotto ai token.
+
 ---
 
 ## V1.9 — Completamento Pre-Collaudo

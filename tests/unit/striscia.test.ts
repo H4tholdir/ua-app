@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, type IngressiStriscia } from '@/lib/dashboard/striscia'
+import { scegliSegnale, getSegnaleStriscia, fetchIngressiStriscia, leggiTecniciSenzaAnagrafica, leggiLiberazioneRecente, type IngressiStriscia } from '@/lib/dashboard/striscia'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PileHome } from '@/lib/dashboard/pile-home'
+
+// Task 16 (D3 §3.4) — timestamp fisso per i test del racconto «UÀ ha liberato»: il valore non
+// è mai interpretato da `scegliSegnale` (la finestra delle 24h è un filtro SQL in
+// `leggiLiberazioneRecente`, non una regola di `striscia.ts`) — qui serve solo a verificare che
+// `eventoId` lo riporti verbatim, senza riformattarlo (Task 16, risoluzione 6).
+const unOraFa = '2026-07-25T09:00:00+00:00'
 
 const VUOTO: IngressiStriscia = {
   fatturaScartata: null, materialeRosso: null, pagamentoScaduto: null, ddcOggi: 0,
@@ -19,17 +25,24 @@ vi.mock('@/lib/dashboard/queries', () => ({
 }))
 
 describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
-  it('titolare: la fattura scartata vince su tutto (segnale 1)', () => {
+  // D3 (Task 16, spec §3.4): questo test verificava «la fattura scartata vince su tutto»
+  // impostando ENTRAMBI fatturaScartata e ritardoPiuGrave sotto la vecchia gerarchia a
+  // eliminazione singola (il primo candidato acceso in ordine di array vinceva, gli altri
+  // sparivano). Con l'aggregazione di livello 1 (riserva UX 5a) i due allarmi ora si SOMMANO
+  // invece di eliminarsi — v. describe 'striscia D3' più sotto per il caso aggregato. Qui
+  // isoliamo il caso a un solo allarme, che resta invariato (copy passthrough).
+  it('titolare: la fattura scartata è un allarme di livello 1 (segnale 1)', () => {
     const s = scegliSegnale('titolare', { ...VUOTO,
-      fatturaScartata: { id: 'f1', numero: '2026-0139' },
-      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+      fatturaScartata: { id: 'f1', numero: '2026-0139' } })
     expect(s).toEqual({ attenzione: true, forte: 'Fattura n.2026-0139', testo: 'scartata',
       azione: { etichetta: 'Sistemala ›', href: '/fatture/f1' } })
   })
 
-  it('front_desk: parte dagli operativi — il ritardo vince sulla fattura scartata (P7, §3.2)', () => {
+  // D3 (Task 16): stesso motivo del test sopra — «il ritardo vince sulla fattura scartata» era
+  // un tie-break fra due allarmi accesi insieme, superato dall'aggregazione. Qui isoliamo il
+  // caso a un solo allarme operativo: front_desk lo vede esattamente come titolare (P7, §3.2).
+  it('front_desk: vede gli allarmi operativi di livello 1 (P7, §3.2)', () => {
     const s = scegliSegnale('front_desk', { ...VUOTO,
-      fatturaScartata: { id: 'f1', numero: '2026-0139' },
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
     expect(s.forte).toBe('n.144')
     expect(s.testo).toBe('doveva uscire ieri')
@@ -39,7 +52,7 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
   it('tecnico: mai segnali fiscali/pagamenti/materiali (P7)', () => {
     const s = scegliSegnale('tecnico', { ...VUOTO,
       fatturaScartata: { id: 'f1', numero: '2026-0139' }, materialeRosso: 'Zirconia', pagamentoScaduto: 'Studio Verdi' })
-    expect(s.attenzione).toBe(false) // cade sul segnale 9
+    expect(s.attenzione).toBe(false) // cade sul silenzio (D3, Task 16) — s1/s5/s7 non sono di livello 1 per il tecnico
   })
 
   it('segnale 2b: consegna di oggi non pronta', () => {
@@ -68,10 +81,14 @@ describe('scegliSegnale — gerarchia §6, una riga alla volta', () => {
     expect(s.attenzione).toBe(false)
   })
 
-  it('segnale 9 — sereno, coi numeri del giorno', () => {
-    expect(scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, consegneOggiTotali: 2, prossimaOra: '16:00' } }))
-      .toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: '2 consegne oggi, la prossima alle 16:00', azione: null })
-    expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+  // D3 (Task 16): il vecchio segnale 9 «Tutto a posto: N consegne oggi…» è MORTO — nessun
+  // candidato della nuova catena legge più `consegneOggiTotali`/`prossimaOra`. Quando non c'è
+  // altro da dire, la striscia sparisce (`silenzio`) invece di riempirsi con un dato che non
+  // serve più (il saluto respira, D3).
+  it('nessun allarme/racconto: consegneOggiTotali/prossimaOra da sole NON producono più segnale — silenzio', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, consegneOggiTotali: 2, prossimaOra: '16:00' } })
+    expect(s.silenzio).toBe(true)
+    expect(scegliSegnale('titolare', VUOTO).silenzio).toBe(true)
   })
 })
 
@@ -94,10 +111,10 @@ describe('scegliSegnale — Task 15: racconto backfill parete_intro', () => {
     expect(s.testo).toBe('UÀ ha creato 1 cassetta dai tuoi lavori —')
   })
 
-  it('intro GIÀ vista → nessun racconto, cade sui sereni (s9)', () => {
+  it('intro GIÀ vista → nessun racconto, cade sul silenzio (D3, Task 16 — s9 è morto)', () => {
     const s = scegliSegnale('titolare', { ...VUOTO, parete: { n: 12, introVista: true } })
     expect(s.intro).toBeUndefined()
-    expect(s.forte).toBe('Tutto a posto:')
+    expect(s.silenzio).toBe(true)
   })
 
   it('nessuna cassetta (n=0) → nessun racconto', () => {
@@ -132,12 +149,40 @@ describe('scegliSegnale — Task 15: racconto backfill parete_intro', () => {
 // --- O1f: segnale «tecnico senza anagrafica» (Task 11) ---
 
 describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
-  it('(a) tecnico con senzaAnagrafica: true vince su tutto, anche su pile non vuote', () => {
+  // D3 (Task 16, risoluzione 3): sotto la vecchia gerarchia a eliminazione singola, `sTecAccount`
+  // era il PRIMO candidato tecnico e vinceva su tutto — questo test lo dimostrava artificialmente
+  // impostando ANCHE `pile.ritardoPiuGrave` (scenario che nella realtà non si presenta mai: v.
+  // commento su `sTecAccount` in striscia.ts — con `senzaAnagrafica` le pile sono vuote per
+  // costruzione). Con l'aggregazione di livello 1, `sTecAccount` è sceso nella catena di
+  // fallback (sotto il livello 1): se le pile fossero DAVVERO popolate insieme a
+  // `senzaAnagrafica`, ora vincerebbe l'allarme operativo (s2), non più `sTecAccount` — la
+  // precedenza è cambiata di proposito (v. FALLBACK_PER_RUOLO). Qui testiamo lo scenario reale:
+  // pile vuote, come sono sempre quando `senzaAnagrafica` è true.
+  it('(a) tecnico con senzaAnagrafica: true → «Il tuo account…» (pile vuote per costruzione)', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO, senzaAnagrafica: true })
+    expect(s).toEqual({ attenzione: true, forte: 'Il tuo account',
+      testo: 'non è ancora configurato — avvisa il titolare', azione: null })
+  })
+
+  // Fix review Task 16a, finding importante #2 — GUARDIA DI PRECEDENZA (non uno scenario
+  // raggiungibile in produzione): il test sopra è stato indebolito nella tranche A, perdendo
+  // `pile.ritardoPiuGrave` accanto a `senzaAnagrafica: true` — proprio l'input che lo rendeva un
+  // test di precedenza. Sotto la VECCHIA gerarchia a eliminazione singola, `sTecAccount` era il
+  // primo candidato tecnico e vinceva SEMPRE, anche con un allarme operativo acceso. Con
+  // l'aggregazione di livello 1, `sTecAccount` è sceso nella catena di fallback (valutata SOLO
+  // se il livello 1 produce 0 allarmi, v. `FALLBACK_PER_RUOLO`/`scegliSegnale`): la precedenza si
+  // è INVERTITA di proposito — ora, se un allarme di livello 1 è acceso, vince LUI, non più
+  // `sTecAccount`. Questo test riafferma quella nuova precedenza esplicitamente. In produzione
+  // questo stato (senzaAnagrafica true CON pile popolate) non si presenta mai — con
+  // `senzaAnagrafica` le pile sono vuote per costruzione (v. commento su `sTecAccount` in
+  // striscia.ts) — il test guarda la REGOLA di ordinamento in sé, non uno stato raggiungibile.
+  it('(a) senzaAnagrafica: true CON un allarme di livello 1 (stato irraggiungibile in produzione) → ora vince l\'allarme, non più sTecAccount', () => {
     const s = scegliSegnale('tecnico', { ...VUOTO,
       senzaAnagrafica: true,
       pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
-    expect(s).toEqual({ attenzione: true, forte: 'Il tuo account',
-      testo: 'non è ancora configurato — avvisa il titolare', azione: null })
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
   })
 
   it('(a) tecnico senza senzaAnagrafica: gerarchia normale (nessun cambiamento)', () => {
@@ -159,16 +204,16 @@ describe('scegliSegnale — O1f: tecnico senza anagrafica (Task 11)', () => {
     expect(s.forte).toBe('Fattura n.2026-0139')
   })
 
-  it('(c) titolare senza tecnici scoperti → s8/s9 invariati', () => {
+  it('(c) titolare senza tecnici scoperti → s8 invariato, silenzio se anche s8 tace (D3, s9 morto)', () => {
     expect(scegliSegnale('titolare', { ...VUOTO, ddcOggi: 2 })).toEqual({
       attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null })
-    expect(scegliSegnale('titolare', VUOTO).testo).toBe('nessuna consegna oggi')
+    expect(scegliSegnale('titolare', VUOTO).silenzio).toBe(true)
   })
 
   it('(d) front_desk con tecniciSenzaAnagrafica valorizzato → NESSUN segnale nuovo (gerarchia invariata)', () => {
     const s = scegliSegnale('front_desk', { ...VUOTO, tecniciSenzaAnagrafica: ['Marco'] })
-    expect(s.attenzione).toBe(false) // cade su s9 come prima — front_desk non vede sTitTecnici
-    expect(s.forte).toBe('Tutto a posto:')
+    expect(s.attenzione).toBe(false) // cade sul silenzio come prima cadeva su s9 — front_desk non vede sTitTecnici
+    expect(s.silenzio).toBe(true) // D3 (Task 16): s9 è morto, il silenzio ne prende il posto
   })
 
   it('(d) admin_rete con tecniciSenzaAnagrafica: usa la stessa gerarchia del titolare', () => {
@@ -367,15 +412,320 @@ describe('fetchIngressiStriscia — 4 query in Promise.all, degrado per-ramo', (
 
   it('getSegnaleStriscia resta wrapper compatibile: fetch + compose (altri consumer, es. admin live preview)', async () => {
     const svc = makeSvc({
-      fatture: () => Promise.resolve({ data: [], error: null }),
+      fatture: () => Promise.resolve({ data: [{ id: 'f1', numero: '2026-0139' }], error: null }),
       ddc: () => Promise.resolve({ count: 0, error: null }),
     })
     mockGetMateriali.mockResolvedValueOnce([])
     mockGetPagamenti.mockResolvedValueOnce([])
-    const pile = { striscia: { ...VUOTO.pile, consegneOggiTotali: 1, prossimaOra: '16:00' } } as unknown as PileHome
+    const pile = { striscia: VUOTO.pile } as unknown as PileHome
 
     const s = await getSegnaleStriscia(svc, 'lab1', 'titolare', pile)
 
-    expect(s).toEqual({ attenzione: false, forte: 'Tutto a posto:', testo: '1 consegne oggi, la prossima alle 16:00', azione: null })
+    // D3 (Task 16): questo test verificava solo che `getSegnaleStriscia` componesse
+    // fetch+compose correttamente — usava `consegneOggiTotali` (s9, morto) come dato di comodo
+    // per avere UN segnale da confrontare. Con s9 morto, `consegneOggiTotali` da solo produce
+    // silenzio (v. describe 'striscia D3' più sotto) — qui si usa invece `fatturaScartata`
+    // (livello 1, resta vivo) per continuare a verificare che il wrapper componga davvero i dati
+    // letti dalla query dentro `scegliSegnale`, non un valore fisso.
+    expect(s).toEqual({ attenzione: true, forte: 'Fattura n.2026-0139', testo: 'scartata',
+      azione: { etichetta: 'Sistemala ›', href: '/fatture/f1' } })
+  })
+})
+
+// --- Task 16 (D3 §3.4): livello 1 aggregato, racconti, silenzio ---
+// Task 16a-bis (ratifica 26/07/2026, Francesco Formicola, panel 2 advisor): l'aggregato
+// sintetico «N scadenze oggi — Vedi › /lavori» è MORTO. Due fatti emersi dopo la ratifica 24/07:
+// (1) `/lavori` senza `?pila=` fa redirect a `/dashboard` (src/app/(app)/lavori/page.tsx:36) — la
+// CTA riportava l'utente esattamente alla home da cui era partito, per QUALSIASI aggregato; (2)
+// il livello 1 non è un insieme omogeneo di "scadenze" — include anche stati senza finestra
+// temporale (materiale in esaurimento, pagamento scaduto). La nuova regola: la striscia NOMINA
+// il primo allarme acceso (copy/href suoi, verbatim, invariati) e CONTA gli altri in `altri`.
+describe('scegliSegnale — Task 16a-bis (ratifica 26/07): nomina il primo allarme, conta gli altri', () => {
+  it('con UN SOLO allarme di livello 1: nessun campo `altri` — byte-identico a prima (mai `altri: 0`)', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.altri).toBeUndefined()
+    expect('altri' in s).toBe(false)
+  })
+
+  it('2+ allarmi di livello 1: nomina il PRIMO in ordine di ruolo (copy/href verbatim) e conta gli altri in `altri`', () => {
+    // 2 allarmi operativi distinti per il titolare: s2 (ritardo) + s3 (prova rientro oggi).
+    // Ordine LIVELLO1_PER_RUOLO per titolare: s2 precede s3 → s2 nomina, s3 va in `altri`.
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 }, provaRientroOggi: '150' } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(s.altri).toBe(1)
+    expect(s.attenzione).toBe(true)
+  })
+
+  it('3 allarmi di livello 1 → nomina sempre il primo, `altri` = N-1 (vale per QUALSIASI N ≥ 2, non solo 2)', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 }, provaRientroOggi: '150', arrivoVecchio: '151' } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(2)
+  })
+
+  // L'ordine per ruolo in LIVELLO1_PER_RUOLO è ORA PORTANTE (v. commento lì) — questo test lo
+  // rende eseguibile: stesso ingresso (fattura scartata + ritardo), ordini DIVERSI per ruolo
+  // (titolare: [s1, s2, …] — s1 prima; front_desk: [s2, s2bDedup, s3, s4, s1, …] — s2 prima), e
+  // quindi named-alarm DIVERSO. Un futuro riordino di LIVELLO1_PER_RUOLO che invertisse questa
+  // differenza passerebbe inosservato senza questo test (i test sopra pinnano solo s2-prima-di-s3
+  // e s2-prima-di-s4, mai s1-vs-s2, che è dove gli ordini per ruolo divergono davvero).
+  it('l\'ordine di LIVELLO1_PER_RUOLO decide chi nomina: stesso ingresso, ruoli diversi → allarme nominato diverso', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      fatturaScartata: { id: 'f1', numero: '2026-0139' },
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } }
+
+    const titolare = scegliSegnale('titolare', i) // titolare: s1 precede s2 → nomina la fattura
+    expect(titolare.forte).toBe('Fattura n.2026-0139')
+    expect(titolare.azione).toEqual({ etichetta: 'Sistemala ›', href: '/fatture/f1' })
+    expect(titolare.altri).toBe(1)
+
+    const frontDesk = scegliSegnale('front_desk', i) // front_desk: s2 precede s1 → nomina il ritardo
+    expect(frontDesk.forte).toBe('n.144')
+    expect(frontDesk.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(frontDesk.altri).toBe(1)
+  })
+
+  // Il conteggio deve sommare SOLO i candidati ammessi per il ruolo (P7) — non «tutti i campi
+  // valorizzati». Il tecnico non ha s1 (fiscali) nel proprio LIVELLO1_PER_RUOLO: se questo test
+  // mancasse, un futuro refactor che collassasse LIVELLO1_PER_RUOLO in un array unico per tutti
+  // i ruoli passerebbe inosservato (il test «tecnico: mai segnali fiscali» sopra non lo cattura,
+  // perché lì non c'è nessun allarme di pila e si cade comunque sul silenzio).
+  it('il conteggio somma SOLO i candidati ammessi per ruolo (P7): tecnico con fattura scartata + ritardo → 1 allarme, non 2', () => {
+    const s = scegliSegnale('tecnico', { ...VUOTO,
+      fatturaScartata: { id: 'f1', numero: '2026-0139' },
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144') // s1 non è di livello 1 per il tecnico → un solo allarme nomina
+    // Task 16b — guardia esplicita: un leak che aggiungesse s1 in CODA a LIVELLO1_PER_RUOLO.tecnico
+    // (invece che ometterlo) farebbe passare comunque `s.forte` sopra (il PRIMO resta il ritardo),
+    // ma farebbe apparire silenziosamente `altri: 1` — un allarme fiscale che il tecnico non deve
+    // MAI vedere (P7) finirebbe comunque contato, solo non nominato. `s.forte` da solo non lo
+    // cattura: serve l'assenza di `altri`.
+    expect(s.altri).toBeUndefined()
+  })
+
+  it('trial ≤3gg ESCALA a livello 1 (riserva UX 5b) e va in TESTA (ratifica 26/07 — «ordine di parola»): nomina lui, non l\'allarme operativo', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } },
+      trial: { giorniRimasti: 2 } }
+    const s = scegliSegnale('titolare', i)
+    // 2 candidati accesi: il trial (in testa, v. candidatiLivello1) + s2 (ritardo). A giorni dal
+    // blocco dell'app il trial deve parlare per primo — s2 finisce in `altri`.
+    expect(s.forte).toBe('Prova:')
+    expect(s.testo).toBe('finisce dopodomani')
+    expect(s.azione).toEqual({ etichetta: 'Attiva ›', href: '/impostazioni/abbonamento' })
+    expect(s.altri).toBe(1)
+  })
+
+  it('racconto (riserva UX 5c): liberazione <24h → segnale quieto, tappabile, con eventoId stabile', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO, liberazioneRecente: { cassettaId: 'c1', nome: 'C12', quando: unOraFa } })
+    expect(s.attenzione).toBe(false)
+    expect(s.testo).toBe('UÀ ha liberato C12')
+    expect(s.azione).toEqual({ etichetta: 'Guarda ›', href: '/dashboard?stanza=parete' })
+    expect(s.eventoId).toBe(`lib-c1-${unOraFa}`) // `quando` riportato verbatim, mai riformattato (risoluzione 6)
+  })
+
+  it('è lab-wide: anche tecnico e front_desk vedono il racconto liberazione quando nessun allarme è attivo', () => {
+    expect(scegliSegnale('tecnico', { ...VUOTO, liberazioneRecente: { cassettaId: 'c1', nome: 'C12', quando: unOraFa } }).testo).toContain('UÀ ha liberato C12')
+    expect(scegliSegnale('front_desk', { ...VUOTO, liberazioneRecente: { cassettaId: 'c1', nome: 'C12', quando: unOraFa } }).testo).toContain('UÀ ha liberato C12')
+  })
+
+  it('gli allarmi operativi di livello 1 vincono sul racconto liberazione', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      liberazioneRecente: { cassettaId: 'c1', nome: 'C12', quando: unOraFa },
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s.forte).toBe('n.144')
+  })
+
+  it('silenzio (D3): nessun ingresso → silenzio:true, testo vuoto, MAI il vecchio s9 «Tutto a posto»', () => {
+    const s = scegliSegnale('titolare', VUOTO)
+    expect(s.silenzio).toBe(true)
+    expect(s.forte).toBeNull()
+    expect(s.testo).toBe('')
+    expect(s.azione).toBeNull()
+  })
+
+  it('silenzio vale per ogni ruolo, non solo titolare', () => {
+    expect(scegliSegnale('tecnico', VUOTO).silenzio).toBe(true)
+    expect(scegliSegnale('front_desk', VUOTO).silenzio).toBe(true)
+    expect(scegliSegnale('admin_rete', VUOTO).silenzio).toBe(true)
+  })
+})
+
+// --- Fix review Task 16a, finding importante #1: s2 bundlava DUE allarmi distinti (ritardo più
+// grave E consegna di oggi non pronta) in un'unica funzione con precedenza interna — se entrambi
+// i campi delle pile erano valorizzati insieme (routine: un lavoro in ritardo grave + un altro
+// lavoro con consegna di oggi non ancora pronta), il secondo restava invisibile ANCHE sotto la
+// nuova aggregazione, perché `candidatiLivello1` contava le FUNZIONI candidate, non gli allarmi
+// effettivamente accesi — la riserva UX 5a («mai un allarme nascosto dietro un altro») valeva
+// solo a metà. `s2` è stato diviso in `s2` (ritardo) + `s2b` (consegna oggi non pronta),
+// candidati indipendenti con copy/href INVARIATI verbatim.
+describe('scegliSegnale — fix review Task 16a #1: ritardo e consegna-oggi-non-pronta sono allarmi indipendenti', () => {
+  it('entrambi accesi insieme (lavori DIVERSI, numeri 144/147) → 2 allarmi, nessuno nascosto: nomina il ritardo, conta l\'altro (ratifica 26/07)', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.testo).toBe('doveva uscire ieri')
+    expect(s.azione).toEqual({ etichetta: 'Apri ›', href: '/lavori?pila=rossa' })
+    expect(s.altri).toBe(1)
+  })
+
+  it('solo il ritardo acceso → passthrough invariato, copy/href identici a prima del fix', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      pile: { ...VUOTO.pile, ritardoPiuGrave: { numero: '144', giorni: 1 } } })
+    expect(s).toEqual({ attenzione: true, forte: 'n.144', testo: 'doveva uscire ieri',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } })
+  })
+
+  it('solo la consegna-oggi-non-pronta accesa → passthrough invariato, copy/href identici a prima del fix', () => {
+    const s = scegliSegnale('titolare', { ...VUOTO,
+      pile: { ...VUOTO.pile, consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } })
+    expect(s).toEqual({ attenzione: true, forte: 'n.147', testo: 'non è ancora pronto per le 16:00',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=ambra' } })
+  })
+})
+
+// --- Task 16a-bis, punto 3: `ritardoPiuGrave` e `consegnaOggiNonPronta` NON sono garantiti
+// disgiunti. Verificato in src/lib/lavori/urgenza.ts:69-70: lo stato `in_ritardo` forza
+// `giorniRitardo = Math.max(1, dalleDate)` ANCHE quando la data di consegna prevista è oggi
+// (`dalleDate=0` — la data non è ancora passata, ma il trigger ha già marcato il lavoro in
+// ritardo). Quel lavoro finisce `inCima` in pila ambra CON `deltaGiorni(consegna.data, oggi) ===
+// 0` — la STESSA condizione che accende `consegnaOggiNonPronta` (costruisciStriscia in
+// pile-home-shared.ts:172-182, che non esclude gli `inCima` dal proprio filtro). Un lavoro FISICO
+// solo accenderebbe sia s2 sia s2b: senza dedup leggerebbe come «e un'altra» per un lavoro che
+// non esiste. Si deduplica per `numero` (unico identificatore condiviso dai due campi),
+// mantenendo il ritardo (più informativo: dice da quanti giorni doveva uscire).
+describe('scegliSegnale — Task 16a-bis punto 3: dedup ritardo/consegna-oggi-non-pronta stesso lavoro', () => {
+  it('stesso numero in ritardoPiuGrave e consegnaOggiNonPronta → un solo lavoro fisico: s2b si spegne, passthrough di s2, niente `altri`', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '144', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s).toEqual({ attenzione: true, forte: 'n.144', testo: 'doveva uscire ieri',
+      azione: { etichetta: 'Apri ›', href: '/lavori?pila=rossa' } })
+    expect(s.altri).toBeUndefined()
+  })
+
+  it('stesso lavoro + un terzo allarme distinto → `altri` conta 1 (ritardo deduplicato + la prova), NON 2', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '144', ora: '16:00' },
+        provaRientroOggi: '150' } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(1) // s2 (ritardo) + s3 (prova) — s2b deduplicato via numero condiviso
+  })
+
+  it('numeri diversi → NON è lo stesso lavoro, entrambi contano (fix review Task 16a #1 resta valido)', () => {
+    const i: IngressiStriscia = { ...VUOTO,
+      pile: { ...VUOTO.pile,
+        ritardoPiuGrave: { numero: '144', giorni: 1 },
+        consegnaOggiNonPronta: { numero: '147', ora: '16:00' } } }
+    const s = scegliSegnale('titolare', i)
+    expect(s.forte).toBe('n.144')
+    expect(s.altri).toBe(1)
+  })
+})
+
+// --- leggiLiberazioneRecente (Task 16, D3 §3.4) — ultima liberazione per consegna, scoped lab ---
+
+type CassetteLavoriResult = { data: unknown; error: unknown }
+
+function makeSvcLiberazione(fn: () => Promise<CassetteLavoriResult>) {
+  const chiamate: Array<{ metodo: string; args: unknown[] }> = []
+  const chain: Record<string, unknown> = {}
+  for (const m of ['select', 'eq', 'gt', 'order']) {
+    chain[m] = (...args: unknown[]) => { chiamate.push({ metodo: m, args }); return chain }
+  }
+  // Fix review Task 16a, finding minore: `limit` non registrava i propri argomenti (a differenza
+  // di select/eq/gt/order) — impossibile verificare `.limit(1)` dal test. Registrato come gli
+  // altri, PRIMA di invocare `fn()` (che chiude la catena e restituisce il risultato mockato).
+  chain.limit = (...args: unknown[]) => { chiamate.push({ metodo: 'limit', args }); return fn() }
+  const svc = {
+    from: (table: string) => {
+      if (table === 'cassette_lavori') return chain
+      throw new Error(`tabella non attesa nel mock: ${table}`)
+    },
+  } as unknown as SupabaseClient
+  return { svc, chiamate }
+}
+
+describe('leggiLiberazioneRecente — ultima liberazione per consegna nelle ultime 24h, scoped lab', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('restituisce cassettaId/nome/quando dalla riga più recente (join cassette.nome)', async () => {
+    const { svc } = makeSvcLiberazione(() => Promise.resolve({
+      data: [{ cassetta_id: 'c1', liberato_at: unOraFa, cassette: { nome: 'C12' } }],
+      error: null,
+    }))
+
+    expect(await leggiLiberazioneRecente(svc, 'lab1')).toEqual({ cassettaId: 'c1', nome: 'C12', quando: unOraFa })
+  })
+
+  it('nessuna liberazione recente → null', async () => {
+    const { svc } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    expect(await leggiLiberazioneRecente(svc, 'lab1')).toBeNull()
+  })
+
+  it('filtra SEMPRE per laboratorio_id — getServiceClient() bypassa la RLS, il filtro non è opzionale (risoluzione 5)', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    await leggiLiberazioneRecente(svc, 'lab-42')
+    const eqLab = chiamate.find((c) => c.metodo === 'eq' && c.args[0] === 'laboratorio_id')
+    expect(eqLab?.args).toEqual(['laboratorio_id', 'lab-42'])
+  })
+
+  // Fix review Task 16a, finding minore: tre assert mancanti sulla query — un filtro
+  // `liberato_per` perso farebbe scattare il racconto «UÀ ha liberato…» anche per liberazioni
+  // NON di consegna (es. liberazioni manuali/altro motivo), senza che nessun test se ne accorga.
+  it('filtra per liberato_per=consegna — un filtro assente farebbe scattare il racconto su liberazioni non di consegna', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const eqConsegna = chiamate.find((c) => c.metodo === 'eq' && c.args[0] === 'liberato_per')
+    expect(eqConsegna?.args).toEqual(['liberato_per', 'consegna'])
+  })
+
+  it('filtra sulle ultime 24h con gt su liberato_at', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    const prima = Date.now()
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const dopo = Date.now()
+    const gtCall = chiamate.find((c) => c.metodo === 'gt')
+    expect(gtCall?.args[0]).toBe('liberato_at')
+    // Il bound esatto dipende da Date.now() al momento della chiamata — si verifica che cada
+    // nella finestra [prima, dopo] meno 24h, non un valore letterale (che sarebbe flaky).
+    const bound = new Date(gtCall?.args[1] as string).getTime()
+    expect(bound).toBeGreaterThanOrEqual(prima - 24 * 60 * 60 * 1000)
+    expect(bound).toBeLessThanOrEqual(dopo - 24 * 60 * 60 * 1000)
+  })
+
+  it('ordina per liberato_at discendente e limita a 1 riga — la più recente', async () => {
+    const { svc, chiamate } = makeSvcLiberazione(() => Promise.resolve({ data: [], error: null }))
+    await leggiLiberazioneRecente(svc, 'lab1')
+    const orderCall = chiamate.find((c) => c.metodo === 'order')
+    expect(orderCall?.args).toEqual(['liberato_at', { ascending: false }])
+    const limitCall = chiamate.find((c) => c.metodo === 'limit')
+    expect(limitCall?.args).toEqual([1])
+  })
+
+  it('errore → degrado a null, come leggiFatturaScartata (spy console.error)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { svc } = makeSvcLiberazione(() => Promise.reject(new Error('boom liberazione')))
+
+    expect(await leggiLiberazioneRecente(svc, 'lab1')).toBeNull()
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('lettura liberazioneRecente fallita — degrado a null:'),
+      expect.any(Error)
+    )
   })
 })

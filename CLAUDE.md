@@ -253,7 +253,7 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 
 **Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
-**Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`. Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
+**Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. **Il fondo pagina è UNO SOLO dal 26/07/2026** (`#F4F0E7` chiaro / `#171411` scuro): i token v2.3 sono stati allineati a quelli v3 — v. `docs/design/decisions/2026-07-26-sfondo-unico.md`. Vive in tre posti che si muovono insieme: `globals.css` (`--bg`), `.login-root` (`--ua-bg`), `admin/admin.css` (`--adm-bg`). Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`, parete `/cassette`, `/tecnici` (le ultime due verificate sondando il DOM il 26/07/2026: montano `data-ds="v3"` — questa riga le dava per legacy). Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
 
 ---
 
@@ -275,6 +275,14 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
   tasto/gesto «indietro» della PWA fa `router.back()` con fallback a `/dashboard` solo se non c'è
   storia di navigazione. MAI `router.push('/dashboard')` (o altra rotta fissa) come back — è il
   difetto trovato al collaudo device in `SchedaLavoroV3.tsx`. Vale per ogni superficie futura.
+- **Navigare da dentro un overlay v3: MAI `router.push` (26/07/2026).** Da dentro un `Sheet` o un
+  `DialogConferma` v3, o da un handler che ne chiude uno nello stesso gesto, si usa
+  **`useNavigaDaOverlay`** (`src/components/ds/useNavigaDaOverlay.ts`), mai `router.push` nudo.
+  Motivo: quegli overlay tengono una entry di history che è un doppione della pagina
+  (`storia-overlay.ts`); con un `push` la nuova pagina le si impila SOPRA e resta sepolta — una
+  pressione «indietro» morta — e se il gesto chiude anche l'overlay il suo `history.back()`
+  arriva prima della navigazione e se la mangia (il CTA primario si comportava come un annulla).
+  L'hook dichiara l'intenzione e sostituisce l'entry. Rete: `scripts/guardia-navigazione-overlay.mjs`.
 
 ### Gotchas API + sicurezza
 - **PATCH allowlist:** API PATCH di risorse lab usa sempre allowlist esplicita di campi — MAI blocklist

@@ -27,6 +27,7 @@ import { Vuoto } from '@/components/ds/Vuoto'
 import { SchedaAnteprima } from './SchedaAnteprima'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { ConfermaCassettaSheet } from '@/components/features/pile/ConfermaCassettaSheet'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { raggio } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` come i fratelli client (review Task 9): il type-only
 // da `pile-home.ts` (server-only) è innocuo a runtime ma incoerente col confine
@@ -48,6 +49,9 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
 export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string; lavoroSelezionato: LavoroPila | null; cassetteSuggerite?: Array<{ id: string; nome: string }> }) {
   const { pila, lista, sub, lavoroSelezionato, cassetteSuggerite } = props
   const router = useRouter()
+  // Navigazioni che partono da DENTRO un overlay v3 (o che ne chiudono uno nello stesso
+  // gesto): mai `router.push` nudo — v. `useNavigaDaOverlay` e `storia-overlay.ts`.
+  const navigaDaOverlay = useNavigaDaOverlay()
   // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
   // stesso pattern di `PilaAperta`: nessun `onConsegnato`, refresh SOLO alla
   // chiusura del frame.
@@ -115,8 +119,14 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
           descrizione={lavoroInConsegna.tipoLavoro}
           aperto
           onChiudi={() => setConsegnaId(null)}
+          /* `router.refresh()` non tocca la history: chiusura IN LOCO, l'entry dell'overlay
+             va consumata normalmente. */
           onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
-          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+          /* Si chiude E si cambia pagina nello stesso gesto: navigazione PRIMA, chiusura dopo
+             (contratto di `useNavigaDaOverlay`). Con `router.push` nudo il `history.back()`
+             della chiusura si mangiava la navigazione — D-2, riprodotto in browser il
+             26/07/2026 proprio su questa superficie. */
+          onRisolvi={(route) => { navigaDaOverlay(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`); setConsegnaId(null) }}
         />
       )}
 
@@ -130,7 +140,8 @@ export function PilaSplit(props: { pila: Pila; lista: LavoroPila[]; sub?: string
         onChiudi={() => setConfermaId(null)}
         lavoro={lavoroInConferma ? { id: lavoroInConferma.id, numero: lavoroInConferma.numero, tipoLavoro: lavoroInConferma.tipoLavoro, dentista: lavoroInConferma.dentista } : null}
         suggerite={cassetteSuggerite ?? []}
-        onConfermato={(id) => { setConfermaId(null); router.push(`/lavori/${id}`) }}
+        /* Stessa forma di `onRisolvi`: chiusura + cambio pagina nello stesso gesto. */
+        onConfermato={(id) => { navigaDaOverlay(`/lavori/${id}`); setConfermaId(null) }}
       />
     </div>
   )

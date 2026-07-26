@@ -86,6 +86,20 @@
   --sh-press: inset 0 1px 0 rgba(255,255,255,.06);
 }
 
+/* D9a (FIX-F, QA device #1, 2026-07-24) — il grabber (Sheet.tsx) resta visivamente 36×4: questo
+   ::before invisibile allarga solo l'AREA DI PRESA (dove `onPointerDown` avvia il drag via
+   `dragControls.start`) a ≥44px di lato (WCAG 2.5.5), senza cambiare il disegno. `touch-action`
+   NON si eredita dagli pseudo-elementi: il `touchAction:'none'` inline sul grabber (Sheet.tsx,
+   `grabberStile`) copre solo la barra visibile 36×4 — questo `none` esplicito copre anche il
+   margine allargato, altrimenti un dito che atterra lì (fuori dalla barra ma dentro l'hit-area)
+   lascerebbe il browser reclamare lo scroll prima che il pan session parta. */
+[data-ds="v3"] .ds-sheet-grabber::before {
+  content: '';
+  position: absolute;
+  inset: -20px -8px;
+  touch-action: none;
+}
+
 /* Grana — SOLO su elemento fixed dedicato (spec §4.3), mai su container scrollanti */
 [data-ds="v3"] .ds-grana {
   position: fixed; inset: 0; pointer-events: none; z-index: 40;
@@ -272,6 +286,54 @@
    migliorarla, non derivarla da token"). Il colore custom (hex) resta inline nel componente
    (dato per-istanza, non esprimibile come classe statica). Reduced-motion: già globale sopra
    (riga ~185, `animation-duration`/`transition-duration` a 0.15s) — nessuna regola dedicata qui. */
+/* Verifica finale d'ondata (26/07, difetto A2) — L'ALTEZZA DEL POSTO SUL MURO, UNA SOLA.
+   La cassetta (`.ds-cassetta`, sotto) e il tile «+ Nuova cassetta» (`.ds-tray-nuova`, in fondo al
+   file) stanno FIANCO A FIANCO nella stessa riga di `.ds-parete-grid`, che è `align-items: start`
+   — quindi nessuno dei due viene stirato dall'altro: se i due numeri divergono, il tratteggiato
+   finisce più corto delle cassette accanto, a ogni viewport e in entrambi i temi. Era già
+   successo: H2 ha portato la cassetta a 132px e il tile è rimasto al 104px con cui era stato
+   scritto (lo stesso 104 che portava anche il defunto `.ds-tile-tutte` — segno che non era un
+   valore SCELTO per il tile, ma copiato da un'altra sagoma). Da qui in poi il numero vive UNA
+   volta sola: chi cambia la sagoma cambia questa riga e i due si muovono insieme per costruzione.
+   Presidiata da `tests/unit/ds-v3/cassetta-g10-fascia.test.tsx` (legge il valore dal foglio e
+   pretende che entrambe le regole lo referenzino, invece di ridigitarlo).
+
+   A3 — RATIFICA FRANCESCO, 26/07/2026: «no, non toccare la finestrella con il dentino, ma
+   piuttosto allunga la pancia della cassetta verso il basso». La misura A3 (v. la nota lunga sopra
+   `.ds-cassetta-fascia`) aveva provato che la fascia da 72px non teneva il caso peggiore e che a
+   cedere era la targa. Delle strade possibili, Francesco ha scelto quella che NON esisteva
+   nell'elenco proposto: la finestra resta esattamente com'è, la cassetta si allunga in fondo.
+
+   COME È SCRITTO, e perché così. La sorgente ORA è la fascia, non il tile:
+
+     --altezza-fascia   = quanto serve alla targa + le due righe di testo
+     --altezza-cassetta = --altezza-fascia + 60px di anatomia che le sta SOPRA
+
+   quei 60px sono, uno per uno, i pezzi che vivono sopra la fascia e che la decisione di Francesco
+   dichiara intoccabili: 8 (`inset` alto della cavità) + 40 (`height` della cavità, la finestrella
+   col dentino) + 8 (il respiro fra la finestra e la fascia) + 4 (il `margin-bottom` della fascia).
+   Scrivere il tile come `calc()` sulla fascia è ciò che rende la promessa VERA PER COSTRUZIONE e
+   non per disciplina: qualunque cosa succeda alla fascia, la finestra non si può muovere, perché
+   nessuno dei suoi 60px passa da lei. Se un domani si toccasse la cavità, questo 60 va rifatto —
+   ed è il test a chiederlo, confrontandolo con i valori veri letti dal foglio.
+
+   PERCHÉ 78 E NON 77 (l'aritmetica, non un arrotondamento a occhio):
+     pila massima misurata (caso B) ................ 65,859px
+     + padding della fascia (5 sopra + 6 sotto) .... 11px
+     = fascia minima indispensabile ................ 76,859px
+   Il primo intero utile sarebbe 77, che lascia 0,141px: misurato e funzionante a DPR 1 / 2 / 2,75
+   / 3 in entrambi i temi, ma 0,141px non è un margine, è una coincidenza — e H2c ha già insegnato
+   su questa stessa fascia che a DPR frazionari ognuna delle cinque scatole impilate (targa, gap,
+   clinico, gap, paziente) si arrotonda al pixel-device per conto proprio, quindi l'errore si
+   somma. 78 lascia 1,141px, cioè più di un pixel CSS pieno: il minimo indispensabile più il
+   margine che quella lezione dice di tenere. Tile risultante: 78 + 60 = 138px (era 132).
+   Verificato sul render reale a DPR 1 / 2 / 2,75 / 3, light e dark: finestra ferma a top 8 /
+   height 40 e respiro finestra↔fascia fermo a 8px in tutti e otto i casi, targhe tutte a 21,750px
+   e zero testo tagliato. */
+[data-ds="v3"] {
+  --altezza-fascia: 78px;
+  --altezza-cassetta: calc(var(--altezza-fascia) + 60px);
+}
 [data-ds="v3"] .ds-cassetta {
   position: relative;
   display: flex;
@@ -280,16 +342,36 @@
   gap: 0;
   border: none;
   border-radius: 10px 10px 12px 12px;
-  /* Gate L2 (22/07/2026) — guardia della cavità: il padding-top passa da 9 a
-     44. Nel caso ratificato (contenuto su 1 riga) NON cambia un pixel: lo
-     stack targa+riga è alto 50 e ancorato in basso (flex-end), quindi
-     44 + 50 + 10 = 104 = min-height, targa top a 44 come nel mockup. Quando
-     però il contenuto va a capo (numero lavoro lungo, misurato a 390px), il
-     testo non può più risalire sopra y=44 a coprire la cavità (fascia 5..51,
-     miniatura 11..45): il tile cresce verso il basso invece di invadere.
-     Lavora in coppia con il clamp a 2 righe di `.ds-cassetta-cont` (sotto). */
-  padding: 44px 10px 10px;
-  min-height: 104px;
+  /* FIX-L (G10, RATIFICA FINALE 25/07, mockup 2026-07-25-cassetta-g10-rev3-p3-reale.html P3b)
+     — SOSTITUISCE il vecchio meccanismo di guardia (era `padding: 66px 10px 12px`, un
+     padding-top fisso che riservava SEMPRE lo spazio della cavità nel flusso): niente padding
+     qui, la fascia (unico figlio di flusso, sotto) è ancorata in basso da
+     `justify-content: flex-end` — esattamente come il mockup (`.k` senza alcun padding).
+     H2 (RATIFICA 25/07, decisione 0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html
+     opzione B, verbale 2026-07-24-qa-device-meta-ondata.md §H2) — CHIUDE il doppio regime che
+     FIX-L aveva dovuto introdurre: prima, un `min-height:142` di `.is-nome-lungo` esisteva
+     SOLO perché la fascia di FIX-L «abbracciava il contenuto» (nessuna `height` propria) — con
+     nomi lunghi in `.is-shrink` la clearance verso la finestra scendeva a ~1px, un margine
+     giudicato troppo fragile tra motori di rendering diversi. L'opzione B elimina la causa,
+     non il sintomo: la fascia (`.ds-cassetta-fascia` sotto) ha ORA un'altezza VERA e FISSA
+     (all'epoca `height: 72px`, non più a abbraccio), pensata per riservare lo spazio del caso
+     peggiore (clinico 2 righe + paziente 1 riga). ⚠️ Misurato il 26/07 che 72px NON bastavano —
+     la fascia vale ORA `var(--altezza-fascia)`, 78px, e il tile 138px: v. la nota A3 sopra
+     `.ds-cassetta-fascia` per il difetto e il blocco `--altezza-fascia` qui sopra per
+     l'aritmetica. Il resto di questo paragrafo resta vero parola per parola, perché la
+     decisione di Francesco del 26/07 ha allungato la cassetta IN FONDO senza toccare nulla di
+     ciò che le sta sopra. La finestra si restringeva (66→40px, v.
+     `.ds-cassetta-cavita`) per farle posto — trade-off esplicito e accettato da Francesco
+     ("finestra più piccola in via permanente", verbale §H2). Risultato: il contenuto di
+     flusso (fascia 78 + il suo margin-bottom 4 = 82px) è SEMPRE più corto del tile (138px), quindi il
+     tile non ha più bisogno di una seconda soglia — la classe `is-nome-lungo` e la sua soglia
+     (`SOGLIA_NOME_LUNGO` in Cassetta.tsx) sono state RIMOSSE, non solo disattivate: la sagoma è
+     ORA letteralmente unica per costruzione (`height` E `min-height` allo stesso valore, non
+     solo un floor), piena o vuota, nomi corti o estremi — misure reali (real-render Playwright,
+     matrice corto/medio/lungo/estremo × occupata/libera) in h2-impl-report.md. */
+  padding: 0;
+  height: var(--altezza-cassetta);
+  min-height: var(--altezza-cassetta);
   min-width: 44px;
   cursor: pointer;
   box-shadow: 0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28);
@@ -310,6 +392,11 @@
   box-shadow: 0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4);
 }
 [data-ds="v3"] .ds-cassetta.is-draggable { cursor: grab; }
+/* H2 (0c37f25) — `.is-nome-lungo`/`min-height:142px` RIMOSSA: era la guardia FIX-L per il
+   doppio regime (v. commento su `.ds-cassetta` sopra), superflua ora che la fascia ha altezza
+   fissa (`var(--altezza-fascia)`, 78px dal 26/07) e la sagoma è unica per costruzione
+   (`var(--altezza-cassetta)`, 138px), sempre. Grep-guard nel test
+   `cassetta-g10-fascia.test.tsx` verifica che questa regola non ricompaia. */
 
 /* Task 13 — cella di riordino: il wrapper `motion.div layout` che fa FLIP le sorelle. È l'item di
    griglia; la cassetta dentro riempie la colonna. `min-width:0` evita che il contenuto forzi la
@@ -336,6 +423,72 @@
   border-radius: 4px 4px 0 0;
   background: inherit;
   filter: brightness(.85);
+}
+
+/* Task 9 (D1) — gancetto G2, VERBATIM dal mockup ratificato
+   (2026-07-24-rete-gancetto-targa.html rev.3 `.gan-slot` + `#mMetal`, verbale §4/§Vincoli Task
+   8-10). NON disegna alcun filo (rev.3: la meccanica «il gancetto porta il filo» è BOCCIATA — al
+   drag il muro resta fermo, si stacca solo la cassetta, v. `.ds-parete` sopra). È legato alla
+   linguetta `::before` qui sopra (INVARIATA) e scavalca il filo del muro: `top` usa la stessa
+   `--hook-above` del muro (ereditata da `.ds-parete`, fallback 14px letterale fuori da quel
+   perimetro — es. `ds-v3-catalogo`) meno i 6px di sovrapposizione linguetta↔gancio del mockup. */
+[data-ds="v3"] .ds-gancetto {
+  position: absolute;
+  top: calc(-1 * var(--hook-above, 14px) - 6px); left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 28px; height: 22px;
+  pointer-events: none;
+  /* Stato «staccato» (SOLO sul ghost, prop `staccata` — Cassetta.tsx): transizione CSS pura, tempi
+     da `cssEase.generico` (v3/motion.ts). Verifica finale d'ondata (26/07, difetto A7): il valore
+     NON è più ricopiato a mano qui. Era identico byte per byte al token, e il commento lo diceva —
+     ma niente lo teneva legato: cambiare il token in motion.ts avrebbe lasciato QUESTA curva al
+     valore vecchio, in silenzio, perché è l'unica `transition:` del foglio e nessuno l'avrebbe
+     ricontrollata. Ora passa dalla variabile pubblicata sotto, e una guardia
+     (`tests/unit/ds-v3/motion-css.test.ts`) pretende che la variabile sia LA STESSA STRINGA del
+     token: se i due divergono, il test è rosso prima del browser. */
+  transition: transform var(--ease-generico);
+}
+[data-ds="v3"] .ds-gancetto.is-staccato {
+  transform: translateX(-50%) translateY(-3px) rotate(-10deg);
+}
+/* Verifica finale d'ondata (26/07, difetto A7) — reduced-motion: il gancetto si DISSOLVE, non si
+   muove. La regola globale in cima al foglio (`transition-duration: 0.15s !important`) accorcia
+   soltanto: il gancetto continuava a fare i suoi 3px di salita e i 10° di rotazione, solo più in
+   fretta — mentre la legge del sistema (spec §8.4) dice che sotto `prefers-reduced-motion` le
+   coreografie degradano a DISSOLVENZA. Qui il transform torna alla sola centratura, quindi non
+   resta nessuno spostamento da percepire.
+   PERCHÉ QUI e non nel blocco reduced-motion globale: quel blocco sta PRIMA nel foglio e ha la
+   stessa specificità di `.is-staccato` (0,3,0) — messo là dentro perderebbe per ordine di
+   sorgente e non farebbe assolutamente nulla. Deve stare DOPO la regola che neutralizza.
+   Nessun segnale va perso: lo stacco resta leggibile dagli altri indizi del sollevamento
+   (`scalaSollevamento` e `opacitaBuca`, v3/motion.ts), che non sono spostamenti. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ds="v3"] .ds-gancetto.is-staccato { transform: translateX(-50%); }
+}
+
+/* Metallo del gancetto — gradiente CSS-driven, VERBATIM dai valori `--gan-metal-*` del mockup
+   (riga 48/66 del file citato sopra). Decorativo, non in v3/tokens.ts: stessa scelta di
+   `--mat-*` sopra (§5.36) — il check pre-commit 4a vieta hex/rgba letterali in src/components/ds,
+   Cassetta.tsx referenzia solo `var(--gan-metal-*)` nel proprio `<linearGradient>`. */
+/* Verifica finale d'ondata (26/07, difetto A7) — l'easing generico pubblicato come variabile CSS.
+   È la stessa stringa di `cssEase.generico` (src/design-system/v3/motion.ts): il token TS resta la
+   FONTE (lo usano i componenti in JS), questa riga è la sua unica porta d'ingresso nel foglio, così
+   una `transition:` scritta in CSS non può più essere una copia scollegata. Sincronia presidiata da
+   `tests/unit/ds-v3/motion-css.test.ts` (confronto stringa-a-stringa col token). */
+[data-ds="v3"] {
+  --ease-generico: 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+[data-ds="v3"] {
+  --gan-metal-hi: #F1ECE1;
+  --gan-metal-mid: #C4BBAC;
+  --gan-metal-lo: #8B8275;
+}
+[data-theme="dark"] [data-ds="v3"] {
+  --gan-metal-hi: #4A443B;
+  --gan-metal-mid: #39332C;
+  --gan-metal-lo: #252017;
 }
 
 [data-ds="v3"] .ds-cassetta.rossa   { background: linear-gradient(180deg, #E8323B, #C3000F); }
@@ -371,40 +524,452 @@
   box-shadow: inset 0 3px 6px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.15);
 }
 
+/* FIX-L (G10, mockup rev.3 P3b) — bordo alto sottile: la finestra saliva a 8..74 (era 18..64).
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B, `.optB .fin{height:40px}`,
+   top INVARIATO a 8px) — la finestra si restringe ULTERIORMENTE a 8..48 (era 8..74): è il
+   trade-off esplicito di option B, la finestra cede spazio permanentemente perché la fascia
+   sotto ne guadagni (allora 72px fissi, v. `.ds-cassetta-fascia`). Stile della cavità INVARIATO
+   (bg/inset shadow/radius) — cambia SOLO l'altezza.
+   A3 (ratifica Francesco 26/07/2026) — QUESTA REGOLA È IL PUNTO CHE LA DECISIONE DICHIARA
+   INTOCCABILE: «no, non toccare la finestrella con il dentino, ma piuttosto allunga la pancia
+   della cassetta verso il basso». `inset` e `height` qui sotto non si muovono di un pixel; lo
+   spazio che mancava alla fascia è stato preso allungando il tile in fondo, non qui. I 40+8 di
+   questa regola sono due dei quattro addendi del `calc()` che lega `--altezza-cassetta` alla
+   fascia (v. blocco `--altezza-fascia` sopra `.ds-cassetta`): chi tocca questi numeri deve
+   rifare quel `calc()`, ed è il test a chiederglielo confrontando i due. */
 [data-ds="v3"] .ds-cassetta-cavita {
-  position: absolute; inset: 5px 6px auto 6px; height: 46px;
+  position: absolute; inset: 8px 6px auto 6px; height: 40px;
   border-radius: 7px;
   background: rgba(0,0,0,.18);
   box-shadow: inset 0 3px 6px rgba(0,0,0,.28);
   display: flex; align-items: center; justify-content: center;
 }
 
-[data-ds="v3"] .ds-cassetta-targa {
-  position: relative; z-index: 1; align-self: center;
-  max-width: 6ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  background: rgba(255,255,255,.92); border-radius: 8px; padding: 3px 10px 4px;
-  font-size: 14px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
-  box-shadow: 0 1px 2px rgba(0,0,0,.25);
-}
-[data-ds="v3"] .ds-cassetta-cont {
-  position: relative; z-index: 1; text-align: center; margin-top: 5px;
-  font-size: 11.5px; font-weight: 800; color: rgba(255,255,255,.95);
-  text-shadow: 0 1px 1px rgba(0,0,0,.3);
-  /* Gate L2 (22/07/2026) — clamp a 2 righe con ellissi: nel mockup ratificato
-     la riga «n.{numero} · {dentista}» è sempre UNA; con numeri lavoro lunghi
-     (misurato a 390px: 3 righe) il blocco risaliva a coprire la miniatura.
-     Il nome completo resta nell'`aria-label` del button (troncamento visivo,
-     non semantico — stessa regola della targa ~6ch). In coppia con la
-     guardia padding-top:44 di `.ds-cassetta` (sopra). */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+/* FIX-L — «fascia etichetta» (sostituisce targa+cont liberi nel corpo del tile): unico
+   contenitore in flusso, VERBATIM dal mockup rev.3 P3b (`.fascia{margin:0 4px 4px;
+   border-radius:4px 4px 9px 9px;padding:5px 8px 6px;background:rgba(0,0,0,.28);box-shadow:
+   inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12)}`), colonna centrata
+   gap 2. Struttura UNIFORME per libere e occupate (ratifica G10).
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B, `.optB .fascia{height:
+   72px}`) — CAMBIA il comportamento verticale: non abbraccia più il contenuto (niente più
+   crescita coi nomi lunghi, niente più `.is-nome-lungo`), ha un'altezza VERA e FISSA
+   (`var(--altezza-fascia)`, IDENTICA piena o vuota, corta o estrema). Il valore era 72px e
+   riservava il caso peggiore solo sulla carta: misurato il 26/07 che non ci arrivava, oggi vale
+   78px — v. la nota A3 qui sopra — `justify-content: center` (nuovo) centra verticalmente targa+cont
+   dentro lo spazio fisso, dove prima bastava il flusso naturale del contenuto ad altezza
+   variabile.
+
+   H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
+   `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «scrim-polarity»: prima la
+   fascia scuriva SEMPRE (rgba(0,0,0,.28) fisso, invariato di faccia in faccia); ORA il verso
+   dipende dalla luminanza della faccia (STESSA discriminazione `targaScura`/`is-chiara` già
+   esistente — nessuna nuova soglia): sulle facce SCURE la fascia scurisce un filo di più
+   (.28→.34), sulle facce CHIARE lo scrim si INVERTE e schiarisce (v. override `.is-chiara`
+   sotto, era rgba(29,25,19,.14) scurente, ora rgba(255,255,255,.20) schiarente). Motivazione
+   (verbale d5eeed5): è l'unica via misurata che porta il clinico su azzurra/bianca sopra la
+   soglia WCAG AA senza rubare spazio alla finestra (contrasti in fondo al file dei contrasti
+   campionati, v. report H2b) — B (fascia più alta) ci riusciva ma costava il 30% della
+   finestra, A (solo multiriga) non toccava affatto il contrasto.
+   `overflow: hidden` NUOVO — hardening iOS (indagine H5,
+   `.superpowers/sdd/h5-indagine-ipad-report.md`, Difetto 2, meccanismo (A) sospetto: iOS
+   Safari può gonfiare i font della fascia di sua iniziativa, quota mai neutralizzata prima —
+   v. `text-size-adjust:100%` in `globals.css`). La fascia è ad altezza VERA e FISSA
+   (`var(--altezza-fascia)`, 78px):
+   questo NON è estetica, è enforcement — niente deve mai sbordarne, nemmeno con un font
+   gonfiato da un agente esterno che sfugge al nostro CSS. Il gancetto (`.ds-gancetto`) e la
+   linguetta (`::before` su `.ds-cassetta`) NON sono figli di questo elemento (sono fratelli,
+   figli diretti di `.ds-cassetta` — v. markup in Cassetta.tsx) quindi restano fuori dal
+   perimetro di questo clip: l'avviso sull'`overflow:hidden` che taglierebbe il gancetto (v.
+   commento su `.ds-cassetta-cont`/`.ds-parete` altrove in questo file) riguarda contenitori PIÙ
+   IN ALTO nell'albero (`.ds-cassetta`/`.ds-parete`), non questo. Verificato su tutta la matrice
+   nomi (corto/lungo/estremo × occupata/libera, 390px, light+dark): zero sbordi legittimi
+   tagliati — v. report H2b.
+
+   H2c (indagine H6, .superpowers/sdd/h6-indagine-safari-report.md — root cause provata su
+   Safari macOS REALE, Safari 18.6, non Playwright-WebKit) — width NUOVO: la regola non
+   dichiarava mai una width propria, affidandosi solo allo stretch di default come flex-item
+   di .ds-cassetta (flex-direction:column). Difetto del verbale
+   docs/design/decisions/2026-07-24-qa-device-meta-ondata.md (addendum iPad, ri-collaudo #4):
+   "cassette rotte" - finestra e fascia disallineate, pezzi che sporgono dalla sagoma. Su una
+   build di Safari reale, quando il clinico va a capo su 2 righe E il paziente e presente
+   (2 flex-column annidate fascia->cont->dent/paz), il motore risolve lo stretch fino a
+   +48.5px oltre il bordo del tile (misurato nell'harness fedele di H6: 189.2/201.5/164.1px
+   invece dei 149px attesi, su 3 cassette di 21) - il pezzo in eccesso sfonda l'assenza di
+   clip dei genitori (.ds-cassetta/.ds-cella-riordino, nessuno ha overflow:hidden
+   orizzontale) e sbrodola nella cassetta adiacente.
+   calc(100% - 8px): l'8 non e un valore inventato - e l'inset ORIZZONTALE che questa stessa
+   regola gia dichiara (margin: 0 4px 4px sopra, 4px sinistra + 4px destra = 8px), reso
+   esplicito invece di lasciato implicito allo stretch. Bisezione dell'indagine H6 (harness
+   fedele, getComputedStyle verificato ad ogni passo): overflow:hidden rimosso -> numeri
+   identici (non e la causa, il box e gia disegnato piu largo a monte); mask-image rimosso ->
+   numeri identici; min-width:0 da solo -> numeri identici (ipotesi min-content respinta con
+   la prova); width: calc(100% - 8px) da solo -> 0 cassette rotte su 21, fascia esattamente
+   149x72 su ognuna, comprese le 3 originarie - QUESTO e il fix minimo, validato prima/dopo su
+   Safari reale a 6 e 4 colonne, light e dark (overflow identico al decimo di pixel a
+   entrambe le colonne: il difetto e guidato dal CONTENUTO, non dalla larghezza disponibile
+   della colonna).
+   Su Chromium (reale, real-render) il fix non cambia nulla al pixel: lo stretch implicito
+   risolveva gia a questo stesso valore, la regola lo rende solo esplicito, non lo altera -
+   comparativo in .superpowers/sdd/h2c-fascia-fix-report.md. Guardia sorgente in
+   tests/unit/ds-v3/cassetta-g10-fascia.test.tsx. */
+/* A3 — MISURA E DECISIONE (verifica finale d'ondata, 26/07/2026). CHIUSO: ratificato da Francesco
+   il 26/07/2026 — «no, non toccare la finestrella con il dentino, ma piuttosto allunga la pancia
+   della cassetta verso il basso». Il come è scritto sopra `.ds-cassetta` (blocco
+   `--altezza-fascia`/`--altezza-cassetta`). Quello che segue è la MISURA che ha reso necessaria la
+   decisione, tenuta qui perché è la ragione per cui i numeri sono quelli che sono — e perché
+   racconta un errore di previsione da non ripetere. I valori citati sono quelli PRIMA del fix
+   (fascia 72px): servono a leggere il difetto, non descrivono più il foglio di oggi.
+   Il commento di H2 sopra `.ds-cassetta` diceva che quei 72px «riservano SEMPRE lo spazio del
+   caso peggiore». Misurato sul muro vero (build di collaudo, /cassette, 390px, DPR 3, light E dark
+   — numeri identici nei due temi. PROVE DUREVOLI, tracciate in git:
+   `docs/design/screenshots/2026-07-26-a3-fascia-targa/` — quattro foto (`*-tre-targhe-prima.png` e
+   `*-tre-targhe-dopo.png`, light e dark) più i due JSON di misura. ⚠️ Quella cartella contiene PNG
+   e `.gitignore` ignora `*.png`: vanno aggiunti con `git add -f`, altrimenti spariscono in
+   silenzio (è già successo una volta in questa stessa ondata). I banchi che le hanno prodotte
+   stavano in scripts/tmp/a3-*.mjs, che è scratch non tracciato: se servisse rimisurare, il metodo
+   è descritto per intero in .superpowers/sdd/final-fix-A-report.md):
+     box utile della fascia = 72 − 5 di padding sopra − 6 sotto = 61,000px
+     pila reale = targa 21,750 + gap 2 + cont (dent + 2 + paz)   ← i 2 fra dent e paz sono
+                                                                   gap 1 del cont + margin-top 1 del paz
+     · caso comune  (dent 1 riga + paz 1 riga)  = 21,750 + 2 + 27,844 = 51,594  → ci sta, 9,4 di aria
+     · caso A       (dent 2 righe + paz 1 riga) = 21,750 + 2 + 39,438 = 63,188  → SFORA di 2,188
+     · caso B       (dent 1 riga + paz 2 righe) = 21,750 + 2 + 42,109 = 65,859  → SFORA di 4,859
+   Il caso A è ESATTAMENTE quello che il commento dichiarava riservato: non lo è. Il caso B, aperto
+   da H2b (paziente fino a 2 righe), è ancora peggio ed è raggiungibile con uno studio dal nome
+   corto e un paziente dal nome lungo («Bianchi» / «Maria Vittoria Del Giglio», il caso misurato).
+   CHE COSA SUCCEDE DAVVERO quando sfora — e qui la previsione era sbagliata, per questo si misura:
+   NON si perde la frangia dei discendenti. Il pixel-diff della stessa finestra con `overflow:hidden`
+   (com'è) e `overflow:visible` è 0 su 69.120 pixel nel caso B e 35 con Δmax 1/255 nel caso A (rumore
+   di antialiasing, e nella banda della targa, non sul fondo): il ritaglio di questa fascia non toglie
+   nulla di visibile, il respiro di 1px/1,5px aperto da H2d coi clip-path resta salvo.
+   A cedere è la TARGA. È un flex item con `overflow: hidden`, quindi la sua altezza minima
+   automatica è 0 e si lascia comprimere; `.ds-cassetta-cont` ha overflow visible, quindi la sua è
+   il contenuto e NON si comprime. Tutta la pressione finisce lì: targa misurata 21,750 → 19,563
+   (caso A, testo tagliato di 2px) → 16,891 (caso B, tagliato di 5px). Sulla stessa foto tre targhe
+   di tre altezze diverse (`docs/design/screenshots/2026-07-26-a3-fascia-targa/*-tre-targhe-prima.png`,
+   light e dark): la «sagoma unica» che H2 ha ratificato reggeva per il tile, ma si rompeva per la
+   targa appena il clinico andava a 2 righe.
+   COME È STATA CHIUSA. Le tre strade che avevo messo sul tavolo toccavano tutte un visual
+   ratificato — alzare la fascia rubando alla finestra (già scesa a 40px per un trade-off accettato,
+   verbale §H2), dare `flex: none` alla targa spostando lo sforo sul contenuto che H2d proteggeva,
+   oppure alzare il tile cambiando la sagoma. Francesco ne ha scelta una QUARTA, che non era
+   nell'elenco: la finestra non si tocca affatto e la cassetta si allunga in fondo. La fascia sale a
+   78px, il tile la segue a 138px, e i 60px di anatomia sopra la fascia (cavità e respiri) restano
+   identici al pixel — v. il blocco `--altezza-fascia` sopra `.ds-cassetta` per l'aritmetica e per
+   il motivo per cui il tile è scritto come `calc()` sulla fascia invece che come secondo numero.
+   Dopo il fix, sulla stessa identica scena: tre targhe tutte a 21,750px, zero testo tagliato,
+   finestra ferma a top 8 / height 40 (`*-tre-targhe-dopo.png`, light e dark). */
+[data-ds="v3"] .ds-cassetta-fascia {
+  position: relative; z-index: 1;
+  margin: 0 4px 4px;
+  border-radius: 4px 4px 9px 9px;
+  padding: 5px 8px 6px;
+  width: calc(100% - 8px);
+  height: var(--altezza-fascia);
+  background: rgba(0,0,0,.34);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   overflow: hidden;
 }
-[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
-  color: rgba(29,25,19,.85); text-shadow: none;
+/* Contrasto-auto (targaScura, invariato) — H2b: la polarità dello scrim si INVERTE sulla faccia
+   chiara (schiarente, non più scurente), verbatim mockup C. */
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-fascia {
+  background: rgba(255,255,255,.20);
 }
 
+/* Targa — gate Task 10 PIENAMENTE in vigore (precisazione Francesco 25/07, vincolante):
+   questa è la resa PIENA (bianca), cioè quella dell'occupata — l'uniformità G10 riguarda SOLO
+   la struttura (fascia/finestra/bordino), non il segnale di stato della targa. Dimensioni
+   ridotte per stare nella fascia compatta (VERBATIM mockup rev.3: font 12.5/800, radius 6,
+   padding 1px 8px 2px, max-width 8ch — era 14px/800/radius 8/padding 3px 10px 4px/6ch). */
+[data-ds="v3"] .ds-cassetta-targa {
+  position: relative; z-index: 1; align-self: center;
+  max-width: 8ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: rgba(255,255,255,.92); border-radius: 6px; padding: 1px 8px 2px;
+  font-size: 12.5px; font-weight: 800; color: #1D1913; font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+/* Task 10 (D4, punto 12) — «la targa nuova», VERBATIM dal mockup ratificato
+   (2026-07-24-rete-gancetto-targa.html rev.3 `.cont`/`.r`/`.dent`/`.pz`/`.r.shrink`, verbale
+   §6/§7/§8). Due righe (dentista + paziente), MAI una terza: il clamp del testo lungo vive sui
+   wrapper INTERNI (`.ds-cassetta-dent`/`.ds-cassetta-paz`), MAI su `.ds-cassetta` (il tile) — un
+   `overflow:hidden` lì taglierebbe il gancetto che sporge sopra il bordo (verbale, vincoli
+   Task 8-10). `display:flex;flex-direction:column` sostituisce il vecchio `-webkit-line-clamp:2`
+   applicato all'intero blocco (Gate L2 22/07): quel clamp mescolava due informazioni diverse
+   (numero+dentista) in un solo troncamento — qui ogni riga tronca per conto suo. FIX-L: niente
+   più `margin-top` — vive dentro `.ds-cassetta-fascia`, che porta già il proprio `gap: 2` verso
+   la targa. */
+/* FIX-L, Round 1 (Importante, riscontrato in Chromium headless) — `.ds-cassetta-fascia` è
+   `align-items:center`: senza vincolo, `.ds-cassetta-cont` (flex item, colonna) shrink-wrappa sul
+   proprio contenuto invece di ereditare la larghezza REALE della fascia. Con un paziente lungo
+   («Maria Vittoria Del Grosso Esposito») il blocco cresceva ~175px, sforando fascia E tile sulle
+   celle vicine. `align-self: stretch` fa ereditare a `.ds-cassetta-cont` la larghezza di
+   `.ds-cassetta-fascia` (il vincolo REALE, che cambia con la colonna 3/4/6 della griglia — v.
+   `.ds-parete-grid` sotto); `min-width: 0` toglie il floor `min-width:auto` dei flex item
+   (altrimenti non potrebbero restringersi sotto la larghezza intrinseca del testo `nowrap`).
+   Round 2 — lo stretch lasciava il cross-axis PER I FIGLI (`.ds-cassetta-dent`/`-paz`) sul
+   default `align-items:stretch`: un figlio con max-size più piccolo del container si allineava a
+   SINISTRA (gap 0/124px invece di ~62/62). `align-items: center` sotto ricentra i figli SENZA
+   disfare lo stretch del cont verso la fascia (proprietà ortogonali). Round 3 (doppio regime,
+   overflow quando il cont è < 96px) — v. commento completo sopra la regola `.ds-cassetta-dent,
+   .ds-cassetta-paz` sotto, dove vive il fix (`width: min(100%, 96px)`); questa regola qui non è
+   cambiata, la centratura resta valida. Numeri in fixL-report.md. */
+/* H2b (d5eeed5, variante C) — inchiostro PIENO sulle facce scure: #fff (era rgba(255,255,255,.95))
+   + ombra un filo più netta (0 1px 1.5px rgba(0,0,0,.45), era 0 1px 1px rgba(0,0,0,.3)) — verbatim
+   mockup C, verificato anche via cascata reale renderizzata (v. report H2b). Sulle facce chiare
+   l'override `.is-chiara .ds-cassetta-cont` sotto vince (specificità maggiore). */
+[data-ds="v3"] .ds-cassetta-cont {
+  position: relative; z-index: 1; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  align-self: stretch; min-width: 0;
+  font-size: 11.5px; line-height: 1.28;
+  color: #fff;
+  text-shadow: 0 1px 1.5px rgba(0,0,0,.45);
+}
+/* Terza review FIX-L (Importante, misurato con Playwright reale in un harness a parte, 25/07) —
+   STORIA COMPLETA DEL DOPPIO REGIME (chi tocca questa regola DEVE leggerla tutta):
+   Round 1 — `.ds-cassetta-cont` (sopra) shrink-wrappava sul proprio contenuto invece di
+     ereditare la larghezza REALE della fascia: nomi lunghi sforavano di ~175px. Fix:
+     `align-self:stretch` + `min-width:0` su `.ds-cassetta-cont`.
+   Round 2 — con lo stretch, questi due figli (capati allora da un `max-width:96px` isolato)
+     ereditavano il default `align-items:stretch` del cont e si allineavano a SINISTRA sulle
+     tile larghe (gap 0/124px invece di ~62/62). Fix: `align-items:center` su `.ds-cassetta-cont`.
+   Round 3 (QUESTO fix) — con `align-items:center`, questi figli tornavano a dimensionarsi SOLO
+     sul proprio `max-width:96px`, ignorando la larghezza reale del cont quando questa è < 96px
+     (tile compatte della home, 744px/gap-12 — v. nota ~801-816 sotto): misurato cont 46px →
+     box paz 96px (overflow 25px/lato); cont 36px → overflow 30px/lato — il cap fisso VERBATIM
+     dal mockup (2026-07-25-cassetta-g10-rev3-p3-reale.html righe ~97-98) bastava solo quando la
+     fascia era già ≥ 96px.
+   Fix (chiude ENTRAMBI i regimi): `width: min(100%, 96px)` — il box non è mai più largo del
+     proprio container REALE (il 100% risolve contro `.ds-cassetta-cont`, che a sua volta eredita
+     la larghezza vera della fascia dal Round 1) NÉ di 96px:
+   - Tile STRETTE (fascia interna < 96px): `min(100%, 96px)` = 100% del cont → il box combacia
+     esattamente col cont, niente più sforo (era il difetto di questo round).
+   - Tile LARGHE (fascia interna > 96px): `min(100%, 96px)` = 96px → stessa resa VERBATIM del
+     mockup approvato di prima (Round 2), invariata.
+   La centratura resta quella del Round 2 (`align-items:center` su `.ds-cassetta-cont`, sopra,
+   INVARIATA): un box a larghezza esplicita minore del container viene centrato da
+   `align-items:center` esattamente come un box shrink-wrapped — proprietà ortogonali, nessuna
+   necessità di `margin:0 auto` in aggiunta. Numeri completi in fixL-report.md.
+
+   H2 (0c37f25, mockup 2026-07-25-cassetta-h2-proposte.html opzione B) — `width: min(100%, 96px)`
+   RESTA, invariata: nel mockup B il dent porta anche un `max-width:104px` proprio (riga 158 del
+   mockup), ma è un NO-OP nella cascata — `width` (96, dalla regola base condivisa qui sotto) è
+   già più piccolo di `max-width` (104), quindi `max-width` non stringe mai ulteriormente
+   (vince il valore più piccolo fra i due, per costruzione CSS). Risultato: dent e paz risolvono
+   alla STESSA larghezza effettiva di prima — non riprodurre il 104 letterale, sarebbe un valore
+   morto che non farebbe nulla. */
+[data-ds="v3"] .ds-cassetta-dent,
+[data-ds="v3"] .ds-cassetta-paz {
+  width: min(100%, 96px);
+}
+/* Tipografia (verbale §7, vincolante — ovunque): il CLINICO è senza grassetto, il PAZIENTE è in
+   grassetto.
+   H2 (0c37f25) — CHIUDE il secondo doppio regime della cassetta (dopo quello di `.ds-cassetta`/
+   `.is-nome-lungo`): prima, dent e paz condividevano `overflow:hidden; text-overflow:ellipsis;
+   white-space:nowrap` come caso comune, e SOLO oltre `SOGLIA_NOME_LUNGO` il dent passava a
+   `.is-shrink` (wrap + clamp 2 righe + font 10) mentre il paz restava 1 riga con font ridotto.
+   Opzione B (decisione ratificata, verbale §H2 vincolo (a) sagoma unica + (c) nomi mai troncati
+   di netto) rende quel comportamento PERMANENTE per il dent e uniforme per il paz, qualunque sia
+   la lunghezza del nome — niente più soglia, niente più `is-shrink`, niente più `SOGLIA_NOME_LUNGO`
+   in Cassetta.tsx.
+   - PAZ: split verbatim dal mockup B (`.optB .paz`, riga 160) — resta SEMPRE 1 riga
+     (`white-space:nowrap`), MA `text-overflow:clip` (non più `ellipsis`) + una sfumatura morbida
+     (`mask-image`, ereditata dal mockup base .paz, righe 130-131) sul bordo destro — questo è il
+     "trattamento del caso limite" per il paziente a NOME COMPLETO (delta ratificato H2): un nome
+     che non entra sfuma invece di finire coi tre puntini a metà parola (vincolo (c) del verbale,
+     la stessa lamentela di Francesco su "BARALE S.…"). Sui nomi che ci stanno, la maschera non
+     tocca il testo (il fade comincia all'84% della LARGHEZZA DEL BOX, non del testo — su un nome
+     corto e centrato è oltre la fine del testo, quindi invisibile).
+   - DENT: qui il mockup B (`.optB .dent`, `-webkit-line-clamp:2` + `mask-image:none`) NON è
+     stato ripreso verbatim — ADJUDICAZIONE del controller (post-implementazione, sulla base
+     della prosa ratificata in `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H2: "la
+     sfumatura morbida, mai ellipsis netta" — dove la prosa vincolante contraddice il CSS
+     letterale del mockup, vince la prosa): misurato empiricamente (Playwright, harness a
+     parte) che `-webkit-line-clamp` inietta SEMPRE una "…" sull'ultima riga quando il
+     contenuto eccede le 2 righe, IGNORANDO `text-overflow` — non sopprimibile col solo CSS,
+     su un nome clinico davvero estremo (>~26 caratteri) questo riproduce ESATTAMENTE la
+     lamentela originale del verbale ("STUDI MEDICI DI SANTI…"). Sostituito con un clip ad
+     ALTEZZA dichiarata (`max-height: calc(2 * 1.16em)`, ancorata allo stesso line-height 1.16
+     del mockup: 2 righe esatte, il taglio cade nel gap tra riga 2 e riga 3, mai a metà glifo —
+     misurato) + una sfumatura CONDIZIONALE (`.is-troncato`, sotto) applicata SOLO quando
+     `Cassetta.tsx` misura in JS un overflow reale (`scrollHeight > clientHeight`): un clinico
+     che riempie ESATTAMENTE 2 righe senza sforare non prende MAI la classe, quindi la
+     sfumatura non "mangia" lettere legittime dell'ultima riga (a differenza di un mask
+     permanente legato a un confine di altezza fisso, che rischierebbe di attenuare glifi
+     realmente visibili). */
+/* H2b (d5eeed5, variante C) — peso su: 500 (era 400), verbatim mockup C. `opacity: .94` resta
+   INVARIATA qui (regola BASE, facce scure): il mockup C alza l'opacità SOLO sulla faccia chiara
+   (via l'override `.is-chiara .ds-cassetta-dent` sotto, .7→1).
+   ⚠️ PUNTO APERTO (non deciso in autonomia, v. report H2b §1/§8): il mockup C dichiara ANCHE
+   `.vC.is-chiara .ds-cassetta-dent{font-weight:600}` (commento sorgente «+ peso», un peso più
+   alto apposta per il clinico su faccia chiara). Verificato via cascata reale renderizzata che
+   quel selettore preciso NON matcha mai un nodo nel DOM del mockup (refuso di sintassi: usa il
+   compound `.vC.is-chiara` invece del discendente `.vC .ds-cassetta.is-chiara` che le due
+   regole sopra/sotto usano correttamente) — quindi il mockup C, così com'è, dipinge SEMPRE 500,
+   anche sulla faccia chiara. Qui è implementato il comportamento REALMENTE RESO (500 ovunque),
+   non l'intento scritto-ma-mai-eseguito (600 su chiara) — ma la scelta fra le due letture non è
+   stata arbitrata da chi ha scritto questo commit: se la review conferma l'intento (600), la
+   riga da aggiungere è `.ds-cassetta.is-chiara .ds-cassetta-dent{font-weight:600}` (vince per
+   specificità). */
+[data-ds="v3"] .ds-cassetta-dent {
+  font-weight: 500; opacity: .94;
+  white-space: normal; overflow-wrap: break-word; word-break: normal;
+  display: block; overflow: visible;
+  font-size: 10px; line-height: 1.16;
+  max-height: calc(2 * 1.16em);
+  clip-path: inset(0 0 -1px 0);
+  -webkit-clip-path: inset(0 0 -1px 0);
+}
+/* Variante 6 «la combinata» (ratifica Francesco 26/07/2026, mockup
+   2026-07-26-nomi-lunghi-cassetta.html §6, verbale docs/design/decisions/2026-07-26-nomi-lunghi-variante6.md)
+   — I DUE GRADINI DI CORPO del clinico. Quando il nome non entra in 2 righe, PRIMA di togliergli
+   parole si prova a rimpicciolirlo di un gradino: 10 → 9,5 → 9px. Sotto i 9px non si scende (limite
+   di leggibilità dichiarato nel mockup): non esiste una terza classe, ed è presidiato da una guardia
+   in tests/unit/ds-v3/cassetta-nomi-lunghi.test.tsx.
+   La classe la mette `Cassetta.tsx` SOLO dopo aver MISURATO che il gradino precedente sfora
+   (stessa aritmetica a righe intere di H2c) — non è una regola che scatta sulla lunghezza del testo.
+   Queste due regole toccano SOLO `font-size`, di proposito:
+   - `line-height: 1.16` è un numero puro → scala da sé col corpo (11,6 / 11,02 / 10,44px);
+   - `max-height: calc(2 * 1.16em)` è in EM → segue il corpo dell'elemento stesso, quindi il budget
+     resta 2 RIGHE ESATTE a ogni gradino. Valori RISOLTI misurati in Chromium reale sulla parete
+     (scripts/tmp/nomi-lunghi-v6-misure.mjs): 23,2 / 22,04 / 20,88px, con round(clientHeight/lineHeight)
+     = 2 a tutti e tre — la terza riga non entra mai nel budget.
+   - clip-path/mask-image NON si ridichiarano qui: il respiro di 1px della regola base e il suo
+     azzeramento su `.is-troncato` (H2d) restano gli unici governi del ritaglio, identici a prima.
+   Specificità (0,3,0 col perimetro [data-ds]) > regola base (0,2,0): il gradino vince sul corpo
+   pieno, e non entra in conflitto con `.is-troncato`/`.is-due-righe` (proprietà disgiunte). */
+[data-ds="v3"] .ds-cassetta-dent.is-corpo-95 { font-size: 9.5px; }
+[data-ds="v3"] .ds-cassetta-dent.is-corpo-9 { font-size: 9px; }
+/* H2d (indagine H7, report h7-indagine-sfumatura-report.md + h2d-discendenti-report.md) — la
+   "sfumatura fantasma" che Francesco vedeva su clinici che riempiono ESATTAMENTE 2 righe (MAI
+   `.is-troncato`, quindi senza la sfumatura intenzionale sotto): pixel-diff reale (Playwright+
+   sharp, non geometria calcolata a mano) ha provato che `line-height: 1.16` è più STRETTO delle
+   metriche naturali del font (misurato: alturaFontNaturale 12.000px contro altezzaRigaCss
+   11.600px a font-size 10px) — un discendente (g/j/p/q/y) sull'ultima riga tocca il bordo del
+   box quasi esattamente, e la frangia anti-aliased più esterna finiva tagliata da
+   `overflow:hidden` anche quando NON c'era nessun overflow reale di contenuto.
+   Perché non basta alzare `max-height`: con `box-sizing:border-box` (reset globale, globals.css)
+   il contenuto di 2 righe (~23.19px) sta già SOTTO `max-height` (23.2px) col margine ORIGINALE —
+   il border-box che `overflow:hidden` ritaglia resta fisso alla propria altezza naturale
+   qualunque valore si dia a `max-height` sopra quel minimo (misurato via harness: rectHeight
+   identico per ogni valore di max-height provato). `padding-bottom` funzionerebbe ma sposta il
+   fratello `.ds-cassetta-paz` in basso (stesso flex-column, gap fisso) — effetto collaterale sul
+   layout ratificato, scartato.
+   Fix scelto: `overflow: visible` + `clip-path: inset(0 0 -1px 0)` come UNICO meccanismo di
+   ritaglio verticale. `clip-path` non partecipa al box model (misurato: rectHeight e la
+   posizione del fratello paziente restano IDENTICI per ogni valore provato) — apre SOLO la
+   finestra di paint di 1px sotto il bordo naturale delle 2 righe, senza toccare `max-height`
+   (che resta il governo dell'altezza di LAYOUT, quindi del budget righe/3ª riga e del
+   rilevatore `is-troncato` in Cassetta.tsx, invariato — scrollHeight/clientHeight letti da JS
+   sono risultati IDENTICI con `overflow:hidden` o `overflow:visible`, verificato). 1px è il
+   minimo che azzera il pixel-diff clippato-vs-non-clippato su un discendente reale
+   ("Dr. Giorgio Bagheria", riga 2 = "Bagheria") a DPR 1/2/2.75/3 (zero-diff già da 0.875px,
+   1px lascia margine): script `scripts/tmp/h2d-clip-clearance.mjs`.
+   ATTENZIONE — rischio 3ª riga (verificato, non solo dichiarato): un'espansione UNIFORME della
+   finestra di clip-path (stesso meccanismo di squeeze-al-bordo-riga, simmetrico) rivela SEMPRE
+   un filo della riga successiva quando il contenuto ne ha una — misurato: già a +0.4px la 3ª
+   riga di un nome che wrappa su 3 righe comincia a comparire (3-13px di diff secondo il DPR),
+   crescente con l'estensione. Per questo il respiro NON è incondizionato: la regola sotto
+   (`.is-troncato`) lo azzera esattamente quando `Cassetta.tsx` misura un overflow REALE (3+
+   righe), riportando il clip a filo del bordo — la 3ª riga resta invisibile in OGNI caso
+   verificato (stesso script, Test B). Sfumatura (`mask-image`, sotto) INVARIATA.
+   ⚠️ ASSUNZIONE (review H2d round 2, minor): l'equivalenza misurata `clip-path: inset(0 0 0 0)`
+   ≡ il vecchio `overflow:hidden` regge SOLO perché QUESTA regola non ha `padding`/`border` (zero
+   su entrambi, oggi) — `clip-path` senza `<geometry-box>` esplicito usa di default il
+   BORDER-box, mentre `overflow:hidden` ritaglia al PADDING-box: sono la STESSA box solo quando
+   `border` è zero (il padding non separa le due box da solo). Chi in futuro aggiunge
+   `padding`/`border` a `.ds-cassetta-dent`/`.ds-cassetta-paz` deve ri-misurare questa
+   equivalenza (`debug-h2d-dent-equiv.mjs`/`debug-h2d-paz-equiv.mjs`), non darla per scontata. */
+[data-ds="v3"] .ds-cassetta-dent.is-troncato {
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
+  mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 100%);
+}
+/* H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup 2026-07-25-fascia-leggibilita-varianti.html
+   SOLO variante C) — «paziente fino a 2 righe col budget condiviso»: SOSTITUISCE il regime H2
+   "paziente SEMPRE 1 riga nowrap" (v. storia sopra). Il paziente ora riceve lo STESSO
+   trattamento del clinico — wrap fino a 2 righe con sfumatura VERTICALE `is-troncato` — a MENO
+   che il clinico stesso occupi già 2 righe, nel qual caso il budget lo forza a 1 riga (v.
+   selettore fratello sotto). Verbatim dal mockup C, verificato via cascata reale renderizzata
+   (`scripts/tmp/h2b-mockup-cascade.mjs`, v. report H2b): con clinico 1 riga, `max-height`
+   risolve a 28.52px = 2 × 1.24 × 11.5px (font-size ereditato da `.ds-cassetta-cont`); con
+   clinico 2 righe, il fratello sotto lo ricapa a 14.26px = 1 × 1.24 × 11.5px.
+   `font-weight: 800` (era 700) — verbatim mockup C, il paziente resta il più marcato dei due
+   (la gerarchia clinico/paziente ora sta anche sul peso: 500 vs 800, non più solo su
+   opacità/font-weight base). */
+[data-ds="v3"] .ds-cassetta-paz {
+  font-weight: 800;
+  white-space: normal; overflow-wrap: break-word; word-break: normal;
+  display: block; overflow: visible;
+  text-overflow: clip;
+  line-height: 1.24;
+  max-height: calc(2 * 1.24em);
+  margin-top: 1px;
+  mask-image: none;
+  -webkit-mask-image: none;
+  clip-path: inset(0 0 -1.5px 0);
+  -webkit-clip-path: inset(0 0 -1.5px 0);
+}
+/* Sfumatura VERTICALE del paziente troncato — STESSA famiglia `is-troncato` del clinico (misura
+   in JS via ResizeObserver + scrollHeight/clientHeight, riuso 1:1 del meccanismo esistente,
+   NESSUNA nuova soglia): applicata SOLO quando `Cassetta.tsx` misura un overflow REALE, mai un
+   mask permanente legato al confine di altezza (stesso principio del dent — v. commento sopra).
+   82%→100% (leggermente diverso dall'80%→100% del dent): verbatim mockup C.
+   H2d — il gemello paziente NON era già sano (ipotesi da verificare esplicitamente, non da
+   assumere): misurato via canvas (`scripts/tmp/debug-h2d-paz-metrics.mjs`)
+   alturaFontNaturale=15px (ascent 12 + descent 3, font-size 11.5px/peso 800) contro
+   altezzaRigaCss=14.26px (line-height 1.24) — deficit REALE 0.74px per riga, più stretto in
+   valore assoluto di quello del clinico (0.4px): l'aritmetica "1.24 > ~1.2 naturale quindi già
+   sano" (ipotesi iniziale) era SBAGLIATA — il rapporto naturale ascent+descent di questo
+   font/peso non è ~1.2, è ~1.304. Pixel-diff reale confermato: clip ORIGINALE tagliava 428/45.440
+   px (Δmax 41/765) su un paziente a 2 righe con discendente in fondo ("Giuseppe Bagheria" →
+   riga 2 "Bagheria") — più severo del clinico (232/45.440, Δmax 25/765).
+   `overflow:visible` + `clip-path: inset(0 0 -1.5px 0)` (1.5px, zero-diff verificato da 1.4px in
+   su a DPR 1/2/2.75/3 — script `scripts/tmp/h2d-clip-clearance-paz.mjs`): STESSA tecnica del
+   clinico e stessa ragione (`clip-path` non tocca il box model, quindi non sposta nulla; verifica
+   empirica anche per l'`overflow:hidden`→`visible` sul regime forzato nowrap a 1 riga —
+   `.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz` sotto — il taglio orizzontale che prima
+   veniva da `text-overflow:clip`+`overflow:hidden` è ORA equivalente-al-pixel via lo stesso
+   `clip-path` a inset orizzontale 0/0, misurato 0 pixel di differenza sul confronto diretto:
+   nessuna regressione sulla sfumatura orizzontale 84%→99% quando il fratello dent occupa 2
+   righe). `is-troncato` non scatta MAI in quel regime nowrap (una sola riga per costruzione,
+   nessuna riga successiva da nascondere) — il respiro resta sempre attivo lì, correttamente.
+   ⚠️ Stessa ASSUNZIONE del dent (v. commento su `.ds-cassetta-dent.is-troncato` sopra):
+   l'equivalenza clip-path↔overflow:hidden regge solo perché anche `.ds-cassetta-paz` ha
+   `padding`/`border` a zero oggi — da ri-misurare se questo cambia. */
+[data-ds="v3"] .ds-cassetta-paz.is-troncato {
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
+  mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+}
+/* Budget condiviso: quando il clinico (fratello PRECEDENTE nel DOM, v. markup Cassetta.tsx —
+   dent poi paz dentro `.ds-cassetta-cont`) occupa 2 righe (`.is-due-righe`, misurato in JS in
+   Cassetta.tsx da altezza/line-height, come il mockup), il paziente torna al regime PRE-H2b:
+   1 riga, nowrap, sfumatura ORIZZONTALE — stessi identici valori (90deg, 84%→99%) che aveva
+   SEMPRE prima di questo cambio, ora condizionali. Specificità (0,3,0, tre classi) più alta
+   della regola `.is-troncato` sola (0,2,0): quando il clinico è a 2 righe questa vince sempre,
+   a prescindere dall'ordine nel foglio — v. verifica cascata nel report H2b. */
+[data-ds="v3"] .ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz {
+  max-height: calc(1 * 1.24em);
+  white-space: nowrap;
+  mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
+  -webkit-mask-image: linear-gradient(90deg, #000 84%, transparent 99%);
+}
+/* Contrasto automatico per luminanza (targaScura, Cassetta.tsx): faccia chiara → inchiostro
+   scuro sulla riga.
+   H2b (d5eeed5, variante C) — inchiostro PIENO: rgba(29,25,19,1) (era .85) sul cont, opacity 1
+   (era .7) sul dent — il clinico su faccia chiara non si affievolisce più. `text-shadow: none`
+   INVARIATO (il mockup C non lo ritocca). Verbatim, verificato via cascata reale renderizzata. */
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-cont {
+  color: rgba(29,25,19,1); text-shadow: none;
+}
+[data-ds="v3"] .ds-cassetta.is-chiara .ds-cassetta-dent { opacity: 1; }
+
+/* Targa ad ANELLO quando libera (segnale di stato — precisazione Francesco 25/07, vincolante:
+   l'uniformità G10 è SOLO strutturale, la targa resta il segnale binario libera/occupata). */
 [data-ds="v3"] .ds-cassetta.is-libera .ds-cassetta-targa {
   background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.75); color: rgba(255,255,255,.9);
 }
@@ -419,7 +984,6 @@
 [data-theme="dark"] [data-ds="v3"] .ds-cassetta.is-accesa {
   box-shadow: 0 0 0 3px var(--blue), 0 14px 26px -8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
 }
-[data-ds="v3"] .ds-cassetta.is-spenta { opacity: .3; filter: saturate(.4); }
 
 /* §5 La Parete — pagina `/cassette` (Task 11). Anatomia 1:1 dal mockup ratificato
    (2026-07-20-parete-cassette-v2.html): pillola di ricerca righe 39-49, parete + doppia griglia
@@ -428,7 +992,14 @@
    componente perché portano rami `[data-theme="dark"]` e media query, che uno style-object non
    può esprimere — e perché ds-v3.css è la casa canonica dei valori raw del DS v3. */
 [data-ds="v3"] .ds-parete-shell {
-  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 40px;
+  /* Verifica finale wave H (verbale 26/07, difetto 1b — RATIFICATO da Francesco: «il muro
+     arriva fino in fondo») — il `40px` che stava QUI, in coda al padding, era 40px FUORI dal
+     muro: si vedeva il fondo pagina panna PIATTO, senza la trama della rete, tra l'ultima riga
+     del muro e il bordo inferiore dello schermo (misurato a fondo scroll: muro chiuso a 40px
+     dal bordo, `scripts/tmp/collaudo-26-prova2.mjs`). Lo spazio NON è stato eliminato: è stato
+     spostato DENTRO `.ds-parete` (v. il suo `padding` sotto), dove è fatto di rete invece che
+     di panna liscia. La quantità di respiro sotto l'ultima fila di cassette resta identica. */
+  width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 20px 0;
   /* Variante C «fluida» (decisione 23/07/2026, gap cassette tablet): la shell è
      il container su cui risolvono i cqw della griglia qui sotto. Nota: il
      containment di layout rende la shell containing block dei discendenti
@@ -475,26 +1046,250 @@
 [data-ds="v3"] .ds-parete-cerca input::placeholder { color: var(--faint); font-weight: 600; }
 [data-ds="v3"] .ds-parete-cerca:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-/* La parete: `--bg-deep` + la doppia griglia ripetuta — è il muro del laboratorio, non una
-   texture decorativa. Il ramo dark cambia SOLO il colore delle fughe (chiare invece che scure). */
+/* La parete: la maglia metallica disegnata (Task 8, «la rete disegnata» — mockup ratificato
+   docs/design/mockups/2026-07-24-rete-gancetto-targa.html rev.3, verbale
+   docs/design/decisions/2026-07-24-rete-gancetto-targa.md §Vincoli Task 8-10). Sostituisce la
+   doppia griglia piatta precedente: il muro è il laboratorio, non una texture decorativa.
+
+   GRIGLIA FISSA + SNAP — MECCANICA (COPIATA VERBATIM dal blocco CSS del mockup; i px sono i
+   valori RATIFICATI 24/07, non quelli ipotizzati dal piano):
+   · Il MURO disegna una maglia quadrata continua a passo fisso --passo-maglia (fili
+     orizzontali E verticali), SEMPRE, dietro tutto — indipendente dalle cassette.
+   · Le RIGHE di `.ds-parete-grid` hanno altezza (--track) quantizzata su un multiplo INTERO di
+     passo-maglia. Il multiplo NON è più uno solo: 5 sul telefono, 4 da tablet in su — v. la
+     `@media (min-width: 768px)` subito sotto la regola di `.ds-parete`, dove sta la decisione
+     di Francesco del 26/07/2026 e il perché. `grid-auto-rows: var(--track); row-gap: 0;`
+     + celle ancorate in alto (`align-items: start`) — vedi regola sotto.
+     STORIA, e perché la vecchia motivazione del 5 NON vale più. Il 5 arriva da QA device T15
+     (verbale 2026-07-24, fix 7/e, adeguamento 4→5): la VERA altezza massima del tile — targa T2,
+     dentista E paziente entrambi oltre soglia, 2 righe ciascuno — misurata in browser reale era
+     158px a passo-maglia 40, quindi a track=4·passo (160px lì) restavano 2px soli prima della
+     zona riservata al gancio della riga sotto (--hook-above 14 + 6px di sovrapposizione
+     linguetta = 20px): il tile ci entrava dentro per 18px, la clip che il collaudo device ha
+     trovato. QUEL TILE NON ESISTE PIÙ: il fix H2 di quest'ondata («la cassetta allunga la pancia
+     in fondo») ha fissato la sagoma a --altezza-cassetta = 78 + 60 = 138px, dichiarata con
+     `height` E `min-height`, e il collaudo parete l'ha verificata identica su tutte e sei le
+     cassette a ogni viewport. Il vincolo che difendeva il 5 è caduto con lui.
+   · Il gancio della cassetta sporge --hook-above (14px) sopra il bordo-alto del tile → quota di
+     morso hook_n = wall-pad-top − hook-above + n·track. Track è SEMPRE un multiplo INTERO di
+     passo-maglia (4 ieri, 5 dal fix 7/e, oggi tutt'e due: 5 sul telefono e 4 da tablet in su) —
+     la congruenza hook_n ≡ wire-center (mod passo-maglia) vale per COSTRUZIONE qualunque sia il
+     multiplo, perché n·track resta comunque ≡ 0 (mod passo-maglia): il gancio di OGNI riga cade
+     su un filo vero, a qualsiasi larghezza di colonna (3/4/6) e qualsiasi contenuto (garanzia
+     verificata empiricamente nel mockup: scarto 0.0px — la dimostrazione non dipende dal valore
+     del multiplo, solo dal fatto che sia intero: presidiato da
+     tests/unit/ds-v3/parete-gancio-cornice.test.ts, che legge ENTRAMBI i multipli dal foglio).
+   · --wire-center = wall-pad-top − hook-above (24 − 14 = 10px): quota del primo filo
+     orizzontale — il ramo dark la usa in `background-position`; l'SVG light la incorpora già
+     nella propria geometria (pattern offset y=8.5).
+   ⚠️ ACCOPPIAMENTO: se cambia passo-maglia/hook-above, --track (calc automatico) resta multiplo
+   esatto del passo per costruzione; --wire-center va invece ricalcolato (qui è già una calc()
+   sugli stessi due ingredienti, quindi si aggiorna da sé).
+   ⚠️ LIMITE NOTO E ACCETTATO (rimando a QA Task 15/17):
+   1) [FIX-H, G6, RISOLTO 24/07 — verbale docs/design/decisions/2026-07-24-qa-device-meta-ondata.md
+      §G6, screenshot Francesco] il pattern SVG light AVEVA la geometria HARDCODED al passo 44
+      (`background-size: 44px 44px`) mentre --passo-maglia nella shell è un clamp fluido
+      (40-50px, sotto): il gancio veniva posizionato al passo RISOLTO (fino a 50px, misurato
+      —track risolto 250px ⇒ passo 50) ma i fili erano disegnati ogni 44px sempre — lo
+      sfasamento fra gancio e filo cresceva riga dopo riga. Fix: `background-size:
+      var(--passo-maglia) var(--passo-maglia)` (sotto) — il pattern segue lo STESSO passo
+      risolto dell'hook, per riferimento, non per un secondo calcolo da tenere sincronizzato a
+      mano. L'SVG dichiara ORA `viewBox='0 0 44 44'` (review pre-commit, addendum): un
+      `<svg width height>` SENZA viewBox non riscala il proprio contenuto quando il
+      background-size richiesto è diverso dall'intrinseco (resta ancorato alle 44 unità
+      native dentro un riquadro più grande, lasciando una banda vuota — il periodo del
+      tiling sarebbe comunque corretto, ma il disegno apparirebbe "a scacchi" a passo≠44).
+      Col viewBox lo user-agent scala UNIFORMEMENTE tutto il contenuto (spessori dei fili,
+      nodo) col background-size — a passo 44 è pixel-identico a prima (44 unità in un
+      riquadro 44 = 1:1), zero regressione alla scala base. L'offset verticale che porta il
+      primo filo alla quota giusta NON può comunque vivere dentro
+      l'SVG (scalerebbe proporzionalmente al passo, non restando ancorato al px assoluto
+      wire-center=10 che dipende da wall-pad-top/hook-above, NON dal passo) — è stato tolto
+      dal `<pattern y='8.5'>` e spostato su `background-position: 0 calc(var(--wire-center) -
+      var(--wire-w) / 2)`, IDENTICO al meccanismo già usato dal ramo dark sotto (stessa
+      formula, stesso significato: quota assoluta, indipendente dalla scala del tile).
+      Verifica: a passo 44 la formula risolve a 8.5 — lo stesso valore letterale di prima,
+      zero regressione visiva alla scala base; a passo ≠44 ora resta ancorata (prima
+      scalava proporzionalmente e divergeva). Guardia: test/unit/ds-v3/parete-gancio-cornice.test.ts.
+   2) --wall-pad-top è fissato a 24px per il calcolo di --wire-center, ma sotto
+      `.ds-parete-shell` il padding-top REALE resta quello della regola fluida preesistente
+      (riga ~530 qui sotto, `clamp(22px, 3.8cqw, 28px)`, decisione 23/07/2026 non toccata da
+      questo task): a larghezze intermedie della shell lo scarto gancio↔filo resta piccolo
+      (≤4px) ma non è mai perfettamente zero. Residuo noto, non nel perimetro di FIX-H (G6
+      copriva solo il punto 1 — verbale).
+   Dark: due repeating-linear-gradient piatti (nessun volume/ombra, legge v3) — verbatim dal
+   ramo `.notte` del mockup: filo `rgba(255,255,255,.07)`, spessore --wire-w (3px).
+
+   [FIX-H, G9-cornice, RATIFICATO 25/07 — verbale §G9, mockup ratificato
+   docs/design/mockups/2026-07-25-rete-cornice-bordi.html, variante V1 «filo di bordo»] Un
+   filo verticale esplicito su ENTRAMBI i lati della parete (`::before` sinistra, `::after`
+   destra, 2px dal bordo), stesso linguaggio del filo verticale del pattern interno (gradiente
+   marrone→bianco→marrone, `--wire-w`, ombra leggera in light; flat rgba bianco in dark, legge
+   v3 dark=flat). Decorativo: non tocca padding/larghezza utile della griglia, non entra nello
+   snap/drag. Dichiarato sulla regola BASE (non scoped a `.ds-parete-shell`): vale sia su
+   `/cassette` standalone sia nel pannello embedded della home, che condividono la stessa
+   `PareteClient`/`.ds-parete`.
+
+   [FIX-H — review 25/07, RIMOSSO `overflow: hidden` su `.ds-parete`] La prima versione di
+   questo fix copiava `overflow: hidden` da `.muro` nel mockup per clippare i due fili qui sopra
+   agli angoli arrotondati (radius 18, stessa riga di `.ds-parete` sotto). Il mockup è una
+   swatch statica: non ha gancetti né ombre che sporgono. Il muro vero sì — `.ds-gancetto`
+   (sotto, ~375) sporge 20px sopra ogni tile (`top: calc(-1*var(--hook-above,14px) - 6px)`),
+   con un margine di sicurezza misurato di soli 2px nel caso peggiore (shell padding-top
+   `clamp(22px, 3.8cqw, 28px)` meno 20px) — esattamente il pericolo di cui avvisa il commento
+   di guardia qui sotto su `.ds-cassetta-cont` (~riga 460: «un overflow:hidden lì taglierebbe
+   il gancetto che sporge sopra il bordo»), qui riapplicato per errore un livello più in alto.
+   L'ombra di riposo delle cassette (`0 10px 18px -8px`, ~20px verso il basso) contro un
+   padding-bottom minimo di 18px aveva lo stesso problema in fondo. Fix: l'overflow è sparito
+   — la clippatura dei DUE FILI agli angoli (l'unico motivo per cui serviva) è ora ottenuta
+   insettando verticalmente i pseudo-elementi di 18px (== il border-radius di `.ds-parete`,
+   v. sotto): il tratto dritto del filo vive solo nella porzione rettilinea del bordo
+   arrotondato, non attraversa mai la curva dell'angolo, quindi non ha più bisogno di essere
+   tagliato da un overflow del contenitore. Verificato: nessun altro figlio di `.ds-parete`
+   dipendeva dall'overflow rimosso — il ghost del drag è comunque in portale su
+   `document.body` (`position: fixed`, PareteClient.tsx), fuori dal sottoalbero; il tile
+   "+ Nuova cassetta" e le celle della griglia stanno dentro al padding, mai oltre il bordo;
+   il pattern di sfondo del muro si arrotonda da sé (il `border-radius` clippa SEMPRE il
+   proprio background/bordo, a prescindere da `overflow`) — zero regressione lì. Guardia
+   negativa: tests/unit/ds-v3/parete-gancio-cornice.test.ts. */
+/* Verifica finale wave H (verbale 26/07, difetto 1b) — il `padding-bottom` del muro accoglie i
+   40px che prima stavano su `.ds-parete-shell` (v. lì il perché) PIÙ la safe-area: sui telefoni
+   con barra gesture il muro deve continuare ANCHE sotto la barra — è esattamente il bordo da cui
+   è nata la segnalazione di Francesco. `env(...)` con fallback 0px: dove la safe-area non esiste
+   (desktop, browser senza notch) il valore degrada ai soli 18px+40px, cioè al respiro di prima.
+   Il lato ALTO non si tocca: `--wall-pad-top` governa l'aggancio dei gancetti alla prima fila
+   (geometria ratificata H3), spostarlo disallineerebbe ganci e fili.
+   ⚠️ Il corpo di questa regola è presidiato ALLA LETTERA da `tests/unit/ds-v3/parete-fluida.test.ts`
+   su una versione del foglio con i soli spazi normalizzati (i commenti NON vengono rimossi):
+   ogni commento va tenuto FUORI dalle graffe, come questo, o le due guardie si rompono. */
+/* QA device T15 (verbale 2026-07-24, addendum punto 5, screenshot Francesco) — riguarda il
+   `background-color: var(--bg)` in fondo alla regola qui sotto. Il fondo del muro era `--bg-deep`,
+   un tono diverso dal fondo della pagina che lo ospita (`--bg`, dipinto inline dal page-root — v.
+   nota di testa del file): la card della parete "stonava" contro la pagina. Ora usa lo STESSO token
+   `--bg` del fondo pagina — il muro si raccorda, niente più bordo di contrasto percepito. I fili
+   (SVG light, gradient dark sotto) restano leggibili: in light il pattern SVG ha già i suoi stop di
+   luce/ombra propri (indipendenti dal fondo); in dark l'alpha del filo è stata alzata .07→.09 (v.
+   sotto) perché --bg è più chiaro di --bg-deep e il filo bianco-trasparente perdeva un po' di
+   contrasto — unica modifica di alpha, annotata come richiesto dal verbale.
+   Verifica finale d'ondata (26/07, difetto A4a) — questo commento stava DENTRO le graffe della
+   regola, nove righe sotto l'istruzione qui sopra che lo vieta. Passava solo perché le guardie
+   letterali si fermano prima e perché, per puro caso, non conteneva una `}`: bastava citarne una
+   (un esempio di `env()`, uno snippet) per troncare in anticipo il blocco isolato da
+   `parete-gancio-cornice.test.ts` (`[^}]*\}`) e far passare a vuoto la sua asserzione NEGATIVA
+   — quella che pretende che `.ds-parete` non prenda MAI `overflow: hidden`. Una guardia che non
+   può più fallire non è una guardia: il commento vive fuori, dove non può rompere niente. */
 [data-ds="v3"] .ds-parete {
-  position: relative; border-radius: 18px; padding: 22px 16px 18px;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
-    repeating-linear-gradient(90deg, transparent 0 22px, rgba(50,40,25,.055) 22px 24px),
-    var(--bg-deep);
+  --passo-maglia: 44px; --track: calc(var(--passo-maglia) * 5); --hook-above: 14px;
+  --wall-pad-top: 24px; --wire-center: calc(var(--wall-pad-top) - var(--hook-above)); --wire-w: 3px;
+  position: relative; border-radius: 18px;
+  padding: var(--wall-pad-top) 16px calc(18px + 40px + env(safe-area-inset-bottom, 0px));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat: repeat; background-size: var(--passo-maglia) var(--passo-maglia); background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2); background-color: var(--bg);
 }
+/* DECISIONE DI FRANCESCO FORMICOLA, 26/07/2026 — «Avvicino le righe». Istruita dal gate estetico
+   L2 dell'ondata «Redesign parete/home» (§4.1), catture a confronto
+   docs/design/screenshots/2026-07-26-redesign-parete-home/gate-l2/1280-light-muro-pieno-A-track5x-OGGI.png
+   contro -B-track4x-PROPOSTA.png. DAL TABLET IN SU ogni fila riserva 4 maglie invece di 5; sul
+   TELEFONO restano 5.
+
+   PERCHÉ. Il quinto passo era il rimedio a un tile che cresceva col contenuto (158px misurati);
+   l'H2 di quest'ondata ha fissato la cassetta a 138px con height E min-height, quindi quel
+   vincolo non c'è più (v. il commento di testa della regola-guardia sopra). Su un muro pieno a
+   1280 il quinto passo lascia fra le file un canale di maglia vuota alto quasi quanto una
+   cassetta (92px contro 138) e il muro smette di leggersi come un muro: diventa quattro strisce
+   staccate, e la catena visiva gancio→fila→gancio si spezza. A 4 le cassette tornano a essere un
+   campo appeso a una rete — lo stesso ritmo che il telefono ha già oggi.
+
+   PERCHÉ SUL TELEFONO NO. A 390 il passo è al suo pavimento di 40px: 4 maglie darebbero 160px di
+   riga, cioè 22px fra le file e 2px soli oltre la zona del gancio (20px). I gancetti della fila
+   sotto sfiorerebbero il fondo della cassetta sopra e la sensazione di «appeso» sparirebbe — è
+   il difetto originale che il 5 era andato a correggere. Contro-prova a occhio nel gate:
+   390-light-muro-pieno-B-track4x-PROPOSTA.png.
+
+   PERCHÉ UNA @media SUL VIEWPORT E NON UNA @container, che sarebbe il linguaggio del resto di
+   questo blocco. Le due superfici che montano il muro hanno container DIVERSI alla stessa
+   larghezza di finestra: a 768px la pagina /cassette ha 680px di content-box, la stanza parete
+   della home ne ha 440 (misurati sulla build vera il 26/07). Una soglia scritta sul container le
+   farebbe cambiare passo in due momenti diversi: a 768 si vedrebbero DUE ritmi diversi secondo
+   la pagina in cui ci si trova — che non è quello che è stato deciso. E non esiste una soglia di
+   container che le tenga insieme senza schiacciare i gancetti: dovrebbe stare sopra 392 (sotto,
+   il passo è al pavimento di 40 e 4 maglie ricreano il difetto del telefono) e non oltre 440
+   (il container della home), cioè in pratica esattamente su 440 — lo stesso errore «soglia sul
+   filo» già corretto qui sotto sul gradino delle colonne (era 680, ora 660 per avere margine).
+   La finestra, invece, le tiene insieme per costruzione: «da tablet in su» è una decisione sulla
+   classe di dispositivo, non sulla larghezza di un contenitore.
+
+   COSA RESTA VERO E COSA NO. La congruenza gancio↔filo è intatta: 4 è ancora un multiplo INTERO
+   del passo, che è tutto ciò da cui quella garanzia dipende (dimostrazione nel commento di testa).
+   Maglia libera oltre la zona del gancio, misurata: 42px sul telefono (invariata), 42px su
+   /cassette a 768 e 1280, 21,5px nella stanza parete della home a 768 — è il caso più stretto,
+   perché lì il passo si ferma a 44,88: sopra i 20px riservati al gancio, ma la metà degli altri.
+   Da NON raccontare come «un solo ritmo»: le due pareti cambiano INSIEME e riservano tutt'e due
+   4 maglie, ma i px fra le file restano diversi (62 su /cassette, 41,5 nella home) perché diverso
+   è il passo della loro maglia.
+   PERCHÉ LA REGOLA STA SUL SELETTORE BASE e non su `.ds-parete-shell .ds-parete`. Perché di
+   `.ds-parete` esiste UN SOLO renderer in tutto il progetto — `PareteClient.tsx`, che lo scrive
+   dentro il proprio `.ds-parete-shell` — quindi non c'è nessun muro fuori dal perimetro fluido a
+   cui questa regola potrebbe arrivare con il passo BASE di 44px (dove 4 maglie darebbero 176px di
+   riga e solo 18px oltre la zona del gancio). ⚠️ Se un domani qualcuno rendesse `.ds-parete`
+   FUORI da `.ds-parete-shell`, questa regola va riscritta scoped sulla shell.
+   Guardia: tests/unit/ds-v3/parete-gancio-cornice.test.ts — legge i due multipli DAL FOGLIO,
+   pretende che siano interi e ricalcola la maglia libera a ogni viewport. */
+@media (min-width: 768px) { [data-ds="v3"] .ds-parete { --track: calc(var(--passo-maglia) * 4); } }
 [data-theme="dark"] [data-ds="v3"] .ds-parete {
-  background:
-    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
-    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255,255,255,.045) 22px 24px),
-    var(--bg-deep);
+  --filo-flat: rgba(255,255,255,.09);
+  background: repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), var(--bg);
+  background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2), 0 0, 0 0;
+}
+/* FIX-H — G9-cornice V1 «filo di bordo» (v. commento di testa sopra la regola-guardia
+   GRIGLIA FISSA + SNAP per il ragionamento completo). Gradiente orizzontale marrone→bianco→
+   marrone, stesso spessore/raggio del filo verticale del pattern interno — spessore/colore
+   VERBATIM dal mockup ratificato (.v1::before/.v1::after, riga 48-56 del file). `top`/`bottom`
+   NON sono più `0` come nel mockup (review 25/07): sono insettati di 18px, lo stesso valore
+   del `border-radius: 18px` di `.ds-parete` qui sopra — il filo dritto resta così confinato al
+   tratto rettilineo del bordo arrotondato e non attraversa mai la curva dell'angolo, quindi non
+   serve più clippare l'intero `.ds-parete` con `overflow: hidden` per tagliarlo (che tagliava
+   anche gancetti/ombre delle cassette, v. commento di testa). */
+[data-ds="v3"] .ds-parete::before, [data-ds="v3"] .ds-parete::after {
+  content: ''; position: absolute; top: 18px; bottom: 18px; width: var(--wire-w); border-radius: 1.5px;
+  background: linear-gradient(90deg, #5A4E38, #FFFFFD 50%, #5A4E38);
+  box-shadow: 0 0 2px rgba(42, 34, 20, .42);
+  pointer-events: none;
+}
+[data-ds="v3"] .ds-parete::before { left: 2px; }
+[data-ds="v3"] .ds-parete::after { right: 2px; }
+[data-theme="dark"] [data-ds="v3"] .ds-parete::before, [data-theme="dark"] [data-ds="v3"] .ds-parete::after {
+  background: rgba(255, 255, 255, .13); box-shadow: none;
 }
 /* Colonne FISSE 3 / 4 / 6 (spec §5.4): l'ordine lineare è invariante — mai `auto-fit`, che
    cambierebbe il numero di colonne (e quindi la mappa mentale del muro) a ogni larghezza. */
 [data-ds="v3"] .ds-parete-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-@media (min-width: 768px)  { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1280px) { [data-ds="v3"] .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
+/* Quantizzazione (Task 8, stessa fonte sopra): regola SEPARATA (stesso selettore, dichiarazioni
+   aggiuntive) per non toccare il testo della regola-guardia qui sopra. `row-gap: 0` sovrascrive
+   SOLO la componente riga dello shorthand `gap: 16px` (column-gap 16px resta invariato); vince
+   per ordine di sorgente a parità di specificità (0,1,0). */
+[data-ds="v3"] .ds-parete-grid { grid-auto-rows: var(--track); row-gap: 0; align-items: start; }
+/* Task 11 — colonne in CONTAINER query (riserva ARCH R7, pre-embed Task 12): la shell
+   (.ds-parete-shell, container-type: inline-size dichiarato sopra) è già il container di
+   riferimento dei cqw del gap/padding fluidi — le colonne ora risolvono sulla STESSA
+   larghezza, non più sul viewport. Necessario per l'embed della parete nella home (Task 12),
+   dove la shell non è larga quanto il viewport. Soglie = content-box shell agli stessi
+   breakpoint di prima (shell 720 → content 680; shell 1120 → content 1060, 40px di padding
+   orizzontale, stessa misura del punto 1 «gap cassette»). Nota: il content-box reale a shell
+   1120 è 1080 (1120 − 40) — 1060 lascia 20px di margine sotto quel valore, innocuo oggi perché
+   la shell è quantizzata (720/1120, mai un valore intermedio) e tornerà utile quando la shell
+   diventerà fluida. La regola base (riga sopra, repeat(3, 1fr)) resta invariata.
+   Verifica finale d'ondata (26/07, difetto A8) — la soglia del TABLET aveva invece margine ZERO:
+   content-box reale a shell 720 = 720 − 40 di padding orizzontale = 680, ed era scritta
+   `min-width: 680px`, cioè esattamente sul filo. Bastava che qualcuno ritoccasse di 1px il padding
+   della shell (dichiarazione che QUESTA STESSA ondata ha già riscritto, per il fondo del muro) e a
+   768px il muro sarebbe silenziosamente sceso da 4 colonne a 3, senza nessun test rosso.
+   Ora la soglia è 660: stessi 20px di slack del gradino desktop, per la stessa ragione. È un
+   cambio a comportamento NULLO oggi — i content-box reali sono ~350-440 (telefono) / 680 (tablet)
+   / 1080 (desktop): nessuno di loro cade fra 660 e 680, quindi nessuna larghezza reale cambia
+   numero di colonne. È margine, non un valore tarato: non "avvicinarlo" al content-box vero. */
+@container (min-width: 660px)  { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(4, 1fr); } }
+@container (min-width: 1060px) { [data-ds="v3"] .ds-parete-shell .ds-parete-grid { grid-template-columns: repeat(6, 1fr); } }
 
 /* Variante C «fluida» — gap cassette tablet (mockup 2026-07-22-gap-cassette-tablet.html,
    ratifica Francesco 23/07/2026): sul telefono il gap 16px era giusto, ma a 768px i tray
@@ -512,17 +1307,58 @@
    PERIMETRO: solo la pagina /cassette (.ds-parete-shell). La home (.ua-stanza-parete)
    resta ai valori fissi sanzionati dal collaudo R3b (compatta 744px, gap 12) finché non
    arriva l'ondata «Redesign parete/home» — che ha già in dote la direzione fluida. */
-[data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) clamp(18px, 3.4cqw, 24px); }
+/* ⚠️ Verifica finale wave H (difetto 1b, round 2) — questa regola RIDICHIARA lo shorthand
+   `padding`, quindi vince sull'INTERO padding della regola base di `.ds-parete` (specificità
+   0,3,0 contro 0,2,0), componente per componente: il fondo recuperato scritto là veniva
+   scartato in silenzio. Misurato sulla build vera: `padding-bottom` risolveva a 18px su
+   ENTRAMBE le superfici che montano il muro (`/cassette` e la stanza parete della home — tutte
+   e due stanno dentro `.ds-parete-shell`), cioè il respiro sotto l'ultima fila era passato da
+   58px a 18px e la safe-area non era onorata: le cassette finivano appiccicate al bordo e, sui
+   telefoni con barra gesture, sotto la barra. Il muro arrivava al bordo lo stesso, ma per il
+   solo merito del `padding-bottom: 0` della shell — l'effetto giusto per la ragione sbagliata.
+   Il recupero va quindi ripetuto QUI, sul valore fluido di questa regola. I due punti sono
+   presidiati insieme da `tests/unit/ds-v3/parete-fino-in-fondo.test.ts`, che pretende il
+   recupero da OGNI regola del foglio che dichiari `padding` su `.ds-parete` — è la guardia che
+   avrebbe preso questo errore, e che prima non c'era. */
+[data-ds="v3"] .ds-parete-shell .ds-parete { padding: clamp(22px, 3.8cqw, 28px) clamp(16px, 3.2cqw, 24px) calc(clamp(18px, 3.4cqw, 24px) + 40px + env(safe-area-inset-bottom, 0px)); }
 [data-ds="v3"] .ds-parete-shell .ds-parete-grid { gap: clamp(16px, 3.6cqw, 26px); }
+/* Task 8 — passo fluido SOLO nel perimetro shell (riserva FE R1, stessa meccanica cqw del gap
+   qui sopra): --track (dichiarato una sola volta su .ds-parete base come
+   calc(var(--passo-maglia) * 5) — QA device T15, fix 7/e: era * 4, v. commento su .ds-parete)
+   si ricalcola da sé per qualsiasi elemento sotto questo perimetro, perché legge il
+   --passo-maglia vincente per QUEL preciso elemento — non serve ridichiararlo. Il `row-gap: 0`
+   qui sotto vince sulla regola-guardia del gap fluido qui sopra (stessa specificità 0,2,0,
+   ordine di sorgente successivo): sovrascrive solo la componente riga. */
+[data-ds="v3"] .ds-parete-shell .ds-parete { --passo-maglia: clamp(40px, 10.2cqw, 50px); }
+[data-ds="v3"] .ds-parete-shell .ds-parete-grid { row-gap: 0; }
 
+/* QA device T15 (verbale 2026-07-24, addendum punto 5) — «il tile "+ Nuova cassetta"
+   tratteggiato non è leggibile sopra la maglia»: prima era `background: transparent`, il
+   tratteggio (#CBC1B0) e il testo (`var(--muted)`) annegavano nei fili del muro, PEGGIO ora che
+   il muro condivide il fondo pagina (fix qui sopra, meno "stacco" di superficie). Resta il
+   linguaggio del tratteggio (non è una cassetta, è un invito a crearne una): quello che cambia
+   è la PRESENZA — uno scrim velato copre la maglia sotto al tile (non trasparente, non opaco
+   come `var(--card)` pieno: coprirebbe la maglia anche fuori dal tile se il bordo non fosse
+   preciso), bordo e testo più marcati. Contrasto testo/scrim verificato WCAG AA (>4.5:1) in
+   entrambi i temi — v. fixB-report.md per i calcoli. PROPOSTA per il ri-collaudo di Francesco. */
+/* Verifica finale d'ondata (26/07, difetto A2) — il tile tratteggiato è alto ESATTAMENTE come una
+   cassetta: legge `--altezza-cassetta` (dichiarata sopra `.ds-cassetta`), non un numero proprio.
+   Resta `min-height` e non `height`: al tile serve un pavimento, non un soffitto — se un domani il
+   suo contenuto crescesse (una riga di testo in più) deve poter crescere, mentre la cassetta ha una
+   sagoma FISSA per costruzione (height E min-height, v. H2). Prima di questa riga il valore era
+   104px, 28px meno della cassetta accanto: `.ds-parete-grid` è `align-items: start`, quindi niente
+   lo stirava e il tratteggiato chiudeva 28px sopra il fondo delle cassette della sua stessa riga. */
 [data-ds="v3"] .ds-tray-nuova {
-  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
+  border: 2.5px dashed #9C9080; border-radius: 12px; min-height: var(--altezza-cassetta);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
+  color: #4A4030; background: rgba(255, 254, 250, .68); cursor: pointer; font-family: var(--font-v3);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-tray-nuova {
+  border-color: #756A5C; color: #EDE6D8; background: rgba(33, 29, 24, .62);
 }
 [data-ds="v3"] .ds-tray-nuova:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-[data-ds="v3"] .ds-tray-nuova .plus { font-size: 26px; font-weight: 350; line-height: 1; }
-[data-ds="v3"] .ds-tray-nuova .t { font-size: 12px; font-weight: 700; }
+[data-ds="v3"] .ds-tray-nuova .plus { font-size: 28px; font-weight: 500; line-height: 1; }
+[data-ds="v3"] .ds-tray-nuova .t { font-size: 12px; font-weight: 800; }
 
 /* §5.2 Sheet «Nuova cassetta» + §5.3 Sheet cassetta — swatches colore (Task 12). Il gradiente
    delle 6 facce standard è RIUSATO da `.ds-cassetta.<slug>` (righe 276-281): lo swatch porta
@@ -612,6 +1448,84 @@
 [data-ds="v3"] .ds-sposta-riga { display: flex; align-items: center; gap: 12px; }
 [data-ds="v3"] .ds-sposta-posto { font-size: 14px; font-weight: 700; color: var(--muted); }
 
+/* G9-lista (FIX-I) — riga della lista «Metti un lavoro» (CassettaSheet.tsx), variante V2
+   «Targhetta» RATIFICATA (verbale ri-collaudo #2): valori copiati VERBATIM dal mockup
+   `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html` (classi `.v2-*` lì, `.ds-riga-metti*`
+   qui — stesso linguaggio della targa sulla cassetta, il numero vive in un chip col bordo). Il
+   mockup usa gli stessi nomi di variabile del tema v3 (`--bg`/`--line`/`--red-tint`/…): nessun
+   blocco dark separato serve qui, le custom property risolvono già da sole via
+   `[data-theme="dark"] [data-ds="v3"]` (sopra in questo file). Bottone reset (`border`/`background`
+   nativi del browser) non serve: le regole sotto sono già complete, il markup è un `<button>`
+   (mai il `<div>` decorativo del mockup — qui l'elemento resta interattivo/tappabile). */
+[data-ds="v3"] .ds-riga-metti {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+[data-ds="v3"] .ds-riga-metti.is-urgente {
+  background: var(--red-tint);
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
+}
+[data-ds="v3"] .ds-riga-metti-chip {
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 4px 8px;
+  letter-spacing: .01em;
+  background: var(--card);
+}
+[data-ds="v3"] .ds-riga-metti.is-urgente .ds-riga-metti-chip {
+  border-color: var(--red);
+  color: var(--red);
+}
+[data-ds="v3"] .ds-riga-metti-testo {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+}
+[data-ds="v3"] .ds-riga-metti-paziente {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ds="v3"] .ds-riga-metti-paziente.is-assente {
+  font-weight: 600;
+  color: var(--faint);
+}
+[data-ds="v3"] .ds-riga-metti-dentista {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ds="v3"] .ds-riga-metti-urgente {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────────────────
    §6 — La home a due stanze (Task 14). Pager a scroll-snap orizzontale: lo swipe è scroll
    NATIVO del browser, non un carosello simulato — è per questo che qui c'è CSS e non
@@ -621,8 +1535,9 @@
    Il no-scroll VERTICALE resta legge in entrambe le stanze (§3.3): il viewport scorre solo
    in x, e ogni stanza è una colonna che si adatta all'altezza disponibile. */
 [data-ds="v3"] .ua-home.is-stanze {
-  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo,
-     altrimenti il peek della stanza accanto resterebbe nascosto sotto il padding. */
+  /* Il padding orizzontale scende nelle stanze: il viewport deve arrivare fino al bordo, così
+     ogni stanza (100% pieno, Task 13 — morte del peek) copre davvero l'intero schermo invece
+     di lasciare un margine morto ai lati. */
   padding-left: 0;
   padding-right: 0;
 }
@@ -638,76 +1553,199 @@
   -ms-overflow-style: none;
 }
 [data-ds="v3"] .ua-stanze-viewport::-webkit-scrollbar { display: none; }
-/* Peek 28px bilaterale (§6): ogni stanza è larga quanto il viewport MENO il peek, così dalla
-   stanza Pile si sbircia la Parete e viceversa. L'ultima aggancia in `end` — la sua posizione
-   di snap in `start` cadrebbe oltre lo scroll massimo, e il peek a sinistra sparirebbe. */
+/* Morte del peek 28px (Task 13, D7, §3.2): ogni stanza occupa il viewport INTERO — niente
+   più sbirciata laterale della stanza vicina. Il peek bilaterale era l'invito implicito allo
+   swipe (§6 originale); la riserva UX 3b lo sostituisce con un invito ESPLICITO e
+   auto-apprendente (la linguetta «Le cassette», v. `LinguettaCassette.tsx`), che non paga il
+   costo permanente di 28px di stanza sbagliata sempre in vista. */
 [data-ds="v3"] .ua-stanza {
-  flex: 0 0 calc(100% - 28px);
+  flex: 0 0 100%;
   min-width: 0;
   scroll-snap-align: start;
   display: flex; flex-direction: column;
-  /* Collaudo R2 (D-2): respiro in fondo — il viewport è overflow-y:hidden e l'ultima pila
-     finiva a ~3px dal bordo: l'ombra veniva RASATA con un taglio netto sopra il piede.
-     Collaudo R3 (22/07 notte): 22px clippavano ANCORA un filo sul device. Misura, non a occhio:
-     l'estensione massima dell'ombra `--sh-card` sotto il bordo della card è
-     offset-y 16 + spread −18 + blur 30 = 28px → 36px = 28px d'ombra + 8px di margine.
-     Il respiro sta DENTRO il clip: l'ombra respira anche nel ramo @media max-height:700px,
-     che NON riduce questo padding (lo spazio lo recuperano gap/padding delle pile). */
-  padding: 0 24px 36px;
+  /* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2a) — la clip
+     dell'ombra dell'ultima pila era già stata risolta (Collaudo R2/R3, `552e9f5`/`b8dbd31`:
+     36px di respiro in fondo, v. il ragionamento — invariato — su `.ua-stanza-pile-scroll`
+     qui sotto) con un padding-bottom messo QUI, su `.ua-stanza`. Il fix round 2 (Task 14,
+     `ff65f21`, arrivato DOPO quei due commit) ha inserito `.ua-stanza-pile-scroll` come UNICO
+     figlio flex:1 di `.ua-stanza`, con un proprio `overflow-y: auto` — cioè un NUOVO
+     contenitore che clippa PRIMA di arrivare a questo padding: il respiro restava fuori dal
+     bordo che clippa davvero, diventando spazio morto sotto lo scroll invece che margine
+     dentro di esso — l'ombra dell'ultima pila tornava a essere rasata, la regressione del
+     24/07 segnalata da Francesco («si vede nuovamente la clip dell'ombra»). Il
+     padding verticale si sposta quindi su `.ua-stanza-pile-scroll` (stesso valore, stessa
+     formula, solo nella scatola giusta); qui resta SOLO l'orizzontale, che non ha mai avuto
+     questo problema (non è mai stato dentro un contenitore con un proprio clip). */
+  padding: 0 24px;
 }
-[data-ds="v3"] .ua-stanze-viewport > .ua-stanza:last-child { scroll-snap-align: end; }
-[data-ds="v3"] .ua-stanze-dots { margin-top: 10px; display: flex; justify-content: center; }
+/* QA device (verbale 25/07, fix-list D5a) — CAUSA MISURATA: il padding orizzontale della
+   regola base sopra (24px per lato, invariato per la stanza Pile) si applicava ANCHE alla
+   stanza Parete, restringendo la sua shell interna a ≈302px contro i ≈350px della route
+   standalone /cassette — la parete eredita GIÀ il proprio padding orizzontale da
+   `.ds-parete-shell`/`.ds-parete` (v. sopra, §6 del foglio), quindi quello di `.ua-stanza` qui
+   è un secondo strato che la route standalone non paga. Scoped al SOLO lato parete via
+   l'attributo `data-stanza` (già scritto da `StanzePager.tsx` su ogni pannello, invariato):
+   la stanza Pile non cambia larghezza di un pixel. */
+[data-ds="v3"] .ua-stanza[data-stanza="parete"] { padding-left: 0; padding-right: 0; }
+/* QA device (verbale 25/07, fix-list D3, decisione RATIFICATA) — ABROGATA: `.ua-stanze-dots`
+   (il wrapper dei due dot indicatore/selettore di stanza) è morta insieme al componente che
+   scopava (`ProgressDotsStanze`, v. `ProgressDots.tsx`) — i dot sono stati rimossi del tutto,
+   markup e stili compresi. I ~48px di budget verticale che occupava (margin-top 4px + hit-area
+   44px del tablist) tornano a `.ua-stanza-pile-scroll` (D2, v. sotto — la guardia in
+   `tests/unit/home-fluida.test.tsx`/`tests/unit/stanze-pager.test.tsx` presidia l'assenza). */
 
-/* La stanza Parete: la testata compressa in alto, il muro che assorbe lo slack — stessa
-   meccanica di `.ua-home .pile`, così l'altezza torna in entrambe le forme (pager e sola). */
-[data-ds="v3"] .ua-stanza-parete { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-[data-ds="v3"] .ua-stanza-parete-corpo {
-  flex: 1; margin-top: 16px; display: flex; flex-direction: column; justify-content: center;
+/* Task 13 (D7) — linguetta «Le cassette» (mockup C2 ratificato 23/07/2026, valori verbatim).
+   Il button è LARGO 44px (hit-area di legge, riserva UX 3a); il disegno (card, sotto) è il suo
+   bordo destro — il resto è tocco invisibile. Portale su `document.body`
+   (`LinguettaCassette.tsx`): il wrapper `[data-ds="v3"]` che la scopa vive DENTRO il ramo
+   condizionale del componente, non qui.
+   Task H4a (F2+T2, ratifica ri-collaudo #3, mockup 2026-07-25-linguetta-e-piede-proposte.html
+   `.lng.big`, valore verbatim) — la card passa da 26px (T1) a 34px (T2): SOLO dimensione,
+   sfondo/bordo/ombra restano `var(--card)`/`var(--line)`/gli stessi box-shadow di sempre (il
+   mockup del 25/07 è uno schema comparativo, disegna anche il T1 «Attuale» in rosso pieno —
+   MAI stato lo skin reale, che è questo `var(--card)` neutro del mockup ratificato 23/07: il
+   rosso pieno lì è un artefatto del disegno comparativo, non un valore da importare). Il
+   button resta 44px: la card più larga (34px) ci sta comunque dentro (44 > 34). */
+[data-ds="v3"] .ds-linguetta {
+  position: fixed; right: 0; bottom: 84px; z-index: 40;
+  width: 44px; min-height: 96px;
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
 }
-[data-ds="v3"] .ua-parete-titolo { margin-top: 6px; }
-[data-ds="v3"] .ua-parete-titolo:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 8px; }
-/* In home il muro è SEMPRE a 3 colonne (§6): le colonne 4/6 di `.ds-parete-grid` valgono per
-   la pagina `/cassette`, che è larga quanto il viewport — qui la stanza è al massimo 480px,
-   e a 768 quattro tray scenderebbero sotto i 44px di lato. Specificità (0,3,0): vince sulle
-   media query di `.ds-parete-grid` (0,2,0) a prescindere dall'ordine. */
-[data-ds="v3"] .ua-stanza-parete .ds-parete-grid { grid-template-columns: repeat(3, 1fr); }
-@media (max-height: 780px) { /* §7.1 rev. 3.2 (R3b) — stessa soglia device-corti della stanza Pile */
-  [data-ds="v3"] .ua-stanza-parete-corpo { margin-top: 10px; }
-  [data-ds="v3"] .ua-stanza-parete .ds-parete { padding: 14px 12px 12px; }
-  [data-ds="v3"] .ua-stanza-parete .ds-parete-grid { gap: 12px; }
+[data-ds="v3"] .ds-linguetta::before {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 34px;
+  background: var(--card); border: 1px solid var(--line); border-right: none;
+  border-radius: 14px 0 0 14px; box-shadow: -6px 5px 14px -8px rgba(50,40,25,.3);
+}
+[data-theme="dark"] [data-ds="v3"] .ds-linguetta::before { box-shadow: -6px 5px 14px -8px rgba(0,0,0,.55); }
+[data-ds="v3"] .ds-linguetta .fre { position: relative; font-size: 13px; font-weight: 800; color: var(--red); width: 34px; text-align: center; }
+[data-ds="v3"] .ds-linguetta .mini-rete {
+  position: relative; width: 13px; height: 18px; margin: 6px 10.5px; border-radius: 2px; opacity: .45;
+  background:
+    repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 5px);
+}
+/* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G3-grafica) — CAUSA
+   TROVATA: `text-align: center` agisce sull'asse INLINE (qui verticale, alto-basso, per via
+   di `writing-mode: vertical-rl`), MAI sull'asse di blocco (qui orizzontale, lo spessore
+   della colonna) — è quest'ultimo che va centrato, perché l'etichetta «Le cassette» (una
+   sola riga, non va mai a capo dentro la colonna dichiarata) resta larga solo quanto il suo
+   testo (~metà della colonna), e senza una regola sull'asse di blocco resta appoggiata al lato
+   di partenza del blocco (fisicamente destra, per `vertical-rl`) invece che centrata —
+   esattamente il difetto segnalato, il testo appoggiato a un bordo della targhetta invece
+   che in mezzo. Fix: `display: flex` rende `.eti` stessa un contenitore flex (il testo
+   diventa un item flex anonimo); per un contenitore `writing-mode: vertical-rl` l'asse
+   principale di `flex-direction: row` (default, invariata) è l'asse inline (verticale) e
+   l'asse trasverso è l'asse di blocco (orizzontale) — `align-items: center` centra quindi
+   ESATTAMENTE lo spessore della colonna, `justify-content: center` fa lo stesso sull'altro
+   asse (innocuo oggi, a riga singola non c'è slack da ridistribuire, ma protegge se mai
+   servisse più respiro verticale). `text-align: center` è rimosso: con `display: flex` non
+   ha più alcun effetto (nessuna riga da giustificare), tenerlo sarebbe stato codice morto.
+   Comportamento e meccanismo di centratura INVARIATI — la grandezza (width) segue la card
+   (Task H4a bump 26px→34px, sotto), font-size bump a 11.5px, valore verbatim T2. */
+[data-ds="v3"] .ds-linguetta .eti {
+  position: relative; writing-mode: vertical-rl; width: 34px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .13em; color: var(--muted); text-transform: uppercase;
+}
+/* Task H4a (F2 «impara e si assottiglia», mockup `.lng.slim`, valori verbatim) — dal 4°
+   passaggio riuscito (`linguettaAppresa()` vero) la linguetta non sparisce più: si assottiglia
+   a un filo rosso, sempre nel DOM e sempre tappabile. Il button resta 44px (hit-area
+   invariata, sopra) — SOLO la card `::before` si restringe e cambia colore; freccia,
+   decorazione e etichetta non vengono renderizzate in questo modo (`LinguettaCassette.tsx`,
+   `modo === 'piena'`), il filo è disegnato dalla card stessa + una barra bianca `::after`
+   indipendente. Sfondo: `rgba(217,0,18,.85)` del mockup = `var(--red)` all'85% di opacità —
+   usato via `color-mix` (non l'esadecimale fisso) perché `--red` cambia già valore fra i due
+   temi (v. inizio file): così il filo resta coerente in light E dark, cosa che il mockup
+   (solo light) non poteva dichiarare da sé. */
+[data-ds="v3"] .ds-linguetta.is-filo::before {
+  width: 10px;
+  background: color-mix(in srgb, var(--red) 85%, transparent);
+}
+[data-ds="v3"] .ds-linguetta.is-filo::after {
+  content: ''; position: absolute; right: 3.5px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 34px; border-radius: 2px; background: rgba(255,255,255,.85);
+}
+/* Review finale whole-branch (C1) — la linguetta invita a una stanza che su desktop non
+   esiste: da 1024px in su `HomeDesktop` spegne l'intera home mobile
+   (`.ua-home-mobile { display: none }`, nel suo stesso @media), ma quella regola è un
+   discendente e la linguetta vive in PORTALE su `document.body` — fuori dalla sua portata.
+   Questo braccio è la METÀ CSS del fix: la metà portante è in `LinguettaCassette.tsx`, che a
+   ≥1024px non rende affatto il portale (niente mount, niente timer, niente click possibile —
+   era il click a spingere l'indirizzo a `/cassette` sopra la home desktop). Qui si copre il
+   frame prima che il JS abbia deciso, e si lascia la regola dove chi legge il foglio di stile
+   se l'aspetta. Stessa soglia (1024px) di HomeDesktop e del componente: un solo numero, tre
+   posti che si muovono insieme. */
+@media (min-width: 1024px) {
+  [data-ds="v3"] .ds-linguetta { display: none; }
 }
 
-/* Task 15 — cap CSS-driven + tile «Tutte le cassette ›». La cella avvolge la Cassetta (come
-   `.ds-cella-riordino` su /cassette): il componente ds resta intatto, la cella porta il taglio.
-   Si rende il SUPERSET tablet (8 celle) e sotto 768px si nascondono le celle oltre il cap mobile
-   (5): niente misura runtime, stessa meccanica @media della scala device-corti. */
-[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home { display: flex; min-width: 0; }
-[data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home > .ds-cassetta { flex: 1 1 auto; width: 100%; }
-@media (max-width: 767px) {
-  [data-ds="v3"] .ua-stanza-parete .ds-cella-parete-home.is-oltre-mobile { display: none; }
+/* Task 12 (D2, spec redesign §3.1) — la stanza Parete NON è più un'anteprima con testata e
+   griglia proprie: è la STESSA `PareteClient` di `/cassette` (`.ds-parete-shell` e tutto il
+   resto, container query comprese — riserva ARCH R7 del Task 11), montata dentro questo
+   contenitore di scroll. La legge «no-scroll verticale in entrambe le stanze» (§3.3) DECADE qui
+   per dichiarazione esplicita di spec §3.1: la parete embeddata scorre come scorre su
+   `/cassette`. `overscroll-behavior-y: contain` per non far rimbalzare la home sotto;
+   `touch-action: pan-y pan-x` lascia al pager lo swipe orizzontale di cambio stanza mentre la
+   stanza stessa scorre in verticale (v. decision record 2026-07-25 per la sorte delle vecchie
+   regole `.ua-stanza-parete*`/`.ds-cella-parete-home` e delle guardie CSS abrogate). */
+[data-ds="v3"] .ua-stanza-parete-scroll {
+  flex: 1; min-height: 0; overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pan-x;
+  /* QA device (verbale 25/07, fix-list D5a) — il gemello `.ua-stanza-pile-scroll` (sotto)
+     aveva già ricevuto il nascondi-scrollbar (fix 1c, QA T15 24/07): questo contenitore ne era
+     rimasto senza, una scrollbar visibile SOLO sul lato parete del pager, assente sulla route
+     standalone /cassette. Stessa ricetta: lo scroll resta, la barra sparisce. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+[data-ds="v3"] .ua-stanza-parete-scroll::-webkit-scrollbar { display: none; }
 
-/* Il tile finale: stessa figura della tray «+ Nuova cassetta» (`.ds-tray-nuova`), tratteggio e
-   geometria, ma è una destinazione («vedi tutte») non una creazione. I due badge convivono nel
-   DOM; il CSS mostra quello del viewport. `is-solo-mobile`: senza overflow tablet il tile sparisce
-   da 768px in su (là le 8 celle bastano). */
-[data-ds="v3"] .ds-tile-tutte {
-  border: 2.5px dashed #CBC1B0; border-radius: 12px; min-height: 104px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  color: var(--muted); background: transparent; cursor: pointer; font-family: var(--font-v3);
-  text-align: center; padding: 8px;
+/* Task 14 — fix round 2 (review Critical, P3 pager). `.ua-stanze-viewport` (sopra) è
+   `overflow-x: auto; overflow-y: hidden`: quell'`hidden` CLIPPA in silenzio ogni pixel di
+   `.ua-stanza` che sfora, DUE livelli PRIMA che l'overflow possa mai arrivare al
+   `.corpo .foot` scrollabile di `HomeV3.tsx` (§ commento lì) — `.corpo` è `container-type:
+   size`, la sua altezza è quella del layout flex, non quella del contenuto: non «vede» mai
+   quanto cresce `.ua-stanza-viewport` dentro di sé, quindi il suo `overflow-y: auto` non
+   scatta MAI per questo caso. Riprodotto in browser reale (non jsdom): a 390×660 con 6 pile
+   invece di 4, la Pila 6 finiva SOTTO il bordo clippato di `.ua-stanze-viewport`,
+   irraggiungibile da qualunque scroll (né `.corpo` né il documento crescevano di una virgola
+   — `corpo.scrollHeight === corpo.clientHeight`). La stanza Parete NON aveva questo problema
+   perché ha già una superficie di scroll propria (`.ua-stanza-parete-scroll` sopra) DENTRO
+   `.ua-stanza`, cioè PRIMA del clip di `.ua-stanze-viewport`: il fix dà alla stanza Pile la
+   stessa ricetta, invece che tentare (di nuovo) di spostare l'`overflow-y:auto` più in alto —
+   dove il clip di `.ua-stanze-viewport` lo intercetterebbe comunque. `display: flex;
+   flex-direction: column`: la stanza Pile (testata · striscia · `.pile`) è pensata per vivere
+   dentro un antenato flex-column diretto (`.pile { flex: 1 }` prende lo spazio residuo e si
+   centra) — senza questa regola il wrapper sarebbe un blocco anonimo e `.pile` non avrebbe
+   nulla da cui prendere `flex: 1`. `touch-action: pan-y pan-x` (stessa scelta di
+   `.ua-stanza-parete-scroll`, non solo `pan-y`): un pan orizzontale che comincia su questo
+   wrapper deve poter arrivare intatto allo scroll-snap di `.ua-stanze-viewport` (il pager),
+   non essere bloccato qui — il wrapper stesso non scorre in x (nessun `overflow-x`), quindi
+   il browser risale al primo antenato che lo fa. Quando il contenuto ci sta, questa regola è
+   inerte: nessuno scroll compare, nessun pixel cambia posto (verificato di seguito). */
+[data-ds="v3"] .ua-stanza-pile-scroll {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pan-x;
+  /* QA device (verbale 2026-07-24 «Ri-collaudo device #2», fix-list G2a) — QUESTO è il
+     contenitore che clippa DAVVERO l'ultima pila (`overflow-y: auto` sopra), da quando
+     esiste (fix round 2, commento sopra) — quindi è qui che deve stare il respiro
+     dell'ombra, non su `.ua-stanza` (v. commento lì per la regressione: il padding era
+     rimasto un livello troppo fuori, diventato spazio morto sotto il clip vero). Stessa
+     misura e stessa formula del fix storico (Collaudo R2/R3, `552e9f5`/`b8dbd31`): l'ombra
+     `--sh-card` si estende al massimo offset-y 16 + spread −18 + blur 30 = 28px sotto la
+     card → 36px = 28px d'ombra + 8px di margine. Riutilizzato verbatim, solo spostato nella
+     scatola giusta — non un numero nuovo. */
+  padding-bottom: 36px;
+  /* QA device T15 (verbale 2026-07-24, fix 1c) — «barra grigia laterale fissa nella home» era
+     la scrollbar di QUESTO scroll interno. La rete di sicurezza (fix round 2, commento sopra)
+     RESTA: lo scroll continua a funzionare se il contenuto sfora, ma non si vede più — stessa
+     ricetta di `.ua-stanze-viewport` qui sopra (scrollbar-width + pseudo-elemento webkit). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-[data-theme="dark"] [data-ds="v3"] .ds-tile-tutte { border-color: rgba(255, 255, 255, .16); }
-[data-ds="v3"] .ds-tile-tutte:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-[data-ds="v3"] .ds-tile-tutte .et { font-size: 12px; font-weight: 800; line-height: 1.15; color: var(--ink); }
-[data-ds="v3"] .ds-tile-tutte .badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 24px; height: 20px; padding: 0 6px; border-radius: 999px;
-  background: var(--red); color: #FFF; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
-}
-[data-ds="v3"] .ds-tile-tutte .badge-tablet { display: none; }
-@media (min-width: 768px) {
-  [data-ds="v3"] .ds-tile-tutte.is-solo-mobile { display: none; }
-  [data-ds="v3"] .ds-tile-tutte .badge-mobile { display: none; }
-  [data-ds="v3"] .ds-tile-tutte .badge-tablet { display: inline-flex; }
-}
+[data-ds="v3"] .ua-stanza-pile-scroll::-webkit-scrollbar { display: none; }
+

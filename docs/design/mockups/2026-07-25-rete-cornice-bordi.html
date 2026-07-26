@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rete — chiusura dei bordi (QA T15 punto D6) · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP — D6: «quando la schermata delle cassette è corretta, come a destra
+   la griglia risulta chiusa, vorrei la stessa cosa anche a sinistra».
+   Diagnosi: il pattern della rete parte da x=0 e la "chiusura" a destra è un
+   accidente della larghezza (larghezza mod 44). Qui 3 trattamenti espliciti.
+   Il muro usa il pattern SVG VERBATIM di ds-v3.css (.ds-parete) — light — e i
+   repeating-linear-gradient verbatim per il dark. La geometria ratificata
+   (passo 44, wire 3px) NON cambia in nessuna variante.
+   ==========================================================================*/
+body{margin:0;background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1100px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:860px}
+.legenda{margin:18px 40px 0;padding:18px 22px;background:#FFFEFA;border:1px solid #EBE4D6;border-radius:20px;max-width:940px}
+.legenda li{font-size:13.5px;line-height:1.6;color:#5b5347;margin-bottom:2px}
+.legenda b{color:#1D1913}
+.panel{padding:30px 28px 40px}
+.panel.light{background:#ECE6D9}
+.panel.dark{background:#100E0B;color:#F2EEE7}
+.panel h2{font-size:20px;font-weight:800;margin-bottom:18px}
+.row{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;padding-bottom:10px}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:350px}
+.panel.dark .cap{color:#928778}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:2px}
+
+/* ---- Il muro (pattern VERBATIM da ds-v3.css) ---------------------------- */
+.muro{
+  --passo:44px; --wire-w:3px;
+  width:350px; height:308px; /* 7 maglie di larghezza teorica, ma NON multiplo esatto: mostra il problema */
+  border-radius:18px; position:relative; overflow:hidden;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat; background-size:44px 44px; background-color:#F4F0E7;
+}
+.panel.dark .muro{
+  --filo-flat:rgba(255,255,255,.09);
+  background:repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo)), repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo)), #171411;
+}
+
+/* V1 — filo di bordo sinistro+destro (stesso linguaggio del filo verticale) */
+.v1::before,.v1::after{
+  content:''; position:absolute; top:0; bottom:0; width:3px; border-radius:1.5px;
+  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);
+  box-shadow:0 0 2px rgba(42,34,20,.42);
+}
+.v1::before{left:2px}
+.v1::after{right:2px}
+.panel.dark .v1::before,.panel.dark .v1::after{background:rgba(255,255,255,.13);box-shadow:none}
+
+/* V2 — cornice completa su 4 lati (pannello pegboard rifinito) */
+.v2{border:3px solid transparent;
+  background-clip:padding-box;
+}
+.v2::before{
+  content:''; position:absolute; inset:0; border-radius:18px; pointer-events:none;
+  border:3px solid #8C7E60;
+  box-shadow:inset 0 1px 0 rgba(255,255,253,.75), inset 0 0 3px rgba(42,34,20,.35);
+}
+.panel.dark .v2::before{border-color:rgba(255,255,255,.16);box-shadow:none}
+
+/* V3 — pattern centrato: vuoti simmetrici, nessuna cornice */
+.v3{background-position:calc(50% ) 0}
+.panel.dark .v3{background-position:0 0, 50% 0, 0 0}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>La rete che si chiude su entrambi i lati</h1>
+  <p>Oggi la maglia parte dal bordo sinistro con un vuoto e la «chiusura» a destra è un caso
+  fortunato della larghezza dello schermo. Tre modi per chiudere davvero, senza toccare la
+  geometria ratificata (passo 44, aggancio dei gancetti invariato).</p>
+</div>
+<div class="legenda">
+  <ul>
+    <li><b>V1 «Filo di bordo»</b> — un filo verticale esplicito a sinistra E a destra, stesso
+        materiale dei fili interni. La rete «finisce su un filo» da entrambi i lati, a qualunque larghezza.</li>
+    <li><b>V2 «Cornice»</b> — il muro diventa un pannello rifinito: bordo su tutti e 4 i lati,
+        come i pannelli pegboard veri. Più presenza, più «oggetto».</li>
+    <li><b>V3 «Pattern centrato»</b> — nessun filo aggiunto: la maglia si centra e i vuoti ai
+        bordi diventano uguali a destra e sinistra. Simmetrico ma «aperto» (nessuna chiusura netta).</li>
+  </ul>
+</div>
+
+<div class="panel light">
+  <h2>Light</h2>
+  <div class="row">
+    <div class="cell"><div class="muro"></div><div class="cap">OGGI<em>parte da sinistra nel vuoto, chiusura a destra accidentale</em></div></div>
+    <div class="cell"><div class="muro v1"></div><div class="cap">V1 — Filo di bordo<em>chiusura a filo su entrambi i lati</em></div></div>
+    <div class="cell"><div class="muro v2"></div><div class="cap">V2 — Cornice<em>pannello rifinito sui 4 lati</em></div></div>
+    <div class="cell"><div class="muro v3"></div><div class="cap">V3 — Pattern centrato<em>vuoti simmetrici, nessuna cornice</em></div></div>
+  </div>
+</div>
+<div class="panel dark">
+  <h2>Dark</h2>
+  <div class="row">
+    <div class="cell"><div class="muro"></div><div class="cap">OGGI</div></div>
+    <div class="cell"><div class="muro v1"></div><div class="cap">V1 — Filo di bordo</div></div>
+    <div class="cell"><div class="muro v2"></div><div class="cap">V2 — Cornice</div></div>
+    <div class="cell"><div class="muro v3"></div><div class="cap">V3 — Pattern centrato</div></div>
+  </div>
+</div>
+</body>
+</html>

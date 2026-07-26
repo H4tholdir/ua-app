@@ -30,9 +30,16 @@ import { vibra } from '@/design-system/v3/haptic'
  * scala .972, molla `press`), gradiente e ombra passano ai valori pressed, il
  * glifo scurisce (`var(--red-dark)` in light, `tastoPiu.piuPressedNotte` in dark);
  * la ghiera si assesta appena (ombra ridotta). Suono "tap" + vibrazione media.
+ *
+ * `compatto` (QA device T15, verbale 2026-07-24, fix 1a) — SOLO il gap fra ghiera e
+ * etichetta scende da `spazio.sm` (12) a `spazio.xs` (4, token esistente, non inventato):
+ * il piede della home (`HomeV3.tsx`) lo usa per dimagrire il blocco «puntini+TastoPiù+
+ * etichetta» senza toccare la ghiera/il cappello/il glifo — quelli restano IDENTICI,
+ * il tasto fisico ratificato (§5.2 rev 2) non cambia forma. Default `false`: il catalogo
+ * (`ds-v3-catalogo`, fonte di verità visiva della spec) rende ancora il gap ratificato.
  */
-export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
-  const { onClick, etichetta = 'Nuovo lavoro' } = props
+export function TastoPiu(props: { onClick: () => void; etichetta?: string; compatto?: boolean }) {
+  const { onClick, etichetta = 'Nuovo lavoro', compatto = false } = props
   const [premuto, setPremuto] = useState(false)
 
   function handleClick() {
@@ -42,7 +49,7 @@ export function TastoPiu(props: { onClick: () => void; etichetta?: string }) {
   }
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: spazio.sm }}>
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: compatto ? spazio.xs : spazio.sm }}>
       {/* Valori-legge del mockup via classi scoped (precedente PillVoce): le
           regole dark replicano `.notte .tpB` sotto [data-theme="dark"]. La
           cascata è la stessa del mockup: in dark la regola base notte (più

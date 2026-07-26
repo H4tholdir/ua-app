@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leggibilità colori — pagine DS v2.3 — 26/07/2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   MOCKUP — NON è codice di produzione.
+   I token qui sotto sono COPIE dei valori reali di src/app/globals.css
+   (v2.3) piu' i CANDIDATI proposti. globals.css NON e' stato toccato.
+   Fondo pagina aggiornato al 26/07: --bg #F4F0E7 / #171411.
+   ══════════════════════════════════════════════════════════════════ */
+
+.tema {
+  /* ── superfici v2.3 CHIARO (copia fedele di globals.css) ── */
+  --bg:      #F4F0E7;
+  --surface: #E4DFD9;
+  --sfc:     #E4DFD9;
+  --elv:     #EDEDEA;
+  --t1:      #1C1916;
+  --t2:      #4A3D33;
+  --t3:      #6B5C51;
+  --primary: #D90012;
+  --success: #16A34A;
+  --urgente: #F97316;
+  --warning: #B45309;
+  --info:    #2563EB;
+  --gold:    #D4A843;
+  --amber:   #FD7E14;
+  --c-blue:  #3B82F6;
+  --c-green: #22C55E;
+  --c-amber: #F59E0B;
+  --c-orange:#F97316;
+  --c-red:   #EF4444;
+  /* ── INK esistenti ── */
+  --c-amber-ink:  #92400E;
+  --c-orange-ink: #9A3412;
+  --red-ink:      #B00010;
+  /* ── INK PROPOSTI (non esistono ancora) ── */
+  --gold-ink:     #7A5A12;
+  --c-blue-ink:   #1D4FB8;
+  --c-green-ink:  #166534;
+
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.90),
+    inset 0 -2px 3px rgba(0,0,0,.05),
+    -5px -5px 11px rgba(255,255,255,.78),
+    9px 13px 22px -4px rgba(148,128,118,.44);
+}
+.tema[data-tema="scuro"] {
+  /* ── superfici v2.3 SCURO (copia fedele di globals.css .dark) ── */
+  --bg:      #171411;
+  --surface: #232018;
+  --sfc:     #232018;
+  --elv:     #2C2A27;
+  --t1:      #F0EDE8;
+  --t2:      #8A8580;
+  --t3:      #5A5652;
+  --primary: #E8001A;
+  /* NB: --info --success --urgente --gold --c-* NON sono ridefiniti in .dark
+     nel codice reale: restano i valori chiari. Qui li lasciamo identici apposta,
+     perche' e' esattamente cio' che rende il PRIMA in scuro come e'. */
+  --c-amber-ink:  #F59E0B;
+  --c-orange-ink: #F97316;
+  --red-ink:      #FF5A66;
+  /* ── INK PROPOSTI, versione scura ── */
+  --gold-ink:     #D4A843;
+  --c-blue-ink:   #7DA7F5;
+  --c-green-ink:  #16A34A;
+
+  --sh-b:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -2px 3px rgba(0,0,0,.28),
+    9px 13px 28px -4px rgba(0,0,0,.52),
+    3px 5px 12px -1px rgba(0,0,0,.34);
+}
+
+/* ── impaginazione del documento (cornice, non oggetto della revisione) ── */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #6E6A66; color: #fff;
+  font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+}
+.doc { max-width: 1440px; margin: 0 auto; padding: 32px 24px 80px; }
+h1 { font-size: 30px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.02em; }
+.sub { font-size: 15px; opacity: .82; margin: 0 0 8px; line-height: 1.55; max-width: 96ch; }
+.nota-doc {
+  font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.26); border-left: 3px solid #D4A843;
+  padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0 34px; max-width: 110ch;
+}
+section { margin: 0 0 56px; }
+h2 {
+  font-size: 21px; font-weight: 800; margin: 0 0 4px; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.tag {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 99px; white-space: nowrap;
+}
+.tag.mecc  { background: #1E5E3A; color: #C8F3D9; }
+.tag.gusto { background: #7A4A0C; color: #FFE0B0; }
+.h2sub { font-size: 14px; opacity: .8; margin: 0 0 20px; line-height: 1.55; max-width: 104ch; }
+.dove {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  opacity: .72; margin: 0 0 18px; line-height: 1.75;
+}
+.griglia { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 1080px) { .griglia { grid-template-columns: 1fr; } }
+
+.pannello { border-radius: 16px; overflow: hidden; background: #4A4744; }
+.pannello-testa {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 14px; font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+}
+.pannello[data-lato="prima"] .pannello-testa { background: #7E2A22; color: #FFD9D2; }
+.pannello[data-lato="dopo"]  .pannello-testa { background: #1E5E3A; color: #C8F3D9; }
+.pannello-testa .tema-nome { opacity: .78; font-weight: 700; letter-spacing: .04em; }
+
+.tema { padding: 20px 18px 6px; background: var(--bg); }
+.misure { padding: 4px 18px 16px; background: var(--bg); }
+.misure table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.misure td { padding: 3.5px 0; color: var(--t2); vertical-align: top; }
+.misure td.et { width: 55%; }
+.misure td.vl { text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+.misure td.sg { text-align: right; width: 76px; color: var(--t3); font-weight: 600; white-space: nowrap; }
+.esito-ok   { color: #1E7A45; } .tema[data-tema="scuro"] .esito-ok   { color: #4ADE80; }
+.esito-ko   { color: #B00010; } .tema[data-tema="scuro"] .esito-ko   { color: #FF7A84; }
+.esito-solo { color: #9A3412; } .tema[data-tema="scuro"] .esito-solo { color: #FDBA74; }
+
+/* ══ Componenti REALI ricostruiti dal codice ══ */
+
+/* KpiCard — src/app/(app)/analytics/page.tsx:82-125 */
+.kpi-griglia { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.kpi {
+  background: var(--surface); border-radius: 16px; padding: 20px 16px;
+  box-shadow: var(--sh-b); display: flex; flex-direction: column; gap: 6px;
+}
+.kpi-num {
+  font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; line-height: 1;
+}
+.kpi-lab { font-size: 12px; font-weight: 500; color: var(--t2); line-height: 1.3; }
+
+/* Alert PSUR — PsurGruppoSezione.tsx:61-70 + psur/page.tsx:56-68 (nessuna card sotto: sono sul --bg) */
+.alert { border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.alert-t { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+.alert-c { font-size: 13px; color: var(--t2); margin: 0; line-height: 1.5; }
+.alert.blu   { background: rgba(59,130,246,.08);  border: 1px solid rgba(59,130,246,.3); }
+.alert.aran  { background: rgba(253,126,20,.10);  border: 1px solid rgba(253,126,20,.4); }
+.alert.rosso { background: rgba(239,68,68,.10);   border: 1px solid rgba(239,68,68,.4); }
+
+/* SectionCard — impostazioni/page.tsx:75-85 */
+.card { background: var(--surface); border-radius: 16px; padding: 16px; box-shadow: var(--sh-b); }
+.card-t {
+  font-size: 12px; font-weight: 700; color: var(--t2); text-transform: uppercase;
+  letter-spacing: .08em; margin: 0 0 12px;
+}
+.riga-et {
+  font-size: 13px; font-weight: 600; color: var(--t2); text-transform: uppercase;
+  letter-spacing: .08em; display: block; margin-bottom: 6px;
+}
+.badge-piano {
+  font-size: 12px; font-weight: 700; background: hsl(43 65% 55% / .15);
+  border-radius: 6px; padding: 3px 10px; text-transform: uppercase; letter-spacing: .04em;
+}
+.link-file { font-size: 13px; text-decoration: underline; word-break: break-all; }
+.pill-attesa {
+  display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--c-amber) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-amber) 34%, transparent);
+}
+.divisore { height: 1px; background: var(--elv); margin: 12px 0; }
+
+/* .ua-btn-gold — globals.css:899-926 (ombre riprodotte fedelmente) */
+.btn-oro {
+  width: 100%; height: 54px; border-radius: 16px; background: #D4A843; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700; border: none;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -2px 3px rgba(0,0,0,.20),
+    0 6px 18px -2px rgba(180,130,0,.44),
+    0 2px 6px rgba(180,130,0,.26);
+}
+/* .ua-plan-card + .ua-plan-badge — globals.css:1010-1077 */
+.plan-card {
+  position: relative; background: var(--elv); border-radius: 16px; box-shadow: var(--sh-b);
+  padding: 14px 12px 16px; border: 2.5px solid #D4A843; margin-top: 14px;
+}
+.plan-card.inattiva { border-color: transparent; opacity: .55; }
+.plan-badge {
+  position: absolute; top: -8px; right: 10px; background: #D4A843; color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 99px;
+}
+.plan-nome { font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 2px; }
+.plan-desc { font-size: 11px; color: var(--t2); line-height: 1.35; }
+
+.rampa { display: flex; gap: 0; border-radius: 10px; overflow: hidden; margin-top: 14px; }
+.rampa div {
+  flex: 1; padding: 12px 4px 10px; text-align: center; color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 1.5;
+}
+.rampa .cr { display: block; font-size: 10px; font-weight: 600; opacity: .95; }
+
+.tokentab { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.tokentab th {
+  text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+  opacity: .66; padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.18); font-weight: 800;
+}
+.tokentab td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.09); vertical-align: top; }
+.tokentab code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.sw { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(0,0,0,.3); }
+.nuovo { color: #FFD98A; font-weight: 800; }
+.esiste { opacity: .62; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>Leggibilità dei colori — pagine ancora DS v2.3</h1>
+<p class="sub">
+  Proposta del 26/07/2026. A sinistra com'è adesso, a destra come diventerebbe, nel contesto vero
+  del componente, in tema chiaro e scuro. Accanto a ogni pezzo di testo c'è il contrasto
+  <strong>misurato sul pixel reso</strong>, non stimato: la pagina calcola da sola i propri numeri
+  componendo tutti gli sfondi trasparenti che stanno sotto.
+</p>
+<div class="nota-doc">
+  <strong>Come leggere il numero.</strong> È il rapporto fra il colore del testo e quello del suo
+  fondo. La legge sull'accessibilità (WCAG AA) chiede <strong>4,5</strong> per il testo normale e
+  concede <strong>3</strong> soltanto al testo grande — grande vuol dire da 24px in su, oppure da
+  18,7px in su se è in grassetto. Sotto quella soglia il testo è ufficialmente illeggibile per una
+  parte delle persone. La colonna «soglia» dice quale delle due si applica a quel testo lì, e
+  perché.<br>
+  <strong>Questo file non tocca il codice.</strong> I colori proposti vivono solo qui dentro.
+</div>
+
+<!-- ══════════════════ 1. KPI ══════════════════ -->
+<section>
+  <h2>1 · I numeroni di /analytics <span class="tag mecc">meccanico</span></h2>
+  <p class="h2sub">
+    Sei schede, sei numeri colorati. L'idea dell'arcobaleno resta: cambia solo l'inchiostro, cioè
+    la versione più scura dello stesso colore. In chiaro oggi <strong>tre numeri su sei</strong> non
+    reggono nemmeno la soglia larga: oro, arancio e verde. In scuro il problema si sposta: lì l'oro
+    sta benissimo, ed è il <strong>blu</strong> a essere il più debole.
+  </p>
+  <p class="dove">
+    src/app/(app)/analytics/page.tsx:82 (KpiCard) · accent alle righe 201, 206, 211, 216, 221, 226<br>
+    righe 206 e 226 passano l'esadecimale scritto a mano <code>#D4A843</code> invece di <code>var(--gold)</code>
+  </p>
+  <div class="griglia" id="sez-kpi"></div>
+</section>
+
+<!-- ══════════════════ 2. PSUR ══════════════════ -->
+<section>
+  <h2>2 · Gli avvisi di /qualita/psur <span class="tag mecc">meccanico</span></h2>
+  <p class="h2sub">
+    Tre avvisi su tinta semi-trasparente, appoggiati direttamente sul fondo pagina (non c'è nessuna
+    scheda sotto). Il titolo dell'avviso usa lo stesso colore della tinta: risultato, il testo
+    quasi svanisce nel proprio sfondo. Gli inchiostri arancio e rosso <strong>esistono già</strong>
+    nel sistema; per il blu serve il gemello che manca.
+  </p>
+  <p class="dove">
+    src/components/features/qualita/PsurGruppoSezione.tsx:64-72 (blu e arancio)<br>
+    src/app/(app)/qualita/psur/page.tsx:56-68 (rosso — non era nell'elenco iniziale)
+  </p>
+  <div class="griglia" id="sez-psur"></div>
+</section>
+
+<!-- ══════════════════ 3. AMBRA ══════════════════ -->
+<section>
+  <h2>3 · Badge e link ambra di /impostazioni <span class="tag mecc">meccanico</span></h2>
+  <p class="h2sub">
+    Qui l'ambra è usata come colore del testo in tre modi diversi: dentro una pillola su tinta oro,
+    nuda sulla scheda (i link «Visualizza file») e su tinta ambra. Sono i tre <em>schemi</em> che si
+    ripetono in una ventina di punti dell'app: sistemato lo schema, sono sistemati tutti.
+    L'inchiostro <code>--c-amber-ink</code> esiste già dal 22/07 — semplicemente non è arrivato qui.
+  </p>
+  <p class="dove">
+    src/app/(app)/impostazioni/page.tsx:183 (badge piano) · 324, 359, 394 (link «Visualizza file»)<br>
+    stesso schema: ClientiSearchList.tsx:248 · ProduttivitaTecnico.tsx:329 · +18 altri (elenco nella relazione)
+  </p>
+  <div class="griglia" id="sez-ambra"></div>
+</section>
+
+<!-- ══════════════════ 4. BOTTONE ORO ══════════════════ -->
+<section>
+  <h2>4 · Il bottone oro <span class="tag gusto">scelta di gusto — non è una correzione</span></h2>
+  <p class="h2sub">
+    Questo è l'unico punto dove non c'è una risposta giusta, perché cambia l'aspetto di una chiamata
+    all'azione cerimoniale. Le due vie sono qui sotto affiancate, in tutti e due i temi.
+  </p>
+  <div class="nota-doc" style="border-left-color:#FF8A7A; max-width:none;">
+    <strong>Trovato strada facendo, e cambia la faccenda.</strong> Cercando le copie del bottone
+    bianco-su-oro ne sono saltati fuori altri dieci che scrivono in <em>scuro</em> sull'oro
+    (Ordina, Genera PSUR, Manda in prova, Salva lavoro…) e che sembravano quindi già a posto.
+    Non lo sono: usano <code>var(--t1)</code>, che è il nero del testo <em>e che in tema scuro
+    diventa quasi bianco</em>. Il riempimento oro invece non cambia mai, perché
+    <code>--gold</code> non è ridefinito per il tema scuro. Risultato: quei dieci bottoni passano
+    da <strong>7,90</strong> in chiaro a <strong>1,90</strong> in scuro — peggio del bottone
+    bianco da cui eravamo partiti. Lo si vede nella seconda riga di ogni pannello.<br>
+    Perciò il testo sopra l'oro non può essere un colore che si ribalta col tema: dev'essere
+    <strong>fisso</strong>, come è fisso l'oro sotto. I posti da sistemare non sono 3, sono
+    <strong>13</strong>.
+  </div>
+  <p class="dove">
+    bianco su oro — globals.css:900-905 (.ua-btn-gold, usata in billing-content.tsx:298, 333, 361)
+    · globals.css:1069-1072 (.ua-plan-badge) · impostazioni/abbonamento/page.tsx:70<br>
+    già scuro su oro — PsurGruppoSezione.tsx:88 · OrdiniList.tsx:106 · TabProve.tsx:436, 583 ·
+    LavoroFormClient.tsx:413 · OrdinaBatchBanner.tsx:154, 293, 366 · NuovoOrdineSheet.tsx:556 ·
+    qualita/incidenti/nuovo/page.tsx:339
+  </p>
+  <div class="griglia" id="sez-oro"></div>
+
+  <div style="margin-top:22px; background:#4A4744; border-radius:16px; padding:18px 18px 20px;">
+    <div style="font-size:13px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; opacity:.8; margin-bottom:2px;">
+      Dove smette di essere oro
+    </div>
+    <p style="font-size:13.5px; line-height:1.6; opacity:.85; margin:6px 0 0; max-width:104ch;">
+      Se si tiene il testo bianco, l'oro deve scurirsi finché il bianco non regge. Questa è la scala:
+      il primo campione che arriva a 4,5 è già bronzo militare. È il costo reale della via 2, ed è
+      per questo che va guardata, non calcolata.
+    </p>
+    <div class="rampa" id="rampa-oro"></div>
+  </div>
+</section>
+
+<!-- ══════════════════ 5. TOKEN ══════════════════ -->
+<section>
+  <h2>5 · Cosa si aggiunge al sistema</h2>
+  <p class="h2sub">
+    Il sistema aveva già l'idea giusta — «quando un colore semantico fa il testo, serve il suo
+    gemello inchiostro» — ma la famiglia era costruita a metà: tre inchiostri su sei. La proposta
+    la completa. Nessun colore inventato fuori sistema, nessun token in più del necessario.
+    Come i tre esistenti, in tema scuro l'inchiostro si ribalta: lì il colore pieno è già leggibile
+    e diventa lui l'inchiostro.
+  </p>
+  <table class="tokentab">
+    <thead><tr><th>token</th><th>chiaro</th><th>scuro</th><th>serve a</th><th>stato</th></tr></thead>
+    <tbody>
+      <tr><td><code>--c-amber-ink</code></td><td><span class="sw" style="background:#92400E"></span><code>#92400E</code></td><td><span class="sw" style="background:#F59E0B"></span><code>#F59E0B</code></td><td>badge e link ambra</td><td class="esiste">già c'è</td></tr>
+      <tr><td><code>--c-orange-ink</code></td><td><span class="sw" style="background:#9A3412"></span><code>#9A3412</code></td><td><span class="sw" style="background:#F97316"></span><code>#F97316</code></td><td>KPI «MDR incompleti», avviso arancio</td><td class="esiste">già c'è</td></tr>
+      <tr><td><code>--red-ink</code></td><td><span class="sw" style="background:#B00010"></span><code>#B00010</code></td><td><span class="sw" style="background:#FF5A66"></span><code>#FF5A66</code></td><td>KPI «In ritardo», avviso rosso</td><td class="esiste">già c'è</td></tr>
+      <tr><td><code>--gold-ink</code></td><td><span class="sw" style="background:#7A5A12"></span><code>#7A5A12</code></td><td><span class="sw" style="background:#D4A843"></span><code>#D4A843</code></td><td>KPI «Consegne oggi» e «Fatturato mese»</td><td class="nuovo">nuovo</td></tr>
+      <tr><td><code>--c-blue-ink</code></td><td><span class="sw" style="background:#1D4FB8"></span><code>#1D4FB8</code></td><td><span class="sw" style="background:#7DA7F5"></span><code>#7DA7F5</code></td><td>KPI «Lavori attivi», avviso blu</td><td class="nuovo">nuovo</td></tr>
+      <tr><td><code>--c-green-ink</code></td><td><span class="sw" style="background:#166534"></span><code>#166534</code></td><td><span class="sw" style="background:#16A34A"></span><code>#16A34A</code></td><td>KPI «Pronti da fatturare»</td><td class="nuovo">nuovo</td></tr>
+      <tr><td><code>--gold-fg</code></td><td colspan="2"><span class="sw" style="background:#1C1916"></span><code>#1C1916</code> — <strong>uguale nei due temi</strong>, perché l'oro sotto è uguale nei due temi</td><td>testo <em>sopra</em> un riempimento oro (13 bottoni ed etichette)</td><td class="nuovo">nuovo · solo se si sceglie la via 1</td></tr>
+    </tbody>
+  </table>
+  <p class="h2sub" style="margin-top:14px;">
+    <strong>Attenzione a non confondere gli ultimi due.</strong> <code>--gold-ink</code> serve
+    quando l'<em>oro fa da testo</em> sopra una scheda, e allora deve ribaltarsi col tema.
+    <code>--gold-fg</code> serve quando il testo sta <em>sopra l'oro</em>, e allora non deve
+    ribaltarsi affatto. Sono due mestieri diversi: è proprio l'averli confusi che ha prodotto i
+    dieci bottoni illeggibili in tema scuro.
+  </p>
+  <p class="h2sub" style="margin-top:18px;">
+    <strong>Perché non basta <code>--warning #B45309</code>, che era già in tavolozza.</strong>
+    Due motivi, entrambi misurati. Primo: sulla scheda dà <strong>3,79</strong> — regge il numerone
+    grande ma non il testo normale, quindi non risolverebbe l'oro usato altrove. Secondo, e più
+    importante: <code>#B45309</code> dista <strong>11 gradi di tinta</strong> dall'inchiostro arancio
+    <code>#9A3412</code>, che nella stessa griglia sta nella scheda accanto. Due marroni gemelli a
+    dieci centimetri l'uno dall'altro: l'arcobaleno collassa. Il <code>#7A5A12</code> proposto dista
+    <strong>27 gradi</strong> e resta un oro oliva riconoscibile.
+  </p>
+</section>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Il documento misura se stesso. Per ogni elemento marcato:
+     · colore del testo  = getComputedStyle().color (sempre opaco)
+     · colore del fondo  = composizione alpha di TUTTI gli sfondi degli
+       antenati, dal basso verso l'alto — cosi' le tinte semi-trasparenti
+       danno il colore RISULTANTE, non quello dichiarato.
+   Cosi' i numeri stampati non possono divergere da cio' che si vede.
+   ══════════════════════════════════════════════════════════════════ */
+/* Il browser restituisce i colori in due notazioni diverse: rgb()/rgba() con canali
+   0-255, e color(srgb …) con canali 0-1 — quest'ultima esce da color-mix(). Leggerle
+   allo stesso modo falsava le tinte: la verifica a pixel ha scoperto l'errore. */
+const parse = (s) => {
+  s = String(s).trim();
+  if (s === 'transparent' || s === 'rgba(0, 0, 0, 0)') return [0,0,0,0];
+  const m = s.match(/-?[\d.]+(?:e-?\d+)?/g); if (!m) return [0,0,0,0];
+  const n = m.map(Number);
+  if (/^color\(/.test(s)) return [n[0]*255, n[1]*255, n[2]*255, n.length > 3 ? n[3] : 1];
+  return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1];
+};
+const lin = (c) => { c /= 255; return c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+const lum = (r) => 0.2126*lin(r[0]) + 0.7152*lin(r[1]) + 0.0722*lin(r[2]);
+const ratio = (a, b) => { const l1 = lum(a), l2 = lum(b); const hi = Math.max(l1,l2), lo = Math.min(l1,l2); return (hi+0.05)/(lo+0.05); };
+const sopra = (c, a, sotto) => [0,1,2].map(k => c[k]*a + sotto[k]*(1-a));
+
+/* Restituisce il fondo E il testo COME VENGONO DISEGNATI.
+   Il caso difficile e' `opacity` su un antenato (.ua-plan-card inattiva sta al 55%):
+   quell'opacita' sbiadisce insieme lo sfondo E il testo del gruppo, quindi va
+   applicata a tutti e due, non al solo sfondo. */
+function reso(el) {
+  const catena = [];
+  for (let n = el; n; n = n.parentElement) catena.push(n);
+
+  let iGruppo = -1;                                   // antenato piu' esterno con opacity < 1
+  for (let i = catena.length - 1; i >= 0; i--) {
+    if (parseFloat(getComputedStyle(catena[i]).opacity) < 1) { iGruppo = i; break; }
+  }
+
+  const componi = (da, a) => {                        // da (basso) verso a (alto)
+    let base = [255,255,255];
+    for (let i = da; i >= a; i--) {
+      const c = parse(getComputedStyle(catena[i]).backgroundColor);
+      if (c[3] > 0) base = sopra(c, c[3], base);
+    }
+    return base;
+  };
+
+  const fg = parse(getComputedStyle(el).color).slice(0,3);
+  if (iGruppo < 0) return { fg, bg: componi(catena.length - 1, 0) };
+
+  const fuori = componi(catena.length - 1, iGruppo + 1);   // cio' che sta sotto al gruppo
+  const dentro = componi(iGruppo, 0);                      // il gruppo, disegnato pieno
+  let A = 1;                                               // opacita' cumulata del gruppo
+  for (let i = iGruppo; i >= 0; i--) A *= parseFloat(getComputedStyle(catena[i]).opacity);
+  return { fg: sopra(fg, A, fuori), bg: sopra(dentro, A, fuori) };
+}
+const fondoEffettivo = (el) => reso(el).bg;
+
+function misura(root) {
+  const righe = [];
+  root.querySelectorAll('[data-cr]').forEach(el => {
+    const { fg, bg } = reso(el);
+    const r  = ratio(fg, bg);
+    const soglia = parseFloat(el.dataset.soglia);
+    const esito = r >= 4.5 ? 'ok' : (r >= soglia ? 'solo' : 'ko');
+    righe.push({ et: el.dataset.cr, r, soglia, esito, nota: el.dataset.nota || '' });
+  });
+  return righe;
+}
+
+function tabella(righe) {
+  const t = document.createElement('table');
+  t.innerHTML = righe.map(x => {
+    const segno = x.r >= x.soglia ? '✓' : '✗';
+    return `<tr>
+      <td class="et">${x.et}${x.nota ? ' <span style="opacity:.62">· '+x.nota+'</span>' : ''}</td>
+      <td class="vl esito-${x.esito}">${segno} ${x.r.toFixed(2)}:1</td>
+      <td class="sg">soglia ${x.soglia.toString().replace('.', ',')}</td>
+    </tr>`;
+  }).join('');
+  return t;
+}
+
+/* ── generatore di pannelli: 4 per sezione (prima/dopo × chiaro/scuro) ── */
+function pannelli(contenitore, contenuto) {
+  ['prima','dopo'].forEach(lato => {
+    ['chiaro','scuro'].forEach(tema => {
+      const p = document.createElement('div');
+      p.className = 'pannello'; p.dataset.lato = lato;
+      p.innerHTML =
+        `<div class="pannello-testa"><span>${lato === 'prima' ? 'Prima — com\'è oggi' : 'Dopo — proposta'}</span>` +
+        `<span class="tema-nome">tema ${tema}</span></div>` +
+        `<div class="tema" data-tema="${tema}">${contenuto(lato, tema)}</div>` +
+        `<div class="misure"></div>`;
+      contenitore.appendChild(p);
+    });
+  });
+}
+
+/* ═══ 1. KPI ═══ */
+const KPI = [
+  { lab:'Lavori attivi',       val:'47',      prima:'var(--info)',    dopo:'var(--c-blue-ink)',   nota:'--info' },
+  { lab:'Consegne oggi',       val:'6',       prima:'#D4A843',        dopo:'var(--gold-ink)',     nota:'oro scritto a mano' },
+  { lab:'In ritardo',          val:'3',       prima:'var(--primary)', dopo:'var(--red-ink)',      nota:'--primary' },
+  { lab:'Pronti da fatturare', val:'12',      prima:'var(--success)', dopo:'var(--c-green-ink)',  nota:'--success' },
+  { lab:'MDR incompleti',      val:'2',       prima:'var(--urgente)', dopo:'var(--c-orange-ink)', nota:'--urgente' },
+  { lab:'Fatturato mese',      val:'18.420 €',prima:'#D4A843',        dopo:'var(--gold-ink)',     nota:'oro scritto a mano' },
+];
+pannelli(document.getElementById('sez-kpi'), (lato) =>
+  `<div class="kpi-griglia">` + KPI.map(k =>
+    `<div class="kpi">
+       <span class="kpi-num" style="color:${lato === 'prima' ? k.prima : k.dopo}"
+             data-cr="${k.lab}" data-soglia="3" data-nota="${k.nota}">${k.val}</span>
+       <span class="kpi-lab">${k.lab}</span>
+     </div>`).join('') + `</div>`
+);
+
+/* ═══ 2. PSUR ═══ */
+const ALERT = [
+  { c:'blu',   t:'PSUR — revisione consigliata', prima:'var(--c-blue)', dopo:'var(--c-blue-ink)',   nota:'--c-blue' },
+  { c:'aran',  t:'PMS Report 2025 mancante',     prima:'var(--amber)',  dopo:'var(--c-orange-ink)', nota:'--amber' },
+  { c:'rosso', t:'4 lavori non classificabili',  prima:'var(--c-red)',  dopo:'var(--red-ink)',      nota:'--c-red' },
+];
+pannelli(document.getElementById('sez-psur'), (lato) =>
+  ALERT.map(a =>
+    `<div class="alert ${a.c}" role="alert">
+       <p class="alert-t" style="color:${lato === 'prima' ? a.prima : a.dopo}"
+          data-cr="Titolo avviso ${a.c === 'blu' ? 'blu' : a.c === 'aran' ? 'arancio' : 'rosso'}"
+          data-soglia="4.5" data-nota="14px/700">${a.t}</p>
+       <p class="alert-c">Cadenza biennale. Genera il documento per l'anno 2025.</p>
+     </div>`).join('')
+);
+
+/* ═══ 3. AMBRA ═══ */
+pannelli(document.getElementById('sez-ambra'), (lato) => {
+  const ink = lato === 'prima' ? 'var(--c-amber)' : 'var(--c-amber-ink)';
+  return `<div class="card">
+    <p class="card-t">Laboratorio</p>
+    <span class="riga-et">Piano</span>
+    <span class="badge-piano" style="color:${ink}" data-cr="Badge piano" data-soglia="4.5" data-nota="12px/700, su tinta oro 15%">PROFESSIONAL</span>
+    <div class="divisore"></div>
+    <span class="riga-et">Logo (app)</span>
+    <a class="link-file" style="color:${ink}" data-cr="Link «Visualizza file»" data-soglia="4.5" data-nota="13px normale, nudo sulla scheda">Visualizza file</a>
+    <div class="divisore"></div>
+    <span class="riga-et">Lavori in attesa</span>
+    <span class="pill-attesa" style="color:${ink}" data-cr="Pillola su tinta ambra" data-soglia="4.5" data-nota="12px/700, su tinta ambra 12%">3 in attesa di conferma</span>
+  </div>`;
+});
+
+/* ═══ 4. BOTTONE ORO — le due vie, piu' il difetto scoperto strada facendo ═══ */
+(function () {
+  const cont = document.getElementById('sez-oro');
+  const vie = [
+    { id:'via1', tit:'Via 1 — inchiostro fisso sull\'oro',   eti:'oro invariato · testo #1C1916 in tutti e due i temi',
+      oro:'#D4A843', testo:'#1C1916' },
+    { id:'via2', tit:'Via 2 — oro più scuro, testo bianco', eti:'il bianco resta · l\'oro scende a #8A6716',
+      oro:'#8A6716', testo:'#ffffff' },
+  ];
+  const cap = (t) => `<div style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;opacity:.6;margin:0 0 7px;color:var(--t2)">${t}</div>`;
+  vie.forEach(v => {
+    ['chiaro','scuro'].forEach(tema => {
+      const p = document.createElement('div');
+      p.className = 'pannello'; p.dataset.lato = 'dopo';
+      p.innerHTML =
+        `<div class="pannello-testa" style="background:#3B4A63;color:#CFE0FF">
+           <span>${v.tit}</span><span class="tema-nome">tema ${tema}</span></div>
+         <div class="tema" data-tema="${tema}">
+           <div style="margin-bottom:16px">
+             ${cap('oggi · bianco su oro — 3 posti')}
+             <button class="btn-oro"><span data-cr="OGGI · bianco su oro" data-soglia="4.5" data-nota="16px/700">Attiva il piano</span></button>
+           </div>
+           <div style="margin-bottom:16px">
+             ${cap('oggi · var(--t1) su oro — 10 posti')}
+             <button class="btn-oro" style="color:var(--t1)">
+               <span style="color:var(--t1)" data-cr="OGGI · var(--t1) su oro" data-soglia="4.5" data-nota="16px/700 — in scuro --t1 diventa chiaro">Ordina →</span></button>
+           </div>
+           <div>
+             ${cap('proposta · ' + v.eti)}
+             <button class="btn-oro" style="background:${v.oro}">
+               <span style="color:${v.testo}" data-cr="PROPOSTA · questa via" data-soglia="4.5" data-nota="16px/700">Attiva il piano</span></button>
+           </div>
+           <div class="plan-card">
+             <span class="plan-badge" style="background:${v.oro}"><span style="color:${v.testo}"
+               data-cr="Etichetta «consigliato» — proposta" data-soglia="4.5" data-nota="9px/700, scheda scelta">CONSIGLIATO</span></span>
+             <div class="plan-nome">Professional</div>
+             <div class="plan-desc">Etichetta a 9px: è il testo più piccolo su oro di tutta l'app.</div>
+           </div>
+           <div class="plan-card inattiva">
+             <span class="plan-badge"><span style="color:#fff" data-cr="Etichetta — oggi, scheda non scelta" data-soglia="4.5" data-nota="9px/700, scheda al 55%">CONSIGLIATO</span></span>
+             <div class="plan-nome">Base</div>
+             <div class="plan-desc">La scheda non scelta sta al 55% di opacità: sbiadisce insieme oro e testo.</div>
+           </div>
+         </div>
+         <div class="misure"></div>`;
+      cont.appendChild(p);
+    });
+  });
+})();
+
+/* rampa dell'oro */
+(function () {
+  const r = document.getElementById('rampa-oro');
+  ['#D4A843','#B8902E','#A8801F','#96711A','#8A6716','#7F5E12','#6E5210'].forEach(c => {
+    const d = document.createElement('div');
+    d.style.background = c;
+    d.innerHTML = `Attiva<span class="cr" data-oro="${c}"></span>`;
+    r.appendChild(d);
+  });
+  r.querySelectorAll('[data-oro]').forEach(s => {
+    const v = ratio([255,255,255], parse(getComputedStyle(s.parentElement).backgroundColor));
+    s.textContent = s.dataset.oro + ' · ' + v.toFixed(2);
+    s.parentElement.style.outline = v >= 4.5 ? '3px solid #C8F3D9' : 'none';
+    s.parentElement.style.outlineOffset = '-3px';
+  });
+})();
+
+/* ── esegue tutte le misure ── */
+document.querySelectorAll('.pannello').forEach(p => {
+  const box = p.querySelector('.misure');
+  if (box) box.appendChild(tabella(misura(p.querySelector('.tema'))));
+});
+/* espone i risultati alla verifica esterna a pixel */
+window.__misure = [...document.querySelectorAll('[data-cr]')].map(el => {
+  const { fg, bg } = reso(el);
+  const p = el.closest('.pannello');
+  return {
+    sezione: p.parentElement.id || 'sez-oro',
+    lato: p.querySelector('.pannello-testa span').textContent,
+    tema: p.querySelector('.tema').dataset.tema,
+    et: el.dataset.cr, soglia: +el.dataset.soglia,
+    fg: fg.map(Math.round), bg: bg.map(Math.round),
+    r: +ratio(fg, bg).toFixed(2),
+  };
+});
+</script>
+</body>
+</html>

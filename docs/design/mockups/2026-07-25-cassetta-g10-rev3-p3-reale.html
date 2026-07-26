@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetta G10 rev.3 — P3 «fascia etichetta» in situazione reale · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP G10 rev.3 — Francesco orienta su P3 «fascia etichetta» (rev.2) e
+   chiede: (a) la situazione REALE (pagina /cassette completa a 390px: titolo,
+   tasto indietro, menu, ricerca, muro con cornice V1 ratificata, tile
+   «+ Nuova cassetta»); (b) la variante col BORDINO tra fascia e finestra più
+   SPESSO. Qui: P3a bordino 2px (come rev.2) vs P3b bordino 8px, light+dark.
+   Cassetta: estetica verbatim ds-v3.css; tile resta 132px.
+   ==========================================================================*/
+body{margin:0;background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1150px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:880px}
+.panel{padding:30px 28px 44px}
+.panel.light{background:#ECE6D9}
+.panel.dark{background:#100E0B;color:#F2EEE7}
+.panel h2{font-size:20px;font-weight:800;margin-bottom:18px}
+.row{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:300px;line-height:1.45}
+.panel.dark .cap{color:#928778}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:2px;color:#6E6457}
+.panel.dark .cap em{color:#A69B8C}
+
+/* ==== LA PAGINA (390px, come la vera /cassette) ========================== */
+.page{width:390px;border-radius:30px;border:1px solid #EBE4D6;background:#F4F0E7;
+  padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
+.panel.dark .page{background:#171411;border-color:#342E26}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.head .tondo{width:52px;height:52px;border-radius:50%;background:#FFFEFA;display:flex;
+  align-items:center;justify-content:center;font-size:20px;font-weight:800;
+  box-shadow:0 2px 3px rgba(50,40,25,.08),0 12px 22px -16px rgba(50,40,25,.4)}
+.panel.dark .head .tondo{background:#211D18;box-shadow:none;border:1px solid #342E26;color:#F2EEE7}
+.head h3{font-size:30px;font-weight:800;letter-spacing:-0.02em}
+.cerca{display:flex;align-items:center;gap:10px;background:#FFFEFA;border-radius:26px;
+  padding:15px 18px;font-size:16px;color:#7B6A59;
+  box-shadow:0 2px 3px rgba(50,40,25,.06),0 14px 24px -18px rgba(50,40,25,.4)}
+.panel.dark .cerca{background:#211D18;box-shadow:none;border:1px solid #342E26;color:#928778}
+
+/* ==== IL MURO con cornice V1 ratificata ================================= */
+.wall{
+  --passo:44px; --wire-w:3px;
+  position:relative;border-radius:18px;padding:24px 10px 16px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' x='0' y='8.5' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
+  background-repeat:repeat;background-size:44px 44px;background-color:#F4F0E7;
+}
+.panel.dark .wall{
+  --filo-flat:rgba(255,255,255,.09);
+  background:repeating-linear-gradient(180deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),repeating-linear-gradient(90deg,var(--filo-flat) 0 var(--wire-w),transparent var(--wire-w) var(--passo)),#171411;
+}
+/* cornice V1 «filo di bordo» (RATIFICATA) */
+.wall::before,.wall::after{content:'';position:absolute;top:0;bottom:0;width:3px;border-radius:1.5px;
+  background:linear-gradient(90deg,#5A4E38,#FFFFFD 50%,#5A4E38);box-shadow:0 0 2px rgba(42,34,20,.42)}
+.wall::before{left:2px}
+.wall::after{right:2px}
+.panel.dark .wall::before,.panel.dark .wall::after{background:rgba(255,255,255,.13);box-shadow:none}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;row-gap:0;grid-auto-rows:220px;align-items:start;margin-top:14px}
+
+/* ==== CASSETTA P3 (verbatim + fascia) =================================== */
+.k{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:0;
+  border:none;border-radius:10px 10px 12px 12px;padding:0;min-height:132px;
+  color:#fff;font-size:11.5px;
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28)}
+.panel.dark .k{box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4)}
+.k::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:26px;height:10px;border-radius:4px 4px 0 0;background:inherit;filter:brightness(.85)}
+.gan{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:28px;height:22px;z-index:2}
+.verde{background:linear-gradient(180deg,#2E9C55,#166B39)}
+.grigia{background:linear-gradient(180deg,#9A948E,#6E675F)}
+.bianca{background:linear-gradient(180deg,#FFFEFA,#E4DCCB)}
+.gialla{background:linear-gradient(180deg,#D8D820,#A8A800)}
+.rosa{background:linear-gradient(180deg,#D77BC1,#A94A93)}
+.turchese{background:linear-gradient(180deg,#28CCC9,#0E9C9A)}
+.rossa{background:linear-gradient(180deg,#E8323B,#C3000F)}
+.blu{background:linear-gradient(180deg,#2E6FD0,#174A9C)}
+.fin{position:absolute;inset:8px 6px auto 6px;height:72px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+.fin svg{height:56%;width:auto}
+.fascia{position:relative;z-index:1;margin:0 4px 4px;border-radius:4px 4px 9px 9px;
+  padding:5px 8px 6px;background:rgba(0,0,0,.28);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;gap:2px}
+.targa{align-self:center;max-width:8ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:rgba(255,255,255,.92);border-radius:6px;padding:1px 8px 2px;
+  font-size:12.5px;font-weight:800;color:#1D1913;font-variant-numeric:tabular-nums;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cont{text-align:center;display:flex;flex-direction:column;gap:1px;line-height:1.28;
+  color:rgba(255,255,255,.95);text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.dent{font-weight:400;opacity:.94;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:96px}
+.paz{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:96px}
+.k.is-chiara .cont{color:rgba(29,25,19,.85);text-shadow:none}
+.k.is-chiara .dent{opacity:.7}
+.k.is-chiara .fascia{background:rgba(29,25,19,.14)}
+.k.is-libera .targa{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);color:rgba(255,255,255,.9)}
+.k.is-libera.is-chiara .targa{box-shadow:inset 0 0 0 2px rgba(29,25,19,.4);color:rgba(29,25,19,.7)}
+.k.is-libera .cont{opacity:.6;font-weight:700}
+/* tile + Nuova cassetta (dal fix T15: presenza leggibile, tratteggio) */
+.nuova{min-height:132px;border-radius:12px;border:2.5px dashed rgba(90,78,56,.75);
+  background:rgba(244,240,231,.82);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;color:#4A4235;font-weight:800;font-size:13px}
+.nuova .piu{font-size:26px;line-height:1}
+.panel.dark .nuova{border-color:rgba(255,255,255,.4);background:rgba(33,29,24,.85);color:#F2EEE7}
+
+/* ==== IL BORDINO (la scelta): P3a sottile 2px · P3b spesso 8px ==========
+   Il «bordino» = striscia di faccia-cassetta visibile tra il fondo della
+   finestra e il bordo alto della fascia. Con finestra a 8..80:
+   P3a → fascia inizia a 82 (2px) · P3b → fascia inizia a 88 (8px). */
+.p3a .fascia{margin-top:0}
+.p3a .fin{height:72px}
+.p3b .fin{height:66px}          /* 8..74 */
+.p3b .fascia{margin-top:0}
+/* per rendere ESATTO il bordino a parità di tile 132, si gioca sull'altezza
+   della finestra: fascia ancorata in basso (~52px con 2 righe) → spazio
+   finestra+bordino = 76: P3a 72+2(+2 tolleranza) · P3b 66+8(+2). */
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>P3 «fascia etichetta» — com'è davvero, e la scelta del bordino</h1>
+  <p>La pagina delle cassette come la vedresti se scegliamo la P3: titolo, ricerca, muro con la
+  cornice a filo di bordo che hai ratificato, tile «+ Nuova cassetta», occupate e libere, chiaro
+  e scuro. A sinistra il bordino sottile tra finestra e fascia (2px, come nella proposta);
+  a destra la versione col bordino <b>più spesso</b> (8px). Cassette sempre alte 132px.</p>
+</div>
+
+<div class="panel light">
+  <h2>Light</h2>
+  <div class="row">
+
+    <!-- P3a sottile -->
+    <div class="cell">
+      <div class="page">
+        <div class="head"><div class="tondo">‹</div><h3>Le cassette</h3><div class="tondo">☰</div></div>
+        <div class="cerca">⌕&nbsp; Cerca una cassetta o un lavoro…</div>
+        <div class="wall"><div class="grid">
+          <div class="k gialla is-chiara p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/><defs><linearGradient id="m1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1ECE1"/><stop offset=".5" stop-color="#C4BBAC"/><stop offset="1" stop-color="#8B8275"/></linearGradient></defs></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div></div>
+          <div class="k rosa is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k turchese is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k verde p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+          <div class="k blu is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C3</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k bianca is-chiara p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><div class="fascia"><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div></div>
+          <div class="k rossa is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C1</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="nuova"><span class="piu">+</span>Nuova<br>cassetta</div>
+        </div></div>
+      </div>
+      <div class="cap">P3a — bordino SOTTILE (2px)<em>finestra 72 · fascia ancorata in basso</em></div>
+    </div>
+
+    <!-- P3b spesso -->
+    <div class="cell">
+      <div class="page">
+        <div class="head"><div class="tondo">‹</div><h3>Le cassette</h3><div class="tondo">☰</div></div>
+        <div class="cerca">⌕&nbsp; Cerca una cassetta o un lavoro…</div>
+        <div class="wall"><div class="grid">
+          <div class="k gialla is-chiara p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C2</span><div class="cont"><span class="dent">Dr. Bianchi Federica</span><span class="paz">BARALE S.</span></div></div></div>
+          <div class="k rosa is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k turchese is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C5</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k verde p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+          <div class="k blu is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C3</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k bianca is-chiara p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 32 16"><path d="M2 14 Q16 -8 30 14" fill="none" stroke="#F8B8C8" stroke-width="5" stroke-linecap="round"/><path d="M5 12 Q16 -3 27 12" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 2"/></svg></div><div class="fascia"><span class="targa">C21</span><div class="cont"><span class="dent">Dr. Di Santi Caterina</span><span class="paz">DI SANTI C.</span></div></div></div>
+          <div class="k rossa is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m1)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C1</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="nuova"><span class="piu">+</span>Nuova<br>cassetta</div>
+        </div></div>
+      </div>
+      <div class="cap">P3b — bordino SPESSO (8px)<em>finestra 66 · fascia ancorata in basso</em></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="panel dark">
+  <h2>Dark</h2>
+  <div class="row">
+    <div class="cell">
+      <div class="page">
+        <div class="head"><div class="tondo">‹</div><h3>Le cassette</h3><div class="tondo">☰</div></div>
+        <div class="cerca">⌕&nbsp; Cerca una cassetta o un lavoro…</div>
+        <div class="wall"><div class="grid">
+          <div class="k verde p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/><defs><linearGradient id="m2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4A443B"/><stop offset=".5" stop-color="#39332C"/><stop offset="1" stop-color="#252017"/></linearGradient></defs></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+          <div class="k rosa is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k grigia is-libera p3a"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        </div></div>
+      </div>
+      <div class="cap">P3a — bordino sottile</div>
+    </div>
+    <div class="cell">
+      <div class="page">
+        <div class="head"><div class="tondo">‹</div><h3>Le cassette</h3><div class="tondo">☰</div></div>
+        <div class="cerca">⌕&nbsp; Cerca una cassetta o un lavoro…</div>
+        <div class="wall"><div class="grid">
+          <div class="k verde p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div><div class="fascia"><span class="targa">C7</span><div class="cont"><span class="dent">Studi Medici Di Santi</span><span class="paz">ROSSI M.</span></div></div></div>
+          <div class="k rosa is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C9</span><div class="cont"><span class="dent">libera</span></div></div></div>
+          <div class="k grigia is-libera p3b"><svg class="gan" viewBox="0 0 28 22"><path d="M14 21 L14 8 Q14 3 18 3 Q22 3 22 8" fill="none" stroke="url(#m2)" stroke-width="4" stroke-linecap="round"/></svg><div class="fin"></div><div class="fascia"><span class="targa">C12</span><div class="cont"><span class="dent">libera</span></div></div></div>
+        </div></div>
+      </div>
+      <div class="cap">P3b — bordino spesso</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

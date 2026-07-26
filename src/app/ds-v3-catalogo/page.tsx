@@ -582,11 +582,20 @@ export default function CatalogoPage() {
                 margin: `0 0 ${spazio.s}px`,
               }}
             >
-              StrisciaStato — serena e allerta con CTA mai troncata
+              StrisciaStato — prova (ambra) e allerta con CTA mai troncata
             </p>
+            {/* Task 16b (D3 §3.4) — il vecchio s9 «Tutto a posto» è morto (v.
+                src/lib/dashboard/striscia.ts, `scegliSegnale`): quando non c'è nulla da dire la
+                striscia è ASSENTE (silenzio), non un box verde di default. Il quieto mostrato qui
+                è il trial (sTrial, tono ambra) — un segnale REALE e tuttora raggiungibile con
+                `forte` valorizzato. */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>
-              <StrisciaStato forte="Tutto a posto:">
-                2 consegne oggi, la prossima alle 16:00
+              <StrisciaStato
+                tono="ambra"
+                forte="Prova:"
+                azione={{ etichetta: 'Attiva ›', href: '#' }}
+              >
+                mancano 9 giorni
               </StrisciaStato>
               <StrisciaStato
                 attenzione
@@ -1188,14 +1197,16 @@ export default function CatalogoPage() {
         {/* segnale: shape reale di SegnaleStriscia (src/lib/dashboard/striscia.ts) —
             `forte` è `string | null` (non booleano) e `azione` è
             `{ etichetta, href } | null`. La demo del brief usava `forte: false`,
-            incompatibile col tipo: qui riprendiamo lo stato "tutto a posto" (s9).
-            `identita` fittizia (Task 9/O1i-2): mostra la riga Avatar Ø32 +
+            incompatibile col tipo. Task 16b (D3 §3.4) — il vecchio s9 "tutto a posto" è morto:
+            quando non c'è nulla da dire la striscia è ASSENTE, non un box verde di default. Qui
+            riprendiamo il trial (sTrial, tono ambra) — un segnale quieto REALE e tuttora
+            raggiungibile. `identita` fittizia (Task 9/O1i-2): mostra la riga Avatar Ø32 +
             nome/lab + «Esci» sopra la StrisciaStato nel footer. */}
         <div style={{ width: 240, height: 560, display: 'flex' }}>
           <NavDesk
             conteggi={{ rossa: 2, ambra: 4, viola: 1, blu: 2 }}
             pilaSelezionata="rossa"
-            segnale={{ attenzione: false, forte: 'Tutto a posto:', testo: '3 consegne oggi, la prossima alle 15:30', azione: null }}
+            segnale={{ attenzione: false, tono: 'ambra', forte: 'Prova:', testo: 'mancano 9 giorni', azione: { etichetta: 'Attiva ›', href: '#' } }}
             identita={{ nome: 'Francesco Formicola', lab: 'Lab Formicola' }}
           />
         </div>
@@ -1206,7 +1217,7 @@ export default function CatalogoPage() {
           <div>
             <p style={{ fontSize: tipografia.size.callout, fontWeight: tipografia.weight.semibold, color: 'var(--muted)', margin: '0 0 12px' }}>
               La parete demo — i 6 colori standard + 1 custom (C9, colore scelto col selettore
-              libero), accesa/spenta dalla ricerca, libera. Fedele al mockup ratificato
+              libero), accesa dalla ricerca, libera. Fedele al mockup ratificato
               (`2026-07-20-parete-cassette-v2.html`).
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, 88px)', gap: 16 }}>
@@ -1244,11 +1255,6 @@ export default function CatalogoPage() {
               <Cassetta
                 id="c12-accesa" nome="C12" colore="rossa" stato="accesa"
                 lavoro={{ numero: '144', dentista: 'Bianchi', descrizione: 'corona zirconia', tipoDispositivo: 'protesi_fissa' }}
-                onTap={() => {}} onLongPressSheet={() => {}}
-              />
-              <Cassetta
-                id="c15-spenta" nome="C15" colore="blu" stato="spenta"
-                lavoro={{ numero: '146', dentista: 'Bianchi', descrizione: 'ponte 3 elementi', tipoDispositivo: 'protesi_fissa' }}
                 onTap={() => {}} onLongPressSheet={() => {}}
               />
             </div>

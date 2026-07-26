@@ -44,6 +44,10 @@ yarn-error.log*
 # === FILE TEMPORANEI — REGOLA ARCHIBALD ===
 # Mai lasciare file temporanei in root o in src/
 # Tutti i file temporanei vanno in /tmp/ o /scripts/tmp/
+# scripts/tmp/ è scratch per definizione (banchi di misura, prove usa-e-getta): sette banchi
+# di quest'ondata ci erano finiti dentro per errore (Task 17) — ignore esplicito perché non
+# possa più ricapitare.
+scripts/tmp/
 *.tmp
 *.temp
 *-temp.*

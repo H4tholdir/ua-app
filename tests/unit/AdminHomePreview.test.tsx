@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { AdminHomePreview } from '@/components/features/admin/AdminHomePreview'
 import type { PileHome } from '@/lib/dashboard/pile-home'
+import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 
 const lavoro = (numero: string): PileHome['liste']['rossa'][number] => ({
   id: `l${numero}`, numero, dentista: 'Dr. Esposito', paziente: 'PZ-0412', tipoLavoro: 'Corona zirconia',
@@ -63,9 +64,24 @@ describe('AdminHomePreview — anteprima admin sola lettura di Home v3', () => {
   })
 
   it('segnale senza azione (caso comune) resta invariato — nessuna CTA neanche qui', () => {
-    const segnaleNeutro = { attenzione: false, forte: 'Tutto a posto:', testo: 'nessun segnale', azione: null }
+    // Task 16b (D3 §3.4) — il vecchio s9 «Tutto a posto» è morto: fixture aggiornata a un
+    // segnale quieto REALE e tuttora raggiungibile (s8, il racconto del DdC del giorno).
+    const segnaleNeutro = { attenzione: false, forte: null, testo: 'Oggi ho preparato 2 DdC ✓', azione: null }
     render(<AdminHomePreview nome="Studio Bianchi" eyebrow="Domenica 12 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={segnaleNeutro} />)
-    expect(screen.getByText('nessun segnale')).toBeInTheDocument()
+    expect(screen.getByText('Oggi ho preparato 2 DdC ✓')).toBeInTheDocument()
     expect(screen.queryAllByRole('link', { hidden: true })).toHaveLength(0)
+  })
+})
+
+// Task 16b, punto 5 — silenzio (D3 §3.4): AdminHomePreview non può mai ricevere un `eventoId`
+// (v. NB su getSegnaleStriscia in striscia.ts — sRaccontoLiberazione/sPareteIntro dipendono da
+// ingressi che l'anteprima admin non passa mai), quindi qui basta `segnale.silenzio`, nessun
+// dedup da wirare.
+describe('AdminHomePreview — silenzio (punto 5)', () => {
+  it('segnale.silenzio true: la striscia non monta, le pile restano', () => {
+    const silenzio: SegnaleStriscia = { attenzione: false, forte: null, testo: '', azione: null, silenzio: true }
+    render(<AdminHomePreview nome="Studio Bianchi" eyebrow="Domenica 12 luglio" saluto="Buon pomeriggio" pile={PILE} segnale={silenzio} />)
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByText('DA CONSEGNARE OGGI')).toBeInTheDocument()
   })
 })

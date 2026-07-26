@@ -87,8 +87,61 @@ if [ -n "$V3_EXISTS" ]; then
   fi
 
   # 4d. Parole del software nella UI v3 (dizionario §2.3 — jsx text)
-  V3_PAROLE=$(grep -rniE ">(.*\b(dashboard|submit|record|loading)\b.*)<" src/components/ds \
-    --include="*.tsx" 2>/dev/null | grep -v "node_modules\|\.test\." || true)
+  #
+  # SCOPE — prima guardava SOLO src/components/ds: nessun componente di dominio
+  # (src/components/features, dove vive p.es. CassettaSheet.tsx) era mai controllato. Misurato
+  # (25/07/2026): allargare a src/components/features costa UN solo hit su tutto l'elenco parole
+  # qui sotto, ed è un falso positivo — v. l'esclusione dei generic TS più giù.
+  PAROLE_SCOPE="src/components/ds src/components/features"
+  #
+  # LISTA PAROLE — dal dizionario (src/design-system/v3/dizionario.ts) si prendono solo le voci
+  # a UNA parola che un grep può portare senza rumore.
+  # FUORI (skip deliberato):
+  #  - voci multi-parola/frase — «errore \d{3}», «richiesta fallita», «caricamento in corso»,
+  #    «campo obbligatorio», «elimina definitivamente», «fattura emessa verso sdi»: nel
+  #    dizionario sono frasi intere: un grep single-line su una frase è fragile quanto la frase
+  #    stessa (basta un a-capo o uno spazio diverso per bucarlo) e non aggiunge presidio reale
+  #    rispetto a lasciarle al test che rende il DOM.
+  #  - «form» — parola singola in teoria, ma nel codice è anche il nome più comune per lo stato
+  #    di un form React (`form.nome`, `form.telefono`, …): grepparla dà SUBITO una quindicina di
+  #    falsi positivi in ImpostazioniEditForm.tsx (misurato) — rumore che spegnerebbe la fiducia
+  #    nel check al primo commit. Non «traduce pulito» come richiede questo grep.
+  # DENTRO — alle 4 già presenti (dashboard, submit, record, loading) si aggiungono salva,
+  # query, task, to-?do, filtr\w+ (reso `filtr[a-zA-Z0-9_]+` in ERE) e in_lavorazione: verificate
+  # a ZERO falsi positivi sullo scope allargato (misurato 25/07/2026).
+  #
+  # ECCEZIONE RATIFICATA «salva» — CassettaSheet.tsx tiene VOLUTAMENTE «Salva il nome» e «Salva
+  # il colore» (Francesco, 26/07/2026, decisione in
+  # docs/design/decisions/2026-07-26-salva-nome-colore.md). Il grep qui sotto oggi NON le vede,
+  # ma non perché sappia dell'eccezione: è il LIMITE single-line spiegato sotto (l'etichetta del
+  # tasto sta su una riga propria, non fra `>` e `<` sulla stessa riga del grep). Se in futuro
+  # qualcuno le riscrive su una riga sola e il check si accende, la risposta corretta è
+  # un'esclusione ESPLICITA e commentata qui, che nomini la decisione — mai ammorbidire la
+  # parola «salva» per tutti gli altri.
+  V3_PAROLE=$(grep -rniE ">(.*\b(dashboard|submit|record|loading|salva|query|task|to-?do|filtr[a-zA-Z0-9_]+|in_lavorazione)\b.*)<" $PAROLE_SCOPE \
+    --include="*.tsx" 2>/dev/null \
+    | grep -v "node_modules\|\.test\." \
+    | grep -vE "\bas\s+[A-Za-z_][A-Za-z0-9_]*<" \
+    || true)
+  # L'ultimo `grep -v` scarta la classe di falso positivo dei generic TypeScript — «as
+  # Record<string, unknown>» (misurato in RichiestaClientForm.tsx:176): lì il `>` che apre il
+  # match viene da una freccia `=>`, non da un tag JSX, e il `<` che lo chiude apre il generic,
+  # non una copy fra tag. Un cast `as Parola<...>` non è mai testo UI — è un pattern del
+  # linguaggio, non del prodotto.
+  # Limite onesto di questo filtro: scarta la RIGA INTERA, non solo il frammento del cast — una
+  # riga che portasse ANCHE una copy vietata vera, oltre al cast, sparirebbe con lui. Non è
+  # successo finora (misurato) e un cast del genere accanto a copy JSX sulla stessa riga sarebbe
+  # già uno stile insolito in questo codebase, ma il compromesso resta: si accetta di correre
+  # questo rischio residuo per non convivere con 15 falsi positivi certi ad ogni commit.
+  #
+  # ONESTÀ SUL LIMITE (single-line) — questo grep vede SOLO copy fra `>` e `<` sulla STESSA
+  # riga. Un'etichetta JSX scritta su più righe (com'è oggi «Salva il nome»/«Salva il colore» in
+  # CassettaSheet.tsx) gli è invisibile: non è un cancello completo, è una rete a maglie larghe
+  # che prende solo la violazione più comune (copy scritta inline). La guardia vera — che rende
+  # il DOM per davvero e non ha questo limite — è `tests/unit/parete-client.test.tsx`, describe
+  # «PareteClient — dizionario §2.3» (vista radice dello sheet inclusa, con l'eccezione «salva»
+  # incisa lì in modo esplicito). Questo grep resta comunque utile: costa zero e gira in
+  # pre-commit prima ancora di lanciare un test.
   if [ -n "$V3_PAROLE" ]; then
     echo ""
     echo "❌ DS v3: parola del software nella UI — usa il dizionario (v3/dizionario.ts)"

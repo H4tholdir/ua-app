@@ -37,7 +37,7 @@ export function PazientiSearchList({ pazienti }: PazientiSearchListProps) {
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          background: 'var(--bg, #DDD8D3)',
+          background: 'var(--bg, #F4F0E7)',
         }}
       >
         <div
@@ -45,7 +45,7 @@ export function PazientiSearchList({ pazienti }: PazientiSearchListProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            background: 'var(--bg, #DDD8D3)',
+            background: 'var(--bg, #F4F0E7)',
             borderRadius: '14px',
             padding: '0 14px',
             boxShadow:

@@ -4,7 +4,11 @@
 // prima viveva dentro route.ts, unico export non-handler di una route in tutto il repo —
 // accoppiava i due entrypoint invece di condividere una dipendenza comune in `src/lib/`).
 const COLORI = new Set(['bianca', 'azzurra', 'rossa', 'blu', 'verde', 'grigia'])
-const HEX_RE = /^#[0-9a-fA-F]{6}$/
+// Esportata (FIX-K, G7, ratifica 25/07 — docs/design/decisions/2026-07-24-qa-device-meta-
+// ondata.md, sezione «Ri-collaudo device #2»): `filtraCassette` (filtra-cassette.ts) la
+// riusa per riconoscere ed escludere l'hex crudo dal pagliaio di ricerca — STESSA regex,
+// non una copia che potrebbe divergere da questa (unica fonte di verità sul formato hex).
+export const HEX_RE = /^#[0-9a-fA-F]{6}$/
 
 /** Normalizza (R-5): l'hex va MAIUSCOLO perché il CHECK di tabella vuole A-F. Un colore non
  *  normalizzato che arriva alla RPC fa RAISE, cioè un 400/P0001 — non un esito (verificato sul

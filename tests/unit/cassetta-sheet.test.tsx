@@ -4,8 +4,10 @@
 // (verbatim dalle route) sono la parte graded: PATCH un campo per volta ({nome} XOR {colore}),
 // liberazione con body `null` letterale, sposta-lavoro {cassetta_id}, DELETE, riordino via
 // callback nel PareteClient. Dizionario: «Butta via», MAI «Elimina».
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { CassettaSheet } from '@/components/features/cassette/CassettaSheet'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
@@ -18,7 +20,7 @@ const occupata: CassettaParete = {
   nome: 'C12',
   colore: 'rossa',
   posizione: 1,
-  lavoro: { id: 'lav-1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', tipoDispositivo: 'protesi_fissa', descrizione: 'Corona' },
+  lavoro: { id: 'lav-1', numero: '144', dentista: 'Bianchi', paziente: 'MAR-42', pazienteAlias: null, tipoDispositivo: 'protesi_fissa', descrizione: 'Corona', noteInterne: null },
 }
 const libera: CassettaParete = { id: 'c-lib', nome: 'C4', colore: 'grigia', posizione: 3, lavoro: null }
 const altraLibera: CassettaParete = { id: 'c-lib2', nome: 'C7', colore: 'blu', posizione: 4, lavoro: null }
@@ -165,6 +167,40 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
     expect(onChiudi).toHaveBeenCalledTimes(1)
   })
 
+  // Review finale whole-branch — QUESTO TEST È STATO RI-PUNTATO. Fino all'ondata di fix
+  // «componenti» pin-ava un LIMITE NOTO: il back del telefono consumava l'unica history-entry
+  // esistente (quella dello Sheet — `DialogConferma` non ne pushava una propria), la guardia
+  // `dialogAperto` fermava `onChiudi`, e non si chiudeva NIENTE mentre l'entry era comunque
+  // persa. Quel limite NON C'È PIÙ: `src/components/ds/storia-overlay.ts` tiene UNA entry per
+  // l'intera pila di overlay e una pila LIFO di chi la usa — a un back reagisce SOLO il più
+  // alto (qui il dialog), e l'entry viene ri-spinta per lo sheet che resta sotto.
+  //
+  // Perché il vecchio test restava verde pur asserendo il comportamento sbagliato (ed è la
+  // ragione per cui va scritto così): controllava i due `role="dialog"` SUBITO dopo il
+  // `popstate`, sincrono. Il dialog si chiude, ma esce dall'albero solo a fine uscita di
+  // `AnimatePresence`: un istante dopo il back i nodi sono ancora due. Misurato: subito dopo
+  // il popstate 2 dialog, dopo `waitFor` 1, `onChiudi` mai chiamato. Da qui il `waitFor`.
+  it('back con DialogConferma «Butta via» aperto: chiude SOLO il dialog, lo sheet resta aperto sotto (gemello del test Esc)', async () => {
+    const { onChiudi } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: 'Butta via' }))
+    await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
+    expect(screen.getAllByRole('dialog')).toHaveLength(2) // Sheet + DialogConferma, entrambi aperti
+
+    act(() => {
+      window.dispatchEvent(new Event('popstate'))
+    })
+
+    // Il dialog distruttivo se ne va — e se ne va DAVVERO dall'albero, non solo "visivamente".
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /butto via/i })).toBeNull())
+    // …lo sheet no: resta l'unico overlay in scena, e il chiamante non è mai stato avvisato di
+    // una chiusura che non è avvenuta. Un secondo back toccherà a lui (catena presidiata
+    // end-to-end in `tests/unit/stanze-pager.test.tsx`, caso «C2 — dialog distruttivo sopra lo
+    // sheet»: 1° back il dialog, 2° lo sheet, 3° la pagina).
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
   it('nessuna azione «Sposta il lavoro in…» su una cassetta libera (non c\'è lavoro da spostare)', () => {
     renderSheet()
     expect(screen.queryByText(/sposta il lavoro in/i)).toBeNull()
@@ -193,6 +229,233 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
     expect(screen.queryByRole('button', { name: /sposta su/i })).toBeNull()
     expect(screen.getByRole('button', { name: /sposta giù/i })).toBeInTheDocument()
     expect(onSposta).not.toHaveBeenCalled()
+  })
+})
+
+// Task 5 (spec redesign §2.5, punto 13) — «Metti un lavoro» dallo sheet della cassetta LIBERA:
+// azione primaria sopra rinomina/colore/butta-via, apre una sottovista interna con la lista dei
+// lavori vivi senza cassetta (GET /api/cassette/lavori-liberi), tap → POST assegnazione (route
+// ESISTENTE, riuso — già collaudata sopra da «Sposta il lavoro in…»). Ricerca client-side SOLO
+// se >8 liberi. Stato vuoto: «Tutti i lavori hanno già una cassetta». Errori → riga quieta, MAI
+// chiusura silenziosa.
+describe('CassettaSheet — cassetta LIBERA: «Metti un lavoro» (Task 5, §2.5 punto 13)', () => {
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  const unLibero = { id: 'l9', numero: '151', dentista: 'Studio Bruno', pazienteAlias: null, urgenza: 1 }
+
+  it('azione primaria «Metti un lavoro» → lista dei liberi → tap → POST assegnazione {cassetta_id} → onCambiata', async () => {
+    fetchMock()
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok' }) })
+    const { onCambiata } = renderSheet()
+
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(fetchMock().mock.calls[0][0]).toBe('/api/cassette/lavori-liberi')
+
+    fireEvent.click(await screen.findByRole('button', { name: /151/i }))
+    await waitFor(() => expect(onCambiata).toHaveBeenCalledTimes(1))
+
+    const [url, options] = fetchMock().mock.calls[1]
+    expect(url).toBe('/api/lavori/l9/cassetta')
+    expect(options.method).toBe('POST')
+    expect(JSON.parse(options.body as string)).toEqual({ cassetta_id: 'c-lib' })
+  })
+
+  it('la riga mostra anche l\'alias paziente quando c\'è', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, pazienteAlias: 'Rossi Mario' }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(await screen.findByText(/rossi mario/i)).toBeInTheDocument()
+  })
+
+  // G9-lista (FIX-I) — V2 «targhetta» RATIFICATA: il numero vive in un chip col bordo, SENZA
+  // il prefisso «n.» (mockup `docs/design/mockups/2026-07-25-sheet-metti-lavoro-lista.html`,
+  // variante V2 — «2026/0007», non «n.2026/0007»).
+  it('il chip del numero è SENZA prefisso «n.» (V2 «targhetta»)', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, numero: '2026/0007' }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const chip = await screen.findByText('2026/0007')
+    expect(chip).toHaveClass('ds-riga-metti-chip')
+    expect(screen.queryByText('n.2026/0007')).toBeNull()
+  })
+
+  // G9-lista — riga urgente (`urgenza > 0`): tinta rossa + label «URGENTE» a destra.
+  it('riga con urgenza > 0: classe is-urgente + label «Urgente» visibile', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, urgenza: 1 }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const riga = await screen.findByRole('button', { name: /151/i })
+    expect(riga).toHaveClass('ds-riga-metti')
+    expect(riga).toHaveClass('is-urgente')
+    expect(within(riga).getByText('Urgente')).toHaveClass('ds-riga-metti-urgente')
+  })
+
+  // G9-lista — riga NON urgente (`urgenza === 0`): niente tinta, niente label.
+  it('riga con urgenza 0: NIENTE classe is-urgente e NIENTE label «Urgente»', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, urgenza: 0 }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const riga = await screen.findByRole('button', { name: /151/i })
+    expect(riga).not.toHaveClass('is-urgente')
+    expect(within(riga).queryByText('Urgente')).toBeNull()
+  })
+
+  // G9-lista — testo: paziente 15.5/800 (bold), dentista 13/500 (muted) — classi dedicate.
+  it('paziente in classe bold dedicata, dentista in classe muted dedicata', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, pazienteAlias: 'Rossi Mario' }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(await screen.findByText('Rossi Mario')).toHaveClass('ds-riga-metti-paziente')
+    expect(screen.getByText('Studio Bruno')).toHaveClass('ds-riga-metti-dentista')
+  })
+
+  // G9-lista — `pazienteAlias` assente → «— nessun paziente» (peso 600, colore --faint via
+  // `.is-assente`), non più una riga muta senza alcun testo paziente (comportamento pre-G9).
+  it('pazienteAlias assente → «— nessun paziente» con classe is-assente', async () => {
+    fetchMock().mockResolvedValueOnce({
+      status: 200,
+      json: async () => ({ lavori: [{ ...unLibero, pazienteAlias: null }] }),
+    })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    const assente = await screen.findByText('— nessun paziente')
+    expect(assente).toHaveClass('ds-riga-metti-paziente')
+    expect(assente).toHaveClass('is-assente')
+  })
+
+  it('nessun lavoro libero → «Tutti i lavori hanno già una cassetta»', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [] }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(await screen.findByText(/tutti i lavori hanno già una cassetta/i)).toBeInTheDocument()
+  })
+
+  it('8 o meno liberi → nessun campo di ricerca', async () => {
+    const pochi = Array.from({ length: 8 }, (_, i) => ({
+      id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
+    }))
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: pochi }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /100/i })
+    expect(screen.queryByLabelText(/cerca/i)).toBeNull()
+  })
+
+  it('più di 8 liberi → campo di ricerca che filtra client-side su numero/dentista/alias (dopo il debounce, D9b FIX-F)', async () => {
+    const molti = Array.from({ length: 9 }, (_, i) => ({
+      id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
+    }))
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /100/i })
+
+    fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
+    // Il filtro è debounced (D9b): non è sincrono al keystroke, quindi si aspetta l'esito.
+    await waitFor(() => expect(screen.queryByRole('button', { name: /100/i })).toBeNull())
+    expect(screen.getByRole('button', { name: /103/i })).toBeInTheDocument()
+  })
+
+  // D9b (FIX-F) — root cause: `liberiFiltrati` (CassettaSheet.tsx ~359-364, prima del fix) era
+  // ricalcolato in modo SINCRONO e non memoizzato a ogni keystroke, senza debounce — a differenza
+  // del gemello ratificato in `PareteClient.tsx` (`DEBOUNCE_FILTRO_MS`, riserva FE R4: «un FLIP
+  // per keystroke è il punto esatto dove peggiora WebKit»). Qui si prova l'effetto osservabile:
+  // subito dopo il tasto premuto (PRIMA che passi il debounce) la lista precedente resta ancora
+  // visibile — se ricalcolasse sincrono, n.100 sparirebbe immediatamente.
+  it('il filtro NON ricalcola sincrono ad ogni tasto: subito dopo il keystroke la lista precedente resta, il filtro scatta solo dopo il debounce', async () => {
+    const molti = Array.from({ length: 9 }, (_, i) => ({
+      id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
+    }))
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /100/i })
+
+    fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'Dentista 3' } })
+    // Subito dopo — nessun debounce ancora passato: la lista NON si è rifiltrata.
+    expect(screen.getByRole('button', { name: /100/i })).toBeInTheDocument()
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /100/i })).toBeNull())
+    expect(screen.getByRole('button', { name: /103/i })).toBeInTheDocument()
+  })
+
+  // «Mai una pagina bianca» (§5.26): con liberi presenti ma ricerca a zero risultati, l'area
+  // lista non deve restare vuota senza spiegazione — distinto dallo stato vuoto «tutti hanno
+  // già una cassetta» (quello copre zero liberi TOTALI, non zero liberi TROVATI).
+  it('ricerca senza risultati → riga quieta dedicata (non la stessa dello stato vuoto totale)', async () => {
+    const molti = Array.from({ length: 9 }, (_, i) => ({
+      id: `l${i}`, numero: String(100 + i), dentista: `Dentista ${i}`, pazienteAlias: null, urgenza: i,
+    }))
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: molti }) })
+    renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /100/i })
+
+    fireEvent.change(screen.getByLabelText(/cerca/i), { target: { value: 'zzz-nessuno' } })
+    expect(await screen.findByText(/nessun lavoro trovato/i)).toBeInTheDocument()
+    expect(screen.queryByText(/tutti i lavori hanno già una cassetta/i)).toBeNull()
+  })
+
+  it('errore nel caricamento della lista → riga d\'errore quieta, sheet resta aperto (NON chiusura silenziosa)', async () => {
+    fetchMock().mockRejectedValueOnce(new Error('rete'))
+    const { onChiudi } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
+  it('errore sul POST di assegnazione → riga d\'errore quieta, NON onCambiata, sheet resta aperto', async () => {
+    fetchMock()
+      .mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+      .mockResolvedValueOnce({ status: 500, json: async () => ({}) })
+    const { onCambiata, onChiudi } = renderSheet()
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /151/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(onCambiata).not.toHaveBeenCalled()
+    expect(onChiudi).not.toHaveBeenCalled()
+  })
+
+  it('«Metti un lavoro» non compare su una cassetta OCCUPATA', () => {
+    renderSheet({ cassetta: occupata, libere: [libera], posto: 1, totale: 4 })
+    expect(screen.queryByRole('button', { name: /metti un lavoro/i })).toBeNull()
+  })
+
+  it('lo stato della sottovista si resetta al cambio di cassetta', async () => {
+    fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ lavori: [unLibero] }) })
+    const props = {
+      cassetta: libera as CassettaParete | null,
+      libere: [libera] as CassettaParete[],
+      posto: 2, totale: 4, aperto: true,
+      onChiudi: vi.fn(), onCambiata: vi.fn(), onSposta: vi.fn().mockResolvedValue(true),
+    }
+    const { rerender } = render(<CassettaSheet {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+    await screen.findByRole('button', { name: /151/i })
+
+    rerender(<CassettaSheet {...props} cassetta={altraLibera} />)
+    expect(screen.getByRole('button', { name: /metti un lavoro/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /151/i })).toBeNull()
   })
 })
 
@@ -261,5 +524,27 @@ describe('CassettaSheet — cassetta OCCUPATA (§5.3)', () => {
     expect(screen.queryByRole('dialog', { name: /butto via/i })).toBeNull()
     // La riga bloccante c'è (testo verbatim del brief).
     expect(screen.getAllByText(/Dentro c'è il n\.144/).length).toBeGreaterThan(0)
+  })
+})
+
+// Review finale whole-branch — ciclo di import fra i due moduli: `CassettaSheet` importava
+// `DEBOUNCE_FILTRO_MS` da `PareteClient`, che importa `CassettaSheet`. Sopravviveva solo perché
+// la costante veniva letta pigramente dentro un `useEffect`: il primo uso a livello di modulo
+// (una costante derivata, un valore di default) sarebbe diventato un `ReferenceError` in fase di
+// import — dipendente dall'ordine con cui il bundler risolve il ciclo, quindi un crash che si
+// vede in produzione e non in un test unitario che importa `CassettaSheet` da solo. La costante
+// vive ora in un modulo foglia (`@/lib/ui/debounce-ricerca`), che non importa nessuno dei due.
+describe('CassettaSheet — nessun ciclo di import con PareteClient', () => {
+  it('non importa nulla da `./PareteClient`', () => {
+    const sorgente = readFileSync(join(process.cwd(), 'src/components/features/cassette/CassettaSheet.tsx'), 'utf8')
+    expect(sorgente).not.toMatch(/from '\.\/PareteClient'/)
+    expect(sorgente).toMatch(/import \{ DEBOUNCE_FILTRO_MS \} from '@\/lib\/ui\/debounce-ricerca'/)
+  })
+
+  it('e i due gemelli condividono lo STESSO ritardo: un solo numero, non due copie', async () => {
+    const { DEBOUNCE_FILTRO_MS } = await import('@/lib/ui/debounce-ricerca')
+    const parete = readFileSync(join(process.cwd(), 'src/components/features/cassette/PareteClient.tsx'), 'utf8')
+    expect(parete).toMatch(/from '@\/lib\/ui\/debounce-ricerca'/)
+    expect(DEBOUNCE_FILTRO_MS).toBe(180)
   })
 })

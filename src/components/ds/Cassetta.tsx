@@ -5,7 +5,53 @@
 // `docs/design/mockups/2026-07-20-parete-cassette-v2.html` (righe 66-105 CSS, 229-268 markup
 // demo). Corpo gradiente + linguetta `::before` + cavità con `MiniaturaLavoro` (§5.36) + targa
 // (troncamento CSS ~6ch, SR legge il nome completo via `aria-label` — il troncamento è visivo,
-// non semantico) + riga «n.{numero} · {dentista}».
+// non semantico).
+//
+// Task 10 (D4, punto 12) — «la targa nuova» (mockup `2026-07-24-rete-gancetto-targa.html` §4,
+// verbale `docs/design/decisions/2026-07-24-rete-gancetto-targa.md` §6/§7/§8/§9): il contenuto
+// occupata è dentista + paziente (alias vince sul codice, Task 1) su due righe — MAI il numero
+// lavoro né il tipo (la terza riga è MORTA, anche in collisione: decisione O1, gemelle identiche
+// by design, disambiguatore = ricerca per numero lavoro, non la targa). Tipografia: clinico
+// SENZA grassetto, paziente IN grassetto, sempre (verbale §7). Nomi lunghi: T2, riduzione del
+// font poi 2 righe (verbale §8). La prop `inCollisione`/`targheInCollisione` (Task 1) NON si
+// consuma qui — resta esportata per chi la usa altrove (es. ricerca), O1 non la vuole in targa.
+//
+// FIX-L (G10, RATIFICA FINALE 25/07, mockup `2026-07-25-cassetta-g10-rev3-p3-reale.html`
+// variante P3b, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §G10):
+// «fascia etichetta» — targa+cont non sono più due elementi affiancati liberi nel corpo del
+// tile, ma vivono DENTRO un contenitore unico `.ds-cassetta-fascia`, identico per libere e
+// occupate. La targa mantiene il segnale di stato (anello quando libera, piena bianca quando
+// occupata — gate targa Task 10 pienamente in vigore, precisazione Francesco 25/07 vincolante):
+// la sola STRUTTURA (fascia/finestra/bordino) è uniforme, non la targa.
+//
+// H2 (RATIFICA 25/07, decisione 0c37f25, mockup `2026-07-25-cassetta-h2-proposte.html` opzione
+// B, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §H2) — CHIUDE il
+// doppio regime che FIX-L aveva lasciato aperto (`is-nome-lungo`/min-height 142 +
+// `is-shrink`/`SOGLIA_NOME_LUNGO`): la fascia passa da "abbraccia il contenuto" a un'altezza
+// VERA e FISSA (`var(--altezza-fascia)`, v. `.ds-cassetta-fascia` in ds-v3.css) che riserva SEMPRE
+// lo spazio del caso peggiore (clinico 2 righe + paziente 1 riga) — la finestra si restringe di
+// conseguenza (66→40px) e la miniatura scala a `height={23}` sotto (§58% del mockup,
+// `.fin svg{height:58%}`, 40×0.58≈23.2). ⚠️ A3 (26/07/2026): quei 72px NON riservavano davvero il
+// caso peggiore — misurato, sforavano di 2,2px (clinico 2 righe) e 4,9px (paziente 2 righe), e a
+// cedere era la targa. Ratifica Francesco: fascia a 78px e cassetta a 138px, la finestra INVARIATA
+// («allunga la pancia verso il basso»). Numeri e aritmetica sopra `.ds-cassetta-fascia` in
+// ds-v3.css. Risultato: la sagoma è unica per COSTRUZIONE (il contenuto di flusso è sempre più
+// corto del tile), non serve più calcolare una soglia sul testo — `SOGLIA_NOME_LUNGO`/`nomeLungo`/
+// `is-nome-lungo`/`is-shrink` sono RIMOSSI, non sostituiti. Il clinico va SEMPRE a capo (max 2
+// righe), il paziente resta SEMPRE 1 riga con una sfumatura morbida sul bordo (mockup
+// `.optB .paz` + base `.paz` — mai un'ellissi "…" a metà nome, vincolo (c) del verbale). Misure
+// reali (real-render Playwright) in `.superpowers/sdd/h2-impl-report.md`.
+//
+// H2 — ADJUDICAZIONE (post-implementazione, dal controller): il mockup B usa
+// `-webkit-line-clamp:2` per il clinico, ma quel meccanismo inietta SEMPRE un'ellissi "…"
+// quando il testo eccede 2 righe (misurato: `text-overflow` non la sopprime) — su un nome
+// clinico estremo riproduce esattamente la lamentela originale del verbale ("STUDI MEDICI DI
+// SANTI…"). Dove la prosa ratificata ("sfumatura morbida, mai ellipsis netta") contraddice il
+// CSS letterale del mockup, vince la prosa. Il clinico è quindi tagliato con un `max-height`
+// dichiarato (2 righe esatte, MAI `-webkit-line-clamp`) + una sfumatura APPLICATA SOLO quando
+// `dentRef`/`dentTroncato` (sotto) misurano un overflow REALE nel DOM — mai un mask permanente
+// legato al confine di altezza, che rischierebbe di attenuare lettere legittime sui nomi che
+// riempiono le 2 righe senza sforare. V. `.ds-cassetta-dent`/`.is-troncato` in ds-v3.css.
 //
 // Le 6 coppie di gradiente standard (righe 77-82 del mockup) sono FISSE e verbatim — vivono come
 // classi CSS in `src/app/ds-v3.css` (`.ds-cassetta.<slug>`), non come token derivato: sono valori
@@ -14,8 +60,9 @@
 // formula `color-mix` data dal brief.
 //
 // Stati: libera (cavità vuota, targa outline, «libera» al 60%) · accesa (ricerca: anello blu 3px
-// + elevazione, `aria-current="true"` — mai solo colore, spec §12) · spenta (opacity .3 +
-// desaturazione — resta un `<button>` NON-disabled e tappabile: è opacità, non inattività).
+// + elevazione, `aria-current="true"` — mai solo colore, spec §12). Lo stato `spenta` è MORTO
+// (ratifica 22/07, spec redesign §2.4 — «filtra e risali»): con ricerca attiva le non-match non
+// si affievoliscono più, si SMONTANO — il chiamante (`PareteClient`) non le rende affatto.
 //
 // Gesti (spec §5.4/§5.35 + Task 13). INVARIANTE NORMATIVA (panel Task 13 §3, non negoziabile):
 // Cassetta RICONOSCE il gesto fino al sollevamento; DAL SOLLEVAMENTO IN POI non insegue più NULLA —
@@ -37,10 +84,12 @@
 //    resta SOLO l'affordance visiva (cursor grab via classe). Le miniature sono SVG inline, non
 //    `<img>`: nessun bersaglio draggable nativo lì dentro.
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { cssEase } from '@/design-system/v3/motion'
 import { miniaturaPerLavoro } from '@/lib/domain/miniature-lavoro'
+import { costruisciScalaNome } from '@/lib/domain/nome-studio'
+import { useIsomorphicLayoutEffect } from '@/hooks/useIsomorphicLayoutEffect'
 import { MiniaturaLavoro } from './MiniaturaLavoro'
 
 const SOGLIA_LONG_PRESS_MS = 300
@@ -53,6 +102,32 @@ const SOGLIA_RECUPERO_TAP_PX = 24
 const SOGLIA_RECUPERO_TAP_MS = 300
 const SOGLIA_RECUPERO_SCROLL_PX = 6
 const SOGLIA_MOVIMENTO_PX = 8
+
+// H2 (0c37f25) — `SOGLIA_NOME_LUNGO`/`.is-shrink` (Task 10, T2, verbale §8) RIMOSSA: era la
+// soglia oltre cui la targa passava a font ridotto/2 righe SOLO per i nomi lunghi. L'opzione B
+// rende quel trattamento (clinico a capo, max 2 righe) PERMANENTE per qualunque lunghezza — la
+// fascia ha ora un'altezza fissa che riserva sempre lo spazio del caso peggiore (v.
+// `.ds-cassetta-fascia` in ds-v3.css) — quindi non serve più decidere runtime "è lungo?": il
+// CSS si comporta identico per «Bianchi» e per «Studio Di Santi Rossi».
+
+/**
+ * titleCase (verbale §6 «Casing del paziente») — `pazienteAlias` (Task 1, `derivaAlias`) arriva
+ * già trimmato ma NON ricasato: il trigger DB `sync_paziente_nome_cognome` scrive il nome in
+ * MAIUSCOLO. Qui, solo per la targa, lo normalizziamo in Iniziali Maiuscole («RUSSO MARIA» →
+ * «Russo Maria», «DEL GROSSO MARIA» → «Del Grosso Maria» — nessuna gestione speciale delle
+ * particelle, ogni parola prende la propria maiuscola iniziale, verbatim dalla tabella del
+ * mockup §6). Il CODICE (fallback quando l'alias manca) non passa MAI da qui: resta letterale
+ * (es. «PZ-0042»), come nella stessa tabella.
+ */
+function titleCase(testo: string): string {
+  return testo
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((parola) => parola.charAt(0).toUpperCase() + parola.slice(1))
+    .join(' ')
+}
 
 // Le 6 facce standard vivono come classi in ds-v3.css (v. nota di testa) — questo Set serve
 // SOLO a decidere "applica la classe" vs "componi il gradiente custom inline" (il solo caso
@@ -110,14 +185,20 @@ export function derivaFacciaCustom(hex: string): string {
   return `linear-gradient(180deg, ${hex}, color-mix(in srgb, ${hex} 72%, black))`
 }
 
-export type StatoCassetta = 'normale' | 'accesa' | 'spenta'
+export type StatoCassetta = 'normale' | 'accesa'
 
 // Shape allineata (duck-typing) a `CassettaParete['lavoro']` di `src/lib/cassette/parco-shared.ts`
 // (Task 3) — il chiamante (Task 11) passa il dato così com'è, senza rimapping: qui prendiamo
-// solo i campi che ci servono per il testo e per risolvere la miniatura.
+// solo i campi che ci servono per il testo e per risolvere la miniatura. `paziente`/
+// `pazienteAlias` (Task 1/10) sono OPZIONALI qui pur essendo sempre presenti in
+// `CassettaParete['lavoro']` reale (`paziente` è '—' al minimo, mai assente): la catalog demo
+// (`ds-v3-catalogo/page.tsx`, fuori dal perimetro di questo task) costruisce ancora `lavoro`
+// senza quei campi — opzionali qui evita di doverla toccare, con un fallback a '—' nel render.
 export type LavoroCassetta = {
   numero: string
   dentista: string
+  paziente?: string
+  pazienteAlias?: string | null
   descrizione: string | null
   tipoDispositivo: string | null
 }
@@ -135,8 +216,20 @@ export function Cassetta(props: {
    *  insegue più nulla (invariante del panel, presidiata dal test che VIETA). */
   onSollevata?: (evento: ReactPointerEvent<HTMLButtonElement>) => void
   draggable?: boolean
+  /** Task 9 (D1) — SOLO `true` sul clone dentro `.ds-ghost` (`PareteClient.tsx`): lo stato
+   *  «staccato dal filo» si rende sul GHOST, mai sull'originale (che resta la «buca» in flow,
+   *  riserva FE R3). Pilota la classe `is-staccato` sul gancetto SVG — la rotazione/alzata la fa
+   *  il CSS (`ds-v3.css`), nessun literal qui. */
+  staccata?: boolean
 }) {
-  const { id, nome, colore, lavoro, stato, onTap, onLongPressSheet, onSollevata, draggable = false } = props
+  const {
+    id, nome, colore, lavoro, stato, onTap, onLongPressSheet, onSollevata, draggable = false, staccata = false,
+  } = props
+  // Task 9 (D1) — id univoco per il gradiente metallico del gancetto: molte Cassette vivono sulla
+  // stessa pagina (la parete), un `id` SVG letterale (come nel mockup statico, un solo esemplare)
+  // colliderebbe in duplicati DOM (`url(#mMetal)` risolverebbe sempre sul primo). `useId()` è lo
+  // stesso pattern già in uso altrove nel repo (Campo.tsx, Sheet.tsx…) per gli id di accessibilità.
+  const idMetalloGancetto = useId()
 
   // Stato del gesto in ref (non state): niente re-render durante pointermove, il tap/long-press
   // si decide solo al rilascio.
@@ -164,6 +257,260 @@ export function Cassetta(props: {
 
   // P9-bis: allo smontaggio nessun recupero resta armato su window.
   useEffect(() => () => smontaRecupero.current?.(), [])
+
+  // H2 (0c37f25, adjudicazione post-implementazione — v. commento su `.ds-cassetta-dent` in
+  // ds-v3.css) — il clinico è tagliato ad altezza fissa (2 righe, CSS `max-height`), MAI con
+  // `-webkit-line-clamp` (quel meccanismo inietta sempre una "…" che il verbale vieta). La
+  // sfumatura che segnala "il nome continua" va applicata SOLO quando il taglio è REALE — non
+  // possiamo saperlo dalla sola lunghezza della stringa (dipende dal font reale E dalla
+  // larghezza della colonna, che è fluida — v. brief §"larghezza fluida"), quindi si MISURA nel
+  // DOM dopo il render: `scrollHeight > clientHeight` sul nodo del clinico. `ResizeObserver`
+  // (non solo un effetto al mount) perché la stessa cassetta può ricevere più o meno spazio
+  // quando la griglia cambia colonne (3/4/6) senza che il componente si smonti — la larghezza
+  // disponibile per il testo cambia, quindi il bisogno del taglio può comparire o sparire.
+  const dentRef = useRef<HTMLSpanElement | null>(null)
+  const [dentTroncato, setDentTroncato] = useState(false)
+  // Variante 6 «la combinata» (ratifica 26/07, mockup 2026-07-26-nomi-lunghi-cassetta.html §6,
+  // verbale docs/design/decisions/2026-07-26-nomi-lunghi-variante6.md) — la SCALA del clinico.
+  // Prima di questa consegna c'era una sola resa possibile (corpo pieno + sfumatura se sforava);
+  // ora ce ne sono fino a sei, provate IN ORDINE e fermandosi alla prima che entra in 2 righe:
+  // nome intero a 10 → 9,5 → 9px, poi (solo se a 9px ancora sfora) nome senza le parole di
+  // categoria in testa, di nuovo a 10 → 9,5 → 9px. Finita la scala senza trovarne una, resta la
+  // sfumatura di oggi — punto 4 della regola, ultima spiaggia.
+  // I candidati sono PURI (`costruisciScalaNome`, src/lib/domain/nome-studio.ts, con i suoi test);
+  // qui vive solo il "quale". La scelta è una MISURA nel DOM, mai una soglia sulla lunghezza del
+  // testo: la larghezza della colonna è fluida e il font è quello reale, esattamente la ragione
+  // per cui `SOGLIA_NOME_LUNGO` era stata rimossa da H2 e non va reintrodotta.
+  const nomeStudio = lavoro?.dentista ?? ''
+  const scalaNome = useMemo(() => costruisciScalaNome(nomeStudio), [nomeStudio])
+  // Lo stato porta con sé il NOME per cui è stato calcolato: se il nome cambia, il gradino
+  // vecchio non si eredita (si riparte dal corpo pieno) senza bisogno di un setState in fase di
+  // render né di un effetto di reset — la derivazione qui sotto lo rende semplicemente inerte.
+  const [scalino, setScalino] = useState<{ nome: string; passo: number }>({ nome: nomeStudio, passo: 0 })
+  const passoNome = scalino.nome === nomeStudio ? Math.min(scalino.passo, scalaNome.length - 1) : 0
+  const gradinoNome = scalaNome[passoNome]
+  // Larghezza dell'ultima misura: distingue «è cambiata la colonna» (motivo VERO per rifare la
+  // scala dall'inizio) da «si è accorciata la scatola perché ho appena cambiato io il corpo»
+  // (nessun motivo: ripartire lì dentro sarebbe un ciclo infinito ResizeObserver ⇄ gradino).
+  // La larghezza del clinico non dipende dal corpo — `width: min(100%, 96px)` in ds-v3.css —
+  // quindi è una chiave esatta per questa distinzione.
+  const larghezzaNota = useRef<number | null>(null)
+  // I font web possono ancora caricare al primo render: la ri-misura a caricamento finito rifà
+  // la scala da capo (le metriche del fallback possono aver fatto scendere un gradino di troppo).
+  // Una volta sola, altrimenti il reset a gradino 0 e la discesa si inseguirebbero all'infinito.
+  //
+  // Review finale whole-branch (I3) — la bandierina segna «la ri-misura È AVVENUTA», non «è
+  // stata prenotata»: è la differenza che teneva morto proprio il caso per cui esiste. Prima la
+  // prenotazione viveva DENTRO l'effetto di misura, e la bandierina si alzava al momento di
+  // prenotare — ma la misura stessa fa scendere la scala, la discesa è un `setScalino` dentro
+  // un layout effect (flush SINCRONO, prima di qualunque microtask), il flush rilancia
+  // l'effetto e la sua pulizia spegne il `vivo` che la `.then` già prenotata controllava.
+  // Quando i font arrivavano davvero, la `.then` usciva subito e la bandierina alzata impediva
+  // al giro nuovo di riprenotarsi: nome rimpicciolito per tutta la sessione anche se col font
+  // vero ci stava a corpo pieno. Ora l'attesa dei font vive in un effetto tutto suo, a
+  // dipendenze vuote (niente lo rilancia, niente lo può spegnere a metà), che si limita ad
+  // accendere `fontsPronte`; la ri-misura è una conseguenza di quello stato, non di una
+  // promessa catturata in una chiusura che nel frattempo è morta.
+  const fontRimisurati = useRef(false)
+  const [fontsPronte, setFontsPronte] = useState(false)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fonts?.ready) return
+    let vivo = true
+    // `setFontsPronte` vive nel callback di un evento ESTERNO (i font che finiscono di
+    // caricare), non è un setState sincrono nel corpo dell'effetto. `vivo` qui è sano: questo
+    // effetto non si rilancia mai (deps vuote), quindi si spegne solo allo smontaggio vero.
+    document.fonts.ready.then(() => {
+      if (vivo) setFontsPronte(true)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [])
+  // H2b (RATIFICA 25/07 sera, decisione d5eeed5, mockup
+  // `2026-07-25-fascia-leggibilita-varianti.html` SOLO variante C) — «budget righe condiviso»:
+  // il paziente arriva fino a 2 righe SOLO quando il clinico ne occupa 1 (v. CSS, selettore
+  // fratello `.ds-cassetta-dent.is-due-righe ~ .ds-cassetta-paz` in ds-v3.css). `dentDueRighe`
+  // è il segnale "il clinico si sta rendendo su 2 righe" — DIVERSO da `dentTroncato` (che dice
+  // "il clinico STA SFORANDO oltre le 2 righe consentite"): un nome che riempie ESATTAMENTE 2
+  // righe senza sforare è già `is-due-righe` (il budget del paziente deve stringersi) ma NON è
+  // `is-troncato` (nessuna sfumatura sul clinico). Misura verbatim dal mockup C (numero di
+  // righe = altezza renderizzata / line-height, arrotondato): `dentTroncato` implica sempre
+  // `dentDueRighe` (per sforare oltre 2 righe bisogna prima averle raggiunte), mai il contrario.
+  const [dentDueRighe, setDentDueRighe] = useState(false)
+  // H2d round 2 (review post-fix, .superpowers/sdd/h2d-discendenti-report.md) —
+  // `useIsomorphicLayoutEffect` (NON `useEffect`): il fix H2d ha dato respiro incondizionato al
+  // clip-path (regola BASE di `.ds-cassetta-dent`/`.ds-cassetta-paz` in ds-v3.css), azzerato
+  // SOLO da `.is-troncato` — ma `useEffect` gira DOPO il paint del browser. Al PRIMISSIMO render
+  // di una cassetta con un nome a 3+ righe, per un frame la classe `is-troncato` non c'è ancora
+  // (`dentTroncato` parte `false`, v. `useState` sopra) mentre il clip-path esteso È già nel CSS
+  // — esattamente lo stato per cui questa stessa indagine ha misurato che una clearance
+  // incondizionata rivela un filo della riga successiva (già a +0.4px, v. report H7/H2d). Prima
+  // del fix H2d, `overflow:hidden` (senza clip-path) copriva anche quel frame — un regressione
+  // introdotta dal fix, non presente prima. `useIsomorphicLayoutEffect` gira PRIMA del paint
+  // (sincrono, subito dopo il commit DOM): la misura/classe sono già corrette al primo frame,
+  // il leak muore per costruzione — SOLO il timing cambia, l'aritmetica (righe intere, H2c)
+  // resta verbatim identica. `document.fonts.ready`/`ResizeObserver` restano invariati: le
+  // RI-misure possono restare post-paint, il caso critico era solo il primo frame.
+  useIsomorphicLayoutEffect(() => {
+    const nodo = dentRef.current
+    if (!nodo) {
+      setDentTroncato(false)
+      setDentDueRighe(false)
+      return
+    }
+    let vivo = true
+    // I3 — i font sono arrivati e la scala era già scesa sulle metriche del ripiego: si riparte
+    // dal corpo pieno PRIMA di misurare, perché con le metriche vere quel gradino potrebbe non
+    // servire più. Una volta sola per montaggio (`fontRimisurati`): senza, ogni discesa
+    // successiva rilancerebbe questo stesso reset e reset e discesa si inseguirebbero senza
+    // fine. Stessa forma del ramo «è cambiata la colonna» del ResizeObserver più sotto — si
+    // esce subito, la misura la fa il giro che il reset stesso innesca.
+    if (fontsPronte && !fontRimisurati.current) {
+      fontRimisurati.current = true
+      if (passoNome > 0) {
+        setScalino({ nome: nomeStudio, passo: 0 })
+        return
+      }
+    }
+    const misura = () => {
+      if (!vivo) return
+      // H2c (verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md`, APPEND
+      // «verifica finale» punto 2b: «leggera sfumatura nella parte inferiore del nome di
+      // alcuni medici» che stanno ESATTAMENTE in 2 righe, senza sforare) — root cause taratura
+      // insufficiente: il confronto originale (`scrollHeight > clientHeight + 1`, un epsilon
+      // fisso di 1px) confrontava due misure che il motore di rendering arrotonda in modo
+      // INDIPENDENTE l'una dall'altra. `line-height: 1.16` (ds-v3.css, `.ds-cassetta-dent`) su
+      // `font-size: 10px` risolve a 11.6px per riga — NON un intero — e `max-height:
+      // calc(2 * 1.16em)` a 23.2px: nessuno dei due è un multiplo esatto del pixel fisico su
+      // DPR frazionari (es. 2.75, comune su Android; anche 1.5/3 accumulano lo stesso effetto
+      // in scala minore). Ogni riga di testo viene arrotondata al pixel-device più vicino
+      // INDIPENDENTEMENTE dall'arrotondamento del box `max-height` che la contiene: su 2 righe
+      // l'errore di quantizzazione può sommarsi oltre l'unico pixel CSS di tolleranza che
+      // avevamo, pur senza NESSUN overflow reale di contenuto — il falso positivo del verbale.
+      // Fix (taratura ancorata alla metrica reale, non un numero magico più grande): invece di
+      // confrontare le due altezze in px, le confrontiamo in UNITÀ DI RIGA — `scrollHeight` e
+      // `clientHeight` divisi per la stessa `lineHeight` del nodo e arrotondati a intero. Un
+      // arrotondamento a riga intera assorbe QUALSIASI rumore sub-pixel di quantizzazione
+      // (che sull'ordine dei centesimi/decimi di pixel non può mai spostare un rapporto di
+      // riga dal proprio intero più vicino), mentre uno sforo REALE di contenuto sposta il
+      // conteggio delle righe di un'unità intera — è la differenza tra "arrotondare 1.02 a 1"
+      // e "arrotondare 1.9 a 2": la prima è rumore, la seconda è un fatto.
+      // In produzione `getComputedStyle(nodo).lineHeight` risolve sempre a un valore in px (il
+      // CSS reale di ds-v3.css è caricato) — verificato via cascata reale renderizzata (v.
+      // report H2b/H2c). In ambienti senza foglio di stile applicato (jsdom nei test unitari,
+      // senza stub esplicito) risolve a un valore non numerico ("normal"): qui il fallback
+      // torna al confronto px puro (`scrollHeight > clientHeight + 1`, comportamento
+      // pre-H2c) — nessun test esistente che stubba solo scrollHeight/clientHeight (senza
+      // lineHeight) cambia risultato.
+      larghezzaNota.current = nodo.getBoundingClientRect().width
+      const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
+      let sfora: boolean
+      if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
+        const righeContenuto = Math.round(nodo.scrollHeight / altezzaRiga)
+        const righeVisibili = Math.round(nodo.clientHeight / altezzaRiga)
+        sfora = righeContenuto > righeVisibili
+        setDentTroncato(sfora)
+        setDentDueRighe(righeVisibili >= 2)
+      } else {
+        sfora = nodo.scrollHeight > nodo.clientHeight + 1
+        setDentTroncato(sfora)
+        setDentDueRighe(false)
+      }
+      // Variante 6 — il gradino successivo si prova SOLO dopo aver aggiornato `is-troncato` qui
+      // sopra, mai al posto suo: durante la discesa la scatola contiene davvero più righe di
+      // quante ne mostri, ed è ESATTAMENTE lo stato in cui H2d ha misurato che il respiro di 1px
+      // del clip-path lascia intravedere un filo della riga successiva. Tenere la sfumatura
+      // accesa mentre si scende costa nulla (il clip torna a filo del bordo, comportamento già
+      // in produzione) e non può innescare un ciclo: `is-troncato` cambia solo clip-path e
+      // mask-image, che non toccano il box model — scrollHeight/clientHeight restano identici.
+      if (sfora && passoNome < scalaNome.length - 1) {
+        setScalino({ nome: nomeStudio, passo: passoNome + 1 })
+      }
+    }
+    misura()
+    // I3 — qui NON si prenota più nulla su `document.fonts.ready`: l'attesa vive nel suo
+    // effetto dedicato (v. `fontsPronte` sopra) e la ri-misura è il ramo in testa a questo
+    // stesso effetto. Prenotare qui significava legare una promessa lunga quanto il
+    // caricamento di un font al `vivo` di un effetto che la propria misura fa rilanciare
+    // subito dopo: la promessa sopravviveva, il suo effetto no.
+    let ro: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        if (!vivo) return
+        // Variante 6 — perché non basta ri-misurare: la scala scende sola ma non risale, e la
+        // stessa cassetta può ricevere PIÙ spazio quando la griglia cambia colonne (3/4/6) senza
+        // smontarsi. Quando cambia la LARGHEZZA si riparte dal corpo pieno; quando la larghezza
+        // è la stessa, l'unico ridimensionamento possibile è quello in ALTEZZA che ho appena
+        // provocato io scendendo di gradino — lì ripartire sarebbe un ciclo infinito.
+        const larghezza = nodo.getBoundingClientRect().width
+        const cambiataLarghezza =
+          larghezzaNota.current === null || Math.abs(larghezza - larghezzaNota.current) > 0.5
+        if (cambiataLarghezza && passoNome > 0) {
+          larghezzaNota.current = larghezza
+          setScalino({ nome: nomeStudio, passo: 0 })
+          return
+        }
+        misura()
+      })
+      ro.observe(nodo)
+    }
+    return () => {
+      vivo = false
+      ro?.disconnect()
+    }
+  }, [nomeStudio, passoNome, scalaNome.length, fontsPronte])
+
+  // H2b — il paziente riusa 1:1 lo STESSO meccanismo del clinico (`is-troncato` misurato in JS
+  // via scrollHeight/clientHeight, nessuna nuova soglia): quando il clinico occupa 2 righe il
+  // CSS (selettore fratello) forza il paziente a 1 riga nowrap con una sfumatura ORIZZONTALE
+  // INCONDIZIONATA (identica a quella che aveva SEMPRE prima di H2b) — in quel regime questa
+  // misura verticale è innocua anche se non "giusta" per quel layout, perché la regola CSS del
+  // fratello ha specificità più alta e vince comunque (v. commento ds-v3.css). Quando il
+  // clinico occupa 1 riga, questa è la misura CORRETTA (overflow verticale sul wrap a 2 righe).
+  const pazRef = useRef<HTMLSpanElement | null>(null)
+  const [pazTroncato, setPazTroncato] = useState(false)
+  // H2d round 2 — stesso `useIsomorphicLayoutEffect` del dent (v. commento esteso sopra) e
+  // stessa ragione: il gemello paziente condivide 1:1 il fix H2d (clip-path condizionale) quindi
+  // condivide lo stesso rischio di leak-al-primo-frame senza questo timing.
+  useIsomorphicLayoutEffect(() => {
+    const nodo = pazRef.current
+    if (!nodo) {
+      setPazTroncato(false)
+      return
+    }
+    let vivo = true
+    const misura = () => {
+      if (!vivo) return
+      // H2c — il rilevatore gemello del paziente condivide LA STESSA debolezza del clinico
+      // (v. commento esteso sopra, sull'effetto `useEffect` di `dentRef`): stessa famiglia di
+      // meccanismo (`scrollHeight`/`clientHeight` misurati in JS), stessa correzione. Il
+      // paziente ha il proprio `line-height` (1.24, diverso da 1.16 del clinico — v.
+      // `.ds-cassetta-paz` in ds-v3.css) quindi si legge `getComputedStyle` sul NODO del
+      // paziente stesso, non si riusa la lineHeight del dent. Fallback identico: senza CSS
+      // reale applicato (jsdom senza stub) si torna al confronto px puro pre-H2c.
+      const altezzaRiga = parseFloat(getComputedStyle(nodo).lineHeight)
+      if (Number.isFinite(altezzaRiga) && altezzaRiga > 0) {
+        const righeContenuto = Math.round(nodo.scrollHeight / altezzaRiga)
+        const righeVisibili = Math.round(nodo.clientHeight / altezzaRiga)
+        setPazTroncato(righeContenuto > righeVisibili)
+      } else {
+        setPazTroncato(nodo.scrollHeight > nodo.clientHeight + 1)
+      }
+    }
+    misura()
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(misura)
+    }
+    let ro: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(misura)
+      ro.observe(nodo)
+    }
+    return () => {
+      vivo = false
+      ro?.disconnect()
+    }
+  }, [lavoro?.paziente, lavoro?.pazienteAlias, dentDueRighe])
 
   function pulisciTimer() {
     if (timer.current) {
@@ -346,6 +693,22 @@ export function Cassetta(props: {
   // standard sono le 6 facce fisse del mockup, mai quasi-nere.
   const nera = !classeColoreStandard && facciaScura(colore)
 
+  // Task 10 (D4) — «parlato» del paziente: l'alias (Task 1) vince sul codice, Title Case solo
+  // sull'alias (mai sul codice, verbatim §6). MAI il numero lavoro né la descrizione/tipo: la
+  // targa dice solo chi e per chi, il dettaglio si apre nella cassetta (verbale §6/§9).
+  const pazienteReso = lavoro
+    ? lavoro.pazienteAlias
+      ? titleCase(lavoro.pazienteAlias)
+      : (lavoro.paziente ?? '—')
+    : ''
+
+  // H2 (0c37f25) — la guardia FIX-L della cavità («oggi tarata su padding-top 66/cavità 18..64;
+  // la nuova è 8..74 + fascia in flusso») è SOSTITUITA dalla fascia ad altezza fissa (72px, v.
+  // `.ds-cassetta-fascia` in ds-v3.css): non c'è più un caso "a rischio" da coprire con una
+  // seconda soglia (`is-nome-lungo`/142) — la fascia riserva SEMPRE lo spazio del caso peggiore,
+  // piena o vuota, nomi corti o estremi. Misure reali (real-render Playwright, matrice
+  // corto/medio/lungo/estremo × occupata/libera) in `.superpowers/sdd/h2-impl-report.md`.
+
   const classi = [
     'ds-cassetta',
     classeColoreStandard,
@@ -353,18 +716,21 @@ export function Cassetta(props: {
     scura ? 'is-chiara' : undefined,
     nera ? 'is-nera' : undefined,
     stato === 'accesa' ? 'is-accesa' : undefined,
-    stato === 'spenta' ? 'is-spenta' : undefined,
     draggable ? 'is-draggable' : undefined,
   ]
     .filter(Boolean)
     .join(' ')
 
-  // SOLO `descrizione` (testo libero scritto da un umano): `tipoDispositivo` è uno slug macchina
-  // (es. "protesi_fissa") che uno screen reader pronuncerebbe alla lettera — meglio un'etichetta
-  // più corta che una che parla in gergo macchina (review Task 10, M5). Nessuna mappa nuova: se
-  // `descrizione` manca, quella parte dell'etichetta si omette, non si sostituisce.
+  // Review finale whole-branch — il numero del lavoro torna nel nome ACCESSIBILE (e solo lì: la
+  // targa dipinta resta senza, invariata). Il ratificato che lo vieta parla della TARGA — «MAI
+  // numero lavoro/tipo in targa», «gemelle: nessun segno in targa» (verbale 24/07 §7/§9) — e la
+  // sua ragione è il budget di due righe, che a un nome accessibile non si applica: qui non c'è
+  // niente da impaginare. Lo stesso verbale indica la ricerca per numero lavoro come IL
+  // disambiguatore fra due gemelle: senza il numero qui, chi ascolta sente due voci identiche e
+  // non ha modo di dirle diverse. Stesso principio già dichiarato in testa a questo file per il
+  // troncamento della targa: è visivo, non semantico.
   const etichetta = lavoro
-    ? `Cassetta ${nome}, occupata: lavoro n.${lavoro.numero}, ${lavoro.dentista}${lavoro.descrizione ? `, ${lavoro.descrizione}` : ''}`
+    ? `Cassetta ${nome}, occupata: n.${lavoro.numero}, ${lavoro.dentista}, paziente ${pazienteReso}`
     : `Cassetta ${nome}, libera`
 
   return (
@@ -384,9 +750,9 @@ export function Cassetta(props: {
         style={{
           background: backgroundCustom,
           // Mockup riga 69: `transition: opacity 200ms` — SOLO opacity, non uno shorthand `all`
-          // (che animerebbe anche l'anello di `accesa`, il `filter: saturate()` di `spenta` e il
-          // background custom). `cssEase.generico` resta la fonte del tempo/easing (v3/motion.ts
-          // §8.1) — NIENTE duration/ease inventati, solo la proprietà è esplicita (review M2).
+          // (che animerebbe anche l'anello di `accesa` e il background custom). `cssEase.generico`
+          // resta la fonte del tempo/easing (v3/motion.ts §8.1) — NIENTE duration/ease inventati,
+          // solo la proprietà è esplicita (review M2).
           transition: `opacity ${cssEase.generico}`,
         }}
         // HTML `draggable` inchiodato a false (§2.2 ricerca): neutralizza il DnD nativo che, avviato
@@ -402,11 +768,81 @@ export function Cassetta(props: {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
       >
+        {/* D1 — gancetto G2 (mockup 2026-07-24-rete-gancetto-targa.html rev.3, verbale
+            docs/design/decisions/2026-07-24-rete-gancetto-targa.md §4): gancio metallico legato
+            alla linguetta `::before` (INVARIATA, spec mockup — "interno = produzione"), che
+            scavalca il filo del muro. SVG inline come le miniature (mai <img>: riattiverebbe il
+            DnD nativo neutralizzato a `draggable={false}` sotto). Nessun filo proprio (rev.3: la
+            meccanica «il gancetto porta il filo» è BOCCIATA — al drag il muro resta fermo, si
+            stacca solo la cassetta). */}
+        <svg
+          className={`ds-gancetto${staccata ? ' is-staccato' : ''}`}
+          aria-hidden="true"
+          viewBox="0 0 28 22"
+        >
+          <defs>
+            <linearGradient id={idMetalloGancetto} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--gan-metal-hi)" />
+              <stop offset=".5" stopColor="var(--gan-metal-mid)" />
+              <stop offset="1" stopColor="var(--gan-metal-lo)" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M12 16 L12 6 C12 2 18 2 18 6.5 L18 9.5"
+            fill="none"
+            stroke={`url(#${idMetalloGancetto})`}
+            strokeWidth={3.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <span className="ds-cassetta-cavita">
-          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} />}
+          {/* H2 (0c37f25) — finestra 8..48 (era 8..74, opzione B: si restringe permanentemente
+              per fare spazio alla fascia fissa): la miniatura scala a ~58% dell'altezza della
+              cavità (40px × 0.58 ≈ 23px, verbatim mockup H2 `.fin svg{height:58%}`), invariata
+              nel resto (SVG inline, mai <img>). */}
+          {lavoro && <MiniaturaLavoro id={miniaturaPerLavoro(lavoro.descrizione, lavoro.tipoDispositivo)} height={23} />}
         </span>
-        <span className="ds-cassetta-targa">{nome}</span>
-        <span className="ds-cassetta-cont">{occupata ? `n.${lavoro.numero} · ${lavoro.dentista}` : 'libera'}</span>
+        {/* FIX-L — «fascia etichetta»: targa+cont vivono dentro questo unico contenitore,
+            identico per libere e occupate (struttura uniforme, ratifica G10). La targa dentro
+            NON perde il segnale di stato (anello/piena — gate Task 10 invariato, v. CSS).
+            H2 (0c37f25) — niente più calcolo `is-shrink`/`SOGLIA_NOME_LUNGO` qui: dent e paz
+            portano SEMPRE lo stesso trattamento, qualunque sia la lunghezza del testo (il CSS
+            in ds-v3.css fa tutto il lavoro — wrap+clamp per il dent, nowrap+sfumatura per il
+            paz). */}
+        <span className="ds-cassetta-fascia">
+          <span className="ds-cassetta-targa">{nome}</span>
+          <span className="ds-cassetta-cont">
+            {lavoro ? (
+              <>
+                {/* Variante 6 — `gradinoNome` è il gradino della scala che ha superato la
+                    misura: testo (intero o senza le parole di categoria in testa) + classe del
+                    corpo. Il `title` compare SOLO quando ciò che si legge non è il nome per
+                    intero — accorciato o sfumato: il nome vero resta comunque nell'`aria-label`
+                    del bottone (sotto), che è la via che leggono gli screen reader e che NON
+                    passa mai dalla scala. Il dato a database non viene toccato da nulla di
+                    tutto questo. */}
+                <span
+                  ref={dentRef}
+                  className={[
+                    'ds-cassetta-dent',
+                    gradinoNome.classeCorpo,
+                    dentDueRighe ? 'is-due-righe' : null,
+                    dentTroncato ? 'is-troncato' : null,
+                  ].filter(Boolean).join(' ')}
+                  title={gradinoNome.testo !== nomeStudio || dentTroncato ? nomeStudio : undefined}
+                >
+                  {gradinoNome.testo}
+                </span>
+                <span ref={pazRef} className={`ds-cassetta-paz${pazTroncato ? ' is-troncato' : ''}`}>
+                  {pazienteReso}
+                </span>
+              </>
+            ) : (
+              'libera'
+            )}
+          </span>
+        </span>
       </button>
     </>
   )

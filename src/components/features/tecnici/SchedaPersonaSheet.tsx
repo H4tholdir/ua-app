@@ -41,6 +41,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { Sheet } from '@/components/ds/Sheet'
 import { CardInfo, RigaDato } from '@/components/ds/CardInfo'
 import { CampoTesto } from '@/components/ds/Campo'
@@ -82,6 +83,10 @@ export function SchedaPersonaSheet(props: {
 }) {
   const { aperto, persona, ruolo, onChiudi } = props
   const router = useRouter()
+  // «Produttività» porta FUORI dalla pagina mentre questo sheet è ancora aperto: navigazione
+  // che parte da dentro un overlay, quindi `navigaDaOverlay` e mai `router.push` nudo (con il
+  // push l'entry dello sheet restava sepolta e costava una pressione back morta — D-1).
+  const navigaDaOverlay = useNavigaDaOverlay()
   const puoGestire = ruolo === 'titolare' || ruolo === 'admin_rete'
 
   const [modalita, setModalita] = useState<'vista' | 'modifica'>('vista')
@@ -202,7 +207,7 @@ export function SchedaPersonaSheet(props: {
             {puoGestire && (
               <>
                 <TastoSecondario onClick={apriModifica}>Modifica</TastoSecondario>
-                <TastoSecondario onClick={() => router.push(`/tecnici/${persona.id}/produttivita`)}>
+                <TastoSecondario onClick={() => navigaDaOverlay(`/tecnici/${persona.id}/produttivita`)}>
                   Produttività
                 </TastoSecondario>
               </>

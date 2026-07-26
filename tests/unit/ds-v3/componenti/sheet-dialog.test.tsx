@@ -1,6 +1,8 @@
 // Budget 15s per il render dell'intera pagina catalogo: vedi il commento nell'helper.
 import '../budget-catalogo'
 import { useState } from 'react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
@@ -45,6 +47,27 @@ vi.mock('@/design-system/v3/sound', () => ({
 vi.mock('@/design-system/v3/haptic', () => ({
   vibra: (tipo: string) => vibraMock(tipo),
 }))
+
+// D9a (FIX-F) — `useDragControls` resta REALE (il vero `DragControls`, con `subscribe`
+// funzionante — il pannello motion.div deve restare draggable per davvero, swipe-to-dismiss
+// incluso): si spia SOLO il metodo `.start`, per provare che il drag parte dal grabber e non dal
+// contenuto — il difetto D9a esatto (scroll interpretato come trascinamento del pannello).
+const dragControlsStartMock = vi.fn()
+vi.mock('motion/react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('motion/react')>()
+  return {
+    ...actual,
+    useDragControls: (...args: Parameters<typeof actual.useDragControls>) => {
+      const controls = actual.useDragControls(...args)
+      const start = controls.start.bind(controls)
+      controls.start = (...startArgs: Parameters<typeof start>) => {
+        dragControlsStartMock(...startArgs)
+        return start(...startArgs)
+      }
+      return controls
+    },
+  }
+})
 
 import { Sheet, deveChiudere } from '@/components/ds/Sheet'
 import { useTapScrim } from '@/components/ds/useTapScrim'
@@ -457,10 +480,11 @@ describe('deveChiudere — soglia dismiss swipe giù (§5.16, §8.2.3)', () => {
   })
 })
 
-describe('Sheet — swipe giù per chiudere, wiring drag (§5.16, §8.2.3)', () => {
+describe('Sheet — swipe giù per chiudere, wiring drag (§5.16, §8.2.3, D9a FIX-F)', () => {
   beforeEach(() => {
     document.body.style.overflow = ''
     document.body.style.paddingRight = ''
+    dragControlsStartMock.mockClear()
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -468,19 +492,53 @@ describe('Sheet — swipe giù per chiudere, wiring drag (§5.16, §8.2.3)', () 
     document.body.style.paddingRight = ''
   })
 
-  it('ramo animato: il pannello è draggable in verticale (Motion imposta touch-action per liberare l\'asse trascinato)', () => {
+  // D9a — root cause: prima del fix, il pannello aveva `drag="y"` con `dragListener` di default
+  // (true), quindi Motion imponeva `touch-action: pan-x` sull'INTERO pannello — anche sulla lista
+  // scrollabile dentro, che su touch interpretava lo swipe verticale come trascinamento del
+  // pannello invece che scroll del contenuto. Il fix (`dragListener={false}` + `dragControls` +
+  // via `useDragControls()`, drag avviato SOLO da `onPointerDown` sul grabber) fa sì che Motion
+  // NON imposti più `touch-action` sul pannello (v. framer-motion `use-props.mjs`: la regola
+  // `props.drag && props.dragListener !== false` non scatta più) — lo scroll nativo torna libero
+  // ovunque tranne che afferrando il grabber.
+  it('il pannello NON impone più touch-action (dragListener={false}): lo scroll nativo del contenuto è libero ovunque tranne il grabber', () => {
     render(
       <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
         <p>Contenuto</p>
       </Sheet>
     )
     const dialog = screen.getByRole('dialog')
-    // Motion applica `touch-action` sull'elemento draggable per lasciare al
-    // browser il controllo dell'asse NON trascinato (drag="y" → pan-x libero,
-    // y catturato dal gesto) — è la prova jsdom-verificabile che `drag="y"`
-    // è effettivamente wired sul pannello (drag stesso non è un attributo DOM).
-    expect(dialog.style.touchAction).toBeTruthy()
-    expect(dialog.style.touchAction).not.toBe('auto')
+    expect(dialog.style.touchAction).toBeFalsy()
+  })
+
+  it('il drag parte SOLO dal grabber: pointerdown lì avvia dragControls.start; pointerdown nel contenuto NO', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto scrollabile</p>
+      </Sheet>
+    )
+    // Pointerdown nel contenuto: NON deve avviare il drag (è lì che lo scroll deve restare nativo).
+    fireEvent.pointerDown(screen.getByText('Contenuto scrollabile'))
+    expect(dragControlsStartMock).not.toHaveBeenCalled()
+
+    // Pointerdown sul grabber: avvia il drag esplicitamente (pattern dragListener=false).
+    const grabber = document.querySelector('.ds-sheet-grabber') as HTMLElement
+    fireEvent.pointerDown(grabber)
+    expect(dragControlsStartMock).toHaveBeenCalledTimes(1)
+  })
+
+  // Con `dragListener={false}` Motion non impone più `touch-action` da solo su NESSUN elemento
+  // (né sul pannello, l'obiettivo di D9a, né sul grabber): il grabber è ora l'UNICO innesco
+  // manuale del drag (`dragControls.start`), quindi deve dichiarare da sé `touch-action: none` —
+  // altrimenti su touch il browser reclama il gesto (scroll/overscroll) prima che il pan session
+  // parta (pattern documentato da Motion per gli elementi-innesco di `useDragControls`).
+  it('il grabber dichiara touch-action:none (innesco manuale del drag — senza, il browser reclama il gesto prima del pan session)', () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <p>Contenuto</p>
+      </Sheet>
+    )
+    const grabber = document.querySelector('.ds-sheet-grabber') as HTMLElement
+    expect(grabber.style.touchAction).toBe('none')
   })
 
   it('ramo reduced-motion: il pannello NON è draggable (drag solo sul ramo animato, §8.4 — documentato in JSDoc)', () => {
@@ -507,6 +565,42 @@ describe('Sheet — swipe giù per chiudere, wiring drag (§5.16, §8.2.3)', () 
     )
     fireEvent.click(screen.getByText('Chiudi'))
     expect(onChiudi).toHaveBeenCalledTimes(1)
+  })
+})
+
+// D9a (FIX-F) — il grabber resta visivamente 36×4 (invariato, v. test "grabber 36×4 presente"
+// sopra): l'area di PRESA (dove parte il drag) si allarga con un ::before invisibile in
+// ds-v3.css, senza toccare il disegno. jsdom non fa layout reale: qui si verifica solo che la
+// regola CSS esista e che la sua estensione dichiarata raggiunga i ≥44px di lato raccomandati
+// (WCAG 2.5.5) — la geometria a schermo resta da confermare su device (v. report).
+describe('Sheet — grabber, area di presa ≥44px (D9a FIX-F, §8.2.3)', () => {
+  it('ds-v3.css dichiara un ::before sul grabber che estende l\'hit-area a ≥44px di lato', () => {
+    const css = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
+    const blocco = css.match(/\.ds-sheet-grabber::before\s*\{([^}]*)\}/)
+    expect(blocco).not.toBeNull()
+    const corpo = blocco![1]
+    const insetMatch = /inset:\s*(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px/.exec(corpo)
+    expect(insetMatch).not.toBeNull()
+    const [, verticaleStr, orizzontaleStr] = insetMatch!
+    const verticale = Math.abs(Number(verticaleStr))
+    const orizzontale = Math.abs(Number(orizzontaleStr))
+    // Grabber visivo: 36×4 (righe 362-371 di Sheet.tsx). L'inset negativo espande simmetricamente
+    // sopra/sotto e a sinistra/destra: altezza finale = 4 + 2·verticale, larghezza = 36 + 2·orizzontale.
+    const altezzaFinale = 4 + 2 * verticale
+    const larghezzaFinale = 36 + 2 * orizzontale
+    expect(altezzaFinale).toBeGreaterThanOrEqual(44)
+    expect(larghezzaFinale).toBeGreaterThanOrEqual(44)
+  })
+
+  // `touch-action` NON si eredita dagli pseudo-elementi: il `touchAction:'none'` inline sul
+  // grabber (Sheet.tsx) copre SOLO la barra visibile 36×4. Senza questa regola sul `::before`, un
+  // dito che atterra nel margine allargato (fuori dalla barra, dentro l'hit-area) lascerebbe il
+  // browser reclamare lo scroll prima che `dragControls.start` prenda il pan session.
+  it('il ::before dell\'hit-area dichiara touch-action:none (il margine allargato deve innescare il drag anche lì, non lo scroll)', () => {
+    const css = readFileSync(join(process.cwd(), 'src/app/ds-v3.css'), 'utf8')
+    const blocco = css.match(/\.ds-sheet-grabber::before\s*\{([^}]*)\}/)
+    expect(blocco).not.toBeNull()
+    expect(blocco![1]).toMatch(/touch-action:\s*none/)
   })
 })
 

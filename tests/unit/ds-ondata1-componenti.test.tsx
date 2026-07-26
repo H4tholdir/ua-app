@@ -14,10 +14,12 @@ describe('Pila — 4ª pila viola (rev. 3.1)', () => {
 
 describe('StrisciaStato — anatomia mockup (forte + azione mai troncata, aria-live)', () => {
   it('è una region viva educata', () => {
-    render(<StrisciaStato forte="Tutto a posto:">nessuna consegna oggi</StrisciaStato>)
+    // Task 16b (D3 §3.4) — «Tutto a posto:» era s9, morto: qui il copy reale del trial (sTrial,
+    // ramo g>3, v. striscia.ts) — un segnale quieto REALE che porta `forte`.
+    render(<StrisciaStato forte="Prova:">mancano 9 giorni</StrisciaStato>)
     const region = screen.getByRole('status')
     expect(region).toHaveAttribute('aria-live', 'polite')
-    expect(screen.getByText('Tutto a posto:')).toBeInTheDocument()
+    expect(screen.getByText('Prova:')).toBeInTheDocument()
   })
   it('la CTA è un link separato dal blocco troncabile', () => {
     render(<StrisciaStato attenzione forte="Fattura n.139" azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>scartata</StrisciaStato>)

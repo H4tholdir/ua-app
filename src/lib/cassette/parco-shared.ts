@@ -10,8 +10,17 @@ export type CassettaParete = {
     numero: string
     dentista: string
     paziente: string
+    pazienteAlias: string | null
     tipoDispositivo: string | null
     descrizione: string | null
+    // FIX-K (G7, ratifica 25/07 — docs/design/decisions/2026-07-24-qa-device-meta-ondata.md,
+    // sezione «Ri-collaudo device #2»): le note di laboratorio, per la ricerca `filtraCassette`
+    // (v. `filtra-cassette.ts`) sulle cassette OCCUPATE. Da `lavori.note_interne` — MAI
+    // `note_dentista`, campo diverso e fuori scope. Un'assegnazione appena fatta via l'overlay
+    // ottimistico di `CassettaSheet.assegnaLavoro` non la conosce ancora (il contratto di `GET
+    // /api/cassette/lavori-liberi`, `LavoroLibero`, non la porta): resta cercabile solo dal
+    // prossimo caricamento vero — residuo dichiarato, non un dato inventato (v. CassettaSheet.tsx).
+    noteInterne: string | null
   } | null
 }
 
@@ -24,8 +33,14 @@ export type RawLavoro = {
   deleted_at: string | null
   descrizione: string | null
   tipo_dispositivo: string | null
+  // FIX-K (G7, ratifica 25/07) — additivo: opzionale (a differenza dei fratelli sopra, che sono
+  // required) per NON forzare un aggiornamento di ogni fixture di test già esistente che non
+  // costruisce questo campo (nessuna di quelle esercita note_interne) — scelta deliberata, non
+  // una svista: `?? null` sotto copre sia `undefined` (assente) sia `null` (nessuna nota) con
+  // lo stesso esito.
+  note_interne?: string | null
   clienti: { studio_nome: string | null; nome: string | null; cognome: string | null } | null
-  pazienti: { codice_paziente: string | null } | null
+  pazienti: { codice_paziente: string | null; nome_cognome: string | null } | null
 }
 
 /** Motivo da passare a `cassetta_libera_atomica` per la riga da riparare
@@ -39,7 +54,25 @@ export type RawLavoro = {
  *  #6 della migration). */
 export type Riparazione = { lavoroId: string; motivo: 'consegna' | 'annullo_lavoro' }
 
-const CHIUSI = new Set(['consegnato', 'annullato'])
+// Esportato (Task 5, §2.5): `GET /api/cassette/lavori-liberi` filtra i lavori vivi con lo
+// STESSO Set, non una copia — «Stati VIVI = non chiusi» è un'unica verità in tutta l'app.
+export const CHIUSI = new Set(['consegnato', 'annullato'])
+
+// Riserva ARCH R4: per i pazienti-wizard senza alias il trigger
+// `sync_paziente_nome_cognome` scrive il CODICE in `nome_cognome` (upper +
+// spazio finale): un rendering ingenuo «alias vince sul codice» mostrerebbe
+// il codice travestito. Alias = nome_cognome trim-normalizzato, null se
+// coincide col codice.
+// Esportata dal Task 5 (§2.5, punto 13): era privata al Task 1 (usata solo qui dentro), ora
+// serve anche a `GET /api/cassette/lavori-liberi` per proiettare `pazienteAlias` — STESSA
+// logica, non una riscritta altrove.
+export function derivaAlias(p: RawLavoro['pazienti']): string | null {
+  const grezzo = p?.nome_cognome?.trim()
+  if (!grezzo) return null
+  const codice = p?.codice_paziente?.trim()
+  if (codice && grezzo.toLowerCase() === codice.toLowerCase()) return null
+  return grezzo
+}
 
 export function deriveParete(
   cassette: RawCassetta[],
@@ -69,11 +102,29 @@ export function deriveParete(
               numero: l.numero_lavoro,
               dentista: l.clienti?.studio_nome ?? (`${l.clienti?.nome ?? ''} ${l.clienti?.cognome ?? ''}`.trim() || '—'),
               paziente: l.pazienti?.codice_paziente ?? '—',
+              pazienteAlias: derivaAlias(l.pazienti),
               tipoDispositivo: l.tipo_dispositivo,
               descrizione: l.descrizione,
+              noteInterne: l.note_interne ?? null,
             }
           : null,
       }
     })
   return { parete, daRiparare }
+}
+
+// Riserva UX 4: le cassette la cui coppia dentista+paziente non è unica
+// sulla parete mostrano il disambiguatore (Task 10). Chiave sul PARLATO
+// della targa (alias se c'è, altrimenti codice), normalizzata lowercase.
+export function targheInCollisione(parete: CassettaParete[]): Set<string> {
+  const perChiave = new Map<string, string[]>()
+  for (const c of parete) {
+    if (!c.lavoro) continue
+    const paz = (c.lavoro.pazienteAlias ?? c.lavoro.paziente).toLowerCase()
+    const chiave = `${c.lavoro.dentista.toLowerCase()}|${paz}`
+    perChiave.set(chiave, [...(perChiave.get(chiave) ?? []), c.id])
+  }
+  const collisioni = new Set<string>()
+  for (const ids of perChiave.values()) if (ids.length > 1) ids.forEach((id) => collisioni.add(id))
+  return collisioni
 }

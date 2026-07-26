@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetta — bordo alto sottile + finestra grande (QA T15 punto G10) · UÀ</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP — G10: «il bordo in alto della cassetta, vicino al gancetto, è
+   sottile e lo spazio vuoto che accoglie l'svg del lavoro è più grande»
+   (riferimento: vecchia visualizzazione di produzione, screenshot 25/07).
+   Base = valori VERBATIM della cassetta v3 attuale (ds-v3.css .ds-cassetta):
+   tile radius 10/10/12/12 · padding 66/10/12 · min-height 132 · finestra
+   (cavità) top 18, h 46 · targa pill 14/800 · righe 11.5px.
+   Ogni variante dichiara nel caption COSA cambia e di quanto. La geometria
+   del gancetto/snap NON cambia in nessuna variante (il gancetto resta dov'è).
+   ==========================================================================*/
+body{margin:0;background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1150px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:880px}
+.legenda{margin:18px 40px 0;padding:18px 22px;background:#FFFEFA;border:1px solid #EBE4D6;border-radius:20px;max-width:960px}
+.legenda li{font-size:13.5px;line-height:1.6;color:#5b5347;margin-bottom:2px}
+.legenda b{color:#1D1913}
+.panel{padding:30px 28px 44px}
+.panel.light{background:#ECE6D9}
+.panel.dark{background:#100E0B;color:#F2EEE7}
+.panel h2{font-size:20px;font-weight:800;margin-bottom:18px}
+.row{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:#7B6A59;text-align:center;max-width:180px;line-height:1.45}
+.panel.dark .cap{color:#928778}
+.cap em{display:block;font-weight:600;font-style:normal;margin-top:2px;color:#6E6457}
+.panel.dark .cap em{color:#A69B8C}
+.cap .warn{display:block;margin-top:3px;font-weight:800;color:#9A5C00}
+
+/* — contesto muro (semplificato, solo per far respirare i tile) — */
+.muro{padding:26px 18px 18px;border-radius:14px;background:#F4F0E7;
+  background-image:repeating-linear-gradient(180deg,rgba(140,126,96,.16) 0 2px,transparent 2px 44px),repeating-linear-gradient(90deg,rgba(140,126,96,.16) 0 2px,transparent 2px 44px)}
+.panel.dark .muro{background:#171411;background-image:repeating-linear-gradient(180deg,rgba(255,255,255,.08) 0 2px,transparent 2px 44px),repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 2px,transparent 2px 44px)}
+
+/* — cassetta base (valori attuali verbatim) — */
+.k{position:relative;width:150px;border-radius:10px 10px 12px 12px;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:66px 10px 12px;min-height:132px;color:#fff;
+  background:linear-gradient(180deg,#2E9C55,#166B39);
+  box-shadow:0 10px 18px -8px rgba(52,42,26,.35), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -14px 18px -10px rgba(0,0,0,.28)}
+.k.rosa{background:linear-gradient(180deg,#D77BC1,#A94A93)}
+.panel.dark .k{box-shadow:0 10px 18px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -14px 18px -10px rgba(0,0,0,.4)}
+/* gancetto stilizzato (invariato in tutte) */
+.k::before{content:'';position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  width:26px;height:22px;border-radius:6px 6px 2px 2px;background:inherit;filter:brightness(1.08)}
+/* finestra (cavità) — attuale: top 18, h 46 */
+.fin{position:absolute;inset:18px 6px auto 6px;height:46px;border-radius:7px;
+  background:rgba(0,0,0,.18);box-shadow:inset 0 3px 6px rgba(0,0,0,.28);
+  display:flex;align-items:center;justify-content:center}
+.fin svg{width:34px;height:34px}
+.targa{position:relative;z-index:1;align-self:center;background:rgba(255,255,255,.92);
+  border-radius:8px;padding:3px 10px 4px;font-size:14px;font-weight:800;color:#1D1913;
+  box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cont{position:relative;z-index:1;text-align:center;margin-top:5px;font-size:11.5px;
+  line-height:1.28;color:rgba(255,255,255,.95);text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.cont b{font-weight:800}
+
+/* — V-A: bordo alto sottile (18→8) + finestra +48% (46→68) — tile 132→150 */
+.vA{padding-top:84px;min-height:150px}
+.vA .fin{inset:8px 6px auto 6px;height:68px}
+.vA .fin svg{width:44px;height:44px}
+
+/* — V-B: bordo sottile + finestra massima (46→88, proporzioni vecchia PWA) — tile 132→170 */
+.vB{padding-top:104px;min-height:170px}
+.vB .fin{inset:8px 6px auto 6px;height:88px}
+.vB .fin svg{width:54px;height:54px}
+
+/* — V-C: layout vecchia PWA — finestra grande, chip A CAVALLO della finestra,
+     sotto n.lavoro + dentista (DEROGA alla targa ratificata) — tile ~176 */
+.vC{justify-content:flex-start;padding-top:76px;min-height:176px}
+.vC .fin{inset:8px 6px auto 6px;height:80px}
+.vC .fin svg{width:50px;height:50px}
+.vC .cont{font-size:12px}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>La cassetta: bordo sottile in alto, finestra più grande</h1>
+  <p>Richiesta G10: avvicinare la cassetta v3 alle proporzioni della vecchia visualizzazione —
+  bordo in alto (vicino al gancetto) sottile, finestra del lavoro più ampia. Tre proposte accanto
+  all'attuale. Il gancetto e l'aggancio alla rete NON cambiano mai; cambia solo la faccia del tile.</p>
+</div>
+<div class="legenda">
+  <ul>
+    <li><b>OGGI</b> — bordo alto 18px, finestra 46px, tile 132px.</li>
+    <li><b>V-A «filo sottile»</b> — bordo alto 18→<b>8px</b>, finestra 46→<b>68px</b> (+48%), tile 132→150px.
+        La targa e le due righe ratificate restano identiche. Cambio misurato, prudente.</li>
+    <li><b>V-B «finestra massima»</b> — bordo 8px, finestra 46→<b>88px</b> (proporzioni della vecchia PWA),
+        tile 132→170px. Targa e righe ratificate identiche. Più vicina allo screenshot di produzione.</li>
+    <li><b>V-C «come la vecchia»</b> — finestra grande e chip <b>a cavallo</b> del bordo della finestra,
+        sotto il numero del lavoro e il dentista come nella produzione attuale.
+        <b>⚠ deroga alla targa ratificata</b> (pill + clinico/paziente): sceglierla = ri-ratificare la targa.</li>
+    <li>Tutte le varianti stanno comode nella traccia da 220px anche nel caso a due righe lunghe
+        (il caso peggiore misurato oggi è ~158px; V-B/V-C arrivano a ~196px stimati — verificato al collaudo).</li>
+  </ul>
+</div>
+
+<div class="panel light">
+  <h2>Light</h2>
+  <div class="muro"><div class="row">
+
+    <div class="cell">
+      <div class="k">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont">Studi Medici Di Santi<br><b>ROSSI M.</b></div>
+      </div>
+      <div class="cap">OGGI<em>bordo 18 · finestra 46 · tile 132</em></div>
+    </div>
+
+    <div class="cell">
+      <div class="k vA">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont">Studi Medici Di Santi<br><b>ROSSI M.</b></div>
+      </div>
+      <div class="cap">V-A — Filo sottile<em>bordo 8 · finestra 68 · tile 150</em></div>
+    </div>
+
+    <div class="cell">
+      <div class="k vB rosa">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C9</span>
+        <div class="cont">Dr. Caterina Di Santi<br><b>BARALE S.</b></div>
+      </div>
+      <div class="cap">V-B — Finestra massima<em>bordo 8 · finestra 88 · tile 170</em></div>
+    </div>
+
+    <div class="cell">
+      <div class="k vC">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont"><b>n.2026/0007</b><br>· STUDI MEDICI…</div>
+      </div>
+      <div class="cap">V-C — Come la vecchia<em>chip a cavallo · n.lavoro sotto</em><span class="warn">⚠ deroga targa ratificata</span></div>
+    </div>
+
+  </div></div>
+</div>
+
+<div class="panel dark">
+  <h2>Dark</h2>
+  <div class="muro"><div class="row">
+    <div class="cell">
+      <div class="k">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont">Studi Medici Di Santi<br><b>ROSSI M.</b></div>
+      </div>
+      <div class="cap">OGGI</div>
+    </div>
+    <div class="cell">
+      <div class="k vA">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont">Studi Medici Di Santi<br><b>ROSSI M.</b></div>
+      </div>
+      <div class="cap">V-A — Filo sottile</div>
+    </div>
+    <div class="cell">
+      <div class="k vB rosa">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C9</span>
+        <div class="cont">Dr. Caterina Di Santi<br><b>BARALE S.</b></div>
+      </div>
+      <div class="cap">V-B — Finestra massima</div>
+    </div>
+    <div class="cell">
+      <div class="k vC">
+        <div class="fin"><svg viewBox="0 0 24 24"><path d="M12 2c-2.5 0-3 1.5-5 1.5S3.5 5 3.5 8c0 2 .8 3.5 1.5 5 .9 1.9 1 8 2.5 8s1.6-5 2.5-5 1.6 5 2.5 5 1.6-6.1 2.5-8c.7-1.5 1.5-3 1.5-5 0-3-1.5-4.5-3.5-4.5S14.5 2 12 2z" fill="#FFFDF5"/></svg></div>
+        <span class="targa">C7</span>
+        <div class="cont"><b>n.2026/0007</b><br>· STUDI MEDICI…</div>
+      </div>
+      <div class="cap">V-C — Come la vecchia</div>
+    </div>
+  </div></div>
+</div>
+</body>
+</html>

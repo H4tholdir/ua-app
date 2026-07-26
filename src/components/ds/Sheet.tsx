@@ -17,11 +17,12 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, animate as animaValore, useMotionValue } from 'motion/react'
+import { motion, AnimatePresence, animate as animaValore, useMotionValue, useDragControls } from 'motion/react'
 import { molla, coreografie, cssEase, useReducedMotion } from '@/design-system/v3/motion'
 import { raggio, spazio, tipografia, materia } from '@/design-system/v3/tokens'
 import { LinkQuieto } from './LinkQuieto'
 import { useTapScrim } from './useTapScrim'
+import { entraOverlay, esciOverlay } from './storia-overlay'
 
 /**
  * deveChiudere — soglia dismiss dello swipe giù (§5.16, §8.2.3): pura, senza
@@ -72,18 +73,62 @@ export function deveChiudere(offsetY: number, velocitaY: number, altezzaPannello
  * verificato live: uno swipe corto finiva comunque quasi fuori schermo).
  * SOLO sul ramo animato: `SheetRidotto` (reduced motion, sotto) non ha drag —
  * è feedback fisico, non essenziale con le animazioni già ridotte a
- * dissolvenza (§8.4); restano comunque scrim/Esc/Chiudi. CAVEAT (documentato
- * per il sotto-progetto 3): l'intero pannello è draggable, contenuto
- * compreso — se in futuro il contenuto avrà scroll interno lungo, drag e
- * scroll verticale "litigheranno" sullo stesso gesto; qui il contenuto demo è
- * corto e non scrolla, quindi non si manifesta. Da risolvere quando servirà
- * (es. `dragListener` solo sul grabber, o soglia di attivazione sul target).
+ * dissolvenza (§8.4); restano comunque scrim/Esc/Chiudi. FIX D9a (QA
+ * device #1, verbale 2026-07-24): il caveat che viveva qui («l'intero
+ * pannello è draggable, contenuto compreso — drag e scroll litigheranno») si
+ * è manifestato appena la lista «Metti un lavoro» ha avuto contenuto
+ * scrollabile — con `dragListener` di default (true) Motion impone
+ * `touch-action: pan-x` sull'INTERO pannello, e su touch lo swipe verticale
+ * dentro la lista veniva letto come trascinamento del pannello, mai come
+ * scroll. Risolto col pattern che il caveat stesso indicava:
+ * `useDragControls()` + `dragListener={false}` sul pannello, drag avviato
+ * SOLO da `onPointerDown` sul grabber (`dragControls.start`, sotto) — Motion
+ * non impone più `touch-action` sul pannello (la regola interna scatta solo
+ * con `dragListener !== false`), lo scroll nativo del contenuto torna libero
+ * ovunque tranne che afferrando il grabber.
  *
  * Portal su `document.body`: essendo l'unico overlay che deve scappare dallo
  * scope del catalogo (e in futuro da qualunque pagina scalata a .96 dal
  * sotto-progetto 3), porta con sé `data-ds="v3"` — eccezione sanzionata alla
  * regola "solo il catalogo lo monta" (constraint 3), perché qui il DOM vive
  * fuori dal subtree del catalogo/pagina.
+ *
+ * G5 (verbale ri-collaudo #2) + C2 (review finale whole-branch) — back del telefono chiude lo
+ * sheet: history-entry marcata `{uaSheet:true}` all'apertura, `popstate` la consuma e chiama
+ * `onChiudi`; alla chiusura esplicita la si disfa con `history.back()`. Dal fix C2 la meccanica
+ * non è più privata di questo componente ma vive in `storia-overlay.ts` — UNA entry per
+ * l'INTERA pila di overlay aperti, con una pila LIFO di chi la usa: a un back reagisce SOLO il
+ * più alto, e l'entry si consuma quando la pila si svuota (v. il modulo per il perché non basta
+ * una entry per overlay). Non interferisce con la catena pushState del pager
+ * (`StanzePager.alPopState`, guardia `window.location.pathname !== '/cassette'` — v. commento
+ * lì): il pop di un'entry di overlay lascia il pathname invariato, il pager resta zitto.
+ *
+ * LIMITE NOTO — consumer che naviga (`router.push`) mentre lo sheet resta aperto (review
+ * FIX-I, G5): due consumatori lo fanno davvero, non solo in teoria — `MenuSchedaSheet.tsx:145`
+ * (verso `/lavori/[id]/modifica`) e `SchedaPersonaSheet.tsx:205` (verso
+ * `/tecnici/[id]/produttivita`) — senza chiudere prima lo sheet. Next impila la LORO entry
+ * SOPRA quella `{uaSheet:true}` di questo componente; alla cleanup successiva (chiusura
+ * esplicita o smontaggio) l'entry in cima non è più la nostra, e il gate
+ * `window.history.state?.uaSheet === true` lo rileva e rinuncia al `history.back()` — non
+ * consuma mai l'entry sbagliata. Quello che resta: la nostra entry `{uaSheet:true}`, ormai
+ * sepolta sotto quella del consumer, non viene mai disfatta esplicitamente — resta appesa in
+ * history finché un back futuro non la attraversa. Innocuo: quel back in più salta un'entry
+ * marcata che non ha più un componente montato ad ascoltarne il popstate, un'entry di history
+ * in eccesso, mai una navigazione invertita rispetto al tap dell'utente. Non risolvibile qui
+ * senza coordinamento fra `Sheet` e il router del consumer (fuori scope di questo fix, che
+ * riguarda solo `Sheet.tsx`).
+ *
+ * DIALOG SOPRA LO SHEET (era un LIMITE NOTO fino al fix C2 — ora è coperto): quando un
+ * `DialogConferma` si apre SOPRA questo sheet restando montato con `aperto` invariato (pattern
+ * `CassettaSheet`: la guardia `onChiudi={() => { if (!dialogAperto) onChiudi() }}`), i due
+ * overlay condividono la stessa entry e la stessa pila (`storia-overlay.ts`). Il primo back
+ * chiude SOLO il dialog e l'entry viene ri-spinta per lo sheet che resta sotto; il secondo
+ * chiude lo sheet e disfa l'entry; il terzo è finalmente della pagina. Prima invece il primo
+ * back consumava l'unica entry esistente senza chiudere niente (la guardia bloccava
+ * `onChiudi`), e il secondo si mangiava l'entry di chi stava sotto — lasciando sheet e dialog
+ * dipinti sopra una stanza diversa. Nessun secondo ref booleano cieco: quello chiuderebbe
+ * ENTRAMBI in un colpo solo, cioè proprio il difetto che la guardia `dialogAperto` esiste per
+ * evitare.
  */
 export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: string; children: ReactNode }) {
   const { aperto, onChiudi, titolo, children } = props
@@ -98,6 +143,11 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
   // swipe (sotto) leggono/scrivono TUTTI questa stessa MotionValue — evita il
   // conflitto fra due sistemi di animazione paralleli sullo stesso `y`.
   const yPannello = useMotionValue(0)
+  // FIX D9a: il drag del pannello parte SOLO dal grabber — `dragListener={false}` sul
+  // motion.div disattiva il listener automatico di Motion (che altrimenti arma il drag da
+  // QUALSIASI pointerdown sul pannello, contenuto scrollabile incluso); `dragControls.start`
+  // sull'`onPointerDown` del grabber (sotto) lo riattiva SOLO da lì.
+  const dragControls = useDragControls()
 
   // Collaudo R3 (P9): lo scrim chiude solo se il gesto è NATO sullo scrim — il click orfano che
   // Chrome Android ri-hit-testa sull'overlay appena montato (ghost click) viene ignorato. Vale per
@@ -113,6 +163,39 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [aperto, onChiudi])
+
+  // G5 (verbale ri-collaudo #2) — il gesto back del telefono deve CHIUDERE lo sheet, non
+  // navigare sotto. Pattern history-entry standard dei bottom sheet: all'apertura si pusha
+  // un'entry «leggera» marcata `{ uaSheet: true }`; un popstate la consuma e chiude SOLO lo
+  // sheet; alla chiusura esplicita (scrim/grabber/Esc/«Chiudi»/azione completata — tutte
+  // instradano su `onChiudi`, mai duplicate qui) si fa `history.back()` SOLO se l'entry è
+  // ancora quella in cima (`entryInCimaRef`), così non si consuma un'entry altrui.
+  //
+  // `onChiudiRef` (non `onChiudi` nudo nelle deps sotto): `onChiudi` è quasi sempre una
+  // chiusura inline ricreata a ogni render del chiamante (es. CassettaSheet:
+  // `onChiudi={() => { if (!dialogAperto) onChiudi() }}`) — se l'effect dipendesse da
+  // `onChiudi` si ri-registrerebbe (e ri-pusherebbe/pop-erebbe una entry) a OGNI keystroke
+  // di un campo dentro lo sheet, non solo all'apertura/chiusura vera. L'effect sotto dipende
+  // SOLO da `aperto`: apre/chiude l'entry esattamente una volta per ciclo di vita dello sheet.
+  const onChiudiRef = useRef(onChiudi)
+  useEffect(() => {
+    onChiudiRef.current = onChiudi
+  }, [onChiudi])
+
+  // C2 (review finale whole-branch) — la meccanica di push/pop non vive più QUI: è delegata a
+  // `storia-overlay.ts`, che tiene UNA sola entry per l'intera pila di overlay aperti e una
+  // pila LIFO di chi la usa. Motivo: quando un `DialogConferma` si apre SOPRA questo sheet
+  // (pattern `CassettaSheet`), due meccaniche indipendenti non sanno l'una dell'altra — la
+  // vecchia versione consumava l'unica entry esistente al primo back, non chiudeva nulla (la
+  // guardia `dialogAperto` del compositore bloccava `onChiudi`) e lasciava il back successivo
+  // a mangiarsi l'entry di chi sta sotto. Il ragionamento completo (incluso perché NON una
+  // entry per overlay) è nel modulo. Da qui si vede solo il contratto: entra, esce, e la
+  // chiusura arriva quando è il TURNO di questo sheet.
+  useEffect(() => {
+    if (!aperto) return
+    const token = entraOverlay('uaSheet', () => onChiudiRef.current())
+    return () => esciOverlay(token)
+  }, [aperto])
 
   // Blocco scroll "esteso" (bug QA live Francesco): il body deve restare
   // bloccato per TUTTA la discesa del pannello, non solo mentre `aperto` è
@@ -217,7 +300,16 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
 
   const contenutoDialog = (
     <>
-      <div className="ds-sheet-grabber" aria-hidden="true" style={grabberStile} />
+      {/* FIX D9a: `onPointerDown` avvia il drag SOLO da qui (`dragControls.start`) — nel ramo
+          ridotto (`SheetRidotto`, niente drag) è un no-op innocuo: `dragControls.start` non
+          trova nessun `motion.div` iscritto (v. framer-motion `DragControls.start`, che itera
+          un Set vuoto) e non fa nulla. */}
+      <div
+        className="ds-sheet-grabber"
+        aria-hidden="true"
+        style={grabberStile}
+        onPointerDown={(e) => dragControls.start(e)}
+      />
       {titolo && <h2 id={titoloId} style={titoloStile}>{titolo}</h2>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: spazio.m }}>{children}</div>
       <div style={{ marginTop: spazio.l, display: 'flex', justifyContent: 'center' }}>
@@ -257,6 +349,8 @@ export function Sheet(props: { aperto: boolean; onChiudi: () => void; titolo?: s
             animate={coreografie.sheetSu.animate}
             exit={coreografie.sheetSu.exit}
             drag="y"
+            dragListener={false}
+            dragControls={dragControls}
             dragConstraints={{ top: 0 }}
             dragElastic={0.15}
             dragMomentum={false}
@@ -368,6 +462,12 @@ const grabberStile: CSSProperties = {
   height: 4,
   borderRadius: raggio.pill,
   background: 'var(--line)',
+  // D9a (FIX-F): con `dragListener={false}` Motion NON impone più `touch-action` da solo (né sul
+  // pannello — l'obiettivo — né sul grabber). Il grabber è ora l'UNICO innesco manuale del drag
+  // (`dragControls.start` sul suo `onPointerDown`): senza `touch-action: none` qui, su touch il
+  // browser reclamerebbe il gesto (scroll/overscroll) prima che il pan session parta, esattamente
+  // come documentato dal pattern `useDragControls` di Motion per gli elementi-innesco.
+  touchAction: 'none',
 }
 
 const titoloStile: CSSProperties = {

@@ -50,7 +50,9 @@ Ridisegnare completamente la dashboard principale di UÀ per:
 ### Dark mode (carbonio caldo — identici a admin.css)
 
 ```css
---bg:     #1A1916   /* carbonio warm — NON #1E1E1E neutro */
+--bg:     #171411   /* ⚠️ era #1A1916 fino al 26/07/2026 — fondo unico con la v3,
+                       RATIFICA in docs/design/decisions/2026-07-26-sfondo-unico.md.
+                       Resta warm: MAI #1E1E1E neutro */
 --sfc:    #222019
 --elv:    #2C2A27
 --prs:    #121110
@@ -82,7 +84,8 @@ Ridisegnare completamente la dashboard principale di UÀ per:
 ### Regole assolute dark mode
 
 - MAI `border: 1px solid rgba(255,255,255,.08)` come sostituto delle ombre
-- MAI sfondo neutro `#1E1E1E` — usare sempre `#1A1916` warm
+- MAI sfondo neutro `#1E1E1E` — usare sempre il carbonio warm (`#171411` dal 26/07/2026,
+  era `#1A1916`; v. `docs/design/decisions/2026-07-26-sfondo-unico.md`)
 - MAI testo `#CCC` o `#DDD` — usare `#F0EDE8` avorio
 - Le ombre fanno tutto il lavoro di separazione tra livelli
 - Il rosso in dark è `#E8001A` (non `#D90012`)

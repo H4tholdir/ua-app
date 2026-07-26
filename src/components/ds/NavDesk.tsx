@@ -26,8 +26,10 @@ import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { StrisciaStato } from './StrisciaStato'
 import { segnaPareteIntroVista } from '@/lib/preferenze/segna-parete-intro'
+import { useRaccontoVisto } from '@/hooks/useRaccontoVisto'
 import { Avatar } from './Avatar'
 import { DialogConferma } from './DialogConferma'
+import { useNavigaDaOverlay } from './useNavigaDaOverlay'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import type { SegnaleStriscia } from '@/lib/dashboard/striscia'
 import type { Pila } from '@/lib/lavori/urgenza'
@@ -212,18 +214,29 @@ export function NavDesk(props: {
   identita?: { nome: string; lab: string } | null
 }) {
   const { conteggi, pilaSelezionata, segnale, identita } = props
-  const router = useRouter()
+  const navigaDaOverlay = useNavigaDaOverlay()
   const [dialogEsciAperto, setDialogEsciAperto] = useState(false)
 
-  // Pattern IDENTICO a TuttoIlResto.tsx (Task 8, O1i-1) / UserProfileSheet —
-  // stesso import `getBrowserClient`, stessa sequenza signOut → push('/login').
+  // Task 16b, punto 5/6 (D3 §3.4) — stesso `segnale` di HomeV3 (montano insieme, il CSS decide
+  // chi si vede — v. dashboard/page.tsx): stesso trattamento, silenzio dal server o racconto già
+  // visto nascondono la striscia allo stesso modo.
+  const raccontoGiaVisto = useRaccontoVisto(segnale.eventoId)
+  const nascondiStriscia = segnale.silenzio || raccontoGiaVisto
+
+  // Pattern IDENTICO a TuttoIlResto.tsx (Task 8, O1i-1) — stesso import
+  // `getBrowserClient`, stessa sequenza signOut → rotta `/login`.
   // Niente `suona()`/`vibra()` qui: il feedback del tap è già di TastoPrimario
   // dentro DialogConferma.
+  // Il logout CHIUDE la pagina e ne apre un'altra mentre il `DialogConferma` è ancora montato:
+  // è una navigazione che parte da dentro un overlay, quindi passa da `navigaDaOverlay` e mai
+  // da `router.push` nudo. Col push l'entry del dialog restava sepolta sotto `/login` e al
+  // ritorno costava una pressione back MORTA (D-1, misurato in browser il 26/07/2026); con la
+  // cessione dell'entry la destinazione la SOSTITUISCE e il conto torna.
   const logout = useCallback(async () => {
     const sb = getBrowserClient()
     await sb.auth.signOut()
-    router.push('/login')
-  }, [router])
+    navigaDaOverlay('/login')
+  }, [navigaDaOverlay])
 
   return (
     <aside style={{ background: 'var(--bg-deep)', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 20, overflow: 'hidden' }}>
@@ -250,9 +263,19 @@ export function NavDesk(props: {
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {identita && <RigaIdentita identita={identita} onEsci={() => setDialogEsciAperto(true)} />}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={segnale.azione} onAzione={segnale.intro ? segnaPareteIntroVista : undefined}>
-          {segnale.testo}
-        </StrisciaStato>
+        {!nascondiStriscia && (
+          <StrisciaStato
+            attenzione={segnale.attenzione}
+            forte={segnale.forte}
+            tono={segnale.tono}
+            azione={segnale.azione}
+            altri={segnale.altri}
+            eventoId={segnale.eventoId}
+            onAzione={segnale.intro ? segnaPareteIntroVista : undefined}
+          >
+            {segnale.testo}
+          </StrisciaStato>
+        )}
       </div>
 
       {identita && (

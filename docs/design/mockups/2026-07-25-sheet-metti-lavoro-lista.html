@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet «Metti un lavoro» — redesign lista (QA T15 punto D9) · UÀ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   MOCKUP — Redesign della lista «Metti un lavoro» nello sheet cassetta
+   (fix-list ri-collaudo #1, punto D9: «la lista dei lavori dobbiamo rivederla
+   per permettere di identificare meglio il lavoro»).
+
+   Dati DISPONIBILI oggi dal contratto GET /api/cassette/lavori-liberi:
+     numero · dentista · pazienteAlias (può mancare) · urgenza (0 = tranquillo,
+     >0 = in ritardo/urgente). NIENTE data di consegna nel payload attuale:
+     la variante che la mostra è marcata (†) e richiede di estendere la route.
+
+   3 varianti × light/dark, sheet a 390px. La ricerca in testa è contesto.
+   ==========================================================================*/
+.ds{
+  --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+  --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+  --red:#D90012; --red-dark:#A5000E;
+  --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+  --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+  --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+  --font-v3:'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family:var(--font-v3); color:var(--ink);
+}
+.ds.dark{
+  --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+  --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+  --red:#FF3B44; --red-dark:#8F0910;
+  --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+  --red-tint:rgba(255,59,68,.14); --amber-tint:rgba(232,161,61,.14);
+  --blue-tint:rgba(91,155,255,.14); --green-tint:rgba(52,196,104,.14);
+  --sh-card:none;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#E7E1D4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1913}
+.doc-head{padding:34px 40px 8px;max-width:1200px}
+.doc-head h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px}
+.doc-head p{font-size:15px;line-height:1.55;color:#5b5347;max-width:860px}
+.legenda{margin:18px 40px 0;padding:18px 22px;background:#FFFEFA;border:1px solid #EBE4D6;border-radius:20px;max-width:940px;box-shadow:0 10px 24px -18px rgba(50,40,25,.4)}
+.legenda h3{font-size:15px;font-weight:800;margin-bottom:6px}
+.legenda ul{margin:6px 0 0 18px}
+.legenda li{font-size:13.5px;line-height:1.6;color:#5b5347;margin-bottom:2px}
+.legenda b{color:#1D1913}
+.panel{padding:30px 28px 40px;background:var(--bg-deep);color:var(--ink)}
+.panel h2{font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px}
+.panel .h-sub{font-size:13.5px;color:var(--muted);margin-bottom:22px}
+.row{display:flex;gap:26px;align-items:flex-start;overflow-x:auto;padding-bottom:10px}
+.cell{display:flex;flex-direction:column;gap:10px;align-items:center;flex:none}
+.cap{font-size:12.5px;font-weight:700;color:var(--faint);text-align:center;letter-spacing:.02em;max-width:390px}
+.cap em{display:block;font-weight:600;font-style:normal;color:var(--muted);margin-top:2px}
+
+/* ---- Lo sheet (contesto, 390px) ---------------------------------------- */
+.sheet{
+  width:390px; height:640px; background:var(--card); border:1px solid var(--line);
+  border-radius:28px 28px 0 0; padding:14px 20px 0; display:flex; flex-direction:column;
+  box-shadow:var(--sh-card); overflow:hidden;
+}
+.maniglia{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+.sheet h4{font-size:24px;font-weight:800;letter-spacing:-0.02em}
+.torna{font-size:14px;font-weight:700;color:var(--muted);text-decoration:underline;margin:8px 0 12px;display:inline-block}
+.cerca-lab{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.cerca{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:16px;
+  padding:12px 14px;font-size:15.5px;color:var(--faint);background:var(--bg);margin-bottom:14px;flex:none}
+.lista{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding-bottom:16px}
+.conta{font-size:12.5px;font-weight:700;color:var(--faint);margin-bottom:2px}
+
+/* ==== V1 — «Due piani» ==================================================== */
+.v1-riga{min-height:56px;border-radius:16px;background:var(--bg);border:1px solid var(--line);
+  padding:9px 14px;display:flex;align-items:center;gap:12px}
+.v1-testo{flex:1;min-width:0}
+.v1-num{font-size:15.5px;font-weight:800;letter-spacing:-0.01em}
+.v1-sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.v1-sub b{color:var(--ink);font-weight:700}
+.v1-urg{flex:none;width:10px;height:10px;border-radius:50%;background:var(--red)}
+.v1-urg.no{background:transparent;border:1.5px solid var(--line)}
+
+/* ==== V2 — «Targhetta» (linguaggio della targa cassetta) ================== */
+.v2-riga{min-height:60px;border-radius:16px;background:var(--bg);border:1px solid var(--line);
+  padding:9px 12px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
+.v2-riga.urg{background:var(--red-tint);border-color:color-mix(in srgb, var(--red) 30%, var(--line))}
+.v2-chip{flex:none;font-size:13px;font-weight:800;border:2px solid var(--ink);border-radius:10px;
+  padding:4px 8px;letter-spacing:.01em;background:var(--card)}
+.v2-riga.urg .v2-chip{border-color:var(--red);color:var(--red)}
+.v2-testo{flex:1;min-width:0;line-height:1.25}
+.v2-paz{font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v2-paz.manca{font-weight:600;color:var(--faint)}
+.v2-den{font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v2-urg-lab{flex:none;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--red)}
+
+/* ==== V3 — «Sezioni per urgenza» ========================================= */
+.v3-sez{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--red);
+  margin:4px 0 0;display:flex;align-items:center;gap:8px}
+.v3-sez.calmi{color:var(--faint)}
+.v3-sez::after{content:'';flex:1;height:1px;background:var(--line)}
+.v3-riga{min-height:52px;border-radius:14px;background:var(--bg);border:1px solid var(--line);
+  padding:8px 14px;display:flex;align-items:baseline;gap:10px}
+.v3-riga.urg{border-left:4px solid var(--red)}
+.v3-num{font-size:14px;font-weight:800;flex:none}
+.v3-resto{flex:1;min-width:0;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v3-resto b{color:var(--ink);font-weight:800}
+.v3-gg{flex:none;font-size:12px;font-weight:800;color:var(--red)}
+</style>
+</head>
+<body>
+<div class="doc-head">
+  <h1>Sheet «Metti un lavoro» — la lista che si fa riconoscere</h1>
+  <p>Oggi ogni riga è «n.STOR/2018/002 · DI SANTI CATERINA»: numero e dentista sulla stessa riga,
+  tutto uguale, niente paziente, niente urgenza. Tre proposte per identificare il lavoro al primo
+  colpo d'occhio. Dati già disponibili: <b>numero · dentista · alias paziente · urgenza</b>.</p>
+</div>
+<div class="legenda">
+  <h3>Come leggere le varianti</h3>
+  <ul>
+    <li><b>V1 «Due piani»</b> — stessa pillola di oggi, ma numero in alto (grassetto) e sotto
+        paziente <b>in grassetto</b> + dentista in tono medio. Pallino rosso = urgente. Cambio minimo.</li>
+    <li><b>V2 «Targhetta»</b> — il numero vive in un chip col bordo, come la targa sulla cassetta:
+        stesso linguaggio della parete (clinico regular + paziente bold). Riga urgente = tinta rossa.</li>
+    <li><b>V3 «Sezioni per urgenza»</b> — prima gli urgenti sotto l'intestazione rossa, poi gli
+        altri. Bordo sinistro rosso e conteggio giorni (†) sugli urgenti.</li>
+    <li>(†) il «da N gg» di V3 richiede di aggiungere un campo alla route
+        <b>/api/cassette/lavori-liberi</b> — oggi c'è solo il flag di urgenza.</li>
+    <li>Tutte: hit area ≥ 44px, paziente può mancare (si mostra «— nessun paziente»), light + dark.</li>
+  </ul>
+</div>
+
+<!-- =========================== LIGHT =========================== -->
+<div class="panel ds">
+  <h2>Light</h2>
+  <div class="h-sub">Sheet a 390px · dati simulati realistici (seed E2E)</div>
+  <div class="row">
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="conta">7 lavori senza cassetta</div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0007</div><div class="v1-sub"><b>ROSSI M.</b> · Studi Medici Di Santi</div></div><span class="v1-urg"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0002</div><div class="v1-sub"><b>BARALE S.</b> · Dr. Caterina Di Santi</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0004</div><div class="v1-sub">— nessun paziente · C.O.M. s.r.l.</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.STOR/2021/006</div><div class="v1-sub"><b>GRECO A.</b> · Studi Medici Di Santi</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.STOR/2020/004</div><div class="v1-sub"><b>FERRARO L.</b> · Studi Medici Di Santi</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.STOR/2019/015</div><div class="v1-sub">— nessun paziente · C.O.M. s.r.l.</div></div><span class="v1-urg no"></span></div>
+        </div>
+      </div>
+      <div class="cap">V1 — Due piani<em>numero sopra, paziente in grassetto sotto · pallino = urgente</em></div>
+    </div>
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="conta">7 lavori senza cassetta</div>
+          <div class="v2-riga urg"><span class="v2-chip">2026/0007</span><div class="v2-testo"><div class="v2-paz">ROSSI M.</div><div class="v2-den">Studi Medici Di Santi</div></div><span class="v2-urg-lab">Urgente</span></div>
+          <div class="v2-riga"><span class="v2-chip">2026/0002</span><div class="v2-testo"><div class="v2-paz">BARALE S.</div><div class="v2-den">Dr. Caterina Di Santi</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">2026/0004</span><div class="v2-testo"><div class="v2-paz manca">— nessun paziente</div><div class="v2-den">C.O.M. s.r.l.</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">STOR/21/006</span><div class="v2-testo"><div class="v2-paz">GRECO A.</div><div class="v2-den">Studi Medici Di Santi</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">STOR/20/004</span><div class="v2-testo"><div class="v2-paz">FERRARO L.</div><div class="v2-den">Studi Medici Di Santi</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">STOR/19/015</span><div class="v2-testo"><div class="v2-paz manca">— nessun paziente</div><div class="v2-den">C.O.M. s.r.l.</div></div></div>
+        </div>
+      </div>
+      <div class="cap">V2 — Targhetta<em>numero nel chip come la targa cassetta · urgente = riga tinta</em></div>
+    </div>
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="v3-sez">Urgenti · 1</div>
+          <div class="v3-riga urg"><span class="v3-num">n.2026/0007</span><span class="v3-resto"><b>ROSSI M.</b> · Studi Medici Di Santi</span><span class="v3-gg">da 3 gg †</span></div>
+          <div class="v3-sez calmi">Gli altri · 6</div>
+          <div class="v3-riga"><span class="v3-num">n.2026/0002</span><span class="v3-resto"><b>BARALE S.</b> · Dr. Di Santi</span></div>
+          <div class="v3-riga"><span class="v3-num">n.2026/0004</span><span class="v3-resto">— · C.O.M. s.r.l.</span></div>
+          <div class="v3-riga"><span class="v3-num">n.STOR/2021/006</span><span class="v3-resto"><b>GRECO A.</b> · Studi Medici</span></div>
+          <div class="v3-riga"><span class="v3-num">n.STOR/2020/004</span><span class="v3-resto"><b>FERRARO L.</b> · Studi Medici</span></div>
+          <div class="v3-riga"><span class="v3-num">n.STOR/2019/015</span><span class="v3-resto">— · C.O.M. s.r.l.</span></div>
+        </div>
+      </div>
+      <div class="cap">V3 — Sezioni per urgenza<em>prima gli urgenti · «da N gg» richiede campo API (†)</em></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =========================== DARK =========================== -->
+<div class="panel ds dark">
+  <h2>Dark</h2>
+  <div class="h-sub">Dark = flat: niente ombre, superfici più chiare + hairline</div>
+  <div class="row">
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="conta">7 lavori senza cassetta</div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0007</div><div class="v1-sub"><b>ROSSI M.</b> · Studi Medici Di Santi</div></div><span class="v1-urg"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0002</div><div class="v1-sub"><b>BARALE S.</b> · Dr. Caterina Di Santi</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.2026/0004</div><div class="v1-sub">— nessun paziente · C.O.M. s.r.l.</div></div><span class="v1-urg no"></span></div>
+          <div class="v1-riga"><div class="v1-testo"><div class="v1-num">n.STOR/2021/006</div><div class="v1-sub"><b>GRECO A.</b> · Studi Medici Di Santi</div></div><span class="v1-urg no"></span></div>
+        </div>
+      </div>
+      <div class="cap">V1 — Due piani</div>
+    </div>
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="conta">7 lavori senza cassetta</div>
+          <div class="v2-riga urg"><span class="v2-chip">2026/0007</span><div class="v2-testo"><div class="v2-paz">ROSSI M.</div><div class="v2-den">Studi Medici Di Santi</div></div><span class="v2-urg-lab">Urgente</span></div>
+          <div class="v2-riga"><span class="v2-chip">2026/0002</span><div class="v2-testo"><div class="v2-paz">BARALE S.</div><div class="v2-den">Dr. Caterina Di Santi</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">2026/0004</span><div class="v2-testo"><div class="v2-paz manca">— nessun paziente</div><div class="v2-den">C.O.M. s.r.l.</div></div></div>
+          <div class="v2-riga"><span class="v2-chip">STOR/21/006</span><div class="v2-testo"><div class="v2-paz">GRECO A.</div><div class="v2-den">Studi Medici Di Santi</div></div></div>
+        </div>
+      </div>
+      <div class="cap">V2 — Targhetta</div>
+    </div>
+
+    <div class="cell">
+      <div class="sheet">
+        <div class="maniglia"></div>
+        <h4>C9</h4>
+        <span class="torna">← Le altre azioni</span>
+        <div class="cerca-lab">Cerca</div>
+        <div class="cerca">numero, dentista, paziente…</div>
+        <div class="lista">
+          <div class="v3-sez">Urgenti · 1</div>
+          <div class="v3-riga urg"><span class="v3-num">n.2026/0007</span><span class="v3-resto"><b>ROSSI M.</b> · Studi Medici Di Santi</span><span class="v3-gg">da 3 gg †</span></div>
+          <div class="v3-sez calmi">Gli altri · 6</div>
+          <div class="v3-riga"><span class="v3-num">n.2026/0002</span><span class="v3-resto"><b>BARALE S.</b> · Dr. Di Santi</span></div>
+          <div class="v3-riga"><span class="v3-num">n.2026/0004</span><span class="v3-resto">— · C.O.M. s.r.l.</span></div>
+          <div class="v3-riga"><span class="v3-num">n.STOR/2021/006</span><span class="v3-resto"><b>GRECO A.</b> · Studi Medici</span></div>
+        </div>
+      </div>
+      <div class="cap">V3 — Sezioni per urgenza</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -65,7 +65,11 @@ export async function getParete(svc: SupabaseClient, labId: string): Promise<Cas
   // esplicito.
   const { data: lavori, error: errLavori } = ids.length
     ? await svc.from('lavori')
-        .select('id, numero_lavoro, stato, deleted_at, descrizione, tipo_dispositivo, clienti(studio_nome, nome, cognome), pazienti(codice_paziente)')
+        // FIX-K (G7, ratifica 25/07 — docs/design/decisions/2026-07-24-qa-device-meta-ondata.md,
+        // sezione «Ri-collaudo device #2») — `note_interne` additivo: SELECT in più sulla STESSA
+        // riga già autorizzata (`laboratorio_id`/`in('id', ids)` invariati, RLS invariata), serve
+        // a `filtraCassette` per la ricerca sulle note di laboratorio (v. `filtra-cassette.ts`).
+        .select('id, numero_lavoro, stato, deleted_at, descrizione, tipo_dispositivo, note_interne, clienti(studio_nome, nome, cognome), pazienti(codice_paziente, nome_cognome)')
         .eq('laboratorio_id', labId).in('id', ids)
     : { data: [] as RawLavoro[], error: null }
   if (errLavori) console.error('[getParete] lettura lavori fallita:', errLavori)

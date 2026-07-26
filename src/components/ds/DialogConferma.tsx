@@ -8,7 +8,7 @@
 // esplicito della conferma: è un contratto del chiamante, non verificabile a
 // runtime (come le altre regole "di legge" del design system — solo JSDoc).
 
-import { useEffect, useId, type CSSProperties } from 'react'
+import { useEffect, useId, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { molla, useReducedMotion } from '@/design-system/v3/motion'
@@ -16,6 +16,7 @@ import { tipografia, spazio, raggio, materia } from '@/design-system/v3/tokens'
 import { TastoPrimario } from './TastoPrimario'
 import { TastoSecondario } from './TastoSecondario'
 import { useTapScrim } from './useTapScrim'
+import { entraOverlay, esciOverlay } from './storia-overlay'
 
 /**
  * DialogConferma — conferma distruttiva centrata (§5.17).
@@ -82,6 +83,27 @@ export function DialogConferma(props: {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [aperto, onAnnulla])
+
+  // C2 (review finale whole-branch) — il back del telefono deve ANNULLARE questo dialog, mai
+  // attraversarlo per navigare sotto (direttiva permanente «back = pagina precedente,
+  // OVUNQUE»: la pagina precedente di un dialog aperto è la pagina SENZA il dialog). Mai
+  // `onConferma`: un gesto di ritorno non conferma un'azione distruttiva.
+  // La meccanica di history vive in `storia-overlay.ts` — UNA entry per l'intera pila di
+  // overlay, a un back reagisce solo il più alto. È così che un dialog aperto SOPRA uno
+  // `Sheet` (pattern `CassettaSheet`) si chiude da solo lasciando lo sheet aperto sotto,
+  // invece di consumargli l'entry sotto il naso (v. il modulo, e il commento in `Sheet.tsx`).
+  // `onAnnullaRef`: `onAnnulla` è quasi sempre una closure inline ricreata a ogni render del
+  // chiamante — se l'effect ne dipendesse, ri-registrerebbe (e ri-spingerebbe) un'entry a ogni
+  // render. L'effect dipende SOLO da `aperto`, il ref insegue il callback più recente.
+  const onAnnullaRef = useRef(onAnnulla)
+  useEffect(() => {
+    onAnnullaRef.current = onAnnulla
+  }, [onAnnulla])
+  useEffect(() => {
+    if (!aperto) return
+    const token = entraOverlay('uaDialog', () => onAnnullaRef.current())
+    return () => esciOverlay(token)
+  }, [aperto])
 
   if (typeof document === 'undefined') return null
 

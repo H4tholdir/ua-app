@@ -74,18 +74,26 @@ export function AdminHomePreview(props: { nome: string; eyebrow: string; saluto:
         </h1>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        {/* azione SEMPRE null qui: il segnale reale può portare una CTA verso
-            una route tenant (es. `/fatture/[id]`) — in questa vista quella CTA
-            non deve mai comparire, si legge solo lo stato. `tono` invece si
-            propaga (O1i): è stato visivo puro, non naviga — oggi resta sempre
-            undefined perché `getSegnaleStriscia` non popola `trial` (v.
-            striscia.ts), ma se in futuro lo facesse l'anteprima deve restare
-            fedele a "esattamente ciò che vede il titolare". */}
-        <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} azione={null}>
-          {segnale.testo}
-        </StrisciaStato>
-      </div>
+      {/* Task 16b, punto 5 (D3 §3.4) — silenzio: qui basta `segnale.silenzio`, nessun dedup da
+          wirare. `getSegnaleStriscia` (v. la NB sopra `leggiLiberazioneRecente` in
+          striscia.ts) non può MAI emettere sRaccontoLiberazione/sPareteIntro per questa
+          anteprima — dipendono da ingressi che solo la home reale passa — quindi `eventoId` è
+          sempre assente qui: `useRaccontoVisto` sarebbe sempre un no-op, non vale la pena
+          wirarlo. */}
+      {!segnale.silenzio && (
+        <div style={{ marginTop: 16 }}>
+          {/* azione SEMPRE null qui: il segnale reale può portare una CTA verso
+              una route tenant (es. `/fatture/[id]`) — in questa vista quella CTA
+              non deve mai comparire, si legge solo lo stato. `tono` invece si
+              propaga (O1i): è stato visivo puro, non naviga — oggi resta sempre
+              undefined perché `getSegnaleStriscia` non popola `trial` (v.
+              striscia.ts), ma se in futuro lo facesse l'anteprima deve restare
+              fedele a "esattamente ciò che vede il titolare". */}
+          <StrisciaStato attenzione={segnale.attenzione} forte={segnale.forte} tono={segnale.tono} altri={segnale.altri} azione={null}>
+            {segnale.testo}
+          </StrisciaStato>
+        </div>
+      )}
 
       {/* `inert` è un attributo HTML standard (React 19 lo passa attraverso),
           non una prop custom: disattiva pointer/tastiera/focus sull'intero

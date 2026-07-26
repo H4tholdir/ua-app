@@ -1312,6 +1312,29 @@ Dopo i Task 12-14, PRIMA della striscia: deploy su branch di anteprima (worktree
 
 ### Task 16: La striscia nuova (D3, §3.4 — SOLO dopo la ratifica del Task 7)
 
+> ⚠️ **SUPERSESSIONE 26/07/2026 — l'AGGREGATO DESCRITTO QUI SOTTO NON SI IMPLEMENTA PIÙ.**
+> Ovunque questo piano dica «N scadenze oggi — Vedi ›» con `href: '/lavori'` (qui nel Task 16, e
+> nel Task 7 alla riga ~724) la specifica è **superata**. Motivo, verificato in codice e non
+> ipotizzato: `src/app/(app)/lavori/page.tsx:36` — `/lavori` senza `?pila=` valida fa
+> `redirect('/dashboard')`, quindi quella CTA riportava l'utente alla home da cui era partito, per
+> QUALSIASI aggregato. In più il livello 1 non è omogeneo (materiale e pagamento sono predicati di
+> stato senza finestra temporale: restano accesi per settimane, quindi «2+ allarmi» è lo stato di
+> riposo di un laboratorio, non l'eccezione).
+> **Forma in vigore, ratificata da Francesco il 26/07 dopo panel a 2 advisor:** la striscia
+> **NOMINA il primo allarme acceso** — `forte`/`testo`/`azione` suoi, verbatim — e **CONTA gli
+> altri** nel campo `altri?: number` di `SegnaleStriscia`; il **trial ≤3 giorni, se acceso, nomina
+> per primo**. Il conteggio NON va concatenato in `testo` (il blocco di testo è troncato con
+> ellissi a 390px: sarebbe la prima cosa a sparire) — viaggia come campo suo e la UI lo rende in un
+> nodo che non si restringe. Copy del conteggio: `altri === 1` → «e un'altra» · `altri > 1` →
+> «e altre N».
+> Verbale emendato: `docs/design/decisions/2026-07-24-striscia-home.md` (§Comportamenti confermati).
+> Codice già in vigore: `src/lib/dashboard/striscia.ts` (`scegliSegnale`, `candidatiLivello1`),
+> commit `a3bf963`. **Restano validi** di questo Task 16: silenzio, racconto liberazione, dedup
+> `eventoId`, forma F2 e coreografia V1.
+> ⚠️ Nota di merito da mettere a verbale al gate estetico: la riserva UX 5a («mai un allarme
+> nascosto dietro un altro») ora è soddisfatta nel senso **debole** — gli altri allarmi sono
+> *contati*, non *nominati*. Il testo del piano qui sotto la enuncia ancora nel senso forte.
+
 **Files:**
 - Modify: `src/lib/dashboard/striscia.ts`
 - Modify: `src/components/ds/StrisciaStato.tsx` + `HomeV3.tsx` (caso silenzio)

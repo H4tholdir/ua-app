@@ -1,10 +1,19 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 const push = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, refresh: vi.fn() }),
   usePathname: () => '/lavori/lav',
 }))
+// Review finding G1 (fix-list FIX-G) — la scheda-vista `/lavori/[id]` renderizza
+// `TastoTondo`/`TastoPrimario`/`TastoSecondario` (`suona('tap')`) più `SchedaNavRail` e
+// `FrameConsegnato` (idem, `suona('tap')`/`suona('ua')`) senza che nulla a monte chiamasse
+// mai `initSuoni()`: primo tap muto, stesso bug chiuso su `/dashboard` con `HomeV3.tsx`.
+const { initSuoniSpy } = vi.hoisted(() => ({ initSuoniSpy: vi.fn() }))
+vi.mock('@/design-system/v3/sound', async (importOriginal) => {
+  const reale = await importOriginal<typeof import('@/design-system/v3/sound')>()
+  return { ...reale, initSuoni: initSuoniSpy }
+})
 import { SchedaLavoroV3 } from '../../src/components/features/lavori/scheda-v3/SchedaLavoroV3'
 import type { LavoroDettaglio } from '../../src/types/domain'
 
@@ -96,5 +105,14 @@ describe('SchedaLavoroV3', () => {
     rerender(<SchedaLavoroV3 lavoro={lavoroB} />)
     expect(screen.getByText('Anna V')).toBeInTheDocument()
     expect(screen.queryByText('Ciro B')).not.toBeInTheDocument()
+  })
+})
+
+describe('SchedaLavoroV3 — motore audio al mount (G1, review FIX-G)', () => {
+  beforeEach(() => { initSuoniSpy.mockClear() })
+
+  it('chiama initSuoni() al mount — root client di /lavori/[id]', () => {
+    render(<SchedaLavoroV3 lavoro={makeLavoro()} />)
+    expect(initSuoniSpy).toHaveBeenCalledTimes(1)
   })
 })

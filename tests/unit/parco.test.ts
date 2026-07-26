@@ -132,3 +132,52 @@ describe('getParete — auto-riparazione (Task 3, fix post-review: Critical #1, 
     )
   })
 })
+
+// FIX-K / K2 (G7, ratifica 25/07) — la query server deve selezionare `note_interne` (additivo,
+// stessa riga già autorizzata) e farlo arrivare fino a `CassettaParete['lavoro'].noteInterne`:
+// senza questo test un mapping corretto in `deriveParete` (v. parco-shared.test.ts) sarebbe
+// comunque cieco se la SELECT reale non portasse mai la colonna.
+describe('getParete — FIX-K/K2: note_interne selezionato e propagato', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('la SELECT su "lavori" include note_interne', async () => {
+    const chainCassette = createChain({ data: [cassetta], error: null })
+    const chainVive = createChain({ data: [rigaViva], error: null })
+    const chainLavori = createChain({ data: [rawLavoro({ stato: 'in_lavorazione' })], error: null })
+    const svc = {
+      from: (tabella: string) => {
+        if (tabella === 'cassette') return chainCassette
+        if (tabella === 'cassette_lavori') return chainVive
+        if (tabella === 'lavori') return chainLavori
+        throw new Error(`tabella inattesa nel mock: ${tabella}`)
+      },
+      rpc: () => ({ then: (resolve: (v: unknown) => void) => resolve({ data: { esito: 'ok' }, error: null }) }),
+    } as unknown as SupabaseClient
+
+    await getParete(svc, 'lab-1')
+
+    const selectLavori = chainLavori.calls.find((c) => c.method === 'select')
+    expect(selectLavori?.args[0]).toEqual(expect.stringContaining('note_interne'))
+  })
+
+  it('note_interne del raw lavoro arriva su parete[].lavoro.noteInterne', async () => {
+    const svc = {
+      from: (tabella: string) => {
+        if (tabella === 'cassette') return createChain({ data: [cassetta], error: null })
+        if (tabella === 'cassette_lavori') return createChain({ data: [rigaViva], error: null })
+        if (tabella === 'lavori') {
+          return createChain({
+            data: [{ ...rawLavoro({ stato: 'in_lavorazione' }), note_interne: 'prova colore A2' }],
+            error: null,
+          })
+        }
+        throw new Error(`tabella inattesa nel mock: ${tabella}`)
+      },
+      rpc: () => ({ then: (resolve: (v: unknown) => void) => resolve({ data: { esito: 'ok' }, error: null }) }),
+    } as unknown as SupabaseClient
+
+    const parete = await getParete(svc, 'lab-1')
+
+    expect(parete[0].lavoro?.noteInterne).toBe('prova colore A2')
+  })
+})

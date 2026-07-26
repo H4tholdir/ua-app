@@ -6,7 +6,12 @@
 // (preventDefault reale, scroll, rect, FLIP) è device/Playwright — MAI finto in jsdom.
 
 /** Geometria della griglia, misurata UNA volta al sollevamento (§2.4.3): celle uniformi a colonne
- *  fisse. `scrollDelta = scrollY_ora − scrollY_lift` compensa l'auto-scroll a coordinate viewport. */
+ *  fisse. `scrollDelta = scrollY_ora − scrollY_lift` compensa l'auto-scroll a coordinate viewport.
+ *  `pitchY` (D10, FIX-F): il passo VERO di riga — su `.ds-parete-grid` (ds-v3.css ~624/664) è il
+ *  track (`grid-auto-rows: var(--track)`), non `cellaH + gapY`: con `align-items:start` le celle
+ *  non riempiono la riga, quindi l'altezza della cella misurata NON è il passo. `cellaH` resta
+ *  per la centratura locale (v. `useDragRiordino.misuraGeometria`), `pitchY` è SOLO per il
+ *  calcolo di riga in `indiceDaPunto`. */
 export type Geometria = {
   gridLeft: number
   gridTop: number
@@ -15,6 +20,7 @@ export type Geometria = {
   gapX: number
   gapY: number
   colonne: number
+  pitchY: number
   scrollDelta: number
 }
 
@@ -32,13 +38,60 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 export function indiceDaPunto(punto: Punto, geo: Geometria, n: number): number {
   if (n <= 0) return 0
   const pitchX = geo.cellaW + geo.gapX
-  const pitchY = geo.cellaH + geo.gapY
   const relX = punto.x - geo.gridLeft
   const relY = punto.y - geo.gridTop + geo.scrollDelta
   const colonna = clamp(Math.round((relX - geo.cellaW / 2) / pitchX), 0, geo.colonne - 1)
   const righeMax = Math.ceil(n / geo.colonne) - 1
-  const riga = clamp(Math.round((relY - geo.cellaH / 2) / pitchY), 0, righeMax)
+  // D10 (FIX-F): il passo di riga è `geo.pitchY` (il track vero), MAI `cellaH + gapY` — v. JSDoc
+  // di `Geometria` sopra.
+  const riga = clamp(Math.round((relY - geo.cellaH / 2) / geo.pitchY), 0, righeMax)
   return clamp(riga * geo.colonne + colonna, 0, n - 1)
+}
+
+/**
+ * indiceRettangoloDaPunto — hit-test GEOMETRICO «aggancio al dito» (H3 v2, indagine PROVATA
+ * `.superpowers/sdd/h3-indagine-report.md`, decisione ratificata 0c37f25 —
+ * `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3: «il riordino scatta SOLO quando il
+ * PUNTO DEL DITO entra nell'area reale di un'ALTRA cassetta; finché il dito è sul vuoto della
+ * rete o sulla cassetta d'origine, nessun ricalcolo»).
+ *
+ * Differenza da `indiceDaPunto` (sopra, INVARIATA — resta la mappa punto→cella, closestCenter sul
+ * TRACK, provata corretta nell'indagine): qui il punto deve cadere DENTRO il RETTANGOLO REALE di
+ * una cella — `[colonna·pitchX, colonna·pitchX + cellaW] × [riga·pitchY, riga·pitchY + cellaH]` —
+ * non nel track intero. Su `.ds-parete-grid` (`align-items:start`, cassetta ad altezza fissa per
+ * tutte dal commit 21a0b17 «cassetta B» — il valore vive in `--altezza-cassetta` in ds-v3.css, 138px
+ * dopo la ratifica A3 del 26/07/2026, ma qui NON si ricopia: `cellaH` è sempre MISURATO a runtime da
+ * un rect vero, v. useDragRiordino) il track (`pitchY`) è più alto della cassetta (`cellaH`) —
+ * di 62px sul telefono, di 41,52-62 dal tablet in su dopo la decisione «avvicino le righe» del
+ * 26/07/2026, che ha accorciato il track ma non l'ha mai portato sotto l'altezza della cassetta:
+ * la maglia VUOTA sotto ogni cassetta (`cellaH`..`pitchY`) — dove cadeva il vecchio
+ * punto di flip, il punto medio fra i centri-track — NON è area di scatto. Un punto lì (o fuori
+ * griglia, o oltre l'ultima cella di una riga parziale) restituisce `null`: NESSUN bersaglio, non
+ * un indice "clampato" che finga un ingresso mai avvenuto — a differenza di `indiceDaPunto`
+ * (che clampa sempre a `[0, n-1]`, closestCenter), qui fuori da ogni rettangolo è "nessun
+ * ingresso", il chiamante (`useDragRiordino.frame()`) tiene l'ultimo bersaglio valido (one-way per
+ * posizione, mai un "annullo" solo perché si ripassa sul vuoto).
+ */
+export function indiceRettangoloDaPunto(punto: Punto, geo: Geometria, n: number): number | null {
+  if (n <= 0) return null
+  const pitchX = geo.cellaW + geo.gapX
+  if (pitchX <= 0 || geo.pitchY <= 0 || geo.colonne <= 0) return null
+  const relX = punto.x - geo.gridLeft
+  const relY = punto.y - geo.gridTop + geo.scrollDelta
+
+  const colonna = Math.floor(relX / pitchX)
+  if (colonna < 0 || colonna >= geo.colonne) return null
+  const xInCella = relX - colonna * pitchX
+  if (xInCella < 0 || xInCella > geo.cellaW) return null // nella fascia di gapX: vuoto, non scatta
+
+  const riga = Math.floor(relY / geo.pitchY)
+  if (riga < 0) return null
+  const yInCella = relY - riga * geo.pitchY
+  if (yInCella < 0 || yInCella > geo.cellaH) return null // nella maglia vuota sotto la cassetta
+
+  const indice = riga * geo.colonne + colonna
+  if (indice >= n) return null // riga parziale: lo slot geometrico esiste, la cassetta no
+  return indice
 }
 
 /**
@@ -95,4 +148,35 @@ export function riconcilia(
   const risultato = senza.slice()
   risultato.splice(posPred + 1, 0, idTrascinato)
   return risultato
+}
+
+/** Adapter dello scroller (spec redesign §3.1, riserva ARCH R1): il riordino non assume
+ *  più `window`. Su /cassette scrolla la pagina (el=null); nella stanza home scrolla il
+ *  contenitore della stanza. `sogliaAlta` = y viewport dove inizia la vista scrollabile
+ *  (0 per window, rect.top per un contenitore): la fascia di auto-scroll parte da lì. */
+export type Scroller = {
+  pos(): number
+  max(): number
+  by(px: number): void
+  altezzaVista(): number
+  sogliaAlta(): number
+}
+
+export function creaScroller(el: HTMLElement | null): Scroller {
+  if (el) {
+    return {
+      pos: () => el.scrollTop,
+      max: () => el.scrollHeight - el.clientHeight,
+      by: (px) => { el.scrollTop += px },
+      altezzaVista: () => el.clientHeight,
+      sogliaAlta: () => el.getBoundingClientRect().top,
+    }
+  }
+  return {
+    pos: () => (typeof window !== 'undefined' ? window.scrollY || 0 : 0),
+    max: () => (typeof document !== 'undefined' ? (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0) : 0),
+    by: (px) => window.scrollBy(0, px),
+    altezzaVista: () => (typeof window !== 'undefined' ? window.innerHeight || 0 : 0),
+    sogliaAlta: () => 0,
+  }
 }

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
-import { tastoPiu } from '@/design-system/v3/tokens'
+import { tastoPiu, spazio } from '@/design-system/v3/tokens'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -144,6 +144,26 @@ describe('TastoPiu — «il punto rosso» (§5.2 rev 2 — porting fedele del mo
     const regola = container.querySelector('style')?.textContent ?? ''
     expect(regola).toContain('outline: 2px solid var(--blue)')
     expect(regola).toContain('outline-offset: 2px')
+  })
+
+  // QA device T15 (verbale 2026-07-24, fix 1a) — `compatto`: SOLO il gap fra ghiera e
+  // etichetta cambia (spazio.sm → spazio.xs); la ghiera resta 92, il cappello 64, il glifo
+  // 42/350 — il tasto fisico ratificato non cambia forma (v. commento sul componente).
+  it('compatto=false (default) usa il gap ratificato spazio.sm; compatto=true lo stringe a spazio.xs, ghiera/cappello/glifo invariati', () => {
+    const { container: standard } = render(<TastoPiu onClick={() => {}} />)
+    const wrapperStandard = standard.querySelector('div') as HTMLElement
+    expect(wrapperStandard.style.gap).toBe(`${spazio.sm}px`)
+
+    const { container: stretto } = render(<TastoPiu onClick={() => {}} compatto />)
+    const wrapperStretto = stretto.querySelector('div') as HTMLElement
+    expect(wrapperStretto.style.gap).toBe(`${spazio.xs}px`)
+
+    const ghiera = stretto.querySelector('[data-parte="ghiera"]') as HTMLElement
+    expect(ghiera.style.width).toBe('92px')
+    const cappello = stretto.querySelector('[data-parte="cappello"]') as HTMLElement
+    expect(cappello.style.width).toBe('64px')
+    const piu = stretto.querySelector('[data-parte="piu"]') as HTMLElement
+    expect(piu.style.fontSize).toBe('42px')
   })
 
   it('etichetta di default e personalizzata passano trovaParoleVietate', () => {

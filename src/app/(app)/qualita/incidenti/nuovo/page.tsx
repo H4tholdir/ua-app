@@ -142,7 +142,7 @@ export default function NuovoIncidentePage() {
             required
             style={selectStyle}
           >
-            <option value="" disabled style={{ background: 'var(--bg, #DDD8D3)' }}>
+            <option value="" disabled style={{ background: 'var(--bg, #F4F0E7)' }}>
               Seleziona tipo...
             </option>
             {TIPI_INCIDENTE.map((t) => (
@@ -165,7 +165,7 @@ export default function NuovoIncidentePage() {
             required
             style={selectStyle}
           >
-            <option value="" disabled style={{ background: 'var(--bg, #DDD8D3)' }}>
+            <option value="" disabled style={{ background: 'var(--bg, #F4F0E7)' }}>
               Seleziona gravita...
             </option>
             {GRAVITA_INCIDENTE.map((g) => (
