@@ -27,14 +27,42 @@
 // resta anche un solo overlay aperto, l'entry resta a proteggerlo — nessun push/pop di
 // servizio a ogni apertura di dialog.
 //
-// ── Le tre regole ──────────────────────────────────────────────────────────────────────────
+// ── Le quattro regole ──────────────────────────────────────────────────────────────────────
 // 1. Si entra: se nessuna entry nostra è in vita, la si spinge (marcata `uaSheet`/`uaDialog`,
 //    senza url — la pagina non cambia). Altrimenti ci si limita a impilarsi.
 // 2. Back del telefono: si chiude SOLO il più alto della pila; se sotto resta qualcuno, la sua
 //    protezione va ricostruita subito (ri-push).
-// 3. Si esce (chiusura esplicita o smontaggio): se sotto resta qualcuno l'entry NON si tocca;
-//    se la pila si svuota, la si disfa con `history.back()` — ma solo se l'entry in cima è
-//    ancora davvero la nostra (v. `nostraEntryInCima`).
+// 3. Si esce IN LOCO (chiusura esplicita o smontaggio, la pagina resta quella): se sotto resta
+//    qualcuno l'entry NON si tocca; se la pila si svuota, la si disfa con `history.back()` —
+//    ma solo se l'entry in cima è ancora davvero la nostra (v. `nostraEntryInCima`).
+// 4. Si esce NAVIGANDO VIA (il chiamante cambia pagina nello stesso gesto): l'entry si CEDE
+//    alla navigazione (`cediEntryAllaNavigazione`), che la SOSTITUISCE. V. il blocco qui sotto.
+//
+// ── Chiudere in loco ≠ chiudere navigando via (fix D-2/D-1, collaudo browser 26/07/2026) ────
+// La regola 3 da sola sbagliava tutti e due i versi quando un gesto chiude un overlay E cambia
+// pagina (il CTA «Completa i dati del lavoro» dello sheet di consegna, la conferma di logout,
+// le voci del menu ⋯):
+//  · `history.back()` è SINCRONA da chiamare, il `router.push` di Next è una transizione
+//    asincrona. La cleanup dell'overlay gira alla fine dell'evento, cioè PRIMA che il push
+//    abbia toccato la history: il back partiva per primo, il popstate cancellava il push e
+//    l'utente restava dov'era. Il tasto primario si comportava come un annulla (D-2, misurato
+//    su PilaAperta/PilaSplit/HomeDesktop e sulla scheda lavoro).
+//  · Nel verso opposto (chi naviga SENZA chiudere: logout, menu ⋯) il push arrivava per primo,
+//    `nostraEntryInCima()` diventava falso e l'entry restava sepolta sotto la nuova pagina:
+//    al ritorno costava una pressione back MORTA, cioè esattamente il difetto che questo
+//    modulo esiste per togliere di mezzo (D-1).
+// La distinzione NON si indovina (un timer, un confronto di pathname o «c'è una navigazione in
+// volo?» sono tutte corse): la DICHIARA il chiamante, chiamando `useNavigaDaOverlay` invece di
+// `router.push`. Quell'hook fa, in due istruzioni adiacenti e sincrone, `cediEntryAllaNavigazione()`
+// e — se l'entry era nostra — `router.replace`.
+// Perché `replace` è la mossa giusta, e non un ripiego: la nostra entry è per costruzione un
+// DOPPIONE della pagina (`pushState` senza url). Sostituirla con la destinazione lascia la
+// history nella forma `[…, pagina, destinazione]` — ESATTAMENTE quella che si aveva prima che
+// questo modulo esistesse, quando il chiamante faceva `router.push` dalla pagina nuda
+// (verificato sul merge-base: gli stessi handler, senza nessuna entry di overlay di mezzo).
+// Nessun back inghiottito, perché dopo la cessione nessun `esciOverlay` chiamerà mai
+// `history.back()`; nessuna entry orfana, perché la destinazione si mette AL POSTO della
+// nostra, non sopra.
 
 type Marca = 'uaSheet' | 'uaDialog'
 
@@ -104,6 +132,26 @@ export function entraOverlay(marca: Marca, chiudi: () => void): number {
   return token
 }
 
+/**
+ * Il chiamante sta navigando VIA dalla pagina mentre un overlay è aperto — che lo chiuda nello
+ * stesso gesto o no. Cede l'entry alla navigazione e dice come navigare:
+ *  · `true`  → l'entry in cima era la nostra ed è stata ceduta. Da questo istante il modulo non
+ *              la considera più sua, quindi nessun `esciOverlay` successivo proverà a disfarla
+ *              con `history.back()` (era il back che si mangiava il push, D-2). Il chiamante
+ *              DEVE ora SOSTITUIRLA (`router.replace`): impilarcisi sopra la lascerebbe
+ *              sepolta, cioè la pressione morta di D-1.
+ *  · `false` → non c'è nessuna entry nostra in cima (nessun overlay aperto, oppure qualcuno ha
+ *              già navigato prima). Il chiamante naviga normalmente (`router.push`).
+ *
+ * NON si chiama a mano: passa da `useNavigaDaOverlay`, che tiene dichiarazione e navigazione in
+ * due istruzioni adiacenti e sincrone — è quell'adiacenza a togliere di mezzo ogni corsa.
+ */
+export function cediEntryAllaNavigazione(): boolean {
+  if (!marcaEntry || !nostraEntryInCima()) return false
+  marcaEntry = null
+  return true
+}
+
 /** Chiusura esplicita o smontaggio dell'overlay. Idempotente: un token già consumato da un
  *  back (`alPop`) non è più nella pila e non fa nulla. */
 export function esciOverlay(token: number): void {
@@ -117,8 +165,12 @@ export function esciOverlay(token: number): void {
     window.history.back()
     return
   }
-  // L'entry non è più in cima (un consumatore ha navigato sopra di essa): si rinuncia a
-  // disfarla. Resta appesa in history — innocua: un back futuro la attraversa in silenzio,
-  // nessun componente è più lì ad ascoltarla. Limite noto e invariato rispetto a prima.
+  // Qui `marcaEntry` è nullo (l'entry è stata CEDUTA a una navigazione dichiarata: la
+  // destinazione la sostituirà, non c'è niente da disfare) oppure l'entry non è più in cima
+  // (un consumatore ha navigato SENZA dichiararlo — v. `useNavigaDaOverlay`: nel repo non
+  // succede più, ma il ramo resta come rete). Nel secondo caso l'entry resta appesa in history:
+  // innocua per la correttezza (un back futuro la attraversa in silenzio, nessun componente è
+  // più lì ad ascoltarla) ma costa all'utente una pressione back morta — è per questo che il
+  // percorso giusto è dichiarare la navigazione, non finire qui.
   marcaEntry = null
 }

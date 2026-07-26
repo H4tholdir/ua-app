@@ -49,6 +49,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { motion } from 'motion/react'
 import { AvvisiProvider, useAvvisi } from '@/components/ds/Avviso'
 import { initSuoni } from '@/design-system/v3/sound'
@@ -134,6 +135,9 @@ export function SchedaLavoroV3(props: { lavoro: LavoroDettaglio; ruolo?: string 
 function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | null; apriConsegna?: boolean }) {
   const { ruolo } = props
   const router = useRouter()
+  // Navigazioni che partono da DENTRO un overlay v3 (o che ne chiudono uno nello stesso
+  // gesto): mai `router.push` nudo — v. `useNavigaDaOverlay` e `storia-overlay.ts`.
+  const navigaDaOverlay = useNavigaDaOverlay()
   const { errore } = useAvvisi()
 
   // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questa scheda
@@ -373,8 +377,13 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           più una navigazione a `/lavori/{id}/consegna` (pagina morta al Task
           15). `onConsegnato` fa `router.refresh()` (rilegge i join freschi);
           `onFrameChiuso` chiude E fa refresh (riserva UX #2: al back dalla
-          scheda lo sheet non deve riaprirsi da solo). `onRisolvi` chiude il
-          flusso PRIMA del push verso il tab di modifica pertinente. */}
+          scheda lo sheet non deve riaprirsi da solo) — `refresh` non tocca la
+          history, quindi lì la chiusura è IN LOCO e l'entry dell'overlay va
+          consumata normalmente. `onRisolvi` invece cambia pagina: NAVIGA PRIMA
+          (`navigaDaOverlay`, che cede l'entry alla navigazione e la sostituisce)
+          e chiude dopo — col vecchio `router.push` nudo il `history.back()`
+          della chiusura si mangiava la navigazione e il CTA primario finiva per
+          comportarsi come un annulla (D-2, riprodotto in browser il 26/07). */}
       <FlussoConsegna
         lavoroId={lavoro.id}
         numero={lavoro.numero_lavoro}
@@ -388,8 +397,8 @@ function SchedaLavoroV3Corpo(props: { lavoro: LavoroDettaglio; ruolo?: string | 
           router.refresh()
         }}
         onRisolvi={(route) => {
+          navigaDaOverlay(`/lavori/${lavoro.id}/modifica?tab=${route}`)
           setConsegnaAperta(false)
-          router.push(`/lavori/${lavoro.id}/modifica?tab=${route}`)
         }}
       />
 

@@ -28,6 +28,7 @@ import { Vuoto } from '@/components/ds/Vuoto'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
 import { filtraLavoriPila } from '@/components/features/pile/filtra-lavori-pila'
 import { ConfermaCassettaSheet } from '@/components/features/pile/ConfermaCassettaSheet'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { initSuoni } from '@/design-system/v3/sound'
 import type { LavoroPila } from '@/lib/dashboard/pile-home'
 import type { Pila } from '@/lib/lavori/urgenza'
@@ -51,6 +52,9 @@ const VUOTO: Record<Pila, { glifo: string; titolo: string; guida: string }> = {
 export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: string; cassetteSuggerite?: Array<{ id: string; nome: string }> }) {
   const { pila, lista, sub, cassetteSuggerite } = props
   const router = useRouter()
+  // Navigazioni che partono da DENTRO un overlay v3 (o che ne chiudono uno nello stesso
+  // gesto): mai `router.push` nudo — v. `useNavigaDaOverlay` e `storia-overlay.ts`.
+  const navigaDaOverlay = useNavigaDaOverlay()
 
   // Review finding G1 (fix-list FIX-G, chiuso su /dashboard con HomeV3.tsx) — questo
   // componente è il root client SEMPRE montato di `/lavori` (l'altro root della route,
@@ -137,8 +141,14 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
           descrizione={lavoroInConsegna.tipoLavoro}
           aperto
           onChiudi={() => setConsegnaId(null)}
+          /* `router.refresh()` non tocca la history: qui la chiusura è IN LOCO (si resta su
+             questa pagina), quindi l'entry dell'overlay va consumata normalmente. */
           onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
-          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+          /* Si chiude E si cambia pagina nello stesso gesto: `navigaDaOverlay` PRIMA, chiusura
+             dopo (v. il contratto dell'hook). Con `router.push` nudo il `history.back()` della
+             chiusura si mangiava la navigazione e il CTA primario finiva per comportarsi come
+             un annulla — D-2, riprodotto in browser il 26/07/2026. */
+          onRisolvi={(route) => { navigaDaOverlay(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`); setConsegnaId(null) }}
         />
       )}
 
@@ -152,7 +162,9 @@ export function PilaAperta(props: { pila: Pila; lista: LavoroPila[]; sub?: strin
         onChiudi={() => setConfermaId(null)}
         lavoro={lavoroInConferma ? { id: lavoroInConferma.id, numero: lavoroInConferma.numero, tipoLavoro: lavoroInConferma.tipoLavoro, dentista: lavoroInConferma.dentista } : null}
         suggerite={cassetteSuggerite ?? []}
-        onConfermato={(id) => { setConfermaId(null); router.push(`/lavori/${id}`) }}
+        /* Stessa forma di `onRisolvi`: si chiude lo sheet e si va sulla scheda del lavoro
+           appena confermato, nello stesso gesto. Navigazione prima, chiusura dopo. */
+        onConfermato={(id) => { navigaDaOverlay(`/lavori/${id}`); setConfermaId(null) }}
       />
     </section>
   )

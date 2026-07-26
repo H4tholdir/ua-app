@@ -2,13 +2,18 @@
 // blocco 2 variante A, ratificata). Sopra la StrisciaStato: Avatar Ø32 +
 // nome/lab + bottone «Esci» → stesso DialogConferma + signOut del Task 8
 // (O1i-1, tests/unit/tutto-il-resto-esci.test.tsx) — mock pattern identico.
+// D-1 (collaudo browser 26/07/2026): il logout cambia pagina mentre il `DialogConferma` è
+// ancora montato, quindi la sua entry di history è in cima — la destinazione deve
+// SOSTITUIRLA (`replace`), non impilarcisi sopra. Col vecchio `router.push` l'entry restava
+// sepolta sotto `/login` e tornare indietro costava una pressione MORTA.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 
 const pushMock = vi.fn()
+const replaceMock = vi.fn()
 const signOutMock = vi.fn().mockResolvedValue({})
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock }) }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: pushMock, replace: replaceMock }) }))
 vi.mock('@/lib/supabase/browser-anon', () => ({
   getBrowserClient: () => ({ auth: { signOut: signOutMock } }),
 }))
@@ -29,6 +34,7 @@ const CONTEGGI = { rossa: 2, ambra: 4, viola: 1, blu: 2 }
 
 beforeEach(() => {
   pushMock.mockClear()
+  replaceMock.mockClear()
   signOutMock.mockClear()
 })
 
@@ -53,7 +59,9 @@ describe('NavDesk — riga identità + Esci nel footer (O1i-2)', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Esci' }))
 
     await waitFor(() => expect(signOutMock).toHaveBeenCalled())
-    expect(pushMock).toHaveBeenCalledWith('/login')
+    // v. la nota su `replace` in testa a questo file
+    expect(replaceMock).toHaveBeenCalledWith('/login')
+    expect(pushMock).not.toHaveBeenCalled()
   })
 
   it('Resta chiude il dialog senza fare logout', async () => {

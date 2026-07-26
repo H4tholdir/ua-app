@@ -3,8 +3,12 @@
 // Ondata 3a Task 4 — MenuSchedaSheet: lo `Sheet` del menu ⋯ della scheda-vista
 // v3 (§7.1, 6 voci). Le 4 voci "pesanti" (Prezzi e lavorazioni, Dati clinici,
 // Prove, Foto) non hanno ancora un editor dedicato in questa ondata: navigano
-// tutte al ponte `/lavori/{id}/modifica?tab=…` (Task 9, `router.push` — mai un
-// editor duplicato qui). Documenti resta nella pagina corrente: apre il suo
+// tutte al ponte `/lavori/{id}/modifica?tab=…` (Task 9 — mai un editor duplicato
+// qui). La navigazione parte da DENTRO questo sheet, che resta aperto finché il
+// cambio di rotta non lo smonta: passa quindi da `useNavigaDaOverlay`, mai da
+// `router.push` nudo — con il push l'entry di history dello sheet restava sepolta
+// sotto la nuova pagina e al ritorno costava una pressione back MORTA (D-1,
+// misurato in browser il 26/07/2026: `len` 4→5, la seconda pressione immobile). Documenti resta nella pagina corrente: apre il suo
 // proprio Sheet nel padre (Task 6/7), quindi chiama `onApriDocumenti()` invece
 // di navigare. Annulla lavoro (DEVIAZIONE dal piano, vedi mockup
 // `scheda-lavoro.html` §7.1: un dispositivo su misura tracciato MDR non si
@@ -14,14 +18,15 @@
 // muta.
 
 import type { ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
 import { Sheet } from '@/components/ds/Sheet'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { MenuVoce } from '@/components/ds/MenuVoce'
 import { spazio } from '@/design-system/v3/tokens'
 
-/** Contesto passato a `azione` di ogni voce — `push` verso il ponte di
- * modifica (Task 9) e `onApriDocumenti` per l'unica voce che resta in pagina. */
-type ContestoAzione = { push: (url: string) => void; onApriDocumenti: () => void }
+/** Contesto passato a `azione` di ogni voce — `naviga` verso il ponte di
+ * modifica (Task 9; è `navigaDaOverlay`, NON `router.push`: v. nota in testa) e
+ * `onApriDocumenti` per l'unica voce che resta in pagina. */
+type ContestoAzione = { naviga: (url: string) => void; onApriDocumenti: () => void }
 
 type Voce = {
   chiave: string
@@ -33,10 +38,10 @@ type Voce = {
   azione?: (ctx: ContestoAzione) => void
 }
 
-/** Costruisce l'`azione` delle 4 voci "pesanti": tutte condividono lo stesso
- * `router.push` verso il ponte `/lavori/{id}/modifica`, cambia solo il tab. */
+/** Costruisce l'`azione` delle 4 voci "pesanti": tutte condividono la stessa
+ * navigazione verso il ponte `/lavori/{id}/modifica`, cambia solo il tab. */
 function versoPonte(lavoroId: string, tab: string): (ctx: ContestoAzione) => void {
-  return ({ push }) => push(`/lavori/${lavoroId}/modifica?tab=${tab}`)
+  return ({ naviga }) => naviga(`/lavori/${lavoroId}/modifica?tab=${tab}`)
 }
 
 // Path grezzi, copiati VERBATIM dal mockup approvato
@@ -138,11 +143,11 @@ export function MenuSchedaSheet(props: {
   onApriDocumenti: () => void
 }) {
   const { aperto, onChiudi, lavoroId, onApriDocumenti } = props
-  const router = useRouter()
+  const navigaDaOverlay = useNavigaDaOverlay()
   const voci = costruisciVoci(lavoroId)
 
   function gestisciClick(voce: Voce) {
-    voce.azione?.({ push: router.push, onApriDocumenti })
+    voce.azione?.({ naviga: navigaDaOverlay, onApriDocumenti })
   }
 
   return (

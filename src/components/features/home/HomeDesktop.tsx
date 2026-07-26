@@ -58,6 +58,7 @@ import { SchedaAnteprima } from '@/components/features/pile/SchedaAnteprima'
 import { CardLavoro } from '@/components/ds/CardLavoro'
 import { Vuoto } from '@/components/ds/Vuoto'
 import { FlussoConsegna } from '@/components/features/lavori/consegna-v3/FlussoConsegna'
+import { useNavigaDaOverlay } from '@/components/ds/useNavigaDaOverlay'
 import { raggio, tipografia } from '@/design-system/v3/tokens'
 // Da `pile-home-shared.ts` (Task 9), NON da `pile-home.ts`: quel file porta
 // `import 'server-only'` e non può finire nel bundle client (v. nota in testa).
@@ -88,6 +89,9 @@ export function HomeDesktop(props: {
 }) {
   const { pile, pilaSelezionata, lavoroSelezionato, segnale, identita } = props
   const router = useRouter()
+  // Navigazioni che partono da DENTRO un overlay v3 (o che ne chiudono uno nello stesso
+  // gesto): mai `router.push` nudo — v. `useNavigaDaOverlay` e `storia-overlay.ts`.
+  const navigaDaOverlay = useNavigaDaOverlay()
   const listaRef = useRef<HTMLDivElement>(null)
   // Task 14 — flusso di consegna POSSEDUTO da questo host (riserva arch #5),
   // stesso pattern di `PilaAperta`/`PilaSplit`: nessun `onConsegnato`, refresh
@@ -215,8 +219,14 @@ export function HomeDesktop(props: {
           descrizione={lavoroInConsegna.tipoLavoro}
           aperto
           onChiudi={() => setConsegnaId(null)}
+          /* `router.refresh()` non tocca la history: chiusura IN LOCO, l'entry dell'overlay
+             va consumata normalmente. */
           onFrameChiuso={() => { setConsegnaId(null); router.refresh() }}
-          onRisolvi={(route) => { setConsegnaId(null); router.push(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`) }}
+          /* Si chiude E si cambia pagina nello stesso gesto: navigazione PRIMA, chiusura dopo
+             (contratto di `useNavigaDaOverlay`). Con `router.push` nudo il `history.back()`
+             della chiusura si mangiava la navigazione — D-2, riprodotto in browser il
+             26/07/2026 proprio su questa superficie. */
+          onRisolvi={(route) => { navigaDaOverlay(`/lavori/${lavoroInConsegna.id}/modifica?tab=${route}`); setConsegnaId(null) }}
         />
       )}
     </div>
