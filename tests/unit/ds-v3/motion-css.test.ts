@@ -88,3 +88,28 @@ describe('ds-v3.css — reduced-motion: il gancetto si dissolve, non si sposta (
       'di specificità vince l\'ultima scritta, quindi così non fa nulla').toBeGreaterThan(staccato)
   })
 })
+
+// Difetto D2 del 26/07 — la stessa legge §8.4 («sotto reduced-motion le coreografie degradano a
+// dissolvenza») detta anche a Motion, non solo ai fogli di stile e ai componenti. Esiste una
+// finestra in cui nessun componente React può conoscere la preferenza — l'idratazione, dove la
+// prima resa del client DEVE coincidere con l'HTML del server — e in quella finestra l'ingresso
+// della striscia della home partiva con la molla piena: la preferenza arrivava a molla già in
+// volo, e Motion non fa ripartire un'animazione il cui punto d'arrivo non è cambiato. Misurato in
+// browser: 12px percorsi comunque, a «Riduci movimento» acceso. `MotionConfig reducedMotion="user"`
+// alla radice chiude quella finestra, perché Motion la preferenza la legge da sé (matchMedia) nel
+// momento in cui l'animazione parte. Guardia strutturale: se qualcuno toglie l'involucro, o gli
+// cambia modalità, questo test è rosso prima del browser.
+describe('§8.4 detta anche a Motion — MotionConfig reducedMotion="user" alla radice', () => {
+  const configMovimento = readFileSync(join(process.cwd(), 'src/components/layout/ConfigMovimento.tsx'), 'utf8')
+  const layout = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8')
+
+  it('ConfigMovimento monta MotionConfig in modalità «user» (mai «always»/«never»)', () => {
+    expect(configMovimento).toContain("import { MotionConfig } from 'motion/react'")
+    expect(norm(configMovimento)).toContain('<MotionConfig reducedMotion="user">{children}</MotionConfig>')
+  })
+
+  it('il layout radice ci avvolge `children`: la preferenza è dell’utente, non della schermata', () => {
+    expect(layout).toContain("import { ConfigMovimento } from '@/components/layout/ConfigMovimento'")
+    expect(norm(layout)).toContain('<ConfigMovimento>{children}</ConfigMovimento>')
+  })
+})

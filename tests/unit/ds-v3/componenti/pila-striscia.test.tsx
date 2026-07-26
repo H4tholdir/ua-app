@@ -3,7 +3,7 @@ import '../budget-catalogo'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { trovaParoleVietate } from '@/design-system/v3/dizionario'
-import { molla, coreografie } from '@/design-system/v3/motion'
+import { molla, coreografie, istantaneo } from '@/design-system/v3/motion'
 import { raggio } from '@/design-system/v3/tokens'
 
 // Il catalogo (page.tsx) monta ora anche NavDesk (§5.37), che chiama
@@ -276,13 +276,40 @@ describe('StrisciaStato — coreografia V1 «carattere per livello» (punto 3)',
     expect(animate).toEqual({ y: 0, scale: 1, opacity: 1, transition: molla.smooth })
   })
 
-  it('prefers-reduced-motion: SOLO dissolvenza per ogni carattere — niente y, niente scale, MAI un loop', () => {
+  // Difetto D1/D2 del 26/07 (QA browser dell'ondata parete/home, report
+  // `.superpowers/sdd/fix-reduced-motion-report.md`) — questi due test dicevano il CONTRARIO:
+  // pretendevano che sotto reduced-motion `y`/`scale` sparissero dal bersaglio. Erano verdi e
+  // descrivevano fedelmente il codice, ma la regola che presidiavano era sbagliata, ed è la
+  // causa del difetto: Motion muove SOLO le chiavi presenti in `animate`, quindi una chiave
+  // tolta dal bersaglio non torna a casa — resta congelata dove l'ingresso l'aveva messa (la
+  // striscia è stata misurata a `top: 144.55` invece di `131.63`, per sempre). Da qui la legge,
+  // che questi test ora presidiano: sotto reduced-motion cambia la TRANSIZIONE, mai il
+  // bersaglio. jsdom non può riprodurre il difetto originale (dipende dal momento in cui la
+  // preferenza diventa nota rispetto al mount, e da un HTML di server che qui non esiste): il
+  // presidio possibile a questo livello è l'invariante sulle chiavi, ed è quello che segue.
+  it('prefers-reduced-motion: stesso bersaglio del moto pieno — nessuna chiave di spostamento sparisce', () => {
     for (const carattere of ['urgenza', 'trial', 'racconto'] as const) {
-      const { initial, animate } = ingressoStriscia(carattere, true)
-      expect(initial).toEqual({ opacity: 0 })
-      expect(animate).not.toHaveProperty('y')
-      expect(animate).not.toHaveProperty('scale')
-      expect(animate.opacity).toBe(1)
+      const pieno = ingressoStriscia(carattere, false)
+      const ridotto = ingressoStriscia(carattere, true)
+      // `initial` IDENTICO: è ciò che rende la coreografia sicura in SSR (il server non conosce
+      // la preferenza, quindi i due modi DEVONO partire dallo stesso markup).
+      expect(ridotto.initial).toEqual(pieno.initial)
+      // Bersaglio: stesse chiavi, stessi valori di riposo. Mai un sottoinsieme.
+      const chiavi = (o: object) => Object.keys(o).filter((k) => k !== 'transition').sort()
+      expect(chiavi(ridotto.animate)).toEqual(chiavi(pieno.animate))
+      expect(ridotto.animate.y).toBe(0)
+      expect(ridotto.animate.scale).toBe(1)
+      expect(ridotto.animate.opacity).toBe(1)
+    }
+  })
+
+  it('prefers-reduced-motion: y e scale arrivano `istantaneo`, l’opacità resta sulla molla del carattere', () => {
+    for (const [carattere, spring] of [['urgenza', molla.bouncy], ['trial', molla.smooth], ['racconto', molla.smooth]] as const) {
+      const { animate } = ingressoStriscia(carattere, true)
+      // Forma per-chiave di Motion: `transition.y`/`transition.scale` vincono sulla molla, che
+      // resta il default per tutto il resto (l'opacità → dissolvenza, invariata).
+      expect(animate.transition).toEqual({ ...spring, y: istantaneo, scale: istantaneo })
+      expect(istantaneo).toEqual({ duration: 0 }) // token, non una durata scritta a mano qui
     }
   })
 
@@ -290,10 +317,10 @@ describe('StrisciaStato — coreografia V1 «carattere per livello» (punto 3)',
     expect(uscitaStriscia(false)).toEqual(coreografie.avviso.exit)
   })
 
-  it('uscita (prefers-reduced-motion): solo opacity, stessa transizione già dichiarata — niente y', () => {
+  it('uscita (prefers-reduced-motion): la y NON sparisce, resta ferma a 0 — si dissolve sul posto', () => {
     const uscita = uscitaStriscia(true)
-    expect(uscita).toEqual({ opacity: 0, transition: coreografie.avviso.exit.transition })
-    expect(uscita).not.toHaveProperty('y')
+    expect(uscita).toEqual({ y: 0, opacity: 0, transition: coreografie.avviso.exit.transition })
+    expect(Object.keys(uscita).sort()).toEqual(Object.keys(coreografie.avviso.exit).sort())
   })
 })
 

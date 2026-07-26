@@ -68,7 +68,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { molla, useReducedMotion } from '@/design-system/v3/motion'
+import { istantaneo, molla, useReducedMotion } from '@/design-system/v3/motion'
 
 // QA device (verbale 25/07, fix-list D4, parte meccanica) — v3 era saturo (≥3 accessi) sui
 // device usati nei collaudi: la linguetta non compariva più su NESSUN device di prova,
@@ -204,10 +204,20 @@ export function LinguettaCassette(props: { onVai: () => void; visibile: boolean 
             type="button"
             className={modo === 'filo' ? 'ds-linguetta is-filo' : 'ds-linguetta'}
             aria-label="Le cassette"
+            // Sotto reduced-motion cambia la TRANSIZIONE, mai il bersaglio (legge del sistema,
+            // v. `istantaneo` in v3/motion.ts). Prima qui la `x` spariva da `animate` a
+            // preferenza accesa: la linguetta nasceva a `x: 110%` — fuori dallo schermo, perché
+            // al mount la preferenza non era ancora nota — e lì restava, unica via di accesso
+            // alla parete delle cassette mai raggiungibile (difetto D1 del 26/07, misurata a
+            // `left: 393.99` su un telefono da 390). Ora `x: 0` è SEMPRE nel bersaglio: se la
+            // linguetta è nata dislocata, `istantaneo` la riporta a casa senza che si veda
+            // scivolare; se è nata già a posto (caso normale ora che l'hook conosce la
+            // preferenza al primo render), non c'è nulla da spostare e resta solo la
+            // dissolvenza. L'uscita, per lo stesso motivo, svanisce sul posto (`x: 0`).
             initial={reduced ? { opacity: 0 } : { x: '110%' }}
-            animate={reduced ? { opacity: 1 } : { x: 0 }}
-            exit={reduced ? { opacity: 0 } : { x: '110%' }}
-            transition={molla.smooth}
+            animate={reduced ? { x: 0, opacity: 1 } : { x: 0 }}
+            exit={reduced ? { x: 0, opacity: 0 } : { x: '110%' }}
+            transition={reduced ? { ...molla.smooth, x: istantaneo } : molla.smooth}
             onClick={() => {
               if (tapSpeso.current) return
               tapSpeso.current = true

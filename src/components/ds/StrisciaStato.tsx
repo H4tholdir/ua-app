@@ -29,7 +29,7 @@ import Link from 'next/link'
 import { motion } from 'motion/react'
 import { spazio, tipografia, raggio } from '@/design-system/v3/tokens'
 import { vibra } from '@/design-system/v3/haptic'
-import { molla, coreografie, useReducedMotion } from '@/design-system/v3/motion'
+import { molla, coreografie, istantaneo, useReducedMotion } from '@/design-system/v3/motion'
 
 const DIAMETRO = 26
 const PADDING_CARD = `${spazio.sm}px 14px` // mockup .f2: padding 12/14 (12 = spazio.sm, 14 letterale)
@@ -52,9 +52,21 @@ export function carattereStriscia(attenzione: boolean, tono?: 'ambra'): Caratter
 
 /**
  * ingressoStriscia — `initial`/`animate` per Motion, secondo il carattere. `reduced`
- * (prefers-reduced-motion, legge d'accessibilità) → SOLO dissolvenza: niente y, niente scale,
- * MAI un loop. La molla resta quella del carattere (mai una durata inventata): togliere y/scale
- * da un oggetto già dichiarato non è un valore nuovo, è lo stesso token con meno campi.
+ * (prefers-reduced-motion, legge d'accessibilità) → SOLO dissolvenza: la striscia compare al
+ * suo posto, senza salita e senza scatto di scala.
+ *
+ * COME si ottiene la dissolvenza (difetto D2 del 26/07 — v. il report
+ * `.superpowers/sdd/fix-reduced-motion-report.md` e il commento su `useReducedMotion`): NON
+ * togliendo `y`/`scale` dal bersaglio, che è quello che questa funzione faceva prima e che
+ * lasciava la striscia inchiodata 12px più in basso e al 96% per sempre. Motion muove SOLO le
+ * chiavi che trova in `animate`: una chiave tolta non torna a casa, resta dov'è. Qui cambia
+ * quindi solo la TRANSIZIONE — `y` e `scale` arrivano a destinazione `istantaneo` (token, non
+ * una durata inventata), l'opacità continua a salire con la molla del carattere.
+ *
+ * `initial` è per costruzione IDENTICO nei due modi, e questo non è un dettaglio: Motion scrive
+ * `initial` già nell'HTML del server, che non può sapere la preferenza dell'utente. Finché i due
+ * modi partono dallo stesso `initial`, il valore che l'hook restituisce al primo render non può
+ * più produrre né un hydration mismatch né una striscia congelata.
  */
 export function ingressoStriscia(carattere: CarattereStriscia, reduced: boolean) {
   const ricetta = (() => {
@@ -68,18 +80,31 @@ export function ingressoStriscia(carattere: CarattereStriscia, reduced: boolean)
     }
   })()
   const { y, scale, spring } = ricetta
-  return reduced
-    ? { initial: { opacity: 0 }, animate: { opacity: 1, transition: spring } }
-    : { initial: { y, scale, opacity: 0 }, animate: { y: 0, scale: 1, opacity: 1, transition: spring } }
+  return {
+    initial: { y, scale, opacity: 0 },
+    animate: {
+      y: 0,
+      scale: 1,
+      opacity: 1,
+      // Transizione per-chiave (forma nativa di Motion): `y` e `scale` istantanei, tutto il
+      // resto — cioè l'opacità — con la molla del carattere. Sotto reduced-motion la striscia
+      // si limita quindi a dissolvere, esattamente come prima, ma ARRIVANDO al suo posto invece
+      // di restare dov'era nata.
+      transition: reduced ? { ...spring, y: istantaneo, scale: istantaneo } : spring,
+    },
+  }
 }
 
 /**
  * uscitaStriscia — uscita UNICA per ogni carattere: `coreografie.avviso.exit`, già in motion.ts,
- * byte-identica alla demo. Sotto reduced-motion si toglie la sola `y` (stessa transizione già
- * dichiarata, nessuna durata nuova): resta una dissolvenza, mai una traslazione.
+ * byte-identica alla demo. Sotto reduced-motion la `y` non SPARISCE dal bersaglio (stessa
+ * lezione dell'ingresso qui sopra: una chiave tolta resta congelata dov'è, e su un'uscita
+ * significherebbe portarsi dietro l'eventuale spostamento invece di dissolvere sul posto) — ci
+ * resta, ferma a 0. Stessa transizione già dichiarata, nessuna durata nuova: la striscia svanisce
+ * dov'è, senza traslare di quegli 8px.
  */
 export function uscitaStriscia(reduced: boolean) {
-  return reduced ? { opacity: 0, transition: coreografie.avviso.exit.transition } : coreografie.avviso.exit
+  return reduced ? { y: 0, opacity: 0, transition: coreografie.avviso.exit.transition } : coreografie.avviso.exit
 }
 
 /**

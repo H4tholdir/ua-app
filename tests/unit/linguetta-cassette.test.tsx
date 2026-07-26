@@ -356,3 +356,70 @@ describe('LinguettaCassette — H4a: filo rosso, valori verbatim dal mockup `.ln
     expect(barra).toContain('background: rgba(255,255,255,.85)')
   })
 })
+
+// Difetto D1 del 26/07 (QA browser dell'ondata parete/home — report
+// `.superpowers/sdd/fix-reduced-motion-report.md`): con «Riduci movimento» acceso la linguetta
+// restava FUORI dallo schermo per sempre (misurata a `left: 393.99` su un telefono da 390, unica
+// via di accesso alla parete delle cassette). Due cause in fila: l'hook della preferenza
+// rispondeva «no» al primo render, quindi la linguetta nasceva a `x: 110%`; e il bersaglio
+// dell'animazione, a preferenza accesa, non conteneva `x` — e Motion muove solo ciò che sta nel
+// bersaglio, quindi lì restava.
+//
+// Questo test vede DAVVERO il difetto (verificato: ripristinando il vecchio codice diventa
+// rosso) perché in jsdom `render()` è un mount pulito, non un'idratazione — esattamente la
+// posizione della linguetta nella pagina vera, che vive in un portale e non esiste nell'HTML del
+// server. Motion scrive `initial` come stile inline sincrono al commit, quindi lo stile
+// dell'elemento è leggibile qui (stessa proprietà già sfruttata dai test della striscia).
+// NOTA: quello che jsdom NON può riprodurre è il caso della striscia (difetto D2), che dipende
+// dall'HTML del server — quello lo presidia l'invariante sulle chiavi in
+// `tests/unit/ds-v3/componenti/pila-striscia.test.tsx` più la panchina Playwright del report.
+describe('LinguettaCassette — D1: con «Riduci movimento» nasce DENTRO lo schermo', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  /** Solo `prefers-reduced-motion: reduce` risponde `true` (la larghezza resta mobile: se
+   *  rispondesse `true` anche `min-width: 1024px` il portale non esisterebbe affatto). */
+  function attivaRiduciMovimento(): () => void {
+    const originale = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: /prefers-reduced-motion/.test(query),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia
+    return () => {
+      window.matchMedia = originale
+    }
+  }
+
+  it('nessuna traslazione residua sullo stile del bottone — mai un `translateX` fuori schermo', () => {
+    const ripristina = attivaRiduciMovimento()
+    try {
+      render(<LinguettaCassette onVai={() => {}} visibile />)
+      const bottone = screen.getByRole('button', { name: /le cassette/i })
+      const trasformazione = bottone.style.transform ?? ''
+      expect(trasformazione).not.toMatch(/translateX\(\s*1?\d*\.?\d*%\)/)
+      expect(trasformazione).not.toContain('110%')
+    } finally {
+      ripristina()
+    }
+  })
+
+  it('`x: 0` resta nel bersaglio anche a preferenza accesa — se nascesse dislocata, tornerebbe a casa', () => {
+    const ripristina = attivaRiduciMovimento()
+    try {
+      render(<LinguettaCassette onVai={() => {}} visibile />)
+      const bottone = screen.getByRole('button', { name: /le cassette/i })
+      // Con `MotionGlobalConfig.skipAnimations` (tests/setup.ts) il bersaglio è applicato subito:
+      // lo stile finale è la prova che `x` fa parte del bersaglio e vale 0.
+      expect(bottone.style.transform === '' || /translateX\(0(px|%)?\)|none/.test(bottone.style.transform)).toBe(true)
+    } finally {
+      ripristina()
+    }
+  })
+})

@@ -11,7 +11,7 @@
 // FREQUENCY GATE (Emil): elementi toccati >50x/giorno usano SOLO CSS transition,
 // mai Motion JS. Esempi: button tap, toggle, input focus, tab switch.
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // ─── TOKEN BASE ──────────────────────────────────────────────────────────────
 
@@ -281,31 +281,51 @@ export function t(key: MotionDuration, easing: MotionEasing = "standard") {
 }
 
 // ─── PREFERS-REDUCED-MOTION ───────────────────────────────────────────────────
+const QUERY_MOTO = "(prefers-reduced-motion: reduce)";
+
+/** Lettura viva della preferenza di sistema. `matchMedia` non esiste sul server (né in un
+ *  ambiente senza DOM): lì la risposta è `false`, la stessa che il server scrive nell'HTML. */
+function leggiPreferenzaMoto(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia(QUERY_MOTO).matches
+    : false;
+}
+
+/** Sottoscrizione al cambio di preferenza (l'utente può accendere «Riduci movimento» a pagina
+ *  aperta). Ritorna sempre una pulizia, anche dove non c'è nulla a cui iscriversi. */
+function sottoscriviPreferenzaMoto(alCambio: () => void): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+  const mq = window.matchMedia(QUERY_MOTO);
+  mq.addEventListener("change", alCambio);
+  return () => mq.removeEventListener("change", alCambio);
+}
+
 // Ogni componente con animazioni non-istantanee DEVE usare questo hook.
+//
+// IL VINCOLO (invariato): il server non può sapere se l'utente ha «Riduci movimento» acceso,
+// quindi la PRIMA resa del client deve dire esattamente ciò che dice l'HTML arrivato dal server
+// — altrimenti è un hydration mismatch sugli stili che dipendono da `reduced` (es. l'`initial`
+// dei componenti motion). Prima lo si otteneva partendo da `false` e leggendo il valore vero in
+// un `useEffect`; ora lo fa `useSyncExternalStore`, che è l'API che React ha scritto per questo
+// caso preciso: `getServerSnapshot` (`() => false`) vale sul server E durante l'idratazione,
+// `leggiPreferenzaMoto` vale per ogni resa successiva — compresa la PRIMA resa di un componente
+// che NASCE dopo l'idratazione (un foglio, una tendina, un portale: la linguetta della home è
+// così). Quelli, prima, nascevano con i valori d'ingresso del movimento pieno anche a preferenza
+// accesa, e restavano lì. In più la sottoscrizione al `change` è una sola, tenuta da React, e
+// sparisce la deroga di lint `react-hooks/set-state-in-effect` che serviva alla vecchia forma.
+//
+// PERCHÉ QUESTO DA SOLO NON BASTAVA (difetto D1/D2 del 26/07, misurato in browser —
+// `.superpowers/sdd/fix-reduced-motion-report.md`): sapere la preferenza al primo render non
+// poteva essere la soluzione, e vale la pena scriverlo qui perché il prossimo non ci ricada.
+// Motion scrive i valori di `initial` GIÀ nell'HTML del server (è così che evita il lampo
+// iniziale): sotto reduced-motion la striscia della home arriva dal server già spostata di 12px,
+// e nessuna resa del client può contraddire quel markup senza divergere da esso — cioè senza il
+// mismatch che questo commento esiste per evitare. L'unica cosa che la riporta a posto è
+// qualcosa che la MUOVA davvero, e Motion muove solo le chiavi presenti nel bersaglio `animate`.
+// Da qui la legge, che vive accanto al token `istantaneo` in `v3/motion.ts`: sotto reduced-motion
+// cambia la TRANSIZIONE, mai il bersaglio.
 export function useReducedMotion(): boolean {
-  // Stato iniziale sempre `false`, identico a quello che il server renderizza
-  // (che non ha accesso a matchMedia) — evita un hydration mismatch sugli
-  // attributi/stili che dipendono da `reduced` (es. `initial` dei componenti
-  // motion). Il valore reale viene letto una sola volta dopo il mount, stesso
-  // pattern già usato da useTheme.ts per lo stesso problema (B18).
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    // Sync una tantum al mount da matchMedia (mai disponibile server-side) —
-    // non innesca cascata, è l'unica scrittura di questo effect e le sue
-    // dipendenze sono vuote.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  return reduced;
+  return useSyncExternalStore(sottoscriviPreferenzaMoto, leggiPreferenzaMoto, () => false);
 }
 
 // ─── STAGGER — calcolo sicuro ──────────────────────────────────────────────────
