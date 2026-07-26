@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PareteClient } from '@/components/features/cassette/PareteClient'
+import { trovaParoleVietate } from '@/design-system/v3/dizionario'
 import type { CassettaParete } from '@/lib/cassette/parco-shared'
 
 const push = vi.fn()
@@ -866,42 +867,58 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
     }
   })
 
+  // Review finale whole-branch, D4 — questi due erano gli unici del describe a NON avvolgere i
+  // fake timer in `try/finally` (i gemelli `sposta-lavoro` qui sopra lo fanno). L'`afterEach`
+  // del describe ripristina global e mock, MAI i timer: se una qualunque asserzione qui in
+  // mezzo fosse fallita, i fake timer restavano accesi per tutto il resto del FILE e ogni test
+  // successivo che si appoggia al tempo vero (`waitFor`, `findBy*`, `userEvent`) sarebbe caduto
+  // per un motivo suo — una cascata il cui primo colpevole finisce sepolto. `useRealTimers` è
+  // idempotente, quindi il ripristino a metà corpo (necessario: `findByRole` sotto conta su
+  // timer veri) e quello del `finally` convivono senza attriti.
   it('segna-libera riuscita in embedded: la cassetta torna libera SUBITO sul muro, senza un vero refresh', async () => {
     fetchMock().mockResolvedValueOnce({ status: 200, json: async () => ({ esito: 'ok', nome: 'C12' }) })
     vi.useFakeTimers()
-    render(<PareteClient parete={[occupata]} sospendiRefresh />)
-    const bottone = cassettaOccupata()
-    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
-    act(() => { vi.advanceTimersByTime(300) }) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx, drag disabilitato con 1 sola cassetta)
-    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
-    vi.useRealTimers() // trovando 300ms scaduti (findByRole/waitFor sotto contano su timer VERI)
-    expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
+    try {
+      render(<PareteClient parete={[occupata]} sospendiRefresh />)
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+      act(() => { vi.advanceTimersByTime(300) }) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx, drag disabilitato con 1 sola cassetta)
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+      vi.useRealTimers() // trovando 300ms scaduti (findByRole/waitFor sotto contano su timer VERI)
+      expect(screen.getByRole('dialog', { name: 'C12' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
-    const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
-    fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
-    await act(async () => {})
+      fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
+      const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
+      fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
+      await act(async () => {})
 
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
-    expect(refresh).not.toHaveBeenCalled()
+      expect(fetch).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('button', { name: 'Cassetta C12, libera' })).toBeInTheDocument()
+      expect(refresh).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('segna-libera FALLITA in embedded: la cassetta resta occupata (l\'ottimistico non si applica su errore)', async () => {
     fetchMock().mockResolvedValueOnce({ status: 500, json: async () => ({}) })
     vi.useFakeTimers()
-    render(<PareteClient parete={[occupata]} sospendiRefresh />)
-    const bottone = cassettaOccupata()
-    fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
-    act(() => { vi.advanceTimersByTime(300) })
-    fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
-    vi.useRealTimers()
-    fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
-    const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
-    fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
-    await act(async () => {})
+    try {
+      render(<PareteClient parete={[occupata]} sospendiRefresh />)
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0 })
+      act(() => { vi.advanceTimersByTime(300) })
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0 })
+      vi.useRealTimers()
+      fireEvent.click(screen.getByRole('button', { name: /segna come libera/i }))
+      const dialog = await screen.findByRole('dialog', { name: /il n\.144 esce dalla c12/i })
+      fireEvent.click(within(dialog).getByRole('button', { name: /esce|libera/i }))
+      await act(async () => {})
 
-    expect(screen.getByRole('button', { name: /^Cassetta C12, occupata/ })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Cassetta C12, occupata/ })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('butta-via riuscita in embedded: la cassetta sparisce SUBITO dal muro, senza un vero refresh', async () => {
@@ -926,5 +943,117 @@ describe('PareteClient — riflesso ottimistico esteso: assegna/sposta/segna-lib
     await user.click(within(dialog).getByRole('button', { name: 'Butta via' }))
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Cassetta C4, libera' })).toBeInTheDocument()
+  })
+})
+
+// ── Dizionario DS v3 §2.3 sulla parete (review finale whole-branch, D3) ────────────────────
+// RIPRISTINO di una guardia PERSA. Il Task 12 ha cancellato `tests/unit/stanza-parete.test.tsx`
+// insieme all'anteprima `StanzaParete` che presidiava; dentro c'era anche il describe
+// «StanzaParete — dizionario §2.3», che passava `trovaParoleVietate` sul testo della stanza
+// piena E vuota. Nessun altro file lo ha raccolto: dei 20 file che usano `trovaParoleVietate`,
+// nessuno tocca questa superficie (gli altri sono demo di catalogo per singolo componente).
+// Nel frattempo la superficie si è ALLARGATA — dopo T15 la stanza monta il chrome di pagina
+// intero dentro la home — e tutta la copy nuova dell'ondata («N cassette trovate», «Niente
+// per … — prova con meno lettere», «Svuota la ricerca per spostare le cassette», «La tua
+// parete è vuota», la sotto-vista «Metti un lavoro») non passava alcun controllo di dizionario.
+// È la superficie più visitata dell'ondata: qui una parola del software entrerebbe indisturbata.
+//
+// NON è ripristinata l'altra metà del file cancellato («in home si naviga, non si manipola»,
+// `draggable="false"` su ogni tray): T15 ha cambiato quella regola di proposito — quali gesti
+// la stanza embeddata consente è materia a parte, a ledger, non di questa guardia.
+describe('PareteClient — dizionario §2.3 (ripristino della guardia persa col Task 12)', () => {
+  /**
+   * Il testo che l'utente LEGGE davvero. `document.body.textContent` da solo includerebbe anche
+   * il contenuto dei blocchi `<style>{…}</style>` (i componenti ds ne montano diversi): lì una
+   * proprietà CSS del tutto legittima come `filter:` farebbe scattare `/\bfiltr\w+/i` e la
+   * guardia diventerebbe un allarme falso al primo che scrive una regola nuova. Si guarda solo
+   * la copy.
+   */
+  function testoLeggibile(radice: HTMLElement = document.body): string {
+    const copia = radice.cloneNode(true) as HTMLElement
+    for (const nodo of Array.from(copia.querySelectorAll('style, script'))) nodo.remove()
+    return copia.textContent ?? ''
+  }
+
+  it('muro pieno: nessuna parola del software nella copy della parete', () => {
+    render(<PareteClient parete={[occupata, libera]} />)
+    // Prova che lo stato è DAVVERO quello che dice il titolo: senza questo, una guardia su una
+    // pagina bianca passerebbe sempre.
+    expect(screen.getByRole('heading', { name: 'Le cassette' })).toBeInTheDocument()
+    expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+  })
+
+  it('muro vuoto: nemmeno il Vuoto e la sua guida parlano software', () => {
+    render(<PareteClient parete={[]} />)
+    expect(screen.getByRole('heading', { name: 'La tua parete è vuota' })).toBeInTheDocument()
+    expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+  })
+
+  describe('stati della ricerca (copy nuova dell’ondata)', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('ricerca CON esiti: la riga «N cassette trovate» resta parola di banco', () => {
+      render(<PareteClient parete={[occupata, libera]} />)
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C' } })
+      act(() => { vi.advanceTimersByTime(250) }) // oltre il debounce di 180ms
+      expect(screen.getByRole('status')).toHaveTextContent('2 cassette trovate')
+      expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+    })
+
+    it('ricerca SENZA esiti: «Niente per … — prova con meno lettere»', () => {
+      render(<PareteClient parete={[occupata, libera]} />)
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'zzz' } })
+      act(() => { vi.advanceTimersByTime(250) })
+      expect(screen.getByRole('status')).toHaveTextContent('prova con meno lettere')
+      expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+    })
+
+    it('hint del drag bloccato: «Svuota la ricerca per spostare le cassette»', () => {
+      const { container } = render(<PareteClient parete={[occupata, libera]} />)
+      fireEvent.change(screen.getByPlaceholderText('Cerca una cassetta o un lavoro…'), { target: { value: 'C' } })
+      act(() => { vi.advanceTimersByTime(250) })
+      const bottone = cassettaOccupata()
+      fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      act(() => { vi.advanceTimersByTime(300) }) // SOGLIA_LONG_PRESS_MS (Cassetta.tsx)
+      fireEvent.pointerUp(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+      expect(within(container).getByRole('status')).toHaveTextContent('Svuota la ricerca per spostare le cassette')
+      // Solo il muro: il long-press apre ANCHE lo sheet (§5.35), che vive in portale su
+      // `document.body` — la sua copy è materia del file `cassetta-sheet.test.tsx`, non di qui.
+      expect(trovaParoleVietate(testoLeggibile(container))).toEqual([])
+    })
+  })
+
+  describe('sotto-vista «Metti un lavoro» dello sheet (nuova con quest’ondata)', () => {
+    beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+    afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+
+    // La sotto-vista SOSTITUISCE la vista radice dello sheet: quando è in scena, in pagina non
+    // c'è altra copy dello sheet. Perciò qui si può guardare tutto il documento.
+    it('con lavori da mettere: la lista dei liberi non parla software', async () => {
+      ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ lavori: [{ id: 'l9', numero: '151', dentista: 'Studio Bruno', pazienteAlias: 'Rossi Mario', urgenza: 1 }] }),
+      })
+      render(<PareteClient parete={[libera]} />)
+      const user = userEvent.setup()
+      tap(cassettaLibera())
+      await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+      await screen.findByRole('button', { name: /151/i })
+      expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+    })
+
+    it('senza lavori da mettere: «Tutti i lavori hanno già una cassetta»', async () => {
+      ;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ lavori: [] }),
+      })
+      render(<PareteClient parete={[libera]} />)
+      const user = userEvent.setup()
+      tap(cassettaLibera())
+      await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
+      await screen.findByText('Tutti i lavori hanno già una cassetta')
+      expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+    })
   })
 })
