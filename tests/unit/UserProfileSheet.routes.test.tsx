@@ -6,9 +6,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useRouter: () => ({ push: vi.fn() }),
 }))
-vi.mock('@/hooks/useTheme', () => ({
-  useTheme: () => ({ theme: 'light', toggle: vi.fn(), isDark: false }),
-}))
 vi.mock('@/lib/supabase/browser-anon', () => ({
   getBrowserClient: () => ({ auth: { signOut: vi.fn() } }),
 }))

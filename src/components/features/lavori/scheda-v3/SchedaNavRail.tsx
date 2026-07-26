@@ -18,7 +18,6 @@ import { molla } from '@/design-system/v3/motion'
 import { gradiente, raggio, spazio, tipografia, testoSuFaccia } from '@/design-system/v3/tokens'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
-import { ThemeToggleButton } from '@/components/layout/ThemeToggleButton'
 
 type Voce = { href: string; etichetta: string; glifo: string }
 
@@ -125,7 +124,6 @@ export function SchedaNavRail() {
         <span style={{ fontSize: tipografia.size.caption, color: 'var(--faint)', fontWeight: tipografia.weight.semibold }}>
           Tema
         </span>
-        <ThemeToggleButton />
       </div>
     </aside>
   )

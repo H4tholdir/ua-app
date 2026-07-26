@@ -63,15 +63,16 @@
        c'e' React a raccogliere un errore, quindi ogni pezzo sta nel suo try.
        Lo storage per primo e da solo: se lancia (privacy del browser, cookie
        bloccati, WebView) si degrada al @media qui sopra invece di cadere tutto.
-       ATTENZIONE: legge la chiave 'ua-theme' con i due valori di oggi. Quando la
-       tappa 3 introdurra' 'ua-tema' a tre stati, QUESTA riga va aggiornata: la
-       guardia del censimento la tiene sotto tiro. */
+       Legge 'ua-tema' a tre stati (sistema|chiaro|scuro), la stessa chiave di
+       lib/preferenze/tema.ts. 'sistema' e ogni valore non riconosciuto NON
+       scrivono nulla: resta al comando il @media qui sopra, che e' gia' il
+       telefono. La guardia del censimento tiene sotto tiro questa riga. */
     (function () {
       var salvato = null
-      try { salvato = localStorage.getItem('ua-theme') } catch (e) {}
+      try { salvato = localStorage.getItem('ua-tema') } catch (e) {}
       try {
-        if (!salvato) return
-        var scuro = salvato === 'dark'
+        if (salvato !== 'chiaro' && salvato !== 'scuro') return
+        var scuro = salvato === 'scuro'
         document.documentElement.setAttribute('data-tema', scuro ? 'scuro' : 'chiaro')
         var meta = document.querySelector('meta[name="theme-color"]')
         if (meta) meta.setAttribute('content', scuro ? '#171411' : '#F4F0E7')
