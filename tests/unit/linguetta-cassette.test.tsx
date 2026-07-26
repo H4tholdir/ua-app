@@ -54,12 +54,27 @@ describe('LinguettaCassette — fase piena (F2, passaggi 1-3, taglia T2)', () =>
   // INVARIATO rispetto a prima di H4a: il mockup F2 non tocca il ritiro a 5s della fase
   // piena (il brief lo segnala esplicitamente come comportamento da preservare) — solo la
   // fase «filo» (sotto) introduce «mai sparita».
+  // Review finale whole-branch — perché il `waitFor` qui ha un timeout ESPLICITO e generoso.
+  // Il default è 1s, che sotto contesa multi-worker è tutto il budget per un'uscita che gira su
+  // requestAnimationFrame VERO: è la forma che, senza aver ancora fallito, somiglia di più al
+  // prossimo test intermittente (v. `.superpowers/sdd/diagnosi-flake-vitest.md`).
+  // Il rimedio pulito sarebbe il rAF deterministico che il repo già usa altrove
+  // (`creaRafDeterministico`, use-drag-riordino.test.ts): PROVATO, non funziona qui. Motion
+  // cattura `requestAnimationFrame` al proprio import — prima che `vi.stubGlobal` o i fake
+  // timer siano installati — quindi né lo stub né `advanceTimersByTime` raggiungono la sua
+  // coda di frame (misurato: zero frame in coda, uscita mai completata). Pilotarlo davvero
+  // vorrebbe dire mockare rAF in `tests/setup.ts`, cioè per tutta la suite: fuori portata qui.
+  // Restano quindi i timer veri per la sola uscita, con un tetto che non dipende dal carico
+  // della macchina.
   it('appare al mount, si ritira dopo ~5s (aria-hidden e fuori dall’albero)', async () => {
     render(<LinguettaCassette onVai={() => {}} visibile />)
     expect(screen.getByRole('button', { name: /le cassette/i })).toBeTruthy()
     act(() => vi.advanceTimersByTime(5000))
     vi.useRealTimers()
-    await waitFor(() => expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull())
+    await waitFor(
+      () => expect(screen.queryByRole('button', { name: /le cassette/i })).toBeNull(),
+      { timeout: 5000 },
+    )
   })
 
   // Nome rettificato (review finale whole-branch): prometteva «hit-area ≥44px», ma jsdom non
