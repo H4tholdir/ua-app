@@ -275,6 +275,14 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
   tasto/gesto «indietro» della PWA fa `router.back()` con fallback a `/dashboard` solo se non c'è
   storia di navigazione. MAI `router.push('/dashboard')` (o altra rotta fissa) come back — è il
   difetto trovato al collaudo device in `SchedaLavoroV3.tsx`. Vale per ogni superficie futura.
+- **Navigare da dentro un overlay v3: MAI `router.push` (26/07/2026).** Da dentro un `Sheet` o un
+  `DialogConferma` v3, o da un handler che ne chiude uno nello stesso gesto, si usa
+  **`useNavigaDaOverlay`** (`src/components/ds/useNavigaDaOverlay.ts`), mai `router.push` nudo.
+  Motivo: quegli overlay tengono una entry di history che è un doppione della pagina
+  (`storia-overlay.ts`); con un `push` la nuova pagina le si impila SOPRA e resta sepolta — una
+  pressione «indietro» morta — e se il gesto chiude anche l'overlay il suo `history.back()`
+  arriva prima della navigazione e se la mangia (il CTA primario si comportava come un annulla).
+  L'hook dichiara l'intenzione e sostituisce l'entry. Rete: `scripts/guardia-navigazione-overlay.mjs`.
 
 ### Gotchas API + sicurezza
 - **PATCH allowlist:** API PATCH di risorse lab usa sempre allowlist esplicita di campi — MAI blocklist
