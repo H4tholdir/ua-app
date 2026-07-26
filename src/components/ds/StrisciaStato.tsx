@@ -115,8 +115,10 @@ export function uscitaStriscia(reduced: boolean) {
  * resta FLAT, nessuna ombra). Dentro: icona Ø26 (check verde tint / triangolo `!` rosso tint in
  * `attenzione` / clessidra ambra nel trial / stella `✦` blu nel racconto con `eventoId` — il
  * disco è sempre la superficie `--elv`, mai più la tinta) + testo `flex: 1 1 auto; minWidth: 0`
- * 14.5/500 `--muted` su una riga con ellissi:
- * `forte` (opzionale) apre il testo in grassetto `--ink` 700, poi `children`. Se il chiamante
+ * 14.5/500 `--muted`, sempre su UNA riga.
+ * `forte` (opzionale) apre il testo in grassetto `--ink` 700, poi `children`. Dalla decisione
+ * del 26/07/2026 i due NON condividono più un'unica ellissi: `forte` ha un nodo suo che non
+ * cede (v. il commento su `testo` qui sotto) e a troncarsi è solo `children`. Se il chiamante
  * passa `altri` compare un nodo `flex: none` subito dopo (Task 16b punto 2 — mai dentro il testo
  * troncabile). Se il chiamante passa `azione` compare una CTA `<Link>` `flex-none` 14.5/800
  * `--red`, MAI dentro il blocco troncabile — hit-area ≥44px via `minHeight: 44` +
@@ -190,14 +192,51 @@ export function StrisciaStato(props: {
     </span>
   )
 
+  // DECISIONE DI FRANCESCO, 26/07/2026 (gate estetico L2 §4.4, catture
+  // `docs/design/screenshots/2026-07-26-redesign-parete-home/home/390-*-striscia-allarme-altri-reale.png`):
+  // «Il numero del lavoro non si taglia mai.» Ordine di chi cede quando lo spazio finisce:
+  //   1) il NUMERO (`forte`) — mai troncato;
+  //   2) il CONTEGGIO («e altre N») — mai troncato (resta `flex: none`, v. sotto);
+  //   3) la FRASE — è lei che si accorcia, con l'ellissi.
+  // PRIMA di questa decisione numero e frase stavano nello STESSO blocco con una sola ellissi,
+  // quindi a tagliarsi era il numero solo perché veniva prima: a 390, sul dato vero di questo
+  // laboratorio, si leggeva `n.2026/000…` — che non distingue il lavoro 0001 dal 0009 — e la
+  // frase spariva comunque per intero. Ora il numero ha un nodo suo e solo la frase tronca.
+  // NB — è un cambio di SOLO LAYOUT: parole, pesi, colori e molle sono quelli di prima. Lo
+  // spazio fra numero e frase era il `{' '}` che stava fra i due nodi: qui è uno spazio
+  // unificatore in testa alla frase (stesso peso 500, stessa larghezza misurata — 2.47px a 14.5px
+  // — e, a differenza di uno spazio normale, non viene mangiato dall'inizio riga del nuovo box).
+  //
+  // PERCHÉ IL NUMERO NON È `flex: none`, MA CEDE PER ULTIMO. `forte` non porta solo numeri di
+  // lavoro: porta anche nomi liberi e SENZA limite di lunghezza (materiale in esaurimento s5,
+  // studio con pagamento scaduto s7, «Account di …», v. striscia.ts). Con `flex: none` un nome
+  // lungo spingerebbe la CTA fuori dalla card — oggi si tronca soltanto, quindi sarebbe una
+  // regressione. La scala di priorità è scritta nei FATTORI DI RESTRINGIMENTO invece che in una
+  // soglia: la frase cede 1000 volte più in fretta del numero, quindi finché la frase ha spazio
+  // la quota che tocca al numero resta sotto il pixel (misurato: 0,09px nel caso reale a 390);
+  // quando la frase arriva a zero il flexbox la congela e SOLO ALLORA gira tutto il resto al
+  // numero. I numeri di lavoro a quel punto non ci arrivano mai; i nomi senza limite sì, ed è
+  // giusto che tocchi a loro.
+  //
+  // ⚠️ IL FATTORE DEL NUMERO DEVE RESTARE ≥ 1 — non è un dettaglio di stile, è una trappola vera
+  // del flexbox, misurata su questa stessa striscia. Prima qui c'era `flex: 0 0.001 auto`, che
+  // sembra «un freno mille volte più forte» ed è la stessa proporzione di adesso: nei casi
+  // normali dava px identici. Ma la regola di risoluzione delle lunghezze flessibili
+  // (CSS Flexbox §9.7, passo 4b) dice che quando la somma dei fattori degli elementi ancora
+  // liberi è MINORE DI 1, lo spazio che possono assorbire viene tagliato a
+  // «spazio libero iniziale × quella somma». All'ultimo giro resta libero il solo numero: con
+  // fattore 0,001 poteva cedere ~0,4px in tutto, cioè la valvola non si apriva MAI — e un nome
+  // lungo usciva dal proprio blocco e andava a scriversi SOPRA il conteggio e la CTA (misurato:
+  // 55px oltre il bordo interno della card, a 390). Con fattore 1 l'ultimo giro non viene
+  // tagliato e il nome si tronca dentro il suo blocco, come deve. Guardia:
+  // tests/unit/ds-v3/componenti/pila-striscia.test.tsx.
   const testo = (
     <span
       style={{
+        display: 'flex',
+        alignItems: 'baseline',
         flex: '1 1 auto',
         minWidth: 0,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
         fontSize: 14.5,
         fontWeight: 500,
         color: 'var(--muted)',
@@ -205,11 +244,34 @@ export function StrisciaStato(props: {
       }}
     >
       {forte && (
-        <>
-          <b style={{ color: 'var(--ink)', fontWeight: 700 }}>{forte}</b>{' '}
-        </>
+        <b
+          style={{
+            flex: '0 1 auto',
+            minWidth: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            color: 'var(--ink)',
+            fontWeight: 700,
+          }}
+        >
+          {forte}
+        </b>
       )}
-      {children}
+      <span
+        style={{
+          // grow 1 come il vecchio blocco unico; shrink 1000 = la frase cede prima del numero
+          // (v. il commento sopra: il rapporto conta, e il fattore del NUMERO deve restare ≥ 1)
+          flex: '1 1000 auto',
+          minWidth: 0,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {forte ? '\u00A0' : null}
+        {children}
+      </span>
     </span>
   )
 

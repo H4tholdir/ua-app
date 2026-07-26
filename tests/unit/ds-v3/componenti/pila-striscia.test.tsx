@@ -471,6 +471,101 @@ describe('StrisciaStato — punto 2: il conteggio «altri» (nodo che non si res
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DECISIONE DI FRANCESCO, 26/07/2026 (gate estetico L2 §4.4) — «Il numero del lavoro non si
+// taglia mai». Quando lo spazio finisce, l'ordine di chi cede è: 1) MAI il numero (`forte`);
+// 2) MAI il conteggio («e altre N»); 3) la frase, che si accorcia con l'ellissi.
+// Prima di questa decisione numero e frase vivevano nello STESSO blocco troncato, e il numero
+// spariva per primo solo perché veniva prima: a 390 si leggeva `n.2026/000…`, che non distingue
+// il lavoro 0001 dal 0009.
+// Queste guardie presidiano la RELAZIONE fra i nodi, non i px: jsdom non fa layout, quindi la
+// scala di priorità si verifica dove è scritta — nella struttura e nei fattori di restringimento.
+describe('StrisciaStato — «il numero non si taglia mai» (decisione Francesco 26/07/2026)', () => {
+  const NUMERO = 'n.2026/0004'
+  const FRASE = 'non è ancora pronto per le 12:30'
+
+  function rendiPeggiore() {
+    return render(
+      <StrisciaStato attenzione forte={NUMERO} altri={8} azione={{ etichetta: 'Sistemala ›', href: '/fatture/f1' }}>
+        {FRASE}
+      </StrisciaStato>
+    )
+  }
+  /** flex-shrink risolto: jsdom espande lo shorthand `flex` nei suoi longhand (v. il commento
+   *  della guardia sul conteggio qui sopra), quindi si legge il longhand, mai la stringa. */
+  const restringimento = (el: HTMLElement) => parseFloat(getComputedStyle(el).flexShrink || '1')
+
+  it('il numero vive in un nodo suo: nessun blocco che tronca con l\'ellissi lo contiene più', () => {
+    const { container } = rendiPeggiore()
+    const numero = container.querySelector('b')
+    expect(numero, 'il numero non è più in un <b>').toBeTruthy()
+    expect(numero!.textContent).toBe(NUMERO)
+    const troncanti = [...container.querySelectorAll<HTMLElement>('*')].filter(
+      (n) => n !== numero && getComputedStyle(n).textOverflow === 'ellipsis'
+    )
+    expect(troncanti.length, 'nessun nodo tronca: la frase deve poter cedere').toBeGreaterThan(0)
+    for (const n of troncanti) {
+      expect(
+        n.contains(numero!),
+        `il blocco troncabile «${(n.textContent ?? '').slice(0, 30)}» contiene ancora il numero`
+      ).toBe(false)
+    }
+  })
+
+  it('la frase cede PRIMA del numero: flex-shrink(frase) > flex-shrink(numero)', () => {
+    const { container } = rendiPeggiore()
+    const numero = container.querySelector('b')!
+    const frase = [...container.querySelectorAll<HTMLElement>('span')].find(
+      (n) => (n.textContent ?? '').includes(FRASE) && !n.contains(numero) && getComputedStyle(n).textOverflow === 'ellipsis'
+    )
+    expect(frase, 'nodo frase separato non trovato').toBeTruthy()
+    expect(restringimento(numero)).toBeLessThan(restringimento(frase!))
+  })
+
+  // ⚠️ LA GUARDIA CHE MI È COSTATA UN GIRO DI MISURE (26/07, difetto trovato in browser dopo
+  // averlo scritto sbagliato qui). Un fattore < 1 sul numero SEMBRA «un freno ancora più forte»
+  // e nei casi normali dà px identici — ma la regola di risoluzione delle lunghezze flessibili
+  // (CSS Flexbox §9.7, passo 4b) taglia lo spazio assorbibile a «spazio libero iniziale × somma
+  // dei fattori ancora liberi» quando quella somma è minore di 1. All'ultimo giro resta libero
+  // il solo numero: con 0,001 poteva cedere ~0,4px in tutto, cioè la valvola non si apriva MAI, e
+  // un `forte` senza limite di lunghezza (nome materiale, nome studio) usciva dal proprio blocco
+  // e finiva SOPRA il conteggio e la CTA — misurato 55px oltre il bordo interno della card a 390.
+  // jsdom non fa layout e non può vedere quello sforo: qui si presidia l'invariante numerica che
+  // lo produce.
+  it('il fattore del numero resta ≥ 1: sotto 1 il flexbox non gli farebbe cedere quasi nulla all\'ultimo giro (§9.7 passo 4b) e un nome lungo scriverebbe SOPRA conteggio e CTA', () => {
+    const { container } = rendiPeggiore()
+    expect(restringimento(container.querySelector('b')!)).toBeGreaterThanOrEqual(1)
+  })
+
+  it('il numero non va mai a capo, e la sua tipografia non cambia (700 su --ink)', () => {
+    const { container } = rendiPeggiore()
+    const numero = container.querySelector('b')!
+    expect(getComputedStyle(numero).whiteSpace).toBe('nowrap')
+    expect(numero.style.fontWeight).toBe('700')
+    expect(numero.style.color).toBe('var(--ink)')
+  })
+
+  it('il conteggio resta il nodo che NON si restringe (priorità 2): flex-shrink 0, nessuna ellissi', () => {
+    rendiPeggiore()
+    const conteggio = screen.getByText('e altre 8')
+    expect(restringimento(conteggio)).toBe(0)
+    expect(getComputedStyle(conteggio).textOverflow).not.toBe('ellipsis')
+  })
+
+  it('la CTA resta intera in ogni caso (flex-shrink 0)', () => {
+    rendiPeggiore()
+    expect(restringimento(screen.getByRole('link', { name: 'Sistemala ›' }))).toBe(0)
+  })
+
+  it('le parole non cambiano: numero + spazio + frase, nell\'ordine di prima', () => {
+    const { container } = rendiPeggiore()
+    //   (lo spazio unificatore che tiene il posto del vecchio `{' '}` fra i due nodi)
+    // conta come spazio: si normalizza prima di confrontare.
+    const testo = (container.textContent ?? '').replace(/\s+/g, ' ')
+    expect(testo).toContain(`${NUMERO} ${FRASE}`)
+  })
+})
+
 // Task 16b, punto 4 — il racconto (segnale con `eventoId`, v. striscia.ts «presente SOLO sui
 // segnali racconto») è tappabile su TUTTA la card, con un chevron come affordance. Allarmi e
 // trial restano CTA-only (comportamento di oggi, invariato).
