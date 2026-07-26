@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { COLORE_BARRA, impostaColoreBarra } from '@/design-system/colore-barra-sistema'
 import { luce, notte } from '@/design-system/v3/tokens'
+import { SCRIPT_TEMA } from '@/components/layout/ThemeInitializer'
 
 function metaTemi(): string[] {
   return Array.from(document.querySelectorAll('meta[name="theme-color"]'))
@@ -53,5 +54,97 @@ describe('impostaColoreBarra — upsert, mai no-op silenzioso', () => {
 
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('UA')
     expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+})
+
+function eseguiScript(): void {
+  new Function(SCRIPT_TEMA)()
+}
+
+function sistemaScuro(scuro: boolean): void {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: scuro && query.includes('dark'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  })
+}
+
+describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura', () => {
+  beforeEach(() => {
+    document.head.innerHTML = ''
+    document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.remove('dark')
+    localStorage.clear()
+    sistemaScuro(false)
+  })
+
+  it('senza preferenza, segue il sistema chiaro', () => {
+    eseguiScript()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  it('senza preferenza, segue il sistema scuro', () => {
+    sistemaScuro(true)
+
+    eseguiScript()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+
+  it('la preferenza salvata vince sul sistema', () => {
+    sistemaScuro(true)
+    localStorage.setItem('ua-theme', 'light')
+
+    eseguiScript()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  it('aggiorna il meta gia emesso da Next invece di aggiungerne un altro', () => {
+    document.head.innerHTML = '<meta name="theme-color" content="#D90012">'
+    sistemaScuro(true)
+
+    eseguiScript()
+
+    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+
+  it('segue dal vivo il cambio di data-theme — e questa e la cosa da provare sul device', async () => {
+    eseguiScript()
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
+
+    document.documentElement.setAttribute('data-theme', 'dark')
+    await new Promise(r => setTimeout(r, 0))
+
+    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+  })
+
+  it('con data-theme RIMOSSO torna chiaro, non scuro (caso ds-v3-catalogo)', async () => {
+    localStorage.setItem('ua-theme', 'dark')
+    eseguiScript()
+    expect(metaTemi()).toEqual([COLORE_BARRA.dark])
+
+    document.documentElement.removeAttribute('data-theme')
+    await new Promise(r => setTimeout(r, 0))
+
+    expect(metaTemi()).toEqual([COLORE_BARRA.light])
+  })
+
+  it('non contiene colori scritti a mano', () => {
+    expect(SCRIPT_TEMA).toContain(COLORE_BARRA.light)
+    expect(SCRIPT_TEMA).toContain(COLORE_BARRA.dark)
+    expect(SCRIPT_TEMA).not.toContain('#D90012')
   })
 })
