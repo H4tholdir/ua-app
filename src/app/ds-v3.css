@@ -1055,25 +1055,30 @@
    valori RATIFICATI 24/07, non quelli ipotizzati dal piano):
    · Il MURO disegna una maglia quadrata continua a passo fisso --passo-maglia (fili
      orizzontali E verticali), SEMPRE, dietro tutto — indipendente dalle cassette.
-   · Le RIGHE di `.ds-parete-grid` hanno altezza (--track) quantizzata: track = 5 · passo-maglia
-     (qui 44 → 220px — QA device T15, verbale 2026-07-24 fix 7/e, ADEGUAMENTO 4→5: la VERA
-     altezza massima del tile — targa T2, dentista E paziente entrambi oltre soglia, 2 righe
-     ciascuno — misurata in browser reale è 158px a passo-maglia 40 (shell mobile fluida): a
-     track=4·passo (160px lì) restavano solo 2px prima della zona riservata al gancio della riga
-     sotto (--hook-above 14 + 6px di sovrapposizione linguetta = 20px), cioè il tile CI ENTRAVA
-     dentro per 18px — la clip che il collaudo device ha trovato. A track=5·passo la stessa
-     misura lascia ~42px di margine, ben sopra i 20 riservati. Non un'abrogazione della regola,
-     un adeguamento allo stesso identico principio con un multiplo più capiente — v. sotto per
-     perché la garanzia hook↔filo non dipende dal multiplo scelto). `grid-auto-rows: var(--track);
-     row-gap: 0;` + celle ancorate in alto (`align-items: start`) — vedi regola sotto.
+   · Le RIGHE di `.ds-parete-grid` hanno altezza (--track) quantizzata su un multiplo INTERO di
+     passo-maglia. Il multiplo NON è più uno solo: 5 sul telefono, 4 da tablet in su — v. la
+     `@media (min-width: 768px)` subito sotto la regola di `.ds-parete`, dove sta la decisione
+     di Francesco del 26/07/2026 e il perché. `grid-auto-rows: var(--track); row-gap: 0;`
+     + celle ancorate in alto (`align-items: start`) — vedi regola sotto.
+     STORIA, e perché la vecchia motivazione del 5 NON vale più. Il 5 arriva da QA device T15
+     (verbale 2026-07-24, fix 7/e, adeguamento 4→5): la VERA altezza massima del tile — targa T2,
+     dentista E paziente entrambi oltre soglia, 2 righe ciascuno — misurata in browser reale era
+     158px a passo-maglia 40, quindi a track=4·passo (160px lì) restavano 2px soli prima della
+     zona riservata al gancio della riga sotto (--hook-above 14 + 6px di sovrapposizione
+     linguetta = 20px): il tile ci entrava dentro per 18px, la clip che il collaudo device ha
+     trovato. QUEL TILE NON ESISTE PIÙ: il fix H2 di quest'ondata («la cassetta allunga la pancia
+     in fondo») ha fissato la sagoma a --altezza-cassetta = 78 + 60 = 138px, dichiarata con
+     `height` E `min-height`, e il collaudo parete l'ha verificata identica su tutte e sei le
+     cassette a ogni viewport. Il vincolo che difendeva il 5 è caduto con lui.
    · Il gancio della cassetta sporge --hook-above (14px) sopra il bordo-alto del tile → quota di
      morso hook_n = wall-pad-top − hook-above + n·track. Track è SEMPRE un multiplo INTERO di
-     passo-maglia (4× ieri, 5× da questo fix) — la congruenza hook_n ≡ wire-center (mod
-     passo-maglia) vale per COSTRUZIONE qualunque sia il multiplo, perché n·track resta comunque
-     ≡ 0 (mod passo-maglia): il gancio di OGNI riga cade su un filo vero, a qualsiasi larghezza
-     di colonna (3/4/6) e qualsiasi contenuto (garanzia verificata empiricamente nel mockup:
-     scarto 0.0px — non riverificata da questo fix, ma la dimostrazione sopra non dipende dal
-     valore 4 o 5).
+     passo-maglia (4 ieri, 5 dal fix 7/e, oggi tutt'e due: 5 sul telefono e 4 da tablet in su) —
+     la congruenza hook_n ≡ wire-center (mod passo-maglia) vale per COSTRUZIONE qualunque sia il
+     multiplo, perché n·track resta comunque ≡ 0 (mod passo-maglia): il gancio di OGNI riga cade
+     su un filo vero, a qualsiasi larghezza di colonna (3/4/6) e qualsiasi contenuto (garanzia
+     verificata empiricamente nel mockup: scarto 0.0px — la dimostrazione non dipende dal valore
+     del multiplo, solo dal fatto che sia intero: presidiato da
+     tests/unit/ds-v3/parete-gancio-cornice.test.ts, che legge ENTRAMBI i multipli dal foglio).
    · --wire-center = wall-pad-top − hook-above (24 − 14 = 10px): quota del primo filo
      orizzontale — il ramo dark la usa in `background-position`; l'SVG light la incorpora già
      nella propria geometria (pattern offset y=8.5).
@@ -1181,6 +1186,50 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cdefs%3E%3ClinearGradient id='wireX' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3ClinearGradient id='wireY' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235A4E38'/%3E%3Cstop offset='.5' stop-color='%23FFFFFD'/%3E%3Cstop offset='1' stop-color='%235A4E38'/%3E%3C/linearGradient%3E%3CradialGradient id='node' cx='38%25' cy='34%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='.55' stop-color='%23EDE6D6'/%3E%3Cstop offset='1' stop-color='%238C7E60'/%3E%3C/radialGradient%3E%3Cfilter id='softR3' x='-80%25' y='-80%25' width='260%25' height='260%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cpattern id='meshR3' width='44' height='44' patternUnits='userSpaceOnUse'%3E%3Cg filter='url(%23softR3)' opacity='.42'%3E%3Crect x='22' y='-2' width='3' height='48' fill='%232A2214'/%3E%3Crect x='-2' y='3' width='48' height='3' fill='%232A2214'/%3E%3C/g%3E%3Crect x='20.5' y='0' width='3' height='44' rx='1.5' fill='url(%23wireX)'/%3E%3Crect x='0' y='0' width='44' height='3' rx='1.5' fill='url(%23wireY)'/%3E%3Ccircle cx='22' cy='1.5' r='2.5' fill='url(%23node)'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='44' height='44' fill='url(%23meshR3)'/%3E%3C/svg%3E");
   background-repeat: repeat; background-size: var(--passo-maglia) var(--passo-maglia); background-position: 0 calc(var(--wire-center) - var(--wire-w) / 2); background-color: var(--bg);
 }
+/* DECISIONE DI FRANCESCO FORMICOLA, 26/07/2026 — «Avvicino le righe». Istruita dal gate estetico
+   L2 dell'ondata «Redesign parete/home» (§4.1), catture a confronto
+   docs/design/screenshots/2026-07-26-redesign-parete-home/gate-l2/1280-light-muro-pieno-A-track5x-OGGI.png
+   contro -B-track4x-PROPOSTA.png. DAL TABLET IN SU ogni fila riserva 4 maglie invece di 5; sul
+   TELEFONO restano 5.
+
+   PERCHÉ. Il quinto passo era il rimedio a un tile che cresceva col contenuto (158px misurati);
+   l'H2 di quest'ondata ha fissato la cassetta a 138px con height E min-height, quindi quel
+   vincolo non c'è più (v. il commento di testa della regola-guardia sopra). Su un muro pieno a
+   1280 il quinto passo lascia fra le file un canale di maglia vuota alto quasi quanto una
+   cassetta (92px contro 138) e il muro smette di leggersi come un muro: diventa quattro strisce
+   staccate, e la catena visiva gancio→fila→gancio si spezza. A 4 le cassette tornano a essere un
+   campo appeso a una rete — lo stesso ritmo che il telefono ha già oggi.
+
+   PERCHÉ SUL TELEFONO NO. A 390 il passo è al suo pavimento di 40px: 4 maglie darebbero 160px di
+   riga, cioè 22px fra le file e 2px soli oltre la zona del gancio (20px). I gancetti della fila
+   sotto sfiorerebbero il fondo della cassetta sopra e la sensazione di «appeso» sparirebbe — è
+   il difetto originale che il 5 era andato a correggere. Contro-prova a occhio nel gate:
+   390-light-muro-pieno-B-track4x-PROPOSTA.png.
+
+   PERCHÉ UNA @media SUL VIEWPORT E NON UNA @container, che sarebbe il linguaggio del resto di
+   questo blocco. Le due superfici che montano il muro hanno container DIVERSI alla stessa
+   larghezza di finestra: a 768px la pagina /cassette ha 680px di content-box, la stanza parete
+   della home ne ha 440 (misurati sulla build vera il 26/07). Una soglia scritta sul container le
+   farebbe cambiare passo in due momenti diversi: a 768 si vedrebbero DUE ritmi diversi secondo
+   la pagina in cui ci si trova — che non è quello che è stato deciso. E non esiste una soglia di
+   container che le tenga insieme senza schiacciare i gancetti: dovrebbe stare sopra 392 (sotto,
+   il passo è al pavimento di 40 e 4 maglie ricreano il difetto del telefono) e non oltre 440
+   (il container della home), cioè in pratica esattamente su 440 — lo stesso errore «soglia sul
+   filo» già corretto qui sotto sul gradino delle colonne (era 680, ora 660 per avere margine).
+   La finestra, invece, le tiene insieme per costruzione: «da tablet in su» è una decisione sulla
+   classe di dispositivo, non sulla larghezza di un contenitore.
+
+   COSA RESTA VERO E COSA NO. La congruenza gancio↔filo è intatta: 4 è ancora un multiplo INTERO
+   del passo, che è tutto ciò da cui quella garanzia dipende (dimostrazione nel commento di testa).
+   Maglia libera oltre la zona del gancio, misurata: 42px sul telefono (invariata), 42px su
+   /cassette a 768 e 1280, 21,5px nella stanza parete della home a 768 — è il caso più stretto,
+   perché lì il passo si ferma a 44,88: sopra i 20px riservati al gancio, ma la metà degli altri.
+   Da NON raccontare come «un solo ritmo»: le due pareti cambiano INSIEME e riservano tutt'e due
+   4 maglie, ma i px fra le file restano diversi (62 su /cassette, 41,5 nella home) perché diverso
+   è il passo della loro maglia.
+   Guardia: tests/unit/ds-v3/parete-gancio-cornice.test.ts — legge i due multipli DAL FOGLIO,
+   pretende che siano interi e ricalcola la maglia libera a ogni viewport. */
+@media (min-width: 768px) { [data-ds="v3"] .ds-parete { --track: calc(var(--passo-maglia) * 4); } }
 [data-theme="dark"] [data-ds="v3"] .ds-parete {
   --filo-flat: rgba(255,255,255,.09);
   background: repeating-linear-gradient(180deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), repeating-linear-gradient(90deg, var(--filo-flat) 0 var(--wire-w), transparent var(--wire-w) var(--passo-maglia)), var(--bg);

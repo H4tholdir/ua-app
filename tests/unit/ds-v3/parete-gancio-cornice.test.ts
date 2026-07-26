@@ -158,3 +158,94 @@ describe('parete — G9-cornice: filo di bordo V1 «a filo dei bordi» (ratifica
     expect(norm).not.toMatch(/\.ds-parete-shell \.ds-parete::before/)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DECISIONE DI FRANCESCO, 26/07/2026 (gate estetico L2 §4.1) — «Avvicino le righe».
+// Dal TABLET IN SU lo spazio riservato a ogni fila del muro scende da 5 a 4 maglie; sul
+// TELEFONO resta 5. Il 5× nasceva da un tile che cresceva col contenuto (misurato 158px): l'H2
+// di quest'ondata ha fissato la sagoma a `--altezza-cassetta` (height E min-height), quindi
+// quel vincolo non esiste più — a 1280 il quinto passo spezzava il muro in strisce staccate.
+//
+// QUESTE GUARDIE NON RIDIGITANO NESSUN NUMERO DEL FOGLIO: moltiplicatori, passo, altezza della
+// cassetta e zona del gancio si LEGGONO da `ds-v3.css`. Le uniche costanti scritte qui sono le
+// larghezze di container MISURATE sulla build vera servita da :3020 il 26/07/2026 (banco
+// `scripts/tmp/decisioni-bench.mjs`), che il foglio non può conoscere.
+describe('parete — «avvicino le righe» dal tablet in su (decisione Francesco 26/07/2026)', () => {
+  /** Il moltiplicatore di `--track` dichiarato in un blocco di regola, letto dal foglio. */
+  function moltiplicatore(blocco: string, dove: string): number {
+    const m = blocco.match(/--track: calc\(var\(--passo-maglia\) \* ([\d.]+)\)/)
+    expect(m, `nessuna dichiarazione di --track in ${dove}`).toBeTruthy()
+    return Number(m![1])
+  }
+
+  const bloccoBase = nudo.match(/\[data-ds="v3"\] \.ds-parete \{[^}]*\}/)?.[0] ?? ''
+  const mediaTablet = nudo.match(/@media \(min-width: (\d+)px\) \{ \[data-ds="v3"\] \.ds-parete \{([^}]*)\} \}/)
+
+  // altezza della cassetta: `--altezza-cassetta: calc(var(--altezza-fascia) + 60px)` con
+  // `--altezza-fascia: 78px` — risolta qui leggendo entrambe, mai il 138 scritto a mano
+  const fascia = Number(nudo.match(/--altezza-fascia: (\d+(?:\.\d+)?)px/)![1])
+  const piu = Number(nudo.match(/--altezza-cassetta: calc\(var\(--altezza-fascia\) \+ (\d+(?:\.\d+)?)px\)/)![1])
+  const ALTEZZA_CASSETTA = fascia + piu
+  // zona riservata al gancio della fila sotto: `--hook-above` + la sovrapposizione linguetta
+  // dichiarata in `.ds-gancetto { top: calc(-1 * var(--hook-above, 14px) - 6px) }`
+  const hookAbove = Number(nudo.match(/--hook-above: (\d+(?:\.\d+)?)px/)![1])
+  const sovrapposizione = Number(
+    nudo.match(/\.ds-gancetto \{[^}]*top: calc\(-1 \* var\(--hook-above, \d+px\) - (\d+(?:\.\d+)?)px\)/)![1]
+  )
+  const ZONA_GANCIO = hookAbove + sovrapposizione
+
+  // Container REALI (content-box della shell) misurati sulla build vera, 26/07/2026. Le due
+  // superfici hanno container DIVERSI alla stessa larghezza di finestra: è il fatto che decide
+  // la forma della soglia (v. la guardia sulla media query più sotto).
+  const CASI = [
+    { dove: '/cassette @390', finestra: 390, container: 350 },
+    { dove: 'home/parete @390', finestra: 390, container: 350 },
+    { dove: '/cassette @768', finestra: 768, container: 680 },
+    { dove: 'home/parete @768', finestra: 768, container: 440 },
+    { dove: '/cassette @1280', finestra: 1280, container: 1080 },
+  ]
+
+  it('la soglia è dichiarata, ed è una MEDIA query sul viewport', () => {
+    expect(mediaTablet, 'nessuna @media che ridichiara --track su .ds-parete').toBeTruthy()
+    expect(Number(mediaTablet![1]), 'la soglia deve essere il tablet dei 3 viewport obbligatori').toBe(768)
+  })
+
+  it('NON è una container query: le due pareti hanno container diversi alla stessa finestra (680 contro 440 a 768) e devono cambiare passo INSIEME', () => {
+    expect(nudo).not.toMatch(/@container[^{]*\{[^{]*\.ds-parete \{[^}]*--track/)
+  })
+
+  it('entrambi i moltiplicatori restano INTERI: è tutto ciò da cui dipende la congruenza gancio↔filo (n·track ≡ 0 mod passo-maglia)', () => {
+    const mFono = moltiplicatore(bloccoBase, 'la regola base .ds-parete')
+    const mTablet = moltiplicatore(mediaTablet![2], 'la @media del tablet')
+    expect(Number.isInteger(mFono), `il moltiplicatore del telefono (${mFono}) non è intero: il gancio non cade più su un filo`).toBe(true)
+    expect(Number.isInteger(mTablet), `il moltiplicatore da tablet in su (${mTablet}) non è intero: il gancio non cade più su un filo`).toBe(true)
+  })
+
+  it('dal tablet in su le righe sono DAVVERO più vicine di quelle del telefono', () => {
+    expect(moltiplicatore(mediaTablet![2], 'la @media del tablet'))
+      .toBeLessThan(moltiplicatore(bloccoBase, 'la regola base .ds-parete'))
+  })
+
+  it('a nessun viewport il gancio della fila sotto viene schiacciato: oltre la zona del gancio resta sempre almeno altrettanta maglia visibile', () => {
+    const mFono = moltiplicatore(bloccoBase, 'la regola base .ds-parete')
+    const mTablet = moltiplicatore(mediaTablet![2], 'la @media del tablet')
+    const soglia = Number(mediaTablet![1])
+    for (const c of CASI) {
+      const passo = resolvePasso(c.container)
+      const track = (c.finestra >= soglia ? mTablet : mFono) * passo
+      const libera = track - ALTEZZA_CASSETTA - ZONA_GANCIO
+      expect(
+        libera,
+        `${c.dove}: oltre la zona del gancio (${ZONA_GANCIO}px) resterebbero ${libera.toFixed(2)}px ` +
+          `di maglia — i gancetti della fila sotto sfiorano il fondo della cassetta sopra e la ` +
+          `sensazione di «appeso» sparisce (è il difetto che il 5× era andato a correggere)`
+      ).toBeGreaterThan(ZONA_GANCIO)
+    }
+  })
+
+  it('sul TELEFONO non cambia nulla: stesso spazio fra le file di prima della decisione (42px di maglia libera, il valore che il gate ha misurato e ratificato)', () => {
+    const mFono = moltiplicatore(bloccoBase, 'la regola base .ds-parete')
+    const passo = resolvePasso(350) // container reale a 390, misurato
+    expect(mFono * passo - ALTEZZA_CASSETTA - ZONA_GANCIO).toBe(42)
+  })
+})
