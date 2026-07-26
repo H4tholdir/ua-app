@@ -51,7 +51,8 @@ Lo schema ratificato per lo stato pieno è alla riga **51** dello stesso mockup:
 `src/app/ds-v3.css:1613` dichiara `padding: 0` sul bottone. È esattamente la cosa che Francesco
 descrive: «non dà il giusto spazio al suo contenuto, la parte inferiore si chiude troppo sotto alla
 scritta». Il valore 34px della larghezza, invece, è stato preso dal mockup ed è giusto
-(`ds-v3.css:1617`): del `.lng.big` è stata importata la larghezza e **dimenticata l'imbottitura**.
+(`ds-v3.css:1616`, sulla card `::before`): del `.lng.big` è stata importata la larghezza e
+**dimenticata l'imbottitura**.
 
 Il componente è `src/components/features/home/LinguettaCassette.tsx` — **non** sta fra i componenti
 del design system in `src/components/ds/`, dove chi legge il nome nudo tende a cercarlo.

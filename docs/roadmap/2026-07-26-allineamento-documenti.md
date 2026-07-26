@@ -9,6 +9,15 @@ che torna.
 **Regola seguita ovunque: non si cancella mai la storia di uno sbaglio.** Dove una conclusione era
 sbagliata, resta scritto cosa si era creduto, perché sembrava ragionevole, e qual è la verità.
 
+> ℹ️ **Nota di provenienza, per onestà del verbale.** All'inizio di questa sessione il file
+> `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` **aveva già modifiche non
+> committate**, lasciate da una sessione precedente: il blocco «🛑 METODO IMPOSTO DA FRANCESCO»
+> del §2, la riscrittura del §3 sul centro notifiche (compresa la collocazione «in fondo alla
+> roadmap», cioè **la parte già fatta del punto 9**) e il riordino dell'«Ordine consigliato».
+> **Quel lavoro non è mio**: è stato conservato e portato in salvo nel commit `7c0b2633` insieme
+> alle mie correzioni. Dove qui sotto si legge «ora», per quel file può voler dire «già fatto da
+> chi mi ha preceduto e non ancora committato».
+
 ---
 
 ## Lo stato vero, quello contro cui è stato allineato tutto
@@ -194,6 +203,9 @@ della roadmap che abbiamo**».
 
 **Registrata** in `docs/roadmap/ROADMAP-UFFICIALE.md`, nel calendario delle ondate v3: il centro va
 **dopo la «Milestone finale — ritiro chrome legacy globale»**, cioè ultimo, come dicono le sue parole.
+*(La collocazione era già stata scritta nell'handoff del collaudo da una sessione precedente, fra le
+modifiche non committate — v. la nota di provenienza in testa. Qui è stata portata sulla roadmap, che
+è il posto dove un ordine di lavori si legge davvero.)*
 
 ⚠️ **La tensione, scritta perché nessuno la sciolga di nascosto.** La roadmap contiene **due ordini
 mai riconciliati**: il **calendario di migrazione** (che finisce con la milestone finale) e la

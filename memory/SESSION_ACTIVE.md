@@ -5,6 +5,13 @@
 che compariva per primo (`2026-07-27-post-ondata-handoff.md`) era il più vecchio dei due. Quello
 resta utile come storia dell'ondata, non come punto di partenza.
 
+⚠️ **Poi leggi `docs/roadmap/2026-07-26-allineamento-documenti.md`** (verbale del 26/07): i documenti
+di questo progetto sono stati riallineati allo stato vero perché **le prime righe che si leggono a
+ogni avvio dicevano il falso**. Lì c'è cosa è stato corretto e cosa c'era scritto prima. In breve:
+la barra dei gesti **è** un difetto (la conclusione contraria è smentita) · l'osservazione sulla
+linguetta riguarda lo stato `piena`, **non** la voce 52 · il rosso `#D90012` sta in **tre** posti ·
+**si misura su `main`, mai nei worktree** (sono indietro) · il centro notifiche va **ultimo**.
+
 T16 (striscia) e T17 (chiusura) completi, **merge in `main` fatto e pubblicato** su via libera
 esplicita di Francesco (merge `5504a20a`, `main` a `8c482e90`, CI e deploy verdi, `uachelab.com`
 verificata). Ramo `worktree-redesign-parete-home` fermo a `ca913236`, 175 commit: è storia.

@@ -140,6 +140,9 @@ stesso giro di commit di questa riga. Le altre quattro sono da fare dopo.
   altezza o il piede si abbassa: le due bande si incontrerebbero e non se ne accorgerebbe nessuno.
   `src/components/features/home/LinguettaCassette.tsx` / `.ua-home` — ⚠️ il componente **non** sta
   fra quelli del design system in `src/components/ds/`, dove il nome nudo porterebbe a cercarlo.
+  ⚠️ **Possibile doppione della voce 53** («la card piena da 34px si estende 8px più a sinistra
+  rispetto alle Pile»): stesso viewport, stessi due elementi, stesso fenomeno, misurato 10px qui e
+  8px là. **Non verificato se siano la stessa cosa.** Guardarle insieme prima di lavorarci.
 - **R4 — a 390 l'etichetta «Nuova cassetta» arriva sopra i trattini del suo bordo.** Il testo è
   largo 90,81px dentro un tile da 95,33px con un bordo tratteggiato da 2,5px. Non è tagliato
   (sforo zero, misurato), è stretto: il testo tocca il tratteggio invece di respirarci dentro. A
@@ -295,7 +298,7 @@ fonte anche quando le sezioni la separano.
   · fonte: riga 42 del ledger
   · file/simbolo: home compatta (gancetto cassetta, `ds-v3.css`)
   · stato dichiarato: deferita (→ QA T15)
-  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌) ma non ha adjudicato le tre voci una per una: **resta da guardare**, non dichiarata chiusa.
+  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌), ma **non risulta che abbia chiuso le tre voci una per una**: nessun documento lo attesta, quindi qui restano **da guardare** e non dichiarate chiuse. Se il rapporto del gate dicesse il contrario, vince quello.
 
 - [x] **14.** `SOGLIA_NOME_LUNGO=20` è un valore interpolato (stimato), da ritarare al Task 15.
   · fonte: riga 44 del ledger (etichetta «Minor (per review finale/QA)»)
@@ -457,7 +460,7 @@ fonte anche quando le sezioni la separano.
   · fonte: riga 133 del ledger (item numerato (2))
   · file/simbolo: gancetti/ombre agli angoli
   · stato dichiarato: aperta
-  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌) ma non ha adjudicato le tre voci una per una: **resta da guardare**, non dichiarata chiusa.
+  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌), ma **non risulta che abbia chiuso le tre voci una per una**: nessun documento lo attesta, quindi qui restano **da guardare** e non dichiarate chiuse. Se il rapporto del gate dicesse il contrario, vince quello.
 
 - [ ] **43.** Il marker `uaSheet` (usato per il pattern back-chiude-sheet) è condiviso e non per-istanza: gli sheet annidati risultano indistinguibili. Il ledger nota che è la stessa famiglia del limite già noto di `DialogConferma`, non una regressione.
   · fonte: riga 137 del ledger (etichetta «Minor aggiuntivo (per review finale)»)
@@ -540,7 +543,14 @@ fonte anche quando le sezioni la separano.
   · fonte: riga 191 del ledger (etichetta «Minor (per review finale + collaudo #4)»)
   · file/simbolo: card piena / Pile (area F2/T2)
   · stato dichiarato: aperta
-  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌) ma non ha adjudicato le tre voci una per una: **resta da guardare**, non dichiarata chiusa.
+  · ⚠️ **POSSIBILE DOPPIONE DELLA RACCOMANDAZIONE R3** («i 10px con cui la linguetta sborda sulla
+    colonna delle pile», sezione «Da fare dopo» del gate estetico, più su in questo file). Sono lo
+    stesso viewport (390), gli stessi due elementi (card piena della linguetta / colonna delle pile)
+    e lo stesso fenomeno — uno sbordo laterale — misurato però **8px** qui e **10px** là. **Non è
+    stato verificato se siano la stessa cosa**: potrebbero essere due misure dello stesso difetto
+    prese in momenti diversi, oppure due sbordi distinti. Chi ne prende una in mano **guardi prima
+    l'altra**, o si rischia di fare due volte lo stesso lavoro.
+  · **VERDETTO DEL TRIAGE (26/07/2026): DA APPROFONDIRE, perché è visiva** — instradata al gate estetico L2. Il gate è poi passato (PASS, 0 ❌), ma **non risulta che abbia chiuso le tre voci una per una**: nessun documento lo attesta, quindi qui restano **da guardare** e non dichiarate chiuse. Se il rapporto del gate dicesse il contrario, vince quello.
 
 - [x] **54.** `max-height: calc(2*1.16em)` è accoppiato al font-size della stessa regola CSS: basterebbe un commento esplicativo.
   · fonte: riga 198 del ledger
