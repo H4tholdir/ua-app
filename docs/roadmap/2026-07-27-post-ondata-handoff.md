@@ -1,4 +1,17 @@
-# Handoff — Ondata «Redesign parete/home» CHIUSA, ramo pronto. 🛑 Merge a parola di Francesco
+# Handoff — Ondata «Redesign parete/home» — CHIUSA, MERGIATA E IN PRODUZIONE
+
+> ⚠️ **Il nome di questo file mente sulla data.** Si chiama `2026-07-27-…` ma è stato scritto il
+> **26 luglio 2026** (commit `bfe3feab`, ore 11:29). **Non rinominarlo**: ci puntano MEMORY, la
+> roadmap e altri handoff. Serve solo a non leggere male la cronologia della cartella: tutto quello
+> che c'è qui dentro è del 26/07, non del giorno dopo.
+>
+> ⚠️ **Non è più l'handoff da cui si riparte.** Vale come storia dell'ondata. Il punto di ripresa è
+> **`docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`**.
+>
+> ⚠️ **Il titolo diceva «ramo pronto. 🛑 Merge a parola di Francesco».** Il merge poi c'è stato,
+> quello stesso giorno e con la sua via libera esplicita: merge `5504a20a`, `main` a `8c482e90`,
+> CI e deploy verdi, `uachelab.com` verificata. Il resto del documento è com'era, salvo le
+> correzioni segnate qui sotto con ⚠️.
 
 **Per:** sessione nuova a contesto pulito.
 **Prassi che ha retto:** BP-0 → `superpowers:subagent-driven-development`, un subagent fresco per
@@ -94,15 +107,30 @@ sessione: jsdom non fa layout, non ha una history asincrona e non conosce le pre
 
 ## Il prossimo lavoro, in ordine
 
-### 1. 🛑 Il merge (FASE 10) — solo quando lo dice Francesco
-`git checkout main && git merge worktree-redesign-parete-home` → push → attendere CI verde →
-verificare `uachelab.com`. Sul ramo NON c'è nessuna migration, quindi niente FASE 6b.
-⚠️ Su `main` non pushati: `8b8dd40`+`2b069f0` (rm-guard) — partono col prossimo deploy.
+### 1. ✅ Il merge (FASE 10) — FATTO
+`git checkout main && git merge worktree-redesign-parete-home` → push → CI verde →
+`uachelab.com` verificata. Sul ramo non c'era nessuna migration, quindi niente FASE 6b.
+Merge commit **`5504a20a`**; `main` oggi è a **`8c482e90`**.
+⚠️ **Correzione:** qui c'era scritto «Su `main` non pushati: `8b8dd40`+`2b069f0` (rm-guard) —
+partono col prossimo deploy». **Sono pushati**: entrambi i commit risultano contenuti in
+`origin/main` (`git branch -r --contains`). Sono partiti, non aspettano niente.
 
-### 2. La prova della PWA installata
-Francesco ha deciso il 26/07 di farla **dopo, in produzione**, installando l'app da icona: serve a
-chiudere la questione della barra gesture, che **non è un difetto dell'app** (in scheda di browser
-quell'area appartiene al browser).
+### 2. ✅/🛑 La prova della PWA installata — FATTA, ed è andata al contrario
+⚠️ **CORREZIONE A VERBALE — questo paragrafo diceva il falso.** Testo originale: la prova serviva a
+«chiudere la questione della barra gesture, che **non è un difetto dell'app** (in scheda di browser
+quell'area appartiene al browser)».
+
+Il ragionamento era questo, e va lasciato scritto perché si capisca l'errore: in una **scheda di
+browser** l'area sopra la barra dei gesti appartiene al browser, `env(safe-area-inset-bottom)` resta
+0 e `viewport-fit: cover` non ha effetto — quindi il difetto sembrava non poter essere nostro. **Era
+al massimo metà della storia**, e la metà sbagliata è finita a verbale come questione **chiusa**.
+
+**Francesco ha installato la PWA il 26/07 e il difetto c'è lo stesso**: la barra dei gesti non è
+trasparente, in home il suo fondo ha un colore diverso dal resto dell'app, su `/cassette` in più
+compare una striscia panna appena sopra. **La questione è APERTA.** Si riparte da ricerca in rete e
+da **misure sul device installato**, mai da quella conclusione: dettaglio, cosa è già accertato nel
+codice e il metodo imposto da Francesco stanno in
+`docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` §2.
 
 ### 3. Nome e cognome del paziente nel wizard — percorso BP-2 pieno
 Oggi l'app non sa quale parola sia il cognome, e non per distrazione: le due strade di scrittura
@@ -131,17 +159,30 @@ fondo unico · `PAROLE_CATEGORIA_STUDIO` asimmetrica (`clinico`/`clinici`/`polic
 ## Vincoli tecnici accumulati (non ripetere gli errori)
 
 Tutti quelli degli handoff precedenti — jsdom non fa layout → serve un harness vero · `.ds-parete`
-mai `overflow:hidden` · sheet history `uaSheet` · **il checkout PADRE è su `main`: ogni misura va
-fatta NEL WORKTREE** · Playwright-WebKit ≠ Safari reale · **misure, non ipotesi** · `is-troncato` si
+mai `overflow:hidden` · sheet history `uaSheet` · ⚠️ **la regola sul dove misurare si è ROVESCIATA
+— v. il riquadro qui sotto** · Playwright-WebKit ≠ Safari reale · **misure, non ipotesi** · `is-troncato` si
 misura PRE-PAINT · un `*/` nella prosa di un commento CSS inghiotte la regola che segue · una regola
 più specifica che ridichiara uno shorthand scarta l'intero valore in silenzio · in `ds-v3.css` i
 commenti stanno FUORI dalle graffe · le affermazioni di contrasto scritte nei commenti **scadono**
 quando cambia una superficie — **PIÙ i cinque nuovi del 26/07**:
 
-1. **`.gitignore:58` ignora `*.png`**: `git add -A` salta gli screenshot **in silenzio**. Serve
-   `git add -f` **e** una verifica con `git show --stat`. È ricapitato **tre volte** oggi, una
-   sotto un messaggio di commit che annunciava le foto. `git check-ignore` sulla CARTELLA non dice
-   nulla sui file dentro.
+> ### ⚠️ REGOLA ROVESCIATA (26/07/2026): le misure si fanno su `main`, NON nel worktree
+>
+> Fino al merge valeva: «il checkout PADRE è su `main`: ogni misura va fatta NEL WORKTREE», perché
+> il lavoro nuovo stava sul ramo e `main` era indietro. **Dopo il merge è esattamente il
+> contrario.** I due worktree ancora presenti su disco — `.claude/worktrees/redesign-parete-home`
+> (@ `ca913236`) e `.claude/worktrees/ondata-a-mini-triage` (@ `50e6b79d`) — sono **indietro
+> rispetto a `main`** (@ `8c482e90`): misurare lì significa misurare codice vecchio e credere a un
+> numero falso.
+>
+> **Da oggi: si misura su `main`, o su un ramo nuovo aperto da `main`.** I due worktree restano
+> solo come storia; non usarli per collaudare né per misurare.
+
+1. **`.gitignore:62` ignora `*.png`**: `git add -A` salta gli screenshot **in silenzio**. Serve
+   `git add -f` **e** una verifica con `git show --stat`. È ricapitato **tre volte** quel giorno,
+   una sotto un messaggio di commit che annunciava le foto. `git check-ignore` sulla CARTELLA non
+   dice nulla sui file dentro. *(Qui e altrove era scritto `.gitignore:58`: il numero di riga era
+   sbagliato, la regola è alla **62**. L'avvertimento vale identico.)*
 2. **Sotto `prefers-reduced-motion` si cambia la transizione, mai il target.** Una chiave tolta dal
    target congela l'elemento dov'era: è così che la linguetta restava fuori schermo.
 3. **Mai `router.push` da dentro un overlay v3** (o da un handler che ne chiude uno nello stesso

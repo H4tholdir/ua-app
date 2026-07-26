@@ -111,7 +111,8 @@ Nessun test guardava i valori cambiati (verificato: nessun riferimento a `#DDD8D
 
 ## Nota sugli screenshot (trappola registrata)
 
-`.gitignore:58` ignora `*.png`: gli screenshot storici del progetto sono stati aggiunti con
+`.gitignore:62` ignora `*.png` *(la riga era indicata come 58: numero sbagliato, regola giusta)*:
+gli screenshot storici del progetto sono stati aggiunti con
 `git add -f`, e un normale `git add -A` li **salta in silenzio**. Nel repo sono stati messi i
 soli fotogrammi citati sopra (`clienti-lista-densa`, `clienti`, `analytics`, `login`, tutti a
 390 light) più il prima/dopo dei fix 1a/1b: il set completo dei 92 resta su disco nel worktree,

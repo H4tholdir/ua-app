@@ -172,8 +172,9 @@ reale · **misure, non ipotesi** · `is-troncato` si misura PRE-PAINT) **PIÙ i 
    regola del foglio che dichiari `padding` su `.ds-parete`.
 3. **In `ds-v3.css` i commenti vanno FUORI dalle graffe.** Le guardie letterali di
    `parete-fluida.test.ts` leggono il foglio **coi commenti dentro**, coi soli spazi normalizzati.
-4. **`.gitignore:58` ignora `*.png`.** Un `git add -A` salta gli screenshot **in silenzio**: serve
-   `git add -f`. Gli storici erano stati aggiunti così.
+4. **`.gitignore:62` ignora `*.png`** *(era indicata la riga 58: numero sbagliato, regola giusta)*.
+   Un `git add -A` salta gli screenshot **in silenzio**: serve `git add -f`. Gli storici erano
+   stati aggiunti così.
 5. **Il ResizeObserver non riscatta se la scatola resta cappata da `max-height`.** Iniettare nomi
    in sequenza nello stesso nodo dà una classe stantia → **falso positivo dell'harness**. Misurare
    con **pagina pulita per ogni nome**, o su un **clone** dentro la stessa cassetta.
