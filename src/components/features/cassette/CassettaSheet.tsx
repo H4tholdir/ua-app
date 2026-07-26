@@ -537,6 +537,8 @@ export function CassettaSheet(props: {
               <CampoTesto label="Nome" valore={nomeRinomina} onCambia={setNomeRinomina} />
               <div style={{ marginTop: spazio.s }}>
                 <TastoSecondario onClick={salvaNome} disabled={!rinominaAbilitata}>
+                  {/* NON «correggere» in «Fatto ✓»: eccezione ratificata al dizionario §2.3,
+                      v. docs/design/decisions/2026-07-26-salva-nome-colore.md */}
                   Salva il nome
                 </TastoSecondario>
               </div>
@@ -566,6 +568,8 @@ export function CassettaSheet(props: {
                     onClick={() => void scegliColore(colorePending)}
                     disabled={!coloreAbilitato}
                   >
+                    {/* NON «correggere» in «Fatto ✓»: eccezione ratificata al dizionario §2.3,
+                        v. docs/design/decisions/2026-07-26-salva-nome-colore.md */}
                     Salva il colore
                   </TastoSecondario>
                 </div>

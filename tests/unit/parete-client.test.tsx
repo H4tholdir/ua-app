@@ -968,11 +968,27 @@ describe('PareteClient — dizionario §2.3 (ripristino della guardia persa col 
    * proprietà CSS del tutto legittima come `filter:` farebbe scattare `/\bfiltr\w+/i` e la
    * guardia diventerebbe un allarme falso al primo che scrive una regola nuova. Si guarda solo
    * la copy.
+   *
+   * BUCO TROVATO E CHIUSO (copertura vista radice, v. describe più sotto) — `textContent`
+   * incolla i nodi di testo di elementi fratelli SENZA alcun separatore: la chip «C4» seguita
+   * dal paragrafo «Sposta nel muro» diventava la stringa unica «C4Sposta nel muro» — e se «Sposta»
+   * fosse stato sostituito da una parola vietata, «C4Salva…» non avrebbe MAI acceso `/\bsalva\b/i`
+   * perché fra la cifra «4» e la parola non c'è alcun confine di parola (`\b` richiede un
+   * carattere non-word da un lato: due `\w` adiacenti — «4» e «S» — non lo sono). Misurato
+   * iniettando esattamente questa mutazione nella vista radice della cassetta OCCUPATA (v. report
+   * `.superpowers/sdd/dizionario-copertura-report.md`): il test restava VERDE con la parola
+   * vietata visibile in pagina. Il `TreeWalker` sotto gira sui nodi TESTO (non elemento) e li
+   * unisce con uno spazio: può solo AGGIUNGERE match rispetto a prima (uno spazio in più fra due
+   * parole non ne fonde mai due in una), mai nasconderne — è un cambiamento sicuro per le 7
+   * guardie già esistenti su questo helper.
    */
   function testoLeggibile(radice: HTMLElement = document.body): string {
     const copia = radice.cloneNode(true) as HTMLElement
     for (const nodo of Array.from(copia.querySelectorAll('style, script'))) nodo.remove()
-    return copia.textContent ?? ''
+    const pezzi: string[] = []
+    const walker = document.createTreeWalker(copia, NodeFilter.SHOW_TEXT)
+    while (walker.nextNode()) pezzi.push(walker.currentNode.textContent ?? '')
+    return pezzi.join(' ')
   }
 
   it('muro pieno: nessuna parola del software nella copy della parete', () => {
@@ -1054,6 +1070,75 @@ describe('PareteClient — dizionario §2.3 (ripristino della guardia persa col 
       await user.click(screen.getByRole('button', { name: /metti un lavoro/i }))
       await screen.findByText('Tutti i lavori hanno già una cassetta')
       expect(trovaParoleVietate(testoLeggibile())).toEqual([])
+    })
+  })
+
+  // Gap di copertura chiuso — la vista RADICE dello sheet («azioni»: rinomina, colore,
+  // «Sposta il lavoro in…», ▲▼, «Segna come libera», «Butta via») non era mai passata sotto
+  // `trovaParoleVietate`: è l'unica vista che contiene le due etichette «Salva il nome» e
+  // «Salva il colore», un'ECCEZIONE RATIFICATA (Francesco, 26/07/2026,
+  // `docs/design/decisions/2026-07-26-salva-nome-colore.md` — v. anche il commento sulla voce
+  // `/\bsalva\b/i` in `dizionario.ts`) e per questo era rimasta fuori dal ripristino sopra: una
+  // nuova parola vietata introdotta qui sarebbe passata indisturbata.
+  describe('vista radice («azioni») dello sheet — copertura con l’eccezione ratificata sulle due «Salva»', () => {
+    // Si toglie SOLO la stringa ESATTA delle due etichette ratificate, non l'intera regola
+    // `/\bsalva\b/i`: così una futura «Salva la posizione» (o qualsiasi altro «salva» nuovo,
+    // diverso da queste due frasi) in questa stessa vista continua a far fallire il test invece
+    // di sparire con l'eccezione.
+    const ECCEZIONI_VISTA_AZIONI_RATIFICATE = ['Salva il nome', 'Salva il colore']
+    function senzaEccezioniRatificate(testo: string): string {
+      return ECCEZIONI_VISTA_AZIONI_RATIFICATE.reduce((acc, etichetta) => acc.split(etichetta).join(''), testo)
+    }
+
+    it('cassetta LIBERA: «Metti un lavoro», rinomina e colore non parlano software, a parte «Salva il nome»', () => {
+      render(<PareteClient parete={[occupata, libera]} />)
+      tap(cassettaLibera())
+      const dialog = screen.getByRole('dialog', { name: 'C4' })
+      // Prova che siamo davvero nella vista radice (non già scivolati su «Metti un lavoro»,
+      // dove la guardia sopra guarda tutto il documento perché quella vista non contiene le
+      // due eccezioni): il tasto c'è, ma non ci si è cliccato sopra.
+      expect(within(dialog).getByRole('button', { name: /metti un lavoro/i })).toBeInTheDocument()
+      expect(within(dialog).getByRole('button', { name: 'Salva il nome' })).toBeInTheDocument()
+      expect(trovaParoleVietate(senzaEccezioniRatificate(testoLeggibile(dialog)))).toEqual([])
+    })
+
+    it('cassetta OCCUPATA: «Sposta il lavoro in…», ▲▼, «Segna come libera» e «Butta via» disabilitato non parlano software', () => {
+      // Su una cassetta OCCUPATA il tap naviga al lavoro (§5.35): l'unica via allo sheet è il
+      // long-press. Con 2 cassette e ricerca spenta `dragAbilitato` è vero anche qui (non solo
+      // sulle libere — v. `PareteClient.tsx`, `onSollevata` passato a ogni cassetta), quindi il
+      // rilascio fermo dopo 300ms apre lo sheet passando per l'hook del drag: stesso harness del
+      // test «drag abilitato…» più su in questo file (pointerId/pointerType tracciati, pointerup
+      // su `window`, non sul bottone).
+      vi.useFakeTimers()
+      try {
+        render(<PareteClient parete={[occupata, libera]} />)
+        const bottone = cassettaOccupata()
+        fireEvent.pointerDown(bottone, { clientX: 0, clientY: 0, pointerId: 1, pointerType: 'touch' })
+        act(() => { vi.advanceTimersByTime(300) })
+        act(() => {
+          window.dispatchEvent(new (window.PointerEvent)('pointerup', { pointerId: 1, clientX: 0, clientY: 0 }))
+        })
+        const dialog = screen.getByRole('dialog', { name: 'C12' })
+        // Prova che lo stato è davvero quello atteso: sezioni esclusive dell'occupata. La chip
+        // «C4» esiste SOLO dentro «Sposta il lavoro in…» (le cassette libere elencate) — è la
+        // riprova che quella sezione è montata, senza dover ripetere il testo dell'intestazione.
+        expect(within(dialog).getByRole('button', { name: 'C4' })).toBeInTheDocument()
+        expect(within(dialog).getByText('Segna come libera')).toBeInTheDocument()
+        expect(trovaParoleVietate(senzaEccezioniRatificate(testoLeggibile(dialog)))).toEqual([])
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('colore CUSTOM in sospeso: «Salva il colore» compare e resta coperto dall’eccezione, non da un ammorbidimento della regola', () => {
+      render(<PareteClient parete={[occupata, libera]} />)
+      tap(cassettaLibera())
+      const dialog = screen.getByRole('dialog', { name: 'C4' })
+      // Stesso gesto di `cassetta-sheet.test.tsx` («colore CUSTOM…»): il picker nativo emette
+      // `input`/`onChange` con l'hex, il colore resta IN SOSPESO finché non si preme il tasto.
+      fireEvent.change(within(dialog).getByLabelText('Colore personalizzato'), { target: { value: '#aabbcc' } })
+      expect(within(dialog).getByRole('button', { name: 'Salva il colore' })).toBeInTheDocument()
+      expect(trovaParoleVietate(senzaEccezioniRatificate(testoLeggibile(dialog)))).toEqual([])
     })
   })
 })
