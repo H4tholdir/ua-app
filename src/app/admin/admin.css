@@ -1,6 +1,9 @@
 /* ============================================================
    UÀ ADMIN PANEL — Design system tokens + component styles
-   Scoped to [data-theme] on <html> — set by AdminNav client component
+   Scoped to [data-theme] on <html> — scritto dallo script inline di
+   ThemeInitializer, come per tutto il resto dell'app. NON piu' da AdminNav:
+   la sua memoria separata ('ua-admin-theme') e' sparita nella tappa 3, ed era
+   in corsa con quella dell'app — la barra di stato lampeggiava dopo l'idratazione.
    ============================================================ */
 
 /* ── Light tokens ── */
