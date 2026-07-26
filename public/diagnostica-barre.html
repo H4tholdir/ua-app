@@ -21,7 +21,9 @@
     font-family: system-ui, -apple-system, sans-serif;
     /* Compatta di proposito: TUTTO deve entrare in una schermata da 844 punti, altrimenti
        un solo screenshot non basta e la misura torna a metà. */
-    padding: 8px 12px calc(26px + env(safe-area-inset-bottom, 0px));
+    /* padding-bottom ZERO: sotto c'è la PROVA 2, che DEVE essere l'ultimo pixel del documento.
+       Qualsiasi respiro qui sposterebbe il fondo del documento e falserebbe proprio la misura. */
+    padding: 8px 12px 0;
     font-size: 13px; line-height: 1.2;
   }
   h1 { font-size: 15px; margin-bottom: 1px; }
@@ -37,6 +39,15 @@
              border-radius: 8px; margin-bottom: 6px; font-size: 12px; line-height: 1.3; }
   button { width: 100%; margin-top: 8px; padding: 11px; font-size: 14px; font-weight: 700;
            background: #D90012; color: #fff; border: 0; border-radius: 10px; }
+  /* PROVA 2 — a tutta larghezza (margin negativo per uscire dal padding del body) e alta il
+     doppio dello schermo, così c'è da scorrere. La fascia blu è l'ULTIMO elemento del documento:
+     quello che resta sotto di lei, a fondo scroll, è ciò che la pagina non può raggiungere. */
+  .prova { margin: 14px -12px 0; height: 150vh; display: flex; flex-direction: column;
+           justify-content: space-between;
+           background: repeating-linear-gradient(45deg, #E8E1D2 0 12px, #F4F0E7 12px 24px); }
+  .prova-testo { padding: 12px; font-size: 12px; line-height: 1.35; }
+  .prova-fondo { background: #0A66C2; color: #fff; font-weight: 700; font-size: 13px;
+                 text-align: center; padding: 14px 8px; letter-spacing: .02em; }
   /* Righe di riferimento: dicono a occhio DOVE finisce la pagina rispetto allo schermo. */
   .riga { position: fixed; left: 0; right: 0; height: 3px; z-index: 9; pointer-events: none; }
   .riga span { position: absolute; right: 4px; bottom: 4px; font-size: 9px; font-weight: 700;
@@ -60,6 +71,20 @@
 <table id="t"></table>
 
 <button id="copia">Copia tutto</button>
+
+<!-- PROVA 2 — la prova che i numeri da soli non danno. La misura dice che nell'app installata la
+     finestra e' alta 755 ma il documento ne riceve 699: 56 punti di schermo che l'impaginazione
+     non puo' occupare. Se e' vero, un blocco alto il doppio dello schermo — scritto QUI, senza
+     una riga del CSS dell'app — a fondo scroll deve lasciare scoperta una striscia fra la sua
+     fascia colorata e il bordo. Se la fascia arriva al bordo, la spiegazione e' falsa. -->
+<div class="prova">
+  <div class="prova-testo">
+    <b>PROVA 2 — scorri fino in fondo</b><br>
+    Arriva in fondo a questa striscia e fai un <b>secondo screenshot</b>.<br>
+    Serve vedere se fra la <b>fascia blu</b> e il bordo dello schermo resta scoperto qualcosa.
+  </div>
+  <div class="prova-fondo">FONDO DEL DOCUMENTO ↓</div>
+</div>
 
 <div class="riga" id="rFondo"><span>FONDO PAGINA</span></div>
 <div class="riga" id="rSafe"><span>INIZIO SAFE-AREA</span></div>

@@ -492,6 +492,77 @@ nell'app installata, con le istruzioni per aprirla nel modo giusto; versione di 
 dai Client Hints invece che dalla UA; quattro righe ridondanti spostate nel solo testo copiato,
 perché a 375pt di larghezza la pagina non entrava più in una schermata.
 
+### 7.3-ter 🎯 MISURA BUONA — 26/07/2026 15:10, **DENTRO LA PWA INSTALLATA** (`display-mode: standalone`)
+
+Device: **Android 16.0.0** (valore vero, dai Client Hints) · **Chrome 150** · modello `25113PN0EG` ·
+dpr 3.25 · tema di sistema CHIARO.
+
+| | **app installata** (15:10) | **browser** (14:53) |
+|---|---|---|
+| `display-mode` | **standalone** | browser |
+| `window.innerHeight` | **755** | 699 |
+| `100dvh` | **755.08** | 699.08 |
+| `100svh` | **699.08** | 699.08 |
+| `100lvh` · `100vh` | 755.08 | 755.08 |
+| `visualViewport.height` | **755.08** | 699.08 |
+| **`document clientHeight`** | **699** ⚠️ | 699 |
+| `safe-area-inset-bottom` | **0 px** | 0 px |
+| `safe-area-max-inset-bottom` | 0 px (supportata) | 0 px (supportata) |
+| `screen.height × width` | 818 × 376 | 818 × 376 |
+
+#### 🎯 IL NUMERO CHE NON TORNA: 755 contro 699
+
+**Nell'app installata la finestra è alta 755, ma il documento ne riceve 699.** Sono **56 punti** che
+stanno sullo schermo e che **l'impaginazione della pagina non può occupare**. Da browser i due
+numeri **coincidono** (699 = 699) e infatti da browser il difetto non c'è.
+
+Conferme incrociate dentro la stessa misura:
+- `100svh` = **699.08** = esattamente `document clientHeight`. Cioè **Chrome tiene come viewport di
+  impaginazione quello «piccolo»**, quello che varrebbe con la barra dell'indirizzo a schermo —
+  **in una finestra dove quella barra non può esistere.**
+- I 56 punti sono **gli stessi** che nel browser separano `lvh` (755.08) da `dvh` (699.08): sono lo
+  spazio della barra di Chrome. **In standalone quello spazio resta riservato a una barra che non
+  c'è.**
+- `818 − 755 = 63`: lo spazio che la pagina non ottiene mai — barra di stato più fascia dei gesti.
+
+#### 🎯 Perché questo spiega la striscia panna, e perché solo su `/cassette`
+
+Il fondo del documento, anche scorrendo fino in fondo, si ferma a **699**. I 56 punti sotto restano
+dipinti **solo dal fondo del `body`**, che è panna (`#F4F0E7`).
+
+- **`/cassette`**: il muro è una texture diversa (rete) e finisce col documento, a 699. Sotto
+  restano 56 punti di **panna liscia**. **La si vede.** ✅ combacia con lo screenshot a fondo scroll.
+- **Home**: è panna anche lei, identica al fondo del `body`. Il confine c'è, ma **non si vede**,
+  perché è panna su panna. ✅ combacia con lo screenshot della home.
+- **Browser**: `clientHeight` = `innerHeight`, nessun residuo. ✅ combacia con «da browser è giusto».
+
+🛑 **Questa è la spiegazione principale e MISURATA, non ancora una prova.** Lega tre osservazioni
+diverse a un unico numero letto sul device, ma il passaggio «il documento si ferma a 699 → sotto
+resta il fondo del body» **non è ancora stato visto accadere**. La prova sta nel §7.3-quater.
+
+#### Le altre due conferme, che chiudono capitoli aperti
+
+1. ✅ **`safe-area-inset-bottom` = 0 nell'app installata**: la PWA **non** disegna dietro le barre di
+   sistema — il §1.2 è confermato **sul suo device**, non solo sulla carta.
+2. ✅ **Android 16 + Chrome 150**, cioè lo stack più recente possibile, **e il limite del §2.1 c'è
+   lo stesso**: il bug Chromium 40759522 è aperto e lo si tocca con mano qui.
+
+⚠️ E resta in piedi l'avvertenza del §7.3-bis: `safe-area-inset-bottom` è 0 **anche da browser**,
+quindi l'edge-to-edge di Chrome 135 **non è attivo su questo telefono** nemmeno in una scheda. La
+frase «la trasparenza arriverà da sé» (§2.6) **non si può dare per scontata per lui**.
+
+### 7.3-quater La prova che manca — riprodurre il difetto FUORI dal nostro codice
+
+Il §7.3-ter spiega, non dimostra. La prova decisiva è far accadere la stessa cosa **in una pagina
+che non contiene una riga del nostro CSS**: un blocco alto il doppio dello schermo, con una fascia
+colorata netta in fondo. Scorrendo fino in fondo, **nell'app installata**:
+
+- se fra la fascia colorata e il bordo dello schermo restano ~56 punti di fondo → **il meccanismo è
+  di Chrome, dimostrato, e il nostro foglio di stile è estraneo**;
+- se la fascia arriva al bordo → il §7.3-ter è **falso** e la causa è nostra, da cercare altrove.
+
+Aggiunta alla pagina di diagnosi come «PROVA 2». Serve un secondo screenshot, a fondo scroll.
+
 ### 7.4 La striscia panna — cosa serve vedere
 
 Uno screenshot di `/cassette` **a fondo scroll** e uno **in cima**, sulla PWA installata, più la
