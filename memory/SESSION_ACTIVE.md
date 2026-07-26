@@ -15,8 +15,10 @@ build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app.
    riguarda **ogni** pagina legacy in scuro, non solo Impostazioni. Appuntato a **F1** nella
    sezione «difetti di leggibilità» della roadmap. Tamponata solo la frase di stato.
 
-**Prossimo (roadmap):** nome+cognome del paziente nel wizard (sei proposte disegnate, in attesa
-della scelta di Francesco) · linguetta stretta · centro notifiche **ultimo**.
+**PUNTO DI RIPRESA:** `docs/roadmap/2026-07-26-un-tema-solo-chiuso-handoff.md` — sostituisce
+`2026-07-26-tema-unico-handoff.md`. Il prossimo passo **non è codice: è una scelta di Francesco**
+fra sei proposte già disegnate (nome+cognome del paziente nel wizard). Poi: linguetta stretta ·
+ondata **B «giro clienti»** · centro notifiche **ultimo**.
 
 ⚠️ Nel worktree il dev server **non parte** (doppio lockfile → radice sbagliata; il symlink di
 `node_modules` manda Turbopack in panico). Via d'uscita: ramo di sola verifica nel repo

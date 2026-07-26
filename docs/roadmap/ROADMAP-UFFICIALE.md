@@ -214,10 +214,16 @@ Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/
 
 ### 📌 CODA DELL'ONDATA «REDESIGN PARETE/HOME» (aggiornata 26/07/2026)
 
-Handoff corrente: **`docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`** — è il più
-recente ed è quello da cui si riparte. Dopo il `2026-07-26-wave-h-handoff.md` che stava scritto qui
-ne sono arrivati altri due (`2026-07-27-post-ondata-handoff.md`, scritto in realtà il 26/07, e il
-collaudo della PWA installata): questa riga puntava al più vecchio dei tre. Nell'ordine:
+Handoff corrente: **`docs/roadmap/2026-07-26-un-tema-solo-chiuso-handoff.md`** (26/07, notte) — è il
+più recente ed è quello da cui si riparte.
+
+⚠️ **Questa riga è già stata trovata stantia due volte** (puntava a `2026-07-26-wave-h-handoff.md`,
+poi al collaudo della PWA installata, mentre nel frattempo ne erano arrivati altri). **È lo stesso
+guasto che ha lasciato T16 e T17 scritti come «da fare» dopo la loro pubblicazione**, qui sotto:
+chi legge un puntatore vecchio rimette in coda lavoro già fatto. **Chi scrive un handoff nuovo
+aggiorna QUESTA riga nello stesso commit.**
+
+Nell'ordine:
 
 1. **Nome e cognome del paziente nel wizard** — RATIFICATO 26/07 («facciamo chiedere nome e
    cognome al wizard, ovviamente un campo non obbligatorio»). Percorso BP-2 pieno. Serve perché
