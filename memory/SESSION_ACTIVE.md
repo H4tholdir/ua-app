@@ -1,38 +1,26 @@
-# Sessione attiva — «Un tema solo, e la barra lo segue» (26/07/2026, sera)
+# Sessione attiva — tappa 3 «un tema solo» (26/07/2026, notte)
 
-✅ **Striscia panna: confermata sparita sul device di Francesco.** Voce 44 chiusa.
+**Dove:** worktree `un-tema-solo`, branch `worktree-un-tema-solo`, 4 commit oltre l'handoff.
+**Piano:** `docs/superpowers/plans/2026-07-26-tappa-3-un-tema-solo.md` (le tappe 1 e 2 sono in
+produzione e verificate sul device — dettaglio nelle voci 45-47 di `MEMORY.md`).
 
-✅ **TAPPA 1 IN PRODUZIONE** — merge `03ec7595`, CI+CD verdi, verificata live su `uachelab.com`
-(zero `<meta theme-color>` statici, zero `#D90012`, script con `CHIARO='#F4F0E7',SCURO='#171411'`).
-Ramo `worktree-un-tema-solo` mergiato; il worktree `.claude/worktrees/un-tema-solo` resta in piedi
-per le tappe 2 e 3. ⚠️ **Un worktree nuovo nasce senza `.env.local`/`.env.test`**: senza copiarli
-dal repo principale, `next build` fallisce su `/api/admin/labs` via Stripe.
+**Fatti:**
+- Task 2 `c7585bd` — lo script inline passa a `ua-tema`, ignora e cancella `ua-theme`. I test
+  tengono la preferenza **contro** il sistema in entrambe le direzioni (uno concorde non
+  distinguerebbe una chiave sbagliata) + **matrice** che confronta `SCRIPT_TEMA` con `risolviTema`
+  su ogni combinazione: la regola vive in due copie e nessuna guardia verificava che concordassero.
+- Task 3 `22b149d` — `useTheme` a tre stati; via `toggle`/`isDark`; espone `sistemaScuro`.
+- Task 4 `e099bfb` — `SceltaTema` in Impostazioni, variante A + frase di stato (DS v2.3).
+- Task 5 quasi tutto `6d130a7` — tutti gli interruttori, i 4 form auth, **tutte e 11** le occorrenze
+  `data-login-theme` di `globals.css` (il piano ne prevedeva 2: le altre 9 sono override scuri e
+  ne' `tsc` ne' i test li avrebbero visti), admin senza `ua-admin-theme`, sonner senza
+  `next-themes`, `offline.html` alla chiave nuova, −202 righe di CSS morto.
 
-**Spec** (assorbe la voce A5): `docs/superpowers/specs/2026-07-26-un-tema-solo-e-la-barra-lo-segue-design.md`
-**Piano tappa 1:** `docs/superpowers/plans/2026-07-26-tappa-1-meccanismo-barra-di-stato.md`
-Dettaglio pieno: **voce 45** di `MEMORY.md`.
+**tsc 0 · vitest 3359 verdi / 19 skip.**
 
-✅ **TAPPA 2 IN PRODUZIONE** (merge `850e3f26`, CI+CD verdi, verificata live: manifest e pagina
-offline servono il fondo unico). Guardia `tests/unit/un-tema-solo-e-la-barra-lo-segue.test.ts`,
-10 controlli, con controprova. Suite **3319 verdi / 19 skip**. Dettaglio: **voce 46** di `MEMORY.md`.
-⚠️ Sul device installato **splash e scheda nei recenti cambiano solo quando Android rigenera il
-pacchetto**: per vederlo subito, disinstallare e reinstallare.
+⏳ **Bloccato su:** `blocked` e `billing`, UI mai vista prima → serve l'ok di Francesco (§0B).
+Anteprime: `docs/design/mockups/screenshots/2026-07-26-{blocked,billing}-390-{chiaro,scuro}-*.png`.
+**Task 6 dipende da quelle due** (assert su `data-login-theme` sparito).
 
-✅ **PROVA SUL DEVICE SUPERATA (19:28).** «La barra ha cambiato colore, in modo corretto e in base
-alla sezione del tema cambia colore in automatico». **Il meta `theme-color` È onorato nelle PWA
-installate su Android, anche mutato a runtime** — lacuna §3.3 della ricerca chiusa empiricamente.
-**Via libera alla tappa 2.**
-
-⏳ **DUE APPUNTI DI FRANCESCO, aperti:**
-1. **Striscia sottile fra barra di stato e contenuto.** Verificato: **non è nostra** (zero
-   `border-top`/`box-shadow` globali, zero `safe-area-inset-top` in `src/`). Sospetto: **bug
-   Chromium 421933373**, residuo di 1px del `theme_color` del **manifest** sotto il meta. Se è
-   quello, la **tappa 2 lo chiude per costruzione**. 🔬 **Discriminante: di che colore è** — rossa
-   → manifest; grigia → altro.
-2. **Fascia sotto la barretta dei gesti sempre dello stesso colore.** È il **bug Chromium
-   40759522**, già accertato: segue il **color scheme di SISTEMA**, non l'app. 🎯 La regola D4
-   (l'app segue il telefono) la rende coerente per costruzione. 🔬 Test gratis: mettere il
-   **telefono** in scuro e guardare se diventa scura.
-
-**Poi:** tappa 2 (manifest + `offline.html` + guardia) · tappa 3 (tre stati `ua-tema`, bonifica dei
-5 punti di accesso, UI in Impostazioni con mockup §0B, `blocked`/`billing`, toast).
+**Poi:** Task 6 (guardia del censimento) → Task 7 (verifica, QA 390/768/1280 × light+dark, gate
+estetico L2, deploy, BP-1).
