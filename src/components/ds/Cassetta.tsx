@@ -28,11 +28,15 @@
 // B, verbale `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` §H2) — CHIUDE il
 // doppio regime che FIX-L aveva lasciato aperto (`is-nome-lungo`/min-height 142 +
 // `is-shrink`/`SOGLIA_NOME_LUNGO`): la fascia passa da "abbraccia il contenuto" a un'altezza
-// VERA e FISSA (72px, v. `.ds-cassetta-fascia` in ds-v3.css) che riserva SEMPRE lo spazio del
-// caso peggiore (clinico 2 righe + paziente 1 riga) — la finestra si restringe di conseguenza
-// (66→40px) e la miniatura scala a `height={23}` sotto (§58% del mockup, `.fin svg{height:58%}`,
-// 40×0.58≈23.2). Risultato: la sagoma è unica per COSTRUZIONE (mai più di 132px di contenuto di
-// flusso), non serve più calcolare una soglia sul testo — `SOGLIA_NOME_LUNGO`/`nomeLungo`/
+// VERA e FISSA (`var(--altezza-fascia)`, v. `.ds-cassetta-fascia` in ds-v3.css) che riserva SEMPRE
+// lo spazio del caso peggiore (clinico 2 righe + paziente 1 riga) — la finestra si restringe di
+// conseguenza (66→40px) e la miniatura scala a `height={23}` sotto (§58% del mockup,
+// `.fin svg{height:58%}`, 40×0.58≈23.2). ⚠️ A3 (26/07/2026): quei 72px NON riservavano davvero il
+// caso peggiore — misurato, sforavano di 2,2px (clinico 2 righe) e 4,9px (paziente 2 righe), e a
+// cedere era la targa. Ratifica Francesco: fascia a 78px e cassetta a 138px, la finestra INVARIATA
+// («allunga la pancia verso il basso»). Numeri e aritmetica sopra `.ds-cassetta-fascia` in
+// ds-v3.css. Risultato: la sagoma è unica per COSTRUZIONE (il contenuto di flusso è sempre più
+// corto del tile), non serve più calcolare una soglia sul testo — `SOGLIA_NOME_LUNGO`/`nomeLungo`/
 // `is-nome-lungo`/`is-shrink` sono RIMOSSI, non sostituiti. Il clinico va SEMPRE a capo (max 2
 // righe), il paziente resta SEMPRE 1 riga con una sfumatura morbida sul bordo (mockup
 // `.optB .paz` + base `.paz` — mai un'ellissi "…" a metà nome, vincolo (c) del verbale). Misure

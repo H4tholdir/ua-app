@@ -36,7 +36,7 @@ const lavoroCorto = {
 }
 
 describe('H2 — .ds-cassetta: sagoma UNICA per costruzione (height E min-height, non solo un floor)', () => {
-  it('padding: 0 (invariato da FIX-L) — height E min-height 132px (H2: prima solo min-height + bump condizionale a 142)', () => {
+  it('padding: 0 (invariato da FIX-L) — height E min-height da --altezza-cassetta (H2: prima solo min-height + bump condizionale a 142)', () => {
     const blocco = norm.match(/\[data-ds="v3"\] \.ds-cassetta \{[^}]*\}/)
     expect(blocco, 'blocco .ds-cassetta non trovato').toBeTruthy()
     expect(blocco![0]).toMatch(/padding: 0;/)
@@ -71,9 +71,9 @@ describe('H2 — finestra/cavità: 8..48 (era 8..74) — opzione B restringe la 
 })
 
 describe('H2 — «fascia etichetta»: ORA ad altezza FISSA (opzione B), non più ad abbraccio del contenuto', () => {
-  it('.ds-cassetta-fascia: margin/radius/padding/box-shadow invariati dal mockup rev.3 P3b, height:72px + justify-content:center (H2) invariati — H2b (variante C, decisione d5eeed5): background scurente 0,34 (era .28, «un filo più profondo» sulle facce scure) + overflow:hidden NUOVO (hardening iOS, indagine H5 Difetto 2 meccanismo A: la fascia è ad altezza VERA e FISSA, niente deve mai sbordarne nemmeno con font gonfiati da iOS)', () => {
+  it('.ds-cassetta-fascia: margin/radius/padding/box-shadow invariati dal mockup rev.3 P3b, altezza da --altezza-fascia (A3, 26/07: era il letterale 72px) + justify-content:center (H2) invariati — H2b (variante C, decisione d5eeed5): background scurente 0,34 (era .28, «un filo più profondo» sulle facce scure) + overflow:hidden NUOVO (hardening iOS, indagine H5 Difetto 2 meccanismo A: la fascia è ad altezza VERA e FISSA, niente deve mai sbordarne nemmeno con font gonfiati da iOS)', () => {
     expect(norm).toMatch(
-      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*width: calc\(100% - 8px\);\s*height: 72px;\s*background: rgba\(0,0,0,\.34\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*overflow: hidden;\s*\}/
+      /\[data-ds="v3"\] \.ds-cassetta-fascia \{\s*position: relative; z-index: 1;\s*margin: 0 4px 4px;\s*border-radius: 4px 4px 9px 9px;\s*padding: 5px 8px 6px;\s*width: calc\(100% - 8px\);\s*height: var\(--altezza-fascia\);\s*background: rgba\(0,0,0,\.34\);\s*box-shadow: inset 0 1px 3px rgba\(0,0,0,\.25\), inset 0 -1px 0 rgba\(255,255,255,\.12\);\s*display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;\s*overflow: hidden;\s*\}/
     )
   })
 
@@ -818,8 +818,17 @@ describe('H2 — guardia --track: la sagoma unica sta dentro la riga di maglia, 
     return n
   }
 
+  /** L'altezza del tile RISOLTA: dal 26/07 non è un letterale ma `calc(var(--altezza-fascia) + Npx)`
+   *  (v. la guardia A3 sotto per il perché), quindi va risolta come la risolve il browser. */
+  const altezzaCassettaRisolta = (): number => {
+    const v = variabileUnica('altezza-cassetta')
+    const m = v.match(/^calc\(var\(--altezza-fascia\) \+ ([\d.]+)px\)$/)
+    expect(m, `--altezza-cassetta vale «${v}»: forma attesa calc(var(--altezza-fascia) + Npx)`).toBeTruthy()
+    return px(variabileUnica('altezza-fascia')) + Number(m![1])
+  }
+
   it('l\'altezza del tile arriva dal foglio e sta sotto --track risolto alla scala base', () => {
-    const altezzaTile = px(variabileUnica('altezza-cassetta'))
+    const altezzaTile = altezzaCassettaRisolta()
     const parete = regola('.ds-parete')
     const passoBase = px(variabileIn(parete, 'passo-maglia', '.ds-parete'))
     // --track è dichiarato in funzione del passo: si legge la FORMULA, non un numero
@@ -830,9 +839,79 @@ describe('H2 — guardia --track: la sagoma unica sta dentro la riga di maglia, 
       'letterale, la garanzia gancio≡filo smette di generalizzare — v. parete-gancio-cornice.test.ts')
       .toBeDefined()
     const track = passoBase * Number(moltiplicatore)
-    expect(altezzaTile,
-      `il tile (${altezzaTile}px) non entra nella riga di maglia (--track = ${track}px): sborderebbe ` +
-      'sulla fila sotto, clippando i gancetti').toBeLessThan(track)
+
+    // A3 (26/07) — non basta che il tile entri nel track: sopra ogni tile sporge il GANCETTO della
+    // sua stessa fila (`.ds-gancetto`, `top: calc(-1 * var(--hook-above) - 6px)`), che sta nello
+    // spazio della fila PRECEDENTE. Il vincolo vero è quindi tile + sporgenza del gancio ≤ track,
+    // ed è esattamente quello che l'allungamento della cassetta consuma. I due addendi si leggono
+    // dal foglio, non si ridigitano.
+    const hookAbove = px(variabileIn(parete, 'hook-above', '.ds-parete'))
+    const sporgenzaGancio = hookAbove + 6 // il `- 6px` del `top` di .ds-gancetto (sovrapposizione linguetta↔gancio)
+    const gancetto = regola('.ds-gancetto')
+    expect(gancetto, 'regola .ds-gancetto non trovata').toMatch(
+      /top: calc\(-1 \* var\(--hook-above, 14px\) - 6px\);/)
+
+    expect(altezzaTile + sporgenzaGancio,
+      `il tile (${altezzaTile}px) più la sporgenza del gancetto (${sporgenzaGancio}px) non entra ` +
+      `nella riga di maglia (--track = ${track}px): il gancio della fila sotto verrebbe clippato ` +
+      'dal tile sopra — è il difetto che al QA T15 fece salire --track da 4 a 5 passi')
+      .toBeLessThanOrEqual(track)
+  })
+
+  // A3 (ratifica Francesco 26/07/2026) — «no, non toccare la finestrella con il dentino, ma
+  // piuttosto allunga la pancia della cassetta verso il basso». La promessa che questa guardia
+  // presidia non è un numero, è una RELAZIONE: il tile deve valere la fascia PIÙ l'anatomia che le
+  // sta sopra, così qualunque cosa succeda alla fascia la finestra non si può muovere — non per
+  // disciplina di chi edita, ma per costruzione. Se qualcuno riscrivesse `--altezza-cassetta` come
+  // secondo letterale, il legame si spezzerebbe in silenzio e saremmo di nuovo al difetto A2 (due
+  // numeri da tenere allineati a mano), stavolta con in mezzo una decisione di Francesco.
+  // I 60px non sono ridigitati nemmeno qui: si ricompongono dai valori veri del foglio.
+  it('A3 — il tile è la fascia PIÙ l\'anatomia sopra di lei, non un secondo numero: la finestra non si può muovere', () => {
+    const altezzaCassetta = variabileUnica('altezza-cassetta')
+    const riserva = altezzaCassetta.match(/^calc\(var\(--altezza-fascia\) \+ ([\d.]+)px\)$/)?.[1]
+    expect(riserva,
+      `--altezza-cassetta vale «${altezzaCassetta}»: deve essere calc(var(--altezza-fascia) + <riserva>px). ` +
+      'Scritto come letterale, fascia e tile tornano due numeri da allineare a mano e allungare la ' +
+      'fascia rimpicciolirebbe la finestrella col dentino — cioè l\'unica cosa che Francesco ha ' +
+      'chiesto di NON toccare (26/07/2026)').toBeDefined()
+
+    // la riserva si ricompone dai pezzi REALI che stanno sopra la fascia, letti dal foglio
+    const cavita = regola('.ds-cassetta-cavita')
+    const inset = cavita.match(/inset: *([\d.]+)px [^;]*;/)?.[1]
+    const altezzaCavita = cavita.match(/height: *([\d.]+)px/)?.[1]
+    const marginFascia = regola('.ds-cassetta-fascia').match(/margin: *0 [\d.]+px ([\d.]+)px;/)?.[1]
+    expect(inset, 'inset alto della cavità non trovato').toBeDefined()
+    expect(altezzaCavita, 'height della cavità non trovata').toBeDefined()
+    expect(marginFascia, 'margin-bottom della fascia non trovato').toBeDefined()
+
+    const RESPIRO_FINESTRA_FASCIA = 8 // ratificato H2/G10, misurato invariato prima e dopo A3
+    const attesa = Number(inset) + Number(altezzaCavita) + RESPIRO_FINESTRA_FASCIA + Number(marginFascia)
+    expect(Number(riserva), `la riserva sopra la fascia dichiarata nel calc() (${riserva}px) non ` +
+      `combacia con l'anatomia vera del foglio (${inset} di inset + ${altezzaCavita} di finestra + ` +
+      `${RESPIRO_FINESTRA_FASCIA} di respiro + ${marginFascia} di margine = ${attesa}px). ` +
+      'Qualcuno ha cambiato la finestrella senza rifare il calc(): da questo momento allungare la ' +
+      'fascia la sposterebbe, che è esattamente ciò che la decisione del 26/07 vieta').toBe(attesa)
+  })
+
+  it('A3 — la fascia riserva davvero la pila del caso peggiore misurata (65,859px), col suo padding', () => {
+    // La misura che ha aperto A3: la pila più alta possibile dentro la fascia (targa + gap + le due
+    // righe) vale 65,859px sul render reale. Se qualcuno abbassa la fascia sotto quella soglia + il
+    // proprio padding, torna il difetto misurato — la targa si lascia comprimere (è l'unico flex
+    // item con overflow:hidden, quindi con altezza minima automatica 0) e perde testo, in silenzio,
+    // senza che nessun altro test se ne accorga. I numeri si leggono dal foglio, non si ridigitano.
+    const PILA_MASSIMA_MISURATA = 65.859 // caso B: clinico 1 riga + paziente 2 righe, v. ds-v3.css
+    const fascia = regola('.ds-cassetta-fascia')
+    const padding = fascia.match(/padding: *([\d.]+)px [\d.]+px ([\d.]+)px;/)
+    expect(padding, 'padding della fascia non trovato').toBeTruthy()
+    const boxUtile = px(variabileUnica('altezza-fascia')) - Number(padding![1]) - Number(padding![2])
+    expect(boxUtile, `il box utile della fascia (${boxUtile}px) non regge la pila massima misurata ` +
+      `(${PILA_MASSIMA_MISURATA}px): la targa tornerebbe a schiacciarsi e a perdere testo`)
+      .toBeGreaterThanOrEqual(PILA_MASSIMA_MISURATA)
+    // e il margine non deve essere "al pelo": sotto il pixel, il rumore di quantizzazione a DPR
+    // frazionari se lo mangia (lezione H2c, sulla stessa fascia)
+    expect(boxUtile - PILA_MASSIMA_MISURATA,
+      'il margine sopra la pila massima è sotto 1px: a DPR frazionari le cinque scatole impilate ' +
+      'si arrotondano ognuna per conto proprio e l\'errore si somma — v. H2c').toBeGreaterThanOrEqual(1)
   })
 
   it('difetto A2 — cassetta e tile «+ Nuova cassetta» leggono LA STESSA altezza, nessuno dei due la ridigita', () => {

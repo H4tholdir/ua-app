@@ -34,8 +34,9 @@
 // 0c37f25, `docs/design/decisions/2026-07-25-wave-h-scelte.md` §H3). Indagine PROVATA:
 // `.superpowers/sdd/h3-indagine-report.md`. Root cause: `frame()` confrontava il CENTRO DEL
 // GHOST (`centroOrigineRef` + delta dal lift) col punto medio fra due centri-TRACK di
-// `indiceDaPunto` — su `.ds-parete-grid` (`align-items:start`, track ≫ cassetta: 200/250px vs
-// 132px fissi dal commit 21a0b17 «cassetta B») quel punto medio cade nella maglia VUOTA sotto la
+// `indiceDaPunto` — su `.ds-parete-grid` (`align-items:start`, track ≫ cassetta: 200/250px contro
+// l'altezza fissa del commit 21a0b17 «cassetta B», oggi 138px dopo la ratifica A3 del 26/07/2026 —
+// letta a runtime da un rect vero, mai ricopiata qui) quel punto medio cade nella maglia VUOTA sotto la
 // cassetta, non su una cassetta vera; e se la presa non è al centro (si afferra la targa in
 // alto, il caso reale), il ghost-centro "precede" il dito — il riordino scattava mentre il dito
 // era ancora sopra la cassetta d'origine. FIX-F/`pitchY` restano CORRETTI e INVARIATI (l'indagine
