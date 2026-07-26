@@ -167,17 +167,20 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
     expect(onChiudi).toHaveBeenCalledTimes(1)
   })
 
-  // LIMITE NOTO G5 (v. JSDoc «LIMITE NOTO» su Sheet.tsx, fuori scope FIX-I) — gemello del test
-  // Esc sopra, ma per il back gesture: a differenza di Esc (un listener passivo che non consuma
-  // nulla, quindi la guardia `dialogAperto` basta a fermare SOLO onChiudi), il back del telefono
-  // consuma DAVVERO l'unica history-entry pushata (quella dello Sheet — DialogConferma non ne
-  // pusha una propria). `onChiudi` gira ma la guardia lo blocca: né lo sheet né il dialog si
-  // chiudono, e l'entry è comunque persa — un secondo back navigherebbe via dalla pagina sotto
-  // senza aver chiuso nulla (desync, non riproducibile qui in isolamento: richiede una history
-  // reale sotto CassettaSheet). Questo test PIN-a il comportamento oggi, non lo approva: se un
-  // fix futuro (fuori da questo FIX-I) insegna a DialogConferma a discriminare via
-  // `window.history.state`, questo test andrà aggiornato insieme.
-  it('LIMITE NOTO G5 — back con DialogConferma «Butta via» aperto: consuma l\'entry dello sheet ma NON chiude nulla (guardia dialogAperto blocca onChiudi)', async () => {
+  // Review finale whole-branch — QUESTO TEST È STATO RI-PUNTATO. Fino all'ondata di fix
+  // «componenti» pin-ava un LIMITE NOTO: il back del telefono consumava l'unica history-entry
+  // esistente (quella dello Sheet — `DialogConferma` non ne pushava una propria), la guardia
+  // `dialogAperto` fermava `onChiudi`, e non si chiudeva NIENTE mentre l'entry era comunque
+  // persa. Quel limite NON C'È PIÙ: `src/components/ds/storia-overlay.ts` tiene UNA entry per
+  // l'intera pila di overlay e una pila LIFO di chi la usa — a un back reagisce SOLO il più
+  // alto (qui il dialog), e l'entry viene ri-spinta per lo sheet che resta sotto.
+  //
+  // Perché il vecchio test restava verde pur asserendo il comportamento sbagliato (ed è la
+  // ragione per cui va scritto così): controllava i due `role="dialog"` SUBITO dopo il
+  // `popstate`, sincrono. Il dialog si chiude, ma esce dall'albero solo a fine uscita di
+  // `AnimatePresence`: un istante dopo il back i nodi sono ancora due. Misurato: subito dopo
+  // il popstate 2 dialog, dopo `waitFor` 1, `onChiudi` mai chiamato. Da qui il `waitFor`.
+  it('back con DialogConferma «Butta via» aperto: chiude SOLO il dialog, lo sheet resta aperto sotto (gemello del test Esc)', async () => {
     const { onChiudi } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Butta via' }))
     await screen.findByRole('dialog', { name: /butto via la cassetta c4/i })
@@ -187,11 +190,15 @@ describe('CassettaSheet — cassetta LIBERA (§5.3)', () => {
       window.dispatchEvent(new Event('popstate'))
     })
 
+    // Il dialog distruttivo se ne va — e se ne va DAVVERO dall'albero, non solo "visivamente".
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /butto via/i })).toBeNull())
+    // …lo sheet no: resta l'unico overlay in scena, e il chiamante non è mai stato avvisato di
+    // una chiusura che non è avvenuta. Un secondo back toccherà a lui (catena presidiata
+    // end-to-end in `tests/unit/stanze-pager.test.tsx`, caso «C2 — dialog distruttivo sopra lo
+    // sheet»: 1° back il dialog, 2° lo sheet, 3° la pagina).
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(screen.getByRole('dialog', { name: 'C4' })).toBeInTheDocument()
     expect(onChiudi).not.toHaveBeenCalled()
-    // Entrambi restano visivamente aperti — l'entry di history è comunque stata consumata dal
-    // browser: qui si vede solo il sintomo (nulla si chiude), non la history stessa.
-    expect(screen.getAllByRole('dialog')).toHaveLength(2)
-    expect(screen.getByRole('dialog', { name: /butto via la cassetta c4/i })).toBeInTheDocument()
   })
 
   it('nessuna azione «Sposta il lavoro in…» su una cassetta libera (non c\'è lavoro da spostare)', () => {
