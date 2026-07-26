@@ -74,6 +74,19 @@ function simulaScroll(nome: 'pile' | 'parete', ratio: number) {
   })
 }
 
+/**
+ * ⚠️ REGOLA (review finale whole-branch, D1) — `preparaViewport` installa la spia su
+ * un'ISTANZA che esiste solo DOPO il mount: quando gira, l'effect di posizionamento iniziale
+ * del pager è già passato. La `vi.fn()` che torna nasce quindi con ZERO chiamate registrate,
+ * qualunque cosa il componente abbia fatto al montaggio.
+ *
+ * Conseguenza operativa, da rispettare sempre: da qui si possono asserire SOLO comportamenti
+ * POST-mount (tap sulla linguetta, «‹ Indietro», swipe). Una negativa su questa spia
+ * (`not.toHaveBeenCalled…`) riferita al montaggio è vera per costruzione — passerebbe anche
+ * con il comportamento rotto, ed è esattamente il difetto che D1 ha trovato qui.
+ * Per il montaggio esiste `conProtoStubato` (sotto): stuba `scrollTo`/`offsetLeft` sui
+ * PROTOTIPI, quindi la spia esiste già quando il pager si monta.
+ */
 function preparaViewport(container: HTMLElement) {
   const viewport = container.querySelector('.ua-stanze-viewport') as HTMLElement
   expect(viewport).not.toBeNull()
@@ -85,6 +98,37 @@ function preparaViewport(container: HTMLElement) {
   Object.defineProperty(stanze[0], 'offsetLeft', { value: 0, configurable: true })
   Object.defineProperty(stanze[1], 'offsetLeft', { value: 362, configurable: true })
   return { viewport, scrollTo }
+}
+
+/**
+ * L'altra metà della regola sopra: qui `scrollTo` e `offsetLeft` vivono sui PROTOTIPI, quindi
+ * esistono già quando il pager si monta — è l'unico modo di osservare lo scroll iniziale
+ * (che avviene dentro l'effect di montaggio). Ripristina i descriptor originali in `finally`,
+ * così un fallimento dell'asserzione non lascia i prototipi stubati agli altri test.
+ * Definita a livello di FILE (non dentro un describe) perché serve a due describe diversi:
+ * «dove si apre il viewport al primo render» e il remount T15.8 con l'indirizzo già /cassette.
+ */
+function conProtoStubato(prova: (scrollTo: ReturnType<typeof vi.fn>) => void) {
+  const scrollTo = vi.fn(() => {
+    eventi.push('scroll')
+  })
+  const scrollToPrecedente = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTo')
+  const offsetPrecedente = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetLeft')
+  Object.defineProperty(Element.prototype, 'scrollTo', { value: scrollTo, configurable: true, writable: true })
+  Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.dataset?.stanza === 'parete' ? 362 : 0
+    },
+  })
+  try {
+    prova(scrollTo)
+  } finally {
+    if (scrollToPrecedente) Object.defineProperty(Element.prototype, 'scrollTo', scrollToPrecedente)
+    else Reflect.deleteProperty(Element.prototype, 'scrollTo')
+    if (offsetPrecedente) Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetPrecedente)
+    else Reflect.deleteProperty(HTMLElement.prototype, 'offsetLeft')
+  }
 }
 
 function pannello(nome: 'pile' | 'parete'): HTMLElement {
@@ -199,33 +243,9 @@ describe('StanzePager — stanza attiva, inert e aria-hidden (§6)', () => {
   })
 })
 
+// Lo scroll iniziale avviene nell'effect di montaggio: si osserva SOLO con `conProtoStubato`
+// (v. la regola sui due helper in testa al file), mai con `preparaViewport`.
 describe('StanzePager — dove si apre il viewport al primo render', () => {
-  // Questo caso NON si può presidiare con `preparaViewport` (che stuba DOPO il mount): lo
-  // scroll iniziale avviene nell'effect di montaggio. Qui `scrollTo` e `offsetLeft` vivono
-  // sul prototipo, quindi esistono già quando il pager si monta.
-  function conProtoStubato(prova: (scrollTo: ReturnType<typeof vi.fn>) => void) {
-    const scrollTo = vi.fn(() => {
-      eventi.push('scroll')
-    })
-    const scrollToPrecedente = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTo')
-    const offsetPrecedente = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetLeft')
-    Object.defineProperty(Element.prototype, 'scrollTo', { value: scrollTo, configurable: true, writable: true })
-    Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
-      configurable: true,
-      get(this: HTMLElement) {
-        return this.dataset?.stanza === 'parete' ? 362 : 0
-      },
-    })
-    try {
-      prova(scrollTo)
-    } finally {
-      if (scrollToPrecedente) Object.defineProperty(Element.prototype, 'scrollTo', scrollToPrecedente)
-      else Reflect.deleteProperty(Element.prototype, 'scrollTo')
-      if (offsetPrecedente) Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetPrecedente)
-      else Reflect.deleteProperty(HTMLElement.prototype, 'offsetLeft')
-    }
-  }
-
   it("aprendo sulla parete il viewport ci si posiziona SUBITO e senza animazione — altrimenti si vedrebbe la stanza pile, che è inerte", () => {
     conProtoStubato((scrollTo) => {
       const { container } = render(
@@ -494,17 +514,20 @@ describe('StanzePager — remount con indirizzo già /cassette (QA device T15.8,
     expect(pannello('pile')).toHaveAttribute('inert')
   })
 
+  // Review finale whole-branch, D1 — questo test asseriva `not.toHaveBeenCalledWith({ left: 0,
+  // … })` su una spia di `preparaViewport`, cioè su una `vi.fn()` nata DOPO il mount e quindi
+  // con zero chiamate registrate: era vera per costruzione, e restava verde anche togliendo del
+  // tutto il ramo «/cassette» dal posizionamento iniziale — proprio il desync stato/scroll che
+  // il titolo promette di presidiare (il gemello sopra prende solo la metà `inert`).
+  // Riscritto con `conProtoStubato`, che osserva davvero il montaggio: la POSITIVA su 362 (la
+  // `offsetLeft` della stanza parete) è l'unica forma che discrimina le due stanze.
   it("il viewport si posiziona sulla parete (non le pile) nello stesso scenario — stato e scroll non vanno fuori sincrono", () => {
     window.history.replaceState({}, '', '/cassette')
-    const { container } = render(
-      <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
-    )
-    const { scrollTo } = preparaViewport(container)
-    // `preparaViewport` gira DOPO il mount (l'effect di posizionamento iniziale è già passato,
-    // niente da asserire su `scrollTo` qui — ciò che conta l'ha già presidiato il test sopra via
-    // `inert`/`aria-selected`). Il fatto che scrollTo non sia stato chiamato con { left: 0 }
-    // (la posizione delle pile) è la garanzia che serve.
-    expect(scrollTo).not.toHaveBeenCalledWith({ left: 0, behavior: 'auto' })
+    conProtoStubato((scrollTo) => {
+      render(<StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />)
+      expect(scrollTo).toHaveBeenCalledWith({ left: 362, behavior: 'auto' })
+      expect(scrollTo).not.toHaveBeenCalledWith({ left: 0, behavior: 'auto' })
+    })
   })
 
   it("indietro dalla parete ricostituita (già attiva al mount) fa comunque history.back, mai un'altra pushState", async () => {
@@ -639,9 +662,14 @@ describe('StanzePager — G5, sheet embedded non interferisce con la catena push
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('un back con lo sheet aperto ma su un percorso NON /cassette (ipotesi difensiva) non blocca comunque il pager se davvero si lascia la pagina', () => {
-    // Percorso di controllo: senza CassettaSheet aperto, un solo back sulla parete raggiunta
-    // dalla linguetta segue la catena invariata (nessuna regressione dalla guardia aggiunta).
+  // Review finale whole-branch (nomi stantii) — il titolo prometteva «con lo sheet aperto ma su
+  // un percorso NON /cassette»: il corpo non apre alcuno sheet e non tocca il pathname, ed era
+  // il commento stesso a chiamarlo «percorso di controllo». Rinominato per quello che fa
+  // davvero: è il CONTROLLO NEGATIVO della guardia G5 qui sopra — senza overlay in scena, un
+  // back sulla parete deve seguire la catena di sempre.
+  it('controllo negativo della guardia G5: senza alcuno sheet aperto, un back sulla parete (raggiunta con lo swipe) torna alle pile come sempre', () => {
+    // Nessuna regressione introdotta dalla guardia aggiunta per G5: la catena parete→pile
+    // resta quella di prima quando non c'è nessun overlay a contendersi l'entry.
     const contesto = render(
       <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
     )
@@ -913,13 +941,25 @@ describe('StanzePager — niente focus automatico su dito (QA device T15.2, dire
         <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
       )
       preparaViewport(container)
-      const primaDelTap = document.activeElement
       await viaLinguetta(user)
       expect(pannello('parete')).not.toHaveAttribute('inert')
-      // Il focus non è entrato nel pannello — è rimasto dov'era (sulla linguetta che ha
-      // ricevuto il tap, MAI sul primo focusabile della stanza, «‹ Indietro»).
-      expect(document.activeElement).not.toBe(within(pannello('parete')).getByRole('button', { name: 'Indietro' }))
-      expect(document.activeElement).not.toBe(primaDelTap === document.body ? null : primaDelTap)
+      // Review finale whole-branch, D2 — qui c'era `expect(activeElement).not.toBe(primaDelTap
+      // === document.body ? null : primaDelTap)`: a test appena montato niente è a fuoco, quindi
+      // `primaDelTap` era `document.body`, il ternario dava `null` e la riga si riduceva a
+      // «qualcosa è a fuoco» — l'OPPOSTO di quel che il titolo promette (e una regressione che
+      // desse il focus alla pillola di ricerca del pannello la faceva passare serena: proprio la
+      // tastiera virtuale che alzava T15.2). Ora sono due asserzioni POSITIVE.
+      //
+      // (1) A tap concluso NIENTE ha il focus. `document.body` è il valore che jsdom espone
+      //     quando nessun elemento è a fuoco: la linguetta che ha ricevuto il tap esce dal
+      //     proprio `AnimatePresence` e lascia l'albero, e il focus di un nodo rimosso ricade
+      //     sul body. È lo stato che su un telefono tiene giù la tastiera.
+      expect(document.activeElement).toBe(document.body)
+      // (2) E in particolare il focus non è finito da NESSUNA parte dentro il pannello che
+      //     entra — non solo «non su ‹ Indietro›»: la forma `contains` prende anche le
+      //     regressioni che scelgono un altro focusabile della stanza (la pillola di ricerca,
+      //     una cassetta), che è esattamente il difetto per cui T15.2 è stata aperta.
+      expect(pannello('parete').contains(document.activeElement)).toBe(false)
     } finally {
       ripristina()
     }
