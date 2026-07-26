@@ -20,6 +20,29 @@
 
 **Dove va l'opzione:** in **Impostazioni**, con tre scelte — *Automatico* (predefinita) · *Sempre chiaro* · *Sempre scuro*. Scartato il pannello del profilo: è dove si cerca il proprio account, non le preferenze dell'app.
 
+### D8 — Che forma ha il selettore (26/07, dopo i mockup)
+
+Mockup: `docs/design/mockups/2026-07-26-tema-impostazioni.html` · catture 390 light+dark in
+`docs/design/mockups/screenshots/`. Tre varianti presentate: **A** righe col pallino (come «La tua
+home», già in quella pagina) · **B** tre pulsanti affiancati · **C** righe con l'anteprima del colore.
+
+**Francesco preferisce la forma B**, ma ha posto la domanda giusta: *«poiché la pagina è in v2.3 e
+noi dovremmo migrare tutto a v3, dobbiamo continuare in modalità v2.3?»*.
+
+**Il fatto che ha deciso la scelta:** la forma B **esiste già pronta in v3** — `ChipScelta`
+(`src/components/ds/ChipScelta.tsx`, §5.31 della spec v3: stato, spunta **accanto** al colore perché
+il colore da solo non basta mai, `vibra('selection')`). In v2.3 andrebbe **ricostruita a mano**, e
+quel pezzo verrebbe **buttato** il giorno in cui `/impostazioni` passa a v3. Migrare `/impostazioni`
+adesso non è un ritocco: **829 righe** fra pagina e componenti, più **tre sottopagine** (abbonamento,
+PEC, profilo), su una superficie che tocca **dati fiscali e PEC**.
+
+**RATIFICATO: variante A adesso** — righe col pallino, **più una frase di stato** che dichiara cosa
+sta seguendo in questo momento (il pezzo buono della B). Zero componenti nuovi, niente da buttare.
+**Quando arriverà l'ondata v3 di `/impostazioni`, la stessa scelta diventa B con `ChipScelta`** — la
+forma che Francesco preferisce, ottenuta gratis invece che pagata due volte.
+
+📌 Conferma la regola di convivenza DS v3 §14: **si migra per route, mai per componente.**
+
 ---
 
 ## Decise dall'implementatore, con motivazione
