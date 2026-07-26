@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tema in Impostazioni — 3 varianti (mockup 26/07/2026)</title>
+<!--
+  MOCKUP — tappa 3 di «Un tema solo, e la barra lo segue».
+  Spec: docs/superpowers/specs/2026-07-26-un-tema-solo-e-la-barra-lo-segue-design.md §4.6
+
+  Superficie: /impostazioni → e' ancora DS v2.3 (non e' fra le route migrate a v3),
+  quindi qui si usano i token v2.3, mai v3 (regola di convivenza DS v3 §14).
+  Il modello imitato e' la riga «La tua home» gia' in pagina
+  (src/components/features/impostazioni/SceltaHome.tsx): stessa etichetta in
+  maiuscoletto, stesse righe da 44px, stesso stile inline con var + fallback.
+
+  Differenza di sostanza rispetto a «La tua home»: la preferenza del tema e' LOCALE
+  (localStorage), non passa dal server — quindi niente salvataggio, niente stato di
+  attesa, niente errore possibile. Cambia sotto le dita.
+-->
+<style>
+  :root {
+    --bg: #F4F0E7; --sfc: #E4DFD9; --elv: #EDEDEA; --prs: #D4CFC9;
+    --t1: #1C1916; --t2: #4A3D33; --t3: #6B5C51;
+    --primary: #D90012;
+  }
+  .scuro {
+    --bg: #171411; --sfc: #232018; --elv: #2C2A27; --prs: #141210;
+    --t1: #F0EDE8; --t2: #8A8580; --t3: #5A5652;
+    --primary: #E8001A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; }
+
+  .tela { background: var(--bg); padding: 20px 16px 32px; }
+  .titolone { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+              color: var(--primary); margin: 26px 0 8px; }
+  .titolone:first-child { margin-top: 0; }
+  .nota { font-size: 12px; color: var(--t3); margin-bottom: 14px; line-height: 1.45; }
+
+  .scheda { background: var(--elv); border-radius: 16px; padding: 16px 16px 10px; }
+
+  .etichetta { font-size: 13px; font-weight: 600; color: var(--t2);
+               text-transform: uppercase; letter-spacing: .08em; margin: 0 0 10px; }
+
+  /* riga «La tua home» — gia' in pagina, riprodotta per contesto */
+  .riga { display: flex; align-items: center; gap: 10px; min-height: 44px;
+          font-size: 14px; color: var(--t1); }
+  .pallino { width: 18px; height: 18px; border-radius: 50%; flex: none;
+             border: 2px solid var(--t3); position: relative; }
+  .pallino.on { border-color: var(--primary); }
+  .pallino.on::after { content: ''; position: absolute; inset: 3px; border-radius: 50%;
+                       background: var(--primary); }
+  .divisore { height: 1px; background: var(--sfc); margin: 12px 0; }
+
+  /* A — righe identiche a «La tua home» */
+  .sotto { font-size: 12.5px; color: var(--t3); }
+
+  /* B — tre pulsanti affiancati */
+  .gruppo { display: flex; background: var(--sfc); border-radius: 12px; padding: 3px; gap: 3px; }
+  .segmento { flex: 1; min-height: 44px; border: none; background: transparent; cursor: pointer;
+              border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+              color: var(--t2); display: flex; align-items: center; justify-content: center; }
+  .segmento.on { background: var(--elv); color: var(--t1);
+                 box-shadow: 0 1px 3px rgba(0,0,0,.10); }
+  .scuro .segmento.on { box-shadow: none; background: var(--prs); }
+  .didascalia { font-size: 12.5px; color: var(--t3); margin-top: 10px; }
+
+  /* C — righe con la pastiglia che mostra il colore */
+  .pastiglia { width: 30px; height: 30px; border-radius: 8px; flex: none;
+               border: 1px solid rgba(0,0,0,.12); }
+  .scuro .pastiglia { border-color: rgba(255,255,255,.14); }
+  .pa-auto { background: linear-gradient(135deg, #F4F0E7 0 50%, #171411 50% 100%); }
+  .pa-chiaro { background: #F4F0E7; }
+  .pa-scuro { background: #171411; }
+  .riga-c { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+  .testo-c { flex: 1; }
+  .nome-c { font-size: 14px; color: var(--t1); }
+  .spunta { width: 20px; height: 20px; flex: none; color: var(--primary);
+            font-size: 17px; font-weight: 700; text-align: center; line-height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="tela" id="chiaro">
+  <div class="titolone">A — righe col pallino (come «La tua home»)</div>
+  <div class="nota">La forma già in uso in questa pagina. Zero elementi nuovi da imparare.</div>
+  <div class="scheda">
+    <p class="etichetta">La tua home</p>
+    <div class="riga"><span class="pallino on"></span> Le due stanze — pile e parete</div>
+    <div class="riga"><span class="pallino"></span> Solo le pile — che cosa urge</div>
+    <div class="riga"><span class="pallino"></span> Solo la parete — dove stanno</div>
+    <div class="divisore"></div>
+    <p class="etichetta">Tema</p>
+    <div class="riga"><span class="pallino on"></span> Automatico <span class="sotto">— come il telefono</span></div>
+    <div class="riga"><span class="pallino"></span> Sempre chiaro</div>
+    <div class="riga"><span class="pallino"></span> Sempre scuro</div>
+  </div>
+
+  <div class="titolone">B — tre pulsanti affiancati</div>
+  <div class="nota">Un tocco solo, e si vede subito quale delle tre è attiva. Occupa una riga invece di tre.</div>
+  <div class="scheda">
+    <p class="etichetta">Tema</p>
+    <div class="gruppo">
+      <button class="segmento on">Automatico</button>
+      <button class="segmento">Chiaro</button>
+      <button class="segmento">Scuro</button>
+    </div>
+    <p class="didascalia">Ora segue il telefono: chiaro.</p>
+  </div>
+
+  <div class="titolone">C — righe con l'anteprima del colore</div>
+  <div class="nota">Si capisce a occhio, senza leggere. «Automatico» mostra le due metà.</div>
+  <div class="scheda">
+    <p class="etichetta">Tema</p>
+    <div class="riga-c">
+      <span class="pastiglia pa-auto"></span>
+      <span class="testo-c"><span class="nome-c">Automatico</span><br><span class="sotto">Come il telefono — ora è chiaro</span></span>
+      <span class="spunta">✓</span>
+    </div>
+    <div class="riga-c">
+      <span class="pastiglia pa-chiaro"></span>
+      <span class="testo-c"><span class="nome-c">Sempre chiaro</span></span>
+      <span class="spunta"></span>
+    </div>
+    <div class="riga-c">
+      <span class="pastiglia pa-scuro"></span>
+      <span class="testo-c"><span class="nome-c">Sempre scuro</span></span>
+      <span class="spunta"></span>
+    </div>
+  </div>
+</div>
+
+<div class="tela scuro" id="scuro">
+  <div class="titolone">A — righe col pallino (come «La tua home»)</div>
+  <div class="nota">La forma già in uso in questa pagina. Zero elementi nuovi da imparare.</div>
+  <div class="scheda">
+    <p class="etichetta">La tua home</p>
+    <div class="riga"><span class="pallino on"></span> Le due stanze — pile e parete</div>
+    <div class="riga"><span class="pallino"></span> Solo le pile — che cosa urge</div>
+    <div class="riga"><span class="pallino"></span> Solo la parete — dove stanno</div>
+    <div class="divisore"></div>
+    <p class="etichetta">Tema</p>
+    <div class="riga"><span class="pallino"></span> Automatico <span class="sotto">— come il telefono</span></div>
+    <div class="riga"><span class="pallino"></span> Sempre chiaro</div>
+    <div class="riga"><span class="pallino on"></span> Sempre scuro</div>
+  </div>
+
+  <div class="titolone">B — tre pulsanti affiancati</div>
+  <div class="nota">Un tocco solo, e si vede subito quale delle tre è attiva. Occupa una riga invece di tre.</div>
+  <div class="scheda">
+    <p class="etichetta">Tema</p>
+    <div class="gruppo">
+      <button class="segmento">Automatico</button>
+      <button class="segmento">Chiaro</button>
+      <button class="segmento on">Scuro</button>
+    </div>
+    <p class="didascalia">Bloccato sullo scuro, anche se il telefono è chiaro.</p>
+  </div>
+
+  <div class="titolone">C — righe con l'anteprima del colore</div>
+  <div class="nota">Si capisce a occhio, senza leggere. «Automatico» mostra le due metà.</div>
+  <div class="scheda">
+    <p class="etichetta">Tema</p>
+    <div class="riga-c">
+      <span class="pastiglia pa-auto"></span>
+      <span class="testo-c"><span class="nome-c">Automatico</span><br><span class="sotto">Come il telefono</span></span>
+      <span class="spunta"></span>
+    </div>
+    <div class="riga-c">
+      <span class="pastiglia pa-chiaro"></span>
+      <span class="testo-c"><span class="nome-c">Sempre chiaro</span></span>
+      <span class="spunta"></span>
+    </div>
+    <div class="riga-c">
+      <span class="pastiglia pa-scuro"></span>
+      <span class="testo-c"><span class="nome-c">Sempre scuro</span></span>
+      <span class="spunta">✓</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
