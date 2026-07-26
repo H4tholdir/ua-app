@@ -61,8 +61,10 @@ export function indiceDaPunto(punto: Punto, geo: Geometria, n: number): number {
  * non nel track intero. Su `.ds-parete-grid` (`align-items:start`, cassetta ad altezza fissa per
  * tutte dal commit 21a0b17 «cassetta B» — il valore vive in `--altezza-cassetta` in ds-v3.css, 138px
  * dopo la ratifica A3 del 26/07/2026, ma qui NON si ricopia: `cellaH` è sempre MISURATO a runtime da
- * un rect vero, v. useDragRiordino) il track (`pitchY`) è molto più alto della cassetta
- * (`cellaH`): la maglia VUOTA sotto ogni cassetta (`cellaH`..`pitchY`) — dove cadeva il vecchio
+ * un rect vero, v. useDragRiordino) il track (`pitchY`) è più alto della cassetta (`cellaH`) —
+ * di 62px sul telefono, di 41,52-62 dal tablet in su dopo la decisione «avvicino le righe» del
+ * 26/07/2026, che ha accorciato il track ma non l'ha mai portato sotto l'altezza della cassetta:
+ * la maglia VUOTA sotto ogni cassetta (`cellaH`..`pitchY`) — dove cadeva il vecchio
  * punto di flip, il punto medio fra i centri-track — NON è area di scatto. Un punto lì (o fuori
  * griglia, o oltre l'ultima cella di una riga parziale) restituisce `null`: NESSUN bersaglio, non
  * un indice "clampato" che finga un ingresso mai avvenuto — a differenza di `indiceDaPunto`

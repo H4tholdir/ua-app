@@ -512,29 +512,39 @@ describe('StrisciaStato — «il numero non si taglia mai» (decisione Francesco
     }
   })
 
-  it('la frase cede PRIMA del numero: flex-shrink(frase) > flex-shrink(numero)', () => {
+  // ⚠️ LA GUARDIA CHE MI È COSTATA UN GIRO DI MISURE (26/07, difetto visto solo aprendo la
+  // cattura). Un primo tentativo dava al numero un restringimento MINUSCOLO invece di zero,
+  // sul ragionamento che una quota sotto il pixel fosse innocua. Non lo è: nel caso reale a 390
+  // il numero cedeva 0,10px su 98,02, e `text-overflow: ellipsis` scatta appena il contenuto
+  // sborda — anche di un decimo — togliendo DIVERSE CIFRE per far posto ai puntini. A schermo si
+  // leggeva `n.2026/00…` invece di `n.2026/0004`: il difetto di partenza in una forma appena
+  // diversa. jsdom non fa layout e non può vedere quell'ellissi: qui si presidia il valore che la
+  // produce. Zero è l'unico numero che regge la parola «mai».
+  it('il numero non cede NEMMENO un decimo di pixel finché la frase ha spazio: flex-shrink esattamente 0 (un valore minuscolo ma diverso da zero fa scattare comunque l\'ellissi e mangia le cifre)', () => {
+    const { container } = rendiPeggiore()
+    expect(restringimento(container.querySelector('b')!)).toBe(0)
+  })
+
+  it('la frase invece cede: è l\'unico nodo del blocco con un fattore di restringimento vivo', () => {
     const { container } = rendiPeggiore()
     const numero = container.querySelector('b')!
     const frase = [...container.querySelectorAll<HTMLElement>('span')].find(
       (n) => (n.textContent ?? '').includes(FRASE) && !n.contains(numero) && getComputedStyle(n).textOverflow === 'ellipsis'
     )
     expect(frase, 'nodo frase separato non trovato').toBeTruthy()
+    expect(restringimento(frase!)).toBeGreaterThan(0)
     expect(restringimento(numero)).toBeLessThan(restringimento(frase!))
   })
 
-  // ⚠️ LA GUARDIA CHE MI È COSTATA UN GIRO DI MISURE (26/07, difetto trovato in browser dopo
-  // averlo scritto sbagliato qui). Un fattore < 1 sul numero SEMBRA «un freno ancora più forte»
-  // e nei casi normali dà px identici — ma la regola di risoluzione delle lunghezze flessibili
-  // (CSS Flexbox §9.7, passo 4b) taglia lo spazio assorbibile a «spazio libero iniziale × somma
-  // dei fattori ancora liberi» quando quella somma è minore di 1. All'ultimo giro resta libero
-  // il solo numero: con 0,001 poteva cedere ~0,4px in tutto, cioè la valvola non si apriva MAI, e
-  // un `forte` senza limite di lunghezza (nome materiale, nome studio) usciva dal proprio blocco
-  // e finiva SOPRA il conteggio e la CTA — misurato 55px oltre il bordo interno della card a 390.
-  // jsdom non fa layout e non può vedere quello sforo: qui si presidia l'invariante numerica che
-  // lo produce.
-  it('il fattore del numero resta ≥ 1: sotto 1 il flexbox non gli farebbe cedere quasi nulla all\'ultimo giro (§9.7 passo 4b) e un nome lungo scriverebbe SOPRA conteggio e CTA', () => {
+  // La valvola. `flex-shrink: 0` da solo non basta: `forte` porta anche nomi SENZA limite di
+  // lunghezza (materiale s5, studio s7, «Account di …»), e un `flex: none` nudo li lascerebbe
+  // alla loro larghezza naturale spingendo la CTA FUORI dalla card — oggi si troncano soltanto,
+  // quindi sarebbe una regressione. `max-width: 100%` in un contenitore flex si risolve sulla
+  // larghezza del contenitore: il numero non può mai essere più largo del blocco che lo ospita.
+  // Misurato a 390 su blocco 103,97px: un nome da 329px viene fermato a 103,97, sforo zero.
+  it('il numero ha la valvola `max-width: 100%`: senza, un `forte` senza limite di lunghezza spingerebbe la CTA fuori dalla card', () => {
     const { container } = rendiPeggiore()
-    expect(restringimento(container.querySelector('b')!)).toBeGreaterThanOrEqual(1)
+    expect(getComputedStyle(container.querySelector('b')!).maxWidth).toBe('100%')
   })
 
   it('il numero non va mai a capo, e la sua tipografia non cambia (700 su --ink)', () => {
@@ -555,6 +565,26 @@ describe('StrisciaStato — «il numero non si taglia mai» (decisione Francesco
   it('la CTA resta intera in ogni caso (flex-shrink 0)', () => {
     rendiPeggiore()
     expect(restringimento(screen.getByRole('link', { name: 'Sistemala ›' }))).toBe(0)
+  })
+
+  // Senza `forte` (racconto, s8, sPareteIntro) NON deve comparire lo spazio unificatore che
+  // separa numero e frase: la frase aprirebbe con uno spazio in testa, cioè con un rientro che
+  // nessuno ha chiesto. Il racconto è la variante che questo cambio tocca in modo meno ovvio —
+  // vive dentro il <a> di tutta la card, accanto al chevron — e con i dati di questo laboratorio
+  // non è raggiungibile sulla build vera (serve una liberazione per consegna nelle ultime 24h,
+  // eredità dichiarata del gate §6.2): qui è presidiata dove si può presidiare davvero.
+  it('senza `forte` la frase non prende nessuno spazio in testa (racconto, DdC del giorno, intro parete)', () => {
+    const { container } = render(
+      <StrisciaStato azione={{ etichetta: 'Guarda ›', href: '/dashboard?stanza=parete' }} eventoId="lib-c1-x">
+        UÀ ha liberato C12
+      </StrisciaStato>
+    )
+    expect(container.querySelector('b')).toBeNull()
+    const frase = [...container.querySelectorAll<HTMLElement>('span')].find(
+      (n) => getComputedStyle(n).textOverflow === 'ellipsis'
+    )
+    expect(frase, 'nodo frase non trovato').toBeTruthy()
+    expect(frase!.textContent).toBe('UÀ ha liberato C12')
   })
 
   it('le parole non cambiano: numero + spazio + frase, nell\'ordine di prima', () => {

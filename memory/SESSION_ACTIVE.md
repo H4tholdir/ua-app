@@ -1,26 +1,21 @@
-# Sessione attiva — 26/07/2026 (verifica finale wave H + variante 6 nomi)
-Worktree `redesign-parete-home` @ `a1c4fcb`. **3127 verdi / 19 skip · tsc 0 · build ok.**
-Collaudo :3020 da riavviare sulla build corrente.
+# Sessione attiva — 26/07/2026 (le due decisioni del gate estetico L2)
+Worktree `redesign-parete-home`. **3283 verdi / 19 skip · tsc 0 · build ok.** Collaudo :3020
+riavviato sulla build corrente, guardia stili verde.
 
-**Collaudo device Francesco (build 5ccc564): 4 punti su 5 PASS.** Tasto centrato · fondo unico ·
-suoni · striscia panna SPARITA. La barra gesture NON è un difetto: in scheda di browser
-quell'area è del browser. `display: standalone` → **da PWA installata** la pagina la copre.
-🛑 Francesco deve riprovare **installando l'app da icona**.
+**Fatte le due decisioni di Francesco al gate L2.** (1) *«Il numero del lavoro non si taglia
+mai»*: nella striscia il numero ha un nodo suo (`flex-shrink: 0` + `max-width: 100%`), a
+troncarsi è solo la frase, il conteggio resta intoccabile. (2) *«Avvicino le righe»*: il muro
+riserva 4 maglie per fila **dal tablet in su** (@media 768, mai container query — le due pareti
+hanno container 680 e 440 alla stessa finestra), 5 sul telefono.
 
-**Chiusi oggi:** 1a TastoPiù (`*/` in un commento CSS) · 1b muro fino in fondo (+ round 2:
-regola più specifica scartava il recupero) · fondo unico in 4 posti (`--bg`, `--ua-bg`,
-`--adm-bg`, **manifest**) · variante 6 nomi studio · **guardia via A** (`74ca230`) ·
-scala che girava due volte (`a1c4fcb`).
+**Trappola incisa nei commenti:** un restringimento «sotto il pixel» non è innocuo su un testo
+con `text-overflow` — 0,10px fanno scattare i puntini e mangiano tre cifre. Vista solo aprendo
+la cattura: i numeri arrotondati la nascondevano.
 
-**Panel advisor** (UX · architettura · dati) su richiesta di Francesco:
-`docs/design/decisions/2026-07-26-parole-categoria-panel.md`, base ricerca su **1.604 nomi reali**.
-Ratificato: **via A** · campo «nome breve» **NON si fa** («per ora lascia perdere») ·
-`dental` resta fuori · `studio_nome` intoccabile (è la denominazione in fattura elettronica,
-verificato `generate-xml.ts:262`; legame indiretto alla DdC via `studio-members` a confronto esatto).
+**Aperto per Francesco:** a 1280 la striscia sta nel rail di NavDesk, 178px contro 208 richiesti
+→ allarme senza soggetto. Preesistente, misurato identico prima/dopo, in backlog: serve una
+decisione di forma. Restano R3-R6 del gate.
 
-**Aperto:** le 2 parole nuove (`stomatologico`, `dentista`) NON aggiunte — commit separato, mai
-ratificate. Nomi paziente: ratificato che il **wizard chiederà nome e cognome** (campo non
-obbligatorio) — da progettare. Bottone oro: deferito alle ondate di migrazione.
-
-**Poi:** T15 → T16 striscia → T17 chiusura + merge a parola di Francesco.
-Verbale (LEGGE): `docs/design/decisions/2026-07-24-qa-device-meta-ondata.md` APPEND 26/07.
+**Poi:** offrire la branch al merge (a parola di Francesco).
+Rapporto: `.superpowers/sdd/gate-decisioni-report.md` · backlog:
+`docs/roadmap/2026-07-26-backlog-ondata-parete-home.md`.

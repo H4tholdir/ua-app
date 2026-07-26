@@ -207,29 +207,34 @@ export function StrisciaStato(props: {
   // unificatore in testa alla frase (stesso peso 500, stessa larghezza misurata — 2.47px a 14.5px
   // — e, a differenza di uno spazio normale, non viene mangiato dall'inizio riga del nuovo box).
   //
-  // PERCHÉ IL NUMERO NON È `flex: none`, MA CEDE PER ULTIMO. `forte` non porta solo numeri di
-  // lavoro: porta anche nomi liberi e SENZA limite di lunghezza (materiale in esaurimento s5,
-  // studio con pagamento scaduto s7, «Account di …», v. striscia.ts). Con `flex: none` un nome
-  // lungo spingerebbe la CTA fuori dalla card — oggi si tronca soltanto, quindi sarebbe una
-  // regressione. La scala di priorità è scritta nei FATTORI DI RESTRINGIMENTO invece che in una
-  // soglia: la frase cede 1000 volte più in fretta del numero, quindi finché la frase ha spazio
-  // la quota che tocca al numero resta sotto il pixel (misurato: 0,09px nel caso reale a 390);
-  // quando la frase arriva a zero il flexbox la congela e SOLO ALLORA gira tutto il resto al
-  // numero. I numeri di lavoro a quel punto non ci arrivano mai; i nomi senza limite sì, ed è
-  // giusto che tocchi a loro.
+  // COME È SCRITTA LA REGOLA «non si taglia mai»: il numero non cede NEMMENO UN PIXEL finché la
+  // frase ha ancora spazio (`flex-shrink: 0`), e ha una valvola (`max-width: 100%`) che gli
+  // impedisce di uscire dal proprio blocco quando lo spazio finisce davvero.
   //
-  // ⚠️ IL FATTORE DEL NUMERO DEVE RESTARE ≥ 1 — non è un dettaglio di stile, è una trappola vera
-  // del flexbox, misurata su questa stessa striscia. Prima qui c'era `flex: 0 0.001 auto`, che
-  // sembra «un freno mille volte più forte» ed è la stessa proporzione di adesso: nei casi
-  // normali dava px identici. Ma la regola di risoluzione delle lunghezze flessibili
-  // (CSS Flexbox §9.7, passo 4b) dice che quando la somma dei fattori degli elementi ancora
-  // liberi è MINORE DI 1, lo spazio che possono assorbire viene tagliato a
-  // «spazio libero iniziale × quella somma». All'ultimo giro resta libero il solo numero: con
-  // fattore 0,001 poteva cedere ~0,4px in tutto, cioè la valvola non si apriva MAI — e un nome
-  // lungo usciva dal proprio blocco e andava a scriversi SOPRA il conteggio e la CTA (misurato:
-  // 55px oltre il bordo interno della card, a 390). Con fattore 1 l'ultimo giro non viene
-  // tagliato e il nome si tronca dentro il suo blocco, come deve. Guardia:
-  // tests/unit/ds-v3/componenti/pila-striscia.test.tsx.
+  // ⚠️ «QUASI ZERO» NON BASTA, ed è la trappola che ho preso misurando in browser. Un primo
+  // tentativo dava al numero un restringimento minuscolo invece di zero, sul ragionamento che una
+  // quota sotto il pixel fosse innocua: nel caso reale a 390 il numero cedeva **0,10px** su 98,02.
+  // Non è innocua per niente. `text-overflow: ellipsis` scatta appena il contenuto sborda, anche
+  // di un decimo di pixel, e per far posto ai puntini il browser toglie DIVERSE CIFRE: a schermo
+  // si leggeva `n.2026/00…` invece di `n.2026/0004`, cioè il difetto di partenza in una forma
+  // appena diversa. Un numero che si tronca è un numero che si tronca, che manchi di 60px o di
+  // 0,1. Perciò `flex-shrink: 0`: zero è l'unico valore che regge la parola «mai».
+  //
+  // ⚠️ E PERCHÉ NON `flex: none` E BASTA. `forte` non porta solo numeri di lavoro: porta anche
+  // nomi liberi e SENZA limite di lunghezza (materiale in esaurimento s5, studio con pagamento
+  // scaduto s7, «Account di …», v. striscia.ts). Un `flex: none` nudo li lascerebbe alla loro
+  // larghezza naturale e spingerebbe la CTA FUORI dalla card — oggi si troncano soltanto, quindi
+  // sarebbe una regressione. `max-width: 100%` è la valvola: in un contenitore flex la percentuale
+  // si risolve sulla larghezza del contenitore, quindi il numero non può mai essere più largo del
+  // blocco che lo ospita. Misurato a 390 (blocco 103,97px): `n.2026/0004` resta intero a 98,02
+  // SENZA ellissi; un nome da 329px viene fermato a 103,97 e si tronca DENTRO il suo blocco, con
+  // sforo zero e CTA intatta.
+  //
+  // LIMITE DICHIARATO: a 390, con conteggio e CTA accesi, il blocco disponibile è 103,97px. Un
+  // `forte` più largo di così si tronca comunque — succede solo ai `forte` che NON sono numeri di
+  // lavoro (`Fattura n.2026/0004` misura 151,45px). Non è aggirabile senza togliere spazio al
+  // conteggio, che la stessa decisione mette PRIMA della frase.
+  // Guardia: tests/unit/ds-v3/componenti/pila-striscia.test.tsx.
   const testo = (
     <span
       style={{
@@ -246,7 +251,8 @@ export function StrisciaStato(props: {
       {forte && (
         <b
           style={{
-            flex: '0 1 auto',
+            flex: '0 0 auto', // zero: il numero non cede nemmeno un decimo di px (v. sopra)
+            maxWidth: '100%', // la valvola: un `forte` senza limite non esce mai dal suo blocco
             minWidth: 0,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

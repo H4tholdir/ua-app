@@ -1227,6 +1227,12 @@
    Da NON raccontare come «un solo ritmo»: le due pareti cambiano INSIEME e riservano tutt'e due
    4 maglie, ma i px fra le file restano diversi (62 su /cassette, 41,5 nella home) perché diverso
    è il passo della loro maglia.
+   PERCHÉ LA REGOLA STA SUL SELETTORE BASE e non su `.ds-parete-shell .ds-parete`. Perché di
+   `.ds-parete` esiste UN SOLO renderer in tutto il progetto — `PareteClient.tsx`, che lo scrive
+   dentro il proprio `.ds-parete-shell` — quindi non c'è nessun muro fuori dal perimetro fluido a
+   cui questa regola potrebbe arrivare con il passo BASE di 44px (dove 4 maglie darebbero 176px di
+   riga e solo 18px oltre la zona del gancio). ⚠️ Se un domani qualcuno rendesse `.ds-parete`
+   FUORI da `.ds-parete-shell`, questa regola va riscritta scoped sulla shell.
    Guardia: tests/unit/ds-v3/parete-gancio-cornice.test.ts — legge i due multipli DAL FOGLIO,
    pretende che siano interi e ricalcola la maglia libera a ogni viewport. */
 @media (min-width: 768px) { [data-ds="v3"] .ds-parete { --track: calc(var(--passo-maglia) * 4); } }
