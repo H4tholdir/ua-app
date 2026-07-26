@@ -857,6 +857,82 @@ L'avvertenza di Chrome sul «chin» (§5.2): una scelta fatta 28 volte senza con
 
 ---
 
+## 9. 🎯 RICERCA DEL 26/07 SERA — la strisciolina in alto e la fascia in basso sono LA STESSA CORREZIONE
+
+**Occasione:** dopo il collaudo della tappa 1, Francesco riferisce due appunti e chiede una ricerca
+sul primo.
+
+### 9.1 ✅ ACCERTATO SUL DEVICE — la fascia dei gesti segue il SISTEMA, non l'app
+
+Osservazione di Francesco, 26/07 sera: **col telefono messo in scuro, la fascia in basso diventa
+scura.** Conferma sperimentale del §2.1: «WebAPKs do *not* set the navigation bar colour» — quella
+fascia la decide Android in base al **color scheme di sistema**.
+
+🎯 **Conseguenza di progetto:** la decisione **D4** (l'app segue il telefono, salvo blocco esplicito)
+rende la fascia **coerente per costruzione** nel funzionamento predefinito. La discrepanza
+sopravvive **solo** per chi blocca il tema in modo divergente dal telefono — cioè per scelta
+dichiarata, non per difetto.
+
+### 9.2 La strisciolina fra barra di stato e contenuto — **NON è nostra** ✅ VERIFICATO NEL CODICE
+
+**Dato di Francesco:** colore `#dbd7cc` in tema chiaro; **in tema scuro è più chiara del fondo.**
+
+Due fatti che chiudono l'ipotesi «è nostra»:
+
+1. `#dbd7cc` = `#F4F0E7` scurito di ~10% **uniformemente sui tre canali** (244→219, 240→215,
+   231→204): non è un colore *scelto*, è un **velo**. E `#dbd7cc` **non compare da nessuna parte**
+   in `src/` né in `public/`.
+2. Nel nostro CSS **non esiste** nulla che disegni una linea in cima al documento: nessun
+   `border-top` globale, nessun `box-shadow` sul primo elemento, nessun pseudo-elemento su
+   `body`/`html`, e **`safe-area-inset-top` non è usato in tutto `src/`**.
+
+**Che si inverta col tema** (scura su chiaro, chiara su scuro) è la firma di un elemento **disegnato
+dal sistema per garantire il contrasto**, non di un colore dichiarato da noi.
+
+🛑 **NON è il bug 421933373** (§3.4): quello mostra il `theme_color` del **manifest**, che sul device
+di Francesco era ancora **rosso** al momento delle catture. Una riga rossa si sarebbe vista rossa.
+
+### 9.3 🔬 La spiegazione più probabile, e perché non è dimostrata
+
+Fonte secondaria ma pertinente, **15/07/2026** — la stessa settimana: le PWA installate su Android
+oggi mostrano **«an awkward strip at the top of the screen»** *anche quando* implementano
+correttamente le impostazioni raccomandate, perché il contenuto **non passa dietro la barra di
+stato**. La correzione in arrivo è l'**edge-to-edge per le PWA installate** («short-edges cutout
+mode»), con i cambi «newly landed» su Gerrit ma **ancora da completare la review**: «There's no
+confirmed release timeline yet».
+
+**È lo stesso lavoro del bug 407420295** già a verbale nel §2.6 — quello che porterà la **fascia
+trasparente in basso** che Francesco vuole.
+
+🎯 **CONCLUSIONE: i due appunti di Francesco si chiudono con LA STESSA CORREZIONE.** Quando il
+contenuto passerà dietro la barra di stato non ci sarà più un confine da separare, e la strisciolina
+sparirà **per costruzione**. Le due condizioni — `display: standalone` + `viewport-fit=cover` — **le
+dichiariamo già entrambe**: arriverà senza modifiche da parte nostra.
+
+⚠️ **Quello che NON è dimostrato, e va detto:** la fonte parla di «strip», che è la fascia della
+barra di stato nel suo insieme; la strisciolina di Francesco è il **bordo** di quella fascia. Che
+siano lo stesso oggetto è **molto probabile ma non provato**, e **non è verificabile sul suo device
+oggi**: l'edge-to-edge di Chrome 135 non è attivo lì nemmeno da browser (§7.3-bis, misura B).
+Si saprà quando la correzione arriverà.
+
+### 9.4 🛑 LA TRAPPOLA: la correzione che toglie la strisciolina è quella che accende i 28 punti
+
+**Non sono due eventi, è uno.** Il giorno in cui Chrome abilita l'edge-to-edge per le PWA installate:
+
+- la strisciolina sparisce e la fascia in basso diventa trasparente (**quello che vogliamo**);
+- **ma** `env(safe-area-inset-bottom)`, che oggi vale 0, diventa non nullo e **i 28 punti del codice
+  che lo usano si accendono tutti insieme, in produzione**, senza che nessuno abbia toccato niente
+  (§5.2);
+- **e** `safe-area-inset-top`, che **non compare da nessuna parte** in `src/`, diventa anch'esso non
+  nullo: **nessuna intestazione lo padda**, quindi il contenuto scivolerebbe **sotto l'orologio**.
+
+📌 **Regola operativa che ne discende:** i 28 punti e il padding superiore vanno preparati **prima**,
+non il giorno in cui si accendono. E la verifica costa uno sguardo: **rimisurare
+`safe-area-inset-top/bottom` sul device dopo ogni aggiornamento maggiore di Chrome.** Se diventano
+diversi da 0, la correzione è arrivata.
+
+---
+
 ## Fonti
 
 **Primarie — tracker Chromium** (aperte col browser interno; **WebFetch restituisce solo la pagina
