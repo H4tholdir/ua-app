@@ -12,15 +12,21 @@ dal repo principale, `next build` fallisce su `/api/admin/labs` via Stripe.
 **Piano tappa 1:** `docs/superpowers/plans/2026-07-26-tappa-1-meccanismo-barra-di-stato.md`
 Dettaglio pieno: **voce 45** di `MEMORY.md`.
 
-🛑 **PROSSIMO PASSO — è di Francesco: la prova sul suo telefono.** Protocollo in §Task 5 del piano.
-**Android, app INSTALLATA dall'icona** · chiudere UÀ **dai recenti** · aprire e riferire il colore ·
-premere l'interruttore **DA DENTRO L'APP** (avatar in alto a destra → voce «Tema»), **mai dal
-login** (lì non scrive `data-theme`: non muoverebbe nulla **per costruzione**) · navigare fra due
-pagine · 🛑 **non giudicare dal lancio**, dove la barra è rossa **per definizione** finché il
-manifest non cambia in tappa 2.
+✅ **PROVA SUL DEVICE SUPERATA (19:28).** «La barra ha cambiato colore, in modo corretto e in base
+alla sezione del tema cambia colore in automatico». **Il meta `theme-color` È onorato nelle PWA
+installate su Android, anche mutato a runtime** — lacuna §3.3 della ricerca chiusa empiricamente.
+**Via libera alla tappa 2.**
 
-**Esiti e conseguenze** (tabella nel piano): cambia dal vivo → tappa 2 · cambia all'apertura ma non
-al tocco → tappa 3 prima della 2 · resta rossa → il meta non è onorato, decisione da rifare.
+⏳ **DUE APPUNTI DI FRANCESCO, aperti:**
+1. **Striscia sottile fra barra di stato e contenuto.** Verificato: **non è nostra** (zero
+   `border-top`/`box-shadow` globali, zero `safe-area-inset-top` in `src/`). Sospetto: **bug
+   Chromium 421933373**, residuo di 1px del `theme_color` del **manifest** sotto il meta. Se è
+   quello, la **tappa 2 lo chiude per costruzione**. 🔬 **Discriminante: di che colore è** — rossa
+   → manifest; grigia → altro.
+2. **Fascia sotto la barretta dei gesti sempre dello stesso colore.** È il **bug Chromium
+   40759522**, già accertato: segue il **color scheme di SISTEMA**, non l'app. 🎯 La regola D4
+   (l'app segue il telefono) la rende coerente per costruzione. 🔬 Test gratis: mettere il
+   **telefono** in scuro e guardare se diventa scura.
 
 **Poi:** tappa 2 (manifest + `offline.html` + guardia) · tappa 3 (tre stati `ua-tema`, bonifica dei
 5 punti di accesso, UI in Impostazioni con mockup §0B, `blocked`/`billing`, toast).
