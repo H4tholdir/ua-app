@@ -56,15 +56,22 @@ export function useTheme() {
   // inline di ThemeInitializer prima della prima pittura.
   const [modo, setModo] = useState<ModoTema>(MODO_PREDEFINITO)
   const [temaRisolto, setTemaRisolto] = useState<TemaRisolto>('light')
+  // Serve a dire all'utente che cosa sta seguendo adesso: la frase «bloccato
+  // sullo scuro, ANCHE SE il telefono è chiaro» ha senso solo quando le due
+  // cose divergono. Sta qui e non nel componente perche' l'hook e' la fonte:
+  // un secondo lettore di prefers-color-scheme sarebbe una seconda regola.
+  const [sistemaScuro, setSistemaScuro] = useState(false)
   const [montato, setMontato] = useState(false)
 
   useEffect(() => {
     const inMemoria = modoInMemoria()
+    const telefono = telefonoScuro()
     // Sync una tantum al mount da fonti esterne (storage, telefono), mai
     // disponibili server-side: non innesca cascata, le dipendenze sono vuote.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setModo(inMemoria)
-    setTemaRisolto(risolviTema(inMemoria, telefonoScuro()))
+    setSistemaScuro(telefono)
+    setTemaRisolto(risolviTema(inMemoria, telefono))
     setMontato(true)
   }, [])
 
@@ -80,8 +87,12 @@ export function useTheme() {
   // qui che «Automatico» si distingue da «Sempre chiaro»: non da come parte
   // l'app, ma da che cosa fa quando il telefono cambia a app aperta.
   useEffect(() => {
+    if (!window.matchMedia) return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const alCambio = (e: MediaQueryListEvent) => {
+      // Lo stato del telefono si registra SEMPRE — anche a tema bloccato, perche'
+      // e' quello che rende vera o falsa la frase «anche se il telefono è …».
+      setSistemaScuro(e.matches)
       if (modo !== 'sistema') return
       setTemaRisolto(e.matches ? 'dark' : 'light')
     }
@@ -90,8 +101,10 @@ export function useTheme() {
   }, [modo])
 
   const impostaModo = useCallback((nuovo: ModoTema) => {
+    const telefono = telefonoScuro()
     setModo(nuovo)
-    setTemaRisolto(risolviTema(nuovo, telefonoScuro()))
+    setSistemaScuro(telefono)
+    setTemaRisolto(risolviTema(nuovo, telefono))
     try {
       localStorage.setItem(CHIAVE_TEMA, nuovo)
     } catch {
@@ -100,5 +113,5 @@ export function useTheme() {
     }
   }, [])
 
-  return { modo, temaRisolto, impostaModo }
+  return { modo, temaRisolto, sistemaScuro, impostaModo }
 }

@@ -7,6 +7,7 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ImpostazioniEditForm } from '@/components/features/impostazioni/ImpostazioniEditForm'
 import { AttivaAccessoRapido } from '@/components/features/impostazioni/AttivaAccessoRapido'
 import { SceltaHome } from '@/components/features/impostazioni/SceltaHome'
+import { SceltaTema } from '@/components/features/impostazioni/SceltaTema'
 import { homePrefDa } from '@/lib/preferenze/home'
 
 type LabRow = {
@@ -144,9 +145,12 @@ export default async function ImpostazioniPage() {
       <div style={{ padding: '0 20px 32px' }}>
         <ImpostazioniEditForm initialData={lab} />
 
-        {/* Sezione Aspetto (Task 17): la forma della home */}
+        {/* Sezione Aspetto: la forma della home (Task 17) e il tema (tappa 3).
+            Il tema NON arriva dal server come la home: è una preferenza del
+            dispositivo, quindi SceltaTema non prende alcun valore iniziale. */}
         <SectionCard title="Aspetto">
           <SceltaHome iniziale={homePref} />
+          <SceltaTema />
         </SectionCard>
 
         {/* Sezione 1: Dati laboratorio */}
