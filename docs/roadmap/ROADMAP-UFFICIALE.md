@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 26 luglio 2026 (15) — **«UN TEMA SOLO»: TAPPE 1 e 2 IN PRODUZIONE, TAPPA 3 COMPLETA SUL RAMO.** La barra di stato segue dal vivo il tema risolto (`03ec7595`) e lo splash non salta più di colore (`850e3f26`), entrambe verificate live e **sul device**. La tappa 3 — **una sola regola per decidere se l'app è chiara o scura** — è pronta su `worktree-un-tema-solo` (8 commit oltre `main` `9927da61`): tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18**. Da sette punti con quattro regole si passa a **uno**: Impostazioni → Aspetto → Tema. 🛑 **Non ancora mergiata:** mancano il QA di `/impostazioni` e `/admin` (serve una sessione) e il via libera di Francesco. 📌 **L'approvazione di `blocked`/`billing` è CONDIZIONATA** alla revisione nell'ondata **F2 «accessi»**: se F2 cambia, decade (D6-bis). Dettaglio: MEMORY.md **voce 47**.
+**Ultimo aggiornamento:** 26 luglio 2026 (16) — ✅ **«UN TEMA SOLO»: TUTTE E TRE LE TAPPE IN PRODUZIONE.** Merge `e42601b8`, CI verde, deploy Vercel verde, **verificato su `uachelab.com`**: lo script legge `ua-tema` e **cancella** `ua-theme` senza mai leggerla, la pagina offline è alla chiave nuova, i due fondi sono serviti e del rosso non c'è traccia. L'app aveva **sette** posti che decidevano se essere chiara o scura, con **quattro** regole diverse: ora ne ha **uno** — Impostazioni → Aspetto → Tema (*Automatico* · *Sempre chiaro* · *Sempre scuro*). tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app. 📌 L'approvazione di `blocked`/`billing` è **CONDIZIONATA** alla revisione in **F2** (D6-bis): se F2 cambia, decade. ➕ Nuovo difetto di leggibilità appuntato a **F1** (token secondari v2.3 in tema scuro, §difetti). Dettaglio: MEMORY.md **voce 48**.
 
 **Aggiornamento precedente:** 26 luglio 2026 (14, **testa corretta il 26/07/2026**) — **ONDATA «REDESIGN PARETE/HOME»: MERGIATA, PUBBLICATA E VERIFICATA IN PRODUZIONE.** Tutti i task chiusi (T16 + T17), merge fatto su via libera esplicita di Francesco: merge commit **`5504a20a`**, `main` a **`8c482e90`**, CI verde, deploy Vercel verde, `uachelab.com` controllata. ⚠️ **Questa riga apriva con «RAMO PRONTO. 🛑 NON MERGIATA — il merge è a parola di Francesco» quando il merge era già avvenuto ed era già online**: è la prima riga che si legge all'avvio di ogni sessione, quindi l'errore si propagava a tutto quello che veniva dopo. Corretta qui; il resto della voce è quello originale. Il ramo si è fermato a `ca913236` ed è storia. Worktree @ `ca913236`, 175 commit, suite **3283 verdi / 19 skip · tsc 0 · build ok** (verificati dal controller, non riferiti). Fatte in questa sessione: T16 striscia (logica + UI) e T17 chiusura completa — pulizia della strumentazione diagnostica, review whole-branch in 5 aree, triage dei **69 rilievi minori → 0 bloccanti**, review delta dei commit di fix, QA browser su 3 viewport × 2 temi, **gate estetico L2 PASS con 0 ❌**. **4 difetti gravi trovati e chiusi**, nessuno dei quali la suite verde poteva vedere: linguetta visibile su desktop con URL desincronizzato · overlay lasciati dipinti sopra un'altra stanza dal tasto indietro · con «Riduci movimento» la linguetta fuori schermo per sempre (unica via alle cassette nella forma «solo pile») · la navigazione mangiata dal ritorno automatico su **10 punti** del codice. **Decisioni di Francesco del 26/07:** nomi paziente rimandati a un'ondata separata DOPO il merge · la striscia nomina il primo allarme e conta gli altri (la forma ratificata il 24/07 è superata: la sua CTA riportava alla home) · il numero del lavoro non si taglia mai · «allunga la pancia della cassetta, non toccare la finestrella» · «Salva il nome/il colore» restano · righe del muro avvicinate da tablet in su. **Backlog dell'ondata, tracciato e quindi sopravvive al merge:** `docs/roadmap/2026-07-26-backlog-ondata-parete-home.md` (30 voci rimandate + 4 raccomandazioni del gate + le riserve delle review). **Prossimo:** il merge è FATTO; Francesco ha installato la PWA e trovato quattro cose — si riparte da lì, `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` → poi nome+cognome paziente nel wizard (BP-2 pieno).
 
@@ -346,6 +346,24 @@ con entrambe le vie — è un problema di opacità, non di colore, e va risolto 
 Nota trasversale: `/analytics` passa il colore come **esadecimale scritto a mano** invece del
 token. Anche dopo la correzione, un valore scritto a mano scavalca il sistema e tornerà a
 divergere — nella sua ondata va ricondotto ai token.
+
+#### ➕ Aggiunto il 26/07/2026 (notte), misurato durante il QA della tappa 3 del tema
+
+| Ondata | Pagina | Difetto misurato | Soglia |
+|---|---|---|---|
+| **F1** (e ogni pagina v2.3) | `/impostazioni`, **tema scuro** | i **token secondari** sono sotto soglia sulla scheda (`#232018`): `--t3` `#5A5652` → **2,24:1**, `--t2` `#8A8580` → **4,45:1**. Non è un uso sbagliato di un token: sono **i token stessi** | 4,5:1 |
+
+🛑 **Non è un difetto della riga «Tema» aggiunta quella notte: è di sistema.** La nota preesistente
+«Le pile restano raggiungibili da ☰ → I lavori» ha **esattamente lo stesso 2,24:1**, e così ogni
+testo secondario di ogni pagina ancora v2.3 quando l'utente sceglie il tema scuro. Prima della
+tappa 3 si vedeva di rado — il tema scuro era difficile da tenere; ora che si blocca da
+Impostazioni con un tap, si vedrà molto di più.
+
+**Tampone già applicato, solo lì:** la frase di stato della riga «Tema» usa `--t2` invece di `--t3`
+(da 2,24 a 4,45), perché è l'unica cosa che dice all'utente che cosa sta seguendo — illeggibile
+proprio nel tema in cui serve non era un dettaglio estetico. **4,45 resta sotto soglia:** è il meglio
+che la tavolozza v2.3 offra senza gridare quanto un'etichetta. La correzione vera è nei token, e
+arriva con l'ondata che possiede la pagina.
 
 ---
 
