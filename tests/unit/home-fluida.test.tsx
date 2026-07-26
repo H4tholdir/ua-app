@@ -52,8 +52,11 @@ describe('HomeV3 — scala verticale fluida + pile centrate (D8, §3.3)', () => 
   it('il degrado scroll P3 di `.corpo` resta — ma vale solo sotto i 768px, dove la regola vive', () => {
     const sottoI768 = contenutoMedia(srcHome, /max-width:\s*767px/)
     expect(dichiarazioniDi(sottoI768, '.ua-home .corpo')).toContain('overflow-y: auto')
-    // Fuori dal media `.corpo` non scorre: è il size-container della scala fluida, e lo scroll
-    // è il degrado, non il comportamento normale.
+    // Rinforzo, con la sua portata dichiarata: nella regola BASE di `.corpo` (la prima con
+    // quel selettore — `dichiarazioniDi` guarda solo quella) non c'è overflow-y. È il
+    // size-container della scala fluida: lo scroll è il degrado, non il comportamento normale.
+    // Una seconda regola `.ua-home .corpo` fuori dal media sfuggirebbe a questa riga; a
+    // prendere quel caso è comunque la corsa completa del QA device, non una guardia testuale.
     const base = dichiarazioniDi(srcHome, '.ua-home .corpo')
     expect(base).not.toBeNull()
     expect(base?.some((d) => d.startsWith('overflow-y'))).toBe(false)

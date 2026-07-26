@@ -941,6 +941,7 @@ describe('StanzePager — niente focus automatico su dito (QA device T15.2, dire
         <StanzePager stanzaIniziale="pile" pile={CONTENUTO_PILE} parete={PARETE_STANZA_TEST} />
       )
       preparaViewport(container)
+      const linguetta = screen.getByRole('button', { name: /le cassette/i })
       await viaLinguetta(user)
       expect(pannello('parete')).not.toHaveAttribute('inert')
       // Review finale whole-branch, D2 — qui c'era `expect(activeElement).not.toBe(primaDelTap
@@ -950,11 +951,15 @@ describe('StanzePager — niente focus automatico su dito (QA device T15.2, dire
       // desse il focus alla pillola di ricerca del pannello la faceva passare serena: proprio la
       // tastiera virtuale che alzava T15.2). Ora sono due asserzioni POSITIVE.
       //
-      // (1) A tap concluso NIENTE ha il focus. `document.body` è il valore che jsdom espone
-      //     quando nessun elemento è a fuoco: la linguetta che ha ricevuto il tap esce dal
-      //     proprio `AnimatePresence` e lascia l'albero, e il focus di un nodo rimosso ricade
-      //     sul body. È lo stato che su un telefono tiene giù la tastiera.
-      expect(document.activeElement).toBe(document.body)
+      // (1) Il focus è rimasto FUORI, dove il dito l'ha lasciato. Due esiti sono entrambi
+      //     corretti e quale dei due capiti dipende da quanto è avanzata l'uscita della
+      //     linguetta quando l'asserzione gira (`AnimatePresence` la tiene in scena mentre
+      //     esce — v. il test del doppio tap più sopra): o è ancora lei ad avere il focus,
+      //     cioè il nodo che ha ricevuto il tap, oppure è già uscita dall'albero e il focus di
+      //     un nodo rimosso ricade sul body. Asserire UNO dei due sarebbe legare il test alla
+      //     velocità della molla; asserirli come alternativa è la forma fedele. Misurato oggi:
+      //     `document.body`.
+      expect([document.body, linguetta]).toContain(document.activeElement)
       // (2) E in particolare il focus non è finito da NESSUNA parte dentro il pannello che
       //     entra — non solo «non su ‹ Indietro›»: la forma `contains` prende anche le
       //     regressioni che scelgono un altro focusabile della stanza (la pillola di ricerca,
