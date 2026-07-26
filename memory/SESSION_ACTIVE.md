@@ -1,38 +1,34 @@
 # Sessione attiva — «Un tema solo, e la barra lo segue» (26/07/2026, sera)
 
-✅ **Striscia panna: confermata sparita sul device di Francesco.** Voce 44 chiusa.
+✅ **Striscia panna: confermata sparita sul device.** Voce 44 chiusa.
+✅ **TAPPA 1 IN PRODUZIONE** (`03ec7595`) — **prova sul device SUPERATA**: la barra segue il tema
+dal vivo. Chiusa empiricamente la lacuna §3.3 della ricerca (**il meta `theme-color` È onorato
+nelle PWA installate su Android, anche mutato a runtime**).
+✅ **TAPPA 2 IN PRODUZIONE** (`850e3f26`) — manifest e `offline.html` seguono il fondo, con guardia.
+Dettaglio pieno: voci **45** e **46** di `MEMORY.md`.
 
-✅ **TAPPA 1 IN PRODUZIONE** — merge `03ec7595`, CI+CD verdi, verificata live su `uachelab.com`
-(zero `<meta theme-color>` statici, zero `#D90012`, script con `CHIARO='#F4F0E7',SCURO='#171411'`).
-Ramo `worktree-un-tema-solo` mergiato; il worktree `.claude/worktrees/un-tema-solo` resta in piedi
-per le tappe 2 e 3. ⚠️ **Un worktree nuovo nasce senza `.env.local`/`.env.test`**: senza copiarli
-dal repo principale, `next build` fallisce su `/api/admin/labs` via Stripe.
+🔨 **TAPPA 3 IN CORSO** — ramo `worktree-un-tema-solo`, worktree `.claude/worktrees/un-tema-solo`.
+**Piano:** `docs/superpowers/plans/2026-07-26-tappa-3-un-tema-solo.md` (7 task).
+**Fatto: Task 1** — `src/lib/preferenze/tema.ts` (tre stati `sistema|chiaro|scuro`, chiave `ua-tema`,
+`risolviTema`), 6 test verdi, commit `1fcbcac6`.
+**Prossimo: Task 2** (lo script inline passa alla chiave nuova e cancella `ua-theme`).
 
-**Spec** (assorbe la voce A5): `docs/superpowers/specs/2026-07-26-un-tema-solo-e-la-barra-lo-segue-design.md`
-**Piano tappa 1:** `docs/superpowers/plans/2026-07-26-tappa-1-meccanismo-barra-di-stato.md`
-Dettaglio pieno: **voce 45** di `MEMORY.md`.
-
-✅ **TAPPA 2 IN PRODUZIONE** (merge `850e3f26`, CI+CD verdi, verificata live: manifest e pagina
-offline servono il fondo unico). Guardia `tests/unit/un-tema-solo-e-la-barra-lo-segue.test.ts`,
-10 controlli, con controprova. Suite **3319 verdi / 19 skip**. Dettaglio: **voce 46** di `MEMORY.md`.
-⚠️ Sul device installato **splash e scheda nei recenti cambiano solo quando Android rigenera il
-pacchetto**: per vederlo subito, disinstallare e reinstallare.
-
-✅ **PROVA SUL DEVICE SUPERATA (19:28).** «La barra ha cambiato colore, in modo corretto e in base
-alla sezione del tema cambia colore in automatico». **Il meta `theme-color` È onorato nelle PWA
-installate su Android, anche mutato a runtime** — lacuna §3.3 della ricerca chiusa empiricamente.
-**Via libera alla tappa 2.**
+🛑 **Vincolo di sequenza:** l'opzione in Impostazioni (Task 4) e la rimozione degli interruttori
+(Task 5) vanno **nello stesso deploy**.
+📌 **D8 ratificata:** variante **A** (righe col pallino come «La tua home») **+ frase di stato**.
+Francesco preferisce la forma B, ma B **esiste già pronta in v3** (`ChipScelta`) e in v2.3 andrebbe
+ricostruita a mano e buttata: arriverà gratis con l'ondata v3 di `/impostazioni`.
+Mockup e catture: `docs/design/mockups/2026-07-26-tema-impostazioni.html`.
 
 ⏳ **DUE APPUNTI DI FRANCESCO, aperti:**
-1. **Striscia sottile fra barra di stato e contenuto.** Verificato: **non è nostra** (zero
-   `border-top`/`box-shadow` globali, zero `safe-area-inset-top` in `src/`). Sospetto: **bug
-   Chromium 421933373**, residuo di 1px del `theme_color` del **manifest** sotto il meta. Se è
-   quello, la **tappa 2 lo chiude per costruzione**. 🔬 **Discriminante: di che colore è** — rossa
-   → manifest; grigia → altro.
-2. **Fascia sotto la barretta dei gesti sempre dello stesso colore.** È il **bug Chromium
-   40759522**, già accertato: segue il **color scheme di SISTEMA**, non l'app. 🎯 La regola D4
-   (l'app segue il telefono) la rende coerente per costruzione. 🔬 Test gratis: mettere il
-   **telefono** in scuro e guardare se diventa scura.
+1. **Strisciolina fra barra di stato e contenuto, `#dbd7cc`.** **NON è nostra** (verificato: quel
+   colore non esiste nel codice, nessun bordo/velo globale, nessun `safe-area-inset-top`). È il
+   panna scurito del 10% netto → un **velo**, non un colore scelto. Sospetto: separatore disegnato
+   da Android. 🔬 **Discriminante: che colore ha in tema SCURO** — più chiara del fondo = separatore
+   di sistema (chiuso, nessun margine); sparisce = velo (c'è margine).
+2. **Fascia sotto la barretta dei gesti sempre uguale.** Bug Chromium **40759522**, già accertato:
+   segue il **color scheme di SISTEMA**. 🎯 La regola D4 la rende coerente per costruzione.
+   🔬 Test gratis: mettere il **telefono** in scuro e guardare se diventa scura.
 
-**Poi:** tappa 2 (manifest + `offline.html` + guardia) · tappa 3 (tre stati `ua-tema`, bonifica dei
-5 punti di accesso, UI in Impostazioni con mockup §0B, `blocked`/`billing`, toast).
+⚠️ Un worktree nuovo nasce **senza `.env.local`/`.env.test`**: senza copiarli `next build` fallisce
+su `/api/admin/labs` via Stripe.
