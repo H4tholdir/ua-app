@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<!-- Stessa dichiarazione di viewport dell'app (src/app/layout.tsx): la pagina deve
+     trovarsi NELLE STESSE condizioni della PWA, altrimenti misura un'altra cosa. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>UÀ — diagnosi barre di sistema</title>
+<!-- PAGINA DIAGNOSTICA TEMPORANEA — collaudo PWA installata, 26/07/2026.
+     Indagine: la fascia di sfondo dietro la barretta delle gesture (bug Chromium 40759522)
+     e la striscia panna in fondo a /cassette. Vive dentro lo scope della PWA ("scope": "/")
+     perche' su Android il WebAPK cattura i link del proprio scope: toccando il link da
+     un'altra app si apre DENTRO UA installata, che e' l'unico posto dove il difetto esiste.
+     NON e' collegata da nessuna schermata dell'app. VA RIMOSSA a diagnosi chiusa.
+     Nessuno stile del design system: non e' una superficie di prodotto. -->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #F4F0E7; color: #1C1916; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    /* Compatta di proposito: TUTTO deve entrare in una schermata da 844 punti, altrimenti
+       un solo screenshot non basta e la misura torna a metà. */
+    padding: 8px 12px calc(26px + env(safe-area-inset-bottom, 0px));
+    font-size: 13px; line-height: 1.2;
+  }
+  h1 { font-size: 15px; margin-bottom: 1px; }
+  .sub { font-size: 11px; color: #6B5C51; margin-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 1.5px 0; border-bottom: 1px solid #E2DCD0; vertical-align: baseline; }
+  td.k { color: #6B5C51; white-space: nowrap; padding-right: 8px; font-size: 12px; }
+  td.v { font-family: ui-monospace, monospace; font-weight: 700; text-align: right; word-break: break-all; }
+  .sez { padding-top: 6px; font-weight: 700; font-size: 11px; letter-spacing: .06em;
+         text-transform: uppercase; color: #8A7B6D; border: 0; }
+  .big { font-size: 15px; }
+  button { width: 100%; margin-top: 8px; padding: 11px; font-size: 14px; font-weight: 700;
+           background: #D90012; color: #fff; border: 0; border-radius: 10px; }
+  /* Righe di riferimento: dicono a occhio DOVE finisce la pagina rispetto allo schermo. */
+  .riga { position: fixed; left: 0; right: 0; height: 3px; z-index: 9; pointer-events: none; }
+  .riga span { position: absolute; right: 4px; bottom: 4px; font-size: 9px; font-weight: 700;
+               padding: 1px 4px; border-radius: 3px; color: #fff; }
+  #rFondo { bottom: 0; background: #FF00A0; }
+  /* Etichette su lati OPPOSTI: quando la safe-area vale 0 le due righe si sovrappongono e
+     una coprirebbe l'etichetta dell'altra — che è proprio il caso da riconoscere a colpo
+     d'occhio, non da perdere. */
+  #rFondo span { background: #FF00A0; left: 4px; right: auto; }
+  #rSafe { background: #00A6C4; }
+  #rSafe span { background: #00A6C4; }
+  .probe { position: absolute; visibility: hidden; width: 1px; top: 0; }
+</style>
+</head>
+<body>
+
+<h1>Diagnosi barre di sistema</h1>
+<div class="sub">Pagina temporanea. Fai uno screenshot, oppure premi «Copia tutto» e incolla in chat.</div>
+
+<table id="t"></table>
+
+<button id="copia">Copia tutto</button>
+
+<div class="riga" id="rFondo"><span>FONDO PAGINA</span></div>
+<div class="riga" id="rSafe"><span>INIZIO SAFE-AREA</span></div>
+
+<div class="probe" id="pDvh" style="height:100dvh"></div>
+<div class="probe" id="pSvh" style="height:100svh"></div>
+<div class="probe" id="pLvh" style="height:100lvh"></div>
+<div class="probe" id="pVh"  style="height:100vh"></div>
+<div class="probe" id="pSab" style="height:env(safe-area-inset-bottom, 0px)"></div>
+<div class="probe" id="pSat" style="height:env(safe-area-inset-top, 0px)"></div>
+<div class="probe" id="pSal" style="height:env(safe-area-inset-left, 0px)"></div>
+<div class="probe" id="pSar" style="height:env(safe-area-inset-right, 0px)"></div>
+<!-- +100px e poi si sottrae: un'altezza negativa verrebbe schiacciata a 0 dal motore e
+     «non supportata» sarebbe indistinguibile da «vale zero». Con l'offset: 99 = non
+     supportata, 100 = supportata e vale 0. -->
+<div class="probe" id="pMab" style="height:calc(env(safe-area-max-inset-bottom, -1px) + 100px)"></div>
+
+<script>
+(function () {
+  var px = function (id) {
+    var h = document.getElementById(id).getBoundingClientRect().height
+    return Math.round(h * 100) / 100
+  }
+  var modo = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay', 'browser']
+    .filter(function (m) { return matchMedia('(display-mode: ' + m + ')').matches })
+    .join(', ') || '(nessuna corrisponde)'
+
+  var ua = navigator.userAgent
+  var mAnd = ua.match(/Android\s+([\d.]+)/)
+  var mChr = ua.match(/Chrome\/([\d.]+)/)
+  var mMod = ua.match(/Android[^;]*;\s*([^)]+?)\s*\)/)
+  var vv = window.visualViewport
+
+  var mabRaw = px('pMab')            // v. la nota sulla sonda: 99 = non supportata
+  var mab = Math.round((mabRaw - 100) * 100) / 100
+  var righe = [
+    ['SEZ', 'La domanda principale'],
+    ['Modalità (display-mode)', modo],
+    ['safe-area-inset-bottom', px('pSab') + ' px', true],
+    ['safe-area-max-inset-bottom', mabRaw < 99.5 ? '(non supportata)' : mab + ' px'],
+
+    ['SEZ', 'Quanto è alta la finestra'],
+    ['window.innerHeight', window.innerHeight + ' px', true],
+    ['100dvh', px('pDvh') + ' px'],
+    ['100svh', px('pSvh') + ' px'],
+    ['100lvh', px('pLvh') + ' px'],
+    ['100vh', px('pVh') + ' px'],
+    ['visualViewport.height', vv ? Math.round(vv.height * 100) / 100 + ' px' : '(assente)'],
+    ['visualViewport.offsetTop', vv ? vv.offsetTop + ' px' : '(assente)'],
+    ['document clientHeight', document.scrollingElement.clientHeight + ' px'],
+
+    ['SEZ', 'Lo schermo vero'],
+    ['screen.height × width', screen.height + ' × ' + screen.width],
+    ['devicePixelRatio', String(window.devicePixelRatio)],
+    ['innerWidth', window.innerWidth + ' px'],
+
+    ['SEZ', 'Le altre safe-area'],
+    ['inset-top', px('pSat') + ' px'],
+    ['inset-left / right', px('pSal') + ' / ' + px('pSar') + ' px'],
+
+    ['SEZ', 'Ambiente'],
+    ['Android', mAnd ? mAnd[1] : '(non rilevato)', true],
+    ['Chrome', mChr ? mChr[1] : '(non rilevato)', true],
+    ['Modello', mMod ? mMod[1] : '(non rilevato)'],
+    ['Tema di sistema', matchMedia('(prefers-color-scheme: dark)').matches ? 'SCURO' : 'CHIARO', true],
+    ['Riduci movimento', matchMedia('(prefers-reduced-motion: reduce)').matches ? 'sì' : 'no'],
+    ['Ora della misura', new Date().toLocaleString('it-IT')],
+    // In chiaro anche a schermo (non solo nel testo copiato): così lo screenshot da solo basta.
+    ['UA', '<span style="font-size:9px;font-weight:400">' + ua + '</span>']
+  ]
+
+  var html = '', testo = 'UÀ — diagnosi barre, ' + new Date().toLocaleString('it-IT') + '\n'
+  righe.forEach(function (r) {
+    if (r[0] === 'SEZ') {
+      html += '<tr><td class="sez" colspan="2">' + r[1] + '</td></tr>'
+      testo += '\n[' + r[1] + ']\n'
+    } else {
+      html += '<tr><td class="k">' + r[0] + '</td><td class="v' + (r[2] ? ' big' : '') + '">' + r[1] + '</td></tr>'
+      testo += r[0] + ': ' + String(r[1]).replace(/<[^>]*>/g, '') + '\n'   // il testo copiato resta pulito
+    }
+  })
+  testo += '\nUA: ' + ua + '\n'
+  document.getElementById('t').innerHTML = html
+
+  // La riga turchese si posa dove comincia la safe-area: se coincide con quella magenta,
+  // il telefono NON sta dichiarando spazio riservato in fondo.
+  document.getElementById('rSafe').style.bottom = px('pSab') + 'px'
+
+  document.getElementById('copia').addEventListener('click', function () {
+    var b = this
+    navigator.clipboard.writeText(testo).then(
+      function () { b.textContent = 'Copiato ✓' },
+      function () { b.textContent = 'Copia non riuscita — fai uno screenshot' }
+    )
+  })
+})()
+</script>
+</body>
+</html>
