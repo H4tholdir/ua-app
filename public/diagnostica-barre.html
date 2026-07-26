@@ -33,6 +33,8 @@
   .sez { padding-top: 6px; font-weight: 700; font-size: 11px; letter-spacing: .06em;
          text-transform: uppercase; color: #8A7B6D; border: 0; }
   .big { font-size: 15px; }
+  #allarme { display: none; background: #D90012; color: #fff; padding: 9px 10px;
+             border-radius: 8px; margin-bottom: 6px; font-size: 12px; line-height: 1.3; }
   button { width: 100%; margin-top: 8px; padding: 11px; font-size: 14px; font-weight: 700;
            background: #D90012; color: #fff; border: 0; border-radius: 10px; }
   /* Righe di riferimento: dicono a occhio DOVE finisce la pagina rispetto allo schermo. */
@@ -53,6 +55,7 @@
 
 <h1>Diagnosi barre di sistema</h1>
 <div class="sub">Pagina temporanea. Fai uno screenshot, oppure premi «Copia tutto» e incolla in chat.</div>
+<div id="allarme"></div>
 
 <table id="t"></table>
 
@@ -84,10 +87,17 @@
     .filter(function (m) { return matchMedia('(display-mode: ' + m + ')').matches })
     .join(', ') || '(nessuna corrisponde)'
 
+  var inApp = /standalone|fullscreen|minimal-ui/.test(modo)
+
   var ua = navigator.userAgent
-  var mAnd = ua.match(/Android\s+([\d.]+)/)
   var mChr = ua.match(/Chrome\/([\d.]+)/)
-  var mMod = ua.match(/Android[^;]*;\s*([^)]+?)\s*\)/)
+  // ⚠️ Prima misura del 26/07 (Francesco): la stringa UA riportava «Android 10; K» su un
+  // telefono che non è né l'uno né l'altro. Da Chrome 110 la UA su Android è RIDOTTA di
+  // proposito (anti-fingerprinting): versione congelata a «10», modello sempre «K», per
+  // TUTTI. Leggere l'Android da lì dà un numero falso con l'aria di essere vero — ed è uno
+  // dei tre numeri da cui dipende l'intera diagnosi. Il valore vero si chiede agli
+  // User-Agent Client Hints ad alta entropia, che sono ASINCRONI: la tabella si rende
+  // subito e queste due righe si riscrivono quando la promessa si risolve.
   var vv = window.visualViewport
 
   var mabRaw = px('pMab')            // v. la nota sulla sonda: 99 = non supportata
@@ -103,10 +113,14 @@
     ['100dvh', px('pDvh') + ' px'],
     ['100svh', px('pSvh') + ' px'],
     ['100lvh', px('pLvh') + ' px'],
-    ['100vh', px('pVh') + ' px'],
     ['visualViewport.height', vv ? Math.round(vv.height * 100) / 100 + ' px' : '(assente)'],
-    ['visualViewport.offsetTop', vv ? vv.offsetTop + ' px' : '(assente)'],
-    ['document clientHeight', document.scrollingElement.clientHeight + ' px'],
+    // Sotto: nel testo copiato ma NON a schermo. Sul telefono di Francesco (375pt di larghezza)
+    // tutto insieme non entrava in una schermata, e la misura tornava a metà. Questi quattro
+    // sono ridondanti a vista — vh ripete lvh, clientHeight ripete innerHeight, offsetTop conta
+    // solo con la tastiera aperta — quindi sono i primi a scendere. Nel testo restano.
+    ['100vh', px('pVh') + ' px', false, null, 'T'],
+    ['visualViewport.offsetTop', vv ? vv.offsetTop + ' px' : '(assente)', false, null, 'T'],
+    ['document clientHeight', document.scrollingElement.clientHeight + ' px', false, null, 'T'],
 
     ['SEZ', 'Lo schermo vero'],
     ['screen.height × width', screen.height + ' × ' + screen.width],
@@ -118,28 +132,72 @@
     ['inset-left / right', px('pSal') + ' / ' + px('pSar') + ' px'],
 
     ['SEZ', 'Ambiente'],
-    ['Android', mAnd ? mAnd[1] : '(non rilevato)', true],
+    ['Sistema (vero)', 'lettura in corso…', true, 'rAnd'],
     ['Chrome', mChr ? mChr[1] : '(non rilevato)', true],
-    ['Modello', mMod ? mMod[1] : '(non rilevato)'],
+    ['Modello', 'lettura in corso…', false, 'rMod'],
     ['Tema di sistema', matchMedia('(prefers-color-scheme: dark)').matches ? 'SCURO' : 'CHIARO', true],
-    ['Riduci movimento', matchMedia('(prefers-reduced-motion: reduce)').matches ? 'sì' : 'no'],
-    ['Ora della misura', new Date().toLocaleString('it-IT')],
-    // In chiaro anche a schermo (non solo nel testo copiato): così lo screenshot da solo basta.
-    ['UA', '<span style="font-size:9px;font-weight:400">' + ua + '</span>']
+    ['Riduci movimento', matchMedia('(prefers-reduced-motion: reduce)').matches ? 'sì' : 'no', false, null, 'T'],
+    ['Ora della misura', new Date().toLocaleString('it-IT')]
+    // La UA non compare più a schermo: è RIDOTTA (v. nota sopra), quindi occupava quattro righe
+    // per dire due cose false. Resta in coda al testo copiato, dove non costa spazio.
   ]
 
-  var html = '', testo = 'UÀ — diagnosi barre, ' + new Date().toLocaleString('it-IT') + '\n'
+  // La banda d'allarme: alla prima misura il link si è aperto in Chrome e non nell'app, e
+  // il dato è arrivato inutilizzabile senza che nessuno se ne accorgesse sul momento. Ora
+  // lo dice la pagina stessa, in cima e in rosso, prima di ogni altra cosa.
+  if (!inApp) {
+    document.getElementById('allarme').innerHTML =
+      '<b>⚠️ SEI NEL BROWSER, NON NELL\'APP.</b> Questa misura non serve: ' +
+      'il difetto esiste solo nell\'app installata. Manda il link a te stesso su WhatsApp ' +
+      'o nelle Note e <b>tienilo premuto → «Apri con» → UÀ</b>. Se UÀ non compare: ' +
+      'Impostazioni → App → UÀ → <b>Apri per impostazione predefinita</b> → attiva i link supportati.'
+    document.getElementById('allarme').style.display = 'block'
+  }
+
+  var testo = ''
+  var scriviTesto = function () {
+    testo = 'UÀ — diagnosi barre, ' + new Date().toLocaleString('it-IT') +
+            (inApp ? ' — DENTRO L\'APP INSTALLATA' : ' — ⚠️ NEL BROWSER, misura non valida') + '\n'
+    righe.forEach(function (r) {
+      if (r[0] === 'SEZ') testo += '\n[' + r[1] + ']\n'
+      else testo += r[0] + ': ' + String(r[1]).replace(/<[^>]*>/g, '') + '\n'   // testo copiato pulito
+    })
+    testo += '\nUA (ridotta, non fidarsi di Android/modello): ' + ua + '\n'
+  }
+
+  var html = ''
   righe.forEach(function (r) {
-    if (r[0] === 'SEZ') {
+    if (r[4] === 'T') {          // solo nel testo copiato, non a schermo (v. nota sopra)
+      return
+    } else if (r[0] === 'SEZ') {
       html += '<tr><td class="sez" colspan="2">' + r[1] + '</td></tr>'
-      testo += '\n[' + r[1] + ']\n'
     } else {
-      html += '<tr><td class="k">' + r[0] + '</td><td class="v' + (r[2] ? ' big' : '') + '">' + r[1] + '</td></tr>'
-      testo += r[0] + ': ' + String(r[1]).replace(/<[^>]*>/g, '') + '\n'   // il testo copiato resta pulito
+      html += '<tr><td class="k">' + r[0] + '</td><td class="v' + (r[2] ? ' big' : '') + '"' +
+              (r[3] ? ' id="' + r[3] + '"' : '') + '>' + r[1] + '</td></tr>'
     }
   })
-  testo += '\nUA: ' + ua + '\n'
   document.getElementById('t').innerHTML = html
+  scriviTesto()
+
+  // Valori VERI di Android e modello (v. la nota sopra): la UA non li ha.
+  var posa = function (idRiga, valore) {
+    for (var i = 0; i < righe.length; i++) if (righe[i][3] === idRiga) righe[i][1] = valore
+    var cella = document.getElementById(idRiga)
+    if (cella) cella.textContent = valore
+    scriviTesto()
+  }
+  if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(['platformVersion', 'model', 'platform']).then(
+      function (d) {
+        posa('rAnd', (d.platform || 'piattaforma?') + ' ' + (d.platformVersion || '?'))
+        posa('rMod', d.model || '(vuoto)')
+      },
+      function () { posa('rAnd', '(rifiutata)'); posa('rMod', '(rifiutata)') }
+    )
+  } else {
+    posa('rAnd', '(client hints assenti)')
+    posa('rMod', '(client hints assenti)')
+  }
 
   // La riga turchese si posa dove comincia la safe-area: se coincide con quella magenta,
   // il telefono NON sta dichiarando spazio riservato in fondo.

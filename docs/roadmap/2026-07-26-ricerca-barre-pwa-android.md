@@ -451,6 +451,47 @@ l'unico posto dove il difetto esiste.
 
 🛑 **Va concordato con Francesco prima di scriverlo**: è comunque un file che finisce in produzione.
 
+### 7.3-bis ✅ PRIMA MISURA — 26/07/2026 14:53, **DAL BROWSER** (non dall'app)
+
+Il link si è aperto in Chrome invece che nella PWA installata: `display-mode: browser`. **Come
+misura del difetto non vale** — ma dice tre cose che valgono lo stesso, e una cambia il §2.6.
+
+| | valore |
+|---|---|
+| `innerHeight` · `100dvh` · `100svh` · `visualViewport` | **699** (699.08) |
+| `100lvh` · `100vh` | **755.08** |
+| `screen.height × width` | **818 × 376** · dpr **3.25** · `innerWidth` 375 |
+| **`safe-area-inset-bottom`** | **0 px** |
+| `safe-area-max-inset-bottom` | **0 px** — cioè *supportata* e pari a zero, non assente |
+| Chrome | **150** |
+| Tema di sistema | CHIARO |
+
+**Cosa se ne ricava:**
+
+1. **755 − 699 = 56px**: è la barra di Chrome (quella dell'indirizzo), che sparisce allo scroll —
+   da manuale, `lvh` la ignora e `dvh` la conta.
+2. **818 − 755 = 63px**: lo spazio che la pagina **non ottiene mai**, nemmeno al massimo — barra di
+   stato in alto più fascia dei gesti in basso.
+3. 🛑 **`safe-area-inset-bottom` = 0 ANCHE DA BROWSER, su Chrome 150.** Se l'edge-to-edge di Chrome
+   135 (§1.1) fosse attivo sul suo telefono, la pagina disegnerebbe *dentro* la fascia dei gesti e
+   quell'inset sarebbe **maggiore di zero**. È zero. **Quindi sul device di Francesco l'edge-to-edge
+   non è attivo nemmeno in una scheda di browser**, pur avendo Chrome 150.
+
+   ⚠️ **Conseguenza sul §2.6, da portare al panel:** il colore azzeccato che vede da browser viene
+   **solo** da Chrome 129 (la fascia copia il fondo della scheda), **non** dal disegnare sotto. E la
+   fascia trasparente che vuole dipende dall'edge-to-edge — che sul suo telefono **oggi non si
+   accende affatto**. Quindi «arriverà da sé quando Chrome rilascia la correzione» (§2.6) **vale
+   solo se l'edge-to-edge si accenderà anche per lui**: va verificato, non dato per scontato.
+4. **La versione di Android resta ignota.** La stringa diceva «Android 10; K»: è la UA **ridotta**
+   che Chrome serve a tutti da Chrome 110 (versione congelata a 10, modello sempre «K»,
+   anti-fingerprinting). **Leggere Android da lì dà un numero falso con l'aria di essere vero.** La
+   pagina ora chiede il valore vero agli User-Agent Client Hints ad alta entropia.
+
+**Correzioni applicate alla pagina dopo questa misura:** banda rossa in cima quando NON si è
+nell'app installata, con le istruzioni per aprirla nel modo giusto; versione di sistema e modello
+dai Client Hints invece che dalla UA; quattro righe ridondanti spostate nel solo testo copiato,
+perché a 375pt di larghezza la pagina non entrava più in una schermata.
+
 ### 7.4 La striscia panna — cosa serve vedere
 
 Uno screenshot di `/cassette` **a fondo scroll** e uno **in cima**, sulla PWA installata, più la
