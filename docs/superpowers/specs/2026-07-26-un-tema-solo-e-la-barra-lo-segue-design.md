@@ -64,6 +64,22 @@ Accertato leggendo il codice, non dedotto.
 | `blocked` | tema **fisso** scuro (`blocked/page.tsx:37`) | — | no |
 | `billing` | tema **fisso** chiaro (`billing-content.tsx:158`) | — | no |
 | Toast | `sonner.tsx:8` — `next-themes` senza provider → sempre `"system"` | — | no |
+| Portale pubblico | `portale/[token]/layout.tsx:15` — fondo `#F8F9FA` **cotto a mano**, insensibile al tema (il gemello `richiedi/[token]/layout.tsx:15` usa invece `var(--bg, …)` e segue) | — | no |
+
+⚠️ **Due trappole emerse in code review, entrambe da portarsi in tappa 3.**
+
+**(a) Metà del CSS è agganciata alla classe `dark`, metà a `data-theme`.** `globals.css:163` apre il
+tema scuro con `.dark`; `ds-v3.css` con `[data-theme="dark"]`. **Solo** `useTheme.applyTheme`
+(`useTheme.ts:71-80`) e lo script inline muovono **entrambi**; `admin-nav.tsx:36,44` e
+`ds-v3-catalogo/page.tsx:172,174` muovono **solo l'attributo**. Misurato: `{"dt":"dark","dark":false}`
+— barra scura, classe assente, fondo chiaro. Su `/admin` c'è in più una **corsa reale**: lo script
+decide da `ua-theme`, poi `admin-nav` sovrascrive da `ua-admin-theme`, e con le due chiavi discordi
+la barra di sistema **lampeggia** dopo l'idratazione. La regola unica (D4/D7) chiude anche questo.
+
+**(b) Il portale pubblico era fuori dal censimento.** È la pagina che vede **il dentista**, non
+l'odontotecnico. Con la barra che ora segue il tema, in scuro la barra diventa `#171411` mentre
+quella pagina resta bianco freddo. Va deciso in tappa 3 se il portale segue il tema o dichiara di
+non seguirlo.
 
 ### 3.2 Dove si cambia tema oggi (i punti di accesso da bonificare, D5)
 
@@ -154,18 +170,38 @@ e **solo dopo** il React. Non è aggirabile perché «è solo un selettore».
 ### 5.1 Un modulo tiene il colore, e non contiene colori
 
 `src/design-system/colore-barra-sistema.ts`: **nessun hex**, deriva da `v3/tokens.ts` (`luce.bg` /
-`notte.bg`); esporta `COLORE_BARRA = { light, dark }` e `impostaColoreBarra(tema)`.
+`notte.bg`); esporta **solo** `COLORE_BARRA = { light, dark }`.
+
+🛑 **Niente funzione TypeScript gemella dell'upsert.** La prima stesura ne esportava una
+(`impostaColoreBarra`): in review si è visto che **la usava solo il test**, perché la produzione
+esegue `barra()` dentro la stringa dello script — che non può importare moduli. Due implementazioni
+della stessa logica, di cui una mai eseguita, divergono in silenzio con la suite verde. Rimossa.
+
+Il modulo **valida** i propri valori (`/^#[0-9A-Fa-f]{6}$/`) e lancia altrimenti: finiscono
+interpolati dentro apici singoli in `dangerouslySetInnerHTML`, e un apice o un `</script`
+produrrebbe un errore di sintassi che il `try/catch` dello script **non può catturare** (uccide lo
+script che lo contiene). Così il guasto muto diventa un fallimento di build.
 
 Verificato che **una sola coppia basta per tutte le superfici**: `globals.css:72`/`:165` (`--bg`),
 `globals.css:271`/`:302` (`--ua-bg`, accesso), `admin/admin.css:10`/`:38` (`--adm-bg`) valgono già
 tutte `#F4F0E7` / `#171411`.
 
-### 5.2 `impostaColoreBarra` fa **upsert**
+### 5.2 L'upsert vive nello script, ed è **upsert** davvero
 
-Aggiorna il `content` di **tutti** i `meta[name="theme-color"]` presenti e **ne crea uno** se non ce
-n'è nessuno. L'ordine fra i tag emessi da Next e lo script inline **non è un contratto** (React 19
-solleva e riordina `<meta>` rispetto al JSX): un `querySelector` che trova `null` è un no-op
-silenzioso che funziona in una build e non nell'altra.
+`barra()` aggiorna il `content` di **tutti** i `meta[name="theme-color"]` presenti e **ne crea uno**
+se non ce n'è nessuno. L'ordine fra i tag emessi da Next e lo script inline **non è un contratto**
+(React 19 solleva e riordina `<meta>` rispetto al JSX): un `querySelector` che trova `null` è un
+no-op silenzioso che funziona in una build e non nell'altra.
+
+⚠️ **Lo storage sta in un `try` separato.** Rilievo di review, misurato: con un `try` unico, un
+`localStorage` che lancia (privacy del browser, cookie bloccati, WebView, policy aziendali) faceva
+cadere **tutto** — niente `data-theme`, niente classe `dark`, niente meta — e da quando `layout.tsx`
+non dichiara più `themeColor` non resta nemmeno un colore di riserva nell'HTML. Ora lo storage
+degrada al tema di sistema invece di azzerare lo script.
+
+⚠️ **Il ciclo scrive tutti i meta trovati.** Oggi ce n'è al massimo uno. Se un domani tornasse la
+forma a coppia chiaro/scuro con l'attributo `media`, li porterebbe **entrambi allo stesso valore**,
+annullando la distinzione in silenzio. Annotato nel codice.
 
 ### 5.3 Nessun meta statico: `themeColor` esce dall'export `viewport`
 

@@ -577,6 +577,10 @@ Non procedere finché `uachelab.com` non serve la versione nuova.
 
 - [ ] **Step 3: Consegna a Francesco il protocollo di prova**
 
+🛑 **La prova vale SOLO su Android, con l'app INSTALLATA dall'icona** (device di Francesco: Android 16, Chrome 150). Le altre combinazioni misurano cose diverse e darebbero un verdetto inutilizzabile:
+- **scheda del browser** su Android → `theme-color` tinge la barra dell'**indirizzo**, non quella di stato;
+- **iPhone in standalone** → la barra segue `apple-mobile-web-app-status-bar-style`, **non** `theme-color`: un falso negativo garantito su codice Android corretto.
+
 Cinque passi, **in quest'ordine**:
 
 1. **Chiudi UÀ dai recenti** (o forza arresto). Senza questo Android ripristina il task, il documento vecchio resta vivo, non arriva nessun HTML nuovo: falso negativo garantito.
@@ -586,7 +590,7 @@ Cinque passi, **in quest'ordine**:
    **Perché non dal login:** in questa tappa il suo sole/luna muta solo stato React e non scrive `data-theme`, quindi l'osservatore non scatta e la barra non si muove **per costruzione**. Premerlo lì produrrebbe la frase «non cambia» che questo intero rollout esiste per non farsi dire per sbaglio.
    ⚠️ Il pannello del profilo copre parte dello schermo: guardare **la striscia in cima**, che resta visibile.
 4. Naviga fra due pagine e **riferisci se la barra regge**.
-5. 🛑 **Non giudicare dallo splash:** in questa tappa la schermata d'avvio è ancora rossa **per definizione** — è il manifest, e il manifest non è stato toccato.
+5. 🛑 **Non giudicare dallo splash, e nemmeno dal primo mezzo secondo.** In questa tappa il manifest è ancora `#D90012`, quindi **al lancio la barra è rossa per definizione**, per il tempo che la pagina impiega a dipingere — poi diventa del colore giusto. Un revisore ha classificato questo come il rischio **più alto** di referto sbagliato: chi guarda di sfuggita, o fa lo screenshot al lancio, vede rosso su codice corretto. Vale anche per la **scheda nel selettore app**, che resta rossa finché Android non rigenera il pacchetto.
 
 - [ ] **Step 4: Registra l'esito**
 
