@@ -108,39 +108,67 @@ schermo». La prova sul campo dice il contrario: **installata, il problema c'è 
 spiegazione era al massimo una parte della storia, e la parte sbagliata è stata messa a verbale
 come chiusa. **Non ripartire da lì.**
 
-### Cosa è già verificato nel codice (26/07, dopo il merge)
+### 🛑 ATTENZIONE: qui dentro c'erano DUE BARRE DIVERSE, mescolate per errore
 
-Il rosso è dichiarato in **TRE posti, non due**:
+**Correzione fatta il 26/07 su richiesta esplicita di Francesco:** «io parlavo della barra sotto
+delle gestures… ora se aggiungiamo anche questa cosa della barra di stato a me sta bene, ma non ci
+confondiamo però».
 
-- `public/manifest.json` → `"background_color": "#F4F0E7"` ✅ (aggiornato dall'ondata) ma
-  **`"theme_color": "#D90012"`** — rosso fisso.
-- `src/app/layout.tsx:28` → **`themeColor: '#D90012'`**, un valore solo.
-- **`public/offline.html:6` → `<meta name="theme-color" content="#D90012">`** ⚠️ **il terzo, che
-  questo elenco non aveva.** È la pagina che il service worker serve quando la rete manca: se si
-  correggessero solo i primi due, **la pagina offline resterebbe rossa** e il difetto ricomparirebbe
-  proprio nel momento peggiore.
-- `src/app/layout.tsx:33` → `viewportFit: 'cover'` ✅ presente.
+La prima stesura di questo paragrafo presentava il `theme_color` rosso come «un pezzo accertato del
+problema». **Non lo è, o almeno nessuno l'ha dimostrato.** Sono due barre agli estremi opposti dello
+schermo:
 
-Quindi: **il colore rosso della barra di sistema è dichiarato in tre punti, e non segue né il fondo
-unificato né il tema chiaro/scuro.** Quando l'ondata ha unificato il fondo in quattro posti, il
-`theme_color` non è stato toccato in nessuno dei tre — nessuno lo aveva messo in lista.
+| | **Barra dei gesti — IN BASSO** | **Barra di stato — IN ALTO** |
+|---|---|---|
+| Chi l'ha segnalata | **Francesco**, sul suo telefono | trovata da me guardando il codice |
+| Cosa si vede | sfondo non trasparente, colore diverso dal resto, **striscia panna sopra** su `/cassette` | rossa fissa, non segue il tema né il fondo |
+| Da cosa dipende | **DA STABILIRE** — safe-area, chi dipinge sotto il contenuto, comportamento di Android da app installata | `theme_color`, dichiarato in tre posti (sotto) |
+| Stato | **il difetto di Francesco, non diagnosticato** | osservazione a parte, accettata da lui come lavoro aggiuntivo |
 
-⚠️ Prima di cambiarli: quel rosso **è stato messo lì di proposito** e a suo tempo era la cosa
-giusta. È la voce **A5** del backlog tecnico (`docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`), chiusa
-il 20/07/2026 con «`#D90012` in manifest + offline.html» — allora il fondo dell'app non era ancora
-unificato. È diventato un difetto **dopo**, quando l'ondata del 26/07 ha unificato lo sfondo. Non è
-una svista da correggere in silenzio: è una decisione che va **rifatta**, e la voce A5 è stata
-riaperta di conseguenza.
+**Che il `theme_color` c'entri anche con la barra in basso non è né provato né escluso**: su alcune
+versioni di Android tocca anche la barra di navigazione, su altre no. **È una delle cose che la
+ricerca deve stabilire**, non un presupposto da cui partire. Chi lavora qui deve tenerle separate:
+sistemare il rosso in alto e dichiarare chiuso il punto 2 sarebbe l'ennesima conclusione affrettata,
+in un documento che nasce proprio da una conclusione affrettata.
 
-### Cosa NON è ancora stato misurato (da fare per prima cosa)
+### 2a — La barra dei gesti (in basso): quello che Francesco ha segnalato
 
-Nessuno ha ancora misurato **sul device installato**:
+**Nessuno ha ancora misurato niente** sul device installato. Da stabilire:
 - quanto vale davvero `env(safe-area-inset-bottom)` in standalone, per rotta (home vs `/cassette`);
 - quale elemento dipinge l'area sotto il contenuto, e se è il `body`, il wrapper di rotta o nulla;
 - da dove nasce la **striscia panna** su `/cassette` — se è la stessa classe di difetto della
   striscia panna del piede, chiusa il 25/07 abrogando la coreografia, o una cosa diversa;
-- se `theme_color` per-tema è supportato dal browser di Francesco (si dichiara con `<meta>` +
-  `media="(prefers-color-scheme: dark)"`, non dal manifest).
+- perché da browser il fondo **sotto** la barra è corretto mentre il resto no: è l'indizio più
+  concreto che c'è, e nessuno l'ha ancora seguito.
+
+**Questo è il punto 2 vero.** Finché non è misurato, non ha una causa.
+
+### 2b — La barra di stato (in alto): trovata da me, aggiunta con il suo ok
+
+Verificato nel codice il 26/07: il rosso `#D90012` è dichiarato in **tre posti**, non due —
+
+- `public/manifest.json` → `"theme_color": "#D90012"` (il `background_color` è invece già
+  `#F4F0E7`, aggiornato dall'ondata);
+- `src/app/layout.tsx:28` → `themeColor: '#D90012'`, un valore solo;
+- **`public/offline.html:6` → `<meta name="theme-color" content="#D90012">`** — il terzo, che il
+  primo elenco non aveva. È la pagina servita quando manca la rete: correggendo solo i primi due
+  **resterebbe rossa proprio nel momento peggiore**.
+
+(`src/app/layout.tsx:33` → `viewportFit: 'cover'` è presente ✅ — riguarda entrambe le barre.)
+
+Quindi il rosso della barra di stato non segue né il fondo unificato né il tema chiaro/scuro: quando
+l'ondata ha unificato lo sfondo in quattro posti, il `theme_color` non è stato toccato in nessuno
+dei tre — nessuno lo aveva messo in lista.
+
+⚠️ Prima di cambiarlo: quel rosso **è stato messo lì di proposito** ed era la cosa giusta allora. È
+la voce **A5** del backlog tecnico (`docs/roadmap/BACKLOG-TECNICO-2026-07-02.md`), chiusa il
+20/07/2026 con «`#D90012` in manifest + offline.html», quando il fondo dell'app non era ancora
+unificato. È diventato discutibile **dopo**. Non è una svista da correggere in silenzio: è una
+decisione da **rifare con Francesco**, e la voce A5 è stata riaperta di conseguenza.
+
+Da stabilire nella ricerca: se un `theme_color` diverso per tema chiaro e scuro è supportato dal
+browser di Francesco (si dichiara con `<meta>` + `media="(prefers-color-scheme: dark)"`, **non** dal
+manifest), e se quel valore tocca anche la barra in basso.
 
 ### 🛑 METODO IMPOSTO DA FRANCESCO (26/07/2026) — vincolante, non saltabile
 
@@ -149,12 +177,18 @@ Nessuno ha ancora misurato **sul device installato**:
 
 Quindi, **in quest'ordine e prima di toccare una riga di codice**:
 
-1. **Ricerca approfondita su internet.** Fonti vere e citate, non ricordi: come si comportano
-   davvero `theme_color`, `background_color`, `viewport-fit: cover` e
-   `env(safe-area-inset-*)` in una PWA **installata** su Android (WebAPK), quali versioni di
-   Chrome/Android cambiano le regole, come si dichiara un `theme_color` diverso per tema chiaro e
-   scuro, e quali sono i modi noti in cui compare una striscia di fondo sopra la barra dei gesti.
-   Raccogliere anche i difetti noti dei browser: qui la piattaforma conta più del nostro codice.
+1. **Ricerca approfondita su internet.** Fonti vere e citate, non ricordi. Le domande, tenendo
+   **separate le due barre** (v. §2a e §2b):
+   - **barra in basso (2a, il difetto di Francesco):** chi dipinge quell'area in una PWA installata
+     su Android (WebAPK); quanto vale `env(safe-area-inset-bottom)` in standalone e quando resta 0;
+     cosa cambia `viewport-fit: cover`; i modi noti in cui compare una striscia di fondo sopra la
+     barra dei gesti; perché da browser il fondo sotto la barra è corretto e installata no;
+   - **barra in alto (2b):** come si dichiara un `theme_color` diverso per tema chiaro e scuro, e da
+     quali versioni è onorato;
+   - **il ponte fra le due:** **se e quando `theme_color` tocca anche la barra di navigazione in
+     basso.** È la domanda che decide se sono un problema solo o due.
+   Raccogliere anche i difetti noti dei browser e le differenze fra versioni di Android: qui la
+   piattaforma conta più del nostro codice.
 2. **Diagnosi misurata sul device installato di Francesco** — è l'unico posto dove il difetto esiste.
    Concordare con lui come raccogliere le misure: il telefono è suo.
 3. **Panel di advisor specializzati** con prospettive diverse (Regola Advisor, `ua-app/CLAUDE.md`

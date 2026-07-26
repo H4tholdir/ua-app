@@ -43,12 +43,15 @@ da 768 in su.
 Francesco ha **installato la PWA e collaudata** dopo il deploy. Quattro punti aperti, tutti scritti
 lì: (1) la linguetta «LE CASSETTE» sta stretta **nello stato pieno** — la deviazione vera è che il
 mockup ratificato le dà 18px di respiro sopra e sotto il contenuto e il codice ne dà 0 (la voce 52
-del backlog parla invece dello stato «filo» e resta aperta a parte); (2) 🛑 **la barra dei gesti
-è un difetto vero anche da PWA installata** — il verbale che la dava per «NON un difetto» è
-SBAGLIATO e va corretto, non ereditato; accertato nel codice che `theme_color` è `#D90012` fisso in
-`manifest.json`, in `layout.tsx:28` **e in `public/offline.html:6`** (tre posti, non due); da
-misurare sul device installato prima di scrivere codice, dopo ricerca e panel di advisor come ha
-chiesto Francesco; (3) **centro notifiche: accettato come direzione, ma ULTIMO** — sua decisione del
+del backlog parla invece dello stato «filo» e resta aperta a parte); (2) 🛑 **la barra dei gesti,
+QUELLA IN BASSO, è un difetto vero anche da PWA installata** — il verbale che la dava per «NON un
+difetto» è SBAGLIATO e va corretto, non ereditato; **è senza causa accertata** e va misurata sul
+device prima di scrivere codice, dopo ricerca e panel di advisor come ha chiesto Francesco;
+(2b) **DISTINTA da quella**, e da non confondere per sua richiesta esplicita: la **barra di stato in
+alto**, rossa fissa — `theme_color: #D90012` in **tre posti** (`manifest.json`, `layout.tsx:28`,
+`public/offline.html:6`), voce A5 del backlog tecnico RIAPERTA. È un lavoro aggiuntivo che lui ha
+accettato, **non** la spiegazione del punto 2: che tocchi anche la barra in basso non è né provato
+né escluso, ed è una delle domande della ricerca; (3) **centro notifiche: accettato come direzione, ma ULTIMO** — sua decisione del
 26/07, «alla fine della roadmap che abbiamo»; (4) chiesto se restava lavoro incompiuto: **no**,
 0 bloccanti, 30 rimandati con motivazione nel backlog.
 
