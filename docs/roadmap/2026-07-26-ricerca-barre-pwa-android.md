@@ -654,7 +654,7 @@ non si trova più leggendo il codice, si trova **cogliendolo sul fatto**.
 | Ipotesi | Verdetto |
 |---|---|
 | Il rimedio del 25/07 non regge | ❌ **Escluso** — `padding-bottom` risolve a 58px sul device, `manca 0 px` |
-| È il nostro CSS | ❌ **Escluso** — gli ultimi pixel li dipinge `.ds-parete`, sul device, chiesto a `elementFromPoint` |
+| ~~È il nostro CSS~~ | 🛑 **RIGA SBAGLIATA — v. §7.3-sexies.** Diceva «escluso: gli ultimi pixel li dipinge `.ds-parete`». **La prova era stata raccolta sulla superficie sbagliata**: `DiagFondo` è montato solo sulla rotta standalone, l'unica che misura 0 px. **È il nostro CSS, ed è `.ua-home`.** |
 | Il documento non arriva in fondo (§7.3-ter) | ❌ **Escluso** — smentito dalla PROVA 2 e confermato qui |
 | Lo scatto era durante il rimbalzo | ❌ **Escluso** — da Francesco |
 | **Foglio di stile vecchio servito dalla cache offline** | ❌ **Escluso** — `scripts/sw-template.js:44` salta `/_next/` (dove vivono i CSS) e le navigazioni sono sempre network-first (`:35`). Il service worker **non può** servire una grafica vecchia |
@@ -685,6 +685,126 @@ del muro perché l'eventuale residuo non si veda). Nasconderebbe il sintomo senz
 su un difetto che compare e sparisce — cioè renderebbe impossibile accorgersi se torna. Se dopo la
 cattura si decidesse comunque per una difesa di quel tipo, è **una decisione di design** e passa da
 Francesco e dal panel, non da qui.
+
+### 7.3-sexies 🎯 CAUSA TROVATA E RIPRODOTTA — `.ua-home`, non Chrome. Panel advisor completo.
+
+**L'informazione che ha risolto il caso l'ha data Francesco** (26/07): «ho aperto la PWA installata
+senza la diagnostica, la striscia riappare; ho riaperto il link con la diagnostica e scompare».
+
+#### La scoperta: `/cassette` è UN indirizzo, ma DUE (anzi TRE) superfici
+
+| # | Superficie | Come ci si arriva | Muro a filo? |
+|---|---|---|---|
+| 1 | **Rotta standalone** `src/app/(app)/cassette/page.tsx` | link diretto, voce di menu | ✅ **0 px** (misurato device + banco) |
+| 2 | **Stanza «parete» del pager** (`StanzePager` dentro `HomeV3`) | dall'icona → home → linguetta/swipe. Il pager fa `pushState('/cassette')`: **l'indirizzo cambia, il documento no** | ❌ **mancano 19,4 px** |
+| 3 | **Forma «solo parete»** (`HomeV3.tsx:337-355`, preferenza utente `parete`) | preferenza home | ❌ **dedotta dai due advisor, NON misurata**: stessi 19,6px **più** 24px di inset per lato che `/cassette` non paga |
+
+**Perché nessuno se n'era accorto:** le tre superfici mostrano lo stesso muro **allo stesso
+indirizzo**. Guardando l'URL — o uno screenshot — non c'è modo di sapere quale si sta guardando.
+
+#### La causa, chiusa all'aritmetica
+
+`src/components/features/home/HomeV3.tsx:217-218`:
+```css
+.ua-home { … padding: clamp(12px, 2.6cqh, 24px) 24px; … min-height: 100dvh; }
+```
+Quel respiro verticale vale anche in fondo; la stanza parete ci sta dentro; sotto il muro resta il
+fondo di `.ua-home`.
+
+**Verifica del quadro chiuso** (banco, 375×755, percorso di Francesco riprodotto: home → linguetta
+→ parete → fondo scroll): `padding-bottom` dichiarato **19,63px** contro buco misurato **19,38px**
+→ **combaciano, nessun secondo contributo**. `elementFromPoint` a 1px e 8px dal bordo risponde
+**`.ua-home`**; da 20px in su risponde `.ds-parete`.
+
+**Perché sul telefono sembrava più grande:** 19,4 px CSS × dpr 3,25 = **~63 pixel fisici**. Gli
+screenshot sono in pixel fisici. Due righelli diversi, nessuna seconda causa.
+
+**E l'«intermittenza» del §7.3-quinquies non è mai esistita:** non un difetto che va e viene, ma
+**un difetto che dipende da quale delle tre superfici si sta guardando**. Lo screenshot delle 11:52
+lo conferma: era a **inizio** scroll, e un respiro di cornice si vede a qualunque altezza — mentre i
+due difetti chiusi il 25/07 si vedevano **solo** a fine scroll.
+
+#### 🛑 La correzione al verbale: il mio strumento era cieco
+
+`DiagFondo` è montato **solo** in `cassette/page.tsx`, cioè sulla superficie #1 — l'unica sana. Sul
+pager non monta mai (`pushState` non rimonta nulla), e misura `document.scrollingElement` mentre
+sulla home a scorrere è `.ua-stanza-parete-scroll`: avrebbe scritto «a fine scroll ✓» **stando
+fermo** (`0/0`). **La riga «escluso: non è il nostro CSS» del §7.3-quinquies è stata cassata**: era
+un'esclusione fondata su prove raccolte sulla superficie sbagliata. **Terza occorrenza dello stesso
+errore di metodo**, stavolta cotto dentro lo strumento.
+
+#### Verdetto del panel (3 advisor, prospettive diverse — Regola Advisor §0C)
+
+**Convergono tutti e tre su:** causa confermata al pixel · il rimedio «azzera il padding quando la
+stanza attiva è la parete» **va scartato** · le superfici sono tre · le guardie esistenti **non
+potevano** prenderlo · serve una guardia **geometrica**, misurata, su tutte e tre.
+
+**Perché il rimedio ovvio è da scartare** (meccanismo, non gusto): `.ua-home .corpo` è
+`container-type: size` (`HomeV3.tsx:224`) e su di lui risolvono **tutti** i `cqh` della stanza pile.
+Cambiare il padding del frame ricalcola gap, imbottiture e corpo dei numeri **alla soglia 0.6
+dell'IntersectionObserver, cioè a metà swipe**: la stanza che stai lasciando si ri-impagina sotto
+il dito, e il bordo del muro «scatta» a gesto concluso.
+
+**Rimedio proposto (advisor frontend) — nessuno stato JS, nessun numero ridigitato:**
+```css
+.ua-home                      { --ua-pad-v: clamp(12px, 2.6svh, 24px); padding: var(--ua-pad-v) 24px; }
+.ua-home.is-stanze            { padding-bottom: 0; }
+.ua-home.is-stanze .corpo     { padding-bottom: var(--ua-pad-v); }
+.ua-home.is-stanze .ua-stanze { margin-bottom: calc(-1 * var(--ua-pad-v)); }
+[data-ds="v3"] .ua-stanza[data-stanza="pile"] { padding-bottom: var(--ua-pad-v); }
+```
+È **lo stesso schema già ratificato per l'asse orizzontale** (`ds-v3.css:1541` + `1579` + `1589`),
+ruotato di 90°: il frame non porta più l'inset, la stanza pile se lo riprende, la parete no.
+
+**Due dettagli che il panel ha trovato e che da soli valgono la consultazione:**
+1. **`.corpo` è `overflow-y: auto` sotto 768px** (`HomeV3.tsx:314`): sotto la parete i bordi che
+   clippano sono **DUE**, non uno. Per questo il margine negativo va su `.ua-stanze` **con** un
+   padding compensativo su `.corpo` — che è anche ciò che tiene il **content box di `.corpo`
+   identico a oggi**, quindi la scala fluida delle pile **non si muove di un centesimo**.
+   ⚠️ Su questo l'advisor UX aveva previsto pile più grandi di ~2,5px: con questa costruzione
+   **non accade**, ed è la ragione per cui questa versione è preferibile alla sua (opzione «c»).
+2. **`2.6cqh` non ha container** — gli unici `container-type` del progetto sono **discendenti** di
+   `.ua-home`, quindi quel `cqh` ricade già oggi sul viewport piccolo. Ma una custom property che
+   contiene `cqh` **si ri-risolve su ogni elemento che la legge**: su `.ua-stanze` darebbe 18,61
+   invece di 19,63 — un pixel di scarto silenzioso e una guardia che fallisce a intermittenza. Da
+   qui `svh` nel token: **no-op numerico oggi**, e immune se un domani nascesse un container
+   antenato.
+
+#### 🛑 Il rischio che nessuno aveva visto: il TastoPiù contro la barra dei gesti
+
+Togliere quel respiro **senza restituirlo alla stanza pile** manderebbe il TastoPiù a filo dello
+schermo: il piede ha come unico stacco `padding-bottom: env(safe-area-inset-bottom)`
+(`HomeV3.tsx:289-293`), e **su questo device quella riserva vale 0** (misurato, §7.3-ter). Bottone
+fisico appiccicato alla barra dei gesti = attivazioni di sistema accidentali. Riaprirebbe il fix
+T15/1a.
+
+#### Cosa resta aperto (nessuno di questi è opinabile: sono misure che mancano)
+
+1. **Conferma di Francesco su quale superficie ha fotografato** l'11:52 e le 14:20. L'evidenza è
+   forte (dall'icona compare / dal link sparisce, più la striscia a inizio scroll) ma **non è la
+   sua parola**. Finché manca, la causa è «trovata **su questa superficie**», non «trovata».
+2. **La superficie #3 va MISURATA**, non dedotta. Richiede di cambiare temporaneamente la
+   preferenza home di Francesco: **da concordare con lui.**
+3. **`DiagFondo` non va rimosso: va spostato** sulla home (entrambe le forme con la parete), deve
+   misurare `.ua-stanza-parete-scroll` invece di `document.scrollingElement`, e **deve stampare
+   quale superficie sta misurando**. Finché non lo fa, ogni suo numero parla dell'altra pagina.
+4. **Guardia nuova, a due strati:** (a) misura reale in Playwright —
+   `|.ds-parete.bottom − innerHeight| ≤ 1` a fine scroll **su tutte e tre le superfici** (⚠️
+   `playwright.config.ts:22-26`: il progetto `authenticated` ha un `testMatch` a lista chiusa, una
+   spec nuova non gira se non la si aggiunge); (b) lint sorgente esteso **anche al blocco `<style>`
+   di `HomeV3.tsx`** — la guardia attuale legge solo `ds-v3.css`, ed è per questo che non poteva
+   vedere la regola colpevole.
+5. **Difetto latente segnalato, fuori perimetro:** `PareteClient` chiama `router.refresh()`; con
+   l'URL spinto a `/cassette` dal pager, quei refresh rifanno il fetch della **rotta vera** e ne
+   sostituiscono il contenuto dentro la home (`StanzePager.tsx:283-285` lo annota come limitazione
+   nota). È un difetto **vivo**, non ipotetico, e nasce dalla stessa scelta «due superfici, un
+   indirizzo».
+
+#### La regola che questa vicenda lascia al progetto
+
+> **Ogni misura, ogni guardia e ogni screenshot devono dichiarare la SUPERFICIE, mai l'indirizzo.**
+
+Perché a `/cassette` rispondono in tre, e nessuno dei tre lo dice.
 
 ### 7.4 La striscia panna — cosa serve vedere
 
