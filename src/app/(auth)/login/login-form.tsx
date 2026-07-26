@@ -145,11 +145,11 @@ export default function LoginForm() {
     ? 'Accesso non riuscito. Riprova o usa email e password.'
     : null
   const [errorMsg, setErrorMsg] = useState<string | null>(searchParamError)
-  const [isDark, setIsDark] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : false
-  )
+  // Il tema NON si risolve piu' qui. Prima queste quattro schermate leggevano
+  // prefers-color-scheme per conto loro e lo mettevano in data-login-theme, che
+  // e' pilotato da stato React: al primo render valeva 'light' e in tema scuro si
+  // vedeva un LAMPO CHIARO. Ora la tavolozza si aggancia a data-theme su <html>,
+  // che lo script inline scrive PRIMA della prima pittura. V. spec §4.4.
   const [bioAvailable, setBioAvailable] = useState(false)
   const [hasSavedPasskey, setHasSavedPasskey] = useState(false)
   const [fpLabel, setFpLabel] = useState('Impronta')
@@ -167,13 +167,6 @@ export default function LoginForm() {
     if (safePath !== '/dashboard') router.prefetch(safePath)
   }, [router, searchParams])
 
-  // Detect system dark mode, allow manual override
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
 
   // Biometric detection + passkey locale
   useEffect(() => {
@@ -302,20 +295,13 @@ export default function LoginForm() {
     setTimeout(() => { router.push(safePath); router.refresh() }, REDIRECT_DELAY_MS)
   }, [loading, email, password, router, searchParams, bioAvailable])
 
-  const theme = isDark ? 'dark' : 'light'
-
   return (
     <>
-    <div className="login-root" data-login-theme={theme}>
-      {/* Theme toggle */}
-      <button
-        className="ua-thbtn"
-        onClick={() => { setIsDark(d => !d); sndSnap() }}
-        aria-label={isDark ? 'Passa alla modalità chiara' : 'Passa alla modalità scura'}
-        aria-pressed={isDark}
-      >
-        {isDark ? '☀️' : '🌙'}
-      </button>
+    <div className="login-root">
+      {/* Il sole/luna che stava qui è sparito (D5). Non era nemmeno un
+          interruttore vero: cambiava solo lo stato React di questa pagina e si
+          dimenticava tutto al primo ricaricamento. Il tema si sceglie in
+          Impostazioni → Aspetto → Tema, da dentro l'app. */}
 
       <div className="ua-wrap">
         {/* Brand copy — visible only on desktop */}

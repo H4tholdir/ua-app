@@ -1,15 +1,20 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { useTheme } from "@/hooks/useTheme"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // Prima l'import veniva da next-themes, di cui nessun provider e' mai stato
+  // montato: il valore restava sempre "system", cioe' i messaggini seguivano il
+  // telefono e ignoravano la preferenza dell'utente. Ora arriva dal nostro hook,
+  // che e' l'unica regola. Si passa il tema GIA' RISOLTO, non "system": Sonner
+  // altrimenti lo risolverebbe da capo per conto suo, ricreando il problema.
+  const { temaRisolto } = useTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={temaRisolto}
       className="toaster group"
       icons={{
         success: (

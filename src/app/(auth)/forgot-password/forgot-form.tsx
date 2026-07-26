@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { getBrowserClient } from '@/lib/supabase/browser-anon'
 import { useReducedMotion } from '@/design-system/motion'
@@ -34,22 +34,16 @@ export default function ForgotForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
-  const [isDark, setIsDark] = useState(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : false
-  )
+  // Il tema NON si risolve piu' qui. Prima queste quattro schermate leggevano
+  // prefers-color-scheme per conto loro e lo mettevano in data-login-theme, che
+  // e' pilotato da stato React: al primo render valeva 'light' e in tema scuro si
+  // vedeva un LAMPO CHIARO. Ora la tavolozza si aggancia a data-theme su <html>,
+  // che lo script inline scrive PRIMA della prima pittura. V. spec §4.4.
   const [logoAnimating, setLogoAnimating] = useState(false)
 
   const reducedMotion = useReducedMotion()
   const logoRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
 
   const handleLogoClick = useCallback(() => {
     sndClick()
@@ -78,10 +72,8 @@ export default function ForgotForm() {
     }
   }, [email, loading])
 
-  const theme = isDark ? 'dark' : 'light'
-
   return (
-    <div className="login-root" data-login-theme={theme}>
+    <div className="login-root">
       <div className="ua-wrap" style={{ maxWidth: '400px' }}>
         <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
           <div className="ua-card">

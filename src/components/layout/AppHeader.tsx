@@ -6,7 +6,6 @@
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { tornaIndietro } from '@/lib/nav/torna-indietro'
-import { ThemeToggleButton } from './ThemeToggleButton'
 import { SyncBadge } from './SyncBadge'
 
 // Design tokens v2.2 — warm panna palette
@@ -22,11 +21,10 @@ interface AppHeaderProps {
   subtitle?: string
   backHref?: string
   actions?: ReactNode
-  showThemeToggle?: boolean
   lastUpdatedAt?: Date | null
 }
 
-export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle = true, lastUpdatedAt }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, backHref, actions, lastUpdatedAt }: AppHeaderProps) {
   const router = useRouter()
   // Always add 64px right padding to leave space for the fixed UserProfileSheet avatar (right:16 + width:40 = 56px → 64px safe)
   return (
@@ -110,7 +108,7 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
         )}
       </div>
 
-      {(showThemeToggle || actions || lastUpdatedAt !== undefined) && (
+      {(actions || lastUpdatedAt !== undefined) && (
         <div
           style={{
             display: 'flex',
@@ -120,8 +118,6 @@ export function AppHeader({ title, subtitle, backHref, actions, showThemeToggle 
           }}
         >
           {lastUpdatedAt !== undefined && <SyncBadge lastUpdatedAt={lastUpdatedAt} />}
-          {/* ThemeToggleButton è un Client Component island — safe anche da Server Components */}
-          {showThemeToggle && <ThemeToggleButton />}
           {actions}
         </div>
       )}

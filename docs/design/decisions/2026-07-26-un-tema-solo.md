@@ -43,6 +43,32 @@ forma che Francesco preferisce, ottenuta gratis invece che pagata due volte.
 
 📌 Conferma la regola di convivenza DS v3 §14: **si migra per route, mai per componente.**
 
+### D6-bis — L'approvazione di `blocked` e `billing` è CONDIZIONATA (26/07, sera)
+
+Le due rese mai esistite — la sospensione in chiaro, l'abbonamento in scuro — sono state mostrate a
+Francesco prima del codice (§0B): catture in
+`docs/design/mockups/screenshots/2026-07-26-{blocked,billing}-390-{chiaro,scuro}-{OGGI,NUOVO}.png`.
+La sospensione è la pagina vera; l'abbonamento è il suo markup vero sul foglio di stile vero, perché
+`/billing` esige una sessione con un laboratorio scaduto.
+
+**Francesco non ha approvato: ha posto una condizione.** Parole sue:
+
+> «queste pagine, nel passaggio al v3 verranno revisionate nuovamente e potremmo correggere tutto
+> ciò che c'è da correggere […]? se la risposta è sì, lascia pure come è, se la risposta è no,
+> allora dobbiamo rivederle per forza»
+
+**La condizione è verificata, non supposta:** entrambe stanno nell'ondata **F2 «accessi»** del
+calendario di migrazione v3 (`docs/roadmap/ROADMAP-UFFICIALE.md`, ratificato da Francesco il
+20/07/2026), insieme ad auth e `/onboarding`, con **percorso Grande** e QA dedicato. E il 26/07
+stesso lui aveva già deferito alle ondate proprietarie «bottone oro e i difetti di leggibilità»:
+il bottone oro è proprio quello di `/billing`.
+
+🛑 **Che cosa significa per chi arriva dopo.** L'approvazione **non dice che queste due schermate
+vanno bene**: dice che il loro giudizio estetico è **rimandato a F2**. Se un giorno F2 venisse
+tolta dal calendario, o `blocked`/`billing` ne uscissero, **questa approvazione decade** e le due
+rese vanno riviste prima. È la stessa lezione che ha riaperto la voce A5: un archivio che conserva
+una **conclusione** al posto di una **relazione** invecchia in silenzio.
+
 ---
 
 ## Decise dall'implementatore, con motivazione
