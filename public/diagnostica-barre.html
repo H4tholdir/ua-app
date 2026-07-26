@@ -23,7 +23,7 @@
        un solo screenshot non basta e la misura torna a metà. */
     /* padding-bottom ZERO: sotto c'è la PROVA 2, che DEVE essere l'ultimo pixel del documento.
        Qualsiasi respiro qui sposterebbe il fondo del documento e falserebbe proprio la misura. */
-    padding: 8px 12px 0;
+    padding: 54px 12px 0;   /* 54 in alto: sotto la fascia nera del verdetto, che è fissa */
     font-size: 13px; line-height: 1.2;
   }
   h1 { font-size: 15px; margin-bottom: 1px; }
@@ -48,6 +48,12 @@
   .prova-testo { padding: 12px; font-size: 12px; line-height: 1.35; }
   .prova-fondo { background: #0A66C2; color: #fff; font-weight: 700; font-size: 13px;
                  text-align: center; padding: 14px 8px; letter-spacing: .02em; }
+  /* Il verdetto: fisso in alto, si aggiorna mentre si scorre, sempre nello screenshot. */
+  #verdetto { position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+              background: #1C1916; color: #fff; padding: 7px 10px;
+              font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.35; }
+  #verdetto b { font-size: 14px; }
+  #verdetto .ok { color: #7BE38B; } #verdetto .no { color: #FF8A8A; }
   /* Righe di riferimento: dicono a occhio DOVE finisce la pagina rispetto allo schermo. */
   .riga { position: fixed; left: 0; right: 0; height: 3px; z-index: 9; pointer-events: none; }
   .riga span { position: absolute; right: 4px; bottom: 4px; font-size: 9px; font-weight: 700;
@@ -85,6 +91,11 @@
   </div>
   <div class="prova-fondo">FONDO DEL DOCUMENTO ↓</div>
 </div>
+
+<!-- Il verdetto NON si legge a occhio da una foto: lo calcola la pagina e lo stampa. La prima
+     PROVA 2 si giudicava guardando lo screenshot, e su un JPEG un residuo di 56 punti e uno di
+     zero si somigliano troppo per decidere una diagnosi. -->
+<div id="verdetto"></div>
 
 <div class="riga" id="rFondo"><span>FONDO PAGINA</span></div>
 <div class="riga" id="rSafe"><span>INIZIO SAFE-AREA</span></div>
@@ -227,6 +238,33 @@
   // La riga turchese si posa dove comincia la safe-area: se coincide con quella magenta,
   // il telefono NON sta dichiarando spazio riservato in fondo.
   document.getElementById('rSafe').style.bottom = px('pSab') + 'px'
+
+  // ── Il verdetto della PROVA 2, calcolato invece che guardato ────────────────────────────
+  // Domanda: a fondo scroll, fra l'ultimo pixel del documento e il fondo della finestra resta
+  // scoperto qualcosa? Se sì e vale ~56 punti, la spiegazione «il documento non arriva in
+  // fondo» è dimostrata. Se vale 0, è falsa e la causa della striscia è altrove.
+  var vd = document.getElementById('verdetto')
+  var fascia = document.querySelector('.prova-fondo')
+  var aggiornaVerdetto = function () {
+    var se = document.scrollingElement
+    var max = se.scrollHeight - se.clientHeight
+    var giu = Math.round(se.scrollTop)
+    var aFondo = max - giu < 2
+    var residuo = Math.round(window.innerHeight - fascia.getBoundingClientRect().bottom)
+    var riga2
+    if (!aFondo) {
+      riga2 = '<b>↓ SCORRI ANCORA fino in fondo</b> (' + giu + ' di ' + Math.round(max) + ')'
+    } else {
+      riga2 = '<b>RESIDUO SCOPERTO: <span class="' + (residuo > 2 ? 'no' : 'ok') + '">' +
+              residuo + ' px</span></b> — ' +
+              (residuo > 2 ? 'la pagina NON arriva in fondo' : 'la pagina arriva in fondo')
+    }
+    vd.innerHTML = 'finestra ' + window.innerHeight + ' · documento ' + se.scrollHeight +
+                   ' · impagina ' + se.clientHeight + '<br>' + riga2
+  }
+  aggiornaVerdetto()
+  addEventListener('scroll', aggiornaVerdetto, { passive: true })
+  addEventListener('resize', aggiornaVerdetto)
 
   document.getElementById('copia').addEventListener('click', function () {
     var b = this

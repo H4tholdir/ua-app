@@ -563,6 +563,32 @@ colorata netta in fondo. Scorrendo fino in fondo, **nell'app installata**:
 
 Aggiunta alla pagina di diagnosi come «PROVA 2». Serve un secondo screenshot, a fondo scroll.
 
+#### ⚠️ PRIMO GIRO (26/07, 15:26) — la prova sembra SMENTIRE il §7.3-ter, ma non la si può leggere a occhio
+
+Screenshot di Francesco, app installata, a fondo della PROVA 2: **la fascia blu arriva al bordo
+dello schermo, con la barretta dei gesti sopra. Nessuna striscia scoperta.** Se il dato è quello,
+**il §7.3-ter è falso**: il documento in standalone *arriva* in fondo, i 56 punti non sono
+irraggiungibili, e la striscia di `/cassette` ha un'altra causa — nostra, e ancora da trovare.
+
+🛑 **Ma non si chiude una diagnosi leggendo un JPEG.** Su una foto compressa, un residuo di 56
+punti e un residuo di zero si somigliano troppo, e tutta la ricostruzione del §7.3-ter dipende da
+quale dei due sia. **È lo stesso errore di metodo che ha prodotto il verbale sbagliato del 26/07:
+guardare invece di misurare.**
+
+**Correzione: il verdetto ora lo CALCOLA la pagina e lo STAMPA.** Una fascia nera fissa in cima,
+sempre dentro lo screenshot, che mentre si scorre mostra `finestra` · `documento` · `impagina`, dice
+se si è davvero a fondo scroll (`scrollTop` contro il massimo — così non si scambia «quasi in
+fondo» per «in fondo») e in fondo stampa **`RESIDUO SCOPERTO: N px`**, in verde se 0 e in rosso se
+maggiore. Niente più occhio: un numero.
+
+**Caso di controllo, banco, viewport 375×755** (dove `clientHeight` = `innerHeight`):
+`finestra 755 · documento 1883 · impagina 755 → RESIDUO SCOPERTO: 0 px`. È il valore da confrontare.
+
+| Verdetto sul device | Cosa vuol dire |
+|---|---|
+| **~56 px** | §7.3-ter **dimostrato**: la pagina non arriva in fondo, il meccanismo è di Chrome, il nostro CSS è estraneo |
+| **0 px** | §7.3-ter **falso**: la pagina arriva in fondo, e la striscia di `/cassette` è **nostra** — si riparte dalla struttura di quella pagina, non da Chrome |
+
 ### 7.4 La striscia panna — cosa serve vedere
 
 Uno screenshot di `/cassette` **a fondo scroll** e uno **in cima**, sulla PWA installata, più la
