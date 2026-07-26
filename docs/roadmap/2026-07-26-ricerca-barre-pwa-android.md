@@ -629,6 +629,63 @@ repo**: `59b7cfd3` («overlay suoni `?diag=suoni` — evidenza device per H1, te
 modo di misurare *il difetto* invece che una sua imitazione — che è esattamente l'errore appena
 corretto.
 
+### 7.3-quinquies 🛑 MISURA SULLA PAGINA VERA — **il difetto NON si riproduce**, quindi è INTERMITTENTE
+
+`/cassette?diag=fondo`, app installata, **26/07 ore 16:12**, a fine scroll verificato:
+
+```
+finestra 755 · documento 1450 · impagina 755
+a fine scroll ✓ (695/695)
+MURO: manca 0 px al fondo
+padding-bottom muro 58px
+in fondo → 1:.ds-parete 8:.ds-parete 20:.ds-parete 40:.ds-parete 60:.ds-parete-grid
+```
+
+**E lo screenshot lo conferma a vista: la rete arriva al bordo dello schermo, la barretta dei gesti
+ci sta sopra, nessuna striscia.** Numeri identici al banco, riga per riga.
+
+🛑 **Non è «risolto»: è NON RIPRODOTTO.** La striscia esiste — Francesco l'ha fotografata **due
+volte** (11:52 a inizio scroll, 14:20 a fine scroll) e ha confermato che il secondo scatto era a
+scorrimento fermo. **Quindi il difetto è intermittente**, e questo cambia la natura della caccia:
+non si trova più leggendo il codice, si trova **cogliendolo sul fatto**.
+
+#### Cosa è stato ESCLUSO (non ipotizzato: verificato)
+
+| Ipotesi | Verdetto |
+|---|---|
+| Il rimedio del 25/07 non regge | ❌ **Escluso** — `padding-bottom` risolve a 58px sul device, `manca 0 px` |
+| È il nostro CSS | ❌ **Escluso** — gli ultimi pixel li dipinge `.ds-parete`, sul device, chiesto a `elementFromPoint` |
+| Il documento non arriva in fondo (§7.3-ter) | ❌ **Escluso** — smentito dalla PROVA 2 e confermato qui |
+| Lo scatto era durante il rimbalzo | ❌ **Escluso** — da Francesco |
+| **Foglio di stile vecchio servito dalla cache offline** | ❌ **Escluso** — `scripts/sw-template.js:44` salta `/_next/` (dove vivono i CSS) e le navigazioni sono sempre network-first (`:35`). Il service worker **non può** servire una grafica vecchia |
+
+#### 🔬 Il sospetto che resta, e il numero che lo confermerebbe
+
+Tutte le misure «buone» hanno `finestra 755`. Ma **la primissima lettura della pagina di diagnosi**
+(15:10, app installata) dava `innerHeight 755` con **`document clientHeight 699`**, e in una
+finestra da 699 il fondo pagina resterebbe scoperto proprio di **56 punti** — l'ordine di grandezza
+della striscia.
+
+🔬 **Sospetto: la finestra della PWA non è sempre alta 755.** Se in certi momenti vale **699**, la
+pagina finisce 56 punti più in alto e sotto resta il fondo panna — su `/cassette` si vede (rete
+contro panna), sulla home no (panna su panna). **Spiegherebbe l'intermittenza e la selettività.**
+🛑 **Non verificato, e non va scritto da nessuna parte come causa** finché non lo si legge nella
+fascia nera **mentre la striscia è a schermo**.
+
+#### ➡️ Come si chiude
+
+L'overlay è già lo strumento giusto: quando la striscia ricompare, basta aprire
+`/cassette?diag=fondo` e fotografare. Le due righe che decidono:
+- **`finestra N`** — se è **699** invece di 755, il sospetto è confermato e la causa è la finestra;
+- **`in fondo → …`** — se qualcuno dei cinque punti risponde qualcosa di diverso da `.ds-parete`,
+  **quel qualcosa è il colpevole, con nome e cognome.**
+
+⚠️ **Da NON fare:** «sistemare» a scatola chiusa (per esempio dare al fondo pagina la stessa rete
+del muro perché l'eventuale residuo non si veda). Nasconderebbe il sintomo senza sapere la causa,
+su un difetto che compare e sparisce — cioè renderebbe impossibile accorgersi se torna. Se dopo la
+cattura si decidesse comunque per una difesa di quel tipo, è **una decisione di design** e passa da
+Francesco e dal panel, non da qui.
+
 ### 7.4 La striscia panna — cosa serve vedere
 
 Uno screenshot di `/cassette` **a fondo scroll** e uno **in cima**, sulla PWA installata, più la
