@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { COLORE_BARRA, impostaColoreBarra } from '@/design-system/colore-barra-sistema'
 import { luce, notte } from '@/design-system/v3/tokens'
 import { SCRIPT_TEMA } from '@/components/layout/ThemeInitializer'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 function metaTemi(): string[] {
   return Array.from(document.querySelectorAll('meta[name="theme-color"]'))
@@ -146,5 +148,30 @@ describe('SCRIPT_TEMA — il codice che gira davvero, prima della prima pittura'
     expect(SCRIPT_TEMA).toContain(COLORE_BARRA.light)
     expect(SCRIPT_TEMA).toContain(COLORE_BARRA.dark)
     expect(SCRIPT_TEMA).not.toContain('#D90012')
+  })
+})
+
+describe('layout.tsx — nessun theme-color posseduto da React', () => {
+  const sorgente = readFileSync(resolve(process.cwd(), 'src/app/layout.tsx'), 'utf-8')
+
+  it('l_export viewport non dichiara themeColor', () => {
+    const blocco = sorgente.slice(
+      sorgente.indexOf('export const viewport'),
+      sorgente.indexOf('export default function RootLayout'),
+    )
+
+    expect(blocco).not.toContain('themeColor')
+  })
+
+  it('non contiene piu il rosso della barra', () => {
+    expect(sorgente).not.toContain('#D90012')
+  })
+
+  it('conserva viewportFit cover, che serve alla PWA', () => {
+    expect(sorgente).toContain("viewportFit: 'cover'")
+  })
+
+  it('non tocca statusBarStyle di Apple, che e un altra piattaforma', () => {
+    expect(sorgente).toContain("statusBarStyle: 'default'")
   })
 })

@@ -24,8 +24,11 @@ export const metadata: Metadata = {
   },
 }
 
+// Nessun themeColor qui: il colore della barra di stato lo imposta lo script
+// inline di ThemeInitializer, che gira prima della prima pittura e lo tiene
+// allineato al tema risolto. Dichiararlo anche qui creerebbe un secondo
+// theme-color posseduto da React, rimontabile a ogni navigazione.
 export const viewport: Viewport = {
-  themeColor: '#D90012',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
