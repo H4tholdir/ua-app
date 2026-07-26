@@ -155,7 +155,12 @@ export default function BillingContent({ labNome, reason }: Props) {
     <>
       <canvas ref={canvasRef} className="ua-billing-confetti" aria-hidden="true" />
 
-      <div className="login-root" data-login-theme="light">
+      {/* Il tema fisso chiaro se n'è andato (D6): questa schermata segue la regola
+          unica come tutto il resto. La sua resa in scuro è stata approvata da
+          Francesco il 26/07 così com'è, perché la pagina verrà rivista comunque
+          nell'ondata F2 «accessi» del calendario di migrazione v3 — dove finiscono
+          anche il bottone oro e i difetti di leggibilità già deferiti quel giorno. */}
+      <div className="login-root">
         <div className="ua-wrap" style={{ maxWidth: '400px' }}>
           <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
             <div className="ua-card" style={{ gap: '24px', padding: '36px 28px 32px', border: '1.5px solid rgba(212,168,67,.32)' }}>

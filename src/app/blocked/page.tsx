@@ -34,7 +34,11 @@ export default function BlockedPage() {
   }, [reducedMotion])
 
   return (
-    <div className="login-root" data-login-theme="dark">
+    /* Il tema fisso scuro se n'è andato (D6): questa schermata segue la regola
+       unica come tutto il resto. La sua resa in chiaro è stata approvata da
+       Francesco il 26/07 così com'è, perché la pagina verrà rivista comunque
+       nell'ondata F2 «accessi» del calendario di migrazione v3. */
+    <div className="login-root">
       <div className="ua-wrap" style={{ maxWidth: '400px' }}>
         <div className="ua-fside" style={{ flex: 'none', width: '100%' }}>
           <div className="ua-card" style={{ gap: '32px', padding: '44px 28px 40px' }}>

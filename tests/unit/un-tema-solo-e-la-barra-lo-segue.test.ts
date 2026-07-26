@@ -106,6 +106,104 @@ describe('offline.html — la schermata del momento peggiore', () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TAPPA 3 — «un tema solo». Prima erano SETTE posti con QUATTRO regole diverse.
+// Questi controlli tengono chiuso l'insieme: non asseriscono su
+// prefers-color-scheme (dopo questa tappa sono proprio tema.ts, useTheme.ts e
+// ThemeInitializer.tsx a doverlo interrogare), ma sulle OPERAZIONI che un
+// risolutore di tema non puo' evitare — leggere la memoria e scrivere su <html>.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Censimento — chi decide se l_app è chiara o scura', () => {
+  const senzaCommenti = (sorgente: string) =>
+    sorgente
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map(riga => riga.replace(/\/\/.*$/, ''))
+      .join('\n')
+
+  /** Ogni .ts/.tsx sotto src/, col solo codice: i commenti nominano di proposito
+   *  le cose che questa tappa ha tolto, per spiegare perche' non ci sono piu'. */
+  function sorgenti(): Array<{ percorso: string; codice: string }> {
+    const fuori: Array<{ percorso: string; codice: string }> = []
+    function scandaglia(cartella: string): void {
+      for (const voce of readdirSync(cartella)) {
+        if (voce === 'node_modules' || voce === '.next') continue
+        const percorso = join(cartella, voce)
+        if (statSync(percorso).isDirectory()) scandaglia(percorso)
+        else if (/\.(ts|tsx)$/.test(voce)) {
+          fuori.push({
+            percorso: relative(RADICE, percorso),
+            codice: senzaCommenti(readFileSync(percorso, 'utf-8')),
+          })
+        }
+      }
+    }
+    scandaglia(resolve(RADICE, 'src'))
+    return fuori
+  }
+
+  const NOMI_CHIAVE = /ua-tema|ua-theme|CHIAVE_TEMA|CHIAVE_VECCHIA/
+
+  it('la memoria del tema la tocca solo chi deve', () => {
+    // tema.ts DICHIARA le chiavi ma non tocca lo storage: chi le usa e' l'hook
+    // (quando l'utente sceglie) e lo script inline (prima della prima pittura).
+    const attesi = [
+      'src/components/layout/ThemeInitializer.tsx',
+      'src/hooks/useTheme.ts',
+    ]
+
+    const trovati = sorgenti()
+      .filter(f => /localStorage/.test(f.codice) && NOMI_CHIAVE.test(f.codice))
+      .map(f => f.percorso)
+
+    expect(trovati.sort()).toEqual(attesi.sort())
+  })
+
+  it('su <html> il tema lo scrivono solo in tre, e il terzo è l_eccezione dichiarata', () => {
+    // Il catalogo TIENE il suo interruttore: serve a confrontare i componenti nei
+    // due temi ed e' una pagina che l'utente non incontra (vincolo di piano).
+    const attesi = [
+      'src/app/ds-v3-catalogo/page.tsx',
+      'src/components/layout/ThemeInitializer.tsx',
+      'src/hooks/useTheme.ts',
+    ]
+
+    const trovati = sorgenti()
+      .filter(f =>
+        /setAttribute\(\s*'data-theme'|removeAttribute\(\s*'data-theme'/.test(f.codice) ||
+        /classList\.(add|remove|toggle)\(\s*'dark'/.test(f.codice))
+      .map(f => f.percorso)
+
+    expect(trovati.sort()).toEqual(attesi.sort())
+  })
+
+  it('le tre regole parallele non esistono più', () => {
+    const superstiti = sorgenti().filter(f =>
+      /'ua-admin-theme'|"ua-admin-theme"/.test(f.codice) ||   // la memoria separata dell_amministrazione
+      /data-login-theme/.test(f.codice) ||                     // il tema deciso dalle schermate di accesso
+      /from\s+["']next-themes["']/.test(f.codice))             // i toast che seguivano il telefono
+
+    expect(superstiti.map(f => f.percorso)).toEqual([])
+  })
+
+  // La chiave vecchia va NOMINATA una volta sola, e solo per cancellarla: se
+  // ricomparisse in una lettura, chi aveva premuto il vecchio sole/luna
+  // resterebbe bloccato su una scelta che non ha mai potuto esprimere.
+  it('la chiave vecchia si nomina solo per cancellarla', () => {
+    const script = senzaCommenti(leggi('src/components/layout/ThemeInitializer.tsx'))
+
+    expect(script).toMatch(/removeItem\(\s*'ua-theme'\s*\)/)
+    expect(script).not.toMatch(/getItem\(\s*'ua-theme'\s*\)/)
+  })
+
+  it('la pagina offline legge la chiave nuova, non quella di prima', () => {
+    const offline = leggi('public/offline.html')
+
+    expect(offline).toMatch(/getItem\(\s*'ua-tema'\s*\)/)
+    expect(offline).not.toMatch(/getItem\(\s*'ua-theme'\s*\)/)
+  })
+})
+
 describe('Censimento — chi dichiara un colore di barra', () => {
   // Insieme CHIUSO. Un quarto posto fa fallire il test col nome del file, che e'
   // la lezione letterale del residuo background_color: «i tre posti dichiarati
