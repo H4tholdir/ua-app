@@ -94,13 +94,22 @@ export function SceltaTema() {
       </div>
 
       {/* La frase c'è sempre: senza, «Automatico» non direbbe quale dei due si sta
-          vedendo, e il blocco non direbbe se sta divergendo dal telefono. */}
+          vedendo, e il blocco non direbbe se sta divergendo dal telefono.
+
+          Usa --t2, non --t3 come le note qui accanto, ed è una deviazione voluta:
+          MISURATO in tema scuro sulla scheda di /impostazioni, --t3 (#5A5652) dà
+          2,24:1 contro il 4,5:1 minimo — la frase sarebbe illeggibile proprio nel
+          tema in cui serve di più. --t2 (#8A8580) porta a 4,45:1: ancora un soffio
+          sotto la soglia, ma è il meglio che la tavolozza v2.3 offra senza gridare
+          quanto un'etichetta. 🛑 Il difetto vero è dei token scuri v2.3 e riguarda
+          OGNI pagina legacy in tema scuro, non questa riga: è a backlog, e si chiude
+          quando /impostazioni passa a v3 con l'ondata F1. */}
       <p
         aria-live="polite"
         style={{
           fontFamily: 'DM Sans, sans-serif',
           fontSize: '12px',
-          color: 'var(--t3, #6B5C51)',
+          color: 'var(--t2, #4A3D33)',
           margin: '6px 0 0 28px',
           lineHeight: 1.5,
         }}
