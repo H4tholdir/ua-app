@@ -3,14 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#D90012">
-<title>UA — Offline</title>
+<!-- Il fondo unico dell'app, non un colore suo: e' la schermata del momento
+     peggiore, e deve sembrare UA che aspetta, non un'altra applicazione.
+     I valori sono copiati a mano perche' questo file e' HTML statico servito da
+     public/ e non puo' importare i token: li ancora la guardia
+     tests/unit/un-tema-solo-e-la-barra-lo-segue.test.ts, che fallisce se divergono. -->
+<meta name="theme-color" content="#F4F0E7">
+<title>UÀ — Offline</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #DDD8D3;
-    color: #1C1916;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #F4F0E7;
+    color: #1D1913;
+    font-family: system-ui, -apple-system, sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,7 +24,10 @@
     padding: 24px;
   }
   h1 { font-size: 24px; margin-bottom: 12px; font-weight: 700; }
-  p { color: #4A3D33; font-size: 15px; line-height: 1.5; }
+  p { color: #6E6457; font-size: 15px; line-height: 1.5; }
+  /* La pillola resta rossa: qui il rosso significa AZIONE, non tema.
+     Bianco su #D90012 = 5,30:1, passa AA anche in scuro. Mai il rosso notte
+     #FF3B44: darebbe 3,52:1 su testo 15px bold, cioe' una violazione. */
   .retry {
     margin-top: 24px;
     display: inline-block;
@@ -33,6 +41,15 @@
     border: none;
     font-size: 15px;
   }
+  @media (prefers-color-scheme: dark) {
+    body { background: #171411; color: #F2EEE7; }
+    p { color: #A69B8C; }
+  }
+  /* La preferenza esplicita vince sul sistema, esattamente come nell'app. */
+  html[data-tema="scuro"] body { background: #171411; color: #F2EEE7; }
+  html[data-tema="scuro"] p { color: #A69B8C; }
+  html[data-tema="chiaro"] body { background: #F4F0E7; color: #1D1913; }
+  html[data-tema="chiaro"] p { color: #6E6457; }
 </style>
 </head>
 <body>
@@ -41,5 +58,25 @@
     <p>La dashboard e la lista lavori sono disponibili<br>se le hai visitate di recente.</p>
     <button class="retry" onclick="window.location.reload()">Riprova</button>
   </div>
+  <script>
+    /* Questa pagina e' servita dal service worker quando manca la rete: qui non
+       c'e' React a raccogliere un errore, quindi ogni pezzo sta nel suo try.
+       Lo storage per primo e da solo: se lancia (privacy del browser, cookie
+       bloccati, WebView) si degrada al @media qui sopra invece di cadere tutto.
+       ATTENZIONE: legge la chiave 'ua-theme' con i due valori di oggi. Quando la
+       tappa 3 introdurra' 'ua-tema' a tre stati, QUESTA riga va aggiornata: la
+       guardia del censimento la tiene sotto tiro. */
+    (function () {
+      var salvato = null
+      try { salvato = localStorage.getItem('ua-theme') } catch (e) {}
+      try {
+        if (!salvato) return
+        var scuro = salvato === 'dark'
+        document.documentElement.setAttribute('data-tema', scuro ? 'scuro' : 'chiaro')
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', scuro ? '#171411' : '#F4F0E7')
+      } catch (e) {}
+    })()
+  </script>
 </body>
 </html>
