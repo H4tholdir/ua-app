@@ -1,5 +1,5 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 26 luglio 2026 (14) — **ONDATA «REDESIGN PARETE/HOME»: TUTTI I TASK CHIUSI (T16 + T17), RAMO PRONTO. 🛑 NON MERGIATA — il merge è a parola di Francesco.** Worktree @ `ca913236`, 175 commit, suite **3283 verdi / 19 skip · tsc 0 · build ok** (verificati dal controller, non riferiti). Fatte in questa sessione: T16 striscia (logica + UI) e T17 chiusura completa — pulizia della strumentazione diagnostica, review whole-branch in 5 aree, triage dei **69 rilievi minori → 0 bloccanti**, review delta dei commit di fix, QA browser su 3 viewport × 2 temi, **gate estetico L2 PASS con 0 ❌**. **4 difetti gravi trovati e chiusi**, nessuno dei quali la suite verde poteva vedere: linguetta visibile su desktop con URL desincronizzato · overlay lasciati dipinti sopra un'altra stanza dal tasto indietro · con «Riduci movimento» la linguetta fuori schermo per sempre (unica via alle cassette nella forma «solo pile») · la navigazione mangiata dal ritorno automatico su **10 punti** del codice. **Decisioni di Francesco del 26/07:** nomi paziente rimandati a un'ondata separata DOPO il merge · la striscia nomina il primo allarme e conta gli altri (la forma ratificata il 24/07 è superata: la sua CTA riportava alla home) · il numero del lavoro non si taglia mai · «allunga la pancia della cassetta, non toccare la finestrella» · «Salva il nome/il colore» restano · righe del muro avvicinate da tablet in su. **Backlog dell'ondata, tracciato e quindi sopravvive al merge:** `docs/roadmap/2026-07-26-backlog-ondata-parete-home.md` (30 voci rimandate + 4 raccomandazioni del gate + le riserve delle review). **Prossimo:** FASE 10 merge a sua parola → poi nome+cognome paziente nel wizard (BP-2 pieno).
+**Ultimo aggiornamento:** 26 luglio 2026 (14, **testa corretta il 26/07/2026**) — **ONDATA «REDESIGN PARETE/HOME»: MERGIATA, PUBBLICATA E VERIFICATA IN PRODUZIONE.** Tutti i task chiusi (T16 + T17), merge fatto su via libera esplicita di Francesco: merge commit **`5504a20a`**, `main` a **`8c482e90`**, CI verde, deploy Vercel verde, `uachelab.com` controllata. ⚠️ **Questa riga apriva con «RAMO PRONTO. 🛑 NON MERGIATA — il merge è a parola di Francesco» quando il merge era già avvenuto ed era già online**: è la prima riga che si legge all'avvio di ogni sessione, quindi l'errore si propagava a tutto quello che veniva dopo. Corretta qui; il resto della voce è quello originale. Il ramo si è fermato a `ca913236` ed è storia. Worktree @ `ca913236`, 175 commit, suite **3283 verdi / 19 skip · tsc 0 · build ok** (verificati dal controller, non riferiti). Fatte in questa sessione: T16 striscia (logica + UI) e T17 chiusura completa — pulizia della strumentazione diagnostica, review whole-branch in 5 aree, triage dei **69 rilievi minori → 0 bloccanti**, review delta dei commit di fix, QA browser su 3 viewport × 2 temi, **gate estetico L2 PASS con 0 ❌**. **4 difetti gravi trovati e chiusi**, nessuno dei quali la suite verde poteva vedere: linguetta visibile su desktop con URL desincronizzato · overlay lasciati dipinti sopra un'altra stanza dal tasto indietro · con «Riduci movimento» la linguetta fuori schermo per sempre (unica via alle cassette nella forma «solo pile») · la navigazione mangiata dal ritorno automatico su **10 punti** del codice. **Decisioni di Francesco del 26/07:** nomi paziente rimandati a un'ondata separata DOPO il merge · la striscia nomina il primo allarme e conta gli altri (la forma ratificata il 24/07 è superata: la sua CTA riportava alla home) · il numero del lavoro non si taglia mai · «allunga la pancia della cassetta, non toccare la finestrella» · «Salva il nome/il colore» restano · righe del muro avvicinate da tablet in su. **Backlog dell'ondata, tracciato e quindi sopravvive al merge:** `docs/roadmap/2026-07-26-backlog-ondata-parete-home.md` (30 voci rimandate + 4 raccomandazioni del gate + le riserve delle review). **Prossimo:** il merge è FATTO; Francesco ha installato la PWA e trovato quattro cose — si riparte da lì, `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` → poi nome+cognome paziente nel wizard (BP-2 pieno).
 
 **Aggiornamento precedente:** 25 luglio 2026 (13) — **ONDATA «REDESIGN PARETE/HOME»: wave H + 2 giri fix post-verifica COMPLETI, codice chiuso (worktree @ `800dd45`, suite 3071/19). NON ancora mergiata.** Chiusi con Francesco: suoni primo tocco (+ WebKit) · linguetta F2/T2 · cassetta B + fascia C · riordino aggancio-al-dito · cassette rotte iPad (width fascia Safari) · sfumatura discendenti (pre-paint). **Piede: coreografia C2 abrogata alla prova device → statico** (semplificazione, −71 test). **Prossimi passi (handoff `docs/roadmap/2026-07-25-wave-h-chiusura-handoff.md`):** verifica finale Francesco su build 800dd45 → chiudi T15 → T16 striscia (valori ratificati nel piano) → T17 chiusura (whole-branch review + MINOR-list dal ledger + rimozione overlay `?diag=suoni` + FASE 9/9b + 🛑 merge a parola). **NUOVI ITEM IN CODA (da questa wave):** (a) «parete centrata su tablet/desktop» — richiesta semplice di Francesco, NIENTE redesign del filo (mockup rete archiviati non ratificati, verbale Add.3); (b) priorità paziente/clinico nella fascia — deferita («lasciamo così per adesso»); (c) drag scattoso iPad → confluisce in «iOS fluidità» già in coda (root cause misurata: FLIP layout-recalc, preesistente alla wave). Su main non pushati: `8b8dd40`+`2b069f0` (rm-guard) — col prossimo deploy.
 
@@ -206,23 +206,35 @@ Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/
 - B7 — "Invita tecnico" irraggiungibile da UI — ✅ RISOLTO e MERGIATO 03/07 (piano 12 task su worktree `worktree-b7-invito-collaboratori`, merge `fe81be6`). Bug reale trovato SOLO dalla review finale whole-branch verificando direttamente su Supabase live (stesso pattern di B2: mai nelle review di singolo task): `accept_invite_atomic` duplicava la riga `tecnici` su re-invito+re-accettazione, corretto con una seconda migration (`WHERE NOT EXISTS`) prima del merge. QA e2e reale in browser eseguita post-merge. Dettaglio completo in MEMORY.md §0.
 - **Follow-up collegati, risolti in sessione separata (commit `7fc181b`):** bug Service Worker PWA (cache RSC di `router.refresh()`, causava UI stale su tutta l'app dopo mutazioni — scoperto durante B2, backlog A4) + allineamento `BACKLOG-TECNICO-2026-07-02.md` (B2 ✅, A4 🔄 parziale, B7 ✅).
 
-**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è la priorità — B8/B9 vengono prima.
+~~**Nota:** S4 Email template branding resta valida come task (bozza HTML già pronta, manca solo applicazione manuale su Supabase dashboard, 3h) ma non è la priorità — B8/B9 vengono prima.~~ ⚠️ **SUPERATA:** era vera quando è stata scritta; **S4 è stata chiusa il 04/07/2026** (commit `01e915c`), template applicati su Supabase e verificati con un invio reale — v. il paragrafo S4 qui sotto.
 
 ---
 
 ### 📌 CODA DELL'ONDATA «REDESIGN PARETE/HOME» (aggiornata 26/07/2026)
 
-Handoff: `docs/roadmap/2026-07-26-wave-h-handoff.md`. Nell'ordine:
+Handoff corrente: **`docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md`** — è il più
+recente ed è quello da cui si riparte. Dopo il `2026-07-26-wave-h-handoff.md` che stava scritto qui
+ne sono arrivati altri due (`2026-07-27-post-ondata-handoff.md`, scritto in realtà il 26/07, e il
+collaudo della PWA installata): questa riga puntava al più vecchio dei tre. Nell'ordine:
 
 1. **Nome e cognome del paziente nel wizard** — RATIFICATO 26/07 («facciamo chiedere nome e
    cognome al wizard, ovviamente un campo non obbligatorio»). Percorso BP-2 pieno. Serve perché
    oggi l'app **non sa quale parola è il cognome**: wizard e form paziente compongono
    `nome_cognome` in ordine opposto e alla parete arriva solo la stringa già composta. Confronto
    visivo pronto: `docs/design/mockups/2026-07-26-nomi-paziente.html`.
-2. **T16 — la striscia in home** (valori ratificati, brief nel piano del 23/07).
-3. **T17 — chiusura ondata**: overlay diagnostico suoni via · pulizia `scripts/tmp/` · FASE 7 ·
-   review whole-branch con la lista MINOR del ledger (~15) · allineamento spec DS v3 ·
-   FASE 9 Playwright · **FASE 9b gate estetico L2** · 🛑 merge a parola di Francesco · BP-1.
+2. ~~**T16 — la striscia in home**~~ **✅ FATTO e in produzione** (26/07/2026). Logica e forma
+   nuove, valori ratificati; la forma del 24/07 è stata superata dalla decisione del 26/07
+   («nomina il primo allarme, conta gli altri»).
+3. ~~**T17 — chiusura ondata**~~ **✅ FATTO e in produzione** (26/07/2026): strumentazione
+   diagnostica dei suoni rimossa · `scripts/tmp/` pulito e gitignorato · FASE 7 · review
+   whole-branch in 5 aree con il triage dei 69 rilievi → 0 bloccanti · allineamento spec DS v3 ·
+   FASE 9 Playwright su 3 viewport × 2 temi · **FASE 9b gate estetico L2 PASS, 0 ❌** · merge
+   `5504a20a` autorizzato da Francesco · BP-1.
+
+⚠️ **T16 e T17 restavano scritti qui come lavoro da fare** anche dopo essere stati chiusi,
+mergiati e pubblicati: chi leggeva questa lista li rimetteva in coda. L'unico punto ancora aperto
+di questa coda è il **numero 1** (nome e cognome del paziente nel wizard), più i quattro punti del
+collaudo della PWA installata.
 
 **Deferito alle ondate proprietarie** (ratifica 26/07): bottone oro e i difetti di leggibilità
 già appuntati sotto — «può essere che scomparirà del tutto quando revisioneremo le pagine».
@@ -232,7 +244,7 @@ già appuntati sotto — «può essere che scomparirà del tutto quando revision
 
 ## 🗺 CALENDARIO ONDATE MIGRAZIONE v3 — RATIFICATO DA FRANCESCO (20/07/2026)
 
-Direttiva «tutto deve migrare a v3». Censimento: 30 route ancora v2.3 (fonte `src/lib/nav/route-migrate-v3.ts`; griglia completa nel report censimento della sessione 20/07 sera — MEMORY (17)). Validato da panel advisor (solution-architect) con 4 correzioni integrate. Ordine per priorità d'uso + affinità di dominio, **max ~4 route per ondata, mai auth mischiata ad altro**:
+Direttiva «tutto deve migrare a v3». Censimento: **37 route ancora v2.3** (fonte `src/lib/nav/route-migrate-v3.ts`; griglia completa nel report censimento della sessione 20/07 sera — MEMORY (17)). ⚠️ Qui c'era scritto **30**, ed era sbagliato: la verifica di copertura del 26/07 più in basso in questa stessa sezione lo aveva già corretto a **37**, ma l'apertura non era stata allineata e il file si contraddiceva a poche righe di distanza. Le ondate B→G ne elencano 37: la copertura era già giusta, era sbagliato solo il numero in testa. Validato da panel advisor (solution-architect) con 4 correzioni integrate. Ordine per priorità d'uso + affinità di dominio, **max ~4 route per ondata, mai auth mischiata ad altro**:
 
 | Ondata | Route | Note |
 |---|---|---|
@@ -247,8 +259,41 @@ Direttiva «tutto deve migrare a v3». Censimento: 30 route ancora v2.3 (fonte `
 | **G** «qualità e produzione» | `/qualita` ×5 + `/cicli-produzione` ×2 + `/tecnici/[id]/produttivita` | + analytics quando arriva la sessione A15 |
 | **Trasversale** | smontaggio bridge `/lavori/[id]/modifica` | Un tab per ondata affine (es. TabClinica con l'ondata odontogramma) |
 | **Milestone finale** | ritiro chrome legacy globale | `BottomNavPill` + `UserProfileSheet` dal layout `(app)` — possibile solo a ultima route migrata; prerequisito O1i (fatto nel mini-triage) |
+| **DOPO la milestone finale** | **Centro notifiche + sistema di notifiche vero della PWA** | Decisione di Francesco del 26/07/2026 — v. sottosezione qui sotto. **È l'ultimo lavoro della lista.** |
 
 Fuori scope ondate: admin (DS neomorphic separato, sessione O2 dedicata) · portale dentista (standalone). La navbar a scomparsa (BottomNavPill) muore per sottrazione: già `null` su ogni route v3, sparisce del tutto alla milestone finale.
+
+### 🔔 CENTRO NOTIFICHE — collocato in fondo, per decisione di Francesco (26/07/2026)
+
+> «per il centro notifiche, ok, ma **implementiamolo alla fine della roadmap che abbiamo**».
+
+**Dove sta:** dopo la «Milestone finale — ritiro chrome legacy globale» del calendario qui sopra.
+Cioè **ultimo**, come dicono le sue parole. Non si comincia adesso e non si infila davanti a niente.
+Quando arriverà il suo turno serve il percorso **GRANDE** (`ua-app/CLAUDE.md` §0C) con panel di
+advisor prima di ratificare l'architettura: è un dominio nuovo (tabella, RLS con
+`public.current_lab_id()`, stato letto/non letto, consegna, ruoli, GDPR), non uno spostamento di UI.
+Il materiale per il brainstorming è già raccolto in
+`docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` §3.
+
+⚠️ **La tensione fra i due ordinamenti, scritta qui perché nessuno la risolva di nascosto.** Questa
+roadmap contiene **due ordini che non sono mai stati riconciliati**: il **calendario di migrazione**
+qui sopra (che finisce con la milestone finale) e la **sequenza operativa ratificata il 17/07**
+(risolvere i problemi → funzioni attive → design coerente → audit multi-agente → collaudo di
+Francesco), che sta in testa a questo file. Secondo il calendario il centro notifiche va **ultimo**;
+secondo la sequenza del 17/07 una **funzione nuova** cadrebbe al **passo 2**, cioè prima di tutto il
+lavoro di design — l'opposto. **Vale la decisione di Francesco: ultimo.** Se un domani i due ordini
+vanno davvero riconciliati, **è una decisione sua, non di una sessione**: nessuno lo rimetta al
+passo 2 leggendo la sequenza del 17/07 e ragionando da solo.
+
+⚠️ **Non duplicare: due voci esistenti parlano già in parte di questa roba.** Vanno agganciate qui,
+non riscritte da capo — altrimenti la roadmap porta la stessa cosa due volte.
+- **V2.0 n.1 «Portale dentista V2 — comunicazione bidirezionale»**: è il pezzo **lab↔clinico** della
+  messaggistica. Stessa materia, superficie diversa (il portale ha un'altra autenticazione).
+- **V2.0 n.8 «Log WhatsApp (`agenda_messaggi_clienti`)»**: è il registro dei messaggi mandati, cioè
+  metà dello schema che servirebbe comunque a un centro notifiche.
+
+Il pezzo davvero **nuovo** e senza casa è la messaggistica **fra gli operatori dello stesso
+laboratorio**: quella non esiste da nessuna parte, né qui né in V2.0.
 
 ### ✅ VERIFICA DI COPERTURA (26/07/2026, su richiesta di Francesco)
 
@@ -308,8 +353,8 @@ divergere — nella sua ondata va ricondotto ai token.
 | # | Feature | Priorità | Stima | Stato |
 |---|---------|----------|-------|-------|
 | DS | **Design System v2.3** | P0 | — | ⚠️ **Parziale, non 100%** (re-audit 02/07: login WCAG-fail, 2 violazioni residue in qualita/page.tsx, migrazione palette parziale — vedi backlog B12, A6, M6) |
-| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ⏳ Confermato non iniziato (grep SpeechRecognition → 0 risultati) |
-| 2 | **Email template branding** (Supabase) | P0 | 3h | ⏳ Bozza HTML pronta in `docs/email-templates-supabase.md`, manca solo applicazione manuale |
+| 1 | **Dettatura vocale** (Web Speech API) | P0 | 4h | ✅ **FATTA** — `src/components/ds/PillVoce.tsx` implementa la Web Speech API (`window.SpeechRecognition` / `webkitSpeechRecognition`) ed è montata nei **tre passi del wizard** (`PassoTipo`, `PassoDentista`, `PassoPaziente`) **e nel catalogo** `/ds-v3-catalogo`. ⚠️ Qui c'era scritto «⏳ Confermato non iniziato (grep SpeechRecognition → 0 risultati)»: quel grep era **falso** al momento della lettura — il file esiste e la stringa c'è. Il grep, evidentemente, era stato lanciato prima che il componente nascesse (o fuori da `src/`) e la riga non è più stata guardata. Resta a backlog la variante avanzata, che è un'altra cosa: **V2.0 n.4 «Dettatura vocale avanzata (Whisper)»** |
+| 2 | **Email template branding** (Supabase) | P0 | 3h | ✅ **FATTO** il 04/07/2026 (commit `01e915c`) — i 3 template Auth ridisegnati, **applicati sul Dashboard Supabase e verificati con un invio reale** (reset password su `francesco.formicola@live.it`, `mail.send` confermato nei log Auth). HTML in `docs/email-templates-supabase.md`, decisione in `docs/design/decisions/2026-07-04-s4-email-templates-branding.md`. ⚠️ Questa riga diceva «manca solo applicazione manuale» mentre **la stessa roadmap**, nella sezione S4 più in alto, dava il lavoro per completato e applicato: contraddizione interna, sciolta a favore di quello che mostrano il commit e il verbale. Stessa correzione alla «Nota» di §S4 più su |
 | 3 | **Rifacimenti UI** | P0 | 6h | ✅ Completato S2 (26/05/2026) |
 | 4 | **Logo + firma DdC** | P0 | 4h | ✅ Completato — rendering in `DdcTemplate.tsx` + hash SHA-256 integrità firma (A18, Bundle T 20/07, cut-off senza backfill) |
 | NEW | **2 Blocker critici da re-audit 02/07** (B1 materiali/lotti MDR, B2 dashboard/scadenzario) | 🔴 P0 | non stimato | ✅ Entrambi risolti — B1 (31cc47c, 02/07) · B2 (cbc034b, 03/07, dopo fix del bug residuo trovato in verifica finale), vedi sopra |
@@ -326,14 +371,14 @@ divergere — nella sua ondata va ricondotto ai token.
 
 | # | Feature | Priorità | Note |
 |---|---------|----------|------|
-| 1 | **Portale dentista V2** | P0 | Comunicazione bidirezionale, ordine lavoro dal portale, download DdC |
+| 1 | **Portale dentista V2** | P0 | Comunicazione bidirezionale, ordine lavoro dal portale, download DdC. 🔗 **La «comunicazione bidirezionale» è lo stesso soggetto** del centro notifiche collocato in fondo al calendario ondate v3 (§ «Centro notifiche», sopra): è il suo pezzo lab↔clinico. Da progettare insieme, mai due volte |
 | 2 | **Analytics avanzate** | P0 | Top clienti, margine per tipo dispositivo, lead time, tasso rifacimento |
 | 3 | **Multi-tier pricing avanzato** | P1 | listino_prezzi_tier con assegnazione per cliente. Ora 4 tier, serve 6+ |
 | 4 | **Dettatura vocale avanzata (Whisper)** | P1 | Whisper API OpenAI per accuracy su termini tecnici italiani (~€0.006/min) |
 | 5 | **Sezione Rete funzionale** | P1 | Dashboard multi-lab per admin_rete. Architettura: reti + reti_members già in DB |
 | 6 | **WhatsApp Cloud API ufficiale** | P2 | Notifiche automatiche (Meta Business + 360dialog/Twilio). Ora solo deep links |
 | 7 | **Allegati clinici avanzati** | P2 | Note vocali (audio), file STL scansioni, PDF prescrizione digitale |
-| 8 | **Log WhatsApp (agenda_messaggi_clienti)** | P2 | Tracciamento ogni messaggio mandato: data, testo, esito |
+| 8 | **Log WhatsApp (agenda_messaggi_clienti)** | P2 | Tracciamento ogni messaggio mandato: data, testo, esito. 🔗 **Metà dello schema che servirebbe comunque** al centro notifiche collocato in fondo al calendario ondate v3 (§ «Centro notifiche», sopra): stesso registro di messaggi. Da progettare insieme, mai due volte |
 | 9 | **Magazzino visivo** (Mixel-inspired) | P2 | Concept C: tile 3 col, 12 glifo SVG, fill-bar semaforo. Toggle lista↔vetrina. Vedi `MAGAZZINO-VISIVO-BRAINSTORM.md` |
 
 ---
