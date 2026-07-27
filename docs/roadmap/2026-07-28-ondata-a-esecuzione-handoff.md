@@ -138,5 +138,17 @@ Otto task, otto difetti nel piano — e **nessuno arrivato all'utente**. Il cont
 ✅ **Aggiornamento 28/07/2026 — le regole sono state ratificate e incise.** Panel 3× (architettura ·
 costo · **avversariale**), sei regole in vigore in `ua-app/CLAUDE.md` §0C, due scartate con motivo
 scritto, una nuova (**R-P6**) nata dalla lente avversariale. Verbale in
-`docs/processes/2026-07-27-lezioni-piano-ondata-a.md` **§7**. Da qui in avanti valgono per ogni piano,
-**compresi i task T9-T13 di quest'ondata**.
+`docs/processes/2026-07-27-lezioni-piano-ondata-a.md` **§7**.
+
+🛑 **E QUESTO PIANO? Regola di transizione, decisa qui perché non resti da indovinare.**
+Il piano dell'ondata (a) è **anteriore alle regole**: non ha registro delle prove, non ha la colonna
+`letto:`, non ha il censimento degli identificatori. **R-P1, R-P2 e R-P4 NON si applicano
+retroattivamente ai task T9-T13**: l'esecutore del T9 **non si ferma** per la loro assenza, e R-E1 non
+gli chiede di farlo. Vincolano **dal prossimo piano in poi**.
+
+**Un solo innesto, e non è formale — è il punto dove quella regola paga:** al **T10** si scrive la
+**tabella di destinazione di R-P6**, una riga per ogni nome che esce da `PATCHABLE_FIELDS`, con scritto
+**chi lo scriverà d'ora in avanti**. Costa poco (il censimento dei sette campi è già nel piano, §51) e
+copre esattamente il pericolo che obbliga T10-T11-T12 a viaggiare in un unico deploy: **un nome che esce
+dall'allowlist senza uno scrittore rediretto è un dato che smette di salvarsi in silenzio.** Una riga
+senza destinazione = il task non è finito.

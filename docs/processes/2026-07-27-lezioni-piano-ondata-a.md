@@ -81,7 +81,7 @@ verificarlo, e ha dimostrato che era falso**, trovando la controprova già prese
 
 ## 4. Le tre regole operative — proposte per la ratifica
 
-> ✅ **CHIUSO IL 27/07/2026.** Francesco ha delegato la decisione («falle controllare da advisor
+> ✅ **CHIUSO IL 28/07/2026** (lavoro svolto nella notte fra il 27 e il 28). Francesco ha delegato la decisione («falle controllare da advisor
 > specializzati e poi procedi a renderle permanenti se reputi che possano migliorare il nostro lavoro»).
 > Panel 3× eseguito (architettura · costo/sostenibilità · **avversariale**). **Le regole in vigore sono
 > quelle del §7 di questo documento, NON quelle qui sotto:** il panel ne ha riscritte tre, scartate due,
@@ -139,7 +139,7 @@ Prima di scrivere una funzione, un helper o un trigger, si cerca se esiste già 
 
 ---
 
-## 7. Il verbale del panel — cosa è entrato in vigore e cosa no (27/07/2026)
+## 7. Il verbale del panel — cosa è entrato in vigore e cosa no (28/07/2026)
 
 **Panel:** tre advisor indipendenti, lenti diverse: **architettura del processo** · **costo e
 sostenibilità** · **avversariale** (mandato: «rispetta le regole alla lettera e produci gli stessi otto

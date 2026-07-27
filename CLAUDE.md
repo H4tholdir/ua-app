@@ -120,7 +120,7 @@ Ogni **decisione significativa** (architetturale, di design, di priorità/roadma
 - MAI un esecutore su due task; MAI correggere di nascosto un difetto trovato fuori dal proprio mandato — si riferisce (R-E1 / R-E2)
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
 
-**REGOLE DI PIANO — vincoli sulla FASE 4 (ratificate 27/07/2026 dopo panel 3×)**
+**REGOLE DI PIANO — vincoli sulla FASE 4 (ratificate 28/07/2026 dopo panel 3×)**
 Origine e prove: `docs/processes/2026-07-27-lezioni-piano-ondata-a.md`. Il fatto che le ha
 generate: un piano di 2.200 righe, 8 task eseguiti, **8 difetti reali nel piano** — nessuno
 arrivato all'utente. La riga da tenere: **un piano non è un documento, è codice non ancora

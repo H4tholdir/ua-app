@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wizard — arcata ovale, ricerca colore, colore a tutto schermo (27/07/2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+  (function(){ var p=new URLSearchParams(location.search); if(p.get('tema')==='scuro') document.documentElement.setAttribute('data-tema','scuro'); })();
+</script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; }
+  svg { display:block; }
+  :root{
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --blue:#1D5FBF; --green:#1B7F3B; --amber:#9A5C00;
+    --sh-card:0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press:0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --grad-primario:linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+    --dashed:#CBC1B0; --dente-fill:#FFFEFA; --dente-stroke:#CFC6B4; --tasto-bg:#FFFEFA;
+    /* ── materia dell'arcata (chiaro) ── */
+    --smalto:#FBFAF6; --smalto-alto:#FFFFFF; --smalto-basso:#E9E4D8; --smalto-on:#FFFFFF; --smalto-bordo:#E3DCCC; --solco:#B9BFC9;
+    --gengiva-1:#F79AA0; --gengiva-2:#E97F88; --gengiva-bordo:#DE6E78;
+  }
+  :root[data-tema="scuro"]{
+    --bg:#171411; --bg-deep:#0F0D0A; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --blue:#5B9BFF; --green:#34C468; --amber:#E8A13D;
+    --sh-card:none; --sh-press:0 4px 0 rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    --dashed:#4A4237; --dente-fill:#38322A; --dente-stroke:#5A5246; --tasto-bg:#2B2620;
+    /* ── materia dell'arcata (scuro): smalto spento, gengiva desaturata ── */
+    --smalto:#DCD5C4; --smalto-alto:#F0EADA; --smalto-basso:#C2BAA6; --smalto-on:#FFFBF0; --smalto-bordo:#8E8574; --solco:#7C838F;
+    --gengiva-1:#B0707A; --gengiva-2:#8E555F; --gengiva-bordo:#7A464F;
+  }
+  body{ font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg-deep); color:var(--ink); padding:32px 20px 80px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1240px; margin:0 auto; }
+  h1{ font-size:31px; font-weight:800; letter-spacing:-.02em; margin-bottom:10px; }
+  .sub{ font-size:15.5px; font-weight:600; color:var(--muted); line-height:1.55; margin-bottom:10px; max-width:920px; }
+  .strada{ margin:48px 0 4px; padding-top:22px; border-top:2px solid var(--line); font-size:27px; font-weight:800; letter-spacing:-.02em; }
+  .strada-nota{ font-size:15.5px; font-weight:600; color:var(--muted); line-height:1.55; margin-bottom:22px; max-width:920px; }
+  .riga{ display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .col{ width:390px; }
+  .vnome{ font-size:13px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+  .vdesc{ font-size:12.5px; font-weight:700; color:var(--muted); line-height:1.5; margin-bottom:12px; min-height:56px; }
+  .verdetto{ font-size:12.5px; font-weight:800; margin-top:10px; }
+  .ok{ color:var(--green); } .ko{ color:var(--red); } .warn{ color:var(--amber); }
+
+  .tel{ width:390px; background:var(--bg); border-radius:28px; border:1px solid var(--line); overflow:hidden; box-shadow:var(--sh-card); }
+  .schermo{ padding:8px 24px 22px; }
+
+  .wz-top{ display:flex; align-items:center; gap:16px; margin-bottom:12px; }
+  .tondo{ width:44px; height:44px; border-radius:999px; background:var(--elv); box-shadow:var(--sh-press); display:grid; place-items:center; font-size:21px; font-weight:800; flex:0 0 auto; }
+  .dots{ display:flex; gap:6px; align-items:center; }
+  .dot{ width:7px; height:7px; border-radius:999px; background:var(--line); }
+  .dot.on{ background:var(--ink); width:20px; }
+  .dots-testo{ font-size:12.5px; font-weight:800; color:var(--faint); letter-spacing:.14em; text-transform:uppercase; }
+  .identita{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; background:var(--card); border:1px solid var(--line); border-radius:18px; margin-bottom:14px; box-shadow:var(--sh-card); }
+  .identita b{ font-size:13px; font-weight:800; } .identita span{ font-size:12.5px; font-weight:700; color:var(--muted); }
+  .idsep{ width:3px; height:3px; border-radius:999px; background:var(--faint); }
+  .domanda{ font-size:35px; font-weight:800; letter-spacing:-.02em; line-height:1.06; margin-bottom:6px; }
+  .aiuto{ font-size:15.5px; font-weight:600; color:var(--muted); margin-bottom:14px; line-height:1.45; }
+
+  /* ===== L'ARCATA ===== */
+  .arcata-box{ position:relative; width:100%; background:var(--card); border:1px solid var(--line); border-radius:22px; box-shadow:var(--sh-card); }
+  .arc-lab{ position:absolute; left:50%; transform:translateX(-50%); font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .dbtn{ position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; background:transparent; padding:0; }
+  .dbtn .sag{ pointer-events:none; }
+  .dbtn .num{ font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--muted); pointer-events:none; }
+  .dbtn.on .num{ color:var(--ink); font-weight:800; }
+
+  /* ===== La fila — seconda vista, sincronizzata con l'arcata ===== */
+  .fila-blocco{ margin-bottom:10px; }
+  .fila-lab{ font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-bottom:4px; }
+  .fila{ display:flex; gap:0; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:2px; box-shadow:var(--sh-card); }
+  .fdente{ height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:12px; background:transparent; flex:0 0 auto; }
+  .fdente.on{ background:color-mix(in srgb, var(--gengiva-1) 34%, transparent); }
+  .fnum{ font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--muted); }
+  .fdente.on .fnum{ color:var(--ink); }
+
+  /* Selettore arcata (variante O2) */
+  .sel-arc{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .sel-arc button{ height:52px; border-radius:999px; border:1.5px solid var(--line); background:var(--card); font-size:15.5px; font-weight:700; box-shadow:var(--sh-card); }
+  .sel-arc button.on{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+
+  .eco-lab{ font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:14px 0 8px; }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{ height:44px; padding:0 14px; border-radius:999px; background:var(--card); border:1.5px solid var(--line); display:flex; align-items:center; gap:7px; font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; box-shadow:var(--sh-card); }
+  .chip .x{ font-size:15px; color:var(--muted); }
+  .chip .val{ font-size:13px; font-weight:800; color:var(--muted); }
+  .chip .past{ width:18px; height:18px; border-radius:999px; border:1px solid rgba(0,0,0,.22); }
+  .chip.sel{ border-color:var(--ink); border-width:2.5px; }
+  .chip.vuoto{ border-style:dashed; border-color:var(--dashed); }
+
+  /* ===== Ricerca colore ===== */
+  .cerca{ display:flex; align-items:center; gap:10px; height:56px; border-radius:18px; border:1.5px solid var(--line); background:var(--card); padding:0 16px; box-shadow:var(--sh-card); margin-bottom:14px; }
+  .cerca .lente{ font-size:19px; color:var(--faint); }
+  .cerca .ph{ font-size:17px; font-weight:700; color:var(--faint); }
+  .fam{ margin-bottom:10px; }
+  .fam-top{ display:flex; align-items:baseline; gap:8px; margin-bottom:6px; }
+  .fam-k{ font-size:21px; font-weight:800; } .fam-n{ font-size:12.5px; font-weight:700; color:var(--muted); }
+  .fam-riga{ display:grid; gap:6px; }
+  .vt{ height:56px; border-radius:16px; border:1.5px solid var(--line); background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; box-shadow:var(--sh-card); }
+  .vt .cod{ font-size:15.5px; font-weight:800; }
+  .vt .past{ width:24px; height:10px; border-radius:999px; border:1px solid rgba(0,0,0,.22); }
+  .vt.on{ border-color:var(--ink); border-width:2.5px; }
+
+  .primario{ width:100%; height:60px; border-radius:20px; background:var(--grad-primario); color:#fff; font-size:17px; font-weight:800; box-shadow:0 5px 0 var(--red-dark), 0 14px 24px -14px rgba(50,40,25,.5); margin-top:16px; }
+  .quieto{ width:100%; height:48px; color:var(--muted); font-size:15.5px; font-weight:700; margin-top:8px; text-decoration:underline; text-underline-offset:4px; }
+
+  /* ===== Colore a tutto schermo ===== */
+  .pieno{ position:relative; height:640px; display:flex; flex-direction:column; }
+  .pieno .campo{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+  .pieno .cod-grande{ font-size:52px; font-weight:800; letter-spacing:-.03em; }
+  .pieno .fam-grande{ font-size:15.5px; font-weight:700; }
+  .pieno .avviso{ margin:0 20px 20px; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,.82); border:1px solid rgba(0,0,0,.10); font-size:12.5px; font-weight:700; color:#3A3229; line-height:1.45; text-align:center; }
+  .pieno .lascia{ text-align:center; font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:rgba(0,0,0,.45); margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>L'arcata ovale, la ricerca del colore, il colore a tutto schermo</h1>
+  <p class="sub">
+    Le misure sotto ogni variante sono prese dal browser, non stimate. Il minimo richiesto dal progetto è <strong>44×44&nbsp;px</strong>.
+  </p>
+  <div id="out"></div>
+</div>
+
+<script>
+/* ============================================================
+   Denti — numerazione FDI (ISO 3950), quella che usano
+   3Shape e Medit e che è la norma in Italia.
+   ============================================================ */
+const SUP = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28]; // sinistra→destra sullo schermo
+const INF = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+const TIPO_DI = n => { const p=n%10; return p>=6?'molare':p>=4?'premolare':p===3?'canino':p===2?'laterale':'centrale'; };
+const SCELTI = [13,12,11,21];
+
+const VITA = {
+  'A1':'#F2E9D8','A2':'#EDE0C8','A3':'#E6D5B6','A3.5':'#DFCBA5','A4':'#D4BC91',
+  'B1':'#F4EDDD','B2':'#EDE3C6','B3':'#E4D5AC','B4':'#DBC79A',
+  'C1':'#E9E2D5','C2':'#DFD5C2','C3':'#D2C6AF','C4':'#C2B39B',
+  'D2':'#EAE1D0','D3':'#E1D6C0','D4':'#D6C9B0',
+  'T':'#E8E8E4','BL':'#F7F3E9','OM':'#EFE6D2',
+};
+const FAMIGLIE = [
+  {k:'A',nome:'rossastri-marroni',v:['A1','A2','A3','A3.5','A4']},
+  {k:'B',nome:'rossastri-gialli',v:['B1','B2','B3','B4']},
+  {k:'C',nome:'grigiastri',v:['C1','C2','C3','C4']},
+  {k:'D',nome:'rossastri-grigi',v:['D2','D3','D4']},
+];
+
+/* Sagoma vista dall'alto (occlusale), a colori: smalto avorio, solchi incisi,
+   e — quando è selezionato — un anello spesso di inchiostro invece di annerire
+   tutto il dente. L'anello è FORMA, non colore: si vede anche in bianco e nero
+   (L3), e il dente resta riconoscibile come dente. */
+function sagomaOcclusale(tipo, on, id) {
+  const g = `sm${id}`;
+  const bordo = on ? 'var(--ink)' : 'var(--smalto-bordo)';
+  const sw = on ? 5 : 1.5;
+  let corpo = '', solchi = '';
+  if (tipo === 'molare') {
+    corpo = `<rect x="8" y="10" width="84" height="80" rx="30" fill="url(#${g})" stroke="${bordo}" stroke-width="${sw}"/>`;
+    // il solco a X dei molari, come nell'illustrazione di riferimento
+    solchi = `<path d="M32 30 Q50 46 34 70 M68 30 Q50 46 66 70" stroke="var(--solco)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  } else if (tipo === 'premolare') {
+    corpo = `<rect x="12" y="14" width="76" height="72" rx="30" fill="url(#${g})" stroke="${bordo}" stroke-width="${sw}"/>`;
+    solchi = `<path d="M36 34 Q50 50 38 66 M64 34 Q50 50 62 66" stroke="var(--solco)" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+  } else if (tipo === 'canino') {
+    corpo = `<path d="M50 8 Q80 26 78 56 Q76 86 50 92 Q24 86 22 56 Q20 26 50 8 Z" fill="url(#${g})" stroke="${bordo}" stroke-width="${sw}"/>`;
+    solchi = `<path d="M50 30 L50 74" stroke="var(--solco)" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  } else {
+    const w = tipo === 'centrale' ? 38 : 32;
+    corpo = `<path d="M${50-w} 26 Q${50-w} 8 50 8 Q${50+w} 8 ${50+w} 26 L${50+w-3} 72 Q50 94 ${50-w+3} 72 Z" fill="url(#${g})" stroke="${bordo}" stroke-width="${sw}"/>`;
+    solchi = '';
+  }
+  return `<svg class="sag" viewBox="0 0 100 100" aria-hidden="true">
+    <defs><radialGradient id="${g}" cx="38%" cy="26%" r="82%">
+      <stop offset="0%" stop-color="var(--smalto-alto)"/>
+      <stop offset="58%" stop-color="var(--smalto)"/>
+      <stop offset="100%" stop-color="var(--smalto-basso)"/>
+    </radialGradient></defs>
+    ${corpo}${solchi}</svg>`;
+}
+
+/* ===== Il dente visto DI LATO, con la radice — per la striscia =====
+   Riferimento: la tavola anatomica inviata da Francesco il 27/07. Corona bombata
+   con lo smalto lucido, radice affusolata (biforcata sui molari, doppia sui
+   premolari superiori, singola e lunga sui canini). L'arcata superiore ha la
+   radice in ALTO e la corona in basso; l'inferiore il contrario. */
+function sagomaLaterale(tipo, arc, on, id) {
+  const g = `lt${id}`;
+  const sup = arc === 'sup';
+  const bordo = on ? 'var(--ink)' : 'var(--smalto-bordo)';
+  const sw = on ? 4 : 1.2;
+  // corona su 0..100 in larghezza, altezza totale 240
+  const cH = tipo === 'molare' ? 92 : tipo === 'premolare' ? 84 : tipo === 'canino' ? 86 : 82;
+  const H = 240, rH = H - cH;
+  const cY = sup ? rH : 0;         // y dove inizia la corona
+  const rY = sup ? 0 : cH;         // y dove inizia la radice
+  const cx = 50;
+
+  let corona;
+  if (tipo === 'molare') {
+    const x0 = 6, x1 = 94, y0 = cY, y1 = cY + cH, r = 22;
+    corona = sup
+      ? `M ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} L ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r}
+         L ${x1} ${y1-16} Q ${x1-4} ${y1} ${74} ${y1-6} Q ${62} ${y1+4} ${50} ${y1-8}
+         Q ${38} ${y1+4} ${26} ${y1-6} Q ${x0+4} ${y1} ${x0} ${y1-16} Z`
+      : `M ${x0} ${y0+16} Q ${x0+4} ${y0} ${26} ${y0+6} Q ${38} ${y0-4} ${50} ${y0+8}
+         Q ${62} ${y0-4} ${74} ${y0+6} Q ${x1-4} ${y0} ${x1} ${y0+16}
+         L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-r} ${y1} L ${x0+r} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} Z`;
+  } else if (tipo === 'premolare') {
+    const x0 = 16, x1 = 84, y0 = cY, y1 = cY + cH, r = 20;
+    corona = sup
+      ? `M ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} L ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r}
+         L ${x1} ${y1-14} Q ${x1-6} ${y1+2} ${58} ${y1-10} Q ${50} ${y1-18} ${42} ${y1-10}
+         Q ${x0+6} ${y1+2} ${x0} ${y1-14} Z`
+      : `M ${x0} ${y0+14} Q ${x0+6} ${y0-2} ${42} ${y0+10} Q ${50} ${y0+18} ${58} ${y0+10}
+         Q ${x1-6} ${y0-2} ${x1} ${y0+14} L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-r} ${y1}
+         L ${x0+r} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} Z`;
+  } else if (tipo === 'canino') {
+    const x0 = 20, x1 = 80, y0 = cY, y1 = cY + cH;
+    corona = sup
+      ? `M ${x0} ${y0+14} Q ${x0-2} ${y0} ${cx} ${y0} Q ${x1+2} ${y0} ${x1} ${y0+14}
+         L ${x1-4} ${y1-18} Q ${cx} ${y1+8} ${x0+4} ${y1-18} Z`
+      : `M ${x0+4} ${y0+18} Q ${cx} ${y0-8} ${x1-4} ${y0+18}
+         L ${x1} ${y1-14} Q ${x1+2} ${y1} ${cx} ${y1} Q ${x0-2} ${y1} ${x0} ${y1-14} Z`;
+  } else {
+    const w = tipo === 'centrale' ? 33 : 27;
+    const x0 = cx-w, x1 = cx+w, y0 = cY, y1 = cY + cH;
+    corona = sup
+      ? `M ${x0} ${y0+16} Q ${x0-2} ${y0} ${cx} ${y0} Q ${x1+2} ${y0} ${x1} ${y0+16}
+         L ${x1-3} ${y1-10} Q ${cx} ${y1+6} ${x0+3} ${y1-10} Z`
+      : `M ${x0+3} ${y0+10} Q ${cx} ${y0-6} ${x1-3} ${y0+10}
+         L ${x1} ${y1-16} Q ${x1+2} ${y1} ${cx} ${y1} Q ${x0-2} ${y1} ${x0} ${y1-16} Z`;
+  }
+
+  // Le radici: forme PIENE, larghe alla base e appuntite in fondo — come nella
+  // tavola anatomica. Con uno stroke di spessore costante venivano spilli.
+  const punta = sup ? rY + 6 : rY + rH - 6;
+  const base  = sup ? rY + rH : rY;
+  // una radice singola: dal bordo sinistro della base alla punta e ritorno
+  const radice = (cxr, semiBase, dxPunta) => {
+    const px = cxr + dxPunta;
+    return `<path d="M ${cxr - semiBase} ${base}
+        Q ${cxr - semiBase*0.75} ${(base*0.35 + punta*0.65)} ${px - 3} ${punta}
+        Q ${px} ${punta + (sup ? -3 : 3)} ${px + 3} ${punta}
+        Q ${cxr + semiBase*0.75} ${(base*0.35 + punta*0.65)} ${cxr + semiBase} ${base} Z"
+      fill="url(#${g})" stroke="${bordo}" stroke-width="${sw*0.7}" stroke-linejoin="round"/>`;
+  };
+  let radici;
+  if (tipo === 'molare') {
+    // molare: due radici divaricate, larghe alla base quasi quanto mezza corona
+    radici = radice(28, 21, -8) + radice(72, 21, 8);
+  } else if (tipo === 'premolare') {
+    radici = radice(50, 27, 0);
+  } else if (tipo === 'canino') {
+    radici = radice(50, 25, 0);
+  } else {
+    radici = radice(50, tipo === 'centrale' ? 25 : 21, 0);
+  }
+
+  return `<svg class="sag" viewBox="0 0 100 ${H}" aria-hidden="true">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--smalto-basso)"/>
+      <stop offset="34%" stop-color="var(--smalto-alto)"/>
+      <stop offset="70%" stop-color="var(--smalto)"/>
+      <stop offset="100%" stop-color="var(--smalto-basso)"/>
+    </linearGradient></defs>
+    ${radici}
+    <path d="${corona}" fill="url(#${g})" stroke="${bordo}" stroke-width="${sw}"/>
+  </svg>`;
+}
+
+/* La gengiva: una banda che segue la stessa curva dei denti e ci passa sotto.
+   Costruita come poligono fra due curve parallele (esterna e interna). */
+function bandaGengiva(pts, spessore, cx, cy, verso) {
+  const est = [], int = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i-1)], b = pts[Math.min(pts.length-1, i+1)];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const L = Math.hypot(dx, dy) || 1;
+    const nx = -dy/L, ny = dx/L;         // normale alla curva
+    // verso l'esterno = allontanandosi dal centro dell'arcata
+    const vx = pts[i].x - cx, vy = pts[i].y - cy;
+    const segno = (nx*vx + ny*vy) >= 0 ? 1 : -1;
+    est.push({ x: pts[i].x + nx*spessore*0.62*segno, y: pts[i].y + ny*spessore*0.62*segno });
+    int.push({ x: pts[i].x - nx*spessore*0.48*segno, y: pts[i].y - ny*spessore*0.48*segno });
+  }
+  const d = 'M ' + est.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ')
+          + ' L ' + int.reverse().map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ') + ' Z';
+  return `<path d="${d}" fill="url(#gengiva)" stroke="var(--gengiva-bordo)" stroke-width="1.5" stroke-linejoin="round"/>`;
+}
+
+/* ============================================================
+   Posiziona 16 denti lungo una semi-ellisse (una arcata).
+   Restituisce l'HTML dei bottoni + l'altezza occupata.
+   `bersaglio` = lato del bottone in px (l'area toccabile).
+   ============================================================ */
+function arcata(denti, verso, opt) {
+  const { larghezza, altezza, bersaglio, sagoma } = opt;
+  const rx = larghezza/2 - bersaglio/2 - 2;
+  const ry = altezza - bersaglio/2 - 14;
+  const cx = larghezza/2;
+  const cy = verso === 'sup' ? altezza : 0;   // il centro della U
+
+  // I denti vanno distribuiti a distanza costante LUNGO LA CURVA, non a passo
+  // d'angolo costante: su un'ellisse l'angolo uniforme li ammucchia agli estremi
+  // (misurato: 18 px fra due centri invece di 44). Campiono la curva e cerco i
+  // punti equidistanti.
+  // La curva NON è un'ellisse: un'arcata dentale ha i lati quasi paralleli e il
+  // fronte più stretto. Si ottiene con una superellisse (esponente > 2): con 2
+  // sarebbe un ovale tondo come un uovo, e i molari finirebbero troppo "aperti".
+  const K = 2.6;
+  const sup1 = (th) => {
+    const c = Math.cos(th), s = Math.sin(th);
+    return {
+      x: cx + rx * Math.sign(c) * Math.pow(Math.abs(c), 2/K),
+      y: (verso==='sup' ? cy - ry : cy + ry) * 0 + (verso==='sup'
+          ? cy - ry * Math.pow(Math.abs(s), 2/K)
+          : cy + ry * Math.pow(Math.abs(s), 2/K)),
+    };
+  };
+  const CAMPIONI = 4000;
+  const pts = [], cum = [0];
+  for (let s = 0; s <= CAMPIONI; s++) {
+    pts.push(sup1(Math.PI * (1 - s/CAMPIONI)));
+    if (s > 0) cum.push(cum[s-1] + Math.hypot(pts[s].x-pts[s-1].x, pts[s].y-pts[s-1].y));
+  }
+  const totale = cum[CAMPIONI];
+  const puntoA = (dist) => {
+    let lo = 0, hi = CAMPIONI;
+    while (lo < hi) { const mid = (lo+hi)>>1; if (cum[mid] < dist) lo = mid+1; else hi = mid; }
+    return pts[lo];
+  };
+
+  // ── La gengiva: banda continua sotto i denti, disegnata per prima ──
+  const centriDenti = denti.map((_, i) => puntoA(totale * i/(denti.length-1)));
+  const gengiva = `<svg style="position:absolute;left:0;top:0;width:${larghezza}px;height:${altezza + bersaglio/2}px;overflow:visible" aria-hidden="true">
+      <defs><linearGradient id="gengiva-${verso}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--gengiva-1)"/><stop offset="100%" stop-color="var(--gengiva-2)"/>
+      </linearGradient></defs>
+      ${bandaGengiva(centriDenti, bersaglio, cx, cy, verso).replace('url(#gengiva)', `url(#gengiva-${verso})`)}
+    </svg>`;
+
+  return gengiva + denti.map((n, i) => {
+    const t = totale * i/(denti.length-1);
+    const p = puntoA(t);
+    const x = p.x, y = p.y;
+    // Ogni dente è ruotato come sta in bocca: la corona guarda verso il centro
+    // dell'arcata. L'angolo si prende dalla tangente locale della curva.
+    const q = puntoA(Math.min(totale, t + 6));
+    const r = puntoA(Math.max(0, t - 6));
+    const rot = Math.atan2(q.y - r.y, q.x - r.x) * 180/Math.PI;
+    const on = SCELTI.includes(n);
+    const dim = bersaglio;
+    const sagDim = Math.round(dim * 0.92);          // la sagoma riempie il bersaglio
+    const sag = sagoma
+      ? `<div style="position:absolute;left:50%;top:50%;width:${sagDim}px;height:${sagDim}px;transform:translate(-50%,-50%) rotate(${rot.toFixed(1)}deg)">${sagomaOcclusale(TIPO_DI(n), on, verso+n)}</div>`
+      : '';
+    // Il numero sta FUORI dall'arcata, sul prolungamento del raggio: così non
+    // copre il dente e non si confonde con quello vicino.
+    const dx = (x - cx) / (larghezza/2), dy = (verso==='sup' ? -1 : 1);
+    const nx = dx * (dim*0.62), ny = dy * (dim*0.62);
+    return `<button class="dbtn${on?' on':''}" style="left:${(x-dim/2).toFixed(1)}px;top:${(y-dim/2).toFixed(1)}px;width:${dim}px;height:${dim}px">
+        ${sag}<span class="num" style="position:absolute;left:50%;top:50%;transform:translate(calc(-50% + ${nx.toFixed(1)}px), calc(-50% + ${ny.toFixed(1)}px))">${n}</span></button>`;
+  }).join('');
+}
+
+/* ===== Pezzi ricorrenti ===== */
+const testata = (p,t) => `<div class="wz-top"><div class="tondo">‹</div>
+  <div class="dots">${Array.from({length:t},(_,i)=>`<div class="dot${i<p?' on':''}"></div>`).join('')}</div>
+  <div class="dots-testo">ancora poco</div></div>`;
+const identita = (tipo) => `<div class="identita"><b>Dott. Esposito</b><div class="idsep"></div><span>PZ-0231</span><div class="idsep"></div><span>${tipo||'Corona zirconia'}</span></div>`;
+const chipsScelti = () => SCELTI.map(n=>`<div class="chip">${n}<span class="x">✕</span></div>`).join('');
+
+/* ===== O1 — ovale intero, come l'immagine di Francesco ===== */
+function O1(){
+  const L = 342, H = 216, B = 44;
+  return `<div class="tel"><div class="schermo">
+    ${testata(3,5)} ${identita()}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Tocca i denti sulla mappa.</div>
+    <div class="arcata-box" style="height:${H*2+34}px">
+      <div class="arc-lab" style="top:${H-8}px">— piano occlusale —</div>
+      <div style="position:absolute;left:0;top:8px;width:${L}px;height:${H}px">${arcata(SUP,'sup',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+      <div style="position:absolute;left:0;top:${H+26}px;width:${L}px;height:${H}px">${arcata(INF,'inf',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+    </div>
+    <div class="eco-lab">Hai scelto</div><div class="chips">${chipsScelti()}</div>
+    <button class="primario">Avanti</button><button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== O2 — una arcata alla volta ===== */
+function O2(){
+  const L = 342, H = 330, B = 56;
+  return `<div class="tel"><div class="schermo">
+    ${testata(3,5)} ${identita()}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Prima sopra o sotto, poi i denti.</div>
+    <div class="sel-arc"><button class="on">Sopra</button><button>Sotto</button></div>
+    <div class="arcata-box" style="height:${H+16}px">
+      <div style="position:absolute;left:0;top:8px;width:${L}px;height:${H}px">${arcata(SUP,'sup',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+    </div>
+    <div class="eco-lab">Hai scelto</div><div class="chips">${chipsScelti()}</div>
+    <button class="primario">Avanti</button><button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== O3 — ovale intero, denti più grandi che si toccano ===== */
+function O3(){
+  const L = 342, H = 250, B = 52;
+  return `<div class="tel"><div class="schermo">
+    ${testata(3,5)} ${identita()}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Tocca i denti sulla mappa.</div>
+    <div class="arcata-box" style="height:${H*2+30}px">
+      <div class="arc-lab" style="top:${H-6}px">— piano occlusale —</div>
+      <div style="position:absolute;left:0;top:6px;width:${L}px;height:${H}px">${arcata(SUP,'sup',{larghezza:L,altezza:H,bersaglio:B,sagoma:false})}</div>
+      <div style="position:absolute;left:0;top:${H+22}px;width:${L}px;height:${H}px">${arcata(INF,'inf',{larghezza:L,altezza:H,bersaglio:B,sagoma:false})}</div>
+    </div>
+    <div class="eco-lab">Hai scelto</div><div class="chips">${chipsScelti()}</div>
+    <button class="primario">Avanti</button>
+  </div></div>`;
+}
+
+/* ===== O5 — la versione che STA nello schermo di un telefono =====
+   Vincolo reale: ~660 px utili su un 390×844 (tolte barra e area sicura).
+   Per far entrare un'arcata alta abbastanza (≥330 px, misurato) si toglie il
+   superfluo: l'identità entra nella testata, la riga «hai scelto» sparisce
+   perché i denti scelti si vedono GIÀ sull'arcata, e il tasto resta ancorato
+   in basso — stesso schema del pannello dei clienti, che risolveva già questo. */
+function O5(){
+  const L = 342, H = 318, B = 56;
+  return `<div class="tel" style="height:660px;display:flex;flex-direction:column">
+    <div style="padding:8px 24px 0">
+      <div class="wz-top" style="margin-bottom:8px">
+        <div class="tondo">‹</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dott. Esposito · PZ-0231</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--faint)">Corona zirconia</div>
+        </div>
+        <div class="dots">${Array.from({length:5},(_,i)=>`<div class="dot${i<3?' on':''}"></div>`).join('')}</div>
+      </div>
+      <div class="domanda" style="font-size:31px;margin-bottom:8px">Quali denti?</div>
+      <div class="sel-arc" style="margin-bottom:8px"><button class="on">Sopra</button><button>Sotto</button></div>
+    </div>
+    <div style="flex:1;overflow:visible;padding:0 24px">
+      <div class="arcata-box" style="height:${H}px;border:0;box-shadow:none;background:transparent">
+        <div style="position:absolute;left:0;top:0;width:${L}px;height:${H}px">${arcata(SUP,'sup',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+      </div>
+    </div>
+    <div style="padding:0 24px 16px;background:var(--bg)">
+      <button class="primario" style="margin-top:0">Avanti · 4 denti</button>
+    </div>
+  </div>`;
+}
+
+/* ===== La fila orizzontale — la seconda vista, sincronizzata con l'arcata =====
+   Serve a leggere i denti in ordine, come su una tabella: la mappa dice DOVE,
+   la fila dice QUALI. Toccare un dente in una delle due accende l'altra. */
+function filaOrizzontale(denti, etichetta, larghezzaCella) {
+  const arc = denti[0] < 30 ? 'sup' : 'inf';
+  const celle = denti.map(n => {
+    const on = SCELTI.includes(n);
+    // il numero sta dalla parte della RADICE, mai sopra la corona
+    const num = `<span class="fnum">${n}</span>`;
+    const fig = `<div style="width:${larghezzaCella-6}px;height:96px">${sagomaLaterale(TIPO_DI(n), arc, on, 'f'+n)}</div>`;
+    return `<button class="fdente${on?' on':''}" style="width:${larghezzaCella}px">
+      ${arc === 'sup' ? num + fig : fig + num}</button>`;
+  }).join('');
+  return `<div class="fila-blocco">
+    <div class="fila-lab">${etichetta}</div>
+    <div class="fila">${celle}</div>
+  </div>`;
+}
+
+/* ===== Vista tablet — l'ovale intero + la fila, affiancate ===== */
+function tablet(){
+  // Spazio reale: 768 − 28×2 = 712. Affiancare mappa e fila NON ci sta (misurato:
+  // l'arcata scenderebbe a 39 px fra denti vicini). La fila va SOTTO, dove ha
+  // tutta la larghezza: 16 denti × 44 px = 704, dentro i 712 disponibili.
+  const L = 712, H = 156, B = 52;
+  const cella = 44;
+  return `<div class="tel" style="width:768px"><div class="schermo" style="padding:8px 28px 22px">
+    ${testata(3,5)} ${identita()}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Tocca i denti dove preferisci: la mappa e la fila si accendono insieme.</div>
+    <div class="arcata-box" style="height:${H*2+76}px;margin-bottom:14px">
+      <div class="arc-lab" style="top:${H+28}px">— piano occlusale —</div>
+      <div style="position:absolute;left:0;top:8px;width:${L}px;height:${H}px">${arcata(SUP,'sup',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+      <div style="position:absolute;left:0;top:${H+68}px;width:${L}px;height:${H}px">${arcata(INF,'inf',{larghezza:L,altezza:H,bersaglio:B,sagoma:true})}</div>
+    </div>
+    ${filaOrizzontale(SUP, 'Sopra — dal fondo destro al fondo sinistro', cella)}
+    ${filaOrizzontale(INF, 'Sotto', cella)}
+    <button class="primario">Avanti · 4 denti</button>
+  </div></div>`;
+}
+
+/* ===== Colore con ricerca ===== */
+function coloreCerca(){
+  const chips = SCELTI.map((n,i)=>{ const c = i<2?'A3':'B2';
+    return `<div class="chip${i>=2?' sel':''}"><span class="past" style="background:${VITA[c]}"></span>${n}<span class="val">${c}</span></div>`; }).join('');
+  const fam = FAMIGLIE.map(f=>`<div class="fam"><div class="fam-top"><div class="fam-k">${f.k}</div><div class="fam-n">${f.nome}</div></div>
+    <div class="fam-riga" style="grid-template-columns:repeat(${f.v.length},1fr)">
+      ${f.v.map(c=>`<div class="vt${c==='A3'?' on':''}"><div class="cod">${c}</div><div class="past" style="background:${VITA[c]}"></div></div>`).join('')}
+    </div></div>`).join('');
+  return `<div class="tel"><div class="schermo">
+    ${testata(4,5)} ${identita()}
+    <div class="domanda">Di che colore?</div>
+    <div class="aiuto">Tieni premuto su un colore per vederlo grande.</div>
+    <div class="chips" style="margin-bottom:14px">${chips}</div>
+    <div class="cerca"><span class="lente">⌕</span><span class="ph">Cerca il colore…</span></div>
+    ${fam}
+    <button class="primario">Avanti</button><button class="quieto">Non sono tutti uguali</button>
+  </div></div>`;
+}
+
+/* ===== Il colore a tutto schermo ===== */
+function coloreGrande(){
+  const c = 'A3', tinta = VITA[c];
+  return `<div class="tel"><div class="pieno" style="background:${tinta}">
+    <div class="campo">
+      <div class="cod-grande" style="color:#2A241C">${c}</div>
+      <div class="fam-grande" style="color:#4A4238">famiglia A · rossastri-marroni</div>
+    </div>
+    <div class="lascia">lascia il dito per tornare</div>
+    <div class="avviso"><strong>Non è un campione di misura.</strong> Il colore dipende dallo schermo e dalla luce: serve a orientarsi, mai a decidere la tinta. La tinta si stabilisce con la mazzetta.</div>
+  </div></div>`;
+}
+
+/* ============================================================ */
+const blocchi = [
+  { titolo:'L\'arcata ovale — tre modi, misurati',
+    nota:'La tua idea: l\'ovale usa lo spazio in altezza, che il layout a righe sprecava. Le tre varianti provano a spingerla fin dove regge. La sagoma è vista dall\'alto — è così che si guardano i denti in un odontogramma ad arcata.',
+    varianti:[
+      {n:'O1 — ovale intero, bersaglio 44', d:'Le due arcate insieme, come nell\'immagine che mi hai mandato. Bersagli esattamente al minimo consentito.', html:O1()},
+      {n:'O2 — una arcata alla volta, bersaglio 56', d:'Prima sopra o sotto, poi i denti. Un tocco in più, ma i denti diventano molto più grandi e l\'ovale respira.', html:O2()},
+      {n:'O3 — ovale intero, bersaglio 52, senza sagome', d:'Le due arcate insieme ma con bersagli più grandi, ottenuti togliendo la sagoma e lasciando solo il numero.', html:O3()},
+      {n:'O5 — quella che STA nello schermo', d:'Le altre sfondano: il tasto Avanti finisce sotto il bordo. Qui l\'identità entra nella testata, la riga «hai scelto» sparisce (i denti scelti si vedono già sull\'arcata) e il tasto resta ancorato in basso. Altezza bloccata a 660 px, quanto un telefono vero.', html:O5()},
+    ]},
+  { titolo:'La stessa cosa sul tablet — la tua doppia vista',
+    nota:'Su 768 px l\'ovale intero ci sta comodo e non serve più scegliere l\'arcata: si vedono tutti e 32 i denti insieme, con bersagli da 64 px.',
+    larga:true,
+    varianti:[
+      {n:'O4 — tablet, l\'ovale intero', d:'Larghezza reale del riquadro: 768 px.', html:tablet()},
+    ]},
+  { titolo:'Il colore — con la ricerca, e con lo schermo pieno',
+    nota:'La ricerca serve davvero se le tinte crescono: oggi sono 19, ma se un giorno aggiungiamo la seconda scala VITA (quella a tre cifre, tipo 2M2) diventano quasi cinquanta.',
+    varianti:[
+      {n:'colore con ricerca', d:'La barra di ricerca in cima, le famiglie sotto. Il codice resta il protagonista, la pastiglia è un aiuto.', html:coloreCerca()},
+      {n:'tieni premuto → schermo pieno', d:'La tua idea. Il colore riempie lo schermo, con il codice sopra. Serve a orientarsi — e va detto a chiare lettere che non è una misura.', html:coloreGrande()},
+    ]},
+];
+
+document.getElementById('out').innerHTML = blocchi.map((b,i)=>`
+  <section class="blocco" id="blocco-${i+1}">
+    <div class="strada">${b.titolo}</div>
+    <div class="strada-nota">${b.nota}</div>
+    <div class="riga">${b.varianti.map(v=>`
+      <div class="col" style="${b.larga?'width:768px':''}"><div class="vnome">${v.n}</div><div class="vdesc">${v.d}</div>${v.html}
+      <div class="verdetto" data-misura="${v.n}"></div></div>`).join('')}</div>
+  </section>`).join('');
+
+/* ===== Misura vera dei bersagli e delle sovrapposizioni ===== */
+(function(){
+  const minTra = (a, b) => {            // distanza minima fra due insiemi di centri
+    let m = 1e9;
+    a.forEach(p => b.forEach(q => { if (p !== q) m = Math.min(m, Math.hypot(p.x-q.x, p.y-q.y)); }));
+    return m;
+  };
+  document.querySelectorAll('.col').forEach(col => {
+    const v = col.querySelector('.verdetto');
+    if (!v) return;
+    // ogni arcata vive nel suo contenitore: le misuro separatamente
+    const gruppi = [...col.querySelectorAll('.arcata-box > div')]
+      .map(g => [...g.querySelectorAll('.dbtn')])
+      .filter(g => g.length);
+    if (!gruppi.length) return;
+    let minW = 1e9;
+    const centri = gruppi.map(g => g.map(b => {
+      const r = b.getBoundingClientRect(); minW = Math.min(minW, r.width);
+      return { x: r.x + r.width/2, y: r.y + r.height/2 };
+    }));
+    const dentro = Math.min(...centri.map(c => minTra(c, c)));
+    const fra = centri.length > 1 ? minTra(centri[0], centri[1]) : Infinity;
+    const ok = minW >= 44 && dentro >= 44 && fra >= 44;
+    v.className = 'verdetto ' + (ok ? 'ok' : 'ko');
+    v.innerHTML = `${ok?'✓':'✕'} Bersaglio <b>${minW.toFixed(0)} px</b> · fra denti vicini <b>${dentro.toFixed(0)} px</b>` +
+      (isFinite(fra) ? ` · fra le due arcate <b>${fra.toFixed(0)} px</b>` : '') +
+      (ok ? ' — nessuna sovrapposizione.'
+          : ` — ${dentro < 44 ? 'i denti vicini si sovrappongono' : 'i denti stanno larghi'}${!isFinite(fra) ? '' : (fra < 44 ? ', e le due arcate si toccano agli angoli' : '')}.`);
+  });
+})();
+</script>
+</body>
+</html>
