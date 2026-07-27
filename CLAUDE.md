@@ -284,6 +284,37 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
   arriva prima della navigazione e se la mangia (il CTA primario si comportava come un annulla).
   L'hook dichiara l'intenzione e sostituisce l'entry. Rete: `scripts/guardia-navigazione-overlay.mjs`.
 
+### 🔑 DIRETTIVA PERMANENTE — «Ogni campo del lavoro si corregge, fino alla consegna» (Francesco, 27/07/2026)
+
+> «una volta creato, io devo avere la possibilità di poter modificare sempre ogni campo del lavoro,
+> perché se ad esempio l'addetta al front desk che si occupa di creare i nuovi lavori e posizionarli
+> nelle cassette fa un errore di digitazione o altro, bisogna sempre poter intervenire, fino a poi
+> la consegna con l'eventuale fatturazione.»
+
+**Il principio:** un lavoro nasce da una digitazione umana, spesso di fretta e al banco. **L'errore
+non è l'eccezione: è il caso normale.** Quindi ogni campo del lavoro deve restare correggibile, e
+la finestra di correzione va dalla creazione **fino alla consegna/fatturazione** — è lì che i dati
+diventano documenti e si congelano, non prima.
+
+**Come si applica quando si progetta:**
+- Un campo nuovo su `lavori` (o su un'entità che il lavoro mostra) nasce **con la sua via di
+  correzione**, non senza. Se non c'è la schermata da cui correggerlo, il campo non è finito.
+- **Un campo fuori dall'allowlist PATCH deve avere una RAGIONE**, e la ragione va scritta lì.
+  «Nessun writer nel form React attuale» **non è una ragione**: è un buco che aspetta.
+  Ragioni valide, già in casa: si scrive da una RPC atomica per non desincronizzarsi
+  (`numero_cassetta`), è di un'altra autorità (`proposta_dentista`, sentinella D7), è calcolato
+  server-side (`tracciabilita_materiali_ok`), è congelato per legge dopo l'emissione.
+- **La finestra esiste già per i prezzi** (`LOCKED_PRICE_FIELDS`, editabili finché non
+  `incluso_in_fattura`): è il modello da generalizzare, non da reinventare.
+- ⚠️ **Sui campi che finiscono in documenti a valore legale la finestra non è un dettaglio di UI:**
+  prima dell'emissione la correzione può propagarsi, dopo no. Quel confine si progetta con panel
+  normativo (MDR Art. 10(8) vs Art. 16 GDPR), non si assume.
+
+**Stato al 27/07/2026:** il principio è rispettato **solo in parte**. `PATCHABLE_FIELDS`
+(`src/app/api/lavori/[id]/route.ts`) esclude **16 campi** con la motivazione «nessun writer nel form
+React attuale» — fra cui `paziente_nome_snapshot`, `classe_rischio`, `numero_prescrizione`,
+`anamnesi_note`, `arcata`, `spedizione_*`. Censimento e progetto: voce di roadmap dedicata.
+
 ### Gotchas API + sicurezza
 - **PATCH allowlist:** API PATCH di risorse lab usa sempre allowlist esplicita di campi — MAI blocklist
 - **SECURITY DEFINER:** funzioni PL/pgSQL SECURITY DEFINER richiedono `REVOKE EXECUTE FROM PUBLIC, anon, authenticated` + `GRANT` esplicito solo a `service_role`

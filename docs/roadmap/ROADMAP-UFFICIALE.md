@@ -1,5 +1,7 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 26 luglio 2026 (16) — ✅ **«UN TEMA SOLO»: TUTTE E TRE LE TAPPE IN PRODUZIONE.** Merge `e42601b8`, CI verde, deploy Vercel verde, **verificato su `uachelab.com`**: lo script legge `ua-tema` e **cancella** `ua-theme` senza mai leggerla, la pagina offline è alla chiave nuova, i due fondi sono serviti e del rosso non c'è traccia. L'app aveva **sette** posti che decidevano se essere chiara o scura, con **quattro** regole diverse: ora ne ha **uno** — Impostazioni → Aspetto → Tema (*Automatico* · *Sempre chiaro* · *Sempre scuro*). tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app. 📌 L'approvazione di `blocked`/`billing` è **CONDIZIONATA** alla revisione in **F2** (D6-bis): se F2 cambia, decade. ➕ Nuovo difetto di leggibilità appuntato a **F1** (token secondari v2.3 in tema scuro, §difetti). Dettaglio: MEMORY.md **voce 48**.
+**Ultimo aggiornamento:** 27 luglio 2026 (17) — ✅ **NOME E COGNOME DEL PAZIENTE: SPEC RATIFICATA, NIENTE CODICE.** Il punto 1 della coda dell'ondata parete/home è passato per BP-2 pieno (brainstorming → gate FASE 3 → panel 3×) e si esegue in **sessione nuova**: spec `docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md`, handoff `docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md`. **Le colonne `pazienti.nome`/`cognome` esistono già** e il trigger compone `COGNOME NOME`: niente migration, percorso Media, e la tappa 1 risolve la lamentela **senza toccare `Cassetta.tsx`**. Il panel (1 conferma con riserve, **2 «da rivedere»**) ha trovato tre trappole invisibili ai 3364 test — la peggiore avrebbe reso **non consegnabile** ogni lavoro creato dal wizard senza nome. **Decisioni nuove di Francesco:** D6 due caselle confermate · D7 lavoro in due tappe · D8 il tecnico continua a vedere il nome sulla parete (⚠️ `ANALISI/17` va allineata) · D9 correzione anche dalla scheda del lavoro (⚠️ **apre una tappa 1-bis GRANDE** sulla fotografia congelata). Dettaglio: MEMORY.md **voce 49**.
+
+**Aggiornamento precedente:** 26 luglio 2026 (16) — ✅ **«UN TEMA SOLO»: TUTTE E TRE LE TAPPE IN PRODUZIONE.** Merge `e42601b8`, CI verde, deploy Vercel verde, **verificato su `uachelab.com`**: lo script legge `ua-tema` e **cancella** `ua-theme` senza mai leggerla, la pagina offline è alla chiave nuova, i due fondi sono serviti e del rosso non c'è traccia. L'app aveva **sette** posti che decidevano se essere chiara o scura, con **quattro** regole diverse: ora ne ha **uno** — Impostazioni → Aspetto → Tema (*Automatico* · *Sempre chiaro* · *Sempre scuro*). tsc 0 · vitest **3364 verdi / 19 skip** · build ok · QA **18/18** + prova dal vivo con Francesco dentro l'app. 📌 L'approvazione di `blocked`/`billing` è **CONDIZIONATA** alla revisione in **F2** (D6-bis): se F2 cambia, decade. ➕ Nuovo difetto di leggibilità appuntato a **F1** (token secondari v2.3 in tema scuro, §difetti). Dettaglio: MEMORY.md **voce 48**.
 
 **Aggiornamento precedente:** 26 luglio 2026 (14, **testa corretta il 26/07/2026**) — **ONDATA «REDESIGN PARETE/HOME»: MERGIATA, PUBBLICATA E VERIFICATA IN PRODUZIONE.** Tutti i task chiusi (T16 + T17), merge fatto su via libera esplicita di Francesco: merge commit **`5504a20a`**, `main` a **`8c482e90`**, CI verde, deploy Vercel verde, `uachelab.com` controllata. ⚠️ **Questa riga apriva con «RAMO PRONTO. 🛑 NON MERGIATA — il merge è a parola di Francesco» quando il merge era già avvenuto ed era già online**: è la prima riga che si legge all'avvio di ogni sessione, quindi l'errore si propagava a tutto quello che veniva dopo. Corretta qui; il resto della voce è quello originale. Il ramo si è fermato a `ca913236` ed è storia. Worktree @ `ca913236`, 175 commit, suite **3283 verdi / 19 skip · tsc 0 · build ok** (verificati dal controller, non riferiti). Fatte in questa sessione: T16 striscia (logica + UI) e T17 chiusura completa — pulizia della strumentazione diagnostica, review whole-branch in 5 aree, triage dei **69 rilievi minori → 0 bloccanti**, review delta dei commit di fix, QA browser su 3 viewport × 2 temi, **gate estetico L2 PASS con 0 ❌**. **4 difetti gravi trovati e chiusi**, nessuno dei quali la suite verde poteva vedere: linguetta visibile su desktop con URL desincronizzato · overlay lasciati dipinti sopra un'altra stanza dal tasto indietro · con «Riduci movimento» la linguetta fuori schermo per sempre (unica via alle cassette nella forma «solo pile») · la navigazione mangiata dal ritorno automatico su **10 punti** del codice. **Decisioni di Francesco del 26/07:** nomi paziente rimandati a un'ondata separata DOPO il merge · la striscia nomina il primo allarme e conta gli altri (la forma ratificata il 24/07 è superata: la sua CTA riportava alla home) · il numero del lavoro non si taglia mai · «allunga la pancia della cassetta, non toccare la finestrella» · «Salva il nome/il colore» restano · righe del muro avvicinate da tablet in su. **Backlog dell'ondata, tracciato e quindi sopravvive al merge:** `docs/roadmap/2026-07-26-backlog-ondata-parete-home.md` (30 voci rimandate + 4 raccomandazioni del gate + le riserve delle review). **Prossimo:** il merge è FATTO; Francesco ha installato la PWA e trovato quattro cose — si riparte da lì, `docs/roadmap/2026-07-26-collaudo-pwa-installata-handoff.md` → poi nome+cognome paziente nel wizard (BP-2 pieno).
 
@@ -214,8 +216,11 @@ Priorità: procedere con S4 (Email template branding, bozza già pronta in docs/
 
 ### 📌 CODA DELL'ONDATA «REDESIGN PARETE/HOME» (aggiornata 26/07/2026)
 
-Handoff corrente: **`docs/roadmap/2026-07-26-un-tema-solo-chiuso-handoff.md`** (26/07, notte) — è il
-più recente ed è quello da cui si riparte.
+Handoff corrente: **`docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md`** (27/07) —
+è il più recente ed è quello da cui si riparte. Sostituisce
+`2026-07-26-un-tema-solo-chiuso-handoff.md`, che resta valido come storia della giornata del tema e
+per i punti 2→6 della sua §3 (linguetta · ondata B · voci di backlog del tema · trappola
+edge-to-edge · centro notifiche).
 
 ⚠️ **Questa riga è già stata trovata stantia due volte** (puntava a `2026-07-26-wave-h-handoff.md`,
 poi al collaudo della PWA installata, mentre nel frattempo ne erano arrivati altri). **È lo stesso
@@ -225,11 +230,22 @@ aggiorna QUESTA riga nello stesso commit.**
 
 Nell'ordine:
 
-1. **Nome e cognome del paziente nel wizard** — RATIFICATO 26/07 («facciamo chiedere nome e
-   cognome al wizard, ovviamente un campo non obbligatorio»). Percorso BP-2 pieno. Serve perché
-   oggi l'app **non sa quale parola è il cognome**: wizard e form paziente compongono
-   `nome_cognome` in ordine opposto e alla parete arriva solo la stringa già composta. Confronto
-   visivo pronto: `docs/design/mockups/2026-07-26-nomi-paziente.html`.
+1. **Nome e cognome del paziente nel wizard** — ✅ **SPEC RATIFICATA IL 27/07, si esegue in sessione
+   nuova.** Spec: `docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md` · handoff di
+   esecuzione: `docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md`. **Nessuna
+   riga di codice scritta**, per scelta: il panel 3× ha trovato tre trappole che nessun test poteva
+   vedere.
+   ⚠️ **Questa riga diceva «wizard e form paziente compongono `nome_cognome` in ordine opposto»:
+   era SBAGLIATO.** Il form paziente manda `nome`+`cognome` separati e il trigger DB compone
+   `COGNOME NOME`; il wizard invece infila **tutta la stringa dentro `cognome`** e lascia `nome`
+   vuoto. Non è un ordine opposto: è che uno dei due non distingue affatto le due parti. La
+   correzione cambia la conclusione — **le colonne esistono già, non serve nessuna migration.**
+   **Si spezza in tre (D7 + D9):** **tappa 1** il dato (wizard + tre trappole + rettifica) ·
+   **tappa 1-bis** la fotografia congelata `paziente_nome_snapshot` + correzione dalla scheda del
+   lavoro — **percorso GRANDE con panel normativo**, apre la tensione fra rettifica (Art. 16 GDPR) e
+   immutabilità della documentazione (MDR Art. 10(8)) · **tappa 2** la scala con l'iniziale
+   puntata, **solo se dopo la tappa 1 il difetto è ancora visibile sul device**, e da ritarare (i
+   corpi del mockup erano quelli del clinico, non del paziente).
 2. ~~**T16 — la striscia in home**~~ **✅ FATTO e in produzione** (26/07/2026). Logica e forma
    nuove, valori ratificati; la forma del 24/07 è stata superata dalla decisione del 26/07
    («nomina il primo allarme, conta gli altri»).
@@ -243,6 +259,44 @@ Nell'ordine:
 mergiati e pubblicati: chi leggeva questa lista li rimetteva in coda. L'unico punto ancora aperto
 di questa coda è il **numero 1** (nome e cognome del paziente nel wizard), più i quattro punti del
 collaudo della PWA installata.
+
+### 🔑 NUOVA DIRETTIVA DI PRODOTTO (Francesco, 27/07/2026) — «ogni campo del lavoro si corregge, fino alla consegna»
+
+> «una volta creato, io devo avere la possibilità di poter modificare sempre ogni campo del lavoro
+> […] se l'addetta al front desk fa un errore di digitazione o altro, bisogna sempre poter
+> intervenire, fino a poi la consegna con l'eventuale fatturazione.»
+
+**Incisa in `ua-app/CLAUDE.md` §9** come direttiva permanente: vale per ogni superficie futura, non
+solo per il nome del paziente. Il testo lì spiega anche **come si applica quando si progetta** e
+quali sono le ragioni valide per tenere un campo fuori dalla modifica.
+
+**Stato misurato il 27/07:** rispettata **a metà**. La finestra «modificabile finché non è
+fatturato» esiste già, ma **solo per i campi del prezzo** (`LOCKED_PRICE_FIELDS`). L'allowlist
+`PATCHABLE_FIELDS` (`src/app/api/lavori/[id]/route.ts`) esclude **16 campi** con la motivazione
+«nessun writer nel form React attuale» — cioè non per una ragione, ma perché il modulo non li
+mostra: `arcata`, `colorazione_esterna`, `impronta_digitale`, `numero_prescrizione`,
+`norma_riferimento`, `richiedente_email`, `stato_fisico`, `tipo_arco`, `codice_interno`,
+`anamnesi_note`, `classe_rischio`, `paziente_nascita_snapshot`, `paziente_nome_snapshot`,
+`prescrizione_digitale_id`, `spedizione_note`, `spedizione_stato`.
+
+🛑 **Da NON confondere con le esclusioni legittime**, che restano tali e non si toccano:
+`numero_cassetta` (RPC atomiche, o si desincronizza da `cassette_lavori`) · `proposta_dentista`
+(sentinella D7, altra autorità) · i campi calcolati server-side · quelli congelati dopo l'emissione
+di un documento.
+
+**Voce di lavoro che ne discende — «Il lavoro si corregge»:** censimento dei 16 campi (chi li
+scrive oggi, chi dovrebbe poterli correggere, quale finestra), generalizzazione del modello
+`LOCKED_PRICE_FIELDS` a tutto il lavoro, e le schermate da cui correggere. ⚠️ **Interseca la tappa
+1-bis** del nome paziente (fotografia congelata): stessa materia, da progettare insieme e **mai due
+volte**. Collocazione da ratificare — la sua superficie naturale è `/lavori/[id]/modifica`, che ha
+già una voce «smontaggio bridge» nella riga **Trasversale** del calendario ondate.
+
+**Da studiare insieme, richiesta esplicita di Francesco (27/07):** «dovremmo studiare bene come
+abbiamo sviluppato la creazione di un nuovo lavoro» — revisione del percorso di ingresso del lavoro
+in laboratorio, dalla creazione alla consegna. Non è questa ondata: è il contesto in cui questa
+direttiva vive.
+
+---
 
 **Deferito alle ondate proprietarie** (ratifica 26/07): bottone oro e i difetti di leggibilità
 già appuntati sotto — «può essere che scomparirà del tutto quando revisioneremo le pagine».
