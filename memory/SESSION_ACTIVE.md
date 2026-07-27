@@ -28,6 +28,12 @@ le route (6 test, TDD col rosso letto: 3 rossi per asserzione + 3 di controllo).
 utente cadono fuori **i titolari** · ④ nessun filtro `deleted_at` all'accesso · ⑤ nessun rate limiting
 · ⑥ enumerazione account. ⚠️ `RP_ID` fisso → la cerimonia **non è provabile in locale né su preview**.
 
+📋 **AUDIT `CLAUDE.md` (28/07) — due contraddizioni chiuse:** 🛑 **MAI git worktree** (doppio
+`package-lock.json` → 404 su tutte le route): il divieto è ora nella **FASE 5**, prima diceva il
+contrario · **i ruoli sono CINQUE**, mancava `admin_sistema` (15 usi nel codice) — ora in §9, cioè nel
+file **versionato**, perché `../CLAUDE.md` sta **fuori dal repo**. Barra di stato del progetto rimossa:
+era rotta **e copriva quella globale funzionante**. I 5 difetti dell'accesso: **in coda alla ROADMAP**.
+
 **ONDATA (a) — 8 task su 13.** **3453 test verdi · tsc 0 · eslint 0 · build ok · DB pulito (294 lavori,
 0 denti).** **RESTANO:** T9 POST atomico · T10 sentinelle · T11 wizard · T12 form · T13 prove + FASE 7.
 🛑 **T10, T11, T12 nello STESSO deploy** (`route.ts:259-264` scarta senza errore).
