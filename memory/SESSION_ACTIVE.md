@@ -1,39 +1,24 @@
-# Sessione attiva — nome paziente correggibile: ramo PRONTO AL MERGE (27/07/2026)
+# Sessione attiva — wizard «Nuovo lavoro»: SPEC RATIFICATA, PIANO ONDATA (a) SCRITTO (27/07/2026, sera)
 
-✅ Ramo `ondata-nome-cognome-paziente`, 15 commit. tsc 0 · eslint pulito · vitest **3424/19** (base
-3364) · build ok. Dettaglio completo: MEMORY.md **voce 51**.
+🛑 **PUNTO DI RIPRESA:** `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` — 13 task TDD.
 
-🛑 **Perimetro ridotto in corsa (Francesco): il wizard va ripensato per intero** → fermi mockup,
-`crea-lavoro`, `PassoPaziente`, bozza `v:2`. ⚠️ **La targa NON migliora con questo ramo.**
+🟡 **Nessun codice di produzione toccato. Niente committato.** Solo documenti su disco.
 
-**Il perno:** il trigger è `BEFORE INSERT OR **UPDATE**` → la tabella §5 non è una regola del
-wizard, è un **invariante di `pazienti` con 3 scrittori** → una funzione sola
-(`src/lib/domain/nome-paziente-scrittura.ts`).
+**Francesco ha ratificato la spec** (`docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md`) dopo
+tre correzioni di coerenza: §6 diceva ancora «solo i valori prescritti» mentre **W21 stampa la realtà del
+manufatto consegnato**; §3.5 lasciava aperto il destino di `dichiarazioni_conformita.colore_dente` che **W23
+elimina**; il `DROP COLUMN` mancava dall'ordine della migration (§8 passo 5) — aggiunto **con verifica
+preventiva** che la colonna sia davvero vuota.
 
-**Le 4 revisioni hanno trovato 3 difetti veri, tutti riprodotti eseguendo il codice:** cognome
-spogliato col codice NUOVO invece del vecchio (arrivava fino alla DdC) · la correzione di quel
-difetto ne introduceva un altro (cancellava un cognome vero uguale al codice) · 🔴 **la rettifica
-non funzionava sui pazienti del wizard**, cioè quelli per cui esiste (`''` su `data_nascita`/`sesso`
-faceva fallire l'UPDATE, e un `catch` vuoto lo nascondeva).
+**Tre decisioni nuove (27/07, sera):**
+1. **Tre ondate** — (a) dato+API+atomicità · (b) wizard+odontogramma · (c) DdC+precheck. La **migration sta
+   tutta in (a)**, non si spezza.
+2. **La foto della prescrizione resta fuori dalla transazione** (nessun blocco al banco, W22) **ma il
+   fallimento diventa visibile**: il difetto non è «fallisce», è «fallisce senza dirlo».
+3. 🛑 **Vincolo di sequenza trovato scrivendo il piano:** appena le 5 colonne escono da `PATCHABLE_FIELDS`,
+   `crea-lavoro.ts` e `TabClinica.tsx` **smettono di salvare**. Quindi l'ondata (a) include il loro
+   reindirizzamento **a grafica invariata** (Task 11-12). Rimandare le sentinelle riaprirebbe le due sorgenti
+   dello stesso fatto che il gate FASE 3 ha chiuso apposta.
 
-🔑 **Metodo da riusare:** ogni correzione provata **per mutazione** — rompere il codice di proposito
-e verificare che il test diventi rosso **per asserzione, non per crash**. Una mutazione realistica
-(client che sceglie il laboratorio) passava 18/18 verdi.
-
-🔑 **Direttiva nuova (`CLAUDE.md` §7): «Statuto delle fonti»** — i documenti `ANALISI/` che
-descrivono *come si lavora* sono materiale di studio **non verificato**. Serve una fra: fonte
-esterna, prova nel codice, obbligo di legge, decisione di Francesco.
-
-✅ **COLLAUDO DAL VIVO FATTO** (Francesco loggato). Ha trovato ciò che i test non vedevano: il tasto
-«Salva» finiva **sotto il bordo** su scrivania e **coperto dalla barra** su telefono. Chiuso
-allineandosi al pannello gemello dei clienti. Prova end-to-end su PZ-0003: casella Cognome vuota
-(codice nascosto) → salvato → la scheda mostra **«BAGHERIA GIUSEPPE»**, cognome davanti.
-⚠️ Screenshot NON su disco: pagina dietro login. ⚠️ PZ-0003 resta rinominato (DB di test).
-
-✅ **IN PRODUZIONE.** Merge `9aea0f22` su main → CI verde → deploy Vercel riuscito →
-`uachelab.com` risponde, zero errori in console. **Ondata chiusa.**
-
-**PUNTO DI RIPRESA:** `docs/roadmap/2026-07-27-ripensamento-wizard-handoff.md` — il ripensamento
-del wizard «Nuovo lavoro», **percorso GRANDE con migration** (il colore oggi è in 4 colonne del
-lavoro intero: «più denti con più colori» non è rappresentabile). Ramo dell'ondata cancellato dopo
-il merge. Coda completa: ROADMAP voce 19.
+**PROSSIMO PASSO:** esecuzione del piano — branch **nel repo principale**, mai worktree.
+⚠️ `.gitignore:62` mangia i png → `git add -f`. Pre-commit su `--max-warnings=0`: `npx eslint src/` prima.
