@@ -79,30 +79,16 @@ export async function PATCH(
       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
       : attuale.codice_paziente
 
-    const spogliaCodice = (v: string | null | undefined) =>
-      // Il cognome SALVATO specchia il codice VECCHIO (è l'invariante 2: sui
-      // pazienti senza nome il codice vive dentro `cognome`); quello che
-      // arriva dal body specchia semmai il NUOVO. Nessuno dei due vale come
-      // cognome, quindi si spoglia contro entrambi — altrimenti rinominare il
-      // codice trasforma il vecchio in un cognome e riapre la trappola 3.
-      cognomeEffettivo(cognomeEffettivo(v, codice), attuale.codice_paziente)
-
-    // `spogliaCodice` su ENTRAMBI i rami, non solo su quello che legge dal
-    // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
-    // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
-    // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
-    // trattarlo come un cognome vero lo farebbe vincere sul nome appena
-    // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
-    // arriva dal body: il client non è una fonte fidata.
     const coppia = risolviNomePaziente({
-      cognome: spogliaCodice(
-        'cognome' in body
-          ? (typeof body.cognome === 'string' ? body.cognome : null)
-          : attuale.cognome
-      ),
-      nome: 'nome' in body
-        ? (typeof body.nome === 'string' ? body.nome : null)
-        : attuale.nome,
+      // Ogni valore si spoglia contro il codice che SPECCHIA: quello dal body
+      // può ripetere il codice nuovo, quello salvato ripete il vecchio
+      // (invariante 2). Spogliare contro entrambi cancellerebbe un cognome
+      // VERO che coincide con uno dei due — verificato: «Rossi» come codice
+      // paziente, poi corretto in «PZ-0042», faceva sparire il cognome.
+      cognome: 'cognome' in body
+        ? cognomeEffettivo(typeof body.cognome === 'string' ? body.cognome : null, codice)
+        : cognomeEffettivo(attuale.cognome, attuale.codice_paziente),
+      nome: 'nome' in body ? (typeof body.nome === 'string' ? body.nome : null) : attuale.nome,
       codice,
     })
 

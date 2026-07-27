@@ -50,6 +50,16 @@ function richiestaDelete() {
   })
 }
 
+// Richiesta ostile: un'intestazione `x-lab-id` che punta a un altro
+// laboratorio, come se il client provasse a suggerire lo scoping tenant
+// invece di lasciarlo decidere al context server-side.
+function richiestaDeleteOstile() {
+  return new Request(`http://localhost/api/pazienti/${PAZIENTE_ID}`, {
+    method: 'DELETE',
+    headers: { origin: 'http://localhost', host: 'localhost', 'x-lab-id': 'lab-altro' },
+  })
+}
+
 const updateMock = vi.fn()
 let rigaCorrente: { nome: string | null; cognome: string | null; codice_paziente: string | null } | null
 let selectEqCalls: unknown[][]
@@ -203,16 +213,31 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
     expect(corpo.error).not.toContain('pazienti_pkey')
     expect(corpo.error).toBe('Non è stato possibile aggiornare il paziente')
   })
+
+  it('un cognome VERO uguale al vecchio codice NON viene cancellato quando il codice cambia', async () => {
+    rigaCorrente = { nome: 'Giuseppe', cognome: 'Rossi', codice_paziente: 'Rossi' }
+    await PATCH(richiesta({ codice_paziente: 'PZ-0042', cognome: 'Rossi' }), { params })
+    expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Rossi', nome: 'Giuseppe' })
+  })
+
+  it('un laboratorio indicato dal client NON può dirottare la scrittura', async () => {
+    await PATCH(richiesta({ note: 'ciao', laboratorio_id: 'lab-altro' }), { params })
+    expect(updateEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+    expect(updateEqCalls).not.toContainEqual(['laboratorio_id', 'lab-altro'])
+  })
 })
 
 describe('DELETE /api/pazienti/[id] — archiviazione', () => {
   let deleteSelectEqCalls: unknown[][]
+  let deleteUpdateEqCalls: unknown[][]
 
   /**
-   * `select` registra OGNI `.eq(...)` in `deleteSelectEqCalls` (catena
-   * permissiva, non un conteggio fisso — come per il PATCH: così una
-   * mutazione che toglie un filtro non crasha per forma sbagliata, ma si
-   * verifica DAVVERO con un'asserzione sui valori). `update` resta invariato.
+   * `select` registra OGNI `.eq(...)` in `deleteSelectEqCalls` e `update`
+   * registra OGNI `.eq(...)` in `deleteUpdateEqCalls` (catene permissive, non
+   * un conteggio fisso — come per il PATCH: così una mutazione che toglie un
+   * filtro non crasha per forma sbagliata, ma si verifica DAVVERO con
+   * un'asserzione sui valori, cosa che lo scoping tenant richiede anche in
+   * scrittura).
    */
   function mockDeleteTabella(opts: {
     esiste?: boolean
@@ -232,7 +257,14 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
           select: () => selectChain,
           update: (dati: Record<string, unknown>) => {
             updateMock(dati)
-            return { eq: () => ({ eq: async () => ({ error: softDeleteError }) }) }
+            const updateChain = {
+              eq: (...args: unknown[]) => {
+                deleteUpdateEqCalls.push(args)
+                return updateChain
+              },
+              then: (r: (v: unknown) => unknown) => Promise.resolve({ error: softDeleteError }).then(r),
+            }
+            return updateChain
           },
         }
       }
@@ -242,6 +274,7 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
 
   beforeEach(() => {
     deleteSelectEqCalls = []
+    deleteUpdateEqCalls = []
     mockDeleteTabella({ esiste: true })
   })
 
@@ -275,5 +308,17 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
     expect(deleteSelectEqCalls).toContainEqual(['id', PAZIENTE_ID])
     expect(deleteSelectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
     expect(deleteSelectEqCalls).toContainEqual(['archiviato', false])
+  })
+
+  it('un laboratorio indicato in un header ostile NON può dirottare la LETTURA pre-cancellazione', async () => {
+    await DELETE(richiestaDeleteOstile(), { params })
+    expect(deleteSelectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+    expect(deleteSelectEqCalls).not.toContainEqual(['laboratorio_id', 'lab-altro'])
+  })
+
+  it('un laboratorio indicato in un header ostile NON può dirottare la SCRITTURA della cancellazione', async () => {
+    await DELETE(richiestaDeleteOstile(), { params })
+    expect(deleteUpdateEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+    expect(deleteUpdateEqCalls).not.toContainEqual(['laboratorio_id', 'lab-altro'])
   })
 })
