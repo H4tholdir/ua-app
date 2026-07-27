@@ -749,12 +749,13 @@ DROP INDEX IF EXISTS lavori_denti_lavoro_idx;
 --    Task 7 riscrivono le righe per intero (sostituzione integrale), quindi il
 --    default basta per loro — ma un UPDATE futuro non lo toccherebbe. Il
 --    trigger lo rende vero per costruzione, chiunque scriva.
-CREATE OR REPLACE FUNCTION public.lavori_denti_touch() RETURNS trigger
-LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
-BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
-
-CREATE TRIGGER lavori_denti_touch_trg BEFORE UPDATE ON lavori_denti
-  FOR EACH ROW EXECUTE FUNCTION public.lavori_denti_touch();
+--    ⚠️ CORREZIONE (27/07, trovata eseguendo il Task 5): NON scrivere una
+--    funzione nuova. `public.trigger_set_updated_at()` esiste dal primo giorno
+--    (`supabase/schema.sql:58-81`), ha corpo identico carattere per carattere e
+--    alimenta già **34 trigger su 34 tabelle**. Si usa quella, con la
+--    convenzione di nome di casa `trg_<tabella>_updated_at`.
+CREATE TRIGGER trg_lavori_denti_updated_at BEFORE UPDATE ON lavori_denti
+  FOR EACH ROW EXECUTE FUNCTION public.trigger_set_updated_at();
 
 -- ============ La fotografia (spec §3.5) ============
 -- Lo SCHEMA nasce col primo giorno anche se il writer arriva nell'ondata (c):
