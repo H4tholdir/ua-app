@@ -245,7 +245,11 @@ Esempio delle prime due righe (le altre seguono lo stesso schema):
 grep -rn "quadrante" src/components/features/odontogramma/ src/components/features/lavori/
 ```
 
-Se un componente raggruppa per `quadrante` assumendo 1-4, quel punto va adeguato **ora**: oggi non fa danno solo perché adulto e deciduo non convivono mai sullo stesso schermo.
+🔴 **ESITO REALE (27/07/2026) — questa parentesi del piano era SBAGLIATA, e seguirla alla lettera avrebbe spedito una schermata vuota.** Il piano diceva che un raggruppamento su 1-4 «oggi non fa danno perché adulto e deciduo non convivono mai sullo stesso schermo». Le due dentizioni non condividono lo schermo, ma **condividono il codice**: `OdontogrammaFDI.tsx:728` fa passare **entrambi** i cataloghi per gli stessi quattro filtri (`:798-802`) tramite l'interruttore adulto/deciduo. Controprova eseguita sui dati nuovi col filtro vecchio: **0 denti su 20** renderizzati in dentizione decidua.
+
+➡️ **Adeguamento applicato:** il raggruppamento si basa sulla *posizione nel disegno*, non sul quadrante nudo — `((q - 1) % 4) + 1`, perché Q5↔Q1, Q6↔Q2, Q7↔Q3, Q8↔Q4. Equivalenza verificata elemento per elemento contro i dati letti da `git show HEAD`: tutti e otto gli array identici, stesso ordine, resa invariata.
+
+🔑 **Nessun gate lo avrebbe visto:** `d.quadrante === 1` continua a compilare contro il tipo allargato, eslint è indifferente, e **nessun test nomina `Odontogramma`**. Test verdi e `tsc` pulito qui **non sono una prova**. È la stessa lezione del collaudo del 27/07: un difetto di resa non lo vede la suite, lo vede chi guarda.
 
 - [ ] **Step 5: Esegui il test e verifica che passi**
 
@@ -259,9 +263,13 @@ Atteso: PASS, 8 test.
 
 ```bash
 npx eslint src/
-git add src/lib/domain/denti-fdi-dominio.ts src/components/features/odontogramma/denti-fdi.ts tests/unit/denti-fdi-dominio.test.ts
+git add src/lib/domain/denti-fdi-dominio.ts src/components/features/odontogramma/denti-fdi.ts src/components/features/odontogramma/OdontogrammaFDI.tsx tests/unit/denti-fdi-dominio.test.ts
 git commit -m "feat(lavori): dominio FDI a 52 codici strutturati + fix quadranti decidui"
 ```
+
+⚠️ **I file sono QUATTRO, non tre** (il piano ne elencava tre): `OdontogrammaFDI.tsx` porta l'adeguamento del raggruppamento. Lasciarlo fuori dallo stage significa committare i quadranti nuovi **senza** l'adeguamento — cioè spedire la vista dei denti da latte vuota.
+
+⚠️ **La tabella «File Structure» in testa dice che `quadrante` "si deriva": nel file resta un valore scritto a mano** (corretto, ma letterale). La derivazione vive in `quadranteDa()`, che è la fonte per chi calcola; il catalogo resta dati. Le due cose convivono, e il test lo verifica (`d.quadrante === quadranteDa(d.numero)` per ogni deciduo).
 
 ---
 
