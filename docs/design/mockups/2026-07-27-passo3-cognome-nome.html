@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Passo 3 del wizard — Cognome e Nome separati, due varianti (27/07/2026)</title>
+
+<!-- Font reale delle pagine v3: 'Plus Jakarta Sans' (src/design-system/v3/tokens.ts:22
+     `tipografia.famiglia`, src/app/ds-v3.css:28 `--font-v3`) — NON DM Sans (quello è
+     v2.3/legacy, tokens.ts v2.3). Caricato dal CDN Google Fonts perché questo è un file
+     locale aperto in un browser, non codice di produzione (in prod arriva da
+     next/font, vedi layout.tsx). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  // Il tema si legge dalla querystring (?tema=scuro) PRIMA del paint, cosi'
+  // uno screenshot Playwright puo' scriptare le due varianti navigando due URL
+  // diverse, senza dover cliccare nulla. Il bottone in pagina resta il modo
+  // per Francesco di alternare i temi a mano in un browser vero.
+  (function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('tema') === 'scuro') document.documentElement.setAttribute('data-tema', 'scuro');
+  })();
+</script>
+
+<style>
+  /* ============================================================
+     Reset minimo
+     ============================================================ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  svg { display: block; }
+
+  /* ============================================================
+     Token v3 risolti ai valori VERI — letti verbatim da
+     src/design-system/v3/tokens.ts (oggetti `luce`/`notte`) e
+     src/app/ds-v3.css (`[data-ds="v3"]` / `[data-theme="dark"] [data-ds="v3"]`).
+     I sei nomi richiesti (--ink --muted --faint --line --bg --blue) più
+     --card/--elv, che il passo 3 usa davvero (sfondo dei campi e del tasto
+     Continua) e senza cui quei due elementi renderebbero trasparenti.
+     ============================================================ */
+  :root {
+    --bg: #F4F0E7;        /* tokens.ts:5 luce.bg */
+    --card: #FFFEFA;      /* tokens.ts:5 luce.card */
+    --elv: #FFFEFA;       /* ds-v3.css:12 --elv: var(--card) in chiaro */
+    --ink: #1D1913;       /* tokens.ts:6 luce.ink */
+    --muted: #6E6457;     /* tokens.ts:6 luce.muted */
+    --faint: #7B6A59;     /* tokens.ts:6 luce.faint */
+    --line: #EBE4D6;      /* tokens.ts:6 luce.line */
+    --blue: #1D5FBF;      /* tokens.ts:8 luce.blue */
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9); /* tokens.ts:36 materia.shPress */
+    --dashed: #CBC1B0;    /* tokens.ts:52 gradiente.dashedGuida — un solo valore, nessuna variante notte */
+  }
+  :root[data-tema="scuro"] {
+    --bg: #171411;        /* tokens.ts:14 notte.bg */
+    --card: #211D18;      /* tokens.ts:14 notte.sfc → --card in ds-v3.css:44 */
+    --elv: #2B2620;       /* tokens.ts:14 notte.elv */
+    --ink: #F2EEE7;       /* tokens.ts:15 notte.ink */
+    --muted: #A69B8C;     /* tokens.ts:15 notte.muted */
+    --faint: #928778;     /* tokens.ts:15 notte.faint */
+    --line: #342E26;      /* tokens.ts:15 notte.line */
+    --blue: #5B9BFF;      /* tokens.ts:17 notte.blue */
+    --sh-press: none;     /* ds-v3.css:50 --sh-press: none in dark (§3.2, niente ombre) */
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .pagina { max-width: 1400px; margin: 0 auto; padding: 28px 24px 64px; }
+
+  /* ---- chrome di presentazione (non fa parte del wizard vero) ---- */
+  .toggle-tema {
+    position: fixed; top: 16px; right: 16px; z-index: 10;
+    display: flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 16px; border-radius: 999px;
+    background: var(--card); color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    font-size: 13.5px; font-weight: 700;
+  }
+  h1.titolo-pagina { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; max-width: 760px; }
+  p.intro { font-size: 15.5px; font-weight: 500; color: var(--muted); margin-top: 12px; max-width: 760px; line-height: 1.5; }
+  p.meta { font-size: 12.5px; font-weight: 700; color: var(--faint); margin-top: 10px; text-transform: uppercase; letter-spacing: .06em; }
+  .blocco-variante { margin-top: 44px; }
+  .blocco-variante h2 { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .blocco-variante .nota-variante { font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 6px; max-width: 640px; line-height: 1.45; }
+  .riga-stati {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    align-items: start;
+  }
+  .stato .etichetta {
+    font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--faint); margin-bottom: 10px;
+  }
+  .demo-cornice {
+    border: 1.5px solid var(--line);
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .domande-francesco {
+    margin-top: 52px; padding-top: 24px; border-top: 1.5px solid var(--line);
+    max-width: 640px;
+  }
+  .domande-francesco h2 { font-size: 17px; font-weight: 800; }
+  .domande-francesco ol { margin-top: 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+  .domande-francesco li { font-size: 14.5px; font-weight: 500; color: var(--muted); line-height: 1.5; }
+
+  /* ============================================================
+     Il frame vero del passo 3 — colonna del wizard (fedele a
+     WizardNuovoLavoro.tsx:528-533 `colonnaStile`: width 100%, max-width 480,
+     margin 0 auto, padding 8px 24px 0) + PassoPaziente.tsx (righe indicate
+     accanto a ogni regola sotto).
+     ============================================================ */
+  .frame { width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 24px; }
+
+  /* PassoPaziente.tsx:263-269 stileDomanda — question 35/800, tracking -0.02em, line-height 1.08 */
+  .domanda { font-size: 35px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; color: var(--ink); }
+  /* PassoPaziente.tsx:271-276 stileHint — callout 15.5/600 muted, margin-top 10 */
+  .hint { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+
+  /* PassoPaziente.tsx:280 stileCampoWrap — margin-top 22 */
+  .campo-wrap { margin-top: 22px; }
+  /* Campo.tsx:22-30 stileLabel — label 13/800 maiuscola faint, tracking .16em, margin-bottom 4 (spazio.xs) */
+  .campo-label {
+    display: block; font-size: 13px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .16em; color: var(--faint); margin-bottom: 4px;
+  }
+  /* Campo.tsx:32-48 stileCampo — H64, radius 18 (raggio.riga), border 1px --line,
+     background --card, testo 19/700 ink */
+  .campo-input {
+    display: block; width: 100%; height: 64px; border-radius: 18px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    font-family: inherit; font-size: 19px; font-weight: 700; padding: 0 20px;
+  }
+  .campo-input:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* Anello di focus dipinto STATICAMENTE (non un vero `:focus`, che in un
+     documento può vincerlo un solo elemento): rappresenta l'autoFocus reale
+     di Campo.tsx sul primo campo aperto (Cognome), simmetrico su A e B —
+     altrimenti le due varianti differiscono anche per questo, non solo per
+     l'allineamento del «Salta» che è l'unica cosa in esame qui. */
+  .campo-input.is-fuoco { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* PassoPaziente.tsx:283-288 stileNota — 14.5/600 muted, margin-top 8 (spazio.s) */
+  .campo-nota { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+
+  /* PassoPaziente.tsx:291 stileOpz — margin-top 22 */
+  .opz { margin-top: 22px; }
+  /* PassoPaziente.tsx:294-301 stileOpzCap — caption 12.5/800 maiuscola faint, tracking .14em, margin-bottom 12 (spazio.sm) */
+  .opz-cap { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; color: var(--faint); margin-bottom: 12px; }
+
+  /* PassoPaziente.tsx:154-160 stileRiga — flex, align-items center, gap 12 (spazio.sm), padding 14px 0, border-bottom 1.5 --line tranne ultima */
+  .riga { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1.5px solid var(--line); }
+  .riga.riga-ultima { border-bottom: none; }
+
+  /* PassoPaziente.tsx:303-316 stileRigaBottone — flex 1, colonna, gap 1, minHeight 44, allineato a sinistra */
+  .riga-bottone { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 44px; text-align: left; }
+  .riga-bottone:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* PassoPaziente.tsx:319-323 stileOpzNome — 17/700 ink */
+  .opz-nome { font-size: 17px; font-weight: 700; color: var(--ink); }
+  /* PassoPaziente.tsx:326-331 stileOpzEsempio — 14.5/600 faint, margin-top 1 */
+  .opz-eg { font-size: 14.5px; font-weight: 600; color: var(--faint); margin-top: 1px; }
+
+  /* LinkQuieto.tsx:26-46 — 14.5/600 muted, sottolineato, hit-area 44 via padding/margin che si annullano */
+  .link-quieto {
+    font-size: 14.5px; font-weight: 600; color: var(--muted);
+    text-decoration: underline; text-underline-offset: 3px;
+    display: inline-flex; align-items: center; min-height: 44px;
+    padding: 13px 0; margin: -13px 0;
+  }
+  .link-quieto:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* La riga aperta con due caselle — Cognome sopra, Nome sotto (D4 emendata
+     da U10). Contenitore colonna sinistra flex:1, gap 16 (spazio.m) fra le
+     due caselle: stesso gap dei campi consecutivi di uno Sheet (Sheet.tsx:314
+     `gap: spazio.m`, es. SchedaPersonaSheet.tsx Nome/Cognome impilati). */
+  .riga-aperta .colonna-caselle { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .riga-aperta.variante-a { align-items: flex-start; }
+  .riga-aperta.variante-b { align-items: center; }
+
+  /* PassoPaziente.tsx:335-353 stileFotoAdd — H64, margin-top 16, dashed 2.5 dashedGuida,
+     radius 18 (raggio.riga), colore muted, testo 16.5/700 */
+  .foto-add-wrap { position: relative; }
+  .foto-add-wrap:focus-within .foto-add { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .foto-add {
+    display: flex; align-items: center; gap: 12px; width: 100%; height: 64px;
+    margin-top: 16px; padding: 0 20px; border: 2.5px dashed var(--dashed); border-radius: 18px;
+    background: transparent; color: var(--muted); font-size: 16.5px; font-weight: 700;
+  }
+
+  /* PassoPaziente.tsx:110-114 — wrapper margin-top 22 */
+  .continua-wrap { margin-top: 22px; }
+  /* TastoSecondario.tsx — H58, radius 18 (raggio.riga), bordo 1.5 --line in chiaro,
+     faccia --elv, ombra --sh-press, testo 17/700 ink */
+  .tasto-secondario {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 58px; border-radius: 18px; border: 1.5px solid var(--line);
+    background: var(--elv); box-shadow: var(--sh-press); color: var(--ink);
+    font-size: 17px; font-weight: 700; padding: 0 24px;
+  }
+  .tasto-secondario:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* ds-v3.css:63-66 — in dark niente bordo pieno, solo hairline superiore */
+  :root[data-tema="scuro"] .tasto-secondario { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+
+  /* PillVoce.tsx — wrapper margin-top 22 (wizard.html:390 .pv-wrap) */
+  .pv-wrap { margin-top: 22px; }
+  /* PillVoce.tsx:204-218 — H64, radius 999 (raggio.pill), testo 17.5/700 ink,
+     faccia + ombra da tokens.ts `pillVoce` (chiaro) */
+  .pv {
+    display: flex; align-items: center; gap: 14px; width: 100%; height: 64px;
+    border-radius: 999px; padding: 0 10px 0 24px; color: var(--ink);
+    font-size: 17.5px; font-weight: 700;
+    background: linear-gradient(180deg, #FFFEFA, #F5F0E6);
+    box-shadow: 0 6px 14px rgba(52,42,26,.16), 0 2px 4px rgba(52,42,26,.10), inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -2px 3px rgba(52,42,26,.07);
+  }
+  :root[data-tema="scuro"] .pv {
+    background: linear-gradient(180deg, #2B2620, #211D18);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 18px rgba(0,0,0,.4);
+  }
+  .pv .pv-testo { flex: 1; text-align: left; }
+  .pv .cerchio-mic {
+    display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border-radius: 999px;
+    background: linear-gradient(180deg, #F2263A, #D90012 55%, #B00010);
+    box-shadow: 0 2px 5px rgba(176,0,16,.35), inset 0 1.5px 1px rgba(255,255,255,.35);
+  }
+  :root[data-tema="scuro"] .pv .cerchio-mic {
+    background: linear-gradient(180deg, #FF4C55, #FF3B44 55%, #C41822);
+    box-shadow: inset 0 1.5px 1px rgba(255,255,255,.25);
+  }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <button class="toggle-tema" onclick="var r=document.documentElement; r.setAttribute('data-tema', r.getAttribute('data-tema')==='scuro' ? 'chiaro' : 'scuro'); this.textContent = r.getAttribute('data-tema')==='scuro' ? '☀️ Chiaro' : '🌙 Scuro';">🌙 Scuro</button>
+
+  <h1 class="titolo-pagina">Passo 3 del wizard «Nuovo lavoro» — cognome e nome separati</h1>
+  <p class="intro">Oggi il passo 3 chiede il nome del paziente in <b>una sola casella</b> («Nome o alias»),
+  e quella stringa unica finisce anche sulla targhetta della cassetta — dove, se non entra, taglia
+  proprio il cognome. La tappa 1 dell'ondata separa <b>cognome e nome</b> in due caselle. Con una sola
+  casella il tasto «Salta» a metà altezza era ovvio; con due l'ancoraggio verticale diventa una scelta
+  visibile — da qui le due varianti sotto.</p>
+  <p class="meta">27/07/2026 · struttura e valori presi verbatim da PassoPaziente.tsx e dai token v3 ·
+  «Bagheria» / «Giuseppe» sono un esempio, non un paziente reale</p>
+
+  <!-- ============================================================
+       VARIANTE A — «Salta» allineato in alto (align-items: flex-start)
+       ============================================================ -->
+  <section class="blocco-variante">
+    <h2>Variante A — «Salta» allineato in alto</h2>
+    <p class="nota-variante">Le due caselle occupano la colonna sinistra; «Salta» sta a destra, allineato
+    alla prima casella (Cognome).</p>
+    <div class="riga-stati">
+
+      <div class="stato">
+        <p class="etichetta">Riga chiusa</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Nome o alias</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stato">
+        <p class="etichetta">Aperta, vuota</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima riga-aperta variante-a">
+                <div class="colonna-caselle">
+                  <div>
+                    <label class="campo-label">Cognome</label>
+                    <input class="campo-input is-fuoco" type="text" value="">
+                  </div>
+                  <div>
+                    <label class="campo-label">Nome</label>
+                    <input class="campo-input" type="text" value="">
+                  </div>
+                </div>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stato">
+        <p class="etichetta">Aperta, compilata</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima riga-aperta variante-a">
+                <div class="colonna-caselle">
+                  <div>
+                    <label class="campo-label">Cognome</label>
+                    <input class="campo-input" type="text" value="Bagheria">
+                  </div>
+                  <div>
+                    <label class="campo-label">Nome</label>
+                    <input class="campo-input" type="text" value="Giuseppe">
+                  </div>
+                </div>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       VARIANTE B — «Salta» centrato sulle due caselle (align-items: center)
+       ============================================================ -->
+  <section class="blocco-variante">
+    <h2>Variante B — «Salta» centrato verticalmente</h2>
+    <p class="nota-variante">Stessa struttura, ma «Salta» è centrato rispetto all'altezza complessiva
+    delle due caselle — è il comportamento di oggi con una sola casella, esteso a due.</p>
+    <div class="riga-stati">
+
+      <div class="stato">
+        <p class="etichetta">Riga chiusa</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Nome o alias</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stato">
+        <p class="etichetta">Aperta, vuota</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima riga-aperta variante-b">
+                <div class="colonna-caselle">
+                  <div>
+                    <label class="campo-label">Cognome</label>
+                    <input class="campo-input is-fuoco" type="text" value="">
+                  </div>
+                  <div>
+                    <label class="campo-label">Nome</label>
+                    <input class="campo-input" type="text" value="">
+                  </div>
+                </div>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stato">
+        <p class="etichetta">Aperta, compilata</p>
+        <div class="demo-cornice">
+          <div class="frame">
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice è già pronto. Cambialo solo se serve.</p>
+            <div class="campo-wrap">
+              <label class="campo-label">Codice paziente</label>
+              <input class="campo-input" type="text" value="PZ-0436" readonly>
+              <p class="campo-nota">UÀ propone il prossimo numero. Nessun nome, solo il codice (GDPR).</p>
+            </div>
+            <div class="opz">
+              <p class="opz-cap">Se vuoi, aggiungi</p>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Elemento</span><span class="opz-eg">es. 2.6</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga">
+                <button type="button" class="riga-bottone"><span class="opz-nome">Colore</span><span class="opz-eg">es. A2</span></button>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="riga riga-ultima riga-aperta variante-b">
+                <div class="colonna-caselle">
+                  <div>
+                    <label class="campo-label">Cognome</label>
+                    <input class="campo-input" type="text" value="Bagheria">
+                  </div>
+                  <div>
+                    <label class="campo-label">Nome</label>
+                    <input class="campo-input" type="text" value="Giuseppe">
+                  </div>
+                </div>
+                <button type="button" class="link-quieto">Salta</button>
+              </div>
+              <div class="foto-add-wrap">
+                <label class="foto-add" tabindex="0">
+                  <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7.5h2.9l1.6-2.3h6L16.6 7.5h2.9A1.6 1.6 0 0 1 21 9.1v8.8a1.6 1.6 0 0 1-1.6 1.6H4.6A1.6 1.6 0 0 1 3 17.9V9.1a1.6 1.6 0 0 1 1.5-1.6z"/><circle cx="12" cy="13.2" r="3.5"/></svg>
+                  <span>Aggiungi la foto dell'impronta</span>
+                </label>
+              </div>
+            </div>
+            <div class="continua-wrap"><button type="button" class="tasto-secondario">Continua</button></div>
+            <div class="pv-wrap">
+              <button type="button" class="pv"><span class="pv-testo">Dimmelo a voce</span>
+                <span class="cerchio-mic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="#FFFFFF"/><path d="M5 11a7 7 0 0 0 14 0" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"/><line x1="12" y1="18" x2="12" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="22" x2="16" y2="22" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="domande-francesco">
+    <h2>Domande per Francesco (gate — non si scrive React finché non rispondi)</h2>
+    <ol>
+      <li>Variante A o B?</li>
+      <li>Le etichette delle due caselle sono «Cognome» e «Nome»? (la riga chiusa resta «Nome o alias»)</li>
+      <li>Il «Salta» singolo svuota entrambe le caselle: confermi?</li>
+    </ol>
+  </section>
+
+</div>
+</body>
+</html>
