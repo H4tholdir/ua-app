@@ -14,11 +14,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Dati mancanti' }, { status: 400 })
   }
 
+  // Stessa normalizzazione di `login/options` — v. il commento esteso lì. Deve stare in TUTTE e
+  // due: se solo una normalizzasse, la cerimonia si spezzerebbe a metà (opzioni trovate, verifica
+  // no) e il difetto diventerebbe più difficile da leggere di adesso.
+  const emailNorm = email.trim().toLowerCase()
+
   const svc = getServiceClient()
 
   // Trova l'utente
   const { data: { users } } = await svc.auth.admin.listUsers()
-  const user = users.find(u => u.email === email)
+  const user = users.find(u => u.email === emailNorm)
   if (!user) return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
 
   // Recupera la credenziale dal DB

@@ -1,3 +1,15 @@
+# husky esegue questo file con `sh -e` (v. .husky/_/h): il PRIMO comando che fallisce ferma il
+# commit. Verificato il 28/07/2026 — non serve `set -e`, e non serve mettere in fondo il controllo
+# che conta.
 npx lint-staged
 npx tsc --noEmit
 bash scripts/check-ds-compliance.sh
+
+# ── Aggiunti il 28/07/2026 ──────────────────────────────────────────────────────────────────────
+# Esistevano da tempo e NON erano agganciati a nulla: nessuno li eseguiva mai. Costo misurato:
+# ~5 s in tutto (0,33 s + 4,6 s).
+# ⚠️ NON aggiungere qui `guardia-navigazione-overlay.mjs` (serve l'app accesa, le credenziali e una
+# fixture che il seed non crea) né `guardia-stili-collaudo.mjs` (è uno strumento da banco, non un
+# controllo automatico: serve un server di collaudo acceso).
+bash scripts/check-csrf.sh                  # ~0,3 s — route mutanti senza verifica dell'origine
+node scripts/guardia-reduced-motion.mjs     # ~4,6 s — «Riduci movimento»: niente resta fuori schermo

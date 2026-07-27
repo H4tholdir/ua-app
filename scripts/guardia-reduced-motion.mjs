@@ -21,7 +21,16 @@
 // sbagliato di superare il controllo: la molla ratificata deve essere ancora lì.
 //
 // USO:  node scripts/guardia-reduced-motion.mjs      (esce 0 se tutto a posto, 1 se no)
-// Non serve il server dell'app: questa guardia si ospita da sola.
+// Non serve il server dell'app: questa guardia si ospita da sola. Misurata il 28/07/2026: **4,6 s**
+// in tutto, browser compreso — per questo dal 28/07 gira a ogni commit (`.husky/pre-commit`).
+//
+// ⚠️ DIPENDENZE NON DICHIARATE, ed è voluto (28/07/2026). Questo script importa `playwright` ed
+// `esbuild`, che NON sono in `package.json`: arrivano di rimbalzo da `@playwright/test` (E2E) e da
+// `vite`/`tsx` (test unitari). Dichiararle esplicitamente è stato PROVATO e RIFIUTATO: `npm i -D`
+// alza `playwright` a 1.62 mentre `@playwright/test` resta a 1.60, e quella coppia disallineata
+// rompe le prove nel browser — un rischio più grande di quello che chiudeva. Se un giorno una di
+// quelle due sorgenti sparisse, questa guardia lo dice a chiare lettere invece di crollare con una
+// pila di errori: v. i due blocchi `catch` qui sotto.
 //
 // ⚠️ LIMITE DICHIARATO — il braccio della STRISCIA dà per scontato l'involucro
 // `MotionConfig reducedMotion="user"` che oggi vive alla RADICE dell'app (layout.tsx →
@@ -81,18 +90,24 @@ writeFileSync(path.join(LAVORO, 'entry.jsx'), ENTRY)
 // `next/link` è l'unica dipendenza Next di StrisciaStato.tsx, e qui non si misura un link: uno
 // stub basta. Scritto PRIMA della build, altrimenti esbuild non risolve l'alias.
 writeFileSync(path.join(LAVORO, 'link.js'), 'import React from "react"\nexport default (p) => React.createElement("a", p)\n')
-await esbuild.build({
-  entryPoints: [path.join(LAVORO, 'entry.jsx')],
-  bundle: true, format: 'iife', jsx: 'automatic',
-  outfile: path.join(LAVORO, 'bundle.js'),
-  define: { 'process.env.NODE_ENV': '"development"' }, // dev: React segnala i mismatch d'idratazione
-  alias: { '@': path.join(RADICE, 'src'), 'next/link': path.join(LAVORO, 'link.js') },
-  // L'entry vive in una cartella temporanea, fuori dal repo: senza questo, `react` & co. non si
-  // risolvono (esbuild cerca a partire da chi importa, non dalla radice del progetto).
-  nodePaths: [path.join(RADICE, 'node_modules')],
-  absWorkingDir: RADICE,
-  logLevel: 'warning',
-})
+try {
+  await esbuild.build({
+    entryPoints: [path.join(LAVORO, 'entry.jsx')],
+    bundle: true, format: 'iife', jsx: 'automatic',
+    outfile: path.join(LAVORO, 'bundle.js'),
+    define: { 'process.env.NODE_ENV': '"development"' }, // dev: React segnala i mismatch d'idratazione
+    alias: { '@': path.join(RADICE, 'src'), 'next/link': path.join(LAVORO, 'link.js') },
+    // L'entry vive in una cartella temporanea, fuori dal repo: senza questo, `react` & co. non si
+    // risolvono (esbuild cerca a partire da chi importa, non dalla radice del progetto).
+    nodePaths: [path.join(RADICE, 'node_modules')],
+    absWorkingDir: RADICE,
+    logLevel: 'warning',
+  })
+} catch (e) {
+  console.error('❌ GUARDIA REDUCED-MOTION NON ESEGUITA — la paginetta di prova non si costruisce:', String(e).slice(0, 240))
+  console.error('   Se manca `esbuild`: arriva di rimbalzo da vite/tsx, quindi controlla `npm ci`.')
+  process.exit(1)
+}
 
 const bundle = readFileSync(path.join(LAVORO, 'bundle.js'), 'utf8')
 const PAGINA = `<!doctype html><html lang="it"><head><meta charset="utf-8">
@@ -119,7 +134,15 @@ const server = createServer((req, res) => {
   res.end(js ? bundle : PAGINA)
 }).listen(PORTA)
 
-const browser = await chromium.launch()
+let browser
+try {
+  browser = await chromium.launch()
+} catch (e) {
+  server.close()
+  console.error('❌ GUARDIA REDUCED-MOTION NON ESEGUITA — il browser di prova non parte:', String(e).slice(0, 240))
+  console.error('   Rimedio più probabile: npx playwright install chromium')
+  process.exit(1)
+}
 const guasti = []
 const nota = []
 
