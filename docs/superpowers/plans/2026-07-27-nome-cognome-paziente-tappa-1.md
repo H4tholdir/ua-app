@@ -26,6 +26,43 @@ Il trigger è dichiarato **`BEFORE INSERT OR UPDATE`** (`supabase/migrations/002
 
 ---
 
+## 🛑 PERIMETRO RIDOTTO — decisione di Francesco, 27/07/2026, a esecuzione iniziata
+
+**Il wizard «Nuovo lavoro» va ripensato per intero, quindi ogni task che tocca la sua schermata si ferma.** Decisione testuale:
+
+> «dobbiamo rivedere l'intero wizard per la creazione di un nuovo lavoro […] se arriva un lavoro che prevede la creazione di un dente e quindi indicazione di elemento e colore (o più denti e quindi più elementi e colori) allora il wizard deve dare modo di inserire queste info nella maniera più semplice e bella possibile, se invece il lavoro non lo prevede, es. devo fare solo uno scheletrato, allora è un info che può essere saltata […] spesso assieme alla prescrizione arrivano anche documentazioni tipo radiografie, foto, etc etc, tutte cose che dobbiamo studiare e decidere come inserirle nel wizard di creazione»
+
+**Vincolo strutturale accertato leggendo lo schema:** il colore oggi vive in **quattro colonne del lavoro intero** (`colore_dente`, `colore_collo`, `colore_corpo`, `colore_incisale` — `src/types/database.types.ts:2375-2378`), **non per dente**. «Più denti con colori diversi» **non è rappresentabile** senza migration → il ripensamento è **percorso GRANDE**, non Media. Le immagini hanno già una casa (`lavori_immagini`), i documenti clinici no.
+
+### Che cosa si esegue e che cosa si ferma
+
+| Task | Stato | Perché |
+|---|---|---|
+| **T1** mockup passo 3 | 🛑 **FERMO** | la schermata verrà rifatta: il mockup prodotto (`docs/design/mockups/2026-07-27-passo3-cognome-nome.html`) resta agli atti come materiale del ripensamento, **non approvato** |
+| **T2** regola pura | ✅ **FATTO** | riguarda il database, non lo schermo — vale con qualunque wizard |
+| **T3** `crea-lavoro.ts` | 🛑 **FERMO** | la firma dipende da cosa il wizard raccoglie |
+| **T4** POST pazienti | ▶️ **SI ESEGUE** | è la porta del server. **Verificato idempotente su ciò che il wizard manda oggi**: `{nome:'', cognome: alias‖pz}` attraversa la regola invariato → nessun cambiamento di comportamento visibile |
+| **T5** PATCH pazienti | ▶️ **SI ESEGUE** | è la rettifica: oggi un cognome sbagliato non è correggibile da nessuna via |
+| **T6** `PassoPaziente` | 🛑 **FERMO** | è la schermata |
+| **T7** stato wizard + bozza `v:2` | 🛑 **FERMO** | dipende da T3/T6. ⚠️ **il bump a `v: 2` viaggia con loro**, non da solo |
+| **T8** scheda paziente | ▶️ **SI ESEGUE** | è la schermata **del paziente**, non del wizard. **Dopo T5, mai prima** |
+| **T9** etichetta PDF | ▶️ **SI ESEGUE** | indipendente |
+| **T10** `ANALISI/17` | ▶️ **SI ESEGUE** | indipendente |
+| **T11** verifica | ▶️ **RIDOTTO** | vedi sotto |
+
+### ⚠️ Ciò che questa metà NON risolve, e va detto senza attenuarlo
+
+**La targa della cassetta non migliora.** Il cognome comincia a leggersi per intero solo quando il wizard chiede le due parti separate (T3/T6/T7), e quello ora aspetta il ripensamento. Questa metà consegna: **la correggibilità del nome** (Art. 16 GDPR e direttiva D10 «ogni campo si corregge fino alla consegna»), **le due porte del server protette prima che qualcuno le apra**, e due incoerenze chiuse. Chi legge questo piano fra sei mesi non deve credere che la lamentela ratificata sia stata risolta qui.
+
+### Voci aperte da questa sessione, da non perdere
+
+1. **Ripensamento del wizard «Nuovo lavoro»** — percorso GRANDE, con migration. Da aprire **dopo** la chiusura di questa metà (decisione di Francesco). Requisiti già raccolti: adattivo al tipo di dispositivo · più elementi con più colori · ingresso di radiografie e documenti clinici.
+2. **Avviso alla consegna su dente/colore mancanti** — voce a sé, **subito dopo** (decisione di Francesco). Oggi il precheck **non li nomina** e la DdC stampa il valore grezzo. Avviso, mai blocco: una totale non ha elemento, un bite non ha colore.
+3. **⚠️ Possibile lacuna normativa da verificare:** il **colore non sembra comparire nella DdC** (`DdcTemplate.tsx` §5 letto fino a `:429`, `generate-ddc.ts:80-114` non lo salva nello snapshot) mentre `ANALISI/17:119` lo elenca fra gli obbligatori. **Da confermare leggendo il resto del template**, poi voce propria.
+4. **Difetto di formato già in produzione:** il wizard propone «es. 2.6» ma l'odontogramma conosce solo interi (`TabClinica.tsx:28` converte con `.map(Number)`) → il dente non si accende, il tecnico ne tocca un altro e il lavoro ne dichiara **due**. Si chiude dentro il ripensamento del wizard.
+
+---
+
 ## Global Constraints
 
 Valgono per **ogni** task; non si ripetono nei singoli.
@@ -828,6 +865,24 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
     expect(insertMock.mock.calls[0][0].nome).not.toBeNull()
   })
 
+  it('🛑 codice mandato come cognome mentre il nome è pieno → il codice NON finisce in targa', async () => {
+    // Senza `cognomeEffettivo` a monte, nome_cognome diventerebbe
+    // «PZ-0042 GIUSEPPE» e la targa scriverebbe «Pz-0042 Giuseppe».
+    await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', nome: 'Giuseppe', cognome: 'PZ-0042' }))
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
+  })
+
+  it('idempotenza — ciò che il wizard manda OGGI attraversa la regola invariato (nessuna regressione)', async () => {
+    // Oggi il wizard manda `{nome:'', cognome: alias || pz}`. Questa prova è
+    // la rete che dice che il Task 4 non cambia comportamento a valle finché
+    // il wizard resta com'è.
+    await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', nome: '', cognome: 'PZ-0042' }))
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'PZ-0042', nome: '' })
+    insertMock.mockClear()
+    await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0002', nome: '', cognome: 'Mario R.' }))
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'Mario R.', nome: '' })
+  })
+
   it('niente da scrivere (nemmeno il codice) → 422, nessun insert', async () => {
     const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: '', nome: '', cognome: '' }))
     expect(res.status).toBe(422)
@@ -865,7 +920,7 @@ Atteso: FAIL sul 422 (oggi la route accetta la coppia vuota) e sul messaggio gre
 In `src/app/api/pazienti/route.ts`, aggiungere l'import e sostituire `:94-119`:
 
 ```typescript
-import { risolviNomePaziente } from '@/lib/domain/nome-paziente-scrittura'
+import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-paziente-scrittura'
 ```
 
 ```typescript
@@ -874,10 +929,21 @@ import { risolviNomePaziente } from '@/lib/domain/nome-paziente-scrittura'
   // comporrebbe `' '`, che blocca la consegna (precheck.ts:40-43). La stessa
   // funzione è applicata dal wizard: è idempotente, riapplicarla non cambia
   // nulla.
+  //
+  // ⚠️ `cognomeEffettivo` PRIMA, ed è obbligatorio: è la precondizione
+  // dichiarata nel JSDoc di `risolviNomePaziente`, che da sola NON può
+  // difendere l'invariante 3. Senza, un client che manda
+  // `{cognome:'PZ-0042', nome:'Giuseppe', codice_paziente:'PZ-0042'}`
+  // produce `PZ-0042 GIUSEPPE` in `nome_cognome`, che `derivaAlias` non
+  // annulla → la targa scrive «Pz-0042 Giuseppe», col codice ricasato.
+  const codiceGrezzo = typeof body.codice_paziente === 'string' ? body.codice_paziente : null
   const coppia = risolviNomePaziente({
-    cognome: typeof body.cognome === 'string' ? body.cognome : null,
+    cognome: cognomeEffettivo(
+      typeof body.cognome === 'string' ? body.cognome : null,
+      codiceGrezzo
+    ),
     nome: typeof body.nome === 'string' ? body.nome : null,
-    codice: typeof body.codice_paziente === 'string' ? body.codice_paziente : null,
+    codice: codiceGrezzo,
   })
   if (!coppia) {
     return NextResponse.json(
@@ -1098,13 +1164,20 @@ import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-pazient
       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
       : attuale.codice_paziente
 
+    // `cognomeEffettivo` su ENTRAMBI i rami, non solo su quello che legge dal
+    // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
+    // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
+    // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
+    // trattarlo come un cognome vero lo farebbe vincere sul nome appena
+    // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
+    // arriva dal body: il client non è una fonte fidata.
     const coppia = risolviNomePaziente({
-      cognome: 'cognome' in body
-        ? (typeof body.cognome === 'string' ? body.cognome : null)
-        // `cognomeEffettivo`: sui pazienti creati dal wizard senza nome il
-        // CODICE vive dentro `cognome` (invariante 2). Trattarlo come un
-        // cognome vero farebbe vincere il codice sul nome appena digitato.
-        : cognomeEffettivo(attuale.cognome, attuale.codice_paziente),
+      cognome: cognomeEffettivo(
+        'cognome' in body
+          ? (typeof body.cognome === 'string' ? body.cognome : null)
+          : attuale.cognome,
+        codice
+      ),
       nome: 'nome' in body
         ? (typeof body.nome === 'string' ? body.nome : null)
         : attuale.nome,
