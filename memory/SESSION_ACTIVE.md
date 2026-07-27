@@ -9,18 +9,21 @@ ogni *identificatore* · **R-P4** abbozzo inerte + conteggio · **R-E1** un comp
 **R-E2** si riferisce, non si patcha. 🛑 **NON retroattive su T9-T13.** Unico innesto: **al T10 la
 tabella di destinazione R-P6** — ogni nome che esce da `PATCHABLE_FIELDS` con scritto chi lo scriverà.
 
-🛡️ **RAMO `guardie-agganciate` (da `main`) — PRONTO AL MERGE, indipendente dal wizard.** Commit
-`eddb6996` (guardie) + `5773c6b6` (decisione passkey). Al pre-commit girano `check-csrf.sh` (0,33 s) e
-`guardia-reduced-motion.mjs` (4,6 s); manuali per scelta le altre due. Tolte 104 righe di config morta.
+✅ **IN PRODUZIONE (merge `24474b5c` su main → CI verde → deploy Vercel ok → `/login` HTTP 200).**
+Guardie agganciate al pre-commit: `check-csrf.sh` (0,33 s) e `guardia-reduced-motion.mjs` (4,6 s);
+manuali per scelta le altre due. Tolte 104 righe di config morta. **`ondata-a-denti-colore` allineato
+con main: i task T9-T13 committano sotto le guardie nuove** (verde anche sulla route nuova `/denti`).
+⚠️ Nel registro del deploy «CI fallita — deploy saltato» è il **nome di un job saltato**, non un errore.
 🔑 husky usa **`sh -e`** · ⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit**
 · 🔑 **bash 3.2 macOS:** array vuoto + `set -u` = «unbound variable» → idioma `${ARR[@]+"${ARR[@]}"}`.
 
 🔐 **CSRF sull'accesso con passkey: CHIUSA** — esclusione con ragione scritta, zero voci sospese.
 `isSameOrigin` dichiara di proteggere route **a cookie**, e quelle non ne usano; con `Origin` assente
 ritorna `true`, quindi non ferma un attaccante vero. **Aggiungerla avrebbe spento l'allarme su 6 difetti.**
-🔴 **SEI DIFETTI RIFERITI, NON CORRETTI — decisione di Francesco su quando:** ① **attivo oggi**: email
-case-sensitive senza `trim`/`toLowerCase` → chi digita una maiuscola o lascia uno spazio vede «nessuna
-credenziale» e crede rotta l'impronta · ② consumo challenge **non atomico** e contatore anti-replay
+✅ **① CORRETTO E IN PRODUZIONE:** email normalizzata `trim().toLowerCase()` **server-side in entrambe**
+le route (6 test, TDD col rosso letto: 3 rossi per asserzione + 3 di controllo).
+🔴 **RESTANO CINQUE, riferiti e non toccati — ondata dedicata DOPO il wizard (deciso da Francesco):**
+② consumo challenge **non atomico** e contatore anti-replay
 **inerte** (4 credenziali su 4 con `counter=0`, misurato) · ③ `listUsers()` senza paginazione: al 51°
 utente cadono fuori **i titolari** · ④ nessun filtro `deleted_at` all'accesso · ⑤ nessun rate limiting
 · ⑥ enumerazione account. ⚠️ `RP_ID` fisso → la cerimonia **non è provabile in locale né su preview**.
