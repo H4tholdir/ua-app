@@ -723,6 +723,39 @@ ALTER TABLE lavori
   ADD CONSTRAINT lavori_colore_caso_fk
     FOREIGN KEY (colore_scala, colore_codice) REFERENCES colori_dentali (scala, codice);
 
+-- ============ 🔴 TRE BUCHI DEL TASK 4, CHIUSI QUI ============
+-- Trovati provando la tabella appena creata, non leggendo il catalogo.
+
+-- ① Le tre zone del ceramista accettavano QUALUNQUE STRINGA. Provato sul
+--    database: 'ZZZ', 'pippo' e '###' sono entrati senza un lamento — su un
+--    dato che finisce nella Dichiarazione di Conformità. Il commento della
+--    migration diceva «il colore è una COPPIA, mai una stringa» mentre tre
+--    colonne su cinque erano esattamente stringhe libere.
+--    Le tre chiavi qui sotto legano ogni zona alla scala DICHIARATA nella
+--    riga: con MATCH SIMPLE una zona NULL resta ammessa (il caso normale),
+--    ma un codice inventato — o di un'altra scala — non passa più.
+ALTER TABLE lavori_denti
+  ADD CONSTRAINT lavori_denti_collo_fk    FOREIGN KEY (scala, codice_collo)    REFERENCES colori_dentali (scala, codice),
+  ADD CONSTRAINT lavori_denti_corpo_fk    FOREIGN KEY (scala, codice_corpo)    REFERENCES colori_dentali (scala, codice),
+  ADD CONSTRAINT lavori_denti_incisale_fk FOREIGN KEY (scala, codice_incisale) REFERENCES colori_dentali (scala, codice);
+
+-- ② Indice duplicato: lavori_denti_lavoro_idx (lavoro_id, fdi) è identico a
+--    quello creato d'ufficio dal vincolo unique omonimo. Costo puro in
+--    scrittura, zero beneficio in lettura.
+DROP INDEX IF EXISTS lavori_denti_lavoro_idx;
+
+-- ③ `updated_at` ha solo DEFAULT now(), nessun trigger: senza questo resterebbe
+--    congelato al momento dell'inserimento e mentirebbe per sempre. Le RPC del
+--    Task 7 riscrivono le righe per intero (sostituzione integrale), quindi il
+--    default basta per loro — ma un UPDATE futuro non lo toccherebbe. Il
+--    trigger lo rende vero per costruzione, chiunque scriva.
+CREATE OR REPLACE FUNCTION public.lavori_denti_touch() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
+
+CREATE TRIGGER lavori_denti_touch_trg BEFORE UPDATE ON lavori_denti
+  FOR EACH ROW EXECUTE FUNCTION public.lavori_denti_touch();
+
 -- ============ La fotografia (spec §3.5) ============
 -- Lo SCHEMA nasce col primo giorno anche se il writer arriva nell'ondata (c):
 -- se nel frattempo viene emessa una Dichiarazione che riporta il colore per
