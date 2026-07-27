@@ -54,6 +54,9 @@ node scripts/tmp/sql.mjs "select count(*) from lavori;"
 ```
 
 Legge `SUPABASE_DB_URL` da `.env.local` e **non stampa mai** la stringa di connessione.
+🛑 **Vive solo su questo disco: `scripts/tmp/` è ignorato da git** (verificato il 28/07: 54 file, zero
+tracciati). Non sopravvive a un clone pulito né a un cambio di macchina — se un domani non c'è, va
+riscritto, non cercato nel repo.
 ⚠️ `npx supabase db push --yes` — **senza `--yes` si blocca su un prompt** in sessione non interattiva.
 ⚠️ Non stampare mai `.env.local` né la connection string.
 
