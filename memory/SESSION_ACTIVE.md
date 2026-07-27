@@ -1,22 +1,30 @@
-# Sessione attiva — nome e cognome paziente: PIANO TAPPA 1 SCRITTO, zero codice (27/07/2026)
+# Sessione attiva — nome paziente correggibile: ramo PRONTO AL MERGE (27/07/2026)
 
-✅ **FASE 4 completa.** Piano: `docs/superpowers/plans/2026-07-27-nome-cognome-paziente-tappa-1.md`
-— 11 task, TDD passo-passo, validato da advisor (3 correzioni integrate). Ordine tappe ratificato
-da Francesco: **tappa 1 adesso**, 1-bis e 2 dopo.
+✅ Ramo `ondata-nome-cognome-paziente`, 15 commit. tsc 0 · eslint pulito · vitest **3424/19** (base
+3364) · build ok. Dettaglio completo: MEMORY.md **voce 51**.
 
-🛑 **SCOPERTA che ha cambiato la forma del piano:** il trigger `sync_paziente_nome_cognome`
-(`002_fase2_schema.sql:132-134`) è **`BEFORE INSERT OR UPDATE`**, non solo INSERT. Conseguenze:
-(a) la rettifica funziona davvero (`nome_cognome` si risincronizza) → D9/Art. 16 servito;
-(b) 🛑 **la trappola «consegna bloccata» si apre su una SECONDA porta** — `PazienteEditSheet`
-invia l'intero form a ogni salvataggio, quindi `nome`/`cognome` messi nell'allowlist così com'è
-scriverebbero `' '` in `nome_cognome` al primo salvataggio con caselle vuote.
+🛑 **Perimetro ridotto in corsa (Francesco): il wizard va ripensato per intero** → fermi mockup,
+`crea-lavoro`, `PassoPaziente`, bozza `v:2`. ⚠️ **La targa NON migliora con questo ramo.**
 
-**Perciò la tabella §5 NON è una regola del wizard: è un invariante di `pazienti`, con 3 scrittori.**
-Aggiunte al piano rispetto alla spec §6, motivate: funzione pura condivisa
-`src/lib/domain/nome-paziente-scrittura.ts` (T2) + enforcement server in POST (T4) e PATCH (T5).
+**Il perno:** il trigger è `BEFORE INSERT OR **UPDATE**` → la tabella §5 non è una regola del
+wizard, è un **invariante di `pazienti` con 3 scrittori** → una funzione sola
+(`src/lib/domain/nome-paziente-scrittura.ts`).
 
-**Vincoli d'ordine:** T1 mockup = GATE (nessun React prima) · **T5 SEMPRE prima di T8** · T2 per primo.
-**Ambiente:** branch nel repo principale, NON worktree (dev server 404 in worktree).
-`StatoSalvato` va bumpato a **`v: 2`** o la ripresa bozza uccide la creazione del lavoro.
+**Le 4 revisioni hanno trovato 3 difetti veri, tutti riprodotti eseguendo il codice:** cognome
+spogliato col codice NUOVO invece del vecchio (arrivava fino alla DdC) · la correzione di quel
+difetto ne introduceva un altro (cancellava un cognome vero uguale al codice) · 🔴 **la rettifica
+non funzionava sui pazienti del wizard**, cioè quelli per cui esiste (`''` su `data_nascita`/`sesso`
+faceva fallire l'UPDATE, e un `catch` vuoto lo nascondeva).
 
-**PROSSIMO PASSO:** scegliere l'esecuzione (subagent-driven consigliato) e partire da **Task 1**.
+🔑 **Metodo da riusare:** ogni correzione provata **per mutazione** — rompere il codice di proposito
+e verificare che il test diventi rosso **per asserzione, non per crash**. Una mutazione realistica
+(client che sceglie il laboratorio) passava 18/18 verdi.
+
+🔑 **Direttiva nuova (`CLAUDE.md` §7): «Statuto delle fonti»** — i documenti `ANALISI/` che
+descrivono *come si lavora* sono materiale di studio **non verificato**. Serve una fra: fonte
+esterna, prova nel codice, obbligo di legge, decisione di Francesco.
+
+**RESTA DA FARE PRIMA DEL MERGE:** ⚠️ **gate estetico** sulle 2 caselle nuove della scheda paziente
+(390/768/1280 × chiaro/scuro) — la pagina è dietro login, **serve Francesco**. Poi merge → push → CI.
+
+**PROSSIMO:** ripensamento wizard (GRANDE, con migration) — v. ROADMAP voce 19, tabella delle 5 voci.
