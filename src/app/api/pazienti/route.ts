@@ -43,7 +43,10 @@ export async function GET(req: Request) {
     const { data, error } = await query
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      // G9 — mai il testo grezzo del DB al client (nomi di vincoli, di
+      // colonne, di indici: superficie di ricognizione gratuita).
+      console.error('GET /api/pazienti — lettura fallita:', error.message)
+      return NextResponse.json({ error: 'Non è stato possibile leggere i pazienti' }, { status: 500 })
     }
 
     return NextResponse.json({ pazienti: data ?? [] })

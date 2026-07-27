@@ -24,7 +24,7 @@ vi.mock('@/lib/supabase/server-service', () => ({
   getServiceClient: () => ({ from: mockFrom }),
 }))
 
-import { POST } from '../../src/app/api/pazienti/route'
+import { POST, GET } from '../../src/app/api/pazienti/route'
 
 const LAB_ID = 'lab-1'
 const CONTEXT = {
@@ -87,7 +87,8 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
   it('caselle vuote → scrive il CODICE nel cognome (mai una coppia vuota)', async () => {
     const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', nome: '', cognome: '' }))
     expect(res.status).toBe(201)
-    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'PZ-0042', nome: '' })
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'PZ-0042', nome: '', codice_paziente: 'PZ-0042' })
+    expect(insertMock.mock.calls[0][0].laboratorio_id).toBe(LAB_ID)
   })
 
   it('solo il nome → finisce nel COGNOME (mai «PZ-0042 GIUSEPPE»)', async () => {
@@ -97,7 +98,15 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
 
   it('entrambe piene → coppia intatta', async () => {
     await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', nome: 'Giuseppe', cognome: 'Bagheria' }))
-    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe' })
+    // `codice_paziente` qui, e non nel primo test («caselle vuote»): lì
+    // cognome e codice sono entrambi vuoti in input, quindi
+    // `risolviNomePaziente` fa collassare `coppia.cognome` sul CODICE
+    // stesso (regola §5) — `codice_paziente` e `cognome` finiscono
+    // matematicamente identici ('PZ-0042' in entrambi), e uno scambio fra i
+    // due campi sarebbe lì indistinguibile da qualunque asserzione. Qui i
+    // due valori sono diversi ('PZ-0042' vs 'Bagheria'): è il test che può
+    // davvero smascherare lo scambio.
+    expect(insertMock.mock.calls[0][0]).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe', codice_paziente: 'PZ-0042' })
   })
 
   it('`nome` mai null: anche se il client manda null, si scrive stringa vuota', async () => {
@@ -128,6 +137,7 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
     const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: '', nome: '', cognome: '' }))
     expect(res.status).toBe(422)
     expect(insertMock).not.toHaveBeenCalled()
+    expect(await res.json()).toEqual({ error: 'Serve almeno il codice paziente' })
   })
 
   it('errore di insert → messaggio generico, MAI il testo grezzo del DB (G9)', async () => {
@@ -137,5 +147,33 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
     const corpo = await res.json()
     expect(corpo.error).not.toContain('pazienti_pkey')
     expect(corpo.error).toBe('Non è stato possibile creare il paziente')
+  })
+})
+
+describe('GET /api/pazienti — errore grezzo del DB mai al client (G9)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    insertMock.mockReset()
+    mockGetLabContextWithTimings.mockResolvedValue({ context: CONTEXT, timings: { authMs: 0, dbMs: 0 } })
+  })
+
+  it('errore di lettura → messaggio generico, MAI il testo grezzo del DB (G9)', async () => {
+    // GET non fa un `.insert()` (schema di `mockTabelle`) ma una query-chain
+    // (`.select().eq().eq().order().order().limit()`) risolta con `await` —
+    // riusa `createChain`, già pensato per questo (vedi header del helper).
+    mockFrom.mockImplementation((tabella: string) => {
+      if (tabella === 'pazienti') {
+        return createChain({
+          data: null,
+          error: { message: 'column "cognome" does not exist in relation "pazienti"' },
+        })
+      }
+      throw new Error(`Unexpected table: ${tabella}`)
+    })
+    const res = await GET(new Request('http://localhost/api/pazienti'))
+    expect(res.status).toBe(500)
+    const corpo = await res.json()
+    expect(corpo.error).not.toContain('cognome')
+    expect(corpo.error).toBe('Non è stato possibile leggere i pazienti')
   })
 })
