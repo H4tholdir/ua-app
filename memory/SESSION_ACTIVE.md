@@ -1,25 +1,32 @@
-# Sessione attiva — ondata (a) del wizard: ESECUZIONE AVVIATA (27/07/2026, sera tardi)
+# Sessione attiva — ondata (a) del wizard: 4 task su 13 (27/07/2026, notte)
 
-🛑 **Branch `ondata-a-denti-colore`** (repo principale, mai worktree). Piano:
-`docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` — 13 task, **2 chiusi**.
+🛑 **Branch `ondata-a-denti-colore`** (repo principale, mai worktree). Niente in produzione.
+Piano: `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md`.
 
-**Fatto:** spec **ratificata** · piano scritto · **Task 1** (dominio FDI a 52 codici + fix quadranti decidui)
-· **Task 2** (precedenza colore riga→caso). Suite 3440 verdi · tsc 0 · eslint pulito.
+**CHIUSI:** T1 dominio FDI 52 codici + fix quadranti decidui · T2 precedenza colore riga→caso ·
+T3 migration `colori_dentali` (48 codici) + unique `(id, laboratorio_id)` · T4 tabella `lavori_denti`
+(vincolo FDI provato con 14 rifiuti su 14, FK composita, RLS, REVOKE service_role compreso).
+Suite 3440 verdi · tsc 0 · eslint pulito · database: 48 colori, 0 righe denti, 1 policy.
 
-🔑 **ACCESSO SQL AL DATABASE: C'È.** `SUPABASE_DB_URL` sta in `.env.local` — strumento pronto:
-`node scripts/tmp/sql.mjs "<query>"` (non stampa mai la stringa di connessione). La riserva dichiarata
-prima («servirebbe una password») era **sbagliata**: le verifiche del piano si possono fare da qui.
+🔑 **ACCESSO SQL:** `node scripts/tmp/sql.mjs "<query>"` (usa `SUPABASE_DB_URL` da `.env.local`, non stampa
+mai la stringa). `npx supabase db push --yes` — **senza `--yes` si blocca su un prompt.**
 
-🔴 **Tutti e due i task hanno smentito il piano che li generava — la revisione fra un compito e l'altro sta
-pagando:**
-1. **Task 1:** il piano dava per innocuo il raggruppamento su quadranti 1-4 «perché adulto e deciduo non
-   condividono lo schermo». Condividono il **codice**: controprova, **0 denti su 20** resi in dentizione
-   decidua. Nessun gate lo vedeva (tsc compila, eslint tace, nessun test nomina `Odontogramma`).
-2. **Task 2:** Task 10 toglieva `colore_collo/corpo/incisale` dall'allowlist mentre Task 12 non le mandava
-   al nuovo endpoint → **tre tendine morte**, violazione della direttiva «ogni campo si corregge fino alla
-   consegna». Corretto: le colonne esistono già in `lavori_denti`, bastava collegarle.
-3. **Regola nuova nei vincoli del piano:** il rosso da «modulo non trovato» **non prova nulla** — nel Task 2
-   quattro asserzioni su sette passavano contro una funzione vuota.
+🔴 **OGNI task ha trovato un difetto REALE nel piano. La revisione fra un compito e l'altro sta pagando:**
+1. **T1:** raggruppamento su quadranti 1-4 dato per innocuo → **0 denti su 20** resi in dentizione decidua.
+   Nessun gate lo vedeva (tsc compila, eslint tace, nessun test nomina `Odontogramma`).
+2. **T2:** T10 toglieva `colore_collo/corpo/incisale` dall'allowlist e T12 non le mandava al nuovo endpoint
+   → **tre tendine morte**. Corretto: le colonne c'erano già in `lavori_denti`.
+3. **T3:** il colore del wizard è **testo libero** (`PassoPaziente.tsx:94-97`) e il catalogo è
+   case-sensitive: `A3` sì, `a3` no. Prerequisito aggiunto a **T11**: normalizzare e confrontare col
+   catalogo, **mai far fallire la creazione del lavoro** per un colore digitato male.
+4. **T4:** le tre zone del ceramista accettavano **qualunque stringa** (`'ZZZ'`, `'pippo'` provati sul DB),
+   su un dato che alimenta la DdC → **3 FK composite aggiunte al T5**, più indice duplicato da togliere e
+   `updated_at` senza trigger.
 
-**PROSSIMO: Task 3** — prima migration (unique `(id, laboratorio_id)` + `colori_dentali` con 48 codici).
-⚠️ Da lì in poi si tocca il database vero: `npx supabase db push` è collegato al progetto.
+🟡 **Da tenere d'occhio:** finché il **T5** non è fatto, un laboratorio con righe denti sarebbe
+**incancellabile** (`admin_delete_laboratorio` non le nomina ancora). `lavori_denti` usa `ON DELETE NO ACTION`
+mentre le 7 tabelle sorelle usano `CASCADE`: nessun impatto oggi (nessun endpoint DELETE su `lavori`).
+
+**PROSSIMO: Task 5** — colonne di caso + snapshot + `DROP COLUMN colore_dente` (W23, **prima verificare con
+SQL che sia vuota**) + `admin_delete_laboratorio` (corpo da **copiare verbatim** da
+`20260721090100`, firma `p_lab_id UUID` → `JSONB`) + i tre fix del T4.
