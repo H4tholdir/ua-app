@@ -10,8 +10,26 @@
 ## 0. In una riga
 
 **8 task su 13 chiusi, la parte «database e API» è finita.** Branch `ondata-a-denti-colore`,
-18 commit, **3453 test verdi · tsc 0 · eslint 0 · `next build` ok**. 🛑 **Niente in produzione, mai
-mergiato.** Restano T9-T13: **è la parte che tocca il codice vivo dell'app.**
+**29 commit avanti a `main`** (i commit dopo il 18° sono documentazione e memoria della notte del
+27-28/07, nessun codice del piano), **3453 test verdi · tsc 0 · eslint 0 · `next build` ok**.
+🛑 **Niente di questa ondata in produzione, mai mergiato.** Restano T9-T13: **è la parte che tocca il
+codice vivo dell'app.**
+
+### ⚙️ Cosa è cambiato NELLA NOTTE fra il 27 e il 28 — leggilo, cambia come lavori
+
+1. **Sei regole di metodo sono ora permanenti** (`ua-app/CLAUDE.md` §0C, blocco «REGOLE DI PIANO»):
+   R-P1 · R-P2 · R-P6 · R-P4 (piano e TDD) · R-E1 · R-E2 (esecuzione). 🛑 **NON sono retroattive su
+   T9-T13**, v. §4-bis qui sotto.
+2. 🛑 **MAI un git worktree** — è ora nella **FASE 5**, non più solo in questo handoff. Vale anche
+   quando è una skill a proporlo. Si fa `git checkout -b` nel repo principale.
+3. **Due controlli girano da soli a ogni commit** (`.husky/pre-commit`): la guardia CSRF (~0,3 s) e
+   quella su «Riduci movimento» (~4,6 s). Se un tuo commit si ferma, guarda cosa dicono: sono loro.
+4. ⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit** con un errore che
+   *sembra* un difetto tuo (`Cannot find module '.../route.js'`). Non lo è: **cestina `.next`**
+   (`/usr/bin/trash .next`, si rigenera) e ricommitta.
+5. **`main` è avanzato** (`24474b5c`, in produzione): guardie riparate + correzione dell'accesso con
+   passkey. **Già mergiato dentro questo ramo**, non serve fare niente.
+6. **I ruoli sono CINQUE**, non quattro: manca(va) `admin_sistema` — v. §9 delle istruzioni.
 
 ---
 
@@ -67,6 +85,27 @@ Non chiudere il T10 e fermarsi. O si arriva al T12, o non si parte.
 
 ---
 
+## 4-bis. 🛑 Le regole nuove e QUESTO piano — regola di transizione
+
+Il piano dell'ondata (a) è **anteriore alle regole ratificate il 28/07**: non ha il registro delle
+prove, non ha la colonna `letto:`, non ha il censimento degli identificatori.
+
+**R-P1, R-P2 e R-P4 NON si applicano retroattivamente ai task T9-T13.** L'esecutore del T9 **non si
+ferma** per la loro assenza, e R-E1 non gli chiede di farlo. Vincolano **dal prossimo piano in poi**.
+
+**Un solo innesto, e non è formale — è il punto dove quella regola paga:** al **T10** si scrive la
+**tabella di destinazione di R-P6**, una riga per ogni nome che esce da `PATCHABLE_FIELDS`, con scritto
+**chi lo scriverà d'ora in avanti**. Costa poco (il censimento dei sette campi è già nel piano, §51) e
+copre esattamente il pericolo che obbliga T10-T11-T12 a viaggiare in un unico deploy: **un nome che esce
+dall'allowlist senza uno scrittore rediretto è un dato che smette di salvarsi in silenzio.** Una riga
+senza destinazione = il task non è finito.
+
+⚠️ **Restano invece pienamente in vigore, anche qui: R-E1** (un compito, un esecutore fresco, con nel
+brief l'istruzione di cercare dove il piano sbaglia) **e R-E2** (un difetto fuori mandato si riferisce,
+non si patcha di nascosto). Sono le due che hanno prodotto 8 catture su 8.
+
+---
+
 ## 5. Quello che i task già fatti hanno lasciato detto — leggilo PRIMA di scrivere
 
 - **T9:** `lavoro_crea_atomico` **non** verifica `cliente_id`/`paziente_id`/`tecnico_id`/`ciclo_id` contro
@@ -106,8 +145,16 @@ conta **quante** asserzioni si accendono.
 ## 7. Trappole logistiche — ancora vere
 
 - 🛑 **Branch nel repo principale, mai worktree** (doppio `package-lock.json` → tutte le route 404).
+  Dal 28/07 è anche nelle istruzioni permanenti (FASE 5), non solo qui.
+- ⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit** con `Cannot find module
+  '.../route.js'`. Non è un difetto tuo: `/usr/bin/trash .next` e ricommitta.
+- ⚠️ **`rm -rf` è bloccato** fuori da `/private/tmp/claude-*`, `scripts/tmp/` e `node_modules`
+  (protezione dopo l'incidente del 24/07): si usa `/usr/bin/trash`, che è ripristinabile.
 - ⚠️ `.gitignore` riga 62 ignora `*.png`: gli screenshot vanno aggiunti con `git add -f`.
 - ⚠️ Il pre-commit gira `eslint --max-warnings=0`: `npx eslint src/` **prima** di committare.
+  **Dal 28/07 gira anche la guardia CSRF e quella «Riduci movimento»** (~5 s in tutto).
+- ⚠️ **macOS ha bash 3.2:** con `set -u`, `"${ARRAY[@]}"` su un array **vuoto** non dà una lista vuota
+  ma «unbound variable». Idioma da usare: `${ARR[@]+"${ARR[@]}"}`.
 - ⚠️ `../CLAUDE.md` e `../ANALISI/` stanno **fuori** dal repo git: non provare a committarli.
 - 🛑 **Le password non le digita l'assistente.** Per il QA dietro login entra Francesco.
 - ⚠️ I dati in DB sono **di prova** (`ua-app/CLAUDE.md` §8): la fedeltà del dato migrato non è un vincolo,
@@ -120,11 +167,16 @@ conta **quante** asserzioni si accendono.
 
 FASE 7 (tsc + vitest + build con **output reale**) → review → QA browser → **BP-1** → merge → deploy.
 ⚠️ **Nessun gate estetico L2 in questa ondata**: non cambia un pixel, di proposito. Serve nell'**ondata (b)**.
+🛑 **Il merge lo autorizza Francesco**, non si dà per scontato: *«non andiamo in produzione finché non lo
+dico io»* (28/07/2026).
 
 Poi: **ondata (b)** — wizard adattivo + odontogramma v3 **+ la metà rimasta del nome/cognome paziente**
 (oggi il wizard scrive tutto nel cognome, e **la targa della cassetta non è ancora migliorata**);
 l'indicatore di avanzamento dei passi è **aperto**, va deciso sui mockup.
 Poi: **ondata (c)** — Dichiarazione di Conformità + gancio nel precheck.
+In coda a **tutta** la roadmap: **ondata «accesso con passkey»**, 5 difetti censiti il 28/07 — sezione
+dedicata in fondo a `docs/roadmap/ROADMAP-UFFICIALE.md`. 🛑 La questione CSRF su quelle route è
+**chiusa**, non si riapre.
 
 ---
 
@@ -140,15 +192,5 @@ costo · **avversariale**), sei regole in vigore in `ua-app/CLAUDE.md` §0C, due
 scritto, una nuova (**R-P6**) nata dalla lente avversariale. Verbale in
 `docs/processes/2026-07-27-lezioni-piano-ondata-a.md` **§7**.
 
-🛑 **E QUESTO PIANO? Regola di transizione, decisa qui perché non resti da indovinare.**
-Il piano dell'ondata (a) è **anteriore alle regole**: non ha registro delle prove, non ha la colonna
-`letto:`, non ha il censimento degli identificatori. **R-P1, R-P2 e R-P4 NON si applicano
-retroattivamente ai task T9-T13**: l'esecutore del T9 **non si ferma** per la loro assenza, e R-E1 non
-gli chiede di farlo. Vincolano **dal prossimo piano in poi**.
-
-**Un solo innesto, e non è formale — è il punto dove quella regola paga:** al **T10** si scrive la
-**tabella di destinazione di R-P6**, una riga per ogni nome che esce da `PATCHABLE_FIELDS`, con scritto
-**chi lo scriverà d'ora in avanti**. Costa poco (il censimento dei sette campi è già nel piano, §51) e
-copre esattamente il pericolo che obbliga T10-T11-T12 a viaggiare in un unico deploy: **un nome che esce
-dall'allowlist senza uno scrittore rediretto è un dato che smette di salvarsi in silenzio.** Una riga
-senza destinazione = il task non è finito.
+🛑 La regola di transizione che riguarda questi task sta in **§4-bis**, subito dopo il vincolo di
+sequenza: è lì che serve, non in fondo.
