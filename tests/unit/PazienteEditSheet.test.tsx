@@ -62,4 +62,44 @@ describe('PazienteEditSheet — correzione di nome e cognome (D9 parte paziente,
     // Il pannello resta aperto: la casella Cognome è ancora visibile.
     expect(screen.getByLabelText(/Cognome/i)).toBeInTheDocument()
   })
+
+  // 🔴 Regressione collaudo dal vivo (27/07/2026) — le due caselle Cognome/Nome
+  // hanno reso il modulo più alto: a 1280×800 il tasto «Salva modifiche»
+  // finiva sotto il bordo dello schermo perché stava DENTRO il contenitore
+  // che scorre. La correzione: intestazione fissa, corpo scorrevole, piede
+  // fisso — il tasto è fratello del corpo scorrevole, mai suo discendente.
+  it('🔴 il tasto «Salva modifiche» non è mai dentro un contenitore che scorre — resta raggiungibile senza scroll', async () => {
+    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'Bagheria', nome: 'Giuseppe' }} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /modifica/i }))
+
+    const salvaButton = screen.getByRole('button', { name: /salva modifiche/i })
+    const cognomeInput = screen.getByLabelText(/Cognome/i)
+
+    // Nessun antenato del tasto Salva scorre: se lo fosse, il tasto
+    // scenderebbe insieme al contenuto del form (il difetto misurato).
+    let ancestor: HTMLElement | null = salvaButton.parentElement
+    let hasScrollingAncestor = false
+    while (ancestor) {
+      if (ancestor.style.overflowY === 'auto') {
+        hasScrollingAncestor = true
+        break
+      }
+      ancestor = ancestor.parentElement
+    }
+    expect(hasScrollingAncestor).toBe(false)
+
+    // Il test non è vacuo: deve esistere DAVVERO un corpo scorrevole (altrimenti
+    // basterebbe aver tolto lo scroll dal form per "passare" senza aver risolto
+    // nulla), e la casella Cognome deve stare al suo interno.
+    let scrollingContainer: HTMLElement | null = cognomeInput.parentElement
+    let foundScrollingContainer = false
+    while (scrollingContainer) {
+      if (scrollingContainer.style.overflowY === 'auto') {
+        foundScrollingContainer = true
+        break
+      }
+      scrollingContainer = scrollingContainer.parentElement
+    }
+    expect(foundScrollingContainer).toBe(true)
+  })
 })
