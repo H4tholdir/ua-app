@@ -114,14 +114,29 @@ function formatDataBreve(isoString: string | null | undefined): string {
   }
 }
 
-function inizialeCognomePaziente(lavoro: LavoroDettaglio): string {
-  const snap = lavoro.paziente_nome_snapshot
-  if (snap) return snap
-  const paz = lavoro.paziente
-  if (!paz) return '—'
-  const cognome = paz.cognome ?? ''
-  const inizialeNome = paz.nome ? paz.nome.charAt(0).toUpperCase() + '.' : ''
-  return [inizialeNome, cognome].filter(Boolean).join(' ') || '—'
+/**
+ * Il paziente sull'etichetta. Allineata verbatim a `codiceGDPR` di
+ * IFUTemplate.tsx:169-185 e RicevutaConsegnaTemplate.tsx:186-193 (riserva
+ * G1): dei tre template questo era l'UNICO che non passava mai da
+ * `codice_paziente`, e stampava direttamente cognome + iniziale. Ora l'ordine
+ * è lo stesso ovunque: prima il codice pseudonimizzato, poi (solo se manca)
+ * l'iniziale + cognome, poi lo snapshot abbreviato.
+ *
+ * Esportata per il test; il template la usa internamente.
+ */
+export function pazienteEtichetta(lavoro: LavoroDettaglio): string {
+  if (lavoro.paziente?.codice_paziente) return `PAZ-${lavoro.paziente.codice_paziente}`
+  if (lavoro.paziente) {
+    const iniziale = lavoro.paziente.nome ? lavoro.paziente.nome.charAt(0).toUpperCase() + '.' : ''
+    const cognome = lavoro.paziente.cognome ?? ''
+    if (iniziale || cognome) return `${iniziale} ${cognome}`.trim()
+  }
+  if (lavoro.paziente_nome_snapshot) {
+    const parts = lavoro.paziente_nome_snapshot.split(' ')
+    if (parts.length > 1) return `${parts[0].charAt(0).toUpperCase()}. ${parts.slice(1).join(' ')}`
+    return lavoro.paziente_nome_snapshot
+  }
+  return 'N.A. (GDPR)'
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -161,7 +176,7 @@ export function EtichettaTemplate({ lavoro, lab, installareEntro }: EtichettaTem
         {/* ── PAZIENTE ── */}
         <View style={styles.row}>
           <Text style={styles.label}>Paziente</Text>
-          <Text style={styles.valueBold}>{inizialeCognomePaziente(lavoro)}</Text>
+          <Text style={styles.valueBold}>{pazienteEtichetta(lavoro)}</Text>
         </View>
 
         {/* ── TIPO DISPOSITIVO ── */}
