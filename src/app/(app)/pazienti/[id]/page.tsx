@@ -16,7 +16,7 @@ export default async function PazienteDetailPage({ params }: Props) {
   const svc = getServiceClient()
   const { data: paziente } = await svc
     .from('pazienti')
-    .select('id, nome_cognome, codice_paziente, note, anamnesi, asl, sesso, data_nascita, created_at')
+    .select('id, nome_cognome, codice_paziente, nome, cognome, note, anamnesi, asl, sesso, data_nascita, created_at')
     .eq('id', id).eq('laboratorio_id', context.laboratorioId).single()
 
   if (!paziente) redirect('/pazienti')
@@ -86,6 +86,8 @@ export default async function PazienteDetailPage({ params }: Props) {
               <PazienteEditSheet paziente={{
                 id: paziente.id,
                 codice_paziente: paziente.codice_paziente ?? null,
+                nome: (paziente as Record<string, unknown>).nome as string | null ?? null,
+                cognome: (paziente as Record<string, unknown>).cognome as string | null ?? null,
                 note: paziente.note ?? null,
                 anamnesi: (paziente as Record<string, unknown>).anamnesi as string | null ?? null,
                 asl: (paziente as Record<string, unknown>).asl as string | null ?? null,

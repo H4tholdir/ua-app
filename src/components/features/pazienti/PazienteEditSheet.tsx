@@ -4,11 +4,14 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import { motionTokens } from '@/design-system/motion'
 import { hapticLight } from '@/lib/feedback/haptic'
+import { cognomeEffettivo } from '@/lib/domain/nome-paziente-scrittura'
 
 interface PazienteEditProps {
   paziente: {
     id: string
     codice_paziente: string | null
+    nome: string | null
+    cognome: string | null
     note: string | null
     anamnesi: string | null
     asl: string | null
@@ -23,6 +26,14 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     codice_paziente: paziente.codice_paziente ?? '',
+    // `cognomeEffettivo`: sui pazienti creati dal wizard senza nome il CODICE
+    // vive dentro `cognome` (invariante 2 della regola §5). Mostrarlo in una
+    // casella etichettata «Cognome» inviterebbe a cancellarlo — e cancellarlo
+    // è esattamente il gesto che, senza la guardia server (Task 5), bloccava
+    // la consegna. Qui lo si nasconde: la casella parte vuota, e se resta
+    // vuota il server rimette il codice da sé.
+    cognome: cognomeEffettivo(paziente.cognome, paziente.codice_paziente),
+    nome: paziente.nome ?? '',
     asl: paziente.asl ?? '',
     sesso: paziente.sesso ?? '',
     data_nascita: paziente.data_nascita ?? '',
@@ -150,6 +161,28 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
                     value={form.codice_paziente}
                     placeholder="es. PAZ/2024/001"
                     onChange={e => setForm(p => ({ ...p, codice_paziente: e.target.value }))}
+                  />
+                </div>
+
+                {/* Cognome + Nome — la via di rettifica (Art. 16 GDPR).
+                    Cognome sopra: è la parte che identifica il lavoro. */}
+                <div>
+                  <label style={labelStyle} htmlFor="paz-cognome">Cognome</label>
+                  <input
+                    id="paz-cognome"
+                    style={inputStyle}
+                    value={form.cognome}
+                    placeholder="Anche solo un soprannome"
+                    onChange={e => setForm(p => ({ ...p, cognome: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="paz-nome">Nome</label>
+                  <input
+                    id="paz-nome"
+                    style={inputStyle}
+                    value={form.nome}
+                    onChange={e => setForm(p => ({ ...p, nome: e.target.value }))}
                   />
                 </div>
 
