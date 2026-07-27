@@ -25,6 +25,7 @@
 - **Pre-commit:** `npx eslint src/` prima di ogni commit (`tsc` non vede un import inutilizzato e il gate è `--max-warnings=0`).
 - **Branch nel repo principale**, mai worktree (nel worktree il dev server non parte: doppio `package-lock.json` → tutte le route 404).
 - **Commit format:** `feat(lavori): …` / `fix(db): …`
+- 🔑 **Il rosso da «modulo non trovato» NON prova che il test provi qualcosa** (scoperto eseguendo il Task 2). Un test vuoto produce lo stesso errore. Dove il piano dichiara `Atteso: FAIL — Failed to resolve import`, **quello è solo il primo rosso**: prima di scrivere l'implementazione vera, metti un abbozzo che restituisce sempre `null` (o l'equivalente inerte) e guarda **quanti** test si accendono. Se se ne accendono pochi, il test è debole lì. Nel Task 2 quattro asserzioni su sette passavano contro una funzione che non faceva nulla.
 
 ---
 
@@ -1915,11 +1916,28 @@ describe('il form del lavoro scrive i denti sul loro endpoint (sentinelle, Task 
     expect(corpo.atteso_updated_at).toBe('2026-07-27T09:00:00Z')
     expect(corpo.denti).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ fdi: 11, ruolo: 'elemento', codice: 'A3', scala: 'vita_classical' }),
+        expect.objectContaining({ fdi: 11, ruolo: 'elemento', codice: 'A3', scala: 'vita_classical',
+                                  codice_collo: null, codice_corpo: null, codice_incisale: null }),
         expect.objectContaining({ fdi: 13, ruolo: 'elemento' }),
         expect.objectContaining({ fdi: 26, ruolo: 'mancante' }),
       ])
     )
+  })
+
+  it('🔴 le tre zone del ceramista NON diventano tendine morte', async () => {
+    // Le colonne escono da PATCHABLE_FIELDS col Task 10: se non viaggiassero
+    // qui, l'utente sceglierebbe un valore e lo vedrebbe sparire in silenzio.
+    // Direttiva permanente: ogni campo si corregge fino alla consegna.
+    const { result } = renderHook(() => useLavoroForm({
+      ...LAVORO, colore_collo: 'A2', colore_corpo: 'A3', colore_incisale: 'B1',
+    } as never))
+    act(() => { result.current.update({ denti_coinvolti: ['11'] }) })
+    await act(async () => { await result.current.save('L1') })
+
+    const put = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/denti'))!
+    expect(JSON.parse(put[1].body).denti[0]).toMatchObject({
+      codice_collo: 'A2', codice_corpo: 'A3', codice_incisale: 'B1',
+    })
   })
 
   it('i tre codici fuori scala restano ammessi: l app li offre da sempre', async () => {
@@ -2004,10 +2022,21 @@ In `src/hooks/useLavoroForm.ts`, dentro `save`, **prima** della `fetch` della PA
       ].map((r) => ({
         ...r,
         // Finché l'ondata (b) non offre il colore per dente, il colore del
-        // lavoro va sui soli elementi. Le tre zone del ceramista restano dove
-        // stanno: le tocca l'ondata (b).
+        // lavoro va sui soli elementi.
         scala: r.ruolo === 'elemento' && data.colore_dente ? scalaDi(data.colore_dente) : null,
         codice: r.ruolo === 'elemento' ? (data.colore_dente || null) : null,
+        // 🔴 LE TRE ZONE DEL CERAMISTA VENGONO ANCH'ESSE, e non è un di più.
+        // Una stesura precedente di questo piano le lasciava «dove stanno»
+        // mentre il Task 10 le toglieva dall'allowlist: risultato, TRE TENDINE
+        // MORTE nella scheda clinica — l'utente sceglie un valore, il codice lo
+        // cancella prima di spedirlo, e nessun errore compare da nessuna parte.
+        // Viola la direttiva permanente «ogni campo del lavoro si corregge,
+        // fino alla consegna» (ua-app/CLAUDE.md §9).
+        // Le colonne esistono già in `lavori_denti` (§3.1): non c'è niente da
+        // inventare, solo da collegare.
+        codice_collo:    r.ruolo === 'elemento' ? (data.colore_collo    || null) : null,
+        codice_corpo:    r.ruolo === 'elemento' ? (data.colore_corpo    || null) : null,
+        codice_incisale: r.ruolo === 'elemento' ? (data.colore_incisale || null) : null,
         // Scritto in laboratorio dalla scheda, non copiato dalla prescrizione:
         // è la distinzione che servirà al precheck di consegna (W20/W22).
         provenienza: 'eseguito' as const,
