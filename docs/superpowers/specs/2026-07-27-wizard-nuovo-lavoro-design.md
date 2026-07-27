@@ -325,6 +325,46 @@ a grafica invariata.** Nessun pixel cambia in (a): cambia solo dove il dato va a
 L'alternativa — rimandare le sentinelle a (b) — riaprirebbe le **due sorgenti dello stesso fatto** che il
 gate FASE 3 §2 ha chiuso apposta: scartata.
 
+### 🔴 Ondata (b) — il debito che questa spec NON aveva ripreso (aggiunto 27/07, domanda di Francesco)
+
+**Il passo «paziente» dell'ondata (b) deve chiudere la metà rimasta della tappa 1 «nome e cognome».**
+Verificato il 27/07 cercando «cognome», «alias» e «targa» in questa spec e nel verbale: **non compaiono
+mai qui**, e nel verbale esiste **una sola riga** (§7, punto 5, fra le cose aperte). Senza questa nota il
+pezzo cadeva fra due ondate.
+
+**Stato reale:** la metà indipendente è **in produzione** (`9aea0f22`, `676a82a1`): nome e cognome si
+correggono dalla scheda paziente, con la regola unica di scrittura `src/lib/domain/nome-paziente-scrittura.ts`.
+La metà che tocca il wizard fu **fermata** il 27/07 mattina proprio perché il wizard andava ripensato — ed
+è questa spec ad averlo ripensato.
+
+**Conseguenza oggi misurabile:** il wizard scrive ancora `cognome: alias || pz`, tutto in una casella sola.
+⚠️ **La targa della cassetta NON è migliorata** — la lamentela ratificata («taglia la coda, sparisce il
+cognome») è ancora aperta e si chiude **qui**, non altrove.
+
+**Quindi l'ondata (b) deve, nel passo paziente:**
+- scrivere `nome` e `cognome` **separati** (spec `2026-07-27-nome-cognome-paziente-design.md`, D6: due
+  caselle, ratificata — la contro-proposta «una casella sola» è stata presentata e respinta);
+- riusare `risolviNomePaziente` / `cognomeEffettivo`, che **esistono già** e sono l'invariante di `pazienti`
+  con tre scrittori: non riscriverli;
+- 🛑 tenere l'invariante `nome: ''` (mai `null`): il trigger `sync_paziente_nome_cognome` compone solo se
+  entrambi sono non-null, e un `null` viola il NOT NULL su `nome_cognome` → **500 bloccante alla creazione**;
+- 🛑 non lasciare il codice paziente fuori da `nome_cognome` senza fallback: la catena `??` di
+  `precheck.ts:40-43` e `generate-ddc.ts:93` si ferma su `' '` (che **non è** nullish) → ogni lavoro da
+  wizard senza nome diventerebbe **non consegnabile**;
+- chiudere la voce ancora aperta del verbale §7.5: **il testo di aiuto che sostituisce «alias»** sul campo.
+
+**Resta FUORI** (voce 5 della roadmap, percorso GRANDE con panel normativo): la tappa 1-bis, cioè correggere
+il nome dalla **scheda del lavoro** — `paziente_nome_snapshot` è una fotografia che esiste apposta per non
+cambiare, e la tensione fra rettifica (Art. 16 GDPR) e immutabilità (MDR Art. 10(8)) non si scioglie qui.
+
+### 🟡 Ondata (b) — l'avanzamento dei passi è APERTO, non deciso
+
+§5 dice cosa **non** fare («niente passo 2 di 3»: i passi variano col tipo, un conteggio fisso mentirebbe)
+ma **non dice cosa mettere al suo posto**. È il punto 4 delle cose aperte del verbale §7, mai chiuso.
+➡️ Va deciso **all'inizio** dell'ondata (b), sui mockup e con approvazione di Francesco (§0B) — non
+scrivendo il componente. Vincolo noto: il wizard oggi ha `ProgressDots` (DS §5.32), che presuppone un numero
+di passi fisso; con i passi variabili quel componente o cambia o esce.
+
 ### Ondata (b) — «Il wizard chiede le cose giuste, e i denti si toccano»
 `TIPI_LAVORO` estesa con «prevede denti / colore / arcata» (la tabella dei 38, verbale §6-quater) · wizard
 adattivo a passi variabili · passo denti sulle illustrazioni con le sagome · passo colore sui soli denti
