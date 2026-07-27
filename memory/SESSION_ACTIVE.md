@@ -1,28 +1,35 @@
-# Sessione attiva — nome e cognome paziente: SPEC RATIFICATA, zero codice (27/07/2026)
+# Sessione attiva — nome paziente correggibile: ramo PRONTO AL MERGE (27/07/2026)
 
-✅ **BP-2 completo fino a FASE 3 + panel 3×.** Spec confermata da Francesco:
-`docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md`. **Nessuna riga di codice**,
-per scelta: il panel (1 conferma con riserve, **2 «da rivedere»**) ha trovato tre trappole che
-`tsc` e i 3364 test non potevano vedere.
+✅ Ramo `ondata-nome-cognome-paziente`, 15 commit. tsc 0 · eslint pulito · vitest **3424/19** (base
+3364) · build ok. Dettaglio completo: MEMORY.md **voce 51**.
 
-**La scoperta:** `pazienti.nome`/`cognome` **esistono già** e il trigger compone `COGNOME NOME` →
-la **tappa 1 risolve la lamentela senza toccare `Cassetta.tsx`**. Niente migration, percorso Media.
+🛑 **Perimetro ridotto in corsa (Francesco): il wizard va ripensato per intero** → fermi mockup,
+`crea-lavoro`, `PassoPaziente`, bozza `v:2`. ⚠️ **La targa NON migliora con questo ramo.**
 
-**Tre cose da leggere prima di toccare `crea-lavoro.ts`** (handoff §3): il fallback
-`cognome: alias || pz` è **portante** — toglierlo blocca le consegne (`precheck.ts:40-43`, `''` non
-è nullish) · `nome: ''` mai `null` o muore la creazione del lavoro · cognome vuoto + nome pieno
-scrive **«Pz-0042 Giuseppe»** in targa.
+**Il perno:** il trigger è `BEFORE INSERT OR **UPDATE**` → la tabella §5 non è una regola del
+wizard, è un **invariante di `pazienti` con 3 scrittori** → una funzione sola
+(`src/lib/domain/nome-paziente-scrittura.ts`).
 
-**Decisioni nuove:** D6 due caselle confermate · D7 due tappe · D8 il tecnico vede il nome
-(→ allineare `ANALISI/17`) · **D9 correzione anche dalla scheda del lavoro → apre una tappa 1-bis
-GRANDE** sulla fotografia congelata (rettifica GDPR vs immutabilità MDR).
+**Le 4 revisioni hanno trovato 3 difetti veri, tutti riprodotti eseguendo il codice:** cognome
+spogliato col codice NUOVO invece del vecchio (arrivava fino alla DdC) · la correzione di quel
+difetto ne introduceva un altro (cancellava un cognome vero uguale al codice) · 🔴 **la rettifica
+non funzionava sui pazienti del wizard**, cioè quelli per cui esiste (`''` su `data_nascita`/`sesso`
+faceva fallire l'UPDATE, e un `catch` vuoto lo nascondeva).
 
-🔑 **DIRETTIVA PERMANENTE NUOVA (D10):** «ogni campo del lavoro si corregge, **fino alla
-consegna**» — incisa in `ua-app/CLAUDE.md` §9. Oggi rispettata a metà: `PATCHABLE_FIELDS` esclude
-**16 campi** solo perché il form non li mostra. Modello da generalizzare: `LOCKED_PRICE_FIELDS`.
+🔑 **Metodo da riusare:** ogni correzione provata **per mutazione** — rompere il codice di proposito
+e verificare che il test diventi rosso **per asserzione, non per crash**. Una mutazione realistica
+(client che sceglie il laboratorio) passava 18/18 verdi.
 
-**PUNTO DI RIPRESA:** `docs/roadmap/2026-07-27-nome-cognome-paziente-execution-handoff.md` —
-si riparte da **FASE 4 (writing-plans) sulla tappa 1**, non da un nuovo brainstorming.
+🔑 **Direttiva nuova (`CLAUDE.md` §7): «Statuto delle fonti»** — i documenti `ANALISI/` che
+descrivono *come si lavora* sono materiale di studio **non verificato**. Serve una fra: fonte
+esterna, prova nel codice, obbligo di legge, decisione di Francesco.
 
-⚠️ I numeri della scala (tappa 2) erano sbagliati: corpo paziente **11,5px** non 10, fascia **78**
-non 72, e la misura va fatta sull'asse **orizzontale**. Dettaglio in MEMORY.md voce 49.
+✅ **COLLAUDO DAL VIVO FATTO** (Francesco loggato). Ha trovato ciò che i test non vedevano: il tasto
+«Salva» finiva **sotto il bordo** su scrivania e **coperto dalla barra** su telefono. Chiuso
+allineandosi al pannello gemello dei clienti. Prova end-to-end su PZ-0003: casella Cognome vuota
+(codice nascosto) → salvato → la scheda mostra **«BAGHERIA GIUSEPPE»**, cognome davanti.
+⚠️ Screenshot NON su disco: pagina dietro login. ⚠️ PZ-0003 resta rinominato (DB di test).
+
+**RESTA DA FARE:** merge → push → attendere CI verde → verificare su uachelab.com.
+
+**PROSSIMO:** ripensamento wizard (GRANDE, con migration) — v. ROADMAP voce 19, tabella delle 5 voci.

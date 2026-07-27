@@ -4,6 +4,7 @@ import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
+import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-paziente-scrittura'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -42,7 +43,10 @@ export async function GET(req: Request) {
     const { data, error } = await query
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      // G9 — mai il testo grezzo del DB al client (nomi di vincoli, di
+      // colonne, di indici: superficie di ricognizione gratuita).
+      console.error('GET /api/pazienti — lettura fallita:', error.message)
+      return NextResponse.json({ error: 'Non è stato possibile leggere i pazienti' }, { status: 500 })
     }
 
     return NextResponse.json({ pazienti: data ?? [] })
@@ -91,14 +95,48 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
   }
 
-  // Invia solo nome + cognome — il trigger DB sincronizza nome_cognome
+  // La regola §5 (`risolviNomePaziente`) — MAI una coppia grezza: `nome`
+  // null farebbe fallire il NOT NULL su `nome_cognome`, e una coppia vuota
+  // comporrebbe `' '`, che blocca la consegna (precheck.ts:40-43). La stessa
+  // funzione è applicata dal wizard: è idempotente, riapplicarla non cambia
+  // nulla.
+  //
+  // ⚠️ `cognomeEffettivo` PRIMA, ed è obbligatorio: è la precondizione
+  // dichiarata nel JSDoc di `risolviNomePaziente`, che da sola NON può
+  // difendere l'invariante 3. Senza, un client che manda
+  // `{cognome:'PZ-0042', nome:'Giuseppe', codice_paziente:'PZ-0042'}`
+  // produce `PZ-0042 GIUSEPPE` in `nome_cognome`, che `derivaAlias` non
+  // annulla → la targa scrive «Pz-0042 Giuseppe», col codice ricasato.
+  const codiceGrezzo = typeof body.codice_paziente === 'string' ? body.codice_paziente : null
+  const coppia = risolviNomePaziente({
+    cognome: cognomeEffettivo(
+      typeof body.cognome === 'string' ? body.cognome : null,
+      codiceGrezzo
+    ),
+    nome: typeof body.nome === 'string' ? body.nome : null,
+    codice: codiceGrezzo,
+  })
+  if (!coppia) {
+    return NextResponse.json(
+      { error: 'Serve almeno il codice paziente' },
+      { status: 422 }
+    )
+  }
+
   const insertData = {
     laboratorio_id: labId,
     cliente_id: body.cliente_id as string,
-    nome: body.nome ?? null,
-    cognome: body.cognome ?? null,
-    // nome_cognome è gestito da trigger DB — non impostare qui
-    codice_paziente: body.codice_paziente ?? null,
+    nome: coppia.nome,
+    cognome: coppia.cognome,
+    // nome_cognome è gestito dal trigger DB — non impostare qui
+    // 🟠 ALTO 1 — `codiceGrezzo` è lo stesso valore già usato sopra per
+    // alimentare `cognomeEffettivo`/`risolviNomePaziente`: scriverlo qui
+    // (invece del `body.codice_paziente` grezzo) evita che la colonna
+    // diverga da ciò su cui la regola del nome si è basata. Con un codice
+    // non-stringa, prima la regola lo trattava come assente (null) mentre la
+    // colonna riceveva comunque il valore grezzo — la guardia del «codice
+    // travestito» a valle non riconosceva più il valore scritto.
+    codice_paziente: codiceGrezzo,
     data_nascita: body.data_nascita ?? null,
     codice_fiscale: body.codice_fiscale ?? null,
     sesso: body.sesso ?? null,
@@ -115,7 +153,10 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+    // G9 — mai il testo grezzo del DB al client (nomi di vincoli, di
+    // colonne, di indici: superficie di ricognizione gratuita).
+    console.error('POST /api/pazienti — insert fallito:', insertError.message)
+    return NextResponse.json({ error: 'Non è stato possibile creare il paziente' }, { status: 500 })
   }
 
   return NextResponse.json({ paziente }, { status: 201 })
