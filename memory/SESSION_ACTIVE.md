@@ -33,4 +33,7 @@ allineandosi al pannello gemello dei clienti. Prova end-to-end su PZ-0003: casel
 ✅ **IN PRODUZIONE.** Merge `9aea0f22` su main → CI verde → deploy Vercel riuscito →
 `uachelab.com` risponde, zero errori in console. **Ondata chiusa.**
 
-**PROSSIMO:** ripensamento wizard (GRANDE, con migration) — v. ROADMAP voce 19, tabella delle 5 voci.
+**PUNTO DI RIPRESA:** `docs/roadmap/2026-07-27-ripensamento-wizard-handoff.md` — il ripensamento
+del wizard «Nuovo lavoro», **percorso GRANDE con migration** (il colore oggi è in 4 colonne del
+lavoro intero: «più denti con più colori» non è rappresentabile). Ramo dell'ondata cancellato dopo
+il merge. Coda completa: ROADMAP voce 19.
