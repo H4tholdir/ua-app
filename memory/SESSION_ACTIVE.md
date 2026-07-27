@@ -34,6 +34,13 @@ contrario · **i ruoli sono CINQUE**, mancava `admin_sistema` (15 usi nel codice
 file **versionato**, perché `../CLAUDE.md` sta **fuori dal repo**. Barra di stato del progetto rimossa:
 era rotta **e copriva quella globale funzionante**. I 5 difetti dell'accesso: **in coda alla ROADMAP**.
 
+🧹 **Sessione chiusa pulita (28/07):** rimosse le 2 copie di lavoro residue + 2 cartelle orfane e il ramo
+`guardie-agganciate` (tutto era già in `main`) · salvata `scripts/design/` (rigenera la mappa dei denti
+dalle illustrazioni, serve nell'ondata b) · **tolto dalla storia un mockup da 30 MB che avevo committato
+per sbaglio** (mai pubblicato: `.git` 382→317 MB, 2.292 file confrontati identici, 3459 test verdi).
+🔑 **`wc -l` NON è una misura di dimensione:** quel file risulta di 186 righe perché una sola riga
+contiene 30 MB di base64. ⚠️ `scripts/tmp/sql.mjs` **non è nel repo**: vive solo su questo disco.
+
 **ONDATA (a) — 8 task su 13.** **3453 test verdi · tsc 0 · eslint 0 · build ok · DB pulito (294 lavori,
 0 denti).** **RESTANO:** T9 POST atomico · T10 sentinelle · T11 wizard · T12 form · T13 prove + FASE 7.
 🛑 **T10, T11, T12 nello STESSO deploy** (`route.ts:259-264` scarta senza errore).
