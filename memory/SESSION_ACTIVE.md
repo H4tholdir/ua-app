@@ -1,29 +1,32 @@
-# Sessione attiva — regole ratificate + guardie agganciate; l'ondata (a) riprende dal T9 (28/07/2026)
+# Sessione attiva — regole ratificate · guardie agganciate · CSRF passkey decisa (28/07/2026)
 
 🛑 **PUNTO DI RIPRESA dell'ondata:** `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
 🛑 **Branch `ondata-a-denti-colore`**, repo principale. **Niente in produzione, mai mergiato.**
 
 ⚖️ **REGOLE DI METODO PERMANENTI** (`CLAUDE.md` §0C, «REGOLE DI PIANO»): **R-P1** blocco senza marchio
-= NON provato · **R-P2** l'elenco dei file da aprire **non lo decide l'autore** · **R-P6** 🆕 censimento
-su ogni *identificatore* · **R-P4** abbozzo inerte + conteggio · **R-E1** un compito, un esecutore
-fresco · **R-E2** si riferisce, non si patcha. Verbale del panel: post-mortem §7.
-🛑 **NON retroattive su T9-T13** (piano anteriore). Unico innesto: **al T10 la tabella di destinazione
-R-P6** — ogni nome che esce da `PATCHABLE_FIELDS` con scritto chi lo scriverà.
+= NON provato · **R-P2** l'elenco dei file da aprire **non lo decide l'autore** · **R-P6** censimento su
+ogni *identificatore* · **R-P4** abbozzo inerte + conteggio · **R-E1** un compito, un esecutore fresco ·
+**R-E2** si riferisce, non si patcha. 🛑 **NON retroattive su T9-T13.** Unico innesto: **al T10 la
+tabella di destinazione R-P6** — ogni nome che esce da `PATCHABLE_FIELDS` con scritto chi lo scriverà.
 
-🛡️ **GUARDIE — ramo `guardie-agganciate` (da `main`), commit `eddb6996`, PRONTO AL MERGE**, indipendente
-dal wizard. Nessuna delle 4 era eseguita da niente; **2 non potevano nemmeno fallire**. Agganciate al
-pre-commit: `check-csrf.sh` (0,33 s, riscritta) + `guardia-reduced-motion.mjs` (4,6 s). Manuali per
-scelta: `guardia-navigazione-overlay` (serve app+credenziali+fixture) e `guardia-stili-collaudo`
-(strumento da banco). Tolte 104 righe su 149 di config morta in `.claude/settings.json`.
-🔑 husky esegue il gancio con **`sh -e`**: il primo comando che fallisce ferma il commit.
-⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit** — cestinare `.next`.
-⏸️ **Aperto:** 2 route WebAuthn senza verifica d'origine → panel di sicurezza dedicato.
-⚠️ **Riferito, non toccato:** `statusLine` punta a `.claude/helpers/statusline.cjs`, cartella **vuota**.
+🛡️ **RAMO `guardie-agganciate` (da `main`) — PRONTO AL MERGE, indipendente dal wizard.** Commit
+`eddb6996` (guardie) + `5773c6b6` (decisione passkey). Al pre-commit girano `check-csrf.sh` (0,33 s) e
+`guardia-reduced-motion.mjs` (4,6 s); manuali per scelta le altre due. Tolte 104 righe di config morta.
+🔑 husky usa **`sh -e`** · ⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit**
+· 🔑 **bash 3.2 macOS:** array vuoto + `set -u` = «unbound variable» → idioma `${ARR[@]+"${ARR[@]}"}`.
 
-**ONDATA (a) — 8 task su 13**, parte database/API finita. **3453 test verdi · tsc 0 · eslint 0 · build ok
-· DB pulito (294 lavori, 0 denti).**
-**RESTANO:** T9 POST atomico · T10 sentinelle · T11 wizard · T12 form del lavoro · T13 prove + FASE 7 + BP-1.
-🛑 **T10, T11, T12 nello STESSO deploy:** appena i 7 campi escono dall'allowlist i due scrittori odierni
-smettono di salvare **in silenzio** (`route.ts:259-264` scarta senza errore).
+🔐 **CSRF sull'accesso con passkey: CHIUSA** — esclusione con ragione scritta, zero voci sospese.
+`isSameOrigin` dichiara di proteggere route **a cookie**, e quelle non ne usano; con `Origin` assente
+ritorna `true`, quindi non ferma un attaccante vero. **Aggiungerla avrebbe spento l'allarme su 6 difetti.**
+🔴 **SEI DIFETTI RIFERITI, NON CORRETTI — decisione di Francesco su quando:** ① **attivo oggi**: email
+case-sensitive senza `trim`/`toLowerCase` → chi digita una maiuscola o lascia uno spazio vede «nessuna
+credenziale» e crede rotta l'impronta · ② consumo challenge **non atomico** e contatore anti-replay
+**inerte** (4 credenziali su 4 con `counter=0`, misurato) · ③ `listUsers()` senza paginazione: al 51°
+utente cadono fuori **i titolari** · ④ nessun filtro `deleted_at` all'accesso · ⑤ nessun rate limiting
+· ⑥ enumerazione account. ⚠️ `RP_ID` fisso → la cerimonia **non è provabile in locale né su preview**.
+
+**ONDATA (a) — 8 task su 13.** **3453 test verdi · tsc 0 · eslint 0 · build ok · DB pulito (294 lavori,
+0 denti).** **RESTANO:** T9 POST atomico · T10 sentinelle · T11 wizard · T12 form · T13 prove + FASE 7.
+🛑 **T10, T11, T12 nello STESSO deploy** (`route.ts:259-264` scarta senza errore).
 
 🔑 `node scripts/tmp/sql.mjs "<query>"` · `npx supabase db push --yes`.
