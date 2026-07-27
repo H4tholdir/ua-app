@@ -357,7 +357,14 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
   (`storia-overlay.ts`); con un `push` la nuova pagina le si impila SOPRA e resta sepolta — una
   pressione «indietro» morta — e se il gesto chiude anche l'overlay il suo `history.back()`
   arriva prima della navigazione e se la mangia (il CTA primario si comportava come un annulla).
-  L'hook dichiara l'intenzione e sostituisce l'entry. Rete: `scripts/guardia-navigazione-overlay.mjs`.
+  L'hook dichiara l'intenzione e sostituisce l'entry.
+  ⚠️ **Rete: `scripts/guardia-navigazione-overlay.mjs`, ma È MANUALE — va lanciata a mano** (fatto
+  verificato il 28/07/2026: fino a quel giorno questa riga diceva «Rete:» e basta, e quello script
+  **non era agganciato a nulla**; una direttiva dichiarata protetta da un controllo che non girava
+  mai). Non è agganciabile al commit: le serve l'app accesa, le credenziali del banco e un lavoro
+  preparato apposta che il seed standard non crea — e il suo terzo braccio **preme davvero
+  un'azione distruttiva** per poi annullarla. **Chi tocca gli overlay v3 la lancia a mano**, con la
+  ricetta della fixture scritta nell'intestazione dello script.
 
 ### 🔑 DIRETTIVA PERMANENTE — «Ogni campo del lavoro si corregge, fino alla consegna» (Francesco, 27/07/2026)
 
