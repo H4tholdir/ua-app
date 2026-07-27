@@ -30,6 +30,7 @@ allineandosi al pannello gemello dei clienti. Prova end-to-end su PZ-0003: casel
 (codice nascosto) → salvato → la scheda mostra **«BAGHERIA GIUSEPPE»**, cognome davanti.
 ⚠️ Screenshot NON su disco: pagina dietro login. ⚠️ PZ-0003 resta rinominato (DB di test).
 
-**RESTA DA FARE:** merge → push → attendere CI verde → verificare su uachelab.com.
+✅ **IN PRODUZIONE.** Merge `9aea0f22` su main → CI verde → deploy Vercel riuscito →
+`uachelab.com` risponde, zero errori in console. **Ondata chiusa.**
 
 **PROSSIMO:** ripensamento wizard (GRANDE, con migration) — v. ROADMAP voce 19, tabella delle 5 voci.
