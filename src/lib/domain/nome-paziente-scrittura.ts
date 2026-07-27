@@ -44,6 +44,13 @@ export type CoppiaNomePaziente = { cognome: string; nome: string }
  * lasciar passare una coppia vuota, che produrrebbe la trappola 2.
  * `null` è deliberatamente diverso da `{cognome:'', nome:''}`: quest'ultimo
  * non deve mai poter uscire da qui.
+ *
+ * ⚠️ PRECONDIZIONE DEL CHIAMANTE: `cognome` dev'essere già passato per
+ * `cognomeEffettivo(cognomeDaDB, codice)` quando viene dal database o da un
+ * client. Qui dentro la guardia NON si può fare: `{cognome:'X', nome:'Y',
+ * codice:'X'}` è indistinguibile fra «X è il codice scritto dal wizard» (da
+ * togliere) e «l'utente ha digitato X come cognome» (da tenere). Passando il
+ * valore grezzo si riapre la trappola 3.
  */
 export function risolviNomePaziente(input: {
   cognome?: string | null
@@ -55,6 +62,8 @@ export function risolviNomePaziente(input: {
   const codice = (input.codice ?? '').trim()
 
   if (cognome) return { cognome, nome }
+  // Intenzionale, non uno scambio: una casella sola si comporta come la
+  // casella unica di ieri — il valore va nel cognome (spec §5, riga 3).
   if (nome) return { cognome: nome, nome: '' }
   if (codice) return { cognome: codice, nome: '' }
   return null
