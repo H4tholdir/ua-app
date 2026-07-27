@@ -52,12 +52,24 @@ export async function PATCH(
   // La regola §5 va applicata anche qui, sui valori RISULTANTI (body sopra
   // riga corrente), non solo su quelli inviati.
   if ('nome' in body || 'cognome' in body) {
-    const { data: attuale } = await svc
+    const { data: attuale, error: letturaError } = await svc
       .from('pazienti')
       .select('nome, cognome, codice_paziente')
       .eq('id', id)
       .eq('laboratorio_id', context.laboratorioId)
       .single()
+
+    // Distingui il guasto vero (query fallita) dalla riga assente: senza
+    // questo controllo un errore momentaneo del DB si travestiva da
+    // «Paziente non trovato» — 404, non 500 — e l'utente lo leggeva come «il
+    // paziente non c'è più». `PGRST116` di PostgREST è la sola forma in cui
+    // "nessuna riga" arriva anche come errore da `.single()`: quella resta
+    // un 404 vero, non un guasto.
+    if (letturaError && letturaError.code !== 'PGRST116') {
+      // G9 — mai il testo grezzo del DB al client.
+      console.error('PATCH /api/pazienti/[id] — lettura riga corrente fallita:', letturaError.message)
+      return NextResponse.json({ error: 'Non è stato possibile aggiornare il paziente' }, { status: 500 })
+    }
 
     if (!attuale) {
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 })
@@ -67,7 +79,15 @@ export async function PATCH(
       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
       : attuale.codice_paziente
 
-    // `cognomeEffettivo` su ENTRAMBI i rami, non solo su quello che legge dal
+    const spogliaCodice = (v: string | null | undefined) =>
+      // Il cognome SALVATO specchia il codice VECCHIO (è l'invariante 2: sui
+      // pazienti senza nome il codice vive dentro `cognome`); quello che
+      // arriva dal body specchia semmai il NUOVO. Nessuno dei due vale come
+      // cognome, quindi si spoglia contro entrambi — altrimenti rinominare il
+      // codice trasforma il vecchio in un cognome e riapre la trappola 3.
+      cognomeEffettivo(cognomeEffettivo(v, codice), attuale.codice_paziente)
+
+    // `spogliaCodice` su ENTRAMBI i rami, non solo su quello che legge dal
     // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
     // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
     // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
@@ -75,11 +95,10 @@ export async function PATCH(
     // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
     // arriva dal body: il client non è una fonte fidata.
     const coppia = risolviNomePaziente({
-      cognome: cognomeEffettivo(
+      cognome: spogliaCodice(
         'cognome' in body
           ? (typeof body.cognome === 'string' ? body.cognome : null)
-          : attuale.cognome,
-        codice
+          : attuale.cognome
       ),
       nome: 'nome' in body
         ? (typeof body.nome === 'string' ? body.nome : null)

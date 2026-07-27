@@ -53,15 +53,17 @@ function richiestaDelete() {
 const updateMock = vi.fn()
 let rigaCorrente: { nome: string | null; cognome: string | null; codice_paziente: string | null } | null
 let selectEqCalls: unknown[][]
+let updateEqCalls: unknown[][]
+let selectError: { message: string; code?: string } | null
 
 /**
  * `pazienti` per i test PATCH: `select` registra OGNI `.eq(...)` in
- * `selectEqCalls` (catena permissiva, non un conteggio fisso — così una
- * mutazione che toglie un `.eq()` non crasha per forma sbagliata, ma si
- * verifica DAVVERO con un'asserzione sui valori, come lo scoping tenant
- * richiede) e risolve `rigaCorrente` a `single()`; `update` cattura il
- * payload in `updateMock` e risolve `updateResult` dopo 2 `.eq()` (schema
- * reale della route: nessun `.select()` dopo l'update).
+ * `selectEqCalls` e `update` registra OGNI `.eq(...)` in `updateEqCalls`
+ * (catene permissive, non un conteggio fisso — così una mutazione che toglie
+ * un `.eq()` non crasha per forma sbagliata, ma si verifica DAVVERO con
+ * un'asserzione sui valori, come lo scoping tenant richiede). `select`
+ * risolve `rigaCorrente`/`selectError` a `single()`; `update` cattura il
+ * payload in `updateMock` e risolve `updateResult`.
  */
 function mockPatchTabella(updateResult: { error: unknown } = { error: null }) {
   mockFrom.mockImplementation((tabella: string) => {
@@ -71,13 +73,20 @@ function mockPatchTabella(updateResult: { error: unknown } = { error: null }) {
           selectEqCalls.push(args)
           return selectChain
         },
-        single: async () => ({ data: rigaCorrente }),
+        single: async () => ({ data: rigaCorrente, error: selectError }),
       }
       return {
         select: () => selectChain,
         update: (dati: Record<string, unknown>) => {
           updateMock(dati)
-          return { eq: () => ({ eq: async () => updateResult }) }
+          const chain = {
+            eq: (...args: unknown[]) => {
+              updateEqCalls.push(args)
+              return chain
+            },
+            then: (r: (v: unknown) => unknown) => Promise.resolve(updateResult).then(r),
+          }
+          return chain
         },
       }
     }
@@ -89,6 +98,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   updateMock.mockReset()
   selectEqCalls = []
+  updateEqCalls = []
+  selectError = null
   mockGetFreshLabContext.mockResolvedValue(CONTEXT)
   rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
   mockPatchTabella()
@@ -105,6 +116,12 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
     await PATCH(richiesta({ cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
     expect(selectEqCalls).toContainEqual(['id', PAZIENTE_ID])
     expect(selectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+  })
+
+  it('anche la SCRITTURA è ristretta al laboratorio corrente (isolamento fra laboratori)', async () => {
+    await PATCH(richiesta({ note: 'ciao' }), { params })
+    expect(updateEqCalls).toContainEqual(['id', PAZIENTE_ID])
+    expect(updateEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
   })
 
   it('🛑 svuotare ENTRAMBE le caselle NON scrive una coppia vuota: torna il codice', async () => {
@@ -131,17 +148,43 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
     expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
   })
 
+  it('codice rinominato + nome, senza `cognome` nel body: il vecchio codice NON diventa cognome', async () => {
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    await PATCH(richiesta({ codice_paziente: 'PZ-9999', nome: 'Giuseppe' }), { params })
+    expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
+  })
+
+  it('codice svuotato + nome, senza `cognome` nel body: stesso esito', async () => {
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    await PATCH(richiesta({ codice_paziente: '', nome: 'Giuseppe' }), { params })
+    expect(updateMock.mock.calls[0][0]).toMatchObject({ cognome: 'Giuseppe', nome: '' })
+  })
+
   it('una patch che non tocca il nome NON scrive nome/cognome', async () => {
     await PATCH(richiesta({ note: 'ciao' }), { params })
     expect(updateMock.mock.calls[0][0]).not.toHaveProperty('nome')
     expect(updateMock.mock.calls[0][0]).not.toHaveProperty('cognome')
     expect(updateMock.mock.calls[0][0]).toMatchObject({ note: 'ciao' })
+    // La lettura extra della riga corrente gira SOLO quando la modifica tocca
+    // il nome: qui non lo tocca, quindi nessuna query di lettura deve partire.
+    expect(selectEqCalls).toEqual([])
   })
 
   it('paziente inesistente in questo laboratorio → 404, nessun update', async () => {
     rigaCorrente = null
     const res = await PATCH(richiesta({ cognome: 'Bagheria' }), { params })
     expect(res.status).toBe(404)
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('guasto DB nella lettura della riga corrente → messaggio generico, MAI 404 (il paziente non è sparito, il DB è caduto)', async () => {
+    rigaCorrente = null
+    selectError = { message: 'connection to server was lost', code: '08006' }
+    const res = await PATCH(richiesta({ cognome: 'Bagheria' }), { params })
+    expect(res.status).toBe(500)
+    const corpo = await res.json()
+    expect(corpo.error).not.toContain('connection to server')
+    expect(corpo.error).toBe('Non è stato possibile aggiornare il paziente')
     expect(updateMock).not.toHaveBeenCalled()
   })
 
@@ -163,6 +206,14 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
 })
 
 describe('DELETE /api/pazienti/[id] — archiviazione', () => {
+  let deleteSelectEqCalls: unknown[][]
+
+  /**
+   * `select` registra OGNI `.eq(...)` in `deleteSelectEqCalls` (catena
+   * permissiva, non un conteggio fisso — come per il PATCH: così una
+   * mutazione che toglie un filtro non crasha per forma sbagliata, ma si
+   * verifica DAVVERO con un'asserzione sui valori). `update` resta invariato.
+   */
   function mockDeleteTabella(opts: {
     esiste?: boolean
     softDeleteError?: unknown
@@ -170,16 +221,15 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
     const { esiste = true, softDeleteError = null } = opts
     mockFrom.mockImplementation((tabella: string) => {
       if (tabella === 'pazienti') {
+        const selectChain = {
+          eq: (...args: unknown[]) => {
+            deleteSelectEqCalls.push(args)
+            return selectChain
+          },
+          single: async () => ({ data: esiste ? { id: PAZIENTE_ID } : null }),
+        }
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                eq: () => ({
-                  single: async () => ({ data: esiste ? { id: PAZIENTE_ID } : null }),
-                }),
-              }),
-            }),
-          }),
+          select: () => selectChain,
           update: (dati: Record<string, unknown>) => {
             updateMock(dati)
             return { eq: () => ({ eq: async () => ({ error: softDeleteError }) }) }
@@ -191,6 +241,7 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
   }
 
   beforeEach(() => {
+    deleteSelectEqCalls = []
     mockDeleteTabella({ esiste: true })
   })
 
@@ -217,5 +268,12 @@ describe('DELETE /api/pazienti/[id] — archiviazione', () => {
     const corpo = await res.json()
     expect(corpo.error).not.toContain('foreign key')
     expect(corpo.error).toBe('Non è stato possibile archiviare il paziente')
+  })
+
+  it('la lettura pre-cancellazione è ristretta al laboratorio corrente (isolamento fra laboratori)', async () => {
+    await DELETE(richiestaDelete(), { params })
+    expect(deleteSelectEqCalls).toContainEqual(['id', PAZIENTE_ID])
+    expect(deleteSelectEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
+    expect(deleteSelectEqCalls).toContainEqual(['archiviato', false])
   })
 })
