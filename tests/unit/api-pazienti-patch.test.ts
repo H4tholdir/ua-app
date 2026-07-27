@@ -225,6 +225,50 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
     expect(updateEqCalls).toContainEqual(['laboratorio_id', LAB_ID])
     expect(updateEqCalls).not.toContainEqual(['laboratorio_id', 'lab-altro'])
   })
+
+  // 🔴 CRITICAL — `data_nascita` è di tipo data e `sesso` ammette solo 'M'/'F':
+  // una stringa vuota su queste due colonne fa fallire l'UPDATE. Il pannello
+  // manda '' quando il campo è assente sul paziente (caso normale per i
+  // pazienti creati dal wizard) — qui '' deve diventare null PRIMA di
+  // arrivare a `.update()`.
+  it("🔴 CRITICAL: 'data_nascita' e 'sesso' vuoti nel body diventano null, non ''", async () => {
+    const res = await PATCH(richiesta({ data_nascita: '', sesso: '' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].data_nascita).toBeNull()
+    expect(updateMock.mock.calls[0][0].sesso).toBeNull()
+  })
+
+  it("le colonne di testo (note, anamnesi, asl) restano '' quando il body manda ''", async () => {
+    // Solo `data_nascita`/`sesso` hanno un vincolo che rompe su ''; le altre
+    // colonne di testo non vanno toccate da questa normalizzazione.
+    const res = await PATCH(richiesta({ note: '', anamnesi: '', asl: '' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0]).toMatchObject({ note: '', anamnesi: '', asl: '' })
+  })
+
+  it('data_nascita e sesso valorizzati passano invariati', async () => {
+    const res = await PATCH(richiesta({ data_nascita: '1990-05-12', sesso: 'F' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0]).toMatchObject({ data_nascita: '1990-05-12', sesso: 'F' })
+  })
+
+  // 🟠 ALTO 1 — il valore che alimenta la regola del nome (`codice`, usato da
+  // `risolviNomePaziente`/`cognomeEffettivo`) e il valore scritto nella
+  // colonna `codice_paziente` devono coincidere SEMPRE, anche quando il
+  // client manda un codice non-stringa. Prima della correzione: il primo
+  // collassava a `null` (guardia di tipo) mentre il secondo veniva scritto
+  // grezzo (`42`) — i due valori divergevano.
+  it('🟠 ALTO 1: un codice_paziente non-stringa nel body normalizza IDENTICO per la regola e per la colonna scritta', async () => {
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    await PATCH(richiesta({ cognome: '42', nome: 'Giuseppe', codice_paziente: 42 }), { params })
+    const scritto = updateMock.mock.calls[0][0]
+    // Il codice non-stringa collassa a null per la regola: '42' come cognome
+    // NON coincide con un codice null, quindi resta un cognome vero.
+    expect(scritto.cognome).toBe('42')
+    expect(scritto.nome).toBe('Giuseppe')
+    // La colonna scritta deve essere lo STESSO valore usato dalla regola: null.
+    expect(scritto.codice_paziente).toBeNull()
+  })
 })
 
 describe('DELETE /api/pazienti/[id] — archiviazione', () => {

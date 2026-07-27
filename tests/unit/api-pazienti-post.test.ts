@@ -140,6 +140,23 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
     expect(await res.json()).toEqual({ error: 'Serve almeno il codice paziente' })
   })
 
+  // 🟠 ALTO 1 — il valore usato per alimentare la regola del nome
+  // (`codiceGrezzo`) e il valore scritto nella colonna `codice_paziente`
+  // devono coincidere. Prima della correzione: la regola vedeva `null` (una
+  // guardia di tipo su `codice_paziente` non-stringa) mentre l'insert
+  // scriveva il valore grezzo (`42`) — i due divergevano, e il «codice
+  // travestito» tornava in targa perché la guardia a valle non lo riconosceva
+  // più (il valore salvato non era quello su cui la regola si era basata).
+  it('🟠 ALTO 1: un codice_paziente non-stringa normalizza IDENTICO per la regola e per la colonna scritta', async () => {
+    await POST(richiesta({ cliente_id: 'cli-1', cognome: '42', nome: 'Giuseppe', codice_paziente: 42 }))
+    const scritto = insertMock.mock.calls[0][0]
+    // '42' come cognome non coincide con un codice null: resta un cognome vero.
+    expect(scritto.cognome).toBe('42')
+    expect(scritto.nome).toBe('Giuseppe')
+    // La colonna scritta deve essere lo stesso valore usato dalla regola: null.
+    expect(scritto.codice_paziente).toBeNull()
+  })
+
   it('errore di insert → messaggio generico, MAI il testo grezzo del DB (G9)', async () => {
     mockTabelle({ data: null, error: { message: 'duplicate key value violates unique constraint "pazienti_pkey"' } })
     const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', nome: '', cognome: '' }))

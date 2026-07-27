@@ -24,6 +24,7 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [errore, setErrore] = useState<string | null>(null)
   const [form, setForm] = useState({
     codice_paziente: paziente.codice_paziente ?? '',
     // `cognomeEffettivo`: sui pazienti creati dal wizard senza nome il CODICE
@@ -43,6 +44,7 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
 
   const handleSave = async () => {
     setSaving(true)
+    setErrore(null)
     hapticLight()
     try {
       const res = await fetch(`/api/pazienti/${paziente.id}`, {
@@ -50,11 +52,25 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      if (!res.ok) throw new Error('Errore salvataggio')
+      if (!res.ok) {
+        // 🟠 ALTO 2 — il messaggio mostrato è quello della route (già
+        // generico e sicuro, G9): mai il testo grezzo del DB, ma nemmeno più
+        // un fallimento invisibile. Se la lettura del corpo fallisce, un
+        // testo di ripiego.
+        let messaggio = 'Non è stato possibile salvare le modifiche'
+        try {
+          const corpo = await res.json()
+          if (corpo?.error) messaggio = corpo.error
+        } catch {
+          // ripiego: il corpo non è JSON valido, resta il messaggio generico
+        }
+        setErrore(messaggio)
+        return
+      }
       setOpen(false)
       router.refresh()
     } catch {
-      // non-critical — user can retry
+      setErrore('Non è stato possibile salvare le modifiche')
     } finally {
       setSaving(false)
     }
@@ -84,7 +100,7 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
   return (
     <>
       <button
-        onClick={() => { setOpen(true); hapticLight() }}
+        onClick={() => { setOpen(true); setErrore(null); hapticLight() }}
         style={{
           padding: '10px 16px',
           background: 'var(--sfc)',
@@ -243,6 +259,29 @@ export function PazienteEditSheet({ paziente }: PazienteEditProps) {
                   />
                 </div>
               </div>
+
+              {/* Messaggio d'errore — visibile in tema chiaro e scuro: usa le
+                  stesse variabili colore del resto del pannello (--sfc/--prs
+                  per lo sfondo/bordo, --t1 per il testo), niente colori
+                  scritti a mano. */}
+              {errore && (
+                <div
+                  role="alert"
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 12px',
+                    background: 'var(--sfc)',
+                    border: '1px solid var(--primary, #D90012)',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--t1)',
+                    fontFamily: 'DM Sans, sans-serif',
+                  }}
+                >
+                  {errore}
+                </div>
+              )}
 
               {/* Save button */}
               <button

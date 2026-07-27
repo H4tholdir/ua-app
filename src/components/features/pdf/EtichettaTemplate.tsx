@@ -115,8 +115,8 @@ function formatDataBreve(isoString: string | null | undefined): string {
 }
 
 /**
- * Il paziente sull'etichetta. Allineata verbatim a `codiceGDPR` di
- * IFUTemplate.tsx:169-185 e RicevutaConsegnaTemplate.tsx:186-193 (riserva
+ * Il paziente sull'etichetta. Allineata verbatim alla funzione `codiceGDPR`
+ * di IFUTemplate.tsx e di RicevutaConsegnaTemplate.tsx (riserva
  * G1): dei tre template questo era l'UNICO che non passava mai da
  * `codice_paziente`, e stampava direttamente cognome + iniziale. Ora l'ordine
  * è lo stesso ovunque: prima il codice pseudonimizzato, poi (solo se manca)

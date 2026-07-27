@@ -129,7 +129,14 @@ export async function POST(req: Request) {
     nome: coppia.nome,
     cognome: coppia.cognome,
     // nome_cognome è gestito dal trigger DB — non impostare qui
-    codice_paziente: body.codice_paziente ?? null,
+    // 🟠 ALTO 1 — `codiceGrezzo` è lo stesso valore già usato sopra per
+    // alimentare `cognomeEffettivo`/`risolviNomePaziente`: scriverlo qui
+    // (invece del `body.codice_paziente` grezzo) evita che la colonna
+    // diverga da ciò su cui la regola del nome si è basata. Con un codice
+    // non-stringa, prima la regola lo trattava come assente (null) mentre la
+    // colonna riceveva comunque il valore grezzo — la guardia del «codice
+    // travestito» a valle non riconosceva più il valore scritto.
+    codice_paziente: codiceGrezzo,
     data_nascita: body.data_nascita ?? null,
     codice_fiscale: body.codice_fiscale ?? null,
     sesso: body.sesso ?? null,

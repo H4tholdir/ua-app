@@ -44,4 +44,22 @@ describe('PazienteEditSheet — correzione di nome e cognome (D9 parte paziente,
     expect(opt.method).toBe('PATCH')
     expect(JSON.parse(opt.body)).toMatchObject({ cognome: 'Bagheria', nome: 'Giuseppe' })
   })
+
+  // 🟠 ALTO 2 — il pannello aveva un `catch` vuoto: un salvataggio fallito
+  // (il 500 del Critical, o un 422) non si vedeva da nessuna parte, l'utente
+  // vedeva solo il pannello che non si chiudeva senza sapere perché.
+  it('🟠 ALTO 2: quando la PATCH fallisce, il pannello resta aperto e mostra il messaggio della route', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      json: async () => ({ error: 'Non è stato possibile aggiornare il paziente' }),
+    })))
+    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'Bagheria', nome: 'Giuseppe' }} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /modifica/i }))
+    await user.click(screen.getByRole('button', { name: /salva/i }))
+
+    expect(await screen.findByText('Non è stato possibile aggiornare il paziente')).toBeInTheDocument()
+    // Il pannello resta aperto: la casella Cognome è ancora visibile.
+    expect(screen.getByLabelText(/Cognome/i)).toBeInTheDocument()
+  })
 })

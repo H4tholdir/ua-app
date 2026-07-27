@@ -33,9 +33,36 @@ export async function PATCH(
   // `nome` e `cognome` sono DELIBERATAMENTE fuori da questo ciclo: hanno un
   // ramo proprio qui sotto, perché non si possono scrivere grezzi.
   const ALLOWED = ['codice_paziente', 'note', 'anamnesi', 'asl', 'sesso', 'data_nascita'] as const
+
+  // Una stringa vuota non è un valore per queste due colonne: `data_nascita`
+  // è di tipo data e `sesso` ammette solo 'M' o 'F'. Il pannello di modifica
+  // manda `''` quando il campo è assente sul paziente (ed è il caso normale
+  // per i pazienti creati dal wizard), e l'aggiornamento falliva in silenzio.
+  // Le colonne di testo — note, anamnesi, asl — restano com'erano: lì `''` è
+  // innocuo e distinguerlo da null sarebbe una decisione a sé.
+  const VUOTO_VALE_NULL = new Set<string>(['data_nascita', 'sesso'])
+
+  // 🟠 ALTO 1 — il codice paziente normalizzato (stringa o null) deve essere
+  // LO STESSO valore sia per la colonna `codice_paziente` sia per la regola
+  // del nome qui sotto: prima divergevano (la regola vedeva solo stringhe,
+  // la colonna riceveva il valore grezzo), e un codice non-stringa restava
+  // scritto grezzo mentre la regola lo trattava come assente. Calcolato una
+  // volta sola, fuori dal ciclo dell'allowlist, così alimenta entrambi.
+  const codiceDalBody = 'codice_paziente' in body
+    ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
+    : undefined
+
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   for (const field of ALLOWED) {
-    if (field in body) updates[field] = body[field]
+    if (field === 'codice_paziente') {
+      if (codiceDalBody !== undefined) updates.codice_paziente = codiceDalBody
+      continue
+    }
+    if (field in body) {
+      const v = body[field]
+      updates[field] =
+        VUOTO_VALE_NULL.has(field) && typeof v === 'string' && v.trim() === '' ? null : v
+    }
   }
 
   // Rettifica di nome e cognome (G4 — Art. 16 GDPR: un cognome scritto male
@@ -75,9 +102,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Paziente non trovato' }, { status: 404 })
     }
 
-    const codice = 'codice_paziente' in body
-      ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
-      : attuale.codice_paziente
+    const codice = codiceDalBody !== undefined ? codiceDalBody : attuale.codice_paziente
 
     const coppia = risolviNomePaziente({
       // Ogni valore si spoglia contro il codice che SPECCHIA: quello dal body
