@@ -5989,6 +5989,19 @@ export type Database = {
       has_role: { Args: { required_role: string }; Returns: boolean }
       has_role_check: { Args: { required_role: string }; Returns: boolean }
       lab_is_accessible: { Args: never; Returns: boolean }
+      lavoro_crea_atomico: {
+        Args: { p_denti: Json; p_lab: string; p_lavoro: Json }
+        Returns: Json
+      }
+      lavoro_denti_sostituisci_atomica: {
+        Args: {
+          p_atteso_updated_at: string
+          p_denti: Json
+          p_lab: string
+          p_lavoro: string
+        }
+        Returns: Json
+      }
       manda_in_prova_atomico: {
         Args: {
           p_data_rientro: string
