@@ -1164,20 +1164,38 @@ import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-pazient
       ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
       : attuale.codice_paziente
 
-    // `cognomeEffettivo` su ENTRAMBI i rami, non solo su quello che legge dal
-    // DB: è la precondizione dichiarata nel JSDoc di `risolviNomePaziente`,
-    // che da sola NON può difendere l'invariante 3. Sui pazienti creati dal
-    // wizard senza nome il CODICE vive dentro `cognome` (invariante 2), e
-    // trattarlo come un cognome vero lo farebbe vincere sul nome appena
-    // digitato → «Pz-0042 Giuseppe» in targa. Vale anche per il valore che
-    // arriva dal body: il client non è una fonte fidata.
+    // 🛑 CORRETTO IN REVISIONE (27/07): la prima stesura spogliava il cognome
+    // contro il solo codice NUOVO, e questo difetto è stato riprodotto
+    // eseguendo la route vera. Il cognome SALVATO specchia il codice VECCHIO
+    // (invariante 2: sui pazienti senza nome il codice vive dentro `cognome`);
+    // confrontato col nuovo non coincide più, quindi passava per un cognome
+    // vero. Riga `{nome:'', cognome:'PZ-0042', codice:'PZ-0042'}` + PATCH
+    // `{codice_paziente:'PZ-9999', nome:'Giuseppe'}` → si scriveva
+    // `{cognome:'PZ-0042', nome:'Giuseppe'}` → il trigger componeva
+    // `PZ-0042 GIUSEPPE` → trappola 3, e via `generate-ddc.ts:93` quella
+    // stringa finiva nel campo paziente della DdC (dieci anni di
+    // conservazione). Idem con `codice_paziente:''`, che è ciò che il pannello
+    // di modifica manda davvero.
+    //
+    // 🛑 SECONDA CORREZIONE (ri-revisione, 27/07): la prima correzione
+    // spogliava contro ENTRAMBI i codici, e **cancellava un cognome vero**.
+    // Riprodotto: riga `{nome:'Giuseppe', cognome:'Rossi', codice:'Rossi'}` +
+    // PATCH `{codice_paziente:'PZ-0042', cognome:'Rossi'}` → si scriveva
+    // `{cognome:'Giuseppe', nome:''}`: «Rossi» sparito e il nome slittato nel
+    // cognome, con la DdC che riportava `GIUSEPPE` invece di `ROSSI GIUSEPPE`.
+    // Ed è raggiungibile proprio col gesto che la direttiva D10 vuole
+    // permettere (un laboratorio che aveva usato il cognome come codice e poi
+    // lo corregge).
+    //
+    // La regola giusta: **ogni valore si spoglia contro il codice che
+    // SPECCHIA**, non contro tutti e due. Quello dal body può ripetere il
+    // codice nuovo; quello salvato ripete il vecchio (invariante 2). È lo
+    // stesso principio già usato nel Task 3 (`cognomeEffettivo(esistente.cognome,
+    // esistente.codice_paziente)`).
     const coppia = risolviNomePaziente({
-      cognome: cognomeEffettivo(
-        'cognome' in body
-          ? (typeof body.cognome === 'string' ? body.cognome : null)
-          : attuale.cognome,
-        codice
-      ),
+      cognome: 'cognome' in body
+        ? cognomeEffettivo(typeof body.cognome === 'string' ? body.cognome : null, codice)
+        : cognomeEffettivo(attuale.cognome, attuale.codice_paziente),
       nome: 'nome' in body
         ? (typeof body.nome === 'string' ? body.nome : null)
         : attuale.nome,
