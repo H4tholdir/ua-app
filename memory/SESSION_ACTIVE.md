@@ -1,22 +1,21 @@
-# Sessione attiva — ondata (a) del wizard: 8 su 13, si riprende in sessione nuova (27/07/2026, notte)
+# Sessione attiva — regole di metodo RATIFICATE; l'ondata (a) riprende dal T9 (28/07/2026)
 
-🛑 **PUNTO DI RIPRESA:** `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` — leggilo per primo.
+🛑 **PUNTO DI RIPRESA:** `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
 🛑 **Branch `ondata-a-denti-colore`**, repo principale. **Niente in produzione, mai mergiato.**
 
-**CHIUSI — la parte «database e API» è FINITA:** T1 dominio FDI 52 codici · T2 precedenza colore ·
-T3 `colori_dentali` (48) · T4 `lavori_denti` · T5 colonne di caso + `DROP COLUMN` + purga tenant ·
-T6 FASE 6b · T7 le due RPC atomiche · T8 `PUT /api/lavori/[id]/denti`.
-**3453 test verdi · tsc 0 · eslint 0 · `next build` ok · DB pulito (294 lavori, 0 denti).**
+⚖️ **CHIUSO IN QUESTA SESSIONE — le regole nate dall'ondata (a) sono permanenti** (`ua-app/CLAUDE.md`
+§0C, blocco «REGOLE DI PIANO»): **R-P1** blocco senza marchio = NON provato (fail-closed) · **R-P2**
+l'elenco dei file da aprire **non lo decide l'autore** · **R-P6** 🆕 censimento su ogni *identificatore*,
+non solo colonne · **R-P4** abbozzo inerte + conteggio · **R-E1** un compito, un esecutore fresco ·
+**R-E2** si riferisce, non si patcha. **Scartate:** la nota su `tsc` (già in CI) e «piano in sessione
+fresca» (causa contraddetta dai dati). Verbale del panel: post-mortem §7.
+⚠️ **Aperto per Francesco:** restringere la Regola Advisor ai soli irreversibili — proposta, non fatta.
+⚠️ **Riferito, non toccato:** 4 guardie (`guardia-*.mjs`, `check-csrf.sh`) **non agganciate a nulla**.
 
-**RESTANO — la parte che tocca il codice vivo:** T9 POST atomico · T10 sentinelle · T11 wizard ·
-T12 form del lavoro · T13 prove + FASE 7 + BP-1.
+**ONDATA (a) — 8 task su 13 chiusi**, parte database/API finita. **3453 test verdi · tsc 0 · eslint 0 ·
+`next build` ok · DB pulito (294 lavori, 0 denti).**
+**RESTANO:** T9 POST atomico · T10 sentinelle · T11 wizard · T12 form del lavoro · T13 prove + FASE 7 + BP-1.
 🛑 **T10, T11, T12 nello STESSO deploy:** appena i 7 campi escono dall'allowlist i due scrittori odierni
 smettono di salvare **in silenzio** (`route.ts:259-264` scarta senza errore).
 
 🔑 `node scripts/tmp/sql.mjs "<query>"` · `npx supabase db push --yes`.
-
-🔴 **OTTO task, OTTO difetti nel piano — nessuno arrivato all'utente.** Cause e 3 regole proposte (da
-**ratificare** con Francesco prima di incidere in CLAUDE.md):
-`docs/processes/2026-07-27-lezioni-piano-ondata-a.md`.
-La più importante: **il piano conteneva ~700 righe di codice mai eseguito**, e i difetti stanno uno per uno
-nei file che non erano stati aperti.

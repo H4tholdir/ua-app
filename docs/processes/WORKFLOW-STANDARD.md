@@ -8,6 +8,25 @@
 
 ---
 
+> 🛑 **DOCUMENTO NON NORMATIVO — verificato il 27/07/2026.**
+> **La fonte di verità del workflow è `ua-app/CLAUDE.md` §0C.** In caso di divergenza vale §0C,
+> sempre. Questo file resta come appendice esplicativa (le 3 orchestrazioni, i razionali estesi),
+> **non** come regolamento.
+>
+> **Divergenze misurate il 27/07/2026, non ancora sanate qui:**
+> 1. dice di produrre i mockup in `/tmp/` (righe 225 e 407) — §0B dice **MAI in `/tmp/`**, i file
+>    lì vengono cancellati e le decisioni di design si perdono. *Corrette in questo commit.*
+> 2. cita «136 test» come base (riga 309) — il numero è invecchiato di oltre un ordine di grandezza.
+> 3. cita il **design system v2.2** (righe 500 e 638) — in vigore è il **v3.2**, con v2.3 come
+>    legacy per le sole route non ancora migrate.
+> 4. **non contiene la FASE 6b** (migration gate) né la **FASE 9b** (gate estetico L2).
+> 5. **non contiene la Regola Advisor** (ratificata 17/07/2026) né le **regole di piano
+>    R-P1/R-P2/R-P4/R-P6** e di esecuzione **R-E1/R-E2** (ratificate 27/07/2026).
+>
+> Chi allinea questo file cancelli questo riquadro, punto per punto, solo per ciò che ha davvero sanato.
+
+---
+
 ## PARTE 1 — ANALISI DEI 3 SISTEMI DI ORCHESTRAZIONE
 
 ---
@@ -222,7 +241,7 @@ Feature grande (10+ file, multi-sessione, tocca DB+API+UI)?
 │  - Esplorare approcci alternativi                                           │
 │  - Validare assunzioni UX e tecniche                                        │
 │  - Identificare dipendenze (DB, API, componenti esistenti)                  │
-│  - Produrre il mockup HTML in /tmp/ se tocca UI                            │
+│  - Mockup HTML in docs/design/mockups/ se tocca UI (MAI /tmp — §0B)        │
 │  Output: Spec bozza + mockup approvato da Francesco                         │
 │                                                                             │
 │  ⚠️  SE tocca UI: screenshot Playwright → approvazione visiva → poi React  │
@@ -404,7 +423,7 @@ Quando: SEMPRE — prima di qualsiasi decisione di implementazione
 
 □ Approcci alternativi esplorati
 □ Assunzioni validate contro ANALISI/23 (DB) e ANALISI/30 (design)
-□ SE tocca UI: mockup HTML in /tmp/ + screenshot Playwright + approvazione visiva Francesco
+□ SE tocca UI: mockup HTML in docs/design/mockups/ (MAI /tmp — §0B) + screenshot Playwright + approvazione visiva Francesco
 □ SE tocca normativa: verificato ANALISI/17 (MDR/FatturaPA/GDPR)
 □ Output: spec bozza testuale
 

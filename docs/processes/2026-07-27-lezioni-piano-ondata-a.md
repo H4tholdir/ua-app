@@ -81,8 +81,12 @@ verificarlo, e ha dimostrato che era falso**, trovando la controprova già prese
 
 ## 4. Le tre regole operative — proposte per la ratifica
 
-> ⚠️ **Da ratificare da Francesco prima di incidere in `ua-app/CLAUDE.md` §0C.** Qui restano come proposta
-> con la loro motivazione, secondo lo Statuto delle fonti.
+> ✅ **CHIUSO IL 27/07/2026.** Francesco ha delegato la decisione («falle controllare da advisor
+> specializzati e poi procedi a renderle permanenti se reputi che possano migliorare il nostro lavoro»).
+> Panel 3× eseguito (architettura · costo/sostenibilità · **avversariale**). **Le regole in vigore sono
+> quelle del §7 di questo documento, NON quelle qui sotto:** il panel ne ha riscritte tre, scartate due,
+> e ne ha aggiunta una che qui mancava. Il testo normativo vive in **`ua-app/CLAUDE.md` §0C**.
+> Quanto segue resta come **proposta originale**, per capire da dove si è partiti.
 
 ### R-P1 — «Il codice del piano si prova o si dichiara»
 
@@ -132,3 +136,63 @@ Prima di scrivere una funzione, un helper o un trigger, si cerca se esiste già 
 > **Un piano non è un documento: è codice non ancora eseguito.**
 > Va trattato con lo stesso sospetto che si riserva al codice — perché è esattamente la stessa cosa,
 > con in più il difetto di sembrare prosa.
+
+---
+
+## 7. Il verbale del panel — cosa è entrato in vigore e cosa no (27/07/2026)
+
+**Panel:** tre advisor indipendenti, lenti diverse: **architettura del processo** · **costo e
+sostenibilità** · **avversariale** (mandato: «rispetta le regole alla lettera e produci gli stessi otto
+difetti lo stesso»). Griglia di punteggio comune: **le 8 regole candidate contro gli 8 difetti del §1**.
+
+### 7.1 Il ritrovamento che ha cambiato la regola più importante
+
+L'advisor avversariale ha sostenuto che **R-P2 nella forma proposta non avrebbe intercettato T1**, il
+difetto peggiore. **Verificato aprendo il piano, non accettato sulla parola:**
+
+- la tabella «File Structure» (righe 34-47) elenca **12 percorsi**, e `OdontogrammaFDI.tsx` **non c'è**;
+- la riga 271 lo dice a difetto avvenuto: «⚠️ **I file sono QUATTRO, non tre**»;
+- peggio: la ricerca giusta (`grep -rn "quadrante"`) **era prescritta dal piano stesso** (riga 246), è
+  stata **eseguita**, e l'inferenza tratta era sbagliata («oggi non fa danno perché adulto e deciduo non
+  convivono sullo stesso schermo» — le due dentizioni non condividono lo schermo ma **condividono il
+  codice**).
+
+Conseguenza incisa in §0C: **l'innesco di R-P2 non è più «i file che il piano nomina»** — un innesco che
+l'autore controlla, e che premia proprio il comportamento che ha causato il difetto (nominare meno file
+per doverne aprire meno) — **ma l'esito del censimento R-P6**, che l'autore non sceglie.
+
+### 7.2 Verdetti, con le riserve integrate
+
+| Regola | Esito | Cosa è cambiato rispetto alla proposta |
+|---|---|---|
+| **R-P1** | ✅ ratificata **riscritta** | Default **invertito** (era fail-open: «un blocco senza marchio è, per convenzione, provato» — la stessa forma del difetto che ha generato l'analisi). Si provano le **assunzioni**, non le ~700 righe: pre-provare tutto costa ore **e trasformerebbe l'esecutore fresco in un copista**, spegnendo il meccanismo che ha prodotto le 8 catture. Aggiunti: il **caso che DEVE fallire** (un `CREATE FUNCTION` riuscito non prova il comportamento — è così che sarebbero passati T4 e T7), le **previsioni di esito** come blocchi da marcare (T6), e il divieto di sondare su **migration registrate** (§8: il ledger). |
+| **R-P2** | ✅ ratificata **riscritta** | Innesco spostato dal «file nominati» al **censimento** (v. §7.1). Aggiunta la forma osservabile (`letto: righe X-Y` / `NON letto`) e il vincolo sulla delega: **domanda falsificabile con righe citate, mai un riassunto** — un riassunto è «so cosa fa» esternalizzato di un livello, e avrebbe perso T1 identicamente. |
+| **R-P3** | ✅ **assorbita in R-P2** | Vale 1 difetto su 8 e ha la stessa presa di R-P2: non merita una voce propria. Sopravvive perché **il precedente che non conosci è quello che non nomini mai**, quindi R-P2 da sola non lo raggiunge. Aggiunti territorio dichiarato e **catalogo vivo `pg_proc`** invece del grep (la funzione mancata vive in `schema.sql`, fuori da `migrations/`). |
+| **R-P4** | ✅ ratificata **riscritta** | Segna **0/8** sui difetti, e due advisor su tre volevano ratificarla lo stesso. Motivo per cui resta: non misura difetti, **ripara lo strumento di misura** (T2: 4 asserzioni su 7 verdi contro una funzione vuota). Ma l'avversariale ha ragione sul limite: su T8 il conteggio dava «test forte» (0 su 13) **e i 4 casi mancanti non erano fra i 13**. Quindi è accoppiata al **censimento delle forme d'input** e dichiara di misurare la forza, **mai la copertura**. |
+| **R-P5** | ❌ **scartata come regola** | Unanime (3/3): **0 difetti su 8**, ed è già FASE 7 **e già in CI**. Ratificarla insegnerebbe che si ratificano voci senza contenuto nuovo. Resta come **nota di una riga** attaccata alla FASE 7. |
+| **C1** (piano a contesto fresco) | ❌ **scartata** | Un advisor la voleva, e la sua correzione di fatto è giusta e registrata: la sessione fresca è sempre stata concessa **all'esecutore, mai al pianificatore**. Ma la causa che presupponeva — la stanchezza di coda, §2③ — **è contraddetta dall'artefatto**: i difetti sono sparsi su tutto il piano e **il primo sta nel primo task scritto** (T1, riga 81). Una regola che compra una causa che i dati non sostengono è costo puro. **La causa ③ resta senza contromisura, e va detto.** |
+| **C2** (un compito, un esecutore fresco) | ✅ **ratificata** come **R-E1** | Unanime, senza emendamenti. È l'unica che segna **8 su 8** — non per ipotesi: è ciò che li **ha** trovati. Costo marginale zero (è già la prassi scelta da Francesco) e non era scritta da nessuna parte se non in un handoff che invecchia. È anche il **punto di applicazione** di tutte le altre. |
+| **C3** (riferire, non patchare) | ✅ **ratificata** come **R-E2** | Non trova nulla da sola: **impedisce che il ritrovamento di R-E1 muoia in una correzione silenziosa** (successo misurato su T4 e T7). Emendamento accolto: i ritrovamenti fuori mandato si raccolgono in **una sola sezione dell'handoff**, per non trasformare Francesco in una coda di notifiche. |
+| **R-P6** 🆕 | ✅ **ratificata** | **Non era nella proposta.** Nasce dall'advisor avversariale, alla domanda «quale difetto sopravvive a tutte e otto?». Il censimento del piano (riga 51) c'era ed era stato eseguito su tutto `src/` — ma **su sette nomi di colonna**: ha mancato T1 (un simbolo esportato) e T2 (un insieme di campi UI contro un'allowlist). Il buco non era l'abitudine, era **il tipo di identificatore**. Copre i **due difetti che sopravvivono a tutto il resto**. |
+
+### 7.3 Riserve NON accolte, con il motivo
+
+- **«Restringere la Regola Advisor ai soli irreversibili»** (proposta come baratto per il costo delle
+  regole nuove). Non eseguita: la Regola Advisor è stata **ratificata da Francesco il 17/07/2026**, e non
+  è una voce che si tocca per fare spazio. **Resta come proposta aperta per lui**, non come decisione.
+- **«Marcatura positiva invece dell'inversione secca»** (timore: se «non marcato = non provato», i piani
+  si riempiono di «non eseguito» e il segnale muore). Accolta **in parte**: si marca solo ciò che è
+  provato — ma il default resta **fail-closed**, e il marchio «non eseguito» **deve portare accanto il
+  comando di verifica**, che è ciò che gli toglie il carattere di timbro.
+- **«Tetto di dimensione per seduta + rilettura a freddo dell'ultimo terzo»** (in sostituzione di C1).
+  Non accolta: poggia sulla stessa causa ③ che la distribuzione dei difetti non sostiene.
+
+### 7.4 Ritrovamento fuori mandato — riferito, non corretto (R-E2 applicata a sé stessa)
+
+Cercando le prove di quanto le regole scritte reggano nel tempo, il panel ha trovato — **e la verifica
+diretta ha confermato** — che in questo repo esistono **quattro reti di sicurezza che nessuno esegue**:
+`scripts/guardia-navigazione-overlay.mjs`, `scripts/guardia-reduced-motion.mjs`,
+`scripts/guardia-stili-collaudo.mjs`, `scripts/check-csrf.sh`. Nessun riscontro in `package.json`,
+`.husky/pre-commit` (che lancia solo `lint-staged`, `tsc --noEmit`, `check-ds-compliance.sh`) né in
+`.github/workflows/`. Una di queste è citata in `ua-app/CLAUDE.md` come «Rete:» di una direttiva
+permanente. **Fuori dal mandato di questa ratifica: riferito, non toccato.**

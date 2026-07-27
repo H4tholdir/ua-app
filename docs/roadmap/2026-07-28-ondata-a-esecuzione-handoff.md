@@ -20,7 +20,7 @@ mergiato.** Restano T9-T13: **è la parte che tocca il codice vivo dell'app.**
 | File | Cosa contiene |
 |---|---|
 | `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` | **IL PIANO** — 13 task TDD, già corretto 5 volte con quello che l'esecuzione ha smentito |
-| `docs/processes/2026-07-27-lezioni-piano-ondata-a.md` | **PERCHÉ 8 TASK SU 8 HANNO TROVATO UN DIFETTO** — cause, controprove, 3 regole proposte da ratificare |
+| `docs/processes/2026-07-27-lezioni-piano-ondata-a.md` | **PERCHÉ 8 TASK SU 8 HANNO TROVATO UN DIFETTO** — cause, controprove, e (§7) il **verbale del panel**: ✅ **regole RATIFICATE il 28/07/2026 e in vigore in `ua-app/CLAUDE.md` §0C** (R-P1 · R-P2 · R-P4 · R-P6 · R-E1 · R-E2) |
 
 Spec ratificata: `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md`
 Verbale (23 decisioni): `docs/design/decisions/2026-07-27-wizard-nuovo-lavoro-brainstorming.md`
@@ -133,6 +133,10 @@ Poi: **ondata (c)** — Dichiarazione di Conformità + gancio nel precheck.
 > **Un piano non è un documento: è codice non ancora eseguito.**
 
 Otto task, otto difetti nel piano — e **nessuno arrivato all'utente**. Il conto non è peggiore del solito:
-è migliore, perché il controllo è arrivato **prima** invece che al collaudo. Le cause e le tre regole
-proposte stanno in `docs/processes/2026-07-27-lezioni-piano-ondata-a.md`, **da ratificare con Francesco**
-prima di incidere qualsiasi cosa in `CLAUDE.md`.
+è migliore, perché il controllo è arrivato **prima** invece che al collaudo.
+
+✅ **Aggiornamento 28/07/2026 — le regole sono state ratificate e incise.** Panel 3× (architettura ·
+costo · **avversariale**), sei regole in vigore in `ua-app/CLAUDE.md` §0C, due scartate con motivo
+scritto, una nuova (**R-P6**) nata dalla lente avversariale. Verbale in
+`docs/processes/2026-07-27-lezioni-piano-ondata-a.md` **§7**. Da qui in avanti valgono per ogni piano,
+**compresi i task T9-T13 di quest'ondata**.

@@ -82,13 +82,19 @@ FASE 3  → VALIDAZIONE ARCH (GATE — non si procede senza risposta a tutte e 5
             □ Rollback: come si annulla se va in prod e fallisce?
             □ Dominio critico? RLS/Stripe/FatturaPA/auth → percorso GRANDE automatico
 FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici 2-5 min
+            ⛔ Vincoli R-P1 · R-P2 · R-P6 (blocco «REGOLE DI PIANO» sotto): il piano
+               non esce dalla FASE 4 senza registro prove + registro letture + censimento
 FASE 5  → ISOLAMENTO: /superpowers:using-git-worktrees → branch dedicata
 FASE 6  → IMPLEMENTAZIONE TDD: /superpowers:test-driven-development (RED→GREEN→REFACTOR)
+            ⛔ Vincolo R-P4: dopo il primo rosso, abbozzo inerte + conteggio delle
+               asserzioni che si accendono, e censimento delle forme d'input
 FASE 6b → MIGRATION GATE (solo se migration presente in questa sessione):
             npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
             npx tsc --noEmit
             Verifica che la migration non rompa RLS policies esistenti
 FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output reale)
+            ⚠️ `tsc --noEmit` NON valida la firma degli handler di rotta: solo `next build`
+               la vede. Per questo i tre comandi sono tre, e nessuno sostituisce l'altro.
 FASE 8  → REVIEW: /code-review + /superpowers:requesting-code-review
 FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
 FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
@@ -110,7 +116,76 @@ Ogni **decisione significativa** (architetturale, di design, di priorità/roadma
 - MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
 - MAI deployare con CI rosso
 - MAI mergere una superficie UI nuova/modificata senza il GATE ESTETICO L2 (FASE 9b); ogni piano `writing-plans` di un'ondata con UI DEVE includerlo come step finale
+- MAI far uscire un piano dalla FASE 4 senza **registro delle prove** (R-P1) e **censimento degli identificatori** (R-P6): un blocco senza marchio è NON provato, un nome tolto da un'allowlist senza destinazione è un dato che smetterà di salvarsi in silenzio
+- MAI un esecutore su due task; MAI correggere di nascosto un difetto trovato fuori dal proprio mandato — si riferisce (R-E1 / R-E2)
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
+
+**REGOLE DI PIANO — vincoli sulla FASE 4 (ratificate 27/07/2026 dopo panel 3×)**
+Origine e prove: `docs/processes/2026-07-27-lezioni-piano-ondata-a.md`. Il fatto che le ha
+generate: un piano di 2.200 righe, 8 task eseguiti, **8 difetti reali nel piano** — nessuno
+arrivato all'utente. La riga da tenere: **un piano non è un documento, è codice non ancora
+eseguito**, con in più il difetto di sembrare prosa.
+
+- **R-P1 — Un blocco senza marchio è NON provato (fail-closed).** Si marca solo ciò che è
+  provato, e il marchio porta la prova: `provato: <comando> → <output reale incollato>`.
+  - Si provano le **assunzioni sull'ambiente** che il blocco dà per buone — una sonda da una
+    riga («`array_agg` su zero righe dà `NULL`?», «il catalogo distingue `A3` da `a3`?») — **non**
+    le centinaia di righe di codice del piano: quelle nascono marcate `non eseguito`, **con
+    accanto il comando che l'esecutore userà per verificarle**.
+  - Per ogni blocco che **istituisce un vincolo**, la prova include **un valore che DEVE essere
+    rifiutato**, col messaggio d'errore incollato. Un `CREATE FUNCTION` riuscito prova la
+    sintassi, non il comportamento; una migration che gira non prova che una colonna rifiuti
+    `'pippo'`.
+  - Anche una **previsione di esito** («ci saranno errori di compilazione», «atteso: 0 righe»)
+    è un blocco e porta il suo marchio.
+  - ⚠️ **Confine:** le sonde girano su **transazione annullata o schema usa-e-getta**, MAI una
+    migration registrata (§8: una migration che aborta disallinea il ledger anche su dati di
+    test). Gli spike sono usa e getta e **non si committano**: l'esecutore riscrive sotto test.
+- **R-P2 — Nessun file toccato resta chiuso, e l'elenco NON lo decide l'autore.** L'innesco non
+  è «i file che il piano nomina» — chi non nomina un file si esonera dall'aprirlo, ed è
+  esattamente così che è passato il difetto peggiore dell'ondata (a): il file mancava dalla
+  tabella «File Structure», la ricerca giusta era stata **eseguita**, e l'inferenza tratta era
+  sbagliata. L'innesco è **l'esito del censimento R-P6**. Ogni percorso porta nel piano
+  `letto: righe X-Y` oppure `NON letto`.
+  - La lettura è **delegabile a un sottoagente**, e allora non costa contesto a chi pianifica —
+    ma gli si chiede una **domanda falsificabile con le righe citate** («questo componente rende
+    i decidui, se raggruppa per quadranti 1-4? cita le righe»), **MAI un riassunto**: un
+    riassunto è «so cosa fa» esternalizzato di un livello.
+  - **Assorbe R-P3 (cercare il precedente per COMPORTAMENTO, non per nome):** stesso passaggio,
+    territorio dichiarato (`supabase/schema.sql` + `supabase/migrations/` + `src/lib/`) e, per
+    gli oggetti di database, **catalogo vivo** (`SELECT proname FROM pg_proc WHERE prosrc ILIKE
+    '%…%'`) invece del grep sui file. Si incolla il **numero di hit**: zero hit su una query con
+    un solo termine non è una ricerca, è una speranza.
+- **R-P6 — Il censimento si fa su ogni IDENTIFICATORE che il cambiamento tocca, non solo sulle
+  colonne.** Simboli esportati, nomi di campo UI, membri di un'allowlist, chiavi JSON. E **ogni
+  nome tolto da un'allowlist porta una riga con la sua nuova destinazione**: una riga senza
+  destinazione è un dato che smette di salvarsi **in silenzio**
+  (`src/app/api/lavori/[id]/route.ts:259-264` scarta le chiavi fuori allowlist senza errore —
+  l'utente legge «Salvato» su un dato che non c'è).
+- **R-P4 — vincolo sulla FASE 6.** Il rosso da «modulo non trovato» non prova che il test provi
+  qualcosa: dopo il primo rosso si mette un **abbozzo inerte** e si **CONTA** quante asserzioni
+  si accendono — il numero si scrive (`N su M`). ⚠️ Misura la **forza** dei test scritti, mai la
+  loro **copertura**: prima delle asserzioni si enumerano le **forme d'input** (tipo sbagliato,
+  chiave assente, `null`, array al posto di scalare, body non-JSON), ognuna col suo caso o col
+  suo «non coperta, perché».
+
+**REGOLE DI ESECUZIONE (stessa origine e data)**
+
+- **R-E1 — Un compito alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e
+  l'altro, e nel brief l'istruzione esplicita di **cercare attivamente dove il piano sbaglia**.
+  È il meccanismo che ha reso visibili 8 difetti su 8, ed è il **punto di applicazione** delle
+  regole di piano: l'esecutore del primo task verifica che marchi e registri **ci siano**
+  (presenza, non verità) e, se mancano, si ferma e riferisce.
+- **R-E2 — Un difetto trovato FUORI dal proprio mandato si RIFERISCE, non si corregge di
+  nascosto.** Una correzione silenziosa lascia il piano sbagliato per tutti i task successivi.
+  I ritrovamenti fuori mandato si raccolgono in **una sola sezione dell'handoff**, non arrivano
+  a Francesco uno per uno.
+
+> **Scartate dal panel, con motivo — non riproporle.** «`tsc` non basta per gli handler di
+> rotta»: vera, ma è già FASE 7 ed è già in CI — resta la nota lì, non è una regola. «Il piano
+> si scrive in sessione fresca»: la causa che presupponeva (stanchezza di fine sessione) **è
+> contraddetta dall'artefatto** — i difetti sono sparsi su tutto il piano e il primo sta nel
+> primo task scritto.
 
 ---
 
