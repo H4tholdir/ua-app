@@ -124,3 +124,7 @@ docs/design/mockups/*lello*
 .superpowers/
 .gstack/
 scripts/tmp/
+
+# Mockup GENERATI: incorporano le illustrazioni in base64 e pesano ~30 MB.
+# Si committa il generatore (scripts/design/), mai il suo prodotto.
+docs/design/mockups/*-denti-illustrazioni-vere.html
