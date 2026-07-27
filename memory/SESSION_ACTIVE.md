@@ -24,7 +24,12 @@ e verificare che il test diventi rosso **per asserzione, non per crash**. Una mu
 descrivono *come si lavora* sono materiale di studio **non verificato**. Serve una fra: fonte
 esterna, prova nel codice, obbligo di legge, decisione di Francesco.
 
-**RESTA DA FARE PRIMA DEL MERGE:** ⚠️ **gate estetico** sulle 2 caselle nuove della scheda paziente
-(390/768/1280 × chiaro/scuro) — la pagina è dietro login, **serve Francesco**. Poi merge → push → CI.
+✅ **COLLAUDO DAL VIVO FATTO** (Francesco loggato). Ha trovato ciò che i test non vedevano: il tasto
+«Salva» finiva **sotto il bordo** su scrivania e **coperto dalla barra** su telefono. Chiuso
+allineandosi al pannello gemello dei clienti. Prova end-to-end su PZ-0003: casella Cognome vuota
+(codice nascosto) → salvato → la scheda mostra **«BAGHERIA GIUSEPPE»**, cognome davanti.
+⚠️ Screenshot NON su disco: pagina dietro login. ⚠️ PZ-0003 resta rinominato (DB di test).
+
+**RESTA DA FARE:** merge → push → attendere CI verde → verificare su uachelab.com.
 
 **PROSSIMO:** ripensamento wizard (GRANDE, con migration) — v. ROADMAP voce 19, tabella delle 5 voci.
