@@ -84,7 +84,11 @@ FASE 3  → VALIDAZIONE ARCH (GATE — non si procede senza risposta a tutte e 5
 FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici 2-5 min
             ⛔ Vincoli R-P1 · R-P2 · R-P6 (blocco «REGOLE DI PIANO» sotto): il piano
                non esce dalla FASE 4 senza registro prove + registro letture + censimento
-FASE 5  → ISOLAMENTO: /superpowers:using-git-worktrees → branch dedicata
+FASE 5  → ISOLAMENTO: branch dedicata NEL REPO PRINCIPALE
+            🛑 MAI un git worktree in questo progetto — il worktree si porta dietro un
+               SECONDO package-lock.json e l'app risponde 404 su TUTTE le route. Difetto
+               vero, pagato durante l'ondata (a). Vale anche quando una skill lo propone:
+               /superpowers:using-git-worktrees NON si usa qui, si fa `git checkout -b`.
 FASE 6  → IMPLEMENTAZIONE TDD: /superpowers:test-driven-development (RED→GREEN→REFACTOR)
             ⛔ Vincolo R-P4: dopo il primo rosso, abbozzo inerte + conteggio delle
                asserzioni che si accendono, e censimento delle forme d'input
@@ -305,9 +309,12 @@ chore(deps): add motion@12
 
 ---
 
-## 8. Stato Attuale (15/07/2026)
+## 8. Stato Attuale (28/07/2026)
 
 Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
+⚠️ **Questa sezione invecchia in fretta: la fonte viva è `memory/MEMORY.md` (BP-0), non queste righe.**
+**In corso (28/07/2026):** ondata (a) del wizard «Nuovo lavoro» sul ramo `ondata-a-denti-colore`,
+8 task su 13, **mai mergiata** — punto di ripresa in `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
 
 ### ⚠️ I dati nel DB sono di TEST, non di clienti reali (Francesco, 21/07/2026)
 
@@ -326,7 +333,7 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 - Vale finché questa riga è qui. **Alla prima onboarding di un laboratorio reale, cancellare questa
   sezione** — da quel momento ogni valutazione torna a peso pieno.
 
-**Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
+**Pagine attive:** **55** `page.tsx` (contate il 28/07/2026 — il numero invecchia: `find src/app -name page.tsx | wc -l`), fra cui `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
 **Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. **Il fondo pagina è UNO SOLO dal 26/07/2026** (`#F4F0E7` chiaro / `#171411` scuro): i token v2.3 sono stati allineati a quelli v3 — v. `docs/design/decisions/2026-07-26-sfondo-unico.md`. Vive in tre posti che si muovono insieme: `globals.css` (`--bg`), `.login-root` (`--ua-bg`), `admin/admin.css` (`--adm-bg`). Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`, parete `/cassette`, `/tecnici` (le ultime due verificate sondando il DOM il 26/07/2026: montano `data-ds="v3"` — questa riga le dava per legacy). Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
 
@@ -335,6 +342,13 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 ## 9. Regole Critiche (emerse da review + errori passati)
 
 ### Gotchas architetturali
+- **Ruoli: sono CINQUE, non quattro** — `titolare`, `tecnico`, `front_desk`, `admin_rete`,
+  **`admin_sistema`**. MAI `admin` nudo. La fonte autoritativa è il CHECK su `public.utenti.ruolo`
+  (`ruolo` è `text` + CHECK, **non** un enum: `enum_range` non funziona). ⚠️ Fino al 28/07/2026
+  `admin_sistema` mancava dall'elenco delle istruzioni pur essendo usato **15 volte** nel codice —
+  un elenco che sembra completo e non lo è è il modo classico per scrivere un controllo di permessi
+  che dimentica un caso. Questa riga sta QUI perché l'altra copia (`../CLAUDE.md` §6) è **fuori dal
+  repo git** e non sopravvive a un cambio di macchina.
 - **RLS:** usa `public.current_lab_id()` — NON `auth.current_lab_id()` (funzione in schema `public`)
 - **Stati ortogonali:** `lavori.stato` (clinico) e `fatture.stato_sdi` (fiscale) sono dimensioni INDIPENDENTI
 - **Rifacimento:** usa RPC atomica `crea_rifacimento_atomico()` — MAI 3 INSERT separati
