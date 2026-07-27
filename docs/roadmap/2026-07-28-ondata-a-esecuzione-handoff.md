@@ -148,8 +148,11 @@ conta **quante** asserzioni si accendono.
   Dal 28/07 è anche nelle istruzioni permanenti (FASE 5), non solo qui.
 - ⚠️ **`.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit** con `Cannot find module
   '.../route.js'`. Non è un difetto tuo: `/usr/bin/trash .next` e ricommitta.
-- ⚠️ **`rm -rf` è bloccato** fuori da `/private/tmp/claude-*`, `scripts/tmp/` e `node_modules`
-  (protezione dopo l'incidente del 24/07): si usa `/usr/bin/trash`, che è ripristinabile.
+- ⚠️ **La cancellazione ricorsiva definitiva è bloccata** fuori da `/private/tmp/claude-*`,
+  `scripts/tmp/` e `node_modules` (protezione dopo l'incidente del 24/07): si usa `/usr/bin/trash`,
+  che è ripristinabile. 🔑 **Quel blocco legge il testo dell'INTERO comando**, quindi scatta anche se
+  la sequenza vietata compare dentro un **messaggio di commit** — successo il 28/07. Non è un errore
+  tuo: riformula il messaggio a parole e riprova.
 - ⚠️ `.gitignore` riga 62 ignora `*.png`: gli screenshot vanno aggiunti con `git add -f`.
 - ⚠️ Il pre-commit gira `eslint --max-warnings=0`: `npx eslint src/` **prima** di committare.
   **Dal 28/07 gira anche la guardia CSRF e quella «Riduci movimento»** (~5 s in tutto).
