@@ -913,6 +913,53 @@ git commit -m "chore(db): FASE 6b — rigenera database.types dopo le migration 
 
 `lavoro_crea_atomico` ha un **motivo normativo**, non di comodità: un colore perso in silenzio produce una Dichiarazione priva di un contenuto obbligatorio dell'Allegato XIII.
 
+> ### ⚠️ ESEGUITO IL 27/07/2026 — il blocco SQL qui sotto NON GIRA COSÌ COM'È
+>
+> **Non copiare il codice di questa sezione.** Il testo vigente è
+> `supabase/migrations/20260727120300_lavori_denti_rpc.sql` (commit `c73092e1`).
+> Tre cose che il piano dava per vere e non lo erano, trovate provando lo schema reale:
+>
+> **① Il difetto bloccante — `array_agg` e il NOT NULL.** `lavori.denti_mancanti` e
+> `lavori.denti_impianti` sono `integer[] **NOT NULL** DEFAULT '{}'`. `array_agg()` su zero righe
+> restituisce **NULL, non `'{}'`**. La denormalizzazione scritta qui sotto abortiva quindi su
+> **ogni** chiamata che non contenesse almeno un dente per **ogni** ruolo — cioè il caso normale,
+> **compreso il payload dello Step 2-bis di questo stesso piano** (11+13 elemento, 26 mancante,
+> zero impianti). Riprodotto eseguendo l'espressione esatta del piano:
+> `null value in column "denti_impianti" of relation "lavori" violates not-null constraint`.
+> Correzione: `COALESCE(array_agg(...), '{}'::…)` su tutte e tre le colonne, in **entrambe** le
+> funzioni. `denti_coinvolti` è nullable e non lo richiedeva: portato a `'{}'` per coerenza con
+> ciò che scrivono oggi `TabClinica.tsx:31` e `crea-lavoro.ts:195`.
+>
+> **② `data_ingresso` è `timestamptz NOT NULL DEFAULT now()`.** Inserire un NULL **esplicito** non
+> ricade sul DEFAULT: la INSERT abortisce. Aggiunto `COALESCE(…, now())`, e cast a `timestamptz`
+> invece che a `date` per non troncare a mezzanotte un istante completo. Comportamento odierno
+> **invariato**: la route manda `oggiRomaISO()`, cioè `YYYY-MM-DD`.
+>
+> **③ Le sottoquery di `lavoro_crea_atomico` non filtravano su `laboratorio_id`**, contraddicendo
+> la richiesta del piano stesso che le due funzioni mantengano la colonna nello STESSO modo.
+>
+> Inoltre: `CREATE OR REPLACE` invece di `CREATE` (convenzione del repo, ripresa sicura se una push
+> si interrompe a metà; l'ACL risulta preservata).
+>
+> **Cosa il piano dava per dubbio ed è invece risultato sano:** `lavori` ha già
+> `trg_lavori_updated_at → trigger_set_updated_at()`, che fa `NEW.updated_at = now()`. L'esplicito
+> `updated_at = now()` è quindi **esattamente ridondante**, con **zero** interazione col controllo
+> di concorrenza (stessa transazione, stesso `now()`). Si tiene lo stesso: è lì che il gettone deve
+> avanzare, e non deve dipendere da un trigger dichiarato in un'altra migration. Verificato anche
+> che una `lavoro_crea_atomico` **fallita non brucia un progressivo** (11 → 11 attraverso l'abort R1).
+>
+> **Due cose da sapere per il Task 8, non chiuse qui:**
+> - `lavoro_crea_atomico` **non** verifica che `cliente_id`/`paziente_id`/`tecnico_id`/`ciclo_id`
+>   appartengano a `p_lab`: quelle FK sono semplici, non composite. Riprodotto — un lavoro creato in
+>   Lab Pepe con un cliente di Lab Test E2E passa, `coerente = false`. La frase «il tenant non si
+>   deduce, si impone» vale per `laboratorio_id` e per `lavori_denti`, **non** per quelle quattro
+>   colonne: l'unica guardia è `FK_FIELDS_INSERT` nella route (`src/app/api/lavori/route.ts`).
+> - La funzione tratta `p_atteso_updated_at IS NULL` come «salta il controllo» (percorso provato e
+>   funzionante), ma `supabase gen types` emette `p_atteso_updated_at: string`: da codice tipato
+>   passare `null` **non compila**. Il Task 8 o manda sempre un valore, o aggiunge `DEFAULT NULL`
+>   alla firma. ⚠️ Nello stesso discorso: `timestamptz` ha precisione al microsecondo, `Date` di
+>   JavaScript al millisecondo — far passare il gettone da un `Date` produce un **409 permanente**.
+
 **Files:**
 - Create: `supabase/migrations/20260727120300_lavori_denti_rpc.sql`
 
