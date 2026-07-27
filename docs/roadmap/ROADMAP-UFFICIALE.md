@@ -531,6 +531,36 @@ arriva con l'ondata che possiede la pagina.
 
 ---
 
+## 🔐 IN CODA A TUTTO — Ondata «accesso con passkey»: i 5 difetti rimasti
+
+**Collocazione decisa da Francesco il 28/07/2026:** *«segniamoli alla fine di tutta la nostra roadmap,
+tanto non andiamo in produzione finché non lo dico io»*. Nessuno di questi sta facendo danno oggi; il
+sesto della lista (email confrontata con le maiuscole) **era** attivo ed è già stato corretto e
+deployato (`24474b5c`).
+
+**Origine:** censimento del 28/07/2026 con panel 2× (sicurezza applicativa + compatibilità), nato
+dalla decisione CSRF sulle due route di accesso WebAuthn. Verbale nel commit `5773c6b6` e in
+`memory/MEMORY.md` voce 56. 🛑 **La questione CSRF è CHIUSA e non si riapre**: esclusione legittima con
+la ragione scritta in `scripts/check-csrf.sh` (quelle route non leggono né scrivono cookie, e l'origine
+è già legata dentro la firma dell'autenticatore). L'esclusione decade solo se una di esse inizia a
+leggere una sessione o a fare `Set-Cookie`.
+
+| # | Difetto | Quando morde | Nota |
+|---|---------|--------------|------|
+| ② | **Consumo della challenge non atomico** — `challenge.ts:18-32` legge `used_at` e poi lo scrive in una seconda istruzione, con **l'errore della UPDATE non controllato**: due richieste simultanee passano entrambe → replay | **Ora**, ma serve concorrenza mirata | 🔴 Il più grave: il contatore anti-replay è **inerte** (misurato: 4 credenziali su 4 con `counter = 0`, passkey sincronizzate), quindi l'uso unico della challenge è **l'unica** difesa. Fix indicato: `UPDATE … WHERE id=$1 AND used_at IS NULL AND expires_at > now() RETURNING challenge` |
+| ③ | **`listUsers()` senza paginazione** — `login/options:19`, `login/verify:20`: l'API admin è paginata a **50 per pagina** | **Al 51° utente** | Ordinamento `created_at DESC` → cadono fuori **i più vecchi, cioè i titolari**. Sintomo: 404 «Nessuna credenziale registrata» indistinguibile da «non hai passkey». Fix consigliato: RPC `SECURITY DEFINER` su `auth.users` con `lower(email)`, blindata col pattern §9. ⚠️ **Scartato** leggere `public.utenti`: nessun trigger allinea `utenti.email` a un cambio email lato auth |
+| ④ | **Nessun filtro `deleted_at`/`attivo` all'accesso** — la registrazione lo fa (`register/options:13-15`), l'accesso no | Quando si revoca un utente che ha la passkey | Ottiene comunque un gettone di sessione. Contenimento parziale via RLS, ma la definizione di `current_lab_id()` nel repo è **commentata**: la garanzia vive solo nel database vivo |
+| ⑤ | **Nessun rate limiting** su due endpoint non autenticati, uno dei quali chiama `generateLink` | Sotto abuso | Unico precedente in casa: `portale/richiedi/route.ts:94-111` |
+| ⑥ | **Enumerazione degli account** — 200 con `allowCredentials` se l'email ha una passkey, 404 altrimenti | Sempre, dall'esterno | W3C WebAuthn §14.6.2. ⚠️ `isSameOrigin` **non** la ferma (con `Origin` assente ritorna `true`, e un attaccante non usa un browser). Strada giusta: login **senza username** — le credenziali sono già `residentKey: 'required'` |
+
+⚠️ **Da mettere in conto prima di iniziare:** `RP_ID = 'uachelab.com'` è fisso (`webauthn/config.ts:3`),
+quindi la cerimonia **non è eseguibile in locale né su anteprima**. Come si verificano le correzioni va
+deciso **prima** di scriverle, non dopo.
+
+**Percorso:** dominio `auth` → **GRANDE** automatico (`ua-app/CLAUDE.md` §0C, gate FASE 3).
+
+---
+
 ## DECISIONI ARCHITETTURALI PERMANENTI
 
 | Decisione | Rationale |
@@ -604,3 +634,5 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 20/07/2026 | **Secondo giro mini-triage:** A13 confermato (ponte, redesign odontogramma resta in ondata bridge) · A14 variante A «co-identità» targa cassetta + assegnazione cassetta alla conferma-arrivo IN ondata · «Le pile» eliminata (redirect → /dashboard, O1h chiuso) · ricerca per cassetta: per-pila in ondata, globale in sessione design dedicata (casa: /lavori liberato) · export CSV → «I tuoi dati» in «Il mio laboratorio» (ondata F1). **NUOVA FEATURE IN DESIGN: «La Parete delle Cassette»** (visione Francesco: griglia adattiva drag&drop delle cassette fisiche colorate, ricerca per cassetta/lavoro) — concept 2 direzioni in `docs/design/mockups/2026-07-20-parete-cassette-concept.html`, intervista in corso, collocazione roadmap da ratificare a spec pronta (sostituisce l'idea «parco cassette gestito V2»). | Francesco + Claude |
 | 20/07/2026 | **Calendario ondate v3 ratificato** (sezione dedicata sopra) + decisioni mini-triage primo giro: O1i 1A+2A+3A (Esci LinkQuieto, identità+Esci NavDesk, trial ambra in striscia) · export cedolini 2A (card in «Persone» v3) · deferral A10/A11 confermati. A13/A14/O1h/export-lavori in secondo giro (flusso odontogramma, cassetta ripensata cassetta-first, proposta eliminazione «Le pile»). | Francesco + Claude |
 | 06/07/2026 | CRUD completo `cicli_produzione` implementato (worktree `worktree-cicli-produzione-crud`) — chiude il follow-up scoperto in QA B5 ("nessun modo di creare un ciclo via UI/API"). Migration live (indice UNIQUE parziale su `codice`, pattern B18), nuove route `POST`/`PATCH`/`DELETE /api/cicli[/id]`, sheet create/edit e bottone elimina. Review finale (Opus) "Ready to merge: Yes" dopo 2 fix Important (validazione PATCH allineata a POST, payload PATCH costruito come delta). 626/626 test, tsc/build puliti. QA browser end-to-end (mai lab Filippo); non verificato manualmente il blocco 409 su DELETE referenziato né il tablet. Non ancora mergiato su `main`. | Francesco + Claude |
+| 28/07/2026 | **Regole di piano ed esecuzione ratificate** (`ua-app/CLAUDE.md` §0C): R-P1 un blocco senza marchio è NON provato · R-P2 l'elenco dei file da aprire non lo decide l'autore · R-P6 censimento su ogni identificatore · R-P4 abbozzo inerte + conteggio · R-E1 un compito un esecutore fresco · R-E2 si riferisce, non si patcha. Due scartate con motivo scritto. Panel 3× con una lente **avversariale**, che ha prodotto il ritrovamento decisivo (R-P2 nella forma proposta non avrebbe intercettato il difetto peggiore) e la regola mancante R-P6. Verbale: `docs/processes/2026-07-27-lezioni-piano-ondata-a.md` §7. | Francesco + Claude |
+| 28/07/2026 | **Guardie agganciate + accesso con passkey riparato — IN PRODUZIONE** (main `24474b5c`, CI verde, deploy Vercel ok, `/login` 200). I 4 script di verifica del repo non erano eseguiti da nulla e **due non potevano nemmeno fallire**; ora `check-csrf.sh` (riscritta, 0,33 s) e `guardia-reduced-motion.mjs` (4,6 s) girano a ogni commit, le altre due restano manuali con il motivo scritto. Rimosse 104 righe su 149 di `.claude/settings.json` che dichiaravano scansioni di sicurezza inesistenti. Corretta la riga di `CLAUDE.md` §9 che dava una direttiva per protetta da un controllo mai eseguito. Chiusa la questione CSRF sulle route WebAuthn di accesso (esclusione con ragione) e **corretto il difetto attivo** che impediva l'accesso con l'impronta a chi digitava una maiuscola nell'email. I 5 difetti rimasti sono in coda a questa roadmap. | Francesco + Claude |
