@@ -570,6 +570,30 @@ export type Database = {
           },
         ]
       }
+      colori_dentali: {
+        Row: {
+          codice: string
+          famiglia: string
+          hex: string | null
+          ordine: number
+          scala: string
+        }
+        Insert: {
+          codice: string
+          famiglia: string
+          hex?: string | null
+          ordine: number
+          scala: string
+        }
+        Update: {
+          codice?: string
+          famiglia?: string
+          hex?: string | null
+          ordine?: number
+          scala?: string
+        }
+        Relationships: []
+      }
       credito_clienti_movimenti: {
         Row: {
           cliente_id: string
@@ -840,7 +864,6 @@ export type Database = {
         Row: {
           anno_ddc: number
           classe_rischio: string
-          colore_dente: string | null
           contiene_sostanze_o_tessuti: boolean
           created_at: string
           data_emissione: string
@@ -898,7 +921,6 @@ export type Database = {
         Insert: {
           anno_ddc?: number
           classe_rischio: string
-          colore_dente?: string | null
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
           data_emissione?: string
@@ -956,7 +978,6 @@ export type Database = {
         Update: {
           anno_ddc?: number
           classe_rischio?: string
-          colore_dente?: string | null
           contiene_sostanze_o_tessuti?: boolean
           created_at?: string
           data_emissione?: string
@@ -2372,10 +2393,12 @@ export type Database = {
           codice_interno: string | null
           codice_iva: string
           colorazione_esterna: string | null
+          colore_codice: string | null
           colore_collo: string | null
           colore_corpo: string | null
           colore_dente: string | null
           colore_incisale: string | null
+          colore_scala: string | null
           conformato: boolean
           consegna_completata_at: string | null
           consegna_in_corso: boolean
@@ -2396,6 +2419,8 @@ export type Database = {
           denti_coinvolti: string[] | null
           denti_impianti: number[]
           denti_mancanti: number[]
+          denti_snapshot: Json | null
+          denti_snapshot_at: string | null
           descrizione: string
           disinfettante_usato: string | null
           dispositivo_semilavorato: boolean
@@ -2469,10 +2494,12 @@ export type Database = {
           codice_interno?: string | null
           codice_iva?: string
           colorazione_esterna?: string | null
+          colore_codice?: string | null
           colore_collo?: string | null
           colore_corpo?: string | null
           colore_dente?: string | null
           colore_incisale?: string | null
+          colore_scala?: string | null
           conformato?: boolean
           consegna_completata_at?: string | null
           consegna_in_corso?: boolean
@@ -2493,6 +2520,8 @@ export type Database = {
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
           denti_mancanti?: number[]
+          denti_snapshot?: Json | null
+          denti_snapshot_at?: string | null
           descrizione: string
           disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
@@ -2566,10 +2595,12 @@ export type Database = {
           codice_interno?: string | null
           codice_iva?: string
           colorazione_esterna?: string | null
+          colore_codice?: string | null
           colore_collo?: string | null
           colore_corpo?: string | null
           colore_dente?: string | null
           colore_incisale?: string | null
+          colore_scala?: string | null
           conformato?: boolean
           consegna_completata_at?: string | null
           consegna_in_corso?: boolean
@@ -2590,6 +2621,8 @@ export type Database = {
           denti_coinvolti?: string[] | null
           denti_impianti?: number[]
           denti_mancanti?: number[]
+          denti_snapshot?: Json | null
+          denti_snapshot_at?: string | null
           descrizione?: string
           disinfettante_usato?: string | null
           dispositivo_semilavorato?: boolean
@@ -2674,6 +2707,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "partitario_clienti"
             referencedColumns: ["cliente_id"]
+          },
+          {
+            foreignKeyName: "lavori_colore_caso_fk"
+            columns: ["colore_scala", "colore_codice"]
+            isOneToOne: false
+            referencedRelation: "colori_dentali"
+            referencedColumns: ["scala", "codice"]
           },
           {
             foreignKeyName: "lavori_laboratorio_id_fkey"
@@ -2779,6 +2819,103 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lavori_dashboard"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      lavori_denti: {
+        Row: {
+          codice: string | null
+          codice_collo: string | null
+          codice_corpo: string | null
+          codice_incisale: string | null
+          created_at: string
+          fdi: number
+          gruppo: number | null
+          gruppo_ruolo: string | null
+          id: string
+          laboratorio_id: string
+          lavoro_id: string
+          provenienza: string
+          ruolo: string
+          scala: string | null
+          updated_at: string
+        }
+        Insert: {
+          codice?: string | null
+          codice_collo?: string | null
+          codice_corpo?: string | null
+          codice_incisale?: string | null
+          created_at?: string
+          fdi: number
+          gruppo?: number | null
+          gruppo_ruolo?: string | null
+          id?: string
+          laboratorio_id: string
+          lavoro_id: string
+          provenienza?: string
+          ruolo?: string
+          scala?: string | null
+          updated_at?: string
+        }
+        Update: {
+          codice?: string | null
+          codice_collo?: string | null
+          codice_corpo?: string | null
+          codice_incisale?: string | null
+          created_at?: string
+          fdi?: number
+          gruppo?: number | null
+          gruppo_ruolo?: string | null
+          id?: string
+          laboratorio_id?: string
+          lavoro_id?: string
+          provenienza?: string
+          ruolo?: string
+          scala?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavori_denti_collo_fk"
+            columns: ["scala", "codice_collo"]
+            isOneToOne: false
+            referencedRelation: "colori_dentali"
+            referencedColumns: ["scala", "codice"]
+          },
+          {
+            foreignKeyName: "lavori_denti_colore_fk"
+            columns: ["scala", "codice"]
+            isOneToOne: false
+            referencedRelation: "colori_dentali"
+            referencedColumns: ["scala", "codice"]
+          },
+          {
+            foreignKeyName: "lavori_denti_corpo_fk"
+            columns: ["scala", "codice_corpo"]
+            isOneToOne: false
+            referencedRelation: "colori_dentali"
+            referencedColumns: ["scala", "codice"]
+          },
+          {
+            foreignKeyName: "lavori_denti_incisale_fk"
+            columns: ["scala", "codice_incisale"]
+            isOneToOne: false
+            referencedRelation: "colori_dentali"
+            referencedColumns: ["scala", "codice"]
+          },
+          {
+            foreignKeyName: "lavori_denti_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lavori_denti_lavoro_fk"
+            columns: ["lavoro_id", "laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "lavori"
+            referencedColumns: ["id", "laboratorio_id"]
           },
         ]
       }
