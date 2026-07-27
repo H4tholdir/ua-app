@@ -464,8 +464,10 @@ INSERT INTO colori_dentali (scala, codice, famiglia, ordine) VALUES
   ('vita_classical','D4','D',16);
 
 -- Fuori scala — i 3 codici che TabClinica.tsx:8-14 offre già oggi accanto ai 16.
--- Senza queste righe la migrazione dei writer esistenti (Task 12) rifiuterebbe
--- valori che l'app accetta da sempre.
+-- ⚠️ La ragione è «valori che il menu può PRODURRE», non «valori esistenti da
+-- salvare»: verificato sul database il 27/07, su 294 lavori le quattro colonne
+-- colore sono NULL ovunque — non c'era nessun dato da proteggere.
+-- Senza queste righe la scheda clinica rifiuterebbe tre voci del proprio menu.
 INSERT INTO colori_dentali (scala, codice, famiglia, ordine) VALUES
   ('fuori_scala','T','speciale',1),
   ('fuori_scala','BL','speciale',2),
@@ -498,10 +500,14 @@ COMMENT ON TABLE colori_dentali IS
 - [ ] **Step 2: Applica la migration e verifica il conteggio**
 
 ```bash
-npx supabase db push
+npx supabase db push --yes
 ```
 
-Poi, dalla console SQL di Supabase (progetto `iagibumwjstnveqpjbwq`):
+⚠️ **`--yes` serve davvero:** senza, il comando si ferma su un prompt `[Y/n]` che in sessione non interattiva non riceve risposta. La riga `Skipping migration MANUAL_000_auth_helpers.sql` nell'output è preesistente e innocua (quel file non ha il prefisso timestamp).
+
+🔑 **Le verifiche SQL si fanno da qui, non a mano:** `node scripts/tmp/sql.mjs "<query>"` legge `SUPABASE_DB_URL` da `.env.local` e non stampa mai la stringa di connessione.
+
+Poi:
 
 ```sql
 SELECT scala, count(*) FROM colori_dentali GROUP BY scala ORDER BY scala;
@@ -1692,6 +1698,11 @@ git commit -m "feat(lavori): sentinelle su denti e colore — una penna sola per
 ## Task 11: Il wizard smette di perdere il dato in silenzio
 
 🛑 Questo task e il Task 12 sono **obbligatori nello stesso deploy del Task 10**: appena le colonne escono dall'allowlist, i due scrittori odierni smettono di funzionare.
+
+🔴 **PREREQUISITO TROVATO ESEGUENDO IL TASK 3 — il colore del wizard è testo libero, e il catalogo distingue maiuscole e minuscole.** `PassoPaziente.tsx:94-97` non è una tendina: è una casella con il segnaposto «es. A2», e `crea-lavoro.ts:196` scrive quello che l'utente ha digitato, senza normalizzare. Provato sul database: `A3` si trova, **`a3` no**, `bl` no. Oggi un `a3` minuscolo viene accettato in silenzio; **dal Task 4 in poi** la chiave esterna su `colori_dentali` lo farebbe **fallire di netto** — e al banco si digita di fretta.
+
+➡️ **Questo task deve quindi anche:** portare il codice a maiuscolo e confrontarlo col catalogo **prima** di spedirlo (`A3.5` resta `A3.5`, `a3` diventa `A3`, `bl` diventa `BL`); se dopo la normalizzazione il codice **non** è in catalogo, non mandarlo come colore — il lavoro si crea lo stesso e il colore si corregge dalla scheda, che ha la tendina. **Mai** far fallire la creazione del lavoro per un colore digitato male.
+⚠️ La casella resta una casella: **nessun cambiamento visivo** in questa ondata. La tendina è ondata (b).
 
 **Files:**
 - Modify: `src/lib/wizard/crea-lavoro.ts:107-223`

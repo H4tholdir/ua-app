@@ -1,24 +1,25 @@
-# Sessione attiva — wizard «Nuovo lavoro»: SPEC RATIFICATA, PIANO ONDATA (a) SCRITTO (27/07/2026, sera)
+# Sessione attiva — ondata (a) del wizard: ESECUZIONE AVVIATA (27/07/2026, sera tardi)
 
-🛑 **PUNTO DI RIPRESA:** `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` — 13 task TDD.
+🛑 **Branch `ondata-a-denti-colore`** (repo principale, mai worktree). Piano:
+`docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` — 13 task, **2 chiusi**.
 
-🟡 **Nessun codice di produzione toccato. Niente committato.** Solo documenti su disco.
+**Fatto:** spec **ratificata** · piano scritto · **Task 1** (dominio FDI a 52 codici + fix quadranti decidui)
+· **Task 2** (precedenza colore riga→caso). Suite 3440 verdi · tsc 0 · eslint pulito.
 
-**Francesco ha ratificato la spec** (`docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md`) dopo
-tre correzioni di coerenza: §6 diceva ancora «solo i valori prescritti» mentre **W21 stampa la realtà del
-manufatto consegnato**; §3.5 lasciava aperto il destino di `dichiarazioni_conformita.colore_dente` che **W23
-elimina**; il `DROP COLUMN` mancava dall'ordine della migration (§8 passo 5) — aggiunto **con verifica
-preventiva** che la colonna sia davvero vuota.
+🔑 **ACCESSO SQL AL DATABASE: C'È.** `SUPABASE_DB_URL` sta in `.env.local` — strumento pronto:
+`node scripts/tmp/sql.mjs "<query>"` (non stampa mai la stringa di connessione). La riserva dichiarata
+prima («servirebbe una password») era **sbagliata**: le verifiche del piano si possono fare da qui.
 
-**Tre decisioni nuove (27/07, sera):**
-1. **Tre ondate** — (a) dato+API+atomicità · (b) wizard+odontogramma · (c) DdC+precheck. La **migration sta
-   tutta in (a)**, non si spezza.
-2. **La foto della prescrizione resta fuori dalla transazione** (nessun blocco al banco, W22) **ma il
-   fallimento diventa visibile**: il difetto non è «fallisce», è «fallisce senza dirlo».
-3. 🛑 **Vincolo di sequenza trovato scrivendo il piano:** appena le 5 colonne escono da `PATCHABLE_FIELDS`,
-   `crea-lavoro.ts` e `TabClinica.tsx` **smettono di salvare**. Quindi l'ondata (a) include il loro
-   reindirizzamento **a grafica invariata** (Task 11-12). Rimandare le sentinelle riaprirebbe le due sorgenti
-   dello stesso fatto che il gate FASE 3 ha chiuso apposta.
+🔴 **Tutti e due i task hanno smentito il piano che li generava — la revisione fra un compito e l'altro sta
+pagando:**
+1. **Task 1:** il piano dava per innocuo il raggruppamento su quadranti 1-4 «perché adulto e deciduo non
+   condividono lo schermo». Condividono il **codice**: controprova, **0 denti su 20** resi in dentizione
+   decidua. Nessun gate lo vedeva (tsc compila, eslint tace, nessun test nomina `Odontogramma`).
+2. **Task 2:** Task 10 toglieva `colore_collo/corpo/incisale` dall'allowlist mentre Task 12 non le mandava
+   al nuovo endpoint → **tre tendine morte**, violazione della direttiva «ogni campo si corregge fino alla
+   consegna». Corretto: le colonne esistono già in `lavori_denti`, bastava collegarle.
+3. **Regola nuova nei vincoli del piano:** il rosso da «modulo non trovato» **non prova nulla** — nel Task 2
+   quattro asserzioni su sette passavano contro una funzione vuota.
 
-**PROSSIMO PASSO:** esecuzione del piano — branch **nel repo principale**, mai worktree.
-⚠️ `.gitignore:62` mangia i png → `git add -f`. Pre-commit su `--max-warnings=0`: `npx eslint src/` prima.
+**PROSSIMO: Task 3** — prima migration (unique `(id, laboratorio_id)` + `colori_dentali` con 48 codici).
+⚠️ Da lì in poi si tocca il database vero: `npx supabase db push` è collegato al progetto.
