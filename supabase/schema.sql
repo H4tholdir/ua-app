@@ -475,9 +475,25 @@ CREATE TABLE pazienti (
   deleted_at        TIMESTAMPTZ
 );
 
--- NOTA MDR + GDPR: i dati di questa tabella NON possono essere
--- cancellati per 10 anni dalla data di consegna dell'ultimo dispositivo
--- associato al paziente (Art. 10(8) MDR 2017/745 prevale su Art. 17 GDPR)
+-- NOTA MDR + GDPR (base normativa CORRETTA il 29/07/2026 — panel con fonte primaria).
+-- Per un fabbricante di dispositivi SU MISURA la norma NON e' l'Art. 10(8), che
+-- questo commento citava: i due oggetti che l'Art. 10(8) nomina — documentazione
+-- tecnica All. II/III e dichiarazione di conformita' UE — sono riservati ai
+-- dispositivi «diversi dai dispositivi su misura» (Art. 10(4) e 10(6)) e per un
+-- laboratorio odontotecnico NON esistono.
+--   Base corretta: Art. 10(5) + ALLEGATO XIII punto 4
+--   → la dichiarazione si conserva almeno 10 anni dall'immissione sul mercato
+--     dell'ultimo dispositivo, e almeno 15 per gli impiantabili.
+-- Fonte: MDR consolidato 01/01/2026, CELEX 02017R0745-20260101 (EUR-Lex).
+-- L'effetto pratico non cambia (10 anni / 15 impiantabili): cambia la citazione.
+--
+-- ⚠️ E questo commento e' comunque PIU' LARGO del vero: cio' che va conservato e'
+-- la DICHIARAZIONE — che e' gia' uno snapshot autonomo in dichiarazioni_conformita,
+-- con paziente_nome NOT NULL e i due hash — piu' la documentazione dell'All. XIII
+-- p.2. NON necessariamente la riga anagrafica viva di questa tabella.
+-- 🔑 Il termine per la documentazione dell'All. XIII p.2 il Regolamento NON lo
+-- fissa: allinearla ai 10 anni e' PRUDENZA, non un obbligo citabile.
+-- Verbale: docs/roadmap/2026-07-29-ondata-b-panel-validazione.md §5-quinquies
 
 SELECT apply_updated_at_trigger('pazienti');
 

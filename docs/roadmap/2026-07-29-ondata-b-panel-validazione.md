@@ -207,13 +207,20 @@ i mockup esistono (`…-wizard-passo-foto-e-cassetta.html`, `…-wizard-avviso-c
 varianti sono state **ratificate la sera stessa** (D23, D24, D25). ➡️ **La spec §15 va aggiornata**, o un
 esecutore si fermerà a un gate che non esiste più. Restano dietro gate **solo** denti e colore (D14).
 
-### 🔴 Restano aperte, e vanno a panel
-1. **`DELETE` soft o hard** (§9.4) — panel normativo, invariato.
-2. **🆕 CHI può cancellare un'immagine, e FINO A QUANDO** — ortogonale alla precedente, v. B-6.
-3. **🆕 Il predicato dell'indice**: riusare il codice di un paziente archiviato è una decisione **normativa**
-   (`schema.sql:478-480`, Art. 10(8) MDR, dieci anni), non un dettaglio tecnico. Stesso panel della 1.
-4. **🆕 La normalizzazione del codice**: `lower(btrim(...))` come fa la parete, o grezzo? (v. I-3)
-5. **Tetto delle foto su device vero** (§9.5) — invariato, non blocca la partenza.
+### ✅ Le quattro domande normative — TUTTE CHIUSE dal panel del 29/07 (§5-ter, §5-quater, §5-quinquies)
+| # | domanda | risposta | dove |
+|---|---|---|---|
+| 1 | `DELETE` soft o hard | **SOFT** su `deleted_at`, blob conservato, purga vera a fine ritenzione. 🔴 **Ma oggi sarebbe un colpo a vuoto**: otto letture non escludono le righe cancellate | §5-ter · §5-quinquies |
+| 2 | **CHI** può cancellare, e **FINO A QUANDO** | **Gli stessi ruoli che caricano** (la consegna che emette la DdC non ha gate di ruolo, D-3 ratificata) · **finché il lavoro non è consegnato** — coincide con la direttiva del 27/07, **nessuna contraddizione** · fuori finestra **409 + bottone disabilitato con la spiegazione visibile** | §5-ter |
+| 3 | Riuso del codice di un paziente archiviato | **NO — FORMA 1**, il codice resta impegnato per sempre. Il codice è un **identificativo di legge** (Art. 21(2)) e finisce su **quattro documenti conservati**. ⚠️ Inferenza dichiarata, non citazione. 📌 **Da ratificare da Francesco, come D15** | §5-quinquies |
+| 4 | Normalizzazione del codice | **SÌ — `lower(btrim(...))`**, in indice **e** in scrittura. Provato da P1-bis: senza, `pz-0042` passa | §5-bis · §5-quater |
+
+### 🔴 Restano aperte
+1. **Tetto delle foto su device vero** (§9.5) — invariato, **non blocca la partenza**: va misurato dentro T14.
+2. **🆕 La purga a fine ritenzione** — il soft-delete la richiede per non violare Art. 5(1)(e). **Non è
+   dell'ondata (b)**: è una voce di roadmap propria (nessun laboratorio reale, nessun dato a scadenza oggi).
+3. **🆕 L'audit delle cancellazioni** — `lavori_immagini` non ha trigger di audit, mentre `ANALISI/17:920`
+   afferma che gli accessi ai dati paziente sono registrati immutabilmente. **Riferito, fuori perimetro.**
 
 ---
 
@@ -467,6 +474,123 @@ duplicati grezzi: 0   ·   duplicati normalizzati: 0   → entrambe le forme si 
   distinti, e così `PZ- 0042`. Collassarli sarebbe una decisione semantica **oltre** il precedente di casa.
 - **Il rischio reale di corse concorrenti** su questa tabella: nessun dato di carico. L'argomento del
   backstop resta **strutturale, non misurato**.
+
+---
+
+## 5-quinquies. 🆕 PANEL NORMATIVO — parere MDR su conservazione e riuso (29/07)
+
+### 🔴 LA CORREZIONE PIÙ IMPORTANTE — la base normativa citata in tre nostri documenti è SBAGLIATA
+🔍 **Riverificato che i tre documenti dicano davvero quello.** `supabase/schema.sql:478-480` recita:
+«i dati di questa tabella NON possono essere cancellati per 10 anni … (**Art. 10(8) MDR 2017/745** prevale
+su Art. 17 GDPR)». Lo stesso richiamo è in `ANALISI/17:174` e in `ua-app/CLAUDE.md:440`.
+
+**Per un laboratorio odontotecnico l'Art. 10(8) NON è la norma applicabile**, e lo dice l'articolo stesso:
+- **Art. 10(4):** «I fabbricanti di dispositivi **diversi dai dispositivi su misura** redigono … una
+  documentazione tecnica … allegati II e III»
+- **Art. 10(6):** la dichiarazione di conformità UE riguarda i fabbricanti «di dispositivi, **diversi dai
+  dispositivi su misura**»
+- **Art. 10(5) — questa è la norma dei su misura:** «I fabbricanti di dispositivi su misura redigono,
+  tengono aggiornata e mettono a disposizione … la documentazione conformemente all'**allegato XIII,
+  punto 2**»
+
+I due oggetti che l'Art. 10(8) nomina — documentazione tecnica II/III e dichiarazione di conformità UE —
+**per un su misura non esistono**. Il termine viene dall'**Allegato XIII punto 4**: «La dichiarazione …
+è conservata per un periodo di almeno **10 anni** … Nel caso di dispositivi impiantabili, **almeno 15 anni**».
+
+➡️ **Base corretta: Art. 10(5) + Allegato XIII punto 4.**
+🔑 **L'effetto pratico è NULLO** (10 anni, 15 per gli impiantabili, in entrambe le letture): cambia la
+**citazione**, non il comportamento. Ma è una citazione che finisce accanto a un vincolo di conservazione,
+e la regola di casa è che *un commento non si sbaglia, si scolla*.
+⚠️ **E c'è un errore vero, non solo di citazione:** `ANALISI/17:174` dice «per i dispositivi impiantabili:
+vita del dispositivo + **10 anni**». Il testo primario dice **almeno 15**. (`ANALISI/17:149` invece li cita
+correttamente: **divergenza interna**, segnalata indipendentemente da due advisor.)
+Fonte: [MDR consolidato al 01/01/2026, IT](https://eur-lex.europa.eu/legal-content/IT/TXT/HTML/?uri=CELEX:02017R0745-20260101)
+✅ **Confronto eseguito, non asserito:** l'advisor ha confrontato consolidato e testo originario 2017 —
+**Allegato XIII identico riga per riga**; unica differenza sostanziale, l'Art. 21(1)(b) rinviava a
+«art. 52 **§7**» e ora rinvia a «**§8**», il che **conferma** il richiamo già scritto nel progetto.
+
+### ✅ Domanda 1 — la foto: SOFT, e i due advisor convergono
+**Soft-delete su `deleted_at`, blob conservato, nessuna cancellazione fisica dall'app** — più una **purga
+vera a fine ritenzione**, perché il «soft per sempre» su dati Art. 9 sarebbe a sua volta una violazione
+(Art. 5(1)(e) GDPR).
+**L'argomento portante non è «non si sa mai», è il sistema qualità.** L'Art. 10(9) impone un QMS anche ai
+fabbricanti di su misura. Se la procedura del laboratorio **designa** la foto come registrazione di
+fabbricazione, quella foto entra nella documentazione dell'Allegato XIII punto 2 **per atto del laboratorio
+stesso** — e cancellarla davvero violerebbe un obbligo che il laboratorio si è dato. 🔑 **Il soft-delete non
+decide al posto del laboratorio; l'hard-delete sì, e in modo irreversibile.**
+✅ **Costo zero, la strada è già asfaltata:** `deleted_at` esiste (`002_fase2_schema.sql:255`), **la RLS
+filtra già `deleted_at IS NULL`** (`:259`), l'indice è già parziale (`:263`).
+**La foto è nominata nell'Allegato XIII? NO** — il punto 1 elenca otto trattini, nessuna immagine; il punto 2
+è una **clausola aperta**. MDCG 2021-3: **zero occorrenze di «photograph»** (verificato nel PDF).
+**Il momento in cui la finestra si chiude è giuridicamente identificabile:** Art. 52(8) impone la
+dichiarazione **prima dell'immissione sul mercato**, e Art. 2(28) definisce l'immissione come la **prima
+messa a disposizione** — cioè **la consegna**. ➡️ **La norma e la direttiva di Francesco cadono nello stesso
+istante.** Agganciare il blocco all'**emissione della DdC** è conservativo ed è un fatto già in banca dati.
+
+### ✅ Domanda 2 — il codice di un archiviato NON si riusa: **FORMA 1**
+```sql
+CREATE UNIQUE INDEX pazienti_codice_lab_uidx
+  ON pazienti (laboratorio_id, lower(btrim(codice_paziente)))
+  WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> '';
+```
+*(l'advisor proponeva `upper`; si adotta **`lower`** per allinearsi al precedente in casa — parete cassette,
+`…090000:67-68`. La scelta è cosmetica **purché index e pre-check usino la stessa identica espressione**.)*
+
+**Perché.** Il codice **non è un'etichetta interna: è un identificativo di legge**, alla pari del nome.
+**Art. 21(2) MDR:** «I dispositivi su misura sono muniti della dichiarazione … messa a disposizione di **un
+determinato paziente o utilizzatore, identificato mediante il nome, un acronimo o un codice numerico**»
+(identico all'Allegato XIII punto 1, quarto trattino; richiamato dal **D.Lgs. 137/2022 Art. 7(1)**).
+🔍 **E finisce su quattro documenti conservati:** `EtichettaTemplate.tsx:128`, `IFUTemplate.tsx:171`,
+`RicevutaConsegnaTemplate.tsx:187` (tutti `PAZ-<codice>`) e **`generate-ddc.ts:93`**, dove è l'**ultimo
+ripiego** dell'elemento 4 dell'Allegato XIII **sulla Dichiarazione stessa** — che poi si **congela**
+(`dichiarazioni_conformita.paziente_nome NOT NULL`, con `pdf_sha256`/`payload_sha256`).
+
+⚠️ **Dichiarato come inferenza, non come citazione:** l'MDR **non scrive** «i codici non si riusano». La
+conclusione nasce da tre pezzi — (a) il codice identifica un paziente **determinato**; (b) la dichiarazione
+vive dieci anni; (c) Allegato XIII punto 5 e Art. 87 impongono di **risalire dal dispositivo al paziente**
+per incidenti e azioni correttive. Se dentro un laboratorio lo stesso codice punta a due persone, il passo
+(c) diventa ambiguo **proprio nella lettura che conta**.
+
+✅ **Precedente in casa, già ratificato:** `ANALISI/17:149` — per le DdC annullate «il numero **NON si riusa
+mai**» (parere normativo del 16/07/2026), con la sua migration (`20260710090000_ddc_annullata_unique_parziale.sql`).
+🔑 **E un secondo argomento, indipendente dalla norma:** mettere lo stato nel predicato **obbligherebbe a
+scegliere QUALE stato**, e in `pazienti` ce ne sono **due che non concordano** (`archiviato` scritto dal
+DELETE, `deleted_at` letto dalla RLS e dal wizard). **Un predicato senza stato non deve arbitrare niente.**
+**Il costo è banale:** il generatore fa `max+1`. Il costo dell'ambiguità è **una lettura sbagliata su un
+documento vivo dieci anni**.
+
+📌 **QUESTA È UNA DECISIONE DI DOMINIO, come D15: va ratificata da Francesco.** I due advisor convergono e
+la si adotta nel piano riscritto, ma con la sua riga da confermare — e nella direzione **conservativa**:
+un vincolo si può sempre **allentare** dopo, mai stringere una volta che i codici sono stati riusati.
+
+### 🆕 Ritrovamenti fuori mandato di questo parere
+1. 🔴 **`nota_marcatura_ce` cita l'articolo sbagliato, e quella stringa finisce su un documento conservato
+   dieci anni.** `schema.sql:1222` (e `ANALISI/17:130`) si appoggiano all'**Art. 20(1)**, che dice solo che
+   i dispositivi *diversi* dai su misura recano la marcatura: è **inferenza a contrario**. La norma
+   affermativa è l'**Art. 21(1), secondo comma**: «I dispositivi di cui al primo comma **non recano la
+   marcatura CE**».
+2. **`ANALISI/17:91` cita «D.Lgs. 137/2022, Art. 8».** L'articolo sui dispositivi su misura è l'**Art. 7**;
+   l'Art. 8 è la tessera per il portatore di impianto.
+3. **`lavori_immagini` non ha trigger di audit** — `_audit_trigger_fn()` è applicato **solo** a cicli e fasi
+   (`20260704120000_b3_cicli_fasi_audit.sql:9,13`). Se il soft-delete deve valere come **prova**, servono
+   chi/quando/perché. (Concorde col parere GDPR.)
+4. **`schema.sql:478-480` è troppo largo:** ciò che va conservato è la **dichiarazione** (già snapshot
+   autonomo in `dichiarazioni_conformita`) e la documentazione dell'Allegato XIII p.2 — **non
+   necessariamente la riga anagrafica viva di `pazienti`**.
+
+### Cosa resta non verificato (dichiarato dagli advisor)
+- 🔑 **Il termine di conservazione della documentazione dell'Allegato XIII punto 2: il Regolamento NON lo
+  dice.** L'Art. 10(5) impone di tenerla a disposizione **senza indicare un termine**; l'Allegato XIII p.4
+  fissa 10/15 anni **solo per la dichiarazione**. Allineare la documentazione ai 10 anni è **prudenza, non
+  un obbligo citabile**.
+- Se una fotografia di lavorazione sia richiesta dalla prassi ispettiva italiana come parte del punto 2:
+  **nessuna fonte trovata**.
+- **Il divieto di riuso non è scritto da nessuna parte:** è inferenza, dichiarata sopra.
+- **Il D.Lgs. 137/2022 è stato letto su una copia PDF del sito FNOMCEO**, non su fonte istituzionale
+  (gazzettaufficiale.it e normattiva.it non hanno risposto per via automatica). **La verifica su fonte
+  primaria resta da fare.**
+- **`lower(btrim())` non unifica separatori né spazi interni:** `PAZ/2026/0072` e `PAZ-2026-0072` restano
+  distinti. Collassarli sarebbe una decisione semantica **oltre** il precedente di casa.
 
 ---
 

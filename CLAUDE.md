@@ -437,7 +437,21 @@ diventano documenti e si congelano, non prima.
   `incluso_in_fattura`): è il modello da generalizzare, non da reinventare.
 - ⚠️ **Sui campi che finiscono in documenti a valore legale la finestra non è un dettaglio di UI:**
   prima dell'emissione la correzione può propagarsi, dopo no. Quel confine si progetta con panel
-  normativo (MDR Art. 10(8) vs Art. 16 GDPR), non si assume.
+  normativo, non si assume.
+  ✅ **PANEL FATTO il 29/07/2026, e il confine è stato trovato — con una correzione di base normativa.**
+  🛑 **Per i dispositivi SU MISURA la norma NON è l'Art. 10(8)**: i due oggetti che quell'articolo nomina
+  (documentazione tecnica All. II/III e dichiarazione di conformità UE) sono riservati ai dispositivi
+  «**diversi dai dispositivi su misura**» (Art. 10(4) e 10(6)) e per un laboratorio odontotecnico **non
+  esistono**. La base corretta è **Art. 10(5) + Allegato XIII punto 4** (10 anni, **15** per gli
+  impiantabili). L'effetto pratico non cambia: cambia la citazione — e questa citazione stava in tre
+  documenti del progetto, accanto a un vincolo di conservazione.
+  🔑 **Il confine, e vale come modello per ogni campo futuro:** Art. 52(8) impone la dichiarazione **prima
+  dell'immissione sul mercato**, e Art. 2(28) definisce l'immissione come la **prima messa a disposizione**
+  — cioè **la consegna**. **La norma e la direttiva di Francesco cadono nello stesso istante**: la finestra
+  «fino alla consegna» non è una concessione di prodotto, è anche il confine di legge. Si aggancia
+  all'**emissione della DdC**, che è conservativa ed è un fatto già in banca dati.
+  Fonte: MDR consolidato 01/01/2026, CELEX `02017R0745-20260101` (EUR-Lex) ·
+  verbale: `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md` §5-ter e §5-quinquies.
 
 **Stato al 27/07/2026:** il principio è rispettato **solo in parte**. `PATCHABLE_FIELDS`
 (`src/app/api/lavori/[id]/route.ts`) esclude **16 campi** con la motivazione «nessun writer nel form
