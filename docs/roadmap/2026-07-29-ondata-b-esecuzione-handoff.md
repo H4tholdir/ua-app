@@ -56,7 +56,7 @@ soft-o-hard (Art. 10(8) MDR contro la direttiva «ogni campo si corregge fino al
 | `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` | il **verbale, D1-D32 in cinque tornate**, con le parole di Francesco e le prove |
 | `docs/design/mockups/2026-07-28-wizard-testata-uscita.html` | testata: la **§5 è la forma definitiva**, ed è **viva** (la fila si trascina). Le sezioni prima sono la storia delle alternative |
 | `…-wizard-passo-foto-e-cassetta.html` · `…-wizard-avviso-codice-gia-in-uso.html` | foto/cassetta e avviso: la **§3 / §2** portano la forma scelta |
-| `docs/design/mockups/screenshots/ob-*.png` | **~80 screenshot**, 390/768/1280 × chiaro/scuro |
+| `docs/design/mockups/screenshots/ob-*.png` | **92 screenshot** (contati: `git ls-files … | grep -c ob-`), 390/768/1280 × chiaro/scuro |
 | `docs/roadmap/2026-07-28-ondata-b-piano-handoff.md` | la **storia** della giornata del disegno (superato da questo) |
 
 ---

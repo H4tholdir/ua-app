@@ -25,5 +25,5 @@ laboratori diversi possono usare lo stesso codice (controllo positivo) · **P2**
 P6, e P2 da rieseguire) · censimento dei **token orfani** · **3 domande aperte** (`DELETE` soft o hard →
 **panel normativo** · tetto foto da misurare su device · la chiave `localStorage` cambia nome o no).
 
-🔑 **Zero righe di codice. Dodici commit locali, niente pubblicato.** Baseline riverificata dopo ogni
+🔑 **Zero righe di codice. Diciotto commit locali non pubblicati, dieci di questa sessione.** Baseline riverificata dopo ogni
 sonda: **294 lavori · 0 denti · 916 pazienti · 48 colori**.
