@@ -1,34 +1,24 @@
-# Sessione attiva — ONDATA (b): SPEC RATIFICATA + 25 DECISIONI + ANTEPRIME SCELTE, ZERO codice (28/07/2026, sera)
+# Sessione attiva — ONDATA (b): PIANO SCRITTO (bozza), 26 decisioni, ZERO codice (28/07/2026, notte)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-ondata-b-piano-handoff.md`.**
-Spec ✅ **RATIFICATA** · verbale a **quattro tornate**: D1-D8 apertura · D9-D16 mockup · **D17-D20 ratifica** ·
-**D21-D25 varianti**. La forma scelta è la **§4** di ciascun mockup.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-ondata-b-piano.md`** — il piano. Prima di eseguirlo leggi
+**§9, «cosa manca»**: è una bozza dichiarata, non un piano eseguibile.
+Contorno: handoff `2026-07-28-ondata-b-piano-handoff.md` · spec ✅ **RATIFICATA** · verbale a **cinque
+tornate** (D1-D8 · D9-D16 · D17-D20 · D21-D25 · **D26**).
 
-**D21-D25:** uscita **T2** (✕ leggera) e **la ✕ compare solo dal passo 2** · **D22 riscritta dopo una
-rettifica di Francesco**: la fila **scorre ancorata a destra**, quello che è in vista si legge **intero**, il
-resto è **fuori vista (non compresso)** con una **sfumatura** che lo dice, e l'**icona è il solo caso limite
-al bordo** · foto **F2 + PIÙ FOTO** (rivedere, ingrandire, rifare, **eliminare**, aggiungere) · cassetta
-**solo le libere** + **crea al volo** + **salta** · avviso **V1**.
+**D26 — tre ondate** (divisione scelta da me su delega): **(b) il wizard** (tutto ciò senza cui non
+funziona) · **(c) le foto per bene** (editor ruota/ritaglia/ingrandisci **e le stesse azioni sulla scheda**,
+perché l'editor si scrive una volta e serve in due posti) · **(d) le cassette per bene** (parete in «modo
+scelta» con ricerca + tavolozza più ricca, con la regola che **ricava** la tonalità scura).
 
-🔴 **Quattro cose trovate misurando/aprendo i file, non ragionando — tutte valide identiche in React:**
-① `text-overflow: ellipsis` **non funziona dentro un flex**: la pastiglia dev'essere un **blocco**.
-② `justify-content: flex-end` ancora a destra **ma rende irraggiungibile** ciò che esce a sinistra → serve
-`margin-left:auto` **più** `scrollLeft = scrollWidth` al montaggio. ③ Una fila che scorre **taglia sempre**
-il bordo → **maschera sfumata**, e **direzionale** (sfumare l'ultima è una bugia visiva). ④ La colonna è
-**bloccata a 480 px**: **768 e 1280 sono IDENTICI** (320 px contro 230) — lo spazio vero arriva **sui passi
-larghi** (D14). ✅ Regola «mai troncate» **verificata a schermo**
-(`scripts/tmp/misura-forma-ratificata.mjs`): **zero parole tagliate su 7 casi**, 267 px nascosti e
-**raggiungibili**, scorrimento iniziale **ancorato a destra**.
+**Stato del piano (20 task, T1-T20).** ✅ Fatti: censimento identificatori, 17 file letti con righe citate,
+sonda **P2 provata** (0 duplicati · 916 · 294 · 0 · 48 → la migration non aborta).
+🛑 **Manca per uscire dalla FASE 4:** 10 file **NON letti** (fra cui **4 test che si romperanno di sicuro**)
+· **5 sonde da eseguire** (P1 indice, P3 proiezione, P5 storage, P6 costo query) · censimento dei **token
+orfani** · **3 domande aperte** (DELETE soft o hard → panel normativo · tetto foto da misurare su device ·
+la chiave `localStorage` cambia nome o no).
 
-🚫 **R11 RITIRATO:** il «difetto» del colore delle cassette **non esisteva** — `normalizzaColore`
-(`src/lib/cassette/colore.ts:6,11`) accetta le sei parole **e** l'esadecimale, e `facciaHex`
-(`v3/tokens.ts:121-128`) traduce già. Avevo dedotto un difetto da un dato **senza aprire il codice che lo
-legge**. ✅ Conseguenza buona: il passo cassetta **riusa**, e `NuovaCassettaSheet` + `POST /api/cassette`
-esistono già.
-🆕 **R12 (vero):** **un'immagine del lavoro NON si può cancellare** — `immagini/[imgId]/route.ts` ha solo
-`PATCH`. Caricarne più d'una è già possibile (`lavori_immagini` è una tabella); toglierne una no. **In
-perimetro** per D23.
+🔴 **Difetto trovato SCRIVENDO il piano (P4):** la spec §7 promette che una bozza `v:1` «viene rimossa», ma
+`persistenza.ts:69-73` rimuove la chiave **solo alla scadenza**, non sul mismatch di versione → con `v:2`
+una bozza vecchia resterebbe in `localStorage` **per sempre**. T7 deve chiuderlo, B20 provarlo.
 
-**Prossimo:** restano 6 domande minori nei mockup (icone, sfumatura dello scorrimento, tetto foto, etichette
-foto, conferma di eliminazione, cassetta creata) → poi **il piano** (R-P1/R-P2/R-P6) → ramo (🛑 **mai worktree**).
-🔑 Baseline DB invariata: **294 lavori · 0 denti · 916 pazienti · 48 colori** (solo letture).
+🔑 Baseline DB invariata: **294 lavori · 0 denti · 916 pazienti · 48 colori** (solo letture, tutta la sessione).

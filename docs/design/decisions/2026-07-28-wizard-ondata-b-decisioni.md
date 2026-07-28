@@ -1,7 +1,7 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
 **Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Venticinque decisioni in quattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Ventisei decisioni in cinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -91,6 +91,23 @@ forma ratificata.
 | **D23** | **Foto: variante F2, e PIÙ DI UNA** — rivedere, ingrandire, rifare, eliminare, aggiungere | «vorrei però poter inserire più di una foto, proprio come dice la frase… devo poter rivedere le foto allegate, ingrandirle per poterle rivedere se sono uscite bene, eventualmente rifarle, eliminarle o aggiungerne delle altre» | ✅ **Quasi tutto è già in casa:** le immagini stanno in una **tabella** (`lavori_immagini`), non in una colonna, e `POST /api/lavori/[id]/immagini` esiste (max 20 MB). **Caricarne cinque è già possibile oggi**: è il wizard che ne tiene una sola. 🔴 **Ma manca la cancellazione** → **R12** |
 | **D24** | **Cassetta: solo le libere**, con **crea al volo** e **salta** | «non possiamo mostrare proprio la pagina cassette mostrando solo quelle libere, e permettere di cliccare su quelle libere, eventualmente crearne una per metterci il lavoro o saltare perché magari il pacchetto ancora non è arrivato?» | ✅ **Riuso puro:** `NuovaCassettaSheet.tsx:33-43` (nome precompilato + le sei facce) e `POST /api/cassette` esistono già. La griglia mostra 4 libere su 28 invece di 28 |
 | **D25** | **Avviso codice in uso: variante V1** (sotto la casella, non ferma niente) · e la **ripresa** che dice cos'è cambiato mettendo già il codice nuovo | scelta esplicita su entrambi gli inneschi | Il divieto vero ce l'ha il **database** (D15): la schermata serve a **far incontrare la persona giusta**, non a fare la guardia |
+
+### Quinta tornata — il taglio in ondate (D26)
+
+| # | Decisione | Testo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D26** | **Il lavoro si divide in tre ondate**, e la divisione la sceglie chi scrive il piano | «mi sta bene dividere il lavoro in ondate, scegli tu la divisione più consona» | **(b) Il wizard** — tutto ciò senza cui il wizard non funziona · **(c) Le foto, per bene** — l'editor (ruota/ritaglia/ingrandisci) **e le stesse azioni sulla scheda del lavoro**, perché l'editor si scrive **una volta** e serve in due posti · **(d) Le cassette, per bene** — la parete in «modo scelta» **con la ricerca** e la **tavolozza più ricca**. 🔑 **Criterio dichiarato:** resta in (b) ciò senza cui il wizard non funziona; esce ciò che ha una casa migliore altrove e che, fatto lì, si scrive una volta invece di due |
+
+**Due precisazioni di Francesco che entrano nel piano, non nelle decisioni:**
+- **Le briciole (D22, terza stesura)** nascono da una sua rettifica: «finché ho spazio mostro le briciole per
+  intere… e man mano che scorro viene sbalzata via quella che non entra più facendo apparire quella nuova.
+  Animazioni alla Apple. E senza troncamenti o sfumature.» → **fila a pagine**, e **le icone decadono**:
+  senza il caso «tagliata» non c'era più niente da far capire con un simbolo.
+- **I colori delle cassette NON si unificano** (dopo la spiegazione del perché la parola non è un doppione
+  dell'esadecimale): «non ci conviene unificare, se questo permette la ricerca per colore; facciamo solo in
+  modo da avere una tabella più ricca possibile che copra quasi tutti i colori ricercabili» → **ondata (d)**,
+  con la regola che **ricava** la tonalità scura invece di scriverla, così ogni colore nuovo costa un nome e
+  un valore.
 
 **🚫 E una segnalazione mia, RITIRATA nel giro di un'ora — sta qui perché la lezione vale più dell'errore.**
 Avevo riferito come difetto che «il colore delle 28 cassette è scritto in due modi, 8 in esadecimale e 20 a
