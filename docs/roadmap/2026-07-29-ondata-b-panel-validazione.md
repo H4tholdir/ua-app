@@ -224,7 +224,9 @@ rifiutato, mentre R-P1 chiede **un valore che DEVE essere rifiutato**. Le forme 
 digitare a mano nella casella «Codice paziente» sono `pz-0042` e ` PZ-0042`.
 
 `provato: node scripts/tmp/sonda-p1-bis-normalizzazione.mjs` — **una transazione con `ROLLBACK`, su tabelle
-temporanee `ON COMMIT DROP`**. Output reale:
+temporanee `ON COMMIT DROP`**. 🛑 **Lo script NON è nel repo** (`scripts/tmp/` è ignorato per convenzione, e
+R-P1 dice che gli spike sono usa e getta): **la prova è l'output incollato qui sotto**, non il file.
+Output reale:
 
 | caso | **A** — indice come nel piano | **B** — indice normalizzato (`lower(btrim(...))`) |
 |---|---|---|
