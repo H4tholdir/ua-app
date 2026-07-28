@@ -217,6 +217,67 @@ esecutore si fermerà a un gate che non esiste più. Restano dietro gate **solo*
 
 ---
 
+## 5-bis. 🆕 SONDA P1-bis — eseguita il 29/07, e chiude la domanda sulla normalizzazione
+
+**Perché:** il panel ha rilevato che P1 provava il duplicato **byte-identico**, cioè il caso banalmente
+rifiutato, mentre R-P1 chiede **un valore che DEVE essere rifiutato**. Le forme vere che un'addetta può
+digitare a mano nella casella «Codice paziente» sono `pz-0042` e ` PZ-0042`.
+
+`provato: node scripts/tmp/sonda-p1-bis-normalizzazione.mjs` — **una transazione con `ROLLBACK`, su tabelle
+temporanee `ON COMMIT DROP`**. Output reale:
+
+| caso | **A** — indice come nel piano | **B** — indice normalizzato (`lower(btrim(...))`) |
+|---|---|---|
+| ① `PZ-0042` (primo) | PASSA | PASSA |
+| ② `PZ-0042` duplicato identico — *ciò che P1 provava* | **RIFIUTATO** | **RIFIUTATO** |
+| ③ 🔴 `pz-0042` minuscolo | **PASSA** ❌ | **RIFIUTATO** ✅ |
+| ④ 🔴 ` PZ-0042` spazio davanti | **PASSA** ❌ | **RIFIUTATO** ✅ |
+| ⑤ 🔴 `PZ-0042 ` spazio in coda | **PASSA** ❌ | **RIFIUTATO** ✅ |
+| ⑥ controllo positivo — altro laboratorio, stesso codice | PASSA ✅ | PASSA ✅ |
+| ⑦⑧ due `NULL` (l'indice è **parziale**) | PASSANO ✅ | PASSANO ✅ |
+
+🔑 **Conclusione secca: l'indice come lo propone il piano NON impedisce il doppione**, perché la casella è
+modificabile a mano (D12/D20 lo dichiarano a schermo: «puoi cambiarlo»). La forma **B** lo impedisce e
+**non rompe il controllo positivo**: due laboratori diversi restano liberi.
+⚠️ **La trappola da non sbagliare:** normalizzare **nell'indice** senza normalizzare **in scrittura** rende
+il vincolo più forte della lettura che lo precede — il pre-controllo dice «libero» e l'inserimento fallisce.
+Il precedente della parete cassette va letto proprio su questo punto. ➡️ **è nel mandato dell'advisor di
+banca dati** (panel normativo in corso).
+
+**Nessuna traccia lasciata:** `tabelle_sonda: 0`, baseline riverificata **294 · 0 · 916 · 48**.
+
+### 🔴 E la sonda ha scoperto una cosa che nessuno aveva guardato: le forme dei codici veri
+
+```
+senza_codice: 1 · fuori dal formato PZ-####: 911 · con spazi: 0 · con minuscole: 0 · totale: 916
+coppie che SOLO la normalizzazione rifiuterebbe: 0   (la migration non aborta in nessuna delle due forme)
+```
+
+**Solo 4 codici su 915 hanno la forma che UÀ genera.** Gli altri **911** sono `PAZ/2026/NNNN` — cioè
+esattamente il formato che il commento di `schema.sql:461` descrive («Codice assegnato **dallo studio**,
+es. "PAZ-001"»), quello che **D15 ha dichiarato non esistere**.
+
+E la distribuzione dice che **le due forme non si mescolano dentro un laboratorio**:
+
+| laboratorio | forma UÀ (`PZ-####`) | forma studio (`PAZ/…`) | totale |
+|---|---|---|---|
+| `314cd040…` | 0 | **911** | 911 |
+| `971061a1…` (lab di prova storico) | **4** | 0 | 4 |
+| `00000000-…-0001` | 0 | 0 | 1 (senza codice) |
+
+**Come va letto — con onestà, perché è materiale di prova, non di produzione.** Questi sono **dati di
+test** destinati alla pulizia (`CLAUDE.md` §8), e le 911 righe sono un **caricamento in blocco** in un
+laboratorio che nessuno usa dal wizard. Quindi **D15 non è smentita**: dentro il laboratorio che usa il
+wizard il formato è coerente, e **nessuna delle due forme di indice aborterebbe la migration** (0 coppie).
+
+🔑 **Ciò che invece conta, e vale anche dopo la pulizia:** `calcolaProssimoPz` fa `MAX+1` **contando solo
+i codici che combaciano con `^PZ-(\d+)$`** (`dati-wizard.ts:44-51`). In un laboratorio con 911 codici di
+un altro formato **restituirebbe `PZ-0001`** — cioè aprirebbe una **seconda numerazione parallela** dentro
+un archivio che ne ha già una, senza che niente lo segnali. Non è una collisione: è peggio, perché non fa
+rumore. ➡️ Da nominare nel piano riscritto quando si tocca il generatore (bloccante B-1).
+
+---
+
 ## 6. Ciò che invece REGGE — verificato, perché la parte positiva sia credibile
 
 - **G9 tiene su entrambi gli scrittori dei pazienti**: nessun nome di vincolo o di indice raggiunge il
