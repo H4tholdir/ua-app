@@ -6,7 +6,7 @@
 `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
 
 > ⛔ **Questo piano NON esce dalla FASE 4 finché §3 (registro letture), §4 (censimento) e §5 (registro
-> prove) non sono completi.** Al momento **non lo sono**: §3 ha 11 file `NON letto`, §5 ha 5 sonde
+> prove) non sono completi.** Al momento **non lo sono**: §3 ha 10 file `NON letto`, §5 ha 4 sonde
 > `da eseguire`. Sono elencati apposta, con nome — un piano che sembra completo e non lo è è il difetto
 > che l'ondata (a) ha pagato otto volte su otto.
 
@@ -143,7 +143,7 @@ migration registrata** — una migration che aborta disallinea il ledger anche s
 
 | # | assunzione | come si prova | stato |
 |---|---|---|---|
-| **P1** | L'indice unico parziale **rifiuta davvero** un codice ripetuto nello stesso laboratorio | `BEGIN;` crea l'indice su uno schema usa-e-getta, `INSERT` due volte lo stesso `(lab, codice)` → **incollare il messaggio d'errore**; poi il **controllo positivo**: stesso codice in **due laboratori diversi** deve passare; `ROLLBACK;` | 🔴 **da eseguire** |
+| **P1** | L'indice unico parziale **rifiuta davvero** un codice ripetuto nello stesso laboratorio | tabella **temporanea** `ON COMMIT DROP` + lo stesso indice della migration, tre inserimenti | ✅ **PROVATA, 28/07 sera** — `provato:` blocco `DO` su tabella temporanea, output reale incollato:<br>① stesso lab, stesso codice → **`RIFIUTATO: duplicate key value violates unique constraint "sonda_p1_uniq"`**<br>② **controllo positivo** — lab diverso, stesso codice → **`PASSA`** (nessun canale laterale fra tenant)<br>③ due `NULL` nello stesso lab → **passano** (l'indice **parziale** non li tocca)<br>🔑 Nessuna traccia lasciata: `tabelle_sonda: 0`, baseline riverificata **294 · 0 · 916 · 48** |
 | **P2** | Il conteggio dei duplicati **regge ancora** (era 0 il 28/07 mattina) | `scripts/tmp/sql.mjs`, sola lettura | ✅ **PROVATA, 28/07 sera** — `provato: node scripts/tmp/sql.mjs "select …"` → `coppie_duplicate: 0 · pazienti_totali: 916 · senza_codice: 1 · lavori: 294 · denti: 0 · colori: 48`. **La migration T4 non aborta**, e la baseline è intatta. ⚠️ **Decade col tempo**: si riesegue immediatamente prima di T4 |
 | **P3** | La proiezione ridotta **non rompe** `crea-lavoro.ts:213-214`, che legge `codice_paziente` | lettura del file + test che chiama la route con `q` e verifica che `codice_paziente` ci sia | 🔴 **da eseguire** |
 | **P4** | `leggiStato` scarta davvero un payload `v:1` **e rimuove la chiave** | test unitario con payload `{v:1,…}` → `null`, e `localStorage.getItem` → `null` | 🟡 **metà provata**: il codice a `persistenza.ts:69` restituisce `null` per `v !== 1`; **la rimozione della chiave avviene solo per scadenza** (`:71-73`), **non** per versione sbagliata → ⚠️ **la spec §7 dice «e la chiave viene rimossa»: OGGI NON È VERO.** Difetto del piano trovato scrivendolo |
@@ -267,7 +267,7 @@ Dichiarato, non nascosto — è il punto delle regole di piano.
 
 1. **§3: 11 file `NON letto`**, fra cui **quattro file di test che si romperanno di sicuro**. Senza quelli
    non si sa quali asserzioni vanno riscritte e quali tolte.
-2. **§5: cinque sonde da eseguire** (P1, P2, P3, P5, P6). Nessun blocco di codice qui è marcato «provato».
+2. **§5: quattro sonde da eseguire** (P3, P5, P6 — P1 e P2 sono ✅ **provate**, con output incollato). Nessun blocco di codice del piano è marcato «provato»: quelli nascono `non eseguito`, col comando accanto.
 3. **§4: il censimento dei token orfani non è eseguito** (`pillVoce`, `coreografie:56`, le regole CSS).
 4. **Domanda aperta 1:** il `DELETE` dell'immagine è **soft o hard**? La direttiva «ogni campo si corregge
    fino alla consegna» e l'Art. 10(8) MDR tirano in direzioni diverse **dopo** l'emissione della
