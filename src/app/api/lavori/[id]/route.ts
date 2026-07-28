@@ -6,6 +6,9 @@ import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 import { triggerPushToUser } from '@/lib/notifications/trigger'
+// Stessa normalizzazione del colore di caso che usa `POST /api/lavori` (Task
+// 11): una sola casa, due chiamanti. Vedi GRUPPO C nella tabella qui sotto.
+import { risolviColoreCaso } from '@/lib/api/colore-caso'
 
 // Campi prezzo da bloccare quando il lavoro è già incluso in fattura
 const LOCKED_PRICE_FIELDS = [
@@ -112,15 +115,41 @@ const LOCKED_PRICE_FIELDS = [
 //     denti_impianti  → lavori_denti (ruolo 'impianto') + denorm. RPC
 //                       · wizard → POST (Task 11) · scheda → PUT /denti (Task 12)
 //
-//   GRUPPO B — la colonna su `lavori` NON HA PIÙ NESSUNO SCRITTORE: il dato si
-//   sposta in `lavori_denti` e su `lavori` non torna indietro.
-//     colore_dente    → lavori_denti.codice (+ .scala)
-//                       · wizard → POST /api/lavori, `p_denti` + default di caso
-//                         lavori.colore_scala/colore_codice (Task 11)
+//   GRUPPO B — QUESTE QUATTRO COLONNE non hanno più nessuno scrittore: il dato
+//   si sposta altrove e su di ESSE non torna indietro. ⚠️ Aggiornato dal Task
+//   12-bis: «altrove» non è più solo `lavori_denti`. Il colore di base ha DUE
+//   destinazioni, e una sola alla volta.
+//     colore_dente    → SE il lavoro ha degli ELEMENTI: lavori_denti.codice (+ .scala)
+//                       · wizard → POST /api/lavori, `p_denti` (Task 11)
 //                       · scheda → PUT /api/lavori/[id]/denti (Task 12)
+//                     → SE NON ha elementi: il DEFAULT DI CASO
+//                       `lavori.colore_scala`/`colore_codice` — che sono
+//                       colonne di `lavori` ma NON sono queste
+//                       · wizard → POST /api/lavori (Task 11)
+//                       · scheda → questa PATCH, allowlist qui sotto (Task 12-bis)
+//                       🔑 «si può succedere di voler inserire il colore ad
+//                       esempio su di una protesi totale senza indicare il
+//                       dente» (Francesco, 28/07/2026): il colore dell'intero
+//                       dispositivo è un dato legittimo, non un dato incompleto.
 //     colore_collo    → lavori_denti.codice_collo    · scheda → PUT /denti (Task 12)
 //     colore_corpo    → lavori_denti.codice_corpo    · scheda → PUT /denti (Task 12)
 //     colore_incisale → lavori_denti.codice_incisale · scheda → PUT /denti (Task 12)
+//                       ⚠️ LIMITE DICHIARATO (Task 12-bis): senza elementi le tre
+//                       zone non hanno NESSUNA destinazione — il default di caso
+//                       è una coppia (scala, codice) e basta. Il form si ferma e
+//                       lo dice, invece di buttarle via in silenzio.
+//
+//   GRUPPO C — i due nomi che ENTRANO nell'allowlist col Task 12-bis, ed è
+//   additivo, non un ritorno indietro:
+//     colore_scala  ┐ il DEFAULT DI CASO. Nati col Task 5, MAI stati in questa
+//     colore_codice ┘ allowlist, un solo scrittore (il form della scheda). Non
+//                     è il rischio del Task 10: là i sette nomi uscivano perché
+//                     avevano DUE penne in conflitto sullo stesso fatto clinico.
+//                     🛑 NON passano per copia: la coppia si normalizza col
+//                     catalogo (`risolviColoreCaso`) prima dell'UPDATE, perché
+//                     `lavori_colore_caso_fk` + `lavori_colore_caso_coppia_ck`
+//                     fanno fallire con un 500 sia mezza coppia sia un «a3»
+//                     minuscolo. Test: tests/unit/lavori-patch-colore-caso.test.ts
 //
 // ⚠️ Conseguenza del GRUPPO B: da qui in avanti `lavori.colore_dente`,
 // `colore_collo`, `colore_corpo`, `colore_incisale` restano ferme all'ultimo
@@ -128,7 +157,7 @@ const LOCKED_PRICE_FIELDS = [
 // da `lavori_denti` con la precedenza riga→caso di
 // `src/lib/domain/colore-dente.ts`, mai da quelle quattro colonne. Il default di
 // caso vive in `lavori.colore_scala`/`colore_codice`, scritte alla creazione da
-// `lavoro_crea_atomico`.
+// `lavoro_crea_atomico` e corrette da questa PATCH.
 //
 // ⚠️ Il GRUPPO A non è una contraddizione: quelle tre colonne restano VIVE come
 // denormalizzazione, scritta dalle due RPC insieme alle righe di `lavori_denti`.
@@ -166,6 +195,11 @@ export const PATCHABLE_FIELDS = [
   'paziente_id',
   'tecnico_id',
   'ciclo_id',
+  // GRUPPO C (Task 12-bis) — il default di caso. Nessun valore di queste due
+  // chiavi arriva all'UPDATE così com'è: il blocco «IL COLORE DI CASO» dentro
+  // la PATCH le riscrive entrambe con la coppia normalizzata sul catalogo.
+  'colore_scala',
+  'colore_codice',
   ...LOCKED_PRICE_FIELDS,
 ] as const
 
@@ -332,6 +366,32 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
       payload[field] = body[field]
     }
+  }
+
+  // ═══ IL COLORE DI CASO: la coppia si NORMALIZZA, non si copia ══════════════
+  // Task 12-bis. `colore_scala`/`colore_codice` sono in allowlist, ma il valore
+  // grezzo del body non può arrivare all'UPDATE: tre vincoli lo aspettano al
+  // varco (riletti dal catalogo di sistema il 28/07/2026)
+  //   lavori_colore_caso_coppia_ck CHECK ((colore_scala IS NULL) = (colore_codice IS NULL))
+  //   lavori_colore_caso_fk        FOREIGN KEY (colore_scala, colore_codice)
+  //                                  REFERENCES colori_dentali(scala, codice)
+  //   lavori_colore_scala_check    CHECK (colore_scala IS NULL OR colore_scala =
+  //                                  ANY ('vita_classical','vita_3d_master','fuori_scala'))
+  // Mezza coppia, un «a3» minuscolo o un codice inventato farebbero fallire
+  // l'UPDATE con un 500 — e con lui si perderebbe OGNI altra correzione dello
+  // stesso salvataggio. La regola dura del Task 11 vale identica qui: **si
+  // perde il colore, non il lavoro.**
+  //
+  // 🔑 Le due chiavi si scrivono sempre INSIEME o nessuna delle due. Se il body
+  // non le nomina, il caso non si tocca affatto: quando il colore vive sulle
+  // righe di `lavori_denti` la scheda non le manda, e riscrivere il caso
+  // lascerebbe una seconda verità che nessuno vede — invisibile perché la
+  // precedenza riga→caso mostra comunque la riga, e pronta a riemergere il
+  // giorno in cui le righe si svuotano.
+  if ('colore_scala' in payload || 'colore_codice' in payload) {
+    const colore = await risolviColoreCaso(svc, payload.colore_scala, payload.colore_codice)
+    payload.colore_scala = colore.colore_scala
+    payload.colore_codice = colore.colore_codice
   }
 
   // Validazione enum tipo_dispositivo (B2): solo se il campo è presente nel payload

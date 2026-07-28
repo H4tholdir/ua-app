@@ -72,6 +72,48 @@ function numeriDente(v: unknown): number[] {
  * distinzione che servirà al precheck di consegna (W20/W22).
  */
 function costruisciDenti(data: Partial<Lavoro>): EsitoDenti {
+  const elementi = numeriDente(data.denti_coinvolti)
+  const senzaColore = { scala: null, codice: null, codice_collo: null, codice_corpo: null, codice_incisale: null }
+  const altreRighe = [
+    ...numeriDente(data.denti_mancanti).map((fdi) => ({ fdi, ruolo: 'mancante' as const, ...senzaColore, provenienza: 'eseguito' as const })),
+    ...numeriDente(data.denti_impianti).map((fdi) => ({ fdi, ruolo: 'impianto' as const, ...senzaColore, provenienza: 'eseguito' as const })),
+  ]
+
+  const zone = {
+    codice_collo: testo(data.colore_collo),
+    codice_corpo: testo(data.colore_corpo),
+    codice_incisale: testo(data.colore_incisale),
+  }
+
+  // ═══ NESSUN ELEMENTO: il colore non passa di qui, va sul DEFAULT DI CASO ═══
+  // Task 12-bis, e la ragione è di dominio, non tecnica: «si può succedere di
+  // voler inserire il colore ad esempio su di una protesi totale senza indicare
+  // il dente» (Francesco, 28/07/2026). Il colore che vale per l'intero
+  // dispositivo è un dato legittimo, non un dato monco — e la sua casa è
+  // `lavori.colore_scala`/`colore_codice`, scritta dalla PATCH poco più sotto.
+  // ⚠️ Il discriminante è «nessun ELEMENTO», non «nessun dente»: una riga
+  // `mancante` o `impianto` non può portare un colore (le RPC lo scrivono sui
+  // soli elementi, e `lavori_denti_zone_ck` pretende comunque la scala).
+  if (elementi.length === 0) {
+    // 🛑 LIMITE DICHIARATO, non una dimenticanza: il default di caso è una
+    // COPPIA (scala, codice) e basta — non ha zone da offrire — e
+    // `lavori.colore_collo`/`corpo`/`incisale` sono sentinelle del Task 10,
+    // senza più nessuno scrittore. Le tre zone senza un dente non hanno NESSUNA
+    // destinazione: l'unica alternativa a dirlo sarebbe buttarle via in
+    // silenzio, che è esattamente la bugia contro cui è nata quest'ondata.
+    // Il colore per singolo dente (e quindi le zone) è ondata (b).
+    if (zone.codice_collo || zone.codice_corpo || zone.codice_incisale) {
+      return {
+        ok: false,
+        motivo: 'Le zone del colore si registrano sul dente: seleziona almeno un dente nell’odontogramma',
+      }
+    }
+    // Nessun controllo sul codice: qui non viaggia. Un colore che il catalogo
+    // non conosce lo degrada il server (`risolviColoreCaso`), che è l'unico a
+    // vedere il catalogo vero — e si perde il colore, mai il lavoro.
+    return { ok: true, denti: altreRighe }
+  }
+
   const codice = testo(data.colore_dente)
   const scala = scalaDelCodice(codice)
   if (codice && !scala) {
@@ -85,40 +127,11 @@ function costruisciDenti(data: Partial<Lavoro>): EsitoDenti {
   // base. In quel caso `lavori_denti_zone_ck` le rifiuta e la route risponde
   // 422 con le sue parole: un errore visibile è la cosa giusta: toglierle qui
   // per non far arrabbiare il server sarebbe di nuovo il no-op silenzioso.
-  const zone = {
-    codice_collo: testo(data.colore_collo),
-    codice_corpo: testo(data.colore_corpo),
-    codice_incisale: testo(data.colore_incisale),
-  }
-  const senzaColore = { scala: null, codice: null, codice_collo: null, codice_corpo: null, codice_incisale: null }
-  const riga = (fdi: number, ruolo: RuoloDente): DentePayload =>
-    ruolo === 'elemento'
-      ? { fdi, ruolo, scala, codice, ...zone, provenienza: 'eseguito' }
-      : { fdi, ruolo, ...senzaColore, provenienza: 'eseguito' }
-
-  const elementi = numeriDente(data.denti_coinvolti)
-
-  // 🔴 In quest'ondata il colore vive SULLA RIGA del dente: senza nemmeno un
-  // elemento non c'è dove scriverlo. `lavori.colore_dente` non ha più uno
-  // scrittore (Task 10) e il default di caso `lavori.colore_scala`/
-  // `colore_codice` non è correggibile dopo la creazione (ondata b). Spedire
-  // `denti: []` con un colore addosso vorrebbe dire «Salvato», ricarico, colore
-  // sparito — la bugia esatta che questo task esiste per chiudere. E non è un
-  // caso di frontiera: la maggior parte dei lavori non ha l'odontogramma
-  // compilato. Si dice all'utente cosa manca, invece di perdere il dato.
-  if (elementi.length === 0 && (codice || zone.codice_collo || zone.codice_corpo || zone.codice_incisale)) {
-    return {
-      ok: false,
-      motivo: 'Il colore si registra sul dente: seleziona almeno un dente nell’odontogramma',
-    }
-  }
-
   return {
     ok: true,
     denti: [
-      ...elementi.map((fdi) => riga(fdi, 'elemento')),
-      ...numeriDente(data.denti_mancanti).map((fdi) => riga(fdi, 'mancante')),
-      ...numeriDente(data.denti_impianti).map((fdi) => riga(fdi, 'impianto')),
+      ...elementi.map((fdi) => ({ fdi, ruolo: 'elemento' as const, scala, codice, ...zone, provenienza: 'eseguito' as const })),
+      ...altreRighe,
     ],
   }
 }
@@ -137,11 +150,23 @@ function costruisciDenti(data: Partial<Lavoro>): EsitoDenti {
  * catalogo non conosce non impedisce di salvare finché nessuno lo tocca.
  */
 function impronta(data: Partial<Lavoro>): string {
+  const elementi = numeriDente(data.denti_coinvolti)
   return JSON.stringify([
-    numeriDente(data.denti_coinvolti),
+    elementi,
     numeriDente(data.denti_mancanti),
     numeriDente(data.denti_impianti),
-    testo(data.colore_dente),
+    // 🔴 Il colore di BASE esce dall'impronta quando non ha righe dove
+    // atterrare (Task 12-bis): senza elementi va sul default di caso, cioè
+    // nella PATCH, e far partire il PUT per lui sarebbe una sostituzione
+    // integrale a vuoto — che però cancella per davvero la provenienza
+    // `prescritto` delle righe rimaste, e su dati clinici imperfetti può
+    // rispondere 422 e bloccare il salvataggio di QUALUNQUE altro campo.
+    // Il segnaposto `null` tiene ferma la forma dell'array: un cambiamento di
+    // lunghezza cambierebbe la stringa da solo, non per un dato diverso.
+    elementi.length > 0 ? testo(data.colore_dente) : null,
+    // Le tre zone restano SEMPRE nell'impronta: non hanno una seconda
+    // destinazione, e senza di loro qui il fermo che le dichiara non
+    // scatterebbe mai — la zona sparirebbe in silenzio.
     testo(data.colore_collo),
     testo(data.colore_corpo),
     testo(data.colore_incisale),
@@ -247,6 +272,28 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
       // Sentinelle denti + colore: la loro penna è il PUT qui sopra.
       for (const campo of CAMPI_DENTI_COLORE) {
         delete patchBody[campo]
+      }
+
+      // ═══ IL COLORE DI CASO — l'altra destinazione, e una sola alla volta ═══
+      // Task 12-bis. `{ ...data }` porta con sé la coppia COM'È NEL DATABASE, e
+      // sarebbe quella sbagliata due volte: stantia rispetto a ciò che l'utente
+      // ha appena scritto, e con una scala che non sta col codice nuovo — il
+      // server filtrerebbe il catalogo per quella scala, non troverebbe nulla e
+      // scarterebbe un colore validissimo. Si tolgono ENTRAMBE, e si rimette il
+      // solo CODICE: la scala la deduce il server dal catalogo `colori_dentali`
+      // (contratto dichiarato in `src/lib/api/colore-caso.ts`), che è l'unico a
+      // vederlo davvero — il client ne ha solo uno specchio.
+      delete patchBody.colore_scala
+      delete patchBody.colore_codice
+
+      // 🛑 Si scrive dove si legge. `idrataColoreScheda` mostra la riga e ricade
+      // sul caso: quindi il caso si tocca SOLO quando non c'è nessun elemento a
+      // portare il colore. Con delle righe, riscrivere anche il caso lascerebbe
+      // una seconda verità che nessuno vede — invisibile perché la precedenza
+      // riga→caso mostra comunque la riga, e pronta a riemergere il giorno in
+      // cui le righe si svuotano.
+      if (numeriDente(data.denti_coinvolti).length === 0) {
+        patchBody.colore_codice = testo(data.colore_dente)
       }
 
       const res = await fetch(`/api/lavori/${id}`, {

@@ -176,24 +176,27 @@ describe('il form del lavoro scrive i denti sul loro endpoint (sentinelle, Task 
     expect(patchLavoro()).toHaveLength(0)
   })
 
-  it('🔴 un colore senza nemmeno un dente non parte in silenzio: lo dice', async () => {
-    // In quest'ondata il colore vive SULLA RIGA del dente: senza righe non c'è
-    // dove scriverlo. `lavori.colore_dente` non ha più uno scrittore (Task 10) e
-    // il default di caso `lavori.colore_scala`/`colore_codice` non è
-    // correggibile dopo la creazione (ondata b). Mandare `denti: []` con un
-    // colore addosso vorrebbe dire: «Salvato», ricarico, colore sparito — la
-    // bugia esatta che questo task esiste per chiudere. Ed è il caso COMUNE,
-    // non un limite: la maggior parte dei lavori non ha l'odontogramma
-    // compilato.
+  it('🔑 un colore senza nemmeno un dente non si ferma più: va sul default di caso (Task 12-bis)', async () => {
+    // ⚠️ RISCRITTO DAL TASK 12-bis. Questo caso asseriva il FERMO del Task 12
+    // («Il colore si registra sul dente: seleziona almeno un dente»): fra le
+    // due possibili era la scelta giusta — meglio dirlo che perdere il dato in
+    // silenzio — ma non era una via di CORREZIONE, e collideva con la direttiva
+    // permanente «ogni campo del lavoro si corregge, fino alla consegna».
+    // La ragione di dominio che l'ha rimosso, parole di Francesco (28/07/2026):
+    //   «si può succedere di voler inserire il colore ad esempio su di una
+    //    protesi totale senza indicare il dente.»
+    // Il colore dell'intero dispositivo è un dato legittimo. Va in
+    // `lavori.colore_codice` (la scala la deduce il server dal catalogo), e il
+    // PUT non parte affatto: non ha nessuna riga da scrivere.
     const { result } = renderHook(() => useLavoroForm({
       ...(LAVORO as object), denti_coinvolti: [], denti_mancanti: [], colore_dente: null,
     } as never))
     act(() => { result.current.update({ colore_dente: 'A2' }) })
-    await act(async () => { await result.current.save('L1').catch(() => {}) })
+    await act(async () => { await result.current.save('L1') })
 
-    expect(result.current.saveError).toMatch(/dente/i)
+    expect(result.current.saveError).toBeNull()
     expect(putDenti()).toHaveLength(0)
-    expect(patchLavoro()).toHaveLength(0)
+    expect(corpoDi(patchLavoro()[0]).colore_codice).toBe('A2')
   })
 
   it('senza colore, un lavoro senza denti si salva normalmente', async () => {
