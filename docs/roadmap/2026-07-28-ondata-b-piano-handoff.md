@@ -56,11 +56,16 @@ Le cinque che cambiano di più il lavoro di chi legge:
 ## 3. 🛑 Quello che NON si può saltare prima del codice
 
 1. ✅ **FATTO (28/07, sera): la spec è ratificata**, con i quattro emendamenti D17-D20. Il piano può partire.
-2. **Mancano quattro anteprime** (§0B: mai React senza mockup approvato): **passo foto** · **passo
-   cassetta** · **avviso «questo codice è già di un altro paziente»** · 🆕 **la testata** (briciole
-   toccabili + tasto d'uscita, D17/D18) — la variante 3 approvata non porta né l'una né l'altro, ed è la
-   superficie più stretta del progetto: 44 px d'altezza a 390 px di larghezza, con dentro indietro,
-   briciole e uscita.
+2. ✅ **FATTO (28/07, sera): le quattro anteprime sono scritte** — `2026-07-28-wizard-testata-uscita.html`
+   (T1/T2/T3 · O1/O2/O3/O4 · le due conferme) · `…-wizard-passo-foto-e-cassetta.html` (F1/F2/F3 · K1/K2) ·
+   `…-wizard-avviso-codice-gia-in-uso.html` (V1/V2 · i due inneschi). **44 screenshot** in
+   `docs/design/mockups/screenshots/ob-*.png`, 390/768/1280 × chiaro/scuro.
+   🟡 **Restano DA APPROVARE**: finché Francesco non sceglie le varianti, quelle superfici non si scrivono
+   in React.
+   🔴 **E la misura ha smentito il disegno:** a 390 px, con l'uscita in testata, restano **230 px** alle
+   briciole — «Dr. Puleo» 87 · «Overdenture» 113 · «Esposito» 85. **Due intere ci stanno (208), tre no
+   (302).** Senza uscita in testata sono 286: tre **ancora** non bastano. Per questo è nata **O4** (testata
+   su due righe), l'unica che non taglia niente.
    🛑 **Nel piano quelle tre superfici stanno DIETRO UN GATE, non in coda:** il task che le tocca non
    parte finché il loro mockup non è approvato. Scriverle in fondo al piano significa scoprire all'ultimo
    task che manca l'anteprima — e a quel punto o si aspetta, o si sfonda la §0B.
@@ -138,6 +143,13 @@ cassetta · rimozione di «Dimmelo a voce» · gate L2.
 - 🆕 **I backtick nel messaggio di commit vengono ESEGUITI dalla shell.** Successo oggi: due nomi di
   colonna fra backtick sono spariti dal messaggio e la shell ha risposto «command not found».
   ➡️ **I messaggi di commit lunghi si scrivono in un file e si passano con `-F`**, oppure niente backtick.
+- 🆕 **`text-overflow: ellipsis` NON funziona dentro un contenitore flex.** Le pastiglie delle briciole
+  erano `display: inline-flex`: il testo veniva tagliato **a metà lettera, senza puntini**. Vale identico nel
+  codice React — la pastiglia dev'essere un **blocco** (`display: block` + `line-height`), oppure il testo va
+  chiuso in un figlio suo. 🔑 **Trovato guardando lo screenshot, non leggendo il CSS.**
+- 🆕 **Un mockup con un riquadro di prova più corto dello schermo fotografa gli sheet a metà pagina.**
+  In vista «schermo intero» il frame va portato a `100dvh`, altrimenti lo scatto mostra una posizione che
+  nell'app non esiste — stessa specie dei «tre viewport» che erano tre inquadrature della pagina.
 - 🆕 **`new URL(...).pathname` NON decodifica gli spazi.** Su questo disco il percorso contiene
   «SOFTWARE FILIPPO», e uno script ha creato per davvero una cartella `SOFTWARE%20FILIPPO` accanto a quella
   vera. ➡️ **`fileURLToPath`**, sempre. (Corretto in `scripts/tmp/screenshot-mockup-ondata-b.mjs`.)
@@ -165,6 +177,15 @@ non ripiega sul codice) · R7 il contratto per il dentista promette dati che non
 l'identificatore che il dentista scrive dal portale non lo legge nessuno · R9 la dettatura parte sul campo
 sbagliato *(decaduto con D13)* · R10 `ANALISI/17` chiama il laboratorio «titolare» in un punto e
 «responsabile» in un altro.
+
+🆕 **R11 (28/07 sera, trovato disegnando il passo cassetta): il colore delle cassette è scritto in due modi.**
+Delle **28** cassette in banca dati, **8** hanno un codice esadecimale (`#7C3AED`, `#FF4000`, `#4F4F4F`) e
+**20** una parola italiana (`rossa`, `azzurra`, `verde`, `bianca`, `grigia`, `blu`). Una griglia che dipinge
+il quadratino col valore così com'è **ne colora 8 su 28**, e lascia senza colore proprio le venti che
+l'operatrice riconosce a colpo d'occhio sul mobile. Prova: `select colore from cassette`, 28/07, sola
+lettura. **Destinazione:** la sede naturale è la parete delle cassette (**fuori perimetro D1**), ma il passo
+cassetta dell'ondata (b) **ci inciampa**: o il piano prevede la traduzione parola → colore, o la griglia
+mostra il solo nome. **Da decidere nel piano, non da assumere.**
 
 ---
 
