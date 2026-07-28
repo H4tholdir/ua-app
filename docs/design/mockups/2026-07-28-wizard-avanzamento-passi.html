@@ -14,6 +14,19 @@
     var p = new URLSearchParams(location.search);
     if (p.get('tema') === 'scuro') document.documentElement.setAttribute('data-tema', 'scuro');
   })();
+
+  // «Vista a schermo intero»: `?vista=schermo&frame=N` mostra UN SOLO frame che
+  // occupa la pagina, come nell'app vera. Indici, in ordine di variante:
+  // 1① =0 1②=1 1③=2 · 2①=3 2②=4 2③=5 · 3①=6 3②=7 3③=8 · 4①=9 4②=10 4③=11.
+  window.addEventListener('DOMContentLoaded', function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('vista') !== 'schermo') return;
+    var scelto = document.querySelectorAll('.frame')[parseInt(p.get('frame') || '0', 10)];
+    if (!scelto) return;
+    document.body.replaceChildren(scelto);
+    document.body.style.minHeight = '100dvh';
+    document.body.style.paddingTop = '8px';
+  });
 </script>
 
 <style>
