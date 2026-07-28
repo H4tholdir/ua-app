@@ -51,8 +51,16 @@ della roadmap, panel normativo) · i 10 ritrovamenti del §6 del verbale.
 
 ## 3. L'avanzamento: le briciole (D10)
 
-`ProgressDots` **esce dal wizard** (resta nel DS per altri usi). In testata, accanto al tasto indietro,
-compaiono le **scelte già fatte**, in pastiglie: `Dr. Puleo` → poi `Dr. Puleo · Overdenture`.
+`ProgressDots` **esce dal wizard**. In testata, accanto al tasto indietro, compaiono le **scelte già
+fatte**, in pastiglie: `Dr. Puleo` → poi `Dr. Puleo · Overdenture`.
+
+🟡 **E allora il componente resta orfano — censimento eseguito, non assunto.** `ProgressDots` è usato in
+**due posti soli**: il wizard (`WizardNuovoLavoro.tsx:29,422`) e la **vetrina** dei componenti
+(`ds-v3-catalogo/page.tsx:31,80,1140-1144`). La sua seconda forma, `ProgressDotsStanze`, **è già morta**
+(QA device D3, v. il commento in testa a `ProgressDots.tsx:12-29`). Tolto il wizard, **l'unico consumatore
+vero sparisce**. È la stessa situazione di «Dimmelo a voce», e la stessa regola vale: *un componente senza
+consumatori non si lascia in casa senza una ragione scritta*. → §17, punto 2. Va toccata anche **DS v3
+§5.32**, che lo documenta come la testata del wizard.
 
 - **Nessun conteggio**, quindi niente da smentire quando i passi cambiano.
 - La riga è **informazione**, non decorazione: chi si distrae e torna sa cosa stava facendo.
@@ -139,11 +147,13 @@ dentro un solo studio il dentista non disambigua nulla, restano nome proprio, co
 
 🛑 **Quella proiezione non si manda al browser per una ricerca.** Serve una **proiezione stretta** — solo
 `id, codice_paziente, cognome, nome` più la data dell'ultimo lavoro — perché la ricerca è una superficie che
-si apre a ogni tasto premuto. Due strade, da scegliere nel piano con la prova in mano:
-**(a)** parametro `q=` sull'endpoint esistente **con proiezione ridotta quando `q` è presente** (nessun
-client rotto: `crea-lavoro.ts:213` legge `codice_paziente`, che resta); **(b)** endpoint dedicato
-`GET /api/pazienti/cerca`. ⚠️ In entrambi i casi il filtro `laboratorio_id = labId` e
-`.eq('cliente_id', …)` **non si toccano**: sono l'isolamento.
+si apre a ogni tasto premuto.
+
+**✅ Scelta: (a) — parametro `q=` sull'endpoint esistente, con proiezione ridotta quando `q` è presente.**
+Nessun client si rompe (`crea-lavoro.ts:213` legge `codice_paziente`, che resta nella proiezione ridotta), e
+non nasce una seconda porta da proteggere allo stesso modo. Scartata **(b)** endpoint dedicato
+`GET /api/pazienti/cerca`: due route sullo stesso dato sono due posti dove sbagliare il filtro di tenant.
+⚠️ Il filtro `laboratorio_id = labId` e `.eq('cliente_id', …)` **non si toccano**: sono l'isolamento.
 
 **La data dell'ultimo lavoro non esiste ancora come dato leggibile qui.** Va presa da `lavori` (max
 `data_ingresso` o `updated_at` per `paziente_id`) — **una query in più, non un campo esistente**: il piano
@@ -159,13 +169,32 @@ Coerente con la direttiva permanente «ogni campo del lavoro si corregge, fino a
 
 **Ma nessuno controlla che sia unico**, e questa ondata lo chiude su due piani:
 
-1. **Nel database — la sede giusta.** Indice unico **parziale** su `(laboratorio_id, codice_paziente)`,
-   `WHERE codice_paziente IS NOT NULL AND deleted_at IS NULL`.
-   🔑 **Unico per LABORATORIO, mai globale:** un vincolo globale farebbe fallire l'inserimento di un
-   laboratorio per colpa di un altro — un canale laterale fra tenant, cioè una fuga di informazione.
-   ⚠️ **Prima si conta**: se in banca dati esistono già coppie duplicate, la migration **aborta** — e una
-   migration che aborta resta un problema anche su dati di test (blocca il deploy, disallinea il ledger).
-   Il piano esegue il conteggio **prima** di scrivere la migration, e incolla il numero.
+1. **Nel database — la sede giusta.** Indice unico **parziale**, `WHERE codice_paziente IS NOT NULL`.
+   🔑 **Mai globale:** un vincolo globale farebbe fallire l'inserimento di un laboratorio per colpa di un
+   altro — un canale laterale fra tenant, cioè una fuga di informazione.
+
+   **✅ Il conteggio è stato eseguito** (`scripts/tmp/sql.mjs`, 28/07, sola lettura):
+   ```
+   coppie_stesso_codice_studi_diversi: 0 · duplicati_dentro_lo_stesso_studio: 0
+   pazienti_totali: 916 · archiviati: 0 · con_deleted_at: 0 · senza_codice: 1
+   ```
+   **Nessuna delle due chiavi possibili farebbe abortire la migration.** Resta però una decisione di
+   dominio, non tecnica:
+
+   | chiave | tiene se… | rifiuta… |
+   |---|---|---|
+   | `(laboratorio_id, codice_paziente)` | il codice è di UÀ e vale per tutto il laboratorio — **è ciò che il generatore fa oggi**: `PZ-<max+1>` contato su tutto il lab | due studi che usassero **entrambi** una propria numerazione con lo stesso numero |
+   | `(laboratorio_id, cliente_id, codice_paziente)` | il codice **viene dallo studio** — è ciò che dice il commento dello schema: «Codice assegnato **dallo studio** (es. "PAZ-001")» — e combacia con D11 | nulla di legittimo, ma lascia il codice **ambiguo dentro il laboratorio**, e quel codice finisce **sui documenti** |
+
+   🟡 **DA DECIDERE CON FRANCESCO prima della ratifica** (§17, punto 1): i dentisti mandano un proprio
+   codice paziente, oppure il codice è sempre quello che UÀ propone?
+
+   **Il predicato NON guarda lo stato del paziente.** Non `deleted_at IS NULL`, non `archiviato = false`:
+   un codice già stampato su un'etichetta o su una Dichiarazione **resta impegnato** anche se il paziente
+   viene archiviato. ⚠️ Nota per chi legge il codice: **le colonne di sparizione sono due** — `deleted_at`
+   (schema) e `archiviato` (`002_fase2_schema.sql:118`), ed è **`archiviato`** quella che la lettura usa
+   davvero (`api/pazienti/route.ts:33`). Oggi sono entrambe a zero righe: un disallineamento latente,
+   riferito e non toccato.
 2. **A schermo.** Se si scrive un codice già in uso, UÀ **lo dice** invece di attaccarsi in silenzio alla
    scheda sbagliata: «Questo codice è di Ranucci Marta. Vuoi il suo lavoro, o è un'altra persona?».
    🔑 Chiude anche il difetto della **bozza ferma**: una bozza di ieri riaperta oggi può portare un codice
@@ -305,13 +334,27 @@ eseguita comunque, anche se un indice non cambia i tipi generati: costa 30 secon
 |---|---|---|
 | passo paziente + ricerca | `2026-07-28-wizard-passo-paziente.html` | ✅ **approvato** (variante A) — visto ai **tre tagli veri** (390/768/1280) in vista «schermo intero», chiaro e scuro |
 | avanzamento dei passi | `2026-07-28-wizard-avanzamento-passi.html` | ✅ **approvato** (variante 3) |
-| passo denti / colore | mockup del 27/07 | ✅ approvato allora (W15, W18, W19) |
+| passo denti / colore | mockup del 27/07 | 🟡 **approvato nella forma, larghezza DA RIVERIFICARE.** Verificato aprendo i file: `2026-07-27-arcata-ovale.html` nomina il taglio tablet/768 (5 riscontri), `2026-07-27-denti-colore-wizard.html` **non nomina né tablet né desktop** — e **D14 ha appena cambiato il comportamento della larghezza proprio su quella superficie**. ⚠️ `2026-07-27-denti-illustrazioni-vere.html` è **in `.gitignore`** (30 MB, voce 57-bis) e **vive solo su questo disco**: una sessione nuova non può riverificarlo, si rigenera con `scripts/design/` |
 | **passo foto** | — | 🛑 **manca**: D8 lo rende un passo nuovo, e un passo nuovo vuole la sua anteprima |
 | **passo cassetta** | — | 🛑 **manca** |
 | **avviso «codice già in uso»** | — | 🛑 **manca** (§6) |
 
 🛑 **Le tre superfici marcate non si scrivono in React prima del loro mockup approvato.** Il piano le mette
 dietro un gate, non in coda.
+
+---
+
+## 17. 🟡 Le due domande aperte — da chiudere PRIMA della ratifica
+
+1. **I dentisti mandano un proprio codice paziente, o il codice è sempre quello che UÀ propone?**
+   Decide la chiave dell'indice unico (§6). Se il codice arriva dallo studio, due studi possono
+   legittimamente avere lo stesso: chiave **per studio**. Se il codice è sempre di UÀ, chiave **per
+   laboratorio**, più forte, e oggi non rifiuterebbe nulla (misurato: zero duplicati).
+   ⚠️ Il commento dello schema (`schema.sql:461`) dice «Codice assegnato **dallo studio**», ma il
+   generatore vivo (`dati-wizard.ts:44-50`) lo calcola **sul laboratorio**: la documentazione e il codice
+   dicono due cose diverse, e **nessuna delle due è una decisione di Francesco**.
+2. **`ProgressDots` muore o resta?** Tolto il wizard non ha più consumatori veri (§3). Muore col suo test e
+   la sua voce di catalogo, oppure resta **con la ragione scritta accanto** — ma non «resta e basta».
 
 ---
 
