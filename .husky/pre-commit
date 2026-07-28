@@ -13,3 +13,11 @@ bash scripts/check-ds-compliance.sh
 # controllo automatico: serve un server di collaudo acceso).
 bash scripts/check-csrf.sh                  # ~0,3 s — route mutanti senza verifica dell'origine
 node scripts/guardia-reduced-motion.mjs     # ~4,6 s — «Riduci movimento»: niente resta fuori schermo
+
+# ── Aggiunto il 28/07/2026, dopo un ripasso di fine sessione che ha trovato TRE buchi ────────────
+# Le decisioni piccole, la roadmap e la memoria si aggiornano ALLA FINE, quando l'attenzione e' al
+# minimo: e' li' che nascono i riferimenti nel vuoto e i conteggi che non tornano. Costo misurato:
+# ~0,03 s (misurato su tre giri). Con `--staged` aggiunge l'avviso BP-1 (tocchi un verbale senza toccare la memoria).
+# ⚠️ Controlla la COERENZA, non la VERITA': non sa cosa e' stato deciso e mai scritto. Quella la
+#    garantisce solo la regola «il numero si da' subito» (CLAUDE.md §0A-bis).
+node scripts/guardia-coerenza-documenti.mjs --staged

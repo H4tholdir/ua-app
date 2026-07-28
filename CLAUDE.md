@@ -57,6 +57,36 @@ Documenti chiave:
 
 ---
 
+## 0A-bis. «Il numero si dà subito» — BP-1-bis (ratificata 28/07/2026)
+
+**Ogni volta che Francesco sceglie qualcosa, quella decisione riceve il suo numero e la sua riga nel
+verbale NELLO STESSO TURNO** — non a fine sessione, non «quando aggiorno la memoria».
+
+**Il fatto che l'ha generata:** il ripasso di chiusura del 28/07 ha trovato **tre buchi**, e sono lo stesso
+errore in tre punti. **Sei decisioni vivevano solo in chat** (fra cui una che *cancellava* un lavoro: le
+icone delle briciole, decadute col modello a pagine — senza scriverla, la sessione dopo le avrebbe
+disegnate). **Le ondate (c) e (d) non erano nella roadmap**, cioè nel documento che dice cosa fare. **E la
+memoria non sapeva niente** di mezzo pomeriggio di decisioni. Nessuno dei tre era una svista di scrittura:
+tutti e tre nascono dal rimandare, perché una decisione piccola sembra sempre un dettaglio da mettere dopo.
+
+**Le tre righe operative:**
+1. **Una scelta di Francesco = una riga nel verbale, subito.** Anche «sì», anche «lascia libero». Se non ha
+   un numero, non è una decisione: è una chiacchiera che qualcuno ricorderà male.
+2. **Una decisione che cancella o rimanda del lavoro si scrive PER PRIMA.** È la più pericolosa da perdere:
+   il lavoro cancellato, se non risulta, viene rifatto.
+3. **Il conteggio in testa al verbale si aggiorna con la riga**, non dopo. È ciò che rende il buco visibile
+   — e ciò che la guardia sa controllare.
+
+**La rete meccanica:** `scripts/guardia-coerenza-documenti.mjs`, agganciata al pre-commit (~0,03 s).
+Controlla che il conteggio dichiarato torni, che i numeri non abbiano buchi, che nessun documento vivo
+rimandi a un file inesistente, che le «voci» citate esistano e che il punto di ripresa sia vero. Con
+`--staged` avvisa se un salvataggio tocca un verbale o una spec **senza toccare la memoria**.
+🛑 **La guardia controlla la COERENZA, non la VERITÀ**: non può sapere cosa è stato deciso e mai scritto.
+Quella la garantisce solo questa regola. Le cinque prove che la guardia **si accende davvero** (una per
+controllo, rompendo apposta un documento e rimettendolo) stanno nel commit che l'ha introdotta.
+
+---
+
 ## 0C. Implementation Workflow — BP-2 (PROCESSO — OBBLIGATORIO PER OGNI FEATURE/FIX)
 
 Documento completo: `docs/processes/WORKFLOW-STANDARD.md`. Versione condensata qui sotto.

@@ -134,6 +134,29 @@ comando** (scatta anche dentro un messaggio di commit).
 🔑 **SQL diretto:** `node scripts/tmp/sql.mjs "<query>"` — 🛑 **non è nel repo**, vive solo su questo disco.
 🔑 **Le sonde girano su tabella temporanea o transazione annullata**, MAI su una migration registrata.
 🛑 **Lasciare il database alla baseline** e riverificarla: **294 · 0 · 916 · 48**.
+🆕 **`git checkout -- <file>` cancella il lavoro NON ancora salvato** su quel file, senza chiedere. Pagato
+il 28/07: ha portato via una decisione appena scritta. Prima di usarlo, `git status`.
+🆕 **`\w` in JavaScript non contiene le lettere accentate.** Un riconoscimento che usa `\w` su testo
+italiano **degrada in silenzio**: serve `\p{L}` col flag `u`. Trovato perché una guardia ha declassato ad
+avviso il documento che stava proteggendo.
+
+---
+
+## 5-bis. 🆕 La guardia di coerenza — gira da sola, e cosa fare se si accende
+
+`scripts/guardia-coerenza-documenti.mjs`, agganciata al **pre-commit** (0,03 s misurati). Nasce dai tre
+buchi del ripasso di chiusura del 28/07 (D33, `CLAUDE.md` §0A-bis).
+
+**Controlla cinque cose:** il conteggio di decisioni dichiarato in testa a un verbale = quello reale · la
+numerazione senza buchi · nessun documento vivo che rimanda a un file inesistente · nessuna «voce» citata
+nella testa della memoria che non esista · il punto di ripresa vero. Con `--staged` **avvisa** (non blocca)
+se un salvataggio tocca un verbale o una spec **senza toccare la memoria**.
+
+**Se ti blocca:** non aggirarla. Nei casi visti finora aveva ragione lei.
+**Se citi un file che non esiste ancora** (un piano lo fa di continuo), **dichiaralo sulla stessa riga**:
+`(nuovo)`, `da creare` o 🆕. È la convenzione che la guardia riconosce, ed è anche una buona abitudine:
+un percorso futuro indistinguibile da un percorso sbagliato è un percorso sbagliato che aspetta.
+**Cosa NON sa fare, dichiarato:** non sa cosa è stato deciso e mai scritto. Quello lo tiene solo D33.
 
 ---
 

@@ -1,7 +1,7 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
 **Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Trentadue decisioni in cinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Trentatré decisioni in sei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -109,6 +109,12 @@ decisione che vive solo in chat non esiste** (doppio controllo di fine sessione,
 | **D30** | **La cassetta creata dal wizard prende SUBITO il lavoro** | «ci va dentro subito» | Un passaggio in meno al banco. `NuovaCassettaSheet.onCreata` → assegnazione immediata, senza tornare alla griglia |
 | **D31** | 🗑️ **Le icone delle briciole DECADONO** | conseguenza diretta della terza stesura di D22: «forse permette di abbandonare anche le icone, che diventerebbero inutili» | Con la fila **a pagine** non esiste più il caso «briciola compressa», quindi **non c'è più niente da spiegare con un simbolo**. ⚠️ **Le indicazioni date da Francesco sulle icone** (studio = qualcosa di clinico · tipo = un manufatto · denti = un dente) **restano valide se un giorno servissero**, ma **non sono un compito dell'ondata (b)**: nessuno le disegni |
 | **D32** | **L'annuncio dello scorrimento è il contatore, più un rimbalzo la prima volta** | domanda di Francesco: «proponimi più soluzioni» — poi la fila a pagine ha ristretto il campo | Scelte: **pastiglia contatore intera** («+4»), che non è un troncamento, dice quante ne restano **ed è il bersaglio da premere** · più un **rimbalzo alla prima apertura** (`molla.bouncy`), che insegna il gesto una volta sola. Scartate: la **sfumatura** (decaduta con le pagine), la **lineetta** tipo barra di scorrimento (rumore in una testata di 44 px), le **frecce** (**misurate: rubavano fino a 68 px su 230**) |
+
+### Sesta tornata — la regola nata dal ripasso (D33)
+
+| # | Decisione | Testo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D33** | **«Il numero si dà subito»** — ogni scelta riceve numero e riga **nello stesso turno**, più una **guardia meccanica** agganciata al salvataggio | «cosa possiamo fare a riguardo quindi?» → poi «procedi» | Direttiva permanente, testo in **`CLAUDE.md` §0A-bis**. Nasce da un fatto, non da un timore: il ripasso di chiusura ha trovato **tre buchi** — sei decisioni solo in chat (fra cui una che **cancellava** del lavoro: le icone decadute), le ondate (c) e (d) assenti dalla roadmap, la memoria ignara di mezzo pomeriggio. **La rete:** `scripts/guardia-coerenza-documenti.mjs` (**0,03 s** misurati, nel pre-commit): conteggio dichiarato = reale · numeri senza buchi · nessun riferimento a file inesistenti · nessuna «voce» fantasma · punto di ripresa vero · avviso se si tocca un verbale senza toccare la memoria. 🛑 **Controlla la coerenza, non la verità:** cosa è stato detto e mai scritto non lo sa nessun programma. ✅ **Provata rompendo apposta ognuno dei cinque controlli: cinque su cinque si accendono** — e la guardia ha **bloccato il salvataggio che la introduce**, perché D33 era stata aggiunta senza aggiornare il conteggio. ⚠️ **Due lezioni dalla taratura:** la prima stesura della prova era **sbagliata** e faceva sembrare inerte un controllo che funzionava (*anche le prove vanno provate*); e il riconoscimento del conteggio **degradava in silenzio** sulle parole accentate («Trentatré»), perché `\w` in JavaScript non contiene gli accenti — *un controllo che si spegne da solo è peggio di uno assente* |
 
 **Due precisazioni di Francesco che entrano nel piano, non nelle decisioni:**
 - **Le briciole (D22, terza stesura)** nascono da una sua rettifica: «finché ho spazio mostro le briciole per
