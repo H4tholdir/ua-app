@@ -82,15 +82,28 @@ FASE 3  → VALIDAZIONE ARCH (GATE — non si procede senza risposta a tutte e 5
             □ Rollback: come si annulla se va in prod e fallisce?
             □ Dominio critico? RLS/Stripe/FatturaPA/auth → percorso GRANDE automatico
 FASE 4  → PIANO: /superpowers:writing-plans → file paths esatti, task atomici 2-5 min
-FASE 5  → ISOLAMENTO: /superpowers:using-git-worktrees → branch dedicata
+            ⛔ Vincoli R-P1 · R-P2 · R-P6 (blocco «REGOLE DI PIANO» sotto): il piano
+               non esce dalla FASE 4 senza registro prove + registro letture + censimento
+FASE 5  → ISOLAMENTO: branch dedicata NEL REPO PRINCIPALE
+            🛑 MAI un git worktree in questo progetto — il worktree si porta dietro un
+               SECONDO package-lock.json e l'app risponde 404 su TUTTE le route. Difetto
+               vero, pagato durante l'ondata (a). Vale anche quando una skill lo propone:
+               /superpowers:using-git-worktrees NON si usa qui, si fa `git checkout -b`.
 FASE 6  → IMPLEMENTAZIONE TDD: /superpowers:test-driven-development (RED→GREEN→REFACTOR)
+            ⛔ Vincolo R-P4: dopo il primo rosso, abbozzo inerte + conteggio delle
+               asserzioni che si accendono, e censimento delle forme d'input
 FASE 6b → MIGRATION GATE (solo se migration presente in questa sessione):
             npx supabase gen types typescript --project-id iagibumwjstnveqpjbwq > src/types/database.types.ts
             npx tsc --noEmit
             Verifica che la migration non rompa RLS policies esistenti
 FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output reale)
+            ⚠️ `tsc --noEmit` NON valida la firma degli handler di rotta: solo `next build`
+               la vede. Per questo i tre comandi sono tre, e nessuno sostituisce l'altro.
 FASE 8  → REVIEW: /code-review + /superpowers:requesting-code-review
-FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
+FASE 9  → QA BROWSER: Playwright 390/768/1280px (light + dark)
+            ⚠️ Diceva «/gstack qa»: gstack è stato RIMOSSO dal progetto il 28/07/2026 e quel
+               comando non esiste più. Si usa la skill `webapp-testing` o gli strumenti
+               `preview_*`/`mcp__plugin_playwright_*` direttamente.
 FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
             micro-audit UI/UX della SOLA superficie dell'ondata contro
             docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md (12 sezioni ×
@@ -110,7 +123,76 @@ Ogni **decisione significativa** (architetturale, di design, di priorità/roadma
 - MAI dichiarare "fatto" senza aver eseguito FASE 7 con output reale
 - MAI deployare con CI rosso
 - MAI mergere una superficie UI nuova/modificata senza il GATE ESTETICO L2 (FASE 9b); ogni piano `writing-plans` di un'ondata con UI DEVE includerlo come step finale
+- MAI far uscire un piano dalla FASE 4 senza **registro delle prove** (R-P1) e **censimento degli identificatori** (R-P6): un blocco senza marchio è NON provato, un nome tolto da un'allowlist senza destinazione è un dato che smetterà di salvarsi in silenzio
+- MAI un esecutore su due task; MAI correggere di nascosto un difetto trovato fuori dal proprio mandato — si riferisce (R-E1 / R-E2)
 - SEMPRE aggiornare la memoria (FASE 11 = BP-1) prima di fermarti
+
+**REGOLE DI PIANO — vincoli sulla FASE 4 (ratificate 28/07/2026 dopo panel 3×)**
+Origine e prove: `docs/processes/2026-07-27-lezioni-piano-ondata-a.md`. Il fatto che le ha
+generate: un piano di 2.200 righe, 8 task eseguiti, **8 difetti reali nel piano** — nessuno
+arrivato all'utente. La riga da tenere: **un piano non è un documento, è codice non ancora
+eseguito**, con in più il difetto di sembrare prosa.
+
+- **R-P1 — Un blocco senza marchio è NON provato (fail-closed).** Si marca solo ciò che è
+  provato, e il marchio porta la prova: `provato: <comando> → <output reale incollato>`.
+  - Si provano le **assunzioni sull'ambiente** che il blocco dà per buone — una sonda da una
+    riga («`array_agg` su zero righe dà `NULL`?», «il catalogo distingue `A3` da `a3`?») — **non**
+    le centinaia di righe di codice del piano: quelle nascono marcate `non eseguito`, **con
+    accanto il comando che l'esecutore userà per verificarle**.
+  - Per ogni blocco che **istituisce un vincolo**, la prova include **un valore che DEVE essere
+    rifiutato**, col messaggio d'errore incollato. Un `CREATE FUNCTION` riuscito prova la
+    sintassi, non il comportamento; una migration che gira non prova che una colonna rifiuti
+    `'pippo'`.
+  - Anche una **previsione di esito** («ci saranno errori di compilazione», «atteso: 0 righe»)
+    è un blocco e porta il suo marchio.
+  - ⚠️ **Confine:** le sonde girano su **transazione annullata o schema usa-e-getta**, MAI una
+    migration registrata (§8: una migration che aborta disallinea il ledger anche su dati di
+    test). Gli spike sono usa e getta e **non si committano**: l'esecutore riscrive sotto test.
+- **R-P2 — Nessun file toccato resta chiuso, e l'elenco NON lo decide l'autore.** L'innesco non
+  è «i file che il piano nomina» — chi non nomina un file si esonera dall'aprirlo, ed è
+  esattamente così che è passato il difetto peggiore dell'ondata (a): il file mancava dalla
+  tabella «File Structure», la ricerca giusta era stata **eseguita**, e l'inferenza tratta era
+  sbagliata. L'innesco è **l'esito del censimento R-P6**. Ogni percorso porta nel piano
+  `letto: righe X-Y` oppure `NON letto`.
+  - La lettura è **delegabile a un sottoagente**, e allora non costa contesto a chi pianifica —
+    ma gli si chiede una **domanda falsificabile con le righe citate** («questo componente rende
+    i decidui, se raggruppa per quadranti 1-4? cita le righe»), **MAI un riassunto**: un
+    riassunto è «so cosa fa» esternalizzato di un livello.
+  - **Assorbe R-P3 (cercare il precedente per COMPORTAMENTO, non per nome):** stesso passaggio,
+    territorio dichiarato (`supabase/schema.sql` + `supabase/migrations/` + `src/lib/`) e, per
+    gli oggetti di database, **catalogo vivo** (`SELECT proname FROM pg_proc WHERE prosrc ILIKE
+    '%…%'`) invece del grep sui file. Si incolla il **numero di hit**: zero hit su una query con
+    un solo termine non è una ricerca, è una speranza.
+- **R-P6 — Il censimento si fa su ogni IDENTIFICATORE che il cambiamento tocca, non solo sulle
+  colonne.** Simboli esportati, nomi di campo UI, membri di un'allowlist, chiavi JSON. E **ogni
+  nome tolto da un'allowlist porta una riga con la sua nuova destinazione**: una riga senza
+  destinazione è un dato che smette di salvarsi **in silenzio**
+  (`src/app/api/lavori/[id]/route.ts:259-264` scarta le chiavi fuori allowlist senza errore —
+  l'utente legge «Salvato» su un dato che non c'è).
+- **R-P4 — vincolo sulla FASE 6.** Il rosso da «modulo non trovato» non prova che il test provi
+  qualcosa: dopo il primo rosso si mette un **abbozzo inerte** e si **CONTA** quante asserzioni
+  si accendono — il numero si scrive (`N su M`). ⚠️ Misura la **forza** dei test scritti, mai la
+  loro **copertura**: prima delle asserzioni si enumerano le **forme d'input** (tipo sbagliato,
+  chiave assente, `null`, array al posto di scalare, body non-JSON), ognuna col suo caso o col
+  suo «non coperta, perché».
+
+**REGOLE DI ESECUZIONE (stessa origine e data)**
+
+- **R-E1 — Un compito alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e
+  l'altro, e nel brief l'istruzione esplicita di **cercare attivamente dove il piano sbaglia**.
+  È il meccanismo che ha reso visibili 8 difetti su 8, ed è il **punto di applicazione** delle
+  regole di piano: l'esecutore del primo task verifica che marchi e registri **ci siano**
+  (presenza, non verità) e, se mancano, si ferma e riferisce.
+- **R-E2 — Un difetto trovato FUORI dal proprio mandato si RIFERISCE, non si corregge di
+  nascosto.** Una correzione silenziosa lascia il piano sbagliato per tutti i task successivi.
+  I ritrovamenti fuori mandato si raccolgono in **una sola sezione dell'handoff**, non arrivano
+  a Francesco uno per uno.
+
+> **Scartate dal panel, con motivo — non riproporle.** «`tsc` non basta per gli handler di
+> rotta»: vera, ma è già FASE 7 ed è già in CI — resta la nota lì, non è una regola. «Il piano
+> si scrive in sessione fresca»: la causa che presupponeva (stanchezza di fine sessione) **è
+> contraddetta dall'artefatto** — i difetti sono sparsi su tutto il piano e il primo sta nel
+> primo task scritto.
 
 ---
 
@@ -230,9 +312,12 @@ chore(deps): add motion@12
 
 ---
 
-## 8. Stato Attuale (15/07/2026)
+## 8. Stato Attuale (28/07/2026)
 
 Piani A → G tutti **completati**. App in produzione su https://uachelab.com.
+⚠️ **Questa sezione invecchia in fretta: la fonte viva è `memory/MEMORY.md` (BP-0), non queste righe.**
+**In corso (28/07/2026):** ondata (a) del wizard «Nuovo lavoro» sul ramo `ondata-a-denti-colore`,
+8 task su 13, **mai mergiata** — punto di ripresa in `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
 
 ### ⚠️ I dati nel DB sono di TEST, non di clienti reali (Francesco, 21/07/2026)
 
@@ -251,7 +336,7 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 - Vale finché questa riga è qui. **Alla prima onboarding di un laboratorio reale, cancellare questa
   sezione** — da quel momento ogni valutazione torna a peso pieno.
 
-**Pagine attive:** 34+ incluse `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
+**Pagine attive:** **55** `page.tsx` (contate il 28/07/2026 — il numero invecchia: `find src/app -name page.tsx | wc -l`), fra cui `/onboarding`, `/impostazioni/pec`, `/impostazioni/profilo`, `/impostazioni/abbonamento`, `/fatture/[id]`, `/magazzino/[id]`, `/pazienti/[id]`.
 
 **Design system:** v3.2 «Una cosa alla volta» in vigore (vedi §0), migrazione per route in corso. **Il fondo pagina è UNO SOLO dal 26/07/2026** (`#F4F0E7` chiaro / `#171411` scuro): i token v2.3 sono stati allineati a quelli v3 — v. `docs/design/decisions/2026-07-26-sfondo-unico.md`. Vive in tre posti che si muovono insieme: `globals.css` (`--bg`), `.login-root` (`--ua-bg`), `admin/admin.css` (`--adm-bg`). Migrate a v3: home/dashboard, pile `/lavori`, wizard `/lavori/nuovo`, scheda `/lavori/[id]` (con bridge v2.3 residui), `/tutto-il-resto`, catalogo `/ds-v3-catalogo`, parete `/cassette`, `/tecnici` (le ultime due verificate sondando il DOM il 26/07/2026: montano `data-ds="v3"` — questa riga le dava per legacy). Tutto il resto è ancora v2.3: gli interventi su quelle pagine seguono v2.3 finché la loro ondata di migrazione non arriva (MAI v3 per singolo componente).
 
@@ -260,6 +345,13 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
 ## 9. Regole Critiche (emerse da review + errori passati)
 
 ### Gotchas architetturali
+- **Ruoli: sono CINQUE, non quattro** — `titolare`, `tecnico`, `front_desk`, `admin_rete`,
+  **`admin_sistema`**. MAI `admin` nudo. La fonte autoritativa è il CHECK su `public.utenti.ruolo`
+  (`ruolo` è `text` + CHECK, **non** un enum: `enum_range` non funziona). ⚠️ Fino al 28/07/2026
+  `admin_sistema` mancava dall'elenco delle istruzioni pur essendo usato **15 volte** nel codice —
+  un elenco che sembra completo e non lo è è il modo classico per scrivere un controllo di permessi
+  che dimentica un caso. Questa riga sta QUI perché l'altra copia (`../CLAUDE.md` §6) è **fuori dal
+  repo git** e non sopravvive a un cambio di macchina.
 - **RLS:** usa `public.current_lab_id()` — NON `auth.current_lab_id()` (funzione in schema `public`)
 - **Stati ortogonali:** `lavori.stato` (clinico) e `fatture.stato_sdi` (fiscale) sono dimensioni INDIPENDENTI
 - **Rifacimento:** usa RPC atomica `crea_rifacimento_atomico()` — MAI 3 INSERT separati
@@ -282,7 +374,14 @@ in produzione **si ripulisce tutto**. Non ci sono clienti veri, non c'è storico
   (`storia-overlay.ts`); con un `push` la nuova pagina le si impila SOPRA e resta sepolta — una
   pressione «indietro» morta — e se il gesto chiude anche l'overlay il suo `history.back()`
   arriva prima della navigazione e se la mangia (il CTA primario si comportava come un annulla).
-  L'hook dichiara l'intenzione e sostituisce l'entry. Rete: `scripts/guardia-navigazione-overlay.mjs`.
+  L'hook dichiara l'intenzione e sostituisce l'entry.
+  ⚠️ **Rete: `scripts/guardia-navigazione-overlay.mjs`, ma È MANUALE — va lanciata a mano** (fatto
+  verificato il 28/07/2026: fino a quel giorno questa riga diceva «Rete:» e basta, e quello script
+  **non era agganciato a nulla**; una direttiva dichiarata protetta da un controllo che non girava
+  mai). Non è agganciabile al commit: le serve l'app accesa, le credenziali del banco e un lavoro
+  preparato apposta che il seed standard non crea — e il suo terzo braccio **preme davvero
+  un'azione distruttiva** per poi annullarla. **Chi tocca gli overlay v3 la lancia a mano**, con la
+  ricetta della fixture scritta nell'intestazione dello script.
 
 ### 🔑 DIRETTIVA PERMANENTE — «Ogni campo del lavoro si corregge, fino alla consegna» (Francesco, 27/07/2026)
 

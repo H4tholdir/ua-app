@@ -6,7 +6,7 @@ export interface DenteFDI {
   numero: number
   tipo: TipoDente
   arcata: ArcataType
-  quadrante: 1 | 2 | 3 | 4
+  quadrante: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
   larghezza: number   // px
 }
 
@@ -54,24 +54,24 @@ export const DENTI_ADULTO: DenteFDI[] = [
 
 // Deciduo FDI — 20 denti (Q5-Q8)
 export const DENTI_DECIDUO: DenteFDI[] = [
-  { numero: 55, tipo: 'molare',            arcata: 'superiore', quadrante: 1, larghezza: 16 },
-  { numero: 54, tipo: 'molare',            arcata: 'superiore', quadrante: 1, larghezza: 16 },
-  { numero: 53, tipo: 'canino',            arcata: 'superiore', quadrante: 1, larghezza: 13 },
-  { numero: 52, tipo: 'incisivo_laterale', arcata: 'superiore', quadrante: 1, larghezza: 11 },
-  { numero: 51, tipo: 'incisivo_centrale', arcata: 'superiore', quadrante: 1, larghezza: 12 },
-  { numero: 61, tipo: 'incisivo_centrale', arcata: 'superiore', quadrante: 2, larghezza: 12 },
-  { numero: 62, tipo: 'incisivo_laterale', arcata: 'superiore', quadrante: 2, larghezza: 11 },
-  { numero: 63, tipo: 'canino',            arcata: 'superiore', quadrante: 2, larghezza: 13 },
-  { numero: 64, tipo: 'molare',            arcata: 'superiore', quadrante: 2, larghezza: 16 },
-  { numero: 65, tipo: 'molare',            arcata: 'superiore', quadrante: 2, larghezza: 16 },
-  { numero: 85, tipo: 'molare',            arcata: 'inferiore', quadrante: 4, larghezza: 16 },
-  { numero: 84, tipo: 'molare',            arcata: 'inferiore', quadrante: 4, larghezza: 16 },
-  { numero: 83, tipo: 'canino',            arcata: 'inferiore', quadrante: 4, larghezza: 13 },
-  { numero: 82, tipo: 'incisivo_laterale', arcata: 'inferiore', quadrante: 4, larghezza: 11 },
-  { numero: 81, tipo: 'incisivo_centrale', arcata: 'inferiore', quadrante: 4, larghezza: 12 },
-  { numero: 71, tipo: 'incisivo_centrale', arcata: 'inferiore', quadrante: 3, larghezza: 12 },
-  { numero: 72, tipo: 'incisivo_laterale', arcata: 'inferiore', quadrante: 3, larghezza: 11 },
-  { numero: 73, tipo: 'canino',            arcata: 'inferiore', quadrante: 3, larghezza: 13 },
-  { numero: 74, tipo: 'molare',            arcata: 'inferiore', quadrante: 3, larghezza: 16 },
-  { numero: 75, tipo: 'molare',            arcata: 'inferiore', quadrante: 3, larghezza: 16 },
+  { numero: 55, tipo: 'molare',            arcata: 'superiore', quadrante: 5, larghezza: 16 },
+  { numero: 54, tipo: 'molare',            arcata: 'superiore', quadrante: 5, larghezza: 16 },
+  { numero: 53, tipo: 'canino',            arcata: 'superiore', quadrante: 5, larghezza: 13 },
+  { numero: 52, tipo: 'incisivo_laterale', arcata: 'superiore', quadrante: 5, larghezza: 11 },
+  { numero: 51, tipo: 'incisivo_centrale', arcata: 'superiore', quadrante: 5, larghezza: 12 },
+  { numero: 61, tipo: 'incisivo_centrale', arcata: 'superiore', quadrante: 6, larghezza: 12 },
+  { numero: 62, tipo: 'incisivo_laterale', arcata: 'superiore', quadrante: 6, larghezza: 11 },
+  { numero: 63, tipo: 'canino',            arcata: 'superiore', quadrante: 6, larghezza: 13 },
+  { numero: 64, tipo: 'molare',            arcata: 'superiore', quadrante: 6, larghezza: 16 },
+  { numero: 65, tipo: 'molare',            arcata: 'superiore', quadrante: 6, larghezza: 16 },
+  { numero: 85, tipo: 'molare',            arcata: 'inferiore', quadrante: 8, larghezza: 16 },
+  { numero: 84, tipo: 'molare',            arcata: 'inferiore', quadrante: 8, larghezza: 16 },
+  { numero: 83, tipo: 'canino',            arcata: 'inferiore', quadrante: 8, larghezza: 13 },
+  { numero: 82, tipo: 'incisivo_laterale', arcata: 'inferiore', quadrante: 8, larghezza: 11 },
+  { numero: 81, tipo: 'incisivo_centrale', arcata: 'inferiore', quadrante: 8, larghezza: 12 },
+  { numero: 71, tipo: 'incisivo_centrale', arcata: 'inferiore', quadrante: 7, larghezza: 12 },
+  { numero: 72, tipo: 'incisivo_laterale', arcata: 'inferiore', quadrante: 7, larghezza: 11 },
+  { numero: 73, tipo: 'canino',            arcata: 'inferiore', quadrante: 7, larghezza: 13 },
+  { numero: 74, tipo: 'molare',            arcata: 'inferiore', quadrante: 7, larghezza: 16 },
+  { numero: 75, tipo: 'molare',            arcata: 'inferiore', quadrante: 7, larghezza: 16 },
 ]

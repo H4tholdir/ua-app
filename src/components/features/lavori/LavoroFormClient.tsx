@@ -9,6 +9,7 @@ import type {
   LavoroImmagine,
 } from '@/types/domain'
 import { useLavoroForm } from '@/hooks/useLavoroForm'
+import { idrataColoreScheda } from '@/lib/domain/colore-dente'
 import { LavoroFormShell, type TabId } from './form/LavoroFormShell'
 import { TabDati } from './form/TabDati'
 import { TabLavorazioni } from './form/TabLavorazioni'
@@ -37,8 +38,28 @@ export function LavoroFormClient({
 }: LavoroFormClientProps) {
   const router = useRouter()
 
+  // ═══ IL COLORE VIENE DALLE RIGHE, NON DALLE COLONNE ═══════════════════════
+  // Dal Task 10 `lavori.colore_dente`/`colore_collo`/`colore_corpo`/
+  // `colore_incisale` non hanno più alcuno scrittore: le due RPC atomiche
+  // denormalizzano soltanto i tre `denti_*`. Idratare il form da quelle colonne
+  // significherebbe mostrare l'ultimo valore ricevuto prima di quel deploy —
+  // l'utente correggerebbe il colore, lo salverebbe davvero in `lavori_denti`,
+  // e alla ricarica lo vedrebbe tornare indietro.
+  // La precedenza riga → caso è quella del Task 2 (`risolviColore`), una sola
+  // per wizard, scheda e Dichiarazione: due letture divergenti dello stesso
+  // fatto clinico sono la classe di difetto già pagata con `numero_cassetta`.
+  // ⚠️ Il resto del form NON cambia, e la grafica nemmeno: `TabClinica` legge
+  // ancora le stesse quattro chiavi.
+  const lavoroIdratato = {
+    ...lavoro,
+    ...idrataColoreScheda(lavoro.denti, {
+      colore_scala: lavoro.colore_scala,
+      colore_codice: lavoro.colore_codice,
+    }),
+  }
+
   // Stato form campi Lavoro (colonne tabella)
-  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoro)
+  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoroIdratato)
 
   // Stato relazioni join — separate dal hook (non sono colonne di lavori)
   const [lavorazioni, setLavorazioni] = useState<LavoroLavorazione[]>(
@@ -333,7 +354,22 @@ export function LavoroFormClient({
           </button>
         )}
 
-        {saveError && !isDirty && (
+        {/* ═══ IL MOTIVO SI VEDE SEMPRE, NON SOLO A FORM PULITO ══════════════
+            Qui c'era `saveError && !isDirty`, e quella condizione non era
+            «difficile»: era IRRAGGIUNGIBILE. `setIsDirty(false)` avviene SOLO
+            dopo un salvataggio riuscito (`useLavoroForm.ts:365-366`), e
+            `save()` azzera `saveError` in apertura (riga 250) — quindi «c'è un
+            errore E il form è pulito» non capita mai. In più il tasto qui sopra
+            si mostra `isDirty` (riga 330): le due condizioni si escludono per
+            costruzione. Risultato trovato al collaudo del 28/07: chi salva vede
+            solo «⚠ Errore — riprova» e non sa MAI che gli basta toccare un
+            dente. Le tre frasi dell'ondata passano tutte di qui
+            (`useLavoroForm.ts:141,162,279`).
+            🔑 E resta visibile MENTRE si corregge, di proposito: un messaggio
+            che dice «seleziona almeno un dente» e si dissolve al primo tocco
+            toglie l'istruzione nell'istante in cui serve. Se ne va col
+            salvataggio successivo, che riparte da `setSaveError(null)`. */}
+        {saveError && (
           <p
             role="alert"
             style={{

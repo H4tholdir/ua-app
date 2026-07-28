@@ -39,7 +39,15 @@ describe('POST /api/lavori — generazione fasi da ciclo', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
-    mockRpc.mockResolvedValue({ data: 1, error: null })
+    // Task 9: la creazione passa da `lavoro_crea_atomico`, non più da
+    // `genera_progressivo` + INSERT. `data: 1` era il progressivo di allora e
+    // oggi produrrebbe un 500 (`esito !== 'ok'`). L'id resta `lavoro-1`, quindi
+    // ogni asserzione sulle righe `lavori_fasi` qui sotto vale INVARIATA: cambia
+    // il meccanismo simulato, non il contratto che questo file prova.
+    mockRpc.mockResolvedValue({
+      data: { esito: 'ok', id: 'lavoro-1', numero_lavoro: '2026/0001', stato: 'ricevuto' },
+      error: null,
+    })
   })
 
   function setupTables({ cicloOwned = true, fasiRows = [] as unknown[], insertLavoriFasi = { error: null } } = {}) {

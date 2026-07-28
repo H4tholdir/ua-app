@@ -112,7 +112,6 @@ graphify-out/
 
 # === MEMORIA SESSIONE (cambia ogni sessione, non appartiene al repo) ===
 memory/SESSION_ACTIVE.md
-.agents/
 
 # === WORKTREES (locali, non appartengono al repo) ===
 .claude/worktrees/
@@ -122,4 +121,8 @@ docs/design/mockups/*lello*
 
 # SDD scratch (subagent-driven-development ledger, briefs, review packages)
 .superpowers/
-.gstack/
+scripts/tmp/
+
+# Mockup GENERATI: incorporano le illustrazioni in base64 e pesano ~30 MB.
+# Si committa il generatore (scripts/design/), mai il suo prodotto.
+docs/design/mockups/*-denti-illustrazioni-vere.html

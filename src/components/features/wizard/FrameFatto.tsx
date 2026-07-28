@@ -34,6 +34,7 @@ import { useAvvisi } from '@/components/ds/Avviso'
 import { suona } from '@/design-system/v3/sound'
 import { vibra } from '@/design-system/v3/haptic'
 import { tipografia, spazio, raggio } from '@/design-system/v3/tokens'
+import type { AccessorioFallito } from '@/lib/wizard/crea-lavoro'
 import { CambiaDataSheet } from './CambiaDataSheet'
 
 // Duplicati localmente (nota O1b, W7 — non esportati da nessun modulo
@@ -50,20 +51,67 @@ function giornoEsteso(d: Date): string {
   return `${GIORNI[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]}`
 }
 
-const ETICHETTE_ACCESSORIO: Record<'dettagli' | 'foto', string> = {
-  dettagli: 'i dettagli',
+// Task 11: `dettagli` non esiste più. Denti e colore nascono DENTRO la
+// transazione del lavoro (POST /api/lavori → lavoro_crea_atomico) e non possono
+// più fallire da soli; quello che può ancora mancare è ciò che la casella
+// «Elemento» conteneva e non era un dente, il colore che non è in catalogo — e
+// la foto.
+//
+// M2 (28/07/2026): il colore ENTRA in questo elenco. Il server lo scarta e crea
+// comunque il lavoro («si perde il colore, mai il lavoro»), ma quella regola
+// giustifica il non far fallire, NON il non dirlo: prima di oggi si digitava
+// «A3,5» con la virgola, il colore finiva nel cestino e la schermata diceva
+// «Fatto!» senza una parola.
+//
+// 🔑 `Record<AccessorioFallito, string>` sull'unione di `crea-lavoro.ts`, non su
+// una copia locale: un quarto accessorio aggiunto là SPEGNE la compilazione qui
+// finché non ha la sua frase.
+const ETICHETTE_ACCESSORIO: Record<AccessorioFallito, string> = {
+  elementi: 'gli elementi',
+  colore: 'il colore',
   foto: 'la foto',
 }
 
-/** Copy VERBATIM dal brief (Task 12): "Li aggiungi dalla scheda." resta invariato. */
-function messaggioAccessoriFalliti(accessoriFalliti: Array<'dettagli' | 'foto'>): string {
-  const elenco = accessoriFalliti.map((a) => ETICHETTE_ACCESSORIO[a]).join(' e ')
-  return `Non sono riuscita a salvare ${elenco}. Li aggiungi dalla scheda.`
+/**
+ * Il pronome della seconda frase concorda con ciò che manca: «gli elementi» è
+ * già plurale, e più cose insieme fanno plurale maschile (regola dell'italiano
+ * per un elenco di genere misto) → «Li»; «il colore» da solo → «Lo»; «la foto»
+ * da sola → «La».
+ *
+ * ⚠️ Prima di M2 la frase diceva «Li» sempre, perché tutti i casi possibili
+ * erano `['elementi']` o `['elementi','foto']` — tranne `['foto']` da solo, che
+ * leggeva «Non sono riuscita a salvare la foto. Li aggiungi dalla scheda.»
+ * (già sbagliato, mai notato). Attaccare «il colore» a un «Li» fisso avrebbe
+ * aggiunto un secondo errore invece di toglierne uno.
+ */
+const PRONOME_SINGOLO: Record<AccessorioFallito, string> = {
+  elementi: 'Li',
+  colore: 'Lo',
+  foto: 'La',
+}
+
+/** «A», «A e B», «A, B e C» — mai «A e B e C». */
+function elenca(pezzi: string[]): string {
+  if (pezzi.length <= 1) return pezzi.join('')
+  return `${pezzi.slice(0, -1).join(', ')} e ${pezzi[pezzi.length - 1]}`
+}
+
+/**
+ * Copy della famiglia di casa (Task 12): dice COSA manca e COSA fare, e
+ * "…aggiungi dalla scheda." resta invariato — è l'unica via di correzione, e
+ * la direttiva «ogni campo del lavoro si corregge, fino alla consegna» la
+ * garantisce.
+ */
+function messaggioAccessoriFalliti(accessoriFalliti: AccessorioFallito[]): string {
+  const elenco = elenca(accessoriFalliti.map((a) => ETICHETTE_ACCESSORIO[a]))
+  const pronome =
+    accessoriFalliti.length === 1 ? PRONOME_SINGOLO[accessoriFalliti[0]] : 'Li'
+  return `Non sono riuscita a salvare ${elenco}. ${pronome} aggiungi dalla scheda.`
 }
 
 export function FrameFatto(props: {
   lavoro: { id: string; numero_lavoro: string }
-  accessoriFalliti: Array<'dettagli' | 'foto'>
+  accessoriFalliti: AccessorioFallito[]
   dentista: string
   lavoroLabel: string
   pz: string

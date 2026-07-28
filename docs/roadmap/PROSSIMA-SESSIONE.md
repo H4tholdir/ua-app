@@ -103,7 +103,13 @@ Per ogni fix: FASE 0 (BP-0) → FASE 1 (goal) → FASE 2 (brainstorm) → ... �
 
 - **BP-0**: MEMORY.md e PINNED.md già iniettati automaticamente dall'hook — non c'è bisogno di rileggerli a mano
 - **BP-2**: per ogni fix usa il workflow 11 fasi in CLAUDE.md
-- **gstack**: installato in `~/.agents/skills/gstack` — usare `/gstack plan-eng-review` prima di ogni fix architetturale
+- ~~**gstack**: installato in `~/.agents/skills/gstack` — usare `/gstack plan-eng-review` prima di ogni fix architetturale~~
+  🛑 **NON PIÙ VERO — gstack RIMOSSO dal progetto il 28/07/2026** (decisione di Francesco). Il corpo
+  (1,1 GB), le 53 scorciatoie e il symlink tracciato sono stati cestinati. **Nessun comando
+  `/gstack:*` esiste più.** Per la validazione architetturale vale la **FASE 3** di `ua-app/CLAUDE.md`
+  §0C con la **Regola Advisor** (panel di 2-3 advisor specializzati); per la revisione del codice, il
+  metodo dei revisori a contesto fresco con mandati disgiunti
+  (v. `docs/roadmap/2026-07-28-revisione-pre-merge-ondata-a.md`).
 - **Audit docs**: i 13 report precedenti sono in `docs/audit-2026-05-21/`
 - **Comparazione**: usa questi report come baseline per i nuovi
 

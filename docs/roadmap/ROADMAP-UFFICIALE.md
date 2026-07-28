@@ -1,5 +1,17 @@
 # UÀ — Roadmap Ufficiale
-**Ultimo aggiornamento:** 27 luglio 2026 (19) — ✅ **IL NOME DEL PAZIENTE SI CORREGGE.** Ramo `ondata-nome-cognome-paziente` pronto al merge: tsc 0 · eslint pulito · vitest **3424/19** (base 3364) · build ok. Dettaglio: MEMORY.md **voce 51**.
+**Ultimo aggiornamento:** 28 luglio 2026 (25) — ✅ **VOCE 1, ONDATA (a): COLLAUDO NEL BROWSER SUPERATO — 5 prove su 5, nell'app vera, ogni esito verificato contro la banca dati.** Referto: **`docs/roadmap/2026-07-28-collaudo-ondata-a-referto.md`**. ✅ **Il collaudo ha trovato un difetto NUOVO fuori dalle cinque prove — le tre frasi dell'ondata non arrivavano all'utente, che leggeva solo «⚠ Errore — riprova» — e su decisione di Francesco è stato CORRETTO subito.** Una riga (`saveError && !isDirty` → `saveError`): quella condizione era **irraggiungibile**, non rara, e il paragrafo d'errore era codice morto. TDD con **prova per mutazione** + ciclo riprovato nel browser. **FASE 7 dopo la correzione: `tsc` 0 · `eslint` pulito · vitest **3625** · build ok.** 🛡️ Aggiunta anche la prova che **il controllo di conflitto scatta** (409 con data vecchia, nulla scritto): la prova 5 da sola mostrava solo che non scatta a sproposito. Il colore arriva e si ritrova · `A3,5` mostra l'avviso **e il lavoro nasce lo stesso** · azzerare il colore lo toglie **da tutti i posti** e non riappare al ricaricamento · **il rifacimento eredita denti E colore** (era G1, il più grave) · due salvataggi di fila **senza conflitto**. 3 viewport × 2 temi fatti; **la frase nuova a 390px non si tronca**. **Database riportato alla baseline esatta** (294 · 0 · 916 · 48). ⚠️ **Due rilievi PREESISTENTI riferiti e non toccati** (i file non sono toccati dal ramo, verificato col diff): disallineamento di idratazione su `LinguettaCassette`/`StanzePager`; a **1280×800** due campi colore sono coperti dalla fascia in fondo **finché non si scorre** → ondata (b). **Confermati dal vivo tre difetti già censiti** del rifacimento (`incidenti_mdr` resta vuota · route e funzione non concordano sugli stati · l'originale non viene annullato). 🛑 **RESTA SOLO: merge — lo autorizza Francesco — poi deploy e BP-1 finale.**
+
+**Aggiornamento precedente:** 28 luglio 2026 (24) — ✅ **VOCE 1, ONDATA (a): FINITA COME CODICE — 13 task su 13 + 5 code + revisione indipendente con 5 correzioni.** `ondata-a-denti-colore`, **72 commit, mai mergiata.** **RESTA SOLO il collaudo nel browser**, poi merge e deploy. **`tsc` 0 · `eslint` 0 · build ok · vitest 3622 · DB alla baseline.** Punto di ripresa: **`docs/roadmap/2026-07-28-ondata-a-chiusura-handoff.md`**. Revisione (3 revisori, mandati disgiunti): `docs/roadmap/2026-07-28-revisione-pre-merge-ondata-a.md` — **isolamento fra laboratori provato pulito**; 3 gravi chiusi (il rifacimento perdeva denti e colore · un dente storto faceva perdere **il lavoro** · un test che non poteva fallire). 🧹 **gstack rimosso** su decisione di Francesco. 🛑 **Le migration sono già applicate sul database vivo:** «niente in produzione» vale per il codice, non per lo schema.
+
+**Aggiornamento precedente:** 28 luglio 2026 (23) — ✅ **VOCE 1, ONDATA (a): COMPLETATA SUL RAMO — 13 task su 13 + tre code.** `ondata-a-denti-colore`, **mai mergiata, niente in produzione, il merge lo autorizzi tu.** Mancano review e QA browser. **vitest 3584 · `tsc` 0 · `eslint` 0 · build ok · DB alla baseline.** **R4 provato per intero** con richieste ostili sul database vero; **R5 no** — la prova è fallita e ha scoperto **sei tabelle che rendono un laboratorio incancellabile** (pre-esistente): sezione dedicata in coda a questa roadmap, insieme ai **due progetti Playwright fantasma**. Dettaglio: `MEMORY.md` **voce 58**.
+
+**Aggiornamento precedente:** 28 luglio 2026 (22) — 🔨 **VOCE 1, ONDATA (a): 9 task su 13 chiusi** sul ramo `ondata-a-denti-colore`, **mai mergiata, niente in produzione**. Il T9 ha chiuso la parte «database e API»: `POST /api/lavori` crea progressivo, lavoro e denti in **una transazione sola** (commit `759fc183`, 3477 test verdi). Restano i quattro task che toccano le schermate vive — **T10, T11 e T12 vanno nello stesso deploy**. Ritrovamenti e trappole: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` §5-bis.
+
+**Aggiornamento precedente:** 27 luglio 2026 (21) — ✅ **VOCE 1 (ripensamento del wizard): SPEC RATIFICATA DA FRANCESCO, PIANO DELL'ONDATA (a) SCRITTO.** 🛑 Nessuna riga di codice, niente committato. **Piano:** `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md` — 13 task TDD con codice completo. **Il lavoro si esegue in TRE ONDATE** (decisione di Francesco, 27/07): **(a)** modello dati + API + creazione atomica + reindirizzamento dei due scrittori a grafica invariata — **la migration sta tutta qui, non si spezza** · **(b)** wizard adattivo + odontogramma rifatto in v3 (tabella dei 38 tipi, «Lo scrivo dopo», illustrazioni con sagome, colore per dente) — **richiede FASE 9b, gate estetico L2** · **(c)** Dichiarazione di Conformità + gancio nel precheck di consegna. Ogni ondata si prova e va in produzione da sola, e avrà il **suo** piano: quelli di (b) e (c) si scrivono quando arriva il loro turno. **Altre due decisioni:** la foto della prescrizione **resta accessoria alla creazione ma il fallimento diventa visibile** (nessun blocco al banco, W22 — il precheck di consegna è il guardiano); la spec è stata corretta in tre punti dove contraddiceva le risposte di Francesco (W21 sulla DdC, W23 sul `DROP COLUMN`, e il `DROP` mancante dall'ordine della migration). **🔴 Due buchi trovati scrivendo il piano, creati dal taglio in ondate e chiusi lì dentro:** senza il reindirizzamento degli scrittori, i sette campi ora sentinella **smetterebbero di salvare in silenzio** (il server scarta le chiavi fuori allowlist senza errore: l'utente vedrebbe «Salvato» su un dato mai salvato); e la **Dichiarazione di Conformità sarebbe rimasta senza denti** per tutti i lavori consegnati fra l'ondata (a) e la (c) — chiuso facendo mantenere alle RPC la vecchia colonna come denormalizzazione, stesso regime di `numero_cassetta`. Dettaglio: MEMORY.md **voce 53**.
+
+**Aggiornamento precedente:** 27 luglio 2026 (20) — 📐 **VOCE 1 (ripensamento del wizard): SPEC PRONTA, si va al piano.** Brainstorming chiuso · gate FASE 3 superato · panel advisor 3× sul modello dati · mockup misurati su 3 viewport × 2 temi · **spec scritta**. 🛑 Nessuna riga di codice, niente committato. **Handoff: `docs/roadmap/2026-07-27-wizard-spec-handoff.md`** · spec: `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` · verbale (23 decisioni): `docs/design/decisions/2026-07-27-wizard-nuovo-lavoro-brainstorming.md`. **La voce 3 della coda è CHIUSA dentro questo lavoro** (il colore nella DdC: verificato sull'Allegato XIII — il campo esiste già ed è vuoto). **La voce 2 (avviso alla consegna) diventa il perno**: per decisione di Francesco (W22) il precheck di consegna è il guardiano di tutti gli obblighi, e questa spec ne costruisce il gancio. ⚠️ Da valutare prima del piano: tagliare in 3 ondate — (a) dato+API+creazione atomica, (b) wizard+odontogramma, (c) DdC+precheck.
+
+**Aggiornamento precedente:** 27 luglio 2026 (19) — ✅ **IL NOME DEL PAZIENTE SI CORREGGE.** Ramo `ondata-nome-cognome-paziente` pronto al merge: tsc 0 · eslint pulito · vitest **3424/19** (base 3364) · build ok. Dettaglio: MEMORY.md **voce 51**.
 
 🛑 **PERIMETRO RIDOTTO IN CORSA — decisione di Francesco.** Il **wizard «Nuovo lavoro» va ripensato per intero**, quindi i task che toccavano la sua schermata sono stati **fermati**: mockup del passo 3 (prodotto ma **NON approvato**), `crea-lavoro.ts`, `PassoPaziente.tsx`, stato del wizard + bozza `v:2`. ⚠️ **Conseguenza dichiarata: la targa della cassetta NON migliora con questo ramo** — il wizard scrive ancora tutto dentro il cognome. La lamentela ratificata («taglia la coda, sparisce il cognome») **resta aperta** e si chiude col nuovo wizard.
 
@@ -9,7 +21,7 @@
 
 | # | Voce | Percorso |
 |---|---|---|
-| **1** | 🛑 **Ripensamento del wizard «Nuovo lavoro»** — adattivo al tipo di dispositivo (se il lavoro prevede denti → elemento e colore, **anche più d'uno**; se non li prevede, es. scheletrato → si salta) · **ingresso di radiografie e documenti clinici** che arrivano con la prescrizione · rivedere il tasto «Salta», che sulla riga chiusa non fa nulla | **GRANDE, con migration** — il colore oggi è in 4 colonne del **lavoro intero** (`database.types.ts:2375-2378`): «più denti con più colori» **non è rappresentabile** |
+| **1** | ✅ **Ripensamento del wizard «Nuovo lavoro» — SPEC RATIFICATA 27/07/2026, in TRE ONDATE.** **(a)** *✅ **COMPLETATA SUL RAMO** il 28/07/2026 — **13 task su 13 + tre code**, ramo `ondata-a-denti-colore`, **MAI MERGIATA, niente in produzione**. 🛑 **Il merge lo autorizza Francesco.** Mancano ancora: review (FASE 8) e QA browser (FASE 9). FASE 7 fatta con output reale: `tsc` 0 · `eslint` 0 · `next build` ok · **vitest 3584** · DB alla baseline. **R4 (isolamento fra laboratori) provato per intero sul database vero**; **R5 (cancellabilità) provato solo per `lavori_denti`** — la prova ha scoperto sei tabelle che rendono un laboratorio incancellabile, sezione dedicata in coda. Punto di ripresa e i 23 ritrovamenti: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`; evidenze: `docs/superpowers/plans/evidenze/2026-07-27-ondata-a-isolamento.md`. 🕛 **Fuori dal deploy, può seguire: T11-bis** (POST e PUT rispondono diversamente sugli stessi dati: `422` sul PUT, `500` sul POST)* — modello dati per-dente (`lavori_denti`, 52 codici FDI, `colori_dentali`), 2 RPC atomiche, `PUT /api/lavori/[id]/denti`, sentinelle sui 7 campi, i due scrittori reindirizzati **a grafica invariata**. Piano: `docs/superpowers/plans/2026-07-27-wizard-ondata-a-dato-e-api.md`, 13 task. **(b)** *da pianificare* — 📌 **eredita quattro cose dall'ondata (a), trovate eseguendo (dettaglio: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` §5-quinquies):** ① la **tendina della scheda offre 19 codici su 48** — un `2M2` che arriva dal colore di caso rende la casella **vuota a schermo** pur essendo il dato intatto, e da oggi quella tendina è anche **la penna** del colore di caso, non solo la sua vetrina; ② il **default di caso non è correggibile alla creazione**, solo dalla scheda; ③ le **tre zone del ceramista** (collo/corpo/incisale) **non hanno destinazione senza un dente selezionato** — oggi il form si ferma e lo dice, ma è un limite, non una soluzione; ④ il wizard scrive il **nome nel cognome** (metà rimasta della tappa 1) — wizard adattivo (tabella dei 38 tipi: il tipo decide **se** la domanda compare, e quando compare **si può saltare**), denti sulle illustrazioni con sagome, colore per dente, cassetta saltabile, `OdontogrammaFDI` rifatto in v3. **⚠️ FASE 9b obbligatoria.** 🔴 **L'ondata (b) chiude anche la metà rimasta della tappa 1 «nome e cognome paziente»** (il passo paziente deve scrivere le due parti separate: oggi il wizard mette tutto nel cognome, e **la targa della cassetta non è ancora migliorata**). Verificato il 27/07: la spec del wizard non lo nominava — annotato ora in spec §12. 🟡 **Aperto, da decidere sui mockup a inizio ondata (b):** cosa mostrare al posto di «passo 2 di 3», dato che i passi variano col tipo (`ProgressDots` presuppone un numero fisso). **(c)** *da pianificare* — 📌 **eredita tre pulizie dall'ondata (a)** (§5-quinquies dell'handoff): ① due `select` della fatturazione (`fatture/[id]/xml/route.ts:109-112`, `fatture/batch/route.ts:125-128`) chiedono le quattro colonne colore e **non le leggono mai** — verificato che nessun valore fermo finisce su un documento fiscale, ma vanno ripulite; ② la vista `lavori_dashboard` espone ancora `colore_dente`, colonna ferma dal T10, nessun chiamante; ③ la **sostituzione integrale** porta **tutte** le righe a `provenienza:'eseguito'` a ogni modifica clinica, anche i denti non toccati — rileva per il precheck W20/W22 — il colore nella Dichiarazione (collasso che **conosce le arcate**: «13-23» vale 6 denti, non 11), template che legge lo snapshot, gancio nel precheck. **Fuori perimetro, tracciato:** arrivo automatico da email e portali degli scanner (W1). | **GRANDE, con migration** — la migration sta **tutta nell'ondata (a)**. Spec: `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` · verbale (23 decisioni): `docs/design/decisions/2026-07-27-wizard-nuovo-lavoro-brainstorming.md` |
 | **2** | **Avviso alla consegna su dente/colore mancanti** — avviso, mai blocco (una totale non ha elemento, un bite non ha colore). Oggi `precheck.ts` **non li nomina** e la DdC stampa il valore grezzo | Media, con panel su quali dispositivi esentare |
 | **3** | ⚠️ **Verificare se il colore compaia nella DdC** — sembra assente dal modello e dallo snapshot, mentre `ANALISI/17:119` lo elenca fra gli obbligatori. **Possibile lacuna normativa** | verifica, poi voce propria |
 | **4** | **Assistente vocale completo** che sostituisca «Dimmelo a voce» (oggi non funziona) — voce e interrogazioni su tutta la PWA | GRANDE, tutto da progettare |
@@ -527,6 +539,127 @@ arriva con l'ondata che possiede la pagina.
 
 ---
 
+## 🔐 IN CODA A TUTTO — Ondata «accesso con passkey»: i 5 difetti rimasti
+
+**Collocazione decisa da Francesco il 28/07/2026:** *«segniamoli alla fine di tutta la nostra roadmap,
+tanto non andiamo in produzione finché non lo dico io»*. Nessuno di questi sta facendo danno oggi; il
+sesto della lista (email confrontata con le maiuscole) **era** attivo ed è già stato corretto e
+deployato (`24474b5c`).
+
+**Origine:** censimento del 28/07/2026 con panel 2× (sicurezza applicativa + compatibilità), nato
+dalla decisione CSRF sulle due route di accesso WebAuthn. Verbale nel commit `5773c6b6` e in
+`memory/MEMORY.md` voce 56. 🛑 **La questione CSRF è CHIUSA e non si riapre**: esclusione legittima con
+la ragione scritta in `scripts/check-csrf.sh` (quelle route non leggono né scrivono cookie, e l'origine
+è già legata dentro la firma dell'autenticatore). L'esclusione decade solo se una di esse inizia a
+leggere una sessione o a fare `Set-Cookie`.
+
+| # | Difetto | Quando morde | Nota |
+|---|---------|--------------|------|
+| ② | **Consumo della challenge non atomico** — `challenge.ts:18-32` legge `used_at` e poi lo scrive in una seconda istruzione, con **l'errore della UPDATE non controllato**: due richieste simultanee passano entrambe → replay | **Ora**, ma serve concorrenza mirata | 🔴 Il più grave: il contatore anti-replay è **inerte** (misurato: 4 credenziali su 4 con `counter = 0`, passkey sincronizzate), quindi l'uso unico della challenge è **l'unica** difesa. Fix indicato: `UPDATE … WHERE id=$1 AND used_at IS NULL AND expires_at > now() RETURNING challenge` |
+| ③ | **`listUsers()` senza paginazione** — `login/options:19`, `login/verify:20`: l'API admin è paginata a **50 per pagina** | **Al 51° utente** | Ordinamento `created_at DESC` → cadono fuori **i più vecchi, cioè i titolari**. Sintomo: 404 «Nessuna credenziale registrata» indistinguibile da «non hai passkey». Fix consigliato: RPC `SECURITY DEFINER` su `auth.users` con `lower(email)`, blindata col pattern §9. ⚠️ **Scartato** leggere `public.utenti`: nessun trigger allinea `utenti.email` a un cambio email lato auth |
+| ④ | **Nessun filtro `deleted_at`/`attivo` all'accesso** — la registrazione lo fa (`register/options:13-15`), l'accesso no | Quando si revoca un utente che ha la passkey | Ottiene comunque un gettone di sessione. Contenimento parziale via RLS, ma la definizione di `current_lab_id()` nel repo è **commentata**: la garanzia vive solo nel database vivo |
+| ⑤ | **Nessun rate limiting** su due endpoint non autenticati, uno dei quali chiama `generateLink` | Sotto abuso | Unico precedente in casa: `portale/richiedi/route.ts:94-111` |
+| ⑥ | **Enumerazione degli account** — 200 con `allowCredentials` se l'email ha una passkey, 404 altrimenti | Sempre, dall'esterno | W3C WebAuthn §14.6.2. ⚠️ `isSameOrigin` **non** la ferma (con `Origin` assente ritorna `true`, e un attaccante non usa un browser). Strada giusta: login **senza username** — le credenziali sono già `residentKey: 'required'` |
+
+⚠️ **Da mettere in conto prima di iniziare:** `RP_ID = 'uachelab.com'` è fisso (`webauthn/config.ts:3`),
+quindi la cerimonia **non è eseguibile in locale né su anteprima**. Come si verificano le correzioni va
+deciso **prima** di scriverle, non dopo.
+
+**Percorso:** dominio `auth` → **GRANDE** automatico (`ua-app/CLAUDE.md` §0C, gate FASE 3).
+
+---
+
+## 🔴 TROVATO PROVANDO L'ONDATA (a) — un laboratorio può diventare INCANCELLABILE (28/07/2026)
+
+Non è un difetto dell'ondata (a): è **pre-esistente**, ed è emerso perché il Task 13 provava la
+cancellabilità sul database vero. **La prova prevista dal piano è FALLITA** — 11 righe invece di zero.
+
+**Sei tabelle hanno una chiave esterna verso `laboratori` senza `ON DELETE`, e `admin_delete_laboratorio`
+non le cancella** (verificato: `confdeltype='a'` su tutte e sei, **zero menzioni** nel corpo della
+funzione): `credito_clienti_movimenti` · `fatture_sdi_eventi` · `listino_materiali_auto` ·
+`ordini_fornitori` · `pagamenti` · `scarichi_magazzino`.
+**Latenti solo perché a zero righe.** Repro eseguito: stesso laboratorio, cancellazione → `true`;
+si inserisce **una** riga in `credito_clienti_movimenti` → `SQLSTATE 23503 … violates foreign key
+constraint`. 🛑 **Alla prima fattura pagata o al primo scarico di magazzino, quel laboratorio smette
+di essere cancellabile** — e la cancellabilità del laboratorio è un obbligo GDPR, non una comodità.
+⚠️ In più `progressivi_anno` **lascia orfani** (nessuna FK, quindi non blocca, ma le righe restano).
+
+🔑 **E lo strumento che avrebbe dovuto scoprirlo mente nella direzione rassicurante:** l'asserzione
+«strutturale» usa `regexp_matches(prosrc, 'DELETE FROM (\w+)')` su un corpo di funzione — non legge
+`DELETE FROM public.x`, conta anche i **commenti**, e sulla funzione accanto **ha estratto una tabella
+chiamata `public`**. Chi ripara questo difetto **non riusi quel controllo**: si interroghi
+`pg_constraint`, che è il catalogo vero.
+
+**Percorso:** schema + RLS → **GRANDE** automatico. Evidenze: `docs/superpowers/plans/evidenze/2026-07-27-ondata-a-isolamento.md`.
+
+---
+
+## 🔴 UN CANCELLO AUTOMATICO CHE NON ESISTE — due progetti Playwright fantasma (28/07/2026)
+
+Stessa classe delle quattro guardie non agganciate a nulla (voce 55): **una protezione dichiarata che
+non gira mai**, e che per questo dà una falsa sicurezza.
+
+`playwright.config.ts` dichiara due progetti — `cross-tenant` → `rls-cross-tenant.spec.ts` (righe 32)
+e `api-coverage` → `api-coverage.spec.ts` (righe 35-36) — e **nessuno dei due file esiste in
+`tests/e2e/`** (verificato). Il progetto crede di avere un cancello automatico **proprio sul rischio
+di isolamento fra laboratori**, quello che il Task 13 ha dovuto provare **a mano**.
+⚠️ E l'accesso E2E **non ha mai avuto una sessione**: `tests/e2e/auth.setup.ts` legge
+`TEST_USER_EMAIL`/`TEST_USER_PASSWORD`, mentre `.env.local` definisce `TEST_EMAIL`/`TEST_PASSWORD` —
+l'helper prende il ramo «avviso e salvo auth vuota», quindi il progetto `authenticated` gira **senza
+sessione**. Due difetti che si nascondono a vicenda: il cancello non c'è, e anche se ci fosse non
+avrebbe di che accedere.
+
+**Da decidere quando si affronta:** scrivere davvero le due prove, oppure **togliere le due
+dichiarazioni** — ma non lasciarle lì. Una riga che promette un controllo inesistente è peggio di
+nessuna riga.
+
+🔴 **E c'è un terzo caso, trovato lo stesso giorno provando a usarlo (28/07/2026): la skill di
+revisione del progetto non si raggiunge.** ⚠️ **La prima diagnosi diceva «gstack non esiste, è un
+guscio»: era SBAGLIATA**, e resta qui scritta perché è istruttiva — una diagnosi affrettata avrebbe
+fatto **cancellare un'installazione completa e funzionante**.
+**Fatto verificato:** **gstack c'è per intero**, in `ua-app/.agents/skills/gstack/` (checklist,
+`greptile-triage.md`, `design-checklist.md`, `specialists/`, `bin/`), e il symlink tracciato
+`.claude/skills/gstack` lo raggiunge. **Il difetto è di percorsi:** il `SKILL.md` della review cerca
+la checklist in `.claude/skills/review/checklist.md` (lì c'è **solo** `SKILL.md`) e richiama **64
+volte** `~/.claude/skills/gstack/…`, cioè la **home**, dove gstack **non** è installato. Le due copie
+del `SKILL.md` sono **identiche** e sbagliano allo stesso modo: **installato in modalità progetto,
+scritto per la modalità home**.
+🔑 **Tre volte in un giorno lo stesso SINTOMO, ma non la stessa causa:** le quattro guardie non
+agganciate (voce 55) e i due progetti Playwright fantasma erano **capacità che non esistevano**;
+questa **esiste per intero e non si raggiunge**. Il tratto davvero comune è l'altro: **nessuna delle
+tre falliva rumorosamente.** Un controllo che non gira non protesta — e da fuori è identico a uno che
+gira e passa.
+✅ **DECISO E FATTO il 28/07/2026 — Francesco: «non lo uso più, togli tutto».** Rimosso:
+il corpo `ua-app/.agents/` (**1,1 GB**, conteneva solo gstack) · le **53** cartelle-scorciatoia sotto
+`.claude/skills/` (censite una per una: **53 su 53** puntavano dentro gstack, **zero eccezioni**) ·
+il symlink **tracciato** `.claude/skills/gstack` (rimosso da git) · le **53 voci** gstack in
+`.claude/settings.local.json` · la voce in `skills-lock.json` · le due righe in `.gitignore` · la
+cartella di scarto `.gstack/`. **Tutto nel cestino, non cancellato: è ripristinabile.**
+🛑 **NON toccate le 11 skill di design di Francesco** (`animejs`, `brandkit`, `ckm-design-system`,
+`css-animations`, `design-taste-frontend`, `gsap`, `high-end-visual-design`, `lottie`, `tailwind`,
+`ui-ux-pro-max`, `waapi`): verificate una per una **dopo** la rimozione, tutte e 11 ancora vive.
+**Istruzioni corrette perché non ingannino:** `CLAUDE.md` FASE 9 (diceva `/gstack qa`) ·
+`PROSSIMA-SESSIONE.md` · e un **avviso in testa a `WORKFLOW-STANDARD.md`**, che NON è stato riscritto:
+oltre quaranta `/gstack:*` lo attraversano, e sostituirli è **ridefinire il processo** (gstack
+occupava il livello «decisione» e i due gate) — decisione di Francesco con panel, non una pulizia.
+⚠️ **Restano i riferimenti nei documenti STORICI** (`MEMORY.md`, handoff, piani vecchi): sono cronaca
+di ciò che è stato fatto allora, e non si riscrivono.
+
+---
+
+## 🕛 IN CODA — due residui dell'ondata (a) che NON appartengono a nessun task (28/07/2026)
+
+Stanno qui perché **non hanno una casa dentro l'ondata (a)**, e un difetto senza proprietario è un
+difetto che nessuno raccoglie. Origine: la coda del Task 9 (commit `63361649`), che ha corretto lo
+stesso errore nella route del POST. Dettaglio in `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` §5-bis.
+
+| # | Cosa | Quando morde | Perché è qui e non in un task |
+|---|------|--------------|-------------------------------|
+| ⑧ | **`genera_numero_lavoro()` ricava l'anno da `EXTRACT(YEAR FROM now())`** (`supabase/schema.sql:1996-2000`), cioè l'anno della sessione Postgres — **UTC su Supabase**, non il giorno civile di Roma | Fra le 00:00 e le 01:00 di Roma del **1° gennaio**: numero pescato dalla serie dell'anno vecchio | **Latente: zero chiamanti in `src/`** (la referenziano solo la propria definizione, la migration di hardening `search_path` e i tipi generati). Chiuderla vuole **una migration**, e l'ondata (a) non ne apre altre. Se un domani qualcuno la chiama, il difetto si sveglia |
+| ⑨ | **La suite di test non fissa il fuso orario da nessuna parte** (verificato in `vitest.config.ts`, `tests/setup.ts`, `package.json`, `.github/workflows/`) | Sempre, in silenzio: su una macchina italiana un test di confine-data **non può fallire** | Non è un difetto del prodotto, è una **rete che sembra una rete e non lo è**: `tests/unit/fatture-data-roma.test.ts:42-48` discrimina solo in CI. Fissare `TZ:'UTC'` in `vitest.config.ts` cambia la semantica di **tutta** la suite → **decisione con panel** (Regola Advisor), non un residuo da sbrigare in un task |
+
+---
+
 ## DECISIONI ARCHITETTURALI PERMANENTI
 
 | Decisione | Rationale |
@@ -600,3 +733,6 @@ Procedura completa: `docs/processes/WORKFLOW-STANDARD.md`
 | 20/07/2026 | **Secondo giro mini-triage:** A13 confermato (ponte, redesign odontogramma resta in ondata bridge) · A14 variante A «co-identità» targa cassetta + assegnazione cassetta alla conferma-arrivo IN ondata · «Le pile» eliminata (redirect → /dashboard, O1h chiuso) · ricerca per cassetta: per-pila in ondata, globale in sessione design dedicata (casa: /lavori liberato) · export CSV → «I tuoi dati» in «Il mio laboratorio» (ondata F1). **NUOVA FEATURE IN DESIGN: «La Parete delle Cassette»** (visione Francesco: griglia adattiva drag&drop delle cassette fisiche colorate, ricerca per cassetta/lavoro) — concept 2 direzioni in `docs/design/mockups/2026-07-20-parete-cassette-concept.html`, intervista in corso, collocazione roadmap da ratificare a spec pronta (sostituisce l'idea «parco cassette gestito V2»). | Francesco + Claude |
 | 20/07/2026 | **Calendario ondate v3 ratificato** (sezione dedicata sopra) + decisioni mini-triage primo giro: O1i 1A+2A+3A (Esci LinkQuieto, identità+Esci NavDesk, trial ambra in striscia) · export cedolini 2A (card in «Persone» v3) · deferral A10/A11 confermati. A13/A14/O1h/export-lavori in secondo giro (flusso odontogramma, cassetta ripensata cassetta-first, proposta eliminazione «Le pile»). | Francesco + Claude |
 | 06/07/2026 | CRUD completo `cicli_produzione` implementato (worktree `worktree-cicli-produzione-crud`) — chiude il follow-up scoperto in QA B5 ("nessun modo di creare un ciclo via UI/API"). Migration live (indice UNIQUE parziale su `codice`, pattern B18), nuove route `POST`/`PATCH`/`DELETE /api/cicli[/id]`, sheet create/edit e bottone elimina. Review finale (Opus) "Ready to merge: Yes" dopo 2 fix Important (validazione PATCH allineata a POST, payload PATCH costruito come delta). 626/626 test, tsc/build puliti. QA browser end-to-end (mai lab Filippo); non verificato manualmente il blocco 409 su DELETE referenziato né il tablet. Non ancora mergiato su `main`. | Francesco + Claude |
+| 28/07/2026 | **Regole di piano ed esecuzione ratificate** (`ua-app/CLAUDE.md` §0C): R-P1 un blocco senza marchio è NON provato · R-P2 l'elenco dei file da aprire non lo decide l'autore · R-P6 censimento su ogni identificatore · R-P4 abbozzo inerte + conteggio · R-E1 un compito un esecutore fresco · R-E2 si riferisce, non si patcha. Due scartate con motivo scritto. Panel 3× con una lente **avversariale**, che ha prodotto il ritrovamento decisivo (R-P2 nella forma proposta non avrebbe intercettato il difetto peggiore) e la regola mancante R-P6. Verbale: `docs/processes/2026-07-27-lezioni-piano-ondata-a.md` §7. | Francesco + Claude |
+| 28/07/2026 | **Ondata (a): T9 chiuso + la sua coda** (`759fc183`, `63361649`). `POST /api/lavori` crea progressivo, lavoro e denti in **una transazione sola**; 19 test nuovi, **18 su 18 cadevano contro un abbozzo sempre-201** (forza misurata, non dedotta); 3478 verdi, `tsc`/`eslint`/`next build` puliti, DB alla baseline. Due difetti chiusi che il piano non prevedeva: `denti` non-array diventava **lista vuota** (201, zero denti, nessun errore) → ora **422**; e l'anno del numero di lavoro seguiva il fuso del processo invece di Roma, su una catena che alimenta DdC e fatturazione. 🔑 Il nono difetto stava **nella diagnosi, non nel codice**: la suite non fissa il fuso, e su questo Mac il test prescritto sarebbe passato **verde col difetto in casa**. Due residui senza casa → sezione «in coda» sopra. Nono task su nove con un difetto trovato. | Francesco + Claude |
+| 28/07/2026 | **Guardie agganciate + accesso con passkey riparato — IN PRODUZIONE** (main `24474b5c`, CI verde, deploy Vercel ok, `/login` 200). I 4 script di verifica del repo non erano eseguiti da nulla e **due non potevano nemmeno fallire**; ora `check-csrf.sh` (riscritta, 0,33 s) e `guardia-reduced-motion.mjs` (4,6 s) girano a ogni commit, le altre due restano manuali con il motivo scritto. Rimosse 104 righe su 149 di `.claude/settings.json` che dichiaravano scansioni di sicurezza inesistenti. Corretta la riga di `CLAUDE.md` §9 che dava una direttiva per protetta da un controllo mai eseguito. Chiusa la questione CSRF sulle route WebAuthn di accesso (esclusione con ragione) e **corretto il difetto attivo** che impediva l'accesso con l'impronta a chi digitava una maiuscola nell'email. I 5 difetti rimasti sono in coda a questa roadmap. | Francesco + Claude |

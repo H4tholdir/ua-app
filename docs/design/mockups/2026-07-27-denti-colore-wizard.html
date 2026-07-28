@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wizard «Nuovo lavoro» — denti e colore: due strade, più varianti (27/07/2026)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('tema') === 'scuro') document.documentElement.setAttribute('data-tema', 'scuro');
+  })();
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  svg { display: block; }
+
+  /* ===== Token v3 — valori VERI da src/design-system/v3/tokens.ts ===== */
+  :root {
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:#FFFEFA;
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E; --blue:#1D5FBF; --green:#1B7F3B; --amber:#9A5C00;
+    --red-tint:#FBEDEC; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+    --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --grad-primario: linear-gradient(180deg,#F2263A,var(--red) 55%,#B00010);
+    --dashed:#CBC1B0;
+    --dente-fill:#FFFEFA; --dente-stroke:#D8D0BE;
+    --tasto-bg:#FFFEFA;
+  }
+  :root[data-tema="scuro"] {
+    --bg:#171411; --bg-deep:#0F0D0A; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910; --blue:#5B9BFF; --green:#34C468; --amber:#E8A13D;
+    --red-tint:rgba(255,59,68,.14); --blue-tint:rgba(91,155,255,.14); --green-tint:rgba(52,196,104,.14);
+    --sh-card:none;                     /* DS v3: in scuro le superfici sono PIATTE */
+    --sh-press: 0 4px 0 rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    --dashed:#4A4237;
+    --dente-fill:#3A342C; --dente-stroke:#574F43;
+    --tasto-bg:#2B2620;
+  }
+
+  body { font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:var(--bg-deep); color:var(--ink); padding:32px 20px 80px; -webkit-font-smoothing:antialiased; }
+
+  /* ===== Impalcatura di confronto (NON è design) ===== */
+  .wrap { max-width:1240px; margin:0 auto; }
+  h1 { font-size:31px; font-weight:800; letter-spacing:-.02em; margin-bottom:10px; }
+  .sub { font-size:15.5px; font-weight:600; color:var(--muted); line-height:1.55; margin-bottom:10px; max-width:920px; }
+  .strada { margin:48px 0 4px; padding-top:22px; border-top:2px solid var(--line); font-size:27px; font-weight:800; letter-spacing:-.02em; }
+  .strada-nota { font-size:15.5px; font-weight:600; color:var(--muted); line-height:1.55; margin-bottom:22px; max-width:920px; }
+  .riga { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .col { width:390px; }
+  .vnome { font-size:13px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+  .vdesc { font-size:12.5px; font-weight:700; color:var(--muted); line-height:1.5; margin-bottom:12px; min-height:54px; }
+  .verdetto { font-size:12.5px; font-weight:800; margin-top:10px; letter-spacing:.02em; }
+  .ok { color:var(--green); } .ko { color:var(--red); } .warn { color:var(--amber); }
+
+  /* Cornice telefono — 390px, il viewport primario della spec */
+  .tel { width:390px; background:var(--bg); border-radius:28px; border:1px solid var(--line); overflow:hidden; box-shadow:var(--sh-card); }
+  .schermo { padding:8px 24px 22px; }        /* margini pagina 24 — spec §4.2 */
+  .schermo.stretto { padding:8px 16px 22px; } /* deroga proposta: 16 per far entrare 8 colonne */
+
+  /* ===== Chrome del wizard, copiato dal wizard reale ===== */
+  .wz-top { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
+  .tondo { width:44px; height:44px; border-radius:999px; background:var(--elv); box-shadow:var(--sh-press); display:grid; place-items:center; font-size:21px; font-weight:800; flex:0 0 auto; }
+  .dots { display:flex; gap:6px; align-items:center; }
+  .dot { width:7px; height:7px; border-radius:999px; background:var(--line); }
+  .dot.on { background:var(--ink); width:20px; }
+  .dots-testo { font-size:12.5px; font-weight:800; color:var(--faint); letter-spacing:.14em; text-transform:uppercase; }
+
+  /* Striscia d'identità — il paziente è pseudonimizzato, serve un ancoraggio */
+  .identita { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; background:var(--card); border:1px solid var(--line); border-radius:18px; margin-bottom:16px; box-shadow:var(--sh-card); }
+  .identita b { font-size:13px; font-weight:800; }
+  .identita span { font-size:12.5px; font-weight:700; color:var(--muted); }
+  .idsep { width:3px; height:3px; border-radius:999px; background:var(--faint); }
+
+  .domanda { font-size:35px; font-weight:800; letter-spacing:-.02em; line-height:1.06; margin-bottom:8px; }
+  .aiuto { font-size:15.5px; font-weight:600; color:var(--muted); margin-bottom:16px; line-height:1.45; }
+
+  /* ===== Tastiera dei denti (variante 1A) ===== */
+  .tastiera { border:1.5px solid var(--line); border-radius:22px; overflow:hidden; background:var(--tasto-bg); box-shadow:var(--sh-card); }
+  .arcata-lab { font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); padding:8px 12px 6px; background:var(--card); }
+  .kgrid { display:grid; grid-template-columns:repeat(8,1fr); }
+  .kt { height:52px; display:grid; place-items:center; font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ink); border-right:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--tasto-bg); position:relative; }
+  .kt:nth-child(8n) { border-right:0; }
+  .kt.mezz { border-right:2.5px solid var(--faint); }
+  .kt.on { background:var(--ink); color:var(--bg); }
+  .kt.on::after { content:'✓'; position:absolute; top:3px; right:5px; font-size:11px; font-weight:800; }
+  .kt.sotto-riga { border-bottom:0; }
+
+  /* ===== Griglia per quadrante (variante 1C) ===== */
+  .quad-scelta { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  .quad-b { height:56px; border-radius:18px; border:1.5px solid var(--line); background:var(--card); font-size:15.5px; font-weight:700; box-shadow:var(--sh-card); }
+  .quad-b.on { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .qgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .qt { height:76px; border-radius:18px; border:1.5px solid var(--line); background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; box-shadow:var(--sh-card); }
+  .qt .num { font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .qt .fig { width:26px; height:34px; }
+  .qt.on { background:var(--ink); border-color:var(--ink); }
+  .qt.on .num { color:var(--bg); }
+
+  /* ===== Riga d'eco (i denti scelti) ===== */
+  .eco-lab { font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:14px 0 8px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { height:44px; padding:0 14px; border-radius:999px; background:var(--card); border:1.5px solid var(--line); display:flex; align-items:center; gap:7px; font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; box-shadow:var(--sh-card); }
+  .chip .x { font-size:15px; font-weight:700; color:var(--muted); }
+  .chip .val { font-size:13px; font-weight:800; color:var(--muted); }
+  .chip.sel { border-color:var(--ink); border-width:2.5px; }
+  .chip .past { width:18px; height:18px; border-radius:999px; border:1px solid rgba(0,0,0,.22); flex:0 0 auto; }
+  .chip.vuoto { border-style:dashed; border-color:var(--dashed); }
+
+  /* ===== Scala VITA ===== */
+  .fam { margin-bottom:10px; }
+  .fam-top { display:flex; align-items:baseline; gap:8px; margin-bottom:6px; }
+  .fam-k { font-size:21px; font-weight:800; }
+  .fam-n { font-size:12.5px; font-weight:700; color:var(--muted); }
+  .fam-riga { display:grid; gap:6px; }
+  .vt { height:56px; border-radius:16px; border:1.5px solid var(--line); background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; box-shadow:var(--sh-card); }
+  .vt .cod { font-size:15.5px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .vt .past { width:24px; height:10px; border-radius:999px; border:1px solid rgba(0,0,0,.22); }
+  .vt.on { border-color:var(--ink); border-width:2.5px; }
+  .vt.on .cod::after { content:' ✓'; }
+
+  /* ===== Tavolozza «dipingi» (strada 2) ===== */
+  .tavolozza { display:flex; gap:6px; overflow-x:auto; padding:8px 0 10px; }
+  .tv { flex:0 0 auto; width:60px; height:60px; border-radius:16px; border:1.5px solid var(--line); background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .tv .cod { font-size:13px; font-weight:800; }
+  .tv .past { width:22px; height:9px; border-radius:999px; border:1px solid rgba(0,0,0,.22); }
+  .tv.on { border-color:var(--ink); border-width:2.5px; }
+  .arco { display:flex; justify-content:center; gap:1px; overflow-x:auto; padding:10px 0; background:var(--card); border-radius:18px; border:1px solid var(--line); }
+  .ad { width:20px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .ad .fig { width:18px; height:26px; }
+  .ad .num { font-size:8px; font-weight:700; color:var(--muted); }
+
+  /* ===== Piede ===== */
+  .primario { width:100%; height:60px; border-radius:20px; background:var(--grad-primario); color:#fff; font-size:17px; font-weight:800; box-shadow:0 5px 0 var(--red-dark), 0 14px 24px -14px rgba(50,40,25,.5); margin-top:18px; }
+  .primario.spento { background:var(--card); color:var(--faint); box-shadow:none; border:1.5px solid var(--line); }
+  .quieto { width:100%; height:48px; background:transparent; color:var(--muted); font-size:15.5px; font-weight:700; margin-top:8px; text-decoration:underline; text-underline-offset:4px; }
+  .fig { width:100%; height:100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Denti e colore nel wizard «Nuovo lavoro»</h1>
+  <p class="sub">
+    Due strade, più varianti ciascuna, tutte misurate sul telefono da <strong>390&nbsp;px</strong>.
+    I vincoli che ogni variante deve superare: <strong>bersaglio minimo 44×44&nbsp;px</strong>,
+    <strong>testo mai sotto 12,5&nbsp;px</strong>, <strong>il colore non è mai l'unica fonte d'informazione</strong>,
+    e la schermata deve reggere il <strong>testo ingrandito al 200%</strong>.
+  </p>
+  <div id="out"></div>
+</div>
+
+<script>
+/* ============================================================
+   Dati reali del progetto
+   ============================================================ */
+const RIGHE = [
+  { lab:'Sopra',  denti:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28] },
+  { lab:'Sotto',  denti:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38] },
+];
+const TIPO_DI = n => { const p = n % 10;
+  return p >= 6 ? 'molare' : p >= 4 ? 'premolare' : p === 3 ? 'canino' : p === 2 ? 'laterale' : 'centrale'; };
+const ARC_DI = n => (n < 30 ? 'sup' : 'inf');
+
+/* Scala VITA — 19 valori, gli stessi del codice reale (TabClinica.tsx:8-14).
+   ⚠ Le tinte sono un'APPROSSIMAZIONE VISIVA: i campioni veri sono avori quasi
+   identici fra loro a schermo. È il motivo per cui il CODICE è il dato e la
+   pastiglia è solo decorazione. */
+const VITA = {
+  'A1':'#F2E9D8','A2':'#EDE0C8','A3':'#E6D5B6','A3.5':'#DFCBA5','A4':'#D4BC91',
+  'B1':'#F4EDDD','B2':'#EDE3C6','B3':'#E4D5AC','B4':'#DBC79A',
+  'C1':'#E9E2D5','C2':'#DFD5C2','C3':'#D2C6AF','C4':'#C2B39B',
+  'D2':'#EAE1D0','D3':'#E1D6C0','D4':'#D6C9B0',
+  'T':'#E8E8E4','BL':'#F7F3E9','OM':'#EFE6D2',
+};
+const FAMIGLIE = [
+  { k:'A', nome:'rossastri-marroni', v:['A1','A2','A3','A3.5','A4'] },
+  { k:'B', nome:'rossastri-gialli',  v:['B1','B2','B3','B4'] },
+  { k:'C', nome:'grigiastri',        v:['C1','C2','C3','C4'] },
+  { k:'D', nome:'rossastri-grigi',   v:['D2','D3','D4'] },
+];
+
+/* Il dente disegnato — path portati dal componente reale OdontogrammaFDI.tsx,
+   qui normalizzati in un viewBox 0 0 100 140 così da poter essere scalati. */
+function dente(tipo, arc, pieno, soloCorona) {
+  const fill = pieno ? 'var(--bg)' : 'var(--dente-fill)';
+  const stroke = pieno ? 'var(--bg)' : 'var(--dente-stroke)';
+  const sup = arc === 'sup';
+  // Nelle celle piccole si disegna SOLO la corona: è la parte che si vede in
+  // bocca, e a 24px una radice lunga schiaccia la corona fino a farla sembrare
+  // un chiodo (verificato a schermo il 27/07).
+  const H = soloCorona ? 92 : 140;
+  const cH = soloCorona
+    ? (tipo==='molare'?84:tipo==='premolare'?78:tipo==='canino'?86:76)
+    : (tipo==='molare'?70:tipo==='premolare'?62:tipo==='canino'?66:60);
+  const rH = H - cH, cY = sup ? rH : 0, rY = sup ? 0 : cH, cx = 50;
+  let d = '';
+  if (tipo === 'molare') {
+    const x0=6,x1=94,y0=cY,y1=cY+cH,r=12,cw=(x1-x0)/3,ch=9;
+    d = sup
+      ? `M ${x0+r} ${y0} L ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r} L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-6} ${y1} Q ${x0+cw*2.5} ${y1+ch} ${x0+cw*2} ${y1} Q ${x0+cw*1.5} ${y1+ch} ${x0+cw} ${y1} Q ${x0+cw*.5} ${y1+ch} ${x0+6} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} L ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} Z`
+      : `M ${x0+6} ${y0} Q ${x0+cw*.5} ${y0-ch} ${x0+cw} ${y0} Q ${x0+cw*1.5} ${y0-ch} ${x0+cw*2} ${y0} Q ${x0+cw*2.5} ${y0-ch} ${x1-6} ${y0} Q ${x1} ${y0} ${x1} ${y0+r} L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-r} ${y1} L ${x0+r} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} L ${x0} ${y0+r} Q ${x0} ${y0} ${x0+6} ${y0} Z`;
+  } else if (tipo === 'premolare') {
+    const x0=14,x1=86,y0=cY,y1=cY+cH,r=16,ch=9;
+    d = sup
+      ? `M ${x0+r} ${y0} L ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r} L ${x1} ${y1-r} Q ${x1} ${y1} ${cx+6} ${y1} Q ${cx} ${y1+ch} ${cx-6} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} L ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} Z`
+      : `M ${x0+r} ${y0} Q ${cx-6} ${y0-ch} ${cx} ${y0-3} Q ${cx+6} ${y0-ch} ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r} L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-r} ${y1} L ${x0+r} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} L ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} Z`;
+  } else if (tipo === 'canino') {
+    const x0=16,x1=84,y0=cY,y1=cY+cH;
+    d = sup ? `M ${x0+6} ${y0} L ${x1-6} ${y0} L ${x1} ${y1-12} Q ${cx} ${y1+8} ${x0} ${y1-12} Z`
+            : `M ${cx} ${y0-8} L ${x1} ${y0+12} L ${x1-6} ${y1} L ${x0+6} ${y1} L ${x0} ${y0+12} Z`;
+  } else {
+    const w = tipo==='centrale'?34:27, x0=cx-w, x1=cx+w, y0=cY, y1=cY+cH, r=10;
+    d = `M ${x0+r} ${y0} L ${x1-r} ${y0} Q ${x1} ${y0} ${x1} ${y0+r} L ${x1} ${y1-r} Q ${x1} ${y1} ${x1-r} ${y1} L ${x0+r} ${y1} Q ${x0} ${y1} ${x0} ${y1-r} L ${x0} ${y0+r} Q ${x0} ${y0} ${x0+r} ${y0} Z`;
+  }
+  const rEnd = sup ? rY : rY + rH, rStart = sup ? rY + rH : rY;
+  const rad = tipo === 'molare'
+    ? `<path d="M 34 ${rStart} L 30 ${rEnd}" stroke="${stroke}" stroke-width="11" stroke-linecap="round" fill="none" opacity=".45"/><path d="M 66 ${rStart} L 70 ${rEnd}" stroke="${stroke}" stroke-width="11" stroke-linecap="round" fill="none" opacity=".45"/>`
+    : `<path d="M 50 ${rStart} L 50 ${rEnd}" stroke="${stroke}" stroke-width="${tipo==='canino'?13:11}" stroke-linecap="round" fill="none" opacity=".45"/>`;
+  return `<svg class="fig" viewBox="0 0 100 ${H}" aria-hidden="true">${rad}<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="3"/></svg>`;
+}
+
+/* ===== Pezzi ricorrenti ===== */
+const testata = (passo, tot) => `
+  <div class="wz-top">
+    <div class="tondo">‹</div>
+    <div class="dots">${Array.from({length:tot},(_,i)=>`<div class="dot${i<passo?' on':''}"></div>`).join('')}</div>
+    <div class="dots-testo">ancora poco</div>
+  </div>`;
+
+const identita = `
+  <div class="identita">
+    <b>Dott. Esposito</b><div class="idsep"></div><span>PZ-0231</span>
+    <div class="idsep"></div><span>Corona zirconia</span>
+  </div>`;
+
+const SCELTI = [13,12,11,21];
+
+/* ===== VARIANTE 1A — la tastiera dei denti ===== */
+function v1A(colorati) {
+  const kt = (n) => {
+    const on = SCELTI.includes(n);
+    return `<div class="kt${on?' on':''}">${n}</div>`;
+  };
+  const griglia = RIGHE.map(r => `
+    <div class="arcata-lab">${r.lab}</div>
+    <div class="kgrid">${r.denti.map(kt).join('')}</div>`).join('');
+  const chips = SCELTI.map(n => `<div class="chip">${n}<span class="x">✕</span></div>`).join('');
+  return `
+  <div class="tel"><div class="schermo stretto">
+    ${testata(3,5)}
+    ${identita}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Tocca i numeri come stanno sulla prescrizione.</div>
+    <div class="tastiera">${griglia}</div>
+    <div class="eco-lab">Hai scelto</div>
+    <div class="chips">${chips}</div>
+    <button class="primario">Avanti</button>
+    <button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== VARIANTE 1B — tastiera con la sagoma del dente dentro ===== */
+function v1B() {
+  const kt = (n, i) => {
+    const on = SCELTI.includes(n);
+    return `<div class="kt${on?' on':''}" style="height:78px;flex-direction:column;gap:2px;display:flex;align-items:center;justify-content:center">
+      <div style="width:34px;height:34px">${dente(TIPO_DI(n), ARC_DI(n), on, true)}</div>
+      <div style="font-size:14px;font-weight:800">${n}</div>
+    </div>`;
+  };
+  const griglia = RIGHE.map(r => `
+    <div class="arcata-lab">${r.lab}</div>
+    <div class="kgrid">${r.denti.map(kt).join('')}</div>`).join('');
+  const chips = SCELTI.map(n => `<div class="chip">${n}<span class="x">✕</span></div>`).join('');
+  return `
+  <div class="tel"><div class="schermo stretto">
+    ${testata(3,5)}
+    ${identita}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Tocca i denti come stanno sulla prescrizione.</div>
+    <div class="tastiera">${griglia}</div>
+    <div class="eco-lab">Hai scelto</div>
+    <div class="chips">${chips}</div>
+    <button class="primario">Avanti</button>
+    <button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== VARIANTE 1C — un quadrante alla volta ===== */
+function v1C() {
+  const quadranti = [
+    {k:1, lab:'Alto a destra', denti:[18,17,16,15,14,13,12,11]},
+    {k:2, lab:'Alto a sinistra', denti:[21,22,23,24,25,26,27,28]},
+    {k:4, lab:'Basso a destra', denti:[48,47,46,45,44,43,42,41]},
+    {k:3, lab:'Basso a sinistra', denti:[31,32,33,34,35,36,37,38]},
+  ];
+  const scelta = quadranti.map(q => `<button class="quad-b${q.k===1?' on':''}">${q.lab}</button>`).join('');
+  const celle = quadranti[0].denti.map(n => {
+    const on = SCELTI.includes(n);
+    return `<div class="qt${on?' on':''}">
+      <div class="fig" style="width:30px;height:30px">${dente(TIPO_DI(n), ARC_DI(n), on, true)}</div>
+      <div class="num">${n}</div>
+    </div>`;
+  }).join('');
+  const chips = SCELTI.map(n => `<div class="chip">${n}<span class="x">✕</span></div>`).join('');
+  return `
+  <div class="tel"><div class="schermo">
+    ${testata(3,5)}
+    ${identita}
+    <div class="domanda">Quali denti?</div>
+    <div class="aiuto">Prima dimmi dove, poi quali.</div>
+    <div class="quad-scelta">${scelta}</div>
+    <div class="qgrid">${celle}</div>
+    <div class="eco-lab">Hai scelto</div>
+    <div class="chips">${chips}</div>
+    <button class="primario">Avanti</button>
+    <button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== SCHERMATA COLORE — variante α: famiglie a righe ===== */
+function colA(diversi) {
+  const chips = SCELTI.map((n,i) => {
+    const c = diversi ? (i < 2 ? 'A3' : 'B2') : 'A3';
+    return `<div class="chip${diversi && i>=2 ? ' sel':''}"><span class="past" style="background:${VITA[c]}"></span>${n}<span class="val">${c}</span></div>`;
+  }).join('');
+  const fam = FAMIGLIE.map(f => `
+    <div class="fam">
+      <div class="fam-top"><div class="fam-k">${f.k}</div><div class="fam-n">${f.nome}</div></div>
+      <div class="fam-riga" style="grid-template-columns:repeat(${f.v.length},1fr)">
+        ${f.v.map(c => `<div class="vt${c==='A3'?' on':''}"><div class="cod">${c}</div><div class="past" style="background:${VITA[c]}"></div></div>`).join('')}
+      </div>
+    </div>`).join('');
+  return `
+  <div class="tel"><div class="schermo">
+    ${testata(4,5)}
+    ${identita}
+    <div class="domanda">Di che colore?</div>
+    <div class="aiuto">${diversi ? 'Tocca un dente per dargli un colore diverso.' : 'Il colore va su tutti i denti che hai scelto.'}</div>
+    <div class="chips" style="margin-bottom:16px">${chips}</div>
+    ${fam}
+    <button class="primario">Avanti</button>
+    <button class="quieto">Non sono tutti uguali</button>
+  </div></div>`;
+}
+
+/* ===== SCHERMATA COLORE — variante β: una riga sola + ricerca ===== */
+function colB() {
+  const chips = SCELTI.map(n => `<div class="chip vuoto">${n}<span class="val">—</span></div>`).join('');
+  const tutte = Object.keys(VITA);
+  return `
+  <div class="tel"><div class="schermo">
+    ${testata(4,5)}
+    ${identita}
+    <div class="domanda">Di che colore?</div>
+    <div class="aiuto">Scrivi il codice, o cercalo qui sotto.</div>
+    <div class="chips" style="margin-bottom:14px">${chips}</div>
+    <div style="height:60px;border-radius:18px;border:1.5px solid var(--line);background:var(--card);display:flex;align-items:center;padding:0 16px;font-size:21px;font-weight:800;color:var(--faint);box-shadow:var(--sh-card);margin-bottom:14px">A3<span style="width:2px;height:24px;background:var(--red);margin-left:2px"></span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      ${tutte.map(c => `<div class="vt" style="height:52px"><div class="cod">${c}</div><div class="past" style="background:${VITA[c]}"></div></div>`).join('')}
+    </div>
+    <button class="primario">Avanti</button>
+    <button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ===== STRADA 2 — dipingere ===== */
+function v2() {
+  const tav = Object.keys(VITA).map(c => `<div class="tv${c==='A3'?' on':''}"><div class="cod">${c}</div><div class="past" style="background:${VITA[c]}"></div></div>`).join('');
+  const arco = a => RIGHE[a==='sup'?0:1].denti.map(n => {
+    const on = SCELTI.includes(n);
+    return `<div class="ad"><div class="fig" style="width:18px;height:20px">${dente(TIPO_DI(n), ARC_DI(n), on, true)}</div><div class="num">${n}</div></div>`;
+  }).join('');
+  return `
+  <div class="tel"><div class="schermo">
+    ${testata(3,4)}
+    ${identita}
+    <div class="domanda">Denti e colore</div>
+    <div class="aiuto">Scegli un colore, poi tocca i denti che ce l'hanno.</div>
+    <div class="tavolozza">${tav}</div>
+    <div class="arco">${arco('sup')}</div>
+    <div style="height:8px"></div>
+    <div class="arco">${arco('inf')}</div>
+    <div class="eco-lab">Hai scelto</div>
+    <div class="chips">${SCELTI.map(n=>`<div class="chip"><span class="past" style="background:${VITA['A3']}"></span>${n}<span class="val">A3</span></div>`).join('')}</div>
+    <button class="primario">Avanti</button>
+  </div></div>`;
+}
+
+/* ===== ALTRE FORME DELLA STESSA DOMANDA (tipi senza denti) ===== */
+function arcataChip() {
+  return `
+  <div class="tel"><div class="schermo">
+    ${testata(3,4)}
+    <div class="identita"><b>Dott. Esposito</b><div class="idsep"></div><span>PZ-0231</span><div class="idsep"></div><span>Protesi totale</span></div>
+    <div class="domanda">Quale arcata?</div>
+    <div class="aiuto">Una protesi totale non ha singoli denti.</div>
+    <div style="display:grid;gap:10px">
+      ${['Sopra','Sotto','Tutt\'e due'].map((s,i)=>`<div class="quad-b${i===0?' on':''}" style="height:72px;font-size:21px;font-weight:800;display:grid;place-items:center">${s}</div>`).join('')}
+    </div>
+    <button class="primario">Avanti</button>
+    <button class="quieto">Lo scrivo dopo</button>
+  </div></div>`;
+}
+
+/* ============================================================
+   Composizione della pagina di confronto
+   ============================================================ */
+const blocchi = [
+  { titolo:'Strada 1 — prima quali denti, poi che colore',
+    nota:'Due schermate in fila, ciascuna con una domanda sola. È la forma che rispetta la Legge «una cosa alla volta». Le tre varianti qui sotto cambiano solo il MODO di indicare i denti.',
+    varianti:[
+      {n:'1A — la tastiera', d:'I denti sono tasti con il numero grande, disposti come stanno in bocca. Nessun disegno: si legge il numero, come su una calcolatrice.', html:v1A(), verdetto:'warn', esito:'Misurato: 44,13 × 52 px. Passa il minimo di 44 per 13 centesimi — margine fragile, da irrobustire.'},
+      {n:'1B — la tastiera con la sagoma', d:'Come 1A, ma dentro ogni tasto c\'è anche la forma del dente: si riconosce il molare dall\'incisivo senza sapere i numeri.', html:v1B(), verdetto:'warn', esito:'Misurato: 44,13 × 70 px. Stesso margine fragile in larghezza. Numeri a 14 px.'},
+      {n:'1C — un quadrante alla volta', d:'Prima si dice in che parte della bocca, poi compaiono otto denti grandi. Un tocco in più, ma tutto molto più grande.', html:v1C(), verdetto:'warn', esito:'Celle 79,5 × 76 px — le più grandi. Ma un ponte che scavalca il centro obbliga a cambiare quadrante.'},
+    ]},
+  { titolo:'Strada 1 — la seconda schermata, il colore',
+    nota:'In tutte e due le varianti il CODICE è il protagonista e la pastiglia colorata è solo un aiuto: i campioni veri sono avori quasi identici fra loro, e su un telefono vecchio sotto i neon non si distinguono.',
+    varianti:[
+      {n:'α — per famiglie', d:'Le quattro famiglie della scala VITA su righe separate, con il loro nome. Il colore scelto va su tutti i denti in una volta.', html:colA(false), verdetto:'ok', esito:'Celle 56 px di altezza, larghezza da 61 a 82 px.'},
+      {n:'α — colori diversi', d:'Stessa schermata dopo aver toccato «non sono tutti uguali»: si tocca un dente per restringere il bersaglio, poi il colore.', html:colA(true), verdetto:'ok', esito:'Il dente ristretto ha il bordo doppio: si vede anche in bianco e nero.'},
+      {n:'β — si scrive il codice', d:'Chi sa già il codice lo scrive e ha finito. Sotto, tutte e 19 le tinte in griglia per chi preferisce cercare.', html:colB(), verdetto:'warn', esito:'Griglia 4 colonne: celle 79,5 × 52 px. Ma chiede di digitare, e al banco si digita male.'},
+    ]},
+  { titolo:'Strada 2 — una schermata sola: si dipinge',
+    nota:'Si sceglie un colore dalla tavolozza e si toccano i denti che ce l\'hanno. Più corta di un passaggio. Qui sotto è disegnata onestamente, coi denti alla dimensione che possono davvero avere quando sopra c\'è anche la tavolozza.',
+    varianti:[
+      {n:'2 — dipingi', d:'La tavolozza mangia spazio in alto, quindi ai denti ne resta poco: restano larghi 20 px, meno della metà del minimo. E scorrono di lato, quindi una parte non si vede.', html:v2(), verdetto:'ko', esito:'Denti 20 px di larghezza — meno della metà dei 44 richiesti. Non supera il vincolo.'},
+    ]},
+  { titolo:'La stessa domanda, per i lavori che non hanno singoli denti',
+    nota:'Una protesi totale, un parziale, uno scheletrato non hanno un elemento: hanno un\'arcata. La domanda cambia forma, non sparisce.',
+    varianti:[
+      {n:'arcata', d:'Tre bersagli grandissimi al posto della mappa. Per un bite o una dima chirurgica questa schermata non compare affatto.', html:arcataChip(), verdetto:'ok', esito:'Bersagli 342 × 72 px.'},
+    ]},
+];
+
+document.getElementById('out').innerHTML = blocchi.map((b, i) => `
+  <section class="blocco" id="blocco-${i+1}">
+    <div class="strada">${b.titolo}</div>
+    <div class="strada-nota">${b.nota}</div>
+    <div class="riga">
+      ${b.varianti.map(v => `
+        <div class="col">
+          <div class="vnome">${v.n}</div>
+          <div class="vdesc">${v.d}</div>
+          ${v.html}
+          <div class="verdetto ${v.verdetto}">${v.verdetto==='ok'?'✓':v.verdetto==='warn'?'!':'✕'} ${v.esito}</div>
+        </div>`).join('')}
+    </div>
+  </section>`).join('');
+</script>
+</body>
+</html>

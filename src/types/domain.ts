@@ -270,10 +270,19 @@ export interface Lavoro {
   richiedente_nome: string | null;
   richiedente_email: string | null;
   // Campi colore (tab Clinica)
+  // ⚠️ ORFANE dal Task 10 (ondata a): nessuno le scrive più — le due RPC
+  // denormalizzano solo i tre `denti_*`. Restano nel tipo perché sono ancora
+  // colonne di `lavori` e la fatturazione le legge nello snapshot, ma la
+  // scheda si idrata da `lavori_denti` via `idrataColoreScheda`.
   colore_dente: string | null;
   colore_collo: string | null;
   colore_corpo: string | null;
   colore_incisale: string | null;
+  // Default di caso (ondata a): la coppia colore del lavoro, scritta alla
+  // creazione da `lavoro_crea_atomico`. È il secondo termine della precedenza
+  // riga → caso di `src/lib/domain/colore-dente.ts`.
+  colore_scala: string | null;
+  colore_codice: string | null;
   effetti_speciali: string | null;
   tecnica_colore: string | null;
   colorazione_esterna: string | null;
@@ -355,9 +364,36 @@ export interface Lavoro {
 }
 
 // ============================================================
+// LAVORO DENTE — una riga per dente del lavoro (spec wizard §3.1)
+// ============================================================
+// Scrittura SOLO via le due RPC atomiche (`lavoro_denti_sostituisci_atomica`,
+// `lavoro_crea_atomico`): la tabella è in REVOKE ALL, service_role compreso.
+export interface LavoroDente {
+  id: string;
+  laboratorio_id: string;
+  lavoro_id: string;
+  fdi: number;
+  ruolo: 'elemento' | 'mancante' | 'impianto' | 'escluso' | 'incollato';
+  gruppo: number | null;
+  gruppo_ruolo: 'pilastro' | 'intermedio' | null;
+  scala: string | null;
+  codice: string | null;
+  codice_collo: string | null;
+  codice_corpo: string | null;
+  codice_incisale: string | null;
+  provenienza: 'prescritto' | 'eseguito';
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
 // LAVORO DETTAGLIO — con join
 // ============================================================
 export interface LavoroDettaglio extends Lavoro {
+  // Opzionale perché è un embed: c'è solo dove la query lo chiede
+  // (`denti:lavori_denti(*)`). Chi mostra o corregge il colore DEVE chiederlo —
+  // guardia in `tests/unit/lavoro-form-colore-idratazione.test.tsx`.
+  denti?: LavoroDente[];
   cliente: Cliente;
   paziente: Paziente | null;
   tecnico: Tecnico | null;

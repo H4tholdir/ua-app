@@ -7,6 +7,12 @@ import { BackHeaderModifica } from './BackHeaderModifica'
 import { risolviTab } from '@/lib/lavori/risolvi-tab'
 import type { LavoroDettaglio, DichiarazioneConformita } from '@/types/domain'
 
+// ⚠️ `denti:lavori_denti(*)` NON è un di più: dal Task 10 le quattro colonne
+// `lavori.colore_*` non hanno più alcuno scrittore (le due RPC denormalizzano
+// solo i tre `denti_*`). Senza l'embed, la tab Clinica mostrerebbe l'ultimo
+// valore ricevuto prima di quel deploy: l'utente scriverebbe un colore, lo
+// vedrebbe salvato davvero, e ricaricando non lo troverebbe più.
+//
 // Ondata 3a Task 9 — route-ponte /lavori/[id]/modifica. La scheda-vista v3
 // (SchedaLavoroV3, Task 6) delega le 4 voci pesanti del menu (Lavorazioni,
 // Clinica, Prove, Immagini — MenuSchedaSheet, Task 4) qui via
@@ -46,6 +52,7 @@ export default async function ModificaLavoroPage({ params, searchParams }: PageP
       fasi:lavori_fasi(*, fase:fasi_produzione(*)),
       materiali:lavori_materiali(*),
       ddc:dichiarazioni_conformita(*),
+      denti:lavori_denti(*),
       laboratorio:laboratori(nome, telefono)
     `)
     .eq('id', id)

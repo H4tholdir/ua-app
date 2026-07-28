@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AvvisiProvider } from '@/components/ds/Avviso'
 import { FrameFatto } from '@/components/features/wizard/FrameFatto'
+import type { AccessorioFallito } from '@/lib/wizard/crea-lavoro'
 
 const suonaMock = vi.fn()
 const vibraMock = vi.fn()
@@ -26,7 +27,12 @@ const LAVORO = { id: 'lav-1', numero_lavoro: '2026/0001' }
 function props(overrides: Partial<Parameters<typeof FrameFatto>[0]> = {}) {
   return {
     lavoro: LAVORO,
-    accessoriFalliti: [] as Array<'dettagli' | 'foto'>,
+    // Task 11: il ramo `'dettagli'` non esiste più — denti e colore nascono
+    // dentro la transazione del lavoro e non possono più fallire da soli.
+    // Al suo posto `'elementi'`: ciò che la casella «Elemento» conteneva e non
+    // era un dente. M2: e `'colore'`, quando il codice digitato non è in
+    // catalogo — il lavoro nasce lo stesso, ma adesso lo si dice.
+    accessoriFalliti: [] as AccessorioFallito[],
     dentista: 'Dr. Esposito',
     lavoroLabel: 'Corona zirconia',
     pz: 'PZ-0436',
@@ -211,10 +217,69 @@ describe('FrameFatto — accessoriFalliti (fail-soft)', () => {
   })
 
   it('non vuoto → useAvvisi().errore al mount con copy dedicata', async () => {
-    renderFatto({ accessoriFalliti: ['dettagli'] })
+    renderFatto({ accessoriFalliti: ['elementi'] })
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText(/Non sono riuscita a salvare/)).toBeInTheDocument()
     expect(screen.getByText(/Li aggiungi dalla scheda\./)).toBeInTheDocument()
+  })
+})
+
+// M2 (revisione pre-merge ondata a) — la frase che l'odontotecnico legge quando
+// il colore digitato non è in catalogo. Deve dire due cose: che il colore NON è
+// stato registrato, e da dove si rimedia. La forma è quella di casa
+// («Non sono riuscita a salvare X. …aggiungi dalla scheda.»), non una terza voce.
+//
+// Il pronome finale concorda: un elenco di più cose (o «gli elementi», che è già
+// plurale) vuole «Li», «il colore» vuole «Lo», «la foto» vuole «La». Senza
+// concordanza la frase nuova sarebbe stata «Non sono riuscita a salvare il
+// colore. Li aggiungi dalla scheda.» — italiano sbagliato in una schermata che
+// l'utente legge di fretta.
+describe('FrameFatto — la frase del colore scartato (M2)', () => {
+  it('["colore"] → dice cosa manca E cosa fare, al singolare maschile', async () => {
+    renderFatto({ accessoriFalliti: ['colore'] })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText('Non sono riuscita a salvare il colore. Lo aggiungi dalla scheda.')
+    ).toBeInTheDocument()
+  })
+
+  it('["foto"] → femminile singolare: «La aggiungi»', async () => {
+    renderFatto({ accessoriFalliti: ['foto'] })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText('Non sono riuscita a salvare la foto. La aggiungi dalla scheda.')
+    ).toBeInTheDocument()
+  })
+
+  it('["elementi"] → plurale: la frase storica resta identica', async () => {
+    renderFatto({ accessoriFalliti: ['elementi'] })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText('Non sono riuscita a salvare gli elementi. Li aggiungi dalla scheda.')
+    ).toBeInTheDocument()
+  })
+
+  it('["elementi","colore"] → due cose: «e» in mezzo, «Li» alla fine', async () => {
+    renderFatto({ accessoriFalliti: ['elementi', 'colore'] })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText('Non sono riuscita a salvare gli elementi e il colore. Li aggiungi dalla scheda.')
+    ).toBeInTheDocument()
+  })
+
+  it('tutti e tre → virgole e una sola «e», mai «X e Y e Z»', async () => {
+    renderFatto({ accessoriFalliti: ['elementi', 'colore', 'foto'] })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Non sono riuscita a salvare gli elementi, il colore e la foto. Li aggiungi dalla scheda.'
+      )
+    ).toBeInTheDocument()
+  })
+
+  it('nessun accessorio fallito → NESSUN avviso (il caso normale)', () => {
+    renderFatto({ accessoriFalliti: [] })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 

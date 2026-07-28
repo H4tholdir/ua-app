@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server'
-import { oggiRomaISO } from '@/lib/utils/data-roma'
+import { oggiRomaISO, annoRoma } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+// La validazione dei denti è UNA SOLA e vive in `lib/domain`: la chiamano
+// questa creazione e la sostituzione integrale (`PUT /api/lavori/[id]/denti`).
+// Fino al 28/07/2026 viveva solo nel PUT, e qui si controllavano `fdi` e i
+// duplicati e basta — con l'oggetto grezzo che finiva alla RPC (rilievo G2).
+import { validaDenti, type DenteNormalizzato } from '@/lib/domain/denti-validazione'
+// La normalizzazione del colore di caso è UNA SOLA e vive in `lib/api`: la
+// chiamano questa creazione e la correzione dalla scheda (PATCH /api/lavori/
+// [id], Task 12-bis). Due copie della stessa regola sono la classe R3.
+import { risolviColoreCaso } from '@/lib/api/colore-caso'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -94,12 +104,21 @@ export async function POST(req: Request) {
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
 
-  let body: Record<string, unknown>
+  let grezzo: unknown
   try {
-    body = await req.json()
+    grezzo = await req.json()
   } catch {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
+  // ⚠️ `JSON.stringify(null)` è la stringa "null": `req.json()` la parsa SENZA
+  // lanciare, quindi il catch qui sopra NON scatta e ogni lettura `body.campo`
+  // sarebbe un TypeError → 500 non gestito. Un corpo che non è un oggetto è un
+  // errore di richiesta, e va detto. Stessa classe già chiusa in
+  // `lavori/[id]/cassetta/route.ts` e dichiarata in `[id]/denti/route.ts:77-84`.
+  if (grezzo === null || typeof grezzo !== 'object' || Array.isArray(grezzo)) {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+  }
+  const body = grezzo as Record<string, unknown>
 
   // Validazione server-side campi obbligatori
   if (!body.cliente_id || typeof body.cliente_id !== 'string') {
@@ -150,57 +169,109 @@ export async function POST(req: Request) {
     }
   }
 
-  // Genera progressivo numero lavoro (race-safe via DB function)
-  const anno = new Date().getFullYear()
-  const { data: progressivo, error: rpcError } = await svc.rpc('genera_progressivo', {
-    p_laboratorio_id: labId,
-    p_tipo: 'lavoro',
-    p_anno: anno,
-  })
-
-  if (rpcError || progressivo == null) {
-    return NextResponse.json(
-      { error: `Impossibile generare numero lavoro: ${rpcError?.message ?? 'null'}` },
-      { status: 500 }
-    )
+  // Validazione dei denti PRIMA della RPC: un valore fuori dominio deve tornare
+  // un 422 leggibile che dice QUALE dente, non un 500 dal CHECK del database —
+  // e senza bruciare un progressivo.
+  //
+  // 🛑 E DEVE ESSERE LA STESSA DEL PUT, non una sua metà (rilievo G2 della
+  // revisione pre-merge, 28/07/2026). Qui si guardavano `fdi` e i duplicati e
+  // poi si spediva alla RPC l'oggetto GREZZO; `lavoro_crea_atomico` non ha
+  // exception handler attorno all'INSERT dei denti, quindi un `ruolo` inventato
+  // o una mezza coppia di colore non facevano perdere il DENTE: facevano
+  // abortire l'intera creazione, con un 500 col messaggio Postgres crudo e il
+  // lavoro che non nasceva. Il rovescio della regola dura del ramo.
+  //
+  // 🔑 E si spedisce la lista NORMALIZZATA, non quella grezza: senza il `.trim()`
+  // un `scala: '  vita_classical  '` passerebbe ogni controllo di forma e
+  // arriverebbe al database con gli spazi attaccati — `lavori_denti_colore_fk`,
+  // 500, di nuovo il lavoro perso. Da qui in avanti le due porte mandano alla
+  // banca dati oggetti della STESSA forma.
+  //
+  // 🔴 `denti` presente ma NON una lista è un 422, mai un «nessun dente».
+  // Un `Array.isArray(body.denti) ? ... : []` trasformerebbe un oggetto o una
+  // stringa in lista vuota: 201, zero denti, nessun errore — il dato sparirebbe
+  // in silenzio e l'utente leggerebbe «Salvato». Anche `null` cade qui: chi non
+  // ha denti da mandare OMETTE la chiave, non la manda vuota. ⚠️ Questa
+  // distinzione fra «assente» e «presente ma sbagliata» resta QUI e non entra
+  // nel modulo condiviso: è l'unica differenza legittima fra le due porte (sul
+  // PUT la lista è il corpo stesso della richiesta) e va vista dove sta.
+  let dentiIn: DenteNormalizzato[] = []
+  if (body.denti !== undefined) {
+    const esitoDenti = validaDenti(body.denti)
+    if (!esitoDenti.ok) {
+      return NextResponse.json({ error: esitoDenti.errore, valore: esitoDenti.valore }, { status: 422 })
+    }
+    dentiIn = esitoDenti.denti
   }
 
-  const numero_lavoro = `${anno}/${String(progressivo).padStart(4, '0')}`
+  // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
+  // Motivo NORMATIVO, non di comodità (spec §4, rischio R1): un colore perso in
+  // silenzio produce una Dichiarazione priva di un contenuto obbligatorio
+  // dell'Allegato XIII. Prima di questa modifica il lavoro nasceva con un
+  // INSERT e i denti arrivavano dopo con una PATCH fail-soft: se quella
+  // falliva, il lavoro esisteva e il dato no.
+  // L'anno è quello del giorno civile di ROMA, non dell'orologio del processo:
+  // in produzione il server gira in UTC, e `new Date().getFullYear()` fra le
+  // 00:00 e l'01:00 di Roma del 1° gennaio è ancora indietro di un anno. Qui non
+  // sarebbe un dettaglio estetico: questo valore diventa `v_anno` dentro
+  // lavoro_crea_atomico e alimenta genera_progressivo(p_lab, 'lavoro', v_anno)
+  // — la SERIE del numero di lavoro, che finisce nella Dichiarazione di
+  // Conformità e in fattura. Con l'anno del server il lavoro nascerebbe con
+  // `data_ingresso` (già di Roma, sotto) al 1° gennaio e il numero pescato dalla
+  // serie dell'anno prima.
+  const anno = annoRoma()
+  const colore = await risolviColoreCaso(svc, body.colore_scala, body.colore_codice)
+  const { data: esitoRpc, error: rpcError } = await callRpcWithRetry(() =>
+    svc.rpc('lavoro_crea_atomico', {
+      p_lab: labId,
+      p_lavoro: {
+        anno_lavoro: anno,
+        tipo_dispositivo: body.tipo_dispositivo,
+        descrizione: body.descrizione,
+        data_consegna_prevista: body.data_consegna_prevista,
+        ora_consegna: body.ora_consegna ?? null,
+        richiedente_nome: body.richiedente_nome ?? null,
+        priorita: body.priorita ?? 'normale',
+        dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
+        note_interne: body.note_interne ?? null,
+        cliente_id: body.cliente_id,
+        paziente_id: body.paziente_id ?? null,
+        tecnico_id: body.tecnico_id ?? null,
+        ciclo_id: body.ciclo_id ?? null,
+        classe_rischio: body.classe_rischio ?? 'classe_i',
+        da_conformare: body.da_conformare ?? true,
+        codice_iva: body.codice_iva ?? 'N4',
+        natura_iva: body.natura_iva ?? 'N4',
+        data_ingresso: oggiRomaISO(),
+        // Già passati dal catalogo: al database arriva una coppia che ESISTE,
+        // oppure due null. Mai il grezzo del client (v. risolviColoreCaso).
+        colore_scala: colore.colore_scala,
+        colore_codice: colore.colore_codice,
+      },
+      p_denti: dentiIn,
+    })
+  )
 
-  // Build insert payload — whitelist safe fields from body
-  const insertData = {
-    laboratorio_id: labId,
-    numero_lavoro,
-    anno_lavoro: anno,
-    stato: 'ricevuto' as const,
-    tipo_dispositivo: body.tipo_dispositivo,
-    descrizione: body.descrizione,
-    data_consegna_prevista: body.data_consegna_prevista,
-    ora_consegna: body.ora_consegna ?? null,
-    richiedente_nome: body.richiedente_nome ?? null,
-    priorita: body.priorita ?? 'normale',
-    dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
-    note_interne: body.note_interne ?? null,
-    cliente_id: body.cliente_id,
-    paziente_id: body.paziente_id ?? null,
-    tecnico_id: body.tecnico_id ?? null,
-    ciclo_id: body.ciclo_id ?? null,
-    classe_rischio: body.classe_rischio ?? 'classe_i',
-    da_conformare: body.da_conformare ?? true,
-    codice_iva: body.codice_iva ?? 'N4',
-    natura_iva: body.natura_iva ?? 'N4',
-    data_ingresso: oggiRomaISO(),
+  // postgrest NON lancia: l'errore si controlla, non si aspetta in un catch.
+  if (rpcError) {
+    return NextResponse.json({ error: rpcError.message }, { status: 500 })
   }
 
-  const { data: lavoro, error: insertError } = await svc
-    .from('lavori')
-    .insert(insertData)
-    .select('id, numero_lavoro, stato')
-    .single()
+  const esito = esitoRpc as {
+    esito?: string
+    id?: string
+    numero_lavoro?: string
+    stato?: string
+    dettaglio?: string
+  } | null
 
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+  // I tre campi si controllano tutti: se anche uno solo mancasse, il client
+  // riceverebbe un lavoro senza numero e lo mostrerebbe come creato.
+  if (esito?.esito !== 'ok' || !esito.id || !esito.numero_lavoro || !esito.stato) {
+    return NextResponse.json({ error: esito?.dettaglio ?? 'Creazione non riuscita' }, { status: 500 })
   }
+
+  const lavoro = { id: esito.id, numero_lavoro: esito.numero_lavoro, stato: esito.stato }
 
   // Genera le fasi di produzione dal ciclo scelto, se presente.
   // Non blocca la creazione del lavoro già avvenuta se qualcosa qui fallisce:
@@ -232,5 +303,10 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ lavoro }, { status: 201 })
+  // `colore_scartato` (M2, 28/07/2026): il colore digitato male non fa fallire
+  // la creazione — ma il 201 da solo dice «tutto a posto», e non era vero. Il
+  // campo c'è SEMPRE, anche `false`: un consumatore non deve distinguere «no»
+  // da «non me l'ha detto». È l'unica informazione che il client non può
+  // dedurre da sé (il confronto col catalogo vive qui, v. risolviColoreCaso).
+  return NextResponse.json({ lavoro, colore_scartato: colore.scartato }, { status: 201 })
 }

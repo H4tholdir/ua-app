@@ -794,12 +794,18 @@ export function OdontogrammaFDI({
     onImpianti(newImpianti)
   }
 
+  // Il layout ha quattro caselle (sup dx, sup sx, inf dx, inf sx), ma i quadranti
+  // FDI sono otto: 1-4 permanenti, 5-8 decidui. Il deciduo occupa la stessa casella
+  // del permanente omologo (Q5↔Q1, Q6↔Q2, Q7↔Q3, Q8↔Q4), quindi si raggruppa per
+  // casella, non per numero di quadrante — altrimenti in dentizione decidua i
+  // quattro filtri tornerebbero vuoti e l'odontogramma resterebbe senza denti.
+  const casella = (q: DenteFDI['quadrante']) => ((q - 1) % 4) + 1
   // Righe arcata superiore: Q1 + Q2
-  const superioreQ1 = denti.filter((d) => d.arcata === 'superiore' && d.quadrante === 1)
-  const superioreQ2 = denti.filter((d) => d.arcata === 'superiore' && d.quadrante === 2)
+  const superioreQ1 = denti.filter((d) => d.arcata === 'superiore' && casella(d.quadrante) === 1)
+  const superioreQ2 = denti.filter((d) => d.arcata === 'superiore' && casella(d.quadrante) === 2)
   // Righe arcata inferiore: Q4 + Q3
-  const inferioreQ4 = denti.filter((d) => d.arcata === 'inferiore' && d.quadrante === 4)
-  const inferioreQ3 = denti.filter((d) => d.arcata === 'inferiore' && d.quadrante === 3)
+  const inferioreQ4 = denti.filter((d) => d.arcata === 'inferiore' && casella(d.quadrante) === 4)
+  const inferioreQ3 = denti.filter((d) => d.arcata === 'inferiore' && casella(d.quadrante) === 3)
 
   const tuttiSelezionati = selezionati.filter((n) =>
     denti.some((d) => d.numero === n)

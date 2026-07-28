@@ -51,7 +51,12 @@ describe('POST /api/lavori — validazione enum tipo_dispositivo (B2)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
-    mockRpc.mockResolvedValue({ data: 1, error: null })
+    // Task 9: `data: 1` era il ritorno di `genera_progressivo`. La creazione
+    // passa ora dall'RPC atomica, che restituisce un esito strutturato.
+    mockRpc.mockResolvedValue({
+      data: { esito: 'ok', id: 'lavoro-1', numero_lavoro: '2026/0001', stato: 'ricevuto' },
+      error: null,
+    })
   })
 
   function setupTables() {
@@ -106,14 +111,21 @@ describe('POST /api/lavori — validazione enum tipo_dispositivo (B2)', () => {
     expect(json.error).toBe('tipo_dispositivo non valido')
   })
 
-  it('tipo_dispositivo bite_splint (macro valido) → passa la validazione, arriva all\'INSERT', async () => {
-    const insertSpy = setupTables()
+  it('tipo_dispositivo bite_splint (macro valido) → passa la validazione, arriva alla persistenza', async () => {
+    setupTables()
 
     const res = await POST(postReq({ ...BASE_BODY, tipo_dispositivo: 'bite_splint' }))
 
     expect(res.status).toBe(201)
-    expect(insertSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ tipo_dispositivo: 'bite_splint' })
+    // Task 9: il tipo arriva alla persistenza dentro `p_lavoro` dell'RPC
+    // atomica, non più in un INSERT diretto su `lavori`. L'affermazione provata
+    // è la stessa — un macro valido supera la validazione e viene scritto —
+    // cambia solo il meccanismo attraverso cui ci arriva.
+    expect(mockRpc).toHaveBeenCalledWith(
+      'lavoro_crea_atomico',
+      expect.objectContaining({
+        p_lavoro: expect.objectContaining({ tipo_dispositivo: 'bite_splint' }),
+      })
     )
   })
 })
