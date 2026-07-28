@@ -2247,6 +2247,42 @@ git commit -m "feat(lavori): il form del lavoro salva i denti sul loro endpoint,
 
 ---
 
+## Task 12-bis: il colore «di tutto il lavoro» torna correggibile — DENTRO QUESTO DEPLOY
+
+🔑 **Nato dal Task 12, deciso da Francesco il 28/07/2026**, dopo che l'esecutore del T12 ha posto la domanda invece di deciderla da sé.
+
+> 🛑 **LA RAGIONE DI DOMINIO, in parole di Francesco — è una fonte primaria (Statuto delle fonti, prova n° 4: decisione esplicita di Francesco). Non dedurla di nuovo, non contraddirla:**
+> *«si può succedere di voler inserire il colore ad esempio su di una protesi totale senza indicare il dente.»* (28/07/2026)
+>
+> Cioè: **esiste un lavoro in cui il colore vale per l'intero dispositivo e i denti non si segnano uno per uno.** Il colore «di tutto il lavoro» **non** è un ripiego per un dato incompleto: è un dato legittimo, con un caso d'uso reale al banco. Ogni progetto futuro che tratti il default di caso come uno stato transitorio da eliminare sta contraddicendo questa riga.
+> ⚠️ La prima formulazione di questa decisione era l'opposta («il colore vuole sempre il dente») ed è stata **rettificata da Francesco entro il minuto**. Vale la seconda.
+
+**Il fatto.** In quest'ondata il colore vive **sulla riga del dente**. Un lavoro senza denti segnati non ha dove metterlo: il T12 ha messo un fermo esplicito («Il colore si registra sul dente: seleziona almeno un dente») invece di lasciarlo sparire in silenzio — la scelta giusta fra le due possibili, ma **non è una via di correzione**.
+**Perché non basta:** il wizard può far nascere un lavoro **con un colore di caso e senza denti** (T11: il colore digitato va in `lavori.colore_scala`/`colore_codice`, i denti solo se l'elemento è compilato). Da quel momento quel colore **non si corregge più** — le due colonne non sono mai state in `PATCHABLE_FIELDS`. Collide con la **direttiva permanente** «ogni campo del lavoro si corregge, fino alla consegna» (`ua-app/CLAUDE.md` §9).
+**Misurato sul database il 28/07:** `293 lavori su 294` non hanno denti registrati, e **zero** hanno un colore. Quindi non c'è nessun dato esistente da salvare: si sta riparando **il flusso**, non lo storico.
+
+**Comportamento da ottenere** (l'implementazione la sceglie l'esecutore, questo è il contratto osservabile):
+- **Se il lavoro ha dei denti** → il colore si scrive **sulle righe**, esattamente come fa il T12 oggi. Nessun cambiamento.
+- **Se il lavoro non ha denti** → il colore si scrive sul **default di caso** (`lavori.colore_scala`/`colore_codice`), e il fermo del T12 non scatta più.
+- 🛑 **Mai due verità visibili insieme:** quando ci sono righe, il caso non si tocca — la precedenza riga→caso (`src/lib/domain/colore-dente.ts`, Task 2) mostrerebbe comunque la riga, e un caso divergente sarebbe un dato fantasma.
+- 🛑 **Mai far fallire il salvataggio per un colore digitato male**, stessa regola dura del T11: si perde il colore, non il lavoro.
+
+**Vincoli del database — sono la ragione per cui questo task non è «due nomi in una lista»:**
+```
+provato: node scripts/tmp/sql.mjs "select conname, pg_get_constraintdef(oid) from pg_constraint
+         where conrelid='lavori'::regclass and (… ilike '%colori_dentali%' or … '%colore_scala%');"
+→ lavori_colore_caso_fk        FOREIGN KEY (colore_scala, colore_codice) REFERENCES colori_dentali(scala, codice)
+→ lavori_colore_caso_coppia_ck CHECK ((colore_scala IS NULL) = (colore_codice IS NULL))
+→ lavori_colore_scala_check    CHECK (colore_scala IS NULL OR colore_scala = ANY (…'vita_classical','vita_3d_master','fuori_scala'))
+```
+Quindi: la coppia viaggia **sempre insieme** (mezza coppia = violazione), e un codice fuori catalogo o in minuscolo **fa fallire l'aggiornamento**. 🎁 **La normalizzazione col catalogo esiste già**: il T11 l'ha scritta per il `POST /api/lavori` (maiuscolo, scala dedotta, coppia fuori catalogo → scartata). **Si riusa quella, non se ne scrive una seconda** — due copie della stessa regola sono la classe di difetto R3 che quest'ondata combatte.
+
+⚠️ **Aggiungere questi due nomi a `PATCHABLE_FIELDS` NON riapre il rischio del Task 10**: i sette usciti là sono i campi **per-dente legacy**, con due scrittori in conflitto. Queste due colonne sono il **default di caso**, nate col Task 5, **mai state** in allowlist e con un solo scrittore. È additivo. ⚠️ Ma **la tabella di destinazione R-P6 del T10 va aggiornata**: `colore_dente` oggi vi rimanda alle righe, e da questo task rimanda **alle righe oppure al caso**, secondo la regola sopra.
+
+⚠️ **Grafica invariata.** Nessuna casella nuova, nessuna tendina nuova: cambia dove finisce il valore, non cosa si vede.
+
+---
+
 ## Task 13: Le prove che nessun test unitario può dare — isolamento e cancellabilità
 
 **R4** (un laboratorio vede i denti di un altro) e **R5** (il tenant diventa incancellabile) si provano **sul database vero**, con richieste ostili. Un mock non può falsificarli.
