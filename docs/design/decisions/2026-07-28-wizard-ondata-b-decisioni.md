@@ -1,7 +1,8 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
-**Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Trentatré decisioni in sei tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Data:** 28 luglio 2026 · **aggiornato il 29 luglio (settima tornata, dopo il panel)** ·
+**Decide:** Francesco Formicola · **Stato:** ratificato in sessione
+**Trentaquattro decisioni in sette tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -159,6 +160,15 @@ e nient'altro** (altrimenti 422), e `facciaHex` (`src/design-system/v3/tokens.ts
 parole in colore. 🔑 **Avevo dedotto un difetto da un dato senza aprire il codice che quel dato lo legge** —
 la stessa forma d'errore che il panel sui colori aveva smontato la mattina. Francesco aveva chiesto «come
 pensi di risolverlo?»: **non c'era niente da risolvere.**
+
+---
+
+### Settima tornata — 29 luglio 2026, dopo il panel di validazione
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D34** | 🔒 **Il codice di un paziente archiviato NON si riusa: resta impegnato per sempre.** L'indice unico **non guarda lo stato** del paziente | scelta esplicita fra due forme, presentate col loro costo. Prima di chiedergliela: «è l'unica decisione di tutta la sessione che **non si può disfare dopo**» | **Predicato: `WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> ''`** — nessun filtro su `archiviato` né su `deleted_at`. **Chiave normalizzata: `(laboratorio_id, lower(btrim(codice_paziente)))`** (D34-bis, sotto). 🔑 **La ragione che decide:** il codice **non è un'etichetta interna, è un identificativo di legge** — Art. 21(2) MDR e Allegato XIII p.1: il dispositivo è destinato a «un determinato paziente … identificato mediante il **nome, un acronimo o un codice numerico**», tre alternative **equivalenti**. E finisce su **quattro documenti conservati**: `EtichettaTemplate.tsx:128` · `IFUTemplate.tsx:171` · `RicevutaConsegnaTemplate.tsx:187` · **`generate-ddc.ts:93`**, dove è l'ultimo ripiego dell'elemento 4 **sulla Dichiarazione stessa**, che poi si **congela**. Se in un laboratorio lo stesso codice puntasse a due persone, **risalire dal dispositivo al paziente** dopo un incidente (All. XIII p.5, Art. 87) diventerebbe ambiguo **proprio nella lettura che conta**. ⚠️ **Dichiarato come inferenza, non come citazione:** l'MDR **non scrive** «i codici non si riusano». ✅ **Precedente in casa già ratificato:** per le DdC annullate «il numero **NON si riusa mai**» (`ANALISI/17:149`, parere normativo del 16/07). 🔑 **Secondo argomento, indipendente dalla norma:** mettere lo stato nel predicato **obbligherebbe a scegliere QUALE stato**, e `pazienti` ne ha **due che non concordano** (`archiviato` scritto dal DELETE, `deleted_at` letto da RLS e wizard) — **un predicato senza stato non deve arbitrare niente**. **Costo: nessuno** (il numero successivo si calcola comunque). Panel: `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md` §5-quater e §5-quinquies |
+| **D34-bis** | **Il codice si normalizza**: `lower(btrim(...))` in indice **e** in scrittura | conseguenza tecnica di D34, adottata su parere concorde di due advisor e **provata** | 🔴 **Senza, il divieto non funziona: PROVATO.** Sonda P1-bis (transazione annullata, tabelle temporanee): con l'indice grezzo `pz-0042`, ` PZ-0042` e `PZ-0042 ` **passano tutti e tre**; con quello normalizzato sono **tutti rifiutati**, e il controllo positivo fra due laboratori **continua a passare**. La casella è modificabile a mano da **due strade** (wizard `PassoPaziente.tsx:76` e scheda `PazienteEditSheet.tsx:182-184`) **più la dettatura**, e `Campo.tsx:85` passa il valore **grezzo**. ✅ **Non è una scelta di gusto:** `cognomeEffettivo` (`domain/nome-paziente-scrittura.ts:86-89`) confronta **già oggi** il codice `trim`-ato e in minuscolo — è la normalizzazione **che esiste già su questa identica colonna**. ⚠️ **Ne segue un obbligo:** il pre-check deve usare **la stessa identica espressione**, e il generatore va reso **case-insensitive** (`.like` → `.ilike`, `/^PZ-(\d+)$/` → `/i`), altrimenti un `pz-0043` digitato a mano è invisibile al `max+1` e **il wizard proporrebbe un codice che l'indice ha già occupato** |
 
 ---
 
