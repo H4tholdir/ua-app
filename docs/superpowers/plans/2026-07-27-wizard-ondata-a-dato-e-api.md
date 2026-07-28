@@ -1942,10 +1942,20 @@ git commit -m "feat(lavori): il wizard manda i denti col lavoro — via la PATCH
 
 🎁 **Il precedente esatto è già lì, tre righe sopra:** `useLavoroForm.ts:51-57` toglie `numero_cassetta` dal corpo *alla sorgente*, col commento «il server l'ha tolta da PATCHABLE_FIELDS (**no-op silenzioso**), ma va tolta ALLA SORGENTE così il PATCH del form non la invia MAI». **Si ricalca quello.** È anche la prova del perché questo task è obbligatorio nello stesso deploy del Task 10: senza, i sette campi partono, il server li scarta **senza dire niente**, e l'utente vede «Salvato» su un dato che non è stato salvato.
 
+🔴 **AMPLIAMENTO DEL MANDATO — trovato eseguendo il Task 10, verificato sul corpo delle RPC il 28/07/2026. Senza questo, il task consegna la stessa bugia che esiste per togliere, spostata dalla scrittura alla LETTURA.**
+Le due RPC atomiche denormalizzano su `lavori` **solo i tre `denti_*`** (`20260727120300_lavori_denti_rpc.sql:115-121` e `:205-211`: gli `UPDATE lavori SET` toccano `denti_coinvolti`, `denti_mancanti`, `denti_impianti` e **nessuna** colonna del colore). Quindi, dal Task 10 in poi, `lavori.colore_dente`/`colore_collo`/`colore_corpo`/`colore_incisale` **non hanno più alcuno scrittore**.
+Ma il percorso di **lettura** è rimasto dov'era: la `GET` del lavoro (`src/app/api/lavori/[id]/route.ts`, la `select` con gli embed a `:242`) **non include `lavori_denti`**, e `TabClinica.tsx:57,77,97,117` si idrata da `data.colore_*`.
+➡️ **Esito senza intervento:** l'utente digita un colore nella scheda, legge «Salvato» (e stavolta è vero: il dato è in `lavori_denti`), **ricarica la pagina e il colore non c'è più**. Il ciclo scrivi→rileggi si spezza sulla rilettura.
+➡️ **Questo task deve quindi anche portare il colore SULLA STRADA DEL RITORNO:** la GET include le righe di `lavori_denti`, e la scheda si idrata da lì invece che dalle quattro colonne orfane. Test: scrivi un colore, **rileggi**, ritrovalo — non basta asserire che la scrittura parta.
+⚠️ **Dimensione corretta, verificata:** è un difetto di **correggibilità del dato e di esperienza d'uso**, **non** un'esposizione dell'Allegato XIII — `DdcTemplate.tsx` e `generate-ddc.ts` non leggono alcun campo colore, e il Task 5 ha già eliminato `dichiarazioni_conformita.colore_dente`. Non si escala come normativo.
+🛑 Resta il vincolo dell'ondata: **grafica invariata**. La tendina è ondata (b).
+
 **Files:**
 - Modify: `src/hooks/useLavoroForm.ts:36-80` (il punto di scrittura)
 - Modify: `src/components/features/lavori/LavoroFormClient.tsx:148` (passa l'id e l'`updated_at` al salvataggio dei denti)
-- Test: `tests/unit/lavoro-form-denti-endpoint.test.ts`
+- Modify: `src/app/api/lavori/[id]/route.ts` — la `GET`: includere `lavori_denti` (strada del ritorno)
+- Modify: `src/components/features/lavori/form/TabClinica.tsx:57,77,97,117` — idratarsi dalle righe, non dalle colonne orfane
+- Test: `tests/unit/lavoro-form-denti-endpoint.test.ts` + un caso **scrivi → rileggi → ritrova**
 
 - [ ] **Step 1: Leggi il precedente da ricalcare**
 

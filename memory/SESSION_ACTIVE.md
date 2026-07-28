@@ -32,9 +32,20 @@ difetto dell'anno, in SQL — **latente**, zero chiamanti · ⑥ 🟡 **da decid
 fissare `TZ:'UTC'` in `vitest.config.ts`? Oggi `fatture-data-roma.test.ts:42-48` non può fallire su
 una macchina italiana.
 
-**ONDATA (a) — 9 task su 13.** **RESTANO:** T10 sentinelle (+ tabella di destinazione R-P6) ·
-T11 wizard · T12 form · T13 prove + FASE 7.
-🛑 **T10, T11, T12 nello STESSO deploy** (`[id]/route.ts:255-264` scarta senza errore).
+✅ **T10 CHIUSO** (commit `75434c5a`): i **sette** nomi (il titolo del task diceva cinque) sono usciti
+da `PATCHABLE_FIELDS`, con la **tabella di destinazione R-P6 scritta nel codice** — nessuna riga
+senza destinazione. **3487 verdi.** 🔑 I sette **non hanno lo stesso regime**: i tre `denti_*` restano
+denormalizzati dalle RPC, le **quattro colonne del colore no** (verificato sul corpo delle RPC).
+🛑 **Da qui il ritrovamento più importante del blocco:** il colore si scriverebbe ma **non si
+rileggerebbe** (la GET non include `lavori_denti`, `TabClinica` si idrata dalle colonne orfane) →
+✅ chiuso **scrivendolo nel piano** come ampliamento del **T12** (strada del ritorno + test
+scrivi→rileggi→ritrova). Non è normativo: la DdC non legge campi colore.
+
+**ONDATA (a) — 10 task su 13. 🔨 BLOCCO 10-11-12 APERTO** (autorizzato da Francesco il 28/07:
+«cominciare subito»). **RESTANO:** T11 wizard · T12 form (**mandato ampliato**) · T13 prove + FASE 7.
+🛑 **T10, T11, T12 nello STESSO deploy** (`[id]/route.ts:255-264` scarta senza errore): **da adesso
+il ramo è in uno stato intermedio** — il wizard e la scheda mandano sette campi che il server scarta
+in silenzio. **Non ci si ferma qui.**
 
 ⚖️ **REGOLE DI METODO** (`CLAUDE.md` §0C): R-P1 · R-P2 · R-P6 · R-P4 · R-E1 · R-E2.
 🛑 **NON retroattive su T9-T13**; unico innesto: al **T10 la tabella di destinazione R-P6**.

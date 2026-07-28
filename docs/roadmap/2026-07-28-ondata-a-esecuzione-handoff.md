@@ -224,6 +224,55 @@ chiavi note via `d->>'…'` (⚠️ differenza dichiarata rispetto al PUT, che l
 
 ---
 
+## 5-ter. Quello che il T10 ha lasciato detto (28/07/2026, commit `75434c5a`)
+
+**Fatto:** i **sette** nomi (non cinque, come diceva il titolo del task) sono usciti da
+`PATCHABLE_FIELDS`. 9 casi nuovi, **7 rossi al primo giro**, tutti per la ragione giusta. Suite
+**3487 verdi**, `tsc` 0, `eslint` 0, `next build` ok, DB alla baseline.
+🔑 **L'esecutore ha aggiunto un controllo positivo** (`toContain('descrizione')`) che il piano non
+prevedeva: sette `not.toContain` sarebbero passati **anche con l'allowlist svuotata per sbaglio** —
+non distinguono «i sette sono usciti» da «non è rimasto niente».
+
+### ✅ La tabella di destinazione (R-P6) — e i sette nomi NON hanno lo stesso regime
+Sta nel codice, sopra `PATCHABLE_FIELDS`, con i due gruppi separati. **Nessuna riga senza destinazione.**
+- **Gruppo A — la colonna su `lavori` resta viva** (regime `numero_cassetta`): `denti_coinvolti`,
+  `denti_mancanti`, `denti_impianti` → righe di `lavori_denti` per ruolo + **denormalizzazione
+  scritta dalle RPC** → T11 (wizard) / T12 (scheda).
+- **Gruppo B — la colonna su `lavori` NON ha più nessuno scrittore:** `colore_dente`, `colore_collo`,
+  `colore_corpo`, `colore_incisale` → `lavori_denti.codice*` → T11 / T12.
+  🛑 **Il piano lasciava credere il contrario per omissione**: il commento prescritto dice che «le
+  colonne restano vive come denormalizzazione» e nomina **solo i tre `denti_*`**. Verificato sul
+  corpo delle RPC (`20260727120300_lavori_denti_rpc.sql:115-121` e `:205-211`): gli `UPDATE lavori
+  SET` **non toccano nessuna colonna del colore**.
+- 🔑 **L'ottavo scrittore non esiste, ed è stato cercato per FORMA, non per nome:** dei cinque
+  chiamanti della PATCH, quattro mandano chiavi esplicite; **uno solo** manda un oggetto intero
+  (`useLavoroForm.ts:59`, `{ ...data }` → T12). Un grep sui sette nomi non l'avrebbe visto.
+
+### 🔴 Ritrovamenti fuori mandato del T10
+
+10. 🛑 **IL COLORE SI SCRIVE MA NON SI RILEGGE — e il T12 come era scritto NON lo copriva.**
+    Conseguenza diretta del Gruppo B: le quattro colonne `lavori.colore_*` non hanno più scrittori,
+    ma la `GET` del lavoro (`[id]/route.ts:242`) **non include `lavori_denti`** e
+    `TabClinica.tsx:57,77,97,117` si idrata da `data.colore_*`. Dopo il deploy T10+T11+T12 l'utente
+    digiterebbe un colore, leggerebbe «Salvato» (vero: il dato è nelle righe), **ricaricherebbe e non
+    lo troverebbe più** — la stessa bugia che l'ondata esiste per togliere, spostata dalla scrittura
+    alla **lettura**. ✅ **Chiuso il 28/07 scrivendolo NEL PIANO come ampliamento del mandato del
+    T12** (la strada del ritorno: la GET include le righe, la scheda si idrata da lì, e il test è
+    **scrivi → rileggi → ritrova**). ⚠️ **Dimensione corretta, verificata:** correggibilità del dato
+    ed esperienza d'uso, **non** Allegato XIII — `DdcTemplate.tsx` e `generate-ddc.ts` non leggono
+    alcun campo colore. Non si escala come normativo.
+11. **Il default di caso non è correggibile dopo la creazione.** `lavori.colore_scala`/`colore_codice`
+    si scrivono solo dentro `lavoro_crea_atomico` e **non sono mai stati** in `PATCHABLE_FIELDS`:
+    nessuna via di correzione. Collide con la direttiva permanente «ogni campo del lavoro si corregge,
+    fino alla consegna». Casa naturale: **ondata (b)**, quando arriva la tendina.
+12. **Un test verde su un difetto vivo:** `tests/unit/crea-lavoro.test.ts:193` continua a passare
+    mentre asserisce che il wizard fa una PATCH con `denti_coinvolti`/`colore_dente` — che dal T10 è
+    un **no-op silenzioso**. Passa perché il `fetch` è finto e non arriva mai al server. **Lo sostituisce il T11.**
+13. **Due conteggi sbagliati nel piano:** il titolo del T10 dice «cinque nomi» (sono **sette**), e lo
+    Step 2 prevede «FAIL su 7 degli 8 casi» — non corrisponde né al test del piano né a quello scritto.
+
+---
+
 ## 6. Come si esegue (metodo scelto da Francesco, e ha funzionato)
 
 **Un task alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e l'altro. Nel brief:
