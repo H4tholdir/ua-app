@@ -625,10 +625,21 @@ agganciate (voce 55) e i due progetti Playwright fantasma erano **capacità che 
 questa **esiste per intero e non si raggiunge**. Il tratto davvero comune è l'altro: **nessuna delle
 tre falliva rumorosamente.** Un controllo che non gira non protesta — e da fuori è identico a uno che
 gira e passa.
-**Da decidere (di Francesco, non una pulizia meccanica):** agganciare gstack dove le sue skill lo
-cercano — un collegamento da `~/.claude/skills/gstack` al percorso vero risolverebbe tutte e 64 le
-righe in un colpo — **oppure** togliere le scorciatoie rotte se gstack non si usa più. Finché la
-skill è nell'elenco e non si raggiunge, chi la invoca crede di avere una revisione strutturata.
+✅ **DECISO E FATTO il 28/07/2026 — Francesco: «non lo uso più, togli tutto».** Rimosso:
+il corpo `ua-app/.agents/` (**1,1 GB**, conteneva solo gstack) · le **53** cartelle-scorciatoia sotto
+`.claude/skills/` (censite una per una: **53 su 53** puntavano dentro gstack, **zero eccezioni**) ·
+il symlink **tracciato** `.claude/skills/gstack` (rimosso da git) · le **53 voci** gstack in
+`.claude/settings.local.json` · la voce in `skills-lock.json` · le due righe in `.gitignore` · la
+cartella di scarto `.gstack/`. **Tutto nel cestino, non cancellato: è ripristinabile.**
+🛑 **NON toccate le 11 skill di design di Francesco** (`animejs`, `brandkit`, `ckm-design-system`,
+`css-animations`, `design-taste-frontend`, `gsap`, `high-end-visual-design`, `lottie`, `tailwind`,
+`ui-ux-pro-max`, `waapi`): verificate una per una **dopo** la rimozione, tutte e 11 ancora vive.
+**Istruzioni corrette perché non ingannino:** `CLAUDE.md` FASE 9 (diceva `/gstack qa`) ·
+`PROSSIMA-SESSIONE.md` · e un **avviso in testa a `WORKFLOW-STANDARD.md`**, che NON è stato riscritto:
+oltre quaranta `/gstack:*` lo attraversano, e sostituirli è **ridefinire il processo** (gstack
+occupava il livello «decisione» e i due gate) — decisione di Francesco con panel, non una pulizia.
+⚠️ **Restano i riferimenti nei documenti STORICI** (`MEMORY.md`, handoff, piani vecchi): sono cronaca
+di ciò che è stato fatto allora, e non si riscrivono.
 
 ---
 

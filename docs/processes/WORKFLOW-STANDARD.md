@@ -1,10 +1,33 @@
 # WORKFLOW STANDARD — UÀ PWA
 ## Procedura Operativa Standard per Feature Development con Claude Code
 
+> # 🛑 AVVISO — 28/07/2026: METÀ DI QUESTO DOCUMENTO DESCRIVE STRUMENTI CHE NON ESISTONO PIÙ
+>
+> **gstack è stato RIMOSSO dal progetto** su decisione di Francesco (28/07/2026), dopo che si è
+> scoperto che le sue skill non si raggiungevano: era installato in `ua-app/.agents/skills/gstack/`
+> ma i suoi file cercavano sé stessi in `~/.claude/skills/gstack/`, dove non c'era nulla.
+> Cestinati: il corpo (1,1 GB), le **53** scorciatoie sotto `.claude/skills/`, il symlink tracciato,
+> e le voci in `.claude/settings.local.json`. **Le 11 skill di design di Francesco NON sono state
+> toccate.**
+>
+> **Conseguenza per questo documento:** ogni `/gstack:*` che compare qui sotto — `office-hours`,
+> `plan-eng-review`, `plan-ceo-review`, `plan-design-review`, `review`, `qa`, `ship`, `retro` —
+> **non esiste più.** Sono oltre quaranta riferimenti, e riscriverli non è una correzione di testo:
+> è **ridefinire il processo**, perché gstack occupava il livello «decisione» e i due gate di
+> ingresso e uscita. Quella è una decisione di Francesco con panel (Regola Advisor), non una pulizia.
+>
+> **Fino ad allora vale questo:** la fonte operativa viva sono le **12 fasi** di `ua-app/CLAUDE.md`
+> §0C, che non dipendono da gstack. Per la revisione del codice si usano revisori a contesto fresco
+> con mandati disgiunti (il metodo usato il 28/07: v. `docs/roadmap/2026-07-28-revisione-pre-merge-ondata-a.md`);
+> per il QA browser, `webapp-testing` o gli strumenti Playwright diretti.
+>
+> ⚠️ **Il resto del documento — le 12 fasi, i gate, i criteri — resta valido**: è l'impalcatura degli
+> strumenti a essere caduta, non il processo.
+
 **Versione:** 1.0  
 **Data:** 2026-05-22  
 **Autore:** Francesco Formicola + Claude  
-**Stack orchestrazione:** Superpowers + GSD + gstack
+**Stack orchestrazione:** Superpowers + GSD ~~+ gstack~~ (rimosso il 28/07/2026, v. avviso sopra)
 
 ---
 

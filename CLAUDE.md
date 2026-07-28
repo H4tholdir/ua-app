@@ -100,7 +100,10 @@ FASE 7  → VERIFICA: tsc --noEmit + vitest run + next build (tutti e 3, output 
             ⚠️ `tsc --noEmit` NON valida la firma degli handler di rotta: solo `next build`
                la vede. Per questo i tre comandi sono tre, e nessuno sostituisce l'altro.
 FASE 8  → REVIEW: /code-review + /superpowers:requesting-code-review
-FASE 9  → QA BROWSER: /gstack qa → Playwright 390/768/1280px
+FASE 9  → QA BROWSER: Playwright 390/768/1280px (light + dark)
+            ⚠️ Diceva «/gstack qa»: gstack è stato RIMOSSO dal progetto il 28/07/2026 e quel
+               comando non esiste più. Si usa la skill `webapp-testing` o gli strumenti
+               `preview_*`/`mcp__plugin_playwright_*` direttamente.
 FASE 9b → GATE ESTETICO L2 (🟡 obbligatorio fine ondata con UI, PRIMA del merge):
             micro-audit UI/UX della SOLA superficie dell'ondata contro
             docs/design/audit-ui-ux/CHECKLIST-DS-V3-UI-UX.md (12 sezioni ×
