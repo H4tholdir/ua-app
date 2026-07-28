@@ -1,24 +1,29 @@
-# Sessione attiva — ONDATA (b): PIANO SCRITTO (bozza), 26 decisioni, ZERO codice (28/07/2026, notte)
+# Sessione attiva — ONDATA (b): PIANO SCRITTO, 32 decisioni, ZERO codice (28/07/2026, chiusura)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-ondata-b-piano.md`** — il piano. Prima di eseguirlo leggi
-**§9, «cosa manca»**: è una bozza dichiarata, non un piano eseguibile.
-Contorno: handoff `2026-07-28-ondata-b-piano-handoff.md` · spec ✅ **RATIFICATA** · verbale a **cinque
-tornate** (D1-D8 · D9-D16 · D17-D20 · D21-D25 · **D26**).
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-esecuzione-handoff.md`.**
+Documento operativo: **`docs/roadmap/2026-07-28-ondata-b-piano.md`** — e si legge **§9 «cosa manca»
+PRIMA** di tutto: il piano dichiara di **non essere eseguibile**.
 
-**D26 — tre ondate** (divisione scelta da me su delega): **(b) il wizard** (tutto ciò senza cui non
-funziona) · **(c) le foto per bene** (editor ruota/ritaglia/ingrandisci **e le stesse azioni sulla scheda**,
-perché l'editor si scrive una volta e serve in due posti) · **(d) le cassette per bene** (parete in «modo
-scelta» con ricerca + tavolozza più ricca, con la regola che **ricava** la tonalità scura).
+🛑 **LA PRIMA COSA DA FARE, richiesta esplicita di Francesco:** *«facciamo controllare da advisor
+specializzati il piano da eseguire e tutti i passaggi successivi»*. **Il piano non si esegue prima di un
+panel** (è anche la Regola Advisor). Composizione suggerita e mandato scritto: handoff §1.
 
-**Stato del piano (20 task, T1-T20).** ✅ Fatti: censimento identificatori, 17 file letti con righe citate,
-sonda **P2 provata** (0 duplicati · 916 · 294 · 0 · 48 → la migration non aborta).
-🛑 **Manca per uscire dalla FASE 4:** 10 file **NON letti** (fra cui **4 test che si romperanno di sicuro**)
-· **5 sonde da eseguire** (P1 indice, P3 proiezione, P5 storage, P6 costo query) · censimento dei **token
-orfani** · **3 domande aperte** (DELETE soft o hard → panel normativo · tetto foto da misurare su device ·
-la chiave `localStorage` cambia nome o no).
+**Trentadue decisioni in cinque tornate** (verbale `2026-07-28-wizard-ondata-b-decisioni.md`):
+D1-D8 apertura · D9-D16 mockup · D17-D20 ratifica della spec · D21-D25 varianti · **D26 le tre ondate** ·
+**D27-D32 le minori** (registrate al doppio controllo di fine sessione: erano rimaste solo in chat).
+🌊 **Tre ondate:** **(b) il wizard** · **(c) le foto per bene** (editor + le stesse azioni sulla scheda) ·
+**(d) le cassette per bene** (parete in «modo scelta» + tavolozza più ricca).
 
-🔴 **Difetto trovato SCRIVENDO il piano (P4):** la spec §7 promette che una bozza `v:1` «viene rimossa», ma
-`persistenza.ts:69-73` rimuove la chiave **solo alla scadenza**, non sul mismatch di versione → con `v:2`
-una bozza vecchia resterebbe in `localStorage` **per sempre**. T7 deve chiuderlo, B20 provarlo.
+✅ **Provato, non rifare:** **P1** l'indice unico **rifiuta davvero** (messaggio incollato) **e** due
+laboratori diversi possono usare lo stesso codice (controllo positivo) · **P2** 0 duplicati su 916 pazienti.
+🔴 **Difetto trovato scrivendo il piano (P4):** una bozza `v:1` **non viene mai rimossa** —
+`persistenza.ts:69-73` cancella solo alla scadenza, non sul mismatch di versione.
+🔴 **R12:** un'immagine del lavoro **non si può cancellare** (`immagini/[imgId]` ha solo `PATCH`).
+🚫 **R11 ritirato:** il «difetto» del colore delle cassette non esisteva.
 
-🔑 Baseline DB invariata: **294 lavori · 0 denti · 916 pazienti · 48 colori** (solo letture, tutta la sessione).
+🛑 **Manca al piano:** 10 file **non letti** (fra cui **4 test che si romperanno**) · **4 sonde** (P3, P5,
+P6, e P2 da rieseguire) · censimento dei **token orfani** · **3 domande aperte** (`DELETE` soft o hard →
+**panel normativo** · tetto foto da misurare su device · la chiave `localStorage` cambia nome o no).
+
+🔑 **Zero righe di codice. Dodici commit locali, niente pubblicato.** Baseline riverificata dopo ogni
+sonda: **294 lavori · 0 denti · 916 pazienti · 48 colori**.

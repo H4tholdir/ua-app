@@ -1,5 +1,12 @@
 # Handoff — l'ondata (b) è decisa e disegnata: si scrive il piano (28/07/2026, sera)
 
+> 🛑 **SUPERATO. Il piano è stato scritto.** Il punto di ripresa adesso è
+> **`docs/roadmap/2026-07-29-ondata-b-esecuzione-handoff.md`**, e il documento operativo è
+> **`docs/roadmap/2026-07-28-ondata-b-piano.md`** (con la sua **§9, «cosa manca»**).
+> Questo file resta come **storia della giornata del disegno**: racconta *come* si è arrivati alle
+> decisioni, non *cosa fare adesso*. ⚠️ Le decisioni qui dentro si fermano a **D26**: le sei minori
+> (**D27-D32**) sono state registrate a fine sessione nel **verbale**, non qui.
+
 **Per:** la sessione successiva, contesto pulito.
 **Prima di tutto:** BP-0 — `memory/SESSION_ACTIVE.md`, poi **questo documento**, poi **la spec**
 `docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`. Il resto solo se serve.

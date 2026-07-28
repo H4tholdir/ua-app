@@ -1,7 +1,7 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
 **Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Ventisei decisioni in cinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Trentadue decisioni in cinque tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -97,6 +97,18 @@ forma ratificata.
 | # | Decisione | Testo di Francesco | Conseguenza |
 |---|---|---|---|
 | **D26** | **Il lavoro si divide in tre ondate**, e la divisione la sceglie chi scrive il piano | «mi sta bene dividere il lavoro in ondate, scegli tu la divisione più consona» | **(b) Il wizard** — tutto ciò senza cui il wizard non funziona · **(c) Le foto, per bene** — l'editor (ruota/ritaglia/ingrandisci) **e le stesse azioni sulla scheda del lavoro**, perché l'editor si scrive **una volta** e serve in due posti · **(d) Le cassette, per bene** — la parete in «modo scelta» **con la ricerca** e la **tavolozza più ricca**. 🔑 **Criterio dichiarato:** resta in (b) ciò senza cui il wizard non funziona; esce ciò che ha una casa migliore altrove e che, fatto lì, si scrive una volta invece di due |
+
+**Le sei decisioni minori della stessa sera — registrate qui perché erano rimaste solo in chat, e una
+decisione che vive solo in chat non esiste** (doppio controllo di fine sessione, richiesto da Francesco):
+
+| # | Decisione | Testo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D27** | **Nessun tetto al numero di foto** | «lascia libero, c'è qualche pericolo in merito?» → risposta: sì, ma non è lo spazio sul server | 🔴 **Il pericolo vero, verificato:** le foto **si caricano DOPO** la creazione del lavoro (`crea-lavoro.ts:328`), quindi **restano nella memoria del telefono** fino a quel momento. Dieci foto piene su un telefono modesto e il sistema chiude l'app, portandosi via anche la digitazione. **La difesa è comprimere allo scatto** (la scheda del lavoro lo fa già, a 0,4 MB: `TabImmagini.tsx:37`). ⚠️ **Da misurare su un device vero**, non da assumere |
+| **D28** | **Le foto si etichettano** | «se si può, sarebbe comodo» | ✅ **Si può, ed esiste già**: `lavori_immagini.descrizione` + i sei valori di `TIPI_FOTO` (`TabImmagini.tsx:15-22`: Impronta · Pre-lavoro · Guida colore · Post-prova · Radiografia · Altro), già modificabili via `PATCH`. 🔴 **Il wizard è l'unico posto che non li usa**: manda `'impronta'` **fissa** (`crea-lavoro.ts:333`) |
+| **D29** | **Eliminare una foto chiede conferma** | «sì» | ⚠️ E resta aperta la domanda che la conferma non risolve: **soft o hard?** Dopo l'emissione della Dichiarazione, la direttiva «ogni campo si corregge fino alla consegna» e l'Art. 10(8) MDR tirano in direzioni opposte → **panel normativo**, piano §9 |
+| **D30** | **La cassetta creata dal wizard prende SUBITO il lavoro** | «ci va dentro subito» | Un passaggio in meno al banco. `NuovaCassettaSheet.onCreata` → assegnazione immediata, senza tornare alla griglia |
+| **D31** | 🗑️ **Le icone delle briciole DECADONO** | conseguenza diretta della terza stesura di D22: «forse permette di abbandonare anche le icone, che diventerebbero inutili» | Con la fila **a pagine** non esiste più il caso «briciola compressa», quindi **non c'è più niente da spiegare con un simbolo**. ⚠️ **Le indicazioni date da Francesco sulle icone** (studio = qualcosa di clinico · tipo = un manufatto · denti = un dente) **restano valide se un giorno servissero**, ma **non sono un compito dell'ondata (b)**: nessuno le disegni |
+| **D32** | **L'annuncio dello scorrimento è il contatore, più un rimbalzo la prima volta** | domanda di Francesco: «proponimi più soluzioni» — poi la fila a pagine ha ristretto il campo | Scelte: **pastiglia contatore intera** («+4»), che non è un troncamento, dice quante ne restano **ed è il bersaglio da premere** · più un **rimbalzo alla prima apertura** (`molla.bouncy`), che insegna il gesto una volta sola. Scartate: la **sfumatura** (decaduta con le pagine), la **lineetta** tipo barra di scorrimento (rumore in una testata di 44 px), le **frecce** (**misurate: rubavano fino a 68 px su 230**) |
 
 **Due precisazioni di Francesco che entrano nel piano, non nelle decisioni:**
 - **Le briciole (D22, terza stesura)** nascono da una sua rettifica: «finché ho spazio mostro le briciole per
