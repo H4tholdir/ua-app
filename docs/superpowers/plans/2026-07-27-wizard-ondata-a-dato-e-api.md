@@ -1785,16 +1785,35 @@ git commit -m "feat(lavori): sentinelle su denti e colore — una penna sola per
 ➡️ **Questo task deve quindi anche:** portare il codice a maiuscolo e confrontarlo col catalogo **prima** di spedirlo (`A3.5` resta `A3.5`, `a3` diventa `A3`, `bl` diventa `BL`); se dopo la normalizzazione il codice **non** è in catalogo, non mandarlo come colore — il lavoro si crea lo stesso e il colore si corregge dalla scheda, che ha la tendina. **Mai** far fallire la creazione del lavoro per un colore digitato male.
 ⚠️ La casella resta una casella: **nessun cambiamento visivo** in questa ondata. La tendina è ondata (b).
 
-🔴 **SECONDO PREREQUISITO — TROVATO ESEGUENDO IL TASK 9, e questo task ne è il PROPRIETARIO** (assegnato il 28/07/2026; prima era scritto «T11 o T12», e due candidati vogliono dire nessuno).
-**Le due porte che scrivono i denti non validano le stesse cose.** `src/app/api/lavori/[id]/denti/route.ts:100-155` valida `ruolo`, `provenienza`, i cinque campi testo, `coppia_ck` e `zone_ck`, e **normalizza** in `DenteNormalizzato`; `src/app/api/lavori/route.ts` (POST, riscritto dal Task 9) valida `fdi`, i duplicati e l'oggettualità, e passa gli oggetti **grezzi** alla RPC. Conseguenza misurata: `{fdi:11, ruolo:'pippo'}` → **422 sul PUT, 500 sul POST**. Stessa asimmetria su zone senza scala e su mezza coppia scala/codice. Il PUT stesso dichiara a `:14-17` che i due elenchi devono dire la stessa cosa.
-➡️ **Questo task estrae la validazione in UN modulo solo** (es. `src/lib/domain/denti-validazione.ts`) e lo fa chiamare da **entrambe** le route, così la canonicalizzazione del colore che il task introduce (`a3`→`A3`) vale su tutte e due le porte invece che su una. Test: i casi oggi asimmetrici devono dare **la stessa risposta** da POST e da PUT.
-⚠️ **Assorbe anche** il difetto già noto «coppia `(scala, codice)` sintatticamente valida ma **inesistente in catalogo** → 500»: vale su tutte e due le porte, e si chiude leggendo `colori_dentali` dal modulo comune. 🛑 Resta il vincolo di sopra: **mai** far fallire la creazione del lavoro per un colore digitato male.
+🔴 **DOVE VIVE LA NORMALIZZAZIONE DEL COLORE — deciso il 28/07/2026 su un FATTO, non su una preferenza.**
+Il testo qui sopra dice «normalizzare **prima di spedire**», cioè lato client. **Non basta**, e la ragione è una riga di catalogo:
+
+```
+provato: node scripts/tmp/sql.mjs "select conname, pg_get_constraintdef(oid) from pg_constraint
+         where conrelid='lavori'::regclass and pg_get_constraintdef(oid) ilike '%colori_dentali%';"
+→ lavori_colore_caso_fk | FOREIGN KEY (colore_scala, colore_codice) REFERENCES colori_dentali(scala, codice)
+```
+
+La chiave esterna verso il catalogo **esiste anche su `lavori`**, non solo su `lavori_denti` (dove sono quattro). Quindi un colore di **caso** digitato `a3` **fa fallire la creazione del lavoro** — che è precisamente ciò che la regola dura di questo task vieta. Una garanzia che vive solo nel client non è una garanzia: il client si può aggirare, e domani i client saranno più d'uno.
+➡️ **La normalizzazione e la degradazione vivono nel `POST /api/lavori`** (server): porta il codice a maiuscolo, confronta la coppia col catalogo `colori_dentali`, e **se la coppia non esiste scarta il colore e crea comunque il lavoro**. Il client può fare `.trim().toUpperCase()` perché costa nulla, ma non è lì che sta la garanzia.
+⚠️ **Chiude anche** il difetto già noto «coppia sintatticamente valida ma **inesistente in catalogo** → 500» **sul lato POST**. Il lato PUT lo chiude il **T11-bis**.
+🛑 **Mai** far fallire la creazione del lavoro per un colore digitato male. Se il colore si perde, si perde **il colore**, non il lavoro — e si corregge dalla scheda.
 
 **Files:**
 - Modify: `src/lib/wizard/crea-lavoro.ts:107-223`
-- Modify: `src/app/api/lavori/route.ts` + `src/app/api/lavori/[id]/denti/route.ts` (chiamano il modulo comune)
-- Create: `src/lib/domain/denti-validazione.ts`
-- Test: `tests/unit/crea-lavoro-denti.test.ts` + i casi di simmetria fra le due route
+- Modify: `src/app/api/lavori/route.ts` (normalizza il colore, confronta col catalogo, degrada)
+- Test: `tests/unit/crea-lavoro-denti.test.ts` + i casi di degradazione sul POST
+
+---
+
+### Task 11-bis: le due porte devono rispondere allo stesso modo (NON in questo deploy)
+
+🕛 **Trovato eseguendo il Task 9. Esecutore proprio, PUÒ seguire il T12** — non fa parte del vincolo «T10+T11+T12 nello stesso deploy», e la ragione è netta: quel vincolo esiste perché sette nomi sono usciti dall'allowlist e i due scrittori vanno rediretti **o il dato sparisce in silenzio**. Qui invece cambia **un codice di stato su un corpo già invalido**: nessun dato si perde. Insieme di file disgiunto (le due route API, non il wizard).
+
+**Il fatto:** `src/app/api/lavori/[id]/denti/route.ts:100-155` valida `ruolo`, `provenienza`, i cinque campi testo, `coppia_ck` e `zone_ck`, e **normalizza** in `DenteNormalizzato`; `src/app/api/lavori/route.ts` (POST) valida `fdi`, i duplicati e l'oggettualità, e passa gli oggetti **grezzi** alla RPC. Misurato: `{fdi:11, ruolo:'pippo'}` → **422 sul PUT, 500 sul POST**. Stessa asimmetria su zone senza scala e su mezza coppia. Il PUT stesso dichiara a `:14-17` che i due elenchi devono dire la stessa cosa.
+
+- Create: `src/lib/domain/denti-validazione.ts` — un modulo solo, chiamato da **entrambe** le route
+- Test: i casi oggi asimmetrici danno **la stessa risposta** da POST e da PUT
 
 **Interfaces:**
 - Produces: `EsitoCreazione.accessoriFalliti` perde il ramo `'dettagli'` → `Array<'foto'>`.
