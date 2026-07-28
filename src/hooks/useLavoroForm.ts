@@ -62,6 +62,39 @@ function numeriDente(v: unknown): number[] {
 }
 
 /**
+ * 🔑 IL COLORE CHE LE RIGHE PORTERANNO dopo questo salvataggio — `null` quando
+ * **nessuna riga lo porterà**, azzeramento compreso.
+ *
+ * È la domanda che decide tutto qui dentro, e ha UNA sola risposta perché è la
+ * stessa condizione con cui `idrataColoreScheda` decide di **leggere** il
+ * default di caso (`colore-dente.ts`: `righe.find(r => r.scala !== null &&
+ * r.codice !== null)`, e in mancanza il ripiego sul caso). **Si scrive dove si
+ * legge**: è quella simmetria — non una regola in più — a rendere il campo
+ * correggibile.
+ *
+ * ⚠️ Il discriminante è «c'è almeno un ELEMENTO», non «c'è almeno un dente»: una
+ * riga `mancante` o `impianto` non può portare un colore (le RPC lo scrivono sui
+ * soli elementi, e `lavori_denti_zone_ck` pretende comunque la scala). La
+ * distinzione NON sparisce riformulando la regola: si raccoglie qui, in un posto
+ * solo, invece di stare scritta a mano in tre.
+ *
+ * 🔴 IL DIFETTO CHE QUESTA FUNZIONE CHIUDE (riprodotto il 28/07/2026). La prima
+ * formulazione del Task 12-bis era «quando ci sono elementi, il caso non si
+ * tocca». Ma un lavoro nato dal wizard con elemento **e** colore ha il colore
+ * nel CASO e le righe SENZA — è la forma normale, non un caso limite (il wizard
+ * non stampa il colore su ogni dente: sarebbe una prescrizione per-dente che il
+ * dentista non ha dato). Con quella regola CAMBIARE il colore funzionava,
+ * AZZERARLO no: le righe restavano senza colore, il caso restava valorizzato, la
+ * precedenza riga→caso ricadeva sul caso e il colore vecchio riappariva al
+ * ricaricamento. Un campo che non si può azzerare è un campo che non si
+ * corregge — contro la direttiva permanente «ogni campo del lavoro si corregge,
+ * fino alla consegna».
+ */
+function coloreDelleRighe(data: Partial<Lavoro>): string | null {
+  return numeriDente(data.denti_coinvolti).length > 0 ? testo(data.colore_dente) : null
+}
+
+/**
  * La lista di denti che il PUT deve vedere, tradotta dal modello vecchio (tre
  * liste separate) a quello nuovo (righe con un `ruolo`).
  *
@@ -114,7 +147,13 @@ function costruisciDenti(data: Partial<Lavoro>): EsitoDenti {
     return { ok: true, denti: altreRighe }
   }
 
-  const codice = testo(data.colore_dente)
+  // Qui gli elementi ci sono di sicuro (il ramo senza è già uscito), quindi
+  // `coloreDelleRighe` vale `testo(data.colore_dente)`: si passa lo stesso di
+  // prima, ma dalla funzione che risponde alla domanda «quale colore porteranno
+  // le righe» — la stessa che decide se il caso viaggia nella PATCH. Due
+  // risposte diverse alla stessa domanda sono il difetto che il 12-bis ha già
+  // pagato una volta.
+  const codice = coloreDelleRighe(data)
   const scala = scalaDelCodice(codice)
   if (codice && !scala) {
     // Spedire il codice senza scala violerebbe `lavori_denti_coppia_ck`;
@@ -150,9 +189,8 @@ function costruisciDenti(data: Partial<Lavoro>): EsitoDenti {
  * catalogo non conosce non impedisce di salvare finché nessuno lo tocca.
  */
 function impronta(data: Partial<Lavoro>): string {
-  const elementi = numeriDente(data.denti_coinvolti)
   return JSON.stringify([
-    elementi,
+    numeriDente(data.denti_coinvolti),
     numeriDente(data.denti_mancanti),
     numeriDente(data.denti_impianti),
     // 🔴 Il colore di BASE esce dall'impronta quando non ha righe dove
@@ -161,9 +199,10 @@ function impronta(data: Partial<Lavoro>): string {
     // integrale a vuoto — che però cancella per davvero la provenienza
     // `prescritto` delle righe rimaste, e su dati clinici imperfetti può
     // rispondere 422 e bloccare il salvataggio di QUALUNQUE altro campo.
-    // Il segnaposto `null` tiene ferma la forma dell'array: un cambiamento di
-    // lunghezza cambierebbe la stringa da solo, non per un dato diverso.
-    elementi.length > 0 ? testo(data.colore_dente) : null,
+    // Il `null` di `coloreDelleRighe` tiene ferma la forma dell'array: un
+    // cambiamento di lunghezza cambierebbe la stringa da solo, non per un dato
+    // diverso.
+    coloreDelleRighe(data),
     // Le tre zone restano SEMPRE nell'impronta: non hanno una seconda
     // destinazione, e senza di loro qui il fermo che le dichiara non
     // scatterebbe mai — la zona sparirebbe in silenzio.
@@ -286,13 +325,19 @@ export function useLavoroForm(initial: Partial<Lavoro> = {}): UseLavoroFormRetur
       delete patchBody.colore_scala
       delete patchBody.colore_codice
 
-      // 🛑 Si scrive dove si legge. `idrataColoreScheda` mostra la riga e ricade
-      // sul caso: quindi il caso si tocca SOLO quando non c'è nessun elemento a
-      // portare il colore. Con delle righe, riscrivere anche il caso lascerebbe
-      // una seconda verità che nessuno vede — invisibile perché la precedenza
-      // riga→caso mostra comunque la riga, e pronta a riemergere il giorno in
-      // cui le righe si svuotano.
-      if (numeriDente(data.denti_coinvolti).length === 0) {
+      // 🛑 SI SCRIVE DOVE SI LEGGE, e la condizione è LETTERALMENTE la stessa.
+      // `idrataColoreScheda` legge il caso quando nessuna riga porta una coppia
+      // colore completa; quindi il caso si scrive esattamente allora — e
+      // «allora» comprende l'AZZERAMENTO, che è il caso in cui la vecchia
+      // formulazione («con degli elementi il caso non si tocca») lasciava il
+      // colore vecchio riemergere al ricaricamento.
+      //
+      // ⚠️ Il pericolo che quella formulazione voleva evitare resta chiuso: un
+      // caso rimasto indietro dietro delle righe colorate non è leggibile
+      // (`risolviColore` prende la riga), e l'istante in cui diventerebbe
+      // leggibile — le righe che si svuotano — è lo stesso istante in cui questa
+      // condizione diventa vera e lo riallinea. La verità visibile resta UNA.
+      if (coloreDelleRighe(data) === null) {
         patchBody.colore_codice = testo(data.colore_dente)
       }
 

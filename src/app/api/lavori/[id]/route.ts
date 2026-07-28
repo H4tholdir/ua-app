@@ -119,14 +119,23 @@ const LOCKED_PRICE_FIELDS = [
 //   si sposta altrove e su di ESSE non torna indietro. ⚠️ Aggiornato dal Task
 //   12-bis: «altrove» non è più solo `lavori_denti`. Il colore di base ha DUE
 //   destinazioni, e una sola alla volta.
-//     colore_dente    → SE il lavoro ha degli ELEMENTI: lavori_denti.codice (+ .scala)
+//     colore_dente    → SE una riga porterà il colore (c'è almeno un ELEMENTO e
+//                       il colore non è vuoto): lavori_denti.codice (+ .scala)
 //                       · wizard → POST /api/lavori, `p_denti` (Task 11)
 //                       · scheda → PUT /api/lavori/[id]/denti (Task 12)
-//                     → SE NON ha elementi: il DEFAULT DI CASO
-//                       `lavori.colore_scala`/`colore_codice` — che sono
-//                       colonne di `lavori` ma NON sono queste
+//                     → ALTRIMENTI — nessun elemento, OPPURE il colore azzerato:
+//                       il DEFAULT DI CASO `lavori.colore_scala`/`colore_codice`
+//                       — che sono colonne di `lavori` ma NON sono queste
 //                       · wizard → POST /api/lavori (Task 11)
 //                       · scheda → questa PATCH, allowlist qui sotto (Task 12-bis)
+//                       🔑 «altrimenti» è la STESSA condizione con cui
+//                       `idrataColoreScheda` decide di LEGGERE il caso: si scrive
+//                       dove si legge (`useLavoroForm.ts`, `coloreDelleRighe`).
+//                       Senza l'azzeramento in questo ramo il caso resterebbe
+//                       valorizzato sotto delle righe svuotate e il colore
+//                       vecchio riapparirebbe al ricaricamento — misurato il
+//                       28/07/2026 su un lavoro nato dal wizard, che è la forma
+//                       normale.
 //                       🔑 «si può succedere di voler inserire il colore ad
 //                       esempio su di una protesi totale senza indicare il
 //                       dente» (Francesco, 28/07/2026): il colore dell'intero
@@ -383,11 +392,13 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   // perde il colore, non il lavoro.**
   //
   // 🔑 Le due chiavi si scrivono sempre INSIEME o nessuna delle due. Se il body
-  // non le nomina, il caso non si tocca affatto: quando il colore vive sulle
-  // righe di `lavori_denti` la scheda non le manda, e riscrivere il caso
-  // lascerebbe una seconda verità che nessuno vede — invisibile perché la
-  // precedenza riga→caso mostra comunque la riga, e pronta a riemergere il
-  // giorno in cui le righe si svuotano.
+  // non le nomina, il caso non si tocca affatto: è così che la scheda tiene il
+  // caso fermo finché sono le RIGHE a portare il colore (la precedenza riga→caso
+  // mostrerebbe comunque la riga, e riscrivere il caso sarebbe una seconda
+  // verità che nessuno vede). ⚠️ Nel momento in cui le righe si svuotano, invece,
+  // la scheda le NOMINA — anche per azzerarle: quel caso torna leggibile e deve
+  // tornare vero. La condizione sta di là, in `useLavoroForm.ts`
+  // (`coloreDelleRighe`), ed è la stessa con cui `idrataColoreScheda` lo rilegge.
   if ('colore_scala' in payload || 'colore_codice' in payload) {
     const colore = await risolviColoreCaso(svc, payload.colore_scala, payload.colore_codice)
     payload.colore_scala = colore.colore_scala

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useLavoroForm } from '@/hooks/useLavoroForm'
-import { idrataColoreScheda, scalaDelCodice } from '@/lib/domain/colore-dente'
+import { idrataColoreScheda, scalaDelCodice, type DefaultCaso } from '@/lib/domain/colore-dente'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Task 12-bis — il colore «di tutto il lavoro» ha di nuovo dove andare.
@@ -16,14 +16,19 @@ import { idrataColoreScheda, scalaDelCodice } from '@/lib/domain/colore-dente'
 // correzione — e su una protesi totale è il caso NORMALE, non un limite.
 //
 // Da qui in avanti il colore ha due destinazioni, e una sola alla volta:
-//   • ci sono ELEMENTI  → il colore si scrive sulle RIGHE (`lavori_denti`),
-//                         e il default di caso NON si tocca;
-//   • non ci sono       → il colore si scrive sul DEFAULT DI CASO
-//                         (`lavori.colore_scala`/`colore_codice`).
+//   • una riga PORTERÀ il colore (c'è almeno un ELEMENTO e il colore non è
+//     vuoto) → si scrive sulle RIGHE (`lavori_denti`), e il caso non si tocca;
+//   • nessuna riga lo porterà — niente elementi, OPPURE colore azzerato → si
+//     scrive sul DEFAULT DI CASO (`lavori.colore_scala`/`colore_codice`).
 //
 // 🛑 È esattamente la regola con cui il colore si RILEGGE
 // (`idrataColoreScheda`: la riga vince, il caso è il ripiego). Si scrive dove
 // si legge: è ciò che impedisce le due verità e il dato fantasma.
+// ⚠️ RETTIFICATA il 28/07/2026: la prima formulazione era «con degli elementi il
+// caso non si tocca» e rendeva il colore NON AZZERABILE su ogni lavoro nato dal
+// wizard. Il caso si scrive ogni volta che, dopo il salvataggio, nessuna riga
+// porterà una coppia completa — azzeramento compreso. I due casi in fondo al
+// file lo provano come ciclo completo.
 //
 // ⚠️ Il discriminante è «ci sono ELEMENTI», non «ci sono denti»: un lavoro con
 // soli `denti_mancanti` ha delle righe, ma nessuna che possa portare un colore
@@ -109,10 +114,11 @@ describe('il colore di tutto il lavoro finisce sul default di caso (Task 12-bis)
     expect(corpoDi(patchLavoro()[0])).not.toHaveProperty('colore_scala')
   })
 
-  it('🛑 con degli elementi il caso NON si tocca: nessuna delle due chiavi parte', async () => {
+  it('🛑 con degli elementi e un colore NUOVO il caso NON si tocca: nessuna delle due chiavi parte', async () => {
     // Le righe vincono in lettura: riscrivere anche il caso lascerebbe due
-    // verità, di cui una invisibile — e riemergerebbe il giorno in cui le
-    // righe si svuotano.
+    // verità, di cui una invisibile. ⚠️ Vale finché una riga PORTA il colore —
+    // se il colore si azzera nessuna riga lo porta più, il caso torna leggibile
+    // e allora si scrive: v. i due casi in fondo al file.
     const { result } = renderHook(() => useLavoroForm(LAVORO_CON_ELEMENTI))
     act(() => { result.current.update({ colore_dente: 'B1' }) })
     await act(async () => { await result.current.save('L1') })
@@ -196,6 +202,91 @@ describe('il colore di tutto il lavoro finisce sul default di caso (Task 12-bis)
 
     expect(corpoDi(putDenti()[0]).denti[0]).toMatchObject({ fdi: 11, codice: 'A2', scala: 'vita_classical' })
     expect(corpoDi(patchLavoro()[0])).not.toHaveProperty('colore_codice')
+  })
+})
+
+/**
+ * Il caso come sarà NEL DATABASE dopo la PATCH osservata.
+ *
+ * Non è un mock del server: è la sola parte del suo contratto che questo ciclo
+ * attraversa, dichiarata riga per riga.
+ *  • la PATCH non lo nomina → il caso non si tocca affatto
+ *    (`route.ts`: `if ('colore_scala' in payload || 'colore_codice' in payload)`);
+ *  • lo nomina con `null` → il server lo azzera senza nemmeno guardare il
+ *    catalogo (`risolviColoreCaso`, prima riga: `typeof codiceGrezzo !== 'string'`
+ *    → `NESSUN_COLORE`);
+ *  • lo nomina con un codice → la scala la deduce dal catalogo, e un codice che
+ *    il catalogo non conosce si degrada a niente (regola dura del Task 11).
+ */
+const casoDopo = (patch: Record<string, unknown>, prima: DefaultCaso): DefaultCaso => {
+  if (!('colore_codice' in patch)) return prima
+  const codice = typeof patch.colore_codice === 'string' ? patch.colore_codice : null
+  const scala = scalaDelCodice(codice)
+  return codice && scala
+    ? { colore_scala: scala, colore_codice: codice }
+    : { colore_scala: null, colore_codice: null }
+}
+
+/** La coppia che la fixture ha nel database prima di ogni salvataggio. */
+const CASO_DELLA_FIXTURE: DefaultCaso = { colore_scala: 'vita_3d_master', colore_codice: 'A2' }
+
+describe('🔑 il caso si scrive DOVE SI LEGGE — anche in azzeramento (Task 12-bis, coda)', () => {
+  // 🔴 IL DIFETTO CHE QUESTI DUE CASI ESISTONO PER CHIUDERE, riprodotto il
+  // 28/07/2026. La prima formulazione del 12-bis diceva «quando ci sono
+  // elementi, il caso non si tocca». Ma un lavoro nato dal WIZARD con elemento
+  // E colore ha il colore nel CASO e le righe SENZA (il wizard non stampa il
+  // colore su ogni dente: sarebbe una prescrizione per-dente che il dentista
+  // non ha dato) — ed è la forma NORMALE, non un caso limite. Con quella regola
+  // CAMBIARE il colore funzionava (va sulle righe, e la riga vince), ma
+  // AZZERARLO no: le righe restavano senza colore, il caso restava valorizzato,
+  // la precedenza riga→caso ricadeva sul caso e il colore vecchio RIAPPARIVA al
+  // ricaricamento. Un campo che non si può azzerare è un campo che non si
+  // corregge — contro la direttiva permanente «ogni campo del lavoro si
+  // corregge, fino alla consegna».
+  //
+  // 🛑 Il caso si prova SEMPRE come CICLO COMPLETO: righe e caso presi dai corpi
+  // REALMENTE spediti e fatti ripassare da `idrataColoreScheda`. Asserire che la
+  // PATCH nomini `colore_codice: null` NON proverebbe niente — quello che si
+  // rompeva era la RILETTURA.
+
+  it('🔴 azzero il colore su un lavoro CON elementi, ricarico, il colore è sparito', async () => {
+    const { result } = renderHook(() => useLavoroForm(LAVORO_CON_ELEMENTI))
+    act(() => { result.current.update({ colore_dente: null }) })
+    await act(async () => { await result.current.save('L1') })
+
+    expect(result.current.saveError).toBeNull()
+
+    // ── IL DATABASE, dai corpi osservati ─────────────────────────────────────
+    const righe = corpoDi(putDenti()[0]).denti
+    const caso = casoDopo(corpoDi(patchLavoro()[0]), CASO_DELLA_FIXTURE)
+
+    // ── RICARICO ─────────────────────────────────────────────────────────────
+    expect(idrataColoreScheda(righe, caso).colore_dente).toBeNull()
+  })
+
+  it('🛑 un caso divergente dietro righe colorate non si vede MAI, e si riallinea appena le righe si svuotano', async () => {
+    // La prova che la regola nuova NON riapre il pericolo che la vecchia voleva
+    // evitare. Finché le righe portano un colore è la riga a essere letta *e*
+    // scritta, e il caso rimasto indietro è illeggibile; nell'istante in cui le
+    // righe si svuotano, quella STESSA condizione fa aggiornare il caso. La
+    // verità visibile resta una sola, in entrambi i momenti.
+    const { result } = renderHook(() => useLavoroForm(LAVORO_CON_ELEMENTI))
+
+    // ── 1. il colore va sulle righe; il caso resta indietro, e non si vede ───
+    act(() => { result.current.update({ colore_dente: 'B1' }) })
+    await act(async () => { await result.current.save('L1') })
+
+    const casoUno = casoDopo(corpoDi(patchLavoro()[0]), CASO_DELLA_FIXTURE)
+    expect(casoUno).toEqual(CASO_DELLA_FIXTURE)          // divergente: è rimasto «A2»
+    expect(idrataColoreScheda(corpoDi(putDenti()[0]).denti, casoUno).colore_dente).toBe('B1')
+
+    // ── 2. le righe si svuotano: il caso si riallinea nello stesso istante ───
+    act(() => { result.current.update({ colore_dente: null }) })
+    await act(async () => { await result.current.save('L1') })
+
+    const casoDue = casoDopo(corpoDi(patchLavoro()[1]), casoUno)
+    expect(casoDue).toEqual({ colore_scala: null, colore_codice: null })
+    expect(idrataColoreScheda(corpoDi(putDenti()[1]).denti, casoDue).colore_dente).toBeNull()
   })
 })
 
