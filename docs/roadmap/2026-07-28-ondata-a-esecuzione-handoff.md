@@ -1,4 +1,8 @@
-# Handoff — Ondata (a) del wizard: si riprende dal Task 9 (28/07/2026)
+# Handoff — Ondata (a) del wizard: si riprende dal Task 10 (28/07/2026)
+
+> ✅ **AGGIORNATO il 28/07/2026: il T9 è chiuso** (commit `759fc183`). Il titolo diceva «dal Task 9».
+> Quello che il T9 ha lasciato detto sta in **§5-bis**, subito dopo §5. Il resto del documento è
+> invariato e ancora valido.
 
 **Per:** la sessione successiva, contesto pulito.
 **Prima di tutto:** BP-0 — `memory/SESSION_ACTIVE.md`, poi questo documento. **Non serve altro.**
@@ -9,8 +13,9 @@
 
 ## 0. In una riga
 
-**8 task su 13 chiusi, la parte «database e API» è finita.** Branch `ondata-a-denti-colore`,
-**29 commit avanti a `main`** (i commit dopo il 18° sono documentazione e memoria della notte del
+**9 task su 13 chiusi** (T9 chiuso il 28/07, v. §5-bis)**, la parte «database e API» è finita.**
+Branch `ondata-a-denti-colore`, **37 commit avanti a `main`** — il riferimento storico sotto diceva
+29 al momento in cui questo documento è nato (i commit dopo il 18° sono documentazione e memoria della notte del
 27-28/07, nessun codice del piano), **3453 test verdi · tsc 0 · eslint 0 · `next build` ok**.
 🛑 **Niente di questa ondata in produzione, mai mergiato.** Restano T9-T13: **è la parte che tocca il
 codice vivo dell'app.**
@@ -127,6 +132,64 @@ non si patcha di nascosto). Sono le due che hanno prodotto 8 catture su 8.
 - **`tsc --noEmit` NON valida la firma degli handler di rotta:** serve `npx next build`.
 - **Il gettone di concorrenza:** `timestamptz` ha precisione al **microsecondo**, `Date` di JS al
   millisecondo. Far passare `atteso_updated_at` da un `new Date(...)` produce un **409 permanente**.
+
+---
+
+## 5-bis. Quello che il T9 ha lasciato detto (28/07/2026, commit `759fc183`)
+
+**Fatto:** `POST /api/lavori` crea progressivo + lavoro + denti in **una transazione sola** via
+`lavoro_crea_atomico`. Nella route **non esiste più alcun INSERT su `lavori`**. 18 test nuovi,
+**18 su 18 cadono contro un abbozzo sempre-201** (misurato, non dedotto). Suite intera 3477 verdi,
+`tsc` 0, `eslint` 0, `next build` ok, DB alla baseline.
+
+- 🔑 **Un buco del piano, chiuso dentro il mandato:** `Array.isArray(body.denti) ? … : []` avrebbe
+  trasformato un oggetto o una stringa in **lista vuota** → 201, zero denti, nessun errore. Ora
+  `denti` presente ma non-array è **422**. Chi non ha denti da mandare **omette la chiave**.
+- 🛑 **`FK_FIELDS_INSERT` (`route.ts:134-162`) è viva e resta l'UNICA guardia di isolamento fra
+  laboratori** su `cliente_id`/`paziente_id`/`tecnico_id`/`ciclo_id`: `lavoro_crea_atomico` **non**
+  li verifica contro `p_lab`. Chi tocca quella route non la sposta e non la salta. Il T9 le ha anche
+  aggiunto il test di regressione che non aveva (prima solo `ciclo_id` era coperto).
+
+### 🔴 Ritrovamenti fuori mandato — riferiti, NON toccati (R-E2)
+
+1. **Il piano sbagliava sulla propria «rete di sicurezza»** (Step 4). I due test indicati come prova
+   che il contratto non cambia mockavano il **meccanismo vecchio**, non il contratto
+   (`mockRpc.mockResolvedValue({ data: 1 })` era il ritorno di `genera_progressivo`). Dopo la
+   sostituzione 4 test cadevano. Adattati: il commit è di **4 file, non 2**, e il motivo è questo.
+2. 🛑 **POST e PUT rispondono diversamente sugli stessi dati.** `[id]/denti/route.ts:100-155` valida
+   `ruolo`, `provenienza`, i cinque campi testo, `coppia_ck`, `zone_ck` e **normalizza**; il POST
+   valida fdi/duplicati/oggettualità e passa gli oggetti grezzi. `{fdi:11, ruolo:'pippo'}` → **422
+   sul PUT, 500 sul POST**. Non unificato di proposito: il colore è di **T11**, che potrebbe volerne
+   canonicalizzare i valori (`a3`→`A3`). **Estrarre un modulo di validazione unico — assegnato a
+   T11 o T12.** Il PUT stesso dichiara a `:14-17` che i due elenchi devono dire la stessa cosa.
+3. 🛑 **Conferma dal vivo del vincolo di sequenza §4.** `src/lib/wizard/crea-lavoro.ts:164` crea via
+   POST e `:191-196` fa la **PATCH fail-soft** con `denti_coinvolti` + `colore_dente`. Il T9 rende
+   *disponibile* il percorso atomico, **ma nessuno lo usa ancora**. Se il T10 atterra prima che il
+   T11 migri il wizard, il passo 4 perde i denti in silenzio.
+4. **Due fonti dello stesso fatto (R3):** il wizard scrive `colore_dente` (colonna singola legacy,
+   `crea-lavoro.ts:196`), il percorso nuovo la coppia `colore_scala`/`colore_codice`. Nessuno le
+   riconcilia. Territorio T11/T2.
+5. **Il 500 sulla coppia inesistente in catalogo esiste anche sul POST**, non solo sul PUT.
+   Difetto già assegnato a T11: confermato, non toccato.
+6. **Difetti nel codice di test del piano** (validi per i task che ne ricalcano la forma):
+   (a) `const rpcMock = vi.fn()` referenziato dentro una factory `vi.mock` issata è un **crash TDZ**
+   — serve `vi.hoisted()`, convenzione già usata dai test vicini; (b) lo stub di
+   `getFreshLabContext` del piano non restituisce il campo `lab`, e contro il vero
+   `assertLabOperativo` fallirebbe fail-closed.
+7. **`anno = new Date().getFullYear()` convive con `oggiRomaISO()`** per `data_ingresso`: intorno
+   alla mezzanotte del 1° gennaio i due non concordano (il server è in UTC), contro la convenzione
+   W7 citata in `crea-lavoro.ts`. Finestra strettissima, **non chiuso**: è una riga, ma non è del
+   mandato del T9 deciderlo.
+
+### Forme d'ingresso — censimento del T9
+**Coperte:** chiave assente · `[]` · lista valida · `fdi` 19 · `fdi` `"11"` stringa · dente ripetuto
+· elemento non-oggetto · elemento `null` · `denti` oggetto · `denti` stringa · `denti: null` · body
+non-JSON → 400 · body `null` → 400 · body array alla radice → 400 · RPC in errore → 500 · RPC con
+`esito != ok` → 500 · `cliente_id` cross-tenant → 403.
+**Non coperte, con motivo:** `ruolo`/`provenienza` fuori dominio → 500 dal CHECK (ritrovamento 2) ·
+mezza coppia scala/codice e coppia fuori catalogo → **T11** · `fdi` decimale → già chiusa dal
+dominio (`Number.isInteger`) · chiavi ignote sull'oggetto dente → **inerti**, la RPC legge solo le
+chiavi note via `d->>'…'` (⚠️ differenza dichiarata rispetto al PUT, che le scarta normalizzando).
 
 ---
 

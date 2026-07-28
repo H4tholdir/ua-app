@@ -861,6 +861,8 @@ Motion: src/design-system/motion.ts — UNICA FONTE (tokens: instant/fast/normal
 | `/api/pec/ricevute/[id]/applica` POST | (R1, in prod) riverifica evento in quarantena e applica via RPC `applica_ricevuta_sdi` |
 | `/api/fatture/[id]/stato-sdi-override` POST | (R1, in prod) override manuale `stato_sdi`, solo `titolare`, atomico via RPC `override_stato_sdi`, guardia sorgente `mai_inviata` |
 | `/api/fatture/[id]/sblocca-claim` POST | (R1, in prod) sblocco claim orfano, solo `titolare`, atomico via RPC `sblocca_claim_fattura` |
+| `/api/lavori` POST | 🌿 **ramo `ondata-a-denti-colore`, NON in produzione (T9, 28/07/2026).** Contratto ampliato: accetta in più `denti?: DenteIn[]`, `colore_scala?`, `colore_codice?`. Creazione **atomica** via RPC `lavoro_crea_atomico` (progressivo + lavoro + denti in una transazione): non c'è più alcun INSERT su `lavori` nella route. `denti` presente ma non-array → **422** (mai un «nessun dente» silenzioso); fdi fuori dominio o ripetuto → 422 **prima** di bruciare un progressivo. 🛑 `FK_FIELDS_INSERT` (`route.ts:134-162`) resta l'**unica** guardia di isolamento tenant su `cliente_id`/`paziente_id`/`tecnico_id`/`ciclo_id`: la RPC non li verifica contro `p_lab`. Risposta invariata (201). |
+| `/api/lavori/[id]/denti` PUT | 🌿 **ramo `ondata-a-denti-colore`, NON in produzione (T8).** Sostituzione integrale dei denti via RPC `lavoro_denti_sostituisci_atomica`, precondizione `atteso_updated_at` → 409, **422 che dice quale dente**. ⚠️ Valida più del POST (`ruolo`, `provenienza`, `coppia_ck`, `zone_ck` + normalizzazione): i due elenchi vanno unificati — assegnato a T11/T12. |
 
 ---
 
