@@ -1,7 +1,7 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
 **Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
-**Venti decisioni in tre tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+**Venticinque decisioni in quattro tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
 spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
 (`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
@@ -75,6 +75,31 @@ forma di panel — alternativa scartata **scritta**, con il perché (due route s
 dove sbagliare il filtro di tenant; migrare una bozza = indovinare la corrispondenza dei passi, e il costo
 di sbagliare è un lavoro creato coi dati di un altro). L'esenzione è stata **dichiarata a Francesco prima
 della ratifica**, non applicata in silenzio.
+
+---
+
+### Quarta tornata — le varianti dei mockup (stessa sera)
+
+Mockup: `2026-07-28-wizard-testata-uscita.html` · `…-passo-foto-e-cassetta.html` ·
+`…-avviso-codice-gia-in-uso.html`, visti a 390/768/1280 in chiaro e scuro. La **§4** di ciascuno porta la
+forma ratificata.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D21** | **Uscita: variante T2** (✕ leggera, senza cerchio) — e **compare solo dal passo 2** | «qui la ✕ e la freccia fanno la stessa cosa: facciamo che la ✕ compare solo dal passo 2. poi scelgo la variante T2» | Al passo 1 **un solo controllo per una sola azione**. La ✕ non compete con la freccia, e la gerarchia è giusta: l'uscita non è l'azione da incoraggiare |
+| **D22** | **Briciole: o INTERE o a ICONA, mai troncate.** Si riempie da destra; le precedenti si chiudono in un'icona che descrive il passo; la fila **scorre** se nemmeno le icone ci stanno; quando lo spazio c'è, si riespandono | «mostriamo solo le ultime due e le altre diventano degli svg che descrivono la fase… devono scorrere se l'utente le swippa… unica cosa che non mi piace vedere sono le briciole troncate o tagliate a metà o pezzetti che fuoriescono» | ✅ **Regola verificata a schermo** (`scripts/tmp/misura-forma-ratificata.mjs`): **zero briciole troncate** su 7 casi (390/768/1280 × passo stretto e largo). ⚠️ **Ipotesi corretta:** «su tablet/desktop c'è più spazio» vale solo a metà — la colonna è **bloccata a 480 px** (`WizardNuovoLavoro.tsx:533-538`), quindi **768 e 1280 sono identici** (320 px invece di 230); lo spazio vero arriva **sui passi larghi** (D14). ⚠️ **Prezzo dichiarato:** un'icona dice **quale passo**, non **quale scelta** — la parte compressa ridiventa un indicatore d'avanzamento, cioè ciò che D10 aveva tolto |
+| **D23** | **Foto: variante F2, e PIÙ DI UNA** — rivedere, ingrandire, rifare, eliminare, aggiungere | «vorrei però poter inserire più di una foto, proprio come dice la frase… devo poter rivedere le foto allegate, ingrandirle per poterle rivedere se sono uscite bene, eventualmente rifarle, eliminarle o aggiungerne delle altre» | ✅ **Quasi tutto è già in casa:** le immagini stanno in una **tabella** (`lavori_immagini`), non in una colonna, e `POST /api/lavori/[id]/immagini` esiste (max 20 MB). **Caricarne cinque è già possibile oggi**: è il wizard che ne tiene una sola. 🔴 **Ma manca la cancellazione** → **R12** |
+| **D24** | **Cassetta: solo le libere**, con **crea al volo** e **salta** | «non possiamo mostrare proprio la pagina cassette mostrando solo quelle libere, e permettere di cliccare su quelle libere, eventualmente crearne una per metterci il lavoro o saltare perché magari il pacchetto ancora non è arrivato?» | ✅ **Riuso puro:** `NuovaCassettaSheet.tsx:33-43` (nome precompilato + le sei facce) e `POST /api/cassette` esistono già. La griglia mostra 4 libere su 28 invece di 28 |
+| **D25** | **Avviso codice in uso: variante V1** (sotto la casella, non ferma niente) · e la **ripresa** che dice cos'è cambiato mettendo già il codice nuovo | scelta esplicita su entrambi gli inneschi | Il divieto vero ce l'ha il **database** (D15): la schermata serve a **far incontrare la persona giusta**, non a fare la guardia |
+
+**🚫 E una segnalazione mia, RITIRATA nel giro di un'ora — sta qui perché la lezione vale più dell'errore.**
+Avevo riferito come difetto che «il colore delle 28 cassette è scritto in due modi, 8 in esadecimale e 20 a
+parole → una griglia ne colora 8 su 28». **La misura era giusta, la conclusione no.** Il doppio formato è
+**previsto**: `normalizzaColore` (`src/lib/cassette/colore.ts:6,11`) accetta **le sei parole e l'esadecimale,
+e nient'altro** (altrimenti 422), e `facciaHex` (`src/design-system/v3/tokens.ts:121-128`) **traduce già** le
+parole in colore. 🔑 **Avevo dedotto un difetto da un dato senza aprire il codice che quel dato lo legge** —
+la stessa forma d'errore che il panel sui colori aveva smontato la mattina. Francesco aveva chiesto «come
+pensi di risolverlo?»: **non c'era niente da risolvere.**
 
 ---
 

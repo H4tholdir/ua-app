@@ -128,6 +128,21 @@
     font-size: 13.5px; font-weight: 800; color: var(--faint);
   }
 
+  /* ---- La briciola compressa in icona (forma ratificata, §4) ----
+     Regola: una briciola è INTERA o è un'ICONA, mai troncata. L'icona dice
+     QUALE PASSO (non quale scelta): è il prezzo dichiarato della compressione.
+     Bersaglio 40×44 — sotto i 44 su un asse: da rimisurare sul device. */
+  .briciola-icona {
+    display: grid; place-items: center; flex-shrink: 0;
+    width: 40px; height: 44px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line); color: var(--muted);
+  }
+  .briciola-icona svg { width: 20px; height: 20px; }
+  .briciola-icona.premuta { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); color: var(--ink); }
+
+  /* Passo largo (D14): la colonna si apre, e le briciole ci stanno tutte */
+  .frame.largo { max-width: none; padding-left: 40px; padding-right: 40px; }
+
   /* O4 — la testata su due righe: rompe il vincolo dei 44 px ma non taglia niente */
   .testata.due-righe { display: block; height: auto; }
   .testata.due-righe .riga-alta { display: flex; align-items: center; gap: 12px; height: 44px; }
@@ -741,12 +756,200 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       SEZIONE 4 — LA FORMA RATIFICATA (28/07, sera)
+       ============================================================ -->
+  <div class="sezione">
+    <h2>4. ✅ La forma ratificata — T2, la ✕ dal passo 2, e le briciole che si comprimono in icone</h2>
+    <p><b>Scelte di Francesco, 28/07 sera:</b> <b>T2</b> (la ✕ leggera, senza cerchio) · la <b>✕ compare
+    solo dal passo 2</b>, perché al primo passo farebbe la stessa cosa della freccia · e la sua regola sulle
+    briciole: <i>«mostriamo solo le ultime due e le altre diventano delle icone che descrivono la fase, così
+    si rimpiccioliscono; devono scorrere se l'utente le swippa; quando ce n'è lo spazio si espandono. Quello
+    che non voglio vedere sono le briciole troncate o tagliate a metà.»</i></p>
+
+    <p>🔑 <b>La regola, detta in una riga: una briciola è INTERA oppure è un'ICONA. Non esiste la via di
+    mezzo.</b> Si riempie da destra — le scelte più recenti restano per esteso — e appena lo spazio finisce
+    le precedenti si chiudono in icona. Se non ci stanno nemmeno le icone, la fila scorre.</p>
+
+    <p>⚠️ <b>Una tua ipotesi che ho verificato e che va corretta:</b> «sui tablet o desktop c'è più spazio».
+    Vero solo a metà. La colonna del wizard è <b>bloccata a 480 px</b>
+    (<code>WizardNuovoLavoro.tsx:533-538</code>), quindi <b>768 e 1280 si comportano IDENTICI fra loro</b>:
+    320 px per le briciole invece di 230. Lo spazio vero arriva <b>sui passi larghi</b> — denti e colore
+    (D14) — dove la colonna si apre e ci stanno tutte. Quindi la differenza non è fra telefono e computer:
+    <b>è fra le domande semplici e i passi larghi</b>.</p>
+
+    <p>⚠️ <b>E un prezzo da mettere in conto, dichiarato:</b> un'icona dice <b>quale passo</b>, non
+    <b>quale scelta</b>. Una fotocamera dice «foto», non «Dr. Puleo». Quindi la parte compressa torna a
+    essere, di fatto, un indicatore di avanzamento — proprio la cosa che D10 aveva tolto. Il baratto è
+    accettabile perché <b>le due più utili (le ultime) restano parole</b>, ma è un baratto, non un pranzo
+    gratis.</p>
+
+    <div class="riga-stati">
+      <div class="stato">
+        <div class="etichetta">① Passo 1 — nessuna ✕ (scelta di Francesco)</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="briciola corrente">Nuovo lavoro</span></div>
+            </div>
+            <h1 class="domanda">Per chi è il lavoro?</h1>
+            <p class="hint">Tocca lo studio. Se è nuovo, lo aggiungi qui sotto.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">Studio</span><span class="r2">Dr. Puleo</span></div>
+              <div class="tile"><span class="r1">Dr.ssa</span><span class="r2">Consiglio</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Un solo controllo per una sola azione. La freccia <b>torna alla pagina da cui sei
+        arrivato</b> — non alla home: è la correzione del difetto <code>:219-222</code>.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">② Passo 3 a 390 px — due intere, ci stanno</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole">
+                <span class="briciola tocc">Dr. Puleo</span>
+                <span class="briciola tocc">Overdenture</span>
+              </div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice l'ho già scritto io — puoi cambiarlo.</p>
+            <div class="campo-wrap">
+              <span class="campo-label">Codice paziente</span>
+              <div class="campo-input">PZ-0917</div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">208 px su 230: nessuna compressione, nessuna icona. Finché ci stanno, si leggono.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">③ Passo 5 a 390 px — le prime due si chiudono in icona</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole">
+                <span class="briciola-icona" title="Studio: Dr. Puleo" aria-label="Studio: Dr. Puleo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9.5 20v-5h5v5"/></svg>
+                </span>
+                <span class="briciola-icona" title="Tipo: Overdenture" aria-label="Tipo: Overdenture">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5V5h7.5L20 13.5 13.5 20 4 12.5Z"/><circle cx="8" cy="9" r="1.2" fill="currentColor" stroke="none"/></svg>
+                </span>
+                <span class="briciola tocc">Esposito</span>
+              </div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Che colore?</h1>
+            <p class="hint">Solo per i denti che hai scelto.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">A3</span><span class="r2">Vita Classical</span></div>
+              <div class="tile"><span class="r1">A3,5</span><span class="r2">Vita Classical</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Casetta = lo studio · etichetta = il tipo di lavoro. <b>Nessuna parola tagliata:</b>
+        o intera o icona. Toccando un'icona si torna a quel passo, come una briciola.</p>
+      </div>
+    </div>
+
+    <div class="riga-stati" style="margin-top:26px">
+      <div class="stato">
+        <div class="etichetta">④ Sei scelte a 390 px — le icone scorrono</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole scorre">
+                <span class="briciola-icona" aria-label="Studio: Dr. Puleo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9.5 20v-5h5v5"/></svg></span>
+                <span class="briciola-icona" aria-label="Tipo: Overdenture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5V5h7.5L20 13.5 13.5 20 4 12.5Z"/><circle cx="8" cy="9" r="1.2" fill="currentColor" stroke="none"/></svg></span>
+                <span class="briciola-icona" aria-label="Paziente: Esposito"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg></span>
+                <span class="briciola-icona" aria-label="Denti: 3 elementi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14c0-5 3.6-8 8-8s8 3 8 8"/><path d="M8 12.6V16"/><path d="M12 12v4.4"/><path d="M16 12.6V16"/></svg></span>
+                <span class="briciola-icona" aria-label="Colore: A3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5s5.5 6 5.5 9.6A5.5 5.5 0 0 1 6.5 13C6.5 9.5 12 3.5 12 3.5Z"/></svg></span>
+                <span class="briciola tocc">Foto</span>
+              </div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">In che cassetta?</h1>
+            <p class="hint">Tocca quella dove hai messo il pacco.</p>
+          </div>
+        </div>
+        <p class="misura">Cinque icone più una parola non ci stanno nemmeno così: la fila <b>scorre col
+        dito</b>, e l'ultima resta sempre in vista. ⚠️ Una fila che scorre <b>non si annuncia</b>: va
+        progettata la sfumatura sul bordo, altrimenti chi non prova non sa che c'è dell'altro.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">⑤ Passo stretto a 768 e 1280 — identici fra loro</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole">
+                <span class="briciola-icona" aria-label="Studio: Dr. Puleo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9.5 20v-5h5v5"/></svg></span>
+                <span class="briciola tocc">Overdenture</span>
+                <span class="briciola tocc">Esposito</span>
+              </div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Che colore?</h1>
+            <p class="hint">Solo per i denti che hai scelto.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">A3</span><span class="r2">Vita Classical</span></div>
+              <div class="tile"><span class="r1">A3,5</span><span class="r2">Vita Classical</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">320 px invece di 230: <b>una briciola in più resta parola.</b> E siccome la colonna
+        è bloccata a 480, <b>1280 non aggiunge nulla rispetto a 768</b>.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">⑥ Passo largo (denti) a 1280 — ci stanno tutte</div>
+        <div class="demo-cornice">
+          <div class="frame largo">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole">
+                <span class="briciola tocc">Dr. Puleo</span>
+                <span class="briciola tocc">Overdenture</span>
+                <span class="briciola tocc">Esposito</span>
+              </div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Quali denti?</h1>
+            <p class="hint">Tocca gli elementi sull'arcata.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">Arcata</span><span class="r2">superiore</span></div>
+              <div class="tile"><span class="r1">Arcata</span><span class="r2">inferiore</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Sui passi larghi (D14) la colonna si apre e <b>nessuna icona serve più</b>. È qui
+        che «più spazio» vuol dire davvero qualcosa.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="domande-francesco">
     <h2>Cosa mi serve da te</h2>
+    <p style="font-size:14.5px;color:var(--muted);line-height:1.5">✅ <b>Deciso il 28/07 sera:</b> uscita
+    <b>T2</b> (✕ leggera) · la ✕ <b>compare solo dal passo 2</b> · briciole <b>intere o a icona, mai
+    troncate</b> (§4) · le due conferme restano distinte. Le domande sotto sono quello che resta.</p>
     <ol>
-      <li><b>Dove sta l'uscita:</b> <b>T1</b> (tondo con la ✕), <b>T2</b> (✕ leggera) o <b>T3</b> (riga in
-      fondo)? Io consiglio <b>T2</b>: si trova, ma non invita — e sui passi lunghi resta sempre a portata,
-      cosa che T3 non garantisce.</li>
+      <li>🆕 <b>Le icone.</b> Ne ho disegnate cinque: casetta = lo studio · etichetta = il tipo · persona =
+      il paziente · arcata = i denti · goccia = il colore. <b>Ti dicono qualcosa a colpo d'occhio</b>, o
+      qualcuna va cambiata? È l'unico punto dove sbagliare costa: un'icona che non si capisce è peggio di
+      una parola tagliata.</li>
+      <li>🆕 <b>La fila che scorre non si annuncia.</b> Quando le icone sono tante (anteprima ④) bisogna far
+      capire che c'è dell'altro: una sfumatura sul bordo, oppure la prima icona mezza visibile. Preferenze?</li>
+      <li><b>Il vecchio elenco di domande, per storia:</b> dove sta l'uscita — <b>T1</b> (tondo con la ✕),
+      <b>T2</b> (✕ leggera) o <b>T3</b> (riga in fondo)? → <b>scelta T2</b>.</li>
       <li><b>Le briciole quando sono tante:</b> <b>O1</b> (scorrono), <b>O2</b> («+N» e le ultime), <b>O3</b>
       (si stringono tutte) o <b>O4</b> (la testata prende due righe)? 🔑 <b>Dopo aver misurato cambio
       consiglio:</b> a 390 px <b>tre nomi interi in una riga non entrano</b>, quindi O3 taglia tutto e O2

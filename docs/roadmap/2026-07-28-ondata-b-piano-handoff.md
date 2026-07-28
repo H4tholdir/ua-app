@@ -60,8 +60,21 @@ Le cinque che cambiano di più il lavoro di chi legge:
    (T1/T2/T3 · O1/O2/O3/O4 · le due conferme) · `…-wizard-passo-foto-e-cassetta.html` (F1/F2/F3 · K1/K2) ·
    `…-wizard-avviso-codice-gia-in-uso.html` (V1/V2 · i due inneschi). **44 screenshot** in
    `docs/design/mockups/screenshots/ob-*.png`, 390/768/1280 × chiaro/scuro.
-   🟡 **Restano DA APPROVARE**: finché Francesco non sceglie le varianti, quelle superfici non si scrivono
-   in React.
+   ✅ **E LE VARIANTI SONO STATE SCELTE** (28/07 sera, §4 di ciascun mockup — **D21-D25**):
+   **D21** uscita **T2** (✕ leggera, senza cerchio) e **la ✕ compare solo dal passo 2**, perché al passo 1
+   farebbe la stessa cosa della freccia · **D22** briciole: **o intere o a icona, MAI troncate**; si riempie
+   da destra, le precedenti si chiudono in icona, la fila **scorre** se nemmeno le icone ci stanno ·
+   **D23** foto **F2** + **più foto** (rivedere · ingrandire · rifare · **eliminare** · aggiungere) ·
+   **D24** cassetta: **solo le libere**, con **crea al volo** e **salta** · **D25** avviso **V1** (sotto la
+   casella) e la ripresa che **dice cos'è cambiato e mette già il codice nuovo**.
+   ⚠️ **Un'ipotesi di Francesco corretta con la misura:** «su tablet/desktop c'è più spazio» è vero solo a
+   metà — la colonna è **bloccata a 480 px**, quindi **768 e 1280 sono IDENTICI** (320 px alle briciole
+   invece di 230). Lo spazio vero arriva **sui passi larghi** (denti/colore, D14): lì ci stanno tutte.
+   ✅ **Regola verificata a schermo, non assunta** (`scripts/tmp/misura-forma-ratificata.mjs`): **zero
+   briciole troncate** in tutti e sette i casi provati (390 · 768 · 1280, passo stretto e passo largo).
+   ⚠️ **Il prezzo, dichiarato:** un'icona dice **quale passo**, non **quale scelta** — la parte compressa
+   torna a essere un indicatore di avanzamento, cioè quello che D10 aveva tolto. Baratto accettato perché
+   le due più recenti restano parole.
    🔴 **E la misura ha smentito il disegno:** a 390 px, con l'uscita in testata, restano **230 px** alle
    briciole — «Dr. Puleo» 87 · «Overdenture» 113 · «Esposito» 85. **Due intere ci stanno (208), tre no
    (302).** Senza uscita in testata sono 286: tre **ancora** non bastano. Per questo è nata **O4** (testata
@@ -178,14 +191,28 @@ l'identificatore che il dentista scrive dal portale non lo legge nessuno · R9 l
 sbagliato *(decaduto con D13)* · R10 `ANALISI/17` chiama il laboratorio «titolare» in un punto e
 «responsabile» in un altro.
 
-🆕 **R11 (28/07 sera, trovato disegnando il passo cassetta): il colore delle cassette è scritto in due modi.**
-Delle **28** cassette in banca dati, **8** hanno un codice esadecimale (`#7C3AED`, `#FF4000`, `#4F4F4F`) e
-**20** una parola italiana (`rossa`, `azzurra`, `verde`, `bianca`, `grigia`, `blu`). Una griglia che dipinge
-il quadratino col valore così com'è **ne colora 8 su 28**, e lascia senza colore proprio le venti che
-l'operatrice riconosce a colpo d'occhio sul mobile. Prova: `select colore from cassette`, 28/07, sola
-lettura. **Destinazione:** la sede naturale è la parete delle cassette (**fuori perimetro D1**), ma il passo
-cassetta dell'ondata (b) **ci inciampa**: o il piano prevede la traduzione parola → colore, o la griglia
-mostra il solo nome. **Da decidere nel piano, non da assumere.**
+🚫 **R11 — RITIRATO nel giro di un'ora, e vale la pena tenerne il verbale.**
+Avevo scritto: «delle 28 cassette, 8 hanno il colore in esadecimale e 20 a parole → una griglia ne colora 8
+su 28». **La misura era giusta, la conclusione era sbagliata.** Il doppio formato **è previsto**, non è una
+deriva:
+- `src/lib/cassette/colore.ts:6,11` — `normalizzaColore` accetta **due forme e solo quelle**: le **sei
+  parole** (`bianca`, `azzurra`, `rossa`, `blu`, `verde`, `grigia`) oppure un esadecimale a sei cifre;
+  qualunque altra cosa è `null` → **422** in `api/cassette/route.ts:37-38`.
+- `src/design-system/v3/tokens.ts:121-128` — `facciaHex` **traduce già** le sei parole in colore, ed è
+  dichiarata «MAI ridichiarare questi hex nei .tsx».
+- `SwatchesColore.tsx:37-65` — il selettore esiste già e gestisce **entrambe** le forme.
+🔑 **La lezione, la stessa del panel sui colori:** avevo misurato un dato e dedotto un difetto **senza
+aprire il codice che lo consuma**. Un'anomalia nei dati non è un difetto finché non si guarda chi li legge.
+✅ **Conseguenza operativa (buona):** il passo cassetta **non deve risolvere niente** — riusa `facciaHex`.
+E `NuovaCassettaSheet.tsx:33-43` + `POST /api/cassette` esistono già: **creare una cassetta dal wizard è
+riuso, non lavoro nuovo.**
+
+🆕 **R12 (28/07 sera, questo è vero): un'immagine del lavoro NON si può cancellare.**
+`src/app/api/lavori/[id]/immagini/[imgId]/route.ts` espone **solo `PATCH`** — nessun `DELETE`. Il POST
+esiste (`immagini/route.ts:20`, max 20 MB, scrive su `lavori_immagini`), quindi **caricarne più d'una è già
+possibile lato dati**; toglierne una no. **Destinazione: dentro l'ondata (b)**, perché la richiesta di
+Francesco del 28/07 sera («devo poterle rivedere, ingrandire, rifare, eliminare o aggiungerne altre») la
+mette in perimetro. Oggi in banca dati ci sono **3 immagini** su 294 lavori.
 
 ---
 

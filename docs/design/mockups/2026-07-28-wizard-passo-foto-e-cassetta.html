@@ -20,6 +20,7 @@
     var scelto = document.querySelectorAll('.frame')[parseInt(p.get('frame') || '0', 10)];
     if (!scelto) return;
     document.body.replaceChildren(scelto);
+    document.body.classList.add('vista-schermo');
     document.body.style.minHeight = '100dvh';
     document.body.style.paddingTop = '8px';
   });
@@ -178,6 +179,77 @@
     text-decoration: underline; text-underline-offset: 3px;
     display: inline-flex; align-items: center; min-height: 44px; padding: 13px 0;
   }
+
+  /* ---- galleria di più foto (forma ratificata §3) ---- */
+  .galleria { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+  .mini {
+    position: relative; aspect-ratio: 1; border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--line);
+    background: repeating-linear-gradient(45deg, #cfc6b4 0 12px, #c3b9a5 12px 24px);
+  }
+  .mini.due { background: repeating-linear-gradient(135deg, #d5cdbd 0 12px, #c9c0ae 12px 24px); }
+  .mini.tre { background: repeating-linear-gradient(90deg, #cbc2b0 0 12px, #bfb5a2 12px 24px); }
+  :root[data-tema="scuro"] .mini { background: repeating-linear-gradient(45deg, #3a342b 0 12px, #322c25 12px 24px); }
+  :root[data-tema="scuro"] .mini.due { background: repeating-linear-gradient(135deg, #403930 0 12px, #37312a 12px 24px); }
+  :root[data-tema="scuro"] .mini.tre { background: repeating-linear-gradient(90deg, #3d372e 0 12px, #342f28 12px 24px); }
+  .etichetta-mini {
+    position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 999px;
+    background: rgba(0,0,0,.58); color: #fff; font-size: 11.5px; font-weight: 700;
+  }
+  .mini.aggiungi {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    background: transparent; border: 2px dashed var(--dashed); color: var(--muted);
+    font-size: 13px; font-weight: 700;
+  }
+
+  /* ---- visore a schermo pieno ---- */
+  .con-scrim { position: relative; }
+  body.vista-schermo .frame.con-scrim { min-height: calc(100dvh - 16px) !important; }
+  .scrim { position: absolute; inset: 0; background: rgba(29,25,19,.42); }
+  :root[data-tema="scuro"] .scrim { background: rgba(0,0,0,.66); }
+  .visore { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px; }
+  .visore-immagine {
+    position: relative; width: 100%; aspect-ratio: 3/4; border-radius: 22px; overflow: hidden;
+    background: repeating-linear-gradient(45deg, #cfc6b4 0 18px, #c3b9a5 18px 36px);
+  }
+  :root[data-tema="scuro"] .visore-immagine { background: repeating-linear-gradient(45deg, #3a342b 0 18px, #322c25 18px 36px); }
+  .visore-azioni { display: flex; justify-content: center; gap: 12px; }
+  .azione-tonda {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    min-width: 80px; height: 64px; border-radius: 20px;
+    background: var(--card); color: var(--ink); box-shadow: var(--sh-card);
+    font-size: 12.5px; font-weight: 700;
+  }
+  .azione-tonda svg { width: 21px; height: 21px; }
+  .azione-tonda.pericolo { color: var(--rosso); }
+
+  /* ---- sheet ---- */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--card); border-radius: 28px 28px 0 0; padding: 10px 24px 24px;
+    box-shadow: 0 -12px 40px -20px rgba(50,40,25,.55);
+  }
+  :root[data-tema="scuro"] .sheet { box-shadow: none; border-top: 1px solid rgba(255,255,255,.07); }
+  .maniglia { width: 44px; height: 4px; border-radius: 999px; background: var(--line); margin: 0 auto 16px; }
+  .sheet h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+
+  /* ---- le sei facce: valori VERBATIM da v3/tokens.ts:121-128 `facciaHex` ---- */
+  .facce { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .faccia {
+    width: 46px; height: 46px; border-radius: 14px; border: 1px solid rgba(0,0,0,.12);
+    box-shadow: var(--sh-card);
+  }
+  .faccia.scelta { box-shadow: 0 0 0 2px var(--blue); }
+  .faccia.altro {
+    display: grid; place-items: center; background: transparent;
+    border: 2px dashed var(--dashed); color: var(--muted); font-size: 20px; font-weight: 800; box-shadow: none;
+  }
+
+  .cassetta.nuova {
+    align-items: center; justify-content: center; gap: 6px;
+    background: transparent; border: 2px dashed var(--dashed); box-shadow: none; color: var(--muted);
+  }
+  .nome-nuova { font-size: 14px; font-weight: 800; color: var(--muted); }
 
   .domande-francesco { margin-top: 56px; padding-top: 24px; border-top: 1.5px solid var(--line); max-width: 780px; }
   .domande-francesco h2 { font-size: 17px; font-weight: 800; }
@@ -503,34 +575,234 @@
     </div>
 
     <div class="rilievo">
-      <h3>⚠️ Un difetto trovato scrivendo questa anteprima — riferito, non toccato</h3>
-      <p>Le 28 cassette hanno il colore scritto <b>in due modi diversi</b>: <b>8</b> con un codice
-      esadecimale (<code>#7C3AED</code>, <code>#FF4000</code>, <code>#4F4F4F</code>) e <b>20</b> con una
-      parola italiana (<code>rossa</code>, <code>azzurra</code>, <code>verde</code>, <code>bianca</code>,
-      <code>grigia</code>, <code>blu</code>). Una schermata che dipinge il quadratino col valore così com'è
-      <b>ne colora 8 su 28</b> e lascia le altre venti senza colore — cioè proprio quelle che l'operatrice
-      riconosce a colpo d'occhio sul mobile.</p>
-      <p>Non lo correggo qui: è fuori dal perimetro dell'ondata (b) (D1, il solo wizard) e tocca la parete
-      delle cassette, che ha già la sua superficie. <b>Ma il passo cassetta ci inciampa</b>, quindi o il
-      piano prevede la traduzione parola → colore, o la griglia mostra il solo nome. Verificato il 28/07 in
-      sola lettura, baseline invariata.</p>
+      <h3>🚫 Il «difetto del colore» che avevo segnalato NON esiste — ritirato, e vale la pena dirlo</h3>
+      <p>Avevo scritto che le 28 cassette hanno il colore in due formati (8 in esadecimale, 20 a parole) e
+      che una griglia ne avrebbe colorate 8 su 28. <b>La misura era giusta. La conclusione era sbagliata.</b>
+      Il doppio formato <b>è previsto</b>: <code>normalizzaColore</code>
+      (<code>src/lib/cassette/colore.ts:6,11</code>) accetta <b>le sei parole e l'esadecimale, e nient'altro</b>
+      — qualunque altra cosa è un 422. E <code>facciaHex</code>
+      (<code>src/design-system/v3/tokens.ts:121-128</code>) <b>traduce già</b> le sei parole in colore, con
+      scritto sopra «MAI ridichiarare questi hex nei .tsx».</p>
+      <p>🔑 <b>La lezione:</b> avevo misurato un dato e dedotto un difetto <b>senza aprire il codice che
+      quel dato lo legge</b>. Un'anomalia nei dati non è un difetto finché non si guarda chi li consuma —
+      è la stessa forma dell'errore che il panel sui colori aveva già smontato una volta.</p>
+      <p>✅ <b>Conseguenza buona:</b> il passo cassetta non deve risolvere niente, riusa
+      <code>facciaHex</code>. E per creare una cassetta dal wizard esistono già
+      <code>NuovaCassettaSheet.tsx</code> e <code>POST /api/cassette</code>: è <b>riuso</b>, non lavoro nuovo.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SEZIONE 3 — LA FORMA RATIFICATA (28/07, sera)
+       ============================================================ -->
+  <div class="sezione">
+    <h2>3. ✅ La forma ratificata — F2 con più foto, e la cassetta con le sole libere</h2>
+    <p><b>Scelte di Francesco, 28/07 sera.</b> <b>Foto:</b> variante <b>F2</b>, con la frase «Dell'impronta,
+    del modello, della prescrizione — quello che ti serve ritrovare dopo» — e <b>più di una foto</b>:
+    <i>«se ho più cose da inserire al lavoro devo poterlo fare, e proprio per questo devo poter rivedere le
+    foto allegate, ingrandirle per vedere se sono uscite bene, eventualmente rifarle, eliminarle o
+    aggiungerne delle altre.»</i> <b>Cassetta:</b> si mostrano <b>solo le libere</b>, si tocca quella giusta,
+    <b>se ne può creare una al volo</b>, oppure si salta perché il pacco non è arrivato.</p>
+
+    <p>🔑 <b>Quanto costa davvero, verificato aprendo i file — e sono due notizie diverse.</b><br>
+    ✅ <b>Più foto è quasi tutto già in casa:</b> le immagini non stanno in una colonna del lavoro, stanno in
+    una <b>tabella</b> (<code>lavori_immagini</code>), e <code>POST /api/lavori/[id]/immagini</code> esiste
+    già (max 20 MB a file). <b>Caricarne cinque è già possibile oggi:</b> è il wizard che ne tiene una sola.
+    <br>
+    🔴 <b>Ma una foto NON si può cancellare:</b> <code>immagini/[imgId]/route.ts</code> espone <b>solo
+    <code>PATCH</code></b>, nessun <code>DELETE</code>. «Eliminarle» e «rifarle» vogliono una via nuova sul
+    server. È l'unico pezzo davvero da costruire (in banca dati oggi ci sono <b>3 immagini</b> in tutto).<br>
+    ✅ <b>Creare una cassetta dal wizard è riuso puro:</b> <code>NuovaCassettaSheet.tsx</code> e
+    <code>POST /api/cassette</code> esistono già, col nome precompilato e le sei facce.</p>
+
+    <div class="riga-stati">
+      <div class="stato">
+        <div class="etichetta">① Foto — nessuna ancora</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Una foto?</h1>
+            <p class="hint">Dell'impronta, del modello, della prescrizione — quello che ti serve ritrovare dopo.</p>
+            <div class="foto-grande">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+              <span>Scatta una foto</span>
+              <span class="sotto">o scegline una dal telefono</span>
+            </div>
+            <div class="tasto-secondario">Continua senza foto</div>
+          </div>
+        </div>
+        <p class="misura">Il plurale è nella frase, quindi dev'essere anche nel comportamento.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">② Tre foto — si vedono tutte, e se ne aggiungono</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Una foto?</h1>
+            <p class="hint">Dell'impronta, del modello, della prescrizione — quello che ti serve ritrovare dopo.</p>
+            <div class="galleria">
+              <div class="mini"><span class="etichetta-mini">impronta</span></div>
+              <div class="mini due"><span class="etichetta-mini">prescrizione</span></div>
+              <div class="mini tre"><span class="etichetta-mini">modello</span></div>
+              <div class="mini aggiungi">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                <span>Aggiungi</span>
+              </div>
+            </div>
+            <p class="campo-nota">Tocca una foto per vederla grande.</p>
+            <div class="tasto-secondario">Continua</div>
+          </div>
+        </div>
+        <p class="misura">Tre più il tasto «Aggiungi»: la griglia cresce, il tasto resta sempre l'ultimo.
+        Nessun numero massimo dichiarato a schermo — v. le domande in fondo.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">③ Foto ingrandita — è venuta bene?</div>
+        <div class="demo-cornice">
+          <div class="frame con-scrim" style="min-height:560px; position:relative; padding-bottom:0">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Una foto?</h1>
+            <div class="scrim"></div>
+            <div class="visore">
+              <div class="visore-immagine"><span class="etichetta-mini">impronta · 1 di 3</span></div>
+              <div class="visore-azioni">
+                <span class="azione-tonda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="12.5" r="3.5"/></svg><span>Rifai</span></span>
+                <span class="azione-tonda pericolo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M9 7V5h6v2"/><path d="M7 7l1 12h8l1-12"/></svg><span>Elimina</span></span>
+                <span class="azione-tonda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg><span>Chiudi</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">«1 di 3»: si scorre da qui, senza tornare indietro ogni volta. 🔴 <b>«Elimina» è
+        l'azione che oggi il server non sa fare</b> — è la vera aggiunta di questa richiesta.</p>
+      </div>
+    </div>
+
+    <div class="riga-stati" style="margin-top:26px">
+      <div class="stato">
+        <div class="etichetta">④ Cassetta — solo le libere</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+3</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">In che cassetta?</h1>
+            <p class="hint">Queste sono libere adesso. Tocca quella dove hai messo il pacco.</p>
+            <div class="griglia-cassette">
+              <div class="cassetta"><span class="pallino" style="background:#E8323B"></span><span class="nome">C1</span></div>
+              <div class="cassetta"><span class="pallino" style="background:#2E9C55"></span><span class="nome">C3</span></div>
+              <div class="cassetta"><span class="pallino" style="background:#6FB1E8"></span><span class="nome">C9</span></div>
+              <div class="cassetta"><span class="pallino" style="background:#2E6FD0"></span><span class="nome">Pr</span></div>
+              <div class="cassetta nuova">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                <span class="nome-nuova">Nuova</span>
+              </div>
+            </div>
+            <div class="link-quieto-riga"><span class="link-quieto">Il pacco non è ancora arrivato</span></div>
+          </div>
+        </div>
+        <p class="misura">Quattro libere su 28: <b>la griglia è corta perché mostra solo quello che serve</b>.
+        I colori vengono da <code>facciaHex</code>, non inventati qui.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">⑤ Creane una al volo — riuso di quello che c'è</div>
+        <div class="demo-cornice">
+          <div class="frame con-scrim" style="min-height:560px; position:relative; padding-bottom:0">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+3</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">In che cassetta?</h1>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="maniglia"></div>
+              <h3>Nuova cassetta</h3>
+              <div class="campo-wrap" style="margin-top:14px">
+                <span class="campo-label">Nome</span>
+                <div class="campo-input">C12</div>
+                <p class="campo-nota">Te l'ho già scritto io. Se le tue hanno nomi diversi, cambialo.</p>
+              </div>
+              <span class="campo-label" style="margin-top:18px">Colore della faccia</span>
+              <div class="facce">
+                <span class="faccia" style="background:#FFFEFA"></span>
+                <span class="faccia" style="background:#6FB1E8"></span>
+                <span class="faccia scelta" style="background:#E8323B"></span>
+                <span class="faccia" style="background:#2E6FD0"></span>
+                <span class="faccia" style="background:#2E9C55"></span>
+                <span class="faccia" style="background:#9A948E"></span>
+                <span class="faccia altro">＋</span>
+              </div>
+              <div class="tasto-secondario" style="margin-top:20px">Crea e metti qui il lavoro</div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Nome precompitato e sei facce: è <b>esattamente</b> ciò che
+        <code>NuovaCassettaSheet.tsx</code> fa già sulla parete. Qui cambia solo chi lo apre.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">⑥ Il pacco non è ancora arrivato</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="briciole"><span class="altre">+3</span><span class="briciola">Esposito</span></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">In che cassetta?</h1>
+            <p class="hint">Queste sono libere adesso. Tocca quella dove hai messo il pacco.</p>
+            <div class="griglia-cassette">
+              <div class="cassetta"><span class="pallino" style="background:#E8323B"></span><span class="nome">C1</span></div>
+              <div class="cassetta"><span class="pallino" style="background:#2E9C55"></span><span class="nome">C3</span></div>
+              <div class="cassetta nuova">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                <span class="nome-nuova">Nuova</span>
+              </div>
+            </div>
+            <div class="tasto-secondario">Salta: il pacco non è ancora arrivato</div>
+            <p class="campo-nota">Il lavoro si crea lo stesso e resta in elenco. La cassetta gliela dai quando arriva.</p>
+          </div>
+        </div>
+        <p class="misura">⚠️ Un tasto pieno che <b>salta</b> è l'eccezione a D2, e ha una ragione: qui non
+        rispondere è il caso <b>normale</b>, non il ripiego.</p>
+      </div>
     </div>
   </div>
 
   <div class="domande-francesco">
     <h2>Cosa mi serve da te</h2>
+    <p style="font-size:14.5px;color:var(--muted);line-height:1.5">✅ <b>Deciso il 28/07 sera:</b> foto =
+    <b>F2</b> con quella frase e <b>più foto</b> (rivedere · ingrandire · rifare · eliminare · aggiungere) ·
+    cassetta = <b>solo le libere</b>, con la possibilità di <b>crearne una</b> o di <b>saltare</b> ·
+    il «difetto del colore» <b>non esisteva</b> (v. riquadro sopra). Restano queste:</p>
     <ol>
-      <li><b>Il passo foto:</b> <b>F1</b> (la riga di oggi), <b>F2</b> (un bersaglio grande) o <b>F3</b>
-      (scatta / dal telefono)? Io consiglio <b>F2</b>: è l'unico passo che può restare vuoto, e un riquadro
-      grande con scritto «Continua senza foto» dice la verità meglio di una riga persa in una schermata vuota.</li>
-      <li><b>Quante foto?</b> Oggi il wizard ne tiene <b>una sola</b>. Al banco ne servono più d'una — impronta,
-      prescrizione, modello — o una basta? La risposta cambia il passo, non il colore di un bottone.</li>
-      <li><b>Il passo cassetta:</b> <b>K1</b> (la parete) o <b>K2</b> (la casella con la prima libera già
-      dentro)? Io consiglio <b>K1</b>: la K2 fa confermare un valore che nessuno ha guardato, ed è il modo
-      classico per far divergere il gestionale dal mobile vero.</li>
-      <li><b>Le cassette occupate:</b> le lascio visibili e spente, o le tolgo del tutto dall'elenco?</li>
-      <li>Sul <b>colore scritto a parole</b> (riquadro qui sopra): traduco le sei parole in colori dentro
-      questa ondata, oppure per ora la griglia mostra solo il nome e il colore si sistema con la parete?</li>
+      <li><b>Quante foto al massimo?</b> Il server ne accetta quante ne mandi, 20 MB l'una. Metto un tetto
+      (per dire: sei) o lascio libero? Un tetto si spiega, un caricamento lento no.</li>
+      <li><b>Le foto si possono etichettare?</b> Nelle anteprime ho scritto «impronta», «prescrizione»,
+      «modello» — ma <b>oggi quel dato non esiste</b>: me lo sono inventato per far capire il disegno. O si
+      aggiunge (una casella in più per foto), o le miniature restano senza nome. <b>Dimmi tu.</b></li>
+      <li><b>Eliminare una foto</b> chiede conferma, o basta il gesto? Considera che dopo la creazione del
+      lavoro quella foto è un allegato di un dispositivo medico.</li>
+      <li><b>Se crei una cassetta dal wizard</b>, il lavoro ci finisce dentro subito (come nell'anteprima ⑤),
+      o la crei e poi la scegli come le altre?</li>
     </ol>
   </div>
 
