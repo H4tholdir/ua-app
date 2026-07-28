@@ -2264,7 +2264,11 @@ git commit -m "feat(lavori): il form del lavoro salva i denti sul loro endpoint,
 **Comportamento da ottenere** (l'implementazione la sceglie l'esecutore, questo è il contratto osservabile):
 - **Se il lavoro ha dei denti** → il colore si scrive **sulle righe**, esattamente come fa il T12 oggi. Nessun cambiamento.
 - **Se il lavoro non ha denti** → il colore si scrive sul **default di caso** (`lavori.colore_scala`/`colore_codice`), e il fermo del T12 non scatta più.
-- 🛑 **Mai due verità visibili insieme:** quando ci sono righe, il caso non si tocca — la precedenza riga→caso (`src/lib/domain/colore-dente.ts`, Task 2) mostrerebbe comunque la riga, e un caso divergente sarebbe un dato fantasma.
+- 🛑 ~~**Mai due verità visibili insieme:** quando ci sono righe, il caso non si tocca.~~
+  **CORRETTA il 28/07/2026 — la regola qui sopra ERA MIA ED ERA SBAGLIATA, e l'esecutore del 12-bis l'ha smentita con un repro eseguito.** La formulazione giusta è:
+  ### 🔑 **Il caso si scrive DOVE SI LEGGE: ogni volta che, dopo il salvataggio, nessuna riga porterà una coppia colore completa — azzeramento compreso.**
+  **Il difetto che la vecchia regola produceva** (osservato, non dedotto): un lavoro nato dal wizard con elemento **e** colore ha il colore nel **caso** e le righe **senza** (T11: il wizard non stampa il colore su ogni dente, sarebbe una prescrizione per-dente mai data). Con la vecchia regola, **cambiare** il colore funzionava (va sulle righe, e la riga vince sul caso) ma **cancellarlo no**: le righe restavano senza colore, il caso restava valorizzato, la precedenza riga→caso ricadeva sul caso e **il colore vecchio riappariva al ricaricamento**. Non è un caso di frontiera: è **la forma normale** di ogni lavoro creato dal wizard. E un campo che non si può azzerare è un campo che non si corregge — contro la direttiva permanente.
+  ⚠️ Il pericolo che la vecchia regola voleva evitare (un caso divergente e invisibile dietro delle righe colorate) **resta chiuso lo stesso**: finché le righe portano un colore è la riga a essere letta *e* scritta; nel momento in cui si svuotano, quella stessa condizione fa aggiornare il caso. La verità visibile resta una sola.
 - 🛑 **Mai far fallire il salvataggio per un colore digitato male**, stessa regola dura del T11: si perde il colore, non il lavoro.
 
 **Vincoli del database — sono la ragione per cui questo task non è «due nomi in una lista»:**
