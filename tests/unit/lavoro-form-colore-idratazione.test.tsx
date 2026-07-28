@@ -121,9 +121,26 @@ describe('chi legge il lavoro per la scheda deve chiedere anche le righe', () =>
     'src/app/api/lavori/[id]/route.ts',
   ]
 
+  // 🔴 La guardia IGNORA I COMMENTI, e non è un dettaglio di stile: nella prima
+  // versione cercava la stringa nel file intero, e in ENTRAMBI i file quella
+  // stringa compare due volte — una nel commento che spiega perché la riga
+  // conta, una nella select vera. Misurato durante la revisione pre-merge del
+  // 28/07/2026: tolta la riga VERA da tutti e due i file, i 5 casi restavano
+  // verdi. Cioè il commento scritto per proteggere la riga era ciò che
+  // disarmava il test che la protegge. Un test che non può fallire non è una
+  // rete: è il disegno di una rete.
+  const righeDiCodice = (testo: string) =>
+    testo
+      .split('\n')
+      .filter((r) => {
+        const t = r.trim()
+        return t.length > 0 && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*')
+      })
+      .join('\n')
+
   for (const f of LETTORI) {
-    it(`${f} incorpora lavori_denti nella select`, () => {
-      expect(readFileSync(f, 'utf-8')).toContain('denti:lavori_denti(*)')
+    it(`${f} incorpora lavori_denti nella select (fuori dai commenti)`, () => {
+      expect(righeDiCodice(readFileSync(f, 'utf-8'))).toContain('denti:lavori_denti(*)')
     })
   }
 })
