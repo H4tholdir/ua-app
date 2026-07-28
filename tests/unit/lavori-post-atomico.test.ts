@@ -236,7 +236,16 @@ describe('POST /api/lavori — le forme d\'ingresso patologiche di `denti`', () 
     const json = await res.json()
 
     expect(res.status).toBe(422)
-    expect(json.error).toBe('dente ripetuto')
+    // ⚠️ Il messaggio è cambiato col T11-bis (rilievo G2), e il cambiamento È
+    // la correzione: fino al 28/07/2026 questa porta diceva «dente ripetuto» e
+    // il PUT gemello «dente ripetuto: la lista è un insieme». Due porte che
+    // rifiutano lo stesso corpo con parole diverse sono ancora due porte
+    // diverse — chi legge la risposta non può scrivere UN pezzo di interfaccia
+    // solo. Il PUT è la fonte (la sua validazione è quella completa), quindi
+    // chi converge è il POST. Il confronto fra le due risposte, che è ciò che
+    // impedisce di tornare a divergere, vive in
+    // `tests/unit/denti-due-porte-stessa-risposta.test.ts`.
+    expect(json.error).toBe('dente ripetuto: la lista è un insieme')
     expect(mockRpc).not.toHaveBeenCalled()
   })
 
@@ -384,9 +393,19 @@ describe('POST /api/lavori — il corpo che il wizard produce DAVVERO passa la p
     )
 
     expect(res.status).toBe(201)
+    // ⚠️ La forma dell'oggetto è cambiata col T11-bis (rilievo G2) e il
+    // cambiamento È la correzione: prima il POST spediva alla RPC l'oggetto
+    // GREZZO del client, adesso spedisce quello NORMALIZZATO — lo stesso che
+    // manda il PUT, cinque colonne del colore comprese, esplicitamente a null.
+    // 🔑 Non è cosmesi: la normalizzazione include il `.trim()`, e senza quello
+    // un `scala: '  vita_classical  '` superava ogni controllo di forma e
+    // arrivava al database con gli spazi attaccati. Misurato sul database vero
+    // il 28/07/2026, in transazione annullata: `lavori_denti_colore_fk`
+    // (SQLSTATE 23503), cioè l'INSERT dei denti che aborta e — non essendoci
+    // exception handler in `lavoro_crea_atomico` — il LAVORO che non nasce.
     expect(argomentiRpc().p_denti).toEqual([
-      { fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' },
-      { fdi: 27, ruolo: 'elemento', provenienza: 'prescritto' },
+      { fdi: 26, ruolo: 'elemento', scala: null, codice: null, codice_collo: null, codice_corpo: null, codice_incisale: null, provenienza: 'prescritto' },
+      { fdi: 27, ruolo: 'elemento', scala: null, codice: null, codice_collo: null, codice_corpo: null, codice_incisale: null, provenienza: 'prescritto' },
     ])
     expect(argomentiRpc().p_lavoro).toEqual(
       expect.objectContaining({ colore_scala: 'vita_classical', colore_codice: 'A2' })
@@ -405,7 +424,10 @@ describe('POST /api/lavori — il corpo che il wizard produce DAVVERO passa la p
     )
 
     expect(res.status).toBe(201)
-    expect(argomentiRpc().p_denti).toEqual([{ fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' }])
+    // Stessa forma normalizzata del caso qui sopra (T11-bis): una riga sola.
+    expect(argomentiRpc().p_denti).toEqual([
+      { fdi: 26, ruolo: 'elemento', scala: null, codice: null, codice_collo: null, codice_corpo: null, codice_incisale: null, provenienza: 'prescritto' },
+    ])
   })
 })
 

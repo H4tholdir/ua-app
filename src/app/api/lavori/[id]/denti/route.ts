@@ -4,54 +4,28 @@ import { getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
-import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
+// 🔑 La validazione del dente è UNA SOLA e vive in `lib/domain`: la chiamano
+// questa sostituzione e la creazione (`POST /api/lavori`). Fino al 28/07/2026
+// viveva solo qui e il POST passava alla RPC l'oggetto grezzo: le due porte
+// rispondevano in modo diverso allo stesso corpo, e dalla parte del POST la
+// risposta era un 500 col lavoro che non nasceva (rilievo G2). Due copie della
+// stessa regola — una che si aggiorna e l'altra no — sono la classe R3.
+import { validaDenti } from '@/lib/domain/denti-validazione'
 
 // PUT a SOSTITUZIONE INTEGRALE (spec §4): il client manda la lista che vuole
 // vedere, non un delta. Idempotente per costruzione; 6 denti = 1 chiamata.
 //
-// La validazione vive QUI e non solo nei CHECK del database perché un CHECK
-// produrrebbe un 500 illeggibile: chi sbaglia un dente deve sapere QUALE.
-// Ogni controllo qui sotto ha un vincolo gemello in
-// `20260727120100_lavori_denti_tabella.sql`; il database resta la rete, questa
-// è la porta. I due elenchi devono dire la stessa cosa — se un giorno la
-// migration cambia, cambia anche questo file.
-
-const RUOLI = ['elemento', 'mancante', 'impianto', 'escluso', 'incollato'] as const
-const PROVENIENZE = ['prescritto', 'eseguito'] as const
-
-// Le cinque colonne testuali del colore, tutte nullable e tutte soggette agli
-// stessi due CHECK (coppia + zone).
-const CAMPI_TESTO = ['scala', 'codice', 'codice_collo', 'codice_corpo', 'codice_incisale'] as const
-
-type DenteNormalizzato = {
-  fdi: number
-  ruolo: string
-  scala: string | null
-  codice: string | null
-  codice_collo: string | null
-  codice_corpo: string | null
-  codice_incisale: string | null
-  provenienza: string
-}
+// La validazione vive in una porta e non nei soli CHECK del database perché un
+// CHECK produrrebbe un 500 illeggibile: chi sbaglia un dente deve sapere QUALE.
+// L'elenco dei controlli, e il suo gemello in
+// `20260727120100_lavori_denti_tabella.sql`, stanno adesso in
+// `src/lib/domain/denti-validazione.ts` — insieme alla ragione per cui i due
+// elenchi devono dire la stessa cosa.
 
 type RouteContext = { params: Promise<{ id: string }> }
 
 function errore422(messaggio: string, valore?: unknown) {
   return NextResponse.json({ error: messaggio, valore }, { status: 422 })
-}
-
-/**
- * Un campo testo del colore è: assente (`undefined`/`null`) oppure una stringa
- * non vuota. Un numero o un oggetto arriverebbero al database stringificati da
- * `d->>'scala'` e sbatterebbero contro `lavori_denti_colore_fk` con un 500; una
- * stringa vuota non è un colore, e `('','')` non esiste in `colori_dentali`.
- */
-function leggiTesto(grezzo: unknown): { ok: true; valore: string | null } | { ok: false } {
-  if (grezzo === undefined || grezzo === null) return { ok: true, valore: null }
-  if (typeof grezzo !== 'string') return { ok: false }
-  const pulito = grezzo.trim()
-  if (pulito.length === 0) return { ok: false }
-  return { ok: true, valore: pulito }
 }
 
 export async function PUT(req: Request, { params }: RouteContext) {
@@ -136,67 +110,21 @@ export async function PUT(req: Request, { params }: RouteContext) {
   }
   const atteso = attesoGrezzo
 
-  if (!Array.isArray(body.denti)) return errore422('denti deve essere una lista')
+  // 🔑 Qui la lista è IL CORPO della richiesta: la sua assenza è un errore, e
+  // `undefined` non è un array, quindi cade sullo stesso messaggio di sempre.
+  // Sul POST la stessa chiave è facoltativa e la sua assenza vuol dire «nessun
+  // dente»: è l'unica differenza fra le due porte, e vive qui — alle porte —
+  // apposta perché si veda (v. `denti-validazione.ts`).
+  const esitoDenti = validaDenti(body.denti)
+  if (!esitoDenti.ok) return errore422(esitoDenti.errore, esitoDenti.valore)
+  const denti = esitoDenti.denti
 
-  const visti = new Set<number>()
-  const denti: DenteNormalizzato[] = []
-
-  for (const grezzoDente of body.denti as unknown[]) {
-    if (!grezzoDente || typeof grezzoDente !== 'object' || Array.isArray(grezzoDente)) {
-      return errore422('ogni dente deve essere un oggetto', grezzoDente)
-    }
-    const d = grezzoDente as Record<string, unknown>
-
-    if (!isFdiValido(d.fdi)) return errore422('numero di dente non valido', d.fdi)
-    if (visti.has(d.fdi)) return errore422('dente ripetuto: la lista è un insieme', d.fdi)
-    visti.add(d.fdi)
-
-    if (d.ruolo !== undefined && !(RUOLI as readonly unknown[]).includes(d.ruolo)) {
-      return errore422('ruolo non valido', d.ruolo)
-    }
-    if (d.provenienza !== undefined && !(PROVENIENZE as readonly unknown[]).includes(d.provenienza)) {
-      return errore422('provenienza non valida', d.provenienza)
-    }
-
-    const testi: Record<string, string | null> = {}
-    for (const campo of CAMPI_TESTO) {
-      const letto = leggiTesto(d[campo])
-      if (!letto.ok) return errore422(`${campo} non valido`, d[campo])
-      testi[campo] = letto.valore
-    }
-
-    // Mezza coppia non è mezzo colore (`lavori_denti_coppia_ck`, stessa regola
-    // di risolviColore: tre punti, una sola idea).
-    if ((testi.scala === null) !== (testi.codice === null)) {
-      return errore422('scala e codice vanno insieme', testi.scala ?? testi.codice)
-    }
-    // Le zone del ceramista non possono esistere senza la scala che le legge
-    // (`lavori_denti_zone_ck`). Il piano si fermava alla coppia e lasciava
-    // scoperto questo secondo CHECK: un `{ fdi: 11, codice_collo: 'A1' }`
-    // passava la porta e tornava indietro come 500.
-    if (
-      testi.scala === null &&
-      (testi.codice_collo !== null || testi.codice_corpo !== null || testi.codice_incisale !== null)
-    ) {
-      return errore422('le zone del colore richiedono scala e codice', d.fdi)
-    }
-
-    denti.push({
-      fdi: d.fdi,
-      ruolo: (d.ruolo as string | undefined) ?? 'elemento',
-      scala: testi.scala,
-      codice: testi.codice,
-      codice_collo: testi.codice_collo,
-      codice_corpo: testi.codice_corpo,
-      codice_incisale: testi.codice_incisale,
-      provenienza: (d.provenienza as string | undefined) ?? 'prescritto',
-    })
-  }
-
-  // ⚠️ LIMITE DICHIARATO: una coppia (scala, codice) sintatticamente valida ma
-  // inesistente in `colori_dentali` viola `lavori_denti_colore_fk` e torna 500,
-  // non 422. Chiuderlo richiede una lettura di `colori_dentali` dalla route:
-  // non è nel perimetro di questo task, ed è meglio scritto qui che dedotto.
+  // ⚠️ LIMITE DICHIARATO, ora scritto una volta sola per tutte e due le porte:
+  // una coppia (scala, codice) sintatticamente valida ma inesistente in
+  // `colori_dentali` viola `lavori_denti_colore_fk` e torna 500, non 422. Il
+  // perché non è chiuso qui sta in testa a `denti-validazione.ts`: la chiusura
+  // vuole due esiti DIVERSI sulle due porte, e quindi un progetto, non
+  // un'estrazione.
 
   // laboratorio_id e lavoro_id eventualmente presenti nel body si IGNORANO:
   // si derivano da sessione e URL. Il client non sceglie il proprio tenant.

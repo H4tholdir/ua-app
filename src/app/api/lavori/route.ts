@@ -7,7 +7,11 @@ import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
 import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
-import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
+// La validazione dei denti è UNA SOLA e vive in `lib/domain`: la chiamano
+// questa creazione e la sostituzione integrale (`PUT /api/lavori/[id]/denti`).
+// Fino al 28/07/2026 viveva solo nel PUT, e qui si controllavano `fdi` e i
+// duplicati e basta — con l'oggetto grezzo che finiva alla RPC (rilievo G2).
+import { validaDenti, type DenteNormalizzato } from '@/lib/domain/denti-validazione'
 // La normalizzazione del colore di caso è UNA SOLA e vive in `lib/api`: la
 // chiamano questa creazione e la correzione dalla scheda (PATCH /api/lavori/
 // [id], Task 12-bis). Due copie della stessa regola sono la classe R3.
@@ -167,38 +171,37 @@ export async function POST(req: Request) {
 
   // Validazione dei denti PRIMA della RPC: un valore fuori dominio deve tornare
   // un 422 leggibile che dice QUALE dente, non un 500 dal CHECK del database —
-  // e senza bruciare un progressivo. Ogni controllo qui ha il suo gemello in
-  // `20260727120100_lavori_denti_tabella.sql`: il database resta la rete,
-  // questa è la porta.
+  // e senza bruciare un progressivo.
+  //
+  // 🛑 E DEVE ESSERE LA STESSA DEL PUT, non una sua metà (rilievo G2 della
+  // revisione pre-merge, 28/07/2026). Qui si guardavano `fdi` e i duplicati e
+  // poi si spediva alla RPC l'oggetto GREZZO; `lavoro_crea_atomico` non ha
+  // exception handler attorno all'INSERT dei denti, quindi un `ruolo` inventato
+  // o una mezza coppia di colore non facevano perdere il DENTE: facevano
+  // abortire l'intera creazione, con un 500 col messaggio Postgres crudo e il
+  // lavoro che non nasceva. Il rovescio della regola dura del ramo.
+  //
+  // 🔑 E si spedisce la lista NORMALIZZATA, non quella grezza: senza il `.trim()`
+  // un `scala: '  vita_classical  '` passerebbe ogni controllo di forma e
+  // arriverebbe al database con gli spazi attaccati — `lavori_denti_colore_fk`,
+  // 500, di nuovo il lavoro perso. Da qui in avanti le due porte mandano alla
+  // banca dati oggetti della STESSA forma.
   //
   // 🔴 `denti` presente ma NON una lista è un 422, mai un «nessun dente».
   // Un `Array.isArray(body.denti) ? ... : []` trasformerebbe un oggetto o una
   // stringa in lista vuota: 201, zero denti, nessun errore — il dato sparirebbe
   // in silenzio e l'utente leggerebbe «Salvato». Anche `null` cade qui: chi non
-  // ha denti da mandare OMETTE la chiave, non la manda vuota.
-  const dentiIn: Array<Record<string, unknown>> = []
+  // ha denti da mandare OMETTE la chiave, non la manda vuota. ⚠️ Questa
+  // distinzione fra «assente» e «presente ma sbagliata» resta QUI e non entra
+  // nel modulo condiviso: è l'unica differenza legittima fra le due porte (sul
+  // PUT la lista è il corpo stesso della richiesta) e va vista dove sta.
+  let dentiIn: DenteNormalizzato[] = []
   if (body.denti !== undefined) {
-    if (!Array.isArray(body.denti)) {
-      return NextResponse.json({ error: 'denti deve essere una lista' }, { status: 422 })
+    const esitoDenti = validaDenti(body.denti)
+    if (!esitoDenti.ok) {
+      return NextResponse.json({ error: esitoDenti.errore, valore: esitoDenti.valore }, { status: 422 })
     }
-    const vistiFdi = new Set<number>()
-    for (const grezzoDente of body.denti as unknown[]) {
-      if (!grezzoDente || typeof grezzoDente !== 'object' || Array.isArray(grezzoDente)) {
-        return NextResponse.json(
-          { error: 'ogni dente deve essere un oggetto', valore: grezzoDente },
-          { status: 422 }
-        )
-      }
-      const d = grezzoDente as Record<string, unknown>
-      if (!isFdiValido(d.fdi)) {
-        return NextResponse.json({ error: 'numero di dente non valido', valore: d.fdi }, { status: 422 })
-      }
-      if (vistiFdi.has(d.fdi)) {
-        return NextResponse.json({ error: 'dente ripetuto', valore: d.fdi }, { status: 422 })
-      }
-      vistiFdi.add(d.fdi)
-      dentiIn.push(d)
-    }
+    dentiIn = esitoDenti.denti
   }
 
   // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
