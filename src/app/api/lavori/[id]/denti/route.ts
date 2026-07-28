@@ -84,18 +84,57 @@ export async function PUT(req: Request, { params }: RouteContext) {
   }
   const body = grezzo as Record<string, unknown>
 
-  // 🔑 Il gettone di concorrenza viaggia COSÌ COM'È, senza mai passare da un
-  // `new Date(...)`: `timestamptz` ha precisione al microsecondo, `Date` di JS
-  // al millisecondo. Un solo giro di riparsing troncherebbe `.123456` a `.123`
-  // e il confronto `IS DISTINCT FROM` dentro la RPC non tornerebbe MAI uguale:
-  // 409 permanente, che nemmeno ricaricando la pagina si sana. Qui si controlla
-  // solo che sia una stringa — un numero produrrebbe un errore di cast
-  // (SQLSTATE 22007) e quindi un 500 al posto di un 422.
+  // 🔑 IL GETTONE DI CONCORRENZA È OBBLIGATORIO (rilievo M1 della revisione
+  // pre-merge, 28/07/2026). Prima era facoltativo, e questo PUT è a
+  // SOSTITUZIONE INTEGRALE: chi non mandava la chiave CANCELLAVA la lista denti
+  // scritta da un collega e riceveva 200. Riprodotto sul database vero, in una
+  // transazione annullata: due chiamate consecutive con
+  // `p_atteso_updated_at := NULL` tornano ENTRAMBE `{"esito":"ok"}` e alla fine
+  // resta un dente solo — nessun 409. E quella lista alimenta la
+  // denormalizzazione che la Dichiarazione di Conformità stampa.
+  //
+  // 🛑 LA GUARDIA VIVE QUI, E LA RPC RESTA PERMISSIVA — scelta, non dimenticanza.
+  //    `20260727120300_lavori_denti_rpc.sql:61` salta il confronto quando
+  //    `p_atteso_updated_at IS NULL`, e continua a farlo. La ragione è di
+  //    vocabolario, non di comodità: la RPC conosce tre esiti — `non_trovato`,
+  //    `conflitto`, `ok` — e «non hai mandato la chiave» non è nessuno dei tre.
+  //    Farle rispondere `conflitto` significherebbe far dire a questa route «Il
+  //    lavoro è stato modificato da qualcun altro» a chi ha solo sbagliato la
+  //    richiesta: una bugia. Darle un quarto esito vorrebbe dire cambiare anche
+  //    il chiamante, cioè un intervento più grande del difetto.
+  //    Il perimetro regge: la funzione è in REVOKE da PUBLIC/anon/authenticated
+  //    e in GRANT al solo `service_role` (stessa migration, righe 223-226), e il
+  //    censimento del catalogo vivo dice che NESSUNA funzione in banca dati la
+  //    chiama — `SELECT proname FROM pg_proc WHERE prosrc ILIKE
+  //    '%lavoro_denti_sostituisci_atomica%'` dà 1 sola riga, `lavoro_crea_atomico`,
+  //    e lì il nome compare in un COMMENTO, non in una chiamata. Questa route è
+  //    l'unica porta che esiste. Se un domani ne nascesse una seconda, la
+  //    guardia va ricopiata lì — oppure si dà alla RPC il suo quarto esito.
+  //
+  // 🔑 Il valore viaggia COSÌ COM'È, senza mai passare da un `new Date(...)`:
+  // `timestamptz` ha precisione al microsecondo, `Date` di JS al millisecondo.
+  // Un solo giro di riparsing troncherebbe `.123456` a `.123` e il confronto
+  // `IS DISTINCT FROM` dentro la RPC non tornerebbe MAI uguale: 409 permanente,
+  // che nemmeno ricaricando la pagina si sana. Il `.trim()` qui sotto serve
+  // SOLO a decidere se la stringa è vuota — non tocca il valore spedito.
+  //
+  // La stringa vuota è respinta perché `''::timestamptz` è un errore di cast
+  // (SQLSTATE 22007, provato: «invalid input syntax for type timestamp with
+  // time zone: ""»), cioè un 500 illeggibile al posto di un 422. Stesso motivo
+  // per cui si rifiuta un numero.
+  //
+  // ⚠️ LIMITE DICHIARATO: una stringa non vuota ma non interpretabile come
+  // istante (`'pippo'`) supera questa porta e sbatte sullo stesso 22007 → 500.
+  // Chiuderlo vorrebbe dire riconoscere qui tutte le forme che Postgres accetta:
+  // non è nel perimetro di questa correzione, ed è meglio scritto che dedotto.
   const attesoGrezzo = body.atteso_updated_at
-  if (attesoGrezzo !== undefined && attesoGrezzo !== null && typeof attesoGrezzo !== 'string') {
-    return errore422('atteso_updated_at deve essere una stringa', attesoGrezzo)
+  if (typeof attesoGrezzo !== 'string' || attesoGrezzo.trim().length === 0) {
+    return errore422(
+      'atteso_updated_at obbligatorio: è updated_at del lavoro che stai sostituendo',
+      attesoGrezzo
+    )
   }
-  const atteso = (attesoGrezzo as string | null | undefined) ?? null
+  const atteso = attesoGrezzo
 
   if (!Array.isArray(body.denti)) return errore422('denti deve essere una lista')
 
@@ -169,8 +208,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
       p_denti: denti,
       // `p_atteso_updated_at` non ha DEFAULT in SQL e PostgREST risolve
       // l'overload sull'INSIEME delle chiavi del body: la chiave va mandata
-      // SEMPRE, valorizzata a null quando il gettone non c'è. Ometterla darebbe
-      // PGRST202 «function not found» sul percorso più comune di tutti.
+      // SEMPRE. Ometterla darebbe PGRST202 «function not found» sul percorso più
+      // comune di tutti. Da quando il gettone è obbligatorio (M1) qui arriva
+      // sempre una stringa non vuota — il ramo `null` non esiste più.
       p_atteso_updated_at: atteso,
     })
   )
