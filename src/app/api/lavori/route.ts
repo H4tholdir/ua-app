@@ -6,6 +6,8 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { MACRO_SLUGS } from '@/lib/domain/tipi-lavoro'
+import { callRpcWithRetry } from '@/lib/supabase/rpc-retry'
+import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -94,12 +96,21 @@ export async function POST(req: Request) {
   const svc = getServiceClient()
   const labId: string = context.laboratorioId
 
-  let body: Record<string, unknown>
+  let grezzo: unknown
   try {
-    body = await req.json()
+    grezzo = await req.json()
   } catch {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
+  // ⚠️ `JSON.stringify(null)` è la stringa "null": `req.json()` la parsa SENZA
+  // lanciare, quindi il catch qui sopra NON scatta e ogni lettura `body.campo`
+  // sarebbe un TypeError → 500 non gestito. Un corpo che non è un oggetto è un
+  // errore di richiesta, e va detto. Stessa classe già chiusa in
+  // `lavori/[id]/cassetta/route.ts` e dichiarata in `[id]/denti/route.ts:77-84`.
+  if (grezzo === null || typeof grezzo !== 'object' || Array.isArray(grezzo)) {
+    return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
+  }
+  const body = grezzo as Record<string, unknown>
 
   // Validazione server-side campi obbligatori
   if (!body.cliente_id || typeof body.cliente_id !== 'string') {
@@ -150,57 +161,98 @@ export async function POST(req: Request) {
     }
   }
 
-  // Genera progressivo numero lavoro (race-safe via DB function)
+  // Validazione dei denti PRIMA della RPC: un valore fuori dominio deve tornare
+  // un 422 leggibile che dice QUALE dente, non un 500 dal CHECK del database —
+  // e senza bruciare un progressivo. Ogni controllo qui ha il suo gemello in
+  // `20260727120100_lavori_denti_tabella.sql`: il database resta la rete,
+  // questa è la porta.
+  //
+  // 🔴 `denti` presente ma NON una lista è un 422, mai un «nessun dente».
+  // Un `Array.isArray(body.denti) ? ... : []` trasformerebbe un oggetto o una
+  // stringa in lista vuota: 201, zero denti, nessun errore — il dato sparirebbe
+  // in silenzio e l'utente leggerebbe «Salvato». Anche `null` cade qui: chi non
+  // ha denti da mandare OMETTE la chiave, non la manda vuota.
+  const dentiIn: Array<Record<string, unknown>> = []
+  if (body.denti !== undefined) {
+    if (!Array.isArray(body.denti)) {
+      return NextResponse.json({ error: 'denti deve essere una lista' }, { status: 422 })
+    }
+    const vistiFdi = new Set<number>()
+    for (const grezzoDente of body.denti as unknown[]) {
+      if (!grezzoDente || typeof grezzoDente !== 'object' || Array.isArray(grezzoDente)) {
+        return NextResponse.json(
+          { error: 'ogni dente deve essere un oggetto', valore: grezzoDente },
+          { status: 422 }
+        )
+      }
+      const d = grezzoDente as Record<string, unknown>
+      if (!isFdiValido(d.fdi)) {
+        return NextResponse.json({ error: 'numero di dente non valido', valore: d.fdi }, { status: 422 })
+      }
+      if (vistiFdi.has(d.fdi)) {
+        return NextResponse.json({ error: 'dente ripetuto', valore: d.fdi }, { status: 422 })
+      }
+      vistiFdi.add(d.fdi)
+      dentiIn.push(d)
+    }
+  }
+
+  // Creazione ATOMICA: progressivo + lavoro + denti in una transazione sola.
+  // Motivo NORMATIVO, non di comodità (spec §4, rischio R1): un colore perso in
+  // silenzio produce una Dichiarazione priva di un contenuto obbligatorio
+  // dell'Allegato XIII. Prima di questa modifica il lavoro nasceva con un
+  // INSERT e i denti arrivavano dopo con una PATCH fail-soft: se quella
+  // falliva, il lavoro esisteva e il dato no.
   const anno = new Date().getFullYear()
-  const { data: progressivo, error: rpcError } = await svc.rpc('genera_progressivo', {
-    p_laboratorio_id: labId,
-    p_tipo: 'lavoro',
-    p_anno: anno,
-  })
+  const { data: esitoRpc, error: rpcError } = await callRpcWithRetry(() =>
+    svc.rpc('lavoro_crea_atomico', {
+      p_lab: labId,
+      p_lavoro: {
+        anno_lavoro: anno,
+        tipo_dispositivo: body.tipo_dispositivo,
+        descrizione: body.descrizione,
+        data_consegna_prevista: body.data_consegna_prevista,
+        ora_consegna: body.ora_consegna ?? null,
+        richiedente_nome: body.richiedente_nome ?? null,
+        priorita: body.priorita ?? 'normale',
+        dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
+        note_interne: body.note_interne ?? null,
+        cliente_id: body.cliente_id,
+        paziente_id: body.paziente_id ?? null,
+        tecnico_id: body.tecnico_id ?? null,
+        ciclo_id: body.ciclo_id ?? null,
+        classe_rischio: body.classe_rischio ?? 'classe_i',
+        da_conformare: body.da_conformare ?? true,
+        codice_iva: body.codice_iva ?? 'N4',
+        natura_iva: body.natura_iva ?? 'N4',
+        data_ingresso: oggiRomaISO(),
+        colore_scala: body.colore_scala ?? null,
+        colore_codice: body.colore_codice ?? null,
+      },
+      p_denti: dentiIn,
+    })
+  )
 
-  if (rpcError || progressivo == null) {
-    return NextResponse.json(
-      { error: `Impossibile generare numero lavoro: ${rpcError?.message ?? 'null'}` },
-      { status: 500 }
-    )
+  // postgrest NON lancia: l'errore si controlla, non si aspetta in un catch.
+  if (rpcError) {
+    return NextResponse.json({ error: rpcError.message }, { status: 500 })
   }
 
-  const numero_lavoro = `${anno}/${String(progressivo).padStart(4, '0')}`
+  const esito = esitoRpc as {
+    esito?: string
+    id?: string
+    numero_lavoro?: string
+    stato?: string
+    dettaglio?: string
+  } | null
 
-  // Build insert payload — whitelist safe fields from body
-  const insertData = {
-    laboratorio_id: labId,
-    numero_lavoro,
-    anno_lavoro: anno,
-    stato: 'ricevuto' as const,
-    tipo_dispositivo: body.tipo_dispositivo,
-    descrizione: body.descrizione,
-    data_consegna_prevista: body.data_consegna_prevista,
-    ora_consegna: body.ora_consegna ?? null,
-    richiedente_nome: body.richiedente_nome ?? null,
-    priorita: body.priorita ?? 'normale',
-    dispositivo_semilavorato: body.dispositivo_semilavorato ?? false,
-    note_interne: body.note_interne ?? null,
-    cliente_id: body.cliente_id,
-    paziente_id: body.paziente_id ?? null,
-    tecnico_id: body.tecnico_id ?? null,
-    ciclo_id: body.ciclo_id ?? null,
-    classe_rischio: body.classe_rischio ?? 'classe_i',
-    da_conformare: body.da_conformare ?? true,
-    codice_iva: body.codice_iva ?? 'N4',
-    natura_iva: body.natura_iva ?? 'N4',
-    data_ingresso: oggiRomaISO(),
+  // I tre campi si controllano tutti: se anche uno solo mancasse, il client
+  // riceverebbe un lavoro senza numero e lo mostrerebbe come creato.
+  if (esito?.esito !== 'ok' || !esito.id || !esito.numero_lavoro || !esito.stato) {
+    return NextResponse.json({ error: esito?.dettaglio ?? 'Creazione non riuscita' }, { status: 500 })
   }
 
-  const { data: lavoro, error: insertError } = await svc
-    .from('lavori')
-    .insert(insertData)
-    .select('id, numero_lavoro, stato')
-    .single()
-
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
-  }
+  const lavoro = { id: esito.id, numero_lavoro: esito.numero_lavoro, stato: esito.stato }
 
   // Genera le fasi di produzione dal ciclo scelto, se presente.
   // Non blocca la creazione del lavoro già avvenuta se qualcosa qui fallisce:
