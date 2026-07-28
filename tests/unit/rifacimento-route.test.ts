@@ -352,4 +352,165 @@ describe('POST /api/lavori/[id]/rifacimento', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled()
     })
   })
+
+  // ─── G1 (revisione pre-merge 28/07/2026): denti e colore del rifacimento ───
+  //
+  // 🛑 CHE COSA QUESTO BLOCCO **NON** COPRE, e perché.
+  // La correzione di G1 vive INTERAMENTE dentro PL/pgSQL
+  // (`20260728103000_rifacimento_clona_denti_colore.sql`): la clonazione delle
+  // righe di `lavori_denti`, la copia del default di caso
+  // `colore_scala`/`colore_codice`, la conservazione di `provenienza` e il fatto
+  // che `denti_coinvolti` NON venga azzerato sui lavori senza righe. Niente di
+  // tutto questo attraversa il processo Node: la route manda cinque parametri e
+  // riceve due campi, identici a prima e dopo la correzione. Nessun test unitario
+  // in questo file può quindi vedere un dente o un colore, e uno che fingesse di
+  // vederli sarebbe una decorazione.
+  // Quelle proprietà sono provate sul database vero, in transazione ANNULLATA:
+  // output nel rapporto dell'esecutore G1 (5 righe clonate, 0 differenze,
+  // `provenienza='eseguito'` conservata su 2 righe, colore di caso presente,
+  // contro-prova sul lavoro legacy senza righe).
+  // 🛑 E NON si scrive un test sul TESTO della migration: è esattamente il
+  //    difetto G3 della stessa revisione (`readFileSync(...).toContain(...)`,
+  //    che passava anche togliendo la riga vera).
+  //
+  // ✅ CHE COSA QUESTO BLOCCO COPRE — l'unica cosa che vive davvero qui:
+  // l'INVARIANTE ARCHITETTURALE su cui la correzione poggia. Il rifacimento è
+  // già COMMITTATO quando la RPC ritorna. Se un domani qualcuno "chiudesse" G1
+  // dalla route — un secondo giro di rete che scrive i denti dopo l'esito ok —
+  // la clonazione smetterebbe di essere atomica: un errore di rete lascerebbe il
+  // lavoro nuovo senza denti e senza modo di accorgersene, cioè di nuovo il
+  // difetto latente di G1, su un dato che finisce nella Dichiarazione di
+  // Conformità. Questa è la guardia contro quella "correzione".
+  describe('G1 — la clonazione di denti e colore è atomica DENTRO la RPC, mai un secondo giro dalla route', () => {
+    const METODI_DI_SCRITTURA = ['insert', 'update', 'upsert', 'delete'] as const
+
+    /**
+     * Mock PERMISSIVO, deliberatamente diverso da `createChain` / `mockRpcLazy`
+     * usati nel resto del file: accetta QUALSIASI tabella, QUALSIASI metodo di
+     * chain (letture **e** scritture) e QUALSIASI nome di RPC, senza mai
+     * lanciare.
+     *
+     * ⚠️ È qui che sta il punto (R-P4). Con i mock rigidi del resto del file un
+     * secondo giro dalla route fa esplodere l'HARNESS — `Unexpected table:
+     * lavori_denti`, oppure `chain.update is not a function` — e quel rosso
+     * proverebbe soltanto che il mock è stretto, non che esista una guardia.
+     * Misurato: con l'abbozzo inerte inserito nella route, i mock rigidi
+     * facevano fallire **13 test su 21**, quasi tutti per il crash dell'harness
+     * e non per un'asserzione. Con questi mock la route è libera di fare quello
+     * che vuole, e a fallire è l'ASSERZIONE — l'unica cosa che vogliamo
+     * misurare.
+     */
+    function dbPermissivo(statoLavoro: string) {
+      const tocchi: Array<{ tabella: string; metodo: string }> = []
+      const risultato = { data: { id: LAVORO_VECCHIO_ID, stato: statoLavoro }, error: null }
+      const from = (tabella: string) => {
+        const c: Record<string, unknown> = {}
+        for (const m of ['select', 'eq', 'neq', 'in', 'is', 'or', 'order', 'limit', 'not', 'overrideTypes',
+          ...METODI_DI_SCRITTURA]) {
+          c[m] = (...args: unknown[]) => {
+            void args
+            tocchi.push({ tabella, metodo: m })
+            return c
+          }
+        }
+        for (const m of ['single', 'maybeSingle']) {
+          c[m] = async () => {
+            tocchi.push({ tabella, metodo: m })
+            return risultato
+          }
+        }
+        c.then = (resolve: (v: unknown) => void) => resolve(risultato)
+        return c
+      }
+      return { from, tocchi }
+    }
+
+    /** Stessa filosofia sul lato RPC: qualunque nome risponde ok, nulla lancia. */
+    function rpcPermissivo() {
+      const chiamate: string[] = []
+      const rpc = (fn: string, args: unknown) => {
+        void args
+        chiamate.push(fn)
+        const risposta =
+          fn === 'crea_rifacimento_atomico'
+            ? RIFACIMENTO_OK
+            : { data: { esito: 'niente_da_trasferire' }, error: null }
+        return {
+          then(resolve: (v: { data: unknown; error: unknown }) => void) {
+            resolve(risposta)
+          },
+        }
+      }
+      return { rpc, chiamate }
+    }
+
+    it('dopo un rifacimento riuscito la route NON scrive: nessuna tabella oltre `lavori`, e su `lavori` nessun metodo di scrittura', async () => {
+      const { from, tocchi } = dbPermissivo('pronto')
+      mockFrom.mockImplementation(from)
+      const { rpc } = rpcPermissivo()
+      mockRpc.mockImplementation(rpc)
+
+      const res = await POST(req(BODY_VALIDO), { params })
+      expect(res.status).toBe(200)
+
+      // Positiva PRIMA delle negative: se la route non toccasse nulla, le due
+      // asserzioni qui sotto passerebbero su liste vuote e il test sarebbe una
+      // decorazione (lezione M5 della stessa revisione — un test che può
+      // passare eseguendo zero controlli non è un test).
+      expect(tocchi.some((t) => t.tabella === 'lavori' && t.metodo === 'single')).toBe(true)
+
+      // `lavori_denti` è in REVOKE ALL, service_role compreso: dalla route non
+      // sarebbe nemmeno scrivibile. Se quel nome comparisse qui, il difetto
+      // sarebbe già in produzione sotto forma di errore di permessi silenzioso.
+      expect(tocchi.filter((t) => t.tabella !== 'lavori')).toEqual([])
+      expect(
+        tocchi.filter((t) => (METODI_DI_SCRITTURA as readonly string[]).includes(t.metodo))
+      ).toEqual([])
+    })
+
+    it('la route chiama DUE RPC e due sole, in ordine — la clonazione non è una terza chiamata', async () => {
+      const { from } = dbPermissivo('pronto')
+      mockFrom.mockImplementation(from)
+      const { rpc, chiamate } = rpcPermissivo()
+      mockRpc.mockImplementation(rpc)
+
+      const res = await POST(req(BODY_VALIDO), { params })
+      expect(res.status).toBe(200)
+
+      // Uguaglianza esatta, non `not.toContain`: fallisce sia se compare una
+      // RPC in più sia se ne sparisce una.
+      expect(chiamate).toEqual(['crea_rifacimento_atomico', 'cassetta_trasferisci_rifacimento'])
+    })
+
+    it("il motivo 'colore_sbagliato' — il caso che G1 rompeva — arriva alla RPC senza che la route aggiunga o tolga parametri", async () => {
+      const { from } = dbPermissivo('consegnato')
+      mockFrom.mockImplementation(from)
+      const argomenti: unknown[] = []
+      mockRpc.mockImplementation((fn: string, args: unknown) => {
+        if (fn === 'crea_rifacimento_atomico') argomenti.push(args)
+        return {
+          then(resolve: (v: { data: unknown; error: unknown }) => void) {
+            resolve(fn === 'crea_rifacimento_atomico' ? RIFACIMENTO_OK : { data: { esito: 'niente_da_trasferire' }, error: null })
+          },
+        }
+      })
+
+      const res = await POST(req({ motivo: 'colore_sbagliato', rilevato_in: 'post_consegna' }), { params })
+      expect(res.status).toBe(200)
+
+      // `toEqual` sull'oggetto intero: fallisce sia se un parametro sparisce sia
+      // se ne compare uno nuovo (`p_denti`, `p_colore`…) — cioè se qualcuno
+      // provasse a spostare la correzione dal database alla route passando dai
+      // parametri invece che da un secondo giro.
+      expect(argomenti).toEqual([
+        {
+          p_lavoro_originale_id: LAVORO_VECCHIO_ID,
+          p_motivo: 'colore_sbagliato',
+          p_rilevato_in: 'post_consegna',
+          p_costo_interno: null,
+          p_note: null,
+        },
+      ])
+    })
+  })
 })
