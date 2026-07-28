@@ -139,6 +139,6 @@ comando** (scatta anche dentro un messaggio di commit).
 
 ## 6. Lo stato del repo
 
-- **Dodici commit su `main` locale, NIENTE pubblicato.** Solo documenti, mockup, screenshot, memoria.
+- **Diciassette commit su `main` locale non pubblicati** (contati: `git rev-list --count origin/main..main`), di cui **nove di questa sessione**. Solo documenti, mockup, screenshot, memoria.
 - **Nessuna riga di codice dell'applicazione toccata** in tutta la giornata.
 - **Nessun ramo aperto**: il ramo dell'ondata (b) lo crea **T1**, nel repo principale.
