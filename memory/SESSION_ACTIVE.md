@@ -12,6 +12,15 @@ colore lo toglie da tutti i posti e non riappare · **il rifacimento eredita den
 · due salvataggi di fila senza conflitto. **3 viewport × 2 temi; la frase nuova a 390px non si
 tronca.** **DB riportato alla baseline esatta: 294 · 0 · 916 · 48.**
 
+🔴 **UN DIFETTO NUOVO, DELL'ONDATA, trovato DOPO le cinque prove — decide Francesco se correggerlo
+prima del merge (è UNA RIGA):** le tre frasi dell'ondata **non arrivano all'utente**, che legge solo
+«⚠ Errore — riprova». Passano da `setSaveError` (`useLavoroForm.ts:141,162,279`) e
+`LavoroFormClient.tsx:357` le mostra sotto **`saveError && !isDirty`** — ma dopo un salvataggio
+fallito il form **è** ancora modificato. **Nessun dato si perde, si perde il perché.** Provato per la
+frase delle zone; per le altre due è inferenza dal codice. Referto §4.0.
+🛡️ **Aggiunta la prova che mancava: il controllo di conflitto SCATTA** (`atteso_updated_at` vecchio →
+**409**, e nulla scritto). La prova 5 mostrava solo che **non** scatta a sproposito.
+
 ⚠️ **Due rilievi PREESISTENTI, riferiti e non toccati** (diff vuoto sui file coinvolti): idratazione
 disallineata su `LinguettaCassette`/`StanzePager`; a **1280×800** due campi colore coperti dalla
 fascia in fondo finché non si scorre → **ondata (b)**.

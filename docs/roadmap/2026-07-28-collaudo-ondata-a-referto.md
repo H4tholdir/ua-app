@@ -10,9 +10,13 @@ in questa sessione**).
 ## 0. Esito in una riga
 
 **Le cinque prove del collaudo sono passate tutte**, provate nell'applicazione vera con richieste
-HTTP vere e verificate ogni volta contro la banca dati. **Nessun difetto nuovo introdotto
-dall'ondata.** Due rilievi trovati per strada sono **preesistenti** (i file non sono toccati dal
-ramo) e due difetti **già censiti** sono stati confermati dal vivo.
+HTTP vere e verificate ogni volta contro la banca dati.
+🔴 **MA c'è un difetto NUOVO, dell'ondata, trovato dopo le cinque prove: le frasi nuove non arrivano
+all'utente — al loro posto compare «⚠ Errore — riprova».** Dettaglio e prova in **§4.0**. Nessun dato
+si perde (il salvataggio viene fermato correttamente), si perde **il perché**. **La correzione è una
+riga e la finestra è adesso: decide Francesco.**
+Due rilievi trovati per strada sono **preesistenti** (i file non sono toccati dal ramo) e tre difetti
+**già censiti** sono stati confermati dal vivo.
 **Database riportato esattamente alla baseline: 294 lavori · 0 righe in `lavori_denti` · 916 pazienti
 · 48 colori.**
 
@@ -44,6 +48,14 @@ vivo**: il server parte e serve le pagine.
 | 3 | Modifica → salva → **ricarica** | ✅ | Aggiunto il 27: dopo il ricaricamento 26+27 ancora lì. Azzerato il colore: sparito **da tutti i posti** (`lavori_denti.codice` NULL su entrambi **e** `lavori.colore_codice`/`colore_scala` NULL) e **non riappare** dopo il ricaricamento. Era la coda del 12-bis |
 | 4 | Rifacimento eredita denti e colore | ✅ | `2026/0016` nato **con 26 e 27 e colore `C2` (scala `vita_classical`) su entrambi**, più `denti_coinvolti ['26','27']`. Era **G1**, il difetto più grave della revisione |
 | 5 | Due salvataggi di fila | ✅ | 4 cicli `PUT /denti` + `PATCH`, **tutti 200**, nessun 409 e nessun avviso «qualcun altro ha modificato». L'ultimo salvataggio consecutivo (senza ricaricare in mezzo) è passato |
+| 5-bis | **Il controllo di conflitto scatta davvero** (controllo positivo, R-P1) | ✅ | `PUT /denti` con `atteso_updated_at: '2020-01-01T00:00:00Z'` → **409** `{"error":"Il lavoro è stato modificato da qualcun altro","updated_at":"2026-07-26T06:18:02.140876+00:00"}`. **E non ha scritto nulla**: `updated_at` del lavoro invariato, baseline invariata |
+
+🔑 **Perché la 5-bis esiste.** La prova 5 da sola dimostra che il controllo **non scatta a sproposito**,
+non che scatti quando deve — e un controllo inerte sarebbe **peggio** del falso allarme che cercava di
+escludere (due tecnici sulla stessa scheda si sovrascriverebbero in silenzio). È la regola R-P1: un
+vincolo si prova con **un valore che DEVE essere rifiutato**. Stessa lezione della §4.2.
+⚠️ Una prova intermedia ha risposto **404** invece di 409: il lavoro scelto era **di un altro
+laboratorio** — cioè l'isolamento fra laboratori che si comporta come deve (404, non 403).
 
 **Comportamento osservato e coerente col disegno:** salvando dalla scheda, il colore «di caso» viene
 riscritto **sulle righe dei denti** e le colonne del lavoro restano nulle — «il caso si scrive dove
@@ -57,8 +69,9 @@ stato `pronto` **con una UPDATE diretta** (`SchedaLavoroV3.tsx:201` lo mostra so
 
 ## 3. I tre schermi, i due temi
 
-Superficie provata: la **scheda clinica** (odontogramma + colori), cioè ciò che l'ondata rende
-leggibile, più il wizard e l'avviso.
+Superficie provata a tutti e sei i tagli: la **scheda clinica** (odontogramma + colori), cioè ciò che
+l'ondata rende leggibile. ⚠️ **Il wizard e l'avviso sono stati visti solo a 390 chiaro** — non a 768,
+1280 né in scuro.
 
 | | 390 | 768 | 1280 |
 |---|---|---|---|
@@ -77,15 +90,54 @@ quest'ondata (handoff §2), quindi l'archivio non è dovuto qui; se serve, si pr
 
 ## 4. Ritrovamenti — riferiti e NON toccati (R-E2)
 
+### 4.0 🔴 NUOVO, DELL'ONDATA — le frasi nuove non arrivano all'utente
+
+**Come è stato trovato:** provando a schermo la seconda delle tre frasi dell'handoff §3 (le uniche
+cose visibili dell'ondata), che fino a quel momento **non era mai stata vista rendered**.
+
+**Il repro, sulla scheda clinica di un lavoro senza denti selezionati:** si imposta `COLORE COLLO` e
+si salva. Il salvataggio **viene fermato correttamente** (nessuna richiesta parte — verificato nei
+log del server: nessuna `PUT /denti` dopo il gesto), quindi **nessun dato si perde**. Ma a schermo
+compare **solo** `⚠ Errore — riprova` sul tasto Salva. **La frase progettata non è da nessuna parte
+nella pagina** (verificato cercando il testo in `document.body.innerText`: non trovato).
+
+**Perché.** Le frasi nuove passano tutte da `setSaveError(...)` in `src/hooks/useLavoroForm.ts`
+(riga 141 «Le zone del colore…», riga 162 «Colore «X» non riconosciuto…», riga 279 «Qualcun altro ha
+modificato questo lavoro…»). Chi le mostra è `LavoroFormClient.tsx:357`, sotto la condizione
+**`saveError && !isDirty`** — e dopo un salvataggio fallito il form **è** ancora modificato, quindi
+`isDirty` è vero e il paragrafo `role="alert"` (riga 376) **non viene mai reso**. Resta solo
+l'etichetta del tasto (riga 353).
+**Prova che `isDirty` è vero in quel momento:** nel DOM il tasto mostra `⚠ Errore — riprova` (quindi
+`saveError` è valorizzato) **e** il paragrafo d'errore è assente — le due cose insieme sono vere solo
+se `!isDirty` è falso.
+
+**Di chi è la colpa, con onestà:** la condizione `saveError && !isDirty` **c'era già in `main`**
+(verificato con `git show main:…`). È l'ondata a mandarci dentro i messaggi nuovi: prima quel canale
+serviva a un altro caso. Quindi il difetto **nasce con l'ondata** anche se la riga è vecchia.
+
+⚠️ **Provato per la frase delle zone. Per le altre due NON è stato osservato a schermo** — passano
+dalla stessa `setSaveError` e quindi hanno lo stesso destino, ma questa è un'inferenza dal codice,
+non una misura. Dichiarato, non nascosto.
+
+**Perché conta:** l'handoff §3 chiama queste frasi «le uniche cose visibili di tutta l'ondata». Se
+non compaiono, l'utente legge «riprova», riprova, e riottiene lo stesso — senza mai sapere che deve
+selezionare un dente. **Il rischio è di comunicazione, non di dato.**
+
 ### 4.1 Disallineamento di idratazione sulla home — **preesistente**
 `LinguettaCassette` dentro `StanzePager` (`HomeV3`): il ramo di pagina che il server prepara e quello
 che il browser ricostruisce non coincidono (`<div data-ds="v3" style="display:contents">` in più sul
 client), e React rigenera quel ramo. Visibile nel pannello di sviluppo di Next («1 Issue»).
 **Notato anche da Francesco durante il collaudo.**
-**Perché è preesistente:** `git diff --stat main...HEAD` su `LinguettaCassette`/`StanzePager`/`HomeV3`
-e su `src/components/features/lavori/scheda-v3/`, `src/components/ds/`, `dashboard/` è **vuoto** —
-il ramo non tocca nessuno di quei file. ⚠️ **Non verificato eseguendo `main`** (richiederebbe cambio
-di ramo + ricompilazione): l'affermazione poggia sul diff, non su un'esecuzione.
+**Perché è preesistente — due argomenti, entrambi dichiarati per quello che valgono:**
+① sull'**intero** ramo (75 file cambiati) `git diff --name-only main...HEAD` non contiene **nessun**
+percorso che nomini dashboard, home, stanze, linguetta o cassette: il ramo non tocca né quei
+componenti né la loro via dei dati;
+② l'errore catturato è un `<div data-ds="v3" style="display:contents">` **in più sul client**, cioè
+una differenza **di struttura**, non di dati — quindi non è il tipo di guasto che un cambio di
+modello dati può provocare.
+⚠️ **Non verificato eseguendo `main`** (richiederebbe cambio di ramo + ricompilazione, e `.next`
+stantio è una trappola nota): l'affermazione poggia sul diff e sulla natura dell'errore, non su
+un'esecuzione.
 **Casa:** ondata (b) o coda della roadmap.
 
 ### 4.2 A 1280×800 due campi colore sono coperti finché non si scorre — **preesistente**
@@ -127,6 +179,11 @@ Verifica finale: `294 lavori · 0 denti · 916 pazienti · 48 colori` = **baseli
 
 ## 6. Cosa resta
 
+0. 🔴 **DECISIONE DI FRANCESCO, prima del merge: si corregge §4.0 adesso o va in coda?** È una riga
+   (la condizione `!isDirty` a `LavoroFormClient.tsx:357`), e riguarda **le uniche tre frasi visibili
+   di tutta l'ondata**. Correggerla ora costa poco; dopo il merge diventa un'altra ondata. ⚠️ La
+   correzione va **provata**, non solo scritta: rifare il repro di §4.0 e vedere la frase a schermo,
+   più un controllo che il messaggio sparisca quando si riprende a scrivere.
 1. 🛑 **Merge — lo autorizza Francesco.** `git checkout main && git merge ondata-a-denti-colore`
 2. Push → **attendere CI verde** → verificare `uachelab.com`
 3. **BP-1 finale**: spostare la voce 58 di `MEMORY.md` da «sul ramo» a «in produzione» e chiudere la
