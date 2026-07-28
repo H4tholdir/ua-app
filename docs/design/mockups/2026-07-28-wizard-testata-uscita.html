@@ -190,6 +190,42 @@
   .fila-wrap .briciole > * { flex-shrink: 0; }
   .sfuma { display: none; } /* sostituita dalla maschera: un velo sopra non basta */
 
+  /* ============================================================
+     LA FILA A PAGINE (versione definitiva) — nessun troncamento
+     possibile: si mostra un numero INTERO di briciole, e lo swipe
+     cambia pagina di UNA. Le molle sono quelle di
+     src/design-system/v3/motion.ts:24-30, tradotte in cubic-bezier
+     per un mockup senza librerie (in React si usano i token veri).
+     ============================================================ */
+  .pagine-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+  .contatore {
+    display: grid; place-items: center; flex-shrink: 0;
+    height: 34px; min-width: 42px; padding: 0 11px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line);
+    font-size: 13.5px; font-weight: 800; color: var(--faint);
+    cursor: pointer; user-select: none;
+  }
+  .pagine-pista { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+  .pagine-pista .briciola {
+    /* molla.snappy tradotta: 0.5s, rimbalzo leggero */
+    transition: transform .5s cubic-bezier(.2,1.1,.32,1), opacity .28s ease;
+  }
+  .briciola.in-uscita { transform: translateX(28px) scale(.88); opacity: 0; }
+  .briciola.in-entrata { transform: translateX(-28px) scale(.88); opacity: 0; }
+  .freccia-pagina {
+    display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 44px;
+    color: var(--faint); font-size: 18px; font-weight: 800; cursor: pointer; user-select: none;
+  }
+  .freccia-pagina[hidden] { display: none; }
+
+  .rilievo-forte {
+    margin-top: 22px; padding: 18px 20px; border-radius: 20px;
+    border: 2px solid var(--blue); background: var(--card); max-width: 900px;
+  }
+  .rilievo-forte h3 { font-size: 16.5px; font-weight: 800; color: var(--ink); }
+  .rilievo-forte p { font-size: 14.5px; font-weight: 500; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .rilievo-forte p b { color: var(--ink); font-weight: 700; }
+
   /* O4 — la testata su due righe: rompe il vincolo dei 44 px ma non taglia niente */
   .testata.due-righe { display: block; height: auto; }
   .testata.due-righe .riga-alta { display: flex; align-items: center; gap: 12px; height: 44px; }
@@ -814,6 +850,31 @@
     si rimpiccioliscono; devono scorrere se l'utente le swippa; quando ce n'è lo spazio si espandono. Quello
     che non voglio vedere sono le briciole troncate o tagliate a metà.»</i></p>
 
+    <div class="rilievo-forte">
+      <h3>🎯 VERSIONE DEFINITIVA (28/07, ultimo giro) — a pagine, con la molla. Niente icone, niente sfumature.</h3>
+      <p><b>Le parole di Francesco:</b> <i>«un sistema che mostra, rispetto allo step in cui ci si trova, le
+      briciole precedenti, incorporando a vista tutte quelle che ci entrano in maniera comoda, e permettere
+      di swippare per mostrare quelle ancora prima, con un'animazione tipo molla che man mano che scorro
+      viene sbalzata via quella che non entra più facendo apparire quella nuova. Animazioni alla Apple, una
+      cosa pulita ma carina da vedere. E senza troncamenti o sfumature.»</i></p>
+      <p>🔑 <b>È un modello diverso, non una rifinitura:</b> non è una fila che scorre liberamente — è una
+      fila <b>a pagine</b>. Si mostra <b>solo un numero intero di briciole</b>, quelle che ci stanno comode;
+      uno swipe fa <b>uscire</b> quella che non entra più e <b>entrare</b> la precedente, con la molla.
+      Così <b>non esiste il caso «tagliata»</b>, e quindi <b>non serve né la sfumatura né l'icona</b>: le due
+      cose che avevo aggiunto per rattoppare un problema che questo modello semplicemente non ha.</p>
+      <p>✅ <b>Le molle non si inventano, ci sono già:</b> <code>molla.snappy</code>,
+      <code>molla.bouncy</code>, <code>molla.wizard</code> (<code>src/design-system/v3/motion.ts:24-30</code>).
+      Qui sotto la fila è <b>viva</b>: trascinala o usa le frecce.</p>
+      <p>⚠️ <b>Resta una domanda, ed è la tua:</b> senza sfumatura, <b>come si capisce che si può
+      scorrere?</b> La mia proposta è il <b>contatore intero</b> — una pastiglia «+2», che non è troncata,
+      dice quante ne restano indietro ed è essa stessa il bersaglio da premere — più un <b>rimbalzo alla
+      prima apertura</b> (<code>molla.bouncy</code>), che insegna il gesto una volta sola.</p>
+    </div>
+
+    <p>🛑 <b>La sezione qui sotto è la versione PRECEDENTE, superata dalla definitiva.</b> Resta come
+    storia: mostra il modello «fila che scorre» e i due difetti che ci ho trovato misurando — entrambi
+    ancora validi come lezione, anche se il modello a pagine non ci inciampa.</p>
+
     <p>🛑 <b>CORREZIONE (28/07, tarda sera): la prima versione di questa sezione aveva capito male.</b>
     Avevo scritto «le precedenti si chiudono in icona» — cioè una compressione <b>permanente</b>. Non è
     quello che Francesco ha chiesto. Le sue parole: <i>«finché ho spazio mostro le briciole per intere con
@@ -1039,6 +1100,81 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       SEZIONE 5 — LA FILA A PAGINE, VIVA
+       ============================================================ -->
+  <div class="sezione">
+    <h2>5. 🎯 La fila a pagine — provala: si trascina</h2>
+    <p>Qui la testata è <b>funzionante</b>. Trascina le briciole (o usa le frecce) e guarda cosa succede:
+    quella che non entra più <b>viene sbalzata via</b>, la precedente <b>entra con la molla</b>. Non c'è
+    nessun momento in cui una pastiglia è tagliata a metà.</p>
+
+    <div class="riga-stati">
+      <div class="stato">
+        <div class="etichetta">① Passo cassetta — sei scelte fatte, si vedono quelle che entrano</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="pagine-wrap" data-briciole="Dr. Puleo|Overdenture|Esposito|3 denti|A3|Foto"></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">In che cassetta?</h1>
+            <p class="hint">Queste sono libere adesso.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">C1</span><span class="r2">rossa</span></div>
+              <div class="tile"><span class="r1">C3</span><span class="r2">verde</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Il <b>«+4»</b> a sinistra è una pastiglia intera, non un troncamento: dice quante
+        ne restano indietro <b>ed è il bersaglio da premere</b> per tornarci. Premi la freccia o trascina.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">② Passo 3 — ci stanno tutte, il contatore non compare</div>
+        <div class="demo-cornice">
+          <div class="frame">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="pagine-wrap" data-briciole="Dr. Puleo|Overdenture"></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Chi è il paziente?</h1>
+            <p class="hint">Il codice l'ho già scritto io — puoi cambiarlo.</p>
+            <div class="campo-wrap">
+              <span class="campo-label">Codice paziente</span>
+              <div class="campo-input">PZ-0917</div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Nessun contatore, nessuna freccia: quando ci sta tutto <b>non c'è niente da
+        annunciare</b>. Un affordance che compare sempre è rumore.</p>
+      </div>
+
+      <div class="stato">
+        <div class="etichetta">③ Lo stesso passo di ① su un passo largo (denti, D14)</div>
+        <div class="demo-cornice">
+          <div class="frame largo">
+            <div class="testata">
+              <div class="tondo">‹</div>
+              <div class="pagine-wrap" data-briciole="Dr. Puleo|Overdenture|Esposito|3 denti|A3|Foto"></div>
+              <div class="esci-quieto">✕</div>
+            </div>
+            <h1 class="domanda">Quali denti?</h1>
+            <p class="hint">Tocca gli elementi sull'arcata.</p>
+            <div class="tiles">
+              <div class="tile"><span class="r1">Arcata</span><span class="r2">superiore</span></div>
+              <div class="tile"><span class="r1">Arcata</span><span class="r2">inferiore</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="misura">Sulla colonna larga <b>ci stanno tutte e sei</b>: il contatore sparisce da solo.
+        La regola è una sola, il risultato cambia col posto — che è come dovrebbe essere.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="domande-francesco">
     <h2>Cosa mi serve da te</h2>
     <p style="font-size:14.5px;color:var(--muted);line-height:1.5">✅ <b>Deciso il 28/07 sera:</b> uscita
@@ -1067,5 +1203,137 @@
   </div>
 
 </div>
+
+<script>
+// ============================================================
+// La fila a pagine — versione DEFINITIVA (Francesco, 28/07 ultimo giro).
+// Regola: si mostra un numero INTERO di briciole, quelle che ci stanno
+// comode. Uno swipe (o la freccia) cambia pagina di UNA: la briciola che non
+// entra più esce con la molla, la precedente entra. Nessun troncamento
+// possibile, quindi niente sfumature e niente icone.
+// In React le molle sono i token veri (`molla.snappy`, motion.ts:24-30);
+// qui sono cubic-bezier equivalenti perché il mockup non ha librerie.
+// ============================================================
+(function () {
+  function costruisci(wrap) {
+    var nomi = (wrap.dataset.briciole || '').split('|').filter(Boolean)
+    if (!nomi.length) return
+
+    var contatore = document.createElement('span')
+    contatore.className = 'contatore'
+    var pista = document.createElement('div')
+    pista.className = 'pagine-pista'
+    // 🛑 NIENTE FRECCE: misurate, rubavano fino a 68px alla riga più stretta
+    //    del progetto (230px in tutto). Il contatore è già il bersaglio da
+    //    premere, e il trascinamento è il gesto vero. Un controllo che toglie
+    //    una briciola per annunciare le briciole è un cattivo affare.
+    wrap.append(contatore, pista)
+
+    // 🛑 Si tiene `inizio`, NON `fine`. Misurato: tenendo `fine`, premere il
+    //    contatore poteva TOGLIERE una briciola invece di rivelarne una più
+    //    vecchia (le pastiglie hanno larghezze diverse). Tenendo `inizio`,
+    //    ogni pressione fa entrare ESATTAMENTE una briciola in più — che è
+    //    quello che Francesco ha chiesto: «far apparire quella nuova».
+    var inizio = nomi.length - 1
+    // 🛑 NON un flag «primo giro»: la larghezza vera arriva DOPO (la vista a
+    //    schermo intero rimpiazza il contenitore, e i passi larghi hanno una
+    //    colonna diversa). Finché l'utente non ha scorso di suo, la testata si
+    //    RIEMPIE da capo ad ogni cambio di larghezza. Trovato misurando: senza
+    //    questo, a 1280 la testata restava con due briciole su sei.
+    var utenteHaScorso = false
+
+    // Misura vera: si costruisce la pastiglia e si legge la sua larghezza.
+    // Nessuna stima — è la lezione della serata.
+    function larghezza(nome) {
+      var p = document.createElement('span')
+      p.className = 'briciola tocc'
+      p.textContent = nome
+      p.style.position = 'absolute'
+      p.style.visibility = 'hidden'
+      document.body.appendChild(p)
+      var w = p.offsetWidth
+      document.body.removeChild(p)
+      return w
+    }
+
+    function render(direzione) {
+      var spazio = wrap.clientWidth
+      // Primo giro: quante ne entrano partendo da `inizio`, senza contatore.
+      function quanteEntrano(da, spazioUtile) {
+        var n = 0, usato = 0
+        for (var i = da; i < nomi.length; i++) {
+          var w = larghezza(nomi[i]) + (n ? 8 : 0)
+          if (usato + w > spazioUtile) break
+          usato += w; n++
+        }
+        return Math.max(n, 1)
+      }
+      // Se non si parte da capo, il contatore occupa il suo posto: lo spazio
+      // si riserva PRIMA di contare, altrimenti comparendo farebbe saltare
+      // fuori una briciola già disegnata.
+      // Primo disegno: la testata parte PIENA, non con una briciola sola.
+      // Si conta all'indietro dall'ultima finché ci stanno.
+      if (!utenteHaScorso) {
+        var n = 0, usato = 0
+        for (var z = nomi.length - 1; z >= 0; z--) {
+          var wz = larghezza(nomi[z]) + (n ? 8 : 0)
+          if (usato + wz > spazio - 8 - (z > 0 ? 54 : 0)) break
+          usato += wz; n++
+        }
+        inizio = nomi.length - Math.max(n, 1)
+      }
+      var conContatore = inizio > 0
+      var utile = spazio - 8 - (conContatore ? ((contatore.offsetWidth || 46) + 8) : 0)
+      var quante = quanteEntrano(inizio, utile)
+      // Se le briciole finiscono prima dello spazio, si scala indietro
+      // l'inizio: non si lascia mezza testata vuota con roba nascosta.
+      while (inizio > 0 && inizio + quante > nomi.length) { inizio--; quante = quanteEntrano(inizio, utile) }
+      var fine = Math.min(nomi.length, inizio + quante)
+
+      contatore.textContent = '+' + inizio
+      contatore.style.display = inizio > 0 ? 'grid' : 'none'
+      contatore.hidden = inizio === 0
+
+      pista.innerHTML = ''
+      for (var k = inizio; k < fine; k++) {
+        var b = document.createElement('span')
+        b.className = 'briciola tocc'
+        b.textContent = nomi[k]
+        pista.appendChild(b)
+        if (direzione && k === inizio) {
+          b.classList.add('in-entrata')
+          ;(function (el) { requestAnimationFrame(function () { el.classList.remove('in-entrata') }) })(b)
+        }
+      }
+    }
+
+    function pagina(delta) {
+      var prima = inizio
+      inizio = Math.max(0, Math.min(nomi.length - 1, inizio + delta))
+      if (inizio !== prima) { utenteHaScorso = true; render('indietro') }
+    }
+
+    contatore.addEventListener('click', function () { pagina(-1) })
+
+    // Trascinamento: soglia 40px, come un gesto di pagina.
+    var partenza = null
+    wrap.addEventListener('pointerdown', function (e) { partenza = e.clientX })
+    wrap.addEventListener('pointerup', function (e) {
+      if (partenza === null) return
+      var d = e.clientX - partenza
+      partenza = null
+      if (d > 40) pagina(-1)
+      else if (d < -40) pagina(1)
+    })
+
+    render(null)
+    if (window.ResizeObserver) new ResizeObserver(function () { render(null) }).observe(wrap)
+  }
+
+  function avvia() { document.querySelectorAll('.pagine-wrap').forEach(costruisci) }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia)
+  else avvia()
+})()
+</script>
 </body>
 </html>

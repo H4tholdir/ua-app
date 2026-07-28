@@ -62,10 +62,16 @@ Le cinque che cambiano di più il lavoro di chi legge:
    `docs/design/mockups/screenshots/ob-*.png`, 390/768/1280 × chiaro/scuro.
    ✅ **E LE VARIANTI SONO STATE SCELTE** (28/07 sera, §4 di ciascun mockup — **D21-D25**):
    **D21** uscita **T2** (✕ leggera, senza cerchio) e **la ✕ compare solo dal passo 2**, perché al passo 1
-   farebbe la stessa cosa della freccia · **D22** ⚠️ **riscritta dopo una rettifica di Francesco**: la fila
-   **scorre sempre, ancorata a destra**; **quello che è in vista si legge intero**; il resto è **fuori vista,
-   non compresso**, e una **sfumatura** dice che c'è; l'**icona è il solo caso limite** della briciola al
-   bordo, e scorrendo si riapre ·
+   farebbe la stessa cosa della freccia · **D22** 🎯 **terza e definitiva stesura**: la fila è **A PAGINE**, non a
+   scorrimento libero. Si mostra **un numero intero di briciole**; uno swipe fa **entrare esattamente una
+   briciola più vecchia**, con la molla (`molla.snappy`, `motion.ts:24-30` — le molle **esistono già**).
+   🔑 **Senza il caso «tagliata» non servono né sfumature né icone.** Affordance: **pastiglia contatore
+   intera** («+4»), che è anche il bersaglio. ✅ Provata **pagina per pagina** a 390/768/1280
+   (`scripts/tmp/misura-pagine.mjs`): **zero tagliate, zero fuori posto, su nessuna pagina**.
+   🐛 Tre difetti trovati misurando la mia implementazione: le **frecce** rubavano fino a 68 px alla riga
+   più stretta (tolte: il contatore basta) · tenendo `fine` invece di `inizio`, premere il contatore poteva
+   **togliere** una briciola invece di rivelarne una più vecchia · un flag «primo giro» lasciava la testata
+   **mezza vuota** dopo un cambio di larghezza (la larghezza vera arriva dopo) ·
    **D23** foto **F2** + **più foto** (rivedere · ingrandire · rifare · **eliminare** · aggiungere) ·
    **D24** cassetta: **solo le libere**, con **crea al volo** e **salta** · **D25** avviso **V1** (sotto la
    casella) e la ripresa che **dice cos'è cambiato e mette già il codice nuovo**.
