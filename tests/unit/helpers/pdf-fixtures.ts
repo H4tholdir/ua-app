@@ -88,6 +88,10 @@ export const LAVORO_FIXTURE: LavoroDettaglio = {
   colore_collo: null,
   colore_corpo: null,
   colore_incisale: null,
+  // Default di caso, colonne dell'ondata (a) — la fixture è tipata stretta
+  // (nessun `as unknown as`), quindi le dichiara entrambe.
+  colore_scala: null,
+  colore_codice: null,
   effetti_speciali: null,
   tecnica_colore: null,
   colorazione_esterna: null,

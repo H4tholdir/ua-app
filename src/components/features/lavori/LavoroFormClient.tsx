@@ -9,6 +9,7 @@ import type {
   LavoroImmagine,
 } from '@/types/domain'
 import { useLavoroForm } from '@/hooks/useLavoroForm'
+import { idrataColoreScheda } from '@/lib/domain/colore-dente'
 import { LavoroFormShell, type TabId } from './form/LavoroFormShell'
 import { TabDati } from './form/TabDati'
 import { TabLavorazioni } from './form/TabLavorazioni'
@@ -37,8 +38,28 @@ export function LavoroFormClient({
 }: LavoroFormClientProps) {
   const router = useRouter()
 
+  // ═══ IL COLORE VIENE DALLE RIGHE, NON DALLE COLONNE ═══════════════════════
+  // Dal Task 10 `lavori.colore_dente`/`colore_collo`/`colore_corpo`/
+  // `colore_incisale` non hanno più alcuno scrittore: le due RPC atomiche
+  // denormalizzano soltanto i tre `denti_*`. Idratare il form da quelle colonne
+  // significherebbe mostrare l'ultimo valore ricevuto prima di quel deploy —
+  // l'utente correggerebbe il colore, lo salverebbe davvero in `lavori_denti`,
+  // e alla ricarica lo vedrebbe tornare indietro.
+  // La precedenza riga → caso è quella del Task 2 (`risolviColore`), una sola
+  // per wizard, scheda e Dichiarazione: due letture divergenti dello stesso
+  // fatto clinico sono la classe di difetto già pagata con `numero_cassetta`.
+  // ⚠️ Il resto del form NON cambia, e la grafica nemmeno: `TabClinica` legge
+  // ancora le stesse quattro chiavi.
+  const lavoroIdratato = {
+    ...lavoro,
+    ...idrataColoreScheda(lavoro.denti, {
+      colore_scala: lavoro.colore_scala,
+      colore_codice: lavoro.colore_codice,
+    }),
+  }
+
   // Stato form campi Lavoro (colonne tabella)
-  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoro)
+  const { data, update, save, saving, saved, saveError, isDirty } = useLavoroForm(lavoroIdratato)
 
   // Stato relazioni join — separate dal hook (non sono colonne di lavori)
   const [lavorazioni, setLavorazioni] = useState<LavoroLavorazione[]>(

@@ -217,6 +217,16 @@ async function notificaAssegnazione(
   }
 }
 
+/**
+ * Lettura del lavoro.
+ *
+ * 🔴 `denti:lavori_denti(*)` è la STRADA DEL RITORNO del colore. Dal Task 10 le
+ * quattro `lavori.colore_*` non hanno più alcuno scrittore (vedi GRUPPO B nella
+ * tabella di destinazione qui sopra): restano nella riga per lo snapshot della
+ * fatturazione, ma non sono più il dato vivo. Chi legge il colore da questa
+ * risposta lo prende dalle righe, con la precedenza riga → caso di
+ * `src/lib/domain/colore-dente.ts` — mai dalle quattro colonne.
+ */
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params
 
@@ -249,7 +259,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
         immagini:lavori_immagini(*),
         fasi:lavori_fasi(*, fase:fasi_produzione(*)),
         materiali:lavori_materiali(*),
-        ddc:dichiarazioni_conformita(*)
+        ddc:dichiarazioni_conformita(*),
+        denti:lavori_denti(*)
       `)
       .eq('id', id)
       .eq('laboratorio_id', labId)
