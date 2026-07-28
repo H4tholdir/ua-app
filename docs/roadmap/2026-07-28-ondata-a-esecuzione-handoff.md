@@ -402,6 +402,59 @@ svuotano, la stessa condizione lo riallinea.
 
 ---
 
+## 5-sexies. Il T13 — le prove sul database vero (28/07/2026, `acea52c4` + `93016d70`)
+
+Evidenze complete: **`docs/superpowers/plans/evidenze/2026-07-27-ondata-a-isolamento.md`** — output
+reale copiato, mai parafrasato.
+
+### ✅ R4 — provato per intero, quattro colpi ostili su quattro strati
+1. **Privilegi di tabella:** `SQLSTATE 42501 permission denied for table lavori_denti` × 4
+   (DELETE/INSERT/UPDATE da `service_role`, DELETE da `authenticated`). **Controllo positivo:** lo
+   stesso `service_role` **via RPC** → `{"esito":"ok"}`, conteggio 2→3. Il `REVOKE ALL` morde davvero.
+2. **RPC col laboratorio sbagliato:** `{"esito":"non_trovato"}` in **entrambe** le direzioni, denti
+   invariati (la chiamata chiedeva di ridurli).
+3. **RLS in lettura, via HTTP vero su PostgREST con JWT:** 3 righe esistono, ne torna **1**. Chiedere
+   esplicitamente le altrui → `[]`. Senza sessione → `401`. `DELETE` col JWT → `403`.
+4. **La route, via HTTP vero:** `404 {"error":"Lavoro non trovato"}` — 🔑 **byte per byte identico**
+   alla risposta per un id inesistente. Quindi i lavori altrui **non sono enumerabili**. Proprio lab
+   → `200`; senza sessione → `401`; origine estranea → `403`.
+
+⚠️ **Le prove 3 e 4 usano l'utente sintetico dell'E2E** (`scripts/seed-e2e.ts:201`), credenziale
+versionata nel repo e creata dal seed per i test — **non** una credenziale di una persona, nessun
+modulo di accesso compilato, nessun segreto negli artefatti. Il piano le dava per non eseguibili;
+l'esecutore ha trovato la terza via **e l'ha messa a ratifica invece di darla per scontata.**
+
+### 🔴 R5 — la prova è FALLITA, ed è il risultato più prezioso della giornata
+`lavori_denti` è coperta e la prova (5) lo mostra col **controfattuale** (senza quella riga:
+`SQLSTATE 23503 … violates foreign key constraint "lavori_denti_lavoro_fk"`). **Ma R5 come classe di
+rischio non è chiuso:** sei tabelle rendono un laboratorio **incancellabile** appena ricevono una
+riga. Pre-esistente, non introdotto qui. → **sezione dedicata in `ROADMAP-UFFICIALE.md`**, con il
+repro e l'avvertenza di non riusare il controllo fragile.
+
+### 🔑 Lo strumento di prova mentiva — nella direzione rassicurante
+L'asserzione «strutturale» del piano (`regexp_matches(prosrc, 'DELETE FROM (\w+)')`) è fragile in tre
+modi indipendenti: `information_schema.columns` include **le viste**; le DELETE delegate a un'altra
+funzione non compaiono in quel corpo; e `prosrc` contiene **i commenti**, mentre il regex non legge
+`DELETE FROM public.x`. **Prova che non è teoria:** sulla funzione accanto ha estratto una tabella
+chiamata **`public`**. Contati a mano: 50 match, **49 distinti** — `lavori` conta due volte perché una
+occorrenza è **dentro un commento**. Regge sul testo di oggi **per come è scritto**, non per una
+proprietà del controllo.
+
+### 🔴 Ritrovamenti del T13
+24. **R5 su sei tabelle** (sopra) — `credito_clienti_movimenti`, `fatture_sdi_eventi`,
+    `listino_materiali_auto`, `ordini_fornitori`, `pagamenti`, `scarichi_magazzino`.
+25. **`progressivi_anno` lascia orfani** (nessuna FK: non blocca, ma le righe restano).
+26. 🛑 **Due progetti Playwright dichiarano file che NON esistono** — `cross-tenant` →
+    `rls-cross-tenant.spec.ts`, `api-coverage` → `api-coverage.spec.ts` (verificato). Un cancello
+    automatico creduto e mai esistito, **proprio sul rischio che il T13 ha dovuto provare a mano**.
+    Stessa classe delle quattro guardie non agganciate (`MEMORY.md` voce 55).
+27. **L'accesso E2E non ha mai avuto una sessione:** `auth.setup.ts` legge
+    `TEST_USER_EMAIL`/`TEST_USER_PASSWORD`, `.env.local` definisce `TEST_EMAIL`/`TEST_PASSWORD` →
+    l'helper prende il ramo «avviso e salvo auth vuota». I difetti 26 e 27 **si nascondono a vicenda**:
+    il cancello non c'è, e se ci fosse non avrebbe di che accedere.
+
+---
+
 ## 6. Come si esegue (metodo scelto da Francesco, e ha funzionato)
 
 **Un task alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e l'altro. Nel brief:

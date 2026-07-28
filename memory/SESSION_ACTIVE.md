@@ -1,79 +1,32 @@
-# Sessione attiva — ondata (a): T9 chiuso, si riparte dal T10 (28/07/2026)
+# Sessione attiva — ONDATA (a) COMPLETATA SUL RAMO, mai mergiata (28/07/2026)
 
-🛑 **PUNTO DI RIPRESA:** `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md`.
-🛑 **Branch `ondata-a-denti-colore`**, repo principale, **39 commit avanti a `main`. Niente in
-produzione, mai mergiato.** 🛑 Il merge lo autorizza Francesco.
+🛑 **Branch `ondata-a-denti-colore`**, repo principale, **61 commit avanti a `main`. NIENTE IN
+PRODUZIONE.** 🛑 **Il merge lo autorizza Francesco:** *«non andiamo in produzione finché non lo dico io»*.
+📌 Punto di ripresa: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` — i 23 ritrovamenti
+stanno in §5-bis → §5-sexies. Voce di memoria: `MEMORY.md` **voce 58**.
 
-✅ **T9 CHIUSO** (commit `759fc183`): `POST /api/lavori` crea lavoro + progressivo + denti in **una
-transazione sola** via `lavoro_crea_atomico`. **18 test nuovi, 18 su 18 cadono contro un abbozzo
-sempre-201.** Suite intera **3478 verdi · tsc 0 · eslint 0 · `next build` ok · DB alla baseline
-(294 lavori, 0 denti)** — `next build` e i test rieseguiti **anche dall'orchestratore**, non solo
-riferiti. 🔑 `denti` presente ma non-array → **422**, non un «nessun dente»
-silenzioso (buco del piano, chiuso). 🛑 `FK_FIELDS_INSERT` (`route.ts:134-162`) è l'**unica**
-guardia tenant su `cliente_id`/`paziente_id`/`tecnico_id`/`ciclo_id`: la RPC non li controlla.
+✅ **13 task su 13 + tre code.** FASE 7 con output reale, **rieseguita dall'orchestratore**: `tsc` 0 ·
+`eslint` 0 · `next build` ok · **vitest 3584 passati / 19 saltati** · **DB alla baseline (294 lavori,
+0 righe in `lavori_denti`)**. **MANCANO: review (FASE 8) e QA browser (FASE 9), poi il merge.**
+⚠️ Nessun gate estetico L2: quest'ondata non cambia un pixel, di proposito.
 
-✅ **CODA DEL T9 CHIUSA** (commit `63361649`): l'anno del numero di lavoro segue **Roma**, non il fuso
-del processo — `annoRoma()` esisteva già. Non cosmetico: `anno_lavoro` alimenta `genera_progressivo`,
-componente della **chiave primaria di `progressivi_anno`**. 🔑 Il difetto era stato etichettato
-«pre-esistente, fuori mandato» **ma era codice del T9**: con quell'etichetta non aveva proprietario.
-🔴 **Nono difetto, nella diagnosi:** la suite **non fissa il fuso**, questo Mac è a Roma, e il test
-prescritto sarebbe passato **verde col difetto in casa** → chiuso con `vi.stubEnv('TZ','UTC')`.
+🛡️ **R4 (isolamento fra laboratori) PROVATO PER INTERO** sul database vero, quattro colpi ostili su
+quattro strati — il più importante: cross-tenant e id inesistente danno **la stessa risposta byte per
+byte**, quindi i lavori altrui **non sono enumerabili**. Evidenze:
+`docs/superpowers/plans/evidenze/2026-07-27-ondata-a-isolamento.md`.
+🔴 **R5 (cancellabilità) NON chiuso — la prova è FALLITA, ed è il risultato più prezioso:** sei
+tabelle hanno una FK verso `laboratori` senza `ON DELETE` e nessuno le cancella. **Pre-esistente**,
+latente solo perché a zero righe. → sezione dedicata in coda alla `ROADMAP-UFFICIALE.md`.
+🔴 **Due progetti Playwright dichiarano file che non esistono** (`rls-cross-tenant.spec.ts`,
+`api-coverage.spec.ts`): un cancello automatico creduto e mai esistito, proprio sul rischio provato a
+mano. → stessa coda.
 
-🔴 **RITROVAMENTI ancora aperti — riferiti, non toccati** (dettaglio in §5-bis dell'handoff):
-① il piano sbagliava sulla «rete di sicurezza»: i 2 test indicati mockavano il **meccanismo
-vecchio**, adattati (4 test) · ② **POST e PUT validano diversamente gli stessi dati**
-(`ruolo:'pippo'` → 422 sul PUT, **500** sul POST): modulo di validazione unico, ✅ **assegnato al T11
-e scritto NEL PIANO** (diceva «T11 o T12», e due candidati vogliono dire nessuno) · ③
-`crea-lavoro.ts:164,191-196` **usa ancora la PATCH fail-soft**: il percorso atomico esiste e nessuno
-lo chiama — conferma dal vivo che **T10 senza T11 perde i denti in silenzio** · ④ il wizard scrive
-`colore_dente` (colonna legacy), il percorso nuovo la coppia `colore_scala`/`colore_codice`: due
-fonti dello stesso fatto (R3) · ⑤ `genera_numero_lavoro()` (`schema.sql:1996-2000`) ha lo **stesso**
-difetto dell'anno, in SQL — **latente**, zero chiamanti · ⑥ 🟡 **da decidere, di nessun task:**
-fissare `TZ:'UTC'` in `vitest.config.ts`? Oggi `fatture-data-roma.test.ts:42-48` non può fallire su
-una macchina italiana.
+🔑 **Le tre frasi nuove che l'utente legge** (uniche cose visibili in tutta l'ondata):
+«Le zone del colore si registrano sul dente: seleziona almeno un dente nell'odontogramma» ·
+«Colore «X» non riconosciuto: riselezionalo prima di salvare» ·
+«Qualcun altro ha modificato questo lavoro: ricarica la pagina».
 
-✅ **T10 CHIUSO** (commit `75434c5a`): i **sette** nomi (il titolo del task diceva cinque) sono usciti
-da `PATCHABLE_FIELDS`, con la **tabella di destinazione R-P6 scritta nel codice** — nessuna riga
-senza destinazione. **3487 verdi.** 🔑 I sette **non hanno lo stesso regime**: i tre `denti_*` restano
-denormalizzati dalle RPC, le **quattro colonne del colore no** (verificato sul corpo delle RPC).
-🛑 **Da qui il ritrovamento più importante del blocco:** il colore si scriverebbe ma **non si
-rileggerebbe** (la GET non include `lavori_denti`, `TabClinica` si idrata dalle colonne orfane) →
-✅ chiuso **scrivendolo nel piano** come ampliamento del **T12** (strada del ritorno + test
-scrivi→rileggi→ritrova). Non è normativo: la DdC non legge campi colore.
-
-✅ **T11 CHIUSO** (commit `1163f092`): il wizard manda i denti **dentro** il POST, la PATCH fail-soft
-è sparita, e **il colore non può più far fallire la creazione** — provato sulla RPC vera che `a3`
-minuscolo violava `lavori_colore_caso_fk`; ora il POST normalizza e su una coppia fuori catalogo
-risponde **201 col colore scartato**. **3530 verdi.** 🔑 `denti_coinvolti` passa da `['2.6']` a
-`['26']`: **è un allineamento** — in banca dati c'era già `["21"]`, e `TabClinica.tsx:28` fa
-`.map(Number)`, quindi col vecchio formato l'odontogramma **non ritrovava** il dente del wizard.
-⚠️ **Due deviazioni dichiarate:** la firma tiene `elemento: string` (l'interfaccia non produce altro)
-e `accessoriFalliti` diventa `Array<'elementi'|'foto'>` — **il T12 non lo corregga indietro**.
-
-✅ **T12 + T12-bis + coda CHIUSI** (`e80e9bb8`, `3302f799`, `0a319fc4`): la scheda scrive i denti sul
-loro endpoint **e li rilegge dalle righe** — senza quel pezzo avresti digitato un colore, letto
-«Salvato», ricaricato e non l'avresti più trovato. **3584 verdi.** 🛑 **IL BLOCCO 10-11-12 È CHIUSO:
-il ramo non è più in stato intermedio.**
-🔑 **Il colore «di tutto il lavoro» è un dato LEGITTIMO** — parole di Francesco (fonte primaria):
-*«si può succedere di voler inserire il colore ad esempio su di una protesi totale senza indicare il
-dente»*. `colore_scala`/`colore_codice` entrano in `PATCHABLE_FIELDS` (additivo), normalizzazione col
-catalogo **estratta in una copia sola** (`src/lib/api/colore-caso.ts`, chiamata da POST e PATCH).
-🔑 **Una regola che avevo scritto io, smentita da un repro:** «quando ci sono righe il caso non si
-tocca» rendeva il colore **non azzerabile** sulla forma normale dei lavori nati dal wizard. Corretta:
-**il caso si scrive DOVE SI LEGGE**, azzeramento compreso.
-
-**ONDATA (a) — 12 task su 13 + due code.** **RESTA: T13** (le prove che nessun test unitario può
-dare: isolamento fra laboratori e cancellabilità, **sul database vero**) **+ FASE 7 + review + QA**.
-🕛 **Fuori dal deploy, possono seguire:** T11-bis (simmetria POST/PUT).
-🛑 **Il merge lo autorizza Francesco**, non si dà per scontato.
-🛑 **T10, T11, T12 nello STESSO deploy** (`[id]/route.ts:255-264` scarta senza errore): **da adesso
-il ramo è in uno stato intermedio** — il wizard e la scheda mandano sette campi che il server scarta
-in silenzio. **Non ci si ferma qui.**
-
-⚖️ **REGOLE DI METODO** (`CLAUDE.md` §0C): R-P1 · R-P2 · R-P6 · R-P4 · R-E1 · R-E2.
-🛑 **NON retroattive su T9-T13**; unico innesto: al **T10 la tabella di destinazione R-P6**.
-🛑 **MAI un git worktree.** ⚠️ `.next` stantio dopo un cambio di ramo fa fallire `tsc` nel
-pre-commit → `/usr/bin/trash .next`. ⚠️ Pre-commit: `eslint --max-warnings=0` + guardia CSRF +
-guardia «Riduci movimento» (~5 s).
-
-🔑 `node scripts/tmp/sql.mjs "<query>"` (vive **solo su questo disco**) · `npx supabase db push --yes`.
+⚖️ **Metodo che ha pagato: 15 esecutori freschi, 15 difetti reali trovati** — uno in una regola scritta
+dall'orchestratore stesso, smentita da un repro. **R-E1/R-E2 restano in vigore.** 🛑 **MAI worktree.**
+⚠️ `.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit → `/usr/bin/trash .next`.
+🔑 `node scripts/tmp/sql.mjs "<query>"` (vive **solo su questo disco**).
