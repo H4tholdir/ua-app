@@ -1,6 +1,9 @@
 # Verbale — decisioni di apertura dell'ondata (b), wizard «Nuovo lavoro»
 
 **Data:** 28 luglio 2026 · **Decide:** Francesco Formicola · **Stato:** ratificato in sessione
+**Venti decisioni in tre tornate:** D1-D8 in apertura · D9-D16 sui mockup · **D17-D20 alla ratifica della
+spec**, la sera. ✅ Con la terza tornata la spec dell'ondata (b) è **RATIFICATA**
+(`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`).
 **Nasce da:** `docs/roadmap/2026-07-28-ondata-b-handoff.md` (punto di ripresa) + spec ratificata
 `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` §5 e §12
 **Precede:** i mockup (§0B) → la spec dell'ondata (b) → il piano.
@@ -40,6 +43,38 @@ Mockup: `docs/design/mockups/2026-07-28-wizard-passo-paziente.html` (3 varianti 
 | **D14** | **Larghezza su schermi grandi: stretta per le domande, larga per denti e colore** | domanda di Francesco: «perché quando mi mostri i mockup non mi mostri mai la versione per tablet e desktop?» — poi scelta esplicita fra tre | Oggi il wizard è **una colonna da 480 px centrata a ogni taglio** (`WizardNuovoLavoro.tsx:533-538`, e il commento in testa lo dichiara: «full-screen a TUTTI i viewport»). La spec madre §5 però prevede già **due arcate su tablet e mappa+colore affiancati su desktop**: le due cose insieme fanno **cambiare larghezza al wizard fra un passo e l'altro**. Ratificato: il salto **si accetta**, perché è il contenuto a chiederlo — e si rende morbido con l'animazione. ⚠️ **Da provare a schermo, non da assumere:** il passaggio dalla colonna stretta al passo denti largo, e ritorno col tasto indietro |
 | **D13** | 🗑️ **«Dimmelo a voce» esce — del tutto.** Via dai tre passi del wizard, dalla vetrina dei componenti, dal design system, e **il componente si cancella coi suoi test** | «poiché avevamo già appuntato che il dimmelo a voce scompare per essere sostituito dall'assistente ia, perché non toglierlo già da adesso e ripulire i piani a riguardo? sennò poi dobbiamo intervenire su tutti i punti dove lo inseriamo» | **Censimento (R-P6), 4 usi + 2 test + 1 regola:** `PassoDentista.tsx:29,93` · `PassoTipo.tsx:34,116` · `PassoPaziente.tsx:32,118` · `ds-v3-catalogo/page.tsx:41,78,1084-1088` · `tests/unit/ds-v3/componenti/PillVoce.test.tsx` (intero) · `tests/unit/PassoTipo.test.tsx:191` (**questo fallisce subito** se si rimuove il componente senza toccarlo) · **DS v3 §5.15**, che oggi prescrive «PillVoce sempre in fondo a ogni passo del wizard». Da verificare nel piano se restano orfani la coreografia `motion.ts:56` e il token `pillVoce` in `v3/tokens.ts`. 🔑 Git conserva tutto: se l'assistente vocale (voce 4 della roadmap) ne riuserà dei pezzi, si ripescano |
 | **D12** | **Il codice paziente resta modificabile**, e quando se ne scrive uno **già in uso** UÀ lo dice invece di attaccarsi in silenzio | domanda di Francesco sui mockup: «ma il codice paziente può essere modificato vero?» | **Verificato che oggi lo è**: casella nel wizard · casella nella scheda paziente (`PazienteEditSheet.tsx:182`) · campo nell'allowlist del server (`api/pazienti/[id]/route.ts:35`). ⚠️ **Nessuno controlla che sia unico** (§2 ③) → è qui che l'avviso serve. ⚠️ Sui documenti **già emessi** il codice vecchio resta: la DdC congela (giusto, Art. 10(8) MDR), etichetta e ricevuta leggono il dato vivo — ma **l'etichetta già attaccata alla cassetta non si aggiorna da sola**: disallineamento fisico, da dire a schermo quando si cambia il codice di un paziente con lavori già consegnati |
+
+---
+
+### Terza tornata — la ratifica della spec (stessa sera)
+
+La spec è stata portata a Francesco **in ordine, sezione per sezione**, con isolate le **sei cose che la
+spec aveva deciso da sé**. Esito: **ratificata** — ma la ratifica non è stata un «ok» secco. Ha prodotto
+**quattro emendamenti**, e **due delle quattro decisioni nuove nascono da domande sue**, non da domande
+nostre: la spec non si era nemmeno accorta che mancasse una via d'uscita.
+
+| # | Decisione | Testo/motivo di Francesco | Conseguenza |
+|---|---|---|---|
+| **D17** | **Le briciole sono toccabili**, il ritorno **conserva** i passi già compilati, e chi cambia una risposta a monte viene avvisato **solo se qualcosa si perde** | «rendiamole toccabili per tornare al quel passo, lo stato dei passi già compilati restano immutati, cosi quando si ritorna restano compilati come erano stati compilati» + scelta esplicita **(a)** fra tre comportamenti | Era **l'unica cosa che la spec rimandava al piano**: chiusa qui. ⚠️ Due casi reali che il ritorno «e basta» non copre: **cambiare il tipo** svuota di senso denti e colore (i passi dipendono dal tipo, W2); **cambiare il dentista** invalida il **paziente scelto dall'archivio** — `pazienti.cliente_id` è NOT NULL (D11), la scheda è di quello studio. Scartate: **(b)** svuotare in silenzio (è la classe di difetto di `api/lavori/[id]/route.ts:259-264`: dati scartati senza errore mentre l'utente legge «Salvato») e **(c)** conservare e rimettere (raddoppia gli stati per una furbizia che il banco non chiede). 🔑 Il calcolo di «cosa si perde» **non è dell'interfaccia**: viene dalla stessa funzione che deriva la sequenza dal tipo — una seconda lista a mano sarebbe R1/R3 daccapo |
+| **D18** | **Via d'uscita esplicita, con conferma** — e l'abbandono **volontario azzera il salvataggio locale** | domanda di Francesco: «non bisogna prevedere anche la possibilità di abbandonare in qualsiasi momento la creazione di un nuovo lavoro?» | 🔴 **Verificato aprendo il file: oggi non esiste.** La testata ha **solo** la freccia indietro (`WizardNuovoLavoro.tsx:421`): dal terzo passo si esce premendola tre volte, senza conferma — e i passi stanno per diventare sette. 🐛 **E la freccia al primo passo è un difetto vero:** `:219-222` fa `router.push('/dashboard')`, contro la **direttiva permanente del 22/07/2026** («indietro = pagina precedente, OVUNQUE; mai una rotta fissa»). Chi arriva da `/lavori` finisce sulla home. **Dentro perimetro** — la testata si rifà comunque — quindi si corregge qui, non si rimanda |
+| **D19** | **La rete di ripresa 24h resta com'è** | domanda di Francesco: «durante la creazione di un nuovo lavoro abbiamo uno stato bozza? … quando l'operatore segna un lavoro in entrata deve chiuderlo o al massimo abortire il processo, punto» → poi «resta com'è» | 🔑 **Il suo modello è già rispettato dal gestionale**, e la domanda ha fatto emergere il fatto che chiarisce tutto: **non esiste nessuna bozza nel sistema.** Nessuna riga in banca dati, nessun numero occupato, nessun elenco. Quello che c'è è `localStorage` (`persistenza.ts:26-79`): **24 ore scorrevoli** dall'ultima modifica, legato a `userId`+`labId` (dispositivo condiviso), **uno solo**, **senza foto**, **non viaggia fra dispositivi**. Copre solo l'interruzione **involontaria** (squillo, sistema che chiude la pagina, tocco sbagliato). E con i passi che passano **da 3 a 7 vale più di ieri, non meno**. **D18 le dà il suo confine naturale:** l'uscita volontaria cancella, così la rete sopravvive **solo** a ciò per cui esiste |
+| **D20** | **L'aiuto dichiara che il codice si può cambiare** | «magari quando dice il codice l'ho già scritto io, possiamo indicare che però può essere cambiato» | Testo: «Il codice l'ho già scritto io — **puoi cambiarlo**. Il nome puoi aggiungerlo, o lasciar perdere.» Chiude a monte lo scarto fra D12 (il codice **è** modificabile) e una schermata che non lo diceva |
+
+**Le quattro chiusure che la spec aveva preso da sé — ratificate, una con modifica:**
+
+| chiusura | esito |
+|---|---|
+| §5 — la ricerca passa dalla **porta esistente** con un parametro, niente route nuova | ✅ ratificata, con una **condizione**: «se è una procedura giusta e ottimizzata per la nostra pwa va bene» → nel piano diventa una **prova**, non un'opinione |
+| §5 — **data dell'ultimo lavoro** accanto a ogni suggerimento | ✅ ratificata **con modifica**: «cerchiamo di mantenerlo, può essere un dato utile per l'operatore che crea il lavoro» → 🛑 **cade la licenza di degradare al solo codice**. Se costa, si **ottimizza** (lettura aggregata, mai una query per riga) e si **misura**; se non regge nemmeno così, si torna da Francesco **col numero in mano** |
+| §6 — l'indice **non guarda** `archiviato`/`deleted_at`: un codice usato **resta impegnato** | ✅ ratificata |
+| §7 — la bozza `v:1` **si scarta**, non si converte | ✅ ratificata (e D19 chiarisce che a scartarsi è il **contenuto**, non la rete) |
+
+**Esenzione Regola Advisor dichiarata, non sottintesa:** sulle due chiusure architetturali (§5 porta
+esistente, §7 bozza scartata) non è stato convocato un panel. Motivo: la spec porta già il ragionamento in
+forma di panel — alternativa scartata **scritta**, con il perché (due route sullo stesso dato = due posti
+dove sbagliare il filtro di tenant; migrare una bozza = indovinare la corrispondenza dei passi, e il costo
+di sbagliare è un lavoro creato coi dati di un altro). L'esenzione è stata **dichiarata a Francesco prima
+della ratifica**, non applicata in silenzio.
 
 ---
 
@@ -141,30 +176,34 @@ Raccolti qui in una sezione sola, con la loro destinazione.
 
 ---
 
-## 7. Domande ancora aperte (non decise oggi)
+## 7. Domande aperte — quattro su cinque CHIUSE in giornata
 
-1. **Cosa mostrare al posto di «passo 2 di 3»** — i passi variano col tipo. 🔑 Fatto nuovo di oggi:
-   il conteggio è ignoto **solo per i primi due passi**; scelto il tipo, la sequenza è determinata.
-   → si decide **sui mockup** (§0B).
-2. **Il testo d'aiuto che sostituisce «alias»** — voce rimasta aperta dal verbale del 27/07 §7.5.
-   → mockup.
-3. **La sede della regola di unicità del codice paziente** (database o codice) — v. §2 ③.
-   → spec, con gate FASE 3.
-4. **Il comportamento della bozza `v:1` esistente** (scartare o migrare) — v. §2 ④. → spec.
-5. **Che fare dell'identificatore che il dentista scrive dal portale** (R8) — è l'unico punto in cui
-   il paziente è nominato da chi lo conosce davvero.
+⚠️ Questa sezione è stata riscritta la sera del 28: lasciarla com'era avrebbe fatto dire al verbale il
+contrario di sé stesso, che è il difetto di classe corretto due volte oggi (spec §13/§17, testa della
+roadmap).
+
+| # | domanda | esito |
+|---|---|---|
+| 1 | Cosa mostrare al posto di «passo 2 di 3» | ✅ **CHIUSA — D10**: le briciole, nessun conteggio. E **D17**: toccabili |
+| 2 | Il testo d'aiuto che sostituisce «alias» (aperta dal 27/07 §7.5) | ✅ **CHIUSA** — i quattro testi stanno nella spec §4, ratificati, con l'aggiunta **D20** («puoi cambiarlo») |
+| 3 | La sede della regola di unicità del codice paziente | ✅ **CHIUSA — il database**: indice unico parziale su `(laboratorio_id, codice_paziente)` (**D15**), gate FASE 3 superato |
+| 4 | Il comportamento della bozza `v:1` esistente | ✅ **CHIUSA** — si scarta, non si converte (spec §7, ratificata). **D19** precisa che a scartarsi è il contenuto, non la rete di ripresa |
+| 5 | Che fare dell'identificatore che il dentista scrive dal portale (**R8**) | 🟡 **APERTA** — è l'unico punto in cui il paziente è nominato da chi lo conosce davvero. **Fuori perimetro D1**, e resta l'unica domanda viva di questo verbale |
 
 ---
 
 ## 8. Perimetro aggiornato dell'ondata (b) — dichiarato
 
 D1 è stata scelta quando «(b)» significava *passi adattivi + odontogramma + colore per dente*.
-Con D4/D5/D8 il contenuto è cresciuto. **Il perimetro vero, oggi, è:**
+Con D4/D5/D8 il contenuto è cresciuto, e la ratifica (D17/D18) l'ha fatto crescere ancora.
+**Il perimetro vero, a fine giornata, è:**
 
 wizard adattivo sui 38 tipi · odontogramma v3 con le illustrazioni · colore per dente ·
 passo paziente rifatto (due caselle, niente «Salta») · **ricerca del paziente prima di crearlo** ·
 **i due difetti del codice paziente** · **passo foto sempre presente** · cassetta saltabile ·
-avanzamento dei passi · **riscrittura della regola DS sul nome** · gate estetico L2 (FASE 9b).
+avanzamento dei passi **a briciole toccabili, con avviso quando un cambio a monte perde dati** (D17) ·
+**via d'uscita esplicita dal wizard + correzione della freccia indietro** (D18) ·
+**riscrittura della regola DS sul nome** · gate estetico L2 (FASE 9b).
 
 **Fuori:** unione delle schede doppie · pagina `/pazienti` in scrittura · le tre eredità della scheda
 del lavoro · i due difetti della home · la fotografia congelata del nome (tappa 1-bis).

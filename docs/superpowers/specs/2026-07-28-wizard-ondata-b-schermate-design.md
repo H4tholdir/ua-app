@@ -1,7 +1,14 @@
 # Spec — Ondata (b) del wizard «Nuovo lavoro»: le schermate
 
-**Data:** 28 luglio 2026 · **Stato:** 🟡 **da ratificare** (Francesco) · **Percorso: GRANDE** (v. §14, gate FASE 3)
-**Verbale delle decisioni (D1-D16):** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
+**Data:** 28 luglio 2026 · **Stato:** ✅ **RATIFICATA da Francesco** (28/07/2026, sera) · **Percorso: GRANDE** (v. §14, gate FASE 3)
+**Verbale delle decisioni (D1-D20):** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
+⚠️ **La ratifica ha portato quattro emendamenti** — non è stata un «ok» secco: **D17** le briciole sono
+toccabili e il ritorno conserva i passi · **D18** esce una via d'uscita esplicita, e l'abbandono volontario
+azzera il salvataggio locale (più la correzione della freccia indietro, difetto contro la direttiva del
+22/07) · **D19** la rete di ripresa 24h **resta com'è** · **D20** il testo d'aiuto dichiara che il codice si
+può cambiare. Le quattro chiusure che la spec aveva preso da sé (§5 parametro `q`, §5 data dell'ultimo
+lavoro, §6 predicato dell'indice, §7 bozza `v:1`) sono **ratificate**, con **una modifica su §5**: la data
+dell'ultimo lavoro **si tiene**, non si degrada.
 **Spec madre (già ratificata 27/07):** `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` — §5 e §12
 **Mockup approvati:** `docs/design/mockups/2026-07-28-wizard-passo-paziente.html` (variante **A**) ·
 `…-wizard-avanzamento-passi.html` (variante **3**).
@@ -37,7 +44,8 @@ Restano aperti quattro difetti **verificati**, non ipotizzati:
 ## 2. Perimetro
 
 **DENTRO** — wizard adattivo sui 38 tipi (W2) · **passo paziente rifatto** (§4) · **ricerca del paziente**
-(§5) · **unicità del codice paziente** (§6) · **avanzamento a briciole** (§3) · passo denti con
+(§5) · **unicità del codice paziente** (§6) · **avanzamento a briciole, toccabili** (§3, §3.1 D17) ·
+**via d'uscita esplicita dal wizard + correzione della freccia indietro** (§3.2, D18) · passo denti con
 l'odontogramma v3 e le illustrazioni (W15/W18) · passo colore sui soli denti scelti (W19) · **passo foto
 sempre presente** (D8) · cassetta come ultimo passo saltabile (W4) · **rimozione di «Dimmelo a voce»**
 (D13) · **bozza portata a `v:2`** (§7) · **riscrittura della regola DS sul nome del paziente** (D7, già
@@ -73,9 +81,61 @@ lascia in casa*.
 - **Vincolo di spazio:** la testata è alta 44 px e le pastiglie non devono mandare a capo. Nome studio e
   tipo si troncano con ellissi (max-width 150 px nel mockup) — **e la troncatura va misurata a 390 px**,
   non stimata.
-- ⚠️ **Da decidere nel piano, non qui:** se le briciole siano **toccabili** per tornare a quel passo. Il
-  mockup non le rende tali; renderle tali apre la questione «che fine fanno i passi successivi già
-  compilati», che è una macchina a stati, non un dettaglio visivo.
+### 3.1 — Le briciole sono toccabili, e cosa succede tornando (D17)
+
+✅ **DECISO (D17, Francesco, 28/07, ratifica della spec):** ogni briciola è **toccabile** e riporta a quel
+passo. Il mockup non le rendeva tali: **va aggiornato**.
+
+**Il ritorno non distrugge niente.** «Lo stato dei passi già compilati resta immutato, così quando si
+ritorna restano compilati come erano stati compilati» (parole di Francesco). Vale già oggi per la freccia
+indietro (`WizardNuovoLavoro.tsx:226` cambia **solo** `passo`) e per il codice paziente
+(`:258`, `s.pz || dati.prossimoPz` non sovrascrive mai un codice già digitato): **il precedente esiste, si
+generalizza, non si inventa.**
+
+**Il caso vero è l'altro: tornare indietro e CAMBIARE la risposta.** Allora i passi a valle possono non
+avere più senso. Due situazioni concrete, entrambe reali:
+
+| si cambia… | cosa perde senso | perché |
+|---|---|---|
+| **il tipo di lavoro** | denti e colore già scelti | i passi dipendono dal tipo (W2): da `overdenture` (li mostra tutti) a `anti_russamento` (non ne mostra nessuno) i dati restano senza un passo dove stare |
+| **il dentista** | **il paziente scelto dall'archivio** | `pazienti.cliente_id` è NOT NULL (D11): una scheda **appartiene a uno studio**. Cambiato studio, quella scheda non è più valida — e il codice proposto va ricalcolato |
+
+✅ **Comportamento scelto — variante (a):** UÀ avvisa **una volta sola e solo se qualcosa si perde davvero**
+(«Così perdi i denti e il colore che avevi segnato. Vado?»). Se il cambio non toglie nulla, **nessun
+avviso**. Scartate: **(b)** svuotare in silenzio — è la specie di difetto che questo progetto ha già pagato
+(`api/lavori/[id]/route.ts:259-264`: dati scartati senza errore, e l'utente legge «Salvato»); **(c)**
+conservare le vecchie risposte e rimetterle se si torna indietro — furbizia che il banco non chiede e che
+raddoppia gli stati possibili.
+
+🔑 **Conseguenza di progetto:** il calcolo «cosa si perde» **non è dell'interfaccia**. Nasce dalla stessa
+funzione che decide la sequenza dei passi dal tipo (§8): *quali passi spariscono* e *quali di quelli
+portavano un dato*. Una seconda lista scritta a mano sarebbe il difetto R1/R3 di nuovo.
+
+### 3.2 — Uscire dal wizard (D18, D19)
+
+🔴 **Verificato aprendo il file: oggi non esiste nessuna via d'uscita esplicita.** La testata porta **solo**
+la freccia indietro (`WizardNuovoLavoro.tsx:421`): dal terzo passo si esce premendola tre volte, senza
+conferma. Con sette passi diventa peggio.
+
+🐛 **E la freccia, al primo passo, è un difetto vero:** `WizardNuovoLavoro.tsx:219-222` fa
+`router.push('/dashboard')`. La **direttiva permanente del 22/07/2026** dice l'opposto: «indietro = pagina
+precedente, OVUNQUE; `router.back()` con fallback a `/dashboard` **solo** se non c'è storia». Chi arriva
+dall'elenco dei lavori e preme indietro finisce sulla home. **Dentro perimetro** (la testata si rifà
+comunque) → si corregge qui.
+
+✅ **DECISO (D18):** in testata compare una **via d'uscita esplicita**, con **conferma** («Lascio perdere
+questo lavoro?»). **L'abbandono volontario azzera il salvataggio locale** (`azzeraStato()`), così la rete di
+ripresa sopravvive **solo** all'interruzione **involontaria**.
+
+✅ **DECISO (D19): la rete di ripresa resta com'è.** Non è una bozza nel gestionale — non esiste riga in
+banca dati, non occupa un numero, non compare in nessun elenco: è `localStorage`, **24 ore scorrevoli
+dall'ultima modifica**, legata a `userId`+`labId` (`persistenza.ts:26-79`), **una sola**, **senza foto**,
+**non viaggia fra dispositivi**. Il modello di Francesco («o lo chiudi o abortisci, punto») **è già
+rispettato dal gestionale**: la rete copre solo squillo/chiusura di sistema/tocco sbagliato. E con i passi
+che passano da 3 a 7, **vale più di ieri, non meno**.
+⚠️ Da progettare nel piano, non qui: **dove sta il tasto d'uscita** senza rubare spazio alle briciole a
+390 px (§3, testata alta 44 px) e **se il gesto indietro del sistema** al primo passo debba chiedere la
+stessa conferma.
 
 ---
 
@@ -116,7 +176,7 @@ il caso in cui un cambio di larghezza si nota di più. Prova **B10** (§12).
 | dove | testo |
 |---|---|
 | domanda | «Chi è il paziente?» |
-| aiuto | «Il codice l'ho già scritto io. Il nome puoi aggiungerlo, o lasciar perdere.» |
+| aiuto | «Il codice l'ho già scritto io — **puoi cambiarlo**. Il nome puoi aggiungerlo, o lasciar perdere.» ← **D20** |
 | nota sotto le caselle | «Non serve il nome vero: va bene un soprannome, o niente. Se lo scrivi, lo ritrovi sulla targa della cassetta.» |
 | paziente ritrovato | «Questo l'ho già in archivio: gli attacco il lavoro nuovo.» |
 
@@ -159,8 +219,14 @@ non nasce una seconda porta da proteggere allo stesso modo. Scartata **(b)** end
 ⚠️ Il filtro `laboratorio_id = labId` e `.eq('cliente_id', …)` **non si toccano**: sono l'isolamento.
 
 **La data dell'ultimo lavoro non esiste ancora come dato leggibile qui.** Va presa da `lavori` (max
-`data_ingresso` o `updated_at` per `paziente_id`) — **una query in più, non un campo esistente**: il piano
-la progetta, e se costa troppo si degrada mostrando solo il codice, **dichiarandolo**.
+`data_ingresso` o `updated_at` per `paziente_id`) — **una query in più, non un campo esistente**.
+
+✅ **RATIFICATA con modifica (Francesco, 28/07): la data SI TIENE.** «Può essere un dato utile per
+l'operatore che crea il lavoro.» 🛑 Cade quindi la licenza di degradare al solo codice che questa sezione
+portava: **se costa, si ottimizza — non si toglie.** Il piano progetta la lettura **in una sola andata**
+(aggregato per `paziente_id` sui candidati già filtrati, non una query per riga: N+1 su un campo che si
+apre a ogni tasto premuto è il modo sicuro di renderlo lento) e **misura**. Se anche così non regge, non si
+decide da soli: **si torna da Francesco con il numero in mano.**
 
 ---
 
@@ -227,6 +293,15 @@ un altro) è più alto del costo di ridigitare un wizard abbandonato da meno di 
 **Il nuovo `StatoSalvato` porta:** `v:2` · `salvatoA` · `userId` · `labId` · `passo` (indice nella sequenza
 **calcolata**, non assoluto) · `cliente` · `tipo` · `pz` · `cognome` · `nome` · `pazienteIdScelto` · `denti`
 · `colori`. ⚠️ La `foto` resta **fuori** (un `File` non è serializzabile): perdita accettata, come oggi.
+
+🔑 **Il meccanismo di ripresa NON si tocca (D19):** cambia il **contenuto** del salvataggio, non la rete.
+Restano identiche le 24 ore scorrevoli, la guardia `userId`+`labId` (dispositivo condiviso), l'unicità della
+chiave, la chiusura non distruttiva dello sheet «Riprendo da dove eri?» e il fatto che **solo un gesto
+esplicito cancella** (`RipresaSheet.tsx:16-24`). **D18 aggiunge il secondo gesto esplicito**: uscire dal
+wizard con conferma azzera il salvataggio, esattamente come «Ricomincia da capo». ⚠️ Il testo dello sheet di
+ripresa **è scritto sui tre passi di oggi** (`RipresaSheet.tsx:59-75`, «ti mancava il tipo», «ti mancava il
+paziente»): con i passi variabili quelle frasi vanno rifatte, ed è un identificatore del censimento R-P6,
+non un dettaglio.
 
 ---
 
@@ -305,6 +380,11 @@ si lascia**, è la stessa specie delle dichiarazioni morte già rimosse tre volt
 | **B8** | Bersagli sotto il minimo | Playwright a 390/768/1280 × chiaro/scuro: ogni dente ≥ 44×44, **tasto primario dentro il viewport con la tastiera aperta**, briciole non mandate a capo |
 | **B9** | Il testo al 200% | ⚠️ controllo **mai eseguito davvero** (il mockup usava px fissi): va rifatto **sul device** |
 | **B10** | Il salto di larghezza stordisce | passaggio colonna stretta → passo denti largo **e ritorno col tasto indietro**, guardato a 768 e 1280: nessun sobbalzo, nessun contenuto che si riposiziona due volte |
+| **B11** | Tornare indietro cancella quello che avevi già scritto (D17) | dalla briciola si torna al passo e si riavanza: denti, colori, codice, cognome e nome sono **identici a prima** |
+| **B12** | Cambiare il tipo perde dati **in silenzio** (D17) | cambio `overdenture` → `anti_russamento` **con denti già scelti** → l'avviso compare **una volta sola**; cambio fra due tipi che prevedono le stesse domande → **nessun avviso**. Il test fallisce sia se non avvisa mai, sia se avvisa sempre |
+| **B13** | Cambiare dentista lascia attaccato un paziente di **un altro studio** (D17 + D11) | scelto un paziente dall'archivio, si torna alla briciola del dentista e si cambia studio → il paziente scelto è **rilasciato** e il codice **ricalcolato**; il corpo spedito alla creazione **non porta più** quell'identificativo |
+| **B14** | L'uscita esplicita non cancella, o l'interruzione cancella (D18/D19) | uscita con conferma → chiave `localStorage` **rimossa**; smontaggio **senza** conferma (interruzione) → chiave **ancora lì**, e al rientro compare lo sheet di ripresa. Sono due asserzioni opposte: una sola non prova niente |
+| **B15** | «Indietro» spara sulla home (difetto §3.2) | dal primo passo, arrivando da `/lavori` → si torna a **`/lavori`**; senza storia di navigazione → fallback a `/dashboard` |
 
 ---
 
@@ -347,7 +427,7 @@ generati: costa 30 secondi e chiude il dubbio.
 | superficie | mockup | stato |
 |---|---|---|
 | passo paziente + ricerca | `2026-07-28-wizard-passo-paziente.html` | ✅ **approvato** (variante A) — visto ai **tre tagli veri** (390/768/1280) in vista «schermo intero», chiaro e scuro |
-| avanzamento dei passi | `2026-07-28-wizard-avanzamento-passi.html` | ✅ **approvato** (variante 3) |
+| avanzamento dei passi | `2026-07-28-wizard-avanzamento-passi.html` | 🟡 **variante 3 approvata, ma il mockup è superato dalla ratifica**: non ha le briciole **toccabili** (D17 — servono stato premuto, area di tocco ≥ 44 px, ordine di lettura) né il **tasto d'uscita** in testata (D18). **Va riaperto**, ed è la superficie più stretta che abbiamo: 44 px di altezza, a 390 px di larghezza, con dentro indietro + briciole + uscita |
 | passo denti / colore | mockup del 27/07 | 🟡 **approvato nella forma, larghezza DA RIVERIFICARE.** Verificato aprendo i file: `2026-07-27-arcata-ovale.html` nomina il taglio tablet/768 (5 riscontri), `2026-07-27-denti-colore-wizard.html` **non nomina né tablet né desktop** — e **D14 ha appena cambiato il comportamento della larghezza proprio su quella superficie**. ⚠️ `2026-07-27-denti-illustrazioni-vere.html` è **in `.gitignore`** (30 MB, voce 57-bis) e **vive solo su questo disco**: una sessione nuova non può riverificarlo, si rigenera con `scripts/design/` |
 | **passo foto** | — | 🛑 **manca**: D8 lo rende un passo nuovo, e un passo nuovo vuole la sua anteprima |
 | **passo cassetta** | — | 🛑 **manca** |
@@ -364,6 +444,15 @@ dietro un gate, non in coda.
    numerazione. → chiave `(laboratorio_id, codice_paziente)` (§6), e **il commento di `schema.sql:461` va
    corretto nella stessa migration**: dice «assegnato dallo studio» e non è (più) vero.
 2. **D16 — `ProgressDots` muore**: componente, voce di catalogo, test e **DS v3 §5.32** (§3).
+
+**E la ratifica ne ha chiuse altre quattro, la sera del 28** (verbale, terza tornata):
+
+3. **D17 — briciole toccabili**, ritorno che conserva, avviso **solo se qualcosa si perde** (§3.1). Era
+   l'unica cosa che la spec rimandava al piano: **non è più aperta**.
+4. **D18 — via d'uscita esplicita con conferma**, che azzera il salvataggio locale; più la correzione della
+   freccia indietro, difetto contro la direttiva del 22/07 (§3.2).
+5. **D19 — la rete di ripresa 24h resta com'è** (§3.2 e §7).
+6. **D20 — l'aiuto dichiara che il codice si può cambiare** (§4).
 
 ---
 

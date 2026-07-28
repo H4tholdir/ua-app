@@ -14,8 +14,17 @@
 
 ## 0. In una riga
 
-**L'ondata (b) non ha più domande aperte: ha 16 decisioni ratificate, due mockup approvati e una spec.
-Manca il piano — e tre anteprime.** Nessuna riga di codice scritta, database toccato **solo in lettura**.
+**L'ondata (b) non ha più domande aperte: ha 20 decisioni ratificate e una spec RATIFICATA.
+Manca il piano — e quattro anteprime.** Nessuna riga di codice scritta, database toccato **solo in lettura**.
+
+> 🆕 **Aggiornato la sera del 28/07, dopo la ratifica.** La spec è stata portata a Francesco sezione per
+> sezione ed è **approvata**, ma con **quattro emendamenti** (D17-D20, verbale «terza tornata»): briciole
+> **toccabili** con avviso quando un cambio a monte perde dati · **via d'uscita esplicita** dal wizard, che
+> azzera il salvataggio locale, **più la correzione della freccia indietro** (difetto contro la direttiva
+> del 22/07: `WizardNuovoLavoro.tsx:219-222` fa `router.push('/dashboard')`) · la **rete di ripresa 24h
+> resta com'è** · l'aiuto dichiara che **il codice si può cambiare**.
+> ➡️ **Ne segue che le anteprime mancanti sono QUATTRO, non tre:** la testata (briciole toccabili + tasto
+> d'uscita) era approvata nella variante 3, ma quel mockup **non ha** né l'una né l'altro.
 
 ---
 
@@ -46,10 +55,12 @@ Le cinque che cambiano di più il lavoro di chi legge:
 
 ## 3. 🛑 Quello che NON si può saltare prima del codice
 
-1. **La spec va ratificata da Francesco.** È scritta e non ha domande aperte, ma lui non l'ha ancora
-   riletta. **Nessun piano prima della sua parola.**
-2. **Mancano tre anteprime** (§0B: mai React senza mockup approvato): **passo foto** · **passo cassetta** ·
-   **avviso «questo codice è già di un altro paziente»**.
+1. ✅ **FATTO (28/07, sera): la spec è ratificata**, con i quattro emendamenti D17-D20. Il piano può partire.
+2. **Mancano quattro anteprime** (§0B: mai React senza mockup approvato): **passo foto** · **passo
+   cassetta** · **avviso «questo codice è già di un altro paziente»** · 🆕 **la testata** (briciole
+   toccabili + tasto d'uscita, D17/D18) — la variante 3 approvata non porta né l'una né l'altro, ed è la
+   superficie più stretta del progetto: 44 px d'altezza a 390 px di larghezza, con dentro indietro,
+   briciole e uscita.
    🛑 **Nel piano quelle tre superfici stanno DIETRO UN GATE, non in coda:** il task che le tocca non
    parte finché il loro mockup non è approvato. Scriverle in fondo al piano significa scoprire all'ultimo
    task che manca l'anteprima — e a quel punto o si aspetta, o si sfonda la §0B.
@@ -76,6 +87,11 @@ Tutti letti aprendo i file o interrogando il database. Chi scrive il piano li **
 | La bozza del wizard è **`v:1`** e porta campi che spariscono | `persistenza.ts:12-24`, gate a `:69` |
 | `TIPI_LAVORO` **non ha** i flag «prevede denti/colore/arcata»; la tabella dei 38 è nel **verbale del 27/07 §6-quater**, non nel codice | `src/lib/domain/tipi-lavoro.ts` (93 righe, 6 campi) |
 | `paziente_nome_snapshot` **non è scritto da nessuno** → scheda del lavoro «—», portale mostra il dispositivo, **buono senza ripiego sul codice** | grep su `src/`, `supabase/`, `scripts/` |
+| 🆕 **Nel wizard non esiste nessuna via d'uscita**: la testata ha **solo** la freccia indietro, e dal terzo passo si esce premendola tre volte, senza conferma | `WizardNuovoLavoro.tsx:421` (testata) · `:219-227` (`vaIndietro`) |
+| 🆕 🐛 **La freccia indietro, al primo passo, spara sulla home** invece di tornare alla pagina precedente — contro la **direttiva permanente del 22/07** | `WizardNuovoLavoro.tsx:219-222`, `router.push('/dashboard')` |
+| 🆕 **La «bozza» non esiste nel gestionale**: è `localStorage`, 24h scorrevoli dall'ultima modifica, guardia `userId`+`labId`, **una sola chiave**, **senza foto**, non viaggia fra dispositivi | `persistenza.ts:26-79` · sheet di ripresa `RipresaSheet.tsx` |
+| 🆕 **Le frasi dello sheet «Riprendo da dove eri?» sono scritte sui tre passi di oggi** («ti mancava il tipo», «ti mancava il paziente») → con i passi variabili vanno rifatte | `RipresaSheet.tsx:59-75` |
+| 🆕 **Il ritorno indietro già oggi non distrugge nulla**, e il codice paziente non viene mai sovrascritto se già digitato: il precedente per D17 **esiste** | `WizardNuovoLavoro.tsx:226` · `:258` (`s.pz \|\| dati.prossimoPz`) |
 
 ---
 
@@ -102,10 +118,13 @@ un difetto **nel piano**.
   negoziabile. Screenshot before/after in `docs/design/screenshots/<data>-<superficie>/`.
 
 **I blocchi di lavoro che si vedono già** (non è il piano, è la sua ossatura): tabella dei 38 tipi portata
-nel codice · macchina dei passi variabili · testata a briciole + morte di `ProgressDots` · passo paziente
-con due caselle · ricerca paziente (API + UI) · indice unico + correzione del commento di schema ·
-i due scrittori di `crea-lavoro.ts` · bozza `v:2` · odontogramma v3 · passo colore · passo foto · cassetta ·
-rimozione di «Dimmelo a voce» · gate L2.
+nel codice · macchina dei passi variabili · testata a **briciole toccabili** + **uscita esplicita** +
+**correzione della freccia indietro** + morte di `ProgressDots` · **avviso di perdita quando un cambio a
+monte svuota un passo** (D17: il calcolo viene dalla funzione della sequenza, mai da una lista a mano) ·
+passo paziente con due caselle · ricerca paziente (API + UI, **con la data dell'ultimo lavoro letta in una
+sola andata**) · indice unico + correzione del commento di schema · i due scrittori di `crea-lavoro.ts` ·
+bozza `v:2` **con le frasi dello sheet di ripresa rifatte** · odontogramma v3 · passo colore · passo foto ·
+cassetta · rimozione di «Dimmelo a voce» · gate L2.
 
 ---
 
