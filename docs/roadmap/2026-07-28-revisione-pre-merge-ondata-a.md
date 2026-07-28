@@ -31,7 +31,47 @@ transazioni annullate; baseline 294 lavori / 0 denti verificata intatta a fine r
 
 ---
 
-## 🔴 GRAVI — da chiudere prima del merge
+## ✅ ESITO — tutte e cinque le correzioni decise da Francesco sono CHIUSE (28/07/2026)
+
+| # | esito | commit | la prova che conta |
+|---|---|---|---|
+| **G1** | ✅ | `9254288c` | il rifacimento **clona le righe** e copia il colore di caso; provato in transazione annullata, 5 righe su 5, `provenienza` conservata. 🛑 `colore_dente` **si continua a copiare**: in produzione gira `main`, che legge ancora quella colonna |
+| **G2** | ✅ | `8d5e90ba` | le **7 forme** ora danno **422 da entrambe le porte**, con lo **stesso messaggio e lo stesso valore**. Modulo unico `src/lib/domain/denti-validazione.ts` |
+| **G3** | ✅ | `98db9114` | la guardia sull'embed **ignora i commenti**. Misurato dall'orchestratore: tolta la riga vera → **rossa**; prima restava verde |
+| **M1** | ✅ | `0c5b8db9` | gettone obbligatorio **sulla porta** (422 se assente/vuoto). La RPC resta permissiva **di proposito**: non ha un esito per «non hai mandato la chiave», e `conflitto` sarebbe una bugia |
+| **M2** | ✅ | `64615027` | «*Non sono riuscita a salvare il colore. Lo aggiungi dalla scheda.*» — forza provata **col sabotaggio**: 4 rossi forzando l'avviso, 14 forzandolo al contrario |
+
+**FASE 7 rieseguita dall'orchestratore dopo l'ultima correzione:** `tsc` 0 · `eslint` 0 ·
+`next build` ok · **vitest 3622 passati / 19 saltati** · **DB alla baseline (294 lavori, 0 denti)**.
+
+🔑 **Il fatto che il G2 ha scoperto e che cambia la natura della correzione:** non bastava
+**validare**, serviva **normalizzare**. Provato sulla RPC vera: `{scala:'  vita_classical  ',
+codice:' A3 '}` → **`23503 lavori_denti_colore_fk`, lavoro perso**; la stessa coppia normalizzata →
+`{"esito":"ok"}`. Stringhe con spazi **superano ogni controllo di forma**: il `.trim()` è la
+differenza fra lavoro creato e lavoro perso.
+⚠️ **Onestà sul metodo, dichiarata dall'esecutore:** il «500 sul POST» della colonna PRIMA era
+**derivato in due passi** (abort della RPC osservato in banca dati + la riga della route che lo
+traduce in 500), **non** osservato in un colpo solo — sotto mock il POST rispondeva 201. **È
+esattamente per questo che il difetto si vedeva solo andando sul database vero.**
+
+### 🔴 Restano aperti, con una casa scritta
+- **Il catalogo non è chiuso** (coppia valida ma inesistente → 500 da entrambe): **non** è
+  un'estrazione ma **un progetto**, perché l'esito corretto è **asimmetrico** — sul PUT rifiutare non
+  perde nulla, sul POST perderebbe **il lavoro**, quindi lì va **scartato e detto**, e il campo per
+  dirlo non esiste (`colore_scartato` parla del colore di **caso**). Scartare in silenzio ricreerebbe
+  M2. → **ondata (b), col suo panel.**
+- **`codice:'a3'` minuscolo non viene alzato sul percorso dei denti** (solo il colore di caso lo è):
+  stesso «digitato di fretta al banco», stessa perdita di lavoro sul POST. → ondata (b).
+- **Lo stesso difetto di M2 è sulla PATCH della scheda** (`[id]/route.ts` riceve `scartato` e lo
+  butta): il canale ora **esiste**, basta rimandarlo nella risposta.
+- **`gruppo`/`gruppo_ruolo`:** il modulo nuovo è un'**allowlist per entrambe le porte** — chi un
+  domani le farà scrivere deve aggiungerle **anche lì**, o il dato sparisce in silenzio (classe
+  `PATCHABLE_FIELDS`, R-P6). La destinazione è scritta accanto al nome.
+- I **6 medi e 6 minori** non selezionati da Francesco restano sotto, con `file:riga`.
+
+---
+
+## 🔴 GRAVI — erano da chiudere prima del merge (✅ tutti e tre chiusi, v. tabella sopra)
 
 ### G1 · Il rifacimento perde i denti e il colore, e le sentinelle del ramo affermano il contrario
 `crea_rifacimento_atomico` (migration `007`) è **una terza penna** sulle sette colonne. Copia

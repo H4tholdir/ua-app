@@ -47,9 +47,21 @@ Perimetro **misurato**: `EXECUTE` solo a `service_role`, e il censimento del cat
 solo** riferimento alla RPC, dentro un **commento**. Se nascesse una seconda porta, la guardia va
 ricopiata lì — sta scritto nella route. ✅ Il caso «lavoro senza `updated_at`» che temevo **non
 esiste**: la colonna è `NOT NULL DEFAULT now()` (sondato).
-🔴 **RESTA UNA CORREZIONE: G2** — POST e PUT non validano lo stesso corpo, e **un dente storto fa
-perdere IL LAVORO**, non il colore (7 forme su 7 misurate: 422 sul PUT, 500 col messaggio Postgres
-crudo sul POST e nessun lavoro creato).
+✅ **G2 CHIUSO** (`8d5e90ba`): le **7 forme** danno ora **422 da entrambe le porte**, con lo **stesso
+messaggio e lo stesso valore** — modulo unico **`src/lib/domain/denti-validazione.ts`**, chiamato da
+POST e PUT. 🔑 **Non bastava validare, serviva NORMALIZZARE:** provato sulla RPC vera,
+`{scala:'  vita_classical  ', codice:' A3 '}` → **lavoro perso**; normalizzato → `ok`. Le stringhe
+con spazi superano ogni controllo di forma: **il `.trim()` è la differenza fra lavoro creato e lavoro
+perso.** Forza: abbozzo inerte → **12 su 12** nel file nuovo e **16 su 39** nei due preesistenti.
+
+✅ **TUTTE E CINQUE LE CORREZIONI CHIUSE. FASE 7 rieseguita dall'orchestratore: `tsc` 0 · `eslint` 0 ·
+`next build` ok · vitest 3622 · DB alla baseline.** Esito completo e ciò che resta aperto:
+`docs/roadmap/2026-07-28-revisione-pre-merge-ondata-a.md` (tabella in testa).
+🔴 **Aperti con una casa:** catalogo non chiuso (**progetto, non estrazione**: l'esito è asimmetrico —
+sul PUT rifiutare non perde nulla, sul POST perderebbe il lavoro → ondata b col panel) · `codice:'a3'`
+minuscolo non alzato sul percorso denti (ondata b) · lo stesso difetto M2 sulla **PATCH della scheda**
+· `gruppo`/`gruppo_ruolo`: il modulo nuovo è **un'allowlist** — chi le farà scrivere deve aggiungerle
+**anche lì**, o spariscono in silenzio (classe `PATCHABLE_FIELDS`, R-P6).
 🔴 **Nuovo da M2, non toccato:** **lo stesso difetto è anche sulla PATCH della scheda**
 (`[id]/route.ts:403-405` riceve `scartato` e lo butta): chi corregge il colore dalla scheda con un
 codice fuori catalogo legge «Salvato». Il canale ora **esiste**, basta rimandarlo nella risposta.
