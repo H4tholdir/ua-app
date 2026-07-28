@@ -1,38 +1,29 @@
-# Sessione attiva — ONDATA (b): PANEL FATTO, il piano NON si esegue (29/07/2026)
+# Sessione attiva — ONDATA (b): PIANO VALIDATO E RISCRITTO, si parte dalla CONSEGNA ZERO (29/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md`** — il verbale del panel.
-Il piano (`2026-07-28-ondata-b-piano.md`) si legge **dopo**, e non nella forma attuale.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-ondata-b-consegna-zero-handoff.md`.**
+Poi il piano: **`docs/roadmap/2026-07-29-ondata-b-piano-v2.md`**, e si legge **§0 per prima**.
 
-**7 revisori** (4 di lente + 3 lettori sugli 11 file mai aperti), ~70 file aperti, **29 rilievi ·
-6 BLOCCANTI · 15 affermazioni del piano verificate FALSE** (9 riverificate a mano).
-🔑 **Il piano sbagliava dove si sentiva sicuro:** P1 «provata» prova il caso banale · il censimento dei token
-indicava regole CSS **inesistenti** · la citazione-àncora del §4 punta al `catch` sbagliato · il drift
-`bite_splint` **non esiste**.
+**Il panel c'è stato** (7 revisori, ~70 file): **29 rilievi · 6 BLOCCANTI · 15 affermazioni del piano v1
+verificate FALSE**. Verbale: `…-29-ondata-b-panel-validazione.md`.
+🔑 **La lezione: il piano non è stato fermato dai buchi che dichiarava, ma DOVE SI SENTIVA SICURO** — la
+sonda P1, il censimento dei token, la citazione-àncora del §4 e il drift `bite_splint` erano **tutti e
+quattro difettosi**. *Un buco dichiarato si chiude; una certezza sbagliata no.*
 
-**I 6 bloccanti in una riga:** ① il 23505 non è gestito → «Riprova» all'infinito (il modello esiste in **9
-route**, `api/pazienti` è l'unica senza) · ② il **momento in cui il lavoro nasce** non è deciso, e T14/T15
-dicono il contrario · ③ `cosaSiPerde` non vede il dentista · ④ l'uscita naviga da dentro un overlay e
-**l'attrezzo non esiste** (`useNavigaDaOverlay` prende un href, serve `back()`) · ⑤ **NESSUNO STAGING**:
-la migration di T4 va sull'unico DB, quindi la gestione dell'errore va su `main` **prima** · ⑥ il `DELETE`
-immagini impugna `url` (morto) invece di `storage_path`, e non ha né soggetto né finestra.
+🛑 **SI COMINCIA DALLA CONSEGNA ZERO (Z1-Z3), che va in produzione DA SOLA e PRIMA del ramo:** gestione del
+`23505` · `btrim` + `'' → NULL` in scrittura · generatore reso case-insensitive e senza `deleted_at`.
+Motivo: **non esiste uno staging** (verificato), quindi l'indice varrebbe subito per la produzione, che non
+saprebbe gestirlo. Il modello è in casa, in **9 route**; `api/pazienti` è l'unica senza.
 
-✅ **Chiuso: la chiave `localStorage` NON si rinomina** (i test la leggono dalla costante: rinominarla
-renderebbe verdi a vuoto tutte le verifiche di pulizia).
-🔧 **Fatto il 29/07:** conteggio 10→11 · spec §15 (tre superfici avevano già i mockup approvati, D23-D25) ·
-verbale D22 ripulito dalle due stesure superate · 6 screenshot salvati (98 = 98) · **nota falsa
-`bite_splint` rimossa da `tipi-lavoro.ts`**.
-✅ **PANEL NORMATIVO CHIUSO — 4 domande su 4.** Foto: **soft-delete**, stessi ruoli che caricano, finestra
-**fino alla consegna** (che è anche il confine di legge: Art. 52(8) + Art. 2(28) → la consegna **è**
-l'immissione sul mercato). **D34 ratificata:** il codice di un archiviato **non si riusa mai** ·
-**D34-bis:** `lower(btrim(...))`, che è la normalizzazione **già presente** su quella colonna.
-🔧 **Base normativa corretta in 3 documenti:** per i **su misura** non è l'Art. 10(8) (i suoi oggetti sono
-riservati ai dispositivi «diversi dai su misura», Art. 10(4)/(6)) ma **Art. 10(5) + All. XIII p.4**; e
-`ANALISI/17:174` diceva **10** anni per gli impiantabili invece di **15**, contraddicendo la sua stessa
-riga :149.
+✅ **Panel normativo chiuso, 4 domande su 4.** **D34** (ratificata): il codice di un paziente archiviato
+**non si riusa mai** — è un identificativo di legge e finisce su 4 documenti conservati. **D34-bis:**
+`lower(btrim(...))`, che è la normalizzazione **già presente** su quella colonna. Foto: **soft-delete**,
+stessi ruoli che caricano, finestra **fino alla consegna** — che è **anche il confine di legge**.
+🔧 **Corretta una base normativa sbagliata in 3 documenti** (per i su misura: **Art. 10(5) + All. XIII p.4**,
+non Art. 10(8)) e un errore vero (impiantabili: **15 anni**, non 10).
 
-🛑 **PUNTO DI RIPRESA OPERATIVO: `docs/roadmap/2026-07-29-ondata-b-piano-v2.md`** (scritto il 29/07).
-**Consegna zero (Z1-Z3) va in produzione DA SOLA e PRIMA del ramo** — non c'è staging, quindi l'indice
-varrebbe per la produzione senza la gestione dell'errore. Poi 23 task.
-🔴 **Restano: 3 sonde** (P2 da rieseguire · P3 · P6-forma) · **2 gate di mockup** (denti, colore) ·
+🔴 **Restano: 3 sonde** (P2 da rieseguire · P3 · P6-**forma**) · **2 gate di mockup** (denti, colore) ·
 **2 decisioni di prodotto** (quando nasce la cassetta creata dal wizard · la stringa della briciola).
-**Zero righe di codice applicativo.** Baseline riverificata: **294 · 0 · 916 · 48**.
+**Nessuna blocca la consegna zero.**
+
+**31 commit locali non pubblicati, 11 di oggi. Zero righe di logica applicativa. Albero pulito.**
+Baseline riverificata: **294 · 0 · 916 · 48**.
