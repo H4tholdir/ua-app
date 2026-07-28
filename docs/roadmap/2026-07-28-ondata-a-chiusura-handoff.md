@@ -40,6 +40,15 @@ dati di prova, si ripuliscono alla consegna). **Va saputo, non scoperto dopo.**
 **3 viewport obbligatori: 390px · 768px · 1280px. Sempre light + dark.**
 ⚠️ **Nessun gate estetico L2 in questa ondata:** non cambia un pixel, **di proposito**. Serve nella (b).
 
+**Con che cosa si fa** (⚠️ **`/gstack qa` NON esiste più**, v. §6): la skill **`webapp-testing`**,
+oppure `preview_start` + gli strumenti `mcp__plugin_playwright_*` direttamente.
+✅ **`.claude/launch.json` c'è ed è a posto** (verificato il 28/07): configurazione **`ua-dev`**,
+`npm run dev`, porta **3000**. Quindi `preview_start` con `{name: "ua-dev"}` parte senza preparativi.
+⚠️ **Il server di sviluppo non è mai stato avviato nella sessione del 28/07:** tutto è stato provato
+con `vitest`, `tsc`, `next build` e SQL. **`next build` compila, non dimostra che l'app giri** — e
+quel giorno sono state cestinate 53 cartelle sotto `.claude/`. **Il primo `preview_start` è anche la
+verifica che la rimozione di gstack non abbia toccato niente di vivo.**
+
 **Cosa guardare, in ordine di rischio:**
 1. **Il modulo «Nuovo lavoro»** — si crea un lavoro con elemento e colore; il colore arriva davvero?
    Poi si riapre la scheda e **si ritrova**? È il ciclo che l'ondata esiste per chiudere.
