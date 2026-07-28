@@ -1785,9 +1785,16 @@ git commit -m "feat(lavori): sentinelle su denti e colore — una penna sola per
 ➡️ **Questo task deve quindi anche:** portare il codice a maiuscolo e confrontarlo col catalogo **prima** di spedirlo (`A3.5` resta `A3.5`, `a3` diventa `A3`, `bl` diventa `BL`); se dopo la normalizzazione il codice **non** è in catalogo, non mandarlo come colore — il lavoro si crea lo stesso e il colore si corregge dalla scheda, che ha la tendina. **Mai** far fallire la creazione del lavoro per un colore digitato male.
 ⚠️ La casella resta una casella: **nessun cambiamento visivo** in questa ondata. La tendina è ondata (b).
 
+🔴 **SECONDO PREREQUISITO — TROVATO ESEGUENDO IL TASK 9, e questo task ne è il PROPRIETARIO** (assegnato il 28/07/2026; prima era scritto «T11 o T12», e due candidati vogliono dire nessuno).
+**Le due porte che scrivono i denti non validano le stesse cose.** `src/app/api/lavori/[id]/denti/route.ts:100-155` valida `ruolo`, `provenienza`, i cinque campi testo, `coppia_ck` e `zone_ck`, e **normalizza** in `DenteNormalizzato`; `src/app/api/lavori/route.ts` (POST, riscritto dal Task 9) valida `fdi`, i duplicati e l'oggettualità, e passa gli oggetti **grezzi** alla RPC. Conseguenza misurata: `{fdi:11, ruolo:'pippo'}` → **422 sul PUT, 500 sul POST**. Stessa asimmetria su zone senza scala e su mezza coppia scala/codice. Il PUT stesso dichiara a `:14-17` che i due elenchi devono dire la stessa cosa.
+➡️ **Questo task estrae la validazione in UN modulo solo** (es. `src/lib/domain/denti-validazione.ts`) e lo fa chiamare da **entrambe** le route, così la canonicalizzazione del colore che il task introduce (`a3`→`A3`) vale su tutte e due le porte invece che su una. Test: i casi oggi asimmetrici devono dare **la stessa risposta** da POST e da PUT.
+⚠️ **Assorbe anche** il difetto già noto «coppia `(scala, codice)` sintatticamente valida ma **inesistente in catalogo** → 500»: vale su tutte e due le porte, e si chiude leggendo `colori_dentali` dal modulo comune. 🛑 Resta il vincolo di sopra: **mai** far fallire la creazione del lavoro per un colore digitato male.
+
 **Files:**
 - Modify: `src/lib/wizard/crea-lavoro.ts:107-223`
-- Test: `tests/unit/crea-lavoro-denti.test.ts`
+- Modify: `src/app/api/lavori/route.ts` + `src/app/api/lavori/[id]/denti/route.ts` (chiamano il modulo comune)
+- Create: `src/lib/domain/denti-validazione.ts`
+- Test: `tests/unit/crea-lavoro-denti.test.ts` + i casi di simmetria fra le due route
 
 **Interfaces:**
 - Produces: `EsitoCreazione.accessoriFalliti` perde il ramo `'dettagli'` → `Array<'foto'>`.

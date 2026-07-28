@@ -160,8 +160,11 @@ non si patcha di nascosto). Sono le due che hanno prodotto 8 catture su 8.
    `ruolo`, `provenienza`, i cinque campi testo, `coppia_ck`, `zone_ck` e **normalizza**; il POST
    valida fdi/duplicati/oggettualità e passa gli oggetti grezzi. `{fdi:11, ruolo:'pippo'}` → **422
    sul PUT, 500 sul POST**. Non unificato di proposito: il colore è di **T11**, che potrebbe volerne
-   canonicalizzare i valori (`a3`→`A3`). **Estrarre un modulo di validazione unico — assegnato a
-   T11 o T12.** Il PUT stesso dichiara a `:14-17` che i due elenchi devono dire la stessa cosa.
+   canonicalizzare i valori (`a3`→`A3`). Il PUT stesso dichiara a `:14-17` che i due elenchi devono
+   dire la stessa cosa.
+   ✅ **ASSEGNATO il 28/07: è del T11, ed è scritto nel PIANO**, non solo qui — il brief di un
+   esecutore si costruisce dal piano, non da questo handoff. Diceva «T11 o T12», e **due candidati
+   vogliono dire nessuno**: stessa forma di «una riga senza destinazione» che R-P6 vieta.
 3. 🛑 **Conferma dal vivo del vincolo di sequenza §4.** `src/lib/wizard/crea-lavoro.ts:164` crea via
    POST e `:191-196` fa la **PATCH fail-soft** con `denti_coinvolti` + `colore_dente`. Il T9 rende
    *disponibile* il percorso atomico, **ma nessuno lo usa ancora**. Se il T10 atterra prima che il
@@ -176,10 +179,38 @@ non si patcha di nascosto). Sono le due che hanno prodotto 8 catture su 8.
    — serve `vi.hoisted()`, convenzione già usata dai test vicini; (b) lo stub di
    `getFreshLabContext` del piano non restituisce il campo `lab`, e contro il vero
    `assertLabOperativo` fallirebbe fail-closed.
-7. **`anno = new Date().getFullYear()` convive con `oggiRomaISO()`** per `data_ingresso`: intorno
-   alla mezzanotte del 1° gennaio i due non concordano (il server è in UTC), contro la convenzione
-   W7 citata in `crea-lavoro.ts`. Finestra strettissima, **non chiuso**: è una riga, ma non è del
-   mandato del T9 deciderlo.
+7. ✅ **CHIUSO — e non era «fuori mandato»: era codice che il T9 aveva appena scritto.**
+   `anno = new Date().getFullYear()` conviveva con `oggiRomaISO()`. L'esecutore l'aveva classificato
+   «pre-esistente», e con quell'etichetta il difetto **non aveva un proprietario**: T10 è un altro
+   file, T11 è il wizard, T13 sono le prove sul database. 🔑 **Un difetto etichettato male è un
+   difetto orfano** — è la stessa forma del pericolo che questa ondata combatte, applicata a un
+   difetto invece che a un campo. Correzione: commit **`63361649`**, `annoRoma()` al posto di
+   `new Date().getFullYear()` — la funzione **esisteva già** (`data-roma.ts:21-23`), scritta apposta
+   «per numeri documento e serie progressive fiscali».
+   ⚠️ **Non era cosmetico:** `anno_lavoro` viaggia nella RPC, diventa `v_anno` e alimenta
+   `genera_progressivo(p_lab,'lavoro',v_anno)` (`20260727120300_lavori_denti_rpc.sql:138,144`), che
+   è **componente della chiave primaria di `progressivi_anno`**. Fra le 00:00 e le 01:00 di Roma del
+   1° gennaio un lavoro sarebbe nato con `data_ingresso` del 2027 e un numero pescato dalla **serie
+   2026** — sulla catena che alimenta la DdC e la fatturazione.
+   🔴 **Il nono difetto, e stava nella diagnosi, non nel codice:** la diagnosi diceva «anno **UTC**
+   del server». È l'anno **locale del processo**. La suite **non fissa il fuso da nessuna parte**
+   (verificato in `vitest.config.ts`, `tests/setup.ts`, `package.json`, `.github/workflows/`) e
+   questo Mac risolve `Europe/Rome`: sotto quel fuso **non esiste istante** che separi i due valori,
+   e il test prescritto sarebbe passato **verde col difetto ancora in casa**. Chiuso con
+   `vi.stubEnv('TZ','UTC')` nel singolo caso (pattern già di casa: `push-timeout.test.ts:20`).
+   **Un test che non può fallire non è una rete, è un disegno di una rete.**
+
+8. **`genera_numero_lavoro()` ha lo STESSO difetto, in SQL** (`supabase/schema.sql:1996-2000`):
+   ricava `v_anno` da `EXTRACT(YEAR FROM now())`, cioè l'anno della sessione Postgres (UTC su
+   Supabase). **Latente**: nessun chiamante in `src/` — la referenziano solo la propria definizione,
+   la migration di hardening di `search_path` e i tipi generati. Non toccata: chiuderla vuole una
+   migration, e questa ondata non ne apre altre.
+9. **La suite di test non fissa il fuso orario, e questo indebolisce una prova esistente.**
+   `tests/unit/fatture-data-roma.test.ts:42-48` usa lo stesso identico istante di confine **senza**
+   fissare `TZ`: su una macchina italiana non può fallire, discrimina solo in CI. Oggi non nasconde
+   nulla (quella route usa già `annoRoma()`), ma **non è la rete che sembra**. La decisione se
+   fissare `TZ: 'UTC'` in `vitest.config.ts` tocca un terzo file e vale per tutta la suite:
+   **è una decisione da prendere, non un residuo** — non appartiene a nessun task dell'ondata (a).
 
 ### Forme d'ingresso — censimento del T9
 **Coperte:** chiave assente · `[]` · lista valida · `fdi` 19 · `fdi` `"11"` stringa · dente ripetuto
