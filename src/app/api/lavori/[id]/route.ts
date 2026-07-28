@@ -33,10 +33,12 @@ const LOCKED_PRICE_FIELDS = [
 //                        lotto_disinfettante, materiali_allegati,
 //                        anamnesi_bruxismo, anamnesi_difficolta_manuali,
 //                        anamnesi_precauzioni
-// - TabClinica.tsx:      denti_coinvolti, denti_mancanti, denti_impianti,
-//                        colore_dente, colore_collo, colore_corpo,
-//                        colore_incisale, effetti_speciali, tecnica_colore,
+// - TabClinica.tsx:      effetti_speciali, tecnica_colore,
 //                        anamnesi_altri_dispositivi
+//                        (denti_coinvolti, denti_mancanti, denti_impianti,
+//                        colore_dente, colore_collo, colore_corpo,
+//                        colore_incisale NON passano più di qui — vedi
+//                        SENTINELLA DENTI + COLORE sotto)
 // - TabDate.tsx:         data_prima_prova, data_seconda_prova,
 //                        data_terza_prova, spedizione_corriere,
 //                        spedizione_tracking, spedizione_data_prevista
@@ -70,6 +72,71 @@ const LOCKED_PRICE_FIELDS = [
 // La const è esportata (era interna) solo per permettere a quel test di
 // leggerla — non per essere riusata altrove.
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══ SENTINELLA DENTI + COLORE (spec wizard-nuovo-lavoro §4) ═══════════════
+// denti_coinvolti, denti_mancanti, denti_impianti, colore_dente, colore_collo,
+// colore_corpo, colore_incisale NON devono MAI rientrare in questa allowlist.
+// Il dato clinico per-dente vive in `lavori_denti` e si scrive SOLO dalle due
+// RPC atomiche: `lavoro_denti_sostituisci_atomica` (PUT /api/lavori/[id]/denti)
+// e `lavoro_crea_atomico` (POST /api/lavori).
+//
+// 🔑 La ragione, come chiede la direttiva «ogni campo del lavoro si corregge,
+// fino alla consegna», è scritta qui e NON è «nessun writer nel form React»:
+// sono DUE SORGENTI DELLO STESSO FATTO CLINICO. Con le colonne ancora
+// scrivibili, la scheda del lavoro e il wizard potrebbero dichiarare denti
+// diversi per lo stesso lavoro senza che nulla se ne accorga — ed è la classe
+// di difetto già pagata una volta con `numero_cassetta`.
+// Bonus chiuso qui: denti_mancanti/denti_impianti passavano SENZA VALIDAZIONE
+// (verbale §6-sexies ⑨), stessa classe del difetto «2.6». Il `ruolo` della riga
+// (`elemento|mancante|impianto|escluso|incollato`) li assorbe tutti e tre in una
+// colonna sola, tipata.
+//
+// ── TABELLA DI DESTINAZIONE — dove va a scriversi ogni nome uscito di qui ───
+// Obbligatoria (R-P6). Motivo: il ciclo di filtro qui sotto
+// (`for (const field of PATCHABLE_FIELDS)`) SCARTA IN SILENZIO ogni chiave
+// fuori allowlist — nessun 422, nessun errore. Un nome che esce senza uno
+// scrittore rediretto è un dato che smette di salvarsi senza che nessuno se ne
+// accorga: l'utente legge «Salvato» su un dato che non c'è.
+//
+// ⚠️ I sette nomi NON hanno tutti lo stesso regime. Verificato sul corpo delle
+// RPC (20260727120300_lavori_denti_rpc.sql:115-121 e :205-211): la
+// denormalizzazione riscrive denti_coinvolti/mancanti/impianti e NON tocca
+// nessuna delle quattro colonne del colore.
+//
+//   GRUPPO A — la colonna su `lavori` RESTA VIVA, riscritta dalle RPC come
+//   denormalizzazione (identico regime di `numero_cassetta`):
+//     denti_coinvolti → lavori_denti (ruolo 'elemento') + denorm. RPC
+//                       · wizard → POST /api/lavori (Task 11)
+//                       · scheda → PUT /api/lavori/[id]/denti (Task 12)
+//     denti_mancanti  → lavori_denti (ruolo 'mancante') + denorm. RPC
+//                       · wizard → POST (Task 11) · scheda → PUT /denti (Task 12)
+//     denti_impianti  → lavori_denti (ruolo 'impianto') + denorm. RPC
+//                       · wizard → POST (Task 11) · scheda → PUT /denti (Task 12)
+//
+//   GRUPPO B — la colonna su `lavori` NON HA PIÙ NESSUNO SCRITTORE: il dato si
+//   sposta in `lavori_denti` e su `lavori` non torna indietro.
+//     colore_dente    → lavori_denti.codice (+ .scala)
+//                       · wizard → POST /api/lavori, `p_denti` + default di caso
+//                         lavori.colore_scala/colore_codice (Task 11)
+//                       · scheda → PUT /api/lavori/[id]/denti (Task 12)
+//     colore_collo    → lavori_denti.codice_collo    · scheda → PUT /denti (Task 12)
+//     colore_corpo    → lavori_denti.codice_corpo    · scheda → PUT /denti (Task 12)
+//     colore_incisale → lavori_denti.codice_incisale · scheda → PUT /denti (Task 12)
+//
+// ⚠️ Conseguenza del GRUPPO B: da qui in avanti `lavori.colore_dente`,
+// `colore_collo`, `colore_corpo`, `colore_incisale` restano ferme all'ultimo
+// valore ricevuto prima di questo deploy. Chi deve LEGGERE il colore lo legge
+// da `lavori_denti` con la precedenza riga→caso di
+// `src/lib/domain/colore-dente.ts`, mai da quelle quattro colonne. Il default di
+// caso vive in `lavori.colore_scala`/`colore_codice`, scritte alla creazione da
+// `lavoro_crea_atomico`.
+//
+// ⚠️ Il GRUPPO A non è una contraddizione: quelle tre colonne restano VIVE come
+// denormalizzazione, scritta dalle due RPC insieme alle righe di `lavori_denti`.
+// La Dichiarazione di Conformità (DdcTemplate.tsx:258) e la scheda
+// (SchedaLavoroV3.tsx:286) le leggono ancora fino all'ondata (c). «Sentinella»
+// qui vuol dire: nessuno le scrive A MANO. Non: nessuno le scrive.
+// Test di regressione: tests/unit/lavori-patch-sentinella-denti.test.ts
+// ═══════════════════════════════════════════════════════════════════════════
 export const PATCHABLE_FIELDS = [
   'tipo_dispositivo',
   'descrizione',
@@ -86,13 +153,6 @@ export const PATCHABLE_FIELDS = [
   'anamnesi_bruxismo',
   'anamnesi_difficolta_manuali',
   'anamnesi_precauzioni',
-  'denti_coinvolti',
-  'denti_mancanti',
-  'denti_impianti',
-  'colore_dente',
-  'colore_collo',
-  'colore_corpo',
-  'colore_incisale',
   'effetti_speciali',
   'tecnica_colore',
   'anamnesi_altri_dispositivi',
