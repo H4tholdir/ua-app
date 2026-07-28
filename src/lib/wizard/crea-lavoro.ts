@@ -3,18 +3,28 @@
 // differenza di dati-wizard.ts): gira nel browser, chiamata dal «Continua»
 // del Passo 3 (PassoPaziente → WizardNuovoLavoro).
 //
-// Sequenza fail-soft (spec §7): 5 passi, i primi 3 SONO il percorso primario
+// Sequenza fail-soft (spec §7): 4 passi, i primi 3 SONO il percorso primario
 // (BLOCCANTI — un fallimento a uno qualsiasi di questi ferma tutto, nessuna
-// chiamata successiva, `lavoro: null`); gli ultimi 2 sono accessori
-// (elemento/colore, foto) e possono fallire SENZA invalidare il lavoro già
-// creato — l'esito riporta quali sono andati storti in `accessoriFalliti`,
-// il chiamante li segnala (Avviso) ma non blocca mai l'utente.
+// chiamata successiva, `lavoro: null`); l'ultimo è accessorio (la foto) e può
+// fallire SENZA invalidare il lavoro già creato — l'esito riporta cosa è
+// andato storto in `accessoriFalliti`, il chiamante lo segnala (Avviso) ma non
+// blocca mai l'utente.
 //
 // 1. GET  /api/pazienti?cliente_id=X       — riusa l'id se codice_paziente === pz
 // 2. POST /api/pazienti                    — SOLO se nessun match al passo 1
-// 3. POST /api/lavori                      — il lavoro vero e proprio
-// 4. PATCH /api/lavori/[id]                — SOLO se elemento e/o colore presenti
-// 5. POST /api/lavori/[id]/immagini        — SOLO se una foto è presente
+// 3. POST /api/lavori                      — il lavoro, i denti e il colore INSIEME
+// 4. POST /api/lavori/[id]/immagini        — SOLO se una foto è presente
+//
+// 🔴 IL PASSO «PATCH dettagli» NON ESISTE PIÙ (Task 11). Fino al Task 10 il
+// wizard creava il lavoro e poi mandava `denti_coinvolti`/`colore_dente` con
+// una PATCH fail-soft. Dal Task 10 quei nomi sono fuori da `PATCHABLE_FIELDS`
+// e `src/app/api/lavori/[id]/route.ts` scarta le chiavi fuori allowlist SENZA
+// errore: il server avrebbe risposto 200, l'utente avrebbe letto «Fatto!» e il
+// dato non ci sarebbe stato. Ora denti e colore viaggiano dentro il POST e
+// nascono nella STESSA transazione del lavoro (`lavoro_crea_atomico`): o ci
+// sono tutti, o non c'è nemmeno il lavoro. È il rischio R1 della spec §4 —
+// un colore perso in silenzio produce una Dichiarazione di Conformità priva di
+// un contenuto obbligatorio dell'Allegato XIII.
 //
 // DEVIAZIONE dal contratto letterale del piano (verificata leggendo il
 // codice reale di `src/app/api/pazienti/route.ts` PRIMA di scrivere, come
@@ -38,12 +48,24 @@
 // `toISOString().split('T')[0]`, che usa il fuso UTC).
 
 import { trovaTipo, labelTipo } from '@/lib/domain/tipi-lavoro'
+import { isFdiValido } from '@/lib/domain/denti-fdi-dominio'
 import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
 
+/**
+ * `'elementi'` = la casella «Elemento» conteneva qualcosa che non è un dente
+ * (v. `mappaElementi`). `'foto'` = il caricamento dell'immagine è fallito.
+ * Nessuno dei due invalida il lavoro; entrambi si correggono dalla scheda, e
+ * entrambi si DICONO — fallire in silenzio è il difetto, fallire visibilmente
+ * è la cura (decisione di Francesco, 27/07/2026).
+ *
+ * ⚠️ Il colore NON compare qui, ed è deliberato: se il codice digitato non è in
+ * catalogo il server lo scarta e crea comunque il lavoro (POST /api/lavori).
+ * «Si perde il colore, mai il lavoro» è la regola dura di questo task.
+ */
 export type EsitoCreazione = {
   lavoro: { id: string; numero_lavoro: string } | null
-  accessoriFalliti: Array<'dettagli' | 'foto'>
+  accessoriFalliti: Array<'elementi' | 'foto'>
 }
 
 const ESITO_BLOCCANTE: EsitoCreazione = { lavoro: null, accessoriFalliti: [] }
@@ -97,6 +119,55 @@ function datiPerTipo(tipo: TipoScelto): { tipo_dispositivo: TipoDispositivo; des
 }
 
 type PazienteRiga = { id: string; codice_paziente: string | null }
+
+/** Due cifre esatte, dopo aver tolto i punti. Mai un troncamento: «2.66» esce. */
+const RE_DUE_CIFRE = /^\d{2}$/
+
+/**
+ * mappaElementi — dalla casella di testo libero «Elemento» ai numeri FDI che il
+ * POST vuole.
+ *
+ * 🔑 QUESTA È LA FORMA CHE IL WIZARD RACCOGLIE DAVVERO, non quella che sarebbe
+ * comodo avere. `PassoPaziente.tsx:83-90` è una casella di testo con segnaposto
+ * «es. 2.6», non un odontogramma: l'odontotecnico digita «2.6, 2.7 3.1» oppure
+ * «26 27», di fretta e al banco. La selezione dente-per-dente è ondata (b).
+ *
+ * Regole, tutte figlie di un vincolo reale:
+ * · il punto della notazione FDI è cosmetico → si toglie («2.6» e «26» sono lo
+ *   stesso dente);
+ * · due cifre ESATTE, poi `isFdiValido` (l'insieme dei 52 codici non è un
+ *   intervallo: 19, 20, 29… non esistono);
+ * · **deduplica silenziosa.** Chi scrive «2.6, 26» ha scritto un dente due
+ *   volte, non ha perso un dato. Senza questa riga il POST risponderebbe 422
+ *   «dente ripetuto» e l'odontotecnico perderebbe il LAVORO per una ripetizione;
+ * · ciò che non si capisce finisce in `scartati` e RISALE al chiamante. Non si
+ *   passa al server (sarebbe un 422 e quindi nessun lavoro) e non si butta in
+ *   silenzio (sarebbe la classe di difetto che questa ondata esiste per
+ *   uccidere): si crea il lavoro e si dice cosa non si è capito.
+ */
+export function mappaElementi(testo: string): { denti: number[]; scartati: string[] } {
+  const denti: number[] = []
+  const scartati: string[] = []
+  const visti = new Set<number>()
+
+  for (const pezzo of testo.split(/[,\s]+/).filter(Boolean)) {
+    const cifre = pezzo.replace(/\./g, '')
+    if (!RE_DUE_CIFRE.test(cifre)) {
+      scartati.push(pezzo)
+      continue
+    }
+    const fdi = Number(cifre)
+    if (!isFdiValido(fdi)) {
+      scartati.push(pezzo)
+      continue
+    }
+    if (visti.has(fdi)) continue
+    visti.add(fdi)
+    denti.push(fdi)
+  }
+
+  return { denti, scartati }
+}
 
 /**
  * creaLavoroDaWizard — sequenza fail-soft del Passo 3 (spec §7). Ritorna
@@ -153,11 +224,29 @@ export async function creaLavoroDaWizard(input: {
     return ESITO_BLOCCANTE
   }
 
-  // Passo 3: il lavoro vero e proprio. Fallimento = BLOCCANTE, anche se
-  // elemento/colore/foto sono presenti (nessuna PATCH/immagini senza un
-  // lavoro creato con successo).
+  // Passo 3: il lavoro, i suoi denti e il suo colore. Fallimento = BLOCCANTE
+  // (nessuna immagine senza un lavoro creato con successo).
   const corpo = datiPerTipo(tipo)
   if (!corpo) return ESITO_BLOCCANTE
+
+  const { denti, scartati } = mappaElementi(elemento)
+
+  // 🔑 IL COLORE È UNO SOLO E VALE PER TUTTO IL CASO. La casella «Colore» di
+  // `PassoPaziente.tsx:91-98` è una sola per l'intero lavoro: va quindi nel
+  // DEFAULT DI CASO (`lavori.colore_scala`/`colore_codice`), non stampato su
+  // ogni dente. Stamparlo per-dente asserirebbe una prescrizione dente-per-
+  // dente che l'odontotecnico non ha mai dato, e alla prima correzione dalla
+  // scheda (Task 12) le righe farebbero ombra al caso — la precedenza
+  // riga→caso di `src/lib/domain/colore-dente.ts` legge la riga per prima.
+  // Due sorgenti dello stesso fatto clinico: la classe di difetto già pagata
+  // con `numero_cassetta`.
+  //
+  // La SCALA non si manda: l'interfaccia non la chiede e il client non la può
+  // inventare. La deduce il server dal catalogo `colori_dentali` (i 48 codici
+  // sono distinti fra le tre scale). Il `.trim().toUpperCase()` qui costa nulla,
+  // ma NON è lì che sta la garanzia: `lavori_colore_caso_fk` morde nel database,
+  // quindi normalizzazione e degradazione vivono nel POST /api/lavori.
+  const coloreCodice = colore.trim().toUpperCase()
 
   let lavoro: { id: string; numero_lavoro: string }
   try {
@@ -172,6 +261,28 @@ export async function creaLavoroDaWizard(input: {
         descrizione: corpo.descrizione,
         data_consegna_prevista: isoDataLocale(dataConsegna),
         classe_rischio: corpo.classe_rischio,
+        // Chiavi OMESSE quando non c'è nulla da dire: `denti: null` sarebbe un
+        // 422 («presente ma non è una lista»), e una lista vuota un viaggio a
+        // vuoto. Chi non ha denti da mandare non manda la chiave.
+        ...(denti.length > 0
+          ? {
+              denti: denti.map((fdi) => ({
+                fdi,
+                // Costanti, non scelte dell'utente — e la ragione va scritta:
+                // il wizard è l'ACCETTAZIONE di ciò che il dentista ha
+                // prescritto (`PassoDentista` sceglie il dentista, il Passo 3
+                // registra la prescrizione). «mancante», «impianto» e
+                // «eseguito» non hanno alcun comando in questa schermata: si
+                // dichiarano dalla scheda. Le due RPC hanno già gli stessi
+                // default (`COALESCE(d->>'ruolo','elemento')` e
+                // `COALESCE(d->>'provenienza','prescritto')`): si mandano
+                // espliciti perché il corpo dica cosa sta affermando.
+                ruolo: 'elemento',
+                provenienza: 'prescritto',
+              })),
+            }
+          : {}),
+        ...(coloreCodice ? { colore_codice: coloreCodice } : {}),
       }),
     })
     if (!res.ok) return ESITO_BLOCCANTE
@@ -181,28 +292,13 @@ export async function creaLavoroDaWizard(input: {
     return ESITO_BLOCCANTE
   }
 
-  // Da qui in poi il lavoro ESISTE: ogni fallimento è fail-soft, mai bloccante.
-  const accessoriFalliti: Array<'dettagli' | 'foto'> = []
+  // Da qui in poi il lavoro ESISTE. Denti e colore sono già dentro, nella sua
+  // stessa transazione: non possono più fallire da soli. Resta da dire ciò che
+  // NON si è potuto mandare — e la foto.
+  const accessoriFalliti: Array<'elementi' | 'foto'> = []
+  if (scartati.length > 0) accessoriFalliti.push('elementi')
 
-  // Passo 4: elemento/colore (SOLO se almeno uno dei due è stato compilato).
-  if (elemento || colore) {
-    try {
-      const res = await fetch(`/api/lavori/${lavoro.id}`, {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          denti_coinvolti: elemento.split(/[,\s]+/).filter(Boolean),
-          colore_dente: colore,
-        }),
-      })
-      if (!res.ok) accessoriFalliti.push('dettagli')
-    } catch {
-      accessoriFalliti.push('dettagli')
-    }
-  }
-
-  // Passo 5: foto dell'impronta.
+  // Passo 4: foto dell'impronta.
   if (foto) {
     try {
       const fd = new FormData()

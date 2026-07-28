@@ -318,7 +318,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 /** L'esito «Fatto!» — tutto ciò che serve a FrameFatto, calcolato una sola volta alla creazione. */
 type StatoFatto = {
   lavoro: { id: string; numero_lavoro: string }
-  accessoriFalliti: Array<'dettagli' | 'foto'>
+  accessoriFalliti: Array<'elementi' | 'foto'>
   dentista: string
   lavoroLabel: string
   pz: string

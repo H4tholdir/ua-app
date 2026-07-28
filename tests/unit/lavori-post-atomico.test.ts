@@ -26,6 +26,9 @@ vi.mock('@/lib/supabase/server-service', () => ({
 vi.mock('@/lib/utils/csrf', () => ({ isSameOrigin: () => true }))
 
 import { POST } from '../../src/app/api/lavori/route'
+// Il modulo del wizard, quello vero: serve a costruire il corpo della richiesta
+// con lo stesso codice che gira nel browser (v. «LA STRETTA DI MANO», in fondo).
+import { mappaElementi } from '@/lib/wizard/crea-lavoro'
 
 const AUTH_USER = { id: 'user-1' }
 const LAB_ID = 'lab-1'
@@ -87,6 +90,23 @@ function setup({ clienteLab = LAB_ID }: { clienteLab?: string } = {}) {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'utenti') return singolo(UTENTE_ROW)
     if (table === 'clienti') return singolo({ laboratorio_id: clienteLab })
+    // Task 11: la route confronta il colore di caso col catalogo prima di
+    // spedirlo alla RPC (`lavori_colore_caso_fk` morde nel database, e «a3»
+    // farebbe fallire la CREAZIONE del lavoro). Senza questa riga il solo caso
+    // di questo file che manda un colore moriva con «Tabella inattesa». Il
+    // comportamento di degradazione ha casa sua:
+    // `tests/unit/lavori-post-colore-catalogo.test.ts`.
+    if (table === 'colori_dentali') {
+      return {
+        select: () => ({
+          eq: (_colonna: string, valore: string) =>
+            Promise.resolve({
+              data: valore === 'A2' ? [{ scala: 'vita_classical', codice: 'A2' }] : [],
+              error: null,
+            }),
+        }),
+      }
+    }
     if (table === 'lavori') {
       return {
         insert: (row: unknown) => {
@@ -328,6 +348,64 @@ describe('POST /api/lavori — il corpo della richiesta e gli esiti della RPC', 
 
     expect(res.status).toBe(500)
     expect(json.error).toBe('progressivo non generato')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA STRETTA DI MANO (Task 11).
+//
+// 🔴 Perché questo blocco esiste. Fino al Task 10 c'era un test verde che
+// asseriva la PATCH del wizard con `fetch` finto: misurava l'INTENZIONE del
+// client e mai l'ACCETTAZIONE del server, e quando il server ha smesso di
+// accettare è rimasto verde lo stesso. La stessa forma si stava ricostruendo
+// qui: `crea-lavoro-denti.test.ts` prova cosa il wizard SPEDISCE (con fetch
+// finto), questo file prova cosa la route ACCETTA (con corpi scritti a mano).
+// Due metà che non si toccano. Qui il corpo NON è scritto a mano: esce da
+// `mappaElementi`, cioè dallo stesso codice che gira nel browser.
+//
+// Il difetto che intercetta è concreto: se un domani `mappaElementi` tornasse
+// stringhe («'26'») invece di numeri, i test del client resterebbero verdi, i
+// test della route pure — e il wizard comincerebbe a prendere 422 dal vero,
+// perché `isFdiValido` rifiuta le stringhe di proposito.
+// ═══════════════════════════════════════════════════════════════════════════
+describe('POST /api/lavori — il corpo che il wizard produce DAVVERO passa la porta', () => {
+  it('«2.6, 2.7» dalla casella «Elemento» → 201, due righe alla RPC', async () => {
+    setup()
+
+    const { denti, scartati } = mappaElementi('2.6, 2.7')
+    expect(scartati).toEqual([])
+
+    const res = await POST(
+      richiesta({
+        ...CORPO_BASE,
+        denti: denti.map((fdi) => ({ fdi, ruolo: 'elemento', provenienza: 'prescritto' })),
+        colore_codice: 'a2'.trim().toUpperCase(),
+      })
+    )
+
+    expect(res.status).toBe(201)
+    expect(argomentiRpc().p_denti).toEqual([
+      { fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' },
+      { fdi: 27, ruolo: 'elemento', provenienza: 'prescritto' },
+    ])
+    expect(argomentiRpc().p_lavoro).toEqual(
+      expect.objectContaining({ colore_scala: 'vita_classical', colore_codice: 'A2' })
+    )
+  })
+
+  // La deduplica di `mappaElementi` non è un vezzo: senza, questo corpo sarebbe
+  // un 422 «dente ripetuto» e l'odontotecnico perderebbe il LAVORO per un dente
+  // digitato due volte in due forme. Il caso lo misura da capo a fondo.
+  it('«2.6, 26» (stesso dente, due forme) → 201, una riga sola, mai un 422', async () => {
+    setup()
+
+    const { denti } = mappaElementi('2.6, 26')
+    const res = await POST(
+      richiesta({ ...CORPO_BASE, denti: denti.map((fdi) => ({ fdi, ruolo: 'elemento', provenienza: 'prescritto' })) })
+    )
+
+    expect(res.status).toBe(201)
+    expect(argomentiRpc().p_denti).toEqual([{ fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' }])
   })
 })
 

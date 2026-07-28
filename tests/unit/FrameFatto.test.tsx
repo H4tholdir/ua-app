@@ -26,7 +26,11 @@ const LAVORO = { id: 'lav-1', numero_lavoro: '2026/0001' }
 function props(overrides: Partial<Parameters<typeof FrameFatto>[0]> = {}) {
   return {
     lavoro: LAVORO,
-    accessoriFalliti: [] as Array<'dettagli' | 'foto'>,
+    // Task 11: il ramo `'dettagli'` non esiste più — denti e colore nascono
+    // dentro la transazione del lavoro e non possono più fallire da soli.
+    // Al suo posto `'elementi'`: ciò che la casella «Elemento» conteneva e non
+    // era un dente.
+    accessoriFalliti: [] as Array<'elementi' | 'foto'>,
     dentista: 'Dr. Esposito',
     lavoroLabel: 'Corona zirconia',
     pz: 'PZ-0436',
@@ -211,7 +215,7 @@ describe('FrameFatto — accessoriFalliti (fail-soft)', () => {
   })
 
   it('non vuoto → useAvvisi().errore al mount con copy dedicata', async () => {
-    renderFatto({ accessoriFalliti: ['dettagli'] })
+    renderFatto({ accessoriFalliti: ['elementi'] })
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.getByText(/Non sono riuscita a salvare/)).toBeInTheDocument()
     expect(screen.getByText(/Li aggiungi dalla scheda\./)).toBeInTheDocument()

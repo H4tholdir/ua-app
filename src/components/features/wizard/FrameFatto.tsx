@@ -50,20 +50,26 @@ function giornoEsteso(d: Date): string {
   return `${GIORNI[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]}`
 }
 
-const ETICHETTE_ACCESSORIO: Record<'dettagli' | 'foto', string> = {
-  dettagli: 'i dettagli',
+// Task 11: `dettagli` non esiste più. Denti e colore nascono DENTRO la
+// transazione del lavoro (POST /api/lavori → lavoro_crea_atomico) e non possono
+// più fallire da soli; quello che può ancora mancare è ciò che la casella
+// «Elemento» conteneva e non era un dente — e la foto. Il colore non compare:
+// se il codice non è in catalogo il server lo scarta e il lavoro nasce lo
+// stesso («si perde il colore, mai il lavoro»), e si corregge dalla scheda.
+const ETICHETTE_ACCESSORIO: Record<'elementi' | 'foto', string> = {
+  elementi: 'gli elementi',
   foto: 'la foto',
 }
 
 /** Copy VERBATIM dal brief (Task 12): "Li aggiungi dalla scheda." resta invariato. */
-function messaggioAccessoriFalliti(accessoriFalliti: Array<'dettagli' | 'foto'>): string {
+function messaggioAccessoriFalliti(accessoriFalliti: Array<'elementi' | 'foto'>): string {
   const elenco = accessoriFalliti.map((a) => ETICHETTE_ACCESSORIO[a]).join(' e ')
   return `Non sono riuscita a salvare ${elenco}. Li aggiungi dalla scheda.`
 }
 
 export function FrameFatto(props: {
   lavoro: { id: string; numero_lavoro: string }
-  accessoriFalliti: Array<'dettagli' | 'foto'>
+  accessoriFalliti: Array<'elementi' | 'foto'>
   dentista: string
   lavoroLabel: string
   pz: string

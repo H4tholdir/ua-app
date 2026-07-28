@@ -190,12 +190,20 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(bodyLavori.classe_rischio).toBe('classe_i')
   })
 
-  it('elemento/colore presenti → PATCH dopo il POST lavori (4 fetch), denti_coinvolti splittato e ripulito', async () => {
+  // 🔴 QUESTO CASO HA SOSTITUITO UN TEST VERDE SU UN PERCORSO MORTO (Task 11).
+  // Fino al Task 10 asseriva che, con elemento/colore compilati, il wizard
+  // facesse una QUARTA chiamata — una PATCH con `denti_coinvolti`/`colore_dente`.
+  // Era verde, e non voleva dire niente: `fetch` è finto e la chiamata non
+  // arrivava mai a un server. Il Task 10 ha tolto quei sette nomi da
+  // `PATCHABLE_FIELDS`, e `src/app/api/lavori/[id]/route.ts` scarta le chiavi
+  // fuori allowlist SENZA errore. Dal vero, quindi, quella PATCH era diventata
+  // un 200 su un corpo buttato: il test misurava l'INTENZIONE del client, mai
+  // l'ACCETTAZIONE del server. Ora denti e colore viaggiano dentro il POST.
+  it('elemento/colore presenti → NESSUNA PATCH: viaggiano nel corpo del POST (3 fetch)', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-4' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-4', numero_lavoro: '2026/0004' } }))
-    m.mockResolvedValueOnce(jsonOk(200, { lavoro: { id: 'lav-4' } }))
 
     const esito = await creaLavoroDaWizard({
       cliente: CLIENTE,
@@ -208,16 +216,19 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(4)
+    expect(m).toHaveBeenCalledTimes(3)
     expect(esito).toEqual({ lavoro: { id: 'lav-4', numero_lavoro: '2026/0004' }, accessoriFalliti: [] })
+    expect(m.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false)
 
-    const [urlPatch, optPatch] = m.mock.calls[3]
-    expect(urlPatch).toBe('/api/lavori/lav-4')
-    expect(optPatch.method).toBe('PATCH')
-    expect(JSON.parse(optPatch.body)).toEqual({
-      denti_coinvolti: ['2.6', '2.7', '3.1'],
-      colore_dente: 'A2',
-    })
+    const corpoLavori = JSON.parse(m.mock.calls[2][1].body)
+    expect(corpoLavori.denti).toEqual([
+      { fdi: 26, ruolo: 'elemento', provenienza: 'prescritto' },
+      { fdi: 27, ruolo: 'elemento', provenienza: 'prescritto' },
+      { fdi: 31, ruolo: 'elemento', provenienza: 'prescritto' },
+    ])
+    expect(corpoLavori.colore_codice).toBe('A2')
+    expect(corpoLavori).not.toHaveProperty('denti_coinvolti')
+    expect(corpoLavori).not.toHaveProperty('colore_dente')
   })
 
   it('foto presente → POST immagini FormData{file, descrizione:"impronta"} dopo POST lavori', async () => {
@@ -251,12 +262,13 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(fd.get('descrizione')).toBe('impronta')
   })
 
-  it('elemento/colore E foto presenti → PATCH poi POST immagini (5 fetch), entrambi riusciti', async () => {
+  // Adeguato al Task 11 per la stessa ragione del caso qui sopra: i passi sono
+  // 4, non 5. La foto è l'UNICO accessorio rimasto, e resta l'ultima chiamata.
+  it('elemento/colore E foto presenti → 4 fetch, la foto ultima e nessuna PATCH in mezzo', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-6' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-6', numero_lavoro: '2026/0006' } }))
-    m.mockResolvedValueOnce(jsonOk(200, { lavoro: { id: 'lav-6' } }))
     m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-2' } }))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
@@ -271,11 +283,10 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(5)
+    expect(m).toHaveBeenCalledTimes(4)
     expect(esito.accessoriFalliti).toEqual([])
-    // Ordine: PATCH (indice 3) PRIMA di POST immagini (indice 4).
-    expect(m.mock.calls[3][1].method).toBe('PATCH')
-    expect(m.mock.calls[4][1].method).toBe('POST')
+    expect(m.mock.calls.some((c) => c[1]?.method === 'PATCH')).toBe(false)
+    expect(m.mock.calls[3][0]).toBe('/api/lavori/lav-6/immagini')
   })
 
   it('né elemento né colore né foto → nessuna chiamata oltre POST lavori (3 fetch)', async () => {
@@ -298,12 +309,15 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(m).toHaveBeenCalledTimes(3)
   })
 
-  it('PATCH fallisce (dettagli) MA la foto prosegue comunque → accessoriFalliti:["dettagli"]', async () => {
+  // Adeguato al Task 11: il ramo «la PATCH dei dettagli è fallita» non esiste
+  // più — non c'è più una PATCH da far fallire. Al suo posto l'unico modo in cui
+  // un elemento può ancora andare perso: la casella conteneva qualcosa che non è
+  // un dente. Il lavoro nasce lo stesso, la foto prosegue, e l'esito lo DICE.
+  it('elemento illeggibile MA la foto prosegue comunque → accessoriFalliti:["elementi"]', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-8' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-8', numero_lavoro: '2026/0008' } }))
-    m.mockResolvedValueOnce(jsonFail(500))
     m.mockResolvedValueOnce(jsonOk(201, { immagine: { id: 'img-3' } }))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
@@ -312,15 +326,15 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       tipo: TIPO_CATALOGO,
       pz: 'PZ-0008',
       alias: '',
-      elemento: '2.6',
+      elemento: 'incisivo',
       colore: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(m).toHaveBeenCalledTimes(5)
+    expect(m).toHaveBeenCalledTimes(4)
     expect(esito.lavoro).toEqual({ id: 'lav-8', numero_lavoro: '2026/0008' })
-    expect(esito.accessoriFalliti).toEqual(['dettagli'])
+    expect(esito.accessoriFalliti).toEqual(['elementi'])
   })
 
   it('POST immagini fallisce (foto) → accessoriFalliti:["foto"], lavoro comunque presente', async () => {
@@ -346,12 +360,13 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(esito.accessoriFalliti).toEqual(['foto'])
   })
 
-  it('PATCH e foto ENTRAMBI falliscono → accessoriFalliti:["dettagli","foto"]', async () => {
+  // Stessa ragione del caso qui sopra. L'ordine dell'elenco è quello in cui le
+  // due cose accadono: gli elementi si perdono PRIMA di spedire, la foto dopo.
+  it('elementi illeggibili E foto fallita → accessoriFalliti:["elementi","foto"]', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-11' } }))
     m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-11', numero_lavoro: '2026/0011' } }))
-    m.mockResolvedValueOnce(jsonFail(500))
     m.mockResolvedValueOnce(jsonFail(500))
 
     const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
@@ -360,13 +375,13 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
       tipo: TIPO_CATALOGO,
       pz: 'PZ-0011',
       alias: '',
-      elemento: '2.6',
+      elemento: 'boh',
       colore: '',
       foto: file,
       dataConsegna: DATA_CONSEGNA,
     })
 
-    expect(esito.accessoriFalliti).toEqual(['dettagli', 'foto'])
+    expect(esito.accessoriFalliti).toEqual(['elementi', 'foto'])
   })
 
   it('fallimento GET pazienti (non-ok) → BLOCCANTE: lavoro:null, nessuna chiamata successiva (1 fetch)', async () => {
@@ -427,7 +442,7 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(m).toHaveBeenCalledTimes(2)
   })
 
-  it('fallimento POST lavori (non-ok) → BLOCCANTE anche con elemento/foto presenti: nessuna PATCH/immagini (3 fetch)', async () => {
+  it('fallimento POST lavori (non-ok) → BLOCCANTE anche con elemento/colore/foto presenti: nessuna immagine (3 fetch)', async () => {
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-15' } }))
