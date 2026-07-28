@@ -50,6 +50,9 @@ Le cinque che cambiano di più il lavoro di chi legge:
    riletta. **Nessun piano prima della sua parola.**
 2. **Mancano tre anteprime** (§0B: mai React senza mockup approvato): **passo foto** · **passo cassetta** ·
    **avviso «questo codice è già di un altro paziente»**.
+   🛑 **Nel piano quelle tre superfici stanno DIETRO UN GATE, non in coda:** il task che le tocca non
+   parte finché il loro mockup non è approvato. Scriverle in fondo al piano significa scoprire all'ultimo
+   task che manca l'anteprima — e a quel punto o si aspetta, o si sfonda la §0B.
 3. **I mockup di denti e colore vanno riaperti**: approvati il 27/07 nella forma, ma
    `2026-07-27-denti-colore-wizard.html` **non nomina né tablet né desktop** — e **D14** ha appena deciso
    che proprio quella superficie **si allarga** sugli schermi grandi. ⚠️ Il terzo file,

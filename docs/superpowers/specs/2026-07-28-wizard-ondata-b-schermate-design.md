@@ -1,14 +1,15 @@
 # Spec — Ondata (b) del wizard «Nuovo lavoro»: le schermate
 
 **Data:** 28 luglio 2026 · **Stato:** 🟡 **da ratificare** (Francesco) · **Percorso: GRANDE** (v. §14, gate FASE 3)
-**Verbale delle decisioni (D1-D13):** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
+**Verbale delle decisioni (D1-D16):** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
 **Spec madre (già ratificata 27/07):** `docs/superpowers/specs/2026-07-27-wizard-nuovo-lavoro-design.md` — §5 e §12
 **Mockup approvati:** `docs/design/mockups/2026-07-28-wizard-passo-paziente.html` (variante **A**) ·
-`…-wizard-avanzamento-passi.html` (variante **3**) · e dal 27/07, per denti e colore:
-`2026-07-27-{denti-colore-wizard,arcata-ovale,denti-illustrazioni-vere}.html`
+`…-wizard-avanzamento-passi.html` (variante **3**).
+⚠️ Per denti e colore i mockup del 27/07 sono approvati **nella forma ma non nella larghezza** — v. §15,
+e non darli per chiusi. **Tre superfici non hanno ancora nessun mockup**: sempre §15.
 
 > Questa spec **non ripete** la spec madre: la presuppone. Le sigle `W*n*` rimandano alle 23 decisioni
-> del verbale del 27/07; le sigle `D*n*` alle 13 di oggi.
+> del verbale del 27/07; le sigle `D*n*` alle **16** di oggi.
 
 ---
 
@@ -180,8 +181,8 @@ Coerente con la direttiva permanente «ogni campo del lavoro si corregge, fino a
    coppie_stesso_codice_studi_diversi: 0 · duplicati_dentro_lo_stesso_studio: 0
    pazienti_totali: 916 · archiviati: 0 · con_deleted_at: 0 · senza_codice: 1
    ```
-   **Nessuna delle due chiavi possibili farebbe abortire la migration.** Resta però una decisione di
-   dominio, non tecnica:
+   **Nessuna delle due chiavi possibili farebbe abortire la migration.** Quale scegliere **era** una
+   decisione di dominio, non tecnica — ed è stata presa (D15, sotto la tabella):
 
    | chiave | tiene se… | rifiuta… |
    |---|---|---|
@@ -300,7 +301,7 @@ si lascia**, è la stessa specie delle dichiarazioni morte già rimosse tre volt
 | **B4** | Due caselle che non arrivano a nulla | test che, dato cognome e nome digitati, il corpo spedito a `POST /api/pazienti` li porta **entrambi** — il difetto §1.2 riprodotto prima di correggerlo |
 | **B5** | La bozza vecchia si riversa nel wizard nuovo | `leggiStato` su un payload `v:1` → `null` **e chiave rimossa** |
 | **B6** | I passi mentono | per ogni tipo della tabella dei 38: la sequenza calcolata contiene esattamente i passi previsti — con i tre casi di prova del verbale (`anti_russamento`, `duplicato_protesi`, `overdenture`) |
-| **B7** | «Dimmelo a voce» sopravvive da qualche parte | grep di guardia: zero occorrenze di `PillVoce` in `src/` e `tests/` |
+| **B7** | Un componente ucciso sopravvive da qualche parte | grep di guardia: **zero** occorrenze di `PillVoce` **e di `ProgressDots`** in `src/` e `tests/` (D13, D16) — e la suite resta verde, cioè `tests/unit/PassoTipo.test.tsx:191` è stato tolto, non aggirato |
 | **B8** | Bersagli sotto il minimo | Playwright a 390/768/1280 × chiaro/scuro: ogni dente ≥ 44×44, **tasto primario dentro il viewport con la tastiera aperta**, briciole non mandate a capo |
 | **B9** | Il testo al 200% | ⚠️ controllo **mai eseguito davvero** (il mockup usava px fissi): va rifatto **sul device** |
 | **B10** | Il salto di larghezza stordisce | passaggio colonna stretta → passo denti largo **e ritorno col tasto indietro**, guardato a 768 e 1280: nessun sobbalzo, nessun contenuto che si riposiziona due volte |
@@ -309,10 +310,17 @@ si lascia**, è la stessa specie delle dichiarazioni morte già rimosse tre volt
 
 ## 13. Migration
 
-Una sola, piccola: **indice unico parziale** su `(laboratorio_id, codice_paziente)`.
-**Reversibile** (`DROP INDEX`). **Precondizione da verificare prima di scriverla:** zero coppie duplicate in
-banca dati — il conteggio si esegue e si incolla. FASE 6b (`supabase gen types` + `tsc --noEmit`) va
-eseguita comunque, anche se un indice non cambia i tipi generati: costa 30 secondi e chiude il dubbio.
+Una sola, piccola: **indice unico parziale** su `(laboratorio_id, codice_paziente)`
+`WHERE codice_paziente IS NOT NULL` (chiave decisa da D15, predicato motivato in §6), **più la correzione
+del commento** di `supabase/schema.sql:461`, che dice «Codice assegnato **dallo studio**» e non è più vero.
+**Reversibile** (`DROP INDEX`).
+
+✅ **La precondizione è già verificata, non va rifatta:** conteggio eseguito il 28/07 in sola lettura
+(`scripts/tmp/sql.mjs`) → **0 coppie duplicate**, con entrambe le chiavi possibili (§6 porta l'output).
+⚠️ **Ma va riverificata se passa del tempo o se qualcuno crea lavori nel frattempo**: la migration aborta su
+un duplicato, e una migration che aborta blocca il deploy e disallinea il ledger anche su dati di test.
+FASE 6b (`supabase gen types` + `tsc --noEmit`) va eseguita comunque, anche se un indice non cambia i tipi
+generati: costa 30 secondi e chiude il dubbio.
 
 ---
 
@@ -350,7 +358,7 @@ dietro un gate, non in coda.
 
 ---
 
-## 17. ✅ Le due domande aperte — CHIUSE il 28/07
+## 16. ✅ Le due domande aperte — CHIUSE il 28/07
 
 1. **D15 — il codice paziente è sempre quello che propone UÀ**: nessun dentista porta una propria
    numerazione. → chiave `(laboratorio_id, codice_paziente)` (§6), e **il commento di `schema.sql:461` va
@@ -359,12 +367,12 @@ dietro un gate, non in coda.
 
 ---
 
-## 16. Cosa NON è verificato
+## 17. Cosa NON è verificato
 
 - **Quanto tornano davvero i pazienti allo stesso studio.** È il numero da cui dipende il valore di tutta
   la ricerca, e non lo sa nessuno: nessuna fonte, nessuna misura. Dichiarato, non stimato.
-- **Se esistano coppie `(laboratorio_id, codice_paziente)` già duplicate** in banca dati: da contare prima
-  della migration (§13).
+- ~~Se esistano coppie `(laboratorio_id, codice_paziente)` già duplicate~~ → **verificato il 28/07: zero**
+  (§6 e §13). Resta vero solo il **decadimento**: se passano giorni e si creano lavori, si ricconta.
 - **Il costo della query «ultimo lavoro»** per riga di suggerimento (§5).
 - **Il testo primario dell'Allegato XIII** è stato letto tramite documentazione di progetto
   (`../ANALISI/`), non su EUR-Lex: la conclusione «il codice basta» regge su quella trascrizione.
