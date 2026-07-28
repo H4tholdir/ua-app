@@ -58,9 +58,11 @@ fatte**, in pastiglie: `Dr. Puleo` → poi `Dr. Puleo · Overdenture`.
 **due posti soli**: il wizard (`WizardNuovoLavoro.tsx:29,422`) e la **vetrina** dei componenti
 (`ds-v3-catalogo/page.tsx:31,80,1140-1144`). La sua seconda forma, `ProgressDotsStanze`, **è già morta**
 (QA device D3, v. il commento in testa a `ProgressDots.tsx:12-29`). Tolto il wizard, **l'unico consumatore
-vero sparisce**. È la stessa situazione di «Dimmelo a voce», e la stessa regola vale: *un componente senza
-consumatori non si lascia in casa senza una ragione scritta*. → §17, punto 2. Va toccata anche **DS v3
-§5.32**, che lo documenta come la testata del wizard.
+vero sparisce**.
+✅ **DECISO (D16, Francesco, 28/07): muore.** Il componente, la sua voce di catalogo
+(`ds-v3-catalogo/page.tsx:31,80,1140-1144`), il suo test e **DS v3 §5.32** che lo documenta come testata del
+wizard. Stessa regola applicata a «Dimmelo a voce» un'ora prima: *un componente senza consumatori non si
+lascia in casa*.
 
 - **Nessun conteggio**, quindi niente da smentire quando i passi cambiano.
 - La riga è **informazione**, non decorazione: chi si distrae e torna sa cosa stava facendo.
@@ -186,8 +188,12 @@ Coerente con la direttiva permanente «ogni campo del lavoro si corregge, fino a
    | `(laboratorio_id, codice_paziente)` | il codice è di UÀ e vale per tutto il laboratorio — **è ciò che il generatore fa oggi**: `PZ-<max+1>` contato su tutto il lab | due studi che usassero **entrambi** una propria numerazione con lo stesso numero |
    | `(laboratorio_id, cliente_id, codice_paziente)` | il codice **viene dallo studio** — è ciò che dice il commento dello schema: «Codice assegnato **dallo studio** (es. "PAZ-001")» — e combacia con D11 | nulla di legittimo, ma lascia il codice **ambiguo dentro il laboratorio**, e quel codice finisce **sui documenti** |
 
-   🟡 **DA DECIDERE CON FRANCESCO prima della ratifica** (§17, punto 1): i dentisti mandano un proprio
-   codice paziente, oppure il codice è sempre quello che UÀ propone?
+   ✅ **DECISO (D15, Francesco, 28/07): il codice è sempre quello che propone UÀ** — nessun dentista porta
+   una propria numerazione. → **chiave `(laboratorio_id, codice_paziente)`**, la più forte, e col conteggio
+   in mano sappiamo che **oggi non rifiuta nulla**.
+   ⚠️ **Ne segue una correzione documentale:** il commento di `supabase/schema.sql:461` («Codice assegnato
+   **dallo studio**, es. "PAZ-001"») **non descrive più il sistema** e va allineato nella stessa migration —
+   è la classe di difetto della voce 57: *un commento non si sbaglia, si scolla*.
 
    **Il predicato NON guarda lo stato del paziente.** Non `deleted_at IS NULL`, non `archiviato = false`:
    un codice già stampato su un'etichetta o su una Dichiarazione **resta impegnato** anche se il paziente
@@ -344,17 +350,12 @@ dietro un gate, non in coda.
 
 ---
 
-## 17. 🟡 Le due domande aperte — da chiudere PRIMA della ratifica
+## 17. ✅ Le due domande aperte — CHIUSE il 28/07
 
-1. **I dentisti mandano un proprio codice paziente, o il codice è sempre quello che UÀ propone?**
-   Decide la chiave dell'indice unico (§6). Se il codice arriva dallo studio, due studi possono
-   legittimamente avere lo stesso: chiave **per studio**. Se il codice è sempre di UÀ, chiave **per
-   laboratorio**, più forte, e oggi non rifiuterebbe nulla (misurato: zero duplicati).
-   ⚠️ Il commento dello schema (`schema.sql:461`) dice «Codice assegnato **dallo studio**», ma il
-   generatore vivo (`dati-wizard.ts:44-50`) lo calcola **sul laboratorio**: la documentazione e il codice
-   dicono due cose diverse, e **nessuna delle due è una decisione di Francesco**.
-2. **`ProgressDots` muore o resta?** Tolto il wizard non ha più consumatori veri (§3). Muore col suo test e
-   la sua voce di catalogo, oppure resta **con la ragione scritta accanto** — ma non «resta e basta».
+1. **D15 — il codice paziente è sempre quello che propone UÀ**: nessun dentista porta una propria
+   numerazione. → chiave `(laboratorio_id, codice_paziente)` (§6), e **il commento di `schema.sql:461` va
+   corretto nella stessa migration**: dice «assegnato dallo studio» e non è (più) vero.
+2. **D16 — `ProgressDots` muore**: componente, voce di catalogo, test e **DS v3 §5.32** (§3).
 
 ---
 
