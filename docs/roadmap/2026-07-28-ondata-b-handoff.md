@@ -1,5 +1,11 @@
 # Handoff — l'ondata (a) è in produzione, si parte con la (b) (28/07/2026)
 
+> 🛑 **DOCUMENTO SUPERATO la sera del 28/07 — vai a `docs/roadmap/2026-07-28-ondata-b-piano-handoff.md`.**
+> Resta qui come storia, ma **contiene una premessa falsificata e una richiesta di panel decaduta** (§3,
+> quinta eredità: il catalogo colori **è chiuso**, D3). Le eredità ①-④ e le trappole del §6 restano valide;
+> il perimetro dell'ondata è stato **ristretto al solo wizard** (D1) e ampliato con l'anagrafica lato wizard
+> (D4/D5). Le decisioni vere sono in `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`.
+
 **Per:** la sessione successiva, contesto pulito.
 **Prima di tutto:** BP-0 — `memory/SESSION_ACTIVE.md`, poi **questo documento**. Il resto solo se serve.
 **⚠️ Direttive permanenti:** «Come parlare con Francesco» (`ua-app/CLAUDE.md` §0D) · **Regola Advisor** ·

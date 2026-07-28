@@ -1,7 +1,9 @@
 # Sessione attiva — ONDATA (b) APERTA: 16 decisioni ratificate, spec scritta senza domande aperte, ZERO codice (28/07/2026)
 
-🛑 **PUNTO DI RIPRESA: la spec `docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`**
-(🟡 **da rileggere e ratificare**) + il verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-ondata-b-piano-handoff.md`** — leggi quello, non questo
+file, per sapere cosa fare. Poi la spec **`docs/superpowers/specs/2026-07-28-wizard-ondata-b-schermate-design.md`**
+(🟡 **da rileggere e ratificare**) e il verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`.
+⚠️ L'handoff di stamattina (`2026-07-28-ondata-b-handoff.md`) è **superato**: porta un banner in testa.
 
 **Perimetro: il solo wizard** (D1). 🛑 **Il catalogo colori è CHIUSO** (D3): decade la «quinta eredità» e
 la richiesta di panel — il panel era stato fatto e ha **falsificato entrambe le gambe** della premessa.
