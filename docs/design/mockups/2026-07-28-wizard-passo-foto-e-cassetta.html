@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wizard «Nuovo lavoro» — il passo foto e il passo cassetta (28/07/2026)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('tema') === 'scuro') document.documentElement.setAttribute('data-tema', 'scuro');
+  })();
+  window.addEventListener('DOMContentLoaded', function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('vista') !== 'schermo') return;
+    var scelto = document.querySelectorAll('.frame')[parseInt(p.get('frame') || '0', 10)];
+    if (!scelto) return;
+    document.body.replaceChildren(scelto);
+    document.body.style.minHeight = '100dvh';
+    document.body.style.paddingTop = '8px';
+  });
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  svg { display: block; }
+
+  :root {
+    --bg: #F4F0E7; --card: #FFFEFA; --elv: #FFFEFA;
+    --ink: #1D1913; --muted: #6E6457; --faint: #7B6A59; --line: #EBE4D6;
+    --blue: #1D5FBF; --green: #2E7D53; --rosso: #D90012;
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --sh-card: 0 1px 2px rgba(50,40,25,.06), 0 8px 20px -16px rgba(50,40,25,.35);
+    --dashed: #CBC1B0;
+  }
+  :root[data-tema="scuro"] {
+    --bg: #171411; --card: #211D18; --elv: #2B2620;
+    --ink: #F2EEE7; --muted: #A69B8C; --faint: #928778; --line: #342E26;
+    --blue: #5B9BFF; --green: #6FCF97; --rosso: #FF4C55;
+    --sh-press: none; --sh-card: none;
+  }
+
+  body { background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .pagina { max-width: 1500px; margin: 0 auto; padding: 28px 24px 64px; }
+  .toggle-tema {
+    position: fixed; top: 16px; right: 16px; z-index: 10;
+    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px;
+    background: var(--card); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    font-size: 13.5px; font-weight: 700;
+  }
+  h1.titolo-pagina { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; max-width: 860px; }
+  p.intro { font-size: 15.5px; font-weight: 500; color: var(--muted); margin-top: 12px; max-width: 860px; line-height: 1.5; }
+  p.intro + p.intro { margin-top: 10px; }
+  p.intro b { color: var(--ink); font-weight: 700; }
+  p.meta { font-size: 12.5px; font-weight: 700; color: var(--faint); margin-top: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .sezione { margin-top: 56px; padding-top: 26px; border-top: 1.5px solid var(--line); }
+  .sezione > h2 { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; }
+  .sezione > p { font-size: 15px; font-weight: 500; color: var(--muted); margin-top: 8px; max-width: 860px; line-height: 1.5; }
+  .sezione > p b { color: var(--ink); font-weight: 700; }
+  .blocco-variante { margin-top: 40px; }
+  .blocco-variante h2 { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .blocco-variante .nota-variante { font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 6px; max-width: 760px; line-height: 1.45; }
+  .blocco-variante .costo { font-size: 13.5px; font-weight: 700; color: var(--faint); margin-top: 8px; max-width: 760px; line-height: 1.45; }
+  .riga-stati { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; align-items: start; }
+  .stato .etichetta { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin-bottom: 10px; }
+  .demo-cornice { border: 1.5px solid var(--line); border-radius: 24px; overflow: hidden; background: var(--bg); }
+  .misura { font-size: 12.5px; font-weight: 700; color: var(--faint); margin-top: 8px; line-height: 1.4; }
+  .misura b { color: var(--ink); }
+
+  .frame { width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 24px 24px; }
+  .testata { display: flex; align-items: center; gap: 12px; height: 44px; margin-bottom: 22px; }
+  .tondo {
+    display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 999px;
+    background: var(--elv); border: 1.5px solid var(--line); box-shadow: var(--sh-press);
+    font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1;
+  }
+  :root[data-tema="scuro"] .tondo { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .esci-quieto { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; font-size: 20px; font-weight: 700; color: var(--faint); }
+  .briciole { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+  /* 🛑 `display: block`: dentro un flex i puntini di sospensione non compaiono
+     e il testo si taglia di netto (misurato il 28/07). */
+  .briciola {
+    display: block; flex-shrink: 1; min-width: 0; height: 44px; padding: 0 13px; line-height: 42px;
+    border-radius: 999px; background: var(--card); border: 1px solid var(--line);
+    font-size: 13.5px; font-weight: 700; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;
+  }
+  .altre {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    height: 34px; min-width: 40px; padding: 0 10px; border-radius: 999px;
+    background: var(--card); border: 1px dashed var(--line);
+    font-size: 13.5px; font-weight: 800; color: var(--faint);
+  }
+
+  .domanda { font-size: 35px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; color: var(--ink); }
+  .hint { font-size: 15.5px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+
+  /* ---- foto: riga dashed di oggi (PassoPaziente.tsx:196-260, stileFotoAdd) ---- */
+  .foto-riga {
+    display: flex; align-items: center; gap: 14px; width: 100%; height: 64px;
+    margin-top: 24px; padding: 0 20px; border-radius: 18px;
+    border: 2.5px dashed var(--dashed); color: var(--muted);
+    font-size: 16px; font-weight: 700; text-align: left;
+  }
+  .foto-grande {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; height: 220px; margin-top: 24px; border-radius: 24px;
+    border: 2.5px dashed var(--dashed); color: var(--muted);
+    font-size: 17px; font-weight: 700;
+  }
+  .foto-grande .sotto { font-size: 14px; font-weight: 600; color: var(--faint); }
+  .due-vie { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .via {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    height: 140px; border-radius: 22px; background: var(--elv);
+    border: 1.5px solid var(--line); box-shadow: var(--sh-press);
+    font-size: 15.5px; font-weight: 700; color: var(--ink);
+  }
+  :root[data-tema="scuro"] .via { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .anteprima {
+    position: relative; width: 100%; height: 220px; margin-top: 24px; border-radius: 24px; overflow: hidden;
+    border: 1px solid var(--line); background:
+      repeating-linear-gradient(45deg, #cfc6b4 0 14px, #c3b9a5 14px 28px);
+  }
+  :root[data-tema="scuro"] .anteprima { background: repeating-linear-gradient(45deg, #3a342b 0 14px, #322c25 14px 28px); }
+  .anteprima .nome-file {
+    position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; border-radius: 999px;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .anteprima .rifai {
+    position: absolute; right: 12px; top: 12px; height: 44px; display: inline-flex; align-items: center;
+    padding: 0 16px; border-radius: 999px; background: var(--card); color: var(--ink);
+    font-size: 14.5px; font-weight: 700; box-shadow: var(--sh-card);
+  }
+
+  /* ---- cassetta ---- */
+  .griglia-cassette { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; }
+  .cassetta {
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
+    height: 96px; padding: 12px; border-radius: 20px;
+    background: var(--elv); border: 1.5px solid var(--line); box-shadow: var(--sh-press);
+  }
+  :root[data-tema="scuro"] .cassetta { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .cassetta .pallino { width: 26px; height: 26px; border-radius: 8px; border: 1px solid rgba(0,0,0,.12); }
+  .cassetta .nome { font-size: 19px; font-weight: 800; color: var(--ink); }
+  .cassetta.occupata { opacity: .42; box-shadow: none; }
+  .cassetta.occupata .nome { color: var(--muted); }
+  .cassetta.scelta { border-color: var(--blue); box-shadow: inset 0 0 0 2px var(--blue); }
+  .cassetta .sotto { font-size: 12px; font-weight: 700; color: var(--faint); }
+  .senza-colore { background: repeating-linear-gradient(45deg, var(--line) 0 5px, transparent 5px 10px); }
+
+  .campo-wrap { margin-top: 22px; }
+  .campo-label { display: block; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .16em; color: var(--faint); margin-bottom: 4px; }
+  .campo-input {
+    display: flex; align-items: center; width: 100%; height: 64px; border-radius: 18px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    font-size: 19px; font-weight: 700; padding: 0 20px;
+  }
+  .campo-input .segnaposto { color: var(--faint); font-weight: 600; }
+  .campo-nota { font-size: 14.5px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+
+  .tasto-secondario {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 58px; border-radius: 18px; border: 1.5px solid var(--line);
+    background: var(--elv); box-shadow: var(--sh-press); color: var(--ink);
+    font-size: 17px; font-weight: 700; padding: 0 24px; margin-top: 24px;
+  }
+  :root[data-tema="scuro"] .tasto-secondario { border: none; border-top: 1px solid rgba(255,255,255,.06); }
+  .link-quieto-riga { margin-top: 18px; display: flex; justify-content: center; }
+  .link-quieto {
+    font-size: 14.5px; font-weight: 600; color: var(--muted);
+    text-decoration: underline; text-underline-offset: 3px;
+    display: inline-flex; align-items: center; min-height: 44px; padding: 13px 0;
+  }
+
+  .domande-francesco { margin-top: 56px; padding-top: 24px; border-top: 1.5px solid var(--line); max-width: 780px; }
+  .domande-francesco h2 { font-size: 17px; font-weight: 800; }
+  .domande-francesco ol { margin-top: 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .domande-francesco li { font-size: 14.5px; font-weight: 500; color: var(--muted); line-height: 1.5; }
+  .domande-francesco b { color: var(--ink); font-weight: 700; }
+  .rilievo { margin-top: 22px; padding: 16px 18px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--card); max-width: 860px; }
+  .rilievo h3 { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .rilievo p { font-size: 14.5px; font-weight: 500; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .rilievo p b { color: var(--ink); font-weight: 700; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <button class="toggle-tema" onclick="var r=document.documentElement; r.setAttribute('data-tema', r.getAttribute('data-tema')==='scuro' ? 'chiaro' : 'scuro'); this.textContent = r.getAttribute('data-tema')==='scuro' ? '☀️ Chiaro' : '🌙 Scuro';">🌙 Scuro</button>
+
+  <h1 class="titolo-pagina">Due passi che non avevano ancora un'anteprima: la foto e la cassetta</h1>
+
+  <p class="intro"><b>La foto</b> oggi è una riga tratteggiata in fondo al passo paziente, e compare solo lì.
+  Con <b>D8</b> diventa un <b>passo suo, sempre presente</b> — per tutti i tipi di lavoro, anche quelli che
+  non prevedono né denti né colore: senza quel passo, «anti-russamento» e «duplicato protesi» resterebbero
+  <b>senza fotocamera</b>.</p>
+
+  <p class="intro"><b>La cassetta</b> è l'ultimo passo, ed è <b>saltabile</b> (W4): al banco capita
+  normalmente che il lavoro si registri prima che il pacco fisico arrivi. I lavori senza cassetta devono
+  restare visibili, non sparire.</p>
+
+  <p class="intro">🔑 <b>I dati delle cassette qui sono veri</b>, letti dalla banca dati il 28/07 in sola
+  lettura: <b>28 cassette</b>, con nomi come <code>C1</code>, <code>C3</code>, <code>C5</code>,
+  <code>C9</code>, <code>C11</code>, <code>Pr</code>. ⚠️ E hanno fatto emergere un problema che nessuno
+  aveva visto: <b>il colore è scritto in due modi diversi</b> — v. il riquadro in fondo.</p>
+
+  <p class="meta">28/07/2026 · la riga foto di oggi è ricalcata da PassoPaziente.tsx:196-260 · cassette lette
+  con scripts/tmp/sql.mjs, sola lettura, baseline invariata · tema col tasto in alto a destra o con
+  <code>?tema=scuro</code> · vista a schermo intero: <code>?vista=schermo&amp;frame=N</code></p>
+
+  <!-- ============================================================
+       SEZIONE 1 — il passo foto
+       ============================================================ -->
+  <div class="sezione">
+    <h2>1. Il passo foto (D8)</h2>
+    <p>La domanda è una sola, e la risposta è facoltativa: <b>non serve nessun «Salta»</b> — il tasto che va
+    avanti va avanti comunque, ed è la stessa ragione per cui i «Salta» sono stati tolti dal passo paziente
+    (D2). Quello che cambia fra le tre varianti è <b>quanto la schermata insiste</b>.</p>
+
+    <div class="blocco-variante">
+      <h2>Variante F1 — la riga di oggi, promossa a schermata</h2>
+      <p class="nota-variante">Identica alla riga tratteggiata che esiste già: chi usa UÀ oggi non deve
+      imparare niente di nuovo, cambia solo il posto dove la trova.</p>
+      <p class="costo">Pro: zero sorprese, e il codice esiste già. · Contro: una schermata intera per una riga
+      alta 64 px è <b>vuota</b>, e una schermata vuota fa pensare di aver sbagliato qualcosa.</p>
+
+      <div class="riga-stati">
+        <div class="stato">
+          <div class="etichetta">① Come si presenta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+1</span><span class="briciola">Overdenture</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">Una foto?</h1>
+              <p class="hint">Dell'impronta, del modello, della prescrizione — quello che ti serve ritrovare dopo.</p>
+              <div class="foto-riga">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+                <span>Aggiungi la foto dell'impronta</span>
+              </div>
+              <div class="tasto-secondario">Continua</div>
+            </div>
+          </div>
+          <p class="misura">Nessun «Salta»: <b>Continua</b> va avanti anche senza foto.</p>
+        </div>
+
+        <div class="stato">
+          <div class="etichetta">② Foto fatta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+1</span><span class="briciola">Overdenture</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">Una foto?</h1>
+              <p class="hint">Dell'impronta, del modello, della prescrizione — quello che ti serve ritrovare dopo.</p>
+              <div class="anteprima">
+                <span class="rifai">Rifai</span>
+                <span class="nome-file">impronta-0917.jpg</span>
+              </div>
+              <div class="tasto-secondario">Continua</div>
+            </div>
+          </div>
+          <p class="misura">⚠️ Oggi il wizard tiene <b>una foto sola</b> (<code>foto: File | null</code>).
+          Più di una è una domanda aperta, non un dettaglio: v. le domande in fondo.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="blocco-variante">
+      <h2>Variante F2 — un bersaglio grande, che è la schermata</h2>
+      <p class="nota-variante">Il riquadro tratteggiato occupa lo spazio che la domanda merita: si tocca
+      senza guardare, anche con i guanti, anche di fretta.</p>
+      <p class="costo">Pro: il gesto principale è grande quanto la sua importanza, e la schermata non sembra
+      vuota. · Contro: uno spazio grande <b>chiede</b> di essere riempito — e la foto resta facoltativa.</p>
+
+      <div class="riga-stati">
+        <div class="stato">
+          <div class="etichetta">① Come si presenta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+1</span><span class="briciola">Overdenture</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">Una foto?</h1>
+              <p class="hint">Se ti serve ritrovarla dopo. Altrimenti tira dritto.</p>
+              <div class="foto-grande">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+                <span>Scatta una foto</span>
+                <span class="sotto">o scegline una dal telefono</span>
+              </div>
+              <div class="tasto-secondario">Continua senza foto</div>
+            </div>
+          </div>
+          <p class="misura">Qui il tasto in fondo <b>dice cosa fa</b>: «Continua senza foto». È l'unico modo
+          onesto di avere un bersaglio grande e una risposta facoltativa.</p>
+        </div>
+
+        <div class="stato">
+          <div class="etichetta">② Foto fatta — il tasto cambia parola</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+1</span><span class="briciola">Overdenture</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">Una foto?</h1>
+              <p class="hint">Se ti serve ritrovarla dopo. Altrimenti tira dritto.</p>
+              <div class="anteprima">
+                <span class="rifai">Rifai</span>
+                <span class="nome-file">impronta-0917.jpg</span>
+              </div>
+              <div class="tasto-secondario">Continua</div>
+            </div>
+          </div>
+          <p class="misura">Da «Continua senza foto» a «Continua»: la parola segue il fatto.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="blocco-variante">
+      <h2>Variante F3 — due vie dichiarate: scatta, oppure prendi dal telefono</h2>
+      <p class="nota-variante">Oggi il campo è uno solo e chiede la fotocamera
+      (<code>capture="environment"</code>): su telefono apre direttamente l'obiettivo, e prendere una foto
+      già scattata è più macchinoso. Qui le due vie sono separate e visibili.</p>
+      <p class="costo">Pro: chi ha già fotografato al banco non deve rifare lo scatto. · Contro: due
+      bersagli dove la risposta giusta è quasi sempre una, e <b>una scelta in più al banco è un ritardo</b>.</p>
+
+      <div class="riga-stati">
+        <div class="stato">
+          <div class="etichetta">① Come si presenta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+1</span><span class="briciola">Overdenture</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">Una foto?</h1>
+              <p class="hint">Dell'impronta, del modello, della prescrizione.</p>
+              <div class="due-vie">
+                <div class="via">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L8 6H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-4l-1.5-2Z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+                  <span>Scatta</span>
+                </div>
+                <div class="via">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>
+                  <span>Dal telefono</span>
+                </div>
+              </div>
+              <div class="tasto-secondario">Continua senza foto</div>
+            </div>
+          </div>
+          <p class="misura">Due bersagli da 140 px: si prendono entrambi senza guardare.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SEZIONE 2 — il passo cassetta
+       ============================================================ -->
+  <div class="sezione">
+    <h2>2. Il passo cassetta (W4) — l'ultimo, e si può saltare</h2>
+    <p>Le cassette in banca dati sono <b>28</b>, hanno un <b>nome</b> (non un numero: <code>C1</code>,
+    <code>C11</code>, <code>Pr</code>) e un <b>colore</b>. Alcune sono già occupate da un altro lavoro: quelle
+    non si possono scegliere, ma <b>si vedono lo stesso</b> — nascondere le occupate farebbe sembrare la
+    parete più piccola di com'è, e l'operatrice al banco guarda un mobile fisico, non un elenco.</p>
+
+    <div class="blocco-variante">
+      <h2>Variante K1 — la parete, come sta sul mobile</h2>
+      <p class="nota-variante">Le cassette in griglia, ognuna col suo colore vero. Le occupate sono
+      spente e non si toccano. Si sceglie guardando, non leggendo — che è come funziona il gesto vero.</p>
+      <p class="costo">Pro: è la stessa immagine che l'operatrice ha davanti. · Contro: con 28 cassette la
+      griglia scorre, e a 390 px stanno tre per riga: <b>dieci righe</b>.</p>
+
+      <div class="riga-stati">
+        <div class="stato">
+          <div class="etichetta">① Come si presenta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">In che cassetta?</h1>
+              <p class="hint">Tocca quella dove hai messo il pacco.</p>
+              <div class="griglia-cassette">
+                <div class="cassetta"><span class="pallino" style="background:#FF4000"></span><span class="nome">C1</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#2E9E4F"></span><span class="nome">C3</span></div>
+                <div class="cassetta occupata"><span class="pallino" style="background:#7C3AED"></span><span class="nome">C5</span><span class="sotto">occupata</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#3AA0E0"></span><span class="nome">C9</span></div>
+                <div class="cassetta occupata"><span class="pallino" style="background:#4F4F4F"></span><span class="nome">C11</span><span class="sotto">occupata</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#D42A2A"></span><span class="nome">Pr</span></div>
+              </div>
+              <div class="link-quieto-riga"><span class="link-quieto">Il pacco non è ancora arrivato</span></div>
+            </div>
+          </div>
+          <p class="misura">Nomi e colori <b>veri</b>, letti dalla banca dati. Le occupate restano visibili
+          ma spente: il colore non è l'unica differenza, c'è anche la parola «occupata».</p>
+        </div>
+
+        <div class="stato">
+          <div class="etichetta">② Una scelta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">In che cassetta?</h1>
+              <p class="hint">Tocca quella dove hai messo il pacco.</p>
+              <div class="griglia-cassette">
+                <div class="cassetta"><span class="pallino" style="background:#FF4000"></span><span class="nome">C1</span></div>
+                <div class="cassetta scelta"><span class="pallino" style="background:#2E9E4F"></span><span class="nome">C3</span><span class="sotto">scelta</span></div>
+                <div class="cassetta occupata"><span class="pallino" style="background:#7C3AED"></span><span class="nome">C5</span><span class="sotto">occupata</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#3AA0E0"></span><span class="nome">C9</span></div>
+                <div class="cassetta occupata"><span class="pallino" style="background:#4F4F4F"></span><span class="nome">C11</span><span class="sotto">occupata</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#D42A2A"></span><span class="nome">Pr</span></div>
+              </div>
+              <div class="tasto-secondario">Fatto</div>
+            </div>
+          </div>
+          <p class="misura">Scelta = contorno blu <b>più</b> la parola «scelta»: mai il colore da solo.</p>
+        </div>
+
+        <div class="stato">
+          <div class="etichetta">③ Il pacco non c'è ancora</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">In che cassetta?</h1>
+              <p class="hint">Tocca quella dove hai messo il pacco.</p>
+              <div class="griglia-cassette">
+                <div class="cassetta"><span class="pallino" style="background:#FF4000"></span><span class="nome">C1</span></div>
+                <div class="cassetta"><span class="pallino" style="background:#2E9E4F"></span><span class="nome">C3</span></div>
+                <div class="cassetta occupata"><span class="pallino" style="background:#7C3AED"></span><span class="nome">C5</span><span class="sotto">occupata</span></div>
+              </div>
+              <div class="tasto-secondario">Salta: il pacco non è ancora arrivato</div>
+              <p class="campo-nota">Il lavoro si crea lo stesso, e resta in elenco. La cassetta gliela dai
+              quando arriva.</p>
+            </div>
+          </div>
+          <p class="misura">⚠️ Qui un tasto pieno che <b>salta</b> è l'eccezione a D2, e ha una ragione: è
+          l'unico passo dove non rispondere è il caso <b>normale</b>, non il ripiego.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="blocco-variante">
+      <h2>Variante K2 — si scrive il nome, e la prima libera è già proposta</h2>
+      <p class="nota-variante">Una casella sola, come il codice paziente: UÀ propone la prima cassetta
+      libera e chi vuole la cambia. Sotto, le altre libere in fila.</p>
+      <p class="costo">Pro: un tocco solo nel caso normale, e nessuna griglia da scorrere. · Contro: chiede
+      di <b>leggere</b> invece di guardare — e al banco il nome della cassetta si legge sul mobile, non a
+      mente.</p>
+
+      <div class="riga-stati">
+        <div class="stato">
+          <div class="etichetta">① Come si presenta</div>
+          <div class="demo-cornice">
+            <div class="frame">
+              <div class="testata">
+                <div class="tondo">‹</div>
+                <div class="briciole"><span class="altre">+2</span><span class="briciola">Esposito</span></div>
+                <div class="esci-quieto">✕</div>
+              </div>
+              <h1 class="domanda">In che cassetta?</h1>
+              <p class="hint">Ti ho messo la prima libera. Se ne hai usata un'altra, cambiala.</p>
+              <div class="campo-wrap">
+                <span class="campo-label">Cassetta</span>
+                <div class="campo-input">C1</div>
+                <p class="campo-nota">Libere adesso: C1 · C3 · C9 · Pr</p>
+              </div>
+              <div class="tasto-secondario">Fatto</div>
+              <div class="link-quieto-riga"><span class="link-quieto">Il pacco non è ancora arrivato</span></div>
+            </div>
+          </div>
+          <p class="misura">⚠️ Una cassetta <b>precompilata</b> è una cassetta che qualcuno confermerà senza
+          leggere — e il pacco finisce in un cassetto e il gestionale ne dice un altro.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rilievo">
+      <h3>⚠️ Un difetto trovato scrivendo questa anteprima — riferito, non toccato</h3>
+      <p>Le 28 cassette hanno il colore scritto <b>in due modi diversi</b>: <b>8</b> con un codice
+      esadecimale (<code>#7C3AED</code>, <code>#FF4000</code>, <code>#4F4F4F</code>) e <b>20</b> con una
+      parola italiana (<code>rossa</code>, <code>azzurra</code>, <code>verde</code>, <code>bianca</code>,
+      <code>grigia</code>, <code>blu</code>). Una schermata che dipinge il quadratino col valore così com'è
+      <b>ne colora 8 su 28</b> e lascia le altre venti senza colore — cioè proprio quelle che l'operatrice
+      riconosce a colpo d'occhio sul mobile.</p>
+      <p>Non lo correggo qui: è fuori dal perimetro dell'ondata (b) (D1, il solo wizard) e tocca la parete
+      delle cassette, che ha già la sua superficie. <b>Ma il passo cassetta ci inciampa</b>, quindi o il
+      piano prevede la traduzione parola → colore, o la griglia mostra il solo nome. Verificato il 28/07 in
+      sola lettura, baseline invariata.</p>
+    </div>
+  </div>
+
+  <div class="domande-francesco">
+    <h2>Cosa mi serve da te</h2>
+    <ol>
+      <li><b>Il passo foto:</b> <b>F1</b> (la riga di oggi), <b>F2</b> (un bersaglio grande) o <b>F3</b>
+      (scatta / dal telefono)? Io consiglio <b>F2</b>: è l'unico passo che può restare vuoto, e un riquadro
+      grande con scritto «Continua senza foto» dice la verità meglio di una riga persa in una schermata vuota.</li>
+      <li><b>Quante foto?</b> Oggi il wizard ne tiene <b>una sola</b>. Al banco ne servono più d'una — impronta,
+      prescrizione, modello — o una basta? La risposta cambia il passo, non il colore di un bottone.</li>
+      <li><b>Il passo cassetta:</b> <b>K1</b> (la parete) o <b>K2</b> (la casella con la prima libera già
+      dentro)? Io consiglio <b>K1</b>: la K2 fa confermare un valore che nessuno ha guardato, ed è il modo
+      classico per far divergere il gestionale dal mobile vero.</li>
+      <li><b>Le cassette occupate:</b> le lascio visibili e spente, o le tolgo del tutto dall'elenco?</li>
+      <li>Sul <b>colore scritto a parole</b> (riquadro qui sopra): traduco le sei parole in colori dentro
+      questa ondata, oppure per ora la griglia mostra solo il nome e il colore si sistema con la parete?</li>
+    </ol>
+  </div>
+
+</div>
+</body>
+</html>
