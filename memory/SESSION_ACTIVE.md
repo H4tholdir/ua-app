@@ -21,6 +21,31 @@ latente solo perché a zero righe. → sezione dedicata in coda alla `ROADMAP-UF
 `api-coverage.spec.ts`): un cancello automatico creduto e mai esistito, proprio sul rischio provato a
 mano. → stessa coda.
 
+🔎 **REVISIONE PRE-MERGE FATTA (28/07):** `docs/roadmap/2026-07-28-revisione-pre-merge-ondata-a.md`
+— 3 revisori a contesto fresco, mandati disgiunti. **3 gravi · 6 medi · 6 minori.** ✅ Isolamento fra
+laboratori **provato pulito** (115 route, attacco riprodotto). 🛑 **Le migration sono GIÀ APPLICATE
+sul database vivo**, `DROP COLUMN` compreso: «niente in produzione» vale per il **codice**, non per
+lo **schema**.
+✅ **G1 CHIUSO** (`9254288c`): il rifacimento **clona le righe** e copia il colore di caso — prima
+copiava solo la colonna orfana, e «colore sbagliato» è il primo motivo di rifacimento. Provato in
+transazione annullata: 5 righe su 5, `provenienza` conservata. 🛑 `colore_dente` **si continua a
+copiare** di proposito: in produzione gira `main`, che legge ancora quella colonna.
+✅ **G3 CHIUSO** (`98db9114`): la guardia sull'embed ignora i commenti. **Misurato: prima restava
+verde con la riga vera cancellata, ora fallisce.**
+🔴 **RESTANO 3 CORREZIONI decise da Francesco:** **G2** POST/PUT (un dente storto fa perdere **il
+lavoro**, non il colore — 7 forme su 7 misurate) · **M1** il gettone `atteso_updated_at` è
+**facoltativo** (riprodotto: due salvataggi, il secondo cancella il primo) · **M2** il colore
+digitato male sparisce senza avviso.
+🔴 **Nuovi dal G1, non toccati:** `007_rpc_rifacimento.sql` **non è la funzione viva** (il testo
+insegna il modello sbagliato: progressivo `MAX+1`, `GRANT` a `authenticated`) · **`incidenti_mdr` non
+viene MAI scritto sul rifacimento** (0 righe in tutta la banca dati) · l'originale **non viene
+annullato** → rifacimenti illimitati · route e funzione **non concordano sugli stati** → 500 crudo.
+
+🧹 **gstack RIMOSSO** (28/07, decisione di Francesco): corpo 1,1 GB + 53 scorciatoie (53 su 53
+verificate) + symlink tracciato + voci di configurazione. **Le 11 skill di design NON toccate**,
+verificate vive dopo. `WORKFLOW-STANDARD.md` **non riscritto** — 40+ `/gstack:*` lo attraversano e
+sostituirli è ridefinire il processo: ha un avviso in testa.
+
 🔑 **Le tre frasi nuove che l'utente legge** (uniche cose visibili in tutta l'ondata):
 «Le zone del colore si registrano sul dente: seleziona almeno un dente nell'odontogramma» ·
 «Colore «X» non riconosciuto: riselezionalo prima di salvare» ·
