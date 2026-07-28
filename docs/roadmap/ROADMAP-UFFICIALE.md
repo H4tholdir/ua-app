@@ -609,6 +609,20 @@ avrebbe di che accedere.
 dichiarazioni** — ma non lasciarle lì. Una riga che promette un controllo inesistente è peggio di
 nessuna riga.
 
+🔴 **E c'è un terzo caso, trovato lo stesso giorno provando a usarlo (28/07/2026): la skill di
+revisione del progetto è un guscio.** `ua-app/.claude/skills/review/` contiene **solo `SKILL.md`**;
+quel file rimanda a `.claude/skills/review/checklist.md` («se non riesci a leggerla, FERMATI») e a
+una ventina di file sotto `~/.claude/skills/gstack/…` — **checklist, greptile-triage, gli otto
+specialisti, i binari `gstack-*`**. Verificato: **`~/.claude/skills/gstack/` non esiste su questa
+macchina**, e nessuno dei file richiamati è presente. La skill compare nell'elenco, si invoca, e si
+ferma alla prima lettura.
+**Tre volte in un giorno la stessa forma:** una capacità **dichiarata** che non c'è — le quattro
+guardie non agganciate (voce 55), i due progetti Playwright fantasma, e ora la revisione. 🔑 **Il
+tratto comune non è la dimenticanza: è che nessuno dei tre falliva rumorosamente.** Un controllo che
+non gira non protesta.
+**Da decidere:** installare gstack, oppure togliere la skill dal repo. Finché è lì, chi la invoca
+crede di avere una revisione strutturata e non ce l'ha.
+
 ---
 
 ## 🕛 IN CODA — due residui dell'ondata (a) che NON appartengono a nessun task (28/07/2026)
