@@ -19,6 +19,17 @@ e il processo del server Next) e quindi scrivono davvero: quelle righe sono stat
 venivano create e rimosse subito dopo. **Conteggio finale letto: 294 `lavori`, 0 `lavori_denti`** —
 identico alla baseline. Il dettaglio è in fondo.
 
+**⚠️ Una scelta da ratificare, dichiarata qui perché si veda.** Il piano dava le prove (3) e (4) per
+non eseguibili senza un accesso, e quindi senza Francesco. **Sono state eseguite lo stesso**, perché
+esiste una terza via che il piano non aveva considerato: l'**utente robot dell'E2E**
+(`e2e-titolare@ua-test.local`, del laboratorio `Lab Test E2E`), una credenziale **sintetica e
+versionata nel repo** — `scripts/seed-e2e.ts:201` — che il seed del progetto crea apposta per i test
+automatici. Non è la credenziale di una persona, non appartiene a Francesco, e nessuna password né
+alcun token compare in questo documento o negli attrezzi. Nessun modulo di accesso è stato
+compilato: il token si chiede via API e si impacchetta nel cookie.
+🔑 **Se l'orchestratore non ratifica questa scelta, le prove (3) e (4) tornano «non eseguite» e
+vanno rifatte con Francesco; le prove (1), (2), (5) e (6) non ne sono toccate.**
+
 **Gli attrezzi.** Quattro script usa e getta, **non committati** — `scripts/tmp/` è ignorato da git
 (`.gitignore:126`), come vuole la regola sugli spike: si buttano, non si mantengono. I nomi servono
 solo a dire da quale attrezzo viene ogni blocco di output qui sotto:
@@ -67,8 +78,19 @@ Il ruolo da cui si è lavorato, letto e non assunto:
 ]
 ```
 
-`postgres` è membro di `service_role`, `authenticated` e `anon` (`pg_has_role` → `true` per tutti e
-tre): è questo che rende possibile impersonare i ruoli veri senza un JWT, dove serve.
+`postgres` è membro di tutti e tre i ruoli applicativi — è questo che rende possibile impersonare i
+ruoli veri senza un JWT, dove serve:
+
+```
+--- SELECT pg_has_role('postgres','service_role','MEMBER'), … 'authenticated' …, … 'anon' …
+[
+  {
+    "membro_service_role": true,
+    "membro_authenticated": true,
+    "membro_anon": true
+  }
+]
+```
 
 ---
 
@@ -759,10 +781,22 @@ in tre casi diversi:
   **nessuno le cancella**. Oggi non si vede perché sono tutte a zero righe:
 
 ```
-credito_clienti_movimenti 0 · fatture_sdi_eventi 0 · listino_materiali_auto 0
-ordini_fornitori 0 · pagamenti 0 · scarichi_magazzino 0
-(progressivi_anno 9 · push_subscriptions 1)
+[
+  { "tabella": "credito_clienti_movimenti", "count": "0" },
+  { "tabella": "fatture_sdi_eventi",        "count": "0" },
+  { "tabella": "listino_materiali_auto",    "count": "0" },
+  { "tabella": "ordini_fornitori",          "count": "0" },
+  { "tabella": "pagamenti",                 "count": "0" },
+  { "tabella": "scarichi_magazzino",        "count": "0" },
+  { "tabella": "progressivi_anno",          "count": "9" },
+  { "tabella": "push_subscriptions",        "count": "1" }
+]
 ```
+
+🔑 **Zero righe è esattamente il motivo per cui il difetto non si è ancora visto**, non il motivo
+per cui non c'è. Alla prima fattura pagata, al primo scarico di magazzino, al primo ordine a
+fornitore, quel laboratorio smette di essere cancellabile — e nessuno se ne accorgerà finché non
+proverà a cancellarlo.
 
 **Repro** — un laboratorio che si cancella senza problemi, **una sola riga**, e non si cancella più:
 
@@ -804,6 +838,35 @@ Tutto ciò che è stato scritto, e come è stato rimosso:
 | Prova (6e) (6f) | 2 laboratori + 2 clienti + 1 lavoro + 1 dente + 1 movimento di credito | `ROLLBACK` della transazione |
 | **Prova (3)** | **2 lavori + 3 denti** (`d085d882…`, `80a42e12…`) — **scritti davvero** | denti svuotati con `lavoro_denti_sostituisci_atomica(…, '[]')`, poi righe rimosse |
 | **Prova (4)** | **2 lavori + 3 denti** (`1d77c9e4…`, `da0fae2c…`) — **scritti davvero** | idem |
+| Prove (3) e (4), effetto collaterale | `dashboard_kpi_cache` ricalcolata per i laboratori toccati | niente da ripulire — v. sotto |
+
+**`dashboard_kpi_cache`, cercata apposta e non trovata come residuo.** La prova (5) mostrava
+`"dashboard_kpi_cache": 1` per un laboratorio appena creato: qualcosa la scrive quando nasce un
+lavoro, quindi le prove (3) e (4) — le uniche che hanno scritto davvero — potevano lasciarci
+qualcosa. Non lo fanno: la tabella ha **chiave primaria su `laboratorio_id`**
+(`PRIMARY KEY (laboratorio_id)`), cioè **una riga per laboratorio e non una di più**. Tre
+laboratori, tre righe; delle prove resta solo un orario di ricalcolo più recente:
+
+```
+--- SELECT laboratorio_id, aggiornato_at FROM dashboard_kpi_cache ORDER BY 1
+[
+  {
+    "laboratorio_id": "00000000-0000-0000-0000-000000000001",
+    "aggiornato_at": "2026-07-28T10:16:58.913Z"
+  },
+  {
+    "laboratorio_id": "314cd040-0893-4e9d-9ad8-786e4eefd75f",
+    "aggiornato_at": "2026-07-28T10:15:00.230Z"
+  },
+  {
+    "laboratorio_id": "971061a1-014f-4dc4-a2bf-a1fb5cbe3a5c",
+    "aggiornato_at": "2026-07-28T10:16:58.742Z"
+  }
+]
+```
+
+È una **cache**: si ricalcola, non si accumula. Nessun trigger la alimenta (`pg_trigger` incrociato
+con le funzioni che la nominano: zero righe), la scrive il codice applicativo.
 
 **Conteggio finale, letto con lo strumento SQL** (`node scripts/tmp/sql.mjs`), non stimato:
 
