@@ -354,7 +354,22 @@ export function LavoroFormClient({
           </button>
         )}
 
-        {saveError && !isDirty && (
+        {/* ═══ IL MOTIVO SI VEDE SEMPRE, NON SOLO A FORM PULITO ══════════════
+            Qui c'era `saveError && !isDirty`, e quella condizione non era
+            «difficile»: era IRRAGGIUNGIBILE. `setIsDirty(false)` avviene SOLO
+            dopo un salvataggio riuscito (`useLavoroForm.ts:365-366`), e
+            `save()` azzera `saveError` in apertura (riga 250) — quindi «c'è un
+            errore E il form è pulito» non capita mai. In più il tasto qui sopra
+            si mostra `isDirty` (riga 330): le due condizioni si escludono per
+            costruzione. Risultato trovato al collaudo del 28/07: chi salva vede
+            solo «⚠ Errore — riprova» e non sa MAI che gli basta toccare un
+            dente. Le tre frasi dell'ondata passano tutte di qui
+            (`useLavoroForm.ts:141,162,279`).
+            🔑 E resta visibile MENTRE si corregge, di proposito: un messaggio
+            che dice «seleziona almeno un dente» e si dissolve al primo tocco
+            toglie l'istruzione nell'istante in cui serve. Se ne va col
+            salvataggio successivo, che riparte da `setSaveError(null)`. */}
+        {saveError && (
           <p
             role="alert"
             style={{

@@ -11,10 +11,10 @@ in questa sessione**).
 
 **Le cinque prove del collaudo sono passate tutte**, provate nell'applicazione vera con richieste
 HTTP vere e verificate ogni volta contro la banca dati.
-🔴 **MA c'è un difetto NUOVO, dell'ondata, trovato dopo le cinque prove: le frasi nuove non arrivano
-all'utente — al loro posto compare «⚠ Errore — riprova».** Dettaglio e prova in **§4.0**. Nessun dato
-si perde (il salvataggio viene fermato correttamente), si perde **il perché**. **La correzione è una
-riga e la finestra è adesso: decide Francesco.**
+**Il collaudo ha trovato un difetto NUOVO fuori dalle cinque prove — le frasi dell'ondata non
+arrivavano all'utente, che leggeva solo «⚠ Errore — riprova» — e su decisione di Francesco è stato
+CORRETTO subito: §4.0 e §4.0-bis.** Una riga, con test che la reggono e il ciclo riprovato nel
+browser. **FASE 7 rieseguita dopo la correzione: `tsc` 0 · `eslint` pulito · vitest 3625 · build ok.**
 Due rilievi trovati per strada sono **preesistenti** (i file non sono toccati dal ramo) e tre difetti
 **già censiti** sono stati confermati dal vivo.
 **Database riportato esattamente alla baseline: 294 lavori · 0 righe in `lavori_denti` · 916 pazienti
@@ -90,7 +90,11 @@ quest'ondata (handoff §2), quindi l'archivio non è dovuto qui; se serve, si pr
 
 ## 4. Ritrovamenti — riferiti e NON toccati (R-E2)
 
-### 4.0 🔴 NUOVO, DELL'ONDATA — le frasi nuove non arrivano all'utente
+### 4.0 ✅ CORRETTO — le frasi nuove non arrivavano all'utente
+
+> **Stato: CHIUSO il 28/07/2026** su decisione di Francesco («correggila adesso»). Correzione,
+> prove e diagnosi in **§4.0-bis**. Qui resta il racconto di com'era, perché la classe di difetto
+> vale più della riga.
 
 **Come è stato trovato:** provando a schermo la seconda delle tre frasi dell'handoff §3 (le uniche
 cose visibili dell'ondata), che fino a quel momento **non era mai stata vista rendered**.
@@ -122,6 +126,49 @@ non una misura. Dichiarato, non nascosto.
 **Perché conta:** l'handoff §3 chiama queste frasi «le uniche cose visibili di tutta l'ondata». Se
 non compaiono, l'utente legge «riprova», riprova, e riottiene lo stesso — senza mai sapere che deve
 selezionare un dente. **Il rischio è di comunicazione, non di dato.**
+
+### 4.0-bis ✅ La correzione, e come è stata provata
+
+**Una riga:** `saveError && !isDirty` → `saveError`, in `LavoroFormClient.tsx`, col motivo scritto
+accanto. Nient'altro toccato.
+
+🔑 **Scavando per correggere, il difetto si è rivelato peggio della diagnosi: quella condizione non
+era «difficile da soddisfare», era IRRAGGIUNGIBILE.** `setIsDirty(false)` avviene **solo** dopo un
+salvataggio riuscito (`useLavoroForm.ts:365-366`), e `save()` azzera `saveError` in apertura (riga
+250): «c'è un errore **e** il form è pulito» non capita mai. In più il tasto Salva si mostra
+`isDirty` (riga 330) — le due condizioni si escludono **per costruzione**. Quindi il paragrafo
+`role="alert"` non veniva reso in **nessun** percorso: non era raro, era morto.
+
+**TDD, con il rosso letto per bene** (`tests/unit/lavoro-form-messaggio-errore.test.tsx`, 3 casi):
+- **RED:** 2 falliti **per asserzione** — `Unable to find role="alert"` — e 1 verde, che è il
+  **controllo negativo** («senza errore non c'è nessun avviso»): senza quello il test passerebbe
+  anche con un avviso sempre acceso.
+- **GREEN:** 3 su 3.
+- **Prova per mutazione:** rimessa la condizione vecchia, **2 test tornano rossi**; ripristinata,
+  tornano verdi. Il test prende davvero *questo* difetto.
+- Il primo test asserisce anche che **il salvataggio non parte** (`fetch` mai chiamata): dire il
+  motivo non deve aprire la strada che il Task 12 aveva chiuso.
+
+**Provato anche nel browser, il ciclo intero** (390px, chiaro):
+1. zona del colore senza denti → **la frase compare**, in rosso, leggibile, non troncata;
+2. si tocca il dente 11 → **la frase resta** (l'istruzione è ancora lì mentre la si esegue);
+3. si salva → il server risponde **422** e ora si legge **il suo** messaggio, «le zone del colore
+   richiedono scala e codice», che prima era invisibile;
+4. si sceglie il colore di base e si salva → **riuscito, avviso sparito, tasto sparito**. Nessuna
+   scia dopo il successo.
+
+**FASE 7 con output reale:** `tsc` 0 · `eslint` pulito sui file toccati · **`vitest` 3625 passati /
+19 saltati, e zero errori** (erano comparsi 2 «unhandled rejection» dai test nuovi: raccolti e
+**controllati** nel file di test, non silenziati) · `next build` riuscito.
+**Database:** riportato di nuovo alla baseline dopo le prove (294 · 0 · 916).
+
+**⚠️ Tre cose viste correggendo, riferite e NON toccate (R-E2):**
+- il riquadro dell'avviso è `position: absolute` e **copre in parte** i campi «colore corpo» e
+  «colore incisale» mentre è visibile — cosmetico, **ondata (b)** (dove c'è il gate estetico);
+- il messaggio che arriva dal server è **minuscolo e tecnico** («le zone del colore richiedono scala
+  e codice»): dice cos'è rotto, non cosa fare. Da riscrivere quando si riscrive quella superficie;
+- l'`onClick` del tasto Salva chiama `save()` **senza `.catch()`**: la promessa respinta finisce
+  nella console del browser. Preesistente, nessun effetto per l'utente.
 
 ### 4.1 Disallineamento di idratazione sulla home — **preesistente**
 `LinguettaCassette` dentro `StanzePager` (`HomeV3`): il ramo di pagina che il server prepara e quello
@@ -179,11 +226,7 @@ Verifica finale: `294 lavori · 0 denti · 916 pazienti · 48 colori` = **baseli
 
 ## 6. Cosa resta
 
-0. 🔴 **DECISIONE DI FRANCESCO, prima del merge: si corregge §4.0 adesso o va in coda?** È una riga
-   (la condizione `!isDirty` a `LavoroFormClient.tsx:357`), e riguarda **le uniche tre frasi visibili
-   di tutta l'ondata**. Correggerla ora costa poco; dopo il merge diventa un'altra ondata. ⚠️ La
-   correzione va **provata**, non solo scritta: rifare il repro di §4.0 e vedere la frase a schermo,
-   più un controllo che il messaggio sparisca quando si riprende a scrivere.
+0. ✅ ~~Difetto §4.0~~ — **corretto e provato**, v. §4.0-bis. Non blocca più nulla.
 1. 🛑 **Merge — lo autorizza Francesco.** `git checkout main && git merge ondata-a-denti-colore`
 2. Push → **attendere CI verde** → verificare `uachelab.com`
 3. **BP-1 finale**: spostare la voce 58 di `MEMORY.md` da «sul ramo» a «in produzione» e chiudere la

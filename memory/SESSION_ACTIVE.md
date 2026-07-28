@@ -12,12 +12,14 @@ colore lo toglie da tutti i posti e non riappare · **il rifacimento eredita den
 · due salvataggi di fila senza conflitto. **3 viewport × 2 temi; la frase nuova a 390px non si
 tronca.** **DB riportato alla baseline esatta: 294 · 0 · 916 · 48.**
 
-🔴 **UN DIFETTO NUOVO, DELL'ONDATA, trovato DOPO le cinque prove — decide Francesco se correggerlo
-prima del merge (è UNA RIGA):** le tre frasi dell'ondata **non arrivano all'utente**, che legge solo
-«⚠ Errore — riprova». Passano da `setSaveError` (`useLavoroForm.ts:141,162,279`) e
-`LavoroFormClient.tsx:357` le mostra sotto **`saveError && !isDirty`** — ma dopo un salvataggio
-fallito il form **è** ancora modificato. **Nessun dato si perde, si perde il perché.** Provato per la
-frase delle zone; per le altre due è inferenza dal codice. Referto §4.0.
+✅ **IL DIFETTO TROVATO DAL COLLAUDO È GIÀ CORRETTO** (decisione di Francesco): le frasi dell'ondata
+non arrivavano all'utente, che leggeva solo «⚠ Errore — riprova». Una riga in
+`LavoroFormClient.tsx`: `saveError && !isDirty` → `saveError`. **Quella condizione era
+IRRAGGIUNGIBILE** (`setIsDirty(false)` solo dopo un salvataggio riuscito, e `save()` azzera
+`saveError` in apertura): il paragrafo d'errore era **codice morto**. TDD 3 casi con **controllo
+negativo** e **prova per mutazione**; ciclo riprovato nel browser (la frase compare, resta mentre si
+corregge, e sparisce col salvataggio riuscito). **FASE 7 rieseguita: `tsc` 0 · `eslint` pulito ·
+vitest 3625 / 19 saltati, zero errori · build ok.** Referto §4.0 e §4.0-bis.
 🛡️ **Aggiunta la prova che mancava: il controllo di conflitto SCATTA** (`atteso_updated_at` vecchio →
 **409**, e nulla scritto). La prova 5 mostrava solo che **non** scatta a sproposito.
 
