@@ -360,6 +360,116 @@ E **`lavori/[id]` non ha nessun `DELETE`**: il precedente «chi cancella un lavo
 
 ---
 
+## 5-quater. 🆕 PANEL NORMATIVO — parere tecnico sulla forma dell'indice (29/07)
+
+### ✅ A — NORMALIZZARE: sì, con l'espressione già in casa
+**Chiave: `(laboratorio_id, lower(btrim(codice_paziente)))`**, e il `btrim` applicato **anche in scrittura**,
+come fa la parete cassette. Concorda con la sonda P1-bis (§5-bis): senza, `pz-0042` e ` PZ-0042` passano.
+
+**Perché serve, in una riga:** il codice è **generato E digitato a mano**, e le strade a mano sono **due** —
+la casella del wizard (`PassoPaziente.tsx:76` → `Campo.tsx:85`, che passa il valore **grezzo**, nessun
+`trim`, nessun `toUpperCase`) e la scheda paziente (`PazienteEditSheet.tsx:182-184` → `PATCH`, dove
+`codice_paziente` è il **primo** nome dell'allowlist). ⚠️ E la **dettatura** scrive sulla stessa casella
+(`PassoPaziente.tsx:55-57`): la forma di ciò che il riconoscimento vocale restituisce **non è sotto
+controllo**.
+
+### 🔴 Il difetto che si morde la coda: il generatore è CASE-SENSITIVE
+`dati-wizard.ts:128` filtra con `.like('codice_paziente', 'PZ-%')` — in Postgres **case-sensitive** — e
+`:47` con `/^PZ-(\d+)$/`, anch'essa. **Concretamente:** qualcuno scrive `pz-0043`; quel codice **sfugge a
+entrambi i filtri**; il massimo resta 42; **il wizard propone `PZ-0043`** — che in spazio normalizzato è
+**già occupato**. ➡️ **L'indice rifiuterebbe la proposta che il wizard stesso ha appena fatto.**
+Cura: `.ilike` + `/^PZ-(\d+)$/i`.
+
+### 🔑 Il precedente giusto NON è la parete cassette — e questo cambia il task
+**La parete non allinea il pre-check all'indice: lo ELIMINA.** Usa `ON CONFLICT (laboratorio_id,
+lower(btrim(nome))) WHERE deleted_at IS NULL DO UPDATE` dentro una RPC (`…090000:270-271`), con
+`EXCEPTION WHEN unique_violation` sulla rinomina (`:403-404`) → 409 di dominio (`cassette/route.ts:64-66`).
+🛑 **`pazienti` non può copiarlo:** scrive via supabase-js (`route.ts:149-153`), e l'`onConflict` di
+PostgREST accetta **solo nomi di colonna** — `lower(btrim(...))` non è esprimibile senza una RPC.
+➡️ **Quindi `pazienti` ricade sotto l'ALTRO precedente**, quello della partita IVA
+(`20260707204322_…:1-16`: «indice UNIQUE parziale che **rispecchia esattamente il predicato del pre-check
+applicativo**»). E ne discendono **due requisiti duri, non preferenze**: (a) il predicato dell'indice
+**deve** essere quello del pre-check, alla lettera; (b) il `23505` **deve** essere mappato su un 409 di
+dominio, perché **senza `ON CONFLICT` la corsa fra due richieste concorrenti resta aperta** e il backstop
+è l'unica difesa. ✅ Conferma indipendente del bloccante **B-1**.
+
+### B — LE DUE FORME (la scelta è normativa, non tecnica)
+
+**Forma 1 — «il codice resta impegnato per sempre»**
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS pazienti_codice_lab_uidx
+  ON pazienti (laboratorio_id, lower(btrim(codice_paziente)))
+  WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> '';
+```
+*Costo:* un codice archiviato non torna più disponibile, mai. Il pre-check **non deve** filtrare
+`archiviato` — e quello di oggi lo filtra (`api/pazienti/route.ts:34`), quindi la lettura nuova deve
+espressamente **non** applicarlo. *Guadagno:* nessuna ambiguità nell'archivio decennale.
+
+**Forma 2 — «il codice torna disponibile dopo l'archiviazione»**
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS pazienti_codice_lab_attivi_uidx
+  ON pazienti (laboratorio_id, lower(btrim(codice_paziente)))
+  WHERE archiviato = false
+    AND codice_paziente IS NOT NULL AND btrim(codice_paziente) <> '';
+```
+*Costo:* **lo stesso codice punta a due persone diverse in due momenti diversi**, e tutto ciò che stampa il
+solo codice diventa ambiguo a distanza di anni — `EtichettaTemplate.tsx:128`, `IFUTemplate.tsx:171`,
+`RicevutaConsegnaTemplate.tsx:187`, e soprattutto `generate-ddc.ts:93`, che **congela** il nome nella
+Dichiarazione. *Guadagno:* combacia già col pre-check esistente e con la semantica del soft-delete.
+
+### 🔑 `deleted_at` NON entra in nessuna delle due forme — ed è una trappola
+Censimento: **3 letture su `archiviato`** (`api/pazienti/route.ts:34`, `(app)/pazienti/page.tsx:38`,
+`api/pazienti/[id]/route.ts:181`) contro **1 sola su `deleted_at`** (`dati-wizard.ts:128`). Su `pazienti`
+**`deleted_at` è vestigiale: nessuno la scrive** — il soft delete scrive `archiviato` (`[id]/route.ts:191`)
+e la purga fa un `DELETE` fisico.
+⚠️ **Ma i tre indici già esistenti portano tutti `WHERE deleted_at IS NULL`.** Chi copiasse la convenzione
+degli indici scriverebbe un predicato che **non rispecchia nessun pre-check esistente**.
+
+### ✅ Un cambiamento che si può fare SUBITO, indipendente dalla decisione normativa
+> **Si toglie `.is('deleted_at', null)` da `dati-wizard.ts:128` e NON lo si sostituisce con `archiviato`.**
+
+Motivo: il generatore **non è un controllo di unicità** — propone un numero fresco. Essere *più*
+conservativi dell'indice è sempre sicuro; esserlo *meno* rompe. E sotto la Forma 2, un generatore che
+filtrasse `archiviato = false` **proporrebbe da solo** un codice ancora in mano a un archiviato: il costo
+che dovrebbe pagarlo solo chi digita a mano una scelta deliberata si pagherebbe **automaticamente, a ogni
+giro del wizard dopo la prima archiviazione**.
+
+### 🔴 Quattro prerequisiti che scattano COMUNQUE, qualunque forma si scelga
+1. **Il pre-check guarda un solo dentista, l'indice guarda tutto il laboratorio.** `crea-lavoro.ts:209`
+   chiama con `cliente_id`. Digitare un codice che vive sotto un altro studio: il pre-check dice «libero»,
+   l'inserimento fallisce. 🛑 **La cura è cambiare la LETTURA** (ricerca mirata su `laboratorio_id` + codice
+   normalizzato, senza `cliente_id` e senza limite) — **non** aggiungere `cliente_id` alla chiave, che
+   riaprirebbe D15.
+2. **`.limit(500)` contro 911 righe** (`route.ts:37`): nel laboratorio `314cd040…` **un solo cliente ha 911
+   pazienti**, quindi ~411 sono **già oggi invisibili al pre-check**.
+3. **La stringa vuota.** `PazienteEditSheet.tsx:29` inizializza a `''`, `handleSave` spedisce l'intero form,
+   e `VUOTO_VALE_NULL` (`[id]/route.ts:43`) contiene **solo** `data_nascita` e `sesso`. Due righe a `''`
+   collidono sotto un predicato che guarda solo `IS NOT NULL` → **per questo entrambe le forme portano
+   `AND btrim(codice_paziente) <> ''`**.
+4. **Il `PATCH` è messo PEGGIO del `POST`:** il POST almeno ha un pre-check a monte, **il PATCH non ne ha
+   nessuno** (`[id]/route.ts:58` scrive a occhi chiusi, `:138-142` schiaccia su 500). Ed è la strada del
+   testo digitato a mano, cioè quella con **più** probabilità di collidere e **meno** difese.
+
+### I numeri veri (sola lettura, concordi con la sonda P1-bis)
+```
+totale 916 · nulli 1 · non-PZ 911 (tutti PAZ/…) · spazi ai bordi 0 · minuscole 0 · stringhe vuote 0
+soft_deleted (deleted_at): 0   ·   archiviati: 0
+duplicati grezzi: 0   ·   duplicati normalizzati: 0   → entrambe le forme si creano SENZA bonifica
+```
+✅ **Origine delle 911 righe accertata: `scripts/seed-arturo-pepe.ts:211-213`** — dati **seminati**, stesso
+`created_at` (19/05/2026). Conferma che sono **materiale di prova**, non carico reale.
+
+### Cosa resta non verificato (dichiarato dall'advisor)
+- **Quale famiglia di codice sia quella ufficiale** — `PZ-####` (generatore) o `PAZ/ANNO/####` (segnaposto
+  della casella di modifica, `PazienteEditSheet.tsx:183`, **e** dati importati). Nessuna decisione di
+  Francesco, nessun vincolo a database: **non verificato**.
+- **`lower(btrim())` non unifica separatori né spazi interni:** `PAZ/2026/0072` e `PAZ-2026-0072` restano
+  distinti, e così `PZ- 0042`. Collassarli sarebbe una decisione semantica **oltre** il precedente di casa.
+- **Il rischio reale di corse concorrenti** su questa tabella: nessun dato di carico. L'argomento del
+  backstop resta **strutturale, non misurato**.
+
+---
+
 ## 6. Ciò che invece REGGE — verificato, perché la parte positiva sia credibile
 
 - **G9 tiene su entrambi gli scrittori dei pazienti**: nessun nome di vincolo o di indice raggiunge il
