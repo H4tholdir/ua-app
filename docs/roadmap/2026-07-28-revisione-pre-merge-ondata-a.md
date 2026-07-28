@@ -5,11 +5,23 @@
 
 ## Come è stata fatta, e perché non con lo strumento previsto
 
-🛑 **La skill `ua-app:review` NON È UTILIZZABILE su questa macchina.** `ua-app/.claude/skills/review/`
-contiene **solo `SKILL.md`**, che rimanda a `.claude/skills/review/checklist.md` («se non riesci a
-leggerla, FERMATI») e a una ventina di file sotto `~/.claude/skills/gstack/…`. Verificato:
-**`~/.claude/skills/gstack/` non esiste**. La skill compare nell'elenco, si invoca, e si ferma alla
-prima lettura. → registrata in coda alla `ROADMAP-UFFICIALE.md` con gli altri due controlli fantasma.
+🛑 **La skill `ua-app:review` non è utilizzabile così com'è** — ma ⚠️ **la prima diagnosi era
+SBAGLIATA e va letta nella forma corretta**, altrimenti porta a cancellare la cosa sbagliata.
+
+**Prima diagnosi (errata):** «gstack non esiste, la skill è un guscio».
+**Fatto verificato:** **gstack C'È, completo**, in **`ua-app/.agents/skills/gstack/`** — checklist,
+`greptile-triage.md`, `design-checklist.md`, la cartella `specialists/`, i binari `bin/`. Il symlink
+tracciato `.claude/skills/gstack` → `../../.agents/skills/gstack` risolve e funziona.
+**Il difetto vero è di PERCORSI:** il `SKILL.md` della review cerca la checklist in
+`.claude/skills/review/checklist.md` (dove c'è **solo** `SKILL.md`) e richiama **64 volte**
+`~/.claude/skills/gstack/…`, cioè la **home dell'utente** — dove gstack **non** è installato.
+Le due copie del `SKILL.md` (quella in `.claude/skills/review/` e quella dentro gstack) sono
+**identiche**, e sbagliano allo stesso modo: **installazione in modalità progetto, skill scritte per
+la modalità home**.
+🔑 **La lezione è più fine di «una capacità dichiarata che non esiste»:** qui la capacità **esiste
+per intero** e non si raggiunge, perché il percorso è scritto per un'installazione diversa. Il
+sintomo è identico (la skill si ferma), la cura no: non si cancella, **si aggancia** — oppure si
+toglie la scorciatoia rotta, ma è una decisione di Francesco, non una pulizia meccanica.
 
 **Sostituita da tre revisori indipendenti a contesto fresco**, mandati in parallelo, ognuno con un
 mandato disgiunto e l'istruzione di **non correggere nulla**: ① sicurezza, isolamento fra laboratori,

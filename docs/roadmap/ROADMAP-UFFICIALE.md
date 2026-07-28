@@ -610,18 +610,25 @@ dichiarazioni** — ma non lasciarle lì. Una riga che promette un controllo ine
 nessuna riga.
 
 🔴 **E c'è un terzo caso, trovato lo stesso giorno provando a usarlo (28/07/2026): la skill di
-revisione del progetto è un guscio.** `ua-app/.claude/skills/review/` contiene **solo `SKILL.md`**;
-quel file rimanda a `.claude/skills/review/checklist.md` («se non riesci a leggerla, FERMATI») e a
-una ventina di file sotto `~/.claude/skills/gstack/…` — **checklist, greptile-triage, gli otto
-specialisti, i binari `gstack-*`**. Verificato: **`~/.claude/skills/gstack/` non esiste su questa
-macchina**, e nessuno dei file richiamati è presente. La skill compare nell'elenco, si invoca, e si
-ferma alla prima lettura.
-**Tre volte in un giorno la stessa forma:** una capacità **dichiarata** che non c'è — le quattro
-guardie non agganciate (voce 55), i due progetti Playwright fantasma, e ora la revisione. 🔑 **Il
-tratto comune non è la dimenticanza: è che nessuno dei tre falliva rumorosamente.** Un controllo che
-non gira non protesta.
-**Da decidere:** installare gstack, oppure togliere la skill dal repo. Finché è lì, chi la invoca
-crede di avere una revisione strutturata e non ce l'ha.
+revisione del progetto non si raggiunge.** ⚠️ **La prima diagnosi diceva «gstack non esiste, è un
+guscio»: era SBAGLIATA**, e resta qui scritta perché è istruttiva — una diagnosi affrettata avrebbe
+fatto **cancellare un'installazione completa e funzionante**.
+**Fatto verificato:** **gstack c'è per intero**, in `ua-app/.agents/skills/gstack/` (checklist,
+`greptile-triage.md`, `design-checklist.md`, `specialists/`, `bin/`), e il symlink tracciato
+`.claude/skills/gstack` lo raggiunge. **Il difetto è di percorsi:** il `SKILL.md` della review cerca
+la checklist in `.claude/skills/review/checklist.md` (lì c'è **solo** `SKILL.md`) e richiama **64
+volte** `~/.claude/skills/gstack/…`, cioè la **home**, dove gstack **non** è installato. Le due copie
+del `SKILL.md` sono **identiche** e sbagliano allo stesso modo: **installato in modalità progetto,
+scritto per la modalità home**.
+🔑 **Tre volte in un giorno lo stesso SINTOMO, ma non la stessa causa:** le quattro guardie non
+agganciate (voce 55) e i due progetti Playwright fantasma erano **capacità che non esistevano**;
+questa **esiste per intero e non si raggiunge**. Il tratto davvero comune è l'altro: **nessuna delle
+tre falliva rumorosamente.** Un controllo che non gira non protesta — e da fuori è identico a uno che
+gira e passa.
+**Da decidere (di Francesco, non una pulizia meccanica):** agganciare gstack dove le sue skill lo
+cercano — un collegamento da `~/.claude/skills/gstack` al percorso vero risolverebbe tutte e 64 le
+righe in un colpo — **oppure** togliere le scorciatoie rotte se gstack non si usa più. Finché la
+skill è nell'elenco e non si raggiunge, chi la invoca crede di avere una revisione strutturata.
 
 ---
 
