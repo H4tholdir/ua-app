@@ -60,9 +60,20 @@ Trovate **eseguendo**, non ipotizzate (dettaglio: `docs/roadmap/2026-07-28-ondat
 4. **Il wizard scrive il nome dentro il cognome** — è la metà rimasta della tappa 1 «nome e cognome
    paziente», e finché non si chiude **la targa della cassetta non migliora**.
 
-🔑 **La quinta, che NON si decide da soli: il catalogo non è chiuso.** È un progetto, non
-un'estrazione. L'esito corretto è **asimmetrico** — sul PUT rifiutare un codice sconosciuto non
-perde niente, sul POST perderebbe **il lavoro**. **Serve il panel** (Regola Advisor).
+~~🔑 **La quinta, che NON si decide da soli: il catalogo non è chiuso.**~~
+🛑 **CHIUSA il 28/07/2026 da Francesco — decisione D3, verbale
+`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`.** Il catalogo **è chiuso**: due
+liste VITA, si sceglie da quelle, «un colore che il sistema non riconosce» **non esiste**. L'errore
+possibile è **umano** (colore valido ma sbagliato rispetto alla prescrizione) e si intercetta al
+confronto pre-consegna (W22), non con la validazione.
+⚠️ Il panel era stato fatto lo stesso, e ha **falsificato entrambe le gambe** della premessa qui
+sopra: sul POST un rifiuto alla porta **non perde il lavoro** (torna prima della scrittura, non
+brucia il progressivo); sul PUT rifiutare **non è gratis** (oggi il rifiuto è nel client e blocca
+l'**intero** salvataggio della scheda). Non riproporre né la premessa né la sua «asimmetria».
+🔴 **Resta un difetto vero, che non è una regola:** la tendina della scheda offre **19 codici su 48**
+(`TabClinica.tsx:8-14`) — lista scritta a mano, scollata dal catalogo. È il caso `2M2`: un colore che
+il sistema **conosce** e che quella tendina non offre, con la casella **vuota a schermo**. Fuori dal
+perimetro scelto (D1: solo wizard) → coda.
 
 🟡 **Aperto, da decidere sui mockup a inizio ondata:** cosa mostrare al posto di «passo 2 di 3», dato
 che i passi variano col tipo (`ProgressDots` presuppone un numero fisso).

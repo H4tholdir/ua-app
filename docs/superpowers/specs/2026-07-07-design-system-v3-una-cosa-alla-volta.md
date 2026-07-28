@@ -55,7 +55,11 @@ Il paradigma conversazione (WhatsApp) vive **SOLO nel Portale Dentista** (§7.19
 - Frasi brevi, verbi all'imperativo o indicativo presente. Mai passivi, mai gerundi tecnici ("caricamento in corso…" → "Un attimo…").
 - UÀ parla in prima persona SOLO quando racconta le proprie automazioni ("Ho preparato la fattura") — mai altrove.
 - Numeri di lavoro sempre nel formato `n.147`. Date: "oggi", "domani", "lun 7 luglio" — mai `07/07/2026` nell'interfaccia operativa (ammesso nei documenti PDF).
-- Pazienti SEMPRE pseudonimizzati: `PZ-0231`. Il nome paziente non compare MAI in UI, notifiche, WhatsApp (GDPR, invariante di progetto).
+- Pazienti pseudonimizzati **per difetto**: `PZ-0231`. Il nome del paziente non compare in UI, notifiche, WhatsApp — **salvo deroga esplicita, datata e motivata di Francesco**. ⚠️ Questa riga diceva «non compare MAI… invariante di progetto» fino al 28/07/2026, quando l'app **già** non lo rispettava: una promessa scritta e non mantenuta è peggio di una regola con eccezioni dichiarate.
+  **Le deroghe in vigore, due:**
+  1. **Targa della parete cassette** — D8, 27/07/2026 («in un laboratorio piccolo il tecnico conosce comunque i pazienti»): il tecnico vede il nome, nessun gate di ruolo. Verbale: `docs/superpowers/specs/2026-07-27-nome-cognome-paziente-design.md` §D8.
+  2. **Ricerca del paziente nel wizard «Nuovo lavoro»** — D7, 28/07/2026: si cerca per **cognome**, e i cognomi si vedono; senza, la ricerca è inutilizzabile al banco (nessuno ricorda `PZ-0117`) e i doppioni restano. Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`.
+  🛑 **Fuori da queste due la regola è invariata**, e **notifiche e WhatsApp restano senza deroghe** (template WhatsApp: mai il nome, solo numero lavoro + link portale).
 
 ### 2.2 Il messaggio di sistema
 La riga di stato in home (§7.1) usa lo schema: `[momento]: [cosa ho fatto] · tutto a posto ✓` oppure `[cosa serve da te]`. Massimo 1 riga, mai modale, mai popup.
@@ -508,7 +512,7 @@ Tutto quanto sopra. Colonna singola, pollice in basso, sheet per ogni inseriment
 3. Componenti: si usa SOLO `src/components/ds/`. Se manca un componente → si propone QUI (nuova sezione §5.x con anatomia completa) PRIMA di scriverlo. Un componente non in spec = review respinta.
 
 ### 13.2 Divieti assoluti (estende gli anti-slop v2.3)
-- ❌ colori/ombre/font/durate/curve inline · ❌ un 6° colore di stato (le 5 famiglie di §3.3 regola 2 sono chiuse — rev. 3.1) · ❌ 2 tasti primari per vista · ❌ modal centrato su mobile (salvo DialogConferma) · ❌ tabelle full-width su mobile · ❌ tab bar · ❌ KPI/banner in home · ❌ spinner · ❌ splash animate · ❌ suoni fuori palette · ❌ animazioni su scroll/dati · ❌ `pointer-events:none` in transizione · ❌ parole del software (§2.3) · ❌ nome paziente in chiaro · ❌ Inter/Roboto/Arial · ❌ gradienti viola-blu · ❌ blur su contenuti scrollanti · ❌ chat UI fuori dal portale.
+- ❌ colori/ombre/font/durate/curve inline · ❌ un 6° colore di stato (le 5 famiglie di §3.3 regola 2 sono chiuse — rev. 3.1) · ❌ 2 tasti primari per vista · ❌ modal centrato su mobile (salvo DialogConferma) · ❌ tabelle full-width su mobile · ❌ tab bar · ❌ KPI/banner in home · ❌ spinner · ❌ splash animate · ❌ suoni fuori palette · ❌ animazioni su scroll/dati · ❌ `pointer-events:none` in transizione · ❌ parole del software (§2.3) · ❌ nome paziente in chiaro **fuori dalle deroghe dichiarate in §2.1** (mai in notifiche e WhatsApp, senza eccezioni) · ❌ Inter/Roboto/Arial · ❌ gradienti viola-blu · ❌ blur su contenuti scrollanti · ❌ chat UI fuori dal portale.
 
 ### 13.3 Definition of Done UI (checklist PR)
 `[ ]` token only (0 valori inline) · `[ ]` 3 viewport implementati e screenshot · `[ ]` entrambi i temi · `[ ]` testo ≥17px lettura, target ≥44 · `[ ]` AA verificato · `[ ]` reduced-motion · `[ ]` text-zoom 200% · `[ ]` stati: vuoto/caricamento/errore/offline · `[ ]` parole dal dizionario · `[ ]` L1-L7 dichiarate in PR · `[ ]` suono/haptic SOLO da palette.
