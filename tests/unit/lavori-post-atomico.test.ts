@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Task 9 — POST /api/lavori passa dall'RPC atomica `lavoro_crea_atomico`.
 //
@@ -118,6 +118,13 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockGetUser.mockResolvedValue({ data: { user: AUTH_USER } })
   mockRpc.mockResolvedValue({ data: ESITO_OK, error: null })
+})
+
+// Orologio e fuso tornano SEMPRE al reale: un clock fermo o un TZ appiccicato
+// avvelenerebbe gli altri casi del file (e, nello stesso worker, dei file dopo).
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
 })
 
 describe('POST /api/lavori — lavoro e denti nascono insieme o non nascono (R1)', () => {
@@ -338,5 +345,41 @@ describe('POST /api/lavori — la guardia FK sopravvive al passaggio all\'RPC', 
     expect(res.status).toBe(403)
     expect(json.error).toBe('cliente_id non appartiene a questo laboratorio')
     expect(mockRpc).not.toHaveBeenCalled()
+  })
+})
+
+// L'anno che la route manda alla RPC è il giorno civile di ROMA, non l'orologio
+// del processo. Non è cosmesi: `anno_lavoro` diventa `v_anno` dentro
+// lavoro_crea_atomico e alimenta DIRETTAMENTE
+// genera_progressivo(p_lab, 'lavoro', v_anno)
+// (20260727120300_lavori_denti_rpc.sql:138,144) — cioè la serie progressiva del
+// numero di lavoro, che finisce nella Dichiarazione di Conformità e in fattura.
+// Con l'anno del server, fra le 00:00 e l'01:00 di Roma del 1° gennaio il lavoro
+// nascerebbe con `data_ingresso` 2027-01-01 e un numero pescato dalla serie 2026.
+//
+// ⚠️ `vi.stubEnv('TZ', 'UTC')` NON è decorativo, ed è la ragione per cui questo
+// caso ha valore: `new Date().getFullYear()` è l'anno LOCALE DEL PROCESSO (in
+// produzione su Vercel è UTC, ma su una macchina di sviluppo italiana è già
+// Europe/Rome). Senza il pin, su quella macchina i due anni coincidono a ogni
+// istante e il caso passerebbe anche col difetto in casa. Qui si finge il server
+// di produzione. `annoRoma()` resta invece indifferente al fuso del processo:
+// FMT_ISO_ROMA fissa `timeZone: 'Europe/Rome'` (data-roma.ts:9-11).
+describe('POST /api/lavori — a capodanno la serie progressiva segue Roma', () => {
+  it('23:30 UTC del 31/12 → anno_lavoro 2027, concorde con data_ingresso', async () => {
+    setup()
+    vi.stubEnv('TZ', 'UTC')
+    vi.useFakeTimers()
+    // A Roma qui è già il 1° gennaio 2027, 00:30 (CET = UTC+1).
+    vi.setSystemTime(new Date('2026-12-31T23:30:00Z'))
+
+    const res = await POST(richiesta(CORPO_BASE))
+
+    expect(res.status).toBe(201)
+    const inviato = argomentiRpc().p_lavoro
+    // L'anno PRIMA della data: è l'asserzione che porta il difetto, e va letta
+    // per prima quando il caso è rosso.
+    expect(inviato.anno_lavoro).toBe(2027)
+    // …e i due devono CONCORDARE: è il punto dell'intero caso.
+    expect(inviato.data_ingresso).toBe('2027-01-01')
   })
 })

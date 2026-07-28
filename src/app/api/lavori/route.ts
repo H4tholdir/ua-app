@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { oggiRomaISO } from '@/lib/utils/data-roma'
+import { oggiRomaISO, annoRoma } from '@/lib/utils/data-roma'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { getLabContextWithTimings, getFreshLabContext } from '@/lib/supabase/lab-context'
 import { assertLabOperativo } from '@/lib/supabase/lab-guard'
@@ -203,7 +203,16 @@ export async function POST(req: Request) {
   // dell'Allegato XIII. Prima di questa modifica il lavoro nasceva con un
   // INSERT e i denti arrivavano dopo con una PATCH fail-soft: se quella
   // falliva, il lavoro esisteva e il dato no.
-  const anno = new Date().getFullYear()
+  // L'anno è quello del giorno civile di ROMA, non dell'orologio del processo:
+  // in produzione il server gira in UTC, e `new Date().getFullYear()` fra le
+  // 00:00 e l'01:00 di Roma del 1° gennaio è ancora indietro di un anno. Qui non
+  // sarebbe un dettaglio estetico: questo valore diventa `v_anno` dentro
+  // lavoro_crea_atomico e alimenta genera_progressivo(p_lab, 'lavoro', v_anno)
+  // — la SERIE del numero di lavoro, che finisce nella Dichiarazione di
+  // Conformità e in fattura. Con l'anno del server il lavoro nascerebbe con
+  // `data_ingresso` (già di Roma, sotto) al 1° gennaio e il numero pescato dalla
+  // serie dell'anno prima.
+  const anno = annoRoma()
   const { data: esitoRpc, error: rpcError } = await callRpcWithRetry(() =>
     svc.rpc('lavoro_crea_atomico', {
       p_lab: labId,
