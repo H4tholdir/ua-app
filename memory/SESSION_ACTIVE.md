@@ -1,7 +1,7 @@
 # Sessione attiva — ONDATA (a) COMPLETATA SUL RAMO, mai mergiata (28/07/2026)
 
-🛑 **Branch `ondata-a-denti-colore`**, repo principale, **61 commit avanti a `main`. NIENTE IN
-PRODUZIONE.** 🛑 **Il merge lo autorizza Francesco:** *«non andiamo in produzione finché non lo dico io»*.
+🛑 **Branch `ondata-a-denti-colore`**, repo principale, **57 commit avanti a `main` (contati, non
+stimati). NIENTE IN PRODUZIONE.** 🛑 **Il merge lo autorizza Francesco:** *«non andiamo in produzione finché non lo dico io»*.
 📌 Punto di ripresa: `docs/roadmap/2026-07-28-ondata-a-esecuzione-handoff.md` — i 23 ritrovamenti
 stanno in §5-bis → §5-sexies. Voce di memoria: `MEMORY.md` **voce 58**.
 
