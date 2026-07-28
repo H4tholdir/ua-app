@@ -429,12 +429,16 @@ generati: costa 30 secondi e chiude il dubbio.
 | passo paziente + ricerca | `2026-07-28-wizard-passo-paziente.html` | ✅ **approvato** (variante A) — visto ai **tre tagli veri** (390/768/1280) in vista «schermo intero», chiaro e scuro |
 | avanzamento dei passi | `2026-07-28-wizard-avanzamento-passi.html` | 🟡 **variante 3 approvata, ma il mockup è superato dalla ratifica**: non ha le briciole **toccabili** (D17 — servono stato premuto, area di tocco ≥ 44 px, ordine di lettura) né il **tasto d'uscita** in testata (D18). **Va riaperto**, ed è la superficie più stretta che abbiamo: 44 px di altezza, a 390 px di larghezza, con dentro indietro + briciole + uscita |
 | passo denti / colore | mockup del 27/07 | 🟡 **approvato nella forma, larghezza DA RIVERIFICARE.** Verificato aprendo i file: `2026-07-27-arcata-ovale.html` nomina il taglio tablet/768 (5 riscontri), `2026-07-27-denti-colore-wizard.html` **non nomina né tablet né desktop** — e **D14 ha appena cambiato il comportamento della larghezza proprio su quella superficie**. ⚠️ `2026-07-27-denti-illustrazioni-vere.html` è **in `.gitignore`** (30 MB, voce 57-bis) e **vive solo su questo disco**: una sessione nuova non può riverificarlo, si rigenera con `scripts/design/` |
-| **passo foto** | — | 🛑 **manca**: D8 lo rende un passo nuovo, e un passo nuovo vuole la sua anteprima |
-| **passo cassetta** | — | 🛑 **manca** |
-| **avviso «codice già in uso»** | — | 🛑 **manca** (§6) |
+| **passo foto** | `2026-07-28-wizard-passo-foto-e-cassetta.html` §3 | ✅ **approvato — variante F2 (D23)**, «e PIÙ DI UNA»: rivedere, ingrandire, rifare, eliminare, aggiungere |
+| **passo cassetta** | `2026-07-28-wizard-passo-foto-e-cassetta.html` §3 | ✅ **approvato — D24**: solo le libere, crea al volo, salta. Il lavoro entra subito (D30) |
+| **avviso «codice già in uso»** | `2026-07-28-wizard-avviso-codice-gia-in-uso.html` §2 | ✅ **approvato — variante V1 (D25)**: sotto la casella, non ferma niente |
+| **testata + uscita** | `2026-07-28-wizard-testata-uscita.html` §5 | ✅ **approvato — T2 (D21) + fila a pagine (D22, terza stesura)**. ⚠️ Rilievi aperti del panel 29/07: il taglio delle etichette lunghe, `role="img"` contro le briciole toccabili, il contatore a 34 px, il verso «avanti» mancante |
 
-🛑 **Le tre superfici marcate non si scrivono in React prima del loro mockup approvato.** Il piano le mette
-dietro un gate, non in coda.
+🔧 **AGGIORNATA IL 29/07/2026 — questa tabella diceva 🛑 «manca» per le prime tre superfici.** Non è più
+vero da **prima che la spec fosse chiusa**: i tre mockup sono stati disegnati e le varianti **ratificate la
+sera stessa** (D21-D25, quarta tornata del verbale), e ne esistono gli screenshot ai tre tagli in chiaro e
+scuro. Un esecutore che leggesse questa tabella si fermerebbe a un gate che non esiste più.
+🚧 **Restano dietro gate SOLO denti e colore** (larghezza da riverificare, D14).
 
 ---
 

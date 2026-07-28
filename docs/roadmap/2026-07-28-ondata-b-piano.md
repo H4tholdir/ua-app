@@ -6,9 +6,17 @@
 `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
 
 > ⛔ **Questo piano NON esce dalla FASE 4 finché §3 (registro letture), §4 (censimento) e §5 (registro
-> prove) non sono completi.** Al momento **non lo sono**: §3 ha 10 file `NON letto`, §5 ha 4 sonde
+> prove) non sono completi.** Al momento **non lo sono**: §3 ha **11** file `NON letto`, §5 ha 4 sonde
 > `da eseguire`. Sono elencati apposta, con nome — un piano che sembra completo e non lo è è il difetto
 > che l'ondata (a) ha pagato otto volte su otto.
+
+> 🛑 **SUPERATO DAL PANEL DI VALIDAZIONE DEL 29/07** — `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md`.
+> **29 rilievi, 6 bloccanti, 15 affermazioni di questo piano verificate FALSE.** Il piano **non si esegue
+> nella forma attuale**: si riscrive la parte che i rilievi hanno spostato. Le correzioni puntuali già
+> applicate qui sono marcate 🔧; tutto il resto vive nel verbale del panel, che è il documento da leggere
+> **prima** di questo.
+> 🔑 Il conteggio qui sopra era **10** in questa riga e **11** al §9: sono **11** (12 percorsi meno
+> `tipi-lavoro.ts`, già letto). 🔧
 
 ---
 

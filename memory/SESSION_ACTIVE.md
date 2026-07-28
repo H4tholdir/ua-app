@@ -1,32 +1,26 @@
-# Sessione attiva — ONDATA (b): PIANO SCRITTO, 33 decisioni, ZERO codice (28/07/2026, chiusura)
+# Sessione attiva — ONDATA (b): PANEL FATTO, il piano NON si esegue (29/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-esecuzione-handoff.md`.**
-Documento operativo: **`docs/roadmap/2026-07-28-ondata-b-piano.md`** — e si legge **§9 «cosa manca»
-PRIMA** di tutto: il piano dichiara di **non essere eseguibile**.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-panel-validazione.md`** — il verbale del panel.
+Il piano (`2026-07-28-ondata-b-piano.md`) si legge **dopo**, e non nella forma attuale.
 
-🛑 **LA PRIMA COSA DA FARE, richiesta esplicita di Francesco:** *«facciamo controllare da advisor
-specializzati il piano da eseguire e tutti i passaggi successivi»*. **Il piano non si esegue prima di un
-panel** (è anche la Regola Advisor). Composizione suggerita e mandato scritto: handoff §1.
+**7 revisori** (4 di lente + 3 lettori sugli 11 file mai aperti), ~70 file aperti, **29 rilievi ·
+6 BLOCCANTI · 15 affermazioni del piano verificate FALSE** (9 riverificate a mano).
+🔑 **Il piano sbagliava dove si sentiva sicuro:** P1 «provata» prova il caso banale · il censimento dei token
+indicava regole CSS **inesistenti** · la citazione-àncora del §4 punta al `catch` sbagliato · il drift
+`bite_splint` **non esiste**.
 
-**Trentatré decisioni in sei tornate** (verbale `2026-07-28-wizard-ondata-b-decisioni.md`):
-D1-D8 apertura · D9-D16 mockup · D17-D20 ratifica della spec · D21-D25 varianti · **D26 le tre ondate** ·
-**D27-D32 le minori** (registrate al doppio controllo di fine sessione: erano rimaste solo in chat) ·
-**D33 «il numero si dà subito»**, la regola nata da quel ripasso: ogni scelta prende numero e riga **nello
-stesso turno**, e una **guardia** (`scripts/guardia-coerenza-documenti.mjs`, ~0,03 s nel pre-commit) verifica
-conteggi, riferimenti pendenti, voci fantasma e punto di ripresa. Testo: **`CLAUDE.md` §0A-bis**.
-🌊 **Tre ondate:** **(b) il wizard** · **(c) le foto per bene** (editor + le stesse azioni sulla scheda) ·
-**(d) le cassette per bene** (parete in «modo scelta» + tavolozza più ricca).
+**I 6 bloccanti in una riga:** ① il 23505 non è gestito → «Riprova» all'infinito (il modello esiste in **9
+route**, `api/pazienti` è l'unica senza) · ② il **momento in cui il lavoro nasce** non è deciso, e T14/T15
+dicono il contrario · ③ `cosaSiPerde` non vede il dentista · ④ l'uscita naviga da dentro un overlay e
+**l'attrezzo non esiste** (`useNavigaDaOverlay` prende un href, serve `back()`) · ⑤ **NESSUNO STAGING**:
+la migration di T4 va sull'unico DB, quindi la gestione dell'errore va su `main` **prima** · ⑥ il `DELETE`
+immagini impugna `url` (morto) invece di `storage_path`, e non ha né soggetto né finestra.
 
-✅ **Provato, non rifare:** **P1** l'indice unico **rifiuta davvero** (messaggio incollato) **e** due
-laboratori diversi possono usare lo stesso codice (controllo positivo) · **P2** 0 duplicati su 916 pazienti.
-🔴 **Difetto trovato scrivendo il piano (P4):** una bozza `v:1` **non viene mai rimossa** —
-`persistenza.ts:69-73` cancella solo alla scadenza, non sul mismatch di versione.
-🔴 **R12:** un'immagine del lavoro **non si può cancellare** (`immagini/[imgId]` ha solo `PATCH`).
-🚫 **R11 ritirato:** il «difetto» del colore delle cassette non esisteva.
-
-🛑 **Manca al piano:** 10 file **non letti** (fra cui **4 test che si romperanno**) · **4 sonde** (P3, P5,
-P6, e P2 da rieseguire) · censimento dei **token orfani** · **3 domande aperte** (`DELETE` soft o hard →
-**panel normativo** · tetto foto da misurare su device · la chiave `localStorage` cambia nome o no).
-
-🔑 **Zero righe di codice. Diciotto commit locali non pubblicati, dieci di questa sessione.** Baseline riverificata dopo ogni
-sonda: **294 lavori · 0 denti · 916 pazienti · 48 colori**.
+✅ **Chiuso: la chiave `localStorage` NON si rinomina** (i test la leggono dalla costante: rinominarla
+renderebbe verdi a vuoto tutte le verifiche di pulizia).
+🔧 **Fatto il 29/07:** conteggio 10→11 · spec §15 (tre superfici avevano già i mockup approvati, D23-D25) ·
+verbale D22 ripulito dalle due stesure superate · 6 screenshot salvati (98 = 98) · **nota falsa
+`bite_splint` rimossa da `tipi-lavoro.ts`**.
+🟡 **In corso:** panel normativo a 3 advisor su **4 domande** (soft/hard · chi-e-fino-a-quando ·
+riuso del codice archiviato · normalizzazione). Poi la **riscrittura del piano**. **Zero righe di codice
+applicativo.** Baseline riverificata: **294 · 0 · 916 · 48**.

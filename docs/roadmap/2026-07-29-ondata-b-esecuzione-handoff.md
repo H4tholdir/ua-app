@@ -1,5 +1,11 @@
 # Handoff — l'ondata (b) ha un piano: si fa validare dagli advisor, poi si esegue
 
+> ✅ **IL PANEL È STATO FATTO, il 29/07/2026.** Esito e punto di ripresa:
+> **`docs/roadmap/2026-07-29-ondata-b-panel-validazione.md`** — 29 rilievi, **6 bloccanti**,
+> **15 affermazioni del piano verificate false**. 🛑 **Il piano NON si esegue nella forma attuale.**
+> Questo documento resta valido per **§2 (dove sta ogni cosa)**, **§4 e §4-bis (i fatti già verificati)** e
+> **§5 (le trappole operative)**; il suo §1 è **assolto** e il suo §3 è **superato** dal verbale del panel.
+
 **Per:** la sessione successiva, **contesto pulito**.
 **Prima di tutto:** BP-0 — `memory/SESSION_ACTIVE.md`, poi **questo documento**, poi
 **il piano `docs/roadmap/2026-07-28-ondata-b-piano.md` (e la sua §9 per prima)**. Il resto solo se serve.
@@ -65,9 +71,11 @@ soft-o-hard (Art. 10(8) MDR contro la direttiva «ogni campo si corregge fino al
 
 Sta in **§9 del piano**, e non è un dettaglio: è la ragione per cui il piano non parte.
 
-1. **10 file `NON letto`**, fra cui **4 file di test che si romperanno di sicuro**
+1. **11 file `NON letto`** (🔧 corretto il 29/07: qui diceva 10, il §9 del piano diceva 11 — contati, sono
+   **11**), fra cui **4 file di test che si romperanno di sicuro**
    (`WizardNuovoLavoro.test.tsx`, `PassoPaziente.test.tsx`, `PassoTipo.test.tsx`,
-   `wizard-persistenza.test.ts`).
+   `wizard-persistenza.test.ts`). ✅ **TUTTI E 11 LETTI il 29/07** dai lettori del panel — più un
+   **dodicesimo che il piano non conosceva**, `tests/unit/dati-wizard.test.ts`.
 2. **4 sonde da eseguire**: P3 (la proiezione ridotta non rompe `crea-lavoro.ts:213`) · P5 (cancellare una
    riga di `lavori_immagini` toglie anche il file, o lo lascia orfano?) · P6 (costo della query «ultimo
    lavoro») — più P2 da **rieseguire** immediatamente prima della migration, perché decade col tempo.

@@ -10,9 +10,21 @@ export type TipoLavoro = {
 }
 
 // B4 (gate spec): UNICA fonte delle label macro — TabDati, portale, rischi,
-// DdcTemplate importano da qui (Task 4). ⚠ La CHECK a DB è in DRIFT (O4b):
-// nessuna CHECK contiene `bite_splint` — qui 10 valori, a DB meno. La
-// migration di riallineamento è deferita alla sessione DB dedicata (A20+O4b).
+// DdcTemplate importano da qui (Task 4).
+//
+// ✅ IL DRIFT `bite_splint` NON ESISTE — nota falsa rimossa il 29/07/2026.
+// Questo commento dichiarava «nessuna CHECK a DB contiene `bite_splint`» e la
+// deferiva a una sessione DB dedicata. Interrogato il catalogo vivo:
+//   select pg_get_constraintdef(oid) from pg_constraint
+//   where conname = 'lavori_tipo_dispositivo_check'
+// → CHECK (tipo_dispositivo = ANY (ARRAY[… 'bite_splint', 'altro'])) — 10 valori,
+// gli stessi di qui. La migration 20260712230000_lavori_tipo_dispositivo_bite_splint
+// ERA GIÀ STATA APPLICATA. Il piano dell'ondata (b) aveva ereditato questa nota
+// come fatto acquisito (§3) e avvertiva chi avrebbe scritto la migration T4.
+// 🔑 Un avvertimento falso costa più di uno mancante: fa spendere lavoro a
+// proteggersi da niente. Verbale: docs/roadmap/2026-07-29-ondata-b-panel-validazione.md §4.9
+// ⚠️ Resta NON verificata sul catalogo vivo una CHECK diversa e indipendente:
+// `prestazioni.categoria` (schema.sql:572-577), priva di `provvisorio` e `bite_splint`.
 export const LABEL_MACRO: Record<TipoDispositivo, string> = {
   protesi_fissa: 'Protesi fissa',
   protesi_mobile: 'Protesi mobile',
