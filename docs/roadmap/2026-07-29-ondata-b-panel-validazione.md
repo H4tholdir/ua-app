@@ -280,6 +280,86 @@ rumore. ➡️ Da nominare nel piano riscritto quando si tocca il generatore (bl
 
 ---
 
+## 5-ter. 🆕 PANEL NORMATIVO — parere GDPR e autorizzazione (29/07)
+
+**Domanda:** chi può cancellare una fotografia di un lavoro, e fino a quando?
+
+### ✅ Raccomandazione, in tre righe
+1. **CHI: gli stessi ruoli che possono caricarla. Nessun gate di ruolo nuovo.** Motivo che decide, e non è
+   un'opinione: **la consegna — cioè l'atto che emette la Dichiarazione di Conformità — non ha gate di
+   ruolo**, ed è una **decisione esplicita e ratificata** di Francesco (`docs/design/decisions/2026-07-16-ondata-fondamenta-4b-consegna.md:15`,
+   D-3, ratificata su segnalazione appsec). Mettere `titolare`-only sulla cancellazione di uno scatto
+   renderebbe **più difficile cancellare una foto che emettere una DdC**.
+2. **FINO A QUANDO: finché `lavori.stato != 'consegnato'`.** Il confine **coincide** con la direttiva del
+   27/07 («fino alla consegna»): **nessuna contraddizione da dichiarare**. E la via di ritorno **esiste
+   già**: `annulla-consegna` riporta il lavoro a `pronto` e riapre la finestra da sé — niente secondo
+   cancello a 10 minuti (quella è la finestra per *disfare la consegna*, un'altra cosa).
+3. **FUORI FINESTRA: `409` con codice + bottone disabilitato CON la spiegazione visibile**, mai nascosto —
+   nascondere fa sembrare modificabile un lavoro con DdC emessa. **Cancellazione = soft-delete su
+   `deleted_at`**, mai rimozione da Storage.
+
+### 🔴 LA CONDIZIONE BLOCCANTE — oggi il soft-delete sarebbe un colpo a vuoto
+🔍 **Riverificato a mano.** `lavori_immagini.deleted_at` **esiste** (catalogo vivo). Ma **otto** punti di
+lettura fanno `immagini:lavori_immagini(*)` **senza escludere le righe cancellate** — contati, sono
+esattamente otto:
+`(app)/lavori/[id]/page.tsx:30` · `(app)/lavori/[id]/modifica/page.tsx:51` · `api/lavori/[id]/route.ts:302` ·
+`api/fatture/batch/route.ts:179` · `api/fatture/[id]/xml/route.ts:163` ·
+`lib/pdf/generate-ricevuta-consegna.ts:21` · `lib/pdf/generate-etichetta.ts:37` · `lib/pdf/generate-ifu.ts:21`
+⚠️ Il `.is('deleted_at', null)` di `page.tsx:38` filtra la **radice `lavori`**, non l'innesto.
+➡️ **Senza toccare tutti e otto, il `DELETE` risponde 200 e la foto resta visibile ovunque.** Il task T6 non
+è «una rotta»: è **una rotta più otto letture**, e la sintassi del filtro sugli innesti PostgREST **va
+verificata sito per sito** (l'innesto normale e `!inner` non si comportano uguale).
+
+### 🔴 Il «10 anni sulle foto» NON regge — e ribalta l'onere
+L'**Allegato XIII p.2** MDR richiede documentazione che permetta di comprendere progetto, fabbricazione e
+prestazioni, e **non enumera fotografie**; il termine di Art. 10(8) è agganciato **alla Dichiarazione e
+alla documentazione tecnica**. E la prova in casa converge: **nessun template PDF renderizza
+`lavori_immagini`** — `DdcTemplate.tsx` usa immagini solo per logo (`:301`) e firma (`:498`).
+La riga di `ANALISI/17:818` («nessun dato del paziente può essere cancellato prima di 10 anni») **si
+autoqualifica «regola pratica per UÀ»**: applicata alle fotografie è **NON VERIFICATA**.
+🔑 **Conseguenza:** Art. 5(1)(e) e 5(1)(c) GDPR spingono nella direzione **opposta** — tenere dati Art. 9
+per dieci anni **senza base giuridica dimostrata è esso stesso il rischio**. ➡️ Il confine post-consegna si
+motiva come **integrità del documento** (un lavoro con DdC non cambia in silenzio, cambia per la via
+documentata), **mai** come obbligo di conservazione.
+Fonti: [Allegato XIII](https://www.medical-device-regulation.eu/2019/08/14/annex-xiii/) ·
+[MDR EUR-Lex](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32017R0745)
+
+### Le foto SONO dati sanitari, e la richiesta del paziente NON arriva a noi
+**Art. 4(15)** + **Considerando 35** («informazioni derivate dall'**esame di una parte del corpo**») →
+impronta, foto intraorale e radiografia sono dati **Art. 9**.
+Ma il laboratorio è **responsabile**, non titolare (`DpaTemplate.tsx:3,120,127`): **Art. 17 è indirizzato al
+titolare**, e le **linee guida EDPB 07/2020 §132** dicono che la valutazione di ammissibilità **spetta al
+titolare**. ➡️ **Per l'interfaccia:** il bottone si chiama **«Elimina foto»** — mai «diritto all'oblio», mai
+«richiesta del paziente». UÀ **non deve** offrire al laboratorio una funzione «cancellazione GDPR»: lo
+spingerebbe verso l'**Art. 28(10)**, cioè a **diventare titolare** per quel trattamento.
+Fonti: [Art. 4](https://gdpr-info.eu/art-4-gdpr/) · [Cons. 35](https://gdpr-info.eu/recitals/no-35/) ·
+[Art. 9](https://gdpr-info.eu/art-9-gdpr/) · [Art. 17](https://gdpr-info.eu/art-17-gdpr/) ·
+[Art. 28](https://gdpr-info.eu/art-28-gdpr/) ·
+[EDPB 07/2020](https://www.edpb.europa.eu/system/files/documents/2023-10/EDPB_guidelines_202007_controllerprocessor_final_en.pdf)
+
+### ⚠️ Non esiste un modello di autorizzazione in casa — chi scrive questa rotta STA DECIDENDO
+Tre famiglie incompatibili, senza criterio dichiarato: `titolare|admin_rete` (archiviazione paziente,
+listino, magazzino) · `titolare|front_desk` (annullo pagamento, rimborso credito) · **nessun gate**
+(cassette, cicli, **consegna**, **annullo consegna**, **nota di credito TD04**).
+E **`lavori/[id]` non ha nessun `DELETE`**: il precedente «chi cancella un lavoro» **non esiste**.
+
+### 🆕 Ritrovamenti fuori mandato di questo parere
+1. 🔴 **`lavori_immagini.tipo` è una colonna morta.** L'allowlist PATCH la include
+   (`immagini/[imgId]/route.ts:10`) ma il POST la scrive **fissa** (`immagini/route.ts:110`, `tipo:'foto'`),
+   e la categoria vera vive in **`descrizione`** (`TabImmagini.tsx:236,253`). 🔍 **Riverificato sul dato
+   vivo: tutte le righe hanno `tipo='foto'`**, con `descrizione` che vale `altro`/`impronta`/`prescrizione`.
+   ➡️ Una futura regola di conservazione **per categoria** costruita su `tipo` leggerebbe `'foto'` anche per
+   una radiografia. E la retention differenziata è quindi **tecnicamente impossibile oggi**.
+2. **Nessun audit delle cancellazioni.** `lib/portale/audit.ts` traccia solo gli accessi **del dentista** al
+   portale. `ANALISI/17:920` afferma «i log di accesso ai dati paziente sono registrati immutabilmente»:
+   per le immagini **non è vero**.
+3. **Il canale per una richiesta Art. 17 inoltrata dal dentista non esiste nel prodotto**, mentre il DPA lo
+   promette (`DpaTemplate.tsx:168`). Impegno contrattuale scoperto — non una violazione, ma un vuoto.
+4. **Divergenza interna sugli impiantabili:** `ANALISI/17:174` dice «vita del dispositivo + 10 anni», la
+   fonte primaria dice **almeno 15**; `ANALISI/17:149` cita correttamente i 15. Riferito.
+
+---
+
 ## 6. Ciò che invece REGGE — verificato, perché la parte positiva sia credibile
 
 - **G9 tiene su entrambi gli scrittori dei pazienti**: nessun nome di vincolo o di indice raggiunge il
