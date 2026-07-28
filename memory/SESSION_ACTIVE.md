@@ -1,38 +1,34 @@
-# Sessione attiva — ONDATA (a): COLLAUDO SUPERATO. Resta solo il merge (28/07/2026)
+# Sessione attiva — ONDATA (a) IN PRODUZIONE. Si parte con la (b): le schermate (28/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-collaudo-ondata-a-referto.md`** — lì c'è l'esito del
-collaudo e cosa resta. L'handoff precedente (`...-ondata-a-chiusura-handoff.md`) resta valido per il
-contesto, ma la FASE 9 è **chiusa**.
-🛑 **Branch `ondata-a-denti-colore`**, 74 commit avanti a `main`. **NIENTE IN PRODUZIONE.**
-🛑 **Il merge lo autorizza Francesco.**
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-28-ondata-b-handoff.md`** — leggi quello, non questo
+file, per sapere cosa fare. Qui c'è solo lo stato.
 
-✅ **FASE 9 fatta: 5 prove su 5 passate**, nell'app vera, ogni esito verificato **anche** in banca
-dati. Il colore arriva e si ritrova · `A3,5` mostra l'avviso e il lavoro nasce lo stesso · azzerare il
-colore lo toglie da tutti i posti e non riappare · **il rifacimento eredita denti e colore** (era G1)
-· due salvataggi di fila senza conflitto. **3 viewport × 2 temi; la frase nuova a 390px non si
-tronca.** **DB riportato alla baseline esatta: 294 · 0 · 916 · 48.**
+🚀 **Ondata (a) MERGIATA E PUBBLICATA:** merge `a3e52379` su `main`, **78 commit**, fast-forward
+pulito (zero conflitti, `main` non si era mosso). `tsc` 0 e **vitest 3625** rieseguiti **su `main`
+dopo il merge**, non solo sul ramo.
+**Denti e colore ora sono righe vere in `lavori_denti`**, non più testo dentro il lavoro.
 
-✅ **IL DIFETTO TROVATO DAL COLLAUDO È GIÀ CORRETTO** (decisione di Francesco): le frasi dell'ondata
-non arrivavano all'utente, che leggeva solo «⚠ Errore — riprova». Una riga in
-`LavoroFormClient.tsx`: `saveError && !isDirty` → `saveError`. **Quella condizione era
-IRRAGGIUNGIBILE** (`setIsDirty(false)` solo dopo un salvataggio riuscito, e `save()` azzera
-`saveError` in apertura): il paragrafo d'errore era **codice morto**. TDD 3 casi con **controllo
-negativo** e **prova per mutazione**; ciclo riprovato nel browser (la frase compare, resta mentre si
-corregge, e sparisce col salvataggio riuscito). **FASE 7 rieseguita: `tsc` 0 · `eslint` pulito ·
-vitest 3625 / 19 saltati, zero errori · build ok.** Referto §4.0 e §4.0-bis.
-🛡️ **Aggiunta la prova che mancava: il controllo di conflitto SCATTA** (`atteso_updated_at` vecchio →
-**409**, e nulla scritto). La prova 5 mostrava solo che **non** scatta a sproposito.
+✅ **FASE 9 superata: 5 prove su 5** nell'app vera, ognuna verificata **anche** in banca dati, più
+**5-bis**, il controllo positivo che il controllo di conflitto **scatta** (409 con data vecchia, e
+nulla scritto) — la prova 5 da sola mostrava solo che **non** scatta a sproposito.
+✅ **Il collaudo ha trovato e chiuso un difetto suo:** le tre frasi dell'ondata **non arrivavano
+all'utente** («⚠ Errore — riprova» al loro posto). La condizione che le mostrava era
+**irraggiungibile**: quel paragrafo era codice morto. Corretto con TDD + prova per mutazione, e
+riprovato nel browser ai **sei tagli**.
 
-⚠️ **Due rilievi PREESISTENTI, riferiti e non toccati** (diff vuoto sui file coinvolti): idratazione
-disallineata su `LinguettaCassette`/`StanzePager`; a **1280×800** due campi colore coperti dalla
-fascia in fondo finché non si scorre → **ondata (b)**.
-🔴 **Confermati dal vivo tre difetti già censiti del rifacimento:** `incidenti_mdr` resta vuota ·
-route e funzione non concordano sugli stati · l'originale non viene annullato.
+🛑 **L'ONDATA (b) NON COMINCIA DAL CODICE.** È tutta interfaccia: mockup da far approvare a Francesco
+**prima** (§0B), poi il piano, poi il codice, poi il **gate estetico L2** (FASE 9b).
+🔑 **Il catalogo dei colori non chiuso vuole il PANEL:** l'esito giusto è **asimmetrico** — sul PUT
+rifiutare non perde nulla, sul POST perderebbe **il lavoro**.
 
-🛑 **LE MIGRATION SONO GIÀ SUL DATABASE VIVO**, `DROP COLUMN` compreso: un `revert` riporta indietro
-il codice, non lo schema.
-🔑 Collaudo entrato con l'utente **sintetico** `e2e-titolare@ua-test.local` (credenziale versionata
-nel repo, non di una persona) — **dichiarato**.
+⚠️ **Cinque cose sul tavolo della (b):** due **introdotte** dalla correzione del 28/07 (l'avviso
+copre in parte due campi colore · **contrasto 4,06 chiaro / 3,76 scuro** contro 4,5 richiesti — il
+colore viene dai token) · due **preesistenti** (idratazione disallineata su
+`LinguettaCassette`/`StanzePager` · la fascia sticky che a 1280 copre due campi finché non si scorre)
+· una **di lingua** (il messaggio del server dice cos'è rotto, non cosa fare).
 
-**RESTA: merge → push → CI verde → verificare `uachelab.com` → BP-1 finale** (voce 58/59 di
-`MEMORY.md` da «sul ramo» a «in produzione», voce 1 della ROADMAP chiusa).
+🔑 **Baseline del database, da lasciare così dopo ogni prova: 294 lavori · 0 righe in `lavori_denti`
+· 916 pazienti · 48 colori.**
+🔑 Collaudo nel browser: `preview_start {name: "ua-dev"}` + utente **sintetico**
+`e2e-titolare@ua-test.local` (credenziale versionata nel repo, non di una persona) — **si dichiara**.
+🛑 **MAI worktree.** ⚠️ `.next` stantio dopo un cambio di ramo → `/usr/bin/trash .next`.
