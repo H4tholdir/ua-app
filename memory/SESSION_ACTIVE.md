@@ -4,15 +4,21 @@
 Spec ✅ **RATIFICATA** · verbale a **quattro tornate**: D1-D8 apertura · D9-D16 mockup · **D17-D20 ratifica** ·
 **D21-D25 varianti**. La forma scelta è la **§4** di ciascun mockup.
 
-**D21-D25:** uscita **T2** (✕ leggera) e **la ✕ compare solo dal passo 2** · briciole **o intere o a icona,
-MAI troncate**, si riempie da destra, la fila scorre se serve · foto **F2 + PIÙ FOTO** (rivedere, ingrandire,
-rifare, **eliminare**, aggiungere) · cassetta **solo le libere** + **crea al volo** + **salta** · avviso **V1**.
+**D21-D25:** uscita **T2** (✕ leggera) e **la ✕ compare solo dal passo 2** · **D22 riscritta dopo una
+rettifica di Francesco**: la fila **scorre ancorata a destra**, quello che è in vista si legge **intero**, il
+resto è **fuori vista (non compresso)** con una **sfumatura** che lo dice, e l'**icona è il solo caso limite
+al bordo** · foto **F2 + PIÙ FOTO** (rivedere, ingrandire, rifare, **eliminare**, aggiungere) · cassetta
+**solo le libere** + **crea al volo** + **salta** · avviso **V1**.
 
-🔴 **Tre cose trovate misurando/aprendo i file, non ragionando:**
-① `text-overflow: ellipsis` **non funziona dentro un flex** — vale identico in React: la pastiglia dev'essere
-un **blocco**. ② La colonna è **bloccata a 480 px**: **768 e 1280 sono IDENTICI** (320 px alle briciole contro
-230 a 390) — lo spazio vero arriva **sui passi larghi** (D14). ③ ✅ Regola «mai troncate» **verificata a
-schermo** (`scripts/tmp/misura-forma-ratificata.mjs`): **zero troncature su 7 casi**.
+🔴 **Quattro cose trovate misurando/aprendo i file, non ragionando — tutte valide identiche in React:**
+① `text-overflow: ellipsis` **non funziona dentro un flex**: la pastiglia dev'essere un **blocco**.
+② `justify-content: flex-end` ancora a destra **ma rende irraggiungibile** ciò che esce a sinistra → serve
+`margin-left:auto` **più** `scrollLeft = scrollWidth` al montaggio. ③ Una fila che scorre **taglia sempre**
+il bordo → **maschera sfumata**, e **direzionale** (sfumare l'ultima è una bugia visiva). ④ La colonna è
+**bloccata a 480 px**: **768 e 1280 sono IDENTICI** (320 px contro 230) — lo spazio vero arriva **sui passi
+larghi** (D14). ✅ Regola «mai troncate» **verificata a schermo**
+(`scripts/tmp/misura-forma-ratificata.mjs`): **zero parole tagliate su 7 casi**, 267 px nascosti e
+**raggiungibili**, scorrimento iniziale **ancorato a destra**.
 
 🚫 **R11 RITIRATO:** il «difetto» del colore delle cassette **non esisteva** — `normalizzaColore`
 (`src/lib/cassette/colore.ts:6,11`) accetta le sei parole **e** l'esadecimale, e `facciaHex`

@@ -62,8 +62,10 @@ Le cinque che cambiano di più il lavoro di chi legge:
    `docs/design/mockups/screenshots/ob-*.png`, 390/768/1280 × chiaro/scuro.
    ✅ **E LE VARIANTI SONO STATE SCELTE** (28/07 sera, §4 di ciascun mockup — **D21-D25**):
    **D21** uscita **T2** (✕ leggera, senza cerchio) e **la ✕ compare solo dal passo 2**, perché al passo 1
-   farebbe la stessa cosa della freccia · **D22** briciole: **o intere o a icona, MAI troncate**; si riempie
-   da destra, le precedenti si chiudono in icona, la fila **scorre** se nemmeno le icone ci stanno ·
+   farebbe la stessa cosa della freccia · **D22** ⚠️ **riscritta dopo una rettifica di Francesco**: la fila
+   **scorre sempre, ancorata a destra**; **quello che è in vista si legge intero**; il resto è **fuori vista,
+   non compresso**, e una **sfumatura** dice che c'è; l'**icona è il solo caso limite** della briciola al
+   bordo, e scorrendo si riapre ·
    **D23** foto **F2** + **più foto** (rivedere · ingrandire · rifare · **eliminare** · aggiungere) ·
    **D24** cassetta: **solo le libere**, con **crea al volo** e **salta** · **D25** avviso **V1** (sotto la
    casella) e la ripresa che **dice cos'è cambiato e mette già il codice nuovo**.
@@ -72,8 +74,15 @@ Le cinque che cambiano di più il lavoro di chi legge:
    invece di 230). Lo spazio vero arriva **sui passi larghi** (denti/colore, D14): lì ci stanno tutte.
    ✅ **Regola verificata a schermo, non assunta** (`scripts/tmp/misura-forma-ratificata.mjs`): **zero
    briciole troncate** in tutti e sette i casi provati (390 · 768 · 1280, passo stretto e passo largo).
-   ⚠️ **Il prezzo, dichiarato:** un'icona dice **quale passo**, non **quale scelta** — la parte compressa
-   torna a essere un indicatore di avanzamento, cioè quello che D10 aveva tolto. Baratto accettato perché
+   🐛 **DUE DIFETTI DELL'IMPLEMENTAZIONE TROVATI MISURANDO, e valgono identici in React:**
+   ① `justify-content: flex-end` ancora a destra **ma rende IRRAGGIUNGIBILE** ciò che esce dal bordo
+   sinistro (le briciole vecchie sparirebbero) → la forma corretta è `margin-left:auto` sul primo figlio
+   **più** `scrollLeft = scrollWidth` al montaggio del passo;
+   ② una fila che scorre **taglia sempre** la pastiglia al bordo — il vincolo «niente pezzetti tagliati» non
+   si soddisfa con un'icona ma con una **maschera sfumata**, e **direzionale**: sfumare l'ultima quando dopo
+   non c'è niente è una **bugia visiva** (trovato guardando lo scatto: «Foto» sbiadiva pur essendo l'ultima).
+   ⚠️ **Prezzo residuo, dichiarato:** l'unica icona al bordo dice **quale passo**, non **quale scelta** —
+   ma è una sola e basta un dito per farle dire il nome. Baratto accettato perché
    le due più recenti restano parole.
    🔴 **E la misura ha smentito il disegno:** a 390 px, con l'uscita in testata, restano **230 px** alle
    briciole — «Dr. Puleo» 87 · «Overdenture» 113 · «Esposito» 85. **Due intere ci stanno (208), tre no
