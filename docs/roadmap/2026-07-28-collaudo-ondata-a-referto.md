@@ -70,8 +70,11 @@ stato `pronto` **con una UPDATE diretta** (`SchedaLavoroV3.tsx:201` lo mostra so
 ## 3. I tre schermi, i due temi
 
 Superficie provata a tutti e sei i tagli: la **scheda clinica** (odontogramma + colori), cioè ciò che
-l'ondata rende leggibile. ⚠️ **Il wizard e l'avviso sono stati visti solo a 390 chiaro** — non a 768,
-1280 né in scuro.
+l'ondata rende leggibile. ⚠️ **Il wizard e l'avviso della creazione sono stati visti solo a 390
+chiaro** — non a 768, 1280 né in scuro.
+🔑 **Questa tabella è stata scritta PRIMA della correzione di §4.0**, che ha reso visibile un
+elemento nuovo su questa stessa superficie: il giro per l'avviso d'errore è stato **rifatto** e sta
+in **§4.0-ter**.
 
 | | 390 | 768 | 1280 |
 |---|---|---|---|
@@ -162,13 +165,45 @@ salvataggio riuscito (`useLavoroForm.ts:365-366`), e `save()` azzera `saveError`
 **controllati** nel file di test, non silenziati) · `next build` riuscito.
 **Database:** riportato di nuovo alla baseline dopo le prove (294 · 0 · 916).
 
-**⚠️ Tre cose viste correggendo, riferite e NON toccate (R-E2):**
-- il riquadro dell'avviso è `position: absolute` e **copre in parte** i campi «colore corpo» e
-  «colore incisale» mentre è visibile — cosmetico, **ondata (b)** (dove c'è il gate estetico);
-- il messaggio che arriva dal server è **minuscolo e tecnico** («le zone del colore richiedono scala
-  e codice»): dice cos'è rotto, non cosa fare. Da riscrivere quando si riscrive quella superficie;
-- l'`onClick` del tasto Salva chiama `save()` **senza `.catch()`**: la promessa respinta finisce
-  nella console del browser. Preesistente, nessun effetto per l'utente.
+### 4.0-ter L'avviso ai sei tagli — e di chi è ogni rilievo
+
+**La correzione ha reso VIVO un elemento che prima non compariva mai**, quindi il giro dei viewport
+fatto in §3 non lo copriva: è stato **rifatto per l'avviso**, tutti e sei. Il repro è quello fermato
+dal browser (nessuna richiesta parte), quindi **non scrive nulla** — baseline riverificata dopo:
+`294 · 0 · 916`.
+
+| | dentro schermo | testo intero | odontogramma raggiungibile |
+|---|---|---|---|
+| **390** chiaro · scuro | ✅ ✅ | ✅ ✅ | ✅ ✅ |
+| **768** chiaro · scuro | ✅ ✅ | ✅ ✅ | ✅ ✅ |
+| **1280** chiaro · scuro | ✅ ✅ | ✅ ✅ | ✅ ✅ |
+
+«Odontogramma raggiungibile» è la domanda che conta davvero: la frase dice *seleziona un dente*, e
+sarebbe una beffa se poi coprisse i denti. **Non li copre a nessun taglio.**
+
+**🔴 Due rilievi, e la paternità è diversa — non vanno confusi:**
+
+**① INTRODOTTO DA QUESTA CORREZIONE, accettato come cosmetico.** L'avviso è `position: absolute` e
+**copre in parte «colore corpo» e «colore incisale»** mentre è visibile (misurato a 1280: il
+coprente è **l'avviso**, non la fascia di §4.2). Prima non copriva nulla perché **non compariva
+mai**. Accettato: l'avviso è temporaneo, sparisce col salvataggio riuscito, e non tocca né
+l'odontogramma né il tasto. **Casa: ondata (b)**, col gate estetico.
+
+**② INTRODOTTO DA QUESTA CORREZIONE, da sistemare con i token.** **Contrasto sotto lo standard**
+per un testo di 13 px (serve 4,5:1): **4,06 in chiaro, 3,76 in scuro** — calcolato componendo il
+fondo semitrasparente `rgba(217,0,18,0.08)` sopra il fondo pagina, non stimato a occhio. Prima era
+latente perché il testo non si vedeva. ⚠️ **Non toccato di proposito:** il colore viene dai token
+del design system e una scelta cromatica non si fa dentro una correzione di collaudo. **Casa:
+ondata (b).**
+
+**Preesistenti, distinti dai due qui sopra:** la sovrapposizione della **fascia sticky** a 1280 in
+cima alla pagina (§4.2, si risolve scorrendo) e l'`onClick` del tasto Salva che chiama `save()`
+**senza `.catch()`** — la promessa respinta finisce nella console del browser, nessun effetto per
+l'utente.
+
+**Una rifinitura di lingua, riferita:** il messaggio che arriva dal server è minuscolo e tecnico
+(«le zone del colore richiedono scala e codice»): dice cos'è rotto, non cosa fare. Ora che si vede,
+conviene riscriverlo quando si riscrive quella superficie.
 
 ### 4.1 Disallineamento di idratazione sulla home — **preesistente**
 `LinguettaCassette` dentro `StanzePager` (`HomeV3`): il ramo di pagina che il server prepara e quello
