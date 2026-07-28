@@ -300,5 +300,10 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ lavoro }, { status: 201 })
+  // `colore_scartato` (M2, 28/07/2026): il colore digitato male non fa fallire
+  // la creazione — ma il 201 da solo dice «tutto a posto», e non era vero. Il
+  // campo c'è SEMPRE, anche `false`: un consumatore non deve distinguere «no»
+  // da «non me l'ha detto». È l'unica informazione che il client non può
+  // dedurre da sé (il confronto col catalogo vive qui, v. risolviColoreCaso).
+  return NextResponse.json({ lavoro, colore_scartato: colore.scartato }, { status: 201 })
 }

@@ -246,6 +246,100 @@ describe('POST /api/lavori — 🛑 si perde il colore, MAI il lavoro', () => {
   })
 })
 
+// M2 (revisione pre-merge ondata a) — «si perde il colore, mai il lavoro»
+// giustifica il NON far fallire, non il NON dirlo. Fino a qui il POST degradava
+// il colore e rispondeva 201 senza una parola: al banco si digita «A3,5» con la
+// virgola (tastiera italiana), il lavoro nasce, il colore viene buttato e la
+// schermata dice «Fatto!». L'odontotecnico non sa di dover correggere.
+//
+// 🔴 Il fatto, letto sul catalogo vero il 28/07/2026:
+//   node scripts/tmp/sql.mjs "select codice, scala from colori_dentali
+//     where codice in ('A3.5','A3,5','A3') order by codice"
+//   → [{"codice":"A3","scala":"vita_classical"},
+//      {"codice":"A3.5","scala":"vita_classical"}]
+//   «A3,5» NON esiste: la virgola al posto del punto perde davvero il colore.
+//
+// La risposta porta quindi `colore_scartato`, e il wizard lo trasforma in un
+// Avviso (v. crea-lavoro.test.ts / FrameFatto.test.tsx). Il campo è SEMPRE
+// presente: un consumatore non deve distinguere «false» da «non me l'ha detto».
+describe('POST /api/lavori — il colore scartato si DICE (M2)', () => {
+  it('«A3,5» (virgola, tastiera italiana) → 201, lavoro creato, colore_scartato: true', async () => {
+    setup()
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: 'A3,5' }))
+    const json = await res.json()
+
+    // Prima di tutto: il lavoro c'è. La regola dura non si tocca.
+    expect(res.status).toBe(201)
+    expect(json.lavoro).toEqual({ id: 'lavoro-1', numero_lavoro: '2026/0042', stato: 'ricevuto' })
+    expect(coloreInviato()).toEqual({ colore_scala: null, colore_codice: null })
+    // …e adesso lo dice.
+    expect(json.colore_scartato).toBe(true)
+  })
+
+  it('coppia accoppiata male → colore_scartato: true', async () => {
+    setup()
+
+    const res = await POST(
+      richiesta({ ...CORPO_BASE, colore_scala: 'vita_3d_master', colore_codice: 'A3' })
+    )
+
+    expect((await res.json()).colore_scartato).toBe(true)
+  })
+
+  it('catalogo irraggiungibile → colore_scartato: true (il colore è perso davvero)', async () => {
+    setup({ erroreCatalogo: true })
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: 'A3' }))
+
+    expect((await res.json()).colore_scartato).toBe(true)
+  })
+
+  it('codice non-stringa (numero) → colore_scartato: true: qualcosa era stato chiesto', async () => {
+    setup()
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: 3 }))
+
+    expect((await res.json()).colore_scartato).toBe(true)
+  })
+
+  // 🛑 L'altra metà, quella che conta di più: MAI un falso allarme. Un avviso che
+  // compare quando non serve si impara a ignorare, e allora non avvisa più.
+  it('colore riconosciuto → colore_scartato: false', async () => {
+    setup()
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: 'a3' }))
+    const json = await res.json()
+
+    expect(json.lavoro).toEqual({ id: 'lavoro-1', numero_lavoro: '2026/0042', stato: 'ricevuto' })
+    expect(json.colore_scartato).toBe(false)
+  })
+
+  it('casella «Colore» lasciata vuota (nessuna chiave) → colore_scartato: false', async () => {
+    setup()
+
+    const res = await POST(richiesta(CORPO_BASE))
+
+    expect((await res.json()).colore_scartato).toBe(false)
+  })
+
+  it('codice di soli spazi → colore_scartato: false (nessun colore chiesto, nessun colore perso)', async () => {
+    setup()
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: '   ' }))
+
+    expect((await res.json()).colore_scartato).toBe(false)
+  })
+
+  it('colore_codice: null → colore_scartato: false («nessun colore», detto esplicitamente)', async () => {
+    setup()
+
+    const res = await POST(richiesta({ ...CORPO_BASE, colore_codice: null }))
+
+    expect((await res.json()).colore_scartato).toBe(false)
+  })
+})
+
 describe('POST /api/lavori — nessun colore, nessun viaggio in più', () => {
   it('senza colore il catalogo non si interroga affatto', async () => {
     const spia = setup()

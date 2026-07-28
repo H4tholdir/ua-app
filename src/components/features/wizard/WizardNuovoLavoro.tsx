@@ -35,7 +35,12 @@ import { PassoPaziente } from './PassoPaziente'
 import { NuovoDentistaSheet } from './NuovoDentistaSheet'
 import { RipresaSheet } from './RipresaSheet'
 import { FrameFatto } from './FrameFatto'
-import { creaLavoroDaWizard, stimaGiorni, descrizioneTipo } from '@/lib/wizard/crea-lavoro'
+import {
+  creaLavoroDaWizard,
+  stimaGiorni,
+  descrizioneTipo,
+  type AccessorioFallito,
+} from '@/lib/wizard/crea-lavoro'
 import { dataSuggerita } from '@/lib/lavori/tempi-medi'
 import { salvaStato, leggiStato, azzeraStato, type StatoSalvato } from '@/lib/wizard/persistenza'
 import type { DatiWizard } from '@/lib/wizard/dati-wizard'
@@ -318,7 +323,7 @@ export function WizardNuovoLavoro(props: { dati: DatiWizard; contesto: { userId:
 /** L'esito «Fatto!» — tutto ciò che serve a FrameFatto, calcolato una sola volta alla creazione. */
 type StatoFatto = {
   lavoro: { id: string; numero_lavoro: string }
-  accessoriFalliti: Array<'elementi' | 'foto'>
+  accessoriFalliti: AccessorioFallito[]
   dentista: string
   lavoroLabel: string
   pz: string

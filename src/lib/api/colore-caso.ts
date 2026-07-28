@@ -1,7 +1,28 @@
 import type { getServiceClient } from '@/lib/supabase/server-service'
 
-export type ColoreCaso = { colore_scala: string | null; colore_codice: string | null }
-export const NESSUN_COLORE: ColoreCaso = { colore_scala: null, colore_codice: null }
+export type ColoreCaso = {
+  colore_scala: string | null
+  colore_codice: string | null
+  /**
+   * 🔑 «Si perde il colore, mai il lavoro» giustifica il NON far fallire; NON
+   * giustifica il non dirlo (rilievo M2 della revisione pre-merge, 28/07/2026).
+   * `scartato` è vero quando un colore era stato CHIESTO e non si è potuto
+   * registrare: il chiamante lo riporta all'utente invece di lasciarlo leggere
+   * «Fatto!» su un dato che non c'è.
+   *
+   * ⚠️ CONFINE DICHIARATO, perché nessuno debba indovinarlo: «chiesto» vuol dire
+   * `colore_codice` — il codice è ciò che si digita, e senza codice non c'è
+   * colore (mezza coppia = nessun colore, v. sotto). Quindi `undefined`, `null`
+   * e una stringa di soli spazi NON sono una richiesta e non producono nessun
+   * avviso; una `colore_scala` orfana nemmeno. Un avviso che compare quando non
+   * serve si impara a ignorare, e allora smette di avvisare.
+   */
+  scartato: boolean
+}
+export const NESSUN_COLORE: ColoreCaso = { colore_scala: null, colore_codice: null, scartato: false }
+
+/** Un colore c'era, e non si è potuto registrare: si degrada E si dice. */
+const COLORE_SCARTATO: ColoreCaso = { colore_scala: null, colore_codice: null, scartato: true }
 
 /**
  * Il colore di CASO (`lavori.colore_scala`/`colore_codice`), normalizzato e
@@ -16,7 +37,9 @@ export const NESSUN_COLORE: ColoreCaso = { colore_scala: null, colore_codice: nu
  *
  * 🛑 NON FALLISCE MAI. Se il codice non si riconosce si perde IL COLORE, non il
  * lavoro: si corregge dalla scheda (direttiva «ogni campo del lavoro si
- * corregge, fino alla consegna», 27/07/2026).
+ * corregge, fino alla consegna», 27/07/2026). ⚠️ Ma lo DICE: `scartato` (M2,
+ * 28/07/2026) — «si corregge dalla scheda» vale solo se chi deve correggere sa
+ * di doverlo fare.
  *
  * 🔴 Perché vive nel SERVER e non nel client (misurato il 28/07/2026):
  *
@@ -53,9 +76,14 @@ export async function risolviColoreCaso(
 ): Promise<ColoreCaso> {
   // Mezza coppia non è mezzo colore: è nessun colore. Una scala orfana
   // violerebbe `lavori_colore_caso_coppia_ck` — 500, nessun lavoro salvato. Un
-  // codice che non è nemmeno una stringa cade qui.
-  if (typeof codiceGrezzo !== 'string') return NESSUN_COLORE
+  // codice che non è nemmeno una stringa cade qui: se però qualcosa era stato
+  // mandato (un numero, un oggetto), un colore era stato CHIESTO e va detto che
+  // si è perso; `undefined`/`null` sono invece «nessun colore», non un errore.
+  if (typeof codiceGrezzo !== 'string') {
+    return codiceGrezzo === undefined || codiceGrezzo === null ? NESSUN_COLORE : COLORE_SCARTATO
+  }
   const codice = codiceGrezzo.trim().toUpperCase()
+  // Casella lasciata vuota: niente da salvare, quindi niente da segnalare.
   if (codice.length === 0) return NESSUN_COLORE
 
   const scala =
@@ -63,10 +91,11 @@ export async function risolviColoreCaso(
 
   const { data, error } = await svc.from('colori_dentali').select('scala, codice').eq('codice', codice)
   // Anche un catalogo irraggiungibile scarta il colore invece di far fallire la
-  // scrittura: la regola dura non ha eccezioni tecniche.
-  if (error || !data) return NESSUN_COLORE
+  // scrittura: la regola dura non ha eccezioni tecniche. Il colore però è perso
+  // davvero, quindi si segnala come ogni altro scarto.
+  if (error || !data) return COLORE_SCARTATO
 
   const trovate = scala === null ? data : data.filter((r) => r.scala === scala)
-  if (trovate.length !== 1) return NESSUN_COLORE
-  return { colore_scala: trovate[0].scala, colore_codice: trovate[0].codice }
+  if (trovate.length !== 1) return COLORE_SCARTATO
+  return { colore_scala: trovate[0].scala, colore_codice: trovate[0].codice, scartato: false }
 }

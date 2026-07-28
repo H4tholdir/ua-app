@@ -464,3 +464,110 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
     expect(m).toHaveBeenCalledTimes(3)
   })
 })
+
+// M2 (revisione pre-merge ondata a) — il colore digitato male non si perde più
+// in silenzio. Il server lo scarta (regola dura: «si perde il colore, mai il
+// lavoro») e lo DICE nella risposta con `colore_scartato`; qui quella parola
+// diventa un accessorio fallito, cioè un Avviso in FrameFatto.
+//
+// Il canale è quello che c'era già: nessuna casella nuova, nessuna tendina.
+describe('creaLavoroDaWizard — il colore scartato risale all\'utente (M2)', () => {
+  it('POST risponde colore_scartato:true → accessoriFalliti:["colore"], e il lavoro C\'È', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-16' } }))
+    m.mockResolvedValueOnce(
+      jsonOk(201, { lavoro: { id: 'lav-16', numero_lavoro: '2026/0016' }, colore_scartato: true })
+    )
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0016',
+      alias: '',
+      elemento: '',
+      // La digitazione vera del banco: virgola invece del punto. «A3,5» non è in
+      // catalogo (verificato sul database il 28/07/2026), «A3.5» sì.
+      colore: 'A3,5',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.lavoro).toEqual({ id: 'lav-16', numero_lavoro: '2026/0016' })
+    expect(esito.accessoriFalliti).toEqual(['colore'])
+    // Il codice parte comunque: normalizzare e confrontare col catalogo è
+    // mestiere del server, non del client (v. `risolviColoreCaso`).
+    expect(JSON.parse(m.mock.calls[2][1].body).colore_codice).toBe('A3,5')
+  })
+
+  it('colore riconosciuto (colore_scartato:false) → nessun avviso', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-17' } }))
+    m.mockResolvedValueOnce(
+      jsonOk(201, { lavoro: { id: 'lav-17', numero_lavoro: '2026/0017' }, colore_scartato: false })
+    )
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0017',
+      alias: '',
+      elemento: '',
+      colore: 'A3.5',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.accessoriFalliti).toEqual([])
+  })
+
+  // 🛑 Un avviso che compare quando non serve si impara a ignorare, e allora non
+  // avvisa più. Chi non riceve la parola non la inventa.
+  it('risposta SENZA il campo → nessun avviso: mai un falso allarme', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-18' } }))
+    m.mockResolvedValueOnce(jsonOk(201, { lavoro: { id: 'lav-18', numero_lavoro: '2026/0018' } }))
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0018',
+      alias: '',
+      elemento: '',
+      colore: 'A2',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.accessoriFalliti).toEqual([])
+  })
+
+  // L'ordine è quello della schermata («Elemento», «Colore», foto), che è anche
+  // quello in cui le tre cose si perdono.
+  it('elementi + colore + foto tutti persi → ["elementi","colore","foto"]', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-19' } }))
+    m.mockResolvedValueOnce(
+      jsonOk(201, { lavoro: { id: 'lav-19', numero_lavoro: '2026/0019' }, colore_scartato: true })
+    )
+    m.mockResolvedValueOnce(jsonFail(500))
+
+    const file = new File(['x'], 'impronta.jpg', { type: 'image/jpeg' })
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0019',
+      alias: '',
+      elemento: 'boh',
+      colore: 'ZZ9',
+      foto: file,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.lavoro).toEqual({ id: 'lav-19', numero_lavoro: '2026/0019' })
+    expect(esito.accessoriFalliti).toEqual(['elementi', 'colore', 'foto'])
+  })
+})

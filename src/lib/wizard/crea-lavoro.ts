@@ -53,19 +53,33 @@ import type { TipoScelto } from '@/components/features/wizard/WizardNuovoLavoro'
 import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
 
 /**
- * `'elementi'` = la casella «Elemento» conteneva qualcosa che non è un dente
- * (v. `mappaElementi`). `'foto'` = il caricamento dell'immagine è fallito.
- * Nessuno dei due invalida il lavoro; entrambi si correggono dalla scheda, e
- * entrambi si DICONO — fallire in silenzio è il difetto, fallire visibilmente
- * è la cura (decisione di Francesco, 27/07/2026).
+ * Ciò che può andare perso SENZA portarsi via il lavoro. Nell'ordine in cui
+ * compare nella schermata («Elemento», «Colore», la foto), che è anche l'ordine
+ * in cui le tre cose si perdono.
  *
- * ⚠️ Il colore NON compare qui, ed è deliberato: se il codice digitato non è in
- * catalogo il server lo scarta e crea comunque il lavoro (POST /api/lavori).
- * «Si perde il colore, mai il lavoro» è la regola dura di questo task.
+ * · `'elementi'` = la casella «Elemento» conteneva qualcosa che non è un dente
+ *   (v. `mappaElementi`);
+ * · `'colore'` = il codice digitato non è in catalogo — al banco si scrive
+ *   «A3,5» con la virgola, e «A3,5» non esiste («A3.5» sì). Il server lo scarta
+ *   e crea comunque il lavoro (`risolviColoreCaso`), poi lo DICE nella risposta
+ *   con `colore_scartato`;
+ * · `'foto'` = il caricamento dell'immagine è fallito.
+ *
+ * Nessuno dei tre invalida il lavoro; tutti e tre si correggono dalla scheda, e
+ * tutti e tre si DICONO — fallire in silenzio è il difetto, fallire
+ * visibilmente è la cura (decisione di Francesco, 27/07/2026).
+ *
+ * 🔑 UNA SOLA CASA per l'unione: `FrameFatto` ne deriva le etichette con un
+ * `Record<AccessorioFallito, string>`, quindi un quarto membro aggiunto qui
+ * SPEGNE la compilazione finché non ha la sua frase. Fino al 28/07/2026
+ * l'unione era ricopiata a mano in tre file, e il colore mancava da tutti e
+ * tre: è così che un dato smette di salvarsi in silenzio.
  */
+export type AccessorioFallito = 'elementi' | 'colore' | 'foto'
+
 export type EsitoCreazione = {
   lavoro: { id: string; numero_lavoro: string } | null
-  accessoriFalliti: Array<'elementi' | 'foto'>
+  accessoriFalliti: AccessorioFallito[]
 }
 
 const ESITO_BLOCCANTE: EsitoCreazione = { lavoro: null, accessoriFalliti: [] }
@@ -249,6 +263,7 @@ export async function creaLavoroDaWizard(input: {
   const coloreCodice = colore.trim().toUpperCase()
 
   let lavoro: { id: string; numero_lavoro: string }
+  let coloreScartato = false
   try {
     const res = await fetch('/api/lavori', {
       method: 'POST',
@@ -286,8 +301,16 @@ export async function creaLavoroDaWizard(input: {
       }),
     })
     if (!res.ok) return ESITO_BLOCCANTE
-    const dati = (await res.json()) as { lavoro: { id: string; numero_lavoro: string } }
+    const dati = (await res.json()) as {
+      lavoro: { id: string; numero_lavoro: string }
+      colore_scartato?: boolean
+    }
     lavoro = { id: dati.lavoro.id, numero_lavoro: dati.lavoro.numero_lavoro }
+    // `=== true` e non un troncamento a booleano: chi non riceve la parola non
+    // la inventa. Una risposta che non nomina il campo (server più vecchio, o
+    // una versione in cache) NON deve produrre un allarme — un avviso che
+    // compare quando non serve si impara a ignorare.
+    coloreScartato = dati.colore_scartato === true
   } catch {
     return ESITO_BLOCCANTE
   }
@@ -295,8 +318,12 @@ export async function creaLavoroDaWizard(input: {
   // Da qui in poi il lavoro ESISTE. Denti e colore sono già dentro, nella sua
   // stessa transazione: non possono più fallire da soli. Resta da dire ciò che
   // NON si è potuto mandare — e la foto.
-  const accessoriFalliti: Array<'elementi' | 'foto'> = []
+  const accessoriFalliti: AccessorioFallito[] = []
   if (scartati.length > 0) accessoriFalliti.push('elementi')
+  // Il colore non ha fatto fallire niente (regola dura), ma non è stato
+  // registrato: senza questa riga l'utente legge «Fatto!» e non sa di dover
+  // correggere. È il rilievo M2 della revisione pre-merge dell'ondata (a).
+  if (coloreScartato) accessoriFalliti.push('colore')
 
   // Passo 4: foto dell'impronta.
   if (foto) {
