@@ -32,10 +32,30 @@ transazione annullata: 5 righe su 5, `provenienza` conservata. 🛑 `colore_dent
 copiare** di proposito: in produzione gira `main`, che legge ancora quella colonna.
 ✅ **G3 CHIUSO** (`98db9114`): la guardia sull'embed ignora i commenti. **Misurato: prima restava
 verde con la riga vera cancellata, ora fallisce.**
-🔴 **RESTANO 3 CORREZIONI decise da Francesco:** **G2** POST/PUT (un dente storto fa perdere **il
-lavoro**, non il colore — 7 forme su 7 misurate) · **M1** il gettone `atteso_updated_at` è
-**facoltativo** (riprodotto: due salvataggi, il secondo cancella il primo) · **M2** il colore
-digitato male sparisce senza avviso.
+✅ **M2 CHIUSO** (`64615027`): il colore digitato male **non sparisce più in silenzio**. Frase che
+l'utente legge: **«Non sono riuscita a salvare il colore. Lo aggiungi dalla scheda.»** — con la
+concordanza che ora **accorda** (era «Li» fisso: «la foto… **Li** aggiungi» era sbagliato **già prima**,
+corretto e dichiarato). 🔑 L'unione degli accessori era **ricopiata a mano in tre file** — ed è per
+questo che il colore mancava da tutti e tre: ora è un tipo solo, e un accessorio nuovo **spegne la
+compilazione** finché non ha la sua frase. Forza provata **col sabotaggio**, non col rosso: forzando
+`scartato:true` sempre → 4 rossi (solo le negative); forzando l'avviso anche senza il campo → 14.
+✅ **M1 CHIUSO** (`0c5b8db9`): il gettone anti-sovrascrittura è **obbligatorio**.
+🔴 **RESTA UNA CORREZIONE: G2** — POST e PUT non validano lo stesso corpo, e **un dente storto fa
+perdere IL LAVORO**, non il colore (7 forme su 7 misurate: 422 sul PUT, 500 col messaggio Postgres
+crudo sul POST e nessun lavoro creato).
+🔴 **Nuovo da M2, non toccato:** **lo stesso difetto è anche sulla PATCH della scheda**
+(`[id]/route.ts:403-405` riceve `scartato` e lo butta): chi corregge il colore dalla scheda con un
+codice fuori catalogo legge «Salvato». Il canale ora **esiste**, basta rimandarlo nella risposta.
+⚠️ `src/components/ds/Avviso.tsx` taglia a **2 righe**: con tutti e tre gli accessori persi (88
+caratteri) a 390px il testo può troncarsi. Difetto del componente, non della frase — ondata (b).
+
+🛑 **LEZIONE SUL LAVORO IN PARALLELO, pagata due volte oggi:** con due esecutori sullo stesso albero,
+committare «solo i propri file per percorso» **NON basta**. `lint-staged` mette da parte le modifiche
+non in stage e **riscrive l'indice** a fine corsa (~15 s): in quella finestra un commit può prendere i
+file dell'altro (successo all'orchestratore) **oppure sostituirli ai propri** (successo a M2, che si è
+ritrovato un commit con **zero** file suoi). Nessun lavoro perso in entrambi i casi, rimediato con
+`git reset --soft HEAD~1`. **Regola nuova: dopo ogni commit si verifica l'ELENCO DEI FILE, non solo
+lo stage prima.**
 🔴 **Nuovi dal G1, non toccati:** `007_rpc_rifacimento.sql` **non è la funzione viva** (il testo
 insegna il modello sbagliato: progressivo `MAX+1`, `GRANT` a `authenticated`) · **`incidenti_mdr` non
 viene MAI scritto sul rifacimento** (0 righe in tutta la banca dati) · l'originale **non viene
