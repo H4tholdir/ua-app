@@ -533,8 +533,11 @@ CREATE UNIQUE INDEX pazienti_codice_lab_uidx
   ON pazienti (laboratorio_id, lower(btrim(codice_paziente)))
   WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> '';
 ```
-*(l'advisor proponeva `upper`; si adotta **`lower`** per allinearsi al precedente in casa — parete cassette,
-`…090000:67-68`. La scelta è cosmetica **purché index e pre-check usino la stessa identica espressione**.)*
+*(l'advisor proponeva `upper`; si adotta **`lower`**, e non per gusto: 🔍 **`cognomeEffettivo`
+(`domain/nome-paziente-scrittura.ts:86-89`) confronta già oggi il codice `trim`-ato e in minuscolo** —
+`if (cod && c.toLowerCase() === cod.toLowerCase())`. Quindi `lower(btrim(...))` non è solo coerente col
+precedente della parete: **è la stessa normalizzazione che esiste già su questa identica colonna**. La
+scelta resta cosmetica **purché indice e pre-check usino la stessa identica espressione**.)*
 
 **Perché.** Il codice **non è un'etichetta interna: è un identificativo di legge**, alla pari del nome.
 **Art. 21(2) MDR:** «I dispositivi su misura sono muniti della dichiarazione … messa a disposizione di **un
