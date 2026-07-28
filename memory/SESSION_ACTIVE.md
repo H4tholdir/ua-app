@@ -50,9 +50,22 @@ risponde **201 col colore scartato**. **3530 verdi.** 🔑 `denti_coinvolti` pas
 ⚠️ **Due deviazioni dichiarate:** la firma tiene `elemento: string` (l'interfaccia non produce altro)
 e `accessoriFalliti` diventa `Array<'elementi'|'foto'>` — **il T12 non lo corregga indietro**.
 
-**ONDATA (a) — 11 task su 13. 🔨 BLOCCO 10-11-12 APERTO** (autorizzato da Francesco il 28/07:
-«cominciare subito»). **RESTA DEL BLOCCO: T12** (mandato **ampliato**: anche la strada del ritorno).
-Poi T13 prove + FASE 7. 🕛 **T11-bis** (simmetria POST/PUT) è **fuori dal blocco**, può seguire.
+✅ **T12 + T12-bis + coda CHIUSI** (`e80e9bb8`, `3302f799`, `0a319fc4`): la scheda scrive i denti sul
+loro endpoint **e li rilegge dalle righe** — senza quel pezzo avresti digitato un colore, letto
+«Salvato», ricaricato e non l'avresti più trovato. **3584 verdi.** 🛑 **IL BLOCCO 10-11-12 È CHIUSO:
+il ramo non è più in stato intermedio.**
+🔑 **Il colore «di tutto il lavoro» è un dato LEGITTIMO** — parole di Francesco (fonte primaria):
+*«si può succedere di voler inserire il colore ad esempio su di una protesi totale senza indicare il
+dente»*. `colore_scala`/`colore_codice` entrano in `PATCHABLE_FIELDS` (additivo), normalizzazione col
+catalogo **estratta in una copia sola** (`src/lib/api/colore-caso.ts`, chiamata da POST e PATCH).
+🔑 **Una regola che avevo scritto io, smentita da un repro:** «quando ci sono righe il caso non si
+tocca» rendeva il colore **non azzerabile** sulla forma normale dei lavori nati dal wizard. Corretta:
+**il caso si scrive DOVE SI LEGGE**, azzeramento compreso.
+
+**ONDATA (a) — 12 task su 13 + due code.** **RESTA: T13** (le prove che nessun test unitario può
+dare: isolamento fra laboratori e cancellabilità, **sul database vero**) **+ FASE 7 + review + QA**.
+🕛 **Fuori dal deploy, possono seguire:** T11-bis (simmetria POST/PUT).
+🛑 **Il merge lo autorizza Francesco**, non si dà per scontato.
 🛑 **T10, T11, T12 nello STESSO deploy** (`[id]/route.ts:255-264` scarta senza errore): **da adesso
 il ramo è in uno stato intermedio** — il wizard e la scheda mandano sette campi che il server scarta
 in silenzio. **Non ci si ferma qui.**

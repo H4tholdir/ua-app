@@ -328,6 +328,80 @@ Sta nel codice, sopra `PATCHABLE_FIELDS`, con i due gruppi separati. **Nessuna r
 
 ---
 
+## 5-quinquies. Il T12 e le sue due code — **il blocco 10-11-12 È CHIUSO** (28/07/2026)
+
+Commit: **`e80e9bb8`** (T12) · **`3302f799`** (T12-bis) · **`0a319fc4`** (coda del 12-bis).
+**3584 test verdi**, `tsc` 0, `eslint` 0, `next build` ok, DB alla baseline. Tutti e tre riverificati
+dall'orchestratore, non solo riferiti.
+
+### T12 — la scheda scrive sull'endpoint **e rilegge dalle righe**
+La strada dell'andata ricalca il precedente di `numero_cassetta` (i sette campi tolti **alla
+sorgente**, non lasciati partire per essere scartati). La strada del ritorno: la `GET` della pagina
+di modifica include `denti:lavori_denti(*)` e `LavoroFormClient` idrata le quattro caselle con
+`idrataColoreScheda`. 🔑 **`TabClinica.tsx` NON è stato toccato**: legge le stesse quattro chiavi di
+prima, nessun pixel cambia — il piano si contraddiceva (la tabella «Files» chiedeva di modificarlo,
+lo Step 4 diceva di no) e ha vinto lo Step 4.
+🔑 **`updated_at` si riallinea DUE volte**, dopo il PUT **e** dopo la PATCH: anche la PATCH riscrive
+`updated_at` server-side, quindi senza il secondo riallineamento basterebbe salvare un campo
+ordinario per far prendere un 409 fasullo al primo salvataggio clinico successivo.
+🔑 **Il Task 2 ha finalmente un consumatore:** `risolviColore` (la precedenza riga→caso, dichiarata
+«senza consumatori in questa ondata») è la base di `idrataColoreScheda`. Serve davvero: il wizard
+scrive il colore **solo** nel default di caso, quindi senza la ricaduta ogni lavoro nato dal wizard
+mostrerebbe la casella vuota.
+
+### T12-bis — il colore «di tutto il lavoro» torna correggibile
+> 🛑 **Ragione di dominio, parole di Francesco (fonte primaria, non dedurla di nuovo):** *«si può
+> succedere di voler inserire il colore ad esempio su di una protesi totale senza indicare il
+> dente.»* Il default di caso **non** è un ripiego per un dato incompleto: è un dato legittimo.
+
+Misurato prima di decidere: **293 lavori su 294 non hanno denti**, e **zero** hanno un colore — si
+stava riparando **il flusso**, non lo storico. `colore_scala`/`colore_codice` entrano in
+`PATCHABLE_FIELDS` (additivo: nate col T5, mai state in allowlist, un solo scrittore) e la
+normalizzazione col catalogo è stata **estratta** in `src/lib/api/colore-caso.ts` —
+`risolviColoreCaso`, **unica copia** (provato: `from('colori_dentali')` compare **una volta sola in
+tutto `src/`**), chiamata da POST e PATCH.
+
+### La coda — 🔑 **una regola che avevo scritto io, smentita da un repro**
+Avevo scritto «quando ci sono righe, il caso non si tocca». Conseguenza **osservata**, non dedotta:
+su un lavoro nato dal wizard con elemento **e** colore (righe senza colore, colore nel caso — la
+**forma normale**), **cambiare** il colore funzionava ma **azzerarlo no**: il vecchio riappariva al
+ricaricamento. **Un campo che non si può azzerare è un campo che non si corregge.**
+✅ Regola corretta: **il caso si scrive DOVE SI LEGGE** — ogni volta che dopo il salvataggio nessuna
+riga porterà una coppia completa, azzeramento compreso. La condizione di scrittura è ora **la stessa
+identica** con cui `idrataColoreScheda` decide di leggere il caso, e vive in **una funzione sola**
+(`coloreDelleRighe`) con tre chiamanti, invece che in tre condizioni scritte a mano.
+⚠️ Il pericolo che la regola vecchia voleva evitare resta chiuso, ed è **provato con un test che
+percorre i due momenti**: finché le righe portano un colore il caso è illeggibile; appena si
+svuotano, la stessa condizione lo riallinea.
+
+### 🔴 Ritrovamenti delle tre tornate
+
+18. **Le tre zone (collo/corpo/incisale) senza elementi non hanno NESSUNA destinazione** — il default
+    di caso è una coppia `(scala, codice)` e basta. Il form **si ferma e lo dice** invece di buttarle
+    via. Limite dichiarato, non difetto nascosto.
+19. **La tendina della scheda offre 19 codici su 48.** Un `2M2` che arriva dal default di caso rende
+    la casella **vuota a schermo** mentre il dato resta intatto (verificato: riparte identico al
+    salvataggio, e la casella vuota non provoca azzeramenti). **Ondata (b)**, la tendina a 48 voci.
+    ⚠️ Rileva più di prima: quella tendina ora è anche **la penna** del caso, non solo la sua vetrina.
+20. **La sostituzione integrale ha due effetti strutturali:** (a) una riga `escluso`/`incollato`
+    verrebbe cancellata da un salvataggio della scheda (irraggiungibile oggi: nessuna UI scrive quei
+    ruoli); (b) a ogni modifica clinica **tutte** le righe passano a `provenienza:'eseguito'`, anche i
+    denti non toccati — rileva per il precheck W20/W22 dell'**ondata (c)**.
+21. **Due `select` della fatturazione chiedono le quattro colonne orfane e non le leggono mai**
+    (`fatture/[id]/xml/route.ts:109-112`, `fatture/batch/route.ts:125-128`): verificato che la stringa
+    «colore» non compare in `generate-xml.ts`. **Nessun valore fermo finisce su un documento
+    fiscale.** Due select da ripulire nell'**ondata (c)**.
+22. **La vista `lavori_dashboard` espone ancora `colore_dente`** (colonna ferma dal T10). Nessun
+    codice applicativo la interroga. **Ondata (c)**.
+23. **La distinzione elementi/denti non è sparita, si è spostata** (dichiarato dall'esecutore invece
+    di essere lasciato credere): `coloreDelleRighe` nomina ancora `denti_coinvolti`. La formulazione
+    che l'assorbirebbe (derivarla dalle righe costruite) **non è utilizzabile** — `costruisciDenti`
+    può rispondere `ok:false` proprio nei salvataggi dove il PUT non parte, e le due uscite possibili
+    sono entrambe sbagliate (si azzererebbe un caso valido, oppure si perderebbe in silenzio una
+    modifica). Il guadagno vero è che la regola sta in **un posto solo** invece di tre.
+
+---
+
 ## 6. Come si esegue (metodo scelto da Francesco, e ha funzionato)
 
 **Un task alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e l'altro. Nel brief:

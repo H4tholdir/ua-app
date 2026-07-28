@@ -1734,6 +1734,13 @@ In `src/app/api/lavori/[id]/route.ts`, cancella dalle righe 89-95 le voci `denti
 // colore_corpo, colore_incisale NON devono MAI rientrare in questa allowlist.
 // Il dato clinico per-dente vive in `lavori_denti` e si scrive SOLO da
 // PUT /api/lavori/[id]/denti (RPC lavoro_denti_sostituisci_atomica).
+// ⚠️ AGGIORNATO 28/07/2026 (Task 12-bis + la sua coda): per `colore_dente` la
+// riga qui sopra NON è più vera — ha DUE destinazioni. Se una riga porterà il
+// colore, va sulle righe; altrimenti (nessun elemento, OPPURE colore azzerato)
+// va sul DEFAULT DI CASO `lavori.colore_scala`/`colore_codice`, scrivibile
+// dalla PATCH. La versione autoritativa è quella NEL CODICE, sopra
+// PATCHABLE_FIELDS: questo blocco del piano è il modello da cui è nata, non la
+// fonte. Segnalata dall'esecutore della coda del 12-bis, R-E2.
 //
 // 🔑 La ragione, come chiede la direttiva D10, è scritta qui e non è «nessun
 // writer nel form React»: sono DUE SORGENTI DELLO STESSO FATTO CLINICO. Con le
