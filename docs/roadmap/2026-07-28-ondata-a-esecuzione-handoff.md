@@ -273,6 +273,61 @@ Sta nel codice, sopra `PATCHABLE_FIELDS`, con i due gruppi separati. **Nessuna r
 
 ---
 
+## 5-quater. Quello che il T11 ha lasciato detto (28/07/2026, commit `1163f092`)
+
+**Fatto:** il wizard manda i denti **dentro** il POST, la PATCH fail-soft è sparita, e il colore
+**non può più far fallire la creazione**. 41 casi nuovi, **35 rossi al primo giro**; suite da 3487 a
+**3530 verdi**, `tsc` 0, `eslint` 0, `next build` ok, DB alla baseline.
+
+- **La mappatura, scritta e non assunta:** il wizard raccoglie **due caselle di testo libero**
+  (`PassoPaziente.tsx:83-98`), «Elemento» e «Colore». `mappaElementi()` toglie il punto cosmetico
+  (`2.6`→`26`), pretende **due cifre esatte** (`2.66` esce, mai troncato) e passa da `isFdiValido`.
+  `provenienza: 'prescritto'` e `ruolo: 'elemento'` sono **costanti**, con la ragione nel codice: il
+  wizard è l'accettazione di ciò che il dentista ha prescritto; «eseguito», «mancante» e «impianto»
+  non hanno alcun comando in quella schermata.
+- 🔑 **Deduplica silenziosa:** «2.6, 26» è **un dente scritto due volte**, non un dato perso. Senza,
+  il POST rispondeva 422 «dente ripetuto» e al banco si perdeva **il lavoro** per una ripetizione.
+- ✅ **La prova che il colore degrada, misurata sulla RPC vera (transazione annullata):**
+  `lavoro_crea_atomico(..., 'colore_codice','a3')` → **ERRORE**, `violates foreign key constraint
+  "lavori_colore_caso_fk"`. Con `'A3'` → lavoro creato. Ora il POST normalizza (`a3`→`A3`+
+  `vita_classical`, `bl`→`BL`+`fuori_scala`, `2m2`→`2M2`+`vita_3d_master`), e su una coppia fuori
+  catalogo risponde **201 col colore scartato**: la coppia inesistente **non raggiunge mai il
+  database**. 🛑 Si perde il colore, mai il lavoro.
+- 🔑 **Il test morto è stato sostituito, e la ragione per cui era verde vale come lezione:**
+  `crea-lavoro.test.ts:193` misurava l'**intenzione del client**, mai l'**accettazione del server** —
+  il `fetch` era finto, quindi la PATCH non arrivava mai a qualcuno che potesse rifiutarla. In più
+  l'esecutore ha aggiunto un blocco **«la stretta di mano»** che costruisce il corpo del POST con
+  `mappaElementi` **vera** e lo fa accettare dalla route vera: chiude la cucitura fra le due metà.
+
+### 🔴 Ritrovamenti e deviazioni del T11 (dichiarate, non nascoste)
+
+14. **Due deviazioni consapevoli dalla lettera del piano**, entrambe perché il piano presupponeva
+    un'interfaccia che **non esiste in questa ondata**: (a) la firma di `creaLavoroDaWizard` tiene
+    `elemento: string`/`colore: string` invece di `denti[]` — è ciò che l'interfaccia produce
+    davvero, e una firma `denti[]` spingerebbe il parsing dentro il componente inventando una UI che
+    il wizard non sa alimentare; (b) `accessoriFalliti` **non** si riduce a `Array<'foto'>` ma
+    diventa `Array<'elementi' | 'foto'>`. ⚠️ **Il T12 non lo "corregga" indietro.** La ragione: con
+    testo libero il parsing esiste, e un token illeggibile («corona») aveva tre esiti — farlo passare
+    (**perde il lavoro**), buttarlo zitto (**la classe di difetto che l'ondata uccide**), o scartarlo
+    **e dirlo**. Solo il terzo regge entrambi i vincoli. Il **colore** invece degrada in silenzio, ed
+    è giusto: è deciso nel piano.
+15. **Il piano codificava il colore per-dente nel proprio test** (`denti: [{fdi, scala, codice, …}]`)
+    — che è dichiaratamente **ondata (b)** e che `PassoPaziente` non sa produrre. Non implementata.
+16. **`denti_coinvolti` cambia formato con questo commit**: la denormalizzazione RPC produce
+    `['26','27']` dove il wizard scriveva `['2.6','2.7']`, e il valore atterra **visibile** nella DdC
+    (`DdcTemplate.tsx:258-259`, un `join(', ')`) e nella scheda. ✅ **Verificato in banca dati: è un
+    ALLINEAMENTO, non una rottura** — l'unico lavoro con denti in casa ha già `["21"]`, senza punto,
+    perché lo aveva scritto la scheda. Il wizard era l'unico fuori riga, e `TabClinica.tsx:28` fa
+    `.map(Number)` sui valori: con `'2.6'` produceva `2.6`, che **non è un FDI valido** — cioè
+    l'odontogramma della scheda non ritrovava il dente scritto dal wizard. Il formato nuovo è quello
+    canonico ISO 3950 e quello che il resto dell'app già usa.
+17. **Nota sui tipi generati da Supabase:** l'inferenza di `.select('scala, codice')` controlla i
+    **nomi** delle colonne (provato: un nome inventato dà `TS2339`) ma degrada i **valori** ad `any`.
+    Vale per ogni `select` multi-colonna del repo, non solo per questo. Nessuna azione, ma non
+    contare su `tsc` come rete sui **tipi** di ciò che torna da una `select`.
+
+---
+
 ## 6. Come si esegue (metodo scelto da Francesco, e ha funzionato)
 
 **Un task alla volta, ognuno a un esecutore fresco**, con revisione fra l'uno e l'altro. Nel brief:

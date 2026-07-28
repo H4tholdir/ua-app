@@ -41,8 +41,18 @@ rileggerebbe** (la GET non include `lavori_denti`, `TabClinica` si idrata dalle 
 ✅ chiuso **scrivendolo nel piano** come ampliamento del **T12** (strada del ritorno + test
 scrivi→rileggi→ritrova). Non è normativo: la DdC non legge campi colore.
 
-**ONDATA (a) — 10 task su 13. 🔨 BLOCCO 10-11-12 APERTO** (autorizzato da Francesco il 28/07:
-«cominciare subito»). **RESTANO:** T11 wizard · T12 form (**mandato ampliato**) · T13 prove + FASE 7.
+✅ **T11 CHIUSO** (commit `1163f092`): il wizard manda i denti **dentro** il POST, la PATCH fail-soft
+è sparita, e **il colore non può più far fallire la creazione** — provato sulla RPC vera che `a3`
+minuscolo violava `lavori_colore_caso_fk`; ora il POST normalizza e su una coppia fuori catalogo
+risponde **201 col colore scartato**. **3530 verdi.** 🔑 `denti_coinvolti` passa da `['2.6']` a
+`['26']`: **è un allineamento** — in banca dati c'era già `["21"]`, e `TabClinica.tsx:28` fa
+`.map(Number)`, quindi col vecchio formato l'odontogramma **non ritrovava** il dente del wizard.
+⚠️ **Due deviazioni dichiarate:** la firma tiene `elemento: string` (l'interfaccia non produce altro)
+e `accessoriFalliti` diventa `Array<'elementi'|'foto'>` — **il T12 non lo corregga indietro**.
+
+**ONDATA (a) — 11 task su 13. 🔨 BLOCCO 10-11-12 APERTO** (autorizzato da Francesco il 28/07:
+«cominciare subito»). **RESTA DEL BLOCCO: T12** (mandato **ampliato**: anche la strada del ritorno).
+Poi T13 prove + FASE 7. 🕛 **T11-bis** (simmetria POST/PUT) è **fuori dal blocco**, può seguire.
 🛑 **T10, T11, T12 nello STESSO deploy** (`[id]/route.ts:255-264` scarta senza errore): **da adesso
 il ramo è in uno stato intermedio** — il wizard e la scheda mandano sette campi che il server scarta
 in silenzio. **Non ci si ferma qui.**
