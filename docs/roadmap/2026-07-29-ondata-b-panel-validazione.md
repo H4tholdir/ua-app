@@ -665,7 +665,11 @@ riscrittura del generatore del codice.
 
 ---
 
-## 9. Cosa propongo
+## 9. Cosa propongo — ✅ FATTO, il piano v2 esiste
+
+🛑 **PUNTO DI RIPRESA OPERATIVO: `docs/roadmap/2026-07-29-ondata-b-piano-v2.md`.**
+Incorpora tutti i 29 rilievi, le quattro risposte normative e **D34/D34-bis**. Sotto, il ragionamento con
+cui è stato costruito — resta qui perché spiega **perché** l'ordine è quello.
 
 **Il piano non si esegue: si riscrive la parte che i rilievi hanno spostato.** Non da capo — l'ossatura e
 le 33 decisioni reggono — ma sei bloccanti non si aggirano con una nota a margine.

@@ -21,6 +21,18 @@ renderebbe verdi a vuoto tutte le verifiche di pulizia).
 🔧 **Fatto il 29/07:** conteggio 10→11 · spec §15 (tre superfici avevano già i mockup approvati, D23-D25) ·
 verbale D22 ripulito dalle due stesure superate · 6 screenshot salvati (98 = 98) · **nota falsa
 `bite_splint` rimossa da `tipi-lavoro.ts`**.
-🟡 **In corso:** panel normativo a 3 advisor su **4 domande** (soft/hard · chi-e-fino-a-quando ·
-riuso del codice archiviato · normalizzazione). Poi la **riscrittura del piano**. **Zero righe di codice
-applicativo.** Baseline riverificata: **294 · 0 · 916 · 48**.
+✅ **PANEL NORMATIVO CHIUSO — 4 domande su 4.** Foto: **soft-delete**, stessi ruoli che caricano, finestra
+**fino alla consegna** (che è anche il confine di legge: Art. 52(8) + Art. 2(28) → la consegna **è**
+l'immissione sul mercato). **D34 ratificata:** il codice di un archiviato **non si riusa mai** ·
+**D34-bis:** `lower(btrim(...))`, che è la normalizzazione **già presente** su quella colonna.
+🔧 **Base normativa corretta in 3 documenti:** per i **su misura** non è l'Art. 10(8) (i suoi oggetti sono
+riservati ai dispositivi «diversi dai su misura», Art. 10(4)/(6)) ma **Art. 10(5) + All. XIII p.4**; e
+`ANALISI/17:174` diceva **10** anni per gli impiantabili invece di **15**, contraddicendo la sua stessa
+riga :149.
+
+🛑 **PUNTO DI RIPRESA OPERATIVO: `docs/roadmap/2026-07-29-ondata-b-piano-v2.md`** (scritto il 29/07).
+**Consegna zero (Z1-Z3) va in produzione DA SOLA e PRIMA del ramo** — non c'è staging, quindi l'indice
+varrebbe per la produzione senza la gestione dell'errore. Poi 23 task.
+🔴 **Restano: 3 sonde** (P2 da rieseguire · P3 · P6-forma) · **2 gate di mockup** (denti, colore) ·
+**2 decisioni di prodotto** (quando nasce la cassetta creata dal wizard · la stringa della briciola).
+**Zero righe di codice applicativo.** Baseline riverificata: **294 · 0 · 916 · 48**.
