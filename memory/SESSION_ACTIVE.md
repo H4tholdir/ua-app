@@ -26,7 +26,11 @@ mano. → stessa coda.
 «Colore «X» non riconosciuto: riselezionalo prima di salvare» ·
 «Qualcun altro ha modificato questo lavoro: ricarica la pagina».
 
-⚖️ **Metodo che ha pagato: 15 esecutori freschi, 15 difetti reali trovati** — uno in una regola scritta
-dall'orchestratore stesso, smentita da un repro. **R-E1/R-E2 restano in vigore.** 🛑 **MAI worktree.**
+⚖️ **Metodo che ha pagato: 16 esecutori freschi, 16 difetti reali trovati** (contati sugli
+identificativi) — uno in una regola scritta dall'orchestratore stesso, smentita da un repro.
+✅ **Verificato prima di chiudere (la classe di difetto che solo una review di ramo intero vede):** la
+scheda in **sola lettura** (`scheda-v3/`) **non rende alcun campo colore** — nessun disaccordo fra
+superfici sullo stesso fatto. Gli unici due file che nominano `colore_dente` nella UI sono quelli del
+form, entrambi coperti dal T12. **R-E1/R-E2 restano in vigore.** 🛑 **MAI worktree.**
 ⚠️ `.next` stantio dopo un cambio di ramo fa fallire `tsc` nel pre-commit → `/usr/bin/trash .next`.
 🔑 `node scripts/tmp/sql.mjs "<query>"` (vive **solo su questo disco**).
