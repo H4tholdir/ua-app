@@ -189,6 +189,36 @@ ovunque**) · `cssEase.sheet` (`:47`) · `coreografie.pilaEspansione` (`:70`) ·
 | **P9** | Rinominare la chiave di `localStorage` è innocuo | ✅ **PROVATA FALSA, 29/07.** Tutti i test leggono `CHIAVE_WIZARD` **dalla costante**: rinominandola **nessun test se ne accorge**, le bozze `v:1` restano orfane **per sempre**, e ogni `expect(getItem(...)).toBeNull()` passa **a vuoto**. ➡️ **il nome resta, e T9 rimuove esplicitamente** |
 | 🆕 **P10** | Il generatore e l'indice guardano la stessa popolazione | ✅ **PROVATA FALSA** (due advisor + sonda): il generatore filtra `deleted_at`, la lettura filtra `archiviato`, l'indice **nessuno dei due**; e il generatore è **case-sensitive** su `.like` e sulla regex. ➡️ **Z3** |
 
+### 🆕 P11 — l'escape del termine di ricerca (D48). ✅ **PROVATA, 29/07**
+
+⚠️ **La sonda vive in `scripts/tmp/`, che è IGNORATO da git** (`.gitignore:124`): scaduta la sessione,
+sparisce. Si incolla qui — è il rilievo che la review di T5 ha fatto, e non si ripete.
+🛑 Sola lettura, **solo conteggi**: mai una riga stampata, sono dati Art. 9.
+
+```js
+// le due funzioni sotto prova (pgrestQuote è già in src/lib/utils/escape-postgrest.ts)
+const pgrestQuote   = (v) => `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+const ilikeLiterale = (v) => v.replace(/\*/g, '').replace(/([\\%_])/g, '\\$1')
+
+const conta = async (filtro) => (await svc.from('pazienti')
+  .select('id', { count: 'exact', head: true })
+  .eq('laboratorio_id', LAB).or(filtro)).count
+```
+
+| `q` | solo `pgrestQuote` | `ilikeLiterale` + `pgrestQuote` |
+|---|---|---|
+| `%` | **911** ❌ (su 911) | **0** ✅ |
+| `_` | **911** ❌ | **0** ✅ |
+| `*` | **911** ❌ | **911** ❌ 🔑 **ed è il punto:** `*` non è escapabile, si rimuove, e la rimozione lascia `''` → pattern `%%`. **La guardia sul vuoto è obbligatoria** |
+| `a%b` | 0 | 0 |
+| `rossi, mario` | 0, **nessun 400** (senza virgolette darebbe `PGRST100`) | 0 |
+
+**Controllo negativo di tenant, in ATTACCO** (lab A ha **1** paziente, lab B ne ha **911**: un'evasione si
+vedrebbe): `.eq('laboratorio_id', A).or('laboratorio_id.eq.<B>,codice_paziente.ilike.%zzz%')` — valore
+**nudo**, nessun escape → **0 righe**. Regge **per struttura**, non per fortuna: `postgrest-js` mette il
+gruppo `or` in un **parametro separato** (`node_modules/@supabase/postgrest-js/dist/index.cjs:2988-2990`,
+`searchParams.append`), che PostgREST unisce agli `.eq()` con un **AND** e parentesizza per conto suo.
+
 **Ogni blocco di codice di questo piano nasce `non eseguito`, col comando accanto** che l'esecutore userà.
 
 ---
@@ -247,30 +277,68 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
      convenzione per «nessun nome»**. **B2 è emendata a QUATTRO chiavi:** `id, codice_paziente, alias,
      ultimoLavoro`. 🛑 **Il motivo scritto qui — «mostrerebbe il codice due volte» — vale ZERO righe**
      (`cognome == codice`: nessuna); il problema vero è che **911 schede su 916 non hanno alcun nome**.
-  3. **`cliente_id` obbligatorio quando c'è `q`** (422 altrimenti): è la **portata** D11, e oggi è dentro
-     un `if`.
-  4. **`pgrestQuote`** (`lib/utils/escape-postgrest.ts`, precedente `api/clienti/route.ts:39-40`)
-     **+ escape di `%` e `_`**: senza, `q=%` restituisce l'anagrafica intera.
+  3. 🔧 **`cliente_id` obbligatorio quando c'è `q` — e il ramo si sceglie su `q !== null`, MAI su
+     `if (q)`** (D46). È la **portata** D11, e oggi è dentro un `if`. 🛑 **Il motivo per cui la grafia
+     conta più di quanto sembri:** `searchParams.get('q')` restituisce `''` per `?q=`, e `''` è **falso** —
+     con `if (q)` una casella di ricerca **svuotata** cade nel ramo legacy, dove `cliente_id` non serve e
+     il tetto è 500. Il vincolo di portata si aggirerebbe **togliendo un carattere**. E il **tetto va fuori
+     dal ramo**, non dentro (precedente: `fasi-produzione/ricerca/route.ts:32`, che degrada in sicurezza
+     proprio perché il suo `.limit(8)` sta fuori).
+     ⚠️ **Il codice è 400, non 422** (D46): il precedente in casa per un **parametro di query** mancante è
+     `impostazioni/pec/verify-status/route.ts:11` (400); tutti i 422 trovati sono semantica di **corpo**
+     (`api/pazienti/route.ts:82`, `impostazioni/preferenze/route.ts:50`), e una GET non ha corpo. Col suo
+     `motivo` leggibile a macchina, mai una frase (`route.ts:208-213`).
+     ⚠️ E `cliente_id` obbligatorio è **presenza, non appartenenza**: il POST verifica che il cliente sia
+     del laboratorio (`:86-96`), il GET no. L'isolamento regge lo stesso (è `laboratorio_id`), ma non si
+     scriva «isolamento» dove c'è «portata». Un `cliente_id` non-UUID non prende il 400: va al confronto
+     uuid, PostgREST dà `22P02` e si cade nel 500 generico di `:45-50`.
+  4. 🔧 **L'escape ha QUATTRO metacaratteri, non due, e un ORDINE — v. D48.** Il piano ne nominava due.
+     `(1)` **`*` si RIMUOVE** (PostgREST lo traduce in `%` sul valore già spogliato dagli apici: non è
+     neutralizzabile) e **`\ % _` si escapano in una sola passata**; `(2)` **guardia sul vuoto DOPO
+     l'escape** — senza, `q='*'` collassa a `''` e il pattern `%%` restituisce l'anagrafica intera;
+     `(3)` cornice `%…%` e **`pgrestQuote` per ULTIMO** (`lib/utils/escape-postgrest.ts`, precedente
+     `api/clienti/route.ts:39-40`), perché è lui che raddoppia le barre di cui il parser di PostgREST ne
+     mangia una. Invertendo l'ordine **si cerca un'altra stringa**.
      🛑 **La «lunghezza minima» è STATA TOLTA da D44: non difende nulla, ed è misurato.** **912 codici su
      916** condividono lo stelo `PAZ/2026/`, quindi `%PAZ/2026/0%` — **dieci caratteri** — restituisce
      **911 righe**. La difesa è un **tetto duro sulle righe** (~10 dalla rotta, **5** mostrati a schermo),
-     non sui caratteri digitati.
-  4-bis. 🆕 **Il filtro si DICHIARA, ed è `codice_paziente | cognome | nome`. Mai `nome_cognome`** (D44):
-     911 + 5 = 916, quindi nessuna riga porta in `nome_cognome` un nome che non sia già in `cognome` —
-     includerlo aggiungerebbe **solo** righe indistinguibili. `nome` entra perché `risolviNomePaziente:67`
-     mette **nel cognome** il valore quando la casella piena è una sola.
-  4-ter. 🔴 **Da sciogliere DENTRO T6, non sottintendere:** piano (proiezione stretta **sempre**) e spec §5
-     (ridotta **solo con `q`**) **non concordano**, e l'unico chiamante vivo (`crea-lavoro.ts:250`) chiama
-     **senza `q`** e **non legge** l'ultimo lavoro. B2 deve dire **su quale percorso** vale e se l'innesto
-     gira anche senza `q`, per fino a 500 righe a ogni creazione di lavoro.
+     non sui caratteri digitati. ⚠️ **E resta tolta anche dopo la misura di prestazione** che la
+     riproporrebbe: quella nasce solo col trigram, ed è **voce di roadmap** (v. §6-bis).
+  4-bis. 🔧 **Il filtro si DICHIARA, ed è a QUATTRO colonne: `codice_paziente | nome_cognome | cognome |
+     nome`** (D47, che **emenda** D44 su questo punto). 🔴 **L'esclusione di `nome_cognome` poggiava su
+     un'aritmetica void:** su quelle 911 righe `nome_cognome` **è** `codice_paziente` carattere per
+     carattere, quindi non aggiunge **nessuna** riga che l'altra colonna non porti già (`provato:` 0 su
+     `paz`, `2026`, `101`) — mentre la sua assenza rompe il caso più naturale, cercare il nome **come lo si
+     legge**: `q='bagheria giuseppe'` → **0** senza, **1** con. Restano anche `cognome` e `nome` perché il
+     soprainsieme **non è garantito**: il trigger ricompone solo se **entrambi** sono non-null
+     (`002_fase2_schema.sql:124`). `nome` entra anche perché `risolviNomePaziente:67` mette **nel cognome**
+     il valore quando la casella piena è una sola.
+  4-ter. ✅ **SCIOLTO PRIMA DI T6, da D46 — non dentro.** **Forma UNICA su entrambi i percorsi:**
+     `id, codice_paziente, alias, ultimoLavoro`, `ultimoLavoro` **sempre calcolato** e `null` quando il
+     paziente non ha lavori (mai chiave omessa: un `null` che significhi anche «non calcolato» mente).
+     **B2 vale su entrambi i percorsi.** Motivo misurato: l'innesto sul percorso senza `q` costa **+911
+     buffer, +1,6 ms**, una volta per creazione di lavoro — e in casa non c'è **un solo** precedente di
+     risposta che cambia forma col parametro.
   5. **Data dell'ultimo lavoro in una sola andata** — **dopo P6-forma**, e con `deleted_at IS NULL` sui
      lavori (l'ultimo lavoro non può essere uno cancellato, e l'indice esistente è parziale su quel
-     predicato).
+     predicato). 🛑 **`order` + `limit(1, { referencedTable: 'lavori' })` sono OBBLIGATORI, e non per
+     eleganza:** senza il limite per padre ogni riga porta **tutte** le date d'ingresso — non è
+     `ultimoLavoro`, è la **cronologia delle prestazioni**, dieci pazienti per richiesta, Art. 9.
+  6. 🆕 **`archiviato = false` si dichiara su ENTRAMBI i percorsi** (oggi è a `:34`, incondizionato:
+     resta lì). 🛑 **E si scrive in T6 che questa rotta NON risponde a «chi occupa il codice»** — quella è
+     `trovaOccupanteCodice` (T7), deliberatamente **cieca allo stato** e larga su **tutto** il laboratorio.
+     Senza questa riga T15 userebbe la ricerca come riconoscimento e riaprirebbe il buco che T7 chiude.
+  7. 🆕 **Ritardo di 250 ms sulla battitura** (lato T15, dichiarato qui perché nasce da una misura fatta
+     su questa rotta): il giro di rete è ~80 ms e SQL ne è il **2-5%** — digitare `PAZ/2026/0101` sono
+     **13 giri**. A 250 ms collassano a 1-3.
+  8. 🆕 **I test asseriscono anche sul PREDICATO COSTRUITO, non solo sulle chiavi in uscita** (D48). Le
+     chiavi le guarda già B2; il predicato non lo guarda nessuno, ed è il **secondo canale** verso le
+     colonne che la proiezione ha appena tolto.
 - **T7** — 🆕 **la lettura di unicità del codice** (nuova, e il v1 non ce l'aveva).
   Rispecchia il predicato di T5 **alla lettera**: `laboratorio_id` + `lower(btrim(codice))`, **senza
   `cliente_id`** e **senza limite**. Motivo: il pre-check di oggi guarda **un solo dentista**
-  (`crea-lavoro.ts:209`) mentre l'indice guarda **tutto il laboratorio** → direbbe «libero» su un codice
-  occupato. 🛑 **La cura è cambiare la LETTURA, non aggiungere `cliente_id` alla chiave** — quello
+  (`crea-lavoro.ts:250` — ⚠️ **non `:209`**, coordinata stantia riverificata il 29/07) mentre l'indice
+  guarda **tutto il laboratorio** → direbbe «libero» su un codice occupato. 🛑 **La cura è cambiare la LETTURA, non aggiungere `cliente_id` alla chiave** — quello
   riaprirebbe D15. ⚠️ E `.limit(500)` contro **911 righe di un solo cliente**: ~411 già oggi invisibili.
 - **T8** — 🆕 `DELETE /api/lavori/[id]/immagini/[imgId]`. **Non è «una rotta»: è una rotta più otto letture.**
   - **SOFT** su `deleted_at` (D34/panel: soft, blob conservato, nessuna cancellazione fisica)
@@ -352,8 +420,11 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
   🆕 **Un paziente senza nome è un caso legittimo, non un errore** (Art. 21(2) MDR: nome, acronimo **o
   codice**): la riga di suggerimento deve **dirlo**, non fingere un nome. `alias` vale `null` proprio lì.
   🆕 **Tetto: ~10 righe dalla rotta, 5 mostrate** (D44). E si cerca su **cognome, nome e codice**.
-- **T16** — i due scrittori (`crea-lavoro.ts:229-230`). 🛑 Invarianti: **mai `null`** · **mai** il codice
-  fuori da `nome_cognome` senza ripiego (`precheck.ts:40-43` si ferma su `' '`).
+- **T16** — i due scrittori (`crea-lavoro.ts:270-271` — ⚠️ **non `:229-230`**, coordinata stantia
+  riverificata il 29/07: `nome: ''` a `:270`, `cognome: alias || pz` a `:271`). 🛑 Invarianti: **mai
+  `null`** · **mai** il codice fuori da `nome_cognome` senza ripiego (`precheck.ts:40-43` si ferma su
+  `' '`). ⚠️ **E T16 riscrive il chiamante che regge tutta l'architettura di D46:** `PazienteRiga`
+  (`:159`) dichiara **due sole chiavi** — è lui a rendere sicura la proiezione stretta.
 - **T17** — passo foto: galleria multipla (riuso di `TabImmagini`: `multiple`, compressione **0,4 MB**,
   `TIPI_FOTO`) + ingranditore + **elimina con conferma** (D29). 🛑 Le foto restano in memoria fino alla
   creazione: **comprimere allo scatto**. ⚠️ Se la galleria mostra una **riga persistita** e non solo file
@@ -380,6 +451,21 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
 
 ---
 
+## 6-bis. 🚧 Uscito dal panel D46-D48 e **fuori** dall'ondata (b) — con la sua destinazione
+
+Il panel del 29/07 ha misurato più di quanto T6 possa consumare. Quello che **non** entra nell'ondata (b),
+scritto qui perché un ritrovamento senza destinazione è un ritrovamento perso:
+
+| cosa | il numero che lo innesca | dove va |
+|---|---|---|
+| **Indice `(laboratorio_id, cognome, nome)` su `pazienti`** — oggi **nessun** indice serve l'ordinamento, e l'`ORDER BY` esterno costringe l'innesto a girare **911 volte** per restituirne 10 | 916 righe → **4,6 ms** (5% del giro) · 10.021 → **54 ms** (64%) · 20.042 → **109 ms**. 🔑 **Soglia: ~10.000 pazienti per laboratorio.** Con l'ordine su colonna indicizzata il LATERAL gira **10 volte**: 0,242 ms | roadmap |
+| **Indice trigram** (`pg_trgm 1.6` è **già installato**) — `%…%` non usa mai un btree | 916 righe = 1,26 ms · **50.105 righe = 83,7 ms**. Problema oltre le **~20.000** righe per laboratorio | roadmap, **stessa voce** |
+| **Lunghezza minima di 3 caratteri** | ⚠️ **NON serve oggi** e **non riapre D44**: a 916 righe la differenza fra ricerca larga e stretta è **7,6 ms su ~80** (9%). Nasce solo **col** trigram, perché `gin_trgm_ops` non estrae alcun trigramma sotto i 3 caratteri. È un argomento di **prestazione**, non di riservatezza — D44 l'aveva chiusa su altre basi e resta chiusa | roadmap, **stessa voce** |
+| **Freno di frequenza sulle rotte autenticate** — oggi **zero** | — | roadmap, **insieme** alla portata del percorso senza `q`: sono la stessa domanda |
+| **`deleted_at` nelle letture di `pazienti`** (R13) · **`portale_token` nella proiezione clienti** (R11 🔴) · **il trigger `nome_cognome` che può restare stantio** (R16) | v. verbale §6 | roadmap · R11 è **decisione di Francesco** |
+
+---
+
 ## 7. Le prove da scrivere (R-P4 sulla FASE 6)
 
 B1-B15 stanno nella spec §12. **Il panel ne ha smontate due e aggiunte otto.**
@@ -395,7 +481,7 @@ B1-B15 stanno nella spec §12. **Il panel ne ha smontate due e aggiunte otto.**
 | 🆕 **B22** | L'utente resta bloccato sul duplicato | Due creazioni con lo stesso codice → **409 di dominio**, e a schermo **l'avviso di §6.2**, non «Riprova» |
 | 🆕 **B23** | Il wizard propone un codice già occupato | Inserito `pz-0043` a mano, `prossimoPz` **NON** restituisce `PZ-0043` (Z3) |
 | 🆕 **B24** | La ricerca non trova i pazienti del wizard | Un paziente creato senza nome **non** compare col proprio codice nel campo cognome, **e** si trova cercando il cognome vero |
-| 🆕 **B25** | `q` senza `cliente_id`, o con metacaratteri | `q` senza `cliente_id` → **422** · `q=%` → **non** restituisce l'anagrafica intera |
+| 🆕 **B25** 🔧 | `q` senza `cliente_id`, o con metacaratteri | 🔧 **RISCRITTA da D46/D48, e ogni riga è un valore che DEVE essere rifiutato:** `q` senza `cliente_id` → **400** (non 422) · **`?q=` VUOTO** → **400 anch'esso**, non il ramo legacy (è la prova che il ramo si sceglie su `q !== null`) · `q=%` e `q=_` → **non** l'anagrafica intera (`provato:` col solo `pgrestQuote` danno **911 su 911**) · 🆕 **`q=*` → nemmeno**, ed è il caso che si perde per primo: `*` sopravvive alle virgolette, e **rimuoverlo senza guardia sul vuoto** lascia il pattern `%%` (`provato:` restituisce tutto) · 🆕 **controllo negativo di tenant, in ATTACCO:** un `q` che tenta `laboratorio_id.eq.<altro lab>` dentro il gruppo `.or()` → **0 righe** |
 | 🆕 **B26** | Il ritorno al passo precedente | **oggi non ha NESSUNA copertura** (`WizardNuovoLavoro.tsx:226`): l'unico test sul back imbocca l'altro ramo |
 | 🆕 **B27** | Un componente ucciso sopravvive | oltre al grep di B7: **il conteggio del catalogo è 20**, e la guardia di `ProgressDotsStanze` **è ancora viva da qualche parte** |
 
@@ -434,22 +520,23 @@ giro» sbaglia, **la larghezza vera arriva dopo**.
 1. ✅ **Delle tre sonde ne resta UNA.** **P3** e **P6-forma** sono **CHIUSE il 30/07**, con le prove
    incollate in §5. Resta **P2**, e resta per costruzione: **va rieseguita immediatamente prima di T5**,
    perché decade col tempo — il giorno prima non basta.
-1-bis. 🔴 **NUOVO BLOCCANTE, uscito dalle sonde: due documenti RATIFICATI si contraddicono su T6.**
-   **T6 punto 2** (qui sopra) vuole `cognomeEffettivo` **dentro la proiezione**; la **spec B2**
-   (`2026-07-28-wizard-ondata-b-schermate-design.md:374`) pretende che le chiavi siano «**esattamente**
-   `id, codice_paziente, cognome, nome, ultimoLavoro`» **e porta un test che fallisce se ne compare una
-   sesta**. Le due cose non stanno insieme. **Due uscite, e vanno pesate PRIMA di T6, non dentro:**
-   **(a)** la rotta serve il cognome **già effettivo sotto la chiave `cognome`** → restano **cinque**
-   chiavi e **B2 regge intatta**; **(b)** B2 si riscrive a sei. 🛑 **Sceglierne una di nascosto dentro
-   T6 è esattamente il modo in cui il piano v1 si è fatto male.**
-1-ter. ⚠️ **E una metà che nessun documento copre:** `cognomeEffettivo` sistema **come si mostra** il
-   cognome, **non su cosa si filtra**. Un paziente nato dal wizard ha `cognome = 'PZ-0042'`
-   (`crea-lavoro.ts:268`, `cognome: alias || pz`): con un filtro `cognome ilike '%…%'` **combacia** con
-   `q='PZ'` e poi **si mostra col cognome vuoto**. La prova **B24** chiede il contrario.
-   ➡️ **T6 deve DICHIARARE su quali colonne filtra.** 🔑 E c'è una **terza variante** che nessuna delle
-   due guardie copre: **911 pazienti su 916 hanno `nome_cognome = codice_paziente`** con `cognome` e
-   `nome` a `NULL` (provato). Una ricerca sul solo `cognome` raggiunge **5 pazienti su 916**; una che
-   tocchi `nome_cognome` restituirebbe **911 righe il cui nome visibile È il codice**.
+1-bis. ✅ **CHIUSO IL 29/07 — prima da D44, poi da D46.** Il bloccante («due documenti ratificati si
+   contraddicono su T6») è stato sciolto in due tempi: **D44** ha tolto `cognomeEffettivo` dalla
+   proiezione e portato B2 a **quattro** chiavi con `alias`; **D46** ha risposto alla metà che restava —
+   *su quale percorso vale B2* — e la risposta è **entrambi**: forma **unica**, `id, codice_paziente,
+   alias, ultimoLavoro`, con o senza `q`. 🔑 **Il motivo per cui non si è scelta la strada «due forme»**
+   (che sarebbe stata la mia): in casa **non esiste un solo precedente** di una risposta che cambia forma
+   col parametro — `api/clienti/route.ts:28-30,38-40` e `api/fasi-produzione/ricerca/route.ts:34-36`
+   applicano `q` come **solo filtro**. E l'innesto «ultimo lavoro» sul percorso senza `q` è stato
+   **misurato**: +911 buffer e **+1,6 ms**, una volta per creazione di lavoro — troppo poco per comprarci
+   una spaccatura di contratto.
+1-ter. ✅ **CHIUSO da D47.** «T6 deve DICHIARARE su quali colonne filtra» → **quattro**:
+   `codice_paziente, nome_cognome, cognome, nome`. 🔴 **E l'aritmetica di questa riga era void:** «una
+   ricerca che tocchi `nome_cognome` restituirebbe 911 righe indistinguibili» è **falso**, perché su
+   quelle 911 righe `nome_cognome` **è** `codice_paziente` carattere per carattere — le stesse righe
+   arrivano già dall'altra colonna, e il di più è **zero** (`provato:` `paz` 0 · `2026` 0 · `101` 0).
+   Escluderlo rompeva invece il caso più naturale: `q = 'bagheria giuseppe'` — il nome **come lo si legge
+   a schermo** — dà **0 righe** senza `nome_cognome` e **1** con.
 2. ✅ **CHIUSA — D38, ratificata da Francesco.** *Quando nasce la cassetta creata dal wizard?* → **uscita
    (a): alla fine, insieme al lavoro.** Il wizard porta **l'intenzione**, la scrittura avviene nell'unico
    punto in cui nasce il lavoro (`WizardNuovoLavoro.tsx:363-371` — ⚠️ **non `:362-364`**, coordinate

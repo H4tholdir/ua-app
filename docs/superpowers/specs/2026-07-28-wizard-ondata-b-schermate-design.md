@@ -212,8 +212,14 @@ dentro un solo studio il dentista non disambigua nulla, restano nome proprio, co
 `id, codice_paziente, cognome, nome` più la data dell'ultimo lavoro — perché la ricerca è una superficie che
 si apre a ogni tasto premuto.
 
-**✅ Scelta: (a) — parametro `q=` sull'endpoint esistente, con proiezione ridotta quando `q` è presente.**
-Nessun client si rompe (`crea-lavoro.ts:213` legge `codice_paziente`, che resta nella proiezione ridotta), e
+**✅ Scelta: (a) — parametro `q=` sull'endpoint esistente.** 🔧 **EMENDATA il 29/07 da D46 su UN punto:
+la proiezione ridotta NON è condizionale — vale su ENTRAMBI i percorsi, con e senza `q`.** Questa riga
+diceva «quando `q` è presente», e contraddiceva il piano (T6.1). Motivo dell'emendamento, misurato: in casa
+non esiste **un solo** precedente di risposta che cambia forma col parametro (`api/clienti/route.ts:28-30`,
+`api/fasi-produzione/ricerca/route.ts:34-36` applicano `q` come **solo filtro**), e l'innesto «ultimo
+lavoro» sul percorso senza `q` costa **+911 buffer e +1,6 ms**, una volta per creazione di lavoro.
+Nessun client si rompe (`crea-lavoro.ts:255` legge `codice_paziente` — ⚠️ **non `:213`**, coordinata
+stantia riverificata il 29/07; il tipo che lo dichiara è `PazienteRiga` a `:159`, **due sole chiavi**), e
 non nasce una seconda porta da proteggere allo stesso modo. Scartata **(b)** endpoint dedicato
 `GET /api/pazienti/cerca`: due route sullo stesso dato sono due posti dove sbagliare il filtro di tenant.
 ⚠️ Il filtro `laboratorio_id = labId` e `.eq('cliente_id', …)` **non si toccano**: sono l'isolamento.
@@ -371,7 +377,7 @@ si lascia**, è la stessa specie delle dichiarazioni morte già rimosse tre volt
 | # | Rischio | Prova |
 |---|---|---|
 | **B1** | La ricerca mostra pazienti di un altro laboratorio | richiesta con `cliente_id` di un altro tenant → **404/lista vuota**, byte per byte identica a quella per un id inesistente (non enumerabile) |
-| **B2** 🔧 **EMENDATA il 29/07 da D44** | La ricerca manda al browser dati che non servono | asserzione sulla **forma della risposta**: le chiavi sono esattamente **`id, codice_paziente, alias, ultimoLavoro`** — **quattro, non cinque** — e un test che fallisce se ne compare una quinta (per esempio `codice_fiscale`). 🔧 **Cosa è cambiato e perché:** `cognome` e `nome` **escono** e al loro posto entra **`alias: string \| null`**, prodotto da `derivaAlias` (`src/lib/cassette/parco-shared.ts:69`), che vale `null` quando il nome visibile **è** il codice. La stesura precedente («esattamente `id, codice_paziente, cognome, nome, ultimoLavoro`») era **incompatibile con T6 punto 2** del piano, che voleva un sesto campo derivato; e l'uscita che avrebbe salvato la forma — servire il cognome **già derivato** sotto la chiave `cognome` — è stata **scartata con prova**: renderebbe `cognome` una colonna in scrittura e un derivato in lettura, e un client che rimanda `cognome: ''` (911 righe su 916) fa scrivere **il codice dentro il cognome**, in silenzio. 🔑 **E questa prova sarebbe rimasta VERDE proprio attraverso quel cambiamento**, perché guarda la forma. Verbale: **D44** |
+| **B2** 🔧 **EMENDATA il 29/07 da D44, poi da D46 e D48** | La ricerca manda al browser dati che non servono | asserzione sulla **forma della risposta**: le chiavi sono esattamente **`id, codice_paziente, alias, ultimoLavoro`** — **quattro, non cinque** — e un test che fallisce se ne compare una quinta (per esempio `codice_fiscale`). 🔑 **D46 risponde alla domanda che questa prova non poneva — SU QUALE PERCORSO vale: ENTRAMBI**, con e senza `q`; `ultimoLavoro` è **sempre presente**, `null` quando il paziente non ha lavori (chiave **mai** omessa). 🛑 **E due requisiti sul MODO di scriverla, senza i quali passa a vuoto:** ① **il finto dev'essere GRASSO** — `tests/unit/helpers/supabase-chain-mock.ts` tiene `select` fra i metodi che lasciano passare, quindi un finto magro renderebbe questa prova verde **anche con `select('*')`**: è la stessa classe della finta infedele di T7; ② **si asserisce sul corpo HTTP parsato** (`Object.keys(riga).sort()`), e l'asserzione sulla stringa di `.select()` è **un'altra prova con un altro nome** (banda e dati che escono dal database, non ciò che arriva al browser) — confonderle è la prova tautologica di T4. 🆕 **E D48 ne aggiunge una terza, sorella:** si asserisce anche sul **predicato costruito**, perché con un filtro a testo libero il predicato è il **secondo canale** verso le colonne che la proiezione ha appena tolto, e nessuna prova lo guarda. 🔧 **Cosa è cambiato e perché:** `cognome` e `nome` **escono** e al loro posto entra **`alias: string \| null`**, prodotto da `derivaAlias` (`src/lib/cassette/parco-shared.ts:69`), che vale `null` quando il nome visibile **è** il codice. La stesura precedente («esattamente `id, codice_paziente, cognome, nome, ultimoLavoro`») era **incompatibile con T6 punto 2** del piano, che voleva un sesto campo derivato; e l'uscita che avrebbe salvato la forma — servire il cognome **già derivato** sotto la chiave `cognome` — è stata **scartata con prova**: renderebbe `cognome` una colonna in scrittura e un derivato in lettura, e un client che rimanda `cognome: ''` (911 righe su 916) fa scrivere **il codice dentro il cognome**, in silenzio. 🔑 **E questa prova sarebbe rimasta VERDE proprio attraverso quel cambiamento**, perché guarda la forma. Verbale: **D44** |
 | **B3** | Due pazienti con lo stesso codice | INSERT che **deve** essere rifiutato dall'indice unico, con il messaggio incollato · e il **controllo positivo**: lo stesso codice in **due laboratori diversi** deve passare |
 | **B4** | Due caselle che non arrivano a nulla | test che, dato cognome e nome digitati, il corpo spedito a `POST /api/pazienti` li porta **entrambi** — il difetto §1.2 riprodotto prima di correggerlo |
 | **B5** | La bozza vecchia si riversa nel wizard nuovo | `leggiStato` su un payload `v:1` → `null` **e chiave rimossa** |
@@ -410,9 +416,10 @@ generati: costa 30 secondi e chiude il dubbio.
    `laboratorio_id = public.current_lab_id()` (`schema.sql:487-493`), e la route filtra per `labId`. 🔑 Il
    punto di attenzione **non** è la lettura ma il **vincolo**: unico per laboratorio, mai globale (§6).
 2. **Schema drift.** Sì: una migration (§13). FASE 6b prevista.
-3. **Contratto API.** La proiezione ridotta arriva **solo** quando è presente `q`, quindi
-   `crea-lavoro.ts:213` (che legge `codice_paziente`) non si rompe. Il `POST /api/pazienti` non cambia
-   forma: cambia **chi lo chiama e con quali valori**.
+3. **Contratto API.** 🔧 **EMENDATO da D46:** la proiezione ridotta arriva **su entrambi i percorsi**, non
+   solo con `q` — la risposta ha **una forma sola**, `id, codice_paziente, alias, ultimoLavoro`. Il
+   chiamante non si rompe lo stesso, perché legge `id` e `codice_paziente` (`crea-lavoro.ts:255`,
+   ⚠️ **non `:213`**). Il `POST /api/pazienti` non cambia forma: cambia **chi lo chiama e con quali valori**.
 4. **Rollback.** UI: revert del commit. Migration: `DROP INDEX`. Dati: nessun backfill distruttivo — e
    comunque i dati in banca dati sono **di test** (`ua-app/CLAUDE.md` §8), quindi il rischio è sul
    *comportamento*, non sul *dato*.
