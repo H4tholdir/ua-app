@@ -302,10 +302,39 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
     const attacco = `zzz",laboratorio_id.eq.${ALTRO_LAB},codice_paziente.ilike."%`
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(attacco)}`))
     const predicato = argOr() ?? ''
-    // L'apice doppio dell'attacco esce ESCAPATO: non chiude la stringa.
-    expect(predicato).toContain('\\"')
-    expect(predicato).not.toContain(`laboratorio_id.eq.${ALTRO_LAB},`)
-    // E comunque il gruppo `.or()` è ANDato con lo scoping esplicito.
+
+    // 🛑 QUI SI ASSERISCE LA PROPRIETÀ GIUSTA, E NON È «il testo dell'attacco
+    // sparisce»: `ilikeLiterale` tocca `* \ % _`, `pgrestQuote` tocca `\ "` —
+    // nessuno dei due tocca virgole, punti o lettere. Il testo `laboratorio…
+    // .eq.lab-2` VIAGGIA per intero, ed è giusto così: è un VALORE. La
+    // proprietà di sicurezza è un'altra — che non diventi mai una CONDIZIONE.
+    // Ciò che glielo impedisce è l'apice doppio dell'attacco, che esce
+    // ESCAPATO (`\"`) e quindi non chiude la stringa quotata.
+    //
+    // Pattern derivato A MANO, passaggio per passaggio (mai ricalcolato
+    // riapplicando le funzioni, che sarebbe una tautologia):
+    //   ①  ilikeLiterale: i due `_` di `laboratorio_id`/`codice_paziente`
+    //      diventano `\_`, il `%` finale diventa `\%`
+    //   ②  cornice: `%…%`
+    //   ③  pgrestQuote: ogni `\` raddoppia, ogni `"` diventa `\"`
+    const pattern = String.raw`"%zzz\",laboratorio\\_id.eq.lab-2,codice\\_paziente.ilike.\"\\%%"`
+    expect(predicato).toBe(
+      `codice_paziente.ilike.${pattern},` +
+        `nome_cognome.ilike.${pattern},` +
+        `cognome.ilike.${pattern},` +
+        `nome.ilike.${pattern}`
+    )
+
+    // Controllo strutturale, indipendente dalla stringa attesa: gli apici
+    // doppi NON escapati sono esattamente 8 — due per pattern, quattro
+    // pattern. Un apice dell'attacco lasciato nudo ne farebbe 9 o più, e
+    // sarebbe il momento in cui il valore smette di essere un valore.
+    const apiciNudi = predicato.split(/(?<!\\)"/).length - 1
+    expect(apiciNudi).toBe(8)
+
+    // E comunque il gruppo `.or()` è ANDato con lo scoping esplicito: finisce
+    // in un parametro SEPARATO della query string, che PostgREST parentesizza
+    // per conto suo (provato in attacco a runtime: P11, §5 del piano).
     expect(chiamate('eq')).toContainEqual(['laboratorio_id', LAB_ID])
   })
 
@@ -314,10 +343,21 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
     // Escapato: 63 «a» + DUE backslash = 65 caratteri. Se il taglio avvenisse
     // DOPO l'escape, resterebbe un backslash orfano che si mangerebbe il `%` di
     // chiusura della cornice — il jolly sparirebbe in silenzio.
+    // Dopo `pgrestQuote` le due barre diventano QUATTRO: l'atteso è scritto a
+    // mano con `String.raw`, mai ricalcolato riapplicando `pgrestQuote`.
     const q = 'a'.repeat(63) + '\\'
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(q)}`))
-    const atteso = `%${'a'.repeat(63)}\\\\%`
-    expect(argOr()).toContain(`codice_paziente.ilike."${atteso.replace(/\\/g, '\\\\')}"`)
+    expect(argOr()).toContain(
+      `codice_paziente.ilike."%${'a'.repeat(63)}${String.raw`\\\\`}%"`
+    )
+  })
+
+  it('q = un solo backslash: si raddoppia, non cancella il carattere seguente', async () => {
+    // §2.1 elenca `\` fra le forme d'input, e merita il suo caso di rotta: per
+    // Postgres il backslash è il carattere di escape DENTRO ILIKE, e lasciato
+    // grezzo si mangerebbe il `%` di chiusura della cornice.
+    await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent('\\')}`))
+    expect(argOr()).toContain(String.raw`codice_paziente.ilike."%\\\\%"`)
   })
 
   it('q oltre 64 caratteri: ciò che eccede il tetto non entra nel pattern', async () => {
