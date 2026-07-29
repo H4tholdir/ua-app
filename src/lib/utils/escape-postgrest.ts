@@ -42,6 +42,22 @@ export function pgrestQuote(value: string): string {
  *
  * ⚠️ Questa funzione può restituire la STRINGA VUOTA (`ilikeLiterale('*')`), e
  * chi la usa DEVE fermarsi lì: `%%` come pattern significa «tutto».
+ *
+ * 🛑 NON USARLA IN `trovaOccupanteCodice` (`src/lib/domain/codice-paziente-unicita.ts`),
+ * che raddoppia il backslash a mano e lascia `%` e `_` LIBERI. Non è una
+ * distrazione: è la seconda delle due sole occorrenze in casa di questa classe
+ * di escape, ed è diversa APPOSTA.
+ *   · Qui l'ilike È il cancello: il pattern decide che cosa l'utente vede, e un
+ *     jolly lasciato acceso apre l'anagrafica intera. Si stringe tutto.
+ *   · Là l'ilike è solo un PRE-FILTRO di banda, e il cancello vero è il
+ *     confronto esatto che segue. Un pattern più stretto potrebbe FAR SPARIRE
+ *     un candidato — cioè rispondere «codice libero» su un codice OCCUPATO,
+ *     che è esattamente la classe di difetto che quella funzione esiste per
+ *     chiudere. Là un metacarattere può solo ALLARGARE, mai stringere; il
+ *     backslash è l'eccezione perché non allarga: CANCELLA.
+ * ➡️ Unificare le due è la mossa che sembra ovvia e che rompe l'unicità del
+ * codice paziente in silenzio. Se un giorno la seconda dovrà usare questa
+ * funzione, prima si sposta il cancello, non l'escape.
  */
 export function ilikeLiterale(value: string): string {
   return value.replace(/\*/g, '').replace(/([\\%_])/g, '\\$1')

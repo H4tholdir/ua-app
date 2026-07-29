@@ -28,9 +28,32 @@ const TETTO_RICERCA = 10
 /** Tetto del percorso storico «elenco per studio», invariato (voce RATE-1). */
 const TETTO_ELENCO = 500
 /**
- * Tetto di lunghezza sul termine. 🛑 Il taglio va PRIMA dell'escape: dopo,
- * taglierebbe a metà una barra di escape, e l'escape orfano si mangerebbe il
- * `%` di chiusura della cornice — il pattern perderebbe il jolly in silenzio.
+ * Tetto di lunghezza sul termine — 🛑 GUARDIA, NON TRONCAMENTO (D50).
+ * Oltre la soglia si risponde `200 { pazienti: [] }` senza toccare il
+ * database, esattamente come fa la guardia sul vuoto.
+ *
+ * 🔑 PERCHÉ NON SI TRONCA. Con i metacaratteri tutti spenti, un termine di 70
+ * caratteri non combacia con niente: troncarlo a 64 lo fa combaciare DI PIÙ di
+ * quanto l'utente abbia chiesto, cioè restituisce suggerimenti per un testo che
+ * non ha scritto, in silenzio. È lo stesso principio con cui D48 vieta di
+ * alterare ciò che l'utente ha digitato. (Fino al 29/07 la rotta tagliava con
+ * `.slice()`, e il tetto era entrato senza un numero di decisione: ora ha D50,
+ * con la forma cambiata.)
+ *
+ * 🛑 LA MISURA È SUL TERMINE GREZZO RIPULITO AI BORDI, PRIMA DELL'ESCAPE, e la
+ * scelta è dichiarata perché le due letture non danno lo stesso esito:
+ *   · misurando DOPO l'escape, 40 `%` (40 caratteri digitati) diventano 80 e
+ *     sparirebbero dietro la guardia — cioè la rotta risponderebbe «niente» a
+ *     una ricerca legittima, che è il difetto che D50 esiste per chiudere;
+ *   · misurando dopo la rimozione degli `*`, 40 lettere più 30 asterischi
+ *     passerebbero: ma per saperlo la rotta dovrebbe rifare in casa ciò che fa
+ *     `ilikeLiterale`, e due copie della stessa regola divergono.
+ * Si conta quindi ciò che l'utente ha digitato, asterischi compresi: oltre 64
+ * caratteri in ingresso la guardia scatta a prescindere da cosa siano.
+ *
+ * ⚠️ Il tetto NON entra nella scelta del ramo, che resta su `q !== null`: un
+ * termine lungo senza `cliente_id` prende comunque il 400 di portata, perché
+ * quel controllo viene prima.
  */
 const MAX_CARATTERI_Q = 64
 
@@ -96,10 +119,18 @@ export async function GET(req: Request) {
     // database, perché la guardia sul vuoto deve poter chiudere qui.
     let filtroRicerca: string | null = null
     if (q !== null) {
-      // `.trim()` come in `fasi-produzione/ricerca/route.ts:9`; il taglio a 64
-      // caratteri PRIMA dell'escape. Il valore grezzo resta quello letto sopra:
-      // la scelta del ramo non dipende da questa ripulitura.
-      const termine = ilikeLiterale(q.trim().slice(0, MAX_CARATTERI_Q))
+      // `.trim()` come in `fasi-produzione/ricerca/route.ts:9`. Il valore
+      // grezzo resta quello letto sopra: la scelta del ramo non dipende da
+      // questa ripulitura.
+      const grezzo = q.trim()
+      // 🛑 GUARDIA SUL TERMINE TROPPO LUNGO (D50) — stessa uscita della
+      // guardia sul vuoto, e per la stessa ragione: si risponde «nessun
+      // risultato», non un risultato che l'utente non ha chiesto. Si misura
+      // QUI, sul digitato, prima che l'escape ne cambi la lunghezza.
+      if (grezzo.length > MAX_CARATTERI_Q) {
+        return NextResponse.json({ pazienti: [] })
+      }
+      const termine = ilikeLiterale(grezzo)
       // 🛑 GUARDIA SUL VUOTO, e sta DOPO l'escape, mai prima: `q='*'` è
       // non-vuoto in ingresso e collassa a `''` uscendo da `ilikeLiterale`.
       // Senza questa riga il pattern diventerebbe `%%` e la risposta sarebbe

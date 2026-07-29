@@ -132,6 +132,16 @@ export async function trovaOccupanteCodice(
   // silenzio. Si raddoppia quindi SOLO il backslash prima di incorniciare col
   // `%…%` — `%`/`_` restano intoccati, il ragionamento sopra su quei due resta
   // valido com'è.
+  //
+  // 🛑 E PER LA STESSA RAGIONE QUI NON SI CHIAMA `ilikeLiterale`
+  // (`src/lib/utils/escape-postgrest.ts`), che spegne anche `%` e `_` e rimuove
+  // gli `*`. È l'altra delle due sole occorrenze in casa di questa classe di
+  // escape, e le due sono diverse APPOSTA: nella ricerca pazienti l'ilike È il
+  // cancello (un jolly acceso apre l'anagrafica), qui è un pre-filtro di banda
+  // davanti a un confronto esatto. Sostituire questa riga con quella funzione
+  // stringerebbe il pattern e potrebbe far sparire un candidato — «libero» su
+  // un codice occupato, in silenzio: il difetto che questa funzione esiste per
+  // chiudere. Le due si unificano solo spostando prima il cancello.
   const chiaveEscapata = chiave.replace(/\\/g, '\\\\')
   const { data, error } = await svc
     .from('pazienti')

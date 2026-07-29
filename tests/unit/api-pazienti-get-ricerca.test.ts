@@ -150,6 +150,12 @@ describe('GET /api/pazienti — B2: la forma della risposta, corpo HTTP parsato'
     const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=bagheria`))
     expect(res.status).toBe(200)
     const { pazienti } = await res.json()
+    // 🛑 IL `toHaveLength` NON È UN DI PIÙ: senza, questa prova passa a vuoto.
+    // Un `for` su un array vuoto non ha corpo, quindi contro un GET del tutto
+    // inerte che risponde `{ pazienti: [] }` l'asserzione sulle chiavi non
+    // viene mai eseguita e la prova resta VERDE. La gemella «SENZA q» il
+    // conteggio ce l'aveva; questa l'aveva perso.
+    expect(pazienti).toHaveLength(2)
     for (const riga of pazienti) {
       expect(Object.keys(riga).sort()).toEqual(CHIAVI_ATTESE)
     }
@@ -185,6 +191,13 @@ describe('GET /api/pazienti — B2: la forma della risposta, corpo HTTP parsato'
   it('nessun dato sanitario nel corpo: né codice fiscale, né note, né data di nascita', async () => {
     const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}`))
     const testo = await res.text()
+    // 🛑 PRIMA SI ASSERISCE CHE CI SIANO DELLE RIGHE, e non è pedanteria:
+    // `{"pazienti":[]}` non contiene nessuno dei tre valori qui sotto, quindi
+    // contro un GET inerte questa prova passerebbe a vuoto — proprio quella
+    // scritta per garantire che un dato Art. 9 non esca. Le tre `not.toContain`
+    // valgono SOLO se le due righe finte, che quei dati li portano tutti, sono
+    // davvero passate per la rotta.
+    expect(JSON.parse(testo).pazienti).toHaveLength(2)
     expect(testo).not.toContain('BGHGPP80A01H501X')
     expect(testo).not.toContain('nota clinica riservata')
     expect(testo).not.toContain('1980-01-01')
@@ -196,14 +209,42 @@ describe('GET /api/pazienti — B2: la forma della risposta, corpo HTTP parsato'
 // al browser. Prova distinta da B2, per costruzione.
 // ---------------------------------------------------------------------------
 describe('GET /api/pazienti — la proiezione SQL (banda), prova distinta da B2', () => {
-  it('la select non chiede più le colonne senza lettori', async () => {
+  it('la select è ESATTAMENTE la proiezione stretta, e su ENTRAMBI i percorsi', async () => {
+    // 🔴 QUESTA PROVA ERA UNA LISTA NERA, E NON DIFENDEVA NIENTE.
+    // Asseriva `not.toContain(<sei nomi di colonna>)`: una `select('*')` non
+    // contiene nessuno di quei sei nomi. Misurato il 29/07 — sostituendo la
+    // proiezione con `.select('*, nome_cognome, lavori(data_ingresso)')` (la
+    // forma realistica di deriva: chi aggiunge `*` senza toccare l'innesto),
+    // `npx vitest run tests/unit/api-pazienti-get-ricerca.test.ts
+    // tests/unit/escape-postgrest.test.ts` restava a **55 su 55 VERDI**,
+    // mentre la rotta chiedeva al database OGNI colonna di `pazienti`
+    // (`codice_fiscale`, `note`, `data_nascita`, `sesso`) per fino a 500 righe
+    // sul percorso senza `q`.
+    // 🔑 E B2 restava verde A RAGIONE, non per un difetto suo: B2 misura ciò
+    // che arriva al BROWSER (le quattro chiavi), e quello non cambia. La
+    // perdita è di BANDA e di uscita dal DATABASE — un'altra proprietà, e
+    // quindi un'altra prova, questa. Le due restano distinte; il difetto era
+    // che la seconda era scritta come lista nera invece che come UGUAGLIANZA.
+    // 🛑 L'uguaglianza è l'unica forma che non lascia spazio a una colonna in
+    // più: un nuovo nome nella `select` accende questa riga da solo, senza che
+    // nessuno debba ricordarsi di aggiungerlo a un elenco.
+    // 🛑 E si asserisce su ENTRAMBI i percorsi: D46 vuole la proiezione
+    // stretta SEMPRE, mai condizionale, e una sola chiamata non vedrebbe una
+    // proiezione tornata a dipendere da `q`.
+    const PROIEZIONE = 'id, codice_paziente, nome_cognome, lavori(data_ingresso)'
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}`))
-    const sel = argSelect()
-    for (const colonna of ['codice_fiscale', 'data_nascita', 'sesso', 'note', 'archiviato', 'laboratorio_id']) {
-      expect(sel).not.toContain(colonna)
-    }
+    expect(argSelect()).toBe(PROIEZIONE)
+    await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=bagheria`))
+    expect(argSelect()).toBe(PROIEZIONE)
   })
 
+  // ⚠️ Le tre prove qui sotto sono sottoinsiemi dell'uguaglianza appena
+  // scritta e NON la sostituiscono: restano perché ciascuna porta il nome
+  // della proprietà che difende (l'ingresso di `derivaAlias`, la forma
+  // dell'innesto, il controllo negativo su `!inner`), e un rosso col nome
+  // giusto vale più di un rosso su una stringa lunga. La prima porta in più la
+  // metà che l'uguaglianza NON può vedere: che `nome_cognome`, entrato dalla
+  // `select`, non esca dalla risposta.
   it('la select CHIEDE nome_cognome — è l’ingresso di derivaAlias, e non esce mai', async () => {
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}`))
     expect(argSelect()).toContain('nome_cognome')
@@ -290,6 +331,20 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
+  it('D49 — `?q=` VUOTO ma CON lo studio → 200 { pazienti: [] }, non l’elenco', async () => {
+    // 🔑 D49 ha il suo caso LETTERALE e non si accontenta della copertura per
+    // equivalenza della prova qui sopra: «soli spazi» e «stringa vuota» sono
+    // due ingressi diversi, e il caso di D49 è quello che il pannello produce
+    // davvero — la casella di ricerca SVUOTATA con lo studio già scelto.
+    // 🛑 L'alternativa che D49 scarta non è «niente»: è restituire le prime
+    // dieci schede dello studio per un termine che non ha cercato nulla, cioè
+    // trasformare una casella vuota in un elenco.
+    const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=`))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ pazienti: [] })
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
   it('una virgola nel termine non spezza il predicato in due condizioni', async () => {
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent('rossi, mario')}`))
     const predicato = argOr() ?? ''
@@ -299,6 +354,25 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
   })
 
   it("un q che tenta di iniettare un altro laboratorio resta un VALORE, e l'.eq esterno c'è comunque", async () => {
+    // 🔧 RETTIFICA DI RECORD — il messaggio del commit `515633ae` dichiara una
+    // prova che non è quella eseguita, e la rettifica sta QUI perché è qui che
+    // un lettore la incontra (la storia non si riscrive: nessun rebase su un
+    // commit sepolto).
+    //   Quel messaggio dice: «togliendo a `pgrestQuote` l'escape dell'apice
+    //   doppio, la VECCHIA asserzione restava VERDE, la nuova diventa rossa».
+    //   ❌ FALSO, e misurato il 29/07 rieseguendo la prova sul file di
+    //   `6096e953` con quella mutazione addosso: la vecchia prova andava
+    //   ROSSA, perché la sua metà `toContain('\\"')` la mutazione la VEDEVA.
+    //   ✅ Vacua era l'ALTRA metà — il `not.toContain('laboratorio_id.eq.lab-2,')` —
+    //   e non per un caso di stringhe: asseriva una proprietà FALSA COME
+    //   PRINCIPIO, visto che quel testo DEVE viaggiare intero dentro il valore
+    //   quotato (nessuno dei due escape tocca virgole, punti o lettere).
+    //   🔑 La correzione resta giusta e questa versione è strettamente più
+    //   forte — il `toBe` sul predicato intero vede tutto ciò che vedeva il
+    //   `toContain` e in più la forma esatta: sotto la stessa mutazione va
+    //   rossa anche lei (verificato). Cambia solo il RECORD: un buco
+    //   dichiarato si chiude, una certezza sbagliata no, perché nessuno la
+    //   riapre.
     const attacco = `zzz",laboratorio_id.eq.${ALTRO_LAB},codice_paziente.ilike."%`
     await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(attacco)}`))
     const predicato = argOr() ?? ''
@@ -338,11 +412,12 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
     expect(chiamate('eq')).toContainEqual(['laboratorio_id', LAB_ID])
   })
 
-  it('q oltre 64 caratteri: il taglio avviene PRIMA dell’escape', async () => {
-    // 63 «a» + un backslash = 64 caratteri esatti, nessun taglio.
-    // Escapato: 63 «a» + DUE backslash = 65 caratteri. Se il taglio avvenisse
-    // DOPO l'escape, resterebbe un backslash orfano che si mangerebbe il `%` di
-    // chiusura della cornice — il jolly sparirebbe in silenzio.
+  it('q di ESATTAMENTE 64 caratteri: passa intero, e la barra di escape non è tagliata a metà', async () => {
+    // Il tetto è `> 64`: 64 esatti PASSANO, ed è il lato del confine che
+    // questa prova pianta (l'altro lato è la guardia di D50, qui sotto).
+    // 63 «a» + un backslash = 64 caratteri digitati. Escapato: 63 «a» + DUE
+    // backslash = 65 caratteri — cioè un termine che, se il tetto si misurasse
+    // DOPO l'escape, sparirebbe dietro la guardia pur essendo legittimo.
     // Dopo `pgrestQuote` le due barre diventano QUATTRO: l'atteso è scritto a
     // mano con `String.raw`, mai ricalcolato riapplicando `pgrestQuote`.
     const q = 'a'.repeat(63) + '\\'
@@ -360,11 +435,62 @@ describe('GET /api/pazienti — il predicato costruito (D48)', () => {
     expect(argOr()).toContain(String.raw`codice_paziente.ilike."%\\\\%"`)
   })
 
-  it('q oltre 64 caratteri: ciò che eccede il tetto non entra nel pattern', async () => {
+  it('D50 — q oltre 64 caratteri → 200 { pazienti: [] }, e il database non si tocca: NON si tronca', async () => {
+    // 🛑 Questa prova asseriva il TRONCAMENTO («ciò che eccede non entra nel
+    // pattern»), cioè il comportamento che D50 ha rovesciato: tagliare un
+    // termine di 67 caratteri a 64 lo fa combaciare DI PIÙ di quanto l'utente
+    // abbia chiesto, e restituisce suggerimenti per un testo che non ha
+    // scritto. Con i metacaratteri spenti, un termine così non combacia con
+    // niente: la risposta onesta è «nessun risultato», con la stessa forma
+    // della guardia sul vuoto.
     const q = 'a'.repeat(64) + 'ZZZ'
-    await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(q)}`))
-    expect(argOr()).toContain(`"%${'a'.repeat(64)}%"`)
-    expect(argOr()).not.toContain('ZZZ')
+    const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(q)}`))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ pazienti: [] })
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
+  it('D50 — il confine è 65: un carattere oltre il tetto e la guardia scatta', async () => {
+    const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${'a'.repeat(65)}`))
+    expect(await res.json()).toEqual({ pazienti: [] })
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
+  it('D50 — il tetto si misura sul DIGITATO, non sul termine escapato: 40 «%» passano', async () => {
+    // 🛑 LA PROVA CHE DISCRIMINA le due letture possibili del tetto, e senza la
+    // quale l'ordine fra misura ed escape è scritto nel codice ma non provato.
+    // 40 percenti sono 40 caratteri digitati e 80 dopo `ilikeLiterale`: se il
+    // tetto si misurasse dopo l'escape, questa ricerca legittima riceverebbe
+    // «nessun risultato» — cioè D50 chiuderebbe il buco che esiste per
+    // chiudere, aprendone lo stesso dall'altro lato.
+    // Atteso derivato A MANO: ogni `%` → `\%` (ilikeLiterale) → cornice →
+    // ogni `\` raddoppiato da `pgrestQuote` → `\\%` per quaranta volte.
+    await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent('%'.repeat(40))}`))
+    expect(mockFrom).toHaveBeenCalled()
+    expect(argOr()).toContain(`codice_paziente.ilike."%${String.raw`\\%`.repeat(40)}%"`)
+  })
+
+  it('D50 — gli asterischi CONTANO nel tetto: 40 lettere + 30 asterischi non arrivano al database', async () => {
+    // ⚠️ SCELTA DICHIARATA, non un effetto collaterale: dopo la rimozione
+    // degli `*` questo termine tornerebbe a 40 caratteri e combacerebbe con
+    // qualcosa. Per saperlo, però, la rotta dovrebbe rifare in casa ciò che fa
+    // `ilikeLiterale`, e due copie della stessa regola divergono. Si conta
+    // quindi ciò che l'utente ha digitato, asterischi compresi.
+    const q = 'a'.repeat(40) + '*'.repeat(30)
+    const res = await GET(richiesta(`?cliente_id=${CLIENTE_ID}&q=${encodeURIComponent(q)}`))
+    expect(await res.json()).toEqual({ pazienti: [] })
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
+  it('D50 — un termine lungo SENZA cliente_id resta un 400: la portata viene prima del tetto', async () => {
+    // 🔑 Il tetto non entra nella scelta del ramo, che resta su `q !== null`:
+    // se la guardia di D50 rispondesse prima, un `q` di 70 caratteri senza
+    // studio uscirebbe con un 200 vuoto e il vincolo di portata di D46 si
+    // aggirerebbe allungando il termine.
+    const res = await GET(richiesta(`?q=${'a'.repeat(70)}`))
+    expect(res.status).toBe(400)
+    expect((await res.json()).motivo).toBe('studio_mancante')
+    expect(mockFrom).not.toHaveBeenCalled()
   })
 
   it('SENZA q non si costruisce nessun predicato di ricerca', async () => {
@@ -403,6 +529,13 @@ describe('GET /api/pazienti — B25: q senza cliente_id, e il ramo su q !== null
 
   it('dal corpo del 400 non esce NESSUN nome di colonna (G9)', async () => {
     const res = await GET(richiesta('?q=bagheria'))
+    // 🛑 TERZA ISTANZA della stessa classe, trovata dalla MIA misura con
+    // l'abbozzo inerte (il rilievo ne nominava due): senza questa riga la
+    // prova è una lista nera su un corpo che potrebbe essere qualunque cosa —
+    // `{"pazienti":[]}` non contiene nessuno dei cinque nomi, quindi contro un
+    // GET inerte passava a vuoto. Prima si asserisce CHE CORPO si sta
+    // guardando, poi cosa non contiene.
+    expect(res.status).toBe(400)
     const testo = await res.text()
     for (const colonna of ['cliente_id', 'laboratorio_id', 'codice_paziente', 'nome_cognome', 'archiviato']) {
       expect(testo).not.toContain(colonna)

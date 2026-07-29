@@ -93,11 +93,27 @@ describe('ilikeLiterale — D48, i quattro metacaratteri', () => {
     expect(pgrestQuote(`%${ilikeLiterale('%')}%`)).toBe(String.raw`"%\\%%"`)
   })
 
-  it("l'ordine inverso cercherebbe un'altra stringa — controllo negativo", () => {
-    // pgrestQuote PRIMA e ilikeLiterale DOPO produce una stringa diversa da
-    // quella corretta: la prova serve a incidere che l'ordine non è opinabile.
-    const corretto = pgrestQuote(`%${ilikeLiterale('%')}%`)
+  it("le due composizioni NON sono intercambiabili: invertendole esce QUESTA stringa", () => {
+    // 🔧 NOME CAMBIATO, e il motivo va scritto: si chiamava «controllo negativo
+    // sull'ordine» e prometteva di sorvegliare l'ordine USATO DALLA ROTTA, cosa
+    // che una prova su due funzioni pure NON PUÒ fare — non vede nessun
+    // chiamante. Misurato il 29/07 invertendo l'ordine per davvero nella rotta
+    // (la riga del pattern diventa `ilikeLiterale(pgrestQuote(cornice))`):
+    // 8 prove rosse su 40 in `api-pazienti-get-ricerca.test.ts`, ZERO su 20
+    // qui. La guardia sull'ordine della rotta è LÌ, e in particolare nel `toBe`
+    // sul predicato intero; questa prova resta a documentare la proprietà
+    // delle funzioni, e ora lo dichiara nel nome invece di prometterlo.
+    //
+    // ⚠️ E si rafforza da `not.toBe` a `toBe`: «diverso da» è vero anche per
+    // un'implementazione sbagliata in un modo qualsiasi. Atteso derivato A
+    // MANO: `pgrestQuote('%%%')` → `"%%%"`; poi `ilikeLiterale` escapa i TRE
+    // percenti e NON tocca gli apici → `"\%\%\%"`. Cioè si finirebbe a cercare
+    // tre percenti letterali fra virgolette letterali: nessun jolly, nessuna
+    // cornice — una stringa che nessun paziente contiene.
     const invertito = ilikeLiterale(pgrestQuote('%%%'))
-    expect(invertito).not.toBe(corretto)
+    expect(invertito).toBe(String.raw`"\%\%\%"`)
+    // E resta diverso dalla composizione giusta, che la prova qui sopra fissa
+    // a `"%\\%%"`.
+    expect(invertito).not.toBe(pgrestQuote(`%${ilikeLiterale('%')}%`))
   })
 })
