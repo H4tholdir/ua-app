@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Misura — l'avviso «codice già occupato» entra in due righe? (30/07/2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#F4F0E7; --card:#FFFEFA; --ink:#1D1913; --muted:#6E6457; --rosso:#D90012;
+          --sh-card: 0 1px 2px rgba(50,40,25,.06), 0 8px 20px -12px rgba(50,40,25,.28); }
+  html[data-tema="scuro"] { --bg:#171411; --card:#221E1A; --ink:#F2EDE4; --muted:#A79D90;
+          --sh-card: none; }
+  body { background: var(--bg); color: var(--ink);
+         font-family: 'DM Sans', system-ui, sans-serif; padding: 24px 0 60px; }
+
+  h1 { font-size: 21px; font-weight: 800; padding: 0 24px; margin-bottom: 6px; }
+  .nota { font-size: 13px; color: var(--muted); padding: 0 24px; margin-bottom: 22px; line-height: 1.5; }
+  h2 { font-size: 15.5px; font-weight: 700; padding: 0 24px; margin: 26px 0 10px; }
+  .esito { font-size: 12.5px; padding: 0 24px; margin-top: 8px; font-weight: 600; }
+
+  /* ── Riproduzione FEDELE del contenitore di Avviso.tsx ──
+     contenitore: width 100%, max-width 480, padding 0 24 (spazio.l)
+     card:        display flex, align-items flex-start, gap 8 (spazio.s), padding 16 (spazio.m),
+                  border-radius 18 (raggio.riga)
+     icona:       26 x 26 (DIAMETRO_ICONA)
+     testo:       15.5px (tipografia.size.callout), weight 700 (bold), -webkit-line-clamp 2 */
+  .contenitore { width: 100%; max-width: 480px; padding: 0 24px; }
+  .card { display: flex; align-items: flex-start; gap: 8px; padding: 16px;
+          border-radius: 18px; background: var(--card); box-shadow: var(--sh-card); }
+  .icona { width: 26px; height: 26px; border-radius: 999px; flex: none;
+           background: var(--rosso); color: #fff; font-weight: 800; font-size: 15px;
+           display: flex; align-items: center; justify-content: center; }
+  .colonna { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+  .testo { font-size: 15.5px; font-weight: 700; color: var(--ink); margin: 0; }
+  .clampato { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .azioni { display: flex; gap: 16px; }
+  .link { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>L'avviso «codice già occupato» entra nelle due righe che il componente concede?</h1>
+<p class="nota">
+  Riproduzione fedele di <code>src/components/ds/Avviso.tsx</code>: contenitore max 480 con 24 di
+  respiro laterale · card con 16 di padding e 8 di stacco · icona 26 · testo 15,5 px in peso 700 ·
+  <strong>e il taglio a due righe della riga 194</strong> (<code>-webkit-line-clamp: 2</code>).
+  I due blocchi mostrano lo stesso testo <em>con</em> e <em>senza</em> quel taglio.
+</p>
+
+<h2>① Com'è OGGI — taglio a due righe (<code>Avviso.tsx:194</code>)</h2>
+<div class="contenitore">
+  <div class="card">
+    <span class="icona">!</span>
+    <div class="colonna">
+      <p class="testo clampato" id="t-clamp">Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo «Codice paziente» qui sopra.</p>
+      <div class="azioni"><span class="link">Chiudi</span></div>
+    </div>
+  </div>
+</div>
+<p class="esito" id="esito-clamp"></p>
+
+<h2>② Senza il taglio — il testo per intero</h2>
+<div class="contenitore">
+  <div class="card">
+    <span class="icona">!</span>
+    <div class="colonna">
+      <p class="testo" id="t-libero">Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo «Codice paziente» qui sopra.</p>
+      <div class="azioni"><span class="link">Chiudi</span></div>
+    </div>
+  </div>
+</div>
+<p class="esito" id="esito-libero"></p>
+
+<h2>③ Il caso peggiore — un codice lungo come quelli veri in banca dati</h2>
+<div class="contenitore">
+  <div class="card">
+    <span class="icona">!</span>
+    <div class="colonna">
+      <p class="testo clampato" id="t-lungo">Il codice PAZ/2026/0918 è già di un altro paziente. Scrivine un altro nel campo «Codice paziente» qui sopra.</p>
+      <div class="azioni"><span class="link">Chiudi</span></div>
+    </div>
+  </div>
+</div>
+<p class="esito" id="esito-lungo"></p>
+
+<h2>④ Il pannello di modifica — testo corto (60 caratteri)</h2>
+<div class="contenitore">
+  <div class="card">
+    <span class="icona">!</span>
+    <div class="colonna">
+      <p class="testo clampato" id="t-corto">Questo codice è già di un altro paziente. Scrivine un altro.</p>
+      <div class="azioni"><span class="link">Chiudi</span></div>
+    </div>
+  </div>
+</div>
+<p class="esito" id="esito-corto"></p>
+
+<script>
+  (function () {
+    var p = new URLSearchParams(location.search);
+    if (p.get('tema') === 'scuro') document.documentElement.setAttribute('data-tema', 'scuro');
+  })();
+  window.addEventListener('load', function () {
+    function misura(idTesto, idEsito, etichetta) {
+      var el = document.getElementById(idTesto);
+      var alt = parseFloat(getComputedStyle(el).lineHeight);
+      if (isNaN(alt)) alt = parseFloat(getComputedStyle(el).fontSize) * 1.2;
+      var righe = Math.round(el.scrollHeight / alt);
+      var tagliato = el.scrollHeight > el.clientHeight + 1;
+      var out = document.getElementById(idEsito);
+      out.textContent = etichetta + ' — larghezza testo ' + Math.round(el.clientWidth) + 'px · '
+        + righe + ' righe (' + el.scrollHeight + 'px di contenuto in ' + el.clientHeight + 'px visibili) · '
+        + (tagliato ? '❌ TAGLIATO' : '✅ intero');
+      out.style.color = tagliato ? 'var(--rosso)' : 'var(--ink)';
+      return { righe: righe, tagliato: tagliato, larghezza: Math.round(el.clientWidth) };
+    }
+    window.__misure = {
+      viewport: window.innerWidth,
+      clamp: misura('t-clamp', 'esito-clamp', 'Wizard, oggi'),
+      libero: misura('t-libero', 'esito-libero', 'Wizard, senza taglio'),
+      lungo: misura('t-lungo', 'esito-lungo', 'Codice lungo, oggi'),
+      corto: misura('t-corto', 'esito-corto', 'Pannello, oggi')
+    };
+  });
+</script>
+</body>
+</html>
