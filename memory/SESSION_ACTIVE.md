@@ -1,6 +1,7 @@
-# Sessione attiva — ondata (b): T6 scritto, corretto e in ri-revisione (29/07/2026)
+# Sessione attiva — ondata (b): T6 chiuso, tocca a T8 (29/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-fondamenta-handoff.md`**, poi il piano
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-blocco3-handoff.md`** (sostituisce quello
+«fondamenta», rimasto vero sui fatti e falso su «sei task» e «si riparte da T6»), poi il piano
 `docs/roadmap/2026-07-29-ondata-b-piano-v2.md` (§6 T6 **riscritto oggi**, dieci punti).
 **Ledger: `.superpowers/sdd/progress.md` — i task completi lì SONO completi.**
 
@@ -26,4 +27,5 @@ sulla proprietà che si sta correggendo **chiude la caccia**.
 🔴 **In attesa di Francesco, ALTA:** `GET /api/clienti` manda al browser il **`portale_token`** di ogni
 dentista — apre DdC e buono di lavorazione **senza PIN** (roadmap **TOK-1**).
 
-➡️ **Poi: T8** (`DELETE` immagine soft + **otto letture**).
+➡️ **Prossimo: T8, NON iniziato** (`DELETE` immagine soft + **otto letture**). Il suo brief va scritto
+con lo stesso trattamento di quello di T6.

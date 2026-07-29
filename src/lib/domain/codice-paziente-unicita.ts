@@ -148,6 +148,20 @@ export async function trovaOccupanteCodice(
     .select('id, codice_paziente, nome_cognome, lavori(data_ingresso)')
     .eq('laboratorio_id', labId)
     .ilike('codice_paziente', `%${chiaveEscapata}%`)
+    // 🔑 SONO DUE COPIE, ED È DELIBERATO. L'altra è in
+    // `src/app/api/pazienti/route.ts` (T6, la ricerca): stessa forma d'innesto,
+    // altra portata — questa è cieca allo stato e larga su TUTTO il laboratorio
+    // perché rispecchia l'indice unico, quella è ristretta a uno studio e filtra
+    // `archiviato`. Unirle significherebbe dare all'una la portata dell'altra.
+    // 🛑 MA DEVONO CONTINUARE A DECIDERE UGUALE, e oggi lo fanno alla lettera
+    // (verificato il 29/07): stessa `select`, stesso `order` discendente su
+    // `data_ingresso`, stesso `limit(1)` per padre, stesso filtro su
+    // `lavori.deleted_at`, stessa estrazione `lavori?.[0]?.data_ingresso ?? null`.
+    // Chi tocca uno dei cinque qui, lo tocca anche là: i due file non si
+    // incontrano mai, quindi nessun test vedrebbe la divergenza — si vedrebbe
+    // solo a schermo, come due date diverse per lo stesso paziente.
+    // ⚠️ Il valore si chiama `dataUltimoLavoro` qui e `ultimoLavoro` là: stessa
+    // cosa, due nomi. A verbale per la revisione finale del ramo.
     .order('data_ingresso', { referencedTable: 'lavori', ascending: false })
     .limit(1, { referencedTable: 'lavori' })
     .is('lavori.deleted_at', null)

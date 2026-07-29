@@ -180,6 +180,23 @@ export async function GET(req: Request) {
       // delle prestazioni di dieci pazienti a ogni richiesta — Art. 9 GDPR.
       // 🛑 Innesto SEMPLICE, MAI `!inner`: `!inner` restituirebbe `[]` e
       // cancellerebbe dal risultato i pazienti senza lavori.
+      //
+      // 🔑 SONO DUE COPIE, ED È DELIBERATO — l'handoff dell'ondata (b) avvisava
+      // di «non farne due copie che decidono diversamente». L'altra è in
+      // `src/lib/domain/codice-paziente-unicita.ts` (T7). Restano separate
+      // perché sono due cose diverse: là una funzione di libreria con `svc`
+      // iniettato, cieca allo stato e larga su TUTTO il laboratorio (rispecchia
+      // l'indice unico), che ritorna `dataUltimoLavoro`; qui una rotta ristretta
+      // a uno studio, che filtra `archiviato` e ritorna `ultimoLavoro`. Unirle
+      // significherebbe dare all'una la portata dell'altra.
+      // 🛑 MA DEVONO CONTINUARE A DECIDERE UGUALE, e oggi lo fanno alla lettera
+      // (verificato il 29/07, tutti e cinque i punti): stessa `select`, stesso
+      // `order` discendente su `data_ingresso`, stesso `limit(1)` per padre,
+      // stesso `is('lavori.deleted_at', null)`, stessa estrazione
+      // `lavori?.[0]?.data_ingresso ?? null`. Chi tocca uno dei cinque QUI, li
+      // tocca anche LÀ — altrimenti due schermate diranno due date diverse per
+      // lo stesso paziente, e nessun test se ne accorgerà: i due file non si
+      // incontrano mai.
       .order('data_ingresso', { referencedTable: 'lavori', ascending: false })
       // 🔑 Il tetto sta FUORI dal ramo `if`, non dentro: è il precedente che
       // degrada in sicurezza (`fasi-produzione/ricerca/route.ts:32`). Dentro
