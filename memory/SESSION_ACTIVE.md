@@ -28,5 +28,11 @@ sulla proprietà che si sta correggendo **chiude la caccia**.
 🔴 **In attesa di Francesco, ALTA:** `GET /api/clienti` manda al browser il **`portale_token`** di ogni
 dentista — apre DdC e buono di lavorazione **senza PIN** (roadmap **TOK-1**).
 
-➡️ **Prossimo: T8, NON iniziato** (`DELETE` immagine soft + **otto letture**). Il suo brief va scritto
-con lo stesso trattamento di quello di T6.
+➡️ **T8 — lettura R-P2 FATTA** (piano §3 e §6/T8, sei fatti nuovi). 🔑 **Solo 2 degli 8 siti raggiungono
+un utente** (scheda e modifica): i 3-8 sono payload morto, ricerche incollate. **Nessuna migration serve**
+(la RLS filtra già `deleted_at`, ma gli 8 usano il client di servizio e la **scavalcano**). **Il file
+`[imgId]/route.ts` esiste già**, solo `PATCH`. 🔴 **Due buchi che T8 apre:** la guardia del `PATCH` non
+filtra `deleted_at`, e `:77` rimanda l'errore grezzo al client (G9).
+✅ **P12: la grafia del filtro sugli innesti è PROVATA e il piano NON sbagliava** — un rilievo diceva che
+`.is('lavori_immagini.…')` fosse errata a favore dell'alias: **entrambe funzionano ed entrambe mordono**.
+➡️ **Manca solo il brief di T8**, da scrivere con lo stesso trattamento di quello di T6.

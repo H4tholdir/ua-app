@@ -118,6 +118,9 @@ conosceva**.
 | `tests/unit/wizard-persistenza.test.ts` | intero | **10 test** · `:63-66` usa **`v: 2` come valore INVALIDO** → 🔴 **va CAPOVOLTO, non aggiornato** · **nessuna asserzione sulla rimozione della chiave** per versione sbagliata |
 | `supabase/schema.sql` 430-520 | letto | `codice_paziente TEXT` **nudo**, nullable, nessun default (`:461`) · **3 indici, tutti `WHERE deleted_at IS NULL`** · 🔴 **`nome`, `cognome` e `archiviato` NON CI SONO** (vengono da `002_fase2_schema.sql:112-118`) → **il file su cui T5 si ancora non descrive più la tabella** |
 | 🆕 `tests/unit/dati-wizard.test.ts` | **da leggere in T-Z3** | **il v1 non lo conosceva**: tocca il generatore, che Z3 modifica |
+| 🆕 **gli OTTO siti di T8** (elenco in §6/T8) | **letti tutti e otto, 29/07** | **coordinate ESATTE tutte e otto** · tutti **innesti SEMPLICI** con alias `immagini:lavori_immagini(*)`, **nessun `!inner`** · **nessuno filtra `deleted_at`** (la `.is('deleted_at', null)` che si vede accanto è sul **padre `lavori`**) · **solo i siti 1 e 2 raggiungono un utente**, i 3-8 sono payload morto (ricerche incollate in §6/T8 ②) |
+| 🆕 `src/app/api/lavori/[id]/immagini/[imgId]/route.ts` | **intero (82 righe)** | 🔑 **il file ESISTE GIÀ, solo `PATCH`**: T8 aggiunge un handler, non crea una rotta · guardia di esistenza `:37-43` con **TRE** `.eq()`, `update()` `:68-74` con **DUE** (manca `lavoro_id`) · 🔴 la guardia **non filtra `deleted_at`** e `:77` rimanda l'errore **grezzo** al client (G9) |
+| 🆕 `supabase/migrations/002_fase2_schema.sql:245-263` | letto | `deleted_at` **esiste** (`:255`), la **RLS lo filtra** (`:258-259`), l'**indice parziale esiste** (`:262-263`) — 🛑 **e non serve a niente**, perché gli otto siti usano `getServiceClient()` e **scavalcano la RLS**. **Nessuna migration per T8** |
 
 **Territorio di lettura per T5 (R-P2 assorbe R-P3):** `002_fase2_schema.sql` **+ il catalogo vivo**
 (`pg_indexes`, `pg_constraint`), **NON** `schema.sql`. Motivo provato: `schema.sql` è uno **snapshot fermo**.
@@ -222,6 +225,35 @@ vedrebbe): `.eq('laboratorio_id', A).or('laboratorio_id.eq.<B>,codice_paziente.i
 **nudo**, nessun escape → **0 righe**. Regge **per struttura**, non per fortuna: `postgrest-js` mette il
 gruppo `or` in un **parametro separato** (`node_modules/@supabase/postgrest-js/dist/index.cjs:2988-2990`,
 `searchParams.append`), che PostgREST unisce agli `.eq()` con un **AND** e parentesizza per conto suo.
+
+### 🆕 P12 — la grafia del filtro sugli innesti (T8). ✅ **PROVATA, 29/07 — e ha SMENTITO un rilievo**
+
+**La domanda:** su un innesto dichiarato **con alias** (`immagini:lavori_immagini(*)`, che è la forma di
+**tutti e otto** i siti di T8), il filtro si scrive con l'**alias** o col **nome di tabella**?
+
+🔴 **Il rilievo che ha inneschiato la sonda, e che è FALSO:** il lettore R-P2 sosteneva che la grafia
+dettata da T8 (`.is('lavori_immagini.deleted_at', null)`) fosse **sbagliata** — «o un 400 di PostgREST o un
+colpo a vuoto» — perché il precedente in casa (`ddc:dichiarazioni_conformita(*)` filtrato con
+`.neq('ddc.stato', …)`, sulla **riga adiacente** di cinque degli otto siti) usa l'alias. Il ragionamento era
+solido e la conclusione sbagliata: **PostgREST accetta ENTRAMBE le grafie, ed entrambe MORDONO.**
+
+`provato:` `node scripts/tmp/sonda-t8-alias.mjs` (sola lettura, solo conteggi) sulla forma esatta dei siti
+1/2/3 — `from('lavori').select('id, immagini:lavori_immagini(id, tipo, deleted_at)').limit(60)`:
+
+| filtro applicato all'innesto | esito |
+|---|---|
+| *nessuno* (riferimento) | HTTP OK · padri **60** · figli **2** |
+| `is('lavori_immagini.deleted_at', null)` — **la grafia del piano** | HTTP OK · padri 60 · figli **2** ✅ |
+| `eq('lavori_immagini.tipo', 'INESISTENTE')` — **valore che DEVE essere rifiutato** | HTTP OK · padri 60 · figli **0** ✅ **morde** |
+| `is('immagini.deleted_at', null)` — la grafia con l'alias | HTTP OK · padri 60 · figli **2** ✅ |
+| `eq('immagini.tipo', 'INESISTENTE')` | HTTP OK · padri 60 · figli **0** ✅ **morde** |
+| `eq('immagini.tipo', 'foto')` — controllo positivo | HTTP OK · padri 60 · figli **2** ✅ |
+
+🔑 **Due cose che questa sonda chiude, oltre alla grafia:** ① su un **innesto semplice** il filtro toglie i
+**figli** e **lascia i padri** (60 padri anche con zero figli) — quindi in T8 **nessun lavoro sparisce**
+perché ha tutte le foto cancellate; ② `!inner` si comporterebbe diversamente, ma **nessuno degli otto siti
+lo usa** (verificato uno per uno). ➡️ **La grafia del piano resta.** ⚠️ E il rilievo resta scritto qui
+**apposta**: senza, una sessione futura rifarebbe lo stesso ragionamento e «correggerebbe» un non-problema.
 
 **Ogni blocco di codice di questo piano nasce `non eseguito`, col comando accanto** che l'esecutore userà.
 
@@ -373,6 +405,48 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
     sito**: innesto normale e `!inner` non si comportano uguale
   - 🛑 **VIETATO per iscritto:** rendere pubblico il bucket per far funzionare le anteprime. Sarebbero
     fotografie cliniche di pazienti esposte **senza autenticazione**
+  - ---
+  - 🆕 **LETTURA R-P2 FATTA IL 29/07 — tutti e otto i siti aperti, e sei fatti che cambiano il task:**
+  - **① Le otto coordinate sono ESATTE**, tutte e otto. Per una volta il piano non porta nessun
+    riferimento stantio: **verificato sito per sito**, non a campione.
+  - **② 🔴 SOLO DUE degli otto possono mostrare qualcosa a un essere umano — e vanno pesati così.**
+    Siti **1** (`(app)/lavori/[id]/page.tsx:30`) e **2** (`…/modifica/page.tsx:51`) sono **reali e gravi**:
+    la catena è completa e verificata — cancellazione morbida → **il file resta nello storage** →
+    `getSignedUrl` riesce lo stesso (`page.tsx:64-65`, `modifica/page.tsx:86-87`) → **la foto torna a
+    schermo con una URL firmata FRESCA e VALIDA**, non un'anteprima rotta. E sul sito 2 il **contatore
+    mente** (`TabImmagini.tsx:571` conta anche le cancellate): l'utente ricancella, ricarica, la ritrova.
+    I siti **3-8 sono payload MORTO**, `provato:` con le ricerche incollate — `immagin|foto|storage_path`
+    nei tre template PDF (`src/components/features/pdf/*`): **0 · 0 · 0** · in `generate-xml.ts` gli unici
+    due riscontri sono `xml_storage_path` e `pdf_storage_path`, che sono i percorsi **della fattura
+    stessa**, non le foto · e il GET del sito 3 **non ha consumatori** (ogni `fetch` verso
+    `/api/lavori/${id}` è un **PATCH**). ➡️ **Aggiungere il filtro anche lì è IGIENE, non correttezza:
+    va fatto, ma le PROVE si spendono sui due che contano.** 🔑 Trattarli come otto siti di pari gravità
+    è il modo di spendere l'attenzione sui sei che non contano e sbagliare i due che contano.
+  - **③ ✅ Nessuna migration serve, e la RLS non aiuta.** `deleted_at` **esiste**
+    (`002_fase2_schema.sql:255`, riflessa in `database.types.ts:3019/3030/3041`), la **RLS la filtra già**
+    (`:258-259`) e l'**indice parziale esiste** (`:262-263`). 🛑 **Ma tutti e otto i siti usano
+    `getServiceClient()`, che SCAVALCA la RLS**: quella policy **non viene mai valutata**. Il filtro va
+    scritto **a mano** nella query, o non c'è. **È l'intera ragione d'essere di T8.**
+  - **④ 🆕 Il file ESISTE GIÀ:** `src/app/api/lavori/[id]/immagini/[imgId]/route.ts`, **82 righe, solo
+    `PATCH`**. T8 **aggiunge un handler a un file esistente**, non crea una rotta.
+  - **⑤ 🔑 La «mutazione fratella» — il piano ne racconta metà.** Nello stesso file ci sono **due** query
+    con conteggi **diversi**: la **guardia di esistenza** (`:37-43`) porta **TRE** `.eq()` (`id`,
+    `lavoro_id`, `laboratorio_id`), l'**`update()`** (`:68-74`) ne porta **DUE** — manca `lavoro_id`.
+    ⚠️ **Non è sfruttabile oggi** (`id` è chiave primaria e `laboratorio_id` resta appuntato), **ma è il
+    modello che T8 copierebbe**: un `DELETE` scritto con quelle due è il difetto che si propaga.
+  - **⑥ 🔴 DUE buchi che T8 APRE e che nessun documento nominava.** (a) La guardia di esistenza del
+    `PATCH` (`:37-43`) **non filtra `deleted_at`**: appena il soft-delete esiste, `PATCH` modificherà
+    allegramente una riga **già cancellata** — 200 OK su un fantasma. (b) `:77` rimanda
+    **`updateError.message` GREZZO al client**, contro G9 (è la voce `G9-76` della roadmap, e sta nel file
+    che T8 sta per toccare). 🛑 **Il nuovo handler non copia nessuna delle due.**
+  - 🆕 **E due colonne da NON toccare, verificate:** `url` è **morto** (`getPublicUrl` su bucket
+    **privato**, dichiarato tale in `20260705200000_lavori_buono_storage_path.sql:14`; le foto si vedono
+    solo perché `page.tsx:64-65` e `modifica/page.tsx:86-87` **rifirmano** `storage_path` sovrascrivendo
+    il valore di banca dati prima del render — contratto scritto in `FotoStrip.tsx:5-7`). `tipo` è una
+    **colonna morta** cablata a `'foto'` all'INSERT (`immagini/route.ts:110`) — ⚠️ **e con una svolta:**
+    `tipo` **è nell'allowlist PATCH** (`[imgId]/route.ts:10`) ma **nessun client la usa**, perché il
+    vocabolario dell'interfaccia (`TipoFoto`, `TabImmagini.tsx:13`) è **incompatibile col `CHECK` del
+    database** e viene scritto dentro **`descrizione`** (`TabImmagini.tsx:131,236,253`, riletto a `:634`).
   - **Il bottone si chiama «Elimina foto».** Mai «diritto all'oblio», mai «richiesta del paziente»: il
     laboratorio è **responsabile**, non titolare, e offrire quella funzione lo spingerebbe verso
     l'Art. 28(10) GDPR, cioè a **diventare titolare**
