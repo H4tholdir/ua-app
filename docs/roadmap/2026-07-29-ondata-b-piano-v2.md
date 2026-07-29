@@ -334,6 +334,18 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
   8. 🆕 **I test asseriscono anche sul PREDICATO COSTRUITO, non solo sulle chiavi in uscita** (D48). Le
      chiavi le guarda già B2; il predicato non lo guarda nessuno, ed è il **secondo canale** verso le
      colonne che la proiezione ha appena tolto.
+  9. 🆕 **L'ordinamento porta un TERZO criterio, `id`, e il motivo non è l'eleganza.** Oggi la rotta ordina
+     per `cognome, nome` (`route.ts:35-36`), e **911 righe su 916 li hanno entrambi `NULL`**: in ASC i
+     `NULL` vanno in fondo, quindi con un `q` largo le 10 righe rese sono le poche con un nome **più un
+     resto arbitrario**, e *quale* resto **non è deterministico fra due chiamate**. In un pannello di
+     suggerimenti che si ridisegna a ogni tasto è un difetto visibile, non una nota di prestazione.
+     ➡️ **`cognome, nome, id`**, e `id` è anche l'unica colonna della tabella che un indice serve davvero.
+     🛑 **Il tetto e la chiave di ordinamento si decidono INSIEME:** un tetto duro senza un ordine totale
+     non è un tetto, è un campione.
+  10. 🆕 **La proiezione SQL e le chiavi in uscita sono due cose diverse, e vanno lette come tali.**
+     SQL: `id, codice_paziente, nome_cognome, lavori(data_ingresso)`. In uscita: `id, codice_paziente,
+     alias, ultimoLavoro`. **`nome_cognome` si SELEZIONA come ingresso di `derivaAlias` e non esce mai** —
+     non è una violazione di B2 (che parla della risposta) né di D47 (che parla del **filtro**).
 - **T7** — 🆕 **la lettura di unicità del codice** (nuova, e il v1 non ce l'aveva).
   Rispecchia il predicato di T5 **alla lettera**: `laboratorio_id` + `lower(btrim(codice))`, **senza
   `cliente_id`** e **senza limite**. Motivo: il pre-check di oggi guarda **un solo dentista**
@@ -517,9 +529,10 @@ giro» sbaglia, **la larghezza vera arriva dopo**.
 
 ## 9. 🛑 Cosa manca a QUESTO piano
 
-1. ✅ **Delle tre sonde ne resta UNA.** **P3** e **P6-forma** sono **CHIUSE il 30/07**, con le prove
-   incollate in §5. Resta **P2**, e resta per costruzione: **va rieseguita immediatamente prima di T5**,
-   perché decade col tempo — il giorno prima non basta.
+1. ✅ **CHIUSO — tutte e tre.** **P3** e **P6-forma** chiuse il 30/07; **P2** era l'ultima e **resta
+   assolta**: è stata rieseguita nello stesso turno di T5 (D43 — 0 duplicati grezzi, 0 normalizzati) e
+   **T5 è in produzione**. Non c'è più nulla da rieseguire prima di un task. 🆕 **P11** (l'escape di D48)
+   si aggiunge a §5, già provata.
 1-bis. ✅ **CHIUSO IL 29/07 — prima da D44, poi da D46.** Il bloccante («due documenti ratificati si
    contraddicono su T6») è stato sciolto in due tempi: **D44** ha tolto `cognomeEffettivo` dalla
    proiezione e portato B2 a **quattro** chiavi con `alias`; **D46** ha risposto alla metà che restava —
