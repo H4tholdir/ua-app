@@ -20,6 +20,39 @@ import { createChain, type MockChain } from './helpers/supabase-chain-mock'
 // della proiezione grassa di ieri (`codice_fiscale`, `note`, `data_nascita`,
 // `sesso`, `laboratorio_id`, `archiviato`…): se la rotta rimandasse le righe
 // così come arrivano, B2 diventa rossa.
+//
+// 📏 R-P4 — LA MISURA CON L'ABBOZZO INERTE, E L'ABBOZZO SCRITTO PER ESTESO.
+// Un `N su M` senza la forma dell'abbozzo non è riproducibile da terzi: la
+// prima stesura dichiarava «27 su 34», un revisore col PROPRIO abbozzo ne
+// ottenne «29 su 35», e la differenza era tutta nell'abbozzo. Quindi eccolo,
+// alla lettera — si sostituisce il corpo del `GET` in
+// `src/app/api/pazienti/route.ts` con:
+//
+//     export async function GET(req: Request) {
+//       void req
+//       return NextResponse.json({ pazienti: [] })
+//     }
+//
+// Comando: `npx vitest run tests/unit/api-pazienti-get-ricerca.test.ts`
+// Esito misurato il 29/07/2026, a file completo: **34 rosse su 40**.
+//
+// 🔑 LE SEI VERDI SONO LEGITTIME, E OGNUNA PORTA LA SUA GEMELLA POSITIVA —
+// che è ciò che le distingue da una prova che passa a vuoto. Sono le sei che
+// asseriscono un'uscita ANTICIPATA (`{ pazienti: [] }` senza toccare il
+// database), cioè proprio la forma che l'abbozzo imita per costruzione:
+// guardia sul vuoto su `q=*` · `q` di soli spazi · D49 (`?q=` con studio) ·
+// e le tre di D50 (oltre 64 · confine 65 · gli asterischi contano).
+// Il confine opposto è piantato da prove che sull'abbozzo MUOIONO:
+// «q di ESATTAMENTE 64 caratteri passa intero» e «D50 — 40 «%» passano»
+// (quest'ultima con `expect(mockFrom).toHaveBeenCalled()`). Senza quelle due
+// gemelle, le sei sopra sarebbero una lista di modi per non fare niente.
+//
+// 🛑 E NON SI SCRIVE QUANTE NE RESTANO. La stesura precedente dichiarava la
+// caccia alle prove vuote «chiusa alla terza istanza»: rieseguendo la stessa
+// misura, la ri-revisione ne ha trovata una **quarta** (`:525`). Una
+// dichiarazione di completezza sbagliata sulla proprietà che si sta
+// correggendo è peggio del difetto, perché chiude la caccia. Si lascia il
+// metodo e lo si rilancia.
 
 const { mockFrom, mockGetLabContextWithTimings } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
@@ -522,15 +555,32 @@ describe('GET /api/pazienti — B25: q senza cliente_id, e il ramo su q !== null
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
-  it('SENZA q e senza cliente_id → 200: il percorso legacy non cambia (fuori mandato, RATE-1)', async () => {
+  it('SENZA q e senza cliente_id → 200 CON le righe: il percorso legacy non cambia (fuori mandato, RATE-1)', async () => {
     const res = await GET(richiesta())
     expect(res.status).toBe(200)
+    // 🛑 QUARTA istanza della classe «passa a vuoto», trovata dalla
+    // ri-revisione rieseguendo la misura con l'abbozzo inerte. Il commento a
+    // `:531` dichiarava la caccia chiusa alla TERZA, e quella dichiarazione è
+    // il difetto peggiore dei due: un `200` da solo è ciò che restituisce
+    // ANCHE una rotta che non fa niente, quindi questa prova — l'unica che
+    // presidia il percorso storico di RATE-1 — restava verde contro l'abbozzo
+    // e non diceva nulla su `mockFrom`.
+    // 🔑 La regola che ne esce: una dichiarazione di completezza sbagliata
+    // sulla proprietà stessa che si sta correggendo è peggio del difetto,
+    // perché chiude la caccia. Non si scrive «chiusa alla terza»: si scrive
+    // il metodo, e lo si rilancia.
+    expect((await res.json()).pazienti).toHaveLength(2)
+    expect(mockFrom).toHaveBeenCalled()
   })
 
   it('dal corpo del 400 non esce NESSUN nome di colonna (G9)', async () => {
     const res = await GET(richiesta('?q=bagheria'))
-    // 🛑 TERZA ISTANZA della stessa classe, trovata dalla MIA misura con
-    // l'abbozzo inerte (il rilievo ne nominava due): senza questa riga la
+    // 🛑 Un'altra istanza della stessa classe, trovata con l'abbozzo inerte.
+    // ⚠️ Qui c'era scritto «TERZA ISTANZA … (il rilievo ne nominava due)»:
+    // una dichiarazione di completezza, ed era SBAGLIATA — rieseguendo la
+    // stessa misura la ri-revisione ne ha trovata una quarta (`:525`). Il
+    // conteggio è tolto apposta: si scrive il metodo, non «quante ne restano».
+    // Senza questa riga la
     // prova è una lista nera su un corpo che potrebbe essere qualunque cosa —
     // `{"pazienti":[]}` non contiene nessuno dei cinque nomi, quindi contro un
     // GET inerte passava a vuoto. Prima si asserisce CHE CORPO si sta
