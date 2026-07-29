@@ -440,12 +440,42 @@ describe('PATCH /api/pazienti/[id] — Z1: il codice occupato è un 409 di domin
   it('🛑 NEGATIVA: 23505 su un salvataggio che NON tocca il codice (solo una nota) → resta 500', async () => {
     // La chiave `codice_paziente` non c'è nel corpo: la colonna non si tocca
     // nemmeno, quindi un 23505 non può riguardarla. È il caso che un guardiano
-    // scritto `!== null` lascerebbe passare, trasformando un guasto qualunque
-    // in «il codice è occupato» su una schermata dove il codice non c'entra.
+    // scritto `!== null` lascerebbe passare.
+    //
+    // ⚠️ Che cosa questa prova NON dice, e va detto: il pannello di modifica
+    // NON produce mai un corpo così. `PazienteEditSheet.tsx:53` rimanda
+    // l'intero form e `form.codice_paziente` esiste sempre (`:29`, `?? ''`),
+    // quindi da lì la chiave arriva SEMPRE. Questa prova fissa la logica del
+    // guardiano, non un percorso del pannello: il ramo «chiave assente» è
+    // raggiungibile solo da un altro client (oggi nessuno) o da domani.
     mockPatchTabella({ error: ERRORE_23505 })
     const res = await PATCH(richiesta({ note: 'ciao' }), { params })
     expect(res.status).toBe(500)
     expect((await res.json()).error).toBe('Non è stato possibile aggiornare il paziente')
+  })
+
+  it('il corpo VERO del pannello (form intero, codice invariato) + 23505 → 409: la chiave c\'è sempre', async () => {
+    // Il pannello rimanda tutto il form a ogni salvataggio, codice compreso:
+    // per lui il guardiano è sempre vero, e l'esito onesto è il 409. Questa
+    // prova rende visibile nella suite un fatto che altrimenti resterebbe solo
+    // nel commento qui sopra.
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    mockPatchTabella({ error: ERRORE_23505 })
+    const res = await PATCH(
+      richiesta({
+        codice_paziente: 'PZ-0042',
+        cognome: '',
+        nome: '',
+        asl: '',
+        sesso: '',
+        data_nascita: '',
+        anamnesi: '',
+        note: '',
+      }),
+      { params }
+    )
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: TESTO_409, motivo: 'codice_gia_in_uso' })
   })
 
   it('🛑 NEGATIVA: 23505 mentre si SVUOTA il codice (→ `null`) → resta 500', async () => {

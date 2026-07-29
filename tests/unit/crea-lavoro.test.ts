@@ -555,6 +555,13 @@ describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () 
     // Leggere il corpo di una risposta fallita è superficie nuova: se il corpo
     // non è JSON, `.json()` solleva. L'esito deve degradare al blocco
     // generico — il wizard tornerà a dire «Riprova» — mai propagare l'errore.
+    //
+    // ⚠️ Onestà su cosa prova: questa asserzione è verde ANCHE senza il
+    // `try/catch` dentro `motivoDalCorpo`, perché il `catch` che avvolge tutto
+    // il passo del paziente (`crea-lavoro.ts:237`) ingoierebbe comunque
+    // l'eccezione. È un lucchetto sul comportamento, non la prova che quella
+    // guardia interna serva: la guardia c'è perché la degradazione sia scritta
+    // dove nasce, invece di dipendere da un `catch` lontano venti righe.
     const m = mockFetch()
     m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
     m.mockResolvedValueOnce({
