@@ -344,7 +344,14 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
   **è T14 a doverlo introdurre**.
 - **T15** — ricerca dentro «Cognome» (variante A) + stato «paziente ritrovato» + 🆕 **il modo esplicito di
   disfarlo** («Non è lei? Cerca un altro paziente»), che la spec §5 prescrive e il v1 non aveva raccolto.
-  ⚠️ **I suggerimenti non devono far ballare «Continua»** (D9, mai raccolta dal v1).
+  ⚠️ **I suggerimenti non devono far ballare «Continua»** (D9, mai raccolta dal v1): pannello **sovrapposto**
+  ad altezza fissa, mai in flusso.
+  🆕 **D45 — quando non si trova nulla, LO SI DICE.** Uno stato «nessun risultato» esplicito: la
+  raccomandazione contraria («non trovato è la normalità, non segnalarlo») valeva **solo per l'archivio di
+  prova** ed è stata ritirata.
+  🆕 **Un paziente senza nome è un caso legittimo, non un errore** (Art. 21(2) MDR: nome, acronimo **o
+  codice**): la riga di suggerimento deve **dirlo**, non fingere un nome. `alias` vale `null` proprio lì.
+  🆕 **Tetto: ~10 righe dalla rotta, 5 mostrate** (D44). E si cerca su **cognome, nome e codice**.
 - **T16** — i due scrittori (`crea-lavoro.ts:229-230`). 🛑 Invarianti: **mai `null`** · **mai** il codice
   fuori da `nome_cognome` senza ripiego (`precheck.ts:40-43` si ferma su `' '`).
 - **T17** — passo foto: galleria multipla (riuso di `TabImmagini`: `multiple`, compressione **0,4 MB**,
