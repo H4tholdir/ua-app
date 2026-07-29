@@ -1,0 +1,72 @@
+-- 20260729140000_pazienti_codice_lab_uidx.sql
+-- T5 dell'ondata (b) del wizard «Nuovo lavoro» — l'indice unico sul codice paziente.
+-- NON aggiungere BEGIN;/COMMIT; — il runner Supabase avvolge già la migration in una transazione.
+--
+-- ============ PERCHÉ ============
+-- `supabase/schema.sql:461` — `codice_paziente TEXT`, nudo: nessun UNIQUE, nessun indice.
+-- Il numero si calcola su tutto il laboratorio (`src/lib/wizard/dati-wizard.ts`) mentre
+-- niente in banca dati impedisce a due pazienti dello stesso laboratorio di ricevere lo
+-- stesso codice. L'applicazione già SA gestire il rifiuto (Z1: `POST /api/pazienti` e
+-- `PATCH /api/pazienti/[id]` intercettano il 23505 e rispondono con l'avviso ratificato
+-- da D37 — "Questo codice è già di un altro paziente. Scrivine un altro."), ma senza
+-- questo indice quel percorso non si accende mai: è la parte mancante.
+--
+-- ============ 🔑 IL PREDICATO — D34, decisione irreversibile del 29/07/2026 ============
+-- `WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> ''`
+-- Nessun filtro su `archiviato` né su `deleted_at`: il codice di un paziente archiviato
+-- NON SI RIUSA, resta impegnato per sempre.
+--   · Il codice è un identificativo di legge, non un'etichetta interna — Art. 21(2) MDR
+--     2017/745 + Allegato XIII p.1: il dispositivo è destinato a «un determinato paziente
+--     … identificato mediante il nome, un acronimo o un codice numerico», tre alternative
+--     equivalenti. Finisce su quattro documenti conservati (`EtichettaTemplate.tsx:128`,
+--     `IFUTemplate.tsx:171`, `RicevutaConsegnaTemplate.tsx:187`, `generate-ddc.ts:93`).
+--     Se lo stesso codice puntasse a due persone diverse nella storia di un laboratorio,
+--     risalire dal dispositivo al paziente dopo un incidente (Allegato XIII p.5, Art. 87)
+--     diventerebbe ambiguo proprio nella lettura che conta. (Inferenza dichiarata: l'MDR
+--     non scrive letteralmente «i codici non si riusano».)
+--   · Secondo argomento, indipendente dalla norma: `pazienti` ha due colonne di sparizione
+--     che NON concordano (`archiviato` scritto dal DELETE applicativo, `deleted_at` letto
+--     da RLS e dal wizard) — un predicato senza stato non deve arbitrare fra le due.
+-- Verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`, settima tornata, D34.
+--
+-- ============ 🔑 LA NORMALIZZAZIONE — D34-bis, provata necessaria ============
+-- Chiave indicizzata: `(laboratorio_id, lower(btrim(codice_paziente)))`, non la colonna grezza.
+-- Sonda P1-bis (transazione annullata, tabelle temporanee, 29/07/2026): con l'indice
+-- GREZZO 'pz-0042', ' PZ-0042' e 'PZ-0042 ' passavano TUTTI E TRE come "diversi" dallo
+-- stesso 'PZ-0042' già presente — il divieto non funzionava. Con la normalizzazione sono
+-- rifiutati tutti e tre, e il controllo positivo (stesso codice, due laboratori diversi)
+-- continua a passare. Non è una scelta di gusto: `cognomeEffettivo`
+-- (`src/lib/domain/nome-paziente-scrittura.ts`) confronta già oggi il codice trim-ato e in
+-- minuscolo sulla stessa identica colonna — la normalizzazione esiste già, qui si applica
+-- anche al vincolo. Il generatore del prossimo codice (`dati-wizard.ts:calcolaProssimoPz`)
+-- e la scrittura applicativa (Z1/Z2) sono già stati resi coerenti con questa stessa
+-- espressione PRIMA di questa migration.
+--
+-- ============ 🔒 AUTORIZZAZIONE — D43, produzione, nona tornata ============
+-- Non esiste uno staging (verificato: `deploy.yml` non ha step di migration, `ci.yml`
+-- porta un URL segnaposto, non esiste `supabase/config.toml`): applicare questa migration
+-- significa toccare l'UNICO progetto Supabase (`iagibumwjstnveqpjbwq`), quello che serve
+-- uachelab.com. Francesco ha autorizzato esplicitamente il 29/07/2026 (D43), dopo che la
+-- sonda sui duplicati è stata rieseguita davanti a lui nello stesso turno:
+--   provato: duplicati sul codice normalizzato per laboratorio → 0 righe
+--   provato: duplicati sul codice grezzo per laboratorio → 0 righe
+--   provato: baseline 294 lavori · 0 denti · 916 pazienti · 48 colori, intatta
+-- La migration non può abortire. I dati oggi in banca dati sono di prova (nessun
+-- laboratorio reale a bordo, CLAUDE.md §8): il rischio sul DATO è basso, ma questo
+-- indice sopravvive alla pulizia e regge i dati veri — il rigore di schema/vincoli resta
+-- massimo (D34/D34-bis sopra).
+--
+-- ============ ⚠️ NIENTE CONCURRENTLY ============
+-- Verificato, non assunto: zero occorrenze di `CONCURRENTLY` in tutto `supabase/`, e a
+-- 916 righe la finestra di blocco è trascurabile. In più `CONCURRENTLY` non può girare
+-- dentro una transazione, e il runner Supabase la apre per noi.
+--
+-- ============ ROLLBACK ============
+-- DROP INDEX IF EXISTS pazienti_codice_lab_uidx;
+-- (da lanciare con `node scripts/tmp/sql.mjs "DROP INDEX IF EXISTS pazienti_codice_lab_uidx;"`,
+-- o dal SQL editor del progetto Supabase, da chi ha accesso al DB di produzione, se dopo
+-- l'apply si scoprisse un difetto non colto dalle prove di questa migration)
+
+CREATE UNIQUE INDEX IF NOT EXISTS pazienti_codice_lab_uidx
+  ON pazienti (laboratorio_id, lower(btrim(codice_paziente)))
+  WHERE codice_paziente IS NOT NULL AND btrim(codice_paziente) <> '';

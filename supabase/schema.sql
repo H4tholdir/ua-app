@@ -458,7 +458,7 @@ CREATE TABLE pazienti (
   cliente_id        UUID NOT NULL REFERENCES clienti(id),
 
   -- Identificazione interna
-  codice_paziente   TEXT,               -- Codice assegnato dallo studio (es. "PAZ-001")
+  codice_paziente   TEXT,               -- Codice proposto dal wizard UÀ (es. "PZ-0917"), modificabile (D15). Unico per laboratorio, normalizzato: v. pazienti_codice_lab_uidx
 
   -- Dati anagrafici (SENSIBILI — cifrati in produzione via pgsodium)
   nome_cognome      TEXT NOT NULL,      -- "ROSSI MARIO"
