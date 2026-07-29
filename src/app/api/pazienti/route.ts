@@ -5,10 +5,56 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { withServerTiming } from '@/lib/api/server-timing'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { risolviNomePaziente, cognomeEffettivo } from '@/lib/domain/nome-paziente-scrittura'
+import { pgrestQuote, ilikeLiterale } from '@/lib/utils/escape-postgrest'
+import { derivaAlias } from '@/lib/cassette/parco-shared'
+
+// T6 (ondata b) — la ricerca del paziente per il passo «Paziente» del wizard.
+//
+// 🛑 QUESTA ROTTA NON RISPONDE ALLA DOMANDA «CHI OCCUPA IL CODICE».
+// A quella risponde `trovaOccupanteCodice` (`src/lib/domain/codice-paziente-unicita.ts`),
+// che rispecchia ALLA LETTERA il predicato dell'indice unico
+// `pazienti_codice_lab_uidx`: cieca allo stato (nessun `archiviato`, nessun
+// `deleted_at`), larga su TUTTO il laboratorio (nessun `cliente_id`) e senza
+// limite di righe. Questa ricerca è l'opposto per costruzione: filtra
+// `archiviato = false`, è ristretta a UN solo studio ed è tagliata a dieci
+// righe. Usarla come riconoscimento — «non compare, quindi il codice è
+// libero» — riaprirebbe esattamente il buco che `trovaOccupanteCodice` esiste
+// per chiudere: direbbe «libero» su un codice occupato da una scheda
+// archiviata, di un altro dentista, o semplicemente oltre la decima riga.
+// Vale per T15 e per ogni chiamante futuro (D46).
+
+/** Tetto duro sulle righe rese al pannello dei suggerimenti (D44). */
+const TETTO_RICERCA = 10
+/** Tetto del percorso storico «elenco per studio», invariato (voce RATE-1). */
+const TETTO_ELENCO = 500
+/**
+ * Tetto di lunghezza sul termine. 🛑 Il taglio va PRIMA dell'escape: dopo,
+ * taglierebbe a metà una barra di escape, e l'escape orfano si mangerebbe il
+ * `%` di chiusura della cornice — il pattern perderebbe il jolly in silenzio.
+ */
+const MAX_CARATTERI_Q = 64
+
+/**
+ * La riga come esce dal database — DIVERSA dalla riga che esce dalla rotta.
+ * `nome_cognome` si seleziona come INGRESSO di `derivaAlias` e non esce mai
+ * (T6 punto 10): non è una violazione di B2, che parla della risposta.
+ */
+type RigaPazienteDB = {
+  id: string
+  codice_paziente: string | null
+  nome_cognome: string | null
+  lavori: { data_ingresso: string }[] | null
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const cliente_id = searchParams.get('cliente_id')
+  // 🛑 `q` si legge GREZZO e il ramo si sceglie su `q !== null`, MAI su
+  // `if (q)`: `searchParams.get('q')` restituisce `''` per `?q=`, e `''` è
+  // falso. Con `if (q)` una casella di ricerca SVUOTATA cadrebbe nel ramo
+  // storico — dove `cliente_id` non serve e il tetto è 500 — e il vincolo di
+  // portata si aggirerebbe togliendo un carattere (D46).
+  const q = searchParams.get('q')
 
   return withServerTiming(async (t) => {
     const { context, timings } = await getLabContextWithTimings()
@@ -26,18 +72,103 @@ export async function GET(req: Request) {
 
     const labId: string = context.laboratorioId
 
+    // Portata (D11/D46): con `q` lo studio è OBBLIGATORIO. Non è isolamento —
+    // l'isolamento è il solo `laboratorio_id` qui sotto, e questa rotta usa
+    // `getServiceClient()`, quindi aggira la RLS e gli `.eq()` espliciti sono
+    // l'unico argine. È portata: senza studio, un termine di due lettere
+    // aprirebbe l'anagrafica dell'intero laboratorio a ogni tasto premuto.
+    //
+    // ⚠️ 400 e non 422: il precedente in casa per un parametro di QUERY
+    // mancante è `impostazioni/pec/verify-status/route.ts:11`; i 422 del
+    // progetto sono tutti semantica di CORPO, e una GET non ha corpo.
+    // 🔑 Il `motivo` è leggibile a macchina, mai una frase (le frasi cambiano):
+    // si chiama `studio_mancante` e non `cliente_id_mancante` perché
+    // `cliente_id` è un nome di colonna, e per G9 dal corpo di una risposta
+    // non esce nessun nome di colonna.
+    if (q !== null && !cliente_id) {
+      return NextResponse.json(
+        { error: 'Serve prima lo studio per cercare un paziente.', motivo: 'studio_mancante' },
+        { status: 400 }
+      )
+    }
+
+    // L'escape del termine, nell'ordine di D48 — e prima di toccare il
+    // database, perché la guardia sul vuoto deve poter chiudere qui.
+    let filtroRicerca: string | null = null
+    if (q !== null) {
+      // `.trim()` come in `fasi-produzione/ricerca/route.ts:9`; il taglio a 64
+      // caratteri PRIMA dell'escape. Il valore grezzo resta quello letto sopra:
+      // la scelta del ramo non dipende da questa ripulitura.
+      const termine = ilikeLiterale(q.trim().slice(0, MAX_CARATTERI_Q))
+      // 🛑 GUARDIA SUL VUOTO, e sta DOPO l'escape, mai prima: `q='*'` è
+      // non-vuoto in ingresso e collassa a `''` uscendo da `ilikeLiterale`.
+      // Senza questa riga il pattern diventerebbe `%%` e la risposta sarebbe
+      // l'anagrafica intera dello studio (provato, D48).
+      if (termine === '') {
+        return NextResponse.json({ pazienti: [] })
+      }
+      const pattern = pgrestQuote(`%${termine}%`)
+      // Quattro colonne (D47, che emenda D44). `nome_cognome` rientra perché
+      // è l'unica che contiene il nome COME LO SI LEGGE a schermo
+      // (`'bagheria giuseppe'`: 0 righe senza, 1 con); `cognome` e `nome`
+      // restano perché il soprainsieme non è garantito — il trigger
+      // `sync_paziente_nome_cognome` ricompone solo se ENTRAMBI sono non-null
+      // (`002_fase2_schema.sql:124`), e nessun vincolo lo fa rispettare.
+      filtroRicerca =
+        `codice_paziente.ilike.${pattern},` +
+        `nome_cognome.ilike.${pattern},` +
+        `cognome.ilike.${pattern},` +
+        `nome.ilike.${pattern}`
+    }
+
     const svc = getServiceClient()
     let query = svc
       .from('pazienti')
-      .select('id, laboratorio_id, cliente_id, codice_paziente, nome, cognome, nome_cognome, data_nascita, codice_fiscale, sesso, note, archiviato')
+      // Proiezione stretta SEMPRE, non condizionale: in casa non esiste un
+      // solo precedente di risposta che cambia forma col parametro (D46).
+      // 🛑 `laboratorio_id`, `cliente_id` e `archiviato` restano FILTRI: `.eq()`
+      // non richiede la colonna in `select`. `nome`, `cognome`,
+      // `data_nascita`, `codice_fiscale`, `sesso` e `note` non hanno alcun
+      // lettore (P3) e smettono di scorrere verso il browser.
+      .select('id, codice_paziente, nome_cognome, lavori(data_ingresso)')
       .eq('laboratorio_id', labId)
       .eq('archiviato', false)
+      // Ordine TOTALE, e il terzo criterio non è eleganza: 911 righe su 916
+      // hanno `cognome` e `nome` entrambi NULL (misurato) e in ASC i NULL
+      // vanno in fondo — senza `id`, QUALI righe finiscono nelle dieci non è
+      // deterministico fra due chiamate, e il pannello si ridisegna a ogni
+      // tasto. Un tetto duro senza un ordine totale non è un tetto, è un
+      // campione.
       .order('cognome', { ascending: true })
       .order('nome', { ascending: true })
-      .limit(500)
+      .order('id', { ascending: true })
+      // 🛑 L'innesto «ultimo lavoro» in UNA sola andata (P6-forma): `order` +
+      // `limit` PER PADRE, grafia `referencedTable` (non `foreignTable`,
+      // deprecata). Senza il limite per padre ogni riga porterebbe TUTTE le
+      // date d'ingresso: non sarebbe `ultimoLavoro`, sarebbe la cronologia
+      // delle prestazioni di dieci pazienti a ogni richiesta — Art. 9 GDPR.
+      // 🛑 Innesto SEMPLICE, MAI `!inner`: `!inner` restituirebbe `[]` e
+      // cancellerebbe dal risultato i pazienti senza lavori.
+      .order('data_ingresso', { referencedTable: 'lavori', ascending: false })
+      // 🔑 Il tetto sta FUORI dal ramo `if`, non dentro: è il precedente che
+      // degrada in sicurezza (`fasi-produzione/ricerca/route.ts:32`). Dentro
+      // il ramo, un percorso dimenticato resterebbe senza tetto.
+      .limit(q !== null ? TETTO_RICERCA : TETTO_ELENCO)
+      .limit(1, { referencedTable: 'lavori' })
+      // L'ultimo lavoro non può essere uno cancellato — e l'indice esistente
+      // su `lavori(paziente_id)` è parziale proprio su questo predicato.
+      .is('lavori.deleted_at', null)
 
     if (cliente_id) {
       query = query.eq('cliente_id', cliente_id)
+    }
+
+    if (filtroRicerca) {
+      // 🔑 Il gruppo `.or()` finisce in un parametro SEPARATO della query
+      // string, che PostgREST unisce agli `.eq()` con un AND e parentesizza
+      // per conto suo: il termine non può evadere dal laboratorio nemmeno
+      // provandoci (provato in attacco, D48).
+      query = query.or(filtroRicerca)
     }
 
     const { data, error } = await query
@@ -49,7 +180,24 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Non è stato possibile leggere i pazienti' }, { status: 500 })
     }
 
-    return NextResponse.json({ pazienti: data ?? [] })
+    const righe = (data ?? []) as unknown as RigaPazienteDB[]
+    const pazienti = righe.map((p) => ({
+      id: p.id,
+      codice_paziente: p.codice_paziente,
+      // `derivaAlias` e non `cognomeEffettivo`: il secondo è l'attrezzo di
+      // SCRITTURA e sulle 911 righe senza nome restituisce `''`, cioè una
+      // terza convenzione per «nessun nome». `derivaAlias` restituisce `null`
+      // quando il nome visibile È il codice travestito (D44).
+      alias: derivaAlias({ codice_paziente: p.codice_paziente, nome_cognome: p.nome_cognome }),
+      // `lavori.data_ingresso`, MAI `updated_at`: una correzione lo alzerebbe
+      // e un lavoro vecchio corretto ieri risulterebbe il più recente.
+      // 🛑 La chiave c'è SEMPRE: `null` significa una cosa sola — «questo
+      // paziente non ha lavori». Un `null` che significhi anche «non
+      // calcolato» sarebbe un valore che mente (D46).
+      ultimoLavoro: p.lavori?.[0]?.data_ingresso ?? null,
+    }))
+
+    return NextResponse.json({ pazienti })
   })
 }
 
