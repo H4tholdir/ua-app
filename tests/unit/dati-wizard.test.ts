@@ -34,7 +34,14 @@ function svcRouter(routing: Record<string, Array<{ data: unknown; error: unknown
       const chiamate: ChiamataMock[] = []
       registro.push({ tabella, chiamate })
       const builder: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'is', 'gte', 'not', 'like']) {
+      // ⚠️ `ilike` è nell'elenco per una ragione misurata, non per completezza:
+      // senza di lui `.ilike()` esplode con «non è una funzione» PRIMA che la
+      // query parta, e i quattro test fail-closed — che asseriscono
+      // `rejects.toThrow()` SENZA argomento — restano VERDI su quel TypeError.
+      // Misurato il 30/07 togliendolo: 2 rossi (composizione + tenant-scoping),
+      // 15 verdi, di cui 4 verdi a vuoto. Un metodo che manca qui non si
+      // manifesta come rosso: si manifesta come test che smette di provare.
+      for (const m of ['select', 'eq', 'is', 'gte', 'not', 'like', 'ilike']) {
         builder[m] = (...args: unknown[]) => {
           chiamate.push({ method: m, args })
           return builder
@@ -162,6 +169,77 @@ describe('aggregaDatiWizard — aggregazione pura (nessuna rete)', () => {
     const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: null }], OGGI)
     expect(r.prossimoPz).toBe('PZ-0001')
   })
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Z3 — «il generatore guarda la stessa popolazione che l'indice arbitrerà».
+  //
+  // FORME D'INPUT censite (R-P4), ognuna col suo caso o col suo motivo:
+  //   · minuscolo `pz-0043` .............. coperta, qui sotto (il difetto circolare)
+  //   · maiuscole miste `Pz-0050` ........ coperta, qui sotto
+  //   · spazi ai bordi ` PZ-0043 ` ....... coperta, qui sotto
+  //   · whitespace non-spazio `PZ-0043\t`  coperta, qui sotto — e vedi la nota su btrim
+  //   · stringa vuota `''` e soli spazi .. coperta, qui sotto
+  //   · numero non paddato `PZ-43` ....... coperta, qui sotto — PINNING (verde già prima
+  //                                        della correzione: nessuno l'aveva fissata)
+  //   · `null` ........................... già coperta sopra («null non rompe il match»)
+  //   · lista vuota ...................... già coperta sopra («lista vuota → PZ-0001»)
+  //   · formato estraneo `P-99`/`ALTRO` .. già coperta sopra («non-PZ ignorati»)
+  //   · cancellato / archiviato .......... NON copribile qui, e non per pigrizia:
+  //       `RawPaziente` è `{ codice_paziente }` e basta — questa funzione non sa
+  //       cosa sia `deleted_at`. Una fixture «archiviata» qui sarebbe una fixture
+  //       con un nome, non una prova. La prova sta nella FORMA DELLA QUERY, ed è
+  //       nel describe di `getDatiWizard` qui sotto.
+  // ────────────────────────────────────────────────────────────────────────
+
+  it('prossimoPz: un codice MINUSCOLO conta — è il difetto circolare che Z3 chiude', () => {
+    // Senza `/i` questo codice è invisibile al generatore: proporrebbe PZ-0001,
+    // e un indice unico su `lower(btrim(...))` rifiuterebbe... PZ-0043 dopo. Il
+    // punto non è il numero: è che il generatore non deve poter proporre un
+    // codice che l'arbitro rifiuta.
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: 'pz-0043' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0044')
+  })
+
+  it('prossimoPz: maiuscole miste `Pz-0050` contano come le altre', () => {
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: 'Pz-0050' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0051')
+  })
+
+  it("prossimoPz: spazi ai bordi — ' PZ-0043 ' conta, perché a database collide", () => {
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: ' PZ-0043 ' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0044')
+  })
+
+  it('prossimoPz: whitespace non-spazio (tab) conta — JS trim() è più largo di btrim()', () => {
+    // `btrim()` di Postgres toglie SOLO lo spazio; `String.prototype.trim()`
+    // toglie anche tab, a-capo e spazi unicode. La divergenza è voluta e va
+    // nella direzione sicura: qui il generatore salta un numero che a database
+    // sarebbe libero — cioè è PIÙ conservativo dell'indice, mai meno.
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: 'PZ-0043\t' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0044')
+  })
+
+  it('prossimoPz: stringa vuota e stringa di soli spazi sono ignorate, non contate', () => {
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: '' }, { codice_paziente: '   ' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0001')
+  })
+
+  it('prossimoPz: PINNING — `PZ-43` non paddato conta come 43 (già vero prima di Z3)', () => {
+    const r = aggregaDatiWizard(clienti, [], [{ codice_paziente: 'PZ-43' }], OGGI)
+    expect(r.prossimoPz).toBe('PZ-0044')
+  })
+
+  it('prossimoPz: il massimo si prende su TUTTA la popolazione, maiuscola o no', () => {
+    const pazienti = [
+      { codice_paziente: 'PZ-0010' },
+      { codice_paziente: 'pz-0043' }, // il più alto, ed è minuscolo
+      { codice_paziente: ' PZ-0020 ' },
+      { codice_paziente: null },
+      { codice_paziente: 'PAZ/2026/0999' }, // formato estraneo → ignorato
+    ]
+    const r = aggregaDatiWizard(clienti, [], pazienti, OGGI)
+    expect(r.prossimoPz).toBe('PZ-0044')
+  })
 })
 
 describe('getDatiWizard — wiring Supabase + fail-closed', () => {
@@ -207,7 +285,10 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
       lavori: [{ data: [], error: null }, { data: [], error: null }],
       pazienti: [{ data: null, error: { message: 'boom pazienti' } }],
     })
-    await expect(getDatiWizard(svc, 'lab-1', OGGI)).rejects.toThrow()
+    // Messaggio asserito, non un throw qualsiasi: `rejects.toThrow()` nudo
+    // accetta anche un TypeError del mock, e quel test resterebbe verde su una
+    // query che non è mai partita (misurato — v. la nota su `ilike` a :37).
+    await expect(getDatiWizard(svc, 'lab-1', OGGI)).rejects.toThrow(/lettura pazienti/)
   })
 
   it('fail-closed: errore sulla query storico consegne (fetchCampioniConsegna) → throw', async () => {
@@ -238,6 +319,46 @@ describe('getDatiWizard — wiring Supabase + fail-closed', () => {
         method: 'eq',
         args: ['laboratorio_id', 'lab-tenant-test'],
       })
+    }
+  })
+
+  // Le due prove di Z3 che NON sono verificabili dall'aggregazione pura: il
+  // mock non filtra niente, quindi «il minuscolo viene letto» e «l'archiviato
+  // viene letto» si provano sulla FORMA della query, non sui dati che torna.
+  it('query pazienti: ilike su %PZ-% — nessun `.like` case-sensitive sopravvive', async () => {
+    const { svc, registro } = svcRouter({
+      clienti: [{ data: clientiData, error: null }],
+      lavori: [{ data: [], error: null }, { data: [], error: null }],
+      pazienti: [{ data: [], error: null }],
+    })
+    await getDatiWizard(svc, 'lab-1', OGGI)
+
+    const q = registro.find((r) => r.tabella === 'pazienti')!
+    // `%PZ-%` e non `PZ-%`: il pattern è valutato da Postgres sulla colonna
+    // GREZZA, quindi ' PZ-0043 ' con un ancoraggio a sinistra non verrebbe mai
+    // letto e nessun trim in JS potrebbe recuperarlo.
+    expect(q.chiamate).toContainEqual({ method: 'ilike', args: ['codice_paziente', '%PZ-%'] })
+    expect(q.chiamate.filter((c) => c.method === 'like')).toEqual([])
+  })
+
+  it("filtro deleted_at: presente su clienti e lavori, ASSENTE su pazienti", async () => {
+    const { svc, registro } = svcRouter({
+      clienti: [{ data: clientiData, error: null }],
+      lavori: [{ data: [], error: null }, { data: [], error: null }],
+      pazienti: [{ data: [], error: null }],
+    })
+    await getDatiWizard(svc, 'lab-1', OGGI)
+
+    // Asserzione a doppio senso, di proposito: toglierlo dai pazienti è Z3,
+    // ma lasciarlo su clienti e lavori è altrettanto vincolante — quelle due
+    // query non c'entrano col codice paziente e non vanno allargate.
+    for (const q of registro) {
+      const haFiltro = q.chiamate.some(
+        (c) => c.method === 'is' && c.args[0] === 'deleted_at' && c.args[1] === null
+      )
+      expect(haFiltro, `query su "${q.tabella}": filtro deleted_at inatteso o mancante`).toBe(
+        q.tabella !== 'pazienti'
+      )
     }
   })
 })
