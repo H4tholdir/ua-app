@@ -322,6 +322,69 @@ describe('trovaOccupanteCodice — i due dati di D36: nome visibile + data ultim
   })
 })
 
+describe('trovaOccupanteCodice — il pattern ilike scappa il backslash (rilievo Importante, review T7)', () => {
+  // 🔑 Perché questo test NON riusa `fakeSvc` sopra: quella finta simula
+  // ILIKE con `.slice(1,-1)` + `.includes()` case-insensitive sul valore
+  // GREZZO — zero semantica di metacaratteri, backslash compreso. Un dato
+  // con un backslash resterebbe verde anche SENZA lo scappo nel modulo sotto
+  // test: è un buco di FEDELTÀ della finta (non un errore di chi l'ha
+  // scritta, v. intestazione del file). Riscrivere `fakeSvc.then()` con una
+  // vera semantica LIKE (stato di escape, `%`/`_` come metacaratteri) per
+  // coprire anche questo sarebbe più fragile che utile: rischia di
+  // introdurre esattamente la classe di bug che si vuole scovare, dentro la
+  // finta condivisa da 15 altri test.
+  //
+  // La strada scelta è l'altra offerta dal rilievo: provare la COSTRUZIONE
+  // del pattern IN ISOLAMENTO. Una finta minima cattura il valore letterale
+  // che il modulo passa a `.ilike()` (nessuna interpretazione, nessun
+  // matching — solo cattura) e lo confronta con un atteso scritto A MANO,
+  // calcolato fuori dall'espressione dell'implementazione (niente
+  // tautologia): non `chiave.replace(/\\/g, '\\\\')` ricopiato, ma il
+  // risultato di quell'operazione scritto come stringa letterale.
+  function fakeSvcCatturaIlike(): { svc: SupabaseClient; ilikeRicevuto: () => string | undefined } {
+    let ilikeValue: string | undefined
+    const chain = {
+      select: () => chain,
+      eq: () => chain,
+      ilike: (col: string, v: string) => {
+        if (col !== 'codice_paziente') throw new Error(`.ilike su colonna inattesa: ${col}`)
+        ilikeValue = v
+        return chain
+      },
+      order: () => chain,
+      limit: () => chain,
+      is: () => chain,
+      then: (resolve: (v: { data: unknown; error: unknown }) => void) => resolve({ data: [], error: null }),
+    }
+    const svc = {
+      from: (tabella: string) => {
+        if (tabella !== 'pazienti') throw new Error(`tabella inattesa: ${tabella}`)
+        return chain
+      },
+    }
+    return { svc: svc as unknown as SupabaseClient, ilikeRicevuto: () => ilikeValue }
+  }
+
+  it('un codice con UN backslash produce un pattern col backslash RADDOPPIATO (Postgres lo userebbe come escape altrimenti)', async () => {
+    const { svc, ilikeRicevuto } = fakeSvcCatturaIlike()
+    // codiceGrezzo = "PZ" + un backslash reale + "0042" (sorgente JS: '\\' = un solo backslash)
+    await trovaOccupanteCodice(svc, LAB_A, 'PZ\\0042')
+    // Atteso scritto a mano: chiave normalizzata = 'pz' + un backslash + '0042';
+    // per sopravvivere a ILIKE il backslash del DATO va raddoppiato PRIMA di
+    // essere incorniciato da '%…%'. Verificato fuori da questo file con Node
+    // puro (replace(/\\/g,'\\\\') su 'pz\0042' → 'pz\\0042', due backslash reali).
+    expect(ilikeRicevuto()).toBe('%pz\\\\0042%')
+  })
+
+  it('un codice SENZA backslash non cambia forma (`%`/`_` restano intoccati, come da commento del modulo)', async () => {
+    const { svc, ilikeRicevuto } = fakeSvcCatturaIlike()
+    await trovaOccupanteCodice(svc, LAB_A, 'PZ_0042%')
+    // Nessun replace su `_`/`%`: il pattern porta i due metacaratteri grezzi,
+    // solo trim+lowercase applicati (nessun backslash da raddoppiare qui).
+    expect(ilikeRicevuto()).toBe('%pz_0042%%')
+  })
+})
+
 describe('trovaOccupanteCodice — degrado su errore di lettura (G9: mai propagare il testo grezzo)', () => {
   it('un errore Postgres degrada a "libero", non lancia e non espone error.message', async () => {
     const svc = {

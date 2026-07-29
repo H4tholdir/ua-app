@@ -120,11 +120,24 @@ export async function trovaOccupanteCodice(
   // di `dati-wizard.ts:36-53`). Effetto collaterale accettato: recupera anche
   // l'eventuale riga con spazi residui ai bordi (misurato zero oggi, v.
   // rapporto), che un pattern esatto avrebbe perso.
+  //
+  // 🔴 ECCEZIONE — il backslash NON allarga, CANCELLA (rilievo Importante,
+  // review T7): a differenza di `%`/`_`, per Postgres il backslash è di
+  // default il carattere di escape DENTRO LIKE/ILIKE. Un backslash lasciato
+  // grezzo nel pattern viene consumato per spegnere il carattere successivo
+  // e sparisce dal confronto — mentre nel dato memorizzato resta. Provato sul
+  // catalogo vivo: `SELECT c ILIKE '%'||c||'%' FROM (VALUES
+  // ('pz'||chr(92)||'0042')) v(c)` → `false`. Un codice con un backslash non
+  // troverebbe più sé stesso: "libero" restituito su un codice OCCUPATO, in
+  // silenzio. Si raddoppia quindi SOLO il backslash prima di incorniciare col
+  // `%…%` — `%`/`_` restano intoccati, il ragionamento sopra su quei due resta
+  // valido com'è.
+  const chiaveEscapata = chiave.replace(/\\/g, '\\\\')
   const { data, error } = await svc
     .from('pazienti')
     .select('id, codice_paziente, nome_cognome, lavori(data_ingresso)')
     .eq('laboratorio_id', labId)
-    .ilike('codice_paziente', `%${chiave}%`)
+    .ilike('codice_paziente', `%${chiaveEscapata}%`)
     .order('data_ingresso', { referencedTable: 'lavori', ascending: false })
     .limit(1, { referencedTable: 'lavori' })
     .is('lavori.deleted_at', null)
