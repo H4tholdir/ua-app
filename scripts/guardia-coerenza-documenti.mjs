@@ -55,6 +55,16 @@ const NUMERI_A_PAROLE = {
   ventisei: 26, ventisette: 27, ventotto: 28, ventinove: 29, trenta: 30, trentuno: 31,
   trentadue: 32, trentatre: 33, trentatré: 33, trentaquattro: 34, trentacinque: 35,
   trentasei: 36, trentasette: 37, trentotto: 38, trentanove: 39, quaranta: 40,
+  // 🛑 Fino al 29/07/2026 la tabella si fermava a «quaranta»: alla 41esima decisione il
+  //    riconoscimento e' fallito e il controllo del conteggio e' DEGRADATO IN AVVISO — cioe'
+  //    ha smesso di proteggere proprio mentre il documento cresceva. E' lo stesso modo di
+  //    rompersi gia' pagato con «trentatre» e le lettere accentate: una rete che finisce
+  //    senza dirlo. Estesa a sessanta, con le due grafie di «…tre».
+  quarantuno: 41, quarantadue: 42, quarantatre: 43, quarantatré: 43, quarantaquattro: 44,
+  quarantacinque: 45, quarantasei: 46, quarantasette: 47, quarantotto: 48, quarantanove: 49,
+  cinquanta: 50, cinquantuno: 51, cinquantadue: 52, cinquantatre: 53, cinquantatré: 53,
+  cinquantaquattro: 54, cinquantacinque: 55, cinquantasei: 56, cinquantasette: 57,
+  cinquantotto: 58, cinquantanove: 59, sessanta: 60,
 }
 const errori = []
 const avvisi = []
