@@ -1,6 +1,6 @@
 # Sessione attiva — ondata (b): il brief di T8 è scritto, tocca all'esecutore (29/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `.superpowers/sdd/ondata-b-t8-brief.md`** (il brief di T8, scritto oggi), con
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-t8-brief.md`** (il brief di T8, scritto oggi), con
 `docs/roadmap/2026-07-29-ondata-b-blocco3-handoff.md` come contesto e il piano
 `docs/roadmap/2026-07-29-ondata-b-piano-v2.md` (§5 **P12** · §6 **T8**).
 **Ledger: `.superpowers/sdd/progress.md` — i task completi lì SONO completi.**
@@ -23,4 +23,10 @@ diagnosticato (`.superpowers/sdd/diagnosi-flake-vitest.md:235`), **non una regre
 
 ➡️ **Il brief di T8 è pronto e verificato** (otto coordinate ricontrollate una riga ciascuna; tre
 riferimenti stantii corretti dentro il brief: `cicli:170`, `pazienti/route.ts:227-228`,
-`tests/unit/helpers/supabase-chain-mock.ts`). **Manca solo l'esecutore fresco** (R-E1) — attende Francesco.
+`tests/unit/helpers/supabase-chain-mock.ts`). 📍 **Sta in `docs/roadmap/`, NON in `.superpowers/sdd/`**:
+quella cartella è ignorata da git e un punto di ripresa non può vivere solo su un disco.
+🔑 **E porta la forma delle prove per gli otto siti**, che è il punto dove sarebbe scivolato: sono
+componenti server, la finta della catena non li monta, e **zero test in tutto il repo nominano
+`lavori_immagini`** — il precedente giusto è `tests/unit/ddc-lettori-gruppo-b.test.ts` (conteggio innesti
+== conteggio filtri, un `it` per file), più una sonda in sola lettura **incollata nel rapporto** per i due
+siti che contano. **Manca solo l'esecutore fresco** (R-E1) — attende Francesco.
