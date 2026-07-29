@@ -91,6 +91,17 @@ if (existsSync(join(RADICE, PORTA))) {
     for (const doc of fronte) {
       const t = readFileSync(join(RADICE, doc), 'utf8')
       for (const p of percorsiCitati(t, true)) {
+        // 🛑 Un ARCHIVIO non entra MAI nella catena, nemmeno se un documento vivo
+        //    lo cita: ha già il suo trattamento dedicato (solo la testa, sotto).
+        //    Senza questa riga la dichiarazione `ARCHIVI_SOLO_TESTA` si annullava
+        //    da sola al primo collegamento — ed è successo il 30/07/2026: un piano
+        //    che nominava `memory/MEMORY.md` fra i passi di BP-1 tirava dentro
+        //    l'archivio INTERO, e la guardia bocciava quattro voci del 26/07 che
+        //    RACCONTANO la rimozione di due file diagnostici (commit `732fcceb`).
+        //    Un verbale storico che cita un file rimosso non è un riferimento
+        //    pendente: è memoria che fa il suo mestiere. La guardia gridava al
+        //    lupo su se stessa — ed è il modo in cui una guardia si fa spegnere.
+        if (ARCHIVI_SOLO_TESTA.some((a) => a.percorso === p)) continue
         if (existsSync(join(RADICE, p)) && !documentiVivi.includes(p)) {
           documentiVivi.push(p)
           prossimi.push(p)

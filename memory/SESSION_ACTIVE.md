@@ -1,29 +1,24 @@
-# Sessione attiva — ONDATA (b): PIANO VALIDATO E RISCRITTO, si parte dalla CONSEGNA ZERO (29/07/2026)
+# Sessione attiva — CONSEGNA ZERO in esecuzione sul ramo `consegna-zero-pazienti` (30/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-ondata-b-consegna-zero-handoff.md`.**
-Poi il piano: **`docs/roadmap/2026-07-29-ondata-b-piano-v2.md`**, e si legge **§0 per prima**.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-consegna-zero-piano.md`.**
+Sfondo: `docs/roadmap/2026-07-30-ondata-b-consegna-zero-handoff.md` + piano v2 §0.
 
-**Il panel c'è stato** (7 revisori, ~70 file): **29 rilievi · 6 BLOCCANTI · 15 affermazioni del piano v1
-verificate FALSE**. Verbale: `…-29-ondata-b-panel-validazione.md`.
-🔑 **La lezione: il piano non è stato fermato dai buchi che dichiarava, ma DOVE SI SENTIVA SICURO** — la
-sonda P1, il censimento dei token, la citazione-àncora del §4 e il drift `bite_splint` erano **tutti e
-quattro difettosi**. *Un buco dichiarato si chiude; una certezza sbagliata no.*
+**Ordine: Z3 → Z2 → Z1**, un esecutore fresco per task (**D35**), revisione fra l'uno e l'altro, e nel
+brief di ognuno l'istruzione di **cercare dove il piano si sente sicuro**.
 
-🛑 **SI COMINCIA DALLA CONSEGNA ZERO (Z1-Z3), che va in produzione DA SOLA e PRIMA del ramo:** gestione del
-`23505` · `btrim` + `'' → NULL` in scrittura · generatore reso case-insensitive e senza `deleted_at`.
-Motivo: **non esiste uno staging** (verificato), quindi l'indice varrebbe subito per la produzione, che non
-saprebbe gestirlo. Il modello è in casa, in **9 route**; `api/pazienti` è l'unica senza.
+✅ **Due sonde eseguite (sola lettura, baseline intatta 294 · 0 · 916 · 48):**
+- **Z-P1:** su `pazienti` **nessun indice unico** sul codice esiste oggi (4 indici; l'unico UNIQUE è la
+  chiave primaria su `id`) → 🔑 **Z1 nasce INERTE**: nel rapporto si scrive «consegnato e inerte», MAI
+  «verificato in produzione».
+- **Z-P2:** 0 codici con spazi · 0 minuscoli · 0 stringhe vuote (i 911 «fuori formato» sono
+  `PAZ/2026/nnnn`, che il generatore ignora giustamente) → **nessuna ripulitura una tantum**.
 
-✅ **Panel normativo chiuso, 4 domande su 4.** **D34** (ratificata): il codice di un paziente archiviato
-**non si riusa mai** — è un identificativo di legge e finisce su 4 documenti conservati. **D34-bis:**
-`lower(btrim(...))`, che è la normalizzazione **già presente** su quella colonna. Foto: **soft-delete**,
-stessi ruoli che caricano, finestra **fino alla consegna** — che è **anche il confine di legge**.
-🔧 **Corretta una base normativa sbagliata in 3 documenti** (per i su misura: **Art. 10(5) + All. XIII p.4**,
-non Art. 10(8)) e un errore vero (impiantabili: **15 anni**, non 10).
+🆕 **Due buchi del piano v2, trovati leggendo e messi a verbale:** `PazienteEditSheet.tsx` è un **secondo
+chiamante** del PATCH e scrive il codice a mano (il piano non lo nominava) · il **mockup ratificato NON
+copre lo schermo di Z1** (vuole nome, ultimo lavoro e primo codice libero: tutti e tre arrivano da T7/T15).
 
-🔴 **Restano: 3 sonde** (P2 da rieseguire · P3 · P6-**forma**) · **2 gate di mockup** (denti, colore) ·
-**2 decisioni di prodotto** (quando nasce la cassetta creata dal wizard · la stringa della briciola).
-**Nessuna blocca la consegna zero.**
+✅ **D35** (esecutori freschi) e **D36** (i due testi dell'avviso; «È lei: usa la sua scheda» **rimandata**
+a T7+T15) ratificate — ottava tornata. Conteggio aggiornato: **36 decisioni in otto tornate**.
 
-**31 commit locali non pubblicati, 11 di oggi. Zero righe di logica applicativa. Albero pulito.**
-Baseline riverificata: **294 · 0 · 916 · 48**.
+⚠️ **FASE 6b NON si applica**: nessuna migration in questa consegna (l'indice unico è **T5**, dentro il
+ramo dell'ondata, che si apre solo **dopo** che questa consegna è in produzione).

@@ -179,7 +179,7 @@ cognome** a cui si svuota il codice → **422**, che è giusto · e i test esist
 
 ---
 
-## 7. 🔴 La decisione che Z1 non può prendere da solo
+## 7. ✅ La decisione di Z1 — RATIFICATA (D36, 30/07)
 
 **Il mockup ratificato non copre questo schermo**, ed è un fatto letto, non un'impressione: descrive
 l'avviso che compare **mentre si scrive**, con **nome del paziente, ultimo lavoro e primo codice libero**.
@@ -191,8 +191,20 @@ Resta l'altra, che funziona sempre: **cambiare il codice**. Il campo è già lì
 stessa schermata. La proposta è che il messaggio smetta di dire «Riprova» — che è l'anello chiuso, perché
 `pz` non si ricalcola (`WizardNuovoLavoro.tsx:258`) — e dica invece cosa è successo e cosa fare.
 
-➡️ **Il testo esatto va scelto da Francesco** e scritto in `docs/design/decisions/` con il suo numero,
-nello stesso turno (§0A-bis). Fino ad allora **Z1 punto 3 resta aperto**; Z1 punti 1, 2 e 4 no.
+✅ **Francesco ha scelto il 30/07 — D36**, verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`,
+ottava tornata. **I due testi sono ratificati e si scrivono così, alla lettera:**
+
+> **Nel wizard** (al posto di `WizardNuovoLavoro.tsx:383`, solo nel ramo «codice occupato»):
+> **«Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.»**
+> — dove `PZ-0918` è **il codice vero che l'utente ha tentato**, non un segnaposto.
+>
+> **Nel pannello di modifica** (`PazienteEditSheet.tsx`):
+> **«Questo codice è già di un altro paziente. Scrivine un altro.»**
+> — qui il codice non si ripete: l'utente lo sta guardando nel campo che ha appena scritto.
+
+🛑 **Nessuna schermata nuova, nessun componente nuovo, nessun mockup**: cambia **solo la frase** dentro
+l'avviso che esiste già, e il campo è **già editabile**. Chi allarga questo perimetro sta facendo T15
+in anticipo. ⏳ **Quando arriverà T15 questa frase decade** e le subentra l'avviso completo del mockup.
 
 ---
 
