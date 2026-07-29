@@ -8,10 +8,11 @@
 **Ramo `ondata-b-schermate`** (mai un worktree). **Niente pubblicato su `origin`.**
 ✅ **Sette task chiusi e revisionati: T1 · T4 · T2 · T3 · T5 · T7 · T6** (T6: due revisioni + due giri di
 correzione, l'ultimo verificato da me perché l'esecutore era caduto senza rapporto).
-**FASE 7 (mia):** `tsc` 0 · `next build` 0 · `vitest` **3806**/19 — ⚠️ verde in **2 esecuzioni su 4**: le due
-rosse portano **un solo test**, `PassoTipo.test.tsx:165`, **mai toccato sul ramo**, 14/14 in isolamento e già
-nominato nella diagnosi del flake (`.superpowers/sdd/diagnosi-flake-vitest.md:235`). **Non è una regressione.**
-DB **294 · 0 · 916 · 48**.
+**FASE 7 (mia):** `tsc` 0 · `next build` 0 · `vitest` **3806**/19 — ⚠️ verde in **5 esecuzioni intere su 8**, e
+🔑 **la vittima RUOTA**: `PassoTipo.test.tsx:165` (23,6 s), `lavoro-form-messaggio-errore.test.tsx` (8,9 s),
+una non attribuita. Sempre **un solo test**, sempre con durata anomala, sempre in file **mai toccati sul
+ramo** e verdi in isolamento 3 giri su 3 — è il flake già diagnosticato
+(`.superpowers/sdd/diagnosi-flake-vitest.md:235`). **Non è una regressione.** DB **294 · 0 · 916 · 48**.
 
 🆕 **D46-D50** (panel di 3 advisor + 2 revisioni): forma **unica** della risposta · `nome_cognome`
 **rientra** nel filtro (emenda D44) · escape a **quattro** metacaratteri + guardia sul vuoto ·

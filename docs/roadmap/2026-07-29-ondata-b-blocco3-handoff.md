@@ -20,8 +20,9 @@ i task che risultano completi lì SONO completi — non rieseguirli.**
 
 **Ramo `ondata-b-schermate`, SETTE task chiusi e revisionati (T1 · T4 · T2 · T3 · T5 · T7 · T6), e
 cinquanta decisioni a verbale (D46-D50 sono di oggi).** FASE 7 sul ramo, eseguita dal coordinatore:
-**`tsc` 0 · `next build` 0 · `vitest` 3806 passati / 19 saltati** — ⚠️ ma verde in **2 esecuzioni intere
-su 5**, per un flake **preesistente e non nostro, con vittime che RUOTANO** (§6). **Nulla è pubblicato su `origin`.**
+**`tsc` 0 · `next build` 0 · `vitest` 3806 passati / 19 saltati** — ⚠️ ma **verde in 5 esecuzioni
+intere su 8** (conteggio finale del 29/07), per un flake **preesistente e non nostro, con vittime che
+RUOTANO** (§6). **Nulla è pubblicato su `origin`.**
 Baseline database **294 · 0 · 916 · 48**, toccata solo in lettura.
 
 ---
@@ -121,7 +122,8 @@ lavorazione (roadmap, sezione del panel D46-D48).
 🛑 **MAI un git worktree** (doppio `package-lock.json` → 404 su tutte le route): `git checkout -b`.
 🛑 **Mai `git add -A`** finché un esecutore è vivo: `git commit -F <messaggio> -- <percorsi>`.
 ⚠️ **`vitest` non è deterministico su questo repo, e va detto invece che nascosto.** Oggi la suite intera
-è verde in **2 esecuzioni su 5**. 🔑 **E le tre rosse NON sono lo stesso test: la vittima RUOTA** — una
+è verde in **5 esecuzioni intere su 8** (conteggio finale del 29/07; le ultime **tre di fila** verdi).
+🔑 **E le tre rosse NON sono lo stesso test: la vittima RUOTA** — una
 volta `tests/unit/PassoTipo.test.tsx:165` (23,6 s), una volta
 `tests/unit/lavoro-form-messaggio-errore.test.tsx` (8,9 s), una non attribuita. **Sempre un solo test per
 esecuzione, e sempre con una durata anomala.**
