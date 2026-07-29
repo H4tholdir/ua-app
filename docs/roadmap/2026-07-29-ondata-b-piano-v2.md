@@ -238,7 +238,9 @@ colpo a vuoto» — perché il precedente in casa (`ddc:dichiarazioni_conformita
 solido e la conclusione sbagliata: **PostgREST accetta ENTRAMBE le grafie, ed entrambe MORDONO.**
 
 `provato:` `node scripts/tmp/sonda-t8-alias.mjs` (sola lettura, solo conteggi) sulla forma esatta dei siti
-1/2/3 — `from('lavori').select('id, immagini:lavori_immagini(id, tipo, deleted_at)').limit(60)`:
+1/2/3. ⚠️ **`scripts/tmp/` è IGNORATO da git** (`.gitignore:124`): la sonda sparisce con la sessione, quindi
+la query e i filtri sono incollati qui e bastano a rifarla.
+Query: `from('lavori').select('id, immagini:lavori_immagini(id, tipo, deleted_at)').limit(60)`, poi:
 
 | filtro applicato all'innesto | esito |
 |---|---|

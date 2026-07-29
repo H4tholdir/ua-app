@@ -24,6 +24,8 @@ cinquanta decisioni a verbale (D46-D50 sono di oggi).** FASE 7 sul ramo, eseguit
 intere su 8** (conteggio finale del 29/07), per un flake **preesistente e non nostro, con vittime che
 RUOTANO** (§6). **Nulla è pubblicato su `origin`.**
 Baseline database **294 · 0 · 916 · 48**, toccata solo in lettura.
+🆕 **E T8 è già istruito:** la **lettura R-P2 degli otto siti è FATTA** e sta nel piano — **manca solo il
+brief** (§5).
 
 ---
 
@@ -96,13 +98,36 @@ invertito **calcola l'atteso chiamando l'implementazione** (ridondante, non vuot
 
 ## 5. Da dove si riparte
 
-➡️ **T8 — NON iniziato.** `DELETE /api/lavori/[id]/immagini/[imgId]`: **non è «una rotta», è una rotta
-più OTTO letture** (piano §6, T8, che le elenca una per una). Soft su `deleted_at`, **tre** `.eq()` sulla
-`delete()` stessa più `.select()` per contare le righe toccate, finestra `stato != 'consegnato'` con
-**409** e bottone **disabilitato con la spiegazione visibile**, mai nascosto. 🛑 **Vietato per iscritto:**
-rendere pubblico il bucket per far funzionare le anteprime.
-⚠️ **Il suo brief va scritto con lo stesso trattamento di quello di T6** — e la prova B19 chiede di
-verificare che la riga sparisca da **tutte e otto** le letture, una asserzione per sito.
+➡️ **T8 — codice NON iniziato, ma la LETTURA R-P2 È FATTA.** Il primo passo della prossima sessione è
+**scrivere il brief**, non rileggere: tutto ciò che serve è già nel piano (§3 registro letture, §5 **P12**,
+§6 **T8** coi sei fatti). **Rileggere gli otto file sarebbe rifare un lavoro già pagato.**
+
+`DELETE /api/lavori/[id]/immagini/[imgId]`: soft su `deleted_at`, **tre** `.eq()` sulla `delete()` stessa
+più `.select()` per contare le righe toccate, finestra `stato != 'consegnato'` con **409** e bottone
+**disabilitato con la spiegazione visibile**, mai nascosto. 🛑 **Vietato per iscritto:** rendere pubblico il
+bucket per far funzionare le anteprime.
+
+**🔑 I sei fatti della lettura, in una riga ciascuno — il dettaglio con le prove è in §6/T8:**
+1. **Le otto coordinate sono ESATTE**, verificate sito per sito. Per una volta il piano non porta stantio.
+2. 🔴 **Solo DUE degli otto raggiungono un utente** (scheda `:30` e modifica `:51`); i 3-8 sono **payload
+   morto**, con le ricerche incollate. ➡️ **Il filtro va messo anche lì — è igiene — ma le PROVE si
+   spendono sui due.** Trattarli di pari gravità è il modo di sbagliare i due che contano.
+3. ✅ **Nessuna migration**: `deleted_at`, la RLS che lo filtra e l'indice parziale **esistono già** — 🛑 ma
+   gli otto usano `getServiceClient()` e **scavalcano la RLS**. È l'intera ragione d'essere di T8.
+4. **Il file `[imgId]/route.ts` ESISTE GIÀ** (82 righe, solo `PATCH`): T8 **aggiunge un handler**.
+5. La «mutazione fratella» è **due query con conteggi diversi** (guardia **3** `.eq()`, `update()` **2**).
+6. 🔴 **Due buchi che T8 apre:** la guardia del `PATCH` **non filtra `deleted_at`**, e `:77` rimanda
+   l'errore **grezzo** al client (G9).
+
+⚠️ **B19 chiede una asserzione per sito su tutti e otto** — ma **pesata** secondo il punto 2.
+⚠️ **Il brief va scritto con lo stesso trattamento di quello di T6**, e col divieto esplicito di copiare i
+due difetti del punto 6.
+
+🛑 **Una cosa da NON «correggere»:** la grafia del filtro sugli innesti dettata dal piano
+(`.is('lavori_immagini.deleted_at', null)`) **è giusta** — un rilievo la dava per sbagliata a favore
+dell'alias, ragionando da un precedente sulla riga adiacente. **Provata: entrambe funzionano, entrambe
+mordono** (piano §5, **P12**). Il rilievo è scritto lì apposta, perché il ragionamento è convincente e
+qualcuno lo rifarà.
 
 Poi **Blocco 4** (T9 · T10), **Blocco 5** (T11 · T12 · T13), **Blocco 6** (T14-T21), **Blocco 7** (T22 ·
 T23 col **gate estetico L2**).
