@@ -77,8 +77,12 @@ la colonna morta **`lavori_immagini.tipo`**.
    L'isolamento è il solo `laboratorio_id` (`:33`). ② La spec §14.1 diceva «`pazienti` è protetta da RLS»:
    vero della **policy**, falso di **questa rotta**, che usa `getServiceClient()` e **aggira la RLS** — gli
    `.eq()` espliciti sono **l'unico controllo**. Vale identico per le tre rotte immagini e per
-   `POST /api/cassette`. ➡️ **T6 rende `cliente_id` obbligatorio quando c'è `q`** (422 altrimenti), e il
-   piano smette di chiamarlo isolamento: **`laboratorio_id` è l'isolamento, `cliente_id` è la portata**.
+   `POST /api/cassette`. ➡️ **T6 rende `cliente_id` obbligatorio quando c'è `q`** (🔧 **400**, non 422 —
+   v. D46 e T6 punto 3: questa riga diceva 422 e **contraddiceva il proprio task**, rilievo dell'esecutore
+   di T6), e il piano smette di chiamarlo isolamento: **`laboratorio_id` è l'isolamento, `cliente_id` è la
+   portata**. ⚠️ E `cliente_id` obbligatorio è **presenza, non appartenenza**: il `POST` verifica che il
+   cliente sia del laboratorio (`:86-96`), il `GET` no. Non è un buco — l'argine resta `laboratorio_id` —
+   ma non si scriva «isolamento» dove c'è «portata».
 2. **Schema drift.** Una migration (T5). **FASE 6b ha TRE righe, non due**: `gen types` · `tsc --noEmit` ·
    **verifica che la migration non rompa le RLS** — quella che il v1 saltava. ⚠️ Per un **indice** il
    diff dei tipi è **atteso nullo**: è una **previsione**, quindi porta il suo marchio (R-P1) e il diff va
@@ -437,6 +441,11 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
   `null`** · **mai** il codice fuori da `nome_cognome` senza ripiego (`precheck.ts:40-43` si ferma su
   `' '`). ⚠️ **E T16 riscrive il chiamante che regge tutta l'architettura di D46:** `PazienteRiga`
   (`:159`) dichiara **due sole chiavi** — è lui a rendere sicura la proiezione stretta.
+  🆕 **Esiste una TERZA forma di «nessun nome» che nessun documento nominava: `nome = ''`** (R18).
+  Delle 5 righe con `nome` non-null, **3 sono stringhe vuote** e solo **2** portano un nome vero;
+  `cognome = ''` è invece **zero**. 🔑 **È il codice, non i dati** (regola di D45): `:270` scrive
+  `nome: ''` **fisso**, quindi la forma si riprodurrà identica con un laboratorio vero. Chi conta «due
+  forme, `NULL` o nome» sbaglia di una.
 - **T17** — passo foto: galleria multipla (riuso di `TabImmagini`: `multiple`, compressione **0,4 MB**,
   `TIPI_FOTO`) + ingranditore + **elimina con conferma** (D29). 🛑 Le foto restano in memoria fino alla
   creazione: **comprimere allo scatto**. ⚠️ Se la galleria mostra una **riga persistita** e non solo file
