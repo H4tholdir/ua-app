@@ -1,28 +1,35 @@
-# Sessione attiva — CONSEGNA ZERO IN PRODUZIONE. Il prossimo passo è T1 dell'ondata (b) (30/07/2026)
+# Sessione attiva — consegna zero IN PRODUZIONE, P3 e P6 chiuse. Tocca a T1 (30/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-piano-v2.md`, e si legge §0 per prima.**
-Cos'è stato fatto e perché: `docs/roadmap/2026-07-30-consegna-zero-piano.md`.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-ondata-b-apertura-handoff.md`.**
+Poi il piano: **`docs/roadmap/2026-07-29-ondata-b-piano-v2.md`**, e si legge **§0 per prima**.
 
-🚀 **CONSEGNA ZERO PUBBLICATA** — merge `ed286b0f` su `main` (42 commit, fast-forward, zero conflitti),
-autorizzato da Francesco. **CI verde · CD verde · controllo di salute passato**, verificata a mano:
-`/` → 307 `/login` · `/login` → 200 · `/api/pazienti` → 401.
-**Z3** (`deb923a1`) generatore · **Z2** (`beb36862`) normalizzazione in scrittura · **Z1** (`e211cd94`,
-`21bab021`, `bf009e2d`) il `23505` che diventa **409 di dominio**.
-✅ **Il GATE del piano v2 §0 è SUPERATO: T1 può aprire il ramo dell'ondata (b).**
+🚀 **CONSEGNA ZERO PUBBLICATA** — merge `ed286b0f` su `main`, CI+CD verdi, `uachelab.com` verificato.
+**Z3 · Z2 · Z1** in produzione. ✅ **Il gate del piano v2 §0 è SUPERATO: T1 può aprire il ramo.**
+🔑 **Z1 è INERTE** (nessun indice unico esiste ancora: è **T5**) — mai scrivere «verificato in produzione».
 
-🔑 **Z1 è in produzione ma INERTE**, e va detto così: nessun indice unico sul codice esiste ancora
-(è **T5**), quindi il suo ramo non può accendersi. **Non** scrivere «verificato in produzione».
-🔑 **Z2 chiude due porte su quattro:** `scripts/seed-arturo-pepe.ts:334` e `supabase/seed.sql:73`
-scrivono il codice col service client, saltando le rotte.
+✅ **Delle tre sonde ne resta UNA.** **P3** e **P6-forma** chiuse il 30/07, prove in §5 del piano:
+- **P3** → proiezione stretta minima **`id, codice_paziente, cognome, nome`**; dei 12 campi di oggi **10
+  non hanno lettori**; unico chiamante `crea-lavoro.ts:250` (**non** `:209`: le righe del piano sono derivate).
+- **P6-forma** → **si esprime in PostgREST, niente RPC**: innesto `lavori(data_ingresso)` con `order` +
+  `limit` **per padre**. Grafia **`referencedTable`** (supabase-js 2.105.4). Colonna **`data_ingresso`**,
+  mai `updated_at`. 🛑 L'innesto resta **semplice**: `!inner` restituisce `[]`.
+- **P2** resta, e resta per costruzione: **si riesegue immediatamente prima di T5**.
 
-🔴 **PRIMA DI T5, dal piano v2 §9 — nessuna delle tre blocca T1:** riesegui **P2** *immediatamente* prima ·
-**P3** · **P6-forma**. E restano **2 gate di mockup** (denti, colore) e **2 decisioni di prodotto**
-(quando nasce la cassetta del wizard · la stringa della briciola).
+🔴 **BLOCCANTE NUOVO, uscito dalle sonde — da risolvere PRIMA di T6:** **T6 punto 2 del piano** vuole
+`cognomeEffettivo` nella proiezione, ma la **spec B2** pretende **esattamente cinque chiavi, con un test
+che fallisce alla sesta**. Due documenti ratificati che si contraddicono. ⚠️ E nessuno dei due dice **su
+quali colonne si FILTRA**: 911 pazienti su 916 hanno `nome_cognome = codice_paziente` con
+`cognome`/`nome` a `NULL`.
 
-🔑 **La lezione della giornata: tutti e tre gli esecutori hanno smontato un'affermazione del piano, e le
-peggiori erano mie.** Un ritrovamento di un esecutore è una **segnalazione, non una prova** — ne avevo
-copiato uno nel piano senza aprire il file, ed era falso.
+🔴 **Restano di Francesco: 2 decisioni** (quando nasce la cassetta del wizard · la stringa della briciola)
+e **2 gate di mockup** (denti, colore).
 
-✅ **37 decisioni** (D35 · D36 · **D37**, che corregge D36 dopo la misura della FASE 9).
+🔑 **La lezione del giorno: una domanda posta sull'oggetto sbagliato porta alla conclusione opposta.**
+P6 chiedeva se fosse esprimibile *l'aggregato* — non lo è; ma la forma che serve è un'altra e funziona.
+E un ritrovamento altrui è una **segnalazione, non una prova**, finché non apri il file.
+
 🔴 **Otto voci aperte in fondo alla ROADMAP.** La grossa: **76 punti delle API rimandano il messaggio
-grezzo del database al client** — G9 dichiarato in `CLAUDE.md` ma **senza nessuna guardia**.
+grezzo del database al client** (escono **nomi**, non dati altrui; serve autenticazione). Cura in due
+metà: **prima la guardia, poi la pulizia.**
+
+**Database toccato SOLO in lettura. Baseline: 294 · 0 · 916 · 48.**
