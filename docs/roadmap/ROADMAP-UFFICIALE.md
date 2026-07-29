@@ -23,6 +23,20 @@
 
 **Consegnato:** la regola unica di scrittura di `pazienti.(nome,cognome)` · le due route che la applicano con 422 fail-closed · **nome e cognome correggibili per la prima volta** dalla scheda paziente (Art. 16 GDPR + direttiva D10) · 4 falle di errore grezzo del DB chiuse · isolamento tenant provato con richieste ostili · etichetta PDF allineata a IFU/Ricevuta.
 
+> 🔒 **29/07/2026 — L'INDICE UNICO SUL CODICE PAZIENTE È IN PRODUZIONE** (T5 dell'ondata (b), autorizzato
+> da Francesco con **D43** dopo la riesecuzione della sonda sui duplicati: **0 grezzi, 0 normalizzati**).
+> `pazienti_codice_lab_uidx` su `(laboratorio_id, lower(btrim(codice_paziente)))`, **senza filtro di
+> stato** (D34: il codice di un archiviato non si riusa). Ledger migration **86**, RLS invariate provate
+> con fotografia anteriore, tipi generati **senza drift**, baseline **294 · 0 · 916 · 48**.
+> ➡️ **Da qui Z1 non è più inerte:** «Questo codice è già di un altro paziente» comincia a comparire.
+> 🔴 **Requisito ereditato da T7/T15, misurato e non ipotizzato:** la lettura che dovrebbe **riconoscere**
+> il paziente guarda `archiviato` con `.limit(500)` e, se arriva `cliente_id`, **un solo dentista**
+> (`src/app/api/pazienti/route.ts:34,37,40`), mentre l'indice vale su **tutto il laboratorio senza filtro
+> di stato**: **il riconoscimento sarà sempre più cieco del divieto** finché non avranno la stessa portata.
+> ⚠️ **E per il primo importatore reale:** `btrim` **non** toglie tabulazioni né spazi unicode, mentre il
+> `trim()` di JavaScript sì — chi importa normalizza col trim più forte, e rilancia la sonda dei duplicati
+> **prima** dell'import.
+
 ### 🔜 Le prossime voci, nell'ordine deciso da Francesco (27/07)
 
 | # | Voce | Percorso |
