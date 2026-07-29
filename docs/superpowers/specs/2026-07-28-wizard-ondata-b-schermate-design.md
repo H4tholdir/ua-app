@@ -371,7 +371,7 @@ si lascia**, è la stessa specie delle dichiarazioni morte già rimosse tre volt
 | # | Rischio | Prova |
 |---|---|---|
 | **B1** | La ricerca mostra pazienti di un altro laboratorio | richiesta con `cliente_id` di un altro tenant → **404/lista vuota**, byte per byte identica a quella per un id inesistente (non enumerabile) |
-| **B2** | La ricerca manda al browser dati che non servono | asserzione sulla **forma della risposta**: le chiavi sono esattamente `id, codice_paziente, cognome, nome, ultimoLavoro` — un test che fallisce se qualcuno riaggiunge `codice_fiscale` |
+| **B2** 🔧 **EMENDATA il 29/07 da D44** | La ricerca manda al browser dati che non servono | asserzione sulla **forma della risposta**: le chiavi sono esattamente **`id, codice_paziente, alias, ultimoLavoro`** — **quattro, non cinque** — e un test che fallisce se ne compare una quinta (per esempio `codice_fiscale`). 🔧 **Cosa è cambiato e perché:** `cognome` e `nome` **escono** e al loro posto entra **`alias: string \| null`**, prodotto da `derivaAlias` (`src/lib/cassette/parco-shared.ts:69`), che vale `null` quando il nome visibile **è** il codice. La stesura precedente («esattamente `id, codice_paziente, cognome, nome, ultimoLavoro`») era **incompatibile con T6 punto 2** del piano, che voleva un sesto campo derivato; e l'uscita che avrebbe salvato la forma — servire il cognome **già derivato** sotto la chiave `cognome` — è stata **scartata con prova**: renderebbe `cognome` una colonna in scrittura e un derivato in lettura, e un client che rimanda `cognome: ''` (911 righe su 916) fa scrivere **il codice dentro il cognome**, in silenzio. 🔑 **E questa prova sarebbe rimasta VERDE proprio attraverso quel cambiamento**, perché guarda la forma. Verbale: **D44** |
 | **B3** | Due pazienti con lo stesso codice | INSERT che **deve** essere rifiutato dall'indice unico, con il messaggio incollato · e il **controllo positivo**: lo stesso codice in **due laboratori diversi** deve passare |
 | **B4** | Due caselle che non arrivano a nulla | test che, dato cognome e nome digitati, il corpo spedito a `POST /api/pazienti` li porta **entrambi** — il difetto §1.2 riprodotto prima di correggerlo |
 | **B5** | La bozza vecchia si riversa nel wizard nuovo | `leggiStato` su un payload `v:1` → `null` **e chiave rimossa** |
@@ -469,4 +469,10 @@ scuro. Un esecutore che leggesse questa tabella si fermerebbe a un gate che non 
 - **Il costo della query «ultimo lavoro»** per riga di suggerimento (§5).
 - **Il testo primario dell'Allegato XIII** è stato letto tramite documentazione di progetto
   (`../ANALISI/`), non su EUR-Lex: la conclusione «il codice basta» regge su quella trascrizione.
-- **Il dato «912 pazienti su 915 senza nome»** citato altrove resta **non verificato**.
+- ~~**Il dato «912 pazienti su 915 senza nome»** citato altrove resta **non verificato**.~~
+  ✅ **MISURATO il 29/07/2026, e la cifra approssimata era vicina ma non esatta.** Conteggio sulla banca
+  dati vera: **916 pazienti · 911 senza cognome** (`cognome` nullo o di soli spazi) **· 5 con un cognome
+  vero · 911 con `nome_cognome` uguale a `codice_paziente` · 1 senza codice**.
+  🔑 **Non è un dettaglio statistico: decide la forma della ricerca.** Cercare nel solo cognome raggiunge
+  **5 schede su 916**; cercare in `nome_cognome` ne restituirebbe **911 indistinguibili**, perché il nome
+  visibile *è* il codice. ➡️ La colonna su cui si filtra va **dichiarata in T6**, non lasciata implicita.

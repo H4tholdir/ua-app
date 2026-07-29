@@ -241,13 +241,28 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
      chiama **senza `q`**, quindi la proiezione grassa — `codice_fiscale`, `data_nascita`, `sesso`, `note`
      di fino a 500 pazienti — **continuerebbe a scorrere** dopo un'ondata il cui gate dichiara «dati
      sanitari». Con un solo chiamante, e T16 che lo riscrive comunque, **invertire il default costa zero**.
-  2. 🔴 **`cognomeEffettivo` server-side dentro la proiezione.** Senza, la ricerca per cognome **non trova
-     i pazienti del wizard**: `risolviNomePaziente:68` mette **il codice dentro `cognome`**, e la riga di
-     suggerimento mostrerebbe il codice **due volte**.
+  2. ✅ **RISOLTO DA D44 — e non come diceva questa riga.** Il payload porta **`alias: string | null`** da
+     **`derivaAlias`** (`src/lib/cassette/parco-shared.ts:69`), **non** `cognomeEffettivo` — che è
+     l'attrezzo di **scrittura** e sulle 911 righe senza nome restituisce `''`, cioè **una terza
+     convenzione per «nessun nome»**. **B2 è emendata a QUATTRO chiavi:** `id, codice_paziente, alias,
+     ultimoLavoro`. 🛑 **Il motivo scritto qui — «mostrerebbe il codice due volte» — vale ZERO righe**
+     (`cognome == codice`: nessuna); il problema vero è che **911 schede su 916 non hanno alcun nome**.
   3. **`cliente_id` obbligatorio quando c'è `q`** (422 altrimenti): è la **portata** D11, e oggi è dentro
      un `if`.
   4. **`pgrestQuote`** (`lib/utils/escape-postgrest.ts`, precedente `api/clienti/route.ts:39-40`)
-     **+ escape di `%` e `_`**: senza, `q=%` restituisce l'anagrafica intera. **Più una lunghezza minima.**
+     **+ escape di `%` e `_`**: senza, `q=%` restituisce l'anagrafica intera.
+     🛑 **La «lunghezza minima» è STATA TOLTA da D44: non difende nulla, ed è misurato.** **912 codici su
+     916** condividono lo stelo `PAZ/2026/`, quindi `%PAZ/2026/0%` — **dieci caratteri** — restituisce
+     **911 righe**. La difesa è un **tetto duro sulle righe** (~10 dalla rotta, **5** mostrati a schermo),
+     non sui caratteri digitati.
+  4-bis. 🆕 **Il filtro si DICHIARA, ed è `codice_paziente | cognome | nome`. Mai `nome_cognome`** (D44):
+     911 + 5 = 916, quindi nessuna riga porta in `nome_cognome` un nome che non sia già in `cognome` —
+     includerlo aggiungerebbe **solo** righe indistinguibili. `nome` entra perché `risolviNomePaziente:67`
+     mette **nel cognome** il valore quando la casella piena è una sola.
+  4-ter. 🔴 **Da sciogliere DENTRO T6, non sottintendere:** piano (proiezione stretta **sempre**) e spec §5
+     (ridotta **solo con `q`**) **non concordano**, e l'unico chiamante vivo (`crea-lavoro.ts:250`) chiama
+     **senza `q`** e **non legge** l'ultimo lavoro. B2 deve dire **su quale percorso** vale e se l'innesto
+     gira anche senza `q`, per fino a 500 righe a ogni creazione di lavoro.
   5. **Data dell'ultimo lavoro in una sola andata** — **dopo P6-forma**, e con `deleted_at IS NULL` sui
      lavori (l'ultimo lavoro non può essere uno cancellato, e l'indice esistente è parziale su quel
      predicato).
