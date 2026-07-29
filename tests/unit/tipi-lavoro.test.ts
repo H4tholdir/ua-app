@@ -54,3 +54,136 @@ describe('tipi-lavoro — tassonomia ratificata (spec §3.2)', () => {
     expect(cercaTipiLavoro('')).toEqual(TIPI_LAVORO)
   })
 })
+
+// T2 — adattività (verbale 2026-07-27 §6-quater + D41/D42 del verbale
+// 2026-07-28 nona tornata): quali domande fa il wizard lo decide il tipo.
+// Le tre prove obbligatorie del brief T2 vengono prima delle altre.
+describe('tipi-lavoro — adattività (T2): prevedeDenti / prevedeColore / prevedeArcata', () => {
+  it("caso obbligatorio 1: 'anti_russamento' non chiede nulla (verbale: «l'unico tipo che non chiede nulla»)", () => {
+    const t = trovaTipo('anti_russamento')!
+    expect(t.prevedeDenti).toBe(false)
+    expect(t.prevedeColore).toBe('nessuno')
+    expect(t.prevedeArcata).toBe(false)
+  })
+
+  it("caso obbligatorio 2: 'duplicato_protesi' non chiede nulla («basta dire uguale»)", () => {
+    const t = trovaTipo('duplicato_protesi')!
+    expect(t.prevedeDenti).toBe(false)
+    expect(t.prevedeColore).toBe('nessuno')
+    expect(t.prevedeArcata).toBe(false)
+  })
+
+  it("caso obbligatorio 3: 'overdenture' chiede tutte e tre («tutte e tre»)", () => {
+    const t = trovaTipo('overdenture')!
+    expect(t.prevedeDenti).toBe(true)
+    expect(t.prevedeColore).toBe('catalogo')
+    expect(t.prevedeArcata).toBe(true)
+  })
+
+  it('esaustività: tutti e 38 i tipi hanno i tre campi valorizzati (booleani veri/falsi, colore fra i tre valori ammessi)', () => {
+    expect(TIPI_LAVORO).toHaveLength(38)
+    for (const t of TIPI_LAVORO) {
+      expect(typeof t.prevedeDenti, `${t.id}.prevedeDenti deve essere boolean`).toBe('boolean')
+      expect(['catalogo', 'libero', 'nessuno'], `${t.id}.prevedeColore fuori dai tre valori ammessi`).toContain(t.prevedeColore)
+      expect(typeof t.prevedeArcata, `${t.id}.prevedeArcata deve essere boolean`).toBe('boolean')
+    }
+  })
+
+  it('D42: i tre tipi con colore non dentale prendono "libero", non un quarto valore', () => {
+    for (const id of ['placca_espansione', 'apparecchio_funzionale', 'paradenti']) {
+      expect(trovaTipo(id)!.prevedeColore, `${id} deve essere 'libero' (D42)`).toBe('libero')
+    }
+  })
+
+  it("D41: 'dima_chirurgica' non chiede il colore (il colore è del provvisorio, un altro lavoro)", () => {
+    const t = trovaTipo('dima_chirurgica')!
+    expect(t.prevedeDenti, 'dima_chirurgica: siti implantari → denti sì').toBe(true)
+    expect(t.prevedeColore, "dima_chirurgica: D41 → 'nessuno'").toBe('nessuno')
+    expect(t.prevedeArcata, 'dima_chirurgica: arcata sì').toBe(true)
+  })
+
+  it("'barra_overdenture': vale la decisione di Francesco (denti sì, colore no, arcata sì), non il modulo USA", () => {
+    const t = trovaTipo('barra_overdenture')!
+    expect(t.prevedeDenti).toBe(true)
+    expect(t.prevedeColore).toBe('nessuno')
+    expect(t.prevedeArcata).toBe(true)
+  })
+
+  it("riparazione/ribasatura: 'saltabile' non è modellata in T2 — restano prevedeDenti/prevedeColore true", () => {
+    for (const id of ['riparazione', 'ribasatura']) {
+      const t = trovaTipo(id)!
+      expect(t.prevedeDenti, `${id}.prevedeDenti`).toBe(true)
+      expect(t.prevedeColore, `${id}.prevedeColore`).toBe('catalogo')
+      expect(t.prevedeArcata, `${id}.prevedeArcata (dedotta → false)`).toBe(false)
+    }
+  })
+
+  it('copre tutte e 8 le combinazioni distinte che compaiono nella tabella ratificata (§6-quater)', () => {
+    const combinazioni = new Map<string, string>([
+      ['corona_zirconia', 'T-catalogo-F'],
+      ['toronto', 'F-catalogo-T'],
+      ['overdenture', 'T-catalogo-T'],
+      ['duplicato_protesi', 'F-nessuno-F'],
+      ['barra_overdenture', 'T-nessuno-T'],
+      ['abutment', 'T-nessuno-F'],
+      ['placca_espansione', 'F-libero-T'],
+      ['bite_michigan', 'F-nessuno-T'],
+    ])
+    for (const [id, atteso] of combinazioni) {
+      const t = trovaTipo(id)!
+      const trovato = `${t.prevedeDenti ? 'T' : 'F'}-${t.prevedeColore}-${t.prevedeArcata ? 'T' : 'F'}`
+      expect(trovato, `${id}: atteso ${atteso}`).toBe(atteso)
+    }
+  })
+
+  it('tabella completa (id → i tre campi), tradotta letteralmente dalla fonte ratificata §6-quater', () => {
+    const attesa: Record<string, { d: boolean; c: 'catalogo' | 'libero' | 'nessuno'; a: boolean }> = {
+      corona_zirconia: { d: true, c: 'catalogo', a: false },
+      corona_disilicato: { d: true, c: 'catalogo', a: false },
+      corona_metallo_ceramica: { d: true, c: 'catalogo', a: false },
+      ponte_zirconia: { d: true, c: 'catalogo', a: false },
+      faccetta: { d: true, c: 'catalogo', a: false },
+      intarsio: { d: true, c: 'catalogo', a: false },
+      perno_moncone: { d: true, c: 'catalogo', a: false },
+      protesi_totale: { d: false, c: 'catalogo', a: true },
+      totale_digitale: { d: false, c: 'catalogo', a: true },
+      parziale_resina: { d: true, c: 'catalogo', a: true },
+      protesi_flessibile: { d: true, c: 'catalogo', a: true },
+      duplicato_protesi: { d: false, c: 'nessuno', a: false },
+      scheletrato: { d: true, c: 'catalogo', a: true },
+      scheletrato_attacchi: { d: true, c: 'catalogo', a: true },
+      scheletrato_slm: { d: true, c: 'catalogo', a: true },
+      scheletrato_peek: { d: true, c: 'catalogo', a: true },
+      corona_impianto: { d: true, c: 'catalogo', a: false },
+      ponte_impianti: { d: true, c: 'catalogo', a: false },
+      toronto: { d: false, c: 'catalogo', a: true },
+      barra_overdenture: { d: true, c: 'nessuno', a: true },
+      overdenture: { d: true, c: 'catalogo', a: true },
+      abutment: { d: true, c: 'nessuno', a: false },
+      provvisorio_impianto: { d: true, c: 'catalogo', a: false },
+      placca_espansione: { d: false, c: 'libero', a: true },
+      apparecchio_funzionale: { d: false, c: 'libero', a: true },
+      contenzione: { d: true, c: 'nessuno', a: true },
+      allineatori: { d: true, c: 'nessuno', a: true },
+      bite_michigan: { d: false, c: 'nessuno', a: true },
+      bite_morbido: { d: false, c: 'nessuno', a: true },
+      paradenti: { d: false, c: 'libero', a: true },
+      anti_russamento: { d: false, c: 'nessuno', a: false },
+      provvisorio_resina: { d: true, c: 'catalogo', a: false },
+      provvisorio_cad: { d: true, c: 'catalogo', a: false },
+      mockup: { d: true, c: 'catalogo', a: false },
+      dima_chirurgica: { d: true, c: 'nessuno', a: true },
+      modello_3d: { d: false, c: 'nessuno', a: true },
+      riparazione: { d: true, c: 'catalogo', a: false },
+      ribasatura: { d: true, c: 'catalogo', a: false },
+    }
+    expect(Object.keys(attesa), 'la fixture di prova deve coprire tutti e 38 gli id, né più né meno').toHaveLength(38)
+    for (const t of TIPI_LAVORO) {
+      const att = attesa[t.id]
+      expect(att, `${t.id} non è nella tabella attesa — id fuori dal censimento §6-quater`).toBeDefined()
+      expect(t.prevedeDenti, `${t.id}.prevedeDenti`).toBe(att.d)
+      expect(t.prevedeColore, `${t.id}.prevedeColore`).toBe(att.c)
+      expect(t.prevedeArcata, `${t.id}.prevedeArcata`).toBe(att.a)
+    }
+  })
+})
