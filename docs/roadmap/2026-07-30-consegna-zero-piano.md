@@ -87,7 +87,7 @@ Nessuno di questi file era nel registro del piano v2: la consegna zero non ne av
 
 | nome | dove vive oggi | destinazione |
 |---|---|---|
-| `codiceGrezzo` | `api/pazienti/route.ts:110` | **Z2**: diventa il valore **normalizzato**, e resta **un solo valore** per colonna e regola del nome |
+| ~~`codiceGrezzo`~~ → **`codiceNormalizzato`** | `api/pazienti/route.ts:110` | ✅ **FATTO in Z2 — e il nome è CAMBIATO**, perché il vecchio diceva il falso una volta normalizzato. 🛑 **Chi cerca `codiceGrezzo` non lo trova più**: da Z1 in poi si cerca `codiceNormalizzato` |
 | `codiceDalBody` | `[id]/route.ts:51-53` | **Z2**: idem — la doppia destinazione (`:58` e `:105`) è **già cablata**, si normalizza a monte |
 | `VUOTO_VALE_NULL` | `[id]/route.ts:43` = `{data_nascita, sesso}` | **Z2**: `codice_paziente` **non entra nell'insieme** — ha un ramo proprio a `:57-59` e la normalizzazione va lì, dove alimenta anche la regola del nome |
 | `ALLOWED` | `[id]/route.ts:35` | **invariato.** `codice_paziente` c'è già: la finestra di correzione del 27/07 è rispettata |
@@ -114,6 +114,46 @@ Nessuno di questi file era nel registro del piano v2: la consegna zero non ne av
 | **Z-P4** | Il pre-controllo del wizard troverebbe un codice occupato scritto in altro modo | ✅ **PROVATA FALSA, 30/07 (lettura).** `crea-lavoro.ts:214` confronta con `===`, byte-identico; e la lista su cui cerca arriva da un `GET` con **`.limit(500)`** (`route.ts:37`) contro **911 righe di un solo cliente**. ➡️ 🛑 **la cura è T7, NON questa consegna.** Qui si prende atto: l'azione «riusa il paziente esistente» **non è offribile** perché il wizard non sa chi è |
 | **Z-P5** | Il 409 non rompe i chiamanti | 🟡 **da provare in Z1**, e il comando c'è: `npx vitest run tests/unit/crea-lavoro.test.ts tests/unit/PazienteEditSheet.test.tsx` — output reale incollato nel rapporto |
 | **Z-P6** | `'' → NULL` sul codice non fa cadere la regola del nome in un 422 indebito | 🔴 **DA PROVARE in Z2**, ed è il punto delicato: `risolviNomePaziente` restituisce `null` (→ **422 «Serve almeno il codice paziente»**) quando non ha né nome né codice. Il caso da provare è **un paziente con cognome vero a cui si svuota il codice**: deve **passare**, non dare 422 |
+| 🆕 **Z-P7** | Z2 chiude **tutte** le porte da cui il codice si scrive | ✅ **PROVATA FALSA — ma la prima stesura di questa riga era a sua volta sbagliata, v. il riquadro sotto.** **Il censimento vero, verificato due volte:** i writer di `pazienti.codice_paziente` sono **quattro** — POST `api/pazienti/route.ts` e PATCH `api/pazienti/[id]/route.ts` (**chiuse da Z2**), `scripts/seed-arturo-pepe.ts:334` (upsert col service client) e **`supabase/seed.sql:73`** (`INSERT INTO pazienti (… codice_paziente)`). ➡️ **Z2 chiude due porte su quattro, e va detto così nel rapporto.** 🛑 Gli script **non si toccano qui**: sono attrezzi di sviluppo, fuori mandato |
+
+> 🛑 **DUE CORREZIONI A QUESTO STESSO REGISTRO — e sono la lezione del panel che si ripete, su di noi.**
+> *«Il piano non è fermato dai buchi che dichiara, ma dove si sente sicuro.»* Le due righe qui sotto erano
+> scritte con l'aria della cosa accertata. Non lo erano.
+>
+> **① Z-P6 «il punto delicato» era un NON-EVENTO** (provato da Z2, 30/07). Il registro dava per certo che
+> `'' → null` cambiasse il comportamento della regola del nome, e lo marcava come **il rischio** di Z2.
+> Falso: `risolviNomePaziente` (`nome-paziente-scrittura.ts:60-62`) e `cognomeEffettivo` (`:86-88`) fanno
+> **entrambe `(x ?? '').trim()` prima di decidere** — `''` e `null` erano **già indistinguibili** per loro.
+> 🔑 **Provato per misura, non per lettura:** riportando le rotte a `HEAD~1` e rilanciando la prova del
+> ramo 200, **l'asserzione sullo stato `200` passa anche PRIMA di Z2**; l'unica a cadere è quella sul
+> valore in colonna. Il 422 indebito che temevamo **non è mai esistito**, e la finestra di correzione del
+> 27/07 non è mai stata in pericolo. Le due prove restano **come lucchetti, ed è dichiarato che lo sono**.
+>
+> **② La riga Z-P7, nella sua prima stesura, nominava una porta che non esiste e ne mancava una vera**
+> (provato da Z2, verificato di persona il 30/07). Diceva che `scripts/import-lavori-storici-v2.ts`
+> scrivesse `codice_paziente` col service client: **falso** — quel file inserisce **solo in `lavori`**
+> (`:307`), e il suo `codice_paziente` (`:49`) è una colonna del CSV che finisce **dentro la stringa di
+> `descrizione`** (`:304`). Non tocca mai la tabella `pazienti`. E la porta che mancava è
+> **`supabase/seed.sql:73`**, che il documento non nominava affatto.
+> 🔑 **Come è nato l'errore, perché è il punto:** il ritrovamento fuori mandato di Z3 è stato **riportato
+> nel piano senza riverificarlo**. Un fatto riferito da un esecutore è una **segnalazione**, non una prova:
+> vale quanto vale finché qualcuno non apre il file. R-E2 dice di riferire i ritrovamenti — **non dice che
+> chi li riceve possa promuoverli a fatto senza aprirlo.**
+>
+> ⚠️ **Ne segue una correzione a una conseguenza che avevamo tratto:** la riga «se un seed scrive
+> `' pz-0042 '` la migration di T5 aborta» **non è raggiungibile da questi due script**: il seed genera
+> `PAZ/${anno}/${padStart(4)}` (`seed-arturo-pepe.ts:212-214`) e `seed.sql` scrive il letterale `'PAZ-001'`
+> — **nessuno dei due può produrre spazi o varianti di maiuscola**. Rieseguire P2 immediatamente prima di
+> T5 **resta giusto** (un writer fuori dalle rotte esiste, e i dati cambiano), ma **la ragione specifica
+> che avevamo scritto non regge**: si tiene la cautela, si butta l'argomento sbagliato.
+>
+> 🔧 **Correzione a una prova di questo stesso documento** (Z3, R-E2). La riga «i **6** test di `getDatiWizard`
+> esplodono» era **falsa**: misurato, **2 falliti e 15 passati**. E il fatto vero è peggiore — **quattro
+> asserzioni `rejects.toThrow()` senza argomento accettano QUALUNQUE errore**, compreso il `TypeError` del
+> finto client: restavano **verdi su una query mai partita**. Z3 ha stretto quella dei pazienti
+> (`rejects.toThrow(/lettura pazienti/)`); le altre tre coprono `clienti`, `lavori` e lo storico — **fuori
+> perimetro**, voce di roadmap. 🔑 **La lezione vale come regola per Z2 e Z1: un'asserzione su un
+> fallimento deve NOMINARE il fallimento.** Un rosso si vede; un verde a vuoto no.
 
 ---
 
@@ -213,7 +253,17 @@ in anticipo. ⏳ **Quando arriverà T15 questa frase decade** e le subentra l'av
 - **FASE 7, tutti e tre con output reale:** `npx tsc --noEmit` · `npx vitest run` · `npx next build`.
   ⚠️ `tsc` **non** valida la firma degli handler di rotta: solo `next build` la vede.
 - **FASE 6b: non si applica** — nessuna migration (§2.2).
-- **FASE 9:** solo se Z1 punto 3 tocca la UI → 390/768/1280 × chiaro/scuro.
+- **FASE 9: SI APPLICA — deciso, non condizionale.** La stesura precedente diceva «solo se Z1 tocca la UI»:
+  **D36 ha chiuso la questione, e la tocca.** Il rischio non è il componente (non ne nasce nessuno) ma
+  **la lunghezza del testo**: si passa da «Non sono riuscita a creare il lavoro. Riprova.» (46 caratteri)
+  a **97 caratteri** nel wizard, dentro un contenitore che non è stato disegnato per quella misura.
+  ➡️ **390/768/1280 × chiaro/scuro** sulle **due** superfici (avviso del wizard · pannello di modifica),
+  a caccia di una cosa sola: **testo che sborda, tronca o spinge fuori un bottone**. Screenshot in
+  `docs/design/screenshots/2026-07-30-consegna-zero/` (🆕 da creare) — ⚠️ `.gitignore` ignora `*.png`,
+  serve `git add -f`.
+- **FASE 9b (gate estetico L2): NON si applica.** È prescritto per una **superficie nuova o modificata**
+  a fine ondata; qui non nasce nessuna superficie e non cambia nessuna forma — cambiano due frasi. La
+  ragione è scritta qui perché un'esenzione non dichiarata è indistinguibile da una dimenticanza.
 - **Baseline riverificata alla fine: 294 · 0 · 916 · 48.** Il database si tocca **solo in lettura**.
 - **Merge su `main` e deploy** → verifica su `uachelab.com`.
   🛑 **Nel rapporto si scrive: «Z1 consegnato e INERTE»** — provato dai test e dalla sonda, **non**
