@@ -1,25 +1,22 @@
-# Sessione attiva — ondata (b): Blocco 0 e Blocco 1 CHIUSI, si apre la banca dati (29/07/2026)
+# Sessione attiva — ondata (b): fondamenta chiuse, tocca al Blocco 3 (29/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-ondata-b-apertura-handoff.md`.**
-Poi il piano: **`docs/roadmap/2026-07-29-ondata-b-piano-v2.md`**. Ledger: `.superpowers/sdd/progress.md`.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-fondamenta-handoff.md`.**
+Poi il piano `docs/roadmap/2026-07-29-ondata-b-piano-v2.md`.
+**Ledger operativo: `.superpowers/sdd/progress.md` — i task completi lì SONO completi, non rifarli.**
 
-**Ramo `ondata-b-schermate`** (mai un worktree), aperto da `b4b09d52`. **Nulla di pubblicato su `origin`.**
+**Ramo `ondata-b-schermate`** (mai un worktree), da `b4b09d52`. **Niente pubblicato su `origin`.**
+✅ **Sei task chiusi e revisionati: T1 · T4 · T2 · T3 · T5 · T7.**
+**FASE 7 sul ramo: `tsc` 0 · `vitest` 3754 passati / 19 saltati · `next build` exit 0.**
 
-✅ **T1 · T4 · T2 · T3 fatti e REVISIONATI** (ogni review ha riverificato di persona, non sulla parola):
-- **T4** `src/lib/wizard/passi.ts` — il passo si identifica **per NOME**, mai per indice. Review: 2 Importanti
-  (una prova **tautologica** che non poteva fallire; un caso limite non provato) → **corretti** e provati
-  invertendo il segno dell'implementazione.
-- **T2** i 38 tipi con `prevedeDenti` / `prevedeColore: 'catalogo'|'libero'|'nessuno'` / `prevedeArcata`.
-  Review: **38/38 righe riconfrontate con la fonte, zero divergenze.**
-- **T3** `src/lib/wizard/sequenza-passi.ts` — `sequenzaPassi(tipo)` e `cosaSiPerde(precedente, successivo)`
-  **a due STATI** (D17: cambiare dentista sgancia il paziente, e non deve farlo in silenzio).
+🔒 **L'indice unico sul codice paziente è IN PRODUZIONE** (D43): da lì il messaggio «Questo codice è già
+di un altro paziente» smette di essere inerte. Baseline **294 · 0 · 916 · 48**, toccata solo in lettura.
 
-🔒 **D43 — Francesco ha autorizzato l'indice unico sul codice paziente DIRETTAMENTE in produzione** (T5):
-**P2 rieseguita nello stesso turno → 0 duplicati** grezzi e normalizzati. Rollback: `DROP INDEX`.
-🔑 **Da lì Z1 smette di essere inerte.** Registro migration verificato allineato (85, ultima `20260728103000`).
+🆕 **Otto decisioni: D38-D45.** Le due che cambiano il lavoro a valle: **D44** (la ricerca pazienti
+restituisce **quattro** chiavi e filtra su `codice_paziente | cognome | nome`, mai `nome_cognome`) e
+**D45** (quando non trova nulla **lo dice** — e **un numero letto sui dati di prova non fa una regola**).
 
-🔴 **Ancora aperti:** **B2 vs T6** (architetturale → panel) · **mockup** denti/colore (T19/T20) · **B7** (T13) ·
-🆕 **la leva «si può saltare»** di riparazione/ribasatura: **sede** = un campo su `tipi-lavoro.ts`, **consumo**
-in T21 — **decisione di Francesco, non ancora presa**.
+🔴 **Aperti, e non li sblocca il codice:** mockup **denti/colore** (T19/T20) · portata della guardia **B7**
+(T13) · **la leva «si può saltare»** di riparazione/ribasatura — **sede** su `tipi-lavoro.ts`, **consumo**
+in T21: **decisione di Francesco, non presa**.
 
-**Database SOLO in lettura finora. Baseline: 294 · 0 · 916 · 48.**
+➡️ **Si riparte da T6** (sbloccato da D44; §4-ter del piano dice cosa resta da sciogliere dentro), poi T8.
