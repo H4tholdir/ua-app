@@ -234,13 +234,16 @@ stessa schermata. La proposta è che il messaggio smetta di dire «Riprova» —
 ✅ **Francesco ha scelto il 30/07 — D36**, verbale `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`,
 ottava tornata. **I due testi sono ratificati e si scrivono così, alla lettera:**
 
-> **Nel wizard** (al posto di `WizardNuovoLavoro.tsx:383`, solo nel ramo «codice occupato»):
-> **«Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.»**
-> — dove `PZ-0918` è **il codice vero che l'utente ha tentato**, non un segnaposto.
+> 🔧 **D36 è stata CORRETTA da D37 il 30/07, dopo la FASE 9. Il testo in vigore è UNO SOLO, su
+> entrambe le superfici e in entrambe le rotte:**
 >
-> **Nel pannello di modifica** (`PazienteEditSheet.tsx`):
 > **«Questo codice è già di un altro paziente. Scrivine un altro.»**
-> — qui il codice non si ripete: l'utente lo sta guardando nel campo che ha appena scritto.
+>
+> **Il codice NON si nomina.** La stesura di D36 lo nominava e finiva con «nel campo "Codice paziente"
+> qui sopra»: **misurato, tre righe**, e `Avviso.tsx:194` ne mostra **due** — spariva l'istruzione.
+> ⚠️ E una frase che contiene il codice ha **lunghezza variabile**: reggeva con `PZ-0918` (102 caratteri)
+> e **cedeva con `PAZ/2026/0918`** (108), il formato degli 911 pazienti in banca dati. Questa, a **60
+> caratteri fissi, non può cedere**. Misure e sei catture: v. FASE 9 in §8.
 
 🛑 **Nessuna schermata nuova, nessun componente nuovo, nessun mockup**: cambia **solo la frase** dentro
 l'avviso che esiste già, e il campo è **già editabile**. Chi allarga questo perimetro sta facendo T15

@@ -380,7 +380,7 @@ function CorpoWizard(props: {
     })
     setInCreazione(false)
     if (!esito.lavoro) {
-      // Z1 (30/07) — testo RATIFICATO da Francesco, D36: si scrive alla
+      // Z1 (30/07) — testo RATIFICATO da Francesco, **D37**: si scrive alla
       // lettera, non si parafrasa.
       //
       // Perché ne serviva uno diverso: «Riprova» qui era un anello chiuso. Il
@@ -391,9 +391,21 @@ function CorpoWizard(props: {
       // occhi: la casella «Codice paziente» del Passo 3, che resta aperta e
       // modificabile perché qui si ritorna senza cambiare passo.
       //
-      // 🔑 Il codice nella frase è QUELLO CHE L'UTENTE HA TENTATO
-      // (`stato.pz`), mai un segnaposto: chi legge deve riconoscere il proprio
-      // codice, non uno d'esempio.
+      // 🔑 IL CODICE NON SI RIPETE NELLA FRASE, ed è una correzione a D36
+      // pagata con una misura (FASE 9, 30/07). La stesura di D36 nominava il
+      // codice tentato e finiva con «nel campo "Codice paziente" qui sopra»:
+      // **102-108 caratteri, TRE righe** — e `Avviso.tsx:194` ne mostra DUE
+      // (`-webkit-line-clamp: 2` + `overflow: hidden`). Spariva l'ultima riga,
+      // cioè **l'istruzione**: l'avviso avrebbe detto il problema nascondendo
+      // la soluzione. E il taglio valeva a **tutte** le larghezze, perché il
+      // contenitore satura a 480px (`Avviso.tsx:290`), non solo su telefono.
+      // ⚠️ Una frase che contiene il codice ha lunghezza **variabile**: reggeva
+      // con `PZ-0918` e cedeva con `PAZ/2026/0918`, che è il formato degli 911
+      // pazienti oggi in banca dati. Questa non contiene il codice, quindi
+      // **non può cedere**: 60 caratteri, due righe, misurate a 390/768/1280.
+      // 🔑 Ed è **la stessa identica frase** che rende il pannello di modifica
+      // (`PazienteEditSheet`) — una sola stringa da mantenere, un solo testo da
+      // riconoscere per chi lavora al banco.
       // 🛑 Non si offre «È lei: usa la sua scheda», e la ragione è scritta in
       // D36: servirebbero il nome del paziente, la data del suo ultimo lavoro
       // e il primo codice libero — nessuno dei tre è disponibile qui (il
@@ -401,9 +413,7 @@ function CorpoWizard(props: {
       // lista tagliata a 500 righe). Arriva con T7+T15, e allora questa frase
       // decade.
       if (esito.motivo === 'codice_gia_in_uso') {
-        errore(
-          `Il codice ${stato.pz} è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.`
-        )
+        errore('Questo codice è già di un altro paziente. Scrivine un altro.')
         return
       }
       errore('Non sono riuscita a creare il lavoro. Riprova.')

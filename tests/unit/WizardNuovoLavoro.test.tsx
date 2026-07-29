@@ -273,7 +273,7 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
   })
 
   // ───────────────────────────────────────────────────────────────────────
-  // Z1 — il testo ratificato da Francesco (D36, 30/07/2026).
+  // Z1 — il testo ratificato da Francesco (**D37**, 30/07/2026).
   //
   // Prima: qualunque fallimento diceva «Non sono riuscita a creare il lavoro.
   // Riprova.» — e «Riprova» era un anello chiuso, perché `pz` non si ricalcola
@@ -281,13 +281,26 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
   // ripremere «Continua» rifà lo stesso errore all'infinito.
   //
   // 🔑 Il testo si asserisce PER INTERO, mai a frammenti: è ratificato alla
-  // lettera, e il codice dentro la frase dev'essere QUELLO CHE L'UTENTE HA
-  // TENTATO — per questo la casella qui sotto viene riscritta con 'PZ-0918'
-  // invece di lasciare il precompilato 'PZ-0001': un segnaposto fisso
-  // passerebbe un'asserzione scritta sul precompilato senza dire niente.
+  // lettera.
+  //
+  // 🛑 PERCHÉ IL CODICE NON COMPARE NELLA FRASE — è una correzione a D36, e
+  // l'ha imposta una MISURA, non un'opinione (FASE 9, 30/07). La stesura di
+  // D36 nominava il codice tentato e finiva con «nel campo "Codice paziente"
+  // qui sopra»: **102-108 caratteri, TRE righe**, mentre `Avviso.tsx:194` ne
+  // mostra DUE (`-webkit-line-clamp: 2` + `overflow: hidden`). Spariva
+  // l'ultima riga, cioè **l'istruzione**. E spariva a **tutte** le larghezze,
+  // perché il contenitore satura a 480px (`Avviso.tsx:290`).
+  // ⚠️ Una frase che contiene il codice ha lunghezza **variabile**: reggeva con
+  // `PZ-0918` (102) e cedeva con `PAZ/2026/0918` (108), che è il formato degli
+  // 911 pazienti in banca dati. Questa, a 60 caratteri fissi, **non può
+  // cedere**. Misure e catture: `docs/design/screenshots/2026-07-30-consegna-zero/`.
+  // 🔑 È la STESSA frase che rende `PazienteEditSheet` e che restituiscono le
+  // due rotte: una sola stringa, un solo testo da riconoscere al banco.
+  // ⚠️ La casella viene comunque riscritta con 'PZ-0918' invece del
+  // precompilato 'PZ-0001': serve a provare che dopo il rifiuto si RESTA al
+  // Passo 3 col valore tentato ancora lì, pronto da correggere.
   // ───────────────────────────────────────────────────────────────────────
-  const TESTO_D36 =
-    'Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.'
+  const TESTO_D37 = 'Questo codice è già di un altro paziente. Scrivine un altro.'
 
   async function vaiAlPassoTreConCodice(user: ReturnType<typeof userEvent.setup>, codice: string) {
     await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
@@ -298,7 +311,7 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     await user.click(screen.getByRole('button', { name: 'Continua' }))
   }
 
-  it('Z1: POST pazienti risponde 409 «codice già in uso» → il testo ratificato (D36) col codice VERO tentato', async () => {
+  it('Z1: POST pazienti risponde 409 «codice già in uso» → il testo ratificato (D37), che sta in due righe', async () => {
     const m = fetch as unknown as ReturnType<typeof vi.fn>
     m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
     m.mockResolvedValueOnce({
@@ -313,14 +326,16 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     render(<WizardNuovoLavoro dati={DATI_TASK12} contesto={CONTESTO} />)
     await vaiAlPassoTreConCodice(userEvent.setup(), 'PZ-0918')
 
-    expect(await screen.findByText(TESTO_D36)).toBeInTheDocument()
+    expect(await screen.findByText(TESTO_D37)).toBeInTheDocument()
     // Il vecchio testo non compare più su questo ramo…
     expect(screen.queryByText('Non sono riuscita a creare il lavoro. Riprova.')).not.toBeInTheDocument()
-    // …e il testo della rotta NON viene rimbalzato tale e quale: qui la frase
-    // è quella del wizard, che nomina il campo da correggere.
-    expect(
-      screen.queryByText('Questo codice è già di un altro paziente. Scrivine un altro.')
-    ).not.toBeInTheDocument()
+    // …e la frase NON nomina il codice tentato: è ciò che la rende di lunghezza
+    // fissa, quindi incapace di sforare le due righe che `Avviso.tsx:194`
+    // concede. Un'asserzione negativa esplicita, perché la tentazione di
+    // «personalizzare» il messaggio rimettendoci dentro `stato.pz` è
+    // esattamente il modo in cui questo difetto tornerebbe, e tornerebbe muto:
+    // il taglio non solleva nessun errore, si limita a nascondere il testo.
+    expect(screen.queryByText(/PZ-0918 è già di un altro paziente/)).not.toBeInTheDocument()
     // Si resta al Passo 3, con la casella pronta da correggere: è il punto di
     // tutta la consegna — il messaggio dice cosa fare, e la cosa da fare è lì.
     expect(screen.getByDisplayValue('PZ-0918')).toBeInTheDocument()
@@ -343,7 +358,7 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     expect(
       await screen.findByText('Non sono riuscita a creare il lavoro. Riprova.')
     ).toBeInTheDocument()
-    expect(screen.queryByText(TESTO_D36)).not.toBeInTheDocument()
+    expect(screen.queryByText(TESTO_D37)).not.toBeInTheDocument()
   })
 })
 
