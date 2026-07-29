@@ -271,6 +271,109 @@ describe('PATCH /api/pazienti/[id] — rettifica del nome (G4, Art. 16 GDPR)', (
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────
+// Z2 — il codice paziente si normalizza IN SCRITTURA, anche in rettifica.
+//
+// Le asserzioni guardano il payload passato a `.update()`: è la colonna che
+// deve ricevere il valore ripulito.
+//
+// 🔑 Come nel POST: la regola del nome è INDIFFERENTE a questa
+// normalizzazione (`nome-paziente-scrittura.ts:60-62` e `:86-88` fanno già
+// `(x ?? '').trim()`), quindi `''` e `null` le erano già indistinguibili.
+// Z2 cambia SOLO il valore in colonna. La coppia 200/422 qui sotto è il
+// lucchetto sulla finestra di correzione del 27/07 — «ogni campo del lavoro
+// si corregge, fino alla consegna» — non la prova di un cambio.
+// ─────────────────────────────────────────────────────────────────────────
+describe('PATCH /api/pazienti/[id] — Z2: normalizzazione del codice in scrittura', () => {
+  it('spazi ai bordi: `\'  PZ-0042  \'` arriva in colonna come `\'PZ-0042\'`', async () => {
+    const res = await PATCH(richiesta({ codice_paziente: '  PZ-0042  ' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].codice_paziente).toBe('PZ-0042')
+  })
+
+  it('tab e a-capo contano come spazi: `\'\\t PZ-0042 \\n\'` → `\'PZ-0042\'`', async () => {
+    // ⚠️ `trim()` di JavaScript toglie PIÙ di `btrim()` di Postgres. Voluto e
+    // dalla parte sicura (v. `dati-wizard.ts:50-53`): scrivendo il valore
+    // ripulito, due codici che differiscono solo per un tab COLLIDONO
+    // all'indice di T5 invece di convivere sotto chiavi diverse.
+    const res = await PATCH(richiesta({ codice_paziente: '\t PZ-0042 \n' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].codice_paziente).toBe('PZ-0042')
+  })
+
+  it('🔑 RAMO 200: a un paziente CON un cognome vero si può svuotare il codice — diventa `null`, e la modifica passa', async () => {
+    // La finestra di correzione ratificata il 27/07: se questo diventasse un
+    // 422, l'addetta non potrebbe più togliere un codice sbagliato.
+    // Il pannello (`PazienteEditSheet.tsx:36,53`) rimanda l'intero form, con
+    // `cognome` già passato per `cognomeEffettivo`: qui il cognome è vero,
+    // quindi arriva pieno.
+    rigaCorrente = { nome: 'Giuseppe', cognome: 'Bagheria', codice_paziente: 'PZ-0042' }
+    const res = await PATCH(richiesta({ codice_paziente: '', cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
+    expect(res.status).toBe(200)
+    const scritto = updateMock.mock.calls[0][0]
+    expect(scritto.codice_paziente).toBeNull()
+    expect(scritto.cognome).toBe('Bagheria')
+    expect(scritto.nome).toBe('Giuseppe')
+  })
+
+  it('soli spazi al posto del codice, su un paziente con cognome vero → `null`, 200', async () => {
+    rigaCorrente = { nome: 'Giuseppe', cognome: 'Bagheria', codice_paziente: 'PZ-0042' }
+    const res = await PATCH(richiesta({ codice_paziente: '   ', cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].codice_paziente).toBeNull()
+  })
+
+  it('🔑 RAMO 422: a un paziente SENZA cognome vero, svuotare il codice si rifiuta — resterebbe una scheda senza identificativo', async () => {
+    // Paziente nato dal wizard: il codice VIVE dentro `cognome` (invariante
+    // 2), e il pannello lo nasconde con `cognomeEffettivo` → la casella
+    // «Cognome» parte vuota e torna vuota. Svuotando anche il codice non
+    // resta niente da scrivere: 422, ed è giusto.
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    const res = await PATCH(richiesta({ codice_paziente: '', cognome: '', nome: '' }), { params })
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({ error: 'Serve almeno il codice paziente' })
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+
+  it('🛑 chiave assente dal body → la colonna NON si tocca (mai un codice cancellato di straforo)', async () => {
+    // La normalizzazione deve restare DENTRO il ramo `'codice_paziente' in
+    // body`: se collassasse l'assenza su `null`, ogni salvataggio di una nota
+    // cancellerebbe il codice del paziente — in silenzio, con 200 e senza
+    // errore.
+    const res = await PATCH(richiesta({ note: 'ciao' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0]).not.toHaveProperty('codice_paziente')
+  })
+
+  it('`null` esplicito nel body → `null` in colonna (la chiave c\'è, il valore no)', async () => {
+    const res = await PATCH(richiesta({ codice_paziente: null }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].codice_paziente).toBeNull()
+  })
+
+  it('🛑 la MAIUSCOLA non si tocca: `\'  pz-0042  \'` si scrive `\'pz-0042\'`, mai `\'PZ-0042\'`', async () => {
+    const res = await PATCH(richiesta({ codice_paziente: '  pz-0042  ' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateMock.mock.calls[0][0].codice_paziente).toBe('pz-0042')
+    expect(updateMock.mock.calls[0][0].codice_paziente).not.toBe('PZ-0042')
+  })
+
+  it('🔑 UN SOLO valore: il codice con spazi che la regola del nome ha già spogliato è lo stesso che va in colonna', async () => {
+    // Estensione agli spazi del contratto 🟠 ALTO 1 (`:45-50` della route):
+    // le due destinazioni di `codiceDalBody` — la colonna e la regola del
+    // nome — devono vedere lo STESSO valore. Senza Z2 la regola confrontava
+    // 'PZ-0042' (perché `cognomeEffettivo` fa `.trim()` da sé) mentre la
+    // colonna riceveva '  PZ-0042  '.
+    rigaCorrente = { nome: '', cognome: 'PZ-0042', codice_paziente: 'PZ-0042' }
+    const res = await PATCH(richiesta({ codice_paziente: '  PZ-0042  ', cognome: 'PZ-0042', nome: 'Giuseppe' }), { params })
+    expect(res.status).toBe(200)
+    const scritto = updateMock.mock.calls[0][0]
+    expect(scritto.cognome).toBe('Giuseppe')
+    expect(scritto.nome).toBe('')
+    expect(scritto.codice_paziente).toBe('PZ-0042')
+  })
+})
+
 describe('DELETE /api/pazienti/[id] — archiviazione', () => {
   let deleteSelectEqCalls: unknown[][]
   let deleteUpdateEqCalls: unknown[][]

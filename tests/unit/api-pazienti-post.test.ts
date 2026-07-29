@@ -167,6 +167,122 @@ describe('POST /api/pazienti — la regola §5 applicata server-side', () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────
+// Z2 — il codice paziente si normalizza IN SCRITTURA.
+//
+// Le asserzioni guardano il payload passato a `.insert()`, mai il giro di
+// ritorno: è la colonna che deve ricevere il valore ripulito, e il finto
+// client rispedisce indietro ciò che gli si dà (rispecchiarlo proverebbe solo
+// che il mock funziona).
+//
+// 🔑 Ciò che queste prove NON dicono, e va detto: la regola del nome
+// (`risolviNomePaziente` / `cognomeEffettivo`) è INDIFFERENTE a questa
+// normalizzazione, perché entrambe fanno già `(x ?? '').trim()` prima di
+// decidere (`nome-paziente-scrittura.ts:60-62` e `:86-88`). Quindi `''` e
+// `null` erano già indistinguibili per lei, e `'  X  '` era già uguale a
+// `'X'`. Z2 cambia SOLO il valore che finisce in colonna. I due casi
+// 200/422 qui sotto sono un lucchetto sulla finestra di correzione del
+// 27/07, non la prova di un cambio di comportamento.
+// ─────────────────────────────────────────────────────────────────────────
+describe('POST /api/pazienti — Z2: normalizzazione del codice in scrittura', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    insertMock.mockReset()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+    mockTabelle()
+  })
+
+  it('spazi ai bordi: `\'  PZ-0042  \'` arriva in colonna come `\'PZ-0042\'`', async () => {
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', nome: 'Giuseppe', codice_paziente: '  PZ-0042  ' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBe('PZ-0042')
+    expect(insertMock.mock.calls[0][0].cognome).toBe('Bagheria')
+  })
+
+  it('tab e a-capo contano come spazi: `\'\\t PZ-0042 \\n\'` → `\'PZ-0042\'`', async () => {
+    // ⚠️ `trim()` di JavaScript toglie PIÙ di `btrim()` di Postgres (tab,
+    // a-capo, spazi unicode). Divergenza voluta e dalla parte sicura, come in
+    // `dati-wizard.ts:50-53`: scrivendo il valore ripulito, due codici che
+    // differiscono solo per un tab COLLIDONO all'indice di T5 invece di
+    // convivere sotto chiavi diverse.
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: '\t PZ-0042 \n' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBe('PZ-0042')
+  })
+
+  it('casella svuotata: `\'\'` diventa ASSENZA (`null`), non stringa vuota — e il paziente si crea lo stesso', async () => {
+    // Il ramo «200» del rischio Z-P6: c'è un cognome vero, quindi la regola
+    // del nome ha di che scrivere e la creazione deve passare.
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', nome: 'Giuseppe', codice_paziente: '' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBeNull()
+    expect(insertMock.mock.calls[0][0].cognome).toBe('Bagheria')
+  })
+
+  it('soli spazi: `\'   \'` vale quanto una casella vuota → `null`', async () => {
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: '   ' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBeNull()
+  })
+
+  it('chiave assente dal body → `null` in colonna (la normalizzazione non inventa un valore)', async () => {
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBeNull()
+  })
+
+  it('`null` esplicito nel body → `null` in colonna', async () => {
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: null }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBeNull()
+  })
+
+  it('🛑 la MAIUSCOLA non si tocca: `\'  pz-0042  \'` si scrive `\'pz-0042\'`, mai `\'PZ-0042\'`', async () => {
+    // L'indice di T5 confronterà con `lower(btrim(...))`, ma il valore si
+    // CONSERVA come l'utente l'ha scritto: è un identificativo che finisce su
+    // documenti conservati per legge (Art. 10(5) + Allegato XIII p.4).
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: '  pz-0042  ' }))
+    expect(res.status).toBe(201)
+    expect(insertMock.mock.calls[0][0].codice_paziente).toBe('pz-0042')
+    expect(insertMock.mock.calls[0][0].codice_paziente).not.toBe('PZ-0042')
+  })
+
+  it('🔑 UN SOLO valore: il codice con spazi che la regola del nome ha già spogliato è lo stesso che va in colonna', async () => {
+    // Estensione agli spazi del contratto 🟠 ALTO 1. `cognomeEffettivo`
+    // confronta il cognome col codice RIPULITO (fa `.trim()` da sé), quindi
+    // 'PZ-0042' come cognome viene spogliato; senza Z2 la colonna riceveva
+    // invece '  PZ-0042  ' — cioè un valore diverso da quello su cui la
+    // regola si era basata, che è esattamente la divergenza già pagata.
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'PZ-0042', nome: 'Giuseppe', codice_paziente: '  PZ-0042  ' }))
+    expect(res.status).toBe(201)
+    const scritto = insertMock.mock.calls[0][0]
+    expect(scritto.cognome).toBe('Giuseppe')
+    expect(scritto.nome).toBe('')
+    expect(scritto.codice_paziente).toBe('PZ-0042')
+  })
+
+  it('ramo 422: soli spazi nel codice e nessun nome → «Serve almeno il codice paziente», nessun insert', async () => {
+    // Il ramo «422» del rischio Z-P6, ed è giusto che sia 422: resterebbe una
+    // scheda senza alcun identificativo.
+    const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: '   ', nome: '', cognome: '' }))
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({ error: 'Serve almeno il codice paziente' })
+    expect(insertMock).not.toHaveBeenCalled()
+  })
+
+  it('body non-JSON → 400 «Body non valido» (la normalizzazione vive a valle del parse)', async () => {
+    const req = new Request('http://localhost/api/pazienti', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'questo non è JSON',
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'Body non valido' })
+    expect(insertMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('GET /api/pazienti — errore grezzo del DB mai al client (G9)', () => {
   beforeEach(() => {
     vi.clearAllMocks()

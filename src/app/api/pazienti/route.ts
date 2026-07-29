@@ -107,14 +107,32 @@ export async function POST(req: Request) {
   // `{cognome:'PZ-0042', nome:'Giuseppe', codice_paziente:'PZ-0042'}`
   // produce `PZ-0042 GIUSEPPE` in `nome_cognome`, che `derivaAlias` non
   // annulla → la targa scrive «Pz-0042 Giuseppe», col codice ricasato.
-  const codiceGrezzo = typeof body.codice_paziente === 'string' ? body.codice_paziente : null
+  //
+  // Z2 — il codice si NORMALIZZA in scrittura: spazi ai bordi via, e una
+  // casella lasciata vuota vale ASSENZA (`null`), non stringa vuota. Il
+  // valore normalizzato è UNO SOLO e alimenta entrambe le destinazioni (la
+  // regola del nome qui sotto e la colonna a `:139`).
+  //   🛑 La MAIUSCOLA non si tocca. L'indice unico previsto da T5 confronterà
+  //   con `lower(btrim(...))`, ma il codice si CONSERVA come l'utente l'ha
+  //   scritto: è un identificativo che finisce su documenti conservati per
+  //   legge (Art. 10(5) + Allegato XIII p.4), e riscriverlo sarebbe alterare
+  //   un dato dell'utente per comodità nostra.
+  //   ⚠️ `trim()` di JavaScript toglie PIÙ di `btrim()` di Postgres (tab,
+  //   a-capo, spazi unicode). Divergenza voluta e dalla parte sicura, come in
+  //   `dati-wizard.ts:50-53`: scrivendo il valore ripulito, due codici che
+  //   differiscono solo per un tab COLLIDONO all'indice invece di convivere
+  //   sotto chiavi diverse.
+  //   🔑 La guardia di tipo resta ESTERNA al `trim()`: un `codice_paziente`
+  //   non-stringa (`42`) collassa a `null` come prima, contratto 🟠 ALTO 1.
+  const codiceNormalizzato =
+    typeof body.codice_paziente === 'string' ? body.codice_paziente.trim() || null : null
   const coppia = risolviNomePaziente({
     cognome: cognomeEffettivo(
       typeof body.cognome === 'string' ? body.cognome : null,
-      codiceGrezzo
+      codiceNormalizzato
     ),
     nome: typeof body.nome === 'string' ? body.nome : null,
-    codice: codiceGrezzo,
+    codice: codiceNormalizzato,
   })
   if (!coppia) {
     return NextResponse.json(
@@ -129,14 +147,17 @@ export async function POST(req: Request) {
     nome: coppia.nome,
     cognome: coppia.cognome,
     // nome_cognome è gestito dal trigger DB — non impostare qui
-    // 🟠 ALTO 1 — `codiceGrezzo` è lo stesso valore già usato sopra per
+    // 🟠 ALTO 1 — `codiceNormalizzato` è lo stesso valore già usato sopra per
     // alimentare `cognomeEffettivo`/`risolviNomePaziente`: scriverlo qui
     // (invece del `body.codice_paziente` grezzo) evita che la colonna
     // diverga da ciò su cui la regola del nome si è basata. Con un codice
     // non-stringa, prima la regola lo trattava come assente (null) mentre la
     // colonna riceveva comunque il valore grezzo — la guardia del «codice
     // travestito» a valle non riconosceva più il valore scritto.
-    codice_paziente: codiceGrezzo,
+    // (Z2, 30/07: la variabile si chiamava `codiceGrezzo` finché era grezza;
+    // ora porta il valore normalizzato, e la divergenza che questo commento
+    // descrive si estende agli spazi ai bordi.)
+    codice_paziente: codiceNormalizzato,
     data_nascita: body.data_nascita ?? null,
     codice_fiscale: body.codice_fiscale ?? null,
     sesso: body.sesso ?? null,

@@ -43,13 +43,30 @@ export async function PATCH(
   const VUOTO_VALE_NULL = new Set<string>(['data_nascita', 'sesso'])
 
   // 🟠 ALTO 1 — il codice paziente normalizzato (stringa o null) deve essere
-  // LO STESSO valore sia per la colonna `codice_paziente` sia per la regola
-  // del nome qui sotto: prima divergevano (la regola vedeva solo stringhe,
-  // la colonna riceveva il valore grezzo), e un codice non-stringa restava
-  // scritto grezzo mentre la regola lo trattava come assente. Calcolato una
-  // volta sola, fuori dal ciclo dell'allowlist, così alimenta entrambi.
+  // LO STESSO valore sia per la colonna `codice_paziente` (`:58`) sia per la
+  // regola del nome qui sotto (`:105`): prima divergevano (la regola vedeva
+  // solo stringhe, la colonna riceveva il valore grezzo), e un codice
+  // non-stringa restava scritto grezzo mentre la regola lo trattava come
+  // assente. Calcolato una volta sola, fuori dal ciclo dell'allowlist, così
+  // alimenta entrambi.
+  //
+  // Z2 (30/07) — la normalizzazione vive QUI, a monte delle due destinazioni:
+  // spazi ai bordi via, casella svuotata → ASSENZA (`null`). Perché non in
+  // `VUOTO_VALE_NULL`: quell'insieme agisce dentro il ciclo dell'allowlist,
+  // cioè sulla sola colonna, e lascerebbe fuori la regola del nome —
+  // rifacendo esattamente la divergenza che 🟠 ALTO 1 ha chiuso.
+  //   🛑 La MAIUSCOLA non si tocca (v. `api/pazienti/route.ts` §Z2): l'indice
+  //   di T5 confronta con `lower(btrim(...))`, ma il valore si conserva come
+  //   l'utente l'ha scritto — finisce su documenti conservati per legge
+  //   (Art. 10(5) + Allegato XIII p.4).
+  //   🛑 La normalizzazione resta DENTRO il ramo `'codice_paziente' in body`:
+  //   l'ASSENZA della chiave deve restare `undefined`, mai `null`. Collassare
+  //   i due farebbe cancellare il codice a ogni salvataggio di una nota — in
+  //   silenzio, con 200 e senza errore.
+  //   🔑 La guardia di tipo resta ESTERNA al `trim()`: un codice non-stringa
+  //   (`42`) collassa a `null` come prima.
   const codiceDalBody = 'codice_paziente' in body
-    ? (typeof body.codice_paziente === 'string' ? body.codice_paziente : null)
+    ? (typeof body.codice_paziente === 'string' ? body.codice_paziente.trim() || null : null)
     : undefined
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
