@@ -21,7 +21,7 @@ i task che risultano completi lì SONO completi — non rieseguirli.**
 **Ramo `ondata-b-schermate`, SETTE task chiusi e revisionati (T1 · T4 · T2 · T3 · T5 · T7 · T6), e
 cinquanta decisioni a verbale (D46-D50 sono di oggi).** FASE 7 sul ramo, eseguita dal coordinatore:
 **`tsc` 0 · `next build` 0 · `vitest` 3806 passati / 19 saltati** — ⚠️ ma verde in **2 esecuzioni intere
-su 4**, per un flake **preesistente e non nostro** (§6). **Nulla è pubblicato su `origin`.**
+su 5**, per un flake **preesistente e non nostro, con vittime che RUOTANO** (§6). **Nulla è pubblicato su `origin`.**
 Baseline database **294 · 0 · 916 · 48**, toccata solo in lettura.
 
 ---
@@ -121,12 +121,18 @@ lavorazione (roadmap, sezione del panel D46-D48).
 🛑 **MAI un git worktree** (doppio `package-lock.json` → 404 su tutte le route): `git checkout -b`.
 🛑 **Mai `git add -A`** finché un esecutore è vivo: `git commit -F <messaggio> -- <percorsi>`.
 ⚠️ **`vitest` non è deterministico su questo repo, e va detto invece che nascosto.** Oggi la suite intera
-è verde in **2 esecuzioni su 4**; le due rosse portano **un solo test**, sempre lo stesso —
-`tests/unit/PassoTipo.test.tsx:165`, durata **23,6 s**. **Non è una regressione:** quel file **non è mai
-stato toccato sul ramo** (verificato con `git log b4b09d52..HEAD --`), passa **14/14 in isolamento** tre
-volte su tre, ed è **nominato per nome** in `.superpowers/sdd/diagnosi-flake-vitest.md:235` fra i file che
-cedono sotto contesa multi-worker. ➡️ **Prima di dare la colpa al proprio lavoro: isolare il file e
-guardare se è in quell'elenco.**
+è verde in **2 esecuzioni su 5**. 🔑 **E le tre rosse NON sono lo stesso test: la vittima RUOTA** — una
+volta `tests/unit/PassoTipo.test.tsx:165` (23,6 s), una volta
+`tests/unit/lavoro-form-messaggio-errore.test.tsx` (8,9 s), una non attribuita. **Sempre un solo test per
+esecuzione, e sempre con una durata anomala.**
+**Non è una regressione, e la prova è tripla ogni volta:** nessuno dei due file **è mai stato toccato sul
+ramo** (`git log b4b09d52..HEAD -- <file>` → vuoto), entrambi passano **in isolamento tre volte su tre**,
+e la diagnosi già in casa (`.superpowers/sdd/diagnosi-flake-vitest.md:235`) descrive **esattamente questo**:
+una fragilità da tempo di parete sotto contesa multi-worker, su un insieme di file «**variabili tra i 9
+run, mai lo stesso set**».
+➡️ **La regola pratica:** un solo test rosso con durata anomala, in un file che non hai toccato → **isolalo
+prima di indagare**. Se in isolamento è verde, è il flake. **Non è un permesso per ignorare un rosso**: la
+stessa firma su un file che **hai** toccato è un difetto tuo finché non provi il contrario.
 ⚠️ **Gli agenti in background cadono** (in questa sessione: 2 su 6, uno **dopo** aver salvato senza
 lasciare rapporto). ➡️ **Un commit senza rapporto non è un lavoro verificato:** si rieseguono FASE 7 e le
 mutazioni, e si scrive solo ciò che si è misurato.
