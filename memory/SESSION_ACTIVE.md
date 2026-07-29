@@ -16,3 +16,8 @@ Le altre code pesano ognuna su un task solo: **P2**→T5 (stesso giorno) · **mo
 ⚠️ **Date:** i documenti «30 luglio» stanno su commit **del 29**. Dichiarato nel verbale, **niente rinomine**.
 
 **Database toccato SOLO in lettura. Baseline: 294 · 0 · 916 · 48.**
+
+🎨 **D42 (dopo panel 3 advisor):** i tre tipi col colore **non dentale** non chiedono il colore nell'ondata
+(b); tavolozza **nominata** in ondata propria (roadmap voce 6), **catalogo separato** — mai hex libero, mai
+scale nuove in `colori_dentali` (5 FK, e l'id fine dei 38 tipi non è persistito).
+➡️ **In T2: `prevedeColore: 'catalogo' | 'libero' | 'nessuno'`.** **D41:** niente colore sulla dima.
