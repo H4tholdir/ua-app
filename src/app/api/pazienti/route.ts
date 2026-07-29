@@ -177,6 +177,46 @@ export async function POST(req: Request) {
     // G9 — mai il testo grezzo del DB al client (nomi di vincoli, di
     // colonne, di indici: superficie di ricognizione gratuita).
     console.error('POST /api/pazienti — insert fallito:', insertError.message)
+
+    // Z1 (30/07) — un codice occupato è un fatto raccontabile, non un guasto.
+    //
+    // 🛑 SI GUARDA SOLO `insertError.code`, MAI `insertError.message`: il
+    // messaggio di Postgres porta il nome dell'indice, le colonne e perfino il
+    // valore che ha fatto collidere («Key (laboratorio_id,
+    // lower(btrim(codice_paziente)))=(…) already exists»). Leggerlo per
+    // decidere sarebbe già mezzo passo
+    // fuori da G9, e la riga dopo qualcuno lo rimanderebbe al client.
+    //
+    // 🔑 PERCHÉ ANCHE `codiceNormalizzato !== null`, e non il solo `23505`.
+    // `23505` è «un vincolo di unicità ha morso», non «il TUO vincolo ha
+    // morso»: può nascere da un vincolo che non è il nostro. Non potendo
+    // distinguerli dal lato del database senza leggere il messaggio, si
+    // distingue dal lato NOSTRO — da ciò che stavamo scrivendo: se in questa
+    // richiesta il codice era assente (`null`), la collisione non può
+    // riguardarlo e il messaggio «il codice è già di un altro» sarebbe FALSO.
+    // Il guardiano è quindi sul nostro input, mai sul testo altrui.
+    //   Stato dei vincoli oggi (verificato il 30/07 su `pg_constraint`): su
+    //   `pazienti` l'unico vincolo unico è `pazienti_pkey` su `id`, un uuid
+    //   generato dal database e che non mandiamo mai — quindi oggi questo ramo
+    //   è INERTE, e lo resta finché T5 non crea l'indice sul codice. Provato
+    //   dai test (`tests/unit/api-pazienti-post.test.ts`), non «in produzione».
+    if (insertError.code === '23505' && codiceNormalizzato !== null) {
+      return NextResponse.json(
+        {
+          error: 'Questo codice è già di un altro paziente. Scrivine un altro.',
+          // Il motivo è ciò che il client guarda per decidere: nessun
+          // chiamante deve mai fare confronti su una frase (D36 le cambia).
+          // 🔑 Si chiama `codice_gia_in_uso` e NON `codice_paziente_occupato`
+          // (l'esempio del piano) per un motivo solo: `codice_paziente` è un
+          // nome di colonna, e G9 dice che dal corpo di una risposta non esce
+          // nessun nome di colonna. Così l'asserzione G9 dei test può essere
+          // la più stretta possibile, senza eccezioni per noi stessi.
+          motivo: 'codice_gia_in_uso',
+        },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json({ error: 'Non è stato possibile creare il paziente' }, { status: 500 })
   }
 

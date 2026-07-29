@@ -77,12 +77,36 @@ import type { TipoDispositivo, ClasseRischio } from '@/types/domain'
  */
 export type AccessorioFallito = 'elementi' | 'colore' | 'foto'
 
+/**
+ * Il PERCHÉ di un blocco, quando ha un nome ed è raccontabile all'utente.
+ *
+ * 🛑 Non è un `AccessorioFallito` e non deve diventarlo: un accessorio è ciò
+ * che si perde SENZA portarsi via il lavoro (v. il commento sopra), mentre un
+ * codice occupato ferma tutto — il lavoro non nasce. Vivono in due campi
+ * diversi perché sono due fatti diversi.
+ *
+ * 🔑 Perché un campo e non un testo: il testo cambia (D36 l'ha già cambiato
+ * una volta, T15 lo cambierà ancora). Chi decide sul testo decide su qualcosa
+ * che è progettato per cambiare.
+ */
+export type MotivoBloccante = 'codice_gia_in_uso'
+
 export type EsitoCreazione = {
   lavoro: { id: string; numero_lavoro: string } | null
   accessoriFalliti: AccessorioFallito[]
+  /**
+   * Assente = «bloccato, e non ho niente di meglio da dire»: è il valore di
+   * riposo, e vive in `ESITO_BLOCCANTE` qui sotto — che è una costante SOLA,
+   * restituita da sei punti diversi. FACOLTATIVO apposta: i chiamanti che
+   * confrontano l'esito per intero (sei `toEqual` in `crea-lavoro.test.ts`)
+   * restano validi e diventano una guardia in più — con `toEqual` una
+   * proprietà definita di troppo fa cadere l'asserzione, quindi un motivo che
+   * trapelasse sul percorso generico si vedrebbe subito.
+   */
+  motivo?: MotivoBloccante
 }
 
-const ESITO_BLOCCANTE: EsitoCreazione = { lavoro: null, accessoriFalliti: [] }
+const ESITO_BLOCCANTE: EsitoCreazione = { lavoro: null, accessoriFalliti: [], motivo: undefined }
 
 /** 'YYYY-MM-DD' locale — vedi nota in testa al file (mai toISOString). */
 export function isoDataLocale(d: Date): string {
@@ -184,6 +208,23 @@ export function mappaElementi(testo: string): { denti: number[]; scartati: strin
 }
 
 /**
+ * Il motivo dichiarato dalla rotta, se ce n'è uno che sappiamo raccontare.
+ *
+ * 🛑 Un motivo che non conosciamo vale quanto nessun motivo: si torna al testo
+ * generico. Chi non riceve la parola non la inventa — stessa regola di
+ * `colore_scartato === true` più sotto, e per la stessa ragione: un messaggio
+ * preciso che compare quando non c'entra è peggio di uno vago.
+ */
+async function motivoDalCorpo(res: Response): Promise<MotivoBloccante | null> {
+  try {
+    const corpo = (await res.json()) as { motivo?: unknown }
+    return corpo?.motivo === 'codice_gia_in_uso' ? 'codice_gia_in_uso' : null
+  } catch {
+    return null
+  }
+}
+
+/**
  * creaLavoroDaWizard — sequenza fail-soft del Passo 3 (spec §7). Ritorna
  * SEMPRE l'esito parziale, mai un throw: il chiamante (WizardNuovoLavoro)
  * decide cosa fare con `lavoro: null` (bloccante, resta al Passo 3) o con
@@ -230,7 +271,26 @@ export async function creaLavoroDaWizard(input: {
           cognome: alias || pz,
         }),
       })
-      if (!resPost.ok) return ESITO_BLOCCANTE
+      // Z1 (30/07) — «codice occupato» e «guasto» smettono di essere la stessa
+      // cosa. Resta bloccante in entrambi i casi (il lavoro non nasce), ma il
+      // primo ha un nome, e il wizard può dire cosa fare invece di «Riprova»
+      // — che era un anello chiuso, perché `pz` non si ricalcola mai
+      // (`WizardNuovoLavoro.tsx:258`).
+      //
+      // 🔑 Si guarda `motivo`, MAI il testo della risposta: il testo è
+      // ratificato e progettato per cambiare (D36 oggi, T15 domani), il motivo
+      // no.
+      // 🛑 Il corpo si legge SOLO su un 409 dichiarato, e la lettura è
+      // protetta: `.json()` su una risposta fallita può sollevare (un 502 di
+      // un proxy non è JSON). In quel caso si degrada al blocco generico —
+      // mai un'eccezione che risale, mai un motivo inventato.
+      if (!resPost.ok) {
+        if (resPost.status === 409) {
+          const motivo = await motivoDalCorpo(resPost)
+          if (motivo) return { ...ESITO_BLOCCANTE, motivo }
+        }
+        return ESITO_BLOCCANTE
+      }
       const datiPost = (await resPost.json()) as { paziente: { id: string } }
       pazienteId = datiPost.paziente.id
     }

@@ -283,6 +283,111 @@ describe('POST /api/pazienti — Z2: normalizzazione del codice in scrittura', (
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────
+// Z1 — un codice occupato diventa un 409 di dominio.
+//
+// ⚠️ QUESTE PROVE SONO L'UNICA PROVA POSSIBILE, e va detto: su `pazienti` NON
+// esiste oggi alcun vincolo di unicità sul codice (verificato il 30/07 su
+// `pg_constraint`: c'è solo `pazienti_pkey` su `id`, che è un uuid generato
+// dal database — e nessun trigger che scriva su altre tabelle). Il ramo 23505
+// NON può accendersi in produzione finché T5 non crea l'indice: qui si prova
+// col finto client, mai «verificando in produzione».
+//
+// 🛑 La prova che conta di più è la NEGATIVA: un errore di database che non è
+// 23505 — o un 23505 arrivato mentre NON stavamo scrivendo un codice — deve
+// restare 500 col testo generico. Un 409 di troppo insegnerebbe all'app a dire
+// «il codice è occupato» ogni volta che il database ha un singhiozzo.
+// ─────────────────────────────────────────────────────────────────────────
+const TESTO_409 = 'Questo codice è già di un altro paziente. Scrivine un altro.'
+
+/**
+ * L'errore come arriva DAVVERO da PostgREST quando l'indice di T5 morde:
+ * `message` e `details` portano il nome dell'indice, le colonne e il valore.
+ * È questa forma — non un `{message}` scarno — che rende non vacua
+ * l'asserzione G9 qui sotto.
+ */
+const ERRORE_23505 = {
+  code: '23505',
+  message: 'duplicate key value violates unique constraint "pazienti_codice_lab_uniq"',
+  details: 'Key (laboratorio_id, lower(btrim(codice_paziente)))=(lab-1, pz-0042) already exists.',
+  hint: null,
+}
+
+describe('POST /api/pazienti — Z1: il codice occupato è un 409 di dominio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    insertMock.mockReset()
+    mockGetFreshLabContext.mockResolvedValue(CONTEXT)
+  })
+
+  it('23505 mentre si scrive un codice → 409, testo ratificato (D36) e motivo leggibile dalla macchina', async () => {
+    mockTabelle({ data: null, error: ERRORE_23505 })
+    const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', cognome: 'Bagheria' }))
+    expect(res.status).toBe(409)
+    // Il corpo per intero: `error` alla lettera (il testo è ratificato, non
+    // parafrasabile) e `motivo`, che è ciò che il client guarda — mai il testo.
+    expect(await res.json()).toEqual({ error: TESTO_409, motivo: 'codice_gia_in_uso' })
+  })
+
+  it('🛑 G9: dal 409 non esce NIENTE del database — né indice, né colonne, né il valore', async () => {
+    mockTabelle({ data: null, error: ERRORE_23505 })
+    const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', cognome: 'Bagheria' }))
+    const corpo = await res.json()
+    const serializzato = JSON.stringify(corpo)
+    for (const frammento of [
+      'pazienti_',
+      'constraint',
+      'duplicate key',
+      'unique',
+      'btrim',
+      'laboratorio_id',
+      // Anche il nome della colonna resta fuori: per questo il motivo si
+      // chiama `codice_gia_in_uso` e non `codice_paziente_occupato`.
+      'codice_paziente',
+      'Key (',
+    ]) {
+      expect(serializzato).not.toContain(frammento)
+    }
+    // Nessun campo di troppo: due chiavi, quelle e basta.
+    expect(Object.keys(corpo).sort()).toEqual(['error', 'motivo'])
+  })
+
+  it('🛑 NEGATIVA: un errore di database che NON è 23505 resta 500 col testo generico', async () => {
+    mockTabelle({
+      data: null,
+      error: { code: '23502', message: 'null value in column "nome_cognome" violates not-null constraint' },
+    })
+    const res = await POST(richiesta({ cliente_id: 'cli-1', codice_paziente: 'PZ-0042', cognome: 'Bagheria' }))
+    expect(res.status).toBe(500)
+    const corpo = await res.json()
+    expect(corpo.error).toBe('Non è stato possibile creare il paziente')
+    expect(corpo).not.toHaveProperty('motivo')
+  })
+
+  it('🛑 NEGATIVA: 23505 mentre NON stavamo scrivendo un codice → resta 500 (il messaggio dev\'essere VERO)', async () => {
+    // Senza codice nel corpo la colonna riceve `null`: un 23505 nasce allora
+    // da un vincolo che non è il nostro (oggi, di fatto, solo `pazienti_pkey`
+    // su un uuid generato dal database). Dire «il codice è occupato» sarebbe
+    // una bugia, e la porta da cui un guasto qualunque si traveste da
+    // conflitto di codice.
+    mockTabelle({ data: null, error: ERRORE_23505 })
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria' }))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Non è stato possibile creare il paziente')
+  })
+
+  it('🛑 NEGATIVA: codice fatto di soli spazi (→ `null` in colonna) + 23505 → resta 500', async () => {
+    mockTabelle({ data: null, error: ERRORE_23505 })
+    const res = await POST(richiesta({ cliente_id: 'cli-1', cognome: 'Bagheria', codice_paziente: '   ' }))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Non è stato possibile creare il paziente')
+  })
+
+  // Un errore SENZA il campo `code` è già coperto sopra, a `:160-167`
+  // («errore di insert → messaggio generico… (G9)»): quel finto errore porta
+  // solo `message`, e l'asserzione pretende 500. Non si duplica qui.
+})
+
 describe('GET /api/pazienti — errore grezzo del DB mai al client (G9)', () => {
   beforeEach(() => {
     vi.clearAllMocks()

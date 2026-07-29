@@ -374,6 +374,103 @@ describe('PATCH /api/pazienti/[id] — Z2: normalizzazione del codice in scrittu
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────
+// Z1 — la seconda porta: chi corregge un codice a mano deve leggere la stessa
+// verità del wizard, non un 500 generico.
+//
+// ⚠️ Come per il POST: oggi su `pazienti` NON esiste alcun vincolo di unicità
+// sul codice (verificato il 30/07 su `pg_constraint`), quindi questo ramo è
+// INERTE in produzione finché T5 non crea l'indice. Si prova qui, col finto
+// client, e solo qui.
+//
+// 🔑 Il guardiano è `typeof codiceDalBody === 'string'`, non `!== null`: il
+// codice ha TRE stati (chiave assente → `undefined`, casella svuotata →
+// `null`, valore → stringa) e solo il terzo significa «stavamo scrivendo un
+// codice». Le due prove negative qui sotto sono esattamente i due stati che un
+// guardiano scritto male lascerebbe passare.
+// ─────────────────────────────────────────────────────────────────────────
+const TESTO_409 = 'Questo codice è già di un altro paziente. Scrivine un altro.'
+
+const ERRORE_23505 = {
+  code: '23505',
+  message: 'duplicate key value violates unique constraint "pazienti_codice_lab_uniq"',
+  details: 'Key (laboratorio_id, lower(btrim(codice_paziente)))=(lab-1, pz-0042) already exists.',
+  hint: null,
+}
+
+describe('PATCH /api/pazienti/[id] — Z1: il codice occupato è un 409 di dominio', () => {
+  it('23505 mentre si riscrive il codice → 409 col testo ratificato (D36) e il motivo', async () => {
+    mockPatchTabella({ error: ERRORE_23505 })
+    const res = await PATCH(richiesta({ codice_paziente: 'PZ-0042' }), { params })
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: TESTO_409, motivo: 'codice_gia_in_uso' })
+  })
+
+  it('🛑 G9: dal 409 non esce NIENTE del database — né indice, né colonne, né il valore', async () => {
+    mockPatchTabella({ error: ERRORE_23505 })
+    const res = await PATCH(richiesta({ codice_paziente: 'PZ-0042' }), { params })
+    const corpo = await res.json()
+    const serializzato = JSON.stringify(corpo)
+    for (const frammento of [
+      'pazienti_',
+      'constraint',
+      'duplicate key',
+      'unique',
+      'btrim',
+      'laboratorio_id',
+      'codice_paziente',
+      'Key (',
+    ]) {
+      expect(serializzato).not.toContain(frammento)
+    }
+    expect(Object.keys(corpo).sort()).toEqual(['error', 'motivo'])
+  })
+
+  it('🛑 NEGATIVA: un errore di database che NON è 23505 resta 500 col testo generico', async () => {
+    mockPatchTabella({
+      error: { code: '23503', message: 'update on table "pazienti" violates foreign key constraint' },
+    })
+    const res = await PATCH(richiesta({ codice_paziente: 'PZ-0042' }), { params })
+    expect(res.status).toBe(500)
+    const corpo = await res.json()
+    expect(corpo.error).toBe('Non è stato possibile aggiornare il paziente')
+    expect(corpo).not.toHaveProperty('motivo')
+  })
+
+  it('🛑 NEGATIVA: 23505 su un salvataggio che NON tocca il codice (solo una nota) → resta 500', async () => {
+    // La chiave `codice_paziente` non c'è nel corpo: la colonna non si tocca
+    // nemmeno, quindi un 23505 non può riguardarla. È il caso che un guardiano
+    // scritto `!== null` lascerebbe passare, trasformando un guasto qualunque
+    // in «il codice è occupato» su una schermata dove il codice non c'entra.
+    mockPatchTabella({ error: ERRORE_23505 })
+    const res = await PATCH(richiesta({ note: 'ciao' }), { params })
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Non è stato possibile aggiornare il paziente')
+  })
+
+  it('🛑 NEGATIVA: 23505 mentre si SVUOTA il codice (→ `null`) → resta 500', async () => {
+    // Togliere un codice non può collidere con niente: `null` non entra in un
+    // indice unico. Il paziente ha un cognome vero, quindi la modifica arriva
+    // davvero all'`update` (nessun 422 di mezzo).
+    rigaCorrente = { nome: 'Giuseppe', cognome: 'Bagheria', codice_paziente: 'PZ-0042' }
+    mockPatchTabella({ error: ERRORE_23505 })
+    const res = await PATCH(richiesta({ codice_paziente: '', cognome: 'Bagheria', nome: 'Giuseppe' }), { params })
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Non è stato possibile aggiornare il paziente')
+  })
+
+  // Un errore SENZA il campo `code` è già coperto a `:208-215` («errore DB
+  // nell'aggiornamento → messaggio generico (G9)»): quel finto errore porta
+  // solo `message` e l'asserzione pretende 500. Non si duplica qui.
+  //
+  // ⚠️ NON coperta, e la ragione è un difetto noto FUORI da questo mandato:
+  // un corpo non-JSON sul PATCH. `[id]/route.ts:30` fa `await req.json()`
+  // senza `try/catch` (il POST ce l'ha, a `:74-79`), quindi un corpo malformato
+  // solleva DENTRO l'handler invece di dare un 400. Aggiungere quel 400
+  // sarebbe un esito nuovo nel contratto dell'API, fuori mandato: si riferisce,
+  // non si corregge di nascosto (R-E2).
+})
+
 describe('DELETE /api/pazienti/[id] — archiviazione', () => {
   let deleteSelectEqCalls: unknown[][]
   let deleteUpdateEqCalls: unknown[][]

@@ -63,6 +63,41 @@ describe('PazienteEditSheet — correzione di nome e cognome (D9 parte paziente,
     expect(screen.getByLabelText(/Cognome/i)).toBeInTheDocument()
   })
 
+  // Z1 — il codice occupato letto dalla seconda porta.
+  //
+  // 🔑 Questa prova dice UNA cosa sola, e va detto quale: che il testo
+  // ratificato (D36) arriva sotto gli occhi di chi corregge un codice a mano,
+  // alla lettera. NON dice che il pannello distingua un 409 da un 500: non lo
+  // fa e non deve farlo — mostra il messaggio della route qualunque sia lo
+  // stato (`:55-69`), ed è per questo che il pannello NON è cambiato in Z1.
+  // La distinzione 409/500 è provata dove vive davvero, cioè nel test della
+  // rotta (`tests/unit/api-pazienti-patch.test.ts`).
+  it('Z1: la route risponde 409 «codice già in uso» → il pannello mostra il testo ratificato, alla lettera', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        error: 'Questo codice è già di un altro paziente. Scrivine un altro.',
+        motivo: 'codice_gia_in_uso',
+      }),
+    })))
+    render(<PazienteEditSheet paziente={{ ...BASE, cognome: 'Bagheria', nome: 'Giuseppe' }} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /modifica/i }))
+    await user.click(screen.getByRole('button', { name: /salva/i }))
+
+    expect(
+      await screen.findByText('Questo codice è già di un altro paziente. Scrivine un altro.')
+    ).toBeInTheDocument()
+    // Il pannello resta aperto sul campo da correggere: il codice è lì, sotto
+    // gli occhi, ed è per questo che il testo ratificato non lo ripete.
+    // (Si cerca per VALORE e non per etichetta: la casella «Codice paziente
+    // (GDPR)» è l'unica del pannello con una `<label>` non agganciata al
+    // proprio input — nessun `htmlFor`, nessun `id`, a differenza di
+    // Cognome/Nome. Difetto fuori mandato, riferito nel rapporto.)
+    expect(screen.getByDisplayValue('PZ-0042')).toBeInTheDocument()
+  })
+
   // 🔴 Regressione collaudo dal vivo (27/07/2026) — le due caselle Cognome/Nome
   // hanno reso il modulo più alto: a 1280×800 il tasto «Salva modifiche»
   // finiva sotto il bordo dello schermo perché stava DENTRO il contenitore

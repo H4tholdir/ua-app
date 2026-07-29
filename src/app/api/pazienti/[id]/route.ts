@@ -156,6 +156,34 @@ export async function PATCH(
     // G9 — mai il testo grezzo del DB al client (nomi di vincoli, di
     // colonne, di indici: superficie di ricognizione gratuita).
     console.error('PATCH /api/pazienti/[id] — aggiornamento fallito:', error.message)
+
+    // Z1 (30/07) — la seconda porta: chi corregge un codice a mano legge la
+    // stessa verità del wizard, non un 500 generico. Stesse due regole del
+    // POST (v. `api/pazienti/route.ts`): si guarda SOLO `error.code`, mai
+    // `error.message`, e il secondo guardiano è sul NOSTRO input.
+    //
+    // 🔑 Qui però il guardiano è `typeof codiceDalBody === 'string'`, non un
+    // `!== null`: il codice ha TRE stati, e solo uno significa «lo stavamo
+    // scrivendo».
+    //   · `undefined` → la chiave non c'era: la colonna non si tocca nemmeno,
+    //     e un 23505 arrivato mentre si salvava una nota non c'entra niente
+    //     col codice;
+    //   · `null` → la casella è stata svuotata: `null` non entra in un indice
+    //     unico, quindi non può collidere;
+    //   · stringa → è l'unico caso in cui il conflitto può essere il nostro.
+    // Un `!== null` lascerebbe passare il primo caso e trasformerebbe un
+    // guasto qualunque in «il codice è occupato» su una schermata dove il
+    // codice non era nemmeno in gioco.
+    if (error.code === '23505' && typeof codiceDalBody === 'string') {
+      return NextResponse.json(
+        {
+          error: 'Questo codice è già di un altro paziente. Scrivine un altro.',
+          motivo: 'codice_gia_in_uso',
+        },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json({ error: 'Non è stato possibile aggiornare il paziente' }, { status: 500 })
   }
 

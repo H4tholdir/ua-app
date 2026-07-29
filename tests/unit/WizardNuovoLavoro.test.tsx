@@ -271,6 +271,80 @@ describe('WizardNuovoLavoro — seam completo Passo 3 «Continua» → creazione
     // Nessuna testata/ProgressDots nel Frame Fatto (mockup: "non ha testata-dots").
     expect(screen.queryByRole('img', { name: /Passo \d di 3/ })).not.toBeInTheDocument()
   })
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Z1 — il testo ratificato da Francesco (D36, 30/07/2026).
+  //
+  // Prima: qualunque fallimento diceva «Non sono riuscita a creare il lavoro.
+  // Riprova.» — e «Riprova» era un anello chiuso, perché `pz` non si ricalcola
+  // (`:258`, viene da `dati.prossimoPz`, fissato al render della pagina):
+  // ripremere «Continua» rifà lo stesso errore all'infinito.
+  //
+  // 🔑 Il testo si asserisce PER INTERO, mai a frammenti: è ratificato alla
+  // lettera, e il codice dentro la frase dev'essere QUELLO CHE L'UTENTE HA
+  // TENTATO — per questo la casella qui sotto viene riscritta con 'PZ-0918'
+  // invece di lasciare il precompilato 'PZ-0001': un segnaposto fisso
+  // passerebbe un'asserzione scritta sul precompilato senza dire niente.
+  // ───────────────────────────────────────────────────────────────────────
+  const TESTO_D36 =
+    'Il codice PZ-0918 è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.'
+
+  async function vaiAlPassoTreConCodice(user: ReturnType<typeof userEvent.setup>, codice: string) {
+    await user.click(screen.getByRole('button', { name: /Dr\. Esposito/ }))
+    await user.click(screen.getByRole('button', { name: /Corona zirconia/ }))
+    const casella = screen.getByDisplayValue('PZ-0001')
+    await user.clear(casella)
+    await user.type(casella, codice)
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+  }
+
+  it('Z1: POST pazienti risponde 409 «codice già in uso» → il testo ratificato (D36) col codice VERO tentato', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+    m.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        error: 'Questo codice è già di un altro paziente. Scrivine un altro.',
+        motivo: 'codice_gia_in_uso',
+      }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI_TASK12} contesto={CONTESTO} />)
+    await vaiAlPassoTreConCodice(userEvent.setup(), 'PZ-0918')
+
+    expect(await screen.findByText(TESTO_D36)).toBeInTheDocument()
+    // Il vecchio testo non compare più su questo ramo…
+    expect(screen.queryByText('Non sono riuscita a creare il lavoro. Riprova.')).not.toBeInTheDocument()
+    // …e il testo della rotta NON viene rimbalzato tale e quale: qui la frase
+    // è quella del wizard, che nomina il campo da correggere.
+    expect(
+      screen.queryByText('Questo codice è già di un altro paziente. Scrivine un altro.')
+    ).not.toBeInTheDocument()
+    // Si resta al Passo 3, con la casella pronta da correggere: è il punto di
+    // tutta la consegna — il messaggio dice cosa fare, e la cosa da fare è lì.
+    expect(screen.getByDisplayValue('PZ-0918')).toBeInTheDocument()
+    // Nessun lavoro creato: la sequenza si è fermata al paziente.
+    expect(m).toHaveBeenCalledTimes(2)
+  })
+
+  it('🛑 NEGATIVA Z1: un guasto qualunque (500) continua a dire il testo di sempre', async () => {
+    const m = fetch as unknown as ReturnType<typeof vi.fn>
+    m.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ pazienti: [] }) })
+    m.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Non è stato possibile creare il paziente' }),
+    })
+
+    render(<WizardNuovoLavoro dati={DATI_TASK12} contesto={CONTESTO} />)
+    await vaiAlPassoTreConCodice(userEvent.setup(), 'PZ-0918')
+
+    expect(
+      await screen.findByText('Non sono riuscita a creare il lavoro. Riprova.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText(TESTO_D36)).not.toBeInTheDocument()
+  })
 })
 
 describe('WizardNuovoLavoro — persistenza abbandono 24h + sheet «Riprendo da dove eri?» (Task 13, spec §9)', () => {

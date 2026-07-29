@@ -465,6 +465,146 @@ describe('creaLavoroDaWizard — sequenza fail-soft (spec §7)', () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────
+// Z1 — «codice occupato» e «guasto» smettono di essere la stessa cosa.
+//
+// Fino a qui `if (!resPost.ok) return ESITO_BLOCCANTE` (`crea-lavoro.ts:233`)
+// appiattiva ogni fallimento su un esito solo, e il wizard non poteva dire
+// altro che «Riprova» — che è un anello chiuso, perché `pz` non si ricalcola.
+// Il motivo viaggia in un campo dell'esito, MAI nel testo: chi legge non fa
+// confronti su una frase.
+//
+// 🔑 Il campo è FACOLTATIVO apposta: i sei `toEqual` già scritti qui sopra
+// («fallimento GET/POST/POST lavori → BLOCCANTE») restano verdi e diventano
+// per giunta una guardia in più — con `toEqual` una proprietà definita di
+// troppo fa cadere l'asserzione, quindi un motivo che trapelasse sul percorso
+// generico li farebbe scattare.
+// ─────────────────────────────────────────────────────────────────────────
+describe('creaLavoroDaWizard — Z1: il codice occupato risale come motivo', () => {
+  function conflitto409() {
+    return {
+      ok: false,
+      status: 409,
+      json: async () => ({
+        error: 'Questo codice è già di un altro paziente. Scrivine un altro.',
+        motivo: 'codice_gia_in_uso',
+      }),
+    }
+  }
+
+  it('POST pazienti risponde 409 «codice già in uso» → esito BLOCCANTE col motivo, nessun POST lavori (2 fetch)', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(conflitto409())
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0918',
+      alias: '',
+      elemento: '',
+      colore: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito).toEqual({ lavoro: null, accessoriFalliti: [], motivo: 'codice_gia_in_uso' })
+    expect(m).toHaveBeenCalledTimes(2)
+  })
+
+  it('🛑 NEGATIVA: un 500 sul POST pazienti resta un guasto SENZA motivo (mai «il codice è occupato» su un singhiozzo)', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonFail(500))
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0919',
+      alias: '',
+      elemento: '',
+      colore: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.lavoro).toBeNull()
+    expect(esito.motivo).toBeUndefined()
+  })
+
+  it('🛑 NEGATIVA: un 409 con un motivo che non conosciamo NON diventa «codice occupato»', async () => {
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: 'boh', motivo: 'altra_cosa' }) })
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0920',
+      alias: '',
+      elemento: '',
+      colore: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito.motivo).toBeUndefined()
+  })
+
+  it('🛑 409 con un corpo ILLEGGIBILE → esito bloccante senza motivo, e nessuna eccezione', async () => {
+    // Leggere il corpo di una risposta fallita è superficie nuova: se il corpo
+    // non è JSON, `.json()` solleva. L'esito deve degradare al blocco
+    // generico — il wizard tornerà a dire «Riprova» — mai propagare l'errore.
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON at position 0')
+      },
+    })
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0921',
+      alias: '',
+      elemento: '',
+      colore: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+    expect(esito.motivo).toBeUndefined()
+  })
+
+  it('🛑 NEGATIVA: un 409 sul POST LAVORI non porta il motivo del paziente', async () => {
+    // Il conflitto di codice esiste solo al passo del paziente. Se un giorno
+    // `/api/lavori` rispondesse 409, l'esito non deve raccontare che il codice
+    // paziente è occupato.
+    const m = mockFetch()
+    m.mockResolvedValueOnce(jsonOk(200, { pazienti: [] }))
+    m.mockResolvedValueOnce(jsonOk(201, { paziente: { id: 'pz-20' } }))
+    m.mockResolvedValueOnce(conflitto409())
+
+    const esito = await creaLavoroDaWizard({
+      cliente: CLIENTE,
+      tipo: TIPO_CATALOGO,
+      pz: 'PZ-0922',
+      alias: '',
+      elemento: '',
+      colore: '',
+      foto: null,
+      dataConsegna: DATA_CONSEGNA,
+    })
+
+    expect(esito).toEqual({ lavoro: null, accessoriFalliti: [] })
+    expect(esito.motivo).toBeUndefined()
+  })
+})
+
 // M2 (revisione pre-merge ondata a) — il colore digitato male non si perde più
 // in silenzio. Il server lo scarta (regola dura: «si perde il colore, mai il
 // lavoro») e lo DICE nella risposta con `colore_scartato`; qui quella parola

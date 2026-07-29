@@ -380,6 +380,32 @@ function CorpoWizard(props: {
     })
     setInCreazione(false)
     if (!esito.lavoro) {
+      // Z1 (30/07) — testo RATIFICATO da Francesco, D36: si scrive alla
+      // lettera, non si parafrasa.
+      //
+      // Perché ne serviva uno diverso: «Riprova» qui era un anello chiuso. Il
+      // codice `pz` non si ricalcola mai (`:258`: viene da `dati.prossimoPz`,
+      // fissato al render della pagina), quindi ripremere «Continua» rifà
+      // esattamente lo stesso errore, all'infinito. Il messaggio dice invece
+      // cos'è successo e cosa fare — e la cosa da fare è già lì sotto gli
+      // occhi: la casella «Codice paziente» del Passo 3, che resta aperta e
+      // modificabile perché qui si ritorna senza cambiare passo.
+      //
+      // 🔑 Il codice nella frase è QUELLO CHE L'UTENTE HA TENTATO
+      // (`stato.pz`), mai un segnaposto: chi legge deve riconoscere il proprio
+      // codice, non uno d'esempio.
+      // 🛑 Non si offre «È lei: usa la sua scheda», e la ragione è scritta in
+      // D36: servirebbero il nome del paziente, la data del suo ultimo lavoro
+      // e il primo codice libero — nessuno dei tre è disponibile qui (il
+      // pre-controllo di `crea-lavoro.ts:214` confronta byte-identico su una
+      // lista tagliata a 500 righe). Arriva con T7+T15, e allora questa frase
+      // decade.
+      if (esito.motivo === 'codice_gia_in_uso') {
+        errore(
+          `Il codice ${stato.pz} è già di un altro paziente. Scrivine un altro nel campo "Codice paziente" qui sopra.`
+        )
+        return
+      }
       errore('Non sono riuscita a creare il lavoro. Riprova.')
       return
     }
