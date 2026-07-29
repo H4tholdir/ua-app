@@ -160,17 +160,16 @@ describe('passi.ts — mostraUscita (Task 4, D21 riformulata: "quando il passo N
     expect(mostraUscita('colore', SEQUENZA_SENZA_DENTI_COLORE)).toBe(true)
   })
 
-  it('è esattamente la negazione di isPrimoPasso, su più coppie (nome, sequenza)', () => {
-    const casi: Array<[NomePasso, NomePasso[]]> = [
-      ['dentista', SEQUENZA_COMPLETA],
-      ['tipo', SEQUENZA_COMPLETA],
-      ['cassetta', SEQUENZA_COMPLETA],
-      ['foto', SEQUENZA_SENZA_DENTI_COLORE],
-      ['foto', SEQUENZA_SINGOLO_ELEMENTO],
-    ]
-    for (const [nome, sequenza] of casi) {
-      expect(mostraUscita(nome, sequenza)).toBe(!isPrimoPasso(nome, sequenza))
-    }
+  it('forma C: sequenza vuota → true (stesso trattamento del caso "nome fuori sequenza": isPrimoPasso è sempre false su sequenza vuota, quindi fallisce aperta verso l\'uscita anche qui)', () => {
+    expect(mostraUscita('dentista', [])).toBe(true)
+  })
+
+  it('valori attesi scritti A MANO, coppia per coppia (nome, sequenza) — NON calcolati da isPrimoPasso: un errore di segno in mostraUscita deve rompere questo test. Nota: queste 5 coppie ripetono casi già coperti sopra (righe 143, 150-152, 156) — qui il valore atteso letterale sostituisce il confronto con !isPrimoPasso(...), che rendeva il blocco precedente tautologico (stesso lato atteso dell\'implementazione, non poteva mai fallire)', () => {
+    expect(mostraUscita('dentista', SEQUENZA_COMPLETA)).toBe(false) // primo della sequenza
+    expect(mostraUscita('tipo', SEQUENZA_COMPLETA)).toBe(true) // secondo, non primo
+    expect(mostraUscita('cassetta', SEQUENZA_COMPLETA)).toBe(true) // ultimo, non primo
+    expect(mostraUscita('foto', SEQUENZA_SENZA_DENTI_COLORE)).toBe(true) // ultimo qui, ma non primo
+    expect(mostraUscita('foto', SEQUENZA_SINGOLO_ELEMENTO)).toBe(false) // unico elemento: primo (e ultimo) insieme
   })
 })
 

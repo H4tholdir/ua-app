@@ -128,6 +128,8 @@ export function passoSuccessivo(nome: NomePasso, sequenza: readonly NomePasso[])
  * il secondo gli lascia comunque una via d'uscita visibile. Un nome fuori
  * sequenza è già un bug del chiamante: questa funzione non lo nasconde
  * dietro un controllo mancante, fallisce "aperta" verso l'uscita.
+ * `sequenza` vuota → stesso ramo, stesso risultato `true` (nessun nome può
+ * essere "il primo" di una sequenza vuota, quindi fallisce aperta anche qui).
  */
 export function mostraUscita(nome: NomePasso, sequenza: readonly NomePasso[]): boolean {
   return !isPrimoPasso(nome, sequenza)
