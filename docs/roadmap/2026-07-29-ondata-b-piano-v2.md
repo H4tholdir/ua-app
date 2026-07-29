@@ -13,8 +13,13 @@ verbale **D1-D34** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.m
 > `bite_splint` — erano **tutte e quattro difettose**. Un buco dichiarato si chiude; **una certezza sbagliata
 > no, perché nessuno la riapre.**
 
-> ⛔ **Questo piano non esce dalla FASE 4 finché §9 non è vuoto.** Al momento **non lo è**: restano
-> **3 sonde** (P2 da rieseguire, P3, P6-forma), **2 gate di mockup** e **2 decisioni di prodotto**.
+> ⛔ **Questo piano non esce dalla FASE 4 finché §9 non è vuoto.** Al momento **non lo è**, ma **ciò che
+> resta è agganciato a task precisi, non all'apertura**: **P2** (si riesegue lo stesso giorno di T5, per
+> costruzione) · **la contraddizione B2 vs T6** (solo T6) · **i due gate di mockup** (solo T19/T20) · **la
+> portata della guardia B7** (solo T13).
+> ✅ **Chiuse il 29/07: P3 · P6-forma · le due decisioni di prodotto (D38 sul passo cassetta, D39 sulla
+> briciola).** **Blocco 0 e Blocco 1 — T1, T2, T3, T4 — non sono bloccati da niente**: sola logica,
+> nessuna schermata, nessuna banca dati.
 
 ---
 
@@ -299,8 +304,11 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
      i 17 caratteri — fra cui `Duplicato protesi`, **uno dei tre casi di prova canonici**. ⚠️ Il tetto e le
      lunghezze sono **fatti letti**; la conversione caratteri→pixel è una **stima da misurare**.
      ➡️ **T11 dichiara la regola per «una briciola che non ci sta intera»** — troncare è vietato (D22):
-     restano abbreviare alla riga1, o due righe. ⚠️ **`labelTipo()` per `anti_russamento` restituisce
-     «Anti- russamento»** (`tipi-lavoro.ts:74-76`): la stringa della briciola va scelta, non ereditata
+     ✅ **DECISA — D39: nome corto dedicato**, scritto accanto al tipo; niente tagli, niente puntini, una
+     riga sola. ⚠️ **`labelTipo()` per `anti_russamento` restituisce «Anti- russamento»**
+     (`src/lib/domain/tipi-lavoro.ts:86-88`, **non `:74-76`**): la stringa della briciola si scrive, non si
+     eredita. 📏 **Le etichette oltre 17 caratteri sono NOVE, non ~15** (misurate sul file): la soglia vera
+     è in pixel e si misura **qui, in T11** — i nomi brevi si scelgono dopo la misura, in una passata sola
   3. **l'accessibilità**: spec §3 impone `role="img"` («una sola informazione»), che rende i figli
      **presentational** — quindi **le briciole toccabili di D17 e il contatore di D32 escono dall'albero di
      accessibilità**. Due decisioni ratificate che si contraddicono. ➡️ `<nav>` + lista di `<button>`, e il
@@ -328,7 +336,12 @@ i difetti fuori mandato si **riferiscono**, non si correggono (R-E2).
   `TIPI_FOTO`) + ingranditore + **elimina con conferma** (D29). 🛑 Le foto restano in memoria fino alla
   creazione: **comprimere allo scatto**. ⚠️ Se la galleria mostra una **riga persistita** e non solo file
   in memoria, **serve la firma server-side** — o si dichiara che nell'ondata (b) mostra solo memoria.
-- **T18** — 🚧 passo cassetta. **BLOCCATO da una decisione di prodotto** (§9.2).
+- **T18** — passo cassetta. ✅ **SBLOCCATO da D38:** il wizard porta **l'intenzione**, la cassetta nuova
+  nasce **insieme al lavoro** nell'unico punto di creazione (`WizardNuovoLavoro.tsx:363-371`), e
+  `POST /api/cassette` **non si chiama durante il percorso**. 🔑 **T18 decide la FORMA dell'atomicità**
+  (RPC unica, o due passi con compensazione), ricalcando il precedente in casa `crea_rifacimento_atomico`
+  — «MAI 3 INSERT separati». ⚠️ **Cambia il contratto di `NuovaCassettaSheet`**, oggi costruito su
+  `onCreata` → assegnazione immediata.
 - **T19 / T20** — 🚧 **GATE**: passo denti e passo colore. I mockup del 27/07 vanno riverificati in
   larghezza (D14).
 - **T21** — la macchina completa: briciole toccabili · **avviso di perdita solo quando `cosaSiPerde`
@@ -415,21 +428,19 @@ giro» sbaglia, **la larghezza vera arriva dopo**.
    due guardie copre: **911 pazienti su 916 hanno `nome_cognome = codice_paziente`** con `cognome` e
    `nome` a `NULL` (provato). Una ricerca sul solo `cognome` raggiunge **5 pazienti su 916**; una che
    tocchi `nome_cognome` restituirebbe **911 righe il cui nome visibile È il codice**.
-2. 🔴 **DECISIONE DI PRODOTTO — quando nasce la cassetta creata dal wizard?** (bloccante B-2 + I-6)
-   Oggi il lavoro nasce in **un punto solo, alla fine** (`WizardNuovoLavoro.tsx:362-364`, dichiarato «l'unico
-   punto, nessuna scorciatoia lo bypassa»). Ma **D30 dice «ci va dentro subito»**, e `POST /api/cassette` è
-   una **scrittura vera**. Chi crea una cassetta al passo 7 e poi preme ✕ lascia **una cassetta vuota sulla
-   parete** — dopo aver letto, nel testo di conferma ratificato, «**nel gestionale non resta niente**».
-   **Due uscite, e la scelta è di Francesco:**
-   - **(a) — consigliata:** il wizard porta **l'intenzione**, l'effetto avviene **alla creazione del
-     lavoro**. La parete resta pulita e il testo di conferma resta vero. *Costo:* la cassetta nuova va
-     creata insieme al lavoro (una RPC, o due passi con compensazione), e cambia il contratto di
-     `NuovaCassettaSheet`.
-   - **(b)** si crea subito, e allora **cambia il testo della conferma** e il piano scrive **chi ripulisce**
-     le cassette orfane e con quale gesto.
-3. 🔴 **DECISIONE DI PRODOTTO — la stringa della briciola.** `labelTipo()` produce «Anti- russamento», e ~15
-   etichette su 38 non ci stanno intere. **Troncare è vietato** (D22): serve la regola per il caso «una sola
-   briciola che non ci sta».
+2. ✅ **CHIUSA — D38, ratificata da Francesco.** *Quando nasce la cassetta creata dal wizard?* → **uscita
+   (a): alla fine, insieme al lavoro.** Il wizard porta **l'intenzione**, la scrittura avviene nell'unico
+   punto in cui nasce il lavoro (`WizardNuovoLavoro.tsx:363-371` — ⚠️ **non `:362-364`**, coordinate
+   derivate: riverificate il 29/07). `POST /api/cassette` **non si chiama durante il percorso**; cassetta e
+   lavoro nascono **insieme** (RPC atomica o compensazione — **forma da decidere dentro T18**); cambia il
+   contratto di `NuovaCassettaSheet`. **D30 resta intatta**: decideva il gesto al banco, non il momento
+   della scrittura. ➡️ **T18 è sbloccato.**
+3. ✅ **CHIUSA — D39, ratificata da Francesco.** *La stringa della briciola?* → **nome corto dedicato**,
+   scritto a mano accanto al tipo in `src/lib/domain/tipi-lavoro.ts`; la scia **non eredita `labelTipo()`**.
+   🔴 **E il numero di questo piano era sbagliato:** «~15 etichette su 38» → **misurate, sono NOVE**, e
+   **`Duplicato protesi` non è fra quelle** (17 caratteri esatti). ⚠️ La soglia dei 17 caratteri resta una
+   **stima**: la misura in pixel si fa **dentro T11**, e i nomi brevi si scelgono sull'esito della misura,
+   in **una passata sola** con Francesco. 🔑 `labelTipo()` è a **`:86-88`**, non `:74-76`.
 4. **T19/T20 dietro gate:** mockup di denti e colore da riverificare in larghezza (D14).
 5. **Il tetto delle foto** resta libero (D27): **da misurare su un device vero**, dentro T17. **Non blocca.**
 6. **Da chiarire prima di T13:** la guardia **B7** («zero occorrenze») copre anche i **commenti** e i

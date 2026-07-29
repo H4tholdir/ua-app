@@ -41,8 +41,8 @@ nostro** (era il codice in gioco in quella richiesta?), non interrogando il data
 | **P3** | la proiezione stretta non rompe il chiamante | ✅ **CHIUSA 30/07** — v. §2-bis |
 | **P6-forma** | si esprime in PostgREST o serve una RPC? | ✅ **CHIUSA 30/07: PostgREST, niente RPC** — v. §2-bis |
 | 🆕 **B2 vs T6** 🔴 | **due documenti ratificati si contraddicono** | 🔴 **NUOVO BLOCCANTE, uscito dalle sonde** — v. §2-ter |
-| **decisione** 🔴 | **quando nasce la cassetta creata dal wizard** (bloccante B-2 + I-6) | 🔴 **APERTA — è di Francesco.** Consigliata **(a)**: il wizard porta *l'intenzione*, l'effetto avviene alla creazione del lavoro. Altrimenti chi abbandona dopo il passo 7 lascia **una cassetta vuota sulla parete**, dopo aver letto «nel gestionale non resta niente» |
-| **decisione** 🔴 | **la stringa della briciola** | 🔴 **APERTA — è di Francesco.** `labelTipo()` produce «Anti- russamento» e ~15 etichette su 38 non ci stanno intere; **troncare è vietato** (D22) |
+| **decisione** | **quando nasce la cassetta creata dal wizard** (bloccante B-2 + I-6) | ✅ **CHIUSA 29/07 — D38, uscita (a):** il wizard porta *l'intenzione*, la cassetta nasce **insieme al lavoro**. `POST /api/cassette` non si chiama nel percorso; la forma dell'atomicità si decide in **T18**, ora sbloccato |
+| **decisione** | **la stringa della briciola** | ✅ **CHIUSA 29/07 — D39: nome corto dedicato**, scritto accanto al tipo; la scia non eredita `labelTipo()`. 📏 **Le etichette lunghe sono NOVE, non ~15** (misurate), e `Duplicato protesi` non è fra quelle: la misura in pixel si fa dentro **T11** |
 | **gate** | mockup di **denti** e **colore**, da riverificare in larghezza (D14) | 🟡 aperti, bloccano T19/T20 |
 | **da chiarire** | la guardia **B7** («zero occorrenze») copre anche commenti e `docs/`? | 🟡 se sì i file passano da **17 a 21**+ — prima di T13 |
 | **libero** | il tetto delle foto (D27) | 🟢 da misurare su un device vero dentro T17. **Non blocca** |
