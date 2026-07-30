@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia, tastoPiu, pillVoce } from '@/design-system/v3/tokens'
+import { luce, notte, tipografia, raggio, varV3, gradiente, avatarPalette, testoSuFaccia, materia, tastoPiu, pillVoce, sopraFoto } from '@/design-system/v3/tokens'
 
 function lum(hex: string): number {
   const c = hex.replace('#', '')
@@ -125,5 +125,41 @@ describe('tokens v3 — valori di legge (spec §3-4)', () => {
   })
   it('testoSuFaccia: valore-legge esatto (testo bianco su facce gradiente, §5.1/§5.4)', () => {
     expect(testoSuFaccia).toBe('#FFFFFF')
+  })
+  // §4 dell'allegato 2026-07-30-ds-v3-sezioni-album.md dichiara i NOVE
+  // indivisibili — «un conteggio sbagliato in testa a un elenco è il modo
+  // classico per lasciarne fuori uno»: erano stati annunciati come sette.
+  // Oggi (T6) solo `faccia` ha un utente; gli altri otto sono di T7 e T8, e
+  // senza questa prova la sparizione di uno di loro non accenderebbe nulla.
+  it('sopraFoto: sono NOVE chiavi esatte, né una in più né una in meno (§5.38-§5.42, D88)', () => {
+    expect(Object.keys(sopraFoto).sort()).toEqual([
+      'confine',
+      'faccia',
+      'facciaAttiva',
+      'miniaturaSpenta',
+      'ombraPannello',
+      'sfumaturaAlto',
+      'sfumaturaBasso',
+      'tratteggio',
+      'velo',
+    ])
+  })
+  it('sopraFoto: valori-legge VERBATIM da §4 dell\'allegato dell\'album', () => {
+    expect(sopraFoto.velo).toBe('rgba(9,7,5,.94)')
+    expect(sopraFoto.sfumaturaAlto).toBe('linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0))')
+    expect(sopraFoto.sfumaturaBasso).toBe('linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,0))')
+    expect(sopraFoto.faccia).toBe('rgba(9,7,5,.62)')
+    expect(sopraFoto.facciaAttiva).toBe('rgba(9,7,5,.8)')
+    expect(sopraFoto.confine).toBe('inset 0 0 0 1px rgba(255,255,255,.22)')
+    expect(sopraFoto.ombraPannello).toBe('0 14px 40px rgba(0,0,0,.4)')
+    expect(sopraFoto.tratteggio).toBe('rgba(255,255,255,.3)')
+    // 🛑 `miniaturaSpenta` è un NUMERO, non un colore: nessun grep del
+    // pre-commit lo intercetterebbe mai (§4 dell'allegato lo dichiara). Sta nel
+    // gruppo per coerenza di lettura — e questa è l'unica rete che ce l'ha.
+    expect(sopraFoto.miniaturaSpenta).toBe(0.48)
+    expect(typeof sopraFoto.miniaturaSpenta).toBe('number')
+  })
+  it('sopraFoto: il velo NON è materia.scrim — è più fitto, perché dietro ci sta una fotografia', () => {
+    expect(sopraFoto.velo).not.toBe(materia.scrim)
   })
 })

@@ -114,6 +114,46 @@ export const pillVoce = {
   cerchioMicOmbraNotte: 'inset 0 1.5px 1px rgba(255,255,255,.25)',
 } as const
 
+// §5.38-§5.42 — la materia SOPRA una fotografia (ondata (b), 30/07/2026).
+// Vive qui e non nei componenti perché `src/components/ds/` non ammette rgba
+// letterali (check pre-commit 4a). Il bianco NON si duplica: si usa
+// `testoSuFaccia`, che è già il bianco assoluto indipendente dal tema.
+export const sopraFoto = {
+  /** Il velo dietro la foto nel visore. `materia.scrim` (.35) è troppo
+   *  trasparente per starci dietro una fotografia (spec album §4.2). */
+  velo: 'rgba(9,7,5,.94)',
+  /** Raccordo estetico sotto il capo e sopra il piede — NON è ciò che regge
+   *  il contrasto: quello lo reggono `faccia` e `confine`. */
+  sfumaturaAlto: 'linear-gradient(180deg, rgba(0,0,0,.6), rgba(0,0,0,0))',
+  sfumaturaBasso: 'linear-gradient(0deg, rgba(0,0,0,.72), rgba(0,0,0,0))',
+  /** Faccia di ogni controllo appoggiato su una foto (tondi ✕/⋯, pastiglia
+   *  della categoria, pastiglia «⤢ Apri» della carta): rende il contrasto del
+   *  glifo indipendente dalla fotografia sotto. */
+  faccia: 'rgba(9,7,5,.62)',
+  /** Il ⋯ mentre la tendina è aperta: si vede da dove è uscita.
+   *  🛑 NON è l'unica fonte di quello stato: su una radiografia la differenza
+   *  con `faccia` vale 1,02:1, cioè è invisibile. La seconda fonte, che è
+   *  anche quella giusta, è `aria-expanded` sull'innesco (§5.39, C-6). */
+  facciaAttiva: 'rgba(9,7,5,.8)',
+  /** Il CONFINE del controllo sulla foto scura, dove la faccia scura da sola
+   *  non si stacca. Anello interno, non un bordo che sposta la geometria. */
+  confine: 'inset 0 0 0 1px rgba(255,255,255,.22)',
+  /** Ombra del pannello della tendina. NON `var(--sh-card)`: in scuro vale
+   *  `none`, e un pannello che galleggia su una foto deve staccarsi in
+   *  entrambi i temi.
+   *  🌑 DEROGA DICHIARATA a §3 («in scuro nessuna ombra»), ratificata come D88:
+   *  quella legge presuppone una superficie d'app di luminanza nota da cui
+   *  affiorare, e sotto una fotografia qualunque quella superficie non c'è.
+   *  Seconda eccezione del sistema; la prima e' l'alone della ghiera di
+   *  `TastoPiu` (v. il commento a `tastoPiu`, sopra). Confine stretto: vale
+   *  per un pannello SOPRA UNA FOTOGRAFIA, non per le carte dell'app. */
+  ombraPannello: '0 14px 40px rgba(0,0,0,.4)',
+  /** Bordo tratteggiato del posto riservato alla barra dell'editor (D66). */
+  tratteggio: 'rgba(255,255,255,.3)',
+  /** Miniatura non scelta nella fascia del visore. */
+  miniaturaSpenta: 0.48,
+} as const
+
 export const avatarPalette = ['#1D5FBF', '#7A4DB8', '#0E8A6B', '#9A5C00', '#C24E7A', '#8A8580'] as const // §5.14 blue,purple,teal,amber,rose,slate
 
 /** Hex BASE delle 6 facce standard della Parete (il primo stop dei gradienti
