@@ -392,9 +392,14 @@ git commit -F <file-messaggio> -- supabase/migrations/20260730150000_lavori_imma
 **Interfacce**
 - **Consuma:** la migration di T1 (la legge come dato, non la importa).
 - **Produce:** `CategoriaFoto` (unione dei sei) · `CATEGORIE_FOTO: readonly {valore, etichetta}[]` in
-  **ordine D71** · `etichettaCategoria(v): string` · `ordinaFotoPerCategoria<T extends {categoria: string;
+  **ordine D71** · `isCategoriaFoto(v: unknown): v is CategoriaFoto` (la guardia che **T3** usa per il 422)
+  · `etichettaCategoria(v): string` · `ordinaFotoPerCategoria<T extends {categoria: string;
   created_at: string; id: string}>(foto: T[]): T[]` · `raggruppaPerCategoria<T>(foto: T[]):
-  Array<{categoria: CategoriaFoto; etichetta: string; foto: T[]}>`.
+  Array<{categoria: string; etichetta: string; foto: T[]}>`.
+  🔧 **CORRETTO da T2 (30/07): `raggruppaPerCategoria` rende `categoria: string`, NON `CategoriaFoto`** —
+  questa riga diceva il contrario del codice del Passo 4, e il codice ha ragione: con l'unione stretta la
+  prova «una categoria ignota non sparisce, finisce dopo *altro*» sarebbe **inesprimibile**. 🛑 T6-T12
+  leggono questo blocco, non il codice: una firma sbagliata qui si propaga a quattro componenti.
 
 - [ ] **Passo 1 — scrivi le prove PRIMA (RED)**
 
@@ -500,7 +505,11 @@ function valoriDalCheck(): string[] {
 describe('spia — il CHECK della migration e la costante TypeScript non possono divergere', () => {
   it('gli INSIEMI coincidono, in entrambe le direzioni', () => {
     const daSql = new Set(valoriDalCheck())
-    const daTs = new Set(CATEGORIE_FOTO.map((c) => c.valore))
+    // 🔧 CORRETTO da T2 (30/07): senza `<string>` esplicito l'insieme esce
+    //    `Set<CategoriaFoto>` e `daTs.has(v)` con `v: string` NON COMPILA
+    //    (TS2345). 🛑 E la riga che non compilava era proprio la SECONDA
+    //    direzione: chi la togliesse per far compilare dimezzerebbe la spia.
+    const daTs = new Set<string>(CATEGORIE_FOTO.map((c) => c.valore))
     expect([...daTs].filter((v) => !daSql.has(v))).toEqual([])  // nel codice, non nel database
     expect([...daSql].filter((v) => !daTs.has(v))).toEqual([])  // nel database, non nel codice
   })
@@ -617,8 +626,13 @@ npx vitest run tests/unit/categorie-foto.test.ts tests/unit/categorie-foto-spia-
 ```
 Atteso: tutte verdi. **Poi prova che mordono**, e incolla gli esiti nel rapporto:
 1. **M1** — riordina `CATEGORIE_FOTO` in ordine alfabetico → **atteso: rosse** le due prove dell'ordine.
-2. **M2** — nella migration cambia `'post_prova'` in `'postprova'` → **atteso: rossa** la spia, in
-   **entrambe** le direzioni.
+2. **M2** — nella migration cambia `'post_prova'` in `'postprova'` → **atteso: rossa** la spia.
+   🛑 **CORRETTO da T2 (30/07): questa mutazione accende SOLO la prima direzione**, perché vitest si ferma
+   al primo `expect` rosso — «entrambe le direzioni» era una previsione che l'esperimento non poteva
+   mostrare, ed è la **stessa forma del difetto R3** che la spia esiste per non ripetere.
+2-bis. **M2b** — nella migration il `CHECK` **cresce** di `'sbiancamento'` e il codice resta fermo →
+   **atteso: rossa** la spia sulla **seconda** direzione («nel database, non nel codice»), che M2 da sola
+   non osserva mai.
 3. **M3** — in `rango()` sostituisci `?? CATEGORIE_FOTO.length` con `?? -1` → **atteso: rossa** la prova
    della categoria ignota.
 🛑 Rimetti tutto a posto dopo ogni mutazione, e **conta**: se una mutazione **non** uccide nulla, la prova
@@ -641,6 +655,11 @@ git commit -F <file-messaggio> -- src/lib/domain/categorie-foto.ts tests/unit/ca
 
 **Interfacce**
 - **Consuma:** `isCategoriaFoto`, `CATEGORIE_FOTO` da `@/lib/domain/categorie-foto` (T2).
+  🛑 **SI IMPORTA, non si ricopia — e T2 ha misurato perché conta:** la spia sorveglia **due** copie
+  dell'elenco (il `CHECK` e la costante), **non tre**. Se questa rotta scrivesse a mano
+  `['impronta', …].includes(v)` invece di importare `isCategoriaFoto`, **non si accenderebbe nulla**: né la
+  spia (non guarda lì) né `tsc` (R27, il client non è tipizzato). La terza copia la copre **solo**
+  l'import.
 - **Produce:** `POST /api/lavori/[id]/immagini` accetta il campo FormData **`categoria`** (obbligatorio,
   **422** se manca o è fuori elenco) · `PATCH …/[imgId]` accetta `categoria` **validata** (**422**, non 500).
 
@@ -1303,6 +1322,13 @@ Micro-audit della **sola** superficie dell'ondata contro
 risolto **o deferito con il motivo scritto**. Screenshot prima/dopo in
 `docs/design/screenshots/2026-07-30-album-foto/`. ⚠️ `.gitignore` ignora `*.png`: serve `git add -f`.
 
+- [ ] **Passo 4-bis — 🔴 IL GUASTO IN PRODUZIONE SI CHIUDE QUI (D81 · R29).** Dal 30/07, ora in cui la
+  migration di T1 è stata applicata, **il caricamento di una foto su uachelab.com risponde 500**: il
+  database non ha più `tipo` e il codice pubblicato la scrive ancora
+  (`origin/main:src/app/api/lavori/[id]/immagini/route.ts:110`). Francesco ha scelto di **lasciarlo fino al
+  merge** perché lì dentro ci sono solo dati di prova. ➡️ **Dopo il merge, e PRIMA di dichiarare chiusa
+  l'ondata: caricare una foto vera su uachelab.com e vederla comparire.** 🛑 Non è un collaudo fra i tanti:
+  è la riparazione di un guasto **vivo**, e l'unico modo di sapere che è finito.
 - [ ] **Passo 5 — BP-1**: `memory/MEMORY.md` + `docs/roadmap/ROADMAP-UFFICIALE.md`. **Non si chiude senza.**
 
 ---
