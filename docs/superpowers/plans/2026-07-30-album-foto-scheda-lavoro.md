@@ -65,7 +65,7 @@ l'esecutore userà per verificarlo.
 | **P16** | 🛑 **«Il visore può bloccare lo scorrimento del corpo come fa `Sheet`» → NO: due blocchi si incastrano** | `provato:` `Sheet.tsx:248-253` si difende **solo dalla propria rientranza**. Un visore che bloccasse a sua volta catturerebbe `overflow:'hidden'` come «valore precedente» (`:249-252`) e alla chiusura lo **ripristinerebbe a hidden per sempre**. ➡️ **Regola: blocca SOLO lo strato più basso** (il visore). Tendina e conferma **non bloccano** |
 | **P17** | «Lo z-index dà l'ordine degli strati» → **FALSO** | `provato:` esiste **un solo** valore, `zIndex: 1000`, sia su `Sheet.tsx:418` sia su `DialogConferma.tsx:182`; lo scrim non ha z-index (`Sheet.tsx:430-434`) e il pannello sta sopra **per ordine nel DOM**. Il dialog sta sopra lo sheet **per ordine di montaggio del portale**. Intervallo libero misurato: **302-999** (chrome v3 ≤ 60, legacy ≤ 301, avvisi 1100) e deve ospitare **due** livelli: visore < tendina < 1000 |
 | **P18** | 🛑 **«Esc si comporta come il tasto indietro» → NO** | `provato:` `Sheet.tsx:158-165` e `DialogConferma.tsx:78-85` ascoltano **entrambi su `window`**: un solo Escape **collassa tutti gli strati insieme**, mentre il back ne chiude correttamente **uno solo** (`storia-overlay.ts:110-117`). Oggi la coppia sopravvive solo grazie a una guardia del compositore. ➡️ **Con tre strati va progettato**, o Esc chiude visore, tendina e conferma in un colpo |
-| **P19** | «La conferma di eliminazione è un foglio dal basso, come nel mockup» → **da correggere** | `provato:` la conferma di casa è **`DialogConferma` (§5.17)**, non un foglio nuovo. ⚠️ **Ma non ha né gestione del focus né blocco dello scorrimento** (`DialogConferma.tsx:78-85`, solo Esc + `role`/`aria`), mentre `Sheet` sì (`Sheet.tsx:268-275`, `:241-264`). **Deviazione dal mockup dichiarata**, v. §«Scostamenti dal mockup» |
+| **P19** | «La conferma di eliminazione è un foglio dal basso, come nel mockup» → 🔑 **CONFERMATA da Francesco il 30/07 (D80)** | `provato:` la conferma di casa è **`DialogConferma` (§5.17)**, e non ha **né gestione del focus né blocco dello scorrimento** (`DialogConferma.tsx:78-85`, solo Esc + `role`/`aria`), mentre `Sheet` sì (`Sheet.tsx:268-275`, `:241-264`). ⚠️ **Il piano aveva dichiarato lo scostamento S1 e scelto la card — senza chiederlo.** Chiesto, Francesco ha **confermato il mockup**: 🛑 **S1 è RITIRATO**, nasce **T9-bis** (`FoglioConferma`) e la §5.x si propone in **T5**. La deroga è verso **§5.17**, non §5.16 — v. §«Scostamenti dal mockup» |
 | **P20** | «Un overlay può essere montato dentro la pagina» → **NO** | `provato:` `src/app/ds-v3.css:1005-1011` impone il **portale su `document.body`** per qualunque overlay con z-index — il contenimento della shell della parete crea uno stacking context che lo intrappolerebbe |
 
 ---
@@ -148,7 +148,7 @@ riassunto.
 | `FotoStrip` | `src/components/ds/FotoStrip.tsx` · **tre** chiamanti (P5) | 🔄 **T11**: assorbita dalla carta album. Tutti e tre i siti si aggiornano |
 | `handleAddImmagine` | `LavoroFormClient.tsx:128`, passata a `:204` | ➕ **T13**: gli si affianca il percorso di **rimozione** dallo stato, che **oggi non esiste** |
 | 🆕 `CATEGORIE_FOTO`, `CategoriaFoto`, `etichettaCategoria`, `ordinaFotoPerCategoria` | — | **T2**, in `src/lib/domain/categorie-foto.ts` |
-| 🆕 `CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria` | — | **T7-T10**, in `src/components/ds/` |
+| 🆕 `CartaAlbum`, `VisoreFoto`, `TendinaMenu`, `FoglioCategoria`, `FoglioConferma` | — | **T6-T9 e T9-bis**, in `src/components/ds/`. `FoglioConferma` nasce da **D80** (30/07) |
 
 ### Chiavi JSON e campi di modulo
 | chiave | dove | destinazione |
@@ -166,7 +166,7 @@ ragione è di legge**, mai di comodo.
 
 | # | il mockup mostra | il piano fa | perché |
 |---|---|---|---|
-| **S1** | la **conferma di eliminazione** come **foglio dal basso** | usa **`DialogConferma`** (§5.17), che è una **card centrata da 340** | `provato:` `src/components/ds/DialogConferma.tsx:3-9` — è **«l'UNICA card centrata ammessa dal design system, riservata alle conferme distruttive»**, ed è una **eccezione dichiarata** al divieto di modal centrati su mobile (§5.16). ➡️ Usare la casa costa **zero componenti nuovi** e rispetta la legge; disegnarne un altro la violerebbe. ⚠️ **La forma che Francesco vedrà è diversa da quella del mockup: va detto, non dedotto** |
+| ~~**S1**~~ | ~~la **conferma di eliminazione** come **foglio dal basso**~~ | 🛑 **RITIRATO il 30/07 da D80** | **Chiesto a Francesco, ha scelto il FOGLIO.** Lo scostamento non esiste più: il piano torna fedele al mockup approvato. 🔑 **E la deroga è verso §5.17, non §5.16:** `provato:` la spec v3 §5.16 (riga 257) impone che su mobile ogni superficie di questo genere sia **uno sheet, mai un modal centrato** — il foglio si **allinea** all'invariante. Quel che si emenda è il **«UNICA»** di `DialogConferma.tsx:3-9` (e l'anti-pattern §13.2 riga 521): la card centrata resta ammessa e resta in casa per tutto il resto, ma **smette di essere l'unica forma** di una conferma distruttiva. ➡️ **Conseguenze operative:** nasce **T9-bis** (`FoglioConferma`, quinto componente) · **T5 propone anche la sua §5.x** · **T12 lo usa al posto di `DialogConferma`**. 🔴 **E il costo misurato che va risolto nel gate T5, non dentro T12:** `Sheet` blocca lo scorrimento del corpo con un `useRef` **per istanza** (`Sheet.tsx:222`, cattura a `:248-252`), quindi un secondo foglio aperto **sopra il visore** catturerebbe `overflow:'hidden'` come «valore precedente» e lo **ripristinerebbe a hidden per sempre** (è P16, vista dall'altro lato). **Il foglio di conferma NON può essere uno `Sheet` nudo montato sopra il visore** |
 | **S2** | le sei categorie con **emoji** | 🚧 **le emoji restano segnaposto** finché non ci sono le icone vere | il mockup **lo dichiara**. **T10 nasce con le emoji e una nota**, e le icone vere sono un passo suo (v. §Fuori perimetro) |
 
 ---
@@ -187,6 +187,10 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
    tasto «indietro» ne chiude uno.
 3. **La tendina deve rifare da zero** ciò che `Sheet` ha già: ruoli, Esc, focus e ritorno del focus,
    portale. È il **secondo** dei due costi di D78, e qui è misurato invece che previsto.
+4. 🆕 **E dal 30/07 vale identico per il foglio di conferma** (**D80**, T9-bis): stessi ruoli, stesso Esc,
+   stesso focus da rifare — e **stesso divieto di bloccare lo scorrimento**, perché sta **sopra** il visore
+   che blocca già. `Sheet` tiene il valore precedente in un `useRef` **per istanza** (`Sheet.tsx:222`),
+   quindi non si difende da un secondo blocco: si difende solo da se stesso.
 
 ---
 
@@ -196,9 +200,9 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
 - `supabase/migrations/20260730150000_lavori_immagini_categoria.sql` — 🆕 la colonna, il backfill, il vincolo, il `DROP` di `tipo`
 - `supabase/migrations/20260730150100_lavori_immagini_eliminazioni_log.sql` — 🆕 la traccia di D63
 - `src/lib/domain/categorie-foto.ts` — 🆕 **unica fonte** dei sei valori, delle etichette, dell'ordine dei gruppi e della funzione d'ordinamento
-- 🆕 **da creare:** `src/components/ds/CartaAlbum.tsx` · `src/components/ds/VisoreFoto.tsx` · `src/components/ds/TendinaMenu.tsx` · `src/components/ds/FoglioCategoria.tsx`
+- 🆕 **da creare:** `src/components/ds/CartaAlbum.tsx` · `src/components/ds/VisoreFoto.tsx` · `src/components/ds/TendinaMenu.tsx` · `src/components/ds/FoglioCategoria.tsx` · `src/components/ds/FoglioConferma.tsx` (**D80**, T9-bis)
 - `tests/unit/categorie-foto.test.ts` · `tests/unit/categorie-foto-spia-migration.test.ts` — 🆕
-- 🆕 **da creare:** `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` · `tests/unit/ds-v3/componenti/VisoreFoto.test.tsx` · `tests/unit/ds-v3/componenti/TendinaMenu.test.tsx` · `tests/unit/ds-v3/componenti/FoglioCategoria.test.tsx`
+- 🆕 **da creare:** `tests/unit/ds-v3/componenti/CartaAlbum.test.tsx` · `tests/unit/ds-v3/componenti/VisoreFoto.test.tsx` · `tests/unit/ds-v3/componenti/TendinaMenu.test.tsx` · `tests/unit/ds-v3/componenti/FoglioCategoria.test.tsx` · `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx` (**da creare**, T9-bis)
 - `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` — 🆕 la proposta delle §5.x (T6)
 
 **Da modificare**
@@ -216,7 +220,7 @@ sulla pagina dietro. **`DialogConferma` non ha né focus né blocco dello scorri
 |---|---|---|
 | **A — il dato** | T1 · T2 · T3 | la categoria diventa un dato che il database difende |
 | **B — la cancellazione vera** | T4 | l'emendamento di T8 (D61 + D63): il file sparisce davvero, e resta la traccia |
-| **C — i componenti** | T5 · T6 · T7 · T8 · T9 | le quattro superfici, in `ds/`, v3 pure |
+| **C — i componenti** | T5 · T6 · T7 · T8 · T9 · **T9-bis** | le **cinque** superfici, in `ds/`, v3 pure — la quinta è il foglio di conferma di **D80** |
 | **D — l'innesto** | T10 · T11 · T12 | l'album entra sulle due superfici e il vecchio esce |
 | **E — la chiusura** | T13 | FASE 7 · FASE 9 nel browser · **FASE 9b gate estetico L2** |
 
@@ -1000,13 +1004,21 @@ npx vitest run tests/unit/lavori-id-immagini-imgid-route.test.ts && npx tsc --no
 **proponga prima** che il componente esista. Saltarlo significa scrivere quattro componenti e poi
 descriverli, cioè il contrario del processo.
 
-- [ ] **Passo 1** — scrivi le quattro sezioni nella forma delle §5.x esistenti (anatomia · misure · stati ·
+- [ ] **Passo 1** — scrivi le **cinque** sezioni nella forma delle §5.x esistenti (anatomia · misure · stati ·
   semantica dei gesti · accessibilità · fonte di verità visiva = il mockup del 30/07), per **`CartaAlbum`**,
-  **`VisoreFoto`**, **`TendinaMenu`**, **`FoglioCategoria`**.
+  **`VisoreFoto`**, **`TendinaMenu`**, **`FoglioCategoria`** e 🆕 **`FoglioConferma`** (D80).
 - [ ] **Passo 2** — dichiara in ognuna: i **token usati** (e il raggio scelto, con la ragione) · la
   **molla** (`molla.smooth`, dichiarata come scelta) · **vibrazione e suono** ammessi · il
   comportamento a **«Riduci movimento»**.
-- [ ] **Passo 3** — **fermati e fai rivedere.** È un gate: T6-T9 non partono senza.
+- [ ] **Passo 2-bis (D80) — la §5.x di `FoglioConferma` porta in più DUE cose, e sono la ragione per cui
+  esiste il gate:** ① **l'emendamento a §5.17 e all'anti-pattern §13.2** (il «UNICA card centrata» diventa
+  «una delle due forme», `DialogConferma` resta per tutto il resto) — proposto qui, **non** deciso dentro un
+  task di codice; ② 🔴 **come NON blocca lo scorrimento del corpo.** `Sheet` lo blocca con un `useRef` **per
+  istanza** (`Sheet.tsx:222`, cattura a `:248-252`): sopra il visore, che blocca già, un secondo blocco
+  lascerebbe la pagina **bloccata per sempre**. La §5.x deve dire quale via si prende — foglio nuovo che
+  **non** blocca (come la tendina), o un'altra — **con la prova**. 🛑 **Se la via scelta tocca `Sheet.tsx`,
+  è FUORI mandato: si riferisce** (R-E2).
+- [ ] **Passo 3** — **fermati e fai rivedere.** È un gate: T6-T9 e T9-bis non partono senza.
 
 ### Task 6 — `CartaAlbum`
 
@@ -1110,6 +1122,41 @@ erano dichiarati.** Qui si pagano, e vanno pagati **per intero**:
   nota: le icone vere sono un passo suo). — [ ] **Passo 4** — verde + mutazione (porta il testo a 15,5 px
   → **atteso rosso** sulla prova della larghezza). — [ ] **Passo 5** — salva.
 
+### Task 9-bis — `FoglioConferma` (D80)
+
+**File:** 🆕 da creare — `src/components/ds/FoglioConferma.tsx` · 🆕 da creare `tests/unit/ds-v3/componenti/FoglioConferma.test.tsx`
+
+🛑 **Questo task esiste perché Francesco, il 30/07, ha scelto il foglio dal basso contro la card centrata
+che il piano aveva dichiarato come scostamento S1 senza chiederglielo (D80).** Numerato **9-bis** e non
+«10» apposta: rinumerare i task romperebbe i riferimenti in handoff, memoria e spec.
+
+**Interfacce**
+- **Produce:** `FoglioConferma(props: { aperto: boolean; titolo: string; testo: string; etichettaDistruttiva: string; onConferma: () => void; onAnnulla: () => void })`
+- **Consuma:** niente da A e B — è un componente puro, come gli altri di questo blocco.
+
+🔑 **Le tre cose già decise, che il task non riapre:**
+1. **Non blocca lo scorrimento del corpo.** `provato:` `Sheet.tsx:222` tiene il valore precedente in un
+   `useRef` **per istanza** e lo cattura solo se il **proprio** ref è vuoto (`:248-252`): sopra il visore,
+   che blocca già (P16), il secondo blocco leggerebbe `hidden` come «valore di prima» e lo
+   **ripristinerebbe a hidden per sempre**. Stessa regola della tendina di D78.
+2. **Si registra in `storia-overlay.ts` con `'uaSheet'`** (P14), o «indietro» chiuderebbe il visore invece
+   della conferma. È il **terzo** strato: visore → tendina → conferma.
+3. **Portale su `document.body`** (P20) · **z-index** nell'intervallo libero 302-999, **sopra** la tendina.
+
+- [ ] **Passo 1 — le prove PRIMA:** le due azioni ci sono e **l'ordine è quello di §5.17** (sicura sopra,
+  distruttiva sotto) · **annullare non chiama `onConferma`** (il controllo positivo che manca sempre) ·
+  **Esc chiude e NON conferma** · `role="dialog"` + `aria-modal` + etichetta · **focus alla prima azione e
+  ritorno all'apritore** · 🔴 **la prova che morde:** aprire e chiudere il foglio **mentre
+  `document.body.style.overflow` vale già `'hidden'`** → alla chiusura vale **ancora `'hidden'`**, non `''`
+  (cioè: non ha né bloccato né sbloccato niente) · il testo **non contiene** parole vietate
+  (`src/design-system/v3/dizionario.ts` — «elimina definitivamente» è **vietata**).
+- [ ] **Passo 2** — rosso, abbozzo, **conta `N su M`**.
+- [ ] **Passo 3** — scrivi, nella forma di casa del blocco C. **G1: nessun import da `form/styles.ts`.**
+  La §5.x proposta in **T5** è la fonte di verità: se il gate ha scelto una via diversa, **vale quella**.
+- [ ] **Passo 4** — verde. **Mutazione:** fai chiamare `onConferma` anche ad «Annulla» → **atteso rosso** ·
+  aggiungi il blocco dello scorrimento → **atteso rosso** sulla prova del corpo.
+- [ ] **Passo 5** — salva.
+
 ---
 
 # BLOCCO D — l'innesto sulle due superfici
@@ -1183,9 +1230,8 @@ server non fa (spec §2).
   **sparisce dall'elenco a schermo** · su lavoro **consegnato** l'azione **non è offerta** (🔑 il server
   risponde 409 a `[imgId]/route.ts:142-147`: la carta **non deve offrire un gesto che fallisce solo dopo il
   tocco**) · **Esc chiude UNO strato**, non tutti e tre.
-- [ ] **Passo 2 — la conferma è `DialogConferma`, non un foglio nuovo** (scostamento **S1**, dichiarato):
-  è «l'UNICA card centrata ammessa dal design system, riservata alle conferme distruttive»
-  (`DialogConferma.tsx:3-9`). Il testo dice che sparisce **anche dall'archivio** — 🛑 la frase del 29/07
+- [ ] **Passo 2 — la conferma è `FoglioConferma` (T9-bis), il foglio dal basso del mockup** — 🛑 **D80: S1 è
+  RITIRATO**, Francesco ha scelto il foglio e la card centrata non si usa qui. Il testo dice che sparisce **anche dall'archivio** — 🛑 la frase del 29/07
   («il file resta conservato») è **falsa** dopo D61. ⚠️ **Mai scrivere «elimina definitivamente»**:
   `src/design-system/v3/dizionario.ts:25` lo vieta.
 - [ ] **Passo 3 — la rimozione dallo stato, che oggi NON esiste.** `provato:` in tutto
@@ -1273,7 +1319,7 @@ risolto **o deferito con il motivo scritto**. Screenshot prima/dopo in
 | §4 il visore (D64·D66·D69) + gli strati | **T7** · **T8** · **T12** (Esc e conferma) |
 | §5 la categoria (D65·D70·D72·D74) | **T2** · **T9** · **T11** |
 | §5.5 il testo alternativo dall'etichetta | **T6** (la carta lo produce) · **T10** |
-| §6 l'eliminazione (D61·D63·D69·D55·D56) | **T4** (il motore) · **T12** (il gesto) |
+| §6 l'eliminazione (D61·D63·D69·D55·D56·**D80**) | **T4** (il motore) · **T9-bis** (il foglio di conferma) · **T12** (il gesto) |
 | §7 il dato (D73) | **T1** · **T2** · **T3** |
 | §7.4 i tre difetti ereditati | **T11** (doppione, contatore) · **T11** (il PDF) |
 | §7.5 la validazione, 422 invece di 500 | **T3** |

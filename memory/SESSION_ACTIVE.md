@@ -1,26 +1,26 @@
-# Sessione attiva — ondata (b): l'album è pronto per l'esecuzione (30/07/2026)
+# Sessione attiva — ondata (b): l'album delle foto, esecuzione APERTA (30/07/2026)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-album-foto-esecuzione-handoff.md`** — lo legge per primo
-chi apre la sessione nuova. Il documento **operativo** è il piano
-`docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` (**13 task in cinque blocchi**, con registro
-prove P1-P20, registro letture R-P2 e censimento R-P6).
-⚠️ Il ledger `.superpowers/sdd/progress.md` è **fuori dal repo git**: non può essere un punto di ripresa.
+🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-album-foto-esecuzione-handoff.md`**. Documento operativo:
+il piano `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` (**14 task**: 13 + **T9-bis**).
+⚠️ Il ledger `.superpowers/sdd/progress.md` è **fuori dal repo git**: non è un punto di ripresa.
 
-**Ramo `ondata-b-schermate`** — niente su `origin`, **albero pulito**, guardie verdi (12 documenti).
-Spec **RATIFICATA** · mockup **APPROVATO** (A1 · V1 · M2 · C1) · verbale a **settantanove** decisioni.
+**Ramo `ondata-b-schermate`** — niente su `origin`. Spec ratificata · mockup approvato · verbale a **ottanta**
+decisioni.
 
-➡️ **PROSSIMO: eseguire, UN TASK PER SESSIONE con esecutore fresco (R-E1)**, revisione fra l'uno e l'altro,
-e nel brief l'istruzione esplicita di **cercare dove il piano sbaglia**.
-**Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9) → D (T10→T11→T12) → E (T13).
-🛑 **A prima di D** · 🛑 **B prima di D-T12**, o «Elimina foto» promette il falso.
+🆕 **D80 (30/07, ventunesima tornata):** la conferma di eliminazione è il **foglio dal basso** del mockup,
+non la card centrata. **Lo scostamento S1 è RITIRATO.** Nasce **T9-bis** (`FoglioConferma`), la §5.x si
+propone nel gate **T5**, **T12** lo usa. Deroga verso **§5.17** (non §5.16: l'invariante «mai modal centrato
+su mobile» il foglio lo rispetta).
+🔴 **Costo misurato, da risolvere nel gate T5:** `Sheet` tiene il valore precedente dello scorrimento in un
+`useRef` **per istanza** (`Sheet.tsx:222`) → un secondo foglio **sopra il visore** lascerebbe la pagina
+bloccata per sempre. Il foglio di conferma **non blocca**.
 
-🔴 **Tre trappole misurate, tutte nel piano:** la finta dei test espone **solo `from`** (il primo
-`storage.remove` **romperà un test** senza che sia un difetto) · **due blocchi dello scorrimento si
-incastrano** → blocca **solo** il visore · **Esc collassa tutti e tre gli strati**, il back ne chiude uno.
+➡️ **IN CORSO: Task 1** (la colonna `categoria` nasce, `tipo` se ne va), esecutore fresco (R-E1).
+🔑 **Verificato prima di partire:** il registro delle migration in banca dati **è allineato** ai file
+(ultima: `20260729140000`) → la migration nuova va applicata per la **via registrata**, non con SQL diretto.
 
-🟡 **Da chiedere a Francesco prima del Task 12:** lo **scostamento S1** — la conferma di eliminazione sarà
-una **card centrata** (`DialogConferma`), non il foglio dal basso del mockup. Gli è stato detto il 30/07 e
-**non ha risposto su questo punto**. Se vuole il foglio, serve una **deroga scritta** al design system.
+**Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
+🛑 **A prima di D** · 🛑 **B prima di D-T12**.
 
-🔴 **Non dimenticare:** **T8 dell'ondata è ancora a cancellazione morbida** (è il Task 4). E fuori da questo
-piano, prima della pubblicazione: **DPA** (D62) e **TOK-1 + CLI-1** (D53, difetto **vivo in produzione**).
+🔴 **Non dimenticare:** **T8 dell'ondata è ancora a cancellazione morbida** (è il Task 4). Fuori dal piano,
+prima della pubblicazione: **DPA** (D62) e **TOK-1 + CLI-1** (D53, difetto **vivo in produzione**).

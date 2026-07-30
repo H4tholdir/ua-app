@@ -39,6 +39,7 @@ un punto di ripresa.
 | **D74** | foglio chiuso senza scegliere → **`altro`** | costo accettato: l'album non distingue «scelto» da «non risposto» |
 | **D75** | durata dei collegamenti → **ondata di D67** | qui è un **vuoto dichiarato**, con la sua contropartita |
 | **D76·D77·D79** | album **A1** · visore **V1** · categoria **C1** | mockup approvato del 30/07 |
+| **D80** | la conferma di eliminazione è un **foglio dal basso** | S1 **ritirato** · nasce **T9-bis** · deroga a **§5.17** |
 
 ---
 
@@ -78,12 +79,14 @@ Nessuna era deducibile a tavolino: sono uscite dalle letture obbligatorie (R-P2)
 
 ## 4. 🟡 Ciò che è APERTO e va portato a Francesco
 
-1. 🔴 **Scostamento S1, dichiarato ma NON ancora confermato da lui.** La conferma di eliminazione sarà
-   **`DialogConferma`** — una **card centrata** — e **non** il foglio dal basso che il mockup approvato
-   mostra. La ragione è di legge: è «l'UNICA card centrata ammessa dal design system, riservata alle
-   conferme distruttive» (`src/components/ds/DialogConferma.tsx:3-9`). **Gli è stato detto il 30/07 e non
-   ha risposto su questo punto** (ha risposto sulla sessione). ➡️ **Chiedere conferma prima del Task 12.**
-   Se preferisce il foglio, serve una **deroga scritta** al design system.
+1. ✅ ~~Scostamento S1~~ — **CHIUSO il 30/07 all'apertura dell'esecuzione: è la decisione D80.** Chiesto a
+   Francesco, ha scelto il **foglio dal basso** del mockup, non la card centrata. **S1 è ritirato**, il piano
+   torna fedele al mockup, e la deroga è verso **§5.17** (il «UNICA card centrata» di
+   `src/components/ds/DialogConferma.tsx:3-9`), **non** verso §5.16 — l'invariante «su mobile mai un modal
+   centrato» il foglio lo **rispetta**. ➡️ Nasce **T9-bis** (`FoglioConferma`), la sua §5.x si propone nel
+   gate **T5**, e **T12** lo usa. 🔴 **Costo misurato da risolvere nel gate, non dentro T12:** `Sheet` tiene
+   il valore precedente dello scorrimento in un `useRef` **per istanza** (`Sheet.tsx:222`, cattura a
+   `:248-252`) → un secondo foglio **sopra il visore** lascerebbe la pagina **bloccata per sempre**.
 2. **Le icone vere delle sei categorie.** Nel mockup sono **emoji, dichiarate segnaposto**. È un passo
    proprio, col suo §0B.
 3. **Dove collocare l'ondata di D67** (allegati + condivisione) nella roadmap.
@@ -97,11 +100,13 @@ mandato esplicito di **cercare dove il piano sbaglia**.
 
 ```
 A (il dato)          T1 → T2 → T3
-B (la cancellazione) T4                      ← può viaggiare in parallelo a C
-C (i componenti)     T5 🚪gate → T6 → T7 → T8 → T9
+B (la cancellazione) T4                              ← può viaggiare in parallelo a C
+C (i componenti)     T5 🚪gate → T6 → T7 → T8 → T9 → T9-bis
 D (l'innesto)        T10 → T11 → T12
 E (la chiusura)      T13
 ```
+🆕 **T9-bis è nato il 30/07 da D80** (il foglio di conferma). Numerato «bis» apposta: rinumerare i task
+romperebbe i riferimenti in memoria, spec e verbale.
 
 🛑 **Due vincoli d'ordine non negoziabili:**
 - **A prima di D**: T11 tocca `TabImmagini`, che oggi scrive la categoria in `descrizione`. Farlo prima di
