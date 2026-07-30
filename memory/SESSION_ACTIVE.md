@@ -1,51 +1,33 @@
-# Sessione attiva — ondata (b): T5-ter FATTO, la trappola del focus è in casa (30/07/2026, notte)
+# Sessione attiva — ondata (b): T5-ter FATTO, si riparte da T6 `CartaAlbum` (31/07/2026)
 
-🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-t5-ter-referto.md`** — poi **T6 (`CartaAlbum`)**, a un
-esecutore fresco (R-E1). 🛑 **T6 porta i NOVE token `sopraFoto`** in `src/design-system/v3/tokens.ts`,
-non T7. Mandato: `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md` → Task 6.
-📎 Motivazioni e prove: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` (§1.6 = la
-trappola) · verbale: `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` (D85 · D86 · D89)
-· mandato eseguito: `docs/roadmap/2026-07-30-t5-ter-brief.md`.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-31-t6-brief.md`** — **un compito solo**, per un esecutore
+fresco (R-E1), e il brief è **autosufficiente**: cosa esiste già con la firma esatta, i nove token che
+T6 porta con sé, il riferimento della suite rimisurato, e la previsione dei rossi (**zero**, quindi il
+rischio è una prova che non morde).
+📎 Legge: spec v3 rev. 3.4 **§5.38** — `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md`
+📎 Prove e blocco dei token: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §4
+📎 Verbale (**novanta** decisioni): `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md`
+📎 Piano (**Task 6**, riquadro «MANDATO CORRETTO»): `docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`
+📎 Da dove veniamo: `docs/roadmap/2026-07-30-t5-ter-referto.md`
 
-**Ramo `ondata-b-schermate`** — niente su `origin`. Verbale a **ottantanove** decisioni.
+**Ramo `ondata-b-schermate`** — niente su `origin`, albero pulito, guardie verdi (15 documenti).
+✅ **Fatti: T1 · T2 · T3 · T4 · T5 · T5-bis · la RATIFICA (D89) · T5-ter · D90.**
+🔑 **Riferimento MISURATO ad albero pulito il 31/07:** `vitest` **363 | 3** file, **3975 | 19** prove ·
+`tsc` **0** · `next build` ok.
 
-✅ **Fatti: T1 · T2 · T3 · T4 · T5 · T5-bis · la RATIFICA (D89) · T5-ter.**
-🆕 `src/components/ds/trappola-focus.ts`: il `Tab` resta dentro il pannello, il focus torna
-all'**àncora dichiarata**. `Sheet` e `DialogConferma` sono i primi due utenti; FM-5 chiusa (il
-commento di D80 è nel file). **FASE 7:** `tsc` 0 · `vitest` **363 | 3** e **3959 | 19** · build ok.
-🔑 **Passo 4: zero rossi, e la ragione è misurata** — il ripiego dell'àncora rende `Sheet`
-invariante e nessuna prova in casa tabulava fino al bordo. La rete morde lo stesso: mutazione di
-controllo → **5 prove si accendono**. R-P4: **13 su 19** → sei prove deboli rinforzate → **18 su 19**.
+**Che cosa ha lasciato T5-ter:** `src/components/ds/trappola-focus.ts` — il `Tab` resta dentro il
+pannello, il focus torna all'**àncora dichiarata**. `Sheet` e `DialogConferma` sono i suoi primi due
+utenti; **D90**: nella conferma il focus si posa sul **tasto sicuro** (proprietà, non posizione).
+Nella stessa notte, due difetti di calendario chiusi: il grafico del trend non perde più un mese (e non
+ne inventa uno futuro), e la finestra «ultimi 12 mesi» non trabocca il 29 febbraio (`mesiFaISO`).
 
-✅ **D90 (Francesco, 31/07):** in `DialogConferma` il focus si posa sul **tasto SICURO** («Lascia
-stare»), non sul pannello — un Invio dato a caso deve **annullare**. È una **proprietà, non una
-posizione**: con `primarioSopra` i tasti si invertono e «il primo» sarebbe il distruttivo, quindi il
-bersaglio si cerca per **identità**. Le due forme della conferma distruttiva ora coincidono, e
-**§5.17 ha la riga sul focus che non aveva**. Passo 4 di quel giro: **2 rossi, entrambi prove del
-vecchio comportamento** (le mie di poche ore prima), **0 difetti**.
-🔴 **R-E2 riferiti, non corretti:** la firma di `VisoreFoto` nel piano (`:1201`) **non ha
-`ancoraFocus`** e T7 la deve aggiungere · una trappola a mano esiste già in
-`src/components/features/fatture/InviaPecButton.tsx:80-114` (su `window`) · **tredici** overlay di
-`features/**` promettono `aria-modal` senza mantenerlo — elencati nel referto, **nessuno toccato**.
-✅ **E un difetto NUOVO, trovato dal calendario a mezzanotte, RIFERITO e poi CORRETTO su richiesta
-esplicita di Francesco:** `src/lib/dashboard/queries.ts` faceva `setMonth` **prima** di `setDate(1)`,
-quindi nei giorni «31» che guardano un mese di 30 la finestra traboccava — e non «perdeva un mese»
-soltanto: **dipingeva un mese futuro a zero** (`['2026-07','2026-08']` invece di
-`['2026-06','2026-07']`). 🔑 **Il difetto era DOPPIO:** tutte e cinque le prove di `getTrendMensile`
-leggevano l'orologio vero e sarebbero morte **insieme il 1° agosto**. Ora il tempo è **pilotato**
-(solo `Date`), e la sequenza è stata: pin al 15 luglio a codice intatto → **14 su 14 verdi** (il pin
-conserva l'intento, non maschera) → due prove nuove sulle date pericolose → **rosse** → correzione →
-**17 su 17** → mutazione → **le due si riaccendono**. Dettaglio nel referto §6 ⑥.
-✅ **E anche il gemello del 29 febbraio è chiuso, su seconda richiesta di Francesco:** nasce
-`mesiFaISO(iso, mesi)` in `src/lib/utils/data-roma.ts` (**9 prove**) — quando il giorno non esiste
-nel mese d'arrivo si scende all'**ultimo giorno vero**, mai al primo del successivo. La usa la
-finestra «ultimi 12 mesi» di `src/app/api/clienti/[id]/route.ts`, dove **c'era anche un secondo
-difetto nella stessa riga**: `toISOString()` è UTC, quindi di notte il conto partiva dal giorno
-prima (è O1b, che `oggiRomaISO` esiste per chiudere). R-P4: abbozzo inerte → **7 su 8**; la nona
-forma d'input è nata **sbagliando una prova** (avevo scritto `2026-02-29`, che non esiste: il 2026
-non è bisestile). ✅ **Censimento chiuso:** `setMonth`/`setFullYear` in `src/` sono **tre** siti,
-tutti verificati.
+🔴 **Aperti, e nessuno è di T6:** **R27** (`tsc` non protegge le query: chi tocca uno scrittore si porta
+la sua prova) · **R29 + D81** (**un solo database**, ed è la produzione: il caricamento foto su
+uachelab.com è **rotto** fino al merge, si ripara in **T13**) · **FM-8** (l'eliminazione riuscita non dà
+nessun ritorno non visivo — decisione di grammatica, da porre a Francesco) · **T7 deve aggiungere
+`ancoraFocus` alla firma di `VisoreFoto`**, che il piano non ha (`:1201`) · **tredici** overlay di
+`src/components/features/**` promettono `aria-modal` senza mantenerlo — elenco nel referto di T5-ter,
+**si migrano insieme** · `src/app/api/clienti/[id]/route.ts` è a posto, ma la **roadmap** dice ancora
+ondata (b) «da pianificare» (perimetro da decidere: è la voce del *wizard adattivo*, non dell'album).
 
-🔴 **Restano vivi: R27** (`tsc` non protegge le query) · **R29 + D81** (un solo database: il
-caricamento foto su uachelab.com è rotto fino al merge, si ripara in **T13**) · **FM-8** (l'eliminazione
-riuscita non dà nessun ritorno non visivo — decisione di grammatica, da porre a Francesco).
+➡️ **Dopo T6: T7 → T9-bis, uno per esecutore.**
