@@ -1,6 +1,12 @@
 // T8 (ondata b) — `src/app/api/lavori/[id]/immagini/[imgId]/route.ts`.
 // Il file esisteva già con solo PATCH; qui si copre:
-//  (A) il nuovo DELETE (soft-delete: scrive `deleted_at`, NON tocca lo storage)
+//  (A) il DELETE. 🔧 EMENDATO da T4 (30/07/2026): fino a quel giorno questa
+//      riga diceva «soft-delete: scrive `deleted_at`, NON tocca lo storage», e
+//      da D61 è FALSA. Il DELETE toglie il FILE dall'archivio e poi la RIGA
+//      dalla tabella, in quest'ordine, e scrive una riga di traccia in
+//      `lavori_immagini_eliminazioni` (D63). La colonna `deleted_at` e i suoi
+//      otto lettori restano al loro posto: cambia COME si cancella, non CHI
+//      legge.
 //  (B) i due difetti del PATCH che D52 mette nel mandato di T8:
 //      (a) la guardia di esistenza non filtrava `deleted_at`
 //      (b) `updateError.message` arrivava grezzo al client (G9-76)
@@ -49,6 +55,23 @@
 // i due difetti D52): l'abbozzo NON le soddisfa, quindi misurano qualcosa di
 // reale, non l'assenza di codice. L'abbozzo è stato rimosso subito dopo la
 // misura e sostituito dall'implementazione vera qui sotto.
+//
+// ── R-P4, seconda misura: T4 (D61 + D63), 30/07/2026 ──
+// Qui l'abbozzo inerte non andava fabbricato: c'era già, ed era l'handler
+// stesso prima di T4 — tutte le guardie, la finestra e il conteggio al loro
+// posto, ma cancellazione MORBIDA, nessuna chiamata all'archivio e nessuna
+// traccia. Le prove di D61/D63 sono state scritte contro quello.
+// Comando: `npx vitest run tests/unit/lavori-id-immagini-imgid-route.test.ts`
+// Esito: **16 falliti su 64** (48 verdi). I 48 verdi sono ciò che l'handler
+// pre-T4 soddisfaceva già; i 16 rossi sono esattamente le prove nuove — il
+// file tolto prima della riga, il percorso e il bucket, il fail-closed
+// sull'errore dell'archivio e sulla sua eccezione, le chiavi e i valori della
+// traccia, il fail-soft dichiarato — più le sonde «mutazione eseguita» che da
+// T4 guardano `.delete()` invece del payload di `.update()`.
+// ⚠️ Una prova (il fail-soft della traccia) alla prima stesura era verde
+// contro l'abbozzo: «non fallisce» e «non ci prova» si somigliano troppo. Le
+// è stata aggiunta l'asserzione che UN tentativo di scrittura c'è stato, e da
+// lì è diventata rossa — è la differenza fra 15 e 16 falliti.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createChain } from './helpers/supabase-chain-mock'
 
@@ -108,6 +131,8 @@ import { PATCH, DELETE } from '@/app/api/lavori/[id]/immagini/[imgId]/route'
 const LAB_ID = 'lab-1'
 const LAVORO_ID = 'lavoro-1'
 const IMG_ID = 'img-1'
+// Stessa forma che scrive il POST (`immagini/route.ts:111`): `lavori/<id>/<ms>.<ext>`.
+const STORAGE_PATH = 'lavori/lavoro-1/1719000000000.webp'
 const params = Promise.resolve({ id: LAVORO_ID, imgId: IMG_ID })
 
 const CONTEXT = {
@@ -143,7 +168,8 @@ beforeEach(() => {
 })
 
 // ============================================================
-// DELETE — soft delete: scrive deleted_at, non tocca lo storage
+// DELETE — cancellazione VERA (D61): il file esce dall'archivio, poi la riga
+// esce dalla tabella, e resta la traccia (D63)
 // ============================================================
 describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   /**
@@ -160,43 +186,70 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   function mockDelete(opts: {
     existing?: { data: unknown; error: unknown }
     lavoro?: { data: unknown; error: unknown }
-    updateResult?: { data: unknown; error: unknown }
+    deleteResult?: { data: unknown; error: unknown }
+    tracciaResult?: { data: unknown; error: unknown }
   }) {
-    const existing = opts.existing ?? { data: { id: IMG_ID }, error: null }
+    // 🔑 T4: la guardia di esistenza legge ORA anche `storage_path` — è l'unico
+    //    punto in cui la rotta lo conosce, e senza di esso non saprebbe quale
+    //    file togliere né cosa scrivere nella traccia.
+    const existing = opts.existing ?? { data: { id: IMG_ID, storage_path: STORAGE_PATH }, error: null }
     const lavoro = opts.lavoro ?? { data: { stato: 'in_lavorazione' }, error: null }
-    const updateResult = opts.updateResult ?? { data: [{ id: IMG_ID }], error: null }
+    const deleteResult = opts.deleteResult ?? { data: [{ id: IMG_ID }], error: null }
+    const tracciaResult = opts.tracciaResult ?? { data: null, error: null }
 
     const existingChain = createChain(existing)
     const lavoroChain = createChain(lavoro)
-    const updateChain = createChain(updateResult)
+    const mutazioneChain = createChain(deleteResult)
     const updateCalls: unknown[] = []
+    const deleteCalls: true[] = []
+    const tracciaInserita: Record<string, unknown>[] = []
     let immaginiCallCount = 0
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'lavori_immagini') {
         immaginiCallCount += 1
         if (immaginiCallCount === 1) return existingChain
+        // 🔑 La finta espone ENTRAMBE le vie: `update` (la cancellazione
+        //    morbida di prima di D61) e `delete` (quella vera). Se domani
+        //    qualcuno tornasse a scrivere `deleted_at`, il test non morirebbe
+        //    con «update is not a function» — resterebbe rosso sull'asserzione
+        //    giusta, che è quella che deve parlare.
         return {
           update: (payload: unknown) => {
             updateCalls.push(payload)
-            return updateChain
+            statoStorage.ordine.push('riga')
+            return mutazioneChain
+          },
+          delete: () => {
+            deleteCalls.push(true)
+            statoStorage.ordine.push('riga')
+            return mutazioneChain
           },
         }
       }
       if (table === 'lavori') return lavoroChain
+      if (table === 'lavori_immagini_eliminazioni') {
+        return {
+          insert: async (payload: Record<string, unknown>) => {
+            tracciaInserita.push(payload)
+            return tracciaResult
+          },
+        }
+      }
       throw new Error(`tabella inattesa nel mock: ${table}`)
     })
 
-    return { existingChain, lavoroChain, updateChain, updateCalls }
+    return { existingChain, lavoroChain, mutazioneChain, updateCalls, deleteCalls, tracciaInserita }
   }
 
   // ---- forme d'ingresso: guardia di esistenza ----
 
-  it('id inesistente → 404, nessuna mutazione', () => {
-    const { updateCalls } = mockDelete({ existing: { data: null, error: { code: 'PGRST116' } } })
+  it('id inesistente → 404, nessuna mutazione e nessun file toccato', () => {
+    const { deleteCalls } = mockDelete({ existing: { data: null, error: { code: 'PGRST116' } } })
     return DELETE(req('DELETE'), { params }).then(async (res) => {
       expect(res.status).toBe(404)
-      expect(updateCalls).toHaveLength(0)
+      expect(deleteCalls).toHaveLength(0)
+      expect(statoStorage.removeCalls).toHaveLength(0)
     })
   })
 
@@ -224,34 +277,41 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
 
   // ---- la finestra ----
 
-  it('lavoro consegnato → 409, messaggio che dice perché, nessuna mutazione eseguita', async () => {
-    const { updateCalls } = mockDelete({ lavoro: { data: { stato: 'consegnato' }, error: null } })
+  it('la finestra regge: lavoro consegnato → 409, e NIENTE viene toccato — né il file né la riga', async () => {
+    const { deleteCalls, tracciaInserita } = mockDelete({ lavoro: { data: { stato: 'consegnato' }, error: null } })
     const res = await DELETE(req('DELETE'), { params })
     const json = await res.json()
     expect(res.status).toBe(409)
     expect(json.error.length).toBeGreaterThan(0)
-    expect(updateCalls).toHaveLength(0)
+    // 🔑 Da D61 il 409 non è più solo «non scrive»: deve arrivare PRIMA della
+    //    rimozione del file, che è irreversibile. Senza questa riga, un
+    //    `storage.remove` piazzato per sbaglio sopra la finestra cancellerebbe
+    //    la foto di un lavoro consegnato e risponderebbe 409 con aria innocente.
+    expect(statoStorage.removeCalls).toHaveLength(0)
+    expect(deleteCalls).toHaveLength(0)
+    expect(tracciaInserita).toHaveLength(0)
   })
 
-  it('lavoro inesistente (difensivo — la FK lo rende irraggiungibile in pratica) → 404, nessuna mutazione', async () => {
-    const { updateCalls } = mockDelete({ lavoro: { data: null, error: { code: 'PGRST116' } } })
+  it('lavoro inesistente (difensivo — la FK lo rende irraggiungibile in pratica) → 404, nessuna mutazione e nessun file toccato', async () => {
+    const { deleteCalls } = mockDelete({ lavoro: { data: null, error: { code: 'PGRST116' } } })
     const res = await DELETE(req('DELETE'), { params })
     expect(res.status).toBe(404)
-    expect(updateCalls).toHaveLength(0)
+    expect(deleteCalls).toHaveLength(0)
+    expect(statoStorage.removeCalls).toHaveLength(0)
   })
 
   it.each([
     'ricevuto', 'in_lavorazione', 'in_prova', 'in_prova_esterna', 'pronto', 'annullato', 'sospeso', 'in_ritardo',
   ])('lavoro in stato %s (≠ consegnato) → dentro la finestra, mutazione eseguita', async (stato) => {
-    const { updateCalls } = mockDelete({ lavoro: { data: { stato }, error: null } })
+    const { deleteCalls } = mockDelete({ lavoro: { data: { stato }, error: null } })
     const res = await DELETE(req('DELETE'), { params })
     expect(res.status).toBe(200)
-    expect(updateCalls).toHaveLength(1)
+    expect(deleteCalls).toHaveLength(1)
   })
 
-  // ---- la mutazione: i TRE .eq() + is + select, e nessuna chiamata allo storage ----
+  // ---- la mutazione: i TRE .eq() + is + select ----
 
-  it('successo: risponde {ok:true}, blob non toccato (getServiceClient() mockato senza `storage` — una chiamata a storage.remove romperebbe il test)', async () => {
+  it('successo: risponde {ok:true} dopo aver tolto il file e la riga', async () => {
     mockDelete({})
     const res = await DELETE(req('DELETE'), { params })
     const json = await res.json()
@@ -259,19 +319,10 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     expect(json).toEqual({ ok: true })
   })
 
-  it('la mutazione scrive SOLO deleted_at (nessuna altra colonna nel payload di update)', async () => {
-    const { updateCalls } = mockDelete({})
+  it('la mutazione porta TRE .eq() — id, lavoro_id, laboratorio_id — sulla delete() stessa (non solo sul pre-controllo)', async () => {
+    const { mutazioneChain } = mockDelete({})
     await DELETE(req('DELETE'), { params })
-    expect(updateCalls).toHaveLength(1)
-    const payload = updateCalls[0] as Record<string, unknown>
-    expect(Object.keys(payload)).toEqual(['deleted_at'])
-    expect(typeof payload.deleted_at).toBe('string')
-  })
-
-  it('la mutazione porta TRE .eq() — id, lavoro_id, laboratorio_id — sulla update() stessa (non solo sul pre-controllo)', async () => {
-    const { updateChain } = mockDelete({})
-    await DELETE(req('DELETE'), { params })
-    const eqCalls = updateChain.calls.filter((c) => c.method === 'eq')
+    const eqCalls = mutazioneChain.calls.filter((c) => c.method === 'eq')
     expect(eqCalls).toHaveLength(3)
     expect(eqCalls.map((c) => c.args[0])).toEqual(['id', 'lavoro_id', 'laboratorio_id'])
     expect(eqCalls.find((c) => c.args[0] === 'id')?.args[1]).toBe(IMG_ID)
@@ -280,28 +331,141 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
   })
 
   it('la mutazione porta anche .is(deleted_at, null) e .select() per contare le righe toccate', async () => {
-    const { updateChain } = mockDelete({})
+    const { mutazioneChain } = mockDelete({})
     await DELETE(req('DELETE'), { params })
-    expect(updateChain.calls.some((c) => c.method === 'is' && c.args[0] === 'deleted_at' && c.args[1] === null)).toBe(true)
-    expect(updateChain.calls.some((c) => c.method === 'select')).toBe(true)
+    expect(mutazioneChain.calls.some((c) => c.method === 'is' && c.args[0] === 'deleted_at' && c.args[1] === null)).toBe(true)
+    expect(mutazioneChain.calls.some((c) => c.method === 'select')).toBe(true)
+  })
+
+  // ============================================================
+  // D61 — il file sparisce davvero, e sparisce PRIMA della riga
+  // ============================================================
+
+  it('D61 — la mutazione è una cancellazione VERA: .delete(), e nessun payload di update (deleted_at non si scrive più)', async () => {
+    const { updateCalls, deleteCalls } = mockDelete({})
+    await DELETE(req('DELETE'), { params })
+    expect(deleteCalls).toHaveLength(1)
+    // Il controllo che chiude la porta all'indietro: se qualcuno rimettesse la
+    // cancellazione morbida, `deleteCalls` sarebbe 0 e questo 1 — due rossi.
+    expect(updateCalls).toHaveLength(0)
+  })
+
+  it('D61 — toglie il FILE prima della riga, e nell\'ordine giusto', async () => {
+    mockDelete({})
+    await DELETE(req('DELETE'), { params })
+    // 🛑 L'ordine NON è di stile. Se cadesse la riga prima del file, un guasto
+    //    fra le due lascerebbe nell'archivio un file che nessuna query può più
+    //    raggiungere — invisibile e non ritentabile. Nell'ordine giusto, un
+    //    file già tolto con la riga ancora viva è un caso VISIBILE: la foto
+    //    compare rotta e l'eliminazione si ripete.
+    // 🔑 `ordine` è un array SOLO: due contatori separati resterebbero verdi
+    //    anche invertendo le due istruzioni.
+    expect(statoStorage.ordine).toEqual(['file', 'riga'])
+  })
+
+  it('D61 — il percorso passato a storage.remove è ESATTAMENTE lo storage_path della riga, sul bucket `documenti`', async () => {
+    mockDelete({})
+    await DELETE(req('DELETE'), { params })
+    expect(statoStorage.removeCalls).toEqual([{ bucket: 'documenti', paths: [STORAGE_PATH] }])
+  })
+
+  it('D61 fail-closed — se il file non si toglie, la riga NON si cancella, la risposta è 500 e il messaggio è NOSTRO', async () => {
+    const { deleteCalls, tracciaInserita } = mockDelete({})
+    statoStorage.risultato = { data: null, error: { message: 'storage: object not found bucket-internals-xyz' } }
+    const res = await DELETE(req('DELETE'), { params })
+    const json = await res.json()
+    expect(res.status).toBe(500)
+    // Controllo POSITIVO: non ha nemmeno PROVATO a cancellare. Un 500
+    // restituito DOPO la cancellazione sembrerebbe identico dal di fuori.
+    expect(deleteCalls).toHaveLength(0)
+    expect(tracciaInserita).toHaveLength(0)
+    expect(json.error).not.toMatch(/object not found/i)
+    expect(json.error).not.toMatch(/bucket-internals/i)
+  })
+
+  it('D61 fail-closed — anche se storage.remove SOLLEVA (rete caduta), la riga resta intatta', async () => {
+    const { deleteCalls, tracciaInserita } = mockDelete({})
+    statoStorage.solleva = true
+    // ⚠️ Qui si fissa SOLO il fail-closed (riga intatta), non la forma della
+    //    risposta: il client di Storage riporta gli errori nell'oggetto
+    //    `error`, quindi un'eccezione è una caduta di rete e risale al gestore
+    //    di Next come in ogni altra rotta di questo repo.
+    await expect(DELETE(req('DELETE'), { params })).rejects.toThrow()
+    expect(deleteCalls).toHaveLength(0)
+    expect(tracciaInserita).toHaveLength(0)
+  })
+
+  // ============================================================
+  // D63 — resta la traccia, e la traccia non è mai l'immagine
+  // ============================================================
+
+  it('D63 — scrive UNA riga di traccia, con le CHIAVI ESATTE e mai un byte dell\'immagine', async () => {
+    const { tracciaInserita } = mockDelete({})
+    await DELETE(req('DELETE'), { params })
+    expect(tracciaInserita).toHaveLength(1)
+    expect(Object.keys(tracciaInserita[0]).sort()).toEqual(
+      ['eliminata_da', 'laboratorio_id', 'lavori_immagine_id', 'lavoro_id', 'storage_path'].sort(),
+    )
+    // Un registro di cancellazioni che conservasse la cosa cancellata sarebbe
+    // la cancellazione annullata (Art. 5(1)(c) GDPR, minimizzazione).
+    expect(JSON.stringify(tracciaInserita[0])).not.toMatch(/base64|data:image|blob/)
+  })
+
+  it('D63 — la traccia porta i VALORI veri: laboratorio, lavoro, immagine, percorso, autore', async () => {
+    const { tracciaInserita } = mockDelete({})
+    await DELETE(req('DELETE'), { params })
+    expect(tracciaInserita[0]).toEqual({
+      laboratorio_id: LAB_ID,
+      lavoro_id: LAVORO_ID,
+      lavori_immagine_id: IMG_ID,
+      storage_path: STORAGE_PATH,
+      eliminata_da: CONTEXT.userId,
+    })
+  })
+
+  it('D63 — fail-soft DICHIARATO: se la traccia non si scrive, la risposta resta 200', async () => {
+    // La foto è già sparita da archivio e banca dati: far fallire la risposta
+    // ora non la riporterebbe indietro, direbbe solo una bugia al client.
+    // L'errore si registra sul server e si prosegue.
+    const { tracciaInserita } = mockDelete({ tracciaResult: { data: null, error: { message: 'traccia non scritta' } } })
+    const res = await DELETE(req('DELETE'), { params })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    // 🔑 Senza questa riga il test sarebbe verde anche con ZERO tentativi di
+    //    scrittura: «non fallisce» e «non ci prova» si somigliano troppo.
+    expect(tracciaInserita).toHaveLength(1)
+  })
+
+  it('D63 — nessuna traccia se la riga non è stata cancellata (0 righe → 404)', async () => {
+    const { tracciaInserita } = mockDelete({ deleteResult: { data: [], error: null } })
+    const res = await DELETE(req('DELETE'), { params })
+    expect(res.status).toBe(404)
+    expect(tracciaInserita).toHaveLength(0)
+  })
+
+  it('D63 — nessuna traccia se la cancellazione è fallita con errore del database', async () => {
+    const { tracciaInserita } = mockDelete({ deleteResult: { data: null, error: { message: 'boom' } } })
+    const res = await DELETE(req('DELETE'), { params })
+    expect(res.status).toBe(500)
+    expect(tracciaInserita).toHaveLength(0)
   })
 
   // ---- il conteggio delle righe toccate: fail-closed ----
 
   it('0 righe toccate dalla mutazione (race: già cancellata nel frattempo) → 404, non 200', async () => {
-    mockDelete({ updateResult: { data: [], error: null } })
+    mockDelete({ deleteResult: { data: [], error: null } })
     const res = await DELETE(req('DELETE'), { params })
     expect(res.status).toBe(404)
   })
 
   it('più di una riga toccata dalla mutazione (impossibile per PK, ma fail-closed) → 500, non 200', async () => {
-    mockDelete({ updateResult: { data: [{ id: IMG_ID }, { id: 'altra-riga' }], error: null } })
+    mockDelete({ deleteResult: { data: [{ id: IMG_ID }, { id: 'altra-riga' }], error: null } })
     const res = await DELETE(req('DELETE'), { params })
     expect(res.status).toBe(500)
   })
 
   it('errore DB nella mutazione → 500 con messaggio NOSTRO, mai il messaggio grezzo del database', async () => {
-    mockDelete({ updateResult: { data: null, error: { message: 'connection refused: internal db detail xyz' } } })
+    mockDelete({ deleteResult: { data: null, error: { message: 'connection refused: internal db detail xyz' } } })
     const res = await DELETE(req('DELETE'), { params })
     const json = await res.json()
     expect(res.status).toBe(500)
@@ -311,10 +475,11 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
 
   // ---- guardie generali (CSRF, auth, lab) ----
 
-  it('CSRF: origin diverso da same-origin → 403, nessuna chiamata a from()', async () => {
+  it('CSRF: origin diverso da same-origin → 403, nessuna chiamata a from() e nessun file toccato', async () => {
     const res = await DELETE(reqNoOrigin('DELETE'), { params })
     expect(res.status).toBe(403)
     expect(mockFrom).not.toHaveBeenCalled()
+    expect(statoStorage.removeCalls).toHaveLength(0)
   })
 
   it('non autenticato → 401', async () => {
@@ -336,8 +501,26 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
     expect(res.status).toBe(200)
   })
 
-  // «corpo non-JSON dove serve» — DELETE non legge un body: forma non applicabile,
-  // dichiarata qui invece che ignorata in silenzio (R-P4 §enumerazione forme d'ingresso).
+  // ── Forme d'ingresso del DELETE, enumerate PRIMA delle asserzioni (R-P4) ──
+  // COPERTE:
+  //  • riga assente / di un altro lavoro / di un altro laboratorio / già
+  //    cancellata → 404, e da T4 anche «nessun file toccato»
+  //  • lavoro assente → 404 · lavoro consegnato → 409 con niente toccato
+  //  • gli otto stati ≠ consegnato → dentro la finestra
+  //  • storage.remove risponde `{ error }` → 500 fail-closed, riga intatta
+  //  • storage.remove SOLLEVA → riga intatta (solo il fail-closed, v. sopra)
+  //  • la mutazione tocca 0 righe → 404 · più di una → 500 · errore DB → 500
+  //  • la traccia fallisce → 200 fail-soft dichiarato
+  //  • CSRF / non autenticato / laboratorio assente / nessun gate di ruolo
+  // NON COPERTE, dichiarate invece che ignorate in silenzio:
+  //  • «corpo non-JSON»: il DELETE non legge un body — forma non applicabile.
+  //  • storage.remove risponde `{ data: [], error: null }` perché il file non
+  //    c'era già più: il client di Storage non distingue «rimosso» da «non
+  //    c'era», quindi non esiste un comportamento NOSTRO da fissare — la riga
+  //    si cancella comunque, ed è l'esito voluto.
+  //  • `storage_path` NULL o vuoto sulla riga: la colonna è `NOT NULL` in banca
+  //    dati (`002_fase2_schema.sql`) e il POST la scrive sempre — sarebbe una
+  //    prova su uno stato che lo schema esclude, non su un ingresso.
 })
 
 // ============================================================

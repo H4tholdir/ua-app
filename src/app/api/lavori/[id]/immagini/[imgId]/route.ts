@@ -126,9 +126,25 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   return NextResponse.json({ immagine: righe[0] })
 }
 
-// DELETE — cancellazione MORBIDA: scrive `deleted_at`, il file nello storage
-// NON si tocca (conservazione deliberata). Nessun gate di ruolo (D-3: non ce
-// l'ha nemmeno la consegna, che emette la dichiarazione di conformità).
+// DELETE — cancellazione VERA (D61, 30/07/2026): il file esce dall'archivio e
+// la riga esce dalla tabella, in quest'ordine. 🔧 Fino a T4 queste righe
+// dicevano «cancellazione MORBIDA: scrive `deleted_at`, il file nello storage
+// NON si tocca (conservazione deliberata)» — descrizione ora FALSA, ed è per
+// questo che viene riscritta invece di lasciata lì a ingannare chi legge.
+//
+// Perché è cambiato: la cancellazione morbida lasciava il file nell'archivio,
+// e il file nell'archivio è la foto — una foto che l'utente crede eliminata e
+// che continua a esistere. D61 dice che «elimina» deve voler dire eliminare.
+//
+// Cosa resta: la colonna `deleted_at` e gli otto filtri che la leggono NON si
+// toccano — li usano la RLS, l'indice parziale e le migrazioni di
+// cancellazione totale del laboratorio. Cambia COME si cancella, non CHI legge.
+//
+// Cosa nasce: `lavori_immagini_eliminazioni` (D63) — chi, quando, quale
+// lavoro, quale percorso. Mai l'immagine.
+//
+// Nessun gate di ruolo (D-3: non ce l'ha nemmeno la consegna, che emette la
+// dichiarazione di conformità).
 export async function DELETE(req: Request, { params }: RouteContext) {
   const { id: lavoro_id, imgId } = await params
 
@@ -152,9 +168,13 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   const laboratorio_id = context.laboratorioId
 
   // 1. Guardia di esistenza — id + lavoro_id + laboratorio_id + deleted_at IS NULL.
+  // 🔑 T4 aggiunge `storage_path` alla proiezione: è l'UNICO punto in cui la
+  //    rotta lo conosce, e senza di esso non saprebbe quale file togliere né
+  //    cosa scrivere nella traccia. (Il piano scriveva `immagine.storage_path`
+  //    dando per fatta questa lettura — non c'era: difetto riferito.)
   const { data: existing } = await svc
     .from('lavori_immagini')
-    .select('id')
+    .select('id, storage_path')
     .eq('id', imgId)
     .eq('lavoro_id', lavoro_id)
     .eq('laboratorio_id', laboratorio_id)
@@ -184,13 +204,29 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     )
   }
 
-  // 3. La mutazione — TRE .eq() sulla update() stessa (non solo sul
-  // pre-controllo): la rotta usa il client di servizio, la RLS è aggirata, e
-  // questi tre confronti sono l'unico controllo di appartenenza che esiste.
-  // + .is('deleted_at', null) e .select() per contare le righe toccate.
+  // 3. D61 — il FILE prima, la RIGA dopo. L'ordine non è di stile: se cadesse
+  // la riga prima del file, un guasto fra le due lascerebbe nell'archivio un
+  // file orfano che nessuna query può più raggiungere — invisibile e non
+  // ritentabile. Nell'ordine giusto, un file già tolto con la riga ancora viva
+  // è un caso VISIBILE (la foto compare rotta) e l'eliminazione si ripete.
+  // 🛑 Fail-closed: se il file non se ne va, la riga NON si tocca. Meglio una
+  //    foto ancora elencata che una riga sparita su un file che resta.
+  const { error: erroreFile } = await svc.storage.from('documenti').remove([existing.storage_path])
+  if (erroreFile) {
+    // G9: il messaggio dell'archivio non esce verso il browser.
+    console.error('DELETE /api/lavori/[id]/immagini/[imgId] — rimozione del file fallita:', erroreFile.message)
+    return NextResponse.json({ error: 'Non è stato possibile eliminare la foto' }, { status: 500 })
+  }
+
+  // 4. La mutazione — ora una cancellazione VERA (.delete(), non più
+  // .update({deleted_at})), con la stessa forma di sempre: TRE .eq() sulla
+  // delete() stessa (non solo sul pre-controllo), perché la rotta usa il client
+  // di servizio, la RLS è aggirata, e questi tre confronti sono l'unico
+  // controllo di appartenenza che esiste. + .is('deleted_at', null) e .select()
+  // per contare le righe toccate.
   const { data: deletedRows, error: deleteError } = await svc
     .from('lavori_immagini')
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq('id', imgId)
     .eq('lavoro_id', lavoro_id)
     .eq('laboratorio_id', laboratorio_id)
@@ -202,7 +238,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Non è stato possibile eliminare la foto' }, { status: 500 })
   }
 
-  // 4. Il conteggio delle righe — non si prosegue in silenzio se non è
+  // 5. Il conteggio delle righe — non si prosegue in silenzio se non è
   // esattamente una. 0 righe: qualcuno l'ha già tolta nel frattempo (race) →
   // 404, stesso esito della guardia di esistenza. Più di una riga: impossibile
   // per chiave primaria, ma fail-closed → 500, mai un successo silenzioso.
@@ -215,8 +251,30 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
   }
 
-  // 5. Il blob NON si tocca: nessuna chiamata a storage.remove — conservazione
-  // del file deliberata (soft-delete).
-  // 6. Successo (precedente: `api/cicli/[id]/route.ts:170`).
+  // 6. D63 — la traccia. 🔧 Qui stava scritto «Il blob NON si tocca: nessuna
+  // chiamata a storage.remove — conservazione del file deliberata
+  // (soft-delete)»: da D61 è falso, e al suo posto c'è quello che il codice fa
+  // davvero.
+  // 🔑 FAIL-SOFT, e dichiarato: se questa scrittura fallisce, la risposta resta
+  //    200. La foto è già uscita dall'archivio E dalla tabella; far fallire la
+  //    risposta ora non la riporterebbe indietro — direbbe solo una bugia al
+  //    client, che riproverebbe su qualcosa che non c'è più. L'errore si
+  //    registra sul server, dove qualcuno può leggerlo.
+  // 🛑 Quello che questa riga NON contiene, e non conterrà: nessun byte
+  //    dell'immagine, nessuna URL firmata, nessun dato del paziente. Un
+  //    registro di cancellazioni che conservasse la cosa cancellata sarebbe la
+  //    cancellazione annullata (Art. 5(1)(c) GDPR, minimizzazione).
+  const { error: erroreTraccia } = await svc.from('lavori_immagini_eliminazioni').insert({
+    laboratorio_id,
+    lavoro_id,
+    lavori_immagine_id: imgId,
+    storage_path: existing.storage_path,
+    eliminata_da: context.userId,
+  })
+  if (erroreTraccia) {
+    console.error('DELETE /api/lavori/[id]/immagini/[imgId] — traccia non scritta:', erroreTraccia.message)
+  }
+
+  // 7. Successo (precedente: `api/cicli/[id]/route.ts:170`).
   return NextResponse.json({ ok: true })
 }
