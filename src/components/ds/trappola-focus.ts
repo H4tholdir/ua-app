@@ -59,8 +59,20 @@
 //  - Non guarda la visibilità CALCOLATA. Filtra l'attributo `hidden`, non un `display:none` che
 //    arriva da un foglio di stile: jsdom non fa layout, quindi un filtro del genere si
 //    comporterebbe in un modo nelle prove e in un altro nel browser. Una lacuna dichiarata vale
-//    più di un filtro che mente. Nessuna superficie di `src/components/ds/` nasconde con il CSS
-//    un elemento raggiungibile dentro un pannello aperto.
+//    più di un filtro che mente.
+//    🛑 La lacuna regge FINCHÉ nessuno nasconde col CSS un elemento raggiungibile dentro un
+//    pannello — se l'ULTIMO della lista fosse nascosto così, `focus()` non attecchirebbe, il
+//    focus finirebbe sul `body` e la via dell'`Escape` di §1.5 si romperebbe, senza che nessuna
+//    prova possa vederlo. `provato:` (30/07/2026) `grep -rn "display: *'none'\|display:none\|
+//    visibility: *'hidden'" src/components/ds/` → **1 riscontro, ed è questa riga di commento**;
+//    e nelle nove regole `.ds-sheet`/`.ds-dialog` di `src/app/ds-v3.css` → **zero**.
+//    ⚠️ Chi aggiunge una regola del genere dentro un pannello deve sapere che questo filtro non
+//    la vede.
+//  - Non segue un portale ANNIDATO. Un componente montato dentro il pannello che porti i propri
+//    figli fuori dal DOM del pannello (una tendina di un campo, per dire) sarebbe logicamente
+//    dentro e fisicamente fuori: il `keydown` non arriverebbe qui. `provato:` `grep -rln
+//    "createPortal" src/components/ds/` → **tre file, e sono i due overlay più gli avvisi**;
+//    nessuna primitiva di `src/components/ui/` monta un `Portal`. Oggi il caso non esiste.
 //  - Non onora i `tabIndex` POSITIVI: l'ordine è quello del DOM. Un `tabindex="2"` dentro un
 //    overlay del design system non esiste, e riprodurne le regole vorrebbe dire riscrivere
 //    l'algoritmo del browser per un caso che nessuno usa.

@@ -988,6 +988,42 @@ describe('Sheet · DialogConferma — reduced motion (§8.4)', () => {
     expect(within(dialog).getByText('Chiudi')).toBeInTheDocument()
   })
 
+  // T5-ter (D85) — il ramo ridotto monta un pannello DIVERSO (`SheetRidotto`, un div nudo) e
+  // `DialogConferma` idem: senza queste due prove, togliere il `ref` o il `tabIndex={-1}` da
+  // quel ramo spegnerebbe la trappola per chi ha «riduci movimento» acceso — cioè proprio chi
+  // ha più bisogno che la tastiera si comporti — e la suite resterebbe TUTTA verde.
+  it('Sheet ridotto: la trappola vale anche qui — il focus entra sul pannello', async () => {
+    render(
+      <Sheet aperto onChiudi={() => {}} titolo="Dettagli">
+        <button>Uno</button>
+      </Sheet>
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(document.activeElement).toBe(dialog)
+
+    const utente = userEvent.setup()
+    const raggiungibili = Array.from(dialog.querySelectorAll('button'))
+    for (let i = 0; i < raggiungibili.length + 1; i += 1) {
+      await utente.tab()
+      expect(dialog.contains(document.activeElement)).toBe(true)
+    }
+  })
+
+  it('DialogConferma ridotto: la trappola vale anche qui — il focus entra sul pannello', () => {
+    render(
+      <DialogConferma
+        aperto
+        titolo="Butto via il lavoro n.148?"
+        testo="Il lavoro n.148 di Studio Bianchi sparisce dalla pila."
+        etichettaDistruttiva="Butta via"
+        etichettaSicura="Lascia stare"
+        onConferma={() => {}}
+        onAnnulla={() => {}}
+      />
+    )
+    expect(document.activeElement).toBe(screen.getByRole('dialog'))
+  })
+
   it('Sheet: la chiusura è ISTANTANEA — nulla nel DOM subito dopo aperto=false', async () => {
     const { rerender } = render(
       <Sheet aperto onChiudi={() => {}} titolo="Dettagli">

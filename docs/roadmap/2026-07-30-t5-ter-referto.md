@@ -108,10 +108,35 @@ solo che il selettore non guarda il CSS; `tabIndex` **positivi** — il modulo d
 e di seguire l'ordine del DOM, e provarli inciderebbe come giusto un ordine che il browser vero fa
 diverso; iframe e shadow DOM — nessuna superficie del design system ne monta.
 
-### La mutazione di controllo
+### Le due mutazioni di controllo
 
-Tolta la trappola dai due componenti (lasciando solo il focus iniziale), **5 prove si
-accendono**: le 4 nuove più quella storica del focus. La rete morde.
+1. Tolta la trappola dai due componenti (lasciando solo il focus iniziale): **5 prove si
+   accendono** — le 4 nuove più quella storica del focus.
+2. Tolto il `tabIndex={-1}` dal ramo **ridotto** di `DialogConferma`: **1 prova si accende**, ed è
+   quella scritta apposta per quel ramo (qui sotto). La rete morde in entrambi i rami.
+
+### 🔴 Un buco trovato rileggendo, e chiuso: il ramo «riduci movimento»
+
+`SheetRidotto` e la variante ridotta di `DialogConferma` montano un **pannello diverso** — un `div`
+nudo invece del `motion.div`. La trappola ci arriva per codice condiviso, ma **nessuna prova la
+toccava**: le quattro nuove e quella storica girano tutte sul ramo animato, e il blocco
+`reduced motion (§8.4)` asseriva opacità e velo, mai il focus. ➡️ Togliere il `ref` o il
+`tabIndex={-1}` da quel ramo avrebbe **spento la trappola proprio per chi ha «riduci movimento»
+acceso** — cioè per chi più di tutti si aspetta che la tastiera si comporti — con la suite **tutta
+verde**. Aggiunte **due prove**, una per componente.
+
+### Due assunzioni del modulo che ora portano la loro prova (R-P1)
+
+Il commento di testa dichiarava due lacune («non guardo la visibilità calcolata», «non seguo un
+portale annidato») appoggiandosi a un'assunzione **non marcata** — e per la regola di casa un
+blocco senza marchio è **non provato**. Le due prove, adesso nel file:
+`grep` di `display:none`/`visibility:hidden` in `src/components/ds/` → **un solo riscontro, ed è
+quella riga di commento**; nelle nove regole `.ds-sheet`/`.ds-dialog` di `src/app/ds-v3.css` →
+**zero**. `grep` di `createPortal` in `src/components/ds/` → **tre file**, i due overlay più gli
+avvisi; nessuna primitiva di `src/components/ui/` monta un `Portal`.
+🔑 **Perché contava:** se l'**ultimo** elemento del giro fosse nascosto dal CSS, `focus()` non
+attecchirebbe, il focus finirebbe sul `body` e la via dell'`Escape` di §1.5 si romperebbe — e
+**jsdom non lo vedrebbe mai**, perché non fa layout.
 
 ---
 
@@ -160,7 +185,20 @@ $ npx next build
 EXIT=0   (build completa, tutte le route generate)
 ```
 
-Nessun rosso, quindi nessun caso di flake da isolare.
+### 🔴 La riesecuzione dopo mezzanotte ha UN rosso, e non è mio — è del calendario
+
+Rifatta la FASE 7 dopo le ultime rifiniture (alle **00:05 del 31/07**, mentre la prima era delle
+23:52 del 30):
+
+```
+ Test Files  1 failed | 362 passed | 3 skipped (366)
+      Tests  1 failed | 3960 passed | 19 skipped (3980)
+```
+
+Il rosso è `tests/unit/dashboard-kpi.test.ts > getTrendMensile > originale e TD04 in mesi diversi`
+— **un file che non ho toccato**, e che con gli overlay non c'entra niente.
+`provato:` messe da parte le mie modifiche (`git stash`) e rieseguito **quel solo file
+sull'albero al commit precedente** → **rosso lo stesso**. Non è mio. È in §6 ⑥, col meccanismo.
 
 ---
 
@@ -201,13 +239,62 @@ l'ha — v. ②).
 ciascuno**, ma è un'ondata che si aprirebbe da sola, e sei di loro sono anche fra i **nove**
 ascoltatori di `Escape` su `window` che §1.5 censisce. **Vanno insieme, non uno per volta.**
 
-### ④ Due citazioni di riga che questo task fa invecchiare (documenti ratificati, non li tocco)
+### ④ BP-1 passo 2 — `docs/roadmap/ROADMAP-UFFICIALE.md`: verificato, **non** modificato, e c'è una riga stantia
+Questo task non sposta nessuna feature fra le versioni, quindi la roadmap **non andava toccata** —
+ma la verifica va scritta, o «non l'ho toccata» e «non l'ho guardata» si somigliano troppo.
+🔴 **Guardandola, però, una riga è vecchia:** la **prima riga** della tabella — quella del wizard «Nuovo lavoro» — descrive ancora l'ondata **(b)** come
+*«da pianificare»*, mentre l'ondata (b) ha un piano di **sedici** task e ne ha eseguiti otto.
+🛑 **Non l'ho corretta, ed è una scelta:** quella voce descrive l'ondata (b) come *wizard adattivo*
+(38 tipi, denti sulle illustrazioni, colore per dente), che è un perimetro **più largo** dell'album
+di questo piano. Dire «pianificata» sarebbe vero per l'album e **falso** per il wizard. Il confine
+lo traccia il coordinatore, non l'esecutore di un task.
+
+### ⑤ Due citazioni di riga che questo task fa invecchiare (documenti ratificati, non li tocco)
 - `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` §1.6 e §5.42 citano
   «`Sheet.tsx:314-322` cattura `document.activeElement` al montaggio». **Da oggi `Sheet` non
   cattura più niente da sé**: delega al modulo, che fa la stessa cosa col ripiego. La **sostanza**
   di quel passaggio regge (`Sheet` continua a non avere una prop per ricevere l'àncora, quindi
   `FoglioConferma` continua a non poter essere uno `Sheet` nudo); invecchia solo il riferimento.
 - Le stesse §5.x dicono «`trappola-focus.ts` (🆕 **da creare**)». **Adesso esiste.**
+
+---
+
+### ⑥ 🔴 DIFETTO NUOVO, trovato dal calendario: il grafico del trend perde un mese nei giorni «31»
+
+**Il fatto.** `src/lib/dashboard/queries.ts:366-369` calcola l'inizio della finestra così:
+
+```ts
+const startDate = new Date()
+startDate.setMonth(startDate.getMonth() - months + 1)
+startDate.setDate(1)
+```
+
+🛑 **`setMonth` viene PRIMA di `setDate(1)`, e questo è il difetto.** Se oggi è il **31** e il mese
+di destinazione ne ha **30**, quel giorno non esiste: JavaScript non sbaglia — **trabocca al mese
+dopo**, e il `setDate(1)` successivo fissa il primo del mese **sbagliato**. La finestra nasce corta
+di un mese, in silenzio.
+
+`provato:` sonda che riproduce le tre righe (transazione di sola lettura, nessun file toccato):
+
+| oggi | `months=2` → inizio |
+|---|---|
+| 30 luglio | **1 giugno** ✅ |
+| **31 luglio** | **1 luglio** ❌ — giugno è sparito |
+
+**Perché si è acceso solo adesso:** la stessa suite era **tutta verde alle 23:52**, ed è rossa alle
+**00:05**. Non è cambiato il codice: è cambiato il giorno.
+
+**Che cosa costa davvero.** Un solo chiamante in produzione — `src/app/(app)/analytics/page.tsx:146`,
+con `months=12`. Nei giorni in cui il giorno di oggi non esiste nel mese bersaglio (i «31» che
+guardano un mese di 30, e il 29/30/31 che guardano febbraio) **il grafico mostra undici mesi invece
+di dodici**, senza dirlo. Non sbaglia i numeri: **perde una colonna**.
+
+🛑 **Non l'ho corretto: è fuori dal mio mandato** (R-E2 — la dashboard non è un overlay, e il
+mandato era un compito solo). La riparazione è una riga — mettere `setDate(1)` **prima** di
+`setMonth` — ma il test che la protegge va scritto **con la data pilotata**, o resterà una prova che
+funziona 360 giorni l'anno e mente negli altri cinque. ⚠️ **E vale la pena notare la classe:** la
+prova esisteva, era giusta, ed è stata **il calendario a renderla capace di vedere**. Una suite che
+dipende da `new Date()` non è deterministica: **questa volta il caso ha lavorato per noi.**
 
 ---
 

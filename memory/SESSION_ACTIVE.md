@@ -23,6 +23,11 @@ controllo → **5 prove si accendono**. R-P4: **13 su 19** → sei prove deboli 
 `ancoraFocus`** e T7 la deve aggiungere · una trappola a mano esiste già in
 `src/components/features/fatture/InviaPecButton.tsx:80-114` (su `window`) · **tredici** overlay di
 `features/**` promettono `aria-modal` senza mantenerlo — elencati nel referto, **nessuno toccato**.
+🔴 **E un difetto NUOVO, trovato dal calendario a mezzanotte:** `src/lib/dashboard/queries.ts:366-369`
+fa `setMonth` **prima** di `setDate(1)`, quindi nei giorni «31» che guardano un mese di 30 la
+finestra **perde un mese** e il grafico di `analytics` mostra **11 mesi su 12**. La suite era verde
+alle 23:52 e rossa alle 00:05: non è cambiato il codice, è cambiato il giorno. **Riferito, non
+corretto** (fuori mandato); dettaglio e sonda nel referto §6 ⑥.
 
 🔴 **Restano vivi: R27** (`tsc` non protegge le query) · **R29 + D81** (un solo database: il
 caricamento foto su uachelab.com è rotto fino al merge, si ripara in **T13**) · **FM-8** (l'eliminazione
