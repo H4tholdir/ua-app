@@ -1,8 +1,11 @@
-# Sessione attiva — ondata (b): il gate è RATIFICATO, la spec v3 è a rev. 3.4 (30/07/2026 sera)
+# Sessione attiva — ondata (b): gate RATIFICATO, spec v3 a rev. 3.4, T5-ter pronto (30/07/2026 sera)
 
-🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-album-ripresa-post-panel.md`** — §4 dice da dove si riparte,
-§8 dice cosa è cambiato nel gate. Allegato (motivazioni e prove):
-`docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md` — ✅ **ratificato, non più proposta**.
+🚪 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-30-t5-ter-brief.md`** — è **un compito solo**, per un esecutore
+fresco (R-E1), e il brief è **autosufficiente**: fatti misurati, contratto del modulo, i cinque utenti e
+l'unico non-utente, il riferimento della suite e la previsione dei rossi.
+📎 Contesto largo (se serve): `docs/roadmap/2026-07-30-album-ripresa-post-panel.md` §4 e §8.
+📎 Motivazioni e prove del gate: `docs/superpowers/specs/allegati/2026-07-30-ds-v3-sezioni-album.md`
+— ✅ **ratificato, non più proposta**.
 
 **Ramo `ondata-b-schermate`** — niente su `origin`, albero pulito, guardie verdi (9 documenti).
 Verbale a **ottantanove** decisioni.
@@ -14,10 +17,14 @@ Le cinque §5.x sono **legge**: `CartaAlbum` §5.38 · `VisoreFoto` §5.39 · `T
 §5.33 chiusa. 🔑 **Entrate in forma NORMATIVA:** la spec dice cosa si fa, le prove stanno nell'allegato.
 
 🚪 **PROSSIMO: T5-ter — `src/components/ds/trappola-focus.ts` (🆕 da creare), e `Sheet` e `DialogConferma`
-diventano suoi utenti** (D85). **Esecutore fresco, contesto pulito** (R-E1): cambia il comportamento della
-tastiera su **due componenti in produzione** contro **3936** prove. 🛑 **Primo passo del mandato: misurare il
-terreno e CONTARE e CLASSIFICARE i rossi** — molti non saranno difetti ma prove che descrivevano il vecchio
-comportamento (stessa classe della trappola pagata in T8). Il mandato è nel piano, con **sei passi**.
+diventano suoi utenti** (D85). Brief pronto (v. sopra), mandato nel piano in **sei passi**.
+🔑 **Riferimento MISURATO ad albero pulito il 30/07 h 23:34:** `vitest` **362 | 3** file, **3936 | 19** prove ·
+`tsc` **0**. 🛑 Il task cambia la **tastiera** su due componenti in produzione: alcuni rossi **non saranno
+difetti** ma prove che descrivevano il vecchio comportamento — si **contano e si classificano**, ed entrambi
+i numeri si scrivono. ✅ **Il raggio è misurato e ha un nome:** solo **cinque** file di prova toccano
+`Tab`/focus, e quello a rischio è `tests/unit/ds-v3/componenti/sheet-dialog.test.tsx`. Rossi fuori da lì =
+sorpresa da riferire. 🔴 **Fatto nuovo:** `DialogConferma` **non gestisce il focus affatto** (zero riscontri
+di `focus`/`activeElement`/`tabIndex`) — non lo porta nemmeno dentro; `Sheet` sì (`:314-322`).
 ➡️ Poi **T6 → T9-bis**, uno per esecutore. 🛑 **T6 porta i NOVE token `sopraFoto`**, non T7.
 
 **Il piano è allineato a 16 task** (dichiarava 14: non conosceva T5-bis né T5-ter). T6, T7, T8, T9 e T9-bis
