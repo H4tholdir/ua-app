@@ -1,7 +1,13 @@
 # Spec — L'album delle foto sulla scheda del lavoro
 
 **Data:** 30 luglio 2026 · **aggiornata la sera con le quattro varianti scelte (D76-D79)** ·
-**Stato:** 🟡 **DA RATIFICARE** — ✅ **§0B soddisfatto**, §12 porta le quattro varianti approvate
+**Stato:** ✅ **RATIFICATA da Francesco il 30/07/2026** («*la spec va bene, procedi con il piano*») —
+§0B soddisfatto, §12 porta le quattro varianti approvate.
+🛑 **La ratifica autorizza IL PIANO, non il codice.** ✅ **Il piano è scritto** —
+`docs/superpowers/plans/2026-07-30-album-foto-scheda-lavoro.md`, 13 task — **e ha già CHIUSO con una prova
+la domanda 1 di §16** (la marca dell'overlay: si riusa `'uaSheet'`, v. P14 del piano). 🚧 Restano le
+**§5.x dei quattro componenti nuovi**, che §13.1 p.3 della spec v3 vuole **proposte prima** di essere
+scritte — è il **task 5**, ed è un gate.
 **Decide:** Francesco Formicola · **Scrive:** coordinatore di sessione
 **Nasce da:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **D57-D79**, con i panel
 di §9 · punto di ripresa `docs/roadmap/2026-07-29-ondata-b-album-foto-handoff.md`
@@ -511,7 +517,7 @@ prima/dopo. **L'album è una superficie nuova: il gate vale.**
 
 | # | domanda | chi decide |
 |---|---|---|
-| 1 | **La marca dell'overlay** (§4.3): serve a **due** componenti nuovi, visore **e** tendina (D78) — terza marca `uaVisore` o riuso di `uaSheet`, e se la tendina ne vuole una sua | Decisione tecnica → panel se non è ovvia guardando il modulo. **Non si sceglie di nascosto dentro un task** |
+| ~~1~~ | ~~La marca dell'overlay~~ | ✅ **CHIUSA nel piano, con la prova (P14) e non con un parere:** il **valore** della marca **non cambia nessun comportamento** in `storia-overlay.ts` (il gate a `:131` è sull'**esistenza** dell'entry), e `type Marca` (`:67`) è un'unione **chiusa e NON esportata** → `'uaVisore'` **non compilerebbe**. ➡️ **Visore e tendina riusano `'uaSheet'`**, e come effetto secondario resta verde `scripts/guardia-navigazione-overlay.mjs:97`, che riconosce **solo** quelle due stringhe |
 | ~~2~~ | ~~I quattro mockup di §12~~ | ✅ **CHIUSA il 30/07** — D76 (album A1) · D77 (visore V1) · D78 (menù M2) · D79 (categoria C1) |
 | 4 | 🆕 **Le icone vere delle sei categorie** — le emoji del mockup sono un **segnaposto dichiarato** | Francesco, sul disegno. Va nel piano come passo proprio |
 | 3 | **Dove si colloca l'ondata di D67** (allegati + condivisione) nella roadmap | Francesco |
