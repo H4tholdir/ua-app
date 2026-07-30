@@ -107,7 +107,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       url,
       nome_file: file.name || null,
       descrizione: descrizioneValue,
-      tipo: 'foto',
+      categoria: 'altro', // ⚠️ PONTE DI T1, sostituito da T3 con il valore vero dal client
       ordine: 0,
     })
     .select()

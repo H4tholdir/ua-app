@@ -3014,6 +3014,7 @@ export type Database = {
       }
       lavori_immagini: {
         Row: {
+          categoria: string
           created_at: string
           data_scatto: string | null
           deleted_at: string | null
@@ -3024,10 +3025,10 @@ export type Database = {
           nome_file: string | null
           ordine: number
           storage_path: string
-          tipo: string
           url: string
         }
         Insert: {
+          categoria: string
           created_at?: string
           data_scatto?: string | null
           deleted_at?: string | null
@@ -3038,10 +3039,10 @@ export type Database = {
           nome_file?: string | null
           ordine?: number
           storage_path: string
-          tipo?: string
           url: string
         }
         Update: {
+          categoria?: string
           created_at?: string
           data_scatto?: string | null
           deleted_at?: string | null
@@ -3052,7 +3053,6 @@ export type Database = {
           nome_file?: string | null
           ordine?: number
           storage_path?: string
-          tipo?: string
           url?: string
         }
         Relationships: [

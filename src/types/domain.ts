@@ -481,7 +481,12 @@ export interface LavoroImmagine {
   nome_file: string | null;
   descrizione: string | null;
   data_scatto: string | null;
-  tipo: 'foto' | 'scan' | 'rx' | 'altro';
+  /** Categoria fotografica — elenco chiuso, D72. La fonte dei valori è
+   *  src/lib/domain/categorie-foto.ts — mai una copia locale. */
+  categoria: string;
+  /** Serve a ordinare DENTRO il gruppo (D71). Esiste in banca dati da sempre
+   *  (`002_fase2_schema.sql:254`) ma mancava da questo tipo. */
+  created_at: string;
   ordine: number;
 }
 
