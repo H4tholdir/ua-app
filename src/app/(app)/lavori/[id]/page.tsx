@@ -37,6 +37,7 @@ export default async function LavoroDettaglioPage({ params, searchParams }: Page
     .eq('laboratorio_id', context.laboratorioId)
     .is('deleted_at', null)
     .neq('ddc.stato', 'annullata')
+    .is('lavori_immagini.deleted_at', null)
     .single()
 
   if (error || !lavoro) {

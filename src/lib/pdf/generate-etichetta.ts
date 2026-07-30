@@ -41,6 +41,7 @@ export async function generateEtichettaBuffer(lavoro_id: string, laboratorio_id:
     .eq('id', lavoro_id)
     .eq('laboratorio_id', laboratorio_id)
     .is('deleted_at', null)
+    .is('lavori_immagini.deleted_at', null)
     .single()
 
   if (error || !lavoro) throw new Error('Lavoro non trovato')

@@ -187,6 +187,7 @@ export async function POST(req: Request) {
       .eq('decisione_fatturazione', 'fatturare')
       .is('deleted_at', null)
       .neq('ddc.stato', 'annullata')
+      .is('lavori_immagini.deleted_at', null)
       .single()
 
     if (lavoroErr || !lavoro) {

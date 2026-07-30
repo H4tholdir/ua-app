@@ -169,6 +169,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     .eq('laboratorio_id', labId)
     .is('deleted_at', null)
     .neq('ddc.stato', 'annullata')
+    .is('lavori_immagini.deleted_at', null)
 
   if (lavoriIds && lavoriIds.length > 0) {
     lavoriQuery = lavoriQuery.in('id', lavoriIds)
