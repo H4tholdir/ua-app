@@ -3079,6 +3079,44 @@ export type Database = {
           },
         ]
       }
+      lavori_immagini_eliminazioni: {
+        Row: {
+          created_at: string
+          eliminata_da: string | null
+          id: string
+          laboratorio_id: string
+          lavori_immagine_id: string
+          lavoro_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          eliminata_da?: string | null
+          id?: string
+          laboratorio_id: string
+          lavori_immagine_id: string
+          lavoro_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          eliminata_da?: string | null
+          id?: string
+          laboratorio_id?: string
+          lavori_immagine_id?: string
+          lavoro_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lavori_immagini_eliminazioni_laboratorio_id_fkey"
+            columns: ["laboratorio_id"]
+            isOneToOne: false
+            referencedRelation: "laboratori"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lavori_lavorazioni: {
         Row: {
           calo: number | null
