@@ -30,7 +30,12 @@ sulla **condivisione** (D67): nell'ondata (b) è un **vuoto dichiarato e datato*
 visore **non peggiorino l'esposizione in modo evitabile**. 🛑 La mitigazione da ~15 righe è stata
 **presentata e scartata**, non dimenticata.
 
-➡️ **PROSSIMO: la spec di design dell'album** (emenda DS v3 §5.33 + il worktree di `:535`). ⚠️ **Quattro
-superfici decise e MAI disegnate** — visore · menù ⋯ dentro il visore · foglio della categoria allo scatto ·
-album coi sei gruppi: §0B **non è soddisfatto**, e i mockup vanno mostrati **dentro la schermata vera**
-(D58), 390/768/1280 × chiaro/scuro. Poi il piano.
+✅ **SPEC SCRITTA, 🟡 DA RATIFICARE:**
+`docs/superpowers/specs/2026-07-30-album-foto-scheda-lavoro-design.md` — emenda DS v3 §5.33 (+ il worktree
+di `:535`), gate FASE 3 con le cinque risposte, otto prove, cinque «non verificato» dichiarati.
+
+➡️ **PROSSIMO: i QUATTRO mockup di §12** — visore · menù ⋯ dentro il visore · foglio della categoria allo
+scatto · album coi sei gruppi. 🛑 **§0B NON è soddisfatto** dal confronto delle tre direzioni (mostrava la
+sola carta), e i mockup vanno **dentro la schermata vera** (D58), 390/768/1280 × chiaro/scuro. Poi la
+ratifica, poi il piano. **Aperta e da non decidere di nascosto:** la **marca dell'overlay** del visore
+(`storia-overlay.ts:67` è un'unione chiusa a due).
