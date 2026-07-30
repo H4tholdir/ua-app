@@ -709,3 +709,65 @@ export const sopraFoto = {
 pastiglie a **15 px** (misurato: a 15,5 «Guida colore» va a capo) · i titoli dei fogli a **19/800** e la dida
 del foglio categoria a **13.5** (fuori dalla scala «chiusa» di §4.1, ma con tre precedenti ratificati —
 §5.19, §5.22, §5.30) · la foto grande a **4/3** e le pastiglie a **60**.
+
+---
+
+## 6. Che cosa ho dovuto ASSUMERE — dichiarato, non nascosto
+
+🛑 **R-P1, fail-closed:** quello che segue **non porta il marchio `provato:`**. Ogni riga dice **con quale
+comando o quale prova** si chiude, e **chi** la chiude.
+
+| # | assunzione | come si chiude, e chi |
+|---|---|---|
+| **A-1** | 🔴 **La più importante.** Che `event.stopPropagation()` dentro un `onKeyDown` di React impedisca all'evento nativo di arrivare a un ascoltatore su `window`. Il ragionamento: React 18/19 aggancia i propri ascoltatori al **contenitore del portale** (`document.body`, `src/components/ds/Sheet.tsx:367`), che sta **sotto** `window` nella risalita, e `stopPropagation()` sul sintetico ferma anche il nativo | **T7, prima riga di prova:** uno `Sheet` aperto sotto (ascolta su `window`) + una tendina sopra, focus dentro la tendina, `Escape` → **si chiude solo la tendina**. 🛑 **Se lo `Sheet` si chiude, la via di §1.5 è falsa** e si passa all'alternativa di §8 FM-2 |
+| **A-2** | Che **nessuno `Sheet` o `DialogConferma` resti aperto SOTTO il visore**. È l'assunzione che rende innocuo lo stare sotto z-index 1000 (§1.3). Le due superfici che montano l'album — la scheda del lavoro e la scheda in modifica — tengono le foto **nella pagina**, non dentro un foglio | **T10/T11**, che innestano davvero: se un foglio può restare aperto, i tre z-index salgono sopra 1000 e la riga si riscrive |
+| **A-3** | Che **`FoglioCategoria` sia anche il terzo strato**, aperto da «Cambia categoria» della tendina. Lo dicono la spec dell'album §4.1 e §5.4 (l'etichetta del visore è toccabile per correggerla) e la voce nel mockup, **non** il piano | **Ratifica di questo gate.** Se il gate dice che dalla tendina la categoria NON si corregge, §5.41 perde metà delle sue regole di strato |
+| **A-4** | Che i numeri di contrasto di §5 (S1, S2) siano **calcolati a mano** dai valori dichiarati nel mockup, su una foto ipotetica **completamente bianca**. Non sono una misura su uno screenshot reso | **T7 e il gate estetico L2 (FASE 9b):** si misura sul reso, su **due** foto vere — una radiografia e una guida colore sovraesposta. I valori possono essere ritoccati; **la regola** («il contrasto non dipende dalla sfumatura») resta |
+| **A-5** | Che «Guida colore» rientri a **15 px** in **148,5 px**: è la misura di **D79**, presa sul mockup. **Non l'ho rifatta** | **T9**, con la prova che il testo non va a capo a 390 |
+| **A-6** | Che **260 px** bastino alla tendina con l'anatomia di §5.34 (voce 56, icona 38, testo 17). Il mockup ne usa 236 con misure più piccole | **T8**, a 390: se «Cambia categoria» va a capo, si allarga |
+| **A-7** | Che l'anteprima dello scatto multiplo mostri **fino a tre** miniature e poi solo «{n} foto» (è quel che fa il mockup, C3) | **T9** |
+| **A-8** | Che `sopraFoto.facciaAttiva` (il ⋯ acceso) sia la **stessa faccia più densa** e non una faccia chiara: il mockup usa `rgba(255,255,255,.34)`, che è coerente con la faccia chiara **scartata** in S2 | **T7/T8**, sulla foto chiara |
+| **A-9** | Che il divieto di **D66** («la foto non si degrada») valga per **il visore**, dove la foto si guarda, e non per l'**anteprima** della carta, che ritaglia (`objectFit: 'cover'`) per tenere il rapporto 4/3 | **Ratifica di questo gate** |
+
+---
+
+## 7. Dove il piano o la spec sbagliano — R-E2, riferito e non corretto di nascosto
+
+| # | dove | che cosa non torna |
+|---|---|---|
+| **F-1** | 🔴 **Piano, blocco C.** Il piano tratta come **terzo strato solo la conferma** (T9-bis). Ma «Cambia categoria» della tendina apre **`FoglioCategoria` nello stesso identico posto della pila**: T9 non dice **niente** su `storia-overlay`, sul divieto di bloccare lo scorrimento, sul portale né sullo z-index — cioè, eseguito alla lettera, **T9 produce il difetto che T9-bis esiste per evitare** | §5.41 lo copre; **il mandato di T9 va aggiornato** |
+| **F-2** | 🔴 **Spec v3 §4.2** — «Raggi: … **Nessun altro raggio**». **Il codice ratificato la contraddice già due volte**: `src/components/ds/DialogConferma.tsx:240` usa `raggio.riga - 6` (= **12**) e `src/components/ds/MenuVoce.tsx:59` usa `raggio.riga - 7` (= **11**, ed è il raggio che §5.34 **prescrive**) | O §4.2 accoglie il raggio piccolo, o due componenti in vigore sono fuori legge. **Non è roba di questo gate**: qui si è scelto l'idioma già in casa (§1.7) |
+| **F-3** | 🔴 **Spec v3 §4.1** — «Scala (fissa, **nessun'altra dimensione ammessa**)». Contraddetta da §5.19 (13.5), §5.22 (14), §5.30 (14), §5.28 (16) e da `src/components/ds/DialogConferma.tsx:219,226,236` (15.5 · 16.5 · 14) | La scala è **di fatto aperta**. Va detto, o ogni sezione nuova rilitiga lo stesso punto |
+| **F-4** | 🟡 **D77** dice «il contrasto dei controlli si prova **sulla foto più scura**, non su quella media». **Misurato, il caso peggiore per il TESTO è quello CHIARO** (§5, riga S1): sulla foto scura la sfumatura nera sopra il nero dà contrasto **massimo**. La foto scura è il caso peggiore per un'**altra** cosa — il **confine** dei controlli | Presa alla lettera, quell'istruzione **lascia passare il difetto vero**. Servono **due** casi, ed è quel che §5.39 prescrive |
+| **F-5** | 🟡 **Spec v3 §5.33**, ultima riga: «le §5.x dei **quattro** componenti nuovi». Con **D80** sono **cinque** | Corretto dal testo di §3.3 |
+| **F-6** | 🟡 **Piano, T8.** Pretende `getAllByRole('menuitem')`, ma `src/components/ds/MenuVoce.tsx` **non sa dire `role="menuitem"`** (rende un `<button>` nudo) e mostra sempre il chevron. Quindi la tendina **non può riusarlo** senza modificarlo — e `MenuVoce.tsx` **non è nell'elenco dei file** del piano | §5.40 fa rendere alla tendina le proprie voci, **copiando l'anatomia di §5.34 verbatim**. La via alternativa è in §8, riga FM-6 |
+| **F-7** | 🟡 **Piano, T9-bis Passo 1:** «focus alla **prima azione**». Con l'ordine di §5.17 la prima azione **è** quella sicura, quindi oggi coincidono — ma la frase prescrive una **posizione**, non una **proprietà**: se un domani l'ordine si invertisse, quella riga manderebbe il focus sul tasto che cancella | §5.42 dice «alla prima azione, **che è quella sicura**». La riga del piano va detta così |
+| **F-8** | 🟡 **Piano, T7.** Dice che il visore blocca lo scorrimento, ma **non** che deve difendersi dalla **propria** rientranza. Senza il `if (!ref.current)` di `src/components/ds/Sheet.tsx:248`, riaprire il visore mentre l'uscita precedente sta ancora giocando riproduce **dentro un solo componente** lo stesso difetto di §1.4 | §5.39 lo prescrive; il mandato di T7 lo dica |
+| **F-9** | 🟡 **Mockup e spec dell'album §12** — la voce «**Salva** sul telefono». «salva» è **vietata** dal dizionario (`src/design-system/v3/dizionario.ts`, che propone «Fatto ✓»). Non blocca il commit (il controllo greppa solo `src/components/ds/`, e l'etichetta è una **prop del chiamante**), ma è contro la regola | Precedente in casa: l'**eccezione ratificata il 26/07** per «Salva il nome»/«Salva il colore». Serve la stessa decisione esplicita, e non è di questo gate: v. §8, riga FM-4 |
+
+---
+
+## 8. Fuori mandato — R-E2: riferito, non fatto
+
+| # | che cosa | perché non l'ho fatto |
+|---|---|---|
+| **FM-1** | 🔴 **La riparazione VERA del blocco dello scorrimento:** un modulo a **contatore** (`blocca()`/`sblocca()` con un conteggio e un solo valore precedente salvato al primo blocco), di cui **anche `Sheet` sia un utente**. Chiuderebbe il difetto per **tutta** l'applicazione, e farebbe cadere il costo residuo dichiarato in §1.4 | **Tocca `src/components/ds/Sheet.tsx`**, che non è nel mandato di T5 né in quello di T6-T9-bis. **Proposta, non decisa** |
+| **FM-2** | 🔴 **La riparazione VERA di P18 (`Escape`):** mediarlo con la stessa pila LIFO che già media il tasto «indietro», dentro `src/components/ds/storia-overlay.ts`. Chiuderebbe il difetto anche per `Sheet` e `DialogConferma`, non solo per questa superficie — ed è **l'unica via** se l'assunzione **A-1** cade | **Tocca `src/components/ds/storia-overlay.ts`**, modulo condiviso da due componenti in produzione. **Proposta, non decisa** |
+| **FM-3** | Il `preventDefault()` sul `pointerdown` del velo (§1.5 punto 4) starebbe bene dentro `src/components/ds/useTapScrim.ts`, accanto agli altri due handler | **È un file condiviso.** Nei componenti nuovi si scrive **accanto** alla coppia dell'hook, non dentro l'hook. Se il gate preferisce l'altra via, è una modifica a `useTapScrim.ts` e va detta |
+| **FM-4** | **«Salva sul telefono»** — due cose insieme: ① la parola è contro il dizionario (F-9) e serve un'eccezione ratificata come quella del 26/07; ② 🛑 **la sua implementazione è un punto in cui l'indirizzo firmato può uscire** (G5 · D75), e vive nel **chiamante** (T11/T12), non in `TendinaMenu` | Fuori dal mandato di un gate documentale. **Va nel mandato di chi scrive la voce** |
+| **FM-5** | Il commento di testa di `src/components/ds/DialogConferma.tsx:3-9` («l'UNICA card centrata…») | **È codice.** Il testo pronto è in §3.4; applicarlo è di chi tocca quel file |
+| **FM-6** | Dare a `src/components/ds/MenuVoce.tsx` una prop `ruolo?: 'menuitem'` e togliere il chevron alla variante `butta`, per farlo riusare dalla tendina (F-6) | `MenuVoce.tsx` **non è nell'elenco dei file** del piano ed è usato altrove (menù della scheda). **Proposta** |
+| **FM-7** | **BP-1 (memoria).** Il controllo pre-commit avvisa che questo salvataggio tocca una spec **senza toccare la memoria** | Questo documento è una **proposta**: lo stato del progetto cambia **alla ratifica**, non adesso. `memory/MEMORY.md` e `docs/roadmap/ROADMAP-UFFICIALE.md` **non sono nel mandato di T5** — l'aggiornamento è del coordinatore, dopo il gate |
+
+---
+
+## 9. Che cosa deve succedere adesso
+
+1. **Il gate si chiude con una ratifica**, riga per riga sull'elenco di §0 — in particolare **G-3**, **G-4**,
+   **G-8** e **G-9**, che sono le quattro che cambiano il comportamento e non solo la scrittura.
+2. **Poi**, e non prima, partono **T6 → T9-bis**, un esecutore fresco per task (R-E1), con questa proposta
+   come fonte di verità: **se il gate ha scelto una via diversa, vale quella**.
+3. **Il primo che tocca `src/design-system/v3/tokens.ts`** (T7) ci porta il gruppo `sopraFoto` di §4: senza,
+   il controllo pre-commit **blocca**.
+4. **I mandati di T7, T8 e T9 vanno corretti** con le righe **F-1**, **F-6**, **F-7** e **F-8** di §7, o tre
+   esecutori su cinque ripartiranno da un testo che sa di meno di questo documento.
