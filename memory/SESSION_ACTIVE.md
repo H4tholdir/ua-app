@@ -85,8 +85,22 @@ gli avvisi). L'assunzione A-2 smette di essere portante.
 ⚠️ Gli attori sono **due**: `Sheet.tsx:227-257` e `NuovoOrdineSheet.tsx:91-95` (il secondo scrive
 `overflow=''` a mano senza catturare).
 
-➡️ **PROSSIMO: T5-bis**, poi le correzioni del panel dentro il documento del gate, poi la ratifica, **poi**
-T6 → T9-bis. 🛑 **T6 porta il gruppo di token `sopraFoto`**, non T7: `CartaAlbum` lo usa già.
+✅ **T5-bis FATTO** (`c268b54b` il modulo · `47e77069` `Sheet` · `daeb0efc` `NuovoOrdineSheet` · `636c10b4`
+il rilascio allo smontaggio): `src/components/ds/blocca-scorrimento.ts` **a contatore**. vitest **3936 | 19**,
+`tsc` 0. **G-3 e G-5 del gate sono già state corrette** nel documento (D84 e D83).
+🔑 **Due lezioni opposte nello stesso pomeriggio, entrambe in MEMORY.md voce 76:** l'esecutore di D84 ha
+**riferito un difetto introdotto dalla propria modifica** invece di nasconderlo (il divieto che glielo
+impediva era mio, e la sua ragione non copriva quel caso: tolto) · e l'esecutore successivo ha
+**falsificato la premessa del mandato che gli avevo dato** — `framer-motion` risolve la promise
+dell'uscita **anche a componente smontato**, quindi il rilascio arrivava a **+2 ms**: il difetto era
+sincrono-vs-microtask, **non** una perdita permanente. La riparazione vale lo stesso perché ritira due
+invarianti non verificabili da nessuna guardia.
+
+➡️ **PROSSIMO: le correzioni del panel dentro il documento del gate** (sette bloccanti + quindici rilievi,
+elencati in `docs/roadmap/2026-07-30-panel-gate-sezioni-album.md`), **poi la ratifica**, **poi** T6 → T9-bis.
+🛑 **T6 porta il gruppo di token `sopraFoto`**, non T7: `CartaAlbum` lo usa già. 🛑 **E i mandati di
+T7/T8/T9/T9-bis vanno corretti PRIMA di T6**, o quattro esecutori su cinque leggeranno un testo che sa meno
+del documento.
 
 **Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
 🛑 **A prima di D** · 🛑 **B prima di D-T12**.
