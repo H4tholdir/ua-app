@@ -18,9 +18,11 @@ di §9 · punto di ripresa `docs/roadmap/2026-07-29-ondata-b-album-foto-handoff.
 singoli (R-E1)
 
 > ✅ **§0B è soddisfatto** (mockup → screenshot ai tre tagli × due temi → **quattro varianti scelte**,
-> D76-D79): §12 non è più uno sbarramento. 🟡 **Restano DUE cose prima del codice**, ed entrambe sono nel
-> piano, non qui: la **marca dell'overlay** di visore e tendina (§4.3, §16) e le **icone vere** al posto
-> delle emoji segnaposto del foglio categoria (§12).
+> D76-D79): §12 non è più uno sbarramento. ✅ **E la marca dell'overlay non è più aperta:** il piano l'ha
+> chiusa **con una prova**, non con un parere (P14) — v. §16.
+> 🚧 **Restano DUE cose prima del codice, ed entrambe stanno nel PIANO, non qui:** le **§5.x dei quattro
+> componenti nuovi**, che §13.1 p.3 vuole **proposte prima** di scriverli (task 5, ed è un **gate**), e le
+> **icone vere** al posto delle emoji segnaposto del foglio categoria — che il mockup dichiara tali.
 
 ---
 
