@@ -258,7 +258,11 @@ Tutti e tre, **nessuno sostituisce l'altro**: `tsc` **non valida la firma degli 
 `next build` la vede — e tu stai aggiungendo un handler.
 Poi `node scripts/guardia-coerenza-documenti.mjs`.
 
-**Nel rapporto** (`.superpowers/sdd/ondata-b-t8-report.md`):
+**Nel rapporto** — **da creare** tu, `docs/roadmap/2026-07-29-ondata-b-t8-report.md`, 📍 **in `docs/` e non
+in `.superpowers/sdd/` per la stessa ragione per cui ci sta questo brief**: ti si chiede di **incollare una
+sonda** che altrimenti sparisce con la sessione, e i difetti che trovi devono sopravviverti. *(La guardia dei
+documenti ha bloccato la prima stesura di questa riga proprio perché citava il rapporto come se esistesse:
+un riferimento a una cosa futura si dichiara «da creare», o manda la sessione dopo a cercarla.)*
 la misura R-P4 **con l'abbozzo incollato** · le mutazioni fatte e quali prove hanno ucciso · **i difetti del
 piano e di questo brief che hai trovato** (elencali, sono la parte più preziosa) · i ritrovamenti fuori
 mandato (R-E2) · l'uscita reale dei tre comandi · la baseline riverificata.
