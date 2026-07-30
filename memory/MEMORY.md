@@ -26,6 +26,15 @@ che dice, sezione per sezione, dove guardare — serve a chi ratifica, per non r
   (`src/components/ds/Avviso.tsx:99`) — spegnere tutto **spegne il cartellino** «Foto eliminata», e salvarlo
   vuol dire marchiare un file condiviso. **La soluzione forte diventa forte solo allungando la mano fuori
   dal mandato; se non la allunghi, rompi il cartellino.**
+  🔧 **Precisazione trovata rileggendo, la stessa sera, e vale come lezione: la trappola serve ai TRE
+  DIALOGHI, non alla tendina.** L'argomento di D85 vale **dove la promessa `aria-modal` c'è**;
+  `TendinaMenu` è `role="menu"` **senza** `aria-modal`, e nel modello del menù il `Tab` **esce** — §5.40
+  prescriveva già frecce, `Home`/`End` e niente avvolgimento, cioè quel modello, e la prima stesura ci
+  **incollava sopra un secondo modello**. Sulla tendina il `Tab` **chiude e riporta il focus al ⋯**, che sta
+  dentro il visore, **che la trappola ce l'ha**: il punto portante di §1.5 regge lo stesso. 🔑 **Il difetto
+  di scrittura era un'UNIFORMITÀ COMODA:** avevo scritto in §1.6 «con D85 la riga è la stessa per tutti e
+  cinque» e in §5.38 «è l'unica delle cinque in cui la risposta è niente» — **due frasi incompatibili nella
+  stessa passata**. B-1 chiedeva che ogni §5.x **dichiari** la sua, non che tutte dicessero lo stesso.
 - **D86 — la via dell'`Escape` si tiene, e il bivio ha un proprietario: il coordinatore.** ✅ **A-1 smette
   di essere un'assunzione ed è `provato:`** in `node_modules/react-dom/cjs/react-dom-client.development.js`
   — `:3394-3397` (lo `stopPropagation()` del sintetico chiama il **nativo**) e `:12907-12911` (il portale

@@ -13,6 +13,8 @@ Sette bloccanti e quindici rilievi applicati. Quattro bivi decisi da Francesco: 
 **alla radice** (nasce **T5-ter**, `trappola-focus.ts` 🆕 da creare, `Sheet` e `DialogConferma` utenti) ·
 **D86** la via dell'`Escape` si tiene, il ripiego lo decide il **coordinatore** · **D87** etichetta di gruppo
 a **12,5** · **D88** l'ombra della tendina resta, **seconda eccezione** dichiarata a §3.
+🔧 **La trappola vale per i TRE DIALOGHI, non per la tendina** (`role="menu"` senza `aria-modal`: lì il
+`Tab` **chiude** e riporta il focus al ⋯, che sta dentro il visore). Le risposte sul `Tab` sono **tre**.
 
 🔑 **Le tre misure sbagliate sono state rifatte col conto in chiaro:** il contrasto del visore era calcolato
 su un elemento **senza sfondo** (2,1:1 → nasce la **pastiglia con faccia**) · i **148,5 px** erano presi
