@@ -3,7 +3,7 @@
 **Data:** 30 luglio 2026 · **aggiornata la sera con le quattro varianti scelte (D76-D79)** ·
 **Stato:** 🟡 **DA RATIFICARE** — ✅ **§0B soddisfatto**, §12 porta le quattro varianti approvate
 **Decide:** Francesco Formicola · **Scrive:** coordinatore di sessione
-**Nasce da:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **D57-D75**, con i panel
+**Nasce da:** `docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **D57-D79**, con i panel
 di §9 · punto di ripresa `docs/roadmap/2026-07-29-ondata-b-album-foto-handoff.md`
 **Emenda:** `docs/superpowers/specs/2026-07-07-design-system-v3-una-cosa-alla-volta.md` §5.33 (v. §8)
 **Mockup (§0B, fatto):** `docs/design/mockups/2026-07-30-album-visore-categoria.html` + gli screenshot
@@ -317,17 +317,21 @@ migration** e verifica che le due liste coincidano. Senza, divergeranno in silen
 cornice interna 1px inset · max 1 riga scrollabile. **Fonte di verità visiva: `scheda-lavoro.html` classe
 `.foto-strip`/`.foto-thumb`**».
 
-**Va emendata su tre punti** (forma: la stessa già usata in casa — marca in linea «*(emendamento
-30/07/2026, ondata (b) — Album foto)*», più la riga di revisione in testa alla spec):
-1. **La striscia non è più sola lettura** e **diventa una carta** con foto grande + visore.
-2. **La fonte di verità visiva si RIPUNTA** al mockup album approvato. 🛑 Lasciandola su
-   `scheda-lavoro.html .foto-strip` la spec citerebbe **una fonte morta**.
-3. **Nascono le §5.x dei componenti nuovi** (carta album, visore), proposte **prima** di scriverli.
+✅ **FATTO il 30/07/2026 — la passata è stata eseguita**, nella forma già usata in casa (marca in linea
+«*(emendamento 30/07/2026, ondata (b))*» + riga di revisione in testa, ora **Rev. 3.3**):
+1. ✅ **La striscia non è più sola lettura** e **diventa una carta** con foto grande, categoria, contatore e
+   blocchi raggruppati (A1), che al tocco apre il visore.
+2. ✅ **La fonte di verità visiva è stata RIPUNTATA** al mockup approvato del 30/07. 🛑 Lasciandola su
+   `scheda-lavoro.html .foto-strip` la spec avrebbe citato **una fonte morta** — e la sezione descriveva una
+   forma **superata**, cioè avrebbe fatto costruire di nuovo la striscia a chi la leggeva per primo.
+3. ✅ **Corretto nella stessa passata il difetto R22:** la riga `:535` prescriveva un **worktree**, che
+   `CLAUDE.md` **vieta senza eccezioni** (doppio `package-lock.json` → 404 su tutte le route). Ora dice
+   `branch nel repo principale`, con la ragione scritta accanto.
 
-⚠️ **Nella stessa passata si corregge un secondo difetto, già a verbale come R22:** la riga `:535` della
-spec v3 prescrive un **worktree** per la migrazione, che `CLAUDE.md` **vieta senza eccezioni** (doppio
-`package-lock.json` → 404 su tutte le route, difetto vero e pagato). Si aprono due modifiche allo stesso
-documento **una volta sola**.
+🚧 **Quello che NON è stato fatto, e di proposito:** le **§5.x dei quattro componenti nuovi** (carta album ·
+visore · **tendina del menù**, D78 · foglio della categoria). Il processo §13.1 p.3 della spec v3 chiede che
+si **propongano prima di essere scritte**: aggiungerle ora sarebbe scrivere la spec di un componente che non
+esiste. **Vanno nel piano**, come passo proprio.
 
 ---
 
