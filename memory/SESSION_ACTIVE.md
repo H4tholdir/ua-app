@@ -2,7 +2,7 @@
 
 🛑 **PUNTO DI RIPRESA: `docs/roadmap/2026-07-29-ondata-b-album-foto-handoff.md`** (⚠️ il ledger
 `.superpowers/sdd/progress.md` è **fuori dal repo git**, non può esserlo). Poi il verbale
-`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **settantatré decisioni**, D67-D73 sono
+`docs/design/decisions/2026-07-28-wizard-ondata-b-decisioni.md` — **settantacinque decisioni**, D67-D75 sono
 di oggi, più il §9 nuovo.
 
 **Ramo `ondata-b-schermate`** — niente su `origin`. ✅ Otto task chiusi. 🔴 **T8 va ancora emendato**
@@ -23,6 +23,14 @@ CSS v2.3→v3 vive su **una pagina sola** (`ds-v3.css:236` · `modifica/page.tsx
 leggono SOLO `v3/tokens.ts`** · `ordine` è ambigua (default 1, insert 0). Il secondo, in **disaccordo fra i
 due advisor**: a rompere il pareggio è stata **W23**, parole di Francesco del 27/07.
 
-➡️ **PROSSIMO: la spec di design dell'album** (emenda DS v3 §5.33 + il worktree di `:535`), poi mockup §0B,
-poi il piano. **Parcheggiato:** il **TTL** delle URL firmate — dipende da D67 (condividere è progettare un
-permesso, non accorciare una scadenza).
+**D74** foglio della categoria chiuso senza scegliere → la foto nasce **`altro`**, elenco fermo a sei
+(costo dichiarato: l'album **non distingue** «ho scelto Altro» da «non ho risposto»; contenuto perché
+`altro` è **l'ultimo** gruppo di D71). **D75** la **durata dei collegamenti** alle foto si decide nel lavoro
+sulla **condivisione** (D67): nell'ondata (b) è un **vuoto dichiarato e datato**, con il vincolo che album e
+visore **non peggiorino l'esposizione in modo evitabile**. 🛑 La mitigazione da ~15 righe è stata
+**presentata e scartata**, non dimenticata.
+
+➡️ **PROSSIMO: la spec di design dell'album** (emenda DS v3 §5.33 + il worktree di `:535`). ⚠️ **Quattro
+superfici decise e MAI disegnate** — visore · menù ⋯ dentro il visore · foglio della categoria allo scatto ·
+album coi sei gruppi: §0B **non è soddisfatto**, e i mockup vanno mostrati **dentro la schermata vera**
+(D58), 390/768/1280 × chiaro/scuro. Poi il piano.
