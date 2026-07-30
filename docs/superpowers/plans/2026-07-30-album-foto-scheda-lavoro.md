@@ -48,7 +48,7 @@ l'esecutore userà per verificarlo.
 | # | assunzione | esito |
 |---|---|---|
 | **P1** | «Il `CHECK` del database restringe il tipo TypeScript generato» → **FALSA** | `provato:` letto `src/types/database.types.ts:3015-3060` — `lavori_immagini.tipo` **ha** un `CHECK` a quattro valori e il tipo generato è **`tipo: string`**, non l'unione. ➡️ **La prova-spia di T2 è necessaria**, non decorativa |
-| **P2** | «Una colonna `NOT NULL` **senza** `DEFAULT` diventa obbligatoria nell'`Insert` generato» → **VERA** | `provato:` stesso blocco — le colonne **con** ripiego escono opzionali (`tipo?: string`, `ordine?: number`, `created_at?: string`), quelle **senza** escono obbligatorie (`laboratorio_id: string`, `storage_path: string`, `url: string`). ➡️ **Il rosso di `tsc` previsto in T1 è un fatto, non una speranza** |
+| **P2** | «Una colonna `NOT NULL` **senza** `DEFAULT` diventa obbligatoria nell'`Insert` generato» → **VERA a metà. 🛑 LA CONSEGUENZA CHE NE TRAEVO È FALSA, misurata da T1 il 30/07** | `provato:` stesso blocco — le colonne **con** ripiego escono opzionali (`tipo?: string`, `ordine?: number`, `created_at?: string`), quelle **senza** escono obbligatorie (`laboratorio_id: string`, `storage_path: string`, `url: string`). ⚠️ **Ma questa è una proprietà del FILE GENERATO, non del compilatore su questo repo:** ➡️ 🔴 **il rosso di `tsc` previsto in T1 NON è arrivato — uscita 0, zero file rossi.** I quattro fabbricanti del client (`src/lib/supabase/{server-service,server-user,browser-anon,middleware-client}.ts`) creano il client **senza il generico `<Database>`**, quindi il costruttore di query accetta qualunque chiave: T1 ha messo una colonna **inventata** dentro un `.insert()` e `tsc` è rimasto **0**. È il rilievo **R27** del verbale, e il fatto era già scritto in `src/lib/pdf/typed-service-client.ts:6-10` — file **assente dal registro delle letture**, cioè il censimento R-P6 si è fermato prima. 🔑 **Regola che ne discende e vale per OGNI task a valle: nessuno può contare su `tsc` per scoprire una discordanza di schema. Chi tocca uno scrittore si porta la sua prova** — T1 l'ha chiusa con due `INSERT` in transazione annullata (uno che deve passare, uno **senza `categoria`** che deve essere rifiutato). ✅ **La scelta «senza `DEFAULT`» resta giusta: cambia chi la difende — il database a runtime, non il compilatore** |
 | **P3** | «`tsc --noEmit` è pulito **prima** di toccare qualcosa» → **VERO** | `provato:` `npx tsc --noEmit` → **uscita 0, nessun output**. ➡️ Ogni rosso dopo `gen types` è **causato dal cambiamento**, non preesistente |
 | **P4** | «`tipo` non è letta da nessuno» → **VERA** | `provato:` `grep -rn "LavoroImmagine\|\.tipo" src/ tests/` — l'unico `.tipo` è `TabImmagini.tsx:523`, che è lo **stato locale del caricamento** (`FotoLocale.tipo`, `:31`), non la riga di banca dati. Zero riscontri nei due test della tabella |
 | **P5** | «`FotoStrip` ha un solo chiamante» → **FALSA, e il file mancava dall'elenco** | `provato:` `grep -rn "FotoStrip" src/ tests/` → **tre** siti: `SchedaLavoroV3.tsx:316` · **`src/app/ds-v3-catalogo/page.tsx:1166`** (il catalogo del design system, pagina viva) · `tests/unit/ds-v3/componenti/FotoStrip.test.tsx`. ➡️ **T11 li tocca tutti e tre** |
@@ -643,6 +643,17 @@ git commit -F <file-messaggio> -- src/lib/domain/categorie-foto.ts tests/unit/ca
 - **Consuma:** `isCategoriaFoto`, `CATEGORIE_FOTO` da `@/lib/domain/categorie-foto` (T2).
 - **Produce:** `POST /api/lavori/[id]/immagini` accetta il campo FormData **`categoria`** (obbligatorio,
   **422** se manca o è fuori elenco) · `PATCH …/[imgId]` accetta `categoria` **validata** (**422**, non 500).
+
+🔴 **DUE COSE ARRIVANO DA T1 (30/07) E FANNO PARTE DEL MANDATO — dichiarate, non corrette di nascosto:**
+1. **G9 è violata nella rotta che T3 tocca già:** `provato:` `immagini/route.ts:117` rimanda al browser
+   `insertError.message`, cioè il messaggio grezzo del database. P11 aveva controllato G9 sull'**altra**
+   rotta (`[imgId]`, dove è rispettata) e ne aveva tratto un'assoluzione più larga del vero. È **R28**:
+   si chiude qui, con l'errore generico e il dettaglio in `console.error`.
+2. 🛑 **`tsc` NON è una rete su questo repo** (**R27**, v. P2 corretta): il client non porta il generico
+   `<Database>`, quindi un nome di colonna sbagliato **non accende niente** — né il compilatore né la
+   suite, perché **quella rotta non ha nessun test** (nessun file importa
+   `@/app/api/lavori/[id]/immagini/route`). ➡️ **T3 scrive la PRIMA prova di quella rotta**, e la prova
+   del `POST` deve asserire **le chiavi vere inviate all'`insert`**, non solo lo status.
 
 🛑 **DENTRO IL MANDATO, dichiarato qui e non corretto di nascosto (come D52):** l'`update()` del `PATCH`
 (`[imgId]/route.ts:75-76`) ha **due** `.eq()` invece di tre, **non** filtra `deleted_at` e **non** conta le

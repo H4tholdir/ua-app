@@ -15,9 +15,14 @@ su mobile» il foglio lo rispetta).
 `useRef` **per istanza** (`Sheet.tsx:222`) → un secondo foglio **sopra il visore** lascerebbe la pagina
 bloccata per sempre. Il foglio di conferma **non blocca**.
 
-➡️ **IN CORSO: Task 1** (la colonna `categoria` nasce, `tipo` se ne va), esecutore fresco (R-E1).
-🔑 **Verificato prima di partire:** il registro delle migration in banca dati **è allineato** ai file
-(ultima: `20260729140000`) → la migration nuova va applicata per la **via registrata**, non con SQL diretto.
+✅ **Task 1 FATTO** (`9961964f`): colonna `categoria` vincolata ai sei valori, `tipo` eliminata, migration
+registrata con `npx supabase db push --yes`, `tsc` 0, vitest **3850 | 19** identico al riferimento.
+🔴 **E ha trovato un difetto più grande di sé: `tsc` NON protegge le query.** I quattro fabbricanti del
+client Supabase non portano il generico `<Database>` → una colonna **inventata** in un `.insert()` lascia
+`tsc` a **0**. È **R27** (roadmap propria, 147 file, decide Francesco); **R28** = la rotta POST rimanda il
+messaggio grezzo del database e non ha test → **si chiude in T3**. **P2 del piano è stata corretta.**
+➡️ **PROSSIMO: Task 2** — il modulo 🆕 **da creare** `src/lib/domain/categorie-foto.ts` (unica fonte dei sei
+valori) più la spia che impedisce a migration e codice di divergere.
 
 **Ordine:** A (T1→T2→T3) → B (T4) → C (T5 🚪gate → T6-T9, T9-bis) → D (T10→T11→T12) → E (T13).
 🛑 **A prima di D** · 🛑 **B prima di D-T12**.
