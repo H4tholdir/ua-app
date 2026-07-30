@@ -297,30 +297,53 @@ describe('DELETE /api/lavori/[id]/immagini/[imgId]', () => {
 })
 
 // ============================================================
+// PATCH — la finta condivisa
+// ============================================================
+// 🔧 SPOSTATA A LIVELLO DI MODULO da T3 (30/07): la usano DUE describe (D52 e
+//    T3/R26). Restare dentro il primo avrebbe voluto dire duplicarla, cioè due
+//    finte da tenere allineate a mano.
+function mockPatch(opts: { existing?: { data: unknown; error: unknown }; updateResult?: { data: unknown; error: unknown } }) {
+  const existing = opts.existing ?? { data: { id: IMG_ID }, error: null }
+  // 🔴 CORREZIONE DEL PIANO (T3, 30/07) — `data` È UN ARRAY, non un oggetto.
+  //    Fino a T3 l'update terminava con `.single()` e questo ripiego era un
+  //    oggetto. Con R26 la catena termina con `.select()` e la rotta CONTA le
+  //    righe toccate: un oggetto darebbe `righe?.length === undefined` → 0 →
+  //    404, e la prova «immagine viva → 200» (D52) diventerebbe rossa per un
+  //    difetto della FINTA, non del codice. Il piano aveva avvisato di questo
+  //    identico incastro per il DELETE (P12) e NON per il PATCH.
+  const updateResult = opts.updateResult ?? { data: [{ id: IMG_ID, descrizione: 'nuova' }], error: null }
+  const existingChain = createChain(existing)
+  const updateChain = createChain(updateResult)
+  const updateCalls: unknown[] = []
+  let immaginiCallCount = 0
+  mockFrom.mockImplementation((table: string) => {
+    if (table !== 'lavori_immagini') throw new Error(`tabella inattesa: ${table}`)
+    immaginiCallCount += 1
+    // Prima chiamata: guardia (select...single). Seconda: update...select().
+    if (immaginiCallCount === 1) return existingChain
+    return {
+      update: (payload: unknown) => {
+        updateCalls.push(payload)
+        return updateChain
+      },
+    }
+  })
+  return { existingChain, updateChain, updateCalls }
+}
+
+/** Corpo grezzo, non-JSON: `req.json()` solleva e la rotta deve rispondere 400. */
+function reqCorpoRotto() {
+  return new Request(`http://localhost/api/lavori/${LAVORO_ID}/immagini/${IMG_ID}`, {
+    method: 'PATCH',
+    headers: { origin: 'http://localhost', host: 'localhost', 'Content-Type': 'application/json' },
+    body: 'questo non e JSON {',
+  })
+}
+
+// ============================================================
 // PATCH — i due difetti chiusi da D52 (nel mandato di T8)
 // ============================================================
 describe('PATCH /api/lavori/[id]/immagini/[imgId] — D52', () => {
-  function mockPatch(opts: { existing?: { data: unknown; error: unknown }; updateResult?: { data: unknown; error: unknown } }) {
-    const existing = opts.existing ?? { data: { id: IMG_ID }, error: null }
-    const updateResult = opts.updateResult ?? { data: { id: IMG_ID, descrizione: 'nuova' }, error: null }
-    const existingChain = createChain(existing)
-    const updateChain = createChain(updateResult)
-    let immaginiCallCount = 0
-    mockFrom.mockImplementation((table: string) => {
-      if (table !== 'lavori_immagini') throw new Error(`tabella inattesa: ${table}`)
-      immaginiCallCount += 1
-      // Prima chiamata: guardia (select...single). Seconda: update...select().single().
-      if (immaginiCallCount === 1) return existingChain
-      return {
-        update: (payload: unknown) => {
-          void payload
-          return updateChain
-        },
-      }
-    })
-    return { existingChain, updateChain }
-  }
-
   it('D52(a): la guardia di esistenza ORA filtra deleted_at IS NULL (immagine già cancellata → 404, non 200)', async () => {
     const { existingChain } = mockPatch({ existing: { data: null, error: { code: 'PGRST116' } } })
     const res = await PATCH(req('PATCH', { descrizione: 'x' }), { params })
@@ -343,3 +366,162 @@ describe('PATCH /api/lavori/[id]/immagini/[imgId] — D52', () => {
     expect(json.error).not.toMatch(/xyz_pkey/i)
   })
 })
+
+// ============================================================
+// T3 — la validazione dei VALORI (422, non 500) e la corsa D52-a chiusa (R26)
+// ============================================================
+// 🛑 Provato scrivendo il piano (P10): `ALLOWED_PATCH_FIELDS` non era coperta da
+//    NESSUNA prova — i tre test PATCH qui sopra mandano tutti `{descrizione}` e
+//    asseriscono solo lo status. Aggiungere `categoria` all'allowlist non
+//    avrebbe acceso niente di rosso. Questo blocco è il rosso che mancava.
+// 🛑 E P11: `if (field in body)` copiava il valore SENZA controllarlo, quindi un
+//    valore fuori elenco usciva 500 (errore del database mascherato) invece di
+//    422 (errore del client). Il 422 è il punto del task.
+describe('PATCH /api/lavori/[id]/immagini/[imgId] — T3: la categoria si valida', () => {
+  // ---- le forme di RIFIUTO: tipo sbagliato, null, array, oggetto, fuori elenco ----
+  it.each<[string, unknown]>([
+    ['fuori elenco', 'pippo'],
+    ['stringa vuota', ''],
+    ['maiuscola — l\'elenco è esatto', 'RX'],
+    ['la vecchia colonna `tipo` non è una categoria', 'foto'],
+    ['spazi intorno a un valore buono — nessuna normalizzazione silenziosa', ' rx '],
+    ['numero al posto di stringa', 3],
+    ['booleano al posto di stringa', true],
+    ['null esplicito', null],
+    ['array al posto di scalare', ['rx']],
+    ['oggetto al posto di scalare', { valore: 'rx' }],
+  ])('categoria %s → 422, e la riga NON viene toccata', async (_nome, valore) => {
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(req('PATCH', { categoria: valore }), { params })
+    expect(res.status).toBe(422)
+    // Il controllo POSITIVO: non ha nemmeno PROVATO a scrivere. Senza questo,
+    // un 422 restituito DOPO l'update sembrerebbe identico dal di fuori.
+    expect(updateCalls).toHaveLength(0)
+  })
+
+  it('il 422 porta un motivo leggibile dal client', async () => {
+    mockPatch({})
+    const res = await PATCH(req('PATCH', { categoria: 'pippo' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(422)
+    expect(String(json.error).length).toBeGreaterThan(0)
+    expect(json.motivo).toBe('categoria_non_valida')
+  })
+
+  // ---- le forme di ACCETTAZIONE ----
+  it.each(['impronta', 'pre_lavoro', 'colore', 'post_prova', 'rx', 'altro'])(
+    'categoria «%s» → 200, e il payload porta esattamente quella chiave',
+    async (categoria) => {
+      const { updateCalls } = mockPatch({})
+      const res = await PATCH(req('PATCH', { categoria }), { params })
+      expect(res.status).toBe(200)
+      expect(updateCalls).toEqual([{ categoria }])
+    },
+  )
+
+  it('`descrizione` resta patchabile, ma non è più la categoria (D73)', async () => {
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(req('PATCH', { descrizione: 'nota libera' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateCalls).toEqual([{ descrizione: 'nota libera' }])
+  })
+
+  // ---- `tipo` è USCITO dall'allowlist: la colonna non esiste più (T1) ----
+  it('`tipo` nel corpo viene SCARTATO e non arriva mai all\'update (la colonna è stata eliminata)', async () => {
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(req('PATCH', { tipo: 'foto', categoria: 'rx' }), { params })
+    expect(res.status).toBe(200)
+    expect(updateCalls).toEqual([{ categoria: 'rx' }])
+  })
+
+  it('un corpo con SOLO `tipo` → 400 «nessun campo aggiornabile», non un 200 silenzioso', async () => {
+    // R-P6: un nome tolto da un'allowlist porta la sua destinazione. Qui la
+    // destinazione è visibile — il client riceve un errore, non un «salvato»
+    // su un dato che non si è salvato.
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(req('PATCH', { tipo: 'foto' }), { params })
+    expect(res.status).toBe(400)
+    expect(updateCalls).toHaveLength(0)
+  })
+
+  it('corpo vuoto {} → 400, nessuna scrittura', async () => {
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(req('PATCH', {}), { params })
+    expect(res.status).toBe(400)
+    expect(updateCalls).toHaveLength(0)
+  })
+
+  it('corpo non-JSON → 400, nessuna scrittura', async () => {
+    const { updateCalls } = mockPatch({})
+    const res = await PATCH(reqCorpoRotto(), { params })
+    expect(res.status).toBe(400)
+    expect(updateCalls).toHaveLength(0)
+  })
+})
+
+// ============================================================
+// R26 — l'update prende la STESSA forma del DELETE: tre .eq(), il filtro su
+// deleted_at, e il conteggio delle righe al posto di .single()
+// ============================================================
+// 🛑 È la corsa D52-a, rimasta aperta: fra la guardia di esistenza e l'update,
+//    una cancellazione concorrente lasciava il PATCH rispondere 200 su un
+//    fantasma. Il controllo NEGATIVO da solo non basterebbe — con zero righe
+//    cancellate in banca dati un filtro inerte darebbe lo stesso esito — quindi
+//    si asserisce sui filtri COSTRUITI, come fanno le prove del DELETE.
+describe('PATCH /api/lavori/[id]/immagini/[imgId] — R26: l\'update si allinea al DELETE', () => {
+  it('l\'update porta TRE .eq() — id, lavoro_id, laboratorio_id — sulla update() stessa', async () => {
+    const { updateChain } = mockPatch({})
+    await PATCH(req('PATCH', { categoria: 'rx' }), { params })
+    const eqCalls = updateChain.calls.filter((c) => c.method === 'eq')
+    expect(eqCalls).toHaveLength(3)
+    expect(eqCalls.map((c) => c.args[0]).sort()).toEqual(['id', 'laboratorio_id', 'lavoro_id'])
+    expect(eqCalls.find((c) => c.args[0] === 'id')?.args[1]).toBe(IMG_ID)
+    expect(eqCalls.find((c) => c.args[0] === 'lavoro_id')?.args[1]).toBe(LAVORO_ID)
+    expect(eqCalls.find((c) => c.args[0] === 'laboratorio_id')?.args[1]).toBe(LAB_ID)
+  })
+
+  it('l\'update porta anche .is(deleted_at, null) e .select() per contare le righe', async () => {
+    const { updateChain } = mockPatch({})
+    await PATCH(req('PATCH', { categoria: 'rx' }), { params })
+    expect(updateChain.calls.some((c) => c.method === 'is' && c.args[0] === 'deleted_at' && c.args[1] === null)).toBe(true)
+    expect(updateChain.calls.some((c) => c.method === 'select')).toBe(true)
+    // .single() sparisce: con il conteggio delle righe non serve più, e con
+    // zero righe toccate darebbe un errore invece di un 404 pulito.
+    expect(updateChain.calls.some((c) => c.method === 'single')).toBe(false)
+  })
+
+  it('0 righe toccate (race: cancellata fra la guardia e l\'update) → 404, non 200', async () => {
+    mockPatch({ updateResult: { data: [], error: null } })
+    const res = await PATCH(req('PATCH', { categoria: 'rx' }), { params })
+    expect(res.status).toBe(404)
+  })
+
+  it('più di una riga toccata (impossibile per PK, ma fail-closed) → 500, non 200', async () => {
+    mockPatch({ updateResult: { data: [{ id: IMG_ID }, { id: 'altra-riga' }], error: null } })
+    const res = await PATCH(req('PATCH', { categoria: 'rx' }), { params })
+    expect(res.status).toBe(500)
+  })
+
+  it('esattamente una riga → 200 e nel corpo LA RIGA, non l\'array', async () => {
+    mockPatch({ updateResult: { data: [{ id: IMG_ID, categoria: 'rx' }], error: null } })
+    const res = await PATCH(req('PATCH', { categoria: 'rx' }), { params })
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.immagine).toEqual({ id: IMG_ID, categoria: 'rx' })
+  })
+})
+
+// ── Forme d'ingresso NON coperte, dichiarate invece che ignorate (R-P4) ──
+// • `ordine` con un valore assurdo (`{"ordine":"pippo"}`) → resta 500, non 422.
+//   NON coperta di proposito: il mandato di T3 valida `categoria`, e il
+//   censimento R-P6 mette `ordine` fra i campi che questa ondata NON tocca e
+//   NON usa. Coprirla qui congelerebbe sotto prova un comportamento che il
+//   piano ha deliberatamente lasciato aperto. Riferita nel rapporto (R-E2).
+// • corpo JSON valido ma non-oggetto (`"stringa"`, `[1,2]`): `field in body`
+//   solleva su un primitivo — `provato:` `node -e "'descrizione' in 'stringa'"`
+//   → `TypeError: Cannot use 'in' operator to search for 'descrizione' in
+//   stringa`. Forma reale, ma FUORI dal mandato di T3: riferita, non corretta.
+//   ⚠️ La stessa GRAFIA `in body` compare in **7 file** sotto `src/app/api`
+//   (`provato:` `grep -rln "in body" src/app/api` → 7). Che tutte e sette siano
+//   ugualmente scoperte è **non verificato**: misurata è la grafia, non
+//   l'assenza di guardia in ciascuna.

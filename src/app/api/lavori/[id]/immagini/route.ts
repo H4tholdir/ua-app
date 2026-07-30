@@ -4,6 +4,7 @@ import { assertLabOperativo } from '@/lib/supabase/lab-guard'
 import { getServiceClient } from '@/lib/supabase/server-service'
 import { isSameOrigin } from '@/lib/utils/csrf'
 import { uploadToStorage } from '@/lib/storage/upload'
+import { isCategoriaFoto } from '@/lib/domain/categorie-foto'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -81,6 +82,31 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: 'File troppo grande (max 20MB)' }, { status: 413 })
   }
 
+  // La categoria si chiede allo SCATTO (D65) e arriva col caricamento.
+  // 🛑 Obbligatoria: la colonna è NOT NULL senza ripiego (D73), quindi qui non
+  //    si indovina. Se il foglio viene chiuso senza scegliere, è il CLIENT che
+  //    manda 'altro' esplicitamente (D74) — il server non decide al posto suo.
+  // 🛑 SI IMPORTA `isCategoriaFoto`, non si ricopia l'elenco: la spia di T2
+  //    (`tests/unit/categorie-foto-spia-migration.test.ts`) sorveglia DUE copie
+  //    dei sei valori — il CHECK della migration e la costante TypeScript — e
+  //    una terza copia scritta a mano qui non la vedrebbe nessuno, né la spia
+  //    né `tsc` (R27: il client non porta il generico `<Database>`).
+  // 🔑 E il controllo sta QUI, PRIMA del caricamento su Storage: un rifiuto
+  //    dopo l'upload lascerebbe nell'archivio un file orfano che nessuna riga
+  //    referenzia e che nessuno cancellerà mai.
+  const categoria = formData.get('categoria')
+  if (!isCategoriaFoto(categoria)) {
+    return NextResponse.json(
+      { error: 'Categoria della foto mancante o non valida', motivo: 'categoria_non_valida' },
+      { status: 422 }
+    )
+  }
+
+  // Descrizione: testo libero e OPZIONALE. Fino al 30/07/2026 ci viveva
+  // impropriamente la categoria (D73): ora ha una colonna sua.
+  const descrizione = formData.get('descrizione')
+  const descrizioneValue = typeof descrizione === 'string' && descrizione ? descrizione : null
+
   // Upload su Storage
   const path = `lavori/${lavoro_id}/${Date.now()}.${ext}`
   let url: string
@@ -93,10 +119,6 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
-  // Leggi descrizione opzionale (usata per salvare la categoria foto)
-  const descrizione = formData.get('descrizione')
-  const descrizioneValue = typeof descrizione === 'string' && descrizione ? descrizione : null
-
   // INSERT in lavori_immagini
   const { data: immagine, error: insertError } = await svc
     .from('lavori_immagini')
@@ -107,14 +129,19 @@ export async function POST(req: Request, { params }: RouteContext) {
       url,
       nome_file: file.name || null,
       descrizione: descrizioneValue,
-      categoria: 'altro', // ⚠️ PONTE DI T1, sostituito da T3 con il valore vero dal client
+      categoria,
       ordine: 0,
     })
     .select()
     .single()
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+    // R28 (G9): il messaggio grezzo del database non esce verso il browser —
+    // porta nomi di vincoli, di colonne e di indici, cioè ricognizione gratuita
+    // per chi sonda l'app. Il dettaglio resta nel registro del server.
+    // Precedente in casa: `[imgId]/route.ts:84`, `api/pazienti/route.ts:227-228`.
+    console.error('POST /api/lavori/[id]/immagini — inserimento fallito:', insertError.message)
+    return NextResponse.json({ error: 'Non è stato possibile salvare la foto' }, { status: 500 })
   }
 
   return NextResponse.json({ immagine }, { status: 201 })
