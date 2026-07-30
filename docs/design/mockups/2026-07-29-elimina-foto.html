@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elimina foto — varianti del gesto su due superfici (29/07/2026)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ═══ Token DS v3 copiati VERBATIM da src/app/ds-v3.css:11-58 ═══
+     Nessun colore inventato: se un valore non è qui, non esiste. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [data-ds="v3"] {
+    --bg:#F4F0E7; --bg-deep:#ECE6D9; --card:#FFFEFA; --elv:var(--card);
+    --ink:#1D1913; --muted:#6E6457; --faint:#7B6A59; --line:#EBE4D6;
+    --red:#D90012; --red-dark:#A5000E;
+    --amber:#9A5C00; --green:#1B7F3B; --blue:#1D5FBF;
+    --red-tint:#FBEDEC; --amber-tint:#F8F0E1; --blue-tint:#EBF1FA; --green-tint:#EAF4EC;
+    --sh-card: 0 1px 0 rgba(255,255,255,.9) inset, 0 2px 3px rgba(50,40,25,.05), 0 16px 30px -18px rgba(50,40,25,.35);
+    --sh-press: 0 4px 0 rgba(50,40,25,.12), 0 14px 24px -14px rgba(50,40,25,.3), inset 0 1px 0 rgba(255,255,255,.9);
+    --scrim: rgba(29,25,19,.35);
+    --font-v3:'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-v3); color: var(--ink);
+  }
+  [data-theme="dark"] [data-ds="v3"] {
+    --bg:#171411; --bg-deep:#100E0B; --card:#211D18; --elv:#2B2620;
+    --ink:#F2EEE7; --muted:#A69B8C; --faint:#928778; --line:#342E26;
+    --red:#FF3B44; --red-dark:#8F0910;
+    --amber:#E8A13D; --green:#34C468; --blue:#5B9BFF;
+    --red-tint: rgba(255,59,68,.14); --amber-tint: rgba(232,161,61,.14);
+    --sh-card: none; --sh-press: none;   /* dark = flat, MAI ombre (spec §3.2) */
+  }
+  body { background: var(--bg); padding: 24px 0 72px; }
+
+  /* ── impalcatura del foglio di mockup (non fa parte del disegno) ── */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .sub strong { color: var(--ink); }
+  h2 { font-size: 21px; font-weight: 800; letter-spacing:-0.02em; margin: 40px 0 4px; padding-top: 24px; border-top: 1px solid var(--line); }
+  h3 { font-size: 15.5px; font-weight: 700; margin: 22px 0 2px; }
+  .nota { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-bottom: 12px; }
+  .nota b { color: var(--ink); }
+  .pro { color: var(--green); font-weight: 700; }
+  .contro { color: var(--red); font-weight: 700; }
+  .fila { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .tel { width: 342px; flex: none; background: var(--bg); border-radius: 24px; padding: 16px;
+         box-shadow: var(--sh-card); border: 1px solid var(--line); }
+  [data-theme="dark"] .tel { border-color: var(--line); }
+  .etichetta { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+               color: var(--faint); margin-bottom: 10px; }
+
+  /* ═══ SUPERFICIE A — scheda del lavoro: FotoStrip (§5.33) ═══
+     Verbatim da src/components/ds/FotoStrip.tsx: thumb 72×72, radius 12,
+     gap 8 (spazio.s), una riga scrollabile, objectFit cover. */
+  .strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .thumb { position: relative; flex-shrink: 0; width: 72px; height: 72px; border-radius: 12px;
+           background: var(--bg-deep); overflow: hidden; }
+  .thumb .foto { width: 100%; height: 100%; display: block; }
+
+  /* la X tonda sovrapposta — Ø28, tocco allargato a 44 con ::before */
+  .x { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 999px;
+       background: var(--card); color: var(--red); border: none;
+       box-shadow: 0 2px 6px rgba(50,40,25,.35); display: flex; align-items: center;
+       justify-content: center; font-size: 15px; font-weight: 800; cursor: pointer; }
+  [data-theme="dark"] .x { background: var(--elv); box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  .x::before { content:''; position: absolute; inset: -8px; border-radius: 999px; }  /* area 44 */
+  .x[disabled] { color: var(--faint); cursor: not-allowed; box-shadow: none;
+                 background: var(--bg-deep); }
+
+  /* A3 — modalità «sistema le foto»: la strip entra in modifica */
+  .capo { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .link { font-size: 13px; font-weight: 700; color: var(--red); background: none; border: none;
+          cursor: pointer; padding: 4px 0; }
+  .scuote { animation: scuoti 1.6s ease-in-out infinite; }
+  @keyframes scuoti { 0%,92%,100%{transform:rotate(0)} 94%{transform:rotate(-1.2deg)} 97%{transform:rotate(1.2deg)} }
+
+  /* ═══ SUPERFICIE B — schermata di modifica: griglia di TabImmagini ═══
+     Verbatim da TabImmagini.tsx: 3 colonne a 390 (4 a 768, 5 a 1280), gap 8,
+     tessera h 100, radius 10, fascia bassa = <select> categoria su rgba(0,0,0,.62),
+     minHeight 44. Il contatore è 12px/700 uppercase, letter-spacing .06em. */
+  .conta { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+           letter-spacing: .06em; margin-bottom: 10px; }
+  .griglia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tessera { position: relative; height: 100px; border-radius: 10px; overflow: hidden;
+             background: var(--elv); box-shadow: var(--sh-card); }
+  .tessera .foto { width: 100%; height: 100%; display: block; }
+  .fascia { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.62);
+            min-height: 44px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 8px; color: #fff; font-size: 12px; font-weight: 600; }
+  .fascia .cat { display: flex; align-items: center; gap: 4px; }
+  .fascia .xf { background: none; border: none; color: #fff; font-size: 15px; font-weight: 800;
+                cursor: pointer; padding: 12px 4px; opacity: .92; }
+  /* vista lista (listaVista) — riga h 56, thumb 44, nome file */
+  .riga { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 10px;
+          border-radius: 10px; background: var(--elv); box-shadow: var(--sh-card); margin-bottom: 8px; }
+  .riga .foto { width: 44px; height: 44px; border-radius: 8px; flex: none; display: block; }
+  .riga .nome { font-size: 13px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden;
+                text-overflow: ellipsis; white-space: nowrap; }
+  .riga .xr { width: 44px; height: 44px; border-radius: 999px; border: none; background: none;
+              color: var(--red); font-size: 17px; font-weight: 800; cursor: pointer; flex: none; }
+
+  /* ═══ Lo stato FUORI FINESTRA (lavoro consegnato) ═══ */
+  .avviso { display: flex; align-items: flex-start; gap: 8px; padding: 16px; border-radius: 18px;
+            background: var(--card); box-shadow: var(--sh-card); margin-top: 12px; }
+  [data-theme="dark"] .avviso { background: var(--elv); }
+  .avviso .ico { width: 26px; height: 26px; border-radius: 999px; flex: none; background: var(--amber);
+                 color: #fff; font-weight: 800; font-size: 15px; display: flex; align-items: center;
+                 justify-content: center; }
+  .avviso p { font-size: 15.5px; font-weight: 700; line-height: 1.35; }
+  .avviso .sotto { font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .spenta { opacity: .45; }
+
+  /* ═══ La conferma (D55) — foglio dal basso su mobile, dialogo su desktop ═══ */
+  .palco { position: relative; height: 420px; border-radius: 24px; overflow: hidden;
+           background: var(--bg); border: 1px solid var(--line); }
+  .palco .dietro { padding: 16px; filter: blur(1px); }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .foglio { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+            border-radius: 28px 28px 0 0; padding: 24px 24px 28px; box-shadow: var(--sh-card); }
+  [data-theme="dark"] .foglio { background: var(--elv); }
+  .maniglia { width: 44px; height: 4px; border-radius: 999px; background: var(--line);
+              margin: -8px auto 16px; }
+  .foglio h4 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .foglio .testo { font-size: 15.5px; color: var(--muted); line-height: 1.45; margin-bottom: 20px; }
+  .anteprima { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+  .anteprima .foto { width: 56px; height: 56px; border-radius: 12px; flex: none; display: block; }
+  .anteprima .meta { font-size: 13px; color: var(--muted); }
+  .anteprima .meta b { display: block; font-size: 15.5px; color: var(--ink); font-weight: 700; }
+  .tasti { display: flex; flex-direction: column; gap: 12px; }
+  .t-rosso { min-height: 52px; border-radius: 20px; border: none; cursor: pointer; color: #fff;
+             font-family: var(--font-v3); font-size: 17px; font-weight: 700;
+             background: linear-gradient(180deg, #F2263A, var(--red) 55%, #B00010);
+             box-shadow: var(--sh-press); }
+  .t-neutro { min-height: 52px; border-radius: 20px; cursor: pointer; background: var(--card);
+              color: var(--ink); border: 1px solid var(--line); font-family: var(--font-v3);
+              font-size: 17px; font-weight: 700; }
+  [data-theme="dark"] .t-neutro { background: var(--elv); }
+  .dialogo { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+             width: 420px; background: var(--card); border-radius: 24px; padding: 24px;
+             box-shadow: var(--sh-card); }
+  [data-theme="dark"] .dialogo { background: var(--elv); }
+  .dialogo .tasti { flex-direction: row; justify-content: flex-end; }
+  .dialogo .tasti button { min-width: 132px; }
+
+  @media (max-width: 800px) { .tel { width: 100%; } .dialogo { width: calc(100% - 32px); } }
+</style>
+</head>
+<body data-ds="v3">
+<div class="wrap">
+
+  <h1>«Elimina foto» — dove sta il gesto, e come si comporta quando non si può</h1>
+  <p class="sub">
+    Il motore è già pronto e provato (T8): la foto si marca cancellata, il file resta nell'archivio,
+    e a lavoro <strong>consegnato</strong> il server rifiuta. Qui si decide <strong>solo l'aspetto e il
+    gesto</strong>. Colori, ombre, raggi e caratteri sono <strong>copiati dai token v3</strong>
+    (<code>src/app/ds-v3.css:11-58</code>) e le misure dai due componenti veri
+    (<code>FotoStrip.tsx</code> · <code>TabImmagini.tsx</code>): niente è inventato.
+  </p>
+  <p class="nota">
+    Due scelte sono già tue e sono dentro tutte le varianti: <b>si chiede conferma</b> (D55) e il gesto
+    c'è <b>su entrambe le schermate</b> (D56). Quello che manca è <b>dove metti la mano</b>.
+  </p>
+
+  <!-- ══════════ SUPERFICIE A — LA SCHEDA DEL LAVORO ══════════ -->
+  <h2>① La scheda del lavoro — la striscia di foto</h2>
+  <p class="nota">
+    Oggi è una striscia di miniature <b>72×72</b> che si scorre di lato, e serve a guardare.
+    Tre modi di aggiungerci l'eliminazione.
+  </p>
+
+  <div class="fila">
+
+    <div class="tel">
+      <div class="etichetta">A1 · la ✕ è sempre lì</div>
+      <div class="strip">
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C9BFA9"/><ellipse cx="36" cy="44" rx="22" ry="15" fill="#EFE7D5"/><path d="M18 44c4-9 32-9 36 0" stroke="#B9A98C" stroke-width="2" fill="none"/></svg><button class="x">✕</button></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#B8AEA0"/><rect x="14" y="20" width="44" height="32" rx="4" fill="#E8E0D2"/><path d="M22 36h28M22 44h20" stroke="#A2968A" stroke-width="2"/></svg><button class="x">✕</button></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#8E8E93"/><circle cx="36" cy="34" r="16" fill="#D8D8DC"/><path d="M36 18v32" stroke="#8E8E93" stroke-width="2"/></svg><button class="x">✕</button></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C4B7A2"/><path d="M20 50c6-16 26-16 32 0" fill="#F0E9D9"/></svg><button class="x">✕</button></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — un tocco solo, si vede subito che si può togliere.<br>
+        <span class="contro">Contro</span> — quattro ✕ rosse sopra le foto: la striscia serve a
+        <b>guardare</b>, e diventa una fila di pulsanti. E su 72 px la ✕ copre un angolo dell'immagine.
+      </p>
+    </div>
+
+    <div class="tel">
+      <div class="etichetta">A2 · tocchi la foto, scegli cosa fare</div>
+      <div class="strip">
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C9BFA9"/><ellipse cx="36" cy="44" rx="22" ry="15" fill="#EFE7D5"/><path d="M18 44c4-9 32-9 36 0" stroke="#B9A98C" stroke-width="2" fill="none"/></svg></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#B8AEA0"/><rect x="14" y="20" width="44" height="32" rx="4" fill="#E8E0D2"/><path d="M22 36h28M22 44h20" stroke="#A2968A" stroke-width="2"/></svg></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#8E8E93"/><circle cx="36" cy="34" r="16" fill="#D8D8DC"/><path d="M36 18v32" stroke="#8E8E93" stroke-width="2"/></svg></div>
+        <div class="thumb"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C4B7A2"/><path d="M20 50c6-16 26-16 32 0" fill="#F0E9D9"/></svg></div>
+      </div>
+      <div class="avviso" style="margin-top:14px">
+        <span class="ico" style="background:var(--blue)">i</span>
+        <div><p>Al tocco si apre il foglio</p>
+        <p class="sotto">«Ingrandisci» · «Elimina foto». La striscia resta pulita.</p></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — la striscia non cambia aspetto, e ci si guadagna
+        <b>l'ingrandimento</b>, che oggi non c'è: tocchi la foto e la vedi grande.<br>
+        <span class="contro">Contro</span> — per togliere una foto servono <b>due tocchi</b> più la
+        conferma.
+      </p>
+    </div>
+
+    <div class="tel">
+      <div class="etichetta">A3 · «Sistema» accende le ✕</div>
+      <div class="capo">
+        <span class="etichetta" style="margin:0">Foto</span>
+        <button class="link">Sistema</button>
+      </div>
+      <div class="strip">
+        <div class="thumb scuote"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C9BFA9"/><ellipse cx="36" cy="44" rx="22" ry="15" fill="#EFE7D5"/><path d="M18 44c4-9 32-9 36 0" stroke="#B9A98C" stroke-width="2" fill="none"/></svg><button class="x">✕</button></div>
+        <div class="thumb scuote"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#B8AEA0"/><rect x="14" y="20" width="44" height="32" rx="4" fill="#E8E0D2"/><path d="M22 36h28M22 44h20" stroke="#A2968A" stroke-width="2"/></svg><button class="x">✕</button></div>
+        <div class="thumb scuote"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#8E8E93"/><circle cx="36" cy="34" r="16" fill="#D8D8DC"/><path d="M36 18v32" stroke="#8E8E93" stroke-width="2"/></svg><button class="x">✕</button></div>
+        <div class="thumb scuote"><svg class="foto" viewBox="0 0 72 72"><rect width="72" height="72" fill="#C4B7A2"/><path d="M20 50c6-16 26-16 32 0" fill="#F0E9D9"/></svg><button class="x">✕</button></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — a riposo la striscia è identica a oggi; le ✕ compaiono
+        <b>solo quando lo chiedi</b>, e allora ne puoi togliere diverse di fila.<br>
+        <span class="contro">Contro</span> — è un <b>modo in più da capire</b> («ora sono in
+        sistemazione»), e va anche spento. Il tremolio va disattivato con «riduci animazioni».
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ══════════ SUPERFICIE B — LA SCHERMATA DI MODIFICA ══════════ -->
+  <h2>② La schermata di modifica — la griglia delle foto</h2>
+  <p class="nota">
+    Qui le tessere sono più grandi (<b>100 px</b>) ma la fascia bassa <b>è già occupata</b>: c'è la
+    tendina della categoria («Impronta», «Pre-lavoro», «Guida colore»…). Due modi di far stare tutto.
+  </p>
+
+  <div class="fila">
+
+    <div class="tel">
+      <div class="etichetta">B1 · ✕ in alto, categoria in basso</div>
+      <p class="conta">3 foto allegate</p>
+      <div class="griglia">
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="30" ry="20" fill="#EFE7D5"/></svg>
+          <div class="fascia"><span class="cat">Impronta ▾</span></div><button class="x">✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg>
+          <div class="fascia"><span class="cat">Pre-lavoro ▾</span></div><button class="x">✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg>
+          <div class="fascia"><span class="cat">Radiografia ▾</span></div><button class="x">✕</button></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — <b>niente si sposta</b>: la categoria resta dov'è, la ✕ prende
+        l'angolo libero. Un tocco solo.<br>
+        <span class="contro">Contro</span> — sulla stessa tessera convivono due comandi vicini; la ✕ è
+        Ø 28 (l'area sensibile è 44, come vuole la regola).
+      </p>
+    </div>
+
+    <div class="tel">
+      <div class="etichetta">B2 · la ✕ sta nella fascia, accanto alla categoria</div>
+      <p class="conta">3 foto allegate</p>
+      <div class="griglia">
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="30" ry="20" fill="#EFE7D5"/></svg>
+          <div class="fascia"><span class="cat">Impronta ▾</span><button class="xf">✕</button></div></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg>
+          <div class="fascia"><span class="cat">Pre-lavoro ▾</span><button class="xf">✕</button></div></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg>
+          <div class="fascia"><span class="cat">Radiografia ▾</span><button class="xf">✕</button></div></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — <b>l'immagine non si copre mai</b>: i comandi stanno tutti nella
+        fascia scura, che è già lì per quello.<br>
+        <span class="contro">Contro</span> — la tendina si <b>restringe</b> (i nomi lunghi come
+        «Radiografia» stanno stretti su telefono), e due bersagli da 44 px nella stessa fascia sono
+        <b>vicini</b>: il dito può sbagliare.
+      </p>
+    </div>
+
+    <div class="tel">
+      <div class="etichetta">Vista elenco — vale per B1 e B2</div>
+      <p class="conta">3 foto allegate</p>
+      <div class="riga"><svg class="foto" viewBox="0 0 44 44"><rect width="44" height="44" fill="#C9BFA9"/><ellipse cx="22" cy="27" rx="13" ry="9" fill="#EFE7D5"/></svg>
+        <span class="nome">impronta-sup.jpg</span><button class="xr">✕</button></div>
+      <div class="riga"><svg class="foto" viewBox="0 0 44 44"><rect width="44" height="44" fill="#B8AEA0"/><rect x="9" y="12" width="26" height="20" rx="3" fill="#E8E0D2"/></svg>
+        <span class="nome">pre-lavoro-2026-07-29.jpg</span><button class="xr">✕</button></div>
+      <div class="riga"><svg class="foto" viewBox="0 0 44 44"><rect width="44" height="44" fill="#8E8E93"/><circle cx="22" cy="20" r="10" fill="#D8D8DC"/></svg>
+        <span class="nome">rx-panoramica.jpg</span><button class="xr">✕</button></div>
+      <p class="nota" style="margin-top:12px">
+        Nella vista a elenco non c'è nessuna fascia: la ✕ va <b>a fine riga</b>, 44×44 pieni.
+        Questa parte è la stessa in entrambe le varianti — non è una terza scelta.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ══════════ FUORI FINESTRA ══════════ -->
+  <h2>③ Quando NON si può più: lavoro consegnato</h2>
+  <p class="nota">
+    Il server rifiuta, e la regola del progetto è chiara: il comando <b>non si nasconde</b>, si spegne
+    <b>con la spiegazione visibile</b>. Due modi di dirlo.
+  </p>
+
+  <div class="fila">
+
+    <div class="tel">
+      <div class="etichetta">C1 · la ✕ è spenta e la ragione sta scritta</div>
+      <p class="conta">3 foto allegate</p>
+      <div class="griglia">
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="30" ry="20" fill="#EFE7D5"/></svg>
+          <div class="fascia"><span class="cat">Impronta</span></div><button class="x" disabled>✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg>
+          <div class="fascia"><span class="cat">Pre-lavoro</span></div><button class="x" disabled>✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg>
+          <div class="fascia"><span class="cat">Radiografia</span></div><button class="x" disabled>✕</button></div>
+      </div>
+      <div class="avviso">
+        <span class="ico">!</span>
+        <div><p>Lavoro consegnato: le foto non si possono più togliere</p>
+        <p class="sotto">Dalla consegna la documentazione del lavoro resta come è stata emessa.</p></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — si capisce <b>prima</b> di provare, e la frase sta sotto la
+        griglia una volta sola.<br>
+        <span class="contro">Contro</span> — una riga in più sempre presente su quei lavori.
+      </p>
+    </div>
+
+    <div class="tel">
+      <div class="etichetta">C2 · spenta, e la ragione compare al tocco</div>
+      <p class="conta">3 foto allegate</p>
+      <div class="griglia">
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/><ellipse cx="50" cy="60" rx="30" ry="20" fill="#EFE7D5"/></svg>
+          <div class="fascia"><span class="cat">Impronta</span></div><button class="x" disabled>✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/><rect x="20" y="28" width="60" height="44" rx="5" fill="#E8E0D2"/></svg>
+          <div class="fascia"><span class="cat">Pre-lavoro</span></div><button class="x" disabled>✕</button></div>
+        <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/><circle cx="50" cy="46" r="22" fill="#D8D8DC"/></svg>
+          <div class="fascia"><span class="cat">Radiografia</span></div><button class="x" disabled>✕</button></div>
+      </div>
+      <p class="nota" style="margin-top:12px">
+        <span class="pro">Pro</span> — nessuna riga fissa: la griglia resta come sempre.<br>
+        <span class="contro">Contro</span> — <b>bisogna provare per sapere perché</b>, e un comando
+        spento senza spiegazione accanto è proprio ciò che la regola vuole evitare. Su un dito che
+        tocca e non ottiene niente, la spiegazione arriva tardi.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ══════════ LA CONFERMA ══════════ -->
+  <h2>④ La conferma (la scelta è già tua: si chiede)</h2>
+  <p class="nota">
+    Su telefono è un <b>foglio che sale dal basso</b> (mai un riquadro al centro: è una regola fissa
+    del progetto); su schermo grande è un riquadro. Il testo dice <b>cosa succede al file</b>, perché
+    «elimina» su una fotografia clinica non deve far pensare a una distruzione.
+  </p>
+
+  <div class="fila">
+
+    <div class="tel">
+      <div class="etichetta">Telefono — foglio dal basso</div>
+      <div class="palco">
+        <div class="dietro">
+          <p class="conta">3 foto allegate</p>
+          <div class="griglia">
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/></svg><div class="fascia"><span class="cat">Impronta ▾</span></div></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/></svg><div class="fascia"><span class="cat">Pre-lavoro ▾</span></div></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/></svg><div class="fascia"><span class="cat">Radiografia ▾</span></div></div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="foglio">
+          <div class="maniglia"></div>
+          <h4>Elimino questa foto?</h4>
+          <div class="anteprima">
+            <svg class="foto" viewBox="0 0 56 56"><rect width="56" height="56" fill="#B8AEA0"/><rect x="11" y="15" width="34" height="26" rx="4" fill="#E8E0D2"/></svg>
+            <div class="meta"><b>Pre-lavoro</b>caricata oggi alle 9:14</div>
+          </div>
+          <p class="testo">Sparisce dalla scheda e dai documenti del lavoro. Il file resta conservato.</p>
+          <div class="tasti">
+            <button class="t-rosso">Elimina foto</button>
+            <button class="t-neutro">Annulla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tel" style="width:520px">
+      <div class="etichetta">Schermo grande — riquadro</div>
+      <div class="palco">
+        <div class="dietro">
+          <p class="conta">3 foto allegate</p>
+          <div class="griglia" style="grid-template-columns:repeat(5,1fr)">
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C9BFA9"/></svg></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B8AEA0"/></svg></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#8E8E93"/></svg></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C4B7A2"/></svg></div>
+            <div class="tessera"><svg class="foto" viewBox="0 0 100 100"><rect width="100" height="100" fill="#BFB6A6"/></svg></div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="dialogo">
+          <h4>Elimino questa foto?</h4>
+          <div class="anteprima">
+            <svg class="foto" viewBox="0 0 56 56"><rect width="56" height="56" fill="#B8AEA0"/><rect x="11" y="15" width="34" height="26" rx="4" fill="#E8E0D2"/></svg>
+            <div class="meta"><b>Pre-lavoro</b>caricata oggi alle 9:14</div>
+          </div>
+          <p class="testo">Sparisce dalla scheda e dai documenti del lavoro. Il file resta conservato.</p>
+          <div class="tasti">
+            <button class="t-neutro">Annulla</button>
+            <button class="t-rosso">Elimina foto</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Che cosa devi scegliere</h2>
+  <p class="nota">
+    <b>Uno</b> fra A1 · A2 · A3 per la scheda del lavoro. <b>Uno</b> fra B1 · B2 per la schermata di
+    modifica. <b>Uno</b> fra C1 · C2 per il lavoro consegnato. Il resto — la conferma, i testi, la vista
+    a elenco — è già deciso e uguale in tutte le combinazioni.
+  </p>
+  <p class="nota">
+    🛑 Una parola che <b>non</b> compare da nessuna parte, e non è una dimenticanza: «diritto all'oblio»,
+    «richiesta del paziente». Il laboratorio tratta i dati <b>per conto</b> del dentista; offrire quella
+    funzione lo spingerebbe a diventarne titolare, con gli obblighi che ne seguono. Il bottone dice
+    <b>«Elimina foto»</b> e basta.
+  </p>
+
+</div>
+</body>
+</html>
